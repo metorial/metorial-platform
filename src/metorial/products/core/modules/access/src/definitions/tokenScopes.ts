@@ -90,6 +90,8 @@ export let instanceSecretTokenScopes: Scope[] = [
   'instance.provider.config:write' as const,
   'instance.provider.config_vault:read' as const,
   'instance.provider.config_vault:write' as const,
+  'instance.provider.public_mcp_server:read' as const,
+  'instance.provider.public_mcp_server:write' as const,
 
   'instance.provider.group:read' as const,
   'instance.provider.group:write' as const,

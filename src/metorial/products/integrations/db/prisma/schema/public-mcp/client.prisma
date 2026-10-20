@@ -1,0 +1,46 @@
+enum PublicMcpServerClientAuthMethod {
+  client_secret_basic
+  client_secret_post
+  none
+}
+
+model PublicMcpServerClient {
+  oid BigInt @id
+  id  String @unique
+
+  clientId                    String                          @unique
+  clientSecretHash            String?
+  registrationAccessTokenHash String                          @unique
+  tokenEndpointAuthMethod     PublicMcpServerClientAuthMethod
+
+  clientName   String
+  clientUri    String?
+  logoUri      String?
+  redirectUris String[]
+
+  registrationIp String
+  registrationUa String?
+
+  publicMcpServerOid BigInt
+  publicMcpServer    PublicMcpServer @relation(fields: [publicMcpServerOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid])
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  lastUsedAt DateTime?
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+
+  authorizations PublicMcpServerAuthorization[]
+  grants         PublicMcpServerGrant[]
+
+  @@index([publicMcpServerOid, createdAt])
+  @@index([registrationIp, createdAt])
+  @@index([expiresAt])
+  @@index([projectOid])
+  @@index([instanceOid])
+}

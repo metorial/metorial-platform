@@ -7,6 +7,7 @@ import type {
 import { secretService } from '../../services';
 import { serverAuthTokenService } from '../../services/oauth/serverAuthToken';
 import { ConnectionError, toConnectionError } from '../utils/connectionError';
+import { reportConnectionIssue } from '../utils/connectionIssues';
 import type { ConnectionLogger } from '../utils/logger';
 
 const EXPIRY_SAFETY_MARGIN_MS = 1000 * 30;
@@ -115,6 +116,15 @@ export class RemoteConnectionAuthManager {
             tokenId: `remote/${res.remoteToken?.id}`
           };
         } catch (err) {
+          reportConnectionIssue(err, {
+            transport: 'auth_manager',
+            phase: 'token',
+            connectionId: this.connection.id,
+            serverConfigId: this.serverConfig.id,
+            authConfigId: this.connection.serverAuthConfig?.id,
+            authType: this.connection.serverAuthConfig?.type,
+            tenantId: this.tenant.id
+          });
           let mapped = toConnectionError(err, 'auth_token_refresh_failed');
           this.logger.log('debug.error', `Failed to obtain access token: ${mapped.message}`);
 

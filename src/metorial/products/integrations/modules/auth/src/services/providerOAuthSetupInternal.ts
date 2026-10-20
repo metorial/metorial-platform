@@ -11,6 +11,7 @@ import { getBackend } from '@metorial-subspace/provider';
 import { Fabric } from '@metorial/fabric';
 import { getSubspaceSystemProviderEventBase } from '@metorial-subspace/module-tenant';
 import { env } from '../env';
+import { stampPublicMcpOwnership } from '../lib/publicMcpOwnership';
 import { providerOAuthSetupUpdatedQueue } from '../queues/lifecycle/providerOAuthSetup';
 import { providerAuthConfigInternalService } from './providerAuthConfigInternal';
 import { providerSetupSessionInternalService } from './providerSetupSessionInternal';
@@ -81,7 +82,11 @@ class providerOAuthSetupInternalServiceImpl {
             authConfig =
               await providerAuthConfigInternalService.createProviderAuthConfigInternal({
                 backend: backend.backend,
-                source: providerOAuthSetup.providerSetupSession ? 'setup_session' : 'system',
+                source: providerOAuthSetup.ownerPublicMcpServerOid
+                  ? 'public_mcp'
+                  : providerOAuthSetup.providerSetupSession
+                    ? 'setup_session'
+                    : 'system',
                 type: 'oauth_automated',
                 tenant: providerOAuthSetup.tenant,
                 environment: providerOAuthSetup.environment,
@@ -104,6 +109,11 @@ class providerOAuthSetupInternalServiceImpl {
                   expiresAt: null
                 }
               });
+
+            await stampPublicMcpOwnership({
+              ownerPublicMcpServerOid: providerOAuthSetup.ownerPublicMcpServerOid,
+              authConfigOid: authConfig.oid
+            });
 
             await Fabric.fire('provider.auth_config.created:after', {
               ...eventBase,

@@ -17,6 +17,7 @@ import {
   toConnectionError,
   type ConnectionErrorPayload
 } from '../utils/connectionError';
+import { reportRemoteConnectionIssue } from '../utils/connectionIssues';
 import { ConnectionLogger } from '../utils/logger';
 import { ConnectionMessenger } from '../utils/messenger';
 import { RemoteConnectionAuthManager } from './authManager';
@@ -139,7 +140,17 @@ export class StreamableHttpRemoteConnection implements McpConnectionBackendAdapt
       };
     }
 
+    this.#reportIssue(error, isInitialize ? 'initialize' : 'send_message');
     return toConnectionError(error);
+  }
+
+  #reportIssue(error: unknown, phase: string) {
+    reportRemoteConnectionIssue(error, phase, {
+      transport: 'streamable_http',
+      tenant: this.tenant,
+      version: this.version,
+      connection: this.connection
+    });
   }
 
   async #emitError(error: ConnectionErrorPayload) {
@@ -199,6 +210,7 @@ export class StreamableHttpRemoteConnection implements McpConnectionBackendAdapt
    * also break request/response traffic are escalated to the connection.
    */
   async #handleNotificationStreamError(error: unknown) {
+    this.#reportIssue(error, 'notification_stream');
     let mapped = toConnectionError(error);
 
     if (FATAL_NOTIFICATION_STREAM_CODES.has(mapped.code)) {

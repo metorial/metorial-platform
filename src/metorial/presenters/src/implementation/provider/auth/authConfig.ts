@@ -138,3 +138,30 @@ export let v1ProviderAuthConfigPresenter = Presenter.create(providerAuthConfigTy
     })
   )
   .build();
+
+export let dashboardProviderAuthConfigPresenter = Presenter.create(providerAuthConfigType)
+  .presenter(async ({ authConfig }, opts) => {
+    let inner = await v1ProviderAuthConfigPresenter.present({ authConfig }, opts).run({});
+
+    return {
+      ...inner,
+
+      public_mcp_server_id: authConfig.ownerPublicMcpServer?.id ?? null
+    };
+  })
+  .schema(
+    v.intersection([
+      v1ProviderAuthConfigPresenter.schema,
+      v.object({
+        public_mcp_server_id: v.nullable(
+          v.string({
+            name: 'public_mcp_server_id',
+            description:
+              "ID of the public MCP server this resource belongs to. Such resources hold an end user's credentials and are read-only.",
+            examples: ['pmsv_1aBcDeFgHjKlMnPq']
+          })
+        )
+      })
+    ])
+  )
+  .build();

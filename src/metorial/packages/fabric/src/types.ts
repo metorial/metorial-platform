@@ -18,6 +18,8 @@ import type {
   ProviderDeployment as SubspaceProviderDeployment,
   ProviderListingGroup as SubspaceProviderListingGroup,
   ProviderSetupSession as SubspaceProviderSetupSession,
+  PublicMcpServer as SubspacePublicMcpServer,
+  PublicMcpServerGrant as SubspacePublicMcpServerGrant,
   Session as SubspaceSession,
   SessionProvider as SubspaceSessionProvider,
   SessionTemplate as SubspaceSessionTemplate,
@@ -207,6 +209,16 @@ export type AuditSubspaceProviderDeployment = SubspaceProviderDeployment & {
 
 export type AuditSubspaceProviderSetupSession = SubspaceProviderSetupSession & {
   provider?: { id: string; name: string } | null;
+};
+
+export type AuditSubspacePublicMcpServer = SubspacePublicMcpServer & {
+  provider: { id: string; name: string };
+  deployment: { id: string };
+};
+
+export type AuditSubspacePublicMcpServerGrant = SubspacePublicMcpServerGrant & {
+  publicMcpServer: { id: string; slug: string };
+  client: { id: string; clientId: string; clientName: string | null };
 };
 
 export type AuditSubspaceCallback = {
@@ -1576,6 +1588,18 @@ export interface FabricEvents {
   'provider.setup_session.created:after': ProviderEventBase & { setupSession: AuditSubspaceProviderSetupSession };
   'provider.setup_session.updated:before': ProviderEventBase;
   'provider.setup_session.updated:after': ProviderEventBase & { setupSession: AuditSubspaceProviderSetupSession; previousSetupSession: AuditSubspaceProviderSetupSession };
+
+  'provider.public_mcp_server.created:before': ProviderEventBase;
+  'provider.public_mcp_server.created:after': ProviderEventBase & { publicMcpServer: AuditSubspacePublicMcpServer };
+  'provider.public_mcp_server.updated:before': ProviderEventBase;
+  'provider.public_mcp_server.updated:after': ProviderEventBase & { publicMcpServer: AuditSubspacePublicMcpServer; previousPublicMcpServer: AuditSubspacePublicMcpServer };
+  'provider.public_mcp_server.archived:before': ProviderEventBase;
+  'provider.public_mcp_server.archived:after': ProviderEventBase & { publicMcpServer: AuditSubspacePublicMcpServer };
+  'provider.public_mcp_grant.created:before': ProviderEventBase & { publicMcpServer: AuditSubspacePublicMcpServer };
+  'provider.public_mcp_grant.created:after': ProviderEventBase & { grant: AuditSubspacePublicMcpServerGrant };
+  'provider.public_mcp_grant.revoked:before': ProviderEventBase;
+  'provider.public_mcp_grant.revoked:after': ProviderEventBase & { grant: AuditSubspacePublicMcpServerGrant };
+  'provider.public_mcp_grant.used:after': { tenantId: string; instanceOid: bigint; publicMcpServerOid: bigint; grantId: string; hourBucket: Date };
 
   'provider.callback.updated:before': ProviderEventBase;
   'provider.callback.updated:after': ProviderEventBase & { callback: AuditSubspaceCallback; previousCallback: AuditSubspaceCallback };

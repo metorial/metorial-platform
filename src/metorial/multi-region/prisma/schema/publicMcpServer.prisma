@@ -1,0 +1,28 @@
+enum PublicMcpServerStatus {
+  active
+  disabled
+
+  archived
+  deleted
+}
+
+model PublicMcpServer {
+  id String @id
+
+  status PublicMcpServerStatus
+
+  slug String @unique
+
+  ownerOid Int
+  owner    Cell @relation(fields: [ownerOid], references: [oid])
+
+  organizationId String
+  instanceId     String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([ownerOid])
+  @@index([organizationId])
+  @@index([updatedAt])
+}

@@ -1,0 +1,21 @@
+{
+  "name": "@metorial-subspace/public-mcp-guard",
+  "module": "index.ts",
+  "main": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "test": "vitest run --passWithNoTests"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "vitest": "^3.1.2"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@lowerdeck/error": "workspace:2.0.0"
+  }
+}

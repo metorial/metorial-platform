@@ -65,6 +65,7 @@ import {
   providerConfigCreatedQueue,
   providerConfigUpdatedQueue
 } from '../queues/lifecycle/providerConfig';
+import { assertNotPublicMcpOwned } from '@metorial-subspace/public-mcp-guard';
 
 let include = {
   provider: true,
@@ -75,7 +76,8 @@ let include = {
       deployment: true
     }
   },
-  ownerActor: ownerActorSelect
+  ownerActor: ownerActorSelect,
+  ownerPublicMcpServer: { select: { id: true } }
 };
 
 let defaultLock = createLock({
@@ -161,6 +163,7 @@ type ListProviderConfigsParams = {
   consumerIds?: string[];
   identityIds?: string[];
   identityCredentialIds?: string[];
+  publicMcpServerIds?: string[];
 
   createdAt?: DateFilter;
   updatedAt?: DateFilter;
@@ -256,6 +259,9 @@ class providerConfigServiceImpl {
               ...normalizeStatusForList(d).noParent,
 
               AND: [
+                d.publicMcpServerIds
+                  ? { ownerPublicMcpServer: { id: { in: d.publicMcpServerIds } } }
+                  : { ownerPublicMcpServerOid: null },
                 d.ids ? { id: { in: d.ids } } : undefined!,
                 search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
                 providers ? { providerOid: providers.in } : undefined!,
@@ -565,6 +571,7 @@ class providerConfigServiceImpl {
             },
             include: { currentVersion: true }
           });
+          assertNotPublicMcpOwned(parentConfig, 'provider_config');
 
           let config = await db.providerConfig.create({
             data: {
@@ -757,6 +764,7 @@ class providerConfigServiceImpl {
   }
 
   async updateProviderConfigInternal(d: UpdateProviderConfigParams) {
+    assertNotPublicMcpOwned(d.providerConfig, 'provider_config');
     await this.assertNotForVault(d);
     checkTenant(d, d.providerConfig);
     checkDeletedEdit(d.providerConfig, 'update');
@@ -794,6 +802,7 @@ class providerConfigServiceImpl {
   }
 
   async archiveProviderConfigInternal(d: ArchiveProviderConfigParams) {
+    assertNotPublicMcpOwned(d.providerConfig, 'provider_config');
     await this.assertNotForVault(d);
     checkTenant(d, d.providerConfig);
     checkDeletedEdit(d.providerConfig, 'archive');

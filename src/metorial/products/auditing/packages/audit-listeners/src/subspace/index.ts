@@ -7,4 +7,5 @@ export * from './integration';
 export * from './network';
 export * from './protoguard';
 export * from './providerListingGroup';
+export * from './publicMcp';
 export * from './session';

@@ -1108,6 +1108,41 @@ let InstancePaths = Object.assign(
       }
     },
 
+    publicMcp: {
+      servers: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        ...subPages: SubPages
+      ) => {
+        return InstancePaths(
+          organization,
+          project,
+          instance,
+          'public-mcp/servers',
+          ...subPages
+        );
+      },
+
+      server: (
+        organization: EntityParam,
+        project: EntityParam,
+        instance: EntityParam,
+        id?: string,
+        ...subPages: SubPages
+      ) => {
+        if (!id) return '#';
+        return InstancePaths(
+          organization,
+          project,
+          instance,
+          'public-mcp/server',
+          id,
+          ...subPages
+        );
+      }
+    },
+
     identity: instanceIdentityPaths,
 
     portalIdentity: (portalId: string | null | undefined) =>

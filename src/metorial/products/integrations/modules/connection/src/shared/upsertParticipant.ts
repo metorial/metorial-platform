@@ -11,6 +11,7 @@ import {
   type Session,
   type SessionParticipantType
 } from '@metorial-subspace/db';
+import { withUniqueConstraintRecovery } from '@metorial/db';
 import { isDeepStrictEqual } from 'node:util';
 
 let participantInclude = {
@@ -115,51 +116,64 @@ export let upsertParticipant = async (d: {
     if (existing && isUnchanged) return existing;
   }
 
-  let upsert = () =>
-    db.sessionParticipant.upsert({
-      where: {
-        tenantOid_type_hash: {
-          tenantOid: d.session.tenantOid,
-          type: type,
-          hash: hash
+  let where = { tenantOid_type_hash: key };
+
+  let update =
+    d.from.type === 'connection_client'
+      ? {
+          identifier: participantData.identifier,
+          name: participantData.name,
+          payload: participantData,
+          connectionType,
+          agentInstanceOid: d.from.agentInstance?.oid,
+          identityActorOid: d.session.identityActorOid ?? null,
+          identityOid: d.session.identityOid ?? null
         }
-      },
-      create: {
-        ...getId('sessionParticipant'),
-        hash,
-        type,
-        identifier: participantData.identifier,
-        name: participantData.name,
-        connectionType,
-        payload: participantData,
-        tenantOid: d.session.tenantOid,
-        projectOid: d.session.projectOid,
-        environmentOid: d.session.environmentOid,
-        instanceOid: d.session.instanceOid,
-        providerOid: d.from.type === 'provider' ? d.from.provider.oid : undefined,
-        agentInstanceOid:
-          d.from.type === 'connection_client' ? d.from.agentInstance?.oid : undefined,
-        identityActorOid:
-          d.from.type === 'connection_client'
-            ? (d.session.identityActorOid ?? null)
-            : undefined,
-        identityOid:
-          d.from.type === 'connection_client' ? (d.session.identityOid ?? null) : undefined
-      },
-      update:
-        d.from.type === 'connection_client'
-          ? {
-              identifier: participantData.identifier,
-              name: participantData.name,
-              payload: participantData,
-              connectionType,
-              agentInstanceOid: d.from.agentInstance?.oid,
-              identityActorOid: d.session.identityActorOid ?? null,
-              identityOid: d.session.identityOid ?? null
-            }
-          : {},
-      include: participantInclude
-    });
+      : {};
+
+  let upsert = () =>
+    withUniqueConstraintRecovery(
+      () =>
+        db.sessionParticipant.upsert({
+          where,
+          create: {
+            ...getId('sessionParticipant'),
+            hash,
+            type,
+            identifier: participantData.identifier,
+            name: participantData.name,
+            connectionType,
+            payload: participantData,
+            tenantOid: d.session.tenantOid,
+            projectOid: d.session.projectOid,
+            environmentOid: d.session.environmentOid,
+            instanceOid: d.session.instanceOid,
+            providerOid: d.from.type === 'provider' ? d.from.provider.oid : undefined,
+            agentInstanceOid:
+              d.from.type === 'connection_client' ? d.from.agentInstance?.oid : undefined,
+            identityActorOid:
+              d.from.type === 'connection_client'
+                ? (d.session.identityActorOid ?? null)
+                : undefined,
+            identityOid:
+              d.from.type === 'connection_client' ? (d.session.identityOid ?? null) : undefined
+          },
+          update,
+          include: participantInclude
+        }),
+      async () => {
+        try {
+          return await db.sessionParticipant.update({
+            where,
+            data: update,
+            include: participantInclude
+          });
+        } catch (error) {
+          if (error instanceof Error && 'code' in error && error.code === 'P2025') return null;
+          throw error;
+        }
+      }
+    );
 
   if (d.from.type === 'connection_client') return await upsert();
   return await getStaticParticipant({ ...key, upsert });

@@ -216,4 +216,39 @@ describe('discoverServerQueueProcessor', () => {
       expect(serverDiscoveryUpdate).not.toHaveBeenCalled();
     }
   );
+
+  it.each(['auth_token_refresh_failed', 'authentication_failed'])(
+    'fails discovery without auto-switching the protocol on %s',
+    async errorCode => {
+      let { EmbeddedConnectionError } = await import('../../mcp/connection/embedded');
+      await import('./server');
+
+      serverDiscoveryFindFirst.mockResolvedValue({
+        ...discovery,
+        serverVersion: {
+          ...discovery.serverVersion,
+          remoteProtocol: 'sse',
+          server: { oid: 5n, type: 'remote' }
+        }
+      });
+      createEmbeddedConnection.mockRejectedValue(new EmbeddedConnectionError(errorCode));
+
+      await queues['shut/server/discover'].processor({
+        serverDiscoveryId: discovery.id
+      });
+
+      expect(serverVersionUpdate).not.toHaveBeenCalled();
+      expect(queues['shut/server/discover'].add).not.toHaveBeenCalled();
+      expect(serverDiscoveryUpdate).toHaveBeenCalledWith({
+        where: { oid: discovery.oid },
+        data: expect.objectContaining({
+          status: 'failed',
+          error: expect.objectContaining({
+            type: 'connection_error',
+            error: expect.objectContaining({ code: errorCode })
+          })
+        })
+      });
+    }
+  );
 });

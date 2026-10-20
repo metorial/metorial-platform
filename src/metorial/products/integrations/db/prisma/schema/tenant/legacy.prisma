@@ -80,6 +80,8 @@ model Tenant {
   providerAuthImports                        ProviderAuthImport[]
   providerSetupSessions                      ProviderSetupSession[]
   integrationSetupSessions                   IntegrationSetupSession[]
+  publicMcpServers                           PublicMcpServer[]
+  publicMcpServerGrants                      PublicMcpServerGrant[]
   brand                                      Brand?
   sessionProviders                           SessionProvider[]
   sessionTemplates                           SessionTemplate[]
@@ -227,6 +229,8 @@ model Environment {
   sessionTemplateProviders                   SessionTemplateProvider[]
   providerSetupSessions                      ProviderSetupSession[]
   integrationSetupSessions                   IntegrationSetupSession[]
+  publicMcpServers                           PublicMcpServer[]
+  publicMcpServerGrants                      PublicMcpServerGrant[]
   providerEnvironments                       ProviderEnvironment[]
   customProviderEnvironments                 CustomProviderEnvironment[]
   customProviderEnvironmentVersions          CustomProviderEnvironmentVersion[]

@@ -7,8 +7,9 @@ import { McpError } from '@modelcontextprotocol/sdk/types.js';
 import { db } from '../../db';
 import { env } from '../../env';
 import { getId } from '../../id';
-import { getAutoSwitchRemoteProtocol } from '../../lib/remote/protocol';
+import { getAutoSwitchRemoteProtocol, isAuthErrorCode } from '../../lib/remote/protocol';
 import { EmbeddedConnection, EmbeddedConnectionError } from '../../mcp/connection/embedded';
+import { isExpectedConnectionFailure } from '../../mcp/utils/connectionIssues';
 import { autoPaginateMcp } from '../../mcp/utils/paginate';
 import { serverConnectionService } from '../../services';
 
@@ -248,6 +249,7 @@ export let discoverServerQueueProcessor = discoverServerQueue.process(async data
         }
       };
     } else {
+      sendToSentry = !isExpectedConnectionFailure(e);
       error = {
         type: 'connection_error',
         error: {
@@ -257,7 +259,28 @@ export let discoverServerQueueProcessor = discoverServerQueue.process(async data
       };
     }
 
-    if (sendToSentry) Sentry.captureException(e);
+    if (sendToSentry) {
+      Sentry.captureException(e, {
+        tags: {
+          transport: 'discovery',
+          serverType: discovery.serverVersion.server.type,
+          remoteProtocol: discovery.serverVersion.remoteProtocol ?? 'none',
+          discoveryStep: state.step
+        },
+        extra: {
+          discoveryId: discovery.id,
+          connectionId: connection.id,
+          serverId: discovery.serverVersion.server.id,
+          serverVersionId: discovery.serverVersion.id,
+          remoteUrl: discovery.serverVersion.remoteUrl,
+          remoteProtocol: discovery.serverVersion.remoteProtocol,
+          isAutoSwitched: !!data._remote?.isAutoSwitched,
+          hasAuthConfig: !!discovery.serverAuthConfig,
+          authConfigId: discovery.serverAuthConfig?.id,
+          errorCode: (e as { code?: unknown } | null)?.code
+        }
+      });
+    }
 
     if (data._remote?.isAutoSwitched) {
       // Auto switch didn't work - let's roll back to the original protocol and mark auto switch as failed to avoid infinite loop
@@ -271,6 +294,7 @@ export let discoverServerQueueProcessor = discoverServerQueue.process(async data
       });
     } else if (
       discovery.serverVersion.server.type == 'remote' &&
+      !(e instanceof EmbeddedConnectionError && isAuthErrorCode(e.code)) &&
       discovery.serverVersion.remoteProtocolAutoSwitchStatus != 'succeeded' &&
       discovery.serverVersion.remoteProtocolAutoSwitchStatus != 'failed'
     ) {
@@ -311,7 +335,15 @@ export let discoverServerQueueProcessor = discoverServerQueue.process(async data
     try {
       if (state.client) await state.client.terminate();
     } catch (e) {
-      Sentry.captureException(e);
+      Sentry.captureException(e, {
+        tags: { transport: 'discovery', discoveryStep: 'terminate' },
+        extra: {
+          discoveryId: discovery.id,
+          connectionId: connection.id,
+          remoteUrl: discovery.serverVersion.remoteUrl,
+          remoteProtocol: discovery.serverVersion.remoteProtocol
+        }
+      });
       console.error('Error terminating client during server discovery:', e);
     }
   }

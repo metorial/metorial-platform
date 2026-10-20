@@ -242,6 +242,116 @@ export let createPortalOAuthServers = <TRoute>(
   };
 };
 
+export type PublicMcpRouteInput = {
+  slug: string;
+};
+
+type PublicMcpRouteHandlers<TRoute> = {
+  resolveRoute: (route: PublicMcpRouteInput, c: Context) => Promise<TRoute>;
+  mcp: (d: { route: TRoute }, c: Context) => Promise<Response>;
+  protectedResource: (d: { route: TRoute }, c: Context) => Promise<Response>;
+  metadata: (d: { route: TRoute }, c: Context) => Promise<Response>;
+  openIdConfiguration: (d: { route: TRoute }, c: Context) => Promise<Response>;
+  register: (d: { route: TRoute }, c: Context) => Promise<Response>;
+  registration: (d: { route: TRoute; clientId: string }, c: Context) => Promise<Response>;
+  authorize: (d: { route: TRoute }, c: Context) => Promise<Response>;
+  complete: (d: { route: TRoute; authorizationId: string }, c: Context) => Promise<Response>;
+  token: (d: { route: TRoute }, c: Context) => Promise<Response>;
+  revoke: (d: { route: TRoute }, c: Context) => Promise<Response>;
+};
+
+// Both the RFC 8414/9728 "inserted" well-known form and the appended form that MCP
+// clients fall back to are served, since clients differ in which one they probe.
+export let publicOAuthPaths = {
+  mcp: [':slug'],
+  protectedResource: [':slug/.well-known/oauth-protected-resource'],
+  metadata: [':slug/.well-known/oauth-authorization-server'],
+  openIdConfiguration: [':slug/.well-known/openid-configuration'],
+  insertedWellKnown: [':slug'],
+  register: [':slug/oauth/register'],
+  registration: [':slug/oauth/register/:clientId'],
+  authorize: [':slug/oauth/authorize'],
+  complete: [':slug/oauth/complete/:authorizationId'],
+  token: [':slug/oauth/token'],
+  revoke: [':slug/oauth/revoke']
+};
+
+export let createPublicMcpServers = <TRoute>(handlers: PublicMcpRouteHandlers<TRoute>) => {
+  let withRoute =
+    (handler: (d: { route: TRoute }, c: Context) => Promise<Response>) => async (c: Context) =>
+      await handler(
+        { route: await handlers.resolveRoute({ slug: c.req.param('slug')! }, c) },
+        c
+      );
+
+  let connectPublicServer = createConnectionHono();
+
+  for (let path of publicOAuthPaths.protectedResource) {
+    connectPublicServer = connectPublicServer.get(path, withRoute(handlers.protectedResource));
+  }
+  for (let path of publicOAuthPaths.metadata) {
+    connectPublicServer = connectPublicServer.get(path, withRoute(handlers.metadata));
+  }
+  for (let path of publicOAuthPaths.openIdConfiguration) {
+    connectPublicServer = connectPublicServer.get(
+      path,
+      withRoute(handlers.openIdConfiguration)
+    );
+  }
+  for (let path of publicOAuthPaths.register) {
+    connectPublicServer = connectPublicServer.post(path, withRoute(handlers.register));
+  }
+  for (let path of publicOAuthPaths.registration) {
+    connectPublicServer = connectPublicServer.get(path, async c =>
+      handlers.registration(
+        {
+          route: await handlers.resolveRoute({ slug: c.req.param('slug')! }, c),
+          clientId: c.req.param('clientId')!
+        },
+        c
+      )
+    );
+  }
+  for (let path of publicOAuthPaths.authorize) {
+    connectPublicServer = connectPublicServer.get(path, withRoute(handlers.authorize));
+  }
+  for (let path of publicOAuthPaths.complete) {
+    connectPublicServer = connectPublicServer.get(path, async c =>
+      handlers.complete(
+        {
+          route: await handlers.resolveRoute({ slug: c.req.param('slug')! }, c),
+          authorizationId: c.req.param('authorizationId')!
+        },
+        c
+      )
+    );
+  }
+  for (let path of publicOAuthPaths.token) {
+    connectPublicServer = connectPublicServer.post(path, withRoute(handlers.token));
+  }
+  for (let path of publicOAuthPaths.revoke) {
+    connectPublicServer = connectPublicServer.post(path, withRoute(handlers.revoke));
+  }
+  for (let path of publicOAuthPaths.mcp) {
+    connectPublicServer = connectPublicServer.all(path, withRoute(handlers.mcp));
+  }
+
+  let insertedServer = (handler: (d: { route: TRoute }, c: Context) => Promise<Response>) => {
+    let server = createConnectionHono();
+    for (let path of publicOAuthPaths.insertedWellKnown) {
+      server = server.get(path, withRoute(handler));
+    }
+    return server;
+  };
+
+  return {
+    connectPublicServer,
+    protectedResourceServer: insertedServer(handlers.protectedResource),
+    metadataServer: insertedServer(handlers.metadata),
+    openIdConfigurationServer: insertedServer(handlers.openIdConfiguration)
+  };
+};
+
 export let createPluginOAuthServers = <TRoute>(
   handlers: OAuthRouteHandlers<PluginOAuthRouteInput, TRoute>
 ) => {

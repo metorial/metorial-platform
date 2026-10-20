@@ -8,6 +8,7 @@ import type {
 } from '../../../../prisma/generated/client';
 import type { McpConnectionBackendAdapter } from '../../connection/adapter';
 import { ConnectionManager } from '../../utils/connection';
+import { reportRemoteConnectionIssue } from '../../utils/connectionIssues';
 import { ConnectionLogger } from '../../utils/logger';
 import { ConnectionMessenger } from '../../utils/messenger';
 import { RemoteConnectionAuthManager } from '../authManager';
@@ -50,7 +51,14 @@ export class StatelessRemoteConnection implements McpConnectionBackendAdapter {
         ?.egressPolicy as PrismaJson.CompiledEgressNetworkAllowList | null,
       getHeaders: () => this.#authManager.getHeaders(),
       emit: message => this.messenger.sendToListeners(message),
-      log: (type, message) => this.logger.log(type, message)
+      log: (type, message) => this.logger.log(type, message),
+      reportIssue: (error, phase) =>
+        reportRemoteConnectionIssue(error, phase, {
+          transport: 'stateless',
+          tenant,
+          version,
+          connection
+        })
     });
   }
 

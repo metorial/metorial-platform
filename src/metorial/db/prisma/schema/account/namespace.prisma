@@ -22,6 +22,7 @@ enum NamespacePurpose {
   metorial_platform
   metorial_portal
   metorial_portal_single
+  metorial_public_mcp
 }
 
 model Namespace {

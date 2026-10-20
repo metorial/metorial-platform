@@ -75,6 +75,7 @@ model IdentityActor {
   ownedProviderAuthConfigs      ProviderAuthConfig[]
   ownedProviderSetupSessions    ProviderSetupSession[]
   ownedIntegrationSetupSessions IntegrationSetupSession[]
+  ownedPublicMcpServers         PublicMcpServer[]
   sessionParticipants           SessionParticipant[]
 
   @@index([createdAt])

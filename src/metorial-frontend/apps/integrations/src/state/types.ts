@@ -17,6 +17,8 @@ export type Provider = SetupSessionResponse['provider'];
 
 export type Brand = SetupSessionResponse['brand'];
 
+export type PublicMcpContext = NonNullable<SetupSessionResponse['publicMcp']>;
+
 export type PrefetchedSetupData = Pick<
   SetupSessionResponse,
   'authConfigSchema' | 'configSchema' | 'oauthSetup'

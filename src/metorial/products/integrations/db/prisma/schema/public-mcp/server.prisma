@@ -1,0 +1,78 @@
+enum PublicMcpServerStatus {
+  active
+  disabled
+
+  archived
+  deleted
+}
+
+model PublicMcpServer {
+  oid BigInt @id
+  id  String @unique
+
+  status PublicMcpServerStatus
+
+  slug String @unique
+
+  name        String
+  description String?
+  metadata    Json?
+
+  /// [ToolFilter]
+  toolFilter Json @default("{\"type\":\"v1.allow_all\"}")
+
+  redirectUriFilters String[]
+
+  maxActiveGrants        Int?
+  accessTokenTtlSeconds  Int  @default(3600)
+  refreshTokenTtlSeconds Int  @default(2592000)
+  grantIdleExpirySeconds Int  @default(7776000)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  solutionOid Int
+  solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid])
+
+  deploymentOid BigInt
+  deployment    ProviderDeployment @relation(fields: [deploymentOid], references: [oid])
+
+  ownerActorOid BigInt?
+  ownerActor    IdentityActor? @relation(fields: [ownerActorOid], references: [oid], onDelete: SetNull)
+
+  disabledAt DateTime?
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+
+  clients        PublicMcpServerClient[]
+  authorizations PublicMcpServerAuthorization[]
+  grants         PublicMcpServerGrant[]
+
+  ownedSetupSessions    ProviderSetupSession[]
+  ownedOAuthSetups      ProviderOAuthSetup[]
+  ownedAuthConfigs      ProviderAuthConfig[]
+  ownedConfigs          ProviderConfig[]
+  ownedSessions         Session[]
+  ownedSessionProviders SessionProvider[]
+  ownedConnections      SessionConnection[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([tenantOid, environmentOid, status])
+  @@index([deploymentOid])
+  @@index([projectOid])
+  @@index([instanceOid])
+}

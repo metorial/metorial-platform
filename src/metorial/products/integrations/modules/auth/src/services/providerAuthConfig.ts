@@ -59,13 +59,15 @@ import {
 } from '../queues/lifecycle/providerAuthConfig';
 import { providerAuthConfigInternalService } from './providerAuthConfigInternal';
 import { providerAuthCredentialsService } from './providerAuthCredentials';
+import { assertNotPublicMcpOwned } from '@metorial-subspace/public-mcp-guard';
 
 let include = {
   provider: true,
   deployment: true,
   authCredentials: true,
   authMethod: { include: { specification: { omit: { value: true } } } },
-  ownerActor: ownerActorSelect
+  ownerActor: ownerActorSelect,
+  ownerPublicMcpServer: { select: { id: true } }
 };
 
 export let providerAuthConfigInclude = include;
@@ -157,6 +159,7 @@ type ListProviderAuthConfigsParams = {
   consumerIds?: string[];
   identityIds?: string[];
   identityCredentialIds?: string[];
+  publicMcpServerIds?: string[];
   adapter?: string;
 
   createdAt?: DateFilter;
@@ -337,6 +340,9 @@ class providerAuthConfigServiceImpl {
               ...normalizeStatusForList(d).hasParent,
 
               AND: [
+                d.publicMcpServerIds
+                  ? { ownerPublicMcpServer: { id: { in: d.publicMcpServerIds } } }
+                  : { ownerPublicMcpServerOid: null },
                 d.ids ? { id: { in: d.ids } } : undefined!,
                 search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
                 providers ? { providerOid: providers.in } : undefined!,
@@ -612,6 +618,7 @@ class providerAuthConfigServiceImpl {
   }
 
   async updateProviderAuthConfigInternal(d: UpdateProviderAuthConfigParams) {
+    assertNotPublicMcpOwned(d.providerAuthConfig, 'provider_auth_config');
     let solution = await getMetorialSolution();
 
     checkTenant(d, d.providerAuthConfig);
@@ -754,6 +761,7 @@ class providerAuthConfigServiceImpl {
   }
 
   async archiveProviderAuthConfigInternal(d: ArchiveProviderAuthConfigParams) {
+    assertNotPublicMcpOwned(d.providerAuthConfig, 'provider_auth_config');
     let solution = await getMetorialSolution();
 
     checkTenant(d, d.providerAuthConfig);

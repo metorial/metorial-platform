@@ -91,6 +91,7 @@ model Provider {
   providerTriggerGlobals         ProviderTriggerGlobal[]
   providerTriggerGroupGlobals    ProviderTriggerGroupGlobal[]
   providerSetupSessions          ProviderSetupSession[]
+  publicMcpServers               PublicMcpServer[]
   sessionProviders               SessionProvider[]
   providerRuns                   ProviderRun[]
   sessionTemplateProviders       SessionTemplateProvider[]

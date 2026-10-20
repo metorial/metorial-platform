@@ -1,3 +1,4 @@
+import { clientBranding } from '../../config';
 import type { OAuthConfiguration } from './types';
 
 let usableGrantTypes = ['authorization_code', 'refresh_token'];
@@ -20,3 +21,5 @@ export let buildClientRegistrationMetadata = (config: OAuthConfiguration) => ({
       config.token_endpoint_auth_methods_supported?.includes(method)
     ) ?? 'client_secret_basic'
 });
+
+export let buildClientBrandingMetadata = () => ({ ...clientBranding });

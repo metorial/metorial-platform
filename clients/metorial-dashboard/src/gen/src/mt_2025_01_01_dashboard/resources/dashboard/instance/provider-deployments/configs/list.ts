@@ -1,7 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceProviderDeploymentsConfigsListOutput = {
-  items: {
+  items: ({
     object: 'provider.config';
     id: string;
     status: 'active' | 'archived' | 'deleted';
@@ -66,7 +66,7 @@ export type DashboardInstanceProviderDeploymentsConfigsListOutput = {
     } | null;
     createdAt: Date;
     updatedAt: Date;
-  }[];
+  } & { publicMcpServerId: string | null })[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
@@ -75,37 +75,54 @@ export let mapDashboardInstanceProviderDeploymentsConfigsListOutput =
     [
       7,
       [
-        1,
+        3,
         [
-          'is_default',
-          ['tool_filter', 1, [3, [[0, [1, ['ignore_parent_filters']]]]]],
-          'provider_id',
-          'specification_id',
           [
-            'deployment',
             0,
-            [1, ['is_default', 'provider_id', 'created_at', 'updated_at']]
-          ],
-          [
-            'from_vault',
-            1,
             [
               1,
               [
+                'is_default',
+                ['tool_filter', 1, [3, [[0, [1, ['ignore_parent_filters']]]]]],
                 'provider_id',
+                'specification_id',
                 [
                   'deployment',
                   0,
                   [1, ['is_default', 'provider_id', 'created_at', 'updated_at']]
                 ],
+                [
+                  'from_vault',
+                  1,
+                  [
+                    1,
+                    [
+                      'provider_id',
+                      [
+                        'deployment',
+                        0,
+                        [
+                          1,
+                          [
+                            'is_default',
+                            'provider_id',
+                            'created_at',
+                            'updated_at'
+                          ]
+                        ]
+                      ],
+                      'created_at',
+                      'updated_at'
+                    ]
+                  ]
+                ],
+                ['owner_actor', 1, [1, ['consumer_id']]],
                 'created_at',
-                'updated_at'
+                'updated_at',
+                'public_mcp_server_id'
               ]
             ]
-          ],
-          ['owner_actor', 1, [1, ['consumer_id']]],
-          'created_at',
-          'updated_at'
+          ]
         ]
       ]
     ],

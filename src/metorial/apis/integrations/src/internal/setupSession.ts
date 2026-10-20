@@ -2,6 +2,7 @@ import { v } from '@lowerdeck/validation';
 import type { ProviderSetupSession } from '@metorial-subspace/db';
 import { providerSetupSessionUiService } from '@metorial-subspace/module-auth';
 import { integrationSetupSessionService } from '@metorial-subspace/module-integration';
+import { publicMcpServerAuthorizationService } from '@metorial-subspace/module-public-mcp';
 import { brandService } from '@metorial-subspace/module-tenant';
 import { app } from './_app';
 import {
@@ -59,7 +60,7 @@ export let getFullSession = async (
       clientSecret: input.clientSecret
     }));
 
-  let [brand, integrationSetupSession, authConfigSchema, configSchema, oauthSetup] =
+  let [brand, integrationSetupSession, authConfigSchema, configSchema, oauthSetup, publicMcp] =
     await Promise.all([
       session.brand ?? brandService.getBrandForTenant({ tenantId: session.tenant.id }),
 
@@ -79,7 +80,11 @@ export let getFullSession = async (
             .catch(() => null)
         : null,
 
-      providerSetupSessionUiService.getOAuthSetup({ providerSetupSession: session })
+      providerSetupSessionUiService.getOAuthSetup({ providerSetupSession: session }),
+
+      publicMcpServerAuthorizationService.getSetupSessionContext({
+        providerSetupSession: session
+      })
     ]);
 
   return {
@@ -105,7 +110,8 @@ export let getFullSession = async (
     configSchema: configSchema
       ? setupSessionSchemaPresenter('provider.setup_session.config_schema', configSchema)
       : null,
-    oauthSetup: oauthSetup ? setupSessionOAuthSetupPresenter(oauthSetup) : null
+    oauthSetup: oauthSetup ? setupSessionOAuthSetupPresenter(oauthSetup) : null,
+    publicMcp
   };
 };
 

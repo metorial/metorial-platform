@@ -30,6 +30,7 @@ import {
 } from '@metorial-subspace/module-tenant';
 import { normalizeJsonSchema } from '@metorial-subspace/provider-utils';
 import { env } from '../env';
+import { stampPublicMcpOwnership } from '../lib/publicMcpOwnership';
 import { providerSetupSessionUpdatedQueue } from '../queues/lifecycle/providerSetupSession';
 import { providerAuthConfigService } from './providerAuthConfig';
 import { providerOAuthSetupInclude } from './providerOAuthSetup';
@@ -53,6 +54,19 @@ let hasSchemaProperties = (schema: unknown) => {
   return !!properties && typeof properties === 'object' && Object.keys(properties).length > 0;
 };
 
+let assertProviderSelectable = (
+  session: Pick<ProviderSetupSession, 'ownerPublicMcpServerOid'>
+) => {
+  if (session.ownerPublicMcpServerOid) {
+    throw new ServiceError(
+      badRequestError({
+        code: 'public_mcp_provider_fixed',
+        message: 'The provider of this setup session cannot be changed.'
+      })
+    );
+  }
+};
+
 class providerSetupSessionUiServiceImpl {
   private canConfirmToolFilters(d: {
     providerSetupSession: Pick<ProviderSetupSession, 'status' | 'expiresAt' | 'configuration'>;
@@ -71,6 +85,7 @@ class providerSetupSessionUiServiceImpl {
       } | null;
     };
     ownerActorOid: bigint | null;
+    ownerPublicMcpServerOid: bigint | null;
     toolFilters?: PrismaJson.ToolFilter | null;
   }) {
     let eventBase = await getSubspaceSystemProviderEventBase({
@@ -101,7 +116,8 @@ class providerSetupSessionUiServiceImpl {
         deploymentOid: d.config.deploymentOid,
         fromVaultOid: d.config.fromVaultOid,
         parentConfigOid: d.config.oid,
-        ownerActorOid: d.ownerActorOid ?? d.config.ownerActorOid
+        ownerActorOid: d.ownerActorOid ?? d.config.ownerActorOid,
+        ownerPublicMcpServerOid: d.ownerPublicMcpServerOid ?? d.config.ownerPublicMcpServerOid
       }
     });
 
@@ -431,6 +447,7 @@ class providerSetupSessionUiServiceImpl {
             credentials: currentSession.authCredentials ?? undefined,
             authMethod,
             ownerActorOid: currentSession.ownerActorOid,
+            ownerPublicMcpServerOid: currentSession.ownerPublicMcpServerOid,
             expiresAt: currentSession.expiresAt,
             input: {
               name: currentSession.name ?? undefined,
@@ -571,8 +588,14 @@ class providerSetupSessionUiServiceImpl {
             : await this.cloneConfigForToolFilters({
                 config: currentSession.config,
                 ownerActorOid: currentSession.ownerActorOid,
+                ownerPublicMcpServerOid: currentSession.ownerPublicMcpServerOid,
                 toolFilters: d.input.toolFilters
               });
+
+          await stampPublicMcpOwnership({
+            ownerPublicMcpServerOid: currentSession.ownerPublicMcpServerOid,
+            configOid: nextConfig.oid
+          });
 
           session = await db.providerSetupSession.update({
             where: { oid: d.providerSetupSession.oid },
@@ -585,6 +608,7 @@ class providerSetupSessionUiServiceImpl {
             environment: currentSession.environment,
             providerDeployment: currentSession.deployment ?? undefined,
             ownerActorOid: currentSession.ownerActorOid,
+            ownerPublicMcpServerOid: currentSession.ownerPublicMcpServerOid,
             input: {
               name: currentSession.name ?? undefined,
               description: currentSession.description ?? undefined,
@@ -632,6 +656,8 @@ class providerSetupSessionUiServiceImpl {
     before?: string;
     ids?: string[];
   }) {
+    assertProviderSelectable(d.providerSetupSession);
+
     let session = await db.providerSetupSession.findUniqueOrThrow({
       where: { oid: d.providerSetupSession.oid },
       include: {
@@ -688,6 +714,7 @@ class providerSetupSessionUiServiceImpl {
   }
 
   async selectProvider(d: { providerSetupSession: ProviderSetupSession; providerId: string }) {
+    assertProviderSelectable(d.providerSetupSession);
     await this.checkEditable(d);
 
     return updateLock.usingLock(d.providerSetupSession.id, () =>
@@ -735,6 +762,7 @@ class providerSetupSessionUiServiceImpl {
             environment: session.environment,
             provider,
             ownerActorOid: session.ownerActorOid,
+            ownerPublicMcpServerOid: session.ownerPublicMcpServerOid,
             expiresAt: session.expiresAt,
             input: {
               name: session.name ?? undefined,

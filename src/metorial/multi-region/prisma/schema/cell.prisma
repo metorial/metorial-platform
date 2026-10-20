@@ -12,6 +12,7 @@ model Cell {
 
   organizations                     Organization[]
   portals                           Portal[]
+  publicMcpServers                  PublicMcpServer[]
   skillPlugins                      SkillPlugin[]
   consumerSurfaces                  ConsumerSurface[]
   users                             User[]

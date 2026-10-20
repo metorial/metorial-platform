@@ -8,6 +8,7 @@ enum ProviderAuthConfigSource {
   manual
   setup_session
   system
+  public_mcp
 }
 
 enum ProviderAuthConfigStatus {
@@ -85,11 +86,15 @@ model ProviderAuthConfig {
   authCredentialsOid BigInt?
   authCredentials    ProviderAuthCredentials? @relation(fields: [authCredentialsOid], references: [oid])
 
+  ownerPublicMcpServerOid BigInt?
+  ownerPublicMcpServer    PublicMcpServer? @relation(fields: [ownerPublicMcpServerOid], references: [oid])
+
   providerSetupSession ProviderSetupSession?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
+  publicMcpGrants                     PublicMcpServerGrant[]               @relation("publicMcpGrantAuthConfig")
   providerOAuthSetups                 ProviderOAuthSetup[]
   deploymentAuthConfigs               ProviderDeployment[]                 @relation("defaultAuthConfig")
   providerAuthExports                 ProviderAuthExport[]
@@ -116,6 +121,7 @@ model ProviderAuthConfig {
   @@index([projectOid])
   @@index([instanceOid])
   @@index([ownerActorOid])
+  @@index([ownerPublicMcpServerOid])
 }
 
 model ProviderAuthConfigVersion {

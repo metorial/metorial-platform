@@ -1,4 +1,5 @@
 import { Service } from '@lowerdeck/service';
+import { withUniqueConstraintRecovery } from '@metorial/db';
 import { db } from '@metorial-subspace/db';
 import {
   identityActorMirrorService,
@@ -43,11 +44,25 @@ class agentMirrorServiceImpl {
       lastConnectedAt: agentClient.lastConnectedAt
     };
 
-    let mirroredClient = await metorialDb.agentClient.upsert({
-      where: { id: agentClient.id },
-      create: { oid: agentClient.oid, id: agentClient.id, ...data },
-      update: data
-    });
+    let mirroredClient = await withUniqueConstraintRecovery(
+      () =>
+        metorialDb.agentClient.upsert({
+          where: { id: agentClient.id },
+          create: { oid: agentClient.oid, id: agentClient.id, ...data },
+          update: data
+        }),
+      async () => {
+        try {
+          return await metorialDb.agentClient.update({
+            where: { id: agentClient.id },
+            data: data
+          });
+        } catch (error) {
+          if (error instanceof Error && 'code' in error && error.code === 'P2025') return null;
+          throw error;
+        }
+      }
+    );
 
     let unattachedRegistrations = await metorialDb.agentClientRegistration.findMany({
       where: {
@@ -102,11 +117,26 @@ class agentMirrorServiceImpl {
         updatedAt: registration.updatedAt
       };
 
-      await metorialDb.agentClientRegistration.upsert({
-        where: { id: registration.id },
-        create: { oid: registration.oid, id: registration.id, ...registrationData },
-        update: registrationData
-      });
+      await withUniqueConstraintRecovery(
+        () =>
+          metorialDb.agentClientRegistration.upsert({
+            where: { id: registration.id },
+            create: { oid: registration.oid, id: registration.id, ...registrationData },
+            update: registrationData
+          }),
+        async () => {
+          try {
+            return await metorialDb.agentClientRegistration.update({
+              where: { id: registration.id },
+              data: registrationData
+            });
+          } catch (error) {
+            if (error instanceof Error && 'code' in error && error.code === 'P2025')
+              return null;
+            throw error;
+          }
+        }
+      );
     }
 
     return mirroredClient;
@@ -163,11 +193,25 @@ class agentMirrorServiceImpl {
       lastConnectedAt: agentInstance.lastConnectedAt
     };
 
-    return metorialDb.agentInstance.upsert({
-      where: { id: agentInstance.id },
-      create: { oid: agentInstance.oid, id: agentInstance.id, ...data },
-      update: data
-    });
+    return withUniqueConstraintRecovery(
+      () =>
+        metorialDb.agentInstance.upsert({
+          where: { id: agentInstance.id },
+          create: { oid: agentInstance.oid, id: agentInstance.id, ...data },
+          update: data
+        }),
+      async () => {
+        try {
+          return await metorialDb.agentInstance.update({
+            where: { id: agentInstance.id },
+            data: data
+          });
+        } catch (error) {
+          if (error instanceof Error && 'code' in error && error.code === 'P2025') return null;
+          throw error;
+        }
+      }
+    );
   }
 }
 

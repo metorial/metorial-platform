@@ -14,6 +14,7 @@ import {
   isEgressPolicyError
 } from '../../lib/network/egressPolicy';
 import { ConnectionBackend } from '../backend';
+import { ConnectionError } from '../utils/connectionError';
 import type { McpConnectionBackendAdapter } from './adapter';
 
 let isMcpTraceEnabled = process.env.MCP_TRACE === 'true';
@@ -124,6 +125,11 @@ export class EmbeddedConnection {
           return;
         }
 
+        if (error instanceof ConnectionError) {
+          reject(new EmbeddedConnectionError(error.code, error.payload.message));
+          return;
+        }
+
         reject(error);
       } finally {
         cleanup();
@@ -154,6 +160,11 @@ export class EmbeddedConnection {
                 getEgressPolicyErrorMessage(e)
               )
             );
+            return;
+          }
+
+          if (e instanceof ConnectionError) {
+            reject(new EmbeddedConnectionError(e.code, e.payload.message));
             return;
           }
 

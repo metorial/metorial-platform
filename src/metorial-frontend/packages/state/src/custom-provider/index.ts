@@ -9,4 +9,5 @@ export * from './loaders/magicMcpGroup';
 export * from './loaders/magicMcpServer';
 export * from './loaders/magicMcpSession';
 export * from './loaders/magicMcpToken';
+export * from './loaders/publicMcpServer';
 export * from './loaders/repos';
