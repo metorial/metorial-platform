@@ -1,5 +1,24 @@
-import { createIntegration, createTool, z } from '../registry';
+import { isServiceError } from '@lowerdeck/error';
+import { createIntegration, createTool, NativeToolError, z } from '../registry';
 import { scout } from '../scout';
+
+let billingErrorPattern = /credit|payment|billing|subscription/i;
+
+let callScout = async <T>(fn: () => Promise<T>) => {
+  try {
+    return await fn();
+  } catch (err) {
+    if (
+      isServiceError(err) &&
+      err.data.status < 500 &&
+      !billingErrorPattern.test(err.data.message)
+    ) {
+      throw new NativeToolError(err.data.code, err.data.message);
+    }
+
+    throw err;
+  }
+};
 
 if (scout != null) {
   let scoutClient = scout;
@@ -76,7 +95,7 @@ if (scout != null) {
       }
     },
     async input => ({
-      results: await scoutClient.crawl.search(input)
+      results: await callScout(() => scoutClient.crawl.search(input))
     })
   );
 
@@ -100,7 +119,7 @@ if (scout != null) {
         readOnly: true
       }
     },
-    async input => await scoutClient.crawl.extract(input)
+    async input => await callScout(() => scoutClient.crawl.extract(input))
   );
 
   let extractWebContentTool = createTool(
@@ -123,7 +142,7 @@ if (scout != null) {
         readOnly: true
       }
     },
-    async input => await scoutClient.crawl.extract(input)
+    async input => await callScout(() => scoutClient.crawl.extract(input))
   );
 
   createIntegration({

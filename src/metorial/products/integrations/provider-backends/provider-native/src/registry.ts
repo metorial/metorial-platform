@@ -55,6 +55,15 @@ export type NativeIntegration = {
   tools: NativeTool[];
 };
 
+export class NativeToolError extends Error {
+  constructor(
+    readonly code: string,
+    message: string
+  ) {
+    super(message);
+  }
+}
+
 let integrations = new Map<string, NativeIntegration>();
 let resyncHandler: (() => Promise<void>) | null = null;
 
