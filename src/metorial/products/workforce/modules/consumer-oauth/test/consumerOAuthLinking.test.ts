@@ -122,6 +122,12 @@ vi.mock('@metorial/consumer-oauth-utils', () => ({
   validateUrlString: vi.fn()
 }));
 
+vi.mock('../src/queues/reconcileConsumerClientLogos', () => ({
+  reconcileConsumerClientLogoQueue: {
+    add: vi.fn()
+  }
+}));
+
 vi.mock('@metorial/module-portal', () => ({
   portalService: {
     getPortalHost: vi.fn(() => ({
@@ -141,6 +147,7 @@ import {
   consumerOAuthRegistrationService,
   consumerOAuthTestAuthorizationService
 } from '../src/services';
+import { reconcileConsumerClientLogoQueue } from '../src/queues/reconcileConsumerClientLogos';
 import { slideConsumerAuthClientExpiration } from '../src/services/_helpers';
 
 describe('consumer OAuth integration endpoint linking', () => {
@@ -153,7 +160,9 @@ describe('consumer OAuth integration endpoint linking', () => {
     } as any);
     vi.mocked(db.consumerClient.findFirst).mockResolvedValue(null as any);
     vi.mocked(db.consumerClient.create).mockResolvedValue({
-      oid: 99n
+      oid: 99n,
+      id: 'cc_99',
+      logoUri: null
     } as any);
   });
 
@@ -249,6 +258,141 @@ describe('consumer OAuth integration endpoint linking', () => {
         })
       })
     );
+  });
+
+  it('stores the dynamic registration metadata on the auth client and consumer client', async () => {
+    vi.mocked(db.consumerAuthClient.create).mockResolvedValue({
+      oid: 10n,
+      id: 'client-1'
+    } as any);
+    vi.mocked(db.consumerAuthClient.findFirstOrThrow).mockResolvedValue({
+      oid: 10n,
+      id: 'client-1'
+    } as any);
+
+    await consumerOAuthRegistrationService.registerConsumerAuthClient({
+      consumerSurface: {
+        oid: 50n,
+        instanceOid: 1n,
+        organizationOid: 2n
+      } as any,
+      magicMcpTarget: null,
+      input: {
+        clientName: 'CLI',
+        clientUri: 'https://cli.example.com',
+        logoUri: 'https://cli.example.com/logo.png',
+        tosUri: 'https://cli.example.com/terms',
+        policyUri: 'https://cli.example.com/privacy',
+        redirectUris: ['https://example.com/callback'],
+        registrationIp: '127.0.0.1'
+      }
+    });
+
+    let metadata = {
+      clientUri: 'https://cli.example.com/',
+      logoUri: 'https://cli.example.com/logo.png',
+      tosUri: 'https://cli.example.com/terms',
+      policyUri: 'https://cli.example.com/privacy'
+    };
+
+    expect(db.consumerAuthClient.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining(metadata) })
+    );
+    expect(db.consumerClient.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining(metadata) })
+    );
+  });
+
+  it('queues logo discovery when the client registers without a logo', async () => {
+    vi.mocked(db.consumerAuthClient.create).mockResolvedValue({
+      oid: 10n,
+      id: 'client-1'
+    } as any);
+    vi.mocked(db.consumerAuthClient.findFirstOrThrow).mockResolvedValue({
+      oid: 10n,
+      id: 'client-1'
+    } as any);
+
+    await consumerOAuthRegistrationService.registerConsumerAuthClient({
+      consumerSurface: { oid: 50n, instanceOid: 1n, organizationOid: 2n } as any,
+      magicMcpTarget: null,
+      input: {
+        clientName: 'CLI',
+        redirectUris: ['https://example.com/callback'],
+        registrationIp: '127.0.0.1'
+      }
+    });
+
+    expect(reconcileConsumerClientLogoQueue.add).toHaveBeenCalledWith(
+      { consumerClientId: 'cc_99' },
+      { id: 'cc_99' }
+    );
+  });
+
+  it('does not queue logo discovery when the client passes a logo', async () => {
+    vi.mocked(db.consumerClient.create).mockResolvedValue({
+      oid: 99n,
+      id: 'cc_99',
+      logoUri: 'https://cli.example.com/logo.png'
+    } as any);
+    vi.mocked(db.consumerAuthClient.create).mockResolvedValue({
+      oid: 10n,
+      id: 'client-1'
+    } as any);
+    vi.mocked(db.consumerAuthClient.findFirstOrThrow).mockResolvedValue({
+      oid: 10n,
+      id: 'client-1'
+    } as any);
+
+    await consumerOAuthRegistrationService.registerConsumerAuthClient({
+      consumerSurface: { oid: 50n, instanceOid: 1n, organizationOid: 2n } as any,
+      magicMcpTarget: null,
+      input: {
+        clientName: 'CLI',
+        logoUri: 'https://cli.example.com/logo.png',
+        redirectUris: ['https://example.com/callback'],
+        registrationIp: '127.0.0.1'
+      }
+    });
+
+    expect(reconcileConsumerClientLogoQueue.add).not.toHaveBeenCalled();
+  });
+
+  it('rejects registration metadata that is not an https url', async () => {
+    await expect(
+      consumerOAuthRegistrationService.registerConsumerAuthClient({
+        consumerSurface: {
+          oid: 50n,
+          instanceOid: 1n,
+          organizationOid: 2n
+        } as any,
+        magicMcpTarget: null,
+        input: {
+          clientName: 'CLI',
+          logoUri: 'javascript:alert(1)',
+          redirectUris: ['https://example.com/callback'],
+          registrationIp: '127.0.0.1'
+        }
+      })
+    ).rejects.toThrow('logo_uri must be a valid https URL');
+
+    expect(db.consumerAuthClient.create).not.toHaveBeenCalled();
+  });
+
+  it('does not clear stored metadata when a later registration omits it', async () => {
+    vi.mocked(db.consumerClient.findFirst).mockResolvedValue({ oid: 99n } as any);
+    vi.mocked(db.consumerClient.update).mockResolvedValue({ oid: 99n } as any);
+
+    await consumerOAuthClientService.upsertConsumerClient({
+      consumerSurface: { oid: 50n, instanceOid: 1n, organizationOid: 2n },
+      name: 'CLI',
+      redirectUris: ['https://example.com/callback'],
+      metadata: { logoUri: null, tosUri: 'https://example.com/terms' }
+    });
+
+    let data = vi.mocked(db.consumerClient.update).mock.calls[0]![0].data;
+    expect(data.tosUri).toBe('https://example.com/terms');
+    expect(data.logoUri).toBeUndefined();
   });
 
   it('links an existing auth client to its consumer client', async () => {

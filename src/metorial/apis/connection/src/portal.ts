@@ -52,6 +52,10 @@ let buildOAuthClientRegistration = (d: {
     clientSecret: string | null;
     redirectUris: string[];
     name: string;
+    clientUri: string | null;
+    logoUri: string | null;
+    tosUri: string | null;
+    policyUri: string | null;
     tokenEndpointAuthMethod: 'client_secret_basic' | 'client_secret_post' | 'none';
     createdAt: Date;
     expiresAt: Date;
@@ -62,6 +66,10 @@ let buildOAuthClientRegistration = (d: {
   client_secret: d.registration.clientSecret ?? undefined,
   redirect_uris: d.registration.redirectUris,
   client_name: d.registration.name,
+  client_uri: d.registration.clientUri ?? undefined,
+  logo_uri: d.registration.logoUri ?? undefined,
+  tos_uri: d.registration.tosUri ?? undefined,
+  policy_uri: d.registration.policyUri ?? undefined,
   grant_types: ['authorization_code', 'refresh_token'],
   response_types: ['code'],
   token_endpoint_auth_method: d.registration.tokenEndpointAuthMethod,
@@ -200,6 +208,10 @@ export let createPortalHandler = (d: {
         v.object({
           redirect_uris: v.array(v.string()),
           client_name: v.string(),
+          client_uri: v.optional(v.string()),
+          logo_uri: v.optional(v.string()),
+          tos_uri: v.optional(v.string()),
+          policy_uri: v.optional(v.string()),
           token_endpoint_auth_method: v.optional(
             v.enumOf(['client_secret_basic', 'client_secret_post', 'none'])
           )
@@ -212,6 +224,10 @@ export let createPortalHandler = (d: {
         magicMcpTarget,
         input: {
           clientName: input.client_name,
+          clientUri: input.client_uri,
+          logoUri: input.logo_uri,
+          tosUri: input.tos_uri,
+          policyUri: input.policy_uri,
           redirectUris: input.redirect_uris,
           registrationIp: ip,
           tokenEndpointAuthMethod: input.token_endpoint_auth_method
@@ -389,6 +405,10 @@ export let createPluginHandler = (d: {
         v.object({
           redirect_uris: v.array(v.string()),
           client_name: v.string(),
+          client_uri: v.optional(v.string()),
+          logo_uri: v.optional(v.string()),
+          tos_uri: v.optional(v.string()),
+          policy_uri: v.optional(v.string()),
           token_endpoint_auth_method: v.optional(
             v.enumOf(['client_secret_basic', 'client_secret_post', 'none'])
           )
@@ -400,6 +420,10 @@ export let createPluginHandler = (d: {
           skillPlugin,
           input: {
             clientName: input.client_name,
+            clientUri: input.client_uri,
+            logoUri: input.logo_uri,
+            tosUri: input.tos_uri,
+            policyUri: input.policy_uri,
             redirectUris: input.redirect_uris,
             registrationIp: ip,
             tokenEndpointAuthMethod: input.token_endpoint_auth_method

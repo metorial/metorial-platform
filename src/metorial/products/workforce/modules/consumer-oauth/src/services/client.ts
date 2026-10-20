@@ -1,6 +1,7 @@
 import { preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { ID, withTransaction, type ConsumerSurface } from '@metorial/db';
+import { ID, withTransaction, type ConsumerClient, type ConsumerSurface } from '@metorial/db';
+import { reconcileConsumerClientLogoQueue } from '../queues/reconcileConsumerClientLogos';
 import { getConsumerClientHash, normalizeConsumerClientRedirectUris } from './_helpers';
 import { ConsumerOAuthClient } from './_types';
 
@@ -9,6 +10,12 @@ class ConsumerOAuthClientService {
     consumerSurface: Pick<ConsumerSurface, 'oid' | 'instanceOid' | 'organizationOid'>;
     name: string;
     redirectUris: string[];
+    metadata?: {
+      clientUri?: string | null;
+      logoUri?: string | null;
+      tosUri?: string | null;
+      policyUri?: string | null;
+    };
   }) {
     return await withTransaction(async db => {
       let redirectUris = normalizeConsumerClientRedirectUris(d.redirectUris);
@@ -16,6 +23,13 @@ class ConsumerOAuthClientService {
         name: d.name,
         redirectUris
       });
+
+      let metadata = {
+        clientUri: d.metadata?.clientUri ?? undefined,
+        logoUri: d.metadata?.logoUri ?? undefined,
+        tosUri: d.metadata?.tosUri ?? undefined,
+        policyUri: d.metadata?.policyUri ?? undefined
+      };
 
       let consumerClient = await db.consumerClient.findFirst({
         where: {
@@ -33,7 +47,8 @@ class ConsumerOAuthClientService {
             consumerSurfaceOid: d.consumerSurface.oid,
             hash,
             name: d.name,
-            redirectUris
+            redirectUris,
+            ...metadata
           }
         });
       }
@@ -45,12 +60,24 @@ class ConsumerOAuthClientService {
         data: {
           name: d.name,
           redirectUris,
+          ...metadata,
           instanceOid: d.consumerSurface.instanceOid,
           organizationOid: d.consumerSurface.organizationOid,
           consumerSurfaceOid: d.consumerSurface.oid
         }
       });
     });
+  }
+
+  async requestConsumerClientLogoDiscovery(d: {
+    consumerClient: Pick<ConsumerClient, 'id' | 'logoUri'>;
+  }) {
+    if (d.consumerClient.logoUri) return;
+
+    await reconcileConsumerClientLogoQueue.add(
+      { consumerClientId: d.consumerClient.id },
+      { id: d.consumerClient.id }
+    );
   }
 
   async ensureConsumerAuthClientSurfaceRef(d: {
@@ -85,7 +112,14 @@ class ConsumerOAuthClientService {
   async linkConsumerAuthClientToConsumerClient(d: {
     consumerAuthClient: Pick<
       ConsumerOAuthClient,
-      'oid' | 'name' | 'redirectUris' | 'consumerAuthClientSurfaces'
+      | 'oid'
+      | 'name'
+      | 'clientUri'
+      | 'logoUri'
+      | 'tosUri'
+      | 'policyUri'
+      | 'redirectUris'
+      | 'consumerAuthClientSurfaces'
     >;
   }) {
     let surfacesByOid = new Map(
@@ -103,7 +137,8 @@ class ConsumerOAuthClientService {
             organizationOid: surface.organizationOid
           },
           name: d.consumerAuthClient.name,
-          redirectUris: d.consumerAuthClient.redirectUris
+          redirectUris: d.consumerAuthClient.redirectUris,
+          metadata: d.consumerAuthClient
         });
 
         await this.ensureConsumerAuthClientSurfaceRef({
@@ -122,7 +157,15 @@ class ConsumerOAuthClientService {
   async ensureConsumerAuthClientSurface(d: {
     consumerAuthClient: Pick<
       ConsumerOAuthClient,
-      'oid' | 'instanceOid' | 'organizationOid' | 'name' | 'redirectUris'
+      | 'oid'
+      | 'instanceOid'
+      | 'organizationOid'
+      | 'name'
+      | 'clientUri'
+      | 'logoUri'
+      | 'tosUri'
+      | 'policyUri'
+      | 'redirectUris'
     >;
     consumerSurface: Pick<ConsumerSurface, 'oid' | 'instanceOid' | 'organizationOid'>;
   }) {
@@ -148,11 +191,12 @@ class ConsumerOAuthClientService {
       );
     }
 
-    return withTransaction(async db => {
+    let consumerClient = await withTransaction(async db => {
       let consumerClient = await this.upsertConsumerClient({
         consumerSurface: d.consumerSurface,
         name: d.consumerAuthClient.name,
-        redirectUris: d.consumerAuthClient.redirectUris
+        redirectUris: d.consumerAuthClient.redirectUris,
+        metadata: d.consumerAuthClient
       });
 
       await this.ensureConsumerAuthClientSurfaceRef({
@@ -171,7 +215,11 @@ class ConsumerOAuthClientService {
           organizationOid: d.consumerSurface.organizationOid
         }
       });
+
+      return consumerClient;
     });
+
+    await this.requestConsumerClientLogoDiscovery({ consumerClient });
   }
 }
 
