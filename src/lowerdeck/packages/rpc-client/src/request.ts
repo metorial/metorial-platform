@@ -455,7 +455,12 @@ let requesterInternal = async (
   throw new ServiceError(internalServerError());
 };
 
+let offlineResponderKey = Symbol.for('lowerdeck.offline.rpc');
+
 export let request: Requester = async call => {
+  let offlineResponder = (globalThis as any)[offlineResponderKey] as Requester | undefined;
+  if (offlineResponder) return offlineResponder(call);
+
   let startedAt = Date.now();
   let diagnostics = { attempts: 0 };
   try {
