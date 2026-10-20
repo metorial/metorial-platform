@@ -79,6 +79,13 @@ export let consumerAuthAttemptInclude = {
   magicMcpToken: true
 } satisfies Prisma.ConsumerAuthAttemptInclude;
 
+export type ConsumerClientMetadataInput = {
+  clientUri?: string;
+  logoUri?: string;
+  tosUri?: string;
+  policyUri?: string;
+};
+
 export type ConsumerOAuthClient = Prisma.ConsumerAuthClientGetPayload<{
   include: typeof consumerAuthClientInclude;
 }>;

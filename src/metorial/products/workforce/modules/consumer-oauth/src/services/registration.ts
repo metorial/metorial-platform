@@ -19,13 +19,15 @@ import {
 import { portalService } from '@metorial/module-portal';
 import {
   consumerAuthClientRegistrationRateLimitError,
+  normalizeConsumerClientMetadata,
   normalizeConsumerClientRedirectUris,
   resolveConsumerSurface
 } from './_helpers';
 import {
   consumerAuthClientInclude,
   consumerAuthClientRegistrationsPerHourLimit,
-  consumerAuthClientRegistrationsPerMinuteLimit
+  consumerAuthClientRegistrationsPerMinuteLimit,
+  type ConsumerClientMetadataInput
 } from './_types';
 import { consumerOAuthClientService } from './client';
 
@@ -36,7 +38,7 @@ class ConsumerOAuthRegistrationService {
     portal?: FullPortal;
     consumerSurface?: ConsumerSurface;
     magicMcpTarget: MagicMcpResolvedTarget | null;
-    input: {
+    input: ConsumerClientMetadataInput & {
       clientName: string;
       redirectUris: string[];
       registrationIp: string;
@@ -66,8 +68,9 @@ class ConsumerOAuthRegistrationService {
         ? null
         : await ID.generateId('consumerAuthClientSecret');
     let redirectUris = normalizeConsumerClientRedirectUris(d.input.redirectUris);
+    let metadata = normalizeConsumerClientMetadata(d.input);
 
-    return await withTransaction(async db => {
+    let { registration, consumerClient } = await withTransaction(async db => {
       await this.ensureRegistrationRateLimit({
         registrationIp: d.input.registrationIp,
         instanceOid: consumerSurface.instanceOid
@@ -76,10 +79,11 @@ class ConsumerOAuthRegistrationService {
       let consumerClient = await consumerOAuthClientService.upsertConsumerClient({
         consumerSurface,
         name: d.input.clientName,
-        redirectUris
+        redirectUris,
+        metadata
       });
 
-      let registration = await db.consumerAuthClient.create({
+      let createdRegistration = await db.consumerAuthClient.create({
         data: {
           id: await ID.generateId('consumerAuthClient'),
           instanceOid: consumerSurface.instanceOid,
@@ -89,6 +93,7 @@ class ConsumerOAuthRegistrationService {
           magicMcpEndpointOid:
             d.magicMcpTarget?.type === 'endpoint' ? d.magicMcpTarget.target.oid : null,
           name: d.input.clientName,
+          ...metadata,
           redirectUris,
           registrationIp: d.input.registrationIp,
           clientId: await ID.generateId('consumerAuthClientId'),
@@ -99,23 +104,29 @@ class ConsumerOAuthRegistrationService {
       });
 
       await consumerOAuthClientService.ensureConsumerAuthClientSurfaceRef({
-        consumerAuthClient: registration,
+        consumerAuthClient: createdRegistration,
         consumerSurface,
         consumerClient
       });
 
-      return await db.consumerAuthClient.findFirstOrThrow({
+      let registration = await db.consumerAuthClient.findFirstOrThrow({
         where: {
-          id: registration.id
+          id: createdRegistration.id
         },
         include: consumerAuthClientInclude
       });
+
+      return { registration, consumerClient };
     });
+
+    await consumerOAuthClientService.requestConsumerClientLogoDiscovery({ consumerClient });
+
+    return registration;
   }
 
   async registerSkillPluginConsumerAuthClient(d: {
     skillPlugin: SkillPlugin & { organization: Organization; instance: Instance };
-    input: {
+    input: ConsumerClientMetadataInput & {
       clientName: string;
       redirectUris: string[];
       registrationIp: string;
@@ -132,6 +143,7 @@ class ConsumerOAuthRegistrationService {
         ? null
         : await ID.generateId('consumerAuthClientSecret');
     let redirectUris = normalizeConsumerClientRedirectUris(d.input.redirectUris);
+    let metadata = normalizeConsumerClientMetadata(d.input);
 
     return await withTransaction(async db => {
       await this.ensureRegistrationRateLimit({
@@ -146,6 +158,7 @@ class ConsumerOAuthRegistrationService {
           organizationOid: d.skillPlugin.organizationOid,
           skillPluginOid: d.skillPlugin.oid,
           name: d.input.clientName,
+          ...metadata,
           redirectUris,
           registrationIp: d.input.registrationIp,
           clientId: await ID.generateId('consumerAuthClientId'),

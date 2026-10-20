@@ -24,6 +24,11 @@ model ConsumerClient {
   hash String
   name String
 
+  clientUri String?
+  logoUri   String?
+  tosUri    String?
+  policyUri String?
+
   redirectUris String[]
 
   instanceOid BigInt?
@@ -32,8 +37,9 @@ model ConsumerClient {
   organizationOid BigInt?
   organization    Organization? @relation(fields: [organizationOid], references: [oid], onDelete: SetNull)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  logoReconciledAt DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @default(now()) @updatedAt
 
   consumerAuthClients ConsumerAuthClient[]
   agentClients        AgentClient[]
@@ -45,6 +51,7 @@ model ConsumerClient {
 
   // @@unique([consumerSurfaceOid, hash])
   @@index([hash])
+  @@index([logoReconciledAt, id])
 }
 
 model ConsumerAuthClient {
@@ -52,6 +59,11 @@ model ConsumerAuthClient {
   id  String @unique
 
   name String
+
+  clientUri String?
+  logoUri   String?
+  tosUri    String?
+  policyUri String?
 
   clientId       String  @unique
   clientSecret   String?

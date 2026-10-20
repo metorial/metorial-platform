@@ -19,10 +19,13 @@ import {
   consumerAuthAccessTokenTtlSeconds,
   consumerAuthClientInclude,
   consumerAuthRefreshTokenTtlSeconds,
+  ConsumerClientMetadataInput,
   ConsumerOAuthAuthorization,
   ConsumerOAuthClient,
   DashboardConsumerSurface
 } from './_types';
+
+let CLIENT_METADATA_URL_MAX_LENGTH = 2048;
 
 export let getConsumerAuthRefreshTokenExpiry = () =>
   addSeconds(new Date(), consumerAuthRefreshTokenTtlSeconds);
@@ -91,6 +94,43 @@ export let resolveConsumerSurface = (d: {
 
 export let normalizeConsumerClientRedirectUris = (redirectUris: string[]) =>
   [...redirectUris].sort();
+
+let normalizeClientMetadataUrl = (value: string | undefined, field: string) => {
+  let trimmed = value?.trim();
+  if (!trimmed) return undefined;
+
+  let url: URL | null = null;
+  try {
+    url = new URL(trimmed);
+  } catch {}
+
+  if (
+    !url ||
+    trimmed.length > CLIENT_METADATA_URL_MAX_LENGTH ||
+    url.protocol != 'https:' ||
+    url.username ||
+    url.password
+  ) {
+    throw new ServiceError(
+      badRequestError({
+        message: `${field} must be a valid https URL`,
+        oauth: {
+          error: 'invalid_client_metadata',
+          errorMessage: `${field} must be a valid https URL`
+        }
+      })
+    );
+  }
+
+  return url.toString();
+};
+
+export let normalizeConsumerClientMetadata = (d: ConsumerClientMetadataInput) => ({
+  clientUri: normalizeClientMetadataUrl(d.clientUri, 'client_uri'),
+  logoUri: normalizeClientMetadataUrl(d.logoUri, 'logo_uri'),
+  tosUri: normalizeClientMetadataUrl(d.tosUri, 'tos_uri'),
+  policyUri: normalizeClientMetadataUrl(d.policyUri, 'policy_uri')
+});
 
 export let getConsumerClientHash = async (d: { name: string; redirectUris: string[] }) =>
   await Hash.sha256(
