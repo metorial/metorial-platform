@@ -152,6 +152,7 @@ if (command === 'prepare') {
     if (!existsSync(source)) continue;
     mkdirSync(dirname(target), { recursive: true });
     if (command === 'restore') renameSync(source, target);
-    else cpSync(source, target, { recursive: true, dereference: false });
+    else
+      cpSync(source, target, { recursive: true, dereference: false, verbatimSymlinks: true });
   }
 } else throw new Error(`Unknown test workspace command: ${command}`);
