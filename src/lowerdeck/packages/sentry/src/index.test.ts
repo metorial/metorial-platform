@@ -1,9 +1,22 @@
+import { isAlreadyCaptured } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
 import {
   getSentryHttpErrorDetails,
+  markSentryCaptured,
   shouldIgnoreSentryFrontendError,
   shouldIgnoreSentryHttpError
 } from './index';
+
+describe('markSentryCaptured', () => {
+  it('flags the error so the SDK drops later captures without making it serializable', () => {
+    let error = new Error('already reported');
+
+    markSentryCaptured(error);
+
+    expect(isAlreadyCaptured(error)).toBe(true);
+    expect(Object.keys(error)).not.toContain('__sentry_captured__');
+  });
+});
 
 describe('@lowerdeck/sentry filters', () => {
   it('extracts client error details from wrapped lowerdeck errors', () => {

@@ -138,6 +138,12 @@ export let setSentry = (sentry: typeof SentryBase) => {
 
 export let getSentry = (): typeof SentryBase => sentryRef.current;
 
+// Outer handlers (queue workers, HTTP error middleware) capture whatever they catch. Marking an
+// error that already has a more specific report stops the SDK from sending a second event.
+export let markSentryCaptured = (error: unknown) => {
+  SentryBase.checkOrSetAlreadyCaught(error);
+};
+
 let shouldIgnoreKnownClientError = (
   value: unknown,
   includeMetorialSdkErrors: boolean
