@@ -416,6 +416,7 @@ declare global {
     }[];
 
     type ProductAssistantConversationInput = unknown;
+    type ProductAssistantRequestInput = unknown;
     type ProductAssistantMessageStateContent = ProductAssistant.State;
     type ProductAssistantMessageSerializedContent = ProductAssistant.MessageSerializedContent;
     type ProductAssistantRunCost = ProductAssistant.RunCost;

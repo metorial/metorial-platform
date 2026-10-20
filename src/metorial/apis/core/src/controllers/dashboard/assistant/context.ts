@@ -2,8 +2,13 @@ import { forbiddenError, ServiceError } from '@lowerdeck/error';
 import type { Instance, Project, ResourceActor } from '@metorial/db';
 import {
   productAssistantConversationService,
-  productAssistantMessageService
+  productAssistantMessageService,
+  type AssistantAccess
 } from '@metorial/module-product-assistant';
+import {
+  getInstanceCargoAccess,
+  type InstanceCargoAccessContext
+} from '../../../lib/cargoAccess';
 import { requireParam } from '../../../lib/requireParam';
 import { instanceGroup } from '../../../middleware/instanceGroup';
 
@@ -32,6 +37,20 @@ export let getAssistantScope = (ctx: AssistantAccessContext) => ({
   instance: ctx.instance,
   actor: requireAssistantActor(ctx)
 });
+
+export let getAssistantAccess = async (
+  ctx: InstanceCargoAccessContext
+): Promise<AssistantAccess> => {
+  let access = await getInstanceCargoAccess(ctx);
+
+  return {
+    authorization: access.authorization,
+    auditScope: access.auditScope,
+    accessTags: access.accessTags,
+    defaultPermissions: access.defaultPermissions,
+    overridePermissions: access.overridePermissions
+  };
+};
 
 export let assistantConversationGroup = instanceGroup.use(async ctx => {
   let assistantConversationId = requireParam(ctx.params, 'assistantConversationId');

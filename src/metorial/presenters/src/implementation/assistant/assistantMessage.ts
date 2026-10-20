@@ -7,6 +7,23 @@ import {
 } from '../files/documentParticipant';
 import { assistantModelSchema, presentAssistantModel } from './assistant';
 
+let presentRequestContext = (input: unknown) => {
+  if (!input || typeof input != 'object') return null;
+
+  let { mode, requestedMode, canWrite } = input as {
+    mode?: unknown;
+    requestedMode?: unknown;
+    canWrite?: unknown;
+  };
+  if (typeof mode != 'string') return null;
+
+  return {
+    mode,
+    requested_mode: typeof requestedMode == 'string' ? requestedMode : mode,
+    can_write: canWrite === true
+  };
+};
+
 export let v1AssistantMessagePresenter = Presenter.create(assistantMessageType)
   .presenter(async ({ assistantConversationItem }, opts) => {
     let message = assistantConversationItem.message;
@@ -30,6 +47,7 @@ export let v1AssistantMessagePresenter = Presenter.create(assistantMessageType)
         actor: message.request.resourceActor
           ? await presentDocumentParticipantActor(message.request.resourceActor, opts)
           : null,
+        context: presentRequestContext(message.request.input),
         created_at: message.request.createdAt,
         updated_at: message.request.updatedAt
       },
@@ -52,6 +70,17 @@ export let v1AssistantMessagePresenter = Presenter.create(assistantMessageType)
         id: v.string(),
         status: v.enumOf(['pending', 'waiting_for_user', 'completed', 'cancelled', 'failed']),
         actor: v.nullable(documentParticipantActorSchema),
+        context: v.nullable(
+          v.object({
+            mode: v.string({
+              description: 'The mode the assistant ran in after permission checks'
+            }),
+            requested_mode: v.string({ description: 'The mode requested by the client' }),
+            can_write: v.boolean({
+              description: 'Whether the assistant could change the underlying resource'
+            })
+          })
+        ),
         created_at: v.date(),
         updated_at: v.date()
       }),
