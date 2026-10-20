@@ -205,11 +205,6 @@ export let proseStyles = css`
     min-height: 60px;
     color: ${({ theme }) => theme.color.text};
 
-    svg {
-      max-width: 100%;
-      height: auto;
-    }
-
     &--empty,
     &--loading {
       color: ${({ theme }) => theme.color.textSubtle};
@@ -325,17 +320,13 @@ export let proseStyles = css`
 
   .latex-output {
     display: flex;
-    justify-content: center;
+    justify-content: safe center;
     align-items: center;
     width: 100%;
     min-height: 56px;
     color: ${({ theme }) => theme.color.text};
     overflow-x: auto;
     overflow-y: hidden;
-
-    .katex-display {
-      margin: 0;
-    }
 
     &--empty {
       color: ${({ theme }) => theme.color.textSubtle};

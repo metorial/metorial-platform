@@ -15,7 +15,7 @@ export async function getMermaid(theme: 'light' | 'dark'): Promise<MermaidModule
   if (lastTheme !== theme) {
     mermaid.initialize({
       startOnLoad: false,
-      securityLevel: 'loose',
+      securityLevel: 'strict',
       theme: theme === 'dark' ? 'dark' : 'default',
       fontFamily: 'inherit'
     });

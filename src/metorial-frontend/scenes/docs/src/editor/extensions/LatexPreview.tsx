@@ -1,8 +1,13 @@
 import katex from 'katex';
+import katexStyles from 'katex/dist/katex.min.css?inline';
+import { SandboxedMarkup } from './SandboxedMarkup';
 
 interface Props {
   latex: string;
 }
+
+let previewCss = `${katexStyles}
+.katex-display { margin: 0; }`;
 
 export function LatexPreview({ latex }: Props) {
   let trimmed = latex.trim();
@@ -23,7 +28,10 @@ export function LatexPreview({ latex }: Props) {
       displayMode: true,
       output: 'htmlAndMathml',
       throwOnError: true,
-      strict: 'warn'
+      strict: 'warn',
+      trust: false,
+      maxSize: 100,
+      maxExpand: 1000
     });
   } catch (error: unknown) {
     message =
@@ -35,7 +43,11 @@ export function LatexPreview({ latex }: Props) {
   }
 
   if (html) {
-    return <div className="latex-output" dangerouslySetInnerHTML={{ __html: html }} />;
+    return (
+      <div className="latex-output">
+        <SandboxedMarkup html={html} title="Equation preview" css={previewCss} fit="content" />
+      </div>
+    );
   }
 
   return (
