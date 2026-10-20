@@ -45,12 +45,12 @@ export class AlgoliaBackend extends Backend {
     });
   }
 
-  async deleteRecordsById(index: Index, recordIds: string[]) {
-    if (recordIds.length === 0) return;
+  async deleteRecordsByDocumentId(index: Index, documentIds: string[]) {
+    if (documentIds.length === 0) return;
 
     await this.client!.deleteObjects({
       indexName: this.indexName(index),
-      objectIDs: recordIds
+      objectIDs: documentIds
     });
   }
 

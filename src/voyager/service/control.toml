@@ -6,7 +6,12 @@ run = ["dev:start"]
 
 [endpoints.rpc]
 port = 52060
+health = "/ping"
 env = [{ key = "VOYAGER_PORT", value = "{{BIND_PORT}}" }]
+
+[e2e]
+start = ["e2e:start"]
+image = "voyager"
 
 [[resources]]
 type = "redis"

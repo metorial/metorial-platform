@@ -96,6 +96,9 @@ jobs:
           - name: subspace-worker
             image: ghcr.io/metorial/subspace-worker
             dockerfile: ./src/metorial/products/integrations/apps/worker/Dockerfile
+          - name: app-api
+            image: ghcr.io/metorial/app-api
+            dockerfile: ./src/metorial/services/api/Dockerfile
 
     steps:
       - name: Checkout repository
@@ -223,7 +226,7 @@ jobs:
     needs: [changes, build]
     if: needs.changes.outputs.e2e == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: ${{ matrix.service.control && 60 || 30 }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.changes.outputs.matrix) }}
@@ -240,7 +243,7 @@ jobs:
       - uses: ./.github/actions/setup-test-workspace
         id: tests
         with:
-          tasks: prisma:generate test:e2e --filter=${{ matrix.service.package }}
+          tasks: ${{ matrix.service.tasks }}
       - uses: ./.github/actions/setup-warp-cache
         with:
           cache-bun-downloads: 'false'
@@ -253,8 +256,13 @@ jobs:
         working-directory: ${{ steps.tests.outputs.workspace }}
         run: bunx turbo@2.11.7 run prisma:generate build --ui=stream --concurrency=2
       - uses: ./.github/actions/backend-e2e
+        if: ${{ !matrix.service.control }}
         with:
           suite: ${{ matrix.service.name }}
+          test-workspace: ${{ steps.tests.outputs.workspace }}
+      - uses: ./.github/actions/control-e2e
+        if: ${{ matrix.service.control }}
+        with:
           test-workspace: ${{ steps.tests.outputs.workspace }}
       - name: Report Warp Cache
         if: always()

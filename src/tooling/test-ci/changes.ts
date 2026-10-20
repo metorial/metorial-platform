@@ -23,6 +23,45 @@ export let suites = [
   { name: 'voyager', package: '@metorial/voyager', services: ['voyager'] }
 ];
 
+let stackServices = ['forge', 'function-bay', 'nebula', 'shuttle', 'voyager', 'relay'];
+
+/** Suites run by `control test:e2e`: the stack package plus every test package matching `tests`. */
+export let controlSuites = {
+  oss: {
+    name: 'metorial',
+    package: '@metorial/app-api',
+    stackPackages: [] as string[],
+    services: stackServices,
+    tests: ['src/metorial/products/*/modules/*', 'src/metorial/apis/*']
+  },
+  enterprise: {
+    name: 'metorial-enterprise',
+    package: '@metorial/mte-core-api',
+    stackPackages: ['@metorial/mte-worker'],
+    services: stackServices,
+    tests: ['src/metorial/modules/*', 'src/metorial/apis/*']
+  }
+};
+
+export type ControlSuite = (typeof controlSuites)['oss'];
+
+export let controlTestPackages = (
+  suite: ControlSuite,
+  packages: Map<string, { directory: string; e2e: boolean }>
+) =>
+  [...packages]
+    .filter(
+      ([, value]) =>
+        value.e2e && suite.tests.some(pattern => new Bun.Glob(pattern).match(value.directory))
+    )
+    .map(([name]) => name)
+    .sort();
+
+export let controlTasks = (suite: ControlSuite) =>
+  ['prisma:generate', 'test:e2e', ...suite.tests.map(pattern => `--filter=./${pattern}`)].join(
+    ' '
+  );
+
 export let affected = (paths: string[], directories: string[], global: boolean) =>
   global ||
   paths.some(path =>
@@ -92,7 +131,10 @@ if (import.meta.main) {
     }
   }
 
-  let packages = new Map<string, { directory: string; dependencies: string[] }>();
+  let packages = new Map<
+    string,
+    { directory: string; dependencies: string[]; e2e: boolean }
+  >();
   let manifest = await Bun.file('package.json').json();
   for (let pattern of manifest.workspaces) {
     for (let file of new Bun.Glob(`${pattern}/package.json`).scanSync({ onlyFiles: true })) {
@@ -100,6 +142,7 @@ if (import.meta.main) {
       if (value.name)
         packages.set(value.name, {
           directory: dirname(file),
+          e2e: Boolean(value.scripts?.['test:e2e']),
           dependencies: Object.keys({
             ...value.dependencies,
             ...value.devDependencies,
@@ -162,6 +205,7 @@ if (import.meta.main) {
     paths.some(
       path =>
         path.startsWith(`${prefix}.github/actions/backend-e2e/`) ||
+        path.startsWith(`${prefix}.github/actions/control-e2e/`) ||
         path.startsWith(`${prefix}.github/actions/image-artifact/`) ||
         path.startsWith(`${prefix}.github/actions/image-cache/`) ||
         path === `${prefix}.dockerignore` ||
@@ -206,6 +250,40 @@ if (import.meta.main) {
       e2eGlobal
     )
   );
+  let controlSuite = enterprise ? controlSuites.enterprise : controlSuites.oss;
+  if (!packages.has(controlSuite.package))
+    throw new Error(`Missing E2E stack workspace: ${controlSuite.package}`);
+  let controlSelected = affected(
+    paths,
+    [
+      ...[controlSuite.package, ...controlSuite.stackPackages].flatMap(name => closure(name)),
+      ...controlTestPackages(controlSuite, packages).flatMap(name => closure(name)),
+      ...controlSuite.services.map(service => `${prefix}src/${service}`),
+      `${prefix}src/control`,
+      `${prefix}scripts/dev-tools/e2e`
+    ],
+    e2eGlobal
+  );
+  let matrix = [
+    ...selected.map(({ name, package: pkg }) => ({
+      name,
+      package: pkg,
+      control: false,
+      workspace: enterprise ? './oss' : '.',
+      tasks: `prisma:generate test:e2e --filter=${pkg}`
+    })),
+    ...(controlSelected
+      ? [
+          {
+            name: controlSuite.name,
+            package: controlSuite.package,
+            control: true,
+            workspace: '.',
+            tasks: controlTasks(controlSuite)
+          }
+        ]
+      : [])
+  ];
   let conduit = affected(
     paths,
     closure('@metorial-subspace/conduit'),
@@ -214,15 +292,13 @@ if (import.meta.main) {
   let outputs = {
     units: String(units.length > 0),
     'unit-tasks': ['test', ...units.map(name => `--filter=${name}`)].join(' '),
-    e2e: String(selected.length > 0),
-    matrix: JSON.stringify({
-      service: selected.map(({ name, package: pkg }) => ({ name, package: pkg }))
-    }),
+    e2e: String(matrix.length > 0),
+    matrix: JSON.stringify({ service: matrix }),
     conduit: String(conduit)
   };
   console.log(
     JSON.stringify(
-      { base, paths, units, suites: selected.map(suite => suite.name), conduit },
+      { base, paths, units, suites: matrix.map(suite => suite.name), conduit },
       null,
       2
     )

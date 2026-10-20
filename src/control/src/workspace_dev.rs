@@ -995,6 +995,7 @@ mod tests {
                             port: 4300,
                             bind_port: None,
                             env: vec![],
+                            health: None,
                         },
                     )]),
                     ..Default::default()
@@ -1014,6 +1015,7 @@ mod tests {
                                 port: 4310,
                                 bind_port: None,
                                 env: vec![],
+                                health: None,
                             },
                         ),
                         (
@@ -1022,6 +1024,7 @@ mod tests {
                                 port: 4318,
                                 bind_port: None,
                                 env: vec![],
+                                health: None,
                             },
                         ),
                     ]),

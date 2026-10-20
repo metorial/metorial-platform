@@ -5,9 +5,12 @@
   "private": true,
   "version": "1.0.0",
   "main": "src/index.ts",
-  "scripts": {},
+  "scripts": {
+    "test:e2e": "metorial-e2e"
+  },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@metorial/e2e": "1.0.0"
   },
   "peerDependencies": {
     "typescript": "^5"

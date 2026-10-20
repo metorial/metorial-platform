@@ -2225,6 +2225,7 @@
         "@metorial/module-user": "^1.0.0",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -2262,6 +2263,9 @@
         "@modelcontextprotocol/sdk": "^1.32.1",
         "hono": "^4.13.13",
         "zod": "^4.6.7",
+      },
+      "devDependencies": {
+        "@metorial/e2e": "1.0.0",
       },
     },
     "src/metorial/apis/core": {
@@ -2334,6 +2338,7 @@
         "@slates/adapter-chat": "1.0.0-rc.10",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -2360,6 +2365,7 @@
         "@metorial/module-organization": "^1.0.0",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -2388,6 +2394,7 @@
         "@metorial/image-url": "^1.0.0",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -2405,6 +2412,7 @@
         "@metorial/module-machine-access": "^1.0.0",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -2420,6 +2428,7 @@
         "@metorial/redis": "^1.0.0",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -2528,9 +2537,9 @@
       "name": "@metorial/config",
       "version": "1.0.0",
       "dependencies": {
+        "@lowerdeck/cache": "workspace:2.0.0",
         "@lowerdeck/env": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
-        "@metorial/cache": "^1.0.0",
         "@metorial/db": "^1.0.0",
       },
       "devDependencies": {
@@ -2572,6 +2581,28 @@
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "^5.9.3",
         "vitest": "^5.0.4",
+      },
+    },
+    "src/metorial/packages/e2e": {
+      "name": "@metorial/e2e",
+      "version": "1.0.0",
+      "bin": {
+        "metorial-e2e": "./src/bin.ts",
+      },
+      "dependencies": {
+        "@lowerdeck/rpc-client": "workspace:2.0.0",
+        "@lowerdeck/testing-tools": "workspace:2.0.0",
+        "@metorial-subspace/db": "^1.0.0",
+        "@metorial/audit-scope": "^1.0.0",
+        "@metorial/consumer-sdk": "1.0.0-internal",
+        "@metorial/dashboard-sdk": "1.0.0-internal",
+        "@metorial/db": "^1.0.0",
+        "vitest": "^5.0.4",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "@types/bun": "latest",
+        "typescript": "5.9.3",
       },
     },
     "src/metorial/packages/event": {
@@ -2878,6 +2909,7 @@
         "zod": "^4.6.7",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -2907,6 +2939,7 @@
         "@metorial/queue": "^1.0.0",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -2934,6 +2967,7 @@
         "@metorial/queue": "1.0.0",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -2965,6 +2999,7 @@
         "zod": "^4.6.7",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -2990,6 +3025,7 @@
         "object-storage-client": "^0.2.5",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -3016,6 +3052,7 @@
         "@metorial/webhook-event-schema": "workspace:*",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -3035,6 +3072,7 @@
         "@metorial/webhook-event-schema": "workspace:*",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -3058,6 +3096,7 @@
         "object-storage-client": "^0.2.5",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -3224,6 +3263,7 @@
         "@metorial/queue": "1.0.0",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -3247,6 +3287,7 @@
         "fs-extra": "^11.4.1",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -3266,6 +3307,7 @@
         "@metorial/queue": "^1.0.0",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -3285,6 +3327,7 @@
         "@metorial/queue": "^1.0.0",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -3317,6 +3360,7 @@
         "ipaddr.js": "^2.5.0",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -3354,6 +3398,7 @@
         "unist-util-visit": "^5.1.0",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -3385,6 +3430,7 @@
         "ipaddr.js": "^2.5.0",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -3419,6 +3465,7 @@
         "react": "19.3.0",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "@types/react": "19.3.0",
         "typescript": "5.9.3",
@@ -3451,6 +3498,7 @@
         "@metorial/queue": "^1.0.0",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -3466,6 +3514,7 @@
         "@metorial/fabric": "^1.0.0",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -3480,6 +3529,7 @@
         "@metorial-platform-systems/voyager-client": "workspace:*",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -3499,6 +3549,7 @@
         "@metorial/fabric": "^1.0.0",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -3523,6 +3574,7 @@
         "mongoose": "^9.11.2",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -3549,6 +3601,7 @@
         "@metorial/queue": "^1.0.0",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -3570,6 +3623,7 @@
         "tldts": "^7.4.18",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -3755,6 +3809,7 @@
       },
       "devDependencies": {
         "@metorial-subspace/tsconfig": "^1.0.0",
+        "@metorial/e2e": "1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
       },
@@ -3787,6 +3842,7 @@
       },
       "devDependencies": {
         "@metorial-subspace/tsconfig": "^1.0.0",
+        "@metorial/e2e": "1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
       },
@@ -3817,6 +3873,7 @@
       },
       "devDependencies": {
         "@metorial-subspace/tsconfig": "^1.0.0",
+        "@metorial/e2e": "1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
       },
@@ -3847,6 +3904,7 @@
       },
       "devDependencies": {
         "@metorial-subspace/tsconfig": "^1.0.0",
+        "@metorial/e2e": "1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
       },
@@ -3887,6 +3945,7 @@
       },
       "devDependencies": {
         "@metorial-subspace/tsconfig": "^1.0.0",
+        "@metorial/e2e": "1.0.0",
         "@metorial/webhook-event-schema": "workspace:*",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -3944,6 +4003,7 @@
         "zod": "^4.6.7",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
       },
@@ -3981,6 +4041,7 @@
       },
       "devDependencies": {
         "@metorial-subspace/tsconfig": "^1.0.0",
+        "@metorial/e2e": "1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
       },
@@ -4013,6 +4074,7 @@
       },
       "devDependencies": {
         "@metorial-subspace/tsconfig": "^1.0.0",
+        "@metorial/e2e": "1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
       },
@@ -4046,6 +4108,7 @@
       },
       "devDependencies": {
         "@metorial-subspace/tsconfig": "^1.0.0",
+        "@metorial/e2e": "1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
       },
@@ -4078,6 +4141,7 @@
       },
       "devDependencies": {
         "@metorial-subspace/tsconfig": "^1.0.0",
+        "@metorial/e2e": "1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
       },
@@ -4118,6 +4182,7 @@
       },
       "devDependencies": {
         "@metorial-subspace/tsconfig": "^1.0.0",
+        "@metorial/e2e": "1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
       },
@@ -4142,6 +4207,7 @@
       },
       "devDependencies": {
         "@metorial-subspace/tsconfig": "^1.0.0",
+        "@metorial/e2e": "1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
       },
@@ -4176,6 +4242,7 @@
       },
       "devDependencies": {
         "@metorial-subspace/tsconfig": "^1.0.0",
+        "@metorial/e2e": "1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
       },
@@ -4212,6 +4279,7 @@
       },
       "devDependencies": {
         "@metorial-subspace/tsconfig": "^1.0.0",
+        "@metorial/e2e": "1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
       },
@@ -4227,6 +4295,7 @@
         "@metorial-platform-systems/voyager-client": "workspace:*",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@types/bun": "latest",
       },
       "peerDependencies": {
@@ -4270,6 +4339,7 @@
       },
       "devDependencies": {
         "@metorial-subspace/tsconfig": "^1.0.0",
+        "@metorial/e2e": "1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
       },
@@ -4297,6 +4367,7 @@
       },
       "devDependencies": {
         "@metorial-subspace/tsconfig": "^1.0.0",
+        "@metorial/e2e": "1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
       },
@@ -4607,6 +4678,7 @@
         "@metorial/queue": "^1.0.0",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -4651,6 +4723,7 @@
         "@metorial/skills-search": "^1.0.0",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "@types/bun": "latest",
       },
@@ -4672,6 +4745,7 @@
         "@metorial/skills-common": "^1.0.0",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "@types/bun": "latest",
         "typescript": "^5.9.3",
@@ -4700,6 +4774,7 @@
         "@metorial/skills-search": "^1.0.0",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "@types/bun": "latest",
         "typescript": "^5.9.3",
@@ -4734,6 +4809,7 @@
         "jszip": "^3.10.2",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "@types/bun": "latest",
         "typescript": "^5.9.3",
@@ -4781,6 +4857,7 @@
         "yaml": "^2.9.1",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "@types/bun": "latest",
         "typescript": "^5.9.3",
@@ -4812,6 +4889,8 @@
         "@metorial/queue": "^1.0.0",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
+        "@metorial/module-skill": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "@types/bun": "latest",
         "typescript": "^5.9.3",
@@ -4846,6 +4925,7 @@
         "@metorial/skills-search": "^1.0.0",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "@types/bun": "latest",
         "typescript": "^5.9.3",
@@ -4955,6 +5035,7 @@
         "yjs": "^13.6.33",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "@types/bun": "latest",
       },
@@ -4984,6 +5065,7 @@
         "object-storage-client": "^0.2.5",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "@types/bun": "latest",
       },
@@ -5012,6 +5094,7 @@
         "@metorial/queue": "^1.0.0",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "@types/bun": "latest",
       },
@@ -5038,6 +5121,7 @@
         "react": "19.3.0",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "@types/react": "19.3.0",
         "typescript": "5.9.3",
@@ -5070,6 +5154,7 @@
         "react": "19.3.0",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "@types/react": "19.3.0",
         "typescript": "5.9.3",
@@ -5108,6 +5193,7 @@
         "@metorial/queue": "1.0.0",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -5137,6 +5223,7 @@
         "date-fns": "^4.4.0",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -5178,6 +5265,7 @@
         "redis": "^6.3.0",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -5205,6 +5293,7 @@
         "@metorial/queue": "1.0.0",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",
@@ -7805,6 +7894,8 @@
     "@metorial/docs-editor-schema": ["@metorial/docs-editor-schema@workspace:src/metorial-frontend/packages/docs-editor-schema"],
 
     "@metorial/dynamic-component": ["@metorial/dynamic-component@workspace:src/metorial-frontend/packages/dynamic-component"],
+
+    "@metorial/e2e": ["@metorial/e2e@workspace:src/metorial/packages/e2e"],
 
     "@metorial/editor-tabs": ["@metorial/editor-tabs@workspace:src/metorial-frontend/packages/editor-tabs"],
 

@@ -51,14 +51,14 @@ export class PgBackend extends Backend {
     }
   }
 
-  async deleteRecordsById(index: Index, recordIds: string[]) {
+  async deleteRecordsByDocumentId(index: Index, documentIds: string[]) {
     if (!db) throw new Error('Database not initialized');
 
-    if (recordIds.length === 0) return;
+    if (documentIds.length === 0) return;
 
     await db
       .delete(records)
-      .where(and(eq(records.indexId, index.oid), inArray(records.documentId, recordIds)));
+      .where(and(eq(records.indexId, index.oid), inArray(records.documentId, documentIds)));
   }
 
   private buildBaseWheres(index: Index, filters?: { [key: string]: any }, tenantOids?: bigint[]) {
