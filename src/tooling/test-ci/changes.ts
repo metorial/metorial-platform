@@ -31,6 +31,7 @@ export let controlSuites = {
     name: 'metorial',
     package: '@metorial/app-api',
     stackPackages: [] as string[],
+    workspacePackages: [] as string[],
     services: stackServices,
     tests: ['src/metorial/products/*/modules/*', 'src/metorial/apis/*']
   },
@@ -38,6 +39,9 @@ export let controlSuites = {
     name: 'metorial-enterprise',
     package: '@metorial/mte-core-api',
     stackPackages: ['@metorial/mte-worker'],
+    // Loaded by the enterprise e2e bootstrap but not declared there, because declaring it would form
+    // a dependency cycle through the federation modules' own e2e devDependencies.
+    workspacePackages: ['@metorial-enterprise/fabric'],
     services: stackServices,
     tests: ['src/metorial/modules/*', 'src/metorial/apis/*']
   }
@@ -58,9 +62,12 @@ export let controlTestPackages = (
     .sort();
 
 export let controlTasks = (suite: ControlSuite) =>
-  ['prisma:generate', 'test:e2e', ...suite.tests.map(pattern => `--filter=./${pattern}`)].join(
-    ' '
-  );
+  [
+    'prisma:generate',
+    'test:e2e',
+    ...suite.tests.map(pattern => `--filter=./${pattern}`),
+    ...suite.workspacePackages.map(name => `--filter=${name}`)
+  ].join(' ');
 
 export let affected = (paths: string[], directories: string[], global: boolean) =>
   global ||

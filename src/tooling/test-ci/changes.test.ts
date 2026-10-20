@@ -60,6 +60,9 @@ test('control suites select stack test packages and prune them for CI', async ()
   expect(controlTasks(controlSuites.oss)).toBe(
     'prisma:generate test:e2e --filter=./src/metorial/products/*/modules/* --filter=./src/metorial/apis/*'
   );
+  expect(controlTasks(controlSuites.enterprise)).toBe(
+    'prisma:generate test:e2e --filter=./src/metorial/modules/* --filter=./src/metorial/apis/* --filter=@metorial-enterprise/fabric'
+  );
   expect(controlSuites.enterprise.package).toBe('@metorial/mte-core-api');
 });
 
