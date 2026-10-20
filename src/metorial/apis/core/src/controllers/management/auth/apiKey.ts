@@ -11,6 +11,7 @@ import { accessService, AuthInfo } from '@metorial/module-access';
 import { apiKeyService, ListApiKeysFilter } from '@metorial/module-machine-access';
 import { instanceService } from '@metorial/module-organization';
 import { Controller } from '@metorial/rest';
+import { getSecretVerification } from '../../../lib/secretVerification';
 import { checkAccess } from '../../../middleware/checkAccess';
 import {
   organizationGroup,
@@ -222,95 +223,62 @@ export let managementApiKeyController = Controller.create(
       })
       .body(
         'default',
-        v.intersection([
-          v.union([
-            v.object({
-              type: v.literal('organization_management_token')
-            }),
-            v.object({
-              type: v.enumOf([
-                'instance_access_token_secret',
-                'instance_access_token_publishable'
-              ]),
-              instance_id: v.string()
-            })
+        v.object({
+          type: v.enumOf([
+            'instance_access_token_secret',
+            'instance_access_token_publishable'
           ]),
-          v.object({
-            name: v.string(),
-            description: v.optional(v.string()),
-            expires_at: v.optional(v.date()),
-            ip_filters: v.optional(v.array(v.string()))
-          })
-        ])
+          instance_id: v.string(),
+          name: v.string(),
+          description: v.optional(v.string()),
+          expires_at: v.optional(v.date()),
+          ip_filters: v.optional(v.array(v.string()))
+        })
       )
       .use(checkAccess({ possibleScopes: ['organization.api_key:write'] }))
       .output(apiKeyPresenter)
       .do(async ctx => {
-        if (ctx.body.type == 'organization_management_token') {
-          let { apiKey, secret } = await apiKeyService.createApiKey({
-            input: {
-              name: ctx.body.name,
-              description: ctx.body.description,
-              expiresAt: ctx.body.expires_at,
-              ipFilters: ctx.body.ip_filters
-            },
-            type: 'organization_management_token',
-            organization: ctx.organization,
-            auditScope: ctx.auditScope
-          });
+        let instance = await instanceService.getInstanceById({
+          instanceId: ctx.body.instance_id,
+          organization: ctx.organization,
+          actor: ctx.actor,
+          member: undefined
+        });
 
-          return apiKeyPresenter.present({
-            canReveal: await canRevealApiKey({
-              auth: ctx.auth,
-              organization: ctx.organization,
-              member: ctx.member,
-              apiKey
-            }),
-            apiKey,
-            secret
-          });
-        } else {
-          let instance = await instanceService.getInstanceById({
-            instanceId: ctx.body.instance_id,
-            organization: ctx.organization,
-            actor: ctx.actor,
-            member: undefined
-          });
+        await accessService.checkTargetAccess({
+          authInfo: ctx.auth,
+          organization: ctx.organization,
+          member: ctx.member,
+          project: instance.project,
+          instance,
+          possibleScopes: ['organization.api_key:write']
+        });
 
-          await accessService.checkTargetAccess({
-            authInfo: ctx.auth,
+        let { apiKey, secret } = await apiKeyService.createApiKey({
+          input: {
+            name: ctx.body.name,
+            description: ctx.body.description,
+            expiresAt: ctx.body.expires_at,
+            ipFilters: ctx.body.ip_filters
+          },
+          type: ctx.body.type,
+
+          instance,
+          organization: ctx.organization,
+          auditScope: ctx.auditScope,
+          verification: getSecretVerification(ctx)
+        });
+
+        return apiKeyPresenter.present({
+          canReveal: await canRevealApiKey({
+            auth: ctx.auth,
             organization: ctx.organization,
             member: ctx.member,
-            project: instance.project,
-            instance,
-            possibleScopes: ['organization.api_key:write']
-          });
-
-          let { apiKey, secret } = await apiKeyService.createApiKey({
-            input: {
-              name: ctx.body.name,
-              description: ctx.body.description,
-              expiresAt: ctx.body.expires_at,
-              ipFilters: ctx.body.ip_filters
-            },
-            type: ctx.body.type,
-
-            instance,
-            organization: ctx.organization,
-            auditScope: ctx.auditScope
-          });
-
-          return apiKeyPresenter.present({
-            canReveal: await canRevealApiKey({
-              auth: ctx.auth,
-              organization: ctx.organization,
-              member: ctx.member,
-              apiKey
-            }),
-            apiKey,
-            secret
-          });
-        }
+            apiKey
+          }),
+          apiKey,
+          secret
+        });
       }),
 
     update: organizationGroup
@@ -486,7 +454,8 @@ export let managementApiKeyController = Controller.create(
 
         let secret = await apiKeyService.revealApiKey({
           apiKey,
-          auditScope: ctx.auditScope
+          auditScope: ctx.auditScope,
+          verification: getSecretVerification(ctx)
         });
 
         return apiKeyPresenter.present({

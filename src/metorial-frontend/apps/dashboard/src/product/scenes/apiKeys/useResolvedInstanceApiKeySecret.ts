@@ -1,5 +1,3 @@
-import { useRevealedApiKey } from '@metorial/state';
-import { useEffect, useState } from 'react';
 import { useApiKeysWithAutoInit } from './useApiKeysWithAutoInit';
 
 let isActiveSecretApiKey = (d: {
@@ -21,28 +19,8 @@ export let useResolvedInstanceApiKeySecret = (instanceId: string | null | undefi
       : undefined
   );
 
-  let secretApiKey = apiKeys.data?.find(isActiveSecretApiKey);
-  let revealedApiKey = useRevealedApiKey({ apiKeyId: secretApiKey?.id });
-  let [apiKeySecret, setApiKeySecret] = useState<string | undefined>(
-    () => revealedApiKey.value ?? secretApiKey?.secret ?? undefined
-  );
-
-  useEffect(() => {
-    if (revealedApiKey.value) {
-      setApiKeySecret(revealedApiKey.value);
-      return;
-    }
-
-    if (secretApiKey?.secret) {
-      setApiKeySecret(secretApiKey.secret);
-    }
-  }, [revealedApiKey.value, secretApiKey?.secret]);
-
   return {
     apiKeys,
-    apiKeySecret,
-    revealedApiKey,
-    secretApiKey,
-    setApiKeySecret
+    secretApiKey: apiKeys.data?.find(isActiveSecretApiKey)
   };
 };

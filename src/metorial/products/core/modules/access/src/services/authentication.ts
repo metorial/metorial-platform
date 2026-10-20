@@ -65,12 +65,18 @@ export type AuthenticatedConsumerContext = {
   portal: Portal | null;
 };
 
+export type DashboardSession = {
+  id: string;
+  type: 'user' | 'system';
+};
+
 export type AuthInfo =
   | {
       type: 'user';
       auditScope?: undefined;
       user: User;
       userSession?: UserSession;
+      dashboardSession?: DashboardSession;
       machineAccess?: MachineAccess;
       orgScopes: Scope[];
     }

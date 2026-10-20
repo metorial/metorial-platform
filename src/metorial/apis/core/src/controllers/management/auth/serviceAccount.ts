@@ -9,6 +9,7 @@ import {
 } from '@metorial/module-organization';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
+import { getSecretVerification } from '../../../lib/secretVerification';
 import { checkAccess } from '../../../middleware/checkAccess';
 import {
   organizationGroup,
@@ -265,7 +266,8 @@ export let serviceAccountManagementController = Controller.create(
         let oauthApplicationClientSecret =
           await serviceAccountService.createServiceAccountClientSecret({
             serviceAccount: ctx.serviceAccount,
-            auditScope: ctx.auditScope
+            auditScope: ctx.auditScope,
+            verification: getSecretVerification(ctx)
           });
 
         return oauthApplicationClientSecretPresenter.present({
