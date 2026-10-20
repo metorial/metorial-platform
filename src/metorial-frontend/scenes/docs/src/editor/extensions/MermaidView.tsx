@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTheme } from 'styled-components';
 import type { Theme } from '../../styles/theme';
 import { getMermaid, nextMermaidId } from './mermaid';
+import { SandboxedMarkup } from './SandboxedMarkup';
 
 interface Props {
   code: string;
@@ -22,6 +23,8 @@ interface RenderError {
 type RenderState = RenderOk | RenderError;
 
 let RENDER_DEBOUNCE_MS = 500;
+
+let previewCss = 'svg { display: block; max-width: 100%; height: auto; margin: 0 auto; }';
 
 export function MermaidView({ code }: Props) {
   let theme = useTheme() as Theme;
@@ -92,11 +95,8 @@ export function MermaidView({ code }: Props) {
   }
 
   return (
-    <div
-      className={'mermaid-output' + (isRendering ? ' mermaid-output--updating' : '')}
-      dangerouslySetInnerHTML={{
-        __html: svg
-      }}
-    />
+    <div className={'mermaid-output' + (isRendering ? ' mermaid-output--updating' : '')}>
+      <SandboxedMarkup html={svg} title="Diagram preview" css={previewCss} fit="container" />
+    </div>
   );
 }

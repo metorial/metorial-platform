@@ -17,6 +17,7 @@
     "@tiptap/extension-code": "3.31.4",
     "@tiptap/extension-code-block-lowlight": "3.31.4",
     "@tiptap/extension-collaboration": "3.31.4",
+    "@tiptap/extension-hard-break": "3.31.4",
     "@tiptap/extension-heading": "3.31.4",
     "@tiptap/extension-highlight": "3.31.4",
     "@tiptap/extension-horizontal-rule": "3.31.4",

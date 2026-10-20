@@ -1,5 +1,6 @@
 import { Editor, Node, mergeAttributes } from '@tiptap/core';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import HardBreak from '@tiptap/extension-hard-break';
 import Heading from '@tiptap/extension-heading';
 import Image from '@tiptap/extension-image';
 import TableRow from '@tiptap/extension-table-row';
@@ -25,6 +26,11 @@ import {
 import { createLowlight } from 'lowlight';
 import { Markdown } from 'tiptap-markdown';
 import * as Y from 'yjs';
+import {
+  hardBreakMarkdownSpec,
+  htmlMarkMarkdownSpec,
+  tableMarkdownSpec
+} from './markdownHtml';
 
 export type CalloutType = 'info' | 'warning' | 'success' | 'danger';
 
@@ -82,7 +88,7 @@ export let Callout = Node.create({
           },
           node: { attrs: { type?: CalloutType } }
         ) {
-          let type = (node.attrs.type ?? 'info') as CalloutType;
+          let type = isCalloutType(node.attrs.type) ? node.attrs.type : 'info';
           state.write(`<${type}>\n\n`);
           state.renderContent(node);
           state.ensureNewLine();
@@ -217,6 +223,16 @@ export let ImagePlaceholder = Node.create({
 
 let lowlight = createLowlight();
 
+let withMarkdownSpec = <T extends { extend: (config: any) => T }>(
+  extension: T,
+  markdown: unknown
+) =>
+  extension.extend({
+    addStorage(this: { parent?: () => Record<string, unknown> }) {
+      return { ...this.parent?.(), markdown };
+    }
+  });
+
 export let buildHeadlessExtensions = (opts?: {
   collaboration?: {
     ydoc: Y.Doc;
@@ -226,6 +242,7 @@ export let buildHeadlessExtensions = (opts?: {
   StarterKit.configure({
     codeBlock: false,
     heading: false,
+    hardBreak: false,
     underline: false,
     undoRedo: opts?.collaboration ? false : undefined,
     dropcursor: false,
@@ -238,6 +255,7 @@ export let buildHeadlessExtensions = (opts?: {
       }
     }
   }),
+  withMarkdownSpec(HardBreak, hardBreakMarkdownSpec),
   CodeBlockLowlight.configure({
     lowlight,
     defaultLanguage: 'plaintext'
@@ -252,13 +270,13 @@ export let buildHeadlessExtensions = (opts?: {
       class: 'editor-image'
     }
   }),
-  Highlight.configure({ multicolor: false }),
-  Underline,
-  Subscript,
-  Superscript,
+  withMarkdownSpec(Highlight, htmlMarkMarkdownSpec).configure({ multicolor: false }),
+  withMarkdownSpec(Underline, htmlMarkMarkdownSpec),
+  withMarkdownSpec(Subscript, htmlMarkMarkdownSpec),
+  withMarkdownSpec(Superscript, htmlMarkMarkdownSpec),
   Typography,
   TextAlign.configure({ types: ['heading', 'paragraph'] }),
-  Table.configure({
+  withMarkdownSpec(Table, tableMarkdownSpec).configure({
     resizable: false,
     HTMLAttributes: {
       class: 'editor-table'
