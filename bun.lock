@@ -850,6 +850,15 @@
         "vitest": "^3.1.2",
       },
     },
+    "src/lowerdeck/packages/offline": {
+      "name": "@lowerdeck/offline",
+      "version": "2.0.0",
+      "devDependencies": {
+        "@lowerdeck/tsconfig": "workspace:2.0.0",
+        "@types/bun": "latest",
+        "typescript": "5.8.2",
+      },
+    },
     "src/lowerdeck/packages/once": {
       "name": "@lowerdeck/once",
       "version": "2.0.0",
@@ -2261,6 +2270,7 @@
         "@lowerdeck/delay": "workspace:2.0.0",
         "@lowerdeck/env": "workspace:2.0.0",
         "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/offline": "workspace:2.0.0",
         "@lowerdeck/pagination": "workspace:2.0.0",
         "@lowerdeck/shadow-id": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
@@ -3383,6 +3393,7 @@
       "name": "@metorial/module-organization",
       "version": "1.0.0",
       "dependencies": {
+        "@lowerdeck/base62": "workspace:2.0.0",
         "@lowerdeck/canonicalize": "workspace:2.0.0",
         "@lowerdeck/env": "workspace:2.0.0",
         "@lowerdeck/error": "workspace:2.0.0",
@@ -7484,6 +7495,8 @@
     "@lowerdeck/murmur3": ["@lowerdeck/murmur3@workspace:src/lowerdeck/packages/murmur3"],
 
     "@lowerdeck/normalize-email": ["@lowerdeck/normalize-email@workspace:src/lowerdeck/packages/normalize-email"],
+
+    "@lowerdeck/offline": ["@lowerdeck/offline@workspace:src/lowerdeck/packages/offline"],
 
     "@lowerdeck/once": ["@lowerdeck/once@workspace:src/lowerdeck/packages/once"],
 

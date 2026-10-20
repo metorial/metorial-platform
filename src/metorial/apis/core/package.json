@@ -4,12 +4,15 @@
   "author": "Tobias Herber",
   "license": "FSL-1.1",
   "main": "src/index.ts",
-  "scripts": {},
+  "scripts": {
+    "introspect": "bun --no-env-file --preload @lowerdeck/offline/preload ./src/introspect.ts"
+  },
   "dependencies": {
     "@lowerdeck/delay": "workspace:2.0.0",
     "@metorial/audit-scope": "^1.0.0",
     "@metorial/db": "^1.0.0",
     "@lowerdeck/env": "workspace:2.0.0",
+    "@lowerdeck/offline": "workspace:2.0.0",
     "@lowerdeck/error": "workspace:2.0.0",
     "@metorial/auth": "^1.0.0",
     "@metorial/config": "^1.0.0",

@@ -12,21 +12,25 @@ let error = createError({
 });
 
 export class RateLimiter<AuthInfo> {
-  #rateLimiter: ARL;
+  #rateLimiter: ARL | undefined;
 
   constructor(
-    redisUrl: string,
+    private redisUrl: string,
     private getKey: (i: { auth: AuthInfo; context: Context }) => string,
     private getMax: (i: { auth: AuthInfo; context: Context }) => number
-  ) {
-    this.#rateLimiter = new ARL({
-      db: new Redis(parseRedisUrl(redisUrl)),
+  ) {}
+
+  #getRateLimiter() {
+    this.#rateLimiter ??= new ARL({
+      db: new Redis(parseRedisUrl(this.redisUrl)),
       duration: 1000 * 60 * 10 // 10 minutes
     });
+
+    return this.#rateLimiter;
   }
 
   async check({ auth, context }: { auth: AuthInfo; context: Context }) {
-    let limit = await this.#rateLimiter.get({
+    let limit = await this.#getRateLimiter().get({
       id: this.getKey({ auth, context }),
       max: this.getMax({ auth, context })
     });
