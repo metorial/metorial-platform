@@ -54,17 +54,17 @@
     "generate:client": {
       "dependsOn": ["^generate:client"],
       "cache": false,
-      "env": ["API_URL"]
+      "env": ["API_URL", "INTROSPECTION_SNAPSHOT"]
     },
     "generate:client:dashboard": {
       "dependsOn": ["^generate:client:dashboard"],
       "cache": false,
-      "env": ["API_URL"]
+      "env": ["API_URL", "INTROSPECTION_SNAPSHOT"]
     },
     "generate:client:consumer": {
       "dependsOn": ["^generate:client:consumer"],
       "cache": false,
-      "env": ["API_URL"]
+      "env": ["API_URL", "INTROSPECTION_SNAPSHOT"]
     },
     "frontend:build": {
       "dependsOn": ["^build", "^frontend:build"],

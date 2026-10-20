@@ -1,6 +1,7 @@
+import { base62 } from '@lowerdeck/base62';
 import { canonicalize } from '@lowerdeck/canonicalize';
-import { Hash } from '@lowerdeck/hash';
 import { coreScopes, Scope } from '@metorial/module-access';
+import { createHash } from 'node:crypto';
 
 let adminOnlyScopes: Scope[] = [
   'organization:write',
@@ -29,5 +30,8 @@ export let everyoneScopes: Scope[] = coreScopes.filter(
 
 export let adminScopes = [...new Set([...everyoneScopes, ...adminOnlyScopes])];
 
-export let defaultEveryoneScopesHash = await Hash.sha256(canonicalize(everyoneScopes.sort()));
-export let defaultAdminScopesHash = await Hash.sha256(canonicalize(adminScopes.sort()));
+let sha256 = (data: string) =>
+  base62.encode(new Uint8Array(createHash('sha256').update(data).digest()));
+
+export let defaultEveryoneScopesHash = sha256(canonicalize(everyoneScopes.sort()));
+export let defaultAdminScopesHash = sha256(canonicalize(adminScopes.sort()));

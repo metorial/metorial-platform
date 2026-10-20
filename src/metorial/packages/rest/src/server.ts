@@ -21,7 +21,7 @@ import {
   Method,
   ServiceRequest
 } from './controller';
-import { introspectApi } from './introspect';
+import { introspectVersion, introspectVersionList } from './introspect';
 import { parseBody } from './parseBody';
 import { RateLimiter } from './ratelimit';
 import { Authenticator, RequestFlags } from './types';
@@ -519,7 +519,7 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
               app,
               displayVersion,
               version: apiVersion,
-              rootController: controller
+              definition: { apiVersion, displayVersion, controller }
             }
           ]);
         }
@@ -573,15 +573,7 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
                       return Response.redirect('https://metorial.com/api', 301);
                     if (url.pathname == '/metorial/introspect/versions') {
                       return json(
-                        {
-                          versions: Object.entries(versions).map(
-                            ([_, { apiVersion, displayVersion }]) => ({
-                              version: apiVersion,
-                              displayVersion,
-                              isCurrent: apiVersion == currentVersion
-                            })
-                          )
-                        },
+                        introspectVersionList({ versions, currentVersion }),
                         200,
                         corsHeaders
                       );
@@ -610,11 +602,9 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
                       }
 
                       return json(
-                        introspectApi({
-                          version: selectedVersion.version as any,
-                          rootController: selectedVersion.rootController,
-                          displayVersion: selectedVersion.displayVersion,
-                          isCurrent: selectedVersion.version == currentVersion
+                        introspectVersion({
+                          version: selectedVersion.definition,
+                          currentVersion
                         }),
                         200,
                         corsHeaders

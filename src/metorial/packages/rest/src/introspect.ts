@@ -121,3 +121,62 @@ export let introspectApi = (version: {
     }))
   };
 };
+
+export type IntrospectedApi = ReturnType<typeof introspectApi>;
+
+export interface IntrospectableVersion {
+  apiVersion: string;
+  displayVersion: string;
+  controller: {
+    handlers: IController<any>;
+    descriptor: any;
+  };
+}
+
+export interface IntrospectionSnapshot {
+  versions: {
+    versions: { version: string; displayVersion: string; isCurrent: boolean }[];
+  };
+  endpoints: Record<string, IntrospectedApi>;
+}
+
+export let introspectVersionList = ({
+  versions,
+  currentVersion
+}: {
+  versions: Record<string, IntrospectableVersion>;
+  currentVersion: string;
+}): IntrospectionSnapshot['versions'] => ({
+  versions: Object.values(versions).map(({ apiVersion, displayVersion }) => ({
+    version: apiVersion,
+    displayVersion,
+    isCurrent: apiVersion == currentVersion
+  }))
+});
+
+export let introspectVersion = ({
+  version,
+  currentVersion
+}: {
+  version: IntrospectableVersion;
+  currentVersion: string;
+}) =>
+  introspectApi({
+    version: version.apiVersion,
+    rootController: version.controller,
+    displayVersion: version.displayVersion,
+    isCurrent: version.apiVersion == currentVersion
+  });
+
+export let introspectVersions = (opts: {
+  versions: Record<string, IntrospectableVersion>;
+  currentVersion: string;
+}): IntrospectionSnapshot => ({
+  versions: introspectVersionList(opts),
+  endpoints: Object.fromEntries(
+    Object.values(opts.versions).map(version => [
+      version.apiVersion,
+      introspectVersion({ version, currentVersion: opts.currentVersion })
+    ])
+  )
+});
