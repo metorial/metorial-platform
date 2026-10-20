@@ -914,6 +914,51 @@ describe('request', () => {
     });
   });
 
+  test('does not report browser network failures and suppresses outer reports', async () => {
+    (globalThis as any).window = {};
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('Failed to fetch'));
+
+    let request = await importRequest('browser-network-failure');
+
+    let clientError = await request({
+      endpoint: 'http://localhost/rpc',
+      name: 'health:check',
+      payload: {},
+      headers: {},
+      timeoutMs: 45,
+      context: {}
+    }).catch((error: unknown) => error);
+
+    expect(clientError).toMatchObject({ data: { status: 500 } });
+    expect(mocks.captureException).not.toHaveBeenCalled();
+    expect(mocks.markSentryCaptured).toHaveBeenCalledWith(clientError);
+  });
+
+  test('still reports browser requests answered with a server failure', async () => {
+    (globalThis as any).window = {};
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async () => gatewayPage());
+
+    let request = await importRequest('browser-gateway-failure');
+
+    await request({
+      endpoint: 'http://localhost/rpc',
+      name: 'health:check',
+      payload: {},
+      headers: {},
+      timeoutMs: 45,
+      context: {}
+    }).catch(() => {});
+
+    expect(mocks.captureException).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'RpcUpstreamUnavailableError' }),
+      expect.anything()
+    );
+  });
+
   test('rejects immediately when the caller signal is already aborted', async () => {
     let fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
       throw new Error('should not be called');

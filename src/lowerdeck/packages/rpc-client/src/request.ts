@@ -479,7 +479,10 @@ export let request: Requester = async call => {
     );
     reportedRequestDiagnostics.set(publicError, details);
 
-    if (call.captureErrors !== false && !call.signal?.aborted) {
+    let isBrowserNetworkFailure = !isServer && diagnostic.error.name === 'RpcUnreachableError';
+    if (isBrowserNetworkFailure) {
+      markSentryCaptured(publicError);
+    } else if (call.captureErrors !== false && !call.signal?.aborted) {
       Sentry.captureException(details.error, {
         tags: { rpcMethod: call.name },
         fingerprint: ['rpc-request-error', details.error.name, call.endpoint],

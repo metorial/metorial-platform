@@ -11,6 +11,8 @@ let ignoredSentryHttpErrorCodes = new Set([
   'unauthorized'
 ]);
 
+let ignoredSentryFrontendErrorCodes = new Set(['network_error']);
+
 let lowerdeckErrorPrefix = '[@lowerdeck/error]:';
 let metorialErrorPrefix = '[METORIAL ERROR]:';
 
@@ -157,7 +159,12 @@ let shouldIgnoreKnownClientError = (
     return true;
   }
 
-  return details.code ? ignoredSentryHttpErrorCodes.has(details.code) : false;
+  if (!details.code) return false;
+
+  return (
+    ignoredSentryHttpErrorCodes.has(details.code) ||
+    (includeMetorialSdkErrors && ignoredSentryFrontendErrorCodes.has(details.code))
+  );
 };
 
 export let shouldIgnoreSentryHttpError = (value: unknown): boolean =>

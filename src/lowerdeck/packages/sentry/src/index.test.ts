@@ -85,6 +85,29 @@ describe('@lowerdeck/sentry filters', () => {
     ).toBe(false);
   });
 
+  it('ignores Metorial SDK network errors in the frontend', () => {
+    let networkError = {
+      originalException: {
+        __typename: 'metorial.sdk.error',
+        __isMetorialError: true,
+        response: {
+          status: 0,
+          code: 'network_error'
+        }
+      }
+    };
+
+    expect(shouldIgnoreSentryFrontendError(networkError)).toBe(true);
+    expect(
+      shouldIgnoreSentryFrontendError(
+        new Error(
+          '[METORIAL ERROR]: network_error - Unable to connect to Metorial API - please check your internet connection'
+        )
+      )
+    ).toBe(true);
+    expect(shouldIgnoreSentryHttpError(networkError)).toBe(false);
+  });
+
   it('keeps server-side failures reportable', () => {
     expect(
       shouldIgnoreSentryFrontendError({
