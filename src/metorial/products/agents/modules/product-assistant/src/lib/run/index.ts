@@ -11,9 +11,12 @@ import type { InputMessage, State } from '../../types';
 import type { Implementation, Model } from '../definitions';
 import { getConversationHistory } from '../history/getHistory';
 import { Agent, DefaultCompactionStrategy, Session } from '../open-harness';
+import { getAgentRunExtensions } from './extension';
 import type { AgentRunResult, AgentRunStateOptions, AgentRunWireMessage } from './state';
 import { AgentRunState } from './state';
 
+export * from './extension';
+export * from './partialJson';
 export * from './state';
 
 export type AgentRunOptions = AgentRunStateOptions & {
@@ -109,7 +112,11 @@ export class AgentRun {
   }) {
     let iterator = d.session.send(d.input, { signal: this.abortController.signal });
 
-    let runState = new AgentRunState(d.session.messages, d.delta, d.initialState);
+    let runState = new AgentRunState(
+      d.session.messages,
+      { ...d.delta, extensions: getAgentRunExtensions(this.agent) },
+      d.initialState
+    );
     let snapshotInterval: ReturnType<typeof setInterval> | undefined;
     let snapshotInFlight = false;
     let writeSnapshot = async () => {

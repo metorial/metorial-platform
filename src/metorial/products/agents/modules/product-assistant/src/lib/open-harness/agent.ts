@@ -55,6 +55,8 @@ export type AgentEvent =
   | { type: 'text.done'; text: string }
   | { type: 'reasoning.delta'; text: string }
   | { type: 'reasoning.done'; text: string }
+  | { type: 'tool.input.start'; toolCallId: string; toolName: string }
+  | { type: 'tool.input.delta'; toolCallId: string; toolName: string; delta: string }
   | {
       type: 'tool.start';
       toolCallId: string;
@@ -446,6 +448,7 @@ export class Agent {
     let stepNumber = 0;
     let stepText = '';
     let stepReasoning = '';
+    let streamingToolNames = new Map<string, string>();
     const completedStepMessages: ModelMessage[] = [];
     let doneEmitted = false;
     let abortReason: string | undefined;
@@ -489,6 +492,32 @@ export class Agent {
             if (stepReasoning) {
               yield { type: 'reasoning.done', text: stepReasoning };
             }
+            break;
+
+          case 'tool-input-start':
+            streamingToolNames.set(part.id, part.toolName);
+            yield {
+              type: 'tool.input.start',
+              toolCallId: part.id,
+              toolName: part.toolName
+            };
+            break;
+
+          case 'tool-input-delta': {
+            let toolName = streamingToolNames.get(part.id);
+            if (!toolName) break;
+
+            yield {
+              type: 'tool.input.delta',
+              toolCallId: part.id,
+              toolName,
+              delta: part.delta
+            };
+            break;
+          }
+
+          case 'tool-input-end':
+            streamingToolNames.delete(part.id);
             break;
 
           case 'tool-call':

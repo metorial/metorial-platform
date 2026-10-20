@@ -6,7 +6,9 @@ import type {
   Message,
   State,
   StateItem,
-  ToolCallState
+  ToolCallState,
+  WebOperation,
+  WebSearchResult
 } from '../../types';
 import type { ClientHandoffToolMetadata } from '../definitions';
 import type {
@@ -18,6 +20,8 @@ import type {
 } from '../delta';
 import { createServerState } from '../delta';
 import type { SessionEvent } from '../open-harness';
+import type { AgentRunExtension, AgentRunStateWriter, AgentRunToolAdapter } from './extension';
+import { parsePartialJson } from './partialJson';
 
 export type AgentRunWireMessage = WireMessage;
 
@@ -25,7 +29,12 @@ export type AgentRunStateOptions = {
   onWireMessage?: (message: AgentRunWireMessage) => void;
   emit?: DeltaTransportSink<AgentRunWireMessage>;
   deltaFormat?: 'batch' | 'message';
+  extensions?: AgentRunExtension[];
 };
+
+let fileExploreTools = ['readFile', 'listFiles', 'grep'];
+let fileWriteTools = ['writeFile', 'editFile', 'deleteFile'];
+let webTools = ['webSearch', 'getWebContent'];
 
 export type AgentRunResult = {
   status: 'completed' | 'waiting_for_user';
@@ -72,6 +81,20 @@ let getBoolean = (value: unknown, key: string) => {
   if (!isRecord(value)) return undefined;
   let item = value[key];
   return typeof item == 'boolean' ? item : undefined;
+};
+
+let getWebSearchResults = (output: unknown): WebSearchResult[] => {
+  if (!Array.isArray(output)) return [];
+
+  return output
+    .filter(isRecord)
+    .map(result => ({
+      title: getString(result, 'title') ?? '',
+      url: getString(result, 'url') ?? '',
+      description: getString(result, 'description'),
+      category: getString(result, 'category')
+    }))
+    .filter(result => result.url);
 };
 
 let getErrorMessage = (error: unknown) => {
@@ -245,6 +268,8 @@ export class AgentRunState {
   private usage = emptyUsage();
   private usageEvents: UsageEvent[] = [];
   private startedAt = new Date();
+  private extensions: AgentRunExtension[];
+  private toolInputText = new Map<string, string>();
 
   constructor(
     initialMessages: ModelMessage[] = [],
@@ -258,6 +283,7 @@ export class AgentRunState {
     });
     this.state = this.delta.state as unknown as State;
     this.serialized = serializeMessages(initialMessages);
+    this.extensions = options.extensions ?? [];
 
     if (options.onWireMessage) this.onWireMessage(options.onWireMessage);
   }
@@ -265,7 +291,75 @@ export class AgentRunState {
   pipe(event: SessionEvent) {
     this.delta.transact(() => {
       this.applyEvent(event);
+
+      for (let extension of this.extensions) {
+        extension.onEvent?.({ event, writer: this.writer() });
+      }
     });
+  }
+
+  private writer(): AgentRunStateWriter {
+    return {
+      items: this.state.items,
+      createItemId
+    };
+  }
+
+  private toolAdapter(toolName: string): AgentRunToolAdapter | undefined {
+    for (let extension of this.extensions) {
+      let adapter = extension.tools?.[toolName];
+      if (adapter) return adapter;
+    }
+  }
+
+  private applyToolAdapterEvent(event: SessionEvent) {
+    if (
+      event.type != 'tool.input.start' &&
+      event.type != 'tool.input.delta' &&
+      event.type != 'tool.start' &&
+      event.type != 'tool.done' &&
+      event.type != 'tool.error'
+    ) {
+      return false;
+    }
+
+    let adapter = this.toolAdapter(event.toolName);
+    if (!adapter) return false;
+
+    let writer = this.writer();
+
+    switch (event.type) {
+      case 'tool.input.start':
+        this.toolInputText.set(event.toolCallId, '');
+        adapter.onInputStart?.({ toolCallId: event.toolCallId, writer });
+        break;
+
+      case 'tool.input.delta': {
+        let text = (this.toolInputText.get(event.toolCallId) ?? '') + event.delta;
+        this.toolInputText.set(event.toolCallId, text);
+
+        let partialInput = parsePartialJson(text);
+        if (partialInput !== undefined) {
+          adapter.onInputDelta?.({ toolCallId: event.toolCallId, partialInput, writer });
+        }
+        break;
+      }
+
+      case 'tool.start':
+        this.toolInputText.delete(event.toolCallId);
+        adapter.onStart?.({ toolCallId: event.toolCallId, input: event.input, writer });
+        break;
+
+      case 'tool.done':
+        adapter.onDone?.({ toolCallId: event.toolCallId, output: event.output, writer });
+        break;
+
+      case 'tool.error':
+        adapter.onError?.({ toolCallId: event.toolCallId, error: event.error, writer });
+        break;
+    }
+
+    return true;
   }
 
   get version() {
@@ -281,6 +375,8 @@ export class AgentRunState {
   }
 
   private applyEvent(event: SessionEvent) {
+    if (this.applyToolAdapterEvent(event)) return;
+
     switch (event.type) {
       case 'text.delta':
         this.appendAssistantText(event.text, 'running');
@@ -299,7 +395,7 @@ export class AgentRunState {
         break;
 
       case 'tool.start':
-        if (['readFile', 'listFiles', 'grep'].includes(event.toolName)) {
+        if (fileExploreTools.includes(event.toolName)) {
           this.upsertFileExploreOperation({
             toolCallId: event.toolCallId,
             toolName: event.toolName,
@@ -308,7 +404,16 @@ export class AgentRunState {
           break;
         }
 
-        if (['writeFile', 'editFile', 'deleteFile'].includes(event.toolName)) {
+        if (webTools.includes(event.toolName)) {
+          this.upsertWebOperation({
+            toolCallId: event.toolCallId,
+            toolName: event.toolName,
+            input: event.input
+          });
+          break;
+        }
+
+        if (fileWriteTools.includes(event.toolName)) {
           this.createFileWriteItem({
             toolCallId: event.toolCallId,
             toolName: event.toolName,
@@ -401,6 +506,8 @@ export class AgentRunState {
       case 'step.start':
       case 'turn.start':
       case 'retry':
+      case 'tool.input.start':
+      case 'tool.input.delta':
         break;
     }
   }
@@ -573,6 +680,64 @@ export class AgentRunState {
     }
   }
 
+  private webItem() {
+    let item = this.findLastItem(
+      (item): item is Extract<StateItem, { type: 'web' }> => item.type == 'web'
+    );
+
+    if (!item || item != this.state.items[this.state.items.length - 1]) {
+      item = {
+        id: createItemId(),
+        type: 'web',
+        operations: []
+      };
+      this.state.items.push(item);
+    }
+
+    return item;
+  }
+
+  private upsertWebOperation(d: { toolCallId: string; toolName: string; input: unknown }) {
+    let existing = this.findWebOperation(d.toolCallId);
+    if (existing) {
+      existing.input = d.input;
+      existing.status = 'running';
+      return existing;
+    }
+
+    let item = this.webItem();
+    let operation: WebOperation =
+      d.toolName == 'webSearch'
+        ? {
+            id: d.toolCallId,
+            type: 'search',
+            query: getString(d.input, 'query') ?? '',
+            country: getString(d.input, 'country'),
+            searchType: getString(d.input, 'type'),
+            input: d.input,
+            status: 'running'
+          }
+        : {
+            id: d.toolCallId,
+            type: 'fetch',
+            url: getString(d.input, 'url') ?? '',
+            input: d.input,
+            status: 'running'
+          };
+
+    item.operations.push(operation);
+    return item.operations[item.operations.length - 1]!;
+  }
+
+  private findWebOperation(toolCallId: string) {
+    for (let item of this.state.items) {
+      if (item.type != 'web') continue;
+
+      let operation = item.operations.find(operation => operation.id == toolCallId);
+      if (operation) return operation;
+    }
+  }
+
   private createFileWriteItem(d: { toolCallId: string; toolName: string; input: unknown }) {
     let existing = this.state.items.find(
       (item): item is Extract<StateItem, { type: 'files/write' }> =>
@@ -698,7 +863,7 @@ export class AgentRunState {
   }
 
   private updateToolDone(d: { toolCallId: string; toolName: string; output: unknown }) {
-    if (['readFile', 'listFiles', 'grep'].includes(d.toolName)) {
+    if (fileExploreTools.includes(d.toolName)) {
       let operation = this.findFileExploreOperation(d.toolCallId);
       if (operation) {
         operation.output = d.output;
@@ -707,7 +872,19 @@ export class AgentRunState {
       }
     }
 
-    if (['writeFile', 'editFile', 'deleteFile'].includes(d.toolName)) {
+    if (webTools.includes(d.toolName)) {
+      let operation = this.findWebOperation(d.toolCallId);
+      if (operation) {
+        operation.output = d.output;
+        operation.status = 'completed';
+
+        if (operation.type == 'search') operation.results = getWebSearchResults(d.output);
+        if (operation.type == 'fetch') operation.content = getString(d.output, 'markdown');
+        return;
+      }
+    }
+
+    if (fileWriteTools.includes(d.toolName)) {
       let item = this.state.items.find(
         (item): item is Extract<StateItem, { type: 'files/write' }> =>
           item.type == 'files/write' && item.toolCallId == d.toolCallId
@@ -747,7 +924,7 @@ export class AgentRunState {
   private updateToolError(d: { toolCallId: string; toolName: string; error: string }) {
     let error = { message: d.error };
 
-    if (['readFile', 'listFiles', 'grep'].includes(d.toolName)) {
+    if (fileExploreTools.includes(d.toolName)) {
       let operation = this.findFileExploreOperation(d.toolCallId);
       if (operation) {
         operation.error = error;
@@ -756,7 +933,16 @@ export class AgentRunState {
       }
     }
 
-    if (['writeFile', 'editFile', 'deleteFile'].includes(d.toolName)) {
+    if (webTools.includes(d.toolName)) {
+      let operation = this.findWebOperation(d.toolCallId);
+      if (operation) {
+        operation.error = error;
+        operation.status = 'failed';
+        return;
+      }
+    }
+
+    if (fileWriteTools.includes(d.toolName)) {
       let item = this.state.items.find(
         (item): item is Extract<StateItem, { type: 'files/write' }> =>
           item.type == 'files/write' && item.toolCallId == d.toolCallId
