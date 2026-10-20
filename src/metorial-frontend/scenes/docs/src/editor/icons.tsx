@@ -601,3 +601,19 @@ export let IconKeyboard = () => (
     <line x1="9" y1="14" x2="15" y2="14" />
   </Svg>
 );
+
+export let IconSparkle = () => (
+  <Svg>
+    <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" />
+    <path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" />
+  </Svg>
+);
+
+export let IconSummary = () => (
+  <Svg>
+    <line x1="4" y1="6" x2="20" y2="6" />
+    <line x1="4" y1="12" x2="14" y2="12" />
+    <line x1="4" y1="18" x2="10" y2="18" />
+    <path d="M18 14l.9 2.1L21 17l-2.1.9L18 20l-.9-2.1L15 17l2.1-.9z" />
+  </Svg>
+);

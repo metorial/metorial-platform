@@ -264,6 +264,20 @@ export let useCreateConversationMessage = conversationMessagesLoader.createExter
   }
 );
 
+export let useCancelConversationMessage = conversationMessagesLoader.createExternalMutator(
+  (i: ConversationScope & { assistantMessageId: string }) =>
+    withAuth(sdk =>
+      sdk.assistant.conversations.messages.cancel(
+        i.instanceId,
+        i.assistantConversationId,
+        i.assistantMessageId
+      )
+    ),
+  {
+    disableToast: true
+  }
+);
+
 export let allConversationMessagesLoader = createLoader({
   name: 'allAssistantConversationMessages',
   parents: [conversationLoader, conversationMessagesLoader],

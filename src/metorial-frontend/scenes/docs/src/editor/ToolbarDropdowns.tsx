@@ -4,7 +4,7 @@ import { useEditorState } from '@tiptap/react';
 import { Tooltip } from '@metorial/ui';
 import styled from 'styled-components';
 import { BlocksPopover } from './BlocksPopover';
-import { slashItems, type SlashItem } from './SlashMenu';
+import { availableSlashItems, type SlashItem } from './SlashMenu';
 import {
   IconBulletList,
   IconCallout,
@@ -565,7 +565,7 @@ export function InlineTurnIntoDropdown({ editor }: DropdownProps) {
 export function MoreDropdown({ editor }: DropdownProps) {
   let { triggerRef, open, anchor, closeMenu, toggle } = useAnchor();
 
-  let items = useMemo(() => slashItems, []);
+  let items = useMemo(() => availableSlashItems(editor), [editor, open]);
 
   let onSelect = useCallback(
     (item: SlashItem) => {

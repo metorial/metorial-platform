@@ -10,6 +10,7 @@ import {
   useDocumentParticipants,
   useDocumentPermissions,
   useDocumentVersions,
+  useSkillAssistantWorkspace,
   useUploadFile,
   useUser
 } from '@metorial/state';
@@ -20,6 +21,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useBlocker, useLocation, useNavigate } from 'react-router-dom';
 import styled, { ThemeProvider } from 'styled-components';
 import { parseDocument } from 'yaml';
+import { DocsAgentProvider } from '../editor/agent/DocsAgentProvider';
 import { Editor } from '../editor/Editor';
 import {
   BackButton,
@@ -842,6 +844,7 @@ let DocumentEditorLoaded = (p: {
   });
   let canWrite = collaboration.canWrite;
   let readOnly = !canWrite;
+  let assistantWorkspace = useSkillAssistantWorkspace();
   let collaborationMeta = useMemo(
     () => collaboration.ydoc.getMap<string>('meta'),
     [collaboration.ydoc]
@@ -1412,175 +1415,185 @@ let DocumentEditorLoaded = (p: {
     <ThemeProvider theme={theme}>
       <DocsStyles>
         <ImageUploadProvider upload={uploadImage}>
-          <Shell>
-            <Header>
-              <HeaderLeft>
-                <TitleButton
-                  title={title}
-                  readOnly={readOnly}
-                  onTitleChange={handleTitleChange}
-                />
-                <CloudStatus status={saveStatus} />
-              </HeaderLeft>
+          <DocsAgentProvider
+            editor={editorInstance}
+            documentId={p.documentId}
+            workspace={assistantWorkspace}
+            enabled={!!assistantWorkspace && !collaboration.isFallback}
+            canWrite={canWrite && !!assistantWorkspace?.canWrite}
+            setTitle={handleTitleChange}
+            setFrontMatter={handleFrontMatterChange}
+          >
+            <Shell>
+              <Header>
+                <HeaderLeft>
+                  <TitleButton
+                    title={title}
+                    readOnly={readOnly}
+                    onTitleChange={handleTitleChange}
+                  />
+                  <CloudStatus status={saveStatus} />
+                </HeaderLeft>
 
-              <HeaderCenter>
-                {!readOnly && (
-                  <Toolbar
-                    editor={editorInstance}
-                    disabled={toolbarDisabled}
+                <HeaderCenter>
+                  {!readOnly && (
+                    <Toolbar
+                      editor={editorInstance}
+                      disabled={toolbarDisabled}
+                      onRequestLinkEdit={handleRequestLinkEdit}
+                    />
+                  )}
+                </HeaderCenter>
+
+                <HeaderRight>
+                  {readOnly && (
+                    <ReadOnlyBadge $active>
+                      <IconEye />
+                      Read-only
+                    </ReadOnlyBadge>
+                  )}
+
+                  <Segmented role="tablist" aria-label="Layout">
+                    <SegBtn
+                      type="button"
+                      $active={viewMode === 'editor'}
+                      onClick={() => setViewMode('editor')}
+                      title="Editor only"
+                      aria-label="Editor only"
+                    >
+                      <IconEdit />
+                    </SegBtn>
+                    <SegBtn
+                      type="button"
+                      $active={viewMode === 'split'}
+                      onClick={() => setViewMode('split')}
+                      title="Split view"
+                      aria-label="Split view"
+                    >
+                      <IconSplit />
+                    </SegBtn>
+                    <SegBtn
+                      type="button"
+                      $active={viewMode === 'preview'}
+                      onClick={() => setViewMode('preview')}
+                      title="Preview only"
+                      aria-label="Preview only"
+                    >
+                      <IconEye />
+                    </SegBtn>
+                  </Segmented>
+
+                  {!p.hideSharingControls && (
+                    <>
+                      <HeaderDivider />
+                      <CurrentUserDisplay
+                        name={p.user.name}
+                        imageUrl={p.user.imageUrl}
+                        email={p.user.email}
+                      />
+                      <ShareButton
+                        instanceId={p.instanceId}
+                        documentLink={documentLink}
+                        people={sharePeople}
+                        onCopyLink={handleCopyLink}
+                        skillShareContext={skillShareContext}
+                        onSharedSkill={p.onSharedSkill}
+                      />
+                    </>
+                  )}
+                  <SettingsButton
+                    contentWidth={contentWidth}
+                    readOnly={readOnly}
+                    onContentWidthChange={setContentWidth}
+                    onImport={handleImport}
+                    onExport={handleDownload}
+                    onPageInfo={() => setPageInfoOpen(true)}
+                    onVersionHistory={() => setVersionHistoryOpen(true)}
+                    onKeyboardShortcuts={() => setShortcutsOpen(true)}
+                  />
+                </HeaderRight>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".md,text/markdown,text/plain"
+                  style={{ display: 'none' }}
+                  onChange={handleFile}
+                />
+              </Header>
+
+              <Main ref={mainRef}>
+                {viewMode !== 'preview' && collaboration.isReadyForEditor && (
+                  <Editor
+                    key={editorKey}
+                    initialMarkdown={markdown}
+                    readOnly={readOnly}
+                    title={title}
+                    frontMatter={frontMatter}
+                    frontMatterOpen={frontMatterOpen}
+                    frontMatterError={frontMatterValidation.error}
+                    onTitleChange={handleTitleChange}
+                    onMarkdownChange={handleMarkdownChange}
+                    onFrontMatterChange={handleFrontMatterChange}
+                    onToggleFrontMatter={() => setFrontMatterOpen(current => !current)}
+                    onEditorReady={setEditorInstance}
+                    onTitleFocusChange={setToolbarDisabled}
+                    linkPromptToken={linkPromptToken}
                     onRequestLinkEdit={handleRequestLinkEdit}
+                    onOpenPageInfo={() => setPageInfoOpen(true)}
+                    statusCurrentUser={{
+                      name: p.user.name,
+                      email: p.user.email,
+                      imageUrl: p.user.imageUrl,
+                      role: canWrite ? 'editor' : 'viewer'
+                    }}
+                    statusEditors={statusEditors}
+                    statusUpdatedAt={lastUpdatedAt}
+                    statusWordCount={wordCount}
+                    statusCharCount={charCount}
+                    allowInitialHashScroll={allowInitialHashScroll}
+                    onInitialHashScrollComplete={() => setAllowInitialHashScroll(false)}
+                    collaboration={collaboration.isFallback ? undefined : editorCollaboration}
                   />
                 )}
-              </HeaderCenter>
-
-              <HeaderRight>
-                {readOnly && (
-                  <ReadOnlyBadge $active>
-                    <IconEye />
-                    Read-only
-                  </ReadOnlyBadge>
+                {viewMode === 'split' && (
+                  <PreviewResizeHandle
+                    role="separator"
+                    aria-orientation="vertical"
+                    aria-label="Resize markdown preview"
+                    $active={resizingPreview}
+                    onPointerDown={handlePreviewResizeStart}
+                  />
                 )}
-
-                <Segmented role="tablist" aria-label="Layout">
-                  <SegBtn
-                    type="button"
-                    $active={viewMode === 'editor'}
-                    onClick={() => setViewMode('editor')}
-                    title="Editor only"
-                    aria-label="Editor only"
-                  >
-                    <IconEdit />
-                  </SegBtn>
-                  <SegBtn
-                    type="button"
-                    $active={viewMode === 'split'}
-                    onClick={() => setViewMode('split')}
-                    title="Split view"
-                    aria-label="Split view"
-                  >
-                    <IconSplit />
-                  </SegBtn>
-                  <SegBtn
-                    type="button"
-                    $active={viewMode === 'preview'}
-                    onClick={() => setViewMode('preview')}
-                    title="Preview only"
-                    aria-label="Preview only"
-                  >
-                    <IconEye />
-                  </SegBtn>
-                </Segmented>
-
-                {!p.hideSharingControls && (
-                  <>
-                    <HeaderDivider />
-                    <CurrentUserDisplay
-                      name={p.user.name}
-                      imageUrl={p.user.imageUrl}
-                      email={p.user.email}
-                    />
-                    <ShareButton
-                      instanceId={p.instanceId}
-                      documentLink={documentLink}
-                      people={sharePeople}
-                      onCopyLink={handleCopyLink}
-                      skillShareContext={skillShareContext}
-                      onSharedSkill={p.onSharedSkill}
-                    />
-                  </>
+                {viewMode !== 'editor' && (
+                  <Preview
+                    markdown={fullMarkdown}
+                    width={viewMode === 'split' ? previewWidth : undefined}
+                    onCopy={handleCopy}
+                    onDownload={handleDownload}
+                  />
                 )}
-                <SettingsButton
-                  contentWidth={contentWidth}
-                  readOnly={readOnly}
-                  onContentWidthChange={setContentWidth}
-                  onImport={handleImport}
-                  onExport={handleDownload}
-                  onPageInfo={() => setPageInfoOpen(true)}
-                  onVersionHistory={() => setVersionHistoryOpen(true)}
-                  onKeyboardShortcuts={() => setShortcutsOpen(true)}
-                />
-              </HeaderRight>
+              </Main>
 
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".md,text/markdown,text/plain"
-                style={{ display: 'none' }}
-                onChange={handleFile}
+              <Toast $visible={!!toast}>{toast}</Toast>
+
+              <VersionHistoryPanel
+                open={versionHistoryOpen}
+                onOpenChange={setVersionHistoryOpen}
+                versions={versionHistory}
               />
-            </Header>
 
-            <Main ref={mainRef}>
-              {viewMode !== 'preview' && collaboration.isReadyForEditor && (
-                <Editor
-                  key={editorKey}
-                  initialMarkdown={markdown}
-                  readOnly={readOnly}
-                  title={title}
-                  frontMatter={frontMatter}
-                  frontMatterOpen={frontMatterOpen}
-                  frontMatterError={frontMatterValidation.error}
-                  onTitleChange={handleTitleChange}
-                  onMarkdownChange={handleMarkdownChange}
-                  onFrontMatterChange={handleFrontMatterChange}
-                  onToggleFrontMatter={() => setFrontMatterOpen(current => !current)}
-                  onEditorReady={setEditorInstance}
-                  onTitleFocusChange={setToolbarDisabled}
-                  linkPromptToken={linkPromptToken}
-                  onRequestLinkEdit={handleRequestLinkEdit}
-                  onOpenPageInfo={() => setPageInfoOpen(true)}
-                  statusCurrentUser={{
-                    name: p.user.name,
-                    email: p.user.email,
-                    imageUrl: p.user.imageUrl,
-                    role: canWrite ? 'editor' : 'viewer'
-                  }}
-                  statusEditors={statusEditors}
-                  statusUpdatedAt={lastUpdatedAt}
-                  statusWordCount={wordCount}
-                  statusCharCount={charCount}
-                  allowInitialHashScroll={allowInitialHashScroll}
-                  onInitialHashScrollComplete={() => setAllowInitialHashScroll(false)}
-                  collaboration={collaboration.isFallback ? undefined : editorCollaboration}
-                />
-              )}
-              {viewMode === 'split' && (
-                <PreviewResizeHandle
-                  role="separator"
-                  aria-orientation="vertical"
-                  aria-label="Resize markdown preview"
-                  $active={resizingPreview}
-                  onPointerDown={handlePreviewResizeStart}
-                />
-              )}
-              {viewMode !== 'editor' && (
-                <Preview
-                  markdown={fullMarkdown}
-                  width={viewMode === 'split' ? previewWidth : undefined}
-                  onCopy={handleCopy}
-                  onDownload={handleDownload}
-                />
-              )}
-            </Main>
+              <KeyboardShortcutsPanel open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
 
-            <Toast $visible={!!toast}>{toast}</Toast>
-
-            <VersionHistoryPanel
-              open={versionHistoryOpen}
-              onOpenChange={setVersionHistoryOpen}
-              versions={versionHistory}
-            />
-
-            <KeyboardShortcutsPanel open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
-
-            <PageInfoDialog
-              open={pageInfoOpen}
-              onOpenChange={setPageInfoOpen}
-              people={people}
-              wordCount={wordCount}
-              charCount={charCount}
-            />
-          </Shell>
+              <PageInfoDialog
+                open={pageInfoOpen}
+                onOpenChange={setPageInfoOpen}
+                people={people}
+                wordCount={wordCount}
+                charCount={charCount}
+              />
+            </Shell>
+          </DocsAgentProvider>
         </ImageUploadProvider>
       </DocsStyles>
     </ThemeProvider>

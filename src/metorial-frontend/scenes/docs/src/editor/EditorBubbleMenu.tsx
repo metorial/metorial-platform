@@ -21,8 +21,11 @@ import {
   IconExternalLink,
   IconUnlink,
   IconClose,
-  IconCheck
+  IconCheck,
+  IconSparkle
 } from './icons';
+import { AskAiPanel } from './agent/AskAiPanel';
+import { getDocsAgentApi } from './agent/api';
 import { validateLinkUrl } from './url';
 import { InlineTurnIntoDropdown } from './ToolbarDropdowns';
 
@@ -62,6 +65,32 @@ let Btn = styled.button<{ $active?: boolean; $danger?: boolean }>`
   &:disabled {
     color: ${({ theme }) => theme.color.textSubtle};
     cursor: not-allowed;
+  }
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+`;
+
+let AiBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: ${({ theme }) => theme.color.accent};
+  border-radius: ${({ theme }) => theme.size.radiusSm};
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background ${({ theme }) => theme.motion.fast};
+
+  &:hover {
+    background: ${({ theme }) => theme.color.bgHover};
   }
 
   svg {
@@ -148,7 +177,7 @@ let bubbleShouldShow = ({
 }) => {
   // While link mode is open, the menu wrapper has data-link-mode="true".
   // Keep the menu visible regardless of selection state in that case.
-  if (element?.querySelector('[data-link-mode="true"]')) return true;
+  if (element?.querySelector('[data-link-mode="true"], [data-keep-open="true"]')) return true;
 
   if (from === to) return false;
   if (state.selection instanceof CellSelection) return false;
@@ -183,7 +212,7 @@ function resolveLinkTargetRange(editor: Editor): SavedRange {
 }
 
 export function EditorBubbleMenu({ editor, linkPromptToken }: Props) {
-  let [mode, setMode] = useState<'menu' | 'link'>('menu');
+  let [mode, setMode] = useState<'menu' | 'link' | 'ai'>('menu');
   let [linkUrl, setLinkUrl] = useState('');
   let [linkError, setLinkError] = useState<string | null>(null);
   let [savedRange, setSavedRange] = useState<SavedRange | null>(null);
@@ -266,7 +295,7 @@ export function EditorBubbleMenu({ editor, linkPromptToken }: Props) {
   // exit link mode. The check guards against the dispatch we trigger
   // ourselves to force-show the menu.
   useEffect(() => {
-    if (!editor || mode !== 'link') return;
+    if (!editor || mode === 'menu') return;
     let handler = ({ transaction }: { transaction: { selectionSet: boolean } }) => {
       if (!transaction.selectionSet) return;
       // The selection actually moved (not just doc-only changes).
@@ -372,6 +401,7 @@ export function EditorBubbleMenu({ editor, linkPromptToken }: Props) {
   if (!editor) return null;
 
   let hasExistingLink = !!editor.getAttributes('link').href;
+  let canAskAi = !!getDocsAgentApi(editor)?.canWrite;
 
   return (
     <BubbleMenu
@@ -381,8 +411,19 @@ export function EditorBubbleMenu({ editor, linkPromptToken }: Props) {
       shouldShow={props => overlay.canShow() && bubbleShouldShow(props)}
     >
       <Floating ref={overlay.element} onMouseDown={preserveEditorSelection}>
-        {mode === 'menu' ? (
+        {mode === 'ai' ? (
+          <AskAiPanel editor={editor} onClose={() => setMode('menu')} />
+        ) : mode === 'menu' ? (
           <>
+            {canAskAi && (
+              <>
+                <AiBtn type="button" onClick={() => setMode('ai')} title="Ask AI">
+                  <IconSparkle />
+                  Ask AI
+                </AiBtn>
+                <Divider />
+              </>
+            )}
             <InlineTurnIntoDropdown editor={editor} />
             <Divider />
             <Btn

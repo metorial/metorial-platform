@@ -68,7 +68,7 @@ export let SlashCommand = Extension.create<SlashCommandOptions>({
             let emptyStart = same ? previous.emptyStart : null;
             if (tr.getMeta(slashSessionKey) === 'dismiss') dismissed = context.trigger;
             if (!editor.view.composing) {
-              if (filterItems(context.query).length) emptyStart = null;
+              if (filterItems(context.query, editor).length) emptyStart = null;
               else {
                 let length = Array.from(context.query).length;
                 emptyStart = Math.min(emptyStart ?? length, length);

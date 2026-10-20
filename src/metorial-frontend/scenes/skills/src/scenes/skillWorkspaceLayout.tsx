@@ -1,4 +1,6 @@
+import { SkillAssistantDock } from '@metorial/scene-assistant';
 import {
+  SkillAssistantWorkspaceProvider,
   useAllProviderListings,
   useAllSkillItems,
   useSkillAgents,
@@ -372,6 +374,13 @@ let ItemMark = styled.span<{ $color?: string }>`
   flex: 0 0 auto;
   border-radius: 999px;
   background: ${p => p.$color ?? theme.colors.green600};
+`;
+
+let MainArea = styled.div`
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 0;
 `;
 
 let Main = styled.main`
@@ -827,7 +836,19 @@ export let SkillWorkspaceLayout = (p: SkillWorkspaceLayoutProps) => {
           </SidebarSection>
         </Sidebar>
 
-        <Main>{p.children}</Main>
+        <MainArea>
+          <SkillAssistantWorkspaceProvider
+            organizationId={p.shareContext?.organizationId}
+            instanceId={p.instanceId}
+            skillId={p.skill.id}
+            canWrite={!p.readOnly}
+          >
+            <Main>{p.children}</Main>
+            {!isRouteActive(location.pathname, p.routes.mergeRequests) && (
+              <SkillAssistantDock />
+            )}
+          </SkillAssistantWorkspaceProvider>
+        </MainArea>
       </Workspace>
     </Shell>
   );

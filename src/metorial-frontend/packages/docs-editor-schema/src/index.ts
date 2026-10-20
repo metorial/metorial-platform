@@ -1,4 +1,5 @@
 import { Editor, Node, mergeAttributes } from '@tiptap/core';
+import { Fragment } from '@tiptap/pm/model';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import Heading from '@tiptap/extension-heading';
 import Image from '@tiptap/extension-image';
@@ -88,6 +89,56 @@ export let Callout = Node.create({
           state.ensureNewLine();
           state.write(`</${type}>`);
           state.closeBlock(node);
+        },
+        parse: {}
+      }
+    };
+  }
+});
+
+export type AgentBlockStatus = 'idle' | 'running' | 'review' | 'error';
+
+let dataAttribute = (name: string, fallback: unknown) => ({
+  default: fallback,
+  parseHTML: (element: HTMLElement) => element.getAttribute(`data-${name}`) ?? fallback,
+  renderHTML: (attrs: Record<string, unknown>) => {
+    let key = name.replace(/-([a-z])/g, (_, letter: string) => letter.toUpperCase());
+    let value = attrs[key];
+    return value == null || value === '' ? {} : { [`data-${name}`]: String(value) };
+  }
+});
+
+export let agentBlockNodeName = 'agentBlock';
+
+export let AgentBlock = Node.create({
+  name: agentBlockNodeName,
+  group: 'block',
+  content: 'block+',
+  defining: true,
+  isolating: true,
+
+  addAttributes() {
+    return {
+      blockId: dataAttribute('block-id', null),
+      mode: dataAttribute('mode', 'block'),
+      status: dataAttribute('status', 'idle'),
+      prompt: dataAttribute('prompt', '')
+    };
+  },
+
+  parseHTML() {
+    return [{ tag: 'div[data-agent-block]' }];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ['div', mergeAttributes(HTMLAttributes, { 'data-agent-block': 'true' }), 0];
+  },
+
+  addStorage() {
+    return {
+      markdown: {
+        serialize(state: { renderContent: (node: unknown) => void }, node: unknown) {
+          state.renderContent(node);
         },
         parse: {}
       }
@@ -283,6 +334,7 @@ export let buildHeadlessExtensions = (opts?: {
   Callout,
   EquationBlock,
   ImagePlaceholder,
+  AgentBlock,
   ...(opts?.collaboration
     ? [
         Collaboration.configure({
@@ -402,6 +454,84 @@ export let yjsUpdateToDocumentSnapshot = (update: string) => {
       frontMatter: meta.get('frontMatter'),
       body: yjsUpdateToMarkdown(update)
     };
+  } finally {
+    ydoc.destroy();
+  }
+};
+
+export type YjsDocumentBlock = {
+  ref: string;
+  index: number;
+  type: string;
+  markdown: string;
+};
+
+type MarkdownSerializerStorage = {
+  markdown?: {
+    serializer: { serialize: (content: unknown) => string };
+  };
+};
+
+export let encodeRelativePosition = (position: Y.RelativePosition) =>
+  encodeYjsUpdate(Y.encodeRelativePosition(position));
+
+export let decodeRelativePosition = (encoded: string) =>
+  Y.decodeRelativePosition(decodeYjsUpdate(encoded));
+
+export let createBlockRef = (body: Y.XmlFragment, index: number) =>
+  encodeRelativePosition(Y.createRelativePositionFromTypeIndex(body, index));
+
+let sameItem = (a: Y.RelativePosition, b: Y.RelativePosition) =>
+  !!a.item && !!b.item && a.item.client == b.item.client && a.item.clock == b.item.clock;
+
+export let resolveBlockRef = (d: { ydoc: Y.Doc; ref: string; field?: string }) => {
+  let body = d.ydoc.getXmlFragment(d.field ?? 'body');
+  let position = decodeRelativePosition(d.ref);
+  let absolute = Y.createAbsolutePositionFromRelativePosition(position, d.ydoc);
+  if (!absolute || absolute.type != body) return null;
+  if (absolute.index >= body.length) return null;
+
+  let current = Y.createRelativePositionFromTypeIndex(body, absolute.index);
+  if (!sameItem(position, current)) return null;
+
+  return { index: absolute.index };
+};
+
+export let yjsDocToBlocks = (ydoc: Y.Doc, field = 'body'): YjsDocumentBlock[] => {
+  let body = ydoc.getXmlFragment(field);
+  if (body.length == 0) return [];
+
+  let json = yXmlFragmentToProsemirrorJSON(body);
+  let editor = new Editor({
+    extensions: buildHeadlessExtensions(),
+    content: json,
+    editable: false
+  });
+
+  try {
+    let serializer = (editor.storage as MarkdownSerializerStorage).markdown?.serializer;
+    let blocks: YjsDocumentBlock[] = [];
+
+    editor.state.doc.forEach((node, _offset, index) => {
+      blocks.push({
+        ref: createBlockRef(body, index),
+        index,
+        type: node.type.name,
+        markdown: (serializer?.serialize(Fragment.from(node)) ?? node.textContent).trim()
+      });
+    });
+
+    return blocks;
+  } finally {
+    editor.destroy();
+  }
+};
+
+export let yjsUpdateToBlocks = (update: string, field = 'body') => {
+  let ydoc = new Y.Doc();
+  try {
+    Y.applyUpdate(ydoc, decodeYjsUpdate(update));
+    return yjsDocToBlocks(ydoc, field);
   } finally {
     ydoc.destroy();
   }
