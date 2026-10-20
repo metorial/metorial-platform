@@ -6,7 +6,7 @@ export type DiskCacheState = "starting" | "active" | "draining";
 
 export type DiskMountStatus = "failed" | "pending" | "mounted" | "recovering" | "skipped" | "released";
 
-export type DiskPurpose = "standard" | "machine_image" | "root_fs";
+export type DiskPurpose = "standard" | "machine_image" | "root_fs" | "root_fs_pool";
 
 export type DiskResizeStatus = "failed" | "draining" | "pending" | "restarting" | "complete" | "resizing" | "verifying";
 
