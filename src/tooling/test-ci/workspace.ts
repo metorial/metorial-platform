@@ -1,6 +1,6 @@
 import { installKey } from './install-key';
 import { restoreNestedResolutions } from './lockfile';
-import { executableTargets, taskWorkspaceClosure } from './targets';
+import { executableTargets, namedFilterPackages, taskWorkspaceClosure } from './targets';
 import {
   appendFileSync,
   cpSync,
@@ -54,6 +54,7 @@ if (command === 'prepare') {
   let graph = JSON.parse(dry.stdout.toString());
   let targets = executableTargets({ names, tasks: graph.tasks });
   if (!targets.length) throw new Error('No executable test or prerequisite tasks selected');
+  targets = [...new Set([...targets, ...namedFilterPackages(tasks)])];
   let selected = [...names, ...targets.map(name => `--filter=${name}`)];
   console.log(`Executable test targets: ${targets.length}`);
   let graphPath = resolve(process.env.RUNNER_TEMP ?? '/tmp', 'test-prune-graph.json');

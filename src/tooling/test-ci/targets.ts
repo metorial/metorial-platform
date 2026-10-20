@@ -9,6 +9,12 @@ export let executableTargets = (d: {
   )
 ];
 
+export let namedFilterPackages = (args: string[]) =>
+  args
+    .filter(argument => argument.startsWith('--filter='))
+    .map(argument => argument.slice('--filter='.length))
+    .filter(name => !name.startsWith('.') && !/[*!{}\[\]]/.test(name));
+
 export let taskWorkspaceClosure = (d: {
   names: string[];
   targets: string[];
