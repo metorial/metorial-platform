@@ -12,3 +12,8 @@ export let getAutoSwitchRemoteProtocol = (
   if (errorCode == STATELESS_PROTOCOL_DETECTED_CODE) return 'stateless';
   return 'sse';
 };
+
+let AUTH_ERROR_CODES = new Set(['auth_token_refresh_failed', 'authentication_failed']);
+
+export let isAuthErrorCode = (code: string | null | undefined) =>
+  !!code && AUTH_ERROR_CODES.has(code);

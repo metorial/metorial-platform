@@ -5081,6 +5081,7 @@
         "@metorial/module-magic": "1.0.0",
         "@metorial/module-portal": "1.0.0",
         "@metorial/module-skill": "1.0.0",
+        "@metorial/module-web": "1.0.0",
         "@metorial/queue": "1.0.0",
         "date-fns": "^4.1.0",
       },
