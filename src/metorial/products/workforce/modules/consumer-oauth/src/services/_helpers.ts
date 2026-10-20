@@ -14,9 +14,11 @@ import {
   type ConsumerAuthClient,
   type ConsumerSurface
 } from '@metorial/db';
-import { addDays, addMonths, addSeconds } from 'date-fns';
+import { addMonths, addSeconds, subDays } from 'date-fns';
 import {
   consumerAuthAccessTokenTtlSeconds,
+  consumerAuthClientExpiryRenewalIntervalDays,
+  consumerAuthClientInactivityExpiryMonths,
   consumerAuthClientInclude,
   consumerAuthRefreshTokenTtlSeconds,
   ConsumerClientMetadataInput,
@@ -33,11 +35,14 @@ export let getConsumerAuthRefreshTokenExpiry = () =>
 export let getConsumerAuthAccessTokenExpiry = () =>
   addSeconds(new Date(), consumerAuthAccessTokenTtlSeconds);
 
+export let getConsumerAuthClientExpiry = () =>
+  addMonths(new Date(), consumerAuthClientInactivityExpiryMonths);
+
 export let slideConsumerAuthClientExpiration = async (d: {
   consumerAuthClient: Pick<ConsumerAuthClient, 'oid' | 'expiresAt'>;
 }) => {
-  let now = new Date();
-  let renewalThreshold = addDays(now, 7);
+  let expiresAt = getConsumerAuthClientExpiry();
+  let renewalThreshold = subDays(expiresAt, consumerAuthClientExpiryRenewalIntervalDays);
   if (d.consumerAuthClient.expiresAt >= renewalThreshold) return;
 
   await db.consumerAuthClient.updateMany({
@@ -45,9 +50,7 @@ export let slideConsumerAuthClientExpiration = async (d: {
       oid: d.consumerAuthClient.oid,
       expiresAt: { lt: renewalThreshold }
     },
-    data: {
-      expiresAt: addMonths(now, 3)
-    }
+    data: { expiresAt }
   });
 };
 
