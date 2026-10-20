@@ -464,7 +464,12 @@ export class MemFS implements vscode.FileSystemProvider {
     const response = await fetch(fullUrl, {
       method,
       headers,
-      body: body instanceof Uint8Array ? body : body ? JSON.stringify(body) : undefined
+      body:
+        body instanceof Uint8Array
+          ? (body as RequestInit['body'])
+          : body
+            ? JSON.stringify(body)
+            : undefined
     });
 
     if (!response.ok) {
