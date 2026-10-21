@@ -77,7 +77,7 @@ export let dashboardDataRetentionConfigurationController = Controller.create(
           description: 'Update message data retention settings for a project'
         }
       )
-      .use(checkAccess({ possibleScopes: ['organization.project:write'] }))
+      .use(checkAccess({ possibleScopes: ['organization.project:manage'] }))
       .body(
         'default',
         v.object({
@@ -118,7 +118,7 @@ export let dashboardDataRetentionConfigurationController = Controller.create(
           organization: ctx.organization,
           member: ctx.member,
           project,
-          possibleScopes: ['organization.project:write']
+          possibleScopes: ['organization.project:manage']
         });
 
         let configuration =

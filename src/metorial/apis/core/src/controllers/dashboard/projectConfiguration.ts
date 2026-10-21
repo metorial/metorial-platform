@@ -65,7 +65,7 @@ export let dashboardProjectConfigurationController = Controller.create(
           description: 'Update log retention settings for a project'
         }
       )
-      .use(checkAccess({ possibleScopes: ['organization.project:write'] }))
+      .use(checkAccess({ possibleScopes: ['organization.project:manage'] }))
       .body(
         'default',
         v.object({
@@ -98,7 +98,7 @@ export let dashboardProjectConfigurationController = Controller.create(
           organization: ctx.organization,
           member: ctx.member,
           project,
-          possibleScopes: ['organization.project:write']
+          possibleScopes: ['organization.project:manage']
         });
 
         project = await projectRetentionService.updateProjectRetention({

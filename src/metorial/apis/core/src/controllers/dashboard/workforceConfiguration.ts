@@ -63,7 +63,7 @@ export let dashboardWorkforceConfigurationController = Controller.create(
           description: 'Update workforce settings for a project'
         }
       )
-      .use(checkAccess({ possibleScopes: ['organization.project:write'] }))
+      .use(checkAccess({ possibleScopes: ['organization.project:manage'] }))
       .body(
         'default',
         v.object({
@@ -92,7 +92,7 @@ export let dashboardWorkforceConfigurationController = Controller.create(
           organization: ctx.organization,
           member: ctx.member,
           project,
-          possibleScopes: ['organization.project:write']
+          possibleScopes: ['organization.project:manage']
         });
 
         await projectWorkforceConfigurationService.updateProjectWorkforceConfiguration({
