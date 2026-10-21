@@ -17,7 +17,7 @@
     "@metorial/cron": "^1.0.0",
     "@metorial/db": "^1.0.0",
     "@metorial/queue": "^1.0.0",
-    "htmlparser2": "^12.0.0",
+    "htmlparser2": "^8.0.2",
     "image-size": "^2.0.4",
     "tldts": "^7.4.18"
   },

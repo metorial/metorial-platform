@@ -359,7 +359,7 @@ export let rpcMux = (
                       let id = requestId;
 
                       let parseCookies = memo(() =>
-                        Cookie.parse(req.headers.get('cookie') ?? '')
+                        Cookie.parseCookie(req.headers.get('cookie') ?? '')
                       );
 
                       let request: ServiceRequest = {
@@ -374,7 +374,7 @@ export let rpcMux = (
                         getCookies: () => parseCookies(),
                         getCookie: (name: string) => parseCookies()[name],
                         setCookie: (name: string, value: string, opts?: any) => {
-                          let cookie = Cookie.serialize(name, value, opts);
+                          let cookie = Cookie.stringifySetCookie({ ...opts, name, value });
                           // @ts-ignore
                           headers.append('Set-Cookie', cookie);
                         },

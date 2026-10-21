@@ -11,17 +11,19 @@ import http from 'node:http';
 let SESSION_COOKIE_NAME = 'metorial_oss_session_secret';
 
 export let getDashboardAuthCookie = (req: Request) => {
-  let cookies = Cookies.parse(req.headers.get('Cookie') ?? '');
+  let cookies = Cookies.parseCookie(req.headers.get('Cookie') ?? '');
   return cookies[SESSION_COOKIE_NAME] ?? null;
 };
 
 export let getDashboardAuthCookieFromNodeReq = (req: http.IncomingMessage) => {
-  let cookies = Cookies.parse(req.headers.cookie ?? '');
+  let cookies = Cookies.parseCookie(req.headers.cookie ?? '');
   return cookies[SESSION_COOKIE_NAME] ?? null;
 };
 
 export let setDashboardAuthCookie = (sessionClientSecret: string) =>
-  Cookies.serialize(SESSION_COOKIE_NAME, sessionClientSecret, {
+  Cookies.stringifySetCookie({
+    name: SESSION_COOKIE_NAME,
+    value: sessionClientSecret,
     path: '/',
     httpOnly: true,
     // secure: getConfig().env != 'development',

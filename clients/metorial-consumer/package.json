@@ -19,12 +19,10 @@
     "@metorial/fetch": "^3.0.0",
     "@metorial/generated": "^1.0.0-rc.5",
     "@metorial/util-endpoint": "^3.0.0",
-    "@metorial/util-resource-mapper": "^3.2.0",
-    "@types/cookie": "^1.0.0"
+    "@metorial/util-resource-mapper": "^3.2.0"
   },
   "devDependencies": {
     "@types/isomorphic-fetch": "^0.0.39",
-    "@types/minimatch": "^6.0.0",
     "@types/ws": "^8.18.2",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",

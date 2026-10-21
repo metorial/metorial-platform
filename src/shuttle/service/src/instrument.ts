@@ -22,8 +22,6 @@ if (
   Sentry.init({
     dsn: process.env.SENTRY_DSN,
 
-    sendDefaultPii: true,
-
     environment: process.env.METORIAL_ENV,
 
     beforeSend(event, hint) {
