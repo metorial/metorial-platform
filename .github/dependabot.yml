@@ -1,0 +1,15 @@
+version: 2
+
+updates:
+  - package-ecosystem: 'bun'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    # Keep version selection aligned with bunfig.toml's minimum release age and exclusions.
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 10
+    groups:
+      dependencies:
+        patterns:
+          - '*'
