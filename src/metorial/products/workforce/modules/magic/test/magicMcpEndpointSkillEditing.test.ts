@@ -57,6 +57,7 @@ vi.mock('../src/lib/backing', () => ({
 import { magicMcpEndpointService } from '../src/services/magicMcpEndpoint';
 
 let instance = { oid: 20n, id: 'ins_1' } as any;
+let project = { oid: 30n, allowConsumerSkillEditing: true };
 let auditScope = { organizationOid: 1n, actor: { type: 'system', id: 'test' } } as any;
 
 let endpoint = {
@@ -75,7 +76,7 @@ describe('magicMcpEndpointService skill editing', () => {
     db.magicMcpServer.findMany.mockResolvedValue([]);
     db.magicMcpEndpoint.create.mockResolvedValue(endpoint);
     db.magicMcpEndpoint.update.mockResolvedValue(endpoint);
-    db.instance.findUniqueOrThrow.mockResolvedValue(instance);
+    db.instance.findUniqueOrThrow.mockResolvedValue({ ...instance, project });
     isFlagEnabledForInstanceMock.mockResolvedValue(true);
     ensureMagicMcpEndpointBackingMock.mockResolvedValue({
       hasSubspaceBacking: true,
@@ -128,6 +129,22 @@ describe('magicMcpEndpointService skill editing', () => {
       })
     ).rejects.toMatchObject({ data: { status: 403 } });
     expect(db.magicMcpEndpoint.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects enabling skill editing when the project turned it off', async () => {
+    db.instance.findUniqueOrThrow.mockResolvedValue({
+      ...instance,
+      project: { ...project, allowConsumerSkillEditing: false }
+    });
+
+    await expect(
+      magicMcpEndpointService.updateMagicMcpEndpoint({
+        endpoint,
+        auditScope,
+        input: { enableSkillEditing: true }
+      })
+    ).rejects.toMatchObject({ data: { status: 403 } });
+    expect(db.magicMcpEndpoint.update).not.toHaveBeenCalled();
   });
 
   it('updates the flag and keeps it when omitted', async () => {

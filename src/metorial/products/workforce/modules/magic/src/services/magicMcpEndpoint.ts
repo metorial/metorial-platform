@@ -147,13 +147,26 @@ class MagicMcpEndpointImpl {
       instance: d.instance,
       flag: 'skills-enabled'
     });
-    if (skillsEnabled) return;
+    if (!skillsEnabled) {
+      throw new ServiceError(
+        forbiddenError({
+          message:
+            'Skill editing can only be enabled when skills are enabled for this instance'
+        })
+      );
+    }
 
-    throw new ServiceError(
-      forbiddenError({
-        message: 'Skill editing can only be enabled when skills are enabled for this instance'
-      })
-    );
+    let instance = await db.instance.findUniqueOrThrow({
+      where: { oid: d.instance.oid },
+      include: { project: true }
+    });
+    if (!instance.project.allowConsumerSkillEditing) {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'Skill editing is turned off for this project'
+        })
+      );
+    }
   }
 
   async getMagicMcpEndpointById(d: {

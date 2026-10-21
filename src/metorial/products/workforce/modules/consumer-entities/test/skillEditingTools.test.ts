@@ -50,7 +50,7 @@ vi.mock('../src/services/consumerSkill', () => ({
 import { createSkillEditingTools } from '../src/lib/skillEditingTools';
 
 let organization = { oid: 1n, id: 'org_1' };
-let project = { oid: 2n, id: 'prj_1' };
+let project = { oid: 2n, id: 'prj_1', allowConsumerSkillEditing: true };
 let instance = { oid: 3n, id: 'ins_1', projectOid: 2n, organization, project };
 let resourceActor = { oid: 4n, id: 'rac_1', projectOid: 2n, consumerProfileOid: 5n };
 let consumerGroups = [{ oid: 6n, accessTagOid: 7n }];
@@ -215,6 +215,16 @@ describe('skill editing tool list', () => {
       project,
       flag: 'skills-enabled'
     });
+  });
+
+  it('returns no tools when the project turned off consumer skill editing', async () => {
+    mocks.db.instance.findUniqueOrThrow.mockResolvedValue({
+      ...instance,
+      project: { ...project, allowConsumerSkillEditing: false }
+    });
+
+    expect(await createTools()).toBeNull();
+    expect(mocks.isFlagEnabledForScope).not.toHaveBeenCalled();
   });
 
   it.each([

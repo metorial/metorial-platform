@@ -1933,7 +1933,7 @@ export class SenderManager {
 
     let resolved = await this.getToolById({ toolId: d.toolId });
 
-    if ('requestTool' in resolved) {
+    if ('requestTool' in resolved && resolved.requestTools) {
       return await this.completeRequestToolCall({
         requestTools: resolved.requestTools,
         tool: resolved.tool,

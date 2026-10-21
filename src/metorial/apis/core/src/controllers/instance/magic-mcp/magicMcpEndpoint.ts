@@ -44,7 +44,7 @@ let magicMcpEndpointStatusValues = ['active', 'archived', 'deleted'] as const;
 let enableSkillEditingValidator = v.optional(
   v.boolean({
     description:
-      'Expose skill editing tools on this endpoint so the connecting consumer can read and edit the skills they have access to. Only connections authenticated with a magic MCP token bound to a single consumer get the tools; connections using a publishable key do not. Requires skills to be enabled for the instance, and the tools disappear if skills are disabled later.'
+      'Expose skill editing tools on this endpoint so the connecting consumer can read and edit the skills they have access to. Only connections authenticated with a magic MCP token bound to a single consumer get the tools; connections using a publishable key do not. Requires skills to be enabled for the instance and consumer skill editing to be allowed for the project. The tools disappear if either is turned off later.'
   })
 );
 

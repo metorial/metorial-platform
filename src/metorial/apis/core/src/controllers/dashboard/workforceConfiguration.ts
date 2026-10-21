@@ -67,12 +67,21 @@ export let dashboardWorkforceConfigurationController = Controller.create(
       .body(
         'default',
         v.object({
-          auto_add_organization_members_to_portals: v.optional(v.boolean())
+          auto_add_organization_members_to_portals: v.optional(v.boolean()),
+          allow_consumer_skill_editing: v.optional(
+            v.boolean({
+              description:
+                'Let portal consumers grant Skill Editing on the OAuth consent screen. Turning it off also removes the skill editing tools from endpoints that already have it enabled.'
+            })
+          )
         })
       )
       .output(projectWorkforceConfigurationPresenter)
       .do(async ctx => {
-        if (ctx.body.auto_add_organization_members_to_portals === undefined) {
+        if (
+          ctx.body.auto_add_organization_members_to_portals === undefined &&
+          ctx.body.allow_consumer_skill_editing === undefined
+        ) {
           throw new ServiceError(
             badRequestError({
               message: 'At least one workforce configuration field must be provided'
@@ -101,7 +110,8 @@ export let dashboardWorkforceConfigurationController = Controller.create(
           auditScope: ctx.auditScope,
           input: {
             autoAddOrganizationMembersToPortals:
-              ctx.body.auto_add_organization_members_to_portals
+              ctx.body.auto_add_organization_members_to_portals,
+            allowConsumerSkillEditing: ctx.body.allow_consumer_skill_editing
           }
         });
 

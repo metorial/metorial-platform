@@ -68,7 +68,10 @@ export let withToolCallArguments = (
 
   return {
     ...input,
-    data: { ...data, params: { ...data.params, arguments: args } } as typeof input.data
+    data: {
+      ...data,
+      params: { ...data.params, arguments: args }
+    } as unknown as typeof input.data
   };
 };
 

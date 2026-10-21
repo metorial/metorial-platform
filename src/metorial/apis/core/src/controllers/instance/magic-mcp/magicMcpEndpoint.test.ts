@@ -74,8 +74,11 @@ vi.mock('../../../middleware/instanceGroup', () => ({
 
 vi.mock('@metorial/presenters', () => {
   let presenter = Presenter.create(magicMcpEndpointType)
-    .presenter(async ({ magicMcpEndpoint }) => ({ id: magicMcpEndpoint.id }))
-    .schema(v.object({ id: v.string() }))
+    .presenter(async ({ magicMcpEndpoint }) => ({
+      object: 'magic_mcp.endpoint',
+      id: magicMcpEndpoint.id
+    }))
+    .schema(v.object({ object: v.string(), id: v.string() }))
     .build();
 
   return {

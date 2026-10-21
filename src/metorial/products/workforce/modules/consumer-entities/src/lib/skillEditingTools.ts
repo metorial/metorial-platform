@@ -360,6 +360,8 @@ export let createSkillEditingTools = async (d: {
     include: { organization: true, project: true }
   });
 
+  if (!instance.project.allowConsumerSkillEditing) return null;
+
   let skillsEnabled = await flagService.isFlagEnabledForScope({
     organization: instance.organization,
     project: instance.project,
