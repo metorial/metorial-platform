@@ -103,6 +103,7 @@ export type ConversationsMessagesCreateOutput = {
           })
         | null;
     } | null;
+    context: { mode: string; requestedMode: string; canWrite: boolean } | null;
     createdAt: Date;
     updatedAt: Date;
   };
@@ -210,6 +211,7 @@ export let mapConversationsMessagesCreateOutput =
                 ]
               ]
             ],
+            ['context', 0, [1, ['requested_mode', 'can_write']]],
             'created_at',
             'updated_at'
           ]
@@ -235,6 +237,7 @@ export type ConversationsMessagesCreateBody = {
   };
   parentMessageId?: string | undefined;
   modelId?: string | undefined;
+  context?: Record<string, any> | undefined;
 };
 
 export let mapConversationsMessagesCreateBody =

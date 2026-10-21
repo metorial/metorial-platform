@@ -4,6 +4,7 @@ import {
 } from '@metorial/util-endpoint';
 
 import {
+  mapDashboardInstanceConversationsMessagesCancelOutput,
   mapDashboardInstanceConversationsMessagesCreateBody,
   mapDashboardInstanceConversationsMessagesCreateOutput,
   mapDashboardInstanceConversationsMessagesGetOutput,
@@ -11,6 +12,7 @@ import {
   mapDashboardInstanceConversationsMessagesHandoffResponsesOutput,
   mapDashboardInstanceConversationsMessagesListOutput,
   mapDashboardInstanceConversationsMessagesListQuery,
+  type DashboardInstanceConversationsMessagesCancelOutput,
   type DashboardInstanceConversationsMessagesCreateBody,
   type DashboardInstanceConversationsMessagesCreateOutput,
   type DashboardInstanceConversationsMessagesGetOutput,
@@ -179,6 +181,37 @@ export class MetorialDashboardInstanceConversationsMessagesEndpoint {
 
     return this._post(request).transform(
       mapDashboardInstanceConversationsMessagesHandoffResponsesOutput
+    );
+  }
+
+  /**
+   * @name Cancel assistant message
+   * @description Stop the assistant request that belongs to a message. Work the assistant already finished is kept.
+   *
+   * @param `instanceId` - string
+   * @param `assistantConversationId` - string
+   * @param `assistantMessageId` - string
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceConversationsMessagesCancelOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  cancel(
+    instanceId: string,
+    assistantConversationId: string,
+    assistantMessageId: string,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceConversationsMessagesCancelOutput> {
+    let path = `dashboard/instances/${instanceId}/conversations/${assistantConversationId}/messages/${assistantMessageId}/cancel`;
+
+    let request = {
+      path,
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardInstanceConversationsMessagesCancelOutput
     );
   }
 }

@@ -1,4 +1,5 @@
 import type { ValidationType } from '@lowerdeck/validation';
+import type { AuditScope } from '@metorial/audit-scope';
 import type {
   Instance,
   ProductAssistant,
@@ -8,8 +9,19 @@ import type {
   ResourceActor
 } from '@metorial/db';
 import { db, ID, Prisma } from '@metorial/db';
+import type { AnyAccessTagSelector, ResourceAuthorization } from '@metorial/module-access';
 import { Agent } from '../open-harness';
 import type { Model } from './model';
+
+export type AssistantStorePermission = 'content_read' | 'content_write';
+
+export type AssistantAccess = {
+  authorization: ResourceAuthorization;
+  auditScope?: AuditScope;
+  accessTags?: AnyAccessTagSelector;
+  defaultPermissions?: AssistantStorePermission[];
+  overridePermissions?: boolean;
+};
 
 export let implementationModelInclude = {
   provider: true
@@ -33,13 +45,28 @@ export type ImplementationHandleInputContext<Input> = {
   project: Project;
   instance: Instance;
   actor: ResourceActor;
+  access?: AssistantAccess;
   assistant: ProductAssistant;
   assistantInstance: ProductAssistantInstance;
   assistantImplementation: ProductAssistantImplementation;
 };
 
-export type ImplementationGetAgentContext<Input> = {
+export type ImplementationHandleRequestInputContext<RequestInput, ConversationInput> = {
+  requestInput: RequestInput;
+  conversationInput: ConversationInput;
+  project: Project;
+  instance: Instance;
+  actor: ResourceActor;
+  access?: AssistantAccess;
+  assistant: ProductAssistant;
+  assistantInstance: ProductAssistantInstance;
+  assistantImplementation: ProductAssistantImplementation;
+};
+
+export type ImplementationGetAgentContext<Input, RequestInput = unknown> = {
   input: Input;
+  requestInput: RequestInput | undefined;
+  actor: ResourceActor | null;
   model: Model;
   project: Project;
   instance: Instance;
@@ -51,6 +78,8 @@ export type ImplementationGetAgentContext<Input> = {
 type ImplementationWithoutInput = ImplementationBase & {
   input?: undefined;
   handleInput?: undefined;
+  requestInput?: undefined;
+  handleRequestInput?: undefined;
   getAgent: (
     d: {
       input: undefined;
@@ -58,15 +87,27 @@ type ImplementationWithoutInput = ImplementationBase & {
   ) => Promise<Agent>;
 };
 
-type ImplementationWithInput<Input, HandledInput> = ImplementationBase & {
-  input: ValidationType<Input>;
-  handleInput: (d: ImplementationHandleInputContext<Input>) => MaybePromise<HandledInput>;
-  getAgent: (d: ImplementationGetAgentContext<HandledInput>) => Promise<Agent>;
-};
+type ImplementationWithInput<Input, HandledInput, RequestInput, HandledRequestInput> =
+  ImplementationBase & {
+    input: ValidationType<Input>;
+    handleInput: (d: ImplementationHandleInputContext<Input>) => MaybePromise<HandledInput>;
+    requestInput?: ValidationType<RequestInput>;
+    handleRequestInput?: (
+      d: ImplementationHandleRequestInputContext<RequestInput, HandledInput>
+    ) => MaybePromise<HandledRequestInput>;
+    getAgent: (
+      d: ImplementationGetAgentContext<HandledInput, HandledRequestInput>
+    ) => Promise<Agent>;
+  };
 
-export type ImplementationDefinition<Input = undefined, HandledInput = Input> =
+export type ImplementationDefinition<
+  Input = undefined,
+  HandledInput = Input,
+  RequestInput = undefined,
+  HandledRequestInput = RequestInput
+> =
   | ImplementationWithoutInput
-  | ImplementationWithInput<Input, HandledInput>;
+  | ImplementationWithInput<Input, HandledInput, RequestInput, HandledRequestInput>;
 
 type PersistedImplementationBase = Omit<
   ImplementationBase,
@@ -82,22 +123,32 @@ type PersistedImplementationBase = Omit<
 export type ImplementationWithoutInputResult = PersistedImplementationBase &
   Omit<ImplementationWithoutInput, 'defaultModel' | 'availableModels'>;
 
-export type ImplementationWithInputResult<Input, HandledInput> = PersistedImplementationBase &
-  Omit<ImplementationWithInput<Input, HandledInput>, 'defaultModel' | 'availableModels'>;
+export type ImplementationWithInputResult<
+  Input,
+  HandledInput,
+  RequestInput = any,
+  HandledRequestInput = any
+> = PersistedImplementationBase &
+  Omit<
+    ImplementationWithInput<Input, HandledInput, RequestInput, HandledRequestInput>,
+    'defaultModel' | 'availableModels'
+  >;
 
 export type Implementation =
   | ImplementationWithoutInputResult
-  | ImplementationWithInputResult<any, any>;
+  | ImplementationWithInputResult<any, any, any, any>;
 
 type ImplementationFactory = {
   (d: ImplementationWithoutInput): Promise<ImplementationWithoutInputResult>;
-  <Input, HandledInput>(
-    d: ImplementationWithInput<Input, HandledInput>
-  ): Promise<ImplementationWithInputResult<Input, HandledInput>>;
+  <Input, HandledInput, RequestInput = undefined, HandledRequestInput = RequestInput>(
+    d: ImplementationWithInput<Input, HandledInput, RequestInput, HandledRequestInput>
+  ): Promise<
+    ImplementationWithInputResult<Input, HandledInput, RequestInput, HandledRequestInput>
+  >;
 };
 
 let buildImplementation = async (
-  d: ImplementationDefinition<any, any>
+  d: ImplementationDefinition<any, any, any, any>
 ): Promise<Implementation> => {
   let defaultModel = await d.defaultModel;
   let availableModels = Array.from(

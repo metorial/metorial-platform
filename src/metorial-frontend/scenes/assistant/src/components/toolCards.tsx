@@ -22,6 +22,7 @@ import { BashToolCard } from './tools/bashTool';
 import { EditToolCard } from './tools/editTool';
 import { McpToolCard } from './tools/mcpTool';
 import { SearchToolCard } from './tools/searchTool';
+import { DocumentEditToolCard, SkillChangesToolCard } from './tools/skillTools';
 import {
   getStatusLabel,
   ToolContentStack,
@@ -648,6 +649,14 @@ export let AssistantStateItemCard = (p: {
 
   if (p.item.type == 'compaction') {
     return <CompactionCard item={p.item} />;
+  }
+
+  if (p.item.type == 'document/edit') {
+    return <DocumentEditToolCard item={p.item} />;
+  }
+
+  if (p.item.type == 'skill/changes') {
+    return <SkillChangesToolCard item={p.item} />;
   }
 
   return null;

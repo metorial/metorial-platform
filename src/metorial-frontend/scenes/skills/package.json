@@ -20,6 +20,7 @@
     "@metorial/layout": "^1.0.0",
     "@metorial/markdown": "^1.0.0",
     "@metorial/microfrontend": "^1.0.0",
+    "@metorial/scene-assistant": "^1.0.0",
     "@metorial/scene-scm": "^1.0.0",
     "@metorial/state": "^1.0.0",
     "@metorial/ui": "^1.0.0",

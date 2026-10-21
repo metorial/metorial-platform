@@ -8,8 +8,10 @@ import type {
   ResourceActor
 } from '@metorial/db';
 import { db, ID, Prisma, withTransaction } from '@metorial/db';
-import type { Implementation } from '../lib/definitions';
+import type { AssistantAccess, Implementation } from '../lib/definitions';
 import { getAssistantDefinition } from '../lib/definitions/assistantDefinition';
+import { resolveAssistantRequestInput } from '../lib/definitions/conversationInput';
+import { requestAssistantRunCancel } from '../lib/run/cancel';
 import { assertAiChatAllowed } from '../lib/reducedSubprocessors';
 import {
   applyHandoffToolResponses,
@@ -108,37 +110,21 @@ let chooseModel = (d: {
   return model._persisted;
 };
 
+let getRequestDefaultModelId = (requestInput: unknown) => {
+  if (!requestInput || typeof requestInput != 'object') return undefined;
+
+  let modelId = (requestInput as { defaultModelId?: unknown }).defaultModelId;
+  return typeof modelId == 'string' ? modelId : undefined;
+};
+
 class ProductAssistantRequestServiceImpl {
-  private async ensureScope(d: {
+  private ensureScope(d: {
     project: Project;
     instance: Instance;
     actor: ResourceActor;
     conversation: ProductAssistantConversation;
-    allowAllActors?: boolean;
-    client?: typeof db | Prisma.TransactionClient;
   }) {
-    let hasAccess = await productAssistantConversationParticipantService.hasConversationAccess(
-      {
-        project: d.project,
-        instance: d.instance,
-        conversation: d.conversation,
-        actor: d.actor,
-        client: d.client
-      }
-    );
-
-    if (hasAccess) return;
-
-    if (d.allowAllActors) {
-      await productAssistantConversationParticipantService.ensureConversationParticipant({
-        conversation: d.conversation,
-        actor: d.actor,
-        client: d.client
-      });
-      return;
-    }
-
-    throw new ServiceError(notFoundError('assistant_conversation', d.conversation.id));
+    productAssistantConversationParticipantService.assertConversationAccess(d);
   }
 
   private async resolveParentMessage(d: {
@@ -273,12 +259,13 @@ class ProductAssistantRequestServiceImpl {
     project: Project;
     instance: Instance;
     actor: ResourceActor;
+    access?: AssistantAccess;
     conversation: ProductAssistantConversation;
     input: {
       message: InputMessage;
       parentMessageId?: string;
       modelId?: string;
-      allowAllActors?: boolean;
+      context?: unknown;
     };
   }) {
     assertAiChatAllowed(d.project);
@@ -302,21 +289,37 @@ class ProductAssistantRequestServiceImpl {
       );
     }
 
+    let assistantInstance = await db.productAssistantInstance.findUniqueOrThrow({
+      where: {
+        oid: d.conversation.assistantInstanceOid
+      }
+    });
+
     let definition = await getAssistantDefinition(assistant.implementation.slug);
+    let requestInput = await resolveAssistantRequestInput({
+      project: d.project,
+      instance: d.instance,
+      actor: d.actor,
+      access: d.access,
+      assistant,
+      assistantInstance,
+      assistantImplementation: definition.implementation,
+      conversationInput: d.conversation.input,
+      rawInput: d.input.context
+    });
+
     let model = chooseModel({
       implementation: definition.implementation,
-      modelId: d.input.modelId
+      modelId: d.input.modelId ?? getRequestDefaultModelId(requestInput)
     });
 
     let shouldGenerateTitle = !d.conversation.title?.trim();
     let result = await withTransaction(async tx => {
-      await this.ensureScope({
+      this.ensureScope({
         project: d.project,
         instance: d.instance,
         actor: d.actor,
-        conversation: d.conversation,
-        allowAllActors: d.input.allowAllActors,
-        client: tx
+        conversation: d.conversation
       });
 
       let userMessage = await tx.productAssistantMessage.create({
@@ -342,6 +345,8 @@ class ProductAssistantRequestServiceImpl {
           modelOid: model.oid,
           messageOid: userMessage.oid,
           historySize: 100,
+          input:
+            requestInput === undefined ? undefined : (requestInput as Prisma.InputJsonValue),
           resourceActorOid: d.actor.oid
         }
       });
@@ -432,7 +437,7 @@ class ProductAssistantRequestServiceImpl {
     });
     if (!item) throw new ServiceError(notFoundError('assistant_message', d.input.messageId));
 
-    await this.ensureScope({
+    this.ensureScope({
       project: d.project,
       instance: d.instance,
       actor: d.actor,
@@ -540,6 +545,50 @@ class ProductAssistantRequestServiceImpl {
     }
 
     return updatedItem;
+  }
+
+  async cancelAssistantRequest(d: {
+    project: Project;
+    instance: Instance;
+    actor: ResourceActor;
+    conversation: ProductAssistantConversation;
+    input: {
+      messageId: string;
+    };
+  }) {
+    this.ensureScope({
+      project: d.project,
+      instance: d.instance,
+      actor: d.actor,
+      conversation: d.conversation
+    });
+
+    let item = await db.productAssistantConversationItem.findFirst({
+      where: {
+        conversationOid: d.conversation.oid,
+        message: {
+          id: d.input.messageId
+        }
+      },
+      include: productAssistantConversationItemInclude
+    });
+    if (!item) throw new ServiceError(notFoundError('assistant_message', d.input.messageId));
+
+    let request =
+      item.message.request ??
+      (await db.productAssistantRequest.findFirst({
+        where: {
+          messageOid: item.message.oid
+        }
+      }));
+    if (!request)
+      throw new ServiceError(notFoundError('assistant_request', d.input.messageId));
+
+    if (request.status == 'pending') {
+      await requestAssistantRunCancel({ requestId: request.id });
+    }
+
+    return item;
   }
 
   async listenToAssistantRequestDeltas(d: {

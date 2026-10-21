@@ -1,3 +1,4 @@
+export * from './access';
 export * from './assistant';
 export * from './handoffTool';
 export * from './implementation';

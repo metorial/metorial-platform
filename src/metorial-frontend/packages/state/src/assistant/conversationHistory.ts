@@ -36,10 +36,12 @@ export type AssistantConversationHistoryNode = {
   latestLeaf: AssistantConversationHistoryNode | null;
 };
 
-type AssistantSubmitMessageInput = {
+export type AssistantSubmitMessageInput = {
   text: string;
   parentMessageId?: string | null;
   modelId?: string;
+  context?: Record<string, unknown>;
+  assistantConversationId?: string;
 };
 
 let usePollingRefetch = (
@@ -84,12 +86,14 @@ let isLiveItemRunning = (item: AssistantLiveStateItem) => {
     case 'web':
       return item.operations.some(operation => operation.status == 'running');
     case 'files/write':
+    case 'document/edit':
     case 'shell':
     case 'message':
     case 'reasoning':
     case 'compaction':
       return item.status == 'running';
     case 'error':
+    case 'skill/changes':
       return false;
   }
 };
@@ -127,6 +131,7 @@ let createOptimisticMessage = (d: {
       status: 'completed',
       actor: null,
       actorId: null,
+      context: null,
       createdAt: d.createdAt,
       updatedAt: d.createdAt
     },
@@ -539,7 +544,8 @@ export let useConversationHistory = (
 
   let submitMessage = useCallback(
     async (input: AssistantSubmitMessageInput) => {
-      if (!organizationId || !instanceId || !assistantConversationId) {
+      let targetConversationId = input.assistantConversationId ?? assistantConversationId;
+      if (!organizationId || !instanceId || !targetConversationId) {
         throw new Error('Missing assistant conversation scope.');
       }
 
@@ -569,9 +575,10 @@ export let useConversationHistory = (
         let [createdMessage, error] = await createMessage.mutate({
           organizationId,
           instanceId,
-          assistantConversationId,
+          assistantConversationId: targetConversationId,
           parentMessageId: fallbackParentMessageId ?? undefined,
           modelId: input.modelId,
+          context: input.context,
           message: {
             parts: [{ type: 'text', text }]
           }

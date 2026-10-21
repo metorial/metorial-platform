@@ -103,6 +103,7 @@ export type ConversationsMessagesHandoffResponsesOutput = {
           })
         | null;
     } | null;
+    context: { mode: string; requestedMode: string; canWrite: boolean } | null;
     createdAt: Date;
     updatedAt: Date;
   };
@@ -210,6 +211,7 @@ export let mapConversationsMessagesHandoffResponsesOutput =
                 ]
               ]
             ],
+            ['context', 0, [1, ['requested_mode', 'can_write']]],
             'created_at',
             'updated_at'
           ]

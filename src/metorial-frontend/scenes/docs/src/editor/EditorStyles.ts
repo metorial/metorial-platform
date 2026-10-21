@@ -792,6 +792,73 @@ export let proseStyles = css`
     outline-offset: 2px;
     border-radius: ${({ theme }) => theme.size.radiusSm};
   }
+
+  .agent-change {
+    border-radius: ${({ theme }) => theme.size.radiusSm};
+    box-shadow: -10px 0 0 0 ${({ theme }) => theme.color.accentSoft};
+    background: color-mix(in srgb, ${({ theme }) => theme.color.accentSoft} 45%, transparent);
+    transition:
+      background 600ms ease,
+      box-shadow 600ms ease;
+  }
+
+  .agent-change--streaming {
+    box-shadow: -10px 0 0 0 ${({ theme }) => theme.color.accent};
+  }
+
+  .agent-rewrite-old {
+    color: ${({ theme }) => theme.color.textMuted};
+    text-decoration: line-through;
+    text-decoration-color: ${({ theme }) => theme.color.danger};
+    background: color-mix(in srgb, ${({ theme }) => theme.color.danger} 8%, transparent);
+  }
+
+  .agent-rewrite-new {
+    margin-left: 4px;
+    color: ${({ theme }) => theme.color.text};
+    white-space: pre-wrap;
+    user-select: none;
+  }
+
+  .agent-rewrite-new__text {
+    background: color-mix(in srgb, ${({ theme }) => theme.color.success} 14%, transparent);
+  }
+
+  .agent-rewrite-new__text--streaming {
+    opacity: 0.75;
+  }
+
+  .agent-rewrite-new__text--error {
+    background: transparent;
+    color: ${({ theme }) => theme.color.danger};
+  }
+
+  .agent-rewrite-new__actions {
+    display: inline-flex;
+    gap: 4px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+
+  .agent-rewrite-accept,
+  .agent-rewrite-discard {
+    height: 22px;
+    padding: 0 8px;
+    border: 1px solid ${({ theme }) => theme.color.border};
+    border-radius: 6px;
+    background: ${({ theme }) => theme.color.bg};
+    color: ${({ theme }) => theme.color.text};
+    font: inherit;
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .agent-rewrite-accept {
+    border-color: ${({ theme }) => theme.color.text};
+    background: ${({ theme }) => theme.color.text};
+    color: ${({ theme }) => theme.color.bg};
+  }
 `;
 
 export let EditorScroll = styled.div`
@@ -805,7 +872,7 @@ export let EditorContent = styled.div<{ $readOnly?: boolean }>`
   position: relative;
   max-width: ${({ theme }) => theme.size.contentWidth};
   margin: 0 auto;
-  padding: 48px 64px;
+  padding: 48px 64px 140px;
 
   ${({ $readOnly }) =>
     $readOnly &&

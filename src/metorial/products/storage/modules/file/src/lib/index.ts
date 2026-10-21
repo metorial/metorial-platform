@@ -6,3 +6,4 @@ export * from './signedDownloadUrl';
 export * from './signedUploadUrl';
 export * from './uploadFile';
 export * from './uploadPolicy';
+export { getStoredFileContent } from './pendingFileContent';

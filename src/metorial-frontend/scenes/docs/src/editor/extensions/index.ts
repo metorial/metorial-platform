@@ -29,6 +29,9 @@ import { Markdown } from 'tiptap-markdown';
 import type { Awareness } from 'y-protocols/awareness';
 import type { Doc as YDoc } from 'yjs';
 
+import { AgentBlockNode } from '../agent/AgentBlockNode';
+import { AgentChangeHighlight } from '../agent/highlight';
+import { AgentRewritePreview } from '../agent/rewritePreview';
 import { Callout } from './Callout';
 import { CustomCodeBlock } from './CustomCodeBlock';
 import { EquationBlock } from './EquationBlock';
@@ -160,6 +163,9 @@ export let buildExtensions = (opts?: {
 
   Callout,
   ImagePlaceholder,
+  AgentBlockNode,
+  AgentChangeHighlight,
+  AgentRewritePreview,
 
   Markdown.configure({
     html: true,

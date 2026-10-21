@@ -1,11 +1,17 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Instance, ProductAssistantConversation, Project, ResourceActor } from '@metorial/db';
+import type {
+  Instance,
+  ProductAssistantConversation,
+  Project,
+  ResourceActor
+} from '@metorial/db';
 import { db, ID, Prisma, withTransaction } from '@metorial/db';
 import { resourceActorPresentationInclude } from '@metorial/module-resource-actor';
 import { getAssistantDefinition } from '../lib/definitions/assistantDefinition';
 import { resolveAssistantConversationInput } from '../lib/definitions/conversationInput';
+import type { AssistantAccess } from '../lib/definitions/implementation';
 import type { State } from '../types';
 import type { AvailableProductAssistant } from './assistant';
 import { productAssistantService } from './assistant';
@@ -92,18 +98,14 @@ class ProductAssistantConversationServiceImpl {
     )[0]!;
   }
 
-  private ensureScope(d: {
-    project: Project;
-    instance: Instance;
-    actor?: ResourceActor | null;
-  }) {
+  private ensureScope(d: { project: Project; instance: Instance; actor: ResourceActor }) {
     productAssistantConversationParticipantService.assertProjectInstanceScope(d);
   }
 
   private conversationWhere(d: {
     project: Project;
     instance: Instance;
-    actor?: ResourceActor | null;
+    actor: ResourceActor;
     conversationId?: string;
     assistantId?: string;
     assistantIds?: string[];
@@ -112,7 +114,7 @@ class ProductAssistantConversationServiceImpl {
       projectOid: d.project.oid,
       instanceOid: d.instance.oid,
       id: d.conversationId,
-      ...productAssistantConversationParticipantService.participantAccessWhere({
+      ...productAssistantConversationParticipantService.ownerAccessWhere({
         actor: d.actor
       }),
       assistant:
@@ -142,7 +144,7 @@ class ProductAssistantConversationServiceImpl {
   async getAssistantConversationById(d: {
     project: Project;
     instance: Instance;
-    actor?: ResourceActor | null;
+    actor: ResourceActor;
     conversationId: string;
   }) {
     this.ensureScope(d);
@@ -164,7 +166,7 @@ class ProductAssistantConversationServiceImpl {
   async listAssistantConversations(d: {
     project: Project;
     instance: Instance;
-    actor?: ResourceActor | null;
+    actor: ResourceActor;
     assistantIds?: string[];
   }) {
     this.ensureScope(d);
@@ -187,6 +189,7 @@ class ProductAssistantConversationServiceImpl {
     project: Project;
     instance: Instance;
     actor: ResourceActor;
+    access?: AssistantAccess;
     input: {
       assistantId: string;
       title?: string | null;
@@ -212,6 +215,7 @@ class ProductAssistantConversationServiceImpl {
       project: d.project,
       instance: d.instance,
       actor: d.actor,
+      access: d.access,
       assistant,
       assistantInstance,
       assistantImplementation: definition.implementation,
@@ -291,14 +295,14 @@ class ProductAssistantConversationServiceImpl {
   async updateAssistantConversation(d: {
     project: Project;
     instance: Instance;
-    actor?: ResourceActor | null;
+    actor: ResourceActor;
     conversation: ProductAssistantConversation;
     input: {
       title?: string | null;
     };
   }) {
     this.ensureScope(d);
-    await productAssistantConversationParticipantService.assertConversationAccess({
+    productAssistantConversationParticipantService.assertConversationAccess({
       project: d.project,
       instance: d.instance,
       conversation: d.conversation,

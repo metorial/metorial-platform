@@ -104,6 +104,11 @@ export type DashboardInstanceConversationsMessagesListOutput = {
             })
           | null;
       } | null;
+      context: {
+        mode: string;
+        requestedMode: string;
+        canWrite: boolean;
+      } | null;
       createdAt: Date;
       updatedAt: Date;
     };
@@ -223,6 +228,7 @@ export let mapDashboardInstanceConversationsMessagesListOutput =
                     ]
                   ]
                 ],
+                ['context', 0, [1, ['requested_mode', 'can_write']]],
                 'created_at',
                 'updated_at'
               ]

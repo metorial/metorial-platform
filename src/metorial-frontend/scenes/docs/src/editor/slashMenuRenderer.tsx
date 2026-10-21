@@ -17,8 +17,8 @@ export let slashSuggestion = (
   allowSpaces: false,
   allowedPrefixes: null,
 
-  items: ({ query }: ItemsProps) => {
-    return filterItems(query).slice(0, 20);
+  items: ({ query, editor }: ItemsProps) => {
+    return filterItems(query, editor).slice(0, 20);
   },
 
   command: ({ editor, range, props }) => {
@@ -70,6 +70,7 @@ export let slashSuggestion = (
           <SlashMenu
             ref={ref}
             items={props.items}
+            filtered={props.query.trim().length > 0}
             command={item => props.command(item)}
             closing={closing}
           />

@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { JSDOM } from 'jsdom';
+import { Editor } from '@tiptap/core';
+import { prosemirrorJSONToYXmlFragment } from '@tiptap/y-tiptap';
 import {
+  buildHeadlessExtensions,
   composeFullMarkdown,
+  decodeYjsUpdate,
   markdownToYjsUpdate,
   replaceYjsBodyFromMarkdown,
+  resolveBlockRef,
+  yjsDocToBlocks,
+  yjsUpdateToBlocks,
   yjsUpdateToMarkdown,
   yjsUpdateToDocumentSnapshot
 } from './index';
@@ -81,6 +88,56 @@ describe('docs editor schema conversion', () => {
     let encoded = btoa(String.fromCharCode(...update));
     expect(yjsUpdateToMarkdown(encoded)).toContain('Imported **body**');
     expect(yjsUpdateToMarkdown(encoded)).not.toContain('Original body');
+    ydoc.destroy();
+  });
+
+  it('splits a collaborative body into addressable blocks', () => {
+    let update = markdownToYjsUpdate(['# Title', '', 'First', '', '- a', '- b'].join('\n'));
+    let blocks = yjsUpdateToBlocks(update!);
+
+    expect(blocks.map(block => block.markdown)).toEqual(['# Title', 'First', '- a\n- b']);
+    expect(blocks.map(block => block.type)).toEqual(['heading', 'paragraph', 'bulletList']);
+  });
+
+  it('resolves block refs across concurrent inserts and detects deletions', () => {
+    let ydoc = new Y.Doc();
+    Y.applyUpdate(ydoc, decodeYjsUpdate(markdownToYjsUpdate('One\n\nTwo\n\nThree')!));
+
+    let refs = yjsDocToBlocks(ydoc).map(block => block.ref);
+    expect(resolveBlockRef({ ydoc, ref: refs[1]! })).toEqual({ index: 1 });
+
+    let body = ydoc.getXmlFragment('body');
+    body.insert(0, [new Y.XmlElement('paragraph')]);
+    expect(resolveBlockRef({ ydoc, ref: refs[1]! })).toEqual({ index: 2 });
+
+    body.delete(2, 1);
+    expect(resolveBlockRef({ ydoc, ref: refs[1]! })).toBeNull();
+    ydoc.destroy();
+  });
+
+  it('serializes only the children of agent blocks', () => {
+    let ydoc = new Y.Doc();
+    let editor = new Editor({ extensions: buildHeadlessExtensions(), editable: false });
+    prosemirrorJSONToYXmlFragment(
+      editor.schema,
+      {
+        type: 'doc',
+        content: [
+          { type: 'paragraph', content: [{ type: 'text', text: 'Before' }] },
+          {
+            type: 'agentBlock',
+            attrs: { blockId: 'job_1', status: 'review', prompt: 'Write' },
+            content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Generated' }] }]
+          }
+        ]
+      },
+      ydoc.getXmlFragment('body')
+    );
+    editor.destroy();
+
+    let encoded = btoa(String.fromCharCode(...Y.encodeStateAsUpdate(ydoc)));
+    expect(yjsUpdateToMarkdown(encoded).trim()).toBe('Before\n\nGenerated');
+    expect(yjsDocToBlocks(ydoc).map(block => block.type)).toEqual(['paragraph', 'agentBlock']);
     ydoc.destroy();
   });
 

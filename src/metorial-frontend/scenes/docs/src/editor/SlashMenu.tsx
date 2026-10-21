@@ -29,8 +29,11 @@ import {
   IconInfo,
   IconWarning,
   IconCheckCircle,
-  IconDanger
+  IconDanger,
+  IconSparkle,
+  IconSummary
 } from './icons';
+import { getDocsAgentApi } from './agent/api';
 
 let MERMAID_EXAMPLE = `flowchart LR
   A[Start] --> B{Choose}
@@ -49,10 +52,37 @@ export type SlashItem = {
   recommended?: boolean;
   /** Whether this item makes sense as a "turn into" target for an existing block. */
   convertible?: boolean;
+  isAvailable?: (editor: Editor) => boolean;
   command: (args: { editor: Editor; range: Range }) => void;
 };
 
+let canUseAgent = (editor: Editor) => !!getDocsAgentApi(editor)?.canWrite;
+
 export let slashItems: SlashItem[] = [
+  {
+    title: 'AI block',
+    description: 'Describe a section and let the assistant write it',
+    group: 'AI',
+    icon: <IconSparkle />,
+    keywords: ['ai', 'assistant', 'generate', 'write', 'agent'],
+    isAvailable: canUseAgent,
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).run();
+      getDocsAgentApi(editor)?.insertAgentBlock();
+    }
+  },
+  {
+    title: 'Summarize section',
+    description: 'Let the assistant summarize the current section',
+    group: 'AI',
+    icon: <IconSummary />,
+    keywords: ['ai', 'summary', 'summarize', 'tldr'],
+    isAvailable: canUseAgent,
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).run();
+      getDocsAgentApi(editor)?.summarizeSection();
+    }
+  },
   {
     title: 'Text',
     description: 'Plain paragraph',
@@ -284,10 +314,14 @@ export let slashItems: SlashItem[] = [
   }
 ];
 
-export function filterItems(query: string): SlashItem[] {
+export let availableSlashItems = (editor?: Editor) =>
+  slashItems.filter(item => !item.isAvailable || (!!editor && item.isAvailable(editor)));
+
+export function filterItems(query: string, editor?: Editor): SlashItem[] {
+  let items = availableSlashItems(editor);
   let q = query.toLowerCase().trim();
-  if (!q) return slashItems;
-  return slashItems.filter(item => {
+  if (!q) return items;
+  return items.filter(item => {
     let haystack = [item.title, item.description, ...(item.keywords ?? [])]
       .join(' ')
       .toLowerCase();
@@ -439,10 +473,11 @@ interface SlashMenuProps {
   command: (item: SlashItem) => void;
   /** When true, render with the exit animation `data-state`. */
   closing?: boolean;
+  filtered?: boolean;
 }
 
 export let SlashMenu = forwardRef<SlashMenuRef, SlashMenuProps>(
-  ({ items, command, closing }, ref) => {
+  ({ items, command, closing, filtered }, ref) => {
     let dataState = closing ? 'closed' : 'open';
     let [selectedIndex, setSelectedIndex] = useState(0);
     let containerRef = useRef<HTMLDivElement>(null);
@@ -508,7 +543,7 @@ export let SlashMenu = forwardRef<SlashMenuRef, SlashMenuProps>(
       groups[item.group].push({ item, index });
     });
 
-    let isFiltered = items.length !== slashItems.length;
+    let isFiltered = filtered ?? items.length !== slashItems.length;
     let recommendedItems = isFiltered ? [] : items.filter(i => i.recommended);
 
     return (
