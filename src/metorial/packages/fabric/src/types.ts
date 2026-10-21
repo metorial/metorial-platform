@@ -110,7 +110,10 @@ import {
   WorkspacePolicyAssignment,
   WorkspaceProfile
 } from '@metorial/db';
-import type { OAuthAuthorizationRequestWithRelations } from '@metorial/module-machine-access';
+import type {
+  OAuthAuthorizationRequestWithRelations,
+  SecretVerification
+} from '@metorial/module-machine-access';
 
 export type MachineAccessInput =
   | {
@@ -1102,6 +1105,8 @@ export interface FabricEvents {
   'machine_access.api_key.expired:before': { machineAccess: MachineAccess; apiKey: ApiKey; organization: Organization; auditScope: AuditScope };
   'machine_access.api_key.expired:after': { machineAccess: MachineAccess; apiKey: ApiKey; previousApiKey: ApiKey; organization: Organization; auditScope: AuditScope };
   'machine_access.api_key:revealed': { machineAccess: MachineAccess; apiKey: ApiKey; organization: Organization; auditScope: AuditScope };
+
+  'machine_access.secret.requested:before': { secretType: 'api_key' | 'service_account_client_secret'; instance: Instance | null; verification: SecretVerification; auditScope?: AuditScope };
 
   'outpost.created:before': { organization: Organization; input: { name: string; description?: string }; auditScope: AuditScope };
   'outpost.created:after': { organization: Organization; input: { name: string; description?: string }; auditScope: AuditScope; outpost: Outpost };

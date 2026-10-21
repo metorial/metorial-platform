@@ -21,6 +21,7 @@ import { Fabric } from '@metorial/fabric';
 import { addMinutes } from 'date-fns';
 import { env } from '../env';
 import { assertValidApiKeyIpFilters } from '../lib/apiKeyIpFilters';
+import type { SecretVerification } from '../lib/secretVerification';
 import { sendApiKeyCreatedEmailQueue } from '../queues/created/sendApiKeyCreatedEmail';
 import { machineAccessService } from './machineAccess';
 import { machineAccessAuthService } from './machineAccessAuth';
@@ -65,6 +66,7 @@ class ApiKeyService {
       };
       auditScope: AuditScope;
       kind?: ApiKeyKind;
+      verification?: SecretVerification;
     } & (
       | {
           type: 'organization_management_token';
@@ -78,6 +80,15 @@ class ApiKeyService {
     )
   ) {
     let ipFilters = assertValidApiKeyIpFilters(d.input.ipFilters);
+
+    if (d.verification) {
+      await Fabric.fire('machine_access.secret.requested:before', {
+        secretType: 'api_key',
+        instance: d.type == 'organization_management_token' ? null : d.instance,
+        verification: d.verification,
+        auditScope: d.auditScope
+      });
+    }
 
     let res = await withTransaction(async db => {
       let machineAccess = await machineAccessService.createMachineAccess(
@@ -315,11 +326,21 @@ class ApiKeyService {
   }
 
   async rotateApiKey(d: {
-    apiKey: ApiKey & { machineAccess: MachineAccess };
+    apiKey: ApiKey & { machineAccess: MachineAccess & { instance: Instance | null } };
     auditScope: AuditScope;
     input: { currentExpiresAt?: Date };
+    verification?: SecretVerification;
   }) {
     await this.ensureApiKeyActive(d.apiKey);
+
+    if (d.verification) {
+      await Fabric.fire('machine_access.secret.requested:before', {
+        secretType: 'api_key',
+        instance: d.apiKey.machineAccess.instance,
+        verification: d.verification,
+        auditScope: d.auditScope
+      });
+    }
 
     let organization = await db.organization.findUniqueOrThrow({
       where: { oid: d.auditScope.organizationOid }
@@ -411,8 +432,9 @@ class ApiKeyService {
   }
 
   async revealApiKey(d: {
-    apiKey: ApiKey & { machineAccess: MachineAccess };
+    apiKey: ApiKey & { machineAccess: MachineAccess & { instance: Instance | null } };
     auditScope: AuditScope;
+    verification?: SecretVerification;
   }) {
     await this.ensureApiKeyActive(d.apiKey);
 
@@ -426,6 +448,15 @@ class ApiKeyService {
           message: 'Cannot reveal this api key anymore'
         })
       );
+    }
+
+    if (d.verification) {
+      await Fabric.fire('machine_access.secret.requested:before', {
+        secretType: 'api_key',
+        instance: d.apiKey.machineAccess.instance,
+        verification: d.verification,
+        auditScope: d.auditScope
+      });
     }
 
     let organization = await db.organization.findUniqueOrThrow({
