@@ -55,7 +55,7 @@
     "@metorial-subspace/module-session": "^1.0.0",
     "@metorial-subspace/module-tenant": "^1.0.0",
     "@metorial-subspace/provider-utils": "^1.0.0",
-    "@slates/adapter-chat": "1.0.0-rc.13",
+    "@slates/adapter-chat": "1.0.0-rc.14",
     "@metorial/module-documents": "^1.0.0",
     "@metorial/module-file": "^1.0.0",
     "@metorial/module-skill": "^1.0.0",
