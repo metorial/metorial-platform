@@ -239,12 +239,12 @@ let handleMcpRequestInner = async (c: Context, d: HandleMcpRequestInput) => {
       return streamSSE(c, async stream => {
         let listener = await connection.listener({ selectedChannels: 'all' });
         stream.onAbort(async () => await listener.close());
-        let stopKeepAlive = startSseKeepAlive(stream);
         let created = await connection.createConnection();
         let endpoint = new URL(proxyUrl);
         endpoint.searchParams.set('connection_token', created.token);
         applyConnectionHeaders(c, connection);
         await stream.writeSSE({ event: 'endpoint', data: endpoint.toString() });
+        let stopKeepAlive = startSseKeepAlive(stream);
 
         try {
           for await (let event of listener.iterator()) {

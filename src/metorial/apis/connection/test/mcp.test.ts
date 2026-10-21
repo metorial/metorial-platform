@@ -120,7 +120,7 @@ describe('handleMcpRequest', () => {
         expect(rawHeaders).toContain('HTTP/1.1 200');
         expect(rawHeaders).toContain('text/event-stream');
         expect(rawHeaders).not.toMatch(/content-length: 0/i);
-        expect(body).toContain('event: endpoint');
+        expect(body.startsWith('event: endpoint')).toBe(true);
         expect(body).toContain('connection_token=tok_1');
       } finally {
         server.stop(true);
