@@ -21,6 +21,7 @@ export let instanceScopes = [
 
   'instance.monitor:read' as const,
   'instance.monitor:write' as const,
+  'instance.monitor:manage' as const,
 
   'instance.provider_oauth.connection:read' as const,
   'instance.provider_oauth.connection:write' as const,
@@ -186,6 +187,7 @@ let coreScopesRaw = [
 
   'organization.project:read' as const,
   'organization.project:write' as const,
+  'organization.project:manage' as const,
 
   'organization.member:read' as const,
   'organization.member:write' as const,

@@ -88,7 +88,7 @@ export let dashboardKeyProviderController = Controller.create(
           description: 'Creates a Metorial-managed key provider for a project'
         }
       )
-      .use(checkAccess({ possibleScopes: ['organization.project:write'] }))
+      .use(checkAccess({ possibleScopes: ['organization.project:manage'] }))
       .body(
         'default',
         v.object({
@@ -104,7 +104,7 @@ export let dashboardKeyProviderController = Controller.create(
           organization: ctx.organization,
           member: ctx.member,
           project,
-          possibleScopes: ['organization.project:write']
+          possibleScopes: ['organization.project:manage']
         });
 
         let keyProvider = await keyProviderService.createManagedKeyProvider({
@@ -131,7 +131,7 @@ export let dashboardKeyProviderController = Controller.create(
           description: 'Imports a customer-managed key provider for a project'
         }
       )
-      .use(checkAccess({ possibleScopes: ['organization.project:write'] }))
+      .use(checkAccess({ possibleScopes: ['organization.project:manage'] }))
       .body(
         'default',
         v.object({
@@ -147,7 +147,7 @@ export let dashboardKeyProviderController = Controller.create(
           organization: ctx.organization,
           member: ctx.member,
           project,
-          possibleScopes: ['organization.project:write']
+          possibleScopes: ['organization.project:manage']
         });
 
         let keyProvider = await keyProviderService.importKeyProvider({
@@ -254,7 +254,7 @@ export let dashboardKeyProviderController = Controller.create(
           description: 'Validates that a key provider is reachable and configured correctly'
         }
       )
-      .use(checkAccess({ possibleScopes: ['organization.project:write'] }))
+      .use(checkAccess({ possibleScopes: ['organization.project:manage'] }))
       .output(keyProviderValidationPresenter)
       .do(async ctx => {
         let { project } = await resolveProject(ctx);
@@ -264,7 +264,7 @@ export let dashboardKeyProviderController = Controller.create(
           organization: ctx.organization,
           member: ctx.member,
           project,
-          possibleScopes: ['organization.project:write']
+          possibleScopes: ['organization.project:manage']
         });
 
         let validation = await keyProviderService.validateKeyProvider({
@@ -291,7 +291,7 @@ export let dashboardKeyProviderController = Controller.create(
           description: 'Sets the default key provider for a project'
         }
       )
-      .use(checkAccess({ possibleScopes: ['organization.project:write'] }))
+      .use(checkAccess({ possibleScopes: ['organization.project:manage'] }))
       .output(keyProviderPresenter)
       .do(async ctx => {
         let { project } = await resolveProject(ctx);
@@ -301,7 +301,7 @@ export let dashboardKeyProviderController = Controller.create(
           organization: ctx.organization,
           member: ctx.member,
           project,
-          possibleScopes: ['organization.project:write']
+          possibleScopes: ['organization.project:manage']
         });
 
         let keyProvider = await keyProviderService.setDefaultKeyProvider({

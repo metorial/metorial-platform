@@ -76,7 +76,7 @@ export let dashboardToolCallingConfigurationController = Controller.create(
           description: 'Update tool calling settings for a project'
         }
       )
-      .use(checkAccess({ possibleScopes: ['organization.project:write'] }))
+      .use(checkAccess({ possibleScopes: ['organization.project:manage'] }))
       .body(
         'default',
         v.object({
@@ -109,7 +109,7 @@ export let dashboardToolCallingConfigurationController = Controller.create(
           organization: ctx.organization,
           member: ctx.member,
           project,
-          possibleScopes: ['organization.project:write']
+          possibleScopes: ['organization.project:manage']
         });
 
         let configuration =
