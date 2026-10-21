@@ -1,8 +1,13 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
+import type { SlateInvocation } from '../../prisma/generated/client';
 import { db } from '../db';
 import { SlateInvocationStack } from '../lib/invocation/stack';
-import type { SlateInvocationBaseParams, SlatesRequest } from '../lib/invocation/types';
+import type {
+  InvocationResult,
+  SlateInvocationBaseParams,
+  SlatesRequest
+} from '../lib/invocation/types';
 
 let include = {
   deployment: {
@@ -16,6 +21,10 @@ let include = {
     }
   }
 };
+
+type AdminCallbackResult =
+  | { status: 'success'; invocation: SlateInvocation; data: { instructions?: string } }
+  | Extract<InvocationResult, { status: 'error' }>;
 
 class slateInvocationServiceImpl {
   async createInvocation(
@@ -178,6 +187,62 @@ class slateInvocationServiceImpl {
       clientSecret: d.clientSecret,
       scopes: d.scopes
     });
+  }
+
+  async getAdminOAuthCallback(d: {
+    stack: SlateInvocationStack;
+    authenticationMethodId: string;
+    code?: string;
+    state: string;
+    redirectUri: string;
+    input: Record<string, any>;
+    callbackParams: Record<string, string>;
+    callbackState: Record<string, any> | undefined;
+    clientId: string;
+    clientSecret: string;
+    scopes: string[];
+  }) {
+    return await this.invokeUntyped<AdminCallbackResult>(
+      d.stack,
+      'slates/auth.admin_callback.handle',
+      {
+        authenticationMethodId: d.authenticationMethodId,
+        code: d.code,
+        state: d.state,
+        redirectUri: d.redirectUri,
+        input: d.input,
+        callbackParams: d.callbackParams,
+        callbackState: d.callbackState,
+        clientId: d.clientId,
+        clientSecret: d.clientSecret,
+        scopes: d.scopes
+      }
+    );
+  }
+
+  async getAdminOAuthUrl(d: {
+    stack: SlateInvocationStack;
+    authenticationMethodId: string;
+    redirectUri: string;
+    state: string;
+    input: Record<string, any>;
+    clientId: string;
+    clientSecret: string;
+    scopes: string[];
+  }) {
+    return await this.invokeUntyped<InvocationResult<'slates/auth.authorization_url.get'>>(
+      d.stack,
+      'slates/auth.admin_authorization_url.get',
+      {
+        authenticationMethodId: d.authenticationMethodId,
+        redirectUri: d.redirectUri,
+        state: d.state,
+        input: d.input,
+        clientId: d.clientId,
+        clientSecret: d.clientSecret,
+        scopes: d.scopes
+      }
+    );
   }
 
   async getAuthProfile(d: {
@@ -396,6 +461,20 @@ class slateInvocationServiceImpl {
     });
     if (!slateInvocation) throw new ServiceError(notFoundError('slate.invocation'));
     return slateInvocation;
+  }
+
+  private async invokeUntyped<Result extends InvocationResult = InvocationResult>(
+    stack: SlateInvocationStack,
+    method: string,
+    params: Record<string, any>
+  ) {
+    // TODO: drop once @slates/proto ships admin RPCs
+    let invoke = stack.invoke.bind(stack) as (
+      method: string,
+      params: Record<string, any>
+    ) => Promise<InvocationResult>;
+
+    return (await invoke(method, params)) as Result;
   }
 }
 

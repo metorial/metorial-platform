@@ -3,6 +3,9 @@ import { providerOAuthSetupInternalService } from '@metorial-subspace/module-aut
 import { integrationSetupSessionService } from '@metorial-subspace/module-integration';
 import { integrationSetupSessionUrl } from '../internal/presenters';
 
+let setupSessionPath = (session: { id: string; clientSecret: string }) =>
+  `/setup-session/${session.id}?client_secret=${session.clientSecret}`;
+
 export let oauthSetupApp = createHono()
   .get('/:setupId', async c => {
     let setupId = c.req.param('setupId');
@@ -20,6 +23,11 @@ export let oauthSetupApp = createHono()
       setup.status === 'completed'
     ) {
       return c.text('OAuth setup is no longer valid', 400);
+    }
+
+    let session = setup.providerSetupSession;
+    if (setup.status === 'failed' && session?.typeConcrete === 'admin') {
+      return c.redirect(setupSessionPath(session));
     }
 
     return c.redirect(setup.backendUrl);
@@ -74,14 +82,20 @@ export let oauthSetupApp = createHono()
       return c.redirect(`/oauth-setup/${setupRes.id}?client_secret=${clientSecret}`);
     }
 
+    let setupSessionUrl = setupRes.session ? setupSessionPath(setupRes.session) : null;
+
+    if (
+      setupSessionUrl &&
+      setupRes.session?.typeConcrete === 'admin' &&
+      setupRes.adminInstructions
+    ) {
+      return c.redirect(setupSessionUrl);
+    }
+
     if (setupRes.redirectUrl || setupRes.session?.redirectUrl)
       return c.redirect(setupRes.redirectUrl ?? setupRes.session?.redirectUrl!);
 
-    if (setupRes.session) {
-      return c.redirect(
-        `/setup-session/${setupRes.session.id}?client_secret=${setupRes.session.clientSecret}`
-      );
-    }
+    if (setupSessionUrl) return c.redirect(setupSessionUrl);
 
     return c.text('OAuth setup completed successfully');
   });

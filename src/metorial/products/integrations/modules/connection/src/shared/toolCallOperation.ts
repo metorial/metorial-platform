@@ -57,6 +57,24 @@ export let getToolCallArguments = (input: PrismaJson.SessionMessageInput): unkno
   return isJsonObject(params) ? params.arguments : undefined;
 };
 
+export let withToolCallArguments = (
+  input: PrismaJson.SessionMessageInput,
+  args: unknown
+): PrismaJson.SessionMessageInput => {
+  if (input.type === 'tool.call') return { ...input, data: args };
+
+  let data = input.data as JsonObject;
+  if (!isJsonObject(data.params)) return input;
+
+  return {
+    ...input,
+    data: {
+      ...data,
+      params: { ...data.params, arguments: args }
+    } as unknown as typeof input.data
+  };
+};
+
 export let extractToolCallOperation = (d: {
   input: PrismaJson.SessionMessageInput;
   rationale?: string;

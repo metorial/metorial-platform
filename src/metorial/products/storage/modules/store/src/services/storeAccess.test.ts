@@ -202,6 +202,52 @@ describe('native consumer skill store access', () => {
     expect(result.accessibleStoreOids).toEqual([store.oid]);
   });
 
+  it('does not grant public-read access to skill stores without a skill grant', async () => {
+    db.store.findMany.mockResolvedValue([{ ...store, access: 'public_read' }]);
+    db.skill.findMany
+      .mockReset()
+      .mockResolvedValueOnce([{ storeOid: store.oid }])
+      .mockResolvedValueOnce([]);
+
+    let result = await storeAccessService.resolveAccessibleStoreOids({
+      ...scope,
+      authorization,
+      requiredPermission: storeReadPermission,
+      storeOids: [store.oid]
+    });
+
+    expect(result.accessibleStoreOids).toEqual([]);
+    expect(db.storeParticipant.update).not.toHaveBeenCalled();
+  });
+
+  it('grants public-read access to non-skill stores', async () => {
+    db.store.findMany.mockResolvedValue([{ ...store, access: 'public_read' }]);
+    db.storeParticipant.findMany.mockResolvedValue([
+      {
+        id: 'stp_1',
+        storeOid: store.oid,
+        resourceActorOid: actor.oid,
+        permissions: []
+      }
+    ]);
+    db.storeParticipant.update.mockImplementation(async ({ data }) => ({
+      id: 'stp_1',
+      storeOid: store.oid,
+      resourceActorOid: actor.oid,
+      permissions: data.permissions
+    }));
+    db.skill.findMany.mockReset().mockResolvedValue([]);
+
+    let result = await storeAccessService.resolveAccessibleStoreOids({
+      ...scope,
+      authorization,
+      requiredPermission: storeReadPermission,
+      storeOids: [store.oid]
+    });
+
+    expect(result.accessibleStoreOids).toEqual([store.oid]);
+  });
+
   it('allows privileged actors to write private stores', async () => {
     let result = await storeAccessService.assertStoreAccessForStore({
       ...scope,

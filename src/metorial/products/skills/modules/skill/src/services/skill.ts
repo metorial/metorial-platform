@@ -113,7 +113,7 @@ class SkillServiceImpl {
           where: {
             projectOid: d.project.oid,
             instanceOid: d.instance.oid,
-            id: d.skillId,
+            OR: [{ id: d.skillId }, { slug: d.skillId }],
             status: d.accessTags ? 'active' : d.allowDeleted ? undefined : 'active',
             AND: accessWhere ? [accessWhere] : undefined
           },

@@ -204,7 +204,11 @@ export class ProviderCapabilities extends IProviderCapabilities {
         scopes: am.scopes,
         adapters: am.adapters,
         type: am.type,
-        capabilities: {},
+        // TODO: drop once @slates/proto ships admin RPCs
+        capabilities: (am.capabilities as { adminSetup?: { enabled: boolean } } | undefined)
+          ?.adminSetup?.enabled
+          ? { adminSetup: { enabled: true } }
+          : {},
         metadata: {}
       })),
       tools: specRecord.tools

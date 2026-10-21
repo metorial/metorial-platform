@@ -40,6 +40,7 @@ export type MagicMcpEndpointsCreateOutput = {
   name: string | null;
   description: string | null;
   metadata: Record<string, any>;
+  enableSkillEditing: boolean;
   createdAt: Date;
   updatedAt: Date;
 } & {
@@ -65,6 +66,7 @@ export let mapMagicMcpEndpointsCreateOutput =
             1,
             [
               ['servers', 0, [2, [3, [[0, [1, ['tool_filters']]]]]]],
+              'enable_skill_editing',
               'created_at',
               'updated_at',
               [
@@ -98,6 +100,7 @@ export type MagicMcpEndpointsCreateBody = {
   metadata?: Record<string, any> | undefined;
   consumerProfileId?: string | undefined;
   skillPluginId?: string | undefined;
+  enableSkillEditing?: boolean | undefined;
   magicMcpServers?:
     | {
         magicMcpServerId: string;
@@ -130,5 +133,6 @@ export let mapMagicMcpEndpointsCreateBody =
   /* @__PURE__ */ mapObject<MagicMcpEndpointsCreateBody>([
     'consumer_profile_id',
     'skill_plugin_id',
+    'enable_skill_editing',
     ['magic_mcp_servers', 1, [2, [1, ['magic_mcp_server_id', 'tool_filters']]]]
   ]);

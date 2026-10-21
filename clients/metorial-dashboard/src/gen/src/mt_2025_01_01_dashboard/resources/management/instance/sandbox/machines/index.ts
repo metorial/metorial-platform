@@ -3,6 +3,7 @@ export * from './create';
 export * from './delete';
 export * from './errors';
 export * from './events';
+export * from './exec';
 export * from './get';
 export * from './hibernate';
 export * from './instances';

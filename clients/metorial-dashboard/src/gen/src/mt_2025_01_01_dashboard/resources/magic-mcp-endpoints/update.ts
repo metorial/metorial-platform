@@ -1,7 +1,4 @@
-import {
-  createMapper,
-  mapObject
-} from '@metorial/util-resource-mapper/compact';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type MagicMcpEndpointsUpdateOutput = {
   object: 'magic_mcp.endpoint';
@@ -40,6 +37,7 @@ export type MagicMcpEndpointsUpdateOutput = {
   name: string | null;
   description: string | null;
   metadata: Record<string, any>;
+  enableSkillEditing: boolean;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -48,6 +46,7 @@ export let mapMagicMcpEndpointsUpdateOutput =
   /* @__PURE__ */ mapObject<MagicMcpEndpointsUpdateOutput>(
     [
       ['servers', 0, [2, [3, [[0, [1, ['tool_filters']]]]]]],
+      'enable_skill_editing',
       'created_at',
       'updated_at'
     ],
@@ -58,7 +57,10 @@ export type MagicMcpEndpointsUpdateBody = {
   name?: string | undefined;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
+  enableSkillEditing?: boolean | undefined;
 };
 
 export let mapMagicMcpEndpointsUpdateBody =
-  /* @__PURE__ */ createMapper<MagicMcpEndpointsUpdateBody>(0);
+  /* @__PURE__ */ mapObject<MagicMcpEndpointsUpdateBody>([
+    'enable_skill_editing'
+  ]);
