@@ -118,36 +118,13 @@ let getRequestDefaultModelId = (requestInput: unknown) => {
 };
 
 class ProductAssistantRequestServiceImpl {
-  private async ensureScope(d: {
+  private ensureScope(d: {
     project: Project;
     instance: Instance;
     actor: ResourceActor;
     conversation: ProductAssistantConversation;
-    allowAllActors?: boolean;
-    client?: typeof db | Prisma.TransactionClient;
   }) {
-    let hasAccess = await productAssistantConversationParticipantService.hasConversationAccess(
-      {
-        project: d.project,
-        instance: d.instance,
-        conversation: d.conversation,
-        actor: d.actor,
-        client: d.client
-      }
-    );
-
-    if (hasAccess) return;
-
-    if (d.allowAllActors) {
-      await productAssistantConversationParticipantService.ensureConversationParticipant({
-        conversation: d.conversation,
-        actor: d.actor,
-        client: d.client
-      });
-      return;
-    }
-
-    throw new ServiceError(notFoundError('assistant_conversation', d.conversation.id));
+    productAssistantConversationParticipantService.assertConversationAccess(d);
   }
 
   private async resolveParentMessage(d: {
@@ -288,7 +265,6 @@ class ProductAssistantRequestServiceImpl {
       message: InputMessage;
       parentMessageId?: string;
       modelId?: string;
-      allowAllActors?: boolean;
       context?: unknown;
     };
   }) {
@@ -339,13 +315,11 @@ class ProductAssistantRequestServiceImpl {
 
     let shouldGenerateTitle = !d.conversation.title?.trim();
     let result = await withTransaction(async tx => {
-      await this.ensureScope({
+      this.ensureScope({
         project: d.project,
         instance: d.instance,
         actor: d.actor,
-        conversation: d.conversation,
-        allowAllActors: d.input.allowAllActors,
-        client: tx
+        conversation: d.conversation
       });
 
       let userMessage = await tx.productAssistantMessage.create({
@@ -463,7 +437,7 @@ class ProductAssistantRequestServiceImpl {
     });
     if (!item) throw new ServiceError(notFoundError('assistant_message', d.input.messageId));
 
-    await this.ensureScope({
+    this.ensureScope({
       project: d.project,
       instance: d.instance,
       actor: d.actor,
@@ -582,7 +556,7 @@ class ProductAssistantRequestServiceImpl {
       messageId: string;
     };
   }) {
-    await this.ensureScope({
+    this.ensureScope({
       project: d.project,
       instance: d.instance,
       actor: d.actor,

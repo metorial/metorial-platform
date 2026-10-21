@@ -98,18 +98,14 @@ class ProductAssistantConversationServiceImpl {
     )[0]!;
   }
 
-  private ensureScope(d: {
-    project: Project;
-    instance: Instance;
-    actor?: ResourceActor | null;
-  }) {
+  private ensureScope(d: { project: Project; instance: Instance; actor: ResourceActor }) {
     productAssistantConversationParticipantService.assertProjectInstanceScope(d);
   }
 
   private conversationWhere(d: {
     project: Project;
     instance: Instance;
-    actor?: ResourceActor | null;
+    actor: ResourceActor;
     conversationId?: string;
     assistantId?: string;
     assistantIds?: string[];
@@ -118,7 +114,7 @@ class ProductAssistantConversationServiceImpl {
       projectOid: d.project.oid,
       instanceOid: d.instance.oid,
       id: d.conversationId,
-      ...productAssistantConversationParticipantService.participantAccessWhere({
+      ...productAssistantConversationParticipantService.ownerAccessWhere({
         actor: d.actor
       }),
       assistant:
@@ -148,7 +144,7 @@ class ProductAssistantConversationServiceImpl {
   async getAssistantConversationById(d: {
     project: Project;
     instance: Instance;
-    actor?: ResourceActor | null;
+    actor: ResourceActor;
     conversationId: string;
   }) {
     this.ensureScope(d);
@@ -170,7 +166,7 @@ class ProductAssistantConversationServiceImpl {
   async listAssistantConversations(d: {
     project: Project;
     instance: Instance;
-    actor?: ResourceActor | null;
+    actor: ResourceActor;
     assistantIds?: string[];
   }) {
     this.ensureScope(d);
@@ -299,14 +295,14 @@ class ProductAssistantConversationServiceImpl {
   async updateAssistantConversation(d: {
     project: Project;
     instance: Instance;
-    actor?: ResourceActor | null;
+    actor: ResourceActor;
     conversation: ProductAssistantConversation;
     input: {
       title?: string | null;
     };
   }) {
     this.ensureScope(d);
-    await productAssistantConversationParticipantService.assertConversationAccess({
+    productAssistantConversationParticipantService.assertConversationAccess({
       project: d.project,
       instance: d.instance,
       conversation: d.conversation,

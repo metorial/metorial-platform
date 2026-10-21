@@ -16,9 +16,20 @@ type AssistantAccessContext = {
   project: Project;
   instance: Instance;
   resourceActor?: ResourceActor;
+  consumerProfileFromHeader?: boolean;
 };
 
 let requireAssistantActor = (ctx: AssistantAccessContext) => {
+  if (ctx.consumerProfileFromHeader) {
+    throw new ServiceError(
+      forbiddenError({
+        message: 'Assistant conversations can only be accessed by their owner',
+        description:
+          'The metorial-consumer-profile-id header is not supported for assistant endpoints. Authenticate as the consumer instead.'
+      })
+    );
+  }
+
   if (!ctx.resourceActor) {
     throw new ServiceError(
       forbiddenError({
