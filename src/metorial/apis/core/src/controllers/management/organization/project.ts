@@ -129,6 +129,13 @@ export let projectManagementController = Controller.create(
       )
       .output(projectPresenter)
       .do(async ctx => {
+        await accessService.checkTargetAccess({
+          authInfo: ctx.auth,
+          organization: ctx.organization,
+          member: ctx.member,
+          possibleScopes: ['organization.project:write']
+        });
+
         let project = await projectService.createProject({
           input: {
             name: ctx.body.name,
@@ -248,6 +255,14 @@ export let projectManagementController = Controller.create(
           projectId: ctx.params.projectId,
           member: ctx.member,
           actor: ctx.actor
+        });
+
+        await accessService.checkTargetAccess({
+          authInfo: ctx.auth,
+          organization: ctx.organization,
+          member: ctx.member,
+          project,
+          possibleScopes: ['organization.project:write']
         });
 
         let projectBrand = await projectBrandService.upsertProjectBrand({
