@@ -9,6 +9,7 @@
     "oss:server:start": "bun ./dist/index.js",
     "dev": "bun \"$(ROOT=$(git rev-parse --show-toplevel); if [ -f \"$ROOT/scripts/dev-tools/src/cli.ts\" ]; then echo \"$ROOT/scripts/dev-tools/src/cli.ts\"; else echo \"$ROOT/oss/scripts/dev-tools/src/cli.ts\"; fi)\" watch-bun ./src/server.ts",
     "dev:start": "bun --watch ./src/server.ts",
+    "e2e:start": "bun ./src/server.ts",
     "control:db:generate": "true",
     "control:db:push": "true"
   },

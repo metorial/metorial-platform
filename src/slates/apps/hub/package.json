@@ -30,6 +30,7 @@
     "admin:build": "vite build --config admin/vite.config.ts",
     "admin:dev": "vite --config admin/vite.config.ts",
     "dev:start": "bun --watch ./src/server.ts",
+    "e2e:start": "bun ./src/server.ts",
     "control:db:generate": "bun run prisma:generate",
     "control:db:push": "bun run prisma:push",
     "test:e2e": "bunx vitest run --config vitest.e2e.config.ts --configLoader runner"

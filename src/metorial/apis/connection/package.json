@@ -31,5 +31,11 @@
     "@modelcontextprotocol/sdk": "^1.32.1",
     "hono": "^4.13.13",
     "zod": "^4.6.7"
+  },
+  "scripts": {
+    "test:e2e": "metorial-e2e"
+  },
+  "devDependencies": {
+    "@metorial/e2e": "1.0.0"
   }
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@metorial/module-event-tracker', () => ({
+vi.mock('@metorial/module-event-tracker/src/lib/resolvePayload', () => ({
   resolveSystemEventPayload: vi.fn()
 }));
 

@@ -1,5 +1,5 @@
 import { v } from '@lowerdeck/validation';
-import { resolveSystemEventPayload } from '@metorial/module-event-tracker';
+import { resolveSystemEventPayload } from '@metorial/module-event-tracker/src/lib/resolvePayload';
 import { Presenter } from '@metorial/presenter';
 import { systemEventType } from '../../types';
 

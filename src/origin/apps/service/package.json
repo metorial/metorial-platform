@@ -14,6 +14,7 @@
     "prisma:push": "bun prisma db push --accept-data-loss",
     "prisma:generate": "bun prisma generate",
     "dev:start": "bun --watch ./src/server.ts",
+    "e2e:start": "bun ./src/server.ts",
     "control:db:generate": "bun run prisma:generate",
     "control:db:push": "bun run prisma:push"
   },

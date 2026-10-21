@@ -32,6 +32,7 @@ target/release/control prepare --no-docker
 target/release/control env
 target/release/control run test
 target/release/control test:unit @lowerdeck/hash
+target/release/control test:e2e @metorial/module-user
 target/release/control cleanup --dry-run
 target/release/control docker stop
 target/release/control workspace create feature/my-change
@@ -175,6 +176,86 @@ The `test` package script is the unit-test contract and must not invoke E2E
 tests. E2E suites belong in `test:e2e` and are not run by `control test:unit`.
 This command does not refresh environments, install dependencies, generate
 clients, build packages, start Docker, or prepare databases.
+
+## E2E tests
+
+```sh
+control test:e2e                                   # every stack and test package
+control test:e2e @metorial/module-user '@metorial/api-*'
+control test:e2e @metorial/app-api --keep          # one stack, leave containers up
+control test:e2e --plan                            # print the resolved plan as JSON
+control test:e2e --images DIR --workspace PATH     # CI: run tested images
+```
+
+A package that declares `[e2e] tests` is a **stack** (system under test, SUT).
+Its test packages are the workspace packages matched by `tests` (relative to
+the manifest); each must declare a `test:e2e` script. Filters match stack or
+test package names (`*` wildcards); selecting a stack selects all its tests.
+
+```toml
+[endpoints.api]
+port = 4310
+health = "/ping"            # or { path = "/ping", status = 200 }
+env = [{ key = "API_PORT", value = "{{BIND_PORT}}" }]
+
+# For processes without a named HTTP endpoint.
+[[health]]
+port = 12131
+path = "/"
+
+[e2e]
+# Every service that e2e can start (SUT or dependency):
+start = ["e2e:start"]       # package.json scripts started from source (no watch)
+image = "app-api"           # tested image artifact name for --images
+
+# Stack-only keys:
+tests = ["../../products/*/modules/*", "../../apis/*"]
+services = ["@metorial/shuttle"]   # started in addition to [[dependencies]]
+health_timeout = 300
+
+[[e2e.resources]]
+type = "object-storage"     # reachable as http://services:52010
+
+[e2e.env]                   # e2e-only overrides, e.g. dummies for `true` secrets
+AWS_ACCESS_KEY_ID = "e2e"
+```
+
+Every dependency and SUT must declare at least one health check and, depending
+on the mode, `e2e.start` or `e2e.image`; the plan fails otherwise. All services
+share one network namespace with a gateway that forwards the standard
+`localhost` infrastructure ports, so `control.toml` URLs work unchanged and
+endpoint ports must be unique across a run.
+
+A run creates a Compose project under `.control/e2e/<run>/` with tmpfs
+Postgres, MongoDB, Redis, NATS (and object storage when requested), then:
+
+1. creates every declared database;
+2. starts all dependencies at once and waits until every health check passes;
+3. starts all SUTs and waits for their health checks;
+4. runs `turbo run test:e2e` for each stack's selected test packages with the
+   stack's environment plus `CONTROL_E2E=1` and `CONTROL_E2E_ENDPOINTS`
+   (package → endpoint name → URL).
+
+`test:e2e` results are cached per test package. Besides the package's own
+inputs and dependencies, the Turbo hash includes `CONTROL_E2E_STACK_KEY`: a
+digest of the stack's environment and of every service it runs against, each
+fingerprinted by the `e2e:fingerprint` Turbo task (the service package and its
+dependency closure, excluding `e2e/` folders and unit tests). Editing one
+module's e2e suite therefore reruns only that suite, while any change to code
+the services run reruns the whole stack. Failed suites are never cached. A
+package that defines `test:e2e` outside a control stack opts out with a
+package `turbo.json` setting `"cache": false`. When `TURBO_API` points at a
+local remote-cache proxy, the runner reaches it through `host.docker.internal`
+and receives `TURBO_TEAM`, `TURBO_TOKEN` and
+`TURBO_REMOTE_CACHE_SIGNATURE_KEY` from the calling environment.
+
+Locally, the runner container syncs the checkout into a persistent
+`control-e2e-<hash>` volume (excluding `node_modules`, `.env*`, build output),
+installs dependencies when the lockfile changed, generates clients, pushes
+schemas, builds, and starts services from source. With `--images`, services run
+from the digest-pinned images in `DIR/<image>.json` and the runner uses the
+prepared `--workspace` as is. Logs are written to `.control/e2e/<run>/logs`;
+containers and volumes are removed unless `--keep` is passed.
 
 `control workspace create BRANCH` creates a sibling host-runtime worktree and
 stores that runtime in `.control/workspace.json`. Enterprise mode creates the

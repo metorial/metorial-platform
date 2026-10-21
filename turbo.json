@@ -274,10 +274,23 @@
       ],
       "outputs": []
     },
+    "e2e:fingerprint": {
+      "dependsOn": ["^e2e:fingerprint"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!e2e/**",
+        "!**/*.test.ts",
+        "!**/*.test.tsx",
+        "!README*",
+        "$TURBO_ROOT$/tsconfig*.json"
+      ],
+      "outputs": []
+    },
     "test:e2e": {
-      "cache": false,
       "dependsOn": ["^build", "prisma:generate", "^prisma:generate"],
-      "passThroughEnv": ["*"]
+      "env": ["CONTROL_E2E_STACK_KEY"],
+      "passThroughEnv": ["*"],
+      "outputs": []
     },
     "test:integration": {
       "cache": false,

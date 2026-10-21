@@ -8,10 +8,14 @@ let redis = new RedisClient(process.env.REDIS_URL?.replace('rediss://', 'redis:/
   tls: process.env.REDIS_URL?.startsWith('rediss://')
 });
 
-if (
-  process.env.NODE_ENV === 'production' &&
-  process.env.SUBSPACE_MANAGED_HEALTH_CHECKS !== 'true'
-) {
+let healthPort = process.env.HEALTH_PORT
+  ? Number(process.env.HEALTH_PORT)
+  : process.env.NODE_ENV === 'production' &&
+      process.env.SUBSPACE_MANAGED_HEALTH_CHECKS !== 'true'
+    ? 12121
+    : undefined;
+
+if (healthPort) {
   let startTime = Date.now();
   let hour = 60 * 60 * 1000;
   let maxUptime = hour * 10 + Math.random() * hour * 10; // 10-16 hours
@@ -43,6 +47,6 @@ if (
           return new Response('Service Unavailable', { status: 503 });
         }
       }),
-    port: 12121
+    port: healthPort
   });
 }

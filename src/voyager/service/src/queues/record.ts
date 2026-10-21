@@ -32,5 +32,5 @@ export let deleteRecordQueueProcessor = deleteRecordQueue.process(async data => 
   });
   if (!record) throw new QueueRetryError();
 
-  await defaultBackend.deleteRecordsById(record.index, [record.id]);
+  await defaultBackend.deleteRecordsByDocumentId(record.index, [record.documentId]);
 });

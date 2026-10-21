@@ -46,6 +46,10 @@ pub struct Manifest {
     pub docker: Docker,
     #[serde(default)]
     pub cleanup: Cleanup,
+    #[serde(default)]
+    pub health: Vec<PortHealth>,
+    #[serde(default)]
+    pub e2e: E2e,
     #[serde(skip)]
     pub dependency_endpoints: BTreeMap<String, BTreeMap<String, ResolvedEndpoint>>,
     #[serde(skip)]
@@ -110,6 +114,118 @@ pub struct Endpoint {
     pub bind_port: Option<u16>,
     #[serde(default)]
     pub env: Vec<EndpointEnv>,
+    #[serde(default)]
+    pub health: Option<HealthCheck>,
+}
+
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[serde(untagged)]
+pub enum HealthCheck {
+    Path(String),
+    Detailed(HealthSpec),
+}
+
+impl HealthCheck {
+    pub fn path(&self) -> &str {
+        match self {
+            Self::Path(path) => path,
+            Self::Detailed(spec) => &spec.path,
+        }
+    }
+
+    pub fn status(&self) -> Option<u16> {
+        match self {
+            Self::Path(_) => None,
+            Self::Detailed(spec) => spec.status,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct HealthSpec {
+    pub path: String,
+    #[serde(default)]
+    pub status: Option<u16>,
+}
+
+/// Health check for a listener that is not a public endpoint (e.g. a worker health server).
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct PortHealth {
+    pub port: u16,
+    pub path: String,
+    #[serde(default)]
+    pub status: Option<u16>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ResolvedHealthCheck {
+    pub port: u16,
+    pub path: String,
+    pub status: Option<u16>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct E2e {
+    /// Package scripts that start this service inside the e2e runner.
+    #[serde(default)]
+    pub start: Vec<String>,
+    /// CI image artifact name used by `control test:e2e --images`.
+    #[serde(default)]
+    pub image: Option<String>,
+    /// Package directory globs (relative to this manifest) whose `test:e2e` scripts run against
+    /// this service. A manifest with tests is a system under test.
+    #[serde(default)]
+    pub tests: Vec<String>,
+    /// Extra packages started alongside the system under test that are not start dependencies.
+    #[serde(default)]
+    pub services: Vec<String>,
+    #[serde(default)]
+    pub health_timeout: Option<u64>,
+    #[serde(default)]
+    pub env: BTreeMap<String, EnvValue>,
+    #[serde(default)]
+    pub resources: Vec<E2eResource>,
+}
+
+impl E2e {
+    pub fn is_stack(&self) -> bool {
+        !self.tests.is_empty()
+    }
+}
+
+impl Manifest {
+    /// Endpoint health checks (using the runtime bind port) followed by `[[health]]` checks.
+    pub fn health_checks(&self) -> Vec<ResolvedHealthCheck> {
+        let endpoints = self.endpoints.values().filter_map(|endpoint| {
+            endpoint.health.as_ref().map(|health| ResolvedHealthCheck {
+                port: endpoint.bind_port.unwrap_or(endpoint.port),
+                path: health.path().into(),
+                status: health.status(),
+            })
+        });
+        let listeners = self.health.iter().map(|check| ResolvedHealthCheck {
+            port: check.port,
+            path: check.path.clone(),
+            status: check.status,
+        });
+        endpoints.chain(listeners).collect()
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct E2eResource {
+    #[serde(rename = "type")]
+    pub resource_type: E2eResourceType,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(rename_all = "kebab-case")]
+pub enum E2eResourceType {
+    ObjectStorage,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -349,16 +465,19 @@ fn default_postgres() -> String {
     "postgres".into()
 }
 
+/// Directories never scanned for manifests or packages. A root-level `out/` is the default
+/// `turbo prune` output, which contains a full copy of the workspace's packages.
+pub fn is_ignored_entry(entry: &walkdir::DirEntry) -> bool {
+    let name = entry.file_name().to_str();
+    matches!(name, Some(".git" | "node_modules" | ".control" | "target"))
+        || (entry.depth() == 1 && entry.file_type().is_dir() && name == Some("out"))
+}
+
 pub fn discover(root: &Path) -> Result<Vec<LoadedManifest>> {
     let mut paths = walkdir::WalkDir::new(root)
         .follow_links(false)
         .into_iter()
-        .filter_entry(|e| {
-            !matches!(
-                e.file_name().to_str(),
-                Some(".git" | "node_modules" | ".control" | "target")
-            )
-        })
+        .filter_entry(|entry| !is_ignored_entry(entry))
         .filter_map(std::result::Result::ok)
         .filter(|e| e.file_type().is_file() && e.file_name() == "control.toml")
         .map(|e| e.into_path())
@@ -393,12 +512,7 @@ fn validate_database_packages(root: &Path, manifests: &[LoadedManifest]) -> Resu
     for entry in walkdir::WalkDir::new(root)
         .follow_links(false)
         .into_iter()
-        .filter_entry(|entry| {
-            !matches!(
-                entry.file_name().to_str(),
-                Some(".git" | "node_modules" | ".control" | "target")
-            )
-        })
+        .filter_entry(|entry| !is_ignored_entry(entry))
         .filter_map(std::result::Result::ok)
         .filter(|entry| entry.file_type().is_file() && entry.file_name() == "package.json")
     {
@@ -508,6 +622,36 @@ fn validate_package_graph(manifests: &[LoadedManifest]) -> Result<()> {
                 }
             }
         }
+        for service in &loaded.manifest.e2e.services {
+            if service == &package.name {
+                bail!(
+                    "{}: package {:?} cannot reference itself as an e2e service",
+                    loaded.path.display(),
+                    package.name
+                );
+            }
+            let Some(target_manifest) = packages.get(service.as_str()) else {
+                bail!(
+                    "{}: package {:?} references unknown e2e service {:?}",
+                    loaded.path.display(),
+                    package.name,
+                    service
+                );
+            };
+            for kind in [RootKind::Standalone, RootKind::Enterprise] {
+                if loaded.manifest.mode.applies_to(&kind)
+                    && !target_manifest.manifest.mode.applies_to(&kind)
+                {
+                    bail!(
+                        "{}: package {:?} references e2e service {:?} with incompatible mode {:?}",
+                        loaded.path.display(),
+                        package.name,
+                        service,
+                        target_manifest.manifest.mode
+                    );
+                }
+            }
+        }
     }
 
     let mut visiting = BTreeSet::new();
@@ -561,7 +705,6 @@ fn validate_dependency_cycles<'a>(
 ///
 /// This is intentionally independent of the E2E runner so other commands can
 /// reuse the same validated package graph.
-#[cfg_attr(not(test), allow(dead_code))]
 pub fn dependency_closure<'a>(
     manifests: &'a [LoadedManifest],
     roots: &[&'a LoadedManifest],
@@ -823,6 +966,7 @@ fn normalize(manifest: &mut Manifest, path: &Path) -> Result<()> {
                     port: exposure.port,
                     bind_port: None,
                     env: Vec::new(),
+                    health: None,
                 },
             );
         }
@@ -842,7 +986,11 @@ fn validate(manifest: &Manifest, path: &Path) -> Result<()> {
                 path.display()
             );
         }
-        validate_package_scripts(&package_json, manifest.package_script_references.iter(), path)?;
+        validate_package_scripts(
+            &package_json,
+            manifest.package_script_references.iter(),
+            path,
+        )?;
     } else if !manifest.endpoints.is_empty() {
         bail!("{}: endpoints require a named package", path.display());
     }
@@ -981,6 +1129,129 @@ fn validate(manifest: &Manifest, path: &Path) -> Result<()> {
                 );
             }
         }
+    }
+    validate_health(manifest, path)?;
+    validate_e2e(manifest, path)?;
+    Ok(())
+}
+
+fn validate_health(manifest: &Manifest, path: &Path) -> Result<()> {
+    for (name, endpoint) in &manifest.endpoints {
+        if let Some(health) = &endpoint.health {
+            validate_health_check(
+                &format!("endpoint {name:?}"),
+                health.path(),
+                health.status(),
+                path,
+            )?;
+        }
+    }
+    let mut ports = BTreeSet::new();
+    for check in &manifest.health {
+        if check.port == 0 {
+            bail!("{}: health check port cannot be zero", path.display());
+        }
+        if !ports.insert(check.port) {
+            bail!(
+                "{}: duplicate health check port {}",
+                path.display(),
+                check.port
+            );
+        }
+        validate_health_check(
+            &format!("health check on port {}", check.port),
+            &check.path,
+            check.status,
+            path,
+        )?;
+    }
+    if manifest.package.is_none() && !manifest.health.is_empty() {
+        bail!("{}: health checks require a named package", path.display());
+    }
+    Ok(())
+}
+
+fn validate_health_check(kind: &str, value: &str, status: Option<u16>, path: &Path) -> Result<()> {
+    if !value.starts_with('/') || value.chars().any(char::is_whitespace) {
+        bail!(
+            "{}: {kind} health path {value:?} must start with '/' and contain no whitespace",
+            path.display()
+        );
+    }
+    if let Some(status) = status
+        && !(100..=599).contains(&status)
+    {
+        bail!(
+            "{}: {kind} health status {status} is invalid",
+            path.display()
+        );
+    }
+    Ok(())
+}
+
+fn validate_e2e(manifest: &Manifest, path: &Path) -> Result<()> {
+    let e2e = &manifest.e2e;
+    let declared = !e2e.start.is_empty()
+        || e2e.image.is_some()
+        || e2e.is_stack()
+        || !e2e.services.is_empty()
+        || e2e.health_timeout.is_some()
+        || !e2e.env.is_empty()
+        || !e2e.resources.is_empty();
+    if !declared {
+        return Ok(());
+    }
+    if manifest.package.is_none() {
+        bail!("{}: [e2e] requires a named package", path.display());
+    }
+    let package_json = path.parent().unwrap_or(Path::new(".")).join("package.json");
+    validate_package_scripts(&package_json, e2e.start.iter(), path)?;
+    if let Some(image) = &e2e.image
+        && (image.is_empty()
+            || !image
+                .chars()
+                .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-'))
+    {
+        bail!("{}: invalid e2e image name {image:?}", path.display());
+    }
+    if !e2e.is_stack()
+        && (!e2e.services.is_empty() || e2e.health_timeout.is_some() || !e2e.resources.is_empty())
+    {
+        bail!(
+            "{}: e2e services, health_timeout and resources require e2e tests",
+            path.display()
+        );
+    }
+    for pattern in &e2e.tests {
+        if pattern.trim().is_empty() || Path::new(pattern).is_absolute() {
+            bail!(
+                "{}: e2e test glob {pattern:?} must be a relative package directory",
+                path.display()
+            );
+        }
+    }
+    let mut services = BTreeSet::new();
+    for service in &e2e.services {
+        validate_identifier("e2e service", service, path)?;
+        if !services.insert(service) {
+            bail!("{}: duplicate e2e service {service:?}", path.display());
+        }
+    }
+    if e2e.health_timeout == Some(0) {
+        bail!("{}: e2e health_timeout cannot be zero", path.display());
+    }
+    let mut resources = BTreeSet::new();
+    for resource in &e2e.resources {
+        if !resources.insert(resource.resource_type) {
+            bail!(
+                "{}: duplicate e2e {:?} resource declaration",
+                path.display(),
+                resource.resource_type
+            );
+        }
+    }
+    for (key, value) in &e2e.env {
+        validate_env(key, value, path)?;
     }
     Ok(())
 }
@@ -1505,6 +1776,139 @@ mod tests {
         )
         .unwrap();
         assert!(discover(temp.path()).is_err());
+    }
+
+    #[test]
+    fn parses_health_checks_and_e2e_configuration() {
+        let temp = tempdir().unwrap();
+        write_package(
+            temp.path(),
+            "api",
+            r#"
+                name = "api"
+                [endpoints.api]
+                port = 4310
+                health = "/ping"
+                [endpoints.mcp]
+                port = 4311
+                health = { path = "/ready", status = 204 }
+                [[health]]
+                port = 12121
+                path = "/"
+                [e2e]
+                start = ["test:start-e2e"]
+                image = "app-api"
+                tests = ["../modules/*"]
+                health_timeout = 120
+                [[e2e.resources]]
+                type = "object-storage"
+                [e2e.env]
+                AWS_ACCESS_KEY_ID = "e2e"
+            "#,
+        );
+        let loaded = load(&temp.path().join("api/control.toml")).unwrap();
+        let e2e = &loaded.manifest.e2e;
+        assert!(e2e.is_stack());
+        assert_eq!(e2e.image.as_deref(), Some("app-api"));
+        assert_eq!(
+            e2e.resources[0].resource_type,
+            E2eResourceType::ObjectStorage
+        );
+        assert_eq!(
+            loaded.manifest.health_checks(),
+            vec![
+                ResolvedHealthCheck {
+                    port: 4310,
+                    path: "/ping".into(),
+                    status: None
+                },
+                ResolvedHealthCheck {
+                    port: 4311,
+                    path: "/ready".into(),
+                    status: Some(204)
+                },
+                ResolvedHealthCheck {
+                    port: 12121,
+                    path: "/".into(),
+                    status: None
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_health_and_e2e_configuration() {
+        let temp = tempdir().unwrap();
+        let cases = [
+            (
+                "name='api'\n[endpoints.api]\nport=4310\nhealth='ping'",
+                "must start with '/'",
+            ),
+            (
+                "name='api'\n[[health]]\nport=0\npath='/'",
+                "port cannot be zero",
+            ),
+            (
+                "name='api'\n[endpoints.api]\nport=4310\nhealth={path='/ping',status=42}",
+                "status 42 is invalid",
+            ),
+            (
+                "name='api'\n[e2e]\nstart=['missing']",
+                "required script \"missing\"",
+            ),
+            (
+                "name='api'\n[e2e]\nimage='App_Api'",
+                "invalid e2e image name",
+            ),
+            (
+                "name='api'\n[e2e]\nservices=['worker']",
+                "require e2e tests",
+            ),
+            (
+                "name='api'\n[e2e]\ntests=['../*']\nhealth_timeout=0",
+                "cannot be zero",
+            ),
+            (
+                "name='api'\n[e2e]\ntests=['/abs']",
+                "relative package directory",
+            ),
+            ("[e2e]\nstart=['dev:start']", "requires a named package"),
+        ];
+        for (index, (manifest, expected)) in cases.into_iter().enumerate() {
+            let directory = format!("case-{index}");
+            write_package(temp.path(), &directory, manifest);
+            let error = load(&temp.path().join(directory).join("control.toml")).unwrap_err();
+            assert_diagnostic_contains(&error, expected);
+        }
+    }
+
+    #[test]
+    fn discovery_skips_root_turbo_prune_output() {
+        let temp = tempdir().unwrap();
+        write_package(temp.path(), "api", "name='api'");
+        write_package(temp.path(), "out/full/api", "name='api'");
+        write_package(temp.path(), "nested/out", "name='nested-out'");
+        let manifests = discover(temp.path()).unwrap();
+        assert_eq!(manifests.len(), 2);
+    }
+
+    #[test]
+    fn validates_e2e_service_references() {
+        let temp = tempdir().unwrap();
+        write_package(
+            temp.path(),
+            "api",
+            "name='api'\n[e2e]\ntests=['../*']\nservices=['worker']",
+        );
+        let error = discover(temp.path()).unwrap_err();
+        assert_diagnostic_contains(&error, "unknown e2e service \"worker\"");
+
+        write_package(temp.path(), "worker", "name='worker'\nmode='enterprise'");
+        let error = discover(temp.path()).unwrap_err();
+        assert_diagnostic_contains(&error, "incompatible mode");
+
+        write_package(temp.path(), "worker", "name='worker'");
+        assert!(discover(temp.path()).is_ok());
     }
 
     fn write_package(root: &Path, directory: &str, manifest: &str) {

@@ -18,6 +18,7 @@ run = ["dev:start"]
 
 [endpoints.api]
 port = 52080
+health = "/ping"
 env = [{ key = "SHUTTLE_API_PORT", value = "{{BIND_PORT}}" }]
 
 [endpoints.public]
@@ -26,6 +27,10 @@ env = [
   { key = "SHUTTLE_PUBLIC_PORT", value = "{{BIND_PORT}}" },
   { key = "PROVIDER_OAUTH_URL", value = "http://localhost:{{BIND_PORT}}" },
 ]
+
+[e2e]
+start = ["e2e:start"]
+image = "shuttle"
 
 [[resources]]
 type = "redis"

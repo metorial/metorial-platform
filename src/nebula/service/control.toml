@@ -6,7 +6,12 @@ run = ["dev:start"]
 
 [endpoints.api]
 port = 52170
+health = "/ping"
 env = [{ key = "NEBULA_API_PORT", value = "{{BIND_PORT}}" }]
+
+[e2e]
+start = ["e2e:start"]
+image = "nebula"
 
 [[resources]]
 type = "redis"

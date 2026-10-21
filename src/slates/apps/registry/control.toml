@@ -7,6 +7,7 @@ run = ["dev:start"]
 
 [endpoints.public]
 port = 52040
+health = "/ping"
 env = [
   { key = "SLATES_REGISTRY_PUBLIC_PORT", value = "{{BIND_PORT}}" },
   { key = "SERVICE_PUBLIC_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
@@ -19,6 +20,10 @@ env = [{ key = "SLATES_REGISTRY_INTERNAL_PORT", value = "{{BIND_PORT}}" }]
 [endpoints.admin]
 port = 52042
 env = [{ key = "SLATES_REGISTRY_ADMIN_PORT", value = "{{BIND_PORT}}" }]
+
+[e2e]
+start = ["e2e:start"]
+image = "slates-registry"
 
 [[resources]]
 type = "redis"

@@ -23,5 +23,5 @@ export let installKey = (d: {
     hash.update(readFileSync(join(d.workspace, path)));
   }
 
-  return `test-install-v1-${hash.digest('hex')}`;
+  return `test-install-v2-${hash.digest('hex')}`;
 };

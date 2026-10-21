@@ -274,7 +274,7 @@ fn compose_prefix(compose: &Path) -> Vec<String> {
     args
 }
 
-async fn wait_postgres(
+pub(crate) async fn wait_postgres(
     root: &Path,
     base: &Path,
     db: &crate::manifest::Postgres,
@@ -312,7 +312,7 @@ async fn wait_postgres(
     .await
 }
 
-async fn create_postgres(
+pub(crate) async fn create_postgres(
     root: &Path,
     base: &Path,
     db: &crate::manifest::Postgres,
@@ -360,7 +360,7 @@ async fn create_postgres(
     }
 }
 
-async fn wait_mongo(
+pub(crate) async fn wait_mongo(
     root: &Path,
     base: &Path,
     db: &crate::manifest::Mongo,
@@ -372,7 +372,7 @@ async fn wait_mongo(
     .await
 }
 
-async fn create_mongo(
+pub(crate) async fn create_mongo(
     root: &Path,
     base: &Path,
     db: &crate::manifest::Mongo,
