@@ -253,6 +253,47 @@ describe('handleMcpRequest', () => {
     );
     expect((await reader.read()).done).toBe(true);
   });
+
+  it('sends keepalive comments immediately and on idle GET streams, stopping on disconnect', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+
+    try {
+      let close = vi.fn();
+      create.mockResolvedValue({
+        session: { id: 'ses_1' },
+        connection: { id: 'scon_1', token: 'tok_1' },
+        listener: vi.fn(async () => ({ close, iterator: neverEndingIterator }))
+      });
+
+      let app = new Hono().get('/connect/mcp/:sessionId', c =>
+        handleMcpRequest(c, {
+          instance: { id: 'ins_1' } as any,
+          sessionId: 'ses_1'
+        })
+      );
+
+      let response = await app.request('/connect/mcp/ses_1', {
+        headers: { Accept: 'text/event-stream', 'Mcp-Session-Id': 'tok_1' }
+      });
+      expect(response.headers.get('content-type')).toContain('text/event-stream');
+
+      await vi.waitFor(() => expect(vi.getTimerCount()).toBe(1));
+
+      let reader = response.body!.getReader();
+      let decoder = new TextDecoder();
+      expect(decoder.decode((await reader.read()).value)).toBe(': keepalive\n\n');
+
+      let chunk = reader.read();
+      vi.advanceTimersByTime(25_000);
+      expect(decoder.decode((await chunk).value)).toBe(': keepalive\n\n');
+
+      await reader.cancel();
+      await vi.waitFor(() => expect(close).toHaveBeenCalled());
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 describe('handleMcpRequest protocol detection', () => {
