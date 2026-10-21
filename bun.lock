@@ -2264,6 +2264,7 @@
       },
       "devDependencies": {
         "@metorial/e2e": "1.0.0",
+        "@metorial/module-machine-access": "^1.0.0",
       },
     },
     "src/metorial/apis/core": {

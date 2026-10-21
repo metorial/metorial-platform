@@ -1,5 +1,6 @@
 import { testContext, uniqueId, useOrganization } from '@metorial/e2e';
 import { loadOrganizationFixture } from '@metorial/e2e/db';
+import { apiKeyService } from '@metorial/module-machine-access';
 import { describe, expect, it } from 'vitest';
 import {
   accessService,
@@ -39,10 +40,17 @@ describe('module-access', () => {
 
   it('authenticates api keys with their scopes and restrictions', async () => {
     let context = testContext();
+    let fixture = await loadOrganizationFixture(org.ids);
+    let { secret } = await apiKeyService.createApiKey({
+      type: 'organization_management_token',
+      organization: fixture.organization,
+      auditScope: fixture.auditScope,
+      input: { name: uniqueId('mgmt') }
+    });
 
     let management = await authenticationService.authenticate({
       type: 'api_key',
-      apiKey: org.keys.management,
+      apiKey: secret.secret,
       context
     });
     expect(management.type).toBe('machine');

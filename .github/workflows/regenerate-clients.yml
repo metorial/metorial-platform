@@ -185,6 +185,7 @@ jobs:
           exit "$status"
 
       - name: Build and test slate
+        id: build
         if: steps.slate.outcome == 'success'
         working-directory: integrations
         run: |
@@ -193,7 +194,7 @@ jobs:
 
       # CLI catalog and slate contract share a manifest, so a slate failure blocks both.
       - name: Open CLI PR
-        if: steps.slate.outcome == 'success'
+        if: steps.build.outcome == 'success'
         uses: ./platform/.github/actions/open-generated-pr
         with:
           path: platform/cli
@@ -203,7 +204,7 @@ jobs:
           body: ${{ env.PR_BODY }}
 
       - name: Open slate PR
-        if: steps.slate.outcome == 'success'
+        if: steps.build.outcome == 'success'
         uses: ./platform/.github/actions/open-generated-pr
         with:
           path: integrations
