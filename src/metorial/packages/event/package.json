@@ -9,7 +9,7 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
-    "p-queue": "^9.3.5",
+    "p-queue": "^10.0.0",
     "@lowerdeck/memo": "workspace:2.0.0",
     "@metorial/redis": "^1.0.0",
     "@lowerdeck/sentry": "workspace:2.0.0"
