@@ -1,10 +1,10 @@
 import { ServiceError, badRequestError } from '@lowerdeck/error';
 import { Hash } from '@lowerdeck/hash';
 import { customAlphabet } from 'nanoid';
-import short from 'short-uuid';
+import { createTranslator } from 'short-uuid';
 import { Worker } from 'snowflake-uuid';
 
-let translator = short('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz');
+let translator = createTranslator('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz');
 
 let _defaultId = customAlphabet(
   '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',

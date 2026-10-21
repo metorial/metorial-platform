@@ -185,18 +185,16 @@ export let authHooksApp = createHono()
 
     ctx.res.headers.append(
       'Set-Cookie',
-      Cookies.serialize(
-        `metorial_oauth_state_${state}`,
-        JSON.stringify({
+      Cookies.stringifySetCookie({
+        name: `metorial_oauth_state_${state}`,
+        value: JSON.stringify({
           appClientId: ticket.appClientId,
           provider: ticket.provider,
           redirectUrl: ticket.redirectUrl,
           deviceId: ticket.deviceId
         }),
-        {
-          path: '/'
-        }
-      )
+        path: '/'
+      })
     );
 
     let url = await authService.getSocialProviderAuthUrl({
@@ -217,7 +215,7 @@ export let authHooksApp = createHono()
     }
 
     let cookieHeader = ctx.req.header('cookie') ?? '';
-    let cookies = Cookies.parse(cookieHeader);
+    let cookies = Cookies.parseCookie(cookieHeader);
     let stateCookieName = `metorial_oauth_state_${state}`;
     let stateCookie = cookies[stateCookieName];
     if (!stateCookie) {
@@ -279,7 +277,11 @@ export let authHooksApp = createHono()
 
       ctx.res.headers.append(
         'Set-Cookie',
-        Cookies.serialize(SESSION_ID_COOKIE_NAME, session.id, baseCookieOpts)
+        Cookies.stringifySetCookie({
+          name: SESSION_ID_COOKIE_NAME,
+          value: session.id,
+          ...baseCookieOpts
+        })
       );
 
       let redirectUrl = new URL(res.authAttempt.redirectUrl);
@@ -293,7 +295,9 @@ export let authHooksApp = createHono()
 
     ctx.res.headers.append(
       'Set-Cookie',
-      Cookies.serialize(stateCookieName, '', {
+      Cookies.stringifySetCookie({
+        name: stateCookieName,
+        value: '',
         path: '/',
         expires: new Date(0)
       })
@@ -338,17 +342,15 @@ export let authHooksApp = createHono()
 
       ctx.res.headers.append(
         'Set-Cookie',
-        Cookies.serialize(
-          `metorial_sso_state_${ssoAuth.id}`,
-          JSON.stringify({
+        Cookies.stringifySetCookie({
+          name: `metorial_sso_state_${ssoAuth.id}`,
+          value: JSON.stringify({
             appClientId: ticket.appClientId,
             deviceId: ticket.deviceId,
             redirectUrl: ticket.redirectUrl
           }),
-          {
-            path: '/'
-          }
-        )
+          path: '/'
+        })
       );
 
       if (tenant.importedDelegationOid) {
@@ -501,7 +503,7 @@ export let authHooksApp = createHono()
       });
 
       let cookieHeader = ctx.req.header('cookie') ?? '';
-      let deviceToken = Cookies.parse(cookieHeader)[DEVICE_TOKEN_COOKIE_NAME];
+      let deviceToken = Cookies.parseCookie(cookieHeader)[DEVICE_TOKEN_COOKIE_NAME];
       let deviceInfo = deviceToken ? parseDeviceToken(deviceToken) : null;
       let device = await deviceService.ensureDevice({
         deviceId: deviceInfo?.deviceId,
@@ -522,15 +524,19 @@ export let authHooksApp = createHono()
 
       ctx.res.headers.append(
         'Set-Cookie',
-        Cookies.serialize(
-          DEVICE_TOKEN_COOKIE_NAME,
-          `${device.id}:${device.clientSecret}`,
-          baseCookieOpts
-        )
+        Cookies.stringifySetCookie({
+          name: DEVICE_TOKEN_COOKIE_NAME,
+          value: `${device.id}:${device.clientSecret}`,
+          ...baseCookieOpts
+        })
       );
       ctx.res.headers.append(
         'Set-Cookie',
-        Cookies.serialize(SESSION_ID_COOKIE_NAME, session.id, baseCookieOpts)
+        Cookies.stringifySetCookie({
+          name: SESSION_ID_COOKIE_NAME,
+          value: session.id,
+          ...baseCookieOpts
+        })
       );
 
       let completedRedirect = getIdpInitiatedConsumerLoginRedirect({
@@ -557,7 +563,7 @@ export let authHooksApp = createHono()
       });
 
       let cookieHeader = ctx.req.header('cookie') ?? '';
-      let cookies = Cookies.parse(cookieHeader);
+      let cookies = Cookies.parseCookie(cookieHeader);
       let stateCookie = cookies[`metorial_sso_state_${authId}`];
       if (!stateCookie) {
         throw new ServiceError(badRequestError({ message: 'Invalid SSO state' }));
@@ -607,7 +613,11 @@ export let authHooksApp = createHono()
 
       ctx.res.headers.append(
         'Set-Cookie',
-        Cookies.serialize(SESSION_ID_COOKIE_NAME, session.id, baseCookieOpts)
+        Cookies.stringifySetCookie({
+          name: SESSION_ID_COOKIE_NAME,
+          value: session.id,
+          ...baseCookieOpts
+        })
       );
 
       let redirectUrl = new URL(authAttempt.redirectUrl);
@@ -651,7 +661,11 @@ export let authHooksApp = createHono()
 
       ctx.res.headers.append(
         'Set-Cookie',
-        Cookies.serialize(SESSION_ID_COOKIE_NAME, session.id, baseCookieOpts)
+        Cookies.stringifySetCookie({
+          name: SESSION_ID_COOKIE_NAME,
+          value: session.id,
+          ...baseCookieOpts
+        })
       );
     } else {
       authorizationCode = authAttempt.authorizationCode ?? undefined;
