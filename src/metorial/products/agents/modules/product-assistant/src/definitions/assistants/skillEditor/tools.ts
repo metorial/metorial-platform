@@ -1,4 +1,3 @@
-import type { DocumentEditOperation, DocumentEditReview, StateItem } from '../../../types';
 import { jsonSchema, tool, type Tool } from 'ai';
 import type {
   AgentRunExtension,
@@ -11,6 +10,7 @@ import {
   type BlockEditOperation,
   type SkillWorkspace
 } from '../../../lib/skillWorkspace';
+import type { DocumentEditOperation, DocumentEditReview, StateItem } from '../../../types';
 import type { SkillEditorRequest } from './context';
 
 type DocumentEditItem = Extract<StateItem, { type: 'document/edit' }>;

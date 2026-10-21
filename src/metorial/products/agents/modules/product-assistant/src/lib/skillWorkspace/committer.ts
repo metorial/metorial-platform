@@ -1,5 +1,4 @@
 import type { AuditScope } from '@metorial/audit-scope';
-import type { SkillWorkspaceChange } from '../../types';
 import {
   documentAuthoritativeWriteService,
   documentService
@@ -7,6 +6,7 @@ import {
 import { filePurposeService, uploadCargoFile } from '@metorial/module-file';
 import { storeItemService, storeService } from '@metorial/module-store';
 import { posix as path } from 'node:path';
+import type { SkillWorkspaceChange } from '../../types';
 import type { SkillWorkspaceScope } from './hydrate';
 import type { SkillPendingChange, SkillStoreEntry, SkillStoreFs } from './skillStoreFs';
 

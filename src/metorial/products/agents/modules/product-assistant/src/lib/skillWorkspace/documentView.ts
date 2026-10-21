@@ -1,4 +1,3 @@
-import type { DocumentEditOperation } from '../../types';
 import {
   composeFullMarkdown,
   decodeYjsUpdate,
@@ -6,6 +5,7 @@ import {
   yjsDocToBlocks
 } from '@metorial/docs-editor-schema';
 import * as Y from 'yjs';
+import type { DocumentEditOperation } from '../../types';
 import {
   diffBlocks,
   documentEndTarget,

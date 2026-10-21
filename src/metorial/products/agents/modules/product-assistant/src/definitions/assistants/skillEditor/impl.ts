@@ -6,8 +6,8 @@ import { claudeHaiku45, claudeSonnet46 } from '../../models/anthropic';
 import { webSearchTools } from '../../tools/webSearch';
 import {
   buildSkillEditorRequest,
-  loadSkillForAssistant,
   findSkillDocument,
+  loadSkillForAssistant,
   skillEditorConversationInput,
   skillEditorRequestInput,
   type SkillEditorConversationInput,
