@@ -1,12 +1,15 @@
+import { addDays } from 'date-fns';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
   providerSetupSessionCreate: vi.fn(),
   providerSetupSessionFindUniqueOrThrow: vi.fn(),
+  providerSetupSessionUpdate: vi.fn(),
   providerSetupSessionEventCreateMany: vi.fn(),
   addAfterTransactionHook: vi.fn(),
   queueAdd: vi.fn(),
-  evaluate: vi.fn()
+  evaluate: vi.fn(),
+  initializeProviderSetupSessionProvider: vi.fn()
 }));
 
 vi.mock('@lowerdeck/service', () => ({
@@ -25,7 +28,7 @@ vi.mock('@metorial-subspace/db', () => {
   let db = {
     providerSetupSession: {
       create: mocks.providerSetupSessionCreate,
-      update: vi.fn(),
+      update: mocks.providerSetupSessionUpdate,
       findFirst: vi.fn(),
       findMany: vi.fn(),
       findUniqueOrThrow: mocks.providerSetupSessionFindUniqueOrThrow
@@ -94,7 +97,7 @@ vi.mock('./providerAuthConfig', () => ({
 vi.mock('./providerSetupSessionInternal', () => ({
   providerSetupSessionInternalService: {
     evaluate: mocks.evaluate,
-    initializeProviderSetupSessionProvider: vi.fn()
+    initializeProviderSetupSessionProvider: mocks.initializeProviderSetupSessionProvider
   }
 }));
 
@@ -175,5 +178,158 @@ describe('createProviderSetupSessionInternal double writes', () => {
     expect(mocks.providerSetupSessionCreate.mock.calls[0]![0].data).toMatchObject({
       ownerActorOid: null
     });
+  });
+});
+
+describe('createProviderSetupSessionInternal admin sessions', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.providerSetupSessionCreate.mockResolvedValue({ oid: 100n, id: 'pss_1' });
+    mocks.providerSetupSessionFindUniqueOrThrow.mockResolvedValue({ oid: 100n, id: 'pss_1' });
+    mocks.initializeProviderSetupSessionProvider.mockResolvedValue({
+      concreteType: 'admin',
+      inner: { oauthSetupOid: 200n, authMethodOid: 60n }
+    });
+  });
+
+  let createAdminSession = (input: Record<string, unknown> = {}) => {
+    let params = makeParams();
+
+    return providerSetupSessionService.createProviderSetupSessionInternal({
+      ...params,
+      provider: { oid: 50n, defaultVariant: { oid: 51n }, type: {} },
+      input: { ...params.input, type: 'admin', ...input }
+    } as any);
+  };
+
+  it('rejects admin sessions bound to an identity', async () => {
+    let params = makeParams();
+
+    await expect(
+      providerSetupSessionService.createProviderSetupSessionInternal({
+        ...params,
+        input: { ...params.input, type: 'admin' },
+        identity: { oid: 50n, actorOid: 60n, tenantOid: 10n, status: 'active' }
+      } as any)
+    ).rejects.toMatchObject({
+      data: expect.objectContaining({ code: 'admin_setup_invalid_binding' })
+    });
+
+    expect(mocks.providerSetupSessionCreate).not.toHaveBeenCalled();
+  });
+
+  it('creates admin sessions without an identity', async () => {
+    await createAdminSession();
+
+    expect(mocks.providerSetupSessionCreate.mock.calls[0]![0].data).toMatchObject({
+      typeSelected: 'admin',
+      typeConcrete: 'admin',
+      identityOid: null
+    });
+  });
+
+  it('rejects admin sessions without a provider', async () => {
+    let params = makeParams();
+
+    await expect(
+      providerSetupSessionService.createProviderSetupSessionInternal({
+        ...params,
+        input: { ...params.input, type: 'admin' }
+      } as any)
+    ).rejects.toMatchObject({
+      data: expect.objectContaining({ code: 'admin_setup_provider_required' })
+    });
+
+    expect(mocks.providerSetupSessionCreate).not.toHaveBeenCalled();
+  });
+
+  it('rejects admin sessions with tool filters enabled', async () => {
+    await expect(
+      createAdminSession({ configuration: { toolFilters: { enabled: true } } })
+    ).rejects.toMatchObject({
+      data: expect.objectContaining({ code: 'admin_setup_invalid_configuration' })
+    });
+
+    expect(mocks.initializeProviderSetupSessionProvider).not.toHaveBeenCalled();
+    expect(mocks.providerSetupSessionCreate).not.toHaveBeenCalled();
+  });
+
+  it('defaults admin sessions to a 7 day expiry and passes it to the OAuth setup', async () => {
+    let before = new Date();
+
+    await createAdminSession();
+
+    let after = new Date();
+    let expiresAt = mocks.providerSetupSessionCreate.mock.calls[0]![0].data.expiresAt as Date;
+
+    expect(expiresAt.getTime()).toBeGreaterThanOrEqual(addDays(before, 7).getTime());
+    expect(expiresAt.getTime()).toBeLessThanOrEqual(addDays(after, 7).getTime());
+    expect(mocks.initializeProviderSetupSessionProvider).toHaveBeenCalledWith(
+      expect.objectContaining({ expiresAt })
+    );
+  });
+
+  it('keeps an explicit expiry for admin sessions', async () => {
+    let expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+    await createAdminSession({ expiresAt });
+
+    expect(mocks.providerSetupSessionCreate.mock.calls[0]![0].data.expiresAt).toEqual(
+      expiresAt
+    );
+  });
+
+  it('keeps the 30 minute default for other session types', async () => {
+    let before = Date.now();
+
+    await providerSetupSessionService.createProviderSetupSessionInternal(makeParams() as any);
+
+    let expiresAt = mocks.providerSetupSessionCreate.mock.calls[0]![0].data.expiresAt as Date;
+    let ttl = expiresAt.getTime() - before;
+
+    expect(ttl).toBeGreaterThanOrEqual(30 * 60 * 1000);
+    expect(ttl).toBeLessThan(31 * 60 * 1000);
+  });
+});
+
+describe('updateProviderSetupSessionInternal admin sessions', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.providerSetupSessionUpdate.mockResolvedValue({ oid: 100n, id: 'pss_1' });
+  });
+
+  let update = (session: Record<string, unknown>) =>
+    providerSetupSessionService.updateProviderSetupSessionInternal({
+      tenant: { oid: 10n } as any,
+      environment: { oid: 30n } as any,
+      providerSetupSession: {
+        oid: 100n,
+        id: 'pss_1',
+        status: 'pending',
+        identityOid: null,
+        identityCredentialOid: null,
+        ...session
+      } as any,
+      input: {
+        identity: { oid: 50n, actorOid: 60n, tenantOid: 10n, status: 'active' } as any
+      }
+    });
+
+  it('rejects binding an identity to an admin session', async () => {
+    await expect(
+      update({ typeSelected: 'admin', typeConcrete: 'admin' })
+    ).rejects.toMatchObject({
+      data: expect.objectContaining({ code: 'admin_setup_invalid_binding' })
+    });
+
+    expect(mocks.providerSetupSessionUpdate).not.toHaveBeenCalled();
+  });
+
+  it('binds an identity to other session types', async () => {
+    await update({ typeSelected: 'auto', typeConcrete: 'auth_only' });
+
+    expect(mocks.providerSetupSessionUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ identityOid: 50n }) })
+    );
   });
 });

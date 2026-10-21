@@ -1,7 +1,9 @@
 import { preconditionFailedError, ServiceError, unauthorizedError } from '@lowerdeck/error';
 import { Tokens } from '@lowerdeck/tokens';
 import { createAresInternalClient } from '@metorial-platform-systems/ares-client';
+import { createAuditScope } from '@metorial/audit-scope';
 import { getConfig } from '@metorial/config';
+import type { Context } from '@metorial/context';
 import {
   ConsumerGroup,
   ConsumerProfile,
@@ -9,8 +11,10 @@ import {
   db,
   Instance,
   Organization,
-  type Prisma
+  type Prisma,
+  type Project
 } from '@metorial/db';
+import { resourceActorService } from '@metorial/module-resource-actor';
 
 let tokenSecret = `${getConfig().encryptionSecret}:consumer`;
 let consumerTokens = new Tokens({
@@ -274,6 +278,39 @@ export let getConsumerAccessContextForConsumerProfile = async (d: {
   }
 
   return await getConsumerAccessContextForConsumerProfileSingle(d);
+};
+
+export let resolveConsumerProfileAccess = async (d: {
+  consumerProfile: ConsumerProfileFull;
+  organization: Pick<Organization, 'oid'>;
+  project: Pick<Project, 'oid'>;
+  instance: Pick<Instance, 'oid'>;
+  context: Context;
+}) => {
+  let consumerAccess = await getConsumerAccessContextForConsumerProfile({
+    profile: d.consumerProfile
+  });
+
+  let resourceActor =
+    d.consumerProfile.resourceActors.find(actor => actor.projectOid == d.project.oid) ??
+    (await resourceActorService.ensureConsumerProfileActor({
+      project: d.project,
+      consumerProfile: d.consumerProfile
+    }));
+
+  return {
+    ...consumerAccess,
+    resourceActor,
+    auditScope: createAuditScope({
+      organization: d.organization,
+      instance: d.instance,
+      actor: {
+        type: 'consumer_profile',
+        id: d.consumerProfile.id
+      },
+      context: d.context
+    })
+  };
 };
 
 export let getConsumerAccessContextForSession = async (d: {

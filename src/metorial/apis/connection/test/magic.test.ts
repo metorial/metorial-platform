@@ -10,6 +10,7 @@ vi.mock('@metorial/module-consumer-entities', () => ({
   consumerIntegrationService: {
     findLatestConsumerAuthClientForMagicMcpToken: vi.fn()
   },
+  createSkillEditingTools: vi.fn(),
   enqueueMaterializeMagicMcpSessionOwnership: vi.fn()
 }));
 
@@ -43,14 +44,17 @@ vi.mock('@metorial/module-outpost', () => ({
   metorialOutpostResolver: {}
 }));
 
-import { consumerIntegrationService } from '@metorial/module-consumer-entities';
+import {
+  consumerIntegrationService,
+  createSkillEditingTools
+} from '@metorial/module-consumer-entities';
 import {
   ensureMagicMcpSubspaceSession,
   magicMcpTokenService,
   resolveMagicMcpTargetByIdOrAlias,
   resolveMagicMcpTargetByIdOrAliasSafe
 } from '@metorial/module-magic';
-import { resolveMagicMcpSubspaceSession } from '../src/magic';
+import { resolveMagicMcpRequestTools, resolveMagicMcpSubspaceSession } from '../src/magic';
 
 describe('resolveMagicMcpSubspaceSession', () => {
   beforeEach(() => {
@@ -167,5 +171,164 @@ describe('resolveMagicMcpSubspaceSession', () => {
       foreignId: 'cac_1',
       oauthRegistrationId: 'cac_1'
     });
+  });
+});
+
+describe('resolveMagicMcpRequestTools', () => {
+  let context = { ip: '127.0.0.1', ua: 'test' };
+  let instance = { id: 'ins_1', oid: 22n };
+  let consumerProfile = { oid: 55n };
+  let skillEditingTools = { tools: [], call: vi.fn(), redactForLog: vi.fn() };
+
+  let endpointSession = (d: {
+    enableSkillEditing: boolean;
+    consumerTokens?: { consumerProfile: unknown }[];
+    tokenSkillPluginOid?: bigint | null;
+    endpointSkillPluginOid?: bigint | null;
+    withoutToken?: boolean;
+  }) =>
+    ({
+      magicMcpTarget: {
+        type: 'endpoint',
+        target: {
+          id: 'mep_1',
+          oid: 11n,
+          instance,
+          enableSkillEditing: d.enableSkillEditing,
+          skillPluginOid:
+            d.endpointSkillPluginOid === undefined ? 66n : d.endpointSkillPluginOid
+        }
+      },
+      magicMcpToken: d.withoutToken
+        ? null
+        : {
+            id: 'mmt_1',
+            skillPluginOid: d.tokenSkillPluginOid ?? null,
+            consumerTokens: d.consumerTokens ?? []
+          },
+      consumerToken: d.consumerTokens?.[0] ?? null
+    }) as any;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(createSkillEditingTools).mockResolvedValue(skillEditingTools as any);
+  });
+
+  it('lazily builds skill editing tools for a consumer token on an enabled endpoint', async () => {
+    let resolveTools = resolveMagicMcpRequestTools({
+      sessionInfo: endpointSession({
+        enableSkillEditing: true,
+        consumerTokens: [{ consumerProfile }]
+      }),
+      context
+    });
+
+    expect(resolveTools).toBeTypeOf('function');
+    expect(createSkillEditingTools).not.toHaveBeenCalled();
+
+    expect(await resolveTools!()).toBe(skillEditingTools);
+    expect(createSkillEditingTools).toHaveBeenCalledWith({
+      instance,
+      consumerProfile,
+      skillPluginOid: 66n,
+      context
+    });
+  });
+
+  it.each([
+    ['only the token', 77n, null, 77n],
+    ['the token and the endpoint with the same plugin', 66n, 66n, 66n]
+  ])(
+    'scopes the tools to the skill plugin set on %s',
+    async (_name, tokenSkillPluginOid, endpointSkillPluginOid, expected) => {
+      let resolveTools = resolveMagicMcpRequestTools({
+        sessionInfo: endpointSession({
+          enableSkillEditing: true,
+          consumerTokens: [{ consumerProfile }],
+          tokenSkillPluginOid,
+          endpointSkillPluginOid
+        }),
+        context
+      });
+
+      await resolveTools!();
+
+      expect(createSkillEditingTools).toHaveBeenCalledWith(
+        expect.objectContaining({ skillPluginOid: expected })
+      );
+    }
+  );
+
+  it('skips the tools when the token and the endpoint are scoped to different plugins', () => {
+    let resolveTools = resolveMagicMcpRequestTools({
+      sessionInfo: endpointSession({
+        enableSkillEditing: true,
+        consumerTokens: [{ consumerProfile }],
+        tokenSkillPluginOid: 77n,
+        endpointSkillPluginOid: 66n
+      }),
+      context
+    });
+
+    expect(resolveTools).toBeUndefined();
+    expect(createSkillEditingTools).not.toHaveBeenCalled();
+  });
+
+  it('skips the tools without any lookups when the endpoint flag is off', () => {
+    let resolveTools = resolveMagicMcpRequestTools({
+      sessionInfo: endpointSession({
+        enableSkillEditing: false,
+        consumerTokens: [{ consumerProfile }]
+      }),
+      context
+    });
+
+    expect(resolveTools).toBeUndefined();
+    expect(createSkillEditingTools).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['no consumer token', { consumerTokens: [] }],
+    [
+      'more than one consumer token',
+      { consumerTokens: [{ consumerProfile }, { consumerProfile: { oid: 56n } }] }
+    ],
+    ['a publishable key instead of a magic MCP token', { withoutToken: true }]
+  ])('skips the tools for callers with %s', (_name, session) => {
+    let resolveTools = resolveMagicMcpRequestTools({
+      sessionInfo: endpointSession({ enableSkillEditing: true, ...session }),
+      context
+    });
+
+    expect(resolveTools).toBeUndefined();
+    expect(createSkillEditingTools).not.toHaveBeenCalled();
+  });
+
+  it('skips the tools for server targets', () => {
+    let resolveTools = resolveMagicMcpRequestTools({
+      sessionInfo: {
+        magicMcpTarget: { type: 'server', target: { id: 'mms_1', instance } },
+        magicMcpToken: { skillPluginOid: null, consumerTokens: [{ consumerProfile }] },
+        consumerToken: { consumerProfile }
+      } as any,
+      context
+    });
+
+    expect(resolveTools).toBeUndefined();
+    expect(createSkillEditingTools).not.toHaveBeenCalled();
+  });
+
+  it('resolves to no tools when skills are unavailable for the consumer', async () => {
+    vi.mocked(createSkillEditingTools).mockResolvedValue(null);
+
+    let resolveTools = resolveMagicMcpRequestTools({
+      sessionInfo: endpointSession({
+        enableSkillEditing: true,
+        consumerTokens: [{ consumerProfile }]
+      }),
+      context
+    });
+
+    expect(await resolveTools!()).toBeNull();
   });
 });

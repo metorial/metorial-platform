@@ -12,6 +12,7 @@ enum ProviderSetupSessionType {
   auth_only
   config_only
   auth_and_config
+  admin
   auto
 }
 
@@ -19,6 +20,7 @@ enum ProviderSetupSessionTypeConcrete {
   auth_only
   config_only
   auth_and_config
+  admin
 }
 
 enum ProviderSetupSessionUiMode {

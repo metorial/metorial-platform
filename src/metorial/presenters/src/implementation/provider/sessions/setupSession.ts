@@ -22,6 +22,9 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
         ? ('expired' as const)
         : setupSession.status;
 
+    let oauthErrorMessage =
+      setupSession.oauthSetup?.errorMessage || setupSession.oauthSetup?.errorCode;
+
     return {
       object: 'provider.setup_session' as const,
 
@@ -30,6 +33,13 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
       status,
 
       url: `${env.service.INTEGRATIONS_UI_URL}/setup-session/${setupSession.id}?client_secret=${setupSession.clientSecret}`,
+
+      error: oauthErrorMessage
+        ? {
+            code: setupSession.oauthSetup?.errorCode || 'oauth_error',
+            message: oauthErrorMessage
+          }
+        : null,
 
       name: setupSession.name,
       description: setupSession.description,
@@ -166,9 +176,10 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
         description: 'Unique setup session identifier',
         examples: ['pas_6eFgHjKlMnPqRsTu']
       }),
-      type: v.enumOf(['auth_only', 'config_only', 'auth_and_config'], {
+      type: v.enumOf(['auth_only', 'config_only', 'auth_and_config', 'admin'], {
         name: 'type',
-        description: 'Setup session type'
+        description:
+          'Setup session type. `admin` sessions produce an admin consent link and complete without creating credentials.'
       }),
       status: v.enumOf(['failed', 'archived', 'deleted', 'pending', 'completed', 'expired'], {
         name: 'status',
@@ -179,6 +190,28 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
         description: 'URL where user completes authentication',
         examples: ['https://provider.metorial.com/setup/pas_6eFgHjKlMnPqRsTu']
       }),
+      error: v.nullable(
+        v.object(
+          {
+            code: v.string({
+              name: 'code',
+              description:
+                'Machine-readable error code reported by the OAuth provider or integration',
+              examples: ['consent_required']
+            }),
+            message: v.string({
+              name: 'message',
+              description: 'Human-readable error message',
+              examples: ['consent_required: AADSTS90094: Admin consent is required.']
+            })
+          },
+          {
+            name: 'error',
+            description:
+              'The error reported during the OAuth step of this session, or null if none occurred'
+          }
+        )
+      ),
       name: v.nullable(
         v.string({
           name: 'name',

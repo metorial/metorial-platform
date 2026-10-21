@@ -52,7 +52,13 @@ let FlowStep = ({
   }
 
   if (flow.step === 'oauth_redirect' && flow.oauthSetup) {
-    return <OAuthRedirectStep oauthSetup={flow.oauthSetup} />;
+    return (
+      <OAuthRedirectStep
+        oauthSetup={flow.oauthSetup}
+        isAdminSession={flow.isAdminSession}
+        providerName={flow.provider?.name}
+      />
+    );
   }
 
   if (flow.step === 'config') {
@@ -105,6 +111,10 @@ export let SetupFlow = ({
   let layout = flow.session.configuration?.ui?.layout ?? 'box';
   let isCompleted = flow.step === 'completed';
   let stageLabels = isCompleted || isPublicMcp ? [] : flow.stageLabels;
+  let headerTitle =
+    flow.isAdminSession && flow.provider?.name
+      ? `Approve ${flow.provider.name} for your organization`
+      : undefined;
 
   let content = (
     <MobileSheetProvider value={isElementsMode}>
@@ -133,6 +143,7 @@ export let SetupFlow = ({
         brand={brand}
         providerName={flow.provider?.name}
         providerImageUrl={flow.provider?.imageUrl}
+        title={headerTitle}
         isWhitelabel={isWhitelabel}
         hideBrand={isPublicMcp}
       >
@@ -146,6 +157,7 @@ export let SetupFlow = ({
       brand={brand}
       providerName={flow.provider?.name}
       providerImageUrl={flow.provider?.imageUrl}
+      headerTitle={headerTitle}
       hideHeader={isCompleted}
       currentStep={flow.stageIndex}
       stepLabels={stageLabels}

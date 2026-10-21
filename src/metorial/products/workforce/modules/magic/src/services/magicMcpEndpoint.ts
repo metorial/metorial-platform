@@ -1,5 +1,6 @@
 import {
   conflictError,
+  forbiddenError,
   notFoundError,
   preconditionFailedError,
   ServiceError
@@ -22,6 +23,7 @@ import { ensureMagicMcpEndpointBacking } from '../lib/backing';
 import { magicMcpServerOwnerActorSelect } from '../lib/ownerActor';
 import { Fabric } from '@metorial/fabric';
 import { generatePlainId } from '@metorial/id';
+import { flagService } from '@metorial/module-flags';
 import {
   consumerMagicMcpReadRoles,
   consumerMagicMcpWriteRoles,
@@ -140,6 +142,20 @@ let applyEndpointBacking = async (d: {
 };
 
 class MagicMcpEndpointImpl {
+  private async assertSkillEditingAvailable(d: { instance: Pick<Instance, 'oid'> }) {
+    let skillsEnabled = await flagService.isFlagEnabledForInstance({
+      instance: d.instance,
+      flag: 'skills-enabled'
+    });
+    if (skillsEnabled) return;
+
+    throw new ServiceError(
+      forbiddenError({
+        message: 'Skill editing can only be enabled when skills are enabled for this instance'
+      })
+    );
+  }
+
   async getMagicMcpEndpointById(d: {
     instance: Instance;
     magicMcpEndpointId: string;
@@ -259,9 +275,14 @@ class MagicMcpEndpointImpl {
       metadata?: Record<string, unknown>;
       consumerProfile?: Pick<ConsumerProfile, 'oid'>;
       skillPlugin?: { oid: bigint } | null;
+      enableSkillEditing?: boolean;
       servers?: MagicMcpEndpointServerInput[];
     };
   }) {
+    if (d.input.enableSkillEditing) {
+      await this.assertSkillEditingAvailable({ instance: d.instance });
+    }
+
     await Fabric.fire('magic_mcp.endpoint.created:before', {
       instance: d.instance
     });
@@ -301,6 +322,7 @@ class MagicMcpEndpointImpl {
               instanceOid: d.instance.oid,
               consumerProfileOid: d.input.consumerProfile?.oid,
               skillPluginOid: d.input.skillPlugin?.oid,
+              enableSkillEditing: d.input.enableSkillEditing ?? false,
               name: d.input.name,
               description: d.input.description,
               slug: buildSlug(d.input.name),
@@ -399,6 +421,7 @@ class MagicMcpEndpointImpl {
       name?: string | null;
       description?: string | null;
       metadata?: Record<string, unknown> | null;
+      enableSkillEditing?: boolean;
     };
   }) {
     if (d.endpoint.status !== 'active') {
@@ -407,6 +430,10 @@ class MagicMcpEndpointImpl {
           message: 'Cannot update a magic MCP endpoint that is not active'
         })
       );
+    }
+
+    if (d.input.enableSkillEditing && !d.endpoint.enableSkillEditing) {
+      await this.assertSkillEditingAvailable({ instance: { oid: d.endpoint.instanceOid } });
     }
 
     let magicMcpEndpoint = await withTransaction(async db => {
@@ -418,7 +445,8 @@ class MagicMcpEndpointImpl {
           name: d.input.name === undefined ? d.endpoint.name : d.input.name,
           description:
             d.input.description === undefined ? d.endpoint.description : d.input.description,
-          metadata: d.input.metadata === undefined ? d.endpoint.metadata : d.input.metadata
+          metadata: d.input.metadata === undefined ? d.endpoint.metadata : d.input.metadata,
+          enableSkillEditing: d.input.enableSkillEditing
         },
         include: magicMcpEndpointInclude
       });

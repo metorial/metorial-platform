@@ -1,9 +1,8 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { createAuditScope } from '@metorial/audit-scope';
-import { getConsumerAccessContextForConsumerProfile } from '@metorial/consumer-auth';
+import { resolveConsumerProfileAccess } from '@metorial/consumer-auth';
 import { accessService } from '@metorial/module-access';
 import { consumerProfileService } from '@metorial/module-consumer-core';
-import { resourceActorService } from '@metorial/module-resource-actor';
 import { Path } from '@metorial/rest';
 import { apiGroup } from './apiGroup';
 
@@ -99,33 +98,23 @@ export let instanceGroup = apiGroup.use(async ctx => {
       );
     }
 
-    let consumerRes = await getConsumerAccessContextForConsumerProfile({
-      profile: consumerProfile
+    let consumerAccess = await resolveConsumerProfileAccess({
+      consumerProfile,
+      organization: res.organization,
+      project: res.project,
+      instance: res.instance,
+      context: ctx.context
     });
-    let resourceActor =
-      consumerProfile.resourceActors.find(actor => actor.projectOid == res.project.oid) ??
-      (await resourceActorService.ensureConsumerProfileActor({
-        project: res.project,
-        consumerProfile
-      }));
 
     return Object.assign(res, consumerPlaceholder, {
-      consumerGroups: consumerRes.consumerGroups,
-      accessTags: consumerRes.accessTags,
+      consumerGroups: consumerAccess.consumerGroups,
+      accessTags: consumerAccess.accessTags,
 
       consumerSurface: consumerProfile.surface,
       portal: consumerProfile.surface.portal,
       consumerProfile: consumerProfile,
-      resourceActor,
-      auditScope: createAuditScope({
-        organization: res.organization,
-        instance: res.instance,
-        actor: {
-          type: 'consumer_profile',
-          id: consumerProfile.id
-        },
-        context: ctx.context
-      }),
+      resourceActor: consumerAccess.resourceActor,
+      auditScope: consumerAccess.auditScope,
       member: undefined
     });
   }

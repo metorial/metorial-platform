@@ -73,12 +73,14 @@ export let PublicStatusPage = ({
   icon,
   title,
   description,
-  isWhitelabel
+  isWhitelabel,
+  children
 }: {
   icon: ReactNode;
   title: string;
   description: string;
   isWhitelabel?: boolean;
+  children?: ReactNode;
 }) => {
   useHideBootSpinner(true);
 
@@ -93,6 +95,8 @@ export let PublicStatusPage = ({
           </StatusTitle>
 
           <Description>{description}</Description>
+
+          {children}
         </Content>
 
         {!isWhitelabel && (

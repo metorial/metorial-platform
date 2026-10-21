@@ -22,6 +22,8 @@ model MagicMcpEndpoint {
   skillPluginOid BigInt?
   skillPlugin    SkillPlugin? @relation(fields: [skillPluginOid], references: [oid], onDelete: SetNull)
 
+  enableSkillEditing Boolean @default(false)
+
   legacySubspaceSessionTemplateId   String? @map("subspaceSessionTemplateId")
   subspaceEphemeralManagedSessionId String?
   configurationHash                 String?

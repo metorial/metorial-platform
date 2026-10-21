@@ -477,3 +477,103 @@ describe('handleMcpRequest protocol detection', () => {
     expect(body).toContain(`data: ${JSON.stringify(finalResponse)}\n\n`);
   });
 });
+
+describe('handleMcpRequest request-scoped tools', () => {
+  let connection = {
+    session: { id: 'ses_1' },
+    connection: { id: 'scon_1', token: 'tok_1' }
+  };
+
+  let requestTools = vi.fn(async () => ({ tools: [], call: vi.fn() }));
+
+  let app = new Hono().all('/connect/mcp/:sessionId', c =>
+    handleMcpRequest(c, {
+      instance: { id: 'ins_1' } as any,
+      sessionId: 'ses_1',
+      requestTools
+    })
+  );
+
+  let toolsList = { jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} };
+
+  beforeEach(() => {
+    create.mockReset();
+    handleSubspaceMcpRequest.mockReset();
+    handleSessionlessMcpRequest.mockReset();
+    requestTools.mockClear();
+    isSessionlessMcpEnabled.mockReturnValue(true);
+  });
+
+  it('passes the request tools resolver to streamable HTTP requests', async () => {
+    handleSubspaceMcpRequest.mockResolvedValue({
+      connection,
+      response: { mcp: { jsonrpc: '2.0', id: 1, result: { tools: [] } } }
+    });
+
+    await app.request('/connect/mcp/ses_1', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json, text/event-stream',
+        'Mcp-Session-Id': 'tok_1'
+      },
+      body: JSON.stringify(toolsList)
+    });
+
+    expect(handleSubspaceMcpRequest.mock.calls[0]![0].requestTools).toBe(requestTools);
+    expect(requestTools).not.toHaveBeenCalled();
+  });
+
+  it('passes request tools to legacy SSE message posts via the streamable branch', async () => {
+    handleSubspaceMcpRequest.mockResolvedValue({ connection, response: null });
+
+    await app.request('/connect/mcp/ses_1?connection_token=tok_1', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(toolsList)
+    });
+
+    expect(handleSubspaceMcpRequest.mock.calls[0]![0].requestTools).toBe(requestTools);
+  });
+
+  it('passes request tools to sessionless requests', async () => {
+    handleSessionlessMcpRequest.mockResolvedValue({
+      connection,
+      mcp: { jsonrpc: '2.0', id: 1, result: { tools: [], resultType: 'complete' } },
+      httpStatus: 200
+    });
+
+    await app.request('/connect/mcp/ses_1', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json, text/event-stream',
+        'MCP-Protocol-Version': '2026-07-28',
+        'Mcp-Method': 'tools/list'
+      },
+      body: JSON.stringify({
+        ...toolsList,
+        params: {
+          _meta: {
+            'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+            'io.modelcontextprotocol/clientCapabilities': {},
+            'io.modelcontextprotocol/clientInfo': { name: 'test', version: '1.0.0' }
+          }
+        }
+      })
+    });
+
+    expect(handleSessionlessMcpRequest.mock.calls[0]![0].requestTools).toBe(requestTools);
+  });
+
+  it('passes request tools to connections created for DELETE requests', async () => {
+    create.mockResolvedValue({ ...connection, disableConnection: vi.fn() });
+
+    await app.request('/connect/mcp/ses_1', {
+      method: 'DELETE',
+      headers: { 'Mcp-Session-Id': 'tok_1' }
+    });
+
+    expect(create.mock.calls[0]![0].requestTools).toBe(requestTools);
+  });
+});

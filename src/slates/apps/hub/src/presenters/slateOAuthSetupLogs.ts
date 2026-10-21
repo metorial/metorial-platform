@@ -8,10 +8,10 @@ import type {
   SlateInvocation,
   SlateOAuthCredentials
 } from '../../prisma/generated/client';
-import { env } from '../env';
 import { slateInvocationLitePresenter } from './slateInvocation';
 import { slateAuthConfigPresenter } from './slateAuthConfig';
 import { slateOAuthCredentialsPresenter } from './slateOAuthCredentials';
+import { presentSetupError, presentSetupUrl } from './slateOAuthSetupError';
 
 export let slateInstanceOAuthSetupLogsPresenter = async (
   setup: SlateInstanceOAuthSetup & {
@@ -29,17 +29,10 @@ export let slateInstanceOAuthSetupLogsPresenter = async (
   slateId: setup.slate.id,
   status: setup.status,
   redirectUrl: setup.redirectUrl,
-  url:
-    setup.status === 'completed'
-      ? null
-      : `${env.service.SERVICE_PUBLIC_URL}/slates-hub/authorization?setup_id=${setup.id}`,
+  url: presentSetupUrl(setup),
 
-  error: setup.errorCode
-    ? {
-        code: setup.errorCode,
-        message: setup.errorMessage ?? setup.errorCode
-      }
-    : null,
+  error: presentSetupError(setup),
+  adminInstructions: setup.adminInstructions,
 
   credentials: slateOAuthCredentialsPresenter({
     ...setup.oauthCredentials,

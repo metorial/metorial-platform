@@ -33,6 +33,7 @@ import {
   type SessionConnectionMcpConnectionTransport,
   type SessionConnectionTransport,
   type SessionMessage,
+  type SessionMessageFailureReason,
   type SessionParticipant,
   type SessionProvider,
   type SessionProviderInstance,
@@ -95,6 +96,12 @@ import {
 } from '../lib/connectionStatusTool';
 import { broadcastNats } from '../lib/nats';
 import { listSpecificationTools } from '../lib/providerToolCache';
+import {
+  buildRequestScopedTool,
+  METORIAL_TOOL_KEY_PREFIX,
+  type RequestScopedTools,
+  type RequestScopedToolsResolver
+} from '../lib/requestTools';
 import { isSyntheticTool } from '../lib/syntheticTool';
 import {
   CONNECTION_DIAGNOSTICS_TIMEOUT_MS,
@@ -105,7 +112,11 @@ import { completeMessage } from '../shared/completeMessage';
 import { createError } from '../shared/createError';
 import { createMessage, type CreateMessageProps } from '../shared/createMessage';
 import { createWarning } from '../shared/createWarning';
-import { extractToolCallOperation, getToolCallArguments } from '../shared/toolCallOperation';
+import {
+  extractToolCallOperation,
+  getToolCallArguments,
+  withToolCallArguments
+} from '../shared/toolCallOperation';
 import { upsertParticipant } from '../shared/upsertParticipant';
 import {
   type ConnectionScopedSpecification,
@@ -114,6 +125,7 @@ import {
 } from './connectionSpecification';
 import { resolveProviderToolListingSpecificationOid } from './toolSpecification';
 import { getPublicMcpAccess } from '@metorial-subspace/public-mcp-guard';
+import type { CallToolResult as McpCallToolResult } from '@modelcontextprotocol/sdk/types.js';
 
 let Sentry = getSentry();
 
@@ -133,6 +145,11 @@ let sessionlessConnectionLock = createLock({
 });
 
 let providerInstanceResolutionPromises = new Map<string, Promise<any>>();
+
+let isBuiltInSyntheticToolKey = (key: string, connectionFailedToolKeys: Set<string>) =>
+  key === CONNECTION_STATUS_TOOL_KEY ||
+  isCallbackEventTool(key) ||
+  connectionFailedToolKeys.has(key);
 
 type ReusableProviderInstance = SessionProviderInstance & {
   pairVersion: ProviderDeploymentConfigPairProviderVersion;
@@ -182,6 +199,16 @@ type CallToolResult = Omit<ConduitResult, 'message'> & {
   processingPromise?: Promise<void>;
 };
 
+type SyntheticCallOutcome = {
+  status: 'succeeded' | 'failed';
+  output: PrismaJson.SessionMessageOutput;
+  failureReason?: SessionMessageFailureReason;
+  stored?: {
+    input: PrismaJson.SessionMessageInput;
+    output: PrismaJson.SessionMessageOutput;
+  };
+};
+
 export interface SenderMangerProps {
   sessionId: string;
   solutionId: string;
@@ -203,6 +230,7 @@ export interface SenderMangerProps {
         foreignId: string;
       };
   connectionPrivateMetadata?: Record<string, any>;
+  requestTools?: RequestScopedToolsResolver;
   adapter?: { identifier: string };
   ingressPolicyCheck?: {
     sourceIp: string;
@@ -224,7 +252,8 @@ export class SenderManager {
     readonly solution: Solution,
     readonly transport: SessionConnectionTransport,
     readonly agentClient: SenderMangerProps['agentClient'],
-    readonly connectionPrivateMetadata: SenderMangerProps['connectionPrivateMetadata']
+    readonly connectionPrivateMetadata: SenderMangerProps['connectionPrivateMetadata'],
+    private readonly requestToolsResolver?: RequestScopedToolsResolver
   ) {}
 
   // Public MCP sessions are only reachable through the grant that currently owns them.
@@ -592,7 +621,8 @@ export class SenderManager {
       session.solution,
       d.transport,
       d.agentClient,
-      d.connectionPrivateMetadata
+      d.connectionPrivateMetadata,
+      d.requestTools
     );
     if (environment) manager.#environmentPromise = Promise.resolve(environment);
 
@@ -1175,10 +1205,110 @@ export class SenderManager {
       }
     }
 
+    let requestTools = (await this.getRequestTools())?.tools ?? [];
+    if (requestTools.length) {
+      let requestToolKeys = new Set(requestTools.map(tool => tool.key));
+      let shadowedTools = tools.filter(tool => requestToolKeys.has(tool.key));
+      if (shadowedTools.length) this.reportShadowedProviderTools(shadowedTools);
+
+      tools = [
+        ...tools.filter(tool => !requestToolKeys.has(tool.key)),
+        ...(requestTools as unknown as (typeof tools)[number][])
+      ];
+    }
+
     return {
       status: 'ok' as const,
       tools: tools.sort((a, b) => a.id.localeCompare(b.id))
     };
+  }
+
+  #requestToolsPromise: Promise<{
+    requestTools: RequestScopedTools;
+    tools: ReturnType<typeof buildRequestScopedTool>[];
+  } | null> | null = null;
+
+  private getRequestTools() {
+    let resolver = this.requestToolsResolver;
+    if (this.session.isInternal || !resolver) return Promise.resolve(null);
+
+    this.#requestToolsPromise ??= (async () => {
+      try {
+        let requestTools = await resolver();
+        if (!requestTools) return null;
+
+        let providers = await this.listProviders();
+        let connectionFailedToolKeys = new Set(
+          providers.flatMap(provider =>
+            provider.nameTemplate
+              ? [
+                  applySessionProviderNameTemplate(
+                    provider.nameTemplate,
+                    CONNECTION_FAILED_TOOL_KEY
+                  )
+                ]
+              : []
+          )
+        );
+
+        let keys = new Set<string>();
+        let unprefixedToolKeys: string[] = [];
+        let tools = requestTools.tools.filter(tool => {
+          if (!tool.key.startsWith(METORIAL_TOOL_KEY_PREFIX)) {
+            unprefixedToolKeys.push(tool.key);
+            return false;
+          }
+
+          if (
+            keys.has(tool.key) ||
+            isBuiltInSyntheticToolKey(tool.key, connectionFailedToolKeys)
+          ) {
+            return false;
+          }
+
+          keys.add(tool.key);
+          return true;
+        });
+
+        if (unprefixedToolKeys.length) this.reportUnprefixedRequestTools(unprefixedToolKeys);
+
+        return {
+          requestTools,
+          tools: tools.map(tool => buildRequestScopedTool(this.session, tool))
+        };
+      } catch (error) {
+        Sentry.captureException(error);
+        return null;
+      }
+    })();
+
+    return this.#requestToolsPromise;
+  }
+
+  private reportUnprefixedRequestTools(toolKeys: string[]) {
+    Sentry.captureMessage('Dropped request tools without the reserved key prefix', {
+      level: 'warning',
+      extra: {
+        sessionId: this.session.id,
+        prefix: METORIAL_TOOL_KEY_PREFIX,
+        toolKeys
+      }
+    });
+  }
+
+  #reportedShadowedProviderTools = false;
+
+  private reportShadowedProviderTools(tools: { key: string }[]) {
+    if (this.#reportedShadowedProviderTools) return;
+    this.#reportedShadowedProviderTools = true;
+
+    Sentry.captureMessage('Request tools replaced provider tools with the same key', {
+      level: 'warning',
+      extra: {
+        sessionId: this.session.id,
+        toolKeys: tools.map(tool => tool.key)
+      }
+    });
   }
 
   async listToolsIncludingInternal() {
@@ -1203,6 +1333,45 @@ export class SenderManager {
         return mcpType !== 'mcp.logging_setLevel' && mcpType !== 'mcp.completion_complete';
       })
     };
+  }
+
+  private getToolMatches<
+    P extends { id: string; tag: string; nameTemplate: string | null }
+  >(d: { toolId: string; providers: P[] }) {
+    type ToolMatch = {
+      provider: P;
+      originalToolName: string;
+      finalToolName: string;
+    };
+
+    if (this.session.isInternal) {
+      return d.providers.map(
+        (provider): ToolMatch => ({
+          provider,
+          originalToolName: d.toolId,
+          finalToolName: d.toolId
+        })
+      );
+    }
+
+    let templateMatch: ToolMatch | null = null;
+
+    try {
+      let match = parseNameFromSessionProviderTemplates(d.toolId, d.providers);
+      if (match) {
+        templateMatch = {
+          provider: match.provider,
+          originalToolName: match.originalName,
+          finalToolName: match.finalName
+        };
+      }
+    } catch (error: any) {
+      throw new ServiceError(badRequestError({ message: error.message }));
+    }
+
+    let legacyMatch = this.getLegacyToolMatch({ toolId: d.toolId, providers: d.providers });
+
+    return [templateMatch, legacyMatch].filter((match): match is ToolMatch => match !== null);
   }
 
   private getLegacyToolMatch<P extends { tag: string }>(d: {
@@ -1339,7 +1508,44 @@ export class SenderManager {
     };
   }
 
+  // Request tool args can hold caller content; unknown tools need none stored.
+  async shouldRedactStoredToolInput(toolId: string) {
+    try {
+      let requestTool = await this.findRequestTool(toolId);
+      if (requestTool) return true;
+
+      if (toolId === CONNECTION_STATUS_TOOL_KEY || isCallbackEventTool(toolId)) return false;
+
+      let providers = await this.listProviders();
+      return this.getToolMatches({ toolId, providers }).length === 0;
+    } catch {
+      return true;
+    }
+  }
+
+  // Prefix check avoids a DB hit on every provider tools/call.
+  private async findRequestTool(toolId: string) {
+    if (!toolId.startsWith(METORIAL_TOOL_KEY_PREFIX)) return null;
+
+    let requestTools = await this.getRequestTools();
+    let tool = requestTools?.tools.find(tool => tool.key === toolId);
+    if (!requestTools || !tool) return null;
+
+    return { tool, requestTools: requestTools.requestTools };
+  }
+
   async getToolById(d: { toolId: string }) {
+    let requestTool = await this.findRequestTool(d.toolId);
+    if (requestTool) {
+      return {
+        provider: null,
+        instance: null,
+        requestTool: true as const,
+        tool: requestTool.tool,
+        requestTools: requestTool.requestTools
+      };
+    }
+
     if (d.toolId === CONNECTION_STATUS_TOOL_KEY) {
       if (this.session.isInternal) {
         throw new ServiceError(notFoundError('tool', d.toolId));
@@ -1370,42 +1576,7 @@ export class SenderManager {
     }
 
     let providers = await this.listProviders();
-
-    type ToolMatch = {
-      provider: (typeof providers)[number];
-      originalToolName: string;
-      finalToolName: string;
-    };
-
-    let matches: ToolMatch[];
-
-    if (this.session.isInternal) {
-      matches = providers.map(provider => ({
-        provider,
-        originalToolName: d.toolId,
-        finalToolName: d.toolId
-      }));
-    } else {
-      let templateMatch: ToolMatch | null = null;
-
-      try {
-        let match = parseNameFromSessionProviderTemplates(d.toolId, providers);
-        if (match) {
-          templateMatch = {
-            provider: match.provider,
-            originalToolName: match.originalName,
-            finalToolName: match.finalName
-          };
-        }
-      } catch (error: any) {
-        throw new ServiceError(badRequestError({ message: error.message }));
-      }
-
-      let legacyMatch = this.getLegacyToolMatch({ toolId: d.toolId, providers });
-      matches = [templateMatch, legacyMatch].filter(
-        (match): match is ToolMatch => match !== null
-      );
-    }
+    let matches = this.getToolMatches({ toolId: d.toolId, providers });
 
     if (matches.length === 0) {
       throw new ServiceError(badRequestError({ message: 'Invalid tool ID format' }));
@@ -1460,12 +1631,28 @@ export class SenderManager {
     });
   }
 
-  private async completeConnectionFailedCall(d: {
-    provider: SessionProvider;
+  private async publishTargetedResult(connection: SessionConnection, result: ConduitResult) {
+    try {
+      await broadcastNats.publish(
+        topics.sessionConnection.encode({ session: this.session, connection }),
+        serialize.encode({
+          type: 'message_processed',
+          sessionId: this.session.id,
+          channel: 'targeted_response',
+          result
+        })
+      );
+    } catch (error) {
+      Sentry.captureException(error);
+    }
+  }
+
+  private async completeSyntheticCall(d: {
     tool: { key: string };
-    detail: ReturnType<typeof buildConnectionFailedDetail>;
     participant: SessionParticipant;
     callProps: CallToolProps;
+    provider?: SessionProvider;
+    run: (input: PrismaJson.SessionMessageInput) => Promise<SyntheticCallOutcome>;
   }) {
     let extractedToolCall = extractToolCallOperation({
       input: d.callProps.input,
@@ -1478,38 +1665,64 @@ export class SenderManager {
       from: { type: 'system' }
     });
 
+    let outcome = await d.run(extractedToolCall.input);
+
     let message = await this.createMessage({
-      status: 'failed',
+      status: outcome.status,
       type: d.callProps.transport === 'mcp' ? 'mcp_message' : 'tool_call',
       source: 'client',
-      input: extractedToolCall.input,
+      input: outcome.stored?.input ?? extractedToolCall.input,
       rationale: extractedToolCall.rationale,
       operation: extractedToolCall.operation,
       senderParticipant: d.participant,
       responderParticipant: system,
-      failureReason: 'provider_error',
+      failureReason: outcome.failureReason,
       clientMcpId: d.callProps.clientMcpId,
       transport: d.callProps.transport,
       methodOrToolKey: d.tool.key,
       isProductive: true,
       provider: d.provider,
       parentMessage: d.callProps.parentMessage,
-      output: {
-        type: 'error',
-        data: {
-          code: 'provider_connection_failed',
-          message: d.detail.longMessage,
-          ...d.detail.data
-        }
-      }
+      output: outcome.stored?.output ?? outcome.output
     });
 
-    return {
+    let result = {
       message,
-      output: message.output,
+      output: outcome.output,
       status: message.status,
       completedAt: message.completedAt
     } satisfies ConduitResult;
+
+    if (this.connection) await this.publishTargetedResult(this.connection, result);
+
+    return result;
+  }
+
+  private async completeConnectionFailedCall(d: {
+    provider: SessionProvider;
+    tool: { key: string };
+    detail: ReturnType<typeof buildConnectionFailedDetail>;
+    participant: SessionParticipant;
+    callProps: CallToolProps;
+  }) {
+    return await this.completeSyntheticCall({
+      tool: d.tool,
+      participant: d.participant,
+      callProps: d.callProps,
+      provider: d.provider,
+      run: async () => ({
+        status: 'failed',
+        failureReason: 'provider_error',
+        output: {
+          type: 'error',
+          data: {
+            code: 'provider_connection_failed',
+            message: d.detail.longMessage,
+            ...d.detail.data
+          }
+        }
+      })
+    });
   }
 
   private async fetchProviderDiagnostics(provider: SessionProvider) {
@@ -1546,50 +1759,27 @@ export class SenderManager {
     participant: SessionParticipant;
     callProps: CallToolProps;
   }) {
-    let extractedToolCall = extractToolCallOperation({
-      input: d.callProps.input,
-      rationale: d.callProps.rationale,
-      operation: d.callProps.operation
-    });
+    return await this.completeSyntheticCall({
+      tool: d.tool,
+      participant: d.participant,
+      callProps: d.callProps,
+      run: async () => {
+        let report = await buildConnectionStatusReport({
+          session: this.session,
+          connection: this.connection,
+          providers: await this.listProviders(),
+          getDiagnostics: provider => this.fetchProviderDiagnostics(provider)
+        });
 
-    let system = await upsertParticipant({
-      session: this.session,
-      from: { type: 'system' }
-    });
-
-    let report = await buildConnectionStatusReport({
-      session: this.session,
-      connection: this.connection,
-      providers: await this.listProviders(),
-      getDiagnostics: provider => this.fetchProviderDiagnostics(provider)
-    });
-
-    let message = await this.createMessage({
-      status: 'succeeded',
-      type: d.callProps.transport === 'mcp' ? 'mcp_message' : 'tool_call',
-      source: 'client',
-      input: extractedToolCall.input,
-      rationale: extractedToolCall.rationale,
-      operation: extractedToolCall.operation,
-      senderParticipant: d.participant,
-      responderParticipant: system,
-      clientMcpId: d.callProps.clientMcpId,
-      transport: d.callProps.transport,
-      methodOrToolKey: d.tool.key,
-      isProductive: true,
-      parentMessage: d.callProps.parentMessage,
-      output: {
-        type: 'tool.result',
-        data: { summary: report.summary, ...report.data }
+        return {
+          status: 'succeeded',
+          output: {
+            type: 'tool.result',
+            data: { summary: report.summary, ...report.data }
+          }
+        };
       }
     });
-
-    return {
-      message,
-      output: message.output,
-      status: message.status,
-      completedAt: message.completedAt
-    } satisfies ConduitResult;
   }
 
   private async completeCallbackEventToolCall(d: {
@@ -1598,64 +1788,132 @@ export class SenderManager {
     participant: SessionParticipant;
     callProps: CallToolProps;
   }) {
-    let extractedToolCall = extractToolCallOperation({
-      input: d.callProps.input,
-      rationale: d.callProps.rationale,
-      operation: d.callProps.operation
+    return await this.completeSyntheticCall({
+      tool: d.tool,
+      participant: d.participant,
+      callProps: d.callProps,
+      run: async input => {
+        try {
+          let data = await runCallbackEventTool({
+            toolKey: d.tool.key,
+            arguments: getToolCallArguments(input),
+            tenant: this.tenant,
+            session: this.session,
+            scope: d.scope
+          });
+
+          return { status: 'succeeded', output: { type: 'tool.result', data } };
+        } catch (error) {
+          return {
+            status: 'failed',
+            failureReason: 'system_error',
+            output: {
+              type: 'error',
+              data:
+                error instanceof ServiceError
+                  ? error.data
+                  : { code: 'system_error', message: 'Failed to execute tool' }
+            }
+          };
+        }
+      }
     });
+  }
 
-    let system = await upsertParticipant({
-      session: this.session,
-      from: { type: 'system' }
+  private async completeRequestToolCall(d: {
+    requestTools: RequestScopedTools;
+    tool: { key: string };
+    participant: SessionParticipant;
+    callProps: CallToolProps;
+  }) {
+    return await this.completeSyntheticCall({
+      tool: d.tool,
+      participant: d.participant,
+      callProps: d.callProps,
+      run: async input => {
+        let args = getToolCallArguments(input);
+        let outcome = await this.runRequestTool({
+          requestTools: d.requestTools,
+          key: d.tool.key,
+          args,
+          clientMcpId: d.callProps.clientMcpId
+        });
+
+        let redactForLog = d.requestTools.redactForLog;
+        if (!redactForLog) return outcome;
+
+        let data = outcome.status === 'succeeded' ? outcome.output.data : undefined;
+
+        let redacted = this.redactRequestToolCallForLog(redactForLog, {
+          key: d.tool.key,
+          input: args,
+          output: data
+        });
+
+        return {
+          ...outcome,
+          stored: {
+            input: withToolCallArguments(input, redacted.input),
+            output:
+              outcome.status === 'succeeded'
+                ? { type: 'tool.result', data: redacted.output ?? {} }
+                : outcome.output
+          }
+        };
+      }
     });
+  }
 
-    let result: PrismaJson.SessionMessageOutput;
-    let status: 'succeeded' | 'failed' = 'succeeded';
-
+  private redactRequestToolCallForLog(
+    redactForLog: NonNullable<RequestScopedTools['redactForLog']>,
+    d: Parameters<NonNullable<RequestScopedTools['redactForLog']>>[0]
+  ) {
     try {
-      let data = await runCallbackEventTool({
-        toolKey: d.tool.key,
-        arguments: getToolCallArguments(extractedToolCall.input),
-        tenant: this.tenant,
-        session: this.session,
-        scope: d.scope
-      });
-      result = { type: 'tool.result', data };
+      return redactForLog(d);
     } catch (error) {
-      status = 'failed';
-      result = {
-        type: 'error',
-        data:
-          error instanceof ServiceError
-            ? error.data
-            : { code: 'system_error', message: 'Failed to execute tool' }
+      Sentry.captureException(error);
+      return { input: { redacted: true }, output: { redacted: true } };
+    }
+  }
+
+  private async runRequestTool(d: {
+    requestTools: RequestScopedTools;
+    key: string;
+    args: unknown;
+    clientMcpId: CallToolProps['clientMcpId'];
+  }): Promise<SyntheticCallOutcome> {
+    try {
+      let data = await d.requestTools.call(d.key, d.args);
+      return { status: 'succeeded', output: { type: 'tool.result', data } };
+    } catch (error) {
+      if (error instanceof ServiceError) {
+        return {
+          status: 'failed',
+          output: {
+            type: 'mcp',
+            data: {
+              jsonrpc: '2.0',
+              id: d.clientMcpId!,
+              result: {
+                content: [{ type: 'text', text: JSON.stringify(error.data) }],
+                isError: true
+              } satisfies McpCallToolResult
+            }
+          }
+        };
+      }
+
+      Sentry.captureException(error);
+
+      return {
+        status: 'failed',
+        failureReason: 'system_error',
+        output: {
+          type: 'error',
+          data: { code: 'system_error', message: 'Failed to execute tool' }
+        }
       };
     }
-
-    let message = await this.createMessage({
-      status,
-      type: d.callProps.transport === 'mcp' ? 'mcp_message' : 'tool_call',
-      source: 'client',
-      input: extractedToolCall.input,
-      rationale: extractedToolCall.rationale,
-      operation: extractedToolCall.operation,
-      senderParticipant: d.participant,
-      responderParticipant: system,
-      ...(status === 'failed' ? { failureReason: 'system_error' as const } : {}),
-      clientMcpId: d.callProps.clientMcpId,
-      transport: d.callProps.transport,
-      methodOrToolKey: d.tool.key,
-      isProductive: true,
-      parentMessage: d.callProps.parentMessage,
-      output: result
-    });
-
-    return {
-      message,
-      output: message.output,
-      status: message.status,
-      completedAt: message.completedAt
-    } satisfies ConduitResult;
   }
 
   async callTool(d: CallToolProps): Promise<CallToolResult> {
@@ -1674,6 +1932,15 @@ export class SenderManager {
     }
 
     let resolved = await this.getToolById({ toolId: d.toolId });
+
+    if ('requestTool' in resolved) {
+      return await this.completeRequestToolCall({
+        requestTools: resolved.requestTools,
+        tool: resolved.tool,
+        participant,
+        callProps: d
+      });
+    }
 
     // The status tool is answered by Metorial itself so that it stays available
     // even when every provider connection is broken.
@@ -1736,21 +2003,6 @@ export class SenderManager {
       parentMessage: d.parentMessage
     });
 
-    let publishTargetedResult = async (result: ConduitResult) => {
-      await broadcastNats.publish(
-        topics.sessionConnection.encode({
-          session: this.session,
-          connection
-        }),
-        serialize.encode({
-          type: 'message_processed',
-          sessionId: this.session.id,
-          channel: 'targeted_response',
-          result
-        })
-      );
-    };
-
     let processingPromise = (async () => {
       try {
         let res = await sender.send(topics.instance.encode({ instance, connection }), {
@@ -1798,7 +2050,7 @@ export class SenderManager {
             }
           );
 
-          await publishTargetedResult({
+          await this.publishTargetedResult(connection, {
             message,
             output: message.output,
             status: message.status,
@@ -1849,7 +2101,7 @@ export class SenderManager {
           }
         );
 
-        await publishTargetedResult({
+        await this.publishTargetedResult(connection, {
           message,
           output: message.output,
           status: message.status,

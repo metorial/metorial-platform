@@ -788,6 +788,7 @@ export type AuditSandboxImageBuild = {
 
 export type SandboxMachineLifecycleAction = 'start' | 'pause' | 'hibernate' | 'restart';
 export type SandboxMachineAccessKind = 'shell' | 'files' | 'port';
+export type SandboxMachineExecOutcome = 'exited' | 'deadline' | 'disconnected' | 'rejected';
 
 export type StoreItemFabricOperation = {
   type: 'add' | 'modify' | 'remove';
@@ -889,6 +890,7 @@ export interface FabricEvents {
   'sandbox.machine.deleted:after': { auditScope: AuditScope; machine: AuditSandboxMachine };
   'sandbox.machine.lifecycle:after': { auditScope: AuditScope; machine: AuditSandboxMachine; action: SandboxMachineLifecycleAction };
   'sandbox.machine.access.created:after': { auditScope: AuditScope; machine: AuditSandboxMachine; kind: SandboxMachineAccessKind; ports: number[] | '*' | null; ttlSeconds: number | null };
+  'sandbox.machine.exec:after': { auditScope: AuditScope; machine: AuditSandboxMachine; commandByteSize: number; outcome: SandboxMachineExecOutcome; exitCode: number | null; timedOut: boolean; durationMs: number };
 
   'sandbox.disk.created:after': { auditScope: AuditScope; disk: AuditSandboxDisk; sourceDiskId: string | null; sourceImageId: string | null };
   'sandbox.disk.updated:after': { auditScope: AuditScope; disk: AuditSandboxDisk; previousDisk: AuditSandboxDisk };

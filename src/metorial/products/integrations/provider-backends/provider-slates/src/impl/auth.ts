@@ -220,7 +220,8 @@ export class ProviderAuth extends IProviderAuth {
       input: data.input,
       redirectUrl: data.redirectUrl,
       slateOAuthCredentialsId: slateOAuthCredentials.id,
-      callbackUrlOverride: data.callbackUrlOverride ?? undefined
+      callbackUrlOverride: data.callbackUrlOverride ?? undefined,
+      isAdminSetup: data.isAdminSetup
     });
 
     let slateOAuthSetup = await db.slateOAuthSetup.create({
@@ -348,7 +349,8 @@ export class ProviderAuth extends IProviderAuth {
         failed: 'failed' as const
       }[record.status],
       url: record.url,
-      error: record.error
+      error: record.error,
+      adminInstructions: record.adminInstructions
     };
   }
 

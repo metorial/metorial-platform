@@ -28,13 +28,19 @@ export let setupSessionOAuthSetupPresenter = (
           deployment: ProviderDeployment | null;
         })
       | null;
-  }
+  },
+  opts: { isAdminSetup: boolean }
 ) => {
   let status =
     (providerOAuthSetup.status === 'opened' || providerOAuthSetup.status === 'unused') &&
     providerOAuthSetup.expiresAt <= new Date()
       ? ('expired' as const)
       : providerOAuthSetup.status;
+
+  let isUsable =
+    status !== 'expired' &&
+    status !== 'completed' &&
+    !(opts.isAdminSetup && status === 'failed');
 
   return {
     object: 'provider.oauth_setup',
@@ -54,11 +60,11 @@ export let setupSessionOAuthSetupPresenter = (
     redirectUrl: providerOAuthSetup.redirectUrl,
     errorCode: providerOAuthSetup.errorCode,
     errorMessage: providerOAuthSetup.errorMessage,
+    adminInstructions: providerOAuthSetup.adminInstructions,
 
-    url:
-      status !== 'expired' && status !== 'completed'
-        ? `${env.service.INTEGRATIONS_API_URL}/oauth-setup/${providerOAuthSetup.id}?client_secret=${providerOAuthSetup.clientSecret}`
-        : null,
+    url: isUsable
+      ? `${env.service.INTEGRATIONS_API_URL}/oauth-setup/${providerOAuthSetup.id}?client_secret=${providerOAuthSetup.clientSecret}`
+      : null,
 
     authConfig: providerOAuthSetup.authConfig
       ? setupSessionAuthConfigPresenter({
