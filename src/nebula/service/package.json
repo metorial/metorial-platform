@@ -31,15 +31,15 @@
     "@lowerdeck/testing-tools": "workspace:2.0.0",
     "@types/bun": "latest",
     "@types/node": "^25.9.9",
-    "@vercel/ncc": "^0.38.4",
+    "@vercel/ncc": "^0.45.0",
     "vitest": "5.0.4"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
-    "@aws-sdk/client-kms": "^3.1150.0",
-    "@aws-sdk/credential-providers": "^3.1150.0",
+    "@aws-sdk/client-kms": "^3.1151.0",
+    "@aws-sdk/credential-providers": "^3.1151.0",
     "@lowerdeck/api-mux": "workspace:2.0.0",
     "@lowerdeck/cache": "workspace:2.0.0",
     "@lowerdeck/canonicalize": "workspace:2.0.0",
@@ -61,7 +61,7 @@
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
     "@prisma/extension-read-replicas": "^0.5.0",
-    "@sentry/bun": "^10.76.2",
+    "@sentry/bun": "^11.7.0",
     "@sentry/cli": "^3.8.0",
     "date-fns": "^4.4.0",
     "prisma": "^7.10.0"

@@ -29,7 +29,7 @@
   "devDependencies": {
     "@types/bun": "latest",
     "@types/node": "^25.9.9",
-    "@vercel/ncc": "^0.38.4",
+    "@vercel/ncc": "^0.45.0",
     "vitest": "^5.0.4"
   },
   "peerDependencies": {
@@ -56,14 +56,14 @@
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
     "@prisma/extension-read-replicas": "^0.5.0",
-    "@sentry/bun": "^10.76.2",
+    "@sentry/bun": "^11.7.0",
     "@sentry/cli": "^3.8.0",
-    "ai": "^7.0.138",
+    "ai": "^7.0.140",
     "hono": "4.13.13",
     "just-bash": "^3.6.0",
-    "p-queue": "^9.3.5",
+    "p-queue": "^10.0.0",
     "prisma": "^7.10.0",
-    "prisma-json-types-generator": "^5.1.1",
+    "prisma-json-types-generator": "^5.2.0",
     "zod": "^4.6.7"
   }
 }

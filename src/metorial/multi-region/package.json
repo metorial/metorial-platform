@@ -13,7 +13,7 @@
     "control:db:push": "bun run prisma:push"
   },
   "dependencies": {
-    "@aws-sdk/rds-signer": "^3.1150.0",
+    "@aws-sdk/rds-signer": "^3.1151.0",
     "@lowerdeck/base62": "workspace:2.0.0",
     "@lowerdeck/delay": "workspace:2.0.0",
     "@lowerdeck/env": "workspace:2.0.0",
@@ -36,8 +36,8 @@
     "@types/bun": "^1.4.3",
     "pg": "^8.23.1",
     "prisma": "^7.10.0",
-    "prisma-json-types-generator": "^5.1.1",
-    "stripe": "^18.5.0",
+    "prisma-json-types-generator": "^5.2.0",
+    "stripe": "^23.0.0",
     "typescript": "^5.9.3",
     "@lowerdeck/queue": "workspace:2.0.0"
   },
