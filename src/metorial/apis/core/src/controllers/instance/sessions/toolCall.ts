@@ -85,6 +85,13 @@ export let toolCallController = Controller.create(
             tool_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by tool ID(s)'
             }),
+            status: v.optional(
+              v.union([
+                v.enumOf(['waiting_for_response', 'succeeded', 'failed']),
+                v.array(v.enumOf(['waiting_for_response', 'succeeded', 'failed']))
+              ]),
+              { description: 'Filter by tool call status(es)' }
+            ),
             created_at: dateFilterValidator('tool call creation time'),
             updated_at: dateFilterValidator('tool call last update time')
           })
@@ -112,6 +119,7 @@ export let toolCallController = Controller.create(
           providerConfigIds: normalizeArrayParam(ctx.query.provider_config_id),
           providerAuthConfigIds: normalizeArrayParam(ctx.query.provider_auth_config_id),
           toolIds: normalizeArrayParam(ctx.query.tool_id),
+          statuses: normalizeArrayParam(ctx.query.status),
           createdAt: ctx.query.created_at,
           updatedAt: ctx.query.updated_at
         });
