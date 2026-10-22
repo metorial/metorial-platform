@@ -16,7 +16,9 @@ import { providerOAuthSetupUpdatedQueue } from '../queues/lifecycle/providerOAut
 import { providerAuthConfigInternalService } from './providerAuthConfigInternal';
 import { providerSetupSessionInternalService } from './providerSetupSessionInternal';
 
-let include = {};
+let include = {
+  providerSetupSession: true
+};
 
 let syncLock = createLock({
   name: 'sub/auth/setupInternal/sync',
@@ -154,6 +156,8 @@ class providerOAuthSetupInternalServiceImpl {
 
             errorCode: record.error?.code,
             errorMessage: record.error?.message ?? record.error?.code,
+
+            adminInstructions: record.adminInstructions ?? undefined,
 
             slateOAuthSetupOid: record.slateOAuthSetup?.oid,
             shuttleOAuthSetupOid: record.shuttleOAuthSetup?.oid,

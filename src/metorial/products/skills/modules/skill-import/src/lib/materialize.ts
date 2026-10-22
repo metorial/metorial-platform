@@ -1,6 +1,10 @@
 import { documentService } from '@metorial/module-documents';
 import { filePurposeService, fileService } from '@metorial/module-file';
-import { skillService } from '@metorial/module-skill';
+import {
+  getSkillDocumentTitle,
+  isSkillDocumentPath,
+  skillService
+} from '@metorial/module-skill';
 import { storeItemMutationService } from '@metorial/module-store';
 import type { AuditScope } from '@metorial/audit-scope';
 import type { Instance, Prisma, Project, ResourceActor } from '@metorial/db';
@@ -37,14 +41,6 @@ export let parseImportedSkillMetadata = (d: {
       ? (frontmatter.metadata as Prisma.InputJsonValue)
       : undefined
   };
-};
-
-let isMarkdownPath = (filePath: string) =>
-  ['.md', '.markdown'].includes(path.extname(filePath).toLowerCase());
-
-let titleForMarkdown = (filePath: string, content: string) => {
-  let heading = content.match(/^#\s+(.+)$/m)?.[1]?.trim();
-  return heading || path.basename(filePath).replace(/\.(md|markdown)$/i, '') || 'Document';
 };
 
 export let materializeImportedSkill = async (d: {
@@ -126,17 +122,18 @@ export let materializeImportedSkill = async (d: {
 
   for (let file of files) {
     await d.onProgress?.();
-    if (isMarkdownPath(file.relativePath)) {
+    if (isSkillDocumentPath(file.relativePath)) {
       let content = file.content.toString('utf8');
       await documentService.createDocument({
         project: d.project,
         instance: d.instance,
         auditScope: d.auditScope,
         input: {
-          title:
-            file.relativePath === '/SKILL.md'
-              ? metadata.name
-              : titleForMarkdown(file.relativePath, content),
+          title: getSkillDocumentTitle({
+            path: file.relativePath,
+            content,
+            skillName: metadata.name
+          }),
           content,
           authorization,
           store: {

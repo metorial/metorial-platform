@@ -26,6 +26,7 @@ let magicMcpEndpointPayload = (
   slug: magicMcpEndpoint.slug,
   consumerProfileId: magicMcpEndpoint.consumerProfile?.id ?? null,
   skillPluginId: magicMcpEndpoint.skillPlugin?.id ?? null,
+  enableSkillEditing: magicMcpEndpoint.enableSkillEditing,
   serverCount: magicMcpEndpoint.servers.length
 });
 

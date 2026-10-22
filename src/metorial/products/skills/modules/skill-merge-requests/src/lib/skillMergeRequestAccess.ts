@@ -21,7 +21,7 @@ export let getVisibleSkillMergeRequestWhere = (d: {
   let actorOid = d.authorization.resourceActor.oid;
   let readableStoreWhere: Prisma.StoreWhereInput = {
     OR: [
-      { access: { in: ['public_read', 'public_write'] } },
+      { access: { in: ['public_read', 'public_write'] }, skill: { is: null } },
       { createdByResourceActorOid: actorOid },
       {
         storeParticipants: {

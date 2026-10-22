@@ -17,6 +17,17 @@ let assurances = [
   }
 ];
 
+let adminAssurances = [
+  {
+    title: 'Organization-Wide Approval',
+    description: 'Your approval lets everyone in your organization connect this integration.'
+  },
+  {
+    title: 'No Account Connected',
+    description: 'No credentials are stored for your admin account.'
+  }
+];
+
 let MissingUrl = styled.div`
   display: flex;
   flex-direction: column;
@@ -60,7 +71,15 @@ let AssuranceContent = styled.div`
 export let OAuthLoadingStep = ({ error }: { error: string | null }) =>
   error ? <RetryError message={error} /> : <CenteredSpinner />;
 
-export let OAuthRedirectStep = ({ oauthSetup }: { oauthSetup: OAuthSetup }) => {
+export let OAuthRedirectStep = ({
+  oauthSetup,
+  isAdminSession,
+  providerName
+}: {
+  oauthSetup: OAuthSetup;
+  isAdminSession: boolean;
+  providerName?: string;
+}) => {
   let [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
@@ -90,18 +109,20 @@ export let OAuthRedirectStep = ({ oauthSetup }: { oauthSetup: OAuthSetup }) => {
     <StepContainer>
       <div>
         <Text size="4" weight="strong">
-          Sign in required
+          {isAdminSession ? 'Admin sign-in required' : 'Sign in required'}
         </Text>
 
         <Text size="2" color="gray600">
-          You'll be redirected to connect your account.
+          {isAdminSession
+            ? `You've been asked to approve ${providerName ?? 'this integration'} for your organization. Sign in with an admin account to continue.`
+            : "You'll be redirected to connect your account."}
         </Text>
       </div>
 
       <Spacer size={15} />
 
       <div>
-        {assurances.map(item => (
+        {(isAdminSession ? adminAssurances : assurances).map(item => (
           <Assurance key={item.title}>
             <AssuranceIcon>
               <RiCheckLine size={16} />
@@ -126,7 +147,7 @@ export let OAuthRedirectStep = ({ oauthSetup }: { oauthSetup: OAuthSetup }) => {
           window.location.href = oauthUrl;
         }}
       >
-        Connect Account
+        {isAdminSession ? 'Sign In as Admin' : 'Connect Account'}
       </Button>
     </StepContainer>
   );

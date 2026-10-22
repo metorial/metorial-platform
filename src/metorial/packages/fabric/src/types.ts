@@ -791,6 +791,7 @@ export type AuditSandboxImageBuild = {
 
 export type SandboxMachineLifecycleAction = 'start' | 'pause' | 'hibernate' | 'restart';
 export type SandboxMachineAccessKind = 'shell' | 'files' | 'port';
+export type SandboxMachineExecOutcome = 'exited' | 'deadline' | 'disconnected' | 'rejected';
 
 export type StoreItemFabricOperation = {
   type: 'add' | 'modify' | 'remove';
@@ -892,6 +893,7 @@ export interface FabricEvents {
   'sandbox.machine.deleted:after': { auditScope: AuditScope; machine: AuditSandboxMachine };
   'sandbox.machine.lifecycle:after': { auditScope: AuditScope; machine: AuditSandboxMachine; action: SandboxMachineLifecycleAction };
   'sandbox.machine.access.created:after': { auditScope: AuditScope; machine: AuditSandboxMachine; kind: SandboxMachineAccessKind; ports: number[] | '*' | null; ttlSeconds: number | null };
+  'sandbox.machine.exec:after': { auditScope: AuditScope; machine: AuditSandboxMachine; commandByteSize: number; outcome: SandboxMachineExecOutcome; exitCode: number | null; timedOut: boolean; durationMs: number };
 
   'sandbox.disk.created:after': { auditScope: AuditScope; disk: AuditSandboxDisk; sourceDiskId: string | null; sourceImageId: string | null };
   'sandbox.disk.updated:after': { auditScope: AuditScope; disk: AuditSandboxDisk; previousDisk: AuditSandboxDisk };
@@ -1006,8 +1008,8 @@ export interface FabricEvents {
   'organization.project.retention.updated:after': { organization: Organization; project: Project; previousProject: Project; auditScope: AuditScope; input: { logRetentionInDays?: number; enforceSessionExpiry?: boolean } };
   'organization.project.auth_config_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { allowAuthConfigExport?: boolean; allowAuthConfigImport?: boolean; onlyAllowOAuthAuthMethods?: boolean; consumerAuthClientRegistrationsPerHourLimit?: number; consumerAuthClientRegistrationsPerMinuteLimit?: number } };
   'organization.project.auth_config_configuration.updated:after': { organization: Organization; project: Project; previousProject: Project; auditScope: AuditScope; input: { allowAuthConfigExport?: boolean; allowAuthConfigImport?: boolean; onlyAllowOAuthAuthMethods?: boolean; consumerAuthClientRegistrationsPerHourLimit?: number; consumerAuthClientRegistrationsPerMinuteLimit?: number }; configuration: { allowAuthConfigExport: boolean; allowAuthConfigImport: boolean; onlyAllowOAuthAuthMethods: boolean }; previousConfiguration: { allowAuthConfigExport: boolean; allowAuthConfigImport: boolean; onlyAllowOAuthAuthMethods: boolean } };
-  'organization.project.workforce_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { autoAddOrganizationMembersToPortals?: boolean } };
-  'organization.project.workforce_configuration.updated:after': { organization: Organization; project: Project; previousProject: Project; auditScope: AuditScope; input: { autoAddOrganizationMembersToPortals?: boolean } };
+  'organization.project.workforce_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { autoAddOrganizationMembersToPortals?: boolean; allowConsumerSkillEditing?: boolean } };
+  'organization.project.workforce_configuration.updated:after': { organization: Organization; project: Project; previousProject: Project; auditScope: AuditScope; input: { autoAddOrganizationMembersToPortals?: boolean; allowConsumerSkillEditing?: boolean } };
   'organization.project.integration_naming_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { useIntegrationNames?: boolean } };
   'organization.project.integration_naming_configuration.updated:after': { organization: Organization; project: Project; auditScope: AuditScope; input: { useIntegrationNames?: boolean }; configuration: { useIntegrationNames: boolean }; previousConfiguration: { useIntegrationNames: boolean } };
   'organization.project.tool_calling_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { collectOperationDescriptionForToolCalls?: boolean, messageProcessingTimeoutMs?: number } };

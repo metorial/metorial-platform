@@ -3,7 +3,7 @@ import { createMapper } from '@metorial/util-resource-mapper/compact';
 export type ProviderDeploymentsSetupSessionsDeleteOutput = {
   object: 'provider.setup_session';
   id: string;
-  type: 'auth_only' | 'config_only' | 'auth_and_config';
+  type: 'auth_only' | 'config_only' | 'auth_and_config' | 'admin';
   status:
     | 'failed'
     | 'archived'
@@ -12,6 +12,7 @@ export type ProviderDeploymentsSetupSessionsDeleteOutput = {
     | 'completed'
     | 'expired';
   url: string;
+  error: { code: string; message: string } | null;
   name: string | null;
   description: string | null;
   metadata: Record<string, any> | null;

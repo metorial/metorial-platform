@@ -45,6 +45,11 @@ vi.mock('@metorial/fabric', () => ({
   }
 }));
 
+vi.mock('@metorial/module-flags', () => ({
+  flagService: { getFlags: vi.fn() },
+  isFlagEnabled: (flag: unknown) => flag === true
+}));
+
 vi.mock('@metorial/module-access', () => ({
   consumerMagicMcpReadRoles: ['consumer_magic_mcp_read'],
   consumerMagicMcpWriteRoles: ['consumer_magic_mcp_write']

@@ -1,4 +1,6 @@
 import { mcp, metorialEndpoints, rest, uniqueId, useOrganization } from '@metorial/e2e';
+import { loadOrganizationFixture } from '@metorial/e2e/db';
+import { apiKeyService } from '@metorial/module-machine-access';
 import { describe, expect, it } from 'vitest';
 
 let mcpEndpoint = () => {
@@ -37,7 +39,15 @@ describe('api-connection', () => {
   });
 
   it('rejects non-instance credentials for MCP connections', async () => {
-    let management = await rest(mcpEndpoint(), { apiKey: org.keys.management }).post(
+    let fixture = await loadOrganizationFixture(org.ids);
+    let { secret } = await apiKeyService.createApiKey({
+      type: 'organization_management_token',
+      organization: fixture.organization,
+      auditScope: fixture.auditScope,
+      input: { name: uniqueId('mgmt') }
+    });
+
+    let management = await rest(mcpEndpoint(), { apiKey: secret.secret }).post(
       `/connect/mcp/${uniqueId('ses')}`,
       initializeMessage
     );

@@ -28,14 +28,11 @@ export interface BootstrappedOrganization {
   user: BootstrappedUser;
   session: string;
   keys: {
-    management: string;
     instanceSecret: string;
   };
   clients: {
     /** Dashboard (session) client scoped to the organization. */
     rest: RestClient;
-    /** Organization management API key client. */
-    management: RestClient;
     /** Instance secret API key client. */
     instance: RestClient;
     dashboard: ReturnType<typeof dashboardSdk>;
@@ -73,9 +70,10 @@ export let bootstrapUser = async (
 };
 
 /**
- * Creates a user, an organization, a project (which creates its production instance), an
- * organization management key and an instance secret key, all through the public HTTP API of the
- * stack's app-api/core-api.
+ * Creates a user, an organization, a project (which creates its production instance) and an
+ * instance secret key, all through the public HTTP API of the stack's app-api/core-api.
+ * Organization management keys can no longer be created over HTTP, so suites that need one create
+ * it with `apiKeyService`.
  */
 export let bootstrapOrganization = async (
   input: { user?: BootstrappedUser; name?: string } = {}
@@ -97,12 +95,6 @@ export let bootstrapOrganization = async (
   let instance = instances.items?.[0];
   if (!instance) throw new Error(`Project ${project.id} has no instance`);
 
-  let management = expectOk(
-    await session.post(`${base}/api-keys`, {
-      type: 'organization_management_token',
-      name: uniqueId('e2e-management')
-    })
-  );
   let instanceSecret = expectOk(
     await session.post(`${base}/api-keys`, {
       type: 'instance_access_token_secret',
@@ -110,8 +102,8 @@ export let bootstrapOrganization = async (
       name: uniqueId('e2e-instance')
     })
   );
-  if (!management.secret || !instanceSecret.secret) {
-    throw new Error('API key creation did not return the key secrets');
+  if (!instanceSecret.secret) {
+    throw new Error('API key creation did not return the key secret');
   }
 
   return {
@@ -124,12 +116,10 @@ export let bootstrapOrganization = async (
     user,
     session: user.session,
     keys: {
-      management: management.secret,
       instanceSecret: instanceSecret.secret
     },
     clients: {
       rest: rest(api, { session: user.session, organizationId: organization.id }),
-      management: rest(api, { apiKey: management.secret }),
       instance: rest(api, { apiKey: instanceSecret.secret, version: API_VERSIONS.magnetar }),
       dashboard: dashboardSdk({
         session: user.session,

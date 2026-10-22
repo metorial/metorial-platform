@@ -7,6 +7,8 @@ import {
   mapDashboardInstanceSandboxMachinesCreateBody,
   mapDashboardInstanceSandboxMachinesCreateOutput,
   mapDashboardInstanceSandboxMachinesDeleteOutput,
+  mapDashboardInstanceSandboxMachinesExecBody,
+  mapDashboardInstanceSandboxMachinesExecOutput,
   mapDashboardInstanceSandboxMachinesGetOutput,
   mapDashboardInstanceSandboxMachinesHibernateOutput,
   mapDashboardInstanceSandboxMachinesListOutput,
@@ -22,6 +24,8 @@ import {
   type DashboardInstanceSandboxMachinesCreateBody,
   type DashboardInstanceSandboxMachinesCreateOutput,
   type DashboardInstanceSandboxMachinesDeleteOutput,
+  type DashboardInstanceSandboxMachinesExecBody,
+  type DashboardInstanceSandboxMachinesExecOutput,
   type DashboardInstanceSandboxMachinesGetOutput,
   type DashboardInstanceSandboxMachinesHibernateOutput,
   type DashboardInstanceSandboxMachinesListOutput,
@@ -391,6 +395,38 @@ export class MetorialDashboardInstanceSandboxMachinesEndpoint {
 
     return this._get(request).transform(
       mapDashboardInstanceSandboxMachinesUsageOutput
+    );
+  }
+
+  /**
+   * @name Run a command
+   * @description Runs a shell command in the machine and returns its exit code and output. Non-interactive; starts the machine if needed.
+   *
+   * @param `instanceId` - string
+   * @param `machineId` - string
+   * @param `body` - DashboardInstanceSandboxMachinesExecBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceSandboxMachinesExecOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  exec(
+    instanceId: string,
+    machineId: string,
+    body: DashboardInstanceSandboxMachinesExecBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceSandboxMachinesExecOutput> {
+    let path = `dashboard/instances/${instanceId}/sandbox/machines/${machineId}/exec`;
+
+    let request = {
+      path,
+      body: mapDashboardInstanceSandboxMachinesExecBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardInstanceSandboxMachinesExecOutput
     );
   }
 }

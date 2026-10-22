@@ -6,7 +6,7 @@ import {
 export type ProviderDeploymentsSetupSessionsCreateOutput = {
   object: 'provider.setup_session';
   id: string;
-  type: 'auth_only' | 'config_only' | 'auth_and_config';
+  type: 'auth_only' | 'config_only' | 'auth_and_config' | 'admin';
   status:
     | 'failed'
     | 'archived'
@@ -15,6 +15,7 @@ export type ProviderDeploymentsSetupSessionsCreateOutput = {
     | 'completed'
     | 'expired';
   url: string;
+  error: { code: string; message: string } | null;
   name: string | null;
   description: string | null;
   metadata: Record<string, any> | null;
@@ -428,7 +429,13 @@ export type ProviderDeploymentsSetupSessionsCreateBody = {
   identityId?: string | undefined;
   consumerId?: string | undefined;
   redirectUrl?: string | undefined;
-  type?: 'auth_only' | 'config_only' | 'auth_and_config' | 'auto' | undefined;
+  type?:
+    | 'auth_only'
+    | 'config_only'
+    | 'auth_and_config'
+    | 'admin'
+    | 'auto'
+    | undefined;
   configuration?:
     | {
         providerSearch?:

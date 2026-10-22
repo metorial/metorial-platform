@@ -16,6 +16,11 @@ import { fileLinkService, fileReferenceService } from '@metorial/module-file';
 import { applyStoreByteSizeDelta, refreshStoreByteSize } from '../lib/storeByteSize';
 import { createStoreItemAuditRecorder } from '../lib/storeItemAudit';
 import {
+  assertSkillStoreItemAllowed,
+  isSkillAgentPath,
+  skillRootDocumentPath
+} from '../lib/skillStorePath';
+import {
   listAncestorDirectoryPaths,
   normalizeStorePath,
   type NormalizedStorePath
@@ -82,8 +87,6 @@ let modifyOperationLimit = 500;
 let maxStoreItems = 1000;
 let maxSkillStoreFiles = 1000;
 let maxSkillStoreBytes = 1024n * 1024n * 1024n * 10n;
-let reservedSkillDocumentName = 'SKILL.md';
-let agentsDirectoryPath = '/agents/';
 
 type SkillStoreRecord = Pick<Skill, 'oid' | 'id'>;
 
@@ -204,10 +207,6 @@ class StoreItemMutationServiceImpl {
     return path.name!.replace(/\.md$/i, '');
   }
 
-  private isAgentPath(path: NormalizedStorePath) {
-    return path.parentPath === agentsDirectoryPath && path.name?.toLowerCase().endsWith('.md');
-  }
-
   private getAgentNameFromItem(
     item: StoreItemRecord,
     path: NormalizedStorePath,
@@ -219,30 +218,10 @@ class StoreItemMutationServiceImpl {
     return item.document?.title?.trim() || slug;
   }
 
-  private assertSkillStoreItemAllowed(d: { path: NormalizedStorePath; kind: StoreItemKind }) {
-    if (d.path.name === reservedSkillDocumentName && d.kind !== 'document') {
-      throw new ServiceError(
-        badRequestError({
-          message: 'SKILL.md is reserved for documents in skill stores'
-        })
-      );
-    }
-
-    if (d.path.parentPath === agentsDirectoryPath) {
-      if (d.kind !== 'document' || !d.path.name?.toLowerCase().endsWith('.md')) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Only markdown documents can be added to the agents directory of a skill'
-          })
-        );
-      }
-    }
-  }
-
   private assertSkillStoreRemoveAllowed(item: StoreItemRecord) {
     let path = this.normalizeExistingItemPath(item);
 
-    if (path.path === `/${reservedSkillDocumentName}`) {
+    if (path.path === skillRootDocumentPath) {
       throw new ServiceError(
         badRequestError({
           message: 'SKILL.md cannot be removed from a skill store'
@@ -258,7 +237,7 @@ class StoreItemMutationServiceImpl {
   }) {
     this.assertRootSkillDocumentMoveAllowed(d);
 
-    this.assertSkillStoreItemAllowed({
+    assertSkillStoreItemAllowed({
       path: d.nextPath,
       kind: d.nextKind
     });
@@ -270,10 +249,7 @@ class StoreItemMutationServiceImpl {
   }) {
     let currentPath = this.normalizeExistingItemPath(d.item);
 
-    if (
-      currentPath.path === `/${reservedSkillDocumentName}` &&
-      d.nextPath.path !== currentPath.path
-    ) {
+    if (currentPath.path === skillRootDocumentPath && d.nextPath.path !== currentPath.path) {
       throw new ServiceError(
         badRequestError({
           message: 'SKILL.md cannot be moved in a skill store'
@@ -392,8 +368,8 @@ class StoreItemMutationServiceImpl {
     let previousPath = d.previousItem ? this.normalizeExistingItemPath(d.previousItem) : null;
     let nextPath = d.nextItem ? this.normalizeExistingItemPath(d.nextItem) : null;
     let wasAgent =
-      !!previousPath && this.isAgentPath(previousPath) && d.previousItem?.kind === 'document';
-    let isAgent = !!nextPath && this.isAgentPath(nextPath) && d.nextItem?.kind === 'document';
+      !!previousPath && isSkillAgentPath(previousPath) && d.previousItem?.kind === 'document';
+    let isAgent = !!nextPath && isSkillAgentPath(nextPath) && d.nextItem?.kind === 'document';
 
     if (wasAgent && !isAgent) {
       await this.archiveActiveSkillAgentsForStoreItem({
@@ -1399,7 +1375,7 @@ class StoreItemMutationServiceImpl {
         kind: 'file'
       });
       if (skill) {
-        this.assertSkillStoreItemAllowed({
+        assertSkillStoreItemAllowed({
           path: normalizedPath,
           kind: this.getContentItemKind(d.target)
         });
@@ -1558,7 +1534,7 @@ class StoreItemMutationServiceImpl {
       for (let operation of operations) {
         if (operation.type === 'add') {
           if (skill) {
-            this.assertSkillStoreItemAllowed({
+            assertSkillStoreItemAllowed({
               path: operation.path,
               kind: operation.kind
             });

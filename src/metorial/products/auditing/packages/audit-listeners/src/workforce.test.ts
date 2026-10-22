@@ -38,6 +38,7 @@ import {
   recordConsumerProviderSetupSessionCreated
 } from './consumerAccess';
 import {
+  recordMagicMcpEndpointCreated,
   recordMagicMcpEndpointServersModified,
   recordMagicMcpTokenCreated,
   recordMagicMcpTokenRotated
@@ -394,6 +395,39 @@ describe('workforce audit listeners', () => {
       expect(event.payload.groupIds).toStrictEqual(['mmg_1']);
       expect(['create', 'rotate']).toContain(action);
     }
+  });
+
+  it('records whether skill editing is enabled on a magic MCP endpoint', async () => {
+    await recordMagicMcpEndpointCreated({
+      instance: {},
+      magicMcpEndpoint: {
+        id: 'mme_1',
+        status: 'active',
+        name: 'Acme',
+        description: null,
+        slug: 'acme-endpoint',
+        consumerProfile: null,
+        skillPlugin: { id: 'spl_1' },
+        enableSkillEditing: true,
+        servers: [{ id: 'mgep_1' }]
+      },
+      auditScope
+    } as any);
+
+    let [, resource, action, event] = recordEvent.mock.calls[0]!;
+    expect(resource).toBe('magic_mcp_endpoint');
+    expect(action).toBe('create');
+    expect(event.payload).toStrictEqual({
+      id: 'mme_1',
+      status: 'active',
+      name: 'Acme',
+      description: null,
+      slug: 'acme-endpoint',
+      consumerProfileId: null,
+      skillPluginId: 'spl_1',
+      enableSkillEditing: true,
+      serverCount: 1
+    });
   });
 
   it('records only the servers an endpoint actually gained', async () => {

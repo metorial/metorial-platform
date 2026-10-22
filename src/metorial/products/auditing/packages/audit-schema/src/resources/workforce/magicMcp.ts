@@ -32,6 +32,7 @@ export let magicMcpEndpointAuditResource = resource({
     slug: string;
     consumerProfileId: string | null;
     skillPluginId: string | null;
+    enableSkillEditing: boolean;
     serverCount: number;
   }>('magic_mcp_endpoint'),
   presenter: undefined,
