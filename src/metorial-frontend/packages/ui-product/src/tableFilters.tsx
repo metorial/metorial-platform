@@ -23,6 +23,8 @@ import {
   TableFilterStateNumber,
   TableFilterStateSelect,
   TableFilterStateString,
+  formatFilterDate,
+  formatFilterDateRange,
   getCachedFilterLabel,
   isEmptyFilterValue,
   rememberFilterLabels,
@@ -213,10 +215,10 @@ let getFilterText = (filter: TableFilter<any>, state: TableFilterState): string 
 
   if (filter.type == 'date' && state.type == 'date') {
     if (state.operation == 'between') {
-      return `${state.value[0].toLocaleDateString()} - ${state.value[1].toLocaleDateString()}`;
+      return formatFilterDateRange(state.value[0], state.value[1]);
     }
 
-    return state.value.toLocaleDateString();
+    return formatFilterDate(state.value);
   }
 
   if (state.type == 'string') {
@@ -561,7 +563,13 @@ let PinnedFilterPill = ({
       </RadixPopover.Trigger>
 
       <RadixPopover.Portal>
-        <FilterPopover $compact side="bottom" align="start" sideOffset={5} collisionPadding={16}>
+        <FilterPopover
+          $compact
+          side="bottom"
+          align="start"
+          sideOffset={5}
+          collisionPadding={16}
+        >
           <FilterContent>
             <FilterContentHeader>
               <Title as="h1" size="2" weight="bold">

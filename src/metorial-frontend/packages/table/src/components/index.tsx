@@ -54,6 +54,13 @@ let HeaderSection = styled('section')`
   width: 100%;
 `;
 
+let HeaderEnd = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+`;
+
 let TableWrapper = styled('div')`
   overflow-x: auto;
   width: 100%;
@@ -141,6 +148,30 @@ let TableLink = styled(Link)`
   display: block;
   color: ${theme.colors.foreground};
   text-decoration: none;
+`;
+
+let BodyFrame = styled('div')<{ $framed: boolean }>`
+  ${p =>
+    p.$framed
+      ? `
+    display: flex;
+    flex-direction: column;
+    margin-top: 10px;
+    border: 1px solid ${theme.colors.gray400};
+    border-radius: 10px;
+    background: ${theme.colors.background};
+    box-shadow: ${theme.shadows.small};
+    overflow: hidden;
+
+    thead th {
+      background: ${theme.colors.gray100};
+      border-top: 1px solid ${theme.colors.gray300};
+      border-bottom-width: 1px;
+    }
+  `
+      : `
+    display: contents;
+  `}
 `;
 
 let Footer = styled('footer')`
@@ -292,13 +323,16 @@ export let TableComponent = reactMemo(
     onItemClick?: (item: any) => void;
     selectedItemId?: string;
     headerActions?: (d: { filter: any; search?: string }) => React.ReactNode;
+    toolbarEnd?: React.ReactNode;
+    topContent?: React.ReactNode;
+    framed?: boolean;
   }) => {
     let filterState = useState([] as TableFilterState[]);
     let filterPayload = useMemo(() => getFilterPayload(filterState[0]), [filterState[0]]);
     let [hasHydratedLayout, setHasHydratedLayout] = useState(false);
 
     let isGroup = useIsGroup();
-    let sidePadding = isGroup ? 10 : props.sidePadding;
+    let sidePadding = isGroup ? 10 : (props.sidePadding ?? (props.framed ? 12 : undefined));
 
     let [search, setSearch] = useState('');
     let [debouncedSearch, setDebouncedSearch] = useState('');
@@ -380,6 +414,7 @@ export let TableComponent = reactMemo(
     let [, setSearchParams] = useSearchParams();
 
     let hasHeader =
+      !!props.toolbarEnd ||
       !!props.search ||
       !!props.headerActions ||
       (props.filters && props.filters.length > 0) ||
@@ -468,8 +503,8 @@ export let TableComponent = reactMemo(
         {hasHeader && (
           <Header
             style={{
-              paddingLeft: sidePadding,
-              paddingRight: sidePadding,
+              paddingLeft: props.framed ? undefined : sidePadding,
+              paddingRight: props.framed ? undefined : sidePadding,
 
               paddingTop: isGroup ? 10 : 0
             }}
@@ -494,7 +529,11 @@ export let TableComponent = reactMemo(
 
               <Spacer />
 
-              <Columns columns={props.columns} layoutObserver={props.layoutObserver} />
+              <HeaderEnd>
+                {props.toolbarEnd}
+
+                <Columns columns={props.columns} layoutObserver={props.layoutObserver} />
+              </HeaderEnd>
 
               {props.headerActions && (
                 <props.headerActions filter={filterPayload} search={debouncedSearch} />
@@ -503,413 +542,425 @@ export let TableComponent = reactMemo(
           </Header>
         )}
 
-        {isFullLoading && (
-          <div style={{ padding: '10px 0px' }}>
-            <CenteredSpinner />
-          </div>
-        )}
+        <BodyFrame $framed={!!props.framed}>
+          {props.topContent}
 
-        {state.error && (
-          <>
-            <Spacer height={10} />
-            <Error>
-              {state.error.data?.message ?? state.error.message ?? 'An error occurred'}
-            </Error>
-          </>
-        )}
+          {isFullLoading && (
+            <div style={{ padding: '10px 0px' }}>
+              <CenteredSpinner />
+            </div>
+          )}
 
-        {!isFullLoading && !state.error && (
-          <>
-            <TableWrapper
-              style={{
-                opacity: state.isLoading ? 0.3 : 1,
-                transition: 'opacity 0.2s'
-              }}
-            >
-              <AnimatePresence>
-                {state.isLoading && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      zIndex: 1
-                    }}
-                  >
+          {state.error && (
+            <>
+              <Spacer height={10} />
+              <Error>
+                {state.error.data?.message ?? state.error.message ?? 'An error occurred'}
+              </Error>
+            </>
+          )}
+
+          {!isFullLoading && !state.error && (
+            <>
+              <TableWrapper
+                style={{
+                  opacity: state.isLoading ? 0.3 : 1,
+                  transition: 'opacity 0.2s'
+                }}
+              >
+                <AnimatePresence>
+                  {state.isLoading && (
                     <motion.div
-                      initial={{ scale: 0.5 }}
-                      animate={{ scale: 1 }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
                       transition={{ duration: 0.2 }}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1
+                      }}
                     >
-                      <CenteredSpinner />
-                    </motion.div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <Table>
-                <TableHead>
-                  <TableRow sidePadding={sidePadding}>
-                    {props.rowPanel && <TableHeaderCell />}
-
-                    {hasBulkActions && (
-                      <TableSelectCell
-                        as="th"
-                        style={{
-                          width: '20px',
-                          borderBottom: `2px solid ${theme.colors.gray300}`
-                        }}
+                      <motion.div
+                        initial={{ scale: 0.5 }}
+                        animate={{ scale: 1 }}
+                        transition={{ duration: 0.2 }}
                       >
-                        <TableCellInner>
-                          <Checkbox
-                            label="Select all"
-                            hideLabel
-                            checked={allSelected}
-                            onCheckedChange={checked => {
-                              if (checked) {
-                                setSelectedItems(state.items.map(i => i.id));
-                              } else {
-                                setSelectedItems([]);
-                              }
-                            }}
-                          />
-                        </TableCellInner>
-                      </TableSelectCell>
-                    )}
+                        <CenteredSpinner />
+                      </motion.div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
-                    {currentColumns.map(column => (
-                      <TableHeaderCell key={column.id}>
-                        <TableCellInner>{column.header}</TableCellInner>
-                      </TableHeaderCell>
-                    ))}
+                <Table>
+                  <TableHead>
+                    <TableRow sidePadding={sidePadding}>
+                      {props.rowPanel && <TableHeaderCell />}
 
-                    {hasRowActions && <TableHeaderCell style={{ width: '26px' }} />}
-                  </TableRow>
-                </TableHead>
-
-                <TableBody>
-                  {state.items.map((row, i) => {
-                    let to = link?.(row, props.props);
-                    let isRowInteractive =
-                      !!props.clickable || !!props.onItemClick || !!props.rowPanel;
-
-                    return (
-                      <Fragment key={`wrapper-${row.id}`}>
-                        <TableRow
-                          sidePadding={sidePadding}
-                          $isInteractive={isRowInteractive}
-                          key={row.id}
-                          onClick={e => {
-                            if (isInteractiveElement(e.target)) {
-                              return;
-                            }
-
-                            props.onItemClick?.(row);
-
-                            if (e.shiftKey) {
-                              let current = state.items.findIndex(i => i.id == row.id);
-                              let last = state.items.findIndex(i => i.id == selectedItems[0]);
-
-                              if (last == -1) {
-                                setSelectedItems([row.id]);
-                              } else {
-                                let start = Math.min(current, last);
-                                let end = Math.max(current, last);
-
-                                setSelectedItems(
-                                  state.items.slice(start, end + 1).map(i => i.id)
-                                );
-                              }
-                            } else if (e.ctrlKey) {
-                              if (selectedItems.includes(row.id)) {
-                                setSelectedItems(selectedItems.filter(i => i != row.id));
-                              } else {
-                                setSelectedItems([...selectedItems, row.id]);
-                              }
-                            } else {
-                              props.clickable?.(row, props.props);
-
-                              if (props.rowPanel) {
-                                setOpenRowPanel(p => {
-                                  if (p.includes(row.id)) return p.filter(id => id != row.id);
-                                  return [...p, row.id];
-                                });
-                              }
-                            }
-                          }}
+                      {hasBulkActions && (
+                        <TableSelectCell
+                          as="th"
                           style={{
-                            background:
-                              selectedItems.includes(row.id) || props.selectedItemId == row.id
-                                ? theme.colors.gray100
-                                : 'none',
-                            opacity: loadingIds?.includes(row.id) ? 0.5 : 1,
-                            transition: 'opacity 0.2s'
+                            width: '20px',
+                            borderBottom: `2px solid ${theme.colors.gray300}`
                           }}
                         >
-                          {props.rowPanel && (
-                            <TableCell
-                              style={{
-                                width: '16px',
-                                background: selectedItems.includes(row.id)
-                                  ? theme.colors.gray100
-                                  : theme.colors.background,
-                                transition: 'all .3s'
+                          <TableCellInner>
+                            <Checkbox
+                              label="Select all"
+                              hideLabel
+                              checked={allSelected}
+                              onCheckedChange={checked => {
+                                if (checked) {
+                                  setSelectedItems(state.items.map(i => i.id));
+                                } else {
+                                  setSelectedItems([]);
+                                }
                               }}
-                            >
-                              <TableCellInner>
-                                <RiArrowDownSLine
-                                  size={14}
-                                  style={{ color: theme.colors.gray600 }}
-                                />
-                              </TableCellInner>
-                            </TableCell>
-                          )}
+                            />
+                          </TableCellInner>
+                        </TableSelectCell>
+                      )}
 
-                          {hasBulkActions && (
-                            <TableSelectCell
-                              style={{
-                                width: '20px',
-                                background: selectedItems.includes(row.id)
+                      {currentColumns.map(column => (
+                        <TableHeaderCell key={column.id}>
+                          <TableCellInner>{column.header}</TableCellInner>
+                        </TableHeaderCell>
+                      ))}
+
+                      {hasRowActions && <TableHeaderCell style={{ width: '26px' }} />}
+                    </TableRow>
+                  </TableHead>
+
+                  <TableBody>
+                    {state.items.map((row, i) => {
+                      let to = link?.(row, props.props);
+                      let isRowInteractive =
+                        !!props.clickable || !!props.onItemClick || !!props.rowPanel;
+
+                      return (
+                        <Fragment key={`wrapper-${row.id}`}>
+                          <TableRow
+                            sidePadding={sidePadding}
+                            $isInteractive={isRowInteractive}
+                            key={row.id}
+                            onClick={e => {
+                              if (isInteractiveElement(e.target)) {
+                                return;
+                              }
+
+                              props.onItemClick?.(row);
+
+                              if (e.shiftKey) {
+                                let current = state.items.findIndex(i => i.id == row.id);
+                                let last = state.items.findIndex(
+                                  i => i.id == selectedItems[0]
+                                );
+
+                                if (last == -1) {
+                                  setSelectedItems([row.id]);
+                                } else {
+                                  let start = Math.min(current, last);
+                                  let end = Math.max(current, last);
+
+                                  setSelectedItems(
+                                    state.items.slice(start, end + 1).map(i => i.id)
+                                  );
+                                }
+                              } else if (e.ctrlKey) {
+                                if (selectedItems.includes(row.id)) {
+                                  setSelectedItems(selectedItems.filter(i => i != row.id));
+                                } else {
+                                  setSelectedItems([...selectedItems, row.id]);
+                                }
+                              } else {
+                                props.clickable?.(row, props.props);
+
+                                if (props.rowPanel) {
+                                  setOpenRowPanel(p => {
+                                    if (p.includes(row.id))
+                                      return p.filter(id => id != row.id);
+                                    return [...p, row.id];
+                                  });
+                                }
+                              }
+                            }}
+                            style={{
+                              background:
+                                selectedItems.includes(row.id) ||
+                                props.selectedItemId == row.id
                                   ? theme.colors.gray100
-                                  : theme.colors.background,
-                                transition: 'all .3s'
-                              }}
-                            >
-                              <TableCellInner>
-                                <Checkbox
-                                  label="Select row"
-                                  hideLabel
-                                  checked={selectedItems.includes(row.id)}
-                                  onCheckedChange={checked => {
-                                    if (checked) {
-                                      setSelectedItems([...selectedItems, row.id]);
-                                    } else {
-                                      setSelectedItems(selectedItems.filter(i => i != row.id));
-                                    }
-                                  }}
-                                />
-                              </TableCellInner>
-                            </TableSelectCell>
-                          )}
+                                  : 'none',
+                              opacity: loadingIds?.includes(row.id) ? 0.5 : 1,
+                              transition: 'opacity 0.2s'
+                            }}
+                          >
+                            {props.rowPanel && (
+                              <TableCell
+                                style={{
+                                  width: '16px',
+                                  background: selectedItems.includes(row.id)
+                                    ? theme.colors.gray100
+                                    : theme.colors.background,
+                                  transition: 'all .3s'
+                                }}
+                              >
+                                <TableCellInner>
+                                  <RiArrowDownSLine
+                                    size={14}
+                                    style={{ color: theme.colors.gray600 }}
+                                  />
+                                </TableCellInner>
+                              </TableCell>
+                            )}
 
-                          {currentColumns.map(column => (
-                            <TableCell key={column.id}>
-                              {to ? (
-                                <TableLink to={to}>
+                            {hasBulkActions && (
+                              <TableSelectCell
+                                style={{
+                                  width: '20px',
+                                  background: selectedItems.includes(row.id)
+                                    ? theme.colors.gray100
+                                    : theme.colors.background,
+                                  transition: 'all .3s'
+                                }}
+                              >
+                                <TableCellInner>
+                                  <Checkbox
+                                    label="Select row"
+                                    hideLabel
+                                    checked={selectedItems.includes(row.id)}
+                                    onCheckedChange={checked => {
+                                      if (checked) {
+                                        setSelectedItems([...selectedItems, row.id]);
+                                      } else {
+                                        setSelectedItems(
+                                          selectedItems.filter(i => i != row.id)
+                                        );
+                                      }
+                                    }}
+                                  />
+                                </TableCellInner>
+                              </TableSelectCell>
+                            )}
+
+                            {currentColumns.map(column => (
+                              <TableCell key={column.id}>
+                                {to ? (
+                                  <TableLink to={to}>
+                                    <TableCellInner>
+                                      {column.render(row, props.props)}
+                                    </TableCellInner>
+                                  </TableLink>
+                                ) : (
                                   <TableCellInner>
                                     {column.render(row, props.props)}
                                   </TableCellInner>
-                                </TableLink>
-                              ) : (
+                                )}
+                              </TableCell>
+                            ))}
+
+                            {hasRowActions && (
+                              <TableActionsCell
+                                style={{
+                                  width: '26px',
+                                  background: selectedItems.includes(row.id)
+                                    ? theme.colors.gray100
+                                    : theme.colors.background,
+                                  transition: 'all .3s'
+                                }}
+                              >
                                 <TableCellInner>
-                                  {column.render(row, props.props)}
+                                  <Menu
+                                    items={[
+                                      ...(to ? [{ id: '$$open$$', label: 'Open' }] : []),
+                                      ...(props.rowActions ?? [])
+                                        .filter(action => !action.hidden?.(row))
+                                        .map(action => ({
+                                          id: action.id,
+                                          label: action.label,
+                                          disabled: action.disabled?.(row)
+                                        }))
+                                    ]}
+                                    onItemClick={id => {
+                                      if (id == '$$open$$') return navigate(to!);
+
+                                      let rowAction = props.rowActions?.find(a => a.id == id);
+                                      if (!rowAction) return;
+                                      void runTableAction(rowAction, [row]);
+                                    }}
+                                  >
+                                    <Button
+                                      size="1"
+                                      variant="outline"
+                                      iconLeft={<RiMore2Line />}
+                                    />
+                                  </Menu>
                                 </TableCellInner>
-                              )}
-                            </TableCell>
-                          ))}
-
-                          {hasRowActions && (
-                            <TableActionsCell
-                              style={{
-                                width: '26px',
-                                background: selectedItems.includes(row.id)
-                                  ? theme.colors.gray100
-                                  : theme.colors.background,
-                                transition: 'all .3s'
-                              }}
-                            >
-                              <TableCellInner>
-                                <Menu
-                                  items={[
-                                    ...(to ? [{ id: '$$open$$', label: 'Open' }] : []),
-                                    ...(props.rowActions ?? [])
-                                      .filter(action => !action.hidden?.(row))
-                                      .map(action => ({
-                                        id: action.id,
-                                        label: action.label,
-                                        disabled: action.disabled?.(row)
-                                      }))
-                                  ]}
-                                  onItemClick={id => {
-                                    if (id == '$$open$$') return navigate(to!);
-
-                                    let rowAction = props.rowActions?.find(a => a.id == id);
-                                    if (!rowAction) return;
-                                    void runTableAction(rowAction, [row]);
-                                  }}
-                                >
-                                  <Button
-                                    size="1"
-                                    variant="outline"
-                                    iconLeft={<RiMore2Line />}
-                                  />
-                                </Menu>
-                              </TableCellInner>
-                            </TableActionsCell>
-                          )}
-                        </TableRow>
-
-                        {props.rowPanel && openRowPanel.includes(row.id) && (
-                          <TableRow sidePadding={sidePadding}>
-                            <TableCell
-                              colSpan={currentColumns.length + 1 + (hasRowActions ? 1 : 0)}
-                            >
-                              <TableCellInner>
-                                <RowPanel row={row} rowPanel={props.rowPanel!} />
-                              </TableCellInner>
-                            </TableCell>
+                              </TableActionsCell>
+                            )}
                           </TableRow>
-                        )}
-                      </Fragment>
-                    );
-                  })}
 
-                  {state.items.length == 0 && (
-                    <TableRow sidePadding={sidePadding}>
-                      <TableCell
-                        colSpan={
-                          currentColumns.length +
-                          (hasBulkActions ? 1 : 0) +
-                          (hasRowActions ? 1 : 0)
-                        }
-                      >
-                        <TableCellInner
-                          style={{
-                            padding: '20px',
-                            display: 'flex',
-                            justifyContent: 'center',
-                            alignItems: 'center'
-                          }}
+                          {props.rowPanel && openRowPanel.includes(row.id) && (
+                            <TableRow sidePadding={sidePadding}>
+                              <TableCell
+                                colSpan={currentColumns.length + 1 + (hasRowActions ? 1 : 0)}
+                              >
+                                <TableCellInner>
+                                  <RowPanel row={row} rowPanel={props.rowPanel!} />
+                                </TableCellInner>
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </Fragment>
+                      );
+                    })}
+
+                    {state.items.length == 0 && (
+                      <TableRow sidePadding={sidePadding}>
+                        <TableCell
+                          colSpan={
+                            currentColumns.length +
+                            (hasBulkActions ? 1 : 0) +
+                            (hasRowActions ? 1 : 0)
+                          }
                         >
-                          <Text size="1" color="gray800" align="center">
-                            {state.hasMoreBefore
-                              ? 'You have reached the end of this list'
-                              : typeof props.emptyState == 'string'
-                                ? props.emptyState
-                                : 'No items found matching your criteria'}
-                          </Text>
-                        </TableCellInner>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </TableWrapper>
+                          <TableCellInner
+                            style={{
+                              padding: '20px',
+                              display: 'flex',
+                              justifyContent: 'center',
+                              alignItems: 'center'
+                            }}
+                          >
+                            <Text size="1" color="gray800" align="center">
+                              {state.hasMoreBefore
+                                ? 'You have reached the end of this list'
+                                : typeof props.emptyState == 'string'
+                                  ? props.emptyState
+                                  : 'No items found matching your criteria'}
+                            </Text>
+                          </TableCellInner>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableWrapper>
 
-            {props.hasPagination && (
-              <Footer
-                style={{
-                  padding: `10px ${sidePadding ? sidePadding + 5 : 0}px`,
-                  borderTop: isGroup ? `1px solid ${theme.colors.gray300}` : 'none'
-                }}
-              >
-                <Text size="1" color="gray700" weight="medium">
-                  Showing {state.items.length} item{state.items.length == 1 ? '' : 's'}
-                </Text>
+              {props.hasPagination && (
+                <Footer
+                  style={{
+                    padding: `10px ${sidePadding ? sidePadding + 5 : 0}px`,
+                    borderTop: isGroup ? `1px solid ${theme.colors.gray300}` : 'none'
+                  }}
+                >
+                  <Text size="1" color="gray700" weight="medium">
+                    Showing {state.items.length} item{state.items.length == 1 ? '' : 's'}
+                  </Text>
 
-                <div style={{ display: 'flex', gap: 5 }}>
-                  <Button
-                    size="1"
-                    variant="outline"
-                    disabled={!state.hasMoreBefore}
-                    onClick={goToPreviousPage}
-                  >
-                    Previous
-                  </Button>
-
-                  <Button
-                    size="1"
-                    variant="outline"
-                    disabled={!state.hasMoreAfter}
-                    onClick={goToNextPage}
-                  >
-                    Next
-                  </Button>
-                </div>
-              </Footer>
-            )}
-
-            <ActionBarWrapper>
-              <AnimatePresence>
-                {selectedItems.length > 0 && (
-                  <ActionBar
-                    initial={{ opacity: 0, scale: 0.5 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.5 }}
-                    transition={{
-                      duration: 0.4,
-                      type: 'spring',
-                      ease: 'easeInOut',
-                      bounce: 0.35
-                    }}
-                  >
-                    <Text size="1" color="gray400" weight="medium">
-                      {selectedItems.length == 1 ? (
-                        <>
-                          <strong>1</strong> item selected
-                        </>
-                      ) : (
-                        <>
-                          <strong>{selectedItems.length}</strong> items selected
-                        </>
-                      )}
-                    </Text>
-
-                    {props.bulkActions!.map(action => (
-                      <Button
-                        key={action.id}
-                        onClick={async () => {
-                          let selected = state.items.filter(i => selectedItems.includes(i.id));
-
-                          if (action.disabled) {
-                            selected = selected.filter(r => !action.disabled!(r));
-                          }
-
-                          if (selected.length == 0) return;
-
-                          setRunningBulkActionId(action.id);
-
-                          try {
-                            await runTableAction(action, selected);
-                            setSelectedItems([]);
-                          } finally {
-                            setRunningBulkActionId(current =>
-                              current == action.id ? null : current
-                            );
-                          }
-                        }}
-                        size="1"
-                        loading={runningBulkActionId == action.id}
-                        disabled={runningBulkActionId !== null}
-                      >
-                        {action.label}
-                      </Button>
-                    ))}
+                  <div style={{ display: 'flex', gap: 5 }}>
+                    <Button
+                      size="1"
+                      variant="outline"
+                      disabled={!state.hasMoreBefore}
+                      onClick={goToPreviousPage}
+                    >
+                      Previous
+                    </Button>
 
                     <Button
-                      onClick={() => {
-                        setSelectedItems([]);
-                      }}
                       size="1"
-                      disabled={runningBulkActionId !== null}
+                      variant="outline"
+                      disabled={!state.hasMoreAfter}
+                      onClick={goToNextPage}
                     >
-                      Clear selection
+                      Next
                     </Button>
-                  </ActionBar>
-                )}
-              </AnimatePresence>
-            </ActionBarWrapper>
-          </>
-        )}
+                  </div>
+                </Footer>
+              )}
+
+              <ActionBarWrapper>
+                <AnimatePresence>
+                  {selectedItems.length > 0 && (
+                    <ActionBar
+                      initial={{ opacity: 0, scale: 0.5 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.5 }}
+                      transition={{
+                        duration: 0.4,
+                        type: 'spring',
+                        ease: 'easeInOut',
+                        bounce: 0.35
+                      }}
+                    >
+                      <Text size="1" color="gray400" weight="medium">
+                        {selectedItems.length == 1 ? (
+                          <>
+                            <strong>1</strong> item selected
+                          </>
+                        ) : (
+                          <>
+                            <strong>{selectedItems.length}</strong> items selected
+                          </>
+                        )}
+                      </Text>
+
+                      {props.bulkActions!.map(action => (
+                        <Button
+                          key={action.id}
+                          onClick={async () => {
+                            let selected = state.items.filter(i =>
+                              selectedItems.includes(i.id)
+                            );
+
+                            if (action.disabled) {
+                              selected = selected.filter(r => !action.disabled!(r));
+                            }
+
+                            if (selected.length == 0) return;
+
+                            setRunningBulkActionId(action.id);
+
+                            try {
+                              await runTableAction(action, selected);
+                              setSelectedItems([]);
+                            } finally {
+                              setRunningBulkActionId(current =>
+                                current == action.id ? null : current
+                              );
+                            }
+                          }}
+                          size="1"
+                          loading={runningBulkActionId == action.id}
+                          disabled={runningBulkActionId !== null}
+                        >
+                          {action.label}
+                        </Button>
+                      ))}
+
+                      <Button
+                        onClick={() => {
+                          setSelectedItems([]);
+                        }}
+                        size="1"
+                        disabled={runningBulkActionId !== null}
+                      >
+                        Clear selection
+                      </Button>
+                    </ActionBar>
+                  )}
+                </AnimatePresence>
+              </ActionBarWrapper>
+            </>
+          )}
+        </BodyFrame>
       </Wrapper>
     );
   }

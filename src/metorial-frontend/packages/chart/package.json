@@ -12,7 +12,9 @@
     "@metorial/ui": "^1.0.0",
     "apexcharts": "^4.7.0",
     "react": "19.1.1",
-    "react-apexcharts": "^1.7.0"
+    "react-apexcharts": "^1.7.0",
+    "react-dom": "19.1.1",
+    "styled-components": "^6.1.13"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

@@ -55,3 +55,9 @@ export type TableItemAction<Item, Actions extends TableActions<any, any>> = {
     batchSize?: number;
   };
 };
+
+export type TableLayoutProps = {
+  toolbarEnd?: React.ReactNode;
+  topContent?: React.ReactNode;
+  framed?: boolean;
+};
