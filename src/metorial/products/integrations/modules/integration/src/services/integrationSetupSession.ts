@@ -215,7 +215,7 @@ class integrationSetupSessionServiceImpl {
               solutionOid: solution.oid,
               environmentOid: d.environment.oid,
 
-              ...normalizeStatusForList(d).onlyParent,
+              ...normalizeStatusForList(d).noParent,
 
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
