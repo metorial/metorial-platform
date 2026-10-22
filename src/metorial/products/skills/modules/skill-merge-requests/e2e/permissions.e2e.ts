@@ -6,8 +6,12 @@ import {
   useOrganization
 } from '@metorial/e2e';
 import { db, loadOrganizationFixture, type OrganizationFixture } from '@metorial/e2e/db';
-import type { StoreAccess } from '@metorial/db';
-import { createResourceAuthorization } from '@metorial/module-access';
+import { ID } from '@metorial/db';
+import {
+  consumerSkillReadRoles,
+  consumerSkillWriteRoles,
+  createResourceAuthorization
+} from '@metorial/module-access';
 import {
   consumerProfileService,
   consumerSurfaceService
@@ -53,12 +57,15 @@ let createConsumer = async (fixture: OrganizationFixture) => {
     consumerProfile: profile
   });
 
+  let accessTagOid = profile.personalConsumerGroup!.accessTagOid;
+
   return {
     actor,
+    accessTagOid,
     authorization: createResourceAuthorization({
       restricted: true,
       resourceActor: actor,
-      accessTags: [{ accessTagOid: profile.personalConsumerGroup!.accessTagOid }],
+      accessTags: [{ accessTagOid }],
       project: fixture.project,
       instance: fixture.instance,
       consumerProfile: profile
@@ -66,13 +73,42 @@ let createConsumer = async (fixture: OrganizationFixture) => {
   };
 };
 
-let setAccess = async (skill: SkillRecord, access: StoreAccess) => {
-  await db.store.update({ where: { id: skill.store!.id }, data: { access } });
+type Consumer = Awaited<ReturnType<typeof createConsumer>>;
+
+let setAccess = async (
+  fixture: OrganizationFixture,
+  skill: SkillRecord,
+  consumer: Consumer,
+  access: 'read' | 'write' | 'none'
+) => {
+  await db.accessTagEntity.deleteMany({
+    where: { skillOid: skill.oid, accessTagOid: consumer.accessTagOid }
+  });
+  if (access === 'none') return;
+
+  let policy = await db.accessTagPolicy.create({
+    data: {
+      id: await ID.generateId('accessTagPolicy'),
+      name: uniqueId('e2e-merge-request-policy'),
+      roles:
+        access === 'write'
+          ? [...consumerSkillReadRoles, ...consumerSkillWriteRoles]
+          : [...consumerSkillReadRoles],
+      organizationOid: fixture.organization.oid
+    }
+  });
+  await db.accessTagEntity.create({
+    data: {
+      accessTagOid: consumer.accessTagOid,
+      accessTagPolicyOid: policy.oid,
+      skillOid: skill.oid
+    }
+  });
 };
 
 let visibleIds = async (
   fixture: OrganizationFixture,
-  authorization: Awaited<ReturnType<typeof createConsumer>>['authorization'],
+  authorization: Consumer['authorization'],
   mergeRequest: SkillMergeRequestRecord
 ) =>
   (
@@ -156,8 +192,8 @@ describe('module-skill-merge-requests consumer permissions', () => {
     let consumer = await createConsumer(fixture);
     let bystander = await createConsumer(fixture);
     let { upstream, fork, path } = await openChangedFork(fixture);
-    await setAccess(upstream, 'public_read');
-    await setAccess(fork, 'public_write');
+    await setAccess(fixture, upstream, consumer, 'read');
+    await setAccess(fixture, fork, consumer, 'write');
     let scope = { ...scopeOf(fixture), authorization: consumer.authorization };
 
     let mergeRequest = await openMergeRequest(fixture, fork, {
@@ -219,8 +255,8 @@ describe('module-skill-merge-requests consumer permissions', () => {
     let fixture = await loadOrganizationFixture(org.ids);
     let consumer = await createConsumer(fixture);
     let { upstream, fork, path } = await openChangedFork(fixture);
-    await setAccess(upstream, 'public_write');
-    await setAccess(fork, 'public_read');
+    await setAccess(fixture, upstream, consumer, 'write');
+    await setAccess(fixture, fork, consumer, 'read');
 
     let mergeRequest = await openMergeRequest(fixture, fork, {
       authorization: consumer.authorization
@@ -248,16 +284,16 @@ describe('module-skill-merge-requests consumer permissions', () => {
     let sync = () =>
       skillForkSyncService.createSkillForkSync({ ...scope, forkSkillId: fork.id });
 
-    await setAccess(upstream, 'public_read');
-    await setAccess(fork, 'public_read');
+    await setAccess(fixture, upstream, consumer, 'read');
+    await setAccess(fixture, fork, consumer, 'read');
     await expectServiceError(sync(), 'forbidden');
 
-    await setAccess(upstream, 'private');
-    await setAccess(fork, 'public_write');
+    await setAccess(fixture, upstream, consumer, 'none');
+    await setAccess(fixture, fork, consumer, 'write');
     await expectServiceError(sync(), 'forbidden');
     expect(await db.skillForkSync.count({ where: { forkSkillOid: fork.oid } })).toBe(0);
 
-    await setAccess(upstream, 'public_read');
+    await setAccess(fixture, upstream, consumer, 'read');
     let created = await sync();
     expect(created.createdByResourceActorOid).toBe(consumer.actor.oid);
 
@@ -267,7 +303,7 @@ describe('module-skill-merge-requests consumer permissions', () => {
     });
     expect(fetched.id).toBe(created.id);
 
-    await setAccess(fork, 'private');
+    await setAccess(fixture, fork, consumer, 'none');
     await expectServiceError(
       skillForkSyncService.getSkillForkSyncById({ ...scope, skillForkSyncId: created.id }),
       'forbidden'
@@ -278,8 +314,8 @@ describe('module-skill-merge-requests consumer permissions', () => {
     let fixture = await loadOrganizationFixture(org.ids);
     let consumer = await createConsumer(fixture);
     let { upstream, fork } = await openChangedFork(fixture);
-    await setAccess(upstream, 'public_read');
-    await setAccess(fork, 'public_read');
+    await setAccess(fixture, upstream, consumer, 'read');
+    await setAccess(fixture, fork, consumer, 'read');
 
     let mergeRequest = await openMergeRequest(fixture, fork);
     expect(
@@ -292,8 +328,8 @@ describe('module-skill-merge-requests consumer permissions', () => {
       ).id
     ).toBe(mergeRequest.id);
 
-    await setAccess(upstream, 'private');
-    await setAccess(fork, 'private');
+    await setAccess(fixture, upstream, consumer, 'none');
+    await setAccess(fixture, fork, consumer, 'none');
 
     await expectServiceError(
       skillMergeRequestService.getSkillMergeRequestById({

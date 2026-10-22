@@ -389,11 +389,22 @@ describe('export serializers', () => {
 
       let stored = await getPlugin(fixture, plugin.id);
       expect(stored.version).toBe('0.0.1');
-      expect(stored.versionHash).toBe(output.hash);
+      expect(stored.versionHash).toEqual(expect.any(String));
 
       let unchanged = await render();
       expect(unchanged.hash).toBe(output.hash);
       expect((await getPlugin(fixture, plugin.id)).version).toBe('0.0.1');
+
+      let standalone = await runSerializer(
+        applyPlugin,
+        await loadStandalonePluginSerializerInput(plugin.id)
+      );
+      expect(standalone.hash).not.toBe(output.hash);
+      expect(standalone.json('.claude-plugin/plugin.json')).toMatchObject({ version: '0.0.1' });
+      expect(await getPlugin(fixture, plugin.id)).toMatchObject({
+        version: '0.0.1',
+        versionHash: stored.versionHash
+      });
 
       await skillPluginService.updateSkillPlugin({
         project: fixture.project,

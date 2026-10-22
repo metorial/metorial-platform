@@ -1,6 +1,10 @@
 import { ServiceError } from '@lowerdeck/error';
 import { describe, expect, it } from 'vitest';
-import { normalizeStorePath, type StorePathKind } from './storePath';
+import {
+  normalizeStorePath,
+  stripDisallowedStorePathCharacters,
+  type StorePathKind
+} from './storePath';
 
 let legacy = (path: string | undefined, kind: StorePathKind = 'file') =>
   normalizeStorePath({ path, kind, mode: 'legacy' });
@@ -191,5 +195,36 @@ describe('normalizeStorePath', () => {
     }
 
     expect(checked).toBeGreaterThan(2000);
+  });
+});
+
+describe('stripDisallowedStorePathCharacters', () => {
+  it('removes every character unicode mode rejects and keeps separators', () => {
+    expect(stripDisallowedStorePathCharacters('/C#/notes #1.md')).toBe('/C/notes 1.md');
+    expect(stripDisallowedStorePathCharacters('/100%/50%.md')).toBe('/100/50.md');
+    expect(stripDisallowedStorePathCharacters('/a:b/what?*<>|".md')).toBe('/ab/what.md');
+    expect(stripDisallowedStorePathCharacters('/tab\there\u200b.md')).toBe('/tabhere.md');
+  });
+
+  it('keeps unicode text, emoji sequences and plain spaces', () => {
+    expect(stripDisallowedStorePathCharacters('/résumé 🚀/👩‍💻 日本語.md')).toBe(
+      '/résumé 🚀/👩‍💻 日本語.md'
+    );
+    expect(stripDisallowedStorePathCharacters('/cafe\u0301.md')).toBe('/café.md');
+  });
+
+  it('produces paths unicode mode accepts', () => {
+    let random = createRandom(7);
+
+    for (let index = 0; index < 2000; index++) {
+      let segments = Array.from({ length: 1 + Math.floor(random() * 4) }, () =>
+        Array.from({ length: 1 + Math.floor(random() * 8) }, () =>
+          pick(random, inputCharacters)
+        ).join('')
+      );
+      let stripped = stripDisallowedStorePathCharacters(`/${segments.join('/')}/`);
+
+      expect(() => unicode(stripped, 'directory')).not.toThrow();
+    }
   });
 });

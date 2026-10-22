@@ -83,12 +83,19 @@ describe('api-core dashboard: user, boot, flags and scopes', () => {
       { none: 401, session: 200, member: 200, management: 403, instance: 404 }
     );
 
-    // Boot consumers are still presented with camelCase keys (remaining-bugs.md, Tier 2), and whether
-    // the owner's identity consumer exists yet depends on queue timing.
-    let boot = expectPresented({ ...responses.session.body, consumers: [] }, 'metorial.boot');
+    let boot = expectPresented(responses.session.body, 'metorial.boot');
     expect(boot.user.id).toBe(org.ids.userId);
-    for (let consumer of responses.session.body.consumers) {
-      expect(consumer).toMatchObject({ object: 'consumer#boot' });
+    // Whether the owner's identity consumer exists yet depends on queue timing.
+    for (let consumer of boot.consumers) {
+      expect(consumer).toMatchObject({
+        object: 'consumer#boot',
+        is_organization_member: expect.any(Boolean),
+        is_portal_consumer: expect.any(Boolean),
+        is_manually_created: expect.any(Boolean),
+        is_pending: expect.any(Boolean),
+        created_at: expect.any(String),
+        updated_at: expect.any(String)
+      });
     }
 
     let ownerOrg = boot.organizations.find((item: any) => item.id === org.ids.organizationId);

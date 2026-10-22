@@ -205,7 +205,11 @@ describe('module-skill-templates lifecycle', () => {
       templates: await db.skillTemplate.count({
         where: { instanceOid: fixture.instance.oid }
       }),
-      stores: await db.store.count({ where: { instanceOid: fixture.instance.oid } })
+      // Global store templates created by concurrent suites sync backing stores into every
+      // instance in the background, so only stores a rejected request could leak are counted.
+      stores: await db.store.count({
+        where: { instanceOid: fixture.instance.oid, isTemplateBacking: false }
+      })
     });
     let before = await countRows();
     let document = (path: string): TemplateItems[number] => ({

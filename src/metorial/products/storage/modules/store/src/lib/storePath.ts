@@ -47,6 +47,13 @@ let normalizeUnicodeSegment = (segment: string) => {
   return normalized;
 };
 
+export let stripDisallowedStorePathCharacters = (path: string) =>
+  Array.from(path.normalize('NFC'))
+    .filter(
+      character => character === '/' || !unicodeDisallowedStorePathCharacter.test(character)
+    )
+    .join('');
+
 let normalizeStorePathSegment = (segment: string, mode: StorePathMode) => {
   let normalized =
     mode === 'unicode' ? normalizeUnicodeSegment(segment) : normalizeLegacySegment(segment);
