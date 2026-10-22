@@ -36,11 +36,11 @@ export let normalizeStatusForList = <T extends 'archived' | 'deleted' | string>(
 
     return {
       hasParent: {
-        status: normalized.length ? { in: normalized } : undefined,
+        status: { in: normalized },
         isParentDeleted: false
       },
       noParent: {
-        status: normalized.length ? { in: normalized } : undefined
+        status: { in: normalized }
       },
       onlyParent: {
         isParentDeleted: false

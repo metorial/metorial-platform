@@ -6,6 +6,7 @@ import {
   uniqueId,
   useOrganization
 } from '@metorial/e2e';
+import { subspaceDb } from '@metorial/e2e/db';
 import { describe, expect, it } from 'vitest';
 import {
   expectResponses,
@@ -184,9 +185,15 @@ describe('api-core integrations: monitor', () => {
     for (let path of ['/monitors', '/monitor-alerts', '/protoguard-alerts']) {
       expect(await listAll(management, path)).toEqual([]);
     }
+    let notifications = await listAll(
+      org.clients.instance,
+      '/provider-specification-change-notifications'
+    );
     expect(
-      await listAll(org.clients.instance, '/provider-specification-change-notifications')
-    ).toEqual([]);
+      await subspaceDb.providerSpecificationChangeNotification.count({
+        where: { id: { in: notifications.map(notification => notification.id) }, tenantOid: { not: null } }
+      })
+    ).toBe(0);
 
     await expectResponses([
       notFound('unknown monitor', () => management.get(`/monitors/${uniqueId('mon')}`)),

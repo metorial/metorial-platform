@@ -175,9 +175,9 @@ export let resolveProviderCategories = createPublicResolver(async ({ ids }) =>
 );
 
 export let resolvePublishers = createPublicResolver(async ({ ids }) =>
-  db.provider.findMany({
+  db.publisher.findMany({
     where: {
-      OR: [{ id: { in: ids } }, { slug: { in: ids } }]
+      OR: [{ id: { in: ids } }, { identifier: { in: ids } }]
     },
     select: { oid: true }
   })
