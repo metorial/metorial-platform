@@ -25,6 +25,7 @@ let Text = styled('p')`
   color: ${theme.colors.gray600};
   font-size: 12px;
   font-weight: 500;
+  white-space: nowrap;
 `;
 
 export let Or = memo(({ text }: { text?: string }) => {
