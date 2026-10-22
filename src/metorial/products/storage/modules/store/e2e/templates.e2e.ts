@@ -16,6 +16,7 @@ import {
 import {
   addFile,
   createDocument,
+  createLegacyStore,
   createStore,
   expectConsistentItemCount,
   modifyItems,
@@ -319,6 +320,7 @@ describe('module-store templates', () => {
       isReadOnly: true,
       isTemplateBacking: true,
       access: 'public_read',
+      pathMode: 'unicode',
       parentStoreTemplateOid: template.oid,
       instanceOid: fixture.instance.oid
     });
@@ -349,6 +351,8 @@ describe('module-store templates', () => {
       'bad_request'
     );
 
+    await db.store.update({ where: { id: backing.store.id }, data: { pathMode: 'legacy' } });
+
     let synced = await db.storeTemplate.findUniqueOrThrow({ where: { id: template.id } });
     await storeTemplateService.updateStoreTemplate({
       ...scopeOf(fixture),
@@ -356,16 +360,21 @@ describe('module-store templates', () => {
       input: {
         items: [
           ...templateItems().filter(item => item.path !== 'readme.txt'),
-          { type: 'file', path: 'readme.txt', content: 'updated readme', encoding: 'utf-8' }
+          { type: 'file', path: 'readme.txt', content: 'updated readme', encoding: 'utf-8' },
+          { type: 'file', path: 'grüße.txt', content: 'hallo', encoding: 'utf-8' }
         ]
       }
     });
 
-    await waitForBackingSync(template.id, synced.hash);
+    let resynced = await waitForBackingSync(template.id, synced.hash);
+    expect(resynced.backing.store.pathMode).toBe('unicode');
+
     let readme = await itemAt(backing.store.oid, '/readme.txt');
     expect((await readItemContent(fixture, readme.id)).toString('utf8')).toBe(
       'updated readme'
     );
+    let greeting = await itemAt(backing.store.oid, '/grüße.txt');
+    expect((await readItemContent(fixture, greeting.id)).toString('utf8')).toBe('hallo');
 
     await storeTemplateService.deleteStoreTemplate({
       ...scopeOf(fixture),
@@ -428,6 +437,59 @@ describe('module-store templates', () => {
     );
   });
 
+  it('gives stores cloned from a legacy store or its linked template the legacy path mode', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let source = await createLegacyStore(fixture);
+    await addFile(fixture, source, 'ré:sumé.txt', { content: 'legacy' });
+    let template = await storeTemplateService.createStoreTemplate({
+      ...scopeOf(fixture),
+      input: { name: uniqueId('legacy-template'), storeId: source.id }
+    });
+
+    let fromTemplate = await instantiate(fixture, template.id);
+    let cloned = await storeService.cloneStore({
+      ...scopeOf(fixture),
+      auditScope: fixture.auditScope,
+      authorization: privileged,
+      store: source,
+      input: { cloneType: 'duplicate' }
+    });
+
+    for (let store of [fromTemplate, cloned]) {
+      expect(store.pathMode).toBe('legacy');
+      expect(await storePaths(store.id)).toEqual(['/', '/rsum.txt']);
+
+      let { item } = await addFile(fixture, store, 'nä:me.txt');
+      expect(item.path).toBe('/nme.txt');
+    }
+  });
+
+  it('gives stores cloned from a unicode store or a standalone template the unicode path mode', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let source = await createStore(fixture);
+    await addFile(fixture, source, 'résumé.txt', { content: 'unicode' });
+    let linked = await storeTemplateService.createStoreTemplate({
+      ...scopeOf(fixture),
+      input: { name: uniqueId('unicode-template'), storeId: source.id }
+    });
+    let standalone = await createStandaloneTemplate(fixture, [
+      { type: 'file', path: 'rèsumè.txt', content: 'standalone', encoding: 'utf-8' }
+    ]);
+
+    let fromLinked = await instantiate(fixture, linked.id);
+    let fromStandalone = await instantiate(fixture, standalone.id);
+
+    expect(fromLinked.pathMode).toBe('unicode');
+    expect(await storePaths(fromLinked.id)).toEqual(['/', '/résumé.txt']);
+    expect(fromStandalone.pathMode).toBe('unicode');
+    expect(await storePaths(fromStandalone.id)).toEqual(['/', '/rèsumè.txt']);
+
+    await expectServiceError(
+      modifyItems(fixture, fromLinked, [{ type: 'add', path: 'na:me' }]),
+      'bad_request'
+    );
+  });
+
   it('keeps template-instantiated stores readable by everyone in the instance', async () => {
     let fixture = await loadOrganizationFixture(org.ids);
     let template = await createStandaloneTemplate(fixture, []);
@@ -452,23 +514,21 @@ describe('module-store templates', () => {
     expect(writable.access).toBe('public_write');
   });
 
-  it.fails(
-    'deletes a store instantiated from a template (bug: deleteStore treats parentStoreTemplateOid as a template link and no caller can pass allowLinkedStoreTemplateDelete)',
-    async () => {
-      let fixture = await loadOrganizationFixture(org.ids);
-      let template = await createStandaloneTemplate(fixture, []);
-      let store = await instantiate(fixture, template.id);
+  it('deletes a store instantiated from a template', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let template = await createStandaloneTemplate(fixture, []);
+    let store = await instantiate(fixture, template.id);
 
-      await storeService.deleteStore({
-        ...scopeOf(fixture),
-        auditScope: fixture.auditScope,
-        authorization: privileged,
-        store
-      });
+    await storeService.deleteStore({
+      ...scopeOf(fixture),
+      auditScope: fixture.auditScope,
+      authorization: privileged,
+      store
+    });
 
-      expect(await db.store.findUnique({ where: { id: store.id } })).toBeNull();
-    }
-  );
+    expect(await db.store.findUnique({ where: { id: store.id } })).toBeNull();
+    expect(await db.storeTemplate.findUnique({ where: { id: template.id } })).not.toBeNull();
+  });
 
   it('validates template updates', async () => {
     let fixture = await loadOrganizationFixture(org.ids);
@@ -537,7 +597,7 @@ describe('module-store templates', () => {
         authorization: privileged,
         input: { templateId: template.id, name }
       }),
-      'bad_request'
+      'not_found'
     );
     expect(await db.store.count({ where: { name } })).toBe(0);
 
@@ -547,7 +607,7 @@ describe('module-store templates', () => {
         storeTemplate: template,
         input: { name }
       }),
-      'bad_request'
+      'not_found'
     );
     await expectServiceError(
       storeTemplateService.deleteStoreTemplate({
@@ -572,7 +632,7 @@ describe('module-store templates', () => {
         ...scopeOf(other),
         input: { name, storeId: store.id }
       }),
-      'bad_request'
+      'not_found'
     );
 
     expect(await db.storeTemplate.count({ where: { name } })).toBe(0);

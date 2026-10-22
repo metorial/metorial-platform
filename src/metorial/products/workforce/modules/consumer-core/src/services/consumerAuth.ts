@@ -14,6 +14,7 @@ import { ConsumerProfile, ConsumerSession, ConsumerSurface, db, ID, User } from 
 import { Fabric } from '@metorial/fabric';
 import { oauthAuthorizationService } from '@metorial/module-machine-access';
 import { addDays } from 'date-fns';
+import { isConsumerInviteExpired } from '../lib/consumerInviteExpiry';
 import {
   isConsumerSurfaceEmailWhitelisted,
   normalizeConsumerSurfaceEmail
@@ -67,24 +68,63 @@ class ConsumerAuthServiceImpl {
     return Boolean(invite);
   }
 
-  private async assertHasPendingInvite(d: { consumerProfile: ConsumerProfile }) {
+  private async assertCanAcceptInvite(d: {
+    consumerProfile: ConsumerProfile;
+    consumerSurface: ConsumerSurface;
+    user: User;
+  }) {
     let invite = await db.consumerInvite.findFirst({
       where: {
         consumerProfileOid: d.consumerProfile.oid,
         status: 'pending'
       },
       select: {
-        id: true
+        expiresAt: true,
+        legacyGraceStartedAt: true
       }
     });
+    if (invite && !isConsumerInviteExpired(invite)) return;
 
-    if (!invite) {
-      throw new ServiceError(
-        forbiddenError({
-          message: 'This invite is no longer valid.'
-        })
-      );
-    }
+    if (await this.hasAccessWithoutInvite(d)) return;
+
+    throw new ServiceError(
+      forbiddenError({
+        message: invite ? 'This invite has expired.' : 'This invite is no longer valid.'
+      })
+    );
+  }
+
+  private async hasAccessWithoutInvite(d: { consumerSurface: ConsumerSurface; user: User }) {
+    if (d.user.type == 'system' || d.consumerSurface.status != 'active') return false;
+
+    let member = await db.organizationMember.findFirst({
+      where: {
+        userOid: d.user.oid,
+        organizationOid: d.consumerSurface.organizationOid,
+        status: 'active'
+      },
+      select: { oid: true }
+    });
+    if (!member) return false;
+
+    if (d.consumerSurface.type == 'organization_members') return true;
+    if (d.consumerSurface.type != 'portal') return false;
+
+    let portal = await db.portal.findFirst({
+      where: {
+        surfaceOid: d.consumerSurface.oid,
+        status: 'active',
+        instance: {
+          project: {
+            status: 'active',
+            autoAddOrganizationMembersToPortals: true
+          }
+        }
+      },
+      select: { oid: true }
+    });
+
+    return !!portal;
   }
 
   private async assertEmailCanAccessSurface(d: { surface: ConsumerSurface; email: string }) {
@@ -223,7 +263,11 @@ class ConsumerAuthServiceImpl {
       });
 
     if (profile.inviteStatus == 'invited') {
-      await this.assertHasPendingInvite({ consumerProfile: profile });
+      await this.assertCanAcceptInvite({
+        consumerProfile: profile,
+        consumerSurface: d.consumerSurface,
+        user: d.user
+      });
 
       profile = await consumerProfileService.activateConsumerProfile({
         consumerProfile: profile,

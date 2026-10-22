@@ -1,5 +1,11 @@
 import { appendFileSync, readFileSync } from 'node:fs';
 import { dirname, normalize, join, relative, basename } from 'node:path';
+import {
+  e2eGroupArgs,
+  planE2EGroups,
+  readE2EDurations,
+  type E2EDurations
+} from './e2e-groups';
 
 export let suites = [
   { name: 'forge', package: '@metorial/forge', services: ['forge'] },
@@ -33,7 +39,8 @@ export let controlSuites = {
     stackPackages: [] as string[],
     workspacePackages: [] as string[],
     services: stackServices,
-    tests: ['src/metorial/products/*/modules/*', 'src/metorial/apis/*']
+    tests: ['src/metorial/products/*/modules/*', 'src/metorial/apis/*'],
+    groups: 4
   },
   enterprise: {
     name: 'metorial-enterprise',
@@ -43,9 +50,16 @@ export let controlSuites = {
     // a dependency cycle through the federation modules' own e2e devDependencies.
     workspacePackages: ['@metorial-enterprise/fabric'],
     services: stackServices,
-    tests: ['src/metorial/modules/*', 'src/metorial/apis/*']
+    tests: ['src/metorial/modules/*', 'src/metorial/apis/*'],
+    groups: 2
   }
 };
+
+/** Per-package e2e durations of the checkout this runs in; refreshed with `e2e-groups.ts update`. */
+export let E2E_DURATIONS_PATH = '.github/e2e-durations.json';
+
+/** `control test:e2e`'s default number of test packages Turbo runs at once inside a stack. */
+let CONTROL_E2E_CONCURRENCY = 4;
 
 export type ControlSuite = (typeof controlSuites)['oss'];
 
@@ -68,6 +82,28 @@ export let controlTasks = (suite: ControlSuite) =>
     ...suite.tests.map(pattern => `--filter=./${pattern}`),
     ...suite.workspacePackages.map(name => `--filter=${name}`)
   ].join(' ');
+
+export let controlMatrix = (
+  suite: ControlSuite,
+  packages: Map<string, { directory: string; e2e: boolean }>,
+  durations: E2EDurations
+) => {
+  let groups = planE2EGroups(
+    controlTestPackages(suite, packages),
+    durations,
+    suite.groups,
+    CONTROL_E2E_CONCURRENCY
+  );
+  return groups.map((group, index) => ({
+    name: groups.length > 1 ? `${suite.name} ${index + 1}/${groups.length}` : suite.name,
+    key: groups.length > 1 ? `${suite.name}-${index + 1}-of-${groups.length}` : suite.name,
+    package: suite.package,
+    control: true,
+    workspace: '.',
+    tasks: controlTasks(suite),
+    args: e2eGroupArgs(group)
+  }));
+};
 
 export let affected = (paths: string[], directories: string[], global: boolean) =>
   global ||
@@ -274,21 +310,15 @@ if (import.meta.main) {
   let matrix = [
     ...selected.map(({ name, package: pkg }) => ({
       name,
+      key: name,
       package: pkg,
       control: false,
       workspace: enterprise ? './oss' : '.',
-      tasks: `prisma:generate test:e2e --filter=${pkg}`
+      tasks: `prisma:generate test:e2e --filter=${pkg}`,
+      args: ''
     })),
     ...(controlSelected
-      ? [
-          {
-            name: controlSuite.name,
-            package: controlSuite.package,
-            control: true,
-            workspace: '.',
-            tasks: controlTasks(controlSuite)
-          }
-        ]
+      ? controlMatrix(controlSuite, packages, readE2EDurations(E2E_DURATIONS_PATH))
       : [])
   ];
   let conduit = affected(

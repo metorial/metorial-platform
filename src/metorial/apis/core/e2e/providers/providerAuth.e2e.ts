@@ -195,19 +195,19 @@ describe('api-core providers: auth configs, credentials and setup sessions', () 
     expect(ids(byId)).toEqual([setupSession.id]);
   });
 
-  it.fails(
-    'archives a setup session on delete (bug: the delete handler only presents the session)',
-    async () => {
-      let setupSession = await createSetupSession();
-      let path = `/provider-setup-sessions/${setupSession.id}`;
-      expectOk(await org.clients.instance.delete(path));
+  it('archives a setup session on delete', async () => {
+    let setupSession = await createSetupSession();
+    let path = `/provider-setup-sessions/${setupSession.id}`;
 
-      let after = await org.clients.instance.get(path);
-      expect(
-        after.status === 404 || ['archived', 'deleted'].includes(after.body?.status)
-      ).toBe(true);
-    }
-  );
+    let deleted = expectOk(await org.clients.instance.delete(path));
+    expect(deleted).toMatchObject({ id: setupSession.id, status: 'archived' });
+
+    let after = expectOk(await org.clients.instance.get(path));
+    expect(after.status).toBe('archived');
+
+    expectError(await org.clients.instance.delete(path), 410);
+    expectError(await org.clients.instance.patch(path, { name: 'Too late' }), 410);
+  });
 
   it('validates auth bodies and rejects unknown references', async () => {
     let client = org.clients.instance;

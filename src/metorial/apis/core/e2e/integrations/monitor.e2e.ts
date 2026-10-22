@@ -1,9 +1,13 @@
+import { getId } from '@metorial-subspace/db';
 import {
+  createRemoteProvider,
+  eventually,
   expectError,
   expectOk,
   expectPresented,
   listAll,
   uniqueId,
+  useMcpTestServer,
   useOrganization
 } from '@metorial/e2e';
 import { subspaceDb } from '@metorial/e2e/db';
@@ -11,6 +15,7 @@ import { describe, expect, it } from 'vitest';
 import {
   expectResponses,
   expectRoutesAuth,
+  ids,
   invalid,
   listAuth,
   managementApi,
@@ -22,6 +27,7 @@ let monitorAuth = { ...listAuth, instance: 403 };
 describe('api-core integrations: monitor', () => {
   let org = useOrganization();
   let otherOrg = useOrganization();
+  let server = useMcpTestServer();
 
   it('authenticates every monitor route per credential', async () => {
     await expectRoutesAuth(org, otherOrg, [
@@ -191,7 +197,10 @@ describe('api-core integrations: monitor', () => {
     );
     expect(
       await subspaceDb.providerSpecificationChangeNotification.count({
-        where: { id: { in: notifications.map(notification => notification.id) }, tenantOid: { not: null } }
+        where: {
+          id: { in: notifications.map(notification => notification.id) },
+          tenantOid: { not: null }
+        }
       })
     ).toBe(0);
 
@@ -214,6 +223,49 @@ describe('api-core integrations: monitor', () => {
         org.clients.instance.get(
           `/provider-specification-change-notifications/${uniqueId('psn')}`
         )
+      )
+    ]);
+  });
+
+  it('shows global notifications of a private provider only to its owner', async () => {
+    let remote = await createRemoteProvider(org.clients.instance, { url: server.url });
+    let version = await eventually(() =>
+      subspaceDb.providerVersion.findFirstOrThrow({
+        where: { provider: { id: remote.providerId } }
+      })
+    );
+    let notification = await subspaceDb.providerSpecificationChangeNotification.create({
+      data: {
+        ...getId('providerSpecificationChangeNotification'),
+        target: 'version',
+        versionOid: version.oid
+      }
+    });
+    let path = `/provider-specification-change-notifications/${notification.id}`;
+
+    expect(expectOk(await org.clients.instance.get(path))).toMatchObject({
+      id: notification.id,
+      provider_id: remote.providerId
+    });
+    expect(
+      ids(
+        await listAll(org.clients.instance, '/provider-specification-change-notifications', {
+          query: { provider_id: remote.providerId }
+        })
+      )
+    ).toEqual([notification.id]);
+
+    expect(
+      ids(
+        await listAll(
+          otherOrg.clients.instance,
+          '/provider-specification-change-notifications'
+        )
+      )
+    ).not.toContain(notification.id);
+    await expectResponses([
+      notFound("another tenant's private provider notification", () =>
+        otherOrg.clients.instance.get(path)
       )
     ]);
   });

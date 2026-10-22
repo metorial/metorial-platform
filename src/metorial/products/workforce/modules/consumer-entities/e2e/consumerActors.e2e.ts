@@ -77,34 +77,31 @@ describe('module-consumer-entities consumer actors', () => {
     ).toBe(0);
   });
 
-  it.fails(
-    'rejects a deleted profile once it already has a default actor (bug: the fast path of ensureDefaultConsumerActor returns the existing actor without checking the profile status, only the locked slow path rejects deleted profiles)',
-    async () => {
-      let fixture = await loadOrganizationFixture(org.ids);
-      let surface = await createSurface(fixture);
-      let profile = await createProfile(fixture, surface);
-      await consumerActorService.ensureDefaultConsumerActor({
+  it('rejects a deleted profile once it already has a default actor', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let surface = await createSurface(fixture);
+    let profile = await createProfile(fixture, surface);
+    await consumerActorService.ensureDefaultConsumerActor({
+      instance: fixture.instance,
+      consumerProfile: profile
+    });
+
+    await consumerProfileService.deleteConsumerProfile({
+      consumerProfile: await consumerProfileService.getConsumerProfileById({
+        consumerSurface: surface,
+        consumerProfileId: profile.id
+      }),
+      auditScope: fixture.auditScope
+    });
+
+    await expectServiceError(
+      consumerActorService.ensureDefaultConsumerActor({
         instance: fixture.instance,
         consumerProfile: profile
-      });
-
-      await consumerProfileService.deleteConsumerProfile({
-        consumerProfile: await consumerProfileService.getConsumerProfileById({
-          consumerSurface: surface,
-          consumerProfileId: profile.id
-        }),
-        auditScope: fixture.auditScope
-      });
-
-      await expectServiceError(
-        consumerActorService.ensureDefaultConsumerActor({
-          instance: fixture.instance,
-          consumerProfile: profile
-        }),
-        'not_found'
-      );
-    }
-  );
+      }),
+      'not_found'
+    );
+  });
 
   it('makes the oldest actor the default of an instance consumer with several profiles', async () => {
     let fixture = await loadOrganizationFixture(org.ids);

@@ -20,4 +20,19 @@ describe('normalizeStatusForList', () => {
       normalizeStatusForList({ status: ['deleted'], allowDeleted: true }).noParent.status
     ).toEqual({ in: ['deleted'] });
   });
+
+  it('hides deleted and archived items by default', () => {
+    let filter = normalizeStatusForList({});
+
+    expect(filter.noParent.status).toEqual({ notIn: ['deleted', 'archived'] });
+    expect(filter.onlyParent).toEqual({ isParentDeleted: false });
+  });
+
+  it('lists every item when allowDeleted is set without a status filter', () => {
+    let filter = normalizeStatusForList({ allowDeleted: true });
+
+    expect(filter.noParent.status).toBeUndefined();
+    expect(filter.hasParent).toEqual({ status: undefined, isParentDeleted: undefined });
+    expect(filter.onlyParent).toEqual({ isParentDeleted: undefined });
+  });
 });

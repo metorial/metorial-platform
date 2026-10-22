@@ -60,6 +60,34 @@ describe('module-user sessions', () => {
     await expectServiceError(authenticate(''), 'unauthorized');
   });
 
+  it('gives every new session an expiry', async () => {
+    let before = Date.now();
+    let { email, password, session } = await signUp();
+    let second = await login(email, password);
+
+    for (let created of [session, second]) {
+      let stored = await db.userSession.findUniqueOrThrow({ where: { id: created.id } });
+      expect(stored.expiresAt).toBeInstanceOf(Date);
+      expect(stored.expiresAt!.getTime()).toBeGreaterThan(
+        before + 1000 * 60 * 60 * 24 * 7 - 1
+      );
+    }
+  });
+
+  it('rejects an expired session and keeps sessions without an expiry working', async () => {
+    let { email, password, session, user } = await signUp();
+    let legacy = await login(email, password);
+
+    await db.userSession.update({
+      where: { id: session.id },
+      data: { expiresAt: new Date(Date.now() - 1000) }
+    });
+    await db.userSession.update({ where: { id: legacy.id }, data: { expiresAt: null } });
+
+    await expectServiceError(authenticate(session.clientSecret), 'unauthorized');
+    expect((await authenticate(legacy.clientSecret)).user.id).toBe(user.id);
+  });
+
   it('revokes only the logged-out session', async () => {
     let { email, password, session, user } = await signUp();
     let other = await login(email, password);

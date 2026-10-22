@@ -26,7 +26,10 @@ export class ProviderEnrichments extends IProviderEnrichments {
       include: { providerVariants: true }
     });
     type ShuttleServerRecord = (typeof subspaceShuttleServersList)[number];
-    let shuttleServerByVariantId = new Map<string, (typeof subspaceShuttleServersList)[number]>(
+    let shuttleServerByVariantId = new Map<
+      string,
+      (typeof subspaceShuttleServersList)[number]
+    >(
       subspaceShuttleServersList.flatMap((s: ShuttleServerRecord) =>
         s.providerVariants.map(
           (v: ShuttleServerRecord['providerVariants'][number]) => [v.id, s] as const
@@ -41,23 +44,62 @@ export class ProviderEnrichments extends IProviderEnrichments {
       shuttleServers.map((s: ShuttleServer) => [s.id, s] as const)
     );
 
+    let currentVersionByVariantId = await this.getCurrentShuttleVersions(input);
+
     return {
       providers: input.providerVariantIds.map(providerVariantId => {
         let subServer = shuttleServerByVariantId.get(providerVariantId);
         let shuttleServer = subServer ? shuttleServersMap.get(subServer.id) : undefined;
+        let source = currentVersionByVariantId.get(providerVariantId) ?? shuttleServer?.draft;
 
         return {
           providerVariantId,
 
-          containerRegistry: shuttleServer?.draft.repositoryTag?.repository.registry,
-          containerRepository: shuttleServer?.draft.repositoryTag?.repository,
-          containerTag: shuttleServer?.draft.repositoryTag ?? undefined,
+          containerRegistry: source?.repositoryTag?.repository.registry,
+          containerRepository: source?.repositoryTag?.repository,
+          containerTag: source?.repositoryTag ?? undefined,
 
-          remoteUrl: shuttleServer?.draft.remoteUrl ?? undefined,
-          remoteProtocol: shuttleServer?.draft.remoteProtocol ?? undefined
+          remoteUrl: source?.remoteUrl ?? undefined,
+          remoteProtocol: source?.remoteProtocol ?? undefined
         };
       })
     };
+  }
+
+  private async getCurrentShuttleVersions(input: ProviderVariantEnrichmentInput) {
+    let variants = await db.providerVariant.findMany({
+      where: {
+        id: { in: input.providerVariantIds },
+        currentVersion: { shuttleServerVersionOid: { not: null } }
+      },
+      select: {
+        id: true,
+        currentVersion: { select: { shuttleServerVersion: { select: { id: true } } } }
+      }
+    });
+
+    let versionIdByVariantId = new Map<string, string>();
+    for (let variant of variants) {
+      let versionId = variant.currentVersion?.shuttleServerVersion?.id;
+      if (versionId) versionIdByVariantId.set(variant.id, versionId);
+    }
+
+    if (!versionIdByVariantId.size) return new Map<string, ShuttleServerVersion>();
+
+    let shuttleServerVersions = await shuttle.serverVersion.getMany({
+      serverVersionIds: [...new Set(versionIdByVariantId.values())]
+    });
+    let shuttleServerVersionsMap = new Map<string, ShuttleServerVersion>(
+      shuttleServerVersions.map((s: ShuttleServerVersion) => [s.id, s] as const)
+    );
+
+    let result = new Map<string, ShuttleServerVersion>();
+    for (let [variantId, versionId] of versionIdByVariantId) {
+      let version = shuttleServerVersionsMap.get(versionId);
+      if (version) result.set(variantId, version);
+    }
+
+    return result;
   }
 
   override async enrichProviderVersions(
@@ -74,7 +116,10 @@ export class ProviderEnrichments extends IProviderEnrichments {
       include: { providerVersions: true }
     });
     type ShuttleServerVersionRecord = (typeof subspaceShuttleServersList)[number];
-    let shuttleServerByVersionId = new Map<string, (typeof subspaceShuttleServersList)[number]>(
+    let shuttleServerByVersionId = new Map<
+      string,
+      (typeof subspaceShuttleServersList)[number]
+    >(
       subspaceShuttleServersList.flatMap((s: ShuttleServerVersionRecord) =>
         s.providerVersions.map(
           (v: ShuttleServerVersionRecord['providerVersions'][number]) => [v.id, s] as const
@@ -83,9 +128,7 @@ export class ProviderEnrichments extends IProviderEnrichments {
     );
 
     let shuttleServerVersions = await shuttle.serverVersion.getMany({
-      serverVersionIds: subspaceShuttleServersList.map(
-        (s: ShuttleServerVersionRecord) => s.id
-      )
+      serverVersionIds: subspaceShuttleServersList.map((s: ShuttleServerVersionRecord) => s.id)
     });
     let shuttleServerVersionsMap = new Map<string, ShuttleServerVersion>(
       shuttleServerVersions.map((s: ShuttleServerVersion) => [s.id, s] as const)

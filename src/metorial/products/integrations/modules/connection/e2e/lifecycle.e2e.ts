@@ -1,6 +1,10 @@
-import { eventually, expectServiceError, useOrganization } from '@metorial/e2e';
+import { eventually, expectServiceError, uniqueId, useOrganization } from '@metorial/e2e';
 import { subspaceDb } from '@metorial/e2e/db';
-import { sessionService } from '@metorial-subspace/module-session';
+import {
+  ephemeralManagedSessionService,
+  sessionService,
+  sessionTemplateService
+} from '@metorial-subspace/module-session';
 import { addDays, subMinutes } from 'date-fns';
 import { describe, expect, it } from 'vitest';
 import {
@@ -165,19 +169,69 @@ describe('module-connection connection lifecycle', () => {
     );
   });
 
-  it.fails(
-    'rejects a connection token of another session of the same tenant (bug: SenderManager.create resolves the session from the connection token and ignores sessionId)',
-    async () => {
-      let [session, otherSession] = await Promise.all([
-        createEmptySession(org),
-        createEmptySession(org)
-      ]);
-      let { connection } = await openConnection(org, otherSession.id);
+  it('rejects a connection token of another session of the same tenant', async () => {
+    let [session, otherSession] = await Promise.all([
+      createEmptySession(org),
+      createEmptySession(org)
+    ]);
+    let { connection } = await openConnection(org, otherSession.id);
 
-      await expectServiceError(
-        createManager(org, { sessionId: session.id, connectionToken: connection.token }),
-        'not_found'
-      );
+    let data = await expectServiceError(
+      createManager(org, { sessionId: session.id, connectionToken: connection.token }),
+      'not_found'
+    );
+    expect(data.entity).toBe('connection');
+
+    let own = await createManager(org, {
+      sessionId: otherSession.id,
+      connectionToken: connection.token
+    });
+    expect(own.connection?.id).toBe(connection.id);
+  });
+
+  it('resolves a connection token through its ephemeral managed session id', async () => {
+    let { fixture } = await scopeOf(org);
+    let scope = {
+      instance: fixture.instance,
+      organizationActor: fixture.actor,
+      auditScope: fixture.auditScope
+    };
+
+    let created = await sessionTemplateService.createSessionTemplate({
+      ...scope,
+      input: { name: uniqueId('ephemeral-template'), providers: [] }
+    });
+    let template = await eventually(async () => {
+      let row = await subspaceDb.sessionTemplate.findUniqueOrThrow({
+        where: { oid: created.oid }
+      });
+      expect(row.hash).toMatch(/\S/);
+      return row;
+    });
+    let ephemeralSession = await ephemeralManagedSessionService.createEphemeralManagedSession({
+      ...scope,
+      sessionTemplate: { ...template, providers: [] },
+      input: { maxSessionDurationInMinutes: 60 }
+    });
+
+    let { connection } = await openConnection(org, ephemeralSession.id);
+    let row = await subspaceDb.sessionConnection.findUniqueOrThrow({
+      where: { oid: connection.oid },
+      include: { session: true }
+    });
+    expect(row.session.ephemeralManagedSessionOid).toBe(ephemeralSession.oid);
+    let backingSessionId = row.session.id;
+
+    for (let sessionId of [ephemeralSession.id, backingSessionId]) {
+      let manager = await createManager(org, { sessionId, connectionToken: connection.token });
+      expect(manager.connection?.id).toBe(connection.id);
+      expect(manager.session.id).toBe(backingSessionId);
     }
-  );
+
+    let otherSession = await createEmptySession(org);
+    await expectServiceError(
+      createManager(org, { sessionId: otherSession.id, connectionToken: connection.token }),
+      'not_found'
+    );
+  });
 });

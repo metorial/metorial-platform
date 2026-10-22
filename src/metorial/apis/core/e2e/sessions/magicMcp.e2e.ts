@@ -545,6 +545,13 @@ describe('api-core sessions: magic MCP', () => {
         await listAll(api(), '/magic-mcp-servers', { query: { magic_mcp_group_id: group.id } })
       ).toEqual([]);
 
+      expectError(
+        await api().delete(`/magic-mcp-groups/${group.id}`),
+        412,
+        'precondition_failed'
+      );
+      expectOk(await api().delete(`/magic-mcp-tokens/${token.id}`));
+
       let deleted = expectOk(await api().delete(`/magic-mcp-groups/${group.id}`));
       expect(deleted.status).toBe('deleted');
       expectError(

@@ -293,34 +293,31 @@ describe('module-session sessions with providers', () => {
     );
   });
 
-  it.fails(
-    'lists the events of an archived session with allowDeleted (bug: list-utils normalizeStatusForList ignores allowDeleted when no status filter is given)',
-    async () => {
-      let deploymentId = await createDeployment(org, providers.first);
-      let { scope, session } = await sessionWithDeployments([deploymentId]);
-      let sessionRow = await subspaceDb.session.findUniqueOrThrow({
-        where: { id: session.id }
-      });
+  it('lists the events of an archived session with allowDeleted', async () => {
+    let deploymentId = await createDeployment(org, providers.first);
+    let { scope, session } = await sessionWithDeployments([deploymentId]);
+    let sessionRow = await subspaceDb.session.findUniqueOrThrow({
+      where: { id: session.id }
+    });
 
-      await sessionService.archiveSession({ ...scope, session });
-      await eventually(async () => {
-        let rows = await subspaceDb.sessionEvent.findMany({
-          where: { sessionOid: sessionRow.oid }
-        });
-        expect(rows.length).toBeGreaterThanOrEqual(1);
-        expect(rows.every(row => row.isParentDeleted)).toBe(true);
+    await sessionService.archiveSession({ ...scope, session });
+    await eventually(async () => {
+      let rows = await subspaceDb.sessionEvent.findMany({
+        where: { sessionOid: sessionRow.oid }
       });
+      expect(rows.length).toBeGreaterThanOrEqual(1);
+      expect(rows.every(row => row.isParentDeleted)).toBe(true);
+    });
 
-      let withDeleted = await firstPage(
-        await sessionEventService.listSessionEvents({
-          ...scope,
-          sessionIds: [session.id],
-          allowDeleted: true
-        })
-      );
-      expect(withDeleted.map(event => event.type)).toContain('session_created');
-    }
-  );
+    let withDeleted = await firstPage(
+      await sessionEventService.listSessionEvents({
+        ...scope,
+        sessionIds: [session.id],
+        allowDeleted: true
+      })
+    );
+    expect(withDeleted.map(event => event.type)).toContain('session_created');
+  });
 
   it('filters sessions and session providers by provider, deployment, config and session provider', async () => {
     let [firstDeployment, secondDeployment] = await Promise.all([
@@ -427,34 +424,45 @@ describe('module-session sessions with providers', () => {
     expect(await subspaceDb.session.count({ where: { name } })).toBe(0);
   });
 
-  it('rejects unknown and foreign deployments without creating a session', async () => {
+  it('rejects unknown and foreign deployments and configs without creating a session', async () => {
     let foreignDeployment = await createDeployment(otherOrg, providers.foreign);
+    let deploymentId = await createDeployment(org, providers.first);
     let name = uniqueId('bad-deployment');
 
-    await expectServiceError(
-      createSession([{ deploymentId: uniqueId('pdp') }], name),
-      'bad_request'
-    );
-    await expectServiceError(
+    let foreign = await expectServiceError(
       createSession([{ deploymentId: foreignDeployment }], name),
-      'bad_request'
+      'not_found'
     );
-    await expectServiceError(
+    expect(foreign.entity).toBe('provider.deployment');
+
+    let unknownConfig = await expectServiceError(
       createSession([{ configId: uniqueId('pcfg') }], name),
-      'bad_request'
+      'not_found'
     );
+    expect(unknownConfig.entity).toBe('provider.config');
+
+    let unknownConfigWithDeployment = await expectServiceError(
+      createSession([{ deploymentId, configId: uniqueId('pcfg') }], name),
+      'not_found'
+    );
+    expect(unknownConfigWithDeployment.entity).toBe('provider.config');
+
+    let unknownAuthConfig = await expectServiceError(
+      createSession([{ deploymentId, authConfigId: uniqueId('pac') }], name),
+      'not_found'
+    );
+    expect(unknownAuthConfig.entity).toBe('provider.auth_config');
+
     expect(await subspaceDb.session.count({ where: { name } })).toBe(0);
   });
 
-  it.fails(
-    'rejects an unknown deployment as not_found (bug: providerCombinationService reports a missing-input bad_request instead)',
-    async () => {
-      await expectServiceError(
-        createSession([{ deploymentId: uniqueId('pdp') }]),
-        'not_found'
-      );
-    }
-  );
+  it('rejects an unknown deployment as not_found', async () => {
+    let data = await expectServiceError(
+      createSession([{ deploymentId: uniqueId('pdp') }]),
+      'not_found'
+    );
+    expect(data.entity).toBe('provider.deployment');
+  });
 
   it('rejects an unknown session template', async () => {
     await expectServiceError(
@@ -557,7 +565,7 @@ describe('module-session sessions with providers', () => {
 
     await expectServiceError(
       createSession([{ deploymentId: foreignDeployment }]),
-      'bad_request'
+      'not_found'
     );
 
     let row = await subspaceDb.session.findUniqueOrThrow({

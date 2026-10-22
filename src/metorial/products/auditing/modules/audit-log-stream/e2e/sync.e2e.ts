@@ -97,7 +97,7 @@ describe('module-audit-log-stream sync', () => {
     expect(errorEvent?.errorDetails).toMatchObject({
       provider: 'splunk',
       code: 'unknown_error',
-      errorName: 'Error',
+      errorName: 'SsrfBlockedError',
       httpStatusCode: null,
       responseBody: null,
       batchNumber: 1

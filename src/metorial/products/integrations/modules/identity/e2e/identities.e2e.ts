@@ -479,7 +479,7 @@ describe('module-identity identities', () => {
         'use_after_delete',
         'not_found',
         'not_found',
-        'bad_request',
+        'not_found',
         'bad_request'
       ];
 

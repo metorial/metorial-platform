@@ -31,7 +31,7 @@ let callAndLoadMessage = async (
     subspaceDb.sessionMessage.findFirstOrThrow({
       where: {
         connectionOid: connection.oid,
-        type: 'tool_call',
+        toolCall: { isNot: null },
         status: { not: 'waiting_for_response' }
       },
       orderBy: { oid: 'desc' }

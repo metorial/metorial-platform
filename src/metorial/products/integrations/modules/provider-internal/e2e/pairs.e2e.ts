@@ -95,10 +95,17 @@ describe('module-provider-internal provider combinations and deployment config p
     let deploymentId = await createProviderDeployment(org, providers.first);
     let { config } = await combineOne(deploymentId);
 
-    for (let input of [{ deploymentId }, { configId: config.id }]) {
-      let error = await expectServiceError(combine(otherOrg, [input]), 'bad_request');
-      expect(error.message).toMatch(/provide at least a provider config/);
-    }
+    let deploymentError = await expectServiceError(
+      combine(otherOrg, [{ deploymentId }]),
+      'not_found'
+    );
+    expect(deploymentError.entity).toBe('provider.deployment');
+
+    let configError = await expectServiceError(
+      combine(otherOrg, [{ configId: config.id }]),
+      'not_found'
+    );
+    expect(configError.entity).toBe('provider.config');
   });
 
   it("refuses to resolve the provider version for another tenant's environment", async () => {

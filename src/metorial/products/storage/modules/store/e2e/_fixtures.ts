@@ -35,6 +35,12 @@ export let createStore = async (
     }
   });
 
+export let createLegacyStore = async (fixture: OrganizationFixture) => {
+  let store = await createStore(fixture);
+
+  return await db.store.update({ where: { id: store.id }, data: { pathMode: 'legacy' } });
+};
+
 export let modifyItems = async (
   fixture: OrganizationFixture,
   store: Store,

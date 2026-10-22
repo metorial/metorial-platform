@@ -83,7 +83,7 @@ export let sessionTemplateSyncHashQueue = createQueue<{
 export let enqueueSessionTemplateSyncHash = async (sessionTemplateId: string) => {
   await sessionTemplateSyncHashQueue.add(
     { sessionTemplateId },
-    { id: queueJobId('sth', sessionTemplateId) }
+    { deduplication: { id: queueJobId('sth', sessionTemplateId), keepLastIfActive: true } }
   );
 };
 

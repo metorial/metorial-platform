@@ -201,16 +201,15 @@ describe('module-skill-templates instantiation', () => {
     let template = await createTemplate(fixture);
     let skillsBefore = await db.skill.count({ where: { instanceOid: other.instance.oid } });
 
-    let error = await expectServiceError(
+    await expectServiceError(
       skillService.createSkill({
         ...scopeOf(other),
         auditScope: other.auditScope,
         parentSkillTemplate: template,
         input: { id: uniqueId('skl'), authorization: privileged, name: uniqueId('stolen') }
       }),
-      'bad_request'
+      'not_found'
     );
-    expect(error.message).toMatch(/can only be cloned within its linked project/);
     expect(await db.skill.count({ where: { instanceOid: other.instance.oid } })).toBe(
       skillsBefore
     );

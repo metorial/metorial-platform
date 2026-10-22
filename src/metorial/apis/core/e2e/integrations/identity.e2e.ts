@@ -451,32 +451,24 @@ describe('api-core integrations: identity', () => {
       notFound('identity for foreign actor', () =>
         api.post('/identities', { actor_id: otherActor.id })
       ),
-      {
-        label: 'identity with foreign deployment',
-        call: () =>
-          api.post('/identities', {
-            actor_id: actor.id,
-            credentials: [{ deployment_id: otherDeployment.id }]
-          }),
-        status: 400,
-        code: 'bad_request'
-      },
+      notFound('identity with foreign deployment', () =>
+        api.post('/identities', {
+          actor_id: actor.id,
+          credentials: [{ deployment_id: otherDeployment.id }]
+        })
+      ),
       notFound('credential for foreign identity', () =>
         api.post('/identity-credentials', {
           identity_id: otherIdentity.id,
           deployment_id: deployment.id
         })
       ),
-      {
-        label: 'credential with foreign deployment',
-        call: () =>
-          api.post('/identity-credentials', {
-            identity_id: identity.id,
-            deployment_id: otherDeployment.id
-          }),
-        status: 400,
-        code: 'bad_request'
-      },
+      notFound('credential with foreign deployment', () =>
+        api.post('/identity-credentials', {
+          identity_id: identity.id,
+          deployment_id: otherDeployment.id
+        })
+      ),
       notFound('credential with foreign delegation config', () =>
         api.post('/identity-credentials', {
           identity_id: identity.id,

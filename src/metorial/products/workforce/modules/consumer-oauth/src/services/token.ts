@@ -464,6 +464,22 @@ class ConsumerOAuthTokenService {
       );
     }
 
+    if (
+      d.client.requirePkce &&
+      d.client.tokenEndpointAuthMethod == 'none' &&
+      (attempt.codeChallengeMethod != 's256' || !attempt.codeChallenge)
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'This authorization request was not protected with PKCE',
+          oauth: {
+            error: 'invalid_grant',
+            errorMessage: 'This authorization request was not protected with PKCE'
+          }
+        })
+      );
+    }
+
     if (attempt.codeChallengeMethod == 's256') {
       if (!d.codeVerifier) {
         throw new ServiceError(

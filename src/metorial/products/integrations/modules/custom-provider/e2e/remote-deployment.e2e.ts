@@ -101,6 +101,16 @@ describe('module-custom-provider remote deployments', () => {
       remoteUrl: server.url,
       remoteProtocol: 'streamable_http'
     });
+    expect(customProvider.provider!.ownerSolutionOid).toBe(created.solutionOid);
+
+    let listing = await subspaceDb.providerListing.findFirstOrThrow({
+      where: { providerOid: customProvider.providerOid! }
+    });
+    expect(listing).toMatchObject({
+      isPublic: false,
+      ownerTenantOid: tenant.oid,
+      ownerSolutionOid: created.solutionOid
+    });
 
     let providerVersion = await subspaceDb.providerVersion.findUniqueOrThrow({
       where: { oid: version.providerVersionOid! },

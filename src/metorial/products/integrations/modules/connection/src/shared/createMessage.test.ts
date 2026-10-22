@@ -96,6 +96,12 @@ describe('createMessage', () => {
     }));
   });
 
+  it('stores the message type its caller passes', async () => {
+    await createMessage({ ...baseProps, type: 'mcp_message', session });
+
+    expect(mocks.db.sessionMessage.create.mock.calls[0]![0].data.type).toBe('mcp_message');
+  });
+
   it('double-writes the mirrored oids on the message', async () => {
     await createMessage({ ...baseProps, session });
 

@@ -1594,6 +1594,8 @@ export interface FabricEvents {
   'provider.setup_session.created:after': ProviderEventBase & { setupSession: AuditSubspaceProviderSetupSession };
   'provider.setup_session.updated:before': ProviderEventBase;
   'provider.setup_session.updated:after': ProviderEventBase & { setupSession: AuditSubspaceProviderSetupSession; previousSetupSession: AuditSubspaceProviderSetupSession };
+  'provider.setup_session.deleted:before': ProviderEventBase;
+  'provider.setup_session.deleted:after': ProviderEventBase & { setupSession: AuditSubspaceProviderSetupSession };
 
   'provider.public_mcp_server.created:before': ProviderEventBase;
   'provider.public_mcp_server.created:after': ProviderEventBase & { publicMcpServer: AuditSubspacePublicMcpServer };

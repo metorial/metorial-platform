@@ -1,4 +1,4 @@
-import { uniqueId, useOrganization } from '@metorial/e2e';
+import { eventually, uniqueId, useOrganization } from '@metorial/e2e';
 import { db, loadOrganizationFixture } from '@metorial/e2e/db';
 import { Fabric } from '@metorial/fabric';
 import { Ed25519 } from '@metorial-outpost/crypto';
@@ -31,6 +31,7 @@ import {
   readResponse,
   registerInstance,
   replaceTokenPayload,
+  requestChallenge,
   sendSigned,
   signedRequest,
   type RegisteredInstance
@@ -592,15 +593,66 @@ describe('module-outpost request authentication', () => {
     }
   );
 
-  it.fails(
-    "rejects the previous instance key after the identifier re-registers with a new key (bug: instance authorization doesn't compare the token's instance_public_key with the stored key, so the superseded key keeps working until its token expires)",
-    async () => {
-      let { key } = await createOutpostWithCredential(org.ids);
-      let previous = await registerInstance(server, { credential: key });
+  it('rejects the previous instance key after the identifier re-registers with a new key', async () => {
+    let { key } = await createOutpostWithCredential(org.ids);
+    let previous = await registerInstance(server, { credential: key });
+    expect((await callVerifier(previous)).status).toBe(200);
 
-      await registerInstance(server, { credential: key, instanceId: previous.instanceId });
+    let current = await registerInstance(server, {
+      credential: key,
+      instanceId: previous.instanceId
+    });
 
-      expect((await callVerifier(previous)).status).toBe(401);
-    }
-  );
+    expect(await callVerifier(previous)).toMatchObject({
+      status: 401,
+      body: { error: 'invalid_instance_token' }
+    });
+    expect((await callVerifier(current)).status).toBe(200);
+
+    let restored = await registerInstance(server, {
+      credential: key,
+      instanceId: previous.instanceId,
+      instanceKeys: previous.instanceKeys
+    });
+    expect((await callVerifier(restored)).status).toBe(200);
+    expect(await callVerifier(current)).toMatchObject({
+      status: 401,
+      body: { error: 'invalid_instance_token' }
+    });
+  });
+
+  it('rejects a credential as soon as its expiry passes, before the expiry cron runs', async () => {
+    let { key } = await createOutpostWithCredential(org.ids, {
+      expiresAt: new Date(Date.now() + 5_000)
+    });
+    let instance = await registerInstance(server, { credential: key });
+    expect((await callVerifier(instance)).status).toBe(200);
+
+    await eventually(
+      async () => {
+        expect(await callVerifier(instance)).toMatchObject({
+          status: 403,
+          body: { error: 'instance_disabled' }
+        });
+        expect((await requestChallenge(server, { credential: key })).response).toMatchObject({
+          status: 403,
+          body: { error: 'revoked_outpost_credential' }
+        });
+      },
+      { timeoutMs: 15_000, intervalMs: 250 }
+    );
+  });
+
+  it('rejects registration with a credential whose expiry already passed', async () => {
+    let { credential, key } = await createOutpostWithCredential(org.ids);
+    await db.outpostCredential.update({
+      where: { oid: credential.oid },
+      data: { expiresAt: new Date(Date.now() - 1_000) }
+    });
+
+    expect((await requestChallenge(server, { credential: key })).response).toMatchObject({
+      status: 403,
+      body: { error: 'revoked_outpost_credential' }
+    });
+  });
 });

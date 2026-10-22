@@ -108,6 +108,7 @@ describe('module-file links', () => {
 
     let resolved = await getCargoFileContent({ fileId: file.id, key });
     expect(Buffer.from(await readContent(resolved)).toString()).toBe('signed v1');
+    expect(resolved.link.expiresAt!.getTime()).toBeGreaterThan(Date.now());
 
     await expectServiceError(getCargoFileContent({ fileId: otherFile.id, key }), 'not_found');
 

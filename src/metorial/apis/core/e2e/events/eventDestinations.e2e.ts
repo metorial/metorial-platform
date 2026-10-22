@@ -171,6 +171,35 @@ describe('api-core management: event destinations', () => {
     expect(archived.webhook.signing_secret).toBeNull();
   });
 
+  it('records a signing-secret rotation in the audit log without the secret', async () => {
+    let created = await createDestination();
+    let rotated = expectOk(
+      await org.clients.management.post(
+        `/organization/event-destinations/${created.id}/rotate-webhook-secret`
+      )
+    );
+
+    let entry = await eventually(
+      async () => {
+        let auditLogs = await listAll(org.clients.management, '/organization/audit-logs');
+        let entry = auditLogs.find(
+          item =>
+            item.resource == 'event_destination' &&
+            item.action == 'rotate_secret' &&
+            item.payload?.id == created.id
+        );
+        expect(entry).toBeDefined();
+        return entry!;
+      },
+      { timeoutMs: 150_000, intervalMs: 2_000 }
+    );
+
+    expect(entry.payload).toMatchObject({ id: created.id, name: created.name });
+    let stored = JSON.stringify(entry);
+    expect(stored).not.toContain(created.webhook.signing_secret);
+    expect(stored).not.toContain(rotated.webhook.signing_secret);
+  }, 180_000);
+
   it('presents the retry policy of destinations and deliveries', async () => {
     let retry = {
       strategy: 'fixed',

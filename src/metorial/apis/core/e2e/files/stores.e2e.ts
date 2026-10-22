@@ -126,6 +126,29 @@ describe('api-core stores', () => {
     );
   });
 
+  it('keeps unicode item names and rejects disallowed characters with 400', async () => {
+    let store = await createStore(org);
+    let file = await uploadFile(org, { fileName: 'résumé.txt' });
+    expect(store).not.toHaveProperty('path_mode');
+
+    let added = await addItems(org.clients.instance, store.id, [
+      { type: 'add', path: 'docs/résumé.txt', fileId: file.id }
+    ]);
+    expect(added.items[0]).toMatchObject({ kind: 'file', path: '/docs/résumé.txt' });
+
+    let error = expectError(
+      await org.clients.instance.patch(`/stores/${store.id}/items`, {
+        operations: [{ type: 'add', path: 'docs/na:me.txt', fileId: file.id }]
+      }),
+      400,
+      'bad_request'
+    );
+    expect(error.message).toContain('":" (U+003A)');
+
+    let items = await listAll(org.clients.instance, `/stores/${store.id}/items`);
+    expect(items.map(item => item.path)).toEqual(['/docs/résumé.txt']);
+  });
+
   it('creates, reads, updates and hard-deletes a store', async () => {
     let name = uniqueId('lifecycle-store');
     let created = expectOk(await org.clients.instance.post('/stores', { name }));

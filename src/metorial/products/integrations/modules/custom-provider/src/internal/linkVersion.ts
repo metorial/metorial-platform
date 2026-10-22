@@ -38,4 +38,13 @@ export let linkNewShuttleVersionToCustomProvider = async ({
         ownerSolutionOid: customProviderVersion.solutionOid
       }
     });
+
+    await db.providerListing.updateMany({
+      where: { providerOid: provider.oid },
+      data: {
+        isPublic: false,
+        ownerTenantOid: customProviderVersion.tenantOid,
+        ownerSolutionOid: customProviderVersion.solutionOid
+      }
+    });
   });

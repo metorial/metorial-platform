@@ -282,6 +282,57 @@ describe('module-auth provider setup sessions', () => {
     ).toMatchObject({ name: `${session.name} renamed`, metadata: { team: 'b' } });
   });
 
+  it('archives a session and closes it for edits and the setup UI', async () => {
+    let session = await providerSetupSessionService.getProviderSetupSessionById({
+      instance: scope.instance,
+      providerSetupSessionId: (await createSession({}, configProvider)).id
+    });
+
+    let archived = await providerSetupSessionService.archiveProviderSetupSession({
+      instance: scope.instance,
+      auditScope: scope.fixture.auditScope,
+      providerSetupSession: session
+    });
+    expect(archived).toMatchObject({ id: session.id, status: 'archived' });
+
+    expect(
+      await subspaceDb.providerSetupSession.findUniqueOrThrow({ where: { oid: session.oid } })
+    ).toMatchObject({ status: 'archived', name: session.name });
+
+    let fetched = await providerSetupSessionService.getProviderSetupSessionById({
+      instance: scope.instance,
+      providerSetupSessionId: session.id
+    });
+    expect(fetched.status).toBe('archived');
+    expect(await listSessionIds({ ids: [session.id], status: ['pending'] })).toEqual([]);
+    expect(await listSessionIds({ ids: [session.id], status: ['archived'] })).toEqual([
+      session.id
+    ]);
+
+    await expectServiceError(
+      providerSetupSessionService.archiveProviderSetupSession({
+        instance: scope.instance,
+        providerSetupSession: fetched
+      }),
+      'gone'
+    );
+    await expectServiceError(
+      providerSetupSessionService.updateProviderSetupSession({
+        instance: scope.instance,
+        providerSetupSession: fetched,
+        input: { name: uniqueId('too-late') }
+      }),
+      'gone'
+    );
+    await expectServiceError(
+      providerSetupSessionUiService.getProviderSetupSessionByClientSecret({
+        sessionId: session.id,
+        clientSecret: session.clientSecret
+      }),
+      'not_found'
+    );
+  });
+
   it("does not expose or modify another tenant's setup sessions", async () => {
     let other = await loadAuthScope(otherOrg);
     let session = await createSession({}, configProvider);
@@ -301,11 +352,18 @@ describe('module-auth provider setup sessions', () => {
         providerSetupSession: session,
         input: { name: uniqueId('hijacked') }
       })
-    ).rejects.toThrow();
+    ).rejects.toThrow('Tenant mismatch');
+
+    await expect(
+      providerSetupSessionService.archiveProviderSetupSession({
+        instance: other.instance,
+        providerSetupSession: session
+      })
+    ).rejects.toThrow('Tenant mismatch');
 
     expect(
       await subspaceDb.providerSetupSession.findUniqueOrThrow({ where: { oid: session.oid } })
-    ).toMatchObject({ name: session.name, tenantOid: scope.tenant.oid });
+    ).toMatchObject({ name: session.name, status: 'pending', tenantOid: scope.tenant.oid });
 
     let byClientSecret =
       await providerSetupSessionUiService.getProviderSetupSessionByClientSecret({

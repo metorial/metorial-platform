@@ -89,7 +89,8 @@ describe('module-outpost registration', () => {
     let authorization = await outpostRegistrationService.resolveInstanceAuthorization({
       outpostId: outpost.id,
       instanceId: registered.instanceId,
-      credentialId: credential.id
+      credentialId: credential.id,
+      instancePublicKey: await Ed25519.exportPublicKey(registered.instanceKeys.publicKey)
     });
     expect(authorization.status).toBe('active');
   });

@@ -253,17 +253,36 @@ describe('module-event-destination: event destinations', () => {
     );
   });
 
-  it.fails(
-    'rejects localhost destination urls at creation (bug: assertDeliveryUrlAllowed only checks IP literals, so http://localhost passes although the error description promises loopback is rejected)',
-    async () => {
-      let fixture = await loadOrganizationFixture(org.ids);
+  it('rejects localhost destination urls at creation and on update', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let created = await createDestination(fixture);
+
+    for (let url of [
+      'http://localhost:8080/hook',
+      'https://LOCALHOST./hook',
+      'http://api.localhost/hook',
+      'http://localhost.localdomain/hook',
+      'http://ip6-localhost/hook'
+    ]) {
+      let error = await expectServiceError(createDestination(fixture, { url }), 'bad_request');
+      expect(error.message, url).toBe('Delivery URL must not point at localhost');
 
       await expectServiceError(
-        createDestination(fixture, { url: 'http://localhost:8080/hook' }),
+        eventDestinationService.updateEventDestination({
+          organization: fixture.organization,
+          eventDestination: created,
+          auditScope: fixture.auditScope,
+          input: { webhook: { url } }
+        }),
         'bad_request'
       );
     }
-  );
+
+    expect((await persisted(created.id)).webhookDestination!.url).toBe(
+      created.webhookDestination!.url
+    );
+    await createDestination(fixture, { url: 'https://localhost.example.com/hook' });
+  });
 
   it('validates the url on update and keeps the stored url when it is rejected', async () => {
     let fixture = await loadOrganizationFixture(org.ids);

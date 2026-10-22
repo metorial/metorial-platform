@@ -136,6 +136,7 @@ describe('module-custom-provider versions', () => {
       customProviderId: first.customProvider.id
     });
     expect(refreshed.payload.from).toMatchObject({ remoteUrl: releaseUrl });
+    expect(refreshed).toMatchObject({ remoteUrl: releaseUrl });
 
     let rollback = await customProviderCommitService.createCustomProviderCommit({
       instance: fixture.instance,
@@ -159,6 +160,12 @@ describe('module-custom-provider versions', () => {
       (await getEnvironment(fixture, first.customProvider.id)).providerEnvironment
         ?.currentVersionOid
     ).toBe(first.version.providerVersionOid);
+    expect(
+      await customProviderService.getCustomProviderById({
+        instance: fixture.instance,
+        customProviderId: first.customProvider.id
+      })
+    ).toMatchObject({ remoteUrl: server.url });
 
     let commits = await firstPage(
       await customProviderCommitService.listCustomProviderCommits({
@@ -225,6 +232,7 @@ describe('module-custom-provider versions', () => {
     });
     expect(refreshed.providerOid).not.toBeNull();
     expect(refreshed.payload.from).toMatchObject({ remoteUrl: retryUrl });
+    expect(refreshed).toMatchObject({ remoteUrl: retryUrl });
     expect(
       await customProviderVersionService.getCustomProviderVersionById({
         instance: fixture.instance,

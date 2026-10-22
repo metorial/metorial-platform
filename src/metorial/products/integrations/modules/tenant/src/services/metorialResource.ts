@@ -13,6 +13,7 @@ import type {
 import { metorialDb } from '../lib/metorialDb';
 import {
   assertMirrorIdentity,
+  retryMirrorUpsertOnRace,
   upsertInstanceMirror,
   upsertOrganizationActorMirror,
   upsertOrganizationMirror,
@@ -82,35 +83,37 @@ class metorialResourceServiceImpl {
     });
     assertMirrorIdentity('organization member', member, matches);
 
-    return await db.organizationMember.upsert({
-      where: { oid: member.oid },
-      update: {
-        role: member.role,
-        status: member.status,
-        isV2Member: member.isV2Member,
-        usesMetorialPersonal: member.usesMetorialPersonal,
-        lastActiveAt: member.lastActiveAt,
-        deletedAt: member.deletedAt,
-        organizationOid: member.organizationOid,
-        actorOid: member.actorOid,
-        createdAt: member.createdAt,
-        updatedAt: member.updatedAt
-      },
-      create: {
-        oid: member.oid,
-        id: member.id,
-        role: member.role,
-        status: member.status,
-        isV2Member: member.isV2Member,
-        usesMetorialPersonal: member.usesMetorialPersonal,
-        lastActiveAt: member.lastActiveAt,
-        deletedAt: member.deletedAt,
-        organizationOid: member.organizationOid,
-        actorOid: member.actorOid,
-        createdAt: member.createdAt,
-        updatedAt: member.updatedAt
-      }
-    });
+    return await retryMirrorUpsertOnRace(() =>
+      db.organizationMember.upsert({
+        where: { oid: member.oid },
+        update: {
+          role: member.role,
+          status: member.status,
+          isV2Member: member.isV2Member,
+          usesMetorialPersonal: member.usesMetorialPersonal,
+          lastActiveAt: member.lastActiveAt,
+          deletedAt: member.deletedAt,
+          organizationOid: member.organizationOid,
+          actorOid: member.actorOid,
+          createdAt: member.createdAt,
+          updatedAt: member.updatedAt
+        },
+        create: {
+          oid: member.oid,
+          id: member.id,
+          role: member.role,
+          status: member.status,
+          isV2Member: member.isV2Member,
+          usesMetorialPersonal: member.usesMetorialPersonal,
+          lastActiveAt: member.lastActiveAt,
+          deletedAt: member.deletedAt,
+          organizationOid: member.organizationOid,
+          actorOid: member.actorOid,
+          createdAt: member.createdAt,
+          updatedAt: member.updatedAt
+        }
+      })
+    );
   }
 
   private async syncConsumerAttribution(d: {
@@ -148,37 +151,39 @@ class metorialResourceServiceImpl {
     });
     assertMirrorIdentity('consumer', consumer, matches);
 
-    return await db.consumer.upsert({
-      where: { oid: consumer.oid },
-      update: {
-        name: consumer.name,
-        email: consumer.email,
-        organizationOid: consumer.organizationOid,
-        organizationMemberOid: consumer.organizationMemberOid,
-        organizationActorOid: consumer.organizationActorOid,
-        isOrganizationMember: consumer.isOrganizationMember,
-        isPortalConsumer: consumer.isPortalConsumer,
-        isManuallyCreated: consumer.isManuallyCreated,
-        isPending: consumer.isPending,
-        createdAt: consumer.createdAt,
-        updatedAt: consumer.updatedAt
-      },
-      create: {
-        oid: consumer.oid,
-        id: consumer.id,
-        name: consumer.name,
-        email: consumer.email,
-        organizationOid: consumer.organizationOid,
-        organizationMemberOid: consumer.organizationMemberOid,
-        organizationActorOid: consumer.organizationActorOid,
-        isOrganizationMember: consumer.isOrganizationMember,
-        isPortalConsumer: consumer.isPortalConsumer,
-        isManuallyCreated: consumer.isManuallyCreated,
-        isPending: consumer.isPending,
-        createdAt: consumer.createdAt,
-        updatedAt: consumer.updatedAt
-      }
-    });
+    return await retryMirrorUpsertOnRace(() =>
+      db.consumer.upsert({
+        where: { oid: consumer.oid },
+        update: {
+          name: consumer.name,
+          email: consumer.email,
+          organizationOid: consumer.organizationOid,
+          organizationMemberOid: consumer.organizationMemberOid,
+          organizationActorOid: consumer.organizationActorOid,
+          isOrganizationMember: consumer.isOrganizationMember,
+          isPortalConsumer: consumer.isPortalConsumer,
+          isManuallyCreated: consumer.isManuallyCreated,
+          isPending: consumer.isPending,
+          createdAt: consumer.createdAt,
+          updatedAt: consumer.updatedAt
+        },
+        create: {
+          oid: consumer.oid,
+          id: consumer.id,
+          name: consumer.name,
+          email: consumer.email,
+          organizationOid: consumer.organizationOid,
+          organizationMemberOid: consumer.organizationMemberOid,
+          organizationActorOid: consumer.organizationActorOid,
+          isOrganizationMember: consumer.isOrganizationMember,
+          isPortalConsumer: consumer.isPortalConsumer,
+          isManuallyCreated: consumer.isManuallyCreated,
+          isPending: consumer.isPending,
+          createdAt: consumer.createdAt,
+          updatedAt: consumer.updatedAt
+        }
+      })
+    );
   }
 
   async syncInstanceConsumer(instanceConsumer: MetorialInstanceConsumer) {
@@ -202,33 +207,35 @@ class metorialResourceServiceImpl {
     });
     assertMirrorIdentity('instance consumer', instanceConsumer, matches);
 
-    return await db.instanceConsumer.upsert({
-      where: { oid: instanceConsumer.oid },
-      update: {
-        name: instanceConsumer.name,
-        email: instanceConsumer.email,
-        instanceOid: instanceConsumer.instanceOid,
-        consumerOid: instanceConsumer.consumerOid,
-        organizationMemberOid: instanceConsumer.organizationMemberOid,
-        organizationActorOid: instanceConsumer.organizationActorOid,
-        isPending: instanceConsumer.isPending,
-        createdAt: instanceConsumer.createdAt,
-        updatedAt: instanceConsumer.updatedAt
-      },
-      create: {
-        oid: instanceConsumer.oid,
-        id: instanceConsumer.id,
-        name: instanceConsumer.name,
-        email: instanceConsumer.email,
-        instanceOid: instanceConsumer.instanceOid,
-        consumerOid: instanceConsumer.consumerOid,
-        organizationMemberOid: instanceConsumer.organizationMemberOid,
-        organizationActorOid: instanceConsumer.organizationActorOid,
-        isPending: instanceConsumer.isPending,
-        createdAt: instanceConsumer.createdAt,
-        updatedAt: instanceConsumer.updatedAt
-      }
-    });
+    return await retryMirrorUpsertOnRace(() =>
+      db.instanceConsumer.upsert({
+        where: { oid: instanceConsumer.oid },
+        update: {
+          name: instanceConsumer.name,
+          email: instanceConsumer.email,
+          instanceOid: instanceConsumer.instanceOid,
+          consumerOid: instanceConsumer.consumerOid,
+          organizationMemberOid: instanceConsumer.organizationMemberOid,
+          organizationActorOid: instanceConsumer.organizationActorOid,
+          isPending: instanceConsumer.isPending,
+          createdAt: instanceConsumer.createdAt,
+          updatedAt: instanceConsumer.updatedAt
+        },
+        create: {
+          oid: instanceConsumer.oid,
+          id: instanceConsumer.id,
+          name: instanceConsumer.name,
+          email: instanceConsumer.email,
+          instanceOid: instanceConsumer.instanceOid,
+          consumerOid: instanceConsumer.consumerOid,
+          organizationMemberOid: instanceConsumer.organizationMemberOid,
+          organizationActorOid: instanceConsumer.organizationActorOid,
+          isPending: instanceConsumer.isPending,
+          createdAt: instanceConsumer.createdAt,
+          updatedAt: instanceConsumer.updatedAt
+        }
+      })
+    );
   }
 
   async syncConsumerProfile(consumerProfile: MetorialConsumerProfile) {
@@ -251,39 +258,41 @@ class metorialResourceServiceImpl {
     });
     assertMirrorIdentity('consumer profile', consumerProfile, matches);
 
-    return await db.consumerProfile.upsert({
-      where: { oid: consumerProfile.oid },
-      update: {
-        status: consumerProfile.status,
-        inviteStatus: consumerProfile.inviteStatus,
-        name: consumerProfile.name,
-        email: consumerProfile.email,
-        organizationOid: consumerProfile.organizationOid,
-        instanceOid: consumerProfile.instanceOid,
-        consumerOid: consumerProfile.consumerOid,
-        organizationMemberOid: consumerProfile.organizationMemberOid,
-        organizationActorOid: consumerProfile.organizationActorOid,
-        deletedAt: consumerProfile.deletedAt,
-        createdAt: consumerProfile.createdAt,
-        updatedAt: consumerProfile.updatedAt
-      },
-      create: {
-        oid: consumerProfile.oid,
-        id: consumerProfile.id,
-        status: consumerProfile.status,
-        inviteStatus: consumerProfile.inviteStatus,
-        name: consumerProfile.name,
-        email: consumerProfile.email,
-        organizationOid: consumerProfile.organizationOid,
-        instanceOid: consumerProfile.instanceOid,
-        consumerOid: consumerProfile.consumerOid,
-        organizationMemberOid: consumerProfile.organizationMemberOid,
-        organizationActorOid: consumerProfile.organizationActorOid,
-        deletedAt: consumerProfile.deletedAt,
-        createdAt: consumerProfile.createdAt,
-        updatedAt: consumerProfile.updatedAt
-      }
-    });
+    return await retryMirrorUpsertOnRace(() =>
+      db.consumerProfile.upsert({
+        where: { oid: consumerProfile.oid },
+        update: {
+          status: consumerProfile.status,
+          inviteStatus: consumerProfile.inviteStatus,
+          name: consumerProfile.name,
+          email: consumerProfile.email,
+          organizationOid: consumerProfile.organizationOid,
+          instanceOid: consumerProfile.instanceOid,
+          consumerOid: consumerProfile.consumerOid,
+          organizationMemberOid: consumerProfile.organizationMemberOid,
+          organizationActorOid: consumerProfile.organizationActorOid,
+          deletedAt: consumerProfile.deletedAt,
+          createdAt: consumerProfile.createdAt,
+          updatedAt: consumerProfile.updatedAt
+        },
+        create: {
+          oid: consumerProfile.oid,
+          id: consumerProfile.id,
+          status: consumerProfile.status,
+          inviteStatus: consumerProfile.inviteStatus,
+          name: consumerProfile.name,
+          email: consumerProfile.email,
+          organizationOid: consumerProfile.organizationOid,
+          instanceOid: consumerProfile.instanceOid,
+          consumerOid: consumerProfile.consumerOid,
+          organizationMemberOid: consumerProfile.organizationMemberOid,
+          organizationActorOid: consumerProfile.organizationActorOid,
+          deletedAt: consumerProfile.deletedAt,
+          createdAt: consumerProfile.createdAt,
+          updatedAt: consumerProfile.updatedAt
+        }
+      })
+    );
   }
 
   async syncConsumerGraph(consumer: MetorialConsumer) {

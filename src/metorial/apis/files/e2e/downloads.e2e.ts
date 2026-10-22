@@ -172,18 +172,15 @@ describe('api-files downloads', () => {
     expect((await fetchFileContent(file.id, key)).status).toBe(404);
   });
 
-  it.fails(
-    'does not let shared caches keep signed downloads past their expiry (bug: signed keys resolve with expiresAt null, so responses are "public, max-age=31536000, immutable")',
-    async () => {
-      let file = await upload({ content: 'short lived', fileName: 'short-lived.bin' });
-      let record = await db.file.findUniqueOrThrow({ where: { id: file.id } });
-      let key = await createSignedFileDownloadKey(record, { expiresInSeconds: 60 });
+  it('does not let shared caches keep signed downloads past their expiry', async () => {
+    let file = await upload({ content: 'short lived', fileName: 'short-lived.bin' });
+    let record = await db.file.findUniqueOrThrow({ where: { id: file.id } });
+    let key = await createSignedFileDownloadKey(record, { expiresInSeconds: 60 });
 
-      let response = await fetchFileContent(file.id, key);
-      expect(response.status).toBe(200);
-      expect(response.headers.get('cache-control')).toBe('private, no-store');
-    }
-  );
+    let response = await fetchFileContent(file.id, key);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
+  });
 
   it('keeps files and links invisible to other tenants', async () => {
     let file = await upload({ content: 'private', fileName: 'private.bin' });

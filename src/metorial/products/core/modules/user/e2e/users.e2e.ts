@@ -8,8 +8,8 @@ import {
 } from '@metorial/e2e';
 import { db, loadOrganizationFixture } from '@metorial/e2e/db';
 import { Fabric } from '@metorial/fabric';
-import { describe, expect, it, onTestFinished } from 'vitest';
-import { userAuthService, userService } from '../src';
+import { describe, expect, it, onTestFinished, vi } from 'vitest';
+import { syncUserUpdateQueue, userAuthService, userService } from '../src';
 
 let createUser = async (input: { email?: string; password?: string } = {}) =>
   userService.createUser({
@@ -63,27 +63,82 @@ describe('module-user users', () => {
     expect(await db.user.count({ where: { email } })).toBe(1);
   });
 
-  it.fails(
-    'treats emails that differ only in case as the same account (bug: email uniqueness is case-sensitive)',
-    async () => {
-      let email = uniqueEmail('case');
-      await createUser({ email });
+  it('treats emails that differ only in case as the same account', async () => {
+    let email = uniqueEmail('case');
+    await createUser({ email });
 
-      await expectServiceError(createUser({ email: email.toUpperCase() }), 'conflict');
+    await expectServiceError(createUser({ email: email.toUpperCase() }), 'conflict');
+    await expectServiceError(createUser({ email: ` ${email} ` }), 'conflict');
+    expect(
+      await db.user.count({ where: { email: { in: [email, email.toUpperCase()] } } })
+    ).toBe(1);
+  });
+
+  it('stores emails trimmed and lowercased', async () => {
+    let email = uniqueEmail('normalised');
+
+    let user = await createUser({ email: `  ${email.toUpperCase()} ` });
+
+    expect(user.email).toBe(email);
+    expect((await db.user.findUniqueOrThrow({ where: { id: user.id } })).email).toBe(email);
+  });
+
+  it('does not treat underscores or percent signs in an email as wildcards', async () => {
+    let suffix = uniqueEmail('wild');
+    let password = uniqueId('password');
+    await createUser({ email: `axbyc-${suffix}`, password: uniqueId('other-password') });
+
+    let wildcard = await createUser({ email: `a_b%c-${suffix}`, password });
+    expect(wildcard.email).toBe(`a_b%c-${suffix}`);
+    expect((await login(`A_B%C-${suffix}`, password)).userOid).toBe(wildcard.oid);
+  });
+
+  it('logs in regardless of the email case used at sign-up', async () => {
+    let email = uniqueEmail('login-case');
+    let password = uniqueId('password');
+    let user = await createUser({ email, password });
+
+    expect((await login(email.toUpperCase(), password)).userOid).toBe(user.oid);
+    expect((await login(` ${email} `, password)).userOid).toBe(user.oid);
+  });
+
+  it('logs into a legacy account stored with a mixed-case email', async () => {
+    let email = uniqueEmail('legacy');
+    let password = uniqueId('password');
+    let user = await createUser({ email, password });
+    await db.user.update({ where: { oid: user.oid }, data: { email: email.toUpperCase() } });
+
+    expect((await login(email, password)).userOid).toBe(user.oid);
+    await expectServiceError(createUser({ email }), 'conflict');
+  });
+
+  it('logs into the oldest active account when legacy accounts differ only in case', async () => {
+    let email = uniqueEmail('legacy-dup');
+    let password = uniqueId('password');
+    let newerPassword = uniqueId('newer-password');
+    let deletedPassword = uniqueId('deleted-password');
+
+    let deleted = await createUser({ email: `deleted-${email}`, password: deletedPassword });
+    let oldest = await createUser({ email: `oldest-${email}`, password });
+    let newer = await createUser({ email: `newer-${email}`, password: newerPassword });
+
+    await db.user.update({
+      where: { oid: deleted.oid },
+      data: {
+        email: `${email[0]!.toUpperCase()}${email.slice(1)}`,
+        status: 'deleted',
+        deletedAt: new Date()
+      }
+    });
+    await db.user.update({ where: { oid: oldest.oid }, data: { email: email.toUpperCase() } });
+    await db.user.update({ where: { oid: newer.oid }, data: { email } });
+
+    for (let attempt of [email, email.toUpperCase()]) {
+      expect((await login(attempt, password)).userOid).toBe(oldest.oid);
+      await expectServiceError(login(attempt, newerPassword), 'bad_request');
+      await expectServiceError(login(attempt, deletedPassword), 'bad_request');
     }
-  );
-
-  it.fails(
-    'logs in regardless of the email case used at sign-up (bug: login matches the email case-sensitively)',
-    async () => {
-      let email = uniqueEmail('login-case');
-      let password = uniqueId('password');
-      let user = await createUser({ email, password });
-
-      let session = await login(email.toUpperCase(), password);
-      expect(session.userOid).toBe(user.oid);
-    }
-  );
+  });
 
   it('fires user.created events with the created user as the performer', async () => {
     let email = uniqueEmail('events');
@@ -228,6 +283,52 @@ describe('module-user users', () => {
     expect(await db.user.count({ where: { email: taken.email } })).toBe(1);
   });
 
+  it('rejects changing the email to a case variant of another user', async () => {
+    let taken = await createUser();
+    let user = await createUser();
+
+    await expectServiceError(
+      userService.updateUser({
+        user,
+        input: { email: taken.email.toUpperCase() },
+        context: testContext()
+      }),
+      'conflict'
+    );
+    expect((await db.user.findUniqueOrThrow({ where: { id: user.id } })).email).toBe(
+      user.email
+    );
+  });
+
+  it('stores a changed email trimmed and lowercased', async () => {
+    let user = await createUser();
+    let nextEmail = uniqueEmail('moved-case');
+
+    let updated = await userService.updateUser({
+      user,
+      input: { email: ` ${nextEmail.toUpperCase()}` },
+      context: testContext()
+    });
+
+    expect(updated.email).toBe(nextEmail);
+  });
+
+  it('keeps a stored email when the user re-submits it in another case', async () => {
+    let user = await createUser();
+    let legacy = await db.user.update({
+      where: { oid: user.oid },
+      data: { email: user.email.toUpperCase() }
+    });
+
+    let updated = await userService.updateUser({
+      user: legacy,
+      input: { email: user.email, name: 'Same Address' },
+      context: testContext()
+    });
+
+    expect(updated).toMatchObject({ email: legacy.email, name: 'Same Address' });
+  });
+
   it('keeps the email when a user re-submits their own address', async () => {
     let user = await createUser();
 
@@ -309,5 +410,63 @@ describe('module-user profile sync', () => {
       },
       { timeoutMs: 30_000, intervalMs: 250 }
     );
+  });
+
+  it('queues the profile sync only once the update is committed', async () => {
+    let user = await createUser();
+    let committedNames: string[] = [];
+    let add = syncUserUpdateQueue.add.bind(syncUserUpdateQueue);
+
+    let spy = vi.spyOn(syncUserUpdateQueue, 'add').mockImplementation(async data => {
+      if (data.userId === user.id) {
+        let committed = await db.user.findUniqueOrThrow({ where: { id: user.id } });
+        committedNames.push(committed.name);
+      }
+      return add(data);
+    });
+    onTestFinished(() => spy.mockRestore());
+
+    let name = uniqueId('Committed Name');
+    await userService.updateUser({ user, input: { name }, context: testContext() });
+
+    await eventually(async () => expect(committedNames).toEqual([name]), {
+      timeoutMs: 10_000,
+      intervalMs: 100
+    });
+  });
+
+  it('does not queue a profile sync for an update that rolls back', async () => {
+    let user = await createUser();
+    let queuedUserIds: string[] = [];
+    let add = syncUserUpdateQueue.add.bind(syncUserUpdateQueue);
+
+    let spy = vi.spyOn(syncUserUpdateQueue, 'add').mockImplementation(async data => {
+      queuedUserIds.push(data.userId);
+      return add(data);
+    });
+    onTestFinished(() => spy.mockRestore());
+    onTestFinished(
+      Fabric.listen('user.updated:after', event => {
+        if (event.user.id === user.id) throw new Error('listener veto');
+      })
+    );
+
+    await expect(
+      userService.updateUser({ user, input: { name: 'Rolled Back' }, context: testContext() })
+    ).rejects.toThrow('listener veto');
+
+    let control = await createUser();
+    await userService.updateUser({
+      user: control,
+      input: { name: uniqueId('Control') },
+      context: testContext()
+    });
+    await eventually(async () => expect(queuedUserIds).toContain(control.id), {
+      timeoutMs: 10_000,
+      intervalMs: 100
+    });
+
+    expect(queuedUserIds).not.toContain(user.id);
+    expect((await db.user.findUniqueOrThrow({ where: { id: user.id } })).name).toBe(user.name);
   });
 });

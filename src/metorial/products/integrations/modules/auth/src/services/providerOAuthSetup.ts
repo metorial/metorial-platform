@@ -68,8 +68,7 @@ type CreateProviderOAuthSetupParams = {
     provider: Provider;
     providerVariant: ProviderVariant;
     currentVersion:
-      | (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null })
-      | null;
+      (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null }) | null;
   };
   credentials?: ProviderAuthCredentials;
   input: {
@@ -303,7 +302,7 @@ class providerOAuthSetupServiceImpl {
           slateOAuthSetupOid: backendProviderOAuthSetup.slateOAuthSetup?.oid,
           shuttleOAuthSetupOid: backendProviderOAuthSetup.shuttleOAuthSetup?.oid,
 
-          expiresAt: addMinutes(new Date(), 30)
+          expiresAt: d.input.expiresAt ?? addMinutes(new Date(), 30)
         },
         include
       });

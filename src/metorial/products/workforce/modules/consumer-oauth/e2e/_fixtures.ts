@@ -1,7 +1,7 @@
 import { base64UrlEncode, createCodeChallenge } from '@metorial/consumer-oauth-utils';
 import type { ConsumerProfile } from '@metorial/db';
 import { expectServiceError, uniqueEmail, uniqueId } from '@metorial/e2e';
-import { loadOrganizationFixture, type OrganizationFixture } from '@metorial/e2e/db';
+import { db, loadOrganizationFixture, type OrganizationFixture } from '@metorial/e2e/db';
 import { consumerProfileService } from '@metorial/module-consumer-core';
 import {
   magicMcpServerService,
@@ -112,6 +112,19 @@ export let registerClient = (
       ...input
     }
   });
+
+export let registerLegacyClient = async (
+  route: ConsumerOAuthRoute,
+  input: Partial<RegistrationInput> = {}
+) => {
+  let client = await registerClient(route, input);
+  await db.consumerAuthClient.update({
+    where: { oid: client.oid },
+    data: { requirePkce: false }
+  });
+
+  return { ...client, requirePkce: false };
+};
 
 export let authorize = (
   route: ConsumerOAuthRoute,

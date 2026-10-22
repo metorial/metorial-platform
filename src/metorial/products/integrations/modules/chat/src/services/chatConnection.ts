@@ -380,15 +380,22 @@ class chatConnectionServiceImpl {
   ) {
     let { provider, ...createParams } = d;
 
-    let chatConnection = await this.createChatConnectionInternal(
-      createParams as { tenant: Tenant; environment: Environment } & CreateChatConnectionParams
-    );
+    let chatConnection = await withTransaction(async () => {
+      let chatConnection = await this.createChatConnectionInternal(
+        createParams as {
+          tenant: Tenant;
+          environment: Environment;
+        } & CreateChatConnectionParams
+      );
 
-    await chatConnectionProviderService.createChatConnectionProviderInternal({
-      tenant: d.tenant,
-      environment: d.environment,
-      chatConnection,
-      input: provider
+      await chatConnectionProviderService.createChatConnectionProviderInternal({
+        tenant: d.tenant,
+        environment: d.environment,
+        chatConnection,
+        input: provider
+      });
+
+      return chatConnection;
     });
 
     return this.getChatConnectionByIdInternal({

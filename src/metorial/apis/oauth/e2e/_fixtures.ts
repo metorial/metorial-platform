@@ -88,27 +88,6 @@ export let createPkce = () => {
   return { codeVerifier, codeChallenge };
 };
 
-// The global-DB sync of a new application runs after its transaction and races the sync of a
-// secret created right away (P2002 on OAuthApplication_id_key), which rolls the secret back.
-let createClientSecret = async (
-  oauthApplication: Parameters<
-    typeof oauthApplicationService.createOAuthApplicationClientSecret
-  >[0]['oauthApplication'],
-  auditScope: OrganizationFixture['auditScope']
-) => {
-  for (let attempt = 1; ; attempt++) {
-    try {
-      return await oauthApplicationService.createOAuthApplicationClientSecret({
-        oauthApplication,
-        auditScope
-      });
-    } catch (error) {
-      if (attempt >= 10 || (error as { code?: string }).code != 'P2002') throw error;
-      await new Promise(resolve => setTimeout(resolve, 250));
-    }
-  }
-};
-
 export let createApplication = async (
   ids: { organizationId: string },
   input: {
@@ -133,7 +112,10 @@ export let createApplication = async (
       allowClientSecretlessTokenExchange: input.allowClientSecretlessTokenExchange
     }
   });
-  let { secret } = await createClientSecret(oauthApplication, fixture.auditScope);
+  let { secret } = await oauthApplicationService.createOAuthApplicationClientSecret({
+    oauthApplication,
+    auditScope: fixture.auditScope
+  });
 
   return {
     fixture,

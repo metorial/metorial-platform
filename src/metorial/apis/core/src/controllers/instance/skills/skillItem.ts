@@ -108,7 +108,7 @@ export let skillItemController = Controller.create(
       .do(async ctx => {
         let paginator = await skillItemService.listSkillItems({
           instance: ctx.instance,
-          allowDeleted: true,
+          allowDeleted: false,
           skillIds: [ctx.skill.id],
           status: normalizeArrayParam(ctx.query.status),
           type: normalizeArrayParam(ctx.query.type),

@@ -5,13 +5,19 @@ import {
   testContext,
   uniqueEmail,
   uniqueId,
+  useMember,
   useOrganization
 } from '@metorial/e2e';
 import type { ConsumerSurface, User } from '@metorial/db';
 import { db, loadOrganizationFixture, type OrganizationFixture } from '@metorial/e2e/db';
 import { addDays, subDays } from 'date-fns';
 import { describe, expect, it } from 'vitest';
-import { consumerAuthService, consumerInviteService } from '../src';
+import {
+  consumerAuthService,
+  consumerInviteService,
+  consumerProfileService,
+  getConsumerInviteExpiresAt
+} from '../src';
 import {
   captureFabric,
   createConsumerSurface,
@@ -22,6 +28,8 @@ import {
 
 describe('module-consumer-core invites', () => {
   let org = useOrganization();
+  let memberOrg = useOrganization();
+  let member = useMember(memberOrg);
 
   let invite = async (
     fixture: OrganizationFixture,
@@ -176,23 +184,127 @@ describe('module-consumer-core invites', () => {
     ).toBe(0);
   });
 
-  it.fails(
-    'rejects accepting an expired invite (bug: expiresAt is never checked; enforcing it needs a decision on legacy invites whose expiresAt defaulted to the migration time)',
-    async () => {
-      let fixture = await loadOrganizationFixture(org.ids);
-      let surface = await createConsumerSurface(fixture);
-      let email = uniqueEmail('expired');
-      let pending = await invite(fixture, surface, email);
+  it('rejects accepting an expired invite', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let surface = await createConsumerSurface(fixture);
+    let email = uniqueEmail('expired');
+    let pending = await invite(fixture, surface, email);
+    expect(pending.legacyGraceStartedAt).toBeNull();
 
-      await db.consumerInvite.update({
+    await db.consumerInvite.update({
+      where: { oid: pending.oid },
+      data: { expiresAt: subDays(new Date(), 1) }
+    });
+
+    let user = await signUpUser(email);
+    let rejected = await expectServiceError(logIn(surface, user), 'forbidden');
+    expect(rejected.message).toMatch(/expired/);
+
+    expect(
+      await db.consumerProfile.findUniqueOrThrow({
+        where: { oid: pending.consumerProfileOid }
+      })
+    ).toMatchObject({ inviteStatus: 'invited' });
+    expect(
+      await db.consumerInvite.findUniqueOrThrow({ where: { oid: pending.oid } })
+    ).toMatchObject({ status: 'pending', acceptedAt: null });
+    expect(
+      await db.consumerSession.count({
+        where: { consumerProfileOid: pending.consumerProfileOid }
+      })
+    ).toBe(0);
+  });
+
+  it('gives invites that predate expiry 14 days from deploy', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let surface = await createConsumerSurface(fixture);
+    let legacyInvite = async (graceStartedDaysAgo: number) => {
+      let email = uniqueEmail('legacy');
+      let pending = await invite(fixture, surface, email);
+      let legacy = await db.consumerInvite.update({
         where: { oid: pending.oid },
-        data: { expiresAt: subDays(new Date(), 1) }
+        data: {
+          expiresAt: subDays(new Date(), 120),
+          legacyGraceStartedAt: subDays(new Date(), graceStartedDaysAgo)
+        }
       });
 
-      let user = await signUpUser(email);
-      await expectServiceError(logIn(surface, user), 'forbidden');
-    }
-  );
+      return { legacy, user: await signUpUser(email) };
+    };
+
+    let withinGrace = await legacyInvite(1);
+    expect(getConsumerInviteExpiresAt(withinGrace.legacy).getTime()).toBe(
+      addDays(withinGrace.legacy.legacyGraceStartedAt!, 14).getTime()
+    );
+    let session = await logIn(surface, withinGrace.user);
+    expect(session.consumerProfile).toMatchObject({
+      oid: withinGrace.legacy.consumerProfileOid,
+      inviteStatus: 'accepted'
+    });
+    expect(
+      await db.consumerInvite.findUniqueOrThrow({ where: { oid: withinGrace.legacy.oid } })
+    ).toMatchObject({ status: 'accepted' });
+
+    let pastGrace = await legacyInvite(15);
+    let rejected = await expectServiceError(logIn(surface, pastGrace.user), 'forbidden');
+    expect(rejected.message).toMatch(/expired/);
+  });
+
+  it('lets an invitee with independent access join through an expired invite', async () => {
+    let fixture = await loadOrganizationFixture(memberOrg.ids);
+    let { surface } = await createPortalSurface(fixture);
+    await db.project.update({
+      where: { oid: fixture.project.oid },
+      data: { autoAddOrganizationMembersToPortals: true }
+    });
+
+    let pending = await invite(fixture, surface, member.user.email);
+    expect(pending.consumerProfile.inviteStatus).toBe('invited');
+    await db.consumerInvite.update({
+      where: { oid: pending.oid },
+      data: { expiresAt: subDays(new Date(), 30) }
+    });
+
+    let user = await db.user.findUniqueOrThrow({ where: { id: member.user.id } });
+    let session = await logIn(surface, user);
+
+    expect(session.consumerProfile).toMatchObject({
+      oid: pending.consumerProfileOid,
+      inviteStatus: 'accepted'
+    });
+    expect(
+      await db.consumerInvite.findUniqueOrThrow({ where: { oid: pending.oid } })
+    ).toMatchObject({ status: 'accepted' });
+  });
+
+  it('lets an SSO-granted invitee join through an expired invite', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let surface = await createConsumerSurface(fixture);
+    let email = uniqueEmail('sso');
+    let pending = await invite(fixture, surface, email);
+    await db.consumerInvite.update({
+      where: { oid: pending.oid },
+      data: { expiresAt: subDays(new Date(), 30) }
+    });
+
+    let granted = await consumerProfileService.ensureConsumerProfile({
+      surface,
+      email,
+      name: 'SSO Consumer',
+      inviteStatus: 'accepted',
+      auditScope: fixture.auditScope
+    });
+    expect(granted).toMatchObject({
+      oid: pending.consumerProfileOid,
+      inviteStatus: 'accepted'
+    });
+    expect(
+      await db.consumerInvite.findUniqueOrThrow({ where: { oid: pending.oid } })
+    ).toMatchObject({ status: 'accepted' });
+
+    let session = await logIn(surface, await signUpUser(email));
+    expect(session.consumerProfile.oid).toBe(pending.consumerProfileOid);
+  });
 
   it('does not resolve or revoke invites through another surface', async () => {
     let fixture = await loadOrganizationFixture(org.ids);

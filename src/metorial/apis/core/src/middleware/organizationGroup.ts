@@ -1,4 +1,9 @@
-import { badRequestError, forbiddenError, ServiceError } from '@lowerdeck/error';
+import {
+  badRequestError,
+  forbiddenError,
+  notFoundError,
+  ServiceError
+} from '@lowerdeck/error';
 import { createAuditScope } from '@metorial/audit-scope';
 import { accessService } from '@metorial/module-access';
 import { flagService } from '@metorial/module-flags';
@@ -22,6 +27,16 @@ export let organizationGroup = managementGroup.use(async ctx => {
     //     })
     //   );
     // }
+
+    let pathOrganizationId = ctx.params.organizationId;
+    let organization = ctx.auth.restrictions.organization;
+    if (
+      pathOrganizationId &&
+      pathOrganizationId != organization.id &&
+      pathOrganizationId != organization.slug
+    ) {
+      throw new ServiceError(notFoundError('organization', pathOrganizationId));
+    }
 
     return {
       type: 'actor' as const,

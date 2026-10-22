@@ -382,7 +382,7 @@ describe('api-oauth token', () => {
       { grant_type: 'refresh_token', refresh_token: tokens.refresh_token },
       client
     );
-    expect(refresh.status).toBe(401);
+    expectOAuthError(refresh, 400, 'invalid_grant', /revoked/);
     expect(refresh.body.access_token).toBeUndefined();
   });
 
@@ -513,47 +513,55 @@ describe('api-oauth token', () => {
     expectOAuthError(brokenJson, 400, 'invalid_request', /Failed to parse/);
   });
 
-  it.fails(
-    'answers invalid_grant with 400 (bug: machine-access throws unauthorizedError for unknown or reused codes and refresh tokens)',
-    async () => {
-      let client = await createApplication(org.ids);
-      let authorization = await authorizeAndConsent(client);
-      expect((await postToken(authorization.codeGrant, client)).status).toBe(200);
+  it('answers invalid_grant with 400', async () => {
+    let client = await createApplication(org.ids);
+    let authorization = await authorizeAndConsent(client);
+    expect((await postToken(authorization.codeGrant, client)).status).toBe(200);
 
-      for (let response of [
-        await postToken(authorization.codeGrant, client),
-        await postToken(
-          { ...authorization.codeGrant, code: 'metorial_oauth_token_unknown' },
-          client
-        ),
-        await postToken({ grant_type: 'refresh_token', refresh_token: 'unknown' }, client)
-      ]) {
-        expectOAuthError(response, 400, 'invalid_grant');
-      }
+    for (let response of [
+      await postToken(authorization.codeGrant, client),
+      await postToken(
+        { ...authorization.codeGrant, code: 'metorial_oauth_token_unknown' },
+        client
+      ),
+      await postToken({ grant_type: 'refresh_token', refresh_token: 'unknown' }, client)
+    ]) {
+      expectOAuthError(response, 400, 'invalid_grant');
     }
-  );
+  });
 
-  it.fails(
-    'uses OAuth error codes for scope and client-type failures (bug: machine-access throws plain bad_request/forbidden errors without an oauth payload)',
-    async () => {
-      let serverSide = await createApplication(org.ids, { type: 'server_side' });
+  it('uses OAuth error codes for scope and client-type failures', async () => {
+    let serverSide = await createApplication(org.ids, { type: 'server_side' });
+    for (let scope of ['organization.member:read', 'not-a-scope']) {
       expectOAuthError(
-        await postToken(
-          { grant_type: 'client_credentials', scope: 'organization.member:read' },
-          serverSide
-        ),
+        await postToken({ grant_type: 'client_credentials', scope }, serverSide),
         400,
         'invalid_scope'
       );
-
-      let userFacing = await createApplication(org.ids);
-      expectOAuthError(
-        await postToken({ grant_type: 'client_credentials' }, userFacing),
-        400,
-        'unauthorized_client'
-      );
     }
-  );
+
+    let userFacing = await createApplication(org.ids);
+    expectOAuthError(
+      await postToken({ grant_type: 'client_credentials' }, userFacing),
+      400,
+      'unauthorized_client'
+    );
+  });
+
+  it('creates client secrets right after their application is created', async () => {
+    let clients = await Promise.all(
+      Array.from({ length: 8 }, () => createApplication(org.ids))
+    );
+
+    for (let client of clients) {
+      let response = await postForm(
+        '/oauth/device_authorization',
+        { scope: 'organization:read' },
+        { authorization: basicAuth(client.clientId, client.clientSecret) }
+      );
+      expect(response.status).toBe(200);
+    }
+  });
 
   it('rejects tokens of archived applications', async () => {
     let client = await createApplication(org.ids);

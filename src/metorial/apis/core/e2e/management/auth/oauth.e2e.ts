@@ -8,6 +8,7 @@ import {
   listAll,
   metorialEndpoints,
   rest,
+  testContext,
   uniqueId,
   useOrganization
 } from '@metorial/e2e';
@@ -364,6 +365,49 @@ describe('api-core management: oauth', () => {
       }
     );
     expect(revokedList.map(item => item.id)).toContain(oauthAuthorization.id);
+  });
+
+  it('presents the client redirect of approved and rejected authorization requests', async () => {
+    let application = await createApplication();
+    let createRequest = (state: string) =>
+      oauthAuthorizationService.createOAuthAuthorizationRequest({
+        context: testContext(),
+        input: {
+          type: 'interactive',
+          clientId: application.client_id,
+          redirectUri: 'https://example.com/callback',
+          scopes: ['organization:read'],
+          state
+        }
+      });
+    let decide = (urlToken: string, decision: 'approve' | 'reject', body: object) =>
+      org.clients.rest.post(
+        `/dashboard/oauth/authorization-requests/${urlToken}/${decision}`,
+        body
+      );
+
+    let approvedRequest = await createRequest('approved-state');
+    let approved = expectOk(
+      await decide(approvedRequest.urlToken, 'approve', {
+        organization_id: org.ids.organizationId
+      })
+    );
+    let approvedUrl = new URL(approved.redirect_url);
+    expect(approvedUrl.searchParams.get('code')).toEqual(expect.any(String));
+    expect(approvedUrl.searchParams.get('state')).toBe('approved-state');
+    expect(approvedUrl.searchParams.has('error')).toBe(false);
+
+    let rejectedRequest = await createRequest('rejected-state');
+    let rejected = expectOk(await decide(rejectedRequest.urlToken, 'reject', {}));
+    expect(rejected.status).toBe('denied');
+    let rejectedUrl = new URL(rejected.redirect_url);
+    expect(`${rejectedUrl.origin}${rejectedUrl.pathname}`).toBe(
+      'https://example.com/callback'
+    );
+    expect(Object.fromEntries(rejectedUrl.searchParams)).toEqual({
+      error: 'access_denied',
+      state: 'rejected-state'
+    });
   });
 
   it('hides cli devices of other organizations', async () => {

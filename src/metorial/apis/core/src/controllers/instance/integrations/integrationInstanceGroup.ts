@@ -83,7 +83,7 @@ export let integrationInstanceGroupController = Controller.create(
       .do(async ctx => {
         let paginator = await integrationInstanceGroupService.listIntegrationInstanceGroups({
           instance: ctx.instance,
-          allowDeleted: true,
+          allowDeleted: false,
           status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
           integrationIds: normalizeArrayParam(ctx.query.integration_id),

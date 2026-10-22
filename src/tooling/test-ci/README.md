@@ -48,3 +48,20 @@ enterprise's explicit emergency `skip_tests` still takes precedence. Detection e
 fail the workflow rather than treating unknown changes as an empty selection. Image
 publication remains independent of test selection so deployment aliases and the exact
 artifacts required by selected E2E suites are always available.
+
+### Control E2E groups
+
+Each `control test:e2e` suite is split into `groups` matrix jobs (four for OSS, two for
+enterprise), each booting its own stack. Selected test packages are balanced by the
+measured seconds in `.github/e2e-durations.json`; unmeasured packages count as the median.
+Because a stack runs four packages at once, a package longer than its group's expected
+wall time is split by test file into Vitest shards placed in different groups. Each job
+passes its packages as control filters, followed by `-- --package-shard=<pkg>=<i>/<n>`,
+which `metorial-e2e` turns into `--shard=<i>/<n>` for that package only.
+
+Refresh durations from the output of a single complete run (shards of one package are
+summed across all logs given):
+
+```sh
+bun src/tooling/test-ci/e2e-groups.ts update .github/e2e-durations.json <control-e2e.log>
+```

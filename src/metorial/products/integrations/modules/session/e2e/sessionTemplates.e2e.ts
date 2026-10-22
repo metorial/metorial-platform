@@ -7,6 +7,7 @@ import {
   useOrganization
 } from '@metorial/e2e';
 import { subspaceDb } from '@metorial/e2e/db';
+import { withTransaction } from '@metorial-subspace/db';
 import { describe, expect, it } from 'vitest';
 import {
   type SessionProviderInput,
@@ -15,6 +16,7 @@ import {
   sessionTemplateProviderService,
   sessionTemplateService
 } from '../src';
+import { enqueueSessionTemplateSyncHash } from '../src/queues/lifecycle/sessionTemplateProvider';
 import {
   createDeployment,
   onlyAddFilter,
@@ -120,6 +122,52 @@ describe('module-session session templates with providers', () => {
       });
       expect(use.sessionTemplates).toBeGreaterThanOrEqual(1);
       expect(use.lastSessionTemplateAt).toBeInstanceOf(Date);
+    });
+  });
+
+  it('recomputes the template hash for a change requested while a hash job is running', async () => {
+    let deploymentId = await createDeployment(org, providers.second);
+    let { template } = await createTemplate([{ deploymentId }]);
+    let initialHash = await eventually(async () => {
+      let hash = await templateHash(template.id);
+      expect(hash).toMatch(/\S/);
+      return hash;
+    });
+
+    let blockedHashWrites = async () => {
+      let [row] = await subspaceDb.$queryRaw<{ count: number }[]>`
+        SELECT count(*)::int AS "count"
+        FROM pg_stat_activity
+        WHERE wait_event_type = 'Lock'
+          AND query ILIKE 'UPDATE%"SessionTemplate"%'
+      `;
+      return row?.count ?? 0;
+    };
+
+    await withTransaction(
+      async tdb => {
+        await tdb.sessionTemplateProvider.updateMany({
+          where: { sessionTemplateOid: template.oid },
+          data: { toolFilter: onlyEchoFilter }
+        });
+        await tdb.sessionTemplate.update({
+          where: { oid: template.oid },
+          data: { hash: initialHash }
+        });
+
+        await enqueueSessionTemplateSyncHash(template.id);
+        await eventually(async () => expect(await blockedHashWrites()).toBeGreaterThan(0), {
+          timeoutMs: 15_000,
+          intervalMs: 100
+        });
+
+        await enqueueSessionTemplateSyncHash(template.id);
+      },
+      { timeout: 30_000 }
+    );
+
+    await eventually(async () => {
+      expect(await templateHash(template.id)).not.toBe(initialHash);
     });
   });
 
@@ -365,11 +413,11 @@ describe('module-session session templates with providers', () => {
     await expectServiceError(createTemplate([{}], name), 'bad_request');
     await expectServiceError(
       createTemplate([{ deploymentId: uniqueId('pdp') }], name),
-      'bad_request'
+      'not_found'
     );
     await expectServiceError(
       createTemplate([{ deploymentId: foreignDeployment }], name),
-      'bad_request'
+      'not_found'
     );
     expect(await subspaceDb.sessionTemplate.count({ where: { name } })).toBe(0);
 

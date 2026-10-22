@@ -108,20 +108,13 @@ class StoreServiceImpl {
     instance: Instance;
     storeTemplate: Pick<StoreTemplateRecord, 'id' | 'projectOid' | 'instanceOid'>;
   }) {
-    if (d.storeTemplate.projectOid && d.storeTemplate.projectOid !== d.project.oid) {
-      throw new ServiceError(
-        badRequestError({
-          message: `Store template ${d.storeTemplate.id} can only be cloned within its linked project`
-        })
-      );
-    }
+    let isOtherProject =
+      !!d.storeTemplate.projectOid && d.storeTemplate.projectOid !== d.project.oid;
+    let isOtherInstance =
+      !!d.storeTemplate.instanceOid && d.storeTemplate.instanceOid !== d.instance.oid;
 
-    if (d.storeTemplate.instanceOid && d.storeTemplate.instanceOid !== d.instance.oid) {
-      throw new ServiceError(
-        badRequestError({
-          message: `Store template ${d.storeTemplate.id} can only be cloned within its linked instance`
-        })
-      );
+    if (isOtherProject || isOtherInstance) {
+      throw new ServiceError(notFoundError('storeTemplate', d.storeTemplate.id));
     }
   }
 
@@ -199,7 +192,8 @@ class StoreServiceImpl {
         let documentContent = content.toString('utf8');
         let normalizedItemPath = normalizeStorePath({
           path: item.path,
-          kind: 'file'
+          kind: 'file',
+          mode: d.store.pathMode
         });
         let titleOverride = d.documentTitleOverrides?.[normalizedItemPath.path];
         let title =
@@ -300,6 +294,7 @@ class StoreServiceImpl {
             isTemplateLinked: !!d.input.parentStoreTemplate
           }),
           cloneType: d.input.parentStore ? (d.input.cloneType ?? 'sync_until_change') : null,
+          pathMode: d.input.parentStore?.pathMode ?? 'unicode',
           itemCount: 0,
           projectOid: d.project.oid,
           instanceOid: d.instance.oid,
@@ -713,7 +708,7 @@ class StoreServiceImpl {
     }
 
     if (!d.allowLinkedStoreTemplateDelete) {
-      let linkedStoreTemplate = d.store.parentStoreTemplateOid
+      let linkedStoreTemplate = d.store.isTemplateBacking
         ? { id: d.store.id }
         : await db.storeTemplate.findFirst({
             where: {
@@ -826,7 +821,8 @@ class StoreServiceImpl {
     return await withTransaction(async db => {
       let normalizedItemPath = normalizeStorePath({
         path: d.item.path,
-        kind: d.item.kind === 'directory' ? 'directory' : 'file'
+        kind: d.item.kind === 'directory' ? 'directory' : 'file',
+        mode: d.targetStore.pathMode
       });
 
       if (d.item.kind === 'directory') {

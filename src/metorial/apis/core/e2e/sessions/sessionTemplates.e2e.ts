@@ -378,22 +378,17 @@ describe('api-core sessions: session templates', () => {
     }
   });
 
-  it.fails(
-    'rejects an unknown provider_config_id on a template provider (bug: providerCombination maps unknown config ids to null and falls back to the default config)',
-    async () => {
-      let error = expectError(
-        await org.clients.instance.post('/session-templates', {
-          name: uniqueId('e2e-template'),
-          providers: [
-            { provider_deployment_id: deployment.id, provider_config_id: 'pcf_nope' }
-          ]
-        }),
-        404,
-        'not_found'
-      );
-      expect(error.entity).toBe('provider.config');
-    }
-  );
+  it('rejects an unknown provider_config_id on a template provider', async () => {
+    let error = expectError(
+      await org.clients.instance.post('/session-templates', {
+        name: uniqueId('e2e-template'),
+        providers: [{ provider_deployment_id: deployment.id, provider_config_id: 'pcf_nope' }]
+      }),
+      404,
+      'not_found'
+    );
+    expect(error.entity).toBe('provider.config');
+  });
 
   it('pages through templates', async () => {
     let created = [await createTemplate(), await createTemplate(), await createTemplate()];
@@ -456,6 +451,6 @@ describe('api-core sessions: session templates', () => {
       name: uniqueId('e2e-template'),
       providers: [{ provider_deployment_id: otherDeployment.id }]
     });
-    expectError(foreign, 400, 'bad_request');
+    expect(expectError(foreign, 404, 'not_found').entity).toBe('provider.deployment');
   });
 });

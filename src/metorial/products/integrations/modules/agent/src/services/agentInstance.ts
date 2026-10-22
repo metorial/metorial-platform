@@ -24,6 +24,7 @@ import {
   type MetorialFacing,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
+import { withUniqueConstraintRecovery } from '@metorial/db';
 import { mirrorAgentInstanceQueue } from '../queues/mirror';
 
 let LAST_CONNECTED_AT_WRITE_INTERVAL_MS = 30_000;
@@ -184,6 +185,13 @@ class agentInstanceServiceImpl {
       Date.now() - existing.lastConnectedAt.getTime() < LAST_CONNECTED_AT_WRITE_INTERVAL_MS;
     if (existing && isUnchanged) return existing;
 
+    let upsert = () => this.writeAgentInstance(d, hash);
+
+    // Concurrent first opens race on the insert; the retry finds the row and updates it.
+    return await withUniqueConstraintRecovery(upsert, upsert);
+  }
+
+  private async writeAgentInstance(d: UpsertAgentInstanceParams, hash: string) {
     return await withTransaction(async db => {
       let newId = getId('agentInstance');
 

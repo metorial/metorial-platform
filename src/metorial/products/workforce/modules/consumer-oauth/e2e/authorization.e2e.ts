@@ -13,7 +13,8 @@ import {
   expectOAuthError,
   loadAuthorization,
   redirectUri,
-  registerClient
+  registerClient,
+  registerLegacyClient
 } from './_fixtures';
 
 describe('module-consumer-oauth authorization', () => {
@@ -130,11 +131,13 @@ describe('module-consumer-oauth authorization', () => {
     });
     expect(lowercase.attempt.codeChallengeMethod).toBe('s256');
 
-    let none = await authorize(setup, client, { codeChallengeMethod: 'none' });
+    let legacyClient = await registerLegacyClient(setup);
+    let none = await authorize(setup, legacyClient, { codeChallengeMethod: 'none' });
     expect(none.attempt).toMatchObject({ codeChallengeMethod: 'none', codeChallenge: null });
 
     let loopback = await authorize(setup, client, {
-      redirectUri: 'http://127.0.0.1:43111/callback'
+      redirectUri: 'http://127.0.0.1:43111/callback',
+      codeChallenge: pkce.codeChallenge
     });
     expect(loopback.attempt.redirectUri).toBe('http://127.0.0.1:43111/callback');
   });
@@ -153,7 +156,11 @@ describe('module-consumer-oauth authorization', () => {
   it('approves an authorization for one consumer and issues a short-lived code', async () => {
     let setup = await createSetup(org.ids);
     let client = await registerClient(setup);
-    let { attempt } = await authorize(setup, client, { state: 'approve-state' });
+    let pkce = await createPkce();
+    let { attempt } = await authorize(setup, client, {
+      state: 'approve-state',
+      codeChallenge: pkce.codeChallenge
+    });
     let consumerProfile = await createConsumerProfile(setup);
 
     let approved = await approve(setup, consumerProfile, attempt.id);
@@ -262,7 +269,8 @@ describe('module-consumer-oauth authorization', () => {
   it('does not issue codes for pending authorizations', async () => {
     let setup = await createSetup(org.ids);
     let client = await registerClient(setup);
-    let { attempt } = await authorize(setup, client);
+    let pkce = await createPkce();
+    let { attempt } = await authorize(setup, client, { codeChallenge: pkce.codeChallenge });
 
     expect(
       buildConsumerOAuthCallbackRedirectUrl({
@@ -278,7 +286,8 @@ describe('module-consumer-oauth authorization', () => {
         grantType: 'authorization_code',
         clientId: client.clientId,
         code: attempt.authorizationCode!,
-        redirectUri
+        redirectUri,
+        codeVerifier: pkce.codeVerifier
       }),
       'bad_request',
       'invalid_grant',
@@ -290,7 +299,10 @@ describe('module-consumer-oauth authorization', () => {
     let setup = await createSetup(org.ids);
     let untargeted = { portal: setup.portal, magicMcpTarget: null };
     let client = await registerClient(untargeted);
-    let { attempt } = await authorize(untargeted, client);
+    let pkce = await createPkce();
+    let { attempt } = await authorize(untargeted, client, {
+      codeChallenge: pkce.codeChallenge
+    });
     let consumerProfile = await createConsumerProfile(setup);
 
     await expectServiceError(

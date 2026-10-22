@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { consumerOAuthRegistrationService } from '../src';
 import {
   authorize,
+  createPkce,
   createPortal,
   createSetup,
   expectOAuthError,
@@ -39,7 +40,8 @@ describe('module-consumer-oauth client registration', () => {
       organizationOid: setup.fixture.organization.oid,
       magicMcpServerOid: setup.magicMcpTarget.target.oid,
       magicMcpEndpointOid: null,
-      skillPluginOid: null
+      skillPluginOid: null,
+      requirePkce: true
     });
     expect(publicClient.clientId).toBeTruthy();
     expect(publicClient.expiresAt.getTime()).toBeGreaterThan(Date.now() + 80 * 86_400_000);
@@ -144,7 +146,8 @@ describe('module-consumer-oauth client registration', () => {
     );
 
     let { attempt } = await authorize(setup, client, {
-      redirectUri: 'https://app.example.com/callback'
+      redirectUri: 'https://app.example.com/callback',
+      codeChallenge: (await createPkce()).codeChallenge
     });
     expect(attempt.redirectUri).toBe('https://app.example.com/callback');
   });

@@ -123,7 +123,7 @@ export let integrationSetupSessionController = Controller.create(
       .do(async ctx => {
         let paginator = await integrationSetupSessionService.listIntegrationSetupSessions({
           instance: ctx.instance,
-          allowDeleted: true,
+          allowDeleted: false,
           status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
           integrationIds: normalizeArrayParam(ctx.query.integration_id),

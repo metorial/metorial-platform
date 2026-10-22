@@ -5,6 +5,7 @@ import { computeStoreByteSize, getStoreByteSize, storeItemService } from '../src
 import {
   addFile,
   createDocument,
+  createLegacyStore,
   createStore,
   expectConsistentItemCount,
   modifyItems,
@@ -356,8 +357,6 @@ describe('module-store items', () => {
       ['..\\..\\windows\\evil.txt', '/windows/evil.txt'],
       ['....//...//dots.txt', '/dots.txt'],
       ['  spaced  / name .txt ', '/spaced/name .txt'],
-      ['we<i>rd|na:me?*.txt', '/weirdname.txt'],
-      ['nul\u0000byte\r\n.txt', '/nulbyte.txt'],
       ['//double//slashes//f.txt', '/double/slashes/f.txt']
     ];
 
@@ -389,7 +388,7 @@ describe('module-store items', () => {
     let store = await createStore(fixture);
     let file = await uploadFile(fixture);
 
-    for (let path of ['', '   ', '../..', '///', './.', '日本語', '?*<>']) {
+    for (let path of ['', '   ', '../..', '///', './.', '?*<>']) {
       await expectServiceError(
         modifyItems(fixture, store, [{ type: 'add', path, fileId: file.id }]),
         'bad_request'
@@ -399,19 +398,109 @@ describe('module-store items', () => {
     expect(await storePaths(store.id)).toEqual(['/']);
   });
 
-  it.fails(
-    'keeps files whose names differ only in non-ASCII characters apart (bug: normalizeStorePath strips them, so the second add silently replaces the first)',
-    async () => {
-      let fixture = await loadOrganizationFixture(org.ids);
-      let store = await createStore(fixture);
+  it('keeps files whose names differ only in non-ASCII characters apart', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let store = await createStore(fixture);
+    expect(store.pathMode).toBe('unicode');
 
-      let first = await addFile(fixture, store, 'résumé.txt', { content: 'first' });
-      let second = await addFile(fixture, store, 'rèsumè.txt', { content: 'second' });
+    let first = await addFile(fixture, store, 'résumé.txt', { content: 'first' });
+    let second = await addFile(fixture, store, 'rèsumè.txt', { content: 'second' });
+    let japanese = await addFile(fixture, store, '日本語/ファイル.txt', { content: 'third' });
 
-      expect(second.item.id).not.toBe(first.item.id);
-      expect((await readItemContent(fixture, first.item.id)).toString('utf8')).toBe('first');
+    expect(first.item.path).toBe('/résumé.txt');
+    expect(second.item.path).toBe('/rèsumè.txt');
+    expect(japanese.item.path).toBe('/日本語/ファイル.txt');
+    expect(second.item.id).not.toBe(first.item.id);
+    expect((await readItemContent(fixture, first.item.id)).toString('utf8')).toBe('first');
+    expect((await readItemContent(fixture, second.item.id)).toString('utf8')).toBe('second');
+
+    let decomposed = await addFile(fixture, store, 're\u0301sume\u0301.txt', {
+      content: 'decomposed'
+    });
+    expect(decomposed.item.id).toBe(first.item.id);
+    expect(decomposed.item.path).toBe('/résumé.txt');
+
+    expect(await storePaths(store.id)).toEqual(
+      ['/', '/résumé.txt', '/rèsumè.txt', '/日本語/', '/日本語/ファイル.txt'].sort()
+    );
+    await expectConsistentItemCount(store.id);
+  });
+
+  it('rejects paths with characters outside the allowed set instead of stripping them', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let store = await createStore(fixture);
+    let file = await uploadFile(fixture);
+    let [directory] = await modifyItems(fixture, store, [{ type: 'add', path: 'dir' }]);
+    let cases: [string, string][] = [
+      ['we<i>rd.txt', '"<" (U+003C)'],
+      ['dir/na:me.txt', '":" (U+003A)'],
+      ['nul\u0000byte.txt', '"\\u0000" (U+0000)'],
+      ['line\r\nbreak.txt', '"\\r" (U+000D)'],
+      ['zero\u200bwidth.txt', '"\u200b" (U+200B)']
+    ];
+
+    for (let [path, character] of cases) {
+      let error = await expectServiceError(
+        modifyItems(fixture, store, [{ type: 'add', path, fileId: file.id }]),
+        'bad_request'
+      );
+      expect(error.message, path).toContain(`not allowed: ${character}`);
     }
-  );
+
+    await expectServiceError(
+      modifyItems(fixture, store, [{ type: 'add', path: 'pipe|dir' }]),
+      'bad_request'
+    );
+    await expectServiceError(
+      modifyItems(fixture, store, [
+        { type: 'modify', itemId: directory!.item.id, path: 'renamed?' }
+      ]),
+      'bad_request'
+    );
+
+    expect(await storePaths(store.id)).toEqual(['/', '/dir/']);
+  });
+
+  it('keeps stripping disallowed characters in legacy stores', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let store = await createLegacyStore(fixture);
+    let cases: [string, string][] = [
+      ['we<i>rd|na:me?*.txt', '/weirdname.txt'],
+      ['nul\u0000byte\r\n.txt', '/nulbyte.txt'],
+      ['dir/ré:sumé.txt', '/dir/rsum.txt']
+    ];
+
+    for (let [input, expected] of cases) {
+      let file = await uploadFile(fixture);
+      let [result] = await modifyItems(fixture, store, [
+        { type: 'add', path: input, fileId: file.id }
+      ]);
+
+      expect(result!.item.path, input).toBe(expected);
+    }
+
+    let first = await addFile(fixture, store, 'résumé.txt', { content: 'first' });
+    let second = await addFile(fixture, store, 'rèsumè.txt', { content: 'second' });
+    expect(first.item.path).toBe('/rsum.txt');
+    expect(second.item.id).toBe(first.item.id);
+    expect((await readItemContent(fixture, first.item.id)).toString('utf8')).toBe('second');
+
+    let file = await uploadFile(fixture);
+    await expectServiceError(
+      modifyItems(fixture, store, [{ type: 'add', path: '日本語', fileId: file.id }]),
+      'bad_request'
+    );
+
+    expect(await storePaths(store.id)).toEqual([
+      '/',
+      '/dir/',
+      '/dir/rsum.txt',
+      '/nulbyte.txt',
+      '/rsum.txt',
+      '/weirdname.txt'
+    ]);
+    await expectConsistentItemCount(store.id);
+  });
 
   it('rejects a file and a directory with the same name', async () => {
     let fixture = await loadOrganizationFixture(org.ids);

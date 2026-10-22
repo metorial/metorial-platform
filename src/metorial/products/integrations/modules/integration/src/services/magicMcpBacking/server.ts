@@ -3,6 +3,7 @@ import { Service } from '@lowerdeck/service';
 import {
   db,
   type Environment,
+  type IntegrationInstanceStatus,
   snowflake,
   type Tenant,
   withTransaction
@@ -33,7 +34,16 @@ import {
   withMagicMcpBackingLock
 } from './shared';
 
-export type MagicMcpServerBackingStatus = 'healthy' | 'stale' | 'missing' | 'needs_reconnect';
+export type MagicMcpServerBackingStatus =
+  'healthy' | 'stale' | 'missing' | 'missing_providers' | 'needs_reconnect';
+
+let getIntegrationInstanceBackingStatus = (
+  status: IntegrationInstanceStatus
+): MagicMcpServerBackingStatus | null => {
+  if (status === 'draft') return 'missing_providers';
+  if (status !== 'active') return 'needs_reconnect';
+  return null;
+};
 
 type UpsertMagicMcpServerBackingParams = {
   input: MagicMcpBackingInputBase & {
@@ -455,12 +465,11 @@ class magicMcpServerBackingServiceImpl {
     for (let backing of backings) {
       statuses.set(
         backing.id,
-        backing.integrationInstance.status !== 'active'
-          ? 'needs_reconnect'
-          : backing.sessionTemplate.status !== 'active' ||
-              backing.ephemeralManagedSession.status !== 'active'
+        getIntegrationInstanceBackingStatus(backing.integrationInstance.status) ??
+          (backing.sessionTemplate.status !== 'active' ||
+          backing.ephemeralManagedSession.status !== 'active'
             ? 'stale'
-            : 'healthy'
+            : 'healthy')
       );
     }
 

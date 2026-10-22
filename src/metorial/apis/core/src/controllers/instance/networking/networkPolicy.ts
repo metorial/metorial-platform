@@ -70,7 +70,7 @@ export let networkPolicyController = Controller.create(
       .do(async ctx => {
         let paginator = await networkPolicyService.listNetworkPolicies({
           instance: ctx.instance,
-          allowDeleted: true,
+          allowDeleted: false,
           ids: normalizeArrayParam(ctx.query.id),
           status: normalizeArrayParam(ctx.query.status),
           firewallIds: normalizeArrayParam(ctx.query.firewall_id),

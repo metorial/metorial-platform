@@ -12,7 +12,7 @@ import {
   useOrganization
 } from '@metorial/e2e';
 import { db, type OrganizationFixture, subspaceDb } from '@metorial/e2e/db';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { callbackEventInternalService, callbackEventService } from '../src';
 import {
   createIntegrationInstance,
@@ -33,26 +33,6 @@ describe('module-callback callback events', () => {
   let org = useOrganization();
   let otherOrg = useOrganization();
   let server = useMcpTestServer();
-
-  let received: { path: string; headers: Record<string, string>; body: string }[] = [];
-  let receiver: ReturnType<typeof Bun.serve> | undefined;
-  beforeAll(() => {
-    receiver = Bun.serve({
-      port: 0,
-      hostname: '0.0.0.0',
-      fetch: async request => {
-        received.push({
-          path: new URL(request.url).pathname,
-          headers: Object.fromEntries(request.headers),
-          body: await request.text()
-        });
-        return new Response('ok');
-      }
-    });
-  });
-  afterAll(async () => {
-    await receiver?.stop(true);
-  });
 
   let setup = useFixture(async () => {
     let remote = await createRemoteProvider(org.clients.instance, { url: server.url });
@@ -115,7 +95,7 @@ describe('module-callback callback events', () => {
     let webhookDestination = await db.webhookDestination.create({
       data: {
         id: await ID.generateId('webhookDestination'),
-        url: `http://localhost:${receiver!.port}/hooks/${name}`,
+        url: `http://${uniqueId(name)}.invalid/hooks/${name}`,
         method: 'POST',
         signingSecret: await ID.generateId('webhookSigningSecret'),
         organizationOid: fixture.organization.oid
@@ -193,7 +173,7 @@ describe('module-callback callback events', () => {
     });
   });
 
-  it('delivers a callback event only to matching listeners, signs it and retries refused deliveries', async () => {
+  it('delivers a callback event only to matching listeners, signs it and retries failed deliveries', async () => {
     let scope = await scopeOf(org);
     let fixture = scope.fixture;
 
@@ -304,8 +284,6 @@ describe('module-callback callback events', () => {
         });
       }
     }
-
-    expect(received).toEqual([]);
   }, 180_000);
 
   it('lists, reads and marks callback events as read', async () => {

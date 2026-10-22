@@ -168,7 +168,8 @@ class OutpostInstanceService {
     outpostId: string;
     instanceId: string;
     credentialId: string;
-  }): Promise<InstanceAuthorizationStatus> {
+    instancePublicKey: Uint8Array;
+  }): Promise<{ status: InstanceAuthorizationStatus; credentialExpiresAt: Date | null }> {
     let instance = await db.outpostInstance.findFirst({
       where: {
         identifier: d.instanceId,
@@ -177,10 +178,25 @@ class OutpostInstanceService {
       },
       include: { outpost: true, credential: true }
     });
-    if (!instance) return 'unknown';
+    if (!instance) return { status: 'unknown', credentialExpiresAt: null };
+
+    return {
+      status: this.authorizationStatus(instance, d.instancePublicKey),
+      credentialExpiresAt: instance.credential.expiresAt
+    };
+  }
+
+  private authorizationStatus(
+    instance: OutpostInstance & { outpost: Outpost; credential: OutpostCredential },
+    instancePublicKey: Uint8Array
+  ): InstanceAuthorizationStatus {
+    if (!sameBytes(new Uint8Array(instance.publicKey), instancePublicKey)) return 'unknown';
 
     if (instance.outpost.status != 'active') return 'outpost_disabled';
     if (instance.credential.status != 'active') return 'instance_disabled';
+    if (instance.credential.expiresAt && instance.credential.expiresAt <= new Date()) {
+      return 'instance_disabled';
+    }
     if (instance.status != 'active') return 'instance_disabled';
 
     return 'active';

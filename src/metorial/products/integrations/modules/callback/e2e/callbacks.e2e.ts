@@ -11,8 +11,10 @@ import {
   useOrganization
 } from '@metorial/e2e';
 import { subspaceDb } from '@metorial/e2e/db';
+import { createLock } from '@lowerdeck/lock';
 import { describe, expect, it } from 'vitest';
 import { callbackInstanceService, callbackInternalService, callbackService } from '../src';
+import { env } from '../src/env';
 import {
   createIntegrationInstance,
   createIntegrationProvider,
@@ -134,6 +136,44 @@ describe('module-callback callbacks', () => {
 
     expect(first?.id).toBe(callback.id);
     expect(second?.id).toBe(callback.id);
+    expect(ids(await findActiveCallbacks(integrationProvider.id))).toEqual([callback.id]);
+  });
+
+  it('keeps the requested name when a background reconcile races the callback creation', async () => {
+    let created = await createIntegrationProvider(org, { providerId: providers.triggered });
+    let integrationProvider = expectOk(created.response);
+    let reconcileLock = createLock({
+      name: 'sub/cb/reconcile/callback/lock',
+      redisUrl: env.service.REDIS_URL
+    });
+
+    let { creating } = await reconcileLock.usingLock(integrationProvider.id, async () => {
+      let creating = org.clients.instance.post('/callbacks', {
+        integration_id: created.integration.id,
+        integration_provider_id: integrationProvider.id,
+        name: 'Requested callback',
+        description: 'Requested description'
+      });
+      await new Promise(resolve => setTimeout(resolve, 1_000));
+
+      let pending = await subspaceDb.integrationProvider.findUniqueOrThrow({
+        where: { id: integrationProvider.id }
+      });
+      expect(pending.areCallbacksEnabled).toBe(false);
+
+      return { creating };
+    });
+    let background = callbackInternalService.reconcileCallbackForIntegrationProvider({
+      integrationProviderId: integrationProvider.id
+    });
+
+    let callback = expectOk(await creating);
+    await background;
+
+    expect(callback).toMatchObject({
+      name: 'Requested callback',
+      description: 'Requested description'
+    });
     expect(ids(await findActiveCallbacks(integrationProvider.id))).toEqual([callback.id]);
   });
 

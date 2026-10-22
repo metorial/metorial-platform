@@ -9,7 +9,7 @@ import { eventDeliveryService } from '../src';
 
 export let deliveryWait = { timeoutMs: 60_000, intervalMs: 500 };
 
-export let blockedHostUrl = () => `http://localhost:9/${uniqueId('hook')}`;
+export let unresolvableUrl = () => `http://${uniqueId('hook')}.invalid/webhooks`;
 
 export let createDestination = async (
   fixture: OrganizationFixture,
@@ -27,7 +27,7 @@ export let createDestination = async (
   let webhookDestination = await db.webhookDestination.create({
     data: {
       id: await ID.generateId('webhookDestination'),
-      url: input.url ?? blockedHostUrl(),
+      url: input.url ?? unresolvableUrl(),
       method: 'POST',
       signingSecret: await ID.generateId('webhookSigningSecret'),
       organizationOid: fixture.organization.oid

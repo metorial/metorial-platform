@@ -235,13 +235,15 @@ describe('api-core providers: catalog', () => {
     expect(versions).toEqual([]);
   });
 
-  it.fails(
-    "rejects instance keys on another instance's path (bug: instanceGroup ignores :instanceId for instance-restricted keys)",
-    async () => {
-      let response = await org.clients.instance.get(
-        `/instances/${otherOrg.ids.instanceId}/providers/${remote.providerId}`
-      );
-      expectError(response, 404, 'not_found');
-    }
-  );
+  it("rejects instance keys on another instance's path", async () => {
+    let response = await org.clients.instance.get(
+      `/instances/${otherOrg.ids.instanceId}/providers/${remote.providerId}`
+    );
+    expectError(response, 404, 'not_found');
+
+    let ownPath = await org.clients.instance.get(
+      `/instances/${org.ids.instanceId}/providers/${remote.providerId}`
+    );
+    expect(ownPath.status).toBe(200);
+  });
 });

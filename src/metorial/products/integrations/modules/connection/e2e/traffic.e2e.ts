@@ -115,25 +115,21 @@ describe('module-connection records of session traffic', () => {
     });
   }, 180_000);
 
-  it.fails(
-    'stores a tool call made over MCP as an mcp_message (bug: createMessage hard-codes type tool_call and ignores the type its callers pass)',
-    async () => {
-      let { client, tools } = await openMcpSession(org, remote.providerId);
-      await client.request('tools/call', {
-        name: findTool(tools, 'echo').name,
-        arguments: { text: 'typed' }
-      });
+  it('stores a tool call made over MCP as an mcp_message', async () => {
+    let { client, tools } = await openMcpSession(org, remote.providerId);
+    await client.request('tools/call', {
+      name: findTool(tools, 'echo').name,
+      arguments: { text: 'typed' }
+    });
 
-      let connection = await subspaceDb.sessionConnection.findUniqueOrThrow({
-        where: { token: client.sessionId! }
-      });
-      let message = await waitForToolCallMessage(connection.oid);
+    let connection = await subspaceDb.sessionConnection.findUniqueOrThrow({
+      where: { token: client.sessionId! }
+    });
+    let message = await waitForToolCallMessage(connection.oid);
 
-      expect(message.transport).toBe('mcp');
-      expect(message.type).toBe('mcp_message');
-    },
-    180_000
-  );
+    expect(message.transport).toBe('mcp');
+    expect(message.type).toBe('mcp_message');
+  }, 180_000);
 
   it('records an in-process tool call with its provider run and usage record', async () => {
     let session = (await openMcpSession(org, remote.providerId)).session;

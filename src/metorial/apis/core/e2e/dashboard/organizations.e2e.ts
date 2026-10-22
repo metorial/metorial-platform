@@ -142,12 +142,9 @@ describe('api-core dashboard: organizations', () => {
     );
   });
 
-  it.fails(
-    "rejects another organization's id for a management key (bug: organizationGroup ignores :organizationId for machine auth)",
-    async () => {
-      expectError(await otherOrg.clients.management.get(orgPath()), 404, 'not_found');
-    }
-  );
+  it("rejects another organization's id for a management key", async () => {
+    expectError(await otherOrg.clients.management.get(orgPath()), 404, 'not_found');
+  });
 
   it('updates an organization for admins only', async () => {
     let path = orgPath('', mutableOrg.ids.organizationId);

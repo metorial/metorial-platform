@@ -517,12 +517,12 @@ describe('api-core chat content', () => {
         404
       );
 
-      let archived = await listAll(org.clients.instance, '/chats', {
-        query: { chat_instance_id: archivedSetup.instance.id, status: 'archived' }
-      });
-      expect(archived.map(chat => [chat.id, chat.status])).toEqual([
-        [archivedChat.chat.id, 'archived']
-      ]);
+      for (let status of [undefined, 'active', 'archived']) {
+        let listed = await listAll(org.clients.instance, '/chats', {
+          query: { chat_instance_id: archivedSetup.instance.id, ...(status && { status }) }
+        });
+        expect(listed.map(chat => chat.id)).not.toContain(archivedChat.chat.id);
+      }
     },
     providerSetupTimeout
   );

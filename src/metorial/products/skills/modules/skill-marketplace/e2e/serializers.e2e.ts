@@ -226,33 +226,32 @@ describe('export serializers', () => {
       ]);
     });
 
-    it.fails(
-      'allows no extra files when the configured extension allow-lists are disjoint (bug: an empty intersection is treated as "allow every extension")',
-      async () => {
-        let { skill } = await createSkillWithContent();
-        let markdown = await createSkillConfiguration(fixture, {
-          allowedFileExtensions: ['.md']
-        });
-        let json = await createSkillConfiguration(fixture, {
-          allowedFileExtensions: ['.json']
-        });
+    it('allows no extra files when the configured extension allow-lists are disjoint', async () => {
+      let { skill } = await createSkillWithContent();
+      let markdown = await createSkillConfiguration(fixture, {
+        allowedFileExtensions: ['.md']
+      });
+      let json = await createSkillConfiguration(fixture, {});
+      await db.skillConfiguration.update({
+        where: { oid: json.oid },
+        data: { allowedFileExtensions: ['.json'] }
+      });
 
-        let marketplace = await createMarketplace(fixture, { skillConfigurationId: json.id });
-        let plugin = await createPlugin(
-          fixture,
-          { name: 'Disjoint', skillConfigurationId: markdown.id },
-          { skillMarketplaceId: marketplace.id }
-        );
-        await addSkillToPlugin(fixture, {
-          skillPluginId: plugin.id,
-          skillId: skill.id,
-          pluginSkillSlug: 'pdf-tools'
-        });
+      let marketplace = await createMarketplace(fixture, { skillConfigurationId: json.id });
+      let plugin = await createPlugin(
+        fixture,
+        { name: 'Disjoint', skillConfigurationId: markdown.id },
+        { skillMarketplaceId: marketplace.id }
+      );
+      await addSkillToPlugin(fixture, {
+        skillPluginId: plugin.id,
+        skillId: skill.id,
+        pluginSkillSlug: 'pdf-tools'
+      });
 
-        let output = await skillFilesFor(marketplace.id);
-        expect(output.paths()).toEqual(['plugins/disjoint/skills/pdf-tools/SKILL.md']);
-      }
-    );
+      let output = await skillFilesFor(marketplace.id);
+      expect(output.paths()).toEqual(['plugins/disjoint/skills/pdf-tools/SKILL.md']);
+    });
 
     it('changes the skill hash when its content or effective config changes', async () => {
       let { skill, skillMd } = await createSkillWithContent();

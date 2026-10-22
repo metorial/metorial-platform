@@ -259,6 +259,9 @@ export class SenderManager {
         await db.sessionConnection.findFirst({
           where: {
             token: d.connectionToken,
+            session: {
+              OR: [{ id: d.sessionId }, { ephemeralManagedSession: { id: d.sessionId } }]
+            },
             tenant: { OR: [{ id: d.tenantId }, { identifier: d.tenantId }] },
             solution: { OR: [{ id: d.solutionId }, { identifier: d.solutionId }] }
           },

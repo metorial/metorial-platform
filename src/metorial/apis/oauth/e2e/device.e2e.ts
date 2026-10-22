@@ -84,7 +84,7 @@ describe('api-oauth device authorization', () => {
     expect(organization.id).toBe(org.ids.organizationId);
 
     await waitForNextPoll();
-    expectOAuthError(await postToken(grant, client), 401, 'invalid_grant', /consumed/);
+    expectOAuthError(await postToken(grant, client), 400, 'invalid_grant', /consumed/);
   });
 
   it('reports denied device requests as access_denied', async () => {
@@ -97,7 +97,7 @@ describe('api-oauth device authorization', () => {
       { grant_type: deviceGrant, device_code: device.device_code },
       client
     );
-    expectOAuthError(response, 401, 'access_denied');
+    expectOAuthError(response, 400, 'access_denied');
     expect(response.body.access_token).toBeUndefined();
   });
 
@@ -111,12 +111,12 @@ describe('api-oauth device authorization', () => {
         { grant_type: deviceGrant, device_code: device.device_code },
         otherClient
       ),
-      401,
+      400,
       'invalid_grant'
     );
     expectOAuthError(
       await postToken({ grant_type: deviceGrant, device_code: 'unknown-device-code' }, client),
-      401,
+      400,
       'invalid_grant'
     );
   });

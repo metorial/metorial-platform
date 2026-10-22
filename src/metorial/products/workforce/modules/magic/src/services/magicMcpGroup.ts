@@ -190,17 +190,23 @@ class MagicMcpGroupImpl {
     }
 
     let deletedGroup = await withTransaction(async db => {
-      let affectedTokenOids = (
-        await db.magicMcpGroupToken.findMany({
-          where: {
-            magicMcpGroupOid: d.group.oid
-          },
-          select: {
-            magicMcpTokenOid: true
-          },
-          distinct: ['magicMcpTokenOid']
-        })
-      ).map(link => link.magicMcpTokenOid);
+      let tokensOnlyInGroup = await db.magicMcpToken.count({
+        where: {
+          status: 'active',
+          groups: {
+            some: { magicMcpGroupOid: d.group.oid },
+            every: { magicMcpGroupOid: d.group.oid }
+          }
+        }
+      });
+
+      if (tokensOnlyInGroup > 0) {
+        throw new ServiceError(
+          preconditionFailedError({
+            message: `Cannot delete a magic MCP group that is the only group of ${tokensOnlyInGroup} active magic MCP token(s). Assign those tokens to another group or delete them first.`
+          })
+        );
+      }
 
       await db.magicMcpGroupServer.deleteMany({
         where: {
@@ -221,43 +227,6 @@ class MagicMcpGroupImpl {
           deletedAt: new Date()
         }
       });
-
-      if (affectedTokenOids.length > 0) {
-        let linkedAfterDelete = (
-          await db.magicMcpGroupToken.groupBy({
-            by: ['magicMcpTokenOid'],
-            where: {
-              magicMcpTokenOid: {
-                in: affectedTokenOids
-              }
-            }
-          })
-        ).map(entry => entry.magicMcpTokenOid);
-
-        await db.magicMcpToken.updateMany({
-          where: {
-            oid: {
-              in: affectedTokenOids
-            }
-          },
-          data: {
-            isGroupLocked: false
-          }
-        });
-
-        if (linkedAfterDelete.length > 0) {
-          await db.magicMcpToken.updateMany({
-            where: {
-              oid: {
-                in: linkedAfterDelete
-              }
-            },
-            data: {
-              isGroupLocked: true
-            }
-          });
-        }
-      }
 
       return deletedGroup;
     });

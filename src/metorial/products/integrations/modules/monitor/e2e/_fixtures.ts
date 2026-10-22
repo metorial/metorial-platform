@@ -78,7 +78,7 @@ export let callTool = async (
     where: { token: opened.client.sessionId! }
   });
   let previous = await subspaceDb.sessionMessage.findFirst({
-    where: { connectionOid: connection.oid, type: 'tool_call' },
+    where: { connectionOid: connection.oid, toolCall: { isNot: null } },
     orderBy: { oid: 'desc' },
     select: { oid: true }
   });
@@ -93,7 +93,7 @@ export let callTool = async (
     subspaceDb.sessionMessage.findFirstOrThrow({
       where: {
         connectionOid: connection.oid,
-        type: 'tool_call',
+        toolCall: { isNot: null },
         status: { not: 'waiting_for_response' },
         oid: previous ? { gt: previous.oid } : undefined
       },

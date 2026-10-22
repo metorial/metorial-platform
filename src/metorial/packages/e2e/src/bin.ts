@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { isE2EEnvironment } from './env';
+import { resolvePackageShardArgs } from './shard';
 
 let resolveBin = (pkg: string, bin: string) =>
   path.join(path.dirname(Bun.resolveSync(`${pkg}/package.json`, import.meta.dir)), bin);
@@ -127,6 +128,11 @@ let runSuites = async () => {
     ? packageConfig
     : path.join(import.meta.dir, '..', 'vitest.e2e.config.ts');
 
+  let packageName = JSON.parse(
+    readFileSync(path.join(process.cwd(), 'package.json'), 'utf8')
+  ).name;
+  let args = resolvePackageShardArgs(process.argv.slice(2), packageName);
+
   // Modules use Bun APIs at runtime, so Vitest (and its forked workers) run on Bun, not Node.
   let child = Bun.spawn(
     [
@@ -137,7 +143,7 @@ let runSuites = async () => {
       config,
       '--root',
       process.cwd(),
-      ...process.argv.slice(2)
+      ...args
     ],
     { stdio: ['inherit', 'inherit', 'inherit'], env: process.env }
   );

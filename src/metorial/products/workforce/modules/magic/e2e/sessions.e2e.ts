@@ -126,18 +126,26 @@ describe('module-magic sessions', () => {
     expect(sessionId).toBe(row.subspaceEphemeralManagedSessionId);
   });
 
-  it.fails(
-    'reports missing providers when connecting a backed server without any (bug: the backing status treats the provider-less integration instance as needs_reconnect)',
-    async () => {
-      let fixture = await loadOrganizationFixture(org.ids);
-      let server = await createServer(fixture);
+  it('reports missing providers when connecting a backed server without any', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let server = await createServer(fixture);
 
-      await expectServiceError(
-        ensureSession(server.id),
-        'magic_mcp_backing_providers_unavailable'
-      );
-    }
-  );
+    await expectServiceError(
+      ensureSession(server.id),
+      'magic_mcp_backing_providers_unavailable'
+    );
+  });
+
+  it('reports missing providers when connecting an endpoint with a provider-less server', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let server = await createServer(fixture);
+    let endpoint = await createEndpoint(fixture, [server]);
+
+    await expectServiceError(
+      ensureSession(endpoint.id),
+      'magic_mcp_backing_providers_unavailable'
+    );
+  });
 
   it('refuses to connect an unbacked endpoint without servers', async () => {
     let fixture = await loadOrganizationFixture(org.ids);

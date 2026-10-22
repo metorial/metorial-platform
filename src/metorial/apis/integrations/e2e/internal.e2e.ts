@@ -115,21 +115,25 @@ describe('api-integrations frontend and internal RPC', () => {
     ).rejects.toMatchObject(notFound);
   });
 
-  it.fails(
-    'rejects an empty client secret as a client error (bug: setup-session RPC middlewares throw a plain Error for empty strings, which surfaces as a 500)',
-    async () => {
-      await expect(
-        frontend().setupSession.get({ sessionId: session.id, clientSecret: '' })
-      ).rejects.toMatchObject({ data: { status: 400 } });
+  it('rejects an empty client secret as a client error', async () => {
+    await expect(
+      frontend().setupSession.get({ sessionId: session.id, clientSecret: '' })
+    ).rejects.toMatchObject({ data: { status: 400 } });
 
-      await expect(
-        frontend().integrationSetupSession.get({
-          sessionId: uniqueId('iss'),
-          clientSecret: ''
-        })
-      ).rejects.toMatchObject({ data: { status: 400 } });
-    }
-  );
+    await expect(
+      frontend().setupSession.listProviders({
+        sessionId: '',
+        clientSecret: session.clientSecret
+      })
+    ).rejects.toMatchObject({ data: { status: 400 } });
+
+    await expect(
+      frontend().integrationSetupSession.get({
+        sessionId: uniqueId('iss'),
+        clientSecret: ''
+      })
+    ).rejects.toMatchObject({ data: { status: 400 } });
+  });
 
   it('keeps subspace-internal off the public integrations port and away from browsers', async () => {
     let publicApi = rest(metorialEndpoints().integrations);

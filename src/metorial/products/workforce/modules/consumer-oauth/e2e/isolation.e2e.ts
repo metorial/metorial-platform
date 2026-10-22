@@ -11,6 +11,7 @@ import {
   createApprovedAuthorization,
   createConsumerProfile,
   createMagicMcpTarget,
+  createPkce,
   createPortal,
   createSetup,
   exchange,
@@ -123,7 +124,8 @@ describe('module-consumer-oauth tenant isolation and routing', () => {
     let setup = await createSetup(org.ids);
     let other = await createSetup(otherOrg.ids);
     let client = await registerClient(setup);
-    let { attempt } = await authorize(setup, client);
+    let pkce = await createPkce();
+    let { attempt } = await authorize(setup, client, { codeChallenge: pkce.codeChallenge });
     let otherConsumer = await createConsumerProfile(other);
 
     await expectServiceError(

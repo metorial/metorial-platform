@@ -423,13 +423,66 @@ describe('module-magic groups', () => {
     await expectServiceError(find([group.id, deletedGroup.id]), 'precondition_failed');
   });
 
-  it('deletes a group, detaching its servers and unlocking tokens without other groups', async () => {
+  it('refuses to delete the only group of an active token, leaving the token locked', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let server = await createServer(fixture);
+    let outside = await createServer(fixture);
+    let group = await createGroup(fixture, [server]);
+    let token = await createToken(fixture, { groups: [group] });
+
+    let error = await expectServiceError(
+      magicMcpGroupService.deleteMagicMcpGroup({ group, auditScope: fixture.auditScope }),
+      'precondition_failed'
+    );
+    expect(error.message).toContain('only group of 1 active magic MCP token');
+
+    let reloadedGroup = await db.magicMcpGroup.findUniqueOrThrow({
+      where: { oid: group.oid }
+    });
+    expect(reloadedGroup.status).toBe('active');
+    expect(
+      await db.magicMcpGroupServer.count({ where: { magicMcpGroupOid: group.oid } })
+    ).toBe(1);
+
+    let reloadedToken = await reload(fixture, token);
+    expect(reloadedToken.isGroupLocked).toBe(true);
+    expect(reloadedToken.groups.map(link => link.magicMcpGroup.id)).toEqual([group.id]);
+    expect(await hasAccess(reloadedToken, { server })).toBe(true);
+    expect(await hasAccess(reloadedToken, { server: outside })).toBe(false);
+
+    await magicMcpTokenService.deleteMagicMcpToken({
+      token: reloadedToken,
+      auditScope: fixture.auditScope
+    });
+
+    let deleted = await magicMcpGroupService.deleteMagicMcpGroup({
+      group,
+      auditScope: fixture.auditScope
+    });
+    expect(deleted.status).toBe('deleted');
+  });
+
+  it('denies a group-locked token left without groups and keeps it out of server listings', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let server = await createServer(fixture);
+    let group = await createGroup(fixture, [server]);
+    let token = await createToken(fixture, { groups: [group] });
+
+    await db.magicMcpGroupToken.deleteMany({ where: { magicMcpTokenOid: token.oid } });
+
+    let orphaned = await reload(fixture, token);
+    expect(orphaned.isGroupLocked).toBe(true);
+    expect(orphaned.groups).toEqual([]);
+    expect(await hasAccess(orphaned, { server })).toBe(false);
+    expect(await listTokenIds(fixture, { serverIds: [server.id] })).not.toContain(token.id);
+  });
+
+  it('deletes a group, detaching its servers and keeping its tokens locked to their other groups', async () => {
     let fixture = await loadOrganizationFixture(org.ids);
     let server = await createServer(fixture);
     let outside = await createServer(fixture);
     let doomed = await createGroup(fixture, [server]);
     let remaining = await createGroup(fixture, [server]);
-    let onlyDoomed = await createToken(fixture, { groups: [doomed] });
     let both = await createToken(fixture, { groups: [doomed, remaining] });
 
     let deleted = await magicMcpGroupService.deleteMagicMcpGroup({
@@ -445,11 +498,8 @@ describe('module-magic groups', () => {
     let reloadedBoth = await reload(fixture, both);
     expect(reloadedBoth.isGroupLocked).toBe(true);
     expect(reloadedBoth.groups.map(link => link.magicMcpGroup.id)).toEqual([remaining.id]);
+    expect(await hasAccess(reloadedBoth, { server })).toBe(true);
     expect(await hasAccess(reloadedBoth, { server: outside })).toBe(false);
-
-    let reloadedOnly = await reload(fixture, onlyDoomed);
-    expect(reloadedOnly.isGroupLocked).toBe(false);
-    expect(await hasAccess(reloadedOnly, { server: outside })).toBe(true);
 
     let active = ids(
       await firstPage(

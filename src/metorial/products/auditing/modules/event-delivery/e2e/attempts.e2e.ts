@@ -1,3 +1,4 @@
+import { isPublicIp } from '@lowerdeck/ssrf';
 import { ID } from '@metorial/db';
 import {
   eventually,
@@ -25,6 +26,9 @@ import {
   waitForDelivery,
   waitForDestinations
 } from './_fixtures';
+
+// The e2e gateway maps this name to the Docker host gateway, a private address, in /etc/hosts.
+let privateHostname = 'host.docker.internal';
 
 let ping = (fixture: OrganizationFixture, eventDestination: { id: string }) =>
   db.eventDestination
@@ -75,13 +79,13 @@ describe('module-event-delivery: attempts', () => {
       literalDeliveries.push(await ping(fixture, destination));
     }
 
-    let hostname = await createDestination(fixture, {
+    let localhost = await createDestination(fixture, {
       url: `http://localhost:${receiver.port}/hostname`,
       retry: { maxAttempts: 2 }
     });
-    let hostnameDelivery = await ping(fixture, hostname);
+    let localhostDelivery = await ping(fixture, localhost);
 
-    for (let delivery of literalDeliveries) {
+    for (let delivery of [...literalDeliveries, localhostDelivery]) {
       let failed = await waitForDelivery(fixture, delivery.id, {
         status: 'failed',
         attemptCount: 1
@@ -95,20 +99,34 @@ describe('module-event-delivery: attempts', () => {
       });
     }
 
-    let hostnameFailed = await waitForDelivery(fixture, hostnameDelivery.id, {
-      status: 'failed',
-      attemptCount: 2
-    });
-    for (let attempt of hostnameFailed.attempts) {
-      expect(attempt).toMatchObject({
-        isRetryable: true,
-        errorCode: 'request_failed',
-        responseStatusCode: null
-      });
-      expect(attempt.errorMessage).toContain('Private or internal IP blocked');
-    }
-
     expect(receiver.requests).toEqual([]);
+  }, 120_000);
+
+  it('fails a hostname that resolves to a private address once, without retrying', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+
+    let [address] = await Bun.dns.lookup(privateHostname, { family: 4 });
+    expect(isPublicIp(address!.address)).toBe(false);
+
+    let destination = await createDestination(fixture, {
+      url: `http://${privateHostname}:${receiver.port}/private`,
+      retry: { strategy: 'fixed', maxAttempts: 3, baseDelaySeconds: 1, maxDelaySeconds: 1 }
+    });
+    let delivery = await ping(fixture, destination);
+
+    let failed = await waitForDelivery(fixture, delivery.id, {
+      status: 'failed',
+      attemptCount: 1
+    });
+    expect(failed).toMatchObject({ errorCode: 'url_not_allowed', nextAttemptAt: null });
+    expect(failed.attempts).toHaveLength(1);
+    expect(failed.attempts[0]).toMatchObject({
+      status: 'failed',
+      isRetryable: false,
+      errorCode: 'url_not_allowed',
+      errorMessage: 'Private or internal IP blocked',
+      responseStatusCode: null
+    });
   }, 120_000);
 
   it('records the signed request it sends, with the documented payload and headers', async () => {

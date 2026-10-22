@@ -183,7 +183,7 @@ describe('module-skill-templates lifecycle', () => {
           encoding: 'utf-8'
         },
         {
-          path: '..\\..\\docs\\<script>notes.md',
+          path: '..\\..\\docs\\résumé notes.md',
           type: 'file',
           content: Buffer.from('binary').toString('base64'),
           encoding: 'base64',
@@ -194,7 +194,7 @@ describe('module-skill-templates lifecycle', () => {
 
     expect(template.storeTemplate?.items.map(item => item.path).sort()).toEqual([
       '/SKILL.md',
-      '/docs/scriptnotes.md',
+      '/docs/résumé notes.md',
       '/etc/passwd.md'
     ]);
   });
@@ -251,6 +251,10 @@ describe('module-skill-templates lifecycle', () => {
         /Store template item path already exists: \/notes\.md/
       ],
       [{ items: [document('/..')] }, /Store file paths must include a file name/],
+      [
+        { items: [document('/docs/<script>notes.md')] },
+        /character that is not allowed: "<" \(U\+003C\)/
+      ],
       [
         { items: templateItems(), storeId: 'str_does_not_exist' },
         /Provide exactly one of skillId, storeId, or items/

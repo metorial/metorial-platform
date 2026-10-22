@@ -80,6 +80,7 @@ describe('module-secrets key providers', () => {
   let otherOrg = useOrganization();
   let defaultsOrg = useOrganization();
   let countingOrg = useOrganization();
+  let managedCountingOrg = useOrganization();
 
   it('links every project to its own Nebula tenant exactly once', async () => {
     let fixture = await load(org);
@@ -269,29 +270,26 @@ describe('module-secrets key providers', () => {
     expect(counts).toEqual([initial, initial + 1, initial + 2]);
   });
 
-  it.fails(
-    "counts only the tenant's own managed providers before creating one (bug: the global system default provider is counted as a managed provider of every tenant)",
-    async () => {
-      let fixture = await load(countingOrg);
-      let counts: number[] = [];
+  it("counts only the tenant's own managed providers before creating one", async () => {
+    let fixture = await load(managedCountingOrg);
+    let counts: number[] = [];
 
-      onTestFinished(
-        Fabric.listen('key_provider.managed.created:before', event => {
-          if (event.organization.id === fixture.organization.id)
-            counts.push(event.currentCount);
-        })
-      );
+    onTestFinished(
+      Fabric.listen('key_provider.managed.created:before', event => {
+        if (event.organization.id === fixture.organization.id) counts.push(event.currentCount);
+      })
+    );
 
-      let before = (await listKeyProviders(fixture)).filter(
-        item => item.isMetorialManaged && item.owner === 'system'
-      );
-      let ownManaged = before.length - 1;
+    let initial = await listKeyProviders(fixture);
+    expect(initial.filter(item => item.isGlobal && item.isMetorialManaged)).toHaveLength(1);
+    expect(initial.filter(item => !item.isGlobal)).toEqual([]);
 
-      await createManaged(fixture);
+    await createManaged(fixture);
+    await importKeyProvider(fixture);
+    await createManaged(fixture);
 
-      expect(counts).toEqual([ownManaged]);
-    }
-  );
+    expect(counts).toEqual([0, 1]);
+  });
 
   it('does not create a provider when a :before listener vetoes it', async () => {
     let fixture = await load(org);

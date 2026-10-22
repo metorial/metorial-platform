@@ -123,30 +123,46 @@ describe('module-custom-provider failing deployments', () => {
     expect(deployment.shuttleCustomServerDeploymentOid).toBeNull();
   }, 180_000);
 
-  it.fails(
-    'keeps a custom provider whose first deployment failed before a version was created visible (bug: the management visibility filter requires a custom provider environment version, so the provider can never be fetched or retried)',
-    async () => {
-      let fixture = await loadOrganizationFixture(org.ids);
+  it('keeps a custom provider whose first deployment failed before a version was created visible', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
 
-      let created = await customProviderService.createCustomProvider({
-        instance: fixture.instance,
-        organizationActor: fixture.actor,
-        auditScope: fixture.auditScope,
-        input: {
-          name: uniqueId('container-provider'),
-          from: { type: 'container', repository: { imageRef: '' } }
-        }
-      });
-      await expectVersionFailed(created.id, 1);
+    let created = await customProviderService.createCustomProvider({
+      instance: fixture.instance,
+      organizationActor: fixture.actor,
+      auditScope: fixture.auditScope,
+      input: {
+        name: uniqueId('container-provider'),
+        from: { type: 'container', repository: { imageRef: '' } }
+      }
+    });
+    await expectVersionFailed(created.id, 1);
 
-      let customProvider = await customProviderService.getCustomProviderById({
+    let customProvider = await customProviderService.getCustomProviderById({
+      instance: fixture.instance,
+      customProviderId: created.id
+    });
+    expect(customProvider.id).toBe(created.id);
+
+    let listed = await firstPage(
+      await customProviderService.listCustomProviders({
         instance: fixture.instance,
-        customProviderId: created.id
-      });
-      expect(customProvider.id).toBe(created.id);
-    },
-    180_000
-  );
+        ids: [created.id]
+      })
+    );
+    expect(listed.map(item => item.id)).toEqual([created.id]);
+
+    let retry = await customProviderVersionService.createCustomProviderVersion({
+      instance: fixture.instance,
+      organizationActor: fixture.actor,
+      auditScope: fixture.auditScope,
+      customProvider,
+      input: {
+        message: 'Retry',
+        from: { type: 'container', repository: { imageRef: 'ghcr.io/metorial/e2e:latest' } }
+      }
+    });
+    expect(retry.versionIndex).toBe(2);
+  }, 180_000);
 
   it('rejects invalid custom provider input', async () => {
     let fixture = await loadOrganizationFixture(org.ids);

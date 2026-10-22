@@ -527,8 +527,8 @@ describe('module-chat chat connections', () => {
     providerTestTimeout
   );
 
-  it.fails(
-    'does not leave a connection behind when its first provider is rejected (bug: createChatConnectionWithProvider creates the connection before validating the provider and never rolls it back)',
+  it(
+    'does not leave a connection behind when its first provider is rejected',
     async () => {
       let fixture = await loadOrganizationFixture(org.ids);
       let plain = await providers.plain();
@@ -545,6 +545,7 @@ describe('module-chat chat connections', () => {
       );
 
       expect(await subspaceDb.chatConnection.count({ where: { name } })).toBe(0);
+      expect(await subspaceDb.integration.count({ where: { name } })).toBe(0);
     },
     providerTestTimeout
   );

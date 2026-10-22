@@ -153,25 +153,22 @@ describe('module-callback webhook registrations', () => {
     ).not.toContain(deleted.id);
   });
 
-  it.fails(
-    'lists a deleted registration with allowDeleted alone (bug: list-utils normalizeStatusForList ignores allowDeleted when no status filter is given)',
-    async () => {
-      let scope = await scopeOf(org);
-      let deleted = await ensureDeletedRegistration();
+  it('lists a deleted registration with allowDeleted alone', async () => {
+    let scope = await scopeOf(org);
+    let deleted = await ensureDeletedRegistration();
 
-      expect(
-        ids(
-          await firstPage(
-            await webhookRegistrationService.listWebhookRegistrations({
-              instance: scope.instance,
-              providerIds: [providers.supported],
-              allowDeleted: true
-            })
-          )
+    expect(
+      ids(
+        await firstPage(
+          await webhookRegistrationService.listWebhookRegistrations({
+            instance: scope.instance,
+            providerIds: [providers.supported],
+            allowDeleted: true
+          })
         )
-      ).toContain(deleted.id);
-    }
-  );
+      )
+    ).toContain(deleted.id);
+  });
 
   it('serves, refuses backend changes to, and archives a registration awaiting setup', async () => {
     let scope = await scopeOf(org);

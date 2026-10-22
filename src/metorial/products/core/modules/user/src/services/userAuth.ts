@@ -2,6 +2,7 @@ import { badRequestError, ServiceError, unauthorizedError } from '@lowerdeck/err
 import { Service } from '@lowerdeck/service';
 import { Context } from '@metorial/context';
 import { User, UserSession, withTransaction } from '@metorial/db';
+import { findUserOidsByEmail } from '../lib/email';
 import { userService } from './user';
 import { userSessionService } from './userSession';
 
@@ -16,9 +17,11 @@ class UserAuthService {
     return withTransaction(async db => {
       let user = await db.user.findFirst({
         where: {
-          email: d.input.email,
-          type: 'user'
-        }
+          oid: { in: await findUserOidsByEmail(d.input.email) },
+          type: 'user',
+          status: 'active'
+        },
+        orderBy: [{ createdAt: 'asc' }, { oid: 'asc' }]
       });
 
       let isValid = user?.passwordHash

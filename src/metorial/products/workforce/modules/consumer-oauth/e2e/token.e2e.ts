@@ -14,7 +14,8 @@ import {
   findAccessToken,
   issueTokens,
   redirectUri,
-  registerClient
+  registerClient,
+  registerLegacyClient
 } from './_fixtures';
 
 describe('module-consumer-oauth token exchange', () => {
@@ -99,7 +100,7 @@ describe('module-consumer-oauth token exchange', () => {
 
   it('rejects a code verifier for authorizations without a challenge', async () => {
     let setup = await createSetup(org.ids);
-    let client = await registerClient(setup);
+    let client = await registerLegacyClient(setup);
     let { attempt } = await authorize(setup, client);
     let consumerProfile = await createConsumerProfile(setup);
     await approve(setup, consumerProfile, attempt.id);
@@ -119,15 +120,87 @@ describe('module-consumer-oauth token exchange', () => {
     );
   });
 
-  it.fails(
-    'requires PKCE for public clients (bug: a client without a secret can authorize and exchange a code without code_challenge)',
-    async () => {
-      let setup = await createSetup(org.ids);
-      let client = await registerClient(setup, { tokenEndpointAuthMethod: 'none' });
+  it('requires PKCE for public clients', async () => {
+    let setup = await createSetup(org.ids);
+    let client = await registerClient(setup, { tokenEndpointAuthMethod: 'none' });
+    expect(client.requirePkce).toBe(true);
 
-      await expectOAuthError(authorize(setup, client), 'bad_request', 'invalid_request');
-    }
-  );
+    await expectOAuthError(
+      authorize(setup, client),
+      'bad_request',
+      'invalid_request',
+      /code_challenge is required for public clients/
+    );
+    await expectOAuthError(
+      authorize(setup, client, { codeChallengeMethod: 'none' }),
+      'bad_request',
+      'invalid_request',
+      /code_challenge is required for public clients/
+    );
+    expect(
+      await db.consumerAuthAttempt.count({ where: { consumerAuthClientOid: client.oid } })
+    ).toBe(0);
+
+    let { attempt, codeGrant } = await createApprovedAuthorization(setup, client);
+    await expectOAuthError(
+      exchange(setup, { ...codeGrant, codeVerifier: undefined }),
+      'bad_request',
+      'invalid_grant',
+      /code verifier is required/
+    );
+
+    await db.consumerAuthAttempt.update({
+      where: { id: attempt.id },
+      data: { codeChallengeMethod: 'none', codeChallenge: null }
+    });
+    await expectOAuthError(
+      exchange(setup, { ...codeGrant, codeVerifier: undefined }),
+      'bad_request',
+      'invalid_grant',
+      /not protected with PKCE/
+    );
+  });
+
+  it('keeps PKCE optional for confidential clients', async () => {
+    let setup = await createSetup(org.ids);
+    let client = await registerClient(setup, {
+      tokenEndpointAuthMethod: 'client_secret_post'
+    });
+    expect(client.requirePkce).toBe(true);
+
+    let { attempt } = await authorize(setup, client);
+    expect(attempt.codeChallengeMethod).toBe('none');
+    let consumerProfile = await createConsumerProfile(setup);
+    await approve(setup, consumerProfile, attempt.id);
+
+    let tokens = await exchange(setup, {
+      grantType: 'authorization_code',
+      clientId: client.clientId,
+      clientSecret: client.clientSecret!,
+      code: attempt.authorizationCode!,
+      redirectUri
+    });
+    expect(tokens.refreshToken).toMatch(/^prtl_oatre_/);
+  });
+
+  it('keeps PKCE optional for public clients registered before it was required', async () => {
+    let setup = await createSetup(org.ids);
+    let client = await registerLegacyClient(setup);
+
+    let { attempt } = await authorize(setup, client);
+    expect(attempt).toMatchObject({ codeChallengeMethod: 'none', codeChallenge: null });
+    let consumerProfile = await createConsumerProfile(setup);
+    await approve(setup, consumerProfile, attempt.id);
+
+    let tokens = await exchange(setup, {
+      grantType: 'authorization_code',
+      clientId: client.clientId,
+      code: attempt.authorizationCode!,
+      redirectUri
+    });
+    expect(tokens.refreshToken).toMatch(/^prtl_oatre_/);
+    expect(await findAccessToken(setup, tokens.accessToken)).not.toBeNull();
+  });
 
   it('binds the code to its client and redirect URI', async () => {
     let setup = await createSetup(org.ids);
