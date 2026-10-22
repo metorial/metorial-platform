@@ -1,4 +1,4 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { skillItemService, skillService } from '@metorial/module-skill';
@@ -40,11 +40,7 @@ export let skillItemGroup = skillGroup.use(async ctx => {
     allowDeleted: true
   });
   if (skillItem.skillId !== ctx.skill.id) {
-    throw new ServiceError(
-      badRequestError({
-        message: 'Skill item does not belong to the requested skill.'
-      })
-    );
+    throw new ServiceError(notFoundError('skill.item', ctx.params.skillItemId));
   }
 
   return { skillItem };
