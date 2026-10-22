@@ -44,8 +44,12 @@ RUN apk add --no-cache curl
 # Copy the built application from builder
 COPY --from=builder /app/src/metorial/products/integrations/apps/worker/dist /app/dist
 
-# Copy prisma schema and generated client from builder
-COPY --from=builder /app/src/metorial/products/integrations/db /app/db
+# Prisma schemas for the core, global (multi-region) and subspace databases
+COPY --from=builder /app/src/metorial/db/prisma /app/db/core/prisma
+COPY --from=builder /app/src/metorial/db/prisma.config.ts /app/db/core/prisma.config.ts
+COPY --from=builder /app/src/metorial/multi-region/prisma /app/db/global/prisma
+COPY --from=builder /app/src/metorial/multi-region/prisma.config.ts /app/db/global/prisma.config.ts
+COPY --from=builder /app/src/metorial/products/integrations/db /app/db/subspace
 
 # Copy entire node_modules from builder to ensure prisma has all dependencies
 COPY --from=builder /app/node_modules /app/node_modules
@@ -57,5 +61,6 @@ ENV NODE_ENV=production
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
   CMD curl -f http://localhost:12121/ || exit 1
 
-# Start command: push schema and start service
-CMD ["sh", "-c", "cd db && bun prisma db push --accept-data-loss && cd /app && bun dist/index.js"]
+# The worker loads core modules that write to the core and global databases at boot, so it
+# can't rely on app-api having pushed those schemas first.
+CMD ["sh", "-c", "for db in core global subspace; do (cd /app/db/$db && bun prisma db push --accept-data-loss) || exit 1; done && bun /app/dist/index.js"]
