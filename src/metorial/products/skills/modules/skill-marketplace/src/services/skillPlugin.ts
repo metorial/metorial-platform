@@ -38,8 +38,8 @@ import {
 } from '../lib/limits';
 import {
   getArchivedMarketplacePluginSlug,
-  getMarketplacePluginSlug,
-  getSkillPluginSlug
+  getAvailableSkillPluginSlug,
+  getMarketplacePluginSlug
 } from '../lib/skillMarketplacePluginSlug';
 import {
   assertSkillMarketplaceWriteAccess,
@@ -405,6 +405,7 @@ class SkillPluginServiceImpl {
           { skillMarketplaceId: skillMarketplace.id }
         )
       : undefined;
+    let slug = await getAvailableSkillPluginSlug(d.input.slug ?? d.input.name);
 
     return await withTransaction(async db => {
       await Fabric.fire('skill.plugin.created:before', {
@@ -423,7 +424,7 @@ class SkillPluginServiceImpl {
           description: d.input.description,
           longDescription: d.input.longDescription,
           category: d.input.category,
-          slug: getSkillPluginSlug(d.input.slug ?? d.input.name),
+          slug,
           projectOid: d.project.oid,
           instanceOid: d.instance.oid,
           organizationOid: d.project.organizationOid,
@@ -651,6 +652,12 @@ class SkillPluginServiceImpl {
           }
         });
       }
+
+      await db.skillPluginRepository.deleteMany({
+        where: {
+          skillPluginOid: d.skillPlugin.oid
+        }
+      });
 
       await db.skillPlugin.update({
         where: {

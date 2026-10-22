@@ -2,6 +2,7 @@ import { canonicalize } from '@lowerdeck/canonicalize';
 import {
   badRequestError,
   forbiddenError,
+  goneError,
   notFoundError,
   ServiceError
 } from '@lowerdeck/error';
@@ -161,6 +162,14 @@ class SkillServiceImpl {
       throw new ServiceError(
         badRequestError({
           message: 'Skill can only have one parent source'
+        })
+      );
+    }
+
+    if (d.parentSkillTemplate && d.parentSkillTemplate.status !== 'active') {
+      throw new ServiceError(
+        goneError({
+          message: 'Skills cannot be created from archived skill templates'
         })
       );
     }
@@ -583,7 +592,8 @@ class SkillServiceImpl {
     let updated = await this.getSkillRecord({
       project: d.project,
       instance: d.instance,
-      skillId: d.skill.id
+      skillId: d.skill.id,
+      allowDeleted: true
     });
     await Fabric.fire('skill.audit.updated:after', {
       auditScope: d.auditScope,
@@ -641,7 +651,12 @@ class SkillServiceImpl {
       await enqueueSkillLifecycle({ skillId: d.skill.id, event: 'archived' });
     });
 
-    return d.skill;
+    return await this.getSkillRecord({
+      project: d.project,
+      instance: d.instance,
+      skillId: d.skill.id,
+      allowDeleted: true
+    });
   }
 
   async markSkillUse(d: {
@@ -650,6 +665,7 @@ class SkillServiceImpl {
     skill: SkillRecord;
     actor: ResourceActor;
   }) {
+    assertSkillRecordScope(d);
     assertResourceActorScope({
       project: d.project,
       resourceActor: d.actor

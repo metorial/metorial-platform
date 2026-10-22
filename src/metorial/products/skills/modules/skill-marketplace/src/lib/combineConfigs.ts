@@ -31,7 +31,7 @@ export let combineConfigs = (
   return {
     allowScripts: intersectBooleans(producedConfigs.map(c => c.allowScripts)),
     allowedFileExtensions: intersectStringArrays(
-      producedConfigs.map(c => c.allowedFileExtensions)
+      producedConfigs.map(c => c.allowedFileExtensions).filter(extensions => extensions.length)
     ),
     allowNonStandardDirectories: intersectBooleans(
       producedConfigs.map(c => c.allowNonStandardDirectories)
