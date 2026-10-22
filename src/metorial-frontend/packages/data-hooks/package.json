@@ -9,10 +9,10 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
-    "formik": "^2.4.6",
-    "react": "19.1.1",
-    "react-router-dom": "^6.26.1",
-    "yup": "^1.4.0",
+    "formik": "^2.4.9",
+    "react": "19.3.0",
+    "react-router-dom": "^7.18.4",
+    "yup": "^1.7.1",
     "@metorial/ui": "1.0.0",
     "@lowerdeck/error": "workspace:2.0.0",
     "@lowerdeck/memo": "workspace:2.0.0",
@@ -22,8 +22,8 @@
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",
-    "jsdom": "24.1.3",
-    "typescript": "5.8.2",
-    "vitest": "^3.1.2"
+    "jsdom": "30.1.2",
+    "typescript": "5.9.3",
+    "vitest": "^5.0.4"
   }
 }

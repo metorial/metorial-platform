@@ -1,10 +1,7 @@
-import katexStyles from 'katex/dist/katex.min.css?inline';
 import styled from 'styled-components';
 
 export let DocsStyles = styled.div`
   display: contents;
-
-  ${katexStyles}
 
   &,
   & *,

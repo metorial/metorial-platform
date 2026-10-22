@@ -11,7 +11,7 @@ import {
   rpcSignatureDigest,
   rpcSignatureHeader
 } from '@lowerdeck/rpc-signature';
-import { getSentry } from '@lowerdeck/sentry';
+import { getSentry, markSentryCaptured } from '@lowerdeck/sentry';
 import { serialize } from '@lowerdeck/serialize';
 import type { Call, Requester } from './shared/requester';
 import { generateRequestId } from './shared/requester';
@@ -60,18 +60,27 @@ let decodeResponseBody = (body: string) => {
 };
 
 class InvalidRpcResponseError extends Error {
-  constructor(cause: unknown) {
+  constructor(
+    cause: unknown,
+    readonly httpStatus: number
+  ) {
     super('Invalid RPC response', { cause });
     this.name = 'InvalidRpcResponseError';
   }
 }
 
-let rpcRequestDiagnostics = new WeakMap<object, Error>();
+interface RpcRequestDiagnostic {
+  error: Error;
+  httpStatus?: number;
+}
+
+let rpcRequestDiagnostics = new WeakMap<object, RpcRequestDiagnostic>();
 
 let reportedRequestDiagnostics = new WeakMap<
   object,
   {
     error: Error;
+    httpStatus?: number;
     endpoint: string;
     rpcMethod: string;
     timeoutMs?: number;
@@ -86,7 +95,7 @@ export let getRpcRequestDiagnostics = (error: unknown) =>
 class RpcRequestError extends ServiceError<any> {
   constructor(
     error: ReturnType<typeof internalServerError> | ReturnType<typeof timeoutError>,
-    diagnostic: Error
+    diagnostic: RpcRequestDiagnostic
   ) {
     super(error);
     this.name = 'RpcRequestError';
@@ -98,35 +107,55 @@ class RpcTransportError extends RpcRequestError {}
 
 class RpcResponseError extends RpcRequestError {}
 
-let decodeRpcResponse = (body: string) => {
+let decodeRpcResponse = (body: string, httpStatus: number) => {
   try {
     return decodeResponseBody(body);
   } catch (error) {
-    throw new InvalidRpcResponseError(error);
+    throw new InvalidRpcResponseError(error, httpStatus);
   }
 };
 
 let toRequestError = (call: Call, error: unknown) => {
-  let invalidResponse = error instanceof InvalidRpcResponseError;
+  let cause = error instanceof Error ? error : undefined;
   let timedOut =
     (error instanceof Error && error.name === 'AbortError') || call.signal?.aborted;
-  let diagnosticMessage = timedOut
-    ? `Request timed out: ${call.name} on ${call.endpoint}`
-    : invalidResponse
-      ? `Invalid response from server ${call.endpoint} for ${call.name}`
-      : `Unable to reach server ${call.endpoint} for ${call.name}`;
-  let diagnostic = new Error(diagnosticMessage, {
-    cause: error instanceof Error ? error : undefined
-  });
 
   if (timedOut) {
+    let diagnostic = new Error(`Request timed out: ${call.name} on ${call.endpoint}`, {
+      cause
+    });
     diagnostic.name = 'RpcTimeoutError';
-    return new RpcTransportError(timeoutError(), diagnostic);
+    return new RpcTransportError(timeoutError(), { error: diagnostic });
   }
 
-  return invalidResponse
-    ? new RpcResponseError(internalServerError(), diagnostic)
-    : new RpcTransportError(internalServerError(), diagnostic);
+  if (error instanceof InvalidRpcResponseError) {
+    let httpStatus = error.httpStatus;
+
+    // RPC servers always answer with an RPC body, so an undecodable 5xx was produced by a load
+    // balancer or proxy in front of the server (no healthy target, restart, deploy). That is
+    // as transient as a refused connection and gets the same deadline-bound retries.
+    if (httpStatus >= 500) {
+      let diagnostic = new Error(
+        `Upstream unavailable: ${call.endpoint} answered HTTP ${httpStatus} for ${call.name}`,
+        { cause }
+      );
+      diagnostic.name = 'RpcUpstreamUnavailableError';
+      return new RpcTransportError(internalServerError(), { error: diagnostic, httpStatus });
+    }
+
+    let diagnostic = new Error(
+      `Invalid response from server ${call.endpoint} for ${call.name}`,
+      { cause }
+    );
+    diagnostic.name = 'RpcInvalidResponseError';
+    return new RpcResponseError(internalServerError(), { error: diagnostic, httpStatus });
+  }
+
+  let diagnostic = new Error(`Unable to reach server ${call.endpoint} for ${call.name}`, {
+    cause
+  });
+  diagnostic.name = 'RpcUnreachableError';
+  return new RpcTransportError(internalServerError(), { error: diagnostic });
 };
 
 let createBatchUrl = (call: Call) => {
@@ -207,7 +236,7 @@ let runCalls = async (
     keepalive: false
   })
     .then(async res => ({
-      res: decodeRpcResponse(await res.text()),
+      res: decodeRpcResponse(await res.text(), res.status),
       headers: res.headers,
       status: res.status
     }))
@@ -426,7 +455,12 @@ let requesterInternal = async (
   throw new ServiceError(internalServerError());
 };
 
+let offlineResponderKey = Symbol.for('lowerdeck.offline.rpc');
+
 export let request: Requester = async call => {
+  let offlineResponder = (globalThis as any)[offlineResponderKey] as Requester | undefined;
+  if (offlineResponder) return offlineResponder(call);
+
   let startedAt = Date.now();
   let diagnostics = { attempts: 0 };
   try {
@@ -434,30 +468,40 @@ export let request: Requester = async call => {
   } catch (error) {
     if (!(error instanceof RpcRequestError)) throw error;
 
+    let diagnostic = rpcRequestDiagnostics.get(error)!;
     let details = {
-      error: rpcRequestDiagnostics.get(error)!,
+      error: diagnostic.error,
+      httpStatus: diagnostic.httpStatus,
       endpoint: call.endpoint,
       rpcMethod: call.name,
       timeoutMs: call.timeoutMs ?? (isServer ? serverRetryTimeoutMs : undefined),
       elapsedMs: Date.now() - startedAt,
       attempts: diagnostics.attempts
     };
-    if (call.captureErrors !== false && !call.signal?.aborted) {
-      Sentry.captureException(details.error, {
-        tags: { rpcMethod: call.name },
-        extra: {
-          endpoint: call.endpoint,
-          timeoutMs: call.timeoutMs ?? (isServer ? serverRetryTimeoutMs : undefined),
-          elapsedMs: details.elapsedMs,
-          attempts: diagnostics.attempts
-        }
-      });
-    }
 
     let publicError = new ServiceError(
       error.data.status == 504 ? timeoutError() : internalServerError()
     );
     reportedRequestDiagnostics.set(publicError, details);
+
+    let isBrowserNetworkFailure = !isServer && diagnostic.error.name === 'RpcUnreachableError';
+    if (isBrowserNetworkFailure) {
+      markSentryCaptured(publicError);
+    } else if (call.captureErrors !== false && !call.signal?.aborted) {
+      Sentry.captureException(details.error, {
+        tags: { rpcMethod: call.name },
+        fingerprint: ['rpc-request-error', details.error.name, call.endpoint],
+        extra: {
+          endpoint: call.endpoint,
+          httpStatus: details.httpStatus,
+          timeoutMs: details.timeoutMs,
+          elapsedMs: details.elapsedMs,
+          attempts: diagnostics.attempts
+        }
+      });
+      markSentryCaptured(publicError);
+    }
+
     throw publicError;
   }
 };

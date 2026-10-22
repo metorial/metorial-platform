@@ -1,0 +1,48 @@
+import {
+  consumerApiController,
+  fullDashboardController,
+  magnetarController
+} from './controllers';
+import { ApiVersion } from './types';
+
+export let apiVersions = {
+  versions: {
+    mt_2025_01_01_dashboard: {
+      displayVersion: '2025-01-01',
+      apiVersion: 'mt_2025_01_01_dashboard' as ApiVersion,
+      alternativeIdentifiers: [
+        'dashboard',
+        '2025_01_01',
+        '2025-01-01',
+        'mt_2025_01_01_dashboard',
+        '2025-01-01-dashboard'
+      ],
+      controller: fullDashboardController
+    },
+    mt_2026_01_01_magnetar: {
+      displayVersion: '2026-01-01',
+      apiVersion: 'mt_2026_01_01_magnetar' as ApiVersion,
+      alternativeIdentifiers: [
+        'magnetar',
+        '2026_01_01',
+        '2026-01-01',
+        'mt_2026_01_01_magnetar',
+        '2026-01-01-magnetar'
+      ],
+      controller: magnetarController
+    },
+    mt_2026_04_01_consumer: {
+      displayVersion: '2026-04-01',
+      apiVersion: 'mt_2026_04_01_consumer' as ApiVersion,
+      alternativeIdentifiers: [
+        'consumer',
+        '2026_04_01',
+        '2026-04-01',
+        'mt_2026_04_01_consumer',
+        '2026-04-01-consumer'
+      ],
+      controller: consumerApiController
+    }
+  },
+  currentVersion: 'mt_2025_01_01_dashboard'
+};

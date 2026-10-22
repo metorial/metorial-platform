@@ -42,11 +42,16 @@ let generateTypeExports = (
 };
 
 let args = process.argv.slice(2);
-let url = args[0];
-let rootOutputFolder = args[1];
-let language = args[2];
+let positional = args.filter(arg => !arg.startsWith('--'));
+let snapshotFlag = args.find(arg => arg.startsWith('--snapshot='))?.slice('--snapshot='.length);
 
-let snapshotFile = args.slice(3).find(arg => !arg.startsWith('--'));
+// With --snapshot the API URL is not needed: <out> <language>. Otherwise: <url> <out> <language> [snapshot].
+// An explicit API_URL still wins over --snapshot so a running instance can be used instead.
+let [url, rootOutputFolder, language, snapshotFile] = snapshotFlag
+  ? process.env.API_URL
+    ? [process.env.API_URL, positional[0], positional[1], undefined]
+    : [undefined, positional[0], positional[1], snapshotFlag]
+  : [positional[0], positional[1], positional[2], positional[3]];
 
 let snapshot = snapshotFile
   ? ((await fs.readJson(path.resolve(snapshotFile))) as IntrospectionSnapshot)
@@ -70,7 +75,7 @@ let mapperOptions = {
         : true
 };
 
-if (!url) url = await input({ message: 'API URL' });
+if (!url && !snapshot) url = await input({ message: 'API URL' });
 if (!rootOutputFolder) rootOutputFolder = await input({ message: 'Output folder' });
 if (!language) {
   language = await input({ message: 'Language (typescript, python, or go)' });
@@ -120,9 +125,8 @@ let endpointModule = await import(`./languages/${language}/endpoint`);
 let matchesResourcePath = (sdkPath: string, resource: string) =>
   sdkPath === resource || sdkPath.startsWith(`${resource}.`);
 
-let urls = url.split(',');
-let workingUrl = snapshot ? url : null;
-for (let u of snapshot ? [] : urls) {
+let workingUrl = snapshot ? (url ?? 'snapshot') : null;
+for (let u of snapshot ? [] : url!.split(',')) {
   try {
     await fetch(u);
     workingUrl = u;

@@ -7,12 +7,14 @@ import {
 import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
 import type { Context } from '@lowerdeck/hono';
 import { getSentry } from '@lowerdeck/sentry';
+import type { RequestScopedToolsResolver } from '@metorial-subspace/module-connection';
 import { extractToken } from '@metorial/bearer';
 import { Instance } from '@metorial/db';
 import { generateSnowflakeId } from '@metorial/id';
 import { AuthInfo } from '@metorial/module-access';
 import {
   consumerIntegrationService,
+  createSkillEditingTools,
   enqueueMaterializeMagicMcpSessionOwnership
 } from '@metorial/module-consumer-entities';
 import {
@@ -304,6 +306,37 @@ export let resolveMagicMcpSubspaceSession = async (d: {
   };
 };
 
+export let resolveMagicMcpRequestTools = (d: {
+  sessionInfo: MagicMcpSubspaceSessionInfo;
+  context: { ip: string; ua?: string | null };
+}): RequestScopedToolsResolver | undefined => {
+  let target = d.sessionInfo.magicMcpTarget;
+  if (target.type !== 'endpoint' || !target.target.enableSkillEditing) return undefined;
+
+  let magicMcpToken = d.sessionInfo.magicMcpToken;
+  if (magicMcpToken?.consumerTokens.length !== 1) return undefined;
+
+  let endpoint = target.target;
+  if (
+    magicMcpToken.skillPluginOid &&
+    endpoint.skillPluginOid &&
+    magicMcpToken.skillPluginOid !== endpoint.skillPluginOid
+  ) {
+    return undefined;
+  }
+
+  let consumerProfile = magicMcpToken.consumerTokens[0]!.consumerProfile;
+  let skillPluginOid = magicMcpToken.skillPluginOid ?? endpoint.skillPluginOid;
+
+  return () =>
+    createSkillEditingTools({
+      instance: endpoint.instance,
+      consumerProfile,
+      skillPluginOid,
+      context: d.context
+    });
+};
+
 export let handleMagicMcpRequest = async (d: {
   c: Context;
   magicMcpTargetIdOrAlias?: string;
@@ -334,10 +367,16 @@ export let handleMagicMcpRequest = async (d: {
         ua: context.ua
       });
 
+      let requestTools = resolveMagicMcpRequestTools({
+        sessionInfo,
+        context: { ip: context.ip, ua: context.ua }
+      });
+
       return await handleMcpRequest(d.c, {
         instance: sessionInfo.magicMcpTarget.target.instance,
         sessionId: sessionInfo.subspaceSessionId,
         agentClient: sessionInfo.agentClient,
+        requestTools,
         enforceIngressNetworkPolicy: true,
         ingressIp: context.ip,
         onSubspaceSessionResolved: async ({ subspaceSessionId }) => {

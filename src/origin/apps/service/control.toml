@@ -14,6 +14,7 @@ run = ["dev:start"]
 
 [endpoints.api]
 port = 52090
+health = "/ping"
 env = [{ key = "ORIGIN_API_PORT", value = "{{BIND_PORT}}" }]
 
 [endpoints.scm]
@@ -22,6 +23,10 @@ env = [
   { key = "ORIGIN_SCM_PORT", value = "{{BIND_PORT}}" },
   { key = "ORIGIN_SERVICE_PUBLIC_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
 ]
+
+[e2e]
+start = ["e2e:start"]
+image = "origin"
 
 [[resources]]
 type = "redis"

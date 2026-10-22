@@ -1,5 +1,5 @@
 import { createCron } from '@metorial/cron';
-import { db } from '@metorial/db';
+import { db, Prisma } from '@metorial/db';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
 import { getEventPayloadsBucketName, getStorage } from '../storage';
 
@@ -35,7 +35,7 @@ export let flushEventPayload = async (d: { eventId: string }) => {
 
   await db.systemEvent.update({
     where: { id: event.id },
-    data: { payloadStorageKey: event.id, payloadJson: undefined }
+    data: { payloadStorageKey: event.id, payloadJson: Prisma.DbNull }
   });
 
   return true;
@@ -45,7 +45,7 @@ export let eventPayloadFlushManyProcessor = eventPayloadFlushManyQueue.process(a
   let events = await db.systemEvent.findMany({
     where: {
       payloadStorageKey: null,
-      payloadJson: { not: undefined },
+      payloadJson: { not: Prisma.DbNull },
       createdAt: { lte: new Date(data.dueBefore) },
       id: data.cursor ? { gt: data.cursor } : undefined
     },

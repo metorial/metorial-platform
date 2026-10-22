@@ -5,6 +5,9 @@
   "version": "1.0.0",
   "private": true,
   "bin": "./src/cli.ts",
+  "scripts": {
+    "test": "bun test e2e"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },
@@ -12,7 +15,7 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "fs-extra": "^11.3.0",
+    "fs-extra": "^11.4.1",
     "sade": "^1.8.1"
   }
 }

@@ -38,7 +38,7 @@ export let protoGuardConfigController = Controller.create(
           description: 'Updates ProtoGuard filter settings for this instance.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.monitor:write'] }))
+      .use(checkAccess({ possibleScopes: ['instance.monitor:manage'] }))
       .body(
         'default',
         v.object({
@@ -100,7 +100,7 @@ export let protoGuardConfigController = Controller.create(
             'Sets or clears the number of matching ProtoGuard filters required to create an alert.'
         }
       )
-      .use(checkAccess({ possibleScopes: ['instance.monitor:write'] }))
+      .use(checkAccess({ possibleScopes: ['instance.monitor:manage'] }))
       .body(
         'default',
         v.object({

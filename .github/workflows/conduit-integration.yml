@@ -55,4 +55,4 @@ jobs:
 
       - name: Run conduit integration tests
         working-directory: ${{ steps.tests.outputs.workspace }}
-        run: bunx turbo@2.9.18 run test:integration --filter=@metorial-subspace/conduit --ui=stream
+        run: bunx turbo@2.11.7 run test:integration --filter=@metorial-subspace/conduit --ui=stream

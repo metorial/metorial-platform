@@ -37,6 +37,7 @@ export type ManagementInstanceMagicMcpEndpointsDeleteOutput = {
   name: string | null;
   description: string | null;
   metadata: Record<string, any>;
+  enableSkillEditing: boolean;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -45,6 +46,7 @@ export let mapManagementInstanceMagicMcpEndpointsDeleteOutput =
   /* @__PURE__ */ mapObject<ManagementInstanceMagicMcpEndpointsDeleteOutput>(
     [
       ['servers', 0, [2, [3, [[0, [1, ['tool_filters']]]]]]],
+      'enable_skill_editing',
       'created_at',
       'updated_at'
     ],

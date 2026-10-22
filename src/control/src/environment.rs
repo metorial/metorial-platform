@@ -222,8 +222,18 @@ fn resolve_spec(
     Ok(None)
 }
 
+/// When present in the root values, lookups never fall back to the process environment, so
+/// resolution is reproducible across machines (used by `control test:e2e`).
+pub const ISOLATED: &str = "CONTROL_ENV_ISOLATED";
+
 fn lookup(key: &str, root_values: &BTreeMap<String, String>) -> Option<String> {
-    root_values.get(key).cloned().or_else(|| env::var(key).ok())
+    root_values.get(key).cloned().or_else(|| {
+        if root_values.contains_key(ISOLATED) {
+            None
+        } else {
+            env::var(key).ok()
+        }
+    })
 }
 
 pub fn all_for_manifest(

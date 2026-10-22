@@ -9,6 +9,7 @@
     "oss:server:start": "bun ./dist/index.js",
     "dev": "bun \"$(ROOT=$(git rev-parse --show-toplevel); if [ -f \"$ROOT/scripts/dev-tools/src/cli.ts\" ]; then echo \"$ROOT/scripts/dev-tools/src/cli.ts\"; else echo \"$ROOT/oss/scripts/dev-tools/src/cli.ts\"; fi)\" watch-bun ./src/server.ts",
     "dev:start": "bun --watch ./src/server.ts",
+    "e2e:start": "bun ./src/server.ts",
     "control:db:generate": "true",
     "control:db:push": "true"
   },
@@ -58,14 +59,14 @@
     "@metorial/module-web": "1.0.0",
     "@metorial/multi-region": "1.0.0",
     "@metorial/queue": "1.0.0",
-    "@vercel/ncc": "^0.38.4",
+    "@vercel/ncc": "^0.45.0",
     "@metorial/api-integrations": "1.0.0",
     "@metorial/module-event-delivery": "1.0.0",
     "@metorial/module-event-destination": "1.0.0"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",
-    "typescript": "5.8.2",
-    "vitest": "^3.1.2"
+    "typescript": "5.9.3",
+    "vitest": "^5.0.4"
   }
 }

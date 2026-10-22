@@ -11,6 +11,8 @@ let ignoredSentryHttpErrorCodes = new Set([
   'unauthorized'
 ]);
 
+let ignoredSentryFrontendErrorCodes = new Set(['network_error']);
+
 let lowerdeckErrorPrefix = '[@lowerdeck/error]:';
 let metorialErrorPrefix = '[METORIAL ERROR]:';
 
@@ -138,6 +140,12 @@ export let setSentry = (sentry: typeof SentryBase) => {
 
 export let getSentry = (): typeof SentryBase => sentryRef.current;
 
+// Outer handlers (queue workers, HTTP error middleware) capture whatever they catch. Marking an
+// error that already has a more specific report stops the SDK from sending a second event.
+export let markSentryCaptured = (error: unknown) => {
+  SentryBase.checkOrSetAlreadyCaught(error);
+};
+
 let shouldIgnoreKnownClientError = (
   value: unknown,
   includeMetorialSdkErrors: boolean
@@ -151,7 +159,12 @@ let shouldIgnoreKnownClientError = (
     return true;
   }
 
-  return details.code ? ignoredSentryHttpErrorCodes.has(details.code) : false;
+  if (!details.code) return false;
+
+  return (
+    ignoredSentryHttpErrorCodes.has(details.code) ||
+    (includeMetorialSdkErrors && ignoredSentryFrontendErrorCodes.has(details.code))
+  );
 };
 
 export let shouldIgnoreSentryHttpError = (value: unknown): boolean =>
@@ -159,3 +172,12 @@ export let shouldIgnoreSentryHttpError = (value: unknown): boolean =>
 
 export let shouldIgnoreSentryFrontendError = (value: unknown): boolean =>
   shouldIgnoreKnownClientError(value, true);
+
+export let getSentryServiceErrorFingerprint = (value: unknown): string[] | null => {
+  if (!isKnownHttpErrorValue(value, false)) return null;
+
+  let code = getSentryHttpErrorDetails(value)?.code;
+  if (!code) return null;
+
+  return ['{{ default }}', code];
+};

@@ -37,3 +37,20 @@ export let sandboxMachineAccessAuditResource = resource({
     create: true
   }
 });
+
+export let sandboxMachineExecAuditResource = resource({
+  name: 'sandbox_machine_exec',
+  payload: v.typedAny<{
+    machineId: string;
+    machineName: string | null;
+    commandByteSize: number;
+    outcome: 'exited' | 'deadline' | 'disconnected' | 'rejected';
+    exitCode: number | null;
+    timedOut: boolean;
+    durationMs: number;
+  }>('sandbox_machine_exec'),
+  presenter: undefined,
+  actions: {
+    run: true
+  }
+});

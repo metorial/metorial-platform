@@ -6,9 +6,9 @@
     "_build": "turbo run --concurrency=1 --ui=stream build"
   },
   "devDependencies": {
-    "prettier": "^3.5.3",
-    "turbo": "^2.5.5",
-    "typescript": "5.8.2"
+    "prettier": "^3.9.10",
+    "turbo": "^2.11.8",
+    "typescript": "5.9.3"
   },
   "engines": {
     "node": ">=18",

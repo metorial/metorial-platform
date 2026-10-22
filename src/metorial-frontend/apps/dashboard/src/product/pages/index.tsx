@@ -52,8 +52,7 @@ export let ProjectHomePage = () => {
   let hasDeployments = !!deployments.data?.items.length;
   let firstDeployment = deployments.data?.items[0];
 
-  let { apiKeys, apiKeySecret, secretApiKey, setApiKeySecret, revealedApiKey } =
-    useResolvedInstanceApiKeySecret(instance.data?.id);
+  let { secretApiKey } = useResolvedInstanceApiKeySecret(instance.data?.id);
 
   let pathItems = [
     instance.data?.organization,

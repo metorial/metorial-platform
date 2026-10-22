@@ -6,8 +6,8 @@ import {
   RiFileUploadLine
 } from '@remixicon/react';
 import clsx from 'clsx';
-import { Fragment, useEffect, useState } from 'react';
-import Editor from 'react-avatar-editor';
+import { Fragment, useEffect, useRef, useState } from 'react';
+import Editor, { type AvatarEditorRef } from 'react-avatar-editor';
 import { useDropzone } from 'react-dropzone';
 import { useMeasure, useWindowSize } from 'react-use';
 import styled from 'styled-components';
@@ -192,7 +192,7 @@ export let AvatarUploader = (d: {
   let [stage, setStage] = useState<'overview' | 'edit'>('overview');
   let [zoom, setZoom] = useState(100);
   let [file, setFile] = useState<File>();
-  let [editor, setEditor] = useState<Editor>();
+  let editorRef = useRef<AvatarEditorRef>(null);
   let [cachedImageUrl, setCachedImageUrl] = useState(d.imageUrl);
   let { width } = useWindowSize();
   let [mainInnerRef, { height }] = useMeasure();
@@ -231,6 +231,7 @@ export let AvatarUploader = (d: {
   };
 
   let save = () => {
+    let editor = editorRef.current;
     if (!editor) return;
     let isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
     editor.getImage().toBlob(
@@ -286,7 +287,7 @@ export let AvatarUploader = (d: {
             <EditorWrapper>
               <div style={{ opacity: d.isLoading ? 0.5 : 1, transition: 'all .3s' }}>
                 <Editor
-                  ref={e => setEditor(e as any)}
+                  ref={editorRef}
                   image={file}
                   width={avatarSize}
                   height={avatarSize}

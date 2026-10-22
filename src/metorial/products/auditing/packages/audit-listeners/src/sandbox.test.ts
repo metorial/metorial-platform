@@ -21,6 +21,7 @@ import {
   recordSandboxImageBuildCancelled,
   recordSandboxImageUpdated,
   recordSandboxMachineAccessCreated,
+  recordSandboxMachineExec,
   recordSandboxMachineLifecycle,
   recordSandboxMachineUpdated
 } from './sandbox';
@@ -98,6 +99,52 @@ describe('sandbox audit listeners', () => {
       ports: [8080],
       ttlSeconds: 60
     });
+  });
+
+  it('records a command run without the command or its output', async () => {
+    await recordSandboxMachineExec({
+      auditScope,
+      machine,
+      commandByteSize: 7,
+      outcome: 'exited',
+      exitCode: 0,
+      timedOut: false,
+      durationMs: 120
+    });
+
+    expect(recordEvent).toHaveBeenCalledWith(auditScope, 'sandbox_machine_exec', 'run', {
+      payload: {
+        machineId: 'mach_1',
+        machineName: 'dev',
+        commandByteSize: 7,
+        outcome: 'exited',
+        exitCode: 0,
+        timedOut: false,
+        durationMs: 120
+      },
+      recordedAt: expect.any(Date)
+    });
+  });
+
+  it('records a command run that never exited', async () => {
+    await recordSandboxMachineExec({
+      auditScope,
+      machine,
+      commandByteSize: 7,
+      outcome: 'deadline',
+      exitCode: null,
+      timedOut: false,
+      durationMs: 420_000
+    });
+
+    expect(recordEvent).toHaveBeenCalledWith(
+      auditScope,
+      'sandbox_machine_exec',
+      'run',
+      expect.objectContaining({
+        payload: expect.objectContaining({ outcome: 'deadline', exitCode: null })
+      })
+    );
   });
 
   it('records disk creation with its source', async () => {

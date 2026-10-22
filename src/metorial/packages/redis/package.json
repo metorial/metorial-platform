@@ -9,12 +9,12 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
-    "bullmq": "^5.34.3",
-    "ioredis": "^5.7.0",
+    "bullmq": "^6.3.15",
+    "ioredis": "^6.0.0",
     "mitt": "^3.0.1",
-    "nanoid": "^5.0.7",
-    "p-queue": "^8.0.1",
-    "redis": "^5.6.0",
+    "nanoid": "^6.0.2",
+    "p-queue": "^10.0.0",
+    "redis": "^6.3.0",
     "@lowerdeck/serialize": "workspace:2.0.0",
     "@lowerdeck/execution-context": "workspace:2.0.0",
     "@lowerdeck/error": "workspace:2.0.0",
@@ -26,7 +26,7 @@
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",
-    "typescript": "5.8.2",
-    "vitest": "^3.1.2"
+    "typescript": "5.9.3",
+    "vitest": "^5.0.4"
   }
 }

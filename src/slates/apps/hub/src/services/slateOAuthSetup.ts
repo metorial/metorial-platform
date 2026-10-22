@@ -36,6 +36,7 @@ class slateOAuthSetupServiceImpl {
       input: Record<string, any>;
       callbackUrlOverride?: string;
       instanceConfiguration?: SlateInstanceConfiguration;
+      isAdminSetup?: boolean;
     };
   }) {
     if (d.input.slateVersion && d.input.slateVersion.slateOid !== d.input.slate.oid) {
@@ -76,6 +77,20 @@ class slateOAuthSetupServiceImpl {
       throw new ServiceError(notFoundError('slate.auth_method'));
     }
 
+    // TODO: drop once @slates/proto ships admin RPCs
+    let capabilities = authMethod.spec.capabilities as
+      | { adminSetup?: { enabled: boolean } }
+      | undefined;
+
+    if (d.input.isAdminSetup && !capabilities?.adminSetup?.enabled) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'admin_setup_not_supported',
+          message: 'Admin setup is not supported by this auth method.'
+        })
+      );
+    }
+
     let input = validateJsonSchema({
       schema: authMethod.spec.inputSchema,
       data: d.input.input,
@@ -96,6 +111,8 @@ class slateOAuthSetupServiceImpl {
 
         redirectUrl: d.input.redirectUrl,
         callbackUrlOverride: d.input.callbackUrlOverride,
+
+        isAdminSetup: !!d.input.isAdminSetup,
 
         slateOid: d.input.slate.oid,
         tenantOid: d.tenant.oid,

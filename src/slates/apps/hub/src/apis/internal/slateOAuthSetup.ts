@@ -90,7 +90,8 @@ export let slateOAuthSetupController = app.controller({
           authMethodId: v.optional(v.string()),
           redirectUrl: v.string(),
           input: v.record(v.any()),
-          callbackUrlOverride: v.optional(v.string())
+          callbackUrlOverride: v.optional(v.string()),
+          isAdminSetup: v.optional(v.boolean())
         })
       )
     )
@@ -129,7 +130,8 @@ export let slateOAuthSetupController = app.controller({
 
           input: ctx.input.input,
 
-          callbackUrlOverride: ctx.input.callbackUrlOverride
+          callbackUrlOverride: ctx.input.callbackUrlOverride,
+          isAdminSetup: ctx.input.isAdminSetup
         }
       });
 

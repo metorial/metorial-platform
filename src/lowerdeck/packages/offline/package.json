@@ -1,0 +1,32 @@
+{
+  "name": "@lowerdeck/offline",
+  "version": "2.0.0",
+  "private": true,
+  "author": "Tobias Herber",
+  "license": "Apache 2",
+  "type": "module",
+  "source": "src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./preload": {
+      "types": "./src/preload.ts",
+      "default": "./src/preload.ts"
+    }
+  },
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "test": "bun test",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@lowerdeck/tsconfig": "workspace:2.0.0",
+    "@types/bun": "latest",
+    "typescript": "5.8.2"
+  }
+}

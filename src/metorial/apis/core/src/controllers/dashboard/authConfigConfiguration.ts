@@ -74,7 +74,7 @@ export let dashboardAuthConfigConfigurationController = Controller.create(
           description: 'Update auth config export/import settings for a project'
         }
       )
-      .use(checkAccess({ possibleScopes: ['organization.project:write'] }))
+      .use(checkAccess({ possibleScopes: ['organization.project:manage'] }))
       .body(
         'default',
         v.object({
@@ -115,7 +115,7 @@ export let dashboardAuthConfigConfigurationController = Controller.create(
           organization: ctx.organization,
           member: ctx.member,
           project,
-          possibleScopes: ['organization.project:write']
+          possibleScopes: ['organization.project:manage']
         });
 
         let configuration =

@@ -370,6 +370,11 @@ let scopeActionMetadata: Record<string, { name: string; description: string }> =
     name: 'Connect',
     description: 'It allows connecting to and using a resource.'
   },
+  manage: {
+    name: 'Manage',
+    description:
+      'It allows managing sensitive settings and configuration, beyond ordinary read and write access.'
+  },
   manage_access: {
     name: 'Manage access',
     description: 'It allows granting, changing, and revoking access to a resource.'
@@ -391,7 +396,7 @@ let scopeActionMetadata: Record<string, { name: string; description: string }> =
 let getScopeDependencies = (identifier: Scope): Scope[] => {
   let [resource, actionRaw] = identifier.split(':') as [string, string];
   let action = actionRaw || 'read';
-  if (action !== 'write') return [];
+  if (action !== 'write' && action !== 'manage') return [];
 
   return [`${resource}:read` as Scope];
 };

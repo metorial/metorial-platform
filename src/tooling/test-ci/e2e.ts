@@ -199,7 +199,7 @@ if (command === 'prepare') {
     run(
       [
         'bunx',
-        'turbo@2.9.18',
+        'turbo@2.11.7',
         'run',
         'test:e2e',
         `--filter=${JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8')).name}`,

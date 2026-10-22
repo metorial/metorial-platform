@@ -1,5 +1,6 @@
 {
   "$schema": "https://turborepo.com/schema.json",
+  "agentGuidance": false,
   "ui": "tui",
   "tasks": {
     "enterprise:dev": {
@@ -53,17 +54,17 @@
     "generate:client": {
       "dependsOn": ["^generate:client"],
       "cache": false,
-      "env": ["API_URL"]
+      "env": ["API_URL", "INTROSPECTION_SNAPSHOT"]
     },
     "generate:client:dashboard": {
       "dependsOn": ["^generate:client:dashboard"],
       "cache": false,
-      "env": ["API_URL"]
+      "env": ["API_URL", "INTROSPECTION_SNAPSHOT"]
     },
     "generate:client:consumer": {
       "dependsOn": ["^generate:client:consumer"],
       "cache": false,
-      "env": ["API_URL"]
+      "env": ["API_URL", "INTROSPECTION_SNAPSHOT"]
     },
     "frontend:build": {
       "dependsOn": ["^build", "^frontend:build"],
@@ -273,10 +274,23 @@
       ],
       "outputs": []
     },
+    "e2e:fingerprint": {
+      "dependsOn": ["^e2e:fingerprint"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!e2e/**",
+        "!**/*.test.ts",
+        "!**/*.test.tsx",
+        "!README*",
+        "$TURBO_ROOT$/tsconfig*.json"
+      ],
+      "outputs": []
+    },
     "test:e2e": {
-      "cache": false,
       "dependsOn": ["^build", "prisma:generate", "^prisma:generate"],
-      "passThroughEnv": ["*"]
+      "env": ["CONTROL_E2E_STACK_KEY"],
+      "passThroughEnv": ["*"],
+      "outputs": []
     },
     "test:integration": {
       "cache": false,

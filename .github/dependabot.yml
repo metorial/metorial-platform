@@ -1,0 +1,20 @@
+version: 2
+
+updates:
+  - package-ecosystem: 'bun'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    # Keep version selection aligned with bunfig.toml's minimum release age and exclusions.
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 10
+    ignore:
+      # htmlparser2 >= 9 parses deeply nested untrusted HTML in superlinear time
+      # (see the linear-time test in @metorial/module-web).
+      - dependency-name: 'htmlparser2'
+        update-types: ['version-update:semver-major']
+    groups:
+      dependencies:
+        patterns:
+          - '*'

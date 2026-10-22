@@ -35,12 +35,12 @@
     "@lowerdeck/redis": "workspace:2.0.0",
     "@lowerdeck/sentry": "workspace:2.0.0",
     "@lowerdeck/telemetry": "workspace:2.0.0",
-    "bullmq": "^5.66.0",
+    "bullmq": "^6.3.15",
     "superjson": "^2.2.6"
   },
   "devDependencies": {
     "@lowerdeck/tsconfig": "workspace:2.0.0",
-    "typescript": "5.8.2",
-    "vitest": "^3.1.2"
+    "typescript": "5.9.3",
+    "vitest": "^5.0.4"
   }
 }

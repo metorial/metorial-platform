@@ -1,7 +1,7 @@
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-let turboVersion = '2.9.18';
+let turboVersion = '2.11.7';
 let outputDirectory = 'out';
 let args = process.argv.slice(2);
 let enterprise = existsSync('oss/package.json');

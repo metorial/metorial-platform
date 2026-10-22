@@ -16,6 +16,7 @@ import { ID, ProviderImage, Table } from '@metorial/ui-product';
 import { RiMore2Line, RiSettings3Line } from '@remixicon/react';
 import { Fragment, useMemo, useState } from 'react';
 import { CallbackSyncBadge, CallbackSyncErrorCallout } from '../callbacks/shared';
+import { showAdminSetupLinkModal, supportsAdminSetup } from './adminSetupLinkModal';
 import {
   showIntegrationInstanceProviderPanelFlow,
   showIntegrationProviderPanelFlow
@@ -88,6 +89,7 @@ export let IntegrationProvidersManager = (p: {
 
     return (
       <IntegrationProvidersTable
+        instanceId={p.instanceId}
         providers={providers}
         integration={p.integration}
         listingLookup={listingLookup}
@@ -99,6 +101,7 @@ export let IntegrationProvidersManager = (p: {
 };
 
 let IntegrationProvidersTable = (p: {
+  instanceId: string;
   providers: ReturnType<typeof useIntegrationProviders>;
   integration: IntegrationPreview;
   listingLookup: ProviderListingLookup;
@@ -146,11 +149,21 @@ let IntegrationProvidersTable = (p: {
                 <Menu
                   items={[
                     { id: 'configure', label: 'Configure' },
+                    ...(supportsAdminSetup(provider)
+                      ? [{ id: 'admin_setup_link', label: 'Create Admin Setup Link' }]
+                      : []),
                     { id: 'remove', label: 'Remove' }
                   ]}
                   onItemClick={id => {
                     if (id === 'configure') openConfigure();
                     if (id === 'remove') p.removeProvider(provider);
+                    if (id === 'admin_setup_link') {
+                      showAdminSetupLinkModal({
+                        instanceId: p.instanceId,
+                        integrationProvider: provider,
+                        providerName
+                      });
+                    }
                   }}
                 >
                   <Button

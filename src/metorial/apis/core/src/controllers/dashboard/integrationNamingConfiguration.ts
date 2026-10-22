@@ -72,7 +72,7 @@ export let dashboardIntegrationNamingConfigurationController = Controller.create
           description: 'Update integration naming settings for a project'
         }
       )
-      .use(checkAccess({ possibleScopes: ['organization.project:write'] }))
+      .use(checkAccess({ possibleScopes: ['organization.project:manage'] }))
       .body(
         'default',
         v.object({
@@ -101,7 +101,7 @@ export let dashboardIntegrationNamingConfigurationController = Controller.create
           organization: ctx.organization,
           member: ctx.member,
           project,
-          possibleScopes: ['organization.project:write']
+          possibleScopes: ['organization.project:manage']
         });
 
         let configuration =

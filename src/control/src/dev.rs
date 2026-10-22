@@ -374,7 +374,7 @@ async fn prepare_workspace(
     prepare_scripts(&project.root, selected, env).await
 }
 
-fn database_packages(manifests: &[&LoadedManifest]) -> Vec<String> {
+pub(crate) fn database_packages(manifests: &[&LoadedManifest]) -> Vec<String> {
     manifests
         .iter()
         .flat_map(|loaded| {
@@ -401,6 +401,23 @@ fn write_database_owner_environments(
     manifests: &[&LoadedManifest],
     root_env: &BTreeMap<String, String>,
 ) -> Result<()> {
+    let values = database_owner_environments(manifests, root_env)?;
+    let package_paths = discover_package_paths(root)?;
+    for (package, environment) in values {
+        let directory = package_paths
+            .get(&package)
+            .ok_or_else(|| miette::miette!("unknown database package {package:?}"))?;
+        environment::write_dotenv(&directory.join(".env"), &environment)?;
+    }
+    Ok(())
+}
+
+/// Environment for each database-owner package: its own manifest values (when it is a selected
+/// manifest) plus every database URL that selected manifests assign to it.
+pub(crate) fn database_owner_environments(
+    manifests: &[&LoadedManifest],
+    root_env: &BTreeMap<String, String>,
+) -> Result<BTreeMap<String, BTreeMap<String, String>>> {
     let mut values = BTreeMap::<String, BTreeMap<String, String>>::new();
     for loaded in manifests {
         let resolved = environment::all_for_manifest(loaded, root_env)?;
@@ -425,14 +442,7 @@ fn write_database_owner_environments(
                 .insert(name.clone(), resolved[name].clone());
         }
     }
-    let package_paths = discover_package_paths(root)?;
-    for (package, environment) in values {
-        let directory = package_paths
-            .get(&package)
-            .ok_or_else(|| miette::miette!("unknown database package {package:?}"))?;
-        environment::write_dotenv(&directory.join(".env"), &environment)?;
-    }
-    Ok(())
+    Ok(values)
 }
 
 fn discover_package_paths(root: &Path) -> Result<BTreeMap<String, std::path::PathBuf>> {
@@ -440,12 +450,7 @@ fn discover_package_paths(root: &Path) -> Result<BTreeMap<String, std::path::Pat
     for entry in walkdir::WalkDir::new(root)
         .follow_links(false)
         .into_iter()
-        .filter_entry(|entry| {
-            !matches!(
-                entry.file_name().to_str(),
-                Some(".git" | "node_modules" | ".control" | "target")
-            )
-        })
+        .filter_entry(|entry| !manifest::is_ignored_entry(entry))
         .filter_map(std::result::Result::ok)
         .filter(|entry| entry.file_type().is_file() && entry.file_name() == "package.json")
     {

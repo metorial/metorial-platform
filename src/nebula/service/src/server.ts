@@ -1,7 +1,6 @@
 import { createRequire } from 'module';
 
-let require = createRequire(import.meta.url);
-(globalThis as any).require = require;
+(globalThis as any).require = createRequire(import.meta.url);
 
 async function main() {
   await import('./init');

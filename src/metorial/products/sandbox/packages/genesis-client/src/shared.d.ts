@@ -6,7 +6,7 @@ export type DiskCacheState = "starting" | "active" | "draining";
 
 export type DiskMountStatus = "failed" | "pending" | "mounted" | "recovering" | "skipped" | "released";
 
-export type DiskPurpose = "standard" | "machine_image" | "root_fs";
+export type DiskPurpose = "standard" | "machine_image" | "root_fs" | "root_fs_pool";
 
 export type DiskResizeStatus = "failed" | "draining" | "pending" | "restarting" | "complete" | "resizing" | "verifying";
 
@@ -58,7 +58,7 @@ export type MachineOperationKind = "start" | "pause" | "hibernate" | "restart" |
 
 export type MachineOperationOutcome = "failed" | "active" | "completed" | "superseded";
 
-export type MachineOperationTrigger = "update" | "api" | "access" | "idle_policy" | "paused_policy" | "lifetime" | "failure" | "platform";
+export type MachineOperationTrigger = "update" | "api" | "access" | "idle_policy" | "paused_policy" | "lifetime" | "failure" | "platform" | "billing_block";
 
 export type MachineRootFsStatus = "failed" | "active" | "pending" | "cloning" | "ready" | "deleting" | "deleted";
 

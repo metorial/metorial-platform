@@ -13,6 +13,7 @@ run = ["dev:start"]
 
 [endpoints.auth]
 port = 52120
+health = "/ping"
 env = [
   { key = "ARES_AUTH_PORT", value = "{{BIND_PORT}}" },
   { key = "ARES_AUTH_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
@@ -35,6 +36,10 @@ env = [
 [endpoints.internal]
 port = 52123
 env = [{ key = "ARES_INTERNAL_PORT", value = "{{BIND_PORT}}" }]
+
+[e2e]
+start = ["e2e:start"]
+image = "ares"
 
 [[resources]]
 type = "redis"

@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { addDays, addMonths } from 'date-fns';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@lowerdeck/hash', () => ({
   Hash: {
@@ -139,15 +139,15 @@ vi.mock('@metorial/module-portal', () => ({
 
 import { Hash } from '@lowerdeck/hash';
 import { db } from '@metorial/db';
-import { magicMcpEndpointService } from '@metorial/module-magic';
 import { consumerIntegrationService } from '@metorial/module-consumer-entities';
+import { magicMcpEndpointService } from '@metorial/module-magic';
+import { reconcileConsumerClientLogoQueue } from '../src/queues/reconcileConsumerClientLogos';
 import {
   consumerOAuthClientService,
   consumerOAuthDashboardService,
   consumerOAuthRegistrationService,
   consumerOAuthTestAuthorizationService
 } from '../src/services';
-import { reconcileConsumerClientLogoQueue } from '../src/queues/reconcileConsumerClientLogos';
 import { slideConsumerAuthClientExpiration } from '../src/services/_helpers';
 
 describe('consumer OAuth integration endpoint linking', () => {
@@ -166,33 +166,34 @@ describe('consumer OAuth integration endpoint linking', () => {
     } as any);
   });
 
-  it('slides a client expiry only when it is less than seven days away', async () => {
+  it('slides a client expiry to three months after its latest use', async () => {
     vi.useFakeTimers();
     let now = new Date('2026-01-15T00:00:00.000Z');
     vi.setSystemTime(now);
 
+    let expiresAt = addMonths(now, 3);
+    let renewalThreshold = addDays(expiresAt, -1);
+
     await slideConsumerAuthClientExpiration({
       consumerAuthClient: {
         oid: 10n,
-        expiresAt: new Date(addDays(now, 7).getTime() - 1)
+        expiresAt: addDays(now, 60)
       }
     });
 
     expect(db.consumerAuthClient.updateMany).toHaveBeenCalledWith({
       where: {
         oid: 10n,
-        expiresAt: { lt: addDays(now, 7) }
+        expiresAt: { lt: renewalThreshold }
       },
-      data: {
-        expiresAt: addMonths(now, 3)
-      }
+      data: { expiresAt }
     });
 
     vi.mocked(db.consumerAuthClient.updateMany).mockClear();
     await slideConsumerAuthClientExpiration({
       consumerAuthClient: {
         oid: 10n,
-        expiresAt: addDays(now, 7)
+        expiresAt: renewalThreshold
       }
     });
 

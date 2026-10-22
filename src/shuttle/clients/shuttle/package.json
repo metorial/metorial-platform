@@ -30,7 +30,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.25.3",
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "@lowerdeck/api-mux": "workspace:2.0.0",
     "@lowerdeck/cache": "workspace:2.0.0",
     "@lowerdeck/canonicalize": "workspace:2.0.0",
@@ -58,14 +58,13 @@
     "@lowerdeck/testing-tools": "workspace:2.0.0",
     "@lowerdeck/tokens": "workspace:2.0.0",
     "@lowerdeck/validation": "workspace:2.0.0",
-    "@metorial/util-websocket": "^1.0.0",
-    "@types/bun": "^1.3.7"
+    "@metorial/util-websocket": "^3.0.0",
+    "@types/bun": "^1.4.3"
   },
   "devDependencies": {
     "@metorial/shuttle": "workspace:*",
     "tsup": "^8.5.1",
-    "typescript": "^5.8.3",
-    "vitest": "^3.1.2",
-    "@types/minimatch": "^5"
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.4"
   }
 }

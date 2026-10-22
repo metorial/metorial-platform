@@ -40,6 +40,14 @@ export let magicMcpEndpointGroup = instanceGroup.use(async ctx => {
 });
 
 let magicMcpEndpointStatusValues = ['active', 'archived', 'deleted'] as const;
+
+let enableSkillEditingValidator = v.optional(
+  v.boolean({
+    description:
+      'Expose skill editing tools on this endpoint so the connecting consumer can read and edit the skills they have access to. Only connections authenticated with a magic MCP token bound to a single consumer get the tools; connections using a publishable key do not. Requires skills to be enabled for the instance and consumer skill editing to be allowed for the project. The tools disappear if either is turned off later.'
+  })
+);
+
 let magicMcpEndpointServerValidator = v.object({
   magic_mcp_server_id: v.string(),
   tool_filters: toolFiltersValidator
@@ -181,6 +189,7 @@ export let magicMcpEndpointController = Controller.create(
           metadata: v.optional(v.record(v.any())),
           consumer_profile_id: v.optional(v.string()),
           skill_plugin_id: v.optional(v.string()),
+          enable_skill_editing: enableSkillEditingValidator,
           magic_mcp_servers: v.optional(v.array(magicMcpEndpointServerValidator))
         })
       )
@@ -242,6 +251,7 @@ export let magicMcpEndpointController = Controller.create(
             metadata: ctx.body.metadata,
             consumerProfile,
             skillPlugin,
+            enableSkillEditing: ctx.body.enable_skill_editing,
             servers
           }
         });
@@ -321,7 +331,8 @@ export let magicMcpEndpointController = Controller.create(
         v.object({
           name: v.optional(v.string()),
           description: v.optional(v.string()),
-          metadata: v.optional(v.record(v.any()))
+          metadata: v.optional(v.record(v.any())),
+          enable_skill_editing: enableSkillEditingValidator
         })
       )
       .output(magicMcpEndpointPresenter)
@@ -340,7 +351,8 @@ export let magicMcpEndpointController = Controller.create(
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
-            metadata: ctx.body.metadata
+            metadata: ctx.body.metadata,
+            enableSkillEditing: ctx.body.enable_skill_editing
           }
         });
 

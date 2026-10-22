@@ -4,6 +4,7 @@
   "exclude": ["dist"],
   "compilerOptions": {
     "jsx": "react",
+    "moduleResolution": "bundler",
     "outDir": "dist",
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true

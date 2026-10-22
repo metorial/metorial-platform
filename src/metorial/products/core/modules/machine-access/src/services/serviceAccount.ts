@@ -23,6 +23,7 @@ import {
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { validateOAuthScopes } from '../lib/oauthScopeValidation';
+import type { SecretVerification } from '../lib/secretVerification';
 import { machineAccessInclude } from './machineAccessAuth';
 import { oauthApplicationService } from './oauthApplication';
 import { authorizationInclude } from './oauthAuthorization';
@@ -344,8 +345,18 @@ class ServiceAccountService {
       oauthApplication: OAuthApplication;
     };
     auditScope?: AuditScope;
+    verification?: SecretVerification;
   }) {
     await this.assertServiceAccountActive(d.serviceAccount);
+
+    if (d.verification) {
+      await Fabric.fire('machine_access.secret.requested:before', {
+        secretType: 'service_account_client_secret',
+        instance: null,
+        verification: d.verification,
+        auditScope: d.auditScope
+      });
+    }
 
     return await oauthApplicationService.createOAuthApplicationClientSecret({
       oauthApplication: d.serviceAccount.oauthApplication,

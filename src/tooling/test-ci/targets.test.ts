@@ -1,5 +1,18 @@
 import { expect, test } from 'bun:test';
-import { executableTargets, taskWorkspaceClosure } from './targets';
+import { executableTargets, namedFilterPackages, taskWorkspaceClosure } from './targets';
+
+test('keeps packages named by filters, ignoring path and glob filters', () => {
+  expect(
+    namedFilterPackages([
+      'test:e2e',
+      '--filter=./src/metorial/modules/*',
+      '--filter=@metorial-enterprise/fabric',
+      '--filter=@metorial/module-*',
+      '--filter=!@metorial/db',
+      '--dry=json'
+    ])
+  ).toEqual(['@metorial-enterprise/fabric']);
+});
 
 test('prunes only executable targets, retaining explicit prerequisites without selecting phantom frontend tasks', () => {
   expect(

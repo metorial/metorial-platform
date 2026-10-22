@@ -1,11 +1,9 @@
 import { createLock } from '@lowerdeck/lock';
 import { getConfig } from '@metorial/config';
 import type { SkillMergeRequestDirection } from '@metorial/db';
+import { skillStoreMutationLock } from '@metorial/module-skill';
 
-export let skillMergeTargetLock = createLock({
-  name: 'cargo/skill/merge',
-  redisUrl: getConfig().redisUrl
-});
+export let skillMergeTargetLock = skillStoreMutationLock;
 
 export let skillMergePairLock = createLock({
   name: 'cargo/skill/merge-pair',

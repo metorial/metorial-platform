@@ -13,6 +13,9 @@ export interface ServiceRequest<AuthInfo> {
   params: Record<string, string>;
   headers: Record<string, string>;
   sharedMiddlewareMemo: Map<string, Promise<any>>;
+
+  signal?: AbortSignal;
+  setIdleTimeout?: (seconds: number) => void;
 }
 
 export type Simplify<T> = { [KeyType in keyof T]: T[KeyType] } & {};

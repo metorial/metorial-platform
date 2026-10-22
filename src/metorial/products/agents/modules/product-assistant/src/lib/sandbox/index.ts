@@ -1,6 +1,7 @@
-import { Bash, type BashOptions } from 'just-bash';
+import type { BashOptions } from 'just-bash';
 import type { CreateFsToolsOptions, FsProvider, ShellProvider } from '../open-harness';
 import { createBashTool, createFsTools } from '../open-harness';
+import { Bash } from './bash';
 import { JustBashFsProvider } from './fs';
 import { JustBashShellProvider } from './shell';
 

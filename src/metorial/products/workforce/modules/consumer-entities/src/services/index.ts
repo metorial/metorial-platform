@@ -1,3 +1,4 @@
+export * from '../lib/skillEditingTools';
 export * from './consumerActivity';
 export * from './consumerActivityScope';
 export * from './consumerActor';

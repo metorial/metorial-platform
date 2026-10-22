@@ -1,6 +1,6 @@
 import { installKey } from './install-key';
 import { restoreNestedResolutions } from './lockfile';
-import { executableTargets, taskWorkspaceClosure } from './targets';
+import { executableTargets, namedFilterPackages, taskWorkspaceClosure } from './targets';
 import {
   appendFileSync,
   cpSync,
@@ -37,7 +37,7 @@ if (command === 'prepare') {
     [
       ...(process.env.TURBO_EXECUTABLE
         ? [process.env.TURBO_EXECUTABLE]
-        : ['bunx', 'turbo@2.9.18']),
+        : ['bunx', 'turbo@2.11.7']),
       'run',
       ...tasks,
       '--dry=json',
@@ -54,6 +54,7 @@ if (command === 'prepare') {
   let graph = JSON.parse(dry.stdout.toString());
   let targets = executableTargets({ names, tasks: graph.tasks });
   if (!targets.length) throw new Error('No executable test or prerequisite tasks selected');
+  targets = [...new Set([...targets, ...namedFilterPackages(tasks)])];
   let selected = [...names, ...targets.map(name => `--filter=${name}`)];
   console.log(`Executable test targets: ${targets.length}`);
   let graphPath = resolve(process.env.RUNNER_TEMP ?? '/tmp', 'test-prune-graph.json');
@@ -138,6 +139,19 @@ if (command === 'prepare') {
     join(workspace, '.test-install-paths.json'),
     JSON.stringify(directories.map(directory => join(directory, 'node_modules')))
   );
+  // Outside a Git repository Turbo 2.11 hashes gitignored files (dist/, .turbo/) for tasks whose
+  // inputs combine $TURBO_DEFAULT$ with negations, so restored outputs would change task hashes.
+  for (let args of [
+    ['init', '--quiet'],
+    ['add', '--all']
+  ]) {
+    let result = Bun.spawnSync(['git', ...args], {
+      cwd: workspace,
+      stdout: 'inherit',
+      stderr: 'inherit'
+    });
+    if (result.exitCode) throw new Error(`Test workspace indexing failed: git ${args[0]}`);
+  }
   output('workspace', workspace);
   output('cache', cache);
   output('key', key);
@@ -151,6 +165,7 @@ if (command === 'prepare') {
     if (!existsSync(source)) continue;
     mkdirSync(dirname(target), { recursive: true });
     if (command === 'restore') renameSync(source, target);
-    else cpSync(source, target, { recursive: true, dereference: false });
+    else
+      cpSync(source, target, { recursive: true, dereference: false, verbatimSymlinks: true });
   }
 } else throw new Error(`Unknown test workspace command: ${command}`);

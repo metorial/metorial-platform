@@ -123,5 +123,7 @@ export type SkillPluginPortalAuthorizationInput = {
 
 export let consumerAuthRefreshTokenTtlSeconds = 30 * 24 * 60 * 60;
 export let consumerAuthAccessTokenTtlSeconds = consumerAuthRefreshTokenTtlSeconds;
+export let consumerAuthClientInactivityExpiryMonths = 3;
+export let consumerAuthClientExpiryRenewalIntervalDays = 1;
 export let consumerAuthClientRegistrationsPerMinuteLimit = 25;
 export let consumerAuthClientRegistrationsPerHourLimit = 500;

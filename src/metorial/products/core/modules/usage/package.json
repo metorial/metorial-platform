@@ -6,6 +6,7 @@
   "main": "src/index.ts",
   "scripts": {
     "test": "vitest run --passWithNoTests",
+    "test:e2e": "metorial-e2e",
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
@@ -22,12 +23,13 @@
     "@lowerdeck/sentry": "workspace:2.0.0",
     "@lowerdeck/validation": "workspace:2.0.0",
     "@lowerdeck/service": "workspace:2.0.0",
-    "date-fns": "^4.1.0",
-    "mongoose": "^8.14.2"
+    "date-fns": "^4.4.0",
+    "mongoose": "^9.11.2"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",
-    "typescript": "5.8.2",
-    "vitest": "^3.1.2"
+    "typescript": "5.9.3",
+    "vitest": "^5.0.4",
+    "@metorial/e2e": "1.0.0"
   }
 }

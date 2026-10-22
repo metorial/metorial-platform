@@ -4,15 +4,23 @@ import { serialize } from '@lowerdeck/serialize';
 
 let mocks = vi.hoisted(() => ({
   captureException: vi.fn(),
-  getTraceData: vi.fn()
+  getTraceData: vi.fn(),
+  markSentryCaptured: vi.fn()
 }));
 
 vi.mock('@lowerdeck/sentry', () => ({
   getSentry: () => ({
     captureException: mocks.captureException,
     getTraceData: mocks.getTraceData
-  })
+  }),
+  markSentryCaptured: mocks.markSentryCaptured
 }));
+
+let gatewayPage = () =>
+  new Response('<html><body><h1>503 Service Temporarily Unavailable</h1></body></html>', {
+    status: 503,
+    headers: { 'content-type': 'text/html' }
+  });
 
 let originalWindow = (globalThis as any).window;
 let sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -47,6 +55,7 @@ describe('request', () => {
     delete (globalThis as any).window;
     mocks.captureException.mockReset();
     mocks.getTraceData.mockReset();
+    mocks.markSentryCaptured.mockReset();
   });
 
   afterEach(() => {
@@ -376,13 +385,101 @@ describe('request', () => {
 
     expect(mocks.captureException).toHaveBeenCalledWith(
       expect.objectContaining({
+        name: 'RpcInvalidResponseError',
         message: 'Invalid response from server http://localhost/rpc for health:check'
       }),
       expect.objectContaining({
         tags: { rpcMethod: 'health:check' },
-        extra: expect.objectContaining({ endpoint: 'http://localhost/rpc' })
+        extra: expect.objectContaining({ endpoint: 'http://localhost/rpc', httpStatus: 200 })
       })
     );
+  });
+
+  test('keeps retrying while a load balancer answers with a 5xx page', async () => {
+    let attempts = 0;
+    let fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+      attempts += 1;
+      if (attempts <= 7) return gatewayPage();
+
+      return new Response(serialize.encode({ ok: true }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' }
+      });
+    });
+
+    let request = await importRequest('gateway-recovers');
+
+    await expect(
+      request({
+        endpoint: 'http://localhost/rpc',
+        name: 'health:check',
+        payload: {},
+        headers: {},
+        useDirectMethodRoute: true,
+        timeoutMs: 2000,
+        context: {}
+      })
+    ).resolves.toMatchObject({ data: { ok: true }, status: 200 });
+
+    expect(fetchSpy).toHaveBeenCalledTimes(8);
+    expect(mocks.captureException).not.toHaveBeenCalled();
+  });
+
+  test('reports a persistent load balancer 5xx once, grouped by endpoint', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async () => gatewayPage());
+
+    let request = await importRequest('gateway-persistent');
+
+    let clientError = await request({
+      endpoint: 'http://localhost/rpc',
+      name: 'health:check',
+      payload: {},
+      headers: {},
+      timeoutMs: 60,
+      context: {}
+    }).catch((error: unknown) => error);
+
+    expect(clientError).toMatchObject({
+      data: { status: 500, message: 'An internal server error occurred.' }
+    });
+    expect(JSON.stringify(clientError)).not.toContain('http://localhost/rpc');
+
+    expect(mocks.captureException).toHaveBeenCalledTimes(1);
+    expect(mocks.captureException).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'RpcUpstreamUnavailableError',
+        message:
+          'Upstream unavailable: http://localhost/rpc answered HTTP 503 for health:check'
+      }),
+      expect.objectContaining({
+        fingerprint: [
+          'rpc-request-error',
+          'RpcUpstreamUnavailableError',
+          'http://localhost/rpc'
+        ],
+        extra: expect.objectContaining({ httpStatus: 503 })
+      })
+    );
+    expect(mocks.markSentryCaptured).toHaveBeenCalledWith(clientError);
+  });
+
+  test('leaves reporting to the caller without marking the error as captured', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async () => gatewayPage());
+
+    let request = await importRequest('gateway-caller-reporting');
+
+    await request({
+      endpoint: 'http://localhost/rpc',
+      name: 'health:check',
+      payload: {},
+      headers: {},
+      timeoutMs: 30,
+      captureErrors: false,
+      context: {}
+    }).catch(() => {});
+
+    expect(mocks.captureException).not.toHaveBeenCalled();
+    expect(mocks.markSentryCaptured).not.toHaveBeenCalled();
   });
 
   test('keeps retrying server transport errors beyond the old six-attempt limit', async () => {
@@ -815,6 +912,51 @@ describe('request', () => {
     expect(mocks.captureException.mock.calls[0]![0]).toMatchObject({
       message: 'Unable to reach server http://localhost/rpc for health:check'
     });
+  });
+
+  test('does not report browser network failures and suppresses outer reports', async () => {
+    (globalThis as any).window = {};
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('Failed to fetch'));
+
+    let request = await importRequest('browser-network-failure');
+
+    let clientError = await request({
+      endpoint: 'http://localhost/rpc',
+      name: 'health:check',
+      payload: {},
+      headers: {},
+      timeoutMs: 45,
+      context: {}
+    }).catch((error: unknown) => error);
+
+    expect(clientError).toMatchObject({ data: { status: 500 } });
+    expect(mocks.captureException).not.toHaveBeenCalled();
+    expect(mocks.markSentryCaptured).toHaveBeenCalledWith(clientError);
+  });
+
+  test('still reports browser requests answered with a server failure', async () => {
+    (globalThis as any).window = {};
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async () => gatewayPage());
+
+    let request = await importRequest('browser-gateway-failure');
+
+    await request({
+      endpoint: 'http://localhost/rpc',
+      name: 'health:check',
+      payload: {},
+      headers: {},
+      timeoutMs: 45,
+      context: {}
+    }).catch(() => {});
+
+    expect(mocks.captureException).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'RpcUpstreamUnavailableError' }),
+      expect.anything()
+    );
   });
 
   test('rejects immediately when the caller signal is already aborted', async () => {

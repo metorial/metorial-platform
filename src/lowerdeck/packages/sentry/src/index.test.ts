@@ -1,9 +1,23 @@
+import { isAlreadyCaptured } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
 import {
   getSentryHttpErrorDetails,
+  getSentryServiceErrorFingerprint,
+  markSentryCaptured,
   shouldIgnoreSentryFrontendError,
   shouldIgnoreSentryHttpError
 } from './index';
+
+describe('markSentryCaptured', () => {
+  it('flags the error so the SDK drops later captures without making it serializable', () => {
+    let error = new Error('already reported');
+
+    markSentryCaptured(error);
+
+    expect(isAlreadyCaptured(error)).toBe(true);
+    expect(Object.keys(error)).not.toContain('__sentry_captured__');
+  });
+});
 
 describe('@lowerdeck/sentry filters', () => {
   it('extracts client error details from wrapped lowerdeck errors', () => {
@@ -72,6 +86,29 @@ describe('@lowerdeck/sentry filters', () => {
     ).toBe(false);
   });
 
+  it('ignores Metorial SDK network errors in the frontend', () => {
+    let networkError = {
+      originalException: {
+        __typename: 'metorial.sdk.error',
+        __isMetorialError: true,
+        response: {
+          status: 0,
+          code: 'network_error'
+        }
+      }
+    };
+
+    expect(shouldIgnoreSentryFrontendError(networkError)).toBe(true);
+    expect(
+      shouldIgnoreSentryFrontendError(
+        new Error(
+          '[METORIAL ERROR]: network_error - Unable to connect to Metorial API - please check your internet connection'
+        )
+      )
+    ).toBe(true);
+    expect(shouldIgnoreSentryHttpError(networkError)).toBe(false);
+  });
+
   it('keeps server-side failures reportable', () => {
     expect(
       shouldIgnoreSentryFrontendError({
@@ -85,5 +122,29 @@ describe('@lowerdeck/sentry filters', () => {
         }
       })
     ).toBe(false);
+  });
+});
+
+describe('getSentryServiceErrorFingerprint', () => {
+  it('groups wrapped lowerdeck errors by their error code', () => {
+    let hint = {
+      originalException: new Error(
+        '[@lowerdeck/error]: Provider authentication configuration has an error: server_error ({"status":400,"code":"invalid_provider_authentication_configuration","message":"Provider authentication configuration has an error: server_error"})'
+      )
+    };
+
+    expect(getSentryServiceErrorFingerprint(hint)).toEqual([
+      '{{ default }}',
+      'invalid_provider_authentication_configuration'
+    ]);
+  });
+
+  it('leaves other errors on default grouping', () => {
+    expect(
+      getSentryServiceErrorFingerprint({ originalException: new Error('boom') })
+    ).toBeNull();
+    expect(
+      getSentryServiceErrorFingerprint({ originalException: { response: { code: 'x' } } })
+    ).toBeNull();
   });
 });

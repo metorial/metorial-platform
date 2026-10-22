@@ -6,11 +6,11 @@
   "main": "src/index.ts",
   "dependencies": {
     "@metorial/use-debounced": "^1.0.0",
-    "react": "19.1.1",
-    "react-router-dom": "^6.26.1"
+    "react": "19.3.0",
+    "react-router-dom": "^7.18.4"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",
-    "typescript": "5.8.2"
+    "typescript": "5.9.3"
   }
 }

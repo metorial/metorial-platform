@@ -30,14 +30,14 @@
   "dependencies": {
     "@lowerdeck/redis": "workspace:2.0.0",
     "@lowerdeck/delay": "workspace:2.0.0",
-    "@types/bun": "^1.2.11",
-    "ioredis": "^5.4.1",
+    "@types/bun": "^1.4.3",
+    "ioredis": "^6.0.0",
     "redlock": "^5.0.0-beta.2",
-    "superjson": "^2.2.5"
+    "superjson": "^2.2.6"
   },
   "devDependencies": {
     "@lowerdeck/tsconfig": "workspace:2.0.0",
-    "typescript": "5.8.2",
-    "vitest": "^3.1.2"
+    "typescript": "5.9.3",
+    "vitest": "^5.0.4"
   }
 }

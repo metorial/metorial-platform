@@ -23,7 +23,10 @@ class ProjectWorkforceConfigurationService {
     project: Project;
     organization: Organization;
     auditScope: AuditScope;
-    input: { autoAddOrganizationMembersToPortals?: boolean };
+    input: {
+      autoAddOrganizationMembersToPortals?: boolean;
+      allowConsumerSkillEditing?: boolean;
+    };
   }) {
     this.ensureProjectActive(d.project);
     await Fabric.fire('organization.project.workforce_configuration.updated:before', d);
@@ -31,7 +34,8 @@ class ProjectWorkforceConfigurationService {
     let project = await db.project.update({
       where: { oid: d.project.oid },
       data: {
-        autoAddOrganizationMembersToPortals: d.input.autoAddOrganizationMembersToPortals
+        autoAddOrganizationMembersToPortals: d.input.autoAddOrganizationMembersToPortals,
+        allowConsumerSkillEditing: d.input.allowConsumerSkillEditing
       }
     });
 

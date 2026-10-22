@@ -1,4 +1,4 @@
-import { Bash } from 'just-bash';
+import type { Bash } from 'just-bash';
 import type { ShellProvider, ShellResult } from '../open-harness';
 
 let DEFAULT_TIMEOUT = 30_000;

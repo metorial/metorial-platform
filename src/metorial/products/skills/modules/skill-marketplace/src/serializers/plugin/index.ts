@@ -61,29 +61,44 @@ export let applyPlugin = createApplicator(
     if (image?.type !== 'file' && project.organization.image?.type === 'file') {
       image = project.organization.image;
     }
+    let plugin = {
+      slug: input.skillPlugin.slug,
+      name: input.skillPlugin.name,
+      description: input.skillPlugin.description,
+      longDescription: input.skillPlugin.longDescription,
+      category: input.skillPlugin.category,
+      image
+    };
+    let agentHashInput = agents.map(agent => ({
+      slug: agent.slug,
+      content: agent.document.content.content
+    }));
+    let mcpUrl = `${getConfig().urls.apiUrl}/connect/plugin/${input.skillPlugin.slug}`;
+
     let hash = await Hash.sha256(
       canonicalize({
         serializerVersion: 3,
         ...getMarketplaceForceSyncHashInput(input.skillMarketplace),
-        plugin: {
-          slug: input.skillPlugin.slug,
-          name: input.skillPlugin.name,
-          description: input.skillPlugin.description,
-          longDescription: input.skillPlugin.longDescription,
-          category: input.skillPlugin.category,
-          image
-        },
+        plugin,
         marketplacePluginSlug: input.skillMarketplacePlugin?.pluginSlug,
         standaloneMarketplace: input.skillMarketplace
           ? null
           : {
               ownerName: project.organization.name
             },
-        agents: agents.map(agent => ({
-          slug: agent.slug,
-          content: agent.document.content.content
-        })),
-        mcpUrl: `${getConfig().urls.apiUrl}/connect/plugin/${input.skillPlugin.slug}`
+        agents: agentHashInput,
+        mcpUrl
+      })
+    );
+
+    // The version lives on the plugin and is shared by every destination publishing it, so it
+    // must only depend on plugin content. Destination-specific inputs belong in `hash` alone.
+    let versionHash = await Hash.sha256(
+      canonicalize({
+        plugin,
+        ownerName: project.organization.name,
+        agents: agentHashInput,
+        mcpUrl
       })
     );
 
@@ -92,7 +107,8 @@ export let applyPlugin = createApplicator(
       project,
       agents,
       image,
-      hash
+      hash,
+      versionHash
     };
   },
   {
@@ -100,10 +116,10 @@ export let applyPlugin = createApplicator(
 
     getHash: async (_input, { hash }) => hash,
 
-    apply: async (input, context, { project, agents, image, hash }) => {
+    apply: async (input, context, { project, agents, image, versionHash }) => {
       let claimed = await claimVersion({
         initial: input.skillPlugin,
-        hash,
+        hash: versionHash,
         compareAndSet: async d => {
           let updated = await db.skillPlugin.updateMany({
             where: {

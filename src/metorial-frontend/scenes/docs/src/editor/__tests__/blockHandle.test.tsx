@@ -159,6 +159,10 @@ it('starts a heading drag from the heading and aligns its drag image', async () 
   };
   let draggedNode = editor.view.nodeDOM(0) as HTMLElement;
   draggedNode.style.marginTop = '48px';
+  Object.defineProperty(document, 'elementsFromPoint', {
+    value: () => [draggedNode],
+    configurable: true
+  });
   await mouse('mouseover');
   await mouse('mousedown');
   expect((button.closest('.drag-handle') as HTMLElement).draggable).toBe(true);

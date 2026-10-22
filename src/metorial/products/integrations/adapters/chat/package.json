@@ -10,14 +10,14 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "typescript": "5.8.2",
-    "vitest": "^3.1.2"
+    "typescript": "5.9.3",
+    "vitest": "^5.0.4"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
     "@metorial-subspace/adapter": "^1.0.0",
-    "@slates/adapter-chat": "1.0.0-rc.10"
+    "@slates/adapter-chat": "1.0.0-rc.13"
   }
 }

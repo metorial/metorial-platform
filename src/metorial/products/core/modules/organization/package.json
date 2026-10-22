@@ -6,9 +6,11 @@
   "main": "src/index.ts",
   "scripts": {
     "test": "vitest run --passWithNoTests",
+    "test:e2e": "metorial-e2e",
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
+    "@lowerdeck/base62": "workspace:2.0.0",
     "@lowerdeck/canonicalize": "workspace:2.0.0",
     "@lowerdeck/env": "workspace:2.0.0",
     "@lowerdeck/error": "workspace:2.0.0",
@@ -26,16 +28,18 @@
     "@metorial/db": "^1.0.0",
     "@metorial/fabric": "^1.0.0",
     "@metorial/id": "^1.0.0",
+    "@metorial/module-community": "^1.0.0",
     "@metorial/module-email": "^1.0.0",
     "@metorial-subspace/module-tenant": "^1.0.0",
     "@metorial/queue": "^1.0.0",
-    "date-fns": "^4.1.0",
-    "react": "19.1.1"
+    "date-fns": "^4.4.0",
+    "react": "19.3.0"
   },
   "devDependencies": {
-    "@types/react": "19.2.14",
+    "@types/react": "19.3.0",
     "@metorial/tsconfig": "^1.0.0",
-    "typescript": "5.8.2",
-    "vitest": "^3.1.2"
+    "typescript": "5.9.3",
+    "vitest": "^5.0.4",
+    "@metorial/e2e": "1.0.0"
   }
 }

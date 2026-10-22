@@ -25,6 +25,8 @@ model ProviderOAuthSetup {
   redirectUrl String?
   backendUrl  String
 
+  adminInstructions String?
+
   errorCode    String?
   errorMessage String?
 

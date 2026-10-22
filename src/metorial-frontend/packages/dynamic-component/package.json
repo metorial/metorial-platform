@@ -11,11 +11,11 @@
   "dependencies": {
     "@metorial/data-hooks": "^1.0.0",
     "@metorial/ui": "^1.0.0",
-    "p-queue": "^8.1.0"
+    "p-queue": "^10.0.0"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",
-    "typescript": "5.8.2",
-    "vitest": "^3.1.2"
+    "typescript": "5.9.3",
+    "vitest": "^5.0.4"
   }
 }

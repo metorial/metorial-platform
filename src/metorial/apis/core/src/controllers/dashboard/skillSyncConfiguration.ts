@@ -80,7 +80,7 @@ export let dashboardProjectSkillSyncConfigurationController = Controller.create(
           description: 'Update the skill sync settings for a project'
         }
       )
-      .use(checkAccess({ possibleScopes: ['organization.project:write'] }))
+      .use(checkAccess({ possibleScopes: ['organization.project:manage'] }))
       .body(
         'default',
         v.object({
@@ -109,7 +109,7 @@ export let dashboardProjectSkillSyncConfigurationController = Controller.create(
           organization: ctx.organization,
           member: ctx.member,
           project,
-          possibleScopes: ['organization.project:write']
+          possibleScopes: ['organization.project:manage']
         });
 
         project = await projectSkillSyncConfigurationService.updateProjectSkillSyncConfiguration(

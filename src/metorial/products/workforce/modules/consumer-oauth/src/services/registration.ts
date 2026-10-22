@@ -1,6 +1,11 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import {
+  getPortalAllowedRedirectUrlFilters,
+  validatePortalRedirectUrisAgainstAllowedFilters,
+  validateUrlString
+} from '@metorial/consumer-oauth-utils';
+import {
   db,
   ID,
   Organization,
@@ -10,15 +15,11 @@ import {
   type Instance
 } from '@metorial/db';
 import { type MagicMcpResolvedTarget } from '@metorial/module-magic';
-import { addDays, addMinutes, addMonths } from 'date-fns';
-import {
-  getPortalAllowedRedirectUrlFilters,
-  validatePortalRedirectUrisAgainstAllowedFilters,
-  validateUrlString
-} from '@metorial/consumer-oauth-utils';
 import { portalService } from '@metorial/module-portal';
+import { addMinutes } from 'date-fns';
 import {
   consumerAuthClientRegistrationRateLimitError,
+  getConsumerAuthClientExpiry,
   normalizeConsumerClientMetadata,
   normalizeConsumerClientRedirectUris,
   resolveConsumerSurface
@@ -99,7 +100,7 @@ class ConsumerOAuthRegistrationService {
           clientId: await ID.generateId('consumerAuthClientId'),
           clientSecret,
           tokenEndpointAuthMethod,
-          expiresAt: addMonths(new Date(), 3)
+          expiresAt: getConsumerAuthClientExpiry()
         }
       });
 
@@ -164,7 +165,7 @@ class ConsumerOAuthRegistrationService {
           clientId: await ID.generateId('consumerAuthClientId'),
           clientSecret,
           tokenEndpointAuthMethod,
-          expiresAt: addMonths(new Date(), 3)
+          expiresAt: getConsumerAuthClientExpiry()
         },
         include: consumerAuthClientInclude
       });

@@ -1,4 +1,4 @@
-import { createLocallyCachedFunction } from '@metorial/cache';
+import { createLocallyCachedFunction } from '@lowerdeck/cache';
 import { db } from '@metorial/db';
 
 db.metorialConfig

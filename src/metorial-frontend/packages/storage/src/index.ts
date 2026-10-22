@@ -1,19 +1,49 @@
 import { IDBPDatabase, openDB } from 'idb';
 
+let isClosingConnectionError = (e: unknown) =>
+  (e as { name?: string } | null)?.name == 'InvalidStateError';
+
 let openStore = (name: string) => {
-  let dbp: Promise<IDBPDatabase<unknown>> =
-    // @ts-ignore
-    typeof window == 'undefined'
-      ? new Promise(() => {})
-      : openDB(`metorial_${name}`, 1, {
-          upgrade(db) {
-            db.createObjectStore(name);
-          }
-        });
+  let dbp: Promise<IDBPDatabase<unknown>> | undefined;
+
+  let forget = (p: Promise<IDBPDatabase<unknown>>) => {
+    if (dbp == p) dbp = undefined;
+  };
+
+  let getDb = () => {
+    if (dbp) return dbp;
+
+    let p: Promise<IDBPDatabase<unknown>> = openDB(`metorial_${name}`, 1, {
+      upgrade(db) {
+        db.createObjectStore(name);
+      },
+      terminated() {
+        forget(p);
+      }
+    });
+    p.catch(() => forget(p));
+
+    dbp = p;
+    return p;
+  };
 
   return async () => {
-    let db = await dbp;
-    return db.transaction(name, 'readwrite').objectStore(name);
+    // @ts-ignore
+    if (typeof window == 'undefined') return new Promise<never>(() => {});
+
+    let p = getDb();
+    let db = await p;
+
+    try {
+      return db.transaction(name, 'readwrite').objectStore(name);
+    } catch (e) {
+      if (!isClosingConnectionError(e)) throw e;
+
+      // The browser can close a connection before terminated fires
+      forget(p);
+      let fresh = await getDb();
+      return fresh.transaction(name, 'readwrite').objectStore(name);
+    }
   };
 };
 

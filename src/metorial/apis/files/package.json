@@ -5,7 +5,8 @@
   "license": "FSL-1.1",
   "main": "src/index.ts",
   "scripts": {
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e": "metorial-e2e"
   },
   "dependencies": {
     "@lowerdeck/delay": "workspace:2.0.0",
@@ -26,7 +27,8 @@
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",
-    "typescript": "5.8.2",
-    "vitest": "^3.1.2"
+    "typescript": "5.9.3",
+    "vitest": "^5.0.4",
+    "@metorial/e2e": "1.0.0"
   }
 }

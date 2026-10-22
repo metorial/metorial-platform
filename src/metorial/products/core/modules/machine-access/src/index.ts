@@ -9,6 +9,7 @@ import { sendExpiredApiKeyEmailQueueProcessor } from './queues/expired/sendExpir
 import { syncCliAuthScopesQueueProcessor } from './queues/syncCliAuthScopes';
 
 export * from './lib/apiKeyIpFilters';
+export * from './lib/secretVerification';
 export { startCliAuthScopesSync } from './queues/syncCliAuthScopes';
 export * from './services';
 

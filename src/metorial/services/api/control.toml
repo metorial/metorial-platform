@@ -5,17 +5,50 @@ mode = "oss"
 [dev]
 run = ["dev:start"]
 
-[[dev.expose]]
+[endpoints.api]
 port = 4310
+health = "/ping"
+env = [{ key = "API_PORT", value = "{{BIND_PORT}}" }]
 
-[[dev.expose]]
+[endpoints.mcp]
 port = 4311
+health = "/ping"
+env = [{ key = "MCP_PORT", value = "{{BIND_PORT}}" }]
 
 [endpoints.portal]
 port = 4315
 
-[[dev.expose]]
+[endpoints.integrations]
+port = 4316
+health = "/ping"
+env = [{ key = "INTEGRATIONS_API_PORT", value = "{{BIND_PORT}}" }]
+
+[endpoints.subspaceInternal]
+port = 4317
+health = "/ping"
+env = [{ key = "SUBSPACE_INTERNAL_API_PORT", value = "{{BIND_PORT}}" }]
+
+[endpoints.files]
 port = 4318
+health = "/ping"
+env = [{ key = "FILES_PORT", value = "{{BIND_PORT}}" }]
+
+[e2e]
+start = ["e2e:start"]
+image = "app-api"
+tests = ["../../products/*/modules/*", "../../apis/*"]
+services = ["@metorial/shuttle", "@metorial/voyager", "@metorial/relay"]
+health_timeout = 300
+
+[[e2e.resources]]
+type = "object-storage"
+
+[e2e.env]
+AWS_ACCESS_KEY_ID = "e2e"
+AWS_SECRET_ACCESS_KEY = "e2e"
+AWS_REGION = "us-east-1"
+AWS_ACCOUNT_ID = "000000000000"
+RELAY_URL = "http://localhost:52110/metorial-relay"
 
 [[resources]]
 type = "nats"

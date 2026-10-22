@@ -531,7 +531,7 @@ let PdfFilePreview = (p: { downloadUrl: string }) => {
     loadingTask.promise
       .then(async pdf => {
         if (cancelled) {
-          await pdf.destroy();
+          await loadingTask.destroy();
           return;
         }
 
@@ -539,7 +539,7 @@ let PdfFilePreview = (p: { downloadUrl: string }) => {
         setPageCount(pdf.numPages);
         if (nextPageNumber != pageNumber) {
           setPageNumber(nextPageNumber);
-          await pdf.destroy();
+          await loadingTask.destroy();
           return;
         }
 
@@ -549,7 +549,7 @@ let PdfFilePreview = (p: { downloadUrl: string }) => {
         let context = canvas?.getContext('2d');
 
         if (!canvas || !context || cancelled) {
-          await pdf.destroy();
+          await loadingTask.destroy();
           return;
         }
 
@@ -563,7 +563,7 @@ let PdfFilePreview = (p: { downloadUrl: string }) => {
 
         renderTask = page.render({ canvas, canvasContext: context, viewport });
         await renderTask.promise;
-        await pdf.destroy();
+        await loadingTask.destroy();
       })
       .catch(err => {
         if (cancelled || err?.name == 'RenderingCancelledException') return;
