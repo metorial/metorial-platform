@@ -709,6 +709,7 @@ class sessionTemplateProviderServiceImpl {
   async createSessionTemplateProviderInternal(
     d: { tenant: Tenant; environment: Environment } & CreateSessionTemplateProviderParams
   ) {
+    checkTenant(d, d.template);
     checkDeletedRelation(d.template);
     if (!d._allowLinked) {
       assertCanWriteSessionTemplateProvider(

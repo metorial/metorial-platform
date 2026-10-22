@@ -23,6 +23,7 @@ import {
   resolveProviderConfigs,
   resolveProviderDeployments,
   resolveProviders,
+  resolveSessionProviders,
   resolveSessionTemplates
 } from '@metorial-subspace/list-utils';
 import {
@@ -180,7 +181,7 @@ class sessionServiceImpl {
     let agents = await resolveAgents(ts, d.agentIds);
     let actors = await resolveIdentityActors(ts, d.actorIds);
     let sessionTemplates = await resolveSessionTemplates(ts, d.sessionTemplateIds);
-    let sessionProviders = await resolveProviders(ts, d.sessionProviderIds);
+    let sessionProviders = await resolveSessionProviders(ts, d.sessionProviderIds);
     let providers = await resolveProviders(ts, d.providerIds);
     let deployments = await resolveProviderDeployments(ts, d.providerDeploymentIds);
     let configs = await resolveProviderConfigs(ts, d.providerConfigIds);
