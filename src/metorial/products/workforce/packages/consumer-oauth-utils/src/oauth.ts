@@ -35,6 +35,7 @@ let blockedPortalRedirectProtocols = new Set([
   'imap',
   'irc',
   'ircs',
+  'javascript',
   'ldap',
   'ldaps',
   'mailto',
@@ -46,6 +47,7 @@ let blockedPortalRedirectProtocols = new Set([
   'tel',
   'telnet',
   'urn',
+  'vbscript',
   'ws',
   'wss'
 ]);

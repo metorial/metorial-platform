@@ -179,7 +179,7 @@ class ConsumerGroupServiceImpl {
           name: d.input.name,
           description: d.input.description,
           ssoGroupIds: d.consumerGroup.isDefaultEveryoneGroup ? [] : d.input.ssoGroupIds,
-          isDefault: d.input.isDefault || d.consumerGroup.isDefaultEveryoneGroup
+          isDefault: d.consumerGroup.isDefaultEveryoneGroup ? true : d.input.isDefault
         }
       });
 

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
+  consumerFindFirst: vi.fn(),
   consumerUpdate: vi.fn(),
   instanceConsumerUpdate: vi.fn(),
   instanceConsumerFindUniqueOrThrow: vi.fn(),
@@ -12,7 +13,7 @@ let mocks = vi.hoisted(() => ({
 
 vi.mock('@metorial/db', () => {
   let db = {
-    consumer: { update: mocks.consumerUpdate },
+    consumer: { findFirst: mocks.consumerFindFirst, update: mocks.consumerUpdate },
     instanceConsumer: {
       update: mocks.instanceConsumerUpdate,
       findUniqueOrThrow: mocks.instanceConsumerFindUniqueOrThrow

@@ -439,8 +439,8 @@ class ConsumerOAuthTokenService {
       );
     }
 
-    if (attempt.authorizationCodeUsedAt) {
-      throw new ServiceError(
+    let codeAlreadyUsedError = () =>
+      new ServiceError(
         badRequestError({
           message: 'Authorization code has already been used',
           oauth: {
@@ -449,7 +449,8 @@ class ConsumerOAuthTokenService {
           }
         })
       );
-    }
+
+    if (attempt.authorizationCodeUsedAt) throw codeAlreadyUsedError();
 
     if (!urlsMatch(attempt.redirectUri, d.redirectUri)) {
       throw new ServiceError(
@@ -500,6 +501,18 @@ class ConsumerOAuthTokenService {
       );
     }
 
+    let claimedCode = await db.consumerAuthAttempt.updateMany({
+      where: {
+        id: attempt.id,
+        status: 'authorized',
+        authorizationCodeUsedAt: null
+      },
+      data: {
+        authorizationCodeUsedAt: new Date()
+      }
+    });
+    if (claimedCode.count == 0) throw codeAlreadyUsedError();
+
     let accessToken = await this.ensureLinkedAccessToken({
       attempt,
       portal: d.portal,
@@ -516,7 +529,6 @@ class ConsumerOAuthTokenService {
       },
       data: {
         status: 'active',
-        authorizationCodeUsedAt: new Date(),
         refreshToken,
         expiresAt
       }

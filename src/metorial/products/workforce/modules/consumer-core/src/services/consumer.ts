@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { conflictError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { AuditScope } from '@metorial/audit-scope';
@@ -317,6 +317,22 @@ class ConsumerServiceImpl {
 
       let name = d.input.name ?? d.consumer.name;
       let email = normalizeConsumerEmail(d.input.email ?? d.consumer.email);
+
+      let conflictingConsumer = await db.consumer.findFirst({
+        where: {
+          organizationOid: previousInstanceConsumer.consumer.organizationOid,
+          email: consumerEmailEquals(email),
+          NOT: { oid: d.consumer.consumerOid }
+        },
+        select: { oid: true }
+      });
+      if (conflictingConsumer) {
+        throw new ServiceError(
+          conflictError({
+            message: 'Another consumer in this organization already uses this email.'
+          })
+        );
+      }
 
       await db.consumer.update({
         where: {

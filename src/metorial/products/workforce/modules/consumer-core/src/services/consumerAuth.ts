@@ -67,6 +67,26 @@ class ConsumerAuthServiceImpl {
     return Boolean(invite);
   }
 
+  private async assertHasPendingInvite(d: { consumerProfile: ConsumerProfile }) {
+    let invite = await db.consumerInvite.findFirst({
+      where: {
+        consumerProfileOid: d.consumerProfile.oid,
+        status: 'pending'
+      },
+      select: {
+        id: true
+      }
+    });
+
+    if (!invite) {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'This invite is no longer valid.'
+        })
+      );
+    }
+  }
+
   private async assertEmailCanAccessSurface(d: { surface: ConsumerSurface; email: string }) {
     if (
       isConsumerSurfaceEmailWhitelisted({
@@ -203,6 +223,8 @@ class ConsumerAuthServiceImpl {
       });
 
     if (profile.inviteStatus == 'invited') {
+      await this.assertHasPendingInvite({ consumerProfile: profile });
+
       profile = await consumerProfileService.activateConsumerProfile({
         consumerProfile: profile,
         auditScope: consumerSessionAuditScope({

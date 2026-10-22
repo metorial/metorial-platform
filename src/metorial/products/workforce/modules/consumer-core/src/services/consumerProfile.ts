@@ -772,6 +772,16 @@ class ConsumerProfileServiceImpl {
         include
       });
 
+      await db.consumerSession.updateMany({
+        where: {
+          consumerProfileOid: d.consumerProfile.oid,
+          loggedOutAt: null
+        },
+        data: {
+          loggedOutAt: new Date()
+        }
+      });
+
       await Fabric.fire('consumer.profile.deleted:after', {
         consumerProfile,
         surface: consumerProfile.surface,

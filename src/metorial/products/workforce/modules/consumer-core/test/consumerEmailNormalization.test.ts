@@ -80,6 +80,7 @@ describe('normalizeConsumerEmail', () => {
 describe('consumerService.upsertConsumer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.consumer.findFirst.mockResolvedValue(null);
     mocks.consumerProfile.findMany.mockResolvedValue([]);
     mocks.instanceConsumer.findUniqueOrThrow.mockResolvedValue({
       id: 'icn_legacy',
