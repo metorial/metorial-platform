@@ -2,6 +2,8 @@ import { db } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
 import { cell } from '../../cell';
 import { SkillPlugin } from '../../db';
+import { enqueueSkillPluginSync } from '../fromDeployment/skillPlugin';
+import { findYoungerLocalSlugClaims } from '../skillPluginSlug';
 
 export let syncSkillPluginToDeploymentQueue = createQueue<{
   skillPlugin: SkillPlugin;
@@ -14,7 +16,7 @@ export let syncSkillPluginToDeploymentQueueProcessor =
   syncSkillPluginToDeploymentQueue.process(async data => {
     let skillPlugin = data.skillPlugin;
 
-    await db.cellSkillPlugin.upsert({
+    let cellSkillPlugin = await db.cellSkillPlugin.upsert({
       where: { id: skillPlugin.id },
       update: {
         status: skillPlugin.status,
@@ -34,4 +36,11 @@ export let syncSkillPluginToDeploymentQueueProcessor =
         updatedAt: skillPlugin.updatedAt
       }
     });
+
+    if (cellSkillPlugin.isOwnedByDeployment || skillPlugin.status !== 'active') return;
+
+    let youngerLocalClaims = await findYoungerLocalSlugClaims(skillPlugin);
+    for (let localClaim of youngerLocalClaims) {
+      await enqueueSkillPluginSync(localClaim.id);
+    }
   });
