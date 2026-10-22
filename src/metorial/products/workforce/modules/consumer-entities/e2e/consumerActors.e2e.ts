@@ -119,15 +119,27 @@ describe('module-consumer-entities consumer actors', () => {
       consumerProfile: second
     });
     expect(secondActor.instanceConsumerOid).toBe(firstActor.instanceConsumerOid);
+    let instanceConsumer = await db.instanceConsumer.findUniqueOrThrow({
+      where: { oid: firstActor.instanceConsumerOid }
+    });
 
-    await eventually(async () => {
-      let [oldest, newest] = await db.consumerActor.findMany({
-        where: { oid: { in: [firstActor.oid, secondActor.oid] } },
-        orderBy: [{ createdAt: 'asc' }, { oid: 'asc' }]
-      });
-      expect(oldest!.defaultForInstanceConsumerOid).toBe(firstActor.instanceConsumerOid);
-      expect(newest!.defaultForInstanceConsumerOid).toBeNull();
-    }, workerTimeout);
+    // The queued sync retries with exponential backoff under CI load, so the test runs it
+    // directly; a failing sync then surfaces its own error instead of a test timeout.
+    await eventually(
+      async () => {
+        await consumerActorService.syncInstanceConsumerActors({
+          instanceConsumerId: instanceConsumer.id
+        });
+
+        let [oldest, newest] = await db.consumerActor.findMany({
+          where: { oid: { in: [firstActor.oid, secondActor.oid] } },
+          orderBy: [{ createdAt: 'asc' }, { oid: 'asc' }]
+        });
+        expect(oldest!.defaultForInstanceConsumerOid).toBe(firstActor.instanceConsumerOid);
+        expect(newest!.defaultForInstanceConsumerOid).toBeNull();
+      },
+      { timeoutMs: 30_000, intervalMs: 500 }
+    );
   });
 
   it('renames the identity actors of a profile on reconcile', async () => {

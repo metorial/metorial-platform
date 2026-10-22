@@ -62,7 +62,21 @@ describe('api-core dashboard: instance resources, usage, key providers and oauth
     );
 
     let counts = expectPresented(responses.session.body, 'resource_counts');
-    expect(counts.resources).toEqual([{ resource: 'accounts', count: 0 }]);
+    expect(counts.resources).toEqual([{ resource: 'accounts', count: expect.any(Number) }]);
+
+    // New projects add organization members to the default portal, which a delayed job creates
+    // for each instance, so the owner and the member become accounts once that job has run.
+    await eventually(
+      async () => {
+        let accounts = expectOk(
+          await org.clients.rest.get(instancePath('/resource-counts'), {
+            query: { resource: 'accounts' }
+          })
+        );
+        expect(accounts.resources).toEqual([{ resource: 'accounts', count: 2 }]);
+      },
+      { timeoutMs: 45_000, intervalMs: 500 }
+    );
 
     let many = expectOk(
       await org.clients.rest.get(instancePath('/resource-counts'), {
