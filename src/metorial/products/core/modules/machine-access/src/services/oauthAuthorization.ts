@@ -387,6 +387,7 @@ class OAuthAuthorizationService {
       | {
           grantType: 'refresh_token';
           clientId: string;
+          clientSecret?: string;
           refreshToken: string;
         };
   }) {
@@ -411,6 +412,7 @@ class OAuthAuthorizationService {
     if (d.input.grantType == 'refresh_token') {
       return await this.exchangeRefreshToken({
         clientId: d.input.clientId,
+        clientSecret: d.input.clientSecret,
         refreshToken: d.input.refreshToken
       });
     }
@@ -785,7 +787,11 @@ class OAuthAuthorizationService {
     });
   }
 
-  private async exchangeRefreshToken(d: { clientId: string; refreshToken: string }) {
+  private async exchangeRefreshToken(d: {
+    clientId: string;
+    clientSecret?: string;
+    refreshToken: string;
+  }) {
     return await withTransaction(async db => {
       let oauthToken = await db.oAuthToken.findFirst({
         where: {
@@ -812,6 +818,23 @@ class OAuthAuthorizationService {
             oauth: {
               error: 'invalid_grant',
               errorMessage: 'Refresh token does not belong to this oauth client'
+            }
+          })
+        );
+      }
+
+      let oauthApplication = oauthToken.oauthAuthorization.oauthApplication;
+      if (
+        !d.clientSecret &&
+        !oauthApplication.allowClientSecretlessTokenExchange &&
+        oauthApplication.type != 'cli_auth'
+      ) {
+        throw new ServiceError(
+          unauthorizedError({
+            message: 'A client secret is required for this oauth client',
+            oauth: {
+              error: 'invalid_client',
+              errorMessage: 'A client secret is required for this oauth client'
             }
           })
         );

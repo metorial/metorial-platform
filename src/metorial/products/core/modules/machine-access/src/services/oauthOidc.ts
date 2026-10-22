@@ -127,8 +127,6 @@ class OAuthOidcService {
       sub: getSubject(oauthAuthorization)
     };
 
-    console.log(oauthAuthorization.oidcScopes);
-
     if (hasOidcScope(oauthAuthorization.oidcScopes, 'profile')) {
       claims.name = getDisplayName(oauthAuthorization);
       claims.preferred_username =
