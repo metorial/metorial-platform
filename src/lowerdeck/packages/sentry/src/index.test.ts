@@ -2,6 +2,7 @@ import { isAlreadyCaptured } from '@sentry/core';
 import { describe, expect, it } from 'vitest';
 import {
   getSentryHttpErrorDetails,
+  getSentryServiceErrorFingerprint,
   markSentryCaptured,
   shouldIgnoreSentryFrontendError,
   shouldIgnoreSentryHttpError
@@ -121,5 +122,29 @@ describe('@lowerdeck/sentry filters', () => {
         }
       })
     ).toBe(false);
+  });
+});
+
+describe('getSentryServiceErrorFingerprint', () => {
+  it('groups wrapped lowerdeck errors by their error code', () => {
+    let hint = {
+      originalException: new Error(
+        '[@lowerdeck/error]: Provider authentication configuration has an error: server_error ({"status":400,"code":"invalid_provider_authentication_configuration","message":"Provider authentication configuration has an error: server_error"})'
+      )
+    };
+
+    expect(getSentryServiceErrorFingerprint(hint)).toEqual([
+      '{{ default }}',
+      'invalid_provider_authentication_configuration'
+    ]);
+  });
+
+  it('leaves other errors on default grouping', () => {
+    expect(
+      getSentryServiceErrorFingerprint({ originalException: new Error('boom') })
+    ).toBeNull();
+    expect(
+      getSentryServiceErrorFingerprint({ originalException: { response: { code: 'x' } } })
+    ).toBeNull();
   });
 });

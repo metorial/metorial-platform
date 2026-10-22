@@ -172,3 +172,12 @@ export let shouldIgnoreSentryHttpError = (value: unknown): boolean =>
 
 export let shouldIgnoreSentryFrontendError = (value: unknown): boolean =>
   shouldIgnoreKnownClientError(value, true);
+
+export let getSentryServiceErrorFingerprint = (value: unknown): string[] | null => {
+  if (!isKnownHttpErrorValue(value, false)) return null;
+
+  let code = getSentryHttpErrorDetails(value)?.code;
+  if (!code) return null;
+
+  return ['{{ default }}', code];
+};
