@@ -5,6 +5,8 @@ let mocks = vi.hoisted(() => {
   return {
     LockAcquisitionError,
     eventCreateMany: vi.fn(async () => ({})),
+    eventFindFirst: vi.fn(async (): Promise<unknown> => null),
+    delay: vi.fn(async () => {}),
     currentMethods: vi.fn(),
     usingLock: vi.fn(async (_key: string, fn: () => Promise<unknown>) => fn()),
     findFirst: vi.fn(),
@@ -55,9 +57,14 @@ vi.mock('../db', () => ({
       }))
     },
     slateVersion: { findFirstOrThrow: vi.fn(async () => ({ oid: 11n })) },
-    slateAuthConfigEvent: { createMany: mocks.eventCreateMany }
+    slateAuthConfigEvent: {
+      createMany: mocks.eventCreateMany,
+      findFirst: mocks.eventFindFirst
+    }
   }
 }));
+
+vi.mock('@lowerdeck/delay', () => ({ delay: mocks.delay }));
 
 vi.mock('../id', () => ({
   ID: { generateIdSync: () => 'shiace_test' },
@@ -289,6 +296,108 @@ describe('getSlateInstanceAuth refresh coordination', () => {
       expect.objectContaining({ data: expect.objectContaining({ errorCode: 'request.bad' }) })
     );
     expect(mocks.syncSharedOAuthTokens).not.toHaveBeenCalled();
+    expect(mocks.refreshOAuthToken).toHaveBeenCalledTimes(1);
+    expect(mocks.delay).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { label: 'an OAuth server_error code', error: { code: 'server_error', message: 'oops' } },
+    {
+      label: 'an OAuth temporarily_unavailable message',
+      error: { code: 'request.bad', message: 'temporarily_unavailable' }
+    },
+    {
+      label: 'a failed invocation',
+      error: { code: 'invocation_error', message: 'An error occurred during invocation' }
+    },
+    { label: 'a JSON-RPC server error', error: { code: -32603, message: 'Internal error' } }
+  ])('keeps the config usable when the refresh fails with $label', async ({ error }) => {
+    mocks.refreshOAuthToken.mockResolvedValue({
+      status: 'error',
+      invocation: { id: 'shiv_2', oid: 71n },
+      error
+    });
+
+    await expect(call()).rejects.toThrow(/Failed to refresh authentication token/);
+    expect(mocks.updateMany).not.toHaveBeenCalled();
+    expect(mocks.refreshOAuthToken).toHaveBeenCalledTimes(2);
+    expect(mocks.delay).toHaveBeenCalledWith(10_000);
+    expect(mocks.eventCreateMany).toHaveBeenCalledTimes(2);
+    expect(mocks.eventCreateMany).toHaveBeenCalledWith({
+      data: expect.objectContaining({ type: 'oauth_token_refresh_failed' })
+    });
+  });
+
+  it('recovers when the retry after a transient failure succeeds', async () => {
+    mocks.refreshOAuthToken.mockResolvedValueOnce({
+      status: 'error',
+      invocation: { id: 'shiv_2', oid: 71n },
+      error: { code: 'server_error', message: 'server_error' }
+    });
+
+    let result = await call();
+
+    expect(result.output).toEqual(newOutput);
+    expect(mocks.refreshOAuthToken).toHaveBeenCalledTimes(2);
+    expect(mocks.delay).toHaveBeenCalledWith(10_000);
+    expect(mocks.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ errorCode: null }) })
+    );
+  });
+
+  it('keeps using a still-valid token when the refresh fails transiently', async () => {
+    let stillValid = config({ tokenExpiresAt: new Date(Date.now() + 20_000) });
+    mocks.findFirst.mockResolvedValue(stillValid);
+    mocks.findFirstOrThrow.mockResolvedValue(stillValid);
+    mocks.refreshOAuthToken.mockResolvedValue({
+      status: 'error',
+      invocation: { id: 'shiv_2', oid: 71n },
+      error: { code: 'server_error', message: 'server_error' }
+    });
+
+    let result = await call();
+
+    expect(result.output).toEqual(oldSecret().output);
+    expect(mocks.refreshOAuthToken).toHaveBeenCalledTimes(1);
+    expect(mocks.delay).not.toHaveBeenCalled();
+    expect(mocks.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('fails fast after a recent transient failure', async () => {
+    mocks.eventFindFirst.mockResolvedValueOnce({
+      type: 'oauth_token_refresh_failed',
+      createdAt: new Date()
+    });
+
+    await expect(call()).rejects.toThrow(/temporarily unavailable/);
+    expect(mocks.refreshOAuthToken).not.toHaveBeenCalled();
+  });
+
+  it('uses a still-valid token after a recent transient failure', async () => {
+    let stillValid = config({ tokenExpiresAt: new Date(Date.now() + 20_000) });
+    mocks.findFirst.mockResolvedValue(stillValid);
+    mocks.findFirstOrThrow.mockResolvedValue(stillValid);
+    mocks.eventFindFirst.mockResolvedValueOnce({
+      type: 'oauth_token_refresh_failed',
+      createdAt: new Date()
+    });
+
+    let result = await call();
+
+    expect(result.output).toEqual(oldSecret().output);
+    expect(mocks.refreshOAuthToken).not.toHaveBeenCalled();
+  });
+
+  it('refreshes again once the recent failure is outside the window', async () => {
+    mocks.eventFindFirst.mockResolvedValueOnce({
+      type: 'oauth_token_refresh_failed',
+      createdAt: new Date(Date.now() - 60_000)
+    });
+
+    let result = await call();
+
+    expect(result.output).toEqual(newOutput);
+    expect(mocks.refreshOAuthToken).toHaveBeenCalledTimes(1);
   });
 
   it('does not fail the request when the sibling sync fails', async () => {
