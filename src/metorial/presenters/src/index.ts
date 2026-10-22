@@ -233,6 +233,7 @@ import {
   v1SandboxMachineUsageTimelinePresenter,
   v1SandboxMachineUsageSummaryPresenter,
   v1SandboxMachineAccessPresenter,
+  v1SandboxMachineExecResultPresenter,
   v1SandboxDiskPresenter,
   v1SandboxDiskMountPresenter,
   v1SandboxDiskResizePresenter,
@@ -260,6 +261,9 @@ import {
   v1SessionTemplateProviderPresenter,
   v1SetupSessionPresenter,
   v1SkillAgentPresenter,
+  v1SkillFileChangePresenter,
+  v1SkillFileContentPresenter,
+  v1SkillFilePresenter,
   v1SkillConfigurationPresenter,
   v1SkillExportPresenter,
   v1SkillForkSyncPresenter,
@@ -485,6 +489,7 @@ import {
   sandboxMachineUsageTimelineType,
   sandboxMachineUsageSummaryType,
   sandboxMachineAccessType,
+  sandboxMachineExecResultType,
   sandboxDiskType,
   sandboxDiskMountType,
   sandboxDiskResizeType,
@@ -513,6 +518,9 @@ import {
   sessionTemplateType,
   systemEventType,
   skillAgentType,
+  skillFileChangeType,
+  skillFileContentType,
+  skillFileType,
   skillConfigurationType,
   skillExportType,
   skillForkSyncType,
@@ -976,6 +984,21 @@ export let storeParticipantPresenter = declarePresenter(storeParticipantType, {
 export let skillAgentPresenter = declarePresenter(skillAgentType, {
   mt_2025_01_01_dashboard: v1SkillAgentPresenter,
   mt_2026_01_01_magnetar: v1SkillAgentPresenter
+});
+
+export let skillFilePresenter = declarePresenter(skillFileType, {
+  mt_2025_01_01_dashboard: v1SkillFilePresenter,
+  mt_2026_01_01_magnetar: v1SkillFilePresenter
+});
+
+export let skillFileContentPresenter = declarePresenter(skillFileContentType, {
+  mt_2025_01_01_dashboard: v1SkillFileContentPresenter,
+  mt_2026_01_01_magnetar: v1SkillFileContentPresenter
+});
+
+export let skillFileChangePresenter = declarePresenter(skillFileChangeType, {
+  mt_2025_01_01_dashboard: v1SkillFileChangePresenter,
+  mt_2026_01_01_magnetar: v1SkillFileChangePresenter
 });
 
 export let skillConfigurationPresenter = declarePresenter(skillConfigurationType, {
@@ -2000,6 +2023,11 @@ export let sandboxMachineUsageSummaryPresenter = declarePresenter(
 export let sandboxMachineAccessPresenter = declarePresenter(sandboxMachineAccessType, {
   mt_2025_01_01_dashboard: v1SandboxMachineAccessPresenter,
   mt_2026_01_01_magnetar: v1SandboxMachineAccessPresenter
+});
+
+export let sandboxMachineExecResultPresenter = declarePresenter(sandboxMachineExecResultType, {
+  mt_2025_01_01_dashboard: v1SandboxMachineExecResultPresenter,
+  mt_2026_01_01_magnetar: v1SandboxMachineExecResultPresenter
 });
 
 export let sandboxDiskPresenter = declarePresenter(sandboxDiskType, {

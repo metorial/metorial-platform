@@ -1,0 +1,72 @@
+name: Open generated PR
+description: Commits regenerated files in a checkout and opens, updates or closes its pull request
+
+inputs:
+  path:
+    description: Checkout directory to commit from
+    required: true
+  paths:
+    description: Space-separated paths inside the checkout to commit
+    default: .
+  token:
+    description: Token with contents and pull-request write access to the checkout's repository
+    required: true
+  title:
+    description: Pull request title and commit message
+    required: true
+  body:
+    description: Pull request body
+    required: true
+  branch:
+    description: Branch to force-push the regenerated files to
+    default: regenerate/metorial-api
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      working-directory: ${{ inputs.path }}
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        GIT_CONFIG_COUNT: '1'
+        GIT_CONFIG_KEY_0: url.https://x-access-token:${{ inputs.token }}@github.com/.insteadOf
+        GIT_CONFIG_VALUE_0: https://github.com/
+        CHECKOUT: ${{ inputs.path }}
+        PATHS: ${{ inputs.paths }}
+        BRANCH: ${{ inputs.branch }}
+        TITLE: ${{ inputs.title }}
+        BODY: ${{ inputs.body }}
+      run: |
+        read -ra paths <<< "$PATHS"
+        base="$(gh repo view --json defaultBranchRef --jq .defaultBranchRef.name)"
+        open="$(gh pr list --head "$BRANCH" --base "$base" --state open --json number --jq '.[0].number // empty')"
+
+        if [ -z "$(git status --porcelain -- "${paths[@]}")" ]; then
+          echo "No changes in $CHECKOUT."
+          if [ -n "$open" ]; then
+            gh pr close "$open" --comment 'Regenerated output now matches the default branch.'
+          fi
+          exit 0
+        fi
+
+        git config user.name 'metorial-bot'
+        git config user.email 'hey@metorial.com'
+        git checkout -B "$BRANCH"
+        for p in "${paths[@]}"; do
+          if [ -e "$p" ] || git ls-files --error-unmatch -- "$p" >/dev/null 2>&1; then git add -A -- "$p"; fi
+        done
+        git commit -m "$TITLE"
+
+        if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null &&
+          git fetch --depth 1 origin "$BRANCH" &&
+          git diff --quiet FETCH_HEAD HEAD -- "${paths[@]}"; then
+          echo "$BRANCH already has this output; not pushing."
+        else
+          git push --force origin "$BRANCH"
+        fi
+
+        if [ -n "$open" ]; then
+          gh pr edit "$open" --title "$TITLE" --body "$BODY"
+        else
+          gh pr create --base "$base" --head "$BRANCH" --title "$TITLE" --body "$BODY"
+        fi

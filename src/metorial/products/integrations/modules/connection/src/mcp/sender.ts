@@ -203,7 +203,7 @@ export class McpSender {
           senderParticipant,
           responderParticipant,
 
-          input: { type: 'mcp', data: msg },
+          input: await this.getStoredInput(msg),
           output: res.mcp ? { type: 'mcp', data: res.mcp } : undefined,
 
           methodOrToolKey: method,
@@ -265,7 +265,7 @@ export class McpSender {
         senderParticipant,
         responderParticipant,
 
-        input: { type: 'mcp', data: msg },
+        input: await this.getStoredInput(msg),
         output: error.data._mcpError
           ? {
               type: 'mcp',
@@ -303,6 +303,23 @@ export class McpSender {
         })
       };
     }
+  }
+
+  private async getStoredInput(msg: JSONRPCMessage) {
+    let input = { type: 'mcp' as const, data: msg };
+    if (!('method' in msg) || msg.method !== 'tools/call') return input;
+
+    let toolName = msg.params?.name;
+    if (typeof toolName !== 'string') {
+      return { ...input, data: { ...msg, params: { redacted: true } } };
+    }
+
+    if (!(await this.manager.shouldRedactStoredToolInput(toolName))) return input;
+
+    return {
+      ...input,
+      data: { ...msg, params: { name: toolName, redacted: true } }
+    };
   }
 
   private async handleMessageInternal(msg: JSONRPCMessage, opts: HandleResponseOpts) {

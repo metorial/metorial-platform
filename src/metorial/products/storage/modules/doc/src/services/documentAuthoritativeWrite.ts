@@ -1,4 +1,5 @@
 import { Service } from '@lowerdeck/service';
+import type { Context } from '@metorial/context';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import { internalDocumentCollaborationService } from '../internal/documentCollaboration';
 import { publishDocumentLiveBusMessage } from '../live/documentLiveBus';
@@ -15,6 +16,7 @@ class DocumentAuthoritativeWriteService {
       title: string;
       content: string;
       authorization: ResourceAuthorization;
+      context?: Context;
     };
   }) {
     let collaboration = await internalDocumentCollaborationService.withDocumentLock(

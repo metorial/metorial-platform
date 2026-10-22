@@ -607,8 +607,22 @@ class StoreAccessServiceImpl {
               overridePermissions: d.overridePermissions
             })
           : [];
+        let skillStoreAccess = actor
+          ? await this.getSkillStoreAccess({
+              project: d.project,
+              instance: d.instance,
+              actor,
+              accessTags: this.getAccessTags(d),
+              requiredPermission: d.requiredPermission,
+              storeOids: relevantStoreOids
+            })
+          : { skillStoreOids: [], accessibleStoreOids: [] };
+        let skillStoreOidSet = new Set(
+          skillStoreAccess.skillStoreOids.map(storeOid => storeOid.toString())
+        );
         let publicStoreOids = actor
           ? stores
+              .filter(store => !skillStoreOidSet.has(store.oid.toString()))
               .filter(store =>
                 getPublicStorePermissions({
                   access: store.access,
@@ -623,19 +637,6 @@ class StoreAccessServiceImpl {
             items: publicStoreOids.map(storeOid => ({ storeOid, permissions: [] }))
           });
         }
-        let skillStoreAccess = actor
-          ? await this.getSkillStoreAccess({
-              project: d.project,
-              instance: d.instance,
-              actor,
-              accessTags: this.getAccessTags(d),
-              requiredPermission: d.requiredPermission,
-              storeOids: relevantStoreOids
-            })
-          : { skillStoreOids: [], accessibleStoreOids: [] };
-        let skillStoreOidSet = new Set(
-          skillStoreAccess.skillStoreOids.map(storeOid => storeOid.toString())
-        );
         let participantStoreOids = this.getAccessibleStoreOids(
           participants,
           d.requiredPermission

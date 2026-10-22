@@ -26,7 +26,7 @@ describe('skill merge request visibility', () => {
     });
   });
 
-  it('keeps restricted consumers limited to visible source or target stores', () => {
+  it('limits restricted consumers to readable stores, ignoring public access on skill stores', () => {
     let where = getVisibleSkillMergeRequestWhere({
       projectOid,
       instanceOid,
@@ -38,7 +38,7 @@ describe('skill merge request visibility', () => {
     });
     let readableStoreWhere = {
       OR: [
-        { access: { in: ['public_read', 'public_write'] } },
+        { access: { in: ['public_read', 'public_write'] }, skill: { is: null } },
         { createdByResourceActorOid: actor.oid },
         {
           storeParticipants: {

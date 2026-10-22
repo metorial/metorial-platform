@@ -183,6 +183,7 @@ export type DashboardInstanceMagicMcpSessionsListOutput = {
       name: string | null;
       description: string | null;
       metadata: Record<string, any>;
+      enableSkillEditing: boolean;
       createdAt: Date;
       updatedAt: Date;
     } | null;
@@ -338,6 +339,7 @@ export let mapDashboardInstanceMagicMcpSessionsListOutput =
                     1,
                     [
                       ['servers', 0, [2, [3, [[0, [1, ['tool_filters']]]]]]],
+                      'enable_skill_editing',
                       'created_at',
                       'updated_at'
                     ]

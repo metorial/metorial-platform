@@ -16,6 +16,7 @@ let mocks = vi.hoisted(() => ({
   get: vi.fn(),
   list: vi.fn(),
   update: vi.fn(),
+  execCommand: vi.fn(),
   operationList: vi.fn(),
   checkAccess: vi.fn(),
   checkTargetAccess: vi.fn(),
@@ -34,8 +35,10 @@ vi.mock('@metorial/module-sandbox', () => ({
   },
   sandboxImageBuildService: {},
   sandboxImageVersionService: {},
-  sandboxMachineAccessService: {},
-  sandboxMachineOperationService: { list: mocks.operationList }
+  sandboxMachineAccessService: { execCommand: mocks.execCommand },
+  sandboxMachineOperationService: { list: mocks.operationList },
+  machineExecDefaultTimeoutSeconds: 60,
+  machineExecMaxTimeoutSeconds: 300
 }));
 vi.mock('@metorial/module-file', () => ({ fileService: {} }));
 
@@ -78,6 +81,7 @@ vi.mock('@metorial/presenters', () => {
     sandboxImageVersionPresenter: stub(),
     sandboxMachinePresenter: stub(),
     sandboxMachineAccessPresenter: stub(),
+    sandboxMachineExecResultPresenter: stub(),
     sandboxMachineUsagePresenter: stub(),
     sandboxMachineOperationPresenter: stub()
   };
@@ -239,6 +243,28 @@ describe('sandbox machine update', () => {
       update().run(request({ body: { public_ports: [8080] } }), context)
     ).rejects.toMatchObject({ data: { status: 403 } });
     expect(mocks.update).not.toHaveBeenCalled();
+  });
+});
+
+describe('sandbox machine exec', () => {
+  it('lifts the idle timeout and hands the request signal to the exec', async () => {
+    let setIdleTimeout = vi.fn();
+    let signal = new AbortController().signal;
+    mocks.execCommand.mockResolvedValue({ exitCode: 0 });
+
+    await handlerOf(sandboxMachineController, 'exec').run(
+      { ...request({ body: { command: 'ls' } }), signal, setIdleTimeout },
+      context
+    );
+
+    expect(setIdleTimeout).toHaveBeenCalledWith(0);
+    expect(mocks.execCommand).toHaveBeenCalledWith(
+      expect.objectContaining({
+        machine,
+        signal,
+        input: expect.objectContaining({ command: 'ls' })
+      })
+    );
   });
 });
 

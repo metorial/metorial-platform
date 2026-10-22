@@ -72,11 +72,6 @@ export let bootstrapUser = async (
   return { id: user.id, name, email, password, session };
 };
 
-/**
- * Creates a user, an organization, a project (which creates its production instance), an
- * organization management key and an instance secret key, all through the public HTTP API of the
- * stack's app-api/core-api.
- */
 // Organization management tokens can no longer be created over REST, so the key is minted
 // in-process. The module is imported by a computed specifier because module packages depend on
 // `@metorial/e2e` for their own suites, and a static dependency would be a workspace cycle.
@@ -96,6 +91,11 @@ let createManagementKey = async (ids: { organizationId: string; userId: string }
   return secret.secret as string;
 };
 
+/**
+ * Creates a user, an organization, a project (which creates its production instance) and an
+ * instance secret key through the public HTTP API of the stack's app-api/core-api, plus an
+ * organization management key minted in-process.
+ */
 export let bootstrapOrganization = async (
   input: { user?: BootstrappedUser; name?: string } = {}
 ): Promise<BootstrappedOrganization> => {
@@ -127,8 +127,9 @@ export let bootstrapOrganization = async (
       name: uniqueId('e2e-instance')
     })
   );
-  if (!instanceSecret.secret)
+  if (!instanceSecret.secret) {
     throw new Error('API key creation did not return the key secret');
+  }
 
   return {
     ids: {

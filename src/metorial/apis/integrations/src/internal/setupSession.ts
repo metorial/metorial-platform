@@ -110,7 +110,11 @@ export let getFullSession = async (
     configSchema: configSchema
       ? setupSessionSchemaPresenter('provider.setup_session.config_schema', configSchema)
       : null,
-    oauthSetup: oauthSetup ? setupSessionOAuthSetupPresenter(oauthSetup) : null,
+    oauthSetup: oauthSetup
+      ? setupSessionOAuthSetupPresenter(oauthSetup, {
+          isAdminSetup: session.typeConcrete === 'admin'
+        })
+      : null,
     publicMcp
   };
 };
@@ -237,7 +241,11 @@ export let setupSessionController = app.controller({
       });
 
       return {
-        oauthSetup: oauthSetup ? setupSessionOAuthSetupPresenter(oauthSetup) : null
+        oauthSetup: oauthSetup
+          ? setupSessionOAuthSetupPresenter(oauthSetup, {
+              isAdminSetup: session.typeConcrete === 'admin'
+            })
+          : null
       };
     }),
 
@@ -345,6 +353,8 @@ export let setupSessionController = app.controller({
       });
       if (!oauthSetup) return null;
 
-      return setupSessionOAuthSetupPresenter(oauthSetup);
+      return setupSessionOAuthSetupPresenter(oauthSetup, {
+        isAdminSetup: (startedSession ?? ctx.session).typeConcrete === 'admin'
+      });
     })
 });

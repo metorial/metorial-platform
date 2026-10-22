@@ -779,7 +779,9 @@ class providerAuthConfigServiceImpl {
       environment: d.environment,
       solution,
       authConfigOid: d.providerAuthConfig.oid,
-      resourceId: d.providerAuthConfig.id
+      resourceId: d.providerAuthConfig.id,
+      owningIntegrationInstanceProviderOid:
+        d.providerAuthConfig.owningIntegrationInstanceProviderOid
     });
 
     return withTransaction(async db => {

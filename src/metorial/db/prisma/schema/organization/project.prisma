@@ -63,6 +63,7 @@ model Project {
   consumerAuthClientRegistrationsPerHourLimit   Int @default(25)
 
   autoAddOrganizationMembersToPortals Boolean @default(false)
+  allowConsumerSkillEditing           Boolean @default(true)
 
   reducedSubprocessors Boolean @default(false)
 

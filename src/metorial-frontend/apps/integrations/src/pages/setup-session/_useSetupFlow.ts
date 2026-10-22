@@ -74,12 +74,14 @@ export let useSetupFlow = ({
   let oauthStarted = useRef(false);
 
   let sessionType = flowSession.typeConcrete ?? flowSession.type;
+  let isAdmin = sessionType === 'admin';
   let isOAuth = flowSession.authMethod?.type === 'oauth';
   let toolFiltersEnabled = !!flowSession.configuration?.toolFilters?.enabled;
 
   let needsProviderSelection = !flowSession.providerId;
   let needsAuthConfig = sessionType !== 'config_only' && !flowSession.authConfig;
-  let needsConfig = sessionType !== 'auth_only' && !flowSession.config && !configSubmitted;
+  let needsConfig =
+    sessionType !== 'auth_only' && !isAdmin && !flowSession.config && !configSubmitted;
 
   let sessionCredentials = useMemo(
     () => ({ sessionId: flowSession.id, clientSecret }),
@@ -298,6 +300,7 @@ export let useSetupFlow = ({
     session: flowSession,
     provider: flowProvider,
     sessionCredentials,
+    isAdminSession: isAdmin,
 
     step,
     isPreparing,

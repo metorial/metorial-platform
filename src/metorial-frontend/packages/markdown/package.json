@@ -4,6 +4,10 @@
   "author": "Tobias Herber",
   "license": "FSL-1.1",
   "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./markdown": "./src/markdown.tsx"
+  },
   "scripts": {
     "test": "vitest run --passWithNoTests",
     "lint": "prettier src/**/*.ts --check"

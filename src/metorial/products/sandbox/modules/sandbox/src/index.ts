@@ -22,6 +22,10 @@ export {
   type SandboxTenantWithRegion
 } from './lib/regional';
 export * from './lib/failure';
+export {
+  machineExecDefaultTimeoutSeconds,
+  machineExecMaxTimeoutSeconds
+} from './lib/machineExec';
 export * from './lib/publicRefs';
 export { getRegionClient, isSandboxingEnabled } from './lib/regions';
 export { startSandboxBackfill } from './queues/backfill';

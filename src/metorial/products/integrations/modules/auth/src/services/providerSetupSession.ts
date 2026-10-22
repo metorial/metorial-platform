@@ -51,13 +51,20 @@ import {
   ownerActorSelect
 } from '@metorial-subspace/module-tenant';
 import { Fabric, type AuditSubspaceProviderSetupSession } from '@metorial/fabric';
-import { addMinutes } from 'date-fns';
+import { addDays, addMinutes } from 'date-fns';
+import {
+  adminSetupInvalidBindingError,
+  adminSetupToolFiltersError
+} from '../lib/adminSetupErrors';
 import {
   providerSetupSessionCreatedQueue,
   providerSetupSessionUpdatedQueue
 } from '../queues/lifecycle/providerSetupSession';
 import { providerAuthConfigInclude } from './providerAuthConfig';
 import { providerSetupSessionInternalService } from './providerSetupSessionInternal';
+
+let DEFAULT_SESSION_EXPIRY_MINUTES = 30;
+let ADMIN_SESSION_EXPIRY_DAYS = 7;
 
 let include = {
   identity: true,
@@ -76,7 +83,8 @@ let include = {
     }
   },
   ownerActor: ownerActorSelect,
-  ownerPublicMcpServer: { select: { id: true } }
+  ownerPublicMcpServer: { select: { id: true } },
+  oauthSetup: true
 };
 
 export let providerSetupSessionInclude = include;
@@ -380,6 +388,14 @@ class providerSetupSessionServiceImpl {
 
     assertNotPublicMcpOwned(d.providerConfig, 'provider_config');
 
+    if (d.input.type === 'admin' && (d.identity || d.providerConfig)) {
+      throw adminSetupInvalidBindingError();
+    }
+
+    if (d.input.type === 'admin' && d.input.configuration?.toolFilters?.enabled) {
+      throw adminSetupToolFiltersError();
+    }
+
     if (!d.provider) {
       let providerOid: bigint | undefined;
 
@@ -402,6 +418,15 @@ class providerSetupSessionServiceImpl {
       }
     }
 
+    if (d.input.type === 'admin' && !d.provider) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Admin setup sessions require a provider',
+          code: 'admin_setup_provider_required'
+        })
+      );
+    }
+
     if (!d.provider && (d.input.authConfigInput || d.input.configInput)) {
       throw new ServiceError(
         badRequestError({
@@ -413,7 +438,11 @@ class providerSetupSessionServiceImpl {
     let ownerActorOid = d.ownerActorOid ?? d.identity?.actorOid ?? null;
 
     return withTransaction(async db => {
-      let expiresAt = d.input.expiresAt ?? addMinutes(new Date(), 30);
+      let expiresAt =
+        d.input.expiresAt ??
+        (d.input.type === 'admin'
+          ? addDays(new Date(), ADMIN_SESSION_EXPIRY_DAYS)
+          : addMinutes(new Date(), DEFAULT_SESSION_EXPIRY_MINUTES));
       let inner: {
         authMethodOid?: bigint | null;
         authCredentialsOid?: bigint | null;
@@ -583,6 +612,14 @@ class providerSetupSessionServiceImpl {
     checkDeletedRelation(d.input.identity);
 
     let providerSetupSession = d.providerSetupSession;
+
+    if (
+      d.input.identity &&
+      (providerSetupSession.typeSelected === 'admin' ||
+        providerSetupSession.typeConcrete === 'admin')
+    ) {
+      throw adminSetupInvalidBindingError();
+    }
 
     if (
       d.input.identity &&

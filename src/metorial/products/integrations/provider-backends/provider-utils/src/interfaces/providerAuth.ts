@@ -178,6 +178,7 @@ export interface ProviderOAuthSetupCreateParam {
   redirectUrl: string;
   callbackUrlOverride: string | null;
   input: Record<string, any>;
+  isAdminSetup?: boolean;
 }
 
 export interface ProviderOAuthSetupCreateRes {
@@ -204,6 +205,8 @@ export interface ProviderOAuthSetupRetrieveRes {
     code: string;
     message: string;
   } | null;
+
+  adminInstructions?: string | null;
 }
 
 export interface GetDecryptedAuthConfigParam {
