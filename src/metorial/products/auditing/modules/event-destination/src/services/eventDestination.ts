@@ -232,7 +232,9 @@ class EventDestinationServiceImpl {
     };
   }) {
     this.assertEventDestinationActive(d.eventDestination);
-    if (d.input.webhook?.url) assertDeliveryUrlAllowedForInput(d.input.webhook.url);
+    if (d.input.webhook?.url != undefined) {
+      assertDeliveryUrlAllowedForInput(d.input.webhook.url);
+    }
     if (d.input.retry) this.assertValidRetryInput(d.input.retry);
 
     return withTransaction(async db => {
