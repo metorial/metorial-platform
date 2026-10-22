@@ -612,10 +612,14 @@ export let subspaceScopeService = Service.create(
   () => new subspaceScopeServiceImpl()
 ).build();
 
+let projectScopeTag = (tenantId: string) => `subspaceScope:project:tenant:${tenantId}`;
+let instanceScopeTag = (tenantId: string) => `subspaceScope:instance:tenant:${tenantId}`;
+
 let projectScopeCache = createCachedFunction({
   name: 'subspaceScope:project',
   redisUrl: env.service.REDIS_URL,
   getHash: (i: { project: ScopeProject }) => i.project.id,
+  getTags: scope => [projectScopeTag(scope.tenant.id)],
   ttlSeconds: scopeCacheTtlSeconds,
   provider: async (i: { project: ScopeProject }) =>
     await subspaceScopeService.ensureForProjectUncached(i.project)
@@ -625,7 +629,13 @@ let instanceScopeCache = createCachedFunction({
   name: 'subspaceScope:instance',
   redisUrl: env.service.REDIS_URL,
   getHash: (i: { instance: ScopeInstance }) => i.instance.id,
+  getTags: scope => [instanceScopeTag(scope.tenant.id)],
   ttlSeconds: scopeCacheTtlSeconds,
   provider: async (i: { instance: ScopeInstance }) =>
     await subspaceScopeService.ensureForInstanceUncached(i.instance)
 });
+
+export let clearTenantScopeCaches = async (tenantId: string) => {
+  await projectScopeCache.clearByTagAndWait(projectScopeTag(tenantId));
+  await instanceScopeCache.clearByTagAndWait(instanceScopeTag(tenantId));
+};

@@ -130,6 +130,11 @@ class tenantServiceImpl {
         await linkTenantToProjectMirror({ tenant, projectOid: d.input.projectOid });
       }
 
+      if (existingTenant && !isTenantUnchanged) {
+        let { clearTenantScopeCaches } = await import('./subspaceScope');
+        await clearTenantScopeCaches(tenant.id);
+      }
+
       let retentionRelevantFieldsChanged =
         (d.input.logRetentionInDays !== undefined &&
           existingTenant?.logRetentionInDays !== tenant.logRetentionInDays) ||
