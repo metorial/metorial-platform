@@ -1,4 +1,5 @@
 import { Context, cors, useRequestContext } from '@lowerdeck/hono';
+import type { MiddlewareHandler } from 'hono';
 import { createHono } from './lib/hono';
 import { OAuthError } from './lib/errors';
 import {
@@ -10,6 +11,12 @@ import {
   OAuthRequestSubjectType,
   parseOAuthBody
 } from './lib/request';
+
+let noStore: MiddlewareHandler = async (c, next) => {
+  await next();
+  c.res.headers.set('Cache-Control', 'no-store');
+  c.res.headers.set('Pragma', 'no-cache');
+};
 
 export let createOAuthAppSkeleton = (d: {
   oauth: {
@@ -109,6 +116,9 @@ export let createOAuthAppSkeleton = (d: {
         credentials: false
       })
     )
+    .use('/oauth/token', noStore)
+    .use('/oauth/device_authorization', noStore)
+    .use('/cli/auth/complete', noStore)
     .post('/oauth/token', async c => {
       let context = useRequestContext(c);
       let body = await parseOAuthBody(c);
