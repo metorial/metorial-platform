@@ -35,7 +35,7 @@ import {
   resolveIdentities,
   resolveIdentityActors,
   resolveIdentityCredentials,
-  resolveProviderConfigs,
+  resolveProviderConfigVaults,
   resolveProviderDeployments,
   resolveProviders,
   resolveProviderSpecifications
@@ -93,8 +93,7 @@ export type CreateProviderConfigParams = {
     provider: Provider;
     providerVariant: ProviderVariant;
     currentVersion:
-      | (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null })
-      | null;
+      (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null }) | null;
   };
   ownerActorOid?: bigint | null;
   input: {
@@ -230,7 +229,7 @@ class providerConfigServiceImpl {
           select: { oid: true }
         })
       : null;
-    let vaults = await resolveProviderConfigs(ts, d.providerConfigVaultIds);
+    let vaults = await resolveProviderConfigVaults(ts, d.providerConfigVaultIds);
     let actors = await resolveIdentityActors(ts, actorIds);
     let identities = await resolveIdentities(ts, d.identityIds);
     let identityCredentials = await resolveIdentityCredentials(ts, d.identityCredentialIds);
@@ -660,27 +659,27 @@ class providerConfigServiceImpl {
           }
         });
 
-        if (config.isDefault && d.providerDeployment) {
-          await db.providerConfig.updateMany({
-            where: {
-              isDefault: true,
-              deploymentOid: d.providerDeployment.oid,
-              oid: { not: config.oid }
-            },
-            data: { isDefault: false }
-          });
-
-          await db.providerDeployment.updateMany({
-            where: { oid: d.providerDeployment.oid },
-            data: { defaultConfigOid: config.oid }
-          });
-        }
-
         return await db.providerConfig.findFirstOrThrow({
           where: { oid: config.oid },
           include: { ...include, currentVersion: true }
         });
       })();
+
+      if (config.isDefault && d.providerDeployment) {
+        await db.providerConfig.updateMany({
+          where: {
+            isDefault: true,
+            deploymentOid: d.providerDeployment.oid,
+            oid: { not: config.oid }
+          },
+          data: { isDefault: false }
+        });
+
+        await db.providerDeployment.updateMany({
+          where: { oid: d.providerDeployment.oid },
+          data: { defaultConfigOid: config.oid }
+        });
+      }
 
       if (d.providerDeployment) {
         await providerDeploymentConfigPairInternalService.upsertDeploymentConfigPair({
