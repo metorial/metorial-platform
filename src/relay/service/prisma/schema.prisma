@@ -60,7 +60,7 @@ model OutgoingEmail {
   id  String @unique
 
   idempotencyKey String?
-  queuedAt DateTime?
+  queuedAt       DateTime?
 
   numberOfDestinations          Int
   numberOfDestinationsCompleted Int
@@ -76,6 +76,7 @@ model OutgoingEmail {
 
   content      OutgoingEmailContent?
   destinations OutgoingEmailDestination[]
+  attachments  OutgoingEmailAttachment[]
 
   @@unique([identityId, idempotencyKey])
   @@index([queuedAt, createdAt])
@@ -107,6 +108,21 @@ model OutgoingEmailContent {
   html    String
   text    String
   subject String
+}
+
+model OutgoingEmailAttachment {
+  id BigInt @id
+
+  filename    String
+  contentType String
+  size        Int
+
+  content Bytes
+
+  emailId BigInt
+  email   OutgoingEmail @relation(fields: [emailId], references: [oid], onDelete: Cascade)
+
+  @@index([emailId])
 }
 
 enum OutgoingEmailSendStatus {

@@ -19,7 +19,16 @@ export let emailController = app.controller({
           subject: v.string(),
           html: v.string(),
           text: v.string()
-        })
+        }),
+        attachments: v.optional(
+          v.array(
+            v.object({
+              filename: v.string(),
+              contentType: v.string(),
+              content: v.string()
+            })
+          )
+        )
       })
     )
     .do(async ctx => {
@@ -35,7 +44,8 @@ export let emailController = app.controller({
         type: ctx.input.type || 'email',
         to: ctx.input.to,
         template: ctx.input.template,
-        content: ctx.input.content
+        content: ctx.input.content,
+        attachments: ctx.input.attachments
       });
 
       return { id: email.id };
