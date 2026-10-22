@@ -130,6 +130,10 @@ export type CreateChatConnectionWithProviderParams = CreateChatConnectionParams 
 // `MetorialFacing<T>` uses `Omit`, which isn't distributive over unions -- applied directly to
 // this discriminated union it would collapse to only the fields common to every branch. Distribute
 // it over each branch by hand instead.
+type FacingCreateChatConnectionParams =
+  | MetorialFacing<Extract<CreateChatConnectionParams, { mode: 'standalone' }>>
+  | MetorialFacing<Extract<CreateChatConnectionParams, { mode: 'existing' }>>;
+
 type FacingCreateChatConnectionWithProviderParams =
   | MetorialFacing<Extract<CreateChatConnectionWithProviderParams, { mode: 'standalone' }>>
   | MetorialFacing<Extract<CreateChatConnectionWithProviderParams, { mode: 'existing' }>>;
@@ -251,7 +255,7 @@ class chatConnectionServiceImpl {
     return chatConnection;
   }
 
-  async createChatConnection(d: MetorialFacing<CreateChatConnectionParams>) {
+  async createChatConnection(d: FacingCreateChatConnectionParams) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
     return this.createChatConnectionInternal({
