@@ -138,10 +138,14 @@ let handleMcpRequestInner = async (c: Context, d: HandleMcpRequestInput) => {
   let { tenant, solution } = await subspaceScopeService.ensureForInstance(d.instance);
   let connectionToken =
     c.req.header('mcp-session-id') || c.req.query('connection_token') || undefined;
+  let isLegacySseMessage =
+    c.req.method === 'POST' &&
+    !c.req.header('mcp-session-id') &&
+    !!c.req.query('connection_token');
   let transport: 'sse' | 'streamable_http' =
-    connectionToken || (c.req.method === 'POST' && !c.req.query('connection_token'))
-      ? 'streamable_http'
-      : 'sse';
+    isLegacySseMessage || (!connectionToken && c.req.method !== 'POST')
+      ? 'sse'
+      : 'streamable_http';
   let proxyUrl = d.publicBaseUrl
     ? `${d.publicBaseUrl}${new URL(c.req.url).search}`
     : publicProxyUrl(c, resolveOutpostOrigin(getOutpostAuth(c)));
