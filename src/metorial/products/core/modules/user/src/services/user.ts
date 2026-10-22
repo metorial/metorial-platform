@@ -86,6 +86,19 @@ class UserService {
     await this.ensureUserActive(d.user);
 
     return withTransaction(async db => {
+      if (d.input.email !== undefined && d.input.email !== d.user.email) {
+        let existingUser = await db.user.findFirst({
+          where: { email: d.input.email }
+        });
+        if (existingUser) {
+          throw new ServiceError(
+            conflictError({
+              message: 'User with this email already exists'
+            })
+          );
+        }
+      }
+
       await Fabric.fire('user.updated:before', { ...d, performedBy: d.user });
 
       let nextImage = d.input.image;

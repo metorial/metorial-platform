@@ -25,7 +25,7 @@ class UserAuthService {
         ? await Bun.password.verify(d.input.password, user.passwordHash)
         : false;
 
-      if (!user || !isValid) {
+      if (!user || user.status === 'deleted' || !isValid) {
         throw new ServiceError(
           badRequestError({
             message: 'Invalid email or password'
@@ -70,7 +70,7 @@ class UserAuthService {
       clientSecret: d.sessionClientSecret,
       context: d.context
     });
-    if (!session) {
+    if (!session || session.user.status === 'deleted') {
       throw new ServiceError(
         unauthorizedError({
           message: 'Session not found or expired'

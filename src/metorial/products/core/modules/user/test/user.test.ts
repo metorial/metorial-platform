@@ -293,6 +293,7 @@ describe('userService', () => {
       withTransaction.mockImplementation(async (cb: any) => {
         const mockDb = {
           user: {
+            findFirst: vi.fn().mockResolvedValue(null),
             update: vi.fn().mockResolvedValue(updatedUser)
           }
         };
