@@ -1,9 +1,6 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import {
-  documentAuthoritativeWriteService,
-  documentService
-} from '@metorial/module-documents';
+import { upsertSkillDocument } from '@metorial/module-skill';
 import { storeItemMutationService } from '@metorial/module-store';
 import type { Instance, Project, ResourceActor, Store } from '@metorial/db';
 import type { AuditScope } from '@metorial/audit-scope';
@@ -69,87 +66,6 @@ class SkillMergeRequestApplyInternalServiceImpl {
     }
 
     return { title, content };
-  }
-
-  private async applyDocumentResolution(d: {
-    project: Project;
-    instance: Instance;
-    auditScope: AuditScope;
-    mergeRequest: SkillMergeRequestRecord;
-    item: SkillMergeRequestItemRecord;
-    actor?: ResourceActor;
-    title: string;
-    content: string;
-  }) {
-    let targetItem = await this.getTargetItemByPath({
-      store: d.mergeRequest.targetSkill.store!,
-      path: d.item.path
-    });
-
-    if (targetItem?.document) {
-      let document = await documentService.getDocumentById({
-        project: d.project,
-        instance: d.instance,
-        documentId: targetItem.document.id,
-        authorization: { type: 'privileged', resourceActor: d.actor }
-      });
-
-      await documentAuthoritativeWriteService.applyDocumentContent({
-        project: d.project,
-        instance: d.instance,
-        document,
-        input: {
-          title: d.title,
-          content: d.content,
-          authorization: { type: 'privileged', resourceActor: d.actor }
-        }
-      });
-      return;
-    }
-
-    if (!targetItem) {
-      await documentService.createDocument({
-        project: d.project,
-        instance: d.instance,
-        auditScope: d.auditScope,
-        input: {
-          title: d.title,
-          content: d.content,
-          authorization: { type: 'privileged', resourceActor: d.actor },
-          store: {
-            id: d.mergeRequest.targetSkill.store!.id,
-            path: d.item.path
-          }
-        }
-      });
-      return;
-    }
-
-    let document = await documentService.createDocument({
-      project: d.project,
-      instance: d.instance,
-      auditScope: d.auditScope,
-      input: {
-        title: d.title,
-        content: d.content,
-        authorization: { type: 'privileged', resourceActor: d.actor }
-      }
-    });
-
-    await storeItemMutationService.modifyStoreItems({
-      project: d.project,
-      instance: d.instance,
-      auditScope: d.auditScope,
-      store: d.mergeRequest.targetSkill.store!,
-      actor: d.actor,
-      operations: [
-        {
-          type: 'modify',
-          itemId: targetItem.id,
-          documentId: document.id
-        }
-      ]
-    });
   }
 
   async applyItemResolution(d: {
@@ -258,13 +174,15 @@ class SkillMergeRequestApplyInternalServiceImpl {
     }
 
     let { title, content } = this.getDocumentResolution({ item: d.item });
+    let targetStore = d.mergeRequest.targetSkill.store!;
 
-    await this.applyDocumentResolution({
+    await upsertSkillDocument({
       project: d.project,
       instance: d.instance,
       auditScope: d.auditScope,
-      mergeRequest: d.mergeRequest,
-      item: d.item,
+      store: targetStore,
+      path: d.item.path,
+      existingItem: await this.getTargetItemByPath({ store: targetStore, path: d.item.path }),
       actor: d.actor,
       title,
       content

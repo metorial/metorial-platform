@@ -78,6 +78,7 @@ export type {
   KeyProviderEventValidation,
   MagicMcpServerMembershipFabricChange,
   ProviderEventBase,
+  SandboxMachineExecOutcome,
   SkillStoreFabricOwner,
   StoreItemFabricOperation
 } from './types';

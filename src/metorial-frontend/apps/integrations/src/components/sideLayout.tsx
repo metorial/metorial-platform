@@ -71,6 +71,7 @@ export let SideLayout = ({
   brand,
   providerName,
   providerImageUrl,
+  title,
   isWhitelabel,
   hideBrand,
   children
@@ -78,6 +79,7 @@ export let SideLayout = ({
   brand: Brand;
   providerName?: string | null;
   providerImageUrl?: string | null;
+  title?: string;
   isWhitelabel?: boolean;
   hideBrand?: boolean;
   children: ReactNode;
@@ -94,6 +96,7 @@ export let SideLayout = ({
             brand={brand}
             providerName={providerName}
             providerImageUrl={providerImageUrl}
+            title={title}
             hideBrand={hideBrand}
             align="start"
           />

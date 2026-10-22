@@ -211,9 +211,9 @@ export let providerSetupSessionController = Controller.create(
             v.string({ examples: ['https://app.example.com/oauth/callback'] })
           ),
           type: v.optional(
-            v.enumOf(['auth_only', 'config_only', 'auth_and_config', 'auto'], {
+            v.enumOf(['auth_only', 'config_only', 'auth_and_config', 'admin', 'auto'], {
               description:
-                'The type of setup session, determining the flow and outcome of the session'
+                'The type of setup session, determining the flow and outcome of the session. `admin` creates an admin consent link for auth methods that support it, never creates credentials or configs, and cannot be bound to an identity, consumer, or config.'
             })
           ),
           configuration: providerSetupSessionConfigurationValidator

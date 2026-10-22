@@ -210,6 +210,9 @@ import {
   type ResourceActorPresentationRecord
 } from '@metorial/module-resource-actor';
 import type {
+  SkillFile,
+  SkillFileChangeResult,
+  SkillFileContent,
   SkillGroupItemResource,
   SkillGroupResource,
   SkillItemResource,
@@ -1016,6 +1019,7 @@ type RawProviderSetupSession = SubspacePrisma.ProviderSetupSessionGetPayload<{
         };
       };
     };
+    oauthSetup: true;
   };
 }>;
 
@@ -1763,6 +1767,21 @@ export let skillAgentType = PresentableType.create<{
     };
   }>;
 }>()('skillAgent');
+
+export let skillFileType = PresentableType.create<{
+  skillFile: SkillFile;
+  skill: { id: string };
+}>()('skillFile');
+
+export let skillFileContentType = PresentableType.create<{
+  skillFileContent: SkillFileContent;
+  skill: { id: string };
+}>()('skillFileContent');
+
+export let skillFileChangeType = PresentableType.create<{
+  skillFileChange: SkillFileChangeResult;
+  skill: { id: string };
+}>()('skillFileChange');
 
 export let skillConfigurationType = PresentableType.create<{
   skillConfiguration: SkillConfiguration;
@@ -3143,6 +3162,10 @@ export let sandboxMachineAccessType = PresentableType.create<{
   scope: 'shell' | 'files' | 'port';
   ports: number[] | '*' | null;
 }>()('sandbox.machine.access');
+
+export let sandboxMachineExecResultType = PresentableType.create<{
+  result: SandboxResolved<typeof sandboxMachineAccessService.execCommand>;
+}>()('sandbox.machine.exec_result');
 
 export let sandboxDiskType = PresentableType.create<{
   disk: SandboxResolved<typeof sandboxDiskService.get>;
