@@ -13,14 +13,12 @@ import {
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import type { RequestedService, ResolvedService } from '@metorial-outpost/server';
+import { isIP } from 'node:net';
 import { OUTPOST_INSTANCE_TOKEN_TTL_MS } from '../lib/constants';
 import { OUTPOST_SERVICES, type OutpostServiceName } from '../lib/services';
 
 export type InstanceAuthorizationStatus =
-  | 'active'
-  | 'unknown'
-  | 'instance_disabled'
-  | 'outpost_disabled';
+  'active' | 'unknown' | 'instance_disabled' | 'outpost_disabled';
 
 let isKnownService = (id: string): id is OutpostServiceName =>
   (OUTPOST_SERVICES as readonly string[]).includes(id);
@@ -42,11 +40,12 @@ class OutpostInstanceService {
   }) {
     let now = new Date();
     let expiresAt = new Date(now.getTime() + OUTPOST_INSTANCE_TOKEN_TTL_MS);
+    let ip = d.context?.ip && isIP(d.context.ip) ? d.context.ip : undefined;
 
     let auditScope = this.auditScope(d.organization, {
       outpostId: d.outpost.id,
       instanceIdentifier: d.input.identifier,
-      ip: d.context?.ip ?? null
+      ip: ip ?? null
     });
 
     let grantedServices = await this.resolveGrantedServices({ outpost: d.outpost });
@@ -91,7 +90,7 @@ class OutpostInstanceService {
           registrationCount: 1,
           lastRegisteredAt: now,
           lastSeenAt: now,
-          lastSeenIp: d.context?.ip,
+          lastSeenIp: ip,
           expiresAt
         },
         update: {
@@ -101,7 +100,7 @@ class OutpostInstanceService {
           registrationCount: { increment: 1 },
           lastRegisteredAt: now,
           lastSeenAt: now,
-          lastSeenIp: d.context?.ip,
+          lastSeenIp: ip,
           expiresAt
         }
       });
