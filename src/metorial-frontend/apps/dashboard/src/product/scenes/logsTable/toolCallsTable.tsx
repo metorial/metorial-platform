@@ -14,7 +14,10 @@ import {
   FilterPayload,
   TableStateProvider,
   TableStateProviderResult,
-  getStringFilterValue
+  getDateRangeFilterValue,
+  getEnumListFilterValue,
+  getStringFilterValue,
+  type TableLayoutProps
 } from '@metorial/table';
 import { Badge, RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
@@ -28,6 +31,8 @@ type ToolCallsTableProps = {
   project: ReturnType<typeof useCurrentProject>;
   instance: ReturnType<typeof useCurrentInstance>;
 };
+
+let toolCallStatuses = ['waiting_for_response', 'succeeded', 'failed'] as const;
 
 let getToolCallStatusColor = (status: ToolCall['status']) => {
   if (status === 'succeeded') return 'green';
@@ -49,13 +54,16 @@ let useToolCallsTableState: TableStateProvider<
   let toolCalls = useToolCalls(props.instanceId, {
     order: 'desc',
     ...props.filters,
+    status:
+      getEnumListFilterValue(opts.filter.status, toolCallStatuses) ?? props.filters?.status,
     toolId: getStringFilterValue(opts.filter.toolId) ?? props.filters?.toolId,
     agentId: getStringFilterValue(opts.filter.agentId) ?? props.filters?.agentId,
     actorId: getStringFilterValue(opts.filter.actorId) ?? props.filters?.actorId,
     consumerId: getStringFilterValue(opts.filter.consumerId) ?? props.filters?.consumerId,
     identityId: getStringFilterValue(opts.filter.identityId) ?? props.filters?.identityId,
     agentInstanceId:
-      getStringFilterValue(opts.filter.agentInstanceId) ?? props.filters?.agentInstanceId
+      getStringFilterValue(opts.filter.agentInstanceId) ?? props.filters?.agentInstanceId,
+    createdAt: getDateRangeFilterValue(opts.filter.createdAt) ?? props.filters?.createdAt
   });
 
   return {
@@ -143,6 +151,25 @@ let toolCallsTable = new DashboardTable<ToolCallsTableProps, ToolCall>('tool-cal
   ])
   .filters([
     {
+      id: 'status',
+      fields: ['status'],
+      label: 'Status',
+      description: 'Filter by tool call status',
+      type: 'select',
+      options: [
+        { id: 'succeeded', label: 'Succeeded' },
+        { id: 'failed', label: 'Failed' },
+        { id: 'waiting_for_response', label: 'Waiting for response' }
+      ]
+    },
+    {
+      id: 'createdAt',
+      fields: ['createdAt'],
+      label: 'Created',
+      description: 'Filter by creation time',
+      type: 'date'
+    },
+    {
       id: 'agentId',
       fields: ['agentId'],
       label: 'Agent ID',
@@ -184,16 +211,19 @@ let toolCallsTable = new DashboardTable<ToolCallsTableProps, ToolCall>('tool-cal
 
 export let ToolCallsTable = ({
   instanceId,
-  filters
+  filters,
+  layout
 }: {
   instanceId: string;
   filters?: ToolCallsTableProps['filters'];
+  layout?: TableLayoutProps;
 }) => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
 
   return toolCallsTable({
+    ...layout,
     instanceId,
     filters,
     instance,

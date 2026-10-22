@@ -64,7 +64,11 @@ export let MagicMcpServerLayout = () => {
       ]}
       tabs={[
         { label: 'Overview', to: Paths.instance.magicMcp.server(...serverPathParams) },
-        { label: 'Settings', to: Paths.instance.magicMcp.server(...serverPathParams, 'config') }
+        { label: 'Usage', to: Paths.instance.magicMcp.server(...serverPathParams, 'usage') },
+        {
+          label: 'Settings',
+          to: Paths.instance.magicMcp.server(...serverPathParams, 'config')
+        }
       ]}
       actions={[
         {

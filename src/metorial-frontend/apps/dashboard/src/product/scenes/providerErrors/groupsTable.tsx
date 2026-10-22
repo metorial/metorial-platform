@@ -10,7 +10,8 @@ import {
   TableStateProvider,
   TableStateProviderResult,
   getEnumListFilterValue,
-  getStringFilterValue
+  getStringFilterValue,
+  type TableLayoutProps
 } from '@metorial/table';
 import { Badge, RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
@@ -161,10 +162,14 @@ let providerErrorGroupsTable = new DashboardTable<ErrorGroupsTableStateProps, Er
   )
   .build();
 
-export let ProviderErrorGroupsTable = (filter?: ErrorGroupsTableProps) => {
+export let ProviderErrorGroupsTable = ({
+  layout,
+  ...filter
+}: ErrorGroupsTableProps & { layout?: TableLayoutProps } = {}) => {
   let instance = useCurrentInstance();
 
   return providerErrorGroupsTable({
+    ...layout,
     ...filter,
     instance,
     emptyState: 'No provider errors found.'

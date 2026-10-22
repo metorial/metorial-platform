@@ -14,8 +14,10 @@ import {
   FilterPayload,
   TableStateProvider,
   TableStateProviderResult,
+  getDateRangeFilterValue,
   getEnumListFilterValue,
-  getStringFilterValue
+  getStringFilterValue,
+  type TableLayoutProps
 } from '@metorial/table';
 import { Badge, RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
@@ -62,7 +64,8 @@ let useSessionConnectionsTableState: TableStateProvider<
     consumerId: getStringFilterValue(opts.filter.consumerId) ?? props.filters?.consumerId,
     identityId: getStringFilterValue(opts.filter.identityId) ?? props.filters?.identityId,
     agentInstanceId:
-      getStringFilterValue(opts.filter.agentInstanceId) ?? props.filters?.agentInstanceId
+      getStringFilterValue(opts.filter.agentInstanceId) ?? props.filters?.agentInstanceId,
+    createdAt: getDateRangeFilterValue(opts.filter.createdAt) ?? props.filters?.createdAt
   });
 
   return {
@@ -178,6 +181,13 @@ let sessionConnectionsTable = new DashboardTable<
       ]
     },
     {
+      id: 'createdAt',
+      fields: ['createdAt'],
+      label: 'Created',
+      description: 'Filter by creation time',
+      type: 'date'
+    },
+    {
       id: 'agentId',
       fields: ['agentId'],
       label: 'Agent ID',
@@ -213,16 +223,19 @@ let sessionConnectionsTable = new DashboardTable<
 
 export let SessionConnectionsTable = ({
   instanceId,
-  filters
+  filters,
+  layout
 }: {
   instanceId: string;
   filters?: SessionConnectionsTableProps['filters'];
+  layout?: TableLayoutProps;
 }) => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
 
   return sessionConnectionsTable({
+    ...layout,
     instanceId,
     filters,
     instance,

@@ -12,6 +12,7 @@ import { InstanceRootRedirectPage } from './pages/rootRedirect';
 let IntegrationsOverviewPage = dynamicPage(() =>
   import('./pages/(integrations)/overview').then(c => c.IntegrationsOverviewPage)
 );
+let UsagePage = dynamicPage(() => import('./pages/usage').then(c => c.UsagePage));
 
 // Provider API pages
 let ProvidersHubLayout = dynamicPage(() =>
@@ -31,6 +32,9 @@ let ProviderLayout = dynamicPage(() =>
 );
 let ProviderOverviewPage = dynamicPage(() =>
   import('./pages/provider/index').then(c => c.ProviderOverviewPage)
+);
+let ProviderUsagePage = dynamicPage(() =>
+  import('./pages/provider/usage').then(c => c.ProviderUsagePage)
 );
 let ProviderVersionsPage = dynamicPage(() =>
   import('./pages/provider/versions').then(c => c.ProviderVersionsPage)
@@ -159,6 +163,9 @@ let IntegrationOverviewPage = dynamicPage(() =>
 let IntegrationInstancesPage = dynamicPage(() =>
   import('./pages/(integrations)/integration/instances').then(c => c.IntegrationInstancesPage)
 );
+let IntegrationUsagePage = dynamicPage(() =>
+  import('./pages/(integrations)/integration/usage').then(c => c.IntegrationUsagePage)
+);
 let IntegrationSettingsPage = dynamicPage(() =>
   import('./pages/(integrations)/integration/settings').then(c => c.IntegrationSettingsPage)
 );
@@ -193,6 +200,9 @@ let MagicMcpServerLayout = dynamicPage(() =>
 );
 let MagicMcpServerOverviewPage = dynamicPage(() =>
   import('./pages/magic-mcp/server/overview').then(c => c.MagicMcpServerOverviewPage)
+);
+let MagicMcpServerUsagePage = dynamicPage(() =>
+  import('./pages/magic-mcp/server/usage').then(c => c.MagicMcpServerUsagePage)
 );
 let MagicMcpServerConfigPage = dynamicPage(() =>
   import('./pages/magic-mcp/server/config').then(c => c.MagicMcpServerConfigPage)
@@ -1239,6 +1249,11 @@ export let productIntegrationsSlice = createSlice([
           },
 
           {
+            path: 'usage',
+            element: <UsagePage />
+          },
+
+          {
             path: 'integrations',
             element: <IntegrationsListLayout />,
             children: [
@@ -1279,6 +1294,10 @@ export let productIntegrationsSlice = createSlice([
               {
                 path: 'instances',
                 element: <IntegrationInstancesPage />
+              },
+              {
+                path: 'usage',
+                element: <IntegrationUsagePage />
               },
               {
                 path: 'callbacks',
@@ -1339,6 +1358,10 @@ export let productIntegrationsSlice = createSlice([
               {
                 path: 'versions',
                 element: <ProviderVersionsPage />
+              },
+              {
+                path: 'usage',
+                element: <ProviderUsagePage />
               }
             ]
           },
@@ -1370,6 +1393,10 @@ export let productIntegrationsSlice = createSlice([
                   {
                     path: '',
                     element: <MagicMcpServerOverviewPage />
+                  },
+                  {
+                    path: 'usage',
+                    element: <MagicMcpServerUsagePage />
                   },
                   {
                     path: 'config',

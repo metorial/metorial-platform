@@ -5,7 +5,8 @@ import {
   Table as DashboardTable,
   TableStateProvider,
   TableStateProviderResult,
-  getStringFilterValue
+  getStringFilterValue,
+  type TableLayoutProps
 } from '@metorial/table';
 import { Badge, RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
@@ -142,10 +143,14 @@ let providerAuthErrorGroupsTable = new DashboardTable<ErrorGroupsTableStateProps
   )
   .build();
 
-export let ProviderAuthErrorGroupsTable = (filter?: ErrorGroupsTableProps) => {
+export let ProviderAuthErrorGroupsTable = ({
+  layout,
+  ...filter
+}: ErrorGroupsTableProps & { layout?: TableLayoutProps } = {}) => {
   let instance = useCurrentInstance();
 
   return providerAuthErrorGroupsTable({
+    ...layout,
     ...filter,
     instance,
     emptyState: 'No provider auth errors found.'

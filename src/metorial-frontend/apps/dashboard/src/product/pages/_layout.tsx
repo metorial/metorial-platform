@@ -18,6 +18,7 @@ import {
   RiHardDrive3Line,
   RiHome6Line,
   RiInstanceLine,
+  RiLineChartLine,
   RiListCheck2,
   RiPlugLine,
   RiRssLine,
@@ -85,6 +86,12 @@ export let ProjectPageLayout = () => {
               icon: <RiPlugLine />,
               label: 'Integrations',
               to: Paths.instance.integrationsOverview(...params),
+              getProps: i => ({ isActive: checkPath(i, { exact: true }) })
+            },
+            {
+              icon: <RiLineChartLine />,
+              label: 'Usage',
+              to: Paths.instance.usage(...params),
               getProps: i => ({ isActive: checkPath(i, { exact: true }) })
             },
             {

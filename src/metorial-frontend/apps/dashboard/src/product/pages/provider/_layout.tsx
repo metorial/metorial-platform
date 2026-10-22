@@ -185,7 +185,11 @@ export let ProviderLayout = () => {
             label: 'Tools & Capabilities',
             to: Paths.instance.provider(...providerPathParams, 'capabilities')
           },
-          { label: 'Versions', to: Paths.instance.provider(...providerPathParams, 'versions') }
+          {
+            label: 'Versions',
+            to: Paths.instance.provider(...providerPathParams, 'versions')
+          },
+          { label: 'Usage', to: Paths.instance.provider(...providerPathParams, 'usage') }
         ]}
         actions={[
           {

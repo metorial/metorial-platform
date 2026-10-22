@@ -20,8 +20,10 @@ import {
   FilterPayload,
   TableStateProvider,
   TableStateProviderResult,
+  getDateRangeFilterValue,
   getEnumListFilterValue,
-  getStringFilterValue
+  getStringFilterValue,
+  type TableLayoutProps
 } from '@metorial/table';
 
 type Session = DashboardInstanceSessionsListOutput['items'][number];
@@ -37,6 +39,7 @@ type ProviderSessionsTableProps = {
   providerDeploymentId?: string;
   providerAuthConfigId?: string;
   providerConfigId?: string;
+  createdAt?: DashboardInstanceSessionsListQuery['createdAt'];
   organization: ReturnType<typeof useCurrentOrganization>;
   project: ReturnType<typeof useCurrentProject>;
   instance: ReturnType<typeof useCurrentInstance>;
@@ -97,7 +100,8 @@ let useProviderSessionsTableState: TableStateProvider<
     providerAuthConfigId:
       getStringFilterValue(opts.filter.providerAuthConfigId) ?? props.providerAuthConfigId,
     providerConfigId:
-      getStringFilterValue(opts.filter.providerConfigId) ?? props.providerConfigId
+      getStringFilterValue(opts.filter.providerConfigId) ?? props.providerConfigId,
+    createdAt: getDateRangeFilterValue(opts.filter.createdAt) ?? props.createdAt
   });
 
   return {
@@ -238,6 +242,13 @@ let providerSessionsTable = new DashboardTable<ProviderSessionsTableProps, Sessi
       ]
     },
     {
+      id: 'createdAt',
+      fields: ['createdAt'],
+      label: 'Created',
+      description: 'Filter by creation time',
+      type: 'date'
+    },
+    {
       id: 'providerId',
       fields: ['providerId'],
       label: 'Provider ID',
@@ -350,7 +361,9 @@ export let ProviderSessionsTable = ({
   identityId,
   providerDeploymentId,
   providerAuthConfigId,
-  providerConfigId
+  providerConfigId,
+  createdAt,
+  layout
 }: {
   providerId?: string;
   status?: string;
@@ -362,12 +375,15 @@ export let ProviderSessionsTable = ({
   providerDeploymentId?: string;
   providerAuthConfigId?: string;
   providerConfigId?: string;
+  createdAt?: DashboardInstanceSessionsListQuery['createdAt'];
+  layout?: TableLayoutProps;
 }) => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
 
   return providerSessionsTable({
+    ...layout,
     providerId,
     status,
     limit,
@@ -378,6 +394,7 @@ export let ProviderSessionsTable = ({
     providerDeploymentId,
     providerAuthConfigId,
     providerConfigId,
+    createdAt,
     instance,
     organization,
     project,
