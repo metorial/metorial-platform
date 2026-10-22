@@ -307,6 +307,10 @@ describe('getSlateInstanceAuth refresh coordination', () => {
       error: { code: 'request.bad', message: 'temporarily_unavailable' }
     },
     {
+      label: 'a wrapped OAuth server_error message',
+      error: { code: 'request.bad', message: 'Slack OAuth error: server_error' }
+    },
+    {
       label: 'a failed invocation',
       error: { code: 'invocation_error', message: 'An error occurred during invocation' }
     },

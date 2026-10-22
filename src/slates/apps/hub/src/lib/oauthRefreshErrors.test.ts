@@ -11,6 +11,8 @@ describe('isTransientOAuthRefreshError', () => {
     { code: 'server_error', message: 'Provider failed' },
     { code: 'request.bad', message: 'server_error' },
     { code: 'request.bad', message: 'temporarily_unavailable' },
+    { code: 'request.bad', message: 'Slack OAuth error: server_error' },
+    { code: 'request.bad', message: 'Token refresh failed (temporarily_unavailable)' },
     { code: 'invocation_error', message: 'An error occurred during invocation' },
     { code: 'no_output_message', message: 'Provider did not return a message' },
     { code: -32603, message: 'Internal error' },
@@ -23,6 +25,9 @@ describe('isTransientOAuthRefreshError', () => {
     { code: 'unauthorized_client', message: 'unauthorized_client' },
     { code: 'invalid_grant', message: 'Refresh token revoked' },
     { code: 'request.bad', message: 'Slack OAuth error: invalid_refresh_token' },
+    { code: 'request.bad', message: 'Slack OAuth error: unauthorized_client' },
+    { code: 'request.bad', message: 'Upstream returned no_server_error_flag' },
+    { code: 'request.bad', message: 'Mentions invocation_error in passing' },
     { code: 'unknown_error', message: undefined }
   ])('treats $code / $message as permanent', error => {
     expect(isTransientOAuthRefreshError(error)).toBe(false);
