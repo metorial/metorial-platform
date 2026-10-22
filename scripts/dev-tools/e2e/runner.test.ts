@@ -85,6 +85,18 @@ describe('command arguments', () => {
       '@x/b'
     ]);
   });
+
+  test('turbo forwards test arguments to every suite', () => {
+    let stack = { name: 'api', tests: ['@x/a'], services: [], env: {} };
+    expect(turboArgs(stack, 1, ['e2e/a.e2e.ts', '-t', 'creates']).slice(-5)).toEqual([
+      '@x/a',
+      '--',
+      'e2e/a.e2e.ts',
+      '-t',
+      'creates'
+    ]);
+    expect(turboArgs(stack, 1, [])).not.toContain('--');
+  });
 });
 
 describe('stack cache key', () => {

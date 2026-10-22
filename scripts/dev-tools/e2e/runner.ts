@@ -41,6 +41,7 @@ export interface Stack {
 export interface Plan {
   mode: 'local' | 'images';
   concurrency: number;
+  testArgs?: string[];
   healthTimeoutSeconds: number;
   files: { path: string; values: Record<string, string> }[];
   prepare: Step[];
@@ -82,7 +83,7 @@ export let rsyncArgs = (from: string, to: string) => [
   `${to.replace(/\/$/, '')}/`
 ];
 
-export let turboArgs = (stack: Stack, concurrency: number) => [
+export let turboArgs = (stack: Stack, concurrency: number, testArgs: string[] = []) => [
   'x',
   'turbo',
   'run',
@@ -90,7 +91,8 @@ export let turboArgs = (stack: Stack, concurrency: number) => [
   '--ui=stream',
   '--continue',
   `--concurrency=${concurrency}`,
-  ...stack.tests.flatMap(test => ['--filter', test])
+  ...stack.tests.flatMap(test => ['--filter', test]),
+  ...(testArgs.length > 0 ? ['--', ...testArgs] : [])
 ];
 
 export let stackCacheKey = (stack: Stack) =>
@@ -195,6 +197,32 @@ let installDependencies = async () => {
   ) {
     log('Dependencies are up to date');
     return;
+  }
+  // `bun install` does not prune packages a lockfile change dropped, and stale `@types/*` stubs
+  // break every build through TypeScript's implicit type libraries, so installs start clean.
+  if (existsSync(marker)) {
+    await runOrThrow(
+      'Removing stale node_modules',
+      [
+        'find',
+        workspace,
+        '-path',
+        path.join(workspace, '.control'),
+        '-prune',
+        '-o',
+        '-type',
+        'd',
+        '-name',
+        'node_modules',
+        '-prune',
+        '-exec',
+        'rm',
+        '-rf',
+        '{}',
+        '+'
+      ],
+      { cwd: workspace, env: {} }
+    );
   }
   await runOrThrow('Installing dependencies', ['bun', 'install'], {
     cwd: workspace,
@@ -372,7 +400,7 @@ let main = async (planPath: string) => {
     let results: { stack: string; code: number }[] = [];
     for (let stack of plan.stacks) {
       log(`Running ${stack.tests.length} e2e suite(s) against ${stack.name}`);
-      let code = await run(['bun', ...turboArgs(stack, plan.concurrency)], {
+      let code = await run(['bun', ...turboArgs(stack, plan.concurrency, plan.testArgs)], {
         cwd: workspace,
         env: {
           ...stack.env,
