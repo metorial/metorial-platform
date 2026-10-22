@@ -199,6 +199,12 @@ export type DashboardInstanceToolCallsListQuery = {
   identityId?: string | string[] | undefined;
   agentInstanceId?: string | string[] | undefined;
   toolId?: string | string[] | undefined;
+  status?:
+    | 'waiting_for_response'
+    | 'succeeded'
+    | 'failed'
+    | ('waiting_for_response' | 'succeeded' | 'failed')[]
+    | undefined;
   createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
   updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };

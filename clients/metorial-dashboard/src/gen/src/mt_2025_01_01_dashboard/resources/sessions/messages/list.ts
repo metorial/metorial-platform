@@ -358,6 +358,12 @@ export type SessionsMessagesListQuery = {
     | undefined;
   source?: 'provider' | 'client' | ('provider' | 'client')[] | undefined;
   hierarchy?: 'child' | 'parent' | ('child' | 'parent')[] | undefined;
+  status?:
+    | 'waiting_for_response'
+    | 'succeeded'
+    | 'failed'
+    | ('waiting_for_response' | 'succeeded' | 'failed')[]
+    | undefined;
   id?: string | string[] | undefined;
   sessionId?: string | string[] | undefined;
   sessionProviderId?: string | string[] | undefined;

@@ -202,6 +202,7 @@ export * from './dashboard_instance_stores_permissions';
 export * from './dashboard_instance_tool-calls';
 export * from './dashboard_instance_webhook-registrations';
 export * from './dashboard_instances_resource-counts';
+export * from './dashboard_instances_usage';
 export * from './dashboard_oauth_authorization-requests';
 export * from './dashboard_oauth_authorization-requests_consumer-targets';
 export * from './dashboard_organizations';

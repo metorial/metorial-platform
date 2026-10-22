@@ -167,6 +167,7 @@ import {
   MetorialDashboardInstanceSkillsVersionsEndpoint,
   MetorialDashboardInstanceSkillsVersionsSnapshotEndpoint,
   MetorialDashboardInstancesResourceCountsEndpoint,
+  MetorialDashboardInstancesUsageEndpoint,
   MetorialDashboardInstanceStoresEndpoint,
   MetorialDashboardInstanceStoresItemsEndpoint,
   MetorialDashboardInstanceStoresParticipantsEndpoint,
@@ -953,6 +954,7 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     manager
   ),
   resourceCounts: new MetorialDashboardInstancesResourceCountsEndpoint(manager),
+  instanceUsage: new MetorialDashboardInstancesUsageEndpoint(manager),
   networkPolicies: Object.assign(
     new MetorialDashboardInstanceNetworkPoliciesEndpoint(manager),
     { rules: new MetorialDashboardInstanceNetworkPoliciesRulesEndpoint(manager) }
