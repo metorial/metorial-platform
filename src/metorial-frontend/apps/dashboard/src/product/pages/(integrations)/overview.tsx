@@ -46,16 +46,6 @@ let StatTile = styled(Link)`
   }
 `;
 
-let ActivityGrid = styled.div`
-  display: grid;
-  gap: 20px;
-  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
-
-  @media (max-width: 1000px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
 let ResourceGrid = styled.div`
   display: grid;
   gap: 20px;
@@ -326,14 +316,10 @@ export let IntegrationsOverviewPage = () => {
           getStatCount={getStatCount}
         />
 
-        <ActivityGrid>
-          <RecentEnclavesBox
-            enclaves={lastUsedEnclaves}
-            enclavePath={Paths.organization.instance.networkEnclaves(...params)}
-          />
-        </ActivityGrid>
-
-
+        <RecentEnclavesBox
+          enclaves={lastUsedEnclaves}
+          enclavePath={Paths.organization.instance.networkEnclaves(...params)}
+        />
 
         <ResourceGrid>
           <ResourceBox

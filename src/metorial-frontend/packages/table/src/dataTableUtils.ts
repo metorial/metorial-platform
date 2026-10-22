@@ -64,7 +64,7 @@ export let getConstrainedEnumListFilterValue = <T extends string>(
 let isStartOfDay = (date: Date) => date.getTime() == startOfDay(date).getTime();
 
 let lowerBound = (date: Date, inclusive: boolean) => {
-  if (isStartOfDay(date)) return inclusive ? startOfDay(date) : endOfDay(date);
+  if (isStartOfDay(date) && !inclusive) return endOfDay(date);
   return inclusive ? new Date(date.getTime() - 1) : date;
 };
 

@@ -1249,7 +1249,7 @@ export let productIntegrationsSlice = createSlice([
           },
 
           {
-            path: 'usage',
+            path: 'integrations/usage',
             element: <UsagePage />
           },
 
