@@ -824,7 +824,9 @@ class providerConfigServiceImpl {
       solution,
       environment: d.environment,
       configOid: d.providerConfig.oid,
-      resourceId: d.providerConfig.id
+      resourceId: d.providerConfig.id,
+      owningIntegrationInstanceProviderOid:
+        d.providerConfig.owningIntegrationInstanceProviderOid
     });
 
     return withTransaction(async db => {

@@ -206,6 +206,10 @@ type GetProviderByIdParams = {
   includeDeprecated?: boolean;
 };
 
+type GetManyProvidersByIdsParams = {
+  ids: string[];
+};
+
 type ListProvidersParams = {
   search?: string;
   ids?: string[];
@@ -264,6 +268,42 @@ class providerServiceImpl {
     }
 
     return provider;
+  }
+
+  async getManyProvidersByIds(d: MetorialFacing<GetManyProvidersByIdsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getManyProvidersByIdsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getManyProvidersByIdsInternal(
+    d: {
+      tenant?: Tenant;
+      environment?: Environment;
+    } & GetManyProvidersByIdsParams
+  ) {
+    if (!d.ids.length) return [];
+
+    let solution = await getMetorialSolution();
+
+    return await db.provider.findMany({
+      where: {
+        AND: [
+          getProviderTenantFilter({
+            ...d,
+            solution,
+            includeDeprecated: true
+          }),
+          { id: { in: d.ids } }
+        ]
+      },
+      include
+    });
   }
 
   async listProviders(d: MetorialFacing<ListProvidersParams>) {

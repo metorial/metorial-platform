@@ -116,6 +116,20 @@ describe('ingestAuditEventsToPostgres', () => {
     );
   });
 
+  it('bumps dirty trackers in ascending organization order', async () => {
+    await ingestAuditEventsToPostgres([
+      { ...baseEvent, id: 'aud_1', organizationOid: 10n },
+      { ...baseEvent, id: 'aud_2', organizationOid: 2n },
+      { ...baseEvent, id: 'aud_3', organizationOid: 7n }
+    ]);
+
+    expect(dirtyTrackerUpsert.mock.calls.map(call => call[0].where.organizationOid)).toEqual([
+      2n,
+      7n,
+      10n
+    ]);
+  });
+
   it('stores a fine-grained actor without an organization actor oid', async () => {
     await ingestAuditEventsToPostgres([
       {
