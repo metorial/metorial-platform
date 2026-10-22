@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('@metorial/module-usage', () => ({
+  recordConnectionCreatedUsage: vi.fn(async () => {}),
+  recordConnectionTimeUsage: vi.fn(async () => {}),
+  recordSessionErrorUsage: vi.fn(async () => {}),
+  recordSessionMessageUsage: vi.fn(async () => {})
+}));
+
 vi.mock('@lowerdeck/error', () => ({
   ServiceError: class ServiceError extends Error {},
   badRequestError: ({ message }: { message: string }) => new Error(message),

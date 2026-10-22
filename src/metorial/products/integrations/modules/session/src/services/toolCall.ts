@@ -67,6 +67,7 @@ let connectionInitLock = createLock({
 
 export type ListToolCallsParams = {
   status?: SessionMessageStatus[];
+  statuses?: SessionMessageStatus[];
   allowDeleted?: boolean;
   includeInternal?: boolean;
 
@@ -201,6 +202,7 @@ class toolCallServiceImpl {
                 ? { session: { isInternal: false } }
                 : undefined!,
               d.ids ? { id: { in: d.ids } } : undefined!,
+              d.statuses?.length ? { message: { status: { in: d.statuses } } } : undefined!,
               sessions ? { sessionOid: sessions.in } : undefined!,
               d.agentInstanceIds
                 ? {

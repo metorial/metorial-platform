@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { AuditScope } from '@metorial/audit-scope';
 import {
+  addAfterTransactionHook,
   Consumer,
   ConsumerProfile,
   ConsumerProfileInviteStatus,
@@ -19,6 +20,7 @@ import {
 import { Fabric } from '@metorial/fabric';
 import { createLock } from '@metorial/lock';
 import { searchConsumerIds } from '@metorial/module-search';
+import { recordConsumerCreatedUsage } from '@metorial/module-usage';
 import {
   consumerEmailEquals,
   normalizeConsumerEmail,
@@ -246,6 +248,16 @@ class ConsumerServiceImpl {
             update: consumerUpdate
           });
 
+      let existingInstanceConsumer = await db.instanceConsumer.findUnique({
+        where: {
+          instanceOid_consumerOid: {
+            instanceOid: d.instance.oid,
+            consumerOid: consumer.oid
+          }
+        },
+        select: { oid: true }
+      });
+
       let instanceConsumer = await db.instanceConsumer.upsert({
         where: {
           instanceOid_consumerOid: {
@@ -272,6 +284,16 @@ class ConsumerServiceImpl {
         },
         include: getInclude({ instanceOid: d.instance.oid })
       });
+
+      if (!existingInstanceConsumer) {
+        await addAfterTransactionHook(() =>
+          recordConsumerCreatedUsage({
+            instanceOid: instanceConsumer.instanceOid,
+            consumerId: instanceConsumer.id,
+            createdAt: instanceConsumer.createdAt
+          })
+        );
+      }
 
       await syncConsumerProfileIdentity({
         instanceOid: d.instance.oid,

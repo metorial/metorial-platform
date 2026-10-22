@@ -87,6 +87,10 @@ export class McpManager {
     return this._connection.callTool(d);
   }
 
+  sendMcpMessageToProvider(d: Parameters<SenderConnection['sendMcpMessageToProvider']>[0]) {
+    return this._connection.sendMcpMessageToProvider(d);
+  }
+
   initialize(d: InitProps) {
     return this._connection.initialize(d);
   }
