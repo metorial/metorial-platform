@@ -1411,6 +1411,7 @@ export interface FabricEvents {
   'skill.plugin.updated:after': { organization: Organization; instance: Instance; skillPlugin: SkillPlugin };
   'skill.plugin.archived:after': { organization: Organization; instance: Instance; skillPlugin: SkillPlugin };
   'skill.plugin.deleted:after': { organization: Organization; instance: Instance; skillPlugin: SkillPlugin };
+  'skill.plugin.slug.reassigned:after': { skillPlugin: SkillPlugin; previousSlug: string };
 
   'skill.marketplace.created:before': { organization: Organization; instance: Instance };
   'skill.marketplace.created:after': { organization: Organization; instance: Instance; skillMarketplace: SkillMarketplace };
