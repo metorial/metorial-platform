@@ -1,4 +1,4 @@
-import { internalServerError, isServiceError } from '@lowerdeck/error';
+import { internalServerError, isServiceError, type ServiceError } from '@lowerdeck/error';
 import { getSentry } from '@lowerdeck/sentry';
 import { serialize } from '@lowerdeck/serialize';
 import type { TopicContext } from '@metorial-subspace/conduit';
@@ -69,6 +69,13 @@ class ConnectionMessageTimeoutError extends Error {
     this.name = 'ConnectionMessageTimeoutError';
   }
 }
+
+let isClientServiceError = (err: unknown): err is ServiceError<any> => {
+  if (!isServiceError(err)) return false;
+
+  let status = Number(err.data?.status);
+  return status >= 400 && status < 500;
+};
 
 let startPendingRequestActivity = (opts: {
   ctx: TopicContext;
@@ -402,7 +409,7 @@ export let startReceiver = () => {
         try {
           providerPromise.catch(err => {
             if (!timedOut) return;
-            Sentry.captureException(err);
+            if (!isClientServiceError(err)) Sentry.captureException(err);
             console.warn(
               `CONNECTION.receiver.provider_after_timeout messageId=${message.id} methodOrToolKey=${message.methodOrToolKey ?? 'unknown'} timeoutMs=${state.messageProcessingTimeoutMs}:`,
               err
@@ -491,6 +498,25 @@ export let startReceiver = () => {
               slateToolCall: undefined,
               failureReason: 'timeout' as const,
               closeContext: true
+            };
+          }
+
+          if (isClientServiceError(err)) {
+            console.warn(
+              `CONNECTION.receiver.provider_client_error messageId=${message.id} code=${err.data.code} status=${err.data.status}`
+            );
+
+            return {
+              isSystemError: false,
+              output: {
+                type: 'error',
+                data: err.toResponse()
+              } satisfies PrismaJson.SessionMessageOutput,
+              status: 'failed' as const,
+              completedAt: new Date(),
+              slateToolCall: undefined,
+              failureReason: undefined,
+              closeContext: false
             };
           }
 
