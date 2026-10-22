@@ -1,0 +1,54 @@
+name: Run control e2e stacks against built images
+description: Build the control CLI and run `control test:e2e --images` with the tested image artifacts
+inputs:
+  test-workspace:
+    description: Prepared test workspace mounted into the e2e runner
+    required: true
+  control-directory:
+    description: Directory of the control crate, relative to the repository root
+    default: src/control
+  args:
+    description: Extra arguments for `control test:e2e` (filters, --oss, ...)
+    default: ''
+runs:
+  using: composite
+  steps:
+    - uses: actions/download-artifact@v4
+      with:
+        pattern: test-image-*
+        path: ${{ runner.temp }}/test-images
+        merge-multiple: true
+    - uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry/index
+          ~/.cargo/registry/cache
+          ~/.cargo/git/db
+          ${{ inputs.control-directory }}/target
+        key: control-cargo-${{ runner.os }}-${{ hashFiles(format('{0}/Cargo.lock', inputs.control-directory), format('{0}/rust-toolchain.toml', inputs.control-directory)) }}
+        restore-keys: control-cargo-${{ runner.os }}-
+    - name: Build control
+      shell: bash
+      env:
+        CONTROL_DIRECTORY: ${{ inputs.control-directory }}
+      run: cargo build --release --locked --manifest-path "$CONTROL_DIRECTORY/Cargo.toml"
+    - name: Run e2e stacks
+      shell: bash
+      env:
+        CONTROL_DIRECTORY: ${{ inputs.control-directory }}
+        TEST_WORKSPACE: ${{ inputs.test-workspace }}
+        ARGS: ${{ inputs.args }}
+      run: |
+        set -euo pipefail
+        read -r -a args <<< "$ARGS"
+        "$CONTROL_DIRECTORY/target/release/control" "${args[@]}" test:e2e \
+          --images "$RUNNER_TEMP/test-images" \
+          --workspace "$(cd "$TEST_WORKSPACE" && pwd)"
+    - name: Upload e2e logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: control-e2e-logs-${{ github.job }}-${{ github.run_attempt }}
+        path: .control/e2e/*/logs
+        if-no-files-found: ignore
+        retention-days: 7

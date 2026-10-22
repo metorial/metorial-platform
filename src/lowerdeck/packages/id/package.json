@@ -31,7 +31,7 @@
     "@lowerdeck/hash": "workspace:2.0.0",
     "@lowerdeck/error": "workspace:2.0.0",
     "nanoid": "^6.0.2",
-    "short-uuid": "^5.2.0",
+    "short-uuid": "^6.0.3",
     "snowflake-uuid": "^1.0.0"
   },
   "devDependencies": {

@@ -25,6 +25,7 @@
     "test:watch": "bunx vitest watch",
     "typecheck": "tsc --noEmit",
     "dev:start": "bun --watch ./src/server.ts",
+    "e2e:start": "bun ./src/server.ts",
     "control:db:generate": "bun run prisma:generate",
     "control:db:push": "bun run prisma:push",
     "test:e2e": "bunx vitest run --config vitest.e2e.config.ts --configLoader runner"
@@ -33,16 +34,16 @@
     "@lowerdeck/testing-tools": "workspace:2.0.0",
     "@types/bun": "latest",
     "@types/lodash": "^4.17.26",
-    "@vercel/ncc": "^0.38.4",
+    "@vercel/ncc": "^0.45.0",
     "vitest": "5.0.4"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
-    "@aws-sdk/client-cloudwatch-logs": "^3.1150.0",
-    "@aws-sdk/client-iam": "^3.1150.0",
-    "@aws-sdk/client-lambda": "^3.1150.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.1151.0",
+    "@aws-sdk/client-iam": "^3.1151.0",
+    "@aws-sdk/client-lambda": "^3.1151.0",
     "@function-bay/types": "workspace:*",
     "@lowerdeck/api-mux": "workspace:2.0.0",
     "@lowerdeck/cache": "workspace:2.0.0",
@@ -67,7 +68,7 @@
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
     "@prisma/extension-read-replicas": "^0.5.0",
-    "@sentry/bun": "^10.76.2",
+    "@sentry/bun": "^11.7.0",
     "@sentry/cli": "^3.8.0",
     "date-fns": "^4.4.0",
     "http-proxy-agent": "^9.1.0",
@@ -77,7 +78,7 @@
     "lodash": "4.18.1",
     "object-storage-client": "^0.2.5",
     "prisma": "^7.10.0",
-    "prisma-json-types-generator": "^5.1.1",
+    "prisma-json-types-generator": "^5.2.0",
     "undici": "^8.11.2",
     "yaml": "^2.9.1",
     "@lowerdeck/delay": "workspace:2.0.0"

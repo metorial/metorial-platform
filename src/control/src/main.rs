@@ -1,6 +1,7 @@
 mod cleanup;
 mod dev;
 mod docker;
+mod e2e;
 mod environment;
 mod infrastructure;
 mod manifest;
@@ -86,6 +87,28 @@ enum Commands {
     TestUnit {
         /// Native Turbo filter expressions. All testable packages run when omitted.
         filters: Vec<String>,
+    },
+    /// Run e2e suites against their service stacks in Docker.
+    #[command(name = "test:e2e")]
+    TestE2e {
+        /// Test package names, stack package names, or `*` wildcards. Everything runs when omitted.
+        filters: Vec<String>,
+        /// Run services from tested image artifacts (`<name>.json`) in this directory instead of
+        /// starting them from source.
+        #[arg(long, value_name = "DIR")]
+        images: Option<PathBuf>,
+        /// Prepared workspace mounted into the runner in --images mode. Defaults to the root.
+        #[arg(long, value_name = "PATH", requires = "images")]
+        workspace: Option<PathBuf>,
+        /// Leave containers running after the tests finish.
+        #[arg(long)]
+        keep: bool,
+        /// Print the resolved plan as JSON without running anything.
+        #[arg(long)]
+        plan: bool,
+        /// Maximum number of test packages Turbo runs at once.
+        #[arg(long)]
+        concurrency: Option<u32>,
     },
     /// Remove generated development artifacts.
     Cleanup {
@@ -238,6 +261,27 @@ async fn main() -> Result<()> {
         }
         Commands::Run { args } => run::run(&project, &start, &args).await,
         Commands::TestUnit { filters } => unit::run(&project, &filters).await,
+        Commands::TestE2e {
+            filters,
+            images,
+            workspace,
+            keep,
+            plan,
+            concurrency,
+        } => {
+            e2e::run(
+                &project,
+                e2e::Options {
+                    filters,
+                    images,
+                    workspace,
+                    keep,
+                    plan_only: plan,
+                    concurrency,
+                },
+            )
+            .await
+        }
         Commands::Cleanup {
             dry_run,
             docker: stop_docker,
@@ -575,6 +619,29 @@ mod tests {
 
         let list = Cli::try_parse_from(["control", "run"]).unwrap();
         assert!(matches!(list.command, Commands::Run { args } if args.is_empty()));
+    }
+
+    #[test]
+    fn parses_e2e_test_options() {
+        let parsed = Cli::try_parse_from([
+            "control",
+            "test:e2e",
+            "@metorial/module-*",
+            "--images",
+            "/tmp/images",
+            "--workspace",
+            "/tmp/ws",
+            "--keep",
+            "--concurrency",
+            "2",
+        ])
+        .unwrap();
+        assert!(matches!(
+            parsed.command,
+            Commands::TestE2e { filters, images: Some(_), workspace: Some(_), keep: true, plan: false, concurrency: Some(2) }
+                if filters == ["@metorial/module-*"]
+        ));
+        assert!(Cli::try_parse_from(["control", "test:e2e", "--workspace", "/tmp/ws"]).is_err());
     }
 
     #[test]

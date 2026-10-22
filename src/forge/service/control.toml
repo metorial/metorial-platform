@@ -6,7 +6,12 @@ run = ["dev:start"]
 
 [endpoints.api]
 port = 52020
+health = "/ping"
 env = [{ key = "FORGE_API_PORT", value = "{{BIND_PORT}}" }]
+
+[e2e]
+start = ["e2e:start"]
+image = "forge"
 
 [[resources]]
 type = "redis"

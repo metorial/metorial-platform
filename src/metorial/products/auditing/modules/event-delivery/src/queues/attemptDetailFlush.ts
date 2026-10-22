@@ -70,7 +70,7 @@ export let eventDeliveryAttemptFlushSingleProcessor =
 
     await db.eventDeliveryAttempt.update({
       where: { id: attempt.id },
-      data: { detailsStorageKey: key, detailsJson: undefined }
+      data: { detailsStorageKey: key, detailsJson: Prisma.DbNull }
     });
   });
 

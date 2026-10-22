@@ -16,6 +16,10 @@ let tdbStorage = new AsyncLocalStorage<{
 
 let afterQueue = new PQueue({ concurrency: Infinity });
 
+// Nobody awaits these hooks, so a rejection would otherwise be unhandled and take the process down.
+let enqueueAfterHook = (task: () => Promise<unknown>) =>
+  afterQueue.add(task).catch(error => console.error('After-transaction hook failed', error));
+
 export let isInTransaction = () => tdbStorage.getStore() != null;
 
 export let withTransaction = async <T>(
@@ -44,7 +48,7 @@ export let withTransaction = async <T>(
       );
     });
 
-    afterQueue.add(async () => {
+    enqueueAfterHook(async () => {
       let inner = async () => await Promise.all(afterHooks.map(hook => hook()));
       await inner();
     });
@@ -86,7 +90,7 @@ export let addAfterTransactionHook = (hook: () => any) =>
     } else {
       setTimeout(
         () =>
-          afterQueue.add(async () => {
+          enqueueAfterHook(async () => {
             if (ctx) await provideExecutionContext(ctx, hook);
             else await hook();
           }),

@@ -201,7 +201,7 @@ export let jxnApp = createHono()
       }
 
       let cookieHeader = c.req.header('cookie') ?? '';
-      let deviceToken = Cookies.parse(cookieHeader)[DEVICE_TOKEN_COOKIE_NAME];
+      let deviceToken = Cookies.parseCookie(cookieHeader)[DEVICE_TOKEN_COOKIE_NAME];
       let deviceInfo = deviceToken ? parseDeviceToken(deviceToken) : null;
       let ip = (c.req.header('x-forwarded-for') ?? c.req.header('x-real-ip') ?? '')
         .split(',')[0]!
@@ -229,15 +229,19 @@ export let jxnApp = createHono()
       let res = c.redirect(redirectUrl.toString());
       res.headers.append(
         'Set-Cookie',
-        Cookies.serialize(
-          DEVICE_TOKEN_COOKIE_NAME,
-          `${device.id}:${device.clientSecret}`,
-          baseCookieOpts
-        )
+        Cookies.stringifySetCookie({
+          name: DEVICE_TOKEN_COOKIE_NAME,
+          value: `${device.id}:${device.clientSecret}`,
+          ...baseCookieOpts
+        })
       );
       res.headers.append(
         'Set-Cookie',
-        Cookies.serialize(SESSION_ID_COOKIE_NAME, session.id, baseCookieOpts)
+        Cookies.stringifySetCookie({
+          name: SESSION_ID_COOKIE_NAME,
+          value: session.id,
+          ...baseCookieOpts
+        })
       );
       return res;
     } catch (error) {

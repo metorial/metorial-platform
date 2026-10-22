@@ -3,7 +3,7 @@ import { createNumberResolver, createResolver } from '../resolver';
 
 export let resolveFiles = createResolver(async ({ scope, ids }) =>
   db.file.findMany({
-    where: { ...scope, id: { in: ids } },
+    where: { instanceOid: scope.instanceOid, id: { in: ids } },
     select: { oid: true }
   })
 );

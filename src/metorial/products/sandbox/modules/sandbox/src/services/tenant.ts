@@ -20,7 +20,15 @@ export type SandboxTenantLimits = {
   requestsPer10MinutesPerTenant: number | null;
   requestsPer10MinutesPerMachine: number | null;
   boostMultiplier: number | null;
+
+  maxMachines?: number | null;
+  maxActiveMachines?: number | null;
+  maxActiveMemoryMiB?: number | null;
+  maxActiveVcpus?: number | null;
+  maxDiskBytes?: number | null;
 };
+
+export type SandboxTenantBlock = { reason: string | null } | null;
 
 class SandboxTenantServiceImpl {
   async ensure(d: { instance: Instance; region: SandboxRegion }) {
@@ -75,6 +83,16 @@ class SandboxTenantServiceImpl {
       tenantId,
       tenantSlug: d.tenant.slug,
       ...d.limits
+    });
+  }
+
+  async syncBlock(d: { tenant: SandboxTenantWithRegion; blocked: SandboxTenantBlock }) {
+    let { genesis, tenantId } = getRegional(d.tenant);
+
+    return await genesis.tenant.update({
+      tenantId,
+      tenantSlug: d.tenant.slug,
+      blocked: d.blocked
     });
   }
 }

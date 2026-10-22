@@ -2,6 +2,7 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Hash } from '@lowerdeck/hash';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import { withUniqueConstraintRecovery } from '@metorial/db';
 import {
   addAfterTransactionHook,
   type Agent,
@@ -184,50 +185,51 @@ class agentInstanceServiceImpl {
       Date.now() - existing.lastConnectedAt.getTime() < LAST_CONNECTED_AT_WRITE_INTERVAL_MS;
     if (existing && isUnchanged) return existing;
 
-    return await withTransaction(async db => {
-      let newId = getId('agentInstance');
+    let where = { agentOid_hash: { agentOid: d.agent.oid, hash } };
+    let update = {
+      name: d.input.name.trim(),
+      version: d.input.version?.trim() || undefined,
+      description,
+      type: d.input.type,
+      lastConnectedAt: new Date(),
+      agentClientOid: d.agentClient?.oid,
+      agentClientRegistrationOid: d.agentClientRegistration?.oid
+    };
 
-      let agentInstance = await db.agentInstance.upsert({
-        where: {
-          agentOid_hash: {
-            agentOid: d.agent.oid,
-            hash
+    return await withUniqueConstraintRecovery(
+      () =>
+        withTransaction(async db => {
+          let newId = getId('agentInstance');
+
+          let agentInstance = await db.agentInstance.upsert({
+            where,
+            create: {
+              ...newId,
+              ...update,
+              hash,
+              agentOid: d.agent.oid
+            },
+            update,
+            include
+          });
+
+          if (agentInstance.id === newId.id) {
+            await addAfterTransactionHook(async () =>
+              mirrorAgentInstanceQueue.add({ agentInstanceId: agentInstance.id })
+            );
           }
-        },
-        create: {
-          ...newId,
 
-          name: d.input.name.trim(),
-          version: d.input.version?.trim() || undefined,
-          description: d.input.description?.trim() || undefined,
-          hash,
-          type: d.input.type,
-          lastConnectedAt: new Date(),
-
-          agentOid: d.agent.oid,
-          agentClientOid: d.agentClient?.oid,
-          agentClientRegistrationOid: d.agentClientRegistration?.oid
-        },
-        update: {
-          name: d.input.name.trim(),
-          version: d.input.version?.trim() || undefined,
-          description: d.input.description?.trim() || undefined,
-          type: d.input.type,
-          lastConnectedAt: new Date(),
-          agentClientOid: d.agentClient?.oid,
-          agentClientRegistrationOid: d.agentClientRegistration?.oid
-        },
-        include
-      });
-
-      if (agentInstance.id === newId.id) {
-        await addAfterTransactionHook(async () =>
-          mirrorAgentInstanceQueue.add({ agentInstanceId: agentInstance.id })
-        );
+          return agentInstance;
+        }),
+      async () => {
+        try {
+          return await db.agentInstance.update({ where, data: update, include });
+        } catch (error) {
+          if (error instanceof Error && 'code' in error && error.code === 'P2025') return null;
+          throw error;
+        }
       }
-
-      return agentInstance;
-    });
+    );
   }
 }
 

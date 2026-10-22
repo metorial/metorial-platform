@@ -6,6 +6,7 @@
   "main": "src/index.ts",
   "scripts": {
     "test": "vitest run --passWithNoTests",
+    "test:e2e": "metorial-e2e",
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
@@ -29,6 +30,7 @@
   "devDependencies": {
     "@metorial-subspace/tsconfig": "^1.0.0",
     "typescript": "5.9.3",
-    "vitest": "^5.0.4"
+    "vitest": "^5.0.4",
+    "@metorial/e2e": "1.0.0"
   }
 }

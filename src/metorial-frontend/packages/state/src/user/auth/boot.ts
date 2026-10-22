@@ -31,6 +31,8 @@ export let useBoot = () => {
 
 export let getBoot = () => bootLoader.fetchAndReturn({});
 
+export let reloadBoot = () => bootLoader.fetchAndReturn({}, { force: true });
+
 export let getInstances = () => getBoot().then(boot => boot.instances);
 
 export let getOrgForInstance = (instanceId: string) =>

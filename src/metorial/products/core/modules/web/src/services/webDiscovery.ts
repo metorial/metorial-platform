@@ -1,6 +1,12 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { db, ID, type WebDiscovery, type WebDiscoveryStatus } from '@metorial/db';
+import {
+  db,
+  ID,
+  type WebDiscovery,
+  type WebDiscoveryStatus,
+  withUniqueConstraintRecovery
+} from '@metorial/db';
 import { DISCOVERY_REUSE_WINDOW_MS } from '../lib/limits';
 import { normalizeWebUrl } from '../lib/url';
 import { runDiscoveryQueue } from '../queues/discovery';
@@ -18,18 +24,22 @@ class webDiscoveryServiceImpl {
     }
 
     let newId = await ID.generateId('webDiscovery');
-    let discovery = await db.webDiscovery.upsert({
-      where: { urlKey: normalized.urlKey },
-      create: {
-        id: newId,
-        status: 'pending',
-        urlKey: normalized.urlKey,
-        url: normalized.pageUrl,
-        host: normalized.host,
-        registrableDomain: normalized.registrableDomain
-      },
-      update: {}
-    });
+    let discovery = await withUniqueConstraintRecovery(
+      () =>
+        db.webDiscovery.upsert({
+          where: { urlKey: normalized.urlKey },
+          create: {
+            id: newId,
+            status: 'pending',
+            urlKey: normalized.urlKey,
+            url: normalized.pageUrl,
+            host: normalized.host,
+            registrableDomain: normalized.registrableDomain
+          },
+          update: {}
+        }),
+      () => db.webDiscovery.findUnique({ where: { urlKey: normalized.urlKey } })
+    );
 
     let shouldRun = discovery.id === newId;
 

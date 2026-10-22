@@ -6,6 +6,15 @@ import { createRoot, Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { dynamicPage } from './dynamicComponent';
 
+// p-queue extends the global EventTarget, which jsdom swaps for one that Node's setMaxListeners rejects.
+vi.mock('p-queue', () => ({
+  default: class {
+    add<T>(task: () => Promise<T>) {
+      return task();
+    }
+  }
+}));
+
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 
 let getByTestId = (container: HTMLElement, testId: string) =>

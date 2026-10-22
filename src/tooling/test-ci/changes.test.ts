@@ -42,6 +42,30 @@ test('E2E suites include every application container dependency', () => {
   expect(suites.find(suite => suite.name === 'function-bay')!.services).toContain('forge');
 });
 
+test('control suites select stack test packages and prune them for CI', async () => {
+  let { controlSuites, controlTestPackages, controlTasks } = await import('./changes');
+  let packages = new Map([
+    [
+      '@metorial/module-user',
+      { directory: 'src/metorial/products/core/modules/user', e2e: true }
+    ],
+    ['@metorial/api-core', { directory: 'src/metorial/apis/core', e2e: true }],
+    ['@metorial/db', { directory: 'src/metorial/db', e2e: false }],
+    ['@metorial/module-x', { directory: 'src/metorial/products/core/modules/x', e2e: false }]
+  ]);
+  expect(controlTestPackages(controlSuites.oss, packages)).toEqual([
+    '@metorial/api-core',
+    '@metorial/module-user'
+  ]);
+  expect(controlTasks(controlSuites.oss)).toBe(
+    'prisma:generate test:e2e --filter=./src/metorial/products/*/modules/* --filter=./src/metorial/apis/*'
+  );
+  expect(controlTasks(controlSuites.enterprise)).toBe(
+    'prisma:generate test:e2e --filter=./src/metorial/modules/* --filter=./src/metorial/apis/* --filter=@metorial-enterprise/fabric'
+  );
+  expect(controlSuites.enterprise.package).toBe('@metorial/mte-core-api');
+});
+
 test('unit selection follows Turbo input exclusions and external config globs', async () => {
   let { taskInputsChanged } = await import('./changes');
   let task = {

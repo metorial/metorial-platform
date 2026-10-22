@@ -164,6 +164,22 @@
     "buildArguments": {},
     "extraInputs": []
   },
+  "app-api": {
+    "dockerfile": "src/metorial/services/api/Dockerfile",
+    "image": "ghcr.io/metorial/app-api",
+    "platform": "linux/amd64",
+    "workspace": ".",
+    "tasks": [
+      "prisma:generate",
+      "oss:server:build",
+      "--filter=@metorial/app-api",
+      "--filter=@metorial/db",
+      "--filter=@metorial/multi-region",
+      "--filter=@metorial-subspace/db"
+    ],
+    "buildArguments": {},
+    "extraInputs": []
+  },
   "slates-hub": {
     "dockerfile": "src/slates/apps/hub/Dockerfile",
     "image": "ghcr.io/metorial/slates-hub",

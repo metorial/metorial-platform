@@ -58,7 +58,7 @@ export type MachineOperationKind = "start" | "pause" | "hibernate" | "restart" |
 
 export type MachineOperationOutcome = "failed" | "active" | "completed" | "superseded";
 
-export type MachineOperationTrigger = "update" | "api" | "access" | "idle_policy" | "paused_policy" | "lifetime" | "failure" | "platform";
+export type MachineOperationTrigger = "update" | "api" | "access" | "idle_policy" | "paused_policy" | "lifetime" | "failure" | "platform" | "billing_block";
 
 export type MachineRootFsStatus = "failed" | "active" | "pending" | "cloning" | "ready" | "deleting" | "deleted";
 
