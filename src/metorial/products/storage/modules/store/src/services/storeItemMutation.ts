@@ -766,6 +766,21 @@ class StoreItemMutationServiceImpl {
         };
       }
 
+      if (d.directory.path !== '/') {
+        let conflictingFile = await this.getStoreItemByPath({
+          store: d.store,
+          path: d.directory.path.slice(0, -1)
+        });
+
+        if (conflictingFile) {
+          throw new ServiceError(
+            badRequestError({
+              message: `Store item path already exists: ${conflictingFile.path}`
+            })
+          );
+        }
+      }
+
       let itemId = await ID.generateId('storeItem');
       return {
         created: true,
@@ -958,7 +973,9 @@ class StoreItemMutationServiceImpl {
         let conflictingItem = await client.storeItem.findFirst({
           where: {
             storeOid: d.item.storeOid,
-            path: nextPath,
+            path: {
+              in: [nextPath, `${nextPath}/`]
+            },
             NOT: {
               id: d.item.id
             }
@@ -1036,6 +1053,18 @@ class StoreItemMutationServiceImpl {
         throw new ServiceError(
           badRequestError({
             message: `Store directory does not exist: ${d.path.parentPath}`
+          })
+        );
+      }
+
+      let conflictingDirectory = await this.getStoreItemByPath({
+        store: d.store,
+        path: `${d.path.path}/`
+      });
+      if (conflictingDirectory) {
+        throw new ServiceError(
+          badRequestError({
+            message: `Store item path already exists: ${conflictingDirectory.path}`
           })
         );
       }
@@ -1291,7 +1320,9 @@ class StoreItemMutationServiceImpl {
         let conflictingItem = await client.storeItem.findFirst({
           where: {
             storeOid: d.store.oid,
-            path: d.nextPath.path,
+            path: {
+              in: [d.nextPath.path, d.nextPath.path.slice(0, -1)]
+            },
             NOT: {
               id: d.item.id
             }
@@ -1447,7 +1478,9 @@ class StoreItemMutationServiceImpl {
             id: d.store.id
           },
           data: {
-            itemCount: currentStore.itemCount + itemCountDelta
+            itemCount: {
+              increment: itemCountDelta
+            }
           }
         });
       }
@@ -1837,7 +1870,9 @@ class StoreItemMutationServiceImpl {
             id: d.store.id
           },
           data: {
-            itemCount
+            itemCount: {
+              increment: itemCount - currentStore.itemCount
+            }
           }
         });
       }
