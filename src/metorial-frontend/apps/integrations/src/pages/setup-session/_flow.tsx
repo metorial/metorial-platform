@@ -12,6 +12,7 @@ import type {
   Session
 } from '../../state/types';
 import { PublicMcpConsent } from './_publicMcpConsent';
+import { PublicMcpTerms } from './_publicMcpTerms';
 import { RetryError } from './_retryError';
 import { CompletedStep } from './_steps/completedStep';
 import { OAuthLoadingStep, OAuthRedirectStep } from './_steps/oauthStep';
@@ -22,10 +23,12 @@ import { useSetupFlow, type SetupFlow as SetupFlowState } from './_useSetupFlow'
 
 let FlowStep = ({
   flow,
-  completionRedirectUrl
+  completionRedirectUrl,
+  isPublicMcp
 }: {
   flow: SetupFlowState;
   completionRedirectUrl?: string | null;
+  isPublicMcp: boolean;
 }) => {
   if (flow.step === 'provider') {
     return (
@@ -43,6 +46,7 @@ let FlowStep = ({
         schema={flow.authConfigSchema}
         mutation={flow.submitAuthConfig}
         submitLabel="Connect"
+        footer={isPublicMcp && <PublicMcpTerms />}
       />
     );
   }
@@ -68,6 +72,7 @@ let FlowStep = ({
         schema={flow.configSchema}
         mutation={flow.submitConfig}
         submitLabel={flow.needsAuthConfig ? 'Continue' : 'Connect'}
+        footer={isPublicMcp && <PublicMcpTerms />}
       >
         {flow.toolAccess && <ToolAccess toolAccess={flow.toolAccess} />}
       </SchemaFormStep>
@@ -124,7 +129,11 @@ export let SetupFlow = ({
         spaceBottom: 48,
         error: err => <RetryError message={err.message} />
       })(() => (
-        <FlowStep flow={flow} completionRedirectUrl={completionRedirectUrl} />
+        <FlowStep
+          flow={flow}
+          completionRedirectUrl={completionRedirectUrl}
+          isPublicMcp={isPublicMcp}
+        />
       ))}
     </MobileSheetProvider>
   );
