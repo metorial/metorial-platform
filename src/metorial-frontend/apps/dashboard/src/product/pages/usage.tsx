@@ -42,7 +42,6 @@ export let UsagePage = () => (
         'connection_time',
         'active_consumers',
         'active_agents',
-        'session_errors',
         'auth_failures'
       ]}
     >
