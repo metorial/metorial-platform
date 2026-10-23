@@ -426,7 +426,9 @@ class MagicMcpTokenImpl {
                       {
                         AND: [
                           {
-                            magicMcpServerOid: null
+                            magicMcpServerOid: null,
+                            magicMcpEndpointOid: null,
+                            isGroupLocked: false
                           },
                           {
                             groups: {
@@ -438,7 +440,8 @@ class MagicMcpTokenImpl {
                       {
                         AND: [
                           {
-                            magicMcpServerOid: null
+                            magicMcpServerOid: null,
+                            magicMcpEndpointOid: null
                           },
                           {
                             groups: {

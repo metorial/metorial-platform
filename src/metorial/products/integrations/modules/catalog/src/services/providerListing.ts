@@ -67,9 +67,22 @@ let getInclude = (tenant: Tenant | undefined, solution: Solution) => ({
   }
 });
 
+let getTrustedListingFilter = (tenant?: Tenant) =>
+  tenant?.onlyAllowTrustedProviders
+    ? {
+        OR: [
+          { provider: { access: 'tenant' as const } },
+          { isVerified: true },
+          { isOfficial: true },
+          { isMetorial: true }
+        ]
+      }
+    : undefined!;
+
 type GetProviderListingByIdParams = {
   providerListingId: string;
   includeDeprecated?: boolean;
+  onlyActive?: boolean;
 };
 
 type ListProviderListingsParams = {
@@ -139,7 +152,11 @@ class ProviderListingService {
         ? {
             provider: getProviderEnvironmentVisibilityFilter(d)
           }
-        : undefined!
+        : undefined!,
+
+      getTrustedListingFilter(d.tenant),
+
+      d.onlyActive ? { status: 'active' as const } : undefined!
     ].filter(Boolean);
 
     let findListingOid = async (match: Prisma.ProviderListingWhereInput) => {
@@ -282,6 +299,8 @@ class ProviderListingService {
                   }
                 : undefined!,
 
+              getTrustedListingFilter(d.tenant),
+
               d.ids
                 ? {
                     OR: [
@@ -318,7 +337,7 @@ class ProviderListingService {
               d.onlyFromTenant && d.tenant
                 ? {
                     ownerTenantOid: d.tenant.oid,
-                    ownerSolutionOid: solution.oid
+                    OR: [{ ownerSolutionOid: solution.oid }, { ownerSolutionOid: null }]
                   }
                 : undefined!,
 

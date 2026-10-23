@@ -109,6 +109,9 @@ enum Commands {
         /// Maximum number of test packages Turbo runs at once.
         #[arg(long)]
         concurrency: Option<u32>,
+        /// Arguments after `--` are passed to every selected suite's Vitest run (files, `-t`).
+        #[arg(last = true)]
+        test_args: Vec<String>,
     },
     /// Remove generated development artifacts.
     Cleanup {
@@ -268,6 +271,7 @@ async fn main() -> Result<()> {
             keep,
             plan,
             concurrency,
+            test_args,
         } => {
             e2e::run(
                 &project,
@@ -278,6 +282,7 @@ async fn main() -> Result<()> {
                     keep,
                     plan_only: plan,
                     concurrency,
+                    test_args,
                 },
             )
             .await
@@ -638,10 +643,27 @@ mod tests {
         .unwrap();
         assert!(matches!(
             parsed.command,
-            Commands::TestE2e { filters, images: Some(_), workspace: Some(_), keep: true, plan: false, concurrency: Some(2) }
-                if filters == ["@metorial/module-*"]
+            Commands::TestE2e { filters, images: Some(_), workspace: Some(_), keep: true, plan: false, concurrency: Some(2), test_args }
+                if filters == ["@metorial/module-*"] && test_args.is_empty()
         ));
         assert!(Cli::try_parse_from(["control", "test:e2e", "--workspace", "/tmp/ws"]).is_err());
+
+        let passthrough = Cli::try_parse_from([
+            "control",
+            "test:e2e",
+            "@metorial/api-core",
+            "--",
+            "e2e/management/organization.e2e.ts",
+            "-t",
+            "creates",
+        ])
+        .unwrap();
+        assert!(matches!(
+            passthrough.command,
+            Commands::TestE2e { filters, test_args, .. }
+                if filters == ["@metorial/api-core"]
+                    && test_args == ["e2e/management/organization.e2e.ts", "-t", "creates"]
+        ));
     }
 
     #[test]

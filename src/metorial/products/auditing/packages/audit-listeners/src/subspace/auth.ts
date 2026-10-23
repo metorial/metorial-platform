@@ -165,6 +165,19 @@ export let recordProviderSetupSessionUpdated = async (
   );
 };
 
+export let recordProviderSetupSessionDeleted = async (
+  event: FabricEvents['provider.setup_session.deleted:after']
+) => {
+  let scope = getSubspaceAuditScope(event);
+  if (!scope) return;
+
+  await recordSubspaceAuditEvent(() =>
+    auditTrackerService.recordEvent(scope, 'provider_setup_session', 'delete', {
+      payload: setupSessionPayload(event.setupSession)
+    })
+  );
+};
+
 export let recordProviderAuthExportCreated = async (
   event: FabricEvents['provider.auth_export.created:after']
 ) => {
@@ -250,6 +263,7 @@ Fabric.listen('provider.auth_credentials.deleted:after', recordProviderAuthCrede
 
 Fabric.listen('provider.setup_session.created:after', recordProviderSetupSessionCreated);
 Fabric.listen('provider.setup_session.updated:after', recordProviderSetupSessionUpdated);
+Fabric.listen('provider.setup_session.deleted:after', recordProviderSetupSessionDeleted);
 
 Fabric.listen('provider.auth_export.created:after', recordProviderAuthExportCreated);
 Fabric.listen('provider.auth_import.created:after', recordProviderAuthImportCreated);

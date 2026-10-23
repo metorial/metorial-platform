@@ -1,7 +1,7 @@
 import { firstPage, uniqueId, useOrganization } from '@metorial/e2e';
-import { loadOrganizationFixture } from '@metorial/e2e/db';
+import { loadOrganizationFixture, subspaceDb } from '@metorial/e2e/db';
 import { describe, expect, it } from 'vitest';
-import { agentClientService, agentService } from '../src';
+import { agentClientService, agentInstanceService, agentService } from '../src';
 
 describe('module-agent', () => {
   let org = useOrganization();
@@ -75,5 +75,36 @@ describe('module-agent', () => {
       await agentClientService.listAgentClients({ instance, types: ['system_client'] })
     );
     expect(clients.map(client => client.id)).toContain(agentClient.id);
+  });
+
+  it('resolves concurrent first opens of one client to a single agent client and instance', async () => {
+    let { instance } = await loadOrganizationFixture(org.ids);
+    let name = uniqueId('concurrent-agent');
+    let foreignId = uniqueId('concurrent-client');
+    let agent = await agentService.upsertAgent({
+      instance,
+      input: { name, type: 'mcp_client' }
+    });
+
+    let opens = await Promise.all(
+      Array.from({ length: 8 }, async () => {
+        let { agentClient } = await agentClientService.upsertAgentClient({
+          instance,
+          input: { name, type: 'system_client', foreignId }
+        });
+        let agentInstance = await agentInstanceService.upsertAgentInstance({
+          instance,
+          agent,
+          agentClient,
+          input: { name, version: '1.0.0', type: 'mcp_client' }
+        });
+
+        return { agentClient, agentInstance };
+      })
+    );
+
+    expect(new Set(opens.map(open => open.agentClient.id)).size).toBe(1);
+    expect(new Set(opens.map(open => open.agentInstance.id)).size).toBe(1);
+    expect(await subspaceDb.agentInstance.count({ where: { agentOid: agent.oid } })).toBe(1);
   });
 });

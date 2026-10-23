@@ -20,6 +20,7 @@ import {
 } from '@metorial/list-utils';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import type { SkillRecord } from './skill';
+import { assertSkillRecordScope } from './skillAccess';
 
 export let skillAgentInclude = {
   skill: {
@@ -116,6 +117,8 @@ class SkillAgentServiceImpl {
       overridePermissions?: boolean;
     };
   }) {
+    assertSkillRecordScope(d);
+
     if (!d.input.content?.trim()) {
       d.input.content = [
         `# ${d.input.name}`,
@@ -249,6 +252,8 @@ class SkillAgentServiceImpl {
       );
     }
 
+    assertSkillRecordScope({ ...d, skill: d.skillAgent.skill });
+
     let name = d.input.name?.trim();
     if (d.input.name !== undefined && !name) {
       throw new ServiceError(
@@ -314,6 +319,8 @@ class SkillAgentServiceImpl {
     defaultPermissions?: StoreParticipantPermissions[];
     overridePermissions?: boolean;
   }) {
+    assertSkillRecordScope({ ...d, skill: d.skillAgent.skill });
+
     let actor = d.authorization.resourceActor;
 
     if (d.skillAgent.storeItem) {

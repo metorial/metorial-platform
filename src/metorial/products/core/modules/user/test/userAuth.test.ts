@@ -29,6 +29,10 @@ vi.mock('@lowerdeck/error', () => ({
   }
 }));
 
+vi.mock('../src/lib/email', () => ({
+  findUserOidsByEmail: vi.fn(async () => [1n])
+}));
+
 vi.mock('../src/services/user', () => ({
   userService: {
     createUser: vi.fn(),
@@ -57,9 +61,13 @@ describe('userAuthService', () => {
   let withTransaction: any;
   let userService: any;
   let userSessionService: any;
+  let findUserOidsByEmail: any;
 
   beforeEach(async () => {
     vi.clearAllMocks();
+
+    let emailModule = await import('../src/lib/email');
+    findUserOidsByEmail = emailModule.findUserOidsByEmail;
 
     const dbModule = await import('@metorial/db');
     db = dbModule.db;
@@ -227,7 +235,8 @@ describe('userAuthService', () => {
         context: mockContext
       });
 
-      expect(capturedWhere).toEqual({ email: 'test@example.com', type: 'user' });
+      expect(findUserOidsByEmail).toHaveBeenCalledWith('test@example.com');
+      expect(capturedWhere).toEqual({ oid: { in: [1n] }, type: 'user', status: 'active' });
     });
   });
 

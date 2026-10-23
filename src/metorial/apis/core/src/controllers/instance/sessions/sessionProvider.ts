@@ -63,7 +63,7 @@ let sessionProviderCreateBodyValidator = v.intersection([
     session_id: v.string(),
     tool_filters: toolFiltersValidator
   }),
-  v.union([deploymentValidator, configValidator, authConfigValidator])
+  v.intersection([deploymentValidator, v.intersection([configValidator, authConfigValidator])])
 ]);
 
 type SessionProviderCreateBody = ValidationTypeValue<

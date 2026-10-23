@@ -1,5 +1,10 @@
 import { createCron } from '@metorial/cron';
-import { addAfterTransactionHook, db, OAuthToken } from '@metorial/db';
+import {
+  addAfterTransactionHook,
+  db,
+  isUniqueConstraintError,
+  OAuthToken
+} from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { createQueue, hourlyPacedDelay } from '@metorial/queue';
 import { cell } from '../../cell';
@@ -7,6 +12,7 @@ import { globalDB } from '../../db';
 import { upsertOrganization } from './organization';
 
 let SYNC_PAGE_SIZE = 500;
+let UPSERT_ATTEMPTS = 3;
 
 let syncOAuthApp = async (_app: { id: string }) => {
   let app = await db.oAuthApplication.findUnique({
@@ -52,41 +58,53 @@ let syncOAuthApp = async (_app: { id: string }) => {
     ownerOid: (await cell).oid
   };
 
-  await globalDB.oAuthApplication.upsert({
-    where: { id: app.id },
-    update: {
-      ...inner,
+  let upsertGlobalApp = () =>
+    globalDB.oAuthApplication.upsert({
+      where: { id: app.id },
+      update: {
+        ...inner,
 
-      clientSecrets: {
-        upsert: app.clientSecrets.map(secret => ({
-          where: { id: secret.id },
-          update: {
-            secret: secret.secret,
-            createdAt: secret.createdAt,
-            deletedAt: secret.deletedAt
-          },
-          create: {
+        clientSecrets: {
+          upsert: app.clientSecrets.map(secret => ({
+            where: { id: secret.id },
+            update: {
+              secret: secret.secret,
+              createdAt: secret.createdAt,
+              deletedAt: secret.deletedAt
+            },
+            create: {
+              id: secret.id,
+              secret: secret.secret,
+              createdAt: secret.createdAt,
+              deletedAt: secret.deletedAt
+            }
+          }))
+        }
+      },
+      create: {
+        ...inner,
+
+        clientSecrets: {
+          create: app.clientSecrets.map(secret => ({
             id: secret.id,
             secret: secret.secret,
             createdAt: secret.createdAt,
             deletedAt: secret.deletedAt
-          }
-        }))
+          }))
+        }
       }
-    },
-    create: {
-      ...inner,
+    });
 
-      clientSecrets: {
-        create: app.clientSecrets.map(secret => ({
-          id: secret.id,
-          secret: secret.secret,
-          createdAt: secret.createdAt,
-          deletedAt: secret.deletedAt
-        }))
-      }
+  // Concurrent syncs of a new app (created:after racing client_secret.create:after) can both
+  // take the create path; the loser retries, now on the update path.
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await upsertGlobalApp();
+      return;
+    } catch (error) {
+      if (attempt >= UPSERT_ATTEMPTS || !isUniqueConstraintError(error)) throw error;
     }
-  });
+  }
 };
 
 Fabric.listen('machine_access.oauth_application.updated:after', async event => {

@@ -1,9 +1,19 @@
 import { notImplementedError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
+import { getConfig } from '@metorial/config';
 import { Context } from '@metorial/context';
 import { db, ID, User, UserSession, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { generateCustomId } from '@metorial/id';
+
+// Kept equal to the dashboard session cookie's max-age in @metorial/auth.
+let productionSessionLifetimeMs = 1000 * 60 * 60 * 24 * 7;
+let nonProductionSessionLifetimeMs = 1000 * 60 * 60 * 24 * 365;
+
+let getSessionLifetimeMs = () =>
+  getConfig().env == 'production'
+    ? productionSessionLifetimeMs
+    : nonProductionSessionLifetimeMs;
 
 class UserSessionService {
   async createUserSession(d: { user: User; context: Context }) {
@@ -22,7 +32,8 @@ class UserSessionService {
         data: {
           id: await ID.generateId('userSession'),
           userOid: d.user.oid,
-          clientSecret: generateCustomId('metorial_ses', 50)
+          clientSecret: generateCustomId('metorial_ses', 50),
+          expiresAt: new Date(Date.now() + getSessionLifetimeMs())
         }
       });
 
@@ -65,7 +76,8 @@ class UserSessionService {
   async getSessionByClientSecretSafe(d: { clientSecret: string; context: Context }) {
     let session = await db.userSession.findFirst({
       where: {
-        clientSecret: d.clientSecret
+        clientSecret: d.clientSecret,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }]
       },
       include: {
         user: true

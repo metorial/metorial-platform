@@ -42,7 +42,7 @@ class FileDownloadServiceImpl {
 
     return {
       link: {
-        expiresAt: null
+        expiresAt: signed.expiresAt
       },
       file
     };

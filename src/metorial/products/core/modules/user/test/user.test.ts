@@ -29,7 +29,13 @@ vi.mock('@metorial/db', () => ({
         deleteMany: vi.fn()
       }
     })
-  )
+  ),
+  addAfterTransactionHook: vi.fn(hook => hook())
+}));
+
+vi.mock('../src/lib/email', async importOriginal => ({
+  ...(await importOriginal<typeof import('../src/lib/email')>()),
+  findUserOidsByEmail: vi.fn(async () => [])
 }));
 
 vi.mock('@metorial/fabric', () => ({
@@ -91,7 +97,9 @@ describe('userService', () => {
   let Fabric: any;
   let fileReferenceService: any;
   let withTransaction: any;
+  let addAfterTransactionHook: any;
   let syncUserUpdateQueue: any;
+  let findUserOidsByEmail: any;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -99,6 +107,10 @@ describe('userService', () => {
     const dbModule = await import('@metorial/db');
     db = dbModule.db;
     withTransaction = dbModule.withTransaction;
+    addAfterTransactionHook = dbModule.addAfterTransactionHook;
+
+    let emailModule = await import('../src/lib/email');
+    findUserOidsByEmail = emailModule.findUserOidsByEmail;
 
     const fabricModule = await import('@metorial/fabric');
     Fabric = fabricModule.Fabric;
@@ -187,19 +199,10 @@ describe('userService', () => {
     });
 
     it('should throw conflict error if user with email already exists', async () => {
-      const existingUser = {
-        id: 'user_existing',
-        email: 'test@example.com'
-      };
+      let create = vi.fn();
 
-      withTransaction.mockImplementation(async (cb: any) => {
-        const mockDb = {
-          user: {
-            findFirst: vi.fn().mockResolvedValue(existingUser)
-          }
-        };
-        return cb(mockDb);
-      });
+      withTransaction.mockImplementation(async (cb: any) => cb({ user: { create } }));
+      findUserOidsByEmail.mockResolvedValueOnce([1n]);
 
       await expect(
         userService.createUser({
@@ -211,6 +214,25 @@ describe('userService', () => {
           context: mockContext
         })
       ).rejects.toThrow();
+      expect(create).not.toHaveBeenCalled();
+    });
+
+    it('should store and look up the email trimmed and lowercased', async () => {
+      let create = vi
+        .fn()
+        .mockImplementation(async ({ data }) => ({ ...data, id: 'user_123' }));
+
+      withTransaction.mockImplementation(async (cb: any) => cb({ user: { create } }));
+
+      await userService.createUser({
+        input: { name: 'Test User', email: '  Test@Example.COM ' },
+        context: mockContext
+      });
+
+      expect(findUserOidsByEmail).toHaveBeenCalledWith('test@example.com');
+      expect(create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ email: 'test@example.com' })
+      });
     });
 
     it('should use custom image if provided', async () => {
@@ -293,6 +315,7 @@ describe('userService', () => {
       withTransaction.mockImplementation(async (cb: any) => {
         const mockDb = {
           user: {
+            findFirst: vi.fn().mockResolvedValue(null),
             update: vi.fn().mockResolvedValue(updatedUser)
           }
         };
@@ -319,6 +342,57 @@ describe('userService', () => {
       expect(syncUserUpdateQueue.add).toHaveBeenCalledWith({
         userId: updatedUser.id
       });
+    });
+
+    it('should queue the profile sync from an after-transaction hook', async () => {
+      withTransaction.mockImplementation(async (cb: any) =>
+        cb({ user: { update: vi.fn().mockResolvedValue(mockUser) } })
+      );
+      addAfterTransactionHook.mockImplementationOnce(() => {});
+
+      await userService.updateUser({
+        user: mockUser,
+        input: { name: 'New Name' },
+        context: mockContext
+      });
+
+      expect(addAfterTransactionHook).toHaveBeenCalledTimes(1);
+      expect(syncUserUpdateQueue.add).not.toHaveBeenCalled();
+    });
+
+    it('should not change the email when only its case differs', async () => {
+      let update = vi.fn().mockResolvedValue(mockUser);
+
+      withTransaction.mockImplementation(async (cb: any) => cb({ user: { update } }));
+
+      await userService.updateUser({
+        user: mockUser,
+        input: { email: ' OLD@Example.com' },
+        context: mockContext
+      });
+
+      expect(findUserOidsByEmail).not.toHaveBeenCalled();
+      expect(update).toHaveBeenCalledWith({
+        where: { id: mockUser.id },
+        data: expect.objectContaining({ email: undefined })
+      });
+    });
+
+    it('should reject an email another user has in a different case', async () => {
+      let update = vi.fn();
+
+      withTransaction.mockImplementation(async (cb: any) => cb({ user: { update } }));
+      findUserOidsByEmail.mockResolvedValueOnce([2n]);
+
+      await expect(
+        userService.updateUser({
+          user: mockUser,
+          input: { email: 'Taken@Example.com' },
+          context: mockContext
+        })
+      ).rejects.toThrow();
+      expect(findUserOidsByEmail).toHaveBeenCalledWith('taken@example.com');
+      expect(update).not.toHaveBeenCalled();
     });
 
     it('should throw forbidden error if user is not active', async () => {

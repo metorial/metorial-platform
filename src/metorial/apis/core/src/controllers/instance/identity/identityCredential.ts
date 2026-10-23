@@ -102,7 +102,7 @@ export let identityCredentialController = Controller.create(
       .do(async ctx => {
         let paginator = await identityCredentialService.listIdentityCredentials({
           instance: ctx.instance,
-          allowDeleted: true,
+          allowDeleted: false,
 
           status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),

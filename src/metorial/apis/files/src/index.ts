@@ -32,8 +32,11 @@ type FileApiAuthResult = Awaited<ReturnType<typeof authenticate>>;
  * Uploads outside any organization (user avatars) have nothing to audit against, and
  * the upload services require an explicit scope rather than silently skipping.
  */
-let requireUploadAuditScope = (target: { auditScope?: AuditScope }) => {
-  if (!target.auditScope) {
+let requireUploadAuditScope = (target: {
+  owner: { type: string };
+  auditScope?: AuditScope;
+}) => {
+  if (!target.auditScope && target.owner.type != 'user') {
     throw new ServiceError(
       badRequestError({
         message: 'This upload target cannot be attributed to an organization'

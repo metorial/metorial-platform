@@ -115,8 +115,7 @@ export type CreateProviderSetupSessionParams = {
     provider: Provider;
     providerVariant: ProviderVariant;
     currentVersion:
-      | (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null })
-      | null;
+      (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null }) | null;
   };
   providerConfig?: ProviderConfig;
   identity?: Identity;
@@ -607,6 +606,7 @@ class providerSetupSessionServiceImpl {
   async updateProviderSetupSessionInternal(d: UpdateProviderSetupSessionParams) {
     assertNotPublicMcpOwned(d.providerSetupSession, 'provider_setup_session');
     let solution = await getMetorialSolution();
+    checkTenant(d, d.providerSetupSession);
     checkDeletedEdit(d.providerSetupSession, 'update');
     checkTenant(d, d.input.identity);
     checkDeletedRelation(d.input.identity);
@@ -656,6 +656,58 @@ class providerSetupSessionServiceImpl {
       );
 
       return config;
+    });
+  }
+
+  async archiveProviderSetupSession(
+    d: MetorialFacing<{
+      providerSetupSession: ProviderSetupSession & AuditSubspaceProviderSetupSession;
+    }>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacingWithOptionalActor(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.setup_session.deleted:before', eventBase);
+
+    let setupSession = await this.archiveProviderSetupSessionInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+
+    await Fabric.fire('provider.setup_session.deleted:after', { ...eventBase, setupSession });
+
+    return setupSession;
+  }
+
+  async archiveProviderSetupSessionInternal(d: {
+    tenant: Tenant;
+    environment: Environment;
+    providerSetupSession: ProviderSetupSession;
+  }) {
+    assertNotPublicMcpOwned(d.providerSetupSession, 'provider_setup_session');
+    checkTenant(d, d.providerSetupSession);
+    checkDeletedEdit(d.providerSetupSession, 'archive');
+
+    let solution = await getMetorialSolution();
+
+    return withTransaction(async db => {
+      let setupSession = await db.providerSetupSession.update({
+        where: {
+          oid: d.providerSetupSession.oid,
+          tenantOid: d.tenant.oid,
+          solutionOid: solution.oid
+        },
+        data: { status: 'archived' },
+        include
+      });
+
+      await addAfterTransactionHook(() =>
+        providerSetupSessionUpdatedQueue.add({ providerSetupSessionId: setupSession.id })
+      );
+
+      return setupSession;
     });
   }
 }

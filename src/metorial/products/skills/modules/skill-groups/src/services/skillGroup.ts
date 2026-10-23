@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { AuditScope } from '@metorial/audit-scope';
@@ -39,6 +39,16 @@ let toAuditSkillGroup = (group: SkillGroupRecord): AuditSkillGroup => ({
   allowConsumerSkillAssignment: group.allowConsumerSkillAssignment,
   skillIds: group.items.map(item => item.skill.id)
 });
+
+let assertSkillGroupName = (name: string) => {
+  if (!name.trim()) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'Skill group name cannot be empty'
+      })
+    );
+  }
+};
 
 class SkillGroupServiceImpl {
   async getSkillGroupById(d: {
@@ -140,6 +150,8 @@ class SkillGroupServiceImpl {
       allowConsumerSkillAssignment?: boolean;
     };
   }) {
+    assertSkillGroupName(d.input.name);
+
     let skills = await db.skill.findMany({
       where: {
         id: { in: d.input.skillIds ?? [] },
@@ -197,6 +209,8 @@ class SkillGroupServiceImpl {
       allowConsumerSkillAssignment?: boolean;
     };
   }) {
+    if (d.input.name !== undefined) assertSkillGroupName(d.input.name);
+
     let group = await this.getSkillGroupById({ ...d, allowDeleted: true });
     let skills = d.input.skillIds
       ? await db.skill.findMany({

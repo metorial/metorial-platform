@@ -5,6 +5,27 @@ import { db } from '@metorial/db';
 export let getSkillPluginSlug = (input: string) =>
   slugify(input.replaceAll('_', '-')) || generatePlainId(8).toLowerCase();
 
+let isSkillPluginSlugAvailable = async (slug: string) => {
+  let [localPlugin, cellPlugin] = await Promise.all([
+    db.skillPlugin.findFirst({ where: { slug }, select: { id: true } }),
+    db.cellSkillPlugin.findFirst({ where: { slug }, select: { id: true } })
+  ]);
+
+  return !localPlugin && !cellPlugin;
+};
+
+export let getAvailableSkillPluginSlug = async (input: string) => {
+  let baseSlug = getSkillPluginSlug(input);
+  if (await isSkillPluginSlugAvailable(baseSlug)) return baseSlug;
+
+  for (let suffix = 2; suffix < 50; suffix++) {
+    let candidate = `${baseSlug}-${suffix}`;
+    if (await isSkillPluginSlugAvailable(candidate)) return candidate;
+  }
+
+  return `${baseSlug}-${generatePlainId(6).toLowerCase()}`;
+};
+
 let isMarketplacePluginSlugAvailable = async (
   slug: string,
   d: { skillMarketplaceId: string }

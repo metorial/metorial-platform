@@ -1,7 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { integrationSetupSessionService } from '@metorial-subspace/module-integration';
 import { brandService } from '@metorial-subspace/module-tenant';
-import { app } from './_app';
+import { app, sessionCredentialValidator } from './_app';
 import { integrationSetupSessionPresenter, setupSessionBrandPresenter } from './presenters';
 
 let integrationSetupSessionApp = app.use(async ctx => {
@@ -50,8 +50,8 @@ export let integrationSetupSessionController = app.controller({
     .handler()
     .input(
       v.object({
-        sessionId: v.string(),
-        clientSecret: v.string()
+        sessionId: sessionCredentialValidator,
+        clientSecret: sessionCredentialValidator
       })
     )
     .do(
@@ -69,8 +69,8 @@ export let integrationSetupSessionController = app.controller({
     .handler()
     .input(
       v.object({
-        sessionId: v.string(),
-        clientSecret: v.string(),
+        sessionId: sessionCredentialValidator,
+        clientSecret: sessionCredentialValidator,
         stepId: v.string()
       })
     )

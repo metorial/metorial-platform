@@ -1,10 +1,19 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { createAuditScope } from '@metorial/audit-scope';
 import { resolveConsumerProfileAccess } from '@metorial/consumer-auth';
 import { accessService } from '@metorial/module-access';
 import { consumerProfileService } from '@metorial/module-consumer-core';
 import { Path } from '@metorial/rest';
 import { apiGroup } from './apiGroup';
+
+let assertPathInstance = (
+  pathInstanceId: string | undefined,
+  instance: { id: string; slug: string }
+) => {
+  if (pathInstanceId && pathInstanceId != instance.id && pathInstanceId != instance.slug) {
+    throw new ServiceError(notFoundError('instance', pathInstanceId));
+  }
+};
 
 export let instanceGroup = apiGroup.use(async ctx => {
   let consumerPlaceholder = {
@@ -17,6 +26,8 @@ export let instanceGroup = apiGroup.use(async ctx => {
   };
 
   if (ctx.auth.type == 'fine_grained' && ctx.auth.restrictions.type == 'instance') {
+    assertPathInstance(ctx.params.instanceId, ctx.auth.restrictions.instance);
+
     return {
       type: 'fine_grained' as const,
       instance: {
@@ -34,6 +45,8 @@ export let instanceGroup = apiGroup.use(async ctx => {
   }
 
   if (ctx.auth.type == 'machine' && ctx.auth.restrictions.type == 'instance') {
+    assertPathInstance(ctx.params.instanceId, ctx.auth.restrictions.instance);
+
     let base = {
       type: 'actor' as const,
       instance: {

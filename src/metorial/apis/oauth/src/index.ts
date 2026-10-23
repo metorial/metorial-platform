@@ -115,6 +115,7 @@ export let oauthApi = createOAuthAppSkeleton({
           input: {
             grantType,
             clientId: credentials.clientId!,
+            clientSecret: credentials.clientSecret,
             refreshToken: refreshToken
           }
         });

@@ -13,14 +13,12 @@ import {
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import type { RequestedService, ResolvedService } from '@metorial-outpost/server';
+import { isIP } from 'node:net';
 import { OUTPOST_INSTANCE_TOKEN_TTL_MS } from '../lib/constants';
 import { OUTPOST_SERVICES, type OutpostServiceName } from '../lib/services';
 
 export type InstanceAuthorizationStatus =
-  | 'active'
-  | 'unknown'
-  | 'instance_disabled'
-  | 'outpost_disabled';
+  'active' | 'unknown' | 'instance_disabled' | 'outpost_disabled';
 
 let isKnownService = (id: string): id is OutpostServiceName =>
   (OUTPOST_SERVICES as readonly string[]).includes(id);
@@ -42,11 +40,12 @@ class OutpostInstanceService {
   }) {
     let now = new Date();
     let expiresAt = new Date(now.getTime() + OUTPOST_INSTANCE_TOKEN_TTL_MS);
+    let ip = d.context?.ip && isIP(d.context.ip) ? d.context.ip : undefined;
 
     let auditScope = this.auditScope(d.organization, {
       outpostId: d.outpost.id,
       instanceIdentifier: d.input.identifier,
-      ip: d.context?.ip ?? null
+      ip: ip ?? null
     });
 
     let grantedServices = await this.resolveGrantedServices({ outpost: d.outpost });
@@ -91,7 +90,7 @@ class OutpostInstanceService {
           registrationCount: 1,
           lastRegisteredAt: now,
           lastSeenAt: now,
-          lastSeenIp: d.context?.ip,
+          lastSeenIp: ip,
           expiresAt
         },
         update: {
@@ -101,7 +100,7 @@ class OutpostInstanceService {
           registrationCount: { increment: 1 },
           lastRegisteredAt: now,
           lastSeenAt: now,
-          lastSeenIp: d.context?.ip,
+          lastSeenIp: ip,
           expiresAt
         }
       });
@@ -169,7 +168,8 @@ class OutpostInstanceService {
     outpostId: string;
     instanceId: string;
     credentialId: string;
-  }): Promise<InstanceAuthorizationStatus> {
+    instancePublicKey: Uint8Array;
+  }): Promise<{ status: InstanceAuthorizationStatus; credentialExpiresAt: Date | null }> {
     let instance = await db.outpostInstance.findFirst({
       where: {
         identifier: d.instanceId,
@@ -178,10 +178,25 @@ class OutpostInstanceService {
       },
       include: { outpost: true, credential: true }
     });
-    if (!instance) return 'unknown';
+    if (!instance) return { status: 'unknown', credentialExpiresAt: null };
+
+    return {
+      status: this.authorizationStatus(instance, d.instancePublicKey),
+      credentialExpiresAt: instance.credential.expiresAt
+    };
+  }
+
+  private authorizationStatus(
+    instance: OutpostInstance & { outpost: Outpost; credential: OutpostCredential },
+    instancePublicKey: Uint8Array
+  ): InstanceAuthorizationStatus {
+    if (!sameBytes(new Uint8Array(instance.publicKey), instancePublicKey)) return 'unknown';
 
     if (instance.outpost.status != 'active') return 'outpost_disabled';
     if (instance.credential.status != 'active') return 'instance_disabled';
+    if (instance.credential.expiresAt && instance.credential.expiresAt <= new Date()) {
+      return 'instance_disabled';
+    }
     if (instance.status != 'active') return 'instance_disabled';
 
     return 'active';

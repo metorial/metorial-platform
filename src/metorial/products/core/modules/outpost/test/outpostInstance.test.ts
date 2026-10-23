@@ -303,12 +303,29 @@ describe('outpostInstanceService lifecycle', () => {
 describe('outpostInstanceService.getInstanceAuthorization', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  let authorize = () =>
-    outpostInstanceService.getInstanceAuthorization({
-      outpostId: 'otp_1',
-      instanceId: 'oti_789',
-      credentialId: 'otc_1'
-    });
+  let instancePublicKey = new Uint8Array([1, 2, 3]);
+
+  let authorize = async (key = instancePublicKey) =>
+    (
+      await outpostInstanceService.getInstanceAuthorization({
+        outpostId: 'otp_1',
+        instanceId: 'oti_789',
+        credentialId: 'otc_1',
+        instancePublicKey: key
+      })
+    ).status;
+
+  let row = (overrides: {
+    status?: string;
+    outpost?: { status: string };
+    credential?: { status: string; expiresAt?: Date | null };
+  }) => ({
+    status: 'active',
+    publicKey: Buffer.from(instancePublicKey),
+    outpost: { status: 'active' },
+    credential: { status: 'active', expiresAt: null },
+    ...overrides
+  });
 
   it('reports an unknown instance', async () => {
     (db.outpostInstance.findFirst as any).mockResolvedValue(null);
@@ -316,39 +333,48 @@ describe('outpostInstanceService.getInstanceAuthorization', () => {
   });
 
   it('reports an active instance', async () => {
-    (db.outpostInstance.findFirst as any).mockResolvedValue({
-      status: 'active',
-      outpost: { status: 'active' },
-      credential: { status: 'active' }
-    });
+    (db.outpostInstance.findFirst as any).mockResolvedValue(row({}));
     expect(await authorize()).toBe('active');
   });
 
+  it('reports a token whose instance key was superseded as unknown', async () => {
+    (db.outpostInstance.findFirst as any).mockResolvedValue(row({}));
+    expect(await authorize(new Uint8Array([9, 9, 9]))).toBe('unknown');
+  });
+
   it('reports a disabled outpost', async () => {
-    (db.outpostInstance.findFirst as any).mockResolvedValue({
-      status: 'active',
-      outpost: { status: 'disabled' },
-      credential: { status: 'active' }
-    });
+    (db.outpostInstance.findFirst as any).mockResolvedValue(
+      row({ outpost: { status: 'disabled' } })
+    );
     expect(await authorize()).toBe('outpost_disabled');
   });
 
   /** Disabling a credential has to lock out every instance that registered with it. */
   it('reports an instance whose credential was disabled', async () => {
-    (db.outpostInstance.findFirst as any).mockResolvedValue({
-      status: 'active',
-      outpost: { status: 'active' },
-      credential: { status: 'disabled' }
-    });
+    (db.outpostInstance.findFirst as any).mockResolvedValue(
+      row({ credential: { status: 'disabled' } })
+    );
     expect(await authorize()).toBe('instance_disabled');
   });
 
+  it('reports an instance whose credential expired before the expiry cron ran', async () => {
+    let expiresAt = new Date(Date.now() - 1_000);
+    (db.outpostInstance.findFirst as any).mockResolvedValue(
+      row({ credential: { status: 'active', expiresAt } })
+    );
+
+    expect(
+      await outpostInstanceService.getInstanceAuthorization({
+        outpostId: 'otp_1',
+        instanceId: 'oti_789',
+        credentialId: 'otc_1',
+        instancePublicKey
+      })
+    ).toEqual({ status: 'instance_disabled', credentialExpiresAt: expiresAt });
+  });
+
   it('reports a deactivated instance', async () => {
-    (db.outpostInstance.findFirst as any).mockResolvedValue({
-      status: 'inactive',
-      outpost: { status: 'active' },
-      credential: { status: 'active' }
-    });
+    (db.outpostInstance.findFirst as any).mockResolvedValue(row({ status: 'inactive' }));
     expect(await authorize()).toBe('instance_disabled');
   });
 });

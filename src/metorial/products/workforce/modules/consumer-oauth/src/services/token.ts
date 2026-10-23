@@ -439,8 +439,8 @@ class ConsumerOAuthTokenService {
       );
     }
 
-    if (attempt.authorizationCodeUsedAt) {
-      throw new ServiceError(
+    let codeAlreadyUsedError = () =>
+      new ServiceError(
         badRequestError({
           message: 'Authorization code has already been used',
           oauth: {
@@ -449,7 +449,8 @@ class ConsumerOAuthTokenService {
           }
         })
       );
-    }
+
+    if (attempt.authorizationCodeUsedAt) throw codeAlreadyUsedError();
 
     if (!urlsMatch(attempt.redirectUri, d.redirectUri)) {
       throw new ServiceError(
@@ -458,6 +459,22 @@ class ConsumerOAuthTokenService {
           oauth: {
             error: 'invalid_grant',
             errorMessage: 'Redirect URI does not match the authorization request'
+          }
+        })
+      );
+    }
+
+    if (
+      d.client.requirePkce &&
+      d.client.tokenEndpointAuthMethod == 'none' &&
+      (attempt.codeChallengeMethod != 's256' || !attempt.codeChallenge)
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'This authorization request was not protected with PKCE',
+          oauth: {
+            error: 'invalid_grant',
+            errorMessage: 'This authorization request was not protected with PKCE'
           }
         })
       );
@@ -500,6 +517,18 @@ class ConsumerOAuthTokenService {
       );
     }
 
+    let claimedCode = await db.consumerAuthAttempt.updateMany({
+      where: {
+        id: attempt.id,
+        status: 'authorized',
+        authorizationCodeUsedAt: null
+      },
+      data: {
+        authorizationCodeUsedAt: new Date()
+      }
+    });
+    if (claimedCode.count == 0) throw codeAlreadyUsedError();
+
     let accessToken = await this.ensureLinkedAccessToken({
       attempt,
       portal: d.portal,
@@ -516,7 +545,6 @@ class ConsumerOAuthTokenService {
       },
       data: {
         status: 'active',
-        authorizationCodeUsedAt: new Date(),
         refreshToken,
         expiresAt
       }

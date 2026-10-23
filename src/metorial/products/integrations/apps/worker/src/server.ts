@@ -7,6 +7,10 @@ import { createRequire } from 'module';
 async function main() {
   await import('./init');
   await import('./boot');
+
+  // Standalone (OSS) only: the enterprise subspace-worker boots `./boot` directly and runs the
+  // federation queues in the enterprise worker instead.
+  await import('./federationWorker');
 }
 
 main().catch(error => {

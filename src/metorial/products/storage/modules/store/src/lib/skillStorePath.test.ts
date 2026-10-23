@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { assertSkillStoreItemAllowed, isSkillAgentPath } from './skillStorePath';
 import { normalizeStorePath } from './storePath';
 
-let file = (path: string) => normalizeStorePath({ path, kind: 'file' });
+let file = (path: string) => normalizeStorePath({ path, kind: 'file', mode: 'legacy' });
 
 describe('skill store path rules', () => {
   it.each(['/agents/reviewer.md', '/agents/Reviewer.MD', '/agents/Notes.Md'])(

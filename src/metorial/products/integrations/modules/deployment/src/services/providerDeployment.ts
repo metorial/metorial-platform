@@ -534,7 +534,7 @@ class providerDeploymentServiceImpl {
           provider: d.provider,
           environment: d.environment,
           input: {
-            name: `Default Config for ${d.input.name}`,
+            name: `Default Config for ${d.input.name?.trim() || d.provider.name}`,
             config: d.input.config,
             metadata: d.input.metadata,
             isEphemeral: false,

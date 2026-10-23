@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 let findManyFilters = vi.fn();
 let findManySettings = vi.fn();
 let findUniqueTenantSetting = vi.fn();
-let findFirstOrThrowFilter = vi.fn();
+let findFirstFilter = vi.fn();
 let upsertFilterSetting = vi.fn();
 let upsertTenantSetting = vi.fn();
 
@@ -11,7 +11,7 @@ vi.mock('@metorial-subspace/db', () => ({
   db: {
     protoGuardFilter: {
       findMany: findManyFilters,
-      findFirstOrThrow: findFirstOrThrowFilter
+      findFirst: findFirstFilter
     },
     protoGuardTenantFilterSetting: {
       findMany: findManySettings,
@@ -110,11 +110,11 @@ describe('getProtoGuardConfigForEvaluation', () => {
 describe('protoGuardConfigService', () => {
   beforeEach(() => {
     vi.resetModules();
-    findFirstOrThrowFilter.mockReset();
+    findFirstFilter.mockReset();
     upsertFilterSetting.mockReset();
     upsertTenantSetting.mockReset();
 
-    findFirstOrThrowFilter.mockResolvedValue({
+    findFirstFilter.mockResolvedValue({
       oid: BigInt(456),
       key: 'instruction_override',
       defaultEnabled: true,
@@ -155,5 +155,46 @@ describe('protoGuardConfigService', () => {
     expect(create.tenantOid).toBe(BigInt(1));
     expect(create.projectOid).toBeNull();
     expect(create).not.toHaveProperty('instanceOid');
+  });
+
+  it('rejects an unknown filter with a not found error', async () => {
+    let { protoGuardConfigService } = await import('./protoGuardConfig');
+    findFirstFilter.mockResolvedValue(null);
+
+    await expect(
+      protoGuardConfigService.setTenantFilterEnabledInternal({
+        tenant: { oid: BigInt(1), id: 'tenant_1', projectOid: null },
+        filterId: 'missing_filter',
+        enabled: false
+      } as any)
+    ).rejects.toMatchObject({ data: { code: 'not_found' } });
+    expect(upsertFilterSetting).not.toHaveBeenCalled();
+  });
+
+  it('rejects out-of-range thresholds before writing a setting', async () => {
+    let { protoGuardConfigService } = await import('./protoGuardConfig');
+    let tenant = { oid: BigInt(1), id: 'tenant_1', projectOid: null };
+
+    for (let threshold of [-0.1, 1.5, Number.NaN]) {
+      await expect(
+        protoGuardConfigService.setTenantFilterAlertConfidenceThresholdInternal({
+          tenant,
+          filterId: 'instruction_override',
+          threshold
+        } as any)
+      ).rejects.toMatchObject({ data: { code: 'invalid_alert_confidence_threshold' } });
+    }
+
+    for (let threshold of [0, 1.5, -2]) {
+      await expect(
+        protoGuardConfigService.setTenantAlertFilterCountThresholdInternal({
+          tenant,
+          threshold
+        } as any)
+      ).rejects.toMatchObject({ data: { code: 'invalid_alert_filter_count_threshold' } });
+    }
+
+    expect(upsertFilterSetting).not.toHaveBeenCalled();
+    expect(upsertTenantSetting).not.toHaveBeenCalled();
   });
 });

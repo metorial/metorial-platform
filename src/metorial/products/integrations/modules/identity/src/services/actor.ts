@@ -25,7 +25,7 @@ import {
   normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList,
-  resolveProviders
+  resolveAgents
 } from '@metorial-subspace/list-utils';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import {
@@ -239,7 +239,7 @@ class identityActorServiceImpl {
 
   async listIdentityActorsInternal(d: Omit<ListIdentityActorsParams, 'consumerIds'>) {
     let solution = await getMetorialSolution();
-    let agents = await resolveProviders({ ...d, solution }, d.agentIds);
+    let agents = await resolveAgents({ ...d, solution }, d.agentIds);
 
     let search = await buildSearchFilter<Prisma.IdentityActorWhereInput>({
       search: d.search,

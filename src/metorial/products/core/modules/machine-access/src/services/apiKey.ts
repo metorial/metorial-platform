@@ -221,6 +221,21 @@ class ApiKeyService {
         machineAccess: d.apiKey.machineAccess
       });
 
+      await machineAccessService.updateMachineAccess({
+        machineAccess: d.apiKey.machineAccess,
+        input: {
+          name:
+            d.input.name === undefined
+              ? undefined
+              : {
+                  instance_access_token_publishable: `INSTANCE TOKEN ${d.input.name}`,
+                  instance_access_token_secret: `INSTANCE TOKEN ${d.input.name}`,
+                  organization_management_token: `ORG TOKEN ${d.input.name}`
+                }[d.apiKey.type]
+        },
+        auditScope: d.auditScope
+      });
+
       let apiKey = await db.apiKey.update({
         where: { oid: d.apiKey.oid },
         data: {
@@ -241,17 +256,13 @@ class ApiKeyService {
         }
       });
 
-      await machineAccessService.updateMachineAccess({
-        machineAccess: d.apiKey.machineAccess,
-        input: {
-          name: {
-            instance_access_token_publishable: `INSTANCE TOKEN ${d.input.name}`,
-            instance_access_token_secret: `INSTANCE TOKEN ${d.input.name}`,
-            organization_management_token: `ORG TOKEN ${d.input.name}`
-          }[d.apiKey.type]
-        },
-        auditScope: d.auditScope
-      });
+      // Reveal and rotate identify the current secrets by `expiresAt == apiKey.expiresAt`.
+      if (d.input.expiresAt !== undefined) {
+        await db.apiKeySecret.updateMany({
+          where: { apiKeyOid: d.apiKey.oid, expiresAt: d.apiKey.expiresAt },
+          data: { expiresAt: d.input.expiresAt }
+        });
+      }
 
       return apiKey;
     });

@@ -132,6 +132,8 @@ class SkillMergeRequestCommentServiceImpl {
           badRequestError({ message: 'Comment path must match a merge request item' })
         );
       }
+
+      skillMergeRequestItemOid ??= matchingItem.oid;
     }
 
     return await withTransaction(async tx => {

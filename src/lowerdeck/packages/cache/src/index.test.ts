@@ -19,14 +19,18 @@ vi.mock('@lowerdeck/redis', () => ({
         if (!redisSets.has(key)) redisSets.set(key, new Set());
         redisSets.get(key)!.add(member);
       },
-      sRem: async (key: string, member: string) => void redisSets.get(key)?.delete(member),
+      sRem: async (key: string, members: string | string[]) => {
+        for (let member of [members].flat()) redisSets.get(key)?.delete(member);
+      },
       sMembers: async (key: string) => [...(redisSets.get(key) ?? [])],
       expire: async () => {}
     })
   })
 }));
 
-let tagMembers = (tag: string) => [...(redisSets.get(`cache:0:tag:${tag}`) ?? [])];
+let tagMembers = (name: string, tag: string) => [
+  ...(redisSets.get(`cache:0:${name}:tag:${tag}`) ?? [])
+];
 
 describe('createCachedFunction', () => {
   it('evicts the local copy on clearAndWait even when redis was already cleared', async () => {
@@ -87,12 +91,70 @@ describe('createCachedFunction', () => {
     expect(await refreshed('key')).toBe('owner:2');
     await new Promise(resolve => setTimeout(resolve, 0));
 
-    expect(tagMembers('owner:1')).toEqual([]);
-    expect(tagMembers('owner:2')).toHaveLength(1);
+    expect(tagMembers('revalidate-tags', 'owner:1')).toEqual([]);
+    expect(tagMembers('revalidate-tags', 'owner:2')).toHaveLength(1);
 
     await refreshed.clearByTagAndWait('owner:1');
     expect(await refreshed('key')).toBe('owner:2');
     expect(provider).toHaveBeenCalledTimes(2);
+  });
+
+  it('clears each cache by tag when several caches share the tag', async () => {
+    let createCache = (name: string) => {
+      let provider = vi.fn(
+        async (key: string) => `${name}:${key}:${provider.mock.calls.length}`
+      );
+      let cached = createCachedFunction({
+        name,
+        redisUrl: 'redis://test',
+        getHash: (key: string) => key,
+        getTags: () => ['shared'],
+        provider,
+        ttlSeconds: 60
+      });
+
+      return { cached, provider };
+    };
+    let first = createCache('shared-tag-first');
+    let second = createCache('shared-tag-second');
+
+    await first.cached('key');
+    await second.cached('key');
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    await first.cached.clearByTagAndWait('shared');
+    await second.cached.clearByTagAndWait('shared');
+
+    expect(await first.cached('key')).toBe('shared-tag-first:key:2');
+    expect(await second.cached('key')).toBe('shared-tag-second:key:2');
+  });
+
+  it('keeps tag entries added while a tag is being cleared', async () => {
+    let name = 'concurrent-tag-clear';
+    let cached = createCachedFunction({
+      name,
+      redisUrl: 'redis://test',
+      getHash: (key: string) => key,
+      getTags: () => ['tag'],
+      provider: async (key: string) => key,
+      ttlSeconds: 60
+    });
+
+    await cached('first');
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    let tagKey = `cache:0:${name}:tag:tag`;
+    let members = redisSets.get(tagKey)!;
+    let originalDelete = members.delete.bind(members);
+    members.delete = (member: string) => {
+      members.add(`cache:0:${name}:val:second`);
+      members.delete = originalDelete;
+      return originalDelete(member);
+    };
+
+    await cached.clearByTagAndWait('tag');
+
+    expect(tagMembers(name, 'tag')).toEqual([`cache:0:${name}:val:second`]);
   });
 
   it('falls back to redis when the local copy fails revalidation', async () => {

@@ -4,6 +4,7 @@ import { Fabric } from '@metorial/fabric';
 import { createQueue, hourlyPacedDelay } from '@metorial/queue';
 import { cell } from '../../cell';
 import { globalDB } from '../../db';
+import { reconcileSkillPluginSlug } from '../skillPluginSlug';
 import { upsertOrganization } from './organization';
 
 let SYNC_PAGE_SIZE = 500;
@@ -74,10 +75,12 @@ export let syncSkillPluginSingleQueueProcessor = syncSkillPluginSingleQueue.proc
 
     await upsertOrganization(skillPlugin.organization.id);
 
+    let slug = await reconcileSkillPluginSlug(skillPlugin);
+
     let inner = {
       status: skillPlugin.status,
       name: skillPlugin.name,
-      slug: skillPlugin.slug,
+      slug,
       organizationId: skillPlugin.organization.id,
       instanceId: skillPlugin.instance.id,
       createdAt: skillPlugin.createdAt,
@@ -95,7 +98,7 @@ export let syncSkillPluginSingleQueueProcessor = syncSkillPluginSingleQueue.proc
   }
 );
 
-let enqueueSkillPluginSync = async (skillPluginId: string) => {
+export let enqueueSkillPluginSync = async (skillPluginId: string) => {
   await addAfterTransactionHook(() => syncSkillPluginSingleQueue.add({ skillPluginId }));
 };
 

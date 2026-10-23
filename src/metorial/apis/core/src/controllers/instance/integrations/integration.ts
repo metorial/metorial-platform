@@ -65,7 +65,7 @@ export let integrationController = Controller.create(
         let paginator = await integrationService.listIntegrations({
           instance: ctx.instance,
           search: ctx.query.search,
-          allowDeleted: true,
+          allowDeleted: false,
           status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),

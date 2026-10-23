@@ -703,6 +703,9 @@
     "src/lowerdeck/packages/forwarded-for": {
       "name": "@lowerdeck/forwarded-for",
       "version": "2.0.0",
+      "dependencies": {
+        "@lowerdeck/ip-range": "workspace:2.0.0",
+      },
       "devDependencies": {
         "@lowerdeck/tsconfig": "workspace:2.0.0",
         "typescript": "5.9.3",

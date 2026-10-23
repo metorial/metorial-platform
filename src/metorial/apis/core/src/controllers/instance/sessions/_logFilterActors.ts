@@ -50,7 +50,6 @@ export let resolveActorIdsForLogFilters = async (d: {
 
     let paginator = await identityService.listIdentities({
       instance: d.instance,
-      allowDeleted: true,
       ids: d.identityIds
     });
     let identities = await paginator.run({

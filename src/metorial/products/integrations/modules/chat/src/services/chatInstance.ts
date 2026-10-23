@@ -38,7 +38,10 @@ import { chatInstancePresenter } from '@metorial/presenters';
 import { chatEventInternalService } from '../internal/chatEvent';
 import { chatEventPresenterContext } from '../internal/chatEventPayload';
 import { archiveChatsWhere } from '../lib/chatLifecycle';
-import { upsertChatInstanceProjection } from '../lib/project';
+import {
+  upsertChatInstanceProjection,
+  upsertChatInstanceProviderProjection
+} from '../lib/project';
 import {
   enqueueChatInstanceArchived,
   enqueueChatInstanceCreated,
@@ -285,6 +288,13 @@ class chatInstanceServiceImpl {
           });
 
       await upsertChatInstanceProjection(adapterInstance, d.input);
+
+      let providerLinks = await db.adapterIntegrationInstanceProvider.findMany({
+        where: { adapterIntegrationInstanceOid: adapterInstance.oid, status: 'active' }
+      });
+      for (let link of providerLinks) {
+        await upsertChatInstanceProviderProjection(link);
+      }
 
       if (existing) await enqueueChatInstanceUpdated(chatInstance.id);
       else await enqueueChatInstanceCreated(chatInstance.id);

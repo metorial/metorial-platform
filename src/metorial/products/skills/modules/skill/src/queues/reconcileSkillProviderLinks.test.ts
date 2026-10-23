@@ -33,6 +33,7 @@ vi.mock('@metorial-subspace/db', () => ({
   ID: {
     generateId: vi.fn(() => Promise.resolve('link_100'))
   },
+  snowflake: { nextId: vi.fn(() => 100n) },
   withTransaction: vi.fn(async (callback: (tx: typeof db) => unknown) => await callback(db))
 }));
 
@@ -68,6 +69,7 @@ describe('reconcileSkillProviderLinks', () => {
     });
     expect(mocks.createLink).toHaveBeenCalledWith({
       data: {
+        oid: 100n,
         id: 'link_100',
         skillOid: 1n,
         providerOid: 20n

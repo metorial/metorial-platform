@@ -3,8 +3,9 @@
  *
  * # Lists:
  * By default we exclude deleted and archived items from lists.
- * If allowDeleted is true, we include deleted items as well.
- * If allowDeleted is false, archived is allowed, but deleted is excluded.
+ * If allowDeleted is true, nothing is excluded: without a status filter every item is listed,
+ * with one deleted may be requested.
+ * If allowDeleted is false, archived can be requested, but deleted is excluded.
  *
  * # Gets:
  * If allowDeleted is true, we include deleted items as well.
@@ -36,14 +37,29 @@ export let normalizeStatusForList = <T extends 'archived' | 'deleted' | string>(
 
     return {
       hasParent: {
-        status: normalized.length ? { in: normalized } : undefined,
+        status: { in: normalized },
         isParentDeleted: false
       },
       noParent: {
-        status: normalized.length ? { in: normalized } : undefined
+        status: { in: normalized }
       },
       onlyParent: {
         isParentDeleted: false
+      }
+    };
+  }
+
+  if (d.allowDeleted) {
+    return {
+      hasParent: {
+        status: undefined,
+        isParentDeleted: undefined
+      },
+      noParent: {
+        status: undefined
+      },
+      onlyParent: {
+        isParentDeleted: undefined
       }
     };
   }

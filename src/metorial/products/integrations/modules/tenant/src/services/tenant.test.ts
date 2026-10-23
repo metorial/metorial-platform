@@ -16,7 +16,8 @@ let mocks = vi.hoisted(() => ({
   reconcileMonitorAddManyWithOps: vi.fn(),
   reconcileBackingsAddManyWithOps: vi.fn(),
   retentionAdd: vi.fn(),
-  retentionDowngradeAdd: vi.fn()
+  retentionDowngradeAdd: vi.fn(),
+  clearTenantScopeCaches: vi.fn()
 }));
 
 vi.mock('@lowerdeck/service', () => ({
@@ -87,6 +88,10 @@ vi.mock('../queues/retention/sync', () => ({
 
 vi.mock('../queues/retention/downgradeSync', () => ({
   tenantSessionRetentionDowngradeSyncQueue: { add: mocks.retentionDowngradeAdd }
+}));
+
+vi.mock('./subspaceScope', () => ({
+  clearTenantScopeCaches: mocks.clearTenantScopeCaches
 }));
 
 import { tenantService } from './tenant';
@@ -210,6 +215,7 @@ describe('tenantService.upsertTenant', () => {
     await tenantService.upsertTenant({ input });
 
     expect(mocks.tenantUpsert).not.toHaveBeenCalled();
+    expect(mocks.clearTenantScopeCaches).not.toHaveBeenCalled();
     expect(mocks.environmentCreateMany).not.toHaveBeenCalled();
     expect(mocks.environmentUpdateMany).not.toHaveBeenCalled();
     expect(mocks.linkTenantToProjectMirror).toHaveBeenCalledWith({
@@ -237,6 +243,7 @@ describe('tenantService.upsertTenant', () => {
     await tenantService.upsertTenant({ input });
 
     expect(mocks.tenantUpsert).toHaveBeenCalledTimes(1);
+    expect(mocks.clearTenantScopeCaches).toHaveBeenCalledWith(tenant.id);
     expect(mocks.environmentUpdateMany).toHaveBeenCalledTimes(1);
   });
 
