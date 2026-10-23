@@ -33,15 +33,14 @@ export let ssoDelegationApp = createHono()
       c,
       v.object({
         client_id: v.string(),
-        response_type: v.literal(
-          'urn:metorial.com:ares:sso-delegation'
-        ),
+        response_type: v.literal('urn:metorial.com:ares:sso-delegation'),
         redirect_uri: v.string(),
         state: v.string(),
         code_challenge: v.string(),
         code_challenge_method: v.literal('S256'),
         connection_id: v.optional(v.string()),
-        login_hint: v.optional(v.string())
+        login_hint: v.optional(v.string()),
+        force_authn: v.optional(v.literal('true'))
       })
     );
     let delegation = await ssoDelegationService.getExportByClientId({
@@ -82,7 +81,8 @@ export let ssoDelegationApp = createHono()
       input: {
         redirectUri: `${env.service.ARES_SSO_URL}/metorial-ares/sso-delegation/complete`,
         state: crypto.randomUUID(),
-        email: input.login_hint
+        email: input.login_hint,
+        forceAuthn: input.force_authn === 'true'
       }
     });
     await db.ssoDelegationAuthRequest.create({
@@ -177,11 +177,7 @@ export let ssoDelegationApp = createHono()
       });
     }
 
-    if (
-      body.grant_type === 'authorization_code' &&
-      body.code &&
-      body.redirect_uri
-    ) {
+    if (body.grant_type === 'authorization_code' && body.code && body.redirect_uri) {
       try {
         let token = await ssoDelegationService.exchangeAuthorizationCode({
           delegation,
