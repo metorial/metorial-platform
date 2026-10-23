@@ -1,6 +1,7 @@
 import { formatDuration, formatNumber, formatPercent } from '@metorial/chart';
 import {
   MetricsGrid,
+  MetricsPanel,
   MetricsSummary,
   MetricsToolbar,
   MetricsUnavailable,
@@ -166,14 +167,22 @@ export let UsageSection = ({
   filter,
   summary,
   defaultPreset,
+  defaultInterval,
+  panel,
+  title,
+  description,
   children
 }: {
   filter?: UsageFilter;
   summary?: UsageSummaryId[];
   defaultPreset?: string;
+  defaultInterval?: string;
+  panel?: boolean;
+  title?: React.ReactNode;
+  description?: React.ReactNode;
   children: (range: UsageRange) => React.ReactNode;
 }) => {
-  let [query, setQuery] = useUsageQueryParams({ defaultPreset });
+  let [query, setQuery] = useUsageQueryParams({ defaultPreset, defaultInterval });
   let range = useUsageRange(query);
 
   let instance = useCurrentInstance();
@@ -185,16 +194,30 @@ export let UsageSection = ({
   });
   let unavailable = probe.error?.data.code == 'usage_unavailable';
 
+  let toolbar = (
+    <MetricsToolbar
+      value={query}
+      onChange={setQuery}
+      intervals={usageIntervals}
+      retentionMs={usageRetentionMs}
+      maxSpanMs={usageMaxSpanMs}
+      maxPoints={usageMaxPoints}
+      justify={panel ? 'end' : undefined}
+      intervalInPicker={panel}
+    />
+  );
+
+  if (panel) {
+    return (
+      <MetricsPanel title={title} description={description} toolbar={toolbar}>
+        {unavailable ? <MetricsUnavailable /> : children(range)}
+      </MetricsPanel>
+    );
+  }
+
   return (
     <Flex direction="column" gap={20}>
-      <MetricsToolbar
-        value={query}
-        onChange={setQuery}
-        intervals={usageIntervals}
-        retentionMs={usageRetentionMs}
-        maxSpanMs={usageMaxSpanMs}
-        maxPoints={usageMaxPoints}
-      />
+      {toolbar}
 
       {unavailable ? (
         <MetricsUnavailable />

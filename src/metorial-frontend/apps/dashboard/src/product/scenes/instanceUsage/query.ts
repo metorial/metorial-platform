@@ -84,18 +84,19 @@ export let useUsageRange = (
   }, [range, query.interval]);
 };
 
-export let useUsageQueryParams = (opts: { defaultPreset?: string } = {}) => {
+export let useUsageQueryParams = (opts: { defaultPreset?: string; defaultInterval?: string } = {}) => {
   let [params, setParams] = useSearchParams();
 
   let query = parseMetricsQuery(params, {
     intervals: usageIntervals,
     defaultQuery: {
       range: { type: 'preset', preset: opts.defaultPreset ?? '24h' },
-      interval: 'auto'
+      interval: opts.defaultInterval ?? 'auto'
     }
   });
 
-  let setQuery = (next: MetricsQuery) => setParams(applyMetricsQuery(params, next));
+  let setQuery = (next: MetricsQuery) =>
+    setParams(applyMetricsQuery(params, next, { defaultInterval: opts.defaultInterval }));
 
   return [query, setQuery] as const;
 };

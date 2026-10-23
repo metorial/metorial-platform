@@ -308,12 +308,7 @@ pub fn build_plan(
             }
             for package in matched {
                 if !package.scripts.contains("test:e2e") {
-                    bail!(
-                        "{}: e2e test package {:?} ({}) does not declare a \"test:e2e\" script",
-                        loaded.path.display(),
-                        package.name,
-                        package.directory.display()
-                    );
+                    continue;
                 }
                 tests.insert(package.name.clone());
             }
@@ -1605,7 +1600,32 @@ mod tests {
     }
 
     #[test]
-    fn requires_health_start_and_test_scripts() {
+    fn skips_packages_without_e2e_test_scripts() {
+        let temp = tempdir().unwrap();
+        fixture(temp.path());
+        write_package(
+            temp.path(),
+            "modules/no-tests",
+            "@x/module-no-tests",
+            &[],
+            None,
+        );
+        write_package(
+            temp.path(),
+            "modules/unit-only",
+            "@x/module-unit-only",
+            &["test:unit"],
+            None,
+        );
+
+        let manifests = manifest::discover(temp.path()).unwrap();
+        let plan = build_plan(&project(temp.path()), &manifests, &options(&[], None)).unwrap();
+
+        assert_eq!(plan.stacks[0].tests, ["@x/module-files", "@x/module-users"]);
+    }
+
+    #[test]
+    fn requires_health_and_start_scripts() {
         let temp = tempdir().unwrap();
         fixture(temp.path());
         let project = project(temp.path());
@@ -1634,17 +1654,6 @@ mod tests {
         let manifests = manifest::discover(temp.path()).unwrap();
         let error = build_plan(&project, &manifests, &options(&[], None)).unwrap_err();
         assert!(error.to_string().contains("no [e2e] start"), "{error}");
-
-        fixture(temp.path());
-        write_package(temp.path(), "modules/broken", "@x/module-broken", &[], None);
-        let manifests = manifest::discover(temp.path()).unwrap();
-        let error = build_plan(&project, &manifests, &options(&[], None)).unwrap_err();
-        assert!(
-            error
-                .to_string()
-                .contains("does not declare a \"test:e2e\""),
-            "{error}"
-        );
     }
 
     #[test]

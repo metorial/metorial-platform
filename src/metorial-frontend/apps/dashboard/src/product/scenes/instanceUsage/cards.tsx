@@ -242,7 +242,8 @@ export let UsageLineCard = ({
   kinds,
   metrics,
   valueFormatter,
-  span
+  span,
+  bare
 }: {
   title: React.ReactNode;
   description?: React.ReactNode;
@@ -252,6 +253,7 @@ export let UsageLineCard = ({
   metrics: UsageLineMetric[];
   valueFormatter?: ValueFormatter;
   span?: MetricChartCardSpan;
+  bare?: boolean;
 }) => {
   let timeline = useUsageTimeline({ filter, range, kinds });
 
@@ -275,6 +277,7 @@ export let UsageLineCard = ({
       title={title}
       description={description}
       span={span}
+      bare={bare}
       series={series}
       xAxis="time"
       domain={range}
