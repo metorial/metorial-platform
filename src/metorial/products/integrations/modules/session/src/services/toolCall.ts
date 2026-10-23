@@ -9,8 +9,10 @@ import {
 import {
   db,
   type Environment,
+  type Prisma,
   type Session,
   type SessionMessageStatus,
+  type Solution,
   type Tenant,
   type ToolCall,
   type ToolCallAttachment
@@ -34,6 +36,8 @@ import {
   resolveSessionTemplates
 } from '@metorial-subspace/list-utils';
 import { agentInstanceService, agentService } from '@metorial-subspace/module-agent';
+import { getProviderTenantFilter } from '@metorial-subspace/module-catalog';
+import { searchRelatedEntities, whenRelatedMatched } from '@metorial-subspace/module-search';
 import { SenderManager } from '@metorial-subspace/module-connection';
 import {
   getMetorialSolution,
@@ -87,6 +91,9 @@ export type ListToolCallsParams = {
   connectionIds?: string[];
   createdAt?: DateFilter;
   updatedAt?: DateFilter;
+
+  search?: string;
+  searchActorIds?: string[];
 };
 
 export type GetToolCallByIdParams = {
@@ -185,6 +192,8 @@ class toolCallServiceImpl {
     let authConfigs = await resolveProviderAuthConfigs(ts, d.providerAuthConfigIds);
     let tools = await resolveProviderTools(d.toolIds);
     let sessions = await resolveSessions(ts, d.sessionIds);
+
+    let searchFilter = await this.buildToolCallSearchFilter({ ...d, solution });
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
@@ -306,6 +315,8 @@ class toolCallServiceImpl {
                 ? { session: { providers: { some: { authConfigOid: authConfigs.in } } } }
                 : undefined!,
 
+              searchFilter!,
+
               mergeRetentionWithDateFilter(d.tenant, d.createdAt),
               d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
             ].filter(Boolean)
@@ -316,6 +327,75 @@ class toolCallServiceImpl {
         return await this.enrichToolCalls(res, { bodyLimitBytes: LIST_PAYLOAD_LIMIT_BYTES });
       })
     );
+  }
+
+  private async buildToolCallSearchFilter(d: {
+    tenant: Tenant;
+    environment: Environment;
+    solution: Solution;
+    search?: string;
+    searchActorIds?: string[];
+  }): Promise<Prisma.ToolCallWhereInput | undefined> {
+    let search = d.search?.trim();
+    if (!search) return undefined;
+
+    let ts = { tenant: d.tenant, environment: d.environment, solution: d.solution };
+
+    let [related, searchActors] = await Promise.all([
+      searchRelatedEntities({
+        tenant: d.tenant,
+        query: search,
+        kinds: [
+          'toolGlobalOids',
+          'providerOids',
+          'deploymentOids',
+          'configOids',
+          'authConfigOids',
+          'agentOids',
+          'actorOids',
+          'identityOids'
+        ],
+        providerFilter: getProviderTenantFilter({ ...ts, includeDeprecated: true })
+      }),
+      resolveIdentityActors(ts, d.searchActorIds?.length ? d.searchActorIds : undefined)
+    ]);
+
+    let actorOids = [...related.actorOids, ...(searchActors?.oids ?? [])];
+
+    let sessionProviderClauses: Prisma.SessionProviderWhereInput[] = [
+      ...whenRelatedMatched(related.providerOids, oids => ({ providerOid: oids })),
+      ...whenRelatedMatched(related.deploymentOids, oids => ({ deploymentOid: oids })),
+      ...whenRelatedMatched(related.configOids, oids => ({ configOid: oids })),
+      ...whenRelatedMatched(related.authConfigOids, oids => ({ authConfigOid: oids }))
+    ];
+
+    return {
+      OR: [
+        { id: search },
+        { toolKey: search },
+        ...whenRelatedMatched(related.toolGlobalOids, oids => ({ tool: { globalOid: oids } })),
+        ...(sessionProviderClauses.length
+          ? [{ session: { providers: { some: { OR: sessionProviderClauses } } } }]
+          : []),
+        ...whenRelatedMatched(related.agentOids, oids => ({
+          message: {
+            OR: [
+              { senderParticipant: { agentInstance: { agentOid: oids } } },
+              { responderParticipant: { agentInstance: { agentOid: oids } } }
+            ]
+          }
+        })),
+        ...whenRelatedMatched(related.identityOids, oids => ({
+          message: {
+            OR: [
+              { senderParticipant: { identityOid: oids } },
+              { responderParticipant: { identityOid: oids } }
+            ]
+          }
+        })),
+        ...whenRelatedMatched(actorOids, oids => ({ session: { identityActorOid: oids } }))
+      ]
+    };
   }
 
   async getToolCallById(d: MetorialFacing<GetToolCallByIdParams>) {

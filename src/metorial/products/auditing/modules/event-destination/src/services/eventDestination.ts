@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { AuditScope } from '@metorial/audit-scope';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/audit-search';
+import { buildSearchFilter } from '@metorial/module-search';
 import {
   addAfterTransactionHook,
   db,
@@ -11,6 +12,7 @@ import {
   type EventDeliveryRetryStrategy,
   ID,
   Organization,
+  Prisma,
   WebhookDestination,
   withTransaction
 } from '@metorial/db';
@@ -108,15 +110,19 @@ class EventDestinationServiceImpl {
           ? targetBlocks[0]
           : { OR: targetBlocks };
 
-    let search = d.search?.trim();
-    let searchResults = search
-      ? await voyager.record.search({
+    let search = await buildSearchFilter<Prisma.EventDestinationWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let records = await voyager.record.search({
           tenantId: d.organization.id,
           sourceId: (await voyagerSource).id,
           indexId: voyagerIndex.eventDestination.id,
-          query: search
-        })
-      : null;
+          query
+        });
+
+        return records.map(r => r.documentId);
+      }
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts =>
@@ -125,10 +131,7 @@ class EventDestinationServiceImpl {
           where: {
             organizationOid: d.organization.oid,
             status: d.statuses ? { in: d.statuses } : 'active',
-            AND: [
-              ...destinationAnd,
-              searchResults ? { id: { in: searchResults.map(r => r.documentId) } } : undefined!
-            ].filter(Boolean)
+            AND: [...destinationAnd, search ?? undefined!].filter(Boolean)
           },
           include: {
             webhookDestination: true,

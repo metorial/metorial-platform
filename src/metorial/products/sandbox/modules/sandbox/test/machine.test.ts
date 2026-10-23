@@ -45,7 +45,10 @@ vi.mock('../src/internal/machineEgressInternal', () => ({
 }));
 let search = { enabled: false, searchSandboxMachineIds: vi.fn() };
 
-vi.mock('@metorial/module-search', () => ({
+vi.mock('@metorial/module-search', async () => ({
+  ...(await vi.importActual<typeof import('@metorial/module-search/src/searchFilter')>(
+    '@metorial/module-search/src/searchFilter'
+  )),
   isSearchEnabled: () => search.enabled,
   searchSandboxMachineIds: search.searchSandboxMachineIds
 }));
@@ -391,7 +394,11 @@ describe('sandboxMachineService.list filters', () => {
     });
     expect((db as any).sandboxMachine.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { instanceOid: 7n, status: 'active', id: { in: ['sbm_a', 'sbm_b'] } }
+        where: {
+          instanceOid: 7n,
+          status: 'active',
+          OR: [{ id: { in: ['sbm_a', 'sbm_b'] } }, { id: 'web' }]
+        }
       })
     );
   });
@@ -544,7 +551,7 @@ describe('sandboxMachineService.list filters', () => {
         where: {
           instanceOid: 7n,
           status: 'active',
-          id: { in: ['sbm_a', 'sbm_z'] },
+          OR: [{ id: { in: ['sbm_a', 'sbm_z'] } }, { id: 'web' }],
           AND: [{ id: { in: ['sbm_a'] } }]
         }
       })

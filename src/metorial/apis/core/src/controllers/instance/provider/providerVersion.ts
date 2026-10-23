@@ -51,6 +51,9 @@ export let providerVersionController = Controller.create(
             provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider ID(s)'
             }),
+            search: v.optional(v.string(), {
+              description: 'Match a provider version by its exact ID'
+            }),
             created_at: dateFilterValidator('provider version creation time'),
             updated_at: dateFilterValidator('provider version last update time')
           })
@@ -61,6 +64,7 @@ export let providerVersionController = Controller.create(
           instance: ctx.instance,
           ids: normalizeArrayParam(ctx.query.id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
+          search: ctx.query.search,
           createdAt: ctx.query.created_at,
           updatedAt: ctx.query.updated_at
         });

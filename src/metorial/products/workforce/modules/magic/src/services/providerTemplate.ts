@@ -18,7 +18,7 @@ import {
   consumerProviderTemplateReadRoles,
   type AnyAccessTagSelector
 } from '@metorial/module-access';
-import { searchProviderTemplateIds } from '@metorial/module-search';
+import { buildSearchFilter, searchProviderTemplateIds } from '@metorial/module-search';
 import {
   integrationService,
   providerTemplateBackingService
@@ -334,19 +334,17 @@ class ProviderTemplateServiceImpl {
     search?: string;
     accessTags?: AnyAccessTagSelector;
   }) {
-    let search = d.search?.trim();
     let accessTagFilter = d.accessTags
       ? await accessTagService.getAccessTagFilter({
           tags: d.accessTags,
           roles: [...consumerProviderTemplateReadRoles]
         })
       : undefined;
-    let searchedProviderTemplateIds = search
-      ? await searchProviderTemplateIds({
-          instanceId: d.instance.id,
-          query: search
-        })
-      : undefined;
+
+    let search = await buildSearchFilter<Prisma.ProviderTemplateWhereInput>({
+      search: d.search,
+      findIds: query => searchProviderTemplateIds({ instanceId: d.instance.id, query })
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
@@ -375,15 +373,7 @@ class ProviderTemplateServiceImpl {
                     }
                   ]
                 : []),
-              ...(search
-                ? [
-                    {
-                      id: {
-                        in: searchedProviderTemplateIds ?? []
-                      }
-                    }
-                  ]
-                : [])
+              ...(search ? [search] : [])
             ]
           }
         });

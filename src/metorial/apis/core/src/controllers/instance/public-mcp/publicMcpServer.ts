@@ -147,6 +147,10 @@ export let publicMcpServerController = Controller.create(
             provider_deployment_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider deployment ID(s)'
             }),
+            search: v.optional(v.string(), {
+              description: 'Search by name, slug, description, or provider name',
+              examples: ['acme']
+            }),
             created_at: dateFilterValidator('public MCP server creation time'),
             updated_at: dateFilterValidator('public MCP server last update time')
           })
@@ -158,6 +162,7 @@ export let publicMcpServerController = Controller.create(
           status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
           providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id),
+          search: ctx.query.search,
           createdAt: ctx.query.created_at,
           updatedAt: ctx.query.updated_at
         });

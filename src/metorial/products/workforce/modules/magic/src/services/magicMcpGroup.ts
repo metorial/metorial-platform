@@ -7,6 +7,7 @@ import {
   MagicMcpGroupStatus,
   Organization,
   OrganizationActor,
+  Prisma,
   withTransaction
 } from '@metorial/db';
 import {
@@ -16,7 +17,7 @@ import {
   ServiceError
 } from '@lowerdeck/error';
 import { generatePlainId } from '@metorial/id';
-import { searchMagicMcpGroupIds } from '@metorial/module-search';
+import { buildSearchFilter, searchMagicMcpGroupIds } from '@metorial/module-search';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { AuditScope } from '@metorial/audit-scope';
@@ -141,18 +142,15 @@ class MagicMcpGroupImpl {
 
   async listMagicMcpGroups(d: {
     search?: string;
+    ids?: string[];
     instance: Instance;
     status?: MagicMcpGroupStatus[];
   }) {
-    let normalizedSearch = d.search?.trim();
-    if (!normalizedSearch?.length) normalizedSearch = undefined;
-
-    let searchedGroupIds = normalizedSearch
-      ? await searchMagicMcpGroupIds({
-          instanceId: d.instance.id,
-          query: normalizedSearch
-        })
-      : undefined;
+    let search = await buildSearchFilter<Prisma.MagicMcpGroupWhereInput>({
+      search: d.search,
+      findIds: query => searchMagicMcpGroupIds({ instanceId: d.instance.id, query }),
+      exact: query => [{ id: query }, { slug: { equals: query, mode: 'insensitive' } }]
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
@@ -164,7 +162,8 @@ class MagicMcpGroupImpl {
               d.status
                 ? { status: { in: d.status } }
                 : { status: { notIn: ['archived', 'deleted'] as MagicMcpGroupStatus[] } },
-              normalizedSearch ? { id: { in: searchedGroupIds } } : undefined!
+              d.ids ? { id: { in: d.ids } } : undefined!,
+              search ?? undefined!
             ].filter(Boolean)
           }
         });

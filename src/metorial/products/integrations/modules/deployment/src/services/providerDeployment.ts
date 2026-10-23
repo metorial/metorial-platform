@@ -8,6 +8,7 @@ import {
   type Environment,
   getId,
   ID,
+  type Prisma,
   type Provider,
   type ProviderConfig,
   type ProviderConfigVault,
@@ -23,6 +24,7 @@ import {
 import {
   assertNoActiveIdentityCredentialDeploymentLink,
   assertNoActiveIntegrationInstanceProviderDeploymentLink,
+  buildSearchFilter,
   checkDeletedEdit,
   checkDeletedRelation,
   type DateFilter,
@@ -270,14 +272,19 @@ class providerDeploymentServiceImpl {
 
     let capFilters = getProviderCapabilityFilter(d.capabilities || {});
 
-    let search = d.search
-      ? await voyager.record.search({
+    let search = await buildSearchFilter<Prisma.ProviderDeploymentWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let records = await voyager.record.search({
           tenantId: d.tenant.id,
           sourceId: (await voyagerSource).id,
           indexId: voyagerIndex.providerDeployment.id,
-          query: d.search
-        })
-      : null;
+          query
+        });
+
+        return records.map(r => r.documentId);
+      }
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -294,7 +301,7 @@ class providerDeploymentServiceImpl {
 
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
-                search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
+                search ?? undefined!,
                 providers ? { providerOid: providers.in } : undefined!,
                 versions ? { currentVersion: { lockedVersionOid: versions.in } } : undefined!,
                 actors

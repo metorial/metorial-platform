@@ -14,6 +14,7 @@ import {
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import {
+  buildSearchFilter,
   isSearchEnabled,
   searchSandboxImageIds,
   sandboxGlobalSearchTenantId
@@ -69,11 +70,11 @@ class SandboxImageServiceImpl {
     statuses?: SandboxMachineImageStatus[];
     search?: string;
   }) {
-    let searchIds: Promise<string[] | undefined> | undefined;
+    let searchFilter: Promise<Prisma.SandboxMachineImageWhereInput | undefined> | undefined;
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
-        searchIds ??= this.resolveSearchIds({ instance: d.instance, search: d.search });
+        searchFilter ??= this.resolveSearchFilter({ instance: d.instance, search: d.search });
 
         return await db.sandboxMachineImage.findMany({
           ...opts,
@@ -82,8 +83,7 @@ class SandboxImageServiceImpl {
             imageIds: d.imageIds,
             owners: d.owners,
             statuses: d.statuses,
-            search: d.search,
-            searchIds: await searchIds
+            search: await searchFilter
           }),
           include: sandboxImageInclude
         });
@@ -259,19 +259,34 @@ class SandboxImageServiceImpl {
     }
   }
 
-  private async resolveSearchIds(d: {
+  private async resolveSearchFilter(d: {
     instance: Instance;
     search?: string;
-  }): Promise<string[] | undefined> {
-    let search = d.search?.trim();
-    if (!search || !isSearchEnabled()) return undefined;
+  }): Promise<Prisma.SandboxMachineImageWhereInput | undefined> {
+    if (!isSearchEnabled()) {
+      let search = d.search?.trim();
+      if (!search) return undefined;
 
-    let [own, global] = await Promise.all([
-      searchSandboxImageIds({ tenantId: d.instance.id, query: search }),
-      searchSandboxImageIds({ tenantId: sandboxGlobalSearchTenantId, query: search })
-    ]);
+      return {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { identifier: { contains: search, mode: 'insensitive' } }
+        ]
+      };
+    }
 
-    return [...new Set([...own, ...global])];
+    return await buildSearchFilter<Prisma.SandboxMachineImageWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let [own, global] = await Promise.all([
+          searchSandboxImageIds({ tenantId: d.instance.id, query }),
+          searchSandboxImageIds({ tenantId: sandboxGlobalSearchTenantId, query })
+        ]);
+
+        return [...new Set([...own, ...global])];
+      },
+      exact: query => [{ id: query }, { identifier: { equals: query, mode: 'insensitive' } }]
+    });
   }
 
   private visibleTo(d: {
@@ -279,8 +294,7 @@ class SandboxImageServiceImpl {
     imageIds?: string[];
     owners?: SandboxImageOwner[];
     statuses?: SandboxMachineImageStatus[];
-    search?: string;
-    searchIds?: string[];
+    search?: Prisma.SandboxMachineImageWhereInput;
   }) {
     let owners = d.owners ?? ['own', 'global'];
 
@@ -299,18 +313,7 @@ class SandboxImageServiceImpl {
             ...(owners.includes('own') ? [own] : [])
           ]
         },
-        ...(d.searchIds
-          ? [{ id: { in: d.searchIds } }]
-          : d.search
-            ? [
-                {
-                  OR: [
-                    { name: { contains: d.search, mode: 'insensitive' as const } },
-                    { identifier: { contains: d.search, mode: 'insensitive' as const } }
-                  ]
-                }
-              ]
-            : [])
+        ...(d.search ? [d.search] : [])
       ]
     } satisfies Prisma.SandboxMachineImageWhereInput;
   }
