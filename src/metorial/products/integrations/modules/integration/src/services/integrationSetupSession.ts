@@ -33,10 +33,17 @@ import {
   providerSetupSessionService
 } from '@metorial-subspace/module-auth';
 import {
+  assertCanUseOwnedResource,
   checkTenant,
+  getConsumerOwnerActorId,
   getMetorialSolution,
+  getOwnershipAccessor,
   type MetorialFacing,
   ownerActorSelect,
+  type OwnershipFacing,
+  type RedactableOwnedResource,
+  redactClientSecretsForCaller,
+  resolveOwnerActorOid,
   toProviderEventBase,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
@@ -156,6 +163,8 @@ export type CreateIntegrationSetupSessionParams = {
     privateMetadata?: Record<string, any>;
     identityActorId?: string | null;
     identityId?: string | null;
+    ownerActorId?: string | null;
+    isOwnerLocked?: boolean;
     expiresAt?: Date;
     redirectUrl?: string;
     configuration?: PrismaJson.ProviderSetupSessionConfiguration | null;
@@ -233,6 +242,12 @@ class integrationSetupSessionServiceImpl {
           })
       )
     );
+  }
+
+  async redactIntegrationSetupSessionsForCaller<T extends RedactableOwnedResource>(
+    d: OwnershipFacing & { integrationSetupSessions: T[] }
+  ) {
+    return await redactClientSecretsForCaller({ ...d, resources: d.integrationSetupSessions });
   }
 
   async getIntegrationSetupSessionById(
@@ -377,6 +392,14 @@ class integrationSetupSessionServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
+    if (d.integrationInstance) {
+      await assertCanUseOwnedResource(
+        await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+        d.integrationInstance,
+        { resource: 'integration instance' }
+      );
+    }
+
     let eventBase = toProviderEventBase(d);
     await Fabric.fire('provider.integration_setup_session.created:before', eventBase);
 
@@ -442,6 +465,12 @@ class integrationSetupSessionServiceImpl {
     });
     let expiresAt = d.input.expiresAt ?? addMinutes(new Date(), 30);
 
+    let explicitOwnerActorOid = await resolveOwnerActorOid({
+      tenant: d.tenant,
+      environment: d.environment,
+      ownerActorId: d.input.ownerActorId ?? getConsumerOwnerActorId(d.input)
+    });
+
     let integrationProviders = await this.getUsableIntegrationProviders({
       tenant: d.tenant,
       environment: d.environment,
@@ -469,7 +498,11 @@ class integrationSetupSessionServiceImpl {
           metadata: d.input.metadata,
           privateMetadata: d.input.privateMetadata,
           identityActorId: d.input.identityActorId,
-          identityId: d.input.identityId
+          identityId: d.input.identityId,
+          owner: {
+            ownerActorOid: explicitOwnerActorOid,
+            isOwnerLocked: !!d.input.isOwnerLocked
+          }
         }
       }));
 
@@ -494,7 +527,11 @@ class integrationSetupSessionServiceImpl {
         instanceOid: d.environment.instanceOid,
         integrationOid: integration.oid,
         integrationInstanceOid: integrationInstance.oid,
-        ownerActorOid: integrationInstance.identityActorOid,
+        ownerActorOid:
+          explicitOwnerActorOid ??
+          integrationInstance.ownerActorOid ??
+          integrationInstance.identityActorOid,
+        isOwnerLocked: !!d.input.isOwnerLocked || integrationInstance.isOwnerLocked,
         brandOid: d.brand?.oid,
         expiresAt
       }
@@ -908,7 +945,13 @@ class integrationSetupSessionServiceImpl {
     integration: Pick<Integration, 'canAttachCustomToolFilters' | 'canOverrideToolFilters'>;
     setupSession: Pick<
       IntegrationSetupSession,
-      'oid' | 'name' | 'description' | 'metadata' | 'ownerActorOid' | 'skipConfirmation'
+      | 'oid'
+      | 'name'
+      | 'description'
+      | 'metadata'
+      | 'ownerActorOid'
+      | 'isOwnerLocked'
+      | 'skipConfirmation'
     >;
     integrationProvider: Awaited<
       ReturnType<integrationSetupSessionServiceImpl['getActiveIntegrationProviders']>
@@ -976,6 +1019,7 @@ class integrationSetupSessionServiceImpl {
       providerConfig: material.config ?? undefined,
       credentials: material.authCredentials ?? undefined,
       ownerActorOid: d.setupSession.ownerActorOid,
+      isOwnerLocked: d.setupSession.isOwnerLocked,
       input: {
         name: d.setupSession.name ?? d.integrationProvider.name,
         description:

@@ -1,5 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
+import { isOwnerLockedSchema, ownerActorSchema, presentOwnerActor } from '../../_shared';
 import { sessionTemplateType } from '../../../types';
 import { v1SessionTemplateProviderPresenter } from './sessionTemplateProvider';
 
@@ -17,6 +18,10 @@ export let v1SessionTemplatePresenter = Presenter.create(sessionTemplateType)
     integration_instance_id: sessionTemplate.integrationInstance?.id ?? null,
     integration_instance_group_id: sessionTemplate.integrationInstanceGroup?.id ?? null,
     identity_actor_id: sessionTemplate.identityActor?.id ?? null,
+    owner_actor: await presentOwnerActor(
+      sessionTemplate.ownerActor ?? sessionTemplate.identityActor
+    ),
+    is_owner_locked: sessionTemplate.isOwnerLocked,
     identity_id: sessionTemplate.identity?.id ?? null,
 
     providers: await Promise.all(
@@ -68,6 +73,8 @@ export let v1SessionTemplatePresenter = Presenter.create(sessionTemplateType)
       integration_instance_id: v.nullable(v.string()),
       integration_instance_group_id: v.nullable(v.string()),
       identity_actor_id: v.nullable(v.string()),
+      owner_actor: ownerActorSchema,
+      is_owner_locked: isOwnerLockedSchema,
       identity_id: v.nullable(v.string()),
       providers: v.array(v1SessionTemplateProviderPresenter.schema, {
         name: 'providers',

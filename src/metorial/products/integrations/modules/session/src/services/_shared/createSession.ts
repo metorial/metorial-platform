@@ -1,13 +1,19 @@
 import { type Environment, getId, type Tenant, withTransaction } from '@metorial-subspace/db';
-import { getMetorialSolution } from '@metorial-subspace/module-tenant';
+import {
+  getMetorialSolution,
+  ownerActorSelect,
+  type OwnershipAccessor
+} from '@metorial-subspace/module-tenant';
 import { sessionProviderInclude } from '../sessionProvider';
 import {
+  hasOwnerLockedProvider,
   type SessionProviderInput,
   sessionProviderInputService
 } from '../sessionProviderInput';
 
 export let sessionInclude = {
   identityActor: true,
+  ownerActor: ownerActorSelect,
   identity: true,
   adapterGlobal: true,
   providers: {
@@ -20,6 +26,7 @@ export let resolveSessionRecordProviders = async (d: {
   tenant: Tenant;
   environment: Environment;
   providers: SessionProviderInput[];
+  ownershipAccessor?: OwnershipAccessor;
 }) => {
   let resolved = await sessionProviderInputService.resolveProviderSessionInput(d);
 
@@ -38,6 +45,10 @@ export let createSessionRecord = async (d: {
   environment: Environment;
   identityActorOid?: bigint | null;
   identityOid?: bigint | null;
+  owner?: {
+    ownerActorOid: bigint | null;
+    isOwnerLocked: boolean;
+  };
   input: {
     name?: string;
     description?: string;
@@ -63,6 +74,13 @@ export let createSessionRecord = async (d: {
 
   let templateIdentity =
     d.identityActorOid === undefined && d.identityOid === undefined ? resolved.template : null;
+
+  let ownerActorOid = d.owner
+    ? d.owner.ownerActorOid
+    : (resolved.template?.ownerActorOid ?? null);
+  let isOwnerLocked =
+    (d.owner ? d.owner.isOwnerLocked : !!resolved.template?.isOwnerLocked) ||
+    hasOwnerLockedProvider(resolved.providers);
 
   return withTransaction(async db => {
     let created = await db.session.create({
@@ -90,6 +108,8 @@ export let createSessionRecord = async (d: {
         instanceOid: d.environment.instanceOid,
         identityActorOid: d.identityActorOid ?? templateIdentity?.identityActorOid ?? null,
         identityOid: d.identityOid ?? templateIdentity?.identityOid ?? null,
+        ownerActorOid,
+        isOwnerLocked,
         ephemeralManagedSessionOid: d.ephemeralManagedSessionOid ?? undefined,
 
         ...(d.isInternal
@@ -110,6 +130,7 @@ export let createSessionRecord = async (d: {
       },
       include: {
         identityActor: true,
+        ownerActor: ownerActorSelect,
         identity: true,
         adapterGlobal: true
       }

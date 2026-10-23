@@ -488,6 +488,10 @@ class subspaceScopeServiceImpl {
         identifier: tenantIdentifier,
         name: loadedProject.name,
         onlyAllowTrustedProviders: loadedProject.onlyAllowTrustedProviders,
+        allowApiAccessToConsumerOwnedResources:
+          loadedProject.allowApiAccessToConsumerOwnedResources,
+        allowMemberAccessToConsumerOwnedResources:
+          loadedProject.allowMemberAccessToConsumerOwnedResources,
         resourceTenantId: resourceTenant.id,
         resourceTenantIdentifier: resourceTenant.identifier,
         projectOid: loadedProject.oid,

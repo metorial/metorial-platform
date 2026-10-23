@@ -7,6 +7,8 @@ import {
   dbPrimary,
   type Environment,
   getId,
+  type ProviderAuthConfig,
+  type ProviderConfig,
   type Session,
   type SessionTemplate,
   type SessionTemplateProvider,
@@ -14,7 +16,11 @@ import {
   type TransactionDB,
   withTransaction
 } from '@metorial-subspace/db';
-import { getMetorialSolution } from '@metorial-subspace/module-tenant';
+import {
+  assertCanUseOwnedResources,
+  getMetorialSolution,
+  type OwnershipAccessor
+} from '@metorial-subspace/module-tenant';
 import { providerCombinationService } from '@metorial-subspace/module-provider-internal';
 import { sessionProviderCreatedQueue } from '../queues/lifecycle/sessionProvider';
 import {
@@ -25,6 +31,20 @@ import { sessionProviderInclude } from './sessionProvider';
 import { sessionTemplateProviderInclude } from './sessionTemplateProvider';
 
 export type SessionProviderInputToolFilters = PrismaJson.ToolFilter | null;
+
+export let hasOwnerLockedProvider = (
+  providers: {
+    config?: { isOwnerLocked?: boolean } | null;
+    authConfig?: { isOwnerLocked?: boolean } | null;
+    template?: { isOwnerLocked?: boolean } | null;
+  }[]
+) =>
+  providers.some(
+    provider =>
+      !!provider.config?.isOwnerLocked ||
+      !!provider.authConfig?.isOwnerLocked ||
+      !!provider.template?.isOwnerLocked
+  );
 
 export type SessionProviderTemplateInput = SessionTemplate & {
   providers: (SessionTemplateProvider & {
@@ -68,6 +88,34 @@ let sessionTemplateInclude = {
   }
 };
 
+let assertProvidersUsable = async (
+  accessor: OwnershipAccessor,
+  resolved: {
+    templates: Map<string, SessionProviderTemplateInput>;
+    providers: {
+      config: ProviderConfig;
+      authConfig?: ProviderAuthConfig | null;
+      template: SessionProviderTemplateInput | null;
+    }[];
+  }
+) => {
+  await assertCanUseOwnedResources(accessor, [...resolved.templates.values()], {
+    resource: 'session template'
+  });
+
+  let directProviders = resolved.providers.filter(provider => !provider.template);
+  await assertCanUseOwnedResources(
+    accessor,
+    directProviders.map(provider => provider.config),
+    { resource: 'provider config' }
+  );
+  await assertCanUseOwnedResources(
+    accessor,
+    directProviders.map(provider => provider.authConfig),
+    { resource: 'provider auth config' }
+  );
+};
+
 class sessionProviderInputServiceImpl {
   async resolveProviderSessionInput(d: {
     tenant: Tenant;
@@ -76,10 +124,11 @@ class sessionProviderInputServiceImpl {
     providers: SessionProviderInput[];
 
     allowEphemeral?: boolean;
+    ownershipAccessor?: OwnershipAccessor;
   }) {
     let solution = await getMetorialSolution();
 
-    return withTransaction(
+    let resolved = await withTransaction(
       async tdb => {
         // Without an enclosing transaction withTransaction hands back the replica-routed
         // client; templates created moments ago must be visible, so read from the primary.
@@ -180,6 +229,12 @@ class sessionProviderInputServiceImpl {
       },
       { ifExists: true }
     );
+
+    if (d.ownershipAccessor) {
+      await assertProvidersUsable(d.ownershipAccessor, resolved);
+    }
+
+    return resolved;
   }
 
   async createSessionProvidersForInput(d: {
@@ -288,13 +343,15 @@ class sessionProviderInputServiceImpl {
 
     providers: SessionProviderInput[];
     template: SessionTemplate;
+    ownershipAccessor?: OwnershipAccessor;
   }) {
     let solution = await getMetorialSolution();
 
     let { providers: providerSessions } = await this.resolveProviderSessionInput({
       tenant: d.tenant,
       environment: d.environment,
-      providers: d.providers
+      providers: d.providers,
+      ownershipAccessor: d.ownershipAccessor
     });
 
     return withTransaction(async db => {
@@ -336,6 +393,13 @@ class sessionProviderInputServiceImpl {
         ),
         include: sessionTemplateProviderInclude
       });
+
+      if (!d.template.isOwnerLocked && hasOwnerLockedProvider(providerSessions)) {
+        await db.sessionTemplate.update({
+          where: { oid: d.template.oid },
+          data: { isOwnerLocked: true }
+        });
+      }
 
       for (let stp of sessionTemplateProviders) {
         await addAfterTransactionHook(async () =>

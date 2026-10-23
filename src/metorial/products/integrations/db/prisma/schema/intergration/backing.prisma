@@ -36,10 +36,15 @@ model MagicMcpServerBacking {
   ephemeralManagedSession    EphemeralManagedSession @relation(fields: [ephemeralManagedSessionOid], references: [oid], onDelete: Cascade)
 
   actorOid BigInt?
-  actor    IdentityActor? @relation(fields: [actorOid], references: [oid], onDelete: SetNull)
+  actor    IdentityActor? @relation("MagicMcpServerBackingActor", fields: [actorOid], references: [oid], onDelete: SetNull)
 
   identityOid BigInt?
   identity    Identity? @relation(fields: [identityOid], references: [oid], onDelete: SetNull)
+
+  isOwnerLocked Boolean @default(false)
+
+  ownerActorOid BigInt?
+  ownerActor    IdentityActor? @relation("MagicMcpServerBackingOwnerActor", fields: [ownerActorOid], references: [oid], onDelete: SetNull)
 
   createdAt DateTime @default(now())
 
@@ -92,7 +97,12 @@ model MagicMcpEndpointBacking {
   ephemeralManagedSession    EphemeralManagedSession @relation(fields: [ephemeralManagedSessionOid], references: [oid], onDelete: Cascade)
 
   actorOid BigInt?
-  actor    IdentityActor? @relation(fields: [actorOid], references: [oid], onDelete: SetNull)
+  actor    IdentityActor? @relation("MagicMcpEndpointBackingActor", fields: [actorOid], references: [oid], onDelete: SetNull)
+
+  isOwnerLocked Boolean @default(false)
+
+  ownerActorOid BigInt?
+  ownerActor    IdentityActor? @relation("MagicMcpEndpointBackingOwnerActor", fields: [ownerActorOid], references: [oid], onDelete: SetNull)
 
   servers MagicMcpEndpointServerBacking[]
 }

@@ -41,10 +41,15 @@ import {
 import { checkProviderMatch } from '@metorial-subspace/module-provider-internal';
 import { assertNotPublicMcpOwned } from '@metorial-subspace/public-mcp-guard';
 import {
+  assertCanUseOwnedResource,
   getMetorialSolution,
+  getOwnershipAccessor,
   checkTenant,
   metorialDb,
   type MetorialFacing,
+  type OwnershipFacing,
+  type RedactableOwnedResource,
+  redactClientSecretsForCaller,
   resolveMetorialFacing,
   resolveMetorialFacingWithOptionalActor,
   toProviderEventBase,
@@ -115,12 +120,12 @@ export type CreateProviderSetupSessionParams = {
     provider: Provider;
     providerVariant: ProviderVariant;
     currentVersion:
-      | (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null })
-      | null;
+      (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null }) | null;
   };
   providerConfig?: ProviderConfig;
   identity?: Identity;
   ownerActorOid?: bigint | null;
+  isOwnerLocked?: boolean;
   credentials?: ProviderAuthCredentials;
   brand?: Brand;
   input: {
@@ -252,6 +257,12 @@ class providerSetupSessionServiceImpl {
     );
   }
 
+  async redactProviderSetupSessionsForCaller<T extends RedactableOwnedResource>(
+    d: OwnershipFacing & { setupSessions: T[] }
+  ) {
+    return await redactClientSecretsForCaller({ ...d, resources: d.setupSessions });
+  }
+
   async getProviderSetupSessionById(d: MetorialFacing<GetProviderSetupSessionByIdParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
@@ -293,6 +304,14 @@ class providerSetupSessionServiceImpl {
   ) {
     let { instance, organizationActor, consumerId, ...rest } = d;
     let scope = await resolveMetorialFacingWithOptionalActor(d);
+
+    if (rest.providerConfig && !consumerId) {
+      await assertCanUseOwnedResource(
+        await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+        rest.providerConfig,
+        { resource: 'provider config' }
+      );
+    }
 
     let identity = rest.identity;
     let ownerActorOid = rest.ownerActorOid;
@@ -437,6 +456,7 @@ class providerSetupSessionServiceImpl {
     }
 
     let ownerActorOid = d.ownerActorOid ?? d.identity?.actorOid ?? null;
+    let isOwnerLocked = !!d.isOwnerLocked || !!d.providerConfig?.isOwnerLocked;
 
     return withTransaction(async db => {
       let expiresAt =
@@ -467,6 +487,7 @@ class providerSetupSessionServiceImpl {
             providerDeployment: d.providerDeployment,
             credentials: d.credentials,
             ownerActorOid,
+            isOwnerLocked,
             ownerPublicMcpServerOid: d.internal?.ownerPublicMcpServerOid,
             expiresAt,
             input: {
@@ -531,6 +552,7 @@ class providerSetupSessionServiceImpl {
           deploymentOid: d.providerDeployment?.oid ?? d.providerConfig?.deploymentOid,
           identityOid: d.identity?.oid ?? null,
           ownerActorOid,
+          isOwnerLocked,
           brandOid: d.brand?.oid,
           authCredentialsOid: inner.authCredentialsOid ?? d.credentials?.oid,
           integrationSetupSessionProviderOid: d.internal?.integrationSetupSessionProviderOid,

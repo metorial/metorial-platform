@@ -50,6 +50,8 @@ model ProviderConfig {
   owningIntegrationInstanceProviderOid BigInt?
   owningIntegrationInstanceProvider    IntegrationInstanceProvider? @relation(fields: [owningIntegrationInstanceProviderOid], references: [oid])
 
+  isOwnerLocked Boolean @default(false)
+
   ownerActorOid BigInt?
   ownerActor    IdentityActor? @relation(fields: [ownerActorOid], references: [oid], onDelete: SetNull)
 

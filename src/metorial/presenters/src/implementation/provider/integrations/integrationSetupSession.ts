@@ -1,6 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import { ownerActorSchema, presentOwnerActor } from '../../_shared';
+import { isOwnerLockedSchema, ownerActorSchema, presentOwnerActor } from '../../_shared';
 import type { Prisma as SubspacePrisma } from '@metorial-subspace/db';
 import { env } from '@metorial-subspace/module-auth/src/env';
 import type { integrationSetupSessionInclude } from '@metorial-subspace/module-integration';
@@ -64,7 +64,9 @@ let setupSessionStepPresenter = (
     object: 'integration.setup_session.step' as const,
     id: step.id,
     status,
-    url: `${env.service.INTEGRATIONS_API_URL}/integration-setup-session/${integrationSetupSession.id}/${step.id}?client_secret=${integrationSetupSession.clientSecret}`,
+    url: integrationSetupSession.clientSecret
+      ? `${env.service.INTEGRATIONS_API_URL}/integration-setup-session/${integrationSetupSession.id}/${step.id}?client_secret=${integrationSetupSession.clientSecret}`
+      : `${env.service.INTEGRATIONS_API_URL}/integration-setup-session/${integrationSetupSession.id}/${step.id}`,
     integration_provider_id: setupProvider.integrationProvider.id,
     provider: v1ProviderPreview(setupProvider.integrationProvider.provider),
     provider_setup_session_id: providerSetupSession?.id ?? null,
@@ -83,7 +85,9 @@ export let v1IntegrationSetupSessionPresenter = Presenter.create(integrationSetu
       integrationSetupSession.expiresAt <= new Date()
         ? ('expired' as const)
         : integrationSetupSession.status,
-    url: `${env.service.INTEGRATIONS_UI_URL}/integration-setup-session/${integrationSetupSession.id}?client_secret=${integrationSetupSession.clientSecret}`,
+    url: integrationSetupSession.clientSecret
+      ? `${env.service.INTEGRATIONS_UI_URL}/integration-setup-session/${integrationSetupSession.id}?client_secret=${integrationSetupSession.clientSecret}`
+      : `${env.service.INTEGRATIONS_UI_URL}/integration-setup-session/${integrationSetupSession.id}`,
     name: integrationSetupSession.name,
     description: integrationSetupSession.description,
     metadata: integrationSetupSession.metadata,
@@ -92,7 +96,8 @@ export let v1IntegrationSetupSessionPresenter = Presenter.create(integrationSetu
     ) as any,
     redirect_url: integrationSetupSession.redirectUrl,
     integration_id: integrationSetupSession.integration.id,
-    owner_actor: presentOwnerActor(integrationSetupSession.ownerActor),
+    owner_actor: await presentOwnerActor(integrationSetupSession.ownerActor),
+    is_owner_locked: integrationSetupSession.isOwnerLocked,
     integration_instance: await v1IntegrationInstancePresenter
       .present({ integrationInstance: integrationSetupSession.integrationInstance }, opts)
       .run(),
@@ -113,6 +118,7 @@ export let v1IntegrationSetupSessionPresenter = Presenter.create(integrationSetu
       redirect_url: v.nullable(v.string()),
       integration_id: v.string(),
       owner_actor: ownerActorSchema,
+      is_owner_locked: isOwnerLockedSchema,
       integration_instance: v1IntegrationInstancePresenter.schema,
       created_at: v.date(),
       updated_at: v.date(),

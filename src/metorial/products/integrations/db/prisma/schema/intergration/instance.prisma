@@ -41,10 +41,15 @@ model IntegrationInstance {
   solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
 
   identityActorOid BigInt?
-  identityActor    IdentityActor? @relation(fields: [identityActorOid], references: [oid], onDelete: Cascade)
+  identityActor    IdentityActor? @relation("IntegrationInstanceIdentityActor", fields: [identityActorOid], references: [oid], onDelete: Cascade)
 
   identityOid BigInt?
   identity    Identity? @relation(fields: [identityOid], references: [oid], onDelete: Cascade)
+
+  isOwnerLocked Boolean @default(false)
+
+  ownerActorOid BigInt?
+  ownerActor    IdentityActor? @relation("IntegrationInstanceOwnerActor", fields: [ownerActorOid], references: [oid], onDelete: SetNull)
 
   defaultSessionTemplate SessionTemplate? @relation("defaultSessionTemplateForIntegrationInstance")
 
@@ -68,6 +73,7 @@ model IntegrationInstance {
   @@index([tenantOid, solutionOid, environmentOid, status, isHiddenDraft])
   @@index([integrationOid, status])
   @@index([status, isHiddenDraft, archivedAt])
+  @@index([ownerActorOid])
   @@index([projectOid])
   @@index([instanceOid])
 }

@@ -96,6 +96,7 @@ class providerOAuthSetupInternalServiceImpl {
                 providerDeployment: providerOAuthSetup.deployment ?? undefined,
                 credentials: providerOAuthSetup.authCredentials,
                 ownerActorOid: providerOAuthSetup.providerSetupSession?.ownerActorOid,
+                isOwnerLocked: providerOAuthSetup.providerSetupSession?.isOwnerLocked,
                 input: {
                   name: providerOAuthSetup.name ?? undefined,
                   description: providerOAuthSetup.description ?? undefined,

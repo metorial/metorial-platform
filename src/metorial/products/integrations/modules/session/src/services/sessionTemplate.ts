@@ -38,12 +38,15 @@ import { checkToolAccess } from '@metorial-subspace/module-provider-internal';
 import {
   checkTenant,
   getMetorialSolution,
+  getOwnershipAccessor,
   type MetorialFacing,
+  type OwnershipAccessor,
   resolveMetorialFacing,
-  toProviderEventBase
+  toProviderEventBase,
+  usableOwnedResourceWhere
 } from '@metorial-subspace/module-tenant';
 import { Fabric, type AuditSubspaceSessionTemplate } from '@metorial/fabric';
-import { metorialDb } from '@metorial-subspace/module-tenant';
+import { metorialDb, ownerActorSelect } from '@metorial-subspace/module-tenant';
 import { sessionTemplateArchivedQueue } from '../queues/lifecycle/sessionTemplate';
 import { queueJobId, withSessionTemplateSyncLock } from '../lib/sessionTemplateSync';
 import {
@@ -82,6 +85,7 @@ let assertMagicMcpSessionTemplateMutable = async (d: {
 
 let include = {
   identityActor: true,
+  ownerActor: ownerActorSelect,
   identity: true,
   integrationInstance: true,
   integrationInstanceGroup: true,
@@ -122,6 +126,8 @@ let assertCanWriteSessionTemplate = async (
 };
 
 export type ListSessionTemplatesParams = {
+  onlyUsable?: boolean;
+  usableWhere?: Record<string, any>;
   status?: SessionTemplateStatus[];
   allowDeleted?: boolean;
 
@@ -161,6 +167,7 @@ export type CreateSessionTemplateParams = {
     isInternal?: boolean;
     providers: SessionProviderInput[];
   };
+  ownershipAccessor?: OwnershipAccessor;
 };
 
 export type UpsertInternalLinkedSessionTemplateParams = {
@@ -173,6 +180,10 @@ export type UpsertInternalLinkedSessionTemplateParams = {
     privateMetadata?: Record<string, any> | null;
     integrationInstance?: IntegrationInstance | null;
     integrationInstanceGroup?: IntegrationInstanceGroup | null;
+    owner?: {
+      ownerActorOid: bigint | null;
+      isOwnerLocked: boolean;
+    };
   };
 };
 
@@ -212,6 +223,14 @@ class sessionTemplateServiceImpl {
 
     return this.listSessionTemplatesInternal({
       ...rest,
+      usableWhere: d.onlyUsable
+        ? usableOwnedResourceWhere(
+            await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+            {
+              fallback: { field: 'identityActorOid', relation: 'identityActor' }
+            }
+          )
+        : undefined,
       tenant: scope.tenant,
       environment: scope.environment
     });
@@ -260,6 +279,7 @@ class sessionTemplateServiceImpl {
               ...normalizeStatusForList(d).noParent,
 
               AND: [
+                d.usableWhere ?? undefined!,
                 d.ids ? { id: { in: d.ids } } : undefined!,
 
                 sessions
@@ -399,7 +419,11 @@ class sessionTemplateServiceImpl {
     let sessionTemplate = await this.createSessionTemplateInternal({
       ...rest,
       tenant: scope.tenant,
-      environment: scope.environment
+      environment: scope.environment,
+      ownershipAccessor: await getOwnershipAccessor({
+        tenant: scope.tenant,
+        organizationActor
+      })
     });
 
     await Fabric.fire('provider.session_template.created:after', {
@@ -443,7 +467,8 @@ class sessionTemplateServiceImpl {
           environment: d.environment,
           template,
 
-          providers: d.input.providers
+          providers: d.input.providers,
+          ownershipAccessor: d.ownershipAccessor
         });
 
       return template;
@@ -476,6 +501,17 @@ class sessionTemplateServiceImpl {
           d.input.integrationInstance?.identityOid ??
           d.input.integrationInstanceGroup?.identityOid ??
           null,
+        ownerActorOid:
+          d.input.owner?.ownerActorOid ??
+          d.input.integrationInstance?.ownerActorOid ??
+          d.input.integrationInstanceGroup?.ownerActorOid ??
+          d.sessionTemplate?.ownerActorOid ??
+          null,
+        isOwnerLocked:
+          !!d.input.owner?.isOwnerLocked ||
+          !!d.input.integrationInstance?.isOwnerLocked ||
+          !!d.input.integrationInstanceGroup?.isOwnerLocked ||
+          (!d.input.owner && !!d.sessionTemplate?.isOwnerLocked),
         defaultSessionTemplateForIntegrationInstanceOid:
           d.linkAsDefault === false ? null : (d.input.integrationInstance?.oid ?? null),
         defaultSessionTemplateForIntegrationInstanceGroupOid:

@@ -49,9 +49,17 @@ import { type SessionProviderTemplateInput } from '@metorial-subspace/module-ses
 import {
   checkTenant,
   getMetorialSolution,
+  assertCanChangeOwnerLock,
+  assertCanUseOwnedResource as assertCanUseConsumerOwnedResource,
+  getConsumerOwnedResourceName,
+  getOwnershipAccessor,
   type MetorialFacing,
+  ownerActorSelect,
+  type OwnershipAccessor,
+  type ResourceOwner,
   resolveMetorialFacing,
-  toProviderEventBase
+  toProviderEventBase,
+  usableOwnedResourceWhere
 } from '@metorial-subspace/module-tenant';
 import { Fabric, type AuditSubspaceIntegrationInstance } from '@metorial/fabric';
 import { integrationProviderVersionInclude } from '../lib/integrationIncludes';
@@ -66,6 +74,7 @@ import {
   integrationInstanceProviderService,
   type SetIntegrationInstanceProviderInput
 } from './integrationInstanceProvider';
+import { setIntegrationInstanceOwnerLock } from '../lib/ownerLock';
 
 export let integrationInstanceProviderVersionInclude = {
   integrationProviderVersion: {
@@ -103,6 +112,7 @@ export let integrationInstanceInclude = {
   identityActor: {
     include: { instanceConsumer: { select: { consumer: { select: { id: true } } } } }
   },
+  ownerActor: ownerActorSelect,
   identity: true,
   defaultSessionTemplate: true,
   magicMcpServerBackings: {
@@ -138,6 +148,7 @@ type IntegrationInstanceWriteInput = {
   privateMetadata?: Record<string, any> | null;
   identityActorId?: string | null;
   identityId?: string | null;
+  owner?: ResourceOwner;
   providers?: SetIntegrationInstanceProviderInput[];
 };
 
@@ -200,6 +211,8 @@ let resolveIntegrationIdentity = async (d: {
 };
 
 export type ListIntegrationInstancesParams = {
+  onlyUsable?: boolean;
+  usableWhere?: Record<string, any>;
   search?: string;
   includeMagicMcpBackings?: boolean;
   includeAdapterBackings?: boolean;
@@ -239,8 +252,10 @@ export type CreateIntegrationInstanceParams = {
     privateMetadata?: Record<string, any>;
     identityActorId?: string | null;
     identityId?: string | null;
+    owner?: ResourceOwner;
     providers?: SetIntegrationInstanceProviderInput[];
   };
+  ownershipAccessor?: OwnershipAccessor;
 };
 
 export type UpsertMagicMcpIntegrationInstanceParams = {
@@ -253,6 +268,7 @@ export type UpsertMagicMcpIntegrationInstanceParams = {
     privateMetadata?: Record<string, any> | null;
     identityActorId?: string | null;
     identityId?: string | null;
+    owner?: ResourceOwner;
   };
 };
 
@@ -266,7 +282,9 @@ export type UpdateIntegrationInstanceParams = {
     identityActorId?: string | null;
     identityId?: string | null;
     providers?: SetIntegrationInstanceProviderInput[];
+    isOwnerLocked?: boolean;
   };
+  ownershipAccessor?: OwnershipAccessor;
 };
 
 export type UpdateIntegrationInstanceFacingParams = Omit<
@@ -329,6 +347,8 @@ class integrationInstanceServiceImpl {
       description: d.input.description?.trim() || null,
       metadata: d.input.metadata,
       privateMetadata: d.input.privateMetadata,
+      ownerActorOid: d.input.owner?.ownerActorOid ?? null,
+      isOwnerLocked: !!d.input.owner?.isOwnerLocked,
       integrationOid: d.integration.oid,
       tenantOid: d.tenant.oid,
       projectOid: d.tenant.projectOid,
@@ -355,6 +375,12 @@ class integrationInstanceServiceImpl {
       description: d.input.description?.trim() || null,
       metadata: d.input.metadata,
       privateMetadata: d.input.privateMetadata,
+      ...(d.input.owner
+        ? {
+            ownerActorOid: d.input.owner.ownerActorOid,
+            isOwnerLocked: d.input.owner.isOwnerLocked
+          }
+        : {}),
       integrationOid: d.integration.oid
     };
   }
@@ -366,6 +392,7 @@ class integrationInstanceServiceImpl {
     input: IntegrationInstanceWriteInput;
     current?: Parameters<typeof mergeIntegrationIdentityInput>[0]['current'];
     isMagicMcpBacking?: boolean;
+    ownershipAccessor?: OwnershipAccessor;
   }) {
     return withTransaction(
       async db => {
@@ -397,7 +424,8 @@ class integrationInstanceServiceImpl {
             tenant: d.tenant,
             environment: d.environment,
             integrationInstance,
-            input: d.input.providers
+            input: d.input.providers,
+            ownershipAccessor: d.ownershipAccessor
           });
 
           integrationInstance = await db.integrationInstance.findUniqueOrThrow({
@@ -526,6 +554,14 @@ class integrationInstanceServiceImpl {
 
     return this.listIntegrationInstancesInternal({
       ...rest,
+      usableWhere: d.onlyUsable
+        ? usableOwnedResourceWhere(
+            await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+            {
+              fallback: { field: 'identityActorOid', relation: 'identityActor' }
+            }
+          )
+        : undefined,
       tenant: scope.tenant,
       environment: scope.environment
     });
@@ -576,6 +612,7 @@ class integrationInstanceServiceImpl {
               ...normalizeStatusForList(d).hasParent,
 
               AND: [
+                d.usableWhere ?? undefined!,
                 d.ids ? { id: { in: d.ids } } : undefined!,
                 integrations ? { integrationOid: integrations.in } : undefined!,
                 search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
@@ -713,7 +750,11 @@ class integrationInstanceServiceImpl {
     let integrationInstance = await this.createIntegrationInstanceInternal({
       ...rest,
       tenant: scope.tenant,
-      environment: scope.environment
+      environment: scope.environment,
+      ownershipAccessor: await getOwnershipAccessor({
+        tenant: scope.tenant,
+        organizationActor
+      })
     });
 
     await Fabric.fire('provider.integration_instance.created:after', {
@@ -732,6 +773,13 @@ class integrationInstanceServiceImpl {
     checkTenant(d, d.integration);
     checkDeletedRelation(d.integration);
 
+    let consumerOwnedName = await getConsumerOwnedResourceName({
+      ownerActorOid: d.input.owner?.ownerActorOid,
+      providerName: d.integration.name,
+      kind: 'Connection'
+    });
+    let input = consumerOwnedName ? { ...d.input, name: consumerOwnedName } : d.input;
+
     return await withTransaction(async db => {
       let { automaticInputs: automaticProviders, createdConfigOids } =
         await this.getAutomaticProviderInputs({
@@ -749,7 +797,7 @@ class integrationInstanceServiceImpl {
           environment: d.environment,
           integration: d.integration,
           id: newId,
-          input: d.input,
+          input,
           isHiddenDraft: d.isHiddenDraft,
           isAdapterBacking: d.isAdapterBacking
         }),
@@ -763,7 +811,8 @@ class integrationInstanceServiceImpl {
         input: {
           ...d.input,
           providers: [...(d.input.providers ?? []), ...automaticProviders]
-        }
+        },
+        ownershipAccessor: d.ownershipAccessor
       });
 
       integrationInstance = await db.integrationInstance.findUniqueOrThrow({
@@ -871,13 +920,25 @@ class integrationInstanceServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
+    let ownershipAccessor = await getOwnershipAccessor({
+      tenant: scope.tenant,
+      organizationActor
+    });
+    await assertCanChangeOwnerLock(
+      ownershipAccessor,
+      d.integrationInstance,
+      d.input.isOwnerLocked,
+      { resource: 'integration instance' }
+    );
+
     let eventBase = toProviderEventBase(d);
     await Fabric.fire('provider.integration_instance.updated:before', eventBase);
 
     let integrationInstance = await this.updateIntegrationInstanceInternal({
       ...rest,
       tenant: scope.tenant,
-      environment: scope.environment
+      environment: scope.environment,
+      ownershipAccessor
     });
 
     await Fabric.fire('provider.integration_instance.updated:after', {
@@ -948,12 +1009,24 @@ class integrationInstanceServiceImpl {
         include: integrationInstanceInclude
       });
 
+      if (
+        d.input.isOwnerLocked !== undefined &&
+        d.input.isOwnerLocked !== d.integrationInstance.isOwnerLocked
+      ) {
+        await setIntegrationInstanceOwnerLock(integrationInstance, d.input.isOwnerLocked);
+        integrationInstance = await db.integrationInstance.findUniqueOrThrow({
+          where: { oid: integrationInstance.oid },
+          include: integrationInstanceInclude
+        });
+      }
+
       if (d.input.providers?.length) {
         await integrationInstanceProviderService.setIntegrationInstanceProvidersInternal({
           tenant: d.tenant,
           environment: d.environment,
           integrationInstance,
-          input: d.input.providers
+          input: d.input.providers,
+          ownershipAccessor: d.ownershipAccessor
         });
 
         integrationInstance = await db.integrationInstance.findUniqueOrThrow({
@@ -1092,6 +1165,12 @@ class integrationInstanceServiceImpl {
   ) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
+
+    await assertCanUseConsumerOwnedResource(
+      await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+      d.integrationInstance,
+      { resource: 'integration instance' }
+    );
 
     let session = await this.createSessionForIntegrationInstanceInternal({
       ...rest,

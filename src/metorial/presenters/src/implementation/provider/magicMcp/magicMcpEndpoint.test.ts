@@ -4,6 +4,8 @@ vi.mock('@metorial/config', () => ({
   getConfig: () => ({ urls: { apiUrl: 'https://api.metorial.test' } })
 }));
 
+vi.mock('@metorial/db', () => ({ db: {}, getImageUrl: vi.fn() }));
+
 vi.mock('@metorial/module-portal', () => ({
   portalService: { getPrimaryPortalConnectUrl: vi.fn() }
 }));

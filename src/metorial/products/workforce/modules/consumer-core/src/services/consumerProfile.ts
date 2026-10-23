@@ -55,6 +55,7 @@ let include = {
     }
   },
   resourceActors: true,
+  organizationActor: true,
   surface: {
     include: {
       ...consumerSurfaceInclude,

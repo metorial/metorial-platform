@@ -96,6 +96,7 @@ class providerSetupSessionUiServiceImpl {
       } | null;
     };
     ownerActorOid: bigint | null;
+    isOwnerLocked?: boolean;
     ownerPublicMcpServerOid: bigint | null;
     toolFilters?: PrismaJson.ToolFilter | null;
   }) {
@@ -128,6 +129,7 @@ class providerSetupSessionUiServiceImpl {
         fromVaultOid: d.config.fromVaultOid,
         parentConfigOid: d.config.oid,
         ownerActorOid: d.ownerActorOid ?? d.config.ownerActorOid,
+        isOwnerLocked: !!d.isOwnerLocked || d.config.isOwnerLocked,
         ownerPublicMcpServerOid: d.ownerPublicMcpServerOid ?? d.config.ownerPublicMcpServerOid
       }
     });
@@ -463,6 +465,7 @@ class providerSetupSessionUiServiceImpl {
             credentials: currentSession.authCredentials ?? undefined,
             authMethod,
             ownerActorOid: currentSession.ownerActorOid,
+            isOwnerLocked: currentSession.isOwnerLocked,
             ownerPublicMcpServerOid: currentSession.ownerPublicMcpServerOid,
             expiresAt: currentSession.expiresAt,
             input: {
@@ -605,6 +608,7 @@ class providerSetupSessionUiServiceImpl {
             : await this.cloneConfigForToolFilters({
                 config: currentSession.config,
                 ownerActorOid: currentSession.ownerActorOid,
+                isOwnerLocked: currentSession.isOwnerLocked,
                 ownerPublicMcpServerOid: currentSession.ownerPublicMcpServerOid,
                 toolFilters: d.input.toolFilters
               });
@@ -625,6 +629,7 @@ class providerSetupSessionUiServiceImpl {
             environment: currentSession.environment,
             providerDeployment: currentSession.deployment ?? undefined,
             ownerActorOid: currentSession.ownerActorOid,
+            isOwnerLocked: currentSession.isOwnerLocked,
             ownerPublicMcpServerOid: currentSession.ownerPublicMcpServerOid,
             input: {
               name: currentSession.name ?? undefined,
@@ -779,6 +784,7 @@ class providerSetupSessionUiServiceImpl {
             environment: session.environment,
             provider,
             ownerActorOid: session.ownerActorOid,
+            isOwnerLocked: session.isOwnerLocked,
             ownerPublicMcpServerOid: session.ownerPublicMcpServerOid,
             expiresAt: session.expiresAt,
             input: {

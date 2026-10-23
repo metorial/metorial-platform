@@ -34,6 +34,8 @@ model MagicMcpServer {
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
 
+  isOwnerLocked Boolean @default(false)
+
   ownerActorOid BigInt?
   ownerActor    IdentityActor? @relation(fields: [ownerActorOid], references: [oid], onDelete: SetNull)
 

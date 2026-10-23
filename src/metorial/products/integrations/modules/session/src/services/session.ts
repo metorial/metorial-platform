@@ -10,6 +10,7 @@ import {
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
+import type { Instance, OrganizationActor } from '@metorial/db';
 import {
   checkDeletedEdit,
   type DateFilter,
@@ -26,9 +27,14 @@ import {
   resolveSessionTemplates
 } from '@metorial-subspace/list-utils';
 import {
+  assertCanUseOwnedResource,
+  canUseOwnedResource,
   checkTenant,
   getMetorialSolution,
+  getOwnershipAccessor,
+  getOwnershipAccessorForFacing,
   type MetorialFacing,
+  type OwnershipAccessor,
   resolveMetorialFacing,
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
@@ -118,6 +124,7 @@ export type CreateSessionParams = {
 
 export type CreateInternalSessionParams = CreateSessionParams & {
   adapter?: InternalAdapterInput;
+  ownershipAccessor?: OwnershipAccessor;
 };
 
 export type UpdateSessionParams = {
@@ -261,6 +268,40 @@ class sessionServiceImpl {
     );
   }
 
+  async redactSessionsForCaller<
+    T extends {
+      clientSecret?: string | null;
+      ownerActorOid: bigint | null;
+      identityActorOid: bigint | null;
+      isOwnerLocked: boolean;
+    }
+  >(d: { instance: Instance; organizationActor?: OrganizationActor; sessions: T[] }) {
+    let accessor = await getOwnershipAccessorForFacing(d);
+    if (accessor.kind === 'internal') return d.sessions;
+
+    return await Promise.all(
+      d.sessions.map(async session =>
+        (await canUseOwnedResource(accessor, session))
+          ? session
+          : { ...session, clientSecret: null }
+      )
+    );
+  }
+
+  async assertCanUseSessionForCaller(d: {
+    instance: Instance;
+    organizationActor?: OrganizationActor;
+    session: {
+      id: string;
+      ownerActorOid: bigint | null;
+      identityActorOid: bigint | null;
+      isOwnerLocked: boolean;
+    };
+  }) {
+    let accessor = await getOwnershipAccessorForFacing(d);
+    await assertCanUseOwnedResource(accessor, d.session, { resource: 'session' });
+  }
+
   async getSessionById(d: MetorialFacing<GetSessionByIdParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
@@ -343,7 +384,11 @@ class sessionServiceImpl {
     let session = await this.createSessionInternal({
       ...rest,
       tenant: scope.tenant,
-      environment: scope.environment
+      environment: scope.environment,
+      ownershipAccessor: await getOwnershipAccessor({
+        tenant: scope.tenant,
+        organizationActor
+      })
     });
 
     let enriched = await finalizeSessionCreate({
@@ -372,7 +417,8 @@ class sessionServiceImpl {
     let resolvedProviders = await resolveSessionRecordProviders({
       tenant: d.tenant,
       environment: d.environment,
-      providers: d.input.providers
+      providers: d.input.providers,
+      ownershipAccessor: d.ownershipAccessor
     });
 
     return withTransaction(async db => {

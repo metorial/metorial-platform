@@ -201,6 +201,10 @@ export type UpsertPlaceholderEphemeralManagedSessionParams = {
   input: {
     maxSessionDurationInMinutes: number;
     actorOid?: bigint | null;
+    owner?: {
+      ownerActorOid: bigint | null;
+      isOwnerLocked: boolean;
+    };
     isReconciling?: boolean;
     markSessionsAsInternal?: boolean;
     adapter?: InternalAdapterInput;
@@ -321,6 +325,8 @@ class ephemeralManagedSessionServiceImpl {
           sessionTemplateOid: d.sessionTemplate.oid,
           actorOid: d.sessionTemplate.identityActorOid ?? null,
           identityOid: d.sessionTemplate.identityOid ?? null,
+          ownerActorOid: d.sessionTemplate.ownerActorOid ?? null,
+          isOwnerLocked: d.sessionTemplate.isOwnerLocked ?? false,
           maxSessionDurationInMinutes: d.input.maxSessionDurationInMinutes,
           templateHash: d.sessionTemplate.hash ?? null,
           markSessionsAsInternal,
@@ -337,6 +343,10 @@ class ephemeralManagedSessionServiceImpl {
         ephemeralManagedSessionOid: ephemeralManagedSession.oid,
         identityActorOid: d.sessionTemplate.identityActorOid ?? null,
         identityOid: d.sessionTemplate.identityOid ?? null,
+        owner: {
+          ownerActorOid: ephemeralManagedSession.ownerActorOid,
+          isOwnerLocked: ephemeralManagedSession.isOwnerLocked
+        },
         input,
         resolvedProviders
       });
@@ -418,6 +428,12 @@ class ephemeralManagedSessionServiceImpl {
         sessionTemplateOid: d.sessionTemplate.oid,
         actorOid: d.input.actorOid ?? d.sessionTemplate.identityActorOid ?? null,
         identityOid: d.sessionTemplate.identityOid ?? null,
+        ownerActorOid: d.input.owner
+          ? d.input.owner.ownerActorOid
+          : (d.sessionTemplate.ownerActorOid ?? null),
+        isOwnerLocked: d.input.owner
+          ? d.input.owner.isOwnerLocked
+          : (d.sessionTemplate.isOwnerLocked ?? false),
         isReconciling: d.input.isReconciling ?? false,
         markSessionsAsInternal,
         adapterGlobalOid: adapter?.oid ?? null
@@ -621,8 +637,15 @@ class ephemeralManagedSessionServiceImpl {
           isInternal: ephemeralManagedSession.markSessionsAsInternal,
           adapterGlobalOid: ephemeralManagedSession.adapterGlobalOid,
           ephemeralManagedSessionOid: ephemeralManagedSession.oid,
-          identityActorOid: ephemeralManagedSession.sessionTemplate.identityActorOid ?? null,
+          identityActorOid:
+            ephemeralManagedSession.sessionTemplate.identityActorOid ??
+            ephemeralManagedSession.actorOid ??
+            null,
           identityOid: ephemeralManagedSession.sessionTemplate.identityOid ?? null,
+          owner: {
+            ownerActorOid: ephemeralManagedSession.ownerActorOid,
+            isOwnerLocked: ephemeralManagedSession.isOwnerLocked
+          },
           input,
           resolvedProviders
         });

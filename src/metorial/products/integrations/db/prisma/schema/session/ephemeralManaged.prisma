@@ -42,10 +42,15 @@ model EphemeralManagedSession {
   currentSession    Session? @relation("EphemeralManagedSessionCurrentSession", fields: [currentSessionOid], references: [oid])
 
   actorOid BigInt?
-  actor    IdentityActor? @relation(fields: [actorOid], references: [oid], onDelete: SetNull)
+  actor    IdentityActor? @relation("EphemeralManagedSessionActor", fields: [actorOid], references: [oid], onDelete: SetNull)
 
   identityOid BigInt?
   identity    Identity? @relation(fields: [identityOid], references: [oid], onDelete: SetNull)
+
+  isOwnerLocked Boolean @default(false)
+
+  ownerActorOid BigInt?
+  ownerActor    IdentityActor? @relation("EphemeralManagedSessionOwnerActor", fields: [ownerActorOid], references: [oid], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -61,6 +66,7 @@ model EphemeralManagedSession {
   @@index([status, archivedAt])
   @@index([sessionTemplateOid])
   @@index([identityOid])
+  @@index([ownerActorOid])
   @@index([adapterGlobalOid])
   @@index([currentSessionOid, status])
   @@index([projectOid])

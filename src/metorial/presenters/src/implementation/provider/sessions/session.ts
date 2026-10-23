@@ -1,6 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { getConfig } from '@metorial/config';
 import { Presenter } from '@metorial/presenter';
+import { isOwnerLockedSchema, ownerActorSchema, presentOwnerActor } from '../../_shared';
 import { providerSessionType } from '../../../types';
 import { v1SessionProviderPresenter } from './sessionProvider';
 
@@ -34,6 +35,8 @@ export let v1SessionPresenter = Presenter.create(providerSessionType)
     has_errors: session.hasErrors,
     has_warnings: session.hasWarnings,
     identity_actor_id: session.identityActor?.id ?? null,
+    owner_actor: await presentOwnerActor(session.ownerActor ?? session.identityActor),
+    is_owner_locked: session.isOwnerLocked,
     identity_id: session.identity?.id ?? null,
     created_at: session.createdAt,
     updated_at: session.updatedAt
@@ -114,6 +117,8 @@ export let v1SessionPresenter = Presenter.create(providerSessionType)
         description: 'Whether the session has any warnings'
       }),
       identity_actor_id: v.nullable(v.string()),
+      owner_actor: ownerActorSchema,
+      is_owner_locked: isOwnerLockedSchema,
       identity_id: v.nullable(v.string()),
       created_at: v.date({
         name: 'created_at',

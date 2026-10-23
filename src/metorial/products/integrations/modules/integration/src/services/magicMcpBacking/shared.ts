@@ -22,6 +22,8 @@ export type MagicMcpBackingInputBase = {
   privateMetadata?: Record<string, any> | null;
   identityActorId?: string | null;
   identityId?: string | null;
+  ownerActorId?: string | null;
+  isOwnerLocked?: boolean;
   maxSessionDurationInMinutes: number;
 };
 

@@ -1,7 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { getConfig } from '@metorial/config';
 import { Presenter } from '@metorial/presenter';
-import { ownerActorSchema, presentOwnerActor } from '../../_shared';
+import { isOwnerLockedSchema, ownerActorSchema, presentOwnerActor } from '../../_shared';
 import { toolFilterPresenter } from '../../_shared/toolFilter';
 import {
   publicMcpServerClientType,
@@ -57,7 +57,8 @@ export let dashboardPublicMcpServerPresenter = Presenter.create(publicMcpServerT
       refresh_token_ttl_seconds: publicMcpServer.refreshTokenTtlSeconds,
       grant_idle_expiry_seconds: publicMcpServer.grantIdleExpirySeconds,
 
-      owner_actor: presentOwnerActor(publicMcpServer.ownerActor),
+      owner_actor: await presentOwnerActor(publicMcpServer.ownerActor),
+      is_owner_locked: publicMcpServer.isOwnerLocked,
 
       disabled_at: publicMcpServer.disabledAt,
       archived_at: publicMcpServer.archivedAt,
@@ -141,6 +142,7 @@ export let dashboardPublicMcpServerPresenter = Presenter.create(publicMcpServerT
         examples: [7776000]
       }),
       owner_actor: ownerActorSchema,
+      is_owner_locked: isOwnerLockedSchema,
       disabled_at: v.nullable(v.date({ name: 'disabled_at', description: 'When disabled' })),
       archived_at: v.nullable(v.date({ name: 'archived_at', description: 'When archived' })),
       created_at: v.date({ name: 'created_at', description: 'Timestamp when created' }),

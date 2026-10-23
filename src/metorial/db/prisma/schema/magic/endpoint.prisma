@@ -19,6 +19,11 @@ model MagicMcpEndpoint {
   consumerProfileOid BigInt?
   consumerProfile    ConsumerProfile? @relation(fields: [consumerProfileOid], references: [oid], onDelete: SetNull)
 
+  isOwnerLocked Boolean @default(false)
+
+  ownerActorOid BigInt?
+  ownerActor    IdentityActor? @relation(fields: [ownerActorOid], references: [oid], onDelete: SetNull)
+
   skillPluginOid BigInt?
   skillPlugin    SkillPlugin? @relation(fields: [skillPluginOid], references: [oid], onDelete: SetNull)
 
@@ -49,6 +54,7 @@ model MagicMcpEndpoint {
 
   @@index([instanceOid, status])
   @@index([legacySubspaceSessionTemplateId])
+  @@index([ownerActorOid])
 }
 
 model MagicMcpEndpointServer {

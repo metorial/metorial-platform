@@ -40,9 +40,13 @@ import {
 import { enqueueSyncIntegrationInstanceGroupSessionTemplate } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate';
 import { type SessionProviderTemplateInput } from '@metorial-subspace/module-session/src/services/sessionProviderInput';
 import {
+  assertCanUseOwnedResource,
   checkTenant,
   getMetorialSolution,
+  getOwnershipAccessor,
   type MetorialFacing,
+  ownerActorSelect,
+  type ResourceOwner,
   toProviderEventBase,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
@@ -93,6 +97,7 @@ export let integrationInstanceGroupProviderInclude = {
 
 export let integrationInstanceGroupInclude = {
   identityActor: true,
+  ownerActor: ownerActorSelect,
   identity: true,
   defaultSessionTemplate: true,
   sources: {
@@ -120,6 +125,7 @@ type IntegrationInstanceGroupWriteInput = {
     IntegrationInstance,
     'identityActorOid' | 'identityOid'
   >[];
+  owner?: ResourceOwner;
 };
 
 let DEFAULT_SESSION_TEMPLATE_POLL_INTERVAL_MS = 250;
@@ -184,6 +190,7 @@ export type UpsertMagicMcpIntegrationInstanceGroupParams = {
       IntegrationInstance,
       'identityActorOid' | 'identityOid'
     >[];
+    owner?: ResourceOwner;
   };
 };
 
@@ -334,6 +341,8 @@ class integrationInstanceGroupServiceImpl {
       description: d.input.description?.trim() || null,
       metadata: d.input.metadata,
       privateMetadata: d.input.privateMetadata,
+      ownerActorOid: d.input.owner?.ownerActorOid ?? null,
+      isOwnerLocked: !!d.input.owner?.isOwnerLocked,
       tenantOid: d.tenant.oid,
       projectOid: d.tenant.projectOid,
       solutionOid: d.solution.oid,
@@ -353,7 +362,13 @@ class integrationInstanceGroupServiceImpl {
       name: d.input.name.trim(),
       description: d.input.description?.trim() || null,
       metadata: d.input.metadata,
-      privateMetadata: d.input.privateMetadata
+      privateMetadata: d.input.privateMetadata,
+      ...(d.input.owner
+        ? {
+            ownerActorOid: d.input.owner.ownerActorOid,
+            isOwnerLocked: d.input.owner.isOwnerLocked
+          }
+        : {})
     };
   }
 
@@ -891,6 +906,12 @@ class integrationInstanceGroupServiceImpl {
   ) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
+
+    await assertCanUseOwnedResource(
+      await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+      d.integrationInstanceGroup,
+      { resource: 'integration instance group' }
+    );
 
     let session = await this.createSessionForIntegrationInstanceGroupInternal({
       ...rest,

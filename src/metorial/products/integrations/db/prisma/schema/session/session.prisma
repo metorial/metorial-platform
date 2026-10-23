@@ -50,10 +50,15 @@ model Session {
   solution    Solution @relation(fields: [solutionOid], references: [oid], onDelete: Cascade)
 
   identityActorOid BigInt?
-  identityActor    IdentityActor? @relation(fields: [identityActorOid], references: [oid], onDelete: SetNull)
+  identityActor    IdentityActor? @relation("SessionIdentityActor", fields: [identityActorOid], references: [oid], onDelete: SetNull)
 
   identityOid BigInt?
   identity    Identity? @relation(fields: [identityOid], references: [oid], onDelete: SetNull)
+
+  isOwnerLocked Boolean @default(false)
+
+  ownerActorOid BigInt?
+  ownerActor    IdentityActor? @relation("SessionOwnerActor", fields: [ownerActorOid], references: [oid], onDelete: SetNull)
 
   ephemeralManagedSessionOid BigInt?
   ephemeralManagedSession    EphemeralManagedSession? @relation("EphemeralManagedSessionSessions", fields: [ephemeralManagedSessionOid], references: [oid])
@@ -98,6 +103,7 @@ model Session {
   @@index([status, archivedAt])
   @@index([identityActorOid])
   @@index([identityOid])
+  @@index([ownerActorOid])
   @@index([isEphemeral])
   @@index([isInternal])
   @@index([adapterGlobalOid])

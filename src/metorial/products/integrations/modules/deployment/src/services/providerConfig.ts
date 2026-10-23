@@ -49,12 +49,16 @@ import {
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import {
   checkTenant,
+  getConsumerOwnedResourceName,
   getMetorialSolution,
   type MetorialFacing,
   resolveConsumerActorIds,
   resolveMetorialFacing,
   resolveMetorialFacingWithOptionalActor,
-  toProviderEventBase
+  toProviderEventBase,
+  assertCanChangeOwnerLock,
+  getOwnershipAccessor,
+  usableOwnedResourceWhere
 } from '@metorial-subspace/module-tenant';
 import { ownerActorSelect } from '@metorial-subspace/module-tenant/src/lib/ownerActor';
 import { getBackend } from '@metorial-subspace/provider';
@@ -93,10 +97,10 @@ export type CreateProviderConfigParams = {
     provider: Provider;
     providerVariant: ProviderVariant;
     currentVersion:
-      | (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null })
-      | null;
+      (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null }) | null;
   };
   ownerActorOid?: bigint | null;
+  isOwnerLocked?: boolean;
   input: {
     name?: string;
     description?: string;
@@ -129,6 +133,7 @@ export type UpdateProviderConfigParams = {
     metadata?: Record<string, any>;
     privateMetadata?: Record<string, any>;
     toolFilters?: PrismaJson.ToolFilter | null;
+    isOwnerLocked?: boolean;
   };
 };
 
@@ -147,6 +152,8 @@ export type ArchiveProviderConfigParams = {
 };
 
 type ListProviderConfigsParams = {
+  onlyUsable?: boolean;
+  usableWhere?: Record<string, any>;
   search?: string;
 
   status?: ProviderConfigStatus[];
@@ -200,6 +207,11 @@ class providerConfigServiceImpl {
 
     return this.listProviderConfigsInternal({
       ...rest,
+      usableWhere: d.onlyUsable
+        ? usableOwnedResourceWhere(
+            await getOwnershipAccessor({ tenant: scope.tenant, organizationActor })
+          )
+        : undefined,
       tenant: scope.tenant,
       environment: scope.environment
     });
@@ -259,6 +271,7 @@ class providerConfigServiceImpl {
               ...normalizeStatusForList(d).noParent,
 
               AND: [
+                d.usableWhere ?? undefined!,
                 d.publicMcpServerIds
                   ? { ownerPublicMcpServer: { id: { in: d.publicMcpServerIds } } }
                   : { ownerPublicMcpServerOid: null },
@@ -457,6 +470,13 @@ class providerConfigServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacingWithOptionalActor(d);
 
+    await assertCanChangeOwnerLock(
+      await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+      d.providerConfig,
+      d.input.isOwnerLocked,
+      { resource: 'provider config' }
+    );
+
     let eventBase = toProviderEventBase(d);
     await Fabric.fire('provider.config.updated:before', eventBase);
 
@@ -516,6 +536,12 @@ class providerConfigServiceImpl {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
 
+    let consumerOwnedName = await getConsumerOwnedResourceName({
+      ownerActorOid: d.ownerActorOid,
+      providerName: d.provider.name,
+      kind: 'Config'
+    });
+
     return withTransaction(async db => {
       if (!d.provider.defaultVariant) {
         throw new Error('Provider has no default variant');
@@ -528,7 +554,7 @@ class providerConfigServiceImpl {
       let ids = getId('providerConfig');
 
       let data = {
-        name: d.input.name?.trim() || undefined,
+        name: consumerOwnedName ?? (d.input.name?.trim() || undefined),
         description: d.input.description?.trim() || undefined,
         metadata: d.input.metadata,
         privateMetadata: d.input.privateMetadata,
@@ -546,7 +572,8 @@ class providerConfigServiceImpl {
         instanceOid: d.environment.instanceOid,
 
         deploymentOid: d.providerDeployment?.oid,
-        ownerActorOid: d.ownerActorOid
+        ownerActorOid: d.ownerActorOid,
+        isOwnerLocked: !!d.isOwnerLocked
       };
 
       let config = await (async () => {
@@ -788,7 +815,8 @@ class providerConfigServiceImpl {
           toolFilter:
             d.input.toolFilters || d.input.toolFilters === null
               ? normalizeToolFilters(d.input.toolFilters)
-              : d.providerConfig.toolFilter
+              : d.providerConfig.toolFilter,
+          isOwnerLocked: d.input.isOwnerLocked ?? d.providerConfig.isOwnerLocked
         },
         include
       });

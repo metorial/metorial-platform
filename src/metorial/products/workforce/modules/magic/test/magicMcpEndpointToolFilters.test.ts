@@ -28,6 +28,14 @@ let { db, ensureMagicMcpEndpointBackingMock } = vi.hoisted(() => {
   };
 });
 
+vi.mock('@metorial-subspace/module-tenant', () => ({
+  assertCanChangeCoreOwnerLock: vi.fn(),
+  assertCanUseCoreOwnedResources: vi.fn(),
+  getOwnershipAccessor: vi.fn(),
+  subspaceScopeService: { ensureForInstance: vi.fn() },
+  usableCoreOwnedResourceWhere: vi.fn(() => ({}))
+}));
+
 vi.mock('@metorial/db', () => ({
   db,
   ID: {

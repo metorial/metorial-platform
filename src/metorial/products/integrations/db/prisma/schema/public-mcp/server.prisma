@@ -49,6 +49,8 @@ model PublicMcpServer {
   deploymentOid BigInt
   deployment    ProviderDeployment @relation(fields: [deploymentOid], references: [oid])
 
+  isOwnerLocked Boolean @default(false)
+
   ownerActorOid BigInt?
   ownerActor    IdentityActor? @relation(fields: [ownerActorOid], references: [oid], onDelete: SetNull)
 

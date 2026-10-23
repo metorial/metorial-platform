@@ -1,6 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import { ownerActorSchema, presentOwnerActor } from '../../_shared';
+import { isOwnerLockedSchema, ownerActorSchema, presentOwnerActor } from '../../_shared';
 import { env } from '@metorial-subspace/module-auth/src/env';
 import { providerSetupSessionType } from '../../../types';
 import {
@@ -32,7 +32,9 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
       type: setupSession.typeSelected,
       status,
 
-      url: `${env.service.INTEGRATIONS_UI_URL}/setup-session/${setupSession.id}?client_secret=${setupSession.clientSecret}`,
+      url: setupSession.clientSecret
+        ? `${env.service.INTEGRATIONS_UI_URL}/setup-session/${setupSession.id}?client_secret=${setupSession.clientSecret}`
+        : `${env.service.INTEGRATIONS_UI_URL}/setup-session/${setupSession.id}`,
 
       error: oauthErrorMessage
         ? {
@@ -84,7 +86,8 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
       provider_id: setupSession.provider?.id ?? null,
       identity_id: setupSession.identity?.id ?? null,
       identity_credential_id: setupSession.identityCredential?.id ?? null,
-      owner_actor: presentOwnerActor(setupSession.ownerActor),
+      owner_actor: await presentOwnerActor(setupSession.ownerActor),
+      is_owner_locked: setupSession.isOwnerLocked,
 
       auth_method:
         setupSession.provider && setupSession.authMethod
@@ -261,6 +264,7 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
         })
       ),
       owner_actor: ownerActorSchema,
+      is_owner_locked: isOwnerLockedSchema,
       auth_method: v.nullable(v1ProviderAuthMethodPresenter.schema),
       deployment: v.nullable(v1ProviderDeploymentPreviewPresenter.schema),
       credentials: v.nullable(v1ProviderAuthCredentialsPresenter.schema),

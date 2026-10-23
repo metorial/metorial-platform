@@ -50,7 +50,10 @@ import {
   resolveMetorialFacing,
   resolveMetorialFacingWithOptionalActor,
   toProviderEventBase,
-  ownerActorSelect
+  ownerActorSelect,
+  assertCanChangeOwnerLock,
+  getOwnershipAccessor,
+  usableOwnedResourceWhere
 } from '@metorial-subspace/module-tenant';
 import { type AuditSubspaceProviderAuthConfig, Fabric } from '@metorial/fabric';
 import {
@@ -80,12 +83,12 @@ export type CreateProviderAuthConfigParams = {
     provider: Provider;
     providerVariant: ProviderVariant;
     currentVersion:
-      | (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null })
-      | null;
+      (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null }) | null;
   };
   source: ProviderAuthConfigSource;
   credentials?: ProviderAuthCredentials;
   ownerActorOid?: bigint | null;
+  isOwnerLocked?: boolean;
   input: {
     name?: string;
     description?: string;
@@ -118,6 +121,7 @@ export type UpdateProviderAuthConfigParams = {
 
     authMethodId?: string;
     toolFilters?: PrismaJson.ToolFilter | null;
+    isOwnerLocked?: boolean;
   };
 
   import: {
@@ -143,6 +147,8 @@ export type ArchiveProviderAuthConfigParams = {
 };
 
 type ListProviderAuthConfigsParams = {
+  onlyUsable?: boolean;
+  usableWhere?: Record<string, any>;
   status?: ProviderAuthConfigStatus[];
   allowDeleted?: boolean;
 
@@ -195,8 +201,7 @@ type GetProviderAuthConfigSchemaParams = {
     provider: Provider;
     providerVariant: ProviderVariant;
     currentVersion:
-      | (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null })
-      | null;
+      (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null }) | null;
   };
 
   providerAuthConfig?: ProviderAuthConfig & { deployment: ProviderDeployment | null };
@@ -226,6 +231,13 @@ class providerAuthConfigServiceImpl {
   async updateProviderAuthConfig(d: MetorialFacing<UpdateProviderAuthConfigFacingParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacingWithOptionalActor(d);
+
+    await assertCanChangeOwnerLock(
+      await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+      d.providerAuthConfig,
+      d.input.isOwnerLocked,
+      { resource: 'provider auth config' }
+    );
 
     let eventBase = toProviderEventBase(d);
     await Fabric.fire('provider.auth_config.updated:before', eventBase);
@@ -269,6 +281,11 @@ class providerAuthConfigServiceImpl {
 
     return this.listProviderAuthConfigsInternal({
       ...rest,
+      usableWhere: d.onlyUsable
+        ? usableOwnedResourceWhere(
+            await getOwnershipAccessor({ tenant: scope.tenant, organizationActor })
+          )
+        : undefined,
       tenant: scope.tenant,
       environment: scope.environment
     });
@@ -340,6 +357,7 @@ class providerAuthConfigServiceImpl {
               ...normalizeStatusForList(d).hasParent,
 
               AND: [
+                d.usableWhere ?? undefined!,
                 d.publicMcpServerIds
                   ? { ownerPublicMcpServer: { id: { in: d.publicMcpServerIds } } }
                   : { ownerPublicMcpServerOid: null },
@@ -599,6 +617,7 @@ class providerAuthConfigServiceImpl {
           authMethod,
           credentials,
           ownerActorOid: d.ownerActorOid,
+          isOwnerLocked: d.isOwnerLocked,
           backend: backendRes.backend,
           backendProviderAuthConfig: backendRes.backendProviderAuthConfig,
           type: authMethod.type === 'oauth' ? 'oauth_manual' : 'manual'
@@ -702,7 +721,8 @@ class providerAuthConfigServiceImpl {
               ? normalizeToolFilters(d.input.toolFilters)
               : d.providerAuthConfig.toolFilter,
 
-          currentVersionOid: newConfigVersion?.oid ?? d.providerAuthConfig.currentVersionOid
+          currentVersionOid: newConfigVersion?.oid ?? d.providerAuthConfig.currentVersionOid,
+          isOwnerLocked: d.input.isOwnerLocked ?? d.providerAuthConfig.isOwnerLocked
         },
         include
       });

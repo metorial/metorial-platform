@@ -27,7 +27,11 @@ import {
   checkProviderMatch,
   providerDeploymentInternalService
 } from '@metorial-subspace/module-provider-internal';
-import { getMetorialSolution, checkTenant } from '@metorial-subspace/module-tenant';
+import {
+  checkTenant,
+  getConsumerOwnedResourceName,
+  getMetorialSolution
+} from '@metorial-subspace/module-tenant';
 import { getBackend } from '@metorial-subspace/provider';
 import type { ProviderAuthConfigCreateRes } from '@metorial-subspace/provider-utils';
 import { providerAuthConfigCreatedQueue } from '../queues/lifecycle/providerAuthConfig';
@@ -46,8 +50,7 @@ class providerAuthConfigInternalServiceImpl {
     provider: Provider & { defaultVariant: ProviderVariant | null };
     providerDeployment?: ProviderDeployment & {
       currentVersion:
-        | (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null })
-        | null;
+        (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null }) | null;
     };
     authMethodId?: string;
     credentials?: ProviderAuthCredentials;
@@ -363,6 +366,7 @@ class providerAuthConfigInternalServiceImpl {
     source: ProviderAuthConfigSource;
     credentials?: ProviderAuthCredentials;
     ownerActorOid?: bigint | null;
+    isOwnerLocked?: boolean;
     input: {
       name?: string;
       description?: string;
@@ -407,6 +411,12 @@ class providerAuthConfigInternalServiceImpl {
       );
     }
 
+    let consumerOwnedName = await getConsumerOwnedResourceName({
+      ownerActorOid: d.ownerActorOid,
+      providerName: d.provider.name,
+      kind: 'Auth Config'
+    });
+
     return withTransaction(async db => {
       let providerAuthConfig = await db.providerAuthConfig.create({
         data: {
@@ -418,7 +428,7 @@ class providerAuthConfigInternalServiceImpl {
           type: d.type,
           source: d.source,
 
-          name: d.input.name?.trim() || undefined,
+          name: consumerOwnedName ?? (d.input.name?.trim() || undefined),
           description: d.input.description?.trim() || undefined,
           metadata: d.input.metadata,
           privateMetadata: d.input.privateMetadata,
@@ -436,7 +446,8 @@ class providerAuthConfigInternalServiceImpl {
           authMethodOid: d.authMethod.oid,
           deploymentOid: d.providerDeployment?.oid,
           authCredentialsOid: d.credentials?.oid,
-          ownerActorOid: d.ownerActorOid
+          ownerActorOid: d.ownerActorOid,
+          isOwnerLocked: !!d.isOwnerLocked
         },
         include: providerAuthConfigInclude
       });

@@ -39,9 +39,12 @@ import {
   providerCombinationService
 } from '@metorial-subspace/module-provider-internal';
 import {
+  assertCanUseOwnedResource as assertCanUseConsumerOwnedResource,
   checkTenant,
   getMetorialSolution,
+  getOwnershipAccessor,
   type MetorialFacing,
+  type OwnershipAccessor,
   toProviderEventBase,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
@@ -50,6 +53,7 @@ import {
   normalizeIntegrationProviderToolFilter,
   refreshIntegrationInstanceStatus
 } from '../lib/versions';
+import { lockIntegrationInstanceOwner } from '../lib/ownerLock';
 import { notifyIntegrationTransaction } from '../listeners';
 import {
   enqueueIntegrationInstanceProviderSet,
@@ -211,6 +215,7 @@ export type SetIntegrationInstanceProviderParams = {
   _canBreakIntegrationCanRules?: boolean;
   _allowMissingProviderAuthConfig?: boolean;
   _canBypassProviderResourceOwnershipChecks?: boolean;
+  ownershipAccessor?: OwnershipAccessor;
 };
 
 class integrationInstanceProviderServiceImpl {
@@ -364,6 +369,7 @@ class integrationInstanceProviderServiceImpl {
     _canBreakIntegrationCanRules?: boolean;
     _allowMissingProviderAuthConfig?: boolean;
     _canBypassProviderResourceOwnershipChecks?: boolean;
+    ownershipAccessor?: OwnershipAccessor;
   }) {
     let solution = await getMetorialSolution();
 
@@ -675,6 +681,27 @@ class integrationInstanceProviderServiceImpl {
         let isInheritedSharedConfig =
           materialProvider.currentVersion!.config?.oid === combination.config.oid;
 
+        if (d.ownershipAccessor) {
+          if (
+            !isInheritedSharedConfig &&
+            existing?.currentVersion?.configOid !== combination.config.oid
+          ) {
+            await assertCanUseConsumerOwnedResource(d.ownershipAccessor, combination.config, {
+              resource: 'provider config'
+            });
+          }
+          if (
+            combination.authConfig &&
+            existing?.currentVersion?.authConfigOid !== combination.authConfig.oid
+          ) {
+            await assertCanUseConsumerOwnedResource(
+              d.ownershipAccessor,
+              combination.authConfig,
+              { resource: 'provider auth config' }
+            );
+          }
+        }
+
         if (!isInheritedSharedConfig) {
           if (!d._canBypassProviderResourceOwnershipChecks) {
             assertCanUseOwnedResource({
@@ -826,6 +853,14 @@ class integrationInstanceProviderServiceImpl {
         integrationInstanceProviderOids.push(integrationInstanceProvider.oid);
       }
 
+      let inheritsOwnerLock = combinations.some(
+        combination =>
+          combination.config.isOwnerLocked || combination.authConfig?.isOwnerLocked
+      );
+      if (inheritsOwnerLock && !d.integrationInstance.isOwnerLocked) {
+        await lockIntegrationInstanceOwner(d.integrationInstance);
+      }
+
       await refreshIntegrationInstanceStatus({
         integrationInstanceOid: d.integrationInstance.oid
       });
@@ -875,7 +910,11 @@ class integrationInstanceProviderServiceImpl {
     let integrationInstanceProvider = await this.setIntegrationInstanceProviderInternal({
       ...rest,
       tenant: scope.tenant,
-      environment: scope.environment
+      environment: scope.environment,
+      ownershipAccessor: await getOwnershipAccessor({
+        tenant: scope.tenant,
+        organizationActor
+      })
     });
 
     await Fabric.fire('provider.integration_instance_provider.set:after', {

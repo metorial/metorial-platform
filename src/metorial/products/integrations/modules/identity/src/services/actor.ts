@@ -68,6 +68,11 @@ let getAgentSlug = createSlugGenerator(
     }))
 );
 
+export type IdentityActorConsumerProfile = {
+  id: string;
+  surface: { portal: { id: string } | null };
+};
+
 export type IdentityActorConsumer = InstanceConsumer & {
   consumer: Consumer & {
     organizationMember: OrganizationMember | null;
@@ -77,14 +82,25 @@ export type IdentityActorConsumer = InstanceConsumer & {
   };
 };
 
+type EnrichedIdentityActor = {
+  consumer?: IdentityActorConsumer;
+  consumerProfile?: IdentityActorConsumerProfile;
+};
+
 let enrichIdentityActors = async <T extends { id: string }>(actors: T[]) => {
-  if (!actors.length) return actors as Array<T & { consumer?: IdentityActorConsumer }>;
+  if (!actors.length) return actors as Array<T & EnrichedIdentityActor>;
 
   let consumerActors = await metorialDb.consumerActor.findMany({
     where: {
       id: { in: actors.map(a => a.id) }
     },
     include: {
+      consumerProfile: {
+        select: {
+          id: true,
+          surface: { select: { portal: { select: { id: true } } } }
+        }
+      },
       instanceConsumer: {
         include: {
           consumer: {
@@ -106,11 +122,12 @@ let enrichIdentityActors = async <T extends { id: string }>(actors: T[]) => {
 
   return actors.map(a => {
     let consumerActor = consumerActorMap.get(a.id);
-    if (!consumerActor) return a as T & { consumer?: IdentityActorConsumer };
+    if (!consumerActor) return a as T & EnrichedIdentityActor;
 
     return {
       ...a,
-      consumer: consumerActor.instanceConsumer
+      consumer: consumerActor.instanceConsumer,
+      consumerProfile: consumerActor.consumerProfile
     };
   });
 };
