@@ -149,6 +149,27 @@ export let fillTimeBuckets = (
   });
 };
 
+let placeholderBarCount = 36;
+
+export let getPlaceholderBarSeries = (domain?: ChartDomain) => {
+  let to = domain ? toTimestamp(domain.to) : Date.now();
+  let from = domain ? toTimestamp(domain.from) : to - 12 * 60 * 60 * 1000;
+  let intervalMs = Math.max(Math.floor((to - from) / placeholderBarCount), 1);
+
+  let series: ChartSeries[] = [
+    {
+      id: 'placeholder',
+      name: 'Loading',
+      entries: Array.from({ length: placeholderBarCount }, (_, i) => ({
+        key: from + intervalMs * i,
+        value: 30 + Math.round(18 * Math.sin(i / 2.3) + 10 * Math.sin(i * 1.7))
+      }))
+    }
+  ];
+
+  return { series, intervalMs };
+};
+
 export let getPlaceholderSeries = (domain?: ChartDomain): ChartSeries[] => {
   let to = domain ? toTimestamp(domain.to) : Date.now();
   let from = domain ? toTimestamp(domain.from) : to - 12 * 60 * 60 * 1000;

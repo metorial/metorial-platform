@@ -10,6 +10,7 @@ import {
 } from '@metorial/chart';
 import { InfoTooltip, OptionToggle, Text, theme, Title } from '@metorial/ui';
 import { RiArrowDownSLine } from '@remixicon/react';
+import { AnimatePresence, motion } from 'framer-motion';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import type { MetricChartCardSpan } from './grid';
@@ -33,20 +34,19 @@ let Card = styled.section<{ $span: MetricChartCardSpan; $variant: EventsChartVar
       : ''}
 `;
 
-let headerPadding = (variant: EventsChartVariant, collapsed: boolean) => {
-  if (variant == 'strip') return collapsed ? '8px 12px' : '8px 12px 0 12px';
-  return collapsed ? '10px 18px' : '10px 18px 0 18px';
-};
+let contentOffset: Record<EventsChartVariant, number> = { strip: -12, card: 0 };
 
-let Header = styled.header<{ $collapsed: boolean; $variant: EventsChartVariant }>`
+let transition = { duration: 0.18, ease: [0.4, 0, 0.2, 1] as const };
+
+let heightTransition = { duration: 0.25, ease: [0.4, 0, 0.2, 1] as const };
+
+let Header = styled.header<{ $variant: EventsChartVariant }>`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 6px 16px;
-  padding: ${({ $collapsed, $variant }) => headerPadding($variant, $collapsed)};
-  margin-bottom: ${({ $collapsed, $variant }) =>
-    $collapsed ? 0 : $variant == 'strip' ? 4 : 10}px;
+  padding: ${({ $variant }) => ($variant == 'strip' ? '8px 12px' : '10px 18px')};
 `;
 
 let HeaderStart = styled.div`
@@ -56,7 +56,7 @@ let HeaderStart = styled.div`
   min-width: 0;
 `;
 
-let HeaderEnd = styled.div`
+let HeaderEnd = styled(motion.div)`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -121,13 +121,16 @@ let CollapseButton = styled.button<{ $collapsed: boolean }>`
   }
 `;
 
-let Content = styled.div<{ $variant: EventsChartVariant }>`
-  flex: 1;
+let ContentWrapper = styled(motion.div)<{ $variant: EventsChartVariant }>`
+  flex: 1 0 auto;
+  overflow: hidden;
+  ${({ $variant }) => ($variant == 'card' ? 'margin: 0 -1px -1px -1px;' : '')}
+`;
 
+let Content = styled.div<{ $variant: EventsChartVariant }>`
   ${({ $variant }) =>
     $variant == 'card'
       ? `
-    margin: 0 -1px -1px -1px;
     padding: 12px 12px 4px 8px;
     border: 1px solid ${theme.colors.gray400};
     border-radius: 8px;
@@ -135,7 +138,7 @@ let Content = styled.div<{ $variant: EventsChartVariant }>`
     overflow: hidden;
   `
       : `
-    padding: 0 12px 0 4px;
+    padding: 0 12px 10px 4px;
   `}
 `;
 
@@ -252,7 +255,7 @@ export let EventsChartCard = ({
 
   return (
     <Card $span={span} $variant={variant}>
-      <Header $collapsed={collapsed} $variant={variant}>
+      <Header $variant={variant}>
         <HeaderStart>
           {collapseKey ? (
             <CollapseButton
@@ -273,7 +276,14 @@ export let EventsChartCard = ({
           {info ? <InfoTooltip size={18}>{info}</InfoTooltip> : null}
         </HeaderStart>
 
-        <HeaderEnd>
+        <HeaderEnd
+          initial={false}
+          animate={collapsed ? { opacity: 0, y: -6 } : { opacity: 1, y: 0 }}
+          transition={transition}
+          aria-hidden={collapsed || undefined}
+          inert={collapsed || undefined}
+          style={{ pointerEvents: collapsed ? 'none' : undefined }}
+        >
           {!error ? (
             <Totals>
               {series.map((item, i) => (
@@ -287,13 +297,15 @@ export let EventsChartCard = ({
             </Totals>
           ) : null}
 
+          {actions}
+
           {hint ? (
             <Text as="span" size="1" color="gray600">
               {hint}
             </Text>
           ) : null}
 
-          {filter && !collapsed ? (
+          {filter ? (
             <OptionToggle
               ariaLabel="Filter"
               size="1"
@@ -303,32 +315,41 @@ export let EventsChartCard = ({
               items={filter.items}
             />
           ) : null}
-
-          {actions}
         </HeaderEnd>
       </Header>
 
-      {collapsed ? null : (
-        <Content $variant={variant}>
-          <Chart
-            type="bar"
-            stacked={stacked}
-            series={series}
-            domain={domain}
-            height={height}
-            legend={false}
-            loading={loading}
-            error={error}
-            emptyText={emptyText}
-            intervalMs={intervalMs}
-            tooltipTotalLabel={totalLabel}
-            selection={selection}
-            clickHint={clickHint}
-            valueFormatter={value => numberFormat.format(value)}
-            onBarClick={onBarClick}
-          />
-        </Content>
-      )}
+      <AnimatePresence initial={false}>
+        {collapsed ? null : (
+          <ContentWrapper
+            key="content"
+            $variant={variant}
+            initial={{ height: 0, marginTop: 0 }}
+            animate={{ height: 'auto', marginTop: contentOffset[variant] }}
+            exit={{ height: 0, marginTop: 0 }}
+            transition={heightTransition}
+          >
+            <Content $variant={variant}>
+              <Chart
+                type="bar"
+                stacked={stacked}
+                series={series}
+                domain={domain}
+                height={height}
+                legend={false}
+                loading={loading}
+                error={error}
+                emptyText={emptyText}
+                intervalMs={intervalMs}
+                tooltipTotalLabel={totalLabel}
+                selection={selection}
+                clickHint={clickHint}
+                valueFormatter={value => numberFormat.format(value)}
+                onBarClick={onBarClick}
+              />
+            </Content>
+          </ContentWrapper>
+        )}
+      </AnimatePresence>
     </Card>
   );
 };

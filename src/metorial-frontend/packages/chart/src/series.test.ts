@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   fillTimeBuckets,
+  getPlaceholderBarSeries,
   getPlaceholderSeries,
   getSmallestTimeStep,
   getTimeSpan,
@@ -75,6 +76,18 @@ describe('time helpers', () => {
 
   it('finds the smallest step between entries', () => {
     expect(getSmallestTimeStep(series)).toBe(MINUTE);
+  });
+});
+
+describe('getPlaceholderBarSeries', () => {
+  it('splits the domain into evenly spaced positive bars', () => {
+    let { series, intervalMs } = getPlaceholderBarSeries({ from: at(0), to: at(36) });
+    let entries = series[0]!.entries;
+
+    expect(intervalMs).toBe(MINUTE);
+    expect(entries[0]!.key).toBe(at(0).getTime());
+    expect(entries[1]!.key).toBe(at(1).getTime());
+    expect(entries.every(entry => (entry.value ?? 0) > 0)).toBe(true);
   });
 });
 

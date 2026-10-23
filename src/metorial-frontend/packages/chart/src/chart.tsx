@@ -24,6 +24,7 @@ import {
   ChartSeries,
   ChartXAxis,
   fillTimeBuckets,
+  getPlaceholderBarSeries,
   getPlaceholderSeries,
   getSmallestTimeStep,
   hasChartData
@@ -277,9 +278,28 @@ export let Chart = memo(
     let { formatValue, formatTick } = useStableFormatters(valueFormatter, tickFormatter);
     let isEmpty = !hasChartData(series);
 
-    let placeholder = useMemo(
-      () =>
-        (type == 'line' || type == 'bar') && loading && isEmpty ? (
+    let placeholder = useMemo(() => {
+      if (!loading || !isEmpty) return null;
+
+      if (type == 'bar') {
+        let bars = getPlaceholderBarSeries(domain);
+        return (
+          <TimelineChart
+            variant="bar"
+            series={bars.series}
+            intervalMs={bars.intervalMs}
+            height={height}
+            xAxis="time"
+            domain={domain}
+            tooltip={false}
+            formatValue={formatValue}
+            formatTick={formatTick}
+          />
+        );
+      }
+
+      if (type == 'line') {
+        return (
           <TimelineChart
             series={getPlaceholderSeries(domain)}
             height={height}
@@ -289,9 +309,11 @@ export let Chart = memo(
             formatValue={formatValue}
             formatTick={formatTick}
           />
-        ) : null,
-      [type, loading, isEmpty, height, domain?.from, domain?.to]
-    );
+        );
+      }
+
+      return null;
+    }, [type, loading, isEmpty, height, domain?.from, domain?.to]);
 
     return (
       <ChartFrame

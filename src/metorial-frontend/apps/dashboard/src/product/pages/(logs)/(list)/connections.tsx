@@ -25,9 +25,9 @@ export let SessionConnectionsPage = () => {
       instanceId={instance.data.id}
       layout={{
         framed: true,
-        toolbarEnd: picker,
         topContent: (
           <UsageEventsCard
+            actions={picker}
             variant="strip"
             title="Connections"
             info="Connections opened over time. Click a bar to filter the list to that time range."

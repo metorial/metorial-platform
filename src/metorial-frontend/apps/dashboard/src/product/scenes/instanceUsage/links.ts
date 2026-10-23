@@ -11,7 +11,6 @@ import type { UsageFilter } from './query';
 
 export let createdFromParam = 'createdAt_gte';
 export let createdToParam = 'createdAt_lte';
-export let providerParam = 'provider_id';
 
 export type UsageLogsTarget = 'toolCalls' | 'sessions' | 'connections';
 
@@ -22,7 +21,7 @@ let logsPaths = {
 } satisfies Record<UsageLogsTarget, unknown>;
 
 let providerParams: Record<UsageLogsTarget, string | undefined> = {
-  toolCalls: providerParam,
+  toolCalls: 'providerId',
   sessions: 'providerId',
   connections: undefined
 };
@@ -50,9 +49,11 @@ export let useUsageLogsLink = (target: UsageLogsTarget, filter?: UsageFilter) =>
         [createdToParam]: new Date(bucket.to.getTime() - 1).toISOString()
       };
       if (status) query.status = status;
-      if (filter?.consumerId) query.consumerId = filter.consumerId;
+      if (filter?.consumerId) query.consumerId = [filter.consumerId].flat().join(',');
       let providerKey = providerParams[target];
-      if (filter?.providerId && providerKey) query[providerKey] = filter.providerId;
+      if (filter?.providerId && providerKey) {
+        query[providerKey] = [filter.providerId].flat().join(',');
+      }
 
       let path = logsPaths[target](organization.data, project.data, instance.data);
       if (path == location.pathname) {

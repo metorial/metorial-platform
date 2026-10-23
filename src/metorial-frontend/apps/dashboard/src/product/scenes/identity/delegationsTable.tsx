@@ -12,7 +12,14 @@ import {
 import { Badge, RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { Table as DashboardTable } from '@metorial/table';
-import { FilterPayload, getEnumListFilterValue, getStringFilterValue } from '@metorial/table';
+import {
+  FilterPayload,
+  TableFilter,
+  getEnumListFilterValue,
+  getListFilterValue
+} from '@metorial/table';
+import { useMemo } from 'react';
+import { entityFilters } from '../entityFilters';
 
 type IdentityDelegation = DashboardInstanceIdentitiesDelegationsListOutput['items'][number];
 
@@ -61,6 +68,42 @@ let getPermissionsFilterValue = (
   return getEnumListFilterValue(value, ['provider:call', 'provider:read']);
 };
 
+let useIdentityDelegationsTableFilters = (instanceId: string) =>
+  useMemo<TableFilter<IdentityDelegation>[]>(
+    () => [
+      {
+        id: 'status',
+        fields: ['status'],
+        label: 'Status',
+        description: 'Filter by status',
+        type: 'select',
+        options: [
+          { id: 'active', label: 'Active' },
+          { id: 'waiting_for_consent', label: 'Waiting for Consent' },
+          { id: 'denied', label: 'Denied' },
+          { id: 'revoked', label: 'Revoked' },
+          { id: 'expired', label: 'Expired' }
+        ]
+      },
+      {
+        id: 'permissions',
+        fields: ['permissions'],
+        label: 'Permissions',
+        description: 'Filter by permissions',
+        type: 'select',
+        options: [
+          { id: 'provider:call', label: 'Provider Call' },
+          { id: 'provider:read', label: 'Provider Read' }
+        ]
+      },
+      entityFilters.identity(instanceId),
+      entityFilters.actor(instanceId, { id: 'ownerActorId', label: 'Owner' }),
+      entityFilters.actor(instanceId, { id: 'delegatorActorId', label: 'Delegator' }),
+      entityFilters.actor(instanceId, { id: 'delegateeActorId', label: 'Delegatee' })
+    ],
+    [instanceId]
+  );
+
 let useIdentityDelegationsTableState = (
   props: IdentityDelegationsTableProps,
   opts: {
@@ -74,14 +117,12 @@ let useIdentityDelegationsTableState = (
     status: getStatusFilterValue(opts.filter.status) ?? props.filters?.status,
     permissions:
       getPermissionsFilterValue(opts.filter.permissions) ?? props.filters?.permissions,
-    id: getStringFilterValue(opts.filter.id) ?? props.filters?.id,
-    ownerActorId:
-      getStringFilterValue(opts.filter.ownerActorId) ?? props.filters?.ownerActorId,
+    ownerActorId: getListFilterValue(opts.filter.ownerActorId) ?? props.filters?.ownerActorId,
     delegatorActorId:
-      getStringFilterValue(opts.filter.delegatorActorId) ?? props.filters?.delegatorActorId,
+      getListFilterValue(opts.filter.delegatorActorId) ?? props.filters?.delegatorActorId,
     delegateeActorId:
-      getStringFilterValue(opts.filter.delegateeActorId) ?? props.filters?.delegateeActorId,
-    identityId: getStringFilterValue(opts.filter.identityId) ?? props.filters?.identityId
+      getListFilterValue(opts.filter.delegateeActorId) ?? props.filters?.delegateeActorId,
+    identityId: getListFilterValue(opts.filter.identityId) ?? props.filters?.identityId
   });
 
   return {
@@ -182,68 +223,6 @@ let identityDelegationsTable = new DashboardTable<
       render: (delegation: IdentityDelegation) => <ID id={delegation.id} />
     }
   ] as any)
-  .filters([
-    {
-      id: 'status',
-      fields: ['status'],
-      label: 'Status',
-      description: 'Filter by status',
-      type: 'select',
-      options: [
-        { id: 'active', label: 'Active' },
-        { id: 'waiting_for_consent', label: 'Waiting for Consent' },
-        { id: 'denied', label: 'Denied' },
-        { id: 'revoked', label: 'Revoked' },
-        { id: 'expired', label: 'Expired' }
-      ]
-    },
-    {
-      id: 'permissions',
-      fields: ['permissions'],
-      label: 'Permissions',
-      description: 'Filter by permissions',
-      type: 'select',
-      options: [
-        { id: 'provider:call', label: 'Provider Call' },
-        { id: 'provider:read', label: 'Provider Read' }
-      ]
-    },
-    {
-      id: 'id',
-      fields: ['id'],
-      label: 'Delegation ID',
-      description: 'Filter by delegation ID',
-      type: 'string'
-    },
-    {
-      id: 'identityId',
-      fields: ['identityId'],
-      label: 'Identity ID',
-      description: 'Filter by identity ID',
-      type: 'string'
-    },
-    {
-      id: 'ownerActorId',
-      fields: ['ownerActorId'],
-      label: 'Owner Actor ID',
-      description: 'Filter by owner actor ID',
-      type: 'string'
-    },
-    {
-      id: 'delegatorActorId',
-      fields: ['delegatorActorId'],
-      label: 'Delegator Actor ID',
-      description: 'Filter by delegator actor ID',
-      type: 'string'
-    },
-    {
-      id: 'delegateeActorId',
-      fields: ['delegateeActorId'],
-      label: 'Delegatee Actor ID',
-      description: 'Filter by delegatee actor ID',
-      type: 'string'
-    }
-  ])
   .link(((delegation: IdentityDelegation, props: IdentityDelegationsTableProps) =>
     Paths.organization.instance.identity.delegation(
       props.organization.data,
@@ -263,6 +242,7 @@ export let IdentityDelegationsTable = ({
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let tableFilters = useIdentityDelegationsTableFilters(instanceId);
 
   return identityDelegationsTable({
     instanceId,
@@ -270,6 +250,7 @@ export let IdentityDelegationsTable = ({
     instance,
     organization,
     project,
+    tableFilters,
     emptyState: 'No delegations found.'
   });
 };

@@ -23,6 +23,14 @@ export {
 
 export { ApiKeysScene } from './product/scenes/apiKeys';
 export {
+  defineEntityFilter,
+  entityFilters,
+  useEntityList,
+  type EntityDefinition,
+  type EntityFilterOptions,
+  type EntityListQuery
+} from './product/scenes/entityFilters';
+export {
   UsageEventsCard,
   UsageLineCard,
   UsageOverviewTiles,

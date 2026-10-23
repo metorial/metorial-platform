@@ -625,6 +625,14 @@ let SelectionOverlay = ({
   formatValue: ValueFormatter;
   onDragStart: (kind: SelectionDrag['kind'], event: React.PointerEvent) => void;
 }) => {
+  let labelRef = useRef<HTMLDivElement>(null);
+  let [labelWidth, setLabelWidth] = useState(160);
+
+  useLayoutEffect(() => {
+    let width = labelRef.current?.offsetWidth;
+    if (width && width != labelWidth) setLabelWidth(width);
+  });
+
   let span = plot.maxX - plot.minX;
   if (!(span > 0)) return null;
 
@@ -640,7 +648,9 @@ let SelectionOverlay = ({
   }
 
   let base = { top: plot.top, height: plot.height };
-  let center = plot.left + Math.min(Math.max((start + end) / 2, 80), plot.width - 80);
+  let halfLabel = Math.min(labelWidth / 2, plot.width / 2);
+  let center =
+    plot.left + Math.min(Math.max((start + end) / 2, halfLabel), plot.width - halfLabel);
   let label = selection.formatLabel?.({ from: new Date(range.from), to: new Date(range.to) });
 
   return (
@@ -683,6 +693,7 @@ let SelectionOverlay = ({
       </SelectionGroup>
 
       <SelectionLabel
+        ref={labelRef}
         $pending={pending}
         style={{ top: plot.top >= 28 ? plot.top - 26 : plot.top + 4, left: center }}
         onPointerDown={event => event.stopPropagation()}
@@ -698,7 +709,14 @@ let SelectionOverlay = ({
             aria-label="Clear time selection"
             onClick={() => selection.onClear?.()}
           >
-            ×
+            <svg width="8" height="8" viewBox="0 0 8 8" aria-hidden="true">
+              <path
+                d="M1 1L7 7M7 1L1 7"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
+            </svg>
           </SelectionClear>
         ) : null}
       </SelectionLabel>
@@ -1015,10 +1033,11 @@ let SelectionClear = styled.button`
   border-radius: 4px;
   background: transparent;
   color: rgba(255, 255, 255, 0.75);
-  font: inherit;
-  font-size: 13px;
-  line-height: 1;
   cursor: pointer;
+
+  svg {
+    display: block;
+  }
 
   &:hover {
     background: rgba(255, 255, 255, 0.16);

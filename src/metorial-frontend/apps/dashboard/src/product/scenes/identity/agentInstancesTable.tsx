@@ -47,7 +47,6 @@ let useAgentInstancesTableState: TableStateProvider<
     type:
       getEnumListFilterValue(opts.filter.type, ['mcp_client', 'tool_call']) ??
       props.filters?.type,
-    id: getStringFilterValue(opts.filter.id) ?? props.filters?.id,
     agentClientId:
       getStringFilterValue(opts.filter.agentClientId) ?? props.filters?.agentClientId
   });
@@ -160,13 +159,6 @@ let agentInstancesTable = new DashboardTable<AgentInstancesTableProps, AgentInst
       fields: ['agentClientId'],
       label: 'Client ID',
       description: 'Filter by linked client ID',
-      type: 'string'
-    },
-    {
-      id: 'id',
-      fields: ['id'],
-      label: 'Instance ID',
-      description: 'Filter by instance ID',
       type: 'string'
     }
   ])

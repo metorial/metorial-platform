@@ -12,10 +12,16 @@ import {
 import { Badge, RenderDate, Text, confirm } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { RiDeleteBinLine } from '@remixicon/react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Table as DashboardTable } from '@metorial/table';
-import { FilterPayload, getEnumListFilterValue, getStringFilterValue } from '@metorial/table';
+import {
+  FilterPayload,
+  TableFilter,
+  getEnumListFilterValue,
+  getListFilterValue
+} from '@metorial/table';
 import { useIdentityPaths } from '../../lib/identityPaths';
+import { entityFilters } from '../entityFilters';
 
 type IdentityActor = DashboardInstanceIdentityActorsListOutput['items'][number];
 
@@ -50,6 +56,26 @@ let getStatusFilterValue = (
   return getEnumListFilterValue(value, ['active', 'archived', 'deleted']);
 };
 
+let useIdentityActorsTableFilters = (instanceId: string) =>
+  useMemo<TableFilter<IdentityActor>[]>(
+    () => [
+      {
+        id: 'status',
+        fields: ['status'],
+        label: 'Status',
+        description: 'Filter by status',
+        type: 'select',
+        options: [
+          { id: 'active', label: 'Active' },
+          { id: 'archived', label: 'Archived' },
+          { id: 'deleted', label: 'Deleted' }
+        ]
+      },
+      entityFilters.agent(instanceId)
+    ],
+    [instanceId]
+  );
+
 let useIdentityActorsTableState = (
   props: IdentityActorsTableProps,
   opts: {
@@ -61,8 +87,7 @@ let useIdentityActorsTableState = (
     order: 'desc',
     ...props.filters,
     status: getStatusFilterValue(opts.filter.status) ?? props.filters?.status,
-    id: getStringFilterValue(opts.filter.id) ?? props.filters?.id,
-    agentId: getStringFilterValue(opts.filter.agentId) ?? props.filters?.agentId,
+    agentId: getListFilterValue(opts.filter.agentId) ?? props.filters?.agentId,
     search: opts.search ?? props.filters?.search
   });
 
@@ -186,34 +211,6 @@ let identityActorsTable = new DashboardTable('identity-actors')
       render: actor => <ID id={actor.id} />
     }
   ])
-  .filters([
-    {
-      id: 'status',
-      fields: ['status'],
-      label: 'Status',
-      description: 'Filter by status',
-      type: 'select',
-      options: [
-        { id: 'active', label: 'Active' },
-        { id: 'archived', label: 'Archived' },
-        { id: 'deleted', label: 'Deleted' }
-      ]
-    },
-    {
-      id: 'id',
-      fields: ['id'],
-      label: 'Actor ID',
-      description: 'Filter by actor ID',
-      type: 'string'
-    },
-    {
-      id: 'agentId',
-      fields: ['agentId'],
-      label: 'Agent ID',
-      description: 'Filter by agent ID',
-      type: 'string'
-    }
-  ])
   .search('Search identity actors...')
   .link((actor, props) =>
     props.identityPaths.actor(
@@ -279,6 +276,7 @@ export let IdentityActorsTable = ({
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
   let identityPaths = useIdentityPaths();
+  let tableFilters = useIdentityActorsTableFilters(instanceId);
 
   return identityActorsTable({
     instanceId,
@@ -287,6 +285,7 @@ export let IdentityActorsTable = ({
     organization,
     project,
     identityPaths,
+    tableFilters,
     emptyState: 'No identity actors found.'
   });
 };

@@ -1,4 +1,9 @@
-export type TableFilterEntityOption = { id: string; label: string; description?: string };
+export type TableFilterEntityOption = {
+  id: string;
+  label: string;
+  description?: string;
+  slug?: string;
+};
 
 export type TableFilterEntityOptions = {
   items: TableFilterEntityOption[];
@@ -28,7 +33,10 @@ export type TableFilter<Item extends { id: string }> = {
     }
   | {
       type: 'entity';
-      useOptions: (args: { search: string }) => TableFilterEntityOptions;
+      useOptions: (args: {
+        search: string;
+        filters: TableFilterPayloadMap;
+      }) => TableFilterEntityOptions;
       useValueLabels?: (ids: string[]) => Record<string, string>;
       searchPlaceholder?: string;
       remoteSearch?: boolean;
@@ -121,6 +129,9 @@ export let rememberFilterLabels = (
 export let getCachedFilterLabel = (filterId: string, optionId: string) =>
   filterLabelCache.get(filterLabelCacheKey(filterId, optionId)) ?? optionId;
 
+export let hasCachedFilterLabel = (filterId: string, optionId: string) =>
+  filterLabelCache.has(filterLabelCacheKey(filterId, optionId));
+
 export type FilterPayload =
   | number
   | Date
@@ -134,8 +145,10 @@ export type FilterPayload =
       in?: number[] | Date[] | string[];
     };
 
+export type TableFilterPayloadMap = Record<string, FilterPayload>;
+
 export let getFilterPayload = (currentFilters: TableFilterState[]) => {
-  let payload: Record<string, FilterPayload> = {};
+  let payload: TableFilterPayloadMap = {};
 
   for (let filter of currentFilters) {
     let filterPayload: FilterPayload = {};

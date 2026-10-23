@@ -10,10 +10,8 @@ import { ProviderErrorGroupsTable } from '../../../scenes/providerErrors/groupsT
 let usageFilterSpec: LogsUsageFilterSpec = {
   dimensions: { providerId: 'providerId' },
   errorTypeParam: 'type',
-  unsupported: [
-    { param: 'id', label: 'error group' },
-    { param: 'sessionId', label: 'session' }
-  ]
+  unsupported: [{ param: 'sessionId', label: 'session' }],
+  search: true
 };
 
 export let ProviderErrorsPage = () => {
@@ -24,9 +22,9 @@ export let ProviderErrorsPage = () => {
     <ProviderErrorGroupsTable
       layout={{
         framed: true,
-        toolbarEnd: picker,
         topContent: (
           <UsageEventsCard
+            actions={picker}
             variant="strip"
             title="Session errors"
             info="Errors raised during sessions, stacked by error type."

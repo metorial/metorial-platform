@@ -20,7 +20,8 @@ let usageFilterSpec: LogsUsageFilterSpec = {
     { param: 'identityId', label: 'identity' },
     { param: 'providerAuthConfigId', label: 'auth config' },
     { param: 'providerConfigId', label: 'config' }
-  ]
+  ],
+  search: true
 };
 
 export let SessionsPage = () => {
@@ -31,9 +32,9 @@ export let SessionsPage = () => {
     <ProviderSessionsTable
       layout={{
         framed: true,
-        toolbarEnd: picker,
         topContent: (
           <UsageEventsCard
+            actions={picker}
             variant="strip"
             title="Sessions"
             info="Sessions created over time. Click a bar to filter the list to that time range."

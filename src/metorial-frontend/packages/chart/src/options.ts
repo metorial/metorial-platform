@@ -62,6 +62,8 @@ let getYScale = (input: TimelineOptionsInput) => {
   };
 };
 
+let axisLabelStyle = { colors: String(theme.colors.gray600) };
+
 let getReferenceAnnotations = (referenceLines: ChartReferenceLine[]) =>
   referenceLines.map(line => ({
     y: line.value,
@@ -145,6 +147,7 @@ export let buildTimelineOptions = (input: TimelineOptionsInput): ApexOptions => 
             max: domain ? toTimestamp(domain.to) : undefined,
             labels: {
               show: !sparkline,
+              style: axisLabelStyle,
               datetimeUTC: false,
               formatter: (value, timestamp) =>
                 formatTimeTick(timestamp ?? Number(value), spanMs)
@@ -154,7 +157,7 @@ export let buildTimelineOptions = (input: TimelineOptionsInput): ApexOptions => 
           }
         : {
             type: 'category',
-            labels: { show: !sparkline },
+            labels: { show: !sparkline, style: axisLabelStyle },
             axisBorder: { show: !sparkline },
             axisTicks: { show: !sparkline },
             tooltip: { enabled: false },
@@ -169,6 +172,7 @@ export let buildTimelineOptions = (input: TimelineOptionsInput): ApexOptions => 
       forceNiceScale: false,
       labels: {
         show: !sparkline,
+        style: axisLabelStyle,
         formatter: value => formatTick(value)
       }
     },

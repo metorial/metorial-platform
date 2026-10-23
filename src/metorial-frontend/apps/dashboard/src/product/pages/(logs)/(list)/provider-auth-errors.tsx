@@ -10,10 +10,8 @@ import { ProviderAuthErrorGroupsTable } from '../../../scenes/providerAuthErrors
 let usageFilterSpec: LogsUsageFilterSpec = {
   dimensions: { providerId: 'providerId' },
   errorTypeParam: 'type',
-  unsupported: [
-    { param: 'id', label: 'error group' },
-    { param: 'providerAuthConfigId', label: 'auth config' }
-  ]
+  unsupported: [{ param: 'providerAuthConfigId', label: 'auth config' }],
+  search: true
 };
 
 export let ProviderAuthErrorsPage = () => {
@@ -24,9 +22,9 @@ export let ProviderAuthErrorsPage = () => {
     <ProviderAuthErrorGroupsTable
       layout={{
         framed: true,
-        toolbarEnd: picker,
         topContent: (
           <UsageEventsCard
+            actions={picker}
             variant="strip"
             title="Auth errors"
             info="Authentication errors over time, stacked by error type."

@@ -35,12 +35,14 @@ export let usageIntervals = defaultMetricsIntervals.filter(
   interval => interval.id in usageIntervalMs
 );
 
+type UsageFilterValue = string | string[];
+
 export type UsageFilter = {
-  providerId?: string;
-  deploymentId?: string;
-  consumerId?: string;
-  magicMcpServerId?: string;
-  integrationId?: string;
+  providerId?: UsageFilterValue;
+  deploymentId?: UsageFilterValue;
+  consumerId?: UsageFilterValue;
+  magicMcpServerId?: UsageFilterValue;
+  integrationId?: UsageFilterValue;
   errorType?: string[];
 };
 

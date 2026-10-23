@@ -37,7 +37,7 @@ export let useCompactUsageRange = (defaultPreset = '24h') => {
     <OptionToggle
       ariaLabel="Time Range"
       size="1"
-      itemMinWidth={36}
+      itemMinWidth={0}
       value={preset}
       onChange={setPreset}
       items={compactPresets.map(item => ({ id: item.id, label: item.label }))}
@@ -75,6 +75,7 @@ export type LogsUsageFilterSpec = {
   errorTypeParam?: string;
   status?: { param: string; success: string[]; error: string[] };
   unsupported?: { param: string; label: string }[];
+  search?: boolean;
 };
 
 export let useLogsUsageFilters = (spec: LogsUsageFilterSpec, defaultPreset = '24h') => {
@@ -124,8 +125,10 @@ export let useLogsUsageFilters = (spec: LogsUsageFilterSpec, defaultPreset = '24
   let { filter, segments, ignored } = useMemo(() => {
     let filter: UsageFilter = {};
     for (let [dimension, param] of Object.entries(spec.dimensions ?? {})) {
-      let value = params.get(param);
-      if (value) filter[dimension as LogsUsageDimension] = value;
+      let values = params.get(param)?.split(',').filter(Boolean) ?? [];
+      if (values.length) {
+        filter[dimension as LogsUsageDimension] = values.length == 1 ? values[0] : values;
+      }
     }
 
     let errorTypes = spec.errorTypeParam
@@ -136,6 +139,7 @@ export let useLogsUsageFilters = (spec: LogsUsageFilterSpec, defaultPreset = '24
     let ignored = (spec.unsupported ?? [])
       .filter(item => params.get(item.param))
       .map(item => item.label);
+    if (spec.search && params.get('search')) ignored.push('search');
 
     let segments: UsageEventsSegment[] | undefined;
     let statuses = spec.status
