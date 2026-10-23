@@ -26,6 +26,7 @@ import type { ProviderCapabilityFilter } from './provider';
 import {
   getProviderCapabilityFilter,
   getProviderEnvironmentVisibilityFilter,
+  getPublicRemoteProviderVisibilityFilter,
   providerInclude
 } from './provider';
 
@@ -131,7 +132,10 @@ class ProviderListingService {
   ) {
     let solution = await getMetorialSolution();
 
+    let remoteVisibilityFilter = getPublicRemoteProviderVisibilityFilter(d);
+
     let scopeFilters: Prisma.ProviderListingWhereInput[] = [
+      remoteVisibilityFilter ? { provider: remoteVisibilityFilter } : undefined!,
       {
         OR: [
           { isPublic: true },
@@ -222,6 +226,7 @@ class ProviderListingService {
     let includeDeprecated = d.includeDeprecated || !!d.ids?.length;
 
     let capFilters = getProviderCapabilityFilter(d.capabilities || {});
+    let remoteVisibilityFilter = getPublicRemoteProviderVisibilityFilter(d);
 
     let groups =
       d.environment && d.tenant
@@ -276,6 +281,7 @@ class ProviderListingService {
 
             AND: [
               includeDeprecated ? undefined! : { isDeprecated: false },
+              remoteVisibilityFilter ? { provider: remoteVisibilityFilter } : undefined!,
               {
                 OR: [
                   { isPublic: true },

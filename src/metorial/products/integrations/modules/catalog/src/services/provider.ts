@@ -51,6 +51,20 @@ export let getProviderEnvironmentVisibilityFilter = (d: { environment?: Environm
       }
     : undefined!;
 
+export let getPublicRemoteProviderVisibilityFilter = (d: {
+  tenant?: Tenant;
+}): Prisma.ProviderWhereInput | undefined =>
+  d.tenant?.hidePublicRemoteProviders
+    ? {
+        NOT: {
+          access: 'public',
+          ownerTenantOid: null,
+          customProvider: { is: null },
+          defaultVariant: { is: { backend: { is: { type: 'shuttle' } } } }
+        }
+      }
+    : undefined;
+
 export let getProviderTenantFilter = (d: {
   solution: Solution;
   tenant?: Tenant;
@@ -60,6 +74,7 @@ export let getProviderTenantFilter = (d: {
   AND: [
     d.includeDeprecated ? undefined! : { isDeprecated: false },
     getProviderEnvironmentVisibilityFilter(d),
+    getPublicRemoteProviderVisibilityFilter(d) ?? undefined!,
     {
       OR: [
         { access: 'public' as const },
