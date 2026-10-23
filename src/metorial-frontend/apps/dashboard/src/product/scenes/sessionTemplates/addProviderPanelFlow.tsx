@@ -747,7 +747,7 @@ let ConfigureSectionCard = (p: {
                         ? 'orange'
                         : 'gray'
                   }
-                  size="1"
+                  size="2"
                 >
                   {state === 'completed'
                     ? 'Completed'

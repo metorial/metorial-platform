@@ -56,7 +56,7 @@ export let UserList = () => {
                     </Text>
                   </div>
                 </Flex>,
-                <Badge color={user.status === 'active' ? 'green' : 'gray'} size="1">
+                <Badge color={user.status === 'active' ? 'green' : 'gray'} size="2">
                   {user.status}
                 </Badge>,
                 <RenderDate date={user.createdAt} />

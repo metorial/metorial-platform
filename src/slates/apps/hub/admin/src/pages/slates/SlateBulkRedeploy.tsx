@@ -302,7 +302,7 @@ export let SlateBulkRedeploy = () => {
                       </Button>
                     </Link>
                   ) : item.error ? (
-                    <Text size="1" color="red600">
+                    <Text size="2" color="red600">
                       {item.error}
                     </Text>
                   ) : (

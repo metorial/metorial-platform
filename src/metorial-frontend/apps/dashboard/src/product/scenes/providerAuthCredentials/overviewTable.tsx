@@ -214,7 +214,7 @@ let providerAuthCredentialsTable = new DashboardTable<
         >
           {row.isManaged && (
             <div style={{ marginRight: 5, display: 'inline-flex', verticalAlign: 'middle' }}>
-              <Badge color="blue" size="1">
+              <Badge color="blue" size="2">
                 Managed
               </Badge>
             </div>

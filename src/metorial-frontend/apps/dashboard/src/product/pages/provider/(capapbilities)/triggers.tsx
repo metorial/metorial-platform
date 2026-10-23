@@ -132,11 +132,11 @@ export let ProviderTriggersPage = () => {
                   {trigger.name}
                 </Text>
               </Flex>,
-              <Badge color={invocationBadge.color} size="1">
+              <Badge color={invocationBadge.color} size="2">
                 {invocationBadge.label}
               </Badge>,
               <Flex justify="end" style={{ width: '100%' }}>
-                <Button size="1" variant="outline" onClick={() => onViewDetails(trigger)}>
+                <Button size="2" variant="outline" onClick={() => onViewDetails(trigger)}>
                   View Details
                 </Button>
               </Flex>

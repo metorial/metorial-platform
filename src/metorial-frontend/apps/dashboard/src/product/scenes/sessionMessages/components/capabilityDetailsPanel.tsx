@@ -149,7 +149,7 @@ let renderAnnotations = (annotations: unknown): ReactNode => {
             let label = safeString(value);
             if (!label) return null;
             return (
-              <Badge key={`${label}-${idx}`} color="gray" size="1">
+              <Badge key={`${label}-${idx}`} color="gray" size="2">
                 {label}
               </Badge>
             );
@@ -181,7 +181,7 @@ let renderAnnotations = (annotations: unknown): ReactNode => {
     let value = record[key];
     if (typeof value !== 'boolean') continue;
     hints.push(
-      <Badge key={key} color={value ? 'blue' : 'gray'} size="1">
+      <Badge key={key} color={value ? 'blue' : 'gray'} size="2">
         {label}: {value ? 'yes' : 'no'}
       </Badge>
     );
@@ -294,7 +294,7 @@ let renderPromptDetails = (prompt: Record<string, any>): ReactNode[] => {
                       {argTitle}
                     </Text>
                   ) : null}
-                  <Badge color={required ? 'blue' : 'gray'} size="1">
+                  <Badge color={required ? 'blue' : 'gray'} size="2">
                     {required ? 'required' : 'optional'}
                   </Badge>
                 </ArgumentRow>

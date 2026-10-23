@@ -336,7 +336,7 @@ export let createMagicMcpGroupModal = () =>
           <Spacer height={15} />
 
           <Dialog.Actions>
-            <Button size="1" variant="soft" onClick={close} type="button">
+            <Button size="2" variant="soft" onClick={close} type="button">
               Cancel
             </Button>
             <Button size="1" type="submit">

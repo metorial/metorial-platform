@@ -76,11 +76,11 @@ export let ProviderAuthConfigsTable = ({
             <Text size="2">{config.authMethod?.name ?? config.authMethod?.key ?? '-'}</Text>,
             <Text size="2">{formatType(config.type)}</Text>,
             <Text size="2">{formatSource(config.source)}</Text>,
-            <Badge color={config.status === 'active' ? 'green' : 'gray'} size="1">
+            <Badge color={config.status === 'active' ? 'green' : 'gray'} size="2">
               {config.status}
             </Badge>,
             config.isDefault ? (
-              <Badge color="blue" size="1">
+              <Badge color="blue" size="2">
                 Default
               </Badge>
             ) : (

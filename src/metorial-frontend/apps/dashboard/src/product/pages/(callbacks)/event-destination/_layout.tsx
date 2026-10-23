@@ -56,7 +56,7 @@ export let EventDestinationLayout = () => {
               {
                 label: 'Status',
                 value: (
-                  <Badge size="1" color={getStatusColor(destination.data.status)}>
+                  <Badge size="2" color={getStatusColor(destination.data.status)}>
                     {destination.data.status}
                   </Badge>
                 )

@@ -138,12 +138,12 @@ export let ProviderToolsPage = () => {
               <Flex gap={6} style={{ alignItems: 'center', flexWrap: 'wrap' }}>
                 {modeBadges.length > 0 ? (
                   modeBadges.map(modeBadge => (
-                    <Badge key={modeBadge.label} color={modeBadge.color} size="1">
+                    <Badge key={modeBadge.label} color={modeBadge.color} size="2">
                       {modeBadge.label}
                     </Badge>
                   ))
                 ) : (
-                  <Badge color="gray" size="1">
+                  <Badge color="gray" size="2">
                     Default
                   </Badge>
                 )}
@@ -152,7 +152,7 @@ export let ProviderToolsPage = () => {
                 ? [
                     <Flex gap={6} align="center" wrap="wrap">
                       {getCategoryLabels(tool).map(category => (
-                        <Badge key={category.key} color="blue" size="1">
+                        <Badge key={category.key} color="blue" size="2">
                           {category.label}
                         </Badge>
                       ))}
@@ -160,7 +160,7 @@ export let ProviderToolsPage = () => {
                   ]
                 : []),
               <Flex justify="end" style={{ width: '100%' }}>
-                <Button size="1" variant="outline" onClick={() => onViewDetails(tool)}>
+                <Button size="2" variant="outline" onClick={() => onViewDetails(tool)}>
                   View Details
                 </Button>
               </Flex>

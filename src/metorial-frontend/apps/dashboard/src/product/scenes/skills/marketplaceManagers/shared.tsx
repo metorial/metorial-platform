@@ -5,7 +5,7 @@ import type { MarketplaceManagerRow } from './types';
 export let MarketplaceManagerScopeBadges = (props: { row: MarketplaceManagerRow }) => {
   if (props.row.scope.type == 'entire') {
     return (
-      <Badge color="orange" size="1">
+      <Badge color="orange" size="2">
         Entire marketplace
       </Badge>
     );
@@ -18,12 +18,12 @@ export let MarketplaceManagerScopeBadges = (props: { row: MarketplaceManagerRow 
   return (
     <Flex gap={6} wrap="wrap">
       {visible.map(plugin => (
-        <Badge key={plugin.id} color="blue" size="1">
+        <Badge key={plugin.id} color="blue" size="2">
           {plugin.name}
         </Badge>
       ))}
       {extra > 0 ? (
-        <Badge color="blue" size="1">
+        <Badge color="blue" size="2">
           +{extra}
         </Badge>
       ) : null}

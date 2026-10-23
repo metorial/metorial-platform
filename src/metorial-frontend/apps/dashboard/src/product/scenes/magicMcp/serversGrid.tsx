@@ -386,7 +386,7 @@ export let MagicMcpServersGrid = (filter: DashboardInstanceMagicMcpServersListQu
                             />
                           )
                         }
-                        bottom={<Text size="1">{aliases[0] ?? server.id}</Text>}
+                        bottom={<Text size="2">{aliases[0] ?? server.id}</Text>}
                       />
                     );
                   })}

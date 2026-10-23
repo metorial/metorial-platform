@@ -78,14 +78,14 @@ export let ProviderWebhookRegistrationsBox = ({
                   <span>{registration.name}</span>
 
                   {registration.status === 'awaiting_setup' && (
-                    <Badge color="orange" size="1">
+                    <Badge color="orange" size="2">
                       Awaiting Setup
                     </Badge>
                   )}
                 </div>,
 
                 registration.receiveUrl ? (
-                  <Text size="1" style={{ fontFamily: 'jetbrains mono, monospace' }}>
+                  <Text size="2" style={{ fontFamily: 'jetbrains mono, monospace' }}>
                     {truncateReceiverUrl(registration.receiveUrl)}
                   </Text>
                 ) : (

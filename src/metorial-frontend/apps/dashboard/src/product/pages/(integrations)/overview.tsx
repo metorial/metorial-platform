@@ -147,11 +147,11 @@ let ResourceBox = ({
                 <Text size="2" weight="strong">
                   {resource.label}
                 </Text>
-                <Badge size="1" color={resource.tone ?? 'gray'}>
+                <Badge size="2" color={resource.tone ?? 'gray'}>
                   {count === null ? '...' : `${count.toLocaleString()} total`}
                 </Badge>
               </ResourceAction>
-              <Text size="1" color="gray600">
+              <Text size="2" color="gray600">
                 {resource.description}
               </Text>
             </ResourceText>

@@ -317,7 +317,7 @@ let SectionBadge = ({
   if (state == 'completed') {
     return (
       <BadgeSlot key="completed">
-        <Badge color="blue" size="1">
+        <Badge color="blue" size="2">
           Completed
         </Badge>
       </BadgeSlot>
@@ -327,7 +327,7 @@ let SectionBadge = ({
   if (state == 'error') {
     return (
       <BadgeSlot key="error">
-        <Badge color="red" size="1">
+        <Badge color="red" size="2">
           Error
         </Badge>
       </BadgeSlot>
@@ -339,7 +339,7 @@ let SectionBadge = ({
   if (requirement) {
     return (
       <BadgeSlot key={requirement}>
-        <Badge color={requirement == 'required' ? 'orange' : 'gray'} size="1">
+        <Badge color={requirement == 'required' ? 'orange' : 'gray'} size="2">
           {requirement == 'required' ? 'Required' : 'Optional'}
         </Badge>
       </BadgeSlot>

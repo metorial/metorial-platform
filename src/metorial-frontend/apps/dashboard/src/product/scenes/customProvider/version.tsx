@@ -510,7 +510,7 @@ let StepDetails = ({ step }: { step: Step }) => {
                   />
                 }
                 variant="soft"
-                size="1"
+                size="2"
                 onClick={e => {
                   e.stopPropagation();
                   setIsExpanded(!isExpanded);

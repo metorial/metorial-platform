@@ -285,7 +285,7 @@ export let CustomProviderManagedCreateForm = (p: {
                           {selectedRepo && (
                             <>
                               <Spacer size={4} />
-                              <Badge color="gray" size="1">
+                              <Badge color="gray" size="2">
                                 {formatScmProvider(selectedRepo.provider.type)}
                               </Badge>
                             </>

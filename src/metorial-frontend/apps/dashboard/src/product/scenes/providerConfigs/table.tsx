@@ -61,10 +61,10 @@ export let ProviderConfigsTable = ({
             </Flex>,
             config.fromVault ? (
               <Flex gap={6} style={{ alignItems: 'center', flexWrap: 'wrap' }}>
-                <Badge color="purple" size="1">
+                <Badge color="purple" size="2">
                   Vault
                 </Badge>
-                <Text size="1" color="gray600">
+                <Text size="2" color="gray600">
                   {config.fromVault.name}
                 </Text>
               </Flex>
@@ -74,11 +74,11 @@ export let ProviderConfigsTable = ({
               </Text>
             ),
             config.isDefault ? (
-              <Badge color="blue" size="1">
+              <Badge color="blue" size="2">
                 Default
               </Badge>
             ) : (
-              <Badge color="gray" size="1">
+              <Badge color="gray" size="2">
                 Custom
               </Badge>
             ),

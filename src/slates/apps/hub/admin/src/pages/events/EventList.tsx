@@ -132,7 +132,7 @@ export let EventList = () => {
                           )
                         ]
                       : []),
-                    <Badge color="blue" size="1">
+                    <Badge color="blue" size="2">
                       v{event.version?.version ?? '-'}
                     </Badge>,
                     <RenderDate date={event.createdAt} />

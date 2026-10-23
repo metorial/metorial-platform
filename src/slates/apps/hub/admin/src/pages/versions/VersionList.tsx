@@ -63,7 +63,7 @@ export let VersionList = () => {
                     {version.status}
                   </Badge>,
                   version.isCurrent ? (
-                    <Badge color="green" size="1">
+                    <Badge color="green" size="2">
                       Current
                     </Badge>
                   ) : (

@@ -113,7 +113,7 @@ export let DeploymentList = () => {
                     </Badge>
                     {deployment.error && (
                       <Text
-                        size="1"
+                        size="2"
                         color="red600"
                         style={{
                           maxWidth: 160,

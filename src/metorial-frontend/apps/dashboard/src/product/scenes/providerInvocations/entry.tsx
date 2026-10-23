@@ -125,7 +125,7 @@ export let ProviderInvocationEntry = ({
 
         <div className="title">
           <span>{getInvocationTitle(invocation)}</span>
-          <Badge size="1" color={invocation.status === 'error' ? 'red' : 'green'}>
+          <Badge size="2" color={invocation.status === 'error' ? 'red' : 'green'}>
             {formatTitleCase(invocation.status)}
           </Badge>
         </div>
