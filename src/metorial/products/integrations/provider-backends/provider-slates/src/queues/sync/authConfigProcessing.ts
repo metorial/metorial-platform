@@ -3,6 +3,10 @@ import { Hash } from '@lowerdeck/hash';
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db, getId } from '@metorial-subspace/db';
 import {
+  recordProviderAuthErrorUsage,
+  recordProviderAuthEventUsage
+} from '@metorial/module-usage';
+import {
   createProviderInvocationId,
   getRetentionPolicy,
   redactJsonShape,
@@ -107,6 +111,8 @@ let createErrorForAuthConfig = async (d: {
         solutionOid: d.authConfigVersion.authConfig.solutionOid
       }
     });
+
+    await recordProviderAuthEventUsage(authConfigEvent);
   }
 
   if (!retention.collectErrors) return;
@@ -145,6 +151,8 @@ let createErrorForAuthConfig = async (d: {
       solutionOid: d.authConfigVersion.authConfig.solutionOid
     }
   });
+
+  await recordProviderAuthErrorUsage(error);
 
   let hash = await Hash.sha256(
     canonicalize([

@@ -160,6 +160,7 @@ export let IntegrationLayout = () => {
       tabs={[
         { label: 'Overview', to: Paths.instance.integration(...params) },
         { label: 'Instances', to: Paths.instance.integration(...params, 'instances') },
+        { label: 'Usage', to: Paths.instance.integration(...params, 'usage') },
         ...(hasCallbacks
           ? [{ label: 'Callbacks', to: Paths.instance.integration(...params, 'callbacks') }]
           : []),

@@ -49,6 +49,10 @@ import {
 } from '@metorial-subspace/module-agent';
 import { enclaveIngressPolicyService } from '@metorial-subspace/module-enclave';
 import {
+  recordConnectionCreatedUsage,
+  recordConnectionTimeUsage
+} from '@metorial/module-usage';
+import {
   checkToolAccess,
   checkToolAuthMethodSatisfied,
   checkToolScopesSatisfied,
@@ -63,6 +67,7 @@ import {
 } from '@metorial-subspace/module-session';
 import { ephemeralManagedSessionService } from '@metorial-subspace/module-session/src/services/ephemeralManagedSession';
 import { addDays, addHours, addMinutes, differenceInMinutes, subHours } from 'date-fns';
+import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import { isEqual } from 'lodash';
 import { recordConnectionAuditEvent } from '../audit/recordMessage';
 import {
@@ -386,6 +391,8 @@ export class SenderManager {
                             : addDays(new Date(), DEFAULT_SESSION_EXPIRATION_DAYS),
                         lastPingAt: now,
                         lastActiveAt: now,
+                        lastConnectedAt:
+                          lockedConnection.lastConnectedAt ?? lockedConnection.createdAt,
                         disconnectedAt:
                           lockedConnection.state === 'connected'
                             ? null
@@ -586,6 +593,7 @@ export class SenderManager {
               state: 'connected',
               lastActiveAt: new Date(),
               lastPingAt: new Date(),
+              lastConnectedAt: new Date(),
               disconnectedAt: null
             }
           });
@@ -2126,6 +2134,65 @@ export class SenderManager {
     } satisfies CallToolResult;
   }
 
+  async sendMcpMessageToProvider(d: { message: SessionMessage; mcpMessage: JSONRPCMessage }) {
+    let connection = this.connection;
+    if (!connection) {
+      throw new ServiceError(
+        badRequestError({ message: 'No connection id/token passed to connection' })
+      );
+    }
+
+    let providers = await this.listProviders();
+    let provider = providers.find(p => p.oid === d.message.sessionProviderOid);
+    let instanceRes = provider ? await this.ensureProviderInstance(provider) : null;
+
+    let failureMessage: string | null = null;
+
+    if (instanceRes?.status !== 'ok') {
+      failureMessage = 'The provider that sent this request is no longer available';
+    } else {
+      try {
+        let res = await sender.send(
+          topics.instance.encode({ instance: instanceRes.instance, connection }),
+          {
+            type: 'mcp.message_from_client',
+            sessionInstanceId: instanceRes.instance.id,
+            sessionMessageId: d.message.id,
+            clientMcpId: d.message.providerMcpId ?? '',
+            mcpMessage: d.mcpMessage
+          } satisfies ConduitInput
+        );
+
+        if (!res.success) failureMessage = 'Failed to forward the response to the provider';
+      } catch (err) {
+        Sentry.captureException(err);
+        console.error('Error forwarding MCP message to provider:', err);
+
+        failureMessage = 'Failed to forward the response to the provider';
+      }
+    }
+
+    if (!failureMessage) return;
+
+    let system = await upsertParticipant({
+      session: this.session,
+      from: { type: 'system' }
+    });
+
+    await completeMessage(
+      { messageId: d.message.id },
+      {
+        status: 'failed',
+        failureReason: 'system_error',
+        responderParticipant: system,
+        output: {
+          type: 'error',
+          data: internalServerError({ message: failureMessage }).toResponse()
+        }
+      }
+    );
+  }
+
   #createConnectionPromise: Promise<SessionConnection> | null = null;
   async createConnection() {
     await this.ensureAgentClientUpserted();
@@ -2260,7 +2327,9 @@ export class SenderManager {
       data: {
         lastActiveAt: now,
         lastPingAt: now,
-        ...(wasDisconnected ? { state: 'connected' as const, disconnectedAt: null } : {}),
+        ...(wasDisconnected
+          ? { state: 'connected' as const, lastConnectedAt: now, disconnectedAt: null }
+          : {}),
         ...(mcpDataChanged
           ? {
               mcpProtocolVersion: d.mcpProtocolVersion,
@@ -2315,6 +2384,8 @@ export class SenderManager {
       );
     }
 
+    let wasConnected = this.connection.state === 'connected';
+
     this.connection = await db.sessionConnection.update({
       where: { oid: this.connection.oid },
       data: {
@@ -2324,6 +2395,14 @@ export class SenderManager {
       },
       include: { participant: true }
     });
+
+    if (wasConnected && this.connection.disconnectedAt) {
+      await recordConnectionTimeUsage({
+        ...this.connection,
+        disconnectedAt: this.connection.disconnectedAt,
+        session: this.session
+      });
+    }
 
     if (!this.session.isInternal) {
       await db.sessionEvent.createMany({
@@ -2403,6 +2482,10 @@ export class SenderManager {
       expiresAt: d.expiresAt ?? addDays(new Date(), DEFAULT_SESSION_EXPIRATION_DAYS),
       lastPingAt: new Date(),
       lastActiveAt: new Date(),
+      lastConnectedAt:
+        this.connection?.state === 'connected'
+          ? (this.connection.lastConnectedAt ?? this.connection.createdAt)
+          : new Date(),
       disconnectedAt: null,
 
       transport: this.transport,
@@ -2455,6 +2538,12 @@ export class SenderManager {
     // rollover earlier in this file is likewise bookkeeping, not someone connecting.
     if (isNewConnection) {
       await recordConnectionAuditEvent({
+        ...connection,
+        session: this.session,
+        participant
+      });
+
+      await recordConnectionCreatedUsage({
         ...connection,
         session: this.session,
         participant

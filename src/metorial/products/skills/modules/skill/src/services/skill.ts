@@ -45,6 +45,7 @@ import type { SkillTemplateRecord } from '@metorial/module-skill-templates';
 import { getProjectTenantIdentifier } from '@metorial/skills-common';
 import { Fabric } from '@metorial/fabric';
 import { internalImageService } from '@metorial/skills-images';
+import { buildSearchFilter } from '@metorial/module-search';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/skills-search';
 import { getSkillSlug } from '../lib/skillSlug';
 import { enqueueSkillLifecycle } from '../queues/lifecycle';
@@ -365,15 +366,20 @@ class SkillServiceImpl {
         providerIds: d.providerIds
       });
     }
-    let normalizedSearch = d.search?.trim() || undefined;
-    let search = normalizedSearch
-      ? await voyager.record.search({
+    let search = await buildSearchFilter<Prisma.SkillWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let records = await voyager.record.search({
           tenantId: getProjectTenantIdentifier(d.project),
           sourceId: (await voyagerSource).id,
           indexId: voyagerIndex.skill.id,
-          query: normalizedSearch
-        })
-      : null;
+          query
+        });
+
+        return records.map(r => r.documentId);
+      },
+      exact: query => [{ id: query }, { slug: { equals: query, mode: 'insensitive' } }]
+    });
     let andFilters: Prisma.SkillWhereInput[] = [];
     if (skills) andFilters.push({ oid: skills.in });
     if (stores) andFilters.push({ storeOid: stores.in });
@@ -386,7 +392,7 @@ class SkillServiceImpl {
     }
     if (d.createdAt) andFilters.push({ createdAt: normalizeDateFilter(d.createdAt) });
     if (d.updatedAt) andFilters.push({ updatedAt: normalizeDateFilter(d.updatedAt) });
-    if (search) andFilters.push({ id: { in: search.map(result => result.documentId) } });
+    if (search) andFilters.push(search);
     if (accessWhere) andFilters.push(accessWhere);
     if (d.integrationIds?.length || d.providerIds?.length) {
       andFilters.push({ id: { in: delegatedResourceSkillIds ?? [] } });

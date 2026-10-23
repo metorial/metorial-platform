@@ -6,10 +6,12 @@ import {
   type ChatInstanceProviderStatus,
   db,
   type Environment,
+  type Prisma,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
 import {
+  buildSearchFilter,
   type DateFilter,
   normalizeDateFilter,
   normalizeStatusForGet,
@@ -108,14 +110,19 @@ class chatInstanceProviderServiceImpl {
     d.search = d.search?.trim();
     if (!d.search?.length) d.search = undefined;
 
-    let search = d.search
-      ? await voyager.record.search({
+    let search = await buildSearchFilter<Prisma.ChatInstanceProviderWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let records = await voyager.record.search({
           tenantId: d.tenant.id,
           sourceId: (await voyagerSource).id,
           indexId: voyagerIndex.chatInstanceProvider.id,
-          query: d.search
-        })
-      : null;
+          query
+        });
+
+        return records.map(r => r.documentId);
+      }
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -132,7 +139,7 @@ class chatInstanceProviderServiceImpl {
                 d.chatInstanceIds
                   ? { chatInstance: { id: { in: d.chatInstanceIds } } }
                   : undefined!,
-                search ? { id: { in: search.map(result => result.documentId) } } : undefined!,
+                search ?? undefined!,
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
               ].filter(Boolean)

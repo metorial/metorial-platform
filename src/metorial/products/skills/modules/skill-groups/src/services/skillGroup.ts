@@ -12,6 +12,7 @@ import {
   consumerSkillReadRoles
 } from '@metorial/module-access';
 import { getProjectTenantIdentifier } from '@metorial/skills-common';
+import { buildSearchFilter } from '@metorial/module-search';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/skills-search';
 import { enqueueSkillGroupLifecycle } from '../queues/lifecycle';
 
@@ -89,15 +90,20 @@ class SkillGroupServiceImpl {
       tags: d.accessTags,
       roles: [...consumerSkillReadRoles]
     });
-    let normalizedSearch = d.search?.trim() || undefined;
-    let search = normalizedSearch
-      ? await voyager.record.search({
+    let search = await buildSearchFilter<Prisma.SkillGroupWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let records = await voyager.record.search({
           tenantId: getProjectTenantIdentifier(d.project),
           sourceId: (await voyagerSource).id,
           indexId: voyagerIndex.skillGroup.id,
-          query: normalizedSearch
-        })
-      : null;
+          query
+        });
+
+        return records.map(r => r.documentId);
+      }
+    });
+
     return Paginator.create(({ prisma }) =>
       prisma(opts =>
         db.skillGroup.findMany({
@@ -124,7 +130,7 @@ class SkillGroupServiceImpl {
               : undefined,
             createdAt: d.createdAt ? normalizeDateFilter(d.createdAt) : undefined,
             updatedAt: d.updatedAt ? normalizeDateFilter(d.updatedAt) : undefined,
-            AND: search ? [{ id: { in: search.map(result => result.documentId) } }] : undefined
+            AND: search ? [search] : undefined
           },
           include
         })

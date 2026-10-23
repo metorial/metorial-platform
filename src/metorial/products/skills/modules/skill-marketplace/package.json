@@ -40,6 +40,7 @@
     "@metorial/module-consumer-access": "1.0.0",
     "@metorial/module-file": "^1.0.0",
     "@metorial/module-resource-actor": "^1.0.0",
+    "@metorial/module-search": "^1.0.0",
     "@metorial/module-skill": "^1.0.0",
     "@metorial/module-skill-configurations": "^1.0.0",
     "@metorial/module-store": "^1.0.0",

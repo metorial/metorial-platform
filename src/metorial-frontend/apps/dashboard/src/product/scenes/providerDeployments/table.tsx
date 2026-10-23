@@ -14,16 +14,18 @@ import {
 import {
   Table as DashboardTable,
   FilterPayload,
+  TableFilter,
   TableStateProvider,
   TableStateProviderResult,
   getDateRangeFilterValue,
   getEnumListFilterValue,
-  getStringFilterValue
+  getListFilterValue
 } from '@metorial/table';
 import { Badge, RenderDate, Text, confirm } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { RiDeleteBinLine } from '@remixicon/react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { entityFilters } from '../entityFilters';
 
 type ProviderDeployment = DashboardInstanceProviderDeploymentsListOutput['items'][number];
 
@@ -52,6 +54,43 @@ let getProviderDeploymentStatusFilterValue = (
   return getEnumListFilterValue(value, ['active', 'archived']);
 };
 
+export let useProviderDeploymentFilters = (
+  instanceId: string | null | undefined,
+  providerId?: string
+) =>
+  useMemo<TableFilter<ProviderDeploymentRow>[]>(
+    () => [
+      {
+        id: 'status',
+        fields: ['status'],
+        label: 'Status',
+        description: 'Filter by status',
+        type: 'select',
+        options: [
+          { id: 'active', label: 'Active' },
+          { id: 'archived', label: 'Archived' }
+        ]
+      },
+      entityFilters.provider(instanceId),
+      entityFilters.providerVersion(instanceId, { providerId }),
+      {
+        id: 'createdAt',
+        fields: ['createdAt'],
+        label: 'Created',
+        description: 'Filter by created date',
+        type: 'date'
+      },
+      {
+        id: 'updatedAt',
+        fields: ['updatedAt'],
+        label: 'Updated',
+        description: 'Filter by updated date',
+        type: 'date'
+      }
+    ],
+    [instanceId, providerId]
+  );
+
 let getProviderDeploymentStatusColor = (status: ProviderDeployment['status']) => {
   if (status === 'active') return 'green';
   if (status === 'archived') return 'orange';
@@ -72,14 +111,14 @@ let useProviderDeploymentsTableState: TableStateProvider<
   let deployments = useProviderDeployments(props.instanceId, {
     order: 'desc',
     providerId:
-      getStringFilterValue(opts.filter.providerId) ??
+      getListFilterValue(opts.filter.providerId) ??
       props.providerId ??
       props.filters?.providerId,
     providerVersionId:
-      getStringFilterValue(opts.filter.providerVersionId) ?? props.filters?.providerVersionId,
+      getListFilterValue(opts.filter.providerVersionId) ?? props.filters?.providerVersionId,
     status:
       getProviderDeploymentStatusFilterValue(opts.filter.status) ?? props.filters?.status,
-    id: getStringFilterValue(opts.filter.id) ?? props.filters?.id,
+    id: props.filters?.id,
     search: opts.search ?? props.filters?.search,
     createdAt: getDateRangeFilterValue(opts.filter.createdAt) ?? props.filters?.createdAt,
     updatedAt: getDateRangeFilterValue(opts.filter.updatedAt) ?? props.filters?.updatedAt
@@ -273,54 +312,6 @@ let providerDeploymentsTable = new DashboardTable<
       render: deployment => <ID id={deployment.id} />
     }
   ])
-  .filters([
-    {
-      id: 'status',
-      fields: ['status'],
-      label: 'Status',
-      description: 'Filter by status',
-      type: 'select',
-      options: [
-        { id: 'active', label: 'Active' },
-        { id: 'archived', label: 'Archived' }
-      ]
-    },
-    {
-      id: 'id',
-      fields: ['id'],
-      label: 'Deployment ID',
-      description: 'Filter by deployment ID',
-      type: 'string'
-    },
-    {
-      id: 'providerId',
-      fields: ['providerId'],
-      label: 'Provider ID',
-      description: 'Filter by provider ID',
-      type: 'string'
-    },
-    {
-      id: 'providerVersionId',
-      fields: ['providerVersionId'],
-      label: 'Version ID',
-      description: 'Filter by version ID',
-      type: 'string'
-    },
-    {
-      id: 'createdAt',
-      fields: ['createdAt'],
-      label: 'Created',
-      description: 'Filter by created date',
-      type: 'date'
-    },
-    {
-      id: 'updatedAt',
-      fields: ['updatedAt'],
-      label: 'Updated',
-      description: 'Filter by updated date',
-      type: 'date'
-    }
-  ])
   .search('Search deployments...')
   .link((deployment, props) =>
     Paths.instance.providerDeployment(
@@ -391,12 +382,14 @@ export let ProviderDeploymentsTable = ({
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let tableFilters = useProviderDeploymentFilters(instanceId, providerId);
 
   return providerDeploymentsTable({
     instanceId,
     providerId,
     providerName,
     filters: { status: status as any, search },
+    tableFilters,
     instance,
     organization,
     project,

@@ -37,7 +37,7 @@ import {
   toProviderEventBase,
   type MetorialFacing
 } from '@metorial-subspace/module-tenant';
-import { searchFirewallIds } from '@metorial/module-search';
+import { buildSearchFilter, searchFirewallIds } from '@metorial/module-search';
 import { mirrorFirewall } from '../internal/subspaceMirror';
 
 let include = {
@@ -166,19 +166,21 @@ class firewallServiceImpl {
     let providers = await resolveProviders(ts, d.providerIds);
     let networkPolicies = await resolveNetworkPolicies(ts, d.networkPolicyIds);
 
-    let search = d.search?.trim();
-    let instance =
-      search && d.environment.instanceOid
-        ? await coreDb.instance.findUnique({
-            where: { oid: d.environment.instanceOid },
-            select: { id: true }
-          })
-        : null;
-    let searchIds = search
-      ? instance
-        ? await searchFirewallIds({ instanceId: instance.id, query: search })
-        : []
-      : undefined;
+    let search = await buildSearchFilter<Prisma.FirewallWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let instance = d.environment.instanceOid
+          ? await coreDb.instance.findUnique({
+              where: { oid: d.environment.instanceOid },
+              select: { id: true }
+            })
+          : null;
+        if (!instance) return [];
+
+        return await searchFirewallIds({ instanceId: instance.id, query });
+      },
+      exact: query => [{ id: query }, { slug: { equals: query, mode: 'insensitive' } }]
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts =>
@@ -189,7 +191,7 @@ class firewallServiceImpl {
             environmentOid: d.environment.oid,
             ...normalizeStatusForList(d).noParent,
             AND: [
-              searchIds ? { id: { in: searchIds } } : undefined!,
+              search ?? undefined!,
               d.ids ? { id: { in: d.ids } } : undefined!,
               d.slugs ? { slug: { in: d.slugs } } : undefined!,
               enclaves ? { assignments: { some: { enclaveOid: enclaves.in } } } : undefined!,

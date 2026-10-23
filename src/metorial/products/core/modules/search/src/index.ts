@@ -1,6 +1,8 @@
 import { createVoyagerClient } from '@metorial-platform-systems/voyager-client';
 import { env } from './env';
 
+export * from './searchFilter';
+
 type VoyagerIndex =
   | 'firewall'
   | 'consumer'

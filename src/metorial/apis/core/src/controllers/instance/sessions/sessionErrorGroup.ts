@@ -70,7 +70,14 @@ export let sessionErrorGroupController = Controller.create(
             }),
             provider_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider ID(s)'
-            })
+            }),
+            search: v.optional(
+              v.string({
+                description:
+                  'Search by error group ID or error code, or by the name of a related provider',
+                examples: ['github']
+              })
+            )
           })
         )
       )
@@ -80,7 +87,8 @@ export let sessionErrorGroupController = Controller.create(
           types: normalizeArrayParam(ctx.query.type),
           ids: normalizeArrayParam(ctx.query.id),
           sessionIds: normalizeArrayParam(ctx.query.session_id),
-          providerIds: normalizeArrayParam(ctx.query.provider_id)
+          providerIds: normalizeArrayParam(ctx.query.provider_id),
+          search: ctx.query.search
         });
 
         let list = await paginator.run(ctx.query);

@@ -5,11 +5,21 @@ import styled from 'styled-components';
 
 let defaultSparklineHeight = 40;
 
-let TileGrid = styled.div`
+let TileGrid = styled.div<{ $columns: number }>`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(${({ $columns }) => $columns}, minmax(0, 1fr));
   gap: 12px;
+
+  @media (max-width: 720px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
 `;
+
+let getTileColumns = (count: number) => {
+  if (count <= 3) return Math.max(count, 1);
+  if (count % 3 == 0) return 3;
+  return 2;
+};
 
 let Tile = styled.div<{ $interactive: boolean }>`
   display: flex;
@@ -103,7 +113,9 @@ export type MetricTileProps = {
 };
 
 export let MetricTileGrid = ({ children }: { children: React.ReactNode }) => (
-  <TileGrid>{children}</TileGrid>
+  <TileGrid $columns={getTileColumns(React.Children.toArray(children).length)}>
+    {children}
+  </TileGrid>
 );
 
 export let MetricTile = ({

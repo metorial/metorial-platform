@@ -26,6 +26,8 @@ let Grid = styled.div`
 
 let Card = styled.section<{ $span: MetricChartCardSpan }>`
   grid-column: ${({ $span }) => ($span == 'full' ? '1 / -1' : 'auto')};
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   border: 1px solid ${theme.colors.gray400};
   border-radius: 8px;
@@ -53,10 +55,18 @@ let HeaderEnd = styled.div`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px 16px;
+  justify-content: flex-end;
+  gap: 8px 16px;
+  margin-left: auto;
+
+  & > * {
+    flex: none;
+    width: auto;
+  }
 `;
 
 let Content = styled.div`
+  flex: 1;
   margin: 0 -1px -1px -1px;
   padding: 12px 12px 4px 8px;
   border: 1px solid ${theme.colors.gray400};

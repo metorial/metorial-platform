@@ -12,6 +12,7 @@ import {
   type Environment,
   type SessionMessage,
   type SessionMessageSource,
+  type SessionMessageStatus,
   type SessionMessageType,
   type Tenant
 } from '@metorial-subspace/db';
@@ -68,6 +69,7 @@ export type ListSessionMessagesParams = {
   types?: SessionMessageType[];
   source?: SessionMessageSource[];
   hierarchy?: ('parent' | 'child')[];
+  statuses?: SessionMessageStatus[];
 
   allowDeleted?: boolean;
   includeInternal?: boolean;
@@ -227,6 +229,7 @@ class sessionMessageServiceImpl {
 
               d.types ? { type: { in: d.types } } : undefined!,
               d.source ? { source: { in: d.source } } : undefined!,
+              d.statuses?.length ? { status: { in: d.statuses } } : undefined!,
 
               !d.hierarchy?.length
                 ? { parentMessageOid: null }

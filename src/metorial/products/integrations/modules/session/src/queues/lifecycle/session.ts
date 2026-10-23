@@ -1,5 +1,6 @@
 import { createQueue, pacedDelay } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
+import { recordConnectionTimeUsage } from '@metorial/module-usage';
 import { env } from '../../env';
 
 let PARENT_DELETED_BATCH_SIZE = 1000;
@@ -32,14 +33,28 @@ export let sessionArchivedQueueProcessor = sessionArchivedQueue.process(async da
   });
   if (!session) return;
 
+  let connectedConnections = await db.sessionConnection.findMany({
+    where: { sessionOid: session.oid, status: 'active', state: 'connected' },
+    include: {
+      participant: {
+        select: { id: true, type: true, agentInstanceOid: true, identityActorOid: true }
+      }
+    }
+  });
+  let disconnectedAt = new Date();
+
   await db.sessionConnection.updateMany({
     where: { sessionOid: session.oid, status: 'active' },
     data: {
       status: 'archived',
       state: 'disconnected',
-      disconnectedAt: new Date()
+      disconnectedAt
     }
   });
+
+  for (let connection of connectedConnections) {
+    await recordConnectionTimeUsage({ ...connection, disconnectedAt, session });
+  }
 
   await db.providerRun.updateMany({
     where: { sessionOid: session.oid, status: 'running' },

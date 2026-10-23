@@ -22,7 +22,26 @@ export {
 } from './product';
 
 export { ApiKeysScene } from './product/scenes/apiKeys';
-export { UsageScene } from './product/scenes/usage/usage';
+export {
+  defineEntityFilter,
+  entityFilters,
+  useEntityList,
+  type EntityDefinition,
+  type EntityFilterOptions,
+  type EntityListQuery
+} from './product/scenes/entityFilters';
+export {
+  UsageEventsCard,
+  UsageLineCard,
+  UsageOverviewTiles,
+  UsageSection,
+  UsageTopListCard,
+  useCompactUsageRange,
+  type UsageFilter,
+  type UsageLineMetric,
+  type UsageSummaryId,
+  type UsageTileId
+} from './product/scenes/instanceUsage';
 export { useIdentityPaths } from './product/lib/identityPaths';
 export { AgentsTable } from './product/scenes/identity/agentsTable';
 export { AgentInstancesTable } from './product/scenes/identity/agentInstancesTable';

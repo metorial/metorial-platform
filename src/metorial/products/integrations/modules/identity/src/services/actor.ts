@@ -12,12 +12,14 @@ import {
   type IdentityActor,
   type IdentityActorStatus,
   IdentityActorType,
+  type Prisma,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
 import { Fabric } from '@metorial/fabric';
 import {
   assertNoActiveIntegrationActorLink,
+  buildSearchFilter,
   checkDeletedEdit,
   type DateFilter,
   normalizeDateFilter,
@@ -239,14 +241,19 @@ class identityActorServiceImpl {
     let solution = await getMetorialSolution();
     let agents = await resolveAgents({ ...d, solution }, d.agentIds);
 
-    let search = d.search
-      ? await voyager.record.search({
+    let search = await buildSearchFilter<Prisma.IdentityActorWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let records = await voyager.record.search({
           tenantId: d.tenant.id,
           sourceId: (await voyagerSource).id,
           indexId: voyagerIndex.identityActor.id,
-          query: d.search
-        })
-      : null;
+          query
+        });
+
+        return records.map(r => r.documentId);
+      }
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -262,7 +269,7 @@ class identityActorServiceImpl {
 
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
-                search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
+                search ?? undefined!,
 
                 agents ? { agent: agents.oidIn } : undefined!,
 

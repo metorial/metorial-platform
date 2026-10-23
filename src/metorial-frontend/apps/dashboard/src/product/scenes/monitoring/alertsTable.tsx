@@ -14,8 +14,11 @@ import {
   TableStateProviderResult,
   getDateRangeFilterValue,
   getEnumListFilterValue,
-  getStringFilterValue
+  getListFilterValue,
+  type TableFilter
 } from '@metorial/table';
+import { useMemo } from 'react';
+import { entityFilters } from '../entityFilters';
 import { MonitorAlertStatusBadge, MonitorOwnerBadge, MonitorTargetBadge } from './badges';
 
 type DashboardInstanceMonitorAlertsListQuery = any;
@@ -172,23 +175,21 @@ let alertsTableState: TableStateProvider<
 > = (props, opts) => {
   let alerts = useMonitorAlerts(props.instance.data?.id, {
     order: 'desc' as const,
-    id: getStringFilterValue(opts.filter.id),
-    monitorId: props.monitorId ?? getStringFilterValue(opts.filter.monitorId),
+    monitorId: props.monitorId ?? getListFilterValue(opts.filter.monitorId),
     status: getStatusFilterValue(opts.filter.status),
     target: getTargetFilterValue(opts.filter.target),
     source: getSourceFilterValue(opts.filter.source),
-    providerId: getStringFilterValue(opts.filter.providerId),
-    protoGuardAlertId: getStringFilterValue(opts.filter.protoGuardAlertId),
-    protoGuardRunId: getStringFilterValue(opts.filter.protoGuardRunId),
+    providerId: getListFilterValue(opts.filter.providerId),
+    protoGuardAlertId: getListFilterValue(opts.filter.protoGuardAlertId),
+    protoGuardRunId: getListFilterValue(opts.filter.protoGuardRunId),
     protoGuardFilterId:
-      props.protoGuardFilterId ?? getStringFilterValue(opts.filter.protoGuardFilterId),
-    specificationChangeNotificationId: getStringFilterValue(
+      props.protoGuardFilterId ?? getListFilterValue(opts.filter.protoGuardFilterId),
+    specificationChangeNotificationId: getListFilterValue(
       opts.filter.specificationChangeNotificationId
     ),
-    sessionId: getStringFilterValue(opts.filter.sessionId),
-    sessionMessageId: getStringFilterValue(opts.filter.sessionMessageId),
-    sessionConnectionId: getStringFilterValue(opts.filter.sessionConnectionId),
-    providerRunId: getStringFilterValue(opts.filter.providerRunId),
+    sessionId: getListFilterValue(opts.filter.sessionId),
+    sessionMessageId: getListFilterValue(opts.filter.sessionMessageId),
+    sessionConnectionId: getListFilterValue(opts.filter.sessionConnectionId),
     createdAt: getDateRangeFilterValue(opts.filter.createdAt),
     resolvedAt: getDateRangeFilterValue(opts.filter.resolvedAt)
   } satisfies DashboardInstanceMonitorAlertsListQuery);
@@ -224,6 +225,63 @@ let alertsTableState: TableStateProvider<
     loadPrevious: alerts.previous
   };
 };
+
+let useAlertsFilters = (instanceId: string | undefined) =>
+  useMemo<TableFilter<AlertRow>[]>(
+    () => [
+      {
+        id: 'status',
+        fields: ['status'],
+        label: 'Status',
+        description: 'Filter by alert status',
+        type: 'select',
+        options: [
+          { id: 'pending', label: 'Pending' },
+          { id: 'resolved', label: 'Resolved' },
+          { id: 'ignored', label: 'Ignored' }
+        ]
+      },
+      {
+        id: 'source',
+        fields: ['source'],
+        label: 'Source',
+        description: 'Filter by alert source',
+        type: 'select',
+        options: [
+          { id: 'protoguard', label: 'Protoguard' },
+          { id: 'specification_change', label: 'Schema Change' }
+        ]
+      },
+      {
+        id: 'target',
+        fields: ['target'],
+        label: 'Target',
+        description: 'Filter by monitor target',
+        type: 'select',
+        options: [
+          { id: 'protoguard_filter', label: 'Protoguard Filter' },
+          { id: 'schema_change', label: 'Schema Change' }
+        ]
+      },
+      entityFilters.provider(instanceId),
+      entityFilters.session(instanceId),
+      {
+        id: 'createdAt',
+        fields: ['createdAt'],
+        label: 'Created',
+        description: 'Filter by created date',
+        type: 'date'
+      },
+      {
+        id: 'resolvedAt',
+        fields: ['resolvedAt'],
+        label: 'Resolved',
+        description: 'Filter by resolved date',
+        type: 'date'
+      }
+    ],
+    [instanceId]
+  );
 
 let createAlertsTable = () =>
   new DashboardTable<AlertsTableStateProps, AlertRow>('monitor-alerts')
@@ -328,77 +386,6 @@ let createAlertsTable = () =>
         render: alert => <RenderDate date={alert.createdAt} />
       }
     ])
-    .filters([
-      {
-        id: 'status',
-        fields: ['status'],
-        label: 'Status',
-        description: 'Filter by alert status',
-        type: 'select',
-        options: [
-          { id: 'pending', label: 'Pending' },
-          { id: 'resolved', label: 'Resolved' },
-          { id: 'ignored', label: 'Ignored' }
-        ]
-      },
-      {
-        id: 'source',
-        fields: ['source'],
-        label: 'Source',
-        description: 'Filter by alert source',
-        type: 'select',
-        options: [
-          { id: 'protoguard', label: 'Protoguard' },
-          { id: 'specification_change', label: 'Schema Change' }
-        ]
-      },
-      {
-        id: 'target',
-        fields: ['target'],
-        label: 'Target',
-        description: 'Filter by monitor target',
-        type: 'select',
-        options: [
-          { id: 'protoguard_filter', label: 'Protoguard Filter' },
-          { id: 'schema_change', label: 'Schema Change' }
-        ]
-      },
-      {
-        id: 'providerId',
-        fields: ['providerId'],
-        label: 'Provider',
-        description: 'Filter by provider',
-        type: 'string'
-      },
-      {
-        id: 'sessionId',
-        fields: ['sessionId'],
-        label: 'Session',
-        description: 'Filter by session',
-        type: 'string'
-      },
-      {
-        id: 'providerRunId',
-        fields: ['providerRunId'],
-        label: 'Provider run',
-        description: 'Filter by provider run',
-        type: 'string'
-      },
-      {
-        id: 'createdAt',
-        fields: ['createdAt'],
-        label: 'Created',
-        description: 'Filter by created date',
-        type: 'date'
-      },
-      {
-        id: 'resolvedAt',
-        fields: ['resolvedAt'],
-        label: 'Resolved',
-        description: 'Filter by resolved date',
-        type: 'date'
-      }
-    ])
     .link((alert, props) =>
       Paths.organization.instance.alert(
         props.instance.data?.organization,
@@ -415,10 +402,12 @@ let monitorScopedAlertsTable = createAlertsTable();
 export let AlertsTable = (props?: AlertsTableProps) => {
   let instance = useCurrentInstance();
   let TableComponent = props?.monitorId ? monitorScopedAlertsTable : alertsTable;
+  let tableFilters = useAlertsFilters(instance.data?.id);
 
   return TableComponent({
     ...props,
     instance,
+    tableFilters,
     emptyState: 'No monitor alerts found.'
   });
 };

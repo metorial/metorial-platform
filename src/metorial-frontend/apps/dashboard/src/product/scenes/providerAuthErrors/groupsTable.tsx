@@ -5,10 +5,15 @@ import {
   Table as DashboardTable,
   TableStateProvider,
   TableStateProviderResult,
-  getStringFilterValue
+  getListFilterValue,
+  getStringFilterValue,
+  type TableFilter,
+  type TableLayoutProps
 } from '@metorial/table';
 import { Badge, RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
+import { useMemo } from 'react';
+import { entityFilters } from '../entityFilters';
 import { getErrorLabel } from '../errorGroupLabel';
 
 type ErrorGroup = DashboardInstanceProviderAuthConfigErrorsGroupsListOutput['items'][number];
@@ -25,10 +30,10 @@ let errorGroupsTableState: TableStateProvider<
 > = (props, opts) => {
   let errors = useProviderAuthConfigErrorGroups(props.instance.data?.id, {
     order: 'desc',
-    id: getStringFilterValue(opts.filter.id),
+    search: opts.search || undefined,
     providerAuthConfigId:
-      getStringFilterValue(opts.filter.providerAuthConfigId) ?? props.providerAuthConfigId,
-    providerId: getStringFilterValue(opts.filter.providerId) ?? props.providerId,
+      getListFilterValue(opts.filter.providerAuthConfigId) ?? props.providerAuthConfigId,
+    providerId: getListFilterValue(opts.filter.providerId) ?? props.providerId,
     type: getStringFilterValue(opts.filter.type)
   });
 
@@ -47,6 +52,22 @@ let truncate = (str: string, maxLength: number) => {
   if (str.length <= maxLength) return str;
   return str.slice(0, maxLength) + '...';
 };
+
+let useAuthErrorGroupsFilters = (instanceId: string | undefined) =>
+  useMemo<TableFilter<ErrorGroup>[]>(
+    () => [
+      {
+        id: 'type',
+        fields: ['type'],
+        label: 'Type',
+        description: 'Filter by type',
+        type: 'string'
+      },
+      entityFilters.providerAuthConfig(instanceId),
+      entityFilters.provider(instanceId)
+    ],
+    [instanceId]
+  );
 
 let providerAuthErrorGroupsTable = new DashboardTable<ErrorGroupsTableStateProps, ErrorGroup>(
   'provider-auth-error-groups'
@@ -102,36 +123,7 @@ let providerAuthErrorGroupsTable = new DashboardTable<ErrorGroupsTableStateProps
         )
     }
   ])
-  .filters([
-    {
-      id: 'type',
-      fields: ['type'],
-      label: 'Type',
-      description: 'Filter by type',
-      type: 'string'
-    },
-    {
-      id: 'id',
-      fields: ['id'],
-      label: 'Error Group ID',
-      description: 'Filter by error group ID',
-      type: 'string'
-    },
-    {
-      id: 'providerAuthConfigId',
-      fields: ['providerAuthConfigId'],
-      label: 'Auth Config ID',
-      description: 'Filter by provider auth config ID',
-      type: 'string'
-    },
-    {
-      id: 'providerId',
-      fields: ['providerId'],
-      label: 'Provider ID',
-      description: 'Filter by provider ID',
-      type: 'string'
-    }
-  ])
+  .search('Search by provider, auth config, credentials or ID...')
   .link((group, props) =>
     Paths.instance.providerAuthError(
       props.instance.data?.organization,
@@ -142,10 +134,16 @@ let providerAuthErrorGroupsTable = new DashboardTable<ErrorGroupsTableStateProps
   )
   .build();
 
-export let ProviderAuthErrorGroupsTable = (filter?: ErrorGroupsTableProps) => {
+export let ProviderAuthErrorGroupsTable = ({
+  layout,
+  ...filter
+}: ErrorGroupsTableProps & { layout?: TableLayoutProps } = {}) => {
   let instance = useCurrentInstance();
+  let tableFilters = useAuthErrorGroupsFilters(instance.data?.id);
 
   return providerAuthErrorGroupsTable({
+    ...layout,
+    tableFilters,
     ...filter,
     instance,
     emptyState: 'No provider auth errors found.'

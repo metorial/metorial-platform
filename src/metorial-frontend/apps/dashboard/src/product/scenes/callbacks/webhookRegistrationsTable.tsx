@@ -15,7 +15,8 @@ import {
 import {
   Table as DashboardTable,
   getConstrainedEnumListFilterValue,
-  getStringFilterValue,
+  getListFilterValue,
+  TableFilter,
   TableStateProvider,
   TableStateProviderResult
 } from '@metorial/table';
@@ -34,7 +35,7 @@ import {
 } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { RiDeleteBinLine, RiSettings3Line } from '@remixicon/react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   getJsonSchemaDefaultObject,
   getJsonSchemaObject,
@@ -46,6 +47,7 @@ import {
   getInvalidJsonStringFieldLabels,
   JsonSchemaInput
 } from '../jsonSchemaInput';
+import { entityFilters } from '../entityFilters';
 import { ProviderSelectionStep } from '../providerCreationPanel';
 import {
   getWebhookRegistrationStatusColor,
@@ -372,7 +374,7 @@ let useWebhookRegistrationsTableState: TableStateProvider<
       ['awaiting_setup', 'active', 'archived', 'deleted'],
       undefined
     ),
-    providerId: getStringFilterValue(opts.filter.providerId)
+    providerId: getListFilterValue(opts.filter.providerId)
   });
 
   return {
@@ -386,6 +388,26 @@ let useWebhookRegistrationsTableState: TableStateProvider<
     registrations
   };
 };
+
+let useWebhookRegistrationsTableFilters = (instanceId: string) =>
+  useMemo<TableFilter<WebhookRegistrationPreview>[]>(
+    () => [
+      {
+        id: 'status',
+        fields: ['status'],
+        label: 'Status',
+        description: 'Filter by status',
+        type: 'select',
+        options: [
+          { id: 'awaiting_setup', label: 'Awaiting Setup' },
+          { id: 'active', label: 'Active' },
+          { id: 'archived', label: 'Archived' }
+        ]
+      },
+      entityFilters.provider(instanceId)
+    ],
+    [instanceId]
+  );
 
 let webhookRegistrationsTable = new DashboardTable<
   WebhookRegistrationsTableProps,
@@ -455,27 +477,6 @@ let webhookRegistrationsTable = new DashboardTable<
       render: registration => <ID id={registration.id} />
     }
   ])
-  .filters([
-    {
-      id: 'status',
-      fields: ['status'],
-      label: 'Status',
-      description: 'Filter by status',
-      type: 'select',
-      options: [
-        { id: 'awaiting_setup', label: 'Awaiting Setup' },
-        { id: 'active', label: 'Active' },
-        { id: 'archived', label: 'Archived' }
-      ]
-    },
-    {
-      id: 'providerId',
-      fields: ['providerId'],
-      label: 'Provider ID',
-      description: 'Filter by provider ID',
-      type: 'string'
-    }
-  ])
   .link((registration, props) =>
     Paths.instance.webhookRegistration(
       props.organization.data,
@@ -534,12 +535,14 @@ export let WebhookRegistrationsTable = ({ instanceId }: { instanceId: string }) 
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let tableFilters = useWebhookRegistrationsTableFilters(instanceId);
 
   return webhookRegistrationsTable({
     instanceId,
     instance,
     organization,
     project,
+    tableFilters,
     emptyState:
       'No webhook receivers yet. Create one to get a Metorial URL you can point a provider at.'
   });

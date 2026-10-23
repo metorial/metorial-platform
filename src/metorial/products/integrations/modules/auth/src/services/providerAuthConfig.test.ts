@@ -40,7 +40,10 @@ vi.mock('@metorial-subspace/db', () => ({
   getId: vi.fn()
 }));
 
-vi.mock('@metorial-subspace/list-utils', () => ({
+vi.mock('@metorial-subspace/list-utils', async () => ({
+  ...(await vi.importActual<typeof import('@metorial-subspace/list-utils/src/search')>(
+    '@metorial-subspace/list-utils/src/search'
+  )),
   assertNoActiveIdentityCredentialAuthConfigLink: vi.fn(),
   assertNoActiveIntegrationInstanceProviderAuthConfigLink: vi.fn(),
   checkDeletedEdit: vi.fn(),

@@ -26,6 +26,7 @@ import {
 } from '@metorial/module-access';
 import { skillResourceService, skillService } from '@metorial/module-skill';
 import { getProjectTenantIdentifier } from '@metorial/skills-common';
+import { buildSearchFilter } from '@metorial/module-search';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/skills-search';
 import { enqueueSkillTemplateLifecycle } from '../queues/lifecycle';
 
@@ -615,15 +616,20 @@ class SkillTemplateServiceImpl {
         delegatedResourceTemplateIds = [];
       }
     }
-    let normalizedSearch = d.search?.trim() || undefined;
-    let search = normalizedSearch
-      ? await voyager.record.search({
+    let search = await buildSearchFilter<Prisma.SkillTemplateWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let records = await voyager.record.search({
           tenantId: getProjectTenantIdentifier(d.project),
           sourceId: (await voyagerSource).id,
           indexId: voyagerIndex.skillTemplate.id,
-          query: normalizedSearch
-        })
-      : null;
+          query
+        });
+
+        return records.map(r => r.documentId);
+      },
+      exact: query => [{ id: query }, { slug: { equals: query, mode: 'insensitive' } }]
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts =>
@@ -643,7 +649,7 @@ class SkillTemplateServiceImpl {
               updatedAt: d.updatedAt ? normalizeDateFilter(d.updatedAt) : undefined,
               accessTagEntities: accessTagFilter,
               AND: [
-                ...(search ? [{ id: { in: search.map(result => result.documentId) } }] : []),
+                ...(search ? [search] : []),
                 ...(delegatedResourceTemplateIds
                   ? [{ id: { in: delegatedResourceTemplateIds } }]
                   : [])

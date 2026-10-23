@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { AuditScope } from '@metorial/audit-scope';
 import {
+  addAfterTransactionHook,
   Consumer,
   ConsumerProfile,
   ConsumerProfileInviteStatus,
@@ -13,12 +14,14 @@ import {
   InstanceConsumer,
   Organization,
   OrganizationMember,
+  Prisma,
   User,
   withTransaction
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { createLock } from '@metorial/lock';
-import { searchConsumerIds } from '@metorial/module-search';
+import { buildSearchFilter, searchConsumerIds } from '@metorial/module-search';
+import { recordConsumerCreatedUsage } from '@metorial/module-usage';
 import {
   consumerEmailEquals,
   normalizeConsumerEmail,
@@ -99,17 +102,19 @@ class ConsumerServiceImpl {
     instance: Instance;
     search?: string;
     emails?: string[];
-    id?: string;
+    ids?: string[];
   }) {
-    let search = d.search?.trim();
     let emails = normalizeConsumerEmails(d.emails);
-    let id = d.id?.trim();
-    let searchedConsumerIds = search
-      ? await searchConsumerIds({
-          instanceId: d.instance.id,
-          query: search
-        })
-      : undefined;
+
+    let search = await buildSearchFilter<Prisma.InstanceConsumerWhereInput>({
+      search: d.search,
+      findIds: query => searchConsumerIds({ instanceId: d.instance.id, query }),
+      exact: query => [
+        { id: query },
+        { consumer: { id: query } },
+        { email: { equals: query, mode: 'insensitive' } }
+      ]
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
@@ -135,9 +140,11 @@ class ConsumerServiceImpl {
                 instanceOid: d.instance.oid,
                 isPending: false
               },
-              ...(search ? [{ id: { in: searchedConsumerIds ?? [] } }] : []),
+              ...(search ? [search] : []),
               ...(emails?.length ? [{ email: { in: emails } }] : []),
-              ...(id ? [{ OR: [{ id }, { consumer: { id } }] }] : [])
+              ...(d.ids
+                ? [{ OR: [{ id: { in: d.ids } }, { consumer: { id: { in: d.ids } } }] }]
+                : [])
             ]
           },
           include: getInclude({ instanceOid: d.instance.oid })
@@ -246,6 +253,16 @@ class ConsumerServiceImpl {
             update: consumerUpdate
           });
 
+      let existingInstanceConsumer = await db.instanceConsumer.findUnique({
+        where: {
+          instanceOid_consumerOid: {
+            instanceOid: d.instance.oid,
+            consumerOid: consumer.oid
+          }
+        },
+        select: { oid: true }
+      });
+
       let instanceConsumer = await db.instanceConsumer.upsert({
         where: {
           instanceOid_consumerOid: {
@@ -272,6 +289,16 @@ class ConsumerServiceImpl {
         },
         include: getInclude({ instanceOid: d.instance.oid })
       });
+
+      if (!existingInstanceConsumer) {
+        await addAfterTransactionHook(() =>
+          recordConsumerCreatedUsage({
+            instanceOid: instanceConsumer.instanceOid,
+            consumerId: instanceConsumer.id,
+            createdAt: instanceConsumer.createdAt
+          })
+        );
+      }
 
       await syncConsumerProfileIdentity({
         instanceOid: d.instance.oid,

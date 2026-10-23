@@ -29,6 +29,7 @@ import {
   createSkillDestination,
   getSkillDestinationEditorUrl
 } from '@metorial/skills-scm-utils';
+import { buildSearchFilter } from '@metorial/module-search';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/skills-search';
 import { forceSkillDestinationSync } from '../lib/destinationSync';
 import {
@@ -170,19 +171,25 @@ class SkillMarketplaceServiceImpl {
     d.search = d.search?.trim();
     if (!d.search?.length) d.search = undefined;
 
-    let search = d.search
-      ? await voyager.record.search({
+    let search = await buildSearchFilter<Prisma.SkillMarketplaceWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let records = await voyager.record.search({
           tenantId: getProjectTenantIdentifier(d.project),
           sourceId: (await voyagerSource).id,
           indexId: voyagerIndex.skillMarketplace.id,
-          query: d.search
-        })
-      : null;
+          query
+        });
+
+        return records.map(r => r.documentId);
+      },
+      exact: query => [{ id: query }, { slug: { equals: query, mode: 'insensitive' } }]
+    });
     let filters: Prisma.SkillMarketplaceWhereInput[] = [
       skillMarketplaces ? { oid: skillMarketplaces.in } : undefined,
       skillConfigurations ? { skillConfigurationOid: skillConfigurations.in } : undefined,
       { status: { in: statuses } },
-      search ? { id: { in: search.map(r => r.documentId) } } : undefined,
+      search,
       d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined,
       d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined,
       accessWhere

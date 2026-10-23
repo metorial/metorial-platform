@@ -24,10 +24,11 @@ import {
   getConstrainedEnumListFilterValue,
   getDateRangeFilterValue,
   getEnumListFilterValue,
-  getStringFilterValue,
+  getListFilterValue,
   normalizeArrayFilterValue
 } from '@metorial/table';
 import { useDebounced } from '@metorial/use-debounced';
+import { entityFilters } from '../entityFilters';
 import { CustomProviderImage } from './image';
 import { getCustomProviderRemoteProtocolLabel } from './utils';
 
@@ -116,7 +117,9 @@ let getRepositoryLabel = (provider: CustomProvider) => {
   }
 };
 
-let getCommonCustomProviderFilters = (): TableFilter<CustomProvider>[] => [
+let getCommonCustomProviderFilters = (
+  instanceId: string | undefined
+): TableFilter<CustomProvider>[] => [
   {
     id: 'status',
     fields: ['status'],
@@ -128,20 +131,7 @@ let getCommonCustomProviderFilters = (): TableFilter<CustomProvider>[] => [
       { id: 'archived', label: 'Archived' }
     ]
   },
-  {
-    id: 'id',
-    fields: ['id'],
-    label: 'Custom Provider ID',
-    description: 'Filter by custom provider ID',
-    type: 'string'
-  },
-  {
-    id: 'providerId',
-    fields: ['providerId'],
-    label: 'Published Provider ID',
-    description: 'Filter by published provider ID',
-    type: 'string'
-  },
+  entityFilters.provider(instanceId, { label: 'Published Provider' }),
   {
     id: 'createdAt',
     fields: ['createdAt'],
@@ -158,7 +148,9 @@ let getCommonCustomProviderFilters = (): TableFilter<CustomProvider>[] => [
   }
 ];
 
-let managedCustomProviderFilters: TableFilter<CustomProvider>[] = [
+let getManagedCustomProviderFilters = (
+  instanceId: string | undefined
+): TableFilter<CustomProvider>[] => [
   {
     id: 'type',
     fields: ['type'],
@@ -169,11 +161,8 @@ let managedCustomProviderFilters: TableFilter<CustomProvider>[] = [
       option => option.id === 'function' || option.id === 'container'
     )
   },
-  ...getCommonCustomProviderFilters()
+  ...getCommonCustomProviderFilters(instanceId)
 ];
-
-let externalCustomProviderFilters: TableFilter<CustomProvider>[] =
-  getCommonCustomProviderFilters();
 
 let getProviderDetail = (provider: CustomProvider) => {
   if (provider.draft.remoteMcpServer?.url) {
@@ -216,6 +205,7 @@ export let CustomProvidersGrid = ({
   ...filters
 }: DashboardInstanceCustomProvidersListQuery & { withSearch?: boolean }) => {
   let instance = useCurrentInstance();
+  let instanceId = instance.data?.id;
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
   let [search, setSearch] = useState('');
@@ -224,21 +214,23 @@ export let CustomProvidersGrid = ({
   let filterPayload = useMemo(() => getFilterPayload(filterState), [filterState]);
   let typeFilters = normalizeArrayFilterValue(filters.type);
   let isExternalOnly = typeFilters?.length === 1 && typeFilters[0] === 'remote';
-  let tableFilters = isExternalOnly
-    ? externalCustomProviderFilters
-    : managedCustomProviderFilters;
+  let tableFilters = useMemo(
+    () =>
+      isExternalOnly
+        ? getCommonCustomProviderFilters(instanceId)
+        : getManagedCustomProviderFilters(instanceId),
+    [instanceId, isExternalOnly]
+  );
   let status = getStatusFilterValue(filterPayload.status) ?? filters.status;
   let type = getTypeFilterValue(filterPayload.type, filters.type);
-  let id = getStringFilterValue(filterPayload.id) ?? filters.id;
-  let providerId = getStringFilterValue(filterPayload.providerId) ?? filters.providerId;
+  let providerId = getListFilterValue(filterPayload.providerId) ?? filters.providerId;
   let createdAt = getDateFilterValue(filterPayload.createdAt) ?? filters.createdAt;
   let updatedAt = getDateFilterValue(filterPayload.updatedAt) ?? filters.updatedAt;
-  let customProviders = useCustomProviders(instance.data?.id, {
+  let customProviders = useCustomProviders(instanceId, {
     order: 'desc',
     ...filters,
     status,
     type,
-    id,
     providerId,
     search: searchDebounced || filters.search,
     createdAt,

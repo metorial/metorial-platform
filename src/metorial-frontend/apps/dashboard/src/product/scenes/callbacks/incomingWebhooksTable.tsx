@@ -9,13 +9,16 @@ import {
 } from '@metorial/state';
 import {
   getConstrainedEnumListFilterValue,
-  getStringFilterValue,
+  getListFilterValue,
   Table as DashboardTable,
+  TableFilter,
   TableStateProvider,
   TableStateProviderResult
 } from '@metorial/table';
 import { Badge, RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
+import { useMemo } from 'react';
+import { entityFilters } from '../entityFilters';
 import { getIncomingWebhookStatusColor, getIncomingWebhookStatusLabel } from './shared';
 
 type IncomingWebhooksTableProps = {
@@ -42,9 +45,9 @@ let useIncomingWebhooksTableState: TableStateProvider<
       ['pending', 'failed_retrying', 'failed_final', 'succeeded'],
       props.filters?.status
     ),
-    providerId: getStringFilterValue(opts.filter.providerId) ?? props.filters?.providerId,
+    providerId: getListFilterValue(opts.filter.providerId) ?? props.filters?.providerId,
     webhookRegistrationId:
-      getStringFilterValue(opts.filter.webhookRegistrationId) ??
+      getListFilterValue(opts.filter.webhookRegistrationId) ??
       props.filters?.webhookRegistrationId
   });
 
@@ -58,6 +61,28 @@ let useIncomingWebhooksTableState: TableStateProvider<
     loadPrevious: webhooks.previous
   };
 };
+
+let useIncomingWebhooksTableFilters = (instanceId: string) =>
+  useMemo<TableFilter<IncomingWebhookPreview>[]>(
+    () => [
+      {
+        id: 'status',
+        fields: ['status'],
+        label: 'Status',
+        description: 'Filter by status',
+        type: 'select',
+        options: [
+          { id: 'pending', label: 'Pending' },
+          { id: 'failed_retrying', label: 'Retrying' },
+          { id: 'failed_final', label: 'Failed' },
+          { id: 'succeeded', label: 'Succeeded' }
+        ]
+      },
+      entityFilters.provider(instanceId),
+      entityFilters.webhookRegistration(instanceId)
+    ],
+    [instanceId]
+  );
 
 let incomingWebhooksTable = new DashboardTable<
   IncomingWebhooksTableProps,
@@ -113,35 +138,6 @@ let incomingWebhooksTable = new DashboardTable<
       render: webhook => <ID id={webhook.id} />
     }
   ])
-  .filters([
-    {
-      id: 'status',
-      fields: ['status'],
-      label: 'Status',
-      description: 'Filter by status',
-      type: 'select',
-      options: [
-        { id: 'pending', label: 'Pending' },
-        { id: 'failed_retrying', label: 'Retrying' },
-        { id: 'failed_final', label: 'Failed' },
-        { id: 'succeeded', label: 'Succeeded' }
-      ]
-    },
-    {
-      id: 'providerId',
-      fields: ['providerId'],
-      label: 'Provider ID',
-      description: 'Filter by provider ID',
-      type: 'string'
-    },
-    {
-      id: 'webhookRegistrationId',
-      fields: ['webhookRegistrationId'],
-      label: 'Registration ID',
-      description: 'Filter by webhook registration ID',
-      type: 'string'
-    }
-  ])
   .link((webhook, props) =>
     Paths.instance.incomingWebhook(
       props.organization.data,
@@ -164,6 +160,7 @@ export let IncomingWebhooksTable = ({
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let tableFilters = useIncomingWebhooksTableFilters(instanceId);
 
   return incomingWebhooksTable({
     instanceId,
@@ -171,6 +168,7 @@ export let IncomingWebhooksTable = ({
     instance,
     organization,
     project,
+    tableFilters,
     emptyState: emptyState ?? 'No inbound webhooks received yet.'
   });
 };

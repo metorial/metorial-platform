@@ -20,6 +20,7 @@ type ListProviderSpecificationsParams = {
   providerVersionIds?: string[];
   providerDeploymentIds?: string[];
   providerConfigIds?: string[];
+  search?: string;
 
   createdAt?: DateFilter;
   updatedAt?: DateFilter;
@@ -51,8 +52,10 @@ class providerSpecificationServiceImpl {
   ) {
     let solution = await getMetorialSolution();
 
+    let search = d.search?.trim();
     let includeDeprecated =
       d.includeDeprecated ||
+      !!search ||
       !!d.ids?.length ||
       !!d.providerIds?.length ||
       !!d.providerVersionIds?.length ||
@@ -103,6 +106,7 @@ class providerSpecificationServiceImpl {
                 },
 
                 d.ids ? { id: { in: d.ids } } : undefined!,
+                search ? { id: search } : undefined!,
                 providers ? { providerOid: providers.in } : undefined!,
                 filtersBySpecification ? { oid: { in: specOids } } : undefined!,
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
