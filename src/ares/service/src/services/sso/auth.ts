@@ -31,7 +31,8 @@ class SsoAuthServiceImpl {
       redirectUri: string;
       email?: string;
       state: string;
-      purpose?: 'authentication' | 'connection_test';
+      purpose?: 'authentication' | 'connection_test' | 'elevation';
+      forceAuthn?: boolean;
     };
   }) {
     if (d.tenant.status != 'completed') {
@@ -70,6 +71,7 @@ class SsoAuthServiceImpl {
         redirectUri: d.input.redirectUri,
         purpose: d.input.purpose,
         email: d.input.email ?? null,
+        forceAuthn: d.input.forceAuthn ?? false,
         expiresAt: addMinutes(new Date(), 30)
       }
     });
@@ -104,7 +106,11 @@ class SsoAuthServiceImpl {
     return auth;
   }
 
-  async completeAuth(d: { authId: string; tenantId: string }) {
+  async completeAuth(d: {
+    authId: string;
+    tenantId: string;
+    purpose: 'authentication' | 'elevation';
+  }) {
     let auth = await db.ssoAuth.findUnique({
       where: { id: d.authId },
       include: {
@@ -119,6 +125,7 @@ class SsoAuthServiceImpl {
     if (
       !auth ||
       auth.tenant.id != d.tenantId ||
+      auth.purpose != d.purpose ||
       auth.status != 'completed' ||
       (auth.expiresAt && auth.expiresAt <= new Date()) ||
       !auth.user ||
