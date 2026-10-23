@@ -1,5 +1,5 @@
 import type { DashboardInstanceIntegrationsListQuery } from '@metorial/dashboard-sdk';
-import { useCurrentInstance, useProviderListings } from '@metorial/state';
+import { useCurrentInstance } from '@metorial/state';
 import { Input } from '@metorial/ui';
 import { type Dispatch, type SetStateAction, useMemo } from 'react';
 import styled from 'styled-components';
@@ -10,9 +10,10 @@ import {
   getFilterPayload,
   getDateRangeFilterValue,
   getEnumListFilterValue,
-  getStringFilterValue
+  getListFilterValue
 } from '@metorial/table';
 import { useDebounced } from '@metorial/use-debounced';
+import { entityFilters } from '../entityFilters';
 
 let Toolbar = styled.div`
   display: flex;
@@ -34,26 +35,8 @@ export let useIntegrationFilters = (p: {
   filterState: TableFilterState[];
 }) => {
   let instance = useCurrentInstance();
-  let providerListings = useProviderListings(instance.data?.id, {
-    orderByRank: true,
-    limit: 100
-  });
+  let instanceId = instance.data?.id;
   let searchDebounced = useDebounced(p.search, 500);
-  let providerOptions = useMemo(
-    () =>
-      [
-        ...new Map(
-          (providerListings.data?.items ?? []).map(listing => [
-            listing.provider.id,
-            {
-              id: listing.provider.id,
-              label: listing.name ?? listing.provider.name ?? listing.provider.slug
-            }
-          ])
-        ).values()
-      ].sort((a, b) => a.label.localeCompare(b.label)),
-    [providerListings.data?.items]
-  );
 
   let filters: TableFilter<any>[] = useMemo(
     () => [
@@ -69,14 +52,7 @@ export let useIntegrationFilters = (p: {
           { id: 'deleted', label: 'Deleted' }
         ]
       },
-      {
-        id: 'providerId',
-        fields: ['providerId'],
-        label: 'Provider',
-        description: 'Filter by provider',
-        type: 'select',
-        options: providerOptions
-      },
+      entityFilters.provider(instanceId),
       {
         id: 'createdAt',
         fields: ['createdAt'],
@@ -92,14 +68,14 @@ export let useIntegrationFilters = (p: {
         type: 'date'
       }
     ],
-    [providerOptions]
+    [instanceId]
   );
 
   let filterPayload = useMemo(() => getFilterPayload(p.filterState), [p.filterState]);
   let hasStatusFilter = p.filterState.some(filter => filter.id === 'status');
   let selectedStatus = getEnumListFilterValue(filterPayload.status, integrationStatusValues);
   let status = hasStatusFilter ? selectedStatus : (selectedStatus ?? ['active']);
-  let providerId = getStringFilterValue(filterPayload.providerId);
+  let providerId = getListFilterValue(filterPayload.providerId);
   let createdAt = getDateRangeFilterValue(filterPayload.createdAt);
   let updatedAt = getDateRangeFilterValue(filterPayload.updatedAt);
 

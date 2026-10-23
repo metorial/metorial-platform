@@ -21,7 +21,10 @@ vi.mock('@metorial/db', () => ({
   addAwaitedAfterTransactionHook: vi.fn()
 }));
 vi.mock('@metorial-subspace/db', () => ({ db: { firewall: { findMany: mocks.list } } }));
-vi.mock('@metorial/module-search', () => ({
+vi.mock('@metorial/module-search', async () => ({
+  ...(await vi.importActual<typeof import('@metorial/module-search/src/searchFilter')>(
+    '@metorial/module-search/src/searchFilter'
+  )),
   searchFirewallIds: mocks.search,
   indexFirewallDocument: mocks.index,
   deleteFirewallDocument: mocks.remove
@@ -90,7 +93,13 @@ describe('firewall search', () => {
         environmentOid: 2n,
         status: { in: ['active'] },
         AND: [
-          { id: { in: ['match'] } },
+          {
+            OR: [
+              { id: { in: ['match'] } },
+              { id: 'private' },
+              { slug: { equals: 'private', mode: 'insensitive' } }
+            ]
+          },
           { id: { in: ['match', 'other'] } },
           { networkPolicyLinks: { some: { networkPolicyOid: [7n] } } },
           { machineLinks: { some: { machine: { id: { in: ['machine'] } } } } },
@@ -115,10 +124,12 @@ describe('firewall search', () => {
     expect(mocks.list.mock.calls[0][0].where.AND).toEqual([]);
   });
 
-  it('does not broaden an empty search result', async () => {
+  it('only matches exact id or slug when search finds nothing', async () => {
     mocks.search.mockResolvedValue([]);
     await firewallService.listFirewallsInternal({ ...scope, search: 'missing' });
-    expect(mocks.list.mock.calls[0][0].where.AND).toEqual([{ id: { in: [] } }]);
+    expect(mocks.list.mock.calls[0][0].where.AND).toEqual([
+      { OR: [{ id: 'missing' }, { slug: { equals: 'missing', mode: 'insensitive' } }] }
+    ]);
   });
 });
 

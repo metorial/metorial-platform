@@ -2,7 +2,11 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { db, type Environment, type Tenant } from '@metorial-subspace/db';
-import { type DateFilter, normalizeDateFilter, resolveProviders } from '@metorial-subspace/list-utils';
+import {
+  type DateFilter,
+  normalizeDateFilter,
+  resolveProviders
+} from '@metorial-subspace/list-utils';
 import {
   getMetorialSolution,
   type MetorialFacing,
@@ -22,6 +26,7 @@ let include = {
 type ListProviderVersionsParams = {
   ids?: string[];
   providerIds?: string[];
+  search?: string;
 
   createdAt?: DateFilter;
   updatedAt?: DateFilter;
@@ -53,7 +58,9 @@ class providerVersionServiceImpl {
   ) {
     let solution = await getMetorialSolution();
 
-    let includeDeprecated = d.includeDeprecated || !!d.ids?.length || !!d.providerIds?.length;
+    let search = d.search?.trim();
+    let includeDeprecated =
+      d.includeDeprecated || !!d.ids?.length || !!d.providerIds?.length || !!search;
     let providers = await resolveProviders({ ...d, solution }, d.providerIds);
 
     return Paginator.create(({ prisma }) =>
@@ -81,6 +88,7 @@ class providerVersionServiceImpl {
 
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
+                search ? { id: search } : undefined!,
                 providers ? { providerOid: providers.in } : undefined!,
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!

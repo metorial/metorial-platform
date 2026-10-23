@@ -7,3 +7,5 @@ export * from './lib/toolScopes';
 export * from './lib/authMethodPolicy';
 
 export { enqueueApplyDiscoveredImage } from './queues/listing/applyDiscoveredImage';
+export { enqueueProviderSpecSearchIndex } from './queues/search/enqueue';
+export { indexProviderListingQueue } from './queues/search/providerListing';

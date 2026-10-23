@@ -56,6 +56,9 @@ export let callbackInstanceController = Controller.create(
               v.union([callbackStatusValidator, v.array(callbackStatusValidator)]),
               { description: 'Filter by callback instance lifecycle status' }
             ),
+            search: v.optional(v.string(), {
+              description: 'Match a callback instance by its exact ID'
+            }),
             created_at: dateFilterValidator('callback instance creation time'),
             updated_at: dateFilterValidator('callback instance last update time')
           })
@@ -73,6 +76,7 @@ export let callbackInstanceController = Controller.create(
             ctx.query.integration_instance_provider_id
           ),
           status: normalizeArrayParam(ctx.query.status),
+          search: ctx.query.search,
           createdAt: ctx.query.created_at,
           updatedAt: ctx.query.updated_at
         });

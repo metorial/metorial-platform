@@ -57,7 +57,10 @@ vi.mock('@metorial-subspace/db', () => {
   };
 });
 
-vi.mock('@metorial-subspace/list-utils', () => ({
+vi.mock('@metorial-subspace/list-utils', async () => ({
+  ...(await vi.importActual<typeof import('@metorial-subspace/list-utils/src/search')>(
+    '@metorial-subspace/list-utils/src/search'
+  )),
   assertNoActiveIntegrationInstanceProviderAuthCredentialsLink: vi.fn(),
   checkDeletedEdit: vi.fn(),
   normalizeDateFilter: vi.fn(),

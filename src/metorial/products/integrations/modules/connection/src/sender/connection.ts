@@ -180,6 +180,10 @@ export class SenderConnection {
     return this.manager.callTool(d);
   }
 
+  sendMcpMessageToProvider(d: Parameters<SenderManager['sendMcpMessageToProvider']>[0]) {
+    return this.manager.sendMcpMessageToProvider(d);
+  }
+
   initialize(d: InitProps) {
     return this.manager.initialize(d);
   }

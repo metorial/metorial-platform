@@ -1,3 +1,4 @@
+export * from './events';
 export * from './grid';
 export * from './range';
 export * from './summary';

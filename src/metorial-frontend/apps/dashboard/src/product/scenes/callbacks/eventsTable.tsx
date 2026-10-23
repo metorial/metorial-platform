@@ -2,9 +2,6 @@ import type { DashboardOrganizationsEventsListQuery } from '@metorial/dashboard-
 import { Paths } from '@metorial/frontend-config';
 import {
   EventPreview,
-  callbacksLoader,
-  chatConnectionsLoader,
-  providersLoader,
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
@@ -26,6 +23,7 @@ import {
 import { Badge, RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { useMemo } from 'react';
+import { entityFilters } from '../entityFilters';
 import { CHAT_EVENT_CATALOG, sentenceCase } from './listenerEditor';
 
 type EventsTableProps = {
@@ -103,7 +101,8 @@ let useEventNameFilterOptions = (
     let triggerItems = (providerTriggers.data?.items ?? []).map(trigger => ({
       id: `callback.${trigger.key}`,
       label: `Callback · ${trigger.name || sentenceCase(trigger.key)}`,
-      description: triggerProviderNames.get(trigger.providerId) ?? trigger.description ?? undefined
+      description:
+        triggerProviderNames.get(trigger.providerId) ?? trigger.description ?? undefined
     }));
 
     let chatItems = CHAT_EVENT_CATALOG.map(event => ({
@@ -122,82 +121,6 @@ let useEventNameFilterOptions = (
     isLoading,
     empty: 'No matching events found.'
   });
-};
-
-let makeCallbackOptionsProvider =
-  (instanceId: string | null | undefined) =>
-  ({ search }: { search: string }): TableFilterEntityOptions => {
-    let callbacks = callbacksLoader.use(
-      instanceId ? { instanceId, search, limit: 50, status: 'active' } : null
-    );
-
-    return {
-      items: (callbacks.data?.items ?? []).map(item => ({ id: item.id, label: item.name })),
-      isLoading: callbacks.isLoading,
-      empty: search ? 'No matching callbacks found.' : 'No callbacks available.'
-    };
-  };
-
-let useCallbackValueLabels = (instanceId: string | null | undefined, ids: string[]) => {
-  let uniqueIds = ids.length ? [...new Set(ids)] : null;
-  let callbacks = callbacksLoader.use(
-    instanceId && uniqueIds ? { instanceId, id: uniqueIds, limit: uniqueIds.length } : null
-  );
-
-  return useMemo(() => {
-    let labels: Record<string, string> = {};
-    for (let item of callbacks.data?.items ?? []) labels[item.id] = item.name;
-    return labels;
-  }, [callbacks.data]);
-};
-
-let makeChatConnectionOptionsProvider =
-  (instanceId: string | null | undefined) =>
-  ({ search }: { search: string }): TableFilterEntityOptions => {
-    let connections = chatConnectionsLoader.use(
-      instanceId ? { instanceId, search, limit: 50, status: 'active' } : null
-    );
-
-    return {
-      items: (connections.data?.items ?? []).map(item => ({ id: item.id, label: item.name })),
-      isLoading: connections.isLoading,
-      empty: search ? 'No matching chat connections found.' : 'No chat connections available.'
-    };
-  };
-
-let useChatConnectionValueLabels = (instanceId: string | null | undefined, ids: string[]) => {
-  let uniqueIds = ids.length ? [...new Set(ids)] : null;
-  let connections = chatConnectionsLoader.use(
-    instanceId && uniqueIds ? { instanceId, id: uniqueIds, limit: uniqueIds.length } : null
-  );
-
-  return useMemo(() => {
-    let labels: Record<string, string> = {};
-    for (let item of connections.data?.items ?? []) labels[item.id] = item.name;
-    return labels;
-  }, [connections.data]);
-};
-
-let makeProviderOptionsProvider =
-  (instanceId: string | null | undefined) =>
-  ({ search }: { search: string }): TableFilterEntityOptions => {
-    let providers = providersLoader.use(instanceId ? { instanceId, search, limit: 50 } : null);
-
-    return {
-      items: (providers.data?.items ?? []).map(item => ({ id: item.id, label: item.name })),
-      isLoading: providers.isLoading,
-      empty: search ? 'No matching providers found.' : 'No providers available.'
-    };
-  };
-
-let useProviderValueLabels = (instanceId: string | null | undefined, ids: string[]) => {
-  let providers = useProvidersByIds(instanceId, ids.length ? ids : null);
-
-  return useMemo(() => {
-    let labels: Record<string, string> = {};
-    for (let item of providers.data ?? []) labels[item.id] = item.name;
-    return labels;
-  }, [providers.data]);
 };
 
 let useEventLogFilters = (
@@ -233,39 +156,9 @@ let useEventLogFilters = (
         searchPlaceholder: 'Search events...',
         useOptions: eventNameOptions
       },
-      {
-        id: 'callbackId',
-        fields: ['callbackId'],
-        label: 'Callback',
-        description: 'Filter by callback',
-        type: 'entity',
-        pinned: true,
-        searchPlaceholder: 'Search callbacks...',
-        useOptions: makeCallbackOptionsProvider(instanceId),
-        useValueLabels: ids => useCallbackValueLabels(instanceId, ids)
-      },
-      {
-        id: 'chatConnectionId',
-        fields: ['chatConnectionId'],
-        label: 'Chat Connection',
-        description: 'Filter by chat connection',
-        type: 'entity',
-        pinned: true,
-        searchPlaceholder: 'Search chat connections...',
-        useOptions: makeChatConnectionOptionsProvider(instanceId),
-        useValueLabels: ids => useChatConnectionValueLabels(instanceId, ids)
-      },
-      {
-        id: 'providerId',
-        fields: ['providerId'],
-        label: 'Provider',
-        description: 'Filter by provider',
-        type: 'entity',
-        pinned: true,
-        searchPlaceholder: 'Search providers...',
-        useOptions: makeProviderOptionsProvider(instanceId),
-        useValueLabels: ids => useProviderValueLabels(instanceId, ids)
-      },
+      entityFilters.callback(instanceId, { pinned: true }),
+      entityFilters.chatConnection(instanceId, { pinned: true }),
+      entityFilters.provider(instanceId, { pinned: true }),
       {
         id: 'createdAt',
         fields: ['createdAt'],

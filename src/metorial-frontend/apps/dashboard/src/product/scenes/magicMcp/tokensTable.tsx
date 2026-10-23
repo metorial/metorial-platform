@@ -36,11 +36,14 @@ import styled from 'styled-components';
 import { Table as DashboardTable } from '@metorial/table';
 import {
   FilterPayload,
+  TableFilter,
   TableStateProvider,
   TableStateProviderResult,
   getEnumListFilterValue,
+  getListFilterValue,
   getStringFilterValue
 } from '@metorial/table';
+import { entityFilters } from '../entityFilters';
 
 export type TokenRow = DashboardInstanceMagicMcpTokensListOutput['items'][number];
 type MagicMcpGroupRow = DashboardInstanceMagicMcpGroupsListOutput['items'][number];
@@ -315,6 +318,25 @@ export let updateTokenModal = ({
     );
   });
 
+let useMagicTokensTableFilters = (instanceId: string) =>
+  useMemo<TableFilter<TokenRow>[]>(
+    () => [
+      {
+        id: 'status',
+        fields: ['status'],
+        label: 'Status',
+        description: 'Filter by status',
+        type: 'select',
+        options: [
+          { id: 'active', label: 'Active' },
+          { id: 'deleted', label: 'Deleted' }
+        ]
+      },
+      entityFilters.magicMcpGroup(instanceId)
+    ],
+    [instanceId]
+  );
+
 let magicTokensTableState: TableStateProvider<
   MagicMcpTokensTableProps,
   TokenRow,
@@ -323,8 +345,7 @@ let magicTokensTableState: TableStateProvider<
   let tokens = useMagicMcpTokens(props.instanceId, {
     order: props.order ?? 'asc',
     status: getTokenStatusFilterValue(opts.filter.status) ?? props.status,
-    magicMcpGroupId:
-      getStringFilterValue(opts.filter.magicMcpGroupId) ?? props.magicMcpGroupId,
+    magicMcpGroupId: getListFilterValue(opts.filter.magicMcpGroupId) ?? props.magicMcpGroupId,
     magicMcpServerId:
       getStringFilterValue(opts.filter.magicMcpServerId) ?? props.magicMcpServerId
   });
@@ -434,26 +455,6 @@ let magicTokensTable = new DashboardTable<
       isDefault: false,
       header: 'Token ID',
       render: token => <ID id={token.id} />
-    }
-  ])
-  .filters([
-    {
-      id: 'status',
-      fields: ['status'],
-      label: 'Status',
-      description: 'Filter by status',
-      type: 'select',
-      options: [
-        { id: 'active', label: 'Active' },
-        { id: 'deleted', label: 'Deleted' }
-      ]
-    },
-    {
-      id: 'magicMcpGroupId',
-      fields: ['magicMcpGroupId'],
-      label: 'Group ID',
-      description: 'Filter by group ID',
-      type: 'string'
     }
   ])
   .actions({
@@ -605,10 +606,13 @@ export let TokenSecret = ({
 
 export let MagicTokensTable = (filter: DashboardInstanceMagicMcpTokensListQuery = {}) => {
   let instance = useCurrentInstance();
+  let instanceId = instance.data!.id;
+  let tableFilters = useMagicTokensTableFilters(instanceId);
 
   return magicTokensTable({
-    instanceId: instance.data!.id,
+    instanceId,
     ...filter,
+    tableFilters,
     emptyState: 'No Magic MCP tokens found.'
   });
 };

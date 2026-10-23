@@ -42,7 +42,7 @@ let getManagedQueryString = (searchParams: URLSearchParams, filterKeys: Set<stri
 export let useFilterQuery = ({
   filters,
   filterState: [filterState, setFilterState],
-  searchState: [, setSearch],
+  searchState: [search, setSearch],
   debouncedSearch
 }: {
   filters?: TableFilter<any>[];
@@ -54,25 +54,60 @@ export let useFilterQuery = ({
   let currentFilters = filters ?? emptyFilters;
   let filterKeys = useMemo(() => getFilterQueryKeys(currentFilters), [currentFilters]);
 
+  let latest = useRef({ searchParams, setSearchParams, search, filterState });
+  latest.current = { searchParams, setSearchParams, search, filterState };
+
   let lastSetQueryRef = useRef<string | undefined>(undefined);
+  let pendingHydrationRef = useRef<{
+    filters?: TableFilterState[];
+    search?: string;
+  } | null>(null);
+
   useEffect(() => {
     try {
       let query = new URLSearchParams(searchParams);
-      let queryString = query.toString();
+      let isOwnWrite = lastSetQueryRef.current == query.toString();
+      lastSetQueryRef.current = undefined;
+      if (isOwnWrite) return;
+
       let filterValues = deserializeFromQuery(query, currentFilters);
       let nextSearch = query.get('search') ?? '';
 
-      if (lastSetQueryRef.current == queryString) return;
+      let filtersChanged =
+        serializeToQuery(latest.current.filterState) != serializeToQuery(filterValues);
+      let searchChanged = latest.current.search != nextSearch;
+      if (!filtersChanged && !searchChanged) return;
 
-      setFilterState(filterValues);
-      setSearch(current => (current == nextSearch ? current : nextSearch));
+      pendingHydrationRef.current = {
+        filters: filtersChanged ? filterValues : undefined,
+        search: searchChanged ? nextSearch : undefined
+      };
+
+      if (filtersChanged) setFilterState(filterValues);
+      if (searchChanged) setSearch(nextSearch);
     } catch (e) {
       console.error(e);
     }
   }, [currentFilters, searchParams, setFilterState, setSearch]);
 
+  // Only filter/search state changes may write to the URL, and only once state has caught
+  // up with the URL. Otherwise stale state gets written on top of an external navigation,
+  // and since setSearchParams navigates relative to this route it pulls the user back here.
   useEffect(() => {
     try {
+      let { searchParams, setSearchParams, search } = latest.current;
+
+      let pending = pendingHydrationRef.current;
+      if (pending) {
+        let filtersPending = pending.filters && pending.filters !== filterState;
+        let searchPending = pending.search !== undefined && pending.search !== search;
+        if (filtersPending || searchPending) return;
+        pendingHydrationRef.current = null;
+      }
+
+      let nextSearch =
+        search == debouncedSearch ? debouncedSearch : searchParams.get('search');
+
       let filterQuery = serializeToQuery(filterState);
       let nextSearchParams = new URLSearchParams(searchParams);
       let currentManagedQuery = getManagedQueryString(searchParams, filterKeys);
@@ -86,23 +121,19 @@ export let useFilterQuery = ({
         nextSearchParams.append(key, value);
       }
 
-      if (debouncedSearch) nextSearchParams.set('search', debouncedSearch);
+      if (nextSearch) nextSearchParams.set('search', nextSearch);
       else nextSearchParams.delete('search');
 
       let nextManagedQuery = getManagedQueryString(nextSearchParams, filterKeys);
-      let didManagedQueryChange = currentManagedQuery != nextManagedQuery;
-      if (didManagedQueryChange) {
-        nextSearchParams.delete('before');
-        nextSearchParams.delete('after');
-      }
+      if (currentManagedQuery == nextManagedQuery) return;
 
-      let query = nextSearchParams.toString();
-      if (searchParams.toString() == query) return;
+      nextSearchParams.delete('before');
+      nextSearchParams.delete('after');
 
-      lastSetQueryRef.current = query;
+      lastSetQueryRef.current = nextSearchParams.toString();
       setSearchParams(nextSearchParams, { replace: true });
     } catch (e) {
       console.error(e);
     }
-  }, [debouncedSearch, filterKeys, filterState, searchParams, setSearchParams]);
+  }, [debouncedSearch, filterKeys, filterState]);
 };

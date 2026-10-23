@@ -83,6 +83,13 @@ export let sessionMessageController = Controller.create(
               v.union([v.enumOf(['child', 'parent']), v.array(v.enumOf(['child', 'parent']))]),
               { description: 'Filter by message hierarchy' }
             ),
+            status: v.optional(
+              v.union([
+                v.enumOf(['waiting_for_response', 'succeeded', 'failed']),
+                v.array(v.enumOf(['waiting_for_response', 'succeeded', 'failed']))
+              ]),
+              { description: 'Filter by message status(es)' }
+            ),
             id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by message ID(s)'
             }),
@@ -120,6 +127,7 @@ export let sessionMessageController = Controller.create(
           types: normalizeArrayParam(ctx.query.type),
           source: normalizeArrayParam(ctx.query.source),
           hierarchy: normalizeArrayParam(ctx.query.hierarchy),
+          statuses: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
           sessionIds: normalizeArrayParam(ctx.query.session_id),
           sessionProviderIds: normalizeArrayParam(ctx.query.session_provider_id),

@@ -9,6 +9,7 @@ import {
   type Tenant
 } from '@metorial-subspace/db';
 import {
+  buildSearchFilter,
   type DateFilter,
   normalizeDateFilter,
   normalizeStatusForGet,
@@ -89,15 +90,19 @@ class callbackServiceImpl {
       resolveProviders(selector, d.providerIds)
     ]);
 
-    let search = d.search?.trim();
-    let searchResults = search
-      ? await voyager.record.search({
+    let search = await buildSearchFilter<Prisma.CallbackWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let records = await voyager.record.search({
           tenantId: d.tenant.id,
           sourceId: (await voyagerSource).id,
           indexId: voyagerIndex.callback.id,
-          query: search
-        })
-      : null;
+          query
+        });
+
+        return records.map(r => r.documentId);
+      }
+    });
 
     return Paginator.create<CallbackWithRelations>(({ prisma }) =>
       prisma(async opts =>
@@ -116,9 +121,7 @@ class callbackServiceImpl {
                 ? { integrationProviderOid: integrationProviders.in }
                 : undefined!,
               providers ? { providerOid: providers.in } : undefined!,
-              searchResults
-                ? { id: { in: searchResults.map(record => record.documentId) } }
-                : undefined!,
+              search ?? undefined!,
               d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
               d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
             ].filter(Boolean) as Prisma.CallbackWhereInput[]

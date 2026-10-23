@@ -10,13 +10,16 @@ import {
 import {
   getDateRangeFilterValue,
   getEnumListFilterValue,
-  getStringFilterValue,
+  getListFilterValue,
   Table as DashboardTable,
+  TableFilter,
   TableStateProvider,
   TableStateProviderResult
 } from '@metorial/table';
 import { Badge, RenderDate } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
+import { useMemo } from 'react';
+import { entityFilters } from '../entityFilters';
 import { CallbackSyncBadge, getStatusColor } from './shared';
 
 type CallbackInstancesTableProps = {
@@ -46,9 +49,8 @@ let useCallbackInstancesTableState: TableStateProvider<
     status:
       getEnumListFilterValue(opts.filter.status, callbackInstanceStatuses) ??
       props.filters?.status,
-    id: getStringFilterValue(opts.filter.id) ?? props.filters?.id,
     integrationInstanceId:
-      getStringFilterValue(opts.filter.integrationInstanceId) ??
+      getListFilterValue(opts.filter.integrationInstanceId) ??
       props.filters?.integrationInstanceId,
     createdAt: getDateRangeFilterValue(opts.filter.createdAt) ?? props.filters?.createdAt,
     updatedAt: getDateRangeFilterValue(opts.filter.updatedAt) ?? props.filters?.updatedAt
@@ -64,6 +66,39 @@ let useCallbackInstancesTableState: TableStateProvider<
     loadPrevious: callbackInstances.previous
   };
 };
+
+let useCallbackInstancesTableFilters = (instanceId: string) =>
+  useMemo<TableFilter<CallbackInstancePreview>[]>(
+    () => [
+      {
+        id: 'status',
+        fields: ['status'],
+        label: 'Status',
+        description: 'Filter by status',
+        type: 'select',
+        options: callbackInstanceStatuses.map(status => ({
+          id: status,
+          label: getCallbackInstanceStatusLabel(status)
+        }))
+      },
+      entityFilters.integrationInstance(instanceId),
+      {
+        id: 'createdAt',
+        fields: ['createdAt'],
+        label: 'Created',
+        description: 'Filter by created date',
+        type: 'date'
+      },
+      {
+        id: 'updatedAt',
+        fields: ['updatedAt'],
+        label: 'Updated',
+        description: 'Filter by updated date',
+        type: 'date'
+      }
+    ],
+    [instanceId]
+  );
 
 let callbackInstancesTable = new DashboardTable<
   CallbackInstancesTableProps,
@@ -112,47 +147,6 @@ let callbackInstancesTable = new DashboardTable<
       render: callbackInstance => <ID id={callbackInstance.id} />
     }
   ])
-  .filters([
-    {
-      id: 'status',
-      fields: ['status'],
-      label: 'Status',
-      description: 'Filter by status',
-      type: 'select',
-      options: callbackInstanceStatuses.map(status => ({
-        id: status,
-        label: getCallbackInstanceStatusLabel(status)
-      }))
-    },
-    {
-      id: 'integrationInstanceId',
-      fields: ['integrationInstanceId'],
-      label: 'Integration Instance ID',
-      description: 'Filter by integration instance ID',
-      type: 'string'
-    },
-    {
-      id: 'id',
-      fields: ['id'],
-      label: 'Registration ID',
-      description: 'Filter by registration ID',
-      type: 'string'
-    },
-    {
-      id: 'createdAt',
-      fields: ['createdAt'],
-      label: 'Created',
-      description: 'Filter by created date',
-      type: 'date'
-    },
-    {
-      id: 'updatedAt',
-      fields: ['updatedAt'],
-      label: 'Updated',
-      description: 'Filter by updated date',
-      type: 'date'
-    }
-  ])
   .link((callbackInstance, props) =>
     Paths.instance.integrationInstance(
       props.organization.data,
@@ -175,6 +169,7 @@ export let CallbackInstancesTable = ({
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let tableFilters = useCallbackInstancesTableFilters(instanceId);
 
   return callbackInstancesTable({
     instanceId,
@@ -182,6 +177,7 @@ export let CallbackInstancesTable = ({
     instance,
     organization,
     project,
+    tableFilters,
     emptyState:
       emptyState ?? 'This callback is not registered for any integration instance yet.'
   });

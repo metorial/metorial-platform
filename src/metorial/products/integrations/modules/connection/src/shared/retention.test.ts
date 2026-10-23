@@ -25,6 +25,13 @@ let mocks = vi.hoisted(() => ({
   createErrorQueue: { add: vi.fn() }
 }));
 
+vi.mock('@metorial/module-usage', () => ({
+  recordConnectionCreatedUsage: vi.fn(async () => {}),
+  recordConnectionTimeUsage: vi.fn(async () => {}),
+  recordSessionErrorUsage: vi.fn(async () => {}),
+  recordSessionMessageUsage: vi.fn(async () => {})
+}));
+
 vi.mock('@metorial-subspace/db', () => ({
   db: mocks.db,
   getId: mocks.getId,

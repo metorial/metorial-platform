@@ -2,6 +2,7 @@ import type { DashboardOrganizationsEventDeliveriesListQuery } from '@metorial/d
 import { Paths } from '@metorial/frontend-config';
 import {
   EventDeliveryPreview,
+  instancesLoader,
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
@@ -10,13 +11,17 @@ import {
 import {
   Table as DashboardTable,
   getEnumListFilterValue,
+  getListFilterValue,
   getStringFilterValue,
+  TableFilter,
   TableStateProvider,
   TableStateProviderResult
 } from '@metorial/table';
 import { Badge, Button, RenderDate, Text } from '@metorial/ui';
 import { ID, Table } from '@metorial/ui-product';
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { defineEntityFilter, useEntityList } from '../entityFilters';
 import {
   EVENT_DELIVERY_STATUS_LABELS,
   EventDeliveryStatus,
@@ -49,9 +54,8 @@ let useEventDeliveriesTableState: TableStateProvider<
     status:
       getEnumListFilterValue(opts.filter.status, deliveryStatuses) ?? props.filters?.status,
     eventType: getStringFilterValue(opts.filter.eventType) ?? props.filters?.eventType,
-    eventId: getStringFilterValue(opts.filter.eventId) ?? props.filters?.eventId,
     instanceId:
-      getStringFilterValue(opts.filter.instanceId) ??
+      getListFilterValue(opts.filter.instanceId) ??
       props.filters?.instanceId ??
       props.instance.data?.id,
     eventDestinationId: props.eventDestinationId
@@ -67,6 +71,56 @@ let useEventDeliveriesTableState: TableStateProvider<
     loadPrevious: deliveries.previous
   };
 };
+
+let instanceEntityFilter = (organizationId: string) =>
+  defineEntityFilter({
+    id: 'instanceId',
+    label: 'Instance',
+    noun: 'instances',
+    mode: 'recent',
+    useList: q => {
+      let list = useEntityList(instancesLoader.use(q ? { organizationId } : null), item => ({
+        id: item.id,
+        label: item.name,
+        description: item.project.name,
+        slug: item.slug
+      }));
+
+      let ids = q?.ids;
+      let items = useMemo(
+        () => (ids ? list.items.filter(item => ids.includes(item.id)) : list.items),
+        [list.items, ids]
+      );
+
+      return { items, isLoading: list.isLoading };
+    }
+  })();
+
+let useEventDeliveriesTableFilters = (organizationId: string) =>
+  useMemo<TableFilter<EventDeliveryPreview>[]>(
+    () => [
+      {
+        id: 'status',
+        fields: ['status'],
+        label: 'Status',
+        description: 'Filter by delivery status',
+        type: 'select',
+        options: deliveryStatuses.map(status => ({
+          id: status,
+          label: EVENT_DELIVERY_STATUS_LABELS[status]
+        }))
+      },
+      {
+        id: 'eventType',
+        fields: ['eventType'],
+        label: 'Event Type',
+        description: 'Filter by event type',
+        type: 'string'
+      },
+      instanceEntityFilter(organizationId)
+    ],
+    [organizationId]
+  );
 
 let eventDeliveriesTable = new DashboardTable<EventDeliveriesTableProps, EventDeliveryPreview>(
   'event-deliveries'
@@ -157,40 +211,6 @@ let eventDeliveriesTable = new DashboardTable<EventDeliveriesTableProps, EventDe
       render: delivery => <ID id={delivery.id} />
     }
   ])
-  .filters([
-    {
-      id: 'status',
-      fields: ['status'],
-      label: 'Status',
-      description: 'Filter by delivery status',
-      type: 'select',
-      options: deliveryStatuses.map(status => ({
-        id: status,
-        label: EVENT_DELIVERY_STATUS_LABELS[status]
-      }))
-    },
-    {
-      id: 'eventType',
-      fields: ['eventType'],
-      label: 'Event Type',
-      description: 'Filter by event type',
-      type: 'string'
-    },
-    {
-      id: 'eventId',
-      fields: ['eventId'],
-      label: 'Event ID',
-      description: 'Filter by event ID',
-      type: 'string'
-    },
-    {
-      id: 'instanceId',
-      fields: ['instanceId'],
-      label: 'Instance ID',
-      description: 'Filter by instance ID',
-      type: 'string'
-    }
-  ])
   .link((delivery, props) =>
     Paths.instance.eventDelivery(
       props.organization.data,
@@ -215,6 +235,7 @@ export let EventDeliveriesTable = ({
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let tableFilters = useEventDeliveriesTableFilters(organizationId);
 
   return eventDeliveriesTable({
     organizationId,
@@ -223,6 +244,7 @@ export let EventDeliveriesTable = ({
     instance,
     organization,
     project,
+    tableFilters,
     emptyState: emptyState ?? 'No deliveries recorded for this destination yet.'
   });
 };

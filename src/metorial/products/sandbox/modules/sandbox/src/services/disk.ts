@@ -5,12 +5,17 @@ import type { AuditScope } from '@metorial/audit-scope';
 import {
   db,
   type Instance,
+  type Prisma,
   type SandboxDiskType,
   type SandboxResourceStatus
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import type { GenesisInternalClient } from '@metorial/genesis-client';
-import { isSearchEnabled, searchSandboxDiskIds } from '@metorial/module-search';
+import {
+  buildSearchFilter,
+  isSearchEnabled,
+  searchSandboxDiskIds
+} from '@metorial/module-search';
 import {
   sandboxDiskInclude,
   sandboxDiskInternalService,
@@ -92,7 +97,6 @@ class SandboxDiskServiceImpl {
 
   private toIdFilter(d: {
     diskIds?: string[];
-    searchIds?: string[];
     machineDiskIds?: string[];
     attachedDiskIds?: string[];
     attached?: boolean;
@@ -100,11 +104,6 @@ class SandboxDiskServiceImpl {
     let filter: { in?: string[]; notIn?: string[] } = {};
 
     if (d.diskIds) filter.in = d.diskIds;
-
-    if (d.searchIds) {
-      let matches = new Set(d.searchIds);
-      filter.in = filter.in ? filter.in.filter(id => matches.has(id)) : d.searchIds;
-    }
 
     if (d.machineDiskIds) {
       let machineDisks = new Set(d.machineDiskIds);
@@ -213,12 +212,11 @@ class SandboxDiskServiceImpl {
   }) {
     let machineDiskIds: Promise<string[]> | undefined;
     let attachedDiskIds: Promise<string[]> | undefined;
-    let search = d.search?.trim();
-    let searchIds: Promise<string[] | undefined> | undefined;
+    let searchFilter: Promise<Prisma.SandboxDiskWhereInput | undefined> | undefined;
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
-        searchIds ??= this.resolveSearchIds({ instance: d.instance, search });
+        searchFilter ??= this.resolveSearchFilter({ instance: d.instance, search: d.search });
 
         if (d.machineIds) {
           machineDiskIds ??= this.resolveMachineDiskIds({
@@ -230,11 +228,10 @@ class SandboxDiskServiceImpl {
           attachedDiskIds ??= this.resolveMachineDiskIds({ instance: d.instance });
         }
 
-        let ids = await searchIds;
+        let search = await searchFilter;
 
         let idFilter = this.toIdFilter({
           diskIds: d.diskIds,
-          searchIds: ids,
           machineDiskIds: await machineDiskIds,
           attachedDiskIds: await attachedDiskIds,
           attached: d.attached
@@ -249,14 +246,7 @@ class SandboxDiskServiceImpl {
             ...(d.regionIdentifiers
               ? { tenant: { region: { identifier: { in: d.regionIdentifiers } } } }
               : {}),
-            ...(search && !ids
-              ? {
-                  OR: [
-                    { name: { contains: search, mode: 'insensitive' as const } },
-                    { id: { contains: search, mode: 'insensitive' as const } }
-                  ]
-                }
-              : {}),
+            ...search,
             ...idFilter
           },
           include: sandboxDiskInclude
@@ -265,10 +255,26 @@ class SandboxDiskServiceImpl {
     ).mapAll(disks => this.hydrate(disks));
   }
 
-  private async resolveSearchIds(d: { instance: Instance; search?: string }) {
-    if (!d.search || !isSearchEnabled()) return undefined;
+  private async resolveSearchFilter(d: {
+    instance: Instance;
+    search?: string;
+  }): Promise<Prisma.SandboxDiskWhereInput | undefined> {
+    if (!isSearchEnabled()) {
+      let search = d.search?.trim();
+      if (!search) return undefined;
 
-    return await searchSandboxDiskIds({ instanceId: d.instance.id, query: d.search });
+      return {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { id: { contains: search, mode: 'insensitive' } }
+        ]
+      };
+    }
+
+    return await buildSearchFilter<Prisma.SandboxDiskWhereInput>({
+      search: d.search,
+      findIds: query => searchSandboxDiskIds({ instanceId: d.instance.id, query })
+    });
   }
 
   async update(d: {

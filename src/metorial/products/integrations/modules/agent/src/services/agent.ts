@@ -10,11 +10,13 @@ import {
   AgentType,
   db,
   type Environment,
+  type Prisma,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
 import { Fabric, type AuditSubspaceAgent } from '@metorial/fabric';
 import {
+  buildSearchFilter,
   type DateFilter,
   getConnectionRetentionFilter,
   normalizeDateFilter,
@@ -117,14 +119,20 @@ class agentServiceImpl {
     let solution = await getMetorialSolution();
     let actors = await resolveIdentityActors({ ...d, solution }, d.actorIds);
 
-    let search = d.search
-      ? await voyager.record.search({
+    let search = await buildSearchFilter<Prisma.AgentWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let records = await voyager.record.search({
           tenantId: d.tenant.id,
           sourceId: (await voyagerSource).id,
           indexId: voyagerIndex.agent.id,
-          query: d.search
-        })
-      : null;
+          query
+        });
+
+        return records.map(r => r.documentId);
+      },
+      exact: query => [{ id: query }, { slug: { equals: query, mode: 'insensitive' } }]
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -141,7 +149,7 @@ class agentServiceImpl {
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
                 d.types ? { type: { in: d.types } } : undefined!,
-                search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
+                search ?? undefined!,
                 actors
                   ? {
                       OR: [

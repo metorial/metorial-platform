@@ -45,6 +45,8 @@ vi.mock('@metorial/lock', () => ({
 
 vi.mock('@metorial/module-search', () => ({ searchConsumerIds: vi.fn() }));
 
+vi.mock('@metorial/module-usage', () => ({ recordConsumerCreatedUsage: vi.fn() }));
+
 vi.mock('@metorial/fabric', () => ({ Fabric: { fire: vi.fn(), listen: vi.fn() } }));
 
 vi.mock('../src/queues/lifecycle/consumer', () => ({

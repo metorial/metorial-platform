@@ -4,7 +4,9 @@ import { Service } from '@lowerdeck/service';
 import {
   db,
   type Environment,
+  type Prisma,
   type SessionErrorType,
+  type Solution,
   type Tenant
 } from '@metorial-subspace/db';
 import {
@@ -14,6 +16,8 @@ import {
   resolveProviders,
   resolveSessions
 } from '@metorial-subspace/list-utils';
+import { getProviderTenantFilter } from '@metorial-subspace/module-catalog';
+import { searchRelatedEntities, whenRelatedMatched } from '@metorial-subspace/module-search';
 import {
   getMetorialSolution,
   type MetorialFacing,
@@ -34,6 +38,8 @@ export type ListSessionErrorGroupsParams = {
   providerIds?: string[];
   createdAt?: DateFilter;
   updatedAt?: DateFilter;
+
+  search?: string;
 };
 
 export type GetSessionErrorGroupByIdParams = {
@@ -62,6 +68,8 @@ class sessionErrorGroupServiceImpl {
     let sessions = await resolveSessions(ts, d.sessionIds);
     let providers = await resolveProviders(ts, d.providerIds);
 
+    let searchFilter = await this.buildSessionErrorGroupSearchFilter({ ...d, solution });
+
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
@@ -81,6 +89,8 @@ class sessionErrorGroupServiceImpl {
                 sessions ? { instances: { some: { sessionOid: sessions.in } } } : undefined!,
                 providers ? { providerOid: providers.in } : undefined!,
 
+                searchFilter!,
+
                 mergeRetentionWithDateFilter(d.tenant, d.createdAt),
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
               ].filter(Boolean)
@@ -89,6 +99,31 @@ class sessionErrorGroupServiceImpl {
           })
       )
     );
+  }
+
+  private async buildSessionErrorGroupSearchFilter(d: {
+    tenant: Tenant;
+    environment: Environment;
+    solution: Solution;
+    search?: string;
+  }): Promise<Prisma.SessionErrorGroupWhereInput | undefined> {
+    let search = d.search?.trim();
+    if (!search) return undefined;
+
+    let related = await searchRelatedEntities({
+      tenant: d.tenant,
+      query: search,
+      kinds: ['providerOids'],
+      providerFilter: getProviderTenantFilter({ ...d, includeDeprecated: true })
+    });
+
+    return {
+      OR: [
+        { id: search },
+        { code: search },
+        ...whenRelatedMatched(related.providerOids, oids => ({ providerOid: oids }))
+      ]
+    };
   }
 
   async getSessionErrorGroupById(d: MetorialFacing<GetSessionErrorGroupByIdParams>) {

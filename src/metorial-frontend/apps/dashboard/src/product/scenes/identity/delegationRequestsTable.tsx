@@ -12,7 +12,14 @@ import {
 import { Badge, RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { Table as DashboardTable } from '@metorial/table';
-import { FilterPayload, getEnumListFilterValue, getStringFilterValue } from '@metorial/table';
+import {
+  FilterPayload,
+  TableFilter,
+  getEnumListFilterValue,
+  getListFilterValue
+} from '@metorial/table';
+import { useMemo } from 'react';
+import { entityFilters } from '../entityFilters';
 
 type IdentityDelegationRequest =
   DashboardInstanceIdentitiesDelegationRequestsListOutput['items'][number];
@@ -43,6 +50,28 @@ let getStatusFilterValue = (
   return getEnumListFilterValue(value, ['pending', 'approved', 'denied', 'canceled']);
 };
 
+let useIdentityDelegationRequestsTableFilters = (instanceId: string) =>
+  useMemo<TableFilter<IdentityDelegationRequest>[]>(
+    () => [
+      {
+        id: 'status',
+        fields: ['status'],
+        label: 'Status',
+        description: 'Filter by status',
+        type: 'select',
+        options: [
+          { id: 'pending', label: 'Pending' },
+          { id: 'approved', label: 'Approved' },
+          { id: 'denied', label: 'Denied' },
+          { id: 'canceled', label: 'Canceled' }
+        ]
+      },
+      entityFilters.actor(instanceId),
+      entityFilters.identity(instanceId)
+    ],
+    [instanceId]
+  );
+
 let useIdentityDelegationRequestsTableState = (
   props: IdentityDelegationRequestsTableProps,
   opts: {
@@ -54,9 +83,8 @@ let useIdentityDelegationRequestsTableState = (
     order: 'desc',
     ...props.filters,
     status: getStatusFilterValue(opts.filter.status) ?? props.filters?.status,
-    id: getStringFilterValue(opts.filter.id) ?? props.filters?.id,
-    actorId: getStringFilterValue(opts.filter.actorId) ?? props.filters?.actorId,
-    identityId: getStringFilterValue(opts.filter.identityId) ?? props.filters?.identityId
+    actorId: getListFilterValue(opts.filter.actorId) ?? props.filters?.actorId,
+    identityId: getListFilterValue(opts.filter.identityId) ?? props.filters?.identityId
   });
 
   return {
@@ -138,42 +166,6 @@ let identityDelegationRequestsTable = new DashboardTable<
       render: (request: IdentityDelegationRequest) => <ID id={request.id} />
     }
   ] as any)
-  .filters([
-    {
-      id: 'status',
-      fields: ['status'],
-      label: 'Status',
-      description: 'Filter by status',
-      type: 'select',
-      options: [
-        { id: 'pending', label: 'Pending' },
-        { id: 'approved', label: 'Approved' },
-        { id: 'denied', label: 'Denied' },
-        { id: 'canceled', label: 'Canceled' }
-      ]
-    },
-    {
-      id: 'id',
-      fields: ['id'],
-      label: 'Request ID',
-      description: 'Filter by request ID',
-      type: 'string'
-    },
-    {
-      id: 'actorId',
-      fields: ['actorId'],
-      label: 'Actor ID',
-      description: 'Filter by actor ID',
-      type: 'string'
-    },
-    {
-      id: 'identityId',
-      fields: ['identityId'],
-      label: 'Identity ID',
-      description: 'Filter by identity ID',
-      type: 'string'
-    }
-  ])
   .link(((request: IdentityDelegationRequest, props: IdentityDelegationRequestsTableProps) =>
     Paths.organization.instance.identity.delegation(
       props.organization.data,
@@ -193,6 +185,7 @@ export let IdentityDelegationRequestsTable = ({
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let tableFilters = useIdentityDelegationRequestsTableFilters(instanceId);
 
   return identityDelegationRequestsTable({
     instanceId,
@@ -200,6 +193,7 @@ export let IdentityDelegationRequestsTable = ({
     instance,
     organization,
     project,
+    tableFilters,
     emptyState: 'No delegation requests found.'
   });
 };
