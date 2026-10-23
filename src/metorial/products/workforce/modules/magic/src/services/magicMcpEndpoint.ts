@@ -312,10 +312,24 @@ class MagicMcpEndpointImpl {
           },
           select: {
             id: true,
-            oid: true
+            oid: true,
+            status: true
           }
         })
       : [];
+
+    if (servers.length !== requestedServers.length) {
+      throw new ServiceError(notFoundError('magic_mcp.server'));
+    }
+
+    if (servers.some(server => server.status !== 'active')) {
+      throw new ServiceError(
+        preconditionFailedError({
+          message: 'Magic MCP endpoints can only be linked to active magic MCP servers'
+        })
+      );
+    }
+
     let endpointServerRows = await Promise.all(
       servers.map(async server => ({
         id: await ID.generateId('magicMcpEndpoint'),
@@ -502,6 +516,10 @@ class MagicMcpEndpointImpl {
         status: true
       }
     });
+
+    if (servers.length !== serverInputs.length) {
+      throw new ServiceError(notFoundError('magic_mcp.server'));
+    }
 
     if (servers.some(server => server.status !== 'active')) {
       throw new ServiceError(
@@ -708,7 +726,7 @@ class MagicMcpEndpointImpl {
             instanceOid: d.instance.oid,
             status: statusFilter ? { in: statusFilter } : { not: 'archived' as const },
             accessTagEntities: accessTagFilter,
-            servers: serverOids?.length
+            servers: serverOids
               ? {
                   some: {
                     magicMcpServerOid: { in: serverOids }

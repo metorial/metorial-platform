@@ -10,7 +10,7 @@ model SkillPlugin {
 
   isManaged Boolean @default(false)
   name      String?
-  slug      String?
+  slug      String? @unique
 
   /// [EntityImage]
   image Json?

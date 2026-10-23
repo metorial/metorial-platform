@@ -21,6 +21,7 @@ import {
   type MetorialFacing,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
+import { getProviderTenantFilter } from './provider';
 
 export let providerSpecificationChangeNotificationInclude = {
   version: { include: { provider: true } },
@@ -54,7 +55,8 @@ let visibilityFilter = (d: { tenant: Tenant; environment: Environment; solution:
       {
         tenantOid: null,
         environmentOid: null,
-        solutionOid: null
+        solutionOid: null,
+        version: { provider: getProviderTenantFilter({ ...d, includeDeprecated: true }) }
       },
       {
         tenantOid: d.tenant.oid,

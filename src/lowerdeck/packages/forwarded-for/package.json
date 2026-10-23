@@ -27,7 +27,9 @@
     "test": "vitest run --passWithNoTests",
     "lint": "prettier src/**/*.ts --check"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@lowerdeck/ip-range": "workspace:2.0.0"
+  },
   "devDependencies": {
     "@lowerdeck/tsconfig": "workspace:2.0.0",
     "typescript": "5.9.3",

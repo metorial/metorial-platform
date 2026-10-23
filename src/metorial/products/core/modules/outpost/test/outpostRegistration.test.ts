@@ -148,14 +148,64 @@ describe('outpostRegistrationService lookups', () => {
     ).toEqual({ status: 'revoked' });
   });
 
-  it('resolves instance authorization through the cache', async () => {
-    cachedInstanceAuthorization.mockResolvedValue({ status: 'instance_disabled' });
-
-    let input = { outpostId: 'otp_1', instanceId: 'oti_1', credentialId: 'otc_1' };
-    expect(await outpostRegistrationService.resolveInstanceAuthorization(input)).toEqual({
-      status: 'instance_disabled'
+  it('treats a cached credential whose expiry has passed as revoked', async () => {
+    cachedCredentialLookup.mockResolvedValue({
+      status: 'ok',
+      publicKey: 'AQID',
+      expiresAt: Date.now() - 1_000
     });
-    expect(cachedInstanceAuthorization).toHaveBeenCalledWith(input);
+
+    expect(
+      await outpostRegistrationService.resolveEnrollmentCredential({
+        outpostId: 'otp_1',
+        credentialId: 'otc_1'
+      })
+    ).toEqual({ status: 'revoked' });
+  });
+
+  let ids = { outpostId: 'otp_1', instanceId: 'oti_1', credentialId: 'otc_1' };
+  let instancePublicKey = new Uint8Array([1, 2, 3]);
+
+  it('resolves instance authorization through the cache, keyed by the instance key', async () => {
+    cachedInstanceAuthorization.mockResolvedValue({
+      status: 'instance_disabled',
+      credentialExpiresAt: null
+    });
+
+    expect(
+      await outpostRegistrationService.resolveInstanceAuthorization({
+        ...ids,
+        instancePublicKey
+      })
+    ).toEqual({ status: 'instance_disabled' });
+    expect(cachedInstanceAuthorization).toHaveBeenCalledWith({
+      ...ids,
+      instancePublicKey: Buffer.from(instancePublicKey).toString('base64url')
+    });
+  });
+
+  it('disables a cached active instance once its credential expires', async () => {
+    cachedInstanceAuthorization.mockResolvedValue({
+      status: 'active',
+      credentialExpiresAt: Date.now() - 1_000
+    });
+    expect(
+      await outpostRegistrationService.resolveInstanceAuthorization({
+        ...ids,
+        instancePublicKey
+      })
+    ).toEqual({ status: 'instance_disabled' });
+
+    cachedInstanceAuthorization.mockResolvedValue({
+      status: 'active',
+      credentialExpiresAt: Date.now() + 60_000
+    });
+    expect(
+      await outpostRegistrationService.resolveInstanceAuthorization({
+        ...ids,
+        instancePublicKey
+      })
+    ).toEqual({ status: 'active' });
   });
 });
 

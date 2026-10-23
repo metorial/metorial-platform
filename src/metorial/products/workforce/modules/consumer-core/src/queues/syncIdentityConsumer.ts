@@ -29,7 +29,8 @@ export let syncIdentityConsumerQueueProcessor = syncIdentityConsumerQueue.proces
     let profiles = await db.consumerProfile.findMany({
       where: {
         instanceOid: instanceConsumer.instanceOid,
-        consumerOid: instanceConsumer.consumerOid
+        consumerOid: instanceConsumer.consumerOid,
+        status: 'active'
       }
     });
 
@@ -57,6 +58,7 @@ export let reconcileConsumerActorQueueProcessor = reconcileConsumerActorQueue.pr
       include: { instance: true }
     });
     if (!profile) throw new QueueRetryError();
+    if (profile.status !== 'active') return;
 
     let instanceConsumer = await db.instanceConsumer.findUnique({
       where: {

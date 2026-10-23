@@ -45,6 +45,15 @@ export let linkNewShuttleVersionToCustomProvider = async ({
       }
     });
 
+    await db.providerListing.updateMany({
+      where: { providerOid: provider.oid },
+      data: {
+        isPublic: false,
+        ownerTenantOid: customProviderVersion.tenantOid,
+        ownerSolutionOid: customProviderVersion.solutionOid
+      }
+    });
+
     await addAfterTransactionHook(() => reindexTenantProviderSearch(provider));
   });
 

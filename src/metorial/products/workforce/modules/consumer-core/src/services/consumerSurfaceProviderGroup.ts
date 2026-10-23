@@ -205,11 +205,14 @@ class ConsumerSurfaceProviderGroupServiceImpl {
     newIndex: number;
   }) {
     let oldIndex = d.consumerSurfaceProviderGroup.index;
-    let { newIndex } = d;
+    let surfaceOid = d.consumerSurfaceProviderGroup.consumerSurfaceOid;
+
+    let groupCount = await db.consumerSurfaceProviderGroup.count({
+      where: { consumerSurfaceOid: surfaceOid }
+    });
+    let newIndex = Math.min(Math.max(d.newIndex, 0), groupCount - 1);
 
     if (oldIndex === newIndex) return;
-
-    let surfaceOid = d.consumerSurfaceProviderGroup.consumerSurfaceOid;
 
     await withTransaction(async tx => {
       if (newIndex < oldIndex) {

@@ -17,13 +17,14 @@ export class RateLimiter<AuthInfo> {
   constructor(
     private redisUrl: string,
     private getKey: (i: { auth: AuthInfo; context: Context }) => string,
-    private getMax: (i: { auth: AuthInfo; context: Context }) => number
+    private getMax: (i: { auth: AuthInfo; context: Context }) => number,
+    private opts: { durationMs?: number } = {}
   ) {}
 
   #getRateLimiter() {
     this.#rateLimiter ??= new ARL({
       db: new Redis(parseRedisUrl(this.redisUrl)),
-      duration: 1000 * 60 * 10 // 10 minutes
+      duration: this.opts.durationMs ?? 1000 * 60 * 10
     });
 
     return this.#rateLimiter;
@@ -35,16 +36,21 @@ export class RateLimiter<AuthInfo> {
       max: this.getMax({ auth, context })
     });
 
-    let headers = {
-      // 'Retry-After': secondsToWait.toString(),
+    let headers: Record<string, string> = {
       'RateLimit-Limit': limit.total.toString(),
       'RateLimit-Remaining': Math.max(0, limit.remaining - 1).toString(),
       'RateLimit-Reset': limit.reset.toString()
     };
 
     if (!limit.remaining) {
+      headers['Retry-After'] = Math.max(
+        1,
+        limit.reset - Math.floor(Date.now() / 1000)
+      ).toString();
+
       return {
         allowed: false as const,
+        headers,
         response: new Response(JSON.stringify(error.toResponse()), {
           status: error.data.status,
           headers: {

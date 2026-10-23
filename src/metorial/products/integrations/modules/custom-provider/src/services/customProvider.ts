@@ -80,25 +80,37 @@ let include = {
 };
 
 let customProviderEnvironmentVisibilityFilter = (environment: Environment) => ({
-  customProviderEnvironments: {
-    some: {
-      environmentOid: environment.oid,
-      OR: [
-        {
-          providerEnvironment: {
-            is: {
-              currentVersionOid: { not: null }
+  OR: [
+    {
+      customProviderEnvironments: {
+        some: {
+          environmentOid: environment.oid,
+          OR: [
+            {
+              providerEnvironment: {
+                is: {
+                  currentVersionOid: { not: null }
+                }
+              }
+            },
+            {
+              customProviderEnvironmentVersions: {
+                some: {}
+              }
             }
-          }
-        },
-        {
-          customProviderEnvironmentVersions: {
-            some: {}
-          }
+          ]
         }
-      ]
+      }
+    },
+    {
+      upcomingCustomProviders: {
+        some: {
+          environmentOid: environment.oid,
+          type: 'create_custom_provider' as const
+        }
+      }
     }
-  }
+  ]
 });
 
 export type CreateCustomProviderParams = {

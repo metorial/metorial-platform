@@ -46,8 +46,7 @@ class providerAuthConfigInternalServiceImpl {
     provider: Provider & { defaultVariant: ProviderVariant | null };
     providerDeployment?: ProviderDeployment & {
       currentVersion:
-        | (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null })
-        | null;
+        (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null }) | null;
     };
     authMethodId?: string;
     credentials?: ProviderAuthCredentials;
@@ -498,6 +497,7 @@ class providerAuthConfigInternalServiceImpl {
           await db.providerAuthConfig.updateMany({
             where: {
               deploymentOid: d.providerDeployment.oid,
+              oid: { not: providerAuthConfig.oid },
               isDefault: true
             },
             data: { isDefault: false }

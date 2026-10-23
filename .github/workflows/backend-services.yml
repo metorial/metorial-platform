@@ -264,6 +264,8 @@ jobs:
         if: ${{ matrix.service.control }}
         with:
           test-workspace: ${{ steps.tests.outputs.workspace }}
+          test-args: ${{ matrix.service.args }}
+          log-name: ${{ matrix.service.key }}
       - name: Report Warp Cache
         if: always()
         run: sh src/tooling/warp-cache/report.sh

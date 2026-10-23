@@ -37,7 +37,7 @@ env = [{ key = "FILES_PORT", value = "{{BIND_PORT}}" }]
 start = ["e2e:start"]
 image = "app-api"
 tests = ["../../products/*/modules/*", "../../apis/*"]
-services = ["@metorial/shuttle", "@metorial/voyager", "@metorial/relay"]
+services = ["@metorial/shuttle", "@metorial/voyager", "@metorial/relay", "@metorial-subspace/app-worker"]
 health_timeout = 300
 
 [[e2e.resources]]
@@ -49,6 +49,7 @@ AWS_SECRET_ACCESS_KEY = "e2e"
 AWS_REGION = "us-east-1"
 AWS_ACCOUNT_ID = "000000000000"
 RELAY_URL = "http://localhost:52110/metorial-relay"
+METORIAL_ENABLED_FLAGS = "*"
 
 [[resources]]
 type = "nats"

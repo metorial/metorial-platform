@@ -113,7 +113,7 @@ export let chatConnectionController = Controller.create(
         let paginator = await chatConnectionService.listChatConnections({
           instance: ctx.instance,
           search: ctx.query.search,
-          allowDeleted: true,
+          allowDeleted: false,
           status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
           createdAt: ctx.query.created_at,

@@ -9,8 +9,10 @@ import {
   type MetorialFacing,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
+import { searchTaxonomyWhere } from '../lib/searchTaxonomy';
 
 type ListProviderListingCollectionsParams = {
+  search?: string;
   ids?: string[];
   providerIds?: string[];
   providerListingIds?: string[];
@@ -43,7 +45,12 @@ class providerListingCollectionServiceImpl {
     let solution = await getMetorialSolution();
 
     let providers = await resolveProviders({ ...d, solution }, d.providerIds);
-    let providerListings = await resolveProviderListings({ ...d, solution }, d.providerListingIds);
+    let providerListings = await resolveProviderListings(
+      { ...d, solution },
+      d.providerListingIds
+    );
+
+    let search = d.search?.trim();
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -53,6 +60,7 @@ class providerListingCollectionServiceImpl {
             where: {
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
+                search ? searchTaxonomyWhere(search) : undefined!,
 
                 providers ? { listings: { some: { providerOid: providers.in } } } : undefined!,
                 providerListings

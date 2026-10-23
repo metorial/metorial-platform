@@ -100,6 +100,7 @@ class ConsumerOAuthRegistrationService {
           clientId: await ID.generateId('consumerAuthClientId'),
           clientSecret,
           tokenEndpointAuthMethod,
+          requirePkce: true,
           expiresAt: getConsumerAuthClientExpiry()
         }
       });
@@ -165,6 +166,7 @@ class ConsumerOAuthRegistrationService {
           clientId: await ID.generateId('consumerAuthClientId'),
           clientSecret,
           tokenEndpointAuthMethod,
+          requirePkce: true,
           expiresAt: getConsumerAuthClientExpiry()
         },
         include: consumerAuthClientInclude

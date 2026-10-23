@@ -6,6 +6,7 @@ import { metorialResourceService } from '@metorial-subspace/module-tenant';
 import { syncInstanceConsumerActorsQueue } from '@metorial/module-consumer-entities';
 import { createQueue, QueueRetryError } from '@metorial/queue';
 import { consumerEmailEquals, normalizeConsumerEmail } from '../lib/consumerEmail';
+import { getConsumerInviteExpiresAt } from '../lib/consumerInviteExpiry';
 import { consumerUpdatedQueue } from './lifecycle/consumer';
 
 export let reconcileUserConsumersQueue = createQueue<{ userId: string }>({
@@ -148,6 +149,9 @@ let mergeConsumerInvites = async (d: {
 
         consumerInviteIds.add(canonicalInvite.id);
 
+        let canonicalExpiresAt = getConsumerInviteExpiresAt(canonicalInvite);
+        let duplicateExpiresAt = getConsumerInviteExpiresAt(duplicateInvite);
+
         await db.consumerInvite.update({
           where: { oid: canonicalInvite.oid },
           data: {
@@ -158,9 +162,10 @@ let mergeConsumerInvites = async (d: {
             acceptedAt: canonicalInvite.acceptedAt ?? duplicateInvite.acceptedAt,
             message: canonicalInvite.message ?? duplicateInvite.message,
             expiresAt:
-              canonicalInvite.expiresAt > duplicateInvite.expiresAt
-                ? canonicalInvite.expiresAt
-                : duplicateInvite.expiresAt
+              canonicalExpiresAt > duplicateExpiresAt
+                ? canonicalExpiresAt
+                : duplicateExpiresAt,
+            legacyGraceStartedAt: null
           }
         });
 

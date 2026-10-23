@@ -2,10 +2,12 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     fs,
     hash::{DefaultHasher, Hash, Hasher},
+    io::Write,
     path::{Component, Path, PathBuf},
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
+use fs2::FileExt;
 use miette::{IntoDiagnostic, Result, WrapErr, bail};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -25,6 +27,9 @@ const OBJECT_STORAGE_IMAGE: &str = "ghcr.io/metorial/object-storage:latest";
 const INFRASTRUCTURE: [&str; 4] = ["postgres-db2", "mongodb", "redis-db", "nats-1"];
 const FINGERPRINT_TASK: &str = "e2e:fingerprint";
 const HOST_ALIAS: &str = "host.docker.internal";
+// Outbound sockets in the shared namespace must never take a fixed service port (52xxx) before that service binds it.
+const EPHEMERAL_PORT_RANGE: &str = "61000 65535";
+const RUN_LOCK_FILE: &str = "metorial-control-e2e.lock";
 const REMOTE_CACHE_SECRETS: [&str; 3] = [
     "TURBO_TEAM",
     "TURBO_TOKEN",
@@ -38,6 +43,7 @@ pub struct Options {
     pub keep: bool,
     pub plan_only: bool,
     pub concurrency: Option<u32>,
+    pub test_args: Vec<String>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
@@ -52,6 +58,7 @@ pub enum Mode {
 pub struct Plan {
     pub mode: Mode,
     pub concurrency: u32,
+    pub test_args: Vec<String>,
     pub health_timeout_seconds: u64,
     pub files: Vec<EnvFile>,
     pub prepare: Vec<Step>,
@@ -138,6 +145,10 @@ pub async fn run(project: &ProjectRoot, options: Options) -> Result<()> {
     }
     print_summary(&plan);
 
+    // Every local run shares one workspace volume and boots a full stack, so runs from any
+    // checkout on this machine are serialized. The OS releases the lock when the process exits.
+    let _run_lock = acquire_run_lock(&std::env::temp_dir().join(RUN_LOCK_FILE)).await?;
+
     let assets = project.oss.join("scripts/dev-tools/e2e");
     let run_id = format!(
         "{}-{}",
@@ -214,6 +225,35 @@ pub async fn run(project: &ProjectRoot, options: Options) -> Result<()> {
     }
     println!("E2E logs: {}", run_dir.join("logs").display());
     result
+}
+
+async fn acquire_run_lock(path: &Path) -> Result<fs::File> {
+    let mut file = fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(path)
+        .into_diagnostic()
+        .wrap_err_with(|| format!("could not open the e2e run lock {}", path.display()))?;
+
+    if file.try_lock_exclusive().is_err() {
+        let holder = fs::read_to_string(path).unwrap_or_default();
+        let holder = holder.trim();
+        println!(
+            "Waiting for another e2e run (pid {})...",
+            if holder.is_empty() { "unknown" } else { holder }
+        );
+        file = tokio::task::spawn_blocking(move || file.lock_exclusive().map(|_| file))
+            .await
+            .into_diagnostic()?
+            .into_diagnostic()
+            .wrap_err("could not acquire the e2e run lock")?;
+    }
+
+    file.set_len(0).into_diagnostic()?;
+    write!(file, "{}", std::process::id()).into_diagnostic()?;
+    Ok(file)
 }
 
 pub fn build_plan(
@@ -419,6 +459,7 @@ pub fn build_plan(
     Ok(Plan {
         mode,
         concurrency: options.concurrency.unwrap_or(DEFAULT_CONCURRENCY).max(1),
+        test_args: options.test_args.clone(),
         health_timeout_seconds: sut_manifests
             .iter()
             .filter_map(|loaded| loaded.manifest.e2e.health_timeout)
@@ -980,6 +1021,7 @@ fn render_compose(
             "image": runner_image,
             "command": ["gateway"],
             "extra_hosts": [format!("{HOST_ALIAS}:host-gateway")],
+            "sysctls": { "net.ipv4.ip_local_port_range": EPHEMERAL_PORT_RANGE },
             "healthcheck": { "test": ["CMD-SHELL", "test -f /tmp/control-e2e-gateway-ready"], "interval": "1s", "timeout": "3s", "retries": 60 }
         }),
     );
@@ -1415,6 +1457,7 @@ mod tests {
             keep: false,
             plan_only: true,
             concurrency: None,
+            test_args: Vec::new(),
         }
     }
 
@@ -1729,6 +1772,25 @@ mod tests {
     }
 
     #[test]
+    fn keeps_ephemeral_ports_clear_of_service_ports() {
+        let temp = tempdir().unwrap();
+        fixture(temp.path());
+        let manifests = manifest::discover(temp.path()).unwrap();
+        let plan = build_plan(&project(temp.path()), &manifests, &options(&[], None)).unwrap();
+        let compose = render_compose(
+            &plan,
+            "control-e2e-test",
+            "runner:latest",
+            &Mounts::Workspace(temp.path().into()),
+            temp.path(),
+        );
+        assert_eq!(
+            compose["services"]["gateway"]["sysctls"]["net.ipv4.ip_local_port_range"],
+            "61000 65535"
+        );
+    }
+
+    #[test]
     fn rejects_port_collisions_in_the_shared_namespace() {
         let temp = tempdir().unwrap();
         fixture(temp.path());
@@ -1764,5 +1826,23 @@ mod tests {
             "0".repeat(64)
         )));
         assert!(!is_pinned_image("ghcr.io/metorial/app-api:latest"));
+    }
+
+    #[tokio::test]
+    async fn serializes_runs_on_the_run_lock() {
+        let temp = tempdir().unwrap();
+        let path = temp.path().join(RUN_LOCK_FILE);
+
+        let held = acquire_run_lock(&path).await.unwrap();
+        assert_eq!(
+            fs::read_to_string(&path).unwrap(),
+            std::process::id().to_string()
+        );
+
+        let contender = fs::OpenOptions::new().write(true).open(&path).unwrap();
+        assert!(contender.try_lock_exclusive().is_err());
+
+        drop(held);
+        assert!(contender.try_lock_exclusive().is_ok());
     }
 }

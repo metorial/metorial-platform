@@ -1,3 +1,4 @@
+import { addAwaitedAfterTransactionHook } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import {
   cachedCredentialLookup,
@@ -12,21 +13,34 @@ import {
   outpostTokenKeyPairTag
 } from '../lib/cache';
 
-let clearOutpost = async (outpostId: string) => {
-  await cachedCredentialLookup.clearByTag(outpostTag(outpostId));
-  await cachedInstanceAccessGrant.clearByTag(outpostTag(outpostId));
-  await cachedInstanceAuthorization.clearByTag(outpostTag(outpostId));
-  await cachedManifest.clearByTag(outpostTag(outpostId));
-};
+type TaggedCache = { clearByTagAndWait: (tag: string) => Promise<void> };
 
-let clearCredential = async (credentialId: string) => {
-  await cachedCredentialLookup.clearByTag(outpostCredentialTag(credentialId));
-  await cachedInstanceAuthorization.clearByTag(outpostCredentialTag(credentialId));
-};
+// Clearing before commit would let a concurrent lookup re-cache the old rows for the full TTL.
+let clearAfterCommit = (clears: [TaggedCache, string][]) =>
+  addAwaitedAfterTransactionHook(async () => {
+    for (let [cache, tag] of clears) {
+      await cache
+        .clearByTagAndWait(tag)
+        .catch(error => console.error('Outpost cache invalidation failed', error));
+    }
+  });
 
-let clearInstance = async (outpostId: string, identifier: string) => {
-  await cachedInstanceAuthorization.clearByTag(outpostInstanceTag(outpostId, identifier));
-};
+let clearOutpost = (outpostId: string) =>
+  clearAfterCommit([
+    [cachedCredentialLookup, outpostTag(outpostId)],
+    [cachedInstanceAccessGrant, outpostTag(outpostId)],
+    [cachedInstanceAuthorization, outpostTag(outpostId)],
+    [cachedManifest, outpostTag(outpostId)]
+  ]);
+
+let clearCredential = (credentialId: string) =>
+  clearAfterCommit([
+    [cachedCredentialLookup, outpostCredentialTag(credentialId)],
+    [cachedInstanceAuthorization, outpostCredentialTag(credentialId)]
+  ]);
+
+let clearInstance = (outpostId: string, identifier: string) =>
+  clearAfterCommit([[cachedInstanceAuthorization, outpostInstanceTag(outpostId, identifier)]]);
 
 export let registerOutpostCacheInvalidation = () => {
   for (let event of [
@@ -38,11 +52,13 @@ export let registerOutpostCacheInvalidation = () => {
     Fabric.listen(event, async ({ outpost }) => clearOutpost(outpost.id));
   }
 
-  Fabric.listen('outpost_access.updated:after', async ({ outpost }) => {
-    await cachedManifest.clearByTag(outpostAccessTag(outpost.id));
-    await cachedInstanceAccessGrant.clearByTag(outpostAccessTag(outpost.id));
-    await cachedInstanceAuthorization.clearByTag(outpostTag(outpost.id));
-  });
+  Fabric.listen('outpost_access.updated:after', async ({ outpost }) =>
+    clearAfterCommit([
+      [cachedManifest, outpostAccessTag(outpost.id)],
+      [cachedInstanceAccessGrant, outpostAccessTag(outpost.id)],
+      [cachedInstanceAuthorization, outpostTag(outpost.id)]
+    ])
+  );
 
   Fabric.listen('outpost_credential.created:after', async ({ credential }) =>
     clearCredential(credential.id)
@@ -74,7 +90,7 @@ export let registerOutpostCacheInvalidation = () => {
     'outpost_token_key_pair.expired:after'
   ] as const) {
     Fabric.listen(event, async ({ keyPair }) =>
-      cachedVerificationKey.clearByTag(outpostTokenKeyPairTag(keyPair.id))
+      clearAfterCommit([[cachedVerificationKey, outpostTokenKeyPairTag(keyPair.id)]])
     );
   }
 };

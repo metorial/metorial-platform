@@ -70,3 +70,23 @@ export let authenticateAndResolveInstance = async (
     })
   );
 };
+
+export let authenticateSessionConnection = async (
+  request: Request,
+  url: URL,
+  authenticate: Authenticator<AuthInfo>
+): Promise<McpSessionInfo> => {
+  let info = await authenticateAndResolveInstance(request, url, authenticate);
+
+  if (info.auth.type === 'machine' && info.auth.machineAccess.type === 'instance_publishable') {
+    throw new ServiceError(
+      forbiddenError({
+        message: 'Secret API key required for MCP session connections',
+        description:
+          'Connect to a session with an instance secret API key or the session client secret. Publishable keys cannot be used here.'
+      })
+    );
+  }
+
+  return info;
+};

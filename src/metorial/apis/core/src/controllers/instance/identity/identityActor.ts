@@ -86,7 +86,7 @@ export let identityActorController = Controller.create(
       .do(async ctx => {
         let paginator = await identityActorService.listIdentityActors({
           instance: ctx.instance,
-          allowDeleted: true,
+          allowDeleted: false,
 
           search: ctx.query.search,
 

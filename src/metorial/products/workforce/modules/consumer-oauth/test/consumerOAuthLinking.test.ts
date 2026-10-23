@@ -247,7 +247,8 @@ describe('consumer OAuth integration endpoint linking', () => {
     expect(db.consumerAuthClient.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          redirectUris: ['https://example.com/callback']
+          redirectUris: ['https://example.com/callback'],
+          requirePkce: true
         })
       })
     );

@@ -228,6 +228,7 @@ class sessionProviderServiceImpl {
   async createSessionProviderInternal(
     d: { tenant: Tenant; environment: Environment } & CreateSessionProviderParams
   ) {
+    checkTenant(d, d.session);
     checkDeletedRelation(d.session);
     assertNotPublicMcpOwned(d.session, 'session');
     assertInternalSessionMutable(d.session, 'add providers to', d._allowInternalUpdate);

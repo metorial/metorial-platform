@@ -10,6 +10,12 @@ inputs:
   args:
     description: Extra arguments for `control test:e2e` (filters, --oss, ...)
     default: ''
+  test-args:
+    description: Arguments after `test:e2e`, such as a group's test packages and `-- --package-shard=...`
+    default: ''
+  log-name:
+    description: Distinguishes the uploaded logs of matrix entries that share a job
+    default: ''
 runs:
   using: composite
   steps:
@@ -38,17 +44,20 @@ runs:
         CONTROL_DIRECTORY: ${{ inputs.control-directory }}
         TEST_WORKSPACE: ${{ inputs.test-workspace }}
         ARGS: ${{ inputs.args }}
+        TEST_ARGS: ${{ inputs.test-args }}
       run: |
         set -euo pipefail
         read -r -a args <<< "$ARGS"
+        read -r -a test_args <<< "$TEST_ARGS"
         "$CONTROL_DIRECTORY/target/release/control" "${args[@]}" test:e2e \
           --images "$RUNNER_TEMP/test-images" \
-          --workspace "$(cd "$TEST_WORKSPACE" && pwd)"
+          --workspace "$(cd "$TEST_WORKSPACE" && pwd)" \
+          "${test_args[@]}"
     - name: Upload e2e logs
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: control-e2e-logs-${{ github.job }}-${{ github.run_attempt }}
+        name: control-e2e-logs-${{ github.job }}${{ inputs.log-name && format('-{0}', inputs.log-name) || '' }}-${{ github.run_attempt }}
         path: .control/e2e/*/logs
         if-no-files-found: ignore
         retention-days: 7

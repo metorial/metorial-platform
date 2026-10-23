@@ -38,6 +38,7 @@ import {
 } from '@metorial/multi-region';
 import { addMinutes, addSeconds, differenceInSeconds } from 'date-fns';
 import {
+  ensureAuthorizationGrantable,
   ensureAuthorizationRequestPending,
   ensureAuthorizationUsable,
   ensureScopesAllowed,
@@ -79,7 +80,7 @@ class OAuthAuthorizationService {
       addMinutes(oauthToken.lastRefreshedAt, 10) > new Date()
     ) {
       throw new ServiceError(
-        unauthorizedError({
+        badRequestError({
           message: 'OAuth token can only be refreshed once every 10 minutes',
           oauth: {
             error: 'invalid_grant',
@@ -290,7 +291,7 @@ class OAuthAuthorizationService {
       globalRequest.expiresAt < new Date()
     ) {
       throw new ServiceError(
-        unauthorizedError({
+        badRequestError({
           message: 'Invalid device code',
           oauth: {
             error: 'invalid_grant',
@@ -387,6 +388,7 @@ class OAuthAuthorizationService {
       | {
           grantType: 'refresh_token';
           clientId: string;
+          clientSecret?: string;
           refreshToken: string;
         };
   }) {
@@ -411,6 +413,7 @@ class OAuthAuthorizationService {
     if (d.input.grantType == 'refresh_token') {
       return await this.exchangeRefreshToken({
         clientId: d.input.clientId,
+        clientSecret: d.input.clientSecret,
         refreshToken: d.input.refreshToken
       });
     }
@@ -447,7 +450,7 @@ class OAuthAuthorizationService {
       !oauthAuthorizationRequest.oauthAuthorizationFlow
     ) {
       throw new ServiceError(
-        unauthorizedError({
+        badRequestError({
           message: 'Invalid authorization code',
           oauth: {
             error: 'invalid_grant',
@@ -530,7 +533,7 @@ class OAuthAuthorizationService {
     }
 
     let oauthAuthorization = oauthAuthorizationFlow.oauthAuthorization;
-    ensureAuthorizationUsable(oauthAuthorization);
+    ensureAuthorizationGrantable(oauthAuthorization);
 
     if (
       !d.clientSecret &&
@@ -594,7 +597,7 @@ class OAuthAuthorizationService {
 
     if (res.status == 'consumed') {
       throw new ServiceError(
-        unauthorizedError({
+        badRequestError({
           message: 'Authorization request has been consumed',
           oauth: {
             error: 'invalid_grant',
@@ -606,7 +609,7 @@ class OAuthAuthorizationService {
 
     if (res.status == 'denied') {
       throw new ServiceError(
-        unauthorizedError({
+        badRequestError({
           message: 'Authorization request has been denied',
           oauth: {
             error: 'access_denied',
@@ -620,7 +623,7 @@ class OAuthAuthorizationService {
     let oauthAuthorization = oauthAuthorizationFlow?.oauthAuthorization;
     if (!oauthAuthorization || !oauthAuthorizationFlow) {
       throw new ServiceError(
-        unauthorizedError({
+        badRequestError({
           message: 'Invalid device code',
           oauth: {
             error: 'invalid_grant',
@@ -630,10 +633,10 @@ class OAuthAuthorizationService {
       );
     }
 
-    ensureAuthorizationUsable(oauthAuthorization);
+    ensureAuthorizationGrantable(oauthAuthorization);
     if (!oauthAuthorizationFlow) {
       throw new ServiceError(
-        unauthorizedError({
+        badRequestError({
           message: 'Invalid device code',
           oauth: {
             error: 'invalid_grant',
@@ -730,14 +733,25 @@ class OAuthAuthorizationService {
         );
       }
 
-      let requestedScopes = validateOAuthScopes(
-        d.scopes ?? oauthApplication.scopes,
+      if (oauthApplication.type != 'server_side') {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Only server-side oauth applications support client credentials',
+            oauth: {
+              error: 'unauthorized_client',
+              errorMessage: 'Only server-side oauth applications support client credentials'
+            }
+          })
+        );
+      }
+
+      let requestedApplicationScopes = validateOAuthScopes(
+        ensureScopesAllowed({
+          allowedScopes: oauthApplication.scopes,
+          requestedScopes: d.scopes ?? oauthApplication.scopes
+        }),
         oauthApplication.subjectType == 'consumer' ? 'consumer' : 'organization_member'
       );
-      let requestedApplicationScopes = ensureScopesAllowed({
-        allowedScopes: oauthApplication.scopes,
-        requestedScopes
-      });
 
       let serviceAccount = await db.serviceAccount.findFirst({
         where: {
@@ -785,7 +799,11 @@ class OAuthAuthorizationService {
     });
   }
 
-  private async exchangeRefreshToken(d: { clientId: string; refreshToken: string }) {
+  private async exchangeRefreshToken(d: {
+    clientId: string;
+    clientSecret?: string;
+    refreshToken: string;
+  }) {
     return await withTransaction(async db => {
       let oauthToken = await db.oAuthToken.findFirst({
         where: {
@@ -795,7 +813,7 @@ class OAuthAuthorizationService {
       });
       if (!oauthToken) {
         throw new ServiceError(
-          unauthorizedError({
+          badRequestError({
             message: 'Invalid refresh token',
             oauth: {
               error: 'invalid_grant',
@@ -807,11 +825,28 @@ class OAuthAuthorizationService {
 
       if (oauthToken.oauthAuthorization.oauthApplication.clientId != d.clientId) {
         throw new ServiceError(
-          unauthorizedError({
+          badRequestError({
             message: 'Refresh token does not belong to this oauth client',
             oauth: {
               error: 'invalid_grant',
               errorMessage: 'Refresh token does not belong to this oauth client'
+            }
+          })
+        );
+      }
+
+      let oauthApplication = oauthToken.oauthAuthorization.oauthApplication;
+      if (
+        !d.clientSecret &&
+        !oauthApplication.allowClientSecretlessTokenExchange &&
+        oauthApplication.type != 'cli_auth'
+      ) {
+        throw new ServiceError(
+          unauthorizedError({
+            message: 'A client secret is required for this oauth client',
+            oauth: {
+              error: 'invalid_client',
+              errorMessage: 'A client secret is required for this oauth client'
             }
           })
         );

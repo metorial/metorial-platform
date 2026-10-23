@@ -146,7 +146,7 @@ class FileUploadServiceImpl {
 
   async createPendingUpload(
     d: CargoOwnerScope & {
-      auditScope: AuditScope;
+      auditScope?: AuditScope;
       purpose: string;
       input: {
         name: string;
@@ -283,7 +283,7 @@ class FileUploadServiceImpl {
 
   async completePendingUpload(
     d: CargoOwnerScope & {
-      auditScope: AuditScope;
+      auditScope?: AuditScope;
       uploadId: string;
     } & FileUploadAccessInput
   ) {

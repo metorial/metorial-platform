@@ -23,6 +23,11 @@ vi.mock('@metorial-subspace/module-tenant', () => ({
   actorService: { getSystemActor: vi.fn() }
 }));
 
+vi.mock('@metorial-subspace/module-provider-internal', () => ({
+  enqueueProviderSpecSearchIndex: vi.fn(),
+  indexProviderListingQueue: { add: vi.fn() }
+}));
+
 vi.mock('../queues/lifecycle/customProviderDeployment', () => ({
   customProviderDeploymentCreatedQueue: { add: mocks.deploymentCreatedQueueAdd }
 }));

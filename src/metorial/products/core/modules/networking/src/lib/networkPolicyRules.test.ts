@@ -67,6 +67,16 @@ describe('networkPolicyRules', () => {
     ).toBe(true);
   });
 
+  it('ignores the key order of stored port ranges', () => {
+    let rule = {
+      ...baseRuleInput,
+      direction: 'egress' as const,
+      ports: [{ from: 443, to: 443 }]
+    };
+
+    expect(rulesContentEqual({ ...rule, ports: [{ to: 443, from: 443 }] }, rule)).toBe(true);
+  });
+
   it('creates a single rule with a generated id', () => {
     expect(createNetworkPolicyRule(baseRuleInput)).toMatchObject({
       ...baseRuleInput,

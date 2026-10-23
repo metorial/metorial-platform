@@ -1,6 +1,6 @@
 import { createCron } from '@lowerdeck/cron';
 import { createQueue } from '@lowerdeck/queue';
-import { db } from '@metorial-subspace/db';
+import { db, Prisma } from '@metorial-subspace/db';
 import { env } from '../../env';
 import { getChatEventPayloadsBucketName, storage } from '../../storage';
 
@@ -38,7 +38,7 @@ export let flushChatEventPayload = async (d: { chatEventId: string }) => {
 
   await db.chatEvent.update({
     where: { id: chatEvent.id },
-    data: { payloadStorageKey: chatEvent.id, payload: undefined }
+    data: { payloadStorageKey: chatEvent.id, payload: Prisma.DbNull }
   });
 
   return true;

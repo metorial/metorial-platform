@@ -212,7 +212,7 @@ export let consumerController = Controller.create(
           );
         }
 
-        if (ctx.auth.type === 'user' && ctx.user.type === 'system') {
+        if (ctx.auth.type === 'user' && user.type === 'system') {
           throw new ServiceError(
             forbiddenError({
               message: 'System users cannot use this endpoint',

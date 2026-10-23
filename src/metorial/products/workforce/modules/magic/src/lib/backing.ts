@@ -6,6 +6,7 @@ import {
   magicMcpServerBackingService
 } from '@metorial-subspace/module-integration';
 import { isIntegrationInstanceUnavailableError } from './integrationInstanceUnavailable';
+import { magicMcpBackingProvidersUnavailableError } from './magicMcpConnectHealth';
 import { resolveOwnerActorOid } from './ownerActor';
 
 let magicMcpEndpointBackingInclude = {
@@ -248,6 +249,7 @@ export let healMagicMcpServerBacking = async (d: {
   let status = statuses.get(d.server.id);
 
   if (status === 'needs_reconnect') throw magicMcpServerNeedsReconnectError();
+  if (status === 'missing_providers') throw magicMcpBackingProvidersUnavailableError();
   if (status === 'healthy') return d.server;
 
   return await rebuildOrNeedsReconnect(() =>
@@ -281,6 +283,9 @@ export let healMagicMcpEndpointBacking = async (d: {
 
   let memberStatuses = servers.map(server => serverStatuses.get(server.id));
   if (memberStatuses.includes('needs_reconnect')) throw magicMcpServerNeedsReconnectError();
+  if (memberStatuses.includes('missing_providers')) {
+    throw magicMcpBackingProvidersUnavailableError();
+  }
   if (endpointStatus === 'healthy' && memberStatuses.every(status => status === 'healthy')) {
     return d.endpoint;
   }

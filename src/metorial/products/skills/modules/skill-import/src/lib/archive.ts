@@ -1,6 +1,7 @@
 import JSZip from 'jszip';
 import type { SkillImportFileFormat } from '@metorial/db';
 import { posix as path } from 'node:path';
+import { Readable } from 'node:stream';
 
 export let maxSkillImportArchiveBytes = 10 * 1024 * 1024;
 let maxExtractedBytes = 30 * 1024 * 1024;
@@ -24,6 +25,29 @@ export let detectUploadedSkillFileFormat = (file: {
   return null;
 };
 
+// Zip headers can understate an entry's size, so the inflated bytes are counted while streaming
+// instead of trusting the header or inflating the whole entry into memory first.
+let readArchiveEntry = async (entry: JSZip.JSZipObject, maxBytes: number) => {
+  let stream = new Readable().wrap(entry.nodeStream('nodebuffer'));
+  let chunks: Buffer[] = [];
+  let size = 0;
+
+  try {
+    for await (let chunk of stream) {
+      size += chunk.byteLength;
+      if (size > maxBytes) {
+        throw new Error('Skill archive expands beyond the import size limit');
+      }
+
+      chunks.push(chunk);
+    }
+  } finally {
+    stream.destroy();
+  }
+
+  return new Uint8Array(Buffer.concat(chunks));
+};
+
 let normalizeArchivePath = (filePath: string) => {
   let normalized = filePath.replaceAll('\\', '/').replace(/^\/+/, '');
   let segments = normalized.split('/').filter(Boolean);
@@ -44,24 +68,8 @@ export let extractSkillArchive = async (archive: Uint8Array) => {
     throw new Error('Skill archive contains too many files');
   }
 
-  let declaredExtractedBytes = entries.reduce(
-    (total, entry) =>
-      total +
-      Number(
-        (entry as typeof entry & { _data?: { uncompressedSize?: number } })._data
-          ?.uncompressedSize ?? 0
-      ),
-    0
-  );
-  if (declaredExtractedBytes > maxExtractedBytes) {
-    throw new Error('Skill archive expands beyond the import size limit');
-  }
-
   let normalizedPaths = entries.map(entry =>
-    normalizeArchivePath(
-      (entry as typeof entry & { unsafeOriginalName?: string }).unsafeOriginalName ??
-        entry.name
-    )
+    normalizeArchivePath(entry.unsafeOriginalName ?? entry.name)
   );
   let firstSegments = new Set(
     normalizedPaths.map(filePath => filePath.split('/')[0]).filter(Boolean)
@@ -76,11 +84,8 @@ export let extractSkillArchive = async (archive: Uint8Array) => {
     if (stripWrapper) filePath = filePath.split('/').slice(1).join('/');
     if (!filePath) continue;
 
-    let content = await entries[index]!.async('uint8array');
+    let content = await readArchiveEntry(entries[index]!, maxExtractedBytes - extractedBytes);
     extractedBytes += content.byteLength;
-    if (extractedBytes > maxExtractedBytes) {
-      throw new Error('Skill archive expands beyond the import size limit');
-    }
     files.push({ path: `/${filePath}`, content });
   }
 

@@ -87,6 +87,7 @@ class providerSpecificationServiceImpl {
         .filter(o => o) ?? []),
       ...(configs?.map(c => c.specificationOid) ?? [])
     ];
+    let filtersBySpecification = !!versions || !!deployments || !!configs;
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -107,7 +108,7 @@ class providerSpecificationServiceImpl {
                 d.ids ? { id: { in: d.ids } } : undefined!,
                 search ? { id: search } : undefined!,
                 providers ? { providerOid: providers.in } : undefined!,
-                specOids.length ? { oid: { in: specOids } } : undefined!,
+                filtersBySpecification ? { oid: { in: specOids } } : undefined!,
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
               ].filter(Boolean)
@@ -165,7 +166,9 @@ class providerSpecificationServiceImpl {
       }
     });
     if (!providerSpecification) {
-      throw new ServiceError(notFoundError('provider_tool', d.providerSpecificationId));
+      throw new ServiceError(
+        notFoundError('provider.specification', d.providerSpecificationId)
+      );
     }
 
     return providerSpecification;

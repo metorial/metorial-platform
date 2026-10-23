@@ -336,11 +336,13 @@ class SkillResourceServiceImpl {
       where: { id: template.id },
       include: { instance: true, storeTemplate: true }
     });
-    if (!record?.instance) return;
+    if (!record) return;
+    if (record.owner === 'tenant' && !record.instance) return;
 
-    let { tenant, environment, solution } = await subspaceScopeService.ensureForInstance(
-      record.instance
-    );
+    let scope =
+      record.owner === 'tenant' && record.instance
+        ? await subspaceScopeService.ensureForInstance(record.instance)
+        : null;
     await subspaceDb.skillTemplate.upsert({
       where: { id: record.id },
       create: {
@@ -355,11 +357,11 @@ class SkillResourceServiceImpl {
         storeId: null,
         storeTemplateId: record.storeTemplateId,
         systemIdentifier: record.systemIdentifier,
-        tenantOid: record.owner === 'tenant' ? tenant.oid : null,
-        projectOid: record.owner === 'tenant' ? tenant.projectOid : null,
-        solutionOid: record.owner === 'tenant' ? solution.oid : null,
-        environmentOid: record.owner === 'tenant' ? environment.oid : null,
-        instanceOid: record.owner === 'tenant' ? environment.instanceOid : null
+        tenantOid: scope?.tenant.oid ?? null,
+        projectOid: scope?.tenant.projectOid ?? null,
+        solutionOid: scope?.solution.oid ?? null,
+        environmentOid: scope?.environment.oid ?? null,
+        instanceOid: scope?.environment.instanceOid ?? null
       },
       update: {
         status: record.status,

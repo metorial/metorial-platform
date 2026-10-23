@@ -2,7 +2,10 @@ import { createCachedFunction } from '@metorial/cache';
 import { db, OutpostService } from '@metorial/db';
 import { base64url } from '@metorial-outpost/crypto';
 import type { OutpostManifest } from '@metorial-outpost/server';
-import { outpostInstanceService } from '../services/outpostInstance';
+import {
+  outpostInstanceService,
+  type InstanceAuthorizationStatus
+} from '../services/outpostInstance';
 import { outpostTokenKeyPairService } from '../services/outpostTokenKeyPair';
 import { OUTPOST_CACHE_TTL_SECONDS } from './constants';
 import type { OutpostServiceName } from './services';
@@ -16,10 +19,10 @@ export let outpostAccessTag = (outpostId: string) => `outpost_access:${outpostId
 export let outpostTokenKeyPairTag = (kid: string) => `outpost_token_key_pair:${kid}`;
 
 export type CachedCredentialLookup =
-  | { status: 'ok'; publicKey: string }
+  | { status: 'ok'; publicKey: string; expiresAt: number | null }
   | { status: 'unknown' }
   | { status: 'revoked' }
-  | { status: 'registration_disabled'; publicKey: string };
+  | { status: 'registration_disabled'; publicKey: string; expiresAt: number | null };
 
 export let cachedCredentialLookup = createCachedFunction<
   { outpostId: string; credentialId: string },
@@ -36,33 +39,42 @@ export let cachedCredentialLookup = createCachedFunction<
     });
     if (!credential) return { status: 'unknown' };
 
+    let expiresAt = credential.expiresAt?.getTime() ?? null;
     if (credential.status != 'active') return { status: 'revoked' };
 
     let publicKey = base64url.encode(new Uint8Array(credential.publicKey));
 
     if (credential.outpost.status != 'active') {
-      return { status: 'registration_disabled', publicKey };
+      return { status: 'registration_disabled', publicKey, expiresAt };
     }
 
-    return { status: 'ok', publicKey };
+    return { status: 'ok', publicKey, expiresAt };
   }
 });
 
 export let cachedInstanceAuthorization = createCachedFunction<
-  { outpostId: string; instanceId: string; credentialId: string },
-  { status: 'active' | 'unknown' | 'instance_disabled' | 'outpost_disabled' }
+  { outpostId: string; instanceId: string; credentialId: string; instancePublicKey: string },
+  { status: InstanceAuthorizationStatus; credentialExpiresAt: number | null }
 >({
   name: 'outpost/instanceAuthorization',
   ttlSeconds: OUTPOST_CACHE_TTL_SECONDS,
-  getHash: i => `${i.outpostId}:${i.instanceId}:${i.credentialId}`,
+  getHash: i => `${i.outpostId}:${i.instanceId}:${i.credentialId}:${i.instancePublicKey}`,
   getTags: (_, i) => [
     outpostTag(i.outpostId),
     outpostCredentialTag(i.credentialId),
     outpostInstanceTag(i.outpostId, i.instanceId)
   ],
-  provider: async i => ({
-    status: await outpostInstanceService.getInstanceAuthorization(i)
-  })
+  provider: async i => {
+    let authorization = await outpostInstanceService.getInstanceAuthorization({
+      ...i,
+      instancePublicKey: base64url.decode(i.instancePublicKey)
+    });
+
+    return {
+      status: authorization.status,
+      credentialExpiresAt: authorization.credentialExpiresAt?.getTime() ?? null
+    };
+  }
 });
 
 export let cachedManifest = createCachedFunction<

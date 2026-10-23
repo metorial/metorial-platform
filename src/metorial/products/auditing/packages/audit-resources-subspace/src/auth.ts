@@ -77,7 +77,8 @@ export let providerSetupSessionAuditResource = resource({
   presenter: undefined,
   actions: {
     create: true,
-    update: true
+    update: true,
+    delete: true
   }
 });
 
