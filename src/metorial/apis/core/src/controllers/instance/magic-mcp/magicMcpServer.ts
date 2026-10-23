@@ -34,6 +34,7 @@ import {
   providerToolsPresenter
 } from '@metorial/presenters';
 import { normalizeToolFilters, toolFiltersValidator } from '../sessions/_shared';
+import { getOwnershipActor } from '../../../lib/ownershipActor';
 
 export let magicMcpServerGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.magicMcpServerId) {
@@ -351,6 +352,10 @@ export let magicMcpServerController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
+            usable: v.optional(v.boolean(), {
+              description:
+                'Only return resources the caller is allowed to use under the resource ownership rules.'
+            }),
             status: v.optional(
               v.union([
                 v.enumOf([...magicMcpServerStatusValues]),
@@ -385,6 +390,7 @@ export let magicMcpServerController = Controller.create(
 
         let paginator = await magicMcpServerService.listMagicMcpServers({
           instance: ctx.instance,
+          onlyUsableBy: ctx.query.usable ? getOwnershipActor(ctx) : undefined,
           consumerSurface: ctx.consumerSurface,
           status: normalizeArrayParam<MagicMcpServerStatus>(ctx.query.status),
           groupIds: normalizeArrayParam(ctx.query.magic_mcp_group_id),
@@ -585,6 +591,7 @@ export let magicMcpServerController = Controller.create(
       .output(magicMcpServerProviderPresenter)
       .do(async ctx => {
         let magicMcpServerProvider = await magicMcpServerService.createMagicMcpServerProvider({
+          organizationActor: getOwnershipActor(ctx),
           server: ctx.magicMcpServer,
           instance: ctx.instance,
           accessTags: ctx.accessTags,
@@ -671,6 +678,7 @@ export let magicMcpServerController = Controller.create(
       .output(magicMcpServerProviderPresenter)
       .do(async ctx => {
         let magicMcpServerProvider = await magicMcpServerService.updateMagicMcpServerProvider({
+          organizationActor: getOwnershipActor(ctx),
           server: ctx.magicMcpServer,
           instance: ctx.instance,
           accessTags: ctx.accessTags,
@@ -784,6 +792,7 @@ export let magicMcpServerController = Controller.create(
         }
 
         let magicMcpServer = await magicMcpServerService.createMagicMcpServer({
+          organizationActor: getOwnershipActor(ctx),
           auditScope: ctx.auditScope,
           organization: ctx.organization,
           performedBy: ctx.actor!,
@@ -880,7 +889,13 @@ export let magicMcpServerController = Controller.create(
           name: v.optional(v.string()),
           description: v.optional(v.string()),
           metadata: v.optional(v.record(v.any())),
-          aliases: v.optional(v.array(v.string()))
+          aliases: v.optional(v.array(v.string())),
+          is_owner_locked: v.optional(
+            v.boolean({
+              description:
+                'Lock this resource to its owner. Anyone allowed to use the resource can lock it; only the owner can unlock it.'
+            })
+          )
         })
       )
       .output(magicMcpServerPresenter)
@@ -898,11 +913,13 @@ export let magicMcpServerController = Controller.create(
           server: ctx.magicMcpServer,
           instance: ctx.instance,
           accessTags: ctx.accessTags,
+          organizationActor: getOwnershipActor(ctx),
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
             metadata: ctx.body.metadata,
-            aliases: ctx.body.aliases
+            aliases: ctx.body.aliases,
+            isOwnerLocked: ctx.body.is_owner_locked
           }
         });
 
@@ -978,6 +995,11 @@ export let magicMcpServerControllerDashboard = Controller.create(
         let session = await sessionService.getSessionById({
           instance: ctx.instance,
           sessionId: resolvedSession.id
+        });
+        await sessionService.assertCanUseSessionForCaller({
+          instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
+          session
         });
 
         return providerSessionPresenter.present({ session });

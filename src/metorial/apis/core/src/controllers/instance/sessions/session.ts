@@ -26,6 +26,7 @@ import {
   type SessionProviderConfigSource,
   type SessionProviderDeploymentSource
 } from './_providerInput';
+import { getOwnershipActor } from '../../../lib/ownershipActor';
 
 let sessionGroup = instanceGroup
   .use(requireFineGrainedSessionParam('sessionId')())
@@ -230,8 +231,13 @@ export let sessionController = Controller.create(
         });
 
         let list = await paginator.run(ctx.query);
+        let items = await sessionService.redactSessionsForCaller({
+          instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
+          sessions: list.items
+        });
 
-        return Paginator.present(list, session =>
+        return Paginator.present({ ...list, items }, session =>
           providerSessionPresenter.present({
             session
           })
@@ -251,8 +257,14 @@ export let sessionController = Controller.create(
       )
       .output(providerSessionPresenter)
       .do(async ctx => {
+        let [session] = await sessionService.redactSessionsForCaller({
+          instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
+          sessions: [ctx.session]
+        });
+
         return providerSessionPresenter.present({
-          session: ctx.session
+          session: session!
         });
       }),
 
@@ -276,6 +288,7 @@ export let sessionController = Controller.create(
         let subspaceSession = await sessionService.createSession({
           instance: ctx.instance,
           auditScope: ctx.auditScope,
+          organizationActor: getOwnershipActor(ctx),
           input: {
             name: ctx.body.name ?? `Session ${new Date().toISOString()}`,
             description: ctx.body.description,
@@ -339,8 +352,14 @@ export let sessionController = Controller.create(
           }
         });
 
+        let [redactedSession] = await sessionService.redactSessionsForCaller({
+          instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
+          sessions: [session]
+        });
+
         return providerSessionPresenter.present({
-          session: session
+          session: redactedSession!
         });
       }),
 

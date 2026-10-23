@@ -12,6 +12,7 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { integrationSetupSessionPresenter } from '@metorial/presenters';
+import { getOwnershipActor } from '../../../lib/ownershipActor';
 
 let setupSessionConfigurationValidator = v.optional(
   v.object({
@@ -133,8 +134,14 @@ export let integrationSetupSessionController = Controller.create(
         });
 
         let list = await paginator.run(ctx.query);
+        let items =
+          await integrationSetupSessionService.redactIntegrationSetupSessionsForCaller({
+            instance: ctx.instance,
+            organizationActor: getOwnershipActor(ctx),
+            integrationSetupSessions: list.items
+          });
 
-        return Paginator.present(list, integrationSetupSession =>
+        return Paginator.present({ ...list, items }, integrationSetupSession =>
           integrationSetupSessionPresenter.present({ integrationSetupSession })
         );
       }),
@@ -152,11 +159,18 @@ export let integrationSetupSessionController = Controller.create(
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .output(integrationSetupSessionPresenter)
-      .do(async ctx =>
-        integrationSetupSessionPresenter.present({
-          integrationSetupSession: ctx.integrationSetupSession
-        })
-      ),
+      .do(async ctx => {
+        let [integrationSetupSession] =
+          await integrationSetupSessionService.redactIntegrationSetupSessionsForCaller({
+            instance: ctx.instance,
+            organizationActor: getOwnershipActor(ctx),
+            integrationSetupSessions: [ctx.integrationSetupSession]
+          });
+
+        return integrationSetupSessionPresenter.present({
+          integrationSetupSession: integrationSetupSession!
+        });
+      }),
 
     create: instanceGroup
       .post(instancePath('integration-setup-sessions', 'integrations.setupSessions.create'), {
@@ -197,6 +211,7 @@ export let integrationSetupSessionController = Controller.create(
           await integrationSetupSessionService.createIntegrationSetupSession({
             instance: ctx.instance,
             auditScope: ctx.auditScope,
+            organizationActor: getOwnershipActor(ctx),
             integration,
             integrationInstance,
             input: {

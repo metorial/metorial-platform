@@ -14,6 +14,7 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { providerSetupSessionPresenter } from '@metorial/presenters';
+import { getOwnershipActor } from '../../../lib/ownershipActor';
 
 let providerSetupSessionConfigurationValidator = v.optional(
   v.object({
@@ -126,8 +127,13 @@ export let providerSetupSessionController = Controller.create(
         });
 
         let list = await paginator.run(ctx.query);
+        let items = await providerSetupSessionService.redactProviderSetupSessionsForCaller({
+          instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
+          setupSessions: list.items
+        });
 
-        return Paginator.present(list, setupSession =>
+        return Paginator.present({ ...list, items }, setupSession =>
           providerSetupSessionPresenter.present({
             setupSession
           })
@@ -148,7 +154,14 @@ export let providerSetupSessionController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
       .output(providerSetupSessionPresenter)
       .do(async ctx => {
-        return providerSetupSessionPresenter.present({ setupSession: ctx.setupSession });
+        let [setupSession] =
+          await providerSetupSessionService.redactProviderSetupSessionsForCaller({
+            instance: ctx.instance,
+            organizationActor: getOwnershipActor(ctx),
+            setupSessions: [ctx.setupSession]
+          });
+
+        return providerSetupSessionPresenter.present({ setupSession: setupSession! });
       }),
 
     create: instanceGroup
@@ -357,9 +370,15 @@ export let providerSetupSessionController = Controller.create(
             identity
           }
         });
+        let [redactedSetupSession] =
+          await providerSetupSessionService.redactProviderSetupSessionsForCaller({
+            instance: ctx.instance,
+            organizationActor: getOwnershipActor(ctx),
+            setupSessions: [setupSession]
+          });
 
         return providerSetupSessionPresenter.present({
-          setupSession
+          setupSession: redactedSetupSession!
         });
       }),
 

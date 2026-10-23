@@ -1,6 +1,7 @@
 import { isLocalDevelopmentOrigin } from '@lowerdeck/cors';
 import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
 import { generateSnowflakeId } from '@metorial/id';
+import { assertCanUseSessionById } from '@metorial-subspace/module-tenant';
 import { AuthInfo } from '@metorial/module-access';
 import { Authenticator } from '@metorial/rest';
 import { authenticateAndResolveInstance } from './getSession';
@@ -73,7 +74,13 @@ export let startMcpServer = (d: {
           type: 'request'
         }),
         async () => {
-          let { instance } = await authenticateAndResolveInstance(req, url, d.authenticate);
+          let { instance, organizationActor } = await authenticateAndResolveInstance(
+            req,
+            url,
+            d.authenticate
+          );
+          await assertCanUseSessionById({ instance, organizationActor, sessionId });
+
           return handleMcpRequest(c, {
             instance,
             sessionId,

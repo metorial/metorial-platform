@@ -9,6 +9,7 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { toolFiltersValidator } from './_shared';
+import { getOwnershipActor } from '../../../lib/ownershipActor';
 
 let sessionTemplateGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.sessionTemplateId) {
@@ -46,6 +47,10 @@ export let sessionTemplateController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
+            usable: v.optional(v.boolean(), {
+              description:
+                'Only return resources the caller is allowed to use under the resource ownership rules.'
+            }),
             status: v.optional(
               v.union([
                 v.enumOf(['active', 'archived']),
@@ -82,6 +87,8 @@ export let sessionTemplateController = Controller.create(
       .do(async ctx => {
         let paginator = await sessionTemplateService.listSessionTemplates({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
+          onlyUsable: ctx.query.usable,
           allowDeleted: false,
           status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
@@ -148,6 +155,7 @@ export let sessionTemplateController = Controller.create(
         let sessionTemplate = await sessionTemplateService.createSessionTemplate({
           instance: ctx.instance,
           auditScope: ctx.auditScope,
+          organizationActor: getOwnershipActor(ctx),
           input: {
             name: ctx.body.name,
             description: ctx.body.description,

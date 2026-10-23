@@ -13,6 +13,7 @@ import {
   sessionTemplatePresenter
 } from '@metorial/presenters';
 import { normalizeToolFilters, toolFiltersValidator } from '../sessions/_shared';
+import { getOwnershipActor } from '../../../lib/ownershipActor';
 
 let integrationInstanceGroupProviderInputValidator = v.object({
   integration_instance_provider_id: v.string(),
@@ -193,6 +194,7 @@ export let integrationInstanceGroupController = Controller.create(
           await integrationInstanceGroupService.createSessionForIntegrationInstanceGroup({
             instance: ctx.instance,
             auditScope: ctx.auditScope,
+            organizationActor: getOwnershipActor(ctx),
             integrationInstanceGroup: ctx.integrationInstanceGroup,
             input: {
               name: ctx.body.name ?? `Session ${new Date().toISOString()}`,

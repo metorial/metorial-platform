@@ -15,6 +15,7 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { configSchemaPresenter, providerConfigPresenter } from '@metorial/presenters';
 import { toolFiltersValidator } from '../sessions/_shared';
+import { getOwnershipActor } from '../../../lib/ownershipActor';
 
 let providerConfigGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerConfigId) {
@@ -52,6 +53,10 @@ export let providerConfigController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
+            usable: v.optional(v.boolean(), {
+              description:
+                'Only return resources the caller is allowed to use under the resource ownership rules.'
+            }),
             status: v.optional(
               v.union([
                 v.enumOf(['active', 'archived']),
@@ -103,6 +108,8 @@ export let providerConfigController = Controller.create(
       .do(async ctx => {
         let paginator = await providerConfigService.listProviderConfigs({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
+          onlyUsable: ctx.query.usable,
           allowDeleted: false,
 
           search: ctx.query.search,
@@ -172,7 +179,13 @@ export let providerConfigController = Controller.create(
               }),
               { description: 'Custom key-value pairs for storing additional information' }
             ),
-            tool_filters: toolFiltersValidator
+            tool_filters: toolFiltersValidator,
+            is_owner_locked: v.optional(
+              v.boolean({
+                description:
+                  'Lock this resource to its owner. Anyone allowed to use the resource can lock it; only the owner can unlock it.'
+              })
+            )
           }),
           v.union([
             v.object({
@@ -215,6 +228,7 @@ export let providerConfigController = Controller.create(
           auditScope: ctx.auditScope,
           provider,
           providerDeployment,
+          isOwnerLocked: ctx.body.is_owner_locked,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
@@ -256,7 +270,13 @@ export let providerConfigController = Controller.create(
           metadata: v.optional(v.record(v.any()), {
             description: 'Custom key-value pairs for storing additional information'
           }),
-          tool_filters: toolFiltersValidator
+          tool_filters: toolFiltersValidator,
+          is_owner_locked: v.optional(
+            v.boolean({
+              description:
+                'Lock this resource to its owner. Anyone allowed to use the resource can lock it; only the owner can unlock it.'
+            })
+          )
         })
       )
       .output(providerConfigPresenter)
@@ -264,11 +284,13 @@ export let providerConfigController = Controller.create(
         let config = await providerConfigService.updateProviderConfig({
           instance: ctx.instance,
           auditScope: ctx.auditScope,
+          organizationActor: getOwnershipActor(ctx),
           providerConfig: ctx.config,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
             metadata: ctx.body.metadata,
+            isOwnerLocked: ctx.body.is_owner_locked,
             ...(ctx.body.tool_filters !== undefined
               ? { toolFilters: normalizeToolFilters(ctx.body.tool_filters as any) }
               : {})

@@ -19,6 +19,7 @@ import { requireConsumerTokenForPublishableKey } from '../../../middleware/requi
 import { magicMcpEndpointPresenter } from '@metorial/presenters';
 import { toolFiltersValidator } from '../sessions/_shared';
 import { getSkillPluginAccess } from '../skills';
+import { getOwnershipActor } from '../../../lib/ownershipActor';
 
 export let magicMcpEndpointGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.magicMcpEndpointId) {
@@ -116,6 +117,10 @@ export let magicMcpEndpointController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
+            usable: v.optional(v.boolean(), {
+              description:
+                'Only return resources the caller is allowed to use under the resource ownership rules.'
+            }),
             status: v.optional(
               v.union([
                 v.enumOf([...magicMcpEndpointStatusValues]),
@@ -131,6 +136,7 @@ export let magicMcpEndpointController = Controller.create(
       .do(async ctx => {
         let paginator = await magicMcpEndpointService.listMagicMcpEndpoints({
           instance: ctx.instance,
+          onlyUsableBy: ctx.query.usable ? getOwnershipActor(ctx) : undefined,
           status: normalizeArrayParam<MagicMcpEndpointStatus>(ctx.query.status),
           magicMcpServerIds: normalizeArrayParam(ctx.query.magic_mcp_server_id),
           search: ctx.query.search,
@@ -243,6 +249,7 @@ export let magicMcpEndpointController = Controller.create(
         }
 
         let magicMcpEndpoint = await magicMcpEndpointService.createMagicMcpEndpoint({
+          organizationActor: getOwnershipActor(ctx),
           auditScope: ctx.auditScope,
           instance: ctx.instance,
           input: {
@@ -332,7 +339,13 @@ export let magicMcpEndpointController = Controller.create(
           name: v.optional(v.string()),
           description: v.optional(v.string()),
           metadata: v.optional(v.record(v.any())),
-          enable_skill_editing: enableSkillEditingValidator
+          enable_skill_editing: enableSkillEditingValidator,
+          is_owner_locked: v.optional(
+            v.boolean({
+              description:
+                'Lock this resource to its owner. Anyone allowed to use the resource can lock it; only the owner can unlock it.'
+            })
+          )
         })
       )
       .output(magicMcpEndpointPresenter)
@@ -348,11 +361,13 @@ export let magicMcpEndpointController = Controller.create(
         let magicMcpEndpoint = await magicMcpEndpointService.updateMagicMcpEndpoint({
           auditScope: ctx.auditScope,
           endpoint: ctx.magicMcpEndpoint,
+          organizationActor: getOwnershipActor(ctx),
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
             metadata: ctx.body.metadata,
-            enableSkillEditing: ctx.body.enable_skill_editing
+            enableSkillEditing: ctx.body.enable_skill_editing,
+            isOwnerLocked: ctx.body.is_owner_locked
           }
         });
 
@@ -422,6 +437,7 @@ export let magicMcpEndpointController = Controller.create(
         }
 
         let magicMcpEndpoint = await magicMcpEndpointService.addServersToEndpoint({
+          organizationActor: getOwnershipActor(ctx),
           auditScope: ctx.auditScope,
           endpoint: ctx.magicMcpEndpoint,
           servers

@@ -16,6 +16,7 @@ import {
   sessionTemplatePresenter
 } from '@metorial/presenters';
 import { normalizeToolFilters, toolFiltersValidator } from '../sessions/_shared';
+import { getOwnershipActor } from '../../../lib/ownershipActor';
 
 let integrationInstanceProviderInputValidator = v.object({
   provider_id: v.string(),
@@ -62,6 +63,10 @@ export let integrationInstanceController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
+            usable: v.optional(v.boolean(), {
+              description:
+                'Only return resources the caller is allowed to use under the resource ownership rules.'
+            }),
             search: v.optional(v.string()),
             status: v.optional(
               v.union([
@@ -88,6 +93,8 @@ export let integrationInstanceController = Controller.create(
       .do(async ctx => {
         let paginator = await integrationInstanceService.listIntegrationInstances({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
+          onlyUsable: ctx.query.usable,
           search: ctx.query.search,
           allowDeleted: true,
           status: normalizeArrayParam(ctx.query.status),
@@ -194,6 +201,7 @@ export let integrationInstanceController = Controller.create(
         let session = await integrationInstanceService.createSessionForIntegrationInstance({
           instance: ctx.instance,
           auditScope: ctx.auditScope,
+          organizationActor: getOwnershipActor(ctx),
           integrationInstance: ctx.integrationInstance,
           input: {
             name: ctx.body.name ?? `Session ${new Date().toISOString()}`,
@@ -232,6 +240,7 @@ export let integrationInstanceController = Controller.create(
         let integrationInstance = await integrationInstanceService.createIntegrationInstance({
           instance: ctx.instance,
           auditScope: ctx.auditScope,
+          organizationActor: getOwnershipActor(ctx),
           integration,
           input: {
             name: ctx.body.name,
@@ -275,7 +284,13 @@ export let integrationInstanceController = Controller.create(
           metadata: v.optional(v.nullable(v.record(v.any()))),
           identity_actor_id: v.optional(v.nullable(v.string())),
           identity_id: v.optional(v.nullable(v.string())),
-          providers: v.optional(v.array(integrationInstanceProviderInputValidator))
+          providers: v.optional(v.array(integrationInstanceProviderInputValidator)),
+          is_owner_locked: v.optional(
+            v.boolean({
+              description:
+                'Lock this resource to its owner. Anyone allowed to use the resource can lock it; only the owner can unlock it.'
+            })
+          )
         })
       )
       .output(integrationInstancePresenter)
@@ -283,12 +298,14 @@ export let integrationInstanceController = Controller.create(
         let integrationInstance = await integrationInstanceService.updateIntegrationInstance({
           instance: ctx.instance,
           auditScope: ctx.auditScope,
+          organizationActor: getOwnershipActor(ctx),
           integrationInstance: ctx.integrationInstance,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
             metadata: ctx.body.metadata,
             identityActorId: ctx.body.identity_actor_id,
+            isOwnerLocked: ctx.body.is_owner_locked,
             identityId: ctx.body.identity_id,
             providers: ctx.body.providers?.map(provider => ({
               providerId: provider.provider_id,
