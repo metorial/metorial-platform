@@ -11,7 +11,7 @@ import {
   useMember,
   useOrganization
 } from '@metorial/e2e';
-import { usageService } from '@metorial/module-usage';
+import { recordUsageEvents } from '@metorial/module-usage/e2e/_fixtures';
 import { describe, expect, it } from 'vitest';
 
 describe('api-core dashboard: instance resources, usage, key providers and oauth', () => {
@@ -30,9 +30,8 @@ describe('api-core dashboard: instance resources, usage, key providers and oauth
 
   let outsider = () => rest(metorialEndpoints().api, { session: otherOrg.session });
 
-  let timelineQuery = (entityId: string) => ({
-    'entities[0][type]': 'e2e_entity',
-    'entities[0][id]': entityId,
+  let timelineQuery = () => ({
+    'entities[0][type]': 'tool_call',
     from: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
     to: new Date(Date.now() + 60 * 1000).toISOString(),
     'interval[unit]': 'hour',
@@ -112,40 +111,49 @@ describe('api-core dashboard: instance resources, usage, key providers and oauth
   });
 
   it("reports usage recorded for the organization's instances only", async () => {
-    let entityId = uniqueId('usage-entity');
-    let entity = { id: entityId, type: 'e2e_entity' };
-    let owner = { id: org.ids.instanceId, type: 'instance' as const };
-
-    await usageService.ingestUsageRecord({ owner, entity, type: 'e2e.call', count: 2 });
-    await usageService.ingestUsageRecord({ owner, entity, type: 'e2e.call', count: 3 });
+    await recordUsageEvents([
+      ...Array.from({ length: 5 }, () => ({
+        instanceId: org.ids.instanceId,
+        organizationId: org.ids.organizationId,
+        kind: 'tool_call' as const
+      })),
+      ...Array.from({ length: 7 }, () => ({
+        instanceId: otherOrg.ids.instanceId,
+        organizationId: otherOrg.ids.organizationId,
+        kind: 'tool_call' as const
+      }))
+    ]);
 
     await eventually(async () => {
       let usage = expectOk(
         await org.clients.rest.get(orgPath('/usage/timeline'), {
-          query: timelineQuery(entityId)
+          query: timelineQuery()
         })
       );
       expectPresented(usage, 'usage');
 
       let series = usage.timeline.find((item: any) => item.owner_id === org.ids.instanceId);
-      expect(series).toMatchObject({ entity_id: entityId, entity_type: 'e2e_entity' });
+      expect(series).toMatchObject({ entity_id: 'all', entity_type: 'tool_call' });
       expect(totalCount(usage.timeline)).toBe(5);
+      expect(usage.timeline.map((item: any) => item.owner_id)).not.toContain(
+        otherOrg.ids.instanceId
+      );
     });
 
     let other = expectOk(
       await otherOrg.clients.rest.get(
         orgPath('/usage/timeline', otherOrg.ids.organizationId),
         {
-          query: timelineQuery(entityId)
+          query: timelineQuery()
         }
       )
     );
-    expect(totalCount(other.timeline)).toBe(0);
+    expect(totalCount(other.timeline)).toBe(7);
     expect(other.timeline.map((item: any) => item.owner_id)).not.toContain(org.ids.instanceId);
   });
 
   it('authorizes and validates usage timeline queries', async () => {
-    let query = timelineQuery(uniqueId('usage-entity'));
+    let query = timelineQuery();
 
     await expectAuthMatrix(
       authClients(org, { member: member.clients.rest, otherSession: outsider() }),

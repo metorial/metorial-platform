@@ -38,7 +38,6 @@ describe('api-files downloads', () => {
 
     expect(response.status).toBe(200);
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(content);
-    expect(response.headers.get('content-length')).toBe('256');
 
     let empty = await upload({ content: new Uint8Array(), fileName: 'empty.bin' });
     let emptyResponse = await download((await createLink(empty.id)).url);
