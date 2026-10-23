@@ -459,7 +459,7 @@
         "object-storage-client": "^0.2.5",
         "prisma": "^7.10.0",
         "prisma-json-types-generator": "^5.2.0",
-        "undici": "^8.11.2",
+        "undici": "^8.12.1",
         "yaml": "^2.9.1",
       },
       "devDependencies": {
@@ -2340,7 +2340,7 @@
         "@metorial/presenter": "^1.0.0",
         "@metorial/presenters": "^1.0.0",
         "@metorial/rest": "^1.0.0",
-        "@slates/adapter-chat": "1.0.0-rc.13",
+        "@slates/adapter-chat": "1.0.0-rc.14",
       },
       "devDependencies": {
         "@metorial/e2e": "1.0.0",
@@ -2882,7 +2882,7 @@
         "@metorial/module-skill-marketplace": "^1.0.0",
         "@metorial/module-usage": "^1.0.0",
         "@metorial/presenter": "^1.0.0",
-        "@slates/adapter-chat": "1.0.0-rc.13",
+        "@slates/adapter-chat": "1.0.0-rc.14",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -3644,7 +3644,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@metorial-subspace/adapter": "^1.0.0",
-        "@slates/adapter-chat": "1.0.0-rc.13",
+        "@slates/adapter-chat": "1.0.0-rc.14",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -3662,7 +3662,7 @@
         "@lowerdeck/error": "workspace:2.0.0",
         "@metorial-subspace/db": "^1.0.0",
         "@metorial-subspace/module-session": "^1.0.0",
-        "@slates/adapter": "1.0.0-rc.12",
+        "@slates/adapter": "1.0.0-rc.13",
         "lru-cache": "^11.5.3",
       },
       "devDependencies": {
@@ -3950,7 +3950,7 @@
         "@metorial/module-file": "^1.0.0",
         "@metorial/presenter": "^1.0.0",
         "@metorial/presenters": "^1.0.0",
-        "@slates/adapter-chat": "1.0.0-rc.13",
+        "@slates/adapter-chat": "1.0.0-rc.14",
         "date-fns": "^4.4.0",
         "object-storage-client": "^0.2.5",
       },
@@ -8675,13 +8675,13 @@
 
     "@sentry/vite-plugin": ["@sentry/vite-plugin@5.4.1", "", { "dependencies": { "@sentry/bundler-plugins": "^10.76.0" } }, "sha512-poFfn3sQbSFaZpXH8CG27D0eNtDD64wFEniQCb853e7huko9vOl4UP3BjT3vsrnmVuRqagnbxItza10MOC7ysA=="],
 
-    "@slates/adapter": ["@slates/adapter@1.0.0-rc.12", "", { "dependencies": { "@slates/provider": "1.0.0-rc.28", "zod": "^4.2.1" } }, "sha512-eVcjnpFt2Da39W23If5hi0R1jSUDg9F/lmCQKAQ8wn8TFw4B1ScRSiQj88diEpeNNTLMF02rLZKF0UmYSciqNQ=="],
+    "@slates/adapter": ["@slates/adapter@1.0.0-rc.13", "", { "dependencies": { "@slates/provider": "1.0.0-rc.29", "zod": "^4.2.1" } }, "sha512-KooNjxh9BrD/Wlq+/jqcipALOP5+VnmZB4LBpqXqpVfrUVf7GkMkglMD1rZtCQCk5xQWOEtR+/nbbynIm3Kyfw=="],
 
-    "@slates/adapter-chat": ["@slates/adapter-chat@1.0.0-rc.13", "", { "dependencies": { "@slates/adapter": "1.0.0-rc.12", "@slates/provider": "1.0.0-rc.28", "mdast-util-to-string": "^4.0.0", "remark-gfm": "^4.0.0", "remark-parse": "^11.0.0", "remark-stringify": "^11.0.0", "unified": "^11.0.5", "zod": "^4.2.1" } }, "sha512-P2an71gATi5lA1lsDTutsCNuDmzd3pSxX0+ywGp7/eLmNl9DxA3rz3bG1OfV8Ea/iHNqyJTfwSKEqtX7glHCjA=="],
+    "@slates/adapter-chat": ["@slates/adapter-chat@1.0.0-rc.14", "", { "dependencies": { "@slates/adapter": "1.0.0-rc.13", "@slates/provider": "1.0.0-rc.29", "mdast-util-to-string": "^4.0.0", "remark-gfm": "^4.0.0", "remark-parse": "^11.0.0", "remark-stringify": "^11.0.0", "unified": "^11.0.5", "zod": "^4.2.1" } }, "sha512-DZCEO9N3YdE3GocKcagDn/cIwoKcKz6W2Mijs52YuqxLp9oawBonNTeayWN0xIP5ZdZrwS+zQaeIArZiKXHrEA=="],
 
     "@slates/proto": ["@slates/proto@1.0.0-rc.25", "", { "dependencies": { "@lowerdeck/emitter": "^1.0.4", "@lowerdeck/error": "^1.1.0", "@toon-format/toon": "^2.1.0", "axios": "^1.13.2", "zod": "^4.2.1" } }, "sha512-karZODCHM8orE7UlcYYWjt4sSLrzkX3Mz/JKvqQRxBePHiEtV9aN5gUCH9MUbL9vqkGXXPZ+yGV14KbQ5JE9pA=="],
 
-    "@slates/provider": ["@slates/provider@1.0.0-rc.28", "", { "dependencies": { "@lowerdeck/error": "^1.1.0", "@toon-format/toon": "^2.1.0", "axios": "^1.13.2", "p-queue": "^6.6.2", "zod": "^4.2.1" } }, "sha512-qpm6poqxAt2sceBZLsZl9b/4uugfRzFOIGhkd9lg3fWMDbikbG66AaW2jLMdHuIdMdwPdkK/sGVBheD4aESgZw=="],
+    "@slates/provider": ["@slates/provider@1.0.0-rc.29", "", { "dependencies": { "@lowerdeck/error": "^1.1.0", "@toon-format/toon": "^2.1.0", "axios": "^1.13.2", "p-queue": "^6.6.2", "zod": "^4.2.1" } }, "sha512-aK//o0Jyj+H55crUlY+O0AtWGzv3P/N015Hr91ACsHCx+GwwOCkIRFkaScm23qMSXt6P587pShyYPrYmemwiLg=="],
 
     "@smithy/core": ["@smithy/core@3.35.2", "", { "dependencies": { "@smithy/types": "^4.19.0", "tslib": "^2.6.2" } }, "sha512-ejTukBuP/Pg3t9N8Ux+0zKsXeHWm7p6W3HbXFOyltKasSxZwCFmvTut7kBdZSCF3m9y1bXXyVu6p2xuMFcsTyQ=="],
 
@@ -11501,7 +11501,7 @@
 
     "unbox-primitive": ["unbox-primitive@1.1.0", "", { "dependencies": { "call-bound": "^1.0.3", "has-bigints": "^1.0.2", "has-symbols": "^1.1.0", "which-boxed-primitive": "^1.1.1" } }, "sha512-nWJ91DjeOkej/TA8pXQ3myruKpKEYgqvpw9lz4OPHj/NWFNluYrjbz9j01CJ8yKQd2g4jFoOkINCTW2I5LEEyw=="],
 
-    "undici": ["undici@8.11.2", "", {}, "sha512-u4UB2/IrKdU6lFxumHmmo1a3fCQO5tzQllRorfoRS63txhrB7xTpSn1PftwC4qEHkOaqP95fCWW4lJzwErwzhQ=="],
+    "undici": ["undici@8.12.1", "", {}, "sha512-usz3OVQBeh1LxNn0DzU0voLXMgn5CU/WUdpBsY6Ti5afNao+vTkmn4H/NxoXolc10cOqe2+YIG0Hspq2rsl64w=="],
 
     "undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
 
@@ -11989,7 +11989,7 @@
 
     "@sentry/bundler-plugins/magic-string": ["magic-string@0.30.21", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.5" } }, "sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ=="],
 
-    "@sentry/cli/undici": ["undici@6.27.0", "", {}, "sha512-YmfV3YnEDzXRC5lZ2jWtWWHKGUm1zIt8AhesR1tens+HTNv+YZlN/dp6G727LOvMJ8xjP9Be7Y2Sdr96LDm+pg=="],
+    "@sentry/cli/undici": ["undici@6.29.0", "", {}, "sha512-R+RODBqp6i2pPflGdq+xIOUkl+RNfGgHwoinecKu/JCuf2uO06cOKoDbI2P7Dn6KcswdKwrczbU6IYJ6K8X+wg=="],
 
     "@sentry/node/@sentry/bundler-plugins": ["@sentry/bundler-plugins@11.7.0", "", { "dependencies": { "@sentry/core": "11.7.0", "dotenv": "^17.4.2", "glob": "^13.0.6", "magic-string": "~0.30.8 || ^1.0.0", "oxc-parser": "^0.152.0", "sentry": "^0.45.0", "supports-color": "^8.1.1" }, "peerDependencies": { "@babel/core": "^7.18.5", "rollup": ">=3.2.0", "webpack": ">=5.1.0" }, "optionalPeers": ["@babel/core", "rollup", "webpack"] }, "sha512-ofcsdaMBOx43Qw/oJ08hq7RUsamaLS2wgDaAogPpUqqZv59GyDG6zSrIEN2eIJDyuRICxkqRvgji+7vuww9iTA=="],
 
