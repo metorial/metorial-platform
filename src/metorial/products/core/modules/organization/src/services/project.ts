@@ -8,7 +8,11 @@ import {
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { createSlugGenerator } from '@lowerdeck/slugify';
-import { metorialResourceService } from '@metorial-subspace/module-tenant';
+import {
+  metorialResourceService,
+  subspaceScopeService,
+  tenantService
+} from '@metorial-subspace/module-tenant';
 import type { AuditScope } from '@metorial/audit-scope';
 import {
   addAfterTransactionHook,
@@ -210,7 +214,19 @@ class ProjectService {
         auditScope: d.auditScope
       });
 
-      await addAwaitedAfterTransactionHook(() => metorialResourceService.syncProject(project));
+      await addAwaitedAfterTransactionHook(async () => {
+        await metorialResourceService.syncProject(project);
+
+        if (d.input.hidePublicRemoteProviders !== undefined) {
+          let { tenant } = await subspaceScopeService.ensureForProject(project);
+
+          await tenantService.updateTenantPublicRemoteProviderVisibility({
+            tenant,
+            hidePublicRemoteProviders: d.input.hidePublicRemoteProviders
+          });
+          await subspaceScopeService.clearProjectScopeCache(project);
+        }
+      });
 
       return project;
     });

@@ -83,6 +83,11 @@ vi.mock('../src/queues/syncBrand', () => ({
 }));
 
 vi.mock('@metorial-subspace/module-tenant', () => ({
+  subspaceScopeService: {
+    ensureForProject: vi.fn(),
+    clearProjectScopeCache: vi.fn()
+  },
+  tenantService: { updateTenantPublicRemoteProviderVisibility: vi.fn() },
   metorialResourceService: {
     syncOrganization: vi.fn(),
     syncProject: vi.fn(),
@@ -90,15 +95,22 @@ vi.mock('@metorial-subspace/module-tenant', () => ({
   }
 }));
 
-import { db, ID, withTransaction } from '@metorial/db';
+import { addAwaitedAfterTransactionHook, db, ID, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
-import { metorialResourceService } from '@metorial-subspace/module-tenant';
+import {
+  metorialResourceService,
+  subspaceScopeService,
+  tenantService
+} from '@metorial-subspace/module-tenant';
 import { instanceService } from '../src/services/instance';
 import { projectService } from '../src/services/project';
 
 describe('ProjectService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(subspaceScopeService.ensureForProject).mockResolvedValue({
+      tenant: { id: 'ten_1', oid: 10n }
+    } as any);
   });
 
   describe('createProject', () => {
@@ -237,7 +249,7 @@ describe('ProjectService', () => {
 
   describe('updateProject', () => {
     it.each([true, false])(
-      'persists the internal provider visibility flag %s',
+      'persists and synchronizes the internal provider visibility flag %s',
       async value => {
         let project = { id: 'proj-1', oid: 1n, status: 'active' } as any;
         let update = vi
@@ -259,8 +271,70 @@ describe('ProjectService', () => {
             data: expect.objectContaining({ hidePublicRemoteProviders: value })
           })
         );
+        expect(tenantService.updateTenantPublicRemoteProviderVisibility).toHaveBeenCalledWith({
+          tenant: { id: 'ten_1', oid: 10n },
+          hidePublicRemoteProviders: value
+        });
+        expect(subspaceScopeService.clearProjectScopeCache).toHaveBeenCalledWith({
+          ...project,
+          hidePublicRemoteProviders: value
+        });
       }
     );
+
+    it('defers tenant visibility changes until the project transaction commits', async () => {
+      let project = {
+        id: 'proj-1',
+        oid: 1n,
+        status: 'active',
+        hidePublicRemoteProviders: true
+      } as any;
+      let afterCommit: (() => Promise<unknown>) | undefined;
+      vi.mocked(withTransaction).mockImplementation(async callback =>
+        callback({ project: { update: vi.fn().mockResolvedValue(project) } } as any)
+      );
+      vi.mocked(addAwaitedAfterTransactionHook).mockImplementationOnce(async callback => {
+        afterCommit = callback;
+      });
+
+      await projectService.updateProject({
+        project,
+        organization: { id: 'org-1', oid: 1n } as any,
+        auditScope: {} as any,
+        input: { hidePublicRemoteProviders: true }
+      });
+
+      expect(tenantService.updateTenantPublicRemoteProviderVisibility).not.toHaveBeenCalled();
+      expect(subspaceScopeService.clearProjectScopeCache).not.toHaveBeenCalled();
+      expect(afterCommit).toBeDefined();
+
+      await afterCommit!();
+
+      expect(tenantService.updateTenantPublicRemoteProviderVisibility).toHaveBeenCalledWith({
+        tenant: { id: 'ten_1', oid: 10n },
+        hidePublicRemoteProviders: true
+      });
+      expect(subspaceScopeService.clearProjectScopeCache).toHaveBeenCalledWith(project);
+    });
+
+    it('propagates tenant visibility synchronization failures', async () => {
+      let project = { id: 'proj-1', oid: 1n, status: 'active' } as any;
+      vi.mocked(withTransaction).mockImplementation(async callback =>
+        callback({ project: { update: vi.fn().mockResolvedValue(project) } } as any)
+      );
+      vi.mocked(
+        tenantService.updateTenantPublicRemoteProviderVisibility
+      ).mockRejectedValueOnce(new Error('Tenant synchronization failed'));
+
+      await expect(
+        projectService.updateProject({
+          project,
+          organization: { id: 'org-1', oid: 1n } as any,
+          auditScope: {} as any,
+          input: { hidePublicRemoteProviders: false }
+        })
+      ).rejects.toThrow('Tenant synchronization failed');
+    });
 
     it('should update active project successfully', async () => {
       let mockProject = {
@@ -303,6 +377,8 @@ describe('ProjectService', () => {
         expect.any(Object)
       );
       expect(metorialResourceService.syncProject).toHaveBeenCalledWith(updatedProject);
+      expect(tenantService.updateTenantPublicRemoteProviderVisibility).not.toHaveBeenCalled();
+      expect(subspaceScopeService.clearProjectScopeCache).not.toHaveBeenCalled();
     });
 
     it('should throw forbidden error for deleted project', async () => {
