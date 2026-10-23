@@ -274,7 +274,10 @@ export let parseMetricsQuery = (
     range = { type: 'preset', preset };
   }
 
-  let knownInterval = intervals.find(candidate => candidate.id == interval);
+  let knownInterval =
+    interval == autoMetricsInterval
+      ? { id: autoMetricsInterval }
+      : intervals.find(candidate => candidate.id == interval);
 
   return {
     range,
@@ -284,7 +287,7 @@ export let parseMetricsQuery = (
 
 export let serializeMetricsQuery = (
   query: MetricsQuery,
-  opts: { keys?: Partial<MetricsQueryParamKeys> } = {}
+  opts: { keys?: Partial<MetricsQueryParamKeys>; defaultInterval?: string } = {}
 ): Record<string, string | undefined> => {
   let keys = { ...defaultMetricsQueryParamKeys, ...opts.keys };
 
@@ -292,14 +295,15 @@ export let serializeMetricsQuery = (
     [keys.range]: query.range.type == 'preset' ? query.range.preset : undefined,
     [keys.from]: query.range.type == 'custom' ? query.range.from.toISOString() : undefined,
     [keys.to]: query.range.type == 'custom' ? query.range.to.toISOString() : undefined,
-    [keys.interval]: query.interval == autoMetricsInterval ? undefined : query.interval
+    [keys.interval]:
+      query.interval == (opts.defaultInterval ?? autoMetricsInterval) ? undefined : query.interval
   };
 };
 
 export let applyMetricsQuery = (
   params: URLSearchParams,
   query: MetricsQuery,
-  opts: { keys?: Partial<MetricsQueryParamKeys> } = {}
+  opts: { keys?: Partial<MetricsQueryParamKeys>; defaultInterval?: string } = {}
 ) => {
   let next = new URLSearchParams(params);
 

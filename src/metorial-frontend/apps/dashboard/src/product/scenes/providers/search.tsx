@@ -287,8 +287,8 @@ let ProviderItemsGrid = ({
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                       {provider.attributes?.isVerified && (
-                        <Badge size="1" color="blue">
-                          <RiCheckLine size={12} style={{ marginRight: 3 }} /> Verified
+                        <Badge size="1" color="blue" icon={<RiCheckLine />}>
+                          Verified
                         </Badge>
                       )}
 
