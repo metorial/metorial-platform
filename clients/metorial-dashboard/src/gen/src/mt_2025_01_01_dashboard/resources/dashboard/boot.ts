@@ -1,4 +1,7 @@
-import { mapObject } from '@metorial/util-resource-mapper/compact';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type DashboardBootOutput = {
   object: 'metorial.boot';
@@ -80,9 +83,7 @@ export type DashboardBootOutput = {
         id: string;
         value: string;
         purposes: (
-          | 'metorial_platform'
-          | 'metorial_portal'
-          | 'metorial_portal_single'
+          'metorial_platform' | 'metorial_portal' | 'metorial_portal_single'
         )[];
         compartment: {
           object: 'namespace.compartment';
@@ -257,9 +258,7 @@ export type DashboardBootOutput = {
             id: string;
             value: string;
             purposes: (
-              | 'metorial_platform'
-              | 'metorial_portal'
-              | 'metorial_portal_single'
+              'metorial_platform' | 'metorial_portal' | 'metorial_portal_single'
             )[];
             compartment: {
               object: 'namespace.compartment';
@@ -562,3 +561,8 @@ export let mapDashboardBootOutput =
     ],
     1
   );
+
+export type DashboardBootBody = {};
+
+export let mapDashboardBootBody =
+  /* @__PURE__ */ createMapper<DashboardBootBody>(0);

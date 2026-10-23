@@ -14,8 +14,13 @@ export type IntegrationsInstancesListOutput = {
     ownerActor: {
       id: string;
       type: 'person' | 'agent' | 'consumer';
+      name: string | null;
+      imageUrl: string | null;
       consumerId: string | null;
+      consumerProfileId: string | null;
+      portalId: string | null;
     } | null;
+    isOwnerLocked: boolean;
     implementation: {
       type: 'magic_mcp_server';
       magicMcpServerId: string;
@@ -147,7 +152,15 @@ export let mapIntegrationsInstancesListOutput =
           'integration_id',
           'identity_actor_id',
           'identity_id',
-          ['owner_actor', 1, [1, ['consumer_id']]],
+          [
+            'owner_actor',
+            1,
+            [
+              1,
+              ['image_url', 'consumer_id', 'consumer_profile_id', 'portal_id']
+            ]
+          ],
+          'is_owner_locked',
           ['implementation', 0, [1, ['magic_mcp_server_id']]],
           [
             'providers',
@@ -242,6 +255,7 @@ export type IntegrationsInstancesListQuery = {
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
 } & {
+  usable?: boolean | undefined;
   search?: string | undefined;
   status?:
     | 'draft'

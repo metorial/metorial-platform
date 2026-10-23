@@ -138,8 +138,13 @@ export type DashboardInstanceMagicMcpServersListOutput = {
     ownerActor: {
       id: string;
       type: 'person' | 'agent' | 'consumer';
+      name: string | null;
+      imageUrl: string | null;
       consumerId: string | null;
+      consumerProfileId: string | null;
+      portalId: string | null;
     } | null;
+    isOwnerLocked: boolean;
     createdAt: Date;
     updatedAt: Date;
   } & {
@@ -394,7 +399,20 @@ export let mapDashboardInstanceMagicMcpServersListOutput =
                     ]
                   ]
                 ],
-                ['owner_actor', 1, [1, ['consumer_id']]],
+                [
+                  'owner_actor',
+                  1,
+                  [
+                    1,
+                    [
+                      'image_url',
+                      'consumer_id',
+                      'consumer_profile_id',
+                      'portal_id'
+                    ]
+                  ]
+                ],
+                'is_owner_locked',
                 'created_at',
                 'updated_at',
                 'integration_id',
@@ -435,6 +453,7 @@ export type DashboardInstanceMagicMcpServersListQuery = {
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
 } & {
+  usable?: boolean | undefined;
   status?:
     | 'active'
     | 'archived'
@@ -445,10 +464,7 @@ export type DashboardInstanceMagicMcpServersListQuery = {
   providerTemplateId?: string | string[] | undefined;
   integrationInstanceId?: string | string[] | undefined;
   owner?:
-    | 'organization'
-    | 'consumer'
-    | ('organization' | 'consumer')[]
-    | undefined;
+    'organization' | 'consumer' | ('organization' | 'consumer')[] | undefined;
   providerId?: string | string[] | undefined;
   consumerId?: string | string[] | undefined;
   consumerProfileId?: string | string[] | undefined;

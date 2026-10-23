@@ -11,9 +11,7 @@ export type ManagementInstancePublicMcpServersClientsListOutput = {
     object: 'provider.public_mcp_server.client';
     redirectUris: string[];
     tokenEndpointAuthMethod:
-      | 'client_secret_basic'
-      | 'client_secret_post'
-      | 'none';
+      'client_secret_basic' | 'client_secret_post' | 'none';
     lastUsedAt: Date | null;
     expiresAt: Date;
     createdAt: Date;

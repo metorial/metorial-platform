@@ -141,8 +141,13 @@ export type MagicMcpSessionsListOutput = {
       ownerActor: {
         id: string;
         type: 'person' | 'agent' | 'consumer';
+        name: string | null;
+        imageUrl: string | null;
         consumerId: string | null;
+        consumerProfileId: string | null;
+        portalId: string | null;
       } | null;
+      isOwnerLocked: boolean;
       createdAt: Date;
       updatedAt: Date;
     } | null;
@@ -184,6 +189,16 @@ export type MagicMcpSessionsListOutput = {
       description: string | null;
       metadata: Record<string, any>;
       enableSkillEditing: boolean;
+      ownerActor: {
+        id: string;
+        type: 'person' | 'agent' | 'consumer';
+        name: string | null;
+        imageUrl: string | null;
+        consumerId: string | null;
+        consumerProfileId: string | null;
+        portalId: string | null;
+      } | null;
+      isOwnerLocked: boolean;
       createdAt: Date;
       updatedAt: Date;
     } | null;
@@ -303,7 +318,20 @@ export let mapMagicMcpSessionsListOutput =
                     ]
                   ]
                 ],
-                ['owner_actor', 1, [1, ['consumer_id']]],
+                [
+                  'owner_actor',
+                  1,
+                  [
+                    1,
+                    [
+                      'image_url',
+                      'consumer_id',
+                      'consumer_profile_id',
+                      'portal_id'
+                    ]
+                  ]
+                ],
+                'is_owner_locked',
                 'created_at',
                 'updated_at'
               ]
@@ -317,6 +345,20 @@ export let mapMagicMcpSessionsListOutput =
               [
                 ['servers', 0, [2, [3, [[0, [1, ['tool_filters']]]]]]],
                 'enable_skill_editing',
+                [
+                  'owner_actor',
+                  1,
+                  [
+                    1,
+                    [
+                      'image_url',
+                      'consumer_id',
+                      'consumer_profile_id',
+                      'portal_id'
+                    ]
+                  ]
+                ],
+                'is_owner_locked',
                 'created_at',
                 'updated_at'
               ]

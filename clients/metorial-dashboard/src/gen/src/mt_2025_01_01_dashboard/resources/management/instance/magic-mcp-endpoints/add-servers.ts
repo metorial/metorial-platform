@@ -38,6 +38,16 @@ export type ManagementInstanceMagicMcpEndpointsAddServersOutput = {
   description: string | null;
   metadata: Record<string, any>;
   enableSkillEditing: boolean;
+  ownerActor: {
+    id: string;
+    type: 'person' | 'agent' | 'consumer';
+    name: string | null;
+    imageUrl: string | null;
+    consumerId: string | null;
+    consumerProfileId: string | null;
+    portalId: string | null;
+  } | null;
+  isOwnerLocked: boolean;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -47,6 +57,12 @@ export let mapManagementInstanceMagicMcpEndpointsAddServersOutput =
     [
       ['servers', 0, [2, [3, [[0, [1, ['tool_filters']]]]]]],
       'enable_skill_editing',
+      [
+        'owner_actor',
+        1,
+        [1, ['image_url', 'consumer_id', 'consumer_profile_id', 'portal_id']]
+      ],
+      'is_owner_locked',
       'created_at',
       'updated_at'
     ],

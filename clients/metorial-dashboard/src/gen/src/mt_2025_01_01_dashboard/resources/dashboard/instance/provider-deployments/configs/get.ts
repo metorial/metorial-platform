@@ -61,8 +61,13 @@ export type DashboardInstanceProviderDeploymentsConfigsGetOutput = {
   ownerActor: {
     id: string;
     type: 'person' | 'agent' | 'consumer';
+    name: string | null;
+    imageUrl: string | null;
     consumerId: string | null;
+    consumerProfileId: string | null;
+    portalId: string | null;
   } | null;
+  isOwnerLocked: boolean;
   createdAt: Date;
   updatedAt: Date;
 } & { publicMcpServerId: string | null };
@@ -111,7 +116,20 @@ export let mapDashboardInstanceProviderDeploymentsConfigsGetOutput =
                   ]
                 ]
               ],
-              ['owner_actor', 1, [1, ['consumer_id']]],
+              [
+                'owner_actor',
+                1,
+                [
+                  1,
+                  [
+                    'image_url',
+                    'consumer_id',
+                    'consumer_profile_id',
+                    'portal_id'
+                  ]
+                ]
+              ],
+              'is_owner_locked',
               'created_at',
               'updated_at',
               'public_mcp_server_id'

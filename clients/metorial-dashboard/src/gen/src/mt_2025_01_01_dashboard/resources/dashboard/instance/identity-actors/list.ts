@@ -31,6 +31,7 @@ export type DashboardInstanceIdentityActorsListOutput = {
           isServiceAccount: boolean;
         })
       | null;
+    consumerProfile: { id: string; portalId: string | null } | null;
   })[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
@@ -75,7 +76,8 @@ export let mapDashboardInstanceIdentityActorsListOutput =
                       ]
                     ]
                   ]
-                ]
+                ],
+                ['consumer_profile', 1, [1, ['portal_id']]]
               ]
             ]
           ]

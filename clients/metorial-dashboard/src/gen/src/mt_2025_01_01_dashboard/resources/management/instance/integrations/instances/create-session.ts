@@ -74,6 +74,16 @@ export type ManagementInstanceIntegrationsInstancesCreateSessionOutput = {
   hasErrors: boolean;
   hasWarnings: boolean;
   identityActorId: string | null;
+  ownerActor: {
+    id: string;
+    type: 'person' | 'agent' | 'consumer';
+    name: string | null;
+    imageUrl: string | null;
+    consumerId: string | null;
+    consumerProfileId: string | null;
+    portalId: string | null;
+  } | null;
+  isOwnerLocked: boolean;
   identityId: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -141,6 +151,12 @@ export let mapManagementInstanceIntegrationsInstancesCreateSessionOutput =
       'has_errors',
       'has_warnings',
       'identity_actor_id',
+      [
+        'owner_actor',
+        1,
+        [1, ['image_url', 'consumer_id', 'consumer_profile_id', 'portal_id']]
+      ],
+      'is_owner_locked',
       'identity_id',
       'created_at',
       'updated_at'

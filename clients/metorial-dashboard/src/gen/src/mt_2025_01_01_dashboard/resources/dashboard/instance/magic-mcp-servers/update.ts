@@ -1,4 +1,7 @@
-import { createMapper } from '@metorial/util-resource-mapper/compact';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceMagicMcpServersUpdateOutput = {
   object: 'magic_mcp.server';
@@ -131,8 +134,13 @@ export type DashboardInstanceMagicMcpServersUpdateOutput = {
   ownerActor: {
     id: string;
     type: 'person' | 'agent' | 'consumer';
+    name: string | null;
+    imageUrl: string | null;
     consumerId: string | null;
+    consumerProfileId: string | null;
+    portalId: string | null;
   } | null;
+  isOwnerLocked: boolean;
   createdAt: Date;
   updatedAt: Date;
 } & {
@@ -377,7 +385,20 @@ export let mapDashboardInstanceMagicMcpServersUpdateOutput =
                   ]
                 ]
               ],
-              ['owner_actor', 1, [1, ['consumer_id']]],
+              [
+                'owner_actor',
+                1,
+                [
+                  1,
+                  [
+                    'image_url',
+                    'consumer_id',
+                    'consumer_profile_id',
+                    'portal_id'
+                  ]
+                ]
+              ],
+              'is_owner_locked',
               'created_at',
               'updated_at',
               'integration_id',
@@ -415,7 +436,10 @@ export type DashboardInstanceMagicMcpServersUpdateBody = {
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
   aliases?: string[] | undefined;
+  isOwnerLocked?: boolean | undefined;
 };
 
 export let mapDashboardInstanceMagicMcpServersUpdateBody =
-  /* @__PURE__ */ createMapper<DashboardInstanceMagicMcpServersUpdateBody>(0);
+  /* @__PURE__ */ mapObject<DashboardInstanceMagicMcpServersUpdateBody>([
+    'is_owner_locked'
+  ]);

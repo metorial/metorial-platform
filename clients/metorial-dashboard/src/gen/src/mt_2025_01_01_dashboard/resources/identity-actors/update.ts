@@ -30,6 +30,7 @@ export type IdentityActorsUpdateOutput = {
         isServiceAccount: boolean;
       })
     | null;
+  consumerProfile: { id: string; portalId: string | null } | null;
 };
 
 export let mapIdentityActorsUpdateOutput =
@@ -70,7 +71,8 @@ export let mapIdentityActorsUpdateOutput =
                     ]
                   ]
                 ]
-              ]
+              ],
+              ['consumer_profile', 1, [1, ['portal_id']]]
             ]
           ]
         ]

@@ -13,6 +13,16 @@ export type DashboardInstanceSessionTemplatesUpdateOutput = {
   integrationInstanceId: string | null;
   integrationInstanceGroupId: string | null;
   identityActorId: string | null;
+  ownerActor: {
+    id: string;
+    type: 'person' | 'agent' | 'consumer';
+    name: string | null;
+    imageUrl: string | null;
+    consumerId: string | null;
+    consumerProfileId: string | null;
+    portalId: string | null;
+  } | null;
+  isOwnerLocked: boolean;
   identityId: string | null;
   providers: {
     object: 'session.template.provider';
@@ -71,6 +81,12 @@ export let mapDashboardInstanceSessionTemplatesUpdateOutput =
       'integration_instance_id',
       'integration_instance_group_id',
       'identity_actor_id',
+      [
+        'owner_actor',
+        1,
+        [1, ['image_url', 'consumer_id', 'consumer_profile_id', 'portal_id']]
+      ],
+      'is_owner_locked',
       'identity_id',
       [
         'providers',

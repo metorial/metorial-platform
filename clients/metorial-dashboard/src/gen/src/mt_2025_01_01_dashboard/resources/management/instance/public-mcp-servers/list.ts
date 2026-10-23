@@ -46,8 +46,13 @@ export type ManagementInstancePublicMcpServersListOutput = {
     ownerActor: {
       id: string;
       type: 'person' | 'agent' | 'consumer';
+      name: string | null;
+      imageUrl: string | null;
       consumerId: string | null;
+      consumerProfileId: string | null;
+      portalId: string | null;
     } | null;
+    isOwnerLocked: boolean;
     disabledAt: Date | null;
     archivedAt: Date | null;
     createdAt: Date;
@@ -77,7 +82,15 @@ export let mapManagementInstancePublicMcpServersListOutput =
           'access_token_ttl_seconds',
           'refresh_token_ttl_seconds',
           'grant_idle_expiry_seconds',
-          ['owner_actor', 1, [1, ['consumer_id']]],
+          [
+            'owner_actor',
+            1,
+            [
+              1,
+              ['image_url', 'consumer_id', 'consumer_profile_id', 'portal_id']
+            ]
+          ],
+          'is_owner_locked',
           'disabled_at',
           'archived_at',
           'created_at',

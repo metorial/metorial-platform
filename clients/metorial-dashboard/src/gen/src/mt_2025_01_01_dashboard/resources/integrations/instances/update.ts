@@ -13,8 +13,13 @@ export type IntegrationsInstancesUpdateOutput = {
   ownerActor: {
     id: string;
     type: 'person' | 'agent' | 'consumer';
+    name: string | null;
+    imageUrl: string | null;
     consumerId: string | null;
+    consumerProfileId: string | null;
+    portalId: string | null;
   } | null;
+  isOwnerLocked: boolean;
   implementation: { type: 'magic_mcp_server'; magicMcpServerId: string } | null;
   providers: {
     object: 'integration.instance.provider';
@@ -137,7 +142,12 @@ export let mapIntegrationsInstancesUpdateOutput =
       'integration_id',
       'identity_actor_id',
       'identity_id',
-      ['owner_actor', 1, [1, ['consumer_id']]],
+      [
+        'owner_actor',
+        1,
+        [1, ['image_url', 'consumer_id', 'consumer_profile_id', 'portal_id']]
+      ],
+      'is_owner_locked',
       ['implementation', 0, [1, ['magic_mcp_server_id']]],
       [
         'providers',
@@ -248,6 +258,7 @@ export type IntegrationsInstancesUpdateBody = {
         isOverrideToolFilter?: boolean | undefined;
       }[]
     | undefined;
+  isOwnerLocked?: boolean | undefined;
 };
 
 export let mapIntegrationsInstancesUpdateBody =
@@ -270,5 +281,6 @@ export let mapIntegrationsInstancesUpdateBody =
           ]
         ]
       ]
-    ]
+    ],
+    'is_owner_locked'
   ]);

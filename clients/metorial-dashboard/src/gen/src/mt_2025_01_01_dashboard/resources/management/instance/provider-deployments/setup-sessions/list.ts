@@ -6,12 +6,7 @@ export type ManagementInstanceProviderDeploymentsSetupSessionsListOutput = {
     id: string;
     type: 'auth_only' | 'config_only' | 'auth_and_config' | 'admin';
     status:
-      | 'failed'
-      | 'archived'
-      | 'deleted'
-      | 'pending'
-      | 'completed'
-      | 'expired';
+      'failed' | 'archived' | 'deleted' | 'pending' | 'completed' | 'expired';
     url: string;
     error: { code: string; message: string } | null;
     name: string | null;
@@ -24,8 +19,13 @@ export type ManagementInstanceProviderDeploymentsSetupSessionsListOutput = {
     ownerActor: {
       id: string;
       type: 'person' | 'agent' | 'consumer';
+      name: string | null;
+      imageUrl: string | null;
       consumerId: string | null;
+      consumerProfileId: string | null;
+      portalId: string | null;
     } | null;
+    isOwnerLocked: boolean;
     authMethod: {
       object: 'provider.capabilities.auth_method';
       id: string;
@@ -163,8 +163,13 @@ export type ManagementInstanceProviderDeploymentsSetupSessionsListOutput = {
       ownerActor: {
         id: string;
         type: 'person' | 'agent' | 'consumer';
+        name: string | null;
+        imageUrl: string | null;
         consumerId: string | null;
+        consumerProfileId: string | null;
+        portalId: string | null;
       } | null;
+      isOwnerLocked: boolean;
       createdAt: Date;
       updatedAt: Date;
     } | null;
@@ -229,8 +234,13 @@ export type ManagementInstanceProviderDeploymentsSetupSessionsListOutput = {
       ownerActor: {
         id: string;
         type: 'person' | 'agent' | 'consumer';
+        name: string | null;
+        imageUrl: string | null;
         consumerId: string | null;
+        consumerProfileId: string | null;
+        portalId: string | null;
       } | null;
+      isOwnerLocked: boolean;
       createdAt: Date;
       updatedAt: Date;
     } | null;
@@ -258,7 +268,20 @@ export let mapManagementInstanceProviderDeploymentsSetupSessionsListOutput =
                 'provider_id',
                 'identity_id',
                 'identity_credential_id',
-                ['owner_actor', 1, [1, ['consumer_id']]],
+                [
+                  'owner_actor',
+                  1,
+                  [
+                    1,
+                    [
+                      'image_url',
+                      'consumer_id',
+                      'consumer_profile_id',
+                      'portal_id'
+                    ]
+                  ]
+                ],
+                'is_owner_locked',
                 [
                   'auth_method',
                   1,
@@ -348,7 +371,20 @@ export let mapManagementInstanceProviderDeploymentsSetupSessionsListOutput =
                           ]
                         ]
                       ],
-                      ['owner_actor', 1, [1, ['consumer_id']]],
+                      [
+                        'owner_actor',
+                        1,
+                        [
+                          1,
+                          [
+                            'image_url',
+                            'consumer_id',
+                            'consumer_profile_id',
+                            'portal_id'
+                          ]
+                        ]
+                      ],
+                      'is_owner_locked',
                       'created_at',
                       'updated_at'
                     ]
@@ -406,7 +442,20 @@ export let mapManagementInstanceProviderDeploymentsSetupSessionsListOutput =
                           ]
                         ]
                       ],
-                      ['owner_actor', 1, [1, ['consumer_id']]],
+                      [
+                        'owner_actor',
+                        1,
+                        [
+                          1,
+                          [
+                            'image_url',
+                            'consumer_id',
+                            'consumer_profile_id',
+                            'portal_id'
+                          ]
+                        ]
+                      ],
+                      'is_owner_locked',
                       'created_at',
                       'updated_at'
                     ]

@@ -30,6 +30,7 @@ export type ManagementInstanceIdentityActorsDeleteOutput = {
         isServiceAccount: boolean;
       })
     | null;
+  consumerProfile: { id: string; portalId: string | null } | null;
 };
 
 export let mapManagementInstanceIdentityActorsDeleteOutput =
@@ -70,7 +71,8 @@ export let mapManagementInstanceIdentityActorsDeleteOutput =
                     ]
                   ]
                 ]
-              ]
+              ],
+              ['consumer_profile', 1, [1, ['portal_id']]]
             ]
           ]
         ]

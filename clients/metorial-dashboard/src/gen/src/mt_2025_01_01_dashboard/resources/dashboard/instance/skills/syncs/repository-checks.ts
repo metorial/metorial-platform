@@ -14,11 +14,7 @@ export type DashboardInstanceSkillsSyncsRepositoryChecksOutput = {
     forceMergeOrPush: boolean;
     mergeBeforeChecksPass: boolean;
     overrideAttemptStatus:
-      | 'not_attempted'
-      | 'attempting'
-      | 'refused'
-      | 'waiting'
-      | 'succeeded';
+      'not_attempted' | 'attempting' | 'refused' | 'waiting' | 'succeeded';
     overrideRefusalReason: string | null;
     targetBranch: string | null;
     status:

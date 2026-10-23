@@ -61,8 +61,13 @@ export type ProviderDeploymentsConfigsCreateOutput = {
   ownerActor: {
     id: string;
     type: 'person' | 'agent' | 'consumer';
+    name: string | null;
+    imageUrl: string | null;
     consumerId: string | null;
+    consumerProfileId: string | null;
+    portalId: string | null;
   } | null;
+  isOwnerLocked: boolean;
   createdAt: Date;
   updatedAt: Date;
 } & { publicMcpServerId: string | null };
@@ -111,7 +116,20 @@ export let mapProviderDeploymentsConfigsCreateOutput =
                   ]
                 ]
               ],
-              ['owner_actor', 1, [1, ['consumer_id']]],
+              [
+                'owner_actor',
+                1,
+                [
+                  1,
+                  [
+                    'image_url',
+                    'consumer_id',
+                    'consumer_profile_id',
+                    'portal_id'
+                  ]
+                ]
+              ],
+              'is_owner_locked',
               'created_at',
               'updated_at',
               'public_mcp_server_id'
@@ -150,6 +168,7 @@ export type ProviderDeploymentsConfigsCreateBody = {
       )[]
     | null
     | undefined;
+  isOwnerLocked?: boolean | undefined;
 } & ({ value: Record<string, any> } | { providerConfigVaultId: string });
 
 export let mapProviderDeploymentsConfigsCreateBody =
@@ -164,6 +183,7 @@ export let mapProviderDeploymentsConfigsCreateBody =
             'provider_id',
             'provider_deployment_id',
             'tool_filters',
+            'is_owner_locked',
             'provider_config_vault_id'
           ]
         ]

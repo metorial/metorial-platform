@@ -14,8 +14,13 @@ export type ManagementInstanceIntegrationsSetupSessionsGetOutput = {
   ownerActor: {
     id: string;
     type: 'person' | 'agent' | 'consumer';
+    name: string | null;
+    imageUrl: string | null;
     consumerId: string | null;
+    consumerProfileId: string | null;
+    portalId: string | null;
   } | null;
+  isOwnerLocked: boolean;
   integrationInstance: {
     object: 'integration.instance';
     id: string;
@@ -29,8 +34,13 @@ export type ManagementInstanceIntegrationsSetupSessionsGetOutput = {
     ownerActor: {
       id: string;
       type: 'person' | 'agent' | 'consumer';
+      name: string | null;
+      imageUrl: string | null;
       consumerId: string | null;
+      consumerProfileId: string | null;
+      portalId: string | null;
     } | null;
+    isOwnerLocked: boolean;
     implementation: {
       type: 'magic_mcp_server';
       magicMcpServerId: string;
@@ -186,7 +196,12 @@ export let mapManagementInstanceIntegrationsSetupSessionsGetOutput =
     [
       'redirect_url',
       'integration_id',
-      ['owner_actor', 1, [1, ['consumer_id']]],
+      [
+        'owner_actor',
+        1,
+        [1, ['image_url', 'consumer_id', 'consumer_profile_id', 'portal_id']]
+      ],
+      'is_owner_locked',
       [
         'integration_instance',
         1,
@@ -196,7 +211,15 @@ export let mapManagementInstanceIntegrationsSetupSessionsGetOutput =
             'integration_id',
             'identity_actor_id',
             'identity_id',
-            ['owner_actor', 1, [1, ['consumer_id']]],
+            [
+              'owner_actor',
+              1,
+              [
+                1,
+                ['image_url', 'consumer_id', 'consumer_profile_id', 'portal_id']
+              ]
+            ],
+            'is_owner_locked',
             ['implementation', 0, [1, ['magic_mcp_server_id']]],
             [
               'providers',
