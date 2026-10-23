@@ -28,6 +28,7 @@ class tenantServiceImpl {
       identifier: string;
       resourceTenantId: string;
       resourceTenantIdentifier: string;
+      hidePublicRemoteProviders?: boolean;
       onlyAllowTrustedProviders?: boolean;
       isWhitelabel?: boolean;
       logRetentionInDays?: number;
@@ -103,6 +104,7 @@ class tenantServiceImpl {
                 identifier: d.input.identifier,
                 resourceTenantId: d.input.resourceTenantId,
                 resourceTenantIdentifier: d.input.resourceTenantIdentifier,
+                hidePublicRemoteProviders: d.input.hidePublicRemoteProviders ?? true,
                 onlyAllowTrustedProviders: d.input.onlyAllowTrustedProviders,
                 isWhitelabel: d.input.isWhitelabel,
                 logRetentionInDays: d.input.logRetentionInDays ?? 30,
@@ -329,6 +331,16 @@ class tenantServiceImpl {
 
       throw error;
     }
+  }
+
+  async updateTenantPublicRemoteProviderVisibility(d: {
+    tenant: Tenant;
+    hidePublicRemoteProviders: boolean;
+  }) {
+    return await db.tenant.update({
+      where: { oid: d.tenant.oid },
+      data: { hidePublicRemoteProviders: d.hidePublicRemoteProviders }
+    });
   }
 
   async ensureNetworksForTenant(tenant: Tenant) {

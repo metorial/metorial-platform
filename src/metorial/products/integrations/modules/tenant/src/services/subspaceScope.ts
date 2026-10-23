@@ -132,7 +132,8 @@ let loadProjectWithInstances = async (project: ScopeProject): Promise<LoadedProj
     project.instances &&
     project.name &&
     project.oid != null &&
-    project.onlyAllowTrustedProviders != null
+    project.onlyAllowTrustedProviders != null &&
+    project.hidePublicRemoteProviders != null
   ) {
     return project as LoadedProject;
   }
@@ -473,6 +474,17 @@ class subspaceScopeServiceImpl {
     };
   }
 
+  async clearProjectScopeCache(project: ScopeProject) {
+    let loadedProject = await loadProjectWithInstances(project);
+
+    await projectScopeCache.clearAndWait({ project: loadedProject });
+    await Promise.all(
+      (loadedProject.instances ?? []).map(instance =>
+        instanceScopeCache.clearAndWait({ instance })
+      )
+    );
+  }
+
   async ensureForProjectUncached(project: ScopeProject) {
     let loadedProject = await loadProjectWithInstances(project);
     await assertProjectScope(loadedProject);
@@ -488,6 +500,7 @@ class subspaceScopeServiceImpl {
         identifier: tenantIdentifier,
         name: loadedProject.name,
         onlyAllowTrustedProviders: loadedProject.onlyAllowTrustedProviders,
+        hidePublicRemoteProviders: loadedProject.hidePublicRemoteProviders,
         resourceTenantId: resourceTenant.id,
         resourceTenantIdentifier: resourceTenant.identifier,
         projectOid: loadedProject.oid,

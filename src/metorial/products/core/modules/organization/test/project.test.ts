@@ -120,7 +120,10 @@ describe('ProjectService', () => {
       vi.mocked(withTransaction).mockImplementation(async callback => {
         let mockDb = {
           project: {
-            create: vi.fn().mockResolvedValue(mockProject)
+            create: vi.fn(async args => {
+              expect(args.data.hidePublicRemoteProviders).toBe(true);
+              return mockProject;
+            })
           }
         };
         return callback(mockDb as any);
@@ -233,6 +236,32 @@ describe('ProjectService', () => {
   });
 
   describe('updateProject', () => {
+    it.each([true, false])(
+      'persists the internal provider visibility flag %s',
+      async value => {
+        let project = { id: 'proj-1', oid: 1n, status: 'active' } as any;
+        let update = vi
+          .fn()
+          .mockResolvedValue({ ...project, hidePublicRemoteProviders: value });
+        vi.mocked(withTransaction).mockImplementation(async callback =>
+          callback({ project: { update } } as any)
+        );
+
+        await projectService.updateProject({
+          project,
+          organization: { id: 'org-1', oid: 1n } as any,
+          auditScope: {} as any,
+          input: { hidePublicRemoteProviders: value }
+        });
+
+        expect(update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({ hidePublicRemoteProviders: value })
+          })
+        );
+      }
+    );
+
     it('should update active project successfully', async () => {
       let mockProject = {
         id: 'proj-1',

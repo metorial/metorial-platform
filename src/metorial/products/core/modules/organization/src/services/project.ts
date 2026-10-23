@@ -121,6 +121,7 @@ class ProjectService {
           name: d.input.name,
           magicMcpSessionDurationMinutes: d.input.magicMcpSessionDurationMinutes,
           autoAddOrganizationMembersToPortals: true,
+          hidePublicRemoteProviders: true,
           organizationOid: d.organization.oid
         },
         include: {
@@ -160,6 +161,7 @@ class ProjectService {
     input: {
       name?: string;
       slug?: string;
+      hidePublicRemoteProviders?: boolean;
       onlyAllowTrustedProviders?: boolean;
       magicMcpSessionDurationMinutes?: number;
     };
@@ -189,6 +191,7 @@ class ProjectService {
                   nextSlug: d.input.slug
                 })
               : undefined,
+          hidePublicRemoteProviders: d.input.hidePublicRemoteProviders,
           onlyAllowTrustedProviders: d.input.onlyAllowTrustedProviders,
           magicMcpSessionDurationMinutes: d.input.magicMcpSessionDurationMinutes
         },

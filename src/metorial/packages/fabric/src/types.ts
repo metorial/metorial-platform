@@ -616,6 +616,7 @@ export type ProjectCreateInput = {
 };
 
 export type ProjectUpdateInput = {
+  hidePublicRemoteProviders?: boolean;
   name?: string;
   slug?: string;
   onlyAllowTrustedProviders?: boolean;

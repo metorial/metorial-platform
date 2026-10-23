@@ -25,6 +25,8 @@ model Tenant {
   // No relation: Project.tenantOid already points here, so an FK would cycle
   projectOid BigInt?
 
+  hidePublicRemoteProviders Boolean @default(false)
+
   onlyAllowTrustedProviders Boolean @default(false)
   isWhitelabel              Boolean @default(false)
 
