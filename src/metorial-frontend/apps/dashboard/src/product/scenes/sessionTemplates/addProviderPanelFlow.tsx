@@ -1157,6 +1157,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
                     let comboboxAuthConfigs = useProviderAuthConfigs(p.instanceId, {
                       providerId: p.providerId,
                       limit: 25,
+                      usable: true,
                       search: searchQuery || undefined,
                       ...(filterAvailableResources
                         ? {

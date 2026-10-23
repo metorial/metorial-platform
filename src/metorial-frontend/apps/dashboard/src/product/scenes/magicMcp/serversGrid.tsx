@@ -33,6 +33,7 @@ import {
   getStringFilterValue
 } from '@metorial/table';
 import { useDebounced } from '@metorial/use-debounced';
+import { ResourceOwnerInline } from '../../components/resourceOwnerEntity';
 import { showMagicMcpServerCreateFlow } from '../providerDeployments/magicMcpForm';
 
 type Server = DashboardInstanceMagicMcpServersListOutput['items'][number];
@@ -48,7 +49,6 @@ let SearchWrapper = styled.div`
   flex: 1;
   min-width: 260px;
 `;
-
 
 let ProviderAvatarStack = styled.div`
   display: flex;
@@ -179,6 +179,12 @@ let magicServersTable = new DashboardTable<MagicMcpServersTableProps, Server>(
           {server.endpoints.map(endpoint => endpoint.alias).join(', ') || '-'}
         </Text>
       )
+    },
+    {
+      id: 'owner',
+      isDefault: true,
+      header: 'Owner',
+      render: server => <ResourceOwnerInline resource={server} linked={false} />
     },
     {
       id: 'createdAt',
@@ -506,9 +512,7 @@ export let MagicMcpServersGrid = (filter: DashboardInstanceMagicMcpServersListQu
                             />
                           )
                         }
-                        bottom={
-                          <Text size="1">{aliases[0] ?? server.id}</Text>
-                        }
+                        bottom={<Text size="1">{aliases[0] ?? server.id}</Text>}
                       />
                     );
                   })}

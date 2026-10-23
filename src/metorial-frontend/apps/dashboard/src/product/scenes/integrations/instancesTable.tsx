@@ -19,6 +19,7 @@ import { Badge, RenderDate, Text, confirm } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { RiDeleteBinLine } from '@remixicon/react';
 import { useState } from 'react';
+import { ResourceOwnerInline } from '../../components/resourceOwnerEntity';
 
 type IntegrationInstancesTableProps = {
   instanceId: string;
@@ -146,6 +147,14 @@ let integrationInstancesTable = new DashboardTable<
             -
           </Text>
         )
+    },
+    {
+      id: 'owner',
+      isDefault: true,
+      header: 'Owner',
+      render: (integrationInstance: IntegrationInstance) => (
+        <ResourceOwnerInline resource={integrationInstance} linked={false} />
+      )
     },
     {
       id: 'createdAt',

@@ -14,6 +14,8 @@ import { RiFlashlightLine } from '@remixicon/react';
 import { useState } from 'react';
 import { Outlet, useNavigate, useParams } from 'react-router-dom';
 import { OpenExplorerButton, type OpenExplorerMode } from '../../../components/openExplorer';
+import { ResourceOwnerInline } from '../../../components/resourceOwnerEntity';
+import { useResourceOwnershipAccess } from '../../../lib/resourceOwnership';
 
 export let MagicMcpServerLayout = () => {
   let instance = useCurrentInstance();
@@ -24,6 +26,7 @@ export let MagicMcpServerLayout = () => {
   let server = useMagicMcpServer(instance.data?.id, magicMcpServerId);
   let createSession = useCreateMagicMcpServerSession();
   let [isCreatingSession, setIsCreatingSession] = useState(false);
+  let ownership = useResourceOwnershipAccess(server.data);
 
   let serverPathParams = [
     organization.data,
@@ -64,7 +67,10 @@ export let MagicMcpServerLayout = () => {
       ]}
       tabs={[
         { label: 'Overview', to: Paths.instance.magicMcp.server(...serverPathParams) },
-        { label: 'Settings', to: Paths.instance.magicMcp.server(...serverPathParams, 'config') }
+        {
+          label: 'Settings',
+          to: Paths.instance.magicMcp.server(...serverPathParams, 'config')
+        }
       ]}
       actions={[
         {
@@ -75,6 +81,7 @@ export let MagicMcpServerLayout = () => {
               variant="outline"
               onOpen={handleOpenExplorer}
               loading={isCreatingSession}
+              disabled={!ownership.canUse || ownership.isLoading}
             />
           )
         }
@@ -87,6 +94,9 @@ export let MagicMcpServerLayout = () => {
                 label: 'Server Identifier',
                 value: <ID id={server.data.endpoints[0]?.alias ?? '...'} />
               },
+              ...(server.data.ownerActor
+                ? [{ label: 'Owner', value: <ResourceOwnerInline resource={server.data} /> }]
+                : []),
               { label: 'Created', value: <RenderDate date={server.data.createdAt} /> }
             ]
           : []

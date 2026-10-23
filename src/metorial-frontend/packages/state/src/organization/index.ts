@@ -25,6 +25,7 @@ export * from './loaders/projectIntegrationNamingConfiguration';
 export * from './loaders/projectSessionlessMcpConfiguration';
 export * from './loaders/projectSkillSyncConfiguration';
 export * from './loaders/projectToolCallingConfiguration';
+export * from './loaders/projectResourceOwnershipConfiguration';
 export * from './loaders/projectWorkforceConfiguration';
 export * from './loaders/scopes';
 export * from './loaders/team';

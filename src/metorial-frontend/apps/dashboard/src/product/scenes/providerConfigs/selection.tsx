@@ -79,7 +79,7 @@ export let ProviderConfigurationSelection = ({
     : providerId
       ? { providerId }
       : {};
-  let configs = useProviderConfigs(instanceId, query);
+  let configs = useProviderConfigs(instanceId, { ...query, usable: true });
   let vaults = useProviderConfigVaults(instanceId, vaultQuery);
   let configSchema = useProviderConfigSchemaTarget(
     instanceId,
@@ -198,6 +198,7 @@ export let ProviderConfigurationSelection = ({
                   let hasSearchQuery = Boolean(searchQuery);
                   let comboboxConfigs = useProviderConfigs(instanceId, {
                     ...query,
+                    usable: true,
                     limit: 25,
                     search: searchQuery || undefined
                   });

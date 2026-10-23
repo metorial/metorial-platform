@@ -8,6 +8,7 @@ import {
 } from '@metorial/state';
 import { Badge, Flex, RenderDate, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
+import { ResourceOwnerInline } from '../../components/resourceOwnerEntity';
 
 export let ProviderConfigsTable = ({
   instanceId,
@@ -30,7 +31,7 @@ export let ProviderConfigsTable = ({
   return renderWithPagination(configs)(configs => (
     <>
       <Table
-        headers={['Name', 'Source', 'Type', 'Updated']}
+        headers={['Name', 'Source', 'Type', 'Owner', 'Updated']}
         data={configs.data.items.map(config => ({
           href: Paths.instance.providerConfig(
             organization.data,
@@ -82,6 +83,7 @@ export let ProviderConfigsTable = ({
                 Custom
               </Badge>
             ),
+            <ResourceOwnerInline resource={config} linked={false} />,
             <RenderDate date={config.updatedAt} />
           ]
         }))}

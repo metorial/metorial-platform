@@ -14,10 +14,9 @@ import { ID } from '@metorial/ui-product';
 import { RiPuzzleLine } from '@remixicon/react';
 import { useState } from 'react';
 import { Outlet, useNavigate, useParams } from 'react-router-dom';
-import {
-  OpenExplorerButton,
-  type OpenExplorerMode
-} from '../../../components/openExplorer';
+import { OpenExplorerButton, type OpenExplorerMode } from '../../../components/openExplorer';
+import { ResourceOwnerInline } from '../../../components/resourceOwnerEntity';
+import { useResourceOwnershipAccess } from '../../../lib/resourceOwnership';
 import { DeletedRecordCallout } from '../../../scenes/deletedRecordCallout';
 
 let getIntegrationInstanceStatusColor = (status: string) => {
@@ -39,6 +38,7 @@ export let IntegrationInstanceLayout = () => {
   let integration = useIntegration(instance.data?.id, integrationInstance.data?.integrationId);
   let createSession = useCreateIntegrationInstanceSession();
   let [isCreatingSession, setIsCreatingSession] = useState(false);
+  let ownership = useResourceOwnershipAccess(integrationInstance.data);
 
   let handleOpenExplorer = async (mode: OpenExplorerMode) => {
     let activeIntegrationInstanceId = integrationInstance.data?.id ?? integrationInstanceId;
@@ -116,7 +116,12 @@ export let IntegrationInstanceLayout = () => {
               size="2"
               variant="outline"
               onOpen={handleOpenExplorer}
-              disabled={isCreatingSession || integrationInstance.data?.status !== 'active'}
+              disabled={
+                isCreatingSession ||
+                integrationInstance.data?.status !== 'active' ||
+                !ownership.canUse ||
+                ownership.isLoading
+              }
               loading={isCreatingSession}
             />
           )
@@ -129,7 +134,9 @@ export let IntegrationInstanceLayout = () => {
               {
                 label: 'Status',
                 value: (
-                  <Badge color={getIntegrationInstanceStatusColor(integrationInstance.data.status)}>
+                  <Badge
+                    color={getIntegrationInstanceStatusColor(integrationInstance.data.status)}
+                  >
                     {capitalize(integrationInstance.data.status)}
                   </Badge>
                 )
@@ -142,7 +149,18 @@ export let IntegrationInstanceLayout = () => {
                   '-'
                 )
               },
-              { label: 'Created', value: <RenderDate date={integrationInstance.data.createdAt} /> }
+              ...(integrationInstance.data.ownerActor
+                ? [
+                    {
+                      label: 'Owner',
+                      value: <ResourceOwnerInline resource={integrationInstance.data} />
+                    }
+                  ]
+                : []),
+              {
+                label: 'Created',
+                value: <RenderDate date={integrationInstance.data.createdAt} />
+              }
             ]
           : []
       }

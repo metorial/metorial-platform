@@ -11,6 +11,7 @@ import {
 } from '@metorial/state';
 import { RenderDate } from '@metorial/ui';
 import { Outlet, useParams } from 'react-router-dom';
+import { ResourceOwnerInline } from '../../../components/resourceOwnerEntity';
 import { DeletedRecordCallout } from '../../../scenes/deletedRecordCallout';
 
 export let ProviderConfigLayout = () => {
@@ -58,6 +59,9 @@ export let ProviderConfigLayout = () => {
         config.data
           ? [
               { label: 'ID', value: <ID id={config.data.id} /> },
+              ...(config.data.ownerActor
+                ? [{ label: 'Owner', value: <ResourceOwnerInline resource={config.data} /> }]
+                : []),
               { label: 'Created', value: <RenderDate date={config.data.createdAt} /> }
             ]
           : []

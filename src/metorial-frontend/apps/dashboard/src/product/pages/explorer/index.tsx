@@ -361,7 +361,8 @@ export let ExplorerPage = () => {
     selectedProvider?.id ?? providerIdParam ?? selectedDeployment.data?.providerId ?? null;
   let activeProvider = useProvider(instance.data?.id, activeProviderId ?? undefined);
   let providerConfigs = useProviderConfigs(instance.data?.id, {
-    providerId: activeProviderId ?? undefined
+    providerId: activeProviderId ?? undefined,
+    usable: true
   });
   let providerConfigVaults = useProviderConfigVaults(instance.data?.id, {
     providerDeploymentId: providerDeploymentId ?? undefined

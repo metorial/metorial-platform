@@ -18,12 +18,13 @@ import { Badge, Button, Callout, Input, Panel, showModal, Spacer, Text } from '@
 import { Box, Table } from '@metorial/ui-product';
 import { useEffect, useRef } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { ResourceOwnerEntity } from '../../../components/resourceOwnerEntity';
 import { showIntegrationInstanceProviderPanelFlow } from '../../../scenes/integrations/providerPanelFlow';
 import { IntegrationInstanceProvidersManager } from '../../../scenes/integrations/providersManager';
 
 let getProviderManagementMode = (mode: string) => {
   if (mode === 'inherited_from_provider_template') {
-    return { label: 'Provider Template', color: 'purple' as const };
+    return { label: 'Workforce Setup', color: 'purple' as const };
   }
   if (mode === 'inherited_from_integration') {
     return { label: 'Integration Instance', color: 'blue' as const };
@@ -284,6 +285,13 @@ export let IntegrationInstanceOverviewPage = () => {
               <Spacer height={20} />
             </>
           ) : null}
+
+          {integrationInstance.data.ownerActor && (
+            <>
+              <ResourceOwnerEntity resource={integrationInstance.data} />
+              <Spacer height={20} />
+            </>
+          )}
 
           <Box
             title="Providers"

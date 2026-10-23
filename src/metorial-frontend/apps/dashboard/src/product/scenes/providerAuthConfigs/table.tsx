@@ -8,6 +8,7 @@ import {
 } from '@metorial/state';
 import { Badge, Flex, RenderDate, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
+import { ResourceOwnerInline } from '../../components/resourceOwnerEntity';
 
 let formatType = (type: string | null | undefined) => {
   if (type === 'oauth_automated') return 'OAuth (Automated)';
@@ -44,7 +45,16 @@ export let ProviderAuthConfigsTable = ({
   return renderWithPagination(authConfigs)(authConfigs => (
     <>
       <Table
-        headers={['Name', 'Auth Method', 'Type', 'Source', 'Status', 'Default', 'Updated']}
+        headers={[
+          'Name',
+          'Auth Method',
+          'Type',
+          'Source',
+          'Status',
+          'Default',
+          'Owner',
+          'Updated'
+        ]}
         data={authConfigs.data.items.map(config => ({
           href: Paths.instance.providerAuthConfig(
             organization.data,
@@ -86,6 +96,7 @@ export let ProviderAuthConfigsTable = ({
             ) : (
               <></>
             ),
+            <ResourceOwnerInline resource={config} linked={false} />,
             <RenderDate date={config.updatedAt} />
           ]
         }))}
