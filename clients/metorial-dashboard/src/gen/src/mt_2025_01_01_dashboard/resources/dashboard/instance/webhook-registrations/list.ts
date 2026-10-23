@@ -52,6 +52,7 @@ export type DashboardInstanceWebhookRegistrationsListQuery = {
     | 'deleted'
     | ('awaiting_setup' | 'active' | 'archived' | 'deleted')[]
     | undefined;
+  search?: string | undefined;
   createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
   updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };

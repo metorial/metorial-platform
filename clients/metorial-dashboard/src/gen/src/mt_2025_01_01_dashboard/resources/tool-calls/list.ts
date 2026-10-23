@@ -207,6 +207,7 @@ export type ToolCallsListQuery = {
     | undefined;
   createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
   updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
+  search?: string | undefined;
 };
 
 export let mapToolCallsListQuery =
