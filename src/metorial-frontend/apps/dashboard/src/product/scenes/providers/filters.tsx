@@ -1,5 +1,5 @@
 import type { DashboardInstanceProviderListingsListQuery } from '@metorial/dashboard-sdk';
-import { useCurrentInstance, useProviderCategories } from '@metorial/state';
+import { providerCategoriesLoader, useCurrentInstance } from '@metorial/state';
 import { Input } from '@metorial/ui';
 import { type Dispatch, type SetStateAction, useMemo } from 'react';
 import styled from 'styled-components';
@@ -12,6 +12,7 @@ import {
   getListFilterValue
 } from '@metorial/table';
 import { useDebounced } from '@metorial/use-debounced';
+import { defineEntityFilter, useEntityList } from '../entityFilters';
 
 let Toolbar = styled.div`
   display: flex;
@@ -26,32 +27,42 @@ let SearchWrapper = styled.div`
   min-width: 220px;
 `;
 
+let providerCategoryFilter = (instanceId: string | undefined) =>
+  defineEntityFilter({
+    id: 'providerCategoryId',
+    label: 'Category',
+    noun: 'categories',
+    mode: 'recent',
+    useList: q => {
+      let categories = useEntityList(
+        providerCategoriesLoader.use(instanceId && q ? { instanceId } : null),
+        category => ({ id: category.id, label: category.name, slug: category.slug })
+      );
+      let idsKey = q?.ids?.join(',');
+
+      return useMemo(() => {
+        let ids = idsKey ? new Set(idsKey.split(',')) : undefined;
+        let items = categories.items
+          .filter(category => !ids || ids.has(category.id))
+          .sort((a, b) => a.label.localeCompare(b.label));
+
+        return { items, isLoading: categories.isLoading };
+      }, [categories, idsKey]);
+    }
+  })();
+
 export let useProviderListingFilters = (p: {
   search: string;
   filterState: TableFilterState[];
 }) => {
   let trueFilterValues = useMemo(() => ['true'] as const, []);
   let instance = useCurrentInstance();
-  let providerCategories = useProviderCategories(instance.data?.id);
+  let instanceId = instance.data?.id;
   let searchDebounced = useDebounced(p.search, 500);
-  let categories = useMemo(
-    () =>
-      (providerCategories.data?.items ?? [])
-        .map(category => ({ id: category.id, name: category.name }))
-        .sort((a, b) => a.name.localeCompare(b.name)),
-    [providerCategories.data?.items]
-  );
 
   let filters: TableFilter<any>[] = useMemo(
     () => [
-      {
-        id: 'providerCategoryId',
-        fields: ['providerCategoryId'],
-        label: 'Category',
-        description: 'Filter by category',
-        type: 'select',
-        options: categories.map(category => ({ id: category.id, label: category.name }))
-      },
+      providerCategoryFilter(instanceId),
       {
         id: 'isVerified',
         fields: ['isVerified'],
@@ -61,7 +72,7 @@ export let useProviderListingFilters = (p: {
         options: [{ id: 'true', label: 'Verified only' }]
       }
     ],
-    [categories]
+    [instanceId]
   );
 
   let filterPayload = useMemo(() => getFilterPayload(p.filterState), [p.filterState]);

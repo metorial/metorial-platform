@@ -108,7 +108,14 @@ export let sessionErrorController = Controller.create(
               description: 'Filter by session message ID(s)'
             }),
             created_at: dateFilterValidator('session error creation time'),
-            updated_at: dateFilterValidator('session error last update time')
+            updated_at: dateFilterValidator('session error last update time'),
+            search: v.optional(
+              v.string({
+                description:
+                  'Search by session error ID or error code, or by the name of a related provider, deployment, or auth config',
+                examples: ['github']
+              })
+            )
           })
         )
       )
@@ -127,7 +134,8 @@ export let sessionErrorController = Controller.create(
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           sessionMessageIds: normalizeArrayParam(ctx.query.session_message_id),
           createdAt: ctx.query.created_at,
-          updatedAt: ctx.query.updated_at
+          updatedAt: ctx.query.updated_at,
+          search: ctx.query.search
         });
 
         let list = await paginator.run(ctx.query);

@@ -11,13 +11,15 @@ import {
   Table as DashboardTable,
   getDateRangeFilterValue,
   getEnumListFilterValue,
-  getStringFilterValue,
+  getListFilterValue,
+  TableFilter,
   TableStateProvider,
   TableStateProviderResult
 } from '@metorial/table';
 import { Badge, RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
-import type { ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
+import { entityFilters } from '../entityFilters';
 import { CallbackSyncBadge, getStatusColor } from './shared';
 
 type CallbacksTableProps = {
@@ -39,10 +41,9 @@ let useCallbacksTableState: TableStateProvider<
     status:
       getEnumListFilterValue(opts.filter.status, ['active', 'archived', 'deleted']) ??
       props.filters?.status,
-    id: getStringFilterValue(opts.filter.id) ?? props.filters?.id,
     integrationId:
-      getStringFilterValue(opts.filter.integrationId) ?? props.filters?.integrationId,
-    providerId: getStringFilterValue(opts.filter.providerId) ?? props.filters?.providerId,
+      getListFilterValue(opts.filter.integrationId) ?? props.filters?.integrationId,
+    providerId: getListFilterValue(opts.filter.providerId) ?? props.filters?.providerId,
     createdAt: getDateRangeFilterValue(opts.filter.createdAt) ?? props.filters?.createdAt
   });
 
@@ -56,6 +57,34 @@ let useCallbacksTableState: TableStateProvider<
     loadPrevious: callbacks.previous
   };
 };
+
+let useCallbacksTableFilters = (instanceId: string) =>
+  useMemo<TableFilter<CallbackPreview>[]>(
+    () => [
+      {
+        id: 'status',
+        fields: ['status'],
+        label: 'Status',
+        description: 'Filter by status',
+        type: 'select',
+        options: [
+          { id: 'active', label: 'Active' },
+          { id: 'archived', label: 'Archived' },
+          { id: 'deleted', label: 'Deleted' }
+        ]
+      },
+      entityFilters.integration(instanceId),
+      entityFilters.provider(instanceId),
+      {
+        id: 'createdAt',
+        fields: ['createdAt'],
+        label: 'Created',
+        description: 'Filter by created date',
+        type: 'date'
+      }
+    ],
+    [instanceId]
+  );
 
 let callbacksTable = new DashboardTable<CallbacksTableProps, CallbackPreview>('callbacks')
   .state(useCallbacksTableState)
@@ -121,48 +150,6 @@ let callbacksTable = new DashboardTable<CallbacksTableProps, CallbackPreview>('c
       render: callback => <ID id={callback.id} />
     }
   ])
-  .filters([
-    {
-      id: 'status',
-      fields: ['status'],
-      label: 'Status',
-      description: 'Filter by status',
-      type: 'select',
-      options: [
-        { id: 'active', label: 'Active' },
-        { id: 'archived', label: 'Archived' },
-        { id: 'deleted', label: 'Deleted' }
-      ]
-    },
-    {
-      id: 'integrationId',
-      fields: ['integrationId'],
-      label: 'Integration ID',
-      description: 'Filter by integration ID',
-      type: 'string'
-    },
-    {
-      id: 'providerId',
-      fields: ['providerId'],
-      label: 'Provider ID',
-      description: 'Filter by provider ID',
-      type: 'string'
-    },
-    {
-      id: 'id',
-      fields: ['id'],
-      label: 'Callback ID',
-      description: 'Filter by callback ID',
-      type: 'string'
-    },
-    {
-      id: 'createdAt',
-      fields: ['createdAt'],
-      label: 'Created',
-      description: 'Filter by created date',
-      type: 'date'
-    }
-  ])
   .link((callback, props) =>
     Paths.instance.callback(
       props.organization.data,
@@ -185,6 +172,7 @@ export let CallbacksTable = ({
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let tableFilters = useCallbacksTableFilters(instanceId);
 
   return callbacksTable({
     instanceId,
@@ -192,6 +180,7 @@ export let CallbacksTable = ({
     instance,
     organization,
     project,
+    tableFilters,
     emptyState:
       emptyState ??
       'No callbacks yet. Enable callbacks on an integration provider to start receiving provider events.'

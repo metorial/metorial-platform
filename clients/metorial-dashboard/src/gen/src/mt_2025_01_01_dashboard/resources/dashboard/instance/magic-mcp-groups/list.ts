@@ -34,6 +34,7 @@ export type DashboardInstanceMagicMcpGroupsListQuery = {
     | ('active' | 'archived' | 'deleted')[]
     | undefined;
   search?: string | undefined;
+  id?: string | string[] | undefined;
 };
 
 export let mapDashboardInstanceMagicMcpGroupsListQuery =

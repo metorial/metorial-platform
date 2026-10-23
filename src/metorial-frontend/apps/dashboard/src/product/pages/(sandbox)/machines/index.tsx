@@ -7,7 +7,6 @@ import {
   useCurrentProject,
   useDeleteSandboxMachineFromList,
   usePauseSandboxMachineFromList,
-  useSandboxImages,
   useSandboxMachines,
   useSandboxRegions,
   useStartSandboxMachineFromList,
@@ -16,7 +15,9 @@ import {
 } from '@metorial/state';
 import {
   Table as DashboardTable,
+  getListFilterValue,
   type FilterPayload,
+  type TableFilter,
   type TableStateProviderResult
 } from '@metorial/table';
 import { Button, Flex, RenderDate, Text, confirm, useCopy } from '@metorial/ui';
@@ -27,7 +28,9 @@ import {
   RiPauseLine,
   RiPlayLine
 } from '@remixicon/react';
+import { useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { entityFilters } from '../../../scenes/entityFilters';
 import { showSandboxCreateMachinePanel } from '../../../scenes/sandbox/createMachinePanel';
 import { SandboxImageLogo } from '../../../scenes/sandbox/shared/imageLogo';
 import { SandboxMachineStatusBadge } from '../../../scenes/sandbox/shared/statusBadges';
@@ -56,7 +59,7 @@ let MachinesTable = new DashboardTable<Props, Machine>('sandbox-machines')
           (values(filter.status) as DashboardInstanceSandboxMachinesListQuery['status']) ||
           'active',
         state: values(filter.state) as DashboardInstanceSandboxMachinesListQuery['state'],
-        imageId: values(filter.image_id),
+        imageId: getListFilterValue(filter.image_id),
         region: values(filter.region)
       };
       let machines = useSandboxMachines(props.instanceId, query, { pollInterval: 8000 });
@@ -277,6 +280,61 @@ let MachinesContent = () => {
       id,
       ...parts
     );
+
+  let instanceId = instance.data?.id;
+  let tableFilters = useMemo<TableFilter<Machine>[]>(
+    () => [
+      {
+        id: 'status',
+        fields: ['status'],
+        label: 'Status',
+        description: 'Filter by status',
+        type: 'select',
+        options: [
+          { id: 'active', label: 'Active' },
+          { id: 'deleted', label: 'Deleted' }
+        ]
+      },
+      {
+        id: 'state',
+        fields: ['status'],
+        label: 'Runtime Status',
+        description: 'Filter by runtime status',
+        type: 'select',
+        options: [
+          'running',
+          'paused',
+          'hibernated',
+          'failed',
+          'starting',
+          'pausing',
+          'resuming',
+          'hibernating',
+          'restarting',
+          'upgrading',
+          'terminating'
+        ].map(id => ({ id, label: id[0].toUpperCase() + id.slice(1) }))
+      },
+      entityFilters.sandboxImage(instanceId, { id: 'image_id' }),
+      {
+        id: 'region',
+        fields: ['region'],
+        label: 'Region',
+        description: 'Filter by region',
+        type: 'entity',
+        remoteSearch: true,
+        useOptions: () => {
+          let regions = useSandboxRegions(instanceId);
+          return {
+            items: (regions.data?.items ?? []).map(r => ({ id: r.id, label: r.name })),
+            isLoading: regions.isLoading
+          };
+        }
+      }
+    ],
+    [instanceId]
+  );
+
   return (
     <>
       <start.RenderError />
@@ -286,78 +344,9 @@ let MachinesContent = () => {
         start={start}
         pause={pause}
         remove={remove}
-        instanceId={instance.data?.id}
+        instanceId={instanceId}
         path={path}
-        tableFilters={[
-          {
-            id: 'status',
-            fields: ['status'],
-            label: 'Status',
-            description: 'Filter by status',
-            type: 'select',
-            options: [
-              { id: 'active', label: 'Active' },
-              { id: 'deleted', label: 'Deleted' }
-            ]
-          },
-          {
-            id: 'state',
-            fields: ['status'],
-            label: 'Runtime Status',
-            description: 'Filter by runtime status',
-            type: 'select',
-            options: [
-              'running',
-              'paused',
-              'hibernated',
-              'failed',
-              'starting',
-              'pausing',
-              'resuming',
-              'hibernating',
-              'restarting',
-              'upgrading',
-              'terminating'
-            ].map(id => ({ id, label: id[0].toUpperCase() + id.slice(1) }))
-          },
-          {
-            id: 'image_id',
-            fields: ['image'],
-            label: 'Image',
-            description: 'Filter by image',
-            type: 'entity',
-            remoteSearch: true,
-            useOptions: ({ search }) => {
-              let images = useSandboxImages(instance.data?.id, {
-                search,
-                status: ['active', 'pending'],
-                limit: 25
-              });
-              return {
-                items: (images.data?.items ?? []).map(i => ({
-                  id: i.id,
-                  label: i.name || i.identifier || i.id
-                })),
-                isLoading: images.isLoading
-              };
-            }
-          },
-          {
-            id: 'region',
-            fields: ['region'],
-            label: 'Region',
-            description: 'Filter by region',
-            type: 'entity',
-            remoteSearch: true,
-            useOptions: () => {
-              let regions = useSandboxRegions(instance.data?.id);
-              return {
-                items: (regions.data?.items ?? []).map(r => ({ id: r.id, label: r.name })),
-                isLoading: regions.isLoading
-              };
-            }
-          }
-        ]}
+        tableFilters={tableFilters}
         emptyState={() => <MachinesEmptyState />}
       />
     </>

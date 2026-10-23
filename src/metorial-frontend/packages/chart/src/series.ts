@@ -61,6 +61,21 @@ export let getValueBounds = (
   return { min, max, capacityMax };
 };
 
+export let getStackedMax = (series: ChartSeries[]) => {
+  let totals = new Map<number, number>();
+
+  for (let item of series) {
+    for (let entry of item.entries) {
+      if (!isValue(entry.value)) continue;
+
+      let key = toTimestamp(entry.key);
+      totals.set(key, (totals.get(key) ?? 0) + entry.value);
+    }
+  }
+
+  return Math.max(0, ...totals.values());
+};
+
 export let getTimeSpan = (series: ChartSeries[], domain?: ChartDomain) => {
   if (domain) return Math.max(toTimestamp(domain.to) - toTimestamp(domain.from), 0);
 
@@ -91,6 +106,68 @@ export let getSmallestTimeStep = (series: ChartSeries[]) => {
   }
 
   return smallest;
+};
+
+let MAX_FILLED_BUCKETS = 5000;
+
+export let fillTimeBuckets = (
+  series: ChartSeries[],
+  stepMs: number,
+  domain?: ChartDomain
+): ChartSeries[] => {
+  if (!(stepMs > 0) || !Number.isFinite(stepMs)) return series;
+
+  let stamps = series.flatMap(item => item.entries.map(entry => toTimestamp(entry.key)));
+  if (!stamps.length) return series;
+
+  let anchor = Math.min(...stamps);
+  if (stamps.some(stamp => (stamp - anchor) % stepMs != 0)) return series;
+
+  let start = anchor;
+  let end = Math.max(...stamps);
+
+  if (domain) {
+    let from = toTimestamp(domain.from);
+    let to = toTimestamp(domain.to);
+    if (from < start) start -= Math.floor((start - from) / stepMs) * stepMs;
+    if (to - 1 > end) end += Math.floor((to - 1 - end) / stepMs) * stepMs;
+  }
+
+  let count = (end - start) / stepMs + 1;
+  if (count > MAX_FILLED_BUCKETS) return series;
+
+  return series.map(item => {
+    let byStamp = new Map(item.entries.map(entry => [toTimestamp(entry.key), entry.value]));
+
+    return {
+      ...item,
+      entries: Array.from({ length: count }, (_, i) => {
+        let stamp = start + i * stepMs;
+        return { key: new Date(stamp), value: byStamp.get(stamp) ?? 0 };
+      })
+    };
+  });
+};
+
+let placeholderBarCount = 36;
+
+export let getPlaceholderBarSeries = (domain?: ChartDomain) => {
+  let to = domain ? toTimestamp(domain.to) : Date.now();
+  let from = domain ? toTimestamp(domain.from) : to - 12 * 60 * 60 * 1000;
+  let intervalMs = Math.max(Math.floor((to - from) / placeholderBarCount), 1);
+
+  let series: ChartSeries[] = [
+    {
+      id: 'placeholder',
+      name: 'Loading',
+      entries: Array.from({ length: placeholderBarCount }, (_, i) => ({
+        key: from + intervalMs * i,
+        value: 30 + Math.round(18 * Math.sin(i / 2.3) + 10 * Math.sin(i * 1.7))
+      }))
+    }
+  ];
+
+  return { series, intervalMs };
 };
 
 export let getPlaceholderSeries = (domain?: ChartDomain): ChartSeries[] => {

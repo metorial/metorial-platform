@@ -1,5 +1,6 @@
 export * from './bigButtons';
 export * from './box';
+export * from './entityFilter';
 export * from './filterUtils';
 export * from './hint';
 export * from './id';

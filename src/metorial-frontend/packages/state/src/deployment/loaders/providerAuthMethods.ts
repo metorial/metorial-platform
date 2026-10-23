@@ -56,3 +56,24 @@ export let useProviderAuthMethod = (
 
   return data;
 };
+
+export let providerAuthMethodsByIdsLoader = createLoader({
+  name: 'providerAuthMethodsByIds',
+  parents: [providerAuthMethodsLoader],
+  fetch: async (i: { instanceId: string; ids: string[] }) =>
+    await withAuth(sdk =>
+      Promise.all(i.ids.map(id => sdk.providers.authMethods.get(i.instanceId, id)))
+    ),
+  mutators: {}
+});
+
+export let useProviderAuthMethodsByIds = (
+  instanceId: string | null | undefined,
+  ids: string[] | null | undefined
+) => {
+  let uniqueIds = ids?.length ? [...new Set(ids)].sort() : null;
+
+  return providerAuthMethodsByIdsLoader.use(
+    instanceId && uniqueIds ? { instanceId, ids: uniqueIds } : null
+  );
+};

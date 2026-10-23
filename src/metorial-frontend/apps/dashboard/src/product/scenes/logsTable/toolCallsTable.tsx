@@ -14,10 +14,16 @@ import {
   FilterPayload,
   TableStateProvider,
   TableStateProviderResult,
-  getStringFilterValue
+  getDateRangeFilterValue,
+  getEnumListFilterValue,
+  getListFilterValue,
+  type TableFilter,
+  type TableLayoutProps
 } from '@metorial/table';
 import { Badge, RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
+import { useMemo } from 'react';
+import { entityFilters } from '../entityFilters';
 
 type ToolCall = DashboardInstanceToolCallsListOutput['items'][number];
 
@@ -28,6 +34,8 @@ type ToolCallsTableProps = {
   project: ReturnType<typeof useCurrentProject>;
   instance: ReturnType<typeof useCurrentInstance>;
 };
+
+let toolCallStatuses = ['waiting_for_response', 'succeeded', 'failed'] as const;
 
 let getToolCallStatusColor = (status: ToolCall['status']) => {
   if (status === 'succeeded') return 'green';
@@ -49,13 +57,18 @@ let useToolCallsTableState: TableStateProvider<
   let toolCalls = useToolCalls(props.instanceId, {
     order: 'desc',
     ...props.filters,
-    toolId: getStringFilterValue(opts.filter.toolId) ?? props.filters?.toolId,
-    agentId: getStringFilterValue(opts.filter.agentId) ?? props.filters?.agentId,
-    actorId: getStringFilterValue(opts.filter.actorId) ?? props.filters?.actorId,
-    consumerId: getStringFilterValue(opts.filter.consumerId) ?? props.filters?.consumerId,
-    identityId: getStringFilterValue(opts.filter.identityId) ?? props.filters?.identityId,
+    status:
+      getEnumListFilterValue(opts.filter.status, toolCallStatuses) ?? props.filters?.status,
+    search: opts.search || undefined,
+    providerId: getListFilterValue(opts.filter.providerId) ?? props.filters?.providerId,
+    toolId: getListFilterValue(opts.filter.toolId) ?? props.filters?.toolId,
+    agentId: getListFilterValue(opts.filter.agentId) ?? props.filters?.agentId,
+    actorId: getListFilterValue(opts.filter.actorId) ?? props.filters?.actorId,
+    consumerId: getListFilterValue(opts.filter.consumerId) ?? props.filters?.consumerId,
+    identityId: getListFilterValue(opts.filter.identityId) ?? props.filters?.identityId,
     agentInstanceId:
-      getStringFilterValue(opts.filter.agentInstanceId) ?? props.filters?.agentInstanceId
+      getListFilterValue(opts.filter.agentInstanceId) ?? props.filters?.agentInstanceId,
+    createdAt: getDateRangeFilterValue(opts.filter.createdAt) ?? props.filters?.createdAt
   });
 
   return {
@@ -68,6 +81,36 @@ let useToolCallsTableState: TableStateProvider<
     loadPrevious: toolCalls.previous
   };
 };
+
+let useToolCallsFilters = (instanceId: string) =>
+  useMemo<TableFilter<ToolCall>[]>(
+    () => [
+      {
+        id: 'status',
+        fields: ['status'],
+        label: 'Status',
+        description: 'Filter by tool call status',
+        type: 'select',
+        options: [
+          { id: 'succeeded', label: 'Succeeded' },
+          { id: 'failed', label: 'Failed' },
+          { id: 'waiting_for_response', label: 'Waiting for response' }
+        ]
+      },
+      {
+        id: 'createdAt',
+        fields: ['createdAt'],
+        label: 'Created',
+        description: 'Filter by creation time',
+        type: 'date'
+      },
+      entityFilters.provider(instanceId),
+      entityFilters.tool(instanceId),
+      entityFilters.agent(instanceId),
+      entityFilters.consumer(instanceId)
+    ],
+    [instanceId]
+  );
 
 let toolCallsTable = new DashboardTable<ToolCallsTableProps, ToolCall>('tool-calls')
   .state(useToolCallsTableState)
@@ -141,29 +184,7 @@ let toolCallsTable = new DashboardTable<ToolCallsTableProps, ToolCall>('tool-cal
       render: toolCall => <ID id={toolCall.id} />
     }
   ])
-  .filters([
-    {
-      id: 'agentId',
-      fields: ['agentId'],
-      label: 'Agent ID',
-      description: 'Filter by agent ID',
-      type: 'string'
-    },
-    {
-      id: 'toolId',
-      fields: ['toolId'],
-      label: 'Tool ID',
-      description: 'Filter by tool ID',
-      type: 'string'
-    },
-    {
-      id: 'consumerId',
-      fields: ['consumerId'],
-      label: 'Consumer ID',
-      description: 'Filter by consumer ID',
-      type: 'string'
-    }
-  ])
+  .search('Search by tool, provider, agent, consumer or tool call ID...')
   .link(
     (toolCall, props) =>
       `${Paths.instance.providerSession(
@@ -184,16 +205,21 @@ let toolCallsTable = new DashboardTable<ToolCallsTableProps, ToolCall>('tool-cal
 
 export let ToolCallsTable = ({
   instanceId,
-  filters
+  filters,
+  layout
 }: {
   instanceId: string;
   filters?: ToolCallsTableProps['filters'];
+  layout?: TableLayoutProps;
 }) => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let tableFilters = useToolCallsFilters(instanceId);
 
   return toolCallsTable({
+    ...layout,
+    tableFilters,
     instanceId,
     filters,
     instance,

@@ -1,4 +1,11 @@
-import { type Environment, getId, type Tenant, withTransaction } from '@metorial-subspace/db';
+import {
+  addAfterTransactionHook,
+  type Environment,
+  getId,
+  type Tenant,
+  withTransaction
+} from '@metorial-subspace/db';
+import { recordSessionCreatedUsage } from '@metorial/module-usage';
 import { getMetorialSolution } from '@metorial-subspace/module-tenant';
 import { sessionProviderInclude } from '../sessionProvider';
 import {
@@ -123,6 +130,8 @@ export let createSessionRecord = async (d: {
       resolvedProviders: resolved.providers,
       isNewSession: true
     });
+
+    await addAfterTransactionHook(() => recordSessionCreatedUsage(created));
 
     return { ...created, providers };
   });

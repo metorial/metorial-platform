@@ -307,6 +307,8 @@ import {
   v1WebhookRegistrationPresenter,
   v1TokenPresenter,
   v1UsagePresenter,
+  v1InstanceUsageSummaryPresenter,
+  v1InstanceUsageTimelinePresenter,
   v1UserPresenter,
   v1WebhookEventPresenter
 } from './implementation';
@@ -577,6 +579,8 @@ import {
   tokenType,
   toolCallType,
   usageType,
+  instanceUsageSummaryType,
+  instanceUsageTimelineType,
   userType,
   webhookEventType
 } from './types';
@@ -1135,6 +1139,16 @@ export let keyProviderValidationPresenter = declarePresenter(keyProviderValidati
 export let usagePresenter = declarePresenter(usageType, {
   mt_2025_01_01_dashboard: v1UsagePresenter,
   mt_2026_01_01_magnetar: v1UsagePresenter
+});
+
+export let instanceUsageTimelinePresenter = declarePresenter(instanceUsageTimelineType, {
+  mt_2025_01_01_dashboard: v1InstanceUsageTimelinePresenter,
+  mt_2026_01_01_magnetar: v1InstanceUsageTimelinePresenter
+});
+
+export let instanceUsageSummaryPresenter = declarePresenter(instanceUsageSummaryType, {
+  mt_2025_01_01_dashboard: v1InstanceUsageSummaryPresenter,
+  mt_2026_01_01_magnetar: v1InstanceUsageSummaryPresenter
 });
 
 export let profilePresenter = declarePresenter(profileType, {

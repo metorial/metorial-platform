@@ -11,11 +11,13 @@ import {
   type Integration,
   type IntegrationInstance,
   type IntegrationInstanceStatus,
+  type Prisma,
   type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
 import {
+  buildSearchFilter,
   checkDeletedEdit,
   checkDeletedRelation,
   type DateFilter,
@@ -550,14 +552,19 @@ class integrationInstanceServiceImpl {
     let configs = await resolveProviderConfigs(ts, d.providerConfigIds);
     let authConfigs = await resolveProviderAuthConfigs(ts, d.providerAuthConfigIds);
     let sessionTemplates = await resolveSessionTemplates(ts, d.sessionTemplateIds);
-    let search = d.search
-      ? await voyager.record.search({
+    let search = await buildSearchFilter<Prisma.IntegrationInstanceWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let records = await voyager.record.search({
           tenantId: d.tenant.id,
           sourceId: (await voyagerSource).id,
           indexId: voyagerIndex.integrationInstance.id,
-          query: d.search
-        })
-      : null;
+          query
+        });
+
+        return records.map(r => r.documentId);
+      }
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -578,7 +585,7 @@ class integrationInstanceServiceImpl {
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
                 integrations ? { integrationOid: integrations.in } : undefined!,
-                search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
+                search ?? undefined!,
                 providers
                   ? {
                       integrationInstanceProviders: {

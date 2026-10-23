@@ -23,6 +23,7 @@ export let messageTimeoutQueueProcessor = messageTimeoutQueue.process(async data
     select: {
       id: true,
       status: true,
+      source: true,
       transport: true,
       createdAt: true,
       session: true,
@@ -52,7 +53,8 @@ export let messageTimeoutQueueProcessor = messageTimeoutQueue.process(async data
           type: 'error',
           data: {
             code: 'timeout',
-            message: 'The message failed to receive a response from the provider before the fallback timeout elapsed.'
+            message:
+              'The message failed to receive a response from the provider before the fallback timeout elapsed.'
           }
         }
       }
@@ -79,7 +81,7 @@ export let messageTimeoutQueueProcessor = messageTimeoutQueue.process(async data
         })
       );
 
-      if (message.transport === 'mcp') {
+      if (message.transport === 'mcp' && message.source === 'client') {
         await broadcastNats.publish(
           topics.mcpConnection.encode({
             session: message.session,

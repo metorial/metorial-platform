@@ -40,6 +40,7 @@
     "@metorial/module-documents": "^1.0.0",
     "@metorial/module-file": "^1.0.0",
     "@metorial/module-resource-actor": "^1.0.0",
+    "@metorial/module-search": "^1.0.0",
     "@metorial/module-store": "^1.0.0",
     "@metorial/queue": "^1.0.0",
     "@metorial/skills-common": "^1.0.0",

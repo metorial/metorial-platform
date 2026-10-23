@@ -11,11 +11,13 @@ import {
   type IdentityDelegationConfigStatus,
   type IdentityDelegationConfigSubDelegationBehavior,
   type IdentityDelegationConfigVersion,
+  type Prisma,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
 import { Fabric, type AuditSubspaceIdentityDelegationConfig } from '@metorial/fabric';
 import {
+  buildSearchFilter,
   checkDeletedEdit,
   type DateFilter,
   normalizeDateFilter,
@@ -127,14 +129,19 @@ class identityDelegationConfigServiceImpl {
   async listIdentityDelegationConfigsInternal(d: ListIdentityDelegationConfigsParams) {
     let solution = await getMetorialSolution();
 
-    let search = d.search
-      ? await voyager.record.search({
+    let search = await buildSearchFilter<Prisma.IdentityDelegationConfigWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let records = await voyager.record.search({
           tenantId: d.tenant.id,
           sourceId: (await voyagerSource).id,
           indexId: voyagerIndex.identityDelegationConfig.id,
-          query: d.search
-        })
-      : null;
+          query
+        });
+
+        return records.map(r => r.documentId);
+      }
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -150,7 +157,7 @@ class identityDelegationConfigServiceImpl {
 
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
-                search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
+                search ?? undefined!,
 
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!

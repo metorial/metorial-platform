@@ -2,6 +2,7 @@ import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import { env } from '../../env';
+import { getProviderSearchTenantIds } from '../../lib/searchTenantIds';
 
 export let indexProviderListingQueue = createQueue<{ providerListingId: string }>({
   name: 'sub/dep/sidx/providerListing',
@@ -22,10 +23,7 @@ export let indexProviderListingQueueProcessor = indexProviderListingQueue.proces
       indexId: voyagerIndex.providerListing.id,
 
       documentId: providerListing.id,
-      tenantIds:
-        providerListing.provider.access == 'tenant'
-          ? [providerListing.provider.ownerTenant?.id ?? '$$NONE$$']
-          : [],
+      tenantIds: getProviderSearchTenantIds(providerListing.provider),
 
       fields: { providerId: providerListing.provider.id, configId: providerListing.id },
       body: {

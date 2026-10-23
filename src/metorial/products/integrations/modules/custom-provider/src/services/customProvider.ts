@@ -15,12 +15,14 @@ import {
   db,
   type Environment,
   getId,
+  type Prisma,
   snowflake,
   type Tenant,
   type TenantActor,
   withTransaction
 } from '@metorial-subspace/db';
 import {
+  buildSearchFilter,
   checkDeletedEdit,
   type DateFilter,
   normalizeDateFilter,
@@ -223,14 +225,19 @@ class customProviderServiceImpl {
     let providers = await resolveProviders(ts, d.providerIds);
     let scmRepos = await resolveScmRepos(ts, d.scmRepositoryIds);
 
-    let search = d.search
-      ? await voyager.record.search({
+    let search = await buildSearchFilter<Prisma.CustomProviderWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let records = await voyager.record.search({
           tenantId: d.tenant.id,
           sourceId: (await voyagerSource).id,
           indexId: voyagerIndex.customProvider.id,
-          query: d.search
-        })
-      : null;
+          query
+        });
+
+        return records.map(r => r.documentId);
+      }
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
@@ -246,7 +253,7 @@ class customProviderServiceImpl {
               customProviderEnvironmentVisibilityFilter(d.environment),
               d.type ? { type: { in: d.type } } : undefined!,
               d.ids ? { id: { in: d.ids } } : undefined!,
-              search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
+              search ?? undefined!,
               providers ? { providerOid: providers.in } : undefined!,
               scmRepos ? { scmRepoOid: scmRepos.in } : undefined!,
               d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,

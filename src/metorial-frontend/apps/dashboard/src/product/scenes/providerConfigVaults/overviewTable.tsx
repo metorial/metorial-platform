@@ -15,16 +15,18 @@ import {
 import { Badge, RenderDate, Text, confirm } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { RiDeleteBinLine } from '@remixicon/react';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
 import { Table as DashboardTable } from '@metorial/table';
 import {
   FilterPayload,
+  TableFilter,
   TableStateProvider,
   TableStateProviderResult,
   getDateRangeFilterValue,
   getEnumListFilterValue,
-  getStringFilterValue
+  getListFilterValue
 } from '@metorial/table';
+import { entityFilters } from '../entityFilters';
 
 type ProviderConfigVault =
   DashboardInstanceProviderDeploymentsConfigVaultsListOutput['items'][number];
@@ -57,6 +59,41 @@ let getStatusFilterValue = (
 ): DashboardInstanceProviderDeploymentsConfigVaultsListQuery['status'] =>
   getEnumListFilterValue(value, ['active', 'archived']);
 
+export let useProviderConfigVaultFilters = (instanceId: string | null | undefined) =>
+  useMemo<TableFilter<ProviderConfigVaultRow>[]>(
+    () => [
+      {
+        id: 'status',
+        fields: ['status'],
+        label: 'Status',
+        description: 'Filter by status',
+        type: 'select',
+        options: [
+          { id: 'active', label: 'Active' },
+          { id: 'archived', label: 'Archived' }
+        ]
+      },
+      entityFilters.provider(instanceId),
+      entityFilters.providerDeployment(instanceId),
+      entityFilters.providerConfig(instanceId),
+      {
+        id: 'createdAt',
+        fields: ['createdAt'],
+        label: 'Created',
+        description: 'Filter by created date',
+        type: 'date'
+      },
+      {
+        id: 'updatedAt',
+        fields: ['updatedAt'],
+        label: 'Updated',
+        description: 'Filter by updated date',
+        type: 'date'
+      }
+    ],
+    [instanceId]
+  );
+
 let providerConfigVaultsOverviewState: TableStateProvider<
   ProviderConfigVaultsOverviewTableProps,
   ProviderConfigVaultRow,
@@ -72,16 +109,12 @@ let providerConfigVaultsOverviewState: TableStateProvider<
     order: 'desc',
     ...props.filters,
     status: getStatusFilterValue(opts.filter.status) ?? props.filters?.status,
-    id: getStringFilterValue(opts.filter.id) ?? props.filters?.id,
-    providerId: getStringFilterValue(opts.filter.providerId) ?? props.filters?.providerId,
+    providerId: getListFilterValue(opts.filter.providerId) ?? props.filters?.providerId,
     providerDeploymentId:
-      getStringFilterValue(opts.filter.providerDeploymentId) ??
+      getListFilterValue(opts.filter.providerDeploymentId) ??
       props.filters?.providerDeploymentId,
     providerConfigId:
-      getStringFilterValue(opts.filter.providerConfigId) ?? props.filters?.providerConfigId,
-    providerConfigVaultId:
-      getStringFilterValue(opts.filter.providerConfigVaultId) ??
-      props.filters?.providerConfigVaultId,
+      getListFilterValue(opts.filter.providerConfigId) ?? props.filters?.providerConfigId,
     search: opts.search ?? props.filters?.search,
     createdAt: getDateRangeFilterValue(opts.filter.createdAt) ?? props.filters?.createdAt,
     updatedAt: getDateRangeFilterValue(opts.filter.updatedAt) ?? props.filters?.updatedAt
@@ -228,68 +261,6 @@ let providerConfigVaultsOverviewTable = new DashboardTable<
         )
     }
   ])
-  .filters([
-    {
-      id: 'status',
-      fields: ['status'],
-      label: 'Status',
-      description: 'Filter by status',
-      type: 'select',
-      options: [
-        { id: 'active', label: 'Active' },
-        { id: 'archived', label: 'Archived' }
-      ]
-    },
-    {
-      id: 'id',
-      fields: ['id'],
-      label: 'Vault ID',
-      description: 'Filter by vault ID',
-      type: 'string'
-    },
-    {
-      id: 'providerId',
-      fields: ['providerId'],
-      label: 'Provider ID',
-      description: 'Filter by provider ID',
-      type: 'string'
-    },
-    {
-      id: 'providerDeploymentId',
-      fields: ['providerDeploymentId'],
-      label: 'Deployment ID',
-      description: 'Filter by deployment ID',
-      type: 'string'
-    },
-    {
-      id: 'providerConfigId',
-      fields: ['providerConfigId'],
-      label: 'Config ID',
-      description: 'Filter by config ID',
-      type: 'string'
-    },
-    {
-      id: 'providerConfigVaultId',
-      fields: ['providerConfigVaultId'],
-      label: 'Vault Ref ID',
-      description: 'Filter by vault ref ID',
-      type: 'string'
-    },
-    {
-      id: 'createdAt',
-      fields: ['createdAt'],
-      label: 'Created',
-      description: 'Filter by created date',
-      type: 'date'
-    },
-    {
-      id: 'updatedAt',
-      fields: ['updatedAt'],
-      label: 'Updated',
-      description: 'Filter by updated date',
-      type: 'date'
-    }
-  ])
   .search('Search config vaults...')
   .actions({
     deleteImmediate: async (vaults, state) => {
@@ -350,6 +321,7 @@ export let ProviderConfigVaultsOverviewTable = ({
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let tableFilters = useProviderConfigVaultFilters(instanceId);
 
   return renderWithLoader({ organization, project, instance })(() =>
     providerConfigVaultsOverviewTable({
@@ -358,6 +330,7 @@ export let ProviderConfigVaultsOverviewTable = ({
       project,
       instance,
       filters,
+      tableFilters,
       emptyState,
       headerActions
     })

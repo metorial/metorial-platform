@@ -12,6 +12,7 @@ import {
   type Tenant
 } from '@metorial-subspace/db';
 import type { ProviderTypeWhereInput } from '@metorial-subspace/db/prisma/generated/models';
+import { buildSearchFilter } from '@metorial-subspace/list-utils';
 import { providerInternalService } from '@metorial-subspace/module-provider-internal';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import {
@@ -334,18 +335,31 @@ class providerServiceImpl {
     });
     let includeDeprecated = d.includeDeprecated || !!d.ids?.length;
 
-    let search = d.search?.trim();
-
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
-        let searchResults = search
-          ? await voyager.record.search({
+        let search = await buildSearchFilter<Prisma.ProviderWhereInput>({
+          search: d.search,
+          findIds: async query => {
+            let records = await voyager.record.search({
               tenantId: d.tenant?.id,
               sourceId: (await voyagerSource).id,
               indexId: voyagerIndex.providerListing.id,
-              query: search
-            })
-          : null;
+              query
+            });
+
+            return records.map(r => r.documentId);
+          },
+          matchIds: ids => ({ listing: { id: { in: ids } } }),
+          exact: query => [
+            { id: query },
+            { slug: { equals: query, mode: 'insensitive' } },
+            { globalIdentifier: query },
+            { listing: { id: query } },
+            { listing: { slug: { equals: query, mode: 'insensitive' } } },
+            { listing: { prettySlug: { equals: query, mode: 'insensitive' } } },
+            { listing: { aliases: { has: query } } }
+          ]
+        });
 
         let and: Prisma.ProviderWhereInput[] = [
           { status: 'active' as const },
@@ -354,9 +368,7 @@ class providerServiceImpl {
             solution,
             includeDeprecated
           }),
-          searchResults
-            ? { listing: { id: { in: searchResults.map(r => r.documentId) } } }
-            : undefined!,
+          search ?? undefined!,
           {
             AND: [
               d.ids

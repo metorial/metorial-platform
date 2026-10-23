@@ -1,8 +1,10 @@
 import { theme } from '@metorial/ui';
-import React, { memo, useMemo } from 'react';
+import type ApexCharts from 'apexcharts';
+import React, { memo, useMemo, useRef } from 'react';
 import ReactApexChart from 'react-apexcharts';
 import type { ValueFormatter } from './format';
 import { useStableFormatters } from './hooks';
+import { ChartHoverLayer } from './hover';
 import { buildTimelineOptions, toApexSeries } from './options';
 import {
   ChartDomain,
@@ -53,12 +55,14 @@ export let Sparkline = memo(
     tooltip = false
   }: SparklineProps) => {
     let { formatValue, formatTick } = useStableFormatters(valueFormatter, undefined);
+    let chartRef = useRef<ApexCharts | null>(null);
 
     let seriesKey = JSON.stringify(series);
     let linesKey = JSON.stringify(referenceLines ?? []);
     let domainFrom = domain ? new Date(domain.from).getTime() : undefined;
     let domainTo = domain ? new Date(domain.to).getTime() : undefined;
 
+    let stableSeries = useMemo(() => series, [seriesKey]);
     let apexSeries = useMemo(() => toApexSeries(series, xAxis), [seriesKey, xAxis]);
 
     let options = useMemo(
@@ -73,18 +77,39 @@ export let Sparkline = memo(
           binaryScale,
           referenceLines: referenceLines ?? [],
           sparkline: true,
-          tooltip,
-          formatValue,
           formatTick
         }),
-      [seriesKey, linesKey, xAxis, domainFrom, domainTo, yMin, yMax, binaryScale, tooltip]
+      [seriesKey, linesKey, xAxis, domainFrom, domainTo, yMin, yMax, binaryScale]
     );
 
     if (!hasChartData(series)) return <SparklineBaseline height={height} />;
 
+    let chart = (
+      <ReactApexChart
+        chartRef={chartRef}
+        options={options}
+        series={apexSeries}
+        type="area"
+        height={height}
+      />
+    );
+
     return (
       <div style={{ height, minWidth: 0 }}>
-        <ReactApexChart options={options} series={apexSeries} type="area" height={height} />
+        {tooltip ? (
+          <ChartHoverLayer
+            chart={chartRef}
+            series={stableSeries}
+            xAxis={xAxis}
+            variant="chip"
+            mode="line"
+            formatValue={formatValue}
+          >
+            {chart}
+          </ChartHoverLayer>
+        ) : (
+          chart
+        )}
       </div>
     );
   }

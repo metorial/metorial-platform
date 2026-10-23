@@ -8,11 +8,11 @@ import {
   ChartReferenceLine,
   ChartSeries,
   ChartXAxis,
-  getSmallestTimeStep,
+  getStackedMax,
   getTimeSpan,
   getValueBounds
 } from './series';
-import { formatTimeTick, formatTooltipTime, toTimestamp } from './time';
+import { formatTimeTick, toTimestamp } from './time';
 
 let capacityHeadroom = 1.05;
 
@@ -39,14 +39,15 @@ export type TimelineOptionsInput = {
   referenceLines: ChartReferenceLine[];
   legend?: boolean;
   sparkline?: boolean;
-  tooltip: boolean;
-  formatValue: ValueFormatter;
+  stacked?: boolean;
   formatTick: ValueFormatter;
+  onRendered?: () => void;
 };
 
 let getYScale = (input: TimelineOptionsInput) => {
   let bounds = getValueBounds(input.series, input.referenceLines);
-  let upper = Math.max(bounds.max, bounds.capacityMax * capacityHeadroom);
+  let max = input.stacked ? getStackedMax(input.series) : bounds.max;
+  let upper = Math.max(max, bounds.capacityMax * capacityHeadroom);
 
   let scale = getNiceScale(input.yMin ?? bounds.min, input.yMax ?? upper, {
     tickCount: input.tickCount,
@@ -60,6 +61,8 @@ let getYScale = (input: TimelineOptionsInput) => {
     tickAmount: scale.tickAmount
   };
 };
+
+let axisLabelStyle = { colors: String(theme.colors.gray600) };
 
 let getReferenceAnnotations = (referenceLines: ChartReferenceLine[]) =>
   referenceLines.map(line => ({
@@ -84,11 +87,10 @@ let getReferenceAnnotations = (referenceLines: ChartReferenceLine[]) =>
   }));
 
 export let buildTimelineOptions = (input: TimelineOptionsInput): ApexOptions => {
-  let { series, xAxis, domain, sparkline, formatValue, formatTick } = input;
+  let { series, xAxis, domain, sparkline, formatTick } = input;
 
   let colors = resolveSeriesColors(series);
   let spanMs = xAxis == 'time' ? getTimeSpan(series, domain) : 0;
-  let showSeconds = xAxis == 'time' && getSmallestTimeStep(series) < 60_000;
   let yScale = getYScale(input);
 
   let styles = series.map(item => item.style ?? 'area');
@@ -102,7 +104,10 @@ export let buildTimelineOptions = (input: TimelineOptionsInput): ApexOptions => 
       parentHeightOffset: sparkline ? 0 : undefined,
       zoom: { enabled: false },
       toolbar: { show: false },
-      animations: { enabled: false }
+      animations: { enabled: false },
+      ...(input.onRendered
+        ? { events: { mounted: input.onRendered, updated: input.onRendered } }
+        : {})
     },
 
     dataLabels: { enabled: false },
@@ -130,10 +135,7 @@ export let buildTimelineOptions = (input: TimelineOptionsInput): ApexOptions => 
       curve: styles.map(style => (style == 'dashed' ? 'straight' : 'smooth'))
     },
 
-    markers: {
-      size: 0,
-      hover: { size: sparkline ? 3 : 4 }
-    },
+    markers: { size: 0, hover: { size: 0 } },
 
     xaxis:
       xAxis == 'time'
@@ -145,18 +147,21 @@ export let buildTimelineOptions = (input: TimelineOptionsInput): ApexOptions => 
             max: domain ? toTimestamp(domain.to) : undefined,
             labels: {
               show: !sparkline,
+              style: axisLabelStyle,
               datetimeUTC: false,
               formatter: (value, timestamp) =>
                 formatTimeTick(timestamp ?? Number(value), spanMs)
             },
-            tooltip: { enabled: false }
+            tooltip: { enabled: false },
+            crosshairs: { show: false }
           }
         : {
             type: 'category',
-            labels: { show: !sparkline },
+            labels: { show: !sparkline, style: axisLabelStyle },
             axisBorder: { show: !sparkline },
             axisTicks: { show: !sparkline },
-            tooltip: { enabled: false }
+            tooltip: { enabled: false },
+            crosshairs: { show: false }
           },
 
     yaxis: {
@@ -167,6 +172,7 @@ export let buildTimelineOptions = (input: TimelineOptionsInput): ApexOptions => 
       forceNiceScale: false,
       labels: {
         show: !sparkline,
+        style: axisLabelStyle,
         formatter: value => formatTick(value)
       }
     },
@@ -175,24 +181,38 @@ export let buildTimelineOptions = (input: TimelineOptionsInput): ApexOptions => 
       yaxis: getReferenceAnnotations(input.referenceLines)
     },
 
-    tooltip: {
-      enabled: input.tooltip,
-      shared: true,
-      intersect: false,
-      x: {
-        show: true,
-        formatter:
-          xAxis == 'time'
-            ? value => formatTooltipTime(value, { seconds: showSeconds })
-            : undefined
-      },
-      y: {
-        formatter: value =>
-          value === null || value === undefined || !Number.isFinite(value)
-            ? '—'
-            : formatValue(value)
-      },
-      marker: { show: !sparkline }
-    }
+    tooltip: { enabled: false },
+    states: { hover: { filter: { type: 'none' } } }
+  };
+};
+
+export let buildTimelineBarOptions = (input: TimelineOptionsInput): ApexOptions => {
+  let base = buildTimelineOptions(input);
+
+  return {
+    ...base,
+
+    chart: {
+      ...base.chart,
+      type: 'bar',
+      stacked: !!input.stacked
+    },
+
+    plotOptions: {
+      bar: {
+        columnWidth: '80%',
+        borderRadius: 2,
+        borderRadiusApplication: 'end',
+        borderRadiusWhenStacked: 'last'
+      }
+    },
+
+    states: {
+      hover: { filter: { type: 'none' } },
+      active: { filter: { type: 'none' } }
+    },
+
+    fill: { type: 'solid', opacity: 1 },
+    stroke: { width: 0 }
   };
 };

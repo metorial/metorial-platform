@@ -5,7 +5,7 @@ import type {
   DashboardInstanceSkillsPluginsListQuery,
   DashboardInstanceSkillsListQuery
 } from '@metorial/dashboard-sdk';
-import { useCurrentInstance, useProviderListings } from '@metorial/state';
+import { useCurrentInstance } from '@metorial/state';
 import { SearchFiltersToolbar } from '@metorial/ui-product';
 import { type Dispatch, type SetStateAction, useMemo } from 'react';
 import {
@@ -14,9 +14,11 @@ import {
   getFilterPayload,
   getDateRangeFilterValue,
   getEnumListFilterValue,
+  getListFilterValue,
   getStringFilterValue
 } from '@metorial/table';
 import { useDebounced } from '@metorial/use-debounced';
+import { entityFilters } from '../entityFilters';
 
 let skillStatusValues = ['active', 'archived', 'deleted'] as const;
 let skillTemplateOwnerValues = ['system', 'tenant'] as const;
@@ -50,29 +52,7 @@ let updatedAtFilter: TableFilter<any> = {
   type: 'date'
 };
 
-let useProviderOptions = () => {
-  let instance = useCurrentInstance();
-  let providerListings = useProviderListings(instance.data?.id, {
-    orderByRank: true,
-    limit: 100
-  });
-
-  return useMemo(
-    () =>
-      [
-        ...new Map(
-          (providerListings.data?.items ?? []).map(listing => [
-            listing.provider.id,
-            {
-              id: listing.provider.id,
-              label: listing.name ?? listing.provider.name ?? listing.provider.slug
-            }
-          ])
-        ).values()
-      ].sort((a, b) => a.label.localeCompare(b.label)),
-    [providerListings.data?.items]
-  );
-};
+let useInstanceId = () => useCurrentInstance().data?.id;
 
 let useBaseSkillFilterPayload = (p: { search: string; filterState: TableFilterState[] }) => {
   let searchDebounced = useDebounced(p.search, 500);
@@ -91,42 +71,23 @@ let useBaseSkillFilterPayload = (p: { search: string; filterState: TableFilterSt
 };
 
 export let useSkillFilters = (p: { search: string; filterState: TableFilterState[] }) => {
-  let providerOptions = useProviderOptions();
+  let instanceId = useInstanceId();
   let { searchDebounced, filterPayload, status, createdAt, updatedAt } =
     useBaseSkillFilterPayload(p);
-  let providerId = getStringFilterValue(filterPayload.providerId);
-  let integrationId = getStringFilterValue(filterPayload.integrationId);
-  let skillGroupId = getStringFilterValue(filterPayload.skillGroupId);
+  let providerId = getListFilterValue(filterPayload.providerId);
+  let integrationId = getListFilterValue(filterPayload.integrationId);
+  let skillGroupId = getListFilterValue(filterPayload.skillGroupId);
 
   let filters: TableFilter<any>[] = useMemo(
     () => [
       statusFilter,
-      {
-        id: 'providerId',
-        fields: ['providerId'],
-        label: 'Provider',
-        description: 'Filter by provider',
-        type: 'select',
-        options: providerOptions
-      },
-      {
-        id: 'integrationId',
-        fields: ['integrationId'],
-        label: 'Integration ID',
-        description: 'Filter by integration ID',
-        type: 'string'
-      },
-      {
-        id: 'skillGroupId',
-        fields: ['skillGroupId'],
-        label: 'Skill Group ID',
-        description: 'Filter by skill group ID',
-        type: 'string'
-      },
+      entityFilters.provider(instanceId),
+      entityFilters.integration(instanceId),
+      entityFilters.skillGroup(instanceId),
       createdAtFilter,
       updatedAtFilter
     ],
-    [providerOptions]
+    [instanceId]
   );
 
   let skillsFilter = useMemo(
@@ -153,12 +114,12 @@ export let useSkillTemplateFilters = (p: {
   search: string;
   filterState: TableFilterState[];
 }) => {
-  let providerOptions = useProviderOptions();
+  let instanceId = useInstanceId();
   let { searchDebounced, filterPayload, status, createdAt, updatedAt } =
     useBaseSkillFilterPayload(p);
   let owner = getEnumListFilterValue(filterPayload.owner, skillTemplateOwnerValues);
-  let providerId = getStringFilterValue(filterPayload.providerId);
-  let integrationId = getStringFilterValue(filterPayload.integrationId);
+  let providerId = getListFilterValue(filterPayload.providerId);
+  let integrationId = getListFilterValue(filterPayload.integrationId);
 
   let filters: TableFilter<any>[] = useMemo(
     () => [
@@ -174,25 +135,12 @@ export let useSkillTemplateFilters = (p: {
           { id: 'tenant', label: 'Tenant' }
         ]
       },
-      {
-        id: 'providerId',
-        fields: ['providerId'],
-        label: 'Provider',
-        description: 'Filter by provider',
-        type: 'select',
-        options: providerOptions
-      },
-      {
-        id: 'integrationId',
-        fields: ['integrationId'],
-        label: 'Integration ID',
-        description: 'Filter by integration ID',
-        type: 'string'
-      },
+      entityFilters.provider(instanceId),
+      entityFilters.integration(instanceId),
       createdAtFilter,
       updatedAtFilter
     ],
-    [providerOptions]
+    [instanceId]
   );
 
   let skillTemplatesFilter = useMemo(
@@ -216,24 +164,14 @@ export let useSkillTemplateFilters = (p: {
 };
 
 export let useSkillGroupFilters = (p: { search: string; filterState: TableFilterState[] }) => {
+  let instanceId = useInstanceId();
   let { searchDebounced, filterPayload, status, createdAt, updatedAt } =
     useBaseSkillFilterPayload(p);
-  let skillId = getStringFilterValue(filterPayload.skillId);
+  let skillId = getListFilterValue(filterPayload.skillId);
 
   let filters: TableFilter<any>[] = useMemo(
-    () => [
-      statusFilter,
-      {
-        id: 'skillId',
-        fields: ['skillId'],
-        label: 'Skill ID',
-        description: 'Filter by skill ID',
-        type: 'string'
-      },
-      createdAtFilter,
-      updatedAtFilter
-    ],
-    []
+    () => [statusFilter, entityFilters.skill(instanceId), createdAtFilter, updatedAtFilter],
+    [instanceId]
   );
 
   let skillGroupsFilter = useMemo(
@@ -287,10 +225,11 @@ export let useSkillPluginFilters = (p: {
   search: string;
   filterState: TableFilterState[];
 }) => {
+  let instanceId = useInstanceId();
   let { searchDebounced, filterPayload, status, createdAt, updatedAt } =
     useBaseSkillFilterPayload(p);
   let category = getStringFilterValue(filterPayload.category);
-  let skillMarketplaceId = getStringFilterValue(filterPayload.skillMarketplaceId);
+  let skillMarketplaceId = getListFilterValue(filterPayload.skillMarketplaceId);
 
   let filters: TableFilter<any>[] = useMemo(
     () => [
@@ -302,17 +241,11 @@ export let useSkillPluginFilters = (p: {
         description: 'Filter by category',
         type: 'string'
       },
-      {
-        id: 'skillMarketplaceId',
-        fields: ['skillMarketplaceId'],
-        label: 'Marketplace ID',
-        description: 'Filter by marketplace ID',
-        type: 'string'
-      },
+      entityFilters.skillMarketplace(instanceId),
       createdAtFilter,
       updatedAtFilter
     ],
-    []
+    [instanceId]
   );
 
   let skillPluginsFilter = useMemo(

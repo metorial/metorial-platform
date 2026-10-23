@@ -6,6 +6,7 @@ import {
   db,
   type Instance,
   type Organization,
+  type Prisma,
   type SandboxRegion,
   type SandboxResourceStatus
 } from '@metorial/db';
@@ -19,7 +20,11 @@ import {
   type SandboxMachineWithTenant,
   type SandboxTenantWithRegion
 } from '../lib/regional';
-import { isSearchEnabled, searchSandboxMachineIds } from '@metorial/module-search';
+import {
+  buildSearchFilter,
+  isSearchEnabled,
+  searchSandboxMachineIds
+} from '@metorial/module-search';
 import { sandboxDiskInternalService } from '../internal/diskInternal';
 import { toAuditMachine } from '../lib/audit';
 import { createRemotePaginator } from '../lib/remotePaginator';
@@ -233,12 +238,12 @@ class SandboxMachineServiceImpl {
     regionIdentifiers?: string[];
     search?: string;
   }) {
-    let searchIds: Promise<string[] | undefined> | undefined;
+    let searchFilter: Promise<Prisma.SandboxMachineWhereInput | undefined> | undefined;
     let stateIds: Promise<string[]> | undefined;
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
-        searchIds ??= this.resolveSearchIds({ instance: d.instance, search: d.search });
+        searchFilter ??= this.resolveSearchFilter({ instance: d.instance, search: d.search });
         if (d.states) {
           stateIds ??= this.resolveStateIds({
             instance: d.instance,
@@ -247,7 +252,7 @@ class SandboxMachineServiceImpl {
           });
         }
 
-        let ids = await searchIds;
+        let search = await searchFilter;
         let idsInState = await stateIds;
 
         return await db.sandboxMachine.findMany({
@@ -259,10 +264,7 @@ class SandboxMachineServiceImpl {
             ...(d.regionIdentifiers
               ? { tenant: { region: { identifier: { in: d.regionIdentifiers } } } }
               : {}),
-            ...(ids ? { id: { in: ids } } : {}),
-            ...(d.search && !ids
-              ? { id: { contains: d.search.trim(), mode: 'insensitive' as const } }
-              : {}),
+            ...search,
             ...(d.machineIds || idsInState
               ? {
                   AND: [
@@ -317,14 +319,19 @@ class SandboxMachineServiceImpl {
     return ids.flat();
   }
 
-  private async resolveSearchIds(d: {
+  private async resolveSearchFilter(d: {
     instance: Instance;
     search?: string;
-  }): Promise<string[] | undefined> {
-    let search = d.search?.trim();
-    if (!search || !isSearchEnabled()) return undefined;
+  }): Promise<Prisma.SandboxMachineWhereInput | undefined> {
+    if (!isSearchEnabled()) {
+      let search = d.search?.trim();
+      return search ? { id: { contains: search, mode: 'insensitive' } } : undefined;
+    }
 
-    return await searchSandboxMachineIds({ instanceId: d.instance.id, query: search });
+    return await buildSearchFilter<Prisma.SandboxMachineWhereInput>({
+      search: d.search,
+      findIds: query => searchSandboxMachineIds({ instanceId: d.instance.id, query })
+    });
   }
 
   async update<Machine extends SandboxMachineWithTenant & { instance: Instance }>(d: {

@@ -15,7 +15,7 @@ import { ID } from '@metorial/ui-product';
 import { RiDeleteBinLine } from '@remixicon/react';
 import { useState } from 'react';
 import { Table as DashboardTable } from '@metorial/table';
-import { FilterPayload, getEnumListFilterValue, getStringFilterValue } from '@metorial/table';
+import { FilterPayload, getEnumListFilterValue } from '@metorial/table';
 
 type IdentityDelegationConfig =
   DashboardInstanceIdentitiesDelegationConfigsListOutput['items'][number];
@@ -64,7 +64,6 @@ let useIdentityDelegationConfigsTableState = (
     order: 'desc',
     ...props.filters,
     status: getStatusFilterValue(opts.filter.status) ?? props.filters?.status,
-    id: getStringFilterValue(opts.filter.id) ?? props.filters?.id,
     search: opts.search ?? props.filters?.search
   });
 
@@ -196,13 +195,6 @@ let identityDelegationConfigsTable = new DashboardTable<
         { id: 'archived', label: 'Archived' },
         { id: 'deleted', label: 'Deleted' }
       ]
-    },
-    {
-      id: 'id',
-      fields: ['id'],
-      label: 'Config ID',
-      description: 'Filter by config ID',
-      type: 'string'
     }
   ])
   .search('Search delegation configs...')

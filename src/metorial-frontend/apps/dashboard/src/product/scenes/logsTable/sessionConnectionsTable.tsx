@@ -14,11 +14,16 @@ import {
   FilterPayload,
   TableStateProvider,
   TableStateProviderResult,
+  getDateRangeFilterValue,
   getEnumListFilterValue,
-  getStringFilterValue
+  getListFilterValue,
+  type TableFilter,
+  type TableLayoutProps
 } from '@metorial/table';
 import { Badge, RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
+import { useMemo } from 'react';
+import { entityFilters } from '../entityFilters';
 
 type SessionConnection = DashboardInstanceSessionsConnectionsListOutput['items'][number];
 
@@ -55,14 +60,14 @@ let useSessionConnectionsTableState: TableStateProvider<
     connectionState:
       getEnumListFilterValue(opts.filter.connectionState, ['connected', 'disconnected']) ??
       props.filters?.connectionState,
-    id: getStringFilterValue(opts.filter.id) ?? props.filters?.id,
-    sessionId: getStringFilterValue(opts.filter.sessionId) ?? props.filters?.sessionId,
-    agentId: getStringFilterValue(opts.filter.agentId) ?? props.filters?.agentId,
-    actorId: getStringFilterValue(opts.filter.actorId) ?? props.filters?.actorId,
-    consumerId: getStringFilterValue(opts.filter.consumerId) ?? props.filters?.consumerId,
-    identityId: getStringFilterValue(opts.filter.identityId) ?? props.filters?.identityId,
+    sessionId: getListFilterValue(opts.filter.sessionId) ?? props.filters?.sessionId,
+    agentId: getListFilterValue(opts.filter.agentId) ?? props.filters?.agentId,
+    actorId: getListFilterValue(opts.filter.actorId) ?? props.filters?.actorId,
+    consumerId: getListFilterValue(opts.filter.consumerId) ?? props.filters?.consumerId,
+    identityId: getListFilterValue(opts.filter.identityId) ?? props.filters?.identityId,
     agentInstanceId:
-      getStringFilterValue(opts.filter.agentInstanceId) ?? props.filters?.agentInstanceId
+      getListFilterValue(opts.filter.agentInstanceId) ?? props.filters?.agentInstanceId,
+    createdAt: getDateRangeFilterValue(opts.filter.createdAt) ?? props.filters?.createdAt
   });
 
   return {
@@ -75,6 +80,34 @@ let useSessionConnectionsTableState: TableStateProvider<
     loadPrevious: connections.previous
   };
 };
+
+let useSessionConnectionsFilters = (instanceId: string) =>
+  useMemo<TableFilter<SessionConnection>[]>(
+    () => [
+      {
+        id: 'connectionState',
+        fields: ['connectionState'],
+        label: 'State',
+        description: 'Filter by connection state',
+        type: 'select',
+        options: [
+          { id: 'connected', label: 'Connected' },
+          { id: 'disconnected', label: 'Disconnected' }
+        ]
+      },
+      {
+        id: 'createdAt',
+        fields: ['createdAt'],
+        label: 'Created',
+        description: 'Filter by creation time',
+        type: 'date'
+      },
+      entityFilters.agent(instanceId),
+      entityFilters.consumer(instanceId),
+      entityFilters.session(instanceId)
+    ],
+    [instanceId]
+  );
 
 let sessionConnectionsTable = new DashboardTable<
   SessionConnectionsTableProps,
@@ -165,40 +198,6 @@ let sessionConnectionsTable = new DashboardTable<
       render: connection => <ID id={connection.id} />
     }
   ])
-  .filters([
-    {
-      id: 'connectionState',
-      fields: ['connectionState'],
-      label: 'State',
-      description: 'Filter by connection state',
-      type: 'select',
-      options: [
-        { id: 'connected', label: 'Connected' },
-        { id: 'disconnected', label: 'Disconnected' }
-      ]
-    },
-    {
-      id: 'agentId',
-      fields: ['agentId'],
-      label: 'Agent ID',
-      description: 'Filter by agent ID',
-      type: 'string'
-    },
-    {
-      id: 'consumerId',
-      fields: ['consumerId'],
-      label: 'Consumer ID',
-      description: 'Filter by consumer ID',
-      type: 'string'
-    },
-    {
-      id: 'sessionId',
-      fields: ['sessionId'],
-      label: 'Session ID',
-      description: 'Filter by session ID',
-      type: 'string'
-    }
-  ])
   .link(
     (connection, props) =>
       `${Paths.instance.providerSession(
@@ -213,16 +212,21 @@ let sessionConnectionsTable = new DashboardTable<
 
 export let SessionConnectionsTable = ({
   instanceId,
-  filters
+  filters,
+  layout
 }: {
   instanceId: string;
   filters?: SessionConnectionsTableProps['filters'];
+  layout?: TableLayoutProps;
 }) => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let tableFilters = useSessionConnectionsFilters(instanceId);
 
   return sessionConnectionsTable({
+    ...layout,
+    tableFilters,
     instanceId,
     filters,
     instance,

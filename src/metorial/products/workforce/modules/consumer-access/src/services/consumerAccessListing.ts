@@ -442,12 +442,14 @@ class ConsumerAccessListingServiceImpl {
         if (search) {
           filters.push({
             OR: [
+              { id: search },
               { name: { contains: search, mode: 'insensitive' } },
               { description: { contains: search, mode: 'insensitive' } },
               {
                 providerTemplate: {
                   OR: [
                     { id: { in: searchMatches.providerTemplateIds ?? [] } },
+                    { id: search },
                     { name: { contains: search, mode: 'insensitive' } },
                     { description: { contains: search, mode: 'insensitive' } }
                   ]
@@ -457,6 +459,7 @@ class ConsumerAccessListingServiceImpl {
                 magicMcpServer: {
                   OR: [
                     { id: { in: searchMatches.magicMcpServerIds ?? [] } },
+                    { id: search },
                     { name: { contains: search, mode: 'insensitive' } },
                     { description: { contains: search, mode: 'insensitive' } }
                   ]

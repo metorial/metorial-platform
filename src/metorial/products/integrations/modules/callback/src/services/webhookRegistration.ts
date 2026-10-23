@@ -32,6 +32,7 @@ import {
 export type ListWebhookRegistrationsParams = {
   ids?: string[];
   providerIds?: string[];
+  search?: string;
   status?: WebhookRegistrationStatus[];
   allowDeleted?: boolean;
   createdAt?: DateFilter;
@@ -106,6 +107,7 @@ class webhookRegistrationServiceImpl {
       { tenant: d.tenant, environment: d.environment, solution },
       d.providerIds
     );
+    let search = d.search?.trim();
 
     return Paginator.create<WebhookRegistrationWithRelations>(({ prisma }) =>
       prisma(async opts =>
@@ -118,6 +120,7 @@ class webhookRegistrationServiceImpl {
             ...normalizeStatusForList(d).noParent,
             AND: [
               d.ids ? { id: { in: d.ids } } : undefined!,
+              search ? { id: search } : undefined!,
               providers ? { providerOid: providers.in } : undefined!,
               d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
               d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!

@@ -10,10 +10,14 @@ import {
   TableStateProvider,
   TableStateProviderResult,
   getEnumListFilterValue,
-  getStringFilterValue
+  getListFilterValue,
+  type TableFilter,
+  type TableLayoutProps
 } from '@metorial/table';
 import { Badge, RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
+import { useMemo } from 'react';
+import { entityFilters } from '../entityFilters';
 import { getErrorLabel } from '../errorGroupLabel';
 
 type ErrorGroup = DashboardInstanceSessionsErrorGroupsListOutput['items'][number];
@@ -40,10 +44,10 @@ let errorGroupsTableState: TableStateProvider<
 > = (props, opts) => {
   let errors = useSessionErrorGroups(props.instance.data?.id, {
     order: 'desc',
-    sessionId: getStringFilterValue(opts.filter.sessionId) ?? props.sessionId,
+    search: opts.search || undefined,
+    sessionId: getListFilterValue(opts.filter.sessionId) ?? props.sessionId,
     type: getErrorTypeFilterValue(opts.filter.type) ?? (props.type as any),
-    id: getStringFilterValue(opts.filter.id),
-    providerId: getStringFilterValue(opts.filter.providerId)
+    providerId: getListFilterValue(opts.filter.providerId)
   });
 
   return {
@@ -61,6 +65,27 @@ let truncate = (str: string, maxLength: number) => {
   if (str.length <= maxLength) return str;
   return str.slice(0, maxLength) + '...';
 };
+
+let useErrorGroupsFilters = (instanceId: string | undefined) =>
+  useMemo<TableFilter<ErrorGroup>[]>(
+    () => [
+      {
+        id: 'type',
+        fields: ['type'],
+        label: 'Type',
+        description: 'Filter by type',
+        type: 'select',
+        options: [
+          { id: 'message_processing_timeout', label: 'Timeout' },
+          { id: 'message_processing_provider_error', label: 'Provider Error' },
+          { id: 'message_processing_system_error', label: 'System Error' }
+        ]
+      },
+      entityFilters.session(instanceId),
+      entityFilters.provider(instanceId)
+    ],
+    [instanceId]
+  );
 
 let providerErrorGroupsTable = new DashboardTable<ErrorGroupsTableStateProps, ErrorGroup>(
   'provider-error-groups'
@@ -116,41 +141,7 @@ let providerErrorGroupsTable = new DashboardTable<ErrorGroupsTableStateProps, Er
         )
     }
   ])
-  .filters([
-    {
-      id: 'type',
-      fields: ['type'],
-      label: 'Type',
-      description: 'Filter by type',
-      type: 'select',
-      options: [
-        { id: 'message_processing_timeout', label: 'Timeout' },
-        { id: 'message_processing_provider_error', label: 'Provider Error' },
-        { id: 'message_processing_system_error', label: 'System Error' }
-      ]
-    },
-    {
-      id: 'id',
-      fields: ['id'],
-      label: 'Error Group ID',
-      description: 'Filter by error group ID',
-      type: 'string'
-    },
-    {
-      id: 'sessionId',
-      fields: ['sessionId'],
-      label: 'Session ID',
-      description: 'Filter by session ID',
-      type: 'string'
-    },
-    {
-      id: 'providerId',
-      fields: ['providerId'],
-      label: 'Provider ID',
-      description: 'Filter by provider ID',
-      type: 'string'
-    }
-  ])
+  .search('Search by provider, deployment, error code or ID...')
   .link((error, props) =>
     Paths.instance.providerError(
       props.instance.data?.organization,
@@ -161,10 +152,16 @@ let providerErrorGroupsTable = new DashboardTable<ErrorGroupsTableStateProps, Er
   )
   .build();
 
-export let ProviderErrorGroupsTable = (filter?: ErrorGroupsTableProps) => {
+export let ProviderErrorGroupsTable = ({
+  layout,
+  ...filter
+}: ErrorGroupsTableProps & { layout?: TableLayoutProps } = {}) => {
   let instance = useCurrentInstance();
+  let tableFilters = useErrorGroupsFilters(instance.data?.id);
 
   return providerErrorGroupsTable({
+    ...layout,
+    tableFilters,
     ...filter,
     instance,
     emptyState: 'No provider errors found.'
