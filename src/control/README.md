@@ -189,7 +189,8 @@ control test:e2e --images DIR --workspace PATH     # CI: run tested images
 
 A package that declares `[e2e] tests` is a **stack** (system under test, SUT).
 Its test packages are the workspace packages matched by `tests` (relative to
-the manifest); each must declare a `test:e2e` script. Filters match stack or
+the manifest) that declare a `test:e2e` script. Packages without that script
+are skipped. Filters match stack or
 test package names (`*` wildcards); selecting a stack selects all its tests.
 
 ```toml
