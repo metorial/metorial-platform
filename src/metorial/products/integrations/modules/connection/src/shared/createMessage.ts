@@ -21,6 +21,7 @@ import {
   type SessionParticipant,
   type SessionProvider
 } from '@metorial-subspace/db';
+import { protoGuardService } from '@metorial-subspace/module-protoguard';
 import { getRetentionPolicy } from '@metorial-subspace/provider-utils';
 import { messageCreatedQueue } from '../queues/message/messageCreated';
 import { createError, messageFailureReasonToErrorType } from './createError';
@@ -196,6 +197,14 @@ export let createMessage = async (data: CreateMessagePropsFull) => {
   });
 
   await messageCreatedQueue.add({ messageId: message.id });
+
+  protoGuardService.scheduleMessageScan({
+    message,
+    methodOrToolKey: data.tool?.key ?? data.methodOrToolKey ?? null,
+    tool: data.tool,
+    input: data.input,
+    output: data.output
+  });
 
   if (isDirectOffload) {
     let body = { id: message.id, input: data.input, output: data.output ?? null };

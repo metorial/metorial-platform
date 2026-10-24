@@ -17,10 +17,12 @@ import {
 import {
   Fabric,
   type AuditSubspaceProtoGuardAlertThreshold,
-  type AuditSubspaceProtoGuardFilterSetting
+  type AuditSubspaceProtoGuardFilterSetting,
+  type AuditSubspaceProtoGuardTenantSetting
 } from '@metorial/fabric';
 
 export let DEFAULT_PROTO_GUARD_ALERT_FILTER_COUNT_THRESHOLD = 2;
+export let DEFAULT_PROTO_GUARD_ALERT_PROBABILITY_THRESHOLD = 0.8;
 
 let GLOBAL_FILTERS_CACHE_TTL_SECONDS = 60;
 let TENANT_CONFIG_CACHE_TTL_SECONDS = 10;
@@ -33,10 +35,21 @@ let getGlobalFilters = createLocallyCachedFunction({
         oid: true,
         key: true,
         defaultEnabled: true,
-        alertConfidenceThreshold: true
+        alertConfidenceThreshold: true,
+        scoreWeight: true,
+        stage: true
       }
     }),
   ttlSeconds: GLOBAL_FILTERS_CACHE_TTL_SECONDS
+});
+
+// A missing row means the tenant never touched ProtoGuard, which is the default-on state.
+let resolveTenantSetting = (setting: ProtoGuardTenantSetting | null) => ({
+  enabled: setting?.enabled ?? true,
+  alertProbabilityThreshold:
+    setting?.alertProbabilityThreshold ?? DEFAULT_PROTO_GUARD_ALERT_PROBABILITY_THRESHOLD,
+  alertFilterCountThreshold:
+    setting?.alertFilterCountThreshold ?? DEFAULT_PROTO_GUARD_ALERT_FILTER_COUNT_THRESHOLD
 });
 
 let getTenantConfig = createLocallyCachedFunction({
@@ -53,15 +66,15 @@ let getTenantConfig = createLocallyCachedFunction({
     );
 
     return {
-      alertFilterCountThreshold:
-        tenantSetting?.alertFilterCountThreshold ??
-        DEFAULT_PROTO_GUARD_ALERT_FILTER_COUNT_THRESHOLD,
+      ...resolveTenantSetting(tenantSetting),
       filters: filters.map(filter => {
         let setting = settingByFilterOid.get(filter.oid);
 
         return {
           key: filter.key,
           oid: filter.oid,
+          stage: filter.stage,
+          scoreWeight: filter.scoreWeight,
           enabled: setting?.enabled ?? filter.defaultEnabled,
           alertConfidenceThreshold:
             setting?.alertConfidenceThreshold ?? filter.alertConfidenceThreshold
@@ -95,8 +108,20 @@ let assertAlertConfidenceThreshold = (threshold: number | null) => {
   );
 };
 
-let assertAlertFilterCountThreshold = (threshold: number | null) => {
-  if (threshold === null) return;
+let assertAlertProbabilityThreshold = (threshold: number | null | undefined) => {
+  if (threshold == null) return;
+  if (Number.isFinite(threshold) && threshold > 0 && threshold <= 1) return;
+
+  throw new ServiceError(
+    badRequestError({
+      code: 'invalid_alert_probability_threshold',
+      message: 'The alert probability threshold must be a number above 0 and at most 1.'
+    })
+  );
+};
+
+let assertAlertFilterCountThreshold = (threshold: number | null | undefined) => {
+  if (threshold == null) return;
   if (Number.isInteger(threshold) && threshold >= 1) return;
 
   throw new ServiceError(
@@ -124,6 +149,15 @@ export type SetTenantFilterAlertConfidenceThresholdParams = {
 export type SetTenantAlertFilterCountThresholdParams = {
   tenant: Tenant;
   threshold: number | null;
+};
+
+export type UpdateTenantSettingsParams = {
+  tenant: Tenant;
+  input: {
+    enabled?: boolean;
+    alertProbabilityThreshold?: number | null;
+    alertFilterCountThreshold?: number | null;
+  };
 };
 
 let toFilterSettingAuditPayload = (
@@ -155,11 +189,22 @@ let toAlertThresholdAuditPayload = (
   settingId: setting?.id ?? null,
   alertFilterCountThreshold:
     setting?.alertFilterCountThreshold ?? DEFAULT_PROTO_GUARD_ALERT_FILTER_COUNT_THRESHOLD,
-  isUsingDefault: !setting,
+  isUsingDefault: setting?.alertFilterCountThreshold == null,
   defaultAlertFilterCountThreshold: DEFAULT_PROTO_GUARD_ALERT_FILTER_COUNT_THRESHOLD
 });
 
-class protoGuardConfigServiceImpl {
+let toTenantSettingAuditPayload = (
+  setting: ProtoGuardTenantSetting | null
+): AuditSubspaceProtoGuardTenantSetting => ({
+  settingId: setting?.id ?? null,
+  ...resolveTenantSetting(setting),
+  isUsingDefaultProbabilityThreshold: setting?.alertProbabilityThreshold == null,
+  defaultAlertProbabilityThreshold: DEFAULT_PROTO_GUARD_ALERT_PROBABILITY_THRESHOLD,
+  isUsingDefaultFilterCountThreshold: setting?.alertFilterCountThreshold == null,
+  defaultAlertFilterCountThreshold: DEFAULT_PROTO_GUARD_ALERT_FILTER_COUNT_THRESHOLD
+});
+
+class ProtoGuardConfigServiceImpl {
   async listFilters(d: MetorialFacing<ListProtoGuardFiltersParams>) {
     let { instance, organizationActor, ...rest } = d;
     let { tenant } = await resolveMetorialFacing({ instance, organizationActor });
@@ -168,7 +213,7 @@ class protoGuardConfigServiceImpl {
 
   async listFiltersInternal(d: ListProtoGuardFiltersParams) {
     let [filters, tenantFilterSettings, tenantSetting] = await Promise.all([
-      db.protoGuardFilter.findMany({ orderBy: { key: 'asc' } }),
+      db.protoGuardFilter.findMany({ where: { stage: 'active' }, orderBy: { key: 'asc' } }),
       db.protoGuardTenantFilterSetting.findMany({ where: { tenantOid: d.tenant.oid } }),
       db.protoGuardTenantSetting.findUnique({ where: { tenantOid: d.tenant.oid } })
     ]);
@@ -178,9 +223,7 @@ class protoGuardConfigServiceImpl {
     );
 
     return {
-      alertFilterCountThreshold:
-        tenantSetting?.alertFilterCountThreshold ??
-        DEFAULT_PROTO_GUARD_ALERT_FILTER_COUNT_THRESHOLD,
+      ...resolveTenantSetting(tenantSetting),
       filters: filters.map(filter => {
         let setting = settingByFilterOid.get(filter.oid);
 
@@ -338,24 +381,55 @@ class protoGuardConfigServiceImpl {
   async setTenantAlertFilterCountThresholdInternal(
     d: SetTenantAlertFilterCountThresholdParams
   ) {
-    assertAlertFilterCountThreshold(d.threshold);
+    return this.updateTenantSettingsInternal({
+      tenant: d.tenant,
+      input: { alertFilterCountThreshold: d.threshold }
+    });
+  }
 
-    if (d.threshold === null) {
-      await db.protoGuardTenantSetting.deleteMany({
-        where: { tenantOid: d.tenant.oid }
-      });
-      await clearTenantCache(d.tenant.oid);
-      return null;
-    }
+  async updateTenantSettings(d: MetorialFacing<UpdateTenantSettingsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let { tenant } = await resolveMetorialFacing({ instance, organizationActor });
+
+    assertAlertProbabilityThreshold(d.input.alertProbabilityThreshold);
+    assertAlertFilterCountThreshold(d.input.alertFilterCountThreshold);
+
+    let previousSetting = await db.protoGuardTenantSetting.findUnique({
+      where: { tenantOid: tenant.oid }
+    });
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('protoguard.tenant_setting.updated:before', eventBase);
+
+    let setting = await this.updateTenantSettingsInternal({ ...rest, tenant });
+
+    await Fabric.fire('protoguard.tenant_setting.updated:after', {
+      ...eventBase,
+      setting: toTenantSettingAuditPayload(setting),
+      previousSetting: toTenantSettingAuditPayload(previousSetting)
+    });
+
+    return setting;
+  }
+
+  async updateTenantSettingsInternal(d: UpdateTenantSettingsParams) {
+    assertAlertProbabilityThreshold(d.input.alertProbabilityThreshold);
+    assertAlertFilterCountThreshold(d.input.alertFilterCountThreshold);
+
+    let data = {
+      enabled: d.input.enabled,
+      alertProbabilityThreshold: d.input.alertProbabilityThreshold,
+      alertFilterCountThreshold: d.input.alertFilterCountThreshold
+    };
 
     let setting = await db.protoGuardTenantSetting.upsert({
       where: { tenantOid: d.tenant.oid },
-      update: { alertFilterCountThreshold: d.threshold },
+      update: data,
       create: {
         ...getId('protoGuardTenantSetting'),
         tenantOid: d.tenant.oid,
         projectOid: d.tenant.projectOid,
-        alertFilterCountThreshold: d.threshold
+        ...data
       }
     });
 
@@ -366,5 +440,5 @@ class protoGuardConfigServiceImpl {
 
 export let protoGuardConfigService = Service.create(
   'protoGuardConfigService',
-  () => new protoGuardConfigServiceImpl()
+  () => new ProtoGuardConfigServiceImpl()
 ).build();

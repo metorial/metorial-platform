@@ -15,6 +15,7 @@ import {
   resolveSessionConnectionOids,
   resolveSessionMessageOids,
   resolveSessionOids,
+  VISIBLE_INSTANCE_WHERE,
   type DateFilter,
   type Scope
 } from './_shared';
@@ -26,6 +27,7 @@ export let protoGuardAlertInclude = {
   connection: true,
   providerRun: true,
   instances: {
+    where: VISIBLE_INSTANCE_WHERE,
     include: { filter: true }
   }
 } as const;
@@ -102,7 +104,11 @@ class protoGuardAlertServiceImpl {
               d.ids ? { id: { in: d.ids } } : undefined!,
               runOids ? { runOid: { in: runOids } } : undefined!,
               filterOids
-                ? { instances: { some: { filterOid: { in: filterOids } } } }
+                ? {
+                    instances: {
+                      some: { ...VISIBLE_INSTANCE_WHERE, filterOid: { in: filterOids } }
+                    }
+                  }
                 : undefined!,
               sessionOids ? { sessionOid: { in: sessionOids } } : undefined!,
               sessionMessageOids ? { messageOid: { in: sessionMessageOids } } : undefined!,

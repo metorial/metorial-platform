@@ -1,5 +1,8 @@
 import { db, type SecurityReportFinding } from '@metorial-subspace/db';
-import { protoGuardFilterDefinitions } from '@metorial-subspace/module-connection/src/protoguard/filters';
+import {
+  scanTextForReview,
+  scanToolDefinitionForReview
+} from '@metorial-subspace/module-protoguard';
 import type { LedgerFact } from '@metorial/review-engine';
 import { addressesReviewer } from '../detectors';
 import type { EvidenceTool } from '../evidence';
@@ -16,35 +19,27 @@ let toolKeySlug = (key: string) =>
     .replace(/^-+|-+$/g, '')
     .slice(0, 40);
 
-let toolTexts = (tool: EvidenceTool) => [
-  { path: `tool:${tool.key}:description`, content: tool.description ?? '' },
-  { path: `tool:${tool.key}:schema`, content: JSON.stringify(tool.inputSchema ?? {}) }
-];
-
-// ProtoGuard filters are written for session messages; on static tool definitions only the
-// scan targets matter, so the message is never read.
-let runFilters = (targets: { path: string; content: string }[]) =>
-  protoGuardFilterDefinitions.flatMap(definition =>
-    definition
-      .check({ message: undefined as never, targets })
-      .matches.filter(match => match.confidence >= definition.alertConfidenceThreshold)
-      .map(match => ({ definition, match }))
-  );
-
 export let scanToolDefinitions = (tools: EvidenceTool[]) => {
   let facts: LedgerFact[] = [];
   let findings: SecurityReportFinding[] = [];
 
   for (let tool of tools) {
-    let targets = toolTexts(tool).filter(target => target.content.length);
-    let hits = runFilters(targets);
-    let aimedAtReviewer = targets.some(target => addressesReviewer(target.content));
+    let hits = scanToolDefinitionForReview({
+      name: tool.name ?? tool.key,
+      description: tool.description,
+      inputSchema: tool.inputSchema,
+      annotations: tool.annotations
+    });
+    let aimedAtReviewer = [
+      tool.description ?? '',
+      JSON.stringify(tool.inputSchema ?? {})
+    ].some(text => addressesReviewer(text));
 
     if (!hits.length && !aimedAtReviewer) continue;
 
     let factId = `protoguard-${toolKeySlug(tool.key)}`;
     let detail = [
-      ...hits.map(hit => `${hit.definition.name}: "${hit.match.matchedText.slice(0, 120)}"`),
+      ...hits.map(hit => `${hit.familyName}: "${hit.matchedText}"`),
       ...(aimedAtReviewer
         ? ['Text addresses an AI reviewer or tries to influence the rating.']
         : [])
@@ -52,7 +47,7 @@ export let scanToolDefinitions = (tools: EvidenceTool[]) => {
 
     facts.push({ id: factId, title: `Suspicious text in ${tool.key}`, detail });
 
-    let critical = aimedAtReviewer || hits.some(hit => hit.definition.severity == 'critical');
+    let critical = aimedAtReviewer || hits.some(hit => hit.severity == 'critical');
 
     findings.push({
       key: `tool-poisoning-${toolKeySlug(tool.key)}`,
@@ -61,7 +56,7 @@ export let scanToolDefinitions = (tools: EvidenceTool[]) => {
       severity: critical ? 'critical' : 'high',
       title: `${tool.key} contains instructions aimed at the model`,
       body: `The definition of ${tool.key} contains text that tries to steer the AI agent using it (${
-        [...new Set(hits.map(hit => hit.definition.name.toLowerCase()))].join(', ') ||
+        [...new Set(hits.map(hit => hit.familyName.toLowerCase()))].join(', ') ||
         'reviewer manipulation'
       }). Agents read tool definitions as trusted context.`,
       recommendation: 'Remove instructions from tool descriptions and schemas.',
@@ -77,7 +72,7 @@ export let scanToolDefinitions = (tools: EvidenceTool[]) => {
 };
 
 export let scanText = (d: { label: string; content: string }) => {
-  let hits = runFilters([{ path: d.label, content: d.content }]);
+  let hits = scanTextForReview(d.content);
   return { hits: hits.length, aimedAtReviewer: addressesReviewer(d.content) };
 };
 
@@ -96,6 +91,8 @@ export let buildProtoGuardDigest = async (d: {
   let instances = await db.protoGuardAlertInstance.findMany({
     where: {
       createdAt: { gte: since },
+      stage: 'active',
+      isSuppressed: false,
       alert: {
         tenantOid: d.tenantOid,
         providerRun: { providerVersionOid: d.providerVersionOid }
@@ -132,7 +129,7 @@ export let buildProtoGuardDigest = async (d: {
       issueType: instance.issueType,
       severity: instance.severity,
       path: instance.path,
-      excerpt: redact(instance.matchedText)
+      excerpt: instance.matchedText == null ? null : redact(instance.matchedText)
     }))
   };
 };
