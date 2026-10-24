@@ -84,6 +84,7 @@ import {
   MetorialDashboardInstancePortalsSurfaceProviderGroupsEndpoint,
   MetorialDashboardInstanceProtoGuardAlertsEndpoint,
   MetorialDashboardInstanceProtoGuardConfigEndpoint,
+  MetorialDashboardInstanceProtoGuardSuppressionsEndpoint,
   MetorialDashboardInstanceProviderAuthConfigErrorsEndpoint,
   MetorialDashboardInstanceProviderAuthConfigErrorsGroupsEndpoint,
   MetorialDashboardInstanceProviderAuthConfigEventsEndpoint,
@@ -1095,9 +1096,12 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     publishers: new MetorialDashboardInstancePublishersEndpoint(manager)
   }),
 
-  securityReviews: Object.assign(new MetorialDashboardInstanceSecurityReviewsEndpoint(manager), {
-    revisions: new MetorialDashboardInstanceSecurityReviewsRevisionsEndpoint(manager)
-  }),
+  securityReviews: Object.assign(
+    new MetorialDashboardInstanceSecurityReviewsEndpoint(manager),
+    {
+      revisions: new MetorialDashboardInstanceSecurityReviewsRevisionsEndpoint(manager)
+    }
+  ),
 
   providerDeployments: Object.assign(
     new MetorialDashboardInstanceProviderDeploymentsEndpoint(manager),
@@ -1146,6 +1150,7 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   monitors: new MetorialDashboardInstanceMonitorsEndpoint(manager),
   protoGuardAlerts: new MetorialDashboardInstanceProtoGuardAlertsEndpoint(manager),
   protoGuardConfig: new MetorialDashboardInstanceProtoGuardConfigEndpoint(manager),
+  protoGuardSuppressions: new MetorialDashboardInstanceProtoGuardSuppressionsEndpoint(manager),
   providerAuthConfigErrors: Object.assign(
     new MetorialDashboardInstanceProviderAuthConfigErrorsEndpoint(manager),
     {

@@ -26,11 +26,27 @@ export type ProtoGuardAlertsListOutput = {
         | 'instruction_block'
         | 'unicode_smuggling'
         | 'encoded_payload'
-        | 'typoglycemia';
+        | 'typoglycemia'
+        | 'ascii_smuggling'
+        | 'exfil_channel'
+        | 'hidden_content'
+        | 'cross_tool_reference'
+        | 'addressed_to_agent'
+        | 'secret_in_arguments'
+        | 'tool_poisoning'
+        | 'tool_shadowing'
+        | 'tool_rug_pull'
+        | 'injection_followed_by_sink';
       severity: 'low' | 'medium' | 'high' | 'critical';
       confidence: number | null;
+      ruleKey: string | null;
+      direction: 'input' | 'output' | 'session' | null;
+      contentHash: string | null;
       createdAt: Date;
     }[];
+    occurrenceCount: number;
+    firstSeenAt: Date;
+    lastSeenAt: Date;
     createdAt: Date;
   }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
@@ -48,7 +64,26 @@ export let mapProtoGuardAlertsListOutput =
           'session_message_id',
           'session_connection_id',
           'provider_run_id',
-          ['filters', 0, [2, [1, ['filter_id', 'issue_type', 'created_at']]]],
+          [
+            'filters',
+            0,
+            [
+              2,
+              [
+                1,
+                [
+                  'filter_id',
+                  'issue_type',
+                  'rule_key',
+                  'content_hash',
+                  'created_at'
+                ]
+              ]
+            ]
+          ],
+          'occurrence_count',
+          'first_seen_at',
+          'last_seen_at',
           'created_at'
         ]
       ]

@@ -33,6 +33,7 @@ export * from './organizations';
 export * from './portals';
 export * from './proto-guard-alerts';
 export * from './proto-guard-config';
+export * from './proto-guard-suppressions';
 export * from './provider-auth-config-errors';
 export * from './provider-auth-config-events';
 export * from './provider-categories';
