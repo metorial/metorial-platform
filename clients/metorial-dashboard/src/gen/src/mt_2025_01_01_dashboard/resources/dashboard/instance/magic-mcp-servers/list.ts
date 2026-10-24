@@ -445,10 +445,7 @@ export type DashboardInstanceMagicMcpServersListQuery = {
   providerTemplateId?: string | string[] | undefined;
   integrationInstanceId?: string | string[] | undefined;
   owner?:
-    | 'organization'
-    | 'consumer'
-    | ('organization' | 'consumer')[]
-    | undefined;
+    'organization' | 'consumer' | ('organization' | 'consumer')[] | undefined;
   providerId?: string | string[] | undefined;
   consumerId?: string | string[] | undefined;
   consumerProfileId?: string | string[] | undefined;

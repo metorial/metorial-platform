@@ -6,12 +6,7 @@ export type ProviderDeploymentsSetupSessionsListOutput = {
     id: string;
     type: 'auth_only' | 'config_only' | 'auth_and_config' | 'admin';
     status:
-      | 'failed'
-      | 'archived'
-      | 'deleted'
-      | 'pending'
-      | 'completed'
-      | 'expired';
+      'failed' | 'archived' | 'deleted' | 'pending' | 'completed' | 'expired';
     url: string;
     error: { code: string; message: string } | null;
     name: string | null;

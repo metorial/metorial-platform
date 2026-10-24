@@ -46,6 +46,7 @@ export * from './public-mcp-servers';
 export * from './publishers';
 export * from './sandbox';
 export * from './scm';
+export * from './security-reviews';
 export * from './session-templates';
 export * from './sessions';
 export * from './skills';

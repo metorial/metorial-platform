@@ -8,11 +8,7 @@ export type ManagementInstanceProviderRunsGetLogsOutput = {
     timestamp: Date;
     message: string;
     outputType:
-      | 'stdout'
-      | 'stderr'
-      | 'debug.info'
-      | 'debug.warning'
-      | 'debug.error';
+      'stdout' | 'stderr' | 'debug.info' | 'debug.warning' | 'debug.error';
   }[];
 };
 

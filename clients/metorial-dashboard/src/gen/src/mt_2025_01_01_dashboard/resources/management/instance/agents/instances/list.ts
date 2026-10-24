@@ -55,10 +55,7 @@ export type ManagementInstanceAgentsInstancesListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & {
   type?:
-    | 'mcp_client'
-    | 'tool_call'
-    | ('mcp_client' | 'tool_call')[]
-    | undefined;
+    'mcp_client' | 'tool_call' | ('mcp_client' | 'tool_call')[] | undefined;
   id?: string | string[] | undefined;
   agentClientId?: string | string[] | undefined;
   createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;

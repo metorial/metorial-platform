@@ -7,9 +7,7 @@ export type ManagementOrganizationOauthAppsCreateOutput = {
   type: 'user_facing' | 'cli_auth' | 'server_side';
   accessLevel: 'organization' | 'global';
   subjectType:
-    | 'organization_member'
-    | 'consumer'
-    | 'consumer_or_organization_member';
+    'organization_member' | 'consumer' | 'consumer_or_organization_member';
   allowTokenExchangeWithoutClientSecret: boolean;
   name: string;
   description: string | null;

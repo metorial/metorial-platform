@@ -29,11 +29,7 @@ export type IdentitiesDelegationRequestsListOutput = {
       object: 'identity.delegation';
       id: string;
       status:
-        | 'waiting_for_consent'
-        | 'denied'
-        | 'active'
-        | 'revoked'
-        | 'expired';
+        'waiting_for_consent' | 'denied' | 'active' | 'revoked' | 'expired';
       deniedReason:
         | 'request_denied'
         | 'sub_delegation_depth_exceeded'

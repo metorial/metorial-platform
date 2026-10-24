@@ -34,10 +34,7 @@ export type ManagementInstanceCustomProvidersCommitsListOutput = {
       object: 'custom_provider.version';
       id: string;
       status:
-        | 'queued'
-        | 'deploying'
-        | 'deployment_succeeded'
-        | 'deployment_failed';
+        'queued' | 'deploying' | 'deployment_succeeded' | 'deployment_failed';
       config: {
         object: 'custom_provider.version.config';
         schema: { type: 'json_schema'; schema: Record<string, any> };
@@ -178,10 +175,7 @@ export type ManagementInstanceCustomProvidersCommitsListOutput = {
       object: 'custom_provider.version';
       id: string;
       status:
-        | 'queued'
-        | 'deploying'
-        | 'deployment_succeeded'
-        | 'deployment_failed';
+        'queued' | 'deploying' | 'deployment_succeeded' | 'deployment_failed';
       config: {
         object: 'custom_provider.version.config';
         schema: { type: 'json_schema'; schema: Record<string, any> };

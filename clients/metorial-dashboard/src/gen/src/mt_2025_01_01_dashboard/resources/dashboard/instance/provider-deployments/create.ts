@@ -113,15 +113,17 @@ export type DashboardInstanceProviderDeploymentsCreateBody = {
     | undefined;
   providerId: string;
   lockedProviderVersionId?: string | undefined;
-} & (
-  | { providerConfigId?: string | undefined }
-  | {
-      providerConfig?:
-        | { name?: string | undefined; value: Record<string, any> }
-        | { name?: string | undefined; providerConfigVaultId: string }
-        | undefined;
-    }
-);
+} & {
+  providerConfigId?: string | undefined;
+  providerConfig?:
+    | { name?: string | undefined; value: Record<string, any> }
+    | {
+        name?: string | undefined;
+        providerConfigVaultId: string;
+        providerId?: string | undefined;
+      }
+    | undefined;
+};
 
 export let mapDashboardInstanceProviderDeploymentsCreateBody =
   /* @__PURE__ */ createMapper<DashboardInstanceProviderDeploymentsCreateBody>([
@@ -139,7 +141,7 @@ export let mapDashboardInstanceProviderDeploymentsCreateBody =
             [
               'provider_config',
               1,
-              [3, [[0, [1, ['provider_config_vault_id']]]]]
+              [3, [[0, [1, ['provider_config_vault_id', 'provider_id']]]]]
             ]
           ]
         ]

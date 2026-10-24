@@ -149,46 +149,39 @@ export type DashboardInstanceSessionsCreateBody = {
   name?: string | undefined;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
-  providers: ((((
-    | { providerDeploymentId?: string | undefined }
-    | {
-        providerDeployment?:
-          | {
-              providerId: string;
-              name?: string | undefined;
-              description?: string | undefined;
-              metadata?: Record<string, any> | undefined;
-              lockedProviderVersionId?: string | undefined;
-            }
-          | undefined;
-      }
-  ) &
-    (
-      | { providerConfigId?: string | undefined }
+  providers: ((({
+    providerDeploymentId?: string | undefined;
+    providerDeployment?:
       | {
-          providerConfig?:
-            | { name?: string | undefined; value: Record<string, any> }
-            | {
-                name?: string | undefined;
-                providerConfigVaultId: string;
-                providerId?: string | undefined;
-              }
-            | undefined;
+          providerId: string;
+          name?: string | undefined;
+          description?: string | undefined;
+          metadata?: Record<string, any> | undefined;
+          lockedProviderVersionId?: string | undefined;
         }
-    )) &
-    ((
-      | { providerAuthConfigId?: string | undefined }
+      | undefined;
+  } & {
+    providerConfigId?: string | undefined;
+    providerConfig?:
+      | { name?: string | undefined; value: Record<string, any> }
       | {
-          providerAuthConfig?:
-            | {
-                name?: string | undefined;
-                providerAuthMethodId: string;
-                credentials: Record<string, any>;
-                providerId?: string | undefined;
-              }
-            | undefined;
+          name?: string | undefined;
+          providerConfigVaultId: string;
+          providerId?: string | undefined;
         }
-    ) & { sessionTemplateId?: string | undefined })) & {
+      | undefined;
+  }) &
+    ({
+      providerAuthConfigId?: string | undefined;
+      providerAuthConfig?:
+        | {
+            name?: string | undefined;
+            providerAuthMethodId: string;
+            credentials: Record<string, any>;
+            providerId?: string | undefined;
+          }
+        | undefined;
+    } & { sessionTemplateId?: string | undefined })) & {
     toolFilters?:
       | (
           | { type: 'tool_keys'; keys: string[] }

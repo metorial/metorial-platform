@@ -80,9 +80,7 @@ export type DashboardBootOutput = {
         id: string;
         value: string;
         purposes: (
-          | 'metorial_platform'
-          | 'metorial_portal'
-          | 'metorial_portal_single'
+          'metorial_platform' | 'metorial_portal' | 'metorial_portal_single'
         )[];
         compartment: {
           object: 'namespace.compartment';
@@ -257,9 +255,7 @@ export type DashboardBootOutput = {
             id: string;
             value: string;
             purposes: (
-              | 'metorial_platform'
-              | 'metorial_portal'
-              | 'metorial_portal_single'
+              'metorial_platform' | 'metorial_portal' | 'metorial_portal_single'
             )[];
             compartment: {
               object: 'namespace.compartment';

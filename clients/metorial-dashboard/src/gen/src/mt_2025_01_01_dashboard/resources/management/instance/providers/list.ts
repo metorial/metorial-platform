@@ -46,11 +46,7 @@ export type ManagementInstanceProvidersListOutput = {
       id: string;
       name: string;
       backend:
-        | 'slates'
-        | 'native'
-        | 'mcp.container'
-        | 'mcp.function'
-        | 'mcp.remote';
+        'slates' | 'native' | 'mcp.container' | 'mcp.function' | 'mcp.remote';
       triggers:
         | {
             status: 'enabled';

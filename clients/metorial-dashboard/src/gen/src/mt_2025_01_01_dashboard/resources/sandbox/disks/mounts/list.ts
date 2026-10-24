@@ -9,12 +9,7 @@ export type SandboxDisksMountsListOutput = {
     machineInstanceId: string | null;
     mountPath: string;
     status:
-      | 'failed'
-      | 'pending'
-      | 'mounted'
-      | 'recovering'
-      | 'skipped'
-      | 'released';
+      'failed' | 'pending' | 'mounted' | 'recovering' | 'skipped' | 'released';
     failure: {
       code:
         | 'provision_failed'
