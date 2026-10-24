@@ -71,6 +71,12 @@ model User {
   auditLogs              AuditLog[]
   password               UserPassword?
 
+  twoFactorRevision Int @default(0)
+
+  twoFactors      UserTwoFactor[]
+  twoFactorSetups UserTwoFactorSetup[]
+  recoveryCodes   UserRecoveryCode[]
+
   @@unique([appOid, email])
   @@index([accountOid, id])
   @@index([appOid, email])

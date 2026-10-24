@@ -41,6 +41,7 @@ import { deviceService } from './device';
 import { ssoDomainPolicyService } from './sso/domainPolicy';
 import { userService } from './user';
 import { userPasswordService } from './userPassword';
+import { userTwoFactorService } from './userTwoFactor';
 
 let sendSuccessfulLoginEmail = async (d: {
   user: User;
@@ -1105,6 +1106,7 @@ class AuthServiceImpl {
         data: { verifiedAt: new Date() }
       });
 
+      await withTransaction(() => userTwoFactorService.afterPrimary(authIntent));
       let unverifiedSteps = await db.authIntentStep.count({
         where: {
           authIntentOid: d.step.authIntentOid,
@@ -1302,6 +1304,16 @@ class AuthServiceImpl {
     }
 
     let attempt = await withTransaction(async tdb => {
+      await userTwoFactorService.assertVerified({
+        userOid: user.oid,
+        authIntentOid: d.authIntent.oid,
+        loginMethod:
+          d.authIntent.type === 'oauth'
+            ? 'oauth'
+            : d.authIntent.type === 'password'
+              ? 'password'
+              : 'email'
+      });
       if (d.authIntent.type == 'password') {
         await userPasswordService.assertVerifiedPassword({
           userOid: user.oid,

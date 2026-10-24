@@ -1,0 +1,89 @@
+enum UserTwoFactorMethod {
+  totp
+  passkey
+}
+
+enum UserTwoFactorSetupStatus {
+  pending
+  ready
+  completed
+  cancelled
+}
+
+model UserTwoFactor {
+  oid BigInt @id
+  id  String @unique
+
+  method          UserTwoFactorMethod
+  name            String
+  encryptedSecret String?
+  lastTimeStep    Int?
+  credentialId    String?             @unique
+  publicKey       Bytes?
+  counter         BigInt              @default(0)
+  transports      String[]            @default([])
+  deviceType      String?
+  backedUp        Boolean             @default(false)
+
+  userOid BigInt
+  user    User   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+
+  @@index([userOid, method])
+}
+
+model UserRecoveryCode {
+  oid BigInt @id
+  id  String @unique
+
+  hash String
+
+  userOid BigInt
+  user    User   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  createdAt  DateTime  @default(now())
+  consumedAt DateTime?
+
+  @@unique([userOid, hash])
+}
+
+model UserTwoFactorSetup {
+  oid BigInt @id
+  id  String @unique
+
+  secretHash             String                   @unique
+  method                 UserTwoFactorMethod?
+  status                 UserTwoFactorSetupStatus @default(pending)
+  revision               Int
+  name                   String?
+  encryptedSecret        String?
+  lastTimeStep           Int?
+  credentialId           String?
+  publicKey              Bytes?
+  counter                BigInt                   @default(0)
+  transports             String[]                 @default([])
+  deviceType             String?
+  backedUp               Boolean                  @default(false)
+  challenge              String?
+  challengeExpiresAt     DateTime?
+  failures               Int                      @default(0)
+  encryptedRecoveryCodes String?
+
+  callbackUrl String
+  returnUrl   String
+
+  userOid BigInt
+  user    User   @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  sessionOid BigInt
+  session    AuthDeviceUserSession @relation(fields: [sessionOid], references: [oid], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime
+  completedAt DateTime?
+
+  @@index([expiresAt, id])
+  @@index([userOid, createdAt])
+}
