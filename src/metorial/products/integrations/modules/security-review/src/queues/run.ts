@@ -1,0 +1,47 @@
+import { createQueue } from '@lowerdeck/queue';
+import { isAutoGenerationEnabled } from '@metorial-subspace/module-security-review-request';
+import { env } from '../env';
+import { internalSecurityReviewRunnerService } from '../internal/securityReviewRunner';
+import type { SecurityReviewRunInput } from '../lib/revisions';
+
+let DEBOUNCE_MS = 10 * 60 * 1000;
+
+let runSecurityReviewQueue = createQueue<SecurityReviewRunInput>({
+  name: 'sub/srev/run',
+  redisUrl: env.service.REDIS_URL,
+  workerOpts: { concurrency: 3, limiter: { max: 5, duration: 1000 } }
+});
+
+export let runSecurityReviewQueueProcessor = runSecurityReviewQueue.process(async data => {
+  await internalSecurityReviewRunnerService.runSecurityReview(data);
+});
+
+let runJobOptions = (d: { reviewId: string; immediate?: boolean }) => ({
+  id: `security-review${d.immediate ? '-now' : ''}:${d.reviewId}`,
+  delay: d.immediate ? 0 : DEBOUNCE_MS
+});
+
+// Until automatic generation is switched on globally, only staff-triggered runs are queued.
+let isAllowed = (job: SecurityReviewRunInput) =>
+  job.trigger == 'admin' || isAutoGenerationEnabled();
+
+// Automatic triggers share one debounced job per review so a burst of spec or deployment
+// changes produces a single run. Immediate requests use their own job id so a pending
+// debounced job can never swallow them.
+export let enqueueSecurityReview = async (
+  d: SecurityReviewRunInput & { immediate?: boolean }
+) => {
+  let { immediate, ...job } = d;
+  if (!isAllowed(job)) return;
+
+  await runSecurityReviewQueue.add(job, runJobOptions(d));
+};
+
+export let enqueueSecurityReviews = async (jobs: SecurityReviewRunInput[]) => {
+  let allowed = jobs.filter(isAllowed);
+  if (!allowed.length) return;
+
+  await runSecurityReviewQueue.addManyWithOps(
+    allowed.map(job => ({ data: job, opts: runJobOptions(job) }))
+  );
+};
