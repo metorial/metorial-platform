@@ -68,6 +68,7 @@ model Project {
   allowConsumerSkillEditing           Boolean @default(true)
 
   reducedSubprocessors Boolean @default(false)
+  aiAnalysisEnabled    Boolean @default(false)
 
   createdAt DateTime  @default(now())
   deletedAt DateTime?

@@ -294,9 +294,10 @@ export let syncSlateVersionQueueProcessor = syncSlateVersionQueue.process(async 
       id: slate.id,
       identifier: slate.identifier,
       registryUrl: registry.url,
-      identifierInRegistry: registryRecord.fullIdentifier
+      identifierInRegistry: registryRecord.fullIdentifier,
+      slateIdOnRegistry: registryRecord.id
     },
-    update: {}
+    update: { slateIdOnRegistry: registryRecord.id }
   });
 
   let newVersionOid = snowflake.nextId();
@@ -307,9 +308,10 @@ export let syncSlateVersionQueueProcessor = syncSlateVersionQueue.process(async 
       id: version.id,
       version: version.version,
       identifier: `${slate.identifier}::${version.version}`,
+      versionIdOnRegistry: registryVersionRecord.id,
       slateOid: slateRecord.oid
     },
-    update: {}
+    update: { versionIdOnRegistry: registryVersionRecord.id }
   });
 
   let readmeNames = ['readme.md'];

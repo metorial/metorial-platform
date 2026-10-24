@@ -17,6 +17,7 @@ export * from './organizationInviteJoin';
 export * from './organizationLayout';
 export * from './organizationMember';
 export * from './project';
+export * from './projectAiAnalysisConfiguration';
 export * from './projectAuthConfigConfiguration';
 export * from './projectBrand';
 export * from './projectDataRetentionConfiguration';

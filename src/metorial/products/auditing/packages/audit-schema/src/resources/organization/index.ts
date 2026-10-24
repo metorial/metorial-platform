@@ -14,6 +14,7 @@ import {
 import { organizationInviteResource } from './invite';
 import { organizationMemberResource } from './member';
 import {
+  projectAiAnalysisConfigurationResource,
   projectAuthConfigConfigurationResource,
   projectBrandResource,
   projectDataRetentionConfigurationResource,
@@ -59,6 +60,7 @@ export let organizationResources = resourceSet({
   project_skill_sync_configuration: projectSkillSyncConfigurationResource,
   project_reduced_subprocessors_configuration:
     projectReducedSubprocessorsConfigurationResource,
+  project_ai_analysis_configuration: projectAiAnalysisConfigurationResource,
   project_tool_calling_configuration: projectToolCallingConfigurationResource,
   project_sessionless_mcp_configuration: projectSessionlessMcpConfigurationResource,
   project_data_retention_configuration: projectDataRetentionConfigurationResource,

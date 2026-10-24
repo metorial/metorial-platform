@@ -26,6 +26,7 @@ vi.mock('@metorial-subspace/module-tenant', () => ({
   tenantService: { upsertTenant: mocks.upsertTenant }
 }));
 
+import { projectAiAnalysisConfigurationService } from '../src/services/projectAiAnalysisConfiguration';
 import { projectAuthConfigConfigurationService } from '../src/services/projectAuthConfigConfiguration';
 import { projectDataRetentionConfigurationService } from '../src/services/projectDataRetentionConfiguration';
 import { projectIntegrationNamingConfigurationService } from '../src/services/projectIntegrationNamingConfiguration';
@@ -52,7 +53,8 @@ let tenant = {
   storeToolCallAttachments: true,
   collectErrors: true,
   disableCallbacks: false,
-  reducedSubprocessors: false
+  reducedSubprocessors: false,
+  aiAnalysisEnabled: false
 };
 
 let project = {
@@ -222,5 +224,40 @@ describe('project integrations-backed configuration setters', () => {
         reducedSubprocessors: true
       }
     });
+  });
+
+  it('mirrors AI analysis configuration returned by integrations', async () => {
+    let updatedTenant = {
+      ...tenant,
+      aiAnalysisEnabled: true
+    };
+    mocks.upsertTenant.mockResolvedValue(updatedTenant);
+    mocks.projectUpdate.mockResolvedValue({ ...project, ...updatedTenant });
+
+    let result =
+      await projectAiAnalysisConfigurationService.updateProjectAiAnalysisConfiguration({
+        ...common,
+        input: { aiAnalysisEnabled: true }
+      });
+
+    expect(mocks.upsertTenant).toHaveBeenCalledWith({
+      input: expect.objectContaining({
+        aiAnalysisEnabled: true
+      })
+    });
+    expect(mocks.projectUpdate).toHaveBeenCalledWith({
+      where: { oid: 1n },
+      data: {
+        aiAnalysisEnabled: true
+      }
+    });
+    expect(mocks.fire).toHaveBeenCalledWith(
+      'organization.project.ai_analysis_configuration.updated:after',
+      expect.objectContaining({
+        configuration: { aiAnalysisEnabled: true },
+        previousConfiguration: { aiAnalysisEnabled: false }
+      })
+    );
+    expect(result).toEqual({ aiAnalysisEnabled: true });
   });
 });

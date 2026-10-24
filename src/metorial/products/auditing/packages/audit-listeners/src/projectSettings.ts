@@ -187,6 +187,29 @@ export let recordProjectReducedSubprocessorsUpdated = async (
   });
 };
 
+export let recordProjectAiAnalysisUpdated = async (
+  event: FabricEvents['organization.project.ai_analysis_configuration.updated:after']
+) => {
+  await recordAuditEventAfterCommit(async recordedAt => {
+    await auditTrackerService.recordEvent(
+      event.auditScope,
+      'project_ai_analysis_configuration',
+      'update',
+      {
+        payload: {
+          project: event.project,
+          aiAnalysisEnabled: event.configuration.aiAnalysisEnabled
+        },
+        previousPayload: {
+          project: event.project,
+          aiAnalysisEnabled: event.previousConfiguration.aiAnalysisEnabled
+        },
+        recordedAt
+      }
+    );
+  });
+};
+
 export let recordProjectBrandUpdated = async (
   event: FabricEvents['organization.project.brand.updated:after']
 ) => {
@@ -264,5 +287,9 @@ Fabric.listen(
 Fabric.listen(
   'organization.project.reduced_subprocessors_configuration.updated:after',
   recordProjectReducedSubprocessorsUpdated
+);
+Fabric.listen(
+  'organization.project.ai_analysis_configuration.updated:after',
+  recordProjectAiAnalysisUpdated
 );
 Fabric.listen('organization.project.brand.updated:after', recordProjectBrandUpdated);

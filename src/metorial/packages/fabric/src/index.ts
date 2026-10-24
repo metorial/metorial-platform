@@ -79,6 +79,7 @@ export type {
   MagicMcpServerMembershipFabricChange,
   ProviderEventBase,
   SandboxMachineExecOutcome,
+  SecurityReviewRunEvent,
   SkillStoreFabricOwner,
   StoreItemFabricOperation
 } from './types';

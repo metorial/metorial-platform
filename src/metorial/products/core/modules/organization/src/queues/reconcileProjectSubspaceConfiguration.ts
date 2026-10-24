@@ -89,7 +89,8 @@ export let reconcileProjectSubspaceConfigurationSingleQueueProcessor =
       project.sessionlessMcpEnabled !== tenant.sessionlessMcpEnabled ||
       project.useIntegrationNamesForSessionProviderNameTemplates !==
         tenant.useIntegrationNamesForSessionProviderNameTemplates ||
-      project.reducedSubprocessors !== tenant.reducedSubprocessors;
+      project.reducedSubprocessors !== tenant.reducedSubprocessors ||
+      project.aiAnalysisEnabled !== tenant.aiAnalysisEnabled;
     if (!hasDrift) return;
 
     await db.project.update({
@@ -108,7 +109,8 @@ export let reconcileProjectSubspaceConfigurationSingleQueueProcessor =
         sessionlessMcpEnabled: tenant.sessionlessMcpEnabled,
         useIntegrationNamesForSessionProviderNameTemplates:
           tenant.useIntegrationNamesForSessionProviderNameTemplates,
-        reducedSubprocessors: tenant.reducedSubprocessors
+        reducedSubprocessors: tenant.reducedSubprocessors,
+        aiAnalysisEnabled: tenant.aiAnalysisEnabled
       }
     });
   });

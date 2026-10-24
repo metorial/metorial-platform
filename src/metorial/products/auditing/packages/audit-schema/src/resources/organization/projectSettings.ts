@@ -2,6 +2,7 @@ import { v } from '@lowerdeck/validation';
 import { Project } from '@metorial/db';
 import type { ProjectBrandOverride } from '@metorial/module-organization';
 import {
+  projectAiAnalysisConfigurationPresenter,
   projectAuthConfigConfigurationPresenter,
   projectBrandPresenter,
   projectDataRetentionConfigurationPresenter,
@@ -119,6 +120,18 @@ export let projectReducedSubprocessorsConfigurationResource = resource({
     reducedSubprocessors: boolean;
   }>('project_reduced_subprocessors_configuration'),
   presenter: projectReducedSubprocessorsConfigurationPresenter,
+  actions: {
+    update: true
+  }
+});
+
+export let projectAiAnalysisConfigurationResource = resource({
+  name: 'project_ai_analysis_configuration',
+  payload: v.typedAny<{
+    project: Project;
+    aiAnalysisEnabled: boolean;
+  }>('project_ai_analysis_configuration'),
+  presenter: projectAiAnalysisConfigurationPresenter,
   actions: {
     update: true
   }

@@ -55,7 +55,8 @@ let baseConfiguration = {
   messageProcessingTimeoutMs: 30000,
   sessionlessMcpEnabled: null,
   useIntegrationNamesForSessionProviderNameTemplates: false,
-  reducedSubprocessors: false
+  reducedSubprocessors: false,
+  aiAnalysisEnabled: false
 };
 
 describe('project subspace configuration reconciler', () => {
@@ -146,6 +147,27 @@ describe('project subspace configuration reconciler', () => {
     expect(mocks.projectUpdate).toHaveBeenCalledWith({
       where: { oid: 1n },
       data: { ...baseConfiguration, sessionlessMcpEnabled: false }
+    });
+  });
+
+  it('copies the tenant AI analysis choice over a drifted project mirror', async () => {
+    mocks.projectFindUnique.mockResolvedValue({
+      id: 'prj_1',
+      oid: 1n,
+      status: 'active',
+      subspaceTenantId: 'ten_1',
+      ...baseConfiguration,
+      aiAnalysisEnabled: true
+    });
+    mocks.getTenantById.mockResolvedValue(baseConfiguration);
+
+    await (reconcileProjectSubspaceConfigurationSingleQueueProcessor as any).handler({
+      projectId: 'prj_1'
+    });
+
+    expect(mocks.projectUpdate).toHaveBeenCalledWith({
+      where: { oid: 1n },
+      data: baseConfiguration
     });
   });
 
