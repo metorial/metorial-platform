@@ -19,6 +19,7 @@ export * from './loaders/projectBrand';
 export * from './loaders/projectKeyProviders';
 export * from './loaders/projectRetention';
 export * from './loaders/sandbox';
+export * from './loaders/projectAiAnalysisConfiguration';
 export * from './loaders/projectAuthConfigConfiguration';
 export * from './loaders/projectDataRetentionConfiguration';
 export * from './loaders/projectIntegrationNamingConfiguration';

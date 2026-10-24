@@ -36,6 +36,9 @@ let ProviderOverviewPage = dynamicPage(() =>
 let ProviderUsagePage = dynamicPage(() =>
   import('./pages/provider/usage').then(c => c.ProviderUsagePage)
 );
+let ProviderSecurityPage = dynamicPage(() =>
+  import('./pages/provider/security').then(c => c.ProviderSecurityPage)
+);
 let ProviderVersionsPage = dynamicPage(() =>
   import('./pages/provider/versions').then(c => c.ProviderVersionsPage)
 );
@@ -1354,6 +1357,10 @@ export let productIntegrationsSlice = createSlice([
                     element: <ProviderAuthMethodsPage />
                   }
                 ]
+              },
+              {
+                path: 'security',
+                element: <ProviderSecurityPage />
               },
               {
                 path: 'versions',

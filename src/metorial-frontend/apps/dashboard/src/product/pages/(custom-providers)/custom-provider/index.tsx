@@ -15,6 +15,7 @@ import { Link, useParams } from 'react-router-dom';
 import { OpenExplorerBox } from '../../../components/openExplorer';
 import { getCustomProviderScmLink } from '../../../scenes/customProvider/utils';
 import { UsageOverviewTiles } from '../../../scenes/instanceUsage';
+import { SecurityAssessmentCard } from '../../../scenes/securityReview';
 import { CustomProviderVersionStatus } from '../../../scenes/customProvider/version';
 
 let RecentVersionsBox = (p: { customProvider: DashboardInstanceCustomProvidersGetOutput }) => {
@@ -152,6 +153,18 @@ export let CustomProviderOverviewPage = () => {
             />
 
             <Spacer height={15} />
+
+            <SecurityAssessmentCard
+              instanceId={instance.data?.id}
+              providerId={customProvider.data.provider.id}
+              reportHref={Paths.instance.provider(
+                instance.data?.organization,
+                instance.data?.project,
+                instance.data,
+                customProvider.data.provider.id,
+                'security'
+              )}
+            />
           </>
         ) : null}
 

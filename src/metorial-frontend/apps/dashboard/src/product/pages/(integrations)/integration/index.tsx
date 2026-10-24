@@ -15,6 +15,7 @@ import { Link, useParams } from 'react-router-dom';
 import { UsageOverviewTiles } from '../../../scenes/instanceUsage';
 import { showIntegrationProviderPanelFlow } from '../../../scenes/integrations/providerPanelFlow';
 import { IntegrationProvidersManager } from '../../../scenes/integrations/providersManager';
+import { SecurityAssessmentCard } from '../../../scenes/securityReview';
 
 let getInstanceStatusColor = (status: string) => {
   if (status === 'active') return 'green';
@@ -94,6 +95,14 @@ export let IntegrationOverviewPage = () => {
   return renderWithLoader({ integration })(({ integration }) => {
     let onComplete = () => integration.refetch();
 
+    let activeProviders = (integration.data.providers ?? []).filter(
+      provider => provider.status == 'active'
+    );
+    let providerIds = [...new Set(activeProviders.map(provider => provider.providerId))];
+    let providerNames = Object.fromEntries(
+      activeProviders.map(provider => [provider.providerId, provider.name])
+    );
+
     return (
       <DetailsOverviewLayout>
         <UsageOverviewTiles
@@ -109,6 +118,27 @@ export let IntegrationOverviewPage = () => {
         />
 
         <Spacer height={20} />
+
+        {providerIds.map(providerId => (
+          <SecurityAssessmentCard
+            key={providerId}
+            instanceId={instance.data?.id}
+            providerId={providerId}
+            title={
+              providerIds.length > 1
+                ? `Security Assessment · ${providerNames[providerId] ?? 'Provider'}`
+                : 'Security Assessment'
+            }
+            reportHref={Paths.instance.provider(
+              instance.data?.organization,
+              instance.data?.project,
+              instance.data,
+              providerId,
+              'security'
+            )}
+            spacing={20}
+          />
+        ))}
 
         <Box
           title="Providers"

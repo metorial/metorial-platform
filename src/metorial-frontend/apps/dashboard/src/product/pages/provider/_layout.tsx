@@ -12,7 +12,8 @@ import {
   useCustomProvider,
   useProvider,
   useProviderListing,
-  useProviderVersions
+  useProviderVersions,
+  useSecurityReviewsEnabled
 } from '@metorial/state';
 import { Callout, RenderDate, Spacer } from '@metorial/ui';
 import { ID, ProviderImage } from '@metorial/ui-product';
@@ -37,6 +38,7 @@ export let ProviderLayout = () => {
 
   let { providerId } = useParams();
   let provider = useProvider(instance.data?.id, providerId);
+  let securityReviewsEnabled = useSecurityReviewsEnabled();
   let providerData: ProviderData | null = provider.data;
 
   let pathname = useLocation().pathname;
@@ -185,6 +187,14 @@ export let ProviderLayout = () => {
             label: 'Tools & Capabilities',
             to: Paths.instance.provider(...providerPathParams, 'capabilities')
           },
+          ...(securityReviewsEnabled
+            ? [
+                {
+                  label: 'Security',
+                  to: Paths.instance.provider(...providerPathParams, 'security')
+                }
+              ]
+            : []),
           {
             label: 'Versions',
             to: Paths.instance.provider(...providerPathParams, 'versions')
