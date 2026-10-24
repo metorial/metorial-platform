@@ -45,6 +45,7 @@ class tenantServiceImpl {
       collectErrors?: boolean;
       disableCallbacks?: boolean;
       reducedSubprocessors?: boolean;
+      aiAnalysisEnabled?: boolean;
       projectOid?: bigint;
       skipNetworks?: boolean;
       environments: {
@@ -83,7 +84,8 @@ class tenantServiceImpl {
         storeToolCallAttachments: d.input.storeToolCallAttachments,
         collectErrors: d.input.collectErrors,
         disableCallbacks: d.input.disableCallbacks,
-        reducedSubprocessors: d.input.reducedSubprocessors
+        reducedSubprocessors: d.input.reducedSubprocessors,
+        aiAnalysisEnabled: d.input.aiAnalysisEnabled
       };
 
       let isTenantUnchanged =
@@ -123,6 +125,7 @@ class tenantServiceImpl {
                 collectErrors: d.input.collectErrors ?? true,
                 disableCallbacks: d.input.disableCallbacks ?? false,
                 reducedSubprocessors: d.input.reducedSubprocessors ?? false,
+                aiAnalysisEnabled: d.input.aiAnalysisEnabled ?? false,
 
                 urlKey: generatePlainId(10).toLowerCase()
               }

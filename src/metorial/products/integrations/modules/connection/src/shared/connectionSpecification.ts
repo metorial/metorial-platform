@@ -1,4 +1,5 @@
 import { db, getId } from '@metorial-subspace/db';
+import { requestSecurityReview } from '@metorial-subspace/module-security-review-request';
 
 export let getConnectionProviderSpecification = async (d: {
   connectionOid: bigint;
@@ -28,7 +29,7 @@ export let setConnectionProviderSpecification = async (d: {
     discoveredAt: d.specificationOid ? new Date() : null
   };
 
-  return await db.sessionConnectionProviderSpecification.upsert({
+  let record = await db.sessionConnectionProviderSpecification.upsert({
     where: {
       connectionOid_sessionProviderOid: {
         connectionOid: d.connectionOid,
@@ -42,5 +43,23 @@ export let setConnectionProviderSpecification = async (d: {
       ...data
     },
     update: data
+  });
+
+  if (d.specificationOid) await requestCensusReview(d.providerVersionOid);
+
+  return record;
+};
+
+let requestCensusReview = async (providerVersionOid: bigint) => {
+  let providerVersion = await db.providerVersion.findUnique({
+    where: { oid: providerVersionOid },
+    select: { id: true, slateVersionOid: true }
+  });
+  if (!providerVersion || providerVersion.slateVersionOid) return;
+
+  await requestSecurityReview({
+    subject: 'providerVersion',
+    id: providerVersion.id,
+    trigger: 'census_changed'
   });
 };
