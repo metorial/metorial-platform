@@ -49,7 +49,8 @@ let resolveTenantSetting = (setting: ProtoGuardTenantSetting | null) => ({
   alertProbabilityThreshold:
     setting?.alertProbabilityThreshold ?? DEFAULT_PROTO_GUARD_ALERT_PROBABILITY_THRESHOLD,
   alertFilterCountThreshold:
-    setting?.alertFilterCountThreshold ?? DEFAULT_PROTO_GUARD_ALERT_FILTER_COUNT_THRESHOLD
+    setting?.alertFilterCountThreshold ?? DEFAULT_PROTO_GUARD_ALERT_FILTER_COUNT_THRESHOLD,
+  isAlertFilterCountCustom: setting?.alertFilterCountThreshold != null
 });
 
 let getTenantConfig = createLocallyCachedFunction({

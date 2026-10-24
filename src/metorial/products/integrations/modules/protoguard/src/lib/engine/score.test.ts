@@ -111,6 +111,36 @@ describe('scoreFindings', () => {
     ).toBe(false);
   });
 
+  it('lets a custom filter count override the probability path', () => {
+    let findings = [finding({ family: 'a', precision: 0.95 })];
+
+    let byDefault = scoreFindings({
+      findings,
+      families: FAMILIES,
+      alertFilterCountThreshold: 3
+    });
+    let custom = scoreFindings({
+      findings,
+      families: FAMILIES,
+      alertFilterCountThreshold: 3,
+      isAlertFilterCountCustom: true
+    });
+
+    expect(byDefault.alertReasons).toEqual(['probability']);
+    expect(custom).toMatchObject({ isAlert: false, alertReasons: [] });
+  });
+
+  it('still alerts a hard rule when the filter count is custom', () => {
+    let result = scoreFindings({
+      findings: [finding({ family: 'a', precision: 0.5, hardRule: true })],
+      families: FAMILIES,
+      alertFilterCountThreshold: 3,
+      isAlertFilterCountCustom: true
+    });
+
+    expect(result.alertReasons).toEqual(['hard_rule']);
+  });
+
   it('clamps out-of-range precisions', () => {
     let result = scoreFindings({
       findings: [

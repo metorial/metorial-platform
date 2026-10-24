@@ -93,7 +93,7 @@ export let callTool = async (
     where: { token: opened.client.sessionId! }
   });
   let previous = await subspaceDb.sessionMessage.findFirst({
-    where: { connectionOid: connection.oid, toolCall: { isNot: null } },
+    where: { connectionOid: connection.oid, type: 'tool_call' },
     orderBy: { oid: 'desc' },
     select: { oid: true }
   });
@@ -108,7 +108,7 @@ export let callTool = async (
     subspaceDb.sessionMessage.findFirstOrThrow({
       where: {
         connectionOid: connection.oid,
-        toolCall: { isNot: null },
+        type: 'tool_call',
         status: { not: 'waiting_for_response' },
         oid: previous ? { gt: previous.oid } : undefined
       },
@@ -119,16 +119,25 @@ export let callTool = async (
   return { call, message };
 };
 
-export let waitForRun = (messageOid: bigint) =>
+// The run row is written before its findings and alert, and an input-only scan completes first, so
+// a run only counts once the output side has produced findings.
+export let waitForRun = (messageOid: bigint, opts: { alert?: boolean } = {}) =>
   eventually(
-    () =>
-      subspaceDb.protoGuardRun.findUniqueOrThrow({
+    async () => {
+      let run = await subspaceDb.protoGuardRun.findUniqueOrThrow({
         where: { messageOid },
         include: {
           findings: { include: { filter: true } },
           alert: { include: { instances: { include: { filter: true } } } }
         }
-      }),
+      });
+
+      expect(run.status).toBe('completed');
+      expect(run.findings.length).toBeGreaterThan(0);
+      if (opts.alert) expect(run.alert).not.toBeNull();
+
+      return run;
+    },
     { timeoutMs: 60_000, intervalMs: 500 }
   );
 

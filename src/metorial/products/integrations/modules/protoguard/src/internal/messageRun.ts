@@ -354,7 +354,8 @@ class ProtoGuardMessageRunServiceImpl {
           alertConfidenceThreshold: filter.alertConfidenceThreshold
         })),
       alertProbabilityThreshold: d.config.alertProbabilityThreshold,
-      alertFilterCountThreshold: d.config.alertFilterCountThreshold
+      alertFilterCountThreshold: d.config.alertFilterCountThreshold,
+      isAlertFilterCountCustom: d.config.isAlertFilterCountCustom
     });
   }
 

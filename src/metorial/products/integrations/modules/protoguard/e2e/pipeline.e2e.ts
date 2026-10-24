@@ -50,7 +50,7 @@ describe('module-protoguard pipeline', () => {
       expect(message.retentionLevel).toBe('none');
       expect(message.output).toBeNull();
 
-      let run = await waitForRun(message.oid);
+      let run = await waitForRun(message.oid, { alert: true });
       expect(run).toMatchObject({ status: 'completed', retentionLevel: 'none' });
       expect(run.alert).not.toBeNull();
       expect(run.findings.length).toBeGreaterThan(0);
@@ -71,7 +71,7 @@ describe('module-protoguard pipeline', () => {
       let opened = await openSession(org, remote.providerId);
       let { message } = await callTool(opened, 'read_notes');
 
-      let run = await waitForRun(message.oid);
+      let run = await waitForRun(message.oid, { alert: true });
       expect(run.retentionLevel).toBe('full');
       expect(run.findings.some(finding => finding.matchedText?.length)).toBe(true);
       expect(run.alert!.sampleMarkdown).toContain('<mark>');
@@ -111,7 +111,7 @@ describe('module-protoguard pipeline', () => {
       await sleep(TENANT_CONFIG_CACHE_WAIT_MS);
 
       let enabled = await callTool(opened, 'read_notes');
-      let run = await waitForRun(enabled.message.oid);
+      let run = await waitForRun(enabled.message.oid, { alert: true });
       expect(run.alert).not.toBeNull();
     }, 300_000);
   });
@@ -127,7 +127,7 @@ describe('module-protoguard pipeline', () => {
       let opened = await openSession(org, remote.providerId);
 
       let first = await callTool(opened, 'read_notes');
-      let firstRun = await waitForRun(first.message.oid);
+      let firstRun = await waitForRun(first.message.oid, { alert: true });
       expect(firstRun.alert).not.toBeNull();
 
       let activeFindings = firstRun.findings.filter(finding => finding.stage == 'active');
@@ -177,7 +177,7 @@ describe('module-protoguard pipeline', () => {
       expect(call.result.content[0].text.startsWith(injection)).toBe(true);
       expect(message.status).toBe('succeeded');
 
-      let run = await waitForRun(message.oid);
+      let run = await waitForRun(message.oid, { alert: true });
       expect(run.totalChars).toBeGreaterThan(largeOutputChars);
       expect(run.coverage).not.toBe('skipped');
       expect(run.alert).not.toBeNull();
@@ -194,6 +194,8 @@ describe('module-protoguard pipeline', () => {
     );
 
     it('flags a poisoned tool definition and leaves clean tools alone', async () => {
+      await openSession(org, remote.providerId);
+
       let provider = await subspaceDb.provider.findUniqueOrThrow({
         where: { id: remote.providerId }
       });

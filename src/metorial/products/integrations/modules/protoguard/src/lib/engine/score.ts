@@ -48,6 +48,7 @@ export let scoreFindings = (d: {
   families: ScoringFamily[];
   alertProbabilityThreshold?: number | null;
   alertFilterCountThreshold?: number | null;
+  isAlertFilterCountCustom?: boolean;
 }): ScoreResult => {
   let familiesByKey = new Map(d.families.map(family => [family.key, family]));
   let live = d.findings.filter(
@@ -87,7 +88,12 @@ export let scoreFindings = (d: {
     d.alertProbabilityThreshold ?? DEFAULT_ALERT_PROBABILITY_THRESHOLD;
   let countThreshold = d.alertFilterCountThreshold ?? DEFAULT_ALERT_FILTER_COUNT_THRESHOLD;
 
-  let isProbabilityAlert = familyScores.length > 0 && probability >= probabilityThreshold;
+  // A tenant that chose its own filter count asked for the legacy rule, so the probability path
+  // must not alert below that count.
+  let isProbabilityAlert =
+    !d.isAlertFilterCountCustom &&
+    familyScores.length > 0 &&
+    probability >= probabilityThreshold;
   let isFamilyCountAlert = triggeredFamilyCount > 0 && triggeredFamilyCount >= countThreshold;
 
   let alertReasons: AlertReason[] = [];
