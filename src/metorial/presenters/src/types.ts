@@ -1267,6 +1267,11 @@ export let projectReducedSubprocessorsConfigurationType = PresentableType.create
   reducedSubprocessors: boolean;
 }>()('project_reduced_subprocessors_configuration');
 
+export let projectAiAnalysisConfigurationType = PresentableType.create<{
+  project: Project;
+  aiAnalysisEnabled: boolean;
+}>()('project_ai_analysis_configuration');
+
 export let projectDataRetentionConfigurationType = PresentableType.create<{
   project: Project;
   dataRetentionLevel: 'full' | 'intent_only' | 'none';
@@ -3779,3 +3784,22 @@ export let chatAuthenticatedUserType = PresentableType.create<{
   author: RawChatAuthenticatedUserAuthor;
   workspace: ChatWorkspace | null;
 }>()('chat_authenticated_user');
+
+type RawSecurityReview = SubspacePrisma.SecurityReviewGetPayload<{
+  include: { provider: true; providerVersion: true };
+}>;
+
+type RawSecurityReviewRevision = SubspacePrisma.SecurityReviewRevisionGetPayload<{
+  include: { findings: true };
+}>;
+
+export let providerSecurityReviewType = PresentableType.create<{
+  review: RawSecurityReview;
+  current: RawSecurityReviewRevision | null;
+  inProgress: RawSecurityReviewRevision | null;
+}>()('provider.security_review');
+
+export let providerSecurityReviewRevisionType = PresentableType.create<{
+  review: RawSecurityReview;
+  revision: RawSecurityReviewRevision;
+}>()('provider.security_review.revision');

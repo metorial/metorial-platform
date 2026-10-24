@@ -173,6 +173,7 @@ import {
   v1PortalOAuthClientPresenter,
   v1PortalPresenter,
   v1ProfilePresenter,
+  v1ProjectAiAnalysisConfigurationPresenter,
   v1ProjectAuthConfigConfigurationPresenter,
   v1ProjectBrandPresenter,
   v1ProjectDataRetentionConfigurationPresenter,
@@ -218,6 +219,8 @@ import {
   v1ProviderToolsPresenter,
   v1ProviderTriggerPresenter,
   v1ProviderTypePresenter,
+  v1ProviderSecurityReviewPresenter,
+  v1ProviderSecurityReviewRevisionPresenter,
   v1ProviderVersionPresenter,
   v1PublisherPresenter,
   v1ResourceCountsPresenter,
@@ -430,6 +433,7 @@ import {
   portalOAuthClientType,
   portalType,
   profileType,
+  projectAiAnalysisConfigurationType,
   projectAuthConfigConfigurationType,
   projectBrandType,
   projectDataRetentionConfigurationType,
@@ -474,6 +478,8 @@ import {
   providerToolType,
   providerToolsType,
   providerTriggerType,
+  providerSecurityReviewRevisionType,
+  providerSecurityReviewType,
   providerType,
   providerTypeType,
   providerVersionType,
@@ -877,6 +883,14 @@ export let projectReducedSubprocessorsConfigurationPresenter = declarePresenter(
   {
     mt_2025_01_01_dashboard: v1ProjectReducedSubprocessorsConfigurationPresenter,
     mt_2026_01_01_magnetar: v1ProjectReducedSubprocessorsConfigurationPresenter
+  }
+);
+
+export let projectAiAnalysisConfigurationPresenter = declarePresenter(
+  projectAiAnalysisConfigurationType,
+  {
+    mt_2025_01_01_dashboard: v1ProjectAiAnalysisConfigurationPresenter,
+    mt_2026_01_01_magnetar: v1ProjectAiAnalysisConfigurationPresenter
   }
 );
 
@@ -1463,6 +1477,19 @@ export let providerVersionPresenter = declarePresenter(providerVersionType, {
   mt_2026_01_01_magnetar: v1ProviderVersionPresenter,
   mt_2026_04_01_consumer: v1ProviderVersionPresenter
 });
+
+export let providerSecurityReviewPresenter = declarePresenter(providerSecurityReviewType, {
+  mt_2025_01_01_dashboard: v1ProviderSecurityReviewPresenter,
+  mt_2026_01_01_magnetar: v1ProviderSecurityReviewPresenter
+});
+
+export let providerSecurityReviewRevisionPresenter = declarePresenter(
+  providerSecurityReviewRevisionType,
+  {
+    mt_2025_01_01_dashboard: v1ProviderSecurityReviewRevisionPresenter,
+    mt_2026_01_01_magnetar: v1ProviderSecurityReviewRevisionPresenter
+  }
+);
 
 export let providerPresenter = declarePresenter(providerType, {
   mt_2025_01_01_dashboard: dashboardProviderPresenter,
