@@ -26,7 +26,8 @@
     "lru-cache": "^11.5.3",
     "p-queue": "^10.0.0",
     "prisma": "^7.10.0",
-    "prisma-json-types-generator": "^5.2.0"
+    "prisma-json-types-generator": "^5.2.0",
+    "@lowerdeck/prisma-pg": "workspace:2.0.0"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

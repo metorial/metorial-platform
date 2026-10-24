@@ -1,7 +1,7 @@
 import type { ErrorData } from '@lowerdeck/error';
 import { withExecutionContextTraceFallback } from '@lowerdeck/telemetry';
 import type { InitializeRequest, JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
-import { PrismaPg } from '@prisma/adapter-pg';
+import { createPrismaPgAdapter } from '@lowerdeck/prisma-pg';
 import { readReplicas } from '@prisma/extension-read-replicas';
 import type { ChatBody, ChatContext, LinkUnfurl, ReactionCount } from '@slates/adapter-chat';
 import { Prisma, PrismaClient } from '../prisma/generated/client';
@@ -38,16 +38,30 @@ export type EntityImage =
 
 type EntityImageOuter = EntityImage;
 
-let mainAdapter = new PrismaPg({
-  connectionString: process.env.SUBSPACE_DATABASE_URL ?? process.env.DATABASE_URL
-});
+let mainAdapter = createPrismaPgAdapter(
+  {
+    connectionString: process.env.SUBSPACE_DATABASE_URL ?? process.env.DATABASE_URL
+  },
+  {
+    environment: process.env.METORIAL_ENV,
+    databaseName: 'integrations',
+    role: 'primary'
+  }
+);
 
 let replicaUrl = process.env.SUBSPACE_DATABASE_URL_READER ?? process.env.DATABASE_URL_READER;
 
 let replicaAdapter = replicaUrl
-  ? new PrismaPg({
-      connectionString: replicaUrl
-    })
+  ? createPrismaPgAdapter(
+      {
+        connectionString: replicaUrl
+      },
+      {
+        environment: process.env.METORIAL_ENV,
+        databaseName: 'integrations',
+        role: 'replica'
+      }
+    )
   : undefined;
 
 let replicaClient = replicaAdapter ? new PrismaClient({ adapter: replicaAdapter }) : undefined;

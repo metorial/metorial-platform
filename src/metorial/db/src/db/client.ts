@@ -7,7 +7,7 @@ import type {
   ServerCapabilities,
   Tool
 } from '@modelcontextprotocol/sdk/types.js';
-import { PrismaPg } from '@prisma/adapter-pg';
+import { createPrismaPgAdapter } from '@lowerdeck/prisma-pg';
 import { readReplicas } from '@prisma/extension-read-replicas';
 import type { JSONSchema4, JSONSchema6, JSONSchema7 } from 'json-schema';
 import { PrismaClient } from '../../prisma/generated/client.js';
@@ -65,14 +65,28 @@ let withRelationLoadStrategy = (operation: string, args: any) => {
 };
 
 let createClient = () => {
-  let mainAdapter = new PrismaPg({
-    connectionString: process.env.DATABASE_URL
-  });
+  let mainAdapter = createPrismaPgAdapter(
+    {
+      connectionString: process.env.DATABASE_URL
+    },
+    {
+      environment: process.env.METORIAL_ENV,
+      databaseName: 'core',
+      role: 'primary'
+    }
+  );
 
   let replicaAdapter = process.env.DATABASE_URL_READER
-    ? new PrismaPg({
-        connectionString: process.env.DATABASE_URL_READER
-      })
+    ? createPrismaPgAdapter(
+        {
+          connectionString: process.env.DATABASE_URL_READER
+        },
+        {
+          environment: process.env.METORIAL_ENV,
+          databaseName: 'core',
+          role: 'replica'
+        }
+      )
     : undefined;
 
   let replicaClient = replicaAdapter
@@ -392,8 +406,7 @@ declare global {
     type ProviderOAuthConfig = any;
 
     type CustomServerDeploymentStepLogs = (
-      | [number, string[], 0 | 1 | undefined]
-      | [number, string[], 0 | 1]
+      [number, string[], 0 | 1 | undefined] | [number, string[], 0 | 1]
     )[]; // ts, lines, 1=error
 
     type CodeBucketTemplateContents = {

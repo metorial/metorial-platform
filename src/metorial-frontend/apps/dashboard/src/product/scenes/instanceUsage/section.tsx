@@ -102,9 +102,8 @@ let getSummaryItem = (
     let totals = kind('connection_time');
     return {
       id,
-      label: 'Connection time',
-      value: duration(totals?.durationMsSum ?? 0),
-      sub: totals?.count ? `Avg ${duration(totals.durationMsAvg)}` : undefined
+      label: 'Avg connection time',
+      value: duration(totals?.durationMsAvg)
     };
   }
 

@@ -1,0 +1,5 @@
+{
+  "extends": "@lowerdeck/tsconfig/base.json",
+  "compilerOptions": { "module": "ESNext" },
+  "include": ["src"]
+}

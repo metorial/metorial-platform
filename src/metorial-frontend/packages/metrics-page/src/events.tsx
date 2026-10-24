@@ -63,10 +63,13 @@ let HeaderEnd = styled(motion.div)`
   justify-content: flex-end;
   gap: 8px 16px;
   margin-left: auto;
+  min-width: 0;
+  max-width: 100%;
 
   & > * {
     flex: none;
     width: auto;
+    max-width: 100%;
   }
 `;
 
@@ -84,9 +87,17 @@ let Total = styled.li`
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+
+  & > span:last-child {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
 `;
 
 let Swatch = styled.span<{ $color: string }>`
+  flex-shrink: 0;
   width: 8px;
   height: 8px;
   border-radius: 2px;

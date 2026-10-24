@@ -1,0 +1,44 @@
+{
+  "name": "@lowerdeck/prisma-pg",
+  "version": "2.0.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "src/**",
+    "package.json"
+  ],
+  "author": "Tobias Herber",
+  "license": "Apache 2",
+  "type": "module",
+  "source": "src/index.ts",
+  "exports": {
+    "types": "./src/index.ts",
+    "require": "./src/index.ts",
+    "import": "./src/index.ts",
+    "default": "./src/index.ts"
+  },
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc --noEmit",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "dependencies": {
+    "@lowerdeck/execution-context": "workspace:2.0.0",
+    "@lowerdeck/id": "workspace:2.0.0",
+    "@lowerdeck/sentry": "workspace:2.0.0",
+    "@prisma/adapter-pg": "7.10.0",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@lowerdeck/tsconfig": "workspace:2.0.0",
+    "@sentry/core": "^11.7.0",
+    "@types/node": "^24.0.0",
+    "@types/pg": "^8.16.0",
+    "typescript": "5.9.3",
+    "vitest": "^5.0.4"
+  }
+}
