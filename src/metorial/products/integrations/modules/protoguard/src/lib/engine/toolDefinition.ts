@@ -73,7 +73,8 @@ export let scanToolDefinition = (d: {
         title: d.tool.title ?? undefined,
         description: d.tool.description ?? undefined,
         inputSchema: d.tool.inputSchema ?? undefined,
-        outputSchema: d.tool.outputSchema ?? undefined
+        outputSchema: d.tool.outputSchema ?? undefined,
+        annotations: d.tool.annotations ?? undefined
       }
     }
   });

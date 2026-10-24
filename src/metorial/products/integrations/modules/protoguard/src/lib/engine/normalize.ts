@@ -23,6 +23,11 @@ let LEET: Record<string, string> = {
 };
 
 let CONFUSABLES: Record<string, string> = {
+  '\u2018': "'",
+  '\u2019': "'",
+  '\u201b': "'",
+  '\u02bc': "'",
+  '\u2032': "'",
   а: 'a',
   в: 'b',
   е: 'e',
