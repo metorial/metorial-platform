@@ -57,6 +57,7 @@ model Project {
   integrationSetupSessions                   IntegrationSetupSession[]
   managedProviderAuthCredentialsBackings     ManagedProviderAuthCredentialsBacking[]
   monitors                                   Monitor[]
+  securityReviews                            SecurityReview[]
   monitorAlerts                              MonitorAlert[]
   internetGateways                           IntegrationInternetGateway[]
   networkPolicies                            NetworkPolicy[]

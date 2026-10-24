@@ -175,6 +175,7 @@ model ProviderSpecification {
   providerVersionSpecificationChangesTo                ProviderVersionSpecificationChange[]              @relation("SpecChangeTo")
   providerConfigs                                      ProviderConfig[]
   sessionConnectionProviderSpecifications              SessionConnectionProviderSpecification[]
+  securityReviewRevisions                              SecurityReviewRevision[]
 
   @@unique([providerOid, hash])
   @@index([createdAt])

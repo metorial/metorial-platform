@@ -52,6 +52,7 @@ model Tenant {
   disableCallbacks         Boolean                   @default(false)
 
   reducedSubprocessors Boolean @default(false)
+  aiAnalysisEnabled    Boolean @default(false)
 
   retiredAt DateTime?
 
@@ -125,6 +126,7 @@ model Tenant {
   chatEvents                                 ChatEvent[]
   webhookRegistrations                       WebhookRegistration[]
   providerUses                               ProviderUse[]
+  securityReviews                            SecurityReview[]
   identityActors                             IdentityActor[]
   agents                                     Agent[]
   identities                                 Identity[]

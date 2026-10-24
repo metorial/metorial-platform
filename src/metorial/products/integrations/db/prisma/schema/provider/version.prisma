@@ -70,6 +70,7 @@ model ProviderVersion {
   providerDeploymentConfigPairDiscoveries      ProviderDeploymentConfigPairDiscovery[]
   sessionConnectionProviderSpecifications      SessionConnectionProviderSpecification[]
   providerAdapters                             ProviderVersionAdapter[]
+  securityReviews                              SecurityReview[]
 
   @@index([createdAt])
   @@index([updatedAt])

@@ -116,6 +116,7 @@ model Provider {
   firewallAssignments            IntegrationFirewallAssignment[]
   monitors                       Monitor[]
   chats                          Chat[]
+  securityReviews                SecurityReview[]
 
   @@index([status])
   @@index([access])

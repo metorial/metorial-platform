@@ -9,6 +9,11 @@ import type {
   CustomProviderConfig,
   CustomProviderFrom,
   CustomProviderFromUpdate,
+  SecurityReport,
+  SecurityReviewComputedScores,
+  SecurityReviewFindingPayload,
+  SecurityReviewRevisionContext,
+  SecuritySpecCensus,
   Specification,
   SpecificationAuthMethod,
   SpecificationFeatures,
@@ -213,6 +218,16 @@ declare global {
       ui?: ProviderSetupSessionUi;
     };
 
+    type SecurityReviewReport = SecurityReport;
+
+    type SecurityReviewScores = SecurityReviewComputedScores;
+
+    type SecurityReviewCensus = SecuritySpecCensus;
+
+    type SecurityReviewFindingValue = SecurityReviewFindingPayload;
+
+    type SecurityReviewRunContext = SecurityReviewRevisionContext;
+
     type SessionConnectionMcpData = {
       capabilities?: InitializeRequest['params']['capabilities'];
       protocolVersion?: InitializeRequest['params']['protocolVersion'];
@@ -230,8 +245,7 @@ declare global {
       | { type: 'mcp'; data: JSONRPCMessage };
 
     type SessionMessageInput =
-      | { type: 'tool.call'; data: any }
-      | { type: 'mcp'; data: JSONRPCMessage };
+      { type: 'tool.call'; data: any } | { type: 'mcp'; data: JSONRPCMessage };
 
     type SessionMessageClientMcpId = string | number | null;
 
