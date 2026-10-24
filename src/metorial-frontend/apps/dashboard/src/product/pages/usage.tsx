@@ -22,7 +22,7 @@ let activeAgentMetrics: UsageLineMetric[] = [
 ];
 
 let connectionTimeMetrics: UsageLineMetric[] = [
-  { id: 'time', name: 'Connection time', value: p => p.durationMsSum }
+  { id: 'avg', name: 'Average', value: p => p.durationMsAvg }
 ];
 
 export let UsagePage = () => (
@@ -109,8 +109,8 @@ export let UsagePage = () => (
           />
 
           <UsageLineCard
-            title="Connection time"
-            description="Total time connections stayed open"
+            title="Avg connection time"
+            description="Average time per connection"
             range={range}
             kinds={['connection_time']}
             metrics={connectionTimeMetrics}
