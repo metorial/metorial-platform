@@ -117,6 +117,7 @@ import {
   portalController,
   protoGuardAlertController,
   protoGuardConfigController,
+  protoGuardSuppressionController,
   providerAuthConfigController,
   providerAuthConfigErrorController,
   providerAuthConfigEventController,
@@ -266,7 +267,8 @@ let setControllerDocsMetadata = <
   monitorController,
   monitorAlertController,
   protoGuardAlertController,
-  protoGuardConfigController
+  protoGuardConfigController,
+  protoGuardSuppressionController
 ].forEach(controller =>
   setControllerDocsMetadata(controller, {
     category: monitoringDocsCategory
@@ -587,6 +589,7 @@ export let magnetarController = Controller.create<any>(
     monitorAlertController,
     protoGuardAlertController,
     protoGuardConfigController,
+    protoGuardSuppressionController,
     sessionMessageController,
     sessionConnectionController,
     sessionEventController,
@@ -883,6 +886,7 @@ export let dashboardController = Controller.create<any>(
     monitorAlertController,
     protoGuardAlertController,
     protoGuardConfigController,
+    protoGuardSuppressionController,
     sessionMessageController,
     sessionConnectionController,
     sessionEventController,

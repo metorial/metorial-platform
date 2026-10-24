@@ -30,6 +30,63 @@ export let protoGuardConfigController = Controller.create(
         return protoGuardConfigPresenter.present({ config });
       }),
 
+    update: instanceGroup
+      .patch(instancePath('protoguard-config', 'protoGuardConfig.update'), {
+        name: 'Update ProtoGuard config',
+        description:
+          'Enables or disables ProtoGuard for this instance and sets its alert thresholds.'
+      })
+      .use(checkAccess({ possibleScopes: ['instance.monitor:manage'] }))
+      .body(
+        'default',
+        v.object({
+          enabled: v.optional(
+            v.boolean({
+              name: 'enabled',
+              description: 'Whether ProtoGuard analyzes session messages for this instance.'
+            })
+          ),
+          alert_probability_threshold: v.optional(
+            v.nullable(
+              v.number({
+                name: 'alert_probability_threshold',
+                description:
+                  'The combined injection probability, above 0 and at most 1, at which a message raises an alert. Pass null to restore the default.',
+                examples: [0.8]
+              })
+            )
+          ),
+          alert_filter_count_threshold: v.optional(
+            v.nullable(
+              v.number({
+                name: 'alert_filter_count_threshold',
+                description:
+                  'The number of triggered filters at which a message raises an alert. Pass null to restore the default.',
+                examples: [2]
+              })
+            )
+          )
+        })
+      )
+      .output(protoGuardConfigPresenter)
+      .do(async ctx => {
+        await protoGuardConfigService.updateTenantSettings({
+          instance: ctx.instance,
+          auditScope: ctx.auditScope,
+          input: {
+            enabled: ctx.body.enabled,
+            alertProbabilityThreshold: ctx.body.alert_probability_threshold,
+            alertFilterCountThreshold: ctx.body.alert_filter_count_threshold
+          }
+        });
+
+        let config = await protoGuardConfigService.listFilters({
+          instance: ctx.instance
+        });
+
+        return protoGuardConfigPresenter.present({ config });
+      }),
+
     updateFilter: instanceGroup
       .post(
         instancePath('protoguard-config/filters/:filterId', 'protoGuardConfig.updateFilter'),

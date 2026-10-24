@@ -30,6 +30,46 @@ export let recordProtoGuardAlertThresholdUpdated = async (
   );
 };
 
+export let recordProtoGuardTenantSettingUpdated = async (
+  event: FabricEvents['protoguard.tenant_setting.updated:after']
+) => {
+  let scope = getSubspaceAuditScope(event);
+  if (!scope) return;
+
+  await recordSubspaceAuditEvent(() =>
+    auditTrackerService.recordEvent(scope, 'protoguard_tenant_setting', 'update', {
+      payload: event.setting,
+      previousPayload: event.previousSetting
+    })
+  );
+};
+
+export let recordProtoGuardSuppressionCreated = async (
+  event: FabricEvents['protoguard.suppression.created:after']
+) => {
+  let scope = getSubspaceAuditScope(event);
+  if (!scope) return;
+
+  await recordSubspaceAuditEvent(() =>
+    auditTrackerService.recordEvent(scope, 'protoguard_suppression', 'create', {
+      payload: event.suppression
+    })
+  );
+};
+
+export let recordProtoGuardSuppressionArchived = async (
+  event: FabricEvents['protoguard.suppression.archived:after']
+) => {
+  let scope = getSubspaceAuditScope(event);
+  if (!scope) return;
+
+  await recordSubspaceAuditEvent(() =>
+    auditTrackerService.recordEvent(scope, 'protoguard_suppression', 'archive', {
+      payload: event.suppression
+    })
+  );
+};
+
 export let recordProtoGuardAlertCreated = async (
   event: FabricEvents['protoguard.alert.created:after']
 ) => {
@@ -46,4 +86,7 @@ Fabric.listen(
   'protoguard.alert_threshold.updated:after',
   recordProtoGuardAlertThresholdUpdated
 );
+Fabric.listen('protoguard.tenant_setting.updated:after', recordProtoGuardTenantSettingUpdated);
+Fabric.listen('protoguard.suppression.created:after', recordProtoGuardSuppressionCreated);
+Fabric.listen('protoguard.suppression.archived:after', recordProtoGuardSuppressionArchived);
 Fabric.listen('protoguard.alert.created:after', recordProtoGuardAlertCreated);

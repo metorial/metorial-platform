@@ -9,6 +9,8 @@ import type {
   CustomProviderConfig,
   CustomProviderFrom,
   CustomProviderFromUpdate,
+  ProtoGuardFamilyScore,
+  ProtoGuardToolFinding,
   SecurityReport,
   SecurityReviewComputedScores,
   SecurityReviewFindingPayload,
@@ -217,6 +219,10 @@ declare global {
       };
       ui?: ProviderSetupSessionUi;
     };
+
+    type ProtoGuardFamilyScores = ProtoGuardFamilyScore[];
+
+    type ProtoGuardToolFindings = ProtoGuardToolFinding[];
 
     type SecurityReviewReport = SecurityReport;
 

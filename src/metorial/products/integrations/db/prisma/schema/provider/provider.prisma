@@ -114,6 +114,8 @@ model Provider {
   skillTemplateItems             SkillTemplateItem[]
   tenantOAuthCallbackUrls        TenantOAuthCallbackUrl[]
   firewallAssignments            IntegrationFirewallAssignment[]
+  protoGuardSuppressions         ProtoGuardSuppression[]
+  protoGuardToolScans            ProtoGuardToolScan[]
   monitors                       Monitor[]
   chats                          Chat[]
   securityReviews                SecurityReview[]

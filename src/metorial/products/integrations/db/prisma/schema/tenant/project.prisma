@@ -65,6 +65,7 @@ model Project {
   protoGuardRuns                             ProtoGuardRun[]
   protoGuardFilterSettings                   ProtoGuardTenantFilterSetting[]
   protoGuardSettings                         ProtoGuardTenantSetting[]
+  protoGuardSuppressions                     ProtoGuardSuppression[]
   providerAuthConfigs                        ProviderAuthConfig[]
   providerAuthConfigErrorGlobals             ProviderAuthConfigErrorGlobal[]
   providerAuthConfigErrors                   ProviderAuthConfigError[]

@@ -138,6 +138,8 @@ export let ID = createIdGenerator({
   protoGuardRun: idType.sorted('pgrn'),
   protoGuardAlert: idType.sorted('pga'),
   protoGuardAlertInstance: idType.sorted('pgai'),
+  protoGuardSuppression: idType.sorted('pgsp'),
+  protoGuardToolScan: idType.sorted('pgtsc'),
   monitor: idType.sorted('mon'),
   monitorAlert: idType.sorted('mal'),
   monitorAlertEvent: idType.sorted('mae'),

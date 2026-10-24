@@ -156,6 +156,7 @@ model Tenant {
   protoGuardFilterSettings                   ProtoGuardTenantFilterSetting[]
   protoGuardRuns                             ProtoGuardRun[]
   protoGuardAlerts                           ProtoGuardAlert[]
+  protoGuardSuppressions                     ProtoGuardSuppression[]
   monitors                                   Monitor[]
   monitorAlerts                              MonitorAlert[]
   projects                                   Project[]

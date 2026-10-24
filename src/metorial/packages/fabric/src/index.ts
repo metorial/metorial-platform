@@ -51,6 +51,8 @@ export type {
   AuditSubspaceProtoGuardAlertThreshold,
   AuditSubspaceProtoGuardFilterDefinition,
   AuditSubspaceProtoGuardFilterSetting,
+  AuditSubspaceProtoGuardSuppression,
+  AuditSubspaceProtoGuardTenantSetting,
   AuditSubspaceProviderAuthConfig,
   AuditSubspaceProviderAuthCredentials,
   AuditSubspaceProviderAuthExport,

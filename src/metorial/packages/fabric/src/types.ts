@@ -475,6 +475,30 @@ export type AuditSubspaceProtoGuardAlertThreshold = {
   defaultAlertFilterCountThreshold: number;
 };
 
+export type AuditSubspaceProtoGuardTenantSetting = {
+  settingId: string | null;
+  enabled: boolean;
+  alertProbabilityThreshold: number;
+  isUsingDefaultProbabilityThreshold: boolean;
+  defaultAlertProbabilityThreshold: number;
+  alertFilterCountThreshold: number;
+  isUsingDefaultFilterCountThreshold: boolean;
+  defaultAlertFilterCountThreshold: number;
+};
+
+export type AuditSubspaceProtoGuardSuppression = {
+  id: string;
+  status: string;
+  reason: string | null;
+  filter: { id: string; key: string; name: string };
+  providerId: string | null;
+  toolKey: string | null;
+  hasContentHmac: boolean;
+  expiresAt: Date | null;
+  archivedAt: Date | null;
+  createdAt: Date;
+};
+
 export type AuditSubspaceProtoGuardAlertMatch = {
   filter: { key: string; name: string };
   issueType: string;
@@ -1689,6 +1713,22 @@ export interface FabricEvents {
   'protoguard.alert_threshold.updated:after': ProviderEventBase & {
     threshold: AuditSubspaceProtoGuardAlertThreshold;
     previousThreshold: AuditSubspaceProtoGuardAlertThreshold;
+  };
+
+  'protoguard.tenant_setting.updated:before': ProviderEventBase;
+  'protoguard.tenant_setting.updated:after': ProviderEventBase & {
+    setting: AuditSubspaceProtoGuardTenantSetting;
+    previousSetting: AuditSubspaceProtoGuardTenantSetting;
+  };
+
+  'protoguard.suppression.created:before': ProviderEventBase & { filterId: string };
+  'protoguard.suppression.created:after': ProviderEventBase & {
+    suppression: AuditSubspaceProtoGuardSuppression;
+  };
+
+  'protoguard.suppression.archived:before': ProviderEventBase & { suppressionId: string };
+  'protoguard.suppression.archived:after': ProviderEventBase & {
+    suppression: AuditSubspaceProtoGuardSuppression;
   };
 
   'protoguard.alert.created:after': { auditScope: AuditScope; alert: AuditSubspaceProtoGuardAlert };

@@ -187,6 +187,7 @@ import {
   v1ProjectWorkforceConfigurationPresenter,
   v1ProtoGuardAlertPresenter,
   v1ProtoGuardConfigPresenter,
+  v1ProtoGuardSuppressionPresenter,
   v1ProviderAuthConfigErrorGroupPresenter,
   v1ProviderAuthConfigErrorPresenter,
   v1ProviderAuthConfigEventPresenter,
@@ -447,6 +448,7 @@ import {
   projectType,
   protoGuardAlertType,
   protoGuardConfigType,
+  protoGuardSuppressionType,
   providerAuthConfigErrorGroupType,
   providerAuthConfigErrorType,
   providerAuthConfigEventType,
@@ -1611,6 +1613,11 @@ export let protoGuardAlertPresenter = declarePresenter(protoGuardAlertType, {
 export let protoGuardConfigPresenter = declarePresenter(protoGuardConfigType, {
   mt_2025_01_01_dashboard: v1ProtoGuardConfigPresenter,
   mt_2026_01_01_magnetar: v1ProtoGuardConfigPresenter
+});
+
+export let protoGuardSuppressionPresenter = declarePresenter(protoGuardSuppressionType, {
+  mt_2025_01_01_dashboard: v1ProtoGuardSuppressionPresenter,
+  mt_2026_01_01_magnetar: v1ProtoGuardSuppressionPresenter
 });
 
 export let providerDeploymentPresenter = declarePresenter(providerDeploymentType, {

@@ -2864,6 +2864,8 @@ export let protoGuardAlertType = PresentableType.create<{
 
 export let protoGuardConfigType = PresentableType.create<{
   config: {
+    enabled: boolean;
+    alertProbabilityThreshold: number;
     alertFilterCountThreshold: number;
     filters: {
       filter: SubspacePrisma.ProtoGuardFilterGetPayload<{}>;
@@ -2872,6 +2874,12 @@ export let protoGuardConfigType = PresentableType.create<{
     }[];
   };
 }>()('protoguard.filter_config');
+
+export let protoGuardSuppressionType = PresentableType.create<{
+  suppression: SubspacePrisma.ProtoGuardSuppressionGetPayload<{
+    include: { filter: true; provider: true };
+  }>;
+}>()('protoguard.suppression');
 
 export let deploymentPreviewType = PresentableType.create<{
   deployment: RawProviderDeploymentPreview;
