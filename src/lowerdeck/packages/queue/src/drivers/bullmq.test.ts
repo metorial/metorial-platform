@@ -15,7 +15,9 @@ let mocks = vi.hoisted(() => ({
   captureException: vi.fn(),
   openScopes: [] as { transactionName?: string; tags: Record<string, string> }[],
   scopeDuringCapture: [] as (string | undefined)[],
-  contextDuringCapture: [] as unknown[]
+  contextDuringCapture: [] as unknown[],
+  databaseConflictDuringCapture: [] as unknown[],
+  delay: vi.fn()
 }));
 
 vi.mock('@lowerdeck/sentry', () => {
@@ -43,6 +45,9 @@ vi.mock('@lowerdeck/sentry', () => {
         captureException: (...args: unknown[]) => {
           mocks.scopeDuringCapture.push(current?.transactionName);
           mocks.contextDuringCapture.push(current && contexts.get(current)?.executionContext);
+          mocks.databaseConflictDuringCapture.push(
+            current && contexts.get(current)?.databaseConflict
+          );
           return mocks.captureException(...args);
         },
         withIsolationScope: async (cb: (scope: FakeScope) => Promise<unknown>) => {
@@ -67,6 +72,8 @@ vi.mock('@lowerdeck/sentry', () => {
   };
 });
 
+vi.mock('@lowerdeck/delay', () => ({ delay: mocks.delay }));
+
 vi.mock('bullmq', () => ({
   Queue: class Queue {
     constructor() {
@@ -90,8 +97,14 @@ vi.mock('bullmq', () => ({
 
 import { createBullMqQueue, getBackoffDelayMs } from './bullmq';
 
-let startWorker = async (name: string, cb: (payload: any) => Promise<void>) => {
-  await createBullMqQueue({ name, redisUrl: 'redis://localhost:6379' }).process(cb).start();
+let startWorker = async (
+  name: string,
+  cb: (payload: any) => Promise<void>,
+  jobOpts?: { attempts: number }
+) => {
+  await createBullMqQueue({ name, redisUrl: 'redis://localhost:6379', jobOpts })
+    .process(cb)
+    .start();
 
   return mocks.workerConstructed.mock.calls.at(-1)![0] as (job: unknown) => Promise<unknown>;
 };
@@ -101,6 +114,9 @@ describe('createBullMqQueue', () => {
     vi.clearAllMocks();
     mocks.openScopes = [];
     mocks.scopeDuringCapture = [];
+    mocks.contextDuringCapture = [];
+    mocks.databaseConflictDuringCapture = [];
+    mocks.delay.mockResolvedValue(undefined);
     mocks.queueAdd.mockResolvedValue({});
     mocks.workerWaitUntilReady.mockResolvedValue(undefined);
     mocks.workerRun.mockResolvedValue(undefined);
@@ -189,6 +205,137 @@ describe('createBullMqQueue', () => {
 
     it('never exceeds ten minutes', () => {
       expect(getBackoffDelayMs(25, () => 0.999)).toBe(10 * 60 * 1000);
+    });
+  });
+
+  describe('database conflicts', () => {
+    let wrappers = [
+      { name: 'direct', wrap: (error: object) => error },
+      { name: 'cause', wrap: (error: object) => new Error('wrapped', { cause: error }) },
+      { name: 'meta', wrap: (error: object) => ({ meta: error }) },
+      {
+        name: 'driver adapter',
+        wrap: (error: object) => ({ meta: { driverAdapterError: { cause: error } } })
+      }
+    ];
+
+    describe.each(['P2034', '40P01', '40001'])('%s', code => {
+      it.each(wrappers)('quietly retries a $name conflict', async ({ wrap }) => {
+        let error = wrap(Object.assign(new Error('database conflict'), { code }));
+        let handler = await startWorker('conflict-queue', async () => {
+          throw error;
+        });
+
+        await expect(
+          handler({ id: 'job_1', data: { payload: {} }, attemptsMade: 0 })
+        ).rejects.toBe(error);
+
+        expect(mocks.captureException).not.toHaveBeenCalled();
+        expect(mocks.delay).toHaveBeenCalledExactlyOnceWith(expect.any(Number));
+        expect(mocks.delay.mock.calls[0]![0]).toBeGreaterThanOrEqual(1000);
+        expect(mocks.delay.mock.calls[0]![0]).toBeLessThan(6000);
+      });
+
+      it.each([
+        { name: 'default', attemptsMade: 24, attemptLimit: 25 },
+        { name: 'queue override', attemptsMade: 2, attemptLimit: 3, queueAttempts: 3 },
+        {
+          name: 'job override',
+          attemptsMade: 1,
+          attemptLimit: 2,
+          queueAttempts: 3,
+          jobAttempts: 2
+        },
+        { name: 'single attempt', attemptsMade: 0, attemptLimit: 1, jobAttempts: 1 }
+      ])('reports exhaustion with a $name budget', async d => {
+        let error = new Error('wrapped', { cause: { code } });
+        let handler = await startWorker(
+          'exhausted-conflict-queue',
+          async () => {
+            throw error;
+          },
+          d.queueAttempts ? { attempts: d.queueAttempts } : undefined
+        );
+
+        await expect(
+          handler({
+            id: 'job_1',
+            data: { payload: {} },
+            attemptsMade: d.attemptsMade,
+            opts: d.jobAttempts ? { attempts: d.jobAttempts } : undefined
+          })
+        ).rejects.toBe(error);
+
+        expect(mocks.captureException).toHaveBeenCalledExactlyOnceWith(error);
+        expect(mocks.databaseConflictDuringCapture).toEqual([
+          { code, retryCount: d.attemptsMade, attemptLimit: d.attemptLimit }
+        ]);
+        expect(mocks.scopeDuringCapture).toEqual(['queue process: exhausted-conflict-queue']);
+        expect(mocks.delay).not.toHaveBeenCalled();
+      });
+    });
+
+    it('finds a conflict beyond a cyclic branch', async () => {
+      let error: { cause?: unknown; meta?: unknown } = {};
+      error.cause = error;
+      error.meta = { driverAdapterError: { code: 'P2034' } };
+
+      let handler = await startWorker('cyclic-conflict-queue', async () => {
+        throw error;
+      });
+
+      await expect(
+        handler({ id: 'job_1', data: { payload: {} }, attemptsMade: 0 })
+      ).rejects.toBe(error);
+
+      expect(mocks.captureException).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      { code: 'P2002' },
+      { code: 'P2028' },
+      new Error('Transaction failed due to a write conflict or a deadlock'),
+      null
+    ])('reports unrelated errors immediately: %j', async error => {
+      let handler = await startWorker('unrelated-error-queue', async () => {
+        throw error;
+      });
+
+      await expect(
+        handler({ id: 'job_1', data: { payload: {} }, attemptsMade: 0 })
+      ).rejects.toBe(error);
+
+      expect(mocks.captureException).toHaveBeenCalledExactlyOnceWith(error);
+      expect(mocks.databaseConflictDuringCapture).toEqual([undefined]);
+      expect(mocks.delay).not.toHaveBeenCalled();
+    });
+
+    it('reports cyclic errors without conflict codes immediately', async () => {
+      let error: { cause?: unknown } = {};
+      error.cause = error;
+
+      let handler = await startWorker('cyclic-error-queue', async () => {
+        throw error;
+      });
+
+      await expect(
+        handler({ id: 'job_1', data: { payload: {} }, attemptsMade: 0 })
+      ).rejects.toBe(error);
+
+      expect(mocks.captureException).toHaveBeenCalledExactlyOnceWith(error);
+    });
+
+    it('preserves recognition of the exact PostgreSQL deadlock message', async () => {
+      let error = new Error('deadlock detected');
+      let handler = await startWorker('deadlock-queue', async () => {
+        throw error;
+      });
+
+      await expect(
+        handler({ id: 'job_1', data: { payload: {} }, attemptsMade: 0 })
+      ).rejects.toBe(error);
+
+      expect(mocks.captureException).not.toHaveBeenCalled();
     });
   });
 
