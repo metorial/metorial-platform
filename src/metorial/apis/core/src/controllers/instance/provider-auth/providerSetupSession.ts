@@ -335,6 +335,9 @@ export let providerSetupSessionController = Controller.create(
         let setupSession = await providerSetupSessionService.createProviderSetupSession({
           instance: ctx.instance,
           auditScope: ctx.auditScope,
+          internal: {
+            skipConfirmation: ctx.apiVersion === 'mt_2025_01_01_dashboard'
+          },
           ownerActorId,
           source: ctx.body.source,
           isOwnerLocked: ctx.body.source === 'explorer' ? true : undefined,

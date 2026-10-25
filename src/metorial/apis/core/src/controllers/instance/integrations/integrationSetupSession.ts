@@ -218,6 +218,9 @@ export let integrationSetupSessionController = Controller.create(
           await integrationSetupSessionService.createIntegrationSetupSession({
             instance: ctx.instance,
             auditScope: ctx.auditScope,
+            internal: {
+              skipConfirmation: ctx.apiVersion === 'mt_2025_01_01_dashboard'
+            },
             organizationActor: getOwnershipActor(ctx),
             integration,
             integrationInstance,
