@@ -1,7 +1,7 @@
 import { createHono, useRequestContext } from '@lowerdeck/hono';
 import { integrationSetupSessionService } from '@metorial-subspace/module-integration';
 import { env } from '../env';
-import { providerSetupSessionUrl } from '../internal/presenters';
+import { getProviderSetupSessionUrl } from '@metorial-subspace/module-auth';
 import { integrationsRedirectUrl } from '../urls';
 
 export let integrationSetupSessionApp = createHono()
@@ -49,7 +49,7 @@ export let integrationSetupSessionApp = createHono()
       );
     }
 
-    return c.redirect(providerSetupSessionUrl(providerSetupSession));
+    return c.redirect(getProviderSetupSessionUrl(providerSetupSession));
   })
   .get('/:sessionId', c => {
     return c.redirect(

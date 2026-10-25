@@ -30,6 +30,7 @@ import {
 import { getMetorialSolution, checkTenant } from '@metorial-subspace/module-tenant';
 import { getBackend } from '@metorial-subspace/provider';
 import type { ProviderAuthConfigCreateRes } from '@metorial-subspace/provider-utils';
+import { matchProviderAuthMethodInSpecification } from '../lib/effectiveProviderAuthMethod';
 import { providerAuthConfigCreatedQueue } from '../queues/lifecycle/providerAuthConfig';
 import { providerAuthConfigInclude } from './providerAuthConfig';
 
@@ -155,90 +156,31 @@ class providerAuthConfigInternalServiceImpl {
     specificationOid: bigint;
     authMethodId: string;
   }) {
-    let authMethodForSpec = await db.providerAuthMethod.findFirst({
+    let specificationAuthMethods = await db.providerAuthMethod.findMany({
       where: {
         providerOid: d.provider.oid,
-        specificationOid: d.specificationOid,
-        OR: [
-          { id: d.authMethodId },
-          { specId: d.authMethodId },
-          { specUniqueIdentifier: d.authMethodId },
-          { key: d.authMethodId },
-          { callableId: d.authMethodId },
-          ...(ProviderAuthMethodType[d.authMethodId as keyof typeof ProviderAuthMethodType]
-            ? [{ type: d.authMethodId as any }]
-            : [])
-        ]
+        specificationOid: d.specificationOid
       },
       include: {
         specification: true
       },
       orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }]
     });
-    if (authMethodForSpec) return authMethodForSpec;
 
-    // This is likely because a version mismatch - an integration or other resource is
-    // locked to a specific auth method id, but the spec has changed and that auth method
-    // is not part of the new spec. We now need to find a fallback that matches the locked
-    // auth method id, but is part of the new spec.
-    let oldAuthMethod = await db.providerAuthMethod.findFirst({
-      where: {
-        providerOid: d.provider.oid,
-        id: d.authMethodId
-      }
+    let previousAuthMethod =
+      specificationAuthMethods.find(authMethod => authMethod.id === d.authMethodId) ??
+      (await db.providerAuthMethod.findFirst({
+        where: {
+          providerOid: d.provider.oid,
+          id: d.authMethodId
+        }
+      }));
+
+    return matchProviderAuthMethodInSpecification({
+      authMethodId: d.authMethodId,
+      specificationAuthMethods,
+      previousAuthMethod
     });
-
-    // There is no such auth method in the old spec,
-    // nothing we can do to resolve this
-    if (!oldAuthMethod) return null;
-
-    // Now we need to find an auth method in the new spec that matches the old auth method
-    let fallbackAuthMethod = await db.providerAuthMethod.findFirst({
-      where: {
-        providerOid: d.provider.oid,
-        specificationOid: d.specificationOid,
-        globalOid: oldAuthMethod.globalOid
-      },
-      include: {
-        specification: true
-      },
-      orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }]
-    });
-    if (fallbackAuthMethod) return fallbackAuthMethod;
-
-    // Now we need to find an auth method in the new spec that matches the old auth method
-    fallbackAuthMethod = await db.providerAuthMethod.findFirst({
-      where: {
-        providerOid: d.provider.oid,
-        specificationOid: d.specificationOid,
-        OR: [
-          { specId: oldAuthMethod.specId },
-          { specUniqueIdentifier: oldAuthMethod.specUniqueIdentifier },
-          { key: oldAuthMethod.key },
-          { callableId: oldAuthMethod.callableId }
-        ]
-      },
-      include: {
-        specification: true
-      },
-      orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }]
-    });
-    if (fallbackAuthMethod) return fallbackAuthMethod;
-
-    fallbackAuthMethod = await db.providerAuthMethod.findFirst({
-      where: {
-        providerOid: d.provider.oid,
-        specificationOid: d.specificationOid,
-        type: oldAuthMethod.type
-      },
-      include: {
-        specification: true
-      },
-      orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }]
-    });
-    if (fallbackAuthMethod) return fallbackAuthMethod;
-
-    return null;
   }
 
   private async findPreferredAuthMethodForVersion(d: {

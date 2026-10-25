@@ -1,7 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { ownerActorSchema, presentOwnerActor } from '../../_shared';
-import { env } from '@metorial-subspace/module-auth/src/env';
+import { getProviderSetupSessionUrl } from '@metorial-subspace/module-auth/src/lib/setupSessionUrl';
 import { providerSetupSessionType } from '../../../types';
 import {
   presentRawProviderAuthMethod,
@@ -32,7 +32,7 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
       type: setupSession.typeSelected,
       status,
 
-      url: `${env.service.INTEGRATIONS_UI_URL}/setup-session/${setupSession.id}?client_secret=${setupSession.clientSecret}`,
+      url: getProviderSetupSessionUrl(setupSession),
 
       error: oauthErrorMessage
         ? {

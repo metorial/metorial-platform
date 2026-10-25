@@ -1,4 +1,4 @@
-import type { InvocationResult } from './types';
+import type { InvocationError, InvocationResult } from './types';
 
 export let getStackError = (results: InvocationResult[]) => {
   for (let result of results) {
@@ -8,6 +8,18 @@ export let getStackError = (results: InvocationResult[]) => {
   }
 
   return null;
+};
+
+let isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+export let getInvocationErrorCode = (error: InvocationError) => {
+  if (typeof error.upstreamCode === 'string' && error.upstreamCode) return error.upstreamCode;
+
+  let serviceErrorData = isRecord(error.baggage) ? error.baggage.serviceErrorData : undefined;
+  let upstreamCode = isRecord(serviceErrorData) ? serviceErrorData.upstreamCode : undefined;
+
+  return typeof upstreamCode === 'string' && upstreamCode ? upstreamCode : error.code;
 };
 
 type SuccessDataTuple<T extends readonly InvocationResult[]> = {

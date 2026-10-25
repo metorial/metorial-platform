@@ -35,7 +35,10 @@ import {
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
 import { Fabric, type AuditSubspaceIntegration } from '@metorial/fabric';
-import { integrationProviderVersionInclude } from '../lib/integrationIncludes';
+import {
+  integrationProviderVersionInclude,
+  integrationProviderVersionPresentableInclude
+} from '../lib/integrationIncludes';
 import { createIntegrationVersion } from '../lib/versions';
 import {
   integrationArchivedQueue,
@@ -56,7 +59,7 @@ export let integrationInclude = {
     include: {
       provider: true,
       currentVersion: {
-        include: integrationProviderVersionInclude
+        include: integrationProviderVersionPresentableInclude
       },
       callbacks: {
         where: { status: 'active' as const, ownership: 'user' as const },

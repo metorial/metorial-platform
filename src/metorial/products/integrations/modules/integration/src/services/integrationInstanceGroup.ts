@@ -51,7 +51,8 @@ import {
   integrationInstanceGroupCreatedQueue,
   integrationInstanceGroupUpdatedQueue
 } from '../queues/lifecycle/integrationInstanceGroup';
-import { integrationInstanceProviderInclude } from './integrationInstance';
+import { integrationProviderVersionPresentableInclude } from '../lib/integrationIncludes';
+import { integrationInstanceProviderPresentableInclude } from './integrationInstance';
 import {
   integrationInstanceGroupProviderService,
   type SetIntegrationInstanceGroupProviderInput
@@ -67,25 +68,14 @@ export let integrationInstanceGroupProviderInclude = {
   integration: true,
   integrationInstance: true,
   integrationInstanceProvider: {
-    include: integrationInstanceProviderInclude
+    include: integrationInstanceProviderPresentableInclude
   },
   integrationProvider: {
     include: {
       integration: true,
       provider: true,
       currentVersion: {
-        include: {
-          deployment: true,
-          authMethod: {
-            include: {
-              specification: {
-                omit: { value: true }
-              }
-            }
-          },
-          authCredentials: true,
-          config: true
-        }
+        include: integrationProviderVersionPresentableInclude
       }
     }
   }

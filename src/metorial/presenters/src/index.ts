@@ -12,6 +12,7 @@ import {
   dashboardPublicMcpServerGrantPresenter,
   dashboardPublicMcpServerPresenter,
   dashboardPublicMcpServerSlugAvailabilityPresenter,
+  dashboardSetupSessionEmailPresenter,
   dashboardSetupSessionPresenter,
   dashboardChatConnectionPresenter,
   dashboardChatConnectionProviderPresenter,
@@ -259,6 +260,7 @@ import {
   v1SessionProviderPresenter,
   v1SessionTemplatePresenter,
   v1SessionTemplateProviderPresenter,
+  v1SetupSessionEmailPresenter,
   v1SetupSessionPresenter,
   v1SkillAgentPresenter,
   v1SkillFileChangePresenter,
@@ -467,6 +469,7 @@ import {
   providerRunLogsType,
   providerRunType,
   providerSessionType,
+  providerSetupSessionEmailType,
   providerSetupSessionType,
   providerSpecificationChangeNotificationType,
   providerSpecificationType,
@@ -1708,6 +1711,15 @@ export let providerSetupSessionPresenter = declarePresenter(providerSetupSession
   mt_2026_01_01_magnetar: v1SetupSessionPresenter,
   mt_2026_04_01_consumer: v1SetupSessionPresenter
 });
+
+export let providerSetupSessionEmailPresenter = declarePresenter(
+  providerSetupSessionEmailType,
+  {
+    mt_2025_01_01_dashboard: dashboardSetupSessionEmailPresenter,
+    mt_2026_01_01_magnetar: v1SetupSessionEmailPresenter,
+    mt_2026_04_01_consumer: v1SetupSessionEmailPresenter
+  }
+);
 
 export let providerAuthImportPresenter = declarePresenter(providerAuthImportType, {
   mt_2025_01_01_dashboard: v1ProviderAuthImportPresenter,

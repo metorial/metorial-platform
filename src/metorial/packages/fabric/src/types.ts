@@ -18,6 +18,7 @@ import type {
   ProviderDeployment as SubspaceProviderDeployment,
   ProviderListingGroup as SubspaceProviderListingGroup,
   ProviderSetupSession as SubspaceProviderSetupSession,
+  ProviderSetupSessionEmail as SubspaceProviderSetupSessionEmail,
   PublicMcpServer as SubspacePublicMcpServer,
   PublicMcpServerGrant as SubspacePublicMcpServerGrant,
   Session as SubspaceSession,
@@ -213,6 +214,8 @@ export type AuditSubspaceProviderDeployment = SubspaceProviderDeployment & {
 export type AuditSubspaceProviderSetupSession = SubspaceProviderSetupSession & {
   provider?: { id: string; name: string } | null;
 };
+
+export type AuditSubspaceProviderSetupSessionEmail = SubspaceProviderSetupSessionEmail;
 
 export type AuditSubspacePublicMcpServer = SubspacePublicMcpServer & {
   provider: { id: string; name: string };
@@ -1599,6 +1602,9 @@ export interface FabricEvents {
   'provider.setup_session.updated:after': ProviderEventBase & { setupSession: AuditSubspaceProviderSetupSession; previousSetupSession: AuditSubspaceProviderSetupSession };
   'provider.setup_session.deleted:before': ProviderEventBase;
   'provider.setup_session.deleted:after': ProviderEventBase & { setupSession: AuditSubspaceProviderSetupSession };
+
+  'provider.setup_session.email.created:before': ProviderEventBase & { setupSession: AuditSubspaceProviderSetupSession; recipient: { email: string; organizationMemberId: string | null } };
+  'provider.setup_session.email.created:after': ProviderEventBase & { setupSession: AuditSubspaceProviderSetupSession; setupSessionEmail: AuditSubspaceProviderSetupSessionEmail };
 
   'provider.public_mcp_server.created:before': ProviderEventBase;
   'provider.public_mcp_server.created:after': ProviderEventBase & { publicMcpServer: AuditSubspacePublicMcpServer };

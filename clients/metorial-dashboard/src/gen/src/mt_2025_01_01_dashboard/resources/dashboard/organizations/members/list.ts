@@ -93,7 +93,7 @@ export type DashboardOrganizationsMembersListQuery = {
   before?: string | undefined;
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-} & { teamId?: string | string[] | undefined };
+} & { teamId?: string | string[] | undefined; search?: string | undefined };
 
 export let mapDashboardOrganizationsMembersListQuery =
   /* @__PURE__ */ createMapper<DashboardOrganizationsMembersListQuery>([

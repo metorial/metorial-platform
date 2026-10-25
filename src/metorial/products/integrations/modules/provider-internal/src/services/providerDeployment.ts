@@ -11,6 +11,7 @@ import {
   type ProviderVersion
 } from '@metorial-subspace/db';
 import { waitForDiscovery } from '../lib/discoverySignal';
+import { getProviderVersionSource } from '../lib/providerVersionSource';
 
 let discoveryTimeoutMs = 30_000;
 
@@ -87,18 +88,19 @@ class providerDeploymentInternalServiceImpl {
           throw new Error('Environment mismatch between deployment and environment');
         }
 
-        if (!d.provider.defaultVariantOid) return null;
+        let source = getProviderVersionSource(d);
+        if (source.type === 'none') return null;
 
-        if (d.deployment?.currentVersion?.lockedVersionOid) {
+        if (source.type === 'locked') {
           return await db.providerVersion.findFirstOrThrow({
             where: {
-              oid: d.deployment?.currentVersion.lockedVersionOid,
+              oid: source.lockedVersionOid,
               providerOid: d.provider.oid
             }
           });
         }
 
-        if (d.provider.hasEnvironments) {
+        if (source.type === 'environment') {
           let env = await db.providerEnvironment.findUnique({
             where: {
               environmentOid_providerOid: {
