@@ -4,6 +4,10 @@ let { getAccessTagFilter } = vi.hoisted(() => ({
   getAccessTagFilter: vi.fn()
 }));
 
+vi.mock('@metorial-subspace/module-security-review-request', () => ({
+  getSkillSecurityVerdicts: vi.fn(async () => new Map())
+}));
+
 vi.mock('@metorial/module-access', () => ({
   accessTagService: {
     getAccessTagFilter

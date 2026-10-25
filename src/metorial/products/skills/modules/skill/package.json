@@ -29,6 +29,7 @@
     "@lowerdeck/slugify": "workspace:2.0.0",
     "@metorial-subspace/db": "^1.0.0",
     "@metorial-subspace/list-utils": "^1.0.0",
+    "@metorial-subspace/module-security-review-request": "^1.0.0",
     "@metorial-subspace/module-tenant": "^1.0.0",
     "@metorial/audit-scope": "^1.0.0",
     "@metorial/config": "^1.0.0",

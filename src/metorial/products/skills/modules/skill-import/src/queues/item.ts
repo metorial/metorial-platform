@@ -1,6 +1,7 @@
 import { skillService, type SkillRecord } from '@metorial/module-skill';
 import { createSystemAuditScope } from '@metorial/audit-scope';
 import { db } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import { consumerSkillService } from '@metorial/module-consumer-entities';
 import { createQueue } from '@metorial/queue';
 import { materializeImportedSkill } from '../lib/materialize';
@@ -91,6 +92,7 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
   if (claimed.count === 0) return;
 
   let createdSkill: SkillRecord | undefined;
+  let completedSkillId: string | undefined;
   try {
     if (!item.skillImport.codeBucketId) throw new Error('Import codebucket is missing');
 
@@ -159,6 +161,8 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
         skill: createdSkill,
         authorization: { type: 'privileged' }
       });
+    } else {
+      completedSkillId = createdSkill.id;
     }
   } catch (error) {
     let cleanupSucceeded = !createdSkill;
@@ -185,6 +189,13 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
         cleanupCompletedAt: cleanupSucceeded ? new Date() : undefined,
         completedAt: new Date()
       }
+    });
+  }
+
+  if (completedSkillId) {
+    await Fabric.fire('skill.import.item.completed:after', {
+      skillImportId: item.skillImport.id,
+      skillId: completedSkillId
     });
   }
 
