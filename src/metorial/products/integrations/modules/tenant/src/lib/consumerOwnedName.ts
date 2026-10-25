@@ -14,7 +14,7 @@ export let getConsumerOwnedResourceName = async (d: {
     where: { oid: d.ownerActorOid },
     select: { id: true, type: true }
   });
-  if (owner?.type !== 'consumer') return null;
+  if (owner?.type !== 'consumer' && owner?.type !== 'organization_member') return null;
 
   let consumerActor = await metorialDb.consumerActor.findUnique({
     where: { id: owner.id },

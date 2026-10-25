@@ -270,7 +270,7 @@ describe('usable list filters', () => {
     expect(where).toEqual({
       OR: [
         { ownerActorOid: null },
-        { ownerActor: { type: { not: 'consumer' } } },
+        { ownerActor: { type: { notIn: ['consumer', 'organization_member'] } } },
         { ownerActorOid: { in: [ownConsumerOid] } }
       ]
     });
@@ -293,11 +293,17 @@ describe('usable list filters', () => {
       OR: [
         {
           ownerActorOid: null,
-          OR: [{ identityActorOid: null }, { identityActor: { type: { not: 'consumer' } } }]
+          OR: [
+            { identityActorOid: null },
+            { identityActor: { type: { notIn: ['consumer', 'organization_member'] } } }
+          ]
         },
         {
           ownerActorOid: { not: null },
-          OR: [{ ownerActorOid: null }, { ownerActor: { type: { not: 'consumer' } } }]
+          OR: [
+            { ownerActorOid: null },
+            { ownerActor: { type: { notIn: ['consumer', 'organization_member'] } } }
+          ]
         }
       ]
     });
@@ -309,7 +315,7 @@ describe('usable list filters', () => {
     expect(where).toEqual({
       OR: [
         { ownerActorOid: null },
-        { ownerActor: { type: { not: 'consumer' } } },
+        { ownerActor: { type: { notIn: ['consumer', 'organization_member'] } } },
         { ownerActor: { id: { in: ['actor_30'] } } }
       ]
     });

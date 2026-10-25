@@ -260,7 +260,7 @@ class ConsumerActorServiceImpl {
         },
         input: {
           name: instanceConsumer.name,
-          type: 'consumer',
+          type: profile.organizationMemberOid ? 'organization_member' : 'consumer',
           privateMetadata
         }
       });

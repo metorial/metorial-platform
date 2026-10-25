@@ -178,7 +178,7 @@ let isConsumerActorOid = async (actorOid: bigint) => {
     where: { oid: actorOid },
     select: { type: true }
   });
-  return actor?.type === 'consumer';
+  return actor?.type === 'consumer' || actor?.type === 'organization_member';
 };
 
 export let canUseOwnedResource = async (
@@ -242,7 +242,8 @@ export let canUseCoreOwnedResource = async (
     where: { oid: resource.ownerActorOid },
     select: { id: true, type: true }
   });
-  if (!owner || owner.type !== 'consumer') return true;
+  if (!owner || (owner.type !== 'consumer' && owner.type !== 'organization_member'))
+    return true;
   if (accessor.ownActorIds.includes(owner.id)) return true;
   if (resource.isOwnerLocked) return false;
   if (accessor.isEnforced && resource.isOwnerOnlyVisible) return false;
@@ -388,7 +389,9 @@ export let usableOwnedResourceWhere = (
   let notConsumerOwned = (field: string, relation: string) => ({
     OR: [
       { [field]: null },
-      { [relation]: { type: { not: 'consumer' as const } } },
+      {
+        [relation]: { type: { notIn: ['consumer' as const, 'organization_member' as const] } }
+      },
       ...(ownActorOids.length ? [{ [field]: { in: ownActorOids } }] : [])
     ]
   });
@@ -415,7 +418,9 @@ export let usableCoreOwnedResourceWhere = (accessor: OwnershipAccessor) => {
   let usableOwner = {
     OR: [
       { ownerActorOid: null },
-      { ownerActor: { type: { not: 'consumer' as const } } },
+      {
+        ownerActor: { type: { notIn: ['consumer' as const, 'organization_member' as const] } }
+      },
       ...(accessor.ownActorIds.length
         ? [{ ownerActor: { id: { in: accessor.ownActorIds } } }]
         : [])
@@ -461,7 +466,14 @@ export let ownedResourceWhere = (
 
   if (ownership === 'shared') {
     let notConsumerOwned = (field: string, relation: string) => ({
-      OR: [{ [field]: null }, { [relation]: { type: { not: 'consumer' as const } } }]
+      OR: [
+        { [field]: null },
+        {
+          [relation]: {
+            type: { notIn: ['consumer' as const, 'organization_member' as const] }
+          }
+        }
+      ]
     });
 
     conditions.push(
@@ -513,7 +525,14 @@ export let ownedCoreResourceWhere = (
 
   if (ownership === 'shared') {
     conditions.push({
-      OR: [{ ownerActorOid: null }, { ownerActor: { type: { not: 'consumer' as const } } }]
+      OR: [
+        { ownerActorOid: null },
+        {
+          ownerActor: {
+            type: { notIn: ['consumer' as const, 'organization_member' as const] }
+          }
+        }
+      ]
     });
   }
 
@@ -658,7 +677,7 @@ export let assertCanAttachCoreOwnedResources = async (
       where: { oid: child.ownerActorOid },
       select: { type: true }
     });
-    if (owner?.type !== 'consumer') continue;
+    if (owner?.type !== 'consumer' && owner?.type !== 'organization_member') continue;
 
     throw ownershipAttachRestrictedError({ resource: d?.resource, id: child.id });
   }

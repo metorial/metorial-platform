@@ -28,6 +28,7 @@ import {
   assertCanSeeOwnedResource,
   canSeeOwnedResource,
   canUseOwnedResource,
+  canUseCoreOwnedResource,
   internalOwnershipAccessor,
   isOwnershipEnforced,
   ownedCoreResourceWhere,
@@ -194,7 +195,10 @@ describe('ownership filter', () => {
 
     expect(enforced.AND).toHaveLength(3);
     expect(enforced.AND[2]).toEqual({
-      OR: [{ ownerActorOid: null }, { ownerActor: { type: { not: 'consumer' } } }]
+      OR: [
+        { ownerActorOid: null },
+        { ownerActor: { type: { notIn: ['consumer', 'organization_member'] } } }
+      ]
     });
   });
 
@@ -235,5 +239,32 @@ describe('attaching owned resources', () => {
     await expect(
       assertCanAttachOwnedResources(accessor(), null, [owned])
     ).resolves.toBeUndefined();
+  });
+});
+
+describe('organization member owners', () => {
+  it('enforces the owner lock in both databases', async () => {
+    mocks.subspaceIdentityActor.findUnique.mockResolvedValue({ type: 'organization_member' });
+    mocks.coreIdentityActor.findUnique.mockResolvedValue({
+      id: 'other',
+      type: 'organization_member'
+    });
+    let resource = { ownerActorOid: consumerOwnerOid, isOwnerLocked: true };
+
+    expect(await canUseOwnedResource(accessor(), resource)).toBe(false);
+    expect(await canUseCoreOwnedResource(accessor(), resource)).toBe(false);
+    expect(
+      await canUseOwnedResource(accessor({ ownActorOids: [consumerOwnerOid] }), resource)
+    ).toBe(true);
+  });
+
+  it('prevents attaching another member’s resource to a shared parent', async () => {
+    mocks.subspaceIdentityActor.findUnique.mockResolvedValue({ type: 'organization_member' });
+
+    await expect(
+      assertCanAttachOwnedResources(accessor(), { ownerActorOid: null }, [
+        { id: 'cfg', ownerActorOid: consumerOwnerOid }
+      ])
+    ).rejects.toThrow("can't be attached");
   });
 });

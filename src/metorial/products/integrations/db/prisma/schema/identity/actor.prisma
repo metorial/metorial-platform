@@ -1,4 +1,5 @@
 enum IdentityActorType {
+  organization_member
   person
   agent
   consumer

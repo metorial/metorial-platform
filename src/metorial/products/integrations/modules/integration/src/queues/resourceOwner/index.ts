@@ -7,11 +7,12 @@ let RESOURCE_OWNER_RECONCILE_BATCH_SIZE = 500;
 
 let singleWorkerOpts = { concurrency: 5, limiter: { max: 20, duration: 1000 } };
 
-let consumerActor = { type: 'consumer' as const };
+let consumerActor = { type: { in: ['consumer', 'organization_member'] } } as const;
 
 let consumerActorOid = (
   actor: { oid: bigint; type: string } | null | undefined
-): bigint | null => (actor?.type === 'consumer' ? actor.oid : null);
+): bigint | null =>
+  actor?.type === 'consumer' || actor?.type === 'organization_member' ? actor.oid : null;
 
 let actorSelect = { select: { oid: true, type: true } } as const;
 

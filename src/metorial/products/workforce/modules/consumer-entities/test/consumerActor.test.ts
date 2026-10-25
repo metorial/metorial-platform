@@ -168,6 +168,21 @@ describe('consumerActorService', () => {
     expect(mocks.createIdentityActor).not.toHaveBeenCalled();
   });
 
+  it('creates organization member actors with their own identity type', async () => {
+    mocks.consumerProfile.findFirst.mockResolvedValue({
+      ...profile,
+      organizationMemberOid: 90n
+    });
+
+    await consumerActorService.ensureDefaultConsumerActor({ instance, consumerProfile });
+
+    expect(mocks.createIdentityActor).toHaveBeenCalledWith(
+      expect.objectContaining({
+        input: expect.objectContaining({ type: 'organization_member' })
+      })
+    );
+  });
+
   it('creates the actor, default identity, and local record when missing', async () => {
     let result = await consumerActorService.ensureDefaultConsumerActor({
       instance,

@@ -2,6 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
   identityActorCreate: vi.fn(),
+  identityActorFindUnique: vi.fn(),
+  identityActorUpdate: vi.fn(),
+  consumerFindUnique: vi.fn(),
+  instanceConsumerFindUnique: vi.fn(),
+  consumerProfileFindUnique: vi.fn(),
   identityActorFindUniqueOrThrow: vi.fn(),
   agentCreate: vi.fn(),
   agentFindUnique: vi.fn()
@@ -32,11 +37,16 @@ vi.mock('@metorial-subspace/db', () => ({
   db: {
     identityActor: {
       create: mocks.identityActorCreate,
+      findUnique: mocks.identityActorFindUnique,
       findUniqueOrThrow: mocks.identityActorFindUniqueOrThrow,
       findFirst: vi.fn(),
       findMany: vi.fn(),
-      update: vi.fn()
+      update: mocks.identityActorUpdate
     },
+    consumer: { findUnique: mocks.consumerFindUnique },
+    instanceConsumer: { findUnique: mocks.instanceConsumerFindUnique },
+    consumerProfile: { findUnique: mocks.consumerProfileFindUnique },
+    identity: { findFirst: vi.fn(async () => null) },
     agent: {
       create: mocks.agentCreate,
       findUnique: mocks.agentFindUnique,
@@ -162,5 +172,68 @@ describe('Identity actor creation double writes', () => {
     expect(agentData.instanceOid).toBeNull();
     expect(agentData.tenantOid).toBe(10n);
     expect(agentData.environmentOid).toBe(20n);
+  });
+});
+
+describe('organization member identity actors', () => {
+  let owner = { consumerId: 'con_1', instanceConsumerId: 'ico_1', consumerProfileId: 'cop_1' };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.consumerFindUnique.mockResolvedValue({ oid: 1n });
+    mocks.instanceConsumerFindUnique.mockResolvedValue({ oid: 2n });
+    mocks.consumerProfileFindUnique.mockResolvedValue({ oid: 3n, organizationMemberOid: 4n });
+    mocks.identityActorCreate.mockImplementation(async ({ data }) => ({
+      ...data,
+      oid: 5n,
+      id: 'iac_1'
+    }));
+    mocks.identityActorFindUniqueOrThrow.mockResolvedValue({ id: 'iac_1' });
+  });
+
+  it('persists the member type when resolving a member-owned profile', async () => {
+    await identityActorService.createIdentityActorInternal({
+      tenant: makeTenant(2n),
+      environment: makeEnvironment(3n),
+      consumerOwner: owner,
+      input: { name: 'Member', type: 'organization_member' }
+    });
+
+    expect(mocks.identityActorCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ type: 'organization_member', consumerProfileOid: 3n })
+      })
+    );
+    expect(mocks.agentCreate).not.toHaveBeenCalled();
+  });
+
+  it('repairs existing consumer actors belonging to organization members', async () => {
+    mocks.identityActorFindUnique.mockResolvedValue({
+      id: 'iac_1',
+      oid: 5n,
+      type: 'consumer',
+      consumerOid: 1n,
+      instanceConsumerOid: 2n,
+      consumerProfileOid: 3n,
+      defaultIdentityOid: null
+    });
+    mocks.identityActorUpdate.mockResolvedValue({ id: 'iac_1', type: 'organization_member' });
+
+    await identityActorService.syncConsumerOwnershipInternal({
+      identityActorId: 'iac_1',
+      owner,
+      defaultIdentityId: null
+    });
+
+    expect(mocks.identityActorUpdate).toHaveBeenCalledWith({
+      where: { oid: 5n },
+      data: {
+        type: 'organization_member',
+        consumerOid: 1n,
+        instanceConsumerOid: 2n,
+        consumerProfileOid: 3n,
+        defaultIdentityOid: null
+      }
+    });
   });
 });

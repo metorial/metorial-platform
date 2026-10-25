@@ -209,7 +209,7 @@ let resolveConsumerOwnerOids = async (owner: IdentityActorConsumerOwner) => {
     }),
     db.consumerProfile.findUnique({
       where: { id: owner.consumerProfileId },
-      select: { oid: true }
+      select: { oid: true, organizationMemberOid: true }
     })
   ]);
 
@@ -224,6 +224,9 @@ let resolveConsumerOwnerOids = async (owner: IdentityActorConsumerOwner) => {
   return {
     consumerOid: consumer.oid,
     instanceConsumerOid: instanceConsumer.oid,
+    type: consumerProfile.organizationMemberOid
+      ? ('organization_member' as const)
+      : ('consumer' as const),
     consumerProfileOid: consumerProfile.oid
   };
 };
@@ -346,7 +349,10 @@ class identityActorServiceImpl {
   async createIdentityActorInternal(d: CreateIdentityActorParams) {
     let solution = await getMetorialSolution();
 
-    if ((d.input.type === 'consumer') !== !!d.consumerOwner) {
+    if (
+      (d.input.type === 'consumer' || d.input.type === 'organization_member') !==
+      !!d.consumerOwner
+    ) {
       throw new ServiceError(
         badRequestError({
           message: 'Consumer identity actors must be created with a consumer owner'
@@ -462,7 +468,7 @@ class identityActorServiceImpl {
 
     let defaultIdentityOid = defaultIdentity?.oid ?? null;
     let isInSync =
-      identityActor.type === 'consumer' &&
+      identityActor.type === owner.type &&
       identityActor.consumerOid === owner.consumerOid &&
       identityActor.instanceConsumerOid === owner.instanceConsumerOid &&
       identityActor.consumerProfileOid === owner.consumerProfileOid &&
@@ -472,7 +478,6 @@ class identityActorServiceImpl {
       identityActor = await db.identityActor.update({
         where: { oid: identityActor.oid },
         data: {
-          type: 'consumer',
           ...owner,
           defaultIdentityOid
         }
