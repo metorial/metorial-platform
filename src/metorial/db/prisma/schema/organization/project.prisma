@@ -67,8 +67,9 @@ model Project {
   autoAddOrganizationMembersToPortals Boolean @default(false)
   allowConsumerSkillEditing           Boolean @default(true)
 
-  reducedSubprocessors Boolean @default(false)
-  aiAnalysisEnabled    Boolean @default(false)
+  reducedSubprocessors   Boolean @default(false)
+  aiAnalysisEnabled      Boolean @default(false)
+  skillReviewHoldPending Boolean @default(false)
 
   createdAt DateTime  @default(now())
   deletedAt DateTime?

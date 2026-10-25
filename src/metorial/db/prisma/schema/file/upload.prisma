@@ -13,7 +13,7 @@ model FileUpload {
   storeId String @unique
 
   fileName String
-  fileSize Int
+  fileSize BigInt
   fileType String
   title    String?
 

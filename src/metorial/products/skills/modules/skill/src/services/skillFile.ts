@@ -274,7 +274,7 @@ class SkillFileServiceImpl {
       file: {
         ...base,
         kind: 'file',
-        size: d.item.file?.fileSize ?? 0,
+        size: Number(d.item.file?.fileSize ?? 0),
         etag: d.item.file?.id ?? d.item.id,
         documentId: null,
         fileId: d.item.file?.id ?? null
