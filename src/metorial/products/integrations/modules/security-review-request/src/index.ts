@@ -2,10 +2,19 @@ import { createQueue } from '@lowerdeck/queue';
 import type { SecurityReviewTrigger } from '@metorial-subspace/db';
 import { env } from './env';
 
+export * from './verdict';
+
 export type SecurityReviewRequest =
   | { subject: 'customProviderVersion'; id: string }
   | { subject: 'provider'; id: string }
   | { subject: 'specChange'; id: string }
+  | {
+      subject: 'skill';
+      id: string;
+      trigger: SecurityReviewTrigger;
+      reason?: string;
+      immediateAi?: boolean;
+    }
   | {
       subject: 'providerVersion';
       id: string;
@@ -29,6 +38,7 @@ export let securityReviewRequestId = (request: SecurityReviewRequest) => {
   if (request.subject == 'customProviderVersion') return `cpv:${request.id}`;
   if (request.subject == 'specChange') return `change:${request.id}`;
   if (request.subject == 'provider') return `provider:${request.id}`;
+  if (request.subject == 'skill') return `skill:${request.id}:${request.trigger}`;
 
   return `pv:${request.id}:${request.trigger}`;
 };

@@ -21,7 +21,12 @@ let provenanceLabels: Record<SecurityProvenanceClass, string> = {
   tenant_remote_vendor_plausible: "hosted on the vendor's domain but not documented by it",
   tenant_remote_third_party: 'hosted by an identifiable third party',
   tenant_remote_unverifiable: 'hosted by an operator that could not be identified',
-  impersonation_suspected: 'presented under a brand that does not match its host'
+  impersonation_suspected: 'presented under a brand that does not match its host',
+  tenant_authored: 'authored by this project',
+  imported_public_repo: 'imported from a public repository',
+  imported_private_repo: 'imported from a private repository',
+  uploaded_archive: 'uploaded as an archive',
+  forked: 'forked from another skill'
 };
 
 let exposureSentences: Record<SecurityLevel, string> = {
@@ -70,8 +75,15 @@ export let assembleReport = (d: AssembleInput) => {
   let draft = d.draft ?? {};
   let tools = d.evidence.tools;
 
-  let capabilities =
+  let deterministicBehaviors = d.evidence.behaviors ?? [];
+  let draftBehaviors = (draft.capabilities?.behaviors ?? []).filter(
+    behavior => !deterministicBehaviors.some(known => known.tag == behavior.tag)
+  );
+  let behaviors = [...deterministicBehaviors, ...draftBehaviors];
+
+  let baseCapabilities =
     draft.capabilities ?? (tools ? { tools: declaredCapabilities(tools) } : { tools: [] });
+  let capabilities = behaviors.length ? { ...baseCapabilities, behaviors } : baseCapabilities;
   let provenance = draft.provenance ?? {
     class: d.evidence.fallbackProvenance,
     body: `This server is ${provenanceLabels[d.evidence.fallbackProvenance]}.`,
@@ -95,6 +107,7 @@ export let assembleReport = (d: AssembleInput) => {
   let scores: SecurityReviewComputedScores = computeScores({
     provenance: provenance.class,
     tools: tools ? capabilities.tools : null,
+    behaviors,
     findings,
     coverage: {
       toolsExpected: tools ? tools.length : null,

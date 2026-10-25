@@ -1,6 +1,7 @@
 import type {
   SecurityCapabilityTag,
   SecurityProvenanceClass,
+  SecurityReportBehavior,
   SecurityReportFinding,
   SecurityReportTool,
   SecuritySpecCensus,
@@ -8,7 +9,7 @@ import type {
 } from '@metorial-subspace/db';
 import type { LedgerFact } from '@metorial/review-engine';
 
-export type SubjectKind = 'slate' | 'function' | 'remote' | 'container';
+export type SubjectKind = 'slate' | 'function' | 'remote' | 'container' | 'skill';
 
 export type EvidenceTool = {
   key: string;
@@ -30,6 +31,10 @@ export type CollectedEvidence = {
   findings: SecurityReportFinding[];
   allowedProvenance: SecurityProvenanceClass[];
   fallbackProvenance: SecurityProvenanceClass;
+  behaviors?: SecurityReportBehavior[];
+  skillVersionId?: string;
+  contentHash?: string;
+  skill?: { fileCount: number; analyzedFileCount: number; kinds: Record<string, number> };
   codeReadable?: boolean;
   census?: SecuritySpecCensus;
   specificationOid?: bigint;

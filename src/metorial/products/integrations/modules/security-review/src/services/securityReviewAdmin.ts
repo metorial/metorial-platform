@@ -481,11 +481,11 @@ class SecurityReviewAdminServiceImpl {
     return await this.getSecurityReviewById({ securityReviewId: d.review.id });
   }
 
-  private assertSlateReview(review: SecurityReview) {
-    if (review.subjectType != 'slate_version') {
+  private assertManuallyRunnable(review: SecurityReview) {
+    if (review.subjectType != 'slate_version' && review.subjectType != 'skill_version') {
       throw new ServiceError(
         badRequestError({
-          message: 'Only Metorial integration reviews can be generated manually'
+          message: 'Only Metorial integration and skill reviews can be generated manually'
         })
       );
     }
@@ -497,7 +497,7 @@ class SecurityReviewAdminServiceImpl {
     mode?: SecurityReviewMode;
     thoroughness?: SecurityReviewThoroughness;
   }) {
-    this.assertSlateReview(d.review);
+    this.assertManuallyRunnable(d.review);
 
     if (d.review.status == 'deleted') {
       throw new ServiceError(
@@ -535,6 +535,22 @@ class SecurityReviewAdminServiceImpl {
         badRequestError({ message: 'This provider version is not a Metorial integration' })
       );
     }
+
+    await this.rerunSecurityReview({ ...d, review });
+
+    return await this.getSecurityReviewById({ securityReviewId: review.id });
+  }
+
+  async generateSkillSecurityReview(d: {
+    skillId: string;
+    actorId: string;
+    mode?: SecurityReviewMode;
+    thoroughness?: SecurityReviewThoroughness;
+  }) {
+    let review = await internalSecurityReviewSubjectService.ensureSkillReview({
+      skillId: d.skillId
+    });
+    if (!review) throw new ServiceError(notFoundError('skill', d.skillId));
 
     await this.rerunSecurityReview({ ...d, review });
 

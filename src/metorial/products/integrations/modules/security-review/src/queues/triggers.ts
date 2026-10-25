@@ -13,6 +13,7 @@ import {
   securityReviewRequestQueue as requestQueue,
   type SecurityReviewRequest
 } from '@metorial-subspace/module-security-review-request';
+import { metorialDb } from '@metorial-subspace/module-tenant';
 import { securityReviewGlobalRepository } from '@metorial/multi-region';
 import { env } from '../env';
 import { internalSecurityReviewSubjectService } from '../internal/securityReviewSubject';
@@ -20,6 +21,7 @@ import { enqueueSecurityReview, enqueueSecurityReviews } from './run';
 
 let SCAN_BATCH_SIZE = 500;
 let RECHECK_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000;
+let SKILL_AI_WINDOW_MS = 6 * 60 * 60 * 1000;
 
 let remoteProvenance = [
   'tenant_remote_vendor_verified',
@@ -29,8 +31,62 @@ let remoteProvenance = [
   'impersonation_suspected'
 ];
 
+let skillAiDelayMs = async (d: { reviewOid: bigint; skillCreatedAt: Date }) => {
+  let lastAiRevision = await db.securityReviewRevision.findFirst({
+    where: {
+      reviewOid: d.reviewOid,
+      mode: 'ai',
+      status: { in: ['completed', 'completed_with_gaps'] }
+    },
+    orderBy: { completedAt: 'desc' },
+    select: { completedAt: true }
+  });
+
+  let notBefore = Math.max(
+    d.skillCreatedAt.getTime() + SKILL_AI_WINDOW_MS,
+    lastAiRevision?.completedAt ? lastAiRevision.completedAt.getTime() + SKILL_AI_WINDOW_MS : 0
+  );
+
+  return Math.max(0, notBefore - Date.now());
+};
+
 let requestQueueProcessor = requestQueue.process(async job => {
   if (!isAutoGenerationEnabled()) return;
+
+  if (job.subject == 'skill') {
+    let review = await internalSecurityReviewSubjectService.ensureSkillReview({
+      skillId: job.id
+    });
+    if (!review || review.status != 'active') return;
+    if (review.dismissedAt && job.trigger != 'admin') return;
+
+    let base = { reviewId: review.id, trigger: job.trigger, reason: job.reason };
+
+    if (job.immediateAi) {
+      await enqueueSecurityReview({ ...base, immediate: true });
+      return;
+    }
+
+    let skill = await metorialDb.skill.findUnique({
+      where: { id: job.id },
+      select: { createdAt: true }
+    });
+    if (!skill) return;
+
+    let delayMs = await skillAiDelayMs({
+      reviewOid: review.oid,
+      skillCreatedAt: skill.createdAt
+    });
+
+    if (delayMs == 0) {
+      await enqueueSecurityReview({ ...base, immediate: true });
+      return;
+    }
+
+    await enqueueSecurityReview({ ...base, immediate: true, deterministicOnly: true });
+    await enqueueSecurityReview({ ...base, delayMs });
+    return;
+  }
 
   if (job.subject == 'customProviderVersion') {
     let version = await db.customProviderVersion.findUnique({ where: { id: job.id } });
@@ -319,6 +375,34 @@ let firstUseScanner = createWatermarkScanner({
   }
 });
 
+let skillVersionScanner = createWatermarkScanner({
+  name: 'sub/srev/scan/skill-version',
+  cron: '27 * * * *',
+  scan: async job => {
+    let versions = await metorialDb.skillVersion.findMany({
+      where: {
+        createdAt: since(job) ? { gte: since(job) } : undefined,
+        id: job.cursor ? { gt: job.cursor } : undefined,
+        skill: { status: 'active' }
+      },
+      orderBy: { id: 'asc' },
+      take: SCAN_BATCH_SIZE,
+      select: { id: true, skill: { select: { id: true } } }
+    });
+
+    let skillIds = new Set(versions.map(version => version.skill.id));
+
+    return {
+      lastId: fullPageLastId(versions),
+      requests: [...skillIds].map(id => ({
+        subject: 'skill' as const,
+        id,
+        trigger: 'new_version' as const
+      }))
+    };
+  }
+});
+
 let remoteRecheckCron = createCron(
   { name: 'sub/srev/remote/cron', redisUrl: env.service.REDIS_URL, cron: '17 3 * * *' },
   async () => {
@@ -378,6 +462,7 @@ export let securityReviewTriggerProcessors = combineQueueProcessors([
   specChangeScanner,
   discoveryScanner,
   firstUseScanner,
+  skillVersionScanner,
   remoteRecheckCron,
   remoteRecheckManyProcessor
 ]);

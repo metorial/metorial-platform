@@ -434,8 +434,17 @@ class ProtoGuardConfigServiceImpl {
       }
     });
 
+    let isDefault =
+      setting.enabled &&
+      setting.alertProbabilityThreshold == null &&
+      setting.alertFilterCountThreshold == null &&
+      setting.contentHashKey == null;
+
+    // The row also carries the tenant's content hash key, so it can only go while that is unset.
+    if (isDefault) await db.protoGuardTenantSetting.delete({ where: { oid: setting.oid } });
+
     await clearTenantCache(d.tenant.oid);
-    return setting;
+    return isDefault ? null : setting;
   }
 }
 

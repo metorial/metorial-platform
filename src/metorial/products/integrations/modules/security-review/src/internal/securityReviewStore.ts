@@ -6,6 +6,7 @@ import {
   type SecurityReviewRevision,
   withTransaction
 } from '@metorial-subspace/db';
+import { skillSecurityVerdict } from '@metorial-subspace/module-security-review-request';
 import {
   SECURITY_REVIEW_PROMPT_VERSION,
   SECURITY_REVIEW_RULES_VERSION
@@ -17,6 +18,7 @@ import {
   type RevisionStart,
   revisionSummaryColumns
 } from '../lib/revisions';
+import { markSkillDestinationsDirty } from './skillDistribution';
 
 class InternalSecurityReviewStoreServiceImpl {
   async previousFindingsFor(d: { revisionOid: bigint | null }) {
@@ -46,6 +48,7 @@ class InternalSecurityReviewStoreServiceImpl {
           promptVersion: SECURITY_REVIEW_PROMPT_VERSION,
           context: d.start.context,
           workspaceKey: d.start.workspaceKey,
+          skillVersionId: d.start.skillVersionId,
           stage: 'collecting',
           startedAt: new Date(),
           heartbeatAt: new Date()
@@ -77,7 +80,14 @@ class InternalSecurityReviewStoreServiceImpl {
   }) {
     let completion = d.completion;
 
-    return await withTransaction(async db => {
+    let previousCurrent =
+      d.review.skillId && d.review.currentRevisionOid
+        ? await db.securityReviewRevision.findUnique({
+            where: { oid: d.review.currentRevisionOid }
+          })
+        : null;
+
+    let completed = await withTransaction(async db => {
       let revision = await db.securityReviewRevision.update({
         where: { oid: d.revision.oid },
         data: {
@@ -93,6 +103,7 @@ class InternalSecurityReviewStoreServiceImpl {
           awaitingTools: completion.awaitingTools,
           census: completion.census,
           evidenceHash: completion.evidenceHash,
+          contentHash: completion.contentHash ?? null,
           specificationOid: completion.specificationOid ?? null,
           context: completion.context,
           completedAt: new Date(),
@@ -117,6 +128,37 @@ class InternalSecurityReviewStoreServiceImpl {
 
       return revision;
     });
+
+    if (d.review.skillId && isReportStatus(completion.status)) {
+      await this.refreshSkillDistribution({
+        review: d.review,
+        previous: previousCurrent,
+        current: completed
+      });
+    }
+
+    return completed;
+  }
+
+  // Enforcement reads the verdict at sync time, so a changed verdict needs a new sync.
+  private async refreshSkillDistribution(d: {
+    review: SecurityReview;
+    previous: SecurityReviewRevision | null;
+    current: SecurityReviewRevision;
+  }) {
+    let before = skillSecurityVerdict({
+      review: d.review,
+      current: d.previous,
+      inProgress: null
+    });
+    let after = skillSecurityVerdict({
+      review: d.review,
+      current: d.current,
+      inProgress: null
+    });
+    if (before == after) return;
+
+    await markSkillDestinationsDirty(d.review.skillId!);
   }
 
   // A re-check that finds nothing new leaves no revision of its own. Its run moves to the

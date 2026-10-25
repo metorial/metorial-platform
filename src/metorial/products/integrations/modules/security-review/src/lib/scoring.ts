@@ -5,8 +5,10 @@ import type {
   SecurityFindingSeverityLevel,
   SecurityLevel,
   SecurityProvenanceClass,
+  SecurityReportBehavior,
   SecurityReportFinding,
   SecurityReportTool,
+  SecuritySkillCapabilityTag,
   SecurityReviewComputedScores
 } from '@metorial-subspace/db';
 import { SECURITY_REVIEW_RULES_VERSION } from '../definitions/versions';
@@ -23,7 +25,12 @@ let provenanceBase: Record<SecurityProvenanceClass, number> = {
   tenant_remote_vendor_plausible: 72,
   tenant_remote_third_party: 60,
   tenant_remote_unverifiable: 45,
-  impersonation_suspected: 10
+  impersonation_suspected: 10,
+  tenant_authored: 80,
+  imported_public_repo: 65,
+  imported_private_repo: 70,
+  uploaded_archive: 60,
+  forked: 75
 };
 
 let tagTiers: Record<SecurityCapabilityTag, KnownLevel> = {
@@ -37,6 +44,19 @@ let tagTiers: Record<SecurityCapabilityTag, KnownLevel> = {
   financial: 'critical',
   code_execution: 'critical',
   infrastructure: 'critical'
+};
+
+let skillTagTiers: Record<SecuritySkillCapabilityTag, KnownLevel> = {
+  code_execution: 'high',
+  network_egress: 'moderate',
+  filesystem_outside_skill: 'high',
+  credential_access: 'high',
+  package_install: 'moderate',
+  persistence: 'high',
+  mcp_dependency: 'moderate',
+  subagents: 'moderate',
+  binary_payload: 'high',
+  financial: 'critical'
 };
 
 let levelIndex = (level: KnownLevel) => LEVELS.indexOf(level);
@@ -86,15 +106,24 @@ export let bandForScore = (score: number): SecurityBand =>
 export let postureRiskForScore = (score: number): KnownLevel =>
   score >= 85 ? 'low' : score >= 70 ? 'moderate' : score >= 50 ? 'high' : 'critical';
 
-export let computeExposure = (tools: Pick<SecurityReportTool, 'tags'>[] | null) => {
+export let computeExposure = (
+  tools: Pick<SecurityReportTool, 'tags'>[] | null,
+  behaviors?: Pick<SecurityReportBehavior, 'tag'>[]
+) => {
   if (!tools) return { exposure: 'unknown' as SecurityLevel, trifecta: false };
 
   let tags = new Set(tools.flatMap(tool => tool.tags));
+  let skillTags = new Set((behaviors ?? []).map(behavior => behavior.tag));
   let exposure: KnownLevel = 'low';
   for (let tag of tags) exposure = maxLevel(exposure, tagTiers[tag]);
+  for (let tag of skillTags) exposure = maxLevel(exposure, skillTagTiers[tag]);
 
   let trifecta =
-    tags.has('untrusted_input') && tags.has('bulk_private_data') && tags.has('external_send');
+    (tags.has('untrusted_input') &&
+      tags.has('bulk_private_data') &&
+      tags.has('external_send')) ||
+    (skillTags.has('network_egress') &&
+      (skillTags.has('credential_access') || skillTags.has('filesystem_outside_skill')));
   if (trifecta) exposure = raise(exposure);
 
   return { exposure: exposure as SecurityLevel, trifecta };
@@ -163,13 +192,14 @@ export let headlineFor = (d: {
 export let computeScores = (d: {
   provenance: SecurityProvenanceClass;
   tools: SecurityReportTool[] | null;
+  behaviors?: SecurityReportBehavior[];
   findings: SecurityReportFinding[];
   coverage: ScoringCoverage;
   previous?: { security: number; risk: SecurityLevel };
 }): SecurityReviewComputedScores => {
   let security = computeSecurityScore({ provenance: d.provenance, findings: d.findings });
   let band = bandForScore(security);
-  let { exposure, trifecta } = computeExposure(d.tools);
+  let { exposure, trifecta } = computeExposure(d.tools, d.behaviors);
   let postureRisk = postureRiskForScore(security);
   let risk = computeRisk({ postureRisk, exposure });
 

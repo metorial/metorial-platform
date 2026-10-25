@@ -44,7 +44,34 @@ let findingCategories = [
   'excessive_scope',
   'capability',
   'implementation',
+  'instruction_manipulation',
+  'hidden_content',
+  'remote_code',
+  'remote_instructions',
+  'exfiltration',
+  'credentials',
+  'supply_chain',
+  'persistence',
+  'over_privilege',
+  'trigger_abuse',
+  'agentic_abuse',
+  'shadow_features',
+  'opaque_content',
+  'reviewer_targeting',
   'other'
+] as const;
+
+let skillCapabilityTags = [
+  'code_execution',
+  'network_egress',
+  'filesystem_outside_skill',
+  'credential_access',
+  'package_install',
+  'persistence',
+  'mcp_dependency',
+  'subagents',
+  'binary_payload',
+  'financial'
 ] as const;
 
 let severities = ['info', 'low', 'medium', 'high', 'critical'] as const;
@@ -57,7 +84,12 @@ let provenanceClasses = [
   'tenant_remote_vendor_plausible',
   'tenant_remote_third_party',
   'tenant_remote_unverifiable',
-  'impersonation_suspected'
+  'impersonation_suspected',
+  'tenant_authored',
+  'imported_public_repo',
+  'imported_private_repo',
+  'uploaded_archive',
+  'forked'
 ] as const;
 
 let bannedPhrases = [
@@ -111,6 +143,17 @@ let reportTool = v.object({
   hintAccuracy: v.enumOf(['matches', 'mismatch', 'undeclared'])
 });
 
+let reportBehavior = v.object({
+  tag: v.enumOf([...skillCapabilityTags]),
+  body: text(BODY_MAX),
+  evidence
+});
+
+let reportCapabilities = v.object({
+  tools: v.array(reportTool),
+  behaviors: v.optional(v.array(reportBehavior))
+});
+
 export let securityFindingSchema = finding;
 
 export let securityReportEditSchema = v.object({
@@ -124,7 +167,7 @@ export let securityReportEditSchema = v.object({
   provenance: v.optional(
     v.object({ class: v.enumOf([...provenanceClasses]), body: text(BODY_MAX), evidence })
   ),
-  capabilities: v.optional(v.object({ tools: v.array(reportTool) })),
+  capabilities: v.optional(reportCapabilities),
   implementation: v.optional(
     v.object({ strengths: v.array(point), weaknesses: v.array(point) })
   ),
@@ -208,6 +251,7 @@ export type SecurityReportSubjectContext = {
   expectedToolKeys: string[] | null;
   allowedProvenance: SecurityProvenanceClass[];
   requiresImplementation: boolean;
+  isSkill?: boolean;
   hasHistory: boolean;
   previousFindingKeys: string[];
   lockedFindings: SecurityReportFinding[];
@@ -264,15 +308,25 @@ export let createSecurityReportDefinition = (subject: SecurityReportSubjectConte
       },
 
       capabilities: {
-        description:
-          'Every tool in the specification exactly once. Tag what the tool can actually do, not ' +
-          'what its annotations claim. hintAccuracy compares your tags to the declared MCP hints.',
+        description: subject.isSkill
+          ? 'The skill has no tools: write an empty tools list. List what the skill can do as ' +
+            'behaviors, one entry per tag, each with a one-sentence body and evidence. Deterministic ' +
+            'behaviors are already recorded and kept.'
+          : 'Every tool in the specification exactly once. Tag what the tool can actually do, not ' +
+            'what its annotations claim. hintAccuracy compares your tags to the declared MCP hints.',
         shape:
           '{ tools: { key: string; name?: string; tags: CapabilityTag[]; behavior: string; ' +
           'declaredHints: { readOnly?: boolean; destructive?: boolean; idempotent?: boolean; openWorld?: boolean }; ' +
-          "hintAccuracy: 'matches' | 'mismatch' | 'undeclared' }[] }\n" +
-          `type CapabilityTag = ${capabilityTags.map(tag => `'${tag}'`).join(' | ')}`,
-        validate: section(v.object({ tools: v.array(reportTool) }), (value, ctx) => {
+          "hintAccuracy: 'matches' | 'mismatch' | 'undeclared' }[]" +
+          (subject.isSkill
+            ? '; behaviors: { tag: SkillCapabilityTag; body: string; evidence: LedgerRef[] }[]'
+            : '') +
+          ' }\n' +
+          `type CapabilityTag = ${capabilityTags.map(tag => `'${tag}'`).join(' | ')}` +
+          (subject.isSkill
+            ? `\ntype SkillCapabilityTag = ${skillCapabilityTags.map(tag => `'${tag}'`).join(' | ')}`
+            : ''),
+        validate: section(reportCapabilities, (value, ctx) => {
           let errors: string[] = [];
           let seen = new Set<string>();
 
@@ -282,6 +336,17 @@ export let createSecurityReportDefinition = (subject: SecurityReportSubjectConte
 
             let missing = ctx.ledger.check({ type: 'tool', key: tool.key });
             if (missing) errors.push(`tools: ${missing}`);
+          }
+
+          let tags = new Set<string>();
+          for (let behavior of value.behaviors ?? []) {
+            if (tags.has(behavior.tag))
+              errors.push(`behaviors: "${behavior.tag}" appears more than once`);
+            tags.add(behavior.tag);
+
+            errors.push(
+              ...checkEvidence(behavior.evidence, ctx, `behaviors.${behavior.tag}.evidence`)
+            );
           }
 
           return errors;

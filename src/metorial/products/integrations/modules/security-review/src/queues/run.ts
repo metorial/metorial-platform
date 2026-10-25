@@ -5,6 +5,7 @@ import { internalSecurityReviewRunnerService } from '../internal/securityReviewR
 import type { SecurityReviewRunInput } from '../lib/revisions';
 
 let DEBOUNCE_MS = 10 * 60 * 1000;
+let DETERMINISTIC_DEBOUNCE_MS = 30 * 1000;
 
 let runSecurityReviewQueue = createQueue<SecurityReviewRunInput>({
   name: 'sub/srev/run',
@@ -16,9 +17,16 @@ export let runSecurityReviewQueueProcessor = runSecurityReviewQueue.process(asyn
   await internalSecurityReviewRunnerService.runSecurityReview(data);
 });
 
-let runJobOptions = (d: { reviewId: string; immediate?: boolean }) => ({
-  id: `security-review${d.immediate ? '-now' : ''}:${d.reviewId}`,
-  delay: d.immediate ? 0 : DEBOUNCE_MS
+let runJobOptions = (d: {
+  reviewId: string;
+  immediate?: boolean;
+  deterministicOnly?: boolean;
+  delayMs?: number;
+}) => ({
+  id: `security-review${d.deterministicOnly ? '-det' : d.immediate ? '-now' : ''}:${d.reviewId}`,
+  delay:
+    d.delayMs ??
+    (d.deterministicOnly ? DETERMINISTIC_DEBOUNCE_MS : d.immediate ? 0 : DEBOUNCE_MS)
 });
 
 // Until automatic generation is switched on globally, only staff-triggered runs are queued.
@@ -29,9 +37,9 @@ let isAllowed = (job: SecurityReviewRunInput) =>
 // changes produces a single run. Immediate requests use their own job id so a pending
 // debounced job can never swallow them.
 export let enqueueSecurityReview = async (
-  d: SecurityReviewRunInput & { immediate?: boolean }
+  d: SecurityReviewRunInput & { immediate?: boolean; delayMs?: number }
 ) => {
-  let { immediate, ...job } = d;
+  let { immediate, delayMs, ...job } = d;
   if (!isAllowed(job)) return;
 
   await runSecurityReviewQueue.add(job, runJobOptions(d));

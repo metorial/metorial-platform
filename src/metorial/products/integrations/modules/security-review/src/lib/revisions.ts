@@ -19,6 +19,7 @@ export type SecurityReviewRunInput = {
   changes?: { type: string; detail: string }[];
   force?: boolean;
   recheck?: boolean;
+  deterministicOnly?: boolean;
   admin?: {
     actorId: string;
     mode?: SecurityReviewMode;
@@ -32,6 +33,7 @@ export type RevisionStart = {
   thoroughness: SecurityReviewThoroughness;
   context: SecurityReviewRevisionContext;
   workspaceKey: string;
+  skillVersionId?: string;
 };
 
 export type RevisionProgress = {
@@ -51,6 +53,7 @@ export type RevisionCompletion = {
   findings: StoredFinding[];
   census?: SecuritySpecCensus;
   evidenceHash: string;
+  contentHash?: string;
   awaitingTools: boolean;
   specificationOid?: bigint;
   context: SecurityReviewRevisionContext;

@@ -12,10 +12,18 @@ import {
   type ProviderVariant,
   type ProviderVersion,
   type SecurityReview,
+  type SecurityReviewRevision,
   type Tenant
 } from '@metorial-subspace/db';
 import { type MetorialFacing, resolveMetorialFacing } from '@metorial-subspace/module-tenant';
+import type { AuditScope } from '@metorial/audit-scope';
+import { Fabric } from '@metorial/fabric';
+import {
+  requestSecurityReview,
+  skillSecurityVerdict
+} from '@metorial-subspace/module-security-review-request';
 import { internalSecurityReviewSubjectService } from '../internal/securityReviewSubject';
+import { markSkillDestinationsDirty } from '../internal/skillDistribution';
 import { enqueueSecurityReview } from '../queues/run';
 
 let REASSESS_INTERVAL_MS = 24 * 60 * 60 * 1000;
@@ -147,11 +155,135 @@ class SecurityReviewServiceImpl {
     return state;
   }
 
+  // Callers resolve the skill through skill access first, so anyone who can read the skill
+  // sees its review.
+  async getSecurityReviewForSkill(d: MetorialFacing<{ skill: { id: string } }>) {
+    let { tenant } = await resolveMetorialFacing(d);
+
+    let review = await internalSecurityReviewSubjectService.ensureSkillReview({
+      skillId: d.skill.id
+    });
+    if (!review) throw new ServiceError(notFoundError('security_review', d.skill.id));
+    this.assertVisible({ review, tenant });
+
+    let state = await this.loadState(review);
+
+    if (
+      !state.current &&
+      !state.inProgress &&
+      review.status == 'active' &&
+      !review.dismissedAt
+    ) {
+      await requestSecurityReview({ subject: 'skill', id: d.skill.id, trigger: 'page_open' });
+    }
+
+    return this.withVerdict(state);
+  }
+
+  private withVerdict(state: Awaited<ReturnType<SecurityReviewServiceImpl['loadState']>>) {
+    return { ...state, verdict: skillSecurityVerdict(state) };
+  }
+
+  async listSkillSecurityReviewVerdicts(d: MetorialFacing<{ skillIds: string[] }>) {
+    let { tenant } = await resolveMetorialFacing(d);
+
+    let reviews = await db.securityReview.findMany({
+      where: {
+        skillId: { in: d.skillIds },
+        tenantOid: tenant.oid,
+        status: { not: 'deleted' }
+      },
+      include: { currentRevision: true }
+    });
+
+    return new Map(
+      reviews.map(review => [
+        review.skillId!,
+        skillSecurityVerdict({ review, current: review.currentRevision, inProgress: null })
+      ])
+    );
+  }
+
+  private auditSkillReview(review: SecurityReview, current: SecurityReviewRevision | null) {
+    return {
+      id: review.id,
+      skillId: review.skillId!,
+      securityScore: current?.securityScore ?? null,
+      risk: current?.risk ?? null
+    };
+  }
+
+  async dismissSkillSecurityReview(d: {
+    review: SecurityReview;
+    actorId: string;
+    auditScope: AuditScope;
+  }) {
+    this.assertSkillReview(d.review);
+    if (d.review.dismissedAt) return this.withVerdict(await this.loadState(d.review));
+
+    let review = await db.securityReview.update({
+      where: { oid: d.review.oid },
+      data: { dismissedAt: new Date(), dismissedByActorId: d.actorId }
+    });
+    let state = await this.loadState(review);
+
+    await Fabric.fire('skill.security_review.audit.dismissed:after', {
+      auditScope: d.auditScope,
+      securityReview: this.auditSkillReview(review, state.current)
+    });
+
+    await markSkillDestinationsDirty(review.skillId!);
+
+    return this.withVerdict(state);
+  }
+
+  async restoreSkillSecurityReview(d: { review: SecurityReview; auditScope: AuditScope }) {
+    this.assertSkillReview(d.review);
+    if (!d.review.dismissedAt) return this.withVerdict(await this.loadState(d.review));
+
+    let review = await db.securityReview.update({
+      where: { oid: d.review.oid },
+      data: { dismissedAt: null, dismissedByActorId: null }
+    });
+    let state = await this.loadState(review);
+
+    await Fabric.fire('skill.security_review.audit.restored:after', {
+      auditScope: d.auditScope,
+      securityReview: this.auditSkillReview(review, state.current)
+    });
+
+    await markSkillDestinationsDirty(review.skillId!);
+
+    await requestSecurityReview({
+      subject: 'skill',
+      id: review.skillId!,
+      trigger: 'reassess',
+      reason: 'review_restored'
+    });
+
+    return this.withVerdict(state);
+  }
+
+  async reassessSkillSecurityReview(d: { review: SecurityReview }) {
+    this.assertSkillReview(d.review);
+
+    return this.withVerdict(await this.reassessSecurityReview(d));
+  }
+
+  private assertSkillReview(review: SecurityReview) {
+    if (review.subjectType != 'skill_version' || !review.skillId) {
+      throw new ServiceError(notFoundError('security_review', review.id));
+    }
+  }
+
   async getSecurityReviewById(d: MetorialFacing<{ securityReviewId: string }>) {
     let { tenant } = await resolveMetorialFacing(d);
 
+    // Skill reviews are only reachable through their skill, which enforces skill access.
     let review = await db.securityReview.findUnique({ where: { id: d.securityReviewId } });
-    if (!review) throw new ServiceError(notFoundError('security_review', d.securityReviewId));
+    if (!review || review.subjectType == 'skill_version') {
+      throw new ServiceError(notFoundError('security_review', d.securityReviewId));
+    }
     this.assertVisible({ review, tenant });
 
     return await this.loadState(review);
@@ -205,9 +337,11 @@ class SecurityReviewServiceImpl {
         })
       );
     }
-    if (d.review.status == 'disabled' || d.review.isAdminDisabled) {
+    let subject = d.review.subjectType == 'skill_version' ? 'skill' : 'provider';
+
+    if (d.review.status == 'disabled' || d.review.isAdminDisabled || d.review.dismissedAt) {
       throw new ServiceError(
-        forbiddenError({ message: 'Security reviews are disabled for this provider' })
+        forbiddenError({ message: `Security reviews are disabled for this ${subject}` })
       );
     }
 
@@ -222,7 +356,7 @@ class SecurityReviewServiceImpl {
     if (recent) {
       throw new ServiceError(
         tooManyRequestsError({
-          message: 'This provider can be reassessed once every 24 hours'
+          message: `This ${subject} can be reassessed once every 24 hours`
         })
       );
     }

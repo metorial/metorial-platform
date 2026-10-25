@@ -30,14 +30,15 @@ import {
 let TENANT_CONFIG_CACHE_WAIT_MS = 11_000;
 let NO_RUN_WAIT_MS = 8_000;
 
-let contentFragments = ['Ignore all previous', 'system prompt', 'Meeting notes'];
+// Only text that appears in the message itself; rule descriptions legitimately say "system prompt".
+let contentFragments = ['Meeting notes', 'Ignore all previous', 'reveal your system prompt'];
 
 describe('module-protoguard pipeline', () => {
   let server = useMcpTestServer({
     tools: [...defaultMcpTestTools, readNotesTool, readArchiveTool, poisonedTool]
   });
 
-  describe('retention', () => {
+  describe('zero retention', () => {
     let org = useOrganization();
     let remote = useFixture(() =>
       createRemoteProvider(org.clients.instance, { url: server.url })
@@ -60,12 +61,19 @@ describe('module-protoguard pipeline', () => {
         expect(finding.contentHmac).toMatch(/^[0-9a-f]{64}$/);
       }
 
-      let stored = JSON.stringify({
-        findings: run.findings.map(finding => ({ ...finding, oid: String(finding.oid) })),
-        sample: run.alert!.sampleMarkdown
-      });
+      let stored = JSON.stringify(
+        { findings: run.findings, sample: run.alert!.sampleMarkdown },
+        (_key, value) => (typeof value == 'bigint' ? String(value) : value)
+      );
       for (let fragment of contentFragments) expect(stored).not.toContain(fragment);
     }, 300_000);
+  });
+
+  describe('full retention', () => {
+    let org = useOrganization();
+    let remote = useFixture(() =>
+      createRemoteProvider(org.clients.instance, { url: server.url })
+    );
 
     it('keeps the matched text when retention is full', async () => {
       let opened = await openSession(org, remote.providerId);
@@ -204,7 +212,10 @@ describe('module-protoguard pipeline', () => {
           let rows = await subspaceDb.providerTool.findMany({
             where: { providerOid: provider.oid, name: { in: ['fetch_weather', 'add'] } }
           });
-          expect(rows.map(row => row.name).sort()).toEqual(['add', 'fetch_weather']);
+          expect([...new Set(rows.map(row => row.name))].sort()).toEqual([
+            'add',
+            'fetch_weather'
+          ]);
           return rows;
         },
         { timeoutMs: 60_000, intervalMs: 500 }

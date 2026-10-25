@@ -1,9 +1,11 @@
 import { Service } from '@lowerdeck/service';
 import { db, getId } from '@metorial-subspace/db';
 import { securityReviewGlobalRepository } from '@metorial/multi-region';
+import { metorialDb } from '@metorial-subspace/module-tenant';
 import {
   loadSlateSubject,
   subjectKeyForCustomProviderVersion,
+  subjectKeyForSkill,
   subjectKeyForSlateVersion
 } from '../lib/subjects';
 import { internalSecurityReviewMirrorService } from './securityReviewMirror';
@@ -75,6 +77,44 @@ class InternalSecurityReviewSubjectServiceImpl {
         providerOid: version.customProvider.providerOid ?? undefined,
         providerVersionOid: version.providerVersionOid ?? undefined
       }
+    });
+  }
+
+  async ensureSkillReview(d: { skillId: string }) {
+    let skill = await metorialDb.skill.findUnique({
+      where: { id: d.skillId },
+      select: { id: true, status: true, project: { select: { id: true } } }
+    });
+    if (!skill || skill.status == 'deleted') {
+      await db.securityReview.updateMany({
+        where: { skillId: d.skillId, status: { not: 'deleted' } },
+        data: { status: 'deleted' }
+      });
+
+      return null;
+    }
+
+    let project = await db.project.findUnique({
+      where: { id: skill.project.id },
+      select: { oid: true, tenantOid: true }
+    });
+    if (!project) return null;
+
+    let subjectKey = subjectKeyForSkill(skill);
+
+    return await db.securityReview.upsert({
+      where: { subjectKey },
+      create: {
+        ...getId('securityReview'),
+        subjectType: 'skill_version',
+        scope: 'tenant',
+        subjectKey,
+        status: skill.status == 'archived' ? 'disabled' : 'active',
+        skillId: skill.id,
+        tenantOid: project.tenantOid,
+        projectOid: project.oid
+      },
+      update: { status: skill.status == 'archived' ? 'disabled' : 'active' }
     });
   }
 }

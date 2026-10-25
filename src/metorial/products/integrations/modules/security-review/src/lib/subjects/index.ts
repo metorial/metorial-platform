@@ -3,6 +3,7 @@ import { EvidenceLedger } from '@metorial/review-engine';
 import { createHash } from 'node:crypto';
 import { type CollectedEvidence, wrapUntrusted } from '../evidence';
 import { collectCustomProviderEvidence } from './customProvider';
+import { collectSkillEvidence, subjectKeyForSkill } from './skill';
 import { collectSlateEvidence } from './slate';
 
 // Global reviews are shared by every region, so they are keyed by the registry's ids, which
@@ -15,6 +16,8 @@ export let subjectKeyForSlateVersion = (d: {
   d.slate.slateIdOnRegistry && d.slateVersion.versionIdOnRegistry
     ? `slate:${d.slate.slateIdOnRegistry}:${d.slateVersion.versionIdOnRegistry}`
     : null;
+
+export { subjectKeyForSkill };
 
 export let subjectKeyForCustomProviderVersion = (d: { id: string }) => `cpv:${d.id}`;
 
@@ -76,6 +79,10 @@ export let collectEvidence = async (d: {
     });
   }
 
+  if (d.review.subjectType == 'skill_version') {
+    return await collectSkillEvidence({ review: d.review });
+  }
+
   return null;
 };
 
@@ -92,6 +99,10 @@ let directoryListing = (evidence: CollectedEvidence) => {
     ['deployment.json', 'Runtime, environment variable names (never values) and repository.'],
     ['remote.json', 'The remote URL, protocol and public OAuth endpoints.'],
     ['image.json', 'The container image reference.'],
+    ['skill/', 'The files of the skill, with invisible characters made visible.'],
+    ['skill.json', 'Skill name, description, license and provenance.'],
+    ['inventory.json', 'Every file in the skill with its detected type and size.'],
+    ['changes/', 'What changed since the last reviewed version: summary.json and diffs.'],
     ['signals/protoguard.json', "ProtoGuard alerts from this project's traffic, redacted."],
     ['facts.json', 'Pre-computed facts and the findings already recorded from them.']
   ] as const;
@@ -181,7 +192,8 @@ export let buildLedger = (d: {
 // The README embeds limitations that change with transient conditions (an unreachable
 // vulnerability database) and runtime signals change with every alert, so neither counts as
 // new evidence on their own.
-let volatileEvidence = (path: string) => path == 'README.md' || path.startsWith('signals/');
+let volatileEvidence = (path: string) =>
+  path == 'README.md' || path.startsWith('signals/') || path.startsWith('changes/');
 
 export let hashEvidence = (files: Record<string, string>) => {
   let hash = createHash('sha256');

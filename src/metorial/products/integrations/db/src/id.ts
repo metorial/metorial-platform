@@ -151,6 +151,7 @@ export let ID = createIdGenerator({
   securityReviewRevision: idType.sorted('srevr'),
   securityReviewFinding: idType.sorted('srevf'),
   securityReviewRun: idType.sorted('srevx'),
+  securityReviewFileCheck: idType.sorted('srevfc'),
 
   callback: idType.sorted('cb'),
   callbackInstance: idType.sorted('cbi'),

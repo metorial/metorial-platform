@@ -229,6 +229,7 @@ class InternalSecurityReviewRunnerServiceImpl {
         expectedToolKeys: d.evidence.tools?.map(tool => tool.key) ?? null,
         allowedProvenance: d.evidence.allowedProvenance,
         requiresImplementation: d.evidence.kind == 'function' && !!d.evidence.codeReadable,
+        isSkill: d.evidence.kind == 'skill',
         hasHistory: !!initialReport,
         previousFindingKeys: [...keepFindingKeys],
         lockedFindings: d.lockedFindings
@@ -415,6 +416,8 @@ class InternalSecurityReviewRunnerServiceImpl {
   }) {
     let { review, input } = d;
 
+    if (review.dismissedAt && input.trigger != 'admin') return;
+
     let running = await db.securityReviewRevision.findFirst({
       where: {
         reviewOid: review.oid,
@@ -444,6 +447,7 @@ class InternalSecurityReviewRunnerServiceImpl {
       }),
       admin: input.admin
     });
+    if (input.deterministicOnly) gate = { ...gate, allowAi: false };
 
     let evidence = await collectEvidence({
       review,
@@ -464,6 +468,16 @@ class InternalSecurityReviewRunnerServiceImpl {
       (previous.mode == 'ai' || !gate.allowAi);
     if (isUnchanged && !input.force) return;
 
+    if (!previous && !input.force && evidence.contentHash) {
+      let reused = await this.reuseIdenticalSkillReview({
+        review,
+        input,
+        evidence,
+        evidenceHash
+      });
+      if (reused) return;
+    }
+
     let previousFindings = await internalSecurityReviewStoreService.previousFindingsFor({
       revisionOid: previous?.oid ?? null
     });
@@ -471,12 +485,19 @@ class InternalSecurityReviewRunnerServiceImpl {
       .filter(finding => finding.isLocked && finding.change != 'resolved')
       .map(toReportFinding);
 
+    if (input.deterministicOnly && review.subjectType == 'skill_version') {
+      evidence.limitations.push('The AI review of this version has not run yet.');
+    }
+
     let context: SecurityReviewRevisionContext = {
       reason: input.reason,
       previousRevisionId: previous?.id,
       changes: input.changes,
       admin: input.admin
         ? { actorId: input.admin.actorId, action: 'rerun', at: new Date().toISOString() }
+        : undefined,
+      skill: evidence.skill
+        ? { skillVersionId: evidence.skillVersionId!, ...evidence.skill }
         : undefined
     };
 
@@ -487,7 +508,8 @@ class InternalSecurityReviewRunnerServiceImpl {
         mode: gate.allowAi ? 'ai' : 'deterministic',
         thoroughness: gate.thoroughness,
         context,
-        workspaceKey: workspaceKeyFor({ scope: review.scope, reviewId: review.id })
+        workspaceKey: workspaceKeyFor({ scope: review.scope, reviewId: review.id }),
+        skillVersionId: evidence.skillVersionId
       }
     });
 
@@ -529,9 +551,21 @@ class InternalSecurityReviewRunnerServiceImpl {
       return;
     }
 
+    let carriedDraft =
+      !agent && input.deterministicOnly && previous?.report
+        ? carryOverReport({
+            report: previous.report,
+            keepFindingKeys: new Set(
+              previousFindings
+                .filter(finding => finding.change != 'resolved' && finding.origin == 'agent')
+                .map(finding => finding.key)
+            )
+          })
+        : null;
+
     let assembled = assembleReport({
       evidence,
-      draft: agent?.draft ?? null,
+      draft: agent?.draft ?? carriedDraft,
       blockReason,
       budgetExhausted: agent?.budgetExhausted ?? false,
       gaps: agent?.gaps ?? [],
@@ -554,7 +588,11 @@ class InternalSecurityReviewRunnerServiceImpl {
       review,
       revision,
       completion: {
-        status: this.completionStatus({ agent, blockReason }),
+        status: this.completionStatus({
+          agent,
+          blockReason,
+          deferred: !!input.deterministicOnly && !failureCode
+        }),
         mode: agent ? 'ai' : 'deterministic',
         blockReason: agent ? undefined : blockReason,
         failureCode,
@@ -563,6 +601,7 @@ class InternalSecurityReviewRunnerServiceImpl {
         findings,
         census: evidence.census,
         evidenceHash,
+        contentHash: evidence.contentHash,
         awaitingTools: evidence.tools === null,
         specificationOid: evidence.specificationOid,
         context: {
@@ -576,11 +615,106 @@ class InternalSecurityReviewRunnerServiceImpl {
     });
   }
 
+  // Forks and duplicates start out identical to a skill this tenant already had reviewed. The
+  // agent's verdict carries over without its history, and the deterministic checks and
+  // provenance are recomputed for the new skill. Never matches across tenants.
+  private async reuseIdenticalSkillReview(d: {
+    review: SecurityReview;
+    input: SecurityReviewRunInput;
+    evidence: CollectedEvidence;
+    evidenceHash: string;
+  }) {
+    let source = await db.securityReviewRevision.findFirst({
+      where: {
+        contentHash: d.evidence.contentHash,
+        mode: 'ai',
+        status: { in: ['completed', 'completed_with_gaps'] },
+        rulesVersion: SECURITY_REVIEW_RULES_VERSION,
+        promptVersion: SECURITY_REVIEW_PROMPT_VERSION,
+        review: {
+          oid: { not: d.review.oid },
+          tenantOid: d.review.tenantOid,
+          subjectType: 'skill_version'
+        }
+      },
+      orderBy: { completedAt: 'desc' },
+      include: { findings: true }
+    });
+    if (!source?.report) return false;
+
+    let carried = {
+      ...carryOverReport({
+        report: source.report,
+        keepFindingKeys: new Set(
+          source.findings
+            .filter(finding => finding.change != 'resolved' && finding.origin == 'agent')
+            .map(finding => finding.key)
+        )
+      }),
+      provenance: undefined
+    };
+
+    let context: SecurityReviewRevisionContext = {
+      reason: d.input.reason,
+      skill: d.evidence.skill
+        ? { skillVersionId: d.evidence.skillVersionId!, ...d.evidence.skill }
+        : undefined
+    };
+
+    let revision = await internalSecurityReviewSinkService.start({
+      review: d.review,
+      start: {
+        trigger: d.input.trigger,
+        mode: 'ai',
+        thoroughness: source.thoroughness,
+        context,
+        workspaceKey: workspaceKeyFor({ scope: d.review.scope, reviewId: d.review.id }),
+        skillVersionId: d.evidence.skillVersionId
+      }
+    });
+
+    let assembled = assembleReport({
+      evidence: d.evidence,
+      draft: carried,
+      budgetExhausted: false,
+      gaps: [],
+      lockedFindings: []
+    });
+
+    await internalSecurityReviewSinkService.complete({
+      review: d.review,
+      revision,
+      completion: {
+        status: source.status,
+        mode: 'ai',
+        report: assembled.report,
+        scores: assembled.scores,
+        findings: classifyFindings({
+          findings: assembled.findings.map(finding => ({
+            finding,
+            origin: assembled.origins[finding.key] ?? 'agent'
+          })),
+          previous: [],
+          lockedKeys: new Set()
+        }),
+        evidenceHash: d.evidenceHash,
+        contentHash: d.evidence.contentHash,
+        awaitingTools: false,
+        context: { ...context, limitations: assembled.report.method?.limitations },
+        costMicros: 0
+      }
+    });
+
+    return true;
+  }
+
   private completionStatus(d: {
     agent: { complete: boolean } | null;
     blockReason?: string;
+    deferred?: boolean;
   }): SecurityReviewRevisionStatus {
     if (d.agent) return d.agent.complete ? 'completed' : 'completed_with_gaps';
+    if (d.deferred) return 'completed';
 
     return d.blockReason ? 'blocked' : 'completed_with_gaps';
   }

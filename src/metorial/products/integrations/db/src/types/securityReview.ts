@@ -6,7 +6,12 @@ export type SecurityProvenanceClass =
   | 'tenant_remote_vendor_plausible'
   | 'tenant_remote_third_party'
   | 'tenant_remote_unverifiable'
-  | 'impersonation_suspected';
+  | 'impersonation_suspected'
+  | 'tenant_authored'
+  | 'imported_public_repo'
+  | 'imported_private_repo'
+  | 'uploaded_archive'
+  | 'forked';
 
 export type SecurityCapabilityTag =
   | 'read'
@@ -35,7 +40,33 @@ export type SecurityFindingCategoryKey =
   | 'excessive_scope'
   | 'capability'
   | 'implementation'
+  | 'instruction_manipulation'
+  | 'hidden_content'
+  | 'remote_code'
+  | 'remote_instructions'
+  | 'exfiltration'
+  | 'credentials'
+  | 'supply_chain'
+  | 'persistence'
+  | 'over_privilege'
+  | 'trigger_abuse'
+  | 'agentic_abuse'
+  | 'shadow_features'
+  | 'opaque_content'
+  | 'reviewer_targeting'
   | 'other';
+
+export type SecuritySkillCapabilityTag =
+  | 'code_execution'
+  | 'network_egress'
+  | 'filesystem_outside_skill'
+  | 'credential_access'
+  | 'package_install'
+  | 'persistence'
+  | 'mcp_dependency'
+  | 'subagents'
+  | 'binary_payload'
+  | 'financial';
 
 export type SecurityLevel = 'unknown' | 'low' | 'moderate' | 'high' | 'critical';
 
@@ -67,6 +98,12 @@ export type SecurityReportTool = {
   hintAccuracy: 'matches' | 'mismatch' | 'undeclared';
 };
 
+export type SecurityReportBehavior = {
+  tag: SecuritySkillCapabilityTag;
+  body: string;
+  evidence: SecurityLedgerRef[];
+};
+
 export type SecurityReportPoint = {
   title: string;
   body: string;
@@ -88,7 +125,7 @@ export type SecurityReportFinding = {
 export type SecurityReport = {
   summary?: { text: string; trustNote: string; exposureNote: string };
   provenance?: { class: SecurityProvenanceClass; body: string; evidence: SecurityLedgerRef[] };
-  capabilities?: { tools: SecurityReportTool[] };
+  capabilities?: { tools: SecurityReportTool[]; behaviors?: SecurityReportBehavior[] };
   implementation?: { strengths: SecurityReportPoint[]; weaknesses: SecurityReportPoint[] };
   findings?: SecurityReportFinding[];
   resolvedFindings?: { key: string; reason: string }[];
@@ -153,4 +190,11 @@ export type SecurityReviewRevisionContext = {
   limitations?: string[];
   validationErrors?: string[];
   admin?: { actorId: string; action: 'edit' | 'rerun'; at: string };
+  skill?: {
+    skillVersionId: string;
+    fileCount: number;
+    analyzedFileCount: number;
+    kinds: Record<string, number>;
+    aiDeferredUntil?: string;
+  };
 };

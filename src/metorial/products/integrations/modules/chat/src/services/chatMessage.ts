@@ -739,7 +739,7 @@ class chatMessageServiceImpl {
         filename: file.fileName,
         mimeType: file.fileType,
         fileUrl,
-        fileSize: file.fileSize,
+        fileSize: Number(file.fileSize),
         clientReferenceId: file.id
       });
       let uploadResult = unwrapChatCall(uploaded, {
