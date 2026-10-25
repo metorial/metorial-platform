@@ -19,6 +19,16 @@ let HeaderRow = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+
+  > a {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+  }
+
+  > a:first-child {
+    flex-shrink: 0;
+  }
 `;
 
 let OutletWrapper = styled.div`
@@ -66,7 +76,7 @@ export let ProviderSessionLayout = () => {
             </Button>
           </Link>
 
-          {session.data?.ownerActor && <ResourceOwnerInline resource={session.data} />}
+          {session.data?.access.owner && <ResourceOwnerInline resource={session.data} />}
         </HeaderRow>
       }
     >

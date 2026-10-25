@@ -10,9 +10,11 @@ import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import type { OwnedResource, ResourceOwnerActor } from '../lib/resourceOwnership';
 
-let Inline = styled.div`
+let Inline = styled.span`
   display: inline-flex;
   align-items: center;
+  vertical-align: middle;
+  line-height: 1;
   gap: 6px;
   min-width: 0;
 `;
@@ -27,6 +29,7 @@ let InlineName = styled.span`
 
 let ownerTypeLabel: Record<ResourceOwnerActor['type'], string> = {
   consumer: 'Workforce Account',
+  organization_member: 'Organization Member',
   person: 'Person',
   agent: 'Agent'
 };
@@ -38,24 +41,20 @@ let useOwnerUrl = (owner: ResourceOwnerActor) => {
   let project = useCurrentProject();
   let instance = useCurrentInstance();
 
-  if (!owner.portalId) return null;
-
-  if (owner.type === 'consumer') {
-    if (!owner.consumerProfileId) return null;
-
-    return Paths.instance.portal(
-      organization.data,
-      project.data,
-      instance.data,
-      owner.portalId,
-      'account',
-      owner.consumerProfileId
-    );
+  if (owner.organizationMember) {
+    return Paths.organization.members(organization.data, owner.organizationMember.id);
   }
 
-  return Paths.instance
-    .portalIdentity(owner.portalId)
-    .actor(organization.data, project.data, instance.data, owner.id);
+  if (!owner.consumer?.portalId) return null;
+
+  return Paths.instance.portal(
+    organization.data,
+    project.data,
+    instance.data,
+    owner.consumer.portalId,
+    'account',
+    owner.consumer.profileId
+  );
 };
 
 let OwnerAvatar = ({ owner, size }: { owner: ResourceOwnerActor; size: number }) => (
@@ -63,11 +62,11 @@ let OwnerAvatar = ({ owner, size }: { owner: ResourceOwnerActor; size: number })
 );
 
 export let ResourceOwnerLockBadge = ({ resource }: { resource: OwnedResource }) =>
-  resource.ownerActor && resource.isOwnerOnlyVisible ? (
+  resource.access?.owner && resource.access?.visibility === 'owner' ? (
     <Badge color="gray">
-      <RiEyeOffLine size={12} /> Only visible to owner
+      <RiEyeOffLine size={12} /> Only visible to you
     </Badge>
-  ) : resource.ownerActor && resource.isOwnerLocked ? (
+  ) : resource.access?.owner && resource.access?.type === 'owner_locked' ? (
     <Badge color="gray">
       <RiLockLine size={12} /> Owner only
     </Badge>
@@ -80,7 +79,7 @@ export let ResourceOwnerInline = ({
   resource: OwnedResource;
   linked?: boolean;
 }) => {
-  let owner = resource.ownerActor;
+  let owner = resource.access?.owner;
   if (!owner)
     return (
       <Text size="2" color="gray600">
@@ -91,7 +90,7 @@ export let ResourceOwnerInline = ({
   return (
     <ResourceOwnerInlineContent
       owner={owner}
-      isOwnerLocked={!!resource.isOwnerLocked}
+      isOwnerLocked={resource.access?.type === 'owner_locked'}
       linked={linked}
     />
   );
@@ -108,14 +107,20 @@ let ResourceOwnerInlineContent = ({
 }) => {
   let url = useOwnerUrl(owner);
   let content = (
-    <Inline>
+    <>
       <OwnerAvatar owner={owner} size={18} />
       <InlineName>{getOwnerName(owner)}</InlineName>
       {isOwnerLocked && <RiLockLine size={12} color={theme.colors.gray600} />}
-    </Inline>
+    </>
   );
 
-  return url && linked ? <Link to={url}>{content}</Link> : content;
+  return url && linked ? (
+    <Inline as={Link} to={url}>
+      {content}
+    </Inline>
+  ) : (
+    <Inline>{content}</Inline>
+  );
 };
 
 export let ResourceOwnerEntity = ({
@@ -125,7 +130,7 @@ export let ResourceOwnerEntity = ({
   resource: OwnedResource;
   title?: string;
 }) => {
-  let owner = resource.ownerActor;
+  let owner = resource.access?.owner;
   if (!owner) return null;
 
   return <ResourceOwnerEntityContent owner={owner} resource={resource} title={title} />;
@@ -149,19 +154,22 @@ let ResourceOwnerEntityContent = ({
           prefix={<OwnerAvatar owner={owner} size={28} />}
           title={getOwnerName(owner)}
           description={
-            resource.isOwnerOnlyVisible
-              ? `${ownerTypeLabel[owner.type]} · Only visible to owner`
-              : resource.isOwnerLocked
+            resource.access?.visibility === 'owner'
+              ? `${ownerTypeLabel[owner.type]} · Only visible to you`
+              : resource.access?.type === 'owner_locked'
                 ? `${ownerTypeLabel[owner.type]} · Locked to owner`
                 : ownerTypeLabel[owner.type]
           }
         />
 
         {url && (
-          <Entity.Field title={owner.type === 'consumer' ? 'Account' : 'Actor'} right>
+          <Entity.Field
+            title={owner.type === 'organization_member' ? 'Organization Member' : 'Account'}
+            right
+          >
             <Link to={url}>
               <Button as="span" size="2" variant="outline">
-                {owner.type === 'consumer' ? 'View Account' : 'View Actor'}
+                {owner.type === 'organization_member' ? 'View Member' : 'View Account'}
               </Button>
             </Link>
           </Entity.Field>

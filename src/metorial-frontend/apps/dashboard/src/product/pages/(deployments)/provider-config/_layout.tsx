@@ -59,7 +59,7 @@ export let ProviderConfigLayout = () => {
         config.data
           ? [
               { label: 'ID', value: <ID id={config.data.id} /> },
-              ...(config.data.ownerActor
+              ...(config.data.access.owner
                 ? [{ label: 'Owner', value: <ResourceOwnerInline resource={config.data} /> }]
                 : []),
               { label: 'Created', value: <RenderDate date={config.data.createdAt} /> }

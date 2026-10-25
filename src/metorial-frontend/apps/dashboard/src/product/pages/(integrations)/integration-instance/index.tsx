@@ -287,7 +287,7 @@ export let IntegrationInstanceOverviewPage = () => {
             </>
           ) : null}
 
-          {integrationInstance.data.ownerActor && (
+          {integrationInstance.data.access.owner && (
             <>
               <ResourceOwnerEntity resource={integrationInstance.data} />
               <Spacer height={20} />

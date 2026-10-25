@@ -45,7 +45,7 @@ export let ProviderConfigOverviewPage = () => {
   return renderWithLoader({ config })(({ config }) => (
     <DetailsOverviewLayout>
       <>
-        {config.data.ownerActor && (
+        {config.data.access.owner && (
           <>
             <ResourceOwnerEntity resource={config.data} />
             <Spacer height={15} />

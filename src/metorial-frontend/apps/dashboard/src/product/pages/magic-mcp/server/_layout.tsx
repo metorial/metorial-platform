@@ -94,7 +94,7 @@ export let MagicMcpServerLayout = () => {
                 label: 'Server Identifier',
                 value: <ID id={server.data.endpoints[0]?.alias ?? '...'} />
               },
-              ...(server.data.ownerActor
+              ...(server.data.access.owner
                 ? [{ label: 'Owner', value: <ResourceOwnerInline resource={server.data} /> }]
                 : []),
               { label: 'Created', value: <RenderDate date={server.data.createdAt} /> }

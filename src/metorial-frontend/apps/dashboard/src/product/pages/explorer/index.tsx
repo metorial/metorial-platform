@@ -249,7 +249,7 @@ export let ExplorerPage = () => {
 
       let [res, err] = await createSession.mutate({
         name: options?.name,
-        ownedByCaller: true,
+        source: 'explorer',
         providers: [
           {
             providerDeploymentId: deploymentId,
@@ -546,7 +546,7 @@ export let ExplorerPage = () => {
           providerDeploymentId: deploymentId,
           name: `${activeProvider.data?.name ?? provider.data?.name ?? 'Provider'} Config`,
           value: configCapabilities.defaultConfigValue,
-          ownedByCaller: true
+          source: 'explorer'
         });
 
         providerConfigId = config?.id;
@@ -649,7 +649,7 @@ export let ExplorerPage = () => {
               'Provider'
             }
             defaultAuthConfigName="Explorer Auth"
-            ownedByCaller
+            source="explorer"
             providerDeploymentId={providerDeploymentId}
             selectedConfiguration={selectedConfiguration}
             onSelectedConfigurationChange={setSelectedConfiguration}

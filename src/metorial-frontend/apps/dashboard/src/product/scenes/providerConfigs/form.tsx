@@ -44,7 +44,7 @@ export type ProviderConfigFormProps = {
   embedded?: boolean;
   defaultName?: string;
   hideDetailsInputs?: boolean;
-  ownedByCaller?: boolean;
+  source?: 'explorer';
 };
 
 export let ProviderConfigForm = (
@@ -116,7 +116,7 @@ export let ProviderConfigForm = (
           ? { providerDeploymentId: props.providerDeploymentId }
           : {}),
         providerConfigVaultId: values.providerConfigVaultId,
-        ...(props.ownedByCaller ? { ownedByCaller: true } : {})
+        ...(props.source ? { source: props.source } : {})
       });
 
       if (!result) return;
@@ -135,7 +135,7 @@ export let ProviderConfigForm = (
         ? { providerDeploymentId: props.providerDeploymentId }
         : {}),
       value: values.configData,
-      ...(props.ownedByCaller ? { ownedByCaller: true } : {})
+      ...(props.source ? { source: props.source } : {})
     });
 
     if (!result) return;

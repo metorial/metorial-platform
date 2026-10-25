@@ -17,7 +17,7 @@ import {
 import { Button, Callout, confirm, Flex, Menu, Spacer, Text, toast } from '@metorial/ui';
 import { Box, ID, Table } from '@metorial/ui-product';
 import { RiMore2Line } from '@remixicon/react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   createMagicMcpTokenModal,
@@ -28,7 +28,7 @@ import {
 } from '../../../scenes/magicMcp/tokensTable';
 import { ResourceOwnerEntity } from '../../../components/resourceOwnerEntity';
 import { useResourceOwnershipAccess } from '../../../lib/resourceOwnership';
-import { McpConnectionInstructionsScene } from '../../../scenes/mcpConnectionInstructions';
+import { MagicMcpServerConnectionBox } from './connection';
 import { ToolFilterSummaryText } from '../../../lib/toolFilterSummary';
 import { showAddProviderSidePanel } from '../../../scenes/sessionTemplates/providersManager';
 
@@ -362,155 +362,43 @@ export let MagicMcpServerOverviewPage = () => {
   let { magicMcpServerId } = useParams();
 
   let server = useMagicMcpServer(instance.data?.id, magicMcpServerId);
-  let tokens = useMagicMcpTokens(
-    instance.data?.id && server.data?.id ? instance.data.id : null,
-    {
-      status: 'active',
-      magicMcpServerId: server.data?.id
-    }
-  );
-  let createToken = tokens.createMutator();
   let ownership = useResourceOwnershipAccess(server.data);
   let canConnect = ownership.canUse && !ownership.isLoading;
-  let initializingTokenRef = useRef<string | undefined>(undefined);
-  let [creatingInitialToken, setCreatingInitialToken] = useState(false);
-  let [createdInitialToken, setCreatedInitialToken] = useState<{
-    instanceId: string;
-    serverId: string;
-    id: string;
-    secret: string;
-    status: 'active';
-    groups: [];
-  } | null>(null);
-  let existingServerTokenId = tokens.data?.items.find(
-    t => t.status === 'active' && t.server?.id === server.data?.id
-  )?.id;
 
-  useEffect(() => {
-    if (!instance.data?.id || !server.data?.id || !canConnect) return;
-    let instanceId = instance.data.id;
-    let serverId = server.data.id;
-    let initializingKey = `${instanceId}:${serverId}`;
-
-    if (
-      !tokens.error &&
-      !tokens.isLoading &&
-      tokens.data &&
-      !existingServerTokenId &&
-      initializingTokenRef.current !== initializingKey
-    ) {
-      setCreatingInitialToken(true);
-      initializingTokenRef.current = initializingKey;
-
-      createToken
-        .mutate({
-          instanceId,
-          name: `${server.data.name ?? 'Magic MCP Server'} Token`,
-          magicMcpServerId: serverId
-        })
-        .then(([res]) => {
-          if (!res) initializingTokenRef.current = undefined;
-          if (res?.secret) {
-            setCreatedInitialToken({
-              instanceId,
-              serverId,
-              id: res.id,
-              secret: res.secret,
-              status: 'active',
-              groups: []
-            });
-          }
-        })
-        .finally(() => {
-          setCreatingInitialToken(false);
-        });
-    }
-  }, [
-    canConnect,
-    createToken,
-    existingServerTokenId,
-    instance.data?.id,
-    server.data?.id,
-    server.data?.name,
-    tokens.error,
-    tokens.isLoading
-  ]);
-
-  return renderWithLoader({ server, tokens, organization, project, instance })(
-    ({ server, tokens, organization, project, instance }) => {
-      let streamableHttpUrl = server.data.endpoints[0]?.url;
-      let createdToken =
-        createdInitialToken?.instanceId === instance.data?.id &&
-        createdInitialToken?.serverId === server.data.id
-          ? createdInitialToken
-          : null;
-      let activeToken =
-        tokens.data.items.find(
-          t => t.status === 'active' && t.server?.id === server.data.id
-        ) ?? createdToken;
-      let activeTokenSecret = activeToken?.secret;
+  return renderWithLoader({ server, organization, project, instance })(
+    ({ server, organization, project, instance }) => {
       let consumerOwners = server.data.consumerOwners;
-
-      let fullUrl =
-        streamableHttpUrl && activeTokenSecret
-          ? `${streamableHttpUrl}?key=${activeTokenSecret}`
-          : null;
 
       return (
         <DetailsOverviewLayout>
-          {!ownership.canUse && (
+          {!ownership.isLoading && !ownership.canUse && (
             <>
               <Callout color="orange">
-                This Magic MCP server is owned by a consumer, so you can view it but not
-                connect to it or use it in other resources.
+                You do not have access to connect to this Magic MCP server or use it in other
+                resources.
               </Callout>
 
               <Spacer height={20} />
             </>
           )}
 
-          {server.data.ownerActor && (
+          {server.data.access.owner && (
             <>
               <ResourceOwnerEntity resource={server.data} />
               <Spacer height={20} />
             </>
           )}
 
-          {ownership.canUse && (
-            <>
-              <Box
-                title={`Connect to ${server.data.name ?? 'Magic MCP Server'}`}
-                description="Use this Magic MCP endpoint to connect to your server."
-              >
-                <McpConnectionInstructionsScene
-                  name={server.data.name ?? 'Magic MCP Server'}
-                  tokenLabel="Magic MCP Token"
-                  tokenValue={activeTokenSecret ?? null}
-                  tokenCopyValue={activeTokenSecret ?? ''}
-                  endpointLabel="Endpoint"
-                  endpointValue={fullUrl ?? streamableHttpUrl ?? '...'}
-                  endpointCopyValue={fullUrl ?? streamableHttpUrl ?? ''}
-                  snippetUrl={streamableHttpUrl ?? null}
-                  snippetToken={activeTokenSecret ?? null}
-                  emptyState={
-                    <Flex direction="column" gap={12} style={{ alignItems: 'flex-start' }}>
-                      <Text size="2">
-                        {creatingInitialToken
-                          ? 'Creating a Magic MCP token for this server...'
-                          : 'No active Magic MCP token found for this server. Create one above to connect clients.'}
-                      </Text>
-                    </Flex>
-                  }
-                />
-              </Box>
-
-              <Spacer height={20} />
-            </>
-          )}
+          <MagicMcpServerConnectionBox
+            instanceId={instance.data.id}
+            server={server.data}
+            canConnect={canConnect}
+          />
+          {canConnect && <Spacer height={20} />}
 
           <MagicMcpServerProvidersBox instanceId={instance.data.id} server={server.data} />
 
-          {ownership.canUse && (
+          {canConnect && (
             <>
               <Spacer height={20} />
 

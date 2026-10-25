@@ -44,7 +44,7 @@ export let ProviderAuthConfigOverviewPage = () => {
 
     return (
       <DetailsOverviewLayout>
-        {authConfig.data.ownerActor && (
+        {authConfig.data.access.owner && (
           <>
             <ResourceOwnerEntity resource={authConfig.data} />
             <Spacer height={15} />

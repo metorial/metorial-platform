@@ -149,7 +149,7 @@ export let IntegrationInstanceLayout = () => {
                   '-'
                 )
               },
-              ...(integrationInstance.data.ownerActor
+              ...(integrationInstance.data.access.owner
                 ? [
                     {
                       label: 'Owner',

@@ -64,7 +64,7 @@ export let ProviderAuthConfigLayout = () => {
         authConfig.data
           ? [
               { label: 'ID', value: <ID id={authConfig.data.id} /> },
-              ...(authConfig.data.ownerActor
+              ...(authConfig.data.access.owner
                 ? [
                     {
                       label: 'Owner',
