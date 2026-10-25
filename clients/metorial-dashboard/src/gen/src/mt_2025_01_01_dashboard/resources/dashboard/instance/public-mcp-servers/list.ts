@@ -43,17 +43,20 @@ export type DashboardInstancePublicMcpServersListOutput = {
     accessTokenTtlSeconds: number;
     refreshTokenTtlSeconds: number;
     grantIdleExpirySeconds: number;
-    ownerActor: {
-      id: string;
-      type: 'person' | 'agent' | 'consumer';
-      name: string | null;
-      imageUrl: string | null;
-      consumerId: string | null;
-      consumerProfileId: string | null;
-      portalId: string | null;
-    } | null;
-    isOwnerLocked: boolean;
-    isOwnerOnlyVisible: boolean;
+    access: {
+      type: 'public' | 'owner_locked';
+      visibility: 'anyone' | 'owner';
+      owner: {
+        type: 'person' | 'agent' | 'consumer' | 'organization_member';
+        name: string | null;
+        imageUrl: string | null;
+        email: string | null;
+        organizationMember?: { id: string } | undefined;
+        consumer?:
+          | { id: string; profileId: string; portalId: string | null }
+          | undefined;
+      } | null;
+    };
     disabledAt: Date | null;
     archivedAt: Date | null;
     createdAt: Date;
@@ -84,15 +87,26 @@ export let mapDashboardInstancePublicMcpServersListOutput =
           'refresh_token_ttl_seconds',
           'grant_idle_expiry_seconds',
           [
-            'owner_actor',
-            1,
+            'access',
+            0,
             [
               1,
-              ['image_url', 'consumer_id', 'consumer_profile_id', 'portal_id']
+              [
+                [
+                  'owner',
+                  0,
+                  [
+                    1,
+                    [
+                      'image_url',
+                      'organization_member',
+                      ['consumer', 0, [1, ['profile_id', 'portal_id']]]
+                    ]
+                  ]
+                ]
+              ]
             ]
           ],
-          'is_owner_locked',
-          'is_owner_only_visible',
           'disabled_at',
           'archived_at',
           'created_at',

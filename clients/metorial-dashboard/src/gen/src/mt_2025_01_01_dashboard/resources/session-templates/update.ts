@@ -1,4 +1,7 @@
-import { mapObject } from '@metorial/util-resource-mapper/compact';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type SessionTemplatesUpdateOutput = {
   object: 'session.template';
@@ -10,17 +13,19 @@ export type SessionTemplatesUpdateOutput = {
   integrationInstanceId: string | null;
   integrationInstanceGroupId: string | null;
   identityActorId: string | null;
-  ownerActor: {
-    id: string;
-    type: 'person' | 'agent' | 'consumer';
-    name: string | null;
-    imageUrl: string | null;
-    consumerId: string | null;
-    consumerProfileId: string | null;
-    portalId: string | null;
-  } | null;
-  isOwnerLocked: boolean;
-  isOwnerOnlyVisible: boolean;
+  access: {
+    type: 'public' | 'owner_locked';
+    visibility: 'anyone' | 'owner';
+    owner: {
+      type: 'person' | 'agent' | 'consumer' | 'organization_member';
+      name: string | null;
+      imageUrl: string | null;
+      email: string | null;
+      organizationMember?: { id: string } | undefined;
+      consumer?:
+        { id: string; profileId: string; portalId: string | null } | undefined;
+    } | null;
+  };
   identityId: string | null;
   providers: {
     object: 'session.template.provider';
@@ -80,12 +85,26 @@ export let mapSessionTemplatesUpdateOutput =
       'integration_instance_group_id',
       'identity_actor_id',
       [
-        'owner_actor',
-        1,
-        [1, ['image_url', 'consumer_id', 'consumer_profile_id', 'portal_id']]
+        'access',
+        0,
+        [
+          1,
+          [
+            [
+              'owner',
+              0,
+              [
+                1,
+                [
+                  'image_url',
+                  'organization_member',
+                  ['consumer', 0, [1, ['profile_id', 'portal_id']]]
+                ]
+              ]
+            ]
+          ]
+        ]
       ],
-      'is_owner_locked',
-      'is_owner_only_visible',
       'identity_id',
       [
         'providers',
@@ -125,10 +144,8 @@ export type SessionTemplatesUpdateBody = {
   name?: string | undefined;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
-  isOwnerOnlyVisible?: boolean | undefined;
+  source?: 'explorer' | undefined;
 };
 
 export let mapSessionTemplatesUpdateBody =
-  /* @__PURE__ */ mapObject<SessionTemplatesUpdateBody>([
-    'is_owner_only_visible'
-  ]);
+  /* @__PURE__ */ createMapper<SessionTemplatesUpdateBody>(0);

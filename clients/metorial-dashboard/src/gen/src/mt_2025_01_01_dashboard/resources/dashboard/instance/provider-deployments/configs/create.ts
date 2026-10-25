@@ -58,17 +58,19 @@ export type DashboardInstanceProviderDeploymentsConfigsCreateOutput = {
     createdAt: Date;
     updatedAt: Date;
   } | null;
-  ownerActor: {
-    id: string;
-    type: 'person' | 'agent' | 'consumer';
-    name: string | null;
-    imageUrl: string | null;
-    consumerId: string | null;
-    consumerProfileId: string | null;
-    portalId: string | null;
-  } | null;
-  isOwnerLocked: boolean;
-  isOwnerOnlyVisible: boolean;
+  access: {
+    type: 'public' | 'owner_locked';
+    visibility: 'anyone' | 'owner';
+    owner: {
+      type: 'person' | 'agent' | 'consumer' | 'organization_member';
+      name: string | null;
+      imageUrl: string | null;
+      email: string | null;
+      organizationMember?: { id: string } | undefined;
+      consumer?:
+        { id: string; profileId: string; portalId: string | null } | undefined;
+    } | null;
+  };
   createdAt: Date;
   updatedAt: Date;
 } & { publicMcpServerId: string | null };
@@ -118,20 +120,26 @@ export let mapDashboardInstanceProviderDeploymentsConfigsCreateOutput =
                 ]
               ],
               [
-                'owner_actor',
-                1,
+                'access',
+                0,
                 [
                   1,
                   [
-                    'image_url',
-                    'consumer_id',
-                    'consumer_profile_id',
-                    'portal_id'
+                    [
+                      'owner',
+                      0,
+                      [
+                        1,
+                        [
+                          'image_url',
+                          'organization_member',
+                          ['consumer', 0, [1, ['profile_id', 'portal_id']]]
+                        ]
+                      ]
+                    ]
                   ]
                 ]
               ],
-              'is_owner_locked',
-              'is_owner_only_visible',
               'created_at',
               'updated_at',
               'public_mcp_server_id'
@@ -170,8 +178,7 @@ export type DashboardInstanceProviderDeploymentsConfigsCreateBody = {
       )[]
     | null
     | undefined;
-  isOwnerLocked?: boolean | undefined;
-  ownedByCaller?: boolean | undefined;
+  source?: 'explorer' | undefined;
 } & ({ value: Record<string, any> } | { providerConfigVaultId: string });
 
 export let mapDashboardInstanceProviderDeploymentsConfigsCreateBody =
@@ -187,8 +194,6 @@ export let mapDashboardInstanceProviderDeploymentsConfigsCreateBody =
               'provider_id',
               'provider_deployment_id',
               'tool_filters',
-              'is_owner_locked',
-              'owned_by_caller',
               'provider_config_vault_id'
             ]
           ]

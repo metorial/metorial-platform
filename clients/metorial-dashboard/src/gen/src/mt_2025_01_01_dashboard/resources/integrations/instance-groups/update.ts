@@ -44,17 +44,19 @@ export type IntegrationsInstanceGroupsUpdateOutput = {
     updatedAt: Date;
     archivedAt: Date | null;
   }[];
-  ownerActor: {
-    id: string;
-    type: 'person' | 'agent' | 'consumer';
-    name: string | null;
-    imageUrl: string | null;
-    consumerId: string | null;
-    consumerProfileId: string | null;
-    portalId: string | null;
-  } | null;
-  isOwnerLocked: boolean;
-  isOwnerOnlyVisible: boolean;
+  access: {
+    type: 'public' | 'owner_locked';
+    visibility: 'anyone' | 'owner';
+    owner: {
+      type: 'person' | 'agent' | 'consumer' | 'organization_member';
+      name: string | null;
+      imageUrl: string | null;
+      email: string | null;
+      organizationMember?: { id: string } | undefined;
+      consumer?:
+        { id: string; profileId: string; portalId: string | null } | undefined;
+    } | null;
+  };
   createdAt: Date;
   updatedAt: Date;
   archivedAt: Date | null;
@@ -87,12 +89,26 @@ export let mapIntegrationsInstanceGroupsUpdateOutput =
         ]
       ],
       [
-        'owner_actor',
-        1,
-        [1, ['image_url', 'consumer_id', 'consumer_profile_id', 'portal_id']]
+        'access',
+        0,
+        [
+          1,
+          [
+            [
+              'owner',
+              0,
+              [
+                1,
+                [
+                  'image_url',
+                  'organization_member',
+                  ['consumer', 0, [1, ['profile_id', 'portal_id']]]
+                ]
+              ]
+            ]
+          ]
+        ]
       ],
-      'is_owner_locked',
-      'is_owner_only_visible',
       'created_at',
       'updated_at',
       'archived_at'
@@ -130,7 +146,7 @@ export type IntegrationsInstanceGroupsUpdateBody = {
           | undefined;
       }[]
     | undefined;
-  isOwnerOnlyVisible?: boolean | undefined;
+  source?: 'explorer' | undefined;
 };
 
 export let mapIntegrationsInstanceGroupsUpdateBody =
@@ -139,6 +155,5 @@ export let mapIntegrationsInstanceGroupsUpdateBody =
       'providers',
       0,
       [2, [1, ['integration_instance_provider_id', 'tool_filters']]]
-    ],
-    'is_owner_only_visible'
+    ]
   ]);

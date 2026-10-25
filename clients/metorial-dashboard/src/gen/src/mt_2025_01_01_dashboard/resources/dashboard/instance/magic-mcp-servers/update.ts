@@ -1,13 +1,10 @@
-import {
-  createMapper,
-  mapObject
-} from '@metorial/util-resource-mapper/compact';
+import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceMagicMcpServersUpdateOutput = {
   object: 'magic_mcp.server';
   id: string;
   status: 'active' | 'archived' | 'deleted';
-  source: 'manual' | 'consumer_provider_template';
+  source: 'manual' | 'consumer_provider_template' | 'explorer';
   providerManagementMode:
     | 'manual'
     | 'inherited_from_provider_template'
@@ -131,17 +128,19 @@ export type DashboardInstanceMagicMcpServersUpdateOutput = {
   name: string | null;
   description: string | null;
   metadata: Record<string, any>;
-  ownerActor: {
-    id: string;
-    type: 'person' | 'agent' | 'consumer';
-    name: string | null;
-    imageUrl: string | null;
-    consumerId: string | null;
-    consumerProfileId: string | null;
-    portalId: string | null;
-  } | null;
-  isOwnerLocked: boolean;
-  isOwnerOnlyVisible: boolean;
+  access: {
+    type: 'public' | 'owner_locked';
+    visibility: 'anyone' | 'owner';
+    owner: {
+      type: 'person' | 'agent' | 'consumer' | 'organization_member';
+      name: string | null;
+      imageUrl: string | null;
+      email: string | null;
+      organizationMember?: { id: string } | undefined;
+      consumer?:
+        { id: string; profileId: string; portalId: string | null } | undefined;
+    } | null;
+  };
   createdAt: Date;
   updatedAt: Date;
 } & {
@@ -387,20 +386,26 @@ export let mapDashboardInstanceMagicMcpServersUpdateOutput =
                 ]
               ],
               [
-                'owner_actor',
-                1,
+                'access',
+                0,
                 [
                   1,
                   [
-                    'image_url',
-                    'consumer_id',
-                    'consumer_profile_id',
-                    'portal_id'
+                    [
+                      'owner',
+                      0,
+                      [
+                        1,
+                        [
+                          'image_url',
+                          'organization_member',
+                          ['consumer', 0, [1, ['profile_id', 'portal_id']]]
+                        ]
+                      ]
+                    ]
                   ]
                 ]
               ],
-              'is_owner_locked',
-              'is_owner_only_visible',
               'created_at',
               'updated_at',
               'integration_id',
@@ -438,12 +443,8 @@ export type DashboardInstanceMagicMcpServersUpdateBody = {
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
   aliases?: string[] | undefined;
-  isOwnerLocked?: boolean | undefined;
-  isOwnerOnlyVisible?: boolean | undefined;
+  source?: 'explorer' | undefined;
 };
 
 export let mapDashboardInstanceMagicMcpServersUpdateBody =
-  /* @__PURE__ */ mapObject<DashboardInstanceMagicMcpServersUpdateBody>([
-    'is_owner_locked',
-    'is_owner_only_visible'
-  ]);
+  /* @__PURE__ */ createMapper<DashboardInstanceMagicMcpServersUpdateBody>(0);

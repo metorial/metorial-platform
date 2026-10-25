@@ -71,17 +71,19 @@ export type SessionsGetOutput = {
   hasErrors: boolean;
   hasWarnings: boolean;
   identityActorId: string | null;
-  ownerActor: {
-    id: string;
-    type: 'person' | 'agent' | 'consumer';
-    name: string | null;
-    imageUrl: string | null;
-    consumerId: string | null;
-    consumerProfileId: string | null;
-    portalId: string | null;
-  } | null;
-  isOwnerLocked: boolean;
-  isOwnerOnlyVisible: boolean;
+  access: {
+    type: 'public' | 'owner_locked';
+    visibility: 'anyone' | 'owner';
+    owner: {
+      type: 'person' | 'agent' | 'consumer' | 'organization_member';
+      name: string | null;
+      imageUrl: string | null;
+      email: string | null;
+      organizationMember?: { id: string } | undefined;
+      consumer?:
+        { id: string; profileId: string; portalId: string | null } | undefined;
+    } | null;
+  };
   identityId: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -149,12 +151,26 @@ export let mapSessionsGetOutput = /* @__PURE__ */ mapObject<SessionsGetOutput>(
     'has_warnings',
     'identity_actor_id',
     [
-      'owner_actor',
-      1,
-      [1, ['image_url', 'consumer_id', 'consumer_profile_id', 'portal_id']]
+      'access',
+      0,
+      [
+        1,
+        [
+          [
+            'owner',
+            0,
+            [
+              1,
+              [
+                'image_url',
+                'organization_member',
+                ['consumer', 0, [1, ['profile_id', 'portal_id']]]
+              ]
+            ]
+          ]
+        ]
+      ]
     ],
-    'is_owner_locked',
-    'is_owner_only_visible',
     'identity_id',
     'created_at',
     'updated_at'
