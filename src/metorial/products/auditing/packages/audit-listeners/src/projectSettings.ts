@@ -198,11 +198,13 @@ export let recordProjectAiAnalysisUpdated = async (
       {
         payload: {
           project: event.project,
-          aiAnalysisEnabled: event.configuration.aiAnalysisEnabled
+          aiAnalysisEnabled: event.configuration.aiAnalysisEnabled,
+          skillReviewHoldPending: event.configuration.skillReviewHoldPending
         },
         previousPayload: {
           project: event.project,
-          aiAnalysisEnabled: event.previousConfiguration.aiAnalysisEnabled
+          aiAnalysisEnabled: event.previousConfiguration.aiAnalysisEnabled,
+          skillReviewHoldPending: event.previousConfiguration.skillReviewHoldPending
         },
         recordedAt
       }

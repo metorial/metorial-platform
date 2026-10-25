@@ -130,6 +130,7 @@ export let projectAiAnalysisConfigurationResource = resource({
   payload: v.typedAny<{
     project: Project;
     aiAnalysisEnabled: boolean;
+    skillReviewHoldPending: boolean;
   }>('project_ai_analysis_configuration'),
   presenter: projectAiAnalysisConfigurationPresenter,
   actions: {

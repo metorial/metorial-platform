@@ -27,7 +27,8 @@ class ProjectAiAnalysisConfigurationService {
     let tenant = await this.getSubspaceTenantForProject(d.project);
 
     return {
-      aiAnalysisEnabled: tenant.aiAnalysisEnabled
+      aiAnalysisEnabled: tenant.aiAnalysisEnabled,
+      skillReviewHoldPending: d.project.skillReviewHoldPending
     };
   }
 
@@ -37,6 +38,7 @@ class ProjectAiAnalysisConfigurationService {
     auditScope: AuditScope;
     input: {
       aiAnalysisEnabled?: boolean;
+      skillReviewHoldPending?: boolean;
     };
   }) {
     await this.ensureProjectActive(d.project);
@@ -59,7 +61,8 @@ class ProjectAiAnalysisConfigurationService {
     let project = await db.project.update({
       where: { oid: d.project.oid },
       data: {
-        aiAnalysisEnabled: updatedTenant.aiAnalysisEnabled
+        aiAnalysisEnabled: updatedTenant.aiAnalysisEnabled,
+        skillReviewHoldPending: d.input.skillReviewHoldPending
       }
     });
 
@@ -68,16 +71,19 @@ class ProjectAiAnalysisConfigurationService {
       input: d.input,
       project,
       configuration: {
-        aiAnalysisEnabled: project.aiAnalysisEnabled
+        aiAnalysisEnabled: project.aiAnalysisEnabled,
+        skillReviewHoldPending: project.skillReviewHoldPending
       },
       previousConfiguration: {
-        aiAnalysisEnabled: tenant.aiAnalysisEnabled
+        aiAnalysisEnabled: tenant.aiAnalysisEnabled,
+        skillReviewHoldPending: d.project.skillReviewHoldPending
       },
       auditScope: d.auditScope
     });
 
     return {
-      aiAnalysisEnabled: project.aiAnalysisEnabled
+      aiAnalysisEnabled: project.aiAnalysisEnabled,
+      skillReviewHoldPending: project.skillReviewHoldPending
     };
   }
 }

@@ -795,6 +795,13 @@ export type AuditSkillMergeRequest = {
   targetSkillId: string;
 };
 
+export type AuditSkillSecurityReview = {
+  id: string;
+  skillId: string;
+  securityScore: number | null;
+  risk: string | null;
+};
+
 export type AuditSandboxMachine = {
   id: string;
   name: string | null;
@@ -1054,8 +1061,8 @@ export interface FabricEvents {
   'organization.project.data_retention_configuration.updated:after': { organization: Organization; project: Project; auditScope: AuditScope; input: { dataRetentionLevel?: ProjectDataRetentionLevel, storeToolCallAttachments?: boolean, collectErrors?: boolean, disableCallbacks?: boolean }; configuration: { dataRetentionLevel: ProjectDataRetentionLevel, storeToolCallAttachments: boolean, collectErrors: boolean, disableCallbacks: boolean }; previousConfiguration: { dataRetentionLevel: ProjectDataRetentionLevel, storeToolCallAttachments: boolean, collectErrors: boolean, disableCallbacks: boolean } };
   'organization.project.reduced_subprocessors_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { reducedSubprocessors?: boolean } };
   'organization.project.reduced_subprocessors_configuration.updated:after': { organization: Organization; project: Project; auditScope: AuditScope; input: { reducedSubprocessors?: boolean }; configuration: { reducedSubprocessors: boolean }; previousConfiguration: { reducedSubprocessors: boolean } };
-  'organization.project.ai_analysis_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { aiAnalysisEnabled?: boolean } };
-  'organization.project.ai_analysis_configuration.updated:after': { organization: Organization; project: Project; auditScope: AuditScope; input: { aiAnalysisEnabled?: boolean }; configuration: { aiAnalysisEnabled: boolean }; previousConfiguration: { aiAnalysisEnabled: boolean } };
+  'organization.project.ai_analysis_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { aiAnalysisEnabled?: boolean; skillReviewHoldPending?: boolean } };
+  'organization.project.ai_analysis_configuration.updated:after': { organization: Organization; project: Project; auditScope: AuditScope; input: { aiAnalysisEnabled?: boolean; skillReviewHoldPending?: boolean }; configuration: { aiAnalysisEnabled: boolean; skillReviewHoldPending: boolean }; previousConfiguration: { aiAnalysisEnabled: boolean; skillReviewHoldPending: boolean } };
   'organization.project.skill_sync_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { skillSyncGitLfsThresholdBytes?: number | null } };
   'organization.project.skill_sync_configuration.updated:after': { organization: Organization; project: Project; previousProject: Project; auditScope: AuditScope; input: { skillSyncGitLfsThresholdBytes?: number | null } };
   'organization.project.brand.updated:before': { organization: Organization; project: Project; brand: AuditProjectBrand; input: { name?: string; imageFileId?: string | null; image?: PrismaJson.EntityImage }; auditScope: AuditScope };
@@ -1443,6 +1450,8 @@ export interface FabricEvents {
   'skill.updated:after': { instance: Instance; skill: Skill };
   'skill.archived:after': { instance: Instance; skill: Skill };
   'skill.deleted:after': { instance: Instance; skill: Skill };
+  'skill.version.created:after': { skillId: string; skillVersionId: string };
+  'skill.import.item.completed:after': { skillImportId: string; skillId: string };
 
   'skill.plugin.created:before': { organization: Organization; instance: Instance };
   'skill.plugin.created:after': { organization: Organization; instance: Instance; skillPlugin: SkillPlugin };
@@ -1482,6 +1491,9 @@ export interface FabricEvents {
   'skill.merge_request.audit.merged:after': { auditScope: AuditScope; mergeRequest: AuditSkillMergeRequest };
   'skill.merge_request.audit.closed:after': { auditScope: AuditScope; mergeRequest: AuditSkillMergeRequest };
   'skill.merge_request.audit.rolled_back:after': { auditScope: AuditScope; mergeRequest: AuditSkillMergeRequest };
+
+  'skill.security_review.audit.dismissed:after': { auditScope: AuditScope; securityReview: AuditSkillSecurityReview };
+  'skill.security_review.audit.restored:after': { auditScope: AuditScope; securityReview: AuditSkillSecurityReview };
 
   'skill.store.size:before': SkillStoreFabricOwner;
 

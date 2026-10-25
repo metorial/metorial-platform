@@ -15,7 +15,7 @@ let filePayload = (file: AuditFile) => ({
   id: file.id,
   status: file.status,
   fileName: file.fileName,
-  fileSize: file.fileSize,
+  fileSize: Number(file.fileSize),
   fileType: file.fileType,
   title: file.title,
   purposeSlug: file.purpose.slug,

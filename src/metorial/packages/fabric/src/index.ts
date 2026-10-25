@@ -23,6 +23,7 @@ export type {
   AuditSandboxMachine,
   AuditSkillGroup,
   AuditSkillMergeRequest,
+  AuditSkillSecurityReview,
   AuditSkillTemplate,
   AuditStore,
   AuditSubspaceAgent,
