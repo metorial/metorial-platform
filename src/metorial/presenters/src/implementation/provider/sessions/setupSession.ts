@@ -1,6 +1,11 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import { isOwnerLockedSchema, ownerActorSchema, presentOwnerActor } from '../../_shared';
+import {
+  isOwnerLockedSchema,
+  isOwnerOnlyVisibleSchema,
+  ownerActorSchema,
+  presentOwnerActor
+} from '../../_shared';
 import { env } from '@metorial-subspace/module-auth/src/env';
 import { providerSetupSessionType } from '../../../types';
 import {
@@ -88,6 +93,7 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
       identity_credential_id: setupSession.identityCredential?.id ?? null,
       owner_actor: await presentOwnerActor(setupSession.ownerActor),
       is_owner_locked: setupSession.isOwnerLocked,
+      is_owner_only_visible: setupSession.isOwnerOnlyVisible,
 
       auth_method:
         setupSession.provider && setupSession.authMethod
@@ -265,6 +271,7 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
       ),
       owner_actor: ownerActorSchema,
       is_owner_locked: isOwnerLockedSchema,
+      is_owner_only_visible: isOwnerOnlyVisibleSchema,
       auth_method: v.nullable(v1ProviderAuthMethodPresenter.schema),
       deployment: v.nullable(v1ProviderDeploymentPreviewPresenter.schema),
       credentials: v.nullable(v1ProviderAuthCredentialsPresenter.schema),

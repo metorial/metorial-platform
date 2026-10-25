@@ -1,6 +1,11 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import { isOwnerLockedSchema, ownerActorSchema, presentOwnerActor } from '../../_shared';
+import {
+  isOwnerLockedSchema,
+  isOwnerOnlyVisibleSchema,
+  ownerActorSchema,
+  presentOwnerActor
+} from '../../_shared';
 import { integrationInstanceGroupType } from '../../../types';
 import { v1IntegrationInstanceGroupProviderPresenter } from './integrationInstanceGroupProvider';
 
@@ -29,6 +34,7 @@ export let v1IntegrationInstanceGroupPresenter = Presenter.create(integrationIns
       integrationInstanceGroup.ownerActor ?? integrationInstanceGroup.identityActor
     ),
     is_owner_locked: integrationInstanceGroup.isOwnerLocked,
+    is_owner_only_visible: integrationInstanceGroup.isOwnerOnlyVisible,
     created_at: integrationInstanceGroup.createdAt,
     updated_at: integrationInstanceGroup.updatedAt,
     archived_at: integrationInstanceGroup.archivedAt
@@ -50,6 +56,7 @@ export let v1IntegrationInstanceGroupPresenter = Presenter.create(integrationIns
       providers: v.array(v1IntegrationInstanceGroupProviderPresenter.schema),
       owner_actor: ownerActorSchema,
       is_owner_locked: isOwnerLockedSchema,
+      is_owner_only_visible: isOwnerOnlyVisibleSchema,
       created_at: v.date(),
       updated_at: v.date(),
       archived_at: v.nullable(v.date())

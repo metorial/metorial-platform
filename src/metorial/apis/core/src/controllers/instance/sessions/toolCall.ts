@@ -4,6 +4,7 @@ import { v } from '@lowerdeck/validation';
 import { sessionService, toolCallService } from '@metorial-subspace/module-session';
 import { toolCallPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
+import { getOwnershipActor } from '../../../lib/ownershipActor';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
@@ -161,6 +162,7 @@ export let toolCallController = Controller.create(
       .do(async ctx => {
         let session = await sessionService.getSessionById({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
           sessionId: ctx.body.session_id
         });
         let toolCall = await toolCallService.createToolCall({

@@ -172,6 +172,7 @@ export let magicMcpTokenController = Controller.create(
           ? await magicMcpServerService.getMagicMcpServerById({
               magicMcpServerId: ctx.body.magic_mcp_server_id,
               instance: ctx.instance,
+              organizationActor: getOwnershipActor(ctx),
               accessTags: ctx.accessTags
             })
           : undefined;
@@ -179,6 +180,7 @@ export let magicMcpTokenController = Controller.create(
           ? await magicMcpEndpointService.getMagicMcpEndpointById({
               magicMcpEndpointId: ctx.body.magic_mcp_endpoint_id,
               instance: ctx.instance,
+              organizationActor: getOwnershipActor(ctx),
               accessTags: ctx.accessTags
             })
           : undefined;

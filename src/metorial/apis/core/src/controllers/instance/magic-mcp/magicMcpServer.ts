@@ -49,6 +49,7 @@ export let magicMcpServerGroup = instanceGroup.use(async ctx => {
   let magicMcpServer = await magicMcpServerService.getMagicMcpServerById({
     magicMcpServerId: ctx.params.magicMcpServerId,
     instance: ctx.instance,
+    organizationActor: getOwnershipActor(ctx),
     accessTags: ctx.accessTags,
     consumerSurface: ctx.consumerSurface
   });
@@ -352,9 +353,9 @@ export let magicMcpServerController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            usable: v.optional(v.boolean(), {
+            ownership: v.optional(v.enumOf(['shared', 'usable', 'all']), {
               description:
-                'Only return resources the caller is allowed to use under the resource ownership rules.'
+                "Which resources to return under the resource ownership rules. 'shared' returns only resources that aren't owned, 'usable' returns shared resources plus owned resources the caller can use, 'all' returns every resource the caller can see. Defaults to 'shared' when ownership is enforced for the project and 'all' otherwise."
             }),
             status: v.optional(
               v.union([
@@ -390,7 +391,8 @@ export let magicMcpServerController = Controller.create(
 
         let paginator = await magicMcpServerService.listMagicMcpServers({
           instance: ctx.instance,
-          onlyUsableBy: ctx.query.usable ? getOwnershipActor(ctx) : undefined,
+          organizationActor: getOwnershipActor(ctx),
+          ownership: ctx.query.ownership,
           consumerSurface: ctx.consumerSurface,
           status: normalizeArrayParam<MagicMcpServerStatus>(ctx.query.status),
           groupIds: normalizeArrayParam(ctx.query.magic_mcp_group_id),
@@ -895,6 +897,12 @@ export let magicMcpServerController = Controller.create(
               description:
                 'Lock this resource to its owner. Anyone allowed to use the resource can lock it; only the owner can unlock it.'
             })
+          ),
+          is_owner_only_visible: v.optional(
+            v.boolean({
+              description:
+                'Only show this resource to its owner when ownership is enforced. Anyone allowed to use the resource can enable it; only the owner can disable it.'
+            })
           )
         })
       )
@@ -919,7 +927,8 @@ export let magicMcpServerController = Controller.create(
             description: ctx.body.description,
             metadata: ctx.body.metadata,
             aliases: ctx.body.aliases,
-            isOwnerLocked: ctx.body.is_owner_locked
+            isOwnerLocked: ctx.body.is_owner_locked,
+            isOwnerOnlyVisible: ctx.body.is_owner_only_visible
           }
         });
 

@@ -7,6 +7,7 @@ import {
   sessionService
 } from '@metorial-subspace/module-session';
 import { Controller } from '@metorial/rest';
+import { getOwnershipActor } from '../../../lib/ownershipActor';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import {
@@ -260,6 +261,7 @@ export let sessionProviderController = Controller.create(
       .do(async ctx => {
         let session = await sessionService.getSessionById({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
           sessionId: ctx.body.session_id
         });
         let input = await resolveSessionProviderInput({

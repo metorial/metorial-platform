@@ -1,6 +1,11 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import { isOwnerLockedSchema, ownerActorSchema, presentOwnerActor } from '../../_shared';
+import {
+  isOwnerLockedSchema,
+  isOwnerOnlyVisibleSchema,
+  ownerActorSchema,
+  presentOwnerActor
+} from '../../_shared';
 import type { Prisma as SubspacePrisma } from '@metorial-subspace/db';
 import { env } from '@metorial-subspace/module-auth/src/env';
 import type { integrationSetupSessionInclude } from '@metorial-subspace/module-integration';
@@ -98,6 +103,7 @@ export let v1IntegrationSetupSessionPresenter = Presenter.create(integrationSetu
     integration_id: integrationSetupSession.integration.id,
     owner_actor: await presentOwnerActor(integrationSetupSession.ownerActor),
     is_owner_locked: integrationSetupSession.isOwnerLocked,
+    is_owner_only_visible: integrationSetupSession.isOwnerOnlyVisible,
     integration_instance: await v1IntegrationInstancePresenter
       .present({ integrationInstance: integrationSetupSession.integrationInstance }, opts)
       .run(),
@@ -119,6 +125,7 @@ export let v1IntegrationSetupSessionPresenter = Presenter.create(integrationSetu
       integration_id: v.string(),
       owner_actor: ownerActorSchema,
       is_owner_locked: isOwnerLockedSchema,
+      is_owner_only_visible: isOwnerOnlyVisibleSchema,
       integration_instance: v1IntegrationInstancePresenter.schema,
       created_at: v.date(),
       updated_at: v.date(),

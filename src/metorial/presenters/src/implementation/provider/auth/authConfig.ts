@@ -1,6 +1,11 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import { isOwnerLockedSchema, ownerActorSchema, presentOwnerActor } from '../../_shared';
+import {
+  isOwnerLockedSchema,
+  isOwnerOnlyVisibleSchema,
+  ownerActorSchema,
+  presentOwnerActor
+} from '../../_shared';
 import { providerAuthConfigType } from '../../../types';
 import { toolFilterPresenter } from '../../_shared/toolFilter';
 import { v1ProviderAuthCredentialsPresenter } from './authCredentials';
@@ -65,6 +70,7 @@ export let v1ProviderAuthConfigPresenter = Presenter.create(providerAuthConfigTy
 
     owner_actor: await presentOwnerActor(authConfig.ownerActor),
     is_owner_locked: authConfig.isOwnerLocked,
+    is_owner_only_visible: authConfig.isOwnerOnlyVisible,
 
     created_at: authConfig.createdAt,
     updated_at: authConfig.updatedAt
@@ -127,6 +133,7 @@ export let v1ProviderAuthConfigPresenter = Presenter.create(providerAuthConfigTy
       auth_method: v1ProviderAuthMethodPresenter.schema,
       owner_actor: ownerActorSchema,
       is_owner_locked: isOwnerLockedSchema,
+      is_owner_only_visible: isOwnerOnlyVisibleSchema,
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',

@@ -23,6 +23,7 @@ let sessionTemplateGroup = instanceGroup.use(async ctx => {
 
   let sessionTemplate = await sessionTemplateService.getSessionTemplateById({
     instance: ctx.instance,
+    organizationActor: getOwnershipActor(ctx),
     sessionTemplateId: ctx.params.sessionTemplateId
   });
 
@@ -47,9 +48,9 @@ export let sessionTemplateController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            usable: v.optional(v.boolean(), {
+            ownership: v.optional(v.enumOf(['shared', 'usable', 'all']), {
               description:
-                'Only return resources the caller is allowed to use under the resource ownership rules.'
+                'Which resources to return under the resource ownership rules: shared (resources without an owner), usable (shared resources plus resources the caller can use), or all. Defaults to shared when ownership is enforced for the project and to all otherwise.'
             }),
             status: v.optional(
               v.union([
@@ -88,7 +89,7 @@ export let sessionTemplateController = Controller.create(
         let paginator = await sessionTemplateService.listSessionTemplates({
           instance: ctx.instance,
           organizationActor: getOwnershipActor(ctx),
-          onlyUsable: ctx.query.usable,
+          ownership: ctx.query.ownership,
           allowDeleted: false,
           status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
@@ -186,6 +187,10 @@ export let sessionTemplateController = Controller.create(
           description: v.optional(v.string({ examples: ['Updated description'] })),
           metadata: v.optional(v.record(v.any(), { examples: [{ environment: 'staging' }] }), {
             description: 'Custom key-value pairs for storing additional information'
+          }),
+          is_owner_only_visible: v.optional(v.boolean(), {
+            description:
+              'Whether the session template is only visible to its owner. Only applies when ownership is enforced for the project.'
           })
         })
       )
@@ -194,11 +199,13 @@ export let sessionTemplateController = Controller.create(
         let sessionTemplate = await sessionTemplateService.updateSessionTemplate({
           instance: ctx.instance,
           auditScope: ctx.auditScope,
+          organizationActor: getOwnershipActor(ctx),
           template: ctx.sessionTemplate,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
-            metadata: ctx.body.metadata
+            metadata: ctx.body.metadata,
+            isOwnerOnlyVisible: ctx.body.is_owner_only_visible
           }
         });
 

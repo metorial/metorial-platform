@@ -53,6 +53,7 @@ export let v1ConfigPresenter = Presenter.create(providerConfigType)
 
     owner_actor: await presentOwnerActor(config.ownerActor),
     is_owner_locked: config.isOwnerLocked,
+    is_owner_only_visible: config.isOwnerOnlyVisible,
 
     created_at: config.createdAt,
     updated_at: config.updatedAt
@@ -111,6 +112,11 @@ export let v1ConfigPresenter = Presenter.create(providerConfigType)
       from_vault: v.nullable(v1ProviderConfigVaultPresenter.schema),
       owner_actor: ownerActorSchema,
       is_owner_locked: isOwnerLockedSchema,
+      is_owner_only_visible: v.boolean({
+        name: 'is_owner_only_visible',
+        description:
+          'Whether this resource is hidden from everyone except its owner. Only enforced when resource ownership is enforced for the project.'
+      }),
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',

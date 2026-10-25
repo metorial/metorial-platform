@@ -44,6 +44,7 @@ export type SessionProviderAuthConfigSource =
 export let resolveSessionProviderInput = async (d: {
   instance: Instance;
   auditScope?: AuditScope;
+  ownerActorId?: string;
   sessionTemplateId?: string;
   providerDeployment?: SessionProviderDeploymentSource;
   providerConfig?: SessionProviderConfigSource;
@@ -133,6 +134,7 @@ export let resolveSessionProviderInput = async (d: {
       auditScope: d.auditScope,
       provider,
       providerDeployment,
+      ownerActorId: d.ownerActorId,
       input: {
         name: d.providerConfig.name ?? 'Ephemeral config',
         isEphemeral: true,
@@ -183,6 +185,7 @@ export let resolveSessionProviderInput = async (d: {
       auditScope: d.auditScope,
       provider,
       providerDeployment,
+      ownerActorId: d.ownerActorId,
       source: 'manual',
       import: {
         ip: undefined,

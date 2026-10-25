@@ -82,6 +82,7 @@ let integrationSetupSessionGroup = instanceGroup.use(async ctx => {
   let integrationSetupSession =
     await integrationSetupSessionService.getIntegrationSetupSessionById({
       instance: ctx.instance,
+      organizationActor: getOwnershipActor(ctx),
       integrationSetupSessionId: ctx.params.integrationSetupSessionId,
       allowDeleted: true
     });
@@ -124,6 +125,7 @@ export let integrationSetupSessionController = Controller.create(
       .do(async ctx => {
         let paginator = await integrationSetupSessionService.listIntegrationSetupSessions({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
           allowDeleted: true,
           status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),

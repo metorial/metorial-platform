@@ -142,6 +142,7 @@ export let sessionTemplateProviderController = Controller.create(
       .do(async ctx => {
         let template = await sessionTemplateService.getSessionTemplateById({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
           sessionTemplateId: ctx.body.session_template_id
         });
         let stp = await sessionTemplateProviderService.createSessionTemplateProvider({

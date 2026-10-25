@@ -12,7 +12,7 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { providerAuthConfigPresenter } from '@metorial/presenters';
 import { toolFiltersValidator } from '../sessions/_shared';
-import { getOwnershipActor } from '../../../lib/ownershipActor';
+import { getOwnershipActor, resolveOwnedByCaller } from '../../../lib/ownershipActor';
 
 let providerAuthConfigGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerAuthConfigId) {
@@ -26,6 +26,7 @@ let providerAuthConfigGroup = instanceGroup.use(async ctx => {
 
   let authConfig = await providerAuthConfigService.getProviderAuthConfigById({
     instance: ctx.instance,
+    organizationActor: getOwnershipActor(ctx),
     providerAuthConfigId: ctx.params.providerAuthConfigId
   });
 
@@ -50,9 +51,9 @@ export let providerAuthConfigController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            usable: v.optional(v.boolean(), {
+            ownership: v.optional(v.enumOf(['shared', 'usable', 'all']), {
               description:
-                'Only return resources the caller is allowed to use under the resource ownership rules.'
+                'Which resources to return under the resource ownership rules: shared (resources without an owner), usable (shared resources plus owned resources the caller may use), or all (everything the caller can see). Defaults to shared when ownership is enforced for the project, and all otherwise.'
             }),
             status: v.optional(
               v.union([
@@ -114,7 +115,7 @@ export let providerAuthConfigController = Controller.create(
         let paginator = await providerAuthConfigService.listProviderAuthConfigs({
           instance: ctx.instance,
           organizationActor: getOwnershipActor(ctx),
-          onlyUsable: ctx.query.usable,
+          ownership: ctx.query.ownership,
           allowDeleted: false,
 
           search: ctx.query.search,
@@ -171,6 +172,46 @@ export let providerAuthConfigController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
       .body(
+        'mt_2026_01_01_magnetar',
+        v.object({
+          name: v.optional(v.string({ examples: ['GitHub OAuth Token'] })),
+          description: v.optional(
+            v.string({ examples: ['OAuth token for GitHub API access'] })
+          ),
+          metadata: v.optional(
+            v.record(v.any(), {
+              examples: [{ connected_by: 'alex@company.com', purpose: 'ci-pipeline' }]
+            }),
+            { description: 'Custom key-value pairs for storing additional information' }
+          ),
+          tool_filters: toolFiltersValidator,
+          is_owner_locked: v.optional(
+            v.boolean({
+              description:
+                'Lock this resource to its owner. Anyone allowed to use the resource can lock it; only the owner can unlock it.'
+            })
+          ),
+          provider_auth_method_id: v.string({
+            examples: ['pam_2mNpQrStUvWxYzAb'],
+            description: 'The authentication method this config uses (e.g., OAuth, API key)'
+          }),
+
+          provider_deployment_id: v.optional(
+            v.string({
+              description:
+                'The provider deployment this auth config is associated with (if applicable)',
+              examples: ['pd_2mNpQrStUvWxYzAb']
+            })
+          ),
+
+          value: v.record(v.any(), {
+            description: 'Authentication config payload',
+            examples: [{ client_id: 'xxx', client_secret: 'xxx' }]
+          })
+        }),
+        v => v
+      )
+      .body(
         'default',
         v.object({
           name: v.optional(v.string({ examples: ['GitHub OAuth Token'] })),
@@ -184,6 +225,12 @@ export let providerAuthConfigController = Controller.create(
             { description: 'Custom key-value pairs for storing additional information' }
           ),
           tool_filters: toolFiltersValidator,
+          owned_by_caller: v.optional(
+            v.boolean({
+              description:
+                'Make the calling organization member the owner of this resource. Only has an effect when ownership is enforced for the project.'
+            })
+          ),
           is_owner_locked: v.optional(
             v.boolean({
               description:
@@ -226,12 +273,15 @@ export let providerAuthConfigController = Controller.create(
             })
           : undefined;
 
+        let ownerActorId = await resolveOwnedByCaller(ctx, ctx.body.owned_by_caller);
+
         let authConfig = await providerAuthConfigService.createProviderAuthConfig({
           instance: ctx.instance,
           auditScope: ctx.auditScope,
           provider,
           providerDeployment,
           source: 'manual',
+          ownerActorId,
           isOwnerLocked: ctx.body.is_owner_locked,
           import: {
             ip: ctx.context.ip,
@@ -283,6 +333,12 @@ export let providerAuthConfigController = Controller.create(
               description:
                 'Lock this resource to its owner. Anyone allowed to use the resource can lock it; only the owner can unlock it.'
             })
+          ),
+          is_owner_only_visible: v.optional(
+            v.boolean({
+              description:
+                'Hide this resource from everyone except its owner. Only available for owned resources when ownership is enforced for the project.'
+            })
           )
         })
       )
@@ -302,6 +358,7 @@ export let providerAuthConfigController = Controller.create(
             description: ctx.body.description,
             metadata: ctx.body.metadata,
             isOwnerLocked: ctx.body.is_owner_locked,
+            isOwnerOnlyVisible: ctx.body.is_owner_only_visible,
             ...(ctx.body.tool_filters !== undefined
               ? { toolFilters: normalizeToolFilters(ctx.body.tool_filters as any) }
               : {})

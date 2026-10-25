@@ -1,7 +1,12 @@
 import { v } from '@lowerdeck/validation';
 import { getConfig } from '@metorial/config';
 import { Presenter } from '@metorial/presenter';
-import { isOwnerLockedSchema, ownerActorSchema, presentOwnerActor } from '../../_shared';
+import {
+  isOwnerLockedSchema,
+  isOwnerOnlyVisibleSchema,
+  ownerActorSchema,
+  presentOwnerActor
+} from '../../_shared';
 import { magicMcpEndpointType } from '../../../types';
 import { v1ConsumerIntegrationEndpointPresenter } from './consumerOwnership';
 import { getCachedPortalConnectUrl } from './portalConnectUrl';
@@ -71,6 +76,7 @@ export let v1MagicMcpEndpointPresenter = Presenter.create(magicMcpEndpointType)
       enable_skill_editing: magicMcpEndpoint.enableSkillEditing,
       owner_actor: await presentOwnerActor(magicMcpEndpoint.ownerActor),
       is_owner_locked: magicMcpEndpoint.isOwnerLocked,
+      is_owner_only_visible: magicMcpEndpoint.isOwnerOnlyVisible,
       created_at: magicMcpEndpoint.createdAt,
       updated_at: magicMcpEndpoint.updatedAt
     };
@@ -93,6 +99,7 @@ export let v1MagicMcpEndpointPresenter = Presenter.create(magicMcpEndpointType)
       }),
       owner_actor: ownerActorSchema,
       is_owner_locked: isOwnerLockedSchema,
+      is_owner_only_visible: isOwnerOnlyVisibleSchema,
       created_at: v.date(),
       updated_at: v.date()
     })

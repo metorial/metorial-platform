@@ -156,3 +156,9 @@ export let isOwnerLockedSchema = v.boolean({
   description:
     'Whether this resource is locked to its owner. Locked resources can only be used by their owner, regardless of project settings.'
 });
+
+export let isOwnerOnlyVisibleSchema = v.boolean({
+  name: 'is_owner_only_visible',
+  description:
+    'Whether this resource is only visible to its owner. Only enforced for projects with ownership enforcement enabled.'
+});

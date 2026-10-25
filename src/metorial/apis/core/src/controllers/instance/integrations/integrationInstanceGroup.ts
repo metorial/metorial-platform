@@ -33,6 +33,7 @@ let integrationInstanceGroupGroup = instanceGroup.use(async ctx => {
   let integrationInstanceGroup =
     await integrationInstanceGroupService.getIntegrationInstanceGroupById({
       instance: ctx.instance,
+      organizationActor: getOwnershipActor(ctx),
       integrationInstanceGroupId: ctx.params.integrationInstanceGroupId,
       allowDeleted: true
     });
@@ -58,6 +59,10 @@ export let integrationInstanceGroupController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
+            ownership: v.optional(v.enumOf(['shared', 'usable', 'all']), {
+              description:
+                'Which resources to return under the resource ownership rules: shared (not owned by someone else), usable (shared plus ones the caller may use) or all (everything the caller may see). Defaults to shared when ownership is enforced and all otherwise.'
+            }),
             status: v.optional(
               v.union([
                 v.enumOf(['draft', 'active', 'archived', 'deleted']),
@@ -84,6 +89,8 @@ export let integrationInstanceGroupController = Controller.create(
       .do(async ctx => {
         let paginator = await integrationInstanceGroupService.listIntegrationInstanceGroups({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
+          ownership: ctx.query.ownership,
           allowDeleted: true,
           status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
@@ -265,7 +272,13 @@ export let integrationInstanceGroupController = Controller.create(
           name: v.optional(v.string()),
           description: v.optional(v.nullable(v.string())),
           metadata: v.optional(v.nullable(v.record(v.any()))),
-          providers: v.optional(v.array(integrationInstanceGroupProviderInputValidator))
+          providers: v.optional(v.array(integrationInstanceGroupProviderInputValidator)),
+          is_owner_only_visible: v.optional(
+            v.boolean({
+              description:
+                'Only show this resource to its owner when ownership is enforced. Anyone allowed to use the resource can enable it; only the owner can disable it.'
+            })
+          )
         })
       )
       .output(integrationInstanceGroupPresenter)
@@ -273,12 +286,14 @@ export let integrationInstanceGroupController = Controller.create(
         let integrationInstanceGroup =
           await integrationInstanceGroupService.updateIntegrationInstanceGroup({
             instance: ctx.instance,
+            organizationActor: getOwnershipActor(ctx),
             auditScope: ctx.auditScope,
             integrationInstanceGroup: ctx.integrationInstanceGroup,
             input: {
               name: ctx.body.name,
               description: ctx.body.description,
               metadata: ctx.body.metadata,
+              isOwnerOnlyVisible: ctx.body.is_owner_only_visible,
               providers: ctx.body.providers?.map(provider => ({
                 integrationInstanceProviderId: provider.integration_instance_provider_id,
                 toolFilters:

@@ -15,7 +15,70 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { configSchemaPresenter, providerConfigPresenter } from '@metorial/presenters';
 import { toolFiltersValidator } from '../sessions/_shared';
-import { getOwnershipActor } from '../../../lib/ownershipActor';
+import { getOwnershipActor, resolveOwnedByCaller } from '../../../lib/ownershipActor';
+
+let ownershipFilterValidator = v.optional(v.enumOf(['shared', 'usable', 'all']), {
+  description:
+    "Which resources to return under the resource ownership rules. 'shared' returns only resources that aren't owned, 'usable' returns shared resources plus owned resources the caller can use, 'all' returns every resource the caller can see. Defaults to 'shared' when ownership is enforced for the project and 'all' otherwise."
+});
+
+let createProviderConfigBody = (d: { includeOwnedByCaller: boolean }) =>
+  v.intersection([
+    v.object({
+      provider_id: v.string({
+        description: 'Provider ID',
+        examples: ['pro_5gHjKlMnPqRsTuVw']
+      }),
+      provider_deployment_id: v.optional(
+        v.string({
+          description: 'Optional provider deployment ID',
+          examples: ['pdp_4dEfGhJkLmNpQrSt']
+        })
+      ),
+      name: v.optional(v.string({ examples: ['Production Config'] })),
+      description: v.optional(
+        v.string({ examples: ['Configuration for production environment'] })
+      ),
+      metadata: v.optional(
+        v.record(v.any(), {
+          examples: [{ label: 'primary', notes: 'Default production config' }]
+        }),
+        { description: 'Custom key-value pairs for storing additional information' }
+      ),
+      tool_filters: toolFiltersValidator,
+      is_owner_locked: v.optional(
+        v.boolean({
+          description:
+            'Lock this resource to its owner. Anyone allowed to use the resource can lock it; only the owner can unlock it.'
+        })
+      ),
+      ...(d.includeOwnedByCaller
+        ? {
+            owned_by_caller: v.optional(
+              v.boolean({
+                description:
+                  'Make the calling organization member the owner of this resource. Only has an effect when resource ownership is enforced for the project.',
+                examples: [true]
+              })
+            )
+          }
+        : {})
+    }),
+    v.union([
+      v.object({
+        value: v.record(v.any(), {
+          description: 'Provider-specific configuration values',
+          examples: [{ api_key: 'sk-xxx', base_url: 'https://api.example.com' }]
+        })
+      }),
+      v.object({
+        provider_config_vault_id: v.string({
+          description: 'Config vault ID to use as template',
+          examples: ['pcvt_3bCdEfGhJkLmNpQr']
+        })
+      })
+    ])
+  ]);
 
 let providerConfigGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerConfigId) {
@@ -29,6 +92,7 @@ let providerConfigGroup = instanceGroup.use(async ctx => {
 
   let config = await providerConfigService.getProviderConfigById({
     instance: ctx.instance,
+    organizationActor: getOwnershipActor(ctx),
     providerConfigId: ctx.params.providerConfigId
   });
 
@@ -53,10 +117,7 @@ export let providerConfigController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            usable: v.optional(v.boolean(), {
-              description:
-                'Only return resources the caller is allowed to use under the resource ownership rules.'
-            }),
+            ownership: ownershipFilterValidator,
             status: v.optional(
               v.union([
                 v.enumOf(['active', 'archived']),
@@ -109,7 +170,7 @@ export let providerConfigController = Controller.create(
         let paginator = await providerConfigService.listProviderConfigs({
           instance: ctx.instance,
           organizationActor: getOwnershipActor(ctx),
-          onlyUsable: ctx.query.usable,
+          ownership: ctx.query.ownership,
           allowDeleted: false,
 
           search: ctx.query.search,
@@ -156,53 +217,11 @@ export let providerConfigController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.config:write'] }))
       .body(
-        'default',
-        v.intersection([
-          v.object({
-            provider_id: v.string({
-              description: 'Provider ID',
-              examples: ['pro_5gHjKlMnPqRsTuVw']
-            }),
-            provider_deployment_id: v.optional(
-              v.string({
-                description: 'Optional provider deployment ID',
-                examples: ['pdp_4dEfGhJkLmNpQrSt']
-              })
-            ),
-            name: v.optional(v.string({ examples: ['Production Config'] })),
-            description: v.optional(
-              v.string({ examples: ['Configuration for production environment'] })
-            ),
-            metadata: v.optional(
-              v.record(v.any(), {
-                examples: [{ label: 'primary', notes: 'Default production config' }]
-              }),
-              { description: 'Custom key-value pairs for storing additional information' }
-            ),
-            tool_filters: toolFiltersValidator,
-            is_owner_locked: v.optional(
-              v.boolean({
-                description:
-                  'Lock this resource to its owner. Anyone allowed to use the resource can lock it; only the owner can unlock it.'
-              })
-            )
-          }),
-          v.union([
-            v.object({
-              value: v.record(v.any(), {
-                description: 'Provider-specific configuration values',
-                examples: [{ api_key: 'sk-xxx', base_url: 'https://api.example.com' }]
-              })
-            }),
-            v.object({
-              provider_config_vault_id: v.string({
-                description: 'Config vault ID to use as template',
-                examples: ['pcvt_3bCdEfGhJkLmNpQr']
-              })
-            })
-          ])
-        ])
+        'mt_2026_01_01_magnetar',
+        createProviderConfigBody({ includeOwnedByCaller: false }),
+        v => v
       )
+      .body('default', createProviderConfigBody({ includeOwnedByCaller: true }))
       .output(providerConfigPresenter)
       .do(async ctx => {
         let provider = await providerService.getProviderById({
@@ -223,11 +242,17 @@ export let providerConfigController = Controller.create(
               })
             : undefined;
 
+        let ownerActorId = await resolveOwnedByCaller(
+          ctx,
+          'owned_by_caller' in ctx.body ? ctx.body.owned_by_caller : undefined
+        );
+
         let config = await providerConfigService.createProviderConfig({
           instance: ctx.instance,
           auditScope: ctx.auditScope,
           provider,
           providerDeployment,
+          ownerActorId,
           isOwnerLocked: ctx.body.is_owner_locked,
           input: {
             name: ctx.body.name,
@@ -276,6 +301,12 @@ export let providerConfigController = Controller.create(
               description:
                 'Lock this resource to its owner. Anyone allowed to use the resource can lock it; only the owner can unlock it.'
             })
+          ),
+          is_owner_only_visible: v.optional(
+            v.boolean({
+              description:
+                'Hide this resource from everyone except its owner. Only available when resource ownership is enforced for the project and the resource has an owner. Anyone allowed to use the resource can enable it; only the owner can disable it.'
+            })
           )
         })
       )
@@ -291,6 +322,7 @@ export let providerConfigController = Controller.create(
             description: ctx.body.description,
             metadata: ctx.body.metadata,
             isOwnerLocked: ctx.body.is_owner_locked,
+            isOwnerOnlyVisible: ctx.body.is_owner_only_visible,
             ...(ctx.body.tool_filters !== undefined
               ? { toolFilters: normalizeToolFilters(ctx.body.tool_filters as any) }
               : {})

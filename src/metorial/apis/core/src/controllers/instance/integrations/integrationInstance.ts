@@ -38,6 +38,7 @@ let integrationInstanceGroup = instanceGroup.use(async ctx => {
 
   let integrationInstance = await integrationInstanceService.getIntegrationInstanceById({
     instance: ctx.instance,
+    organizationActor: getOwnershipActor(ctx),
     integrationInstanceId: ctx.params.integrationInstanceId,
     allowDeleted: true
   });
@@ -63,9 +64,9 @@ export let integrationInstanceController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
-            usable: v.optional(v.boolean(), {
+            ownership: v.optional(v.enumOf(['shared', 'usable', 'all']), {
               description:
-                'Only return resources the caller is allowed to use under the resource ownership rules.'
+                'Which resources to return under the resource ownership rules: shared (not owned by someone else), usable (shared plus ones the caller may use) or all (everything the caller may see). Defaults to shared when ownership is enforced and all otherwise.'
             }),
             search: v.optional(v.string()),
             status: v.optional(
@@ -94,7 +95,7 @@ export let integrationInstanceController = Controller.create(
         let paginator = await integrationInstanceService.listIntegrationInstances({
           instance: ctx.instance,
           organizationActor: getOwnershipActor(ctx),
-          onlyUsable: ctx.query.usable,
+          ownership: ctx.query.ownership,
           search: ctx.query.search,
           allowDeleted: true,
           status: normalizeArrayParam(ctx.query.status),
@@ -290,6 +291,12 @@ export let integrationInstanceController = Controller.create(
               description:
                 'Lock this resource to its owner. Anyone allowed to use the resource can lock it; only the owner can unlock it.'
             })
+          ),
+          is_owner_only_visible: v.optional(
+            v.boolean({
+              description:
+                'Only show this resource to its owner when ownership is enforced. Anyone allowed to use the resource can enable it; only the owner can disable it.'
+            })
           )
         })
       )
@@ -306,6 +313,7 @@ export let integrationInstanceController = Controller.create(
             metadata: ctx.body.metadata,
             identityActorId: ctx.body.identity_actor_id,
             isOwnerLocked: ctx.body.is_owner_locked,
+            isOwnerOnlyVisible: ctx.body.is_owner_only_visible,
             identityId: ctx.body.identity_id,
             providers: ctx.body.providers?.map(provider => ({
               providerId: provider.provider_id,

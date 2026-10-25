@@ -3,7 +3,12 @@ import { v } from '@lowerdeck/validation';
 import { getConfig } from '@metorial/config';
 import { Presenter } from '@metorial/presenter';
 import { magicMcpServerType } from '../../../types';
-import { isOwnerLockedSchema, ownerActorSchema, presentOwnerActor } from '../../_shared';
+import {
+  isOwnerLockedSchema,
+  isOwnerOnlyVisibleSchema,
+  ownerActorSchema,
+  presentOwnerActor
+} from '../../_shared';
 import { v1ConsumerIntegrationPresenter } from './consumerOwnership';
 import {
   dashboardMagicMcpServerProviderPresenter,
@@ -35,6 +40,7 @@ let magicMcpServerSchema = v.object({
   metadata: v.record(v.any()),
   owner_actor: ownerActorSchema,
   is_owner_locked: isOwnerLockedSchema,
+  is_owner_only_visible: isOwnerOnlyVisibleSchema,
   created_at: v.date(),
   updated_at: v.date()
 });
@@ -159,6 +165,7 @@ export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
         metadata: magicMcpServer.metadata,
         owner_actor: await presentOwnerActor(magicMcpServer.ownerActor),
         is_owner_locked: magicMcpServer.isOwnerLocked,
+        is_owner_only_visible: magicMcpServer.isOwnerOnlyVisible,
         created_at: magicMcpServer.createdAt,
         updated_at: magicMcpServer.updatedAt
       };

@@ -14,7 +14,7 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { providerSetupSessionPresenter } from '@metorial/presenters';
-import { getOwnershipActor } from '../../../lib/ownershipActor';
+import { getOwnershipActor, resolveOwnedByCaller } from '../../../lib/ownershipActor';
 
 let providerSetupSessionConfigurationValidator = v.optional(
   v.object({
@@ -50,6 +50,7 @@ let providerSetupSessionGroup = instanceGroup.use(async ctx => {
 
   let setupSession = await providerSetupSessionService.getProviderSetupSessionById({
     instance: ctx.instance,
+    organizationActor: getOwnershipActor(ctx),
     providerSetupSessionId: ctx.params.providerSetupSessionId
   });
 
@@ -111,6 +112,7 @@ export let providerSetupSessionController = Controller.create(
       .do(async ctx => {
         let paginator = await providerSetupSessionService.listProviderSetupSessions({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
           allowDeleted: false,
 
           ids: normalizeArrayParam(ctx.query.id),
@@ -174,7 +176,7 @@ export let providerSetupSessionController = Controller.create(
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
       .body(
-        'default',
+        'mt_2026_01_01_magnetar',
         v.object({
           provider_id: v.optional(
             v.string({
@@ -230,6 +232,72 @@ export let providerSetupSessionController = Controller.create(
             })
           ),
           configuration: providerSetupSessionConfigurationValidator
+        }),
+        v => v
+      )
+      .body(
+        'default',
+        v.object({
+          provider_id: v.optional(
+            v.string({
+              examples: ['pro_5gHjKlMnPqRsTuVw'],
+              description: 'The provider ID'
+            })
+          ),
+          provider_deployment_id: v.optional(
+            v.string({
+              examples: ['pdp_4dEfGhJkLmNpQrSt'],
+              description: 'Optional provider deployment ID'
+            })
+          ),
+          name: v.optional(v.string({ examples: ['GitHub OAuth Setup'] })),
+          description: v.optional(v.string({ examples: ['Connect your GitHub account'] })),
+          metadata: v.optional(
+            v.record(v.any(), {
+              examples: [{ redirect_uri: 'https://app.example.com/callback' }]
+            }),
+            { description: 'Custom key-value pairs for storing additional information' }
+          ),
+          provider_auth_method_id: v.optional(
+            v.string({
+              examples: ['pam_2mNpQrStUvWxYzAb'],
+              description: 'The authentication method to use (e.g., OAuth flow)'
+            })
+          ),
+          provider_auth_credentials_id: v.optional(
+            v.string({
+              examples: ['pac_3nOpRsTuVwXyZaBc'],
+              description: 'Optional OAuth app credentials to use instead of defaults'
+            })
+          ),
+          identity_id: v.optional(
+            v.string({
+              examples: ['idn_3nOpRsTuVwXyZaBc'],
+              description: 'Optional identity to link this setup session to'
+            })
+          ),
+          consumer_id: v.optional(
+            v.string({
+              examples: ['con_1a2b3c4d5e6f7g8h'],
+              description: 'Optional consumer to link this setup session to'
+            })
+          ),
+          redirect_url: v.optional(
+            v.string({ examples: ['https://app.example.com/oauth/callback'] })
+          ),
+          type: v.optional(
+            v.enumOf(['auth_only', 'config_only', 'auth_and_config', 'admin', 'auto'], {
+              description:
+                'The type of setup session, determining the flow and outcome of the session. `admin` creates an admin consent link for auth methods that support it, never creates credentials or configs, and cannot be bound to an identity, consumer, or config.'
+            })
+          ),
+          configuration: providerSetupSessionConfigurationValidator,
+          owned_by_caller: v.optional(
+            v.boolean({
+              description:
+                'Make the calling organization member the owner of this setup session and the resources it creates. Only has an effect when ownership is enforced for the project.'
+            })
+          )
         })
       )
       .output(providerSetupSessionPresenter)
@@ -259,9 +327,12 @@ export let providerSetupSessionController = Controller.create(
             })
           : undefined;
 
+        let ownerActorId = await resolveOwnedByCaller(ctx, ctx.body.owned_by_caller);
+
         let setupSession = await providerSetupSessionService.createProviderSetupSession({
           instance: ctx.instance,
           auditScope: ctx.auditScope,
+          ownerActorId,
           provider,
           providerDeployment,
           credentials,

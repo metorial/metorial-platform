@@ -26,7 +26,7 @@ import {
   type SessionProviderConfigSource,
   type SessionProviderDeploymentSource
 } from './_providerInput';
-import { getOwnershipActor } from '../../../lib/ownershipActor';
+import { getOwnershipActor, resolveOwnedByCaller } from '../../../lib/ownershipActor';
 
 let sessionGroup = instanceGroup
   .use(requireFineGrainedSessionParam('sessionId')())
@@ -42,6 +42,7 @@ let sessionGroup = instanceGroup
 
     let session = await sessionService.getSessionById({
       instance: ctx.instance,
+      organizationActor: getOwnershipActor(ctx),
       sessionId: ctx.params.sessionId
     });
 
@@ -275,20 +276,40 @@ export let sessionController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
-        'default',
+        'mt_2026_01_01_magnetar',
         v.object({
           name: v.optional(v.string()),
           description: v.optional(v.string()),
           metadata: v.optional(v.record(v.any())),
           providers: v.array(providerInput)
+        }),
+        v => v
+      )
+      .body(
+        'default',
+        v.object({
+          name: v.optional(v.string()),
+          description: v.optional(v.string()),
+          metadata: v.optional(v.record(v.any())),
+          providers: v.array(providerInput),
+          owned_by_caller: v.optional(v.boolean(), {
+            description:
+              'Whether the session and the configs created with it belong to the calling organization member. Only applies when ownership is enforced for the project.'
+          })
         })
       )
       .output(providerSessionPresenter)
       .do(async ctx => {
+        let ownerActorId = await resolveOwnedByCaller(
+          ctx,
+          'owned_by_caller' in ctx.body ? ctx.body.owned_by_caller : undefined
+        );
+
         let subspaceSession = await sessionService.createSession({
           instance: ctx.instance,
           auditScope: ctx.auditScope,
           organizationActor: getOwnershipActor(ctx),
+          ownerActorId,
           input: {
             name: ctx.body.name ?? `Session ${new Date().toISOString()}`,
             description: ctx.body.description,
@@ -298,6 +319,7 @@ export let sessionController = Controller.create(
                 resolveSessionProviderInput({
                   instance: ctx.instance,
                   auditScope: ctx.auditScope,
+                  ownerActorId,
                   providerDeployment: mapSessionDeploymentSource(p),
                   providerConfig: mapSessionConfigSource(p),
                   providerAuthConfig: mapSessionAuthConfigSource(p),
@@ -336,6 +358,10 @@ export let sessionController = Controller.create(
           description: v.optional(v.string({ examples: ['Updated session description'] })),
           metadata: v.optional(v.record(v.any()), {
             description: 'Custom key-value pairs for storing additional information'
+          }),
+          is_owner_only_visible: v.optional(v.boolean(), {
+            description:
+              'Whether the session is only visible to its owner. Only applies when ownership is enforced for the project.'
           })
         })
       )
@@ -344,11 +370,13 @@ export let sessionController = Controller.create(
         let session = await sessionService.updateSession({
           instance: ctx.instance,
           auditScope: ctx.auditScope,
+          organizationActor: getOwnershipActor(ctx),
           session: ctx.session,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
-            metadata: ctx.body.metadata
+            metadata: ctx.body.metadata,
+            isOwnerOnlyVisible: ctx.body.is_owner_only_visible
           }
         });
 
