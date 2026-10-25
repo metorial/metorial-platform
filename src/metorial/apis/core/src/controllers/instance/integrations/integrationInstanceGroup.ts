@@ -267,18 +267,26 @@ export let integrationInstanceGroupController = Controller.create(
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
+        'mt_2026_01_01_magnetar',
+        v.object({
+          name: v.optional(v.string()),
+          description: v.optional(v.nullable(v.string())),
+          metadata: v.optional(v.nullable(v.record(v.any()))),
+          providers: v.optional(v.array(integrationInstanceGroupProviderInputValidator))
+        }),
+        v => v
+      )
+      .body(
         'default',
         v.object({
           name: v.optional(v.string()),
           description: v.optional(v.nullable(v.string())),
           metadata: v.optional(v.nullable(v.record(v.any()))),
           providers: v.optional(v.array(integrationInstanceGroupProviderInputValidator)),
-          is_owner_only_visible: v.optional(
-            v.boolean({
-              description:
-                'Only show this resource to its owner when ownership is enforced. Anyone allowed to use the resource can enable it; only the owner can disable it.'
-            })
-          )
+          source: v.optional(v.enumOf(['explorer']), {
+            description:
+              'Mark this resource as originating from the dashboard explorer and enable its owner lock and owner-only visibility.'
+          })
         })
       )
       .output(integrationInstanceGroupPresenter)
@@ -293,7 +301,9 @@ export let integrationInstanceGroupController = Controller.create(
               name: ctx.body.name,
               description: ctx.body.description,
               metadata: ctx.body.metadata,
-              isOwnerOnlyVisible: ctx.body.is_owner_only_visible,
+              source: ctx.body.source,
+              isOwnerLocked: ctx.body.source === 'explorer' ? true : undefined,
+              isOwnerOnlyVisible: ctx.body.source === 'explorer' ? true : undefined,
               providers: ctx.body.providers?.map(provider => ({
                 integrationInstanceProviderId: provider.integration_instance_provider_id,
                 toolFilters:

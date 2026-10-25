@@ -693,6 +693,7 @@ class MagicMcpServerImpl {
       description?: string | null;
       metadata?: Record<string, unknown> | null;
       aliases?: string[];
+      source?: 'explorer';
       isOwnerLocked?: boolean;
       isOwnerOnlyVisible?: boolean;
     };
@@ -815,6 +816,7 @@ class MagicMcpServerImpl {
             description,
             metadata: d.input.metadata === undefined ? d.server.metadata : d.input.metadata,
             ...(backing ? getMagicMcpServerBackingCoreFields(backing) : {}),
+            source: d.input.source,
             ...(isOwnerLockChanged ? { isOwnerLocked: d.input.isOwnerLocked } : {}),
             ...(isOwnerOnlyVisibleChanged
               ? { isOwnerOnlyVisible: d.input.isOwnerOnlyVisible }

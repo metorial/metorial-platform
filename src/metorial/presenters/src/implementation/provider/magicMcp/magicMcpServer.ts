@@ -20,7 +20,9 @@ let magicMcpServerSchema = v.object({
   object: v.literal('magic_mcp.server'),
   id: v.string(),
   status: v.enumOf(['active', 'archived', 'deleted']),
-  source: v.enumOf(['manual', 'consumer_provider_template']),
+  source: v.enumOf(['manual', 'consumer_provider_template', 'explorer'], {
+    description: 'How this Magic MCP server was created or configured'
+  }),
   provider_management_mode: v.enumOf([
     'manual',
     'inherited_from_provider_template',

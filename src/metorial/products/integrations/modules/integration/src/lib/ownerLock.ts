@@ -59,13 +59,14 @@ export let lockIntegrationInstanceOwner = (
   integrationInstance: Pick<IntegrationInstance, 'oid'>
 ) => setIntegrationInstanceOwnerLock(integrationInstance, true);
 
-export let setIntegrationInstanceGroupOwnerOnlyVisibility = async (
+let setIntegrationInstanceGroupOwnerFlag = async (
   integrationInstanceGroup: Pick<IntegrationInstanceGroup, 'oid'>,
-  isOwnerOnlyVisible: boolean
+  flag: OwnerFlag,
+  value: boolean
 ) => {
   await db.integrationInstanceGroup.update({
     where: { oid: integrationInstanceGroup.oid },
-    data: { isOwnerOnlyVisible }
+    data: { [flag]: value }
   });
 
   let sessionTemplates = await db.sessionTemplate.findMany({
@@ -77,15 +78,35 @@ export let setIntegrationInstanceGroupOwnerOnlyVisibility = async (
   let sessionTemplateOids = sessionTemplates.map(sessionTemplate => sessionTemplate.oid);
 
   await db.sessionTemplate.updateMany({
-    where: { oid: { in: sessionTemplateOids }, isOwnerOnlyVisible: !isOwnerOnlyVisible },
-    data: { isOwnerOnlyVisible }
+    where: { oid: { in: sessionTemplateOids }, [flag]: !value },
+    data: { [flag]: value }
   });
 
   await db.ephemeralManagedSession.updateMany({
     where: {
       sessionTemplateOid: { in: sessionTemplateOids },
-      isOwnerOnlyVisible: !isOwnerOnlyVisible
+      [flag]: !value
     },
-    data: { isOwnerOnlyVisible }
+    data: { [flag]: value }
   });
 };
+
+export let setIntegrationInstanceGroupOwnerLock = (
+  integrationInstanceGroup: Pick<IntegrationInstanceGroup, 'oid'>,
+  isOwnerLocked: boolean
+) =>
+  setIntegrationInstanceGroupOwnerFlag(
+    integrationInstanceGroup,
+    'isOwnerLocked',
+    isOwnerLocked
+  );
+
+export let setIntegrationInstanceGroupOwnerOnlyVisibility = (
+  integrationInstanceGroup: Pick<IntegrationInstanceGroup, 'oid'>,
+  isOwnerOnlyVisible: boolean
+) =>
+  setIntegrationInstanceGroupOwnerFlag(
+    integrationInstanceGroup,
+    'isOwnerOnlyVisible',
+    isOwnerOnlyVisible
+  );

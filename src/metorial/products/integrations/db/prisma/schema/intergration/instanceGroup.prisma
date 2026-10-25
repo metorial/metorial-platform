@@ -40,6 +40,8 @@ model IntegrationInstanceGroup {
   identityOid BigInt?
   identity    Identity? @relation(fields: [identityOid], references: [oid], onDelete: SetNull)
 
+  source IntegrationResourceSource?
+
   isOwnerLocked      Boolean @default(false)
   isOwnerOnlyVisible Boolean @default(false)
   isSystemOwned      Boolean @default(false)

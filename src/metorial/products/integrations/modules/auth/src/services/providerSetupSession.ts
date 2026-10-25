@@ -129,6 +129,7 @@ export type CreateProviderSetupSessionParams = {
   identity?: Identity;
   ownerActorOid?: bigint | null;
   ownerActorId?: string | null;
+  source?: 'explorer';
   isOwnerLocked?: boolean;
   isOwnerOnlyVisible?: boolean;
   isSystemOwned?: boolean;
@@ -523,6 +524,7 @@ class providerSetupSessionServiceImpl {
             provider: d.provider,
             providerDeployment: d.providerDeployment,
             credentials: d.credentials,
+            source: d.source,
             ownerActorOid,
             isOwnerLocked,
             isOwnerOnlyVisible,
@@ -589,6 +591,7 @@ class providerSetupSessionServiceImpl {
           providerOid: d.provider?.oid,
           deploymentOid: d.providerDeployment?.oid ?? d.providerConfig?.deploymentOid,
           identityOid: d.identity?.oid ?? null,
+          source: d.source,
           ownerActorOid,
           isOwnerLocked,
           isOwnerOnlyVisible,

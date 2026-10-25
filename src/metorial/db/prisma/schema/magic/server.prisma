@@ -5,6 +5,7 @@ enum MagicMcpServerStatus {
 }
 
 enum MagicMcpServerSource {
+  explorer
   manual
   consumer_provider_template
 }

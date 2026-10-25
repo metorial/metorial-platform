@@ -15,14 +15,14 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { configSchemaPresenter, providerConfigPresenter } from '@metorial/presenters';
 import { toolFiltersValidator } from '../sessions/_shared';
-import { getOwnershipActor, resolveOwnedByCaller } from '../../../lib/ownershipActor';
+import { getOwnershipActor, resolveExplorerOwner } from '../../../lib/ownershipActor';
 
 let ownershipFilterValidator = v.optional(v.enumOf(['shared', 'usable', 'all']), {
   description:
     "Which resources to return under the resource ownership rules. 'shared' returns only resources that aren't owned, 'usable' returns shared resources plus owned resources the caller can use, 'all' returns every resource the caller can see. Defaults to 'shared' when ownership is enforced for the project and 'all' otherwise."
 });
 
-let createProviderConfigBody = (d: { includeOwnedByCaller: boolean }) =>
+let createProviderConfigBody = (d: { includeSource: boolean }) =>
   v.intersection([
     v.object({
       provider_id: v.string({
@@ -46,21 +46,12 @@ let createProviderConfigBody = (d: { includeOwnedByCaller: boolean }) =>
         { description: 'Custom key-value pairs for storing additional information' }
       ),
       tool_filters: toolFiltersValidator,
-      is_owner_locked: v.optional(
-        v.boolean({
-          description:
-            'Lock this resource to its owner. Anyone allowed to use the resource can lock it; only the owner can unlock it.'
-        })
-      ),
-      ...(d.includeOwnedByCaller
+      ...(d.includeSource
         ? {
-            owned_by_caller: v.optional(
-              v.boolean({
-                description:
-                  'Make the calling organization member the owner of this resource. Only has an effect when resource ownership is enforced for the project.',
-                examples: [true]
-              })
-            )
+            source: v.optional(v.enumOf(['explorer']), {
+              description:
+                'Mark this resource as originating from the dashboard explorer and enable its owner lock and owner-only visibility.'
+            })
           }
         : {})
     }),
@@ -218,10 +209,10 @@ export let providerConfigController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.config:write'] }))
       .body(
         'mt_2026_01_01_magnetar',
-        createProviderConfigBody({ includeOwnedByCaller: false }),
+        createProviderConfigBody({ includeSource: false }),
         v => v
       )
-      .body('default', createProviderConfigBody({ includeOwnedByCaller: true }))
+      .body('default', createProviderConfigBody({ includeSource: true }))
       .output(providerConfigPresenter)
       .do(async ctx => {
         let provider = await providerService.getProviderById({
@@ -242,10 +233,7 @@ export let providerConfigController = Controller.create(
               })
             : undefined;
 
-        let ownerActorId = await resolveOwnedByCaller(
-          ctx,
-          'owned_by_caller' in ctx.body ? ctx.body.owned_by_caller : undefined
-        );
+        let ownerActorId = await resolveExplorerOwner(ctx, ctx.body.source);
 
         let config = await providerConfigService.createProviderConfig({
           instance: ctx.instance,
@@ -253,7 +241,9 @@ export let providerConfigController = Controller.create(
           provider,
           providerDeployment,
           ownerActorId,
-          isOwnerLocked: ctx.body.is_owner_locked,
+          source: ctx.body.source,
+          isOwnerLocked: ctx.body.source === 'explorer' ? true : undefined,
+          isOwnerOnlyVisible: ctx.body.source === 'explorer' ? true : undefined,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
@@ -288,6 +278,18 @@ export let providerConfigController = Controller.create(
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.config:write'] }))
       .body(
+        'mt_2026_01_01_magnetar',
+        v.object({
+          name: v.optional(v.string()),
+          description: v.optional(v.string()),
+          metadata: v.optional(v.record(v.any()), {
+            description: 'Custom key-value pairs for storing additional information'
+          }),
+          tool_filters: toolFiltersValidator
+        }),
+        v => v
+      )
+      .body(
         'default',
         v.object({
           name: v.optional(v.string()),
@@ -296,18 +298,10 @@ export let providerConfigController = Controller.create(
             description: 'Custom key-value pairs for storing additional information'
           }),
           tool_filters: toolFiltersValidator,
-          is_owner_locked: v.optional(
-            v.boolean({
-              description:
-                'Lock this resource to its owner. Anyone allowed to use the resource can lock it; only the owner can unlock it.'
-            })
-          ),
-          is_owner_only_visible: v.optional(
-            v.boolean({
-              description:
-                'Hide this resource from everyone except its owner. Only available when resource ownership is enforced for the project and the resource has an owner. Anyone allowed to use the resource can enable it; only the owner can disable it.'
-            })
-          )
+          source: v.optional(v.enumOf(['explorer']), {
+            description:
+              'Mark this resource as originating from the dashboard explorer and enable its owner lock and owner-only visibility.'
+          })
         })
       )
       .output(providerConfigPresenter)
@@ -321,8 +315,9 @@ export let providerConfigController = Controller.create(
             name: ctx.body.name,
             description: ctx.body.description,
             metadata: ctx.body.metadata,
-            isOwnerLocked: ctx.body.is_owner_locked,
-            isOwnerOnlyVisible: ctx.body.is_owner_only_visible,
+            source: ctx.body.source,
+            isOwnerLocked: ctx.body.source === 'explorer' ? true : undefined,
+            isOwnerOnlyVisible: ctx.body.source === 'explorer' ? true : undefined,
             ...(ctx.body.tool_filters !== undefined
               ? { toolFilters: normalizeToolFilters(ctx.body.tool_filters as any) }
               : {})

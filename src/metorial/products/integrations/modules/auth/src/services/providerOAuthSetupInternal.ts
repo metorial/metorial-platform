@@ -84,11 +84,13 @@ class providerOAuthSetupInternalServiceImpl {
             authConfig =
               await providerAuthConfigInternalService.createProviderAuthConfigInternal({
                 backend: backend.backend,
-                source: providerOAuthSetup.ownerPublicMcpServerOid
-                  ? 'public_mcp'
-                  : providerOAuthSetup.providerSetupSession
-                    ? 'setup_session'
-                    : 'system',
+                source:
+                  providerOAuthSetup.providerSetupSession?.source ??
+                  (providerOAuthSetup.ownerPublicMcpServerOid
+                    ? 'public_mcp'
+                    : providerOAuthSetup.providerSetupSession
+                      ? 'setup_session'
+                      : 'system'),
                 type: 'oauth_automated',
                 tenant: providerOAuthSetup.tenant,
                 environment: providerOAuthSetup.environment,

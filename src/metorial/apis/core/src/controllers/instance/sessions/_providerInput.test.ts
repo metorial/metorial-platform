@@ -154,39 +154,47 @@ describe('resolveSessionProviderInput', () => {
     expect(mocks.createProviderConfig).not.toHaveBeenCalled();
   });
 
-  it('preserves ephemeral auth defaults, attribution, and explicit provider resolution', async () => {
-    let provider = { id: 'pro_1' };
-    mocks.getProviderById.mockResolvedValue(provider);
-    mocks.createProviderAuthConfig.mockResolvedValue({ id: 'pac_new' });
+  it.each([undefined, 'explorer' as const])(
+    'preserves ephemeral auth attribution with source=%s',
+    async source => {
+      let provider = { id: 'pro_1' };
+      mocks.getProviderById.mockResolvedValue(provider);
+      mocks.createProviderAuthConfig.mockResolvedValue({ id: 'pac_new' });
 
-    let result = await resolveSessionProviderInput({
-      instance,
-      providerAuthConfig: {
-        type: 'ephemeral',
-        providerId: 'pro_1',
-        providerAuthMethodId: 'pam_1',
-        credentials: { token: 'secret' }
-      }
-    });
+      let result = await resolveSessionProviderInput({
+        instance,
+        source,
+        ownerActorId: source ? 'act_1' : undefined,
+        providerAuthConfig: {
+          type: 'ephemeral',
+          providerId: 'pro_1',
+          providerAuthMethodId: 'pam_1',
+          credentials: { token: 'secret' }
+        }
+      });
 
-    expect(mocks.createProviderAuthConfig).toHaveBeenCalledWith({
-      instance,
-      provider,
-      providerDeployment: undefined,
-      source: 'manual',
-      import: {
-        ip: undefined,
-        ua: undefined,
-        note: 'Created via ephemeral provider configuration'
-      },
-      input: {
-        name: 'Ephemeral auth config',
-        authMethodId: 'pam_1',
-        isEphemeral: true,
-        config: { token: 'secret' }
-      }
-    });
-    expect(result.authConfigId).toBe('pac_new');
-    expect(result.__allowEphemeral).toBe(true);
-  });
+      expect(mocks.createProviderAuthConfig).toHaveBeenCalledWith({
+        instance,
+        provider,
+        providerDeployment: undefined,
+        source: source ?? 'manual',
+        ownerActorId: source ? 'act_1' : undefined,
+        isOwnerLocked: source ? true : undefined,
+        isOwnerOnlyVisible: source ? true : undefined,
+        import: {
+          ip: undefined,
+          ua: undefined,
+          note: 'Created via ephemeral provider configuration'
+        },
+        input: {
+          name: 'Ephemeral auth config',
+          authMethodId: 'pam_1',
+          isEphemeral: true,
+          config: { token: 'secret' }
+        }
+      });
+      expect(result.authConfigId).toBe('pac_new');
+      expect(result.__allowEphemeral).toBe(true);
+    }
+  );
 });

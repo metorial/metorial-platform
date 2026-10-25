@@ -130,6 +130,7 @@ export type UpdateProviderAuthConfigParams = {
     authMethodId?: string;
     toolFilters?: PrismaJson.ToolFilter | null;
     isOwnerLocked?: boolean;
+    source?: 'explorer';
     isOwnerOnlyVisible?: boolean;
   };
 
@@ -766,6 +767,7 @@ class providerAuthConfigServiceImpl {
               : d.providerAuthConfig.toolFilter,
 
           currentVersionOid: newConfigVersion?.oid ?? d.providerAuthConfig.currentVersionOid,
+          source: d.input.source,
           isOwnerLocked: d.input.isOwnerLocked ?? d.providerAuthConfig.isOwnerLocked,
           isOwnerOnlyVisible:
             d.input.isOwnerOnlyVisible ?? d.providerAuthConfig.isOwnerOnlyVisible

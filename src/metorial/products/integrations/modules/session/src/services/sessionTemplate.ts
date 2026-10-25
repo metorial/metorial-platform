@@ -36,6 +36,7 @@ import {
 import { providerToolService } from '@metorial-subspace/module-catalog';
 import { checkToolAccess } from '@metorial-subspace/module-provider-internal';
 import {
+  assertCanChangeOwnerLock,
   assertCanChangeOwnerOnlyVisibility,
   assertCanSeeOwnedResource,
   canSeeOwnedResource,
@@ -203,6 +204,8 @@ export type UpdateSessionTemplateParams = {
     description?: string;
     metadata?: Record<string, any>;
     privateMetadata?: Record<string, any>;
+    source?: 'explorer';
+    isOwnerLocked?: boolean;
     isOwnerOnlyVisible?: boolean;
   };
   _allowLinked?: boolean;
@@ -592,6 +595,13 @@ class sessionTemplateServiceImpl {
 
     let scope = await resolveMetorialFacing(d);
 
+    await assertCanChangeOwnerLock(
+      await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+      d.template,
+      d.input.isOwnerLocked,
+      { resource: 'session template' }
+    );
+
     await assertCanChangeOwnerOnlyVisibility(
       await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
       d.template,
@@ -641,6 +651,8 @@ class sessionTemplateServiceImpl {
           description: d.input.description,
           metadata: d.input.metadata,
           privateMetadata: d.input.privateMetadata,
+          source: d.input.source,
+          isOwnerLocked: d.input.isOwnerLocked,
           isOwnerOnlyVisible: d.input.isOwnerOnlyVisible
         },
         include

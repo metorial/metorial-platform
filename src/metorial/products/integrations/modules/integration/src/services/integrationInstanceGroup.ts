@@ -40,6 +40,7 @@ import {
 import { enqueueSyncIntegrationInstanceGroupSessionTemplate } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate';
 import { type SessionProviderTemplateInput } from '@metorial-subspace/module-session/src/services/sessionProviderInput';
 import {
+  assertCanChangeOwnerLock,
   assertCanChangeOwnerOnlyVisibility,
   assertCanSeeOwnedResource,
   assertCanUseOwnedResource,
@@ -59,7 +60,10 @@ import {
   integrationInstanceGroupCreatedQueue,
   integrationInstanceGroupUpdatedQueue
 } from '../queues/lifecycle/integrationInstanceGroup';
-import { setIntegrationInstanceGroupOwnerOnlyVisibility } from '../lib/ownerLock';
+import {
+  setIntegrationInstanceGroupOwnerLock,
+  setIntegrationInstanceGroupOwnerOnlyVisibility
+} from '../lib/ownerLock';
 import { integrationInstanceProviderInclude } from './integrationInstance';
 import {
   integrationInstanceGroupProviderService,
@@ -214,6 +218,8 @@ export type UpdateIntegrationInstanceGroupParams = {
     identityActorId?: string | null;
     identityId?: string | null;
     providers?: SetIntegrationInstanceGroupProviderInput[];
+    source?: 'explorer';
+    isOwnerLocked?: boolean;
     isOwnerOnlyVisible?: boolean;
   };
 };
@@ -721,6 +727,13 @@ class integrationInstanceGroupServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
+    await assertCanChangeOwnerLock(
+      await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+      d.integrationInstanceGroup,
+      d.input.isOwnerLocked,
+      { resource: 'integration instance group' }
+    );
+
     await assertCanChangeOwnerOnlyVisibility(
       await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
       d.integrationInstanceGroup,
@@ -784,11 +797,23 @@ class integrationInstanceGroupServiceImpl {
             d.input.privateMetadata === undefined
               ? d.integrationInstanceGroup.privateMetadata
               : d.input.privateMetadata,
+          source: d.input.source,
+          isOwnerLocked: d.input.isOwnerLocked,
           isOwnerOnlyVisible:
             d.input.isOwnerOnlyVisible ?? d.integrationInstanceGroup.isOwnerOnlyVisible
         },
         include: integrationInstanceGroupInclude
       });
+
+      if (
+        d.input.isOwnerLocked !== undefined &&
+        d.input.isOwnerLocked !== d.integrationInstanceGroup.isOwnerLocked
+      ) {
+        await setIntegrationInstanceGroupOwnerLock(
+          integrationInstanceGroup,
+          d.input.isOwnerLocked
+        );
+      }
 
       if (
         d.input.isOwnerOnlyVisible !== undefined &&

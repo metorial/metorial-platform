@@ -89,7 +89,7 @@ export let v1ProviderAuthConfigPresenter = Presenter.create(providerAuthConfigTy
         name: 'type',
         description: 'Authentication type'
       }),
-      source: v.enumOf(['manual', 'setup_session', 'system'], {
+      source: v.enumOf(['manual', 'setup_session', 'system', 'explorer'], {
         name: 'source',
         description: 'Auth config source'
       }),

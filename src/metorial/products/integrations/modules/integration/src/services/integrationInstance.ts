@@ -292,6 +292,7 @@ export type UpdateIntegrationInstanceParams = {
     identityId?: string | null;
     providers?: SetIntegrationInstanceProviderInput[];
     isOwnerLocked?: boolean;
+    source?: 'explorer';
     isOwnerOnlyVisible?: boolean;
   };
   ownershipAccessor?: OwnershipAccessor;
@@ -1039,6 +1040,7 @@ class integrationInstanceServiceImpl {
             d.input.privateMetadata === undefined
               ? d.integrationInstance.privateMetadata
               : d.input.privateMetadata,
+          source: d.input.source,
           identityActorOid: actor?.oid ?? null,
           identityOid: identity?.oid ?? null
         },

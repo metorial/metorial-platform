@@ -55,6 +55,9 @@ export let createSessionRecord = async (d: {
   inheritProviderOwner?: boolean;
   isSystemOwned?: boolean;
   input: {
+    source?: 'explorer';
+    isOwnerLocked?: boolean;
+    isOwnerOnlyVisible?: boolean;
     name?: string;
     description?: string;
     metadata?: Record<string, any>;
@@ -91,11 +94,13 @@ export let createSessionRecord = async (d: {
     ? d.owner.ownerActorOid
     : (resolved.template?.ownerActorOid ?? providerOwner?.ownerActorOid ?? null);
   let isOwnerLocked =
+    !!d.input.isOwnerLocked ||
     (d.owner ? d.owner.isOwnerLocked : !!resolved.template?.isOwnerLocked) ||
     hasOwnerLockedProvider(resolved.providers);
   let isOwnerOnlyVisible =
     !!ownerActorOid &&
-    ((d.owner ? !!d.owner.isOwnerOnlyVisible : !!resolved.template?.isOwnerOnlyVisible) ||
+    (!!d.input.isOwnerOnlyVisible ||
+      (d.owner ? !!d.owner.isOwnerOnlyVisible : !!resolved.template?.isOwnerOnlyVisible) ||
       hasOwnerOnlyVisibleProvider(resolved.providers));
 
   return withTransaction(async db => {
@@ -124,6 +129,7 @@ export let createSessionRecord = async (d: {
         instanceOid: d.environment.instanceOid,
         identityActorOid: d.identityActorOid ?? templateIdentity?.identityActorOid ?? null,
         identityOid: d.identityOid ?? templateIdentity?.identityOid ?? null,
+        source: d.input.source,
         ownerActorOid,
         isOwnerLocked,
         isOwnerOnlyVisible,

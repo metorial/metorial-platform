@@ -278,6 +278,18 @@ export let integrationInstanceController = Controller.create(
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
+        'mt_2026_01_01_magnetar',
+        v.object({
+          name: v.optional(v.string()),
+          description: v.optional(v.nullable(v.string())),
+          metadata: v.optional(v.nullable(v.record(v.any()))),
+          identity_actor_id: v.optional(v.nullable(v.string())),
+          identity_id: v.optional(v.nullable(v.string())),
+          providers: v.optional(v.array(integrationInstanceProviderInputValidator))
+        }),
+        v => v
+      )
+      .body(
         'default',
         v.object({
           name: v.optional(v.string()),
@@ -286,18 +298,10 @@ export let integrationInstanceController = Controller.create(
           identity_actor_id: v.optional(v.nullable(v.string())),
           identity_id: v.optional(v.nullable(v.string())),
           providers: v.optional(v.array(integrationInstanceProviderInputValidator)),
-          is_owner_locked: v.optional(
-            v.boolean({
-              description:
-                'Lock this resource to its owner. Anyone allowed to use the resource can lock it; only the owner can unlock it.'
-            })
-          ),
-          is_owner_only_visible: v.optional(
-            v.boolean({
-              description:
-                'Only show this resource to its owner when ownership is enforced. Anyone allowed to use the resource can enable it; only the owner can disable it.'
-            })
-          )
+          source: v.optional(v.enumOf(['explorer']), {
+            description:
+              'Mark this resource as originating from the dashboard explorer and enable its owner lock and owner-only visibility.'
+          })
         })
       )
       .output(integrationInstancePresenter)
@@ -312,8 +316,9 @@ export let integrationInstanceController = Controller.create(
             description: ctx.body.description,
             metadata: ctx.body.metadata,
             identityActorId: ctx.body.identity_actor_id,
-            isOwnerLocked: ctx.body.is_owner_locked,
-            isOwnerOnlyVisible: ctx.body.is_owner_only_visible,
+            source: ctx.body.source,
+            isOwnerLocked: ctx.body.source === 'explorer' ? true : undefined,
+            isOwnerOnlyVisible: ctx.body.source === 'explorer' ? true : undefined,
             identityId: ctx.body.identity_id,
             providers: ctx.body.providers?.map(provider => ({
               providerId: provider.provider_id,

@@ -50,6 +50,8 @@ model ProviderConfig {
   owningIntegrationInstanceProviderOid BigInt?
   owningIntegrationInstanceProvider    IntegrationInstanceProvider? @relation(fields: [owningIntegrationInstanceProviderOid], references: [oid])
 
+  source IntegrationResourceSource?
+
   isOwnerLocked      Boolean @default(false)
   isOwnerOnlyVisible Boolean @default(false)
   isSystemOwned      Boolean @default(false)

@@ -79,6 +79,8 @@ model ProviderSetupSession {
   identityOid BigInt?
   identity    Identity? @relation(fields: [identityOid], references: [oid], onDelete: Cascade)
 
+  source IntegrationResourceSource?
+
   isOwnerLocked      Boolean @default(false)
   isOwnerOnlyVisible Boolean @default(false)
   isSystemOwned      Boolean @default(false)

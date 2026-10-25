@@ -27,6 +27,7 @@ import {
   resolveSessionTemplates
 } from '@metorial-subspace/list-utils';
 import {
+  assertCanChangeOwnerLock,
   assertCanChangeOwnerOnlyVisibility,
   assertCanSeeOwnedResource,
   assertCanUseOwnedResource,
@@ -129,6 +130,9 @@ export type CreateSessionParams = {
     metadata?: Record<string, any>;
     privateMetadata?: Record<string, any>;
     isSystemOwned?: boolean;
+    source?: 'explorer';
+    isOwnerLocked?: boolean;
+    isOwnerOnlyVisible?: boolean;
 
     providers: SessionProviderInput[];
   };
@@ -148,6 +152,8 @@ export type UpdateSessionParams = {
     description?: string;
     metadata?: Record<string, any>;
     privateMetadata?: Record<string, any>;
+    source?: 'explorer';
+    isOwnerLocked?: boolean;
     isOwnerOnlyVisible?: boolean;
   };
   _allowMagicMcpUpdate?: boolean;
@@ -506,6 +512,13 @@ class sessionServiceImpl {
 
     let scope = await resolveMetorialFacing(d);
 
+    await assertCanChangeOwnerLock(
+      await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+      d.session,
+      d.input.isOwnerLocked,
+      { resource: 'session' }
+    );
+
     await assertCanChangeOwnerOnlyVisibility(
       await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
       d.session,
@@ -560,6 +573,8 @@ class sessionServiceImpl {
           description: d.input.description ?? d.session.description,
           metadata: d.input.metadata ?? d.session.metadata,
           privateMetadata: d.input.privateMetadata ?? d.session.privateMetadata,
+          source: d.input.source,
+          isOwnerLocked: d.input.isOwnerLocked,
           isOwnerOnlyVisible: d.input.isOwnerOnlyVisible
         },
         include

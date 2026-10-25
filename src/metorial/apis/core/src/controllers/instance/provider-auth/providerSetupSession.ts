@@ -14,7 +14,7 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { providerSetupSessionPresenter } from '@metorial/presenters';
-import { getOwnershipActor, resolveOwnedByCaller } from '../../../lib/ownershipActor';
+import { getOwnershipActor, resolveExplorerOwner } from '../../../lib/ownershipActor';
 
 let providerSetupSessionConfigurationValidator = v.optional(
   v.object({
@@ -292,12 +292,10 @@ export let providerSetupSessionController = Controller.create(
             })
           ),
           configuration: providerSetupSessionConfigurationValidator,
-          owned_by_caller: v.optional(
-            v.boolean({
-              description:
-                'Make the calling organization member the owner of this setup session and the resources it creates. Only has an effect when ownership is enforced for the project.'
-            })
-          )
+          source: v.optional(v.enumOf(['explorer']), {
+            description:
+              'Create an owner-locked resource visible only to the caller from the dashboard explorer.'
+          })
         })
       )
       .output(providerSetupSessionPresenter)
@@ -327,12 +325,15 @@ export let providerSetupSessionController = Controller.create(
             })
           : undefined;
 
-        let ownerActorId = await resolveOwnedByCaller(ctx, ctx.body.owned_by_caller);
+        let ownerActorId = await resolveExplorerOwner(ctx, ctx.body.source);
 
         let setupSession = await providerSetupSessionService.createProviderSetupSession({
           instance: ctx.instance,
           auditScope: ctx.auditScope,
           ownerActorId,
+          source: ctx.body.source,
+          isOwnerLocked: ctx.body.source === 'explorer' ? true : undefined,
+          isOwnerOnlyVisible: ctx.body.source === 'explorer' ? true : undefined,
           provider,
           providerDeployment,
           credentials,

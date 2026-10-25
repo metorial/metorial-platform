@@ -5,6 +5,7 @@ enum ProviderAuthConfigType {
 }
 
 enum ProviderAuthConfigSource {
+  explorer
   manual
   setup_session
   system

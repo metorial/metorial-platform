@@ -502,6 +502,7 @@ class MagicMcpEndpointImpl {
       description?: string | null;
       metadata?: Record<string, unknown> | null;
       enableSkillEditing?: boolean;
+      source?: 'explorer';
       isOwnerLocked?: boolean;
       isOwnerOnlyVisible?: boolean;
     };
@@ -573,6 +574,7 @@ class MagicMcpEndpointImpl {
             d.input.description === undefined ? d.endpoint.description : d.input.description,
           metadata: d.input.metadata === undefined ? d.endpoint.metadata : d.input.metadata,
           enableSkillEditing: d.input.enableSkillEditing,
+          source: d.input.source,
           isOwnerLocked: nextIsOwnerLocked,
           isOwnerOnlyVisible: nextIsOwnerOnlyVisible
         },

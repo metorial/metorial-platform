@@ -78,6 +78,32 @@ describe('createSessionRecord double writes', () => {
     });
   });
 
+  it.each([true, false])(
+    'stores explorer provenance independently of ownership flags (%s)',
+    async enabled => {
+      await createSessionRecord({
+        tenant: linkedTenant as any,
+        environment: linkedEnvironment as any,
+        isEphemeral: false,
+        owner: { ownerActorOid: 5n, isOwnerLocked: false },
+        input: {
+          providers: [],
+          source: 'explorer',
+          isOwnerLocked: enabled,
+          isOwnerOnlyVisible: enabled
+        },
+        resolvedProviders: { template: null, providers: [] } as any
+      });
+
+      expect(createdData()).toMatchObject({
+        source: 'explorer',
+        ownerActorOid: 5n,
+        isOwnerLocked: enabled,
+        isOwnerOnlyVisible: enabled
+      });
+    }
+  );
+
   it('mirrors the tenant and environment references onto the session', async () => {
     await run({ tenant: linkedTenant, environment: linkedEnvironment });
 

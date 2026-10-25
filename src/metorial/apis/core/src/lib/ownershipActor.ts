@@ -22,7 +22,7 @@ export let getOwnershipActor = (ctx: {
 
 let DASHBOARD_SURFACE_IDENTIFIER = 'dashboard';
 
-export let resolveOwnedByCaller = async (
+export let resolveExplorerOwner = async (
   ctx: {
     actor?: OrganizationActor | null;
     consumerProfile?: object | null;
@@ -31,9 +31,9 @@ export let resolveOwnedByCaller = async (
     user?: User | null;
     auditScope: AuditScope;
   },
-  ownedByCaller: boolean | undefined
+  source: 'explorer' | undefined
 ) => {
-  if (!ownedByCaller) return undefined;
+  if (source !== 'explorer') return undefined;
 
   let organizationActor = getOwnershipActor(ctx);
   let ownershipAccess = await ownershipAccessService.getOwnershipAccess({
@@ -46,7 +46,7 @@ export let resolveOwnedByCaller = async (
     throw new ServiceError(
       badRequestError({
         message: 'Only organization members can own resources.',
-        description: 'owned_by_caller can only be used when authenticated as a member.'
+        description: 'Explorer resources can only be owned when authenticated as a member.'
       })
     );
   }

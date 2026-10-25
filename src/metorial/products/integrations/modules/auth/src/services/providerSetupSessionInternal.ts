@@ -53,6 +53,7 @@ class providerSetupSessionInternalServiceImpl {
     };
     credentials?: ProviderAuthCredentials;
     ownerActorOid?: bigint | null;
+    source?: 'explorer';
     isOwnerLocked?: boolean;
     isOwnerOnlyVisible?: boolean;
     ownerPublicMcpServerOid?: bigint | null;
@@ -195,6 +196,7 @@ class providerSetupSessionInternalServiceImpl {
                 providerDeployment: d.providerDeployment,
                 credentials,
                 authMethod,
+                source: d.source,
                 ownerActorOid: d.ownerActorOid,
                 isOwnerLocked: d.isOwnerLocked,
                 isOwnerOnlyVisible: d.isOwnerOnlyVisible,
@@ -245,6 +247,7 @@ class providerSetupSessionInternalServiceImpl {
             environment: d.environment,
             provider: d.provider,
             providerDeployment: d.providerDeployment,
+            source: d.source,
             ownerActorOid: d.ownerActorOid,
             isOwnerLocked: d.isOwnerLocked,
             isOwnerOnlyVisible: d.isOwnerOnlyVisible,
@@ -285,6 +288,7 @@ class providerSetupSessionInternalServiceImpl {
     credentials?: ProviderAuthCredentials;
     authMethod: ProviderAuthMethod;
     ownerActorOid?: bigint | null;
+    source?: 'explorer';
     isOwnerLocked?: boolean;
     isOwnerOnlyVisible?: boolean;
     ownerPublicMcpServerOid?: bigint | null;
@@ -367,7 +371,7 @@ class providerSetupSessionInternalServiceImpl {
         isOwnerLocked: d.isOwnerLocked,
         isOwnerOnlyVisible: d.isOwnerOnlyVisible,
         import: d.import,
-        source: d.ownerPublicMcpServerOid ? 'public_mcp' : 'setup_session',
+        source: d.source ?? (d.ownerPublicMcpServerOid ? 'public_mcp' : 'setup_session'),
         input: {
           name: d.input.name,
           description: d.input.description,
@@ -419,6 +423,7 @@ class providerSetupSessionInternalServiceImpl {
         (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null }) | null;
     };
     ownerActorOid?: bigint | null;
+    source?: 'explorer';
     isOwnerLocked?: boolean;
     isOwnerOnlyVisible?: boolean;
     ownerPublicMcpServerOid?: bigint | null;
@@ -443,6 +448,7 @@ class providerSetupSessionInternalServiceImpl {
       environment: d.environment,
       provider: d.provider,
       providerDeployment: d.providerDeployment,
+      source: d.source,
       ownerActorOid: d.ownerActorOid,
       isOwnerLocked: d.isOwnerLocked,
       isOwnerOnlyVisible: d.isOwnerOnlyVisible,

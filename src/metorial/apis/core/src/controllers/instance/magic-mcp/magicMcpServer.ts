@@ -886,24 +886,26 @@ export let magicMcpServerController = Controller.create(
         })
       )
       .body(
+        'mt_2026_01_01_magnetar',
+        v.object({
+          name: v.optional(v.string()),
+          description: v.optional(v.string()),
+          metadata: v.optional(v.record(v.any())),
+          aliases: v.optional(v.array(v.string()))
+        }),
+        v => v
+      )
+      .body(
         'default',
         v.object({
           name: v.optional(v.string()),
           description: v.optional(v.string()),
           metadata: v.optional(v.record(v.any())),
           aliases: v.optional(v.array(v.string())),
-          is_owner_locked: v.optional(
-            v.boolean({
-              description:
-                'Lock this resource to its owner. Anyone allowed to use the resource can lock it; only the owner can unlock it.'
-            })
-          ),
-          is_owner_only_visible: v.optional(
-            v.boolean({
-              description:
-                'Only show this resource to its owner when ownership is enforced. Anyone allowed to use the resource can enable it; only the owner can disable it.'
-            })
-          )
+          source: v.optional(v.enumOf(['explorer']), {
+            description:
+              'Mark this resource as originating from the dashboard explorer and enable its owner lock and owner-only visibility.'
+          })
         })
       )
       .output(magicMcpServerPresenter)
@@ -927,8 +929,9 @@ export let magicMcpServerController = Controller.create(
             description: ctx.body.description,
             metadata: ctx.body.metadata,
             aliases: ctx.body.aliases,
-            isOwnerLocked: ctx.body.is_owner_locked,
-            isOwnerOnlyVisible: ctx.body.is_owner_only_visible
+            source: ctx.body.source,
+            isOwnerLocked: ctx.body.source === 'explorer' ? true : undefined,
+            isOwnerOnlyVisible: ctx.body.source === 'explorer' ? true : undefined
           }
         });
 

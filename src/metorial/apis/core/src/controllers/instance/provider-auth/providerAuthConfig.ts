@@ -12,7 +12,7 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { providerAuthConfigPresenter } from '@metorial/presenters';
 import { toolFiltersValidator } from '../sessions/_shared';
-import { getOwnershipActor, resolveOwnedByCaller } from '../../../lib/ownershipActor';
+import { getOwnershipActor, resolveExplorerOwner } from '../../../lib/ownershipActor';
 
 let providerAuthConfigGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerAuthConfigId) {
@@ -185,12 +185,7 @@ export let providerAuthConfigController = Controller.create(
             { description: 'Custom key-value pairs for storing additional information' }
           ),
           tool_filters: toolFiltersValidator,
-          is_owner_locked: v.optional(
-            v.boolean({
-              description:
-                'Lock this resource to its owner. Anyone allowed to use the resource can lock it; only the owner can unlock it.'
-            })
-          ),
+
           provider_auth_method_id: v.string({
             examples: ['pam_2mNpQrStUvWxYzAb'],
             description: 'The authentication method this config uses (e.g., OAuth, API key)'
@@ -211,6 +206,7 @@ export let providerAuthConfigController = Controller.create(
         }),
         v => v
       )
+
       .body(
         'default',
         v.object({
@@ -225,18 +221,11 @@ export let providerAuthConfigController = Controller.create(
             { description: 'Custom key-value pairs for storing additional information' }
           ),
           tool_filters: toolFiltersValidator,
-          owned_by_caller: v.optional(
-            v.boolean({
-              description:
-                'Make the calling organization member the owner of this resource. Only has an effect when ownership is enforced for the project.'
-            })
-          ),
-          is_owner_locked: v.optional(
-            v.boolean({
-              description:
-                'Lock this resource to its owner. Anyone allowed to use the resource can lock it; only the owner can unlock it.'
-            })
-          ),
+
+          source: v.optional(v.enumOf(['explorer']), {
+            description:
+              'Mark this resource as originating from the dashboard explorer and enable its owner lock and owner-only visibility.'
+          }),
           provider_auth_method_id: v.string({
             examples: ['pam_2mNpQrStUvWxYzAb'],
             description: 'The authentication method this config uses (e.g., OAuth, API key)'
@@ -273,16 +262,17 @@ export let providerAuthConfigController = Controller.create(
             })
           : undefined;
 
-        let ownerActorId = await resolveOwnedByCaller(ctx, ctx.body.owned_by_caller);
+        let ownerActorId = await resolveExplorerOwner(ctx, ctx.body.source);
 
         let authConfig = await providerAuthConfigService.createProviderAuthConfig({
           instance: ctx.instance,
           auditScope: ctx.auditScope,
           provider,
           providerDeployment,
-          source: 'manual',
           ownerActorId,
-          isOwnerLocked: ctx.body.is_owner_locked,
+          source: ctx.body.source ?? 'manual',
+          isOwnerLocked: ctx.body.source === 'explorer' ? true : undefined,
+          isOwnerOnlyVisible: ctx.body.source === 'explorer' ? true : undefined,
           import: {
             ip: ctx.context.ip,
             ua: ctx.context.ua ?? ''
@@ -315,6 +305,23 @@ export let providerAuthConfigController = Controller.create(
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
       .body(
+        'mt_2026_01_01_magnetar',
+        v.object({
+          name: v.optional(v.string({ examples: ['Updated Auth Config Name'] })),
+          description: v.optional(
+            v.string({ examples: ['Updated description for auth configuration'] })
+          ),
+          metadata: v.optional(
+            v.record(v.any(), {
+              examples: [{ connected_by: 'alex@company.com', purpose: 'production' }]
+            }),
+            { description: 'Custom key-value pairs for storing additional information' }
+          ),
+          tool_filters: toolFiltersValidator
+        }),
+        v => v
+      )
+      .body(
         'default',
         v.object({
           name: v.optional(v.string({ examples: ['Updated Auth Config Name'] })),
@@ -328,18 +335,10 @@ export let providerAuthConfigController = Controller.create(
             { description: 'Custom key-value pairs for storing additional information' }
           ),
           tool_filters: toolFiltersValidator,
-          is_owner_locked: v.optional(
-            v.boolean({
-              description:
-                'Lock this resource to its owner. Anyone allowed to use the resource can lock it; only the owner can unlock it.'
-            })
-          ),
-          is_owner_only_visible: v.optional(
-            v.boolean({
-              description:
-                'Hide this resource from everyone except its owner. Only available for owned resources when ownership is enforced for the project.'
-            })
-          )
+          source: v.optional(v.enumOf(['explorer']), {
+            description:
+              'Mark this resource as originating from the dashboard explorer and enable its owner lock and owner-only visibility.'
+          })
         })
       )
       .output(providerAuthConfigPresenter)
@@ -357,8 +356,9 @@ export let providerAuthConfigController = Controller.create(
             name: ctx.body.name,
             description: ctx.body.description,
             metadata: ctx.body.metadata,
-            isOwnerLocked: ctx.body.is_owner_locked,
-            isOwnerOnlyVisible: ctx.body.is_owner_only_visible,
+            source: ctx.body.source,
+            isOwnerLocked: ctx.body.source === 'explorer' ? true : undefined,
+            isOwnerOnlyVisible: ctx.body.source === 'explorer' ? true : undefined,
             ...(ctx.body.tool_filters !== undefined
               ? { toolFilters: normalizeToolFilters(ctx.body.tool_filters as any) }
               : {})

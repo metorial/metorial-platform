@@ -105,6 +105,7 @@ export type CreateProviderConfigParams = {
       (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null }) | null;
   };
   ownerActorOid?: bigint | null;
+  source?: 'explorer';
   isOwnerLocked?: boolean;
   isOwnerOnlyVisible?: boolean;
   isSystemOwned?: boolean;
@@ -141,6 +142,7 @@ export type UpdateProviderConfigParams = {
     privateMetadata?: Record<string, any>;
     toolFilters?: PrismaJson.ToolFilter | null;
     isOwnerLocked?: boolean;
+    source?: 'explorer';
     isOwnerOnlyVisible?: boolean;
   };
 };
@@ -621,6 +623,7 @@ class providerConfigServiceImpl {
 
         deploymentOid: d.providerDeployment?.oid,
         ownerActorOid: d.isSystemOwned ? null : d.ownerActorOid,
+        source: d.source,
         isOwnerLocked: !!d.isOwnerLocked,
         isOwnerOnlyVisible: !!d.isOwnerOnlyVisible && !d.isSystemOwned,
         isSystemOwned: !!d.isSystemOwned
@@ -866,6 +869,7 @@ class providerConfigServiceImpl {
             d.input.toolFilters || d.input.toolFilters === null
               ? normalizeToolFilters(d.input.toolFilters)
               : d.providerConfig.toolFilter,
+          source: d.input.source,
           isOwnerLocked: d.input.isOwnerLocked ?? d.providerConfig.isOwnerLocked,
           isOwnerOnlyVisible: d.input.isOwnerOnlyVisible ?? d.providerConfig.isOwnerOnlyVisible
         },

@@ -17,6 +17,7 @@ let { db } = vi.hoisted(() => {
 vi.mock('@metorial-subspace/db', () => ({ db }));
 
 import {
+  setIntegrationInstanceGroupOwnerLock,
   setIntegrationInstanceGroupOwnerOnlyVisibility,
   setIntegrationInstanceOwnerLock,
   setIntegrationInstanceOwnerOnlyVisibility
@@ -86,5 +87,24 @@ describe('owner flag cascade', () => {
       where: { sessionTemplateOid: { in: [7n] }, isOwnerOnlyVisible: true },
       data: { isOwnerOnlyVisible: false }
     });
+  });
+});
+
+it('cascades the group owner lock to templates and ephemeral sessions', async () => {
+  db.sessionTemplate.findMany.mockResolvedValue([{ oid: 7n }]);
+
+  await setIntegrationInstanceGroupOwnerLock({ oid: 2n }, true);
+
+  expect(db.integrationInstanceGroup.update).toHaveBeenCalledWith({
+    where: { oid: 2n },
+    data: { isOwnerLocked: true }
+  });
+  expect(db.sessionTemplate.updateMany).toHaveBeenCalledWith({
+    where: { oid: { in: [7n] }, isOwnerLocked: false },
+    data: { isOwnerLocked: true }
+  });
+  expect(db.ephemeralManagedSession.updateMany).toHaveBeenCalledWith({
+    where: { sessionTemplateOid: { in: [7n] }, isOwnerLocked: false },
+    data: { isOwnerLocked: true }
   });
 });

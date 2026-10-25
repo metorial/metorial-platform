@@ -26,7 +26,7 @@ import {
   type SessionProviderConfigSource,
   type SessionProviderDeploymentSource
 } from './_providerInput';
-import { getOwnershipActor, resolveOwnedByCaller } from '../../../lib/ownershipActor';
+import { getOwnershipActor, resolveExplorerOwner } from '../../../lib/ownershipActor';
 
 let sessionGroup = instanceGroup
   .use(requireFineGrainedSessionParam('sessionId')())
@@ -292,18 +292,15 @@ export let sessionController = Controller.create(
           description: v.optional(v.string()),
           metadata: v.optional(v.record(v.any())),
           providers: v.array(providerInput),
-          owned_by_caller: v.optional(v.boolean(), {
+          source: v.optional(v.enumOf(['explorer']), {
             description:
-              'Whether the session and the configs created with it belong to the calling organization member. Only applies when ownership is enforced for the project.'
+              'Create an owner-locked resource visible only to the caller from the dashboard explorer.'
           })
         })
       )
       .output(providerSessionPresenter)
       .do(async ctx => {
-        let ownerActorId = await resolveOwnedByCaller(
-          ctx,
-          'owned_by_caller' in ctx.body ? ctx.body.owned_by_caller : undefined
-        );
+        let ownerActorId = await resolveExplorerOwner(ctx, ctx.body.source);
 
         let subspaceSession = await sessionService.createSession({
           instance: ctx.instance,
@@ -311,6 +308,9 @@ export let sessionController = Controller.create(
           organizationActor: getOwnershipActor(ctx),
           ownerActorId,
           input: {
+            source: ctx.body.source,
+            isOwnerLocked: ctx.body.source === 'explorer' ? true : undefined,
+            isOwnerOnlyVisible: ctx.body.source === 'explorer' ? true : undefined,
             name: ctx.body.name ?? `Session ${new Date().toISOString()}`,
             description: ctx.body.description,
             metadata: ctx.body.metadata,
@@ -320,6 +320,7 @@ export let sessionController = Controller.create(
                   instance: ctx.instance,
                   auditScope: ctx.auditScope,
                   ownerActorId,
+                  source: ctx.body.source,
                   providerDeployment: mapSessionDeploymentSource(p),
                   providerConfig: mapSessionConfigSource(p),
                   providerAuthConfig: mapSessionAuthConfigSource(p),
@@ -352,6 +353,17 @@ export let sessionController = Controller.create(
         })
       )
       .body(
+        'mt_2026_01_01_magnetar',
+        v.object({
+          name: v.optional(v.string({ examples: ['My updated session'] })),
+          description: v.optional(v.string({ examples: ['Updated session description'] })),
+          metadata: v.optional(v.record(v.any()), {
+            description: 'Custom key-value pairs for storing additional information'
+          })
+        }),
+        v => v
+      )
+      .body(
         'default',
         v.object({
           name: v.optional(v.string({ examples: ['My updated session'] })),
@@ -359,9 +371,9 @@ export let sessionController = Controller.create(
           metadata: v.optional(v.record(v.any()), {
             description: 'Custom key-value pairs for storing additional information'
           }),
-          is_owner_only_visible: v.optional(v.boolean(), {
+          source: v.optional(v.enumOf(['explorer']), {
             description:
-              'Whether the session is only visible to its owner. Only applies when ownership is enforced for the project.'
+              'Mark this resource as originating from the dashboard explorer and enable its owner lock and owner-only visibility.'
           })
         })
       )
@@ -376,7 +388,9 @@ export let sessionController = Controller.create(
             name: ctx.body.name,
             description: ctx.body.description,
             metadata: ctx.body.metadata,
-            isOwnerOnlyVisible: ctx.body.is_owner_only_visible
+            source: ctx.body.source,
+            isOwnerLocked: ctx.body.source === 'explorer' ? true : undefined,
+            isOwnerOnlyVisible: ctx.body.source === 'explorer' ? true : undefined
           }
         });
 

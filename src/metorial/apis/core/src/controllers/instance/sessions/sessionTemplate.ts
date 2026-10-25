@@ -181,6 +181,17 @@ export let sessionTemplateController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
+        'mt_2026_01_01_magnetar',
+        v.object({
+          name: v.optional(v.string({ examples: ['Updated Template Name'] })),
+          description: v.optional(v.string({ examples: ['Updated description'] })),
+          metadata: v.optional(v.record(v.any(), { examples: [{ environment: 'staging' }] }), {
+            description: 'Custom key-value pairs for storing additional information'
+          })
+        }),
+        v => v
+      )
+      .body(
         'default',
         v.object({
           name: v.optional(v.string({ examples: ['Updated Template Name'] })),
@@ -188,9 +199,9 @@ export let sessionTemplateController = Controller.create(
           metadata: v.optional(v.record(v.any(), { examples: [{ environment: 'staging' }] }), {
             description: 'Custom key-value pairs for storing additional information'
           }),
-          is_owner_only_visible: v.optional(v.boolean(), {
+          source: v.optional(v.enumOf(['explorer']), {
             description:
-              'Whether the session template is only visible to its owner. Only applies when ownership is enforced for the project.'
+              'Mark this resource as originating from the dashboard explorer and enable its owner lock and owner-only visibility.'
           })
         })
       )
@@ -205,7 +216,9 @@ export let sessionTemplateController = Controller.create(
             name: ctx.body.name,
             description: ctx.body.description,
             metadata: ctx.body.metadata,
-            isOwnerOnlyVisible: ctx.body.is_owner_only_visible
+            source: ctx.body.source,
+            isOwnerLocked: ctx.body.source === 'explorer' ? true : undefined,
+            isOwnerOnlyVisible: ctx.body.source === 'explorer' ? true : undefined
           }
         });
 

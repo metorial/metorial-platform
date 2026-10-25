@@ -19,6 +19,8 @@ model MagicMcpEndpoint {
   consumerProfileOid BigInt?
   consumerProfile    ConsumerProfile? @relation(fields: [consumerProfileOid], references: [oid], onDelete: SetNull)
 
+  source IntegrationResourceSource?
+
   isOwnerLocked      Boolean @default(false)
   isOwnerOnlyVisible Boolean @default(false)
   isSystemOwned      Boolean @default(false)
