@@ -1,4 +1,3 @@
-import type { SecurityReview, SecurityReviewRevision } from '@metorial/state';
 import { Button } from '@metorial/ui';
 import {
   SecurityReviewNotices,
@@ -7,7 +6,14 @@ import {
   SecurityReviewVerdict,
   securityReviewIcons
 } from './assessment';
-import { getReviewRevisions, hasReportContent } from './lib';
+import {
+  getReviewRevisions,
+  getReviewSubject,
+  hasReportContent,
+  isSkillReview,
+  type AnySecurityReview,
+  type AnySecurityReviewRevision
+} from './lib';
 
 export let isSecurityReviewNotFound = (
   error: { data?: { status?: number; code?: string } } | null
@@ -21,15 +27,17 @@ export let SecurityAssessmentBody = ({
   toolCount,
   retry
 }: {
-  review: SecurityReview;
-  revision?: SecurityReviewRevision | null;
+  review: AnySecurityReview;
+  revision?: AnySecurityReviewRevision | null;
   detailed?: boolean;
   versionLabel?: string | null;
   toolCount?: number;
   retry?: { onClick: () => void; loading: boolean; success: boolean };
 }) => {
-  let { current, inProgress, failed } = getReviewRevisions(review);
+  let { current, inProgress, failed } = getReviewRevisions<AnySecurityReviewRevision>(review);
   let shown = revision ?? current;
+  let subject = getReviewSubject(review);
+  let canRetry = isSkillReview(review) || review.maintainedBy == 'organization';
 
   if (shown && !shown.scores && !hasReportContent(shown) && shown.status == 'blocked') {
     let billing = shown.blockReason == 'billing';
@@ -41,12 +49,16 @@ export let SecurityAssessmentBody = ({
         title={
           billing
             ? 'The AI review is blocked by your plan.'
-            : 'AI review is disabled for this project.'
+            : shown.blockReason == 'admin_disabled'
+              ? `AI review is unavailable for this ${subject}.`
+              : 'AI review is disabled for this project.'
         }
         description={
           billing
             ? 'Your organization has reached its security review allowance. Upgrade your plan to resume AI reviews.'
-            : 'This project uses reduced subprocessors. Only deterministic checks run, and provider source is not sent for AI review.'
+            : shown.blockReason == 'admin_disabled'
+              ? 'Only deterministic checks run for it.'
+              : `This project uses reduced subprocessors. Only deterministic checks run, and ${subject} source is not sent for AI review.`
         }
       />
     );
@@ -67,9 +79,13 @@ export let SecurityAssessmentBody = ({
         icon={securityReviewIcons.failed}
         eyebrow="No assessment available"
         title="The review could not finish."
-        description="No score was published. Retry the review once the provider is reachable."
+        description={
+          subject == 'skill'
+            ? 'No score was published. Retry the review to try again.'
+            : 'No score was published. Retry the review once the provider is reachable.'
+        }
         action={
-          retry && review.maintainedBy == 'organization' ? (
+          retry && canRetry ? (
             <Button
               size="2"
               variant="outline"
@@ -85,10 +101,15 @@ export let SecurityAssessmentBody = ({
     );
   }
 
-  return <SecurityReviewProgress revision={inProgress} toolCount={toolCount} />;
+  return (
+    <SecurityReviewProgress revision={inProgress} toolCount={toolCount} subject={subject} />
+  );
 };
 
-export let getDisplayedRevision = (review: SecurityReview) => {
+export let getDisplayedRevision = <R extends AnySecurityReviewRevision>(review: {
+  currentRevision: R | null;
+  inProgressRevision: R | null;
+}) => {
   let { current, inProgress } = getReviewRevisions(review);
   return current ?? inProgress;
 };

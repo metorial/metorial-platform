@@ -1,15 +1,43 @@
-import type { SecurityReview, SecurityReviewRevision } from '@metorial/state';
+import type {
+  SecurityReview,
+  SecurityReviewRevision,
+  SkillSecurityReview,
+  SkillSecurityReviewRevision
+} from '@metorial/state';
 import type { ColorType } from '@metorial/ui';
 import type { SecurityLevel } from '@metorial/ui-product';
 
-type Scores = NonNullable<SecurityReviewRevision['scores']>;
+export type AnySecurityReview = SecurityReview | SkillSecurityReview;
+
+export type AnySecurityReviewRevision = SecurityReviewRevision | SkillSecurityReviewRevision;
+
+type Scores = NonNullable<AnySecurityReviewRevision['scores']>;
 type Report = SecurityReviewRevision['report'];
-type Finding = SecurityReviewRevision['findings'][number];
+type Provenance = NonNullable<AnySecurityReviewRevision['report']['provenance']>;
+type Finding = AnySecurityReviewRevision['findings'][number];
 
 export type SecurityReviewTool = NonNullable<Report['capabilities']>['tools'][number];
 export type SecurityReviewFinding = Finding;
 export type CapabilityTag = SecurityReviewTool['tags'][number];
-export type ReviewStage = NonNullable<SecurityReviewRevision['stage']>;
+export type SkillBehavior = SkillSecurityReviewRevision['report']['behaviors'][number];
+export type BehaviorTag = SkillBehavior['tag'];
+export type ReviewStage = NonNullable<AnySecurityReviewRevision['stage']>;
+export type SkillVerdict = SkillSecurityReview['verdict'];
+
+export let isSkillRevision = (
+  revision: AnySecurityReviewRevision
+): revision is SkillSecurityReviewRevision =>
+  revision.object == 'skill.security_review.revision';
+
+export let isSkillReview = (review: AnySecurityReview): review is SkillSecurityReview =>
+  review.object == 'skill.security_review';
+
+export let getReviewSubject = (
+  target: AnySecurityReview | AnySecurityReviewRevision
+): 'provider' | 'skill' => (target.object.startsWith('skill.') ? 'skill' : 'provider');
+
+export let getPreviousScore = (revision: AnySecurityReviewRevision) =>
+  isSkillRevision(revision) ? null : (revision.scores?.previous ?? null);
 
 export let bandLabels: Record<Scores['band'], string> = {
   strong: 'Strong',
@@ -47,7 +75,7 @@ export let confidenceLevels: Record<Scores['confidence'], SecurityLevel> = {
   high: 'unknown'
 };
 
-export let provenanceLabels: Record<NonNullable<Report['provenance']>['class'], string> = {
+export let provenanceLabels: Record<Provenance['class'], string> = {
   metorial_built: 'Built and Operated by Metorial',
   tenant_code: 'Your Organization’s Code',
   tenant_image: 'Your Organization’s Container Image',
@@ -55,7 +83,12 @@ export let provenanceLabels: Record<NonNullable<Report['provenance']>['class'], 
   tenant_remote_vendor_plausible: 'Vendor Domain Only',
   tenant_remote_third_party: 'Third-Party Server',
   tenant_remote_unverifiable: 'Unverified Host',
-  impersonation_suspected: 'Possible Impersonation'
+  impersonation_suspected: 'Possible Impersonation',
+  tenant_authored: 'Written in Your Organization',
+  imported_public_repo: 'Imported From a Public Repository',
+  imported_private_repo: 'Imported From a Private Repository',
+  uploaded_archive: 'Uploaded Archive',
+  forked: 'Forked Skill'
 };
 
 export let capabilityTags: Record<CapabilityTag, { label: string; level: SecurityLevel }> = {
@@ -71,6 +104,39 @@ export let capabilityTags: Record<CapabilityTag, { label: string; level: Securit
   infrastructure: { label: 'Infrastructure', level: 'critical' }
 };
 
+export let behaviorTags: Record<BehaviorTag, { label: string; level: SecurityLevel }> = {
+  mcp_dependency: { label: 'MCP Dependency', level: 'low' },
+  subagents: { label: 'Subagents', level: 'moderate' },
+  network_egress: { label: 'Network Egress', level: 'moderate' },
+  package_install: { label: 'Package Install', level: 'high' },
+  filesystem_outside_skill: { label: 'Filesystem Outside Skill', level: 'high' },
+  persistence: { label: 'Persistence', level: 'high' },
+  binary_payload: { label: 'Binary Payload', level: 'high' },
+  credential_access: { label: 'Credential Access', level: 'critical' },
+  code_execution: { label: 'Code Execution', level: 'critical' },
+  financial: { label: 'Financial', level: 'critical' }
+};
+
+export let skillVerdicts: Record<
+  SkillVerdict,
+  { label: string; color: ColorType; level: SecurityLevel }
+> = {
+  pass: { label: 'No Known Issues Found', color: 'green', level: 'low' },
+  warn: { label: 'Review Recommended', color: 'yellow', level: 'moderate' },
+  fail: { label: 'Issues Found', color: 'red', level: 'critical' },
+  pending: { label: 'Review Pending', color: 'gray', level: 'unknown' },
+  unavailable: { label: 'Review Unavailable', color: 'gray', level: 'unknown' },
+  dismissed: { label: 'Review Dismissed', color: 'gray', level: 'unknown' }
+};
+
+export let isAiReviewScheduled = (review: SkillSecurityReview) => {
+  let current = review.currentRevision;
+
+  return (
+    review.verdict == 'pending' && !!current && !current.aiGenerated && !current.blockReason
+  );
+};
+
 let levelRank: Record<SecurityLevel, number> = {
   unknown: 0,
   low: 1,
@@ -82,6 +148,9 @@ let levelRank: Record<SecurityLevel, number> = {
 
 export let getToolRank = (tool: SecurityReviewTool) =>
   Math.max(0, ...tool.tags.map(tag => levelRank[capabilityTags[tag].level]));
+
+export let getBehaviorRank = (behavior: SkillBehavior) =>
+  levelRank[behaviorTags[behavior.tag].level];
 
 export let severityLabels: Record<Finding['severity'], string> = {
   info: 'Info',
@@ -105,7 +174,7 @@ export let findingKindLabels: Record<Finding['kind'], string> = {
   positive: 'Positive'
 };
 
-export let triggerLabels: Record<SecurityReviewRevision['trigger'], string> = {
+export let triggerLabels: Record<AnySecurityReviewRevision['trigger'], string> = {
   first_use: 'First use',
   page_open: 'Initial assessment',
   new_version: 'New version',
@@ -114,7 +183,8 @@ export let triggerLabels: Record<SecurityReviewRevision['trigger'], string> = {
   census_changed: 'Tool specification changed',
   scheduled: 'Scheduled review',
   prompt_update: 'Method update',
-  reassess: 'Reassessment'
+  reassess: 'Reassessment',
+  skill_import: 'Skill import'
 };
 
 export let reviewStages: {
@@ -154,15 +224,54 @@ export let reviewStages: {
   }
 ];
 
-export let isRevisionRunning = (revision: SecurityReviewRevision | null | undefined) =>
+export let skillReviewStages: typeof reviewStages = [
+  {
+    id: 'collecting',
+    label: 'Collect Files',
+    description: 'Instructions, scripts, and assets',
+    title: 'Getting the full picture.',
+    detail: 'Gathering the skill instructions, scripts, and bundled files.'
+  },
+  {
+    id: 'verifying',
+    label: 'Verify Origin',
+    description: 'Authorship and source',
+    title: 'Verifying where it comes from.',
+    detail: 'Checking who wrote the skill and where its files were imported from.'
+  },
+  {
+    id: 'analyzing',
+    label: 'Review Behaviors',
+    description: 'What it makes an agent do',
+    title: 'Looking beyond the instructions.',
+    detail: 'Reviewing code execution, network access, credentials, and other behaviors.'
+  },
+  {
+    id: 'writing',
+    label: 'Write Report',
+    description: 'Score and findings',
+    title: 'Turning evidence into a verdict.',
+    detail: 'Validating findings, calculating the score, and writing the report.'
+  }
+];
+
+export let getReviewStages = (subject: 'provider' | 'skill') =>
+  subject == 'skill' ? skillReviewStages : reviewStages;
+
+export let isRevisionRunning = (revision: AnySecurityReviewRevision | null | undefined) =>
   revision?.status == 'queued' || revision?.status == 'running';
 
-export let isDeterministicRevision = (revision: SecurityReviewRevision) =>
+export let isDeterministicRevision = (revision: AnySecurityReviewRevision) =>
   !revision.aiGenerated ||
   revision.blockReason == 'ai_disabled' ||
   revision.blockReason == 'admin_disabled';
 
-export let getReviewRevisions = (review: SecurityReview) => {
+export let getReviewRevisions = <
+  R extends AnySecurityReviewRevision = AnySecurityReviewRevision
+>(review: {
+  currentRevision: R | null;
+  inProgressRevision: R | null;
+}) => {
   let current = review.currentRevision;
   let inProgress = isRevisionRunning(review.inProgressRevision)
     ? review.inProgressRevision
@@ -181,13 +290,16 @@ export let getReviewRevisions = (review: SecurityReview) => {
   };
 };
 
-export let hasReportContent = (revision: SecurityReviewRevision) => {
+export let hasReportContent = (revision: AnySecurityReviewRevision) => {
   let report = revision.report;
+  let hasCapabilities = isSkillRevision(revision)
+    ? revision.report.behaviors.length > 0
+    : !!revision.report.capabilities;
 
   return !!(
     report.summary ||
     report.provenance ||
-    report.capabilities ||
+    hasCapabilities ||
     report.implementation ||
     report.changes ||
     report.method ||

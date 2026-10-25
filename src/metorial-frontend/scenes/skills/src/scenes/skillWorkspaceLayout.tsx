@@ -17,6 +17,7 @@ import {
   RiHistoryLine,
   RiRobot2Line,
   RiSettings3Line,
+  RiShieldCheckLine,
   RiToolsLine
 } from '@remixicon/react';
 import type { ReactNode } from 'react';
@@ -40,6 +41,7 @@ export type SkillWorkspaceRoutes = {
   groups: string;
   versions: string;
   participants: string;
+  security?: string;
 };
 
 export type SkillWorkspaceLayoutProps = {
@@ -60,6 +62,7 @@ export type SkillWorkspaceLayoutProps = {
   allowedIntegrationIds?: string[];
   allowProviders?: boolean;
   readOnly?: boolean;
+  securityBadge?: ReactNode;
   onNameChange?: (name: string) => Promise<void>;
 };
 
@@ -314,6 +317,12 @@ let LinkCount = styled.span`
   color: ${theme.colors.gray600};
   font-size: 11px;
   font-weight: 500;
+`;
+
+let LinkBadge = styled.span`
+  display: inline-flex;
+  margin-left: auto;
+  flex-shrink: 0;
 `;
 
 let ChildLinks = styled.div`
@@ -814,6 +823,16 @@ export let SkillWorkspaceLayout = (p: SkillWorkspaceLayoutProps) => {
               <RiHistoryLine size={16} />
               <LinkLabel>Versions</LinkLabel>
             </SidebarLink>
+            {p.routes.security ? (
+              <SidebarLink
+                $active={isRouteActive(location.pathname, p.routes.security, true)}
+                to={p.routes.security}
+              >
+                <RiShieldCheckLine size={16} />
+                <LinkLabel>Security</LinkLabel>
+                {p.securityBadge ? <LinkBadge>{p.securityBadge}</LinkBadge> : null}
+              </SidebarLink>
+            ) : null}
             <SidebarLink
               $active={isRouteActive(location.pathname, p.routes.participants, true)}
               to={p.routes.participants}

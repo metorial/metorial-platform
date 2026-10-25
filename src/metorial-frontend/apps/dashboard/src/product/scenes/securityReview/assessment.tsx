@@ -1,4 +1,3 @@
-import type { SecurityReview, SecurityReviewRevision } from '@metorial/state';
 import {
   Badge,
   Callout,
@@ -28,9 +27,15 @@ import {
   confidenceLabels,
   confidenceLevels,
   getReviewRevisions,
+  getReviewStages,
+  getReviewSubject,
+  isAiReviewScheduled,
   isDeterministicRevision,
+  isSkillReview,
+  isSkillRevision,
   levelLabels,
-  reviewStages
+  type AnySecurityReview,
+  type AnySecurityReviewRevision
 } from './lib';
 
 let VerdictRow = styled.div`
@@ -171,7 +176,7 @@ let AiLabel = styled.span`
 export let SecurityReviewAiLabel = ({
   revision
 }: {
-  revision: SecurityReviewRevision | null;
+  revision: AnySecurityReviewRevision | null;
 }) => {
   if (revision && isDeterministicRevision(revision)) {
     return (
@@ -205,10 +210,11 @@ export let SecurityReviewVerdict = ({
   revision,
   detailed
 }: {
-  revision: SecurityReviewRevision;
+  revision: AnySecurityReviewRevision;
   detailed?: boolean;
 }) => {
   let scores = revision.scores;
+  let isSkill = isSkillRevision(revision);
   let summary = revision.report.summary;
   let [verdict, reason] = scores?.headline ?? [];
 
@@ -291,7 +297,11 @@ export let SecurityReviewVerdict = ({
             <RiFlashlightLine size={16} />
             <div>
               <AxisTitle>
-                {scores?.confidence == 'low' ? 'Observed Exposure' : 'Tool Exposure'}
+                {scores?.confidence == 'low'
+                  ? 'Observed Exposure'
+                  : isSkill
+                    ? 'Behavior Exposure'
+                    : 'Tool Exposure'}
                 {scores && <AxisStatus>{levelLabels[scores.exposure]}</AxisStatus>}
               </AxisTitle>
               {summary && (
@@ -309,11 +319,16 @@ export let SecurityReviewVerdict = ({
 
 export let SecurityReviewProgress = ({
   revision,
-  toolCount
+  toolCount,
+  subject = 'provider'
 }: {
-  revision: SecurityReviewRevision | null;
+  revision: AnySecurityReviewRevision | null;
   toolCount?: number;
+  subject?: 'provider' | 'skill';
 }) => {
+  let reviewStages = getReviewStages(revision ? getReviewSubject(revision) : subject);
+  let activity = revision && !isSkillRevision(revision) ? revision.activity : null;
+
   let stageIndex = revision?.stage
     ? reviewStages.findIndex(stage => stage.id == revision.stage)
     : -1;
@@ -369,8 +384,7 @@ export let SecurityReviewProgress = ({
 
       <Activity>
         <ActivityDot />
-        {revision?.activity ??
-          (isQueued ? 'Waiting for an available reviewer' : stage?.description)}
+        {activity ?? (isQueued ? 'Waiting for an available reviewer' : stage?.description)}
       </Activity>
     </>
   );
@@ -410,16 +424,18 @@ export let SecurityReviewNotices = ({
   revision,
   versionLabel
 }: {
-  review: SecurityReview;
-  revision: SecurityReviewRevision;
+  review: AnySecurityReview;
+  revision: AnySecurityReviewRevision;
   versionLabel?: string | null;
 }) => {
-  let { inProgress } = getReviewRevisions(review);
+  let { inProgress } = getReviewRevisions<AnySecurityReviewRevision>(review);
   let isCurrent = review.currentRevision?.id == revision.id;
+  let subject = getReviewSubject(review);
   let notices: React.ReactNode[] = [];
 
   if (inProgress && isCurrent) {
-    let stage = reviewStages.find(stage => stage.id == inProgress.stage);
+    let stage = getReviewStages(subject).find(stage => stage.id == inProgress.stage);
+    let activity = isSkillRevision(inProgress) ? null : inProgress.activity;
 
     notices.push(
       <ProgressStrip key="reassessing">
@@ -428,7 +444,7 @@ export let SecurityReviewNotices = ({
           <span>
             {inProgress.status == 'queued'
               ? 'A new assessment is queued.'
-              : `Reassessing${stage ? ` · ${stage.label}` : ''}${inProgress.activity ? ` · ${inProgress.activity}` : ''}`}
+              : `Reassessing${stage ? ` · ${stage.label}` : ''}${activity ? ` · ${activity}` : ''}`}
           </span>
         </ProgressStripLabel>
         <Text size="1" color="gray600">
@@ -438,12 +454,21 @@ export let SecurityReviewNotices = ({
     );
   }
 
-  if (review.status == 'outdated' && isCurrent) {
+  if (!isSkillReview(review) && review.status == 'outdated' && isCurrent) {
     notices.push(
       <Callout key="outdated" color="gray" size="1">
         <strong>A newer version is available.</strong> This report covers{' '}
         {versionLabel ? `version ${versionLabel}` : 'an earlier version'}. The latest version
         has its own assessment.
+      </Callout>
+    );
+  }
+
+  if (isSkillReview(review) && isCurrent && isAiReviewScheduled(review)) {
+    notices.push(
+      <Callout key="ai-scheduled" color="blue" size="1">
+        <strong>AI review scheduled.</strong> Only the deterministic scan has run so far. The
+        full report appears here once the AI review finishes.
       </Callout>
     );
   }
@@ -460,19 +485,19 @@ export let SecurityReviewNotices = ({
     notices.push(
       <Callout key="ai-disabled" color="gray" size="1">
         <strong>AI review is disabled for this project.</strong> Only deterministic checks ran,
-        and no provider source was sent for AI review.
+        and no {subject} source was sent for AI review.
       </Callout>
     );
   } else if (revision.blockReason == 'admin_disabled') {
     notices.push(
       <Callout key="admin-disabled" color="gray" size="1">
-        <strong>AI review is unavailable for this provider.</strong> Only deterministic checks
+        <strong>AI review is unavailable for this {subject}.</strong> Only deterministic checks
         ran.
       </Callout>
     );
   }
 
-  if (revision.awaitingTools) {
+  if (!isSkillRevision(revision) && revision.awaitingTools) {
     notices.push(
       <Callout key="awaiting-tools" color="blue" size="1">
         <strong>Some tools are not inspected yet.</strong> This server lists its tools only
@@ -483,7 +508,7 @@ export let SecurityReviewNotices = ({
   } else if (revision.scores?.confidence == 'low') {
     notices.push(
       <Callout key="low-confidence" color="yellow" size="1">
-        <strong>Limited evidence.</strong> Parts of this provider could not be verified. See
+        <strong>Limited evidence.</strong> Parts of this {subject} could not be verified. See
         Method and Limits for the gaps.
       </Callout>
     );
@@ -508,7 +533,7 @@ export let SecurityReviewMeta = ({
   versionLabel,
   checkedAt
 }: {
-  revision: SecurityReviewRevision;
+  revision: AnySecurityReviewRevision;
   versionLabel?: string | null;
   checkedAt?: Date | string | null;
 }) => (

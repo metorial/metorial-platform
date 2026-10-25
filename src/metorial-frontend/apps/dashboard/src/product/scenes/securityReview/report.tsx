@@ -1,4 +1,4 @@
-import type { SecurityReviewRevision } from '@metorial/state';
+import type { SecurityReviewRevision, SkillSecurityReviewRevision } from '@metorial/state';
 import {
   Accordion,
   Badge,
@@ -25,19 +25,27 @@ import {
 import React, { useMemo, useState } from 'react';
 import { styled } from 'styled-components';
 import {
+  behaviorTags,
   capabilityTags,
   findingKindLabels,
+  getBehaviorRank,
+  getPreviousScore,
+  getReviewSubject,
   getToolRank,
   isRevisionRunning,
+  isSkillRevision,
   levelLabels,
   provenanceLabels,
   severityLabels,
   severityLevels,
+  type AnySecurityReviewRevision,
   type SecurityReviewFinding,
   type SecurityReviewTool
 } from './lib';
 
 let KEY_TOOL_COUNT = 8;
+
+type Implementation = NonNullable<SecurityReviewRevision['report']['implementation']>;
 
 let Section = styled.section`
   margin-top: 36px;
@@ -254,14 +262,17 @@ export let ProvenanceSection = ({
   revision
 }: {
   number: string;
-  revision: SecurityReviewRevision;
+  revision: AnySecurityReviewRevision;
 }) => {
   let provenance = revision.report.provenance;
   if (!provenance && !isRevisionRunning(revision)) return null;
 
   return (
     <Section id="provenance">
-      <ReportSectionHeading number={number} title="Publisher & Provenance" />
+      <ReportSectionHeading
+        number={number}
+        title={isSkillRevision(revision) ? 'Origin & Provenance' : 'Publisher & Provenance'}
+      />
 
       {provenance ? (
         <Card>
@@ -281,7 +292,7 @@ export let ProvenanceSection = ({
             </div>
           </IconRow>
 
-          <EvidenceList evidence={provenance.evidence} />
+          {'evidence' in provenance && <EvidenceList evidence={provenance.evidence} />}
         </Card>
       ) : (
         <PendingSection />
@@ -295,9 +306,9 @@ export let ImplementationSection = ({
   revision
 }: {
   number: string;
-  revision: SecurityReviewRevision;
+  revision: AnySecurityReviewRevision;
 }) => {
-  let implementation = revision.report.implementation;
+  let implementation: Implementation | null = revision.report.implementation;
   if (!implementation) return null;
 
   let points = [
@@ -366,7 +377,7 @@ let HintCell = ({ tool }: { tool: SecurityReviewTool }) => {
   );
 };
 
-export let CapabilitiesSection = ({
+let ToolCapabilitiesSection = ({
   number,
   revision
 }: {
@@ -494,6 +505,108 @@ export let CapabilitiesSection = ({
   );
 };
 
+let BehaviorsSection = ({
+  number,
+  revision
+}: {
+  number: string;
+  revision: SkillSecurityReviewRevision;
+}) => {
+  let scores = revision.scores;
+  let isObserved = scores?.confidence == 'low';
+
+  let behaviors = useMemo(
+    () =>
+      [...revision.report.behaviors].sort(
+        (a, b) => getBehaviorRank(b) - getBehaviorRank(a) || a.tag.localeCompare(b.tag)
+      ),
+    [revision.report.behaviors]
+  );
+
+  if (!behaviors.length && isRevisionRunning(revision)) {
+    return (
+      <Section id="capabilities">
+        <ReportSectionHeading number={number} title="Behaviors & Exposure" />
+        <PendingSection />
+      </Section>
+    );
+  }
+
+  return (
+    <Section id="capabilities">
+      <ReportSectionHeading
+        number={number}
+        title="Behaviors & Exposure"
+        trailing={
+          scores && (
+            <LevelBadge level={scores.exposure}>
+              {levelLabels[scores.exposure]} {isObserved ? 'Observed ' : ''}Exposure
+            </LevelBadge>
+          )
+        }
+      />
+
+      <Text size="2" color="gray700" style={{ marginBottom: 12 }}>
+        Behaviors describe what this skill makes an agent do. Dangerous behaviors increase
+        exposure without lowering the security score.
+      </Text>
+
+      {(revision.files || scores?.lethalTrifecta) && (
+        <Chips>
+          {revision.files && (
+            <Chip>
+              <strong>{revision.files.analyzed}</strong> of {revision.files.total} files
+              analyzed
+            </Chip>
+          )}
+          {scores?.lethalTrifecta && (
+            <Chip>
+              <RiFlashlightLine size={13} />
+              Private data, untrusted input and external send combined
+            </Chip>
+          )}
+        </Chips>
+      )}
+
+      <Card>
+        {behaviors.map((behavior, i) => (
+          <IconRow key={i}>
+            <RiFlashlightLine size={18} />
+            <div style={{ flexGrow: 1, minWidth: 0 }}>
+              <LevelBadge level={behaviorTags[behavior.tag].level}>
+                {behaviorTags[behavior.tag].label}
+              </LevelBadge>
+              <Text size="2" color="gray700" style={{ margin: '6px 0 8px' }}>
+                {behavior.body}
+              </Text>
+              <EvidenceList evidence={behavior.evidence} />
+            </div>
+          </IconRow>
+        ))}
+
+        {!behaviors.length && (
+          <Text size="2" color="gray600">
+            No notable behaviors were identified in this skill.
+          </Text>
+        )}
+      </Card>
+    </Section>
+  );
+};
+
+export let CapabilitiesSection = ({
+  number,
+  revision
+}: {
+  number: string;
+  revision: AnySecurityReviewRevision;
+}) =>
+  isSkillRevision(revision) ? (
+    <BehaviorsSection number={number} revision={revision} />
+  ) : (
+    <ToolCapabilitiesSection number={number} revision={revision} />
+  );
+
 type KindFilter = 'all' | SecurityReviewFinding['kind'];
 
 let findingIcons: Record<SecurityReviewFinding['kind'], React.ReactNode> = {
@@ -508,7 +621,7 @@ let FindingBody = ({ finding }: { finding: SecurityReviewFinding }) => (
       {finding.body}
     </Text>
 
-    {finding.toolKeys.length > 0 && (
+    {'toolKeys' in finding && finding.toolKeys.length > 0 && (
       <Tags>
         {finding.toolKeys.map(key => (
           <Chip key={key}>
@@ -538,7 +651,7 @@ export let FindingsSection = ({
   revision
 }: {
   number: string;
-  revision: SecurityReviewRevision;
+  revision: AnySecurityReviewRevision;
 }) => {
   let [kind, setKind] = useState<KindFilter>('all');
   let [severity, setSeverity] = useState<string>('all');
@@ -637,7 +750,7 @@ export let FindingsSection = ({
                     {findingKindLabels[finding.kind]}
                   </Badge>
                 )}
-                {finding.change == 'new' && revision.scores?.previous && (
+                {finding.change == 'new' && getPreviousScore(revision) && (
                   <Badge color="blue">New</Badge>
                 )}
               </FindingTitle>
@@ -670,10 +783,10 @@ export let ChangesSection = ({
   revision
 }: {
   number: string;
-  revision: SecurityReviewRevision;
+  revision: AnySecurityReviewRevision;
 }) => {
   let { changes, resolvedFindings } = revision.report;
-  let previous = revision.scores?.previous;
+  let previous = getPreviousScore(revision);
   let current = revision.scores?.securityScore;
 
   if (!changes && !previous && !resolvedFindings.length) {
@@ -684,7 +797,7 @@ export let ChangesSection = ({
         <ReportSectionHeading number={number} title="Changes Since Last Assessment" />
         <Card>
           <Text size="2" color="gray700">
-            This is the first assessment of this provider.
+            This is the first assessment of this {getReviewSubject(revision)}.
           </Text>
         </Card>
       </Section>
@@ -738,7 +851,7 @@ export let MethodSection = ({
   revision
 }: {
   number: string;
-  revision: SecurityReviewRevision;
+  revision: AnySecurityReviewRevision;
 }) => {
   let method = revision.report.method;
   if (!method && !isRevisionRunning(revision)) return null;
@@ -800,8 +913,9 @@ export let MethodSection = ({
               ? 'Findings are generated with AI and must cite collected evidence. '
               : 'This report contains deterministic checks only. '}
             Versioned scoring rules calculate the security score, exposure and risk. Confidence
-            reflects evidence coverage. Rules {revision.rulesVersion} · Prompt{' '}
-            {revision.promptVersion}.
+            reflects evidence coverage.
+            {!isSkillRevision(revision) &&
+              ` Rules ${revision.rulesVersion} · Prompt ${revision.promptVersion}.`}
           </Text>
         </Card>
       ) : (

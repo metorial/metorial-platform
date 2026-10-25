@@ -12,12 +12,15 @@ import {
   useCurrentProject,
   useDuplicateSkill,
   useSkill,
+  useSkillSecurityReview,
+  useSkillSecurityReviewsEnabled,
   useStorePermissions
 } from '@metorial/state';
 import { Button, Flex, toast, Tooltip } from '@metorial/ui';
 import { RiDownloadLine, RiFileCopyLine } from '@remixicon/react';
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
+import { SkillVerdictBadge } from '../../../scenes/securityReview';
 import { showSkillCloneFormModal } from '../../../scenes/skills/cloneModal';
 
 let WorkspacePage = styled.div<{ $flush: boolean }>`
@@ -51,6 +54,8 @@ export let SkillLayout = () => {
   let createSkillForkSync = useCreateSkillForkSync();
   let createSkillExport = useCreateSkillExport();
   let updateSkill = skill.updateMutator();
+  let securityReviewsEnabled = useSkillSecurityReviewsEnabled();
+  let securityReview = useSkillSecurityReview(instance.data?.id, skill.data?.id);
   let navigate = useNavigate();
   let pathname = useLocation().pathname;
   let canReadStore =
@@ -192,8 +197,12 @@ export let SkillLayout = () => {
             settings: `${skillPath}/settings`,
             groups: `${skillPath}/groups`,
             versions: `${skillPath}/versions`,
-            participants: `${skillPath}/participants`
+            participants: `${skillPath}/participants`,
+            ...(securityReviewsEnabled ? { security: `${skillPath}/security` } : {})
           }}
+          securityBadge={
+            securityReview.data ? <SkillVerdictBadge review={securityReview.data} /> : null
+          }
           shareContext={{
             mode: 'dashboard',
             organizationId: organization.data?.id,

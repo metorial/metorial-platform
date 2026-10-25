@@ -1,8 +1,12 @@
-import type { SecurityReviewRevision } from '@metorial/state';
 import { Badge, Datalist, RenderDate, Text, theme, Title } from '@metorial/ui';
 import { RiInformationLine } from '@remixicon/react';
 import { styled } from 'styled-components';
-import { confidenceLabels, triggerLabels } from './lib';
+import {
+  confidenceLabels,
+  isSkillRevision,
+  triggerLabels,
+  type AnySecurityReviewRevision
+} from './lib';
 
 let Aside = styled.aside`
   display: flex;
@@ -83,6 +87,27 @@ let Note = styled.div`
 
 export type ReportContentsEntry = { id: string; label: string };
 
+let getCoverage = (revision: AnySecurityReviewRevision) => {
+  if (isSkillRevision(revision)) {
+    if (!revision.files) return null;
+
+    return {
+      label: 'Files analyzed',
+      value: `${revision.files.analyzed} of ${revision.files.total}`
+    };
+  }
+
+  if (!revision.scores) return null;
+
+  return {
+    label: 'Tools reviewed',
+    value: `${revision.scores.counts.toolsReviewed} of ${revision.scores.counts.toolsExpected}`
+  };
+};
+
+let getRevisionVersionId = (revision: AnySecurityReviewRevision) =>
+  isSkillRevision(revision) ? revision.skillVersionId : revision.providerVersionId;
+
 export let SecurityReportAside = ({
   revision,
   versionLabel,
@@ -93,16 +118,18 @@ export let SecurityReportAside = ({
   versionLabels,
   onSelectRevision
 }: {
-  revision: SecurityReviewRevision;
+  revision: AnySecurityReviewRevision;
   versionLabel?: string | null;
   contents: ReportContentsEntry[];
-  history: SecurityReviewRevision[];
+  history: AnySecurityReviewRevision[];
   currentRevisionId: string | null;
   selectedRevisionId: string;
   versionLabels: Record<string, string>;
   onSelectRevision: (revisionId: string) => void;
 }) => {
   let scores = revision.scores;
+  let coverage = getCoverage(revision);
+  let triggerReason = isSkillRevision(revision) ? null : revision.triggerReason;
 
   return (
     <Aside>
@@ -128,17 +155,12 @@ export let SecurityReportAside = ({
             ...(versionLabel ? [{ label: 'Version', value: versionLabel }] : []),
             {
               label: 'Trigger',
-              value: revision.triggerReason ?? triggerLabels[revision.trigger]
+              value: triggerReason ?? triggerLabels[revision.trigger]
             },
             ...(scores
-              ? [
-                  { label: 'Confidence', value: confidenceLabels[scores.confidence] },
-                  {
-                    label: 'Tools reviewed',
-                    value: `${scores.counts.toolsReviewed} of ${scores.counts.toolsExpected}`
-                  }
-                ]
+              ? [{ label: 'Confidence', value: confidenceLabels[scores.confidence] }]
               : []),
+            ...(coverage ? [coverage] : []),
             {
               label: 'Reviewed at',
               value: <RenderDate date={revision.completedAt ?? revision.createdAt} />
@@ -154,33 +176,37 @@ export let SecurityReportAside = ({
             Assessment History
           </Title>
           <History>
-            {history.map(item => (
-              <HistoryItem
-                key={item.id}
-                type="button"
-                $active={item.id == selectedRevisionId}
-                aria-current={item.id == selectedRevisionId ? 'true' : undefined}
-                onClick={() => onSelectRevision(item.id)}
-              >
-                <HistoryText>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <RenderDate date={item.completedAt ?? item.createdAt} format="date" />
-                    {item.id == currentRevisionId && (
-                      <Badge color="gray" size="1">
-                        Latest
-                      </Badge>
-                    )}
-                  </span>
-                  <Text size="1" color="gray600" as="span">
-                    {item.providerVersionId && versionLabels[item.providerVersionId]
-                      ? `Version ${versionLabels[item.providerVersionId]} · `
-                      : ''}
-                    {triggerLabels[item.trigger]}
-                  </Text>
-                </HistoryText>
-                <HistoryScore>{item.scores?.securityScore ?? '—'}</HistoryScore>
-              </HistoryItem>
-            ))}
+            {history.map(item => {
+              let versionId = getRevisionVersionId(item);
+
+              return (
+                <HistoryItem
+                  key={item.id}
+                  type="button"
+                  $active={item.id == selectedRevisionId}
+                  aria-current={item.id == selectedRevisionId ? 'true' : undefined}
+                  onClick={() => onSelectRevision(item.id)}
+                >
+                  <HistoryText>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <RenderDate date={item.completedAt ?? item.createdAt} format="date" />
+                      {item.id == currentRevisionId && (
+                        <Badge color="gray" size="1">
+                          Latest
+                        </Badge>
+                      )}
+                    </span>
+                    <Text size="1" color="gray600" as="span">
+                      {versionId && versionLabels[versionId]
+                        ? `Version ${versionLabels[versionId]} · `
+                        : ''}
+                      {triggerLabels[item.trigger]}
+                    </Text>
+                  </HistoryText>
+                  <HistoryScore>{item.scores?.securityScore ?? '—'}</HistoryScore>
+                </HistoryItem>
+              );
+            })}
           </History>
         </div>
       )}

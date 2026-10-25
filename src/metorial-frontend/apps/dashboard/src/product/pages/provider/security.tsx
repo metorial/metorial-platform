@@ -8,136 +8,33 @@ import {
   useSecurityReview,
   useSecurityReviewRevision,
   useSecurityReviewRevisions,
-  useSecurityReviewsEnabled,
-  type SecurityReviewRevision
+  useSecurityReviewsEnabled
 } from '@metorial/state';
-import { Button, Callout, Select, Text, theme, Title } from '@metorial/ui';
+import { Button, Callout, Select, Text, Title } from '@metorial/ui';
 import { RiRefreshLine } from '@remixicon/react';
 import { useEffect, useMemo } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { styled } from 'styled-components';
 import {
-  CapabilitiesSection,
-  ChangesSection,
-  FindingsSection,
   getDisplayedRevision,
   getReviewRevisions,
-  ImplementationSection,
+  getSecurityReportContents,
   isSecurityReviewNotFound,
-  MethodSection,
-  ProvenanceSection,
   SecurityAssessmentBody,
   SecurityReportAside,
+  SecurityReportHeader,
+  SecurityReportHeaderActions,
+  SecurityReportLayout,
+  SecurityReportSections,
+  SecurityReportVerdict,
+  SecurityReportVerdictFooter,
+  SecurityReportVerdictHeader,
   SecurityReviewAiLabel,
-  SecurityReviewMeta,
-  type ReportContentsEntry
+  SecurityReviewMeta
 } from '../../scenes/securityReview';
 import { useProviderVersionContext } from './providerVersionContext';
 
 let REVISION_PARAM = 'revision';
 let HISTORY_LIMIT = 5;
-
-let Header = styled.header`
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-bottom: 20px;
-`;
-
-let HeaderActions = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
-
-let Layout = styled.div`
-  display: grid;
-  align-items: start;
-  grid-template-columns: minmax(0, 2fr) minmax(220px, 1fr);
-  gap: 48px;
-
-  @media (max-width: 1100px) {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 32px;
-  }
-`;
-
-let Verdict = styled.article`
-  border: 1px solid ${theme.colors.gray400};
-  border-radius: 8px;
-  box-shadow: ${theme.shadows.small};
-  background: ${theme.colors.background};
-  padding: 20px;
-  scroll-margin-top: 80px;
-`;
-
-let VerdictHeader = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 16px;
-`;
-
-let VerdictFooter = styled.div`
-  margin-top: 18px;
-  padding-top: 12px;
-  border-top: 1px solid ${theme.colors.gray300};
-`;
-
-let numbered = (index: number) => String(index + 1).padStart(2, '0');
-
-let ReportSections = ({ revision }: { revision: SecurityReviewRevision }) => {
-  let sections = [
-    {
-      id: 'provenance',
-      render: (n: string) => <ProvenanceSection number={n} revision={revision} />
-    },
-    ...(revision.report.implementation
-      ? [
-          {
-            id: 'implementation',
-            render: (n: string) => <ImplementationSection number={n} revision={revision} />
-          }
-        ]
-      : []),
-    {
-      id: 'capabilities',
-      render: (n: string) => <CapabilitiesSection number={n} revision={revision} />
-    },
-    {
-      id: 'findings',
-      render: (n: string) => <FindingsSection number={n} revision={revision} />
-    },
-    {
-      id: 'changes',
-      render: (n: string) => <ChangesSection number={n} revision={revision} />
-    },
-    { id: 'method', render: (n: string) => <MethodSection number={n} revision={revision} /> }
-  ];
-
-  return (
-    <>
-      {sections.map((section, i) => (
-        <div key={section.id}>{section.render(numbered(i))}</div>
-      ))}
-    </>
-  );
-};
-
-let getContents = (revision: SecurityReviewRevision): ReportContentsEntry[] => [
-  { id: 'verdict', label: 'Verdict' },
-  { id: 'provenance', label: 'Publisher & provenance' },
-  ...(revision.report.implementation
-    ? [{ id: 'implementation', label: 'Implementation review' }]
-    : []),
-  { id: 'capabilities', label: 'Capabilities & exposure' },
-  { id: 'findings', label: 'Findings' },
-  { id: 'changes', label: 'What changed' },
-  { id: 'method', label: 'Method & limits' }
-];
 
 export let ProviderSecurityPage = () => {
   let instance = useCurrentInstance();
@@ -253,7 +150,7 @@ export let ProviderSecurityPage = () => {
       ) : null;
 
     let header = (
-      <Header>
+      <SecurityReportHeader>
         <div>
           <Title as="h2" size="5" weight="strong">
             Security Assessment
@@ -265,11 +162,11 @@ export let ProviderSecurityPage = () => {
           </Text>
         </div>
 
-        <HeaderActions>
+        <SecurityReportHeaderActions>
           {versionSelect}
           {reassessButton}
-        </HeaderActions>
-      </Header>
+        </SecurityReportHeaderActions>
+      </SecurityReportHeader>
     );
 
     if (!displayed) {
@@ -278,13 +175,13 @@ export let ProviderSecurityPage = () => {
           {header}
           <reassess.RenderError />
 
-          <Verdict id="verdict">
-            <VerdictHeader>
+          <SecurityReportVerdict id="verdict">
+            <SecurityReportVerdictHeader>
               <Title as="h3" size="3" weight="strong">
                 Review Progress
               </Title>
               <SecurityReviewAiLabel revision={null} />
-            </VerdictHeader>
+            </SecurityReportVerdictHeader>
 
             <SecurityAssessmentBody
               review={review.data}
@@ -295,7 +192,7 @@ export let ProviderSecurityPage = () => {
                 success: reassess.isSuccess
               }}
             />
-          </Verdict>
+          </SecurityReportVerdict>
 
           <Text size="1" color="gray600" style={{ marginTop: 12 }}>
             Read-only review. No tools are executed and no configuration secrets are included.
@@ -327,15 +224,15 @@ export let ProviderSecurityPage = () => {
           </Callout>
         )}
 
-        <Layout>
+        <SecurityReportLayout>
           <div>
-            <Verdict id="verdict">
-              <VerdictHeader>
+            <SecurityReportVerdict id="verdict">
+              <SecurityReportVerdictHeader>
                 <Title as="h3" size="3" weight="strong">
                   Verdict
                 </Title>
                 <SecurityReviewAiLabel revision={displayed} />
-              </VerdictHeader>
+              </SecurityReportVerdictHeader>
 
               <SecurityAssessmentBody
                 review={review.data}
@@ -346,30 +243,30 @@ export let ProviderSecurityPage = () => {
               />
 
               {displayed.status != 'queued' && displayed.status != 'running' && (
-                <VerdictFooter>
+                <SecurityReportVerdictFooter>
                   <SecurityReviewMeta
                     revision={displayed}
                     versionLabel={versionLabel}
                     checkedAt={isHistorical ? null : review.data.lastCheckedAt}
                   />
-                </VerdictFooter>
+                </SecurityReportVerdictFooter>
               )}
-            </Verdict>
+            </SecurityReportVerdict>
 
-            <ReportSections revision={displayed} />
+            <SecurityReportSections revision={displayed} />
           </div>
 
           <SecurityReportAside
             revision={displayed}
             versionLabel={versionLabel}
-            contents={getContents(displayed)}
+            contents={getSecurityReportContents(displayed)}
             history={history}
             currentRevisionId={currentRevisionId}
             selectedRevisionId={displayed.id}
             versionLabels={versionLabels}
             onSelectRevision={selectRevision}
           />
-        </Layout>
+        </SecurityReportLayout>
       </>
     );
   });

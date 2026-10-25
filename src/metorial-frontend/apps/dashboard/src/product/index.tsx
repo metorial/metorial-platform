@@ -112,6 +112,9 @@ let SkillMergeRequestPage = dynamicPage(() =>
 let SkillSettingsPage = dynamicPage(() =>
   import('./pages/(skills)/skill/settings').then(c => c.SkillSettingsPage)
 );
+let SkillSecurityPage = dynamicPage(() =>
+  import('./pages/(skills)/skill/security').then(c => c.SkillSecurityPage)
+);
 let SkillTemplateLayout = dynamicPage(() =>
   import('./pages/(skills)/skill-template/_layout').then(c => c.SkillTemplateLayout)
 );
@@ -1168,6 +1171,10 @@ export let productSkillsSlice = createSlice([
               {
                 path: 'settings',
                 element: <SkillSettingsPage />
+              },
+              {
+                path: 'security',
+                element: <SkillSecurityPage />
               }
             ]
           },
