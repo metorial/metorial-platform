@@ -27,15 +27,21 @@ import {
   resolveSessionTemplates
 } from '@metorial-subspace/list-utils';
 import {
+  assertCanChangeOwnerOnlyVisibility,
+  assertCanSeeOwnedResource,
   assertCanUseOwnedResource,
+  canSeeOwnedResource,
   canUseOwnedResource,
   checkTenant,
   getMetorialSolution,
   getOwnershipAccessor,
   getOwnershipAccessorForFacing,
   type MetorialFacing,
+  ownedResourceWhere,
   type OwnershipAccessor,
+  type OwnershipFilter,
   resolveMetorialFacing,
+  resolveOwnerActorOid,
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
 import { type AuditSubspaceSession, Fabric } from '@metorial/fabric';
@@ -86,6 +92,9 @@ export type ListSessionsParams = {
   status?: SessionStatus[];
   allowDeleted?: boolean;
   includeInternal?: boolean;
+  includeSystemOwned?: boolean;
+  ownership?: OwnershipFilter;
+  ownershipWhere?: Record<string, any>;
 
   ids?: string[];
   accessTagSessionIds?: string[];
@@ -104,11 +113,13 @@ export type ListSessionsParams = {
 export type GetSessionByIdParams = {
   sessionId: string;
   allowDeleted?: boolean;
+  includeSystemOwned?: boolean;
 };
 
 export type GetManySessionsByIdsParams = {
   ids: string[];
   allowDeleted?: boolean;
+  includeSystemOwned?: boolean;
 };
 
 export type CreateSessionParams = {
@@ -117,14 +128,17 @@ export type CreateSessionParams = {
     description?: string;
     metadata?: Record<string, any>;
     privateMetadata?: Record<string, any>;
+    isSystemOwned?: boolean;
 
     providers: SessionProviderInput[];
   };
+  ownerActorId?: string;
 };
 
-export type CreateInternalSessionParams = CreateSessionParams & {
+export type CreateInternalSessionParams = Omit<CreateSessionParams, 'ownerActorId'> & {
   adapter?: InternalAdapterInput;
   ownershipAccessor?: OwnershipAccessor;
+  ownerActorOid?: bigint | null;
 };
 
 export type UpdateSessionParams = {
@@ -134,6 +148,7 @@ export type UpdateSessionParams = {
     description?: string;
     metadata?: Record<string, any>;
     privateMetadata?: Record<string, any>;
+    isOwnerOnlyVisible?: boolean;
   };
   _allowMagicMcpUpdate?: boolean;
   _allowInternalUpdate?: boolean;
@@ -162,6 +177,10 @@ class sessionServiceImpl {
     let paginator = await this.listSessionsInternal({
       ...rest,
       ids,
+      ownershipWhere: ownedResourceWhere(
+        await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+        { ownership: d.ownership ?? 'all', includeSystemOwned: d.includeSystemOwned }
+      ),
       tenant: scope.tenant,
       environment: scope.environment
     });
@@ -207,8 +226,10 @@ class sessionServiceImpl {
 
               ...normalizeStatusForList(d).noParent,
               ...(d.includeInternal ? {} : { isInternal: false }),
+              ...(d.includeSystemOwned ? {} : { isSystemOwned: false }),
 
               AND: [
+                d.ownershipWhere ?? undefined!,
                 d.ids ? { id: { in: d.ids } } : undefined!,
                 agents
                   ? {
@@ -274,6 +295,8 @@ class sessionServiceImpl {
       ownerActorOid: bigint | null;
       identityActorOid: bigint | null;
       isOwnerLocked: boolean;
+      isOwnerOnlyVisible?: boolean;
+      isSystemOwned?: boolean;
     }
   >(d: { instance: Instance; organizationActor?: OrganizationActor; sessions: T[] }) {
     let accessor = await getOwnershipAccessorForFacing(d);
@@ -296,6 +319,8 @@ class sessionServiceImpl {
       ownerActorOid: bigint | null;
       identityActorOid: bigint | null;
       isOwnerLocked: boolean;
+      isOwnerOnlyVisible?: boolean;
+      isSystemOwned?: boolean;
     };
   }) {
     let accessor = await getOwnershipAccessorForFacing(d);
@@ -311,6 +336,12 @@ class sessionServiceImpl {
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    assertCanSeeOwnedResource(
+      await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+      session,
+      { resource: 'session', id: d.sessionId }
+    );
 
     return await enrichSessionEnsuringClientSecret({
       instance,
@@ -330,6 +361,7 @@ class sessionServiceImpl {
         solutionOid: solution.oid,
         environmentOid: d.environment.oid,
 
+        ...(d.includeSystemOwned ? {} : { isSystemOwned: false }),
         ...normalizeStatusForGet(d).noParent,
         ...getSessionRetentionFilter(d.tenant)
       },
@@ -344,11 +376,14 @@ class sessionServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    let sessions = await this.getManySessionsByIdsInternal({
+    let allSessions = await this.getManySessionsByIdsInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    let accessor = await getOwnershipAccessor({ tenant: scope.tenant, organizationActor });
+    let sessions = allSessions.filter(session => canSeeOwnedResource(accessor, session));
 
     return await enrichSessions({
       instance,
@@ -367,6 +402,7 @@ class sessionServiceImpl {
         tenantOid: d.tenant.oid,
         solutionOid: solution.oid,
         environmentOid: d.environment.oid,
+        ...(d.includeSystemOwned ? {} : { isSystemOwned: false }),
         ...normalizeStatusForGet(d).noParent,
         ...getSessionRetentionFilter(d.tenant)
       },
@@ -381,10 +417,17 @@ class sessionServiceImpl {
     let eventBase = toProviderEventBase(d);
     await Fabric.fire('provider.session.created:before', eventBase);
 
+    let { ownerActorId, ...createRest } = rest;
+
     let session = await this.createSessionInternal({
-      ...rest,
+      ...createRest,
       tenant: scope.tenant,
       environment: scope.environment,
+      ownerActorOid: await resolveOwnerActorOid({
+        tenant: scope.tenant,
+        environment: scope.environment,
+        ownerActorId
+      }),
       ownershipAccessor: await getOwnershipAccessor({
         tenant: scope.tenant,
         organizationActor
@@ -427,6 +470,15 @@ class sessionServiceImpl {
         environment: d.environment,
         input: d.input,
         resolvedProviders,
+        owner: d.ownerActorOid
+          ? {
+              ownerActorOid: d.ownerActorOid,
+              isOwnerLocked: !!resolvedProviders.template?.isOwnerLocked,
+              isOwnerOnlyVisible: !!resolvedProviders.template?.isOwnerOnlyVisible
+            }
+          : undefined,
+        inheritProviderOwner: !!d.ownershipAccessor?.isEnforced,
+        isSystemOwned: d.input.isSystemOwned,
         isEphemeral: false,
         isInternal: !!adapter,
         adapterGlobalOid: adapter?.oid ?? null
@@ -453,6 +505,13 @@ class sessionServiceImpl {
     });
 
     let scope = await resolveMetorialFacing(d);
+
+    await assertCanChangeOwnerOnlyVisibility(
+      await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+      d.session,
+      d.input.isOwnerOnlyVisible,
+      { resource: 'session' }
+    );
 
     let eventBase = toProviderEventBase(d);
     await Fabric.fire('provider.session.updated:before', eventBase);
@@ -500,7 +559,8 @@ class sessionServiceImpl {
           name: d.input.name ?? d.session.name,
           description: d.input.description ?? d.session.description,
           metadata: d.input.metadata ?? d.session.metadata,
-          privateMetadata: d.input.privateMetadata ?? d.session.privateMetadata
+          privateMetadata: d.input.privateMetadata ?? d.session.privateMetadata,
+          isOwnerOnlyVisible: d.input.isOwnerOnlyVisible
         },
         include
       });

@@ -76,6 +76,7 @@ export type ProviderAuthConfigFormProps =
       hideProviderContext?: boolean;
       defaultName?: string;
       hideDetailsInputs?: boolean;
+      ownedByCaller?: boolean;
     }
   | {
       type: 'update';
@@ -179,7 +180,8 @@ export let ProviderAuthConfigForm = (
         ...(name ? { name } : {}),
         ...(description ? { description } : {}),
         providerAuthMethodId: values.authMethodId,
-        value: parsedCredentials
+        value: parsedCredentials,
+        ...(props.type === 'create' && props.ownedByCaller ? { ownedByCaller: true } : {})
       });
 
       if (!result) return;

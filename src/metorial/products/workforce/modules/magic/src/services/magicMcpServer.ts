@@ -41,11 +41,16 @@ import {
 import { assertAuthMethodAllowedForTenant } from '@metorial-subspace/module-provider-internal';
 import { sessionTemplateService } from '@metorial-subspace/module-session';
 import {
+  assertCanAttachSubspaceResourcesToCoreParent,
   assertCanChangeCoreOwnerLock,
+  assertCanChangeCoreOwnerOnlyVisibility,
+  assertCanSeeCoreOwnedResource,
   assertCanUseSubspaceResources,
   getOwnershipAccessor,
+  internalOwnershipAccessor,
+  ownedCoreResourceWhere,
   subspaceScopeService,
-  usableCoreOwnedResourceWhere
+  type OwnershipFilter
 } from '@metorial-subspace/module-tenant';
 import {
   applyMagicMcpServerBacking,
@@ -123,11 +128,14 @@ class MagicMcpServerImpl {
     magicMcpServerId: string;
     accessTags?: AnyAccessTagSelector;
     consumerSurface?: ConsumerSurface;
+    organizationActor?: OrganizationActor;
+    includeSystemOwned?: boolean;
   }) {
     let magicMcpServer = await db.magicMcpServer.findFirst({
       where: {
         instanceOid: d.instance.oid,
         status: d.accessTags ? 'active' : undefined,
+        isSystemOwned: d.includeSystemOwned ? undefined : false,
         OR: [
           {
             id: d.magicMcpServerId
@@ -144,6 +152,13 @@ class MagicMcpServerImpl {
       include
     });
     if (!magicMcpServer) throw new ServiceError(notFoundError('magic_mcp.server'));
+
+    if (d.organizationActor) {
+      await assertCanSeeCoreOwnedResource(await this.getAccessor(d), magicMcpServer, {
+        resource: 'magic_mcp.server',
+        id: d.magicMcpServerId
+      });
+    }
 
     if (d.accessTags) {
       await this.checkConsumerReadAccess({
@@ -258,6 +273,7 @@ class MagicMcpServerImpl {
         toolFilters?: PrismaJson.ToolFilter | null;
       }[];
       consumerOwner?: ConsumerOwner;
+      isSystemOwned?: boolean;
     };
   }) {
     if (
@@ -306,17 +322,15 @@ class MagicMcpServerImpl {
       }
     }
 
-    if (!d.input.consumerOwner) {
-      await this.assertCanUseProviderResources({
-        instance: d.instance,
-        organizationActor: d.organizationActor ?? d.performedBy,
-        integrationInstanceIds: [d.input.subspaceIntegrationInstanceId],
-        providerConfigIds: d.input.providers?.map(provider => provider.providerConfigId),
-        providerAuthConfigIds: d.input.providers?.map(
-          provider => provider.providerAuthConfigId
-        )
-      });
-    }
+    await this.assertCanUseProviderResources({
+      instance: d.instance,
+      organizationActor: d.input.consumerOwner
+        ? undefined
+        : (d.organizationActor ?? d.performedBy),
+      integrationInstanceIds: [d.input.subspaceIntegrationInstanceId],
+      providerConfigIds: d.input.providers?.map(provider => provider.providerConfigId),
+      providerAuthConfigIds: d.input.providers?.map(provider => provider.providerAuthConfigId)
+    });
 
     await Fabric.fire('magic_mcp.server.created:before', {
       organization: d.organization,
@@ -358,7 +372,8 @@ class MagicMcpServerImpl {
               description: d.input.description,
               metadata: d.input.metadata ?? {},
               instanceOid: d.instance.oid,
-              ownerActorOid,
+              ownerActorOid: d.input.isSystemOwned ? null : ownerActorOid,
+              isSystemOwned: !!d.input.isSystemOwned,
               aliases: {
                 create: {
                   slug: buildAlias(d.input.name)
@@ -397,6 +412,13 @@ class MagicMcpServerImpl {
     return server;
   }
 
+  private async getAccessor(d: { instance: Instance; organizationActor?: OrganizationActor }) {
+    if (!d.organizationActor) return internalOwnershipAccessor;
+
+    let { tenant } = await subspaceScopeService.ensureForInstance(d.instance);
+    return await getOwnershipAccessor({ tenant, organizationActor: d.organizationActor });
+  }
+
   private async assertCanUseProviderResources(d: {
     instance: Instance;
     organizationActor?: OrganizationActor;
@@ -404,17 +426,36 @@ class MagicMcpServerImpl {
     providerConfigIds?: (string | null | undefined)[];
     providerAuthConfigIds?: (string | null | undefined)[];
   }) {
+    let { tenant } = await subspaceScopeService.ensureForInstance(d.instance);
+
+    await assertCanUseSubspaceResources({
+      accessor: await this.getAccessor(d),
+      tenant,
+      integrationInstanceIds: d.integrationInstanceIds,
+      providerConfigIds: d.providerConfigIds,
+      providerAuthConfigIds: d.providerAuthConfigIds
+    });
+  }
+
+  private async assertCanAttachProviderResources(d: {
+    instance: Instance;
+    organizationActor?: OrganizationActor;
+    server: Pick<MagicMcpServer, 'ownerActorOid'>;
+    integrationInstanceIds?: (string | null | undefined)[];
+    providerConfigIds?: (string | null | undefined)[];
+    providerAuthConfigIds?: (string | null | undefined)[];
+  }) {
     if (!d.organizationActor) return;
 
     let { tenant } = await subspaceScopeService.ensureForInstance(d.instance);
-    let accessor = await getOwnershipAccessor({
-      tenant,
-      organizationActor: d.organizationActor
-    });
 
-    await assertCanUseSubspaceResources({
-      accessor,
+    await assertCanAttachSubspaceResourcesToCoreParent({
+      accessor: await getOwnershipAccessor({
+        tenant,
+        organizationActor: d.organizationActor
+      }),
       tenant,
+      parent: d.server,
       integrationInstanceIds: d.integrationInstanceIds,
       providerConfigIds: d.providerConfigIds,
       providerAuthConfigIds: d.providerAuthConfigIds
@@ -548,10 +589,17 @@ class MagicMcpServerImpl {
       );
     }
 
+    await this.assertCanUseProviderResources({
+      instance: d.instance,
+      organizationActor: d.consumerOwner ? undefined : d.organizationActor,
+      integrationInstanceIds: [d.integrationInstanceId]
+    });
+
     if (!d.consumerOwner) {
-      await this.assertCanUseProviderResources({
+      await this.assertCanAttachProviderResources({
         instance: d.instance,
         organizationActor: d.organizationActor,
+        server: d.server,
         integrationInstanceIds: [d.integrationInstanceId]
       });
     }
@@ -646,6 +694,7 @@ class MagicMcpServerImpl {
       metadata?: Record<string, unknown> | null;
       aliases?: string[];
       isOwnerLocked?: boolean;
+      isOwnerOnlyVisible?: boolean;
     };
   }) {
     await this.checkWriteAccess({
@@ -665,6 +714,24 @@ class MagicMcpServerImpl {
         await getOwnershipAccessor({ tenant, organizationActor: d.organizationActor }),
         d.server,
         d.input.isOwnerLocked,
+        { resource: 'magic MCP server' }
+      );
+    }
+
+    let isOwnerOnlyVisibleChanged =
+      d.input.isOwnerOnlyVisible !== undefined &&
+      d.input.isOwnerOnlyVisible !== d.server.isOwnerOnlyVisible;
+    if (isOwnerOnlyVisibleChanged && d.organizationActor) {
+      let visibilityInstance =
+        d.instance ??
+        (await db.instance.findUniqueOrThrow({ where: { oid: d.server.instanceOid } }));
+      await assertCanChangeCoreOwnerOnlyVisibility(
+        await this.getAccessor({
+          instance: visibilityInstance,
+          organizationActor: d.organizationActor
+        }),
+        d.server,
+        d.input.isOwnerOnlyVisible,
         { resource: 'magic MCP server' }
       );
     }
@@ -716,6 +783,7 @@ class MagicMcpServerImpl {
 
     let isBackingChanged =
       !d.server.hasSubspaceBacking ||
+      isOwnerOnlyVisibleChanged ||
       name !== d.server.name ||
       description !== d.server.description ||
       d.input.metadata !== undefined;
@@ -723,7 +791,15 @@ class MagicMcpServerImpl {
     let backing = isBackingChanged
       ? await applyMagicMcpServerBacking({
           instance,
-          server: { ...d.server, name, description, metadata },
+          server: {
+            ...d.server,
+            name,
+            description,
+            metadata,
+            isOwnerOnlyVisible: isOwnerOnlyVisibleChanged
+              ? !!d.input.isOwnerOnlyVisible
+              : d.server.isOwnerOnlyVisible
+          },
           owner: await getConsumerOwnerForServer({ instance, server: d.server }),
           isReconciliation: !d.server.hasSubspaceBacking
         })
@@ -740,6 +816,9 @@ class MagicMcpServerImpl {
             metadata: d.input.metadata === undefined ? d.server.metadata : d.input.metadata,
             ...(backing ? getMagicMcpServerBackingCoreFields(backing) : {}),
             ...(isOwnerLockChanged ? { isOwnerLocked: d.input.isOwnerLocked } : {}),
+            ...(isOwnerOnlyVisibleChanged
+              ? { isOwnerOnlyVisible: d.input.isOwnerOnlyVisible }
+              : {}),
             aliases: {
               create: nextAliases.map(slug => ({ slug }))
             }
@@ -876,10 +955,18 @@ class MagicMcpServerImpl {
       accessTags: d.accessTags
     });
 
+    await this.assertCanUseProviderResources({
+      instance: d.instance,
+      organizationActor: d.accessTags ? undefined : d.organizationActor,
+      providerConfigIds: [d.input.providerConfigId],
+      providerAuthConfigIds: [d.input.providerAuthConfigId]
+    });
+
     if (!d.accessTags) {
-      await this.assertCanUseProviderResources({
+      await this.assertCanAttachProviderResources({
         instance: d.instance,
         organizationActor: d.organizationActor,
+        server: d.server,
         providerConfigIds: [d.input.providerConfigId],
         providerAuthConfigIds: [d.input.providerAuthConfigId]
       });
@@ -926,20 +1013,31 @@ class MagicMcpServerImpl {
     });
 
     let existingVersion = existingProvider.integrationInstanceProvider?.currentVersion;
+    let changedProviderConfigIds = [
+      d.input.providerConfigId === existingVersion?.config?.id
+        ? null
+        : d.input.providerConfigId
+    ];
+    let changedProviderAuthConfigIds = [
+      d.input.providerAuthConfigId === existingVersion?.authConfig?.id
+        ? null
+        : d.input.providerAuthConfigId
+    ];
+
+    await this.assertCanUseProviderResources({
+      instance: d.instance,
+      organizationActor: d.accessTags ? undefined : d.organizationActor,
+      providerConfigIds: changedProviderConfigIds,
+      providerAuthConfigIds: changedProviderAuthConfigIds
+    });
+
     if (!d.accessTags) {
-      await this.assertCanUseProviderResources({
+      await this.assertCanAttachProviderResources({
         instance: d.instance,
         organizationActor: d.organizationActor,
-        providerConfigIds: [
-          d.input.providerConfigId === existingVersion?.config?.id
-            ? null
-            : d.input.providerConfigId
-        ],
-        providerAuthConfigIds: [
-          d.input.providerAuthConfigId === existingVersion?.authConfig?.id
-            ? null
-            : d.input.providerAuthConfigId
-        ]
+        server: d.server,
+        providerConfigIds: changedProviderConfigIds,
+        providerAuthConfigIds: changedProviderAuthConfigIds
       });
     }
 
@@ -974,14 +1072,6 @@ class MagicMcpServerImpl {
     });
   }
 
-  private async getUsableWhere(d: { instance: Instance; onlyUsableBy?: OrganizationActor }) {
-    if (!d.onlyUsableBy) return undefined;
-
-    let { tenant } = await subspaceScopeService.ensureForInstance(d.instance);
-    let accessor = await getOwnershipAccessor({ tenant, organizationActor: d.onlyUsableBy });
-    return usableCoreOwnedResourceWhere(accessor);
-  }
-
   async listMagicMcpServers(d: {
     instance: Instance;
     status?: MagicMcpServerStatus[];
@@ -996,7 +1086,9 @@ class MagicMcpServerImpl {
     accessTags?: AnyAccessTagSelector;
     filterAccessTags?: AnyAccessTagSelector;
     consumerSurface?: ConsumerSurface;
-    onlyUsableBy?: OrganizationActor;
+    organizationActor?: OrganizationActor;
+    ownership?: OwnershipFilter;
+    includeSystemOwned?: boolean;
   }) {
     let normalizedSearch = d.search?.trim();
     if (!normalizedSearch?.length) normalizedSearch = undefined;
@@ -1036,8 +1128,12 @@ class MagicMcpServerImpl {
     let ownerSources = getOwnerSources(d.owners);
     let andFilters: Prisma.MagicMcpServerWhereInput[] = [];
 
-    let usableWhere = await this.getUsableWhere(d);
-    if (usableWhere) andFilters.push(usableWhere);
+    andFilters.push(
+      ownedCoreResourceWhere(await this.getAccessor(d), {
+        ownership: d.ownership,
+        includeSystemOwned: d.includeSystemOwned
+      })
+    );
 
     if (normalizedSearch) {
       andFilters.push({

@@ -57,8 +57,13 @@ import {
   resolveMetorialFacingWithOptionalActor,
   toProviderEventBase,
   assertCanChangeOwnerLock,
+  assertCanChangeOwnerOnlyVisibility,
+  assertCanSeeOwnedResource,
+  canSeeOwnedResource,
   getOwnershipAccessor,
-  usableOwnedResourceWhere
+  ownedResourceWhere,
+  type OwnershipFilter,
+  resolveOwnerActorOid
 } from '@metorial-subspace/module-tenant';
 import { ownerActorSelect } from '@metorial-subspace/module-tenant/src/lib/ownerActor';
 import { getBackend } from '@metorial-subspace/provider';
@@ -101,6 +106,8 @@ export type CreateProviderConfigParams = {
   };
   ownerActorOid?: bigint | null;
   isOwnerLocked?: boolean;
+  isOwnerOnlyVisible?: boolean;
+  isSystemOwned?: boolean;
   input: {
     name?: string;
     description?: string;
@@ -134,6 +141,7 @@ export type UpdateProviderConfigParams = {
     privateMetadata?: Record<string, any>;
     toolFilters?: PrismaJson.ToolFilter | null;
     isOwnerLocked?: boolean;
+    isOwnerOnlyVisible?: boolean;
   };
 };
 
@@ -152,8 +160,9 @@ export type ArchiveProviderConfigParams = {
 };
 
 type ListProviderConfigsParams = {
-  onlyUsable?: boolean;
-  usableWhere?: Record<string, any>;
+  ownership?: OwnershipFilter;
+  ownershipWhere?: Record<string, any>;
+  includeSystemOwned?: boolean;
   search?: string;
 
   status?: ProviderConfigStatus[];
@@ -179,11 +188,13 @@ type ListProviderConfigsParams = {
 type GetProviderConfigByIdParams = {
   providerConfigId: string;
   allowDeleted?: boolean;
+  includeSystemOwned?: boolean;
 };
 
 type GetManyProviderConfigsByIdsParams = {
   ids: string[];
   allowDeleted?: boolean;
+  includeSystemOwned?: boolean;
 };
 
 type GetProviderConfigSchemaParams = {
@@ -205,13 +216,14 @@ class providerConfigServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
+    let { ownership, ...listRest } = rest;
+
     return this.listProviderConfigsInternal({
-      ...rest,
-      usableWhere: d.onlyUsable
-        ? usableOwnedResourceWhere(
-            await getOwnershipAccessor({ tenant: scope.tenant, organizationActor })
-          )
-        : undefined,
+      ...listRest,
+      ownershipWhere: ownedResourceWhere(
+        await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+        { ownership, includeSystemOwned: d.includeSystemOwned }
+      ),
       tenant: scope.tenant,
       environment: scope.environment
     });
@@ -267,11 +279,12 @@ class providerConfigServiceImpl {
               environmentOid: d.environment.oid,
               isForVault: false,
               isEphemeral: false,
+              ...(d.includeSystemOwned ? {} : { isSystemOwned: false }),
 
               ...normalizeStatusForList(d).noParent,
 
               AND: [
-                d.usableWhere ?? undefined!,
+                d.ownershipWhere ?? undefined!,
                 d.publicMcpServerIds
                   ? { ownerPublicMcpServer: { id: { in: d.publicMcpServerIds } } }
                   : { ownerPublicMcpServerOid: null },
@@ -320,11 +333,19 @@ class providerConfigServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.getProviderConfigByIdInternal({
+    let providerConfig = await this.getProviderConfigByIdInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    assertCanSeeOwnedResource(
+      await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+      providerConfig,
+      { resource: 'provider.config', id: d.providerConfigId }
+    );
+
+    return providerConfig;
   }
 
   async getProviderConfigByIdInternal(
@@ -341,6 +362,7 @@ class providerConfigServiceImpl {
             solutionOid: solution.oid,
             environmentOid: d.environment.oid,
             isForVault: false,
+            ...(d.includeSystemOwned ? {} : { isSystemOwned: false }),
             ...normalizeStatusForGet(d).noParent
           },
           include
@@ -357,11 +379,17 @@ class providerConfigServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.getManyProviderConfigsByIdsInternal({
+    let providerConfigs = await this.getManyProviderConfigsByIdsInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    let accessor = await getOwnershipAccessor({ tenant: scope.tenant, organizationActor });
+
+    return providerConfigs.filter(providerConfig =>
+      canSeeOwnedResource(accessor, providerConfig)
+    );
   }
 
   async getManyProviderConfigsByIdsInternal(
@@ -376,6 +404,7 @@ class providerConfigServiceImpl {
         solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         isForVault: false,
+        ...(d.includeSystemOwned ? {} : { isSystemOwned: false }),
         ...normalizeStatusForGet(d).noParent
       },
       include
@@ -448,15 +477,27 @@ class providerConfigServiceImpl {
     return version.specification;
   }
 
-  async createProviderConfig(d: MetorialFacing<CreateProviderConfigParams>) {
-    let { instance, organizationActor, ...rest } = d;
+  async createProviderConfig(
+    d: MetorialFacing<
+      Omit<CreateProviderConfigParams, 'isSystemOwned'> & { ownerActorId?: string | null }
+    >
+  ) {
+    let { instance, organizationActor, ownerActorId, ...rest } = d;
     let scope = await resolveMetorialFacingWithOptionalActor(d);
+
+    let ownerActorOid =
+      (await resolveOwnerActorOid({
+        tenant: scope.tenant,
+        environment: scope.environment,
+        ownerActorId
+      })) ?? d.ownerActorOid;
 
     let eventBase = toProviderEventBase(d);
     await Fabric.fire('provider.config.created:before', eventBase);
 
     let config = await this.createProviderConfigInternal({
       ...rest,
+      ownerActorOid,
       tenant: scope.tenant,
       environment: scope.environment
     });
@@ -474,6 +515,13 @@ class providerConfigServiceImpl {
       await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
       d.providerConfig,
       d.input.isOwnerLocked,
+      { resource: 'provider config' }
+    );
+
+    await assertCanChangeOwnerOnlyVisibility(
+      await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+      d.providerConfig,
+      d.input.isOwnerOnlyVisible,
       { resource: 'provider config' }
     );
 
@@ -572,8 +620,10 @@ class providerConfigServiceImpl {
         instanceOid: d.environment.instanceOid,
 
         deploymentOid: d.providerDeployment?.oid,
-        ownerActorOid: d.ownerActorOid,
-        isOwnerLocked: !!d.isOwnerLocked
+        ownerActorOid: d.isSystemOwned ? null : d.ownerActorOid,
+        isOwnerLocked: !!d.isOwnerLocked,
+        isOwnerOnlyVisible: !!d.isOwnerOnlyVisible && !d.isSystemOwned,
+        isSystemOwned: !!d.isSystemOwned
       };
 
       let config = await (async () => {
@@ -816,7 +866,8 @@ class providerConfigServiceImpl {
             d.input.toolFilters || d.input.toolFilters === null
               ? normalizeToolFilters(d.input.toolFilters)
               : d.providerConfig.toolFilter,
-          isOwnerLocked: d.input.isOwnerLocked ?? d.providerConfig.isOwnerLocked
+          isOwnerLocked: d.input.isOwnerLocked ?? d.providerConfig.isOwnerLocked,
+          isOwnerOnlyVisible: d.input.isOwnerOnlyVisible ?? d.providerConfig.isOwnerOnlyVisible
         },
         include
       });

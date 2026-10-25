@@ -226,7 +226,7 @@ describe('integration setup session owner backfill', () => {
 
     expect(metorialDb.consumerActor.findFirst).not.toHaveBeenCalled();
     expect(db.integrationSetupSession.updateMany).toHaveBeenCalledWith({
-      where: { oid: 20n, ownerActorOid: null },
+      where: { oid: 20n, ownerActorOid: null, isSystemOwned: false },
       data: { ownerActorOid: 300n }
     });
   });
@@ -242,7 +242,7 @@ describe('integration setup session owner backfill', () => {
     await runSetupSessionOwner('iss_1');
 
     expect(db.integrationSetupSession.updateMany).toHaveBeenCalledWith({
-      where: { oid: 20n, ownerActorOid: null },
+      where: { oid: 20n, ownerActorOid: null, isSystemOwned: false },
       data: { ownerActorOid: 500n }
     });
   });

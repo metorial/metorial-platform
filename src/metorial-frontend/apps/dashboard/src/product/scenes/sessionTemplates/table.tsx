@@ -44,6 +44,7 @@ let sessionTemplatesState: TableStateProvider<
   TableStateProviderResult<SessionTemplate>
 > = (props, opts) => {
   let templates = useSessionTemplates(props.instanceId, {
+    ownership: 'all',
     order: 'desc',
     status: getSessionTemplateStatusFilterValue(opts.filter.status),
     id: getStringFilterValue(opts.filter.id),

@@ -54,6 +54,7 @@ class providerSetupSessionInternalServiceImpl {
     credentials?: ProviderAuthCredentials;
     ownerActorOid?: bigint | null;
     isOwnerLocked?: boolean;
+    isOwnerOnlyVisible?: boolean;
     ownerPublicMcpServerOid?: bigint | null;
     expiresAt: Date;
     input: {
@@ -196,6 +197,7 @@ class providerSetupSessionInternalServiceImpl {
                 authMethod,
                 ownerActorOid: d.ownerActorOid,
                 isOwnerLocked: d.isOwnerLocked,
+                isOwnerOnlyVisible: d.isOwnerOnlyVisible,
                 ownerPublicMcpServerOid: d.ownerPublicMcpServerOid,
                 expiresAt: d.expiresAt,
                 input: {
@@ -245,6 +247,7 @@ class providerSetupSessionInternalServiceImpl {
             providerDeployment: d.providerDeployment,
             ownerActorOid: d.ownerActorOid,
             isOwnerLocked: d.isOwnerLocked,
+            isOwnerOnlyVisible: d.isOwnerOnlyVisible,
             ownerPublicMcpServerOid: d.ownerPublicMcpServerOid,
             input: {
               name: d.input.name,
@@ -283,6 +286,7 @@ class providerSetupSessionInternalServiceImpl {
     authMethod: ProviderAuthMethod;
     ownerActorOid?: bigint | null;
     isOwnerLocked?: boolean;
+    isOwnerOnlyVisible?: boolean;
     ownerPublicMcpServerOid?: bigint | null;
     expiresAt: Date;
     input: {
@@ -361,6 +365,7 @@ class providerSetupSessionInternalServiceImpl {
         providerDeployment: d.providerDeployment,
         ownerActorOid: d.ownerActorOid,
         isOwnerLocked: d.isOwnerLocked,
+        isOwnerOnlyVisible: d.isOwnerOnlyVisible,
         import: d.import,
         source: d.ownerPublicMcpServerOid ? 'public_mcp' : 'setup_session',
         input: {
@@ -415,6 +420,7 @@ class providerSetupSessionInternalServiceImpl {
     };
     ownerActorOid?: bigint | null;
     isOwnerLocked?: boolean;
+    isOwnerOnlyVisible?: boolean;
     ownerPublicMcpServerOid?: bigint | null;
     input: {
       name?: string;
@@ -439,6 +445,7 @@ class providerSetupSessionInternalServiceImpl {
       providerDeployment: d.providerDeployment,
       ownerActorOid: d.ownerActorOid,
       isOwnerLocked: d.isOwnerLocked,
+      isOwnerOnlyVisible: d.isOwnerOnlyVisible,
       input: {
         name: d.input.name,
         description: d.input.description,

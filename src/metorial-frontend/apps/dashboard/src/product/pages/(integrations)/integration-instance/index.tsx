@@ -123,6 +123,7 @@ let LinkedMagicMcpServersBox = (p: {
   let instance = useCurrentInstance();
   let authConfig = useProjectAuthConfigConfiguration(organization.data?.id, project.data?.id);
   let servers = useMagicMcpServers(p.instanceId, {
+    ownership: 'all',
     integrationInstanceId: p.integrationInstance.id,
     owner: ['organization', 'consumer'],
     status: ['active'],

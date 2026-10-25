@@ -35,7 +35,7 @@ let loadMagicMcpTarget = async (
 
   if (target.type === 'server') {
     let server = await db.magicMcpServer.findFirst({
-      where: { oid: target.target.oid, status: 'active' },
+      where: { oid: target.target.oid, status: 'active', isSystemOwned: false },
       include: magicMcpTargetServerInclude,
       relationLoadStrategy: 'query'
     });
@@ -44,7 +44,7 @@ let loadMagicMcpTarget = async (
   }
 
   let endpoint = await db.magicMcpEndpoint.findFirst({
-    where: { oid: target.target.oid, status: 'active' },
+    where: { oid: target.target.oid, status: 'active', isSystemOwned: false },
     include: magicMcpTargetEndpointInclude,
     relationLoadStrategy: 'query'
   });
@@ -55,10 +55,10 @@ let loadMagicMcpTarget = async (
 export let resolveMagicMcpTargetByIdOrAliasSafe = async (magicMcpTargetIdOrAlias: string) => {
   let [serverById, endpointById] = await Promise.all([
     db.magicMcpServer.findFirst({
-      where: { id: magicMcpTargetIdOrAlias, status: 'active' }
+      where: { id: magicMcpTargetIdOrAlias, status: 'active', isSystemOwned: false }
     }),
     db.magicMcpEndpoint.findFirst({
-      where: { id: magicMcpTargetIdOrAlias, status: 'active' }
+      where: { id: magicMcpTargetIdOrAlias, status: 'active', isSystemOwned: false }
     })
   ]);
 
@@ -67,10 +67,13 @@ export let resolveMagicMcpTargetByIdOrAliasSafe = async (magicMcpTargetIdOrAlias
 
   let [serverAlias, endpointBySlug] = await Promise.all([
     db.magicMcpServerAlias.findUnique({
-      where: { slug: magicMcpTargetIdOrAlias, server: { status: 'active' } }
+      where: {
+        slug: magicMcpTargetIdOrAlias,
+        server: { status: 'active', isSystemOwned: false }
+      }
     }),
     db.magicMcpEndpoint.findFirst({
-      where: { slug: magicMcpTargetIdOrAlias, status: 'active' }
+      where: { slug: magicMcpTargetIdOrAlias, status: 'active', isSystemOwned: false }
     })
   ]);
 

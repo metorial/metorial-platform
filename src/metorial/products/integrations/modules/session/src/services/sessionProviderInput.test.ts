@@ -45,7 +45,11 @@ vi.mock('@metorial-subspace/db', () => ({
 }));
 
 vi.mock('@metorial-subspace/module-tenant', () => ({
-  getMetorialSolution: vi.fn(async () => ({ oid: 7 }))
+  getMetorialSolution: vi.fn(async () => ({ oid: 7 })),
+  internalOwnershipAccessor: { kind: 'internal', isEnforced: false },
+  assertCanUseOwnedResources: vi.fn(),
+  assertCanAttachOwnedResources: vi.fn(),
+  mergeResourceOwners: vi.fn(() => null)
 }));
 
 vi.mock('@metorial-subspace/module-provider-internal', () => ({

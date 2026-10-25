@@ -55,7 +55,9 @@ model Session {
   identityOid BigInt?
   identity    Identity? @relation(fields: [identityOid], references: [oid], onDelete: SetNull)
 
-  isOwnerLocked Boolean @default(false)
+  isOwnerLocked      Boolean @default(false)
+  isOwnerOnlyVisible Boolean @default(false)
+  isSystemOwned      Boolean @default(false)
 
   ownerActorOid BigInt?
   ownerActor    IdentityActor? @relation("SessionOwnerActor", fields: [ownerActorOid], references: [oid], onDelete: SetNull)

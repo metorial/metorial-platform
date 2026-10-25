@@ -17,8 +17,11 @@ import {
   withTransaction
 } from '@metorial-subspace/db';
 import {
+  assertCanAttachOwnedResources,
   assertCanUseOwnedResources,
   getMetorialSolution,
+  internalOwnershipAccessor,
+  mergeResourceOwners,
   type OwnershipAccessor
 } from '@metorial-subspace/module-tenant';
 import { providerCombinationService } from '@metorial-subspace/module-provider-internal';
@@ -44,6 +47,20 @@ export let hasOwnerLockedProvider = (
       !!provider.config?.isOwnerLocked ||
       !!provider.authConfig?.isOwnerLocked ||
       !!provider.template?.isOwnerLocked
+  );
+
+export let hasOwnerOnlyVisibleProvider = (
+  providers: {
+    config?: { isOwnerOnlyVisible?: boolean } | null;
+    authConfig?: { isOwnerOnlyVisible?: boolean } | null;
+    template?: { isOwnerOnlyVisible?: boolean } | null;
+  }[]
+) =>
+  providers.some(
+    provider =>
+      !!provider.config?.isOwnerOnlyVisible ||
+      !!provider.authConfig?.isOwnerOnlyVisible ||
+      !!provider.template?.isOwnerOnlyVisible
   );
 
 export type SessionProviderTemplateInput = SessionTemplate & {
@@ -230,9 +247,7 @@ class sessionProviderInputServiceImpl {
       { ifExists: true }
     );
 
-    if (d.ownershipAccessor) {
-      await assertProvidersUsable(d.ownershipAccessor, resolved);
-    }
+    await assertProvidersUsable(d.ownershipAccessor ?? internalOwnershipAccessor, resolved);
 
     return resolved;
   }
@@ -343,6 +358,7 @@ class sessionProviderInputServiceImpl {
 
     providers: SessionProviderInput[];
     template: SessionTemplate;
+    isNewTemplate?: boolean;
     ownershipAccessor?: OwnershipAccessor;
   }) {
     let solution = await getMetorialSolution();
@@ -353,6 +369,23 @@ class sessionProviderInputServiceImpl {
       providers: d.providers,
       ownershipAccessor: d.ownershipAccessor
     });
+
+    let directProviders = providerSessions.filter(provider => !provider.template);
+    let directResources = directProviders.flatMap(provider => [
+      provider.config,
+      provider.authConfig
+    ]);
+
+    if (d.ownershipAccessor && !d.isNewTemplate) {
+      await assertCanAttachOwnedResources(d.ownershipAccessor, d.template, directResources, {
+        resource: 'provider resource'
+      });
+    }
+
+    let inheritedOwner =
+      d.isNewTemplate && d.ownershipAccessor?.isEnforced
+        ? mergeResourceOwners(...directResources)
+        : null;
 
     return withTransaction(async db => {
       let existingProviderCount = await db.sessionTemplateProvider.count({
@@ -394,10 +427,22 @@ class sessionProviderInputServiceImpl {
         include: sessionTemplateProviderInclude
       });
 
-      if (!d.template.isOwnerLocked && hasOwnerLockedProvider(providerSessions)) {
+      let ownerActorOid = d.template.ownerActorOid ?? inheritedOwner?.ownerActorOid ?? null;
+      let shouldLock = !d.template.isOwnerLocked && hasOwnerLockedProvider(providerSessions);
+      let shouldInheritOwner = !d.template.ownerActorOid && !!ownerActorOid;
+      let shouldHideFromOthers =
+        !d.template.isOwnerOnlyVisible &&
+        !!ownerActorOid &&
+        hasOwnerOnlyVisibleProvider(providerSessions);
+
+      if (shouldLock || shouldInheritOwner || shouldHideFromOthers) {
         await db.sessionTemplate.update({
           where: { oid: d.template.oid },
-          data: { isOwnerLocked: true }
+          data: {
+            ...(shouldLock ? { isOwnerLocked: true } : {}),
+            ...(shouldInheritOwner ? { ownerActorOid } : {}),
+            ...(shouldHideFromOthers ? { isOwnerOnlyVisible: true } : {})
+          }
         });
       }
 

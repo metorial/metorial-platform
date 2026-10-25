@@ -5,7 +5,7 @@ import {
   useCurrentProject
 } from '@metorial/state';
 import { Avatar, Badge, Button, Entity, Text, theme } from '@metorial/ui';
-import { RiLockLine } from '@remixicon/react';
+import { RiEyeOffLine, RiLockLine } from '@remixicon/react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import type { OwnedResource, ResourceOwnerActor } from '../lib/resourceOwnership';
@@ -63,7 +63,11 @@ let OwnerAvatar = ({ owner, size }: { owner: ResourceOwnerActor; size: number })
 );
 
 export let ResourceOwnerLockBadge = ({ resource }: { resource: OwnedResource }) =>
-  resource.ownerActor && resource.isOwnerLocked ? (
+  resource.ownerActor && resource.isOwnerOnlyVisible ? (
+    <Badge color="gray">
+      <RiEyeOffLine size={12} /> Only visible to owner
+    </Badge>
+  ) : resource.ownerActor && resource.isOwnerLocked ? (
     <Badge color="gray">
       <RiLockLine size={12} /> Owner only
     </Badge>
@@ -145,9 +149,11 @@ let ResourceOwnerEntityContent = ({
           prefix={<OwnerAvatar owner={owner} size={28} />}
           title={getOwnerName(owner)}
           description={
-            resource.isOwnerLocked
-              ? `${ownerTypeLabel[owner.type]} · Locked to owner`
-              : ownerTypeLabel[owner.type]
+            resource.isOwnerOnlyVisible
+              ? `${ownerTypeLabel[owner.type]} · Only visible to owner`
+              : resource.isOwnerLocked
+                ? `${ownerTypeLabel[owner.type]} · Locked to owner`
+                : ownerTypeLabel[owner.type]
           }
         />
 

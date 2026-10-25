@@ -70,6 +70,7 @@ let providerConfigsOverviewTableState: TableStateProvider<
   }
 ) => {
   let configs = useProviderConfigs(props.instanceId, {
+    ownership: 'all',
     order: 'desc',
     ...props.filters,
     status: getStatusFilterValue(opts.filter.status) ?? props.filters?.status,

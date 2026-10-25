@@ -34,7 +34,10 @@ import {
   resolveActorOid,
   withMagicMcpBackingLock
 } from './shared';
-import { setIntegrationInstanceOwnerLock } from '../../lib/ownerLock';
+import {
+  setIntegrationInstanceOwnerLock,
+  setIntegrationInstanceOwnerOnlyVisibility
+} from '../../lib/ownerLock';
 
 export type MagicMcpServerBackingStatus = 'healthy' | 'stale' | 'missing' | 'needs_reconnect';
 
@@ -141,7 +144,8 @@ class magicMcpServerBackingServiceImpl {
         environment: d.environment,
         ownerActorId: d.input.ownerActorId
       }),
-      isOwnerLocked: !!d.input.isOwnerLocked
+      isOwnerLocked: !!d.input.isOwnerLocked,
+      isOwnerOnlyVisible: !!d.input.isOwnerOnlyVisible
     };
     if (d.input.providerTemplateBackingId && d.input.ownerIntegrationId) {
       throw new ServiceError(
@@ -349,7 +353,8 @@ class magicMcpServerBackingServiceImpl {
               actorOid,
               identityOid: integrationInstance.identityOid,
               ownerActorOid: owner.ownerActorOid,
-              isOwnerLocked: owner.isOwnerLocked
+              isOwnerLocked: owner.isOwnerLocked,
+              isOwnerOnlyVisible: owner.isOwnerOnlyVisible ?? false
             },
             update: {
               ownerType,
@@ -362,7 +367,8 @@ class magicMcpServerBackingServiceImpl {
               actorOid,
               identityOid: integrationInstance.identityOid,
               ownerActorOid: owner.ownerActorOid,
-              isOwnerLocked: owner.isOwnerLocked
+              isOwnerLocked: owner.isOwnerLocked,
+              isOwnerOnlyVisible: owner.isOwnerOnlyVisible ?? false
             }
           });
 
@@ -396,14 +402,16 @@ class magicMcpServerBackingServiceImpl {
       magicMcpServerBackingId: d.input.id
     });
 
-    let { isOwnerLocked } = await db.magicMcpServerBacking.findUniqueOrThrow({
-      where: { oid: syncTarget.backing.oid },
-      select: { isOwnerLocked: true }
-    });
+    let { isOwnerLocked, isOwnerOnlyVisible } =
+      await db.magicMcpServerBacking.findUniqueOrThrow({
+        where: { oid: syncTarget.backing.oid },
+        select: { isOwnerLocked: true, isOwnerOnlyVisible: true }
+      });
 
     return {
       ...syncTarget.backing,
       isOwnerLocked,
+      isOwnerOnlyVisible,
       providerTemplateBacking,
       ownerIntegration: ownerType === 'integration' ? syncTarget.integration : null,
       integration: ownerType === 'server_owned' ? syncTarget.integration : null,
@@ -471,6 +479,19 @@ class magicMcpServerBackingServiceImpl {
       await setIntegrationInstanceOwnerLock(
         { oid: backing.integrationInstanceOid },
         d.isOwnerLocked
+      );
+    });
+  }
+
+  async setMagicMcpServerBackingOwnerOnlyVisibility(
+    d: MetorialFacing<GetMagicMcpServerBackingByIdParams & { isOwnerOnlyVisible: boolean }>
+  ) {
+    let backing = await this.getMagicMcpServerBackingById(d);
+
+    await withTransaction(async () => {
+      await setIntegrationInstanceOwnerOnlyVisibility(
+        { oid: backing.integrationInstanceOid },
+        d.isOwnerOnlyVisible
       );
     });
   }

@@ -37,6 +37,7 @@ export let ProviderAuthConfigsTable = ({
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
   let authConfigs = useProviderAuthConfigs(instanceId, {
+    ownership: 'all',
     order: 'desc',
     search,
     providerDeploymentId

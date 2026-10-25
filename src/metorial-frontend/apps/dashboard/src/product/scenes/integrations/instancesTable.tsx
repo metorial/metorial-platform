@@ -44,6 +44,7 @@ let useIntegrationInstancesTableState = (
   opts: { filter: Record<string, FilterPayload>; search?: string }
 ) => {
   let instances = useIntegrationInstances(props.instanceId, {
+    ownership: 'all',
     integrationId: props.integration.id,
     order: 'desc',
     status: getStatusFilterValue(opts.filter.status) ?? ['active'],

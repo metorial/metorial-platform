@@ -23,6 +23,7 @@ export let ProviderConfigsTable = ({
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
   let configs = useProviderConfigs(instanceId, {
+    ownership: 'all',
     order: 'desc',
     search,
     providerDeploymentId

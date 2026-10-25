@@ -130,7 +130,10 @@ class magicMcpEndpointBackingServiceImpl {
             ownerActorOid,
             isOwnerLocked:
               !!d.input.isOwnerLocked ||
-              serverBackings.some(serverBacking => serverBacking.isOwnerLocked)
+              serverBackings.some(serverBacking => serverBacking.isOwnerLocked),
+            isOwnerOnlyVisible:
+              !!d.input.isOwnerOnlyVisible ||
+              serverBackings.some(serverBacking => serverBacking.isOwnerOnlyVisible)
           };
 
           let group =
@@ -195,7 +198,8 @@ class magicMcpEndpointBackingServiceImpl {
               ephemeralManagedSessionOid: ephemeralManagedSession.oid,
               actorOid,
               ownerActorOid: owner.ownerActorOid,
-              isOwnerLocked: owner.isOwnerLocked
+              isOwnerLocked: owner.isOwnerLocked,
+              isOwnerOnlyVisible: owner.isOwnerOnlyVisible
             },
             update: {
               integrationGroupOid: group.oid,
@@ -203,7 +207,8 @@ class magicMcpEndpointBackingServiceImpl {
               ephemeralManagedSessionOid: ephemeralManagedSession.oid,
               actorOid,
               ownerActorOid: owner.ownerActorOid,
-              isOwnerLocked: owner.isOwnerLocked
+              isOwnerLocked: owner.isOwnerLocked,
+              isOwnerOnlyVisible: owner.isOwnerOnlyVisible
             }
           });
 
@@ -320,6 +325,31 @@ class magicMcpEndpointBackingServiceImpl {
       await db.ephemeralManagedSession.update({
         where: { oid: backing.ephemeralManagedSessionOid },
         data: { isOwnerLocked: d.isOwnerLocked }
+      });
+    });
+  }
+
+  async setMagicMcpEndpointBackingOwnerOnlyVisibility(
+    d: MetorialFacing<GetMagicMcpEndpointBackingByIdParams & { isOwnerOnlyVisible: boolean }>
+  ) {
+    let backing = await this.getMagicMcpEndpointBackingById(d);
+
+    await withTransaction(async db => {
+      await db.magicMcpEndpointBacking.update({
+        where: { oid: backing.oid },
+        data: { isOwnerOnlyVisible: d.isOwnerOnlyVisible }
+      });
+      await db.integrationInstanceGroup.update({
+        where: { oid: backing.integrationGroupOid },
+        data: { isOwnerOnlyVisible: d.isOwnerOnlyVisible }
+      });
+      await db.sessionTemplate.update({
+        where: { oid: backing.sessionTemplateOid },
+        data: { isOwnerOnlyVisible: d.isOwnerOnlyVisible }
+      });
+      await db.ephemeralManagedSession.update({
+        where: { oid: backing.ephemeralManagedSessionOid },
+        data: { isOwnerOnlyVisible: d.isOwnerOnlyVisible }
       });
     });
   }

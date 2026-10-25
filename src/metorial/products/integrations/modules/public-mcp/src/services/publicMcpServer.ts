@@ -25,7 +25,10 @@ import {
   checkTenant,
   getMetorialSolution,
   metorialDb,
+  assertCanSeeOwnedResource,
+  getOwnershipAccessor,
   type MetorialFacing,
+  ownedResourceWhere,
   ownerActorSelect,
   resolveMetorialFacing,
   toProviderEventBase
@@ -105,6 +108,7 @@ export type CreatePublicMcpServerParams = {
   environment: Environment;
   providerDeployment: ProviderDeployment;
   ownerActorOid?: bigint | null;
+  isSystemOwned?: boolean;
   input: PublicMcpServerSettingsInput & {
     name: string;
     slug: string;
@@ -135,6 +139,8 @@ export type ArchivePublicMcpServerParams = {
 type ListPublicMcpServersParams = {
   status?: PublicMcpServerStatus[];
   allowDeleted?: boolean;
+  includeSystemOwned?: boolean;
+  ownershipWhere?: Record<string, any>;
 
   ids?: string[];
   providerDeploymentIds?: string[];
@@ -146,6 +152,7 @@ type ListPublicMcpServersParams = {
 type GetPublicMcpServerByIdParams = {
   publicMcpServerId: string;
   allowDeleted?: boolean;
+  includeSystemOwned?: boolean;
 };
 
 class publicMcpServerServiceImpl {
@@ -153,8 +160,14 @@ class publicMcpServerServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
+    let accessor = await getOwnershipAccessor({ tenant: scope.tenant, organizationActor });
+
     return this.listPublicMcpServersInternal({
       ...rest,
+      ownershipWhere: ownedResourceWhere(accessor, {
+        ownership: 'all',
+        includeSystemOwned: d.includeSystemOwned
+      }),
       tenant: scope.tenant,
       environment: scope.environment
     });
@@ -180,6 +193,8 @@ class publicMcpServerServiceImpl {
               ...normalizeStatusForList(d).noParent,
 
               AND: [
+                d.ownershipWhere ?? undefined!,
+                d.includeSystemOwned ? undefined! : { isSystemOwned: false },
                 d.ids ? { id: { in: d.ids } } : undefined!,
                 deployments ? { deploymentOid: deployments.in } : undefined!,
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
@@ -196,11 +211,19 @@ class publicMcpServerServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.getPublicMcpServerByIdInternal({
+    let publicMcpServer = await this.getPublicMcpServerByIdInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    assertCanSeeOwnedResource(
+      await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+      publicMcpServer,
+      { resource: 'public_mcp_server', id: d.publicMcpServerId }
+    );
+
+    return publicMcpServer;
   }
 
   async getPublicMcpServerByIdInternal(
@@ -213,6 +236,7 @@ class publicMcpServerServiceImpl {
         tenantOid: d.tenant.oid,
         solutionOid: solution.oid,
         environmentOid: d.environment.oid,
+        isSystemOwned: d.includeSystemOwned ? undefined : false,
         ...normalizeStatusForGet(d).noParent
       },
       include: publicMcpServerInclude
@@ -307,7 +331,8 @@ class publicMcpServerServiceImpl {
           instanceOid: d.environment.instanceOid!,
           providerOid: d.providerDeployment.providerOid,
           deploymentOid: d.providerDeployment.oid,
-          ownerActorOid: d.ownerActorOid ?? null
+          ownerActorOid: d.isSystemOwned ? null : (d.ownerActorOid ?? null),
+          isSystemOwned: !!d.isSystemOwned
         },
         include: publicMcpServerInclude
       });

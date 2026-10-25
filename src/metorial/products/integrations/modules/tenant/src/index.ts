@@ -5,6 +5,7 @@ export * from './lib/consumerOwnedName';
 export * from './lib/ownerActor';
 export * from './lib/ownership';
 export * from './lib/ownershipAccess';
+export * from './lib/ownershipAttach';
 export * from './lib/resolveConsumerActors';
 export * from './lib/scopeIds';
 export * from './lib/sessionlessMcp';

@@ -204,6 +204,7 @@ export type UpsertPlaceholderEphemeralManagedSessionParams = {
     owner?: {
       ownerActorOid: bigint | null;
       isOwnerLocked: boolean;
+      isOwnerOnlyVisible?: boolean;
     };
     isReconciling?: boolean;
     markSessionsAsInternal?: boolean;
@@ -327,6 +328,7 @@ class ephemeralManagedSessionServiceImpl {
           identityOid: d.sessionTemplate.identityOid ?? null,
           ownerActorOid: d.sessionTemplate.ownerActorOid ?? null,
           isOwnerLocked: d.sessionTemplate.isOwnerLocked ?? false,
+          isOwnerOnlyVisible: d.sessionTemplate.isOwnerOnlyVisible ?? false,
           maxSessionDurationInMinutes: d.input.maxSessionDurationInMinutes,
           templateHash: d.sessionTemplate.hash ?? null,
           markSessionsAsInternal,
@@ -345,7 +347,8 @@ class ephemeralManagedSessionServiceImpl {
         identityOid: d.sessionTemplate.identityOid ?? null,
         owner: {
           ownerActorOid: ephemeralManagedSession.ownerActorOid,
-          isOwnerLocked: ephemeralManagedSession.isOwnerLocked
+          isOwnerLocked: ephemeralManagedSession.isOwnerLocked,
+          isOwnerOnlyVisible: ephemeralManagedSession.isOwnerOnlyVisible
         },
         input,
         resolvedProviders
@@ -434,6 +437,9 @@ class ephemeralManagedSessionServiceImpl {
         isOwnerLocked: d.input.owner
           ? d.input.owner.isOwnerLocked
           : (d.sessionTemplate.isOwnerLocked ?? false),
+        isOwnerOnlyVisible: d.input.owner
+          ? (d.input.owner.isOwnerOnlyVisible ?? false)
+          : (d.sessionTemplate.isOwnerOnlyVisible ?? false),
         isReconciling: d.input.isReconciling ?? false,
         markSessionsAsInternal,
         adapterGlobalOid: adapter?.oid ?? null
@@ -644,7 +650,8 @@ class ephemeralManagedSessionServiceImpl {
           identityOid: ephemeralManagedSession.sessionTemplate.identityOid ?? null,
           owner: {
             ownerActorOid: ephemeralManagedSession.ownerActorOid,
-            isOwnerLocked: ephemeralManagedSession.isOwnerLocked
+            isOwnerLocked: ephemeralManagedSession.isOwnerLocked,
+            isOwnerOnlyVisible: ephemeralManagedSession.isOwnerOnlyVisible
           },
           input,
           resolvedProviders

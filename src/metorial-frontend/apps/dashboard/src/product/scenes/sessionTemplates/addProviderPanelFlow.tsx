@@ -802,6 +802,7 @@ export type ProviderSetupSectionsProps = {
   supplementaryContent?: ReactNode;
   footer?: ReactNode;
   disabled?: boolean;
+  ownedByCaller?: boolean;
 };
 
 export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
@@ -1089,6 +1090,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
             inlineCreateConfig
             defaultConfigName={generatedResourceName}
             hideCreateConfigDetails
+            ownedByCaller={p.ownedByCaller}
             disabled={p.disabled}
           />
           {p.configError}
@@ -1130,6 +1132,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
             fixedAuthCredentialsId={p.fixedAuthCredentialsId}
             authMethodAdapter={p.authMethodAdapter}
             defaultAuthConfigName={p.defaultAuthConfigName}
+            ownedByCaller={p.ownedByCaller}
             close={() => setInlineAuthMethodId(null)}
             onBack={() => setInlineAuthMethodId(null)}
             embedded
@@ -1157,7 +1160,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
                     let comboboxAuthConfigs = useProviderAuthConfigs(p.instanceId, {
                       providerId: p.providerId,
                       limit: 25,
-                      usable: true,
+                      ...(p.ownedByCaller ? { ownership: 'usable' as const } : {}),
                       search: searchQuery || undefined,
                       ...(filterAvailableResources
                         ? {
@@ -1198,6 +1201,7 @@ export let ProviderSetupSections = (p: ProviderSetupSectionsProps) => {
               fixedAuthCredentialsId={p.fixedAuthCredentialsId}
               authMethodAdapter={p.authMethodAdapter}
               defaultAuthConfigName={p.defaultAuthConfigName}
+              ownedByCaller={p.ownedByCaller}
               onInlineCreate={authMethodId => setInlineAuthMethodId(authMethodId)}
               onCreate={async authConfig => {
                 pendingCreatedAuthConfigIdRef.current = authConfig.id;
@@ -1366,6 +1370,7 @@ let ProviderAuthConfigCreateAction = (p: {
   fixedAuthCredentialsId?: string;
   authMethodAdapter?: string;
   defaultAuthConfigName?: string;
+  ownedByCaller?: boolean;
   onInlineCreate: (authMethodId: string) => void;
   onCreate?: (authConfig: { id: string; name?: string | null }) => void;
   onBack?: () => void;
@@ -1383,6 +1388,7 @@ let ProviderAuthConfigCreateAction = (p: {
     fixedAuthCredentialsId: p.fixedAuthCredentialsId,
     authMethodAdapter: p.authMethodAdapter,
     defaultAuthConfigName: p.defaultAuthConfigName,
+    ownedByCaller: p.ownedByCaller,
     onCreate: p.onCreate,
     onBack: p.onBack
   });

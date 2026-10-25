@@ -97,6 +97,7 @@ class providerSetupSessionUiServiceImpl {
     };
     ownerActorOid: bigint | null;
     isOwnerLocked?: boolean;
+    isOwnerOnlyVisible?: boolean;
     ownerPublicMcpServerOid: bigint | null;
     toolFilters?: PrismaJson.ToolFilter | null;
   }) {
@@ -130,6 +131,7 @@ class providerSetupSessionUiServiceImpl {
         parentConfigOid: d.config.oid,
         ownerActorOid: d.ownerActorOid ?? d.config.ownerActorOid,
         isOwnerLocked: !!d.isOwnerLocked || d.config.isOwnerLocked,
+        isOwnerOnlyVisible: !!d.isOwnerOnlyVisible || d.config.isOwnerOnlyVisible,
         ownerPublicMcpServerOid: d.ownerPublicMcpServerOid ?? d.config.ownerPublicMcpServerOid
       }
     });
@@ -466,6 +468,7 @@ class providerSetupSessionUiServiceImpl {
             authMethod,
             ownerActorOid: currentSession.ownerActorOid,
             isOwnerLocked: currentSession.isOwnerLocked,
+            isOwnerOnlyVisible: currentSession.isOwnerOnlyVisible,
             ownerPublicMcpServerOid: currentSession.ownerPublicMcpServerOid,
             expiresAt: currentSession.expiresAt,
             input: {
@@ -609,6 +612,7 @@ class providerSetupSessionUiServiceImpl {
                 config: currentSession.config,
                 ownerActorOid: currentSession.ownerActorOid,
                 isOwnerLocked: currentSession.isOwnerLocked,
+                isOwnerOnlyVisible: currentSession.isOwnerOnlyVisible,
                 ownerPublicMcpServerOid: currentSession.ownerPublicMcpServerOid,
                 toolFilters: d.input.toolFilters
               });
@@ -630,6 +634,7 @@ class providerSetupSessionUiServiceImpl {
             providerDeployment: currentSession.deployment ?? undefined,
             ownerActorOid: currentSession.ownerActorOid,
             isOwnerLocked: currentSession.isOwnerLocked,
+            isOwnerOnlyVisible: currentSession.isOwnerOnlyVisible,
             ownerPublicMcpServerOid: currentSession.ownerPublicMcpServerOid,
             input: {
               name: currentSession.name ?? undefined,
@@ -785,6 +790,7 @@ class providerSetupSessionUiServiceImpl {
             provider,
             ownerActorOid: session.ownerActorOid,
             isOwnerLocked: session.isOwnerLocked,
+            isOwnerOnlyVisible: session.isOwnerOnlyVisible,
             ownerPublicMcpServerOid: session.ownerPublicMcpServerOid,
             expiresAt: session.expiresAt,
             input: {

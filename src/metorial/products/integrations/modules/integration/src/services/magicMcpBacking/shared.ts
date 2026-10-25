@@ -24,6 +24,7 @@ export type MagicMcpBackingInputBase = {
   identityId?: string | null;
   ownerActorId?: string | null;
   isOwnerLocked?: boolean;
+  isOwnerOnlyVisible?: boolean;
   maxSessionDurationInMinutes: number;
 };
 

@@ -13,6 +13,7 @@ export type ResourceOwnerActor = {
 export type OwnedResource = {
   ownerActor?: ResourceOwnerActor | null;
   isOwnerLocked?: boolean;
+  isOwnerOnlyVisible?: boolean;
 };
 
 export let useResourceOwnershipAccess = (resource: OwnedResource | null | undefined) => {

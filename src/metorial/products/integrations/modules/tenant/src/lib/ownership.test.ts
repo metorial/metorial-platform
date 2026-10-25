@@ -16,13 +16,14 @@ describe('mergeResourceOwners', () => {
         { ownerActorOid: 5n, isOwnerLocked: false },
         { ownerActorOid: 6n, isOwnerLocked: true }
       )
-    ).toEqual({ ownerActorOid: 5n, isOwnerLocked: true });
+    ).toEqual({ ownerActorOid: 5n, isOwnerLocked: true, isOwnerOnlyVisible: false });
   });
 
   it('is ownerless and unlocked without sources', () => {
     expect(mergeResourceOwners(null, undefined)).toEqual({
       ownerActorOid: null,
-      isOwnerLocked: false
+      isOwnerLocked: false,
+      isOwnerOnlyVisible: false
     });
   });
 });

@@ -367,6 +367,8 @@ class providerAuthConfigInternalServiceImpl {
     credentials?: ProviderAuthCredentials;
     ownerActorOid?: bigint | null;
     isOwnerLocked?: boolean;
+    isOwnerOnlyVisible?: boolean;
+    isSystemOwned?: boolean;
     input: {
       name?: string;
       description?: string;
@@ -446,8 +448,10 @@ class providerAuthConfigInternalServiceImpl {
           authMethodOid: d.authMethod.oid,
           deploymentOid: d.providerDeployment?.oid,
           authCredentialsOid: d.credentials?.oid,
-          ownerActorOid: d.ownerActorOid,
-          isOwnerLocked: !!d.isOwnerLocked
+          ownerActorOid: d.isSystemOwned ? null : d.ownerActorOid,
+          isOwnerLocked: !!d.isOwnerLocked,
+          isOwnerOnlyVisible: !!d.isOwnerOnlyVisible && !!d.ownerActorOid && !d.isSystemOwned,
+          isSystemOwned: !!d.isSystemOwned
         },
         include: providerAuthConfigInclude
       });

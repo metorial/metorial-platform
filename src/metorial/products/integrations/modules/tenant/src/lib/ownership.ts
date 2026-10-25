@@ -4,6 +4,7 @@ import { db, type Environment, type Tenant } from '@metorial-subspace/db';
 export type ResourceOwner = {
   ownerActorOid: bigint | null;
   isOwnerLocked: boolean;
+  isOwnerOnlyVisible?: boolean;
 };
 
 export type OwnedResource = {
@@ -11,6 +12,8 @@ export type OwnedResource = {
   identityActorOid?: bigint | null;
   actorOid?: bigint | null;
   isOwnerLocked?: boolean | null;
+  isOwnerOnlyVisible?: boolean | null;
+  isSystemOwned?: boolean | null;
 };
 
 export let effectiveOwnerActorOid = (resource: OwnedResource) =>
@@ -56,5 +59,6 @@ export let mergeResourceOwners = (
 ): ResourceOwner => ({
   ownerActorOid:
     owners.map(owner => owner?.ownerActorOid ?? null).find(oid => oid !== null) ?? null,
-  isOwnerLocked: owners.some(owner => !!owner?.isOwnerLocked)
+  isOwnerLocked: owners.some(owner => !!owner?.isOwnerLocked),
+  isOwnerOnlyVisible: owners.some(owner => !!owner?.isOwnerOnlyVisible)
 });

@@ -113,6 +113,7 @@ let magicServersState: TableStateProvider<
   TableStateProviderResult<Server>
 > = (props, opts) => {
   let servers = useMagicMcpServers(props.instanceId, {
+    ownership: 'all',
     order: props.order ?? 'desc',
     status: getServerStatusFilterValue(opts.filter.status) ?? props.status,
     magicMcpGroupId:
@@ -372,6 +373,7 @@ export let MagicMcpServersGrid = (filter: DashboardInstanceMagicMcpServersListQu
     getStringFilterValue(filterPayload.magicMcpGroupId) ?? filter.magicMcpGroupId;
   let providerId = getListFilterValue(filterPayload.providerId) ?? filter.providerId;
   let servers = useMagicMcpServers(instance.data?.id, {
+    ownership: 'all',
     order: filter.order ?? 'desc',
     status,
     magicMcpGroupId,

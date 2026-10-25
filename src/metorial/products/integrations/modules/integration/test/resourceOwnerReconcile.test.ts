@@ -64,7 +64,7 @@ describe('resource owner reconcilers', () => {
     await run('integrationInstance');
 
     expect(db.integrationInstance.updateMany).toHaveBeenCalledWith({
-      where: { oid: 1n, ownerActorOid: null },
+      where: { oid: 1n, ownerActorOid: null, isSystemOwned: false },
       data: { ownerActorOid: 500n }
     });
   });
@@ -106,7 +106,7 @@ describe('resource owner reconcilers', () => {
     await run('sessionTemplate');
 
     expect(db.sessionTemplate.updateMany).toHaveBeenCalledWith({
-      where: { oid: 4n, ownerActorOid: null },
+      where: { oid: 4n, ownerActorOid: null, isSystemOwned: false },
       data: { ownerActorOid: 700n }
     });
   });
@@ -122,7 +122,7 @@ describe('resource owner reconcilers', () => {
     await run('ephemeralManagedSession');
 
     expect(db.ephemeralManagedSession.updateMany).toHaveBeenCalledWith({
-      where: { oid: 5n, ownerActorOid: null },
+      where: { oid: 5n, ownerActorOid: null, isSystemOwned: false },
       data: { ownerActorOid: 800n }
     });
   });
@@ -138,7 +138,7 @@ describe('resource owner reconcilers', () => {
     await run('session');
 
     expect(db.session.updateMany).toHaveBeenCalledWith({
-      where: { oid: 6n, ownerActorOid: null },
+      where: { oid: 6n, ownerActorOid: null, isSystemOwned: false },
       data: { ownerActorOid: 900n }
     });
   });
@@ -154,7 +154,7 @@ describe('resource owner reconcilers', () => {
     await run('magicMcpServerBacking');
 
     expect(db.magicMcpServerBacking.updateMany).toHaveBeenCalledWith({
-      where: { oid: 7n, ownerActorOid: null },
+      where: { oid: 7n, ownerActorOid: null, isSystemOwned: false },
       data: { ownerActorOid: 500n }
     });
   });

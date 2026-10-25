@@ -41,9 +41,12 @@ import {
 import { checkProviderMatch } from '@metorial-subspace/module-provider-internal';
 import { assertNotPublicMcpOwned } from '@metorial-subspace/public-mcp-guard';
 import {
+  assertCanSeeOwnedResource,
   assertCanUseOwnedResource,
   getMetorialSolution,
   getOwnershipAccessor,
+  ownedResourceWhere,
+  resolveOwnerActorOid,
   checkTenant,
   metorialDb,
   type MetorialFacing,
@@ -125,7 +128,10 @@ export type CreateProviderSetupSessionParams = {
   providerConfig?: ProviderConfig;
   identity?: Identity;
   ownerActorOid?: bigint | null;
+  ownerActorId?: string | null;
   isOwnerLocked?: boolean;
+  isOwnerOnlyVisible?: boolean;
+  isSystemOwned?: boolean;
   credentials?: ProviderAuthCredentials;
   brand?: Brand;
   input: {
@@ -187,6 +193,8 @@ type ListProviderSetupSessionsParams = {
   providerAuthConfigIds?: string[];
   providerAuthCredentialsIds?: string[];
   publicMcpServerIds?: string[];
+  ownershipWhere?: Record<string, any>;
+  includeSystemOwned?: boolean;
 
   createdAt?: DateFilter;
   updatedAt?: DateFilter;
@@ -195,6 +203,7 @@ type ListProviderSetupSessionsParams = {
 type GetProviderSetupSessionByIdParams = {
   providerSetupSessionId: string;
   allowDeleted?: boolean;
+  includeSystemOwned?: boolean;
 };
 
 class providerSetupSessionServiceImpl {
@@ -202,8 +211,14 @@ class providerSetupSessionServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
+    let accessor = await getOwnershipAccessor({ tenant: scope.tenant, organizationActor });
+
     return this.listProviderSetupSessionsInternal({
       ...rest,
+      ownershipWhere: ownedResourceWhere(accessor, {
+        ownership: 'all',
+        includeSystemOwned: d.includeSystemOwned
+      }),
       tenant: scope.tenant,
       environment: scope.environment
     });
@@ -233,10 +248,12 @@ class providerSetupSessionServiceImpl {
               solutionOid: solution.oid,
               environmentOid: d.environment.oid,
               integrationSetupSessionProviderOid: null,
+              ...(d.includeSystemOwned ? {} : { isSystemOwned: false }),
 
               ...normalizeStatusForList(d).onlyParent,
 
               AND: [
+                d.ownershipWhere ?? undefined!,
                 d.publicMcpServerIds
                   ? { ownerPublicMcpServer: { id: { in: d.publicMcpServerIds } } }
                   : { ownerPublicMcpServerOid: null },
@@ -267,11 +284,19 @@ class providerSetupSessionServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.getProviderSetupSessionByIdInternal({
+    let providerSetupSession = await this.getProviderSetupSessionByIdInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    assertCanSeeOwnedResource(
+      await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+      providerSetupSession,
+      { resource: 'provider.setup_session', id: d.providerSetupSessionId }
+    );
+
+    return providerSetupSession;
   }
 
   async getProviderSetupSessionByIdInternal(
@@ -285,6 +310,7 @@ class providerSetupSessionServiceImpl {
         solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         integrationSetupSessionProviderOid: null,
+        ...(d.includeSystemOwned ? {} : { isSystemOwned: false }),
         ...normalizeStatusForGet(d).onlyParent
       },
       include
@@ -302,7 +328,7 @@ class providerSetupSessionServiceImpl {
       consumerId?: string;
     }
   ) {
-    let { instance, organizationActor, consumerId, ...rest } = d;
+    let { instance, organizationActor, consumerId, ownerActorId, ...rest } = d;
     let scope = await resolveMetorialFacingWithOptionalActor(d);
 
     if (rest.providerConfig && !consumerId) {
@@ -314,7 +340,12 @@ class providerSetupSessionServiceImpl {
     }
 
     let identity = rest.identity;
-    let ownerActorOid = rest.ownerActorOid;
+    let ownerActorOid =
+      (await resolveOwnerActorOid({
+        tenant: scope.tenant,
+        environment: scope.environment,
+        ownerActorId
+      })) ?? rest.ownerActorOid;
     let privateMetadata = rest.input.privateMetadata;
 
     if (consumerId) {
@@ -455,8 +486,14 @@ class providerSetupSessionServiceImpl {
       );
     }
 
-    let ownerActorOid = d.ownerActorOid ?? d.identity?.actorOid ?? null;
+    let ownerActorOid = d.isSystemOwned
+      ? null
+      : (d.ownerActorOid ?? d.identity?.actorOid ?? null);
     let isOwnerLocked = !!d.isOwnerLocked || !!d.providerConfig?.isOwnerLocked;
+    let isOwnerOnlyVisible =
+      !d.isSystemOwned &&
+      !!ownerActorOid &&
+      (!!d.isOwnerOnlyVisible || !!d.providerConfig?.isOwnerOnlyVisible);
 
     return withTransaction(async db => {
       let expiresAt =
@@ -488,6 +525,7 @@ class providerSetupSessionServiceImpl {
             credentials: d.credentials,
             ownerActorOid,
             isOwnerLocked,
+            isOwnerOnlyVisible,
             ownerPublicMcpServerOid: d.internal?.ownerPublicMcpServerOid,
             expiresAt,
             input: {
@@ -553,6 +591,8 @@ class providerSetupSessionServiceImpl {
           identityOid: d.identity?.oid ?? null,
           ownerActorOid,
           isOwnerLocked,
+          isOwnerOnlyVisible,
+          isSystemOwned: !!d.isSystemOwned,
           brandOid: d.brand?.oid,
           authCredentialsOid: inner.authCredentialsOid ?? d.credentials?.oid,
           integrationSetupSessionProviderOid: d.internal?.integrationSetupSessionProviderOid,

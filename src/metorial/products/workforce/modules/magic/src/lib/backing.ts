@@ -43,7 +43,7 @@ type MagicMcpServerBackingSpec = Pick<
   | 'subspaceIntegrationInstanceId'
   | 'legacySubspaceSessionTemplateId'
 > &
-  Partial<Pick<MagicMcpServer, 'ownerActorOid' | 'isOwnerLocked'>>;
+  Partial<Pick<MagicMcpServer, 'ownerActorOid' | 'isOwnerLocked' | 'isOwnerOnlyVisible'>>;
 
 let getOwnerActorId = async (ownerActorOid: bigint | null | undefined) => {
   if (!ownerActorOid) return null;
@@ -59,10 +59,12 @@ let getOwnerActorId = async (ownerActorOid: bigint | null | undefined) => {
 let resolveBackingOwner = async (d: {
   ownerActorOid?: bigint | null;
   isOwnerLocked?: boolean;
+  isOwnerOnlyVisible?: boolean;
   owner: ConsumerOwner;
 }) => ({
   ownerActorId: (await getOwnerActorId(d.ownerActorOid)) ?? d.owner.identityActorId ?? null,
-  isOwnerLocked: !!d.isOwnerLocked
+  isOwnerLocked: !!d.isOwnerLocked,
+  isOwnerOnlyVisible: !!d.isOwnerOnlyVisible
 });
 
 let getMagicMcpSessionDuration = async (instance: Instance) => {
@@ -191,6 +193,7 @@ export let applyMagicMcpServerBacking = async (d: {
       ...(await resolveBackingOwner({
         ownerActorOid: d.server.ownerActorOid,
         isOwnerLocked: d.server.isOwnerLocked,
+        isOwnerOnlyVisible: d.server.isOwnerOnlyVisible,
         owner: d.owner
       })),
       ...(d.providers?.length ? { providers: d.providers } : {})
@@ -205,7 +208,10 @@ export let getMagicMcpServerBackingCoreFields = (
   isSubspaceBackingReconciling: false,
   ownerType: backing.ownerType,
   subspaceEphemeralManagedSessionId: backing.ephemeralManagedSession.id,
-  ...(backing.isOwnerLocked ? { isOwnerLocked: true } : {})
+  ...(backing.isOwnerLocked ? { isOwnerLocked: true } : {}),
+  ...((backing as { isOwnerOnlyVisible?: boolean }).isOwnerOnlyVisible
+    ? { isOwnerOnlyVisible: true }
+    : {})
 });
 
 export let ensureMagicMcpServerBacking = async (d: {
@@ -387,6 +393,7 @@ export let ensureMagicMcpEndpointBacking = async (d: {
       ...owner,
       ownerActorId: await getOwnerActorId(ownerActorOid),
       isOwnerLocked: endpoint.isOwnerLocked,
+      ...{ isOwnerOnlyVisible: endpoint.isOwnerOnlyVisible },
       servers: endpoint.servers.map(server => ({
         id: server.id,
         magicMcpServerBackingId: server.magicMcpServer.id,
@@ -402,7 +409,10 @@ export let ensureMagicMcpEndpointBacking = async (d: {
       subspaceEphemeralManagedSessionId: backing.ephemeralManagedSession.id,
       isSubspaceBackingReconciling: false,
       ...(ownerActorOid ? { ownerActorOid } : {}),
-      ...(backing.isOwnerLocked ? { isOwnerLocked: true } : {})
+      ...(backing.isOwnerLocked ? { isOwnerLocked: true } : {}),
+      ...((backing as { isOwnerOnlyVisible?: boolean }).isOwnerOnlyVisible
+        ? { isOwnerOnlyVisible: true }
+        : {})
     },
     include: magicMcpEndpointBackingInclude
   });

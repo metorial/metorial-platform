@@ -1,4 +1,9 @@
-import { forbiddenError, ServiceError } from '@lowerdeck/error';
+import {
+  badRequestError,
+  forbiddenError,
+  notFoundError,
+  ServiceError
+} from '@lowerdeck/error';
 import type { OrganizationActor } from '@metorial/db';
 import { db, type Tenant } from '@metorial-subspace/db';
 import { metorialDb } from './metorialDb';
@@ -12,16 +17,37 @@ export type OwnershipAccessor = {
   ownActorOids: bigint[];
   ownActorIds: string[];
   isRestrictedByProject: boolean;
+  isEnforced: boolean;
+  allowSystemOwned: boolean;
 };
+
+export type OwnershipFilter = 'shared' | 'usable' | 'all';
 
 export let internalOwnershipAccessor: OwnershipAccessor = {
   kind: 'internal',
   ownActorOids: [],
   ownActorIds: [],
-  isRestrictedByProject: false
+  isRestrictedByProject: false,
+  isEnforced: false,
+  allowSystemOwned: false
 };
 
+export let systemOwnershipAccessor: OwnershipAccessor = {
+  ...internalOwnershipAccessor,
+  allowSystemOwned: true
+};
+
+export let isOwnershipEnforced = (
+  tenant: Pick<
+    Tenant,
+    'allowApiAccessToConsumerOwnedResources' | 'allowMemberAccessToConsumerOwnedResources'
+  >
+) =>
+  !tenant.allowApiAccessToConsumerOwnedResources ||
+  !tenant.allowMemberAccessToConsumerOwnedResources;
+
 let ACCESSOR_CACHE_TTL_MS = 15_000;
+let EMPTY_ACCESSOR_CACHE_TTL_MS = 2_000;
 let accessorCache = new Map<
   string,
   { expiresAt: number; value: Promise<OwnershipAccessor> }
@@ -94,11 +120,18 @@ export let getOwnershipAccessor = async (d: {
       ? cached.value
       : (async () => {
           let ownActors = await loadOwnActors({ tenant: d.tenant, organizationActor });
+          if (!ownActors.length) {
+            let entry = accessorCache.get(cacheKey);
+            if (entry) entry.expiresAt = Date.now() + EMPTY_ACCESSOR_CACHE_TTL_MS;
+          }
+
           return {
             kind,
             ownActorOids: ownActors.map(actor => actor.oid),
             ownActorIds: ownActors.map(actor => actor.id),
-            isRestrictedByProject: false
+            isRestrictedByProject: false,
+            isEnforced: false,
+            allowSystemOwned: false
           };
         })();
 
@@ -115,8 +148,19 @@ export let getOwnershipAccessor = async (d: {
   return {
     ...ownActors,
     kind,
-    isRestrictedByProject: isRestrictedByProject(kind, d.tenant)
+    isRestrictedByProject: isRestrictedByProject(kind, d.tenant),
+    isEnforced: isOwnershipEnforced(d.tenant)
   };
+};
+
+export let invalidateOwnershipAccessorForFacing = async (d: {
+  instance: Parameters<typeof resolveMetorialFacing>[0]['instance'];
+  organizationActor?: OrganizationActor;
+}) => {
+  if (!d.organizationActor) return;
+
+  let { tenant } = await resolveMetorialFacing(d);
+  accessorCache.delete(`${tenant.oid}:${d.organizationActor.oid}`);
 };
 
 export let getOwnershipAccessorForFacing = async (d: {
@@ -141,22 +185,57 @@ export let canUseOwnedResource = async (
   accessor: OwnershipAccessor,
   resource: OwnedResource | null | undefined
 ) => {
-  if (!resource || accessor.kind === 'internal') return true;
+  if (!resource) return true;
+  if (resource.isSystemOwned) return accessor.allowSystemOwned;
+  if (accessor.kind === 'internal') return true;
 
   let ownerActorOid = effectiveOwnerActorOid(resource);
   if (!ownerActorOid) return true;
   if (accessor.ownActorOids.includes(ownerActorOid)) return true;
   if (!(await isConsumerActorOid(ownerActorOid))) return true;
   if (resource.isOwnerLocked) return false;
+  if (accessor.isEnforced && resource.isOwnerOnlyVisible) return false;
 
   return !accessor.isRestrictedByProject;
+};
+
+export let canSeeOwnedResource = (
+  accessor: OwnershipAccessor,
+  resource: OwnedResource | null | undefined
+) => {
+  if (!resource) return true;
+  if (resource.isSystemOwned) return accessor.allowSystemOwned;
+  if (accessor.kind === 'internal') return true;
+  if (!accessor.isEnforced || !resource.isOwnerOnlyVisible) return true;
+
+  let ownerActorOid = effectiveOwnerActorOid(resource);
+  if (!ownerActorOid) return true;
+
+  return accessor.ownActorOids.includes(ownerActorOid);
+};
+
+export let assertCanSeeOwnedResource = (
+  accessor: OwnershipAccessor,
+  resource: (OwnedResource & { id?: string }) | null | undefined,
+  d: { resource: string; id: string }
+) => {
+  if (canSeeOwnedResource(accessor, resource)) return;
+  throw new ServiceError(notFoundError(d.resource, d.id));
 };
 
 export let canUseCoreOwnedResource = async (
   accessor: OwnershipAccessor,
   resource:
-    { ownerActorOid?: bigint | null; isOwnerLocked?: boolean | null } | null | undefined
+    | {
+        ownerActorOid?: bigint | null;
+        isOwnerLocked?: boolean | null;
+        isOwnerOnlyVisible?: boolean | null;
+        isSystemOwned?: boolean | null;
+      }
+    | null
+    | undefined
 ) => {
+  if (resource?.isSystemOwned) return accessor.allowSystemOwned;
   if (!resource?.ownerActorOid || accessor.kind === 'internal') return true;
 
   let owner = await metorialDb.identityActor.findUnique({
@@ -166,8 +245,51 @@ export let canUseCoreOwnedResource = async (
   if (!owner || owner.type !== 'consumer') return true;
   if (accessor.ownActorIds.includes(owner.id)) return true;
   if (resource.isOwnerLocked) return false;
+  if (accessor.isEnforced && resource.isOwnerOnlyVisible) return false;
 
   return !accessor.isRestrictedByProject;
+};
+
+export let canSeeCoreOwnedResource = async (
+  accessor: OwnershipAccessor,
+  resource:
+    | {
+        ownerActorOid?: bigint | null;
+        isOwnerOnlyVisible?: boolean | null;
+        isSystemOwned?: boolean | null;
+      }
+    | null
+    | undefined
+) => {
+  if (!resource) return true;
+  if (resource.isSystemOwned) return accessor.allowSystemOwned;
+  if (accessor.kind === 'internal') return true;
+  if (!accessor.isEnforced || !resource.isOwnerOnlyVisible || !resource.ownerActorOid) {
+    return true;
+  }
+
+  let owner = await metorialDb.identityActor.findUnique({
+    where: { oid: resource.ownerActorOid },
+    select: { id: true }
+  });
+
+  return !owner || accessor.ownActorIds.includes(owner.id);
+};
+
+export let assertCanSeeCoreOwnedResource = async (
+  accessor: OwnershipAccessor,
+  resource:
+    | {
+        ownerActorOid?: bigint | null;
+        isOwnerOnlyVisible?: boolean | null;
+        isSystemOwned?: boolean | null;
+      }
+    | null
+    | undefined,
+  d: { resource: string; id: string }
+) => {
+  if (await canSeeCoreOwnedResource(accessor, resource)) return;
+  throw new ServiceError(notFoundError(d.resource, d.id));
 };
 
 export let ownershipRestrictedError = (d?: { resource?: string; id?: string }) =>
@@ -251,7 +373,6 @@ export let assertCanUseOwnedResources = async (
   resources: ((OwnedResource & { id?: string }) | null | undefined)[],
   d?: { resource?: string }
 ) => {
-  if (accessor.kind === 'internal') return;
   for (let resource of resources) {
     await assertCanUseOwnedResource(accessor, resource, d);
   }
@@ -306,6 +427,243 @@ export let usableCoreOwnedResourceWhere = (accessor: OwnershipAccessor) => {
   return { OR: [{ isOwnerLocked: false }, usableOwner] };
 };
 
+export let ownedResourceWhere = (
+  accessor: OwnershipAccessor,
+  d: {
+    ownership?: OwnershipFilter;
+    includeSystemOwned?: boolean;
+    fallback?: { field: 'identityActorOid' | 'actorOid'; relation: string };
+  } = {}
+) => {
+  let ownership = d.ownership ?? (accessor.isEnforced ? 'shared' : 'all');
+  let conditions: Record<string, any>[] = [];
+
+  if (!(d.includeSystemOwned ?? accessor.allowSystemOwned)) {
+    conditions.push({ isSystemOwned: false });
+  }
+
+  if (accessor.kind === 'internal') return { AND: conditions };
+
+  if (accessor.isEnforced) {
+    conditions.push({
+      OR: [
+        { isOwnerOnlyVisible: false },
+        ...(accessor.ownActorOids.length
+          ? [{ ownerActorOid: { in: accessor.ownActorOids } }]
+          : [])
+      ]
+    });
+  }
+
+  if (ownership === 'usable') {
+    conditions.push(usableOwnedResourceWhere(accessor, { fallback: d.fallback }));
+  }
+
+  if (ownership === 'shared') {
+    let notConsumerOwned = (field: string, relation: string) => ({
+      OR: [{ [field]: null }, { [relation]: { type: { not: 'consumer' as const } } }]
+    });
+
+    conditions.push(
+      d.fallback
+        ? {
+            OR: [
+              {
+                ownerActorOid: null,
+                ...notConsumerOwned(d.fallback.field, d.fallback.relation)
+              },
+              {
+                ownerActorOid: { not: null },
+                ...notConsumerOwned('ownerActorOid', 'ownerActor')
+              }
+            ]
+          }
+        : notConsumerOwned('ownerActorOid', 'ownerActor')
+    );
+  }
+
+  return { AND: conditions };
+};
+
+export let ownedCoreResourceWhere = (
+  accessor: OwnershipAccessor,
+  d: { ownership?: OwnershipFilter; includeSystemOwned?: boolean } = {}
+) => {
+  let ownership = d.ownership ?? (accessor.isEnforced ? 'shared' : 'all');
+  let conditions: Record<string, any>[] = [];
+
+  if (!(d.includeSystemOwned ?? accessor.allowSystemOwned)) {
+    conditions.push({ isSystemOwned: false });
+  }
+
+  if (accessor.kind === 'internal') return { AND: conditions };
+
+  if (accessor.isEnforced) {
+    conditions.push({
+      OR: [
+        { isOwnerOnlyVisible: false },
+        ...(accessor.ownActorIds.length
+          ? [{ ownerActor: { id: { in: accessor.ownActorIds } } }]
+          : [])
+      ]
+    });
+  }
+
+  if (ownership === 'usable') conditions.push(usableCoreOwnedResourceWhere(accessor));
+
+  if (ownership === 'shared') {
+    conditions.push({
+      OR: [{ ownerActorOid: null }, { ownerActor: { type: { not: 'consumer' as const } } }]
+    });
+  }
+
+  return { AND: conditions };
+};
+
+export let assertCanChangeOwnerOnlyVisibility = async (
+  accessor: OwnershipAccessor,
+  resource: OwnedResource & { id?: string },
+  isOwnerOnlyVisible: boolean | undefined,
+  d?: { resource?: string }
+) => {
+  if (isOwnerOnlyVisible === undefined) return;
+  if (isOwnerOnlyVisible === !!resource.isOwnerOnlyVisible) return;
+  if (accessor.kind === 'internal') return;
+
+  if (isOwnerOnlyVisible) {
+    if (!accessor.isEnforced) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Owner-only visibility is only available when ownership is enforced.'
+        })
+      );
+    }
+
+    if (!effectiveOwnerActorOid(resource)) {
+      throw new ServiceError(
+        badRequestError({
+          message: `Only owned resources can be made owner-only visible. This ${d?.resource ?? 'resource'} has no owner.`
+        })
+      );
+    }
+
+    await assertCanUseOwnedResource(accessor, resource, d);
+    return;
+  }
+
+  let ownerActorOid = effectiveOwnerActorOid(resource);
+  if (!ownerActorOid || accessor.ownActorOids.includes(ownerActorOid)) return;
+
+  throw new ServiceError(
+    forbiddenError({
+      code: 'ownership_restricted',
+      message: `Only the owner can make this ${d?.resource ?? 'resource'} visible to others.`,
+      data: resource.id ? { id: resource.id } : undefined
+    })
+  );
+};
+
+export let assertCanChangeCoreOwnerOnlyVisibility = async (
+  accessor: OwnershipAccessor,
+  resource: {
+    id?: string;
+    ownerActorOid?: bigint | null;
+    isOwnerLocked?: boolean | null;
+    isOwnerOnlyVisible?: boolean | null;
+  },
+  isOwnerOnlyVisible: boolean | undefined,
+  d?: { resource?: string }
+) => {
+  if (isOwnerOnlyVisible === undefined) return;
+  if (isOwnerOnlyVisible === !!resource.isOwnerOnlyVisible) return;
+  if (accessor.kind === 'internal') return;
+
+  if (isOwnerOnlyVisible) {
+    if (!accessor.isEnforced) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Owner-only visibility is only available when ownership is enforced.'
+        })
+      );
+    }
+
+    if (!resource.ownerActorOid) {
+      throw new ServiceError(
+        badRequestError({
+          message: `Only owned resources can be made owner-only visible. This ${d?.resource ?? 'resource'} has no owner.`
+        })
+      );
+    }
+
+    await assertCanUseCoreOwnedResources(accessor, [resource], d);
+    return;
+  }
+
+  if (!resource.ownerActorOid) return;
+  let owner = await metorialDb.identityActor.findUnique({
+    where: { oid: resource.ownerActorOid },
+    select: { id: true }
+  });
+  if (!owner || accessor.ownActorIds.includes(owner.id)) return;
+
+  throw new ServiceError(
+    forbiddenError({
+      code: 'ownership_restricted',
+      message: `Only the owner can make this ${d?.resource ?? 'resource'} visible to others.`,
+      data: resource.id ? { id: resource.id } : undefined
+    })
+  );
+};
+
+export let ownershipAttachRestrictedError = (d?: { resource?: string; id?: string }) =>
+  new ServiceError(
+    forbiddenError({
+      code: 'ownership_restricted',
+      message: `This ${d?.resource ?? 'resource'} is owned by someone else and can't be attached to a resource with a different owner.`,
+      data: d?.id ? { id: d.id } : undefined
+    })
+  );
+
+export let assertCanAttachOwnedResources = async (
+  accessor: OwnershipAccessor,
+  parent: { ownerActorOid?: bigint | null } | null | undefined,
+  children: ((OwnedResource & { id?: string }) | null | undefined)[],
+  d?: { resource?: string }
+) => {
+  if (!accessor.isEnforced || !parent) return;
+
+  for (let child of children) {
+    let childOwnerActorOid = child ? effectiveOwnerActorOid(child) : null;
+    if (!child || !childOwnerActorOid) continue;
+    if (childOwnerActorOid === (parent.ownerActorOid ?? null)) continue;
+    if (!(await isConsumerActorOid(childOwnerActorOid))) continue;
+
+    throw ownershipAttachRestrictedError({ resource: d?.resource, id: child.id });
+  }
+};
+
+export let assertCanAttachCoreOwnedResources = async (
+  accessor: OwnershipAccessor,
+  parent: { ownerActorOid?: bigint | null } | null | undefined,
+  children: ({ id?: string; ownerActorOid?: bigint | null } | null | undefined)[],
+  d?: { resource?: string }
+) => {
+  if (!accessor.isEnforced || !parent) return;
+
+  for (let child of children) {
+    if (!child?.ownerActorOid) continue;
+    if (child.ownerActorOid === (parent.ownerActorOid ?? null)) continue;
+
+    let owner = await metorialDb.identityActor.findUnique({
+      where: { oid: child.ownerActorOid },
+      select: { type: true }
+    });
+    if (owner?.type !== 'consumer') continue;
+
+    throw ownershipAttachRestrictedError({ resource: d?.resource, id: child.id });
+  }
+};
+
 export let assertCanUseCoreOwnedResources = async (
   accessor: OwnershipAccessor,
   resources: (
@@ -315,7 +673,6 @@ export let assertCanUseCoreOwnedResources = async (
   )[],
   d?: { resource?: string }
 ) => {
-  if (accessor.kind === 'internal') return;
   for (let resource of resources) {
     if (await canUseCoreOwnedResource(accessor, resource)) continue;
     throw ownershipRestrictedError({ resource: d?.resource, id: resource?.id });
@@ -330,8 +687,6 @@ export let assertCanUseSubspaceResources = async (d: {
   integrationInstanceIds?: (string | null | undefined)[];
   sessionTemplateIds?: (string | null | undefined)[];
 }) => {
-  if (d.accessor.kind === 'internal') return;
-
   let ids = (values?: (string | null | undefined)[]) =>
     (values ?? []).filter((value): value is string => !!value);
   let where = (values?: (string | null | undefined)[]) => ({
@@ -371,19 +726,23 @@ export let assertCanUseSessionById = async (d: {
   organizationActor?: OrganizationActor;
   sessionId: string;
 }) => {
-  if (!d.organizationActor) return;
-
   let { tenant, environment } = await resolveMetorialFacing(d);
   let session = await db.session.findFirst({
     where: { id: d.sessionId, tenantOid: tenant.oid, environmentOid: environment.oid },
-    select: { id: true, ownerActorOid: true, identityActorOid: true, isOwnerLocked: true }
+    select: {
+      id: true,
+      ownerActorOid: true,
+      identityActorOid: true,
+      isOwnerLocked: true,
+      isOwnerOnlyVisible: true,
+      isSystemOwned: true
+    }
   });
   if (!session) return;
 
-  let accessor = await getOwnershipAccessor({
-    tenant,
-    organizationActor: d.organizationActor
-  });
+  let accessor = d.organizationActor
+    ? await getOwnershipAccessor({ tenant, organizationActor: d.organizationActor })
+    : internalOwnershipAccessor;
   await assertCanUseOwnedResource(accessor, session, { resource: 'session' });
 };
 

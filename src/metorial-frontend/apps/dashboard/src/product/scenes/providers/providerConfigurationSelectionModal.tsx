@@ -435,8 +435,7 @@ let DeploymentConfigureStep = ({
   allowConfigVaultSelection: boolean;
 }) => {
   let authConfigs = useProviderAuthConfigs(instanceId, {
-    providerDeploymentId: deploymentId,
-    usable: true
+    providerDeploymentId: deploymentId
   });
   let deployment = useProviderDeployment(instanceId, deploymentId);
   let provider = useProvider(instanceId, providerId);

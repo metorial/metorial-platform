@@ -50,6 +50,8 @@ let accessor = (d: Partial<OwnershipAccessor> = {}): OwnershipAccessor => ({
   ownActorOids: [],
   ownActorIds: [],
   isRestrictedByProject: true,
+  isEnforced: true,
+  allowSystemOwned: false,
   ...d
 });
 

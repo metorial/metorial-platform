@@ -39,6 +39,7 @@ import {
   providerCombinationService
 } from '@metorial-subspace/module-provider-internal';
 import {
+  assertCanAttachOwnedResources,
   assertCanUseOwnedResource as assertCanUseConsumerOwnedResource,
   checkTenant,
   getMetorialSolution,
@@ -53,7 +54,10 @@ import {
   normalizeIntegrationProviderToolFilter,
   refreshIntegrationInstanceStatus
 } from '../lib/versions';
-import { lockIntegrationInstanceOwner } from '../lib/ownerLock';
+import {
+  lockIntegrationInstanceOwner,
+  setIntegrationInstanceOwnerOnlyVisibility
+} from '../lib/ownerLock';
 import { notifyIntegrationTransaction } from '../listeners';
 import {
   enqueueIntegrationInstanceProviderSet,
@@ -219,6 +223,27 @@ export type SetIntegrationInstanceProviderParams = {
 };
 
 class integrationInstanceProviderServiceImpl {
+  private async inheritOwnerFromProviderResources(d: {
+    integrationInstance: IntegrationInstance;
+    resources: (
+      { ownerActorOid?: bigint | null; isOwnerOnlyVisible?: boolean | null } | null | undefined
+    )[];
+  }) {
+    if (d.integrationInstance.ownerActorOid ?? d.integrationInstance.identityActorOid) return;
+
+    let owned = d.resources.find(resource => resource?.ownerActorOid);
+    if (!owned?.ownerActorOid) return;
+
+    await db.integrationInstance.update({
+      where: { oid: d.integrationInstance.oid },
+      data: { ownerActorOid: owned.ownerActorOid }
+    });
+
+    if (d.resources.some(resource => resource?.isOwnerOnlyVisible)) {
+      await setIntegrationInstanceOwnerOnlyVisibility(d.integrationInstance, true);
+    }
+  }
+
   async listIntegrationInstanceProviders(
     d: MetorialFacing<ListIntegrationInstanceProvidersParams>
   ) {
@@ -369,6 +394,7 @@ class integrationInstanceProviderServiceImpl {
     _canBreakIntegrationCanRules?: boolean;
     _allowMissingProviderAuthConfig?: boolean;
     _canBypassProviderResourceOwnershipChecks?: boolean;
+    isNewIntegrationInstance?: boolean;
     ownershipAccessor?: OwnershipAccessor;
   }) {
     let solution = await getMetorialSolution();
@@ -682,22 +708,38 @@ class integrationInstanceProviderServiceImpl {
           materialProvider.currentVersion!.config?.oid === combination.config.oid;
 
         if (d.ownershipAccessor) {
-          if (
+          let isConfigChanged =
             !isInheritedSharedConfig &&
-            existing?.currentVersion?.configOid !== combination.config.oid
-          ) {
+            existing?.currentVersion?.configOid !== combination.config.oid;
+          let isAuthConfigChanged =
+            !!combination.authConfig &&
+            existing?.currentVersion?.authConfigOid !== combination.authConfig.oid;
+
+          if (isConfigChanged) {
             await assertCanUseConsumerOwnedResource(d.ownershipAccessor, combination.config, {
               resource: 'provider config'
             });
           }
-          if (
-            combination.authConfig &&
-            existing?.currentVersion?.authConfigOid !== combination.authConfig.oid
-          ) {
+          if (isAuthConfigChanged) {
             await assertCanUseConsumerOwnedResource(
               d.ownershipAccessor,
               combination.authConfig,
               { resource: 'provider auth config' }
+            );
+          }
+
+          if (!d.isNewIntegrationInstance) {
+            await assertCanAttachOwnedResources(
+              d.ownershipAccessor,
+              {
+                ownerActorOid:
+                  d.integrationInstance.ownerActorOid ?? d.integrationInstance.identityActorOid
+              },
+              [
+                isConfigChanged ? combination.config : null,
+                isAuthConfigChanged ? combination.authConfig : null
+              ],
+              { resource: 'provider config' }
             );
           }
         }
@@ -859,6 +901,16 @@ class integrationInstanceProviderServiceImpl {
       );
       if (inheritsOwnerLock && !d.integrationInstance.isOwnerLocked) {
         await lockIntegrationInstanceOwner(d.integrationInstance);
+      }
+
+      if (d.isNewIntegrationInstance && d.ownershipAccessor?.isEnforced) {
+        await this.inheritOwnerFromProviderResources({
+          integrationInstance: d.integrationInstance,
+          resources: combinations.flatMap(combination => [
+            combination.config,
+            combination.authConfig
+          ])
+        });
       }
 
       await refreshIntegrationInstanceStatus({

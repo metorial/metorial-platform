@@ -22,11 +22,16 @@ import {
   withTransaction
 } from '@metorial/db';
 import {
+  assertCanAttachCoreOwnedResources,
   assertCanChangeCoreOwnerLock,
+  assertCanChangeCoreOwnerOnlyVisibility,
+  assertCanSeeCoreOwnedResource,
   assertCanUseCoreOwnedResources,
   getOwnershipAccessor,
+  internalOwnershipAccessor,
+  ownedCoreResourceWhere,
   subspaceScopeService,
-  usableCoreOwnedResourceWhere
+  type OwnershipFilter
 } from '@metorial-subspace/module-tenant';
 import {
   ensureMagicMcpEndpointBacking,
@@ -184,17 +189,27 @@ class MagicMcpEndpointImpl {
     instance: Instance;
     magicMcpEndpointId: string;
     accessTags?: AnyAccessTagSelector;
+    organizationActor?: OrganizationActor;
+    includeSystemOwned?: boolean;
   }) {
     let magicMcpEndpoint = await db.magicMcpEndpoint.findFirst({
       where: {
         instanceOid: d.instance.oid,
         status: d.accessTags ? 'active' : undefined,
+        isSystemOwned: d.includeSystemOwned ? undefined : false,
         id: d.magicMcpEndpointId
       },
       include: magicMcpEndpointInclude
     });
     if (!magicMcpEndpoint) {
       throw new ServiceError(notFoundError('magic_mcp.endpoint'));
+    }
+
+    if (d.organizationActor) {
+      await assertCanSeeCoreOwnedResource(await this.getAccessor(d), magicMcpEndpoint, {
+        resource: 'magic_mcp.endpoint',
+        id: d.magicMcpEndpointId
+      });
     }
 
     if (d.accessTags) {
@@ -211,10 +226,12 @@ class MagicMcpEndpointImpl {
     magicMcpEndpointIdOrSlug: string;
     instance?: Instance;
     accessTags?: AnyAccessTagSelector;
+    includeSystemOwned?: boolean;
   }) {
     let magicMcpEndpoint = await db.magicMcpEndpoint.findFirst({
       where: {
         instanceOid: d.instance?.oid,
+        isSystemOwned: d.includeSystemOwned ? undefined : false,
         status: d.accessTags ? 'active' : 'active',
         OR: [{ id: d.magicMcpEndpointIdOrSlug }, { slug: d.magicMcpEndpointIdOrSlug }]
       },
@@ -301,6 +318,7 @@ class MagicMcpEndpointImpl {
       skillPlugin?: { oid: bigint } | null;
       enableSkillEditing?: boolean;
       servers?: MagicMcpEndpointServerInput[];
+      isSystemOwned?: boolean;
     };
     organizationActor?: OrganizationActor;
   }) {
@@ -326,18 +344,36 @@ class MagicMcpEndpointImpl {
             id: true,
             oid: true,
             ownerActorOid: true,
-            isOwnerLocked: true
+            isOwnerLocked: true,
+            isOwnerOnlyVisible: true,
+            isSystemOwned: true
           }
         })
       : [];
 
-    if (!d.input.consumerProfile) {
-      await this.assertCanUseServers({
-        instance: d.instance,
-        organizationActor: d.organizationActor,
-        servers
-      });
+    await this.assertCanUseServers({
+      instance: d.instance,
+      organizationActor: d.input.consumerProfile ? undefined : d.organizationActor,
+      servers
+    });
+
+    let accessor = await this.getAccessor({
+      instance: d.instance,
+      organizationActor: d.organizationActor
+    });
+    let inheritedOwnerActorOid = accessor.isEnforced
+      ? (servers.find(server => server.ownerActorOid)?.ownerActorOid ?? null)
+      : null;
+    if (!d.input.consumerProfile && inheritedOwnerActorOid) {
+      await assertCanAttachCoreOwnedResources(
+        accessor,
+        { ownerActorOid: inheritedOwnerActorOid },
+        servers,
+        { resource: 'magic MCP server' }
+      );
     }
+    let inheritedIsOwnerOnlyVisible =
+      accessor.isEnforced && servers.some(server => server.isOwnerOnlyVisible);
 
     let endpointServerRows = await Promise.all(
       servers.map(async server => ({
@@ -363,6 +399,13 @@ class MagicMcpEndpointImpl {
               description: d.input.description,
               slug: buildSlug(d.input.name),
               metadata: d.input.metadata ?? {},
+              isSystemOwned: !!d.input.isSystemOwned,
+              ...(!d.input.isSystemOwned && !d.input.consumerProfile && inheritedOwnerActorOid
+                ? {
+                    ownerActorOid: inheritedOwnerActorOid,
+                    isOwnerOnlyVisible: inheritedIsOwnerOnlyVisible
+                  }
+                : {}),
               servers: endpointServerRows.length
                 ? {
                     createMany: {
@@ -460,6 +503,7 @@ class MagicMcpEndpointImpl {
       metadata?: Record<string, unknown> | null;
       enableSkillEditing?: boolean;
       isOwnerLocked?: boolean;
+      isOwnerOnlyVisible?: boolean;
     };
   }) {
     if (d.endpoint.status !== 'active') {
@@ -491,6 +535,29 @@ class MagicMcpEndpointImpl {
       );
     }
 
+    let isOwnerOnlyVisibleChanged =
+      d.input.isOwnerOnlyVisible !== undefined &&
+      d.input.isOwnerOnlyVisible !== d.endpoint.isOwnerOnlyVisible;
+    let nextIsOwnerOnlyVisible = isOwnerOnlyVisibleChanged
+      ? !!d.input.isOwnerOnlyVisible ||
+        d.endpoint.servers.some(server => server.magicMcpServer.isOwnerOnlyVisible)
+      : d.endpoint.isOwnerOnlyVisible;
+
+    if (isOwnerOnlyVisibleChanged && d.organizationActor) {
+      let visibilityInstance = await db.instance.findUniqueOrThrow({
+        where: { oid: d.endpoint.instanceOid }
+      });
+      await assertCanChangeCoreOwnerOnlyVisibility(
+        await this.getAccessor({
+          instance: visibilityInstance,
+          organizationActor: d.organizationActor
+        }),
+        d.endpoint,
+        d.input.isOwnerOnlyVisible,
+        { resource: 'magic MCP endpoint' }
+      );
+    }
+
     if (d.input.enableSkillEditing && !d.endpoint.enableSkillEditing) {
       await this.assertSkillEditingAvailable({ instance: { oid: d.endpoint.instanceOid } });
     }
@@ -506,7 +573,8 @@ class MagicMcpEndpointImpl {
             d.input.description === undefined ? d.endpoint.description : d.input.description,
           metadata: d.input.metadata === undefined ? d.endpoint.metadata : d.input.metadata,
           enableSkillEditing: d.input.enableSkillEditing,
-          isOwnerLocked: nextIsOwnerLocked
+          isOwnerLocked: nextIsOwnerLocked,
+          isOwnerOnlyVisible: nextIsOwnerOnlyVisible
         },
         include: magicMcpEndpointInclude
       });
@@ -536,21 +604,29 @@ class MagicMcpEndpointImpl {
     return magicMcpEndpoint;
   }
 
-  private async assertCanUseServers(d: {
+  private async getAccessor(d: {
     instance: Pick<Instance, 'oid'> | Instance;
     organizationActor?: OrganizationActor;
-    servers: Pick<MagicMcpServer, 'id' | 'ownerActorOid' | 'isOwnerLocked'>[];
   }) {
-    if (!d.organizationActor || !d.servers.length) return;
+    if (!d.organizationActor) return internalOwnershipAccessor;
 
     let instance = await db.instance.findUniqueOrThrow({ where: { oid: d.instance.oid } });
     let { tenant } = await subspaceScopeService.ensureForInstance(instance);
-    let accessor = await getOwnershipAccessor({
-      tenant,
-      organizationActor: d.organizationActor
-    });
 
-    await assertCanUseCoreOwnedResources(accessor, d.servers, {
+    return await getOwnershipAccessor({ tenant, organizationActor: d.organizationActor });
+  }
+
+  private async assertCanUseServers(d: {
+    instance: Pick<Instance, 'oid'> | Instance;
+    organizationActor?: OrganizationActor;
+    servers: Pick<
+      MagicMcpServer,
+      'id' | 'ownerActorOid' | 'isOwnerLocked' | 'isOwnerOnlyVisible' | 'isSystemOwned'
+    >[];
+  }) {
+    if (!d.servers.length) return;
+
+    await assertCanUseCoreOwnedResources(await this.getAccessor(d), d.servers, {
       resource: 'magic MCP server'
     });
   }
@@ -576,7 +652,9 @@ class MagicMcpEndpointImpl {
         name: true,
         status: true,
         ownerActorOid: true,
-        isOwnerLocked: true
+        isOwnerLocked: true,
+        isOwnerOnlyVisible: true,
+        isSystemOwned: true
       }
     });
 
@@ -604,11 +682,23 @@ class MagicMcpEndpointImpl {
     );
     let hasNewServers = servers.some(server => !existingServerOids.has(server.oid));
 
+    let newServers = servers.filter(server => !existingServerOids.has(server.oid));
+
     await this.assertCanUseServers({
       instance: { oid: d.endpoint.instanceOid },
       organizationActor: d.organizationActor,
-      servers: servers.filter(server => !existingServerOids.has(server.oid))
+      servers: newServers
     });
+
+    await assertCanAttachCoreOwnedResources(
+      await this.getAccessor({
+        instance: { oid: d.endpoint.instanceOid },
+        organizationActor: d.organizationActor
+      }),
+      d.endpoint,
+      newServers,
+      { resource: 'magic MCP server' }
+    );
 
     let magicMcpEndpoint = await withTransaction(async db => {
       if (servers.length) {
@@ -750,24 +840,21 @@ class MagicMcpEndpointImpl {
     return magicMcpEndpoint;
   }
 
-  private async getUsableWhere(d: { instance: Instance; onlyUsableBy?: OrganizationActor }) {
-    if (!d.onlyUsableBy) return undefined;
-
-    let { tenant } = await subspaceScopeService.ensureForInstance(d.instance);
-    let accessor = await getOwnershipAccessor({ tenant, organizationActor: d.onlyUsableBy });
-    return usableCoreOwnedResourceWhere(accessor);
-  }
-
   async listMagicMcpEndpoints(d: {
     instance: Instance;
     status?: MagicMcpEndpointStatus[];
     magicMcpServerIds?: string[];
     search?: string;
     accessTags?: AnyAccessTagSelector;
-    onlyUsableBy?: OrganizationActor;
+    organizationActor?: OrganizationActor;
+    ownership?: OwnershipFilter;
+    includeSystemOwned?: boolean;
   }) {
     let normalizedSearch = d.search?.trim();
-    let usableWhere = await this.getUsableWhere(d);
+    let ownershipWhere = ownedCoreResourceWhere(await this.getAccessor(d), {
+      ownership: d.ownership,
+      includeSystemOwned: d.includeSystemOwned
+    });
     if (!normalizedSearch?.length) normalizedSearch = undefined;
 
     let serverOids = d.magicMcpServerIds?.length
@@ -801,7 +888,7 @@ class MagicMcpEndpointImpl {
             instanceOid: d.instance.oid,
             status: statusFilter ? { in: statusFilter } : { not: 'archived' as const },
             accessTagEntities: accessTagFilter,
-            ...(usableWhere ? { AND: [usableWhere] } : {}),
+            AND: [ownershipWhere],
             servers: serverOids?.length
               ? {
                   some: {

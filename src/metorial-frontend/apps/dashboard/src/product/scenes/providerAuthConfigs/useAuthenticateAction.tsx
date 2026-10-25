@@ -56,6 +56,7 @@ export let useProviderAuthConfigAuthenticateAction = (p: {
   fixedAuthCredentialsId?: string;
   authMethodAdapter?: string;
   defaultAuthConfigName?: string;
+  ownedByCaller?: boolean;
   onCreate?: (authConfig: { id: string; name?: string | null }) => void;
   onBack?: () => void;
 }) => {
@@ -101,6 +102,7 @@ export let useProviderAuthConfigAuthenticateAction = (p: {
     instanceId: p.instanceId,
     providerId: providerId ?? '',
     providerDeploymentId: p.providerDeploymentId,
+    ownedByCaller: p.ownedByCaller,
     onComplete: setupSession => {
       runner.reset();
       if (!setupSession.authConfig) return;
@@ -182,6 +184,7 @@ export let useProviderAuthConfigAuthenticateAction = (p: {
       fixedAuthCredentialsId: p.fixedAuthCredentialsId,
       authMethodAdapter: p.authMethodAdapter,
       defaultAuthConfigName: p.defaultAuthConfigName,
+      ownedByCaller: p.ownedByCaller,
       onCreate: p.onCreate,
       onBack: p.onBack
     });

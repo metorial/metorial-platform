@@ -11,6 +11,7 @@ import type { RequestScopedToolsResolver } from '@metorial-subspace/module-conne
 import {
   assertCanUseCoreOwnedResources,
   getOwnershipAccessor,
+  internalOwnershipAccessor,
   subspaceScopeService
 } from '@metorial-subspace/module-tenant';
 import { extractToken } from '@metorial/bearer';
@@ -179,13 +180,15 @@ let ensureMagicMcpApiKeyAccess = async (d: {
     return auth.restrictions.consumer.consumerProfile;
   }
 
+  let accessor = internalOwnershipAccessor;
   if (organizationActor) {
     let { tenant } = await subspaceScopeService.ensureForInstance(instance);
-    let accessor = await getOwnershipAccessor({ tenant, organizationActor });
-    await assertCanUseCoreOwnedResources(accessor, [d.magicMcpTarget.target], {
-      resource: d.magicMcpTarget.type === 'server' ? 'magic MCP server' : 'magic MCP endpoint'
-    });
+    accessor = await getOwnershipAccessor({ tenant, organizationActor });
   }
+
+  await assertCanUseCoreOwnedResources(accessor, [d.magicMcpTarget.target], {
+    resource: d.magicMcpTarget.type === 'server' ? 'magic MCP server' : 'magic MCP endpoint'
+  });
 
   return null;
 };

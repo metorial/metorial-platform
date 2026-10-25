@@ -37,7 +37,9 @@ import {
   checkTenant,
   getConsumerOwnerActorId,
   getMetorialSolution,
+  assertCanSeeOwnedResource,
   getOwnershipAccessor,
+  ownedResourceWhere,
   type MetorialFacing,
   ownerActorSelect,
   type OwnershipFacing,
@@ -136,6 +138,8 @@ let getPresentedSetupStatus = (setupSession: ProviderSetupSession | null) => {
 };
 
 export type ListIntegrationSetupSessionsParams = {
+  ownershipWhere?: Record<string, any>;
+  includeSystemOwned?: boolean;
   status?: IntegrationSetupSessionStatus[];
   allowDeleted?: boolean;
 
@@ -150,6 +154,7 @@ export type ListIntegrationSetupSessionsParams = {
 export type GetIntegrationSetupSessionByIdParams = {
   integrationSetupSessionId: string;
   allowDeleted?: boolean;
+  includeSystemOwned?: boolean;
 };
 
 export type CreateIntegrationSetupSessionParams = {
@@ -204,6 +209,10 @@ class integrationSetupSessionServiceImpl {
 
     return this.listIntegrationSetupSessionsInternal({
       ...rest,
+      ownershipWhere: ownedResourceWhere(
+        await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+        { ownership: 'all', includeSystemOwned: d.includeSystemOwned }
+      ),
       tenant: scope.tenant,
       environment: scope.environment
     });
@@ -223,10 +232,12 @@ class integrationSetupSessionServiceImpl {
               tenantOid: d.tenant.oid,
               solutionOid: solution.oid,
               environmentOid: d.environment.oid,
+              ...(d.includeSystemOwned ? {} : { isSystemOwned: false }),
 
               ...normalizeStatusForList(d).onlyParent,
 
               AND: [
+                d.ownershipWhere ?? undefined!,
                 d.ids ? { id: { in: d.ids } } : undefined!,
                 d.integrationIds
                   ? { integration: { id: { in: d.integrationIds } } }
@@ -256,11 +267,19 @@ class integrationSetupSessionServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.getIntegrationSetupSessionByIdInternal({
+    let integrationSetupSession = await this.getIntegrationSetupSessionByIdInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    assertCanSeeOwnedResource(
+      await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+      integrationSetupSession,
+      { resource: 'integration.setup_session', id: d.integrationSetupSessionId }
+    );
+
+    return integrationSetupSession;
   }
 
   async getIntegrationSetupSessionByIdInternal(
@@ -274,6 +293,7 @@ class integrationSetupSessionServiceImpl {
         tenantOid: d.tenant.oid,
         solutionOid: solution.oid,
         environmentOid: d.environment.oid,
+        ...(d.includeSystemOwned ? {} : { isSystemOwned: false }),
         ...normalizeStatusForGet(d).noParent
       },
       include: integrationSetupSessionInclude
@@ -532,6 +552,7 @@ class integrationSetupSessionServiceImpl {
           integrationInstance.ownerActorOid ??
           integrationInstance.identityActorOid,
         isOwnerLocked: !!d.input.isOwnerLocked || integrationInstance.isOwnerLocked,
+        isOwnerOnlyVisible: integrationInstance.isOwnerOnlyVisible,
         brandOid: d.brand?.oid,
         expiresAt
       }

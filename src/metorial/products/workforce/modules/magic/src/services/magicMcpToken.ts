@@ -25,6 +25,7 @@ import {
 import {
   assertCanUseCoreOwnedResources,
   getOwnershipAccessor,
+  internalOwnershipAccessor,
   subspaceScopeService
 } from '@metorial-subspace/module-tenant';
 import {
@@ -161,12 +162,16 @@ class MagicMcpTokenImpl {
       magicMcpEndpoint: d.input.magicMcpEndpoint
     });
 
-    if (d.organizationActor && (d.input.magicMcpServer || d.input.magicMcpEndpoint)) {
-      let { tenant } = await subspaceScopeService.ensureForInstance(d.instance);
-      let accessor = await getOwnershipAccessor({
-        tenant,
-        organizationActor: d.organizationActor
-      });
+    if (d.input.magicMcpServer || d.input.magicMcpEndpoint) {
+      let accessor = internalOwnershipAccessor;
+      if (d.organizationActor) {
+        let { tenant } = await subspaceScopeService.ensureForInstance(d.instance);
+        accessor = await getOwnershipAccessor({
+          tenant,
+          organizationActor: d.organizationActor
+        });
+      }
+
       await assertCanUseCoreOwnedResources(
         accessor,
         [d.input.magicMcpServer, d.input.magicMcpEndpoint],

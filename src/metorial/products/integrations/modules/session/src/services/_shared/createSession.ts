@@ -1,12 +1,14 @@
 import { type Environment, getId, type Tenant, withTransaction } from '@metorial-subspace/db';
 import {
   getMetorialSolution,
+  mergeResourceOwners,
   ownerActorSelect,
   type OwnershipAccessor
 } from '@metorial-subspace/module-tenant';
 import { sessionProviderInclude } from '../sessionProvider';
 import {
   hasOwnerLockedProvider,
+  hasOwnerOnlyVisibleProvider,
   type SessionProviderInput,
   sessionProviderInputService
 } from '../sessionProviderInput';
@@ -48,7 +50,10 @@ export let createSessionRecord = async (d: {
   owner?: {
     ownerActorOid: bigint | null;
     isOwnerLocked: boolean;
+    isOwnerOnlyVisible?: boolean;
   };
+  inheritProviderOwner?: boolean;
+  isSystemOwned?: boolean;
   input: {
     name?: string;
     description?: string;
@@ -75,12 +80,23 @@ export let createSessionRecord = async (d: {
   let templateIdentity =
     d.identityActorOid === undefined && d.identityOid === undefined ? resolved.template : null;
 
+  let providerOwner =
+    d.inheritProviderOwner && !d.owner && !resolved.template?.ownerActorOid
+      ? mergeResourceOwners(
+          ...resolved.providers.flatMap(provider => [provider.config, provider.authConfig])
+        )
+      : null;
+
   let ownerActorOid = d.owner
     ? d.owner.ownerActorOid
-    : (resolved.template?.ownerActorOid ?? null);
+    : (resolved.template?.ownerActorOid ?? providerOwner?.ownerActorOid ?? null);
   let isOwnerLocked =
     (d.owner ? d.owner.isOwnerLocked : !!resolved.template?.isOwnerLocked) ||
     hasOwnerLockedProvider(resolved.providers);
+  let isOwnerOnlyVisible =
+    !!ownerActorOid &&
+    ((d.owner ? !!d.owner.isOwnerOnlyVisible : !!resolved.template?.isOwnerOnlyVisible) ||
+      hasOwnerOnlyVisibleProvider(resolved.providers));
 
   return withTransaction(async db => {
     let created = await db.session.create({
@@ -110,6 +126,8 @@ export let createSessionRecord = async (d: {
         identityOid: d.identityOid ?? templateIdentity?.identityOid ?? null,
         ownerActorOid,
         isOwnerLocked,
+        isOwnerOnlyVisible,
+        isSystemOwned: d.isSystemOwned ?? false,
         ephemeralManagedSessionOid: d.ephemeralManagedSessionOid ?? undefined,
 
         ...(d.isInternal

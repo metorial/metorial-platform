@@ -58,7 +58,12 @@ let integrationInstanceOwners = createResourceOwnerReconciler({
   key: 'integrationInstance',
   listCandidateIds: async (cursor, take) => {
     let rows = await db.integrationInstance.findMany({
-      where: { ownerActorOid: null, identityActor: consumerActor, id: cursorWhere(cursor) },
+      where: {
+        ownerActorOid: null,
+        isSystemOwned: false,
+        identityActor: consumerActor,
+        id: cursorWhere(cursor)
+      },
       orderBy: { id: 'asc' },
       take,
       select: { id: true }
@@ -74,7 +79,7 @@ let integrationInstanceOwners = createResourceOwnerReconciler({
     if (!row || row.ownerActorOid || !ownerActorOid) return;
 
     await db.integrationInstance.updateMany({
-      where: { oid: row.oid, ownerActorOid: null },
+      where: { oid: row.oid, ownerActorOid: null, isSystemOwned: false },
       data: { ownerActorOid }
     });
   }
@@ -84,7 +89,12 @@ let integrationInstanceGroupOwners = createResourceOwnerReconciler({
   key: 'integrationInstanceGroup',
   listCandidateIds: async (cursor, take) => {
     let rows = await db.integrationInstanceGroup.findMany({
-      where: { ownerActorOid: null, identityActor: consumerActor, id: cursorWhere(cursor) },
+      where: {
+        ownerActorOid: null,
+        isSystemOwned: false,
+        identityActor: consumerActor,
+        id: cursorWhere(cursor)
+      },
       orderBy: { id: 'asc' },
       take,
       select: { id: true }
@@ -100,7 +110,7 @@ let integrationInstanceGroupOwners = createResourceOwnerReconciler({
     if (!row || row.ownerActorOid || !ownerActorOid) return;
 
     await db.integrationInstanceGroup.updateMany({
-      where: { oid: row.oid, ownerActorOid: null },
+      where: { oid: row.oid, ownerActorOid: null, isSystemOwned: false },
       data: { ownerActorOid }
     });
   }
@@ -112,6 +122,7 @@ let sessionTemplateOwners = createResourceOwnerReconciler({
     let rows = await db.sessionTemplate.findMany({
       where: {
         ownerActorOid: null,
+        isSystemOwned: false,
         OR: [
           { identityActor: consumerActor },
           { integrationInstance: { ownerActorOid: { not: null } } },
@@ -145,7 +156,7 @@ let sessionTemplateOwners = createResourceOwnerReconciler({
     if (!ownerActorOid) return;
 
     await db.sessionTemplate.updateMany({
-      where: { oid: row.oid, ownerActorOid: null },
+      where: { oid: row.oid, ownerActorOid: null, isSystemOwned: false },
       data: { ownerActorOid }
     });
   }
@@ -157,6 +168,7 @@ let ephemeralManagedSessionOwners = createResourceOwnerReconciler({
     let rows = await db.ephemeralManagedSession.findMany({
       where: {
         ownerActorOid: null,
+        isSystemOwned: false,
         OR: [{ actor: consumerActor }, { sessionTemplate: { ownerActorOid: { not: null } } }],
         id: cursorWhere(cursor)
       },
@@ -182,7 +194,7 @@ let ephemeralManagedSessionOwners = createResourceOwnerReconciler({
     if (!ownerActorOid) return;
 
     await db.ephemeralManagedSession.updateMany({
-      where: { oid: row.oid, ownerActorOid: null },
+      where: { oid: row.oid, ownerActorOid: null, isSystemOwned: false },
       data: { ownerActorOid }
     });
   }
@@ -194,6 +206,7 @@ let sessionOwners = createResourceOwnerReconciler({
     let rows = await db.session.findMany({
       where: {
         ownerActorOid: null,
+        isSystemOwned: false,
         OR: [
           { identityActor: consumerActor },
           { ephemeralManagedSession: { ownerActorOid: { not: null } } }
@@ -223,7 +236,7 @@ let sessionOwners = createResourceOwnerReconciler({
     if (!ownerActorOid) return;
 
     await db.session.updateMany({
-      where: { oid: row.oid, ownerActorOid: null },
+      where: { oid: row.oid, ownerActorOid: null, isSystemOwned: false },
       data: { ownerActorOid }
     });
   }
@@ -235,6 +248,7 @@ let magicMcpServerBackingOwners = createResourceOwnerReconciler({
     let rows = await db.magicMcpServerBacking.findMany({
       where: {
         ownerActorOid: null,
+        isSystemOwned: false,
         OR: [
           { actor: consumerActor },
           { integrationInstance: { ownerActorOid: { not: null } } }
@@ -263,7 +277,7 @@ let magicMcpServerBackingOwners = createResourceOwnerReconciler({
     if (!ownerActorOid) return;
 
     await db.magicMcpServerBacking.updateMany({
-      where: { oid: row.oid, ownerActorOid: null },
+      where: { oid: row.oid, ownerActorOid: null, isSystemOwned: false },
       data: { ownerActorOid }
     });
   }
@@ -273,7 +287,12 @@ let magicMcpEndpointBackingOwners = createResourceOwnerReconciler({
   key: 'magicMcpEndpointBacking',
   listCandidateIds: async (cursor, take) => {
     let rows = await db.magicMcpEndpointBacking.findMany({
-      where: { ownerActorOid: null, actor: consumerActor, id: cursorWhere(cursor) },
+      where: {
+        ownerActorOid: null,
+        isSystemOwned: false,
+        actor: consumerActor,
+        id: cursorWhere(cursor)
+      },
       orderBy: { id: 'asc' },
       take,
       select: { id: true }
@@ -289,7 +308,7 @@ let magicMcpEndpointBackingOwners = createResourceOwnerReconciler({
     if (!row || row.ownerActorOid || !ownerActorOid) return;
 
     await db.magicMcpEndpointBacking.updateMany({
-      where: { oid: row.oid, ownerActorOid: null },
+      where: { oid: row.oid, ownerActorOid: null, isSystemOwned: false },
       data: { ownerActorOid }
     });
   }

@@ -14,6 +14,7 @@ export type ProviderAuthConfigCreateModalProps = {
   fixedAuthCredentialsId?: string;
   authMethodAdapter?: string;
   defaultAuthConfigName?: string;
+  ownedByCaller?: boolean;
   onCreate?: (authConfig: { id: string; name?: string | null }) => void;
   onBack?: () => void;
 };
@@ -122,6 +123,7 @@ export let ProviderAuthConfigCreateFlowContent = (
         method={selectedMethod}
         fixedAuthCredentialsId={p.fixedAuthCredentialsId}
         defaultAuthConfigName={p.defaultAuthConfigName}
+        ownedByCaller={p.ownedByCaller}
         embedded={p.embedded}
         cancelLabel={p.cancelLabel}
         onCancel={p.onBack}
@@ -147,6 +149,7 @@ export let ProviderAuthConfigCreateFlowContent = (
         providerName={providerName}
         initialAuthMethodId={selectedMethod.id}
         defaultAuthConfigName={p.defaultAuthConfigName}
+        ownedByCaller={p.ownedByCaller}
         close={p.close}
         onBack={p.onBack}
         onCreate={p.onCreate}
