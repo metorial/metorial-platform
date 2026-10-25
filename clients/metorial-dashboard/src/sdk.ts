@@ -165,6 +165,8 @@ import {
   MetorialDashboardInstanceSkillsPluginsEndpoint,
   MetorialDashboardInstanceSkillsPluginsRepositoriesEndpoint,
   MetorialDashboardInstanceSkillsPluginsSkillsEndpoint,
+  MetorialDashboardInstanceSkillsSecurityReviewEndpoint,
+  MetorialDashboardInstanceSkillsSecurityReviewRevisionsEndpoint,
   MetorialDashboardInstanceSkillsSyncsEndpoint,
   MetorialDashboardInstanceSkillsTemplatesEndpoint,
   MetorialDashboardInstanceSkillsTemplatesItemsEndpoint,
@@ -920,6 +922,12 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
       }
     ),
     participants: new MetorialDashboardInstanceSkillsParticipantsEndpoint(manager),
+    securityReview: Object.assign(
+      new MetorialDashboardInstanceSkillsSecurityReviewEndpoint(manager),
+      {
+        revisions: new MetorialDashboardInstanceSkillsSecurityReviewRevisionsEndpoint(manager)
+      }
+    ),
     versions: Object.assign(new MetorialDashboardInstanceSkillsVersionsEndpoint(manager), {
       snapshot: new MetorialDashboardInstanceSkillsVersionsSnapshotEndpoint(manager)
     })
