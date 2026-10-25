@@ -32,7 +32,7 @@ let ctx = {
   instance: { id: 'ins_1' },
   actor: { id: 'oac_1' },
   member: { id: 'mem_1' },
-  user: { name: 'Alex', email: 'alex@example.com' },
+  auth: { type: 'user', user: { name: 'Alex', email: 'alex@example.com' } },
   auditScope: {}
 } as any;
 
@@ -45,13 +45,13 @@ describe('explorer caller ownership', () => {
     mocks.ensureDefaultConsumerActor.mockResolvedValue({ id: 'act_1' });
   });
 
-  it('automatically resolves the caller as owner for explorer resources', async () => {
+  it('resolves the member owner from the authenticated user on instance endpoints', async () => {
     expect(await resolveExplorerOwner(ctx, 'explorer')).toBe('act_1');
     expect(mocks.ensureConsumerProfile).toHaveBeenCalledWith(
       expect.objectContaining({
         member: ctx.member,
-        name: ctx.user.name,
-        email: ctx.user.email
+        name: ctx.auth.user.name,
+        email: ctx.auth.user.email
       })
     );
     expect(mocks.invalidateOwnershipAccessor).toHaveBeenCalledWith({
@@ -79,6 +79,22 @@ describe('explorer caller ownership', () => {
     await expect(resolveExplorerOwner(ctx, 'explorer')).rejects.toMatchObject({
       data: { status: 400 }
     });
+    expect(mocks.ensureDefaultConsumerActor).not.toHaveBeenCalled();
+  });
+
+  it('rejects explorer ownership without an authenticated user', async () => {
+    await expect(
+      resolveExplorerOwner({ ...ctx, auth: { type: 'machine' } }, 'explorer')
+    ).rejects.toMatchObject({ data: { status: 400 } });
+    expect(mocks.ensureDefaultConsumerActor).not.toHaveBeenCalled();
+  });
+
+  it('rejects consumer authentication even when a user is linked to the account', async () => {
+    mocks.getOwnershipAccess.mockResolvedValue({ kind: 'consumer', isEnforced: true });
+
+    await expect(
+      resolveExplorerOwner({ ...ctx, member: undefined }, 'explorer')
+    ).rejects.toMatchObject({ data: { status: 400 } });
     expect(mocks.ensureDefaultConsumerActor).not.toHaveBeenCalled();
   });
 });

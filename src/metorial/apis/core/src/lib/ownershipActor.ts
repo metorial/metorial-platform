@@ -1,12 +1,13 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import type { AuditScope } from '@metorial/audit-scope';
-import type { Instance, OrganizationActor, OrganizationMember, User } from '@metorial/db';
+import type { Instance, OrganizationActor, OrganizationMember } from '@metorial/db';
 import {
   consumerProfileService,
   consumerSurfaceService
 } from '@metorial/module-consumer-core';
 import { consumerActorService } from '@metorial/module-consumer-entities';
 import { ownershipAccessService } from '@metorial-subspace/module-tenant';
+import type { AuthInfo } from '@metorial/module-access';
 
 export let getOwnershipActor = (ctx: {
   actor?: OrganizationActor | null;
@@ -28,7 +29,7 @@ export let resolveExplorerOwner = async (
     consumerProfile?: object | null;
     instance: Instance;
     member?: OrganizationMember | null;
-    user?: User | null;
+    auth: AuthInfo;
     auditScope: AuditScope;
   },
   source: 'explorer' | undefined
@@ -42,7 +43,10 @@ export let resolveExplorerOwner = async (
   });
   if (!ownershipAccess.isEnforced) return undefined;
 
-  if (ownershipAccess.kind !== 'member' || !ctx.member || !ctx.user) {
+  let user =
+    ctx.auth.type === 'user' || ctx.auth.type === 'machine' ? ctx.auth.user : undefined;
+
+  if (ownershipAccess.kind !== 'member' || !ctx.member || !user) {
     throw new ServiceError(
       badRequestError({
         message: 'Only organization members can own resources.',
@@ -60,8 +64,8 @@ export let resolveExplorerOwner = async (
 
   let consumerProfile = await consumerProfileService.ensureConsumerProfile({
     surface: consumerSurface,
-    email: ctx.user.email,
-    name: ctx.user.name,
+    email: user.email,
+    name: user.name,
     member: ctx.member,
     auditScope: ctx.auditScope
   });
