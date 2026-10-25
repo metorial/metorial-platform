@@ -287,6 +287,8 @@ import {
   v1SkillPluginPresenter,
   v1SkillPluginRepositoryPresenter,
   v1SkillPluginSkillPresenter,
+  v1SkillSecurityReviewPresenter,
+  v1SkillSecurityReviewRevisionPresenter,
   v1SkillPresenter,
   v1SkillSyncPresenter,
   v1SkillSyncRepositoryChecksPresenter,
@@ -549,6 +551,8 @@ import {
   skillParticipantType,
   skillPluginRepositoryType,
   skillPluginSkillType,
+  skillSecurityReviewRevisionType,
+  skillSecurityReviewType,
   skillPluginType,
   skillSyncRepositoryChecksType,
   skillSyncType,
@@ -1073,6 +1077,19 @@ export let skillPluginSkillPresenter = declarePresenter(skillPluginSkillType, {
   mt_2025_01_01_dashboard: v1SkillPluginSkillPresenter,
   mt_2026_01_01_magnetar: v1SkillPluginSkillPresenter
 });
+
+export let skillSecurityReviewPresenter = declarePresenter(skillSecurityReviewType, {
+  mt_2025_01_01_dashboard: v1SkillSecurityReviewPresenter,
+  mt_2026_01_01_magnetar: v1SkillSecurityReviewPresenter
+});
+
+export let skillSecurityReviewRevisionPresenter = declarePresenter(
+  skillSecurityReviewRevisionType,
+  {
+    mt_2025_01_01_dashboard: v1SkillSecurityReviewRevisionPresenter,
+    mt_2026_01_01_magnetar: v1SkillSecurityReviewRevisionPresenter
+  }
+);
 
 export let skillSyncPresenter = declarePresenter(skillSyncType, {
   mt_2025_01_01_dashboard: v1SkillSyncPresenter,

@@ -73,11 +73,20 @@ export let dashboardAiAnalysisConfigurationController = Controller.create(
       .body(
         'default',
         v.object({
-          ai_analysis_enabled: v.boolean({
-            description:
-              "Whether Metorial may analyze this project's custom providers with AI to produce security reviews",
-            examples: [true]
-          })
+          ai_analysis_enabled: v.optional(
+            v.boolean({
+              description:
+                "Whether Metorial may analyze this project's custom providers with AI to produce security reviews",
+              examples: [true]
+            })
+          ),
+          skill_review_hold_pending: v.optional(
+            v.boolean({
+              description:
+                'Whether skills still waiting for their AI security review are withheld when a skill configuration blocks failing skills',
+              examples: [false]
+            })
+          )
         })
       )
       .output(projectAiAnalysisConfigurationPresenter)
@@ -102,7 +111,10 @@ export let dashboardAiAnalysisConfigurationController = Controller.create(
             project,
             organization: ctx.organization,
             auditScope: ctx.auditScope,
-            input: { aiAnalysisEnabled: ctx.body.ai_analysis_enabled }
+            input: {
+              aiAnalysisEnabled: ctx.body.ai_analysis_enabled,
+              skillReviewHoldPending: ctx.body.skill_review_hold_pending
+            }
           });
 
         return projectAiAnalysisConfigurationPresenter.present({

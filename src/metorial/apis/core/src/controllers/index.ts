@@ -176,6 +176,7 @@ import {
   skillMergeRequestCommentController,
   skillMergeRequestController,
   skillMergeRequestEventController,
+  skillSecurityReviewController,
   skillParticipantController,
   skillPluginController,
   skillPluginRepositoryController,
@@ -478,6 +479,7 @@ let setControllerDocsMetadata = <
   skillMergeRequestController,
   skillMergeRequestCommentController,
   skillMergeRequestEventController,
+  skillSecurityReviewController,
   skillPluginController,
   skillPluginRepositoryController,
   skillPluginSkillController
@@ -636,6 +638,7 @@ export let magnetarController = Controller.create<any>(
     skillMergeRequestController,
     skillMergeRequestCommentController,
     skillMergeRequestEventController,
+    skillSecurityReviewController,
     skillPluginController,
     skillPluginSkillController,
 
@@ -805,6 +808,7 @@ export let dashboardController = Controller.create<any>(
     skillMergeRequestController,
     skillMergeRequestCommentController,
     skillMergeRequestEventController,
+    skillSecurityReviewController,
     skillPluginController,
     skillPluginRepositoryController,
     skillPluginSkillController,

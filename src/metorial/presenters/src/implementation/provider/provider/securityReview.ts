@@ -26,7 +26,7 @@ type PresentedEvidence =
   | { type: 'tool'; tool_key: string };
 
 // Ledger facts only resolve inside the review workspace, so they are not presented.
-let presentEvidence = (evidence: SecurityLedgerRef[] | undefined) =>
+export let presentEvidence = (evidence: SecurityLedgerRef[] | undefined) =>
   (evidence ?? []).flatMap((ref): PresentedEvidence[] => {
     if (ref.type == 'file') {
       return [{ type: 'file' as const, path: ref.path, lines: ref.lines ?? null }];
@@ -43,7 +43,7 @@ let presentHints = (hints: SecurityToolHints) => ({
   open_world: hints.openWorld ?? null
 });
 
-let presentPoint = (point: SecurityReportPoint) => ({
+export let presentPoint = (point: SecurityReportPoint) => ({
   title: point.title,
   body: point.body,
   evidence: presentEvidence(point.evidence)
@@ -96,7 +96,7 @@ let presentReport = (report: SecurityReport | null) => ({
     : null
 });
 
-let presentScores = (scores: SecurityReviewComputedScores | null) =>
+export let presentScores = (scores: SecurityReviewComputedScores | null) =>
   scores
     ? {
         security_score: scores.security,
@@ -181,7 +181,7 @@ let presentRevision = (d: { review: ReviewInput; revision: RevisionInput }) => {
   };
 };
 
-let evidenceSchema = v.array(
+export let evidenceSchema = v.array(
   v.union([
     v.object({
       type: v.literal('file'),
@@ -202,13 +202,13 @@ let evidenceSchema = v.array(
   { description: 'Evidence the statement is based on' }
 );
 
-let levelSchema = v.enumOf(['unknown', 'low', 'moderate', 'high', 'critical']);
+export let levelSchema = v.enumOf(['unknown', 'low', 'moderate', 'high', 'critical']);
 let riskSchema = v.enumOf(['low', 'moderate', 'high', 'critical'], {
   description: 'Overall risk of connecting the provider, combining security and exposure'
 });
-let severitySchema = v.enumOf(['info', 'low', 'medium', 'high', 'critical']);
+export let severitySchema = v.enumOf(['info', 'low', 'medium', 'high', 'critical']);
 
-let pointSchema = v.object({
+export let pointSchema = v.object({
   title: v.string({ description: 'Short title of the observation' }),
   body: v.string({ description: 'Explanation of the observation' }),
   evidence: evidenceSchema

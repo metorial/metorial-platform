@@ -13,6 +13,7 @@ export * from './skillParticipant';
 export * from './skillPlugin';
 export * from './skillPluginRepository';
 export * from './skillPluginSkill';
+export * from './skillSecurityReview';
 export * from './skillSync';
 export * from './skillSyncRepositoryCheck';
 export * from './skillGroup';

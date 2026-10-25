@@ -1270,6 +1270,7 @@ export let projectReducedSubprocessorsConfigurationType = PresentableType.create
 export let projectAiAnalysisConfigurationType = PresentableType.create<{
   project: Project;
   aiAnalysisEnabled: boolean;
+  skillReviewHoldPending: boolean;
 }>()('project_ai_analysis_configuration');
 
 export let projectDataRetentionConfigurationType = PresentableType.create<{
@@ -3811,3 +3812,15 @@ export let providerSecurityReviewRevisionType = PresentableType.create<{
   review: RawSecurityReview;
   revision: RawSecurityReviewRevision;
 }>()('provider.security_review.revision');
+
+export let skillSecurityReviewType = PresentableType.create<{
+  review: RawSecurityReview;
+  current: RawSecurityReviewRevision | null;
+  inProgress: RawSecurityReviewRevision | null;
+  verdict: 'pass' | 'warn' | 'fail' | 'pending' | 'unavailable' | 'dismissed';
+}>()('skill.security_review');
+
+export let skillSecurityReviewRevisionType = PresentableType.create<{
+  review: RawSecurityReview;
+  revision: RawSecurityReviewRevision;
+}>()('skill.security_review.revision');
