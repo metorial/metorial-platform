@@ -1,3 +1,4 @@
+import { hydrateResourceOwners } from '@metorial/module-resource-actor';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
@@ -97,7 +98,7 @@ export let providerAuthImportController = Controller.create(
 
         let list = await paginator.run(ctx.query);
 
-        return Paginator.present(list, authImport =>
+        return Paginator.present(await hydrateResourceOwners(list), authImport =>
           providerAuthImportPresenter.present({
             authImport
           })
@@ -119,7 +120,9 @@ export let providerAuthImportController = Controller.create(
       .use(hasFlags(['paid-oauth-import']))
       .output(providerAuthImportPresenter)
       .do(async ctx => {
-        return providerAuthImportPresenter.present({ authImport: ctx.authImport });
+        return providerAuthImportPresenter.present(
+          await hydrateResourceOwners({ authImport: ctx.authImport })
+        );
       }),
 
     create: instanceGroup
@@ -210,9 +213,11 @@ export let providerAuthImportController = Controller.create(
           }
         });
 
-        return providerAuthImportPresenter.present({
-          authImport
-        });
+        return providerAuthImportPresenter.present(
+          await hydrateResourceOwners({
+            authImport
+          })
+        );
       }),
 
     getSchema: instanceGroup

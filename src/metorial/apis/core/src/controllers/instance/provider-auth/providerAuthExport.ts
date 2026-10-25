@@ -1,3 +1,4 @@
+import { hydrateResourceOwners } from '@metorial/module-resource-actor';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
@@ -92,7 +93,7 @@ export let providerAuthExportController = Controller.create(
 
         let list = await paginator.run(ctx.query);
 
-        return Paginator.present(list, authExport =>
+        return Paginator.present(await hydrateResourceOwners(list), authExport =>
           providerAuthExportPresenter.present({
             authExport
           })
@@ -114,7 +115,9 @@ export let providerAuthExportController = Controller.create(
       .use(hasFlags(['paid-oauth-export']))
       .output(providerAuthExportPresenter)
       .do(async ctx => {
-        return providerAuthExportPresenter.present({ authExport: ctx.authExport });
+        return providerAuthExportPresenter.present(
+          await hydrateResourceOwners({ authExport: ctx.authExport })
+        );
       }),
 
     create: instanceGroup
@@ -164,10 +167,12 @@ export let providerAuthExportController = Controller.create(
             }
           });
 
-        return providerAuthExportPresenter.present({
-          authExport,
-          value: decryptedConfigData
-        });
+        return providerAuthExportPresenter.present(
+          await hydrateResourceOwners({
+            authExport,
+            value: decryptedConfigData
+          })
+        );
       })
   }
 );

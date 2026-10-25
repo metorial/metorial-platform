@@ -1,3 +1,4 @@
+import { hydrateResourceOwners } from '@metorial/module-resource-actor';
 import { badRequestError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
@@ -433,9 +434,11 @@ export let consumerProviderController = Controller.create(
           }
         });
 
-        return integrationSetupSessionPresenter.present({
-          integrationSetupSession: setupSession
-        });
+        return integrationSetupSessionPresenter.present(
+          await hydrateResourceOwners({
+            integrationSetupSession: setupSession
+          })
+        );
       }),
 
     getSetup: consumerProviderItemGroup
@@ -461,9 +464,11 @@ export let consumerProviderController = Controller.create(
           integrationSetupSessionId: ctx.params.providerSetupSessionId
         });
 
-        return integrationSetupSessionPresenter.present({
-          integrationSetupSession: setupSession
-        });
+        return integrationSetupSessionPresenter.present(
+          await hydrateResourceOwners({
+            integrationSetupSession: setupSession
+          })
+        );
       }),
 
     deploy: consumerProviderItemGroup
@@ -507,9 +512,11 @@ export let consumerProviderController = Controller.create(
           accessTags: ctx.accessTags
         });
 
-        return magicMcpServerPresenter.present({
-          magicMcpServer: hydratedMagicMcpServer
-        });
+        return magicMcpServerPresenter.present(
+          await hydrateResourceOwners({
+            magicMcpServer: hydratedMagicMcpServer
+          })
+        );
       }),
 
     reconnect: consumerProviderItemGroup
@@ -550,9 +557,11 @@ export let consumerProviderController = Controller.create(
           accessTags: ctx.accessTags
         });
 
-        return magicMcpServerPresenter.present({
-          magicMcpServer: hydratedMagicMcpServer
-        });
+        return magicMcpServerPresenter.present(
+          await hydrateResourceOwners({
+            magicMcpServer: hydratedMagicMcpServer
+          })
+        );
       })
   }
 );

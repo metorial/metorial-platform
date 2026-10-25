@@ -1,11 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import {
-  isOwnerLockedSchema,
-  isOwnerOnlyVisibleSchema,
-  ownerActorSchema,
-  presentOwnerActor
-} from '../../_shared';
+import { presentOwnerActor, resourceAccessSchema } from '../../_shared';
 import { integrationInstanceGroupType } from '../../../types';
 import { v1IntegrationInstanceGroupProviderPresenter } from './integrationInstanceGroupProvider';
 
@@ -30,11 +25,17 @@ export let v1IntegrationInstanceGroupPresenter = Presenter.create(integrationIns
           .run()
       )
     ),
-    owner_actor: await presentOwnerActor(
-      integrationInstanceGroup.ownerActor ?? integrationInstanceGroup.identityActor
-    ),
-    is_owner_locked: integrationInstanceGroup.isOwnerLocked,
-    is_owner_only_visible: integrationInstanceGroup.isOwnerOnlyVisible,
+    access: {
+      type: integrationInstanceGroup.isOwnerLocked
+        ? ('owner_locked' as const)
+        : ('public' as const),
+      visibility: integrationInstanceGroup.isOwnerOnlyVisible
+        ? ('owner' as const)
+        : ('anyone' as const),
+      owner: presentOwnerActor(
+        integrationInstanceGroup.ownerActor ?? integrationInstanceGroup.identityActor
+      )
+    },
     created_at: integrationInstanceGroup.createdAt,
     updated_at: integrationInstanceGroup.updatedAt,
     archived_at: integrationInstanceGroup.archivedAt
@@ -54,9 +55,7 @@ export let v1IntegrationInstanceGroupPresenter = Presenter.create(integrationIns
         })
       ),
       providers: v.array(v1IntegrationInstanceGroupProviderPresenter.schema),
-      owner_actor: ownerActorSchema,
-      is_owner_locked: isOwnerLockedSchema,
-      is_owner_only_visible: isOwnerOnlyVisibleSchema,
+      access: resourceAccessSchema,
       created_at: v.date(),
       updated_at: v.date(),
       archived_at: v.nullable(v.date())

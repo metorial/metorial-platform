@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { hydrateResourceOwners } from '@metorial/module-resource-actor';
 
 vi.mock('@metorial/config', () => ({
   getConfig: () => ({ urls: { apiUrl: 'https://api.metorial.test' } })
@@ -40,6 +41,35 @@ describe('magic MCP endpoint presentation', () => {
       expect(presented.enable_skill_editing).toBe(enableSkillEditing);
     }
   });
+
+  it.each([
+    [false, false, 'public', 'anyone'],
+    [true, false, 'owner_locked', 'anyone'],
+    [false, true, 'public', 'owner'],
+    [true, true, 'owner_locked', 'owner']
+  ] as const)(
+    'presents access for lock=%s and owner visibility=%s',
+    async (locked, ownerVisible, type, visibility) => {
+      let input = await hydrateResourceOwners({
+        magicMcpEndpoint: {
+          ...magicMcpEndpoint(false),
+          isOwnerLocked: locked,
+          isOwnerOnlyVisible: ownerVisible,
+          ownerActor: { id: 'iac_1', type: 'person' as const, name: 'Owner' }
+        }
+      });
+      let presented = await v1MagicMcpEndpointPresenter.present(input).run();
+
+      expect(presented.access).toEqual({
+        type,
+        visibility,
+        owner: { type: 'person', name: 'Owner', image_url: null, email: null }
+      });
+      expect(presented).not.toHaveProperty('owner_actor');
+      expect(presented).not.toHaveProperty('is_owner_locked');
+      expect(presented).not.toHaveProperty('is_owner_only_visible');
+    }
+  );
 
   it('documents enable_skill_editing in the schema', () => {
     expect(v1MagicMcpEndpointPresenter.schema.properties).toHaveProperty(

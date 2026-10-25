@@ -1,3 +1,4 @@
+import { hydrateResourceOwners } from '@metorial/module-resource-actor';
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
@@ -416,6 +417,8 @@ export let magicMcpServerController = Controller.create(
           portal: ctx.portal
         });
 
+        await hydrateResourceOwners(presentationData);
+
         return Paginator.present(list, magicMcpServer =>
           magicMcpServerPresenter.present(presentationData.get(magicMcpServer.id)!)
         );
@@ -439,11 +442,13 @@ export let magicMcpServerController = Controller.create(
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
         return magicMcpServerPresenter.present(
-          await getMagicMcpServerPresentationData({
-            instance: ctx.instance,
-            magicMcpServer: ctx.magicMcpServer,
-            portal: ctx.portal
-          })
+          await hydrateResourceOwners(
+            await getMagicMcpServerPresentationData({
+              instance: ctx.instance,
+              magicMcpServer: ctx.magicMcpServer,
+              portal: ctx.portal
+            })
+          )
         );
       }),
 
@@ -825,11 +830,13 @@ export let magicMcpServerController = Controller.create(
         }
 
         return magicMcpServerPresenter.present(
-          await getMagicMcpServerPresentationData({
-            instance: ctx.instance,
-            magicMcpServer,
-            portal: ctx.portal
-          })
+          await hydrateResourceOwners(
+            await getMagicMcpServerPresentationData({
+              instance: ctx.instance,
+              magicMcpServer,
+              portal: ctx.portal
+            })
+          )
         );
       }),
 
@@ -863,11 +870,13 @@ export let magicMcpServerController = Controller.create(
         });
 
         return magicMcpServerPresenter.present(
-          await getMagicMcpServerPresentationData({
-            instance: ctx.instance,
-            magicMcpServer,
-            portal: ctx.portal
-          })
+          await hydrateResourceOwners(
+            await getMagicMcpServerPresentationData({
+              instance: ctx.instance,
+              magicMcpServer,
+              portal: ctx.portal
+            })
+          )
         );
       }),
 
@@ -936,11 +945,13 @@ export let magicMcpServerController = Controller.create(
         });
 
         return magicMcpServerPresenter.present(
-          await getMagicMcpServerPresentationData({
-            instance: ctx.instance,
-            magicMcpServer,
-            portal: ctx.portal
-          })
+          await hydrateResourceOwners(
+            await getMagicMcpServerPresentationData({
+              instance: ctx.instance,
+              magicMcpServer,
+              portal: ctx.portal
+            })
+          )
         );
       })
   }
@@ -1014,7 +1025,7 @@ export let magicMcpServerControllerDashboard = Controller.create(
           session
         });
 
-        return providerSessionPresenter.present({ session });
+        return providerSessionPresenter.present(await hydrateResourceOwners({ session }));
       })
   }
 );

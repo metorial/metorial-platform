@@ -1,3 +1,4 @@
+import { hydrateResourceOwners } from '@metorial/module-resource-actor';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
@@ -135,10 +136,12 @@ export let providerSetupSessionController = Controller.create(
           setupSessions: list.items
         });
 
-        return Paginator.present({ ...list, items }, setupSession =>
-          providerSetupSessionPresenter.present({
-            setupSession
-          })
+        return Paginator.present(
+          await hydrateResourceOwners({ ...list, items }),
+          setupSession =>
+            providerSetupSessionPresenter.present({
+              setupSession
+            })
         );
       }),
 
@@ -163,7 +166,9 @@ export let providerSetupSessionController = Controller.create(
             setupSessions: [ctx.setupSession]
           });
 
-        return providerSetupSessionPresenter.present({ setupSession: setupSession! });
+        return providerSetupSessionPresenter.present(
+          await hydrateResourceOwners({ setupSession: setupSession! })
+        );
       }),
 
     create: instanceGroup
@@ -385,9 +390,11 @@ export let providerSetupSessionController = Controller.create(
           }
         });
 
-        return providerSetupSessionPresenter.present({
-          setupSession
-        });
+        return providerSetupSessionPresenter.present(
+          await hydrateResourceOwners({
+            setupSession
+          })
+        );
       }),
 
     update: providerSetupSessionGroup
@@ -449,9 +456,11 @@ export let providerSetupSessionController = Controller.create(
             setupSessions: [setupSession]
           });
 
-        return providerSetupSessionPresenter.present({
-          setupSession: redactedSetupSession!
-        });
+        return providerSetupSessionPresenter.present(
+          await hydrateResourceOwners({
+            setupSession: redactedSetupSession!
+          })
+        );
       }),
 
     delete: providerSetupSessionGroup
@@ -468,7 +477,9 @@ export let providerSetupSessionController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
       .output(providerSetupSessionPresenter)
       .do(async ctx => {
-        return providerSetupSessionPresenter.present({ setupSession: ctx.setupSession });
+        return providerSetupSessionPresenter.present(
+          await hydrateResourceOwners({ setupSession: ctx.setupSession })
+        );
       })
   }
 );

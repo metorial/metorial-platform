@@ -32,7 +32,7 @@ export let v1IdentityActorPresenter = Presenter.create(identityActorType)
         description: 'Unique identity actor identifier.',
         examples: ['iac_6wQpLk2mZa8nYx4b']
       }),
-      type: v.enumOf(['person', 'agent', 'consumer'], {
+      type: v.enumOf(['person', 'agent', 'consumer', 'organization_member'], {
         name: 'type',
         description: 'Type of actor that owns or participates in identities.'
       }),
@@ -129,7 +129,8 @@ export let dashboardIdentityActorPresenter = Presenter.create(identityActorType)
             portal_id: v.nullable(
               v.string({
                 name: 'portal_id',
-                description: 'Identifier of the portal the consumer profile belongs to, if any.'
+                description:
+                  'Identifier of the portal the consumer profile belongs to, if any.'
               })
             )
           })

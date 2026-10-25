@@ -1,3 +1,4 @@
+import { hydrateResourceOwners } from '@metorial/module-resource-actor';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
@@ -140,7 +141,7 @@ export let providerAuthConfigController = Controller.create(
 
         let list = await paginator.run(ctx.query);
 
-        return Paginator.present(list, authConfig =>
+        return Paginator.present(await hydrateResourceOwners(list), authConfig =>
           providerAuthConfigPresenter.present({
             authConfig
           })
@@ -161,7 +162,9 @@ export let providerAuthConfigController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
       .output(providerAuthConfigPresenter)
       .do(async ctx => {
-        return providerAuthConfigPresenter.present({ authConfig: ctx.authConfig });
+        return providerAuthConfigPresenter.present(
+          await hydrateResourceOwners({ authConfig: ctx.authConfig })
+        );
       }),
 
     create: instanceGroup
@@ -287,9 +290,11 @@ export let providerAuthConfigController = Controller.create(
           }
         });
 
-        return providerAuthConfigPresenter.present({
-          authConfig
-        });
+        return providerAuthConfigPresenter.present(
+          await hydrateResourceOwners({
+            authConfig
+          })
+        );
       }),
 
     update: providerAuthConfigGroup
@@ -365,9 +370,11 @@ export let providerAuthConfigController = Controller.create(
           }
         });
 
-        return providerAuthConfigPresenter.present({
-          authConfig
-        });
+        return providerAuthConfigPresenter.present(
+          await hydrateResourceOwners({
+            authConfig
+          })
+        );
       }),
 
     delete: providerAuthConfigGroup
@@ -390,7 +397,9 @@ export let providerAuthConfigController = Controller.create(
           providerAuthConfig: ctx.authConfig
         });
 
-        return providerAuthConfigPresenter.present({ authConfig });
+        return providerAuthConfigPresenter.present(
+          await hydrateResourceOwners({ authConfig })
+        );
       })
   }
 );

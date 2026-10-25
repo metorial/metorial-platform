@@ -124,7 +124,7 @@ export let hydrateResourceOwners = async <T>(resources: T): Promise<T> => {
         imageUrl: user ? await imagesByUserId.get(user.id)! : null,
         email: member?.user.email ?? profile?.email ?? consumerActor?.consumer.email ?? null,
         ...(member ? { organizationMemberId: member.id } : {}),
-        ...(consumerActor && !member
+        ...(consumerActor
           ? {
               consumer: {
                 id: consumerActor.consumer.id,

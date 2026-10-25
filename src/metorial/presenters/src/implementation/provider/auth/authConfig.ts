@@ -1,11 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import {
-  isOwnerLockedSchema,
-  isOwnerOnlyVisibleSchema,
-  ownerActorSchema,
-  presentOwnerActor
-} from '../../_shared';
+import { presentOwnerActor, resourceAccessSchema } from '../../_shared';
 import { providerAuthConfigType } from '../../../types';
 import { toolFilterPresenter } from '../../_shared/toolFilter';
 import { v1ProviderAuthCredentialsPresenter } from './authCredentials';
@@ -68,9 +63,11 @@ export let v1ProviderAuthConfigPresenter = Presenter.create(providerAuthConfigTy
       )
       .run(),
 
-    owner_actor: await presentOwnerActor(authConfig.ownerActor),
-    is_owner_locked: authConfig.isOwnerLocked,
-    is_owner_only_visible: authConfig.isOwnerOnlyVisible,
+    access: {
+      type: authConfig.isOwnerLocked ? ('owner_locked' as const) : ('public' as const),
+      visibility: authConfig.isOwnerOnlyVisible ? ('owner' as const) : ('anyone' as const),
+      owner: presentOwnerActor(authConfig.ownerActor)
+    },
 
     created_at: authConfig.createdAt,
     updated_at: authConfig.updatedAt
@@ -131,9 +128,7 @@ export let v1ProviderAuthConfigPresenter = Presenter.create(providerAuthConfigTy
       deployment: v.nullable(v1ProviderDeploymentPreviewPresenter.schema),
       credentials: v.nullable(v1ProviderAuthCredentialsPresenter.schema),
       auth_method: v1ProviderAuthMethodPresenter.schema,
-      owner_actor: ownerActorSchema,
-      is_owner_locked: isOwnerLockedSchema,
-      is_owner_only_visible: isOwnerOnlyVisibleSchema,
+      access: resourceAccessSchema,
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',

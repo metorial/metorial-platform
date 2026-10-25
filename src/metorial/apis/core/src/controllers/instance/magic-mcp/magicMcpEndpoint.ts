@@ -1,3 +1,4 @@
+import { hydrateResourceOwners } from '@metorial/module-resource-actor';
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
@@ -147,7 +148,7 @@ export let magicMcpEndpointController = Controller.create(
 
         let list = await paginator.run(ctx.query);
 
-        return Paginator.present(list, magicMcpEndpoint =>
+        return Paginator.present(await hydrateResourceOwners(list), magicMcpEndpoint =>
           magicMcpEndpointPresenter.present({ magicMcpEndpoint, portal: ctx.portal })
         );
       }),
@@ -169,10 +170,12 @@ export let magicMcpEndpointController = Controller.create(
       .output(magicMcpEndpointPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
-        return magicMcpEndpointPresenter.present({
-          magicMcpEndpoint: ctx.magicMcpEndpoint,
-          portal: ctx.portal
-        });
+        return magicMcpEndpointPresenter.present(
+          await hydrateResourceOwners({
+            magicMcpEndpoint: ctx.magicMcpEndpoint,
+            portal: ctx.portal
+          })
+        );
       }),
 
     create: instanceGroup
@@ -275,10 +278,12 @@ export let magicMcpEndpointController = Controller.create(
           });
         }
 
-        return magicMcpEndpointPresenter.present({
-          magicMcpEndpoint,
-          portal: ctx.portal
-        });
+        return magicMcpEndpointPresenter.present(
+          await hydrateResourceOwners({
+            magicMcpEndpoint,
+            portal: ctx.portal
+          })
+        );
       }),
 
     delete: magicMcpEndpointGroup
@@ -313,10 +318,12 @@ export let magicMcpEndpointController = Controller.create(
           endpoint: ctx.magicMcpEndpoint
         });
 
-        return magicMcpEndpointPresenter.present({
-          magicMcpEndpoint,
-          portal: ctx.portal
-        });
+        return magicMcpEndpointPresenter.present(
+          await hydrateResourceOwners({
+            magicMcpEndpoint,
+            portal: ctx.portal
+          })
+        );
       }),
 
     update: magicMcpEndpointGroup
@@ -384,10 +391,12 @@ export let magicMcpEndpointController = Controller.create(
           }
         });
 
-        return magicMcpEndpointPresenter.present({
-          magicMcpEndpoint,
-          portal: ctx.portal
-        });
+        return magicMcpEndpointPresenter.present(
+          await hydrateResourceOwners({
+            magicMcpEndpoint,
+            portal: ctx.portal
+          })
+        );
       }),
 
     addServers: magicMcpEndpointGroup
@@ -457,10 +466,12 @@ export let magicMcpEndpointController = Controller.create(
           servers
         });
 
-        return magicMcpEndpointPresenter.present({
-          magicMcpEndpoint,
-          portal: ctx.portal
-        });
+        return magicMcpEndpointPresenter.present(
+          await hydrateResourceOwners({
+            magicMcpEndpoint,
+            portal: ctx.portal
+          })
+        );
       }),
 
     removeServers: magicMcpEndpointGroup
@@ -509,10 +520,12 @@ export let magicMcpEndpointController = Controller.create(
           magicMcpServerIds: ctx.body.magic_mcp_server_ids
         });
 
-        return magicMcpEndpointPresenter.present({
-          magicMcpEndpoint,
-          portal: ctx.portal
-        });
+        return magicMcpEndpointPresenter.present(
+          await hydrateResourceOwners({
+            magicMcpEndpoint,
+            portal: ctx.portal
+          })
+        );
       })
   }
 );

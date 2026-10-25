@@ -1,11 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import {
-  isOwnerLockedSchema,
-  isOwnerOnlyVisibleSchema,
-  ownerActorSchema,
-  presentOwnerActor
-} from '../../_shared';
+import { presentOwnerActor, resourceAccessSchema } from '../../_shared';
 import { integrationInstanceType } from '../../../types';
 import {
   dashboardIntegrationInstanceProviderPresenter,
@@ -23,11 +18,17 @@ export let v1IntegrationInstancePresenter = Presenter.create(integrationInstance
     integration_id: integrationInstance.integration.id,
     identity_actor_id: integrationInstance.identityActor?.id ?? null,
     identity_id: integrationInstance.identity?.id ?? null,
-    owner_actor: await presentOwnerActor(
-      integrationInstance.ownerActor ?? integrationInstance.identityActor
-    ),
-    is_owner_locked: integrationInstance.isOwnerLocked,
-    is_owner_only_visible: integrationInstance.isOwnerOnlyVisible,
+    access: {
+      type: integrationInstance.isOwnerLocked
+        ? ('owner_locked' as const)
+        : ('public' as const),
+      visibility: integrationInstance.isOwnerOnlyVisible
+        ? ('owner' as const)
+        : ('anyone' as const),
+      owner: presentOwnerActor(
+        integrationInstance.ownerActor ?? integrationInstance.identityActor
+      )
+    },
     implementation: integrationInstance.magicMcpServerBackings[0]
       ? {
           type: 'magic_mcp_server' as const,
@@ -56,9 +57,7 @@ export let v1IntegrationInstancePresenter = Presenter.create(integrationInstance
       integration_id: v.string(),
       identity_actor_id: v.nullable(v.string()),
       identity_id: v.nullable(v.string()),
-      owner_actor: ownerActorSchema,
-      is_owner_locked: isOwnerLockedSchema,
-      is_owner_only_visible: isOwnerOnlyVisibleSchema,
+      access: resourceAccessSchema,
       implementation: v.nullable(
         v.object({
           type: v.literal('magic_mcp_server'),

@@ -3,12 +3,7 @@ import { v } from '@lowerdeck/validation';
 import { getConfig } from '@metorial/config';
 import { Presenter } from '@metorial/presenter';
 import { magicMcpServerType } from '../../../types';
-import {
-  isOwnerLockedSchema,
-  isOwnerOnlyVisibleSchema,
-  ownerActorSchema,
-  presentOwnerActor
-} from '../../_shared';
+import { presentOwnerActor, resourceAccessSchema } from '../../_shared';
 import { v1ConsumerIntegrationPresenter } from './consumerOwnership';
 import {
   dashboardMagicMcpServerProviderPresenter,
@@ -40,9 +35,7 @@ let magicMcpServerSchema = v.object({
   name: v.nullable(v.string()),
   description: v.nullable(v.string()),
   metadata: v.record(v.any()),
-  owner_actor: ownerActorSchema,
-  is_owner_locked: isOwnerLockedSchema,
-  is_owner_only_visible: isOwnerOnlyVisibleSchema,
+  access: resourceAccessSchema,
   created_at: v.date(),
   updated_at: v.date()
 });
@@ -165,9 +158,13 @@ export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
         name: magicMcpServer.name,
         description: magicMcpServer.description,
         metadata: magicMcpServer.metadata,
-        owner_actor: await presentOwnerActor(magicMcpServer.ownerActor),
-        is_owner_locked: magicMcpServer.isOwnerLocked,
-        is_owner_only_visible: magicMcpServer.isOwnerOnlyVisible,
+        access: {
+          type: magicMcpServer.isOwnerLocked ? ('owner_locked' as const) : ('public' as const),
+          visibility: magicMcpServer.isOwnerOnlyVisible
+            ? ('owner' as const)
+            : ('anyone' as const),
+          owner: presentOwnerActor(magicMcpServer.ownerActor)
+        },
         created_at: magicMcpServer.createdAt,
         updated_at: magicMcpServer.updatedAt
       };

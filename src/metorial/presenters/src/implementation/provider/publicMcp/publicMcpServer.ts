@@ -1,12 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { getConfig } from '@metorial/config';
 import { Presenter } from '@metorial/presenter';
-import {
-  isOwnerLockedSchema,
-  isOwnerOnlyVisibleSchema,
-  ownerActorSchema,
-  presentOwnerActor
-} from '../../_shared';
+import { presentOwnerActor, resourceAccessSchema } from '../../_shared';
 import { toolFilterPresenter } from '../../_shared/toolFilter';
 import {
   publicMcpServerClientType,
@@ -62,9 +57,13 @@ export let dashboardPublicMcpServerPresenter = Presenter.create(publicMcpServerT
       refresh_token_ttl_seconds: publicMcpServer.refreshTokenTtlSeconds,
       grant_idle_expiry_seconds: publicMcpServer.grantIdleExpirySeconds,
 
-      owner_actor: await presentOwnerActor(publicMcpServer.ownerActor),
-      is_owner_locked: publicMcpServer.isOwnerLocked,
-      is_owner_only_visible: publicMcpServer.isOwnerOnlyVisible,
+      access: {
+        type: publicMcpServer.isOwnerLocked ? ('owner_locked' as const) : ('public' as const),
+        visibility: publicMcpServer.isOwnerOnlyVisible
+          ? ('owner' as const)
+          : ('anyone' as const),
+        owner: presentOwnerActor(publicMcpServer.ownerActor)
+      },
 
       disabled_at: publicMcpServer.disabledAt,
       archived_at: publicMcpServer.archivedAt,
@@ -147,9 +146,7 @@ export let dashboardPublicMcpServerPresenter = Presenter.create(publicMcpServerT
         description: 'Grants unused for this long expire',
         examples: [7776000]
       }),
-      owner_actor: ownerActorSchema,
-      is_owner_locked: isOwnerLockedSchema,
-      is_owner_only_visible: isOwnerOnlyVisibleSchema,
+      access: resourceAccessSchema,
       disabled_at: v.nullable(v.date({ name: 'disabled_at', description: 'When disabled' })),
       archived_at: v.nullable(v.date({ name: 'archived_at', description: 'When archived' })),
       created_at: v.date({ name: 'created_at', description: 'Timestamp when created' }),

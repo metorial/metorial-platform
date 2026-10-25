@@ -1,12 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { getConfig } from '@metorial/config';
 import { Presenter } from '@metorial/presenter';
-import {
-  isOwnerLockedSchema,
-  isOwnerOnlyVisibleSchema,
-  ownerActorSchema,
-  presentOwnerActor
-} from '../../_shared';
+import { presentOwnerActor, resourceAccessSchema } from '../../_shared';
 import { magicMcpEndpointType } from '../../../types';
 import { v1ConsumerIntegrationEndpointPresenter } from './consumerOwnership';
 import { getCachedPortalConnectUrl } from './portalConnectUrl';
@@ -74,9 +69,13 @@ export let v1MagicMcpEndpointPresenter = Presenter.create(magicMcpEndpointType)
       description: magicMcpEndpoint.description,
       metadata: magicMcpEndpoint.metadata,
       enable_skill_editing: magicMcpEndpoint.enableSkillEditing,
-      owner_actor: await presentOwnerActor(magicMcpEndpoint.ownerActor),
-      is_owner_locked: magicMcpEndpoint.isOwnerLocked,
-      is_owner_only_visible: magicMcpEndpoint.isOwnerOnlyVisible,
+      access: {
+        type: magicMcpEndpoint.isOwnerLocked ? ('owner_locked' as const) : ('public' as const),
+        visibility: magicMcpEndpoint.isOwnerOnlyVisible
+          ? ('owner' as const)
+          : ('anyone' as const),
+        owner: presentOwnerActor(magicMcpEndpoint.ownerActor)
+      },
       created_at: magicMcpEndpoint.createdAt,
       updated_at: magicMcpEndpoint.updatedAt
     };
@@ -97,9 +96,7 @@ export let v1MagicMcpEndpointPresenter = Presenter.create(magicMcpEndpointType)
           'Whether consumers connecting through this endpoint with a consumer magic MCP token get tools to read and edit the skills they have access to. The tools are hidden while skills are disabled for the instance.',
         examples: [false]
       }),
-      owner_actor: ownerActorSchema,
-      is_owner_locked: isOwnerLockedSchema,
-      is_owner_only_visible: isOwnerOnlyVisibleSchema,
+      access: resourceAccessSchema,
       created_at: v.date(),
       updated_at: v.date()
     })

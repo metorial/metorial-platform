@@ -1,11 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import {
-  isOwnerLockedSchema,
-  isOwnerOnlyVisibleSchema,
-  ownerActorSchema,
-  presentOwnerActor
-} from '../../_shared';
+import { presentOwnerActor, resourceAccessSchema } from '../../_shared';
 import { sessionTemplateType } from '../../../types';
 import { v1SessionTemplateProviderPresenter } from './sessionTemplateProvider';
 
@@ -23,11 +18,13 @@ export let v1SessionTemplatePresenter = Presenter.create(sessionTemplateType)
     integration_instance_id: sessionTemplate.integrationInstance?.id ?? null,
     integration_instance_group_id: sessionTemplate.integrationInstanceGroup?.id ?? null,
     identity_actor_id: sessionTemplate.identityActor?.id ?? null,
-    owner_actor: await presentOwnerActor(
-      sessionTemplate.ownerActor ?? sessionTemplate.identityActor
-    ),
-    is_owner_locked: sessionTemplate.isOwnerLocked,
-    is_owner_only_visible: sessionTemplate.isOwnerOnlyVisible,
+    access: {
+      type: sessionTemplate.isOwnerLocked ? ('owner_locked' as const) : ('public' as const),
+      visibility: sessionTemplate.isOwnerOnlyVisible
+        ? ('owner' as const)
+        : ('anyone' as const),
+      owner: presentOwnerActor(sessionTemplate.ownerActor ?? sessionTemplate.identityActor)
+    },
     identity_id: sessionTemplate.identity?.id ?? null,
 
     providers: await Promise.all(
@@ -79,9 +76,7 @@ export let v1SessionTemplatePresenter = Presenter.create(sessionTemplateType)
       integration_instance_id: v.nullable(v.string()),
       integration_instance_group_id: v.nullable(v.string()),
       identity_actor_id: v.nullable(v.string()),
-      owner_actor: ownerActorSchema,
-      is_owner_locked: isOwnerLockedSchema,
-      is_owner_only_visible: isOwnerOnlyVisibleSchema,
+      access: resourceAccessSchema,
       identity_id: v.nullable(v.string()),
       providers: v.array(v1SessionTemplateProviderPresenter.schema, {
         name: 'providers',

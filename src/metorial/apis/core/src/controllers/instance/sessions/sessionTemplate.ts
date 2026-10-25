@@ -1,3 +1,4 @@
+import { hydrateResourceOwners } from '@metorial/module-resource-actor';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
@@ -105,7 +106,7 @@ export let sessionTemplateController = Controller.create(
 
         let list = await paginator.run(ctx.query);
 
-        return Paginator.present(list, sessionTemplate =>
+        return Paginator.present(await hydrateResourceOwners(list), sessionTemplate =>
           sessionTemplatePresenter.present({ sessionTemplate })
         );
       }),
@@ -118,7 +119,9 @@ export let sessionTemplateController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .output(sessionTemplatePresenter)
       .do(async ctx => {
-        return sessionTemplatePresenter.present({ sessionTemplate: ctx.sessionTemplate });
+        return sessionTemplatePresenter.present(
+          await hydrateResourceOwners({ sessionTemplate: ctx.sessionTemplate })
+        );
       }),
 
     create: instanceGroup
@@ -171,7 +174,9 @@ export let sessionTemplateController = Controller.create(
           }
         });
 
-        return sessionTemplatePresenter.present({ sessionTemplate });
+        return sessionTemplatePresenter.present(
+          await hydrateResourceOwners({ sessionTemplate })
+        );
       }),
 
     update: sessionTemplateGroup
@@ -222,7 +227,9 @@ export let sessionTemplateController = Controller.create(
           }
         });
 
-        return sessionTemplatePresenter.present({ sessionTemplate });
+        return sessionTemplatePresenter.present(
+          await hydrateResourceOwners({ sessionTemplate })
+        );
       }),
 
     delete: sessionTemplateGroup
@@ -242,7 +249,9 @@ export let sessionTemplateController = Controller.create(
           sessionTemplate: ctx.sessionTemplate
         });
 
-        return sessionTemplatePresenter.present({ sessionTemplate });
+        return sessionTemplatePresenter.present(
+          await hydrateResourceOwners({ sessionTemplate })
+        );
       }),
 
     listTools: sessionTemplateGroup

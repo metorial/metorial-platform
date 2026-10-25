@@ -1,3 +1,4 @@
+import { hydrateResourceOwners } from '@metorial/module-resource-actor';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
@@ -183,7 +184,9 @@ export let providerConfigController = Controller.create(
 
         let list = await paginator.run(ctx.query);
 
-        return Paginator.present(list, config => providerConfigPresenter.present({ config }));
+        return Paginator.present(await hydrateResourceOwners(list), config =>
+          providerConfigPresenter.present({ config })
+        );
       }),
 
     get: providerConfigGroup
@@ -197,7 +200,9 @@ export let providerConfigController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.config:read'] }))
       .output(providerConfigPresenter)
       .do(async ctx => {
-        return providerConfigPresenter.present({ config: ctx.config });
+        return providerConfigPresenter.present(
+          await hydrateResourceOwners({ config: ctx.config })
+        );
       }),
 
     create: instanceGroup
@@ -262,7 +267,7 @@ export let providerConfigController = Controller.create(
           }
         });
 
-        return providerConfigPresenter.present({ config });
+        return providerConfigPresenter.present(await hydrateResourceOwners({ config }));
       }),
 
     update: providerConfigGroup
@@ -324,7 +329,7 @@ export let providerConfigController = Controller.create(
           }
         });
 
-        return providerConfigPresenter.present({ config });
+        return providerConfigPresenter.present(await hydrateResourceOwners({ config }));
       }),
 
     delete: providerConfigGroup
@@ -347,7 +352,7 @@ export let providerConfigController = Controller.create(
           providerConfig: ctx.config
         });
 
-        return providerConfigPresenter.present({ config });
+        return providerConfigPresenter.present(await hydrateResourceOwners({ config }));
       }),
 
     getConfigSchema: instanceGroup

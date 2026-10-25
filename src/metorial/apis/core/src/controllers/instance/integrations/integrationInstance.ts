@@ -1,3 +1,4 @@
+import { hydrateResourceOwners } from '@metorial/module-resource-actor';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
@@ -116,7 +117,7 @@ export let integrationInstanceController = Controller.create(
 
         let list = await paginator.run(ctx.query);
 
-        return Paginator.present(list, integrationInstance =>
+        return Paginator.present(await hydrateResourceOwners(list), integrationInstance =>
           integrationInstancePresenter.present({ integrationInstance })
         );
       }),
@@ -135,7 +136,9 @@ export let integrationInstanceController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .output(integrationInstancePresenter)
       .do(async ctx =>
-        integrationInstancePresenter.present({ integrationInstance: ctx.integrationInstance })
+        integrationInstancePresenter.present(
+          await hydrateResourceOwners({ integrationInstance: ctx.integrationInstance })
+        )
       ),
 
     createSessionTemplate: integrationInstanceGroup
@@ -173,7 +176,9 @@ export let integrationInstanceController = Controller.create(
             }
           });
 
-        return sessionTemplatePresenter.present({ sessionTemplate });
+        return sessionTemplatePresenter.present(
+          await hydrateResourceOwners({ sessionTemplate })
+        );
       }),
 
     createSession: integrationInstanceGroup
@@ -211,7 +216,7 @@ export let integrationInstanceController = Controller.create(
           }
         });
 
-        return providerSessionPresenter.present({ session });
+        return providerSessionPresenter.present(await hydrateResourceOwners({ session }));
       }),
 
     create: instanceGroup
@@ -262,7 +267,9 @@ export let integrationInstanceController = Controller.create(
           }
         });
 
-        return integrationInstancePresenter.present({ integrationInstance });
+        return integrationInstancePresenter.present(
+          await hydrateResourceOwners({ integrationInstance })
+        );
       }),
 
     update: integrationInstanceGroup
@@ -333,7 +340,9 @@ export let integrationInstanceController = Controller.create(
           }
         });
 
-        return integrationInstancePresenter.present({ integrationInstance });
+        return integrationInstancePresenter.present(
+          await hydrateResourceOwners({ integrationInstance })
+        );
       }),
 
     delete: integrationInstanceGroup
@@ -356,7 +365,9 @@ export let integrationInstanceController = Controller.create(
           integrationInstance: ctx.integrationInstance
         });
 
-        return integrationInstancePresenter.present({ integrationInstance });
+        return integrationInstancePresenter.present(
+          await hydrateResourceOwners({ integrationInstance })
+        );
       })
   }
 );

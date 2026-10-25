@@ -1,3 +1,4 @@
+import { hydrateResourceOwners } from '@metorial/module-resource-actor';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v, ValidationTypeValue } from '@lowerdeck/validation';
@@ -238,7 +239,7 @@ export let sessionController = Controller.create(
           sessions: list.items
         });
 
-        return Paginator.present({ ...list, items }, session =>
+        return Paginator.present(await hydrateResourceOwners({ ...list, items }), session =>
           providerSessionPresenter.present({
             session
           })
@@ -264,9 +265,11 @@ export let sessionController = Controller.create(
           sessions: [ctx.session]
         });
 
-        return providerSessionPresenter.present({
-          session: session!
-        });
+        return providerSessionPresenter.present(
+          await hydrateResourceOwners({
+            session: session!
+          })
+        );
       }),
 
     create: instanceGroup
@@ -336,9 +339,11 @@ export let sessionController = Controller.create(
           }
         });
 
-        return providerSessionPresenter.present({
-          session: subspaceSession
-        });
+        return providerSessionPresenter.present(
+          await hydrateResourceOwners({
+            session: subspaceSession
+          })
+        );
       }),
 
     update: sessionGroup
@@ -400,9 +405,11 @@ export let sessionController = Controller.create(
           sessions: [session]
         });
 
-        return providerSessionPresenter.present({
-          session: redactedSession!
-        });
+        return providerSessionPresenter.present(
+          await hydrateResourceOwners({
+            session: redactedSession!
+          })
+        );
       }),
 
     delete: sessionGroup
@@ -424,9 +431,11 @@ export let sessionController = Controller.create(
           session: ctx.session
         });
 
-        return providerSessionPresenter.present({
-          session
-        });
+        return providerSessionPresenter.present(
+          await hydrateResourceOwners({
+            session
+          })
+        );
       })
   }
 );

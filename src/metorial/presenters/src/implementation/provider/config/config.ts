@@ -1,6 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import { isOwnerLockedSchema, ownerActorSchema, presentOwnerActor } from '../../_shared';
+import { presentOwnerActor, resourceAccessSchema } from '../../_shared';
 import { providerConfigType } from '../../../types';
 import { toolFilterPresenter } from '../../_shared/toolFilter';
 import { v1ProviderConfigVaultPresenter } from './configVault';
@@ -51,9 +51,11 @@ export let v1ConfigPresenter = Presenter.create(providerConfigType)
           .run()
       : null,
 
-    owner_actor: await presentOwnerActor(config.ownerActor),
-    is_owner_locked: config.isOwnerLocked,
-    is_owner_only_visible: config.isOwnerOnlyVisible,
+    access: {
+      type: config.isOwnerLocked ? ('owner_locked' as const) : ('public' as const),
+      visibility: config.isOwnerOnlyVisible ? ('owner' as const) : ('anyone' as const),
+      owner: presentOwnerActor(config.ownerActor)
+    },
 
     created_at: config.createdAt,
     updated_at: config.updatedAt
@@ -110,13 +112,7 @@ export let v1ConfigPresenter = Presenter.create(providerConfigType)
       }),
       deployment: v.nullable(v1ProviderDeploymentPreviewPresenter.schema),
       from_vault: v.nullable(v1ProviderConfigVaultPresenter.schema),
-      owner_actor: ownerActorSchema,
-      is_owner_locked: isOwnerLockedSchema,
-      is_owner_only_visible: v.boolean({
-        name: 'is_owner_only_visible',
-        description:
-          'Whether this resource is hidden from everyone except its owner. Only enforced when resource ownership is enforced for the project.'
-      }),
+      access: resourceAccessSchema,
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',

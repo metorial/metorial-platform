@@ -1,3 +1,4 @@
+import { hydrateResourceOwners } from '@metorial/module-resource-actor';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
@@ -143,8 +144,10 @@ export let integrationSetupSessionController = Controller.create(
             integrationSetupSessions: list.items
           });
 
-        return Paginator.present({ ...list, items }, integrationSetupSession =>
-          integrationSetupSessionPresenter.present({ integrationSetupSession })
+        return Paginator.present(
+          await hydrateResourceOwners({ ...list, items }),
+          integrationSetupSession =>
+            integrationSetupSessionPresenter.present({ integrationSetupSession })
         );
       }),
 
@@ -169,9 +172,11 @@ export let integrationSetupSessionController = Controller.create(
             integrationSetupSessions: [ctx.integrationSetupSession]
           });
 
-        return integrationSetupSessionPresenter.present({
-          integrationSetupSession: integrationSetupSession!
-        });
+        return integrationSetupSessionPresenter.present(
+          await hydrateResourceOwners({
+            integrationSetupSession: integrationSetupSession!
+          })
+        );
       }),
 
     create: instanceGroup
@@ -232,7 +237,9 @@ export let integrationSetupSessionController = Controller.create(
             }
           });
 
-        return integrationSetupSessionPresenter.present({ integrationSetupSession });
+        return integrationSetupSessionPresenter.present(
+          await hydrateResourceOwners({ integrationSetupSession })
+        );
       })
   }
 );
