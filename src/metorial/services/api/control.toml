@@ -37,7 +37,12 @@ env = [{ key = "FILES_PORT", value = "{{BIND_PORT}}" }]
 start = ["e2e:start"]
 image = "app-api"
 tests = ["../../products/*/modules/*", "../../apis/*"]
-services = ["@metorial/shuttle", "@metorial/voyager", "@metorial/relay", "@metorial-subspace/app-worker"]
+services = [
+  "@metorial/shuttle",
+  "@metorial/voyager",
+  "@metorial/relay",
+  "@metorial-subspace/app-worker",
+]
 health_timeout = 300
 
 [[e2e.resources]]
@@ -150,3 +155,7 @@ package = "@metorial/app-api"
 name = "metorial-usage"
 engine = "mongodb"
 env = "USAGE_MONGO_URL"
+
+[ci.suite]
+name = "metorial"
+groups = 4

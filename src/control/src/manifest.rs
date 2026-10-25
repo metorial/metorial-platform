@@ -50,6 +50,8 @@ pub struct Manifest {
     pub health: Vec<PortHealth>,
     #[serde(default)]
     pub e2e: E2e,
+    #[serde(default)]
+    pub ci: crate::ci::Ci,
     #[serde(skip)]
     pub dependency_endpoints: BTreeMap<String, BTreeMap<String, ResolvedEndpoint>>,
     #[serde(skip)]

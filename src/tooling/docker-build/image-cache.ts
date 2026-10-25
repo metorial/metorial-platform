@@ -41,7 +41,7 @@ let digest = async (reference: string, missingAllowed = false, initializeAllowed
     let error = result.stderr.toString();
     if (
       missingAllowed &&
-      /manifest unknown|name unknown|not found|404/i.test(error) &&
+      /manifest unknown|name unknown|not found|\b404\b/i.test(error) &&
       !/unauthorized|denied/i.test(error)
     )
       return null;
@@ -107,7 +107,7 @@ let registryCommand = async (args: string[], payload?: string) => {
 
 if (command === 'resolve') {
   let dockerfile = resolve(dockerfileArgument);
-  let recipe = readFileSync(dockerfile, 'utf8');
+  let recipe = readFileSync(process.env.IMAGE_CACHE_PINNED_DOCKERFILE || dockerfile, 'utf8');
   let argumentsMap = JSON.parse(buildArguments) as Record<string, string>;
   for (let match of recipe.matchAll(/^ARG (\w+)=(.+)$/gm)) argumentsMap[match[1]] ??= match[2];
   let tasksRecipe = recipe.replace(
@@ -124,6 +124,16 @@ if (command === 'resolve') {
 
   let stages = new Set(['scratch']);
   let bases = new Map<string, string>();
+  let baseCache = process.env.IMAGE_BASE_DIGESTS;
+  let knownBases: Record<string, string> =
+    baseCache && existsSync(baseCache) ? JSON.parse(readFileSync(baseCache, 'utf8')) : {};
+  let baseDigest = async (reference: string) => {
+    if (!knownBases[reference]) {
+      knownBases[reference] = (await digest(reference))!;
+      if (baseCache) await Bun.write(baseCache, JSON.stringify(knownBases));
+    }
+    return knownBases[reference];
+  };
 
   for (let line of recipe.split('\n')) {
     let from = line.match(/^FROM\s+(?:--platform=\S+\s+)?(\S+)(?:\s+AS\s+(\S+))?/i);
@@ -133,13 +143,13 @@ if (command === 'resolve') {
       if (reference.includes('$'))
         throw new Error(`Dynamic external image requires explicit resolution: ${reference}`);
       if (!bases.has(reference))
-        bases.set(reference, `${reference.split('@')[0]}@${await digest(reference)}`);
+        bases.set(reference, `${reference.split('@')[0]}@${await baseDigest(reference)}`);
     }
     if (from?.[2]) stages.add(from[2].toLowerCase());
   }
 
   let syntax = recipe.match(/^# syntax=(\S+)/m)?.[1];
-  if (syntax) bases.set(syntax, `${syntax.split('@')[0]}@${await digest(syntax)}`);
+  if (syntax) bases.set(syntax, `${syntax.split('@')[0]}@${await baseDigest(syntax)}`);
 
   reportPhase('base resolution');
 
@@ -330,6 +340,29 @@ if (command === 'resolve') {
       repository === destination && process.env.IMAGE_CACHE_PUBLISH === 'true'
     );
     if (found) {
+      let inspected = Bun.spawnSync(
+        [
+          'regctl',
+          'image',
+          'inspect',
+          `${repository}@${found}`,
+          '--platform',
+          'linux/amd64',
+          '--format',
+          '{{.OS}}/{{.Architecture}}'
+        ],
+        { stdout: 'pipe', stderr: 'pipe' }
+      );
+      if (inspected.exitCode) {
+        let error = inspected.stderr.toString();
+        if (
+          !/unauthorized|denied|forbidden/i.test(error) &&
+          /manifest unknown|name unknown|not found|no matching platform|\b404\b/i.test(error)
+        )
+          continue;
+        throw new Error(`Cannot inspect cached image: ${error}`);
+      }
+      if (inspected.stdout.toString().trim() !== 'linux/amd64') continue;
       source = `${repository}@${found}`;
       break;
     }
@@ -337,7 +370,7 @@ if (command === 'resolve') {
 
   reportPhase('registry lookup');
 
-  if (!source && descriptor && !prepared) {
+  if (!source && descriptor && !prepared && process.env.IMAGE_CACHE_PLAN_ONLY !== 'true') {
     materializeDescriptor(descriptor, trackedInputs);
     prepared = true;
   }
@@ -346,6 +379,7 @@ if (command === 'resolve') {
   output('context', resolve('out'));
   output('tag', tag);
   output('dockerfile', pinnedFile);
+  output('recipe', Buffer.from(pinned).toString('base64'));
   output('source', source);
   output('hit', String(Boolean(source)));
   if (process.env.GITHUB_STEP_SUMMARY)
@@ -360,7 +394,13 @@ if (command === 'resolve') {
     for (let attempt = 0; ; attempt++) {
       try {
         run(['regctl', 'image', 'copy', source, target]);
-        let manifest = await registryCommand(['manifest', 'get', target, '--format', 'raw-body']);
+        let manifest = await registryCommand([
+          'manifest',
+          'get',
+          target,
+          '--format',
+          'raw-body'
+        ]);
         let actual = `sha256:${createHash('sha256').update(manifest).digest('hex')}`;
         if (actual !== sourceDigest)
           throw new Error(

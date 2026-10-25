@@ -50,3 +50,11 @@ package = "@metorial/slates-registry"
 name = "slates-registry"
 engine = "postgres"
 env = "DATABASE_URL"
+
+[[ci.images]]
+name = "slates-registry"
+group = "oss"
+dockerfile = "Dockerfile"
+image = "metorial/mte-slates-registry"
+ecr = "metorial-enterprise-saas/mte-slates-registry"
+canonical = "ghcr.io/metorial/slates-registry"

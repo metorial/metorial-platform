@@ -55,3 +55,11 @@ package = "@metorial/origin"
 name = "origin"
 engine = "postgres"
 env = "DATABASE_URL"
+
+[[ci.images]]
+name = "origin"
+group = "oss"
+dockerfile = "Dockerfile"
+image = "metorial/mte-origin"
+ecr = "metorial-enterprise-saas/mte-origin"
+canonical = "ghcr.io/metorial/mte-origin"

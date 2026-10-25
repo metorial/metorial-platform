@@ -71,3 +71,11 @@ package = "@metorial/ares"
 name = "ares-sso"
 engine = "postgres"
 env = "SSO_DATABASE_URL"
+
+[[ci.images]]
+name = "ares"
+group = "oss"
+dockerfile = "Dockerfile"
+image = "metorial/mte-ares"
+ecr = "metorial-enterprise-saas/mte-ares"
+canonical = "ghcr.io/metorial/ares"

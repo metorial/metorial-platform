@@ -1,6 +1,9 @@
 name: Test compiled backend images
 description: Pull exact built images and run integration tests without rebuilding containers
 inputs:
+  image-artifact:
+    description: Optional complete prepared image inventory
+    default: ''
   suite:
     required: true
   source-workspace:
@@ -12,7 +15,8 @@ runs:
   steps:
     - uses: actions/download-artifact@v4
       with:
-        pattern: test-image-*
+        name: ${{ inputs.image-artifact }}
+        pattern: ${{ !inputs.image-artifact && 'test-image-*' || '' }}
         path: ${{ runner.temp }}/test-images
         merge-multiple: true
     - name: Prepare image-only CI Compose
