@@ -100,7 +100,7 @@ describe('module-store items', () => {
       mimeType: 'application/octet-stream'
     });
 
-    expect(file.fileSize).toBe(content.byteLength);
+    expect(file.fileSize).toBe(BigInt(content.byteLength));
     expect(
       await db.filePendingContent.findUnique({ where: { fileOid: file.oid } })
     ).toBeNull();
@@ -116,7 +116,7 @@ describe('module-store items', () => {
 
     let { file, item } = await addFile(fixture, store, 'empty.txt', { content: '' });
 
-    expect(file.fileSize).toBe(0);
+    expect(file.fileSize).toBe(0n);
     expect((await readItemContent(fixture, item.id)).byteLength).toBe(0);
   });
 
@@ -130,7 +130,7 @@ describe('module-store items', () => {
       mimeType: 'application/octet-stream'
     });
 
-    expect(file.fileSize).toBe(0);
+    expect(file.fileSize).toBe(0n);
     expect((await readItemContent(fixture, item.id)).byteLength).toBe(0);
   });
 

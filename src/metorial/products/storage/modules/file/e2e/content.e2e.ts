@@ -56,7 +56,7 @@ describe('module-file content', () => {
     let content = allByteValues();
 
     let file = await uploadBytes(fixture, { content, name: `${uniqueId('bytes')}.bin` });
-    expect(file.fileSize).toBe(256);
+    expect(file.fileSize).toBe(256n);
     expect(file.fileType).toBe('application/octet-stream');
     expect(await db.filePendingContent.count({ where: { fileOid: file.oid } })).toBe(0);
 
@@ -75,7 +75,7 @@ describe('module-file content', () => {
       name: `${uniqueId('empty')}.txt`,
       mimeType: 'text/plain'
     });
-    expect(text.fileSize).toBe(0);
+    expect(text.fileSize).toBe(0n);
     expect(await fileService.resolveFileContentSource({ file: text })).toMatchObject({
       type: 'inline'
     });
@@ -85,7 +85,7 @@ describe('module-file content', () => {
       content: new Uint8Array(0),
       name: `${uniqueId('empty')}.bin`
     });
-    expect(binary.fileSize).toBe(0);
+    expect(binary.fileSize).toBe(0n);
     expect(await objectExists(binary.storeId)).toBe(true);
     expect((await fileService.downloadFileContent({ file: binary })).byteLength).toBe(0);
   });
@@ -99,7 +99,7 @@ describe('module-file content', () => {
       name: `${uniqueId('notes')}.md`,
       mimeType: 'text/markdown'
     });
-    expect(file.fileSize).toBe(Buffer.byteLength(content));
+    expect(file.fileSize).toBe(BigInt(Buffer.byteLength(content)));
     expect(await objectExists(file.storeId)).toBe(false);
 
     expect(await flushPendingFileContent({ fileId: file.id })).toBe(false);
@@ -149,7 +149,7 @@ describe('module-file content', () => {
       input: { name: `${uniqueId('stream')}.bin`, authorization: privileged }
     });
 
-    expect(file.fileSize).toBe(6);
+    expect(file.fileSize).toBe(6n);
     expect(file.isReadOnly).toBe(true);
     expect([...(await fileService.downloadFileContent({ file }))]).toEqual([
       0, 1, 2, 253, 254, 255
@@ -236,7 +236,7 @@ describe('module-file content', () => {
       'sandbox_image_build_context',
       sandboxImageBuildContextMaxBytes
     );
-    expect(atLimit.fileSize).toBe(sandboxImageBuildContextMaxBytes);
+    expect(atLimit.fileSize).toBe(BigInt(sandboxImageBuildContextMaxBytes));
 
     let link = await expectServiceError(
       fileLinkService.createFileLink({ ...scopeOf(fixture), file: atLimit, input: {} }),

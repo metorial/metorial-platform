@@ -7,7 +7,7 @@ import { documentInclude } from '../services/document';
 import { internalDocumentDraftService } from './documentDraft';
 import { internalDocumentVersioningService } from './documentVersioning';
 
-let getTextByteSize = (content: string) => new TextEncoder().encode(content).length;
+let getTextByteSize = (content: string) => BigInt(new TextEncoder().encode(content).length);
 
 class InternalDocumentSyncServiceImpl {
   async listSyncableChildDocumentIdsForVersionSync(d: {

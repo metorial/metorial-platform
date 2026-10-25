@@ -32,7 +32,7 @@ export type SandboxBuildContextFile = {
   oid: bigint;
   id: string;
   status: string;
-  fileSize: number;
+  fileSize: bigint;
   purpose: { slug: string };
 };
 
@@ -67,7 +67,7 @@ class SandboxImageBuildServiceImpl {
       );
     }
 
-    if (file.fileSize > sandboxImageBuildContextMaxBytes) {
+    if (file.fileSize > BigInt(sandboxImageBuildContextMaxBytes)) {
       throw new ServiceError(
         badRequestError({ message: 'The build context file is too large' })
       );

@@ -131,7 +131,7 @@ describe('module-file pending uploads', () => {
     expect(file).toMatchObject({
       status: 'active',
       fileName: upload.fileName,
-      fileSize: content.byteLength,
+      fileSize: BigInt(content.byteLength),
       fileType: 'application/octet-stream',
       storeId: upload.storeId,
       isReadOnly: false

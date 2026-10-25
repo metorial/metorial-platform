@@ -291,7 +291,7 @@ let presentFile = (
   documentId: file.document?.id,
   storeId: file.effectiveStoreId ?? file.storeId,
   fileName: file.fileName,
-  fileSize: file.fileSize,
+  fileSize: Number(file.fileSize),
   fileType: file.fileType,
   title: opts?.resolvedTitle ?? file.title ?? file.fileName,
   isReadOnly: file.isReadOnly,
