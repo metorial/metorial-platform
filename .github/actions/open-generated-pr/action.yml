@@ -66,7 +66,7 @@ runs:
         fi
 
         if [ -n "$open" ]; then
-          gh pr edit "$open" --title "$TITLE" --body "$BODY"
+          gh api --method PATCH "repos/{owner}/{repo}/pulls/$open" -f title="$TITLE" -f body="$BODY" --silent
         else
           gh pr create --base "$base" --head "$BRANCH" --title "$TITLE" --body "$BODY"
         fi
