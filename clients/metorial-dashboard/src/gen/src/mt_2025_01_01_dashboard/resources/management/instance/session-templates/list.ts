@@ -21,6 +21,7 @@ export type ManagementInstanceSessionTemplatesListOutput = {
       portalId: string | null;
     } | null;
     isOwnerLocked: boolean;
+    isOwnerOnlyVisible: boolean;
     identityId: string | null;
     providers: {
       object: 'session.template.provider';
@@ -94,6 +95,7 @@ export let mapManagementInstanceSessionTemplatesListOutput =
             ]
           ],
           'is_owner_locked',
+          'is_owner_only_visible',
           'identity_id',
           [
             'providers',
@@ -148,7 +150,7 @@ export type ManagementInstanceSessionTemplatesListQuery = {
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
 } & {
-  usable?: boolean | undefined;
+  ownership?: 'shared' | 'usable' | 'all' | undefined;
   status?: 'active' | 'archived' | ('active' | 'archived')[] | undefined;
   id?: string | string[] | undefined;
   sessionId?: string | string[] | undefined;

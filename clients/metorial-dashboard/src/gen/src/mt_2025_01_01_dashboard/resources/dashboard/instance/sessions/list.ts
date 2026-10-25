@@ -82,6 +82,7 @@ export type DashboardInstanceSessionsListOutput = {
       portalId: string | null;
     } | null;
     isOwnerLocked: boolean;
+    isOwnerOnlyVisible: boolean;
     identityId: string | null;
     createdAt: Date;
     updatedAt: Date;
@@ -174,6 +175,7 @@ export let mapDashboardInstanceSessionsListOutput =
             ]
           ],
           'is_owner_locked',
+          'is_owner_only_visible',
           'identity_id',
           'created_at',
           'updated_at'

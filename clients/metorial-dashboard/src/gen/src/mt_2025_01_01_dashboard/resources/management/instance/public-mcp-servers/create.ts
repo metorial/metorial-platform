@@ -52,6 +52,7 @@ export type ManagementInstancePublicMcpServersCreateOutput = {
     portalId: string | null;
   } | null;
   isOwnerLocked: boolean;
+  isOwnerOnlyVisible: boolean;
   disabledAt: Date | null;
   archivedAt: Date | null;
   createdAt: Date;
@@ -81,6 +82,7 @@ export let mapManagementInstancePublicMcpServersCreateOutput =
         [1, ['image_url', 'consumer_id', 'consumer_profile_id', 'portal_id']]
       ],
       'is_owner_locked',
+      'is_owner_only_visible',
       'disabled_at',
       'archived_at',
       'created_at',

@@ -53,6 +53,7 @@ export type PublicMcpServersListOutput = {
       portalId: string | null;
     } | null;
     isOwnerLocked: boolean;
+    isOwnerOnlyVisible: boolean;
     disabledAt: Date | null;
     archivedAt: Date | null;
     createdAt: Date;
@@ -91,6 +92,7 @@ export let mapPublicMcpServersListOutput =
             ]
           ],
           'is_owner_locked',
+          'is_owner_only_visible',
           'disabled_at',
           'archived_at',
           'created_at',

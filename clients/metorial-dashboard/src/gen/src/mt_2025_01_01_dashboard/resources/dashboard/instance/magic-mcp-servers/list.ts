@@ -145,6 +145,7 @@ export type DashboardInstanceMagicMcpServersListOutput = {
       portalId: string | null;
     } | null;
     isOwnerLocked: boolean;
+    isOwnerOnlyVisible: boolean;
     createdAt: Date;
     updatedAt: Date;
   } & {
@@ -413,6 +414,7 @@ export let mapDashboardInstanceMagicMcpServersListOutput =
                   ]
                 ],
                 'is_owner_locked',
+                'is_owner_only_visible',
                 'created_at',
                 'updated_at',
                 'integration_id',
@@ -453,7 +455,7 @@ export type DashboardInstanceMagicMcpServersListQuery = {
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
 } & {
-  usable?: boolean | undefined;
+  ownership?: 'shared' | 'usable' | 'all' | undefined;
   status?:
     | 'active'
     | 'archived'

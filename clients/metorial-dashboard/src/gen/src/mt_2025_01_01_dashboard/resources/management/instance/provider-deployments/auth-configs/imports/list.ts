@@ -102,6 +102,7 @@ export type ManagementInstanceProviderDeploymentsAuthConfigsImportsListOutput =
           portalId: string | null;
         } | null;
         isOwnerLocked: boolean;
+        isOwnerOnlyVisible: boolean;
         createdAt: Date;
         updatedAt: Date;
       };
@@ -180,6 +181,7 @@ export let mapManagementInstanceProviderDeploymentsAuthConfigsImportsListOutput 
                   ]
                 ],
                 'is_owner_locked',
+                'is_owner_only_visible',
                 'created_at',
                 'updated_at'
               ]

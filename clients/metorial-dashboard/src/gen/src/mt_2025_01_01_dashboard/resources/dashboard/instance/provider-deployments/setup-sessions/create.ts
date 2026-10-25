@@ -28,6 +28,7 @@ export type DashboardInstanceProviderDeploymentsSetupSessionsCreateOutput = {
     portalId: string | null;
   } | null;
   isOwnerLocked: boolean;
+  isOwnerOnlyVisible: boolean;
   authMethod: {
     object: 'provider.capabilities.auth_method';
     id: string;
@@ -166,6 +167,7 @@ export type DashboardInstanceProviderDeploymentsSetupSessionsCreateOutput = {
       portalId: string | null;
     } | null;
     isOwnerLocked: boolean;
+    isOwnerOnlyVisible: boolean;
     createdAt: Date;
     updatedAt: Date;
   } | null;
@@ -237,6 +239,7 @@ export type DashboardInstanceProviderDeploymentsSetupSessionsCreateOutput = {
       portalId: string | null;
     } | null;
     isOwnerLocked: boolean;
+    isOwnerOnlyVisible: boolean;
     createdAt: Date;
     updatedAt: Date;
   } | null;
@@ -274,6 +277,7 @@ export let mapDashboardInstanceProviderDeploymentsSetupSessionsCreateOutput =
                 ]
               ],
               'is_owner_locked',
+              'is_owner_only_visible',
               [
                 'auth_method',
                 1,
@@ -377,6 +381,7 @@ export let mapDashboardInstanceProviderDeploymentsSetupSessionsCreateOutput =
                       ]
                     ],
                     'is_owner_locked',
+                    'is_owner_only_visible',
                     'created_at',
                     'updated_at'
                   ]
@@ -448,6 +453,7 @@ export let mapDashboardInstanceProviderDeploymentsSetupSessionsCreateOutput =
                       ]
                     ],
                     'is_owner_locked',
+                    'is_owner_only_visible',
                     'created_at',
                     'updated_at'
                   ]
@@ -498,6 +504,7 @@ export type DashboardInstanceProviderDeploymentsSetupSessionsCreateBody = {
         ui?: { layout?: 'box' | 'side' | 'light' | undefined } | undefined;
       }
     | undefined;
+  ownedByCaller?: boolean | undefined;
 };
 
 export let mapDashboardInstanceProviderDeploymentsSetupSessionsCreateBody =
@@ -531,6 +538,7 @@ export let mapDashboardInstanceProviderDeploymentsSetupSessionsCreateBody =
             'tool_filters'
           ]
         ]
-      ]
+      ],
+      'owned_by_caller'
     ]
   );

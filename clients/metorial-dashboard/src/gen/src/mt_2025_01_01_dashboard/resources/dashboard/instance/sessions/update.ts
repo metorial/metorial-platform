@@ -1,7 +1,4 @@
-import {
-  createMapper,
-  mapObject
-} from '@metorial/util-resource-mapper/compact';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceSessionsUpdateOutput = {
   object: 'session';
@@ -84,6 +81,7 @@ export type DashboardInstanceSessionsUpdateOutput = {
     portalId: string | null;
   } | null;
   isOwnerLocked: boolean;
+  isOwnerOnlyVisible: boolean;
   identityId: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -157,6 +155,7 @@ export let mapDashboardInstanceSessionsUpdateOutput =
         [1, ['image_url', 'consumer_id', 'consumer_profile_id', 'portal_id']]
       ],
       'is_owner_locked',
+      'is_owner_only_visible',
       'identity_id',
       'created_at',
       'updated_at'
@@ -168,7 +167,10 @@ export type DashboardInstanceSessionsUpdateBody = {
   name?: string | undefined;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
+  isOwnerOnlyVisible?: boolean | undefined;
 };
 
 export let mapDashboardInstanceSessionsUpdateBody =
-  /* @__PURE__ */ createMapper<DashboardInstanceSessionsUpdateBody>(0);
+  /* @__PURE__ */ mapObject<DashboardInstanceSessionsUpdateBody>([
+    'is_owner_only_visible'
+  ]);

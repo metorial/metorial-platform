@@ -48,6 +48,7 @@ export type ManagementInstanceMagicMcpEndpointsUpdateOutput = {
     portalId: string | null;
   } | null;
   isOwnerLocked: boolean;
+  isOwnerOnlyVisible: boolean;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -63,6 +64,7 @@ export let mapManagementInstanceMagicMcpEndpointsUpdateOutput =
         [1, ['image_url', 'consumer_id', 'consumer_profile_id', 'portal_id']]
       ],
       'is_owner_locked',
+      'is_owner_only_visible',
       'created_at',
       'updated_at'
     ],
@@ -75,10 +77,12 @@ export type ManagementInstanceMagicMcpEndpointsUpdateBody = {
   metadata?: Record<string, any> | undefined;
   enableSkillEditing?: boolean | undefined;
   isOwnerLocked?: boolean | undefined;
+  isOwnerOnlyVisible?: boolean | undefined;
 };
 
 export let mapManagementInstanceMagicMcpEndpointsUpdateBody =
   /* @__PURE__ */ mapObject<ManagementInstanceMagicMcpEndpointsUpdateBody>([
     'enable_skill_editing',
-    'is_owner_locked'
+    'is_owner_locked',
+    'is_owner_only_visible'
   ]);

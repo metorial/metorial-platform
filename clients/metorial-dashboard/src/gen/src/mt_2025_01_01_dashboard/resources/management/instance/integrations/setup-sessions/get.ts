@@ -21,6 +21,7 @@ export type ManagementInstanceIntegrationsSetupSessionsGetOutput = {
     portalId: string | null;
   } | null;
   isOwnerLocked: boolean;
+  isOwnerOnlyVisible: boolean;
   integrationInstance: {
     object: 'integration.instance';
     id: string;
@@ -41,6 +42,7 @@ export type ManagementInstanceIntegrationsSetupSessionsGetOutput = {
       portalId: string | null;
     } | null;
     isOwnerLocked: boolean;
+    isOwnerOnlyVisible: boolean;
     implementation: {
       type: 'magic_mcp_server';
       magicMcpServerId: string;
@@ -202,6 +204,7 @@ export let mapManagementInstanceIntegrationsSetupSessionsGetOutput =
         [1, ['image_url', 'consumer_id', 'consumer_profile_id', 'portal_id']]
       ],
       'is_owner_locked',
+      'is_owner_only_visible',
       [
         'integration_instance',
         1,
@@ -220,6 +223,7 @@ export let mapManagementInstanceIntegrationsSetupSessionsGetOutput =
               ]
             ],
             'is_owner_locked',
+            'is_owner_only_visible',
             ['implementation', 0, [1, ['magic_mcp_server_id']]],
             [
               'providers',

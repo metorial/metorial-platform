@@ -24,6 +24,7 @@ export type ManagementInstanceIntegrationsInstanceGroupsCreateSessionTemplateOut
       portalId: string | null;
     } | null;
     isOwnerLocked: boolean;
+    isOwnerOnlyVisible: boolean;
     identityId: string | null;
     providers: {
       object: 'session.template.provider';
@@ -88,6 +89,7 @@ export let mapManagementInstanceIntegrationsInstanceGroupsCreateSessionTemplateO
         [1, ['image_url', 'consumer_id', 'consumer_profile_id', 'portal_id']]
       ],
       'is_owner_locked',
+      'is_owner_only_visible',
       'identity_id',
       [
         'providers',

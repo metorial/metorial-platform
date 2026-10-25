@@ -1,7 +1,4 @@
-import {
-  createMapper,
-  mapObject
-} from '@metorial/util-resource-mapper/compact';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type SessionTemplatesUpdateOutput = {
   object: 'session.template';
@@ -23,6 +20,7 @@ export type SessionTemplatesUpdateOutput = {
     portalId: string | null;
   } | null;
   isOwnerLocked: boolean;
+  isOwnerOnlyVisible: boolean;
   identityId: string | null;
   providers: {
     object: 'session.template.provider';
@@ -87,6 +85,7 @@ export let mapSessionTemplatesUpdateOutput =
         [1, ['image_url', 'consumer_id', 'consumer_profile_id', 'portal_id']]
       ],
       'is_owner_locked',
+      'is_owner_only_visible',
       'identity_id',
       [
         'providers',
@@ -126,7 +125,10 @@ export type SessionTemplatesUpdateBody = {
   name?: string | undefined;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
+  isOwnerOnlyVisible?: boolean | undefined;
 };
 
 export let mapSessionTemplatesUpdateBody =
-  /* @__PURE__ */ createMapper<SessionTemplatesUpdateBody>(0);
+  /* @__PURE__ */ mapObject<SessionTemplatesUpdateBody>([
+    'is_owner_only_visible'
+  ]);

@@ -147,6 +147,7 @@ export type MagicMcpSessionsGetOutput = {
       portalId: string | null;
     } | null;
     isOwnerLocked: boolean;
+    isOwnerOnlyVisible: boolean;
     createdAt: Date;
     updatedAt: Date;
   } | null;
@@ -198,6 +199,7 @@ export type MagicMcpSessionsGetOutput = {
       portalId: string | null;
     } | null;
     isOwnerLocked: boolean;
+    isOwnerOnlyVisible: boolean;
     createdAt: Date;
     updatedAt: Date;
   } | null;
@@ -320,6 +322,7 @@ export let mapMagicMcpSessionsGetOutput =
               ]
             ],
             'is_owner_locked',
+            'is_owner_only_visible',
             'created_at',
             'updated_at'
           ]
@@ -342,6 +345,7 @@ export let mapMagicMcpSessionsGetOutput =
               ]
             ],
             'is_owner_locked',
+            'is_owner_only_visible',
             'created_at',
             'updated_at'
           ]

@@ -81,6 +81,7 @@ export type SessionsCreateOutput = {
     portalId: string | null;
   } | null;
   isOwnerLocked: boolean;
+  isOwnerOnlyVisible: boolean;
   identityId: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -154,6 +155,7 @@ export let mapSessionsCreateOutput =
         [1, ['image_url', 'consumer_id', 'consumer_profile_id', 'portal_id']]
       ],
       'is_owner_locked',
+      'is_owner_only_visible',
       'identity_id',
       'created_at',
       'updated_at'
@@ -227,6 +229,7 @@ export type SessionsCreateBody = {
       | null
       | undefined;
   })[];
+  ownedByCaller?: boolean | undefined;
 };
 
 export let mapSessionsCreateBody =
@@ -270,5 +273,6 @@ export let mapSessionsCreateBody =
           ]
         ]
       ]
-    ]
+    ],
+    'owned_by_caller'
   ]);

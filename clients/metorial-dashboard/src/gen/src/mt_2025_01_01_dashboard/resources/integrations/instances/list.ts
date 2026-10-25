@@ -21,6 +21,7 @@ export type IntegrationsInstancesListOutput = {
       portalId: string | null;
     } | null;
     isOwnerLocked: boolean;
+    isOwnerOnlyVisible: boolean;
     implementation: {
       type: 'magic_mcp_server';
       magicMcpServerId: string;
@@ -161,6 +162,7 @@ export let mapIntegrationsInstancesListOutput =
             ]
           ],
           'is_owner_locked',
+          'is_owner_only_visible',
           ['implementation', 0, [1, ['magic_mcp_server_id']]],
           [
             'providers',
@@ -255,7 +257,7 @@ export type IntegrationsInstancesListQuery = {
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
 } & {
-  usable?: boolean | undefined;
+  ownership?: 'shared' | 'usable' | 'all' | undefined;
   search?: string | undefined;
   status?:
     | 'draft'

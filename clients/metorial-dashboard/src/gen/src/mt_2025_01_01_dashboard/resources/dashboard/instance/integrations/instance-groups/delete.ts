@@ -54,6 +54,7 @@ export type DashboardInstanceIntegrationsInstanceGroupsDeleteOutput = {
     portalId: string | null;
   } | null;
   isOwnerLocked: boolean;
+  isOwnerOnlyVisible: boolean;
   createdAt: Date;
   updatedAt: Date;
   archivedAt: Date | null;
@@ -91,6 +92,7 @@ export let mapDashboardInstanceIntegrationsInstanceGroupsDeleteOutput =
         [1, ['image_url', 'consumer_id', 'consumer_profile_id', 'portal_id']]
       ],
       'is_owner_locked',
+      'is_owner_only_visible',
       'created_at',
       'updated_at',
       'archived_at'

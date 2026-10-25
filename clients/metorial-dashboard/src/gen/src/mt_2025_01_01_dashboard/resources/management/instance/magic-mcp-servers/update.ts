@@ -141,6 +141,7 @@ export type ManagementInstanceMagicMcpServersUpdateOutput = {
     portalId: string | null;
   } | null;
   isOwnerLocked: boolean;
+  isOwnerOnlyVisible: boolean;
   createdAt: Date;
   updatedAt: Date;
 } & {
@@ -399,6 +400,7 @@ export let mapManagementInstanceMagicMcpServersUpdateOutput =
                 ]
               ],
               'is_owner_locked',
+              'is_owner_only_visible',
               'created_at',
               'updated_at',
               'integration_id',
@@ -437,9 +439,11 @@ export type ManagementInstanceMagicMcpServersUpdateBody = {
   metadata?: Record<string, any> | undefined;
   aliases?: string[] | undefined;
   isOwnerLocked?: boolean | undefined;
+  isOwnerOnlyVisible?: boolean | undefined;
 };
 
 export let mapManagementInstanceMagicMcpServersUpdateBody =
   /* @__PURE__ */ mapObject<ManagementInstanceMagicMcpServersUpdateBody>([
-    'is_owner_locked'
+    'is_owner_locked',
+    'is_owner_only_visible'
   ]);

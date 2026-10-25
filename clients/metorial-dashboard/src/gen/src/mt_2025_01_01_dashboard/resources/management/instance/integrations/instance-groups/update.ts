@@ -54,6 +54,7 @@ export type ManagementInstanceIntegrationsInstanceGroupsUpdateOutput = {
     portalId: string | null;
   } | null;
   isOwnerLocked: boolean;
+  isOwnerOnlyVisible: boolean;
   createdAt: Date;
   updatedAt: Date;
   archivedAt: Date | null;
@@ -91,6 +92,7 @@ export let mapManagementInstanceIntegrationsInstanceGroupsUpdateOutput =
         [1, ['image_url', 'consumer_id', 'consumer_profile_id', 'portal_id']]
       ],
       'is_owner_locked',
+      'is_owner_only_visible',
       'created_at',
       'updated_at',
       'archived_at'
@@ -128,6 +130,7 @@ export type ManagementInstanceIntegrationsInstanceGroupsUpdateBody = {
           | undefined;
       }[]
     | undefined;
+  isOwnerOnlyVisible?: boolean | undefined;
 };
 
 export let mapManagementInstanceIntegrationsInstanceGroupsUpdateBody =
@@ -137,6 +140,7 @@ export let mapManagementInstanceIntegrationsInstanceGroupsUpdateBody =
         'providers',
         0,
         [2, [1, ['integration_instance_provider_id', 'tool_filters']]]
-      ]
+      ],
+      'is_owner_only_visible'
     ]
   );

@@ -49,6 +49,7 @@ export type MagicMcpEndpointsListOutput = {
       portalId: string | null;
     } | null;
     isOwnerLocked: boolean;
+    isOwnerOnlyVisible: boolean;
     createdAt: Date;
     updatedAt: Date;
   }[];
@@ -73,6 +74,7 @@ export let mapMagicMcpEndpointsListOutput =
             ]
           ],
           'is_owner_locked',
+          'is_owner_only_visible',
           'created_at',
           'updated_at'
         ]
@@ -88,7 +90,7 @@ export type MagicMcpEndpointsListQuery = {
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
 } & {
-  usable?: boolean | undefined;
+  ownership?: 'shared' | 'usable' | 'all' | undefined;
   status?:
     | 'active'
     | 'archived'

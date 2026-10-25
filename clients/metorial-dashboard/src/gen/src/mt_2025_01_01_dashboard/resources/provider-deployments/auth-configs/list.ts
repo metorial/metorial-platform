@@ -88,6 +88,7 @@ export type ProviderDeploymentsAuthConfigsListOutput = {
       portalId: string | null;
     } | null;
     isOwnerLocked: boolean;
+    isOwnerOnlyVisible: boolean;
     createdAt: Date;
     updatedAt: Date;
   } & { publicMcpServerId: string | null })[];
@@ -157,6 +158,7 @@ export let mapProviderDeploymentsAuthConfigsListOutput =
                   ]
                 ],
                 'is_owner_locked',
+                'is_owner_only_visible',
                 'created_at',
                 'updated_at',
                 'public_mcp_server_id'
@@ -176,7 +178,7 @@ export type ProviderDeploymentsAuthConfigsListQuery = {
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
 } & {
-  usable?: boolean | undefined;
+  ownership?: 'shared' | 'usable' | 'all' | undefined;
   status?: 'active' | 'archived' | ('active' | 'archived')[] | undefined;
   id?: string | string[] | undefined;
   providerId?: string | string[] | undefined;

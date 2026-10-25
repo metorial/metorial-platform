@@ -26,6 +26,7 @@ export type ManagementInstanceProviderDeploymentsSetupSessionsListOutput = {
       portalId: string | null;
     } | null;
     isOwnerLocked: boolean;
+    isOwnerOnlyVisible: boolean;
     authMethod: {
       object: 'provider.capabilities.auth_method';
       id: string;
@@ -170,6 +171,7 @@ export type ManagementInstanceProviderDeploymentsSetupSessionsListOutput = {
         portalId: string | null;
       } | null;
       isOwnerLocked: boolean;
+      isOwnerOnlyVisible: boolean;
       createdAt: Date;
       updatedAt: Date;
     } | null;
@@ -241,6 +243,7 @@ export type ManagementInstanceProviderDeploymentsSetupSessionsListOutput = {
         portalId: string | null;
       } | null;
       isOwnerLocked: boolean;
+      isOwnerOnlyVisible: boolean;
       createdAt: Date;
       updatedAt: Date;
     } | null;
@@ -282,6 +285,7 @@ export let mapManagementInstanceProviderDeploymentsSetupSessionsListOutput =
                   ]
                 ],
                 'is_owner_locked',
+                'is_owner_only_visible',
                 [
                   'auth_method',
                   1,
@@ -385,6 +389,7 @@ export let mapManagementInstanceProviderDeploymentsSetupSessionsListOutput =
                         ]
                       ],
                       'is_owner_locked',
+                      'is_owner_only_visible',
                       'created_at',
                       'updated_at'
                     ]
@@ -456,6 +461,7 @@ export let mapManagementInstanceProviderDeploymentsSetupSessionsListOutput =
                         ]
                       ],
                       'is_owner_locked',
+                      'is_owner_only_visible',
                       'created_at',
                       'updated_at'
                     ]

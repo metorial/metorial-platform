@@ -55,6 +55,7 @@ export type ManagementInstanceIntegrationsInstanceGroupsListOutput = {
       portalId: string | null;
     } | null;
     isOwnerLocked: boolean;
+    isOwnerOnlyVisible: boolean;
     createdAt: Date;
     updatedAt: Date;
     archivedAt: Date | null;
@@ -105,6 +106,7 @@ export let mapManagementInstanceIntegrationsInstanceGroupsListOutput =
             ]
           ],
           'is_owner_locked',
+          'is_owner_only_visible',
           'created_at',
           'updated_at',
           'archived_at'
@@ -121,6 +123,7 @@ export type ManagementInstanceIntegrationsInstanceGroupsListQuery = {
   cursor?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
 } & {
+  ownership?: 'shared' | 'usable' | 'all' | undefined;
   status?:
     | 'draft'
     | 'active'

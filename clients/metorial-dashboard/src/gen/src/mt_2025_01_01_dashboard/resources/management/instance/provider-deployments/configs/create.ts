@@ -68,6 +68,7 @@ export type ManagementInstanceProviderDeploymentsConfigsCreateOutput = {
     portalId: string | null;
   } | null;
   isOwnerLocked: boolean;
+  isOwnerOnlyVisible: boolean;
   createdAt: Date;
   updatedAt: Date;
 } & { publicMcpServerId: string | null };
@@ -130,6 +131,7 @@ export let mapManagementInstanceProviderDeploymentsConfigsCreateOutput =
                 ]
               ],
               'is_owner_locked',
+              'is_owner_only_visible',
               'created_at',
               'updated_at',
               'public_mcp_server_id'
@@ -169,6 +171,7 @@ export type ManagementInstanceProviderDeploymentsConfigsCreateBody = {
     | null
     | undefined;
   isOwnerLocked?: boolean | undefined;
+  ownedByCaller?: boolean | undefined;
 } & ({ value: Record<string, any> } | { providerConfigVaultId: string });
 
 export let mapManagementInstanceProviderDeploymentsConfigsCreateBody =
@@ -185,6 +188,7 @@ export let mapManagementInstanceProviderDeploymentsConfigsCreateBody =
               'provider_deployment_id',
               'tool_filters',
               'is_owner_locked',
+              'owned_by_caller',
               'provider_config_vault_id'
             ]
           ]

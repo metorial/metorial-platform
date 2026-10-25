@@ -90,6 +90,7 @@ export type DashboardInstanceProviderDeploymentsAuthConfigsCreateOutput = {
     portalId: string | null;
   } | null;
   isOwnerLocked: boolean;
+  isOwnerOnlyVisible: boolean;
   createdAt: Date;
   updatedAt: Date;
 } & { publicMcpServerId: string | null };
@@ -155,6 +156,7 @@ export let mapDashboardInstanceProviderDeploymentsAuthConfigsCreateOutput =
                 ]
               ],
               'is_owner_locked',
+              'is_owner_only_visible',
               'created_at',
               'updated_at',
               'public_mcp_server_id'
@@ -191,6 +193,7 @@ export type DashboardInstanceProviderDeploymentsAuthConfigsCreateBody = {
       )[]
     | null
     | undefined;
+  ownedByCaller?: boolean | undefined;
   isOwnerLocked?: boolean | undefined;
   providerAuthMethodId: string;
   providerDeploymentId?: string | undefined;
@@ -201,6 +204,7 @@ export let mapDashboardInstanceProviderDeploymentsAuthConfigsCreateBody =
   /* @__PURE__ */ mapObject<DashboardInstanceProviderDeploymentsAuthConfigsCreateBody>(
     [
       'tool_filters',
+      'owned_by_caller',
       'is_owner_locked',
       'provider_auth_method_id',
       'provider_deployment_id'
