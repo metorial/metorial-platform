@@ -664,7 +664,15 @@ class identityActorServiceImpl {
       include
     });
 
-    if (existingIdentityActor.agent?.type === 'mcp_client') {
+    let consumerProfile = existingIdentityActor.consumerProfileOid
+      ? await db.consumerProfile.findUnique({
+          where: { oid: existingIdentityActor.consumerProfileOid },
+          select: { status: true }
+        })
+      : null;
+    let profileDeleted = consumerProfile?.status === 'deleted';
+
+    if (!profileDeleted && existingIdentityActor.agent?.type === 'mcp_client') {
       throw new ServiceError(
         badRequestError({
           message: 'MCP client agents cannot be deleted',
@@ -673,13 +681,15 @@ class identityActorServiceImpl {
       );
     }
 
-    await assertNoActiveIntegrationActorLink({
-      tenant: d.tenant,
-      solution,
-      environment: d.environment,
-      identityActorOid: existingIdentityActor.oid,
-      identityActorId: existingIdentityActor.id
-    });
+    if (!profileDeleted) {
+      await assertNoActiveIntegrationActorLink({
+        tenant: d.tenant,
+        solution,
+        environment: d.environment,
+        identityActorOid: existingIdentityActor.oid,
+        identityActorId: existingIdentityActor.id
+      });
+    }
 
     return withTransaction(async db => {
       let identityActor = await db.identityActor.update({

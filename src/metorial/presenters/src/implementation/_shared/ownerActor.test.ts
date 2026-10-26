@@ -8,7 +8,7 @@ vi.mock('@metorial/db', () => ({
 }));
 
 import { hydrateResourceOwners } from '@metorial/module-resource-actor';
-import { presentOwnerActor, resourceAccessSchema } from './ownerActor';
+import { presentOwnerActor, presentResourceSource, resourceAccessSchema } from './ownerActor';
 
 let actor = (
   id = 'iac_1',
@@ -129,8 +129,48 @@ describe('owner hydration and presentation', () => {
     );
   });
 
+  it.each(['explorer', null])(
+    'exposes source %s independently of ownership settings',
+    source => {
+      expect(
+        resourceAccessSchema.validate({
+          source,
+          type: 'public',
+          visibility: 'anyone',
+          owner: null
+        }).success
+      ).toBe(true);
+    }
+  );
+
+  it('represents resources without an integration source as null', () => {
+    expect(presentResourceSource()).toBeNull();
+    expect(presentResourceSource(null)).toBeNull();
+    expect(presentResourceSource('explorer')).toBe('explorer');
+  });
+
+  it.each([
+    'manual',
+    'setup_session',
+    'system',
+    'public_mcp',
+    'consumer_provider_template',
+    'unknown'
+  ])('does not expose legacy source %s in access', source => {
+    expect(presentResourceSource(source)).toBeNull();
+    expect(
+      resourceAccessSchema.validate({
+        source,
+        type: 'public',
+        visibility: 'anyone',
+        owner: null
+      }).success
+    ).toBe(false);
+  });
+
   it('documents only the new access shape', () => {
     expect(Object.keys(resourceAccessSchema.properties)).toEqual([
+      'source',
       'type',
       'visibility',
       'owner'

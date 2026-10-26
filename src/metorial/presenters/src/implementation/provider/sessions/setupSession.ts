@@ -1,6 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import { presentOwnerActor, resourceAccessSchema } from '../../_shared';
+import { presentOwnerActor, presentResourceSource, resourceAccessSchema } from '../../_shared';
 import { env } from '@metorial-subspace/module-auth/src/env';
 import { providerSetupSessionType } from '../../../types';
 import {
@@ -87,6 +87,7 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
       identity_id: setupSession.identity?.id ?? null,
       identity_credential_id: setupSession.identityCredential?.id ?? null,
       access: {
+        source: presentResourceSource(setupSession.source),
         type: setupSession.isOwnerLocked ? ('owner_locked' as const) : ('public' as const),
         visibility: setupSession.isOwnerOnlyVisible ? ('owner' as const) : ('anyone' as const),
         owner: presentOwnerActor(setupSession.ownerActor)

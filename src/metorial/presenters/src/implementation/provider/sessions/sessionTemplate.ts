@@ -1,6 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import { presentOwnerActor, resourceAccessSchema } from '../../_shared';
+import { presentOwnerActor, presentResourceSource, resourceAccessSchema } from '../../_shared';
 import { sessionTemplateType } from '../../../types';
 import { v1SessionTemplateProviderPresenter } from './sessionTemplateProvider';
 
@@ -19,6 +19,7 @@ export let v1SessionTemplatePresenter = Presenter.create(sessionTemplateType)
     integration_instance_group_id: sessionTemplate.integrationInstanceGroup?.id ?? null,
     identity_actor_id: sessionTemplate.identityActor?.id ?? null,
     access: {
+      source: presentResourceSource(sessionTemplate.source),
       type: sessionTemplate.isOwnerLocked ? ('owner_locked' as const) : ('public' as const),
       visibility: sessionTemplate.isOwnerOnlyVisible
         ? ('owner' as const)

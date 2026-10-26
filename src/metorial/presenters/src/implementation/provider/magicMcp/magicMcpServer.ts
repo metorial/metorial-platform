@@ -3,7 +3,7 @@ import { v } from '@lowerdeck/validation';
 import { getConfig } from '@metorial/config';
 import { Presenter } from '@metorial/presenter';
 import { magicMcpServerType } from '../../../types';
-import { presentOwnerActor, resourceAccessSchema } from '../../_shared';
+import { presentOwnerActor, presentResourceSource, resourceAccessSchema } from '../../_shared';
 import { v1ConsumerIntegrationPresenter } from './consumerOwnership';
 import {
   dashboardMagicMcpServerProviderPresenter,
@@ -159,6 +159,7 @@ export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
         description: magicMcpServer.description,
         metadata: magicMcpServer.metadata,
         access: {
+          source: presentResourceSource(magicMcpServer.source),
           type: magicMcpServer.isOwnerLocked ? ('owner_locked' as const) : ('public' as const),
           visibility: magicMcpServer.isOwnerOnlyVisible
             ? ('owner' as const)

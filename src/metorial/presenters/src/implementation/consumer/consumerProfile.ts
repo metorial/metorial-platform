@@ -90,9 +90,16 @@ export let dashboardConsumerProfilePresenter = Presenter.create(consumerProfileT
     return {
       ...inner,
       is_service_account: consumerProfile.consumer.isServiceAccount,
-      surface: await v1ConsumerSurfacePresenter
-        .present({ consumerSurface: consumerProfile.surface }, opts)
-        .run()
+      organization_member: consumerProfile.organizationMember
+        ? { id: consumerProfile.organizationMember.id }
+        : null,
+      surface: {
+        ...(await v1ConsumerSurfacePresenter
+          .present({ consumerSurface: consumerProfile.surface }, opts)
+          .run()),
+        type: consumerProfile.surface.type,
+        portal_id: consumerProfile.surface.portal?.id ?? null
+      }
     };
   })
   .schema(
@@ -103,7 +110,26 @@ export let dashboardConsumerProfilePresenter = Presenter.create(consumerProfileT
           name: 'is_service_account',
           description: 'Whether this profile is the dedicated identity of a service account'
         }),
-        surface: v1ConsumerSurfacePresenter.schema
+        organization_member: v.nullable(
+          v.object({
+            id: v.string({
+              description: 'Identifier of the organization member linked to this profile.'
+            })
+          })
+        ),
+        surface: v.intersection([
+          v1ConsumerSurfacePresenter.schema,
+          v.object({
+            type: v.enumOf(['portal', 'organization_members', 'cli'], {
+              description: 'The context this consumer profile belongs to.'
+            }),
+            portal_id: v.nullable(
+              v.string({
+                description: 'The portal this profile belongs to, if any.'
+              })
+            )
+          })
+        ])
       })
     ])
   )

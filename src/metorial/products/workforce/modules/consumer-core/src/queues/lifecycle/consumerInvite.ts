@@ -1,5 +1,5 @@
 import { db } from '@metorial/db';
-import { createQueue, QueueRetryError } from '@metorial/queue';
+import { createQueue } from '@metorial/queue';
 import { sendConsumerInviteEmail } from '../../email/invite';
 import { getPrimaryPortalUrl } from '@metorial/portal-url';
 
@@ -18,10 +18,11 @@ let processInviteLifecycle = async (consumerInviteId: string) => {
       }
     }
   });
-  if (!consumerInvite) throw new QueueRetryError();
+  if (!consumerInvite) return;
 
   if (
     consumerInvite.status != 'pending' ||
+    consumerInvite.consumerProfile.status === 'deleted' ||
     !consumerInvite.surface.portal ||
     consumerInvite.surface.portal.status != 'active'
   ) {

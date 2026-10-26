@@ -1,7 +1,11 @@
 import { db } from '@metorial/db';
 import { createQueue, QueueRetryError } from '@metorial/queue';
 import { syncConsumerProfileIdentity } from '../lib/syncConsumerProfileIdentity';
-import { consumerActorService } from '@metorial/module-consumer-entities';
+import {
+  archiveDeletedConsumerProfileActorsQueue,
+  syncInstanceConsumerActorsQueue,
+  consumerActorService
+} from '@metorial/module-consumer-entities';
 
 export let syncIdentityConsumerQueue = createQueue<{
   identityConsumerId: string;
@@ -67,6 +71,12 @@ export let reconcileConsumerActorQueueProcessor = reconcileConsumerActorQueue.pr
       }
     });
     if (!instanceConsumer) throw new QueueRetryError();
+
+    if (profile.status === 'deleted') {
+      await archiveDeletedConsumerProfileActorsQueue.add({ consumerProfileId: profile.id });
+      await syncInstanceConsumerActorsQueue.add({ instanceConsumerId: instanceConsumer.id });
+      return;
+    }
 
     await db.consumerProfile.update({
       where: { oid: profile.oid },

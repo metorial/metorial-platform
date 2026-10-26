@@ -232,7 +232,10 @@ class ConsumerInviteServiceImpl {
         : search
           ? []
           : undefined;
-    let andParts: Prisma.ConsumerInviteWhereInput[] = [{ surfaceOid: d.consumerSurface.oid }];
+    let andParts: Prisma.ConsumerInviteWhereInput[] = [
+      { surfaceOid: d.consumerSurface.oid },
+      { consumerProfile: { status: 'active' } }
+    ];
 
     if (statuses?.length) {
       andParts.push({

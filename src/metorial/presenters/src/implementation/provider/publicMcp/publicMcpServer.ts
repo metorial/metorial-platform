@@ -1,7 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { getConfig } from '@metorial/config';
 import { Presenter } from '@metorial/presenter';
-import { presentOwnerActor, resourceAccessSchema } from '../../_shared';
+import { presentOwnerActor, presentResourceSource, resourceAccessSchema } from '../../_shared';
 import { toolFilterPresenter } from '../../_shared/toolFilter';
 import {
   publicMcpServerClientType,
@@ -58,6 +58,7 @@ export let dashboardPublicMcpServerPresenter = Presenter.create(publicMcpServerT
       grant_idle_expiry_seconds: publicMcpServer.grantIdleExpirySeconds,
 
       access: {
+        source: presentResourceSource(null),
         type: publicMcpServer.isOwnerLocked ? ('owner_locked' as const) : ('public' as const),
         visibility: publicMcpServer.isOwnerOnlyVisible
           ? ('owner' as const)

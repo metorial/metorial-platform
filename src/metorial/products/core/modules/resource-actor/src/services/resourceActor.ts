@@ -1,6 +1,6 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { db, ID, type Prisma, type Project } from '@metorial/db';
+import { db, ID, type Instance, type Prisma, type Project } from '@metorial/db';
 
 export let resourceActorPresentationInclude = {
   organizationActor: {
@@ -59,6 +59,25 @@ export type ResourceActorPresentationRecord = Prisma.ResourceActorGetPayload<{
 type ActorProject = { project: Pick<Project, 'oid'> };
 
 class ResourceActorServiceImpl {
+  async listConsumerActorIds(d: {
+    instance: Pick<Instance, 'oid'>;
+    consumerProfileIds: string[];
+    consumerIds?: string[];
+  }) {
+    if (!d.consumerProfileIds.length) return [];
+
+    let actors = await db.consumerActor.findMany({
+      where: {
+        instanceOid: d.instance.oid,
+        consumerProfile: { id: { in: d.consumerProfileIds } },
+        ...(d.consumerIds ? { instanceConsumer: { id: { in: d.consumerIds } } } : {})
+      },
+      select: { id: true }
+    });
+
+    return actors.map(actor => actor.id);
+  }
+
   async upsertActor(
     d: ActorProject & {
       input: {

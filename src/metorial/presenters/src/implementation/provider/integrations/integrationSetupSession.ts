@@ -1,6 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import { presentOwnerActor, resourceAccessSchema } from '../../_shared';
+import { presentOwnerActor, presentResourceSource, resourceAccessSchema } from '../../_shared';
 import type { Prisma as SubspacePrisma } from '@metorial-subspace/db';
 import { env } from '@metorial-subspace/module-auth/src/env';
 import type { integrationSetupSessionInclude } from '@metorial-subspace/module-integration';
@@ -97,6 +97,7 @@ export let v1IntegrationSetupSessionPresenter = Presenter.create(integrationSetu
     redirect_url: integrationSetupSession.redirectUrl,
     integration_id: integrationSetupSession.integration.id,
     access: {
+      source: presentResourceSource(null),
       type: integrationSetupSession.isOwnerLocked
         ? ('owner_locked' as const)
         : ('public' as const),

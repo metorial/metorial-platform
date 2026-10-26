@@ -16,6 +16,7 @@ import {
   identityService
 } from '@metorial-subspace/module-identity';
 import { metorialResourceService } from '@metorial-subspace/module-tenant';
+import { archiveDeletedConsumerProfileActorsQueue } from '../queues/deletedConsumerProfile';
 import { syncInstanceConsumerActorsQueue } from '../queues/consumerActorSync';
 
 let defaultActorSurfacePriority: Record<ConsumerSurfaceType, number> = {
@@ -172,6 +173,12 @@ class ConsumerActorServiceImpl {
     if (d.consumerProfile.instanceOid !== d.instance.oid) {
       throw new ServiceError(notFoundError('consumer.profile'));
     }
+
+    let activeProfile = await db.consumerProfile.findFirst({
+      where: { oid: d.consumerProfile.oid, instanceOid: d.instance.oid, status: 'active' },
+      select: { oid: true }
+    });
+    if (!activeProfile) throw new ServiceError(notFoundError('consumer.profile'));
 
     let existingActor = await this.findHealthyDefaultActor(d);
     if (existingActor) return existingActor;
@@ -348,6 +355,13 @@ class ConsumerActorServiceImpl {
 
       let linkedActors = [];
       for (let consumerActor of instanceConsumer.consumerActors) {
+        if (consumerActor.consumerProfile.status === 'deleted') {
+          await archiveDeletedConsumerProfileActorsQueue.add({
+            consumerProfileId: consumerActor.consumerProfile.id
+          });
+          continue;
+        }
+
         let linked = await identityActorService.syncConsumerOwnershipInternal({
           identityActorId: consumerActor.id,
           owner: {

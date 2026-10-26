@@ -1,4 +1,5 @@
 import { v } from '@lowerdeck/validation';
+import type { IntegrationResourceSource } from '@metorial/db';
 import {
   ownerActorPresentation,
   type PresentableOwnerActor
@@ -77,8 +78,19 @@ export let ownerActorSchema = v.nullable(
   )
 );
 
+export type ResourceAccessSource = IntegrationResourceSource | null;
+
+export let presentResourceSource = (source?: string | null): ResourceAccessSource =>
+  source === 'explorer' ? source : null;
+
 export let resourceAccessSchema = v.object(
   {
+    source: v.nullable(
+      v.enumOf(['explorer'], {
+        description:
+          'Integration resource source, or null when the resource is not from Explorer.'
+      })
+    ),
     type: v.enumOf(['public', 'owner_locked'], {
       description:
         'Whether usage is public or locked to the owner under the project ownership rules.'

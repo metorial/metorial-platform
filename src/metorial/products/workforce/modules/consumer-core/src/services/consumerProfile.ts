@@ -43,6 +43,7 @@ import {
 import { reconcileUserConsumersQueue } from '../queues/reconcileUserConsumer';
 import { syncUserConsumersQueue } from '../queues/syncUserConsumer';
 import { consumerService } from './consumer';
+import { consumerInviteService } from './consumerInvite';
 import type { EnrichedConsumerSurface } from './consumerSurface';
 import { consumerSurfaceInclude, consumerSurfaceService } from './consumerSurface';
 
@@ -56,6 +57,7 @@ let include = {
   },
   resourceActors: true,
   organizationActor: true,
+  organizationMember: { select: { id: true } },
   surface: {
     include: {
       ...consumerSurfaceInclude,
@@ -646,6 +648,30 @@ class ConsumerProfileServiceImpl {
     };
   }
 
+  async getConsumerProfileForPortalAccount(d: {
+    instance: Instance;
+    consumerSurface: ConsumerSurface;
+    consumerProfileId: string;
+  }) {
+    let consumerProfile = await db.consumerProfile.findFirst({
+      where: {
+        instanceOid: d.instance.oid,
+        id: d.consumerProfileId,
+        status: 'active',
+        OR: [
+          { surfaceOid: d.consumerSurface.oid },
+          { surface: { type: { in: ['organization_members', 'cli'] } } }
+        ]
+      },
+      include
+    });
+    if (!consumerProfile) {
+      throw new ServiceError(notFoundError('consumer.profile'));
+    }
+
+    return await this.enrichConsumerProfile({ consumerProfile });
+  }
+
   async getConsumerProfileByIdForInstance(d: {
     instance: Instance;
     consumerProfileId: string;
@@ -759,6 +785,18 @@ class ConsumerProfileServiceImpl {
         consumerProfile: d.consumerProfile,
         surface: d.consumerProfile.surface
       });
+
+      let invite = await db.consumerInvite.findUnique({
+        where: { consumerProfileOid: d.consumerProfile.oid },
+        select: { id: true, status: true }
+      });
+      if (invite?.status === 'pending') {
+        await consumerInviteService.deleteConsumerInvite({
+          consumerSurface: d.consumerProfile.surface,
+          consumerInviteId: invite.id,
+          auditScope: d.auditScope
+        });
+      }
 
       let consumerProfile = await db.consumerProfile.update({
         where: {

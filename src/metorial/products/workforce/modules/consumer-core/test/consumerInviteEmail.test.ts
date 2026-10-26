@@ -45,6 +45,21 @@ describe('consumer invite email', () => {
     vi.clearAllMocks();
   });
 
+  it('does not send invitations for deleted profiles or removed invites', async () => {
+    let { db } = await import('@metorial/db');
+    let { sendConsumerInviteEmail } = await import('../src/email/invite');
+    let { consumerInviteCreatedQueueProcessor } =
+      await import('../src/queues/lifecycle/consumerInvite');
+    vi.mocked(db.consumerInvite.findUnique).mockResolvedValue({
+      ...invite,
+      consumerProfile: { ...invite.consumerProfile, status: 'deleted' }
+    } as any);
+    await (consumerInviteCreatedQueueProcessor as any)({ consumerInviteId: invite.id });
+    vi.mocked(db.consumerInvite.findUnique).mockResolvedValue(null);
+    await (consumerInviteCreatedQueueProcessor as any)({ consumerInviteId: invite.id });
+    expect(sendConsumerInviteEmail.send).not.toHaveBeenCalled();
+  });
+
   it('links to the portal namespace instead of the configured host template', async () => {
     let { db } = await import('@metorial/db');
     let { sendConsumerInviteEmail } = await import('../src/email/invite');

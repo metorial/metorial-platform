@@ -1,6 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import { presentOwnerActor, resourceAccessSchema } from '../../_shared';
+import { presentOwnerActor, presentResourceSource, resourceAccessSchema } from '../../_shared';
 import { integrationInstanceGroupType } from '../../../types';
 import { v1IntegrationInstanceGroupProviderPresenter } from './integrationInstanceGroupProvider';
 
@@ -26,6 +26,7 @@ export let v1IntegrationInstanceGroupPresenter = Presenter.create(integrationIns
       )
     ),
     access: {
+      source: presentResourceSource(integrationInstanceGroup.source),
       type: integrationInstanceGroup.isOwnerLocked
         ? ('owner_locked' as const)
         : ('public' as const),

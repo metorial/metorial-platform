@@ -2506,7 +2506,8 @@ export let consumerProfileType = PresentableType.create<{
     consumer: Consumer & {
       user?: User | null;
     };
-    surface: EnrichedConsumerSurface;
+    organizationMember?: { id: string } | null;
+    surface: EnrichedConsumerSurface & { portal?: { id: string } | null };
     // groups: (ConsumerProfileGroup & {
     //   group: ConsumerGroup;
     // })[];

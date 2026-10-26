@@ -1,7 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { getConfig } from '@metorial/config';
 import { Presenter } from '@metorial/presenter';
-import { presentOwnerActor, resourceAccessSchema } from '../../_shared';
+import { presentOwnerActor, presentResourceSource, resourceAccessSchema } from '../../_shared';
 import { magicMcpEndpointType } from '../../../types';
 import { v1ConsumerIntegrationEndpointPresenter } from './consumerOwnership';
 import { getCachedPortalConnectUrl } from './portalConnectUrl';
@@ -70,6 +70,7 @@ export let v1MagicMcpEndpointPresenter = Presenter.create(magicMcpEndpointType)
       metadata: magicMcpEndpoint.metadata,
       enable_skill_editing: magicMcpEndpoint.enableSkillEditing,
       access: {
+        source: presentResourceSource(magicMcpEndpoint.source),
         type: magicMcpEndpoint.isOwnerLocked ? ('owner_locked' as const) : ('public' as const),
         visibility: magicMcpEndpoint.isOwnerOnlyVisible
           ? ('owner' as const)

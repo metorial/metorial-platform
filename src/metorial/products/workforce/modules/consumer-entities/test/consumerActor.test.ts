@@ -95,6 +95,10 @@ vi.mock('@metorial-subspace/module-tenant', () => ({
   }
 }));
 
+vi.mock('../src/queues/deletedConsumerProfile', () => ({
+  archiveDeletedConsumerProfileActorsQueue: { add: vi.fn() }
+}));
+
 vi.mock('../src/queues/consumerActorSync', () => ({
   syncInstanceConsumerActorsQueue: {
     add: mocks.enqueueInstanceConsumerSync
@@ -155,6 +159,16 @@ describe('consumerActorService', () => {
     }));
     mocks.deleteIdentity.mockResolvedValue({});
     mocks.deleteIdentityActor.mockResolvedValue({});
+  });
+
+  it('rejects a deleted profile even if its default actor still exists', async () => {
+    mocks.consumerProfile.findFirst.mockResolvedValue(null);
+    mocks.consumerActor.findMany.mockResolvedValue([actor]);
+    await expect(
+      consumerActorService.ensureDefaultConsumerActor({ instance, consumerProfile })
+    ).rejects.toThrow();
+    expect(mocks.createIdentityActor).not.toHaveBeenCalled();
+    expect(mocks.consumerActor.findMany).not.toHaveBeenCalled();
   });
 
   it('returns a healthy existing default actor without taking the lock', async () => {

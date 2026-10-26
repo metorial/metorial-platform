@@ -1,6 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import { presentOwnerActor, resourceAccessSchema } from '../../_shared';
+import { presentOwnerActor, presentResourceSource, resourceAccessSchema } from '../../_shared';
 import { providerConfigType } from '../../../types';
 import { toolFilterPresenter } from '../../_shared/toolFilter';
 import { v1ProviderConfigVaultPresenter } from './configVault';
@@ -52,6 +52,7 @@ export let v1ConfigPresenter = Presenter.create(providerConfigType)
       : null,
 
     access: {
+      source: presentResourceSource(config.source),
       type: config.isOwnerLocked ? ('owner_locked' as const) : ('public' as const),
       visibility: config.isOwnerOnlyVisible ? ('owner' as const) : ('anyone' as const),
       owner: presentOwnerActor(config.ownerActor)
