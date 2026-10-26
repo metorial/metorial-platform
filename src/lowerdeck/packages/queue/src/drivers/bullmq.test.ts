@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 type FakeScope = {
   setTransactionName: (name: string) => void;
@@ -123,6 +123,10 @@ describe('createBullMqQueue', () => {
     mocks.workerClose.mockResolvedValue(undefined);
   });
 
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('does not create a producer connection until the queue publishes', async () => {
     let queue = createBullMqQueue({
       name: 'lazy-producer',
@@ -220,20 +224,26 @@ describe('createBullMqQueue', () => {
     ];
 
     describe.each(['P2034', '40P01', '40001'])('%s', code => {
-      it.each(wrappers)('quietly retries a $name conflict', async ({ wrap }) => {
-        let error = wrap(Object.assign(new Error('database conflict'), { code }));
-        let handler = await startWorker('conflict-queue', async () => {
-          throw error;
+      describe.each([
+        { random: 0, delayMs: 1000 },
+        { random: 0.5, delayMs: 6000 },
+        { random: 0.999, delayMs: 10990 }
+      ])('with jitter $random', ({ random, delayMs }) => {
+        it.each(wrappers)('quietly retries a $name conflict', async ({ wrap }) => {
+          let error = wrap(Object.assign(new Error('database conflict'), { code }));
+          let handler = await startWorker('conflict-queue', async () => {
+            throw error;
+          });
+
+          vi.spyOn(Math, 'random').mockReturnValue(random);
+
+          await expect(
+            handler({ id: 'job_1', data: { payload: {} }, attemptsMade: 0 })
+          ).rejects.toBe(error);
+
+          expect(mocks.captureException).not.toHaveBeenCalled();
+          expect(mocks.delay).toHaveBeenCalledExactlyOnceWith(delayMs);
         });
-
-        await expect(
-          handler({ id: 'job_1', data: { payload: {} }, attemptsMade: 0 })
-        ).rejects.toBe(error);
-
-        expect(mocks.captureException).not.toHaveBeenCalled();
-        expect(mocks.delay).toHaveBeenCalledExactlyOnceWith(expect.any(Number));
-        expect(mocks.delay.mock.calls[0]![0]).toBeGreaterThanOrEqual(1000);
-        expect(mocks.delay.mock.calls[0]![0]).toBeLessThan(6000);
       });
 
       it.each([
