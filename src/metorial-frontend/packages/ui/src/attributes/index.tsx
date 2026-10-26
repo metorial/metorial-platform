@@ -59,6 +59,24 @@ let Inner = styled('div')`
   display: flex;
   flex-direction: column;
   gap: 3px;
+
+  a {
+    color: ${theme.colors.gray700};
+    text-decoration: none;
+    border-bottom: 1px dashed ${theme.colors.gray400};
+    transition: all 0.2s ease-in-out;
+    font-weight: 500;
+
+    strong {
+      font-weight: 700;
+    }
+
+    &:hover,
+    &:focus {
+      color: ${theme.colors.foreground};
+      border-bottom: 1px dashed ${theme.colors.foreground};
+    }
+  }
 `;
 
 export let Attributes = ({
