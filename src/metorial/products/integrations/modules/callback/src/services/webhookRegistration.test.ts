@@ -246,6 +246,26 @@ describe('webhookRegistrationService', () => {
     }
   );
 
+  it.each([
+    [true, null],
+    [false, { not: null }]
+  ])('filters receivers by whether they are shared: %s', async (isShared, oidFilter) => {
+    let { webhookRegistrationService } = await import('./webhookRegistration');
+    await webhookRegistrationService.listWebhookRegistrations({
+      instance,
+      providerIds: ['pro_1'],
+      isShared
+    });
+
+    expect(webhookRegistrationFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([{ providerAuthCredentialsOid: oidFilter }])
+        })
+      })
+    );
+  });
+
   it('abandons the row when the backend fails to create the receiver', async () => {
     providerFindFirst.mockResolvedValue(activeProvider('supported'));
     backendCallbacks.createWebhookRegistration.mockRejectedValue(new Error('slates down'));

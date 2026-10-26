@@ -27,7 +27,7 @@ export let ProviderWebhookRegistrationsBox = ({
   let registrations = useWebhookRegistrations(instanceId, {
     order: 'desc',
     providerId: provider.id,
-    providerAuthCredentialsId,
+    ...(providerAuthCredentialsId ? { providerAuthCredentialsId } : { isShared: true }),
     status: ['awaiting_setup', 'active']
   });
 
@@ -111,10 +111,12 @@ export let ProviderWebhookRegistrationsBox = ({
 
 export let CallbackWebhookRegistrationsBox = ({
   instanceId,
-  providerId
+  providerId,
+  providerAuthCredentialsId
 }: {
   instanceId: string;
   providerId: string;
+  providerAuthCredentialsId?: string;
 }) => {
   let provider = useProvider(instanceId, providerId);
 
@@ -129,6 +131,7 @@ export let CallbackWebhookRegistrationsBox = ({
       <ProviderWebhookRegistrationsBox
         instanceId={instanceId}
         provider={{ id: providerId, name: provider.data.name }}
+        providerAuthCredentialsId={providerAuthCredentialsId}
       />
     );
   });

@@ -33,6 +33,7 @@ export type ListWebhookRegistrationsParams = {
   ids?: string[];
   providerIds?: string[];
   providerAuthCredentialsIds?: string[];
+  isShared?: boolean;
   search?: string;
   status?: WebhookRegistrationStatus[];
   allowDeleted?: boolean;
@@ -126,6 +127,9 @@ class webhookRegistrationServiceImpl {
               providers ? { providerOid: providers.in } : undefined!,
               d.providerAuthCredentialsIds
                 ? { providerAuthCredentials: { id: { in: d.providerAuthCredentialsIds } } }
+                : undefined!,
+              d.isShared !== undefined
+                ? { providerAuthCredentialsOid: d.isShared ? null : { not: null } }
                 : undefined!,
               d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
               d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!

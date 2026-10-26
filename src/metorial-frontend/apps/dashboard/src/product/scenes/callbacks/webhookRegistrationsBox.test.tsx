@@ -15,8 +15,13 @@ vi.mock('@metorial/state', () => ({
     state.query(query);
 
     let items = [
-      { id: 'receiver_1', name: 'App 1 Receiver', credentialId: 'app_1', status: 'active' }
-    ].filter(item => item.credentialId === query.providerAuthCredentialsId);
+      { id: 'receiver_1', name: 'App 1 Receiver', credentialId: 'app_1', status: 'active' },
+      { id: 'receiver_2', name: 'Shared Receiver', credentialId: null, status: 'active' }
+    ].filter(item =>
+      query.isShared
+        ? item.credentialId === null
+        : item.credentialId === query.providerAuthCredentialsId
+    );
 
     return { data: { items }, refetch: vi.fn() };
   }
@@ -91,5 +96,23 @@ describe('chat app receiver isolation', () => {
         providerAuthCredentialsId: 'app_2'
       })
     );
+  });
+
+  it('shows only shared receivers when the connection has no app credentials', () => {
+    let html = renderToStaticMarkup(
+      <ProviderWebhookRegistrationsBox
+        instanceId="instance"
+        provider={{ id: 'slack', name: 'Slack' }}
+      />
+    );
+
+    expect(html).toContain('Shared Receiver');
+    expect(html).not.toContain('App 1 Receiver');
+    expect(state.query).toHaveBeenLastCalledWith({
+      order: 'desc',
+      providerId: 'slack',
+      isShared: true,
+      status: ['awaiting_setup', 'active']
+    });
   });
 });

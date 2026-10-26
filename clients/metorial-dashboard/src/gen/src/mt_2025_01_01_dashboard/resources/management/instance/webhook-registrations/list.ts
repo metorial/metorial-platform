@@ -24,6 +24,7 @@ export type ManagementInstanceWebhookRegistrationsListOutput = {
       createdAt: Date;
       updatedAt: Date;
     };
+    providerAuthCredentialsId: string | null;
     createdAt: Date;
     updatedAt: Date;
   }[];
@@ -32,7 +33,19 @@ export type ManagementInstanceWebhookRegistrationsListOutput = {
 
 export let mapManagementInstanceWebhookRegistrationsListOutput =
   /* @__PURE__ */ createMapper<ManagementInstanceWebhookRegistrationsListOutput>(
-    [7, [1, ['receive_url', ['provider', 0, 8], 'created_at', 'updated_at']]],
+    [
+      7,
+      [
+        1,
+        [
+          'receive_url',
+          ['provider', 0, 8],
+          'provider_auth_credentials_id',
+          'created_at',
+          'updated_at'
+        ]
+      ]
+    ],
     1
   );
 
@@ -46,6 +59,7 @@ export type ManagementInstanceWebhookRegistrationsListQuery = {
   id?: string | string[] | undefined;
   providerId?: string | string[] | undefined;
   providerAuthCredentialsId?: string | string[] | undefined;
+  isShared?: boolean | undefined;
   status?:
     | 'awaiting_setup'
     | 'active'
@@ -59,20 +73,23 @@ export type ManagementInstanceWebhookRegistrationsListQuery = {
 };
 
 export let mapManagementInstanceWebhookRegistrationsListQuery =
-  /* @__PURE__ */ createMapper<ManagementInstanceWebhookRegistrationsListQuery>([
-    3,
+  /* @__PURE__ */ createMapper<ManagementInstanceWebhookRegistrationsListQuery>(
     [
+      3,
       [
-        0,
         [
-          1,
+          0,
           [
-            'provider_id',
-            'provider_auth_credentials_id',
-            ['created_at', 1, 5],
-            ['updated_at', 1, 5]
+            1,
+            [
+              'provider_id',
+              'provider_auth_credentials_id',
+              'is_shared',
+              ['created_at', 1, 5],
+              ['updated_at', 1, 5]
+            ]
           ]
         ]
       ]
     ]
-  ]);
+  );

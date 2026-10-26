@@ -53,6 +53,10 @@ export let webhookRegistrationController = Controller.create(
               description:
                 'Filter by the custom provider auth credentials associated with the receiver'
             }),
+            is_shared: v.optional(v.boolean(), {
+              description:
+                'When true, only return receivers shared by every app of the provider. When false, only return receivers scoped to specific provider auth credentials.'
+            }),
             status: v.optional(
               v.union([
                 webhookRegistrationStatusValidator,
@@ -77,6 +81,7 @@ export let webhookRegistrationController = Controller.create(
           providerAuthCredentialsIds: normalizeArrayParam(
             ctx.query.provider_auth_credentials_id
           ),
+          isShared: ctx.query.is_shared,
           status: normalizeArrayParam(ctx.query.status),
           search: ctx.query.search,
           createdAt: ctx.query.created_at,
