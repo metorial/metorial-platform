@@ -16,14 +16,7 @@ export type ManagementInstanceProviderDeploymentsSetupSessionsGetOutput = {
   identityId: string | null;
   identityCredentialId: string | null;
   access: {
-    source:
-      | 'explorer'
-      | 'manual'
-      | 'setup_session'
-      | 'system'
-      | 'public_mcp'
-      | 'consumer_provider_template'
-      | null;
+    source: 'explorer' | null;
     type: 'public' | 'owner_locked';
     visibility: 'anyone' | 'owner';
     owner: {
@@ -165,14 +158,7 @@ export type ManagementInstanceProviderDeploymentsSetupSessionsGetOutput = {
       updatedAt: Date;
     };
     access: {
-      source:
-        | 'explorer'
-        | 'manual'
-        | 'setup_session'
-        | 'system'
-        | 'public_mcp'
-        | 'consumer_provider_template'
-        | null;
+      source: 'explorer' | null;
       type: 'public' | 'owner_locked';
       visibility: 'anyone' | 'owner';
       owner: {
@@ -248,14 +234,7 @@ export type ManagementInstanceProviderDeploymentsSetupSessionsGetOutput = {
       updatedAt: Date;
     } | null;
     access: {
-      source:
-        | 'explorer'
-        | 'manual'
-        | 'setup_session'
-        | 'system'
-        | 'public_mcp'
-        | 'consumer_provider_template'
-        | null;
+      source: 'explorer' | null;
       type: 'public' | 'owner_locked';
       visibility: 'anyone' | 'owner';
       owner: {

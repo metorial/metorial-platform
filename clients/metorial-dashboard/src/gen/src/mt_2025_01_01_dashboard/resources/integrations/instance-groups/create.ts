@@ -45,14 +45,7 @@ export type IntegrationsInstanceGroupsCreateOutput = {
     archivedAt: Date | null;
   }[];
   access: {
-    source:
-      | 'explorer'
-      | 'manual'
-      | 'setup_session'
-      | 'system'
-      | 'public_mcp'
-      | 'consumer_provider_template'
-      | null;
+    source: 'explorer' | null;
     type: 'public' | 'owner_locked';
     visibility: 'anyone' | 'owner';
     owner: {
