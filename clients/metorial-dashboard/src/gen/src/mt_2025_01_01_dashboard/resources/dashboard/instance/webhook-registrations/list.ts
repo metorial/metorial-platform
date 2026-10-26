@@ -45,6 +45,7 @@ export type DashboardInstanceWebhookRegistrationsListQuery = {
 } & {
   id?: string | string[] | undefined;
   providerId?: string | string[] | undefined;
+  providerAuthCredentialsId?: string | string[] | undefined;
   status?:
     | 'awaiting_setup'
     | 'active'
@@ -60,5 +61,18 @@ export type DashboardInstanceWebhookRegistrationsListQuery = {
 export let mapDashboardInstanceWebhookRegistrationsListQuery =
   /* @__PURE__ */ createMapper<DashboardInstanceWebhookRegistrationsListQuery>([
     3,
-    [[0, [1, ['provider_id', ['created_at', 1, 5], ['updated_at', 1, 5]]]]]
+    [
+      [
+        0,
+        [
+          1,
+          [
+            'provider_id',
+            'provider_auth_credentials_id',
+            ['created_at', 1, 5],
+            ['updated_at', 1, 5]
+          ]
+        ]
+      ]
+    ]
   ]);

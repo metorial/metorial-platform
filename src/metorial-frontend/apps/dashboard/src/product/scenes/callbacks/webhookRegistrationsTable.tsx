@@ -57,6 +57,7 @@ import {
 let showCreateWebhookRegistrationModal = (p: {
   instanceId: string;
   provider?: { id: string; name: string };
+  providerAuthCredentialsId?: string;
   onCreate: (created: { id: string }) => void;
 }) =>
   showModal(({ dialogProps, close }) => {
@@ -74,6 +75,7 @@ let showCreateWebhookRegistrationModal = (p: {
         let [created] = await createRegistration.mutate({
           instanceId: p.instanceId,
           providerId,
+          providerAuthCredentialsId: p.providerAuthCredentialsId,
           name: values.name.trim(),
           description: values.description.trim() || undefined
         });
@@ -551,10 +553,12 @@ export let WebhookRegistrationsTable = ({ instanceId }: { instanceId: string }) 
 export let CreateWebhookRegistrationButton = ({
   instanceId,
   provider,
+  providerAuthCredentialsId,
   onCreate
 }: {
   instanceId: string;
   provider?: { id: string; name: string };
+  providerAuthCredentialsId?: string;
   onCreate?: (created: { id: string }) => void;
 }) => (
   <Button
@@ -563,6 +567,7 @@ export let CreateWebhookRegistrationButton = ({
       showCreateWebhookRegistrationModal({
         instanceId,
         provider,
+        providerAuthCredentialsId,
         onCreate: created => onCreate?.(created)
       })
     }

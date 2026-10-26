@@ -14,17 +14,21 @@ import { CreateWebhookRegistrationButton } from './webhookRegistrationsTable';
 
 export let ProviderWebhookRegistrationsBox = ({
   instanceId,
-  provider
+  provider,
+  providerAuthCredentialsId
 }: {
   instanceId: string;
   provider: { id: string; name: string };
+  providerAuthCredentialsId?: string;
 }) => {
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
   let instance = useCurrentInstance();
   let registrations = useWebhookRegistrations(instanceId, {
     order: 'desc',
-    providerId: provider.id
+    providerId: provider.id,
+    providerAuthCredentialsId,
+    status: ['awaiting_setup', 'active']
   });
 
   let onCreate = () => void registrations.refetch();
@@ -39,6 +43,7 @@ export let ProviderWebhookRegistrationsBox = ({
             <CreateWebhookRegistrationButton
               instanceId={instanceId}
               provider={provider}
+              providerAuthCredentialsId={providerAuthCredentialsId}
               onCreate={onCreate}
             />
           ) : undefined

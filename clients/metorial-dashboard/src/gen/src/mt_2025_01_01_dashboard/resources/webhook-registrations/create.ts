@@ -35,10 +35,14 @@ export let mapWebhookRegistrationsCreateOutput =
 
 export type WebhookRegistrationsCreateBody = {
   providerId: string;
+  providerAuthCredentialsId?: string | undefined;
   name: string;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
 };
 
 export let mapWebhookRegistrationsCreateBody =
-  /* @__PURE__ */ mapObject<WebhookRegistrationsCreateBody>(['provider_id']);
+  /* @__PURE__ */ mapObject<WebhookRegistrationsCreateBody>([
+    'provider_id',
+    'provider_auth_credentials_id'
+  ]);

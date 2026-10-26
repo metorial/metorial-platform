@@ -35,6 +35,7 @@ export let mapManagementInstanceWebhookRegistrationsCreateOutput =
 
 export type ManagementInstanceWebhookRegistrationsCreateBody = {
   providerId: string;
+  providerAuthCredentialsId?: string | undefined;
   name: string;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
@@ -42,5 +43,6 @@ export type ManagementInstanceWebhookRegistrationsCreateBody = {
 
 export let mapManagementInstanceWebhookRegistrationsCreateBody =
   /* @__PURE__ */ mapObject<ManagementInstanceWebhookRegistrationsCreateBody>([
-    'provider_id'
+    'provider_id',
+    'provider_auth_credentials_id'
   ]);
