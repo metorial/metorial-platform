@@ -19,13 +19,17 @@ let fixture = async () => {
     join(directory, 'bin/regctl'),
     `#!/bin/sh
 if [ "$1 $2" = 'image copy' ]; then exit 0; fi
+if [ "$1 $2" = 'image inspect' ]; then
+  if [ "\${PLATFORM_ERROR:-}" != '' ]; then echo "$PLATFORM_ERROR" >&2; exit 1; fi
+  echo "\${PLATFORM:-linux/amd64}"; exit 0
+fi
 if [ "$1 $2" = 'manifest put' ]; then
   if [ "\${ALLOW_INITIALIZE:-}" = true ]; then touch initialized; exit 0; fi
   echo unauthorized >&2; exit 1
 fi
 case "$3" in
-  alpine:*|node:*) echo "sha256:\${BASE_DIGEST:-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa}" ;;
   *@*) echo "\${3##*@}" ;;
+  alpine:*|node:*) echo "sha256:\${BASE_DIGEST:-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa}" ;;
   *)
     if [ "\${REGISTRY_ERROR:-}" != '' ] && [ ! -f initialized ]; then echo "$REGISTRY_ERROR" >&2; exit 1; fi
     if [ "\${CACHE_HIT:-}" = true ]; then echo sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
@@ -314,6 +318,15 @@ test('real Turbo pruning includes transitive sources and dependency resolutions'
   expect(existsSync(join(directory, 'out'))).toBe(false);
   expect(resolveImage(directory, '{}', warmEnvironment).tag).toBe(original.tag);
   expect(snapshot()).toEqual(coldSnapshot);
+  rmSync(join(directory, 'out'), { recursive: true });
+  let plannedMiss = resolveImage(directory, '{}', {
+    ...warmEnvironment,
+    IMAGE_CACHE_PLAN_ONLY: 'true'
+  });
+  expect(plannedMiss.code, plannedMiss.error).toBe(0);
+  expect(plannedMiss.text).toContain('prepared=false');
+  expect(plannedMiss.text).toContain('hit=false');
+  expect(existsSync(join(directory, 'out'))).toBe(false);
   await Bun.write(join(directory, 'packages/library/src/new.ts'), 'export let added = true;');
   Bun.spawnSync(['git', 'add', 'packages/library/src/new.ts'], { cwd: directory });
   let added = resolveImage(directory, '{}', warmEnvironment);
@@ -479,4 +492,33 @@ test('descriptor validation rejects mismatched keys and unsafe paths', async () 
       'expected'
     )
   ).toThrow('generated');
+});
+
+test('cached images missing the required platform schedule builds', async () => {
+  let directory = await fixture();
+  for (let environment of [
+    { PLATFORM: 'linux/arm64' },
+    { PLATFORM_ERROR: 'no matching platform' }
+  ]) {
+    let result = resolveImage(directory, '{}', { CACHE_HIT: 'true', ...environment });
+    expect(result.code, result.error).toBe(0);
+    expect(result.text).toContain('hit=false');
+  }
+});
+
+test('builder fingerprints retain planned base digests when upstream tags move', async () => {
+  let directory = await fixture();
+  let original = resolveImage(directory);
+  let encoded = original.text.match(/^recipe=(.+)$/m)![1];
+  let path = join(directory, 'pinned.Dockerfile');
+  await Bun.write(path, Buffer.from(encoded, 'base64'));
+  let pinned = resolveImage(directory, '{}', {
+    IMAGE_CACHE_PINNED_DOCKERFILE: path,
+    BASE_DIGEST: 'c'.repeat(64)
+  });
+  expect(pinned.code, pinned.error).toBe(0);
+  expect(pinned.tag).toBe(original.tag);
+  expect(resolveImage(directory, '{}', { BASE_DIGEST: 'c'.repeat(64) }).tag).not.toBe(
+    original.tag
+  );
 });

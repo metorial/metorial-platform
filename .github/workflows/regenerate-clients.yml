@@ -162,6 +162,10 @@ jobs:
         working-directory: integrations
         run: bun install
 
+      - name: Build slate dependencies
+        working-directory: integrations
+        run: bunx turbo run build --filter="@slates-integrations/metorial-admin^..."
+
       - name: Regenerate CLI catalog
         working-directory: platform/cli
         run: |

@@ -37,3 +37,16 @@ package = "@metorial/nebula"
 name = "nebula"
 engine = "postgres"
 env = "DATABASE_URL"
+
+[[ci.images]]
+name = "nebula"
+group = "oss"
+dockerfile = "Dockerfile"
+image = "metorial/mte-nebula"
+ecr = "metorial-enterprise-saas/mte-nebula"
+canonical = "ghcr.io/metorial/nebula"
+
+[ci.suite]
+name = "nebula"
+runner = "compose"
+profiles = ["infra", "service"]

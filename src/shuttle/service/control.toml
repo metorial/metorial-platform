@@ -60,3 +60,16 @@ package = "@metorial/shuttle"
 name = "shuttle"
 engine = "postgres"
 env = "DATABASE_URL"
+
+[[ci.images]]
+name = "shuttle"
+group = "oss"
+dockerfile = "Dockerfile"
+image = "metorial/mte-shuttle"
+ecr = "metorial-enterprise-saas/mte-shuttle"
+canonical = "ghcr.io/metorial/shuttle"
+
+[ci.suite]
+name = "shuttle"
+runner = "compose"
+profiles = ["infra", "service"]

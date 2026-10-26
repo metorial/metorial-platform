@@ -24,6 +24,10 @@ use crate::{
 const DEFAULT_HEALTH_TIMEOUT: u64 = 300;
 const DEFAULT_CONCURRENCY: u32 = 4;
 const OBJECT_STORAGE_IMAGE: &str = "ghcr.io/metorial/object-storage:latest";
+const POSTGRES_IMAGE: &str = "postgres:17";
+const MONGO_IMAGE: &str = "mongo:7";
+const REDIS_IMAGE: &str = "redis:7.4-alpine";
+const NATS_IMAGE: &str = "nats:2.11-alpine";
 const INFRASTRUCTURE: [&str; 4] = ["postgres-db2", "mongodb", "redis-db", "nats-1"];
 const FINGERPRINT_TASK: &str = "e2e:fingerprint";
 const HOST_ALIAS: &str = "host.docker.internal";
@@ -117,10 +121,10 @@ pub struct Stack {
 }
 
 #[derive(Debug)]
-struct PackageInfo {
-    name: String,
-    directory: PathBuf,
-    scripts: BTreeSet<String>,
+pub(crate) struct PackageInfo {
+    pub name: String,
+    pub directory: PathBuf,
+    pub scripts: BTreeSet<String>,
 }
 
 #[derive(Deserialize)]
@@ -197,7 +201,17 @@ pub async fn run(project: &ProjectRoot, options: Options) -> Result<()> {
         file: run_dir.join("compose.yml"),
     };
     let project_name = format!("control-e2e-{root_hash}-{}", std::process::id());
-    let rendered = render_compose(&plan, &project_name, &image, &mounts, &run_dir);
+    let mut rendered = render_compose(&plan, &project_name, &image, &mounts, &run_dir);
+    if let Some(runtime) = ci_runtime()? {
+        for service in rendered["services"].as_object_mut().unwrap().values_mut() {
+            if let Some(pinned) = service["image"]
+                .as_str()
+                .and_then(|image| runtime["images"][image].as_str())
+            {
+                service["image"] = Value::String(pinned.into());
+            }
+        }
+    }
     fs::write(
         &compose.file,
         serde_json::to_string_pretty(&rendered).into_diagnostic()?,
@@ -560,6 +574,7 @@ fn attach_cache_keys(plan: &mut Plan, fingerprints: &BTreeMap<String, String>) {
             "mode": mode,
             "env": stack.env,
             "services": services,
+            "ci": ci_runtime().ok().flatten().and_then(|runtime| runtime["keys"][&stack.name].as_str().map(str::to_owned)),
         }));
     }
 }
@@ -873,7 +888,7 @@ fn prepare_steps(
     Ok(steps)
 }
 
-fn discover_packages(root: &Path) -> Result<Vec<PackageInfo>> {
+pub(crate) fn discover_packages(root: &Path) -> Result<Vec<PackageInfo>> {
     let mut output = Vec::new();
     let mut names = BTreeSet::new();
     for entry in walkdir::WalkDir::new(root)
@@ -959,7 +974,7 @@ fn render_compose(
     services.insert(
         "postgres-db2".into(),
         json!({
-            "image": "postgres:17",
+            "image": POSTGRES_IMAGE,
             "command": ["postgres", "-c", "max_connections=1000", "-c", "fsync=off", "-c", "synchronous_commit=off", "-c", "full_page_writes=off"],
             "environment": { "POSTGRES_USER": "postgres", "POSTGRES_PASSWORD": "postgres" },
             "tmpfs": ["/var/lib/postgresql/data"],
@@ -969,7 +984,7 @@ fn render_compose(
     services.insert(
         "mongodb".into(),
         json!({
-            "image": "mongo:7",
+            "image": MONGO_IMAGE,
             "environment": { "MONGO_INITDB_ROOT_USERNAME": "mongo", "MONGO_INITDB_ROOT_PASSWORD": "mongo" },
             "tmpfs": ["/data/db", "/data/configdb"],
             "healthcheck": { "test": ["CMD-SHELL", "mongosh --quiet --username mongo --password mongo --authenticationDatabase admin --eval 'quit(db.runCommand({ ping: 1 }).ok ? 0 : 2)'"], "interval": "1s", "timeout": "5s", "retries": 120 }
@@ -978,7 +993,7 @@ fn render_compose(
     services.insert(
         "redis-db".into(),
         json!({
-            "image": "redis:7.4-alpine",
+            "image": REDIS_IMAGE,
             "command": ["redis-server", "--save", "", "--appendonly", "no"],
             "healthcheck": { "test": ["CMD", "redis-cli", "ping"], "interval": "1s", "timeout": "3s", "retries": 120 }
         }),
@@ -986,7 +1001,7 @@ fn render_compose(
     services.insert(
         "nats-1".into(),
         json!({
-            "image": "nats:2.11-alpine",
+            "image": NATS_IMAGE,
             "command": ["--jetstream", "--store_dir=/tmp/nats", "--http_port=8222"],
             "healthcheck": { "test": ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8222/healthz >/dev/null"], "interval": "1s", "timeout": "3s", "retries": 120 }
         }),
@@ -1286,8 +1301,22 @@ async fn probe(compose: &Compose, check: &HealthUrl) -> bool {
 }
 
 async fn ensure_runner_image(root: &Path, assets: &Path) -> Result<String> {
+    let mut recipe = fs::read_to_string(assets.join("Dockerfile")).into_diagnostic()?;
+    if let Some(runtime) = ci_runtime()? {
+        for (reference, pinned) in runtime["images"].as_object().into_iter().flatten() {
+            recipe = recipe.replace(
+                &format!("FROM {reference}"),
+                &format!("FROM {}", pinned.as_str().unwrap()),
+            );
+        }
+    }
+    let recipe_directory = root.join(".control/e2e/runner");
+    fs::create_dir_all(&recipe_directory).into_diagnostic()?;
+    let recipe_path = recipe_directory.join("Dockerfile");
+    fs::write(&recipe_path, &recipe).into_diagnostic()?;
     let mut hasher = DefaultHasher::new();
-    for file in ["Dockerfile", "entrypoint.sh"] {
+    recipe.hash(&mut hasher);
+    for file in ["entrypoint.sh"] {
         fs::read(assets.join(file))
             .into_diagnostic()
             .wrap_err_with(|| format!("could not read {}", assets.join(file).display()))?
@@ -1315,7 +1344,7 @@ async fn ensure_runner_image(root: &Path, assets: &Path) -> Result<String> {
             "--tag".into(),
             image.clone(),
             "--file".into(),
-            assets.join("Dockerfile").to_string_lossy().into_owned(),
+            recipe_path.to_string_lossy().into_owned(),
             assets.to_string_lossy().into_owned(),
         ],
         root,
@@ -1324,6 +1353,14 @@ async fn ensure_runner_image(root: &Path, assets: &Path) -> Result<String> {
     .await
     .wrap_err("could not build the e2e runner image")?;
     Ok(image)
+}
+
+fn ci_runtime() -> Result<Option<Value>> {
+    let Ok(path) = std::env::var("CONTROL_CI_RUNTIME") else {
+        return Ok(None);
+    };
+    let text = fs::read_to_string(path).into_diagnostic()?;
+    Ok(Some(serde_json::from_str(&text).into_diagnostic()?))
 }
 
 fn package_name(loaded: &LoadedManifest) -> String {
@@ -1345,7 +1382,7 @@ fn relative(root: &Path, path: &Path) -> String {
     }
 }
 
-fn normalize_path(path: &Path) -> PathBuf {
+pub(crate) fn normalize_path(path: &Path) -> PathBuf {
     let mut output = PathBuf::new();
     for component in path.components() {
         match component {
@@ -1359,7 +1396,7 @@ fn normalize_path(path: &Path) -> PathBuf {
     output
 }
 
-fn glob_match(pattern: &Path, path: &Path) -> bool {
+pub(crate) fn glob_match(pattern: &Path, path: &Path) -> bool {
     let segments = |path: &Path| {
         path.components()
             .map(|component| component.as_os_str().to_string_lossy().into_owned())
@@ -1845,4 +1882,14 @@ mod tests {
         drop(held);
         assert!(contender.try_lock_exclusive().is_ok());
     }
+}
+
+pub(crate) fn infrastructure_images() -> Vec<&'static str> {
+    vec![
+        POSTGRES_IMAGE,
+        MONGO_IMAGE,
+        REDIS_IMAGE,
+        NATS_IMAGE,
+        OBJECT_STORAGE_IMAGE,
+    ]
 }

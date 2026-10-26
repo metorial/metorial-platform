@@ -1,3 +1,4 @@
+mod ci;
 mod cleanup;
 mod dev;
 mod docker;
@@ -40,6 +41,11 @@ struct Cli {
 
 #[derive(Debug, Subcommand)]
 enum Commands {
+    /// Describe CI images and test dependencies without resolving environment values.
+    Ci {
+        #[command(subcommand)]
+        command: CiCommand,
+    },
     /// Start selected development services.
     #[command(visible_alias = "start")]
     Dev {
@@ -141,6 +147,14 @@ enum DockerCommand {
 }
 
 #[derive(Debug, Subcommand)]
+enum CiCommand {
+    Describe {
+        #[arg(long)]
+        json: bool,
+    },
+}
+
+#[derive(Debug, Subcommand)]
 enum DbCommand {
     /// Run control:db:generate for selected database-owner packages.
     Generate {
@@ -218,6 +232,9 @@ async fn main() -> Result<()> {
     }
 
     match cli.command {
+        Commands::Ci {
+            command: CiCommand::Describe { json: _ },
+        } => ci::describe(&project),
         Commands::Dev {
             selectors,
             no_docker,

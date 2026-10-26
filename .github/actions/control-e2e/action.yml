@@ -1,6 +1,12 @@
 name: Run control e2e stacks against built images
 description: Build the control CLI and run `control test:e2e --images` with the tested image artifacts
 inputs:
+  image-artifact:
+    description: Optional complete prepared image inventory
+    default: ''
+  binary:
+    description: Optional control binary produced by the CI planner
+    default: ''
   test-workspace:
     description: Prepared test workspace mounted into the e2e runner
     required: true
@@ -21,10 +27,12 @@ runs:
   steps:
     - uses: actions/download-artifact@v4
       with:
-        pattern: test-image-*
+        name: ${{ inputs.image-artifact }}
+        pattern: ${{ !inputs.image-artifact && 'test-image-*' || '' }}
         path: ${{ runner.temp }}/test-images
         merge-multiple: true
     - uses: actions/cache@v4
+      if: inputs.binary == ''
       with:
         path: |
           ~/.cargo/registry/index
@@ -34,6 +42,7 @@ runs:
         key: control-cargo-${{ runner.os }}-${{ hashFiles(format('{0}/Cargo.lock', inputs.control-directory), format('{0}/rust-toolchain.toml', inputs.control-directory)) }}
         restore-keys: control-cargo-${{ runner.os }}-
     - name: Build control
+      if: inputs.binary == ''
       shell: bash
       env:
         CONTROL_DIRECTORY: ${{ inputs.control-directory }}
@@ -42,6 +51,7 @@ runs:
       shell: bash
       env:
         CONTROL_DIRECTORY: ${{ inputs.control-directory }}
+        CONTROL_BINARY: ${{ inputs.binary }}
         TEST_WORKSPACE: ${{ inputs.test-workspace }}
         ARGS: ${{ inputs.args }}
         TEST_ARGS: ${{ inputs.test-args }}
@@ -49,7 +59,8 @@ runs:
         set -euo pipefail
         read -r -a args <<< "$ARGS"
         read -r -a test_args <<< "$TEST_ARGS"
-        "$CONTROL_DIRECTORY/target/release/control" "${args[@]}" test:e2e \
+        binary="${CONTROL_BINARY:-$CONTROL_DIRECTORY/target/release/control}"
+        "$binary" "${args[@]}" test:e2e \
           --images "$RUNNER_TEMP/test-images" \
           --workspace "$(cd "$TEST_WORKSPACE" && pwd)" \
           "${test_args[@]}"
