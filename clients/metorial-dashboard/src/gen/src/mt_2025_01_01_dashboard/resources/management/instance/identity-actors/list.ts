@@ -103,6 +103,7 @@ export type ManagementInstanceIdentityActorsListQuery = {
     | undefined;
   id?: string | string[] | undefined;
   agentId?: string | string[] | undefined;
+  consumerProfileId?: string | string[] | undefined;
   consumerId?: string | string[] | undefined;
   createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
   updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
@@ -118,6 +119,7 @@ export let mapManagementInstanceIdentityActorsListQuery =
           1,
           [
             'agent_id',
+            'consumer_profile_id',
             'consumer_id',
             ['created_at', 1, 5],
             ['updated_at', 1, 5]

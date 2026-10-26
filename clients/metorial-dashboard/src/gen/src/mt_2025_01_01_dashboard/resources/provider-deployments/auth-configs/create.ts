@@ -81,6 +81,14 @@ export type ProviderDeploymentsAuthConfigsCreateOutput = {
     updatedAt: Date;
   };
   access: {
+    source:
+      | 'explorer'
+      | 'manual'
+      | 'setup_session'
+      | 'system'
+      | 'public_mcp'
+      | 'consumer_provider_template'
+      | null;
     type: 'public' | 'owner_locked';
     visibility: 'anyone' | 'owner';
     owner: {

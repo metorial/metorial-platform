@@ -139,6 +139,14 @@ export type DashboardInstanceMagicMcpSessionsListOutput = {
       description: string | null;
       metadata: Record<string, any>;
       access: {
+        source:
+          | 'explorer'
+          | 'manual'
+          | 'setup_session'
+          | 'system'
+          | 'public_mcp'
+          | 'consumer_provider_template'
+          | null;
         type: 'public' | 'owner_locked';
         visibility: 'anyone' | 'owner';
         owner: {
@@ -194,6 +202,14 @@ export type DashboardInstanceMagicMcpSessionsListOutput = {
       metadata: Record<string, any>;
       enableSkillEditing: boolean;
       access: {
+        source:
+          | 'explorer'
+          | 'manual'
+          | 'setup_session'
+          | 'system'
+          | 'public_mcp'
+          | 'consumer_provider_template'
+          | null;
         type: 'public' | 'owner_locked';
         visibility: 'anyone' | 'owner';
         owner: {
