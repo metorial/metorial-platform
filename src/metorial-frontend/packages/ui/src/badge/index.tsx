@@ -34,9 +34,7 @@ type IconVariantBadgeProps = {
 } & BadgeStyleProps;
 
 export type BadgeProps =
-  | DefaultBadgeProps
-  | ConnectionVariantBadgeProps
-  | IconVariantBadgeProps;
+  DefaultBadgeProps | ConnectionVariantBadgeProps | IconVariantBadgeProps;
 
 export let Badge = (props: BadgeProps) => {
   if (props.variant == 'connection') {
@@ -73,7 +71,7 @@ export let Badge = (props: BadgeProps) => {
           {React.cloneElement(props.icon, { size: styles.iconSize })}
         </i>
 
-        <span style={{ fontWeight: 600 }}>{props.children}</span>
+        <span style={{ fontWeight: 600, color: theme.colors.gray900 }}>{props.children}</span>
       </span>
     );
   }
@@ -105,7 +103,8 @@ export let Badge = (props: BadgeProps) => {
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          fontWeight: 600
+          fontWeight: 600,
+          color: theme.colors.gray900
         }}
       >
         {children}
