@@ -227,6 +227,12 @@
       "bin": {
         "control": "./bin-files/control.mjs",
       },
+      "devDependencies": {
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@types/bun": "latest",
+        "prettier": "^3.9.10",
+        "typescript": "^5.9.3",
+      },
     },
     "src/forge/clients/forge": {
       "name": "@metorial-platform-systems/forge-client",

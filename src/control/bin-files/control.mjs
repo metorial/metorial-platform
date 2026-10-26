@@ -42,19 +42,16 @@ let enterpriseControlManifestAt = path => {
     return undefined;
   }
 
-  let manifest = join(path, 'oss/src/control/Cargo.toml');
+  let manifest = join(path, 'oss/src/control/src/main.ts');
   return existsSync(manifest) ? manifest : undefined;
 };
 
 let standaloneControlManifestAt = path => {
-  if (
-    !isGitCheckout(path) ||
-    packageName(join(path, 'package.json')) !== '@metorial/oss'
-  ) {
+  if (!isGitCheckout(path) || packageName(join(path, 'package.json')) !== '@metorial/oss') {
     return undefined;
   }
 
-  let manifest = join(path, 'src/control/Cargo.toml');
+  let manifest = join(path, 'src/control/src/main.ts');
   return existsSync(manifest) ? manifest : undefined;
 };
 
@@ -70,11 +67,10 @@ export let run = async ({ cwd = process.cwd(), args = process.argv.slice(2) } = 
     );
   }
 
-  let child = spawn(
-    process.platform === 'win32' ? 'cargo.exe' : 'cargo',
-    ['run', '--quiet', '--manifest-path', manifest, '--', ...args],
-    { cwd, stdio: 'inherit' }
-  );
+  let child = spawn(process.platform === 'win32' ? 'bun.exe' : 'bun', [manifest, ...args], {
+    cwd,
+    stdio: 'inherit'
+  });
 
   return await new Promise((resolveRun, rejectRun) => {
     child.once('error', rejectRun);
