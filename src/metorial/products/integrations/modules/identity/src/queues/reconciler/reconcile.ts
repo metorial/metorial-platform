@@ -17,13 +17,7 @@ import {
 export let reconcileQueue = createQueue<{ identityId: string }>({
   name: 'sub/idn/reconcile',
   redisUrl: env.service.REDIS_URL,
-  workerOpts: {
-    concurrency: 3,
-    limiter: {
-      max: 1,
-      duration: 1000
-    }
-  }
+  workerOpts: { concurrency: 5, limiter: { max: 10, duration: 1000 } }
 });
 
 let lock = createLock({

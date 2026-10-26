@@ -299,6 +299,18 @@ class SkillMergeRequestServiceImpl {
       authorization: d.authorization
     });
 
+    let unresolvedCount = await db.skillMergeRequestItem.count({
+      where: {
+        skillMergeRequestOid: d.mergeRequest.oid,
+        status: 'unresolved'
+      }
+    });
+    if (unresolvedCount > 0) {
+      throw new ServiceError(
+        badRequestError({ message: 'Resolve all merge request conflicts before merging' })
+      );
+    }
+
     let updated = await skillMergeTargetLock.usingLock(
       d.mergeRequest.targetSkill.store!.id,
       async () =>

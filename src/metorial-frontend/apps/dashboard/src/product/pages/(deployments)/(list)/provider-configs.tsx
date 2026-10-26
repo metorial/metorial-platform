@@ -1,7 +1,4 @@
-import {
-  DashboardInstanceProviderDeploymentsConfigsListOutput,
-  DashboardInstanceProviderDeploymentsConfigsListQuery
-} from '@metorial/dashboard-sdk';
+import { DashboardInstanceProviderDeploymentsConfigsListOutput } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
 import { EmptyState } from '@metorial/empty-state';
 import { Paths } from '@metorial/frontend-config';
@@ -17,15 +14,17 @@ import {
   Table as DashboardTable,
   FilterPayload,
   TableStateProvider,
-  TableStateProviderResult,
-  getDateRangeFilterValue,
-  getEnumListFilterValue,
-  getStringFilterValue
+  TableStateProviderResult
 } from '@metorial/table';
 import { Badge, RenderDate, Text, confirm } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { RiDeleteBinLine } from '@remixicon/react';
 import { useState } from 'react';
+import {
+  type ProviderConfigFilters,
+  getProviderConfigFilterQuery,
+  useProviderConfigFilters
+} from '../../../scenes/providerConfigs/overviewTable';
 import { showCreateProviderConfigFlow } from '../../../scenes/providerCreationFlows';
 
 type ProviderConfig = DashboardInstanceProviderDeploymentsConfigsListOutput['items'][number];
@@ -41,16 +40,6 @@ let getProviderConfigStatusColor = (status: ProviderConfig['status']) => {
   if (status === 'archived') return 'orange';
   return 'gray';
 };
-
-type ProviderConfigFilters = Omit<
-  DashboardInstanceProviderDeploymentsConfigsListQuery,
-  'limit' | 'after' | 'before' | 'cursor'
->;
-
-let getStatusFilterValue = (
-  value: FilterPayload | undefined
-): DashboardInstanceProviderDeploymentsConfigsListQuery['status'] =>
-  getEnumListFilterValue(value, ['active', 'archived']);
 
 type ProviderConfigsOverviewTableProps = {
   instanceId: string;
@@ -75,21 +64,8 @@ let providerConfigsOverviewTableState: TableStateProvider<
     ownership: 'all',
     order: 'desc',
     ...props.filters,
-    status: getStatusFilterValue(opts.filter.status) ?? props.filters?.status,
-    id: getStringFilterValue(opts.filter.id) ?? props.filters?.id,
-    providerId: getStringFilterValue(opts.filter.providerId) ?? props.filters?.providerId,
-    providerSpecificationId:
-      getStringFilterValue(opts.filter.providerSpecificationId) ??
-      props.filters?.providerSpecificationId,
-    providerDeploymentId:
-      getStringFilterValue(opts.filter.providerDeploymentId) ??
-      props.filters?.providerDeploymentId,
-    providerConfigVaultId:
-      getStringFilterValue(opts.filter.providerConfigVaultId) ??
-      props.filters?.providerConfigVaultId,
-    search: opts.search ?? props.filters?.search,
-    createdAt: getDateRangeFilterValue(opts.filter.createdAt) ?? props.filters?.createdAt,
-    updatedAt: getDateRangeFilterValue(opts.filter.updatedAt) ?? props.filters?.updatedAt
+    ...getProviderConfigFilterQuery(opts.filter, props.filters),
+    search: opts.search ?? props.filters?.search
   });
 
   let providerIds = [
@@ -262,68 +238,6 @@ export let providerConfigsOverviewTable = new DashboardTable<
       render: row => <RenderDate date={row.updatedAt} />
     }
   ])
-  .filters([
-    {
-      id: 'status',
-      fields: ['status'],
-      label: 'Status',
-      description: 'Filter by status',
-      type: 'select',
-      options: [
-        { id: 'active', label: 'Active' },
-        { id: 'archived', label: 'Archived' }
-      ]
-    },
-    {
-      id: 'id',
-      fields: ['id'],
-      label: 'Config ID',
-      description: 'Filter by config ID',
-      type: 'string'
-    },
-    {
-      id: 'providerId',
-      fields: ['providerId'],
-      label: 'Provider ID',
-      description: 'Filter by provider ID',
-      type: 'string'
-    },
-    {
-      id: 'providerSpecificationId',
-      fields: ['providerSpecificationId'],
-      label: 'Specification ID',
-      description: 'Filter by specification ID',
-      type: 'string'
-    },
-    {
-      id: 'providerDeploymentId',
-      fields: ['providerDeploymentId'],
-      label: 'Deployment ID',
-      description: 'Filter by deployment ID',
-      type: 'string'
-    },
-    {
-      id: 'providerConfigVaultId',
-      fields: ['providerConfigVaultId'],
-      label: 'Vault ID',
-      description: 'Filter by vault ID',
-      type: 'string'
-    },
-    {
-      id: 'createdAt',
-      fields: ['createdAt'],
-      label: 'Created',
-      description: 'Filter by created date',
-      type: 'date'
-    },
-    {
-      id: 'updatedAt',
-      fields: ['updatedAt'],
-      label: 'Updated',
-      description: 'Filter by updated date',
-      type: 'date'
-    }
-  ])
   .search('Search configs...')
   .link((row, props) =>
     Paths.instance.providerConfig(
@@ -382,6 +296,7 @@ export let ProviderConfigsOverviewPage = () => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let tableFilters = useProviderConfigFilters(instance.data?.id);
 
   return renderWithLoader({ organization, project, instance })(() =>
     providerConfigsOverviewTable({
@@ -389,6 +304,7 @@ export let ProviderConfigsOverviewPage = () => {
       organization,
       project,
       instance,
+      tableFilters,
       emptyState: () => (
         <EmptyState
           title="Create your first config"

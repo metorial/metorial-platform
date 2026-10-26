@@ -46,10 +46,10 @@ let BuildStepView = ({ step }: { step: BuildStep }) => {
         <Text size="2" weight="medium">
           {step.name}
         </Text>
-        <Badge color="gray" size="1">
+        <Badge color="gray" size="2">
           {step.type}
         </Badge>
-        <Badge color={step.status === 'failed' ? 'red' : 'green'} size="1">
+        <Badge color={step.status === 'failed' ? 'red' : 'green'} size="2">
           {step.status}
         </Badge>
       </Flex>
@@ -142,7 +142,7 @@ export let DeploymentDetail = () => {
                         <Badge color="blue">v{deploymentData.version?.version ?? '-'}</Badge>
                       )}
                       {deploymentData.version?.isCurrent && (
-                        <Badge color="green" size="1">
+                        <Badge color="green" size="2">
                           Current
                         </Badge>
                       )}

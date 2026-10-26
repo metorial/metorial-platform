@@ -1,11 +1,6 @@
 import { EmptyState } from '@metorial/empty-state';
 import { ContentLayout, PageHeader } from '@metorial/layout';
-import {
-  useCurrentInstance,
-  useSandboxDisks,
-  useSandboxMachines,
-  useSandboxRegions
-} from '@metorial/state';
+import { useCurrentInstance, useSandboxDisks, useSandboxRegions } from '@metorial/state';
 import {
   Table as DashboardTable,
   FilterPayload,
@@ -15,7 +10,9 @@ import {
 } from '@metorial/table';
 import { Button, RenderDate, Text } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
+import { useMemo } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { entityFilters } from '../../../scenes/entityFilters';
 import {
   SandboxDiskMenu,
   showSandboxCreateDiskDialog
@@ -167,75 +164,59 @@ let SandboxDisksContent = () => {
       },
       { replace: true }
     );
-  let filters: TableFilter<SandboxDisk>[] = [
-    {
-      id: 'type',
-      fields: ['type'],
-      label: 'Type',
-      description: 'Filter by type',
-      pinned: true,
-      type: 'select',
-      options: [
-        { id: 'standard', label: 'Standard (Default)' },
-        { id: 'root_fs', label: 'Root Filesystems' },
-        { id: 'all', label: 'All' }
-      ]
-    },
-    {
-      id: 'machineId',
-      fields: ['machine'],
-      label: 'Machine',
-      description: 'Filter by machine',
-      type: 'entity',
-      remoteSearch: true,
-      useOptions: ({ search }) => {
-        let machines = useSandboxMachines(instance.data?.id, {
-          search: search || undefined,
-          limit: 25
-        });
-        return {
-          items: (machines.data?.items ?? []).map(machine => ({
-            id: machine.id,
-            label: machine.name || machine.slug || machine.id
-          })),
-          isLoading: machines.isLoading
-        };
+  let instanceId = instance.data?.id;
+  let filters = useMemo<TableFilter<SandboxDisk>[]>(
+    () => [
+      {
+        id: 'type',
+        fields: ['type'],
+        label: 'Type',
+        description: 'Filter by type',
+        pinned: true,
+        type: 'select',
+        options: [
+          { id: 'standard', label: 'Standard (Default)' },
+          { id: 'root_fs', label: 'Root Filesystems' },
+          { id: 'all', label: 'All' }
+        ]
+      },
+      entityFilters.sandboxMachine(instanceId),
+      {
+        id: 'region',
+        fields: ['region'],
+        label: 'Region',
+        description: 'Filter by region',
+        type: 'entity',
+        useOptions: () => {
+          let regions = useSandboxRegions(instanceId);
+          return {
+            items: (regions.data?.items ?? []).map(region => ({
+              id: region.id,
+              label: region.name || region.id
+            })),
+            isLoading: regions.isLoading
+          };
+        }
+      },
+      {
+        id: 'attached',
+        fields: ['machine'],
+        label: 'Attached',
+        description: 'Filter by attachment',
+        type: 'select',
+        options: [
+          { id: 'yes', label: 'Attached' },
+          { id: 'no', label: 'Not Attached' }
+        ]
       }
-    },
-    {
-      id: 'region',
-      fields: ['region'],
-      label: 'Region',
-      description: 'Filter by region',
-      type: 'entity',
-      useOptions: () => {
-        let regions = useSandboxRegions(instance.data?.id);
-        return {
-          items: (regions.data?.items ?? []).map(region => ({
-            id: region.id,
-            label: region.name || region.id
-          })),
-          isLoading: regions.isLoading
-        };
-      }
-    },
-    {
-      id: 'attached',
-      fields: ['machine'],
-      label: 'Attached',
-      description: 'Filter by attachment',
-      type: 'select',
-      options: [
-        { id: 'yes', label: 'Attached' },
-        { id: 'no', label: 'Not Attached' }
-      ]
-    }
-  ];
+    ],
+    [instanceId]
+  );
 
   return (
     <>
       {table({
-        instanceId: instance.data?.id,
+        instanceId,
         diskPath: paths.disk,
         machinePath: paths.machine,
         openDisk: id => navigate(paths.disk(id)),

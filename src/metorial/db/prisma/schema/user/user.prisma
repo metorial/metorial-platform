@@ -73,5 +73,6 @@ model UserSession {
   userOid BigInt
   user    User   @relation(fields: [userOid], references: [oid])
 
-  createdAt DateTime @default(now())
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
 }

@@ -183,13 +183,15 @@ clients, build packages, start Docker, or prepare databases.
 control test:e2e                                   # every stack and test package
 control test:e2e @metorial/module-user '@metorial/api-*'
 control test:e2e @metorial/app-api --keep          # one stack, leave containers up
+control test:e2e @metorial/api-core -- e2e/management -t creates   # Vitest args per suite
 control test:e2e --plan                            # print the resolved plan as JSON
 control test:e2e --images DIR --workspace PATH     # CI: run tested images
 ```
 
 A package that declares `[e2e] tests` is a **stack** (system under test, SUT).
 Its test packages are the workspace packages matched by `tests` (relative to
-the manifest); each must declare a `test:e2e` script. Filters match stack or
+the manifest) that declare a `test:e2e` script. Packages without that script
+are skipped. Filters match stack or
 test package names (`*` wildcards); selecting a stack selects all its tests.
 
 ```toml
@@ -225,6 +227,12 @@ on the mode, `e2e.start` or `e2e.image`; the plan fails otherwise. All services
 share one network namespace with a gateway that forwards the standard
 `localhost` infrastructure ports, so `control.toml` URLs work unchanged and
 endpoint ports must be unique across a run.
+
+Arguments after `--` reach every selected suite's Vitest run (file filters,
+`-t <name>`), so they're mostly useful together with a single test package.
+Only one e2e run executes per machine at a time: runs take an exclusive lock
+(`metorial-control-e2e.lock` in the temp directory) and wait for the holder to
+finish.
 
 A run creates a Compose project under `.control/e2e/<run>/` with tmpfs
 Postgres, MongoDB, Redis, NATS (and object storage when requested), then:

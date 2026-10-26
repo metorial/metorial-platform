@@ -231,13 +231,34 @@ let throwIdentityCredentialLinkError = (d: {
   );
 };
 
+// The credential mirroring the owning integration instance provider is archived
+// asynchronously by the identity credential sync, so it must not block cleanup.
+let excludeOwningIntegrationInstanceProviderCredential = (
+  owningIntegrationInstanceProviderOid: bigint | null | undefined
+) =>
+  owningIntegrationInstanceProviderOid
+    ? {
+        OR: [
+          { integrationInstanceProviderOid: null },
+          { integrationInstanceProviderOid: { not: owningIntegrationInstanceProviderOid } }
+        ]
+      }
+    : {};
+
 export let assertNoActiveIdentityCredentialConfigLink = async (
-  d: TenantScope & { configOid: bigint; resourceId: string }
+  d: TenantScope & {
+    configOid: bigint;
+    resourceId: string;
+    owningIntegrationInstanceProviderOid?: bigint | null;
+  }
 ) => {
   let identityCredential = await db.identityCredential.findFirst({
     where: {
       status: 'active',
       configOid: d.configOid,
+      ...excludeOwningIntegrationInstanceProviderCredential(
+        d.owningIntegrationInstanceProviderOid
+      ),
       identity: {
         tenantOid: d.tenant.oid,
         solutionOid: d.solution.oid,
@@ -267,12 +288,19 @@ export let assertNoActiveIdentityCredentialConfigLink = async (
 };
 
 export let assertNoActiveIdentityCredentialAuthConfigLink = async (
-  d: TenantScope & { authConfigOid: bigint; resourceId: string }
+  d: TenantScope & {
+    authConfigOid: bigint;
+    resourceId: string;
+    owningIntegrationInstanceProviderOid?: bigint | null;
+  }
 ) => {
   let identityCredential = await db.identityCredential.findFirst({
     where: {
       status: 'active',
       authConfigOid: d.authConfigOid,
+      ...excludeOwningIntegrationInstanceProviderCredential(
+        d.owningIntegrationInstanceProviderOid
+      ),
       identity: {
         tenantOid: d.tenant.oid,
         solutionOid: d.solution.oid,

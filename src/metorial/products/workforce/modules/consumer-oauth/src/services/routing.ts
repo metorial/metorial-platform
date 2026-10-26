@@ -190,6 +190,7 @@ class ConsumerOAuthRoutingService {
         OR: [{ id: d.skillPluginId }, { slug: d.skillPluginId }],
         status: 'active'
       },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
       include: {
         organization: true,
         instance: {

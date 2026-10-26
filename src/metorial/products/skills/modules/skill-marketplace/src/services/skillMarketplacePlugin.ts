@@ -167,6 +167,9 @@ class SkillMarketplacePluginServiceImpl {
       skillMarketplace: d.skillMarketplace,
       accessTags: d.accessTags
     });
+    if (d.skillMarketplace.status !== 'active') {
+      throw new ServiceError(notFoundError('skill.marketplace', d.skillMarketplace.id));
+    }
 
     let skillPlugin = await skillPluginService.getSkillPluginById({
       project: d.project,
@@ -174,6 +177,9 @@ class SkillMarketplacePluginServiceImpl {
       skillPluginId: d.input.skillPluginId
     });
     assertPluginIsNotManaged(skillPlugin);
+    if (skillPlugin.status !== 'active') {
+      throw new ServiceError(notFoundError('skill.plugin', skillPlugin.id));
+    }
 
     let existingSkillMarketplacePlugin = await db.skillMarketplacePlugin.findFirst({
       where: {

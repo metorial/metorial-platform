@@ -1,5 +1,5 @@
 import { createLocallyCachedFunction } from '@lowerdeck/cache';
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import type { EmailIdentity } from '../../prisma/generated/browser';
 import type { Sender } from '../../prisma/generated/client';
@@ -7,6 +7,44 @@ import { db } from '../db';
 import { get4ByteIntId, ID, snowflake } from '../id';
 import { filterIgnoredEmailRecipients } from '../lib/ignoredRecipients';
 import { sendEmailQueue } from '../queue/sendEmail';
+
+let MAX_ATTACHMENTS = 5;
+let MAX_ATTACHMENTS_TOTAL_BYTES = 7 * 1024 * 1024;
+
+export interface EmailAttachmentInput {
+  filename: string;
+  contentType: string;
+  content: string;
+}
+
+let decodeAttachments = (attachments: EmailAttachmentInput[] | undefined) => {
+  if (!attachments?.length) return [];
+
+  if (attachments.length > MAX_ATTACHMENTS) {
+    throw new ServiceError(
+      badRequestError({ message: `Emails can have at most ${MAX_ATTACHMENTS} attachments` })
+    );
+  }
+
+  let decoded = attachments.map(attachment => {
+    let content = Buffer.from(attachment.content, 'base64');
+    return {
+      filename: attachment.filename,
+      contentType: attachment.contentType,
+      size: content.byteLength,
+      content
+    };
+  });
+
+  let totalBytes = decoded.reduce((sum, attachment) => sum + attachment.size, 0);
+  if (totalBytes > MAX_ATTACHMENTS_TOTAL_BYTES) {
+    throw new ServiceError(
+      badRequestError({ message: 'Email attachments exceed the maximum total size of 7 MB' })
+    );
+  }
+
+  return decoded;
+};
 
 let normalizeTemplate = (template: any): any => {
   if (
@@ -90,9 +128,11 @@ class EmailService {
       html: string;
       text: string;
     };
+    attachments?: EmailAttachmentInput[];
     identity: EmailIdentity;
   }) {
     let recipients = filterIgnoredEmailRecipients(d.to);
+    let attachments = decodeAttachments(d.attachments);
 
     let email;
     try {
@@ -114,6 +154,15 @@ class EmailService {
               id: snowflake.nextId(),
               status: 'pending',
               destination
+            }))
+          },
+          attachments: {
+            create: attachments.map(attachment => ({
+              id: snowflake.nextId(),
+              filename: attachment.filename,
+              contentType: attachment.contentType,
+              size: attachment.size,
+              content: attachment.content
             }))
           }
         }

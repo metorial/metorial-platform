@@ -31,6 +31,7 @@ import {
   resolveProviderConfigs,
   resolveProviderDeployments,
   resolveProviders,
+  resolveSessionProviders,
   resolveSessions
 } from '@metorial-subspace/list-utils';
 import { providerToolService } from '@metorial-subspace/module-catalog';
@@ -256,7 +257,7 @@ class sessionTemplateServiceImpl {
     let ts = { tenant: d.tenant, environment: d.environment, solution };
 
     let sessions = await resolveSessions(ts, d.sessionIds);
-    let sessionProviders = await resolveProviders(ts, d.sessionProviderIds);
+    let sessionProviders = await resolveSessionProviders(ts, d.sessionProviderIds);
     let providers = await resolveProviders(ts, d.providerIds);
     let deployments = await resolveProviderDeployments(ts, d.providerDeploymentIds);
     let configs = await resolveProviderConfigs(ts, d.providerConfigIds);
@@ -300,7 +301,7 @@ class sessionTemplateServiceImpl {
                   ? { sessionProviders: { some: { sessionOid: sessions.in } } }
                   : undefined!,
                 sessionProviders
-                  ? { sessionProviders: { some: { providerOid: sessionProviders.in } } }
+                  ? { sessionProviders: { some: { oid: sessionProviders.in } } }
                   : undefined!,
 
                 providers

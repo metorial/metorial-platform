@@ -25,8 +25,7 @@ export let authIntentPresenter = (
   let sortedSteps = authIntent.steps.sort(
     (a: AuthIntentStep, b: AuthIntentStep) => a.index - b.index
   );
-  let lastVerifiedStep = [...sortedSteps].reverse().findIndex(step => step.verifiedAt);
-  let nextStepIndex = lastVerifiedStep + 1;
+  let nextStepIndex = sortedSteps.findIndex(step => !step.verifiedAt);
 
   return {
     object: 'ares#auth_intent',
@@ -44,7 +43,7 @@ export let authIntentPresenter = (
       value: authIntent.identifier
     },
 
-    steps: authIntent.steps.map(
+    steps: sortedSteps.map(
       (step: AuthIntentStep & { codes: AuthIntentCode[] }, i: number) => ({
         object: 'ares#auth_intent.step',
 

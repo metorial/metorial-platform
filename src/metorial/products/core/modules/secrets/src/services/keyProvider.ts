@@ -68,7 +68,8 @@ export type NebulaKeyProviderValidation = Awaited<
   ReturnType<typeof secretsKeyProvider.validate>
 >;
 
-let isManagedKeyProvider = (keyProvider: NebulaKeyProvider) => keyProvider.isMetorialManaged;
+let isTenantManagedKeyProvider = (keyProvider: NebulaKeyProvider) =>
+  keyProvider.isMetorialManaged && !keyProvider.isGlobal;
 
 let listAllKeyProviders = async (d: { organization: Organization; project: Project }) => {
   let items: NebulaKeyProvider[] = [];
@@ -98,7 +99,7 @@ let countImportedKeyProviders = (keyProviders: NebulaKeyProvider[]) =>
   keyProviders.filter(keyProvider => keyProvider.owner === 'tenant').length;
 
 let countManagedKeyProviders = (keyProviders: NebulaKeyProvider[]) =>
-  keyProviders.filter(isManagedKeyProvider).length;
+  keyProviders.filter(isTenantManagedKeyProvider).length;
 
 class KeyProviderServiceImpl {
   async listKeyProviders(d: { organization: Organization; project: Project }) {

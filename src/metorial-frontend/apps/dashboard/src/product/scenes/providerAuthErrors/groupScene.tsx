@@ -317,7 +317,7 @@ let OccurrencesPane = ({
           <PaneHeaderTitle>Occurrences</PaneHeaderTitle>
 
           {occurrenceCount > 0 && (
-            <Badge size="1" color="gray">
+            <Badge size="2" color="gray">
               {occurrenceCount}
             </Badge>
           )}
@@ -343,10 +343,10 @@ let OccurrencesPane = ({
               </OccurrenceRow>
 
               <OccurrenceMeta>
-                <Badge size="1" color={error.status === 'processed' ? 'red' : 'orange'}>
+                <Badge size="2" color={error.status === 'processed' ? 'red' : 'orange'}>
                   {error.status}
                 </Badge>
-                <Text size="1" color="gray600">
+                <Text size="2" color="gray600">
                   <RenderDate date={error.createdAt} format="time" />
                 </Text>
               </OccurrenceMeta>
@@ -391,7 +391,7 @@ let ErrorDetails = ({ error }: { error: AuthError }) => {
     {
       label: 'Status',
       value: (
-        <Badge size="1" color={error.status === 'processed' ? 'red' : 'orange'}>
+        <Badge size="2" color={error.status === 'processed' ? 'red' : 'orange'}>
           {error.status}
         </Badge>
       )
@@ -463,7 +463,7 @@ let ErrorDetails = ({ error }: { error: AuthError }) => {
         title="Details"
         description={`${getErrorLabel(error.code)} occurrence metadata.`}
         rightActions={
-          <Badge size="1" color={error.status === 'processed' ? 'red' : 'orange'}>
+          <Badge size="2" color={error.status === 'processed' ? 'red' : 'orange'}>
             {error.status}
           </Badge>
         }

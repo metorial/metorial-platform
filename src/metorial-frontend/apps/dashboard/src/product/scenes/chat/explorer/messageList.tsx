@@ -415,12 +415,12 @@ let MessageRow = (p: {
             </Text>
 
             {author?.type && author.type != 'user' && (
-              <Badge size="1" color="gray">
+              <Badge size="2" color="gray">
                 {authorTypeLabels[author.type] ?? author.type}
               </Badge>
             )}
             {author?.isSelf && (
-              <Badge size="1" color="blue">
+              <Badge size="2" color="blue">
                 You
               </Badge>
             )}
@@ -571,7 +571,7 @@ export let ChatMessageList = (p: {
             )}
 
             {p.channel && (
-              <Badge size="1" color="gray">
+              <Badge size="2" color="gray">
                 {channelTypeLabels[p.channel.type] ?? p.channel.type}
               </Badge>
             )}
@@ -616,7 +616,7 @@ export let ChatMessageList = (p: {
           </Text>
 
           {p.thread.replyCount != null && (
-            <Text size="1" color="gray600">
+            <Text size="2" color="gray600">
               {p.thread.replyCount} {p.thread.replyCount == 1 ? 'reply' : 'replies'}
             </Text>
           )}

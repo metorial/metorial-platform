@@ -403,7 +403,7 @@ let ErrorConnectionsPane = ({
           <PaneHeaderTitle>Connections with this error</PaneHeaderTitle>
 
           {connectionCount > 0 && (
-            <Badge size="1" color="gray">
+            <Badge size="2" color="gray">
               {connectionCount}
             </Badge>
           )}
@@ -497,7 +497,7 @@ let ErrorConnectionRow = ({
         </ConnectionMain>
 
         <ConnectionButtonMeta>
-          <Text size="1" color="gray600">
+          <Text size="2" color="gray600">
             <RenderDate date={connection.createdAt} format="time" />
           </Text>
         </ConnectionButtonMeta>

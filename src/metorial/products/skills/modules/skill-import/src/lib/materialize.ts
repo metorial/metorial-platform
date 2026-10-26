@@ -5,9 +5,13 @@ import {
   isSkillDocumentPath,
   skillService
 } from '@metorial/module-skill';
-import { storeItemMutationService } from '@metorial/module-store';
+import {
+  normalizeStorePath,
+  storeItemMutationService,
+  stripDisallowedStorePathCharacters
+} from '@metorial/module-store';
 import type { AuditScope } from '@metorial/audit-scope';
-import type { Instance, Prisma, Project, ResourceActor } from '@metorial/db';
+import type { Instance, Prisma, Project, ResourceActor, StorePathMode } from '@metorial/db';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import { parseSkillDocumentFrontmatter } from '@metorial/module-skill-marketplace';
 import { posix as path } from 'node:path';
@@ -22,6 +26,14 @@ let isRecord = (value: unknown): value is Record<string, unknown> =>
 
 let optionalString = (value: unknown) =>
   typeof value === 'string' && value.trim() ? value.trim() : undefined;
+
+let getImportedStorePath = (relativePath: string, mode: StorePathMode) => {
+  let stripped = stripDisallowedStorePathCharacters(relativePath);
+  let name = stripped.split('/').at(-1)!.trim();
+  if (!name || /^\.+$/.test(name)) return null;
+
+  return normalizeStorePath({ path: stripped, kind: 'file', mode }).path;
+};
 
 export let parseImportedSkillMetadata = (d: {
   content: string;
@@ -119,10 +131,16 @@ export let materializeImportedSkill = async (d: {
   });
   await d.onSkillCreated?.(skill);
   let genericPurpose = await filePurposeService.ensureGenericFilePurpose();
+  let importedPaths = new Set<string>();
 
   for (let file of files) {
     await d.onProgress?.();
-    if (isSkillDocumentPath(file.relativePath)) {
+
+    let storePath = getImportedStorePath(file.relativePath, skill.store!.pathMode);
+    if (!storePath || importedPaths.has(storePath)) continue;
+    importedPaths.add(storePath);
+
+    if (isSkillDocumentPath(storePath)) {
       let content = file.content.toString('utf8');
       await documentService.createDocument({
         project: d.project,
@@ -130,7 +148,7 @@ export let materializeImportedSkill = async (d: {
         auditScope: d.auditScope,
         input: {
           title: getSkillDocumentTitle({
-            path: file.relativePath,
+            path: storePath,
             content,
             skillName: metadata.name
           }),
@@ -138,7 +156,7 @@ export let materializeImportedSkill = async (d: {
           authorization,
           store: {
             id: skill.store!.id,
-            path: file.relativePath
+            path: storePath
           }
         }
       });
@@ -154,8 +172,8 @@ export let materializeImportedSkill = async (d: {
         type: file.contentType || 'application/octet-stream'
       }),
       input: {
-        name: path.basename(file.relativePath),
-        title: path.basename(file.relativePath),
+        name: path.basename(storePath),
+        title: path.basename(storePath),
         mimeType: file.contentType || 'application/octet-stream',
         authorization
       }
@@ -164,7 +182,7 @@ export let materializeImportedSkill = async (d: {
       project: d.project,
       instance: d.instance,
       store: skill.store!,
-      path: file.relativePath,
+      path: storePath,
       target: {
         file: importedFile,
         document: null

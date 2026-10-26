@@ -7,6 +7,7 @@ let mocks = vi.hoisted(() => {
     consumerGroup: { create: vi.fn() },
     consumerOrganizationActor: { upsert: vi.fn() },
     consumerInvite: { findUnique: vi.fn() },
+    consumerSession: { updateMany: vi.fn() },
     consumerProfile: {
       create: vi.fn(),
       findFirst: vi.fn(),
@@ -467,6 +468,10 @@ describe('consumer profile invitation deletion', () => {
         expect(mocks.db.consumerProfile.update).toHaveBeenCalledWith(
           expect.objectContaining({ data: expect.objectContaining({ status: 'deleted' }) })
         );
+        expect(mocks.db.consumerSession.updateMany).toHaveBeenCalledWith({
+          where: { consumerProfileOid: profile.oid, loggedOutAt: null },
+          data: { loggedOutAt: expect.any(Date) }
+        });
       } finally {
         deleteInvite.mockRestore();
         enrich.mockRestore();

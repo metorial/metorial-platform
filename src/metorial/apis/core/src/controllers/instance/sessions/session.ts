@@ -4,7 +4,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v, ValidationTypeValue } from '@lowerdeck/validation';
 import { sessionService } from '@metorial-subspace/module-session';
 import { Controller } from '@metorial/rest';
-import { resolveActorIdsForLogFilters } from './_logFilterActors';
+import { resolveActorIdsForLogFilters, resolveSearchActorIds } from './_logFilterActors';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import {
@@ -201,7 +201,14 @@ export let sessionController = Controller.create(
               description: 'Filter by provider auth config ID(s)'
             }),
             created_at: dateFilterValidator('session creation time'),
-            updated_at: dateFilterValidator('session last update time')
+            updated_at: dateFilterValidator('session last update time'),
+            search: v.optional(
+              v.string({
+                description:
+                  'Search by session ID, or by the name of a related provider, auth method, deployment, config, auth config, agent, actor, identity, or consumer',
+                examples: ['github']
+              })
+            )
           })
         )
       )
@@ -211,6 +218,10 @@ export let sessionController = Controller.create(
           actorIds: normalizeArrayParam(ctx.query.actor_id),
           consumerIds: normalizeArrayParam(ctx.query.consumer_id),
           identityIds: normalizeArrayParam(ctx.query.identity_id)
+        });
+        let searchActorIds = await resolveSearchActorIds({
+          instance: ctx.instance,
+          search: ctx.query.search
         });
 
         let paginator = await sessionService.listSessions({
@@ -229,7 +240,9 @@ export let sessionController = Controller.create(
           providerConfigIds: normalizeArrayParam(ctx.query.provider_config_id),
           providerAuthConfigIds: normalizeArrayParam(ctx.query.provider_auth_config_id),
           createdAt: ctx.query.created_at,
-          updatedAt: ctx.query.updated_at
+          updatedAt: ctx.query.updated_at,
+          search: ctx.query.search,
+          searchActorIds
         });
 
         let list = await paginator.run(ctx.query);

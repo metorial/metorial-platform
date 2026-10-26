@@ -22,7 +22,9 @@ export type NetworkPolicyRuleInput = {
 let normalizePorts = (ports?: NetworkPolicyPortRange[]) => {
   if (!ports) return undefined;
 
-  return [...ports].sort((a, b) => a.from - b.from || a.to - b.to);
+  return ports
+    .map(port => ({ from: port.from, to: port.to }))
+    .sort((a, b) => a.from - b.from || a.to - b.to);
 };
 
 let normalizeRuleContent = (rule: NetworkPolicyRuleInput | NetworkPolicyRule) => ({

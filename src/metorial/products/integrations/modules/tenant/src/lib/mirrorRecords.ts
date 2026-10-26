@@ -28,6 +28,15 @@ export let assertMirrorIdentity = (
 
 let isUniqueConstraintError = (error: any) => error?.code === 'P2002';
 
+export let retryMirrorUpsertOnRace = async <T>(upsert: () => Promise<T>) => {
+  try {
+    return await upsert();
+  } catch (error: any) {
+    if (!isUniqueConstraintError(error)) throw error;
+    return await upsert();
+  }
+};
+
 let getOrganizationMirrorWrite = (organization: MetorialOrganization) => ({
   type: organization.type,
   status: organization.status,
@@ -150,31 +159,33 @@ export let upsertProjectMirror = async (d: {
   });
   assertMirrorIdentity('project', d.project, matches);
 
-  return await subspaceDb.project.upsert({
-    where: { oid: d.project.oid },
-    update: {
-      status: d.project.status,
-      slug: d.project.slug,
-      name: d.project.name,
-      organizationOid: d.project.organizationOid,
-      tenantOid: d.tenantOid,
-      deletedAt: d.project.deletedAt,
-      createdAt: d.project.createdAt,
-      updatedAt: d.project.updatedAt
-    },
-    create: {
-      oid: d.project.oid,
-      id: d.project.id,
-      status: d.project.status,
-      slug: d.project.slug,
-      name: d.project.name,
-      organizationOid: d.project.organizationOid,
-      tenantOid: d.tenantOid,
-      deletedAt: d.project.deletedAt,
-      createdAt: d.project.createdAt,
-      updatedAt: d.project.updatedAt
-    }
-  });
+  return await retryMirrorUpsertOnRace(() =>
+    subspaceDb.project.upsert({
+      where: { oid: d.project.oid },
+      update: {
+        status: d.project.status,
+        slug: d.project.slug,
+        name: d.project.name,
+        organizationOid: d.project.organizationOid,
+        tenantOid: d.tenantOid,
+        deletedAt: d.project.deletedAt,
+        createdAt: d.project.createdAt,
+        updatedAt: d.project.updatedAt
+      },
+      create: {
+        oid: d.project.oid,
+        id: d.project.id,
+        status: d.project.status,
+        slug: d.project.slug,
+        name: d.project.name,
+        organizationOid: d.project.organizationOid,
+        tenantOid: d.tenantOid,
+        deletedAt: d.project.deletedAt,
+        createdAt: d.project.createdAt,
+        updatedAt: d.project.updatedAt
+      }
+    })
+  );
 };
 
 export let upsertInstanceMirror = async (d: {
@@ -189,35 +200,37 @@ export let upsertInstanceMirror = async (d: {
   });
   assertMirrorIdentity('instance', d.instance, matches);
 
-  return await subspaceDb.instance.upsert({
-    where: { oid: d.instance.oid },
-    update: {
-      type: d.instance.type,
-      status: d.instance.status,
-      slug: d.instance.slug,
-      name: d.instance.name,
-      projectOid: d.instance.projectOid,
-      organizationOid: d.instance.organizationOid,
-      environmentOid: d.environmentOid,
-      deletedAt: d.instance.deletedAt,
-      createdAt: d.instance.createdAt,
-      updatedAt: d.instance.updatedAt
-    },
-    create: {
-      oid: d.instance.oid,
-      id: d.instance.id,
-      type: d.instance.type,
-      status: d.instance.status,
-      slug: d.instance.slug,
-      name: d.instance.name,
-      projectOid: d.instance.projectOid,
-      organizationOid: d.instance.organizationOid,
-      environmentOid: d.environmentOid,
-      deletedAt: d.instance.deletedAt,
-      createdAt: d.instance.createdAt,
-      updatedAt: d.instance.updatedAt
-    }
-  });
+  return await retryMirrorUpsertOnRace(() =>
+    subspaceDb.instance.upsert({
+      where: { oid: d.instance.oid },
+      update: {
+        type: d.instance.type,
+        status: d.instance.status,
+        slug: d.instance.slug,
+        name: d.instance.name,
+        projectOid: d.instance.projectOid,
+        organizationOid: d.instance.organizationOid,
+        environmentOid: d.environmentOid,
+        deletedAt: d.instance.deletedAt,
+        createdAt: d.instance.createdAt,
+        updatedAt: d.instance.updatedAt
+      },
+      create: {
+        oid: d.instance.oid,
+        id: d.instance.id,
+        type: d.instance.type,
+        status: d.instance.status,
+        slug: d.instance.slug,
+        name: d.instance.name,
+        projectOid: d.instance.projectOid,
+        organizationOid: d.instance.organizationOid,
+        environmentOid: d.environmentOid,
+        deletedAt: d.instance.deletedAt,
+        createdAt: d.instance.createdAt,
+        updatedAt: d.instance.updatedAt
+      }
+    })
+  );
 };
 
 export let upsertOrganizationActorMirror = async (
@@ -231,31 +244,33 @@ export let upsertOrganizationActorMirror = async (
   });
   assertMirrorIdentity('organization actor', organizationActor, matches);
 
-  return await subspaceDb.organizationActor.upsert({
-    where: { oid: organizationActor.oid },
-    update: {
-      type: organizationActor.type,
-      isSystem: organizationActor.isSystem,
-      email: organizationActor.email,
-      name: organizationActor.name,
-      image: organizationActor.image,
-      organizationOid: organizationActor.organizationOid,
-      createdAt: organizationActor.createdAt,
-      updatedAt: organizationActor.updatedAt
-    },
-    create: {
-      oid: organizationActor.oid,
-      id: organizationActor.id,
-      type: organizationActor.type,
-      isSystem: organizationActor.isSystem,
-      email: organizationActor.email,
-      name: organizationActor.name,
-      image: organizationActor.image,
-      organizationOid: organizationActor.organizationOid,
-      createdAt: organizationActor.createdAt,
-      updatedAt: organizationActor.updatedAt
-    }
-  });
+  return await retryMirrorUpsertOnRace(() =>
+    subspaceDb.organizationActor.upsert({
+      where: { oid: organizationActor.oid },
+      update: {
+        type: organizationActor.type,
+        isSystem: organizationActor.isSystem,
+        email: organizationActor.email,
+        name: organizationActor.name,
+        image: organizationActor.image,
+        organizationOid: organizationActor.organizationOid,
+        createdAt: organizationActor.createdAt,
+        updatedAt: organizationActor.updatedAt
+      },
+      create: {
+        oid: organizationActor.oid,
+        id: organizationActor.id,
+        type: organizationActor.type,
+        isSystem: organizationActor.isSystem,
+        email: organizationActor.email,
+        name: organizationActor.name,
+        image: organizationActor.image,
+        organizationOid: organizationActor.organizationOid,
+        createdAt: organizationActor.createdAt,
+        updatedAt: organizationActor.updatedAt
+      }
+    })
+  );
 };
 
 /**

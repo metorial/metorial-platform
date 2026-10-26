@@ -5,8 +5,10 @@ import {
   addAfterTransactionHook,
   db,
   type Environment,
+  type Prisma,
   type Session,
   type SessionStatus,
+  type Solution,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
@@ -24,8 +26,11 @@ import {
   resolveProviderConfigs,
   resolveProviderDeployments,
   resolveProviders,
+  resolveSessionProviders,
   resolveSessionTemplates
 } from '@metorial-subspace/list-utils';
+import { getProviderTenantFilter } from '@metorial-subspace/module-catalog';
+import { searchRelatedEntities, whenRelatedMatched } from '@metorial-subspace/module-search';
 import {
   assertCanChangeOwnerLock,
   assertCanChangeOwnerOnlyVisibility,
@@ -109,6 +114,9 @@ export type ListSessionsParams = {
   providerAuthConfigIds?: string[];
   createdAt?: DateFilter;
   updatedAt?: DateFilter;
+
+  search?: string;
+  searchActorIds?: string[];
 };
 
 export type GetSessionByIdParams = {
@@ -212,11 +220,13 @@ class sessionServiceImpl {
     let agents = await resolveAgents(ts, d.agentIds);
     let actors = await resolveIdentityActors(ts, d.actorIds);
     let sessionTemplates = await resolveSessionTemplates(ts, d.sessionTemplateIds);
-    let sessionProviders = await resolveProviders(ts, d.sessionProviderIds);
+    let sessionProviders = await resolveSessionProviders(ts, d.sessionProviderIds);
     let providers = await resolveProviders(ts, d.providerIds);
     let deployments = await resolveProviderDeployments(ts, d.providerDeploymentIds);
     let configs = await resolveProviderConfigs(ts, d.providerConfigIds);
     let authConfigs = await resolveProviderAuthConfigs(ts, d.providerAuthConfigIds);
+
+    let searchFilter = await this.buildSessionSearchFilter({ ...d, solution });
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -239,7 +249,7 @@ class sessionServiceImpl {
                 d.ids ? { id: { in: d.ids } } : undefined!,
                 agents
                   ? {
-                      sessionConnections: {
+                      connections: {
                         some: {
                           participant: {
                             agentInstance: { agentOid: agents.in }
@@ -250,7 +260,7 @@ class sessionServiceImpl {
                   : undefined!,
                 actors
                   ? {
-                      sessionConnections: {
+                      connections: {
                         some: {
                           participant: {
                             agentInstance: { agent: { actorOid: actors.in } }
@@ -281,6 +291,8 @@ class sessionServiceImpl {
                 authConfigs
                   ? { providers: { some: { authConfigOid: authConfigs.in } } }
                   : undefined!,
+
+                searchFilter!,
 
                 getSessionRetentionFilter(d.tenant, d.createdAt)!,
                 !d.tenant.enforceSessionExpiry && d.createdAt
@@ -331,6 +343,64 @@ class sessionServiceImpl {
   }) {
     let accessor = await getOwnershipAccessorForFacing(d);
     await assertCanUseOwnedResource(accessor, d.session, { resource: 'session' });
+  }
+
+  private async buildSessionSearchFilter(d: {
+    tenant: Tenant;
+    environment: Environment;
+    solution: Solution;
+    search?: string;
+    searchActorIds?: string[];
+  }): Promise<Prisma.SessionWhereInput | undefined> {
+    let search = d.search?.trim();
+    if (!search) return undefined;
+
+    let ts = { tenant: d.tenant, environment: d.environment, solution: d.solution };
+
+    let [related, searchActors] = await Promise.all([
+      searchRelatedEntities({
+        tenant: d.tenant,
+        query: search,
+        kinds: [
+          'providerOids',
+          'authMethodGlobalOids',
+          'deploymentOids',
+          'configOids',
+          'authConfigOids',
+          'agentOids',
+          'actorOids',
+          'identityOids'
+        ],
+        providerFilter: getProviderTenantFilter({ ...ts, includeDeprecated: true })
+      }),
+      resolveIdentityActors(ts, d.searchActorIds?.length ? d.searchActorIds : undefined)
+    ]);
+
+    let actorOids = [...related.actorOids, ...(searchActors?.oids ?? [])];
+
+    let sessionProviderClauses: Prisma.SessionProviderWhereInput[] = [
+      ...whenRelatedMatched(related.providerOids, oids => ({ providerOid: oids })),
+      ...whenRelatedMatched(related.deploymentOids, oids => ({ deploymentOid: oids })),
+      ...whenRelatedMatched(related.configOids, oids => ({ configOid: oids })),
+      ...whenRelatedMatched(related.authConfigOids, oids => ({ authConfigOid: oids })),
+      ...whenRelatedMatched(related.authMethodGlobalOids, oids => ({
+        authConfig: { authMethod: { globalOid: oids } }
+      }))
+    ];
+
+    return {
+      OR: [
+        { id: search },
+        ...(sessionProviderClauses.length
+          ? [{ providers: { some: { OR: sessionProviderClauses } } }]
+          : []),
+        ...whenRelatedMatched(related.agentOids, oids => ({
+          connections: { some: { participant: { agentInstance: { agentOid: oids } } } }
+        })),
+        ...whenRelatedMatched(actorOids, oids => ({ identityActorOid: oids })),
+        ...whenRelatedMatched(related.identityOids, oids => ({ identityOid: oids }))
+      ]
+    };
   }
 
   async getSessionById(d: MetorialFacing<GetSessionByIdParams>) {

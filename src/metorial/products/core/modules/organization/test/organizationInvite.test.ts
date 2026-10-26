@@ -973,7 +973,8 @@ describe('OrganizationInviteService', () => {
       expect(db.organizationInvite.findFirst).toHaveBeenCalledWith({
         where: {
           key: 'metorial_inv_abc123',
-          status: 'pending'
+          status: 'pending',
+          expiresAt: { gt: expect.any(Date) }
         },
         include: {
           organization: true,

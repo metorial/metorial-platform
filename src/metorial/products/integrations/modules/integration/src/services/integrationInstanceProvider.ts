@@ -327,6 +327,7 @@ class integrationInstanceProviderServiceImpl {
                 d.search
                   ? {
                       OR: [
+                        { id: d.search },
                         { name: { contains: d.search, mode: 'insensitive' as const } },
                         { description: { contains: d.search, mode: 'insensitive' as const } },
                         {

@@ -1,7 +1,8 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { db, type Environment, type Tenant } from '@metorial-subspace/db';
+import { db, type Environment, type Prisma, type Tenant } from '@metorial-subspace/db';
+import { searchAuthLogRelatedEntities } from '../lib/authLogSearch';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -27,6 +28,8 @@ type ListAuthConfigErrorGlobalsParams = {
   authCredentialsIds?: string[];
   types?: string[];
   createdAt?: DateFilter;
+
+  search?: string;
 };
 
 type GetAuthConfigErrorGlobalByIdParams = {
@@ -54,6 +57,11 @@ class authConfigErrorGlobalServiceImpl {
     let authConfigs = await resolveProviderAuthConfigs(ts, d.authConfigIds);
     let authCredentials = await resolveProviderAuthCredentials(ts, d.authCredentialsIds);
 
+    let search = d.search?.trim();
+    let searchMatches = search
+      ? await searchAuthLogRelatedEntities({ ...ts, search })
+      : undefined;
+
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
@@ -72,7 +80,20 @@ class authConfigErrorGlobalServiceImpl {
                 authCredentials
                   ? { instances: { some: { authCredentialsOid: authCredentials.in } } }
                   : undefined!,
-                d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!
+                d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
+
+                search && searchMatches
+                  ? ({
+                      OR: [
+                        { id: search },
+                        { type: search },
+                        ...searchMatches.providerClauses,
+                        ...(searchMatches.authRowClauses.length
+                          ? [{ instances: { some: { OR: searchMatches.authRowClauses } } }]
+                          : [])
+                      ]
+                    } satisfies Prisma.ProviderAuthConfigErrorGlobalWhereInput)
+                  : undefined!
               ].filter(Boolean)
             },
             include

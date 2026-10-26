@@ -1,7 +1,19 @@
-import { GetSendQuotaCommand, SendEmailCommand, SESClient } from '@aws-sdk/client-ses';
+import {
+  GetSendQuotaCommand,
+  SendEmailCommand,
+  SendRawEmailCommand,
+  SESClient
+} from '@aws-sdk/client-ses';
 import nodemailer from 'nodemailer';
+import MailComposer from 'nodemailer/lib/mail-composer';
 import type { EmailIdentity } from '../../prisma/generated/browser';
 import { env } from '../env';
+
+export interface SendAttachment {
+  filename: string;
+  contentType: string;
+  content: Uint8Array;
+}
 
 let transport = env.email.EMAIL_SES_REGION
   ? {
@@ -40,17 +52,50 @@ export let checkSesAccess = async () => {
   console.log('SES access verified');
 };
 
+let toMailAttachments = (attachments: SendAttachment[]) =>
+  attachments.map(attachment => ({
+    filename: attachment.filename,
+    contentType: attachment.contentType,
+    content: Buffer.from(attachment.content)
+  }));
+
 export let send = async (opts: {
   to: string;
   subject: string;
   html: string;
   text: string;
   identity: EmailIdentity;
+  attachments?: SendAttachment[];
 }) => {
   if (process.env.METORIAL_ENV == 'staging') {
     opts.subject = `[STAGING] ${opts.subject}`;
   } else if (process.env.METORIAL_ENV == 'development') {
     opts.subject = `[DEV] ${opts.subject}`;
+  }
+
+  let from = `${opts.identity.fromName} <${opts.identity.fromEmail}>`;
+  let subject = `${opts.identity.subjectMarker || ''}${opts.subject}`;
+  let attachments = opts.attachments ?? [];
+
+  if (transport.type == 'ses' && attachments.length) {
+    let message = await new MailComposer({
+      from,
+      to: opts.to,
+      subject,
+      html: opts.html,
+      text: opts.text,
+      attachments: toMailAttachments(attachments)
+    })
+      .compile()
+      .build();
+
+    return await transport.client.send(
+      new SendRawEmailCommand({
+        Source: from,
+        Destinations: [opts.to],
+        RawMessage: { Data: message }
+      })
+    );
   }
 
   if (transport.type == 'ses') {
@@ -72,10 +117,10 @@ export let send = async (opts: {
           },
           Subject: {
             Charset: 'UTF-8',
-            Data: `${opts.identity.subjectMarker || ''}${opts.subject}`
+            Data: subject
           }
         },
-        Source: `${opts.identity.fromName} <${opts.identity.fromEmail}>`
+        Source: from
       })
     );
 
@@ -83,11 +128,12 @@ export let send = async (opts: {
   }
 
   let result = await transport.client.sendMail({
-    from: `${opts.identity.fromName} <${opts.identity.fromEmail}>`,
+    from,
     to: opts.to,
-    subject: `${opts.identity.subjectMarker || ''}${opts.subject}`,
+    subject,
     html: opts.html,
-    text: opts.text
+    text: opts.text,
+    attachments: attachments.length ? toMailAttachments(attachments) : undefined
   });
 
   return {

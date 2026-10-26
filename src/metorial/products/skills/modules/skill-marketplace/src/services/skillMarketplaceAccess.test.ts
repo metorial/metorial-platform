@@ -8,7 +8,15 @@ vi.mock('@metorial/module-access', () => ({
   accessTagService: {
     getAccessTagFilter
   },
-  consumerSkillReadRoles: ['consumer#instance.skill:read']
+  consumerSkillReadRoles: ['consumer#instance.skill:read'],
+  consumerSkillMarketplaceWriteRoles: ['consumer#instance.skill_marketplace:write'],
+  consumerSkillPluginWriteRoles: ['consumer#instance.skill_plugin:write']
+}));
+
+vi.mock('@metorial/db', () => ({ db: {} }));
+
+vi.mock('@metorial/module-skill', () => ({
+  getConsumerSkillAccessWhere: vi.fn()
 }));
 
 import { getSkillMarketplaceAccessWhere } from '../lib/skillMarketplaceAccess';
@@ -49,7 +57,7 @@ describe('getSkillMarketplaceAccessWhere', () => {
     });
     expect(getAccessTagFilter).toHaveBeenCalledWith({
       tags: accessTags,
-      roles: ['consumer#instance.skill:read']
+      roles: ['consumer#instance.skill:read', 'consumer#instance.skill_marketplace:write']
     });
   });
 

@@ -6,6 +6,11 @@ import {
 } from './access';
 import { organizationActorResource } from './actor';
 import { organizationClaimResource } from './claim';
+import {
+  organizationBetaResource,
+  organizationFlagCohortResource,
+  organizationFlagOverrideResource
+} from './flag';
 import { organizationInviteResource } from './invite';
 import { organizationMemberResource } from './member';
 import {
@@ -35,6 +40,9 @@ export let organizationResources = resourceSet({
   organization_member: organizationMemberResource,
   organization_invite: organizationInviteResource,
   organization_claim: organizationClaimResource,
+  organization_flag_override: organizationFlagOverrideResource,
+  organization_beta: organizationBetaResource,
+  organization_flag_cohort: organizationFlagCohortResource,
   audit_log_stream: auditLogStreamResource,
   audit_log_retention: auditLogRetentionResource,
   event_destination: eventDestinationResource,

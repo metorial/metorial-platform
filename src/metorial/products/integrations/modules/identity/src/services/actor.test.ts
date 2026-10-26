@@ -67,7 +67,7 @@ vi.mock('@metorial-subspace/list-utils', () => ({
   normalizeDateFilter: vi.fn(),
   normalizeStatusForGet: vi.fn(() => ({ hasParent: {} })),
   normalizeStatusForList: vi.fn(() => ({ noParent: {} })),
-  resolveProviders: vi.fn()
+  resolveAgents: vi.fn()
 }));
 
 vi.mock('@metorial-subspace/module-search', () => ({

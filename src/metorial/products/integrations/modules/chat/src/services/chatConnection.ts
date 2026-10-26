@@ -14,6 +14,7 @@ import {
   withTransaction
 } from '@metorial-subspace/db';
 import {
+  buildSearchFilter,
   checkDeletedEdit,
   type DateFilter,
   normalizeDateFilter,
@@ -130,6 +131,10 @@ export type CreateChatConnectionWithProviderParams = CreateChatConnectionParams 
 // `MetorialFacing<T>` uses `Omit`, which isn't distributive over unions -- applied directly to
 // this discriminated union it would collapse to only the fields common to every branch. Distribute
 // it over each branch by hand instead.
+type FacingCreateChatConnectionParams =
+  | MetorialFacing<Extract<CreateChatConnectionParams, { mode: 'standalone' }>>
+  | MetorialFacing<Extract<CreateChatConnectionParams, { mode: 'existing' }>>;
+
 type FacingCreateChatConnectionWithProviderParams =
   | MetorialFacing<Extract<CreateChatConnectionWithProviderParams, { mode: 'standalone' }>>
   | MetorialFacing<Extract<CreateChatConnectionWithProviderParams, { mode: 'existing' }>>;
@@ -187,14 +192,20 @@ class chatConnectionServiceImpl {
     d.search = d.search?.trim();
     if (!d.search?.length) d.search = undefined;
 
-    let search = d.search
-      ? await voyager.record.search({
+    let search = await buildSearchFilter<Prisma.ChatConnectionWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let records = await voyager.record.search({
           tenantId: d.tenant.id,
           sourceId: (await voyagerSource).id,
           indexId: voyagerIndex.chatConnection.id,
-          query: d.search
-        })
-      : null;
+          query
+        });
+
+        return records.map(r => r.documentId);
+      },
+      exact: query => [{ id: query }, { slug: { equals: query, mode: 'insensitive' } }]
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -208,7 +219,7 @@ class chatConnectionServiceImpl {
               ...normalizeStatusForList(d).noParent,
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
-                search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
+                search ?? undefined!,
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
               ].filter(Boolean)
@@ -251,7 +262,7 @@ class chatConnectionServiceImpl {
     return chatConnection;
   }
 
-  async createChatConnection(d: MetorialFacing<CreateChatConnectionParams>) {
+  async createChatConnection(d: FacingCreateChatConnectionParams) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
     return this.createChatConnectionInternal({
@@ -376,15 +387,22 @@ class chatConnectionServiceImpl {
   ) {
     let { provider, ...createParams } = d;
 
-    let chatConnection = await this.createChatConnectionInternal(
-      createParams as { tenant: Tenant; environment: Environment } & CreateChatConnectionParams
-    );
+    let chatConnection = await withTransaction(async () => {
+      let chatConnection = await this.createChatConnectionInternal(
+        createParams as {
+          tenant: Tenant;
+          environment: Environment;
+        } & CreateChatConnectionParams
+      );
 
-    await chatConnectionProviderService.createChatConnectionProviderInternal({
-      tenant: d.tenant,
-      environment: d.environment,
-      chatConnection,
-      input: provider
+      await chatConnectionProviderService.createChatConnectionProviderInternal({
+        tenant: d.tenant,
+        environment: d.environment,
+        chatConnection,
+        input: provider
+      });
+
+      return chatConnection;
     });
 
     return this.getChatConnectionByIdInternal({

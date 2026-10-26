@@ -1,53 +1,43 @@
+import { readInventory } from './inventory';
 import { appendFileSync, readFileSync } from 'node:fs';
 import { dirname, normalize, join, relative, basename } from 'node:path';
+import {
+  e2eGroupArgs,
+  planE2EGroups,
+  readE2EDurations,
+  type E2EDurations
+} from './e2e-groups';
 
-export let suites = [
-  { name: 'forge', package: '@metorial/forge', services: ['forge'] },
-  { name: 'nebula', package: '@metorial/nebula', services: ['nebula'] },
-  {
-    name: 'function-bay',
-    package: '@metorial/function-bay',
-    services: ['function-bay', 'forge']
-  },
-  {
-    name: 'shuttle',
-    package: '@metorial/shuttle',
-    services: ['shuttle', 'forge', 'function-bay']
-  },
-  {
-    name: 'slates-hub',
-    package: '@metorial/slates',
-    services: ['slates', 'forge', 'function-bay', 'signal']
-  },
-  { name: 'relay', package: '@metorial/relay', services: ['relay'] },
-  { name: 'voyager', package: '@metorial/voyager', services: ['voyager'] }
-];
+let inventory = process.env.TEST_UNITS_ONLY === 'true' ? undefined : readInventory();
 
-let stackServices = ['forge', 'function-bay', 'nebula', 'shuttle', 'voyager', 'relay'];
+export let suites = (inventory?.suites ?? [])
+  .filter(suite => suite.runner === 'compose')
+  .map(suite => ({
+    name: suite.name,
+    package: suite.package,
+    services: suite.services,
+    definition: suite
+  }));
 
-/** Suites run by `control test:e2e`: the stack package plus every test package matching `tests`. */
-export let controlSuites = {
-  oss: {
-    name: 'metorial',
-    package: '@metorial/app-api',
-    stackPackages: [] as string[],
-    workspacePackages: [] as string[],
-    services: stackServices,
-    tests: ['src/metorial/products/*/modules/*', 'src/metorial/apis/*']
-  },
-  enterprise: {
-    name: 'metorial-enterprise',
-    package: '@metorial/mte-core-api',
-    stackPackages: ['@metorial/mte-worker'],
-    // Loaded by the enterprise e2e bootstrap but not declared there, because declaring it would form
-    // a dependency cycle through the federation modules' own e2e devDependencies.
-    workspacePackages: ['@metorial-enterprise/fabric'],
-    services: stackServices,
-    tests: ['src/metorial/modules/*', 'src/metorial/apis/*']
-  }
-};
+export let controlSuites = (inventory?.suites ?? [])
+  .filter(suite => suite.runner === 'control')
+  .map(suite => ({
+    name: suite.name,
+    package: suite.package,
+    stackPackages: suite.services,
+    workspacePackages: suite.workspacePackages,
+    services: suite.services,
+    tests: suite.tests.map(test => test.directory),
+    groups: suite.groups
+  }));
 
-export type ControlSuite = (typeof controlSuites)['oss'];
+/** Per-package e2e durations of the checkout this runs in; refreshed with `e2e-groups.ts update`. */
+export let E2E_DURATIONS_PATH = '.github/e2e-durations.json';
+
+/** `control test:e2e`'s default number of test packages Turbo runs at once inside a stack. */
+let CONTROL_E2E_CONCURRENCY = 4;
+
+export type ControlSuite = (typeof controlSuites)[number];
 
 export let controlTestPackages = (
   suite: ControlSuite,
@@ -68,6 +58,28 @@ export let controlTasks = (suite: ControlSuite) =>
     ...suite.tests.map(pattern => `--filter=./${pattern}`),
     ...suite.workspacePackages.map(name => `--filter=${name}`)
   ].join(' ');
+
+export let controlMatrix = (
+  suite: ControlSuite,
+  packages: Map<string, { directory: string; e2e: boolean }>,
+  durations: E2EDurations
+) => {
+  let groups = planE2EGroups(
+    controlTestPackages(suite, packages),
+    durations,
+    suite.groups,
+    CONTROL_E2E_CONCURRENCY
+  );
+  return groups.map((group, index) => ({
+    name: groups.length > 1 ? `${suite.name} ${index + 1}/${groups.length}` : suite.name,
+    key: groups.length > 1 ? `${suite.name}-${index + 1}-of-${groups.length}` : suite.name,
+    package: suite.package,
+    control: true,
+    workspace: '.',
+    tasks: controlTasks(suite),
+    args: e2eGroupArgs(group)
+  }));
+};
 
 export let affected = (paths: string[], directories: string[], global: boolean) =>
   global ||
@@ -165,7 +177,11 @@ if (import.meta.main) {
     ...[...packages.values()].map(value => value.directory),
     `${prefix}src/tooling/test-ci`,
     `${prefix}src/tooling/docker-build`,
-    ...suites.flatMap(suite => suite.services.map(service => `${prefix}src/${service}`)),
+    ...suites.flatMap(suite =>
+      suite.services
+        .map(service => packages.get(service)?.directory)
+        .filter((directory): directory is string => Boolean(directory))
+    ),
     ...paths
       .filter(path => /^((oss\/)?\.github\/actions\/[^/]+\/README[^/]*)$/.test(path))
       .map(dirname)
@@ -246,6 +262,15 @@ if (import.meta.main) {
         .map((task: any) => task.package)
     )
   ].filter(name => unitGlobal || taskChanged(`${name}#test`));
+  if (process.env.TEST_UNITS_ONLY === 'true') {
+    for (let [name, value] of Object.entries({
+      units: String(units.length > 0),
+      'unit-tasks': ['test', ...units.map(name => `--filter=${name}`)].join(' ')
+    })) {
+      appendFileSync(process.env.GITHUB_OUTPUT!, `${name}=${value}\n`);
+    }
+    process.exit(0);
+  }
   for (let suite of suites) {
     if (!packages.has(suite.package))
       throw new Error(`Missing E2E workspace: ${suite.package}`);
@@ -253,43 +278,37 @@ if (import.meta.main) {
   let selected = suites.filter(suite =>
     affected(
       paths,
-      [...closure(suite.package), ...suite.services.map(service => `${prefix}src/${service}`)],
+      [...closure(suite.package), ...suite.services.flatMap(service => closure(service))],
       e2eGlobal
     )
   );
-  let controlSuite = enterprise ? controlSuites.enterprise : controlSuites.oss;
-  if (!packages.has(controlSuite.package))
-    throw new Error(`Missing E2E stack workspace: ${controlSuite.package}`);
-  let controlSelected = affected(
-    paths,
-    [
-      ...[controlSuite.package, ...controlSuite.stackPackages].flatMap(name => closure(name)),
-      ...controlTestPackages(controlSuite, packages).flatMap(name => closure(name)),
-      ...controlSuite.services.map(service => `${prefix}src/${service}`),
-      `${prefix}src/control`,
-      `${prefix}scripts/dev-tools/e2e`
-    ],
-    e2eGlobal
+  let selectedControl = controlSuites.filter(controlSuite =>
+    affected(
+      paths,
+      [
+        ...[controlSuite.package, ...controlSuite.stackPackages].flatMap(name =>
+          closure(name)
+        ),
+        ...controlTestPackages(controlSuite, packages).flatMap(name => closure(name)),
+        `${prefix}src/control`,
+        `${prefix}scripts/dev-tools/e2e`
+      ],
+      e2eGlobal
+    )
   );
   let matrix = [
     ...selected.map(({ name, package: pkg }) => ({
       name,
+      key: name,
       package: pkg,
       control: false,
       workspace: enterprise ? './oss' : '.',
-      tasks: `prisma:generate test:e2e --filter=${pkg}`
+      tasks: `prisma:generate test:e2e --filter=${pkg}`,
+      args: ''
     })),
-    ...(controlSelected
-      ? [
-          {
-            name: controlSuite.name,
-            package: controlSuite.package,
-            control: true,
-            workspace: '.',
-            tasks: controlTasks(controlSuite)
-          }
-        ]
-      : [])
+    ...selectedControl.flatMap(suite =>
+      controlMatrix(suite, packages, readE2EDurations(E2E_DURATIONS_PATH))
+    )
   ];
   let conduit = affected(
     paths,

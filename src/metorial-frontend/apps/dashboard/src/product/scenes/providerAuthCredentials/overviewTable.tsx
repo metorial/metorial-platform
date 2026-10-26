@@ -15,16 +15,18 @@ import {
 import {
   Table as DashboardTable,
   FilterPayload,
+  TableFilter,
   TableStateProvider,
   TableStateProviderResult,
   getDateRangeFilterValue,
   getEnumListFilterValue,
-  getStringFilterValue
+  getListFilterValue
 } from '@metorial/table';
 import { Badge, RenderDate, Text, confirm } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { RiDeleteBinLine } from '@remixicon/react';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
+import { entityFilters } from '../entityFilters';
 
 type ProviderAuthCredential =
   DashboardInstanceProviderDeploymentsAuthCredentialsListOutput['items'][number];
@@ -59,6 +61,50 @@ let getStatusFilterValue = (
   return getEnumListFilterValue(value, ['active', 'archived']);
 };
 
+export let useProviderAuthCredentialFilters = (instanceId: string | null | undefined) =>
+  useMemo<TableFilter<ProviderAuthCredentialRow>[]>(
+    () => [
+      {
+        id: 'status',
+        fields: ['status'],
+        label: 'Status',
+        description: 'Filter by status',
+        type: 'select',
+        options: [
+          { id: 'active', label: 'Active' },
+          { id: 'archived', label: 'Archived' }
+        ]
+      },
+      entityFilters.provider(instanceId),
+      {
+        id: 'origin',
+        fields: ['origin'],
+        label: 'Origin',
+        description: 'Filter by origin',
+        type: 'select',
+        options: [
+          { id: 'custom', label: 'Custom' },
+          { id: 'managed', label: 'Managed' }
+        ]
+      },
+      {
+        id: 'createdAt',
+        fields: ['createdAt'],
+        label: 'Created',
+        description: 'Filter by created date',
+        type: 'date'
+      },
+      {
+        id: 'updatedAt',
+        fields: ['updatedAt'],
+        label: 'Updated',
+        description: 'Filter by updated date',
+        type: 'date'
+      }
+    ],
+    [instanceId]
+  );
+
 let getAuthCredentialsStatusColor = (status: ProviderAuthCredential['status']) => {
   if (status === 'active') return 'green';
   if (status === 'archived') return 'orange';
@@ -80,8 +126,7 @@ let providerAuthCredentialsTableState: TableStateProvider<
     order: 'desc',
     ...props.filters,
     status: getStatusFilterValue(opts.filter.status) ?? props.filters?.status,
-    id: getStringFilterValue(opts.filter.id) ?? props.filters?.id,
-    providerId: getStringFilterValue(opts.filter.providerId) ?? props.filters?.providerId,
+    providerId: getListFilterValue(opts.filter.providerId) ?? props.filters?.providerId,
     origin: getOriginFilterValue(opts.filter.origin) ?? props.filters?.origin,
     search: opts.search ?? props.filters?.search,
     createdAt: getDateRangeFilterValue(opts.filter.createdAt) ?? props.filters?.createdAt,
@@ -169,7 +214,7 @@ let providerAuthCredentialsTable = new DashboardTable<
         >
           {row.isManaged && (
             <div style={{ marginRight: 5, display: 'inline-flex', verticalAlign: 'middle' }}>
-              <Badge color="blue" size="1">
+              <Badge color="blue" size="2">
                 Managed
               </Badge>
             </div>
@@ -227,58 +272,6 @@ let providerAuthCredentialsTable = new DashboardTable<
       isDefault: false,
       header: 'Provider ID',
       render: row => <ID id={row.providerId} />
-    }
-  ])
-  .filters([
-    {
-      id: 'status',
-      fields: ['status'],
-      label: 'Status',
-      description: 'Filter by status',
-      type: 'select',
-      options: [
-        { id: 'active', label: 'Active' },
-        { id: 'archived', label: 'Archived' }
-      ]
-    },
-    {
-      id: 'id',
-      fields: ['id'],
-      label: 'Credential ID',
-      description: 'Filter by credential ID',
-      type: 'string'
-    },
-    {
-      id: 'providerId',
-      fields: ['providerId'],
-      label: 'Provider ID',
-      description: 'Filter by provider ID',
-      type: 'string'
-    },
-    {
-      id: 'origin',
-      fields: ['origin'],
-      label: 'Origin',
-      description: 'Filter by origin',
-      type: 'select',
-      options: [
-        { id: 'custom', label: 'Custom' },
-        { id: 'managed', label: 'Managed' }
-      ]
-    },
-    {
-      id: 'createdAt',
-      fields: ['createdAt'],
-      label: 'Created',
-      description: 'Filter by created date',
-      type: 'date'
-    },
-    {
-      id: 'updatedAt',
-      fields: ['updatedAt'],
-      label: 'Updated',
-      description: 'Filter by updated date',
-      type: 'date'
     }
   ])
   .link((row, props) =>
@@ -349,6 +342,7 @@ export let ProviderAuthCredentialsOverviewTable = ({
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let tableFilters = useProviderAuthCredentialFilters(instanceId);
 
   return renderWithLoader({ organization, project, instance })(() =>
     providerAuthCredentialsTable({
@@ -357,6 +351,7 @@ export let ProviderAuthCredentialsOverviewTable = ({
       project,
       instance,
       filters,
+      tableFilters,
       emptyState,
       headerActions
     })

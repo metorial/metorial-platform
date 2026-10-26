@@ -20,6 +20,14 @@ export let v1EventDestinationPresenter = Presenter.create(eventDestinationType)
           signing_secret: revealSecret ?? null
         }
       : null,
+
+    retry: {
+      strategy: eventDestination.retryStrategy,
+      max_attempts: eventDestination.retryMaxAttempts,
+      base_delay_seconds: eventDestination.retryBaseDelaySeconds,
+      max_delay_seconds: eventDestination.retryMaxDelaySeconds
+    },
+
     listeners: await Promise.all(
       eventDestination.listeners.map(listener =>
         v1EventDestinationListenerPresenter

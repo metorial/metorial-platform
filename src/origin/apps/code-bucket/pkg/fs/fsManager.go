@@ -11,6 +11,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -45,6 +46,16 @@ func canonicalFilePath(filePath string) string {
 		return "/" + filePath
 	}
 	return filePath
+}
+
+// escapeObjectKey percent-encodes each key segment so '#', '?' and '%' in file paths stay part of
+// the object key instead of being parsed as URL syntax.
+func escapeObjectKey(key string) string {
+	segments := strings.Split(key, "/")
+	for i, segment := range segments {
+		segments[i] = url.PathEscape(segment)
+	}
+	return strings.Join(segments, "/")
 }
 
 func redisFileKey(bucketID, filePath string) string {
@@ -373,7 +384,7 @@ func (fsm *FileSystemManager) WalkBucketFiles(ctx context.Context, bucketID, pre
 }
 
 func (fsm *FileSystemManager) putObjectFromReader(bucket, key string, reader io.Reader, contentType *string, metadata map[string]string) error {
-	urlPath := fmt.Sprintf("%s/buckets/%s/objects/%s", fsm.objectStorageURL, bucket, key)
+	urlPath := fmt.Sprintf("%s/buckets/%s/objects/%s", fsm.objectStorageURL, url.PathEscape(bucket), escapeObjectKey(key))
 	log.Printf("[object-storage debug] putObjectFromReader start bucket=%s key=%s url=%s", bucket, key, urlPath)
 	req, err := http.NewRequest("PUT", urlPath, reader)
 	if err != nil {

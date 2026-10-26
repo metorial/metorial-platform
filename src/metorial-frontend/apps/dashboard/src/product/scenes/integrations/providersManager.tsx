@@ -314,7 +314,7 @@ let integrationInstanceProvidersTable = new DashboardTable<
         return (
           <Flex gap={10} align="center">
             {isInstanceProviderPending(row) ? (
-              <Badge size="1" color="orange">
+              <Badge size="2" color="orange">
                 Pending
               </Badge>
             ) : null}

@@ -3,37 +3,35 @@ import {
   DashboardInstanceMagicMcpServersListQuery
 } from '@metorial/dashboard-sdk';
 import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
+import { EmptyState } from '@metorial/empty-state';
 import { Paths } from '@metorial/frontend-config';
 import {
   useAllProviderListings,
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useMagicMcpServers,
-  useProviderListings
+  useMagicMcpServers
 } from '@metorial/state';
-import { Avatar, Badge, Input, RenderDate, Spacer, Text, theme } from '@metorial/ui';
-import { ID, ItemGrid } from '@metorial/ui-product';
-import { useMemo, useState } from 'react';
-import { useLocation } from 'react-router-dom';
-import styled from 'styled-components';
-import { EmptyState } from '@metorial/empty-state';
-import { Table as DashboardTable } from '@metorial/table';
 import {
-  TableFilters,
-  useFilterQuery,
+  Table as DashboardTable,
   FilterPayload,
   TableFilter,
   TableFilterState,
-  getFilterPayload,
+  TableFilters,
   TableStateProvider,
   TableStateProviderResult,
   getEnumListFilterValue,
+  getFilterPayload,
   getListFilterValue,
-  getStringFilterValue
+  useFilterQuery
 } from '@metorial/table';
+import { Avatar, Badge, Input, RenderDate, Spacer, Text, theme } from '@metorial/ui';
+import { ID, ItemGrid } from '@metorial/ui-product';
 import { useDebounced } from '@metorial/use-debounced';
 import { ResourceOwnerInline } from '../../components/resourceOwnerEntity';
+import { useMemo, useState } from 'react';
+import styled from 'styled-components';
+import { entityFilters } from '../entityFilters';
 import { showMagicMcpServerCreateFlow } from '../providerDeployments/magicMcpForm';
 
 type Server = DashboardInstanceMagicMcpServersListOutput['items'][number];
@@ -75,9 +73,7 @@ let getServerStatusFilterValue = (
 ): DashboardInstanceMagicMcpServersListQuery['status'] =>
   getEnumListFilterValue(value, ['active', 'archived', 'deleted']);
 
-let getMagicMcpServerFilters = (
-  providerOptions: { id: string; label: string }[]
-): TableFilter<Server>[] => [
+let getMagicMcpServerFilters = (instanceId: string | undefined): TableFilter<Server>[] => [
   {
     id: 'status',
     fields: ['status'],
@@ -90,21 +86,8 @@ let getMagicMcpServerFilters = (
       { id: 'deleted', label: 'Deleted' }
     ]
   },
-  {
-    id: 'magicMcpGroupId',
-    fields: ['magicMcpGroupId'],
-    label: 'Group ID',
-    description: 'Filter by group ID',
-    type: 'string'
-  },
-  {
-    id: 'providerId',
-    fields: ['providerId'],
-    label: 'Provider',
-    description: 'Filter by provider',
-    type: 'select',
-    options: providerOptions
-  }
+  entityFilters.magicMcpGroup(instanceId),
+  entityFilters.provider(instanceId)
 ];
 
 let magicServersState: TableStateProvider<
@@ -116,8 +99,7 @@ let magicServersState: TableStateProvider<
     ownership: 'all',
     order: props.order ?? 'desc',
     status: getServerStatusFilterValue(opts.filter.status) ?? props.status,
-    magicMcpGroupId:
-      getStringFilterValue(opts.filter.magicMcpGroupId) ?? props.magicMcpGroupId,
+    magicMcpGroupId: getListFilterValue(opts.filter.magicMcpGroupId) ?? props.magicMcpGroupId,
     providerId: getListFilterValue(opts.filter.providerId) ?? props.providerId,
     consumerId: props.consumerId,
     consumerProfileId: props.consumerProfileId,
@@ -222,7 +204,6 @@ let magicServersTable = new DashboardTable<MagicMcpServersTableProps, Server>(
       render: server => <ID id={server.id} />
     }
   ])
-  .filters(getMagicMcpServerFilters([]))
   .search('Search Magic MCP servers...')
   .link((server, props) =>
     Paths.instance.magicMcp.server(
@@ -242,54 +223,8 @@ export let MagicMcpServersTable = (
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
-  let location = useLocation();
-  let selectedProviderIds = useMemo(() => {
-    let ids = new Set<string>();
-    let providerIdParam = new URLSearchParams(location.search).get('providerId');
-
-    if (providerIdParam) {
-      for (let id of providerIdParam.split(',')) {
-        if (id.trim()) ids.add(id.trim());
-      }
-    }
-
-    for (let id of Array.isArray(filter.providerId)
-      ? filter.providerId
-      : filter.providerId
-        ? [filter.providerId]
-        : []) {
-      if (id.trim()) ids.add(id.trim());
-    }
-
-    return [...ids].sort();
-  }, [filter.providerId, location.search]);
-  let providerListings = useProviderListings(instance.data?.id, {
-    orderByRank: true,
-    limit: 100
-  });
-  let selectedProviderListings = useAllProviderListings(
-    instance.data?.id,
-    selectedProviderIds
-  );
-  let providerOptions = useMemo(
-    () =>
-      [
-        ...new Map(
-          [
-            ...(providerListings.data?.items ?? []),
-            ...(selectedProviderListings.data ?? [])
-          ].map(listing => [
-            listing.provider.id,
-            {
-              id: listing.provider.id,
-              label: listing.name ?? listing.provider.name ?? listing.provider.slug
-            }
-          ])
-        ).values()
-      ].sort((a, b) => a.label.localeCompare(b.label)),
-    [providerListings.data?.items, selectedProviderListings.data]
-  );
-  let filters = useMemo(() => getMagicMcpServerFilters(providerOptions), [providerOptions]);
+  let instanceId = instance.data?.id;
+  let filters = useMemo(() => getMagicMcpServerFilters(instanceId), [instanceId]);
 
   return magicServersTable({
     instanceId: instance.data!.id,
@@ -307,72 +242,17 @@ export let MagicMcpServersGrid = (filter: DashboardInstanceMagicMcpServersListQu
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
-  let location = useLocation();
+  let instanceId = instance.data?.id;
   let [search, setSearch] = useState('');
   let searchDebounced = useDebounced(search, 500);
   let [filterState, setFilterState] = useState<TableFilterState[]>([]);
   let filterPayload = useMemo(() => getFilterPayload(filterState), [filterState]);
-  let selectedProviderIds = useMemo(() => {
-    let ids = new Set<string>();
-    let providerIdParam = new URLSearchParams(location.search).get('providerId');
-
-    if (providerIdParam) {
-      for (let id of providerIdParam.split(',')) {
-        if (id.trim()) ids.add(id.trim());
-      }
-    }
-
-    let payloadProviderId = getListFilterValue(filterPayload.providerId);
-    for (let id of Array.isArray(payloadProviderId)
-      ? payloadProviderId
-      : payloadProviderId
-        ? [payloadProviderId]
-        : []) {
-      if (id.trim()) ids.add(id.trim());
-    }
-
-    for (let id of Array.isArray(filter.providerId)
-      ? filter.providerId
-      : filter.providerId
-        ? [filter.providerId]
-        : []) {
-      if (id.trim()) ids.add(id.trim());
-    }
-
-    return [...ids].sort();
-  }, [filter.providerId, filterPayload.providerId, location.search]);
-  let providerListings = useProviderListings(instance.data?.id, {
-    orderByRank: true,
-    limit: 100
-  });
-  let selectedProviderListings = useAllProviderListings(
-    instance.data?.id,
-    selectedProviderIds
-  );
-  let providerOptions = useMemo(
-    () =>
-      [
-        ...new Map(
-          [
-            ...(providerListings.data?.items ?? []),
-            ...(selectedProviderListings.data ?? [])
-          ].map(listing => [
-            listing.provider.id,
-            {
-              id: listing.provider.id,
-              label: listing.name ?? listing.provider.name ?? listing.provider.slug
-            }
-          ])
-        ).values()
-      ].sort((a, b) => a.label.localeCompare(b.label)),
-    [providerListings.data?.items, selectedProviderListings.data]
-  );
-  let filters = useMemo(() => getMagicMcpServerFilters(providerOptions), [providerOptions]);
+  let filters = useMemo(() => getMagicMcpServerFilters(instanceId), [instanceId]);
   let status = getServerStatusFilterValue(filterPayload.status) ?? filter.status;
   let magicMcpGroupId =
-    getStringFilterValue(filterPayload.magicMcpGroupId) ?? filter.magicMcpGroupId;
+    getListFilterValue(filterPayload.magicMcpGroupId) ?? filter.magicMcpGroupId;
   let providerId = getListFilterValue(filterPayload.providerId) ?? filter.providerId;
-  let servers = useMagicMcpServers(instance.data?.id, {
+  let servers = useMagicMcpServers(instanceId, {
     ownership: 'all',
     order: filter.order ?? 'desc',
     status,
@@ -393,7 +273,7 @@ export let MagicMcpServersGrid = (filter: DashboardInstanceMagicMcpServersListQu
       ].sort(),
     [servers.data?.items]
   );
-  let cardProviderListings = useAllProviderListings(instance.data?.id, providerIds);
+  let cardProviderListings = useAllProviderListings(instanceId, providerIds);
   let hasActiveFilters = !!(
     searchDebounced ||
     filter.search ||
@@ -426,6 +306,7 @@ export let MagicMcpServersGrid = (filter: DashboardInstanceMagicMcpServersListQu
             placeholder="Search Magic MCP servers..."
             value={search}
             onInput={setSearch}
+            size="2"
           />
         </SearchWrapper>
 
@@ -514,7 +395,7 @@ export let MagicMcpServersGrid = (filter: DashboardInstanceMagicMcpServersListQu
                             />
                           )
                         }
-                        bottom={<Text size="1">{aliases[0] ?? server.id}</Text>}
+                        bottom={<Text size="2">{aliases[0] ?? server.id}</Text>}
                       />
                     );
                   })}

@@ -7,6 +7,7 @@ import {
   MagicMcpGroupStatus,
   Organization,
   OrganizationActor,
+  Prisma,
   withTransaction
 } from '@metorial/db';
 import {
@@ -16,7 +17,7 @@ import {
   ServiceError
 } from '@lowerdeck/error';
 import { generatePlainId } from '@metorial/id';
-import { searchMagicMcpGroupIds } from '@metorial/module-search';
+import { buildSearchFilter, searchMagicMcpGroupIds } from '@metorial/module-search';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { AuditScope } from '@metorial/audit-scope';
@@ -141,18 +142,15 @@ class MagicMcpGroupImpl {
 
   async listMagicMcpGroups(d: {
     search?: string;
+    ids?: string[];
     instance: Instance;
     status?: MagicMcpGroupStatus[];
   }) {
-    let normalizedSearch = d.search?.trim();
-    if (!normalizedSearch?.length) normalizedSearch = undefined;
-
-    let searchedGroupIds = normalizedSearch
-      ? await searchMagicMcpGroupIds({
-          instanceId: d.instance.id,
-          query: normalizedSearch
-        })
-      : undefined;
+    let search = await buildSearchFilter<Prisma.MagicMcpGroupWhereInput>({
+      search: d.search,
+      findIds: query => searchMagicMcpGroupIds({ instanceId: d.instance.id, query }),
+      exact: query => [{ id: query }, { slug: { equals: query, mode: 'insensitive' } }]
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
@@ -164,7 +162,8 @@ class MagicMcpGroupImpl {
               d.status
                 ? { status: { in: d.status } }
                 : { status: { notIn: ['archived', 'deleted'] as MagicMcpGroupStatus[] } },
-              normalizedSearch ? { id: { in: searchedGroupIds } } : undefined!
+              d.ids ? { id: { in: d.ids } } : undefined!,
+              search ?? undefined!
             ].filter(Boolean)
           }
         });
@@ -190,17 +189,23 @@ class MagicMcpGroupImpl {
     }
 
     let deletedGroup = await withTransaction(async db => {
-      let affectedTokenOids = (
-        await db.magicMcpGroupToken.findMany({
-          where: {
-            magicMcpGroupOid: d.group.oid
-          },
-          select: {
-            magicMcpTokenOid: true
-          },
-          distinct: ['magicMcpTokenOid']
-        })
-      ).map(link => link.magicMcpTokenOid);
+      let tokensOnlyInGroup = await db.magicMcpToken.count({
+        where: {
+          status: 'active',
+          groups: {
+            some: { magicMcpGroupOid: d.group.oid },
+            every: { magicMcpGroupOid: d.group.oid }
+          }
+        }
+      });
+
+      if (tokensOnlyInGroup > 0) {
+        throw new ServiceError(
+          preconditionFailedError({
+            message: `Cannot delete a magic MCP group that is the only group of ${tokensOnlyInGroup} active magic MCP token(s). Assign those tokens to another group or delete them first.`
+          })
+        );
+      }
 
       await db.magicMcpGroupServer.deleteMany({
         where: {
@@ -221,43 +226,6 @@ class MagicMcpGroupImpl {
           deletedAt: new Date()
         }
       });
-
-      if (affectedTokenOids.length > 0) {
-        let linkedAfterDelete = (
-          await db.magicMcpGroupToken.groupBy({
-            by: ['magicMcpTokenOid'],
-            where: {
-              magicMcpTokenOid: {
-                in: affectedTokenOids
-              }
-            }
-          })
-        ).map(entry => entry.magicMcpTokenOid);
-
-        await db.magicMcpToken.updateMany({
-          where: {
-            oid: {
-              in: affectedTokenOids
-            }
-          },
-          data: {
-            isGroupLocked: false
-          }
-        });
-
-        if (linkedAfterDelete.length > 0) {
-          await db.magicMcpToken.updateMany({
-            where: {
-              oid: {
-                in: linkedAfterDelete
-              }
-            },
-            data: {
-              isGroupLocked: true
-            }
-          });
-        }
-      }
 
       return deletedGroup;
     });

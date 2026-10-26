@@ -12,6 +12,7 @@ import {
   type Tenant
 } from '@metorial-subspace/db';
 import type { ProviderTypeWhereInput } from '@metorial-subspace/db/prisma/generated/models';
+import { buildSearchFilter } from '@metorial-subspace/list-utils';
 import { providerInternalService } from '@metorial-subspace/module-provider-internal';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import {
@@ -50,6 +51,20 @@ export let getProviderEnvironmentVisibilityFilter = (d: { environment?: Environm
       }
     : undefined!;
 
+export let getPublicRemoteProviderVisibilityFilter = (d: {
+  tenant?: Tenant;
+}): Prisma.ProviderWhereInput | undefined =>
+  d.tenant?.hidePublicRemoteProviders
+    ? {
+        NOT: {
+          access: 'public',
+          ownerTenantOid: null,
+          customProvider: { is: null },
+          defaultVariant: { is: { backend: { is: { type: 'shuttle' } } } }
+        }
+      }
+    : undefined;
+
 export let getProviderTenantFilter = (d: {
   solution: Solution;
   tenant?: Tenant;
@@ -59,6 +74,7 @@ export let getProviderTenantFilter = (d: {
   AND: [
     d.includeDeprecated ? undefined! : { isDeprecated: false },
     getProviderEnvironmentVisibilityFilter(d),
+    getPublicRemoteProviderVisibilityFilter(d) ?? undefined!,
     {
       OR: [
         { access: 'public' as const },
@@ -206,6 +222,10 @@ type GetProviderByIdParams = {
   includeDeprecated?: boolean;
 };
 
+type GetManyProvidersByIdsParams = {
+  ids: string[];
+};
+
 type ListProvidersParams = {
   search?: string;
   ids?: string[];
@@ -266,6 +286,42 @@ class providerServiceImpl {
     return provider;
   }
 
+  async getManyProvidersByIds(d: MetorialFacing<GetManyProvidersByIdsParams>) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacing(d);
+
+    return this.getManyProvidersByIdsInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+  }
+
+  async getManyProvidersByIdsInternal(
+    d: {
+      tenant?: Tenant;
+      environment?: Environment;
+    } & GetManyProvidersByIdsParams
+  ) {
+    if (!d.ids.length) return [];
+
+    let solution = await getMetorialSolution();
+
+    return await db.provider.findMany({
+      where: {
+        AND: [
+          getProviderTenantFilter({
+            ...d,
+            solution,
+            includeDeprecated: true
+          }),
+          { id: { in: d.ids } }
+        ]
+      },
+      include
+    });
+  }
+
   async listProviders(d: MetorialFacing<ListProvidersParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
@@ -294,18 +350,31 @@ class providerServiceImpl {
     });
     let includeDeprecated = d.includeDeprecated || !!d.ids?.length;
 
-    let search = d.search?.trim();
-
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
-        let searchResults = search
-          ? await voyager.record.search({
+        let search = await buildSearchFilter<Prisma.ProviderWhereInput>({
+          search: d.search,
+          findIds: async query => {
+            let records = await voyager.record.search({
               tenantId: d.tenant?.id,
               sourceId: (await voyagerSource).id,
               indexId: voyagerIndex.providerListing.id,
-              query: search
-            })
-          : null;
+              query
+            });
+
+            return records.map(r => r.documentId);
+          },
+          matchIds: ids => ({ listing: { id: { in: ids } } }),
+          exact: query => [
+            { id: query },
+            { slug: { equals: query, mode: 'insensitive' } },
+            { globalIdentifier: query },
+            { listing: { id: query } },
+            { listing: { slug: { equals: query, mode: 'insensitive' } } },
+            { listing: { prettySlug: { equals: query, mode: 'insensitive' } } },
+            { listing: { aliases: { has: query } } }
+          ]
+        });
 
         let and: Prisma.ProviderWhereInput[] = [
           { status: 'active' as const },
@@ -314,9 +383,7 @@ class providerServiceImpl {
             solution,
             includeDeprecated
           }),
-          searchResults
-            ? { listing: { id: { in: searchResults.map(r => r.documentId) } } }
-            : undefined!,
+          search ?? undefined!,
           {
             AND: [
               d.ids

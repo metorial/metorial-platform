@@ -28,11 +28,14 @@ export let combineConfigs = (
     };
   }
 
+  let extensionAllowLists = producedConfigs
+    .map(c => c.allowedFileExtensions)
+    .filter(extensions => extensions.length);
+
   return {
     allowScripts: intersectBooleans(producedConfigs.map(c => c.allowScripts)),
-    allowedFileExtensions: intersectStringArrays(
-      producedConfigs.map(c => c.allowedFileExtensions)
-    ),
+    allowedFileExtensions: intersectStringArrays(extensionAllowLists),
+    restrictsFileExtensions: extensionAllowLists.length > 0,
     allowNonStandardDirectories: intersectBooleans(
       producedConfigs.map(c => c.allowNonStandardDirectories)
     )

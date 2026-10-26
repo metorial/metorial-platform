@@ -6,6 +6,7 @@ import {
   db,
   type Environment,
   getId,
+  type Prisma,
   type ProviderDeployment,
   type PublicMcpServer,
   type PublicMcpServerStatus,
@@ -13,6 +14,7 @@ import {
   withTransaction
 } from '@metorial-subspace/db';
 import {
+  buildSearchFilter,
   checkDeletedEdit,
   checkDeletedRelation,
   type DateFilter,
@@ -21,6 +23,7 @@ import {
   normalizeStatusForList,
   resolveProviderDeployments
 } from '@metorial-subspace/list-utils';
+import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import {
   checkTenant,
   getMetorialSolution,
@@ -38,6 +41,7 @@ import { Fabric } from '@metorial/fabric';
 import { publicMcpServerRepository } from '@metorial/multi-region';
 import { assertPublicMcpEnabled } from '../lib/flag';
 import { assertValidPublicMcpSlug, normalizePublicMcpSlug } from '../lib/slug';
+import { indexPublicMcpServerQueue } from '../queues/search/publicMcpServer';
 import { publicMcpServerArchivedQueue } from '../queues/serverArchived';
 
 export let publicMcpServerInclude = {
@@ -144,6 +148,7 @@ type ListPublicMcpServersParams = {
 
   ids?: string[];
   providerDeploymentIds?: string[];
+  search?: string;
 
   createdAt?: DateFilter;
   updatedAt?: DateFilter;
@@ -180,6 +185,21 @@ class publicMcpServerServiceImpl {
     let ts = { tenant: d.tenant, environment: d.environment, solution };
     let deployments = await resolveProviderDeployments(ts, d.providerDeploymentIds);
 
+    let search = await buildSearchFilter<Prisma.PublicMcpServerWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let records = await voyager.record.search({
+          tenantId: d.tenant.id,
+          sourceId: (await voyagerSource).id,
+          indexId: voyagerIndex.publicMcpServer.id,
+          query
+        });
+
+        return records.map(r => r.documentId);
+      },
+      exact: query => [{ id: query }, { slug: { equals: query, mode: 'insensitive' } }]
+    });
+
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
@@ -197,6 +217,7 @@ class publicMcpServerServiceImpl {
                 d.includeSystemOwned ? undefined! : { isSystemOwned: false },
                 d.ids ? { id: { in: d.ids } } : undefined!,
                 deployments ? { deploymentOid: deployments.in } : undefined!,
+                search ?? undefined!,
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
               ].filter(Boolean)
@@ -306,8 +327,8 @@ class publicMcpServerServiceImpl {
       instanceId: instance.id
     });
 
-    try {
-      return await db.publicMcpServer.create({
+    let publicMcpServer = await db.publicMcpServer
+      .create({
         data: {
           ...ids,
           status: 'active',
@@ -335,11 +356,15 @@ class publicMcpServerServiceImpl {
           isSystemOwned: !!d.isSystemOwned
         },
         include: publicMcpServerInclude
+      })
+      .catch(async err => {
+        await publicMcpServerRepository.release({ id: ids.id }).catch(() => {});
+        throw err;
       });
-    } catch (err) {
-      await publicMcpServerRepository.release({ id: ids.id }).catch(() => {});
-      throw err;
-    }
+
+    await indexPublicMcpServerQueue.add({ publicMcpServerId: publicMcpServer.id });
+
+    return publicMcpServer;
   }
 
   async updatePublicMcpServer(d: MetorialFacing<UpdatePublicMcpServerParams>) {
@@ -393,8 +418,16 @@ class publicMcpServerServiceImpl {
         ? d.input.status
         : undefined;
 
-    try {
-      let publicMcpServer = await db.publicMcpServer.update({
+    let restoreSlug = async () => {
+      if (!isRenamed) return;
+
+      await publicMcpServerRepository
+        .rename({ id: d.publicMcpServer.id, slug: d.publicMcpServer.slug })
+        .catch(() => {});
+    };
+
+    let publicMcpServer = await db.publicMcpServer
+      .update({
         where: { oid: d.publicMcpServer.oid },
         data: {
           name,
@@ -418,24 +451,24 @@ class publicMcpServerServiceImpl {
             : {})
         },
         include: publicMcpServerInclude
+      })
+      .catch(async err => {
+        await restoreSlug();
+        throw err;
       });
 
-      if (statusChange) {
-        await publicMcpServerRepository.setStatus({
-          id: publicMcpServer.id,
-          status: statusChange
+    if (statusChange) {
+      await publicMcpServerRepository
+        .setStatus({ id: publicMcpServer.id, status: statusChange })
+        .catch(async err => {
+          await restoreSlug();
+          throw err;
         });
-      }
-
-      return publicMcpServer;
-    } catch (err) {
-      if (isRenamed) {
-        await publicMcpServerRepository
-          .rename({ id: d.publicMcpServer.id, slug: d.publicMcpServer.slug })
-          .catch(() => {});
-      }
-      throw err;
     }
+
+    await indexPublicMcpServerQueue.add({ publicMcpServerId: publicMcpServer.id });
+
+    return publicMcpServer;
   }
 
   async archivePublicMcpServer(d: MetorialFacing<ArchivePublicMcpServerParams>) {

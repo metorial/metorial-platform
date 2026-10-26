@@ -97,7 +97,7 @@ export let ProviderErrorLayout = () => {
               <ExtraItem>
                 <ExtraLabel>Code</ExtraLabel>
                 {error.data.code ? (
-                  <Badge size="1" color="red">
+                  <Badge size="2" color="red">
                     {error.data.code}
                   </Badge>
                 ) : (

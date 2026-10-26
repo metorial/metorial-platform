@@ -179,40 +179,53 @@ let emailResult = await client.email.send({
   senderId: sender.id,
   emailIdentityId: identity.id,
   to: ['user@example.com'],
-  subject: 'Welcome to Our Service',
-  html: '<h1>Welcome!</h1><p>Thank you for signing up.</p>',
-  text: 'Welcome! Thank you for signing up.',
+  template: { userName: 'Ada' },
+  content: {
+    subject: 'Welcome to Our Service',
+    html: '<h1>Welcome!</h1><p>Thank you for signing up.</p>',
+    text: 'Welcome! Thank you for signing up.',
+  },
 });
 
-console.log('Email queued successfully');
+console.log('Email queued successfully:', emailResult.id);
 
-// Send to multiple recipients
-let bulkEmailResult = await client.email.send({
+// Each recipient receives their own copy; pass an idempotency key to make retries safe
+await client.email.send({
   senderId: sender.id,
   emailIdentityId: identity.id,
+  idempotencyKey: 'newsletter/2026-03',
   to: ['user1@example.com', 'user2@example.com', 'user3@example.com'],
-  cc: ['manager@example.com'],
-  bcc: ['archive@example.com'],
-  subject: 'Monthly Newsletter',
-  html: '<h1>Newsletter</h1><p>Here are this month\'s updates...</p>',
-  text: 'Newsletter\n\nHere are this month\'s updates...',
-  replyTo: 'noreply@example.com',
+  template: {},
+  content: {
+    subject: 'Monthly Newsletter',
+    html: "<h1>Newsletter</h1><p>Here are this month's updates...</p>",
+    text: "Newsletter\n\nHere are this month's updates...",
+  },
 });
 
-// Send with custom headers
-let customEmailResult = await client.email.send({
+// Send with attachments (base64 content, at most 5 files and 7 MB in total)
+await client.email.send({
   senderId: sender.id,
   emailIdentityId: identity.id,
   to: ['customer@example.com'],
-  subject: 'Order Confirmation',
-  html: '<h1>Order #12345</h1><p>Your order has been confirmed.</p>',
-  text: 'Order #12345\n\nYour order has been confirmed.',
-  headers: {
-    'X-Order-ID': '12345',
-    'X-Customer-ID': 'cust_456',
+  template: {},
+  content: {
+    subject: 'Your invoice',
+    html: '<p>Your invoice is attached.</p>',
+    text: 'Your invoice is attached.',
   },
+  attachments: [
+    {
+      filename: 'Invoice-0001.pdf',
+      contentType: 'application/pdf',
+      content: pdfBytes.toString('base64'),
+    },
+  ],
 });
 ```
+
+Attachment bytes are stored alongside the email content and deleted once every recipient has been
+processed. With SES, emails with attachments are sent as raw MIME messages (`SendRawEmail`).
 
 ### Environment-Specific Behavior
 

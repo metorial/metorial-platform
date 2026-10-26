@@ -6,8 +6,11 @@ import {
   TableStateProvider,
   TableStateProviderResult,
   getDateRangeFilterValue,
-  getStringFilterValue
+  getListFilterValue,
+  type TableFilter
 } from '@metorial/table';
+import { useMemo } from 'react';
+import { entityFilters } from '../entityFilters';
 import { ProtoGuardSeverityBadge } from './badges';
 
 type DashboardInstanceProtoGuardAlertsListQuery = any;
@@ -28,13 +31,11 @@ let protoGuardAlertsTableState: TableStateProvider<
 > = (props, opts) => {
   let alerts = useProtoGuardAlerts(props.instance.data?.id, {
     order: 'desc' as const,
-    id: getStringFilterValue(opts.filter.id),
-    runId: getStringFilterValue(opts.filter.runId),
-    filterId: props.filterId ?? getStringFilterValue(opts.filter.filterId),
-    sessionId: getStringFilterValue(opts.filter.sessionId),
-    sessionMessageId: getStringFilterValue(opts.filter.sessionMessageId),
-    sessionConnectionId: getStringFilterValue(opts.filter.sessionConnectionId),
-    providerRunId: getStringFilterValue(opts.filter.providerRunId),
+    runId: getListFilterValue(opts.filter.runId),
+    filterId: props.filterId ?? getListFilterValue(opts.filter.filterId),
+    sessionId: getListFilterValue(opts.filter.sessionId),
+    sessionMessageId: getListFilterValue(opts.filter.sessionMessageId),
+    sessionConnectionId: getListFilterValue(opts.filter.sessionConnectionId),
     createdAt: getDateRangeFilterValue(opts.filter.createdAt)
   } satisfies DashboardInstanceProtoGuardAlertsListQuery);
 
@@ -48,6 +49,21 @@ let protoGuardAlertsTableState: TableStateProvider<
     loadPrevious: alerts.previous
   };
 };
+
+let useProtoGuardAlertsFilters = (instanceId: string | undefined) =>
+  useMemo<TableFilter<ProtoGuardAlert>[]>(
+    () => [
+      entityFilters.session(instanceId),
+      {
+        id: 'createdAt',
+        fields: ['createdAt'],
+        label: 'Created',
+        description: 'Filter by created date',
+        type: 'date'
+      }
+    ],
+    [instanceId]
+  );
 
 let createProtoGuardAlertsTable = () =>
   new DashboardTable<ProtoGuardAlertsTableStateProps, ProtoGuardAlert>('protoguard-alerts')
@@ -138,29 +154,6 @@ let createProtoGuardAlertsTable = () =>
         render: alert => <ID id={alert.runId} />
       }
     ])
-    .filters([
-      {
-        id: 'sessionId',
-        fields: ['sessionId'],
-        label: 'Session',
-        description: 'Filter by session',
-        type: 'string'
-      },
-      {
-        id: 'providerRunId',
-        fields: ['providerRunId'],
-        label: 'Provider run',
-        description: 'Filter by provider run',
-        type: 'string'
-      },
-      {
-        id: 'createdAt',
-        fields: ['createdAt'],
-        label: 'Created',
-        description: 'Filter by created date',
-        type: 'date'
-      }
-    ])
     .build();
 
 let protoGuardAlertsTable = createProtoGuardAlertsTable();
@@ -171,10 +164,12 @@ export let ProtoGuardAlertsTable = (props?: ProtoGuardAlertsTableProps) => {
   let TableComponent = props?.filterId
     ? filterScopedProtoGuardAlertsTable
     : protoGuardAlertsTable;
+  let tableFilters = useProtoGuardAlertsFilters(instance.data?.id);
 
   return TableComponent({
     ...props,
     instance,
+    tableFilters,
     emptyState: 'No ProtoGuard alerts found.'
   });
 };

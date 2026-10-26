@@ -84,6 +84,7 @@ class ConsumerActorServiceImpl {
       where: {
         instanceOid: d.instance.oid,
         consumerProfileOid: d.consumerProfile.oid,
+        consumerProfile: { status: 'active' },
         isDefault: true
       },
       orderBy: [{ createdAt: 'asc' }, { oid: 'asc' }],

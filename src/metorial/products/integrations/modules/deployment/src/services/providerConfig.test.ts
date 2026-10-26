@@ -66,7 +66,7 @@ vi.mock('@metorial-subspace/list-utils', () => ({
   resolveIdentities: vi.fn(),
   resolveIdentityActors: vi.fn(),
   resolveIdentityCredentials: vi.fn(),
-  resolveProviderConfigs: vi.fn(),
+  resolveProviderConfigVaults: vi.fn(),
   resolveProviderDeployments: vi.fn(),
   resolveProviders: vi.fn(),
   resolveProviderSpecifications: vi.fn()

@@ -30,6 +30,11 @@ enum StoreItemKind {
   directory
 }
 
+enum StorePathMode {
+  legacy
+  unicode
+}
+
 model Store {
   oid BigInt @id @default(autoincrement())
   id  String @unique
@@ -43,6 +48,8 @@ model Store {
   isReadOnly        Boolean         @default(false)
   isTemplateBacking Boolean         @default(false)
   lastEditedAt      DateTime        @default(now())
+
+  pathMode StorePathMode @default(legacy)
 
   createdByResourceActorOid BigInt?
   createdByResourceActor    ResourceActor? @relation("StoreCreator", fields: [createdByResourceActorOid], references: [oid], onDelete: SetNull)

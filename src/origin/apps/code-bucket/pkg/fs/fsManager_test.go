@@ -322,6 +322,41 @@ func newTestFileSystemManager(t *testing.T, storage *objectstorage.Client) *File
 	}
 }
 
+func TestObjectKeysWithURLSyntaxReachObjectStorageVerbatim(t *testing.T) {
+	received := []string{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		received = append(received, r.Method+" "+r.URL.Path)
+		io.Copy(io.Discard, r.Body)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{"key": "k"})
+	}))
+	defer server.Close()
+
+	fsm := newTestFileSystemManager(t, objectstorage.NewClient(server.URL))
+	fsm.objectStorageURL = server.URL
+	fsm.httpClient = server.Client()
+
+	large := bytes.Repeat([]byte("x"), maxRedisCacheSize+1)
+	paths := []string{"/docs/notes#1.md", "/docs/100%.md", "/docs/a%41.md", "/docs/résumé 🚀.md"}
+	for _, filePath := range paths {
+		if err := fsm.PutBucketFile(context.Background(), "bkt_1", filePath, large, "text/plain"); err != nil {
+			t.Fatalf("put %s: %v", filePath, err)
+		}
+	}
+	if err := fsm.putObjectFromReader("code-buckets", "zips/bkt_1/export#1 100%.zip", strings.NewReader("zip"), nil, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	expected := []string{}
+	for _, filePath := range paths {
+		expected = append(expected, "PUT /buckets/code-buckets/objects/bkt_1"+filePath)
+	}
+	expected = append(expected, "PUT /buckets/code-buckets/objects/zips/bkt_1/export#1 100%.zip")
+	if !reflect.DeepEqual(received, expected) {
+		t.Fatalf("expected %#v, got %#v", expected, received)
+	}
+}
+
 func TestOpenBucketFileReturnsAReaderOverTheObject(t *testing.T) {
 	content := []byte("streamed file content")
 	storage, requested := newFileObjectStorage(t, content, nil)

@@ -2,10 +2,12 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     fs,
     hash::{DefaultHasher, Hash, Hasher},
+    io::Write,
     path::{Component, Path, PathBuf},
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
+use fs2::FileExt;
 use miette::{IntoDiagnostic, Result, WrapErr, bail};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -22,9 +24,16 @@ use crate::{
 const DEFAULT_HEALTH_TIMEOUT: u64 = 300;
 const DEFAULT_CONCURRENCY: u32 = 4;
 const OBJECT_STORAGE_IMAGE: &str = "ghcr.io/metorial/object-storage:latest";
+const POSTGRES_IMAGE: &str = "postgres:17";
+const MONGO_IMAGE: &str = "mongo:7";
+const REDIS_IMAGE: &str = "redis:7.4-alpine";
+const NATS_IMAGE: &str = "nats:2.11-alpine";
 const INFRASTRUCTURE: [&str; 4] = ["postgres-db2", "mongodb", "redis-db", "nats-1"];
 const FINGERPRINT_TASK: &str = "e2e:fingerprint";
 const HOST_ALIAS: &str = "host.docker.internal";
+// Outbound sockets in the shared namespace must never take a fixed service port (52xxx) before that service binds it.
+const EPHEMERAL_PORT_RANGE: &str = "61000 65535";
+const RUN_LOCK_FILE: &str = "metorial-control-e2e.lock";
 const REMOTE_CACHE_SECRETS: [&str; 3] = [
     "TURBO_TEAM",
     "TURBO_TOKEN",
@@ -38,6 +47,7 @@ pub struct Options {
     pub keep: bool,
     pub plan_only: bool,
     pub concurrency: Option<u32>,
+    pub test_args: Vec<String>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
@@ -52,6 +62,7 @@ pub enum Mode {
 pub struct Plan {
     pub mode: Mode,
     pub concurrency: u32,
+    pub test_args: Vec<String>,
     pub health_timeout_seconds: u64,
     pub files: Vec<EnvFile>,
     pub prepare: Vec<Step>,
@@ -110,10 +121,10 @@ pub struct Stack {
 }
 
 #[derive(Debug)]
-struct PackageInfo {
-    name: String,
-    directory: PathBuf,
-    scripts: BTreeSet<String>,
+pub(crate) struct PackageInfo {
+    pub name: String,
+    pub directory: PathBuf,
+    pub scripts: BTreeSet<String>,
 }
 
 #[derive(Deserialize)]
@@ -137,6 +148,10 @@ pub async fn run(project: &ProjectRoot, options: Options) -> Result<()> {
         return Ok(());
     }
     print_summary(&plan);
+
+    // Every local run shares one workspace volume and boots a full stack, so runs from any
+    // checkout on this machine are serialized. The OS releases the lock when the process exits.
+    let _run_lock = acquire_run_lock(&std::env::temp_dir().join(RUN_LOCK_FILE)).await?;
 
     let assets = project.oss.join("scripts/dev-tools/e2e");
     let run_id = format!(
@@ -186,7 +201,17 @@ pub async fn run(project: &ProjectRoot, options: Options) -> Result<()> {
         file: run_dir.join("compose.yml"),
     };
     let project_name = format!("control-e2e-{root_hash}-{}", std::process::id());
-    let rendered = render_compose(&plan, &project_name, &image, &mounts, &run_dir);
+    let mut rendered = render_compose(&plan, &project_name, &image, &mounts, &run_dir);
+    if let Some(runtime) = ci_runtime()? {
+        for service in rendered["services"].as_object_mut().unwrap().values_mut() {
+            if let Some(pinned) = service["image"]
+                .as_str()
+                .and_then(|image| runtime["images"][image].as_str())
+            {
+                service["image"] = Value::String(pinned.into());
+            }
+        }
+    }
     fs::write(
         &compose.file,
         serde_json::to_string_pretty(&rendered).into_diagnostic()?,
@@ -214,6 +239,35 @@ pub async fn run(project: &ProjectRoot, options: Options) -> Result<()> {
     }
     println!("E2E logs: {}", run_dir.join("logs").display());
     result
+}
+
+async fn acquire_run_lock(path: &Path) -> Result<fs::File> {
+    let mut file = fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(path)
+        .into_diagnostic()
+        .wrap_err_with(|| format!("could not open the e2e run lock {}", path.display()))?;
+
+    if file.try_lock_exclusive().is_err() {
+        let holder = fs::read_to_string(path).unwrap_or_default();
+        let holder = holder.trim();
+        println!(
+            "Waiting for another e2e run (pid {})...",
+            if holder.is_empty() { "unknown" } else { holder }
+        );
+        file = tokio::task::spawn_blocking(move || file.lock_exclusive().map(|_| file))
+            .await
+            .into_diagnostic()?
+            .into_diagnostic()
+            .wrap_err("could not acquire the e2e run lock")?;
+    }
+
+    file.set_len(0).into_diagnostic()?;
+    write!(file, "{}", std::process::id()).into_diagnostic()?;
+    Ok(file)
 }
 
 pub fn build_plan(
@@ -268,12 +322,7 @@ pub fn build_plan(
             }
             for package in matched {
                 if !package.scripts.contains("test:e2e") {
-                    bail!(
-                        "{}: e2e test package {:?} ({}) does not declare a \"test:e2e\" script",
-                        loaded.path.display(),
-                        package.name,
-                        package.directory.display()
-                    );
+                    continue;
                 }
                 tests.insert(package.name.clone());
             }
@@ -424,6 +473,7 @@ pub fn build_plan(
     Ok(Plan {
         mode,
         concurrency: options.concurrency.unwrap_or(DEFAULT_CONCURRENCY).max(1),
+        test_args: options.test_args.clone(),
         health_timeout_seconds: sut_manifests
             .iter()
             .filter_map(|loaded| loaded.manifest.e2e.health_timeout)
@@ -524,6 +574,7 @@ fn attach_cache_keys(plan: &mut Plan, fingerprints: &BTreeMap<String, String>) {
             "mode": mode,
             "env": stack.env,
             "services": services,
+            "ci": ci_runtime().ok().flatten().and_then(|runtime| runtime["keys"][&stack.name].as_str().map(str::to_owned)),
         }));
     }
 }
@@ -837,7 +888,7 @@ fn prepare_steps(
     Ok(steps)
 }
 
-fn discover_packages(root: &Path) -> Result<Vec<PackageInfo>> {
+pub(crate) fn discover_packages(root: &Path) -> Result<Vec<PackageInfo>> {
     let mut output = Vec::new();
     let mut names = BTreeSet::new();
     for entry in walkdir::WalkDir::new(root)
@@ -923,7 +974,7 @@ fn render_compose(
     services.insert(
         "postgres-db2".into(),
         json!({
-            "image": "postgres:17",
+            "image": POSTGRES_IMAGE,
             "command": ["postgres", "-c", "max_connections=1000", "-c", "fsync=off", "-c", "synchronous_commit=off", "-c", "full_page_writes=off"],
             "environment": { "POSTGRES_USER": "postgres", "POSTGRES_PASSWORD": "postgres" },
             "tmpfs": ["/var/lib/postgresql/data"],
@@ -933,7 +984,7 @@ fn render_compose(
     services.insert(
         "mongodb".into(),
         json!({
-            "image": "mongo:7",
+            "image": MONGO_IMAGE,
             "environment": { "MONGO_INITDB_ROOT_USERNAME": "mongo", "MONGO_INITDB_ROOT_PASSWORD": "mongo" },
             "tmpfs": ["/data/db", "/data/configdb"],
             "healthcheck": { "test": ["CMD-SHELL", "mongosh --quiet --username mongo --password mongo --authenticationDatabase admin --eval 'quit(db.runCommand({ ping: 1 }).ok ? 0 : 2)'"], "interval": "1s", "timeout": "5s", "retries": 120 }
@@ -942,7 +993,7 @@ fn render_compose(
     services.insert(
         "redis-db".into(),
         json!({
-            "image": "redis:7.4-alpine",
+            "image": REDIS_IMAGE,
             "command": ["redis-server", "--save", "", "--appendonly", "no"],
             "healthcheck": { "test": ["CMD", "redis-cli", "ping"], "interval": "1s", "timeout": "3s", "retries": 120 }
         }),
@@ -950,7 +1001,7 @@ fn render_compose(
     services.insert(
         "nats-1".into(),
         json!({
-            "image": "nats:2.11-alpine",
+            "image": NATS_IMAGE,
             "command": ["--jetstream", "--store_dir=/tmp/nats", "--http_port=8222"],
             "healthcheck": { "test": ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8222/healthz >/dev/null"], "interval": "1s", "timeout": "3s", "retries": 120 }
         }),
@@ -985,6 +1036,7 @@ fn render_compose(
             "image": runner_image,
             "command": ["gateway"],
             "extra_hosts": [format!("{HOST_ALIAS}:host-gateway")],
+            "sysctls": { "net.ipv4.ip_local_port_range": EPHEMERAL_PORT_RANGE },
             "healthcheck": { "test": ["CMD-SHELL", "test -f /tmp/control-e2e-gateway-ready"], "interval": "1s", "timeout": "3s", "retries": 60 }
         }),
     );
@@ -1249,8 +1301,22 @@ async fn probe(compose: &Compose, check: &HealthUrl) -> bool {
 }
 
 async fn ensure_runner_image(root: &Path, assets: &Path) -> Result<String> {
+    let mut recipe = fs::read_to_string(assets.join("Dockerfile")).into_diagnostic()?;
+    if let Some(runtime) = ci_runtime()? {
+        for (reference, pinned) in runtime["images"].as_object().into_iter().flatten() {
+            recipe = recipe.replace(
+                &format!("FROM {reference}"),
+                &format!("FROM {}", pinned.as_str().unwrap()),
+            );
+        }
+    }
+    let recipe_directory = root.join(".control/e2e/runner");
+    fs::create_dir_all(&recipe_directory).into_diagnostic()?;
+    let recipe_path = recipe_directory.join("Dockerfile");
+    fs::write(&recipe_path, &recipe).into_diagnostic()?;
     let mut hasher = DefaultHasher::new();
-    for file in ["Dockerfile", "entrypoint.sh"] {
+    recipe.hash(&mut hasher);
+    for file in ["entrypoint.sh"] {
         fs::read(assets.join(file))
             .into_diagnostic()
             .wrap_err_with(|| format!("could not read {}", assets.join(file).display()))?
@@ -1278,7 +1344,7 @@ async fn ensure_runner_image(root: &Path, assets: &Path) -> Result<String> {
             "--tag".into(),
             image.clone(),
             "--file".into(),
-            assets.join("Dockerfile").to_string_lossy().into_owned(),
+            recipe_path.to_string_lossy().into_owned(),
             assets.to_string_lossy().into_owned(),
         ],
         root,
@@ -1287,6 +1353,14 @@ async fn ensure_runner_image(root: &Path, assets: &Path) -> Result<String> {
     .await
     .wrap_err("could not build the e2e runner image")?;
     Ok(image)
+}
+
+fn ci_runtime() -> Result<Option<Value>> {
+    let Ok(path) = std::env::var("CONTROL_CI_RUNTIME") else {
+        return Ok(None);
+    };
+    let text = fs::read_to_string(path).into_diagnostic()?;
+    Ok(Some(serde_json::from_str(&text).into_diagnostic()?))
 }
 
 fn package_name(loaded: &LoadedManifest) -> String {
@@ -1308,7 +1382,7 @@ fn relative(root: &Path, path: &Path) -> String {
     }
 }
 
-fn normalize_path(path: &Path) -> PathBuf {
+pub(crate) fn normalize_path(path: &Path) -> PathBuf {
     let mut output = PathBuf::new();
     for component in path.components() {
         match component {
@@ -1322,7 +1396,7 @@ fn normalize_path(path: &Path) -> PathBuf {
     output
 }
 
-fn glob_match(pattern: &Path, path: &Path) -> bool {
+pub(crate) fn glob_match(pattern: &Path, path: &Path) -> bool {
     let segments = |path: &Path| {
         path.components()
             .map(|component| component.as_os_str().to_string_lossy().into_owned())
@@ -1420,6 +1494,7 @@ mod tests {
             keep: false,
             plan_only: true,
             concurrency: None,
+            test_args: Vec::new(),
         }
     }
 
@@ -1562,7 +1637,32 @@ mod tests {
     }
 
     #[test]
-    fn requires_health_start_and_test_scripts() {
+    fn skips_packages_without_e2e_test_scripts() {
+        let temp = tempdir().unwrap();
+        fixture(temp.path());
+        write_package(
+            temp.path(),
+            "modules/no-tests",
+            "@x/module-no-tests",
+            &[],
+            None,
+        );
+        write_package(
+            temp.path(),
+            "modules/unit-only",
+            "@x/module-unit-only",
+            &["test:unit"],
+            None,
+        );
+
+        let manifests = manifest::discover(temp.path()).unwrap();
+        let plan = build_plan(&project(temp.path()), &manifests, &options(&[], None)).unwrap();
+
+        assert_eq!(plan.stacks[0].tests, ["@x/module-files", "@x/module-users"]);
+    }
+
+    #[test]
+    fn requires_health_and_start_scripts() {
         let temp = tempdir().unwrap();
         fixture(temp.path());
         let project = project(temp.path());
@@ -1591,17 +1691,6 @@ mod tests {
         let manifests = manifest::discover(temp.path()).unwrap();
         let error = build_plan(&project, &manifests, &options(&[], None)).unwrap_err();
         assert!(error.to_string().contains("no [e2e] start"), "{error}");
-
-        fixture(temp.path());
-        write_package(temp.path(), "modules/broken", "@x/module-broken", &[], None);
-        let manifests = manifest::discover(temp.path()).unwrap();
-        let error = build_plan(&project, &manifests, &options(&[], None)).unwrap_err();
-        assert!(
-            error
-                .to_string()
-                .contains("does not declare a \"test:e2e\""),
-            "{error}"
-        );
     }
 
     #[test]
@@ -1720,6 +1809,25 @@ mod tests {
     }
 
     #[test]
+    fn keeps_ephemeral_ports_clear_of_service_ports() {
+        let temp = tempdir().unwrap();
+        fixture(temp.path());
+        let manifests = manifest::discover(temp.path()).unwrap();
+        let plan = build_plan(&project(temp.path()), &manifests, &options(&[], None)).unwrap();
+        let compose = render_compose(
+            &plan,
+            "control-e2e-test",
+            "runner:latest",
+            &Mounts::Workspace(temp.path().into()),
+            temp.path(),
+        );
+        assert_eq!(
+            compose["services"]["gateway"]["sysctls"]["net.ipv4.ip_local_port_range"],
+            "61000 65535"
+        );
+    }
+
+    #[test]
     fn rejects_port_collisions_in_the_shared_namespace() {
         let temp = tempdir().unwrap();
         fixture(temp.path());
@@ -1756,4 +1864,32 @@ mod tests {
         )));
         assert!(!is_pinned_image("ghcr.io/metorial/app-api:latest"));
     }
+
+    #[tokio::test]
+    async fn serializes_runs_on_the_run_lock() {
+        let temp = tempdir().unwrap();
+        let path = temp.path().join(RUN_LOCK_FILE);
+
+        let held = acquire_run_lock(&path).await.unwrap();
+        assert_eq!(
+            fs::read_to_string(&path).unwrap(),
+            std::process::id().to_string()
+        );
+
+        let contender = fs::OpenOptions::new().write(true).open(&path).unwrap();
+        assert!(contender.try_lock_exclusive().is_err());
+
+        drop(held);
+        assert!(contender.try_lock_exclusive().is_ok());
+    }
+}
+
+pub(crate) fn infrastructure_images() -> Vec<&'static str> {
+    vec![
+        POSTGRES_IMAGE,
+        MONGO_IMAGE,
+        REDIS_IMAGE,
+        NATS_IMAGE,
+        OBJECT_STORAGE_IMAGE,
+    ]
 }

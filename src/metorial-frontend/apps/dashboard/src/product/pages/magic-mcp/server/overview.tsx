@@ -1,6 +1,7 @@
 import { DashboardInstanceMagicMcpServersProvidersListOutput } from '@metorial/dashboard-sdk';
 import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
 import { DetailsOverviewLayout } from '@metorial/details-layout';
+import { Paths } from '@metorial/frontend-config';
 import {
   useCreateMagicMcpServerProvider,
   useCurrentInstance,
@@ -29,6 +30,7 @@ import {
 import { ResourceOwnerEntity } from '../../../components/resourceOwnerEntity';
 import { useResourceOwnershipAccess } from '../../../lib/resourceOwnership';
 import { MagicMcpServerConnectionBox } from './connection';
+import { UsageOverviewTiles } from '../../../scenes/instanceUsage';
 import { ToolFilterSummaryText } from '../../../lib/toolFilterSummary';
 import { showAddProviderSidePanel } from '../../../scenes/sessionTemplates/providersManager';
 
@@ -371,6 +373,20 @@ export let MagicMcpServerOverviewPage = () => {
 
       return (
         <DetailsOverviewLayout>
+          <UsageOverviewTiles
+            filter={{ magicMcpServerId: server.data.id }}
+            tiles={['tool_calls', 'active_consumers', 'connection_time', 'errors']}
+            href={Paths.instance.magicMcp.server(
+              organization.data,
+              project.data,
+              instance.data,
+              server.data.id,
+              'usage'
+            )}
+          />
+
+          <Spacer height={20} />
+
           {!ownership.isLoading && !ownership.canUse && (
             <>
               <Callout color="orange">

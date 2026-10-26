@@ -39,7 +39,7 @@ export type DownloadChatMessageAttachmentParams = {
 export type AttachUploadedChatMessageAttachmentParams = {
   message: ChatMessage;
   attachment: AttachmentRef;
-  uploadedFile: Pick<File, 'id' | 'oid'> & { purpose: { canHaveLinks: boolean } };
+  uploadedFile: Pick<File, 'id' | 'oid' | 'status'> & { purpose: { canHaveLinks: boolean } };
   position?: number;
 };
 

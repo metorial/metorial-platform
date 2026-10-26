@@ -39,7 +39,7 @@ let pendingPulse = keyframes`
 
 let Wrapper = styled('div')`
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   cursor: pointer;
   width: 100%;
 `;
@@ -163,15 +163,18 @@ export let Checkbox = ({
             htmlFor={id}
             style={{
               margin: 0,
-              width: '100%',
+              flex: 1,
+              minWidth: 0,
               minHeight: 20,
               paddingLeft: 10,
               display: 'flex',
               alignItems: 'center',
+              whiteSpace: 'normal',
+              lineHeight: 1.45,
               cursor: readOnly ? 'default' : 'pointer'
             }}
           >
-            {label}
+            <span>{label}</span>
           </InputLabel>
         ) : (
           <VisuallyHidden.Root>

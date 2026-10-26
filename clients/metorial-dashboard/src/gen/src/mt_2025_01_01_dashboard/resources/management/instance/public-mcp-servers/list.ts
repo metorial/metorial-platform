@@ -133,6 +133,7 @@ export type ManagementInstancePublicMcpServersListQuery = {
     | undefined;
   id?: string | string[] | undefined;
   providerDeploymentId?: string | string[] | undefined;
+  search?: string | undefined;
   createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
   updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };

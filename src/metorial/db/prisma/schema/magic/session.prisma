@@ -23,5 +23,6 @@ model MagicMcpSession {
 
   consumerIntegrationSessions ConsumerIntegrationSession[]
 
+  @@index([subspaceSessionId])
   @@map("MagicMcpServerSubspaceSession")
 }

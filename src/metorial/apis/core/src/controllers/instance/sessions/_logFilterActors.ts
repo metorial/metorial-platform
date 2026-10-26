@@ -1,6 +1,27 @@
 import { type Instance, db } from '@metorial/db';
 import { resourceActorService } from '@metorial/module-resource-actor';
+import { searchConsumerIds } from '@metorial/module-search';
 import { identityService } from '@metorial-subspace/module-identity';
+
+let MIN_SEARCH_QUERY_LENGTH = 2;
+
+let resolveConsumerActorIds = async (d: { instance: Instance; consumerIds: string[] }) => {
+  let consumerActors = await db.consumerActor.findMany({
+    where: {
+      instanceOid: d.instance.oid,
+      instanceConsumer: {
+        id: {
+          in: d.consumerIds
+        }
+      }
+    },
+    select: {
+      id: true
+    }
+  });
+
+  return consumerActors.map(actor => actor.id);
+};
 
 export let resolveActorIdsForLogFilters = async (d: {
   instance: Instance;
@@ -16,22 +37,13 @@ export let resolveActorIdsForLogFilters = async (d: {
   if (d.consumerIds?.length) {
     hasActorFilter = true;
 
-    let consumerActors = await db.consumerActor.findMany({
-      where: {
-        instanceOid: d.instance.oid,
-        instanceConsumer: {
-          id: {
-            in: d.consumerIds
-          }
-        }
-      },
-      select: {
-        id: true
-      }
+    let consumerActorIds = await resolveConsumerActorIds({
+      instance: d.instance,
+      consumerIds: d.consumerIds
     });
 
-    for (let actor of consumerActors) {
-      actorIds.add(actor.id);
+    for (let actorId of consumerActorIds) {
+      actorIds.add(actorId);
     }
   }
 
@@ -40,7 +52,6 @@ export let resolveActorIdsForLogFilters = async (d: {
 
     let paginator = await identityService.listIdentities({
       instance: d.instance,
-      allowDeleted: true,
       ids: d.identityIds
     });
     let identities = await paginator.run({
@@ -63,4 +74,14 @@ export let resolveActorIdsForLogFilters = async (d: {
   }
 
   return hasActorFilter ? [...actorIds] : undefined;
+};
+
+export let resolveSearchActorIds = async (d: { instance: Instance; search?: string }) => {
+  let query = d.search?.trim();
+  if (!query || query.length < MIN_SEARCH_QUERY_LENGTH) return undefined;
+
+  let consumerIds = await searchConsumerIds({ instanceId: d.instance.id, query });
+  if (!consumerIds.length) return undefined;
+
+  return await resolveConsumerActorIds({ instance: d.instance, consumerIds });
 };

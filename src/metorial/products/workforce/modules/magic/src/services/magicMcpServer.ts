@@ -30,7 +30,7 @@ import {
   consumerMagicMcpWriteRoles,
   type AnyAccessTagSelector
 } from '@metorial/module-access';
-import { searchMagicMcpServerIds } from '@metorial/module-search';
+import { buildSearchFilter, searchMagicMcpServerIds } from '@metorial/module-search';
 import {
   integrationInstanceService,
   magicMcpServerBackingService,
@@ -1092,15 +1092,14 @@ class MagicMcpServerImpl {
     ownership?: OwnershipFilter;
     includeSystemOwned?: boolean;
   }) {
-    let normalizedSearch = d.search?.trim();
-    if (!normalizedSearch?.length) normalizedSearch = undefined;
-
-    let searchedServerIds = normalizedSearch
-      ? await searchMagicMcpServerIds({
-          instanceId: d.instance.id,
-          query: normalizedSearch
-        })
-      : undefined;
+    let search = await buildSearchFilter<Prisma.MagicMcpServerWhereInput>({
+      search: d.search,
+      findIds: query => searchMagicMcpServerIds({ instanceId: d.instance.id, query }),
+      exact: query => [
+        { id: query },
+        { aliases: { some: { slug: { equals: query, mode: 'insensitive' } } } }
+      ]
+    });
 
     let groupOids = d.groupIds?.length
       ? (
@@ -1137,12 +1136,8 @@ class MagicMcpServerImpl {
       })
     );
 
-    if (normalizedSearch) {
-      andFilters.push({
-        id: {
-          in: searchedServerIds
-        }
-      });
+    if (search) {
+      andFilters.push(search);
     }
 
     if (filterAccessTagFilter) {

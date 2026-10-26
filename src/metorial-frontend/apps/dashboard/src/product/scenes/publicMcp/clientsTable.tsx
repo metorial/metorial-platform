@@ -34,10 +34,10 @@ export let PublicMcpClientsTable = ({
                 </Text>
               )}
             </div>,
-            <Badge size="1" color="gray">
+            <Badge size="2" color="gray">
               {authMethodLabels[client.tokenEndpointAuthMethod]}
             </Badge>,
-            <Text size="1" color="gray700">
+            <Text size="2" color="gray700">
               {client.redirectUris.join(', ')}
             </Text>,
             client.lastUsedAt ? (

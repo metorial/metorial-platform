@@ -2245,6 +2245,16 @@ export let usageType = PresentableType.create<{
   }[];
 }>()('usage');
 
+export let instanceUsageTimelineType = PresentableType.create<{
+  instanceId: string;
+  timeline: import('@metorial/module-usage').UsageTimeline;
+}>()('instance.usage.timeline');
+
+export let instanceUsageSummaryType = PresentableType.create<{
+  instanceId: string;
+  summary: import('@metorial/module-usage').UsageSummary;
+}>()('instance.usage.summary');
+
 export let profileType = PresentableType.create<{
   profile: Profile;
 }>()('profile');

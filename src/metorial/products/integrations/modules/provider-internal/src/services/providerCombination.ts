@@ -69,9 +69,13 @@ let uniqueOids = (oids: (bigint | null | undefined)[]) => [
   ...new Set(oids.filter((oid): oid is bigint => oid != null))
 ];
 
-let requireByOid = <T>(records: Map<bigint, T>, oid: bigint, entity: string) => {
-  let record = records.get(oid);
-  if (!record) throw new ServiceError(notFoundError(entity, oid.toString()));
+let requireRecord = <K extends bigint | string, T>(
+  records: Map<K, T>,
+  key: K,
+  entity: string
+) => {
+  let record = records.get(key);
+  if (!record) throw new ServiceError(notFoundError(entity, key.toString()));
   return record;
 };
 
@@ -189,13 +193,13 @@ class providerCombinationServiceImpl {
 
         let items = d.providers.map(s => {
           let config: CombinationConfig | null = s.configId
-            ? (configsById.get(s.configId) ?? null)
+            ? requireRecord(configsById, s.configId, 'provider.config')
             : null;
           let authConfig: CombinationAuthConfig | null = s.authConfigId
-            ? (authConfigsById.get(s.authConfigId) ?? null)
+            ? requireRecord(authConfigsById, s.authConfigId, 'provider.auth_config')
             : null;
           let deployment: CombinationDeployment | null = s.deploymentId
-            ? (deploymentsById.get(s.deploymentId) ?? null)
+            ? requireRecord(deploymentsById, s.deploymentId, 'provider.deployment')
             : null;
 
           checkDeletedRelation(config, d);
@@ -236,7 +240,7 @@ class providerCombinationServiceImpl {
           let deploymentOid = item.config?.deploymentOid ?? item.authConfig?.deploymentOid;
           if (!deploymentOid) continue;
 
-          let fetchedDeployment = requireByOid(
+          let fetchedDeployment = requireRecord(
             inferredDeploymentsByOid,
             deploymentOid,
             'provider.deployment'
@@ -264,7 +268,7 @@ class providerCombinationServiceImpl {
             let deployment = item.deployment;
 
             if (!provider && item.providerOid) {
-              provider = requireByOid(providersByOid, item.providerOid, 'provider');
+              provider = requireRecord(providersByOid, item.providerOid, 'provider');
               checkDeletedRelation(provider, d);
 
               deployment =
@@ -330,7 +334,7 @@ class providerCombinationServiceImpl {
 
         let withSpecification = versioned.map(item => ({
           ...item,
-          specification: requireByOid(
+          specification: requireRecord(
             specificationsByOid,
             item.specificationOid,
             'provider.specification'
@@ -355,7 +359,7 @@ class providerCombinationServiceImpl {
             if (item.config) return { ...item, config: item.config };
 
             if (item.deployment.defaultConfigOid) {
-              let config = requireByOid(
+              let config = requireRecord(
                 defaultConfigsByOid,
                 item.deployment.defaultConfigOid,
                 'provider.config'
@@ -418,7 +422,7 @@ class providerCombinationServiceImpl {
           let authConfig = item.authConfig;
 
           if (needsAuthConfig(item)) {
-            authConfig = requireByOid(
+            authConfig = requireRecord(
               defaultAuthConfigsByOid,
               item.deployment.defaultAuthConfigOid!,
               'provider.auth_config'

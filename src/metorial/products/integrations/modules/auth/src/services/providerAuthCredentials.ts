@@ -19,6 +19,7 @@ import {
 } from '@metorial-subspace/db';
 import {
   assertNoActiveIntegrationInstanceProviderAuthCredentialsLink,
+  buildSearchFilter,
   checkDeletedEdit,
   type DateFilter,
   normalizeDateFilter,
@@ -332,23 +333,25 @@ class providerAuthCredentialsServiceImpl {
     let includeTenantCreated = origin.includes('tenant_created');
     let includeManagedBacking = origin.includes('managed_backing');
 
-    let search = d.search
-      ? await voyager.record.search({
+    let search = await buildSearchFilter<Prisma.ProviderAuthCredentialsWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let records = await voyager.record.search({
           tenantId: d.tenant.id,
           sourceId: (await voyagerSource).id,
           indexId: voyagerIndex.providerAuthCredentials.id,
-          query: d.search,
+          query,
           // Legacy managed_public rows were never indexed; keep the filter logic origin-based.
           filters: origin.length === 1 ? { origin: origin[0] } : undefined
-        })
-      : null;
-    let searchIds = search?.map(r => r.documentId);
-    let credentialIds =
-      d.ids && searchIds ? d.ids.filter(id => searchIds.includes(id)) : (d.ids ?? searchIds);
+        });
+
+        return records.map(r => r.documentId);
+      }
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
-        if (credentialIds && credentialIds.length === 0) {
+        if (d.ids && d.ids.length === 0) {
           return [];
         }
 
@@ -359,7 +362,7 @@ class providerAuthCredentialsServiceImpl {
             ...normalizeStatusForList(d).noParent,
             AND: [
               d.ids ? { id: { in: d.ids } } : undefined!,
-              search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
+              search ?? undefined!,
               providers ? { providerOid: providers.in } : undefined!,
               authMethodsGlobal
                 ? {
@@ -379,14 +382,14 @@ class providerAuthCredentialsServiceImpl {
                   includeTenantCreated
                     ? {
                         ...getTenantOwnedWhere({ ...d, solution }),
-                        ...(credentialIds ? { id: { in: credentialIds } } : {})
+                        ...(d.ids ? { id: { in: d.ids } } : {})
                       }
                     : undefined!,
                   includeManagedBacking
                     ? getManagedBackingWhereForTenantList({
                         tenant: d.tenant,
                         solution,
-                        ids: credentialIds,
+                        ids: d.ids,
                         providerAuthMethodGlobalOids: authMethodsGlobal?.oids
                       })
                     : undefined!

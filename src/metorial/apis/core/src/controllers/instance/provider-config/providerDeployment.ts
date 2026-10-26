@@ -11,6 +11,7 @@ import { normalizeToolFilters } from '@metorial-subspace/module-provider-interna
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
+import { configValidator } from '../../../lib/providerValidators';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { providerDeploymentPresenter } from '@metorial/presenters';
@@ -55,36 +56,7 @@ let createSchema = v.intersection([
       description: 'Pin this deployment to a specific provider version'
     })
   }),
-  v.union([
-    v.object({
-      provider_config_id: v.optional(
-        v.string({
-          description: 'Existing provider config ID',
-          examples: ['pcf_7dEfGhJkLmNpQrSt']
-        })
-      )
-    }),
-    v.object({
-      provider_config: v.optional(
-        v.union([
-          v.object({
-            name: v.optional(v.string({ examples: ['Default Config'] })),
-            value: v.record(v.any(), {
-              description: 'Provider-specific configuration values',
-              examples: [{ api_key: 'sk-xxx', base_url: 'https://api.example.com' }]
-            })
-          }),
-          v.object({
-            name: v.optional(v.string({ examples: ['Default Config'] })),
-            provider_config_vault_id: v.string({
-              description: 'Provider config vault ID',
-              examples: ['pcvt_3bCdEfGhJkLmNpQr']
-            })
-          })
-        ])
-      )
-    })
-  ])
+  configValidator
 ]);
 
 type ProviderDeploymentCreateConfig =

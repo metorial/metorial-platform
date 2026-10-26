@@ -1,7 +1,8 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { db, type Environment, type Tenant } from '@metorial-subspace/db';
+import { db, type Environment, type Prisma, type Tenant } from '@metorial-subspace/db';
+import { searchAuthLogRelatedEntities } from '../lib/authLogSearch';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -37,6 +38,8 @@ type ListAuthConfigErrorsParams = {
   providerInvocationIds?: string[];
   types?: string[];
   createdAt?: DateFilter;
+
+  search?: string;
 };
 
 type GetAuthConfigErrorByIdParams = {
@@ -96,6 +99,11 @@ class authConfigErrorServiceImpl {
         })
       : null;
 
+    let search = d.search?.trim();
+    let searchMatches = search
+      ? await searchAuthLogRelatedEntities({ ...ts, search })
+      : undefined;
+
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
@@ -121,7 +129,18 @@ class authConfigErrorServiceImpl {
                   ? { groupOid: { in: groups.map(group => group.oid) } }
                   : undefined!,
                 buildStoredProviderInvocationIdFilter(d.providerInvocationIds) ?? undefined!,
-                d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!
+                d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
+
+                search && searchMatches
+                  ? ({
+                      OR: [
+                        { id: search },
+                        { type: search },
+                        ...searchMatches.providerClauses,
+                        ...searchMatches.authRowClauses
+                      ]
+                    } satisfies Prisma.ProviderAuthConfigErrorWhereInput)
+                  : undefined!
               ].filter(Boolean)
             },
             include

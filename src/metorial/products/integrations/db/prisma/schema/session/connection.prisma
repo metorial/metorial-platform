@@ -97,10 +97,11 @@ model SessionConnection {
   // a new connection is created and the token is passed to the new one
   expiresAt DateTime
 
-  lastPingAt     DateTime?
-  lastMessageAt  DateTime?
-  lastActiveAt   DateTime?
-  disconnectedAt DateTime?
+  lastPingAt      DateTime?
+  lastMessageAt   DateTime?
+  lastActiveAt    DateTime?
+  lastConnectedAt DateTime?
+  disconnectedAt  DateTime?
 
   sessionEvents    SessionEvent[]
   providerRuns     ProviderRun[]

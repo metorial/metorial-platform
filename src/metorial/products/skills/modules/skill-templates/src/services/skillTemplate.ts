@@ -1,4 +1,4 @@
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, goneError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
@@ -10,10 +10,9 @@ import type {
   StoreTemplateUpdateInput
 } from '@metorial/module-store';
 import { storeService, storeTemplateService } from '@metorial/module-store';
-import type { Prisma } from '@metorial/db';
 import type { AuditScope } from '@metorial/audit-scope';
 import { Fabric, type AuditSkillTemplate } from '@metorial/fabric';
-import { db, ID, withTransaction } from '@metorial/db';
+import { db, ID, Prisma, withTransaction } from '@metorial/db';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -27,6 +26,7 @@ import {
 } from '@metorial/module-access';
 import { skillResourceService, skillService } from '@metorial/module-skill';
 import { getProjectTenantIdentifier } from '@metorial/skills-common';
+import { buildSearchFilter } from '@metorial/module-search';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/skills-search';
 import { enqueueSkillTemplateLifecycle } from '../queues/lifecycle';
 
@@ -133,6 +133,9 @@ let getPlainSkillTemplateItems = (): NonNullable<StoreTemplateCreateInput['items
   { path: '/assets/', type: 'directory' }
 ];
 
+let toJsonInput = (value: Prisma.InputJsonValue | null | undefined) =>
+  value === null ? Prisma.DbNull : value;
+
 let isSystemIdentifierUniqueConstraintError = (error: any) => {
   if (error?.code !== 'P2002') return false;
 
@@ -157,8 +160,32 @@ let toAuditSkillTemplate = (skillTemplate: {
   status: skillTemplate.status
 });
 
+let isCurrentPlainSkillTemplate = (skillTemplate: SkillTemplateRecord) => {
+  let expected = getPlainSkillTemplateItems();
+  let items = skillTemplate.storeTemplate?.items ?? [];
+
+  return (
+    skillTemplate.name === 'Plain' &&
+    items.length === expected.length &&
+    expected.every(item =>
+      items.some(
+        existing =>
+          existing.path === item.path &&
+          existing.kind === item.type &&
+          existing.content === (item.content ?? null)
+      )
+    )
+  );
+};
+
 class SkillTemplateServiceImpl {
   private async ensurePlainSkillTemplate() {
+    let existing = await db.skillTemplate.findUnique({
+      where: { systemIdentifier: 'plain' },
+      include: skillTemplateInclude
+    });
+    if (existing && isCurrentPlainSkillTemplate(existing)) return existing;
+
     return await this.upsertSkillTemplate({
       input: {
         id: await ID.generateId('skillTemplate'),
@@ -199,6 +226,19 @@ class SkillTemplateServiceImpl {
         badRequestError({
           message:
             'Skill template updates and deletes are only allowed within the matching project and instance'
+        })
+      );
+    }
+  }
+
+  private assertActive(d: {
+    skillTemplate: SkillTemplateRecord;
+    action: 'updated' | 'archived';
+  }) {
+    if (d.skillTemplate.status !== 'active') {
+      throw new ServiceError(
+        goneError({
+          message: `Archived skill templates cannot be ${d.action}`
         })
       );
     }
@@ -334,8 +374,21 @@ class SkillTemplateServiceImpl {
   ) {
     this.assertCreateSourceInput(d.input);
 
-    if (d.input.storeId || d.input.items !== undefined) {
+    if (d.input.storeId) {
+      if (d.project && d.instance) {
+        await storeService.getStoreById({
+          project: d.project,
+          instance: d.instance,
+          authorization: { type: 'privileged' },
+          storeId: d.input.storeId
+        });
+      }
+
       return d.input.storeId;
+    }
+
+    if (d.input.items !== undefined) {
+      return undefined;
     }
 
     this.assertRequiredScope(d);
@@ -387,6 +440,14 @@ class SkillTemplateServiceImpl {
       };
     }
   ) {
+    if (!d.input.name.trim()) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Skill template name cannot be empty'
+        })
+      );
+    }
+
     let storeId = await this.resolveCreateStoreId(d);
 
     return await withTransaction(async db => {
@@ -410,7 +471,7 @@ class SkillTemplateServiceImpl {
             `${slugify(d.input.name)}-${generatePlainId(5).toLowerCase()}`,
           name: d.input.name,
           description: d.input.description,
-          metadata: d.input.metadata as any,
+          metadata: toJsonInput(d.input.metadata),
           storeId,
           storeTemplateId: storeTemplate.id,
           organizationOid: d.instance?.organizationOid,
@@ -449,14 +510,17 @@ class SkillTemplateServiceImpl {
     }
 
     return await withTransaction(async db => {
-      let storeTemplate = await storeTemplateService.updateStoreTemplate({
-        storeTemplate: d.skillTemplate.storeTemplate!,
-        skipScopeCheck: true,
-        input: {
-          name: d.input.name,
-          items: d.input.items
-        }
-      });
+      let storeTemplate =
+        d.input.name !== undefined || d.input.items !== undefined
+          ? await storeTemplateService.updateStoreTemplate({
+              storeTemplate: d.skillTemplate.storeTemplate!,
+              skipScopeCheck: true,
+              input: {
+                name: d.input.name,
+                items: d.input.items
+              }
+            })
+          : d.skillTemplate.storeTemplate!;
 
       let template = await db.skillTemplate.update({
         where: {
@@ -466,7 +530,7 @@ class SkillTemplateServiceImpl {
           systemIdentifier: d.input.systemIdentifier,
           name: d.input.name,
           description: d.input.description,
-          metadata: d.input.metadata as any,
+          metadata: toJsonInput(d.input.metadata),
           storeTemplateOid: storeTemplate.oid
         },
         include: skillTemplateInclude
@@ -552,15 +616,20 @@ class SkillTemplateServiceImpl {
         delegatedResourceTemplateIds = [];
       }
     }
-    let normalizedSearch = d.search?.trim() || undefined;
-    let search = normalizedSearch
-      ? await voyager.record.search({
+    let search = await buildSearchFilter<Prisma.SkillTemplateWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let records = await voyager.record.search({
           tenantId: getProjectTenantIdentifier(d.project),
           sourceId: (await voyagerSource).id,
           indexId: voyagerIndex.skillTemplate.id,
-          query: normalizedSearch
-        })
-      : null;
+          query
+        });
+
+        return records.map(r => r.documentId);
+      },
+      exact: query => [{ id: query }, { slug: { equals: query, mode: 'insensitive' } }]
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts =>
@@ -580,7 +649,7 @@ class SkillTemplateServiceImpl {
               updatedAt: d.updatedAt ? normalizeDateFilter(d.updatedAt) : undefined,
               accessTagEntities: accessTagFilter,
               AND: [
-                ...(search ? [{ id: { in: search.map(result => result.documentId) } }] : []),
+                ...(search ? [search] : []),
                 ...(delegatedResourceTemplateIds
                   ? [{ id: { in: delegatedResourceTemplateIds } }]
                   : [])
@@ -714,6 +783,7 @@ class SkillTemplateServiceImpl {
       project: d.project,
       instance: d.instance
     });
+    this.assertActive({ skillTemplate, action: 'updated' });
 
     let updated = await this.updateSkillTemplateRecord({
       skillTemplate,
@@ -741,6 +811,7 @@ class SkillTemplateServiceImpl {
       project: d.project,
       instance: d.instance
     });
+    this.assertActive({ skillTemplate, action: 'archived' });
 
     return await withTransaction(async db => {
       let archived = await db.skillTemplate.update({

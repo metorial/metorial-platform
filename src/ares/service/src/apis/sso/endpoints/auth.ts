@@ -118,8 +118,9 @@ export let ssoAuthApp = createHono()
         response_type: 'code',
         code_challenge: codeChallenge,
         code_challenge_method: 'S256',
-        login_hint: auth.email ?? undefined
-      });
+        login_hint: auth.email ?? undefined,
+        ...(auth.forceAuthn ? { forceAuthn: 'true', prompt: 'login', max_age: '0' } : {})
+      } as Parameters<typeof jackson.oauthController.authorize>[0]);
       if (res.error) {
         throw new ServiceError(
           badRequestError({

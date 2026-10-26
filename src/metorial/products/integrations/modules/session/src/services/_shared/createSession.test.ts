@@ -26,6 +26,10 @@ vi.mock('@metorial-subspace/db', () => ({
   )
 }));
 
+vi.mock('@metorial/module-usage', () => ({
+  recordSessionCreatedUsage: vi.fn(async () => {})
+}));
+
 vi.mock('@metorial-subspace/module-tenant', () => ({
   getMetorialSolution: vi.fn(async () => ({ oid: 7 })),
   mergeResourceOwners: vi.fn(() => null),

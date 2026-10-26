@@ -131,7 +131,7 @@ export let getCargoFileContent = async (d: { fileId: string; key: string }) => {
     content: stored.body,
     metadata: {
       contentType: stored.contentType ?? file.fileType,
-      size: stored.size,
+      size: stored.size ?? (stored.source === 'object' ? file.fileSize : undefined),
       source: stored.source
     }
   };

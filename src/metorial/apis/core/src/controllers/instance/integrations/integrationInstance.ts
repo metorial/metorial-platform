@@ -98,7 +98,7 @@ export let integrationInstanceController = Controller.create(
           organizationActor: getOwnershipActor(ctx),
           ownership: ctx.query.ownership,
           search: ctx.query.search,
-          allowDeleted: true,
+          allowDeleted: false,
           status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
           integrationIds: normalizeArrayParam(ctx.query.integration_id),

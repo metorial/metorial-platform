@@ -117,21 +117,21 @@ let PropertyRow = ({
         <Text size="2" weight="strong">
           {name}
         </Text>
-        <Badge color={typeColor} size="1">
+        <Badge color={typeColor} size="2">
           {typeLabel}
         </Badge>
         {isRequired ? (
-          <Badge color="red" size="1">
+          <Badge color="red" size="2">
             Required
           </Badge>
         ) : (
-          <Badge color="gray" size="1">
+          <Badge color="gray" size="2">
             Optional
           </Badge>
         )}
       </Flex>
       {prop.description ? (
-        <Text size="1" color="gray600">
+        <Text size="2" color="gray600">
           {prop.description}
         </Text>
       ) : null}
@@ -247,21 +247,21 @@ export let showProviderAuthMethodDetailsModal = (method: ProviderAuthMethod) => 
 
         <SectionCard>
           <Flex gap={8} style={{ alignItems: 'center', flexWrap: 'wrap' }}>
-            <Badge color={getProviderAuthMethodTypeColor(method.type)} size="1">
+            <Badge color={getProviderAuthMethodTypeColor(method.type)} size="2">
               {getProviderAuthMethodTypeLabel(method.type)}
             </Badge>
             {method.type === 'oauth' && scopes.length > 0 ? (
-              <Badge color="gray" size="1">
+              <Badge color="gray" size="2">
                 {scopes.length} Scopes
               </Badge>
             ) : null}
             {hasInputFields ? (
-              <Badge color="cyan" size="1">
+              <Badge color="cyan" size="2">
                 {getProviderAuthMethodSchemaFieldCount(method.inputSchema)} Input Fields
               </Badge>
             ) : null}
             {hasOutputFields ? (
-              <Badge color="purple" size="1">
+              <Badge color="purple" size="2">
                 {getProviderAuthMethodSchemaFieldCount(method.outputSchema)} Output Fields
               </Badge>
             ) : null}
@@ -291,7 +291,7 @@ export let showProviderAuthMethodDetailsModal = (method: ProviderAuthMethod) => 
               <SchemaHeading>Input</SchemaHeading>
               <SchemaCard>
                 <SchemaCardHeader>
-                  <Text size="1" color="gray700">
+                  <Text size="2" color="gray700">
                     {getProviderAuthMethodSchemaFieldCount(method.inputSchema)} Fields
                   </Text>
                 </SchemaCardHeader>

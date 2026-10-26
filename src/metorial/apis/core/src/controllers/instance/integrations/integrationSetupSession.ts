@@ -127,7 +127,7 @@ export let integrationSetupSessionController = Controller.create(
         let paginator = await integrationSetupSessionService.listIntegrationSetupSessions({
           instance: ctx.instance,
           organizationActor: getOwnershipActor(ctx),
-          allowDeleted: true,
+          allowDeleted: false,
           status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
           integrationIds: normalizeArrayParam(ctx.query.integration_id),

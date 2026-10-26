@@ -29,7 +29,7 @@ import {
 import { Fabric } from '@metorial/fabric';
 import { createLock } from '@metorial/lock';
 import { namespaceService, organizationActorService } from '@metorial/module-organization';
-import { searchConsumerIds } from '@metorial/module-search';
+import { buildSearchFilter, searchConsumerIds } from '@metorial/module-search';
 import {
   consumerEmailEquals,
   normalizeConsumerEmail,
@@ -428,42 +428,40 @@ class ConsumerProfileServiceImpl {
     statuses?: Array<'active' | 'invited'>;
     visibleToConsumerGroups?: ConsumerGroup[];
   }) {
-    let search = d.search?.trim();
     let emails = normalizeConsumerEmails(d.emails);
     let consumerGroupId = d.consumerGroupId?.trim();
     let statuses = d.statuses?.length ? new Set(d.statuses) : null;
-    let instance = search
-      ? await db.instance.findFirst({
+
+    let matchInstanceConsumers = (
+      id: Prisma.StringFilter | string
+    ): Prisma.ConsumerProfileWhereInput => ({
+      consumer: {
+        instanceConsumers: { some: { instanceOid: d.consumerSurface.instanceOid, id } }
+      }
+    });
+
+    let search = await buildSearchFilter<Prisma.ConsumerProfileWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let instance = await db.instance.findFirst({
           where: {
             oid: d.consumerSurface.instanceOid
           },
           select: {
             id: true
           }
-        })
-      : null;
-    let searchedConsumerIds =
-      search && instance
-        ? await searchConsumerIds({
-            instanceId: instance.id,
-            query: search
-          })
-        : undefined;
-    let searchedConsumerOids =
-      search && searchedConsumerIds?.length
-        ? (
-            await db.instanceConsumer.findMany({
-              where: {
-                instanceOid: d.consumerSurface.instanceOid,
-                id: { in: searchedConsumerIds }
-              },
-              select: { consumerOid: true },
-              distinct: ['consumerOid']
-            })
-          ).map(consumer => consumer.consumerOid)
-        : search
-          ? []
-          : undefined;
+        });
+        if (!instance) return [];
+
+        return await searchConsumerIds({ instanceId: instance.id, query });
+      },
+      matchIds: ids => matchInstanceConsumers({ in: ids }),
+      exact: query => [
+        { id: query },
+        { consumer: { id: query } },
+        matchInstanceConsumers(query)
+      ]
+    });
 
     let groupMembershipWhere: Prisma.ConsumerProfileWhereInput | undefined;
     let inviteStatusWhere: Prisma.ConsumerProfileWhereInput | undefined;
@@ -522,7 +520,7 @@ class ConsumerProfileServiceImpl {
       ...(visibilityWhere ? [visibilityWhere] : []),
       ...(inviteStatusWhere ? [inviteStatusWhere] : []),
       ...(emails?.length ? [{ email: { in: emails } }] : []),
-      ...(search ? [{ consumerOid: { in: searchedConsumerOids ?? [] } }] : [])
+      ...(search ? [search] : [])
     ];
 
     let paginator = Paginator.create(({ prisma }) =>
@@ -809,6 +807,16 @@ class ConsumerProfileServiceImpl {
           email: `${generatePlainId()}@deleted.metorial.com`
         },
         include
+      });
+
+      await db.consumerSession.updateMany({
+        where: {
+          consumerProfileOid: d.consumerProfile.oid,
+          loggedOutAt: null
+        },
+        data: {
+          loggedOutAt: new Date()
+        }
       });
 
       await Fabric.fire('consumer.profile.deleted:after', {

@@ -184,7 +184,7 @@ let RepositoryAction = ({ repositoryCheck }: { repositoryCheck: RepositoryCheck 
         <RepositoryLinks>
           {!isDirectPush && pullRequestsUrl && (
             <a href={pullRequestsUrl} target="_blank" rel="noopener noreferrer">
-              <Button as="span" size="1">
+              <Button as="span" size="2">
                 Open {repositoryCheck.provider === 'gitlab' ? 'merge request' : 'pull request'}
               </Button>
             </a>

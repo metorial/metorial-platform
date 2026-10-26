@@ -74,7 +74,7 @@ export let ProviderAuthEventPage = () => {
       {
         label: 'Status',
         value: (
-          <Badge size="1" color={isError ? 'red' : 'green'}>
+          <Badge size="2" color={isError ? 'red' : 'green'}>
             {data.status}
           </Badge>
         )
@@ -173,7 +173,7 @@ export let ProviderAuthEventPage = () => {
           title="Details"
           description={`${getEventLabel(data.type)} event metadata.`}
           rightActions={
-            <Badge size="1" color={isError ? 'red' : 'green'}>
+            <Badge size="2" color={isError ? 'red' : 'green'}>
               {data.status}
             </Badge>
           }

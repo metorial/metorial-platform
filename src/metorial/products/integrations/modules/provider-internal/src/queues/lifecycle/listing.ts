@@ -1,6 +1,8 @@
 import { createQueue } from '@lowerdeck/queue';
+import { db } from '@metorial-subspace/db';
 import { env } from '../../env';
 import { processSingleRankQueue } from '../listing/rank';
+import { enqueueProviderSpecSearchIndex } from '../search/enqueue';
 import { indexProviderListingQueue } from '../search/providerListing';
 
 export let listingCreatedQueue = createQueue<{ providerListingId: string }>({
@@ -40,4 +42,12 @@ export let listingChangedQueueProcessor = listingChangedQueue.process(async data
   await processSingleRankQueue.add({
     providerListingId: data.providerListingId
   });
+
+  let providerListing = await db.providerListing.findUnique({
+    where: { id: data.providerListingId },
+    select: { provider: { select: { id: true } } }
+  });
+  if (providerListing) {
+    await enqueueProviderSpecSearchIndex({ providerId: providerListing.provider.id });
+  }
 });

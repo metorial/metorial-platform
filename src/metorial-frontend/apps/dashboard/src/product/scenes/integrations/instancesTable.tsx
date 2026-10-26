@@ -13,12 +13,15 @@ import {
   FilterPayload,
   getDateRangeFilterValue,
   getEnumListFilterValue,
-  getStringFilterValue
+  getListFilterValue,
+  getStringFilterValue,
+  TableFilter
 } from '@metorial/table';
 import { Badge, RenderDate, Text, confirm } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { RiDeleteBinLine } from '@remixicon/react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { entityFilters } from '../entityFilters';
 import { ResourceOwnerInline } from '../../components/resourceOwnerEntity';
 
 type IntegrationInstancesTableProps = {
@@ -39,6 +42,41 @@ let getInstanceStatusColor = (status: IntegrationInstance['status']) => {
 let getStatusFilterValue = (value: FilterPayload | undefined) =>
   getEnumListFilterValue(value, ['draft', 'active', 'archived', 'deleted']);
 
+let useIntegrationInstancesTableFilters = (instanceId: string) =>
+  useMemo<TableFilter<IntegrationInstance>[]>(
+    () => [
+      {
+        id: 'status',
+        fields: ['status'],
+        label: 'Status',
+        description: 'Filter by status',
+        type: 'select',
+        options: [
+          { id: 'draft', label: 'Draft' },
+          { id: 'active', label: 'Active' },
+          { id: 'archived', label: 'Archived' },
+          { id: 'deleted', label: 'Deleted' }
+        ]
+      },
+      entityFilters.identity(instanceId),
+      {
+        id: 'createdAt',
+        fields: ['createdAt'],
+        label: 'Created',
+        description: 'Filter by created date',
+        type: 'date'
+      },
+      {
+        id: 'updatedAt',
+        fields: ['updatedAt'],
+        label: 'Updated',
+        description: 'Filter by updated date',
+        type: 'date'
+      }
+    ],
+    [instanceId]
+  );
+
 let useIntegrationInstancesTableState = (
   props: IntegrationInstancesTableProps,
   opts: { filter: Record<string, FilterPayload>; search?: string }
@@ -48,9 +86,8 @@ let useIntegrationInstancesTableState = (
     integrationId: props.integration.id,
     order: 'desc',
     status: getStatusFilterValue(opts.filter.status) ?? ['active'],
-    id: getStringFilterValue(opts.filter.id),
     integrationProviderId: getStringFilterValue(opts.filter.integrationProviderId),
-    identityId: getStringFilterValue(opts.filter.identityId),
+    identityId: getListFilterValue(opts.filter.identityId),
     search: opts.search,
     createdAt: getDateRangeFilterValue(opts.filter.createdAt),
     updatedAt: getDateRangeFilterValue(opts.filter.updatedAt)
@@ -190,49 +227,6 @@ let integrationInstancesTable = new DashboardTable<
       render: (integrationInstance: IntegrationInstance) => <ID id={integrationInstance.id} />
     }
   ])
-  .filters([
-    {
-      id: 'status',
-      fields: ['status'],
-      label: 'Status',
-      description: 'Filter by status',
-      type: 'select',
-      options: [
-        { id: 'draft', label: 'Draft' },
-        { id: 'active', label: 'Active' },
-        { id: 'archived', label: 'Archived' },
-        { id: 'deleted', label: 'Deleted' }
-      ]
-    },
-    {
-      id: 'id',
-      fields: ['id'],
-      label: 'Instance ID',
-      description: 'Filter by instance ID',
-      type: 'string'
-    },
-    {
-      id: 'identityId',
-      fields: ['identityId'],
-      label: 'Identity ID',
-      description: 'Filter by identity ID',
-      type: 'string'
-    },
-    {
-      id: 'createdAt',
-      fields: ['createdAt'],
-      label: 'Created',
-      description: 'Filter by created date',
-      type: 'date'
-    },
-    {
-      id: 'updatedAt',
-      fields: ['updatedAt'],
-      label: 'Updated',
-      description: 'Filter by updated date',
-      type: 'date'
-    }
-  ])
   .search('Search integration instances...')
   .link(((integrationInstance: IntegrationInstance, props: IntegrationInstancesTableProps) =>
     Paths.instance.integrationInstance(
@@ -291,6 +285,7 @@ export let IntegrationInstancesTable = (p: {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let tableFilters = useIntegrationInstancesTableFilters(p.instanceId);
 
   return integrationInstancesTable({
     instanceId: p.instanceId,
@@ -298,6 +293,7 @@ export let IntegrationInstancesTable = (p: {
     instance,
     organization,
     project,
+    tableFilters,
     emptyState: 'No instances have been created for this integration yet.'
   });
 };

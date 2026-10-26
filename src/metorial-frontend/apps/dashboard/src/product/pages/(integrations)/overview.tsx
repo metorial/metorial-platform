@@ -8,7 +8,7 @@ import {
   useLastUsedIntegrationEnclaves,
   useResourceCounts
 } from '@metorial/state';
-import { Badge, Button, RenderDate, Text, theme } from '@metorial/ui';
+import { Badge, Button, RenderDate, Spacer, Text, theme } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
@@ -44,22 +44,6 @@ let StatTile = styled(Link)`
     background: ${theme.colors.gray200};
     border-color: ${theme.colors.gray400};
   }
-`;
-
-let ActivityGrid = styled.div`
-  display: grid;
-  gap: 20px;
-  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
-
-  @media (max-width: 1000px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-let ChartGrid = styled.div`
-  display: grid;
-  gap: 20px;
-  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
 `;
 
 let ResourceGrid = styled.div`
@@ -163,11 +147,11 @@ let ResourceBox = ({
                 <Text size="2" weight="strong">
                   {resource.label}
                 </Text>
-                <Badge size="1" color={resource.tone ?? 'gray'}>
+                <Badge size="2" color={resource.tone ?? 'gray'}>
                   {count === null ? '...' : `${count.toLocaleString()} total`}
                 </Badge>
               </ResourceAction>
-              <Text size="1" color="gray600">
+              <Text size="2" color="gray600">
                 {resource.description}
               </Text>
             </ResourceText>
@@ -332,66 +316,10 @@ export let IntegrationsOverviewPage = () => {
           getStatCount={getStatCount}
         />
 
-        <ActivityGrid>
-          <UsageScene
-            title="Connection Activity"
-            description="Sessions opened against your providers over time."
-            entities={[{ type: 'provider' }]}
-            entityNames={{ provider: 'Sessions' }}
-            from={7}
-            interval={{ unit: 'day', count: 1 }}
-            labelBy="owner"
-          />
-
-          <RecentEnclavesBox
-            enclaves={lastUsedEnclaves}
-            enclavePath={Paths.organization.instance.networkEnclaves(...params)}
-          />
-        </ActivityGrid>
-
-        <ChartGrid>
-          <UsageScene
-            title="Provider Usage"
-            description="Requests handled by each provider in this instance."
-            entities={[{ type: 'provider' }]}
-            entityNames={{ provider: 'Providers' }}
-            from={7}
-            interval={{ unit: 'day', count: 1 }}
-            labelBy="owner"
-          />
-
-          <UsageScene
-            title="Tool Calls"
-            description="Tool calls made through your provider connections."
-            entities={[{ type: 'tool_call' }]}
-            entityNames={{ tool_call: 'Tool calls' }}
-            from={7}
-            interval={{ unit: 'day', count: 1 }}
-            labelBy="owner"
-          />
-        </ChartGrid>
-
-        <ChartGrid>
-          <UsageScene
-            title="Provider Configs"
-            description="Sessions that used a configured provider."
-            entities={[{ type: 'provider_config' }]}
-            entityNames={{ provider_config: 'Configs' }}
-            from={7}
-            interval={{ unit: 'day', count: 1 }}
-            labelBy="owner"
-          />
-
-          <UsageScene
-            title="Auth Configs"
-            description="Usage attributed to each auth configuration."
-            entities={[{ type: 'provider_auth_config' }]}
-            entityNames={{ provider_auth_config: 'Auth Configs' }}
-            from={7}
-            interval={{ unit: 'day', count: 1 }}
-            labelBy="owner"
-          />
-        </ChartGrid>
+        <RecentEnclavesBox
+          enclaves={lastUsedEnclaves}
+          enclavePath={Paths.organization.instance.networkEnclaves(...params)}
+        />
 
         <ResourceGrid>
           <ResourceBox

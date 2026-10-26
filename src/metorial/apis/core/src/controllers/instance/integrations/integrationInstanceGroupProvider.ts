@@ -109,30 +109,28 @@ export let integrationInstanceGroupProviderController = Controller.create(
       )
       .do(async ctx => {
         let paginator =
-          await integrationInstanceGroupProviderService.listIntegrationInstanceGroupProviders(
-            {
-              instance: ctx.instance,
-              allowDeleted: true,
-              status: normalizeArrayParam(ctx.query.status),
-              ids: normalizeArrayParam(ctx.query.id),
-              integrationInstanceGroupIds: normalizeArrayParam(
-                ctx.query.integration_instance_group_id
-              ),
-              integrationIds: normalizeArrayParam(ctx.query.integration_id),
-              integrationInstanceIds: normalizeArrayParam(ctx.query.integration_instance_id),
-              integrationInstanceProviderIds: normalizeArrayParam(
-                ctx.query.integration_instance_provider_id
-              ),
-              providerIds: normalizeArrayParam(ctx.query.provider_id),
-              integrationProviderIds: normalizeArrayParam(ctx.query.integration_provider_id),
-              providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id),
-              providerConfigIds: normalizeArrayParam(ctx.query.provider_config_id),
-              providerAuthConfigIds: normalizeArrayParam(ctx.query.provider_auth_config_id),
-              sessionTemplateIds: normalizeArrayParam(ctx.query.session_template_id),
-              createdAt: ctx.query.created_at,
-              updatedAt: ctx.query.updated_at
-            }
-          );
+          await integrationInstanceGroupProviderService.listIntegrationInstanceGroupProviders({
+            instance: ctx.instance,
+            allowDeleted: false,
+            status: normalizeArrayParam(ctx.query.status),
+            ids: normalizeArrayParam(ctx.query.id),
+            integrationInstanceGroupIds: normalizeArrayParam(
+              ctx.query.integration_instance_group_id
+            ),
+            integrationIds: normalizeArrayParam(ctx.query.integration_id),
+            integrationInstanceIds: normalizeArrayParam(ctx.query.integration_instance_id),
+            integrationInstanceProviderIds: normalizeArrayParam(
+              ctx.query.integration_instance_provider_id
+            ),
+            providerIds: normalizeArrayParam(ctx.query.provider_id),
+            integrationProviderIds: normalizeArrayParam(ctx.query.integration_provider_id),
+            providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id),
+            providerConfigIds: normalizeArrayParam(ctx.query.provider_config_id),
+            providerAuthConfigIds: normalizeArrayParam(ctx.query.provider_auth_config_id),
+            sessionTemplateIds: normalizeArrayParam(ctx.query.session_template_id),
+            createdAt: ctx.query.created_at,
+            updatedAt: ctx.query.updated_at
+          });
 
         let list = await paginator.run(ctx.query);
 

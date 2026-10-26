@@ -1,6 +1,6 @@
 export let getSsoAuthCompletionRedirect = (input: {
   redirectUri: string;
-  purpose: 'authentication' | 'connection_test';
+  purpose: 'authentication' | 'connection_test' | 'elevation';
   tenantId: string;
   authId: string;
   testSsoId?: string;

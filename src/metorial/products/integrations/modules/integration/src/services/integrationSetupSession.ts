@@ -234,7 +234,7 @@ class integrationSetupSessionServiceImpl {
               environmentOid: d.environment.oid,
               ...(d.includeSystemOwned ? {} : { isSystemOwned: false }),
 
-              ...normalizeStatusForList(d).onlyParent,
+              ...normalizeStatusForList(d).noParent,
 
               AND: [
                 d.ownershipWhere ?? undefined!,

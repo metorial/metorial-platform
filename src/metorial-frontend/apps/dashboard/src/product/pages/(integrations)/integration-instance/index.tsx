@@ -21,6 +21,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ResourceOwnerEntity } from '../../../components/resourceOwnerEntity';
 import { showIntegrationInstanceProviderPanelFlow } from '../../../scenes/integrations/providerPanelFlow';
 import { IntegrationInstanceProvidersManager } from '../../../scenes/integrations/providersManager';
+import { UsageOverviewTiles } from '../../../scenes/instanceUsage';
 
 let getProviderManagementMode = (mode: string) => {
   if (mode === 'inherited_from_provider_template') {
@@ -285,7 +286,22 @@ export let IntegrationInstanceOverviewPage = () => {
               </Callout>
               <Spacer height={20} />
             </>
-          ) : null}
+          ) : (
+            <>
+              <UsageOverviewTiles
+                filter={{ integrationId: integration.data.id }}
+                tiles={['tool_calls', 'sessions', 'active_consumers', 'errors']}
+                href={Paths.instance.integration(
+                  instance.data?.organization,
+                  instance.data?.project,
+                  instance.data,
+                  integration.data.id,
+                  'usage'
+                )}
+              />
+              <Spacer height={20} />
+            </>
+          )}
 
           {integrationInstance.data.access.owner && (
             <>

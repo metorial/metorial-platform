@@ -40,6 +40,7 @@ export type DashboardInstanceSessionsErrorGroupsListQuery = {
   id?: string | string[] | undefined;
   sessionId?: string | string[] | undefined;
   providerId?: string | string[] | undefined;
+  search?: string | undefined;
 };
 
 export let mapDashboardInstanceSessionsErrorGroupsListQuery =

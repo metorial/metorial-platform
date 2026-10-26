@@ -79,7 +79,6 @@ class ManagedSkillPluginServiceImpl {
       managedSkillPlugin.skillPlugin.status === 'active' &&
       managedSkillPlugin.skillPlugin.name === values.name &&
       managedSkillPlugin.skillPlugin.description === values.description &&
-      managedSkillPlugin.skillPlugin.slug === values.slug &&
       !!this.getCurrentManagedLink(managedSkillPlugin)
     );
   }

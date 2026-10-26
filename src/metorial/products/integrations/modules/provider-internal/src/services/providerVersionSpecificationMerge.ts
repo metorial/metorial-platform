@@ -11,6 +11,10 @@ import type {
   SpecificationTriggerGroup
 } from '@metorial-subspace/provider-utils';
 import { env } from '../env';
+import {
+  enqueueProviderSpecSearchIndex,
+  SPEC_SEARCH_INDEX_DELAY_MS
+} from '../queues/search/enqueue';
 import { providerSpecificationInternalService } from './providerSpecification';
 
 let mergeLock = createLock({
@@ -60,7 +64,11 @@ class providerVersionSpecificationMergeServiceImpl {
           ...d.discovered
         });
 
-        await this.#repointVersion({ version, specificationOid: spec.oid });
+        await this.#repointVersion({
+          provider: d.provider,
+          version,
+          specificationOid: spec.oid
+        });
 
         return { specification: spec, addedKeys: d.discovered.tools.map(t => t.key) };
       }
@@ -111,7 +119,11 @@ class providerVersionSpecificationMergeServiceImpl {
 
       if (spec.oid === current.oid) return { specification: spec, addedKeys: [] };
 
-      await this.#repointVersion({ version, specificationOid: spec.oid });
+      await this.#repointVersion({
+        provider: d.provider,
+        version,
+        specificationOid: spec.oid
+      });
       await this.#recordSpecificationChange({
         version,
         fromSpecificationOid: current.oid,
@@ -122,13 +134,22 @@ class providerVersionSpecificationMergeServiceImpl {
     });
   }
 
-  async #repointVersion(d: { version: ProviderVersion; specificationOid: bigint }) {
+  async #repointVersion(d: {
+    provider: Provider;
+    version: ProviderVersion;
+    specificationOid: bigint;
+  }) {
     await db.providerVersion.update({
       where: { oid: d.version.oid },
       data: {
         specificationOid: d.specificationOid,
         specificationDiscoveryStatus: 'discovered'
       }
+    });
+
+    await enqueueProviderSpecSearchIndex({
+      providerId: d.provider.id,
+      delay: SPEC_SEARCH_INDEX_DELAY_MS
     });
   }
 

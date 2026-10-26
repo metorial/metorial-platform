@@ -391,7 +391,8 @@ describe('reconcile user consumer queue', () => {
         status: 'accepted',
         acceptedAt: duplicateInvite.acceptedAt,
         message: duplicateInvite.message,
-        expiresAt: duplicateInvite.expiresAt
+        expiresAt: duplicateInvite.expiresAt,
+        legacyGraceStartedAt: null
       }
     });
     expect(mocks.workspaceInvite.update).toHaveBeenCalledWith({

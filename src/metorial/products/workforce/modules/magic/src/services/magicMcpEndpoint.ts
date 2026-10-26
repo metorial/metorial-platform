@@ -346,10 +346,23 @@ class MagicMcpEndpointImpl {
             ownerActorOid: true,
             isOwnerLocked: true,
             isOwnerOnlyVisible: true,
-            isSystemOwned: true
+            isSystemOwned: true,
+            status: true
           }
         })
       : [];
+
+    if (servers.length !== requestedServers.length) {
+      throw new ServiceError(notFoundError('magic_mcp.server'));
+    }
+
+    if (servers.some(server => server.status !== 'active')) {
+      throw new ServiceError(
+        preconditionFailedError({
+          message: 'Magic MCP endpoints can only be linked to active magic MCP servers'
+        })
+      );
+    }
 
     await this.assertCanUseServers({
       instance: d.instance,
@@ -660,6 +673,10 @@ class MagicMcpEndpointImpl {
       }
     });
 
+    if (servers.length !== serverInputs.length) {
+      throw new ServiceError(notFoundError('magic_mcp.server'));
+    }
+
     if (servers.some(server => server.status !== 'active')) {
       throw new ServiceError(
         preconditionFailedError({
@@ -891,7 +908,7 @@ class MagicMcpEndpointImpl {
             status: statusFilter ? { in: statusFilter } : { not: 'archived' as const },
             accessTagEntities: accessTagFilter,
             AND: [ownershipWhere],
-            servers: serverOids?.length
+            servers: serverOids
               ? {
                   some: {
                     magicMcpServerOid: { in: serverOids }

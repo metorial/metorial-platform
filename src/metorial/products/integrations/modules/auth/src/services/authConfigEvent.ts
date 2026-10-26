@@ -1,7 +1,8 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { db, type Environment, type Tenant } from '@metorial-subspace/db';
+import { db, type Environment, type Prisma, type Tenant } from '@metorial-subspace/db';
+import { searchAuthLogRelatedEntities } from '../lib/authLogSearch';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -43,6 +44,8 @@ type ListAuthConfigEventsParams = {
   types?: string[];
   createdAt?: DateFilter;
   updatedAt?: DateFilter;
+
+  search?: string;
 };
 
 type GetAuthConfigEventByIdParams = {
@@ -81,6 +84,11 @@ class authConfigEventServiceImpl {
         })
       : null;
 
+    let search = d.search?.trim();
+    let searchMatches = search
+      ? await searchAuthLogRelatedEntities({ ...ts, search })
+      : undefined;
+
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
@@ -101,7 +109,18 @@ class authConfigEventServiceImpl {
                 providers ? { providerOid: providers.in } : undefined!,
                 buildStoredProviderInvocationIdFilter(d.providerInvocationIds) ?? undefined!,
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
-                d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
+                d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!,
+
+                search && searchMatches
+                  ? ({
+                      OR: [
+                        { id: search },
+                        { type: search },
+                        ...searchMatches.providerClauses,
+                        ...searchMatches.authRowClauses
+                      ]
+                    } satisfies Prisma.ProviderAuthConfigEventWhereInput)
+                  : undefined!
               ].filter(Boolean)
             },
             include

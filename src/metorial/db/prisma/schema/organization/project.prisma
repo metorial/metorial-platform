@@ -19,6 +19,8 @@ model Project {
   previousSlugs String[]
   name          String
 
+  hidePublicRemoteProviders Boolean @default(false)
+
   onlyAllowTrustedProviders      Boolean @default(false)
   magicMcpSessionDurationMinutes Int     @default(1440)
 

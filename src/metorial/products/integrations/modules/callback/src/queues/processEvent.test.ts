@@ -85,6 +85,18 @@ describe('callbackEventProcessQueueProcessor', () => {
     });
   });
 
+  it('keeps the recorded trigger key when the provider has no matching trigger', async () => {
+    db.callbackEvent.findUnique.mockResolvedValue(
+      callbackEvent({ providerTrigger: null, providerTriggerKey: 'issue.reopened' })
+    );
+
+    await run('cbe_1');
+
+    expect(recordCallbackEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ callbackTriggerKey: 'issue.reopened' })
+    );
+  });
+
   it('delegates a managed callback and never records a system event directly', async () => {
     getCallbackEventDelegate.mockReturnValue(vi.fn().mockResolvedValue(undefined));
     db.callbackEvent.findUnique.mockResolvedValue(

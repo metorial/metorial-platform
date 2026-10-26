@@ -228,8 +228,7 @@ let getMagicMcpServerPresentationData = async (d: {
   let magicMcpServerProvidersPaginator =
     await magicMcpServerService.listMagicMcpServerProviders({
       server: magicMcpServer,
-      instance: d.instance,
-      allowDeleted: true
+      instance: d.instance
     });
   let magicMcpServerProviders = (await magicMcpServerProvidersPaginator.run({ limit: 100 }))
     .items;
@@ -273,7 +272,6 @@ let getMagicMcpServerListPresentationData = async (d: {
     while (true) {
       let paginator = await magicMcpServerProviderService.listMagicMcpServerProviders({
         instance: d.instance,
-        allowDeleted: true,
         magicMcpServerBackingIds: backedServerIds
       });
       let result = await paginator.run({ limit: 100, ...(after ? { after } : {}) });
@@ -290,6 +288,8 @@ let getMagicMcpServerListPresentationData = async (d: {
   }
 
   for (let magicMcpServer of d.magicMcpServers) {
+    let backingStatus = backingStatuses.get(magicMcpServer.id);
+
     presentationData.set(magicMcpServer.id, {
       magicMcpServer,
       portal: d.portal,
@@ -297,7 +297,7 @@ let getMagicMcpServerListPresentationData = async (d: {
       integrationInstance: null,
       magicMcpServerProviders: providersByServerId.get(magicMcpServer.id) ?? [],
       backingStatus:
-        backingStatuses.get(magicMcpServer.id) === 'needs_reconnect'
+        backingStatus === 'needs_reconnect' || backingStatus === 'missing_providers'
           ? ('needs_reconnect' as const)
           : ('healthy' as const)
     });
@@ -538,7 +538,7 @@ export let magicMcpServerController = Controller.create(
           server: ctx.magicMcpServer,
           instance: ctx.instance,
           accessTags: ctx.accessTags,
-          allowDeleted: true,
+          allowDeleted: false,
           status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),

@@ -748,9 +748,7 @@ class OAuthApplicationService {
       where: {
         id: d.oauthApplicationId,
         organizationOid: d.organization.oid,
-        type: {
-          in: ['user_facing', 'server_side']
-        }
+        type: 'user_facing'
       },
       include
     });

@@ -12,6 +12,7 @@ import { Button, Spacer, Text } from '@metorial/ui';
 import { Box, ID, Table } from '@metorial/ui-product';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { OpenExplorerBox } from '../../components/openExplorer';
+import { UsageOverviewTiles } from '../../scenes/instanceUsage';
 import { showCreateIntegrationProviderFirstFlow } from '../../scenes/integrations/providerPanelFlow';
 import { showMagicMcpServerCreateFlow } from '../../scenes/providerDeployments/magicMcpForm';
 import { Skills } from './components/skills';
@@ -57,6 +58,20 @@ export let ProviderOverviewPage = () => {
           instance.data?.project,
           instance.data,
           { provider_id: provider.data?.id }
+        )}
+      />
+
+      <Spacer height={15} />
+
+      <UsageOverviewTiles
+        filter={{ providerId: provider.data.id }}
+        tiles={['tool_calls', 'error_rate', 'sessions']}
+        href={Paths.instance.provider(
+          instance.data?.organization,
+          instance.data?.project,
+          instance.data,
+          provider.data.slug,
+          'usage'
         )}
       />
 

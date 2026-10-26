@@ -98,6 +98,31 @@ it('builds an audit scope after resolving a user instance', async () => {
   });
 });
 
+it("rejects an instance key on another instance's path", async () => {
+  let auth = {
+    type: 'machine',
+    auditScope: {},
+    restrictions: {
+      type: 'instance',
+      instance: { id: 'ins_1', slug: 'main', project: { id: 'prj_1' } },
+      organization: { id: 'org_1' },
+      actor: { id: 'act_1' }
+    }
+  };
+
+  let error = await runGroup(instanceGroup, { auth, params: { instanceId: 'ins_2' } }).catch(
+    e => e
+  );
+  expect(error.data).toMatchObject({ status: 404, code: 'not_found' });
+
+  for (let instanceId of ['ins_1', 'main', undefined]) {
+    let result = await runGroup(instanceGroup, { auth, params: { instanceId } });
+    expect(result.instance.id).toBe('ins_1');
+  }
+
+  expect(mocks.accessInstance).not.toHaveBeenCalled();
+});
+
 it('overrides the audit actor when a consumer profile is selected', async () => {
   let context = { ip: '127.0.0.1', ua: 'test-agent' };
   let instance = { id: 'ins_1', oid: 3n };

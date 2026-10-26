@@ -16,6 +16,11 @@ import {
   v1MagicMcpEndpointPresenter
 } from './magicMcpEndpoint';
 
+let context = {
+  apiVersion: 'mt_2026_01_01_magnetar',
+  accessType: 'user_auth_token'
+} as const;
+
 let magicMcpEndpoint = (enableSkillEditing: boolean) =>
   ({
     id: 'mep_1',
@@ -35,7 +40,10 @@ describe('magic MCP endpoint presentation', () => {
   it.each([true, false])('exposes enable_skill_editing=%s', async enableSkillEditing => {
     for (let presenter of [v1MagicMcpEndpointPresenter, consumerMagicMcpEndpointPresenter]) {
       let presented = await presenter
-        .present({ magicMcpEndpoint: magicMcpEndpoint(enableSkillEditing), portal: null })
+        .present(
+          { magicMcpEndpoint: magicMcpEndpoint(enableSkillEditing), portal: null },
+          context
+        )
         .run();
 
       expect(presented.enable_skill_editing).toBe(enableSkillEditing);

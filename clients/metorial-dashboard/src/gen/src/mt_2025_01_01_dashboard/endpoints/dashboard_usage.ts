@@ -38,8 +38,8 @@ export class MetorialDashboardUsageEndpoint {
   }
 
   /**
-   * @name Get organization
-   * @description Get the current organization information
+   * @name Get organization usage timeline
+   * @description Get usage counts over time for every instance of the organization.
    *
    * @param `organizationId` - string
    * @param `query` - DashboardUsageTimelineQuery

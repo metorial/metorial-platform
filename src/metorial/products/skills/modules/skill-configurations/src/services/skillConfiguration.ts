@@ -6,7 +6,7 @@ import {
 } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Instance, Prisma, Project } from '@metorial/db';
+import type { Instance, Prisma, Project, TransactionDB } from '@metorial/db';
 import { db, ID, withTransaction } from '@metorial/db';
 import {
   type DateFilter,
@@ -85,6 +85,7 @@ class SkillConfigurationServiceImpl {
           where: {
             projectOid: d.project.oid,
             instanceOid: d.instance.oid,
+            deletedAt: null,
             isDefault: d.skillConfigurationId === 'default' ? true : undefined,
             id: d.skillConfigurationId === 'default' ? undefined : d.skillConfigurationId
           },
@@ -188,8 +189,8 @@ class SkillConfigurationServiceImpl {
   }
 
   async upsertDefaultSkillConfiguration(d: { project: Project; instance: Instance }) {
-    return await withTransaction(async db => {
-      let existing = await db.skillConfiguration.findFirst({
+    let findDefault = async (client: TransactionDB) =>
+      await client.skillConfiguration.findFirst({
         where: {
           projectOid: d.project.oid,
           instanceOid: d.instance.oid,
@@ -198,21 +199,32 @@ class SkillConfigurationServiceImpl {
         include: skillConfigurationInclude
       });
 
-      if (existing) return existing;
+    try {
+      return await withTransaction(async db => {
+        let existing = await findDefault(db);
+        if (existing) return existing;
 
-      return await db.skillConfiguration.create({
-        data: {
-          id: await ID.generateId('skillConfiguration'),
-          projectOid: d.project.oid,
-          instanceOid: d.instance.oid,
-          isDefault: true,
-          allowScripts: true,
-          allowedFileExtensions: [],
-          allowNonStandardDirectories: true
-        },
-        include: skillConfigurationInclude
+        return await db.skillConfiguration.create({
+          data: {
+            id: await ID.generateId('skillConfiguration'),
+            projectOid: d.project.oid,
+            instanceOid: d.instance.oid,
+            isDefault: true,
+            allowScripts: true,
+            allowedFileExtensions: [],
+            allowNonStandardDirectories: true
+          },
+          include: skillConfigurationInclude
+        });
       });
-    });
+    } catch (error: any) {
+      if (error?.code !== 'P2002') throw error;
+
+      let existing = await findDefault(db);
+      if (!existing) throw error;
+
+      return existing;
+    }
   }
 
   async updateSkillConfiguration(d: {

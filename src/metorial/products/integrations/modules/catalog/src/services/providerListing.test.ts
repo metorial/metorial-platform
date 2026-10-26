@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
   listingFindFirst: vi.fn(),
+  listingFindMany: vi.fn(),
+  visibilityFilter: vi.fn(),
   providerFindFirst: vi.fn()
 }));
 
@@ -18,11 +20,16 @@ vi.mock('@lowerdeck/error', () => ({
   notFoundError: (resource: string) => ({ resource })
 }));
 
-vi.mock('@lowerdeck/pagination', () => ({ Paginator: {} }));
+vi.mock('@lowerdeck/pagination', () => ({
+  Paginator: {
+    create: (factory: any) =>
+      factory({ prisma: (query: any) => query({ take: 2, orderBy: [] }) })
+  }
+}));
 
 vi.mock('@metorial-subspace/db', () => ({
   db: {
-    providerListing: { findFirst: mocks.listingFindFirst },
+    providerListing: { findFirst: mocks.listingFindFirst, findMany: mocks.listingFindMany },
     provider: { findFirst: mocks.providerFindFirst }
   }
 }));
@@ -47,6 +54,7 @@ vi.mock('@metorial-subspace/module-tenant', () => ({
 }));
 
 vi.mock('./provider', () => ({
+  getPublicRemoteProviderVisibilityFilter: mocks.visibilityFilter,
   getProviderCapabilityFilter: vi.fn(),
   getProviderEnvironmentVisibilityFilter: vi.fn(() => undefined),
   providerInclude: {}
@@ -59,9 +67,49 @@ let listing = { oid: 5n, id: 'lst_5' };
 describe('providerListingService.getProviderListingByIdInternal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.visibilityFilter.mockReturnValue(undefined);
+    mocks.listingFindMany.mockResolvedValue([]);
     mocks.listingFindFirst.mockResolvedValue(null);
     mocks.providerFindFirst.mockResolvedValue(null);
   });
+
+  it('applies the remote restriction to id, alias, and provider fallback lookups', async () => {
+    let filter = { NOT: { access: 'public', ownerTenantOid: null } };
+    mocks.visibilityFilter.mockReturnValue(filter);
+    mocks.providerFindFirst.mockResolvedValue({ oid: 9n });
+
+    await expect(
+      providerListingService.getProviderListingByIdInternal({
+        providerListingId: 'hidden',
+        tenant: { hidePublicRemoteProviders: true } as any
+      })
+    ).rejects.toThrow();
+
+    expect(mocks.listingFindFirst).toHaveBeenCalledTimes(3);
+    for (let [args] of mocks.listingFindFirst.mock.calls) {
+      expect(args.where.AND).toContainEqual({ provider: filter });
+    }
+  });
+
+  it.each(['isVerified', 'isOfficial', 'isMetorial'])(
+    'filters listings before pagination even with explicit ids, deprecated providers, and %s',
+    async badge => {
+      let filter = { NOT: { access: 'public', ownerTenantOid: null } };
+      mocks.visibilityFilter.mockReturnValue(filter);
+
+      await providerListingService.listProviderListingsInternal({
+        tenant: { hidePublicRemoteProviders: true } as any,
+        ids: ['hidden'],
+        includeDeprecated: true,
+        [badge]: true
+      });
+
+      let query = mocks.listingFindMany.mock.calls[0]![0];
+      expect(query.take).toBe(2);
+      expect(query.where.AND).toContainEqual({ provider: filter });
+      expect(query.where.AND).toContainEqual({ [badge]: true });
+    }
+  );
 
   it('resolves ids and slugs without touching the provider table', async () => {
     mocks.listingFindFirst.mockResolvedValueOnce({ oid: 5n }).mockResolvedValueOnce(listing);

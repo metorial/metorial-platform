@@ -64,7 +64,7 @@ describe('module-provider-internal', () => {
         instance,
         providers: [{ deploymentId: uniqueId('missing-deployment') }]
       })
-    ).rejects.toThrow(/provide at least/);
+    ).rejects.toThrow(/could not be found/);
     await expect(
       providerCombinationService.getCombinations({
         instance,

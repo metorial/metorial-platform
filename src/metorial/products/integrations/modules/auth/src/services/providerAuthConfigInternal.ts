@@ -513,6 +513,7 @@ class providerAuthConfigInternalServiceImpl {
           await db.providerAuthConfig.updateMany({
             where: {
               deploymentOid: d.providerDeployment.oid,
+              oid: { not: providerAuthConfig.oid },
               isDefault: true
             },
             data: { isDefault: false }

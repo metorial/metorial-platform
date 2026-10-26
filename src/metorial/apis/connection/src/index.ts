@@ -4,7 +4,7 @@ import { generateSnowflakeId } from '@metorial/id';
 import { assertCanUseSessionById } from '@metorial-subspace/module-tenant';
 import { AuthInfo } from '@metorial/module-access';
 import { Authenticator } from '@metorial/rest';
-import { authenticateAndResolveInstance } from './getSession';
+import { authenticateSessionConnection } from './getSession';
 import { createConnectionHono } from './hono';
 import { handleMagicMcpRequest } from './magic';
 import { handleMcpRequest } from './mcp';
@@ -74,7 +74,7 @@ export let startMcpServer = (d: {
           type: 'request'
         }),
         async () => {
-          let { instance, organizationActor } = await authenticateAndResolveInstance(
+          let { instance, organizationActor } = await authenticateSessionConnection(
             req,
             url,
             d.authenticate
@@ -121,7 +121,7 @@ export let startMcpServer = (d: {
   console.log('MCP server started on port', d.port);
 };
 
-export { authenticateAndResolveInstance } from './getSession';
+export { authenticateAndResolveInstance, authenticateSessionConnection } from './getSession';
 export { handleMagicMcpRequest } from './magic';
 export { handleMcpRequest } from './mcp';
 export * from './outpost';

@@ -56,7 +56,7 @@ export let WorkspaceList = () => {
                     </Text>
                   </div>
                 </Flex>,
-                <Badge color={workspace.status === 'active' ? 'green' : 'gray'} size="1">
+                <Badge color={workspace.status === 'active' ? 'green' : 'gray'} size="2">
                   {workspace.status}
                 </Badge>,
                 <RenderDate date={workspace.createdAt} />

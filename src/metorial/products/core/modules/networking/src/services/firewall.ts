@@ -1,4 +1,4 @@
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, conflictError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
@@ -37,7 +37,7 @@ import {
   toProviderEventBase,
   type MetorialFacing
 } from '@metorial-subspace/module-tenant';
-import { searchFirewallIds } from '@metorial/module-search';
+import { buildSearchFilter, searchFirewallIds } from '@metorial/module-search';
 import { mirrorFirewall } from '../internal/subspaceMirror';
 
 let include = {
@@ -166,19 +166,21 @@ class firewallServiceImpl {
     let providers = await resolveProviders(ts, d.providerIds);
     let networkPolicies = await resolveNetworkPolicies(ts, d.networkPolicyIds);
 
-    let search = d.search?.trim();
-    let instance =
-      search && d.environment.instanceOid
-        ? await coreDb.instance.findUnique({
-            where: { oid: d.environment.instanceOid },
-            select: { id: true }
-          })
-        : null;
-    let searchIds = search
-      ? instance
-        ? await searchFirewallIds({ instanceId: instance.id, query: search })
-        : []
-      : undefined;
+    let search = await buildSearchFilter<Prisma.FirewallWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let instance = d.environment.instanceOid
+          ? await coreDb.instance.findUnique({
+              where: { oid: d.environment.instanceOid },
+              select: { id: true }
+            })
+          : null;
+        if (!instance) return [];
+
+        return await searchFirewallIds({ instanceId: instance.id, query });
+      },
+      exact: query => [{ id: query }, { slug: { equals: query, mode: 'insensitive' } }]
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts =>
@@ -189,7 +191,7 @@ class firewallServiceImpl {
             environmentOid: d.environment.oid,
             ...normalizeStatusForList(d).noParent,
             AND: [
-              searchIds ? { id: { in: searchIds } } : undefined!,
+              search ?? undefined!,
               d.ids ? { id: { in: d.ids } } : undefined!,
               d.slugs ? { slug: { in: d.slugs } } : undefined!,
               enclaves ? { assignments: { some: { enclaveOid: enclaves.in } } } : undefined!,
@@ -343,6 +345,8 @@ class firewallServiceImpl {
       d.input.slug?.trim() || `${slugify(d.input.name)}-${generatePlainId(10).toLowerCase()}`;
 
     let created = await withTransaction(async tx => {
+      await this.assertSlugAvailable({ instance: d.instance, slug });
+
       let firewall = await tx.firewall.create({
         data: {
           id: await ID.generateId('firewall'),
@@ -378,6 +382,11 @@ class firewallServiceImpl {
     let updated = await withTransaction(async tx => {
       let firewall = await this.getForMutation(d);
 
+      let slug = d.input.slug?.trim() ?? firewall.slug;
+      if (slug !== firewall.slug) {
+        await this.assertSlugAvailable({ instance: d.instance, slug });
+      }
+
       if (d.input.networkPolicyIds !== undefined) {
         await this.replaceNetworkPolicyLinks({
           instance: d.instance,
@@ -394,7 +403,7 @@ class firewallServiceImpl {
             d.input.description !== undefined
               ? d.input.description.trim() || null
               : firewall.description,
-          slug: d.input.slug?.trim() ?? firewall.slug,
+          slug,
           revision: { increment: 1 },
           needsSubspaceSync: true
         }
@@ -524,20 +533,39 @@ class firewallServiceImpl {
     );
   }
 
+  private async assertSlugAvailable(d: { instance: Instance; slug: string }) {
+    await withTransaction(
+      async tx => {
+        let existing = await tx.firewall.findFirst({
+          where: { instanceOid: d.instance.oid, slug: d.slug },
+          select: { oid: true }
+        });
+        if (existing) {
+          throw new ServiceError(
+            conflictError({ message: 'A firewall with this slug already exists' })
+          );
+        }
+      },
+      { ifExists: true }
+    );
+  }
+
   private async replaceNetworkPolicyLinks(d: {
     instance: Instance;
     firewallOid: bigint;
     networkPolicyIds: string[];
   }) {
+    let networkPolicyIds = [...new Set(d.networkPolicyIds)];
+
     await withTransaction(
       async tx => {
         await tx.firewallNetworkPolicy.deleteMany({ where: { firewallOid: d.firewallOid } });
-        if (!d.networkPolicyIds.length) return;
+        if (!networkPolicyIds.length) return;
 
         let policies = await tx.networkPolicy.findMany({
-          where: { id: { in: d.networkPolicyIds }, instanceOid: d.instance.oid }
+          where: { id: { in: networkPolicyIds }, instanceOid: d.instance.oid }
         });
-        if (policies.length !== new Set(d.networkPolicyIds).size) {
+        if (policies.length !== networkPolicyIds.length) {
           throw new ServiceError(
             badRequestError({
               code: 'invalid_firewall_network_policies',
@@ -548,7 +576,7 @@ class firewallServiceImpl {
 
         for (let policy of policies) checkDeletedRelation(policy);
 
-        for (let [position, networkPolicyId] of d.networkPolicyIds.entries()) {
+        for (let [position, networkPolicyId] of networkPolicyIds.entries()) {
           let policy = policies.find(candidate => candidate.id === networkPolicyId)!;
 
           await tx.firewallNetworkPolicy.create({

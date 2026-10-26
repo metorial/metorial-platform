@@ -118,7 +118,7 @@ class FileServiceImpl {
   private async deleteFileIfUnreferenced(d: {
     fileId: string;
     replacementFileOid: bigint;
-    auditScope: AuditScope;
+    auditScope?: AuditScope;
   }) {
     return await withTransaction(async db => {
       let file = await db.file.findUnique({
@@ -247,7 +247,7 @@ class FileServiceImpl {
 
   async createFile(
     d: CargoOwnerScope & {
-      auditScope: AuditScope;
+      auditScope?: AuditScope;
       purpose: string;
       storeId: string;
       _isDocument?: boolean;

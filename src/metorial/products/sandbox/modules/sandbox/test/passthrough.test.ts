@@ -39,7 +39,10 @@ vi.mock('../src/lib/regions', () => ({ getRegionClient: vi.fn(() => genesis) }))
 vi.mock('../src/queues/imageBuild', () => ({ imageBuildRootQueue: { add: vi.fn() } }));
 let search = { enabled: false, searchSandboxImageIds: vi.fn() };
 
-vi.mock('@metorial/module-search', () => ({
+vi.mock('@metorial/module-search', async () => ({
+  ...(await vi.importActual<typeof import('@metorial/module-search/src/searchFilter')>(
+    '@metorial/module-search/src/searchFilter'
+  )),
   isSearchEnabled: () => search.enabled,
   sandboxGlobalSearchTenantId: 'sandbox_global',
   searchSandboxImageIds: search.searchSandboxImageIds
@@ -563,7 +566,16 @@ describe('sandboxImageService', () => {
     expect(db.sandboxMachineImage.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          AND: [expect.any(Object), { id: { in: ['sbi_own', 'sbi_global'] } }]
+          AND: [
+            expect.any(Object),
+            {
+              OR: [
+                { id: { in: ['sbi_own', 'sbi_global'] } },
+                { id: 'node' },
+                { identifier: { equals: 'node', mode: 'insensitive' } }
+              ]
+            }
+          ]
         }
       })
     );

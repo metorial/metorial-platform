@@ -14,6 +14,7 @@ import { Box, Table } from '@metorial/ui-product';
 import { Link, useParams } from 'react-router-dom';
 import { OpenExplorerBox } from '../../../components/openExplorer';
 import { getCustomProviderScmLink } from '../../../scenes/customProvider/utils';
+import { UsageOverviewTiles } from '../../../scenes/instanceUsage';
 import { CustomProviderVersionStatus } from '../../../scenes/customProvider/version';
 
 let RecentVersionsBox = (p: { customProvider: DashboardInstanceCustomProvidersGetOutput }) => {
@@ -136,16 +137,23 @@ export let CustomProviderOverviewPage = () => {
           </>
         )}
 
-        {/* <Spacer height={15} />
+        {customProvider.data.provider?.id ? (
+          <>
+            <UsageOverviewTiles
+              filter={{ providerId: customProvider.data.provider.id }}
+              tiles={['tool_calls', 'error_rate', 'sessions']}
+              href={Paths.instance.provider(
+                instance.data?.organization,
+                instance.data?.project,
+                instance.data,
+                customProvider.data.provider.id,
+                'usage'
+              )}
+            />
 
-        <UsageScene
-          title="Usage"
-          description="See how this custom provider is being in your instance."
-          entities={[{ type: 'provider', id: customProvider.data.provider?.id ?? 'xxxx' }]}
-          entityNames={{
-            [customProvider.data.provider?.id ?? 'xxxx']: customProvider.data.provider?.name!
-          }}
-        /> */}
+            <Spacer height={15} />
+          </>
+        ) : null}
 
         <RecentVersionsBox customProvider={customProvider.data} />
       </DetailsOverviewLayout>

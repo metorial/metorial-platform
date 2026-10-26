@@ -89,7 +89,7 @@ export let agentController = Controller.create(
       .do(async ctx => {
         let paginator = await agentService.listAgents({
           instance: ctx.instance,
-          allowDeleted: true,
+          allowDeleted: false,
           search: ctx.query.search,
           status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),

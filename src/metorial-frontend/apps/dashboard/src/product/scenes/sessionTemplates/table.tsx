@@ -13,16 +13,18 @@ import {
 import { RenderDate, Text, confirm } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { RiDeleteBinLine } from '@remixicon/react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Table as DashboardTable } from '@metorial/table';
 import {
   FilterPayload,
+  TableFilter,
   TableStateProvider,
   TableStateProviderResult,
   getDateRangeFilterValue,
   getEnumListFilterValue,
-  getStringFilterValue
+  getListFilterValue
 } from '@metorial/table';
+import { entityFilters } from '../entityFilters';
 
 type SessionTemplate = DashboardInstanceSessionTemplatesListOutput['items'][number];
 
@@ -38,6 +40,43 @@ let getSessionTemplateStatusFilterValue = (
 ): DashboardInstanceSessionTemplatesListQuery['status'] =>
   getEnumListFilterValue(value, ['active', 'archived']);
 
+export let useSessionTemplateFilters = (instanceId: string | null | undefined) =>
+  useMemo<TableFilter<SessionTemplate>[]>(
+    () => [
+      {
+        id: 'status',
+        fields: ['status'],
+        label: 'Status',
+        description: 'Filter by status',
+        type: 'select',
+        options: [
+          { id: 'active', label: 'Active' },
+          { id: 'archived', label: 'Archived' }
+        ]
+      },
+      entityFilters.session(instanceId),
+      entityFilters.provider(instanceId),
+      entityFilters.providerDeployment(instanceId),
+      entityFilters.providerConfig(instanceId),
+      entityFilters.providerAuthConfig(instanceId),
+      {
+        id: 'createdAt',
+        fields: ['createdAt'],
+        label: 'Created',
+        description: 'Filter by created date',
+        type: 'date'
+      },
+      {
+        id: 'updatedAt',
+        fields: ['updatedAt'],
+        label: 'Updated',
+        description: 'Filter by updated date',
+        type: 'date'
+      }
+    ],
+    [instanceId]
+  );
+
 let sessionTemplatesState: TableStateProvider<
   SessionTemplatesTableProps,
   SessionTemplate,
@@ -47,13 +86,11 @@ let sessionTemplatesState: TableStateProvider<
     ownership: 'all',
     order: 'desc',
     status: getSessionTemplateStatusFilterValue(opts.filter.status),
-    id: getStringFilterValue(opts.filter.id),
-    sessionId: getStringFilterValue(opts.filter.sessionId),
-    sessionProviderId: getStringFilterValue(opts.filter.sessionProviderId),
-    providerId: getStringFilterValue(opts.filter.providerId),
-    providerDeploymentId: getStringFilterValue(opts.filter.providerDeploymentId),
-    providerConfigId: getStringFilterValue(opts.filter.providerConfigId),
-    providerAuthConfigId: getStringFilterValue(opts.filter.providerAuthConfigId),
+    sessionId: getListFilterValue(opts.filter.sessionId),
+    providerId: getListFilterValue(opts.filter.providerId),
+    providerDeploymentId: getListFilterValue(opts.filter.providerDeploymentId),
+    providerConfigId: getListFilterValue(opts.filter.providerConfigId),
+    providerAuthConfigId: getListFilterValue(opts.filter.providerAuthConfigId),
     createdAt: getDateRangeFilterValue(opts.filter.createdAt),
     updatedAt: getDateRangeFilterValue(opts.filter.updatedAt)
   });
@@ -158,82 +195,6 @@ let sessionTemplatesTable = new DashboardTable<SessionTemplatesTableProps, Sessi
       render: template => <ID id={template.id} />
     }
   ])
-  .filters([
-    {
-      id: 'status',
-      fields: ['status'],
-      label: 'Status',
-      description: 'Filter by status',
-      type: 'select',
-      options: [
-        { id: 'active', label: 'Active' },
-        { id: 'archived', label: 'Archived' }
-      ]
-    },
-    {
-      id: 'id',
-      fields: ['id'],
-      label: 'Template ID',
-      description: 'Filter by template ID',
-      type: 'string'
-    },
-    {
-      id: 'sessionId',
-      fields: ['sessionId'],
-      label: 'Session ID',
-      description: 'Filter by session ID',
-      type: 'string'
-    },
-    {
-      id: 'sessionProviderId',
-      fields: ['sessionProviderId'],
-      label: 'Session Provider ID',
-      description: 'Filter by session provider ID',
-      type: 'string'
-    },
-    {
-      id: 'providerId',
-      fields: ['providerId'],
-      label: 'Provider ID',
-      description: 'Filter by provider ID',
-      type: 'string'
-    },
-    {
-      id: 'providerDeploymentId',
-      fields: ['providerDeploymentId'],
-      label: 'Deployment ID',
-      description: 'Filter by deployment ID',
-      type: 'string'
-    },
-    {
-      id: 'providerConfigId',
-      fields: ['providerConfigId'],
-      label: 'Config ID',
-      description: 'Filter by config ID',
-      type: 'string'
-    },
-    {
-      id: 'providerAuthConfigId',
-      fields: ['providerAuthConfigId'],
-      label: 'Auth Config ID',
-      description: 'Filter by auth config ID',
-      type: 'string'
-    },
-    {
-      id: 'createdAt',
-      fields: ['createdAt'],
-      label: 'Created',
-      description: 'Filter by created date',
-      type: 'date'
-    },
-    {
-      id: 'updatedAt',
-      fields: ['updatedAt'],
-      label: 'Updated',
-      description: 'Filter by updated date',
-      type: 'date'
-    }
-  ])
   .link((template, props) =>
     Paths.instance.sessionTemplate(
       props.organization.data,
@@ -289,12 +250,14 @@ export let SessionTemplatesTable = ({ instanceId }: { instanceId: string }) => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let tableFilters = useSessionTemplateFilters(instanceId);
 
   return sessionTemplatesTable({
     instanceId,
     organization,
     project,
     instance,
+    tableFilters,
     emptyState: 'No templates found.'
   });
 };

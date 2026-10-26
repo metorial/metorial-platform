@@ -480,8 +480,14 @@ export let providerSetupSessionController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
       .output(providerSetupSessionPresenter)
       .do(async ctx => {
+        let setupSession = await providerSetupSessionService.archiveProviderSetupSession({
+          instance: ctx.instance,
+          auditScope: ctx.auditScope,
+          providerSetupSession: ctx.setupSession
+        });
+
         return providerSetupSessionPresenter.present(
-          await hydrateResourceOwners({ setupSession: ctx.setupSession })
+          await hydrateResourceOwners({ setupSession })
         );
       })
   }

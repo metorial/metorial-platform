@@ -6,6 +6,7 @@ import {
   db,
   type Environment,
   getId,
+  type Prisma,
   type Provider,
   type ProviderAuthConfig,
   type ProviderAuthConfigSource,
@@ -22,6 +23,7 @@ import {
 import {
   assertNoActiveIdentityCredentialAuthConfigLink,
   assertNoActiveIntegrationInstanceProviderAuthConfigLink,
+  buildSearchFilter,
   checkDeletedEdit,
   checkDeletedRelation,
   type DateFilter,
@@ -361,14 +363,19 @@ class providerAuthConfigServiceImpl {
     let identities = await resolveIdentities(ts, d.identityIds);
     let identityCredentials = await resolveIdentityCredentials(ts, d.identityCredentialIds);
 
-    let search = d.search
-      ? await voyager.record.search({
+    let search = await buildSearchFilter<Prisma.ProviderAuthConfigWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let records = await voyager.record.search({
           tenantId: d.tenant.id,
           sourceId: (await voyagerSource).id,
           indexId: voyagerIndex.providerAuthConfig.id,
-          query: d.search
-        })
-      : null;
+          query
+        });
+
+        return records.map(r => r.documentId);
+      }
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -390,7 +397,7 @@ class providerAuthConfigServiceImpl {
                   ? { ownerPublicMcpServer: { id: { in: d.publicMcpServerIds } } }
                   : { ownerPublicMcpServerOid: null },
                 d.ids ? { id: { in: d.ids } } : undefined!,
-                search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
+                search ?? undefined!,
                 providers ? { providerOid: providers.in } : undefined!,
                 deployments ? { deploymentOid: deployments.in } : undefined!,
                 d.availableForUse
@@ -847,7 +854,9 @@ class providerAuthConfigServiceImpl {
       environment: d.environment,
       solution,
       authConfigOid: d.providerAuthConfig.oid,
-      resourceId: d.providerAuthConfig.id
+      resourceId: d.providerAuthConfig.id,
+      owningIntegrationInstanceProviderOid:
+        d.providerAuthConfig.owningIntegrationInstanceProviderOid
     });
 
     return withTransaction(async db => {

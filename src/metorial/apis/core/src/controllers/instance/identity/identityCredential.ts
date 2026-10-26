@@ -113,14 +113,15 @@ export let identityCredentialController = Controller.create(
             instance: ctx.instance,
             consumerProfileIds
           });
-          actorIds = actorIds
-            ? profileActorIds.filter(id => actorIds.includes(id))
+          let requestedActorIds = actorIds;
+          actorIds = requestedActorIds
+            ? profileActorIds.filter(id => requestedActorIds.includes(id))
             : profileActorIds;
         }
 
         let paginator = await identityCredentialService.listIdentityCredentials({
           instance: ctx.instance,
-          allowDeleted: true,
+          allowDeleted: false,
 
           status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),

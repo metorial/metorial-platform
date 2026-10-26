@@ -56,7 +56,8 @@ export let magicMcpGroupController = Controller.create(
                 v.array(v.enumOf([...magicMcpGroupStatusValues]))
               ])
             ),
-            search: v.optional(v.string())
+            search: v.optional(v.string()),
+            id: v.optional(v.union([v.string(), v.array(v.string())]))
           })
         )
       )
@@ -65,7 +66,8 @@ export let magicMcpGroupController = Controller.create(
         let paginator = await magicMcpGroupService.listMagicMcpGroups({
           instance: ctx.instance,
           status: normalizeArrayParam<MagicMcpGroupStatus>(ctx.query.status),
-          search: ctx.query.search
+          search: ctx.query.search,
+          ids: normalizeArrayParam(ctx.query.id)
         });
 
         let list = await paginator.run(ctx.query);
@@ -129,7 +131,8 @@ export let magicMcpGroupController = Controller.create(
     delete: magicMcpGroupGroup
       .delete(instancePath('magic-mcp-groups/:magicMcpGroupId', 'magicMcpGroups.delete'), {
         name: 'Delete magic MCP group',
-        description: 'Deletes a magic MCP group.'
+        description:
+          'Deletes a magic MCP group. Fails while the group is the only group of an active magic MCP token, so that deleting a group never widens what a token can access.'
       })
       .use(
         checkAccess({

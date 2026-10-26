@@ -58,6 +58,22 @@ export let recordEventDestinationArchived = async (
   });
 };
 
+export let recordEventDestinationWebhookSecretRotated = async (
+  event: FabricEvents['organization.event_destination.webhook_secret_rotated:after']
+) => {
+  await recordAuditEventAfterCommit(async recordedAt => {
+    await auditTrackerService.recordEvent(
+      event.auditScope,
+      'event_destination',
+      'rotate_secret',
+      {
+        payload: eventDestinationPayload(event.eventDestination),
+        recordedAt
+      }
+    );
+  });
+};
+
 export let recordEventDestinationPinged = async (
   event: FabricEvents['organization.event_destination.pinged:after']
 ) => {
@@ -72,4 +88,8 @@ export let recordEventDestinationPinged = async (
 Fabric.listen('organization.event_destination.created:after', recordEventDestinationCreated);
 Fabric.listen('organization.event_destination.updated:after', recordEventDestinationUpdated);
 Fabric.listen('organization.event_destination.archived:after', recordEventDestinationArchived);
+Fabric.listen(
+  'organization.event_destination.webhook_secret_rotated:after',
+  recordEventDestinationWebhookSecretRotated
+);
 Fabric.listen('organization.event_destination.pinged:after', recordEventDestinationPinged);

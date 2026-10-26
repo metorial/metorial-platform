@@ -28,6 +28,7 @@ vi.mock('@metorial-subspace/db', () => ({
 }));
 
 import {
+  assertNoActiveIdentityCredentialAuthConfigLink,
   assertNoActiveIdentityCredentialConfigLink,
   assertNoActiveIntegrationInstanceProviderConfigLink
 } from '../src/linkGuards';
@@ -76,5 +77,47 @@ describe('linkGuards', () => {
         resourceId: 'cfg_1'
       })
     ).rejects.toThrow('provider_config_identity_credential_archive_not_allowed');
+  });
+
+  it('ignores the identity credential mirroring the owning integration instance provider', async () => {
+    identityCredentialFindFirst.mockResolvedValueOnce(null);
+
+    await expect(
+      assertNoActiveIdentityCredentialAuthConfigLink({
+        tenant: { oid: 1n } as any,
+        solution: { oid: 1 } as any,
+        environment: { oid: 1n } as any,
+        authConfigOid: 20n,
+        resourceId: 'pac_1',
+        owningIntegrationInstanceProviderOid: 30n
+      })
+    ).resolves.toBeUndefined();
+
+    expect(identityCredentialFindFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          authConfigOid: 20n,
+          OR: [
+            { integrationInstanceProviderOid: null },
+            { integrationInstanceProviderOid: { not: 30n } }
+          ]
+        })
+      })
+    );
+  });
+
+  it('checks every identity credential when the auth config is not owned', async () => {
+    identityCredentialFindFirst.mockResolvedValueOnce(null);
+
+    await assertNoActiveIdentityCredentialAuthConfigLink({
+      tenant: { oid: 1n } as any,
+      solution: { oid: 1 } as any,
+      environment: { oid: 1n } as any,
+      authConfigOid: 20n,
+      resourceId: 'pac_1',
+      owningIntegrationInstanceProviderOid: null
+    });
+
+    expect(identityCredentialFindFirst.mock.calls[0]![0].where).not.toHaveProperty('OR');
   });
 });
