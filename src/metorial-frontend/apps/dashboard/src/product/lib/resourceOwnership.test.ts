@@ -28,6 +28,7 @@ let caller = {
 
 let memberResource: OwnedResource = {
   access: {
+    source: null,
     type: 'owner_locked',
     visibility: 'owner',
     owner: {
@@ -116,7 +117,7 @@ describe('resource access ownership', () => {
   it('allows shared resources', () => {
     expect(
       getResourceOwnershipAccess(
-        { access: { type: 'public', visibility: 'anyone', owner: null } },
+        { access: { source: null, type: 'public', visibility: 'anyone', owner: null } },
         caller
       )
     ).toEqual({ canUse: true, isOwn: false, isConsumerOwned: false });

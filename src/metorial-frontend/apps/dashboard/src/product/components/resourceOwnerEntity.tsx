@@ -2,11 +2,12 @@ import { Paths } from '@metorial/frontend-config';
 import {
   useCurrentInstance,
   useCurrentOrganization,
-  useCurrentProject
+  useCurrentProject,
+  usePortals
 } from '@metorial/state';
 import { Avatar, Badge, Button, Entity, Text, theme } from '@metorial/ui';
 import { RiEyeOffLine, RiLockLine } from '@remixicon/react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import type { OwnedResource, ResourceOwnerActor } from '../lib/resourceOwnership';
 
@@ -41,17 +42,20 @@ let useOwnerUrl = (owner: ResourceOwnerActor) => {
   let project = useCurrentProject();
   let instance = useCurrentInstance();
 
-  if (owner.organizationMember) {
-    return Paths.organization.members(organization.data, owner.organizationMember.id);
-  }
+  let { portalId: routePortalId } = useParams();
+  let portals = usePortals(
+    owner.consumer && !owner.consumer.portalId && !routePortalId ? instance.data?.id : null,
+    { limit: 1, order: 'asc' }
+  );
+  let portalId = owner.consumer?.portalId ?? routePortalId ?? portals.data?.items[0]?.id;
 
-  if (!owner.consumer?.portalId) return null;
+  if (!owner.consumer || !portalId) return null;
 
   return Paths.instance.portal(
     organization.data,
     project.data,
     instance.data,
-    owner.consumer.portalId,
+    portalId,
     'account',
     owner.consumer.profileId
   );
@@ -163,13 +167,10 @@ let ResourceOwnerEntityContent = ({
         />
 
         {url && (
-          <Entity.Field
-            title={owner.type === 'organization_member' ? 'Organization Member' : 'Account'}
-            right
-          >
+          <Entity.Field title="Account" right>
             <Link to={url}>
               <Button as="span" size="2" variant="outline">
-                {owner.type === 'organization_member' ? 'View Member' : 'View Account'}
+                View Account
               </Button>
             </Link>
           </Entity.Field>
