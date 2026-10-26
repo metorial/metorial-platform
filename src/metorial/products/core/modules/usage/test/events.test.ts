@@ -57,3 +57,21 @@ describe('buildMessageUsageEvent', () => {
     expect(event.dims?.agentId).toBe('agi_1');
   });
 });
+
+describe('profile usage scope', () => {
+  it('keeps calls from profiles of the same consumer in separate buckets', async () => {
+    let { encodeUsageBucketKey } = await import('../src/lib/bucket');
+    let makeEvent = (consumerProfileId: string) =>
+      buildMessageUsageEvent(message({ methodOrToolKey: 'search' }), {
+        ...ctx,
+        consumerId: 'inc_shared',
+        consumerProfileId
+      });
+    let first = makeEvent('cop_portal');
+    let second = makeEvent('cop_member');
+
+    expect(first.dims?.consumerId).toBe(second.dims?.consumerId);
+    expect(first.dims?.consumerProfileId).toBe('cop_portal');
+    expect(encodeUsageBucketKey(first)).not.toBe(encodeUsageBucketKey(second));
+  });
+});

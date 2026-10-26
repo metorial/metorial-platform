@@ -158,6 +158,7 @@ export type DashboardInstancesUsageTimelineQuery = {
   providerId?: string | string[] | undefined;
   deploymentId?: string | string[] | undefined;
   consumerId?: string | string[] | undefined;
+  consumerProfileId?: string | string[] | undefined;
   magicMcpServerId?: string | string[] | undefined;
   integrationId?: string | string[] | undefined;
   errorType?: string | string[] | undefined;
@@ -182,6 +183,7 @@ export let mapDashboardInstancesUsageTimelineQuery =
     'provider_id',
     'deployment_id',
     'consumer_id',
+    'consumer_profile_id',
     'magic_mcp_server_id',
     'integration_id',
     'error_type',

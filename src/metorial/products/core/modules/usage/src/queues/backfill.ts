@@ -23,7 +23,7 @@ import {
 } from '../lib/events';
 import {
   resolveUsageAgentIds,
-  resolveUsageConsumersByActor,
+  resolveUsageConsumerContextsByActor,
   resolveUsageInstances,
   resolveUsageSessionDimsMany,
   type UsageInstanceRef,
@@ -52,7 +52,7 @@ let resolveSessionContexts = async (
   let [instances, sessions, consumers, getAgentId] = await Promise.all([
     resolveUsageInstances(rows.flatMap(row => (row.instanceOid ? [row.instanceOid] : []))),
     resolveUsageSessionDimsMany(rows.map(row => row.session)),
-    resolveUsageConsumersByActor(
+    resolveUsageConsumerContextsByActor(
       rows.flatMap(row => {
         let actorOid = row.identityActorOid ?? row.session.identityActorOid;
         return actorOid ? [actorOid] : [];
@@ -70,7 +70,7 @@ let resolveSessionContexts = async (
     return {
       instance,
       session: sessions.get(row.session.oid.toString()) as UsageSessionDims | undefined,
-      consumerId: actorOid ? (consumers.get(actorOid.toString()) ?? null) : null,
+      ...(actorOid ? consumers.get(actorOid.toString()) : null),
       agentId: getAgentId(row.participant)
     };
   };
@@ -410,21 +410,19 @@ export let usageBackfillPageProcessor = usageBackfillPageQueue.process(async dat
 
   await usageDbConnect();
 
-  let documents = [...buckets.values()].map(
-    (bucket): UsageMetric => ({
-      _id: getUsageMetricId([
-        'backfill',
-        data.source,
-        data.cursor ?? 'start',
-        bucket.minute,
-        bucket.field
-      ]),
-      ts: new Date(bucket.minute),
-      source: 'backfill',
-      ...decodeUsageBucketKey(bucket.field),
-      ...bucket.counters
-    })
-  );
+  let documents = [...buckets.values()].map((bucket): UsageMetric => ({
+    _id: getUsageMetricId([
+      'backfill',
+      data.source,
+      data.cursor ?? 'start',
+      bucket.minute,
+      bucket.field
+    ]),
+    ts: new Date(bucket.minute),
+    source: 'backfill',
+    ...decodeUsageBucketKey(bucket.field),
+    ...bucket.counters
+  }));
 
   if (documents.length) {
     await UsageMetricModel.bulkWrite(

@@ -42,6 +42,7 @@ type UsageEventContext = {
   instance: UsageInstanceRef;
   session?: UsageSessionDims;
   consumerId?: string | null;
+  consumerProfileId?: string | null;
   agentId?: string | null;
 };
 
@@ -52,6 +53,7 @@ let base = (ctx: UsageEventContext) => ({
 
 let sessionDims = (ctx: UsageEventContext) => ({
   consumerId: ctx.consumerId ?? null,
+  consumerProfileId: ctx.consumerProfileId ?? null,
   agentId: ctx.agentId ?? null,
   magicMcpServerId: ctx.session?.magicMcpServerId ?? null,
   integrationId: ctx.session?.integrationId ?? null

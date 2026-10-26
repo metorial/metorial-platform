@@ -14,7 +14,7 @@ import {
 } from './lib/events';
 import {
   resolveUsageAgentId,
-  resolveUsageConsumerByActor,
+  resolveUsageConsumerContextByActor,
   resolveUsageInstance,
   resolveUsageProvider,
   resolveUsageSessionDims,
@@ -57,13 +57,15 @@ let resolveSessionContext = async (d: {
   let instance = await resolveUsageInstance(d.instanceOid);
   if (!instance) return null;
 
-  let [session, consumerId, agentId] = await Promise.all([
+  let [session, consumer, agentId] = await Promise.all([
     resolveUsageSessionDims(d.session),
-    resolveUsageConsumerByActor(d.participant?.identityActorOid ?? d.session.identityActorOid),
+    resolveUsageConsumerContextByActor(
+      d.participant?.identityActorOid ?? d.session.identityActorOid
+    ),
     resolveUsageAgentId(d.participant)
   ]);
 
-  return { instance, session, consumerId, agentId };
+  return { instance, session, ...consumer, agentId };
 };
 
 export let recordSessionMessageUsage = (
