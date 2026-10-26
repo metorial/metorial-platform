@@ -1,4 +1,4 @@
-import { Datalist } from '@metorial/ui';
+import { Datalist, theme } from '@metorial/ui';
 import React from 'react';
 import styled from 'styled-components';
 import { useDetailsLayout } from '../detailsLayoutContext';
