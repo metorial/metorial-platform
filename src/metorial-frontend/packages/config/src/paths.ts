@@ -67,6 +67,13 @@ let makeIdentityPaths = (...prefix: SubPages) => ({
     return InstancePaths(organization, project, instance, ...prefix, 'actor', id, ...subPages);
   },
 
+  accounts: (
+    organization: EntityParam,
+    project: EntityParam,
+    instance: EntityParam,
+    ...subPages: SubPages
+  ) => InstancePaths(organization, project, instance, ...prefix, 'accounts', ...subPages),
+
   identities: (
     organization: EntityParam,
     project: EntityParam,
