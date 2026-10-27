@@ -26,7 +26,10 @@ import { internalSecurityReviewSubjectService } from '../internal/securityReview
 import { markSkillDestinationsDirty } from '../internal/skillDistribution';
 import { enqueueSecurityReview } from '../queues/run';
 
-let REASSESS_INTERVAL_MS = 24 * 60 * 60 * 1000;
+let REASSESS_LIMITS = [
+  { windowMs: 15 * 60 * 1000, max: 2, label: '15 minutes' },
+  { windowMs: 24 * 60 * 60 * 1000, max: 15, label: '24 hours' }
+];
 let VISIBLE_REVISIONS = 5;
 let FAILED_RETRY_MS = 60 * 60 * 1000;
 
@@ -329,6 +332,28 @@ class SecurityReviewServiceImpl {
     return revision;
   }
 
+  async assertReassessAllowed(d: { review: SecurityReview }) {
+    let subject = d.review.subjectType == 'skill_version' ? 'skill' : 'provider';
+
+    for (let limit of REASSESS_LIMITS) {
+      let count = await db.securityReviewRevision.count({
+        where: {
+          reviewOid: d.review.oid,
+          trigger: 'reassess',
+          createdAt: { gt: new Date(Date.now() - limit.windowMs) }
+        }
+      });
+
+      if (count >= limit.max) {
+        throw new ServiceError(
+          tooManyRequestsError({
+            message: `This ${subject} can be reassessed ${limit.max} times every ${limit.label}`
+          })
+        );
+      }
+    }
+  }
+
   async reassessSecurityReview(d: { review: SecurityReview }) {
     if (d.review.scope != 'tenant') {
       throw new ServiceError(
@@ -345,21 +370,7 @@ class SecurityReviewServiceImpl {
       );
     }
 
-    let recent = await db.securityReviewRevision.findFirst({
-      where: {
-        reviewOid: d.review.oid,
-        trigger: 'reassess',
-        createdAt: { gt: new Date(Date.now() - REASSESS_INTERVAL_MS) }
-      },
-      select: { oid: true }
-    });
-    if (recent) {
-      throw new ServiceError(
-        tooManyRequestsError({
-          message: `This ${subject} can be reassessed once every 24 hours`
-        })
-      );
-    }
+    await this.assertReassessAllowed(d);
 
     await enqueueSecurityReview({
       reviewId: d.review.id,

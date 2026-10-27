@@ -285,7 +285,10 @@ export let CustomProvidersGrid = ({
                       instance.data,
                       provider.id
                     )}
-                    entity={{ id: provider.id, hasUsage: true }}
+                    entity={{
+                      id: provider.id,
+                      hasUsage: true
+                    }}
                     title={title}
                     description={provider.description ?? provider.provider?.description}
                     variant="v2"

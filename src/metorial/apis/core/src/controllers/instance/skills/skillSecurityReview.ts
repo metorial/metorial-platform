@@ -53,12 +53,15 @@ export let skillSecurityReviewController = Controller.create(
         {
           name: 'Reassess skill security review',
           description:
-            'Starts a new review of the skill. Pending edits are sealed into a new version first. Available once every 24 hours.'
+            'Starts a new review of the skill. Pending edits are sealed into a new version first.'
         }
       )
       .use(checkAccess({ possibleScopes: [...skillWriteScopes] }))
       .output(skillSecurityReviewPresenter)
       .do(async ctx => {
+        await securityReviewService.assertReassessAllowed({
+          review: ctx.securityReview.review
+        });
         await skillVersionService.ensureCurrentSkillVersion({ skill: ctx.skill.localSkill });
 
         let state = await securityReviewService.reassessSkillSecurityReview({

@@ -106,8 +106,7 @@ export let providerSecurityReviewController = Controller.create(
         ),
         {
           name: 'Reassess security review',
-          description:
-            'Starts a new review of a custom provider. Available once every 24 hours; reviews of Metorial integrations are maintained by Metorial.'
+          description: 'Starts a new review of a custom provider.'
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider:write'] }))
