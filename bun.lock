@@ -3547,6 +3547,21 @@
         "vitest": "^5.0.4",
       },
     },
+    "src/metorial/products/core/modules/rate-limit": {
+      "name": "@metorial/module-rate-limit",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@metorial/cache": "^1.0.0",
+        "@metorial/db": "^1.0.0",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
     "src/metorial/products/core/modules/resource-actor": {
       "name": "@metorial/module-resource-actor",
       "version": "1.0.0",
@@ -4039,6 +4054,7 @@
         "@metorial/audit-scope": "workspace:*",
         "@metorial/audit-stash": "workspace:*",
         "@metorial/db": "workspace:*",
+        "@metorial/module-rate-limit": "^1.0.0",
         "@metorial/fabric": "^1.0.0",
         "@metorial/module-usage": "^1.0.0",
         "@modelcontextprotocol/sdk": "^1.32.1",
@@ -4728,6 +4744,7 @@
         "@metorial/module-file": "^1.0.0",
         "@metorial/module-flags": "^1.0.0",
         "@metorial/module-networking": "^1.0.0",
+        "@metorial/module-rate-limit": "^1.0.0",
         "@metorial/module-search": "^1.0.0",
         "@metorial/queue": "^1.0.0",
       },
@@ -8068,6 +8085,8 @@
     "@metorial/module-portal": ["@metorial/module-portal@workspace:src/metorial/products/workforce/modules/portal"],
 
     "@metorial/module-product-assistant": ["@metorial/module-product-assistant@workspace:src/metorial/products/agents/modules/product-assistant"],
+
+    "@metorial/module-rate-limit": ["@metorial/module-rate-limit@workspace:src/metorial/products/core/modules/rate-limit"],
 
     "@metorial/module-resource-actor": ["@metorial/module-resource-actor@workspace:src/metorial/products/core/modules/resource-actor"],
 
