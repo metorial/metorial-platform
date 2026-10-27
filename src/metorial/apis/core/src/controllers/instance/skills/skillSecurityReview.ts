@@ -2,6 +2,7 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { securityReviewService } from '@metorial-subspace/module-security-review';
+import { skillVersionService } from '@metorial/module-skill';
 import {
   skillSecurityReviewPresenter,
   skillSecurityReviewRevisionPresenter
@@ -51,12 +52,15 @@ export let skillSecurityReviewController = Controller.create(
         ),
         {
           name: 'Reassess skill security review',
-          description: 'Starts a new review of the skill. Available once every 24 hours.'
+          description:
+            'Starts a new review of the skill. Pending edits are sealed into a new version first. Available once every 24 hours.'
         }
       )
       .use(checkAccess({ possibleScopes: [...skillWriteScopes] }))
       .output(skillSecurityReviewPresenter)
       .do(async ctx => {
+        await skillVersionService.ensureCurrentSkillVersion({ skill: ctx.skill.localSkill });
+
         let state = await securityReviewService.reassessSkillSecurityReview({
           review: ctx.securityReview.review
         });
