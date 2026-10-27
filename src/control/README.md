@@ -13,7 +13,7 @@ npm install --global total-control
 
 It registers `control` and can be called from any directory below an OSS or
 enterprise checkout. The launcher walks upward to find the checkout and runs
-that checkout's Control Rust CLI, so Cargo must be available:
+that checkout's TypeScript Control CLI with Bun, so Bun must be available:
 
 ```sh
 cd src/metorial/services/core-api
@@ -22,28 +22,59 @@ control dev core-api
 
 Use `npx total-control <command>` when you do not want a global install.
 
-## Build and use
+## Use
+
+From the checkout root:
 
 ```sh
-cargo build --release
-target/release/control --help
-target/release/control dev backend
-target/release/control prepare --no-docker
-target/release/control env
-target/release/control run test
-target/release/control test:unit @lowerdeck/hash
-target/release/control test:e2e @metorial/module-user
-target/release/control cleanup --dry-run
-target/release/control docker stop
-target/release/control workspace create feature/my-change
-target/release/control workspace list
-target/release/control workspace remove feature/my-change
-target/release/control workspace start
-target/release/control workspace stop feature/my-change
+bun run control --help
+bun run control dev backend
+bun run control prepare --no-docker
+bun run control env
+bun run control run test
+bun run control test:unit @lowerdeck/hash
+bun run control test:e2e @metorial/module-user
+bun run control cleanup --dry-run
+bun run control docker stop
+bun run control workspace create feature/my-change
+bun run control workspace list
+bun run control workspace remove feature/my-change
+bun run control workspace start
+bun run control workspace stop feature/my-change
 ```
 
 Pass `--root PATH` to start project detection somewhere other than the current
 directory.
+
+## Implementation and verification
+
+The CLI is implemented in `src/*.ts` and runs directly with Bun, including in CI.
+Actions invoke `bun <control-directory>/src/main.ts`; no build or binary artifact
+is needed. The in-repository `@lowerdeck/validation` package resolves through
+`tsconfig.json`, so planning commands can run without a monorepo install.
+The npm package remains a lightweight Node launcher that finds the checkout and
+invokes its TypeScript entrypoint with Bun.
+
+From this directory:
+
+```sh
+bun run typecheck
+bun run test
+bun run lint
+CONTROL_DOCKER_TESTS=1 bun test test/docker.integration.test.ts
+```
+
+The original Rust implementation has been removed. Compatibility tests compare
+commands against captured outputs from that implementation, including generated
+environment files. Commands, tests, CI and workspace setup require no Rust
+compiler for Control.
+
+The tests cover strict manifest validation, selection and dependency ordering,
+environments, metadata upgrades, process cancellation and binary pipelines,
+locks, Turbo generation, CI and E2E plans, proxy sessions, command execution,
+worktree creation/removal and rollback. The opt-in Docker test provisions all five
+infrastructure services, creates Postgres and MongoDB databases, verifies repeat
+provisioning, and removes its isolated containers and volumes.
 
 ## `control.toml`
 
@@ -118,8 +149,9 @@ unclosed templates are errors. Dependency URLs can use
 `{{CONTROL_PORT_ETCD_CLIENT}}`, and `{{CONTROL_PORT_ETCD_PEER}}`. Source
 checkouts receive the standard development ports; host workspaces receive their
 persisted allocation. Native development defaults the hostname to `localhost`;
-host workspaces always use `localhost`, while Docker workspaces use their
-branch-derived `<branch>.localhost` hostname.
+source checkouts use `metorial-root.localhost`; branch workspaces use their
+branch-derived `metorial-<branch>.localhost` hostname. Host listeners use persisted
+private bind ports behind the shared hostname proxy.
 
 Package and group arguments select manifests. With no selectors all manifests
 are used. Each generated Turbo mirror receives its manifest's isolated
@@ -268,7 +300,7 @@ containers and volumes are removed unless `--keep` is passed.
 `control workspace create BRANCH` creates a sibling host-runtime worktree and
 stores that runtime in `.control/workspace.json`. Enterprise mode creates the
 enterprise worktree and a paired OSS worktree at its `oss/` path. It runs
-`bun install`, builds Control, and runs the normal preparation sequence during
+`bun install` and the normal preparation sequence during
 first initialization. Application services are not started.
 
 Docker workspaces perform setup inside a persistent Ubuntu development
@@ -276,9 +308,9 @@ container. Host workspaces perform setup directly on the host and generate an
 isolated dependency stack at `.control/services.docker-compose.yml`. Its
 Postgres, MongoDB, Redis, NATS, and etcd host ports are allocated once and
 persisted in workspace metadata. Containers, networks, volumes, and ports are
-therefore independent between host workspaces. Application ports declared by
-`[[dev.expose]]` remain fixed, so multiple host workspaces cannot run the same
-application service concurrently.
+therefore independent between host workspaces. Public application ports declared by
+`[[dev.expose]]` remain fixed. Each host workspace receives private bind ports
+and routes through the shared hostname proxy, allowing concurrent workspaces.
 
 `control workspace list` prints linked worktrees for the repository (branch,
 path, and workspace identity when metadata is present).
@@ -301,8 +333,9 @@ For a host workspace, `workspace start` starts its generated dependency stack,
 ensures host setup is current, and opens the local worktree in VS Code.
 `workspace dev` and `workspace shell` execute from the worktree on the host.
 `workspace stop` retains dependency data, while `workspace stop --volumes`
-removes it. `--rebuild` is Docker-only. Host mode requires Bun, Cargo, Docker,
-and the `code` shell command to be installed locally.
+removes it. `--rebuild` is Docker-only. Host mode requires Bun, Docker, and the `code` shell command to be installed locally.
+Rust remains part of the development container toolchain for application packages;
+Control itself runs entirely in TypeScript.
 
 When a new host workspace is created, Control starts the source checkout's
 `dev_services` Postgres service and clones every non-template user database into
@@ -340,7 +373,7 @@ target that workspace from the source checkout (or any other worktree). Omit it
 to operate on the current checkout.
 
 The command builds an Ubuntu 24.04 image containing zsh, Bun 1.2.15, Node.js
-22/npm, the globally installed `total-control` launcher, Go 1.25, Rust 1.91.1,
+22/npm, the checkout-aware `control` launcher, Go 1.25, Rust 1.91.1,
 Air, and native build tools. It bind mounts the worktree at `/workspace`.
 `workspace start` and its `workspace connect` alias start the dependency stack
 and idle container, open a VS Code window attached to the named container, and
@@ -365,13 +398,13 @@ request by host header. A workspace for branch `feature/auth` therefore uses
 URLs such as:
 
 ```text
-http://feature-auth.localhost:4310
-http://feature-auth.localhost:4300
+http://metorial-feature-auth.localhost:4310
+http://metorial-feature-auth.localhost:4300
 ```
 
 Port 80 on the workspace hostname redirects to the same host on port 4300, so
-`http://feature-auth.localhost/` is equivalent to
-`http://feature-auth.localhost:4300/`.
+`http://metorial-feature-auth.localhost/` is equivalent to
+`http://metorial-feature-auth.localhost:4300/`.
 
 On start, Control writes `HOST.md` at the workspace root (visible inside the
 container as `/workspace/HOST.md`) listing every exposed HTTP endpoint for that

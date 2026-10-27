@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
-import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
+import { externalImages } from './image-bases';
 import {
   captureDescriptor,
   descriptorInputs,
@@ -12,6 +13,8 @@ import {
 
 let [command, dockerfileArgument, destination, canonical = '', buildArguments = '{}'] =
   process.argv.slice(2);
+let fingerprintPolicy = 3;
+let pruneLockTimeoutMs = 300_000;
 let outputFile = process.env.GITHUB_OUTPUT;
 let startedAt = Date.now();
 let phaseStartedAt = startedAt;
@@ -122,34 +125,22 @@ if (command === 'resolve') {
       Object.values(manifest).find(entry => dockerfile.endsWith('/' + entry.dockerfile))
         ?.image ?? '';
 
-  let stages = new Set(['scratch']);
   let bases = new Map<string, string>();
   let baseCache = process.env.IMAGE_BASE_DIGESTS;
   let knownBases: Record<string, string> =
     baseCache && existsSync(baseCache) ? JSON.parse(readFileSync(baseCache, 'utf8')) : {};
   let baseDigest = async (reference: string) => {
     if (!knownBases[reference]) {
+      if (process.env.IMAGE_BASE_DIGESTS_READ_ONLY === 'true')
+        throw new Error(`Base image was not pinned by the planner: ${reference}`);
       knownBases[reference] = (await digest(reference))!;
       if (baseCache) await Bun.write(baseCache, JSON.stringify(knownBases));
     }
     return knownBases[reference];
   };
 
-  for (let line of recipe.split('\n')) {
-    let from = line.match(/^FROM\s+(?:--platform=\S+\s+)?(\S+)(?:\s+AS\s+(\S+))?/i);
-    let copy = line.match(/^COPY\s+--from=(\S+)/i);
-    let reference = from?.[1] ?? copy?.[1];
-    if (reference && !stages.has(reference.toLowerCase()) && !/^\d+$/.test(reference)) {
-      if (reference.includes('$'))
-        throw new Error(`Dynamic external image requires explicit resolution: ${reference}`);
-      if (!bases.has(reference))
-        bases.set(reference, `${reference.split('@')[0]}@${await baseDigest(reference)}`);
-    }
-    if (from?.[2]) stages.add(from[2].toLowerCase());
-  }
-
-  let syntax = recipe.match(/^# syntax=(\S+)/m)?.[1];
-  if (syntax) bases.set(syntax, `${syntax.split('@')[0]}@${await baseDigest(syntax)}`);
+  for (let reference of externalImages(recipe))
+    bases.set(reference, `${reference.split('@')[0]}@${await baseDigest(reference)}`);
 
   reportPhase('base resolution');
 
@@ -228,16 +219,36 @@ if (command === 'resolve') {
     }
     reportPhase('descriptor lookup');
     if (!descriptor) {
-      console.log(run(['bun', `${tooling}/prune.ts`, ...tasks.trim().split(/\s+/)]));
-      console.log(
-        run(['bun', `${tooling}/dependency-cache.ts`, 'capture'], {
-          ...process.env,
-          DOCKER_BUILD_CACHE_DIRECTORY: cache
-        })
-      );
-      descriptor = captureDescriptor(cache, key);
-      await Bun.write(descriptorFile, JSON.stringify(descriptor));
-      prepared = true;
+      let lock = process.env.IMAGE_PRUNE_LOCK;
+      let acquired = false;
+      let lockStartedAt = Date.now();
+      try {
+        if (lock) {
+          while (!acquired) {
+            if (Date.now() - lockStartedAt >= pruneLockTimeoutMs)
+              throw new Error(`Timed out waiting for cold image discovery: ${lock}`);
+            try {
+              mkdirSync(lock);
+              acquired = true;
+            } catch (error) {
+              if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+              await Bun.sleep(100);
+            }
+          }
+        }
+        console.log(run(['bun', `${tooling}/prune.ts`, ...tasks.trim().split(/\s+/)]));
+        console.log(
+          run(['bun', `${tooling}/dependency-cache.ts`, 'capture'], {
+            ...process.env,
+            DOCKER_BUILD_CACHE_DIRECTORY: cache
+          })
+        );
+        descriptor = captureDescriptor(cache, key);
+        await Bun.write(descriptorFile, JSON.stringify(descriptor));
+        prepared = true;
+      } finally {
+        if (lock && acquired) rmSync(lock, { recursive: true, force: true });
+      }
       descriptorOrigin = 'cold discovery';
       console.log('Input descriptor: discovered');
     } else console.log('Input descriptor: reused; no Turbo or source copying');
@@ -303,13 +314,12 @@ if (command === 'resolve') {
   hash.update(
     JSON.stringify({
       version: 2,
+      fingerprintPolicy,
       platform: 'linux/amd64',
       recipe: pinned,
       args: JSON.parse(buildArguments)
     })
   );
-  hash.update(readFileSync(import.meta.path));
-  hash.update(readFileSync(join(dirname(import.meta.path), 'input-descriptor.ts')));
   let records = descriptor
     ? descriptorInputs(descriptor, trackedInputs)
     : new Map<string, { mode: string; oid: string }>();
@@ -339,6 +349,7 @@ if (command === 'resolve') {
       true,
       repository === destination && process.env.IMAGE_CACHE_PUBLISH === 'true'
     );
+    if (!found) console.log(`Image cache miss: ${repository}:${tag}`);
     if (found) {
       let inspected = Bun.spawnSync(
         [

@@ -269,6 +269,7 @@ let backfillSources: Record<string, (window: BackfillWindow) => Promise<Backfill
       take: BACKFILL_BATCH_SIZE,
       select: {
         oid: true,
+        type: true,
         status: true,
         createdAt: true,
         instanceOid: true,

@@ -27,7 +27,7 @@ export let ProviderErrorsPage = () => {
             actions={picker}
             variant="strip"
             title="Session errors"
-            info="Errors raised during sessions, stacked by error type."
+            info="Error occurrences during sessions, stacked by error type. The table groups similar errors into one row."
             hint={hint}
             filter={filter}
             range={range}

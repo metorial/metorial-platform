@@ -175,6 +175,7 @@ let resolveProviderContext = async (d: {
 };
 
 export let recordProviderAuthEventUsage = (event: {
+  type: string;
   status: string;
   createdAt: Date;
   instanceOid: bigint | null;

@@ -21,7 +21,7 @@ let compactPresets = [
   { id: '30d', label: '30d', durationMs: 30 * 24 * 60 * 60 * 1000 }
 ];
 
-export let useCompactUsageRange = (defaultPreset = '24h') => {
+export let useCompactUsageRange = (defaultPreset = '7d') => {
   let [preset, setPreset] = useState(defaultPreset);
   let live = useMetricsTimeRange(
     { type: 'preset', preset },
@@ -78,7 +78,7 @@ export type LogsUsageFilterSpec = {
   search?: boolean;
 };
 
-export let useLogsUsageFilters = (spec: LogsUsageFilterSpec, defaultPreset = '24h') => {
+export let useLogsUsageFilters = (spec: LogsUsageFilterSpec, defaultPreset = '7d') => {
   let [params, setParams] = useSearchParams();
   let created = getCreatedAtRange(params);
   let { range, picker, setPreset } = useCompactUsageRange(defaultPreset);
