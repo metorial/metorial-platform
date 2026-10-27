@@ -1,4 +1,4 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { AuditScope } from '@metorial/audit-scope';
@@ -12,6 +12,7 @@ import {
   consumerSkillReadRoles
 } from '@metorial/module-access';
 import { getProjectTenantIdentifier } from '@metorial/skills-common';
+import { buildSearchFilter } from '@metorial/module-search';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/skills-search';
 import { enqueueSkillGroupLifecycle } from '../queues/lifecycle';
 
@@ -38,6 +39,16 @@ let toAuditSkillGroup = (group: SkillGroupRecord): AuditSkillGroup => ({
   allowConsumerSkillAssignment: group.allowConsumerSkillAssignment,
   skillIds: group.items.map(item => item.skill.id)
 });
+
+let assertSkillGroupName = (name: string) => {
+  if (!name.trim()) {
+    throw new ServiceError(
+      badRequestError({
+        message: 'Skill group name cannot be empty'
+      })
+    );
+  }
+};
 
 class SkillGroupServiceImpl {
   async getSkillGroupById(d: {
@@ -79,15 +90,20 @@ class SkillGroupServiceImpl {
       tags: d.accessTags,
       roles: [...consumerSkillReadRoles]
     });
-    let normalizedSearch = d.search?.trim() || undefined;
-    let search = normalizedSearch
-      ? await voyager.record.search({
+    let search = await buildSearchFilter<Prisma.SkillGroupWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let records = await voyager.record.search({
           tenantId: getProjectTenantIdentifier(d.project),
           sourceId: (await voyagerSource).id,
           indexId: voyagerIndex.skillGroup.id,
-          query: normalizedSearch
-        })
-      : null;
+          query
+        });
+
+        return records.map(r => r.documentId);
+      }
+    });
+
     return Paginator.create(({ prisma }) =>
       prisma(opts =>
         db.skillGroup.findMany({
@@ -114,7 +130,7 @@ class SkillGroupServiceImpl {
               : undefined,
             createdAt: d.createdAt ? normalizeDateFilter(d.createdAt) : undefined,
             updatedAt: d.updatedAt ? normalizeDateFilter(d.updatedAt) : undefined,
-            AND: search ? [{ id: { in: search.map(result => result.documentId) } }] : undefined
+            AND: search ? [search] : undefined
           },
           include
         })
@@ -134,6 +150,8 @@ class SkillGroupServiceImpl {
       allowConsumerSkillAssignment?: boolean;
     };
   }) {
+    assertSkillGroupName(d.input.name);
+
     let skills = await db.skill.findMany({
       where: {
         id: { in: d.input.skillIds ?? [] },
@@ -191,6 +209,8 @@ class SkillGroupServiceImpl {
       allowConsumerSkillAssignment?: boolean;
     };
   }) {
+    if (d.input.name !== undefined) assertSkillGroupName(d.input.name);
+
     let group = await this.getSkillGroupById({ ...d, allowDeleted: true });
     let skills = d.input.skillIds
       ? await db.skill.findMany({

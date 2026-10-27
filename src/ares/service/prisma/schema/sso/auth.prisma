@@ -6,6 +6,7 @@ enum SsoAuthStatus {
 enum SsoAuthPurpose {
   authentication
   connection_test
+  elevation
 }
 
 model SsoAuth {
@@ -20,6 +21,7 @@ model SsoAuth {
   state        String  @unique
   codeVerifier String?
   email        String?
+  forceAuthn   Boolean @default(false)
 
   tenantOid BigInt
   tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)

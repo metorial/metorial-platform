@@ -287,14 +287,14 @@ let ProviderItemsGrid = ({
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                       {provider.attributes?.isVerified && (
-                        <Badge size="1" color="blue">
-                          <RiCheckLine size={12} style={{ marginRight: 3 }} /> Verified
+                        <Badge size="2" color="blue" icon={<RiCheckLine />}>
+                          Verified
                         </Badge>
                       )}
 
                       {(provider.attributes?.isMetorial ||
                         provider.attributes?.isOfficial) && (
-                        <Badge size="1" color="gray">
+                        <Badge size="2" color="gray">
                           Official
                         </Badge>
                       )}
@@ -302,7 +302,7 @@ let ProviderItemsGrid = ({
                   </div>
                 }
                 bottom={
-                  provider.slug ? <Text size="1">{provider.slug}</Text> : undefined
+                  provider.slug ? <Text size="2">{provider.slug}</Text> : undefined
                 }
               />
             </ProviderCardWrapper>

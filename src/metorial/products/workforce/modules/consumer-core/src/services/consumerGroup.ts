@@ -13,10 +13,11 @@ import {
   db,
   ID,
   Organization,
+  Prisma,
   withTransaction
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
-import { searchConsumerGroupIds } from '@metorial/module-search';
+import { buildSearchFilter, searchConsumerGroupIds } from '@metorial/module-search';
 import {
   consumerGroupArchivedQueue,
   consumerGroupCreatedQueue,
@@ -104,24 +105,22 @@ class ConsumerGroupServiceImpl {
     status?: ConsumerGroup['status'][];
     search?: string;
   }) {
-    let search = d.search?.trim();
-    let instance = search
-      ? await db.instance.findFirst({
+    let search = await buildSearchFilter<Prisma.ConsumerGroupWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let instance = await db.instance.findFirst({
           where: {
             oid: d.consumerSurface.instanceOid
           },
           select: {
             id: true
           }
-        })
-      : null;
-    let searchedConsumerGroupIds =
-      search && instance
-        ? await searchConsumerGroupIds({
-            instanceId: instance.id,
-            query: search
-          })
-        : undefined;
+        });
+        if (!instance) return [];
+
+        return await searchConsumerGroupIds({ instanceId: instance.id, query });
+      }
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(async opts => {
@@ -134,7 +133,7 @@ class ConsumerGroupServiceImpl {
                 type: 'default',
                 status: d.status?.length ? { in: d.status } : 'active'
               },
-              ...(search ? [{ id: { in: searchedConsumerGroupIds ?? [] } }] : [])
+              ...(search ? [search] : [])
             ]
           }
         });
@@ -179,7 +178,7 @@ class ConsumerGroupServiceImpl {
           name: d.input.name,
           description: d.input.description,
           ssoGroupIds: d.consumerGroup.isDefaultEveryoneGroup ? [] : d.input.ssoGroupIds,
-          isDefault: d.input.isDefault || d.consumerGroup.isDefaultEveryoneGroup
+          isDefault: d.consumerGroup.isDefaultEveryoneGroup ? true : d.input.isDefault
         }
       });
 

@@ -4,7 +4,7 @@ export type ManagementInstanceIdentityActorsListOutput = {
   items: ({
     object: 'identity.actor';
     id: string;
-    type: 'person' | 'agent' | 'consumer';
+    type: 'person' | 'agent' | 'consumer' | 'organization_member';
     status: 'active' | 'archived' | 'deleted';
     name: string;
     description: string | null;
@@ -31,6 +31,7 @@ export type ManagementInstanceIdentityActorsListOutput = {
           isServiceAccount: boolean;
         })
       | null;
+    consumerProfile: { id: string; portalId: string | null } | null;
   })[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
@@ -75,7 +76,8 @@ export let mapManagementInstanceIdentityActorsListOutput =
                       ]
                     ]
                   ]
-                ]
+                ],
+                ['consumer_profile', 1, [1, ['portal_id']]]
               ]
             ]
           ]
@@ -101,6 +103,7 @@ export type ManagementInstanceIdentityActorsListQuery = {
     | undefined;
   id?: string | string[] | undefined;
   agentId?: string | string[] | undefined;
+  consumerProfileId?: string | string[] | undefined;
   consumerId?: string | string[] | undefined;
   createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
   updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
@@ -116,6 +119,7 @@ export let mapManagementInstanceIdentityActorsListQuery =
           1,
           [
             'agent_id',
+            'consumer_profile_id',
             'consumer_id',
             ['created_at', 1, 5],
             ['updated_at', 1, 5]

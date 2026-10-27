@@ -1,3 +1,4 @@
+import { hydrateResourceOwners } from '@metorial/module-resource-actor';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
@@ -12,6 +13,7 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { providerAuthConfigPresenter } from '@metorial/presenters';
 import { toolFiltersValidator } from '../sessions/_shared';
+import { getOwnershipActor, resolveExplorerOwner } from '../../../lib/ownershipActor';
 
 let providerAuthConfigGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerAuthConfigId) {
@@ -25,6 +27,7 @@ let providerAuthConfigGroup = instanceGroup.use(async ctx => {
 
   let authConfig = await providerAuthConfigService.getProviderAuthConfigById({
     instance: ctx.instance,
+    organizationActor: getOwnershipActor(ctx),
     providerAuthConfigId: ctx.params.providerAuthConfigId
   });
 
@@ -49,6 +52,10 @@ export let providerAuthConfigController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
+            ownership: v.optional(v.enumOf(['shared', 'usable', 'all']), {
+              description:
+                'Which resources to return under the resource ownership rules: shared (resources without an owner), usable (shared resources plus owned resources the caller may use), or all (everything the caller can see). Defaults to shared when ownership is enforced for the project, and all otherwise.'
+            }),
             status: v.optional(
               v.union([
                 v.enumOf(['active', 'archived']),
@@ -108,6 +115,8 @@ export let providerAuthConfigController = Controller.create(
       .do(async ctx => {
         let paginator = await providerAuthConfigService.listProviderAuthConfigs({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
+          ownership: ctx.query.ownership,
           allowDeleted: false,
 
           search: ctx.query.search,
@@ -132,7 +141,7 @@ export let providerAuthConfigController = Controller.create(
 
         let list = await paginator.run(ctx.query);
 
-        return Paginator.present(list, authConfig =>
+        return Paginator.present(await hydrateResourceOwners(list), authConfig =>
           providerAuthConfigPresenter.present({
             authConfig
           })
@@ -153,7 +162,9 @@ export let providerAuthConfigController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
       .output(providerAuthConfigPresenter)
       .do(async ctx => {
-        return providerAuthConfigPresenter.present({ authConfig: ctx.authConfig });
+        return providerAuthConfigPresenter.present(
+          await hydrateResourceOwners({ authConfig: ctx.authConfig })
+        );
       }),
 
     create: instanceGroup
@@ -163,6 +174,42 @@ export let providerAuthConfigController = Controller.create(
         confidential: true
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
+      .body(
+        'mt_2026_01_01_magnetar',
+        v.object({
+          name: v.optional(v.string({ examples: ['GitHub OAuth Token'] })),
+          description: v.optional(
+            v.string({ examples: ['OAuth token for GitHub API access'] })
+          ),
+          metadata: v.optional(
+            v.record(v.any(), {
+              examples: [{ connected_by: 'alex@company.com', purpose: 'ci-pipeline' }]
+            }),
+            { description: 'Custom key-value pairs for storing additional information' }
+          ),
+          tool_filters: toolFiltersValidator,
+
+          provider_auth_method_id: v.string({
+            examples: ['pam_2mNpQrStUvWxYzAb'],
+            description: 'The authentication method this config uses (e.g., OAuth, API key)'
+          }),
+
+          provider_deployment_id: v.optional(
+            v.string({
+              description:
+                'The provider deployment this auth config is associated with (if applicable)',
+              examples: ['pd_2mNpQrStUvWxYzAb']
+            })
+          ),
+
+          value: v.record(v.any(), {
+            description: 'Authentication config payload',
+            examples: [{ client_id: 'xxx', client_secret: 'xxx' }]
+          })
+        }),
+        v => v
+      )
+
       .body(
         'default',
         v.object({
@@ -177,6 +224,11 @@ export let providerAuthConfigController = Controller.create(
             { description: 'Custom key-value pairs for storing additional information' }
           ),
           tool_filters: toolFiltersValidator,
+
+          source: v.optional(v.enumOf(['explorer']), {
+            description:
+              'Mark this resource as originating from the dashboard explorer and enable its owner lock and owner-only visibility.'
+          }),
           provider_auth_method_id: v.string({
             examples: ['pam_2mNpQrStUvWxYzAb'],
             description: 'The authentication method this config uses (e.g., OAuth, API key)'
@@ -213,12 +265,17 @@ export let providerAuthConfigController = Controller.create(
             })
           : undefined;
 
+        let ownerActorId = await resolveExplorerOwner(ctx, ctx.body.source);
+
         let authConfig = await providerAuthConfigService.createProviderAuthConfig({
           instance: ctx.instance,
           auditScope: ctx.auditScope,
           provider,
           providerDeployment,
-          source: 'manual',
+          ownerActorId,
+          source: ctx.body.source ?? 'manual',
+          isOwnerLocked: ctx.body.source === 'explorer' ? true : undefined,
+          isOwnerOnlyVisible: ctx.body.source === 'explorer' ? true : undefined,
           import: {
             ip: ctx.context.ip,
             ua: ctx.context.ua ?? ''
@@ -233,9 +290,11 @@ export let providerAuthConfigController = Controller.create(
           }
         });
 
-        return providerAuthConfigPresenter.present({
-          authConfig
-        });
+        return providerAuthConfigPresenter.present(
+          await hydrateResourceOwners({
+            authConfig
+          })
+        );
       }),
 
     update: providerAuthConfigGroup
@@ -251,7 +310,7 @@ export let providerAuthConfigController = Controller.create(
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
       .body(
-        'default',
+        'mt_2026_01_01_magnetar',
         v.object({
           name: v.optional(v.string({ examples: ['Updated Auth Config Name'] })),
           description: v.optional(
@@ -264,6 +323,27 @@ export let providerAuthConfigController = Controller.create(
             { description: 'Custom key-value pairs for storing additional information' }
           ),
           tool_filters: toolFiltersValidator
+        }),
+        v => v
+      )
+      .body(
+        'default',
+        v.object({
+          name: v.optional(v.string({ examples: ['Updated Auth Config Name'] })),
+          description: v.optional(
+            v.string({ examples: ['Updated description for auth configuration'] })
+          ),
+          metadata: v.optional(
+            v.record(v.any(), {
+              examples: [{ connected_by: 'alex@company.com', purpose: 'production' }]
+            }),
+            { description: 'Custom key-value pairs for storing additional information' }
+          ),
+          tool_filters: toolFiltersValidator,
+          source: v.optional(v.enumOf(['explorer']), {
+            description:
+              'Mark this resource as originating from the dashboard explorer and enable its owner lock and owner-only visibility.'
+          })
         })
       )
       .output(providerAuthConfigPresenter)
@@ -271,6 +351,7 @@ export let providerAuthConfigController = Controller.create(
         let authConfig = await providerAuthConfigService.updateProviderAuthConfig({
           instance: ctx.instance,
           auditScope: ctx.auditScope,
+          organizationActor: getOwnershipActor(ctx),
           providerAuthConfig: ctx.authConfig,
           import: {
             ip: ctx.context.ip,
@@ -280,15 +361,20 @@ export let providerAuthConfigController = Controller.create(
             name: ctx.body.name,
             description: ctx.body.description,
             metadata: ctx.body.metadata,
+            source: ctx.body.source,
+            isOwnerLocked: ctx.body.source === 'explorer' ? true : undefined,
+            isOwnerOnlyVisible: ctx.body.source === 'explorer' ? true : undefined,
             ...(ctx.body.tool_filters !== undefined
               ? { toolFilters: normalizeToolFilters(ctx.body.tool_filters as any) }
               : {})
           }
         });
 
-        return providerAuthConfigPresenter.present({
-          authConfig
-        });
+        return providerAuthConfigPresenter.present(
+          await hydrateResourceOwners({
+            authConfig
+          })
+        );
       }),
 
     delete: providerAuthConfigGroup
@@ -311,7 +397,9 @@ export let providerAuthConfigController = Controller.create(
           providerAuthConfig: ctx.authConfig
         });
 
-        return providerAuthConfigPresenter.present({ authConfig });
+        return providerAuthConfigPresenter.present(
+          await hydrateResourceOwners({ authConfig })
+        );
       })
   }
 );

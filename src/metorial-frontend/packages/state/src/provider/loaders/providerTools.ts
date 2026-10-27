@@ -53,3 +53,24 @@ export let useProviderTool = (
 
   return data;
 };
+
+export let providerToolsByIdsLoader = createLoader({
+  name: 'providerToolsByIds',
+  parents: [providerToolsLoader],
+  fetch: async (i: { instanceId: string; ids: string[] }) =>
+    await withAuth(sdk =>
+      Promise.all(i.ids.map(id => sdk.providers.tools.get(i.instanceId, id)))
+    ),
+  mutators: {}
+});
+
+export let useProviderToolsByIds = (
+  instanceId: string | null | undefined,
+  ids: string[] | null | undefined
+) => {
+  let uniqueIds = ids?.length ? [...new Set(ids)].sort() : null;
+
+  return providerToolsByIdsLoader.use(
+    instanceId && uniqueIds ? { instanceId, ids: uniqueIds } : null
+  );
+};

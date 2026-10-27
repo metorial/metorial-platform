@@ -1,11 +1,12 @@
 import { forbiddenError, ServiceError, unauthorizedError } from '@lowerdeck/error';
-import type { Instance } from '@metorial/db';
+import type { Instance, OrganizationActor } from '@metorial/db';
 import { AuthInfo } from '@metorial/module-access';
 import { Authenticator } from '@metorial/rest';
 
 export type McpSessionInfo = {
   instance: Instance;
   auth: AuthInfo;
+  organizationActor?: OrganizationActor;
 };
 
 export let authenticateAndResolveInstance = async (
@@ -49,7 +50,8 @@ export let authenticateAndResolveInstance = async (
           ...auth.restrictions.instance,
           organization: auth.restrictions.organization
         } as Instance,
-        auth
+        auth,
+        organizationActor: auth.restrictions.consumer ? undefined : auth.restrictions.actor
       };
     }
 
@@ -69,4 +71,24 @@ export let authenticateAndResolveInstance = async (
         'MCP gateway connections require an API key. Use a Bearer token with your API key.'
     })
   );
+};
+
+export let authenticateSessionConnection = async (
+  request: Request,
+  url: URL,
+  authenticate: Authenticator<AuthInfo>
+): Promise<McpSessionInfo> => {
+  let info = await authenticateAndResolveInstance(request, url, authenticate);
+
+  if (info.auth.type === 'machine' && info.auth.machineAccess.type === 'instance_publishable') {
+    throw new ServiceError(
+      forbiddenError({
+        message: 'Secret API key required for MCP session connections',
+        description:
+          'Connect to a session with an instance secret API key or the session client secret. Publishable keys cannot be used here.'
+      })
+    );
+  }
+
+  return info;
 };

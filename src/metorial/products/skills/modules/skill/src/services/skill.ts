@@ -2,6 +2,7 @@ import { canonicalize } from '@lowerdeck/canonicalize';
 import {
   badRequestError,
   forbiddenError,
+  goneError,
   notFoundError,
   ServiceError
 } from '@lowerdeck/error';
@@ -44,6 +45,7 @@ import type { SkillTemplateRecord } from '@metorial/module-skill-templates';
 import { getProjectTenantIdentifier } from '@metorial/skills-common';
 import { Fabric } from '@metorial/fabric';
 import { internalImageService } from '@metorial/skills-images';
+import { buildSearchFilter } from '@metorial/module-search';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/skills-search';
 import { getSkillSlug } from '../lib/skillSlug';
 import { enqueueSkillLifecycle } from '../queues/lifecycle';
@@ -161,6 +163,14 @@ class SkillServiceImpl {
       throw new ServiceError(
         badRequestError({
           message: 'Skill can only have one parent source'
+        })
+      );
+    }
+
+    if (d.parentSkillTemplate && d.parentSkillTemplate.status !== 'active') {
+      throw new ServiceError(
+        goneError({
+          message: 'Skills cannot be created from archived skill templates'
         })
       );
     }
@@ -356,15 +366,20 @@ class SkillServiceImpl {
         providerIds: d.providerIds
       });
     }
-    let normalizedSearch = d.search?.trim() || undefined;
-    let search = normalizedSearch
-      ? await voyager.record.search({
+    let search = await buildSearchFilter<Prisma.SkillWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let records = await voyager.record.search({
           tenantId: getProjectTenantIdentifier(d.project),
           sourceId: (await voyagerSource).id,
           indexId: voyagerIndex.skill.id,
-          query: normalizedSearch
-        })
-      : null;
+          query
+        });
+
+        return records.map(r => r.documentId);
+      },
+      exact: query => [{ id: query }, { slug: { equals: query, mode: 'insensitive' } }]
+    });
     let andFilters: Prisma.SkillWhereInput[] = [];
     if (skills) andFilters.push({ oid: skills.in });
     if (stores) andFilters.push({ storeOid: stores.in });
@@ -377,7 +392,7 @@ class SkillServiceImpl {
     }
     if (d.createdAt) andFilters.push({ createdAt: normalizeDateFilter(d.createdAt) });
     if (d.updatedAt) andFilters.push({ updatedAt: normalizeDateFilter(d.updatedAt) });
-    if (search) andFilters.push({ id: { in: search.map(result => result.documentId) } });
+    if (search) andFilters.push(search);
     if (accessWhere) andFilters.push(accessWhere);
     if (d.integrationIds?.length || d.providerIds?.length) {
       andFilters.push({ id: { in: delegatedResourceSkillIds ?? [] } });
@@ -583,7 +598,8 @@ class SkillServiceImpl {
     let updated = await this.getSkillRecord({
       project: d.project,
       instance: d.instance,
-      skillId: d.skill.id
+      skillId: d.skill.id,
+      allowDeleted: true
     });
     await Fabric.fire('skill.audit.updated:after', {
       auditScope: d.auditScope,
@@ -641,7 +657,12 @@ class SkillServiceImpl {
       await enqueueSkillLifecycle({ skillId: d.skill.id, event: 'archived' });
     });
 
-    return d.skill;
+    return await this.getSkillRecord({
+      project: d.project,
+      instance: d.instance,
+      skillId: d.skill.id,
+      allowDeleted: true
+    });
   }
 
   async markSkillUse(d: {
@@ -650,6 +671,7 @@ class SkillServiceImpl {
     skill: SkillRecord;
     actor: ResourceActor;
   }) {
+    assertSkillRecordScope(d);
     assertResourceActorScope({
       project: d.project,
       resourceActor: d.actor

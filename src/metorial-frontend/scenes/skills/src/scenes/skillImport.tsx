@@ -64,7 +64,7 @@ let statusColor = (status: SkillImportStatus): 'blue' | 'red' | 'orange' | 'gray
 
 let SkillImportStatusBadge = ({ status }: { status: SkillImportStatus }) => (
   <div>
-    <Badge size="1" color={statusColor(status)}>
+    <Badge size="2" color={statusColor(status)}>
       {status}
     </Badge>
   </div>

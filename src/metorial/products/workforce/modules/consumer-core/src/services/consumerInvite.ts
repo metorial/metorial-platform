@@ -12,8 +12,8 @@ import {
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { searchConsumerIds } from '@metorial/module-search';
-import { addDays } from 'date-fns';
 import { normalizeConsumerEmails } from '../lib/consumerEmail';
+import { getNewConsumerInviteExpiry } from '../lib/consumerInviteExpiry';
 import {
   consumerInviteCreatedQueue,
   consumerInviteUpdatedQueue
@@ -86,7 +86,8 @@ class ConsumerInviteServiceImpl {
               message: d.input.message,
               invitedByOid: d.performedBy.oid,
               acceptedAt: null,
-              expiresAt: addDays(new Date(), 14)
+              expiresAt: getNewConsumerInviteExpiry(),
+              legacyGraceStartedAt: null
             },
             include
           })
@@ -95,7 +96,8 @@ class ConsumerInviteServiceImpl {
               id: await ID.generateId('consumerInvite'),
               status: 'pending',
               message: d.input.message,
-              expiresAt: addDays(new Date(), 14),
+              expiresAt: getNewConsumerInviteExpiry(),
+              legacyGraceStartedAt: null,
               organizationOid: d.consumerSurface.organizationOid,
               instanceOid: d.consumerSurface.instanceOid,
               surfaceOid: d.consumerSurface.oid,
@@ -232,7 +234,10 @@ class ConsumerInviteServiceImpl {
         : search
           ? []
           : undefined;
-    let andParts: Prisma.ConsumerInviteWhereInput[] = [{ surfaceOid: d.consumerSurface.oid }];
+    let andParts: Prisma.ConsumerInviteWhereInput[] = [
+      { surfaceOid: d.consumerSurface.oid },
+      { consumerProfile: { status: 'active' } }
+    ];
 
     if (statuses?.length) {
       andParts.push({

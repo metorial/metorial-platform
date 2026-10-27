@@ -10,11 +10,13 @@ import {
   getId,
   type Integration,
   type IntegrationStatus,
+  type Prisma,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
 import { notifyIntegrationTransaction } from '../listeners';
 import {
+  buildSearchFilter,
   checkDeletedEdit,
   type DateFilter,
   normalizeDateFilter,
@@ -258,14 +260,20 @@ class integrationServiceImpl {
 
     let providers = await resolveProviders(ts, d.providerIds);
     let integrationProviders = await resolveIntegrationProviders(ts, d.integrationProviderIds);
-    let search = d.search
-      ? await voyager.record.search({
+    let search = await buildSearchFilter<Prisma.IntegrationWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let records = await voyager.record.search({
           tenantId: d.tenant.id,
           sourceId: (await voyagerSource).id,
           indexId: voyagerIndex.integration.id,
-          query: d.search
-        })
-      : null;
+          query
+        });
+
+        return records.map(r => r.documentId);
+      },
+      exact: query => [{ id: query }, { slug: { equals: query, mode: 'insensitive' } }]
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -285,7 +293,7 @@ class integrationServiceImpl {
 
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
-                search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
+                search ?? undefined!,
                 providers
                   ? { providers: { some: { providerOid: providers.in } } }
                   : undefined!,

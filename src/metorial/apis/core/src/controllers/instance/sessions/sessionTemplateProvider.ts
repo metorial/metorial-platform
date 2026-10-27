@@ -12,6 +12,7 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { normalizeToolFilters, toolFiltersValidator } from './_shared';
+import { getOwnershipActor } from '../../../lib/ownershipActor';
 
 let sessionTemplateProviderGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.sessionTemplateProviderId) {
@@ -141,11 +142,13 @@ export let sessionTemplateProviderController = Controller.create(
       .do(async ctx => {
         let template = await sessionTemplateService.getSessionTemplateById({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
           sessionTemplateId: ctx.body.session_template_id
         });
         let stp = await sessionTemplateProviderService.createSessionTemplateProvider({
           instance: ctx.instance,
           auditScope: ctx.auditScope,
+          organizationActor: getOwnershipActor(ctx),
           template,
           input: {
             deploymentId: ctx.body.provider_deployment_id,

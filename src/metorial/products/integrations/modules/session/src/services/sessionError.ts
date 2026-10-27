@@ -4,7 +4,9 @@ import { Service } from '@lowerdeck/service';
 import {
   db,
   type Environment,
+  type Prisma,
   type SessionErrorType,
+  type Solution,
   type Tenant
 } from '@metorial-subspace/db';
 import {
@@ -21,6 +23,8 @@ import {
   resolveSessionProviders,
   resolveSessions
 } from '@metorial-subspace/list-utils';
+import { getProviderTenantFilter } from '@metorial-subspace/module-catalog';
+import { searchRelatedEntities, whenRelatedMatched } from '@metorial-subspace/module-search';
 import {
   getMetorialSolution,
   type MetorialFacing,
@@ -52,6 +56,8 @@ export type ListSessionErrorsParams = {
   sessionErrorGroupIds?: string[];
   createdAt?: DateFilter;
   updatedAt?: DateFilter;
+
+  search?: string;
 };
 
 export type GetSessionErrorByIdParams = {
@@ -94,6 +100,8 @@ class sessionErrorServiceImpl {
     let groups = await resolveSessionErrorGroups(ts, d.sessionErrorGroupIds);
     let providers = await resolveProviders(ts, d.providerIds);
 
+    let searchFilter = await this.buildSessionErrorSearchFilter({ ...d, solution });
+
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
@@ -123,6 +131,8 @@ class sessionErrorServiceImpl {
                 messages ? { sessionMessages: { some: { oid: messages.in } } } : undefined!,
                 providers ? { providerRun: { providerOid: providers.in } } : undefined!,
 
+                searchFilter!,
+
                 mergeRetentionWithDateFilter(d.tenant, d.createdAt),
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
               ].filter(Boolean)
@@ -131,6 +141,41 @@ class sessionErrorServiceImpl {
           })
       )
     );
+  }
+
+  private async buildSessionErrorSearchFilter(d: {
+    tenant: Tenant;
+    environment: Environment;
+    solution: Solution;
+    search?: string;
+  }): Promise<Prisma.SessionErrorWhereInput | undefined> {
+    let search = d.search?.trim();
+    if (!search) return undefined;
+
+    let related = await searchRelatedEntities({
+      tenant: d.tenant,
+      query: search,
+      kinds: ['providerOids', 'deploymentOids', 'authConfigOids'],
+      providerFilter: getProviderTenantFilter({ ...d, includeDeprecated: true })
+    });
+
+    let sessionProviderClauses: Prisma.SessionProviderWhereInput[] = [
+      ...whenRelatedMatched(related.deploymentOids, oids => ({ deploymentOid: oids })),
+      ...whenRelatedMatched(related.authConfigOids, oids => ({ authConfigOid: oids }))
+    ];
+
+    return {
+      OR: [
+        { id: search },
+        { code: search },
+        ...whenRelatedMatched(related.providerOids, oids => ({
+          providerRun: { providerOid: oids }
+        })),
+        ...(sessionProviderClauses.length
+          ? [{ session: { providers: { some: { OR: sessionProviderClauses } } } }]
+          : [])
+      ]
+    };
   }
 
   async getSessionErrorById(d: MetorialFacing<GetSessionErrorByIdParams>) {

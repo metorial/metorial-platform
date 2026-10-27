@@ -6,6 +6,7 @@ import {
   db,
   type Environment,
   getId,
+  type Prisma,
   type Provider,
   type ProviderAuthConfig,
   type ProviderAuthConfigSource,
@@ -22,6 +23,7 @@ import {
 import {
   assertNoActiveIdentityCredentialAuthConfigLink,
   assertNoActiveIntegrationInstanceProviderAuthConfigLink,
+  buildSearchFilter,
   checkDeletedEdit,
   checkDeletedRelation,
   type DateFilter,
@@ -50,7 +52,15 @@ import {
   resolveMetorialFacing,
   resolveMetorialFacingWithOptionalActor,
   toProviderEventBase,
-  ownerActorSelect
+  ownerActorSelect,
+  assertCanChangeOwnerLock,
+  getOwnershipAccessor,
+  assertCanChangeOwnerOnlyVisibility,
+  assertCanSeeOwnedResource,
+  canSeeOwnedResource,
+  ownedResourceWhere,
+  resolveOwnerActorOid,
+  type OwnershipFilter
 } from '@metorial-subspace/module-tenant';
 import { type AuditSubspaceProviderAuthConfig, Fabric } from '@metorial/fabric';
 import {
@@ -80,12 +90,15 @@ export type CreateProviderAuthConfigParams = {
     provider: Provider;
     providerVariant: ProviderVariant;
     currentVersion:
-      | (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null })
-      | null;
+      (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null }) | null;
   };
   source: ProviderAuthConfigSource;
   credentials?: ProviderAuthCredentials;
   ownerActorOid?: bigint | null;
+  ownerActorId?: string | null;
+  isOwnerLocked?: boolean;
+  isOwnerOnlyVisible?: boolean;
+  isSystemOwned?: boolean;
   input: {
     name?: string;
     description?: string;
@@ -118,6 +131,9 @@ export type UpdateProviderAuthConfigParams = {
 
     authMethodId?: string;
     toolFilters?: PrismaJson.ToolFilter | null;
+    isOwnerLocked?: boolean;
+    source?: 'explorer';
+    isOwnerOnlyVisible?: boolean;
   };
 
   import: {
@@ -143,6 +159,9 @@ export type ArchiveProviderAuthConfigParams = {
 };
 
 type ListProviderAuthConfigsParams = {
+  ownership?: OwnershipFilter;
+  ownershipWhere?: Record<string, any>;
+  includeSystemOwned?: boolean;
   status?: ProviderAuthConfigStatus[];
   allowDeleted?: boolean;
 
@@ -181,11 +200,13 @@ let matchesAdapter = (
 type GetProviderAuthConfigByIdParams = {
   providerAuthConfigId: string;
   allowDeleted?: boolean;
+  includeSystemOwned?: boolean;
 };
 
 type GetManyProviderAuthConfigsByIdsParams = {
   ids: string[];
   allowDeleted?: boolean;
+  includeSystemOwned?: boolean;
 };
 
 type GetProviderAuthConfigSchemaParams = {
@@ -195,8 +216,7 @@ type GetProviderAuthConfigSchemaParams = {
     provider: Provider;
     providerVariant: ProviderVariant;
     currentVersion:
-      | (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null })
-      | null;
+      (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null }) | null;
   };
 
   providerAuthConfig?: ProviderAuthConfig & { deployment: ProviderDeployment | null };
@@ -206,14 +226,22 @@ type GetProviderAuthConfigSchemaParams = {
 
 class providerAuthConfigServiceImpl {
   async createProviderAuthConfig(d: MetorialFacing<CreateProviderAuthConfigParams>) {
-    let { instance, organizationActor, ...rest } = d;
+    let { instance, organizationActor, ownerActorId, ...rest } = d;
     let scope = await resolveMetorialFacingWithOptionalActor(d);
+
+    let ownerActorOid =
+      (await resolveOwnerActorOid({
+        tenant: scope.tenant,
+        environment: scope.environment,
+        ownerActorId
+      })) ?? d.ownerActorOid;
 
     let eventBase = toProviderEventBase(d);
     await Fabric.fire('provider.auth_config.created:before', eventBase);
 
     let authConfig = await this.createProviderAuthConfigInternal({
       ...rest,
+      ownerActorOid,
       tenant: scope.tenant,
       environment: scope.environment
     });
@@ -226,6 +254,18 @@ class providerAuthConfigServiceImpl {
   async updateProviderAuthConfig(d: MetorialFacing<UpdateProviderAuthConfigFacingParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacingWithOptionalActor(d);
+
+    let accessor = await getOwnershipAccessor({ tenant: scope.tenant, organizationActor });
+
+    await assertCanChangeOwnerLock(accessor, d.providerAuthConfig, d.input.isOwnerLocked, {
+      resource: 'provider auth config'
+    });
+    await assertCanChangeOwnerOnlyVisibility(
+      accessor,
+      d.providerAuthConfig,
+      d.input.isOwnerOnlyVisible,
+      { resource: 'provider auth config' }
+    );
 
     let eventBase = toProviderEventBase(d);
     await Fabric.fire('provider.auth_config.updated:before', eventBase);
@@ -267,8 +307,14 @@ class providerAuthConfigServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
+    let accessor = await getOwnershipAccessor({ tenant: scope.tenant, organizationActor });
+
     return this.listProviderAuthConfigsInternal({
       ...rest,
+      ownershipWhere: ownedResourceWhere(accessor, {
+        ownership: d.ownership,
+        includeSystemOwned: d.includeSystemOwned
+      }),
       tenant: scope.tenant,
       environment: scope.environment
     });
@@ -317,14 +363,19 @@ class providerAuthConfigServiceImpl {
     let identities = await resolveIdentities(ts, d.identityIds);
     let identityCredentials = await resolveIdentityCredentials(ts, d.identityCredentialIds);
 
-    let search = d.search
-      ? await voyager.record.search({
+    let search = await buildSearchFilter<Prisma.ProviderAuthConfigWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let records = await voyager.record.search({
           tenantId: d.tenant.id,
           sourceId: (await voyagerSource).id,
           indexId: voyagerIndex.providerAuthConfig.id,
-          query: d.search
-        })
-      : null;
+          query
+        });
+
+        return records.map(r => r.documentId);
+      }
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -336,15 +387,17 @@ class providerAuthConfigServiceImpl {
               solutionOid: solution.oid,
               environmentOid: d.environment.oid,
               isEphemeral: false,
+              ...(d.includeSystemOwned ? {} : { isSystemOwned: false }),
 
               ...normalizeStatusForList(d).hasParent,
 
               AND: [
+                d.ownershipWhere ?? undefined!,
                 d.publicMcpServerIds
                   ? { ownerPublicMcpServer: { id: { in: d.publicMcpServerIds } } }
                   : { ownerPublicMcpServerOid: null },
                 d.ids ? { id: { in: d.ids } } : undefined!,
-                search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
+                search ?? undefined!,
                 providers ? { providerOid: providers.in } : undefined!,
                 deployments ? { deploymentOid: deployments.in } : undefined!,
                 d.availableForUse
@@ -393,11 +446,19 @@ class providerAuthConfigServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.getProviderAuthConfigByIdInternal({
+    let providerAuthConfig = await this.getProviderAuthConfigByIdInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    assertCanSeeOwnedResource(
+      await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+      providerAuthConfig,
+      { resource: 'provider.auth_config', id: d.providerAuthConfigId }
+    );
+
+    return providerAuthConfig;
   }
 
   async getProviderAuthConfigByIdInternal(
@@ -411,6 +472,7 @@ class providerAuthConfigServiceImpl {
             tenantOid: d.tenant.oid,
             solutionOid: solution.oid,
             environmentOid: d.environment.oid,
+            ...(d.includeSystemOwned ? {} : { isSystemOwned: false }),
 
             OR: [
               { id: d.providerAuthConfigId },
@@ -435,11 +497,16 @@ class providerAuthConfigServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.getManyProviderAuthConfigsByIdsInternal({
+    let accessor = await getOwnershipAccessor({ tenant: scope.tenant, organizationActor });
+    let providerAuthConfigs = await this.getManyProviderAuthConfigsByIdsInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    return providerAuthConfigs.filter(providerAuthConfig =>
+      canSeeOwnedResource(accessor, providerAuthConfig)
+    );
   }
 
   async getManyProviderAuthConfigsByIdsInternal(
@@ -452,6 +519,7 @@ class providerAuthConfigServiceImpl {
         tenantOid: d.tenant.oid,
         solutionOid: solution.oid,
         environmentOid: d.environment.oid,
+        ...(d.includeSystemOwned ? {} : { isSystemOwned: false }),
         ...normalizeStatusForGet(d).hasParent
       },
       include
@@ -599,6 +667,9 @@ class providerAuthConfigServiceImpl {
           authMethod,
           credentials,
           ownerActorOid: d.ownerActorOid,
+          isOwnerLocked: d.isOwnerLocked,
+          isOwnerOnlyVisible: d.isOwnerOnlyVisible,
+          isSystemOwned: d.isSystemOwned,
           backend: backendRes.backend,
           backendProviderAuthConfig: backendRes.backendProviderAuthConfig,
           type: authMethod.type === 'oauth' ? 'oauth_manual' : 'manual'
@@ -702,7 +773,11 @@ class providerAuthConfigServiceImpl {
               ? normalizeToolFilters(d.input.toolFilters)
               : d.providerAuthConfig.toolFilter,
 
-          currentVersionOid: newConfigVersion?.oid ?? d.providerAuthConfig.currentVersionOid
+          currentVersionOid: newConfigVersion?.oid ?? d.providerAuthConfig.currentVersionOid,
+          source: d.input.source,
+          isOwnerLocked: d.input.isOwnerLocked ?? d.providerAuthConfig.isOwnerLocked,
+          isOwnerOnlyVisible:
+            d.input.isOwnerOnlyVisible ?? d.providerAuthConfig.isOwnerOnlyVisible
         },
         include
       });
@@ -779,7 +854,9 @@ class providerAuthConfigServiceImpl {
       environment: d.environment,
       solution,
       authConfigOid: d.providerAuthConfig.oid,
-      resourceId: d.providerAuthConfig.id
+      resourceId: d.providerAuthConfig.id,
+      owningIntegrationInstanceProviderOid:
+        d.providerAuthConfig.owningIntegrationInstanceProviderOid
     });
 
     return withTransaction(async db => {

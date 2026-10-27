@@ -60,6 +60,9 @@ export let providerSpecificationController = Controller.create(
             provider_config_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by provider config ID(s)'
             }),
+            search: v.optional(v.string(), {
+              description: 'Match a provider specification by its exact ID'
+            }),
             created_at: dateFilterValidator('provider specification creation time'),
             updated_at: dateFilterValidator('provider specification last update time')
           })
@@ -73,6 +76,7 @@ export let providerSpecificationController = Controller.create(
           providerVersionIds: normalizeArrayParam(ctx.query.provider_version_id),
           providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id),
           providerConfigIds: normalizeArrayParam(ctx.query.provider_config_id),
+          search: ctx.query.search,
           createdAt: ctx.query.created_at,
           updatedAt: ctx.query.updated_at
         });

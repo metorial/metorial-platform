@@ -18,6 +18,7 @@ import {
   resolveMetorialFacing,
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
+import { withUniqueConstraintRecovery } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { isDeepStrictEqual } from 'node:util';
 import { mirrorAgentClientQueue } from '../queues/mirror';
@@ -146,6 +147,13 @@ class agentClientServiceImpl {
     let unchanged = await this.findUnchangedAgentClient(d, solution.oid);
     if (unchanged) return unchanged;
 
+    let upsert = () => this.writeAgentClient(d, solution.oid);
+
+    // Concurrent first opens race on the insert; the retry finds the rows and updates them.
+    return await withUniqueConstraintRecovery(upsert, upsert);
+  }
+
+  private async writeAgentClient(d: UpsertAgentClientParams, solutionOid: number) {
     return await withTransaction(async db => {
       let newId = getId('agentClient');
 
@@ -163,7 +171,7 @@ class agentClientServiceImpl {
 
           tenantOid: d.tenant.oid,
           projectOid: d.tenant.projectOid,
-          solutionOid: solution.oid,
+          solutionOid,
           environmentOid: d.environment.oid,
           instanceOid: d.environment.instanceOid
         },
@@ -174,7 +182,7 @@ class agentClientServiceImpl {
           lastConnectedAt: new Date(),
           tenantOid: d.tenant.oid,
           projectOid: d.tenant.projectOid,
-          solutionOid: solution.oid,
+          solutionOid,
           environmentOid: d.environment.oid,
           instanceOid: d.environment.instanceOid
         }

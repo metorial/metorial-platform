@@ -197,16 +197,22 @@ class StoreTemplateServiceImpl {
     instance: { oid: bigint };
   }) {
     if (
-      d.storeTemplate.projectOid !== d.project.oid ||
-      d.storeTemplate.instanceOid !== d.instance.oid
+      d.storeTemplate.projectOid === d.project.oid &&
+      d.storeTemplate.instanceOid === d.instance.oid
     ) {
-      throw new ServiceError(
-        badRequestError({
-          message:
-            'Store template updates and deletes are only allowed within the matching project and instance'
-        })
-      );
+      return;
     }
+
+    if (d.storeTemplate.projectOid !== null || d.storeTemplate.instanceOid !== null) {
+      throw new ServiceError(notFoundError('storeTemplate', d.storeTemplate.id));
+    }
+
+    throw new ServiceError(
+      badRequestError({
+        message:
+          'Store template updates and deletes are only allowed within the matching project and instance'
+      })
+    );
   }
 
   private assertStandaloneTemplate(storeTemplate: Pick<StoreTemplateRecord, 'id' | 'type'>) {
@@ -239,7 +245,8 @@ class StoreTemplateServiceImpl {
   }): NormalizedStoreTemplateItem {
     let path = normalizeStorePath({
       path: d.item.path,
-      kind: d.item.type === 'directory' ? 'directory' : 'file'
+      kind: d.item.type === 'directory' ? 'directory' : 'file',
+      mode: 'unicode'
     }).path;
 
     if (d.item.type === 'directory') {
@@ -416,20 +423,13 @@ class StoreTemplateServiceImpl {
         storeId: d.input.storeId
       });
 
-      if (projectOid && sourceStore.projectOid && projectOid !== sourceStore.projectOid) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Store template project must match the linked store project'
-          })
-        );
-      }
+      let isOtherProject =
+        !!projectOid && !!sourceStore.projectOid && projectOid !== sourceStore.projectOid;
+      let isOtherInstance =
+        !!instanceOid && !!sourceStore.instanceOid && instanceOid !== sourceStore.instanceOid;
 
-      if (instanceOid && sourceStore.instanceOid && instanceOid !== sourceStore.instanceOid) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Store template instance must match the linked store instance'
-          })
-        );
+      if (isOtherProject || isOtherInstance) {
+        throw new ServiceError(notFoundError('store', d.input.storeId));
       }
 
       projectOid = projectOid ?? sourceStore.projectOid;

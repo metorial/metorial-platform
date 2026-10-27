@@ -3,6 +3,7 @@ import type {
   ProductAssistant,
   ProductAssistantConversation,
   ProductAssistantImplementation,
+  ProductAssistantMessage,
   Project
 } from '@metorial/db';
 import type { FilePart, ModelMessage, TextPart } from 'ai';
@@ -28,6 +29,17 @@ let deserializeMessages = (
     .map(([ts, msg]) => ({ ts, msg }))
     .sort((a, b) => a.ts - b.ts)
     .map(m => m.msg as ModelMessage);
+
+// An assistant message stores the whole conversation it was generated from (history, input and
+// reply), so history restarts from the latest assistant message instead of concatenating the chain.
+let historyToModelMessages = (history: ProductAssistantMessage[]) =>
+  history.reduce<ModelMessage[]>(
+    (messages, message) =>
+      message.type == 'assistant'
+        ? deserializeMessages(message.serialized)
+        : [...messages, ...deserializeMessages(message.serialized)],
+    []
+  );
 
 let inputMessageToModelMessages = (input: InputMessage): ModelMessage[] => [
   {
@@ -130,12 +142,13 @@ export class AgentRun {
       );
     }
 
+    let streamError: unknown;
+
     try {
       for await (let event of iterator) {
+        if (event.type == 'error') streamError ??= event.error;
         runState.pipe(event);
       }
-
-      return runState.result();
     } catch (error) {
       runState.pipe({
         type: 'error',
@@ -146,6 +159,10 @@ export class AgentRun {
       if (snapshotInterval) clearInterval(snapshotInterval);
       await writeSnapshot();
     }
+
+    if (streamError) throw streamError;
+
+    return runState.result();
   }
 
   async run(d: {
@@ -162,7 +179,7 @@ export class AgentRun {
       size: d.historySize
     });
 
-    session.messages.push(...history.flatMap(m => deserializeMessages(m.serialized)));
+    session.messages.push(...historyToModelMessages(history));
 
     return await this.runSession({
       session,

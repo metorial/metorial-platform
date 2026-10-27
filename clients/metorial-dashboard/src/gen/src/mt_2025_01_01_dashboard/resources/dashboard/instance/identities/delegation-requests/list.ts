@@ -13,7 +13,7 @@ export type DashboardInstanceIdentitiesDelegationRequestsListOutput = {
     requester: {
       object: 'identity.actor';
       id: string;
-      type: 'person' | 'agent' | 'consumer';
+      type: 'person' | 'agent' | 'consumer' | 'organization_member';
       status: 'active' | 'archived' | 'deleted';
       name: string;
       description: string | null;
@@ -29,11 +29,7 @@ export type DashboardInstanceIdentitiesDelegationRequestsListOutput = {
       object: 'identity.delegation';
       id: string;
       status:
-        | 'waiting_for_consent'
-        | 'denied'
-        | 'active'
-        | 'revoked'
-        | 'expired';
+        'waiting_for_consent' | 'denied' | 'active' | 'revoked' | 'expired';
       deniedReason:
         | 'request_denied'
         | 'sub_delegation_depth_exceeded'
@@ -67,7 +63,7 @@ export type DashboardInstanceIdentitiesDelegationRequestsListOutput = {
         actor: {
           object: 'identity.actor';
           id: string;
-          type: 'person' | 'agent' | 'consumer';
+          type: 'person' | 'agent' | 'consumer' | 'organization_member';
           status: 'active' | 'archived' | 'deleted';
           name: string;
           description: string | null;
@@ -92,7 +88,7 @@ export type DashboardInstanceIdentitiesDelegationRequestsListOutput = {
         requester: {
           object: 'identity.actor';
           id: string;
-          type: 'person' | 'agent' | 'consumer';
+          type: 'person' | 'agent' | 'consumer' | 'organization_member';
           status: 'active' | 'archived' | 'deleted';
           name: string;
           description: string | null;

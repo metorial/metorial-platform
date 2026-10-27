@@ -15,8 +15,7 @@ import {
   FilterPayload,
   TableStateProvider,
   TableStateProviderResult,
-  getEnumListFilterValue,
-  getStringFilterValue
+  getEnumListFilterValue
 } from '@metorial/table';
 import { useIdentityPaths } from '../../lib/identityPaths';
 
@@ -68,7 +67,6 @@ let useAgentsTableState: TableStateProvider<
     type:
       getEnumListFilterValue(opts.filter.type, ['mcp_client', 'custom', 'tool_call']) ??
       props.filters?.type,
-    id: getStringFilterValue(opts.filter.id) ?? props.filters?.id,
     search: opts.search ?? props.filters?.search
   });
 
@@ -170,13 +168,6 @@ let agentsTable = new DashboardTable<AgentsTableProps, Agent>('agents')
         { id: 'custom', label: 'Custom' },
         { id: 'tool_call', label: 'Tool Call' }
       ]
-    },
-    {
-      id: 'id',
-      fields: ['id'],
-      label: 'Agent ID',
-      description: 'Filter by agent ID',
-      type: 'string'
     }
   ])
   .search('Search agents...')

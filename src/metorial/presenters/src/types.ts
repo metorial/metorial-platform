@@ -290,6 +290,7 @@ type OwnerActorSelect = {
   select: {
     id: true;
     type: true;
+    name: true;
     instanceConsumer: { select: { consumer: { select: { id: true } } } };
   };
 };
@@ -298,6 +299,7 @@ type MagicMcpServerOwnerActor = Prisma.IdentityActorGetPayload<{
   select: {
     id: true;
     type: true;
+    name: true;
     consumerActor: { select: { consumer: { select: { id: true } } } };
   };
 }> | null;
@@ -325,6 +327,10 @@ type RawIdentityActor = SubspacePrisma.IdentityActorGetPayload<{
       };
     };
   }>;
+  consumerProfile?: {
+    id: string;
+    surface: { portal: { id: string } | null };
+  };
 };
 
 type RawIdentityCredential = SubspacePrisma.IdentityCredentialGetPayload<{
@@ -1266,6 +1272,12 @@ export let projectReducedSubprocessorsConfigurationType = PresentableType.create
   project: Project;
   reducedSubprocessors: boolean;
 }>()('project_reduced_subprocessors_configuration');
+
+export let projectResourceOwnershipConfigurationType = PresentableType.create<{
+  project: Project;
+  allowApiAccessToConsumerOwnedResources: boolean;
+  allowMemberAccessToConsumerOwnedResources: boolean;
+}>()('project_resource_ownership_configuration');
 
 export let projectDataRetentionConfigurationType = PresentableType.create<{
   project: Project;
@@ -2233,6 +2245,16 @@ export let usageType = PresentableType.create<{
   }[];
 }>()('usage');
 
+export let instanceUsageTimelineType = PresentableType.create<{
+  instanceId: string;
+  timeline: import('@metorial/module-usage').UsageTimeline;
+}>()('instance.usage.timeline');
+
+export let instanceUsageSummaryType = PresentableType.create<{
+  instanceId: string;
+  summary: import('@metorial/module-usage').UsageSummary;
+}>()('instance.usage.summary');
+
 export let profileType = PresentableType.create<{
   profile: Profile;
 }>()('profile');
@@ -2283,6 +2305,7 @@ export let magicMcpServerProviderType = PresentableType.create<{
 export let magicMcpEndpointType = PresentableType.create<{
   magicMcpEndpoint: MagicMcpEndpoint & {
     consumerProfile: ConsumerProfile | null;
+    ownerActor: MagicMcpServerOwnerActor;
     consumerIntegrationEndpoints: (ConsumerIntegrationEndpoint & {
       consumer: Consumer;
       consumerProfile: ConsumerProfile;
@@ -2312,6 +2335,7 @@ export let magicMcpSessionType = PresentableType.create<{
     magicMcpEndpoint:
       | (MagicMcpEndpoint & {
           consumerProfile: ConsumerProfile | null;
+          ownerActor: MagicMcpServerOwnerActor;
           consumerIntegrationEndpoints: (ConsumerIntegrationEndpoint & {
             consumer: Consumer;
             consumerProfile: ConsumerProfile;
@@ -2492,7 +2516,8 @@ export let consumerProfileType = PresentableType.create<{
     consumer: Consumer & {
       user?: User | null;
     };
-    surface: EnrichedConsumerSurface;
+    organizationMember?: { id: string } | null;
+    surface: EnrichedConsumerSurface & { portal?: { id: string } | null };
     // groups: (ConsumerProfileGroup & {
     //   group: ConsumerGroup;
     // })[];
@@ -2975,6 +3000,7 @@ type RawSessionTemplateProvider = SubspacePrisma.SessionTemplateProviderGetPaylo
 type RawSessionTemplate = SubspacePrisma.SessionTemplateGetPayload<{
   include: {
     identityActor: true;
+    ownerActor: OwnerActorSelect;
     identity: true;
     integrationInstance: true;
     integrationInstanceGroup: true;
@@ -3082,6 +3108,10 @@ export let integrationInternetGatewayType = PresentableType.create<{
 export let integrationInternetGatewayNetworkLogsType = PresentableType.create<{
   logs: IntegrationInternetGatewayNetworkLogsResponse;
 }>()('integration.internet_gateway.network_logs');
+
+export let ownershipAccessType = PresentableType.create<{
+  ownershipAccess: { isRestrictedByProject: boolean; ownActorIds: string[] };
+}>()('ownershipAccess');
 
 export let resourceCountsType = PresentableType.create<{
   resources: {
@@ -3361,6 +3391,7 @@ type RawSessionEvent = SubspacePrisma.SessionEventGetPayload<{
 type RawSession = SubspacePrisma.SessionGetPayload<{
   include: {
     identityActor: true;
+    ownerActor: OwnerActorSelect;
     identity: true;
     providers: {
       include: {

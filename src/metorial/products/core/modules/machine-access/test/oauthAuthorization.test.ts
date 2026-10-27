@@ -866,6 +866,7 @@ describe('oauthAuthorizationService', () => {
       input: {
         grantType: 'refresh_token',
         clientId: 'client-1',
+        clientSecret: 'secret-1',
         refreshToken: 'metorial_or_old'
       }
     });
@@ -884,6 +885,35 @@ describe('oauthAuthorizationService', () => {
     );
     expect(mockDb.oAuthToken.create).not.toHaveBeenCalled();
     expect(result.oauthToken.accessToken).toContain('metorial_oa_');
+  });
+
+  it('requires a client secret to refresh tokens of confidential clients', async () => {
+    let refreshableToken = (oauthApplication: Record<string, unknown>) => ({
+      oid: 601n,
+      refreshToken: 'metorial_or_old',
+      oauthAuthorization: {
+        oid: 300n,
+        status: 'active',
+        oauthApplication: { oid: 100n, clientId: 'client-1', status: 'active', ...oauthApplication }
+      }
+    });
+    let refresh = () =>
+      oauthAuthorizationService.exchangeOAuthToken({
+        context: baseContext,
+        input: {
+          grantType: 'refresh_token',
+          clientId: 'client-1',
+          refreshToken: 'metorial_or_old'
+        }
+      });
+
+    mockDb.oAuthToken.findFirst.mockResolvedValue(
+      refreshableToken({ type: 'user_facing', allowClientSecretlessTokenExchange: false })
+    );
+    await expect(refresh()).rejects.toMatchObject({
+      data: expect.objectContaining({ status: 401 })
+    });
+    expect(mockDb.oAuthToken.update).not.toHaveBeenCalled();
   });
 
   it('exchanges server-side client credentials without issuing a refresh token', async () => {

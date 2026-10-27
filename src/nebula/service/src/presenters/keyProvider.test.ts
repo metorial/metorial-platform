@@ -45,6 +45,30 @@ describe('keyProviderPresenter', () => {
     });
   });
 
+  it('marks only providers without a tenant as global', async () => {
+    let keyInfo = { variant: 'local', version: 1 };
+    let tenantProvider = {
+      ...baseKeyProvider,
+      isMetorialManaged: true,
+      keyInfo
+    } as KeyProvider;
+    let globalProvider = {
+      ...tenantProvider,
+      systemIdentifier: 'system:global:default',
+      tenantOid: null,
+      isMetorialManaged: false
+    } as KeyProvider;
+
+    expect(await keyProviderPresenter(tenantProvider)).toMatchObject({
+      isGlobal: false,
+      isMetorialManaged: true
+    });
+    expect(await keyProviderPresenter(globalProvider)).toMatchObject({
+      isGlobal: true,
+      isMetorialManaged: true
+    });
+  });
+
   it('keeps AWS key IDs and ARNs for tenant-owned providers', async () => {
     let keyId = 'customer-key-id';
     let keyArn = `arn:aws:kms:us-east-1:123456789012:key/${keyId}`;

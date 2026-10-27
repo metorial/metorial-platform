@@ -98,10 +98,12 @@ class callbackInternalServiceImpl {
   async reconcileCallbackForIntegrationProvider(d: {
     integrationProviderId: string;
     input?: { name?: string; description?: string | null };
+    beforeReconcile?: () => Promise<void>;
   }) {
-    return await callbackLock.usingLock(d.integrationProviderId, async () =>
-      this.reconcileCallbackForIntegrationProviderLocked(d)
-    );
+    return await callbackLock.usingLock(d.integrationProviderId, async () => {
+      await d.beforeReconcile?.();
+      return this.reconcileCallbackForIntegrationProviderLocked(d);
+    });
   }
 
   private async reconcileCallbackForIntegrationProviderLocked(d: {

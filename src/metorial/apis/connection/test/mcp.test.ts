@@ -189,6 +189,39 @@ describe('handleMcpRequest', () => {
     );
   });
 
+  it('accepts POSTs to the legacy SSE message endpoint without waiting for the response', async () => {
+    handleSubspaceMcpRequest.mockResolvedValue({
+      connection: {
+        session: { id: 'ses_1' },
+        connection: { id: 'scon_1', token: 'tok_1' }
+      },
+      response: null
+    });
+
+    let app = new Hono().post('/connect/mcp/:sessionId', c =>
+      handleMcpRequest(c, {
+        instance: { id: 'ins_1' } as any,
+        sessionId: 'ses_1'
+      })
+    );
+
+    let response = await app.request('/connect/mcp/ses_1?connection_token=tok_1', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' })
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe('OK');
+    expect(handleSubspaceMcpRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        connectionToken: 'tok_1',
+        mcpTransport: 'sse',
+        waitForResponse: false
+      })
+    );
+  });
+
   it('returns the stream on first progress and sends the final response later', async () => {
     let connection = {
       session: { id: 'ses_1' },

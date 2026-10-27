@@ -71,6 +71,20 @@ export type DashboardInstanceSessionsCreateOutput = {
   hasErrors: boolean;
   hasWarnings: boolean;
   identityActorId: string | null;
+  access: {
+    source: 'explorer' | null;
+    type: 'public' | 'owner_locked';
+    visibility: 'anyone' | 'owner';
+    owner: {
+      type: 'person' | 'agent' | 'consumer' | 'organization_member';
+      name: string | null;
+      imageUrl: string | null;
+      email: string | null;
+      organizationMember?: { id: string } | undefined;
+      consumer?:
+        { id: string; profileId: string; portalId: string | null } | undefined;
+    } | null;
+  };
   identityId: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -138,6 +152,27 @@ export let mapDashboardInstanceSessionsCreateOutput =
       'has_errors',
       'has_warnings',
       'identity_actor_id',
+      [
+        'access',
+        0,
+        [
+          1,
+          [
+            [
+              'owner',
+              0,
+              [
+                1,
+                [
+                  'image_url',
+                  'organization_member',
+                  ['consumer', 0, [1, ['profile_id', 'portal_id']]]
+                ]
+              ]
+            ]
+          ]
+        ]
+      ],
       'identity_id',
       'created_at',
       'updated_at'
@@ -149,46 +184,39 @@ export type DashboardInstanceSessionsCreateBody = {
   name?: string | undefined;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
-  providers: ((((
-    | { providerDeploymentId?: string | undefined }
-    | {
-        providerDeployment?:
-          | {
-              providerId: string;
-              name?: string | undefined;
-              description?: string | undefined;
-              metadata?: Record<string, any> | undefined;
-              lockedProviderVersionId?: string | undefined;
-            }
-          | undefined;
-      }
-  ) &
-    (
-      | { providerConfigId?: string | undefined }
+  providers: ((({
+    providerDeploymentId?: string | undefined;
+    providerDeployment?:
       | {
-          providerConfig?:
-            | { name?: string | undefined; value: Record<string, any> }
-            | {
-                name?: string | undefined;
-                providerConfigVaultId: string;
-                providerId?: string | undefined;
-              }
-            | undefined;
+          providerId: string;
+          name?: string | undefined;
+          description?: string | undefined;
+          metadata?: Record<string, any> | undefined;
+          lockedProviderVersionId?: string | undefined;
         }
-    )) &
-    ((
-      | { providerAuthConfigId?: string | undefined }
+      | undefined;
+  } & {
+    providerConfigId?: string | undefined;
+    providerConfig?:
+      | { name?: string | undefined; value: Record<string, any> }
       | {
-          providerAuthConfig?:
-            | {
-                name?: string | undefined;
-                providerAuthMethodId: string;
-                credentials: Record<string, any>;
-                providerId?: string | undefined;
-              }
-            | undefined;
+          name?: string | undefined;
+          providerConfigVaultId: string;
+          providerId?: string | undefined;
         }
-    ) & { sessionTemplateId?: string | undefined })) & {
+      | undefined;
+  }) &
+    ({
+      providerAuthConfigId?: string | undefined;
+      providerAuthConfig?:
+        | {
+            name?: string | undefined;
+            providerAuthMethodId: string;
+            credentials: Record<string, any>;
+            providerId?: string | undefined;
+          }
+        | undefined;
+    } & { sessionTemplateId?: string | undefined })) & {
     toolFilters?:
       | (
           | { type: 'tool_keys'; keys: string[] }
@@ -211,6 +239,7 @@ export type DashboardInstanceSessionsCreateBody = {
       | null
       | undefined;
   })[];
+  source?: 'explorer' | undefined;
 };
 
 export let mapDashboardInstanceSessionsCreateBody =

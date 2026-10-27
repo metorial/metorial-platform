@@ -349,7 +349,7 @@ let getSkillTableRow = (p: {
         </SkillText>
       </SkillName>,
       <Slug>{p.pluginSkill.identifier}</Slug>,
-      <Badge color={p.pluginSkill.status === 'active' ? 'green' : 'gray'} size="1">
+      <Badge color={p.pluginSkill.status === 'active' ? 'green' : 'gray'} size="2">
         {p.pluginSkill.status}
       </Badge>,
       <Text size="2" color={p.pluginSkill.clientName ? 'gray800' : 'gray500'}>

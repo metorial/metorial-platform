@@ -49,11 +49,13 @@ class providerSetupSessionInternalServiceImpl {
       provider: Provider;
       providerVariant: ProviderVariant;
       currentVersion:
-        | (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null })
-        | null;
+        (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null }) | null;
     };
     credentials?: ProviderAuthCredentials;
     ownerActorOid?: bigint | null;
+    source?: 'explorer';
+    isOwnerLocked?: boolean;
+    isOwnerOnlyVisible?: boolean;
     ownerPublicMcpServerOid?: bigint | null;
     expiresAt: Date;
     input: {
@@ -194,7 +196,10 @@ class providerSetupSessionInternalServiceImpl {
                 providerDeployment: d.providerDeployment,
                 credentials,
                 authMethod,
+                source: d.source,
                 ownerActorOid: d.ownerActorOid,
+                isOwnerLocked: d.isOwnerLocked,
+                isOwnerOnlyVisible: d.isOwnerOnlyVisible,
                 ownerPublicMcpServerOid: d.ownerPublicMcpServerOid,
                 expiresAt: d.expiresAt,
                 input: {
@@ -242,7 +247,10 @@ class providerSetupSessionInternalServiceImpl {
             environment: d.environment,
             provider: d.provider,
             providerDeployment: d.providerDeployment,
+            source: d.source,
             ownerActorOid: d.ownerActorOid,
+            isOwnerLocked: d.isOwnerLocked,
+            isOwnerOnlyVisible: d.isOwnerOnlyVisible,
             ownerPublicMcpServerOid: d.ownerPublicMcpServerOid,
             input: {
               name: d.input.name,
@@ -275,12 +283,14 @@ class providerSetupSessionInternalServiceImpl {
       provider: Provider;
       providerVariant: ProviderVariant;
       currentVersion:
-        | (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null })
-        | null;
+        (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null }) | null;
     };
     credentials?: ProviderAuthCredentials;
     authMethod: ProviderAuthMethod;
     ownerActorOid?: bigint | null;
+    source?: 'explorer';
+    isOwnerLocked?: boolean;
+    isOwnerOnlyVisible?: boolean;
     ownerPublicMcpServerOid?: bigint | null;
     expiresAt: Date;
     input: {
@@ -358,8 +368,10 @@ class providerSetupSessionInternalServiceImpl {
         provider: d.provider,
         providerDeployment: d.providerDeployment,
         ownerActorOid: d.ownerActorOid,
+        isOwnerLocked: d.isOwnerLocked,
+        isOwnerOnlyVisible: d.isOwnerOnlyVisible,
         import: d.import,
-        source: d.ownerPublicMcpServerOid ? 'public_mcp' : 'setup_session',
+        source: d.source ?? (d.ownerPublicMcpServerOid ? 'public_mcp' : 'setup_session'),
         input: {
           name: d.input.name,
           description: d.input.description,
@@ -408,10 +420,12 @@ class providerSetupSessionInternalServiceImpl {
       provider: Provider;
       providerVariant: ProviderVariant;
       currentVersion:
-        | (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null })
-        | null;
+        (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null }) | null;
     };
     ownerActorOid?: bigint | null;
+    source?: 'explorer';
+    isOwnerLocked?: boolean;
+    isOwnerOnlyVisible?: boolean;
     ownerPublicMcpServerOid?: bigint | null;
     input: {
       name?: string;
@@ -434,7 +448,10 @@ class providerSetupSessionInternalServiceImpl {
       environment: d.environment,
       provider: d.provider,
       providerDeployment: d.providerDeployment,
+      source: d.source,
       ownerActorOid: d.ownerActorOid,
+      isOwnerLocked: d.isOwnerLocked,
+      isOwnerOnlyVisible: d.isOwnerOnlyVisible,
       input: {
         name: d.input.name,
         description: d.input.description,

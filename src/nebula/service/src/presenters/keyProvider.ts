@@ -41,6 +41,7 @@ export let keyProviderPresenter = async (keyProvider: KeyProvider) => ({
   owner: keyProvider.owner,
   status: keyProvider.status,
   isMetorialManaged: isMetorialManaged(keyProvider),
+  isGlobal: keyProvider.tenantOid === null,
   keyReuseTimeSeconds: keyProvider.keyReuseTimeSeconds,
   keyInfo: await safeKeyInfo(keyProvider),
   createdAt: keyProvider.createdAt,

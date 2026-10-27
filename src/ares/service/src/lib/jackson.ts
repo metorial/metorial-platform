@@ -32,7 +32,8 @@ let ret = await jack({
     url: env.service.SSO_DATABASE_URL,
     ssl: env.service.SSO_DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false
   },
-  idpEnabled: true
+  idpEnabled: true,
+  openid: { forwardOIDCParams: true }
 });
 
 export let jackson = {

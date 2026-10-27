@@ -123,6 +123,14 @@ describe('portal oauth redirect filters', () => {
     ).toThrow('blocked redirect protocol');
   });
 
+  it('rejects script redirect protocols', () => {
+    for (let scriptUri of ['javascript:alert(document.cookie)//', 'VBScript:msgbox(1)']) {
+      expect(() => validateUrlString(scriptUri, 'redirect_uri')).toThrow(
+        'blocked redirect protocol'
+      );
+    }
+  });
+
   it('normalizes the default filters back to null storage', () => {
     expect(
       portalAllowedRedirectUrlFiltersEqual(

@@ -1,3 +1,4 @@
+import { hydrateResourceOwners } from '@metorial/module-resource-actor';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
@@ -14,6 +15,7 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { providerSetupSessionPresenter } from '@metorial/presenters';
+import { getOwnershipActor, resolveExplorerOwner } from '../../../lib/ownershipActor';
 
 let providerSetupSessionConfigurationValidator = v.optional(
   v.object({
@@ -49,6 +51,7 @@ let providerSetupSessionGroup = instanceGroup.use(async ctx => {
 
   let setupSession = await providerSetupSessionService.getProviderSetupSessionById({
     instance: ctx.instance,
+    organizationActor: getOwnershipActor(ctx),
     providerSetupSessionId: ctx.params.providerSetupSessionId
   });
 
@@ -110,6 +113,7 @@ export let providerSetupSessionController = Controller.create(
       .do(async ctx => {
         let paginator = await providerSetupSessionService.listProviderSetupSessions({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
           allowDeleted: false,
 
           ids: normalizeArrayParam(ctx.query.id),
@@ -126,11 +130,18 @@ export let providerSetupSessionController = Controller.create(
         });
 
         let list = await paginator.run(ctx.query);
+        let items = await providerSetupSessionService.redactProviderSetupSessionsForCaller({
+          instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
+          setupSessions: list.items
+        });
 
-        return Paginator.present(list, setupSession =>
-          providerSetupSessionPresenter.present({
-            setupSession
-          })
+        return Paginator.present(
+          await hydrateResourceOwners({ ...list, items }),
+          setupSession =>
+            providerSetupSessionPresenter.present({
+              setupSession
+            })
         );
       }),
 
@@ -148,7 +159,16 @@ export let providerSetupSessionController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:read'] }))
       .output(providerSetupSessionPresenter)
       .do(async ctx => {
-        return providerSetupSessionPresenter.present({ setupSession: ctx.setupSession });
+        let [setupSession] =
+          await providerSetupSessionService.redactProviderSetupSessionsForCaller({
+            instance: ctx.instance,
+            organizationActor: getOwnershipActor(ctx),
+            setupSessions: [ctx.setupSession]
+          });
+
+        return providerSetupSessionPresenter.present(
+          await hydrateResourceOwners({ setupSession: setupSession! })
+        );
       }),
 
     create: instanceGroup
@@ -160,6 +180,66 @@ export let providerSetupSessionController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
+      .body(
+        'mt_2026_01_01_magnetar',
+        v.object({
+          provider_id: v.optional(
+            v.string({
+              examples: ['pro_5gHjKlMnPqRsTuVw'],
+              description: 'The provider ID'
+            })
+          ),
+          provider_deployment_id: v.optional(
+            v.string({
+              examples: ['pdp_4dEfGhJkLmNpQrSt'],
+              description: 'Optional provider deployment ID'
+            })
+          ),
+          name: v.optional(v.string({ examples: ['GitHub OAuth Setup'] })),
+          description: v.optional(v.string({ examples: ['Connect your GitHub account'] })),
+          metadata: v.optional(
+            v.record(v.any(), {
+              examples: [{ redirect_uri: 'https://app.example.com/callback' }]
+            }),
+            { description: 'Custom key-value pairs for storing additional information' }
+          ),
+          provider_auth_method_id: v.optional(
+            v.string({
+              examples: ['pam_2mNpQrStUvWxYzAb'],
+              description: 'The authentication method to use (e.g., OAuth flow)'
+            })
+          ),
+          provider_auth_credentials_id: v.optional(
+            v.string({
+              examples: ['pac_3nOpRsTuVwXyZaBc'],
+              description: 'Optional OAuth app credentials to use instead of defaults'
+            })
+          ),
+          identity_id: v.optional(
+            v.string({
+              examples: ['idn_3nOpRsTuVwXyZaBc'],
+              description: 'Optional identity to link this setup session to'
+            })
+          ),
+          consumer_id: v.optional(
+            v.string({
+              examples: ['con_1a2b3c4d5e6f7g8h'],
+              description: 'Optional consumer to link this setup session to'
+            })
+          ),
+          redirect_url: v.optional(
+            v.string({ examples: ['https://app.example.com/oauth/callback'] })
+          ),
+          type: v.optional(
+            v.enumOf(['auth_only', 'config_only', 'auth_and_config', 'admin', 'auto'], {
+              description:
+                'The type of setup session, determining the flow and outcome of the session. `admin` creates an admin consent link for auth methods that support it, never creates credentials or configs, and cannot be bound to an identity, consumer, or config.'
+            })
+          ),
+          configuration: providerSetupSessionConfigurationValidator
+        }),
+        v => v
+      )
       .body(
         'default',
         v.object({
@@ -216,7 +296,11 @@ export let providerSetupSessionController = Controller.create(
                 'The type of setup session, determining the flow and outcome of the session. `admin` creates an admin consent link for auth methods that support it, never creates credentials or configs, and cannot be bound to an identity, consumer, or config.'
             })
           ),
-          configuration: providerSetupSessionConfigurationValidator
+          configuration: providerSetupSessionConfigurationValidator,
+          source: v.optional(v.enumOf(['explorer']), {
+            description:
+              'Create an owner-locked resource visible only to the caller from the dashboard explorer.'
+          })
         })
       )
       .output(providerSetupSessionPresenter)
@@ -246,9 +330,18 @@ export let providerSetupSessionController = Controller.create(
             })
           : undefined;
 
+        let ownerActorId = await resolveExplorerOwner(ctx, ctx.body.source);
+
         let setupSession = await providerSetupSessionService.createProviderSetupSession({
           instance: ctx.instance,
           auditScope: ctx.auditScope,
+          internal: {
+            skipConfirmation: ctx.apiVersion === 'mt_2025_01_01_dashboard'
+          },
+          ownerActorId,
+          source: ctx.body.source,
+          isOwnerLocked: ctx.body.source === 'explorer' ? true : undefined,
+          isOwnerOnlyVisible: ctx.body.source === 'explorer' ? true : undefined,
           provider,
           providerDeployment,
           credentials,
@@ -300,9 +393,11 @@ export let providerSetupSessionController = Controller.create(
           }
         });
 
-        return providerSetupSessionPresenter.present({
-          setupSession
-        });
+        return providerSetupSessionPresenter.present(
+          await hydrateResourceOwners({
+            setupSession
+          })
+        );
       }),
 
     update: providerSetupSessionGroup
@@ -357,10 +452,18 @@ export let providerSetupSessionController = Controller.create(
             identity
           }
         });
+        let [redactedSetupSession] =
+          await providerSetupSessionService.redactProviderSetupSessionsForCaller({
+            instance: ctx.instance,
+            organizationActor: getOwnershipActor(ctx),
+            setupSessions: [setupSession]
+          });
 
-        return providerSetupSessionPresenter.present({
-          setupSession
-        });
+        return providerSetupSessionPresenter.present(
+          await hydrateResourceOwners({
+            setupSession: redactedSetupSession!
+          })
+        );
       }),
 
     delete: providerSetupSessionGroup
@@ -377,7 +480,15 @@ export let providerSetupSessionController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.auth:write'] }))
       .output(providerSetupSessionPresenter)
       .do(async ctx => {
-        return providerSetupSessionPresenter.present({ setupSession: ctx.setupSession });
+        let setupSession = await providerSetupSessionService.archiveProviderSetupSession({
+          instance: ctx.instance,
+          auditScope: ctx.auditScope,
+          providerSetupSession: ctx.setupSession
+        });
+
+        return providerSetupSessionPresenter.present(
+          await hydrateResourceOwners({ setupSession })
+        );
       })
   }
 );

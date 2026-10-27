@@ -19,6 +19,7 @@ export let eventDestinationResource = resource({
     create: true,
     update: true,
     archive: true,
+    rotate_secret: true,
     ping: true
   }
 });

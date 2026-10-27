@@ -1,6 +1,6 @@
 import { createCron } from '@lowerdeck/cron';
 import { createLock } from '@lowerdeck/lock';
-import { createQueue } from '@lowerdeck/queue';
+import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import semver from 'semver';
 import { db } from '../db';
 import { env } from '../env';
@@ -32,10 +32,25 @@ let getNpmHeaders = () => {
   return Object.keys(headers).length > 0 ? headers : undefined;
 };
 
+let isTransientNpmStatus = (status: number) => status === 429 || status >= 500;
+
+let fetchNpm = async (url: string) => {
+  try {
+    return await fetch(url, {
+      headers: getNpmHeaders()
+    });
+  } catch (error) {
+    console.warn(`npm request ${url} failed, retrying`, error);
+    throw new QueueRetryError();
+  }
+};
+
 let fetchJson = async <T>(url: string) => {
-  let response = await fetch(url, {
-    headers: getNpmHeaders()
-  });
+  let response = await fetchNpm(url);
+  if (isTransientNpmStatus(response.status)) {
+    console.warn(`npm request ${url} failed with ${response.status}, retrying`);
+    throw new QueueRetryError();
+  }
   if (!response.ok) {
     throw new Error(`Failed npm request ${url}: ${response.status} ${response.statusText}`);
   }
@@ -44,9 +59,13 @@ let fetchJson = async <T>(url: string) => {
 };
 
 let fetchBuffer = async (url: string) => {
-  let response = await fetch(url, {
-    headers: getNpmHeaders()
-  });
+  let response = await fetchNpm(url);
+
+  // Tarballs of freshly published versions can 404 until npm's CDN catches up
+  if (isTransientNpmStatus(response.status) || response.status === 404) {
+    console.warn(`npm tarball request ${url} failed with ${response.status}, retrying`);
+    throw new QueueRetryError();
+  }
   if (!response.ok) {
     throw new Error(
       `Failed npm tarball request ${url}: ${response.status} ${response.statusText}`

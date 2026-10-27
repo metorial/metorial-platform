@@ -1,7 +1,11 @@
 import { db } from '@metorial/db';
 import { createQueue, QueueRetryError } from '@metorial/queue';
 import { syncConsumerProfileIdentity } from '../lib/syncConsumerProfileIdentity';
-import { consumerActorService } from '@metorial/module-consumer-entities';
+import {
+  archiveDeletedConsumerProfileActorsQueue,
+  syncInstanceConsumerActorsQueue,
+  consumerActorService
+} from '@metorial/module-consumer-entities';
 
 export let syncIdentityConsumerQueue = createQueue<{
   identityConsumerId: string;
@@ -29,7 +33,8 @@ export let syncIdentityConsumerQueueProcessor = syncIdentityConsumerQueue.proces
     let profiles = await db.consumerProfile.findMany({
       where: {
         instanceOid: instanceConsumer.instanceOid,
-        consumerOid: instanceConsumer.consumerOid
+        consumerOid: instanceConsumer.consumerOid,
+        status: 'active'
       }
     });
 
@@ -57,6 +62,7 @@ export let reconcileConsumerActorQueueProcessor = reconcileConsumerActorQueue.pr
       include: { instance: true }
     });
     if (!profile) throw new QueueRetryError();
+    if (profile.status !== 'active' && profile.status !== 'deleted') return;
 
     let instanceConsumer = await db.instanceConsumer.findUnique({
       where: {
@@ -67,6 +73,12 @@ export let reconcileConsumerActorQueueProcessor = reconcileConsumerActorQueue.pr
       }
     });
     if (!instanceConsumer) throw new QueueRetryError();
+
+    if (profile.status === 'deleted') {
+      await archiveDeletedConsumerProfileActorsQueue.add({ consumerProfileId: profile.id });
+      await syncInstanceConsumerActorsQueue.add({ instanceConsumerId: instanceConsumer.id });
+      return;
+    }
 
     await db.consumerProfile.update({
       where: { oid: profile.oid },

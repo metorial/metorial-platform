@@ -4,6 +4,10 @@ import { createLock } from '@lowerdeck/lock';
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db, getId } from '@metorial-subspace/db';
 import {
+  recordProviderAuthErrorUsage,
+  recordProviderAuthEventUsage
+} from '@metorial/module-usage';
+import {
   getRetentionPolicy,
   redactJsonShape,
   redactSensitiveKeys
@@ -121,6 +125,7 @@ export let syncAuthConfigEventQueueProcessor = syncAuthConfigEventQueue.process(
       data: {
         ...getId('providerAuthConfigEvent'),
         type: data.event.type,
+        status: isErrorEvent(data.event) ? 'failed' : 'succeeded',
         sourceType: 'shuttle.server_auth_config_event',
         sourceId: data.event.id,
         providerInvocationId: getEventProviderInvocationId(data.event),
@@ -137,6 +142,8 @@ export let syncAuthConfigEventQueueProcessor = syncAuthConfigEventQueue.process(
         solutionOid: authConfigVersion.authConfig.solutionOid
       }
     });
+
+    await recordProviderAuthEventUsage(authConfigEvent);
   }
 
   if (!isErrorEvent(data.event)) return;
@@ -178,6 +185,8 @@ export let syncAuthConfigEventQueueProcessor = syncAuthConfigEventQueue.process(
       solutionOid: authConfigVersion.authConfig.solutionOid
     }
   });
+
+  await recordProviderAuthErrorUsage(error);
 
   let hash = await Hash.sha256(
     canonicalize([

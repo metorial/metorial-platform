@@ -361,7 +361,7 @@ export let MethodSelectionStep = (p: {
       <form onSubmit={p.methodForm.handleSubmit}>
         {!p.lockedVersionId && (
           <>
-            <Text size="1" color="gray600">
+            <Text size="2" color="gray600">
               This deployment is not pinned. Authentication methods are being loaded from the
               provider&apos;s current version.
             </Text>

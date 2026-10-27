@@ -19,6 +19,11 @@ import {
 import { outpostInstanceService } from './outpostInstance';
 
 class OutpostRegistrationService {
+  // Lookups are cached for minutes, so a credential's expiry is checked on every use instead.
+  private hasExpired(expiresAt: number | null | undefined) {
+    return expiresAt != null && expiresAt <= Date.now();
+  }
+
   private async isInRequesterFamily(d: {
     requestedBy: AuthenticatedOutpostRequest;
     outpostId: string;
@@ -59,6 +64,7 @@ class OutpostRegistrationService {
 
     if (cached.status == 'unknown' || cached.status == 'revoked')
       return { status: cached.status };
+    if (this.hasExpired(cached.expiresAt)) return { status: 'revoked' };
 
     return { status: cached.status, publicKey: base64url.decode(cached.publicKey) };
   }
@@ -84,8 +90,23 @@ class OutpostRegistrationService {
     outpostId: string;
     instanceId: string;
     credentialId: string;
+    instancePublicKey: Uint8Array;
   }): Promise<ResolvedInstanceAuthorization> {
-    return await cachedInstanceAuthorization(d);
+    let authorization = await cachedInstanceAuthorization({
+      outpostId: d.outpostId,
+      instanceId: d.instanceId,
+      credentialId: d.credentialId,
+      instancePublicKey: base64url.encode(d.instancePublicKey)
+    });
+
+    if (
+      authorization.status == 'active' &&
+      this.hasExpired(authorization.credentialExpiresAt)
+    ) {
+      return { status: 'instance_disabled' };
+    }
+
+    return { status: authorization.status };
   }
 
   async onInstanceRegistered(d: {

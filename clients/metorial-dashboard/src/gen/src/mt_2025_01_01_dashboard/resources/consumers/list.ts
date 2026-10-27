@@ -55,7 +55,7 @@ export type ConsumersListQuery = {
 } & {
   search?: string | undefined;
   email?: string | string[] | undefined;
-  id?: string | undefined;
+  id?: string | string[] | undefined;
 };
 
 export let mapConsumersListQuery =

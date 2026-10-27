@@ -70,8 +70,7 @@ type CreateProviderOAuthSetupParams = {
     provider: Provider;
     providerVariant: ProviderVariant;
     currentVersion:
-      | (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null })
-      | null;
+      (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null }) | null;
   };
   credentials?: ProviderAuthCredentials;
   input: {

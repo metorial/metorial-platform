@@ -9,7 +9,11 @@ let getRedirectUrl = (d: OAuthAuthorizationRequestWithRelations) => {
   if (d.type != 'interactive' || d.status == 'pending' || !d.redirectUri) return null;
 
   let url = new URL(d.redirectUri);
-  url.searchParams.set('code', d.code);
+  if (d.status == 'denied') {
+    url.searchParams.set('error', 'access_denied');
+  } else {
+    url.searchParams.set('code', d.code);
+  }
   if (d.state) url.searchParams.set('state', d.state);
 
   return url.toString();

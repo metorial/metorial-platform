@@ -1,5 +1,6 @@
-import { CenteredSpinner, Text } from '@metorial/ui';
+import { Text } from '@metorial/ui';
 import React from 'react';
+import { keyframes, styled } from 'styled-components';
 
 let frameStyle: React.CSSProperties = {
   position: 'relative',
@@ -19,10 +20,20 @@ let overlayStyle: React.CSSProperties = {
   textAlign: 'center'
 };
 
-let placeholderStyle: React.CSSProperties = {
-  filter: 'grayscale(1) blur(3px)',
-  opacity: 0.45,
-  pointerEvents: 'none'
+let pulse = keyframes`
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.2; }
+`;
+
+let Skeleton = styled.div`
+  filter: grayscale(1) blur(2px);
+  pointer-events: none;
+  animation: ${pulse} 1.6s ease-in-out infinite;
+`;
+
+let refreshingStyle: React.CSSProperties = {
+  opacity: 0.6,
+  transition: 'opacity 0.15s ease'
 };
 
 export type ChartFrameProps = {
@@ -78,11 +89,7 @@ export let ChartFrame = ({
   if (isEmpty && loading) {
     return (
       <div style={{ ...frameStyle, height }} aria-busy>
-        {placeholder ? <div style={placeholderStyle}>{placeholder}</div> : null}
-
-        <div style={overlayStyle}>
-          <CenteredSpinner />
-        </div>
+        {placeholder ? <Skeleton>{placeholder}</Skeleton> : null}
       </div>
     );
   }
@@ -96,14 +103,11 @@ export let ChartFrame = ({
   }
 
   return (
-    <div style={{ ...frameStyle, minHeight: height }} aria-busy={loading || undefined}>
+    <div
+      style={{ ...frameStyle, minHeight: height, ...(loading ? refreshingStyle : null) }}
+      aria-busy={loading || undefined}
+    >
       {children}
-
-      {loading ? (
-        <div style={{ ...overlayStyle, pointerEvents: 'none' }}>
-          <CenteredSpinner />
-        </div>
-      ) : null}
     </div>
   );
 };

@@ -45,7 +45,8 @@ export let isConsumerOwnedIdentity = (d: {
   identity: { actorOid: bigint } | null;
 }) => {
   let actors = d.actors.filter(actor => !!actor);
-  if (actors.some(actor => actor.type !== 'consumer')) return false;
+  if (actors.some(actor => actor.type !== 'consumer' && actor.type !== 'organization_member'))
+    return false;
   if (!d.identity) return true;
 
   return actors.some(actor => actor.oid === d.identity!.actorOid);
@@ -196,7 +197,11 @@ export let reconcileMagicMcpServerOwnerIdentity = async (d: { magicMcpServerId: 
   }
 
   // Null owners are filled by the owner actor backfill; only consumer owners can be stamps.
-  if (server.ownerActor?.type !== 'consumer') return;
+  if (
+    server.ownerActor?.type !== 'consumer' &&
+    server.ownerActor?.type !== 'organization_member'
+  )
+    return;
 
   let expectedOwnerActorOid = await resolveOwnerActorOid({
     identityActorId: getExpectedOwnerActorId({

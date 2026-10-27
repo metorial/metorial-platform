@@ -95,10 +95,7 @@ export type ManagementInstanceSkillsItemsListQuery = {
     | ('active' | 'archived' | 'deleted')[]
     | undefined;
   type?:
-    | 'integration'
-    | 'provider'
-    | ('integration' | 'provider')[]
-    | undefined;
+    'integration' | 'provider' | ('integration' | 'provider')[] | undefined;
   id?: string | string[] | undefined;
   integrationId?: string | string[] | undefined;
   providerId?: string | string[] | undefined;

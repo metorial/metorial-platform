@@ -23,11 +23,16 @@ import {
   TableFilterStateNumber,
   TableFilterStateSelect,
   TableFilterStateString,
+  formatFilterDate,
+  formatFilterDateRange,
   getCachedFilterLabel,
+  getFilterPayload,
   isEmptyFilterValue,
   rememberFilterLabels,
-  toFilterFieldNames
+  toFilterFieldNames,
+  type TableFilterPayloadMap
 } from './tableFilter';
+import { sortExactMatchesFirst, useEntityFilterLabels } from './entityFilter';
 
 let fadeIn = keyframes`
   from {
@@ -213,10 +218,10 @@ let getFilterText = (filter: TableFilter<any>, state: TableFilterState): string 
 
   if (filter.type == 'date' && state.type == 'date') {
     if (state.operation == 'between') {
-      return `${state.value[0].toLocaleDateString()} - ${state.value[1].toLocaleDateString()}`;
+      return formatFilterDateRange(state.value[0], state.value[1]);
     }
 
-    return state.value.toLocaleDateString();
+    return formatFilterDate(state.value);
   }
 
   if (state.type == 'string') {
@@ -224,6 +229,45 @@ let getFilterText = (filter: TableFilter<any>, state: TableFilterState): string 
   }
 
   return state.value.toString();
+};
+
+let noEntityIds: string[] = [];
+
+let useFilterText = (filter: TableFilter<any>, state?: TableFilterState) => {
+  let labels = useEntityFilterLabels(
+    filter,
+    state?.type == 'entity' ? state.value : noEntityIds
+  );
+
+  if (!state) return undefined;
+  if (filter.type == 'entity' && state.type == 'entity') return labels.join(', ');
+  return getFilterText(filter, state);
+};
+
+let CurrentFilterChip = ({
+  filter,
+  state,
+  onClick
+}: {
+  filter: TableFilter<any>;
+  state: TableFilterState;
+  onClick: () => void;
+}) => {
+  let text = useFilterText(filter, state) ?? '';
+
+  return (
+    <Tooltip content={text}>
+      <CurrentFilter onClick={onClick}>
+        <FilterIcon>
+          <RiFilter2Line size={12} />
+        </FilterIcon>
+
+        <FilterLabel>{filter.label}</FilterLabel>
+
+        <FilterValue>{text}</FilterValue>
+      </CurrentFilter>
+    </Tooltip>
+  );
 };
 
 export let TableFilters = memo(
@@ -301,6 +345,7 @@ export let TableFilters = memo(
       setFilterState(prev => prev.filter(f => f.id != id));
     };
 
+    let filterPayload = useMemo(() => getFilterPayload(filterState), [filterState]);
     let compact = filters.length == 1;
     let pinnedFilters = useMemo(() => filters.filter(f => f.pinned), [filters]);
     let unpinnedFilterState = useMemo(
@@ -355,6 +400,7 @@ export let TableFilters = memo(
                     key={currentFilter.id}
                     filter={currentFilter}
                     state={currentFilterState}
+                    filters={filterPayload}
                     apply={applyFilter}
                     reset={currentFilterState ? () => resetFilter(currentFilterId) : undefined}
                   />
@@ -371,6 +417,7 @@ export let TableFilters = memo(
                 key={filter.id}
                 filter={filter}
                 state={filterState.find(f => f.id == filter.id)}
+                filters={filterPayload}
                 apply={applyFilter}
                 reset={() => resetFilter(filter.id)}
               />
@@ -384,34 +431,25 @@ export let TableFilters = memo(
               let filter = filters.find(f => f.id == state.id);
               if (!filter) return null;
 
-              let text = getFilterText(filter, state);
-
               return (
-                <Tooltip key={state.id} content={text}>
-                  <CurrentFilter
-                    onClick={() => {
-                      if (
-                        state.id == currentFilterId &&
-                        (open || Date.now() - closedAtRef.current < 200)
-                      ) {
-                        setOpen(false);
-                        return;
-                      }
+                <CurrentFilterChip
+                  key={state.id}
+                  filter={filter}
+                  state={state}
+                  onClick={() => {
+                    if (
+                      state.id == currentFilterId &&
+                      (open || Date.now() - closedAtRef.current < 200)
+                    ) {
+                      setOpen(false);
+                      return;
+                    }
 
-                      setOpen(true);
-                      setCurrentFilterId(state.id);
-                      setTimeout(() => setCurrentFilterId(state.id), 20);
-                    }}
-                  >
-                    <FilterIcon>
-                      <RiFilter2Line size={12} />
-                    </FilterIcon>
-
-                    <FilterLabel>{filter.label}</FilterLabel>
-
-                    <FilterValue>{text}</FilterValue>
-                  </CurrentFilter>
-                </Tooltip>
+                    setOpen(true);
+                    setCurrentFilterId(state.id);
+                    setTimeout(() => setCurrentFilterId(state.id), 20);
+                  }}
+                />
               );
             })}
           </CurrentFilters>
@@ -430,11 +468,13 @@ export let TableFilters = memo(
 let FilterBody = ({
   filter,
   state,
+  filters,
   apply,
   reset
 }: {
   filter: TableFilter<any>;
   state?: TableFilterState;
+  filters: TableFilterPayloadMap;
   apply: (state: TableFilterState) => void;
   reset?: () => void;
 }) => {
@@ -465,6 +505,7 @@ let FilterBody = ({
       <FilterEntity
         filter={filter}
         state={state as TableFilterStateEntity}
+        filters={filters}
         apply={apply}
         reset={reset}
       />
@@ -523,16 +564,18 @@ let PreviewFilter = styled(CurrentFilter)`
 let PinnedFilterPill = ({
   filter,
   state,
+  filters,
   apply,
   reset
 }: {
   filter: TableFilter<any>;
   state?: TableFilterState;
+  filters: TableFilterPayloadMap;
   apply: (state: TableFilterState) => void;
   reset: () => void;
 }) => {
   let [open, setOpen] = useState(false);
-  let text = state ? getFilterText(filter, state) : undefined;
+  let text = useFilterText(filter, state);
 
   return (
     <RadixPopover.Root open={open} onOpenChange={setOpen}>
@@ -561,7 +604,13 @@ let PinnedFilterPill = ({
       </RadixPopover.Trigger>
 
       <RadixPopover.Portal>
-        <FilterPopover $compact side="bottom" align="start" sideOffset={5} collisionPadding={16}>
+        <FilterPopover
+          $compact
+          side="bottom"
+          align="start"
+          sideOffset={5}
+          collisionPadding={16}
+        >
           <FilterContent>
             <FilterContentHeader>
               <Title as="h1" size="2" weight="bold">
@@ -573,6 +622,7 @@ let PinnedFilterPill = ({
               key={filter.id}
               filter={filter}
               state={state}
+              filters={filters}
               apply={next => {
                 apply(next);
                 setOpen(false);
@@ -725,11 +775,13 @@ let noValueLabels = (): Record<string, string> => ({});
 let FilterEntity = ({
   filter,
   state,
+  filters,
   apply,
   reset
 }: {
   filter: TableFilter<any> & { type: 'entity' };
   state?: TableFilterStateEntity;
+  filters: TableFilterPayloadMap;
   apply: (state: TableFilterStateEntity) => void;
   reset?: () => void;
 }) => {
@@ -746,7 +798,8 @@ let FilterEntity = ({
 
   let remoteSearch = filter.remoteSearch !== false;
   let { items, isLoading, empty } = filter.useOptions({
-    search: remoteSearch ? debouncedSearch : ''
+    search: debouncedSearch,
+    filters
   });
 
   useEffect(() => rememberFilterLabels(filter.id, items), [filter.id, items]);
@@ -767,11 +820,18 @@ let FilterEntity = ({
   }, [filter.id, missingIds, missingLabels]);
 
   let visibleItems = useMemo(() => {
-    if (remoteSearch || !debouncedSearch.trim()) return items;
+    let query = debouncedSearch.trim();
+    if (remoteSearch || !query) return sortExactMatchesFirst(items, query);
 
-    let normalizedSearch = debouncedSearch.trim().toLowerCase();
-    return items.filter(item =>
-      `${item.label} ${item.description ?? ''}`.toLowerCase().includes(normalizedSearch)
+    let normalizedSearch = query.toLowerCase();
+    return sortExactMatchesFirst(
+      items.filter(
+        item =>
+          item.id.toLowerCase() == normalizedSearch ||
+          item.slug?.toLowerCase() == normalizedSearch ||
+          `${item.label} ${item.description ?? ''}`.toLowerCase().includes(normalizedSearch)
+      ),
+      query
     );
   }, [items, remoteSearch, debouncedSearch]);
 

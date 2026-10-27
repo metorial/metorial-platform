@@ -163,7 +163,7 @@ export let Button = React.forwardRef(
       width: fullWidth && !hasMenu ? '100%' : undefined,
 
       ...(!children && {
-        width: style.height,
+        width: props.style?.width ?? style.height,
         padding: 0
       }),
 

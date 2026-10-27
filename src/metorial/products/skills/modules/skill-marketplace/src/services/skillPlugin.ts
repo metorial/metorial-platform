@@ -29,6 +29,7 @@ import {
   createSkillDestination,
   getSkillDestinationEditorUrl
 } from '@metorial/skills-scm-utils';
+import { buildSearchFilter } from '@metorial/module-search';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/skills-search';
 import { forceSkillDestinationSync } from '../lib/destinationSync';
 import {
@@ -38,8 +39,8 @@ import {
 } from '../lib/limits';
 import {
   getArchivedMarketplacePluginSlug,
-  getMarketplacePluginSlug,
-  getSkillPluginSlug
+  getAvailableSkillPluginSlug,
+  getMarketplacePluginSlug
 } from '../lib/skillMarketplacePluginSlug';
 import {
   assertSkillMarketplaceWriteAccess,
@@ -232,14 +233,20 @@ class SkillPluginServiceImpl {
     d.search = d.search?.trim();
     if (!d.search?.length) d.search = undefined;
 
-    let search = d.search
-      ? await voyager.record.search({
+    let search = await buildSearchFilter<Prisma.SkillPluginWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let records = await voyager.record.search({
           tenantId: getProjectTenantIdentifier(d.project),
           sourceId: (await voyagerSource).id,
           indexId: voyagerIndex.skillPlugin.id,
-          query: d.search
-        })
-      : null;
+          query
+        });
+
+        return records.map(r => r.documentId);
+      },
+      exact: query => [{ id: query }, { slug: { equals: query, mode: 'insensitive' } }]
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -287,7 +294,7 @@ class SkillPluginServiceImpl {
                   : undefined!,
                 { status: { in: statuses } },
                 d.category ? { category: d.category } : undefined!,
-                search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
+                search ?? undefined!,
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
               ].filter(Boolean) as Prisma.SkillPluginWhereInput[]
@@ -405,6 +412,7 @@ class SkillPluginServiceImpl {
           { skillMarketplaceId: skillMarketplace.id }
         )
       : undefined;
+    let slug = await getAvailableSkillPluginSlug(d.input.slug ?? d.input.name);
 
     return await withTransaction(async db => {
       await Fabric.fire('skill.plugin.created:before', {
@@ -423,7 +431,7 @@ class SkillPluginServiceImpl {
           description: d.input.description,
           longDescription: d.input.longDescription,
           category: d.input.category,
-          slug: getSkillPluginSlug(d.input.slug ?? d.input.name),
+          slug,
           projectOid: d.project.oid,
           instanceOid: d.instance.oid,
           organizationOid: d.project.organizationOid,
@@ -651,6 +659,12 @@ class SkillPluginServiceImpl {
           }
         });
       }
+
+      await db.skillPluginRepository.deleteMany({
+        where: {
+          skillPluginOid: d.skillPlugin.oid
+        }
+      });
 
       await db.skillPlugin.update({
         where: {

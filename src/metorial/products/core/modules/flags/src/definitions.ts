@@ -112,7 +112,28 @@ export type FlagProviderParams = {
   user?: User;
   machineAccess?: MachineAccess;
 };
-let flagProviderRef = { current: async (params: FlagProviderParams) => defaultFlags };
+
+export let applyEnabledFlags = (flags: Flags, enabled: string | undefined): Flags => {
+  let names = new Set(
+    (enabled ?? '')
+      .split(',')
+      .map(name => name.trim())
+      .filter(Boolean)
+  );
+  if (names.size === 0) return flags;
+
+  let result: Record<string, unknown> = { ...flags };
+  for (let [name, value] of Object.entries(flags)) {
+    if (typeof value === 'number') continue;
+    if (names.has('*') || names.has(name)) result[name] = true;
+  }
+  return result as Flags;
+};
+
+let flagProviderRef = {
+  current: async (params: FlagProviderParams) =>
+    applyEnabledFlags(defaultFlags, process.env.METORIAL_ENABLED_FLAGS)
+};
 
 export let setFlagProvider = (provider: (params: FlagProviderParams) => Promise<Flags>) => {
   flagProviderRef.current = provider;

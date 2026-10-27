@@ -6,6 +6,7 @@ import {
   db,
   type Environment,
   getId,
+  type Prisma,
   type Provider,
   type ProviderConfigVault,
   type ProviderConfigVaultStatus,
@@ -17,6 +18,7 @@ import {
   withTransaction
 } from '@metorial-subspace/db';
 import {
+  buildSearchFilter,
   checkDeletedEdit,
   checkDeletedRelation,
   type DateFilter,
@@ -56,8 +58,7 @@ export type CreateProviderConfigVaultParams = {
     provider: Provider;
     providerVariant: ProviderVariant;
     currentVersion:
-      | (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null })
-      | null;
+      (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null }) | null;
   };
   input: {
     name: string;
@@ -201,14 +202,19 @@ class providerConfigVaultServiceImpl {
     let deployments = await resolveProviderDeployments(ts, d.providerDeploymentIds);
     let configs = await resolveProviderConfigs(ts, d.providerConfigIds);
 
-    let search = d.search
-      ? await voyager.record.search({
+    let search = await buildSearchFilter<Prisma.ProviderConfigVaultWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let records = await voyager.record.search({
           tenantId: d.tenant.id,
           sourceId: (await voyagerSource).id,
           indexId: voyagerIndex.providerConfigVault.id,
-          query: d.search
-        })
-      : null;
+          query
+        });
+
+        return records.map(r => r.documentId);
+      }
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -224,7 +230,7 @@ class providerConfigVaultServiceImpl {
 
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
-                search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
+                search ?? undefined!,
                 providers ? { providerOid: providers.in } : undefined!,
                 deployments ? { deploymentOid: deployments.in } : undefined!,
                 configs ? { configOid: configs.in } : undefined!,

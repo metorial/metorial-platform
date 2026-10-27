@@ -193,6 +193,10 @@ model ConsumerInvite {
   updatedAt  DateTime  @default(now()) @updatedAt
   expiresAt  DateTime  @default(now())
 
+  // Adding the column fills it with the deploy time for invites that predate expiry
+  // enforcement, which starts their grace period. New and refreshed invites store null.
+  legacyGraceStartedAt DateTime? @default(now())
+
   workspaceInvite WorkspaceInvite?
 
   @@unique([surfaceOid, consumerOid])

@@ -129,7 +129,11 @@ class ProductAssistantRequestServiceImpl {
 
     if (hasAccess) return;
 
-    if (d.allowAllActors) {
+    let inScope =
+      d.conversation.projectOid === d.project.oid &&
+      d.conversation.instanceOid === d.instance.oid;
+
+    if (d.allowAllActors && inScope) {
       await productAssistantConversationParticipantService.ensureConversationParticipant({
         conversation: d.conversation,
         actor: d.actor,

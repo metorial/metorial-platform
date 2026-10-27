@@ -103,9 +103,12 @@ describe('module-magic', () => {
     );
     expect(byGroup.map(item => item.id)).toEqual([token.id]);
 
-    await magicMcpGroupService.deleteMagicMcpGroup({ group, auditScope: fixture.auditScope });
-    let unlocked = await db.magicMcpToken.findUniqueOrThrow({ where: { id: token.id } });
-    expect(unlocked.isGroupLocked).toBe(false);
+    let error = await rejectionOf(
+      magicMcpGroupService.deleteMagicMcpGroup({ group, auditScope: fixture.auditScope })
+    );
+    expect(error.data.code).toBe('precondition_failed');
+    let stillLocked = await db.magicMcpToken.findUniqueOrThrow({ where: { id: token.id } });
+    expect(stillLocked.isGroupLocked).toBe(true);
   });
 
   it('updates, rotates and deletes a token', async () => {

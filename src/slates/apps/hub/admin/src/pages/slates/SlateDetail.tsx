@@ -269,7 +269,7 @@ export let SlateDetail = () => {
                           color={
                             versionStatusColors[slateData.currentVersion.status] || 'gray'
                           }
-                          size="1"
+                          size="2"
                         >
                           {slateData.currentVersion.status}
                         </Badge>
@@ -309,11 +309,11 @@ export let SlateDetail = () => {
                           v{version.version}
                         </Text>
                         {version.isCurrent && (
-                          <Badge color="green" size="1">
+                          <Badge color="green" size="2">
                             Current
                           </Badge>
                         )}
-                        <Badge color={versionStatusColors[version.status] || 'gray'} size="1">
+                        <Badge color={versionStatusColors[version.status] || 'gray'} size="2">
                           {version.status}
                         </Badge>
                       </Flex>
@@ -350,13 +350,13 @@ export let SlateDetail = () => {
                         <Flex align="center" gap={12}>
                           <Badge
                             color={deploymentStatusColors[deployment.status] || 'gray'}
-                            size="1"
+                            size="2"
                           >
                             {deployment.status}
                           </Badge>
                           <Text size="2">v{deployment.version?.version}</Text>
                           {deployment.error && (
-                            <Text size="1" color="red300">
+                            <Text size="2" color="red300">
                               {deployment.error.code}
                             </Text>
                           )}
@@ -395,13 +395,13 @@ export let SlateDetail = () => {
                         <Flex align="center" gap={12}>
                           <Badge
                             color={discoveryStatusColors[discovery.status] || 'gray'}
-                            size="1"
+                            size="2"
                           >
                             {discovery.status}
                           </Badge>
                           <Text size="2">v{discovery.version?.version}</Text>
                           {discovery.error && (
-                            <Text size="1" color="red300">
+                            <Text size="2" color="red300">
                               {discovery.error.code}
                             </Text>
                           )}
@@ -432,7 +432,7 @@ export let SlateDetail = () => {
                   {eventItems.slice(0, 3).map((event: SlateEvent) => (
                     <EventItem key={event.id} align="center" justify="space-between">
                       <Flex align="center" gap={12}>
-                        <Badge color={eventTypeColors[event.type] || 'gray'} size="1">
+                        <Badge color={eventTypeColors[event.type] || 'gray'} size="2">
                           {event.type.replace(/_/g, ' ')}
                         </Badge>
                         {event.message && (

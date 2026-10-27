@@ -82,11 +82,11 @@ export let ProviderDeploymentsTableSimple = ({
               {providerNameMap.get(deployment.providerId) ?? deployment.providerId}
             </Text>,
             deployment.lockedVersion ? (
-              <Badge color="purple" size="1">
+              <Badge color="purple" size="2">
                 {deployment.lockedVersion.version}
               </Badge>
             ) : (
-              <Badge color="gray" size="1">
+              <Badge color="gray" size="2">
                 Default
               </Badge>
             ),

@@ -78,6 +78,14 @@ export let assertMagicMcpTargetLinkedResourcesActive = async (
   }
 };
 
+export let magicMcpBackingProvidersUnavailableError = () =>
+  new ServiceError(
+    preconditionFailedError({
+      message: 'Magic MCP server has no active providers and cannot accept connections.',
+      code: 'magic_mcp_backing_providers_unavailable'
+    })
+  );
+
 export let assertMagicMcpServerBackingProvidersActive = async (d: {
   instance: Instance;
   magicMcpServerBackingId: string;
@@ -89,14 +97,7 @@ export let assertMagicMcpServerBackingProvidersActive = async (d: {
   });
   let result = await paginator.run({ limit: 1 });
 
-  if (!result.items.length) {
-    throw new ServiceError(
-      preconditionFailedError({
-        message: 'Magic MCP server has no active providers and cannot accept connections.',
-        code: 'magic_mcp_backing_providers_unavailable'
-      })
-    );
-  }
+  if (!result.items.length) throw magicMcpBackingProvidersUnavailableError();
 };
 
 export let assertMagicMcpEndpointBackingProvidersActive = async (d: {

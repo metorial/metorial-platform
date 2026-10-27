@@ -12,18 +12,20 @@ import {
   type IdentityActor,
   type IdentityActorStatus,
   IdentityActorType,
+  type Prisma,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
 import { Fabric } from '@metorial/fabric';
 import {
   assertNoActiveIntegrationActorLink,
+  buildSearchFilter,
   checkDeletedEdit,
   type DateFilter,
   normalizeDateFilter,
   normalizeStatusForGet,
   normalizeStatusForList,
-  resolveProviders
+  resolveAgents
 } from '@metorial-subspace/list-utils';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial-subspace/module-search';
 import {
@@ -68,6 +70,11 @@ let getAgentSlug = createSlugGenerator(
     }))
 );
 
+export type IdentityActorConsumerProfile = {
+  id: string;
+  surface: { portal: { id: string } | null };
+};
+
 export type IdentityActorConsumer = InstanceConsumer & {
   consumer: Consumer & {
     organizationMember: OrganizationMember | null;
@@ -77,14 +84,25 @@ export type IdentityActorConsumer = InstanceConsumer & {
   };
 };
 
+type EnrichedIdentityActor = {
+  consumer?: IdentityActorConsumer;
+  consumerProfile?: IdentityActorConsumerProfile;
+};
+
 let enrichIdentityActors = async <T extends { id: string }>(actors: T[]) => {
-  if (!actors.length) return actors as Array<T & { consumer?: IdentityActorConsumer }>;
+  if (!actors.length) return actors as Array<T & EnrichedIdentityActor>;
 
   let consumerActors = await metorialDb.consumerActor.findMany({
     where: {
       id: { in: actors.map(a => a.id) }
     },
     include: {
+      consumerProfile: {
+        select: {
+          id: true,
+          surface: { select: { portal: { select: { id: true } } } }
+        }
+      },
       instanceConsumer: {
         include: {
           consumer: {
@@ -106,11 +124,12 @@ let enrichIdentityActors = async <T extends { id: string }>(actors: T[]) => {
 
   return actors.map(a => {
     let consumerActor = consumerActorMap.get(a.id);
-    if (!consumerActor) return a as T & { consumer?: IdentityActorConsumer };
+    if (!consumerActor) return a as T & EnrichedIdentityActor;
 
     return {
       ...a,
-      consumer: consumerActor.instanceConsumer
+      consumer: consumerActor.instanceConsumer,
+      consumerProfile: consumerActor.consumerProfile
     };
   });
 };
@@ -192,7 +211,7 @@ let resolveConsumerOwnerOids = async (owner: IdentityActorConsumerOwner) => {
     }),
     db.consumerProfile.findUnique({
       where: { id: owner.consumerProfileId },
-      select: { oid: true }
+      select: { oid: true, organizationMemberOid: true }
     })
   ]);
 
@@ -207,6 +226,9 @@ let resolveConsumerOwnerOids = async (owner: IdentityActorConsumerOwner) => {
   return {
     consumerOid: consumer.oid,
     instanceConsumerOid: instanceConsumer.oid,
+    type: consumerProfile.organizationMemberOid
+      ? ('organization_member' as const)
+      : ('consumer' as const),
     consumerProfileOid: consumerProfile.oid
   };
 };
@@ -237,16 +259,21 @@ class identityActorServiceImpl {
 
   async listIdentityActorsInternal(d: Omit<ListIdentityActorsParams, 'consumerIds'>) {
     let solution = await getMetorialSolution();
-    let agents = await resolveProviders({ ...d, solution }, d.agentIds);
+    let agents = await resolveAgents({ ...d, solution }, d.agentIds);
 
-    let search = d.search
-      ? await voyager.record.search({
+    let search = await buildSearchFilter<Prisma.IdentityActorWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let records = await voyager.record.search({
           tenantId: d.tenant.id,
           sourceId: (await voyagerSource).id,
           indexId: voyagerIndex.identityActor.id,
-          query: d.search
-        })
-      : null;
+          query
+        });
+
+        return records.map(r => r.documentId);
+      }
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -262,7 +289,7 @@ class identityActorServiceImpl {
 
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
-                search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
+                search ?? undefined!,
 
                 agents ? { agent: agents.oidIn } : undefined!,
 
@@ -329,7 +356,10 @@ class identityActorServiceImpl {
   async createIdentityActorInternal(d: CreateIdentityActorParams) {
     let solution = await getMetorialSolution();
 
-    if ((d.input.type === 'consumer') !== !!d.consumerOwner) {
+    if (
+      (d.input.type === 'consumer' || d.input.type === 'organization_member') !==
+      !!d.consumerOwner
+    ) {
       throw new ServiceError(
         badRequestError({
           message: 'Consumer identity actors must be created with a consumer owner'
@@ -445,7 +475,7 @@ class identityActorServiceImpl {
 
     let defaultIdentityOid = defaultIdentity?.oid ?? null;
     let isInSync =
-      identityActor.type === 'consumer' &&
+      identityActor.type === owner.type &&
       identityActor.consumerOid === owner.consumerOid &&
       identityActor.instanceConsumerOid === owner.instanceConsumerOid &&
       identityActor.consumerProfileOid === owner.consumerProfileOid &&
@@ -455,7 +485,6 @@ class identityActorServiceImpl {
       identityActor = await db.identityActor.update({
         where: { oid: identityActor.oid },
         data: {
-          type: 'consumer',
           ...owner,
           defaultIdentityOid
         }
@@ -642,7 +671,15 @@ class identityActorServiceImpl {
       include
     });
 
-    if (existingIdentityActor.agent?.type === 'mcp_client') {
+    let consumerProfile = existingIdentityActor.consumerProfileOid
+      ? await db.consumerProfile.findUnique({
+          where: { oid: existingIdentityActor.consumerProfileOid },
+          select: { status: true }
+        })
+      : null;
+    let profileDeleted = consumerProfile?.status === 'deleted';
+
+    if (!profileDeleted && existingIdentityActor.agent?.type === 'mcp_client') {
       throw new ServiceError(
         badRequestError({
           message: 'MCP client agents cannot be deleted',
@@ -651,13 +688,15 @@ class identityActorServiceImpl {
       );
     }
 
-    await assertNoActiveIntegrationActorLink({
-      tenant: d.tenant,
-      solution,
-      environment: d.environment,
-      identityActorOid: existingIdentityActor.oid,
-      identityActorId: existingIdentityActor.id
-    });
+    if (!profileDeleted) {
+      await assertNoActiveIntegrationActorLink({
+        tenant: d.tenant,
+        solution,
+        environment: d.environment,
+        identityActorOid: existingIdentityActor.oid,
+        identityActorId: existingIdentityActor.id
+      });
+    }
 
     return withTransaction(async db => {
       let identityActor = await db.identityActor.update({

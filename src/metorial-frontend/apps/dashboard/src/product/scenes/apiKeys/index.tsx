@@ -499,19 +499,19 @@ let getApiKeyTableCells = (
 ) => [
   ...(!compact
     ? [
-        <Badge size="1" color={apiKey.status == 'active' ? 'green' : 'gray'}>
+        <Badge size="2" color={apiKey.status == 'active' ? 'green' : 'gray'}>
           {capitalize(apiKey.status)}
         </Badge>
       ]
     : []),
-  <Badge size="1" color={apiKey.type.includes('publishable') ? 'blue' : 'purple'}>
+  <Badge size="2" color={apiKey.type.includes('publishable') ? 'blue' : 'purple'}>
     {getApiKeyTypeLabel(apiKey.type)}
   </Badge>,
   <Flex gap={3} direction="column">
     <Text size="2" weight="strong">
       {apiKey.name}
     </Text>
-    <Text size="1" color="gray600" truncate>
+    <Text size="2" color="gray600" truncate>
       {apiKey.description}
     </Text>
   </Flex>,

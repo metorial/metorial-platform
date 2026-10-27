@@ -726,34 +726,22 @@ class ConsumerProviderCatalogServiceImpl {
         })
       )
     );
-    let deployments = await Promise.all(
-      deploymentIds.map(async providerDeploymentId => {
-        return [
-          providerDeploymentId,
-          await providerDeploymentService.getProviderDeploymentById({
-            instance: d.instance,
-            providerDeploymentId
-          })
-        ] as const;
-      })
-    );
-    let deploymentMap = new Map(deployments);
+    let deployments = deploymentIds.length
+      ? await providerDeploymentService.getManyProviderDeploymentsByIds({
+          instance: d.instance,
+          ids: deploymentIds
+        })
+      : [];
+    let deploymentMap = new Map(deployments.map(deployment => [deployment.id, deployment]));
 
     let providerIds = Array.from(
-      new Set(deployments.map(([, deployment]) => deployment.provider.id))
+      new Set(deployments.map(deployment => deployment.provider.id))
     );
-    let providers = await Promise.all(
-      providerIds.map(async providerId => {
-        return [
-          providerId,
-          await providerService.getProviderById({
-            instance: d.instance,
-            providerId
-          })
-        ] as const;
-      })
-    );
-    let providerMap = new Map(providers);
+    let providers = await providerService.getManyProvidersByIds({
+      instance: d.instance,
+      ids: providerIds
+    });
+    let providerMap = new Map(providers.map(provider => [provider.id, provider]));
 
     let capabilityMap = new Map<
       string,

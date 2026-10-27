@@ -120,7 +120,7 @@ export let EnclavesTable = (p: {
                   {enclave.name}
                 </Text>
                 {enclave.description && (
-                  <Text size="1" color="gray600">
+                  <Text size="2" color="gray600">
                     {enclave.description}
                   </Text>
                 )}

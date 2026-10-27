@@ -6,6 +6,7 @@ import {
   identityDelegationConfigService,
   identityService
 } from '@metorial-subspace/module-identity';
+import { resourceActorService } from '@metorial/module-resource-actor';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
@@ -74,6 +75,10 @@ export let identityCredentialController = Controller.create(
               description: 'Filter by owner actor ID or IDs.',
               examples: ['iac_6wQpLk2mZa8nYx4b']
             }),
+            consumer_profile_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by the consumer profile that owns the credentials.',
+              examples: ['cop_7nR8sK2mZa1pYx4b']
+            }),
             identity_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by identity ID or IDs.',
               examples: ['idn_5gHjKlMnPqRsTuVw']
@@ -100,14 +105,28 @@ export let identityCredentialController = Controller.create(
         )
       )
       .do(async ctx => {
+        let actorIds = normalizeArrayParam(ctx.query.actor_id);
+        let consumerProfileIds = normalizeArrayParam(ctx.query.consumer_profile_id);
+
+        if (consumerProfileIds) {
+          let profileActorIds = await resourceActorService.listConsumerActorIds({
+            instance: ctx.instance,
+            consumerProfileIds
+          });
+          let requestedActorIds = actorIds;
+          actorIds = requestedActorIds
+            ? profileActorIds.filter(id => requestedActorIds.includes(id))
+            : profileActorIds;
+        }
+
         let paginator = await identityCredentialService.listIdentityCredentials({
           instance: ctx.instance,
-          allowDeleted: true,
+          allowDeleted: false,
 
           status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
           agentIds: normalizeArrayParam(ctx.query.agent_id),
-          actorIds: normalizeArrayParam(ctx.query.actor_id),
+          actorIds,
           identityIds: normalizeArrayParam(ctx.query.identity_id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           providerDeploymentIds: normalizeArrayParam(ctx.query.provider_deployment_id),

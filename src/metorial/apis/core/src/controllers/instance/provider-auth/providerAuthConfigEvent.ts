@@ -73,7 +73,14 @@ export let providerAuthConfigEventController = Controller.create(
               description: 'Filter by auth config event type(s)'
             }),
             created_at: dateFilterValidator('provider auth config event creation time'),
-            updated_at: dateFilterValidator('provider auth config event last update time')
+            updated_at: dateFilterValidator('provider auth config event last update time'),
+            search: v.optional(
+              v.string({
+                description:
+                  'Search by event ID or event type, or by the name of a related provider, auth config, auth credentials, or auth method',
+                examples: ['github']
+              })
+            )
           })
         )
       )
@@ -88,7 +95,8 @@ export let providerAuthConfigEventController = Controller.create(
           providerInvocationIds: normalizeArrayParam(ctx.query.provider_invocation_id),
           types: normalizeArrayParam(ctx.query.type),
           createdAt: ctx.query.created_at,
-          updatedAt: ctx.query.updated_at
+          updatedAt: ctx.query.updated_at,
+          search: ctx.query.search
         });
 
         let list = await paginator.run(ctx.query);

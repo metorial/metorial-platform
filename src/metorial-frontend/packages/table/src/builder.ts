@@ -7,6 +7,7 @@ import {
   TableClickable,
   TableColumn,
   TableItemAction,
+  TableLayoutProps,
   TableStateProvider,
   TableStateProviderResult
 } from './type';
@@ -170,7 +171,7 @@ export class Table<
           filter: Record<string, FilterPayload>;
           search?: string;
         }) => React.ReactNode;
-      }
+      } & TableLayoutProps
     ) => {
       return React.createElement(TableComponent, {
         ...opts,
@@ -181,7 +182,10 @@ export class Table<
         clickable: opts.clickable,
         onItemClick: props.onItemClick,
         selectedItemId: props.selectedItemId,
-        headerActions: props.headerActions ?? opts.headerActions
+        headerActions: props.headerActions ?? opts.headerActions,
+        toolbarEnd: props.toolbarEnd,
+        topContent: props.topContent,
+        framed: props.framed
       });
     };
   }

@@ -60,6 +60,24 @@ let CellInner = styled.div`
   min-height: 30px;
   display: flex;
   align-items: center;
+
+  a {
+    color: ${theme.colors.gray700};
+    text-decoration: none;
+    border-bottom: 1px dashed ${theme.colors.gray400};
+    transition: all 0.2s ease-in-out;
+    font-weight: 500;
+
+    strong {
+      font-weight: 700;
+    }
+
+    &:hover,
+    &:focus {
+      color: ${theme.colors.foreground};
+      border-bottom: 1px dashed ${theme.colors.foreground};
+    }
+  }
 `;
 
 let HeaderText = styled.span`
@@ -72,8 +90,7 @@ export type TableProps = {
   headers: string[];
   padding?: { sides: string };
   data: (
-    | React.ReactNode[]
-    | { data: React.ReactNode[]; href?: string; onClick?: () => void }
+    React.ReactNode[] | { data: React.ReactNode[]; href?: string; onClick?: () => void }
   )[];
 };
 

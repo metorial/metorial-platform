@@ -49,7 +49,10 @@ export let ingestAuditEventsToPostgres = async (events: StashedAuditEvent[]) => 
       skipDuplicates: true
     });
 
-    let organizationOids = [...new Set(auditLogs.map(auditLog => auditLog.organizationOid))];
+    // Concurrent batches must lock tracker rows in the same order, or they deadlock each other.
+    let organizationOids = [
+      ...new Set(auditLogs.map(auditLog => auditLog.organizationOid))
+    ].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
     for (let organizationOid of organizationOids) {
       await db.auditLogDirtyTracker.upsert({
         where: { organizationOid },

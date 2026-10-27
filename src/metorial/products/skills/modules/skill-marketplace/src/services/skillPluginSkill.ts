@@ -199,6 +199,9 @@ class SkillPluginSkillServiceImpl {
       skillPlugin: d.skillPlugin,
       accessTags: d.accessTags
     });
+    if (d.skillPlugin.status !== 'active') {
+      throw new ServiceError(notFoundError('skill.plugin', d.skillPlugin.id));
+    }
 
     let skill = await skillService.getSkillById({
       project: d.project,

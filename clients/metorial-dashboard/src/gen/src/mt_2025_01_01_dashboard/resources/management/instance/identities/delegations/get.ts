@@ -15,9 +15,7 @@ export type ManagementInstanceIdentitiesDelegationsGetOutput = {
     object: 'identity.delegation_attestation';
     id: string;
     type:
-      | 'api'
-      | 'request_approval'
-      | 'covered_by_previously_approved_delegation';
+      'api' | 'request_approval' | 'covered_by_previously_approved_delegation';
     createdAt: Date;
   } | null;
   note: string | null;
@@ -37,7 +35,7 @@ export type ManagementInstanceIdentitiesDelegationsGetOutput = {
     actor: {
       object: 'identity.actor';
       id: string;
-      type: 'person' | 'agent' | 'consumer';
+      type: 'person' | 'agent' | 'consumer' | 'organization_member';
       status: 'active' | 'archived' | 'deleted';
       name: string;
       description: string | null;
@@ -62,7 +60,7 @@ export type ManagementInstanceIdentitiesDelegationsGetOutput = {
     requester: {
       object: 'identity.actor';
       id: string;
-      type: 'person' | 'agent' | 'consumer';
+      type: 'person' | 'agent' | 'consumer' | 'organization_member';
       status: 'active' | 'archived' | 'deleted';
       name: string;
       description: string | null;

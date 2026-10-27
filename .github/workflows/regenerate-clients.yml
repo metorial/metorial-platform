@@ -1,7 +1,7 @@
 name: Regenerate clients
 
-# Targets check out their default branch, not the submodule pin. GH_TOKEN needs write access to
-# every target repo; GITHUB_TOKEN can't push cross-repo, so it gets no permissions.
+# Targets check out their default branch, not the submodule pin. GH_TOKEN is metorial-bot's token, so
+# PRs open as the bot; it needs write access to every target repo. GITHUB_TOKEN can't push cross-repo.
 
 on:
   schedule:
@@ -161,6 +161,10 @@ jobs:
       - name: Install dependencies
         working-directory: integrations
         run: bun install
+
+      - name: Build slate dependencies
+        working-directory: integrations
+        run: bunx turbo run build --filter="@slates-integrations/metorial-admin^..."
 
       - name: Regenerate CLI catalog
         working-directory: platform/cli

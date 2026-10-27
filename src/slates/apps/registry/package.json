@@ -96,6 +96,7 @@
     "tar-stream": "^3.2.2",
     "unzipper": "^0.12.5",
     "yaml": "^2.9.1",
-    "@lowerdeck/delay": "workspace:2.0.0"
+    "@lowerdeck/delay": "workspace:2.0.0",
+    "@lowerdeck/prisma-pg": "workspace:2.0.0"
   }
 }

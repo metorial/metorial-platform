@@ -60,12 +60,12 @@ export let v1BootPresenter = Presenter.create(bootType)
         id: consumer.id,
         name: consumer.name,
         email: consumer.email,
-        isOrganizationMember: consumer.isOrganizationMember,
-        isPortalConsumer: consumer.isPortalConsumer,
-        isManuallyCreated: consumer.isManuallyCreated,
-        isPending: consumer.isPending,
-        createdAt: consumer.createdAt,
-        updatedAt: consumer.updatedAt,
+        is_organization_member: consumer.isOrganizationMember,
+        is_portal_consumer: consumer.isPortalConsumer,
+        is_manually_created: consumer.isManuallyCreated,
+        is_pending: consumer.isPending,
+        created_at: consumer.createdAt,
+        updated_at: consumer.updatedAt,
 
         organization: await v1OrganizationPresenter
           .present({ organization: consumer.organization }, opts)
@@ -217,12 +217,12 @@ export let v1BootPresenter = Presenter.create(bootType)
           id: v.string(),
           name: v.string(),
           email: v.string(),
-          isOrganizationMember: v.boolean(),
-          isPortalConsumer: v.boolean(),
-          isManuallyCreated: v.boolean(),
-          isPending: v.boolean(),
-          createdAt: v.date(),
-          updatedAt: v.date(),
+          is_organization_member: v.boolean(),
+          is_portal_consumer: v.boolean(),
+          is_manually_created: v.boolean(),
+          is_pending: v.boolean(),
+          created_at: v.date(),
+          updated_at: v.date(),
 
           organization: v1OrganizationPresenter.schema,
 

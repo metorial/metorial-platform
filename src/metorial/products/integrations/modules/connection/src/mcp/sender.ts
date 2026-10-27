@@ -15,8 +15,10 @@ import {
 } from '@metorial-subspace/connection-utils';
 import {
   db,
+  dbPrimary,
   messageTranslator,
-  type SessionConnectionMcpConnectionTransport
+  type SessionConnectionMcpConnectionTransport,
+  type SessionMessage
 } from '@metorial-subspace/db';
 import {
   applySessionProviderNameTemplate,
@@ -53,6 +55,7 @@ import { uniqBy } from 'lodash';
 import { PING_MESSAGE_ID_PREFIX } from '../const';
 import { mcpOutputSchemaNormalizer } from '../lib/mcpOutputSchemaNormalizer';
 import { providerToolPresenter } from '../presenter';
+import { completeMessage } from '../shared/completeMessage';
 import { injectToolCallOperationIntoInputSchema } from '../shared/toolCallOperation';
 import { upsertParticipant } from '../shared/upsertParticipant';
 import {
@@ -179,8 +182,12 @@ export class McpSender {
       let res = await this.handleMessageInternal(msg, opts);
       if (!res || (!res.mcp && !res.store)) return null;
 
-      let message = 'message' in res && res.message ? res.message : null;
-      let isBroadcastBySender = !!message;
+      let broadcastMessage = 'message' in res && res.message ? res.message : null;
+      let storedMessage =
+        'storedMessage' in res && res.storedMessage ? res.storedMessage : null;
+
+      let message = broadcastMessage ?? storedMessage;
+      let isBroadcastBySender = !!broadcastMessage;
 
       if (res.store && !message) {
         let senderParticipant =
@@ -333,17 +340,20 @@ export class McpSender {
 
     if (!method) {
       if (id === undefined || id === null) return;
-      // Get message by id and route response accordingly
-      let message = await db.sessionMessage.findFirst({
+
+      let message = await dbPrimary.sessionMessage.findFirst({
         where: {
           sessionOid: this.session.oid,
-          providerMcpId: id.toString()
+          providerMcpId: id.toString(),
+          source: 'provider',
+          status: 'waiting_for_response'
         }
       });
       if (!message) return;
 
-      // TODO: handle responses for mcp-compatible backends
-      return;
+      await this.manager.sendMcpMessageToProvider({ message, mcpMessage: msg });
+
+      return { store: false, mcp: null };
     }
 
     if (id === undefined || id === null || method.startsWith('notifications/')) {
@@ -642,6 +652,61 @@ export class McpSender {
       isProductive: true
     });
 
+    let responderParticipant = await upsertParticipant({
+      session: this.session,
+      from: { type: 'system' }
+    });
+
+    try {
+      let response = await this.collectResources(id, opts, mcpMessage, message);
+      let isError = 'error' in response;
+
+      let completedMessage = await completeMessage(
+        { messageId: message.id },
+        {
+          status: isError ? 'failed' : 'succeeded',
+          output: { type: 'mcp', data: response },
+          responderParticipant
+        }
+      );
+
+      return { store: true, storedMessage: completedMessage, mcp: response };
+    } catch (e) {
+      if (!isServiceError(e)) Sentry.captureException(e);
+
+      let error = isServiceError(e)
+        ? e
+        : internalServerError({ message: 'Internal server error listing resources' });
+
+      let completedMessage = await completeMessage(
+        { messageId: message.id },
+        {
+          status: 'failed',
+          failureReason: 'system_error',
+          output: { type: 'error', data: error.toResponse() },
+          responderParticipant
+        }
+      );
+
+      return {
+        store: true,
+        storedMessage: completedMessage,
+        mcp: await conduitResultToMcpMessage({
+          message: completedMessage,
+          output: completedMessage.output,
+          status: completedMessage.status,
+          completedAt: completedMessage.completedAt
+        })
+      };
+    }
+  }
+
+  private async collectResources(
+    id: ID,
+    opts: { cursor?: string },
+    mcpMessage: JSONRPCMessage & ListResourcesRequest,
+    parentMessage: SessionMessage
+  ): Promise<JSONRPCResponse | JSONRPCErrorResponse> {
     let allTools = await this.manager.listToolsIncludingInternalAndNonAllowed();
 
     let resourceListTools = uniqBy(
@@ -655,16 +720,13 @@ export class McpSender {
       let decodedCursor = this.decodeResourceCursor(opts.cursor);
       if (!decodedCursor) {
         return {
-          store: true,
-          mcp: {
-            jsonrpc: '2.0',
-            id,
-            error: {
-              code: -32000,
-              message: 'Invalid cursor'
-            }
-          } satisfies JSONRPCErrorResponse
-        };
+          jsonrpc: '2.0',
+          id,
+          error: {
+            code: -32000,
+            message: 'Invalid cursor'
+          }
+        } satisfies JSONRPCErrorResponse;
       }
 
       let firstToolIndex = resourceListTools.findIndex(
@@ -672,16 +734,13 @@ export class McpSender {
       );
       if (firstToolIndex < 0) {
         return {
-          store: true,
-          mcp: {
-            jsonrpc: '2.0',
-            id,
-            error: {
-              code: -32000,
-              message: `Invalid cursor: provider "${decodedCursor.providerId}" not found`
-            }
-          } satisfies JSONRPCErrorResponse
-        };
+          jsonrpc: '2.0',
+          id,
+          error: {
+            code: -32000,
+            message: `Invalid cursor: provider "${decodedCursor.providerId}" not found`
+          }
+        } satisfies JSONRPCErrorResponse;
       }
 
       let remainingTools = resourceListTools.slice(firstToolIndex); // Include the found tool
@@ -692,15 +751,12 @@ export class McpSender {
 
     if (!resourceListTools.length) {
       return {
-        store: true,
-        mcp: {
-          jsonrpc: '2.0',
-          id,
-          result: {
-            resources: []
-          } satisfies ListResourcesResult
-        } satisfies JSONRPCResponse
-      };
+        jsonrpc: '2.0',
+        id,
+        result: {
+          resources: []
+        } satisfies ListResourcesResult
+      } satisfies JSONRPCResponse;
     }
 
     let resources: Resource[] = [];
@@ -728,7 +784,7 @@ export class McpSender {
         },
         waitForResponse: true,
         transport: 'system',
-        parentMessage: message
+        parentMessage
       });
 
       if (
@@ -744,17 +800,13 @@ export class McpSender {
           : null;
 
         return {
-          store: true,
-          message,
-          mcp: {
-            jsonrpc: '2.0',
-            id,
-            error: out?.error ?? {
-              code: -32000,
-              message: 'Failed to retrieve resources'
-            }
-          } satisfies JSONRPCErrorResponse
-        };
+          jsonrpc: '2.0',
+          id,
+          error: out?.error ?? {
+            code: -32000,
+            message: 'Failed to retrieve resources'
+          }
+        } satisfies JSONRPCErrorResponse;
       }
 
       let res = toolResources.output.data as JSONRPCResponse & { result: ListResourcesResult };
@@ -790,14 +842,10 @@ export class McpSender {
         : undefined;
 
     return {
-      store: true,
-      message,
-      mcp: {
-        jsonrpc: '2.0',
-        id,
-        result: { resources, nextCursor } satisfies ListResourcesResult
-      } satisfies JSONRPCResponse
-    };
+      jsonrpc: '2.0',
+      id,
+      result: { resources, nextCursor } satisfies ListResourcesResult
+    } satisfies JSONRPCResponse;
   }
 
   private async handleResourceReadMessage(

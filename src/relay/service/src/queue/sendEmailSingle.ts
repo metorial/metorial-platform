@@ -42,7 +42,8 @@ export let sendEmailSingleQueueProcessor = sendEmailSingleQueue.process(async da
       email: {
         include: {
           content: true,
-          identity: true
+          identity: true,
+          attachments: true
         }
       }
     }
@@ -60,7 +61,12 @@ export let sendEmailSingleQueueProcessor = sendEmailSingleQueue.process(async da
       subject: email.content.subject,
       html: email.content.html.replaceAll('EMAIL_ID', email.id),
       text: email.content.text.replaceAll('EMAIL_ID', email.id),
-      identity: email.identity
+      identity: email.identity,
+      attachments: email.attachments.map(attachment => ({
+        filename: attachment.filename,
+        contentType: attachment.contentType,
+        content: attachment.content
+      }))
     });
   } catch (err) {
     Sentry.captureException(err);
@@ -117,8 +123,12 @@ export let sendEmailSingleQueueProcessor = sendEmailSingleQueue.process(async da
 
     // Get rid of the email content if all destinations have been sent
     // This is to save space in the database
-    if (email.numberOfDestinations >= email.numberOfDestinationsCompleted) {
+    if (email.numberOfDestinationsCompleted >= email.numberOfDestinations) {
       await db.outgoingEmailContent.deleteMany({
+        where: { emailId: email.oid }
+      });
+
+      await db.outgoingEmailAttachment.deleteMany({
         where: { emailId: email.oid }
       });
     }

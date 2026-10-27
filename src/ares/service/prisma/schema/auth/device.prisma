@@ -50,6 +50,8 @@ model AuthDeviceUserSession {
   lastActiveAt DateTime?
   expiresAt    DateTime
 
+  twoFactorSetups UserTwoFactorSetup[]
+
   lifecycleOwner          String?
   lifecycleOwnerSessionId String?
   lifecycleOwnerRevision  BigInt?

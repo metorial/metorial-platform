@@ -341,7 +341,7 @@ let SessionConnectionRow = ({
     meta.push(<Error key="errors">Connection has errors.</Error>);
   } else if (connection.connectionState === 'connected') {
     meta.push(
-      <Badge key="connected" size="1" color="blue">
+      <Badge key="connected" size="2" color="blue">
         Connected
       </Badge>
     );
@@ -395,7 +395,7 @@ let SessionConnectionRow = ({
         </ConnectionMain>
 
         <ConnectionButtonMeta>
-          <Text size="1" color="gray600">
+          <Text size="2" color="gray600">
             <RenderDate date={connection.createdAt} format="time" />
           </Text>
         </ConnectionButtonMeta>

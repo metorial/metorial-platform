@@ -28,11 +28,14 @@ export interface BootstrappedOrganization {
   user: BootstrappedUser;
   session: string;
   keys: {
+    management: string;
     instanceSecret: string;
   };
   clients: {
     /** Dashboard (session) client scoped to the organization. */
     rest: RestClient;
+    /** Organization management API key client. */
+    management: RestClient;
     /** Instance secret API key client. */
     instance: RestClient;
     dashboard: ReturnType<typeof dashboardSdk>;
@@ -69,11 +72,29 @@ export let bootstrapUser = async (
   return { id: user.id, name, email, password, session };
 };
 
+// Organization management tokens can no longer be created over REST, so the key is minted
+// in-process. The module is imported by a computed specifier because module packages depend on
+// `@metorial/e2e` for their own suites, and a static dependency would be a workspace cycle.
+let machineAccessModule: string = '@metorial/module-machine-access';
+
+let createManagementKey = async (ids: { organizationId: string; userId: string }) => {
+  let { loadOrganizationFixture } = await import('./db');
+  let { apiKeyService } = await import(machineAccessModule);
+  let fixture = await loadOrganizationFixture(ids);
+
+  let { secret } = await apiKeyService.createApiKey({
+    type: 'organization_management_token',
+    organization: fixture.organization,
+    auditScope: fixture.auditScope,
+    input: { name: uniqueId('e2e-management') }
+  });
+  return secret.secret as string;
+};
+
 /**
  * Creates a user, an organization, a project (which creates its production instance) and an
- * instance secret key, all through the public HTTP API of the stack's app-api/core-api.
- * Organization management keys can no longer be created over HTTP, so suites that need one create
- * it with `apiKeyService`.
+ * instance secret key through the public HTTP API of the stack's app-api/core-api, plus an
+ * organization management key minted in-process.
  */
 export let bootstrapOrganization = async (
   input: { user?: BootstrappedUser; name?: string } = {}
@@ -95,6 +116,10 @@ export let bootstrapOrganization = async (
   let instance = instances.items?.[0];
   if (!instance) throw new Error(`Project ${project.id} has no instance`);
 
+  let management = await createManagementKey({
+    organizationId: organization.id,
+    userId: user.id
+  });
   let instanceSecret = expectOk(
     await session.post(`${base}/api-keys`, {
       type: 'instance_access_token_secret',
@@ -116,16 +141,69 @@ export let bootstrapOrganization = async (
     user,
     session: user.session,
     keys: {
+      management,
       instanceSecret: instanceSecret.secret
     },
     clients: {
       rest: rest(api, { session: user.session, organizationId: organization.id }),
+      management: rest(api, { apiKey: management }),
       instance: rest(api, { apiKey: instanceSecret.secret, version: API_VERSIONS.magnetar }),
       dashboard: dashboardSdk({
         session: user.session,
         organizationId: organization.id,
         instanceId: instance.id
       })
+    }
+  };
+};
+
+export interface BootstrappedMember {
+  user: BootstrappedUser;
+  /** The organization member record as presented by the dashboard API. */
+  member: any;
+  clients: { rest: RestClient };
+}
+
+/**
+ * Adds a second user to an organization through a link invite that the new user accepts, so
+ * role- and membership-dependent behavior can be tested against a non-owner.
+ */
+export let bootstrapMember = async (
+  org: BootstrappedOrganization,
+  input: { role?: 'member' | 'admin' } = {}
+): Promise<BootstrappedMember> => {
+  let api = metorialEndpoints().api;
+  let base = `/dashboard/organizations/${org.ids.organizationId}`;
+
+  let invite = expectOk(
+    await org.clients.rest.post(`${base}/invites`, {
+      type: 'link',
+      role: input.role ?? 'member'
+    })
+  );
+  let inviteKey = invite.invite_link?.key;
+  if (!inviteKey) throw new Error('Link invite creation did not return an invite key');
+
+  let user = await bootstrapUser();
+  expectOk(
+    await rest(api, { session: user.session }).post('/dashboard/organization-join/accept', {
+      invite_key: inviteKey
+    })
+  );
+
+  let members = expectOk(
+    await org.clients.rest.get(`${base}/members`, { query: { limit: 100 } })
+  );
+  let member = members.items.find(
+    (item: any) => item.user?.id === user.id || item.user_id === user.id
+  );
+  if (!member) throw new Error(`User ${user.id} did not become a member of ${base}`);
+
+  return {
+    user,
+    member,
+    clients: {
+      rest: rest(api, { session: user.session, organizationId: org.ids.organizationId })
     }
   };
 };
@@ -151,3 +229,9 @@ export let useFixture = <T extends object>(create: () => Promise<T>): T => {
 
 export let useOrganization = (input: Parameters<typeof bootstrapOrganization>[0] = {}) =>
   useFixture(() => bootstrapOrganization(input));
+
+/** Declare after the `useOrganization()` it joins, so the organization exists first. */
+export let useMember = (
+  org: BootstrappedOrganization,
+  input: Parameters<typeof bootstrapMember>[1] = {}
+) => useFixture(() => bootstrapMember(org, input));

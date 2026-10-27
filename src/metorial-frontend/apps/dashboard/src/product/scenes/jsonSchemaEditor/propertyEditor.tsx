@@ -193,7 +193,7 @@ export let PropertyEditor = ({ property, onUpdate, onDelete, level = 0 }: Props)
             transition: 'transform 0.2s'
           }}
         />
-        <Badge size="1" color={getTypeColor(localProperty.property.type)}>
+        <Badge size="2" color={getTypeColor(localProperty.property.type)}>
           {localProperty.property.type}
         </Badge>
         <PropertyName>{localProperty.property.name}</PropertyName>

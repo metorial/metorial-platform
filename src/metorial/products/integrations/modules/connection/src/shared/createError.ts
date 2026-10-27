@@ -8,6 +8,7 @@ import {
   type SessionMessageFailureReason
 } from '@metorial-subspace/db';
 import { getRetentionPolicy, redactJsonShape } from '@metorial-subspace/provider-utils';
+import { recordSessionErrorUsage } from '@metorial/module-usage';
 import { createErrorQueue } from '../queues/error/createError';
 
 export interface CreateErrorProps {
@@ -34,6 +35,14 @@ export let createError = async (props: CreateErrorProps) => {
   if (props.output.type !== 'error') return;
 
   let retention = getRetentionPolicy(props.session);
+
+  await recordSessionErrorUsage({
+    type: props.type,
+    createdAt: new Date(),
+    instanceOid: props.session.instanceOid,
+    session: props.session,
+    providerRun: props.providerRun
+  });
 
   if (!retention.collectErrors) {
     if (!props.session.hasErrors) {

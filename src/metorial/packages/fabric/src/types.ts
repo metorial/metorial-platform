@@ -616,6 +616,7 @@ export type ProjectCreateInput = {
 };
 
 export type ProjectUpdateInput = {
+  hidePublicRemoteProviders?: boolean;
   name?: string;
   slug?: string;
   onlyAllowTrustedProviders?: boolean;
@@ -1020,6 +1021,8 @@ export interface FabricEvents {
   'organization.project.data_retention_configuration.updated:after': { organization: Organization; project: Project; auditScope: AuditScope; input: { dataRetentionLevel?: ProjectDataRetentionLevel, storeToolCallAttachments?: boolean, collectErrors?: boolean, disableCallbacks?: boolean }; configuration: { dataRetentionLevel: ProjectDataRetentionLevel, storeToolCallAttachments: boolean, collectErrors: boolean, disableCallbacks: boolean }; previousConfiguration: { dataRetentionLevel: ProjectDataRetentionLevel, storeToolCallAttachments: boolean, collectErrors: boolean, disableCallbacks: boolean } };
   'organization.project.reduced_subprocessors_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { reducedSubprocessors?: boolean } };
   'organization.project.reduced_subprocessors_configuration.updated:after': { organization: Organization; project: Project; auditScope: AuditScope; input: { reducedSubprocessors?: boolean }; configuration: { reducedSubprocessors: boolean }; previousConfiguration: { reducedSubprocessors: boolean } };
+  'organization.project.resource_ownership_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { allowApiAccessToConsumerOwnedResources?: boolean, allowMemberAccessToConsumerOwnedResources?: boolean } };
+  'organization.project.resource_ownership_configuration.updated:after': { organization: Organization; project: Project; auditScope: AuditScope; input: { allowApiAccessToConsumerOwnedResources?: boolean, allowMemberAccessToConsumerOwnedResources?: boolean }; configuration: { allowApiAccessToConsumerOwnedResources: boolean, allowMemberAccessToConsumerOwnedResources: boolean }; previousConfiguration: { allowApiAccessToConsumerOwnedResources: boolean, allowMemberAccessToConsumerOwnedResources: boolean } };
   'organization.project.skill_sync_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { skillSyncGitLfsThresholdBytes?: number | null } };
   'organization.project.skill_sync_configuration.updated:after': { organization: Organization; project: Project; previousProject: Project; auditScope: AuditScope; input: { skillSyncGitLfsThresholdBytes?: number | null } };
   'organization.project.brand.updated:before': { organization: Organization; project: Project; brand: AuditProjectBrand; input: { name?: string; imageFileId?: string | null; image?: PrismaJson.EntityImage }; auditScope: AuditScope };
@@ -1413,6 +1416,7 @@ export interface FabricEvents {
   'skill.plugin.updated:after': { organization: Organization; instance: Instance; skillPlugin: SkillPlugin };
   'skill.plugin.archived:after': { organization: Organization; instance: Instance; skillPlugin: SkillPlugin };
   'skill.plugin.deleted:after': { organization: Organization; instance: Instance; skillPlugin: SkillPlugin };
+  'skill.plugin.slug.reassigned:after': { skillPlugin: SkillPlugin; previousSlug: string };
 
   'skill.marketplace.created:before': { organization: Organization; instance: Instance };
   'skill.marketplace.created:after': { organization: Organization; instance: Instance; skillMarketplace: SkillMarketplace };
@@ -1595,6 +1599,8 @@ export interface FabricEvents {
   'provider.setup_session.created:after': ProviderEventBase & { setupSession: AuditSubspaceProviderSetupSession };
   'provider.setup_session.updated:before': ProviderEventBase;
   'provider.setup_session.updated:after': ProviderEventBase & { setupSession: AuditSubspaceProviderSetupSession; previousSetupSession: AuditSubspaceProviderSetupSession };
+  'provider.setup_session.deleted:before': ProviderEventBase;
+  'provider.setup_session.deleted:after': ProviderEventBase & { setupSession: AuditSubspaceProviderSetupSession };
 
   'provider.public_mcp_server.created:before': ProviderEventBase;
   'provider.public_mcp_server.created:after': ProviderEventBase & { publicMcpServer: AuditSubspacePublicMcpServer };

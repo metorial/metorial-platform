@@ -51,7 +51,8 @@ export let callbackEventProcessQueueProcessor = callbackEventProcessQueue.proces
       instanceOid: instance.oid,
       callbackEventId: callbackEvent.id,
       callbackId: callbackEvent.callback.id,
-      callbackTriggerKey: callbackEvent.providerTrigger?.key ?? null,
+      callbackTriggerKey:
+        callbackEvent.providerTrigger?.key ?? callbackEvent.providerTriggerKey,
       providerId: callbackEvent.callback.provider.id
     });
   }

@@ -4,11 +4,12 @@ import { v } from '@lowerdeck/validation';
 import { sessionService, toolCallService } from '@metorial-subspace/module-session';
 import { toolCallPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
+import { getOwnershipActor } from '../../../lib/ownershipActor';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { resolveActorIdsForLogFilters } from './_logFilterActors';
+import { resolveActorIdsForLogFilters, resolveSearchActorIds } from './_logFilterActors';
 
 let toolCallGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.toolCallId) {
@@ -73,6 +74,10 @@ export let toolCallController = Controller.create(
             actor_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by identity actor ID(s)'
             }),
+            consumer_profile_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by the selected consumer profile ID or IDs.',
+              examples: ['cop_7nR8sK2mZa1pYx4b']
+            }),
             consumer_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by consumer ID(s)'
             }),
@@ -85,8 +90,22 @@ export let toolCallController = Controller.create(
             tool_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by tool ID(s)'
             }),
+            status: v.optional(
+              v.union([
+                v.enumOf(['waiting_for_response', 'succeeded', 'failed']),
+                v.array(v.enumOf(['waiting_for_response', 'succeeded', 'failed']))
+              ]),
+              { description: 'Filter by tool call status(es)' }
+            ),
             created_at: dateFilterValidator('tool call creation time'),
-            updated_at: dateFilterValidator('tool call last update time')
+            updated_at: dateFilterValidator('tool call last update time'),
+            search: v.optional(
+              v.string({
+                description:
+                  'Search by tool call ID or tool key, or by the name of a related tool, provider, deployment, config, auth config, agent, actor, identity, or consumer',
+                examples: ['create_issue']
+              })
+            )
           })
         )
       )
@@ -95,7 +114,12 @@ export let toolCallController = Controller.create(
           instance: ctx.instance,
           actorIds: normalizeArrayParam(ctx.query.actor_id),
           consumerIds: normalizeArrayParam(ctx.query.consumer_id),
+          consumerProfileIds: normalizeArrayParam(ctx.query.consumer_profile_id),
           identityIds: normalizeArrayParam(ctx.query.identity_id)
+        });
+        let searchActorIds = await resolveSearchActorIds({
+          instance: ctx.instance,
+          search: ctx.query.search
         });
 
         let paginator = await toolCallService.listToolCalls({
@@ -112,8 +136,11 @@ export let toolCallController = Controller.create(
           providerConfigIds: normalizeArrayParam(ctx.query.provider_config_id),
           providerAuthConfigIds: normalizeArrayParam(ctx.query.provider_auth_config_id),
           toolIds: normalizeArrayParam(ctx.query.tool_id),
+          statuses: normalizeArrayParam(ctx.query.status),
           createdAt: ctx.query.created_at,
-          updatedAt: ctx.query.updated_at
+          updatedAt: ctx.query.updated_at,
+          search: ctx.query.search,
+          searchActorIds
         });
 
         let list = await paginator.run(ctx.query);
@@ -161,6 +188,7 @@ export let toolCallController = Controller.create(
       .do(async ctx => {
         let session = await sessionService.getSessionById({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
           sessionId: ctx.body.session_id
         });
         let toolCall = await toolCallService.createToolCall({

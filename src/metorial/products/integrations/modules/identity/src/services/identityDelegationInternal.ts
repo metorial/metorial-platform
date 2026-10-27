@@ -167,16 +167,44 @@ class identityDelegationInternalServiceImpl {
 
     let parties = await this.computeParties(d.input);
 
+    let initialStatus =
+      d._internal.type == 'request'
+        ? autoDeniedReason
+          ? ('denied' as const)
+          : ('waiting_for_consent' as const)
+        : ('active' as const);
+
+    // The checker can wait for identity reconciliation longer than the transaction timeout,
+    // and it only reads existing active delegations, so it runs before the transaction.
+    let coveredByExistingDelegation = false;
+    if (initialStatus === 'waiting_for_consent') {
+      let checker = await DelegationChecker.create({
+        ...d,
+        identity: d.input.identity,
+        actor: d.input.delegatee
+      });
+
+      coveredByExistingDelegation = await checker.checkMany({
+        identityRequirements: {
+          expiresAt: d.input.expiresAt ?? null,
+          permissions: d.input.permissions ?? []
+        },
+        credentials:
+          d.input.credentialOverrides?.map(o => ({
+            credential: credentialMap.get(o.credentialId)!,
+            requirements: {
+              expiresAt: o.expiresAt ?? null,
+              permissions: o.permissions ?? []
+            }
+          })) ?? []
+      });
+    }
+
     return await withTransaction(async db => {
       let delegation = await db.identityDelegation.create({
         data: {
           ...getId('identityDelegation'),
-          status:
-            d._internal.type == 'request'
-              ? autoDeniedReason
-                ? 'denied'
-                : 'waiting_for_consent'
-              : 'active',
+          status: initialStatus,
           delegationLevel,
           wasCoveredByPreviousDelegationAndAutoApproved: false,
 
@@ -191,6 +219,7 @@ class identityDelegationInternalServiceImpl {
           expiresAt: d.input.expiresAt,
 
           note: d.input.note,
+          metadata: d.input.metadata,
 
           identityOid: d.input.identity.oid,
           delegateeOid: d.input.delegatee.oid,
@@ -222,48 +251,23 @@ class identityDelegationInternalServiceImpl {
           })) || []
       });
 
-      // Check if we can auto-approve this request based on an existing
-      // delegation that has the same or a superset of permissions and credential overrides
-      if (delegation.status === 'waiting_for_consent') {
-        let checker = await DelegationChecker.create({
-          ...d,
-          identity: d.input.identity,
-          actor: d.input.delegatee
+      if (coveredByExistingDelegation) {
+        let attestation = await db.identityDelegationAttestation.create({
+          data: {
+            ...getId('identityDelegationAttestation'),
+            type: 'covered_by_previously_approved_delegation'
+          }
         });
 
-        let alreadyAllowed = await checker.checkMany({
-          identityRequirements: {
-            expiresAt: d.input.expiresAt ?? null,
-            permissions: d.input.permissions ?? []
-          },
-          credentials:
-            d.input.credentialOverrides?.map(o => ({
-              credential: credentialMap.get(o.credentialId)!,
-              requirements: {
-                expiresAt: o.expiresAt ?? null,
-                permissions: o.permissions ?? []
-              }
-            })) ?? []
+        delegation = await db.identityDelegation.update({
+          where: { oid: delegation.oid },
+          data: {
+            status: 'active',
+            deniedReason: null,
+            attestationOid: attestation.oid,
+            wasCoveredByPreviousDelegationAndAutoApproved: true
+          }
         });
-
-        if (alreadyAllowed) {
-          let attestation = await db.identityDelegationAttestation.create({
-            data: {
-              ...getId('identityDelegationAttestation'),
-              type: 'covered_by_previously_approved_delegation'
-            }
-          });
-
-          delegation = await db.identityDelegation.update({
-            where: { oid: delegation.oid },
-            data: {
-              status: 'active',
-              deniedReason: null,
-              attestationOid: attestation.oid,
-              wasCoveredByPreviousDelegationAndAutoApproved: true
-            }
-          });
-        }
       }
 
       if (d._internal.type == 'request') {

@@ -14,6 +14,7 @@ let mocks = vi.hoisted(() => ({
   resourceActorFind: vi.fn(),
   resourceActorCreate: vi.fn(),
   projectFindFirst: vi.fn(),
+  projectFindUniqueOrThrow: vi.fn(),
   tenantUpsert: vi.fn(),
   environmentUpsert: vi.fn(),
   solutionUpsert: vi.fn(),
@@ -24,7 +25,10 @@ let mocks = vi.hoisted(() => ({
 
 vi.mock('@lowerdeck/cache', () => ({
   createCachedFunction: vi.fn((opts: { provider: (i: any) => Promise<unknown> }) =>
-    vi.fn((i: any) => opts.provider(i))
+    Object.assign(
+      vi.fn((i: any) => opts.provider(i)),
+      { clearAndWait: vi.fn() }
+    )
   )
 }));
 
@@ -71,7 +75,7 @@ vi.mock('../env', () => ({
 vi.mock('../lib/metorialDb', () => ({
   metorialDb: {
     project: {
-      findUniqueOrThrow: vi.fn(),
+      findUniqueOrThrow: mocks.projectFindUniqueOrThrow,
       findFirst: mocks.projectFindFirst,
       update: mocks.projectUpdate
     },
@@ -125,6 +129,8 @@ import { subspaceScopeService } from './subspaceScope';
 
 let cacheConfigs = vi.mocked(createCachedFunction).mock.calls.map(([opts]) => opts as any);
 
+let scopeCaches = vi.mocked(createCachedFunction).mock.results.map(result => result.value);
+
 let resourceTenant = {
   oid: 100n,
   id: 'rtn_100',
@@ -156,6 +162,7 @@ let makeProject = (overrides: Record<string, unknown> = {}) =>
     id: 'prj_2',
     name: 'Project',
     onlyAllowTrustedProviders: false,
+    hidePublicRemoteProviders: false,
     organizationOid: 1n,
     resourceTenantOid: 100n,
     instances: [],
@@ -178,6 +185,51 @@ describe('Subspace scope provisioning', () => {
       id: 'kso_1',
       identifier: 'metorial'
     });
+  });
+
+  it.each([false, true])(
+    'uses the project policy %s when provisioning its tenant',
+    async value => {
+      await subspaceScopeService.ensureForProjectUncached(
+        makeProject({ hidePublicRemoteProviders: value })
+      );
+
+      expect(mocks.tenantUpsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          input: expect.objectContaining({ hidePublicRemoteProviders: value })
+        })
+      );
+    }
+  );
+
+  it('clears cached project and instance scopes after an admin policy change', async () => {
+    let instance = { id: 'ins_3' };
+    let project = makeProject({ instances: [instance] });
+
+    await subspaceScopeService.clearProjectScopeCache(project);
+
+    expect(scopeCaches[0].clearAndWait).toHaveBeenCalledWith({ project });
+    expect(scopeCaches[1].clearAndWait).toHaveBeenCalledWith({ instance });
+  });
+
+  it('reloads partial projects before provisioning their tenants', async () => {
+    mocks.projectFindUniqueOrThrow.mockResolvedValue(
+      makeProject({ hidePublicRemoteProviders: false })
+    );
+
+    await subspaceScopeService.ensureForProjectUncached(
+      makeProject({ hidePublicRemoteProviders: undefined })
+    );
+
+    expect(mocks.projectFindUniqueOrThrow).toHaveBeenCalledWith({
+      where: { id: 'prj_2' },
+      include: { instances: true }
+    });
+    expect(mocks.tenantUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        input: expect.objectContaining({ hidePublicRemoteProviders: false })
+      })
+    );
   });
 
   it('asserts and leaves an existing project link untouched', async () => {
@@ -527,9 +579,7 @@ describe('Organization actor tenant linking', () => {
   });
 
   it('reuses the resource actor created by a concurrent writer on a unique constraint conflict', async () => {
-    mocks.resourceActorFind
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce(resourceActor);
+    mocks.resourceActorFind.mockResolvedValueOnce(null).mockResolvedValueOnce(resourceActor);
     mocks.resourceActorCreate.mockRejectedValue({ code: 'P2002' });
 
     await subspaceScopeService.ensureForOrganizationActor({

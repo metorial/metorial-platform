@@ -9,7 +9,13 @@ import {
 } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import type { AuditScope } from '@metorial/audit-scope';
-import type { Instance, Prisma, Project, StoreParticipantPermissions } from '@metorial/db';
+import type {
+  Instance,
+  Prisma,
+  Project,
+  StoreParticipantPermissions,
+  StorePathMode
+} from '@metorial/db';
 import { db } from '@metorial/db';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import {
@@ -170,16 +176,18 @@ type ApplySkillFileChangesProps = {
 };
 
 class SkillFileServiceImpl {
-  private parseSkillFilePath(input: string) {
+  private parseSkillFilePath(input: string, mode: StorePathMode) {
     let expectedPath = input.startsWith('/') ? input : `/${input}`;
-    let normalized = normalizeStorePath({ path: input, kind: 'file' });
+    let normalized = normalizeStorePath({ path: input, kind: 'file', mode });
 
     if (normalized.path !== expectedPath) {
       throw new ServiceError(
         badRequestError({
           message: `Invalid skill file path "${input}"`,
           description:
-            'Paths may only contain letters, numbers, spaces and the characters . _ - ( ) $, separated by "/".'
+            mode === 'unicode'
+              ? 'Paths must be "/"-separated segments without surrounding whitespace, "." or ".." segments, and must be in Unicode NFC form.'
+              : 'Paths may only contain letters, numbers, spaces and the characters . _ - ( ) $, separated by "/".'
         })
       );
     }
@@ -187,8 +195,8 @@ class SkillFileServiceImpl {
     return normalized;
   }
 
-  private normalizeSkillFilePath(input: string) {
-    return this.parseSkillFilePath(input).path;
+  private normalizeSkillFilePath(input: string, mode: StorePathMode) {
+    return this.parseSkillFilePath(input, mode).path;
   }
 
   private assertSkillActive(skill: SkillRecord) {
@@ -383,10 +391,10 @@ class SkillFileServiceImpl {
     }
   }
 
-  private prepareChange(change: SkillFileChange): SkillFileChange {
+  private prepareChange(change: SkillFileChange, mode: StorePathMode): SkillFileChange {
     switch (change.type) {
       case 'put': {
-        let parsedPath = this.parseSkillFilePath(change.path);
+        let parsedPath = this.parseSkillFilePath(change.path, mode);
         let filePath = parsedPath.path;
 
         if ((change.content === undefined) === (change.fileId === undefined)) {
@@ -409,7 +417,7 @@ class SkillFileServiceImpl {
       }
 
       case 'delete': {
-        let filePath = this.normalizeSkillFilePath(change.path);
+        let filePath = this.normalizeSkillFilePath(change.path, mode);
 
         if (filePath === skillRootDocumentPath) {
           throw new ServiceError(
@@ -421,8 +429,8 @@ class SkillFileServiceImpl {
       }
 
       case 'move': {
-        let fromPath = this.normalizeSkillFilePath(change.path);
-        let parsedToPath = this.parseSkillFilePath(change.toPath);
+        let fromPath = this.normalizeSkillFilePath(change.path, mode);
+        let parsedToPath = this.parseSkillFilePath(change.toPath, mode);
         let toPath = parsedToPath.path;
 
         if (fromPath === toPath) {
@@ -451,6 +459,7 @@ class SkillFileServiceImpl {
   private async prepareChanges(d: {
     project: Project;
     instance: Instance;
+    skill: SkillRecord;
     authorization: ResourceAuthorization;
     defaultPermissions?: StoreParticipantPermissions[];
     overridePermissions?: boolean;
@@ -461,7 +470,7 @@ class SkillFileServiceImpl {
 
     for (let [index, change] of d.changes.entries()) {
       try {
-        let preparedChange = this.prepareChange(change);
+        let preparedChange = this.prepareChange(change, d.skill.store!.pathMode);
 
         if (preparedChange.type === 'put' && preparedChange.fileId !== undefined) {
           await this.assertAttachableFile({ ...d, fileId: preparedChange.fileId });
@@ -719,7 +728,7 @@ class SkillFileServiceImpl {
   }): Promise<SkillFileContent> {
     await this.assertReadAccess(d);
 
-    let filePath = this.normalizeSkillFilePath(d.path);
+    let filePath = this.normalizeSkillFilePath(d.path, d.skill.store!.pathMode);
     let item = await this.getItemByPath({ skill: d.skill, path: filePath });
     if (!item) throw new ServiceError(notFoundError('skill.file', filePath));
 
@@ -748,7 +757,7 @@ class SkillFileServiceImpl {
 
     await this.assertReadAccess(d);
 
-    let filePath = this.normalizeSkillFilePath(d.path);
+    let filePath = this.normalizeSkillFilePath(d.path, d.skill.store!.pathMode);
     let item = await this.getItemByPath({ skill: d.skill, path: filePath });
     if (!item) throw new ServiceError(notFoundError('skill.file', filePath));
 

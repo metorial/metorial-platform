@@ -12,6 +12,7 @@ import {
 import { Button, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Box, Table } from '@metorial/ui-product';
 import { Link, useParams } from 'react-router-dom';
+import { UsageOverviewTiles } from '../../../scenes/instanceUsage';
 import { showIntegrationProviderPanelFlow } from '../../../scenes/integrations/providerPanelFlow';
 import { IntegrationProvidersManager } from '../../../scenes/integrations/providersManager';
 
@@ -27,6 +28,7 @@ let RecentInstancesBox = (p: { instanceId: string; integration: IntegrationPrevi
   let project = useCurrentProject();
   let instance = useCurrentInstance();
   let instances = useIntegrationInstances(p.instanceId, {
+    ownership: 'all',
     integrationId: p.integration.id,
     order: 'desc',
     status: ['active'],
@@ -95,6 +97,20 @@ export let IntegrationOverviewPage = () => {
 
     return (
       <DetailsOverviewLayout>
+        <UsageOverviewTiles
+          filter={{ integrationId: integration.data.id }}
+          tiles={['tool_calls', 'sessions', 'active_consumers', 'errors']}
+          href={Paths.instance.integration(
+            instance.data?.organization,
+            instance.data?.project,
+            instance.data,
+            integration.data.id,
+            'usage'
+          )}
+        />
+
+        <Spacer height={20} />
+
         <Box
           title="Providers"
           description="Choose which providers are connected to this integration and manage their configuration and authentication settings."

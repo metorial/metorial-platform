@@ -32,7 +32,7 @@ export let v1IdentityActorPresenter = Presenter.create(identityActorType)
         description: 'Unique identity actor identifier.',
         examples: ['iac_6wQpLk2mZa8nYx4b']
       }),
-      type: v.enumOf(['person', 'agent', 'consumer'], {
+      type: v.enumOf(['person', 'agent', 'consumer', 'organization_member'], {
         name: 'type',
         description: 'Type of actor that owns or participates in identities.'
       }),
@@ -106,6 +106,12 @@ export let dashboardIdentityActorPresenter = Presenter.create(identityActorType)
         ? await dashboardConsumerPresenter
             .present({ consumer: identityActor.consumer }, opts)
             .run()
+        : null,
+      consumer_profile: identityActor.consumerProfile
+        ? {
+            id: identityActor.consumerProfile.id,
+            portal_id: identityActor.consumerProfile.surface.portal?.id ?? null
+          }
         : null
     };
   })
@@ -113,7 +119,22 @@ export let dashboardIdentityActorPresenter = Presenter.create(identityActorType)
     v.intersection([
       v1IdentityActorPresenter.schema,
       v.object({
-        consumer: v.nullable(dashboardConsumerPresenter.schema)
+        consumer: v.nullable(dashboardConsumerPresenter.schema),
+        consumer_profile: v.nullable(
+          v.object({
+            id: v.string({
+              name: 'id',
+              description: 'Identifier of the consumer profile (account) that owns this actor.'
+            }),
+            portal_id: v.nullable(
+              v.string({
+                name: 'portal_id',
+                description:
+                  'Identifier of the portal the consumer profile belongs to, if any.'
+              })
+            )
+          })
+        )
       })
     ])
   )

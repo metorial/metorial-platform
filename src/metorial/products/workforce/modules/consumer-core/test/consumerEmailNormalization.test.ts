@@ -26,6 +26,7 @@ vi.mock('@metorial/db', () => {
 
   return {
     db,
+    addAfterTransactionHook: vi.fn(),
     ID: { generateId: vi.fn(async (prefix: string) => `${prefix}_generated`) },
     withTransaction: vi.fn(async callback => await callback(db))
   };
@@ -44,6 +45,8 @@ vi.mock('@metorial/lock', () => ({
 }));
 
 vi.mock('@metorial/module-search', () => ({ searchConsumerIds: vi.fn() }));
+
+vi.mock('@metorial/module-usage', () => ({ recordConsumerCreatedUsage: vi.fn() }));
 
 vi.mock('@metorial/fabric', () => ({ Fabric: { fire: vi.fn(), listen: vi.fn() } }));
 
@@ -80,6 +83,7 @@ describe('normalizeConsumerEmail', () => {
 describe('consumerService.upsertConsumer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.consumer.findFirst.mockResolvedValue(null);
     mocks.consumerProfile.findMany.mockResolvedValue([]);
     mocks.instanceConsumer.findUniqueOrThrow.mockResolvedValue({
       id: 'icn_legacy',

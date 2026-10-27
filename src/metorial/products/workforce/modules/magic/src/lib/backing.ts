@@ -6,6 +6,7 @@ import {
   magicMcpServerBackingService
 } from '@metorial-subspace/module-integration';
 import { isIntegrationInstanceUnavailableError } from './integrationInstanceUnavailable';
+import { magicMcpBackingProvidersUnavailableError } from './magicMcpConnectHealth';
 import { resolveOwnerActorOid } from './ownerActor';
 
 let magicMcpEndpointBackingInclude = {
@@ -42,7 +43,30 @@ type MagicMcpServerBackingSpec = Pick<
   | 'providerTemplateId'
   | 'subspaceIntegrationInstanceId'
   | 'legacySubspaceSessionTemplateId'
->;
+> &
+  Partial<Pick<MagicMcpServer, 'ownerActorOid' | 'isOwnerLocked' | 'isOwnerOnlyVisible'>>;
+
+let getOwnerActorId = async (ownerActorOid: bigint | null | undefined) => {
+  if (!ownerActorOid) return null;
+
+  let actor = await db.identityActor.findUnique({
+    where: { oid: ownerActorOid },
+    select: { id: true }
+  });
+
+  return actor?.id ?? null;
+};
+
+let resolveBackingOwner = async (d: {
+  ownerActorOid?: bigint | null;
+  isOwnerLocked?: boolean;
+  isOwnerOnlyVisible?: boolean;
+  owner: ConsumerOwner;
+}) => ({
+  ownerActorId: (await getOwnerActorId(d.ownerActorOid)) ?? d.owner.identityActorId ?? null,
+  isOwnerLocked: !!d.isOwnerLocked,
+  isOwnerOnlyVisible: !!d.isOwnerOnlyVisible
+});
 
 let getMagicMcpSessionDuration = async (instance: Instance) => {
   let project = await db.project.findUniqueOrThrow({
@@ -167,6 +191,12 @@ export let applyMagicMcpServerBacking = async (d: {
       isReconciliation: d.isReconciliation,
       legacySessionTemplateId: d.server.legacySubspaceSessionTemplateId,
       ...d.owner,
+      ...(await resolveBackingOwner({
+        ownerActorOid: d.server.ownerActorOid,
+        isOwnerLocked: d.server.isOwnerLocked,
+        isOwnerOnlyVisible: d.server.isOwnerOnlyVisible,
+        owner: d.owner
+      })),
       ...(d.providers?.length ? { providers: d.providers } : {})
     }
   });
@@ -178,7 +208,11 @@ export let getMagicMcpServerBackingCoreFields = (
   hasSubspaceBacking: true,
   isSubspaceBackingReconciling: false,
   ownerType: backing.ownerType,
-  subspaceEphemeralManagedSessionId: backing.ephemeralManagedSession.id
+  subspaceEphemeralManagedSessionId: backing.ephemeralManagedSession.id,
+  ...(backing.isOwnerLocked ? { isOwnerLocked: true } : {}),
+  ...((backing as { isOwnerOnlyVisible?: boolean }).isOwnerOnlyVisible
+    ? { isOwnerOnlyVisible: true }
+    : {})
 });
 
 export let ensureMagicMcpServerBacking = async (d: {
@@ -192,16 +226,16 @@ export let ensureMagicMcpServerBacking = async (d: {
   let owner =
     d.owner ?? (await getConsumerOwnerForServer({ instance: d.instance, server: d.server }));
 
+  let ownerActorOid = d.server.ownerActorOid ?? (await resolveOwnerActorOid(owner));
+
   let backing = await applyMagicMcpServerBacking({
     instance: d.instance,
-    server: d.server,
+    server: { ...d.server, ownerActorOid },
     owner,
     providers: d.providers,
     isReconciliation: d.isReconciliation,
     maxSessionDurationInMinutes: d.maxSessionDurationInMinutes
   });
-
-  let ownerActorOid = d.server.ownerActorOid ?? (await resolveOwnerActorOid(owner));
 
   return await db.magicMcpServer.update({
     where: { oid: d.server.oid },
@@ -248,6 +282,7 @@ export let healMagicMcpServerBacking = async (d: {
   let status = statuses.get(d.server.id);
 
   if (status === 'needs_reconnect') throw magicMcpServerNeedsReconnectError();
+  if (status === 'missing_providers') throw magicMcpBackingProvidersUnavailableError();
   if (status === 'healthy') return d.server;
 
   return await rebuildOrNeedsReconnect(() =>
@@ -281,6 +316,9 @@ export let healMagicMcpEndpointBacking = async (d: {
 
   let memberStatuses = servers.map(server => serverStatuses.get(server.id));
   if (memberStatuses.includes('needs_reconnect')) throw magicMcpServerNeedsReconnectError();
+  if (memberStatuses.includes('missing_providers')) {
+    throw magicMcpBackingProvidersUnavailableError();
+  }
   if (endpointStatus === 'healthy' && memberStatuses.every(status => status === 'healthy')) {
     return d.endpoint;
   }
@@ -339,6 +377,15 @@ export let ensureMagicMcpEndpointBacking = async (d: {
     });
   }
 
+  let ownerActorOid =
+    endpoint.ownerActorOid ??
+    (await resolveOwnerActorOid(
+      await getConsumerOwnerForProfile({
+        instance: d.instance,
+        consumerProfileOid: endpoint.consumerProfileOid
+      })
+    ));
+
   let backing = await magicMcpEndpointBackingService.upsertMagicMcpEndpointBacking({
     instance: d.instance,
     input: {
@@ -349,6 +396,9 @@ export let ensureMagicMcpEndpointBacking = async (d: {
       maxSessionDurationInMinutes,
       isReconciliation: d.isReconciliation,
       ...owner,
+      ownerActorId: await getOwnerActorId(ownerActorOid),
+      isOwnerLocked: endpoint.isOwnerLocked,
+      ...{ isOwnerOnlyVisible: endpoint.isOwnerOnlyVisible },
       servers: endpoint.servers.map(server => ({
         id: server.id,
         magicMcpServerBackingId: server.magicMcpServer.id,
@@ -362,8 +412,24 @@ export let ensureMagicMcpEndpointBacking = async (d: {
     data: {
       hasSubspaceBacking: true,
       subspaceEphemeralManagedSessionId: backing.ephemeralManagedSession.id,
-      isSubspaceBackingReconciling: false
+      isSubspaceBackingReconciling: false,
+      ...(ownerActorOid ? { ownerActorOid } : {}),
+      ...(backing.isOwnerLocked ? { isOwnerLocked: true } : {}),
+      ...((backing as { isOwnerOnlyVisible?: boolean }).isOwnerOnlyVisible
+        ? { isOwnerOnlyVisible: true }
+        : {})
     },
     include: magicMcpEndpointBackingInclude
   });
 };
+
+export let setMagicMcpEndpointBackingOwnerLock = async (d: {
+  instance: Instance;
+  endpoint: MagicMcpEndpoint;
+  isOwnerLocked: boolean;
+}) =>
+  await magicMcpEndpointBackingService.setMagicMcpEndpointBackingOwnerLock({
+    instance: d.instance,
+    magicMcpEndpointBackingId: d.endpoint.id,
+    isOwnerLocked: d.isOwnerLocked
+  });

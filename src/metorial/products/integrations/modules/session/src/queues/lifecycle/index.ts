@@ -56,6 +56,7 @@ export let lifecycleQueues = combineQueueProcessors([
 
 export let lifecycleSubspaceQueues = combineQueueProcessors([
   sessionArchivedQueueProcessor,
+  sessionArchivedChildrenQueueProcessor,
   syncIntegrationInstanceSessionTemplatesQueueProcessor,
   syncIntegrationInstanceSessionTemplateQueueProcessor,
   syncIntegrationInstanceGroupSessionTemplatesQueueProcessor,

@@ -1628,7 +1628,7 @@ export let SkillMergeRequestScene = (p: {
                     return (
                       <CommentActions data-comment-actions>
                         <Button
-                          size="1"
+                          size="2"
                           variant="soft"
                           color="gray"
                           onClick={() => beginReply(comment)}

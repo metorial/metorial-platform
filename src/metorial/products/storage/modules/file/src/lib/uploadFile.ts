@@ -19,7 +19,7 @@ import {
 
 export let uploadCargoFile = async (
   d: CargoOwnerScope & {
-    auditScope: AuditScope;
+    auditScope?: AuditScope;
     purpose: string;
     file: Blob;
     fileName: string;

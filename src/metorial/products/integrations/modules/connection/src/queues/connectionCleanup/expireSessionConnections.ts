@@ -1,6 +1,7 @@
 import { createCron } from '@lowerdeck/cron';
 import { combineQueueProcessors, createQueue } from '@lowerdeck/queue';
 import { db, getId } from '@metorial-subspace/db';
+import { recordConnectionTimeUsage } from '@metorial/module-usage';
 import { subMinutes } from 'date-fns';
 import { env } from '../../env';
 
@@ -64,17 +65,29 @@ let expireSessionConnectionQueueProcessor = expireSessionConnectionQueue.process
   async data => {
     let connection = await db.sessionConnection.findUnique({
       where: { id: data.connectionId },
-      include: { session: { select: { isInternal: true } } }
+      include: {
+        session: {
+          select: { oid: true, id: true, isInternal: true, identityActorOid: true }
+        },
+        participant: {
+          select: { id: true, type: true, agentInstanceOid: true, identityActorOid: true }
+        }
+      }
     });
     if (!connection || connection.state !== 'connected') return;
 
-    await db.sessionConnection.updateMany({
-      where: { id: connection.id },
+    let disconnectedAt = new Date();
+
+    let updated = await db.sessionConnection.updateMany({
+      where: { id: connection.id, state: 'connected' },
       data: {
         state: 'disconnected',
-        disconnectedAt: new Date()
+        disconnectedAt
       }
     });
+    if (!updated.count) return;
+
+    await recordConnectionTimeUsage({ ...connection, disconnectedAt });
 
     if (!connection.session.isInternal) {
       await db.sessionEvent.createMany({

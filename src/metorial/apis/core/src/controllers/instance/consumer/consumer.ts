@@ -109,7 +109,7 @@ export let consumerController = Controller.create(
                 v.array(v.string({ modifiers: [v.email()] }))
               ])
             ),
-            id: v.optional(v.string())
+            id: v.optional(v.union([v.string(), v.array(v.string())]))
           })
         )
       )
@@ -118,7 +118,7 @@ export let consumerController = Controller.create(
           instance: ctx.instance,
           search: ctx.query.search,
           emails: normalizeArrayParam(ctx.query.email),
-          id: ctx.query.id
+          ids: normalizeArrayParam(ctx.query.id)
         });
         let list = await paginator.run(ctx.query);
 
@@ -212,7 +212,7 @@ export let consumerController = Controller.create(
           );
         }
 
-        if (ctx.auth.type === 'user' && ctx.user.type === 'system') {
+        if (ctx.auth.type === 'user' && user.type === 'system') {
           throw new ServiceError(
             forbiddenError({
               message: 'System users cannot use this endpoint',

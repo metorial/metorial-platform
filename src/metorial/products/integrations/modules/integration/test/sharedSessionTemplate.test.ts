@@ -148,7 +148,9 @@ vi.mock(
 
 vi.mock('@metorial-subspace/module-tenant', () => ({
   checkTenant: vi.fn(),
-  getMetorialSolution: vi.fn(async () => ({ oid: 2n, id: 'sol_1' }))
+  getMetorialSolution: vi.fn(async () => ({ oid: 2n, id: 'sol_1' })),
+  ownerActorSelect: {},
+  getConsumerOwnedResourceName: vi.fn(async () => undefined)
 }));
 
 vi.mock('../src/queues/lifecycle/integrationInstance', () => ({

@@ -83,14 +83,15 @@ describe('safeFetch', () => {
       expect(f.mock).toHaveBeenCalledOnce();
     });
 
-    it('still uses redirect: manual', async () => {
+    it('still uses redirect: manual and connects to the resolved address', async () => {
       let { safeFetch } = await importModule();
       await safeFetch('http://example.com');
 
       expect(f.mock).toHaveBeenCalledWith(
-        'http://example.com/',
+        'http://10.0.0.1/',
         expect.objectContaining({ redirect: 'manual' })
       );
+      expect(f.mock.mock.calls[0]?.[1].headers.get('host')).toBe('example.com');
     });
   });
 
@@ -102,14 +103,15 @@ describe('safeFetch', () => {
     describe('with public DNS', () => {
       mockBunDns(['93.184.216.34']);
 
-      it('sets redirect to manual for SSRF protection', async () => {
+      it('sets redirect to manual and connects to the validated address', async () => {
         let { safeFetch } = await importModule();
         await safeFetch('http://example.com');
 
         expect(f.mock).toHaveBeenCalledWith(
-          'http://example.com/',
+          'http://93.184.216.34/',
           expect.objectContaining({ redirect: 'manual' })
         );
+        expect(f.mock.mock.calls[0]?.[1].headers.get('host')).toBe('example.com');
       });
 
       describe('with egress policy', () => {
@@ -125,7 +127,7 @@ describe('safeFetch', () => {
           await safeFetch('http://example.com', { egressPolicy });
 
           expect(f.mock).toHaveBeenCalledWith(
-            'http://example.com/',
+            'http://93.184.216.34/',
             expect.objectContaining({ redirect: 'manual' })
           );
         });

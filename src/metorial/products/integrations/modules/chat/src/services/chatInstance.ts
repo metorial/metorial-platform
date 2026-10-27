@@ -14,6 +14,7 @@ import {
   withTransaction
 } from '@metorial-subspace/db';
 import {
+  buildSearchFilter,
   checkDeletedEdit,
   type DateFilter,
   normalizeDateFilter,
@@ -37,7 +38,10 @@ import { chatInstancePresenter } from '@metorial/presenters';
 import { chatEventInternalService } from '../internal/chatEvent';
 import { chatEventPresenterContext } from '../internal/chatEventPayload';
 import { archiveChatsWhere } from '../lib/chatLifecycle';
-import { upsertChatInstanceProjection } from '../lib/project';
+import {
+  upsertChatInstanceProjection,
+  upsertChatInstanceProviderProjection
+} from '../lib/project';
 import {
   enqueueChatInstanceArchived,
   enqueueChatInstanceCreated,
@@ -139,14 +143,19 @@ class chatInstanceServiceImpl {
     d.search = d.search?.trim();
     if (!d.search?.length) d.search = undefined;
 
-    let search = d.search
-      ? await voyager.record.search({
+    let search = await buildSearchFilter<Prisma.ChatInstanceWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let records = await voyager.record.search({
           tenantId: d.tenant.id,
           sourceId: (await voyagerSource).id,
           indexId: voyagerIndex.chatInstance.id,
-          query: d.search
-        })
-      : null;
+          query
+        });
+
+        return records.map(r => r.documentId);
+      }
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -163,7 +172,7 @@ class chatInstanceServiceImpl {
                 d.chatConnectionIds
                   ? { chatConnection: { id: { in: d.chatConnectionIds } } }
                   : undefined!,
-                search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
+                search ?? undefined!,
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
               ].filter(Boolean)
@@ -174,9 +183,7 @@ class chatInstanceServiceImpl {
     );
   }
 
-  async getChatInstanceById(
-    d: MetorialFacing<GetChatInstanceByIdParams>
-  ) {
+  async getChatInstanceById(d: MetorialFacing<GetChatInstanceByIdParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
     return this.getChatInstanceByIdInternal({
@@ -201,9 +208,7 @@ class chatInstanceServiceImpl {
       include: chatInstanceInclude
     });
     if (!chatInstance) {
-      throw new ServiceError(
-        notFoundError('chat.integration.instance', d.chatInstanceId)
-      );
+      throw new ServiceError(notFoundError('chat.integration.instance', d.chatInstanceId));
     }
 
     return chatInstance;
@@ -284,6 +289,13 @@ class chatInstanceServiceImpl {
 
       await upsertChatInstanceProjection(adapterInstance, d.input);
 
+      let providerLinks = await db.adapterIntegrationInstanceProvider.findMany({
+        where: { adapterIntegrationInstanceOid: adapterInstance.oid, status: 'active' }
+      });
+      for (let link of providerLinks) {
+        await upsertChatInstanceProviderProjection(link);
+      }
+
       if (existing) await enqueueChatInstanceUpdated(chatInstance.id);
       else await enqueueChatInstanceCreated(chatInstance.id);
 
@@ -322,9 +334,7 @@ class chatInstanceServiceImpl {
               ? d.chatInstance.description
               : d.input.description?.trim() || null,
           metadata:
-            d.input.metadata === undefined
-              ? d.chatInstance.metadata
-              : d.input.metadata,
+            d.input.metadata === undefined ? d.chatInstance.metadata : d.input.metadata,
           privateMetadata:
             d.input.privateMetadata === undefined
               ? d.chatInstance.privateMetadata
@@ -353,9 +363,7 @@ class chatInstanceServiceImpl {
     });
   }
 
-  async archiveChatInstance(
-    d: MetorialFacing<ArchiveChatInstanceParams>
-  ) {
+  async archiveChatInstance(d: MetorialFacing<ArchiveChatInstanceParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
     return this.archiveChatInstanceInternal({
@@ -381,10 +389,7 @@ class chatInstanceServiceImpl {
         },
         data: { status: 'archived', archivedAt, isParentDeleted: true }
       });
-      await archiveChatsWhere(
-        { chatInstanceOid: d.chatInstance.oid },
-        archivedAt
-      );
+      await archiveChatsWhere({ chatInstanceOid: d.chatInstance.oid }, archivedAt);
 
       await db.chatInstance.update({
         where: { oid: d.chatInstance.oid },
@@ -415,9 +420,7 @@ class chatInstanceServiceImpl {
     });
   }
 
-  async deleteChatInstance(
-    d: MetorialFacing<ArchiveChatInstanceParams>
-  ) {
+  async deleteChatInstance(d: MetorialFacing<ArchiveChatInstanceParams>) {
     return this.archiveChatInstance(d);
   }
 

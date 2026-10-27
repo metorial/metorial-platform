@@ -26,6 +26,7 @@ import type { ProviderCapabilityFilter } from './provider';
 import {
   getProviderCapabilityFilter,
   getProviderEnvironmentVisibilityFilter,
+  getPublicRemoteProviderVisibilityFilter,
   providerInclude
 } from './provider';
 
@@ -66,9 +67,22 @@ let getInclude = (tenant: Tenant | undefined, solution: Solution) => ({
   }
 });
 
+let getTrustedListingFilter = (tenant?: Tenant) =>
+  tenant?.onlyAllowTrustedProviders
+    ? {
+        OR: [
+          { provider: { access: 'tenant' as const } },
+          { isVerified: true },
+          { isOfficial: true },
+          { isMetorial: true }
+        ]
+      }
+    : undefined!;
+
 type GetProviderListingByIdParams = {
   providerListingId: string;
   includeDeprecated?: boolean;
+  onlyActive?: boolean;
 };
 
 type ListProviderListingsParams = {
@@ -118,7 +132,10 @@ class ProviderListingService {
   ) {
     let solution = await getMetorialSolution();
 
+    let remoteVisibilityFilter = getPublicRemoteProviderVisibilityFilter(d);
+
     let scopeFilters: Prisma.ProviderListingWhereInput[] = [
+      remoteVisibilityFilter ? { provider: remoteVisibilityFilter } : undefined!,
       {
         OR: [
           { isPublic: true },
@@ -135,7 +152,11 @@ class ProviderListingService {
         ? {
             provider: getProviderEnvironmentVisibilityFilter(d)
           }
-        : undefined!
+        : undefined!,
+
+      getTrustedListingFilter(d.tenant),
+
+      d.onlyActive ? { status: 'active' as const } : undefined!
     ].filter(Boolean);
 
     let findListingOid = async (match: Prisma.ProviderListingWhereInput) => {
@@ -205,6 +226,7 @@ class ProviderListingService {
     let includeDeprecated = d.includeDeprecated || !!d.ids?.length;
 
     let capFilters = getProviderCapabilityFilter(d.capabilities || {});
+    let remoteVisibilityFilter = getPublicRemoteProviderVisibilityFilter(d);
 
     let groups =
       d.environment && d.tenant
@@ -259,6 +281,7 @@ class ProviderListingService {
 
             AND: [
               includeDeprecated ? undefined! : { isDeprecated: false },
+              remoteVisibilityFilter ? { provider: remoteVisibilityFilter } : undefined!,
               {
                 OR: [
                   { isPublic: true },
@@ -275,6 +298,8 @@ class ProviderListingService {
                     provider: getProviderEnvironmentVisibilityFilter(d)
                   }
                 : undefined!,
+
+              getTrustedListingFilter(d.tenant),
 
               d.ids
                 ? {
@@ -312,7 +337,7 @@ class ProviderListingService {
               d.onlyFromTenant && d.tenant
                 ? {
                     ownerTenantOid: d.tenant.oid,
-                    ownerSolutionOid: solution.oid
+                    OR: [{ ownerSolutionOid: solution.oid }, { ownerSolutionOid: null }]
                   }
                 : undefined!,
 

@@ -42,7 +42,7 @@ export let customDeploymentFailedQueueProcessor = customDeploymentFailedQueue.pr
         data: {
           status: 'failed',
           errorCode: 'deployment_failed',
-          message: 'Deployment failed during execution.'
+          errorMessage: 'Deployment failed during execution.'
         }
       });
     }

@@ -14,6 +14,8 @@ export let relay: ReturnType<typeof createRelayClient> = createRelayClient({
 
 type SendEmailInput = Parameters<typeof relay.email.send>[0];
 
+export type EmailAttachment = NonNullable<SendEmailInput['attachments']>[number];
+
 let sendEmailQueue = env.service.REDIS_URL
   ? createQueue<SendEmailInput>({
       name: 'email/relay/send',
@@ -31,7 +33,7 @@ export let relayEmailQueueProcessor = sendEmailQueue
   : combineQueueProcessors([]);
 
 let sendViaRelay = async (input: SendEmailInput): Promise<{ id: string | null }> => {
-  if (sendEmailQueue) {
+  if (sendEmailQueue && !input.attachments?.length) {
     await sendEmailQueue.add(input);
     return { id: null };
   }
@@ -82,13 +84,19 @@ export let createTemplateSender = <Data>(
   sender: { id: string } | Promise<{ id: string }>
 ) => {
   return {
-    send: async (i: { data: Data; to: string[] }) => {
+    send: async (i: {
+      data: Data;
+      to: string[];
+      idempotencyKey?: string;
+      attachments?: EmailAttachment[];
+    }) => {
       let rendered = await template.render(i.data);
 
       return await sendViaRelay({
         type: 'email',
         to: i.to,
         template: i.data as any,
+        idempotencyKey: i.idempotencyKey,
 
         emailIdentityId: (await identity).id,
         senderId: (await sender).id,
@@ -97,7 +105,9 @@ export let createTemplateSender = <Data>(
           subject: rendered.subject,
           html: await rendered.html,
           text: await rendered.text
-        }
+        },
+
+        attachments: i.attachments?.length ? i.attachments : undefined
       });
     }
   };

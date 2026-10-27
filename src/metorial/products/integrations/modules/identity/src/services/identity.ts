@@ -9,12 +9,14 @@ import {
   type Identity,
   type IdentityActor,
   type IdentityStatus,
+  type Prisma,
   type Tenant,
   withTransaction
 } from '@metorial-subspace/db';
 import { Fabric, type AuditSubspaceIdentity } from '@metorial/fabric';
 import {
   assertNoActiveIntegrationIdentityLink,
+  buildSearchFilter,
   checkDeletedEdit,
   checkDeletedRelation,
   type DateFilter,
@@ -171,14 +173,19 @@ class identityServiceImpl {
     let configs = await resolveProviderConfigs(scope, d.providerConfigIds);
     let authConfigs = await resolveProviderAuthConfigs(scope, d.providerAuthConfigIds);
 
-    let search = d.search
-      ? await voyager.record.search({
+    let search = await buildSearchFilter<Prisma.IdentityWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let records = await voyager.record.search({
           tenantId: d.tenant.id,
           sourceId: (await voyagerSource).id,
           indexId: voyagerIndex.identity.id,
-          query: d.search
-        })
-      : null;
+          query
+        });
+
+        return records.map(r => r.documentId);
+      }
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -194,7 +201,7 @@ class identityServiceImpl {
 
               AND: [
                 d.ids ? { id: { in: d.ids } } : undefined!,
-                search ? { id: { in: search.map(r => r.documentId) } } : undefined!,
+                search ?? undefined!,
                 identities ? { oid: { in: identities.oids } } : undefined!,
 
                 agents ? { actor: { agent: agents.oidIn } } : undefined!,
@@ -433,14 +440,20 @@ class identityServiceImpl {
     checkTenant(d, d.identity);
     checkDeletedEdit(d.identity, 'archive');
 
-    await assertNoActiveIntegrationIdentityLink({
-      tenant: d.tenant,
-      solution,
-      environment: d.environment,
-      identityOid: d.identity.oid,
-      identityId: d.identity.id,
-      ownedByIntegrationInstanceOid: d.identity.ownedByIntegrationInstanceOid
+    let actor = await db.identityActor.findUnique({
+      where: { oid: d.identity.actorOid },
+      select: { consumerProfile: { select: { status: true } } }
     });
+    if (actor?.consumerProfile?.status !== 'deleted') {
+      await assertNoActiveIntegrationIdentityLink({
+        tenant: d.tenant,
+        solution,
+        environment: d.environment,
+        identityOid: d.identity.oid,
+        identityId: d.identity.id,
+        ownedByIntegrationInstanceOid: d.identity.ownedByIntegrationInstanceOid
+      });
+    }
 
     return withTransaction(async db => {
       let identity = await db.identity.update({

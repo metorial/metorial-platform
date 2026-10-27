@@ -2,6 +2,7 @@ import { badRequestError, ServiceError, unauthorizedError } from '@lowerdeck/err
 import { Service } from '@lowerdeck/service';
 import { Context } from '@metorial/context';
 import { User, UserSession, withTransaction } from '@metorial/db';
+import { findUserOidsByEmail } from '../lib/email';
 import { userService } from './user';
 import { userSessionService } from './userSession';
 
@@ -16,16 +17,18 @@ class UserAuthService {
     return withTransaction(async db => {
       let user = await db.user.findFirst({
         where: {
-          email: d.input.email,
-          type: 'user'
-        }
+          oid: { in: await findUserOidsByEmail(d.input.email) },
+          type: 'user',
+          status: 'active'
+        },
+        orderBy: [{ createdAt: 'asc' }, { oid: 'asc' }]
       });
 
       let isValid = user?.passwordHash
         ? await Bun.password.verify(d.input.password, user.passwordHash)
         : false;
 
-      if (!user || !isValid) {
+      if (!user || user.status === 'deleted' || !isValid) {
         throw new ServiceError(
           badRequestError({
             message: 'Invalid email or password'
@@ -70,7 +73,7 @@ class UserAuthService {
       clientSecret: d.sessionClientSecret,
       context: d.context
     });
-    if (!session) {
+    if (!session || session.user.status === 'deleted') {
       throw new ServiceError(
         unauthorizedError({
           message: 'Session not found or expired'

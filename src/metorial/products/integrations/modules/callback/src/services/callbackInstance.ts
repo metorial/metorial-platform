@@ -34,6 +34,7 @@ export type ListCallbackInstancesParams = {
   integrationIds?: string[];
   integrationInstanceIds?: string[];
   integrationInstanceProviderIds?: string[];
+  search?: string;
   status?: CallbackInstanceStatus[];
   allowDeleted?: boolean;
   createdAt?: DateFilter;
@@ -70,6 +71,7 @@ class callbackInstanceServiceImpl {
         resolveIntegrationInstances(selector, d.integrationInstanceIds),
         resolveIntegrationInstanceProviders(selector, d.integrationInstanceProviderIds)
       ]);
+    let search = d.search?.trim();
 
     return Paginator.create<CallbackInstanceWithRelations>(({ prisma }) =>
       prisma(async opts =>
@@ -83,6 +85,7 @@ class callbackInstanceServiceImpl {
             ...normalizeStatusForList(d).hasParent,
             AND: [
               d.ids ? { id: { in: d.ids } } : undefined!,
+              search ? { id: search } : undefined!,
               callbacks ? { callbackOid: callbacks.in } : undefined!,
               integrations ? { callback: { integrationOid: integrations.in } } : undefined!,
               integrationInstances

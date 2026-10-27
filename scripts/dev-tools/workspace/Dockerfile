@@ -70,17 +70,16 @@ RUN curl --proto '=https' --tlsv1.2 --fail --silent --show-error \
     | sh -s -- -y --no-modify-path --profile minimal --default-toolchain "${RUST_VERSION}" \
     && rustup component add rustfmt clippy \
     && GOBIN=/usr/local/bin go install "github.com/air-verse/air@${AIR_VERSION}" \
-    && npm install --global "total-control@latest" \
     && bun --version \
     && node --version \
     && npm --version \
-    && command -v control \
     && go version \
     && rustc --version \
     && zsh --version \
     && air -v
 
 COPY entrypoint.sh /usr/local/bin/workspace-entrypoint
+RUN ln -s /usr/local/bin/workspace-entrypoint /usr/local/bin/control
 RUN chmod 0755 /usr/local/bin/workspace-entrypoint \
     && printf '%s\n' \
     'export PATH=/opt/bun/bin:/opt/cargo/bin:/usr/local/go/bin:/opt/go/bin:$PATH' \

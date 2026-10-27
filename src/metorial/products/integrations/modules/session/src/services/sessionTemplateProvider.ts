@@ -35,9 +35,12 @@ import {
 } from '@metorial-subspace/list-utils';
 import { buildIntegrationProviderToolFilterChain } from '@metorial-subspace/module-provider-internal';
 import {
+  assertCanUseOwnedResource,
   checkTenant,
   getMetorialSolution,
+  getOwnershipAccessor,
   type MetorialFacing,
+  type OwnershipAccessor,
   resolveMetorialFacing,
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
@@ -131,6 +134,7 @@ export type CreateSessionTemplateProviderParams = {
   template: SessionTemplate;
   input: SessionProviderInput;
   _allowLinked?: boolean;
+  ownershipAccessor?: OwnershipAccessor;
 };
 
 export type UpdateSessionTemplateProviderParams = {
@@ -695,7 +699,11 @@ class sessionTemplateProviderServiceImpl {
     let sessionTemplateProvider = await this.createSessionTemplateProviderInternal({
       ...rest,
       tenant: scope.tenant,
-      environment: scope.environment
+      environment: scope.environment,
+      ownershipAccessor: await getOwnershipAccessor({
+        tenant: scope.tenant,
+        organizationActor
+      })
     });
 
     await Fabric.fire('provider.session_template.provider.created:after', {
@@ -709,6 +717,7 @@ class sessionTemplateProviderServiceImpl {
   async createSessionTemplateProviderInternal(
     d: { tenant: Tenant; environment: Environment } & CreateSessionTemplateProviderParams
   ) {
+    checkTenant(d, d.template);
     checkDeletedRelation(d.template);
     if (!d._allowLinked) {
       assertCanWriteSessionTemplateProvider(
@@ -720,12 +729,19 @@ class sessionTemplateProviderServiceImpl {
       );
     }
 
+    if (d.ownershipAccessor) {
+      await assertCanUseOwnedResource(d.ownershipAccessor, d.template, {
+        resource: 'session template'
+      });
+    }
+
     let [res] = await sessionProviderInputService.createSessionTemplateProvidersForInput({
       tenant: d.tenant,
       environment: d.environment,
 
       template: d.template,
-      providers: [d.input]
+      providers: [d.input],
+      ownershipAccessor: d.ownershipAccessor
     });
 
     return res!;

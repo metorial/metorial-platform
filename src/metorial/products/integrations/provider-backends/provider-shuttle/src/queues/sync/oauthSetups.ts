@@ -5,6 +5,10 @@ import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db, getId, type SessionDataRetentionLevel } from '@metorial-subspace/db';
 import { providerOAuthSetupInternalService } from '@metorial-subspace/module-auth';
 import {
+  recordProviderAuthErrorUsage,
+  recordProviderAuthEventUsage
+} from '@metorial/module-usage';
+import {
   getRetentionPolicy,
   redactJsonShape,
   redactSensitiveKeys
@@ -94,6 +98,7 @@ let ensureProviderAuthConfigEvent = async (d: {
       data: {
         ...getId('providerAuthConfigEvent'),
         type: d.event.type,
+        status: isErrorEvent(d.event) ? 'failed' : 'succeeded',
         sourceType: 'shuttle.server_oauth_setup',
         sourceId: d.event.id,
         providerInvocationId: getEventProviderInvocationId(d.event),
@@ -109,6 +114,8 @@ let ensureProviderAuthConfigEvent = async (d: {
         solutionOid: d.providerOAuthSetup.solutionOid
       }
     });
+
+    await recordProviderAuthEventUsage(providerAuthConfigEvent);
   }
 
   return providerAuthConfigEvent;
@@ -158,6 +165,8 @@ let createErrorForEvent = async (d: {
       solutionOid: d.providerOAuthSetup.solutionOid
     }
   });
+
+  await recordProviderAuthErrorUsage(error);
 
   let hash = await Hash.sha256(
     canonicalize([

@@ -75,7 +75,7 @@ export let firewallController = Controller.create(
       .do(async ctx => {
         let paginator = await firewallService.listFirewalls({
           instance: ctx.instance,
-          allowDeleted: true,
+          allowDeleted: false,
           search: ctx.query.search,
           ids: normalizeArrayParam(ctx.query.id),
           slugs: normalizeArrayParam(ctx.query.slug),
