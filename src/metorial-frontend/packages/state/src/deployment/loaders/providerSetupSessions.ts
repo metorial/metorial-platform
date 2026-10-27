@@ -1,7 +1,10 @@
 import { delay } from '@lowerdeck/delay';
 import {
   DashboardInstanceProviderDeploymentsSetupSessionsCreateBody,
-  DashboardInstanceProviderDeploymentsSetupSessionsGetOutput
+  DashboardInstanceProviderDeploymentsSetupSessionsEmailsCreateBody,
+  DashboardInstanceProviderDeploymentsSetupSessionsEmailsListQuery,
+  DashboardInstanceProviderDeploymentsSetupSessionsGetOutput,
+  DashboardInstanceProviderDeploymentsSetupSessionsListQuery
 } from '@metorial/dashboard-sdk';
 import { createLoader, useMutation } from '@metorial/data-hooks';
 import { useMemo } from 'react';
@@ -11,6 +14,31 @@ type ProviderSetupSessionCreateInput = Omit<
   DashboardInstanceProviderDeploymentsSetupSessionsCreateBody,
   'providerId' | 'providerDeploymentId'
 > & { providerDeploymentId?: string };
+
+export let providerSetupSessionsLoader = createLoader({
+  name: 'providerSetupSessions',
+  parents: [],
+  fetch: (
+    i: { instanceId: string } & DashboardInstanceProviderDeploymentsSetupSessionsListQuery
+  ) =>
+    withAuth(sdk => {
+      let { instanceId, ...query } = i;
+      return sdk.providerDeployments.setupSessions.list(instanceId, query);
+    }),
+  mutators: {}
+});
+
+export let useProviderSetupSessions = (
+  instanceId: string | null | undefined,
+  query?: Omit<
+    DashboardInstanceProviderDeploymentsSetupSessionsListQuery,
+    'before' | 'after' | 'cursor'
+  >
+) => {
+  let data = providerSetupSessionsLoader.use(instanceId ? { ...query, instanceId } : null);
+
+  return data;
+};
 
 export let providerSetupSessionLoader = createLoader({
   name: 'providerSetupSession',
@@ -61,9 +89,68 @@ export let useCreateProviderSetupSession = (
       },
       [instanceId, providerId, providerDeploymentId]
     ),
-    { disableToast: true }
+    {
+      disableToast: true,
+      onSuccess: () => providerSetupSessionsLoader.refetchAll()
+    }
   );
 };
+
+export let providerSetupSessionEmailsLoader = createLoader({
+  name: 'providerSetupSessionEmails',
+  parents: [],
+  fetch: (
+    i: {
+      instanceId: string;
+      setupSessionId: string;
+    } & DashboardInstanceProviderDeploymentsSetupSessionsEmailsListQuery
+  ) =>
+    withAuth(sdk => {
+      let { instanceId, setupSessionId, ...query } = i;
+      return sdk.providerDeployments.setupSessions.emails.list(
+        instanceId,
+        setupSessionId,
+        query
+      );
+    }),
+  mutators: {}
+});
+
+export let useProviderSetupSessionEmails = (
+  instanceId: string | null | undefined,
+  setupSessionId: string | null | undefined,
+  query?: Omit<
+    DashboardInstanceProviderDeploymentsSetupSessionsEmailsListQuery,
+    'before' | 'after' | 'cursor'
+  >
+) => {
+  let data = providerSetupSessionEmailsLoader.use(
+    instanceId && setupSessionId
+      ? { order: 'desc', ...query, instanceId, setupSessionId }
+      : null
+  );
+
+  return data;
+};
+
+export let useCreateProviderSetupSessionEmails =
+  providerSetupSessionEmailsLoader.createExternalMutator(
+    (
+      i: {
+        instanceId: string;
+        setupSessionId: string;
+      } & DashboardInstanceProviderDeploymentsSetupSessionsEmailsCreateBody
+    ) =>
+      withAuth(sdk => {
+        let { instanceId, setupSessionId, ...body } = i;
+        return sdk.providerDeployments.setupSessions.emails.create(
+          instanceId,
+          setupSessionId,
+          body
+        );
+      }),
+    { disableToast: true }
+  );
 
 export let useGetProviderSetupSession = (instanceId: string | null | undefined) => {
   return useMutation(

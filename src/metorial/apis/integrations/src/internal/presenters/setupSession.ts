@@ -14,7 +14,6 @@ import type {
   ProviderSetupSession,
   ProviderSpecification
 } from '@metorial-subspace/db';
-import { env } from '../../env';
 
 type SetupSessionAuthMethod = ProviderAuthMethod & {
   specification: Omit<ProviderSpecification, 'value'>;
@@ -35,11 +34,6 @@ type SetupSessionConfig = ProviderConfig & {
     | null;
   specification: Omit<ProviderSpecification, 'value'>;
 };
-
-export let providerSetupSessionUrl = (
-  providerSetupSession: Pick<ProviderSetupSession, 'id' | 'clientSecret'>
-) =>
-  `${env.service.INTEGRATIONS_UI_URL}/setup-session/${providerSetupSession.id}?client_secret=${providerSetupSession.clientSecret}`;
 
 export let setupSessionSchemaPresenter = (
   object: 'provider.setup_session.auth_config_schema' | 'provider.setup_session.config_schema',

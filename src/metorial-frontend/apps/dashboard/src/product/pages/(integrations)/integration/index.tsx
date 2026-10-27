@@ -13,6 +13,7 @@ import { Button, RenderDate, Spacer, Text } from '@metorial/ui';
 import { Box, Table } from '@metorial/ui-product';
 import { Link, useParams } from 'react-router-dom';
 import { UsageOverviewTiles } from '../../../scenes/instanceUsage';
+import { IntegrationAdminSetupCallouts } from '../../../scenes/integrations/adminSetupCallout';
 import { showIntegrationProviderPanelFlow } from '../../../scenes/integrations/providerPanelFlow';
 import { IntegrationProvidersManager } from '../../../scenes/integrations/providersManager';
 
@@ -97,6 +98,13 @@ export let IntegrationOverviewPage = () => {
 
     return (
       <DetailsOverviewLayout>
+        {integration.data.status === 'active' ? (
+          <IntegrationAdminSetupCallouts
+            instanceId={instance.data!.id}
+            integration={integration.data}
+          />
+        ) : null}
+
         <UsageOverviewTiles
           filter={{ integrationId: integration.data.id }}
           tiles={['tool_calls', 'sessions', 'active_consumers', 'errors']}

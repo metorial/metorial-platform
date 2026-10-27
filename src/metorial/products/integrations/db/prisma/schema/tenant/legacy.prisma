@@ -323,12 +323,13 @@ model TenantActor {
 
   createdAt DateTime @default(now())
 
-  customProviderVersions    CustomProviderVersion[]
-  customProviderDeployments CustomProviderDeployment[]
-  customProviderCommits     CustomProviderCommit[]
-  upcomingCustomProviders   UpcomingCustomProvider[]
-  monitorAlertEvents        MonitorAlertEvent[]
-  monitorAlertRecipients    MonitorAlertRecipient[]
+  customProviderVersions     CustomProviderVersion[]
+  customProviderDeployments  CustomProviderDeployment[]
+  customProviderCommits      CustomProviderCommit[]
+  upcomingCustomProviders    UpcomingCustomProvider[]
+  monitorAlertEvents         MonitorAlertEvent[]
+  monitorAlertRecipients     MonitorAlertRecipient[]
+  providerSetupSessionEmails ProviderSetupSessionEmail[]
 
   @@unique([tenantOid, identifier])
   @@unique([tenantOid, organizationActorOid])

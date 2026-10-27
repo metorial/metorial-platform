@@ -13,6 +13,7 @@ import {
   MAX_WEBHOOK_BODY_BYTES,
   payloadTooLargeError
 } from '../../lib/ingestWebhookRequest';
+import { oauthErrorPage } from '../../lib/oauthErrorPage';
 import { resolveCallbackSetupId } from '../../lib/resolveCallbackSetupId';
 import { slateOAuthHandlerService } from '../../services/slateOAuthHandler';
 import { slateWebhookRegistrationService } from '../../services/slateWebhookRegistration';
@@ -169,7 +170,7 @@ export let hubApp = createHono()
     c.res.headers.set('Access-Control-Allow-Credentials', 'true');
   })
   .get('/ping', c => c.text('OK'))
-  .get('/slates-hub/authorization', async c => {
+  .get('/slates-hub/authorization', oauthErrorPage, async c => {
     let oauthSetupId = c.req.query('setup_id');
     if (!oauthSetupId)
       throw new ServiceError(badRequestError({ message: 'setup_id is required' }));
@@ -184,7 +185,7 @@ export let hubApp = createHono()
 
     return c.redirect(res.authorizationUrl);
   })
-  .get('/slates-hub/callback', async c => {
+  .get('/slates-hub/callback', oauthErrorPage, async c => {
     let { setupCookieIds, lastSetupCookieId } = readSetupCookies(c);
     if (!setupCookieIds.length)
       throw new ServiceError(badRequestError({ message: 'OAuth setup cookie is missing' }));

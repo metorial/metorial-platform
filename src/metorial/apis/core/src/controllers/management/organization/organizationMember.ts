@@ -33,6 +33,10 @@ export let organizationMemberManagementController = Controller.create(
           v.object({
             team_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by team ID(s)'
+            }),
+            search: v.optional(v.string({ modifiers: [v.maxLength(200)] }), {
+              description:
+                'Filter by name or email (case-insensitive), matching either the member or their user account'
             })
           })
         )
@@ -40,7 +44,8 @@ export let organizationMemberManagementController = Controller.create(
       .do(async ctx => {
         let paginator = await organizationMemberService.listOrganizationMembers({
           organization: ctx.organization,
-          teamIds: normalizeArrayParam(ctx.query.team_id)
+          teamIds: normalizeArrayParam(ctx.query.team_id),
+          search: ctx.query.search
         });
 
         let list = await paginator.run(ctx.query);

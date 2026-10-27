@@ -60,7 +60,7 @@ import {
 } from '@metorial-subspace/module-tenant';
 import { type AuditSubspaceIntegrationProvider, Fabric } from '@metorial/fabric';
 import { env } from '../env';
-import { integrationProviderVersionInclude } from '../lib/integrationIncludes';
+import { integrationProviderVersionPresentableInclude } from '../lib/integrationIncludes';
 import {
   createIntegrationProviderVersion,
   createIntegrationVersion,
@@ -79,7 +79,7 @@ export let integrationProviderInclude = {
   integration: true,
   provider: true,
   currentVersion: {
-    include: integrationProviderVersionInclude
+    include: integrationProviderVersionPresentableInclude
   },
   callbacks: {
     where: { status: 'active' as const, ownership: 'user' as const },

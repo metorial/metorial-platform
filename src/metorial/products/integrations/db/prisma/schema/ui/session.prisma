@@ -120,6 +120,7 @@ model ProviderSetupSession {
   expiresAt DateTime
 
   events ProviderSetupSessionEvent[]
+  emails ProviderSetupSessionEmail[]
 
   @@index([createdAt])
   @@index([updatedAt])
@@ -162,6 +163,29 @@ model ProviderSetupSessionEvent {
   createdAt DateTime @default(now())
 
   @@index([type])
+}
+
+model ProviderSetupSessionEmail {
+  oid BigInt @id
+  id  String @unique
+
+  recipientEmail       String
+  organizationMemberId String?
+
+  throttleBucket Int
+
+  setupSessionOid BigInt
+  setupSession    ProviderSetupSession @relation(fields: [setupSessionOid], references: [oid], onDelete: Cascade)
+
+  senderActorOid BigInt?
+  senderActor    TenantActor? @relation(fields: [senderActorOid], references: [oid], onDelete: SetNull)
+
+  failedAt  DateTime?
+  createdAt DateTime  @default(now())
+
+  @@unique([setupSessionOid, recipientEmail, throttleBucket])
+  @@index([senderActorOid])
+  @@index([createdAt])
 }
 
 enum IntegrationSetupSessionStatus {
