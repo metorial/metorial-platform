@@ -9,6 +9,7 @@ import {
   useOptimisticReassess
 } from '../../lib/optimisticReassess';
 import { usePolling } from '../../lib/usePolling';
+import { skillVersionsLoader } from '../../skills/loaders/skills';
 import { useDashboardFlags } from '../../organization/loaders/flags';
 import { withAuth } from '../../user';
 
@@ -56,7 +57,7 @@ export let useSkillSecurityReviewRevisions = (
 
 export let skillSecurityReviewLoader = createLoader({
   name: 'skillSecurityReview',
-  parents: [skillSecurityReviewRevisionsLoader],
+  parents: [skillSecurityReviewRevisionsLoader, skillVersionsLoader],
   fetch: (i: { instanceId: string; skillId: string }) =>
     withAuth(sdk => sdk.skills.securityReview.get(i.instanceId, i.skillId)),
   mutators: {

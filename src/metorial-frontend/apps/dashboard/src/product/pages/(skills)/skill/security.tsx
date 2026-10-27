@@ -1,6 +1,7 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { EmptyState } from '@metorial/empty-state';
 import {
+  skillVersionsLoader,
   useCurrentInstance,
   useSkill,
   useSkillSecurityReview,
@@ -10,7 +11,7 @@ import {
   useStorePermissions
 } from '@metorial/state';
 import { Button, Callout, confirm, RenderDate, Text, Title } from '@metorial/ui';
-import { RiEyeOffLine, RiLockLine, RiRefreshLine } from '@remixicon/react';
+import { RiEyeOffLine, RiFileAddLine, RiLockLine, RiRefreshLine } from '@remixicon/react';
 import { useEffect, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import {
@@ -43,6 +44,13 @@ export let SkillSecurityPage = () => {
   let canWriteSkill =
     storePermissions.data?.hasFullAccess ||
     storePermissions.data?.permissions.includes('content_write');
+
+  let versions = skillVersionsLoader.use(
+    instance.data?.id && skill.data?.id
+      ? { instanceId: instance.data.id, skillId: skill.data.id, limit: 1 }
+      : null
+  );
+  let hasNoVersions = !!versions.data && versions.data.items.length == 0;
 
   let isEnabled = useSkillSecurityReviewsEnabled();
   let review = useSkillSecurityReview(instance.data?.id, skill.data?.id);
@@ -157,7 +165,7 @@ export let SkillSecurityPage = () => {
               success={reassess.isSuccess}
               onClick={() => reassess.mutate(undefined)}
             >
-              {inProgress ? 'Reassessing' : 'Reassess Skill'}
+              {inProgress ? 'Reassessing' : hasNoVersions ? 'Review Now' : 'Reassess Skill'}
             </Button>
           )}
         </SecurityReportHeaderActions>
@@ -215,7 +223,27 @@ export let SkillSecurityPage = () => {
               </Title>
             </SecurityReportVerdictHeader>
 
-            {review.data.verdict == 'unavailable' ? (
+            {hasNoVersions && !inProgress ? (
+              <SecurityReviewStatus
+                icon={<RiFileAddLine size={28} />}
+                title="This skill has not been reviewed yet."
+                description="Reviews wait a while to start for now skills."
+                action={
+                  canWriteSkill ? (
+                    <Button
+                      size="2"
+                      variant="outline"
+                      iconLeft={<RiRefreshLine />}
+                      loading={reassess.isLoading}
+                      success={reassess.isSuccess}
+                      onClick={() => reassess.mutate(undefined)}
+                    >
+                      Review Now
+                    </Button>
+                  ) : undefined
+                }
+              />
+            ) : review.data.verdict == 'unavailable' ? (
               <SecurityReviewStatus
                 icon={<RiLockLine size={28} />}
                 eyebrow="Review unavailable"
@@ -239,9 +267,11 @@ export let SkillSecurityPage = () => {
             )}
           </SecurityReportVerdict>
 
-          <Text size="1" color="gray600" style={{ marginTop: 12 }}>
-            You can leave this page; the report appears here when it is ready.
-          </Text>
+          {!(hasNoVersions && !inProgress) && (
+            <Text size="1" color="gray600" style={{ marginTop: 12 }}>
+              You can leave this page; the report appears here when it is ready.
+            </Text>
+          )}
         </>
       );
     }

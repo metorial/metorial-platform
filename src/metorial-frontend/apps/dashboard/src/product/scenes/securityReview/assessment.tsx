@@ -63,7 +63,6 @@ let Eyebrow = styled.span`
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.04em;
-  text-transform: uppercase;
   color: ${theme.colors.gray600};
 `;
 
@@ -364,7 +363,7 @@ export let SecurityReviewStatus = ({
   action
 }: {
   icon: React.ReactNode;
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   description: React.ReactNode;
   action?: React.ReactNode;
@@ -373,7 +372,7 @@ export let SecurityReviewStatus = ({
     <ScoreRing placeholder={<PlaceholderIcon>{icon}</PlaceholderIcon>} />
 
     <VerdictCopy>
-      <Eyebrow>{eyebrow}</Eyebrow>
+      {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
       <Title as="h3" size="4" weight="strong">
         {title}
       </Title>
