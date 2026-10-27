@@ -27,7 +27,6 @@ import {
   SecurityReportVerdict,
   SecurityReportVerdictFooter,
   SecurityReportVerdictHeader,
-  SecurityReviewAiLabel,
   SecurityReviewMeta,
   SecurityReviewStatus,
   SkillVerdictBadge
@@ -209,7 +208,6 @@ export let SkillSecurityPage = () => {
               <Title as="h3" size="3" weight="strong">
                 Review Progress
               </Title>
-              <SecurityReviewAiLabel revision={null} />
             </SecurityReportVerdictHeader>
 
             {review.data.verdict == 'unavailable' ? (
@@ -272,7 +270,6 @@ export let SkillSecurityPage = () => {
                 <Title as="h3" size="3" weight="strong">
                   Verdict
                 </Title>
-                <SecurityReviewAiLabel revision={displayed} />
               </SecurityReportVerdictHeader>
 
               <SecurityAssessmentBody

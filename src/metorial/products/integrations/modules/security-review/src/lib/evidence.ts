@@ -39,6 +39,7 @@ export type CollectedEvidence = {
   census?: SecuritySpecCensus;
   specificationOid?: bigint;
   limitations: string[];
+  outOfScope?: string[];
 };
 
 export let readHints = (annotations: any): SecurityToolHints => ({
@@ -51,6 +52,14 @@ export let readHints = (annotations: any): SecurityToolHints => ({
   openWorld:
     typeof annotations?.openWorldHint == 'boolean' ? annotations.openWorldHint : undefined
 });
+
+let readOnlyTags = new Set<SecurityCapabilityTag>([
+  'read',
+  'untrusted_input',
+  'bulk_private_data'
+]);
+
+export let isMutatingTag = (tag: SecurityCapabilityTag) => !readOnlyTags.has(tag);
 
 let hasAnyHint = (hints: SecurityToolHints) =>
   Object.values(hints).some(value => value !== undefined);
@@ -85,7 +94,7 @@ export let hintMismatchFindings = (d: {
     let tool = byKey.get(capability.key);
     if (!tool?.hints.readOnly) return [];
 
-    let mutating = capability.tags.filter(tag => tag != 'read' && tag != 'untrusted_input');
+    let mutating = capability.tags.filter(isMutatingTag);
     if (!mutating.length) return [];
 
     let hidesDestructive = mutating.includes('destructive');

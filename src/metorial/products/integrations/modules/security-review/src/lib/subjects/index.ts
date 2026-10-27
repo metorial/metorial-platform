@@ -93,7 +93,10 @@ let directoryListing = (evidence: CollectedEvidence) => {
       'Server name, description, server info and instructions from the specification.'
     ],
     ['auth.json', 'Authentication methods and the OAuth scopes they request.'],
-    ['tools/', 'One JSON file per tool: description, input schema and annotations.'],
+    [
+      'tools/',
+      'One JSON file per tool: description, input schema, MCP annotations (if any), tags and scopes.'
+    ],
     ['docs/', 'Documentation published with the integration.'],
     ['code/', 'The full source code of this version.'],
     ['deployment.json', 'Runtime, environment variable names (never values) and repository.'],

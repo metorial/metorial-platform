@@ -149,9 +149,6 @@ let presentRevision = (d: { review: ReviewInput; revision: RevisionInput }) => {
     awaiting_tools: revision.awaitingTools,
 
     ai_generated: revision.mode == 'ai',
-    // Staff re-runs must not be distinguishable from routine ones.
-    trigger: revision.trigger == 'admin' ? ('scheduled' as const) : revision.trigger,
-    trigger_reason: context?.reason ?? null,
 
     scores: presentScores(revision.scores as SecurityReviewComputedScores | null),
     report: presentReport(revision.report as SecurityReport | null),
@@ -171,9 +168,6 @@ let presentRevision = (d: { review: ReviewInput; revision: RevisionInput }) => {
         evidence: presentEvidence(value.evidence)
       };
     }),
-
-    rules_version: revision.rulesVersion,
-    prompt_version: revision.promptVersion,
 
     started_at: revision.startedAt,
     completed_at: revision.completedAt,
@@ -266,26 +260,6 @@ let revisionSchema = v.object({
   }),
 
   ai_generated: v.boolean({ description: 'Whether the report was written by an AI reviewer' }),
-  trigger: v.enumOf(
-    [
-      'first_use',
-      'page_open',
-      'new_version',
-      'deployment',
-      'tools_discovered',
-      'census_changed',
-      'scheduled',
-      'prompt_update',
-      'reassess'
-    ],
-    { description: 'What caused this revision to be created' }
-  ),
-  trigger_reason: v.nullable(
-    v.string({
-      description: 'Human-readable explanation of the trigger',
-      examples: ['A new version was published.']
-    })
-  ),
 
   scores: v.nullable(
     v.object(
@@ -455,12 +429,6 @@ let revisionSchema = v.object({
       evidence: evidenceSchema
     })
   ),
-
-  rules_version: v.string({
-    description: 'Version of the scoring rules',
-    examples: ['2026.10']
-  }),
-  prompt_version: v.string({ description: 'Version of the reviewer instructions' }),
 
   started_at: v.nullable(v.date({ description: 'When the review started running' })),
   completed_at: v.nullable(v.date({ description: 'When the review finished' })),

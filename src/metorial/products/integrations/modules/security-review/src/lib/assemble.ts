@@ -125,15 +125,13 @@ export let assembleReport = (d: AssembleInput) => {
     exposureNote: exposureSentences[scores.exposure]
   };
 
+  let isSlate = d.evidence.kind == 'slate';
   let limitations = [
-    ...(draft.method?.limitations ?? []),
+    ...(isSlate ? [] : (draft.method?.limitations ?? [])),
     ...d.evidence.limitations,
     ...(d.blockReason ? [blockReasonText[d.blockReason]] : []),
     ...(d.budgetExhausted
       ? ['The review reached its analysis budget before covering everything.']
-      : []),
-    ...(d.gaps.length
-      ? ['Some sections did not pass validation and were filled from deterministic checks.']
       : [])
   ];
 
@@ -148,10 +146,12 @@ export let assembleReport = (d: AssembleInput) => {
         'Tool specification and declared annotations',
         'Deterministic scanners for prompt injection, secrets and vulnerable dependencies'
       ],
-      outOfScope: draft.method?.outOfScope ?? [
-        'Runtime behavior of the server',
-        'Data returned by tools'
-      ],
+      outOfScope: isSlate
+        ? (d.evidence.outOfScope ?? [])
+        : (draft.method?.outOfScope ?? [
+            'Runtime behavior of the server',
+            'Data returned by tools'
+          ]),
       limitations: [...new Set(limitations)]
     }
   };

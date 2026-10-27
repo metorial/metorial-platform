@@ -1,5 +1,6 @@
 import { Badge, Datalist, RenderDate, Text, theme, Title } from '@metorial/ui';
 import { RiInformationLine } from '@remixicon/react';
+import type React from 'react';
 import { styled } from 'styled-components';
 import {
   confidenceLabels,
@@ -85,6 +86,49 @@ let Note = styled.div`
   }
 `;
 
+let scrollToReportSection = (event: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+  if (event.button != 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
+    return;
+
+  let section = document.getElementById(id);
+  if (!section) return;
+
+  event.preventDefault();
+
+  let container = section.parentElement;
+  while (container) {
+    let overflow = window.getComputedStyle(container).overflowY;
+    if (
+      (overflow == 'auto' || overflow == 'scroll') &&
+      container.scrollHeight > container.clientHeight
+    )
+      break;
+    container = container.parentElement;
+  }
+
+  let header = (container ?? document).querySelector<HTMLElement>(
+    '[data-details-layout-header]'
+  );
+  let offset = (header?.getBoundingClientRect().height ?? 0) + 16;
+  let behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ? 'instant'
+    : 'smooth';
+
+  if (container) {
+    let top =
+      container.scrollTop +
+      section.getBoundingClientRect().top -
+      container.getBoundingClientRect().top -
+      offset;
+    container.scrollTo({ top, behavior } as any);
+  } else {
+    window.scrollTo({
+      top: window.scrollY + section.getBoundingClientRect().top - offset,
+      behavior
+    } as any);
+  }
+};
+
 export type ReportContentsEntry = { id: string; label: string };
 
 let getCoverage = (revision: AnySecurityReviewRevision) => {
@@ -139,7 +183,11 @@ export let SecurityReportAside = ({
         </Text>
         <Contents aria-label="Report contents">
           {contents.map(entry => (
-            <a key={entry.id} href={`#${entry.id}`}>
+            <a
+              key={entry.id}
+              href={`#${entry.id}`}
+              onClick={event => scrollToReportSection(event, entry.id)}
+            >
               {entry.label}
             </a>
           ))}
@@ -153,10 +201,6 @@ export let SecurityReportAside = ({
         <Datalist
           items={[
             ...(versionLabel ? [{ label: 'Version', value: versionLabel }] : []),
-            {
-              label: 'Trigger',
-              value: triggerReason ?? triggerLabels[revision.trigger]
-            },
             ...(scores
               ? [{ label: 'Confidence', value: confidenceLabels[scores.confidence] }]
               : []),
@@ -164,8 +208,7 @@ export let SecurityReportAside = ({
             {
               label: 'Reviewed at',
               value: <RenderDate date={revision.completedAt ?? revision.createdAt} />
-            },
-            { label: 'Report', value: revision.aiGenerated ? 'AI-generated' : 'Deterministic' }
+            }
           ]}
         />
       </div>
@@ -215,7 +258,8 @@ export let SecurityReportAside = ({
         <RiInformationLine size={14} />
         <Text size="1" color="gray700">
           <strong>A point-in-time assessment.</strong> This report covers the reviewed version
-          and the evidence available at the time. A new version triggers a new assessment.
+          and the evidence available at the time. New versions or changes to the provider will
+          lead to new assessments and reports.
         </Text>
       </Note>
     </Aside>

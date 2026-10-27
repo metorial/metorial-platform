@@ -28,7 +28,6 @@ import {
   SecurityReportVerdict,
   SecurityReportVerdictFooter,
   SecurityReportVerdictHeader,
-  SecurityReviewAiLabel,
   SecurityReviewMeta
 } from '../../scenes/securityReview';
 import { useProviderVersionContext } from './providerVersionContext';
@@ -180,7 +179,6 @@ export let ProviderSecurityPage = () => {
               <Title as="h3" size="3" weight="strong">
                 Review Progress
               </Title>
-              <SecurityReviewAiLabel revision={null} />
             </SecurityReportVerdictHeader>
 
             <SecurityAssessmentBody
@@ -231,7 +229,6 @@ export let ProviderSecurityPage = () => {
                 <Title as="h3" size="3" weight="strong">
                   Verdict
                 </Title>
-                <SecurityReviewAiLabel revision={displayed} />
               </SecurityReportVerdictHeader>
 
               <SecurityAssessmentBody

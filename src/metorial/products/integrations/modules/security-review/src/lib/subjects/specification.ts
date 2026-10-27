@@ -4,6 +4,8 @@ import { type EvidenceTool, readHints } from '../evidence';
 let isCallable = (tool: SpecificationTool) =>
   tool.mcpToolType.type == 'mcp.tool' || tool.mcpToolType.type == 'tool.callable';
 
+let isAdapterTool = (tool: SpecificationTool) => !!tool.adapterIdentifier;
+
 let annotationsOf = (tool: SpecificationTool) =>
   tool.mcpToolType.type == 'mcp.tool' ? tool.mcpToolType.annotations : undefined;
 
@@ -25,6 +27,25 @@ export let toEvidenceTool = (tool: SpecificationTool): EvidenceTool => {
   };
 };
 
+let scopeIdsOf = (tool: SpecificationTool) =>
+  (tool.scopes?.AND ?? []).flatMap(clause => clause.OR);
+
+let findUnusedScopes = (d: {
+  tools: SpecificationTool[];
+  authMethods: { key: string; name: string; scopes?: unknown }[];
+}) => {
+  let used = new Set(d.tools.flatMap(scopeIdsOf));
+
+  return d.authMethods.flatMap(method => {
+    let requested = Array.isArray(method.scopes)
+      ? (method.scopes as { id: string }[]).map(scope => scope.id)
+      : [];
+    let unused = requested.filter(id => !used.has(id));
+
+    return unused.length ? [{ method: method.name, requested: requested.length, unused }] : [];
+  });
+};
+
 export let loadSpecification = async (specificationOid: bigint | null) => {
   if (!specificationOid) return null;
 
@@ -34,11 +55,15 @@ export let loadSpecification = async (specificationOid: bigint | null) => {
   if (!specification) return null;
 
   let value = specification.value;
+  let callable = value.tools.filter(isCallable);
+  let reviewed = callable.filter(tool => !isAdapterTool(tool));
 
   return {
     oid: specification.oid,
     hash: specification.hash,
-    tools: value.tools.filter(isCallable).map(toEvidenceTool),
+    tools: reviewed.map(toEvidenceTool),
+    adapterToolCount: callable.length - reviewed.length,
+    unusedScopes: findUnusedScopes({ tools: callable, authMethods: value.authMethods }),
     files: {
       'spec.json': JSON.stringify(
         {
@@ -46,7 +71,7 @@ export let loadSpecification = async (specificationOid: bigint | null) => {
           description: value.specification.description ?? null,
           serverInfo: value.specification.mcp?.serverInfo ?? null,
           instructions: value.specification.mcp?.instructions ?? null,
-          tools: value.tools.filter(isCallable).map(tool => tool.key)
+          tools: reviewed.map(tool => tool.key)
         },
         null,
         2
@@ -57,13 +82,15 @@ export let loadSpecification = async (specificationOid: bigint | null) => {
           key: method.key,
           name: method.name,
           description: method.description ?? null,
-          scopes: (method as { scopes?: unknown }).scopes ?? null
+          ...(Array.isArray((method as { scopes?: unknown }).scopes)
+            ? { scopes: (method as { scopes?: unknown }).scopes }
+            : {})
         })),
         null,
         2
       ),
       ...Object.fromEntries(
-        value.tools.filter(isCallable).map(tool => [
+        reviewed.map(tool => [
           `tools/${tool.key.replace(/[^\w.-]+/g, '_')}.json`,
           JSON.stringify(
             {
@@ -73,6 +100,7 @@ export let loadSpecification = async (specificationOid: bigint | null) => {
               description: tool.description ?? null,
               inputSchema: tool.inputJsonSchema,
               annotations: annotationsOf(tool) ?? null,
+              tags: tool.tags ?? null,
               scopes: tool.scopes ?? null
             },
             null,

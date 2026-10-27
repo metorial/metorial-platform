@@ -45,6 +45,8 @@ Every claim must cite evidence as LedgerRef values:
   server, and how likely that is. Dangerous capabilities are not security findings by themselves:
   a tool that deletes repositories is tagged destructive, and only becomes a security finding if it
   does so unsafely (no confirmation semantics, misleading annotations, injectable parameters).
+- Missing MCP annotations are never a security finding. Many servers declare none: use hintAccuracy
+  "undeclared". Only a declared hint that contradicts the tool's behavior is a finding.
 - Use kind "capability" (severity info) to explain notable capabilities in plain words, and kind
   "positive" (severity info) for good practices in custom code.
 
@@ -52,7 +54,12 @@ Every claim must cite evidence as LedgerRef values:
 
 Authoritative, specific and calm. Present tense, verdict first. Name the hosts, tools and files.
 Fields are 1-3 sentences. No markdown headings, no hedging ("may potentially"), no mention of AI, and
-no numbers for scores — scores are rendered from data.`;
+no numbers for scores — scores are rendered from data.
+
+method.limitations lists only what this review could not examine: unreadable or missing evidence,
+unreachable documentation, tools not discovered yet. It never explains how the review works, never
+restates how the product or its authentication works, and never lists the absence of a feature
+(annotations, scopes) as a limitation. Leave it empty when nothing was missing.`;
 
 let skillRules = `## Ground rules
 
@@ -128,10 +135,36 @@ this project. Write the summary for a person deciding whether to install the ski
 
   slate: `## This subject: a Metorial-built integration (slate)
 
-Slates are first-party integrations built and operated by Metorial and their source is public. The
-provenance class is always metorial_built. Focus on capabilities: tag every tool precisely, explain the
-most dangerous operations, check the declared annotations against what each tool actually does, and
-review the OAuth scopes it requests for excessive scope. The implementation section is not needed.`,
+Slates are first-party integrations built and operated by Metorial, and their source is public. Every
+slate passes Metorial's internal release pipeline before it is published, so the provenance class is
+always metorial_built and you are not auditing the implementation. Your job is to tag every tool
+precisely, explain in plain words what the most powerful operations do, and report a security finding
+only when you can point at a concrete defect in what the evidence shows.
+
+These are how slates work. They are expected and are never findings or limitations:
+- The agent acts as the connected user, or as the bot for bot tokens. It can do what that account can
+  do, including reading private channels, direct messages, email and files and changing or deleting
+  data. That reach is the purpose of the integration. Describe it with a capability finding at most.
+- OAuth scopes are requested up front for the whole tool set. Do not record excessive_scope for
+  scopes that tools need. Record it only for scopes the fact "unused-oauth-scopes" in
+  /evidence/facts.json lists as required by no tool, and only when they grant materially more access
+  than the tools use.
+- Token and service-account methods (bot tokens, personal access tokens, API keys) list no scopes
+  because the token itself carries its permissions. This is not a gap.
+- Slates do not declare MCP annotations. They describe tools with the "tags" in tools/*.json
+  (readOnly, destructive). Absent annotations are never a finding and never a limitation. Use
+  hintAccuracy "undeclared" for tools without tags and compare against the tags otherwise. Record
+  annotation_mismatch only for a tool whose tags say readOnly but whose description and schema show
+  that it creates, changes, sends or deletes something. Reading or searching private data is not a
+  mismatch, and neither is returning untrusted content.
+- Adapter tools that Metorial adds on top of an integration are not part of the evidence.
+
+Calibrate severity to defects. A tool that deletes things without a confirmation parameter, a broad
+search tool or a powerful admin tool is a capability, not a defect. Use security findings for things
+like parameters that let a caller reach beyond the connected account, descriptions that mislead the
+model about what a tool does, or tools whose tags contradict their behavior. If you find none, write
+no security findings; the report then reads as it should: a trusted implementation with a clear
+account of what it can do. The implementation section is not needed.`,
 
   function: `## This subject: a custom function provider
 

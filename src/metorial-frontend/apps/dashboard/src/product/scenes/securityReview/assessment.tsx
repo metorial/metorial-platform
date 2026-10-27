@@ -7,8 +7,7 @@ import {
   Spinner,
   Text,
   theme,
-  Title,
-  Tooltip
+  Title
 } from '@metorial/ui';
 import { LevelBadge, ScoreRing } from '@metorial/ui-product';
 import {
@@ -16,7 +15,6 @@ import {
   RiFlashlightLine,
   RiLockLine,
   RiShieldCheckLine,
-  RiSparkling2Line,
   RiTimeLine
 } from '@remixicon/react';
 import React from 'react';
@@ -30,7 +28,6 @@ import {
   getReviewStages,
   getReviewSubject,
   isAiReviewScheduled,
-  isDeterministicRevision,
   isSkillReview,
   isSkillRevision,
   levelLabels,
@@ -85,9 +82,8 @@ let Axis = styled.div`
   display: flex;
   gap: 10px;
   padding: 12px 14px;
-  border: 1px solid ${theme.colors.gray300};
   border-radius: 8px;
-  background: ${theme.colors.gray100};
+  background: ${theme.colors.gray200};
 
   svg {
     flex-shrink: 0;
@@ -173,39 +169,6 @@ let AiLabel = styled.span`
   color: ${theme.colors.gray700};
 `;
 
-export let SecurityReviewAiLabel = ({
-  revision
-}: {
-  revision: AnySecurityReviewRevision | null;
-}) => {
-  if (revision && isDeterministicRevision(revision)) {
-    return (
-      <AiLabel>
-        <RiShieldCheckLine size={14} />
-        Deterministic Checks Only
-      </AiLabel>
-    );
-  }
-
-  if (!revision) {
-    return (
-      <AiLabel>
-        <RiSparkling2Line size={14} />
-        AI Review
-      </AiLabel>
-    );
-  }
-
-  return (
-    <Tooltip content="AI-generated assessment, not a security audit. Review the evidence before making security decisions.">
-      <AiLabel>
-        <RiSparkling2Line size={14} />
-        AI-Generated
-      </AiLabel>
-    </Tooltip>
-  );
-};
-
 export let SecurityReviewVerdict = ({
   revision,
   detailed
@@ -242,7 +205,10 @@ export let SecurityReviewVerdict = ({
                   {confidenceLabels[scores.confidence]} Confidence
                 </LevelBadge>
               )}
-              {scores.lethalTrifecta && <Badge color="red">Lethal Trifecta</Badge>}
+              {scores.lethalTrifecta &&
+                revision.report.provenance?.class != 'metorial_built' && (
+                  <Badge color="red">Lethal Trifecta</Badge>
+                )}
             </BadgeRow>
           )}
 

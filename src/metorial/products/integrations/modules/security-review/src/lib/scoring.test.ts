@@ -147,6 +147,18 @@ describe('risk', () => {
     expect(computeRisk({ postureRisk: 'moderate', exposure: 'moderate' })).toBe('high');
   });
 
+  it('rates first-party code by its posture, not by what its tools can do', () => {
+    expect(
+      computeRisk({ postureRisk: 'low', exposure: 'critical', provenance: 'metorial_built' })
+    ).toBe('low');
+    expect(
+      computeRisk({ postureRisk: 'high', exposure: 'low', provenance: 'metorial_built' })
+    ).toBe('high');
+    expect(
+      computeRisk({ postureRisk: 'low', exposure: 'critical', provenance: 'tenant_code' })
+    ).toBe('critical');
+  });
+
   it('treats unknown exposure as moderate', () => {
     expect(computeRisk({ postureRisk: 'low', exposure: 'unknown' })).toBe('moderate');
   });
@@ -203,8 +215,31 @@ describe('computeScores', () => {
     });
 
     expect(scores.security).toBe(95);
-    expect(scores.risk).toBe('high');
+    expect(scores.exposure).toBe('high');
+    expect(scores.risk).toBe('low');
     expect(scores.headline).toEqual(['Trusted implementation.', 'Powerful permissions.']);
     expect(scores.counts.capabilities).toEqual({ read: 1, write: 0, destructive: 1 });
+  });
+
+  it('keeps tenant code at the higher of posture and exposure', () => {
+    let scores = computeScores({
+      provenance: 'tenant_code',
+      tools: [tool('read'), tool('write', 'destructive')],
+      findings: [],
+      coverage: fullCoverage
+    });
+
+    expect(scores.risk).toBe('critical');
+  });
+
+  it('counts read tools that touch private data as read', () => {
+    let scores = computeScores({
+      provenance: 'metorial_built',
+      tools: [tool('read', 'bulk_private_data', 'untrusted_input'), tool('write')],
+      findings: [],
+      coverage: fullCoverage
+    });
+
+    expect(scores.counts.capabilities).toEqual({ read: 1, write: 1, destructive: 0 });
   });
 });

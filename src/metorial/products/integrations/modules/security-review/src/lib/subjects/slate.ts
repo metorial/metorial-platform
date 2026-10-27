@@ -56,6 +56,20 @@ export let collectSlateEvidence = async (d: {
       title: 'Built and operated by Metorial',
       detail: `${d.provider.name} is a first-party Metorial integration (${d.slate.identifierInRegistry ?? d.slate.identifier}, version ${d.slateVersion.version}). Its source is published in the Metorial registry and it runs on Metorial infrastructure.`
     },
+    ...(specification?.unusedScopes.length
+      ? [
+          {
+            id: 'unused-oauth-scopes',
+            title: 'OAuth scopes that no tool requires',
+            detail: specification.unusedScopes
+              .map(
+                entry =>
+                  `${entry.method}: ${entry.unused.length} of ${entry.requested} requested scopes are not required by any tool (${entry.unused.join(', ')})`
+              )
+              .join('\n')
+          }
+        ]
+      : []),
     ...poisoning.facts
   ];
 
@@ -78,6 +92,10 @@ export let collectSlateEvidence = async (d: {
     allowedProvenance: ['metorial_built'],
     fallbackProvenance: 'metorial_built',
     specificationOid: specification?.oid,
-    limitations
+    limitations,
+    outOfScope: [
+      `${d.provider.name}'s own server-side permission enforcement`,
+      'How the connecting agent or client applies permissions and asks for approval'
+    ]
   };
 };

@@ -12,6 +12,7 @@ import type {
   SecurityReviewComputedScores
 } from '@metorial-subspace/db';
 import { SECURITY_REVIEW_RULES_VERSION } from '../definitions/versions';
+import { isMutatingTag } from './evidence';
 
 type KnownLevel = Exclude<SecurityLevel, 'unknown'>;
 
@@ -129,7 +130,13 @@ export let computeExposure = (
   return { exposure: exposure as SecurityLevel, trifecta };
 };
 
-export let computeRisk = (d: { postureRisk: KnownLevel; exposure: SecurityLevel }) => {
+export let computeRisk = (d: {
+  postureRisk: KnownLevel;
+  exposure: SecurityLevel;
+  provenance?: SecurityProvenanceClass;
+}) => {
+  if (d.provenance == 'metorial_built') return d.postureRisk;
+
   let exposure: KnownLevel = d.exposure == 'unknown' ? 'moderate' : d.exposure;
   let risk = maxLevel(d.postureRisk, exposure);
 
@@ -181,7 +188,7 @@ let exposureLines: Record<SecurityLevel, string> = {
   low: 'Read-only access.',
   moderate: 'Can change your data.',
   high: 'Powerful permissions.',
-  critical: 'Critical permissions.'
+  critical: 'Broad, powerful permissions.'
 };
 
 export let headlineFor = (d: {
@@ -201,7 +208,7 @@ export let computeScores = (d: {
   let band = bandForScore(security);
   let { exposure, trifecta } = computeExposure(d.tools, d.behaviors);
   let postureRisk = postureRiskForScore(security);
-  let risk = computeRisk({ postureRisk, exposure });
+  let risk = computeRisk({ postureRisk, exposure, provenance: d.provenance });
 
   let securityFindings = d.findings.filter(finding => finding.kind == 'security');
   let countSeverity = (severity: SecurityFindingSeverityLevel) =>
@@ -221,9 +228,7 @@ export let computeScores = (d: {
     counts: {
       tools: { expected: d.coverage.toolsExpected ?? 0, reviewed: d.coverage.toolsReviewed },
       capabilities: {
-        read: tools.filter(tool =>
-          tool.tags.every(tag => tag == 'read' || tag == 'untrusted_input')
-        ).length,
+        read: tools.filter(tool => !tool.tags.some(isMutatingTag)).length,
         write: tools.filter(
           tool => tool.tags.includes('write') && !tool.tags.includes('destructive')
         ).length,

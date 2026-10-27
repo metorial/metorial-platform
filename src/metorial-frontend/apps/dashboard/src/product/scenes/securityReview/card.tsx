@@ -9,7 +9,7 @@ import { Box } from '@metorial/ui-product';
 import { RiArrowRightLine, RiLockLine } from '@remixicon/react';
 import { Link } from 'react-router-dom';
 import { styled } from 'styled-components';
-import { SecurityReviewAiLabel, SecurityReviewMeta } from './assessment';
+import { SecurityReviewMeta } from './assessment';
 import {
   getDisplayedRevision,
   isSecurityReviewNotFound,
@@ -38,7 +38,7 @@ export let SecurityAssessmentCard = ({
   instanceId,
   providerId,
   reportHref,
-  title = 'Security Assessment',
+  title = 'Protoguard Security Assessment',
   spacing = 15
 }: {
   instanceId: string | null | undefined;
@@ -63,7 +63,7 @@ export let SecurityAssessmentCard = ({
         let { current } = getReviewRevisions(review.data);
 
         return (
-          <Box title={title} rightActions={<SecurityReviewAiLabel revision={current} />}>
+          <Box title={title}>
             <SecurityAssessmentBody
               review={review.data}
               versionLabel={version.data?.version}
