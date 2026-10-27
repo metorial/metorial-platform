@@ -160,9 +160,42 @@ describe('protoGuardService.scheduleMessageScan', () => {
     mocks.tryStartScan.mockResolvedValue(null);
     let scheduler = vi.spyOn(ScanScheduler.prototype, 'schedule');
 
-    schedule();
+    expect(schedule()).toBeUndefined();
     await vi.waitFor(() => expect(mocks.tryStartScan).toHaveBeenCalled());
     await flushImmediates();
+
+    expect(scheduler).not.toHaveBeenCalled();
+    expect(mocks.getContentHashKey).not.toHaveBeenCalled();
+    expect(mocks.addJob).not.toHaveBeenCalled();
+    expect(mocks.captureException).not.toHaveBeenCalled();
+  });
+
+  it('returns to the message caller while the scan rate check is still pending', async () => {
+    let settleRateCheck!: (value: null) => void;
+    mocks.tryStartScan.mockImplementationOnce(
+      () => new Promise(resolve => (settleRateCheck = resolve))
+    );
+
+    expect(schedule()).toBeUndefined();
+    await vi.waitFor(() => expect(mocks.tryStartScan).toHaveBeenCalled());
+
+    expect(mocks.getContentHashKey).not.toHaveBeenCalled();
+    expect(mocks.addJob).not.toHaveBeenCalled();
+
+    settleRateCheck(null);
+    await flushImmediates();
+
+    expect(mocks.addJob).not.toHaveBeenCalled();
+    expect(mocks.captureException).not.toHaveBeenCalled();
+  });
+
+  it('isolates scan rate-check errors from the message caller', async () => {
+    let error = new Error('scan rate limiter unavailable');
+    mocks.tryStartScan.mockRejectedValueOnce(error);
+    let scheduler = vi.spyOn(ScanScheduler.prototype, 'schedule');
+
+    expect(schedule()).toBeUndefined();
+    await vi.waitFor(() => expect(mocks.captureException).toHaveBeenCalledWith(error));
 
     expect(scheduler).not.toHaveBeenCalled();
     expect(mocks.getContentHashKey).not.toHaveBeenCalled();
