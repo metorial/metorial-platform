@@ -257,9 +257,9 @@ export let SecurityReportAside = ({
       <Note>
         <RiInformationLine size={14} />
         <Text size="1" color="gray700">
-          <strong>A point-in-time assessment.</strong> This report covers the reviewed version
-          and the evidence available at the time. New versions or changes to the provider will
-          lead to new assessments and reports.
+          <strong>Generate by Metorial Protoguard:</strong> This report covers the reviewed
+          version and the evidence available at the time. New versions or changes to the
+          provider will lead to new assessments and reports.
         </Text>
       </Note>
     </Aside>

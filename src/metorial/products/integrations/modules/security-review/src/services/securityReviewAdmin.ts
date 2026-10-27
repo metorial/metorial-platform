@@ -20,6 +20,7 @@ import {
   withTransaction
 } from '@metorial-subspace/db';
 import { securityReviewGlobalRepository } from '@metorial/multi-region';
+import { deserializeWorkspace } from '@metorial/review-engine';
 import { internalSecurityReviewGateService } from '../internal/securityReviewGate';
 import { internalSecurityReviewMirrorService } from '../internal/securityReviewMirror';
 import { internalSecurityReviewSubjectService } from '../internal/securityReviewSubject';
@@ -32,10 +33,13 @@ import {
 } from '../lib/findings';
 import { revisionSummaryColumns } from '../lib/revisions';
 import { computeScores } from '../lib/scoring';
+import { workspaceKeyFor, workspaceStore } from '../lib/storage';
+import { buildEvidenceFiles, collectEvidence, hashEvidence } from '../lib/subjects';
 import { enqueueSecurityReview } from '../queues/run';
 
 let RECENT_FAILURE_MS = 7 * 24 * 60 * 60 * 1000;
 let ADMIN_REVISIONS = 50;
+let EXPORT_WORKSPACE_FILE_MAX_BYTES = 1024 * 1024;
 
 export let securityReviewAdminInclude = {
   provider: true,
@@ -332,6 +336,50 @@ class SecurityReviewAdminServiceImpl {
       .reduce((sum, run) => sum + run.costMicros, 0n);
 
     return { revisions, isDisabled, costMicros };
+  }
+
+  async exportSecurityReviewEvidence(d: {
+    review: SecurityReview & { currentRevision: SecurityReviewRevision | null };
+  }) {
+    let evidence = await collectEvidence({ review: d.review, includeTenantSignals: false });
+    if (!evidence) {
+      throw new ServiceError(
+        badRequestError({ message: 'The evidence for this review cannot be collected' })
+      );
+    }
+
+    let files = buildEvidenceFiles(evidence);
+    let evidenceHash = hashEvidence(files);
+    let currentEvidenceHash = d.review.currentRevision?.evidenceHash ?? null;
+
+    let workspace: Record<string, string> = {};
+    let omitted: string[] = [];
+
+    let stored = await workspaceStore.load(
+      workspaceKeyFor({ scope: d.review.scope, reviewId: d.review.id })
+    );
+    for (let [path, data] of Object.entries(stored ? deserializeWorkspace(stored) : {})) {
+      let text = Buffer.from(data).toString('utf8');
+
+      if (data.byteLength > EXPORT_WORKSPACE_FILE_MAX_BYTES || text.includes('\uFFFD')) {
+        omitted.push(path);
+        continue;
+      }
+
+      workspace[path] = text;
+    }
+
+    return {
+      exportedAt: new Date(),
+      reviewId: d.review.id,
+      subject: { kind: evidence.kind, title: evidence.title },
+      evidenceHash,
+      currentRevisionEvidenceHash: currentEvidenceHash,
+      matchesCurrentRevision: currentEvidenceHash == evidenceHash,
+      files,
+      workspace,
+      omittedWorkspaceFiles: omitted
+    };
   }
 
   async editSecurityReviewRevision(d: {

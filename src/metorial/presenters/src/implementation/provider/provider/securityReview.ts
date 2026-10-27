@@ -21,20 +21,74 @@ type ReviewInput = Prisma.SecurityReviewGetPayload<{
 type RevisionInput = Prisma.SecurityReviewRevisionGetPayload<{ include: { findings: true } }>;
 
 type PresentedEvidence =
-  | { type: 'file'; path: string; lines: number[] | null }
+  | { type: 'file'; path: string; lines: number[] | null; excerpt: string | null }
   | { type: 'url'; url: string }
-  | { type: 'tool'; tool_key: string };
+  | { type: 'tool'; tool_key: string }
+  | { type: 'note'; label: string; detail: string | null };
 
-// Ledger facts only resolve inside the review workspace, so they are not presented.
-export let presentEvidence = (evidence: SecurityLedgerRef[] | undefined) =>
-  (evidence ?? []).flatMap((ref): PresentedEvidence[] => {
-    if (ref.type == 'file') {
-      return [{ type: 'file' as const, path: ref.path, lines: ref.lines ?? null }];
+// The review workspace paths mean nothing outside the review, so generated evidence files are
+// presented under the name of what they contain, and internal ones are not presented at all.
+let evidenceFileLabels: [RegExp, string][] = [
+  [/^auth\.json$/, 'Authentication methods'],
+  [/^spec\.json$/, 'Integration specification'],
+  [/^tools\//, 'Tool definitions'],
+  [/^deployment\.json$/, 'Deployment configuration'],
+  [/^remote\.json$/, 'Remote server configuration'],
+  [/^image\.json$/, 'Container image reference'],
+  [/^signals\/protoguard\.json$/, 'ProtoGuard alerts'],
+  [/^docs\/(.+)$/, 'Documentation']
+];
+
+let CODE_EVIDENCE_PREFIX = /^\/?evidence\/code\//;
+let EVIDENCE_PREFIX = /^\/?evidence\//;
+
+let presentFileEvidence = (
+  ref: Extract<SecurityLedgerRef, { type: 'file' }>
+): PresentedEvidence[] => {
+  if (CODE_EVIDENCE_PREFIX.test(ref.path)) {
+    return [
+      {
+        type: 'file',
+        path: ref.path.replace(CODE_EVIDENCE_PREFIX, ''),
+        lines: ref.lines ?? null,
+        excerpt: ref.excerpt ?? null
+      }
+    ];
+  }
+
+  let path = ref.path.replace(EVIDENCE_PREFIX, '');
+  let match = evidenceFileLabels.find(([pattern]) => pattern.test(path));
+  if (!match) return [];
+
+  let documentPath = path.match(/^docs\/(.+)$/)?.[1];
+  return [
+    {
+      type: 'note',
+      label: documentPath ? `${match[1]}: ${documentPath}` : match[1],
+      detail: null
     }
-    if (ref.type == 'url') return [{ type: 'url' as const, url: ref.url }];
-    if (ref.type == 'tool') return [{ type: 'tool' as const, tool_key: ref.key }];
+  ];
+};
+
+export let presentEvidence = (evidence: SecurityLedgerRef[] | undefined) => {
+  let presented = (evidence ?? []).flatMap((ref): PresentedEvidence[] => {
+    if (ref.type == 'file') return presentFileEvidence(ref);
+    if (ref.type == 'url') return [{ type: 'url', url: ref.url }];
+    if (ref.type == 'tool') return [{ type: 'tool', tool_key: ref.key }];
+    if (ref.type == 'fact' && ref.title) {
+      return [{ type: 'note', label: ref.title, detail: ref.detail ?? null }];
+    }
     return [];
   });
+
+  let seen = new Set<string>();
+  return presented.filter(item => {
+    let key = JSON.stringify(item);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
 
 let presentHints = (hints: SecurityToolHints) => ({
   read_only: hints.readOnly ?? null,
@@ -182,7 +236,8 @@ export let evidenceSchema = v.array(
       path: v.string({ description: 'Path of the source file within the reviewed code' }),
       lines: v.nullable(
         v.array(v.number(), { description: 'Start and end line of the cited range' })
-      )
+      ),
+      excerpt: v.nullable(v.string({ description: 'The cited lines as they were reviewed' }))
     }),
     v.object({
       type: v.literal('url'),
@@ -191,6 +246,11 @@ export let evidenceSchema = v.array(
     v.object({
       type: v.literal('tool'),
       tool_key: v.string({ description: 'Key of the tool the evidence refers to' })
+    }),
+    v.object({
+      type: v.literal('note'),
+      label: v.string({ description: 'What the evidence is, in plain words' }),
+      detail: v.nullable(v.string({ description: 'What the review found there' }))
     })
   ]),
   { description: 'Evidence the statement is based on' }

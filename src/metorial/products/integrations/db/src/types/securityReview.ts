@@ -77,10 +77,10 @@ export type SecurityConfidenceLevel = 'low' | 'medium' | 'high';
 export type SecurityFindingSeverityLevel = 'info' | 'low' | 'medium' | 'high' | 'critical';
 
 export type SecurityLedgerRef =
-  | { type: 'file'; path: string; lines?: number[] }
+  | { type: 'file'; path: string; lines?: number[]; excerpt?: string }
   | { type: 'url'; url: string }
   | { type: 'tool'; key: string }
-  | { type: 'fact'; id: string };
+  | { type: 'fact'; id: string; title?: string; detail?: string };
 
 export type SecurityToolHints = {
   readOnly?: boolean;

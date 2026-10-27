@@ -11,6 +11,7 @@ import {
   declaredCapabilities,
   hintMismatchFindings
 } from './evidence';
+import { resolveFindingCitations, resolveReportCitations } from './citations';
 import { computeScores } from './scoring';
 
 let provenanceLabels: Record<SecurityProvenanceClass, string> = {
@@ -100,7 +101,11 @@ export let assembleReport = (d: AssembleInput) => {
     recorded: [...d.evidence.findings, ...derivedFindings],
     locked: d.lockedFindings ?? []
   });
-  let findings = merged.map(entry => entry.finding);
+  let sources = {
+    facts: d.evidence.facts,
+    files: { ...d.evidence.files, ...d.evidence.codeFiles }
+  };
+  let findings = merged.map(entry => resolveFindingCitations(entry.finding, sources));
   let origins = Object.fromEntries(merged.map(entry => [entry.finding.key, entry.origin]));
 
   let reviewedKeys = new Set(capabilities.tools.map(tool => tool.key));
@@ -135,26 +140,29 @@ export let assembleReport = (d: AssembleInput) => {
       : [])
   ];
 
-  let report: SecurityReport = {
-    ...draft,
-    summary,
-    provenance,
-    capabilities,
-    findings,
-    method: {
-      included: draft.method?.included ?? [
-        'Tool specification and declared annotations',
-        'Deterministic scanners for prompt injection, secrets and vulnerable dependencies'
-      ],
-      outOfScope: isSlate
-        ? (d.evidence.outOfScope ?? [])
-        : (draft.method?.outOfScope ?? [
-            'Runtime behavior of the server',
-            'Data returned by tools'
-          ]),
-      limitations: [...new Set(limitations)]
-    }
-  };
+  let report: SecurityReport = resolveReportCitations(
+    {
+      ...draft,
+      summary,
+      provenance,
+      capabilities,
+      findings,
+      method: {
+        included: draft.method?.included ?? [
+          'Tool specification and declared annotations',
+          'Deterministic scanners for prompt injection, secrets and vulnerable dependencies'
+        ],
+        outOfScope: isSlate
+          ? (d.evidence.outOfScope ?? [])
+          : (draft.method?.outOfScope ?? [
+              'Runtime behavior of the server',
+              'Data returned by tools'
+            ]),
+        limitations: [...new Set(limitations)]
+      }
+    },
+    sources
+  );
 
   return { report, scores, findings, origins };
 };

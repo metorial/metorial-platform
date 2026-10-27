@@ -106,11 +106,17 @@ let ledgerRef = v.union([
   v.object({
     type: v.literal('file'),
     path: v.string(),
-    lines: v.optional(v.array(v.number(), { modifiers: [v.minLength(2), v.maxLength(2)] }))
+    lines: v.optional(v.array(v.number(), { modifiers: [v.minLength(2), v.maxLength(2)] })),
+    excerpt: v.optional(v.string())
   }),
   v.object({ type: v.literal('url'), url: v.string() }),
   v.object({ type: v.literal('tool'), key: v.string() }),
-  v.object({ type: v.literal('fact'), id: v.string() })
+  v.object({
+    type: v.literal('fact'),
+    id: v.string(),
+    title: v.optional(v.string()),
+    detail: v.optional(v.string())
+  })
 ]);
 
 let evidence = v.array(ledgerRef);
