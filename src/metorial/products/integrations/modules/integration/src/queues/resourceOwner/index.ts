@@ -1,13 +1,15 @@
 import { createCron } from '@lowerdeck/cron';
 import { combineQueueProcessors, createQueue, dailyPacedDelay } from '@lowerdeck/queue';
-import { db } from '@metorial-subspace/db';
+import { db, Prisma } from '@metorial-subspace/db';
 import { env } from '../../env';
 
 let RESOURCE_OWNER_RECONCILE_BATCH_SIZE = 500;
 
 let singleWorkerOpts = { concurrency: 5, limiter: { max: 20, duration: 1000 } };
 
-let consumerActor = { type: { in: ['consumer', 'organization_member'] } } as const;
+let consumerActor = {
+  type: { in: ['consumer', 'organization_member'] }
+} satisfies Prisma.IdentityActorWhereInput;
 
 let consumerActorOid = (
   actor: { oid: bigint; type: string } | null | undefined
