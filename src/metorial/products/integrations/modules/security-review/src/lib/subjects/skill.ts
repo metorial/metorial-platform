@@ -57,6 +57,10 @@ type LoadedVersion = NonNullable<Awaited<ReturnType<typeof loadVersion>>>;
 type LoadedItem = LoadedVersion['storeVersion']['items'][number];
 type LoadedFile = NonNullable<LoadedItem['file']>;
 
+// A document item also points at a backing file row, but its content lives in the document
+// version, not in the files bucket.
+let storedFileOf = (item: LoadedItem) => (item.documentVersion ? null : item.file);
+
 export let subjectKeyForSkill = (d: { id: string }) => `skill:${d.id}`;
 
 export let loadSkillSubject = async (skillId: string) =>
@@ -166,10 +170,13 @@ let classifyFiles = async (files: LoadedFile[], names: Map<string, string>) => {
 let buildTree = async (version: LoadedVersion) => {
   let items = version.storeVersion.items;
   let names = new Map<string, string>();
-  for (let item of items) if (item.file) names.set(item.file.id, item.path);
+  for (let item of items) {
+    let file = storedFileOf(item);
+    if (file) names.set(file.id, item.path);
+  }
 
   let classified = await classifyFiles(
-    items.map(item => item.file).filter((file): file is LoadedFile => !!file),
+    items.map(storedFileOf).filter((file): file is LoadedFile => !!file),
     names
   );
 
@@ -178,9 +185,11 @@ let buildTree = async (version: LoadedVersion) => {
   for (let item of items) {
     let path = item.path;
 
-    if (item.file) {
-      let result = classified.get(item.file.id)!;
-      let file = item.file;
+    let storedFile = storedFileOf(item);
+
+    if (storedFile) {
+      let result = classified.get(storedFile.id)!;
+      let file = storedFile;
       let size = toNumber(file.fileSize);
 
       tree.set(path, {
@@ -315,8 +324,10 @@ export let collectSkillEvidence = async (d: {
       ships: true
     };
 
-    if (item.file) {
-      let result = classified.get(item.file.id)!;
+    let storedFile = storedFileOf(item);
+
+    if (storedFile) {
+      let result = classified.get(storedFile.id)!;
       inventoryEntry.detectedMime = result.classification.detectedMime;
       inventoryEntry.isDisguised = result.classification.isDisguised;
 
