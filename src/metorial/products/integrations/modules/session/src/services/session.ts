@@ -33,6 +33,7 @@ import {
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
 import { type AuditSubspaceSession, Fabric } from '@metorial/fabric';
+import { rateLimitService } from '@metorial/module-rate-limit';
 import { narrowSessionIdFilter } from '../lib/fineGrainedSessionFilter';
 import {
   assertMagicMcpSessionMutable,
@@ -339,6 +340,10 @@ class sessionServiceImpl {
 
     let eventBase = toProviderEventBase(d);
     await Fabric.fire('provider.session.created:before', eventBase);
+    await rateLimitService.consume({
+      instance: d.instance,
+      usages: [{ key: 'sessions.created' }]
+    });
 
     let session = await this.createSessionInternal({
       ...rest,

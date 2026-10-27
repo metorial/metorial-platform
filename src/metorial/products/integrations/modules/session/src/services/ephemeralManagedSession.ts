@@ -20,6 +20,7 @@ import {
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
 import { Fabric } from '@metorial/fabric';
+import { rateLimitService } from '@metorial/module-rate-limit';
 import { env } from '../env';
 import { recordEphemeralSessionAuditEvent } from '../lib/ephemeralSessionAudit';
 import { sessionArchivedQueue } from '../queues/lifecycle/session';
@@ -286,6 +287,10 @@ class ephemeralManagedSessionServiceImpl {
 
     await Fabric.fire('provider.session.ephemeral_created:before', {
       instanceOid
+    });
+    await rateLimitService.consume({
+      instance: { oid: instanceOid },
+      usages: [{ key: 'sessions.created' }]
     });
 
     let input = {

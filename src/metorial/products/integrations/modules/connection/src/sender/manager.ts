@@ -10,6 +10,7 @@ import {
 import { createLock } from '@lowerdeck/lock';
 import { getSentry } from '@lowerdeck/sentry';
 import { serialize } from '@lowerdeck/serialize';
+import { rateLimitService } from '@metorial/module-rate-limit';
 import { ConduitSendError } from '@metorial-subspace/conduit';
 import type {
   ConduitDiagnosticsResult,
@@ -246,8 +247,7 @@ export class SenderManager {
   private constructor(
     readonly session: Session,
     public connection:
-      | (SessionConnection & { participant?: SessionParticipant | null })
-      | undefined,
+      (SessionConnection & { participant?: SessionParticipant | null }) | undefined,
     readonly tenant: Tenant,
     readonly solution: Solution,
     readonly transport: SessionConnectionTransport,
@@ -1345,13 +1345,11 @@ export class SenderManager {
     };
 
     if (this.session.isInternal) {
-      return d.providers.map(
-        (provider): ToolMatch => ({
-          provider,
-          originalToolName: d.toolId,
-          finalToolName: d.toolId
-        })
-      );
+      return d.providers.map((provider): ToolMatch => ({
+        provider,
+        originalToolName: d.toolId,
+        finalToolName: d.toolId
+      }));
     }
 
     let templateMatch: ToolMatch | null = null;
@@ -1985,6 +1983,19 @@ export class SenderManager {
 
     if (!allowed) {
       throw new ServiceError(badRequestError({ message: 'Tool access not allowed' }));
+    }
+
+    let isToolCall =
+      d.input.type === 'tool.call' ||
+      (d.input.type === 'mcp' &&
+        'method' in d.input.data &&
+        d.input.data.method === 'tools/call');
+
+    if (isToolCall && this.session.projectOid != null) {
+      await rateLimitService.consume({
+        projectOid: this.session.projectOid,
+        usages: [{ key: 'sessions.tool_calls' }]
+      });
     }
 
     let message = await this.createMessage({
