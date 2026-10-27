@@ -6,6 +6,7 @@ import {
   useProviderVersion,
   useProviderVersionsByIds,
   useSecurityReview,
+  useSecurityReviewGenerationEnabled,
   useSecurityReviewRevision,
   useSecurityReviewRevisions,
   useSecurityReviewsEnabled
@@ -49,6 +50,7 @@ export let ProviderSecurityPage = () => {
   } = useProviderVersionContext();
 
   let isEnabled = useSecurityReviewsEnabled();
+  let canGenerate = useSecurityReviewGenerationEnabled();
   let review = useSecurityReview(
     instance.data?.id,
     provider.data?.id,
@@ -134,7 +136,7 @@ export let ProviderSecurityPage = () => {
 
   return renderWithLoader({ review })(({ review }) => {
     let { current, inProgress } = getReviewRevisions(review.data);
-    let canReassess = review.data.maintainedBy == 'organization' && !inProgress;
+    let canReassess = canGenerate && review.data.maintainedBy == 'organization' && !inProgress;
     let isHistorical = !!displayed && !!current && displayed.id != current.id;
     let versionLabel = displayedVersion.data?.version;
 

@@ -1,5 +1,6 @@
 import { createLock } from '@lowerdeck/lock';
 import { Service } from '@lowerdeck/service';
+import { Fabric } from '@metorial/fabric';
 import {
   db,
   getId,
@@ -23,6 +24,7 @@ import { mergeCoverage, type PersistMessageScanJob } from '../lib/persistJob';
 import { recordProtoGuardAlertAuditEvent } from './alertAudit';
 import { syncProtoGuardFilters } from '../lib/filterRegistry';
 import { protoGuardSessionPlaneService } from './sessionPlane';
+import { protoGuardMonitoringAccessService } from './monitoringAccess';
 
 let ALERT_DEDUP_WINDOW_MS = 24 * 60 * 60 * 1000;
 let SAMPLE_MARKDOWN_MAX_CHARS = 8000;
@@ -134,6 +136,11 @@ class ProtoGuardMessageRunServiceImpl {
     let message = await findScanMessage(d.job.messageId);
     if (!message) return;
 
+    let scope = await protoGuardMonitoringAccessService.getAllowedScope({
+      tenantOid: message.tenantOid
+    });
+    if (!scope) return;
+
     let config = await getProtoGuardConfigForEvaluation({ tenantOid: message.tenantOid });
     if (!config.enabled) return;
 
@@ -154,11 +161,20 @@ class ProtoGuardMessageRunServiceImpl {
     let alert = await messageLock.usingLock(message.id, () =>
       this.storeRun({ job: d.job, message, config, filters, providerOid, findings })
     );
-    if (!alert) return;
+    if (alert) {
+      await alertInternalService.createFromProtoGuardAlert({
+        protoGuardAlertId: alert.alertId
+      });
 
-    await alertInternalService.createFromProtoGuardAlert({ protoGuardAlertId: alert.alertId });
+      if (alert.isNew) await this.recordAlertAudit({ message, config, ...alert });
+    }
 
-    if (alert.isNew) await this.recordAlertAudit({ message, config, ...alert });
+    if (d.job.coverage != 'skipped') {
+      await Fabric.fire('protoguard.scan.completed:after', {
+        organizationId: scope.organization.id,
+        scanKey: `${d.job.messageId}-${d.job.directions.join('-')}`
+      });
+    }
   }
 
   private async storeRun(d: {

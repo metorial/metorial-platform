@@ -1723,6 +1723,8 @@ export interface FabricEvents {
   'provider.tool_call.created:before': ProviderEventBase;
   'provider.tool_call.created:after': ProviderEventBase & { toolCall: SubspaceToolCall };
 
+  'protoguard.scan.completed:after': { organizationId: string; scanKey: string };
+
   'protoguard.filter_setting.updated:before': ProviderEventBase & { filterId: string };
   'protoguard.filter_setting.updated:after': ProviderEventBase & {
     setting: AuditSubspaceProtoGuardFilterSetting;

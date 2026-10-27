@@ -84,6 +84,12 @@ export let securityReviewLoader = createLoader({
   }
 });
 
+export let useSecurityReviewGenerationEnabled = () => {
+  let flags = useDashboardFlags();
+
+  return flags.useFlag('paid-ai-reviews') === true;
+};
+
 export let useSecurityReviewsEnabled = () => {
   let flags = useDashboardFlags();
 
@@ -96,6 +102,7 @@ export let useSecurityReview = (
   providerVersionId?: string | null
 ) => {
   let isEnabled = useSecurityReviewsEnabled();
+  let canGenerate = useSecurityReviewGenerationEnabled();
 
   let data = securityReviewLoader.use(
     isEnabled && instanceId && providerId
@@ -117,7 +124,12 @@ export let useSecurityReview = (
       : null;
   let review = useOptimisticReassess(key, data.data);
 
-  usePolling(key, data.refetch, isSecurityReviewPending(review), POLL_INTERVAL_MS);
+  usePolling(
+    key,
+    data.refetch,
+    isSecurityReviewPending(review) && (canGenerate || review?.maintainedBy != 'organization'),
+    POLL_INTERVAL_MS
+  );
 
   return {
     ...data,

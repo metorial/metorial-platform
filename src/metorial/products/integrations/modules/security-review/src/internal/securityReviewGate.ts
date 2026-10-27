@@ -1,4 +1,6 @@
 import { Service } from '@lowerdeck/service';
+import { paymentRequiredError, ServiceError } from '@lowerdeck/error';
+import { rateLimitExceededError, rateLimitService } from '@metorial/module-rate-limit';
 import {
   db,
   type SecurityReview,
@@ -22,6 +24,57 @@ export type ReviewGate = {
 };
 
 class InternalSecurityReviewGateServiceImpl {
+  private async getTenantProject(tenantOid: bigint) {
+    let tenant = await db.tenant.findUniqueOrThrow({ where: { oid: tenantOid } });
+    let project = await db.project.findUniqueOrThrow({ where: { oid: tenant.projectOid! } });
+
+    return await metorialDb.project.findUniqueOrThrow({
+      where: { id: project.id },
+      include: { organization: true }
+    });
+  }
+
+  async isReviewGenerationAllowed(d: { review: SecurityReview }) {
+    if (d.review.scope == 'global') return true;
+
+    return await this.isTenantReviewGenerationAllowed({ tenantOid: d.review.tenantOid! });
+  }
+
+  async isTenantReviewGenerationAllowed(d: { tenantOid: bigint }) {
+    let project = await this.getTenantProject(d.tenantOid);
+    return await flagService.isFlagEnabledForScope({
+      project,
+      organization: project.organization,
+      flag: 'paid-ai-reviews'
+    });
+  }
+
+  async checkGenerationRateLimit(d: { review: SecurityReview; consume: boolean }) {
+    if (d.review.scope == 'global') return { allowed: true } as const;
+
+    let project = await this.getTenantProject(d.review.tenantOid!);
+    let params = {
+      project,
+      organization: project.organization,
+      usages: [{ key: 'protoguard.reviews' as const }]
+    };
+
+    return d.consume
+      ? await rateLimitService.tryConsume(params)
+      : await rateLimitService.check(params);
+  }
+
+  async assertGenerationAllowed(d: { review: SecurityReview }) {
+    if (!(await this.isReviewGenerationAllowed(d))) {
+      throw new ServiceError(
+        paymentRequiredError({ message: 'Upgrade your plan to generate security reviews.' })
+      );
+    }
+
+    let result = await this.checkGenerationRateLimit({ ...d, consume: false });
+    if (!result.allowed) throw rateLimitExceededError(result);
+  }
+
   private blocked(d: {
     blockReason: SecurityReviewBlockReason;
     thoroughness: SecurityReviewThoroughness;

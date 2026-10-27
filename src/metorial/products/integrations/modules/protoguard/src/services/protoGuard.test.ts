@@ -5,6 +5,8 @@ import { ScanScheduler, type ScanJob } from '../lib/scheduler';
 
 let mocks = vi.hoisted(() => ({
   captureException: vi.fn(),
+  getAllowedScope: vi.fn(),
+  tryStartScan: vi.fn(),
   getConfig: vi.fn(),
   getContentHashKey: vi.fn(),
   syncFilters: vi.fn(),
@@ -24,6 +26,13 @@ vi.mock('@lowerdeck/service', () => ({
 
 vi.mock('@metorial-subspace/module-monitor', () => ({
   getProtoGuardConfigForEvaluation: mocks.getConfig
+}));
+
+vi.mock('../internal/monitoringAccess', () => ({
+  protoGuardMonitoringAccessService: {
+    getAllowedScope: mocks.getAllowedScope,
+    tryStartScan: mocks.tryStartScan
+  }
 }));
 
 vi.mock('../internal/contentHashKey', () => ({
@@ -110,6 +119,8 @@ let nextJob = async () => {
 describe('protoGuardService.scheduleMessageScan', () => {
   beforeEach(() => {
     mocks.captureException.mockReset();
+    mocks.getAllowedScope.mockReset().mockResolvedValue({ organization: { id: 'org_1' } });
+    mocks.tryStartScan.mockReset().mockResolvedValue({ organization: { id: 'org_1' } });
     mocks.getConfig
       .mockReset()
       .mockResolvedValue(configWith(allFamilies().map(key => ({ key }))));
@@ -131,6 +142,31 @@ describe('protoGuardService.scheduleMessageScan', () => {
     expect(result).toBeUndefined();
     expect(mocks.syncFilters).not.toHaveBeenCalled();
     expect(mocks.getConfig).not.toHaveBeenCalled();
+  });
+
+  it('does not collect monitoring data without a plan entitlement', async () => {
+    mocks.getAllowedScope.mockResolvedValue(null);
+
+    schedule();
+    await vi.waitFor(() => expect(mocks.getAllowedScope).toHaveBeenCalled());
+    await flushImmediates();
+
+    expect(mocks.syncFilters).not.toHaveBeenCalled();
+    expect(mocks.getContentHashKey).not.toHaveBeenCalled();
+    expect(mocks.addJob).not.toHaveBeenCalled();
+  });
+
+  it('does not scan or enqueue findings when the project rate limit is reached', async () => {
+    mocks.tryStartScan.mockResolvedValue(null);
+    let scheduler = vi.spyOn(ScanScheduler.prototype, 'schedule');
+
+    schedule();
+    await vi.waitFor(() => expect(mocks.tryStartScan).toHaveBeenCalled());
+    await flushImmediates();
+
+    expect(scheduler).not.toHaveBeenCalled();
+    expect(mocks.getContentHashKey).not.toHaveBeenCalled();
+    expect(mocks.addJob).not.toHaveBeenCalled();
   });
 
   it('reports async failures to Sentry instead of throwing', async () => {

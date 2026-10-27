@@ -23,6 +23,7 @@ import {
   skillSecurityVerdict
 } from '@metorial-subspace/module-security-review-request';
 import { internalSecurityReviewSubjectService } from '../internal/securityReviewSubject';
+import { internalSecurityReviewGateService } from '../internal/securityReviewGate';
 import { markSkillDestinationsDirty } from '../internal/skillDistribution';
 import { enqueueSecurityReview } from '../queues/run';
 
@@ -116,7 +117,14 @@ class SecurityReviewServiceImpl {
         (state.inProgress.completedAt ?? state.inProgress.createdAt).getTime() <
           Date.now() - FAILED_RETRY_MS);
 
-    if (!state.current && canRetry && review.status != 'disabled') {
+    if (
+      !state.current &&
+      canRetry &&
+      review.status != 'disabled' &&
+      (await internalSecurityReviewGateService.isTenantReviewGenerationAllowed({
+        tenantOid: d.tenant.oid
+      }))
+    ) {
       await enqueueSecurityReview({
         reviewId: review.id,
         trigger: review.scope == 'global' ? 'page_open' : 'deployment',
@@ -175,7 +183,10 @@ class SecurityReviewServiceImpl {
       !state.current &&
       !state.inProgress &&
       review.status == 'active' &&
-      !review.dismissedAt
+      !review.dismissedAt &&
+      (await internalSecurityReviewGateService.isTenantReviewGenerationAllowed({
+        tenantOid: tenant.oid
+      }))
     ) {
       await requestSecurityReview({ subject: 'skill', id: d.skill.id, trigger: 'page_open' });
     }
@@ -370,6 +381,7 @@ class SecurityReviewServiceImpl {
       );
     }
 
+    await internalSecurityReviewGateService.assertGenerationAllowed(d);
     await this.assertReassessAllowed(d);
 
     await enqueueSecurityReview({

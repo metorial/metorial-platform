@@ -129,6 +129,28 @@ export let rateLimitCatalog = {
     }
   }),
 
+  protoguard: resourceGroup({
+    name: 'ProtoGuard',
+    description: 'Limits for prompt-injection monitoring and security review generation.',
+    usageTypes: {
+      message_scans: usageType({
+        kind: 'rate',
+        enforcement: 'local',
+        name: 'Message scans',
+        description: 'Session message payloads scanned for prompt-injection signals.',
+        unit: 'scans'
+      }),
+
+      reviews: usageType({
+        kind: 'rate',
+        enforcement: 'local',
+        name: 'Security reviews',
+        description: 'Security reviews generated for custom providers and skills.',
+        unit: 'reviews'
+      })
+    }
+  }),
+
   sessions: resourceGroup({
     name: 'Sessions',
     description: 'Limits for MCP sessions and the tool calls made within them.',

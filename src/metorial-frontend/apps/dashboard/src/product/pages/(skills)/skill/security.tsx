@@ -4,6 +4,7 @@ import {
   skillVersionsLoader,
   useCurrentInstance,
   useSkill,
+  useSecurityReviewGenerationEnabled,
   useSkillSecurityReview,
   useSkillSecurityReviewRevision,
   useSkillSecurityReviewRevisions,
@@ -53,6 +54,7 @@ export let SkillSecurityPage = () => {
   let hasNoVersions = !!versions.data && versions.data.items.length == 0;
 
   let isEnabled = useSkillSecurityReviewsEnabled();
+  let canGenerate = useSecurityReviewGenerationEnabled();
   let review = useSkillSecurityReview(instance.data?.id, skill.data?.id);
   let reassess = review.useReassessMutator();
   let dismiss = review.useDismissMutator();
@@ -160,7 +162,7 @@ export let SkillSecurityPage = () => {
               size="2"
               variant="outline"
               iconLeft={<RiRefreshLine />}
-              disabled={!!inProgress || dismiss.isLoading}
+              disabled={!canGenerate || !!inProgress || dismiss.isLoading}
               loading={reassess.isLoading}
               success={reassess.isSuccess}
               onClick={() => reassess.mutate(undefined)}

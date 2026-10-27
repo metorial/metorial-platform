@@ -6,6 +6,7 @@ import { activeRuleset } from '../definitions/rulesets';
 import { getContentHashKey } from '../internal/contentHashKey';
 import { syncProtoGuardFilters } from '../lib/filterRegistry';
 import { getSessionToolNames } from '../internal/sessionTools';
+import { protoGuardMonitoringAccessService } from '../internal/monitoringAccess';
 import {
   deriveCapabilityTags,
   getSizeTier,
@@ -94,6 +95,11 @@ class ProtoGuardServiceImpl {
   }
 
   private async scanMessage(d: ScheduleMessageScanParams & { isToolCall: boolean }) {
+    let scope = await protoGuardMonitoringAccessService.getAllowedScope({
+      tenantOid: d.message.tenantOid
+    });
+    if (!scope) return;
+
     let filters = await syncProtoGuardFilters();
     let config = await getProtoGuardConfigForEvaluation({ tenantOid: d.message.tenantOid });
     if (!config.enabled) return;
@@ -113,6 +119,11 @@ class ProtoGuardServiceImpl {
 
     let directions = getDirections(payload);
     if (!directions.length) return;
+
+    let allowed = await protoGuardMonitoringAccessService.tryStartScan({
+      tenantOid: d.message.tenantOid
+    });
+    if (!allowed) return;
 
     let [hmacKey, sessionToolNames] = await Promise.all([
       getContentHashKey({ tenantOid: d.message.tenantOid }),

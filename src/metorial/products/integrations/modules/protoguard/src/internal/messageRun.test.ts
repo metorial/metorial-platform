@@ -13,6 +13,8 @@ let state = vi.hoisted(() => ({
 
 let mocks = vi.hoisted(() => ({
   getConfig: vi.fn(),
+  getAllowedScope: vi.fn(),
+  fire: vi.fn(),
   createFromProtoGuardAlert: vi.fn(),
   recordAudit: vi.fn(),
   applySessionPlane: vi.fn(),
@@ -26,6 +28,12 @@ let mocks = vi.hoisted(() => ({
   alertCreate: vi.fn(),
   alertUpdate: vi.fn()
 }));
+
+vi.mock('./monitoringAccess', () => ({
+  protoGuardMonitoringAccessService: { getAllowedScope: mocks.getAllowedScope }
+}));
+
+vi.mock('@metorial/fabric', () => ({ Fabric: { fire: mocks.fire } }));
 
 vi.mock('@lowerdeck/service', () => ({
   Service: {
@@ -222,6 +230,7 @@ describe('protoGuardMessageRunService.persistMessageScan', () => {
     state.suppressions = [];
     state.duplicate = null;
 
+    mocks.getAllowedScope.mockResolvedValue({ organization: { id: 'org_1' } });
     mocks.getConfig.mockResolvedValue(config());
     mocks.applySessionPlane.mockResolvedValue([]);
     mocks.usingLock.mockImplementation((_key: string, fn: () => unknown) => fn());
@@ -233,6 +242,33 @@ describe('protoGuardMessageRunService.persistMessageScan', () => {
 
     expect(mocks.getConfig).not.toHaveBeenCalled();
     expect(mocks.runCreate).not.toHaveBeenCalled();
+  });
+
+  it('drops queued findings after a downgrade without creating runs or alerts', async () => {
+    mocks.getAllowedScope.mockResolvedValue(null);
+
+    await persist();
+
+    expect(mocks.applySessionPlane).not.toHaveBeenCalled();
+    expect(mocks.runCreate).not.toHaveBeenCalled();
+    expect(mocks.instanceCreateMany).not.toHaveBeenCalled();
+    expect(mocks.createFromProtoGuardAlert).not.toHaveBeenCalled();
+    expect(mocks.fire).not.toHaveBeenCalled();
+  });
+
+  it('meters completed scans with an idempotency key', async () => {
+    await persist(job({ findings: [] }));
+
+    expect(mocks.fire).toHaveBeenCalledWith('protoguard.scan.completed:after', {
+      organizationId: 'org_1',
+      scanKey: 'msg_1-output'
+    });
+  });
+
+  it('does not meter skipped scans', async () => {
+    await persist(job({ coverage: 'skipped', skipReason: 'backpressure', findings: [] }));
+
+    expect(mocks.fire).not.toHaveBeenCalled();
   });
 
   it('does nothing when ProtoGuard was disabled after the scan', async () => {

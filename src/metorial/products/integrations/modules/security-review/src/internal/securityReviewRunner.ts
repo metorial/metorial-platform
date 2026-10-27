@@ -489,6 +489,8 @@ class InternalSecurityReviewRunnerServiceImpl {
     let runOid: bigint | undefined;
 
     if (review.dismissedAt && input.trigger != 'admin') return;
+    if (!(await internalSecurityReviewGateService.isReviewGenerationAllowed({ review })))
+      return;
 
     let running = await db.securityReviewRevision.findFirst({
       where: {
@@ -548,6 +550,12 @@ class InternalSecurityReviewRunnerServiceImpl {
       previous.promptVersion == SECURITY_REVIEW_PROMPT_VERSION &&
       (previous.mode == 'ai' || !gate.allowAi);
     if (isUnchanged && !input.force) return;
+
+    let rateLimit = await internalSecurityReviewGateService.checkGenerationRateLimit({
+      review,
+      consume: true
+    });
+    if (!rateLimit.allowed) return;
 
     if (!previous && !input.force && evidence.contentHash) {
       let reused = await this.reuseIdenticalSkillReview({

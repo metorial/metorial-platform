@@ -12,6 +12,7 @@ import { usePolling } from '../../lib/usePolling';
 import { skillVersionsLoader } from '../../skills/loaders/skills';
 import { useDashboardFlags } from '../../organization/loaders/flags';
 import { withAuth } from '../../user';
+import { useSecurityReviewGenerationEnabled } from './securityReview';
 
 let POLL_INTERVAL_MS = 3_000;
 
@@ -96,6 +97,8 @@ export let useSkillSecurityReview = (
 ) => {
   let isEnabled = useSkillSecurityReviewsEnabled();
 
+  let canGenerate = useSecurityReviewGenerationEnabled();
+
   let data = skillSecurityReviewLoader.use(
     isEnabled && instanceId && skillId ? { instanceId, skillId } : null
   );
@@ -103,7 +106,12 @@ export let useSkillSecurityReview = (
   let key = instanceId && skillId ? reassessKey({ instanceId, skillId }) : null;
   let review = useOptimisticReassess(key, data.data);
 
-  usePolling(key, data.refetch, isSkillSecurityReviewPending(review), POLL_INTERVAL_MS);
+  usePolling(
+    key,
+    data.refetch,
+    canGenerate && isSkillSecurityReviewPending(review),
+    POLL_INTERVAL_MS
+  );
 
   return {
     ...data,

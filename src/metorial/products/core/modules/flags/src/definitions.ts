@@ -50,6 +50,7 @@ export type Flags = {
   'paid-sandboxes': FlagValue;
   'paid-advanced-org-management': FlagValue;
   'paid-ai-reviews': FlagValue;
+  'paid-protoguard': FlagValue;
 
   'ai-review-thoroughness': AiReviewThoroughness;
 
@@ -109,6 +110,7 @@ export let defaultFlags: Flags = {
   'paid-sandboxes': true,
   'paid-advanced-org-management': true,
   'paid-ai-reviews': true,
+  'paid-protoguard': true,
 
   'ai-review-thoroughness': 'standard',
 

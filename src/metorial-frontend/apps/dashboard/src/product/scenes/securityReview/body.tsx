@@ -1,3 +1,4 @@
+import { useSecurityReviewGenerationEnabled } from '@metorial/state';
 import { Button } from '@metorial/ui';
 import {
   SecurityReviewNotices,
@@ -38,6 +39,7 @@ export let SecurityAssessmentBody = ({
   toolCount?: number;
   retry?: { onClick: () => void; loading: boolean; success: boolean };
 }) => {
+  let canGenerate = useSecurityReviewGenerationEnabled();
   let { current, inProgress, failed } = getReviewRevisions<AnySecurityReviewRevision>(review);
   let shown = revision ?? current;
   let subject = getReviewSubject(review);
@@ -74,6 +76,17 @@ export let SecurityAssessmentBody = ({
         <SecurityReviewNotices review={review} revision={shown} versionLabel={versionLabel} />
         <SecurityReviewVerdict revision={shown} detailed={detailed} />
       </>
+    );
+  }
+
+  if (!canGenerate && canRetry) {
+    return (
+      <SecurityReviewStatus
+        icon={securityReviewIcons.locked}
+        eyebrow="No assessment available"
+        title="Security reviews require a paid plan."
+        description="Upgrade your plan to generate security reviews for custom providers and skills."
+      />
     );
   }
 
