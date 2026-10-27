@@ -33,10 +33,19 @@ import {
   providerSetupSessionService
 } from '@metorial-subspace/module-auth';
 import {
+  assertCanUseOwnedResource,
   checkTenant,
+  getConsumerOwnerActorId,
   getMetorialSolution,
+  assertCanSeeOwnedResource,
+  getOwnershipAccessor,
+  ownedResourceWhere,
   type MetorialFacing,
   ownerActorSelect,
+  type OwnershipFacing,
+  type RedactableOwnedResource,
+  redactClientSecretsForCaller,
+  resolveOwnerActorOid,
   toProviderEventBase,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
@@ -129,6 +138,8 @@ let getPresentedSetupStatus = (setupSession: ProviderSetupSession | null) => {
 };
 
 export type ListIntegrationSetupSessionsParams = {
+  ownershipWhere?: Record<string, any>;
+  includeSystemOwned?: boolean;
   status?: IntegrationSetupSessionStatus[];
   allowDeleted?: boolean;
 
@@ -143,6 +154,7 @@ export type ListIntegrationSetupSessionsParams = {
 export type GetIntegrationSetupSessionByIdParams = {
   integrationSetupSessionId: string;
   allowDeleted?: boolean;
+  includeSystemOwned?: boolean;
 };
 
 export type CreateIntegrationSetupSessionParams = {
@@ -156,6 +168,8 @@ export type CreateIntegrationSetupSessionParams = {
     privateMetadata?: Record<string, any>;
     identityActorId?: string | null;
     identityId?: string | null;
+    ownerActorId?: string | null;
+    isOwnerLocked?: boolean;
     expiresAt?: Date;
     redirectUrl?: string;
     configuration?: PrismaJson.ProviderSetupSessionConfiguration | null;
@@ -195,6 +209,10 @@ class integrationSetupSessionServiceImpl {
 
     return this.listIntegrationSetupSessionsInternal({
       ...rest,
+      ownershipWhere: ownedResourceWhere(
+        await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+        { ownership: 'all', includeSystemOwned: d.includeSystemOwned }
+      ),
       tenant: scope.tenant,
       environment: scope.environment
     });
@@ -214,10 +232,12 @@ class integrationSetupSessionServiceImpl {
               tenantOid: d.tenant.oid,
               solutionOid: solution.oid,
               environmentOid: d.environment.oid,
+              ...(d.includeSystemOwned ? {} : { isSystemOwned: false }),
 
               ...normalizeStatusForList(d).noParent,
 
               AND: [
+                d.ownershipWhere ?? undefined!,
                 d.ids ? { id: { in: d.ids } } : undefined!,
                 d.integrationIds
                   ? { integration: { id: { in: d.integrationIds } } }
@@ -235,17 +255,31 @@ class integrationSetupSessionServiceImpl {
     );
   }
 
+  async redactIntegrationSetupSessionsForCaller<T extends RedactableOwnedResource>(
+    d: OwnershipFacing & { integrationSetupSessions: T[] }
+  ) {
+    return await redactClientSecretsForCaller({ ...d, resources: d.integrationSetupSessions });
+  }
+
   async getIntegrationSetupSessionById(
     d: MetorialFacing<GetIntegrationSetupSessionByIdParams>
   ) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.getIntegrationSetupSessionByIdInternal({
+    let integrationSetupSession = await this.getIntegrationSetupSessionByIdInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    assertCanSeeOwnedResource(
+      await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+      integrationSetupSession,
+      { resource: 'integration.setup_session', id: d.integrationSetupSessionId }
+    );
+
+    return integrationSetupSession;
   }
 
   async getIntegrationSetupSessionByIdInternal(
@@ -259,6 +293,7 @@ class integrationSetupSessionServiceImpl {
         tenantOid: d.tenant.oid,
         solutionOid: solution.oid,
         environmentOid: d.environment.oid,
+        ...(d.includeSystemOwned ? {} : { isSystemOwned: false }),
         ...normalizeStatusForGet(d).noParent
       },
       include: integrationSetupSessionInclude
@@ -377,6 +412,14 @@ class integrationSetupSessionServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
+    if (d.integrationInstance) {
+      await assertCanUseOwnedResource(
+        await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+        d.integrationInstance,
+        { resource: 'integration instance' }
+      );
+    }
+
     let eventBase = toProviderEventBase(d);
     await Fabric.fire('provider.integration_setup_session.created:before', eventBase);
 
@@ -442,6 +485,12 @@ class integrationSetupSessionServiceImpl {
     });
     let expiresAt = d.input.expiresAt ?? addMinutes(new Date(), 30);
 
+    let explicitOwnerActorOid = await resolveOwnerActorOid({
+      tenant: d.tenant,
+      environment: d.environment,
+      ownerActorId: d.input.ownerActorId ?? getConsumerOwnerActorId(d.input)
+    });
+
     let integrationProviders = await this.getUsableIntegrationProviders({
       tenant: d.tenant,
       environment: d.environment,
@@ -469,7 +518,11 @@ class integrationSetupSessionServiceImpl {
           metadata: d.input.metadata,
           privateMetadata: d.input.privateMetadata,
           identityActorId: d.input.identityActorId,
-          identityId: d.input.identityId
+          identityId: d.input.identityId,
+          owner: {
+            ownerActorOid: explicitOwnerActorOid,
+            isOwnerLocked: !!d.input.isOwnerLocked
+          }
         }
       }));
 
@@ -494,7 +547,12 @@ class integrationSetupSessionServiceImpl {
         instanceOid: d.environment.instanceOid,
         integrationOid: integration.oid,
         integrationInstanceOid: integrationInstance.oid,
-        ownerActorOid: integrationInstance.identityActorOid,
+        ownerActorOid:
+          explicitOwnerActorOid ??
+          integrationInstance.ownerActorOid ??
+          integrationInstance.identityActorOid,
+        isOwnerLocked: !!d.input.isOwnerLocked || integrationInstance.isOwnerLocked,
+        isOwnerOnlyVisible: integrationInstance.isOwnerOnlyVisible,
         brandOid: d.brand?.oid,
         expiresAt
       }
@@ -908,7 +966,13 @@ class integrationSetupSessionServiceImpl {
     integration: Pick<Integration, 'canAttachCustomToolFilters' | 'canOverrideToolFilters'>;
     setupSession: Pick<
       IntegrationSetupSession,
-      'oid' | 'name' | 'description' | 'metadata' | 'ownerActorOid' | 'skipConfirmation'
+      | 'oid'
+      | 'name'
+      | 'description'
+      | 'metadata'
+      | 'ownerActorOid'
+      | 'isOwnerLocked'
+      | 'skipConfirmation'
     >;
     integrationProvider: Awaited<
       ReturnType<integrationSetupSessionServiceImpl['getActiveIntegrationProviders']>
@@ -976,6 +1040,7 @@ class integrationSetupSessionServiceImpl {
       providerConfig: material.config ?? undefined,
       credentials: material.authCredentials ?? undefined,
       ownerActorOid: d.setupSession.ownerActorOid,
+      isOwnerLocked: d.setupSession.isOwnerLocked,
       input: {
         name: d.setupSession.name ?? d.integrationProvider.name,
         description:

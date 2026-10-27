@@ -112,7 +112,7 @@ let getRepositoryTableRow = (p: {
       </RepoName>,
       <Text size="2">{formatRepoProvider(repo.provider)}</Text>,
       <Text size="2">{repo.defaultBranch || '-'}</Text>,
-      <Badge color={repo.isPrivate ? 'gray' : 'blue'} size="1">
+      <Badge color={repo.isPrivate ? 'gray' : 'blue'} size="2">
         {repo.isPrivate ? 'Private' : 'Public'}
       </Badge>,
       <RenderDate date={p.repository.createdAt} />,

@@ -1,54 +1,105 @@
 import { v } from '@lowerdeck/validation';
+import type { IntegrationResourceSource } from '@metorial/db';
+import {
+  ownerActorPresentation,
+  type PresentableOwnerActor
+} from '@metorial/module-resource-actor';
 
-export type RawOwnerActor = {
-  id: string;
-  type: 'person' | 'agent' | 'consumer';
-  instanceConsumer?: { consumer: { id: string } } | null;
-  consumerActor?: { consumer: { id: string } } | null;
-};
-
-export type RawSubspaceOwnerActor = {
-  id: string;
-  type: 'person' | 'agent' | 'consumer';
+export type RawSubspaceOwnerActor = PresentableOwnerActor & {
+  name: string;
   instanceConsumer: { consumer: { id: string } } | null;
 };
 
-export let presentOwnerActor = (ownerActor: RawOwnerActor | null | undefined) =>
-  ownerActor
-    ? {
-        id: ownerActor.id,
-        type: ownerActor.type,
-        consumer_id:
-          ownerActor.instanceConsumer?.consumer.id ??
-          ownerActor.consumerActor?.consumer.id ??
-          null
-      }
-    : null;
+export let presentOwnerActor = (actor: PresentableOwnerActor | null | undefined) => {
+  if (!actor) return null;
+
+  let owner = actor[ownerActorPresentation];
+  if (!owner) throw new Error('Resource owners must be hydrated before presentation.');
+
+  return {
+    type: owner.type,
+    name: owner.name,
+    image_url: owner.imageUrl,
+    email: owner.email,
+    ...(owner.organizationMemberId
+      ? { organization_member: { id: owner.organizationMemberId } }
+      : {}),
+    ...(owner.consumer
+      ? {
+          consumer: {
+            id: owner.consumer.id,
+            profile_id: owner.consumer.profileId,
+            portal_id: owner.consumer.portalId
+          }
+        }
+      : {})
+  };
+};
 
 export let ownerActorSchema = v.nullable(
   v.object(
     {
-      id: v.string({
-        name: 'id',
-        description: 'Identifier of the identity actor that owns this resource.',
-        examples: ['iac_6wQpLk2mZa8nYx4b']
-      }),
-      type: v.enumOf(['person', 'agent', 'consumer'], {
-        name: 'type',
+      type: v.enumOf(['person', 'agent', 'consumer', 'organization_member'], {
         description: 'Type of the owning actor.'
       }),
-      consumer_id: v.nullable(
-        v.string({
-          name: 'consumer_id',
-          description:
-            'Identifier of the consumer that owns the actor when its type is consumer.',
-          examples: ['con_8kLmNp3qRs7tUv1w']
-        })
+      name: v.nullable(v.string({ description: 'Display name of the owning actor.' })),
+      image_url: v.nullable(
+        v.string({ description: 'Avatar image URL of the owning actor, if available.' })
+      ),
+      email: v.nullable(
+        v.string({ description: 'Email address of the owning actor, if available.' })
+      ),
+      organization_member: v.optional(
+        v.object(
+          {
+            id: v.string({
+              description: 'Identifier of the organization member who owns the resource.'
+            })
+          },
+          { description: 'Organization member associated with this owner.' }
+        )
+      ),
+      consumer: v.optional(
+        v.object(
+          {
+            id: v.string({ description: 'Identifier of the owning consumer.' }),
+            profile_id: v.string({
+              description: 'Identifier of the owning consumer profile.'
+            }),
+            portal_id: v.nullable(
+              v.string({ description: 'Identifier of the consumer profile’s portal, if any.' })
+            )
+          },
+          { description: 'Consumer and profile associated with this owner.' }
+        )
       )
     },
-    {
-      name: 'owner_actor',
-      description: 'The identity actor that owns this resource, if any.'
-    }
+    { description: 'The actor that owns this resource, if any.' }
   )
+);
+
+export type ResourceAccessSource = IntegrationResourceSource | null;
+
+export let presentResourceSource = (source?: string | null): ResourceAccessSource =>
+  source === 'explorer' ? source : null;
+
+export let resourceAccessSchema = v.object(
+  {
+    source: v.nullable(
+      v.enumOf(['explorer'], {
+        description:
+          'Integration resource source, or null when the resource is not from Explorer.'
+      })
+    ),
+    type: v.enumOf(['public', 'owner_locked'], {
+      description:
+        'Whether usage is public or locked to the owner under the project ownership rules.'
+    }),
+    visibility: v.enumOf(['anyone', 'owner'], {
+      description:
+        'Whether visibility is unrestricted or limited to the owner under the project ownership rules.'
+    }),
+    owner: ownerActorSchema
+  },
+  { description: 'Resource ownership and access settings.' }
 );

@@ -1,3 +1,4 @@
+import { hydrateResourceOwners } from '@metorial/module-resource-actor';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
@@ -12,6 +13,7 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { providerAuthExportPresenter } from '@metorial/presenters';
+import { getOwnershipActor } from '../../../lib/ownershipActor';
 
 let providerAuthExportGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerAuthExportId) {
@@ -91,7 +93,7 @@ export let providerAuthExportController = Controller.create(
 
         let list = await paginator.run(ctx.query);
 
-        return Paginator.present(list, authExport =>
+        return Paginator.present(await hydrateResourceOwners(list), authExport =>
           providerAuthExportPresenter.present({
             authExport
           })
@@ -113,7 +115,9 @@ export let providerAuthExportController = Controller.create(
       .use(hasFlags(['paid-oauth-export']))
       .output(providerAuthExportPresenter)
       .do(async ctx => {
-        return providerAuthExportPresenter.present({ authExport: ctx.authExport });
+        return providerAuthExportPresenter.present(
+          await hydrateResourceOwners({ authExport: ctx.authExport })
+        );
       }),
 
     create: instanceGroup
@@ -153,6 +157,7 @@ export let providerAuthExportController = Controller.create(
           await providerAuthExportService.createProviderAuthExport({
             instance: ctx.instance,
             auditScope: ctx.auditScope,
+            organizationActor: getOwnershipActor(ctx),
             authConfig,
             input: {
               note: ctx.body.note,
@@ -162,10 +167,12 @@ export let providerAuthExportController = Controller.create(
             }
           });
 
-        return providerAuthExportPresenter.present({
-          authExport,
-          value: decryptedConfigData
-        });
+        return providerAuthExportPresenter.present(
+          await hydrateResourceOwners({
+            authExport,
+            value: decryptedConfigData
+          })
+        );
       })
   }
 );

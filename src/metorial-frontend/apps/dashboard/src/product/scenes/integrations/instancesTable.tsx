@@ -22,6 +22,7 @@ import { ID } from '@metorial/ui-product';
 import { RiDeleteBinLine } from '@remixicon/react';
 import { useMemo, useState } from 'react';
 import { entityFilters } from '../entityFilters';
+import { ResourceOwnerInline } from '../../components/resourceOwnerEntity';
 
 type IntegrationInstancesTableProps = {
   instanceId: string;
@@ -81,6 +82,7 @@ let useIntegrationInstancesTableState = (
   opts: { filter: Record<string, FilterPayload>; search?: string }
 ) => {
   let instances = useIntegrationInstances(props.instanceId, {
+    ownership: 'all',
     integrationId: props.integration.id,
     order: 'desc',
     status: getStatusFilterValue(opts.filter.status) ?? ['active'],
@@ -183,6 +185,14 @@ let integrationInstancesTable = new DashboardTable<
             -
           </Text>
         )
+    },
+    {
+      id: 'owner',
+      isDefault: true,
+      header: 'Owner',
+      render: (integrationInstance: IntegrationInstance) => (
+        <ResourceOwnerInline resource={integrationInstance} linked={false} />
+      )
     },
     {
       id: 'createdAt',

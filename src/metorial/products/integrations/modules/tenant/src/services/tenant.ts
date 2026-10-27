@@ -45,6 +45,8 @@ class tenantServiceImpl {
       collectErrors?: boolean;
       disableCallbacks?: boolean;
       reducedSubprocessors?: boolean;
+      allowApiAccessToConsumerOwnedResources?: boolean;
+      allowMemberAccessToConsumerOwnedResources?: boolean;
       projectOid?: bigint;
       skipNetworks?: boolean;
       environments: {
@@ -83,7 +85,10 @@ class tenantServiceImpl {
         storeToolCallAttachments: d.input.storeToolCallAttachments,
         collectErrors: d.input.collectErrors,
         disableCallbacks: d.input.disableCallbacks,
-        reducedSubprocessors: d.input.reducedSubprocessors
+        reducedSubprocessors: d.input.reducedSubprocessors,
+        allowApiAccessToConsumerOwnedResources: d.input.allowApiAccessToConsumerOwnedResources,
+        allowMemberAccessToConsumerOwnedResources:
+          d.input.allowMemberAccessToConsumerOwnedResources
       };
 
       let isTenantUnchanged =
@@ -123,6 +128,10 @@ class tenantServiceImpl {
                 collectErrors: d.input.collectErrors ?? true,
                 disableCallbacks: d.input.disableCallbacks ?? false,
                 reducedSubprocessors: d.input.reducedSubprocessors ?? false,
+                allowApiAccessToConsumerOwnedResources:
+                  d.input.allowApiAccessToConsumerOwnedResources,
+                allowMemberAccessToConsumerOwnedResources:
+                  d.input.allowMemberAccessToConsumerOwnedResources,
 
                 urlKey: generatePlainId(10).toLowerCase()
               }

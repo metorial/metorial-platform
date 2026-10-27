@@ -1,3 +1,4 @@
+import { hydrateResourceOwners } from '@metorial/module-resource-actor';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v, ValidationTypeValue } from '@lowerdeck/validation';
@@ -26,6 +27,7 @@ import {
   type SessionProviderConfigSource,
   type SessionProviderDeploymentSource
 } from './_providerInput';
+import { getOwnershipActor, resolveExplorerOwner } from '../../../lib/ownershipActor';
 
 let sessionGroup = instanceGroup
   .use(requireFineGrainedSessionParam('sessionId')())
@@ -41,6 +43,7 @@ let sessionGroup = instanceGroup
 
     let session = await sessionService.getSessionById({
       instance: ctx.instance,
+      organizationActor: getOwnershipActor(ctx),
       sessionId: ctx.params.sessionId
     });
 
@@ -243,8 +246,13 @@ export let sessionController = Controller.create(
         });
 
         let list = await paginator.run(ctx.query);
+        let items = await sessionService.redactSessionsForCaller({
+          instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
+          sessions: list.items
+        });
 
-        return Paginator.present(list, session =>
+        return Paginator.present(await hydrateResourceOwners({ ...list, items }), session =>
           providerSessionPresenter.present({
             session
           })
@@ -264,9 +272,17 @@ export let sessionController = Controller.create(
       )
       .output(providerSessionPresenter)
       .do(async ctx => {
-        return providerSessionPresenter.present({
-          session: ctx.session
+        let [session] = await sessionService.redactSessionsForCaller({
+          instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
+          sessions: [ctx.session]
         });
+
+        return providerSessionPresenter.present(
+          await hydrateResourceOwners({
+            session: session!
+          })
+        );
       }),
 
     create: instanceGroup
@@ -276,20 +292,41 @@ export let sessionController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
-        'default',
+        'mt_2026_01_01_magnetar',
         v.object({
           name: v.optional(v.string()),
           description: v.optional(v.string()),
           metadata: v.optional(v.record(v.any())),
           providers: v.array(providerInput)
+        }),
+        v => v
+      )
+      .body(
+        'default',
+        v.object({
+          name: v.optional(v.string()),
+          description: v.optional(v.string()),
+          metadata: v.optional(v.record(v.any())),
+          providers: v.array(providerInput),
+          source: v.optional(v.enumOf(['explorer']), {
+            description:
+              'Create an owner-locked resource visible only to the caller from the dashboard explorer.'
+          })
         })
       )
       .output(providerSessionPresenter)
       .do(async ctx => {
+        let ownerActorId = await resolveExplorerOwner(ctx, ctx.body.source);
+
         let subspaceSession = await sessionService.createSession({
           instance: ctx.instance,
           auditScope: ctx.auditScope,
+          organizationActor: getOwnershipActor(ctx),
+          ownerActorId,
           input: {
+            source: ctx.body.source,
+            isOwnerLocked: ctx.body.source === 'explorer' ? true : undefined,
+            isOwnerOnlyVisible: ctx.body.source === 'explorer' ? true : undefined,
             name: ctx.body.name ?? `Session ${new Date().toISOString()}`,
             description: ctx.body.description,
             metadata: ctx.body.metadata,
@@ -298,6 +335,8 @@ export let sessionController = Controller.create(
                 resolveSessionProviderInput({
                   instance: ctx.instance,
                   auditScope: ctx.auditScope,
+                  ownerActorId,
+                  source: ctx.body.source,
                   providerDeployment: mapSessionDeploymentSource(p),
                   providerConfig: mapSessionConfigSource(p),
                   providerAuthConfig: mapSessionAuthConfigSource(p),
@@ -313,9 +352,11 @@ export let sessionController = Controller.create(
           }
         });
 
-        return providerSessionPresenter.present({
-          session: subspaceSession
-        });
+        return providerSessionPresenter.present(
+          await hydrateResourceOwners({
+            session: subspaceSession
+          })
+        );
       }),
 
     update: sessionGroup
@@ -330,12 +371,27 @@ export let sessionController = Controller.create(
         })
       )
       .body(
+        'mt_2026_01_01_magnetar',
+        v.object({
+          name: v.optional(v.string({ examples: ['My updated session'] })),
+          description: v.optional(v.string({ examples: ['Updated session description'] })),
+          metadata: v.optional(v.record(v.any()), {
+            description: 'Custom key-value pairs for storing additional information'
+          })
+        }),
+        v => v
+      )
+      .body(
         'default',
         v.object({
           name: v.optional(v.string({ examples: ['My updated session'] })),
           description: v.optional(v.string({ examples: ['Updated session description'] })),
           metadata: v.optional(v.record(v.any()), {
             description: 'Custom key-value pairs for storing additional information'
+          }),
+          source: v.optional(v.enumOf(['explorer']), {
+            description:
+              'Mark this resource as originating from the dashboard explorer and enable its owner lock and owner-only visibility.'
           })
         })
       )
@@ -344,17 +400,29 @@ export let sessionController = Controller.create(
         let session = await sessionService.updateSession({
           instance: ctx.instance,
           auditScope: ctx.auditScope,
+          organizationActor: getOwnershipActor(ctx),
           session: ctx.session,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
-            metadata: ctx.body.metadata
+            metadata: ctx.body.metadata,
+            source: ctx.body.source,
+            isOwnerLocked: ctx.body.source === 'explorer' ? true : undefined,
+            isOwnerOnlyVisible: ctx.body.source === 'explorer' ? true : undefined
           }
         });
 
-        return providerSessionPresenter.present({
-          session: session
+        let [redactedSession] = await sessionService.redactSessionsForCaller({
+          instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
+          sessions: [session]
         });
+
+        return providerSessionPresenter.present(
+          await hydrateResourceOwners({
+            session: redactedSession!
+          })
+        );
       }),
 
     delete: sessionGroup
@@ -376,9 +444,11 @@ export let sessionController = Controller.create(
           session: ctx.session
         });
 
-        return providerSessionPresenter.present({
-          session
-        });
+        return providerSessionPresenter.present(
+          await hydrateResourceOwners({
+            session
+          })
+        );
       })
   }
 );

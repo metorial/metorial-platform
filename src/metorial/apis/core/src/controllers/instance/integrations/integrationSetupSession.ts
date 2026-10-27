@@ -1,3 +1,4 @@
+import { hydrateResourceOwners } from '@metorial/module-resource-actor';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
@@ -12,6 +13,7 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { integrationSetupSessionPresenter } from '@metorial/presenters';
+import { getOwnershipActor } from '../../../lib/ownershipActor';
 
 let setupSessionConfigurationValidator = v.optional(
   v.object({
@@ -81,6 +83,7 @@ let integrationSetupSessionGroup = instanceGroup.use(async ctx => {
   let integrationSetupSession =
     await integrationSetupSessionService.getIntegrationSetupSessionById({
       instance: ctx.instance,
+      organizationActor: getOwnershipActor(ctx),
       integrationSetupSessionId: ctx.params.integrationSetupSessionId,
       allowDeleted: true
     });
@@ -123,6 +126,7 @@ export let integrationSetupSessionController = Controller.create(
       .do(async ctx => {
         let paginator = await integrationSetupSessionService.listIntegrationSetupSessions({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
           allowDeleted: false,
           status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
@@ -133,9 +137,17 @@ export let integrationSetupSessionController = Controller.create(
         });
 
         let list = await paginator.run(ctx.query);
+        let items =
+          await integrationSetupSessionService.redactIntegrationSetupSessionsForCaller({
+            instance: ctx.instance,
+            organizationActor: getOwnershipActor(ctx),
+            integrationSetupSessions: list.items
+          });
 
-        return Paginator.present(list, integrationSetupSession =>
-          integrationSetupSessionPresenter.present({ integrationSetupSession })
+        return Paginator.present(
+          await hydrateResourceOwners({ ...list, items }),
+          integrationSetupSession =>
+            integrationSetupSessionPresenter.present({ integrationSetupSession })
         );
       }),
 
@@ -152,11 +164,20 @@ export let integrationSetupSessionController = Controller.create(
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .output(integrationSetupSessionPresenter)
-      .do(async ctx =>
-        integrationSetupSessionPresenter.present({
-          integrationSetupSession: ctx.integrationSetupSession
-        })
-      ),
+      .do(async ctx => {
+        let [integrationSetupSession] =
+          await integrationSetupSessionService.redactIntegrationSetupSessionsForCaller({
+            instance: ctx.instance,
+            organizationActor: getOwnershipActor(ctx),
+            integrationSetupSessions: [ctx.integrationSetupSession]
+          });
+
+        return integrationSetupSessionPresenter.present(
+          await hydrateResourceOwners({
+            integrationSetupSession: integrationSetupSession!
+          })
+        );
+      }),
 
     create: instanceGroup
       .post(instancePath('integration-setup-sessions', 'integrations.setupSessions.create'), {
@@ -197,6 +218,10 @@ export let integrationSetupSessionController = Controller.create(
           await integrationSetupSessionService.createIntegrationSetupSession({
             instance: ctx.instance,
             auditScope: ctx.auditScope,
+            internal: {
+              skipConfirmation: ctx.apiVersion === 'mt_2025_01_01_dashboard'
+            },
+            organizationActor: getOwnershipActor(ctx),
             integration,
             integrationInstance,
             input: {
@@ -215,7 +240,9 @@ export let integrationSetupSessionController = Controller.create(
             }
           });
 
-        return integrationSetupSessionPresenter.present({ integrationSetupSession });
+        return integrationSetupSessionPresenter.present(
+          await hydrateResourceOwners({ integrationSetupSession })
+        );
       })
   }
 );

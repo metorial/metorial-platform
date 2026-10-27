@@ -6,7 +6,6 @@ import { useMemo } from 'react';
 import { groupManagersByMarketplace, pluginsFromMarketplace } from './groupManagers';
 import { GroupMarketplaceManagersTable } from './managersTable';
 import { showMarketplaceManagerPanel } from './panel';
-import { MARKETPLACE_MANAGER_COPY } from './types';
 
 export let GroupMarketplaceManagersList = (props: {
   instanceId: string;
@@ -79,15 +78,15 @@ export let GroupMarketplaceManagersList = (props: {
         })
       }
     >
-      Add Marketplace Manager
+      Add Marketplace
     </Button>
   );
 
   if (props.asBox) {
     return (
       <Box
-        title="Marketplace Managers"
-        description={MARKETPLACE_MANAGER_COPY}
+        title="Managed Marketplaces"
+        description="Access to update skills and plugins in these marketplaces."
         rightActions={actions}
       >
         {inner}
@@ -99,8 +98,8 @@ export let GroupMarketplaceManagersList = (props: {
 
   return (
     <PageHeaderSection
-      title="Marketplace Managers"
-      description={MARKETPLACE_MANAGER_COPY}
+      title="Managed Marketplaces"
+      description="Access to update skills and plugins in these marketplaces."
       actions={actions}
     >
       {inner}

@@ -19,8 +19,10 @@ import {
   resolveProviders
 } from '@metorial-subspace/list-utils';
 import {
+  assertCanUseOwnedResource,
   checkTenant,
   getMetorialSolution,
+  getOwnershipAccessor,
   type MetorialFacing,
   resolveMetorialFacing,
   resolveMetorialFacingWithOptionalActor,
@@ -155,6 +157,12 @@ class providerAuthExportServiceImpl {
   async createProviderAuthExport(d: MetorialFacing<CreateProviderAuthExportParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacingWithOptionalActor(d);
+
+    await assertCanUseOwnedResource(
+      await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+      rest.authConfig,
+      { resource: 'provider auth config' }
+    );
 
     let eventBase = toProviderEventBase(d);
     await Fabric.fire('provider.auth_export.created:before', eventBase);

@@ -23,6 +23,15 @@ runs:
     - uses: oven-sh/setup-bun@v2
       with:
         bun-version: '1.4.2'
+    - name: Describe control test dependencies
+      if: env.TEST_UNITS_ONLY != 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        directory=src/control
+        set -- --oss
+        if [ -f oss/package.json ]; then directory="oss/$directory"; set --; fi
+        bun "$directory/src/main.ts" "$@" ci describe --json > "$RUNNER_TEMP/backend-inventory.json"
     - id: changes
       shell: bash
       env:

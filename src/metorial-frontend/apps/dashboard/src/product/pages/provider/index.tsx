@@ -41,6 +41,7 @@ export let ProviderOverviewPage = () => {
     instance.data?.id && providerId ? instance.data.id : null,
     {
       providerId: provider.data?.id ?? providerId,
+      ownership: 'all',
       status: ['active'],
       limit: 15,
       order: 'desc'

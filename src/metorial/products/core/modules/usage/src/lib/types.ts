@@ -16,6 +16,7 @@ export let usageDimensionKeys = [
   'providerId',
   'deploymentId',
   'consumerId',
+  'consumerProfileId',
   'agentId',
   'magicMcpServerId',
   'integrationId',

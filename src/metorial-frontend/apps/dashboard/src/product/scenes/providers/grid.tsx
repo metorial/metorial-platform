@@ -74,7 +74,7 @@ export let ProvidersGrid = ({ mode = 'default', ...filter }: ProvidersGridProps)
                         )}
 
                         {listing.attributes.isOfficial && (
-                          <Badge size="1" color="gray">
+                          <Badge size="2" color="gray">
                             Official
                           </Badge>
                         )}
@@ -83,7 +83,9 @@ export let ProvidersGrid = ({ mode = 'default', ...filter }: ProvidersGridProps)
                   </div>
                 }
                 bottom={
-                  listing.provider?.slug ? <Text size="1">{listing.provider.slug}</Text> : undefined
+                  listing.provider?.slug ? (
+                    <Text size="2">{listing.provider.slug}</Text>
+                  ) : undefined
                 }
               />
             );

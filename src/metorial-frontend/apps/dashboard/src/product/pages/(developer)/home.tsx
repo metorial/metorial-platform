@@ -73,7 +73,11 @@ let ConfigsPreview = ({ instanceId }: { instanceId: string }) => {
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
   let instance = useCurrentInstance();
-  let configs = useProviderConfigs(instanceId, { limit: previewLimit, order: 'desc' });
+  let configs = useProviderConfigs(instanceId, {
+    ownership: 'all',
+    limit: previewLimit,
+    order: 'desc'
+  });
 
   return renderWithLoader({ configs })(({ configs }) =>
     configs.data.items.length ? (
@@ -101,7 +105,11 @@ let AuthConfigsPreview = ({ instanceId }: { instanceId: string }) => {
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
   let instance = useCurrentInstance();
-  let configs = useProviderAuthConfigs(instanceId, { limit: previewLimit, order: 'desc' });
+  let configs = useProviderAuthConfigs(instanceId, {
+    ownership: 'all',
+    limit: previewLimit,
+    order: 'desc'
+  });
 
   return renderWithLoader({ configs })(({ configs }) =>
     configs.data.items.length ? (

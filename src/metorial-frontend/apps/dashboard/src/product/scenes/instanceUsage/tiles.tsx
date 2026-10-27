@@ -122,17 +122,12 @@ let tileDefinitions: Record<Exclude<UsageTileId, DistinctTileId>, TileDefinition
     sparkline: ctx => spark(ctx.points(['tool_call']), p => p.durationMsAvg, formatDuration)
   },
   connection_time: {
-    title: 'Connection time',
+    title: 'Avg connection time',
     kinds: ['connection_time'],
-    value: ctx => duration(ctx.kind('connection_time')?.durationMsSum ?? 0),
-    context: ctx => {
-      let totals = ctx.kind('connection_time');
-      return totals?.count
-        ? `avg ${duration(totals.durationMsAvg)} per connection`
-        : undefined;
-    },
+    value: ctx => duration(ctx.kind('connection_time')?.durationMsAvg),
+    context: () => 'Per connection',
     sparkline: ctx =>
-      spark(ctx.points(['connection_time']), p => p.durationMsSum, formatDuration)
+      spark(ctx.points(['connection_time']), p => p.durationMsAvg, formatDuration)
   },
   auth_failures: {
     title: 'Auth failures',

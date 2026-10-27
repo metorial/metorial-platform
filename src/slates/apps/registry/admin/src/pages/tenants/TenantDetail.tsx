@@ -17,7 +17,7 @@ export let TenantDetail = () => {
         <Group.Header
           title={tenant.data!.name}
           description={
-            <UiBadge color="gray" size="1">
+            <UiBadge color="gray" size="2">
               <code>{tenant.data!.identifier}</code>
             </UiBadge>
           }

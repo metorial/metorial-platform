@@ -1,11 +1,12 @@
 import { forbiddenError, ServiceError, unauthorizedError } from '@lowerdeck/error';
-import type { Instance } from '@metorial/db';
+import type { Instance, OrganizationActor } from '@metorial/db';
 import { AuthInfo } from '@metorial/module-access';
 import { Authenticator } from '@metorial/rest';
 
 export type McpSessionInfo = {
   instance: Instance;
   auth: AuthInfo;
+  organizationActor?: OrganizationActor;
 };
 
 export let authenticateAndResolveInstance = async (
@@ -49,7 +50,8 @@ export let authenticateAndResolveInstance = async (
           ...auth.restrictions.instance,
           organization: auth.restrictions.organization
         } as Instance,
-        auth
+        auth,
+        organizationActor: auth.restrictions.consumer ? undefined : auth.restrictions.actor
       };
     }
 

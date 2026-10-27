@@ -8,6 +8,7 @@ import {
 } from '@metorial/state';
 import { Badge, Flex, RenderDate, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
+import { ResourceOwnerInline } from '../../components/resourceOwnerEntity';
 
 export let ProviderConfigsTable = ({
   instanceId,
@@ -22,6 +23,7 @@ export let ProviderConfigsTable = ({
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
   let configs = useProviderConfigs(instanceId, {
+    ownership: 'all',
     order: 'desc',
     search,
     providerDeploymentId
@@ -30,7 +32,7 @@ export let ProviderConfigsTable = ({
   return renderWithPagination(configs)(configs => (
     <>
       <Table
-        headers={['Name', 'Source', 'Type', 'Updated']}
+        headers={['Name', 'Source', 'Type', 'Owner', 'Updated']}
         data={configs.data.items.map(config => ({
           href: Paths.instance.providerConfig(
             organization.data,
@@ -61,10 +63,10 @@ export let ProviderConfigsTable = ({
             </Flex>,
             config.fromVault ? (
               <Flex gap={6} style={{ alignItems: 'center', flexWrap: 'wrap' }}>
-                <Badge color="purple" size="1">
+                <Badge color="purple" size="2">
                   Vault
                 </Badge>
-                <Text size="1" color="gray600">
+                <Text size="2" color="gray600">
                   {config.fromVault.name}
                 </Text>
               </Flex>
@@ -74,14 +76,15 @@ export let ProviderConfigsTable = ({
               </Text>
             ),
             config.isDefault ? (
-              <Badge color="blue" size="1">
+              <Badge color="blue" size="2">
                 Default
               </Badge>
             ) : (
-              <Badge color="gray" size="1">
+              <Badge color="gray" size="2">
                 Custom
               </Badge>
             ),
+            <ResourceOwnerInline resource={config} linked={false} />,
             <RenderDate date={config.updatedAt} />
           ]
         }))}

@@ -39,7 +39,7 @@ export let ProviderInvocationDetails = ({
                 {
                   label: 'Status',
                   value: (
-                    <Badge size="1" color={getStatusBadgeColor(invocation.status)}>
+                    <Badge size="2" color={getStatusBadgeColor(invocation.status)}>
                       {formatTitleCase(invocation.status)}
                     </Badge>
                   )

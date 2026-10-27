@@ -56,7 +56,7 @@ export let SubRegistryList = () => {
                     </Text>
                   </div>
                 </Flex>,
-                <Badge color="blue" size="1">{subRegistry.filters?.length ?? 0} filters</Badge>,
+                <Badge color="blue" size="2">{subRegistry.filters?.length ?? 0} filters</Badge>,
                 <RenderDate date={subRegistry.createdAt} />
               ]
             }))}

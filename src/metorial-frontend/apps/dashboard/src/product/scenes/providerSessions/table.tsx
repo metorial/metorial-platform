@@ -197,7 +197,7 @@ let providerSessionsTable = new DashboardTable<ProviderSessionsTableProps, Sessi
             {session.name ?? `Session ${session.id.slice(0, 8)}...`}
           </Text>
           {session.description && (
-            <Text size="1" color="gray600">
+            <Text size="2" color="gray600">
               {session.description}
             </Text>
           )}

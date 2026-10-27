@@ -362,7 +362,7 @@ let PolicyGroup = (p: {
                 {summarizeRule({ ...rule, ports: rule.ports ?? undefined })}
               </Text>
               {!rule.enabled && (
-                <Text as="p" size="1" color="gray600">
+                <Text as="p" size="2" color="gray600">
                   Disabled
                 </Text>
               )}

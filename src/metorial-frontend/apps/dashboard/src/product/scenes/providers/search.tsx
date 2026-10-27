@@ -10,7 +10,6 @@ import {
 } from '@metorial/state';
 import {
   Avatar,
-  Badge,
   ButtonSize,
   CenteredSpinner,
   getButtonSize,
@@ -22,7 +21,6 @@ import {
   theme
 } from '@metorial/ui';
 import { ItemGrid } from '@metorial/ui-product';
-import { RiCheckLine } from '@remixicon/react';
 import { useMemo, useState } from 'react';
 import { useMeasure } from 'react-use';
 import styled from 'styled-components';
@@ -135,7 +133,6 @@ let ProviderName = styled.span`
   white-space: nowrap;
 `;
 
-
 let ProviderCardWrapper = styled.div`
   position: relative;
 
@@ -179,7 +176,6 @@ let CreatingCardSpinner = styled.div`
   justify-content: center;
   pointer-events: none;
 `;
-
 
 let FieldWrapper = styled.div`
   display: flex;
@@ -274,36 +270,17 @@ let ProviderItemsGrid = ({
                 height={cardSize === 'compact' ? 220 : 250}
                 onClick={clickDisabled ? undefined : () => onSelect?.(provider)}
                 icon={
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <Avatar
-                      entity={{
-                        name: provider.name ?? provider.slug ?? 'Provider',
-                        photoUrl: provider.imageUrl ?? undefined
-                      }}
-                      size={30}
-                      radius={5}
-                      imageFit="contain"
-                    />
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      {provider.attributes?.isVerified && (
-                        <Badge size="1" color="blue" icon={<RiCheckLine />}>
-                          Verified
-                        </Badge>
-                      )}
-
-                      {(provider.attributes?.isMetorial ||
-                        provider.attributes?.isOfficial) && (
-                        <Badge size="1" color="gray">
-                          Official
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
+                  <Avatar
+                    entity={{
+                      name: provider.name ?? provider.slug ?? 'Provider',
+                      photoUrl: provider.imageUrl ?? undefined
+                    }}
+                    size={30}
+                    radius={5}
+                    imageFit="contain"
+                  />
                 }
-                bottom={
-                  provider.slug ? <Text size="1">{provider.slug}</Text> : undefined
-                }
+                bottom={provider.slug ? <Text size="2">{provider.slug}</Text> : undefined}
               />
             </ProviderCardWrapper>
           );
@@ -575,7 +552,10 @@ export let ProvidersWithDeploymentsSearch = ({
     shouldLoadProviderDeployments ? instanceId : null,
     limit ? { limit } : undefined
   );
-  let excludedProviderIds = useMemo(() => new Set(excludeProviderIds ?? []), [excludeProviderIds]);
+  let excludedProviderIds = useMemo(
+    () => new Set(excludeProviderIds ?? []),
+    [excludeProviderIds]
+  );
   let providerIds = useMemo(
     () =>
       [

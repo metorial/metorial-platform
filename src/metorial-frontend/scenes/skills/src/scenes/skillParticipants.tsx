@@ -75,7 +75,7 @@ export let SkillParticipantsScene = (p: {
             </Flex>,
             <Flex gap={6} style={{ flexWrap: 'wrap' }}>
               {participant.roles.map(role => (
-                <Badge key={role} color="blue" size="1">
+                <Badge key={role} color="blue" size="2">
                   {roleLabels[role] ?? role}
                 </Badge>
               ))}

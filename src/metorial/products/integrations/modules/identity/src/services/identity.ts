@@ -440,14 +440,20 @@ class identityServiceImpl {
     checkTenant(d, d.identity);
     checkDeletedEdit(d.identity, 'archive');
 
-    await assertNoActiveIntegrationIdentityLink({
-      tenant: d.tenant,
-      solution,
-      environment: d.environment,
-      identityOid: d.identity.oid,
-      identityId: d.identity.id,
-      ownedByIntegrationInstanceOid: d.identity.ownedByIntegrationInstanceOid
+    let actor = await db.identityActor.findUnique({
+      where: { oid: d.identity.actorOid },
+      select: { consumerProfile: { select: { status: true } } }
     });
+    if (actor?.consumerProfile?.status !== 'deleted') {
+      await assertNoActiveIntegrationIdentityLink({
+        tenant: d.tenant,
+        solution,
+        environment: d.environment,
+        identityOid: d.identity.oid,
+        identityId: d.identity.id,
+        ownedByIntegrationInstanceOid: d.identity.ownedByIntegrationInstanceOid
+      });
+    }
 
     return withTransaction(async db => {
       let identity = await db.identity.update({

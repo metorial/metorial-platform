@@ -235,7 +235,7 @@ export let SlateBulkCreate = () => {
                           {statusLabel(queued.status)}
                         </Badge>
                         <Button
-                          size="1"
+                          size="2"
                           variant="ghost"
                           disabled={isUploading}
                           onClick={() => removeFile(queued.id)}

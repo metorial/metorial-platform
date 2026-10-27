@@ -28,6 +28,7 @@ import {
 import { Avatar, Badge, Input, RenderDate, Spacer, Text, theme } from '@metorial/ui';
 import { ID, ItemGrid } from '@metorial/ui-product';
 import { useDebounced } from '@metorial/use-debounced';
+import { ResourceOwnerInline } from '../../components/resourceOwnerEntity';
 import { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { entityFilters } from '../entityFilters';
@@ -95,6 +96,7 @@ let magicServersState: TableStateProvider<
   TableStateProviderResult<Server>
 > = (props, opts) => {
   let servers = useMagicMcpServers(props.instanceId, {
+    ownership: 'all',
     order: props.order ?? 'desc',
     status: getServerStatusFilterValue(opts.filter.status) ?? props.status,
     magicMcpGroupId: getListFilterValue(opts.filter.magicMcpGroupId) ?? props.magicMcpGroupId,
@@ -160,6 +162,12 @@ let magicServersTable = new DashboardTable<MagicMcpServersTableProps, Server>(
           {server.endpoints.map(endpoint => endpoint.alias).join(', ') || '-'}
         </Text>
       )
+    },
+    {
+      id: 'owner',
+      isDefault: true,
+      header: 'Owner',
+      render: server => <ResourceOwnerInline resource={server} linked={false} />
     },
     {
       id: 'createdAt',
@@ -245,6 +253,7 @@ export let MagicMcpServersGrid = (filter: DashboardInstanceMagicMcpServersListQu
     getListFilterValue(filterPayload.magicMcpGroupId) ?? filter.magicMcpGroupId;
   let providerId = getListFilterValue(filterPayload.providerId) ?? filter.providerId;
   let servers = useMagicMcpServers(instanceId, {
+    ownership: 'all',
     order: filter.order ?? 'desc',
     status,
     magicMcpGroupId,
@@ -386,7 +395,7 @@ export let MagicMcpServersGrid = (filter: DashboardInstanceMagicMcpServersListQu
                             />
                           )
                         }
-                        bottom={<Text size="1">{aliases[0] ?? server.id}</Text>}
+                        bottom={<Text size="2">{aliases[0] ?? server.id}</Text>}
                       />
                     );
                   })}

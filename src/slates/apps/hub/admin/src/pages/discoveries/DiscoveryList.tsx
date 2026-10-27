@@ -98,7 +98,7 @@ export let DiscoveryList = () => {
                   </Badge>,
                   discovery.error ? (
                     <Flex direction="column" gap={2}>
-                      <Text size="1" weight="medium" color="red600">
+                      <Text size="2" weight="medium" color="red600">
                         {discovery.error.code}
                       </Text>
                       <Text

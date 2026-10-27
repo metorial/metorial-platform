@@ -28,7 +28,12 @@ let sessionCache = createTtlCache<UsageSessionDims>({
   maxSize: CACHE_MAX_SIZE
 });
 
-let consumerCache = createTtlCache<string | null>({
+type UsageConsumerContext = {
+  consumerId: string | null;
+  consumerProfileId: string | null;
+};
+
+let consumerCache = createTtlCache<UsageConsumerContext | null>({
   ttlMs: CACHE_TTL_MS,
   emptyTtlMs: EMPTY_CACHE_TTL_MS,
   maxSize: CACHE_MAX_SIZE
@@ -150,7 +155,7 @@ export let resolveUsageSessionDims = async (
   return dims.get(session.oid.toString()) ?? { magicMcpServerId: null, integrationId: null };
 };
 
-export let resolveUsageConsumersByActor = async (identityActorOids: bigint[]) => {
+export let resolveUsageConsumerContextsByActor = async (identityActorOids: bigint[]) => {
   let { result, missing } = splitCached(
     identityActorOids.map(oid => oid.toString()),
     consumerCache
@@ -158,16 +163,26 @@ export let resolveUsageConsumersByActor = async (identityActorOids: bigint[]) =>
   if (!missing.length) return result;
 
   let actors = await db.identityActor.findMany({
-    where: { oid: { in: missing.map(oid => BigInt(oid)) }, type: 'consumer' },
-    select: { oid: true, instanceConsumer: { select: { id: true } } }
+    where: { oid: { in: missing.map(oid => BigInt(oid)) } },
+    select: {
+      oid: true,
+      instanceConsumer: { select: { id: true } },
+      consumerProfile: { select: { id: true } }
+    }
   });
   let byOid = new Map(actors.map(actor => [actor.oid.toString(), actor]));
 
   for (let oid of missing) {
-    let consumerId = byOid.get(oid)?.instanceConsumer?.id ?? null;
+    let actor = byOid.get(oid);
+    let context = actor
+      ? {
+          consumerId: actor.instanceConsumer?.id ?? null,
+          consumerProfileId: actor.consumerProfile?.id ?? null
+        }
+      : null;
 
-    consumerCache.set(oid, consumerId, !consumerId);
-    result.set(oid, consumerId);
+    consumerCache.set(oid, context, !context);
+    result.set(oid, context);
   }
 
   return result;
@@ -239,11 +254,11 @@ export let resolveUsageProvider = async (providerOid: bigint | null | undefined)
   return providerId;
 };
 
-export let resolveUsageConsumerByActor = async (
+export let resolveUsageConsumerContextByActor = async (
   identityActorOid: bigint | null | undefined
 ) => {
   if (!identityActorOid) return null;
 
-  let consumers = await resolveUsageConsumersByActor([identityActorOid]);
+  let consumers = await resolveUsageConsumerContextsByActor([identityActorOid]);
   return consumers.get(identityActorOid.toString()) ?? null;
 };

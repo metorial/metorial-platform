@@ -27,6 +27,7 @@ export type UsageSessionErrorRow = {
 };
 
 export type UsageAuthEventRow = {
+  type: string;
   status: string;
   createdAt: Date;
   provider?: { id: string } | null;
@@ -42,6 +43,7 @@ type UsageEventContext = {
   instance: UsageInstanceRef;
   session?: UsageSessionDims;
   consumerId?: string | null;
+  consumerProfileId?: string | null;
   agentId?: string | null;
 };
 
@@ -52,6 +54,7 @@ let base = (ctx: UsageEventContext) => ({
 
 let sessionDims = (ctx: UsageEventContext) => ({
   consumerId: ctx.consumerId ?? null,
+  consumerProfileId: ctx.consumerProfileId ?? null,
   agentId: ctx.agentId ?? null,
   magicMcpServerId: ctx.session?.magicMcpServerId ?? null,
   integrationId: ctx.session?.integrationId ?? null
@@ -79,8 +82,8 @@ export let buildMessageUsageEvent = (
   ctx: UsageEventContext
 ): UsageEvent => {
   let isToolCall =
-    message.type == 'tool_call' &&
-    (!!message.toolCall?.tool || !isMcpProtocolMethod(message.methodOrToolKey));
+    !!message.toolCall ||
+    (message.type == 'tool_call' && !isMcpProtocolMethod(message.methodOrToolKey));
 
   return {
     ...base(ctx),
@@ -165,7 +168,8 @@ export let buildAuthEventUsageEvent = (
   ...base(ctx),
   kind: 'auth_event',
   ts: event.createdAt,
-  isError: event.status == 'failed',
+  isError:
+    event.status == 'failed' || event.type.endsWith('_failed') || event.type.includes('error'),
   dims: { providerId: event.provider?.id ?? null }
 });
 

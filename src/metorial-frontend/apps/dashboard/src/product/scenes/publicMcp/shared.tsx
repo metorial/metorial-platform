@@ -22,7 +22,7 @@ export let PublicMcpServerStatusBadge = ({
 }: {
   status: PublicMcpServer['status'];
 }) => (
-  <Badge size="1" color={serverStatus[status].color}>
+  <Badge size="2" color={serverStatus[status].color}>
     {serverStatus[status].label}
   </Badge>
 );
@@ -42,7 +42,7 @@ export let PublicMcpGrantStatusBadge = ({
 }: {
   status: PublicMcpServerGrant['status'];
 }) => (
-  <Badge size="1" color={grantStatus[status].color}>
+  <Badge size="2" color={grantStatus[status].color}>
     {grantStatus[status].label}
   </Badge>
 );

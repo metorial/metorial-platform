@@ -17,6 +17,7 @@ import {
   projectAuthConfigConfigurationResource,
   projectBrandResource,
   projectDataRetentionConfigurationResource,
+  projectResourceOwnershipConfigurationResource,
   projectIntegrationNamingConfigurationResource,
   projectReducedSubprocessorsConfigurationResource,
   projectRetentionResource,
@@ -59,6 +60,7 @@ export let organizationResources = resourceSet({
   project_skill_sync_configuration: projectSkillSyncConfigurationResource,
   project_reduced_subprocessors_configuration:
     projectReducedSubprocessorsConfigurationResource,
+  project_resource_ownership_configuration: projectResourceOwnershipConfigurationResource,
   project_tool_calling_configuration: projectToolCallingConfigurationResource,
   project_sessionless_mcp_configuration: projectSessionlessMcpConfigurationResource,
   project_data_retention_configuration: projectDataRetentionConfigurationResource,

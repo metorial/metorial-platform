@@ -44,6 +44,8 @@ export type SessionProviderAuthConfigSource =
 export let resolveSessionProviderInput = async (d: {
   instance: Instance;
   auditScope?: AuditScope;
+  ownerActorId?: string;
+  source?: 'explorer';
   sessionTemplateId?: string;
   providerDeployment?: SessionProviderDeploymentSource;
   providerConfig?: SessionProviderConfigSource;
@@ -133,6 +135,10 @@ export let resolveSessionProviderInput = async (d: {
       auditScope: d.auditScope,
       provider,
       providerDeployment,
+      ownerActorId: d.ownerActorId,
+      source: d.source,
+      isOwnerLocked: d.source === 'explorer' ? true : undefined,
+      isOwnerOnlyVisible: d.source === 'explorer' ? true : undefined,
       input: {
         name: d.providerConfig.name ?? 'Ephemeral config',
         isEphemeral: true,
@@ -175,7 +181,10 @@ export let resolveSessionProviderInput = async (d: {
       auditScope: d.auditScope,
       provider,
       providerDeployment,
-      source: 'manual',
+      ownerActorId: d.ownerActorId,
+      isOwnerLocked: d.source === 'explorer' ? true : undefined,
+      isOwnerOnlyVisible: d.source === 'explorer' ? true : undefined,
+      source: d.source ?? 'manual',
       import: {
         ip: undefined,
         ua: undefined,

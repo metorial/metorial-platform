@@ -77,7 +77,7 @@ export let DiscoveryDetail = () => {
                 {
                   label: 'Status',
                   value: (
-                    <Badge color={discoveryStatusColors[discoveryData.status] || 'gray'} size="1">
+                    <Badge color={discoveryStatusColors[discoveryData.status] || 'gray'} size="2">
                       {discoveryData.status}
                     </Badge>
                   )
@@ -85,7 +85,7 @@ export let DiscoveryDetail = () => {
                 {
                   label: 'Version',
                   value: (
-                    <Badge color="blue" size="1">
+                    <Badge color="blue" size="2">
                       v{discoveryData.version?.version ?? '-'}
                     </Badge>
                   )

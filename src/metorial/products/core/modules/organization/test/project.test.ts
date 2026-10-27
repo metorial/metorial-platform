@@ -221,6 +221,40 @@ describe('ProjectService', () => {
       );
     });
 
+    it('should restrict access to consumer-owned resources for new projects', async () => {
+      let mockOrg = { id: 'org-1', oid: 1 };
+      let create = vi.fn().mockResolvedValue({
+        id: 'proj-1',
+        oid: 1,
+        slug: 'test-project',
+        name: 'Test Project',
+        status: 'active',
+        organizationOid: 1,
+        organization: mockOrg
+      });
+
+      vi.mocked(ID.generateId).mockResolvedValue('proj-1');
+      vi.mocked(withTransaction).mockImplementation(async callback =>
+        callback({ project: { create } } as any)
+      );
+      vi.mocked(instanceService.createInstance).mockResolvedValue({} as any);
+
+      await projectService.createProject({
+        organization: mockOrg as any,
+        auditScope: {} as any,
+        input: { name: 'Test Project' }
+      });
+
+      expect(create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            allowApiAccessToConsumerOwnedResources: false,
+            allowMemberAccessToConsumerOwnedResources: false
+          })
+        })
+      );
+    });
+
     it('should handle slug generation', async () => {
       let mockProject = { id: 'proj-1', slug: 'test-slug' };
 

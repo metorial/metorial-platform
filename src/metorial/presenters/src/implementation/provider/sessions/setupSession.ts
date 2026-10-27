@@ -1,6 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import { ownerActorSchema, presentOwnerActor } from '../../_shared';
+import { presentOwnerActor, presentResourceSource, resourceAccessSchema } from '../../_shared';
 import { getProviderSetupSessionUrl } from '@metorial-subspace/module-auth/src/lib/setupSessionUrl';
 import { providerSetupSessionType } from '../../../types';
 import {
@@ -84,7 +84,12 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
       provider_id: setupSession.provider?.id ?? null,
       identity_id: setupSession.identity?.id ?? null,
       identity_credential_id: setupSession.identityCredential?.id ?? null,
-      owner_actor: presentOwnerActor(setupSession.ownerActor),
+      access: {
+        source: presentResourceSource(setupSession.source),
+        type: setupSession.isOwnerLocked ? ('owner_locked' as const) : ('public' as const),
+        visibility: setupSession.isOwnerOnlyVisible ? ('owner' as const) : ('anyone' as const),
+        owner: presentOwnerActor(setupSession.ownerActor)
+      },
 
       auth_method:
         setupSession.provider && setupSession.authMethod
@@ -260,7 +265,7 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
           examples: ['idc_3nOpRsTuVwXyZaBc']
         })
       ),
-      owner_actor: ownerActorSchema,
+      access: resourceAccessSchema,
       auth_method: v.nullable(v1ProviderAuthMethodPresenter.schema),
       deployment: v.nullable(v1ProviderDeploymentPreviewPresenter.schema),
       credentials: v.nullable(v1ProviderAuthCredentialsPresenter.schema),

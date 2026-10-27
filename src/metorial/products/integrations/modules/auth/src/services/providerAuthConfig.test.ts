@@ -3,7 +3,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 let mocks = vi.hoisted(() => ({
   providerAuthConfigFindMany: vi.fn(),
   providerAuthMethodFindMany: vi.fn(),
-  resolveAuthMethodsGlobal: vi.fn()
+  resolveAuthMethodsGlobal: vi.fn(),
+  assertCanChangeOwnerOnlyVisibility: vi.fn(),
+  assertCanSeeOwnedResource: vi.fn(),
+  canSeeOwnedResource: vi.fn(),
+  getOwnershipAccessor: vi.fn(),
+  ownedResourceWhere: vi.fn(),
+  resolveOwnerActorOid: vi.fn(),
+  resolveMetorialFacing: vi.fn(),
+  getByIdInternal: vi.fn()
 }));
 
 vi.mock('@lowerdeck/service', () => ({
@@ -73,11 +81,18 @@ vi.mock('@metorial-subspace/module-search', () => ({
 }));
 
 vi.mock('@metorial-subspace/module-tenant', () => ({
+  assertCanChangeOwnerLock: vi.fn(),
+  assertCanChangeOwnerOnlyVisibility: mocks.assertCanChangeOwnerOnlyVisibility,
+  assertCanSeeOwnedResource: mocks.assertCanSeeOwnedResource,
+  canSeeOwnedResource: mocks.canSeeOwnedResource,
+  getOwnershipAccessor: mocks.getOwnershipAccessor,
+  ownedResourceWhere: mocks.ownedResourceWhere,
+  resolveOwnerActorOid: mocks.resolveOwnerActorOid,
   checkTenant: vi.fn(),
   ownerActorSelect: { select: { id: true } },
   getMetorialSolution: vi.fn(async () => ({ oid: 7, id: 'sol_1' })),
   resolveConsumerActorIds: vi.fn(),
-  resolveMetorialFacing: vi.fn(),
+  resolveMetorialFacing: mocks.resolveMetorialFacing,
   resolveMetorialFacingWithOptionalActor: vi.fn(),
   toProviderEventBase: vi.fn()
 }));
@@ -172,5 +187,71 @@ describe('listProviderAuthConfigsInternal auth method filtering', () => {
         in: [101n, 103n]
       }
     });
+  });
+});
+
+describe('ownership handling for provider auth configs', () => {
+  let tenant = { oid: 10n, id: 'ten_1' };
+  let environment = { oid: 30n };
+  let accessor = { kind: 'member', isEnforced: true };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.resolveMetorialFacing.mockResolvedValue({ tenant, environment });
+    mocks.getOwnershipAccessor.mockResolvedValue(accessor);
+    mocks.ownedResourceWhere.mockReturnValue({ AND: [{ marker: 'ownership' }] });
+    mocks.providerAuthConfigFindMany.mockResolvedValue([]);
+  });
+
+  it('always applies the ownership where clause and passes the requested filter', async () => {
+    let paginator = await providerAuthConfigService.listProviderAuthConfigs({
+      instance: {} as any,
+      organizationActor: { oid: 1n, type: 'member' } as any,
+      ownership: 'usable'
+    });
+    await paginator.run({});
+
+    expect(mocks.ownedResourceWhere).toHaveBeenCalledWith(accessor, {
+      ownership: 'usable',
+      includeSystemOwned: undefined
+    });
+
+    let where = mocks.providerAuthConfigFindMany.mock.calls[0]![0].where;
+    expect(where.AND).toContainEqual({ AND: [{ marker: 'ownership' }] });
+  });
+
+  it('hides system owned auth configs unless explicitly included', async () => {
+    let paginator = await providerAuthConfigService.listProviderAuthConfigsInternal({
+      tenant: tenant as any,
+      environment: environment as any
+    });
+    await paginator.run({});
+
+    expect(mocks.providerAuthConfigFindMany.mock.calls[0]![0].where.isSystemOwned).toBe(false);
+
+    let included = await providerAuthConfigService.listProviderAuthConfigsInternal({
+      tenant: tenant as any,
+      environment: environment as any,
+      includeSystemOwned: true
+    });
+    await included.run({});
+
+    expect('isSystemOwned' in mocks.providerAuthConfigFindMany.mock.calls[1]![0].where).toBe(
+      false
+    );
+  });
+
+  it('filters auth configs the caller cannot see from getMany', async () => {
+    mocks.canSeeOwnedResource.mockImplementation((_accessor, resource) => resource.id !== 'b');
+    mocks.providerAuthConfigFindMany.mockResolvedValue([{ id: 'a' }, { id: 'b' }]);
+
+    let result = await providerAuthConfigService.getManyProviderAuthConfigsByIds({
+      instance: {} as any,
+      organizationActor: { oid: 1n, type: 'member' } as any,
+      ids: ['a', 'b']
+    });
+
+    expect(result).toEqual([{ id: 'a' }]);
+    expect(mocks.providerAuthConfigFindMany.mock.calls[0]![0].where.isSystemOwned).toBe(false);
   });
 });

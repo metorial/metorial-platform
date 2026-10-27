@@ -60,10 +60,10 @@ export let UserDetail = () => {
           title={user.data!.name}
           description={
             <Flex gap={8}>
-              <Badge color="gray" size="1">
+              <Badge color="gray" size="2">
                 <code>{user.data!.identifier}</code>
               </Badge>
-              <Badge color={user.data!.status === 'active' ? 'green' : 'gray'} size="1">
+              <Badge color={user.data!.status === 'active' ? 'green' : 'gray'} size="2">
                 {user.data!.status}
               </Badge>
             </Flex>
@@ -129,14 +129,14 @@ export let UserDetail = () => {
                     <Flex align="center" justify="space-between">
                       <Flex align="center" gap={8}>
                         <Text size="2" weight="medium">{token.name}</Text>
-                        <Badge color={getTokenBadgeColor(token.status)} size="1">
+                        <Badge color={getTokenBadgeColor(token.status)} size="2">
                           {token.status}
                         </Badge>
                       </Flex>
                       {token.status === 'active' && (
                         <Button
                           variant="outline"
-                          size="1"
+                          size="2"
                           color="red"
                           onClick={() => handleRevokeToken(token.id)}
                         >

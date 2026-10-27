@@ -14,6 +14,7 @@
     "@codemirror/lang-json": "^6.0.2",
     "@codemirror/language": "^6.13.1",
     "@codemirror/merge": "^6.12.2",
+    "@codemirror/state": "^6.7.1",
     "@codemirror/view": "^6.43.15",
     "@lezer/highlight": "^1.2.5",
     "@lezer/lr": "^1.4.11",

@@ -1,3 +1,4 @@
+import { TwoFactorChallenge } from './twoFactorChallenge';
 import { useInterval } from '@looped/hooks';
 import { Turnstile } from '@marsidev/react-turnstile';
 import { useForm, useMutation } from '@metorial-io/data-hooks';
@@ -395,6 +396,18 @@ export let AuthIntentScene = (p: {
       <AuthLayout>
         <CenteredSpinner />
       </AuthLayout>
+    );
+  }
+
+  if (authIntent.data.status === 'needs_verification' && currentStep?.type === 'two_factor') {
+    return (
+      <TwoFactorChallenge
+        authIntentId={authIntent.data.id}
+        clientSecret={authIntent.data.clientSecret}
+        stepId={currentStep.id}
+        email={authIntent.data.identifier.value}
+        onVerified={() => authIntent.refetch()}
+      />
     );
   }
 

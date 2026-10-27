@@ -218,6 +218,7 @@ export let reconcileIntegrationSetupSessionOwnersManyQueueProcessor =
     let sessions = await db.integrationSetupSession.findMany({
       where: {
         ownerActorOid: null,
+        isSystemOwned: false,
         OR: [
           { integrationInstance: { identityActorOid: { not: null } } },
           { privateMetadata: { path: ['$owner'], equals: 'consumer' } }
@@ -265,7 +266,7 @@ export let reconcileIntegrationSetupSessionOwnerQueueProcessor =
     if (!ownerActorOid) return;
 
     await db.integrationSetupSession.updateMany({
-      where: { oid: session.oid, ownerActorOid: null },
+      where: { oid: session.oid, ownerActorOid: null, isSystemOwned: false },
       data: { ownerActorOid }
     });
   });
@@ -281,6 +282,7 @@ export let reconcileProviderSetupSessionOwnersManyQueueProcessor =
     let sessions = await db.providerSetupSession.findMany({
       where: {
         ownerActorOid: null,
+        isSystemOwned: false,
         OR: [
           { identityOid: { not: null } },
           { integrationSetupSessionProviderOid: { not: null } },
@@ -329,7 +331,7 @@ export let reconcileProviderSetupSessionOwnerQueueProcessor =
     if (!ownerActorOid) return;
 
     await db.providerSetupSession.updateMany({
-      where: { oid: session.oid, ownerActorOid: null },
+      where: { oid: session.oid, ownerActorOid: null, isSystemOwned: false },
       data: { ownerActorOid }
     });
   });
@@ -345,6 +347,7 @@ export let reconcileProviderConfigOwnersManyQueueProcessor =
     let configs = await db.providerConfig.findMany({
       where: {
         ownerActorOid: null,
+        isSystemOwned: false,
         isDefault: false,
         isForVault: false,
         OR: [
@@ -408,7 +411,7 @@ export let reconcileProviderConfigOwnerQueueProcessor =
     if (!ownerActorOid) return;
 
     await db.providerConfig.updateMany({
-      where: { oid: config.oid, ownerActorOid: null },
+      where: { oid: config.oid, ownerActorOid: null, isSystemOwned: false },
       data: { ownerActorOid }
     });
   });
@@ -424,6 +427,7 @@ export let reconcileProviderAuthConfigOwnersManyQueueProcessor =
     let authConfigs = await db.providerAuthConfig.findMany({
       where: {
         ownerActorOid: null,
+        isSystemOwned: false,
         isDefault: false,
         OR: [
           { providerSetupSession: { isNot: null } },
@@ -483,7 +487,7 @@ export let reconcileProviderAuthConfigOwnerQueueProcessor =
     if (!ownerActorOid) return;
 
     await db.providerAuthConfig.updateMany({
-      where: { oid: authConfig.oid, ownerActorOid: null },
+      where: { oid: authConfig.oid, ownerActorOid: null, isSystemOwned: false },
       data: { ownerActorOid }
     });
   });

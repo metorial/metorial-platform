@@ -67,6 +67,13 @@ let makeIdentityPaths = (...prefix: SubPages) => ({
     return InstancePaths(organization, project, instance, ...prefix, 'actor', id, ...subPages);
   },
 
+  accounts: (
+    organization: EntityParam,
+    project: EntityParam,
+    instance: EntityParam,
+    ...subPages: SubPages
+  ) => InstancePaths(organization, project, instance, ...prefix, 'accounts', ...subPages),
+
   identities: (
     organization: EntityParam,
     project: EntityParam,
@@ -1587,6 +1594,8 @@ let OrganizationPaths = Object.assign(
       OrganizationPaths(organization, ...subPages),
     billing: (organization: EntityParam, ...subPages: SubPages) =>
       OrganizationPaths.settings(organization, 'billing', ...subPages),
+    rateLimits: (organization: EntityParam, ...subPages: SubPages) =>
+      OrganizationPaths.settings(organization, 'rate-limits', ...subPages),
     supportAccess: (organization: EntityParam, ...subPages: SubPages) =>
       OrganizationPaths.settings(organization, 'support-access', ...subPages),
     auditLogs: (organization: EntityParam, ...subPages: SubPages) =>

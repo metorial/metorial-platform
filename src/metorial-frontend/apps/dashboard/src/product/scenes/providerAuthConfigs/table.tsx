@@ -8,6 +8,7 @@ import {
 } from '@metorial/state';
 import { Badge, Flex, RenderDate, Text } from '@metorial/ui';
 import { Table } from '@metorial/ui-product';
+import { ResourceOwnerInline } from '../../components/resourceOwnerEntity';
 
 let formatType = (type: string | null | undefined) => {
   if (type === 'oauth_automated') return 'OAuth (Automated)';
@@ -36,6 +37,7 @@ export let ProviderAuthConfigsTable = ({
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
   let authConfigs = useProviderAuthConfigs(instanceId, {
+    ownership: 'all',
     order: 'desc',
     search,
     providerDeploymentId
@@ -44,7 +46,16 @@ export let ProviderAuthConfigsTable = ({
   return renderWithPagination(authConfigs)(authConfigs => (
     <>
       <Table
-        headers={['Name', 'Auth Method', 'Type', 'Source', 'Status', 'Default', 'Updated']}
+        headers={[
+          'Name',
+          'Auth Method',
+          'Type',
+          'Source',
+          'Status',
+          'Default',
+          'Owner',
+          'Updated'
+        ]}
         data={authConfigs.data.items.map(config => ({
           href: Paths.instance.providerAuthConfig(
             organization.data,
@@ -76,16 +87,17 @@ export let ProviderAuthConfigsTable = ({
             <Text size="2">{config.authMethod?.name ?? config.authMethod?.key ?? '-'}</Text>,
             <Text size="2">{formatType(config.type)}</Text>,
             <Text size="2">{formatSource(config.source)}</Text>,
-            <Badge color={config.status === 'active' ? 'green' : 'gray'} size="1">
+            <Badge color={config.status === 'active' ? 'green' : 'gray'} size="2">
               {config.status}
             </Badge>,
             config.isDefault ? (
-              <Badge color="blue" size="1">
+              <Badge color="blue" size="2">
                 Default
               </Badge>
             ) : (
               <></>
             ),
+            <ResourceOwnerInline resource={config} linked={false} />,
             <RenderDate date={config.updatedAt} />
           ]
         }))}

@@ -1,3 +1,4 @@
+import { hydrateResourceOwners } from '@metorial/module-resource-actor';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { consumerActivityService } from '@metorial/module-consumer-entities';
@@ -56,7 +57,9 @@ export let consumerActivityController = Controller.create(
           search: ctx.query.search
         });
 
-        return Paginator.present(list, agent => consumerActivityAgentPresenter.present(agent));
+        return Paginator.present(await hydrateResourceOwners(list), agent =>
+          consumerActivityAgentPresenter.present(agent)
+        );
       }),
 
     getAgent: consumerGroup
@@ -72,7 +75,7 @@ export let consumerActivityController = Controller.create(
           agentId: ctx.params.agentId!
         });
 
-        return consumerActivityAgentPresenter.present(agent);
+        return consumerActivityAgentPresenter.present(await hydrateResourceOwners(agent));
       }),
 
     listSessionConnections: consumerGroup

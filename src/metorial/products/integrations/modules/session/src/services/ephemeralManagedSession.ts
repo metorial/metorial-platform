@@ -20,6 +20,7 @@ import {
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
 import { Fabric } from '@metorial/fabric';
+import { rateLimitService } from '@metorial/module-rate-limit';
 import { env } from '../env';
 import { recordEphemeralSessionAuditEvent } from '../lib/ephemeralSessionAudit';
 import { sessionArchivedQueue } from '../queues/lifecycle/session';
@@ -201,6 +202,11 @@ export type UpsertPlaceholderEphemeralManagedSessionParams = {
   input: {
     maxSessionDurationInMinutes: number;
     actorOid?: bigint | null;
+    owner?: {
+      ownerActorOid: bigint | null;
+      isOwnerLocked: boolean;
+      isOwnerOnlyVisible?: boolean;
+    };
     isReconciling?: boolean;
     markSessionsAsInternal?: boolean;
     adapter?: InternalAdapterInput;
@@ -287,6 +293,10 @@ class ephemeralManagedSessionServiceImpl {
     await Fabric.fire('provider.session.ephemeral_created:before', {
       instanceOid
     });
+    await rateLimitService.consume({
+      instance: { oid: instanceOid },
+      usages: [{ key: 'sessions.created' }]
+    });
 
     let input = {
       name: d.sessionTemplate.name ?? undefined,
@@ -321,6 +331,9 @@ class ephemeralManagedSessionServiceImpl {
           sessionTemplateOid: d.sessionTemplate.oid,
           actorOid: d.sessionTemplate.identityActorOid ?? null,
           identityOid: d.sessionTemplate.identityOid ?? null,
+          ownerActorOid: d.sessionTemplate.ownerActorOid ?? null,
+          isOwnerLocked: d.sessionTemplate.isOwnerLocked ?? false,
+          isOwnerOnlyVisible: d.sessionTemplate.isOwnerOnlyVisible ?? false,
           maxSessionDurationInMinutes: d.input.maxSessionDurationInMinutes,
           templateHash: d.sessionTemplate.hash ?? null,
           markSessionsAsInternal,
@@ -337,6 +350,11 @@ class ephemeralManagedSessionServiceImpl {
         ephemeralManagedSessionOid: ephemeralManagedSession.oid,
         identityActorOid: d.sessionTemplate.identityActorOid ?? null,
         identityOid: d.sessionTemplate.identityOid ?? null,
+        owner: {
+          ownerActorOid: ephemeralManagedSession.ownerActorOid,
+          isOwnerLocked: ephemeralManagedSession.isOwnerLocked,
+          isOwnerOnlyVisible: ephemeralManagedSession.isOwnerOnlyVisible
+        },
         input,
         resolvedProviders
       });
@@ -418,6 +436,15 @@ class ephemeralManagedSessionServiceImpl {
         sessionTemplateOid: d.sessionTemplate.oid,
         actorOid: d.input.actorOid ?? d.sessionTemplate.identityActorOid ?? null,
         identityOid: d.sessionTemplate.identityOid ?? null,
+        ownerActorOid: d.input.owner
+          ? d.input.owner.ownerActorOid
+          : (d.sessionTemplate.ownerActorOid ?? null),
+        isOwnerLocked: d.input.owner
+          ? d.input.owner.isOwnerLocked
+          : (d.sessionTemplate.isOwnerLocked ?? false),
+        isOwnerOnlyVisible: d.input.owner
+          ? (d.input.owner.isOwnerOnlyVisible ?? false)
+          : (d.sessionTemplate.isOwnerOnlyVisible ?? false),
         isReconciling: d.input.isReconciling ?? false,
         markSessionsAsInternal,
         adapterGlobalOid: adapter?.oid ?? null
@@ -621,8 +648,16 @@ class ephemeralManagedSessionServiceImpl {
           isInternal: ephemeralManagedSession.markSessionsAsInternal,
           adapterGlobalOid: ephemeralManagedSession.adapterGlobalOid,
           ephemeralManagedSessionOid: ephemeralManagedSession.oid,
-          identityActorOid: ephemeralManagedSession.sessionTemplate.identityActorOid ?? null,
+          identityActorOid:
+            ephemeralManagedSession.sessionTemplate.identityActorOid ??
+            ephemeralManagedSession.actorOid ??
+            null,
           identityOid: ephemeralManagedSession.sessionTemplate.identityOid ?? null,
+          owner: {
+            ownerActorOid: ephemeralManagedSession.ownerActorOid,
+            isOwnerLocked: ephemeralManagedSession.isOwnerLocked,
+            isOwnerOnlyVisible: ephemeralManagedSession.isOwnerOnlyVisible
+          },
           input,
           resolvedProviders
         });

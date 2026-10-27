@@ -215,7 +215,7 @@ let getSkillItemTableRow = (p: {
         {entity.name}
       </Text>
     </ItemName>,
-    <Badge color="gray" size="1">
+    <Badge color="gray" size="2">
       {entity.kind}
     </Badge>
   ];

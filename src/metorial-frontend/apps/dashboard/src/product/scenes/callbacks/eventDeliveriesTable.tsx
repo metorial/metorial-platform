@@ -305,7 +305,7 @@ export let EventDeliveriesSimpleTable = ({
               delivery.id
             )}
           >
-            <Button size="1" as="span" variant="outline">
+            <Button size="2" as="span" variant="outline">
               View Details
             </Button>
           </Link>

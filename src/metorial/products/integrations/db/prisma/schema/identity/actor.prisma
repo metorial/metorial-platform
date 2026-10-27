@@ -1,4 +1,5 @@
 enum IdentityActorType {
+  organization_member
   person
   agent
   consumer
@@ -57,26 +58,33 @@ model IdentityActor {
   updatedAt  DateTime  @default(now()) @updatedAt
   archivedAt DateTime?
 
-  agent                         Agent?
-  identities                    Identity[]                  @relation("IdentityActorIdentities")
-  identityDelegationParties     IdentityDelegationParty[]
-  identityDelegationRequests    IdentityDelegationRequest[]
-  delegatedIdentities           DelegatedIdentity[]
-  identityDelegations           IdentityDelegation[]        @relation("delegations")
-  subDelegations                IdentityDelegation[]        @relation("subDelegatedTo")
-  integrationInstances          IntegrationInstance[]
-  integrationInstanceGroups     IntegrationInstanceGroup[]
-  sessionTemplates              SessionTemplate[]
-  sessions                      Session[]
-  magicMcpEndpointBackings      MagicMcpEndpointBacking[]
-  magicMcpServerBackings        MagicMcpServerBacking[]
-  ephemeralManagedSessions      EphemeralManagedSession[]
-  ownedProviderConfigs          ProviderConfig[]
-  ownedProviderAuthConfigs      ProviderAuthConfig[]
-  ownedProviderSetupSessions    ProviderSetupSession[]
-  ownedIntegrationSetupSessions IntegrationSetupSession[]
-  ownedPublicMcpServers         PublicMcpServer[]
-  sessionParticipants           SessionParticipant[]
+  agent                          Agent?
+  identities                     Identity[]                  @relation("IdentityActorIdentities")
+  identityDelegationParties      IdentityDelegationParty[]
+  identityDelegationRequests     IdentityDelegationRequest[]
+  delegatedIdentities            DelegatedIdentity[]
+  identityDelegations            IdentityDelegation[]        @relation("delegations")
+  subDelegations                 IdentityDelegation[]        @relation("subDelegatedTo")
+  integrationInstances           IntegrationInstance[]       @relation("IntegrationInstanceIdentityActor")
+  integrationInstanceGroups      IntegrationInstanceGroup[]  @relation("IntegrationInstanceGroupIdentityActor")
+  sessionTemplates               SessionTemplate[]           @relation("SessionTemplateIdentityActor")
+  sessions                       Session[]                   @relation("SessionIdentityActor")
+  magicMcpEndpointBackings       MagicMcpEndpointBacking[]   @relation("MagicMcpEndpointBackingActor")
+  magicMcpServerBackings         MagicMcpServerBacking[]     @relation("MagicMcpServerBackingActor")
+  ephemeralManagedSessions       EphemeralManagedSession[]   @relation("EphemeralManagedSessionActor")
+  ownedIntegrationInstances      IntegrationInstance[]       @relation("IntegrationInstanceOwnerActor")
+  ownedIntegrationInstanceGroups IntegrationInstanceGroup[]  @relation("IntegrationInstanceGroupOwnerActor")
+  ownedSessionTemplates          SessionTemplate[]           @relation("SessionTemplateOwnerActor")
+  ownedSessions                  Session[]                   @relation("SessionOwnerActor")
+  ownedMagicMcpEndpointBackings  MagicMcpEndpointBacking[]   @relation("MagicMcpEndpointBackingOwnerActor")
+  ownedMagicMcpServerBackings    MagicMcpServerBacking[]     @relation("MagicMcpServerBackingOwnerActor")
+  ownedEphemeralManagedSessions  EphemeralManagedSession[]   @relation("EphemeralManagedSessionOwnerActor")
+  ownedProviderConfigs           ProviderConfig[]
+  ownedProviderAuthConfigs       ProviderAuthConfig[]
+  ownedProviderSetupSessions     ProviderSetupSession[]
+  ownedIntegrationSetupSessions  IntegrationSetupSession[]
+  ownedPublicMcpServers          PublicMcpServer[]
+  sessionParticipants            SessionParticipant[]
 
   @@index([createdAt])
   @@index([updatedAt])

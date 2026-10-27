@@ -16,6 +16,8 @@ let { loader, mutators } = vi.hoisted(() => ({
   }
 }));
 
+vi.mock('./twoFactorChallenge', () => ({ TwoFactorChallenge: () => null }));
+
 vi.mock('../state/authIntent', () => ({
   authIntentState: {
     use: () => ({ data: loader.data, isLoading: false, error: null, mutators })

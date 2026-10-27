@@ -1,4 +1,4 @@
-import { PrismaPg } from '@prisma/adapter-pg';
+import { createPrismaPgAdapter } from '@lowerdeck/prisma-pg';
 import { readReplicas } from '@prisma/extension-read-replicas';
 import type {
   SlatesAction as ProtoSlatesAction,
@@ -11,14 +11,28 @@ import type {
 } from '@slates/proto';
 import { PrismaClient } from '../prisma/generated/client';
 
-let mainAdapter = new PrismaPg({
-  connectionString: process.env.SLATES_HUB_DATABASE_URL ?? process.env.DATABASE_URL
-});
+let mainAdapter = createPrismaPgAdapter(
+  {
+    connectionString: process.env.SLATES_HUB_DATABASE_URL ?? process.env.DATABASE_URL
+  },
+  {
+    environment: process.env.METORIAL_ENV,
+    databaseName: 'slates-hub',
+    role: 'primary'
+  }
+);
 
 let replicaAdapter = process.env.DATABASE_URL_READER
-  ? new PrismaPg({
-      connectionString: process.env.DATABASE_URL_READER
-    })
+  ? createPrismaPgAdapter(
+      {
+        connectionString: process.env.DATABASE_URL_READER
+      },
+      {
+        environment: process.env.METORIAL_ENV,
+        databaseName: 'slates-hub',
+        role: 'replica'
+      }
+    )
   : undefined;
 
 let replicaClient = replicaAdapter ? new PrismaClient({ adapter: replicaAdapter }) : undefined;

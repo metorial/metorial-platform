@@ -455,7 +455,7 @@ let webhookRegistrationsTable = new DashboardTable<
       header: 'Receive URL',
       render: registration =>
         registration.receiveUrl ? (
-          <Text size="1" style={{ fontFamily: 'jetbrains mono, monospace' }}>
+          <Text size="2" style={{ fontFamily: 'jetbrains mono, monospace' }}>
             {registration.receiveUrl}
           </Text>
         ) : (

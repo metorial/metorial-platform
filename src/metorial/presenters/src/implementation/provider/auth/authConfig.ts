@@ -1,6 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import { ownerActorSchema, presentOwnerActor } from '../../_shared';
+import { presentOwnerActor, presentResourceSource, resourceAccessSchema } from '../../_shared';
 import { providerAuthConfigType } from '../../../types';
 import { toolFilterPresenter } from '../../_shared/toolFilter';
 import { v1ProviderAuthCredentialsPresenter } from './authCredentials';
@@ -63,7 +63,12 @@ export let v1ProviderAuthConfigPresenter = Presenter.create(providerAuthConfigTy
       )
       .run(),
 
-    owner_actor: presentOwnerActor(authConfig.ownerActor),
+    access: {
+      source: presentResourceSource(authConfig.source),
+      type: authConfig.isOwnerLocked ? ('owner_locked' as const) : ('public' as const),
+      visibility: authConfig.isOwnerOnlyVisible ? ('owner' as const) : ('anyone' as const),
+      owner: presentOwnerActor(authConfig.ownerActor)
+    },
 
     created_at: authConfig.createdAt,
     updated_at: authConfig.updatedAt
@@ -82,7 +87,7 @@ export let v1ProviderAuthConfigPresenter = Presenter.create(providerAuthConfigTy
         name: 'type',
         description: 'Authentication type'
       }),
-      source: v.enumOf(['manual', 'setup_session', 'system'], {
+      source: v.enumOf(['manual', 'setup_session', 'system', 'explorer'], {
         name: 'source',
         description: 'Auth config source'
       }),
@@ -124,7 +129,7 @@ export let v1ProviderAuthConfigPresenter = Presenter.create(providerAuthConfigTy
       deployment: v.nullable(v1ProviderDeploymentPreviewPresenter.schema),
       credentials: v.nullable(v1ProviderAuthCredentialsPresenter.schema),
       auth_method: v1ProviderAuthMethodPresenter.schema,
-      owner_actor: ownerActorSchema,
+      access: resourceAccessSchema,
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',

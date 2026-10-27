@@ -5,6 +5,7 @@ enum MagicMcpServerStatus {
 }
 
 enum MagicMcpServerSource {
+  explorer
   manual
   consumer_provider_template
 }
@@ -33,6 +34,10 @@ model MagicMcpServer {
 
   instanceOid BigInt
   instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  isOwnerLocked      Boolean @default(false)
+  isOwnerOnlyVisible Boolean @default(false)
+  isSystemOwned      Boolean @default(false)
 
   ownerActorOid BigInt?
   ownerActor    IdentityActor? @relation(fields: [ownerActorOid], references: [oid], onDelete: SetNull)

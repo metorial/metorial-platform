@@ -40,9 +40,18 @@ import {
 import { enqueueSyncIntegrationInstanceGroupSessionTemplate } from '@metorial-subspace/module-session/src/queues/lifecycle/linkedIntegrationInstanceGroupTemplate';
 import { type SessionProviderTemplateInput } from '@metorial-subspace/module-session/src/services/sessionProviderInput';
 import {
+  assertCanChangeOwnerLock,
+  assertCanChangeOwnerOnlyVisibility,
+  assertCanSeeOwnedResource,
+  assertCanUseOwnedResource,
   checkTenant,
   getMetorialSolution,
+  getOwnershipAccessor,
   type MetorialFacing,
+  ownedResourceWhere,
+  ownerActorSelect,
+  type OwnershipFilter,
+  type ResourceOwner,
   toProviderEventBase,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
@@ -52,6 +61,10 @@ import {
   integrationInstanceGroupUpdatedQueue
 } from '../queues/lifecycle/integrationInstanceGroup';
 import { integrationProviderVersionPresentableInclude } from '../lib/integrationIncludes';
+import {
+  setIntegrationInstanceGroupOwnerLock,
+  setIntegrationInstanceGroupOwnerOnlyVisibility
+} from '../lib/ownerLock';
 import { integrationInstanceProviderPresentableInclude } from './integrationInstance';
 import {
   integrationInstanceGroupProviderService,
@@ -83,6 +96,7 @@ export let integrationInstanceGroupProviderInclude = {
 
 export let integrationInstanceGroupInclude = {
   identityActor: true,
+  ownerActor: ownerActorSelect,
   identity: true,
   defaultSessionTemplate: true,
   sources: {
@@ -110,6 +124,7 @@ type IntegrationInstanceGroupWriteInput = {
     IntegrationInstance,
     'identityActorOid' | 'identityOid'
   >[];
+  owner?: ResourceOwner;
 };
 
 let DEFAULT_SESSION_TEMPLATE_POLL_INTERVAL_MS = 250;
@@ -124,6 +139,9 @@ let defaultSessionTemplateTimeoutError = () =>
   });
 
 export type ListIntegrationInstanceGroupsParams = {
+  ownership?: OwnershipFilter;
+  ownershipWhere?: Record<string, any>;
+  includeSystemOwned?: boolean;
   includeMagicMcpBackings?: boolean;
 
   status?: IntegrationInstanceGroupStatus[];
@@ -147,9 +165,11 @@ export type ListIntegrationInstanceGroupsParams = {
 export type GetIntegrationInstanceGroupByIdParams = {
   integrationInstanceGroupId: string;
   allowDeleted?: boolean;
+  includeSystemOwned?: boolean;
 };
 
 export type CreateIntegrationInstanceGroupParams = {
+  isSystemOwned?: boolean;
   input: {
     name: string;
     description?: string;
@@ -174,6 +194,7 @@ export type UpsertMagicMcpIntegrationInstanceGroupParams = {
       IntegrationInstance,
       'identityActorOid' | 'identityOid'
     >[];
+    owner?: ResourceOwner;
   };
 };
 
@@ -187,6 +208,9 @@ export type UpdateIntegrationInstanceGroupParams = {
     identityActorId?: string | null;
     identityId?: string | null;
     providers?: SetIntegrationInstanceGroupProviderInput[];
+    source?: 'explorer';
+    isOwnerLocked?: boolean;
+    isOwnerOnlyVisible?: boolean;
   };
 };
 
@@ -315,6 +339,7 @@ class integrationInstanceGroupServiceImpl {
     id: ReturnType<typeof getId>;
     input: IntegrationInstanceGroupWriteInput;
     isMagicMcpBacking?: boolean;
+    isSystemOwned?: boolean;
   }) {
     return {
       ...d.id,
@@ -324,6 +349,10 @@ class integrationInstanceGroupServiceImpl {
       description: d.input.description?.trim() || null,
       metadata: d.input.metadata,
       privateMetadata: d.input.privateMetadata,
+      ownerActorOid: d.input.owner?.ownerActorOid ?? null,
+      isOwnerLocked: !!d.input.owner?.isOwnerLocked,
+      isOwnerOnlyVisible: !!d.input.owner?.isOwnerOnlyVisible,
+      isSystemOwned: !!d.isSystemOwned,
       tenantOid: d.tenant.oid,
       projectOid: d.tenant.projectOid,
       solutionOid: d.solution.oid,
@@ -343,7 +372,14 @@ class integrationInstanceGroupServiceImpl {
       name: d.input.name.trim(),
       description: d.input.description?.trim() || null,
       metadata: d.input.metadata,
-      privateMetadata: d.input.privateMetadata
+      privateMetadata: d.input.privateMetadata,
+      ...(d.input.owner
+        ? {
+            ownerActorOid: d.input.owner.ownerActorOid,
+            isOwnerLocked: d.input.owner.isOwnerLocked,
+            isOwnerOnlyVisible: d.input.owner.isOwnerOnlyVisible ?? false
+          }
+        : {})
     };
   }
 
@@ -351,8 +387,18 @@ class integrationInstanceGroupServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
+    let ownershipAccessor = await getOwnershipAccessor({
+      tenant: scope.tenant,
+      organizationActor
+    });
+
     return this.listIntegrationInstanceGroupsInternal({
       ...rest,
+      ownershipWhere: ownedResourceWhere(ownershipAccessor, {
+        ownership: d.ownership,
+        includeSystemOwned: d.includeSystemOwned,
+        fallback: { field: 'identityActorOid', relation: 'identityActor' }
+      }),
       tenant: scope.tenant,
       environment: scope.environment
     });
@@ -387,10 +433,12 @@ class integrationInstanceGroupServiceImpl {
               solutionOid: solution.oid,
               environmentOid: d.environment.oid,
               isMagicMcpBacking: d.includeMagicMcpBackings ? undefined : false,
+              ...(d.includeSystemOwned ? {} : { isSystemOwned: false }),
 
               ...normalizeStatusForList(d).noParent,
 
               AND: [
+                d.ownershipWhere ?? undefined!,
                 d.ids ? { id: { in: d.ids } } : undefined!,
                 integrations
                   ? { providers: { some: { integrationOid: integrations.in } } }
@@ -473,11 +521,19 @@ class integrationInstanceGroupServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.getIntegrationInstanceGroupByIdInternal({
+    let integrationInstanceGroup = await this.getIntegrationInstanceGroupByIdInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    assertCanSeeOwnedResource(
+      await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+      integrationInstanceGroup,
+      { resource: 'integration.instance.group', id: d.integrationInstanceGroupId }
+    );
+
+    return integrationInstanceGroup;
   }
 
   async getIntegrationInstanceGroupByIdInternal(
@@ -491,6 +547,7 @@ class integrationInstanceGroupServiceImpl {
         tenantOid: d.tenant.oid,
         solution,
         environmentOid: d.environment.oid,
+        ...(d.includeSystemOwned ? {} : { isSystemOwned: false }),
         ...normalizeStatusForGet(d).noParent
       },
       include: integrationInstanceGroupInclude
@@ -540,7 +597,8 @@ class integrationInstanceGroupServiceImpl {
           solution,
           environment: d.environment,
           id: newId,
-          input: d.input
+          input: d.input,
+          isSystemOwned: d.isSystemOwned
         }),
         include: integrationInstanceGroupInclude
       });
@@ -659,6 +717,20 @@ class integrationInstanceGroupServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
+    await assertCanChangeOwnerLock(
+      await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+      d.integrationInstanceGroup,
+      d.input.isOwnerLocked,
+      { resource: 'integration instance group' }
+    );
+
+    await assertCanChangeOwnerOnlyVisibility(
+      await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+      d.integrationInstanceGroup,
+      d.input.isOwnerOnlyVisible,
+      { resource: 'integration instance group' }
+    );
+
     let eventBase = toProviderEventBase(d);
     await Fabric.fire('provider.integration_instance_group.updated:before', eventBase);
 
@@ -714,10 +786,34 @@ class integrationInstanceGroupServiceImpl {
           privateMetadata:
             d.input.privateMetadata === undefined
               ? d.integrationInstanceGroup.privateMetadata
-              : d.input.privateMetadata
+              : d.input.privateMetadata,
+          source: d.input.source,
+          isOwnerLocked: d.input.isOwnerLocked,
+          isOwnerOnlyVisible:
+            d.input.isOwnerOnlyVisible ?? d.integrationInstanceGroup.isOwnerOnlyVisible
         },
         include: integrationInstanceGroupInclude
       });
+
+      if (
+        d.input.isOwnerLocked !== undefined &&
+        d.input.isOwnerLocked !== d.integrationInstanceGroup.isOwnerLocked
+      ) {
+        await setIntegrationInstanceGroupOwnerLock(
+          integrationInstanceGroup,
+          d.input.isOwnerLocked
+        );
+      }
+
+      if (
+        d.input.isOwnerOnlyVisible !== undefined &&
+        d.input.isOwnerOnlyVisible !== d.integrationInstanceGroup.isOwnerOnlyVisible
+      ) {
+        await setIntegrationInstanceGroupOwnerOnlyVisibility(
+          integrationInstanceGroup,
+          d.input.isOwnerOnlyVisible
+        );
+      }
 
       if (d.input.providers?.length) {
         await integrationInstanceGroupProviderService.setIntegrationInstanceGroupProvidersInternal(
@@ -881,6 +977,12 @@ class integrationInstanceGroupServiceImpl {
   ) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
+
+    await assertCanUseOwnedResource(
+      await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+      d.integrationInstanceGroup,
+      { resource: 'integration instance group' }
+    );
 
     let session = await this.createSessionForIntegrationInstanceGroupInternal({
       ...rest,

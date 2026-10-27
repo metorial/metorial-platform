@@ -1,3 +1,4 @@
+import { hydrateResourceOwners } from '@metorial/module-resource-actor';
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
@@ -34,6 +35,7 @@ import {
   providerToolsPresenter
 } from '@metorial/presenters';
 import { normalizeToolFilters, toolFiltersValidator } from '../sessions/_shared';
+import { getOwnershipActor } from '../../../lib/ownershipActor';
 
 export let magicMcpServerGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.magicMcpServerId) {
@@ -48,6 +50,7 @@ export let magicMcpServerGroup = instanceGroup.use(async ctx => {
   let magicMcpServer = await magicMcpServerService.getMagicMcpServerById({
     magicMcpServerId: ctx.params.magicMcpServerId,
     instance: ctx.instance,
+    organizationActor: getOwnershipActor(ctx),
     accessTags: ctx.accessTags,
     consumerSurface: ctx.consumerSurface
   });
@@ -351,6 +354,10 @@ export let magicMcpServerController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
+            ownership: v.optional(v.enumOf(['shared', 'usable', 'all']), {
+              description:
+                "Which resources to return under the resource ownership rules. 'shared' returns only resources that aren't owned, 'usable' returns shared resources plus owned resources the caller can use, 'all' returns every resource the caller can see. Defaults to 'shared' when ownership is enforced for the project and 'all' otherwise."
+            }),
             status: v.optional(
               v.union([
                 v.enumOf([...magicMcpServerStatusValues]),
@@ -385,6 +392,8 @@ export let magicMcpServerController = Controller.create(
 
         let paginator = await magicMcpServerService.listMagicMcpServers({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
+          ownership: ctx.query.ownership,
           consumerSurface: ctx.consumerSurface,
           status: normalizeArrayParam<MagicMcpServerStatus>(ctx.query.status),
           groupIds: normalizeArrayParam(ctx.query.magic_mcp_group_id),
@@ -407,6 +416,8 @@ export let magicMcpServerController = Controller.create(
           magicMcpServers: list.items,
           portal: ctx.portal
         });
+
+        await hydrateResourceOwners(presentationData);
 
         return Paginator.present(list, magicMcpServer =>
           magicMcpServerPresenter.present(presentationData.get(magicMcpServer.id)!)
@@ -431,11 +442,13 @@ export let magicMcpServerController = Controller.create(
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
         return magicMcpServerPresenter.present(
-          await getMagicMcpServerPresentationData({
-            instance: ctx.instance,
-            magicMcpServer: ctx.magicMcpServer,
-            portal: ctx.portal
-          })
+          await hydrateResourceOwners(
+            await getMagicMcpServerPresentationData({
+              instance: ctx.instance,
+              magicMcpServer: ctx.magicMcpServer,
+              portal: ctx.portal
+            })
+          )
         );
       }),
 
@@ -585,6 +598,7 @@ export let magicMcpServerController = Controller.create(
       .output(magicMcpServerProviderPresenter)
       .do(async ctx => {
         let magicMcpServerProvider = await magicMcpServerService.createMagicMcpServerProvider({
+          organizationActor: getOwnershipActor(ctx),
           server: ctx.magicMcpServer,
           instance: ctx.instance,
           accessTags: ctx.accessTags,
@@ -671,6 +685,7 @@ export let magicMcpServerController = Controller.create(
       .output(magicMcpServerProviderPresenter)
       .do(async ctx => {
         let magicMcpServerProvider = await magicMcpServerService.updateMagicMcpServerProvider({
+          organizationActor: getOwnershipActor(ctx),
           server: ctx.magicMcpServer,
           instance: ctx.instance,
           accessTags: ctx.accessTags,
@@ -784,6 +799,7 @@ export let magicMcpServerController = Controller.create(
         }
 
         let magicMcpServer = await magicMcpServerService.createMagicMcpServer({
+          organizationActor: getOwnershipActor(ctx),
           auditScope: ctx.auditScope,
           organization: ctx.organization,
           performedBy: ctx.actor!,
@@ -814,11 +830,13 @@ export let magicMcpServerController = Controller.create(
         }
 
         return magicMcpServerPresenter.present(
-          await getMagicMcpServerPresentationData({
-            instance: ctx.instance,
-            magicMcpServer,
-            portal: ctx.portal
-          })
+          await hydrateResourceOwners(
+            await getMagicMcpServerPresentationData({
+              instance: ctx.instance,
+              magicMcpServer,
+              portal: ctx.portal
+            })
+          )
         );
       }),
 
@@ -852,11 +870,13 @@ export let magicMcpServerController = Controller.create(
         });
 
         return magicMcpServerPresenter.present(
-          await getMagicMcpServerPresentationData({
-            instance: ctx.instance,
-            magicMcpServer,
-            portal: ctx.portal
-          })
+          await hydrateResourceOwners(
+            await getMagicMcpServerPresentationData({
+              instance: ctx.instance,
+              magicMcpServer,
+              portal: ctx.portal
+            })
+          )
         );
       }),
 
@@ -875,12 +895,26 @@ export let magicMcpServerController = Controller.create(
         })
       )
       .body(
-        'default',
+        'mt_2026_01_01_magnetar',
         v.object({
           name: v.optional(v.string()),
           description: v.optional(v.string()),
           metadata: v.optional(v.record(v.any())),
           aliases: v.optional(v.array(v.string()))
+        }),
+        v => v
+      )
+      .body(
+        'default',
+        v.object({
+          name: v.optional(v.string()),
+          description: v.optional(v.string()),
+          metadata: v.optional(v.record(v.any())),
+          aliases: v.optional(v.array(v.string())),
+          source: v.optional(v.enumOf(['explorer']), {
+            description:
+              'Mark this resource as originating from the dashboard explorer and enable its owner lock and owner-only visibility.'
+          })
         })
       )
       .output(magicMcpServerPresenter)
@@ -898,20 +932,26 @@ export let magicMcpServerController = Controller.create(
           server: ctx.magicMcpServer,
           instance: ctx.instance,
           accessTags: ctx.accessTags,
+          organizationActor: getOwnershipActor(ctx),
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
             metadata: ctx.body.metadata,
-            aliases: ctx.body.aliases
+            aliases: ctx.body.aliases,
+            source: ctx.body.source,
+            isOwnerLocked: ctx.body.source === 'explorer' ? true : undefined,
+            isOwnerOnlyVisible: ctx.body.source === 'explorer' ? true : undefined
           }
         });
 
         return magicMcpServerPresenter.present(
-          await getMagicMcpServerPresentationData({
-            instance: ctx.instance,
-            magicMcpServer,
-            portal: ctx.portal
-          })
+          await hydrateResourceOwners(
+            await getMagicMcpServerPresentationData({
+              instance: ctx.instance,
+              magicMcpServer,
+              portal: ctx.portal
+            })
+          )
         );
       })
   }
@@ -979,8 +1019,13 @@ export let magicMcpServerControllerDashboard = Controller.create(
           instance: ctx.instance,
           sessionId: resolvedSession.id
         });
+        await sessionService.assertCanUseSessionForCaller({
+          instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
+          session
+        });
 
-        return providerSessionPresenter.present({ session });
+        return providerSessionPresenter.present(await hydrateResourceOwners({ session }));
       })
   }
 );

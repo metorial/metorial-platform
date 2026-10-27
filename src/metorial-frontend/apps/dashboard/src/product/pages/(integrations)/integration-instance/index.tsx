@@ -18,6 +18,7 @@ import { Badge, Button, Callout, Input, Panel, showModal, Spacer, Text } from '@
 import { Box, Table } from '@metorial/ui-product';
 import { useEffect, useRef } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { ResourceOwnerEntity } from '../../../components/resourceOwnerEntity';
 import { IntegrationAdminSetupCallouts } from '../../../scenes/integrations/adminSetupCallout';
 import { showIntegrationInstanceProviderPanelFlow } from '../../../scenes/integrations/providerPanelFlow';
 import { IntegrationInstanceProvidersManager } from '../../../scenes/integrations/providersManager';
@@ -25,7 +26,7 @@ import { UsageOverviewTiles } from '../../../scenes/instanceUsage';
 
 let getProviderManagementMode = (mode: string) => {
   if (mode === 'inherited_from_provider_template') {
-    return { label: 'Provider Template', color: 'purple' as const };
+    return { label: 'Workforce Setup', color: 'purple' as const };
   }
   if (mode === 'inherited_from_integration') {
     return { label: 'Integration Instance', color: 'blue' as const };
@@ -124,6 +125,7 @@ let LinkedMagicMcpServersBox = (p: {
   let instance = useCurrentInstance();
   let authConfig = useProjectAuthConfigConfiguration(organization.data?.id, project.data?.id);
   let servers = useMagicMcpServers(p.instanceId, {
+    ownership: 'all',
     integrationInstanceId: p.integrationInstance.id,
     owner: ['organization', 'consumer'],
     status: ['active'],
@@ -306,6 +308,13 @@ export let IntegrationInstanceOverviewPage = () => {
                   'usage'
                 )}
               />
+              <Spacer height={20} />
+            </>
+          )}
+
+          {integrationInstance.data.access.owner && (
+            <>
+              <ResourceOwnerEntity resource={integrationInstance.data} />
               <Spacer height={20} />
             </>
           )}

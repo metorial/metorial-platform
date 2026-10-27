@@ -63,7 +63,7 @@ export let formatGroupRestrictions = (token: Pick<TokenRow, 'groups'>) => {
   return (
     <Flex gap={6} style={{ flexWrap: 'wrap' }}>
       {token.groups.map(group => (
-        <Badge key={group.id} size="1" color="gray">
+        <Badge key={group.id} size="2" color="gray">
           {group.name ?? group.slug ?? group.id}
         </Badge>
       ))}
@@ -306,7 +306,7 @@ export let updateTokenModal = ({
           <Spacer height={15} />
 
           <Dialog.Actions>
-            <Button size="1" variant="soft" onClick={close} type="button">
+            <Button size="2" variant="soft" onClick={close} type="button">
               Cancel
             </Button>
             <Button size="1" type="submit">
@@ -400,11 +400,11 @@ let magicTokensTable = new DashboardTable<
       header: 'Status',
       render: token =>
         token.status === 'active' ? (
-          <Badge size="1" color="green">
+          <Badge size="2" color="green">
             Active
           </Badge>
         ) : (
-          <Badge size="1" color="red">
+          <Badge size="2" color="red">
             Revoked
           </Badge>
         )
@@ -419,7 +419,7 @@ let magicTokensTable = new DashboardTable<
             {token.name ?? 'Unnamed Token'}
           </Text>
           {token.description && (
-            <Text size="1" color="gray600">
+            <Text size="2" color="gray600">
               {token.description}
             </Text>
           )}

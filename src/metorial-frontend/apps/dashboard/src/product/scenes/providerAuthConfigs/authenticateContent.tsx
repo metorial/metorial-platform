@@ -106,6 +106,7 @@ export let ProviderOAuthAuthenticateContent = (p: {
   method: AuthMethod;
   fixedAuthCredentialsId?: string;
   defaultAuthConfigName?: string;
+  source?: 'explorer';
   embedded?: boolean;
   cancelLabel?: string;
   onCancel: () => void;
@@ -158,6 +159,7 @@ export let ProviderOAuthAuthenticateContent = (p: {
     instanceId: p.instanceId,
     providerId: p.providerId,
     providerDeploymentId: p.providerDeploymentId,
+    source: p.source,
     onComplete: setupSession => {
       if (!setupSession.authConfig) return;
       void instanceProviderAuthConfigsLoader.refetchAll();

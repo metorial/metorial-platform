@@ -17,6 +17,7 @@ export * from './projectReducedSubprocessorsConfiguration';
 export * from './projectRetention';
 export * from './projectAuthConfigConfiguration';
 export * from './projectDataRetentionConfiguration';
+export * from './projectResourceOwnershipConfiguration';
 export * from './projectIntegrationNamingConfiguration';
 export * from './projectSessionlessMcpConfiguration';
 export * from './projectSkillSyncConfiguration';

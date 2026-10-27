@@ -10,6 +10,7 @@ import {
   projectSessionlessMcpConfigurationPresenter,
   projectSkillSyncConfigurationPresenter,
   projectReducedSubprocessorsConfigurationPresenter,
+  projectResourceOwnershipConfigurationPresenter,
   projectToolCallingConfigurationPresenter,
   projectWorkforceConfigurationPresenter
 } from '@metorial/presenters';
@@ -134,6 +135,19 @@ export let projectDataRetentionConfigurationResource = resource({
     disableCallbacks: boolean;
   }>('project_data_retention_configuration'),
   presenter: projectDataRetentionConfigurationPresenter,
+  actions: {
+    update: true
+  }
+});
+
+export let projectResourceOwnershipConfigurationResource = resource({
+  name: 'project_resource_ownership_configuration',
+  payload: v.typedAny<{
+    project: Project;
+    allowApiAccessToConsumerOwnedResources: boolean;
+    allowMemberAccessToConsumerOwnedResources: boolean;
+  }>('project_resource_ownership_configuration'),
+  presenter: projectResourceOwnershipConfigurationPresenter,
   actions: {
     update: true
   }

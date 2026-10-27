@@ -3,7 +3,7 @@ import { createMapper } from '@metorial/util-resource-mapper/compact';
 export type ManagementInstanceIdentityActorsCreateOutput = {
   object: 'identity.actor';
   id: string;
-  type: 'person' | 'agent' | 'consumer';
+  type: 'person' | 'agent' | 'consumer' | 'organization_member';
   status: 'active' | 'archived' | 'deleted';
   name: string;
   description: string | null;
@@ -30,6 +30,7 @@ export type ManagementInstanceIdentityActorsCreateOutput = {
         isServiceAccount: boolean;
       })
     | null;
+  consumerProfile: { id: string; portalId: string | null } | null;
 };
 
 export let mapManagementInstanceIdentityActorsCreateOutput =
@@ -70,7 +71,8 @@ export let mapManagementInstanceIdentityActorsCreateOutput =
                     ]
                   ]
                 ]
-              ]
+              ],
+              ['consumer_profile', 1, [1, ['portal_id']]]
             ]
           ]
         ]

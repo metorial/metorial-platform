@@ -33,7 +33,12 @@ vi.mock('@metorial-subspace/db', () => ({
 vi.mock('@metorial-subspace/module-agent', () => ({}));
 vi.mock('@metorial-subspace/module-callback', () => ({ callbackEventService: {} }));
 vi.mock('@metorial-subspace/module-enclave', () => ({}));
-vi.mock('@metorial-subspace/module-provider-internal', () => ({}));
+vi.mock('@metorial-subspace/module-provider-internal', () => ({
+  checkToolAccess: vi.fn(() => ({ allowed: true }))
+}));
+vi.mock('@metorial/module-rate-limit', () => ({
+  rateLimitService: { consume: vi.fn() }
+}));
 vi.mock('@metorial-subspace/module-session', () => ({
   applySessionProviderNameTemplate: vi.fn((template: string, name: string) =>
     template.replace('$', name)
@@ -48,7 +53,7 @@ vi.mock('../env', () => ({
   env: { service: { REDIS_URL: 'redis://localhost' } }
 }));
 vi.mock('../lib/conduit', () => ({
-  conduit: { createSender: vi.fn(() => ({})) }
+  conduit: { createSender: vi.fn(() => ({ send: vi.fn() })) }
 }));
 vi.mock('../lib/nats', () => ({ broadcastNats: { publish: vi.fn() } }));
 vi.mock('../audit/recordMessage', () => ({ recordConnectionAuditEvent: vi.fn() }));
@@ -83,11 +88,13 @@ vi.mock('../lib/callbackEventTools', async importOriginal => ({
 
 import { ServiceError } from '@lowerdeck/error';
 import { serialize } from '@lowerdeck/serialize';
+import { rateLimitService } from '@metorial/module-rate-limit';
+import { checkToolAccess } from '@metorial-subspace/module-provider-internal';
 import { parseNameFromSessionProviderTemplates } from '@metorial-subspace/module-session';
 import { broadcastNats } from '../lib/nats';
 import type { RequestScopedTool, RequestScopedTools } from '../lib/requestTools';
 import { createMessage } from '../shared/createMessage';
-import { SenderManager } from './manager';
+import { SenderManager, type CallToolProps } from './manager';
 
 let createManager = (
   isInternal: boolean,
@@ -862,5 +869,118 @@ describe('SenderManager request-scoped tools', () => {
 
       expect(await manager.shouldRedactStoredToolInput('slack_send')).toBe(true);
     });
+  });
+});
+
+describe('SenderManager tool call rate limits', () => {
+  let createToolCallManager = (projectOid: bigint | null = 42n) => {
+    let manager = createManager(false) as any;
+    manager.session.projectOid = projectOid;
+    manager.connection = { initState: 'completed', oid: 2n };
+    manager.ensureConnectionParticipant = vi.fn(async () => ({ id: 'spa_1' }));
+    manager.getToolById = vi.fn(async () => ({
+      provider: { id: 'spr_1' },
+      tool: { id: 'tool_1', key: 'calculate', callableId: 'calculate' },
+      instance: { id: 'spi_1' }
+    }));
+    manager.createMessage = vi.fn(async () => ({ id: 'smsg_1' }));
+    manager.sender.send.mockResolvedValue({
+      success: true,
+      result: { message: { status: 'succeeded' }, output: { result: 2 } }
+    });
+
+    return manager;
+  };
+
+  let callProps = (transport: 'mcp' | 'tool_call'): CallToolProps => ({
+    toolId: 'calculate',
+    input:
+      transport === 'mcp'
+        ? {
+            type: 'mcp',
+            data: {
+              jsonrpc: '2.0',
+              id: 1,
+              method: 'tools/call',
+              params: { name: 'calculate', arguments: { expression: '1 + 1' } }
+            }
+          }
+        : { type: 'tool.call', data: { expression: '1 + 1' } },
+    waitForResponse: true,
+    transport
+  });
+
+  beforeEach(() => {
+    vi.mocked(rateLimitService.consume).mockReset();
+    vi.mocked(checkToolAccess).mockReturnValue({ allowed: true } as any);
+  });
+
+  afterEach(() => {
+    vi.mocked(checkToolAccess).mockReturnValue({ allowed: true } as any);
+  });
+
+  it.each(['mcp', 'tool_call'] as const)(
+    'counts a %s tool call once before sending it to the provider',
+    async transport => {
+      let manager = createToolCallManager();
+      manager.sender.send.mockImplementation(async () => {
+        expect(rateLimitService.consume).toHaveBeenCalledExactlyOnceWith({
+          projectOid: 42n,
+          usages: [{ key: 'sessions.tool_calls' }]
+        });
+
+        return { success: true, result: { message: { status: 'succeeded' } } };
+      });
+
+      await manager.callTool(callProps(transport));
+
+      expect(manager.createMessage).toHaveBeenCalledOnce();
+      expect(rateLimitService.consume).toHaveBeenCalledOnce();
+    }
+  );
+
+  it('does not create or execute an MCP tool call when its rate limit is exceeded', async () => {
+    let manager = createToolCallManager();
+    let error = new Error('rate limit exceeded');
+    vi.mocked(rateLimitService.consume).mockRejectedValueOnce(error);
+    manager.sender.send.mockClear();
+
+    await expect(manager.callTool(callProps('mcp'))).rejects.toBe(error);
+
+    expect(manager.createMessage).not.toHaveBeenCalled();
+    expect(manager.sender.send).not.toHaveBeenCalled();
+  });
+
+  it('does not count calls rejected by tool access control', async () => {
+    let manager = createToolCallManager();
+    vi.mocked(checkToolAccess).mockReturnValueOnce({ allowed: false } as any);
+
+    await expect(manager.callTool(callProps('mcp'))).rejects.toThrow(
+      'Tool access not allowed'
+    );
+
+    expect(rateLimitService.consume).not.toHaveBeenCalled();
+    expect(manager.createMessage).not.toHaveBeenCalled();
+  });
+
+  it('does not count MCP resource reads as tool calls', async () => {
+    let manager = createToolCallManager();
+    let props = callProps('mcp');
+    props.input = {
+      type: 'mcp',
+      data: { jsonrpc: '2.0', id: 1, method: 'resources/read', params: { uri: 'test://data' } }
+    };
+
+    await manager.callTool(props);
+
+    expect(rateLimitService.consume).not.toHaveBeenCalled();
+  });
+
+  it('skips project rate limits for sessions without a Metorial project', async () => {
+    let manager = createToolCallManager(null);
+
+    await manager.callTool(callProps('mcp'));
+
+    expect(rateLimitService.consume).not.toHaveBeenCalled();
   });
 });

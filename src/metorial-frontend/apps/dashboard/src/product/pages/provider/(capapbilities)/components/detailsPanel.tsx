@@ -324,7 +324,7 @@ export let MetadataStrip = ({
       <span>{value}</span>
     </MetadataValue>
     {badges.map(badge => (
-      <Badge key={`${badge.label}-${badge.color}`} color={badge.color} size="1">
+      <Badge key={`${badge.label}-${badge.color}`} color={badge.color} size="2">
         {badge.label}
       </Badge>
     ))}
@@ -359,7 +359,7 @@ export let DetailRows = ({
   <RowList>
     {rows.map((row, index) => (
       <DetailRow key={index}>
-        <Text size="1" color="gray600" weight="strong">
+        <Text size="2" color="gray600" weight="strong">
           {row.label}
         </Text>
         <Text size="2" color="gray700" as="div">
@@ -444,25 +444,25 @@ let PropertyList = ({
               <Text size="2" weight="strong">
                 {name}
               </Text>
-              <Badge color={typeColor} size="1">
+              <Badge color={typeColor} size="2">
                 {typeLabel}
               </Badge>
               {isNullable(prop) && (
-                <Badge color="orange" size="1">
+                <Badge color="orange" size="2">
                   Nullable
                 </Badge>
               )}
               {required.includes(name) ? (
-                <Badge color="red" size="1">
+                <Badge color="red" size="2">
                   Required
                 </Badge>
               ) : (
-                <Badge color="gray" size="1">
+                <Badge color="gray" size="2">
                   Optional
                 </Badge>
               )}
               {prop.default !== undefined && (
-                <Text size="1" color="gray600">
+                <Text size="2" color="gray600">
                   default: {JSON.stringify(prop.default)}
                 </Text>
               )}

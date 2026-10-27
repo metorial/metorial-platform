@@ -35,14 +35,14 @@ export let ProviderAuthMethodsPage = () => {
                 </Text>
               </Flex>,
               <Flex gap={6} style={{ alignItems: 'center', flexWrap: 'wrap' }}>
-                <Badge color={getProviderAuthMethodTypeColor(method.type)} size="1">
+                <Badge color={getProviderAuthMethodTypeColor(method.type)} size="2">
                   {getProviderAuthMethodTypeLabel(method.type)}
                 </Badge>
               </Flex>,
               <ID id={method.id} />,
               <Flex justify="end" style={{ width: '100%' }}>
                 <Button
-                  size="1"
+                  size="2"
                   variant="outline"
                   onClick={() => showProviderAuthMethodDetailsModal(method)}
                 >

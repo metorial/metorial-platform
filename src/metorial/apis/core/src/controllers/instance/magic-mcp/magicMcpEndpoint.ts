@@ -1,3 +1,4 @@
+import { hydrateResourceOwners } from '@metorial/module-resource-actor';
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
@@ -19,6 +20,7 @@ import { requireConsumerTokenForPublishableKey } from '../../../middleware/requi
 import { magicMcpEndpointPresenter } from '@metorial/presenters';
 import { toolFiltersValidator } from '../sessions/_shared';
 import { getSkillPluginAccess } from '../skills';
+import { getOwnershipActor } from '../../../lib/ownershipActor';
 
 export let magicMcpEndpointGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.magicMcpEndpointId) {
@@ -33,6 +35,7 @@ export let magicMcpEndpointGroup = instanceGroup.use(async ctx => {
   let magicMcpEndpoint = await magicMcpEndpointService.getMagicMcpEndpointById({
     magicMcpEndpointId: ctx.params.magicMcpEndpointId,
     instance: ctx.instance,
+    organizationActor: getOwnershipActor(ctx),
     accessTags: ctx.accessTags
   });
 
@@ -116,6 +119,10 @@ export let magicMcpEndpointController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
+            ownership: v.optional(v.enumOf(['shared', 'usable', 'all']), {
+              description:
+                "Which resources to return under the resource ownership rules. 'shared' returns only resources that aren't owned, 'usable' returns shared resources plus owned resources the caller can use, 'all' returns every resource the caller can see. Defaults to 'shared' when ownership is enforced for the project and 'all' otherwise."
+            }),
             status: v.optional(
               v.union([
                 v.enumOf([...magicMcpEndpointStatusValues]),
@@ -131,6 +138,8 @@ export let magicMcpEndpointController = Controller.create(
       .do(async ctx => {
         let paginator = await magicMcpEndpointService.listMagicMcpEndpoints({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
+          ownership: ctx.query.ownership,
           status: normalizeArrayParam<MagicMcpEndpointStatus>(ctx.query.status),
           magicMcpServerIds: normalizeArrayParam(ctx.query.magic_mcp_server_id),
           search: ctx.query.search,
@@ -139,7 +148,7 @@ export let magicMcpEndpointController = Controller.create(
 
         let list = await paginator.run(ctx.query);
 
-        return Paginator.present(list, magicMcpEndpoint =>
+        return Paginator.present(await hydrateResourceOwners(list), magicMcpEndpoint =>
           magicMcpEndpointPresenter.present({ magicMcpEndpoint, portal: ctx.portal })
         );
       }),
@@ -161,10 +170,12 @@ export let magicMcpEndpointController = Controller.create(
       .output(magicMcpEndpointPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
-        return magicMcpEndpointPresenter.present({
-          magicMcpEndpoint: ctx.magicMcpEndpoint,
-          portal: ctx.portal
-        });
+        return magicMcpEndpointPresenter.present(
+          await hydrateResourceOwners({
+            magicMcpEndpoint: ctx.magicMcpEndpoint,
+            portal: ctx.portal
+          })
+        );
       }),
 
     create: instanceGroup
@@ -234,6 +245,7 @@ export let magicMcpEndpointController = Controller.create(
             servers.map(server =>
               magicMcpServerService.getMagicMcpServerById({
                 instance: ctx.instance,
+                organizationActor: getOwnershipActor(ctx),
                 magicMcpServerId: server.magicMcpServerId,
                 accessTags: ctx.accessTags,
                 consumerSurface: ctx.consumerSurface
@@ -243,6 +255,7 @@ export let magicMcpEndpointController = Controller.create(
         }
 
         let magicMcpEndpoint = await magicMcpEndpointService.createMagicMcpEndpoint({
+          organizationActor: getOwnershipActor(ctx),
           auditScope: ctx.auditScope,
           instance: ctx.instance,
           input: {
@@ -265,10 +278,12 @@ export let magicMcpEndpointController = Controller.create(
           });
         }
 
-        return magicMcpEndpointPresenter.present({
-          magicMcpEndpoint,
-          portal: ctx.portal
-        });
+        return magicMcpEndpointPresenter.present(
+          await hydrateResourceOwners({
+            magicMcpEndpoint,
+            portal: ctx.portal
+          })
+        );
       }),
 
     delete: magicMcpEndpointGroup
@@ -303,10 +318,12 @@ export let magicMcpEndpointController = Controller.create(
           endpoint: ctx.magicMcpEndpoint
         });
 
-        return magicMcpEndpointPresenter.present({
-          magicMcpEndpoint,
-          portal: ctx.portal
-        });
+        return magicMcpEndpointPresenter.present(
+          await hydrateResourceOwners({
+            magicMcpEndpoint,
+            portal: ctx.portal
+          })
+        );
       }),
 
     update: magicMcpEndpointGroup
@@ -327,12 +344,26 @@ export let magicMcpEndpointController = Controller.create(
         })
       )
       .body(
-        'default',
+        'mt_2026_01_01_magnetar',
         v.object({
           name: v.optional(v.string()),
           description: v.optional(v.string()),
           metadata: v.optional(v.record(v.any())),
           enable_skill_editing: enableSkillEditingValidator
+        }),
+        v => v
+      )
+      .body(
+        'default',
+        v.object({
+          name: v.optional(v.string()),
+          description: v.optional(v.string()),
+          metadata: v.optional(v.record(v.any())),
+          enable_skill_editing: enableSkillEditingValidator,
+          source: v.optional(v.enumOf(['explorer']), {
+            description:
+              'Mark this resource as originating from the dashboard explorer and enable its owner lock and owner-only visibility.'
+          })
         })
       )
       .output(magicMcpEndpointPresenter)
@@ -348,18 +379,24 @@ export let magicMcpEndpointController = Controller.create(
         let magicMcpEndpoint = await magicMcpEndpointService.updateMagicMcpEndpoint({
           auditScope: ctx.auditScope,
           endpoint: ctx.magicMcpEndpoint,
+          organizationActor: getOwnershipActor(ctx),
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
             metadata: ctx.body.metadata,
-            enableSkillEditing: ctx.body.enable_skill_editing
+            enableSkillEditing: ctx.body.enable_skill_editing,
+            source: ctx.body.source,
+            isOwnerLocked: ctx.body.source === 'explorer' ? true : undefined,
+            isOwnerOnlyVisible: ctx.body.source === 'explorer' ? true : undefined
           }
         });
 
-        return magicMcpEndpointPresenter.present({
-          magicMcpEndpoint,
-          portal: ctx.portal
-        });
+        return magicMcpEndpointPresenter.present(
+          await hydrateResourceOwners({
+            magicMcpEndpoint,
+            portal: ctx.portal
+          })
+        );
       }),
 
     addServers: magicMcpEndpointGroup
@@ -413,6 +450,7 @@ export let magicMcpEndpointController = Controller.create(
             servers.map(server =>
               magicMcpServerService.getMagicMcpServerById({
                 instance: ctx.instance,
+                organizationActor: getOwnershipActor(ctx),
                 magicMcpServerId: server.magicMcpServerId,
                 accessTags: ctx.accessTags,
                 consumerSurface: ctx.consumerSurface
@@ -422,15 +460,18 @@ export let magicMcpEndpointController = Controller.create(
         }
 
         let magicMcpEndpoint = await magicMcpEndpointService.addServersToEndpoint({
+          organizationActor: getOwnershipActor(ctx),
           auditScope: ctx.auditScope,
           endpoint: ctx.magicMcpEndpoint,
           servers
         });
 
-        return magicMcpEndpointPresenter.present({
-          magicMcpEndpoint,
-          portal: ctx.portal
-        });
+        return magicMcpEndpointPresenter.present(
+          await hydrateResourceOwners({
+            magicMcpEndpoint,
+            portal: ctx.portal
+          })
+        );
       }),
 
     removeServers: magicMcpEndpointGroup
@@ -479,10 +520,12 @@ export let magicMcpEndpointController = Controller.create(
           magicMcpServerIds: ctx.body.magic_mcp_server_ids
         });
 
-        return magicMcpEndpointPresenter.present({
-          magicMcpEndpoint,
-          portal: ctx.portal
-        });
+        return magicMcpEndpointPresenter.present(
+          await hydrateResourceOwners({
+            magicMcpEndpoint,
+            portal: ctx.portal
+          })
+        );
       })
   }
 );

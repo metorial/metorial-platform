@@ -27,7 +27,11 @@ import {
   checkProviderMatch,
   providerDeploymentInternalService
 } from '@metorial-subspace/module-provider-internal';
-import { getMetorialSolution, checkTenant } from '@metorial-subspace/module-tenant';
+import {
+  checkTenant,
+  getConsumerOwnedResourceName,
+  getMetorialSolution
+} from '@metorial-subspace/module-tenant';
 import { getBackend } from '@metorial-subspace/provider';
 import type { ProviderAuthConfigCreateRes } from '@metorial-subspace/provider-utils';
 import { matchProviderAuthMethodInSpecification } from '../lib/effectiveProviderAuthMethod';
@@ -304,6 +308,9 @@ class providerAuthConfigInternalServiceImpl {
     source: ProviderAuthConfigSource;
     credentials?: ProviderAuthCredentials;
     ownerActorOid?: bigint | null;
+    isOwnerLocked?: boolean;
+    isOwnerOnlyVisible?: boolean;
+    isSystemOwned?: boolean;
     input: {
       name?: string;
       description?: string;
@@ -348,6 +355,12 @@ class providerAuthConfigInternalServiceImpl {
       );
     }
 
+    let consumerOwnedName = await getConsumerOwnedResourceName({
+      ownerActorOid: d.ownerActorOid,
+      providerName: d.provider.name,
+      kind: 'Auth Config'
+    });
+
     return withTransaction(async db => {
       let providerAuthConfig = await db.providerAuthConfig.create({
         data: {
@@ -359,7 +372,7 @@ class providerAuthConfigInternalServiceImpl {
           type: d.type,
           source: d.source,
 
-          name: d.input.name?.trim() || undefined,
+          name: consumerOwnedName ?? (d.input.name?.trim() || undefined),
           description: d.input.description?.trim() || undefined,
           metadata: d.input.metadata,
           privateMetadata: d.input.privateMetadata,
@@ -377,7 +390,10 @@ class providerAuthConfigInternalServiceImpl {
           authMethodOid: d.authMethod.oid,
           deploymentOid: d.providerDeployment?.oid,
           authCredentialsOid: d.credentials?.oid,
-          ownerActorOid: d.ownerActorOid
+          ownerActorOid: d.isSystemOwned ? null : d.ownerActorOid,
+          isOwnerLocked: !!d.isOwnerLocked,
+          isOwnerOnlyVisible: !!d.isOwnerOnlyVisible && !!d.ownerActorOid && !d.isSystemOwned,
+          isSystemOwned: !!d.isSystemOwned
         },
         include: providerAuthConfigInclude
       });

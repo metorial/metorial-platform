@@ -193,4 +193,3 @@ bin
 env.json
 .control/
 HOST.md
-src/control/target/

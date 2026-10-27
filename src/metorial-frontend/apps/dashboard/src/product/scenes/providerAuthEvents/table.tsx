@@ -91,7 +91,7 @@ export let ProviderAuthEventsTable = (
             href: linkToDetail ? getDetailHref(event.id) : undefined,
             data: [
               <Text size="2">{getEventLabel(event.type)}</Text>,
-              <Badge size="1" color={getStatusBadgeColor(event.status)}>
+              <Badge size="2" color={getStatusBadgeColor(event.status)}>
                 {getStatusLabel(event.status)}
               </Badge>,
               <RenderDate date={event.createdAt} />,
