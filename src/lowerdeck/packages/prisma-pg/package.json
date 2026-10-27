@@ -30,7 +30,7 @@
     "@lowerdeck/execution-context": "workspace:2.0.0",
     "@lowerdeck/id": "workspace:2.0.0",
     "@lowerdeck/sentry": "workspace:2.0.0",
-    "@prisma/adapter-pg": "7.10.0",
+    "@prisma/adapter-pg": "7.10.1",
     "pg": "^8.23.1"
   },
   "devDependencies": {

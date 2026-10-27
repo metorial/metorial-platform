@@ -10,7 +10,7 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
-    "@ai-sdk/mcp": "^2.0.74",
+    "@ai-sdk/mcp": "^2.0.80",
     "@lowerdeck/env": "workspace:2.0.0",
     "@lowerdeck/error": "workspace:2.0.0",
     "@lowerdeck/id": "workspace:2.0.0",
@@ -26,7 +26,7 @@
     "@metorial/module-resource-actor": "1.0.0",
     "@metorial/queue": "1.0.0",
     "@metorial/redis": "1.0.0",
-    "ai": "^7.0.140",
+    "ai": "^7.0.146",
     "just-bash": "^3.6.0",
     "zod": "^4.6.7"
   },

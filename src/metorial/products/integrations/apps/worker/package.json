@@ -46,7 +46,7 @@
     "@metorial-subspace/provider-native": "^1.0.0",
     "@metorial-subspace/provider-shuttle": "^1.0.0",
     "@metorial-subspace/provider-slates": "^1.0.0",
-    "@sentry/bun": "^11.7.0",
+    "@sentry/bun": "^11.8.0",
     "@vercel/ncc": "^0.45.0",
     "@sentry/cli": "^3.8.0",
     "@metorial-subspace/module-callback": "^1.0.0",
