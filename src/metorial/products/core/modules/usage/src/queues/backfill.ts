@@ -269,6 +269,7 @@ let backfillSources: Record<string, (window: BackfillWindow) => Promise<Backfill
       take: BACKFILL_BATCH_SIZE,
       select: {
         oid: true,
+        type: true,
         status: true,
         createdAt: true,
         instanceOid: true,
@@ -410,21 +411,19 @@ export let usageBackfillPageProcessor = usageBackfillPageQueue.process(async dat
 
   await usageDbConnect();
 
-  let documents = [...buckets.values()].map(
-    (bucket): UsageMetric => ({
-      _id: getUsageMetricId([
-        'backfill',
-        data.source,
-        data.cursor ?? 'start',
-        bucket.minute,
-        bucket.field
-      ]),
-      ts: new Date(bucket.minute),
-      source: 'backfill',
-      ...decodeUsageBucketKey(bucket.field),
-      ...bucket.counters
-    })
-  );
+  let documents = [...buckets.values()].map((bucket): UsageMetric => ({
+    _id: getUsageMetricId([
+      'backfill',
+      data.source,
+      data.cursor ?? 'start',
+      bucket.minute,
+      bucket.field
+    ]),
+    ts: new Date(bucket.minute),
+    source: 'backfill',
+    ...decodeUsageBucketKey(bucket.field),
+    ...bucket.counters
+  }));
 
   if (documents.length) {
     await UsageMetricModel.bulkWrite(

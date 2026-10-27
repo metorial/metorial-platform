@@ -27,6 +27,7 @@ export type UsageSessionErrorRow = {
 };
 
 export type UsageAuthEventRow = {
+  type: string;
   status: string;
   createdAt: Date;
   provider?: { id: string } | null;
@@ -79,8 +80,8 @@ export let buildMessageUsageEvent = (
   ctx: UsageEventContext
 ): UsageEvent => {
   let isToolCall =
-    message.type == 'tool_call' &&
-    (!!message.toolCall?.tool || !isMcpProtocolMethod(message.methodOrToolKey));
+    !!message.toolCall ||
+    (message.type == 'tool_call' && !isMcpProtocolMethod(message.methodOrToolKey));
 
   return {
     ...base(ctx),
@@ -165,7 +166,8 @@ export let buildAuthEventUsageEvent = (
   ...base(ctx),
   kind: 'auth_event',
   ts: event.createdAt,
-  isError: event.status == 'failed',
+  isError:
+    event.status == 'failed' || event.type.endsWith('_failed') || event.type.includes('error'),
   dims: { providerId: event.provider?.id ?? null }
 });
 
