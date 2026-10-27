@@ -3,6 +3,7 @@ import {
   type AuditSubspaceProviderAuthConfig,
   type AuditSubspaceProviderAuthCredentials,
   type AuditSubspaceProviderSetupSession,
+  type AuditSubspaceProviderSetupSessionEmail,
   type FabricEvents
 } from '@metorial/fabric';
 import { auditTrackerService } from '@metorial/module-audit-tracker';
@@ -42,6 +43,16 @@ let authCredentialsPayload = (credentials: AuditSubspaceProviderAuthCredentials)
   isAutoRegistration: credentials.isAutoRegistration,
   scopes: credentials.scopes,
   provider: { id: credentials.provider.id, name: credentials.provider.name }
+});
+
+let setupSessionEmailPayload = (
+  setupSession: AuditSubspaceProviderSetupSession,
+  setupSessionEmail: AuditSubspaceProviderSetupSessionEmail
+) => ({
+  id: setupSessionEmail.id,
+  setupSessionId: setupSession.id,
+  recipientEmail: setupSessionEmail.recipientEmail,
+  organizationMemberId: setupSessionEmail.organizationMemberId
 });
 
 let setupSessionPayload = (setupSession: AuditSubspaceProviderSetupSession) => ({
@@ -147,6 +158,19 @@ export let recordProviderSetupSessionCreated = async (
   await recordSubspaceAuditEvent(() =>
     auditTrackerService.recordEvent(scope, 'provider_setup_session', 'create', {
       payload: setupSessionPayload(event.setupSession)
+    })
+  );
+};
+
+export let recordProviderSetupSessionEmailCreated = async (
+  event: FabricEvents['provider.setup_session.email.created:after']
+) => {
+  let scope = getSubspaceAuditScope(event);
+  if (!scope) return;
+
+  await recordSubspaceAuditEvent(() =>
+    auditTrackerService.recordEvent(scope, 'provider_setup_session_email', 'create', {
+      payload: setupSessionEmailPayload(event.setupSession, event.setupSessionEmail)
     })
   );
 };
@@ -264,6 +288,10 @@ Fabric.listen('provider.auth_credentials.deleted:after', recordProviderAuthCrede
 Fabric.listen('provider.setup_session.created:after', recordProviderSetupSessionCreated);
 Fabric.listen('provider.setup_session.updated:after', recordProviderSetupSessionUpdated);
 Fabric.listen('provider.setup_session.deleted:after', recordProviderSetupSessionDeleted);
+Fabric.listen(
+  'provider.setup_session.email.created:after',
+  recordProviderSetupSessionEmailCreated
+);
 
 Fabric.listen('provider.auth_export.created:after', recordProviderAuthExportCreated);
 Fabric.listen('provider.auth_import.created:after', recordProviderAuthImportCreated);

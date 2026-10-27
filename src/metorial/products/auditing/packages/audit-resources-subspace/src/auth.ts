@@ -83,6 +83,25 @@ export let providerSetupSessionAuditResource = resource({
 });
 
 /**
+ * A setup session link emailed to a prospective approver. The link itself embeds the
+ * session's client secret and is omitted; the recipient address is kept because who
+ * was asked to approve access is the point of the entry.
+ */
+export let providerSetupSessionEmailAuditResource = resource({
+  name: 'provider_setup_session_email',
+  payload: v.typedAny<{
+    id: string;
+    setupSessionId: string;
+    recipientEmail: string;
+    organizationMemberId: string | null;
+  }>('provider_setup_session_email'),
+  presenter: undefined,
+  actions: {
+    create: true
+  }
+});
+
+/**
  * Auth config material leaving or entering the tenant. These two are the highest-value
  * entries in the whole auth group -- an export is the one operation that takes a
  * credential out of Metorial -- so the originating ip and user agent are recorded on the

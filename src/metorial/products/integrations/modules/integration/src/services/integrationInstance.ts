@@ -67,7 +67,10 @@ import {
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
 import { Fabric, type AuditSubspaceIntegrationInstance } from '@metorial/fabric';
-import { integrationProviderVersionInclude } from '../lib/integrationIncludes';
+import {
+  integrationProviderVersionInclude,
+  integrationProviderVersionPresentableInclude
+} from '../lib/integrationIncludes';
 import { notifyIntegrationTransaction } from '../listeners';
 import {
   integrationInstanceArchivedQueue,
@@ -90,6 +93,13 @@ export let integrationInstanceProviderVersionInclude = {
   },
   config: { include: { provider: true } },
   authConfig: { include: { provider: true, authMethod: true } }
+} as const;
+
+export let integrationInstanceProviderVersionPresentableInclude = {
+  ...integrationInstanceProviderVersionInclude,
+  integrationProviderVersion: {
+    include: integrationProviderVersionPresentableInclude
+  }
 } as const;
 
 export let integrationInstanceProviderInclude = {
@@ -115,6 +125,13 @@ export let integrationInstanceProviderInclude = {
   }
 } as const;
 
+export let integrationInstanceProviderPresentableInclude = {
+  ...integrationInstanceProviderInclude,
+  currentVersion: {
+    include: integrationInstanceProviderVersionPresentableInclude
+  }
+} as const;
+
 export let integrationInstanceInclude = {
   integration: true,
   identityActor: {
@@ -134,7 +151,7 @@ export let integrationInstanceInclude = {
   },
   integrationInstanceProviders: {
     where: { status: 'active' as const, isParentDeleted: false },
-    include: integrationInstanceProviderInclude
+    include: integrationInstanceProviderPresentableInclude
   }
 } as const;
 

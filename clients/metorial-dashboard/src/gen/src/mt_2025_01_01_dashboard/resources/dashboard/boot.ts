@@ -1,4 +1,7 @@
-import { mapObject } from '@metorial/util-resource-mapper/compact';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type DashboardBootOutput = {
   object: 'metorial.boot';
@@ -562,3 +565,8 @@ export let mapDashboardBootOutput =
     ],
     1
   );
+
+export type DashboardBootBody = {};
+
+export let mapDashboardBootBody =
+  /* @__PURE__ */ createMapper<DashboardBootBody>(0);

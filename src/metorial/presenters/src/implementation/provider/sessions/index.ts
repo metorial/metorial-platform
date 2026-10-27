@@ -12,4 +12,5 @@ export * from './sessionTemplate';
 export * from './sessionTemplateProvider';
 export * from './sessionWarning';
 export * from './setupSession';
+export * from './setupSessionEmail';
 export * from './toolCall';

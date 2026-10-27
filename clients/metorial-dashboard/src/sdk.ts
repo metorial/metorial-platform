@@ -96,6 +96,7 @@ import {
   MetorialDashboardInstanceProviderDeploymentsConfigsEndpoint,
   MetorialDashboardInstanceProviderDeploymentsConfigVaultsEndpoint,
   MetorialDashboardInstanceProviderDeploymentsEndpoint,
+  MetorialDashboardInstanceProviderDeploymentsSetupSessionsEmailsEndpoint,
   MetorialDashboardInstanceProviderDeploymentsSetupSessionsEndpoint,
   MetorialDashboardInstanceProviderGroupsEndpoint,
   MetorialDashboardInstanceProviderInvocationsEndpoint,
@@ -1115,8 +1116,13 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
       authCredentials: new MetorialDashboardInstanceProviderDeploymentsAuthCredentialsEndpoint(
         manager
       ),
-      setupSessions: new MetorialDashboardInstanceProviderDeploymentsSetupSessionsEndpoint(
-        manager
+      setupSessions: Object.assign(
+        new MetorialDashboardInstanceProviderDeploymentsSetupSessionsEndpoint(manager),
+        {
+          emails: new MetorialDashboardInstanceProviderDeploymentsSetupSessionsEmailsEndpoint(
+            manager
+          )
+        }
       )
     }
   ),

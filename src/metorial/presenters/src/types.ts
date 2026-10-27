@@ -42,6 +42,7 @@ import type {
   WebhookEvent,
   WebhookRegistrationWithRelations
 } from '@metorial-subspace/module-callback';
+import type { providerSetupSessionEmailInclude } from '@metorial-subspace/module-auth';
 import type { publisherService } from '@metorial-subspace/module-catalog';
 import type {
   customProviderDeploymentService,
@@ -57,7 +58,7 @@ import type {
   integrationInstanceGroupInclude,
   integrationInstanceGroupProviderInclude,
   integrationInstanceInclude,
-  integrationInstanceProviderInclude,
+  integrationInstanceProviderPresentableInclude,
   integrationInstanceProviderVersionInclude,
   integrationProviderInclude,
   integrationProviderVersionInclude,
@@ -844,7 +845,7 @@ type SubspaceIntegrationInstanceGroupProvider =
   }>;
 type SubspaceIntegrationInstanceProvider =
   SubspacePrisma.IntegrationInstanceProviderGetPayload<{
-    include: typeof integrationInstanceProviderInclude;
+    include: typeof integrationInstanceProviderPresentableInclude;
   }>;
 type SubspaceIntegrationProvider = SubspacePrisma.IntegrationProviderGetPayload<{
   include: typeof integrationProviderInclude;
@@ -2970,6 +2971,14 @@ export let publicMcpServerSlugAvailabilityType = PresentableType.create<{
 export let providerSetupSessionType = PresentableType.create<{
   setupSession: RawProviderSetupSession & PublicMcpOwnerRef;
 }>()('setupSession');
+
+export let providerSetupSessionEmailType = PresentableType.create<{
+  setupSessionEmail: SubspacePrisma.ProviderSetupSessionEmailGetPayload<{
+    include: typeof providerSetupSessionEmailInclude;
+  }>;
+  deduplicated?: boolean;
+  hideMemberRecipientEmail?: boolean;
+}>()('setupSessionEmail');
 
 export let providerAuthImportType = PresentableType.create<{
   authImport: RawProviderAuthImport;

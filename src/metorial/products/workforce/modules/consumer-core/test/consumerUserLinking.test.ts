@@ -58,6 +58,10 @@ vi.mock('@metorial/lock', () => ({
   }))
 }));
 
+vi.mock('@metorial/module-consumer-entities', () => ({
+  archiveDeletedConsumerProfileActorsQueue: { add: vi.fn() }
+}));
+
 vi.mock('@metorial/module-organization', () => ({
   namespaceService: { getNamespacePropertiesByPortalOid: mocks.getNamespaceProperties }
 }));

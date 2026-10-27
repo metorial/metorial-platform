@@ -9,6 +9,7 @@ import { db } from '../db';
 import { env } from '../env';
 import { getId, ID, snowflake } from '../id';
 import { extractExpiresAt } from '../lib/extractExpiresAt';
+import { getInvocationErrorCode } from '../lib/invocation/error';
 import { normalizeAuthorizationUrl } from '../lib/normalizeAuthorizationUrl';
 import {
   type CallbackSetupLookup,
@@ -123,7 +124,7 @@ class slateOAuthHandlerServiceImpl {
     if (urlRes.status === 'error') {
       await this.markFailed({
         setup,
-        code: urlRes.error.code,
+        code: getInvocationErrorCode(urlRes.error),
         message: urlRes.error.message,
         invocation: urlRes.invocation
       });
@@ -221,7 +222,7 @@ class slateOAuthHandlerServiceImpl {
 
       return await this.markFailed({
         setup,
-        code: res.error.code,
+        code: getInvocationErrorCode(res.error),
         message: res.error.message,
         invocation: res.invocation
       });
@@ -326,7 +327,7 @@ class slateOAuthHandlerServiceImpl {
 
       return await this.markFailed({
         setup,
-        code: res.error.code,
+        code: getInvocationErrorCode(res.error),
         message: res.error.message,
         invocation: res.invocation
       });

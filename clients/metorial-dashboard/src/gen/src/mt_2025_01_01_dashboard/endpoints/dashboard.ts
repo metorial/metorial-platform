@@ -3,7 +3,12 @@ import {
   MetorialEndpointManager
 } from '@metorial/util-endpoint';
 
-import { mapDashboardBootOutput, type DashboardBootOutput } from '../resources';
+import {
+  mapDashboardBootBody,
+  mapDashboardBootOutput,
+  type DashboardBootBody,
+  type DashboardBootOutput
+} from '../resources';
 
 /**
  * @name Boot controller
@@ -36,18 +41,21 @@ export class MetorialDashboardEndpoint {
    * @name Create organization
    * @description Create a new organization
    *
+   * @param `body` - DashboardBootBody
    * @param `opts` - { headers?: Record<string, string> }
    * @returns DashboardBootOutput
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
-  boot(opts?: {
-    headers?: Record<string, string>;
-  }): Promise<DashboardBootOutput> {
+  boot(
+    body: DashboardBootBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardBootOutput> {
     let path = 'dashboard/boot';
 
     let request = {
       path,
+      body: mapDashboardBootBody.transformTo(body),
 
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;

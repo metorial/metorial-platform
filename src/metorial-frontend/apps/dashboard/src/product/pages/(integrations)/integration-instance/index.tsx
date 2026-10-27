@@ -19,6 +19,7 @@ import { Box, Table } from '@metorial/ui-product';
 import { useEffect, useRef } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ResourceOwnerEntity } from '../../../components/resourceOwnerEntity';
+import { IntegrationAdminSetupCallouts } from '../../../scenes/integrations/adminSetupCallout';
 import { showIntegrationInstanceProviderPanelFlow } from '../../../scenes/integrations/providerPanelFlow';
 import { IntegrationInstanceProvidersManager } from '../../../scenes/integrations/providersManager';
 import { UsageOverviewTiles } from '../../../scenes/instanceUsage';
@@ -270,7 +271,7 @@ export let IntegrationInstanceOverviewPage = () => {
   ]);
 
   return renderWithLoader({ integrationInstance, integration, instanceProviders })(
-    ({ integrationInstance, integration }) => {
+    ({ integrationInstance, integration, instanceProviders }) => {
       let onComplete = () => {
         void integrationInstance.refetch();
         void instanceProviders.refetch();
@@ -278,6 +279,13 @@ export let IntegrationInstanceOverviewPage = () => {
 
       return (
         <DetailsOverviewLayout>
+          {integrationInstance.data.status === 'active' ? (
+            <IntegrationAdminSetupCallouts
+              instanceId={instance.data!.id}
+              integration={integration.data}
+            />
+          ) : null}
+
           {integrationInstance.data.status === 'draft' ? (
             <>
               <Callout color="orange">
