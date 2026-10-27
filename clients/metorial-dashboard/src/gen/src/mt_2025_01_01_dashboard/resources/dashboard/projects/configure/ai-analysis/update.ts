@@ -4,20 +4,28 @@ export type DashboardProjectsConfigureAiAnalysisUpdateOutput = {
   object: 'organization.project.ai_analysis_configuration';
   projectId: string;
   aiAnalysisEnabled: boolean;
+  skillReviewHoldPending: boolean;
   updatedAt: Date;
 };
 
 export let mapDashboardProjectsConfigureAiAnalysisUpdateOutput =
   /* @__PURE__ */ mapObject<DashboardProjectsConfigureAiAnalysisUpdateOutput>(
-    ['project_id', 'ai_analysis_enabled', 'updated_at'],
+    [
+      'project_id',
+      'ai_analysis_enabled',
+      'skill_review_hold_pending',
+      'updated_at'
+    ],
     1
   );
 
 export type DashboardProjectsConfigureAiAnalysisUpdateBody = {
-  aiAnalysisEnabled: boolean;
+  aiAnalysisEnabled?: boolean | undefined;
+  skillReviewHoldPending?: boolean | undefined;
 };
 
 export let mapDashboardProjectsConfigureAiAnalysisUpdateBody =
   /* @__PURE__ */ mapObject<DashboardProjectsConfigureAiAnalysisUpdateBody>([
-    'ai_analysis_enabled'
+    'ai_analysis_enabled',
+    'skill_review_hold_pending'
   ]);

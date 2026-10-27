@@ -19,17 +19,6 @@ export type SecurityReviewsRevisionsListOutput = {
     blockReason: 'billing' | 'ai_disabled' | 'admin_disabled' | null;
     awaitingTools: boolean;
     aiGenerated: boolean;
-    trigger:
-      | 'first_use'
-      | 'page_open'
-      | 'new_version'
-      | 'deployment'
-      | 'tools_discovered'
-      | 'census_changed'
-      | 'scheduled'
-      | 'prompt_update'
-      | 'reassess';
-    triggerReason: string | null;
     scores: {
       securityScore: number;
       band: 'strong' | 'good' | 'fair' | 'weak' | 'poor';
@@ -147,8 +136,6 @@ export type SecurityReviewsRevisionsListOutput = {
         | { type: 'tool'; toolKey: string }
       )[];
     }[];
-    rulesVersion: string;
-    promptVersion: string;
     startedAt: Date | null;
     completedAt: Date | null;
     createdAt: Date;
@@ -168,7 +155,6 @@ export let mapSecurityReviewsRevisionsListOutput =
           'block_reason',
           'awaiting_tools',
           'ai_generated',
-          'trigger_reason',
           [
             'scores',
             0,
@@ -296,8 +282,6 @@ export let mapSecurityReviewsRevisionsListOutput =
               ]
             ]
           ],
-          'rules_version',
-          'prompt_version',
           'started_at',
           'completed_at',
           'created_at'
