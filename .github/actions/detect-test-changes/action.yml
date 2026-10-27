@@ -29,10 +29,9 @@ runs:
       run: |
         set -euo pipefail
         directory=src/control
-        args=(--oss)
-        if [ -f oss/package.json ]; then directory="oss/$directory"; args=(); fi
-        cargo build --release --locked --manifest-path "$directory/Cargo.toml"
-        "$directory/target/release/control" "${args[@]}" ci describe --json > "$RUNNER_TEMP/backend-inventory.json"
+        set -- --oss
+        if [ -f oss/package.json ]; then directory="oss/$directory"; set --; fi
+        bun "$directory/src/main.ts" "$@" ci describe --json > "$RUNNER_TEMP/backend-inventory.json"
     - id: changes
       shell: bash
       env:

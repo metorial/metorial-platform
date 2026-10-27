@@ -2,7 +2,7 @@
   "name": "@metorial/oss",
   "private": true,
   "scripts": {
-    "control": "cargo run --quiet --manifest-path ./src/control/Cargo.toml --",
+    "control": "bun ./src/control/src/main.ts",
     "build": "turbo run --ui=stream build",
     "introspect": "bun run --cwd src/metorial/apis/core introspect",
     "generate:client": "bun run introspect && turbo run generate:client && turbo run build",
