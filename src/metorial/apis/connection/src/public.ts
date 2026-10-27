@@ -28,6 +28,11 @@ import {
 } from './oauth/skeleton';
 import { getClientCredentialsFromBasicAuth, getString, parseOAuthBody } from './oauth/utils';
 import { getOutpostAuth, resolveOutpostOrigin, useConnectionRequestContext } from './outpost';
+import { isPublicMcpBrowserRequest, publicMcpBrowserVary } from './publicMcp/browserRequest';
+import {
+  renderPublicMcpInstallError,
+  renderPublicMcpInstallPage
+} from './publicMcp/installPage';
 
 export let PUBLIC_MCP_ORIGIN_HEADER = 'Metorial-Public-Mcp-Origin';
 export let PUBLIC_MCP_MISS_HEADER = 'Metorial-Public-Mcp-Miss';
@@ -39,7 +44,7 @@ type ResolvedPublicMcpRoute = {
   validBaseUrls: string[];
 };
 
-type ErrorMode = 'json' | 'browser' | 'mcp';
+type ErrorMode = 'json' | 'browser' | 'mcp' | 'install';
 
 class PublicMcpRouteNotFound extends Error {
   // A miss tells the edge its cached slug -> cell mapping may be stale.
@@ -153,6 +158,15 @@ let renderError = (
   resolved: ResolvedPublicMcpRoute | null
 ) => {
   if (e instanceof PublicMcpRouteNotFound) {
+    if (mode === 'install') {
+      return renderPublicMcpInstallError(c, {
+        title: 'Server Not Found',
+        description: 'No MCP server exists at this URL. Check the link and try again.',
+        status: 404,
+        routingMiss: e.isRoutingMiss
+      });
+    }
+
     return c.json(
       { error: 'not_found', error_description: 'Server not found' },
       404,
@@ -424,8 +438,30 @@ export let createPublicMcpHandler = () =>
         return c.body(null, 200, { 'Cache-Control': 'no-store' });
       }),
 
-    mcp: async ({ route }, c) =>
-      withPublicRoute(c, route, 'mcp', async ({ route: server, base }) => {
+    mcp: async ({ route }, c) => {
+      c.header('Vary', publicMcpBrowserVary);
+
+      if (isPublicMcpBrowserRequest(c.req.raw)) {
+        return withPublicRoute(c, route, 'install', async ({ route: server, base }) => {
+          if (server.status !== 'active') {
+            return renderPublicMcpInstallError(c, {
+              title: 'Server Unavailable',
+              description: 'This MCP server is currently unavailable. Try again later.',
+              status: 503
+            });
+          }
+
+          return renderPublicMcpInstallPage(c, {
+            name: server.name,
+            description: server.description,
+            providerName: server.provider.name,
+            slug: server.slug,
+            url: base
+          });
+        });
+      }
+
+      return withPublicRoute(c, route, 'mcp', async ({ route: server, base }) => {
         let grant = await publicMcpServerTokenService.authenticateAccessToken({
           route: server,
           token: getBearerToken(c)
@@ -462,5 +498,6 @@ export let createPublicMcpHandler = () =>
               publicMcpAccess: createPublicMcpGrantAccess({ grant, sessionOid: session.oid })
             })
         );
-      })
+      });
+    }
   });
