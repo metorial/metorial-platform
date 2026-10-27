@@ -25,6 +25,9 @@ vi.mock('@metorial/db', () => ({
       update: vi.fn(),
       findFirst: vi.fn(),
       findMany: vi.fn()
+    },
+    team: {
+      findMany: vi.fn()
     }
   },
   ID: {
@@ -1006,6 +1009,52 @@ describe('OrganizationMemberService', () => {
 
       expect(result).toBeDefined();
       expect(typeof result).toBe('function');
+    });
+
+    it('should combine a trimmed search with the team filter', async () => {
+      let mockOrg = { id: 'org-1', oid: 1 };
+      vi.mocked(db.team.findMany).mockResolvedValue([{ oid: 7 }] as any);
+      vi.mocked(db.organizationMember.findMany).mockResolvedValue([]);
+
+      let paginator: any = await organizationMemberService.listOrganizationMembers({
+        organization: mockOrg as any,
+        teamIds: ['team-1'],
+        search: '  Jane  '
+      });
+
+      await paginator({ prisma: (cb: any) => cb({}) });
+
+      let where = vi.mocked(db.organizationMember.findMany).mock.calls[0]![0]!.where as any;
+      let match = { contains: 'Jane', mode: 'insensitive' };
+
+      expect(where.organizationOid).toBe(1);
+      expect(where.status).toBe('active');
+      expect(where.user).toEqual({ type: { not: 'system' } });
+      expect(where.actor).toEqual({ teams: { some: { teamOid: { in: [7] } } } });
+      expect(where.OR).toEqual([
+        { actor: { name: match } },
+        { actor: { email: match } },
+        { user: { name: match } },
+        { user: { email: match } }
+      ]);
+    });
+
+    it('should match LIKE wildcards in the search literally', async () => {
+      let mockOrg = { id: 'org-1', oid: 1 };
+      vi.mocked(db.organizationMember.findMany).mockResolvedValue([]);
+
+      let paginator: any = await organizationMemberService.listOrganizationMembers({
+        organization: mockOrg as any,
+        search: '100%_off\\'
+      });
+
+      await paginator({ prisma: (cb: any) => cb({}) });
+
+      let where = vi.mocked(db.organizationMember.findMany).mock.calls[0]![0]!.where as any;
+
+      expect(where.OR[0]).toEqual({
+        actor: { name: { contains: '100\\%\\_off\\\\', mode: 'insensitive' } }
+      });
     });
   });
 

@@ -43,7 +43,7 @@ export let startMcpServer = (d: {
       if (!isCorsOriginAllowed(origin, d.corsOrigins)) return;
 
       c.res.headers.set('Access-Control-Allow-Origin', origin!);
-      c.res.headers.set('Vary', 'Origin');
+      c.res.headers.append('Vary', 'Origin');
       c.res.headers.set(
         'Access-Control-Allow-Methods',
         'GET, POST, PUT, DELETE, OPTIONS, PATCH'

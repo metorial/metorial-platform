@@ -37,7 +37,11 @@ vi.mock('@metorial-subspace/db', () => {
 });
 
 vi.mock('@metorial-subspace/module-auth', () => ({
-  providerSetupSessionService: { createProviderSetupSessionInternal: vi.fn() }
+  providerSetupSessionService: { createProviderSetupSessionInternal: vi.fn() },
+  getProviderSetupSessionUrl: vi.fn(
+    (session: { id: string; clientSecret: string }) =>
+      `https://integrations.metorial.com/setup-session/${session.id}?client_secret=${session.clientSecret}`
+  )
 }));
 
 vi.mock('@metorial-subspace/module-tenant', () => ({

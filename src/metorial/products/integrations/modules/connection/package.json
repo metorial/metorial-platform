@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@metorial/db": "workspace:*",
+    "@metorial/module-rate-limit": "^1.0.0",
     "@lowerdeck/cache": "workspace:2.0.0",
     "@lowerdeck/canonicalize": "workspace:2.0.0",
     "@lowerdeck/case": "workspace:2.0.0",

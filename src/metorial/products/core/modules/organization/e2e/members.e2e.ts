@@ -4,6 +4,8 @@ import {
   firstPage,
   testContext,
   uniqueEmail,
+  uniqueId,
+  useFixture,
   useOrganization
 } from '@metorial/e2e';
 import type { User } from '@metorial/db';
@@ -12,21 +14,26 @@ import { describe, expect, it } from 'vitest';
 import {
   organizationInviteJoinService,
   organizationInviteService,
-  organizationMemberService
+  organizationMemberService,
+  teamService
 } from '../src';
 
 describe('module-organization invites and members', () => {
   let org = useOrganization();
   let otherOrg = useOrganization();
   let soloOrg = useOrganization();
+  let searchOrg = useOrganization();
 
-  let signUp = async () => {
-    let user = await bootstrapUser();
+  let signUp = async (input: Parameters<typeof bootstrapUser>[0] = {}) => {
+    let user = await bootstrapUser(input);
     return db.user.findUniqueOrThrow({ where: { id: user.id } });
   };
 
-  let createLinkInvite = async (role: 'admin' | 'member' = 'member') => {
-    let fixture = await loadOrganizationFixture(org.ids);
+  let createLinkInvite = async (
+    role: 'admin' | 'member' = 'member',
+    target: { ids: { organizationId: string } } = org
+  ) => {
+    let fixture = await loadOrganizationFixture(target.ids);
     let invite = await organizationInviteService.createOrganizationInvite({
       organization: fixture.organization,
       auditScope: fixture.auditScope,
@@ -41,6 +48,38 @@ describe('module-organization invites and members', () => {
       inviteKey,
       context: testContext()
     });
+
+  let joinSearchOrg = async (input: { name: string; email: string }) => {
+    let { invite } = await createLinkInvite('member', searchOrg);
+    let { member } = await accept(await signUp(input), invite.key);
+    return member;
+  };
+
+  let searchMembers = useFixture(async () => {
+    let tag = uniqueId('search');
+
+    let alice = await joinSearchOrg({
+      name: 'Alice Example',
+      email: `alice-${tag}@e2e.metorial.test`
+    });
+    let bob = await joinSearchOrg({
+      name: 'Bob Searchable',
+      email: `bob-${tag}@e2e.metorial.test`
+    });
+
+    return { tag, alice, bob };
+  });
+
+  let searchIds = async (input: { search?: string; teamIds?: string[] }) => {
+    let fixture = await loadOrganizationFixture(searchOrg.ids);
+    let members = await firstPage(
+      await organizationMemberService.listOrganizationMembers({
+        organization: fixture.organization,
+        ...input
+      })
+    );
+    return members.map(member => member.id).sort();
+  };
 
   it('joins a user through a link invite with the invite role', async () => {
     let { fixture, invite } = await createLinkInvite('admin');
@@ -250,5 +289,84 @@ describe('module-organization invites and members', () => {
       }),
       'not_found'
     );
+  });
+
+  it('searches members by partial name or email regardless of case', async () => {
+    let { tag, alice, bob } = searchMembers;
+
+    expect(await searchIds({ search: `ALICE-${tag.toUpperCase()}` })).toEqual([alice.id]);
+    expect(await searchIds({ search: 'ob sEARCH' })).toEqual([bob.id]);
+    expect(await searchIds({ search: '@E2E.METORIAL.TEST' })).toEqual(
+      expect.arrayContaining([alice.id, bob.id])
+    );
+  });
+
+  it('matches LIKE wildcards in a search literally', async () => {
+    let { tag } = searchMembers;
+
+    let quinn = await joinSearchOrg({
+      name: 'Quinn Underscore',
+      email: `quinn_${tag}@e2e.metorial.test`
+    });
+    await joinSearchOrg({
+      name: 'Quinn Lookalike',
+      email: `quinnx${tag}@e2e.metorial.test`
+    });
+
+    expect(await searchIds({ search: `quinn_${tag}` })).toEqual([quinn.id]);
+    expect(await searchIds({ search: `quinn%${tag}` })).toEqual([]);
+  });
+
+  it('returns every member for a blank or whitespace search', async () => {
+    let { alice, bob } = searchMembers;
+    let all = await searchIds({});
+
+    expect(all).toEqual(expect.arrayContaining([alice.id, bob.id]));
+    expect(await searchIds({ search: '' })).toEqual(all);
+    expect(await searchIds({ search: '   ' })).toEqual(all);
+  });
+
+  it('applies search and team filters together', async () => {
+    let { tag, alice, bob } = searchMembers;
+    let fixture = await loadOrganizationFixture(searchOrg.ids);
+    let team = await teamService.createTeam({
+      organization: fixture.organization,
+      auditScope: fixture.auditScope,
+      input: { name: uniqueId('Search Team') }
+    });
+    let { actor } = await db.organizationMember.findUniqueOrThrow({
+      where: { id: bob.id },
+      include: { actor: true }
+    });
+    await teamService.assignActorToTeam({
+      team,
+      actor,
+      organization: fixture.organization,
+      auditScope: fixture.auditScope
+    });
+
+    expect(await searchIds({ search: tag, teamIds: [team.id] })).toEqual([bob.id]);
+    expect(await searchIds({ search: `alice-${tag}`, teamIds: [team.id] })).toEqual([]);
+    expect(await searchIds({ search: `alice-${tag}` })).toEqual([alice.id]);
+  });
+
+  it('excludes deleted members from search results', async () => {
+    let { tag } = searchMembers;
+    let fixture = await loadOrganizationFixture(searchOrg.ids);
+    let dana = await joinSearchOrg({
+      name: 'Dana Removed',
+      email: `dana-${tag}@e2e.metorial.test`
+    });
+
+    expect(await searchIds({ search: 'DANA REMOVED' })).toEqual([dana.id]);
+
+    await organizationMemberService.deleteOrganizationMember({
+      organization: fixture.organization,
+      member: dana,
+      auditScope: fixture.auditScope
+    });
+
+    expect(await searchIds({ search: 'DANA REMOVED' })).toEqual([]);
+    expect(await searchIds({ search: `dana-${tag}` })).toEqual([]);
   });
 });

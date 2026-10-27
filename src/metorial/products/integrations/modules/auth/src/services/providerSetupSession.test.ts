@@ -310,7 +310,7 @@ describe('createProviderSetupSessionInternal admin sessions', () => {
     expect(mocks.providerSetupSessionCreate).not.toHaveBeenCalled();
   });
 
-  it('defaults admin sessions to a 7 day expiry and passes it to the OAuth setup', async () => {
+  it('defaults admin sessions to a 14 day expiry and passes it to the OAuth setup', async () => {
     let before = new Date();
 
     await createAdminSession();
@@ -318,8 +318,8 @@ describe('createProviderSetupSessionInternal admin sessions', () => {
     let after = new Date();
     let expiresAt = mocks.providerSetupSessionCreate.mock.calls[0]![0].data.expiresAt as Date;
 
-    expect(expiresAt.getTime()).toBeGreaterThanOrEqual(addDays(before, 7).getTime());
-    expect(expiresAt.getTime()).toBeLessThanOrEqual(addDays(after, 7).getTime());
+    expect(expiresAt.getTime()).toBeGreaterThanOrEqual(addDays(before, 14).getTime());
+    expect(expiresAt.getTime()).toBeLessThanOrEqual(addDays(after, 14).getTime());
     expect(mocks.initializeProviderSetupSessionProvider).toHaveBeenCalledWith(
       expect.objectContaining({ expiresAt })
     );
@@ -386,6 +386,41 @@ describe('updateProviderSetupSessionInternal admin sessions', () => {
 
     expect(mocks.providerSetupSessionUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ identityOid: 50n }) })
+    );
+  });
+});
+
+describe('listProviderSetupSessionsInternal type filter', () => {
+  let runList = async (types?: ('admin' | 'auth_only')[]) => {
+    vi.clearAllMocks();
+    let { Paginator } = await import('@lowerdeck/pagination');
+    let { db } = await import('@metorial-subspace/db');
+    vi.mocked(Paginator.create).mockImplementation(((fn: any) => fn) as any);
+    vi.mocked(db.providerSetupSession.findMany).mockResolvedValue([]);
+
+    let paginator: any = await providerSetupSessionService.listProviderSetupSessionsInternal({
+      tenant: { oid: 10n } as any,
+      environment: { oid: 30n } as any,
+      types
+    });
+    await paginator({ prisma: (cb: (opts: object) => unknown) => cb({}) });
+
+    return vi.mocked(db.providerSetupSession.findMany).mock.calls[0]![0] as any;
+  };
+
+  it('matches either the selected or the concrete type', async () => {
+    let args = await runList(['admin']);
+
+    expect(args.where.AND).toContainEqual({
+      OR: [{ typeSelected: { in: ['admin'] } }, { typeConcrete: { in: ['admin'] } }]
+    });
+  });
+
+  it('adds no type condition without types', async () => {
+    let args = await runList();
+
+    expect(args.where.AND).not.toContainEqual(
+      expect.objectContaining({ OR: expect.anything() })
     );
   });
 });

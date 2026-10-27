@@ -1594,6 +1594,8 @@ let OrganizationPaths = Object.assign(
       OrganizationPaths(organization, ...subPages),
     billing: (organization: EntityParam, ...subPages: SubPages) =>
       OrganizationPaths.settings(organization, 'billing', ...subPages),
+    rateLimits: (organization: EntityParam, ...subPages: SubPages) =>
+      OrganizationPaths.settings(organization, 'rate-limits', ...subPages),
     supportAccess: (organization: EntityParam, ...subPages: SubPages) =>
       OrganizationPaths.settings(organization, 'support-access', ...subPages),
     auditLogs: (organization: EntityParam, ...subPages: SubPages) =>

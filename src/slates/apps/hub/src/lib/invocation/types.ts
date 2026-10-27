@@ -45,6 +45,7 @@ export interface InvocationError {
   kind?: string;
   retryable?: boolean;
   status?: number;
+  upstreamCode?: string;
   [key: string]: unknown;
 }
 

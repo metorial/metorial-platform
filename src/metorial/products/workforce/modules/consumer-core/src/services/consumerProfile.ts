@@ -28,6 +28,7 @@ import {
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { createLock } from '@metorial/lock';
+import { archiveDeletedConsumerProfileActorsQueue } from '@metorial/module-consumer-entities';
 import { namespaceService, organizationActorService } from '@metorial/module-organization';
 import { buildSearchFilter, searchConsumerIds } from '@metorial/module-search';
 import {
@@ -828,6 +829,9 @@ class ConsumerProfileServiceImpl {
       // A deleted profile keeps its row and carries a status, so the copy is an update like any other.
       await addAwaitedAfterTransactionHook(() =>
         metorialResourceService.syncConsumerProfile(consumerProfile)
+      );
+      await addAwaitedAfterTransactionHook(() =>
+        archiveDeletedConsumerProfileActorsQueue.add({ consumerProfileId: consumerProfile.id })
       );
 
       return consumerProfile;

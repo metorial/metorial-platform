@@ -15,6 +15,10 @@ import {
 import { getRegionClient } from '../lib/regions';
 
 export type SandboxTenantLimits = {
+  machineStarts: {
+    rate: { amount: number; intervalSeconds: number };
+    burst: { amount: number; intervalSeconds: number } | null;
+  } | null;
   maxOpenConnections: number | null;
   ingressBytesPerSecondPerConnection: number | null;
   requestsPer10MinutesPerTenant: number | null;
@@ -26,6 +30,7 @@ export type SandboxTenantLimits = {
   maxActiveMemoryMiB?: number | null;
   maxActiveVcpus?: number | null;
   maxDiskBytes?: number | null;
+  maxConcurrentBuilds?: number | null;
 };
 
 export type SandboxTenantBlock = { reason: string | null } | null;

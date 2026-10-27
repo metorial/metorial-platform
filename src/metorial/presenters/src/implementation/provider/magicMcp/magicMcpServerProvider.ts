@@ -3,9 +3,11 @@ import { Presenter } from '@metorial/presenter';
 import { magicMcpServerProviderType } from '../../../types';
 import { toolFilterPresenter } from '../../_shared/toolFilter';
 import {
+  effectiveProviderAuthMethodSchema,
   v1ProviderAuthConfigPreviewPresenter,
   v1ProviderAuthCredentialsPresenter,
-  v1ProviderAuthMethodPresenter
+  v1ProviderAuthMethodPresenter,
+  withEffectiveAuthMethodCapabilities
 } from '../auth';
 import {
   v1ProviderConfigPreviewPresenter,
@@ -86,7 +88,10 @@ export let v1MagicMcpServerProviderPresenter = Presenter.create(magicMcpServerPr
             .present(
               {
                 authMethod: {
-                  ...effectiveIntegrationVersion.authMethod,
+                  ...withEffectiveAuthMethodCapabilities(
+                    effectiveIntegrationVersion.authMethod,
+                    effectiveIntegrationVersion.deployment
+                  ),
                   provider
                 }
               },
@@ -143,7 +148,7 @@ export let v1MagicMcpServerProviderPresenter = Presenter.create(magicMcpServerPr
       tool_filter: v.nullable(toolFilterPresenter.schema),
       provider: v1ProviderPreview.schema,
       deployment: v1ProviderDeploymentPreviewPresenter.schema,
-      auth_method: v.nullable(v1ProviderAuthMethodPresenter.schema),
+      auth_method: v.nullable(effectiveProviderAuthMethodSchema),
       auth_credentials: v.nullable(v1ProviderAuthCredentialsPresenter.schema),
       config: v.nullable(v1ProviderConfigPreviewPresenter.schema),
       auth_config: v.nullable(v1ProviderAuthConfigPreviewPresenter.schema),

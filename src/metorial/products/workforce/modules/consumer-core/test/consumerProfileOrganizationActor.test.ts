@@ -34,6 +34,7 @@ let mocks = vi.hoisted(() => {
     upsertConsumer: vi.fn(),
     profileCreatedAdd: vi.fn(),
     profileUpdatedAdd: vi.fn(),
+    archiveProfileActorsAdd: vi.fn(),
     fire: vi.fn()
   };
 });
@@ -74,6 +75,10 @@ vi.mock('@metorial/lock', () => ({
   createLock: vi.fn(() => ({
     usingLock: vi.fn(async (_key, callback) => await callback())
   }))
+}));
+
+vi.mock('@metorial/module-consumer-entities', () => ({
+  archiveDeletedConsumerProfileActorsQueue: { add: mocks.archiveProfileActorsAdd }
 }));
 
 vi.mock('@metorial/module-organization', () => ({
@@ -438,7 +443,12 @@ describe('consumer profile invitation deletion', () => {
   it.each(['pending', 'accepted', null])(
     'handles %s invitation state when deleting a profile',
     async status => {
-      let profile = { oid: 20n, status: 'active', surface: portalSurface } as any;
+      let profile = {
+        id: 'profile_1',
+        oid: 20n,
+        status: 'active',
+        surface: portalSurface
+      } as any;
       let deleted = { ...profile, status: 'deleted' };
       mocks.db.consumerInvite.findUnique.mockResolvedValue(
         status ? { id: 'coi_1', status } : null
@@ -471,6 +481,9 @@ describe('consumer profile invitation deletion', () => {
         expect(mocks.db.consumerSession.updateMany).toHaveBeenCalledWith({
           where: { consumerProfileOid: profile.oid, loggedOutAt: null },
           data: { loggedOutAt: expect.any(Date) }
+        });
+        expect(mocks.archiveProfileActorsAdd).toHaveBeenCalledWith({
+          consumerProfileId: profile.id
         });
       } finally {
         deleteInvite.mockRestore();

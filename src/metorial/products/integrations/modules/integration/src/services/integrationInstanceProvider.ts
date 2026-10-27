@@ -65,7 +65,7 @@ import {
 } from '../queues/lifecycle/integrationInstanceProvider';
 import { getIntegrationToolFilterCapabilities } from './integration';
 import {
-  integrationInstanceProviderInclude,
+  integrationInstanceProviderPresentableInclude,
   integrationInstanceProviderVersionInclude
 } from './integrationInstance';
 import { integrationProviderService, MAX_INTEGRATION_PROVIDERS } from './integrationProvider';
@@ -344,7 +344,7 @@ class integrationInstanceProviderServiceImpl {
                 d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
               ].filter(Boolean)
             },
-            include: integrationInstanceProviderInclude
+            include: integrationInstanceProviderPresentableInclude
           })
       )
     );
@@ -376,7 +376,7 @@ class integrationInstanceProviderServiceImpl {
         environmentOid: d.environment.oid,
         ...normalizeStatusForGet(d).hasParent
       },
-      include: integrationInstanceProviderInclude
+      include: integrationInstanceProviderPresentableInclude
     });
     if (!integrationInstanceProvider) {
       throw new ServiceError(
@@ -920,7 +920,7 @@ class integrationInstanceProviderServiceImpl {
 
       let res = await db.integrationInstanceProvider.findMany({
         where: { oid: { in: integrationInstanceProviderOids } },
-        include: integrationInstanceProviderInclude
+        include: integrationInstanceProviderPresentableInclude
       });
       let resByOid = new Map(
         res.map(integrationInstanceProvider => [
@@ -1144,7 +1144,7 @@ class integrationInstanceProviderServiceImpl {
 
       let res = await db.integrationInstanceProvider.findUniqueOrThrow({
         where: { oid: integrationInstanceProvider.oid },
-        include: integrationInstanceProviderInclude
+        include: integrationInstanceProviderPresentableInclude
       });
 
       await addAfterTransactionHook(async () =>

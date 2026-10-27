@@ -1,13 +1,15 @@
 import { Service } from '@lowerdeck/service';
 import { db, getId, withTransaction } from '@metorial-subspace/db';
-import { providerSetupSessionService } from '@metorial-subspace/module-auth';
+import {
+  getProviderSetupSessionUrl,
+  providerSetupSessionService
+} from '@metorial-subspace/module-auth';
 import {
   getSubspaceSystemProviderEventBase,
   metorialDb
 } from '@metorial-subspace/module-tenant';
 import { Fabric } from '@metorial/fabric';
 import { addMinutes } from 'date-fns';
-import { env } from '../env';
 import { assertPublicMcpRateLimit } from '../internal/rateLimit';
 import {
   PUBLIC_MCP_AUTHORIZATION_CODE_TTL_MINUTES,
@@ -31,9 +33,6 @@ let normalizeResource = (value: string) => value.replace(/\/+$/, '');
 
 export let getPublicMcpBindingCookieName = (authorizationId: string) =>
   `${PUBLIC_MCP_BINDING_COOKIE_PREFIX}${authorizationId}`;
-
-let setupSessionUrl = (setupSession: { id: string; clientSecret: string }) =>
-  `${env.service.INTEGRATIONS_UI_URL.replace(/\/+$/, '')}/setup-session/${setupSession.id}?client_secret=${setupSession.clientSecret}`;
 
 let completionUrl = (d: { baseUrl: string; authorizationId: string }) =>
   `${d.baseUrl}/oauth/complete/${d.authorizationId}`;
@@ -244,7 +243,7 @@ class publicMcpServerAuthorizationServiceImpl {
 
     return {
       type: 'redirect',
-      url: setupSessionUrl(currentSetupSession),
+      url: getProviderSetupSessionUrl(currentSetupSession),
       bindingCookie
     };
   }
@@ -357,7 +356,7 @@ class publicMcpServerAuthorizationServiceImpl {
     }
 
     if (setupSession.status !== 'completed') {
-      return { type: 'redirect' as const, url: setupSessionUrl(setupSession) };
+      return { type: 'redirect' as const, url: getProviderSetupSessionUrl(setupSession) };
     }
 
     if (server.status !== 'active') {

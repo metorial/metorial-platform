@@ -9,5 +9,6 @@ export * from './providerAuthImport';
 export * from './providerOAuthSetup';
 export * from './providerOAuthSetupInternal';
 export * from './providerSetupSession';
+export * from './providerSetupSessionEmail';
 export * from './providerSetupSessionInternal';
 export * from './providerSetupSessionUi';

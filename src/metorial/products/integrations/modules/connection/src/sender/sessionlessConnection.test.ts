@@ -74,6 +74,9 @@ vi.mock('@metorial-subspace/db', () => ({
   ID: {},
   withTransaction: vi.fn()
 }));
+vi.mock('@metorial/module-rate-limit', () => ({
+  rateLimitService: { consume: vi.fn() }
+}));
 vi.mock('@metorial-subspace/module-agent', () => ({}));
 vi.mock('@metorial-subspace/module-callback', () => ({ callbackEventService: {} }));
 vi.mock('@metorial-subspace/module-enclave', () => ({}));

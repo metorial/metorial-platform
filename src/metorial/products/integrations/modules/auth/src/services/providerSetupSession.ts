@@ -64,6 +64,7 @@ import {
   adminSetupInvalidBindingError,
   adminSetupToolFiltersError
 } from '../lib/adminSetupErrors';
+import { isAdminSetupSession } from '../lib/setupSessionType';
 import {
   providerSetupSessionCreatedQueue,
   providerSetupSessionUpdatedQueue
@@ -72,7 +73,7 @@ import { providerAuthConfigInclude } from './providerAuthConfig';
 import { providerSetupSessionInternalService } from './providerSetupSessionInternal';
 
 let DEFAULT_SESSION_EXPIRY_MINUTES = 30;
-let ADMIN_SESSION_EXPIRY_DAYS = 7;
+let ADMIN_SESSION_EXPIRY_DAYS = 14;
 
 let include = {
   identity: true,
@@ -185,6 +186,7 @@ export type UpdateProviderSetupSessionFacingParams = Omit<
 
 type ListProviderSetupSessionsParams = {
   status?: ProviderSetupSessionStatus[];
+  types?: ProviderSetupSessionTypeConcrete[];
   allowDeleted?: boolean;
 
   ids?: string[];
@@ -260,6 +262,14 @@ class providerSetupSessionServiceImpl {
                   : { ownerPublicMcpServerOid: null },
                 d.ids ? { id: { in: d.ids } } : undefined!,
                 d.status ? { status: { in: d.status } } : undefined!,
+                d.types
+                  ? {
+                      OR: [
+                        { typeSelected: { in: d.types } },
+                        { typeConcrete: { in: d.types } }
+                      ]
+                    }
+                  : undefined!,
                 providers ? { providerOid: providers.in } : undefined!,
                 deployments ? { deploymentOid: deployments.in } : undefined!,
                 authConfigs ? { authConfigOid: authConfigs.in } : undefined!,
@@ -679,11 +689,7 @@ class providerSetupSessionServiceImpl {
 
     let providerSetupSession = d.providerSetupSession;
 
-    if (
-      d.input.identity &&
-      (providerSetupSession.typeSelected === 'admin' ||
-        providerSetupSession.typeConcrete === 'admin')
-    ) {
+    if (d.input.identity && isAdminSetupSession(providerSetupSession)) {
       throw adminSetupInvalidBindingError();
     }
 

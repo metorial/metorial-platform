@@ -1,14 +1,34 @@
+import type { DashboardInstanceProviderDeploymentsSetupSessionsCreateOutput } from '@metorial/dashboard-sdk';
 import { useForm } from '@metorial/data-hooks';
 import { IntegrationProvider, useCreateProviderSetupSession } from '@metorial/state';
-import { Button, Copy, Dialog, Input, Spacer, Text, showModal } from '@metorial/ui';
+import {
+  Button,
+  Copy,
+  Dialog,
+  Input,
+  RenderDate,
+  Spacer,
+  Text,
+  showModal
+} from '@metorial/ui';
 import { useState } from 'react';
+import { AdminSetupLinkEmailSection } from './adminSetupLinkEmailSection';
 
-export let supportsAdminSetup = (integrationProvider: IntegrationProvider) =>
+export type AdminSetupIntegrationProvider = Pick<
+  IntegrationProvider,
+  'providerId' | 'deploymentId' | 'authMethodId' | 'authCredentialsId' | 'authMethod'
+>;
+
+export let supportsAdminSetup = (integrationProvider: AdminSetupIntegrationProvider) =>
   integrationProvider.authMethod?.capabilities?.adminSetup?.enabled === true;
+
+export let requiresAdminSetup = (integrationProvider: AdminSetupIntegrationProvider) =>
+  supportsAdminSetup(integrationProvider) &&
+  integrationProvider.authMethod?.capabilities?.adminSetup?.required === true;
 
 export let showAdminSetupLinkModal = (p: {
   instanceId: string;
-  integrationProvider: IntegrationProvider;
+  integrationProvider: AdminSetupIntegrationProvider;
   providerName: string;
 }) =>
   showModal(({ dialogProps, close }) => {
@@ -17,7 +37,8 @@ export let showAdminSetupLinkModal = (p: {
       p.integrationProvider.providerId,
       p.integrationProvider.deploymentId
     );
-    let [createdUrl, setCreatedUrl] = useState<string | null>(null);
+    let [created, setCreated] =
+      useState<DashboardInstanceProviderDeploymentsSetupSessionsCreateOutput | null>(null);
 
     let form = useForm({
       initialValues: {
@@ -25,7 +46,7 @@ export let showAdminSetupLinkModal = (p: {
         description: ''
       },
       onSubmit: async values => {
-        let [created] = await createSetupSession.mutate({
+        let [setupSession] = await createSetupSession.mutate({
           type: 'admin',
           name: values.name.trim(),
           description: values.description.trim() || undefined,
@@ -33,8 +54,8 @@ export let showAdminSetupLinkModal = (p: {
           providerAuthCredentialsId: p.integrationProvider.authCredentialsId ?? undefined
         });
 
-        if (!created) return;
-        setCreatedUrl(created.url);
+        if (!setupSession) return;
+        setCreated(setupSession);
       },
       schema: yup =>
         yup.object({
@@ -45,28 +66,38 @@ export let showAdminSetupLinkModal = (p: {
     return (
       <Dialog.Wrapper {...dialogProps} width={650}>
         <Dialog.Title>Create Admin Setup Link</Dialog.Title>
-        {!createdUrl && (
+        {!created && (
           <Dialog.Description>
             Create a link for an administrator to approve {p.providerName} for their
             organization. Once approved, everyone in their organization can connect it.
           </Dialog.Description>
         )}
 
-        {createdUrl ? (
+        {created ? (
           <>
             <Text size="2" color="gray600">
-              Share this link with an administrator of the organization you want to connect.
+              Share this link with an administrator of the organization you want to connect. It
+              expires on <RenderDate date={created.expiresAt} />.
             </Text>
             <Spacer size={12} />
-            <Copy label="Admin Setup Link" value={createdUrl} />
+            <Copy label="Admin Setup Link" value={created.url} />
+
+            <Spacer size={24} />
+
+            <AdminSetupLinkEmailSection
+              instanceId={p.instanceId}
+              setupSessionId={created.id}
+            />
+
             <Spacer size={18} />
+
             <Dialog.Actions>
               <Button type="button" variant="outline" onClick={close}>
                 Close
               </Button>
               <Button
                 type="button"
-                onClick={() => window.open(createdUrl, '_blank', 'noopener,noreferrer')}
+                onClick={() => window.open(created.url, '_blank', 'noopener,noreferrer')}
               >
                 Open
               </Button>

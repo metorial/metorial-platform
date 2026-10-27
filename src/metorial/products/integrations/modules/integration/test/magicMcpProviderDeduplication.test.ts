@@ -64,7 +64,7 @@ vi.mock('../src/services/integration', () => ({
 }));
 
 vi.mock('../src/services/integrationInstance', () => ({
-  integrationInstanceProviderInclude: {},
+  integrationInstanceProviderPresentableInclude: {},
   integrationInstanceProviderVersionInclude: {}
 }));
 

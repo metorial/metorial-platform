@@ -541,6 +541,13 @@ export type DashboardInstanceProviderDeploymentsSetupSessionsListQuery = {
     | 'pending'
     | ('archived' | 'failed' | 'completed' | 'expired' | 'pending')[]
     | undefined;
+  type?:
+    | 'auth_only'
+    | 'config_only'
+    | 'auth_and_config'
+    | 'admin'
+    | ('auth_only' | 'config_only' | 'auth_and_config' | 'admin')[]
+    | undefined;
   createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
   updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };

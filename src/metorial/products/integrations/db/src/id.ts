@@ -92,6 +92,7 @@ export let ID = createIdGenerator({
   providerSetupSession: idType.sorted('pas'),
   providerSetupSession_clientSecret: idType.key('pas_secret'),
   providerSetupSessionEvent: idType.sorted('pase'),
+  providerSetupSessionEmail: idType.sorted('pasem'),
 
   providerAuthImport: idType.sorted('paci'),
   providerAuthExport: idType.sorted('pace'),

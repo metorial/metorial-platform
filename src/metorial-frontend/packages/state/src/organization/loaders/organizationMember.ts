@@ -1,17 +1,18 @@
+import { DashboardOrganizationsMembersListQuery } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
 export let organizationMembersLoader = createLoader({
   name: 'organizationMembers',
-  fetch: (i: { organizationId: string; before?: string; after?: string }) =>
-    withAuth(sdk =>
-      sdk.organizations.members.list(i.organizationId, {
-        before: i.before,
-        after: i.after,
-        limit: 100
-      })
-    ),
+  fetch: (i: { organizationId: string } & DashboardOrganizationsMembersListQuery) =>
+    withAuth(sdk => {
+      let { organizationId, ...query } = i;
+      return sdk.organizations.members.list(organizationId, {
+        ...query,
+        limit: query.limit ?? 100
+      });
+    }),
   mutators: {
     update: (
       i: {
@@ -41,6 +42,17 @@ export let useOrganizationMembers = (organizationId: string | null | undefined) 
     updateMutator: member.useMutator('update'),
     deleteMutator: member.useMutator('delete')
   };
+};
+
+export let useOrganizationMemberSearch = (
+  organizationId: string | null | undefined,
+  search?: string
+) => {
+  let data = organizationMembersLoader.use(
+    organizationId ? { organizationId, search: search || undefined, limit: 25 } : null
+  );
+
+  return data;
 };
 
 export let organizationMemberLoader = createLoader({

@@ -1,7 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import type { Prisma as SubspacePrisma } from '@metorial-subspace/db';
-import type { integrationInstanceProviderInclude } from '@metorial-subspace/module-integration';
+import type { integrationInstanceProviderPresentableInclude } from '@metorial-subspace/module-integration';
 import { integrationInstanceProviderType } from '../../../types';
 import { toolFilterPresenter } from '../../_shared/toolFilter';
 import { v1ProviderAuthConfigPreviewPresenter } from '../auth/authConfigPreview';
@@ -24,7 +24,7 @@ let presentToolFilter = (
     : null;
 
 type RawIntegrationInstanceProvider = SubspacePrisma.IntegrationInstanceProviderGetPayload<{
-  include: typeof integrationInstanceProviderInclude;
+  include: typeof integrationInstanceProviderPresentableInclude;
 }>;
 
 let requireCurrentVersion = (provider: RawIntegrationInstanceProvider) => {

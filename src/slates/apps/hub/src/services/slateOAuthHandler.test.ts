@@ -217,6 +217,35 @@ describe('slateOAuthHandlerService.completeOAuthFlow', () => {
     expect(new URL(res.redirectUrl).searchParams.get('slate_auth_status')).toBe('failed');
   });
 
+  it('stores the upstream error code a slate reports in its error baggage', async () => {
+    withSetups(setup({ isAdminSetup: true }));
+    mocks.getAdminOAuthCallback.mockResolvedValue({
+      status: 'error',
+      invocation,
+      error: {
+        code: 'request.bad',
+        message: 'Admin consent could not be verified.',
+        baggage: {
+          serviceError: { code: 'bad_request', status: 400 },
+          serviceErrorData: { upstreamCode: 'AADSTS700016' }
+        }
+      }
+    });
+
+    await callback({ callbackParams: { admin_consent: 'True' } });
+
+    expect(setupUpdates()).toEqual([
+      {
+        status: 'failed',
+        errorCode: 'AADSTS700016',
+        errorMessage: 'Admin consent could not be verified.'
+      }
+    ]);
+    expect(mocks.recordSlateError).toHaveBeenCalledWith(
+      expect.objectContaining({ errorCode: 'AADSTS700016' })
+    );
+  });
+
   it('rejects an admin callback from a browser without the setup cookie and leaves the setup usable', async () => {
     withSetups(setup({ isAdminSetup: true }), setup({ id: 'shios_other', oid: 2n }));
 

@@ -25,7 +25,7 @@ let Content = styled('div')`
   flex-grow: 1;
 `;
 
-let ContentInner = styled('p')`
+let ContentInner = styled('div')`
   flex-grow: 1;
   width: 100%;
 `;
