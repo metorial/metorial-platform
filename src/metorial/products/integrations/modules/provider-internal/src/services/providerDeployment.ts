@@ -138,7 +138,7 @@ class providerDeploymentInternalServiceImpl {
         let defaultVariant =
           d.provider.defaultVariant ??
           (await db.providerVariant.findFirstOrThrow({
-            where: { oid: d.provider.defaultVariantOid }
+            where: { oid: source.defaultVariantOid }
           }));
         if (!defaultVariant.currentVersionOid) {
           return null;

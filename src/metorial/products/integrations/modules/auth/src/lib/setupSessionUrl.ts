@@ -3,7 +3,10 @@ import { env } from '../env';
 
 export let getProviderSetupSessionPath = (
   setupSession: Pick<ProviderSetupSession, 'id' | 'clientSecret'>
-) => `/setup-session/${setupSession.id}?client_secret=${setupSession.clientSecret}`;
+) =>
+  setupSession.clientSecret
+    ? `/setup-session/${setupSession.id}?client_secret=${setupSession.clientSecret}`
+    : `/setup-session/${setupSession.id}`;
 
 export let getProviderSetupSessionUrl = (
   setupSession: Pick<ProviderSetupSession, 'id' | 'clientSecret'>

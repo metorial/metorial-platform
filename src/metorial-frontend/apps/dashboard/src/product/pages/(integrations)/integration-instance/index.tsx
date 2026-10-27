@@ -283,7 +283,6 @@ export let IntegrationInstanceOverviewPage = () => {
             <IntegrationAdminSetupCallouts
               instanceId={instance.data!.id}
               integration={integration.data}
-              instanceProviders={instanceProviders.data.items}
             />
           ) : null}
 

@@ -2,7 +2,9 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { db, getId, type Prisma, type ProviderSetupSession } from '@metorial-subspace/db';
 import {
+  assertCanUseOwnedResource,
   checkTenant,
+  getOwnershipAccessor,
   metorialDb,
   type MetorialFacing,
   resolveMetorialFacing,
@@ -73,6 +75,11 @@ class ProviderSetupSessionEmailServiceImpl {
     let setupSession = d.providerSetupSession;
 
     checkTenant(scope, setupSession);
+    await assertCanUseOwnedResource(
+      await getOwnershipAccessor({ tenant: scope.tenant, organizationActor: d.organizationActor }),
+      setupSession,
+      { resource: 'provider.setup_session' }
+    );
     this.assertSessionCanBeEmailed(setupSession);
 
     let recipients = await this.resolveRecipients(d);

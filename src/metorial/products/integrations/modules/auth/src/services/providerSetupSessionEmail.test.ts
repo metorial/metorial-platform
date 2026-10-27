@@ -13,6 +13,8 @@ let mocks = vi.hoisted(() => ({
   resolveMetorialFacing: vi.fn(),
   resolveMetorialFacingWithOptionalActor: vi.fn(),
   checkTenant: vi.fn(),
+  getOwnershipAccessor: vi.fn(),
+  assertCanUseOwnedResource: vi.fn(),
   fire: vi.fn(),
   send: vi.fn()
 }));
@@ -52,7 +54,9 @@ vi.mock('@metorial-subspace/db', () => ({
 }));
 
 vi.mock('@metorial-subspace/module-tenant', () => ({
+  assertCanUseOwnedResource: mocks.assertCanUseOwnedResource,
   checkTenant: mocks.checkTenant,
+  getOwnershipAccessor: mocks.getOwnershipAccessor,
   metorialDb: {
     organization: { findUniqueOrThrow: mocks.organizationFindUniqueOrThrow },
     organizationMember: { findMany: mocks.memberFindMany }
@@ -160,6 +164,8 @@ describe('createProviderSetupSessionEmails', () => {
       solution: { oid: 7 },
       actor: { oid: 77n }
     });
+    mocks.getOwnershipAccessor.mockResolvedValue({ kind: 'member' });
+    mocks.assertCanUseOwnedResource.mockResolvedValue(undefined);
     mocks.organizationFindUniqueOrThrow.mockResolvedValue({ oid: 5n, name: 'Acme' });
     mocks.emailFindUnique.mockResolvedValue(null);
     mocks.emailFindMany.mockResolvedValue([]);
@@ -172,6 +178,30 @@ describe('createProviderSetupSessionEmails', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it('checks that the caller can use the setup session before emailing its link', async () => {
+    let setupSession = makeSetupSession();
+    await createEmails({ emails: ['admin@example.com'] }, { setupSession });
+
+    expect(mocks.getOwnershipAccessor).toHaveBeenCalledWith({
+      tenant: { oid: 10n },
+      organizationActor: memberActor
+    });
+    expect(mocks.assertCanUseOwnedResource).toHaveBeenCalledWith(
+      { kind: 'member' },
+      setupSession,
+      { resource: 'provider.setup_session' }
+    );
+  });
+
+  it('does not email the link of a setup session the caller cannot use', async () => {
+    let restricted = new Error('ownership restricted');
+    mocks.assertCanUseOwnedResource.mockRejectedValue(restricted);
+
+    await expect(createEmails({ emails: ['admin@example.com'] })).rejects.toBe(restricted);
+    expect(mocks.emailCreate).not.toHaveBeenCalled();
+    expect(mocks.send).not.toHaveBeenCalled();
   });
 
   it('queues the email with the record id as the relay idempotency key', async () => {

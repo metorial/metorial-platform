@@ -599,7 +599,7 @@ export let providerSetupSessionController = Controller.create(
         let results = await providerSetupSessionEmailService.createProviderSetupSessionEmails({
           instance: ctx.instance,
           auditScope: ctx.auditScope,
-          organizationActor: ctx.actor!,
+          organizationActor: getOwnershipActor(ctx),
           providerSetupSession: ctx.setupSession,
           input: {
             emails: ctx.body.emails,

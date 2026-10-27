@@ -1,5 +1,4 @@
 import {
-  IntegrationInstanceProvider,
   IntegrationPreview,
   instanceProviderAuthConfigsLoader,
   useProviderSetupSessions
@@ -33,6 +32,7 @@ let AdminSetupCallout = (p: {
   let adminSetupSessionsQuery = {
     providerId: p.integrationProvider.providerId,
     providerDeploymentId: p.integrationProvider.deploymentId,
+    providerAuthMethodId: p.integrationProvider.authMethodId ?? undefined,
     type: 'admin' as const,
     order: 'desc' as const,
     limit: 1
@@ -98,25 +98,15 @@ let AdminSetupCallout = (p: {
 export let IntegrationAdminSetupCallouts = (p: {
   instanceId: string;
   integration: IntegrationPreview;
-  instanceProviders?: IntegrationInstanceProvider[];
 }) => {
-  let adminSetupProviders = useMemo(() => {
-    let configuredIntegrationProviderIds = new Set(
-      p.instanceProviders
-        ?.filter(
-          instanceProvider =>
-            instanceProvider.status === 'active' && instanceProvider.authConfig
-        )
-        .map(instanceProvider => instanceProvider.integrationProvider.id)
-    );
-
-    return p.integration.providers.filter(
-      integrationProvider =>
-        integrationProvider.status === 'active' &&
-        requiresAdminSetup(integrationProvider) &&
-        !configuredIntegrationProviderIds.has(integrationProvider.id)
-    );
-  }, [p.integration.providers, p.instanceProviders]);
+  let adminSetupProviders = useMemo(
+    () =>
+      p.integration.providers.filter(
+        integrationProvider =>
+          integrationProvider.status === 'active' && requiresAdminSetup(integrationProvider)
+      ),
+    [p.integration.providers]
+  );
 
   let { listings, lookup } = useIntegrationProviderListingLookup(
     adminSetupProviders.length > 0 ? p.instanceId : null,

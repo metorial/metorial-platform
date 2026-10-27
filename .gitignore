@@ -193,3 +193,6 @@ bin
 env.json
 .control/
 HOST.md
+
+# Cargo build output
+src/control/target/
