@@ -60,9 +60,15 @@ export type DashboardInstanceSecurityReviewsRevisionsGetOutput = {
         | 'impersonation_suspected';
       body: string;
       evidence: (
-        | { type: 'file'; path: string; lines: number[] | null }
+        | {
+            type: 'file';
+            path: string;
+            lines: number[] | null;
+            excerpt: string | null;
+          }
         | { type: 'url'; url: string }
         | { type: 'tool'; toolKey: string }
+        | { type: 'note'; label: string; detail: string | null }
       )[];
     } | null;
     capabilities: {
@@ -96,18 +102,30 @@ export type DashboardInstanceSecurityReviewsRevisionsGetOutput = {
         title: string;
         body: string;
         evidence: (
-          | { type: 'file'; path: string; lines: number[] | null }
+          | {
+              type: 'file';
+              path: string;
+              lines: number[] | null;
+              excerpt: string | null;
+            }
           | { type: 'url'; url: string }
           | { type: 'tool'; toolKey: string }
+          | { type: 'note'; label: string; detail: string | null }
         )[];
       }[];
       weaknesses: {
         title: string;
         body: string;
         evidence: (
-          | { type: 'file'; path: string; lines: number[] | null }
+          | {
+              type: 'file';
+              path: string;
+              lines: number[] | null;
+              excerpt: string | null;
+            }
           | { type: 'url'; url: string }
           | { type: 'tool'; toolKey: string }
+          | { type: 'note'; label: string; detail: string | null }
         )[];
       }[];
     } | null;
@@ -130,9 +148,15 @@ export type DashboardInstanceSecurityReviewsRevisionsGetOutput = {
     recommendation: string | null;
     toolKeys: string[];
     evidence: (
-      | { type: 'file'; path: string; lines: number[] | null }
+      | {
+          type: 'file';
+          path: string;
+          lines: number[] | null;
+          excerpt: string | null;
+        }
       | { type: 'url'; url: string }
       | { type: 'tool'; toolKey: string }
+      | { type: 'note'; label: string; detail: string | null }
     )[];
   }[];
   startedAt: Date | null;
