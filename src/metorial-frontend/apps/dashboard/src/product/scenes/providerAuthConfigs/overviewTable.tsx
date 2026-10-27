@@ -141,6 +141,7 @@ let providerAuthConfigsTableState: TableStateProvider<
   }
 ) => {
   let authConfigs = useProviderAuthConfigs(props.instanceId, {
+    ownership: 'all',
     order: 'desc',
     ...props.filters,
     ...getProviderAuthConfigFilterQuery(opts.filter, props.filters),

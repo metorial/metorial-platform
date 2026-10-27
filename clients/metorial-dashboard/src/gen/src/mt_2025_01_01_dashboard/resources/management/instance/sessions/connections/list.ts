@@ -107,6 +107,7 @@ export type ManagementInstanceSessionsConnectionsListQuery = {
   id?: string | string[] | undefined;
   agentId?: string | string[] | undefined;
   actorId?: string | string[] | undefined;
+  consumerProfileId?: string | string[] | undefined;
   consumerId?: string | string[] | undefined;
   identityId?: string | string[] | undefined;
   agentInstanceId?: string | string[] | undefined;
@@ -129,6 +130,7 @@ export let mapManagementInstanceSessionsConnectionsListQuery =
             'connection_state',
             'agent_id',
             'actor_id',
+            'consumer_profile_id',
             'consumer_id',
             'identity_id',
             'agent_instance_id',

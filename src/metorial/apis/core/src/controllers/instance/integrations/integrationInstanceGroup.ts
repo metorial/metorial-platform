@@ -1,3 +1,4 @@
+import { hydrateResourceOwners } from '@metorial/module-resource-actor';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
@@ -13,6 +14,7 @@ import {
   sessionTemplatePresenter
 } from '@metorial/presenters';
 import { normalizeToolFilters, toolFiltersValidator } from '../sessions/_shared';
+import { getOwnershipActor } from '../../../lib/ownershipActor';
 
 let integrationInstanceGroupProviderInputValidator = v.object({
   integration_instance_provider_id: v.string(),
@@ -32,6 +34,7 @@ let integrationInstanceGroupGroup = instanceGroup.use(async ctx => {
   let integrationInstanceGroup =
     await integrationInstanceGroupService.getIntegrationInstanceGroupById({
       instance: ctx.instance,
+      organizationActor: getOwnershipActor(ctx),
       integrationInstanceGroupId: ctx.params.integrationInstanceGroupId,
       allowDeleted: true
     });
@@ -57,6 +60,10 @@ export let integrationInstanceGroupController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
+            ownership: v.optional(v.enumOf(['shared', 'usable', 'all']), {
+              description:
+                'Which resources to return under the resource ownership rules: shared (not owned by someone else), usable (shared plus ones the caller may use) or all (everything the caller may see). Defaults to shared when ownership is enforced and all otherwise.'
+            }),
             status: v.optional(
               v.union([
                 v.enumOf(['draft', 'active', 'archived', 'deleted']),
@@ -83,6 +90,8 @@ export let integrationInstanceGroupController = Controller.create(
       .do(async ctx => {
         let paginator = await integrationInstanceGroupService.listIntegrationInstanceGroups({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
+          ownership: ctx.query.ownership,
           allowDeleted: false,
           status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
@@ -103,7 +112,7 @@ export let integrationInstanceGroupController = Controller.create(
 
         let list = await paginator.run(ctx.query);
 
-        return Paginator.present(list, integrationInstanceGroup =>
+        return Paginator.present(await hydrateResourceOwners(list), integrationInstanceGroup =>
           integrationInstanceGroupPresenter.present({ integrationInstanceGroup })
         );
       }),
@@ -122,9 +131,11 @@ export let integrationInstanceGroupController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .output(integrationInstanceGroupPresenter)
       .do(async ctx =>
-        integrationInstanceGroupPresenter.present({
-          integrationInstanceGroup: ctx.integrationInstanceGroup
-        })
+        integrationInstanceGroupPresenter.present(
+          await hydrateResourceOwners({
+            integrationInstanceGroup: ctx.integrationInstanceGroup
+          })
+        )
       ),
 
     createSessionTemplate: integrationInstanceGroupGroup
@@ -163,7 +174,9 @@ export let integrationInstanceGroupController = Controller.create(
             }
           );
 
-        return sessionTemplatePresenter.present({ sessionTemplate });
+        return sessionTemplatePresenter.present(
+          await hydrateResourceOwners({ sessionTemplate })
+        );
       }),
 
     createSession: integrationInstanceGroupGroup
@@ -193,6 +206,7 @@ export let integrationInstanceGroupController = Controller.create(
           await integrationInstanceGroupService.createSessionForIntegrationInstanceGroup({
             instance: ctx.instance,
             auditScope: ctx.auditScope,
+            organizationActor: getOwnershipActor(ctx),
             integrationInstanceGroup: ctx.integrationInstanceGroup,
             input: {
               name: ctx.body.name ?? `Session ${new Date().toISOString()}`,
@@ -201,7 +215,7 @@ export let integrationInstanceGroupController = Controller.create(
             }
           });
 
-        return providerSessionPresenter.present({ session });
+        return providerSessionPresenter.present(await hydrateResourceOwners({ session }));
       }),
 
     create: instanceGroup
@@ -242,7 +256,9 @@ export let integrationInstanceGroupController = Controller.create(
             }
           });
 
-        return integrationInstanceGroupPresenter.present({ integrationInstanceGroup });
+        return integrationInstanceGroupPresenter.present(
+          await hydrateResourceOwners({ integrationInstanceGroup })
+        );
       }),
 
     update: integrationInstanceGroupGroup
@@ -258,12 +274,26 @@ export let integrationInstanceGroupController = Controller.create(
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
-        'default',
+        'mt_2026_01_01_magnetar',
         v.object({
           name: v.optional(v.string()),
           description: v.optional(v.nullable(v.string())),
           metadata: v.optional(v.nullable(v.record(v.any()))),
           providers: v.optional(v.array(integrationInstanceGroupProviderInputValidator))
+        }),
+        v => v
+      )
+      .body(
+        'default',
+        v.object({
+          name: v.optional(v.string()),
+          description: v.optional(v.nullable(v.string())),
+          metadata: v.optional(v.nullable(v.record(v.any()))),
+          providers: v.optional(v.array(integrationInstanceGroupProviderInputValidator)),
+          source: v.optional(v.enumOf(['explorer']), {
+            description:
+              'Mark this resource as originating from the dashboard explorer and enable its owner lock and owner-only visibility.'
+          })
         })
       )
       .output(integrationInstanceGroupPresenter)
@@ -271,12 +301,16 @@ export let integrationInstanceGroupController = Controller.create(
         let integrationInstanceGroup =
           await integrationInstanceGroupService.updateIntegrationInstanceGroup({
             instance: ctx.instance,
+            organizationActor: getOwnershipActor(ctx),
             auditScope: ctx.auditScope,
             integrationInstanceGroup: ctx.integrationInstanceGroup,
             input: {
               name: ctx.body.name,
               description: ctx.body.description,
               metadata: ctx.body.metadata,
+              source: ctx.body.source,
+              isOwnerLocked: ctx.body.source === 'explorer' ? true : undefined,
+              isOwnerOnlyVisible: ctx.body.source === 'explorer' ? true : undefined,
               providers: ctx.body.providers?.map(provider => ({
                 integrationInstanceProviderId: provider.integration_instance_provider_id,
                 toolFilters:
@@ -287,7 +321,9 @@ export let integrationInstanceGroupController = Controller.create(
             }
           });
 
-        return integrationInstanceGroupPresenter.present({ integrationInstanceGroup });
+        return integrationInstanceGroupPresenter.present(
+          await hydrateResourceOwners({ integrationInstanceGroup })
+        );
       }),
 
     delete: integrationInstanceGroupGroup
@@ -311,7 +347,9 @@ export let integrationInstanceGroupController = Controller.create(
             integrationInstanceGroup: ctx.integrationInstanceGroup
           });
 
-        return integrationInstanceGroupPresenter.present({ integrationInstanceGroup });
+        return integrationInstanceGroupPresenter.present(
+          await hydrateResourceOwners({ integrationInstanceGroup })
+        );
       })
   }
 );

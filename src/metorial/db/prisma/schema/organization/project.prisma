@@ -71,6 +71,9 @@ model Project {
   aiAnalysisEnabled      Boolean @default(false)
   skillReviewHoldPending Boolean @default(false)
 
+  allowApiAccessToConsumerOwnedResources    Boolean @default(true)
+  allowMemberAccessToConsumerOwnedResources Boolean @default(true)
+
   createdAt DateTime  @default(now())
   deletedAt DateTime?
   updatedAt DateTime  @default(now()) @updatedAt

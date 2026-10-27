@@ -50,6 +50,8 @@ export let useUsageLogsLink = (target: UsageLogsTarget, filter?: UsageFilter) =>
       };
       if (status) query.status = status;
       if (filter?.consumerId) query.consumerId = [filter.consumerId].flat().join(',');
+      if (filter?.consumerProfileId)
+        query.consumerProfileId = [filter.consumerProfileId].flat().join(',');
       let providerKey = providerParams[target];
       if (filter?.providerId && providerKey) {
         query[providerKey] = [filter.providerId].flat().join(',');

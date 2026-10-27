@@ -12,6 +12,7 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { integrationInstanceProviderPresenter } from '@metorial/presenters';
 import { normalizeToolFilters, toolFiltersValidator } from '../sessions/_shared';
+import { getOwnershipActor } from '../../../lib/ownershipActor';
 
 let integrationInstanceProviderGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.integrationInstanceProviderId) {
@@ -181,6 +182,7 @@ export let integrationInstanceProviderController = Controller.create(
           await integrationInstanceProviderService.setIntegrationInstanceProvider({
             instance: ctx.instance,
             auditScope: ctx.auditScope,
+            organizationActor: getOwnershipActor(ctx),
             integrationInstance: ctx.integrationInstance,
             input: {
               providerId: ctx.params.providerId,

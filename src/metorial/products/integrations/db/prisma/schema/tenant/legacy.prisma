@@ -54,6 +54,9 @@ model Tenant {
   reducedSubprocessors Boolean @default(false)
   aiAnalysisEnabled    Boolean @default(false)
 
+  allowApiAccessToConsumerOwnedResources    Boolean @default(true)
+  allowMemberAccessToConsumerOwnedResources Boolean @default(true)
+
   retiredAt DateTime?
 
   providers                                  Provider[]

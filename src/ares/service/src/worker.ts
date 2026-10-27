@@ -1,3 +1,4 @@
+import { twoFactorCleanupProcessor } from './cron/twoFactorCleanup';
 import { runQueueProcessors } from '@lowerdeck/queue';
 import { cleanupCron } from './cron/cleanup';
 import { relayEmailQueueProcessor } from './email/client';
@@ -10,6 +11,7 @@ import { syncCallbackQueueProcessor } from './queues/syncCallback';
 import { syncImportedDelegationsProcessor } from './queues/syncImportedDelegations';
 
 await runQueueProcessors([
+  twoFactorCleanupProcessor,
   cleanupCron,
   relayEmailQueueProcessor,
   disableSsoDirectoryUsersProcessor,

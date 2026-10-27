@@ -55,6 +55,22 @@ let Inner = styled.div`
   min-width: 0;
 `;
 
+let SetupProgress = styled.div`
+  display: flex;
+  gap: 5px;
+  margin-bottom: 26px;
+
+  span {
+    flex: 1;
+    height: 3px;
+    border-radius: 2px;
+    background: ${theme.colors.gray300};
+  }
+  span[data-active='true'] {
+    background: ${theme.colors.gray900};
+  }
+`;
+
 let Footer = styled.footer`
   margin-top: 32px;
 
@@ -79,9 +95,11 @@ let Footer = styled.footer`
 
 export let AuthLayout = ({
   children,
-  main
+  main,
+  progress
 }: {
   children?: React.ReactNode;
+  progress?: number;
   main?: {
     title: React.ReactNode;
     description?: React.ReactNode;
@@ -99,6 +117,13 @@ export let AuthLayout = ({
       <Box>
         <Content>
           <Inner>
+            {progress && (
+              <SetupProgress aria-label={`Step ${progress} of 3`}>
+                {[1, 2, 3].map(step => (
+                  <span key={step} data-active={step <= progress} />
+                ))}
+              </SetupProgress>
+            )}
             {main && (
               <>
                 <Title as="h1" weight="bold" size="5">

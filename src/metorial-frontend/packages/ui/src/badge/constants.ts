@@ -1,4 +1,4 @@
-import { theme } from '..';
+import { theme } from '../theme';
 import { ColorType, getColorKey } from '../theme/colors';
 
 let sizes = {
@@ -44,11 +44,12 @@ export let getBadgeStyles = ({ color, size = '2' }: BadgeStyleProps) => {
   };
 };
 
-let iconSizes: Record<BadgeSize, { height: number; fontSize: number; paddingRight: number }> = {
-  '1': { height: 20, fontSize: 10, paddingRight: 6 },
-  '2': { height: 28, fontSize: 14, paddingRight: 10 },
-  '3': { height: 40, fontSize: 18, paddingRight: 16 }
-};
+let iconSizes: Record<BadgeSize, { height: number; fontSize: number; paddingRight: number }> =
+  {
+    '1': { height: 20, fontSize: 10, paddingRight: 6 },
+    '2': { height: 28, fontSize: 14, paddingRight: 10 },
+    '3': { height: 40, fontSize: 18, paddingRight: 16 }
+  };
 
 export let getIconBadgeStyles = ({ color, size = '2' }: BadgeStyleProps) => {
   let { height, fontSize, paddingRight } = iconSizes[size];

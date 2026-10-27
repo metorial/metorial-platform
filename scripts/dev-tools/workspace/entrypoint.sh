@@ -10,13 +10,13 @@ enter_workspace() {
   git config --global --add safe.directory "${workspace}/oss" >/dev/null 2>&1 || true
 }
 
-control_manifest() {
-  if [[ -f "${workspace}/oss/src/control/Cargo.toml" ]]; then
-    printf '%s\n' "${workspace}/oss/src/control/Cargo.toml"
-  elif [[ -f "${workspace}/src/control/Cargo.toml" ]]; then
-    printf '%s\n' "${workspace}/src/control/Cargo.toml"
+control_entrypoint() {
+  if [[ -f "${workspace}/oss/src/control/src/main.ts" ]]; then
+    printf '%s\n' "${workspace}/oss/src/control/src/main.ts"
+  elif [[ -f "${workspace}/src/control/src/main.ts" ]]; then
+    printf '%s\n' "${workspace}/src/control/src/main.ts"
   else
-    echo "Could not find the Control Cargo.toml in ${workspace}" >&2
+    echo "Could not find the Control TypeScript entrypoint in ${workspace}" >&2
     return 1
   fi
 }
@@ -32,15 +32,17 @@ setup_workspace() {
   enter_workspace
   echo "Installing container dependencies. This will take a few minutes..."
   bun install
-  local manifest
-  manifest="$(control_manifest)"
-  echo "Building Control"
-  cargo build --manifest-path "${manifest}"
+  local entrypoint
+  entrypoint="$(control_entrypoint)"
   echo "Running Control prepare (prisma generate, prisma push, build, package prepare)"
-  cargo run --quiet --manifest-path "${manifest}" -- prepare --no-docker
+  bun "${entrypoint}" prepare --no-docker
   printf '%s\n' "${version}" >"${marker}"
   echo "Workspace setup complete"
 }
+
+if [[ "${0##*/}" == "control" ]]; then
+  exec bun "$(control_entrypoint)" "$@"
+fi
 
 if [[ "${1:-}" == "setup" ]]; then
   shift

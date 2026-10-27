@@ -16,7 +16,8 @@ import {
   checkTenant,
   getMetorialSolution,
   type MetorialFacing,
-  resolveMetorialFacing
+  resolveMetorialFacing,
+  findOwnerActorOid
 } from '@metorial-subspace/module-tenant';
 import { syncMagicMcpEndpointBacking } from '../../queues/lifecycle/magicMcpBackingSync';
 import { integrationInstanceGroupService } from '../integrationInstanceGroup';
@@ -76,6 +77,11 @@ class magicMcpEndpointBackingServiceImpl {
       identityActorId: d.input.identityActorId,
       identityId: d.input.identityId
     });
+    let ownerActorOid = await findOwnerActorOid({
+      tenant: d.tenant,
+      environment: d.environment,
+      ownerActorId: d.input.ownerActorId
+    });
 
     let syncTarget = await withMagicMcpBackingLock(
       [`endpoint:${d.input.id}`],
@@ -120,6 +126,16 @@ class magicMcpEndpointBackingServiceImpl {
             }
           });
 
+          let owner = {
+            ownerActorOid,
+            isOwnerLocked:
+              !!d.input.isOwnerLocked ||
+              serverBackings.some(serverBacking => serverBacking.isOwnerLocked),
+            isOwnerOnlyVisible:
+              !!d.input.isOwnerOnlyVisible ||
+              serverBackings.some(serverBacking => serverBacking.isOwnerOnlyVisible)
+          };
+
           let group =
             await integrationInstanceGroupService.upsertMagicMcpIntegrationInstanceGroupInternal(
               {
@@ -135,7 +151,8 @@ class magicMcpEndpointBackingServiceImpl {
                   identityId: d.input.identityId,
                   identitySourceIntegrationInstances: serverBackings.map(
                     backing => backing.integrationInstance
-                  )
+                  ),
+                  owner
                 }
               }
             );
@@ -150,7 +167,8 @@ class magicMcpEndpointBackingServiceImpl {
                 description: d.input.description,
                 metadata: d.input.metadata,
                 privateMetadata: d.input.privateMetadata,
-                integrationInstanceGroup: group
+                integrationInstanceGroup: group,
+                owner
               }
             });
 
@@ -164,6 +182,7 @@ class magicMcpEndpointBackingServiceImpl {
                 input: {
                   maxSessionDurationInMinutes: d.input.maxSessionDurationInMinutes,
                   actorOid,
+                  owner,
                   isReconciling: false
                 }
               }
@@ -177,13 +196,19 @@ class magicMcpEndpointBackingServiceImpl {
               integrationGroupOid: group.oid,
               sessionTemplateOid: sessionTemplate.oid,
               ephemeralManagedSessionOid: ephemeralManagedSession.oid,
-              actorOid
+              actorOid,
+              ownerActorOid: owner.ownerActorOid,
+              isOwnerLocked: owner.isOwnerLocked,
+              isOwnerOnlyVisible: owner.isOwnerOnlyVisible
             },
             update: {
               integrationGroupOid: group.oid,
               sessionTemplateOid: sessionTemplate.oid,
               ephemeralManagedSessionOid: ephemeralManagedSession.oid,
-              actorOid
+              actorOid,
+              ownerActorOid: owner.ownerActorOid,
+              isOwnerLocked: owner.isOwnerLocked,
+              isOwnerOnlyVisible: owner.isOwnerOnlyVisible
             }
           });
 
@@ -277,6 +302,56 @@ class magicMcpEndpointBackingServiceImpl {
     }
 
     return backing;
+  }
+
+  async setMagicMcpEndpointBackingOwnerLock(
+    d: MetorialFacing<GetMagicMcpEndpointBackingByIdParams & { isOwnerLocked: boolean }>
+  ) {
+    let backing = await this.getMagicMcpEndpointBackingById(d);
+
+    await withTransaction(async db => {
+      await db.magicMcpEndpointBacking.update({
+        where: { oid: backing.oid },
+        data: { isOwnerLocked: d.isOwnerLocked }
+      });
+      await db.integrationInstanceGroup.update({
+        where: { oid: backing.integrationGroupOid },
+        data: { isOwnerLocked: d.isOwnerLocked }
+      });
+      await db.sessionTemplate.update({
+        where: { oid: backing.sessionTemplateOid },
+        data: { isOwnerLocked: d.isOwnerLocked }
+      });
+      await db.ephemeralManagedSession.update({
+        where: { oid: backing.ephemeralManagedSessionOid },
+        data: { isOwnerLocked: d.isOwnerLocked }
+      });
+    });
+  }
+
+  async setMagicMcpEndpointBackingOwnerOnlyVisibility(
+    d: MetorialFacing<GetMagicMcpEndpointBackingByIdParams & { isOwnerOnlyVisible: boolean }>
+  ) {
+    let backing = await this.getMagicMcpEndpointBackingById(d);
+
+    await withTransaction(async db => {
+      await db.magicMcpEndpointBacking.update({
+        where: { oid: backing.oid },
+        data: { isOwnerOnlyVisible: d.isOwnerOnlyVisible }
+      });
+      await db.integrationInstanceGroup.update({
+        where: { oid: backing.integrationGroupOid },
+        data: { isOwnerOnlyVisible: d.isOwnerOnlyVisible }
+      });
+      await db.sessionTemplate.update({
+        where: { oid: backing.sessionTemplateOid },
+        data: { isOwnerOnlyVisible: d.isOwnerOnlyVisible }
+      });
+      await db.ephemeralManagedSession.update({
+        where: { oid: backing.ephemeralManagedSessionOid },
+        data: { isOwnerOnlyVisible: d.isOwnerOnlyVisible }
+      });
+    });
   }
 
   async getMagicMcpEndpointBackingStatus(

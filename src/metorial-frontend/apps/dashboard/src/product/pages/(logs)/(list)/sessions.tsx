@@ -8,12 +8,10 @@ import {
 import { ProviderSessionsTable } from '../../../scenes/providerSessions/table';
 
 let usageFilterSpec: LogsUsageFilterSpec = {
-  dimensions: {
-    providerId: 'providerId',
-    consumerId: 'consumerId',
-    deploymentId: 'providerDeploymentId'
-  },
+  dimensions: { consumerId: 'consumerId' },
   unsupported: [
+    { param: 'providerId', label: 'provider' },
+    { param: 'providerDeploymentId', label: 'deployment' },
     { param: 'status', label: 'status' },
     { param: 'agentId', label: 'agent' },
     { param: 'actorId', label: 'actor' },

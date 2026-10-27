@@ -21,6 +21,24 @@ let Description = styled('p')`
   }
 `;
 
+let Inner = styled('span')`
+  color: ${theme.colors.gray700};
+  text-decoration: none;
+  border-bottom: 1px dashed ${theme.colors.gray400};
+  transition: all 0.2s ease-in-out;
+  font-weight: 500;
+
+  strong {
+    font-weight: 700;
+  }
+
+  &:hover,
+  &:focus {
+    color: ${theme.colors.foreground};
+    border-bottom: 1px dashed ${theme.colors.foreground};
+  }
+`;
+
 let normalizeDate = (date: string | Date | undefined) => {
   if (!date) return null;
   return typeof date == 'string' ? new Date(date) : date;
@@ -112,10 +130,9 @@ export let RenderDate = ({
         style={{ display: 'inline-block', width: 'fit-content', height: 'fit-content' }}
         onMouseEnter={doRetrigger}
       >
-        <span
+        <Inner
           style={{
             cursor: 'pointer',
-            borderBottom: `1px dashed ${theme.colors.gray500}`,
             margin: 0,
             padding: 0,
             whiteSpace: 'nowrap',
@@ -123,7 +140,7 @@ export let RenderDate = ({
           }}
         >
           {result.pretty}
-        </span>
+        </Inner>
       </span>
     </Tooltip>
   );

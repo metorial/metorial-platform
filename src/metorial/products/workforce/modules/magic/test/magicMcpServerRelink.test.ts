@@ -53,6 +53,14 @@ vi.mock('@metorial-subspace/module-provider-internal', () => ({
 }));
 vi.mock('@metorial-subspace/module-session', () => ({ sessionTemplateService: {} }));
 vi.mock('@metorial-subspace/module-tenant', () => ({
+  assertCanAttachSubspaceResourcesToCoreParent: vi.fn(),
+  assertCanChangeCoreOwnerLock: vi.fn(),
+  assertCanChangeCoreOwnerOnlyVisibility: vi.fn(),
+  assertCanSeeCoreOwnedResource: vi.fn(),
+  assertCanUseSubspaceResources: vi.fn(),
+  getOwnershipAccessor: vi.fn(),
+  internalOwnershipAccessor: { kind: 'internal' },
+  ownedCoreResourceWhere: vi.fn(() => ({ AND: [] })),
   subspaceScopeService: {
     ensureForInstance: vi.fn(async () => ({ tenant: { oid: 1n }, environment: { oid: 2n } }))
   }

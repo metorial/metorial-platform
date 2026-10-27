@@ -34,3 +34,16 @@ package = "@metorial/forge"
 name = "forge"
 engine = "postgres"
 env = "DATABASE_URL"
+
+[[ci.images]]
+name = "forge"
+group = "oss"
+dockerfile = "Dockerfile"
+image = "metorial/mte-forge"
+ecr = "metorial-enterprise-saas/mte-forge"
+canonical = "ghcr.io/metorial/forge"
+
+[ci.suite]
+name = "forge"
+runner = "compose"
+profiles = ["infra", "service"]

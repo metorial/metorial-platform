@@ -29,3 +29,16 @@ package = "@metorial/relay"
 name = "relay"
 engine = "postgres"
 env = "DATABASE_URL"
+
+[[ci.images]]
+name = "relay"
+group = "oss"
+dockerfile = "Dockerfile"
+image = "metorial/mte-relay"
+ecr = "metorial-enterprise-saas/mte-relay"
+canonical = "ghcr.io/metorial/relay"
+
+[ci.suite]
+name = "relay"
+runner = "compose"
+profiles = ["infra", "service"]

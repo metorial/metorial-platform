@@ -1,6 +1,12 @@
-import { accessTagService, type AnyAccessTagSelector, type Scope } from '@metorial/module-access';
+import {
+  accessTagService,
+  type AnyAccessTagSelector,
+  type Scope
+} from '@metorial/module-access';
 
-export type AccessTagFilter = Awaited<ReturnType<(typeof accessTagService)['getAccessTagFilter']>>;
+export type AccessTagFilter = Awaited<
+  ReturnType<(typeof accessTagService)['getAccessTagFilter']>
+>;
 
 export let getAccessTagFilter = async (d: {
   accessTags?: AnyAccessTagSelector;

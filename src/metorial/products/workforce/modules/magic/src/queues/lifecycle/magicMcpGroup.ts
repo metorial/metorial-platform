@@ -10,24 +10,30 @@ export let magicMcpGroupCreatedQueue = createQueue<{ magicMcpGroupId: string }>(
   workerOpts: { concurrency: 10 }
 });
 
-export let magicMcpGroupCreatedQueueProcessor = magicMcpGroupCreatedQueue.process(async data => {
-  await queueMagicMcpGroupIndex(data.magicMcpGroupId);
-});
+export let magicMcpGroupCreatedQueueProcessor = magicMcpGroupCreatedQueue.process(
+  async data => {
+    await queueMagicMcpGroupIndex(data.magicMcpGroupId);
+  }
+);
 
 export let magicMcpGroupUpdatedQueue = createQueue<{ magicMcpGroupId: string }>({
   name: 'mgc/lc/group/updated',
   workerOpts: { concurrency: 10 }
 });
 
-export let magicMcpGroupUpdatedQueueProcessor = magicMcpGroupUpdatedQueue.process(async data => {
-  await queueMagicMcpGroupIndex(data.magicMcpGroupId);
-});
+export let magicMcpGroupUpdatedQueueProcessor = magicMcpGroupUpdatedQueue.process(
+  async data => {
+    await queueMagicMcpGroupIndex(data.magicMcpGroupId);
+  }
+);
 
 export let magicMcpGroupDeletedQueue = createQueue<{ magicMcpGroupId: string }>({
   name: 'mgc/lc/group/deleted',
   workerOpts: { concurrency: 10 }
 });
 
-export let magicMcpGroupDeletedQueueProcessor = magicMcpGroupDeletedQueue.process(async data => {
-  await queueMagicMcpGroupIndex(data.magicMcpGroupId);
-});
+export let magicMcpGroupDeletedQueueProcessor = magicMcpGroupDeletedQueue.process(
+  async data => {
+    await queueMagicMcpGroupIndex(data.magicMcpGroupId);
+  }
+);

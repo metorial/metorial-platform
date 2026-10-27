@@ -2,6 +2,7 @@ export * from './ai-analysis';
 export * from './auth-config';
 export * from './data-retention';
 export * from './integration-naming';
+export * from './resource-ownership';
 export * from './retention';
 export * from './sessionless-mcp';
 export * from './skill-sync';

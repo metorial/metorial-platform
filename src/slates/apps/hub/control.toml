@@ -81,3 +81,16 @@ package = "@metorial/slates"
 name = "slates-hub"
 engine = "postgres"
 env = "DATABASE_URL"
+
+[[ci.images]]
+name = "slates-hub"
+group = "oss"
+dockerfile = "Dockerfile"
+image = "metorial/mte-slates-hub"
+ecr = "metorial-enterprise-saas/mte-slates-hub"
+canonical = "ghcr.io/metorial/slates-hub"
+
+[ci.suite]
+name = "slates-hub"
+runner = "compose"
+profiles = ["hub", "infra"]

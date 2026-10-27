@@ -212,6 +212,29 @@ export let recordProjectAiAnalysisUpdated = async (
   });
 };
 
+export let recordProjectResourceOwnershipUpdated = async (
+  event: FabricEvents['organization.project.resource_ownership_configuration.updated:after']
+) => {
+  await recordAuditEventAfterCommit(async recordedAt => {
+    await auditTrackerService.recordEvent(
+      event.auditScope,
+      'project_resource_ownership_configuration',
+      'update',
+      {
+        payload: {
+          project: event.project,
+          ...event.configuration
+        },
+        previousPayload: {
+          project: event.project,
+          ...event.previousConfiguration
+        },
+        recordedAt
+      }
+    );
+  });
+};
+
 export let recordProjectBrandUpdated = async (
   event: FabricEvents['organization.project.brand.updated:after']
 ) => {
@@ -293,5 +316,9 @@ Fabric.listen(
 Fabric.listen(
   'organization.project.ai_analysis_configuration.updated:after',
   recordProjectAiAnalysisUpdated
+);
+Fabric.listen(
+  'organization.project.resource_ownership_configuration.updated:after',
+  recordProjectResourceOwnershipUpdated
 );
 Fabric.listen('organization.project.brand.updated:after', recordProjectBrandUpdated);

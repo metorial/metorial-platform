@@ -12,6 +12,7 @@ import { Attributes, Spacer, Text, theme } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { Link, useParams } from 'react-router-dom';
 import { styled } from 'styled-components';
+import { ResourceOwnerEntity } from '../../../components/resourceOwnerEntity';
 import { ProviderAuthEventsTable } from '../../../scenes/providerAuthEvents/table';
 import { ProviderSessionsTable } from '../../../scenes/providerSessions/table';
 
@@ -43,6 +44,13 @@ export let ProviderAuthConfigOverviewPage = () => {
 
     return (
       <DetailsOverviewLayout>
+        {authConfig.data.access.owner && (
+          <>
+            <ResourceOwnerEntity resource={authConfig.data} />
+            <Spacer height={15} />
+          </>
+        )}
+
         <Attributes
           itemWidth="300px"
           attributes={[

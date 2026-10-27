@@ -181,6 +181,62 @@ describe('createProviderSetupSessionInternal double writes', () => {
   });
 });
 
+describe('createProviderSetupSessionInternal ownership flags', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.providerSetupSessionCreate.mockResolvedValue({ oid: 100n, id: 'pss_1' });
+    mocks.providerSetupSessionFindUniqueOrThrow.mockResolvedValue({ oid: 100n, id: 'pss_1' });
+  });
+
+  it('defaults to a public, non-system session', async () => {
+    await providerSetupSessionService.createProviderSetupSessionInternal(makeParams() as any);
+
+    expect(mocks.providerSetupSessionCreate.mock.calls[0]![0].data).toMatchObject({
+      isOwnerOnlyVisible: false,
+      isSystemOwned: false
+    });
+  });
+
+  it('inherits owner-only visibility from the provider config when owned', async () => {
+    await providerSetupSessionService.createProviderSetupSessionInternal({
+      ...makeParams(),
+      ownerActorOid: 70n,
+      providerConfig: { oid: 80n, tenantOid: 10n, status: 'active', isOwnerOnlyVisible: true }
+    } as any);
+
+    expect(mocks.providerSetupSessionCreate.mock.calls[0]![0].data).toMatchObject({
+      ownerActorOid: 70n,
+      isOwnerOnlyVisible: true
+    });
+  });
+
+  it('never marks an unowned session as owner-only visible', async () => {
+    await providerSetupSessionService.createProviderSetupSessionInternal({
+      ...makeParams(),
+      isOwnerOnlyVisible: true
+    } as any);
+
+    expect(mocks.providerSetupSessionCreate.mock.calls[0]![0].data).toMatchObject({
+      ownerActorOid: null,
+      isOwnerOnlyVisible: false
+    });
+  });
+
+  it('drops the owner of system owned sessions', async () => {
+    await providerSetupSessionService.createProviderSetupSessionInternal({
+      ...makeParams(),
+      ownerActorOid: 70n,
+      isSystemOwned: true
+    } as any);
+
+    expect(mocks.providerSetupSessionCreate.mock.calls[0]![0].data).toMatchObject({
+      ownerActorOid: null,
+      isOwnerOnlyVisible: false,
+      isSystemOwned: true
+    });
+  });
+});
+
 describe('createProviderSetupSessionInternal admin sessions', () => {
   beforeEach(() => {
     vi.clearAllMocks();

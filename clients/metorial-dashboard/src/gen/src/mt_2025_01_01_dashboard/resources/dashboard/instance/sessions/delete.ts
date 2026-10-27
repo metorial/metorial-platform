@@ -71,6 +71,20 @@ export type DashboardInstanceSessionsDeleteOutput = {
   hasErrors: boolean;
   hasWarnings: boolean;
   identityActorId: string | null;
+  access: {
+    source: 'explorer' | null;
+    type: 'public' | 'owner_locked';
+    visibility: 'anyone' | 'owner';
+    owner: {
+      type: 'person' | 'agent' | 'consumer' | 'organization_member';
+      name: string | null;
+      imageUrl: string | null;
+      email: string | null;
+      organizationMember?: { id: string } | undefined;
+      consumer?:
+        { id: string; profileId: string; portalId: string | null } | undefined;
+    } | null;
+  };
   identityId: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -138,6 +152,27 @@ export let mapDashboardInstanceSessionsDeleteOutput =
       'has_errors',
       'has_warnings',
       'identity_actor_id',
+      [
+        'access',
+        0,
+        [
+          1,
+          [
+            [
+              'owner',
+              0,
+              [
+                1,
+                [
+                  'image_url',
+                  'organization_member',
+                  ['consumer', 0, [1, ['profile_id', 'portal_id']]]
+                ]
+              ]
+            ]
+          ]
+        ]
+      ],
       'identity_id',
       'created_at',
       'updated_at'

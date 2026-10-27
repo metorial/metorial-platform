@@ -3,6 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 let mocks = vi.hoisted(() => ({
   instanceConsumerFindUnique: vi.fn(),
   consumerProfileFindMany: vi.fn(),
+  consumerProfileFindUnique: vi.fn(),
+  archiveProfileActors: vi.fn(),
+  syncInstanceActors: vi.fn(),
   consumerProfileUpdate: vi.fn(),
   consumerProfileUpdateMany: vi.fn(),
   reconcileActorAddMany: vi.fn()
@@ -13,7 +16,7 @@ vi.mock('@metorial/db', () => {
     instanceConsumer: { findUnique: mocks.instanceConsumerFindUnique },
     consumerProfile: {
       findMany: mocks.consumerProfileFindMany,
-      findUnique: vi.fn(),
+      findUnique: mocks.consumerProfileFindUnique,
       update: mocks.consumerProfileUpdate,
       updateMany: mocks.consumerProfileUpdateMany
     }
@@ -36,14 +39,35 @@ vi.mock('@metorial/queue', () => ({
 }));
 
 vi.mock('@metorial/module-consumer-entities', () => ({
-  consumerActorService: { reconcileConsumerProfileActors: vi.fn() }
+  consumerActorService: { reconcileConsumerProfileActors: vi.fn() },
+  archiveDeletedConsumerProfileActorsQueue: { add: mocks.archiveProfileActors },
+  syncInstanceConsumerActorsQueue: { add: mocks.syncInstanceActors }
 }));
 
-import { syncIdentityConsumerQueueProcessor } from '../src/queues/syncIdentityConsumer';
+import {
+  reconcileConsumerActorQueueProcessor,
+  syncIdentityConsumerQueueProcessor
+} from '../src/queues/syncIdentityConsumer';
 
 describe('sync identity consumer queue', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('cleans up deleted profiles without overwriting their anonymized names', async () => {
+    mocks.consumerProfileFindUnique.mockResolvedValue({
+      id: 'cop_deleted',
+      status: 'deleted',
+      instanceOid: 100n,
+      consumerOid: 200n
+    });
+    mocks.instanceConsumerFindUnique.mockResolvedValue({ id: 'inc_1', name: 'Original Name' });
+    await (reconcileConsumerActorQueueProcessor as any)({ profileId: 'cop_deleted' });
+    expect(mocks.archiveProfileActors).toHaveBeenCalledWith({
+      consumerProfileId: 'cop_deleted'
+    });
+    expect(mocks.syncInstanceActors).toHaveBeenCalledWith({ instanceConsumerId: 'inc_1' });
+    expect(mocks.consumerProfileUpdate).not.toHaveBeenCalled();
   });
 
   it('does not assign the same email to multiple profiles on one surface', async () => {

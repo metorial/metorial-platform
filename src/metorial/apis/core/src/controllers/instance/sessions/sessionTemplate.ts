@@ -1,3 +1,4 @@
+import { hydrateResourceOwners } from '@metorial/module-resource-actor';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
@@ -9,6 +10,7 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { toolFiltersValidator } from './_shared';
+import { getOwnershipActor } from '../../../lib/ownershipActor';
 
 let sessionTemplateGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.sessionTemplateId) {
@@ -22,6 +24,7 @@ let sessionTemplateGroup = instanceGroup.use(async ctx => {
 
   let sessionTemplate = await sessionTemplateService.getSessionTemplateById({
     instance: ctx.instance,
+    organizationActor: getOwnershipActor(ctx),
     sessionTemplateId: ctx.params.sessionTemplateId
   });
 
@@ -46,6 +49,10 @@ export let sessionTemplateController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
+            ownership: v.optional(v.enumOf(['shared', 'usable', 'all']), {
+              description:
+                'Which resources to return under the resource ownership rules: shared (resources without an owner), usable (shared resources plus resources the caller can use), or all. Defaults to shared when ownership is enforced for the project and to all otherwise.'
+            }),
             status: v.optional(
               v.union([
                 v.enumOf(['active', 'archived']),
@@ -82,6 +89,8 @@ export let sessionTemplateController = Controller.create(
       .do(async ctx => {
         let paginator = await sessionTemplateService.listSessionTemplates({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
+          ownership: ctx.query.ownership,
           allowDeleted: false,
           status: normalizeArrayParam(ctx.query.status),
           ids: normalizeArrayParam(ctx.query.id),
@@ -97,7 +106,7 @@ export let sessionTemplateController = Controller.create(
 
         let list = await paginator.run(ctx.query);
 
-        return Paginator.present(list, sessionTemplate =>
+        return Paginator.present(await hydrateResourceOwners(list), sessionTemplate =>
           sessionTemplatePresenter.present({ sessionTemplate })
         );
       }),
@@ -110,7 +119,9 @@ export let sessionTemplateController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .output(sessionTemplatePresenter)
       .do(async ctx => {
-        return sessionTemplatePresenter.present({ sessionTemplate: ctx.sessionTemplate });
+        return sessionTemplatePresenter.present(
+          await hydrateResourceOwners({ sessionTemplate: ctx.sessionTemplate })
+        );
       }),
 
     create: instanceGroup
@@ -148,6 +159,7 @@ export let sessionTemplateController = Controller.create(
         let sessionTemplate = await sessionTemplateService.createSessionTemplate({
           instance: ctx.instance,
           auditScope: ctx.auditScope,
+          organizationActor: getOwnershipActor(ctx),
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
@@ -162,7 +174,9 @@ export let sessionTemplateController = Controller.create(
           }
         });
 
-        return sessionTemplatePresenter.present({ sessionTemplate });
+        return sessionTemplatePresenter.present(
+          await hydrateResourceOwners({ sessionTemplate })
+        );
       }),
 
     update: sessionTemplateGroup
@@ -172,12 +186,27 @@ export let sessionTemplateController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
+        'mt_2026_01_01_magnetar',
+        v.object({
+          name: v.optional(v.string({ examples: ['Updated Template Name'] })),
+          description: v.optional(v.string({ examples: ['Updated description'] })),
+          metadata: v.optional(v.record(v.any(), { examples: [{ environment: 'staging' }] }), {
+            description: 'Custom key-value pairs for storing additional information'
+          })
+        }),
+        v => v
+      )
+      .body(
         'default',
         v.object({
           name: v.optional(v.string({ examples: ['Updated Template Name'] })),
           description: v.optional(v.string({ examples: ['Updated description'] })),
           metadata: v.optional(v.record(v.any(), { examples: [{ environment: 'staging' }] }), {
             description: 'Custom key-value pairs for storing additional information'
+          }),
+          source: v.optional(v.enumOf(['explorer']), {
+            description:
+              'Mark this resource as originating from the dashboard explorer and enable its owner lock and owner-only visibility.'
           })
         })
       )
@@ -186,15 +215,21 @@ export let sessionTemplateController = Controller.create(
         let sessionTemplate = await sessionTemplateService.updateSessionTemplate({
           instance: ctx.instance,
           auditScope: ctx.auditScope,
+          organizationActor: getOwnershipActor(ctx),
           template: ctx.sessionTemplate,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
-            metadata: ctx.body.metadata
+            metadata: ctx.body.metadata,
+            source: ctx.body.source,
+            isOwnerLocked: ctx.body.source === 'explorer' ? true : undefined,
+            isOwnerOnlyVisible: ctx.body.source === 'explorer' ? true : undefined
           }
         });
 
-        return sessionTemplatePresenter.present({ sessionTemplate });
+        return sessionTemplatePresenter.present(
+          await hydrateResourceOwners({ sessionTemplate })
+        );
       }),
 
     delete: sessionTemplateGroup
@@ -214,7 +249,9 @@ export let sessionTemplateController = Controller.create(
           sessionTemplate: ctx.sessionTemplate
         });
 
-        return sessionTemplatePresenter.present({ sessionTemplate });
+        return sessionTemplatePresenter.present(
+          await hydrateResourceOwners({ sessionTemplate })
+        );
       }),
 
     listTools: sessionTemplateGroup

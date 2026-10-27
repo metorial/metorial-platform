@@ -49,6 +49,7 @@ vi.mock('@metorial-subspace/module-provider-internal', () => ({
 
 vi.mock('@metorial-subspace/module-tenant', () => ({
   checkTenant: vi.fn(),
+  getConsumerOwnedResourceName: vi.fn(async () => null),
   getMetorialSolution: vi.fn(async () => ({ oid: 7, id: 'sol_1' }))
 }));
 

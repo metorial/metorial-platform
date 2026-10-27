@@ -54,6 +54,7 @@ export type ManagementInstanceIdentitiesCredentialsListQuery = {
   id?: string | string[] | undefined;
   agentId?: string | string[] | undefined;
   actorId?: string | string[] | undefined;
+  consumerProfileId?: string | string[] | undefined;
   identityId?: string | string[] | undefined;
   providerId?: string | string[] | undefined;
   providerDeploymentId?: string | string[] | undefined;
@@ -75,6 +76,7 @@ export let mapManagementInstanceIdentitiesCredentialsListQuery =
             [
               'agent_id',
               'actor_id',
+              'consumer_profile_id',
               'identity_id',
               'provider_id',
               'provider_deployment_id',

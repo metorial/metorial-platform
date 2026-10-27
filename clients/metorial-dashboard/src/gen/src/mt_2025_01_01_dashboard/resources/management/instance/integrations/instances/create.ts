@@ -10,11 +10,20 @@ export type ManagementInstanceIntegrationsInstancesCreateOutput = {
   integrationId: string;
   identityActorId: string | null;
   identityId: string | null;
-  ownerActor: {
-    id: string;
-    type: 'person' | 'agent' | 'consumer';
-    consumerId: string | null;
-  } | null;
+  access: {
+    source: 'explorer' | null;
+    type: 'public' | 'owner_locked';
+    visibility: 'anyone' | 'owner';
+    owner: {
+      type: 'person' | 'agent' | 'consumer' | 'organization_member';
+      name: string | null;
+      imageUrl: string | null;
+      email: string | null;
+      organizationMember?: { id: string } | undefined;
+      consumer?:
+        { id: string; profileId: string; portalId: string | null } | undefined;
+    } | null;
+  };
   implementation: { type: 'magic_mcp_server'; magicMcpServerId: string } | null;
   providers: {
     object: 'integration.instance.provider';
@@ -137,7 +146,27 @@ export let mapManagementInstanceIntegrationsInstancesCreateOutput =
       'integration_id',
       'identity_actor_id',
       'identity_id',
-      ['owner_actor', 1, [1, ['consumer_id']]],
+      [
+        'access',
+        0,
+        [
+          1,
+          [
+            [
+              'owner',
+              0,
+              [
+                1,
+                [
+                  'image_url',
+                  'organization_member',
+                  ['consumer', 0, [1, ['profile_id', 'portal_id']]]
+                ]
+              ]
+            ]
+          ]
+        ]
+      ],
       ['implementation', 0, [1, ['magic_mcp_server_id']]],
       [
         'providers',

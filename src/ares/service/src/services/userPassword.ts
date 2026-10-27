@@ -14,6 +14,7 @@ import type { Context } from '../lib/context';
 import { withUserPasswordLock } from '../lib/passwordLock';
 import { turnstileVerifier } from '../lib/turnstile';
 import { auditLogService } from './auditLog';
+import { userTwoFactorService } from './userTwoFactor';
 
 let passwordMemoryCost = 65536;
 let passwordTimeCost = 2;
@@ -300,10 +301,11 @@ class UserPasswordServiceImpl {
             where: { oid: step.oid },
             data: { verifiedAt }
           });
+          let complete = await userTwoFactorService.afterPrimary(current);
           await tdb.authIntent.update({
             where: { oid: current.oid },
             data: {
-              verifiedAt,
+              verifiedAt: complete ? verifiedAt : null,
               expiresAt: addMinutes(verifiedAt, 30),
               passwordVersion: credential!.version
             }

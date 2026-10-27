@@ -1,6 +1,7 @@
 import React from 'react';
 import { keyframes, styled } from 'styled-components';
 import { theme } from '../theme';
+import { BadgeIndicator } from './indicator';
 
 export type ConnectionStatusTone = 'connected' | 'available' | 'review';
 
@@ -26,7 +27,19 @@ export let getConnectionStatusDotColor = (tone: ConnectionStatusTone) => {
   return theme.colors.gray500;
 };
 
-let ConnectionBadgeRoot = styled.span<{ $tone: ConnectionStatusTone; $size: ConnectionBadgeSize }>`
+let ConnectionBadgeRoot = styled.span<{
+  $tone: ConnectionStatusTone;
+  $size: ConnectionBadgeSize;
+}>`
+  transition:
+    background-color 220ms ease,
+    color 220ms ease,
+    border-color 220ms ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+
   min-width: ${({ $size }) => ($size == '1' ? '0' : '64px')};
   height: ${({ $size }) => ($size == '1' ? '20px' : '24px')};
   padding: ${({ $size }) => ($size == '1' ? '0 7px' : '0 9px')};
@@ -73,6 +86,12 @@ let StatusDot = styled.span<{ $tone: ConnectionStatusTone; $size: ConnectionBadg
   width: ${({ $size }) => ($size == '1' ? '6px' : '7px')};
   height: ${({ $size }) => ($size == '1' ? '6px' : '7px')};
   border-radius: 999px;
+  transition: background-color 220ms ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+
   background: ${({ $tone }) =>
     $tone == 'connected'
       ? theme.colors.blue900
@@ -85,19 +104,32 @@ export let ConnectionBadge = ({
   children,
   tone,
   size = '2',
-  style
+  style,
+  loading
 }: {
   children: React.ReactNode;
   tone: ConnectionStatusTone;
   size?: ConnectionBadgeSize;
   style?: React.CSSProperties;
+  loading?: boolean;
 }) => (
-  <ConnectionBadgeRoot $tone={tone} $size={size} style={style}>
+  <ConnectionBadgeRoot
+    $tone={tone}
+    $size={size}
+    style={style}
+    aria-busy={loading || undefined}
+  >
     {children}
-    {tone == 'connected' ? (
-      <StatusPulse $size={size} />
-    ) : (
-      <StatusDot $tone={tone} $size={size} />
-    )}
+    <BadgeIndicator
+      loading={loading}
+      size={size == '1' ? 8 : 11}
+      color={getConnectionStatusDotColor(tone)}
+    >
+      {tone == 'connected' ? (
+        <StatusPulse $size={size} />
+      ) : (
+        <StatusDot $tone={tone} $size={size} />
+      )}
+    </BadgeIndicator>
   </ConnectionBadgeRoot>
 );

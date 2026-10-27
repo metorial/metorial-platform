@@ -56,6 +56,7 @@ UsageMetricSchema.index({ ts: 1 }, { expireAfterSeconds: USAGE_RETENTION_MS / 10
 UsageMetricSchema.index({ instanceId: 1, kind: 1, ts: 1 });
 UsageMetricSchema.index({ instanceId: 1, kind: 1, 'dims.providerId': 1, ts: 1 });
 UsageMetricSchema.index({ instanceId: 1, kind: 1, 'dims.consumerId': 1, ts: 1 });
+UsageMetricSchema.index({ instanceId: 1, kind: 1, 'dims.consumerProfileId': 1, ts: 1 });
 UsageMetricSchema.index({ instanceId: 1, kind: 1, 'dims.magicMcpServerId': 1, ts: 1 });
 UsageMetricSchema.index({ instanceId: 1, kind: 1, 'dims.integrationId': 1, ts: 1 });
 

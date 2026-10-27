@@ -1,4 +1,5 @@
 import { type Instance, db } from '@metorial/db';
+import { resourceActorService } from '@metorial/module-resource-actor';
 import { searchConsumerIds } from '@metorial/module-search';
 import { identityService } from '@metorial-subspace/module-identity';
 
@@ -26,6 +27,7 @@ export let resolveActorIdsForLogFilters = async (d: {
   instance: Instance;
   actorIds?: string[];
   consumerIds?: string[];
+  consumerProfileIds?: string[];
   identityIds?: string[];
 }) => {
   let hasActorFilter = !!d.actorIds?.length;
@@ -60,6 +62,15 @@ export let resolveActorIdsForLogFilters = async (d: {
     for (let identity of identities.items) {
       actorIds.add(identity.actor.id);
     }
+  }
+
+  if (d.consumerProfileIds?.length) {
+    let profileActorIds = await resourceActorService.listConsumerActorIds({
+      instance: d.instance,
+      consumerProfileIds: d.consumerProfileIds
+    });
+
+    return hasActorFilter ? profileActorIds.filter(id => actorIds.has(id)) : profileActorIds;
   }
 
   return hasActorFilter ? [...actorIds] : undefined;

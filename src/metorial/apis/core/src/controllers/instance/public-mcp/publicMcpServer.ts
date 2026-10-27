@@ -1,3 +1,4 @@
+import { hydrateResourceOwners } from '@metorial/module-resource-actor';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
@@ -169,7 +170,7 @@ export let publicMcpServerController = Controller.create(
 
         let list = await paginator.run(ctx.query);
 
-        return Paginator.present(list, publicMcpServer =>
+        return Paginator.present(await hydrateResourceOwners(list), publicMcpServer =>
           publicMcpServerPresenter.present({ publicMcpServer })
         );
       }),
@@ -209,7 +210,9 @@ export let publicMcpServerController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.public_mcp_server:read'] }))
       .output(publicMcpServerPresenter)
       .do(async ctx =>
-        publicMcpServerPresenter.present({ publicMcpServer: ctx.publicMcpServer })
+        publicMcpServerPresenter.present(
+          await hydrateResourceOwners({ publicMcpServer: ctx.publicMcpServer })
+        )
       ),
 
     create: publicMcpGroup
@@ -262,7 +265,9 @@ export let publicMcpServerController = Controller.create(
           }
         });
 
-        return publicMcpServerPresenter.present({ publicMcpServer });
+        return publicMcpServerPresenter.present(
+          await hydrateResourceOwners({ publicMcpServer })
+        );
       }),
 
     update: publicMcpServerGroup
@@ -314,7 +319,9 @@ export let publicMcpServerController = Controller.create(
           }
         });
 
-        return publicMcpServerPresenter.present({ publicMcpServer });
+        return publicMcpServerPresenter.present(
+          await hydrateResourceOwners({ publicMcpServer })
+        );
       }),
 
     delete: publicMcpServerGroup
@@ -335,7 +342,9 @@ export let publicMcpServerController = Controller.create(
           publicMcpServer: ctx.publicMcpServer
         });
 
-        return publicMcpServerPresenter.present({ publicMcpServer });
+        return publicMcpServerPresenter.present(
+          await hydrateResourceOwners({ publicMcpServer })
+        );
       }),
 
     listGrants: publicMcpServerGroup

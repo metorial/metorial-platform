@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { v1CallbackEventListPresenter, v1CallbackEventPresenter } from './callbackEvent';
 
+let context = {
+  apiVersion: 'mt_2026_01_01_magnetar',
+  accessType: 'user_auth_token'
+} as const;
+
 let callbackEvent = {
   id: 'cbe_1',
   status: 'processed',
@@ -18,7 +23,7 @@ let callbackEvent = {
 describe('callback event presentation', () => {
   it('omits read state from public event responses and schemas', async () => {
     for (let presenter of [v1CallbackEventPresenter, v1CallbackEventListPresenter]) {
-      let presented = await presenter.present({ callbackEvent }).run();
+      let presented = await presenter.present({ callbackEvent }, context).run();
 
       expect(presented).not.toHaveProperty('read_at');
       expect(presenter.schema.properties).not.toHaveProperty('read_at');
@@ -26,7 +31,9 @@ describe('callback event presentation', () => {
   });
 
   it('omits details and payload schema from list items', async () => {
-    let presented = await v1CallbackEventListPresenter.present({ callbackEvent }).run();
+    let presented = await v1CallbackEventListPresenter
+      .present({ callbackEvent }, context)
+      .run();
 
     expect(presented).not.toHaveProperty('details');
     expect(v1CallbackEventListPresenter.schema.properties).not.toHaveProperty('details');
@@ -34,16 +41,19 @@ describe('callback event presentation', () => {
 
   it('includes inline payloads in single-event responses', async () => {
     let presented = await v1CallbackEventPresenter
-      .present({
-        callbackEvent,
-        details: {
-          status: 'succeeded',
-          payload: { action: 'opened' },
-          attemptCount: 1,
-          error: null,
-          webhook: null
-        }
-      })
+      .present(
+        {
+          callbackEvent,
+          details: {
+            status: 'succeeded',
+            payload: { action: 'opened' },
+            attemptCount: 1,
+            error: null,
+            webhook: null
+          }
+        },
+        context
+      )
       .run();
 
     expect(presented.details?.payload).toEqual({ action: 'opened' });

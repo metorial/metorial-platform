@@ -88,10 +88,14 @@
     "@metorial-io/ui": "^1.0.0",
     "@metorial-io/ui-product": "^1.0.0",
     "@metorial-platform-systems/relay-client": "workspace:*",
+    "@metorial/ui": "^1.0.0",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
     "@sentry/bun": "^11.7.0",
     "@sentry/cli": "^3.8.0",
+    "@simplewebauthn/browser": "^14.0.0",
+    "@simplewebauthn/server": "^14.0.3",
+    "@types/qrcode": "^1.5.6",
     "@types/ua-parser-js": "^0.7.39",
     "axios": "^1.20.0",
     "date-fns": "^4.4.0",
@@ -100,8 +104,10 @@
     "ipaddr.js": "^2.5.0",
     "jszip": "^3.10.2",
     "object-storage-client": "^0.2.5",
+    "otplib": "^13.5.0",
     "prisma": "^7.10.0",
     "prisma-json-types-generator": "^5.2.0",
+    "qrcode": "^1.5.4",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-router-dom": "^7.18.4",
@@ -109,8 +115,7 @@
     "styled-components": "^6.6.0",
     "ua-parser-js": "2.0.10",
     "vite": "7.3.7",
-    "yaml": "^2.9.1",
-    "@metorial/ui": "^1.0.0"
+    "yaml": "^2.9.1"
   },
   "overrides": {
     "@react-email/components": "1.0.8"

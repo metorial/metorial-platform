@@ -29,6 +29,7 @@ let RecentInstancesBox = (p: { instanceId: string; integration: IntegrationPrevi
   let project = useCurrentProject();
   let instance = useCurrentInstance();
   let instances = useIntegrationInstances(p.instanceId, {
+    ownership: 'all',
     integrationId: p.integration.id,
     order: 'desc',
     status: ['active'],

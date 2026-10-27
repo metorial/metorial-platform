@@ -26,6 +26,17 @@ export default defineConfig({
     fs: { allow: [workspaceRoot] }
   },
 
+  resolve: {
+    dedupe: [
+      '@codemirror/state',
+      '@codemirror/view',
+      '@codemirror/language',
+      '@lezer/common',
+      '@lezer/highlight',
+      '@lezer/lr'
+    ]
+  },
+
   plugins: [
     stripBrokenMonacoSourceMap(),
     react({

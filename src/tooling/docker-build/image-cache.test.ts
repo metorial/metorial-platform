@@ -19,13 +19,17 @@ let fixture = async () => {
     join(directory, 'bin/regctl'),
     `#!/bin/sh
 if [ "$1 $2" = 'image copy' ]; then exit 0; fi
+if [ "$1 $2" = 'image inspect' ]; then
+  if [ "\${PLATFORM_ERROR:-}" != '' ]; then echo "$PLATFORM_ERROR" >&2; exit 1; fi
+  echo "\${PLATFORM:-linux/amd64}"; exit 0
+fi
 if [ "$1 $2" = 'manifest put' ]; then
   if [ "\${ALLOW_INITIALIZE:-}" = true ]; then touch initialized; exit 0; fi
   echo unauthorized >&2; exit 1
 fi
 case "$3" in
-  alpine:*|node:*) echo "sha256:\${BASE_DIGEST:-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa}" ;;
   *@*) echo "\${3##*@}" ;;
+  alpine:*|node:*) echo "sha256:\${BASE_DIGEST:-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa}" ;;
   *)
     if [ "\${REGISTRY_ERROR:-}" != '' ] && [ ! -f initialized ]; then echo "$REGISTRY_ERROR" >&2; exit 1; fi
     if [ "\${CACHE_HIT:-}" = true ]; then echo sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
@@ -314,6 +318,15 @@ test('real Turbo pruning includes transitive sources and dependency resolutions'
   expect(existsSync(join(directory, 'out'))).toBe(false);
   expect(resolveImage(directory, '{}', warmEnvironment).tag).toBe(original.tag);
   expect(snapshot()).toEqual(coldSnapshot);
+  rmSync(join(directory, 'out'), { recursive: true });
+  let plannedMiss = resolveImage(directory, '{}', {
+    ...warmEnvironment,
+    IMAGE_CACHE_PLAN_ONLY: 'true'
+  });
+  expect(plannedMiss.code, plannedMiss.error).toBe(0);
+  expect(plannedMiss.text).toContain('prepared=false');
+  expect(plannedMiss.text).toContain('hit=false');
+  expect(existsSync(join(directory, 'out'))).toBe(false);
   await Bun.write(join(directory, 'packages/library/src/new.ts'), 'export let added = true;');
   Bun.spawnSync(['git', 'add', 'packages/library/src/new.ts'], { cwd: directory });
   let added = resolveImage(directory, '{}', warmEnvironment);
@@ -479,4 +492,188 @@ test('descriptor validation rejects mismatched keys and unsafe paths', async () 
       'expected'
     )
   ).toThrow('generated');
+});
+
+test('cached images missing the required platform schedule builds', async () => {
+  let directory = await fixture();
+  for (let environment of [
+    { PLATFORM: 'linux/arm64' },
+    { PLATFORM_ERROR: 'no matching platform' }
+  ]) {
+    let result = resolveImage(directory, '{}', { CACHE_HIT: 'true', ...environment });
+    expect(result.code, result.error).toBe(0);
+    expect(result.text).toContain('hit=false');
+  }
+});
+
+test('builder fingerprints retain planned base digests when upstream tags move', async () => {
+  let directory = await fixture();
+  let original = resolveImage(directory);
+  let encoded = original.text.match(/^recipe=(.+)$/m)![1];
+  let path = join(directory, 'pinned.Dockerfile');
+  await Bun.write(path, Buffer.from(encoded, 'base64'));
+  let pinned = resolveImage(directory, '{}', {
+    IMAGE_CACHE_PINNED_DOCKERFILE: path,
+    BASE_DIGEST: 'c'.repeat(64)
+  });
+  expect(pinned.code, pinned.error).toBe(0);
+  expect(pinned.tag).toBe(original.tag);
+  expect(resolveImage(directory, '{}', { BASE_DIGEST: 'c'.repeat(64) }).tag).not.toBe(
+    original.tag
+  );
+});
+
+test('resolver logging and implementation edits do not invalidate Docker input fingerprints', async () => {
+  let directory = await fixture();
+  let tooling = join(directory, 'tooling');
+  for (let name of [
+    'image-cache.ts',
+    'image-bases.ts',
+    'input-descriptor.ts',
+    'services.json'
+  ]) {
+    await Bun.write(join(tooling, name), await Bun.file(join(import.meta.dir, name)).text());
+  }
+  let previous = script;
+  script = join(tooling, 'image-cache.ts');
+  try {
+    let original = resolveImage(directory);
+    expect(original.code, original.error).toBe(0);
+    let implementation = await Bun.file(script).text();
+    await Bun.write(
+      script,
+      implementation.replace('Image cache materialization', 'Image cache output') +
+        '\nconsole.log("Additional diagnostics");\n'
+    );
+    expect(resolveImage(directory).tag).toBe(original.tag);
+    await Bun.write(
+      join(tooling, 'input-descriptor.ts'),
+      (await Bun.file(join(tooling, 'input-descriptor.ts')).text()) + '\n'
+    );
+    expect(resolveImage(directory).tag).toBe(original.tag);
+    await Bun.write(
+      script,
+      implementation.replace('let fingerprintPolicy = 3;', 'let fingerprintPolicy = 4;')
+    );
+    expect(resolveImage(directory).tag).not.toBe(original.tag);
+  } finally {
+    script = previous;
+  }
+});
+
+test('all external Docker references are discovered without including local stages', async () => {
+  let { externalImages } = await import('./image-bases');
+  expect(
+    externalImages(
+      '# syntax=docker/dockerfile:1\nFROM --platform=linux/amd64 node:22 AS Builder\nFROM builder AS app\nCOPY --from=0 /a /b\nCOPY --from=alpine:3 /bin/sh /sh\nFROM scratch\n'
+    )
+  ).toEqual(['node:22', 'alpine:3', 'docker/dockerfile:1']);
+  expect(() => externalImages('FROM ${BASE}')).toThrow('explicit resolution');
+});
+
+test('parallel planners consume a read-only base snapshot and reject unpinned bases', async () => {
+  let directory = await fixture();
+  let original = resolveImage(directory);
+  let path = join(directory, 'bases.json');
+  let snapshot = JSON.stringify({
+    'alpine:latest': 'sha256:' + 'a'.repeat(64),
+    'node:22': 'sha256:' + 'a'.repeat(64)
+  });
+  await Bun.write(path, snapshot);
+  let resolved = resolveImage(directory, '{}', {
+    IMAGE_BASE_DIGESTS: path,
+    IMAGE_BASE_DIGESTS_READ_ONLY: 'true',
+    BASE_DIGEST: 'c'.repeat(64)
+  });
+  expect(resolved.code, resolved.error).toBe(0);
+  expect(resolved.tag).toBe(original.tag);
+  expect(await Bun.file(path).text()).toBe(snapshot);
+  await Bun.write(path, '{}');
+  let missing = resolveImage(directory, '{}', {
+    IMAGE_BASE_DIGESTS: path,
+    IMAGE_BASE_DIGESTS_READ_ONLY: 'true'
+  });
+  expect(missing.code).not.toBe(0);
+  expect(missing.error).toContain('not pinned by the planner');
+});
+
+test('concurrent cold discovery serializes shared pruning and releases the lock on failure', async () => {
+  let directory = await fixture();
+  await Bun.write(join(directory, 'package.json'), '{"name":"fixture"}');
+  await Bun.write(
+    join(directory, 'Dockerfile'),
+    'FROM scratch AS pruner\nCOPY . .\nRUN bun ./src/tooling/docker-build/prune.ts build\n'
+  );
+  await Bun.write(
+    join(directory, 'src/tooling/docker-build/dependency-cache.ts'),
+    `
+import { mkdirSync, writeFileSync } from 'node:fs';
+let cache = process.env.DOCKER_BUILD_CACHE_DIRECTORY!;
+if (process.argv[2] === 'fingerprint') console.log('key=fixture');
+else {
+  mkdirSync(cache + '/json', { recursive: true });
+  writeFileSync(cache + '/json/package.json', '{"name":"fixture"}');
+  writeFileSync(cache + '/json/bun.lock', '{}');
+  writeFileSync(cache + '/recipe.json', JSON.stringify({ directories: [], extras: [], generated: [] }));
+}
+`
+  );
+  await Bun.write(
+    join(directory, 'src/tooling/docker-build/prune.ts'),
+    `
+import { mkdirSync, rmSync, writeFileSync, appendFileSync } from 'node:fs';
+if (process.env.FAIL_PRUNE === 'true') throw new Error('deliberate discovery failure');
+mkdirSync('active-prune');
+await Bun.sleep(50);
+rmSync('out', { recursive: true, force: true });
+mkdirSync('out/full', { recursive: true });
+writeFileSync('out/full/package.json', '{"name":"fixture"}');
+appendFileSync('prunes', 'completed\\n');
+rmSync('active-prune', { recursive: true });
+`
+  );
+  Bun.spawnSync(['git', 'add', '.'], { cwd: directory });
+  let invoke = async (name: string, fail = false) => {
+    let child = Bun.spawn(
+      [
+        process.execPath,
+        script,
+        'resolve',
+        'Dockerfile',
+        'registry/service',
+        'registry/canonical'
+      ],
+      {
+        cwd: directory,
+        env: {
+          ...process.env,
+          PATH: `${directory}/bin:${process.env.PATH}`,
+          RUNNER_TEMP: directory,
+          GITHUB_OUTPUT: '',
+          GITHUB_STEP_SUMMARY: '',
+          IMAGE_DESCRIPTOR_REGISTRY: 'false',
+          IMAGE_CACHE_PLAN_ONLY: 'true',
+          DOCKER_BUILD_CACHE_DIRECTORY: join(directory, name),
+          IMAGE_PRUNE_LOCK: join(directory, 'prune-lock'),
+          FAIL_PRUNE: String(fail)
+        },
+        stdout: 'pipe',
+        stderr: 'pipe'
+      }
+    );
+    let [stdout, stderr, code] = await Promise.all([
+      new Response(child.stdout).text(),
+      new Response(child.stderr).text(),
+      child.exited
+    ]);
+    return { stdout, stderr, code };
+  };
+  let results = await Promise.all([invoke('first'), invoke('second')]);
+  for (let result of results) expect(result.code, result.stderr).toBe(0);
+  expect(readFileSync(join(directory, 'prunes'), 'utf8')).toBe('completed\ncompleted\n');
+  expect(existsSync(join(directory, 'prune-lock'))).toBe(false);
+  let failed = await invoke('failed', true);
+  expect(failed.code).not.toBe(0);
+  expect(failed.stderr).toContain('deliberate discovery failure');
+  expect(existsSync(join(directory, 'prune-lock'))).toBe(false);
 });

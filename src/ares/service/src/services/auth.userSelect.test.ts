@@ -13,6 +13,13 @@ let { authBlockService, db, deviceService, userService } = vi.hoisted(() => ({
   userService: { findByEmailSafe: vi.fn() }
 }));
 
+vi.mock('./userTwoFactor', () => ({
+  userTwoFactorService: {
+    afterPrimary: vi.fn(async () => true),
+    assertVerified: vi.fn(async () => undefined)
+  }
+}));
+
 vi.mock('@lowerdeck/service', () => ({
   Service: {
     create: vi.fn((_name: string, factory: () => unknown) => ({

@@ -2,7 +2,7 @@ let cspDirectives = [
   `default-src 'self'`,
   `script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com`,
   `style-src 'self' 'unsafe-inline'`,
-  `img-src 'self' *.metorial-cdn.com metorial.com *.metorial.com *.metorial.net *.metorial.dev *.metorial-files.com metorial-files.com *.metorial-staging.com`,
+  `img-src 'self' data: *.metorial-cdn.com metorial.com *.metorial.com *.metorial.net *.metorial.dev *.metorial-files.com metorial-files.com *.metorial-staging.com`,
   `font-src 'self' *.metorial-cdn.com`,
   `connect-src 'self' *.metorial.com *.metorial.net *.metorial.dev`,
   `frame-src https://challenges.cloudflare.com`,
@@ -33,6 +33,14 @@ export let withSecurityHeaders = (
 
     if (url.hostname.includes('.')) {
       for (let [key, value] of Object.entries(getHeaders())) patched.headers.set(key, value);
+    }
+
+    if (
+      url.pathname.startsWith('/two-factor') ||
+      url.pathname.startsWith('/metorial-ares/auth-api')
+    ) {
+      patched.headers.set('Cache-Control', 'no-store');
+      patched.headers.set('Referrer-Policy', 'no-referrer');
     }
 
     return patched;

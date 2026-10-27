@@ -1,6 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import { resourceActorService } from '@metorial/module-resource-actor';
 import { identityActorService } from '@metorial-subspace/module-identity';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
@@ -73,6 +74,10 @@ export let identityActorController = Controller.create(
               description: 'Filter by linked agent ID or IDs.',
               examples: ['agt_4mNoPq8rSt2uVx6y']
             }),
+            consumer_profile_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by linked consumer profile ID or IDs.',
+              examples: ['cop_7nR8sK2mZa1pYx4b']
+            }),
             consumer_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by linked consumer ID or IDs.',
               examples: ['csm_7nR8sK2mZa1pYx4b']
@@ -84,6 +89,23 @@ export let identityActorController = Controller.create(
         )
       )
       .do(async ctx => {
+        let ids = normalizeArrayParam(ctx.query.id);
+        let consumerIds = normalizeArrayParam(ctx.query.consumer_id);
+        let consumerProfileIds = normalizeArrayParam(ctx.query.consumer_profile_id);
+
+        if (consumerProfileIds) {
+          let profileActorIds = await resourceActorService.listConsumerActorIds({
+            instance: ctx.instance,
+            consumerProfileIds,
+            consumerIds
+          });
+          let requestedIds = ids;
+          ids = requestedIds
+            ? profileActorIds.filter(id => requestedIds.includes(id))
+            : profileActorIds;
+          consumerIds = undefined;
+        }
+
         let paginator = await identityActorService.listIdentityActors({
           instance: ctx.instance,
           allowDeleted: false,
@@ -91,9 +113,9 @@ export let identityActorController = Controller.create(
           search: ctx.query.search,
 
           status: normalizeArrayParam(ctx.query.status),
-          ids: normalizeArrayParam(ctx.query.id),
+          ids,
           agentIds: normalizeArrayParam(ctx.query.agent_id),
-          consumerIds: normalizeArrayParam(ctx.query.consumer_id),
+          consumerIds,
 
           createdAt: ctx.query.created_at,
           updatedAt: ctx.query.updated_at

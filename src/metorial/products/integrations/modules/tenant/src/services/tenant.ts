@@ -46,6 +46,8 @@ class tenantServiceImpl {
       disableCallbacks?: boolean;
       reducedSubprocessors?: boolean;
       aiAnalysisEnabled?: boolean;
+      allowApiAccessToConsumerOwnedResources?: boolean;
+      allowMemberAccessToConsumerOwnedResources?: boolean;
       projectOid?: bigint;
       skipNetworks?: boolean;
       environments: {
@@ -85,7 +87,10 @@ class tenantServiceImpl {
         collectErrors: d.input.collectErrors,
         disableCallbacks: d.input.disableCallbacks,
         reducedSubprocessors: d.input.reducedSubprocessors,
-        aiAnalysisEnabled: d.input.aiAnalysisEnabled
+        aiAnalysisEnabled: d.input.aiAnalysisEnabled,
+        allowApiAccessToConsumerOwnedResources: d.input.allowApiAccessToConsumerOwnedResources,
+        allowMemberAccessToConsumerOwnedResources:
+          d.input.allowMemberAccessToConsumerOwnedResources
       };
 
       let isTenantUnchanged =
@@ -126,6 +131,10 @@ class tenantServiceImpl {
                 disableCallbacks: d.input.disableCallbacks ?? false,
                 reducedSubprocessors: d.input.reducedSubprocessors ?? false,
                 aiAnalysisEnabled: d.input.aiAnalysisEnabled ?? false,
+                allowApiAccessToConsumerOwnedResources:
+                  d.input.allowApiAccessToConsumerOwnedResources,
+                allowMemberAccessToConsumerOwnedResources:
+                  d.input.allowMemberAccessToConsumerOwnedResources,
 
                 urlKey: generatePlainId(10).toLowerCase()
               }

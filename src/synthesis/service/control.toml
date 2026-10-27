@@ -37,3 +37,11 @@ package = "@metorial/synthesis"
 name = "synthesis"
 engine = "postgres"
 env = "SYNTHESIS_DATABASE_URL"
+
+[[ci.images]]
+name = "synthesis"
+group = "oss"
+dockerfile = "Dockerfile"
+image = "metorial/mte-synthesis"
+ecr = "metorial-enterprise-saas/mte-synthesis"
+canonical = "ghcr.io/metorial/synthesis"

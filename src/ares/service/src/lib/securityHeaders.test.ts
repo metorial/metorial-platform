@@ -10,17 +10,15 @@ afterEach(() => {
 describe('security headers', () => {
   it('preserves redirect responses while adding production headers for public hosts', async () => {
     process.env.NODE_ENV = 'production';
-    let wrapped = withSecurityHeaders(async () =>
-      new Response(null, {
-        status: 302,
-        headers: { location: 'https://idp.example.test/authorize' }
-      })
+    let wrapped = withSecurityHeaders(
+      async () =>
+        new Response(null, {
+          status: 302,
+          headers: { location: 'https://idp.example.test/authorize' }
+        })
     );
 
-    let response = await wrapped(
-      new Request('https://sso.example.test/sso/auth'),
-      undefined
-    );
+    let response = await wrapped(new Request('https://sso.example.test/sso/auth'), undefined);
 
     expect(response.status).toBe(302);
     expect(response.headers.get('location')).toBe('https://idp.example.test/authorize');
@@ -29,11 +27,20 @@ describe('security headers', () => {
       "script-src 'self' 'unsafe-inline'"
     );
     expect(response.headers.get('content-security-policy')).toContain(
-      "img-src 'self' *.metorial-cdn.com metorial.com *.metorial.com"
+      "img-src 'self' data: *.metorial-cdn.com metorial.com *.metorial.com"
     );
     expect(response.headers.get('content-security-policy')).toContain(
       '*.metorial-staging.com'
     );
+  });
+
+  it('prevents caching and referrer leakage on setup and authentication APIs', async () => {
+    let wrapped = withSecurityHeaders(async () => new Response('ok'));
+    for (let path of ['/two-factor/setup', '/metorial-ares/auth-api/twoFactor:getSetup']) {
+      let response = await wrapped(new Request(`https://id.example.test${path}`), undefined);
+      expect(response.headers.get('cache-control')).toBe('no-store');
+      expect(response.headers.get('referrer-policy')).toBe('no-referrer');
+    }
   });
 
   it('does not add production headers for localhost', async () => {

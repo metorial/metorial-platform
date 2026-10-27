@@ -10,6 +10,7 @@ export let ProviderAuthConfigManualCreateContent = (p: {
   providerName: string;
   initialAuthMethodId: string;
   defaultAuthConfigName?: string;
+  source?: 'explorer';
   close: () => void;
   onCreate?: (authConfig: { id: string; name?: string | null }) => void;
   onBack?: () => void;
@@ -42,6 +43,7 @@ export let ProviderAuthConfigManualCreateContent = (p: {
         hideProviderContext={useFlatLayout}
         defaultName={authConfigName}
         hideDetailsInputs
+        source={p.source}
         close={p.close}
         onBack={p.onBack}
         onCreate={authConfig => {

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let { db } = vi.hoisted(() => ({
   db: {
+    consumerActor: { findMany: vi.fn() },
     consumerProfile: {
       findFirst: vi.fn()
     },
@@ -188,5 +189,57 @@ describe('resource actor identity', () => {
         })
       })
     );
+  });
+});
+
+describe('consumer profile actor scoping', () => {
+  it('resolves only actors for the requested profile in the instance', async () => {
+    db.consumerActor.findMany.mockResolvedValue([{ id: 'iac_profile_1' }]);
+
+    await expect(
+      resourceActorService.listConsumerActorIds({
+        instance: { oid: 10n },
+        consumerProfileIds: ['cop_selected']
+      })
+    ).resolves.toEqual(['iac_profile_1']);
+
+    expect(db.consumerActor.findMany).toHaveBeenCalledWith({
+      where: {
+        instanceOid: 10n,
+        consumerProfile: { id: { in: ['cop_selected'] } }
+      },
+      select: { id: true }
+    });
+  });
+
+  it('intersects a consumer filter with the selected profile', async () => {
+    db.consumerActor.findMany.mockResolvedValue([]);
+    await expect(
+      resourceActorService.listConsumerActorIds({
+        instance: { oid: 10n },
+        consumerProfileIds: ['cop_selected'],
+        consumerIds: ['inc_other']
+      })
+    ).resolves.toEqual([]);
+
+    expect(db.consumerActor.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          instanceOid: 10n,
+          consumerProfile: { id: { in: ['cop_selected'] } },
+          instanceConsumer: { id: { in: ['inc_other'] } }
+        }
+      })
+    );
+  });
+
+  it('does not query all actors for an empty set of profiles', async () => {
+    await expect(
+      resourceActorService.listConsumerActorIds({
+        instance: { oid: 10n },
+        consumerProfileIds: []
+      })
+    ).resolves.toEqual([]);
+    expect(db.consumerActor.findMany).not.toHaveBeenCalled();
   });
 });

@@ -13,6 +13,13 @@ let { db, password, userService, transaction } = vi.hoisted(() => ({
   transaction: { active: false }
 }));
 
+vi.mock('./userTwoFactor', () => ({
+  userTwoFactorService: {
+    afterPrimary: vi.fn(async () => true),
+    assertVerified: vi.fn(async () => undefined)
+  }
+}));
+
 vi.mock('../db', () => ({
   db,
   withTransaction: async (fn: (db: unknown) => unknown) => {

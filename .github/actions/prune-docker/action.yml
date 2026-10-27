@@ -40,7 +40,9 @@ runs:
             read -r -a tasks <<< "$INPUT_TASKS"
             tasks+=("--filter=$INPUT_PACKAGE")
           else
-            read -r -a tasks <<< "$(sed -n 's/^RUN bun [^ ]*prune.ts //p' "$INPUT_DOCKERFILE")"
+            metadata="$GITHUB_WORKSPACE/src/tooling/docker-build/image-metadata.ts"
+            if [ -f "$GITHUB_WORKSPACE/oss/package.json" ]; then metadata="$GITHUB_WORKSPACE/oss/src/tooling/docker-build/image-metadata.ts"; fi
+            read -r -a tasks <<< "$(GITHUB_OUTPUT='' bun "$metadata" "$GITHUB_WORKSPACE/$INPUT_DOCKERFILE" '{}' --tasks-only | sed -n 's/^tasks=//p')"
           fi
           cd "$INPUT_WORKSPACE"
           tooling=src/tooling/docker-build/prune.ts
@@ -80,7 +82,9 @@ runs:
           read -r -a tasks <<< "$INPUT_TASKS"
           tasks+=("--filter=$INPUT_PACKAGE")
         else
-          read -r -a tasks <<< "$(sed -n 's/^RUN bun [^ ]*prune.ts //p' "$INPUT_DOCKERFILE")"
+          metadata="$GITHUB_WORKSPACE/src/tooling/docker-build/image-metadata.ts"
+            if [ -f "$GITHUB_WORKSPACE/oss/package.json" ]; then metadata="$GITHUB_WORKSPACE/oss/src/tooling/docker-build/image-metadata.ts"; fi
+            read -r -a tasks <<< "$(GITHUB_OUTPUT='' bun "$metadata" "$GITHUB_WORKSPACE/$INPUT_DOCKERFILE" '{}' --tasks-only | sed -n 's/^tasks=//p')"
         fi
         cd "$INPUT_WORKSPACE"
         tooling=src/tooling/docker-build

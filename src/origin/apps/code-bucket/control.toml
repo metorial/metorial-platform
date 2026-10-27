@@ -34,3 +34,11 @@ NODE_ENV = "development"
 CODE_BUCKET_JWT_SECRET = "origin-code-bucket-dev-secret"
 CODE_BUCKET_OBJECT_STORAGE_ENDPOINT = "http://services:52010"
 CODE_BUCKET_OBJECT_STORAGE_BUCKET = "code-bucket"
+
+[[ci.images]]
+name = "code-bucket"
+group = "oss"
+dockerfile = "Dockerfile"
+image = "metorial/mte-code-bucket"
+ecr = "metorial-enterprise-saas/mte-code-bucket"
+canonical = "ghcr.io/metorial/mte-code-bucket"

@@ -41,6 +41,7 @@ export type UsageFilter = {
   providerId?: UsageFilterValue;
   deploymentId?: UsageFilterValue;
   consumerId?: UsageFilterValue;
+  consumerProfileId?: UsageFilterValue;
   magicMcpServerId?: UsageFilterValue;
   integrationId?: UsageFilterValue;
   errorType?: string[];
@@ -50,6 +51,7 @@ export let toUsageFilterQuery = (filter: UsageFilter | undefined) => ({
   providerId: filter?.providerId,
   deploymentId: filter?.deploymentId,
   consumerId: filter?.consumerId,
+  consumerProfileId: filter?.consumerProfileId,
   magicMcpServerId: filter?.magicMcpServerId,
   integrationId: filter?.integrationId,
   errorType: filter?.errorType
@@ -84,7 +86,9 @@ export let useUsageRange = (
   }, [range, query.interval]);
 };
 
-export let useUsageQueryParams = (opts: { defaultPreset?: string; defaultInterval?: string } = {}) => {
+export let useUsageQueryParams = (
+  opts: { defaultPreset?: string; defaultInterval?: string } = {}
+) => {
   let [params, setParams] = useSearchParams();
 
   let query = parseMetricsQuery(params, {

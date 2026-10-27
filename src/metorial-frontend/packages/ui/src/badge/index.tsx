@@ -1,12 +1,17 @@
 import { Cases } from '@lowerdeck/case';
 import React from 'react';
+import { styled } from 'styled-components';
 import { theme } from '../theme';
+import { getColorKey } from '../theme/colors';
 import {
   ConnectionBadge,
   type ConnectionBadgeSize,
   type ConnectionStatusTone
 } from './connection';
 import { BadgeStyleProps, getBadgeStyles, getIconBadgeStyles } from './constants';
+import { BadgeIndicator } from './indicator';
+
+let indicatorSizes = { '1': 8, '2': 11, '3': 15 };
 
 export * from './connection';
 export * from './constants';
@@ -16,6 +21,7 @@ type DefaultBadgeProps = {
   icon?: undefined;
   children: React.ReactNode;
   style?: React.CSSProperties;
+  loading?: boolean;
 } & BadgeStyleProps;
 
 type ConnectionVariantBadgeProps = {
@@ -24,6 +30,7 @@ type ConnectionVariantBadgeProps = {
   size?: ConnectionBadgeSize;
   children: React.ReactNode;
   style?: React.CSSProperties;
+  loading?: boolean;
 };
 
 type IconVariantBadgeProps = {
@@ -31,17 +38,41 @@ type IconVariantBadgeProps = {
   icon: React.ReactElement<{ size?: number }>;
   children: React.ReactNode;
   style?: React.CSSProperties;
+  loading?: boolean;
 } & BadgeStyleProps;
 
 export type BadgeProps =
-  | DefaultBadgeProps
-  | ConnectionVariantBadgeProps
-  | IconVariantBadgeProps;
+  DefaultBadgeProps | ConnectionVariantBadgeProps | IconVariantBadgeProps;
+
+let BadgeRoot = styled.span`
+  transition:
+    background-color 220ms ease,
+    color 220ms ease,
+    border-color 220ms ease;
+
+  i {
+    transition:
+      background-color 220ms ease,
+      color 220ms ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &,
+    i {
+      transition: none;
+    }
+  }
+`;
 
 export let Badge = (props: BadgeProps) => {
   if (props.variant == 'connection') {
     return (
-      <ConnectionBadge tone={props.tone} size={props.size} style={props.style}>
+      <ConnectionBadge
+        tone={props.tone}
+        size={props.size}
+        style={props.style}
+        loading={props.loading}
+      >
         {props.children}
       </ConnectionBadge>
     );
@@ -51,7 +82,8 @@ export let Badge = (props: BadgeProps) => {
     let styles = getIconBadgeStyles({ color: props.color, size: props.size });
 
     return (
-      <span
+      <BadgeRoot
+        aria-busy={props.loading || undefined}
         style={{
           ...styles.outer,
           ...props.style,
@@ -61,24 +93,30 @@ export let Badge = (props: BadgeProps) => {
           gap: '6px'
         }}
       >
-        <i
-          style={{
-            ...styles.iconCircle,
-            flexShrink: 0,
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
+        <BadgeIndicator
+          loading={props.loading}
+          size={parseInt(styles.iconCircle.width)}
+          color={theme.colors[getColorKey(props.color, '800')]}
         >
-          {React.cloneElement(props.icon, { size: styles.iconSize })}
-        </i>
+          <i
+            style={{
+              ...styles.iconCircle,
+              flexShrink: 0,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            {React.cloneElement(props.icon, { size: styles.iconSize })}
+          </i>
+        </BadgeIndicator>
 
-        <span style={{ fontWeight: 600 }}>{props.children}</span>
-      </span>
+        <span style={{ fontWeight: 600, color: theme.colors.gray900 }}>{props.children}</span>
+      </BadgeRoot>
     );
   }
 
-  let { children, color, size, style } = props;
+  let { children, color, size = '2', style, loading } = props;
   let styles = getBadgeStyles({ color, size });
 
   if (
@@ -89,7 +127,8 @@ export let Badge = (props: BadgeProps) => {
   }
 
   return (
-    <span
+    <BadgeRoot
+      aria-busy={loading || undefined}
       style={{
         ...styles.outer,
         ...style,
@@ -99,17 +138,24 @@ export let Badge = (props: BadgeProps) => {
         gap: '6px'
       }}
     >
-      <i style={{ ...styles.dot, flexShrink: 0 }} />
+      <BadgeIndicator
+        loading={loading}
+        size={indicatorSizes[size]}
+        color={theme.colors[getColorKey(color, '800')]}
+      >
+        <i style={{ ...styles.dot, flexShrink: 0 }} />
+      </BadgeIndicator>
 
       <span
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          fontWeight: 600
+          fontWeight: 600,
+          color: theme.colors.gray900
         }}
       >
         {children}
       </span>
-    </span>
+    </BadgeRoot>
   );
 };

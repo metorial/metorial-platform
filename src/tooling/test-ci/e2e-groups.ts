@@ -46,7 +46,11 @@ export let planE2EGroups = (
   let count = Math.max(1, Math.min(groups, packages.length));
   let target = total / (count * Math.max(1, concurrency));
 
-  let units = packages.flatMap(name => {
+  let units = packages.flatMap<{
+    package: string;
+    seconds: number;
+    shard: E2EShard | undefined;
+  }>(name => {
     let seconds = durationOf(name);
     let shards = count > 1 ? Math.min(count, Math.ceil(seconds / target)) : 1;
     if (shards <= 1) return [{ package: name, seconds, shard: undefined }];

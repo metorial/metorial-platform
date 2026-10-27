@@ -23,6 +23,7 @@ let include = {
   magicMcpEndpoint: {
     include: {
       consumerProfile: true,
+      ownerActor: magicMcpServerOwnerActorSelect,
       consumerIntegrationEndpoints: {
         include: {
           consumer: true,

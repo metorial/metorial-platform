@@ -1,5 +1,4 @@
-import { Badge, type BadgeSize, Spinner, theme } from '@metorial/ui';
-import React from 'react';
+import { Badge, type BadgeSize } from '@metorial/ui';
 import { formatEnumLabel } from '../lib/format';
 
 export type SandboxStatusTone = 'blue' | 'green' | 'orange' | 'gray' | 'red';
@@ -38,13 +37,7 @@ export type SandboxImageBuildStatus =
 export type SandboxDiskStatus = 'active' | 'cloning' | 'deleting' | 'deleted' | 'sealed';
 
 export type SandboxDiskResizeStatus =
-  | 'pending'
-  | 'draining'
-  | 'resizing'
-  | 'verifying'
-  | 'restarting'
-  | 'complete'
-  | 'failed';
+  'pending' | 'draining' | 'resizing' | 'verifying' | 'restarting' | 'complete' | 'failed';
 
 export type SandboxMountStatus =
   | 'failed'
@@ -222,7 +215,6 @@ export let getSandboxOperationKindLabel = (kind: SandboxOperationKind | string) 
 export let getSandboxOperationTriggerLabel = (trigger: SandboxOperationTrigger | string) =>
   operationTriggerLabels[trigger as SandboxOperationTrigger] ?? formatEnumLabel(trigger);
 
-let spinnerSizes: Record<BadgeSize, number> = { '1': 8, '2': 11, '3': 15 };
 let gapSizes: Record<BadgeSize, number> = { '1': 4, '2': 6, '3': 8 };
 
 export let SandboxStatusBadge = ({
@@ -238,15 +230,9 @@ export let SandboxStatusBadge = ({
     <Badge
       color={status.tone}
       size={size}
+      loading={status.isTransitional}
       style={{ gap: gapSizes[size], whiteSpace: 'nowrap' }}
     >
-      {status.isTransitional && (
-        <Spinner
-          size={spinnerSizes[size]}
-          foreground={theme.colors.orange900}
-          background={theme.colors.orange400}
-        />
-      )}
       {status.label}
     </Badge>
   );

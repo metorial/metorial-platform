@@ -31,3 +31,11 @@ package = "@metorial/signal"
 name = "signal"
 engine = "postgres"
 env = "DATABASE_URL"
+
+[[ci.images]]
+name = "signal"
+group = "oss"
+dockerfile = "Dockerfile"
+image = "metorial/mte-signal"
+ecr = "metorial-enterprise-saas/mte-signal"
+canonical = "ghcr.io/metorial/signal"

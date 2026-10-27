@@ -1,3 +1,4 @@
+import { portalSsoAccessAuditResource } from './portalSsoAccess';
 import { resourceSet } from '../../_lib/resource';
 import {
   consumerAuditResource,
@@ -44,9 +45,9 @@ export let workforceResources = resourceSet({
   consumer_provider_setup_session: consumerProviderSetupSessionAuditResource,
   consumer_provider_deployment: consumerProviderDeploymentAuditResource,
   consumer_surface_provider_group: consumerSurfaceProviderGroupAuditResource,
-  consumer_surface_provider_group_listing:
-    consumerSurfaceProviderGroupListingAuditResource,
+  consumer_surface_provider_group_listing: consumerSurfaceProviderGroupListingAuditResource,
   portal: portalAuditResource,
+  portal_sso_access: portalSsoAccessAuditResource,
   magic_mcp_server: magicMcpServerAuditResource,
   magic_mcp_endpoint: magicMcpEndpointAuditResource,
   magic_mcp_endpoint_servers: magicMcpEndpointServersAuditResource,

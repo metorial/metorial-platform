@@ -98,6 +98,7 @@ let ensureProviderAuthConfigEvent = async (d: {
       data: {
         ...getId('providerAuthConfigEvent'),
         type: d.event.type,
+        status: isErrorEvent(d.event) ? 'failed' : 'succeeded',
         sourceType: 'shuttle.server_oauth_setup',
         sourceId: d.event.id,
         providerInvocationId: getEventProviderInvocationId(d.event),

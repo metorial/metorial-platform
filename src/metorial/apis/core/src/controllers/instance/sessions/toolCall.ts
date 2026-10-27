@@ -4,6 +4,7 @@ import { v } from '@lowerdeck/validation';
 import { sessionService, toolCallService } from '@metorial-subspace/module-session';
 import { toolCallPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
+import { getOwnershipActor } from '../../../lib/ownershipActor';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
@@ -73,6 +74,10 @@ export let toolCallController = Controller.create(
             actor_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by identity actor ID(s)'
             }),
+            consumer_profile_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by the selected consumer profile ID or IDs.',
+              examples: ['cop_7nR8sK2mZa1pYx4b']
+            }),
             consumer_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by consumer ID(s)'
             }),
@@ -109,6 +114,7 @@ export let toolCallController = Controller.create(
           instance: ctx.instance,
           actorIds: normalizeArrayParam(ctx.query.actor_id),
           consumerIds: normalizeArrayParam(ctx.query.consumer_id),
+          consumerProfileIds: normalizeArrayParam(ctx.query.consumer_profile_id),
           identityIds: normalizeArrayParam(ctx.query.identity_id)
         });
         let searchActorIds = await resolveSearchActorIds({
@@ -182,6 +188,7 @@ export let toolCallController = Controller.create(
       .do(async ctx => {
         let session = await sessionService.getSessionById({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
           sessionId: ctx.body.session_id
         });
         let toolCall = await toolCallService.createToolCall({

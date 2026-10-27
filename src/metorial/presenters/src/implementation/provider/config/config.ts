@@ -1,6 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import { ownerActorSchema, presentOwnerActor } from '../../_shared';
+import { presentOwnerActor, presentResourceSource, resourceAccessSchema } from '../../_shared';
 import { providerConfigType } from '../../../types';
 import { toolFilterPresenter } from '../../_shared/toolFilter';
 import { v1ProviderConfigVaultPresenter } from './configVault';
@@ -51,7 +51,12 @@ export let v1ConfigPresenter = Presenter.create(providerConfigType)
           .run()
       : null,
 
-    owner_actor: presentOwnerActor(config.ownerActor),
+    access: {
+      source: presentResourceSource(config.source),
+      type: config.isOwnerLocked ? ('owner_locked' as const) : ('public' as const),
+      visibility: config.isOwnerOnlyVisible ? ('owner' as const) : ('anyone' as const),
+      owner: presentOwnerActor(config.ownerActor)
+    },
 
     created_at: config.createdAt,
     updated_at: config.updatedAt
@@ -108,7 +113,7 @@ export let v1ConfigPresenter = Presenter.create(providerConfigType)
       }),
       deployment: v.nullable(v1ProviderDeploymentPreviewPresenter.schema),
       from_vault: v.nullable(v1ProviderConfigVaultPresenter.schema),
-      owner_actor: ownerActorSchema,
+      access: resourceAccessSchema,
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created',

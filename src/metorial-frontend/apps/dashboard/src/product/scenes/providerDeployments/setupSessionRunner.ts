@@ -61,7 +61,10 @@ export let useProviderSetupSessionRunner = (p: {
   instanceId: string;
   providerId: string;
   providerDeploymentId?: string;
-  onComplete: (setupSession: DashboardInstanceProviderDeploymentsSetupSessionsGetOutput) => void;
+  source?: 'explorer';
+  onComplete: (
+    setupSession: DashboardInstanceProviderDeploymentsSetupSessionsGetOutput
+  ) => void;
 }) => {
   let createSetupSession = useCreateProviderSetupSession(
     p.instanceId,
@@ -151,7 +154,8 @@ export let useProviderSetupSessionRunner = (p: {
       name: input.name?.trim() || undefined,
       description: input.description?.trim() || undefined,
       providerAuthMethodId: input.providerAuthMethodId,
-      providerAuthCredentialsId
+      providerAuthCredentialsId,
+      ...(p.source ? { source: p.source } : {})
     });
 
     if (err || !session) {

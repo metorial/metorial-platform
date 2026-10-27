@@ -5,6 +5,7 @@ import {
   DashboardInstanceConsumersUpdateBody
 } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
+import { autoPaginate } from '../../lib/autoPaginate';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
@@ -82,3 +83,19 @@ export let useConsumerProfiles = (
       : `${instanceId ?? 'none'}:${consumerId ?? 'none'}`
   );
 };
+
+export let allConsumerProfilesLoader = createLoader({
+  name: 'allConsumerProfiles',
+  parents: [consumerProfilesLoader],
+  fetch: (i: { instanceId: string; consumerId: string }) =>
+    autoPaginate(cursor =>
+      withAuth(sdk => sdk.consumers.profiles.list(i.instanceId, i.consumerId, cursor))
+    ),
+  mutators: {}
+});
+
+export let useAllConsumerProfiles = (
+  instanceId: string | null | undefined,
+  consumerId: string | null | undefined
+) =>
+  allConsumerProfilesLoader.use(instanceId && consumerId ? { instanceId, consumerId } : null);

@@ -32,6 +32,13 @@ let { db, userService, passwordService, emails, successfulLogin, device, captcha
     captcha: { enabled: false, verify: vi.fn() }
   }));
 
+vi.mock('./userTwoFactor', () => ({
+  userTwoFactorService: {
+    afterPrimary: vi.fn(async () => true),
+    assertVerified: vi.fn(async () => undefined)
+  }
+}));
+
 vi.mock('../db', () => ({ db, withTransaction: (fn: (db: unknown) => unknown) => fn(db) }));
 vi.mock('../id', () => ({ getId: (name: string) => ({ oid: 20n, id: `${name}_1` }) }));
 vi.mock('../lib/passwordLock', () => ({

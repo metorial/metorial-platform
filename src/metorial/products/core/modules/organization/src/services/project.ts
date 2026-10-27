@@ -126,6 +126,8 @@ class ProjectService {
           magicMcpSessionDurationMinutes: d.input.magicMcpSessionDurationMinutes,
           autoAddOrganizationMembersToPortals: true,
           aiAnalysisEnabled: true,
+          allowApiAccessToConsumerOwnedResources: false,
+          allowMemberAccessToConsumerOwnedResources: false,
           hidePublicRemoteProviders: true,
           organizationOid: d.organization.oid
         },

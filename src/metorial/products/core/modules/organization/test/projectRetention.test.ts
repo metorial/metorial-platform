@@ -1,3 +1,4 @@
+import { createOrganizationActorAuditScope } from '@metorial/audit-scope';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@metorial/queue', () => ({
@@ -84,8 +85,8 @@ describe('ProjectRetentionService', () => {
 
   describe('updateProjectRetention', () => {
     it('persists retention fields and enqueues subspace tenant sync', async () => {
-      let mockOrg = { id: 'org-1', oid: 1 };
-      let mockActor = { id: 'actor-1', oid: 1 };
+      let mockOrg = { id: 'org-1', oid: 1n };
+      let mockActor = { id: 'actor-1', oid: 1n };
       let mockProject = {
         id: 'proj-1',
         oid: 1,
@@ -113,8 +114,11 @@ describe('ProjectRetentionService', () => {
       let result = await projectRetentionService.updateProjectRetention({
         project: mockProject as any,
         organization: mockOrg as any,
-        performedBy: mockActor as any,
-        context: {} as any,
+        auditScope: createOrganizationActorAuditScope({
+          organization: mockOrg,
+          organizationActor: mockActor,
+          context: { ip: '127.0.0.1' }
+        }),
         input: {
           logRetentionInDays: 7,
           enforceSessionExpiry: true

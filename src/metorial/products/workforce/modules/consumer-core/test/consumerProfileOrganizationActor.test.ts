@@ -6,6 +6,8 @@ let mocks = vi.hoisted(() => {
     consumer: { findUnique: vi.fn() },
     consumerGroup: { create: vi.fn() },
     consumerOrganizationActor: { upsert: vi.fn() },
+    consumerInvite: { findUnique: vi.fn() },
+    consumerSession: { updateMany: vi.fn() },
     consumerProfile: {
       create: vi.fn(),
       findFirst: vi.fn(),
@@ -115,6 +117,7 @@ vi.mock('../src/services/consumerSurface', () => ({
 }));
 
 import { consumerProfileService } from '../src/services/consumerProfile';
+import { consumerInviteService } from '../src/services/consumerInvite';
 
 let organization = { id: 'org_1', oid: 1n };
 let systemActor = { id: 'oac_system', oid: 2n, type: 'system' };
@@ -374,4 +377,105 @@ describe('consumer profile organization actors', () => {
       consumerProfileId: 'cop_1'
     });
   });
+});
+
+describe('consumerProfileService.getConsumerProfileForPortalAccount', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('restricts account reads to the instance and current portal or internal surfaces', async () => {
+    mocks.db.consumerProfile.findFirst.mockResolvedValue(null);
+
+    await expect(
+      consumerProfileService.getConsumerProfileForPortalAccount({
+        instance: { oid: 4n } as any,
+        consumerSurface: { oid: 6n } as any,
+        consumerProfileId: 'cop_1'
+      })
+    ).rejects.toThrow();
+
+    expect(mocks.db.consumerProfile.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          instanceOid: 4n,
+          id: 'cop_1',
+          status: 'active',
+          OR: [
+            { surfaceOid: 6n },
+            { surface: { type: { in: ['organization_members', 'cli'] } } }
+          ]
+        }
+      })
+    );
+  });
+
+  it.each(['portal', 'organization_members', 'cli'])(
+    'returns an eligible %s profile',
+    async type => {
+      let profile = { id: 'cop_1', surface: { type } };
+      mocks.db.consumerProfile.findFirst.mockResolvedValue(profile);
+      let enrich = vi
+        .spyOn(consumerProfileService, 'enrichConsumerProfile')
+        .mockResolvedValue(profile as any);
+
+      try {
+        await expect(
+          consumerProfileService.getConsumerProfileForPortalAccount({
+            instance: { oid: 4n } as any,
+            consumerSurface: { oid: 6n } as any,
+            consumerProfileId: 'cop_1'
+          })
+        ).resolves.toBe(profile);
+      } finally {
+        enrich.mockRestore();
+      }
+    }
+  );
+});
+
+describe('consumer profile invitation deletion', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it.each(['pending', 'accepted', null])(
+    'handles %s invitation state when deleting a profile',
+    async status => {
+      let profile = { oid: 20n, status: 'active', surface: portalSurface } as any;
+      let deleted = { ...profile, status: 'deleted' };
+      mocks.db.consumerInvite.findUnique.mockResolvedValue(
+        status ? { id: 'coi_1', status } : null
+      );
+      mocks.db.consumerProfile.update.mockResolvedValue(deleted);
+      let deleteInvite = vi
+        .spyOn(consumerInviteService, 'deleteConsumerInvite')
+        .mockResolvedValue({} as any);
+      let enrich = vi
+        .spyOn(consumerProfileService, 'enrichConsumerProfile')
+        .mockResolvedValue(deleted);
+
+      try {
+        await consumerProfileService.deleteConsumerProfile({
+          consumerProfile: profile,
+          auditScope: {} as any
+        });
+        if (status === 'pending') {
+          expect(deleteInvite).toHaveBeenCalledWith({
+            consumerSurface: portalSurface,
+            consumerInviteId: 'coi_1',
+            auditScope: {}
+          });
+        } else {
+          expect(deleteInvite).not.toHaveBeenCalled();
+        }
+        expect(mocks.db.consumerProfile.update).toHaveBeenCalledWith(
+          expect.objectContaining({ data: expect.objectContaining({ status: 'deleted' }) })
+        );
+        expect(mocks.db.consumerSession.updateMany).toHaveBeenCalledWith({
+          where: { consumerProfileOid: profile.oid, loggedOutAt: null },
+          data: { loggedOutAt: expect.any(Date) }
+        });
+      } finally {
+        deleteInvite.mockRestore();
+        enrich.mockRestore();
+      }
+    }
+  );
 });

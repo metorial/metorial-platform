@@ -1,6 +1,27 @@
 import { expect, test } from 'bun:test';
 import { affected, controlTasks, suites } from './changes';
 
+let controlSuites = {
+  oss: {
+    name: 'metorial',
+    package: '@metorial/app-api',
+    stackPackages: [],
+    workspacePackages: [],
+    services: [],
+    tests: ['src/metorial/products/*/modules/*', 'src/metorial/apis/*'],
+    groups: 4
+  },
+  enterprise: {
+    name: 'metorial-enterprise',
+    package: '@metorial/mte-core-api',
+    stackPackages: [],
+    workspacePackages: ['@metorial-enterprise/fabric'],
+    services: [],
+    tests: ['src/metorial/modules/*', 'src/metorial/apis/*'],
+    groups: 2
+  }
+};
+
 test('unchanged and unrelated workspaces do not select tests', () => {
   expect(affected([], ['src/forge/service'], false)).toBe(false);
   expect(
@@ -32,18 +53,24 @@ test('source, shared dependency, deleted files and imported configuration select
 });
 
 test('E2E suites include every application container dependency', () => {
-  expect(suites.find(suite => suite.name === 'shuttle')!.services).toContain('forge');
+  expect(suites.find(suite => suite.name === 'shuttle')!.services).toContain(
+    '@metorial/forge'
+  );
   expect(suites.find(suite => suite.name === 'slates-hub')!.services).toEqual([
-    'slates',
-    'forge',
-    'function-bay',
-    'signal'
+    '@metorial/forge',
+    '@metorial/function-bay',
+    '@metorial/nebula',
+    '@metorial/signal',
+    '@metorial/slates',
+    '@metorial/slates-registry'
   ]);
-  expect(suites.find(suite => suite.name === 'function-bay')!.services).toContain('forge');
+  expect(suites.find(suite => suite.name === 'function-bay')!.services).toContain(
+    '@metorial/forge'
+  );
 });
 
 test('control suites select stack test packages and prune them for CI', async () => {
-  let { controlSuites, controlTestPackages, controlTasks } = await import('./changes');
+  let { controlTestPackages, controlTasks } = await import('./changes');
   let packages = new Map([
     [
       '@metorial/module-user',
@@ -67,7 +94,7 @@ test('control suites select stack test packages and prune them for CI', async ()
 });
 
 test('control suites run as duration-balanced matrix groups with per-package shards', async () => {
-  let { controlSuites, controlMatrix } = await import('./changes');
+  let { controlMatrix } = await import('./changes');
   let packages = new Map([
     ['@metorial/api-core', { directory: 'src/metorial/apis/core', e2e: true }],
     ...Array.from(

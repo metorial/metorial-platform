@@ -1,3 +1,4 @@
+import { userTwoFactorController } from './userTwoFactor';
 import { createServer, type InferClient } from '@lowerdeck/rpc-server';
 import { internalApp } from '../_app';
 import { appController } from './app';
@@ -15,6 +16,7 @@ let rootController = internalApp.controller({
   tenant: tenantController,
   user: userController,
   userPassword: userPasswordController,
+  userTwoFactor: userTwoFactorController,
   syncListener: syncListenerController,
   sso: ssoController,
   ssoV2: ssoV2Controller,

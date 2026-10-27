@@ -30,6 +30,7 @@ export type DashboardInstancePortalsConsumerProfilesGetOutput = ({
     | null;
 }) & {
   isServiceAccount: boolean;
+  organizationMember: { id: string } | null;
   surface: {
     object: 'consumer.surface';
     id: string;
@@ -52,6 +53,9 @@ export type DashboardInstancePortalsConsumerProfilesGetOutput = ({
     };
     createdAt: Date;
     updatedAt: Date;
+  } & {
+    type: 'portal' | 'organization_members' | 'cli';
+    portalId: string | null;
   };
 };
 
@@ -89,34 +93,50 @@ export let mapDashboardInstancePortalsConsumerProfilesGetOutput =
                 ]
               ],
               'is_service_account',
+              'organization_member',
               [
                 'surface',
                 0,
                 [
-                  1,
+                  3,
                   [
-                    'allow_consumer_skill_authoring',
-                    'allow_consumer_skill_publishing',
                     [
-                      'skill_configuration',
-                      1,
+                      0,
                       [
                         1,
                         [
-                          'is_default',
-                          'allow_scripts',
-                          'allowed_file_extensions',
-                          'allow_non_standard_directories'
+                          'allow_consumer_skill_authoring',
+                          'allow_consumer_skill_publishing',
+                          [
+                            'skill_configuration',
+                            1,
+                            [
+                              1,
+                              [
+                                'is_default',
+                                'allow_scripts',
+                                'allowed_file_extensions',
+                                'allow_non_standard_directories'
+                              ]
+                            ]
+                          ],
+                          [
+                            'auth',
+                            0,
+                            [
+                              1,
+                              [
+                                'session_expiry_time_in_seconds',
+                                'email_whitelist'
+                              ]
+                            ]
+                          ],
+                          'created_at',
+                          'updated_at',
+                          'portal_id'
                         ]
                       ]
-                    ],
-                    [
-                      'auth',
-                      0,
-                      [1, ['session_expiry_time_in_seconds', 'email_whitelist']]
-                    ],
-                    'created_at',
-                    'updated_at'
+                    ]
                   ]
                 ]
               ]

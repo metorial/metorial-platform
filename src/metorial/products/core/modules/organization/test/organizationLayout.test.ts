@@ -1,3 +1,4 @@
+import { createOrganizationActorAuditScope } from '@metorial/audit-scope';
 import { v } from '@lowerdeck/validation';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -135,8 +136,11 @@ describe('OrganizationLayoutService', () => {
         value: { columns: 'two' },
         user: user as any,
         organization: organization as any,
-        performedBy: actor as any,
-        context: {} as any
+        auditScope: createOrganizationActorAuditScope({
+          organization,
+          organizationActor: actor,
+          context: { ip: '127.0.0.1' }
+        })
       })
     ).rejects.toThrow('The provided data is invalid');
 
@@ -145,8 +149,11 @@ describe('OrganizationLayoutService', () => {
       value: { columns: 2 },
       user: user as any,
       organization: organization as any,
-      performedBy: actor as any,
-      context: {} as any
+      auditScope: createOrganizationActorAuditScope({
+        organization,
+        organizationActor: actor,
+        context: { ip: '127.0.0.1' }
+      })
     });
 
     expect(layout.value).toEqual({ columns: 2 });

@@ -1,3 +1,4 @@
+import { twoFactorController } from './twoFactor';
 import { createServer, type InferClient } from '@lowerdeck/rpc-server';
 import { publicApp } from '../_app';
 import { authenticationController } from './auth';
@@ -8,6 +9,7 @@ import { oauthController } from './oauth';
 import { sessionController } from './session';
 
 let rootController = publicApp.controller({
+  twoFactor: twoFactorController,
   authentication: authenticationController,
   authAttempt: authAttemptController,
   authIntent: authIntentController,

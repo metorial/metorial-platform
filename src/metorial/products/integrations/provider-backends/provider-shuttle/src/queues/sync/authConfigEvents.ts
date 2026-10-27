@@ -125,6 +125,7 @@ export let syncAuthConfigEventQueueProcessor = syncAuthConfigEventQueue.process(
       data: {
         ...getId('providerAuthConfigEvent'),
         type: data.event.type,
+        status: isErrorEvent(data.event) ? 'failed' : 'succeeded',
         sourceType: 'shuttle.server_auth_config_event',
         sourceId: data.event.id,
         providerInvocationId: getEventProviderInvocationId(data.event),

@@ -62,6 +62,10 @@ vi.mock('../sessions/_shared', () => ({ toolFiltersValidator: v.optional(v.any()
 
 vi.mock('../skills', () => ({ getSkillPluginAccess: vi.fn() }));
 
+vi.mock('../../../lib/ownershipActor', () => ({
+  getOwnershipActor: (ctx: { actor?: unknown }) => ctx.actor
+}));
+
 vi.mock('../../../middleware/apiGroup', () => ({ apiGroup: Group.create() }));
 
 vi.mock('../../../middleware/instanceGroup', () => ({
@@ -153,7 +157,10 @@ describe('magic MCP endpoint skill editing flag', () => {
         name: undefined,
         description: undefined,
         metadata: undefined,
-        enableSkillEditing: true
+        enableSkillEditing: true,
+        source: undefined,
+        isOwnerLocked: undefined,
+        isOwnerOnlyVisible: undefined
       }
     });
   });
@@ -164,4 +171,75 @@ describe('magic MCP endpoint skill editing flag', () => {
     ).rejects.toMatchObject({ data: { status: 400 } });
     expect(mocks.createMagicMcpEndpoint).not.toHaveBeenCalled();
   });
+});
+
+describe('dashboard explorer source', () => {
+  it('stores the explorer source and sets both ownership flags', async () => {
+    await endpointHandler('update').run(request({ source: 'explorer' }), context);
+
+    expect(mocks.updateMagicMcpEndpoint).toHaveBeenCalledWith(
+      expect.objectContaining({
+        input: expect.objectContaining({
+          source: 'explorer',
+          isOwnerLocked: true,
+          isOwnerOnlyVisible: true
+        })
+      })
+    );
+  });
+
+  it('leaves ownership flags unchanged when source is omitted', async () => {
+    await endpointHandler('update').run(request({ name: 'Renamed Endpoint' }), context);
+
+    expect(mocks.updateMagicMcpEndpoint).toHaveBeenCalledWith(
+      expect.objectContaining({
+        input: expect.objectContaining({
+          source: undefined,
+          isOwnerLocked: undefined,
+          isOwnerOnlyVisible: undefined
+        })
+      })
+    );
+  });
+
+  it('rejects other source values', async () => {
+    await expect(
+      endpointHandler('update').run(request({ source: 'manual' }), context)
+    ).rejects.toMatchObject({ data: { status: 400 } });
+
+    expect(mocks.updateMagicMcpEndpoint).not.toHaveBeenCalled();
+  });
+
+  it('does not accept the explorer source through Magnetar', async () => {
+    let req = request({ source: 'explorer' });
+    req.apiVersion = 'mt_2026_01_01_magnetar';
+
+    await endpointHandler('update').run(req, context);
+
+    expect(mocks.updateMagicMcpEndpoint).toHaveBeenCalledWith(
+      expect.objectContaining({
+        input: expect.objectContaining({
+          source: undefined,
+          isOwnerLocked: undefined,
+          isOwnerOnlyVisible: undefined
+        })
+      })
+    );
+  });
+
+  it.each(['is_owner_locked', 'is_owner_only_visible'])(
+    'ignores the removed %s input',
+    async field => {
+      await endpointHandler('update').run(request({ [field]: true }), context);
+
+      expect(mocks.updateMagicMcpEndpoint).toHaveBeenCalledWith(
+        expect.objectContaining({
+          input: expect.objectContaining({
+            isOwnerLocked: undefined,
+            isOwnerOnlyVisible: undefined
+          })
+        })
+      );
+    }
+  );
 });

@@ -90,7 +90,11 @@ export let reconcileProjectSubspaceConfigurationSingleQueueProcessor =
       project.useIntegrationNamesForSessionProviderNameTemplates !==
         tenant.useIntegrationNamesForSessionProviderNameTemplates ||
       project.reducedSubprocessors !== tenant.reducedSubprocessors ||
-      project.aiAnalysisEnabled !== tenant.aiAnalysisEnabled;
+      project.aiAnalysisEnabled !== tenant.aiAnalysisEnabled ||
+      project.allowApiAccessToConsumerOwnedResources !==
+        tenant.allowApiAccessToConsumerOwnedResources ||
+      project.allowMemberAccessToConsumerOwnedResources !==
+        tenant.allowMemberAccessToConsumerOwnedResources;
     if (!hasDrift) return;
 
     await db.project.update({
@@ -110,7 +114,10 @@ export let reconcileProjectSubspaceConfigurationSingleQueueProcessor =
         useIntegrationNamesForSessionProviderNameTemplates:
           tenant.useIntegrationNamesForSessionProviderNameTemplates,
         reducedSubprocessors: tenant.reducedSubprocessors,
-        aiAnalysisEnabled: tenant.aiAnalysisEnabled
+        aiAnalysisEnabled: tenant.aiAnalysisEnabled,
+        allowApiAccessToConsumerOwnedResources: tenant.allowApiAccessToConsumerOwnedResources,
+        allowMemberAccessToConsumerOwnedResources:
+          tenant.allowMemberAccessToConsumerOwnedResources
       }
     });
   });

@@ -11,7 +11,25 @@ import { Button } from '@metorial/ui';
 import { RiArrowLeftSLine } from '@remixicon/react';
 import { Link, Outlet, useLocation, useParams } from 'react-router-dom';
 import styled from 'styled-components';
+import { ResourceOwnerInline } from '../../../components/resourceOwnerEntity';
 import { DeletedRecordCallout } from '../../../scenes/deletedRecordCallout';
+
+let HeaderRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  > a {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+  }
+
+  > a:first-child {
+    flex-shrink: 0;
+  }
+`;
 
 let OutletWrapper = styled.div`
   flex: 1;
@@ -45,13 +63,21 @@ export let ProviderSessionLayout = () => {
   return (
     <ExtraHeaderLayout
       header={
-        <Link
-          to={Paths.instance.providerSessions(organization.data, project.data, instance.data)}
-        >
-          <Button size="2" variant="outline" iconLeft={<RiArrowLeftSLine />}>
-            Back to all sessions
-          </Button>
-        </Link>
+        <HeaderRow>
+          <Link
+            to={Paths.instance.providerSessions(
+              organization.data,
+              project.data,
+              instance.data
+            )}
+          >
+            <Button size="2" variant="outline" iconLeft={<RiArrowLeftSLine />}>
+              Back to all sessions
+            </Button>
+          </Link>
+
+          {session.data?.access.owner && <ResourceOwnerInline resource={session.data} />}
+        </HeaderRow>
       }
     >
       <ContentPanelLayout

@@ -1,4 +1,3 @@
-import { useIsSSR } from '@looped/hooks';
 import React, { useState } from 'react';
 import { useWindowSize } from 'react-use';
 import { styled } from 'styled-components';
@@ -8,6 +7,8 @@ import { getLink } from '../link';
 let Wrapper = styled('div')`
   position: relative;
   width: 100%;
+  min-width: 0;
+  flex-shrink: 0;
   user-select: none;
 `;
 
@@ -15,9 +16,7 @@ let Inner = styled('div')`
   display: flex;
   padding: 0;
   margin: 0;
-  /* gap: PADDINGpx; */
   border-bottom: 1px solid ${theme.colors.gray400};
-  /* padding-bottom: 6px; */
   overflow-x: auto;
   white-space: nowrap;
   justify-content: center;
@@ -27,6 +26,8 @@ let Inner = styled('div')`
 
 let List = styled('ul')`
   list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
   max-width: 100%;
   overflow-x: auto;
@@ -41,7 +42,6 @@ let Tab = styled('li')`
 
   button,
   a {
-    /* height: 30px; */
     font-size: 14px;
     font-weight: 500;
     color: ${theme.colors.gray700};
@@ -72,7 +72,6 @@ let LineIndicator = styled('div')`
 let TabIndicator = styled('div')`
   position: absolute;
   transform: translateY(-50%);
-  /* height: 30px; */
   transition: all 0.3s ease;
   border-radius: 7px;
   z-index: 0;
@@ -130,7 +129,6 @@ export let Tabs = ({
   maxWidth?: number | string;
 }) => {
   let Link = getLink();
-  let isServer = useIsSSR();
 
   // Rerender on window resize
   useWindowSize();
@@ -189,7 +187,10 @@ export let Tabs = ({
   });
 
   return (
-    <Wrapper ref={setWrapperRef}>
+    <Wrapper
+      ref={setWrapperRef}
+      style={{ marginBottom: margin.bottom, marginTop: margin.top }}
+    >
       <Inner
         ref={setInnerRef}
         onScroll={e =>
@@ -201,10 +202,7 @@ export let Tabs = ({
           paddingLeft: padding.left,
           paddingRight: padding.right,
           paddingTop: padding.top,
-          paddingBottom: padding.bottom,
-
-          marginBottom: margin.bottom,
-          marginTop: margin.top
+          paddingBottom: padding.bottom
         }}
       >
         <List

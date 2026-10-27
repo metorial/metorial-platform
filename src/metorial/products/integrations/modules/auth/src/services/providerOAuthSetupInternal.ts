@@ -84,11 +84,13 @@ class providerOAuthSetupInternalServiceImpl {
             authConfig =
               await providerAuthConfigInternalService.createProviderAuthConfigInternal({
                 backend: backend.backend,
-                source: providerOAuthSetup.ownerPublicMcpServerOid
-                  ? 'public_mcp'
-                  : providerOAuthSetup.providerSetupSession
-                    ? 'setup_session'
-                    : 'system',
+                source:
+                  providerOAuthSetup.providerSetupSession?.source ??
+                  (providerOAuthSetup.ownerPublicMcpServerOid
+                    ? 'public_mcp'
+                    : providerOAuthSetup.providerSetupSession
+                      ? 'setup_session'
+                      : 'system'),
                 type: 'oauth_automated',
                 tenant: providerOAuthSetup.tenant,
                 environment: providerOAuthSetup.environment,
@@ -96,6 +98,9 @@ class providerOAuthSetupInternalServiceImpl {
                 providerDeployment: providerOAuthSetup.deployment ?? undefined,
                 credentials: providerOAuthSetup.authCredentials,
                 ownerActorOid: providerOAuthSetup.providerSetupSession?.ownerActorOid,
+                isOwnerLocked: providerOAuthSetup.providerSetupSession?.isOwnerLocked,
+                isOwnerOnlyVisible:
+                  providerOAuthSetup.providerSetupSession?.isOwnerOnlyVisible,
                 input: {
                   name: providerOAuthSetup.name ?? undefined,
                   description: providerOAuthSetup.description ?? undefined,

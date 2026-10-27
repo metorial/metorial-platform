@@ -13,6 +13,7 @@ import { Attributes, Spacer, Text } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import { Link, useParams } from 'react-router-dom';
 import { styled } from 'styled-components';
+import { ResourceOwnerEntity } from '../../../components/resourceOwnerEntity';
 import { ProviderSessionsTable } from '../../../scenes/providerSessions/table';
 
 let SummaryValue = styled.div`
@@ -44,6 +45,13 @@ export let ProviderConfigOverviewPage = () => {
   return renderWithLoader({ config })(({ config }) => (
     <DetailsOverviewLayout>
       <>
+        {config.data.access.owner && (
+          <>
+            <ResourceOwnerEntity resource={config.data} />
+            <Spacer height={15} />
+          </>
+        )}
+
         <Attributes
           itemWidth="300px"
           attributes={[

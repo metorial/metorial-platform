@@ -19,6 +19,19 @@ runs:
     - uses: oven-sh/setup-bun@v2
       with:
         bun-version: '1.4.2'
+    - name: Describe control test dependencies
+      shell: bash
+      env:
+        SOURCE_WORKSPACE: ${{ inputs.workspace }}
+      run: |
+        set -euo pipefail
+        if [ ! -f "$RUNNER_TEMP/backend-inventory.json" ]; then
+          cd "$SOURCE_WORKSPACE"
+          directory=src/control
+          set -- --oss
+          if [ -f oss/package.json ]; then directory="oss/$directory"; set --; fi
+          bun "$directory/src/main.ts" "$@" ci describe --json > "$RUNNER_TEMP/backend-inventory.json"
+        fi
     - id: turbo-cli
       uses: actions/cache@v4
       with:

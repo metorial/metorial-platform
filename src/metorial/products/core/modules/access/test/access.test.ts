@@ -1,4 +1,5 @@
 import { ServiceError, notFoundError } from '@lowerdeck/error';
+import { createSystemAuditScope } from '@metorial/audit-scope';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { accessService } from '../src/services/access';
 import { AuthInfo } from '../src/services/authentication';
@@ -135,6 +136,10 @@ describe('AccessService', () => {
     it('should work with machine auth info', async () => {
       let authInfo: AuthInfo = {
         type: 'machine',
+        auditScope: createSystemAuditScope({
+          organization: { oid: 1n },
+          job: 'access-test'
+        }),
         apiKey: { id: 'key-1' } as any,
         machineAccess: { type: 'organization_management' } as any,
         orgScopes: ['organization:read', 'instance.provider:write'],
@@ -178,6 +183,10 @@ describe('AccessService', () => {
     it('should deny fine grained token when fineGrainedPolicy is deny by default', async () => {
       let authInfo: AuthInfo = {
         type: 'fine_grained',
+        auditScope: createSystemAuditScope({
+          organization: { oid: 1n },
+          job: 'access-test'
+        }),
         fineGrainedKey: { id: 'fgk_1' } as any,
         orgScopes: ['instance.provider.session:read'],
         restrictions: {
@@ -206,6 +215,10 @@ describe('AccessService', () => {
     it('should allow fine grained token when fineGrainedPolicy is allow', async () => {
       let authInfo: AuthInfo = {
         type: 'fine_grained',
+        auditScope: createSystemAuditScope({
+          organization: { oid: 1n },
+          job: 'access-test'
+        }),
         fineGrainedKey: { id: 'fgk_1' } as any,
         orgScopes: ['instance.provider.session:read'],
         restrictions: {
@@ -235,6 +248,10 @@ describe('AccessService', () => {
     it('should deny fine grained token for non-session scopes by default', async () => {
       let authInfo: AuthInfo = {
         type: 'fine_grained',
+        auditScope: createSystemAuditScope({
+          organization: { oid: 1n },
+          job: 'access-test'
+        }),
         fineGrainedKey: { id: 'fgk_1' } as any,
         orgScopes: ['organization.instance:read'],
         restrictions: {
@@ -263,6 +280,10 @@ describe('AccessService', () => {
     it('should allow fine grained token for write scopes when allowed for endpoint', async () => {
       let authInfo: AuthInfo = {
         type: 'fine_grained',
+        auditScope: createSystemAuditScope({
+          organization: { oid: 1n },
+          job: 'access-test'
+        }),
         fineGrainedKey: { id: 'fgk_1' } as any,
         orgScopes: ['instance.provider.session:write'],
         restrictions: {
@@ -380,6 +401,10 @@ describe('AccessService', () => {
 
         let authInfo: AuthInfo = {
           type: 'machine',
+          auditScope: createSystemAuditScope({
+            organization: { oid: 1n },
+            job: 'access-test'
+          }),
           apiKey: { id: 'key-1' } as any,
           machineAccess: { type: 'organization_management' } as any,
           orgScopes: ['organization:read'],
@@ -407,6 +432,10 @@ describe('AccessService', () => {
 
         let authInfo: AuthInfo = {
           type: 'machine',
+          auditScope: createSystemAuditScope({
+            organization: { oid: 1n },
+            job: 'access-test'
+          }),
           apiKey: { id: 'key-1' } as any,
           machineAccess: { type: 'organization_management' } as any,
           orgScopes: ['organization:read'],
@@ -431,6 +460,10 @@ describe('AccessService', () => {
 
         let authInfo: AuthInfo = {
           type: 'machine',
+          auditScope: createSystemAuditScope({
+            organization: { oid: 1n },
+            job: 'access-test'
+          }),
           apiKey: { id: 'key-1' } as any,
           machineAccess: { type: 'organization_management' } as any,
           orgScopes: ['organization:read'],
@@ -454,6 +487,10 @@ describe('AccessService', () => {
 
         let authInfo: AuthInfo = {
           type: 'machine',
+          auditScope: createSystemAuditScope({
+            organization: { oid: 1n },
+            job: 'access-test'
+          }),
           apiKey: { id: 'key-1' } as any,
           machineAccess: { type: 'organization_management' } as any,
           orgScopes: ['organization:read'],
@@ -578,6 +615,10 @@ describe('AccessService', () => {
 
         let authInfo: AuthInfo = {
           type: 'machine',
+          auditScope: createSystemAuditScope({
+            organization: { oid: 1n },
+            job: 'access-test'
+          }),
           apiKey: { id: 'key-1' } as any,
           machineAccess: { type: 'organization_management' } as any,
           orgScopes: ['instance.provider:read'],
@@ -609,6 +650,10 @@ describe('AccessService', () => {
 
         let authInfo: AuthInfo = {
           type: 'machine',
+          auditScope: createSystemAuditScope({
+            organization: { oid: 1n },
+            job: 'access-test'
+          }),
           apiKey: { id: 'key-1' } as any,
           machineAccess: { type: 'organization_management' } as any,
           orgScopes: ['instance.provider:read'],
@@ -641,6 +686,10 @@ describe('AccessService', () => {
 
         let authInfo: AuthInfo = {
           type: 'machine',
+          auditScope: createSystemAuditScope({
+            organization: { oid: 1n },
+            job: 'access-test'
+          }),
           apiKey: { id: 'key-1' } as any,
           machineAccess: {
             type: 'instance_secret',
@@ -683,6 +732,10 @@ describe('AccessService', () => {
 
         let authInfo: AuthInfo = {
           type: 'machine',
+          auditScope: createSystemAuditScope({
+            organization: { oid: 1n },
+            job: 'access-test'
+          }),
           apiKey: { id: 'key-1' } as any,
           machineAccess: { type: 'instance_secret' } as any,
           orgScopes: ['instance.provider:read'],
@@ -710,6 +763,10 @@ describe('AccessService', () => {
 
         let authInfo: AuthInfo = {
           type: 'machine',
+          auditScope: createSystemAuditScope({
+            organization: { oid: 1n },
+            job: 'access-test'
+          }),
           apiKey: { id: 'key-1' } as any,
           machineAccess: { type: 'instance_secret' } as any,
           orgScopes: ['instance.provider:read'],
@@ -735,6 +792,10 @@ describe('AccessService', () => {
 
         let authInfo: AuthInfo = {
           type: 'machine',
+          auditScope: createSystemAuditScope({
+            organization: { oid: 1n },
+            job: 'access-test'
+          }),
           apiKey: { id: 'key-1' } as any,
           machineAccess: { type: 'instance_publishable' } as any,
           orgScopes: ['instance.provider.listing:read'],
@@ -758,6 +819,10 @@ describe('AccessService', () => {
       it('should throw forbidden error for organization token without instance restrictions', async () => {
         let authInfo: AuthInfo = {
           type: 'machine',
+          auditScope: createSystemAuditScope({
+            organization: { oid: 1n },
+            job: 'access-test'
+          }),
           apiKey: { id: 'key-1' } as any,
           machineAccess: {
             type: 'instance_publishable' // Type suggests instance, but restrictions don't match
@@ -930,6 +995,10 @@ describe('AccessService', () => {
       // Actor access (machine)
       let machineAuthInfo: AuthInfo = {
         type: 'machine',
+        auditScope: createSystemAuditScope({
+          organization: { oid: 1n },
+          job: 'access-test'
+        }),
         apiKey: { id: 'key-1' } as any,
         machineAccess: { type: 'organization_management' } as any,
         orgScopes: ['organization:read'],

@@ -95,6 +95,10 @@ vi.mock('@metorial-subspace/module-tenant', () => ({
   }
 }));
 
+vi.mock('../src/queues/deletedConsumerProfile', () => ({
+  archiveDeletedConsumerProfileActorsQueue: { add: vi.fn() }
+}));
+
 vi.mock('../src/queues/consumerActorSync', () => ({
   syncInstanceConsumerActorsQueue: {
     add: mocks.enqueueInstanceConsumerSync
@@ -157,6 +161,16 @@ describe('consumerActorService', () => {
     mocks.deleteIdentityActor.mockResolvedValue({});
   });
 
+  it('rejects a deleted profile even if its default actor still exists', async () => {
+    mocks.consumerProfile.findFirst.mockResolvedValue(null);
+    mocks.consumerActor.findMany.mockResolvedValue([actor]);
+    await expect(
+      consumerActorService.ensureDefaultConsumerActor({ instance, consumerProfile })
+    ).rejects.toThrow();
+    expect(mocks.createIdentityActor).not.toHaveBeenCalled();
+    expect(mocks.consumerActor.findMany).not.toHaveBeenCalled();
+  });
+
   it('returns a healthy existing default actor without taking the lock', async () => {
     mocks.consumerActor.findMany.mockResolvedValue([actor]);
 
@@ -166,6 +180,21 @@ describe('consumerActorService', () => {
 
     expect(mocks.usingLock).not.toHaveBeenCalled();
     expect(mocks.createIdentityActor).not.toHaveBeenCalled();
+  });
+
+  it('creates organization member actors with their own identity type', async () => {
+    mocks.consumerProfile.findFirst.mockResolvedValue({
+      ...profile,
+      organizationMemberOid: 90n
+    });
+
+    await consumerActorService.ensureDefaultConsumerActor({ instance, consumerProfile });
+
+    expect(mocks.createIdentityActor).toHaveBeenCalledWith(
+      expect.objectContaining({
+        input: expect.objectContaining({ type: 'organization_member' })
+      })
+    );
   });
 
   it('creates the actor, default identity, and local record when missing', async () => {

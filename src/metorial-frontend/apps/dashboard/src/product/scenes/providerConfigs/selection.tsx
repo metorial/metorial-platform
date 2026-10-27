@@ -44,7 +44,8 @@ export let ProviderConfigurationSelection = ({
   disabled = false,
   inlineCreateConfig = false,
   defaultConfigName,
-  hideCreateConfigDetails = false
+  hideCreateConfigDetails = false,
+  source
 }: {
   instanceId: string;
   providerDeploymentId?: string;
@@ -60,6 +61,7 @@ export let ProviderConfigurationSelection = ({
   inlineCreateConfig?: boolean;
   defaultConfigName?: string;
   hideCreateConfigDetails?: boolean;
+  source?: 'explorer';
 }) => {
   let query = filterAvailableResources
     ? {
@@ -79,7 +81,10 @@ export let ProviderConfigurationSelection = ({
     : providerId
       ? { providerId }
       : {};
-  let configs = useProviderConfigs(instanceId, query);
+  let configs = useProviderConfigs(instanceId, {
+    ...query,
+    ...(source ? { ownership: 'usable' as const } : {})
+  });
   let vaults = useProviderConfigVaults(instanceId, vaultQuery);
   let configSchema = useProviderConfigSchemaTarget(
     instanceId,
@@ -181,6 +186,7 @@ export let ProviderConfigurationSelection = ({
           providerId={providerId}
           defaultName={defaultConfigName}
           hideDetailsInputs={hideCreateConfigDetails}
+          source={source}
           close={() => setIsCreatingInlineConfig(false)}
           onCreate={handleConfigCreated}
         />
@@ -198,6 +204,7 @@ export let ProviderConfigurationSelection = ({
                   let hasSearchQuery = Boolean(searchQuery);
                   let comboboxConfigs = useProviderConfigs(instanceId, {
                     ...query,
+                    ...(source ? { ownership: 'usable' as const } : {}),
                     limit: 25,
                     search: searchQuery || undefined
                   });

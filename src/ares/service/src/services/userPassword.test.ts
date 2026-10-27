@@ -19,6 +19,13 @@ let { db, password, captcha, audit, transaction } = vi.hoisted(() => ({
   transaction: { current: null as any, override: null as any }
 }));
 
+vi.mock('./userTwoFactor', () => ({
+  userTwoFactorService: {
+    afterPrimary: vi.fn(async () => true),
+    assertVerified: vi.fn(async () => undefined)
+  }
+}));
+
 vi.mock('../db', () => ({
   db,
   withTransaction: async (fn: (db: unknown) => unknown, opts?: { ifExists?: boolean }) => {

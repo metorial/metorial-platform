@@ -91,6 +91,10 @@ export let sessionConnectionController = Controller.create(
             actor_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by connected identity actor ID(s)'
             }),
+            consumer_profile_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description: 'Filter by the selected consumer profile ID or IDs.',
+              examples: ['cop_7nR8sK2mZa1pYx4b']
+            }),
             consumer_id: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by connected consumer ID(s)'
             }),
@@ -119,6 +123,7 @@ export let sessionConnectionController = Controller.create(
           instance: ctx.instance,
           actorIds: normalizeArrayParam(ctx.query.actor_id),
           consumerIds: normalizeArrayParam(ctx.query.consumer_id),
+          consumerProfileIds: normalizeArrayParam(ctx.query.consumer_profile_id),
           identityIds: normalizeArrayParam(ctx.query.identity_id)
         });
 

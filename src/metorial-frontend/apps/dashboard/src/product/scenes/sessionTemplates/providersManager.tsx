@@ -508,6 +508,7 @@ export let SessionTemplateProvidersManager = ({
   );
 
   let authConfigs = useProviderAuthConfigs(instanceId, {
+    ownership: 'all',
     providerId: providerIds.length > 0 ? providerIds : undefined
   });
   let listings = useProviderListings(instanceId, {

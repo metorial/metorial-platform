@@ -2,7 +2,7 @@ import { db } from '@metorial-subspace/db';
 import { createQueue } from '@metorial/queue';
 import { buildSessionUsageEvent } from '../lib/events';
 import {
-  resolveUsageConsumerByActor,
+  resolveUsageConsumerContextByActor,
   resolveUsageInstance,
   resolveUsageSessionDims
 } from '../lib/subspace';
@@ -31,9 +31,9 @@ export let usageRecordSessionProcessor = usageRecordSessionQueue.process(async d
   let instance = await resolveUsageInstance(session.instanceOid);
   if (!instance) return;
 
-  let [sessionDims, consumerId] = await Promise.all([
+  let [sessionDims, consumer] = await Promise.all([
     resolveUsageSessionDims(session),
-    resolveUsageConsumerByActor(session.identityActorOid)
+    resolveUsageConsumerContextByActor(session.identityActorOid)
   ]);
 
   await usageService.record(
@@ -42,7 +42,7 @@ export let usageRecordSessionProcessor = usageRecordSessionQueue.process(async d
         createdAt: session.createdAt,
         providerIds: session.providers.map(provider => provider.provider.id)
       },
-      { instance, session: sessionDims, consumerId }
+      { instance, session: sessionDims, ...consumer }
     )
   );
 });

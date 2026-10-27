@@ -24,7 +24,7 @@ export type PublicMcpRoute = NonNullable<
 class publicMcpRouteServiceImpl {
   async resolveSlug(d: { slug: string }) {
     let publicMcpServer = await db.publicMcpServer.findUnique({
-      where: { slug: normalizePublicMcpSlug(d.slug) },
+      where: { slug: normalizePublicMcpSlug(d.slug), isSystemOwned: false },
       include: routeInclude
     });
     if (!publicMcpServer || publicMcpServer.status === 'deleted') return null;

@@ -177,6 +177,7 @@ import {
   v1ProjectAuthConfigConfigurationPresenter,
   v1ProjectBrandPresenter,
   v1ProjectDataRetentionConfigurationPresenter,
+  v1ProjectResourceOwnershipConfigurationPresenter,
   v1ProjectIntegrationNamingConfigurationPresenter,
   v1ProjectPresenter,
   v1ProjectReducedSubprocessorsConfigurationPresenter,
@@ -225,6 +226,7 @@ import {
   v1ProviderVersionPresenter,
   v1PublisherPresenter,
   v1ResourceCountsPresenter,
+  v1OwnershipAccessPresenter,
   v1SandboxPresenter,
   v1SandboxRegionPresenter,
   v1SandboxSpecPresenter,
@@ -441,6 +443,7 @@ import {
   projectBrandType,
   projectDataRetentionConfigurationType,
   projectIntegrationNamingConfigurationType,
+  projectResourceOwnershipConfigurationType,
   projectReducedSubprocessorsConfigurationType,
   projectRetentionType,
   projectSessionlessMcpConfigurationType,
@@ -489,6 +492,7 @@ import {
   providerVersionType,
   publisherType,
   resourceCountsType,
+  ownershipAccessType,
   sandboxType,
   sandboxRegionType,
   sandboxSpecType,
@@ -881,6 +885,14 @@ export let projectDataRetentionConfigurationPresenter = declarePresenter(
   {
     mt_2025_01_01_dashboard: v1ProjectDataRetentionConfigurationPresenter,
     mt_2026_01_01_magnetar: v1ProjectDataRetentionConfigurationPresenter
+  }
+);
+
+export let projectResourceOwnershipConfigurationPresenter = declarePresenter(
+  projectResourceOwnershipConfigurationType,
+  {
+    mt_2025_01_01_dashboard: v1ProjectResourceOwnershipConfigurationPresenter,
+    mt_2026_01_01_magnetar: v1ProjectResourceOwnershipConfigurationPresenter
   }
 );
 
@@ -1800,6 +1812,11 @@ export let integrationInternetGatewayNetworkLogsPresenter = declarePresenter(
     mt_2026_01_01_magnetar: v1IntegrationInternetGatewayNetworkLogsPresenter
   }
 );
+
+export let ownershipAccessPresenter = declarePresenter(ownershipAccessType, {
+  mt_2025_01_01_dashboard: v1OwnershipAccessPresenter,
+  mt_2026_01_01_magnetar: v1OwnershipAccessPresenter
+});
 
 export let resourceCountsPresenter = declarePresenter(resourceCountsType, {
   mt_2025_01_01_dashboard: v1ResourceCountsPresenter,

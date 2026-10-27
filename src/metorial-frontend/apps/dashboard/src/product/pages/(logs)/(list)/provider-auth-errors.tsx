@@ -27,7 +27,7 @@ export let ProviderAuthErrorsPage = () => {
             actions={picker}
             variant="strip"
             title="Auth errors"
-            info="Authentication errors over time, stacked by error type."
+            info="Authentication error occurrences over time, stacked by error type. The table groups similar errors into one row."
             hint={hint}
             filter={filter}
             range={range}

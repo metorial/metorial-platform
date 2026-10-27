@@ -16,6 +16,7 @@ import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { magicMcpTokenPresenter } from '@metorial/presenters';
+import { getOwnershipActor } from '../../../lib/ownershipActor';
 
 export let magicMcpTokenGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.magicMcpTokenId) {
@@ -171,6 +172,7 @@ export let magicMcpTokenController = Controller.create(
           ? await magicMcpServerService.getMagicMcpServerById({
               magicMcpServerId: ctx.body.magic_mcp_server_id,
               instance: ctx.instance,
+              organizationActor: getOwnershipActor(ctx),
               accessTags: ctx.accessTags
             })
           : undefined;
@@ -178,12 +180,14 @@ export let magicMcpTokenController = Controller.create(
           ? await magicMcpEndpointService.getMagicMcpEndpointById({
               magicMcpEndpointId: ctx.body.magic_mcp_endpoint_id,
               instance: ctx.instance,
+              organizationActor: getOwnershipActor(ctx),
               accessTags: ctx.accessTags
             })
           : undefined;
 
         let magicMcpToken = await magicMcpTokenService.createMagicMcpToken({
           auditScope: ctx.auditScope,
+          organizationActor: getOwnershipActor(ctx),
           instance: ctx.instance,
           groups,
           input: {

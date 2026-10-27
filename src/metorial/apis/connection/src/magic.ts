@@ -8,6 +8,12 @@ import { createExecutionContext, provideExecutionContext } from '@lowerdeck/exec
 import type { Context } from '@lowerdeck/hono';
 import { getSentry } from '@lowerdeck/sentry';
 import type { RequestScopedToolsResolver } from '@metorial-subspace/module-connection';
+import {
+  assertCanUseCoreOwnedResources,
+  getOwnershipAccessor,
+  internalOwnershipAccessor,
+  subspaceScopeService
+} from '@metorial-subspace/module-tenant';
 import { extractToken } from '@metorial/bearer';
 import { Instance } from '@metorial/db';
 import { generateSnowflakeId } from '@metorial/id';
@@ -131,7 +137,7 @@ let ensureMagicMcpApiKeyAccess = async (d: {
   magicMcpTarget: MagicMcpTargetForRouting;
 }): Promise<MagicMcpSessionOwnerConsumerProfile | null> => {
   let requestForAuth = toApiKeyRequest(d.request, d.tokenSecret);
-  let { instance, auth } = await authenticateAndResolveInstance(
+  let { instance, auth, organizationActor } = await authenticateAndResolveInstance(
     requestForAuth,
     d.url,
     d.authenticate
@@ -173,6 +179,16 @@ let ensureMagicMcpApiKeyAccess = async (d: {
 
     return auth.restrictions.consumer.consumerProfile;
   }
+
+  let accessor = internalOwnershipAccessor;
+  if (organizationActor) {
+    let { tenant } = await subspaceScopeService.ensureForInstance(instance);
+    accessor = await getOwnershipAccessor({ tenant, organizationActor });
+  }
+
+  await assertCanUseCoreOwnedResources(accessor, [d.magicMcpTarget.target], {
+    resource: d.magicMcpTarget.type === 'server' ? 'magic MCP server' : 'magic MCP endpoint'
+  });
 
   return null;
 };

@@ -83,6 +83,7 @@ let instanceUsageQueryFields = {
   provider_id: idFilterValidator('Only include usage of these providers.'),
   deployment_id: idFilterValidator('Only include usage of these provider deployments.'),
   consumer_id: idFilterValidator('Only include usage of these consumers.'),
+  consumer_profile_id: idFilterValidator('Only include usage of these consumer profiles.'),
   magic_mcp_server_id: idFilterValidator('Only include usage of these Magic MCP servers.'),
   integration_id: idFilterValidator('Only include usage of these integrations.'),
   error_type: idFilterValidator('Only include errors of these types.'),
@@ -107,6 +108,7 @@ let getInstanceUsageQuery = (query: {
   provider_id?: string | string[];
   deployment_id?: string | string[];
   consumer_id?: string | string[];
+  consumer_profile_id?: string | string[];
   magic_mcp_server_id?: string | string[];
   integration_id?: string | string[];
   error_type?: string | string[];
@@ -122,6 +124,7 @@ let getInstanceUsageQuery = (query: {
     providerId: normalizeArrayParam(query.provider_id),
     deploymentId: normalizeArrayParam(query.deployment_id),
     consumerId: normalizeArrayParam(query.consumer_id),
+    consumerProfileId: normalizeArrayParam(query.consumer_profile_id),
     magicMcpServerId: normalizeArrayParam(query.magic_mcp_server_id),
     integrationId: normalizeArrayParam(query.integration_id),
     errorType: normalizeArrayParam(query.error_type)
