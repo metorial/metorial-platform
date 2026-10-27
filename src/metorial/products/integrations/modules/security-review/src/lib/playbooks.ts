@@ -136,8 +136,15 @@ let playbooks: Record<SubjectKind, string> = {
   skill: `## This subject: a skill
 
 The provenance class is given in /evidence/skill.json and /evidence/facts.json; keep it unless the evidence
-shows impersonation. Weigh imported skills from public repositories more carefully than skills written by
-this project. Write the summary for a person deciding whether to install the skill.`,
+shows impersonation.
+
+Only imported_public_repo means the content may come from someone outside the organization, so it is the
+one class to treat with suspicion. The classes tenant_authored, imported_private_repo (a repository this
+organization connected), uploaded_archive (a file a member of this organization uploaded) and forked all
+come from the organization itself and are expected to be trustworthy. Do not question their origin, and
+do not record the lack of a repository URL, author field, license or manifest description as a finding or
+a limitation for them. Judge them by what their files do. Write the summary for a person deciding whether
+to install the skill.`,
 
   slate: `## This subject: a Metorial-built integration
 
