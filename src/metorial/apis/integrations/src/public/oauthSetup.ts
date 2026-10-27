@@ -113,16 +113,18 @@ export let oauthSetupApp = createHono()
       });
     }
 
-    // The sync worker can finish the session before this callback takes the lock, in which
-    // case handleOAuthSetupResponse returns no session and we redirect via the linked one.
-    let session = getActiveSession(setupRes.session ?? setup.providerSetupSession);
-
     if (setupRes.status != 'completed' && setupRes.status != 'failed') {
-      let integrationRedirect = await getIntegrationSetupSessionRedirect(session);
+      let integrationRedirect = await getIntegrationSetupSessionRedirect(
+        getActiveSession(setupRes.session)
+      );
       return c.redirect(
         integrationRedirect ?? `/oauth-setup/${setupRes.id}?client_secret=${clientSecret}`
       );
     }
+
+    // The sync worker can finish the session before this callback takes the lock, in which
+    // case handleOAuthSetupResponse returns no session and we redirect via the linked one.
+    let session = getActiveSession(setupRes.session ?? setup.providerSetupSession);
 
     let url = await getFinishedSetupRedirect(setupRes, session);
     if (url) return c.redirect(url);

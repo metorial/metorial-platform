@@ -117,4 +117,36 @@ describe('OAuth setup callback', () => {
     expect(res.status).toBe(302);
     expect(res.headers.get('location')).toBe('/oauth-setup/pao_1?client_secret=secret');
   });
+
+  it('keeps an in-progress setup on the OAuth setup page when its linked session already ended', async () => {
+    mocks.getSetup.mockResolvedValue(
+      setup({ providerSetupSession: adminSession({ status: 'expired' }) })
+    );
+    mocks.handleResponse.mockResolvedValue({ id: 'pao_1', status: 'opened', session: null });
+    mocks.getIntegrationSetupSession.mockResolvedValue({ id: 'iss_1' });
+
+    let res = await callback();
+
+    expect(res.status).toBe(302);
+    expect(res.headers.get('location')).toBe('/oauth-setup/pao_1?client_secret=secret');
+    expect(mocks.getIntegrationSetupSession).not.toHaveBeenCalled();
+  });
+
+  it('sends an in-progress setup with a live integration session to the integration wizard', async () => {
+    let liveSession = adminSession({ status: 'pending' });
+    mocks.getSetup.mockResolvedValue(setup({ providerSetupSession: liveSession }));
+    mocks.handleResponse.mockResolvedValue({
+      id: 'pao_1',
+      status: 'opened',
+      session: liveSession
+    });
+    mocks.getIntegrationSetupSession.mockResolvedValue({ id: 'iss_1' });
+
+    let res = await callback();
+
+    expect(res.status).toBe(302);
+    expect(res.headers.get('location')).toBe(
+      'https://ui.test/integration-setup-session/iss_1'
+    );
+  });
 });

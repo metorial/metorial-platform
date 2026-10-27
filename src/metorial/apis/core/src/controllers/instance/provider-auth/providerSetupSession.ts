@@ -631,6 +631,7 @@ export let providerSetupSessionController = Controller.create(
       .do(async ctx => {
         let paginator = await providerSetupSessionEmailService.listProviderSetupSessionEmails({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
           providerSetupSession: ctx.setupSession
         });
 

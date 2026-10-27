@@ -1,6 +1,12 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { db, getId, type Prisma, type ProviderSetupSession } from '@metorial-subspace/db';
+import {
+  db,
+  getId,
+  type Prisma,
+  type ProviderSetupSession,
+  type Tenant
+} from '@metorial-subspace/db';
 import {
   assertCanUseOwnedResource,
   checkTenant,
@@ -12,6 +18,7 @@ import {
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
 import { Fabric, type AuditSubspaceProviderSetupSession } from '@metorial/fabric';
+import type { OrganizationActor } from '@metorial/db';
 import { type AdminSetupLinkEmailData, adminSetupLinkEmail } from '../email/adminSetupLink';
 import {
   adminSetupEmailConflictError,
@@ -75,11 +82,7 @@ class ProviderSetupSessionEmailServiceImpl {
     let setupSession = d.providerSetupSession;
 
     checkTenant(scope, setupSession);
-    await assertCanUseOwnedResource(
-      await getOwnershipAccessor({ tenant: scope.tenant, organizationActor: d.organizationActor }),
-      setupSession,
-      { resource: 'provider.setup_session' }
-    );
+    await this.assertCanUseSetupSession({ ...d, tenant: scope.tenant, setupSession });
     this.assertSessionCanBeEmailed(setupSession);
 
     let recipients = await this.resolveRecipients(d);
@@ -153,6 +156,11 @@ class ProviderSetupSessionEmailServiceImpl {
     let scope = await resolveMetorialFacing(d);
 
     checkTenant(scope, d.providerSetupSession);
+    await this.assertCanUseSetupSession({
+      ...d,
+      tenant: scope.tenant,
+      setupSession: d.providerSetupSession
+    });
 
     return Paginator.create(({ prisma }) =>
       prisma(
@@ -163,6 +171,18 @@ class ProviderSetupSessionEmailServiceImpl {
             include: providerSetupSessionEmailInclude
           })
       )
+    );
+  }
+
+  private async assertCanUseSetupSession(d: {
+    tenant: Tenant;
+    organizationActor?: OrganizationActor;
+    setupSession: ProviderSetupSession;
+  }) {
+    await assertCanUseOwnedResource(
+      await getOwnershipAccessor({ tenant: d.tenant, organizationActor: d.organizationActor }),
+      d.setupSession,
+      { resource: 'provider.setup_session' }
     );
   }
 

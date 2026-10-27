@@ -824,7 +824,43 @@ describe('listProviderSetupSessionEmails', () => {
       environment: { oid: 30n },
       solution: { oid: 7 }
     });
+    mocks.getOwnershipAccessor.mockResolvedValue({ kind: 'member' });
+    mocks.assertCanUseOwnedResource.mockResolvedValue(undefined);
     mocks.emailFindMany.mockResolvedValue([]);
+  });
+
+  it('checks that the caller can use the setup session before listing its emails', async () => {
+    let setupSession = makeSetupSession();
+
+    await providerSetupSessionEmailService.listProviderSetupSessionEmails({
+      instance,
+      organizationActor: memberActor,
+      providerSetupSession: setupSession
+    });
+
+    expect(mocks.getOwnershipAccessor).toHaveBeenCalledWith({
+      tenant: { oid: 10n },
+      organizationActor: memberActor
+    });
+    expect(mocks.assertCanUseOwnedResource).toHaveBeenCalledWith(
+      { kind: 'member' },
+      setupSession,
+      { resource: 'provider.setup_session' }
+    );
+  });
+
+  it('does not list the emails of a setup session the caller cannot use', async () => {
+    let restricted = new Error('ownership restricted');
+    mocks.assertCanUseOwnedResource.mockRejectedValue(restricted);
+
+    await expect(
+      providerSetupSessionEmailService.listProviderSetupSessionEmails({
+        instance,
+        organizationActor: memberActor,
+        providerSetupSession: makeSetupSession()
+      })
+    ).rejects.toBe(restricted);
+    expect(mocks.emailFindMany).not.toHaveBeenCalled();
   });
 
   it('checks the tenant and lists only the non-failed emails of the setup session', async () => {
