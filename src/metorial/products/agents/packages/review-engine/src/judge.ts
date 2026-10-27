@@ -32,7 +32,7 @@ export let runConsistencyJudge = async (d: {
 }) => {
   let result = await generateText({
     model: d.model.model,
-    system: JUDGE_SYSTEM,
+    instructions: JUDGE_SYSTEM,
     prompt: `<report>\n${JSON.stringify(d.report, null, 2)}\n</report>\n\n<scores>\n${JSON.stringify(d.scores, null, 2)}\n</scores>`,
     abortSignal: d.abortSignal,
     output: Output.object({

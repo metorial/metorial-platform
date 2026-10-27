@@ -199,6 +199,7 @@ class InternalSecurityReviewRunnerServiceImpl {
     }
 
     let spent = emptyUsage();
+    let errorMessage: string | undefined;
     let steps = 0;
     let status: 'succeeded' | 'failed' | 'budget_exhausted' = 'failed';
     let signal = AbortSignal.any([
@@ -387,10 +388,22 @@ class InternalSecurityReviewRunnerServiceImpl {
         costMicros: spent.costMicros,
         unchanged
       };
+    } catch (error) {
+      errorMessage =
+        error instanceof Error ? `${error.name}: ${error.message}` : 'Unknown agent error';
+      errorMessage = errorMessage
+        .replace(/(bearer\s+)[^\s]+/gi, '$1[redacted]')
+        .replace(
+          /((?:api[_-]?key|token|secret|authorization)[\s"\x27:=]+)[^\s,"\x27}]+/gi,
+          '$1[redacted]'
+        )
+        .slice(0, 4000);
+      throw error;
     } finally {
       await internalSecurityReviewStoreService.updateRun({
         runOid: run.oid,
         status,
+        errorMessage,
         steps,
         usage: spent,
         billed: !!eventBase

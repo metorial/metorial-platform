@@ -216,11 +216,13 @@ class InternalSecurityReviewStoreServiceImpl {
       costMicros: number;
     };
     billed?: boolean;
+    errorMessage?: string;
   }) {
     await db.securityReviewRun.update({
       where: { oid: d.runOid },
       data: {
         status: d.status,
+        errorMessage: d.errorMessage,
         steps: d.steps,
         inputTokens: d.usage.inputTokens,
         outputTokens: d.usage.outputTokens,

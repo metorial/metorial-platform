@@ -17,7 +17,11 @@ import {
 
 export let isSecurityReviewNotFound = (
   error: { data?: { status?: number; code?: string } } | null
-) => error?.data?.status == 404 || error?.data?.code == 'not_found';
+) => {
+  let wrapped = error as { error?: { data?: { status?: number; code?: string } } } | null;
+  let data = error?.data ?? wrapped?.error?.data;
+  return data?.status == 404 || data?.code == 'not_found';
+};
 
 export let SecurityAssessmentBody = ({
   review,

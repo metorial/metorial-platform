@@ -244,6 +244,7 @@ let providerListingInclude = {
   provider: {
     include: {
       type: true,
+      variants: { where: { slateOid: { not: null } }, select: { oid: true }, take: 1 },
       defaultVariant: { include: { currentVersion: true } },
       providerVersions: {
         orderBy: { createdAt: 'desc' as const },
@@ -311,6 +312,7 @@ let presentProvider = async (
     is_public: listing.isPublic,
     is_deprecated: listing.isDeprecated,
     is_customized: listing.isCustomized,
+    is_slate: listing.provider.variants.length > 0,
     is_metorial: listing.isMetorial,
     is_verified: listing.isVerified,
     is_official: listing.isOfficial,
@@ -812,6 +814,37 @@ class adminProviderTelemetryServiceImpl {
     });
 
     return presentProvider(listing, input.range);
+  }
+
+  async listProviderVersions(input: { providerId: string; order?: 'asc' | 'desc' }) {
+    let listing = await db.providerListing.findFirstOrThrow({
+      where: firstPartyProviderWhere({
+        providerIds: [input.providerId],
+        includeDeprecated: true
+      })
+    });
+
+    let paginator = Paginator.create(
+      ({ prisma }) =>
+        prisma(async opts =>
+          db.providerVersion.findMany({
+            ...opts,
+            where: { providerOid: listing.providerOid },
+            orderBy: createdAtOrder(input.order)
+          })
+        ),
+      { defaultOrder: 'desc' }
+    );
+
+    let list = await paginator.run(input);
+    return Paginator.presentLight(list, version => ({
+      id: version.id,
+      name: version.name,
+      tag: version.tag,
+      is_current: version.isCurrent,
+      specification_discovery_status: version.specificationDiscoveryStatus,
+      created_at: version.createdAt
+    }));
   }
 
   async updateProvider(input: any) {

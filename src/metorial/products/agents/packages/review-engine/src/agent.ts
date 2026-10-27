@@ -1,4 +1,4 @@
-import { generateText, stepCountIs, type ModelMessage, type ToolSet } from 'ai';
+import { generateText, stepCountIs, type ToolSet } from 'ai';
 import { addUsage, emptyUsage, type ReviewModel, type ReviewUsage } from './model';
 import type { ReviewRunState } from './tools';
 
@@ -40,14 +40,10 @@ export let runReviewAgent = async (d: {
     d.maxSteps - steps <= WRAP_UP_STEPS ||
     usage.costMicros >= d.maxCostMicros * WRAP_UP_COST_RATIO;
 
-  let messages: ModelMessage[] = [
-    { role: 'system', content: d.system, providerOptions: cacheable },
-    { role: 'user', content: d.prompt }
-  ];
-
   await generateText({
     model: d.model.model,
-    messages,
+    instructions: { role: 'system', content: d.system, providerOptions: cacheable },
+    prompt: d.prompt,
     tools: d.tools,
     abortSignal: d.abortSignal,
     stopWhen: [
@@ -64,7 +60,11 @@ export let runReviewAgent = async (d: {
       isWrappingUp()
         ? {
             activeTools: ['write_section', 'preview_scores', 'submit', 'conclude_recheck'],
-            system: `${d.system}\n\nYour budget is almost exhausted. Write any missing sections now and submit.`
+            instructions: {
+              role: 'system',
+              content: `${d.system}\n\nYour budget is almost exhausted. Write any missing sections now and submit.`,
+              providerOptions: cacheable
+            }
           }
         : {},
 

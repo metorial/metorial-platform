@@ -55,6 +55,7 @@ export let SecurityAssessmentCard = ({
   if (!isEnabled) return null;
   if (isSecurityReviewNotFound(review.error)) return null;
   if (review.data?.status == 'disabled') return null;
+  if (!review.data && !review.error) return null;
 
   return (
     <>

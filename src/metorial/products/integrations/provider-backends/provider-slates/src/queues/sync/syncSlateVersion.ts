@@ -268,6 +268,33 @@ export let syncSlateVersionQueueProcessor = syncSlateVersionQueue.process(async 
   let parsedUrl = new URL(registry.url);
   let isMetorialRegistry = metorialDomains.some(domain => parsedUrl.hostname.endsWith(domain));
 
+  let slateRecord = await db.slate.upsert({
+    where: { id: slate.id },
+    create: {
+      oid: snowflake.nextId(),
+      id: slate.id,
+      identifier: slate.identifier,
+      registryUrl: registry.url,
+      identifierInRegistry: slate.slate.fullIdentifier,
+      slateIdOnRegistry: slate.slate.id
+    },
+    update: { slateIdOnRegistry: slate.slate.id }
+  });
+
+  let newVersionOid = snowflake.nextId();
+  let slateVersionRecord = await db.slateVersion.upsert({
+    where: { id: version.id },
+    create: {
+      oid: newVersionOid,
+      id: version.id,
+      version: version.version,
+      identifier: `${slate.identifier}::${version.version}`,
+      versionIdOnRegistry: version.registryVersionId,
+      slateOid: slateRecord.oid
+    },
+    update: { versionIdOnRegistry: version.registryVersionId }
+  });
+
   let registryRecord: Awaited<ReturnType<typeof slates.slate.getRegistryRecord>>;
   let registryVersionRecord: Awaited<ReturnType<typeof slates.slateVersion.getRegistryRecord>>;
 
@@ -286,33 +313,6 @@ export let syncSlateVersionQueueProcessor = syncSlateVersionQueue.process(async 
     );
     return;
   }
-
-  let slateRecord = await db.slate.upsert({
-    where: { id: slate.id },
-    create: {
-      oid: snowflake.nextId(),
-      id: slate.id,
-      identifier: slate.identifier,
-      registryUrl: registry.url,
-      identifierInRegistry: registryRecord.fullIdentifier,
-      slateIdOnRegistry: registryRecord.id
-    },
-    update: { slateIdOnRegistry: registryRecord.id }
-  });
-
-  let newVersionOid = snowflake.nextId();
-  let slateVersionRecord = await db.slateVersion.upsert({
-    where: { id: version.id },
-    create: {
-      oid: newVersionOid,
-      id: version.id,
-      version: version.version,
-      identifier: `${slate.identifier}::${version.version}`,
-      versionIdOnRegistry: registryVersionRecord.id,
-      slateOid: slateRecord.oid
-    },
-    update: { versionIdOnRegistry: registryVersionRecord.id }
-  });
 
   let readmeNames = ['readme.md'];
   let readme = registryVersionRecord.documents.find((d: any) =>
