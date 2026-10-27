@@ -48,6 +48,8 @@ ORIGIN_URL = "http://{{HOSTNAME}}:52090/metorial-origin"
 CODE_BUCKET_SERVICE_URL = "{{HOSTNAME}}:5050"
 NEBULA_API_URL = "http://{{HOSTNAME}}:52170/metorial-nebula"
 AI_GATEWAY_API_KEY = true
+CLOUDFLARE_AI_API_TOKEN = { from = "CLOUDFLARE_AI_API_TOKEN", required = false }
+CLOUDFLARE_ACCOUNT_ID = { from = "CLOUDFLARE_ACCOUNT_ID", required = false }
 SCOUT_URL = true
 SCOUT_TOKEN = true
 EXTERNAL_MULTI_REGION_ENDPOINT = "http://{{HOSTNAME}}:4323"

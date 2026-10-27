@@ -13,9 +13,8 @@ import {
 } from '@metorial/multi-region';
 import { env } from '../env';
 import { internalSecurityReviewMirrorService } from '../internal/securityReviewMirror';
+import { STALE_RUNNING_MS } from '../lib/revisions';
 import { enqueueSecurityReviews } from './run';
-
-let STALE_RUNNING_MS = 3 * 60 * 1000;
 
 let checkpoint = createQueueCheckpoint({ db, queue: 'sub/srev/global/mirror' });
 

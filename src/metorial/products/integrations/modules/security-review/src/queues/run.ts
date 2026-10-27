@@ -17,13 +17,17 @@ export let runSecurityReviewQueueProcessor = runSecurityReviewQueue.process(asyn
   await internalSecurityReviewRunnerService.runSecurityReview(data);
 });
 
+// Deduplicated by key instead of a fixed job id: BullMQ keeps failed jobs, and a retained failed
+// job with the same id would silently swallow every later run request for that review.
 let runJobOptions = (d: {
   reviewId: string;
   immediate?: boolean;
   deterministicOnly?: boolean;
   delayMs?: number;
 }) => ({
-  id: `security-review${d.deterministicOnly ? '-det' : d.immediate ? '-now' : ''}:${d.reviewId}`,
+  deduplication: {
+    id: `security-review${d.deterministicOnly ? '-det' : d.immediate ? '-now' : ''}-${d.reviewId}`
+  },
   delay:
     d.delayMs ??
     (d.deterministicOnly ? DETERMINISTIC_DEBOUNCE_MS : d.immediate ? 0 : DEBOUNCE_MS)

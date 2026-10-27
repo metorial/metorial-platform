@@ -36,6 +36,10 @@ export type RevisionStart = {
   skillVersionId?: string;
 };
 
+// A running revision whose heartbeat is older than this is considered abandoned. It has to
+// outlast the slowest single agent step, which can include a model rate limit wait.
+export let STALE_RUNNING_MS = 5 * 60 * 1000;
+
 export type RevisionProgress = {
   stage?: SecurityReviewStage;
   activity?: string;

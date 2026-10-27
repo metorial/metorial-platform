@@ -1,5 +1,6 @@
 import { generateText, jsonSchema, Output } from 'ai';
 import { addUsage, emptyUsage, type ReviewModel } from './model';
+import { acquireReviewModel, type ReviewModelAccess } from './rateLimit';
 
 export type ConsistencyIssue = {
   section: string;
@@ -10,6 +11,8 @@ export type ConsistencyVerdict = {
   consistent: boolean;
   issues: ConsistencyIssue[];
 };
+
+let JUDGE_TIMEOUT_MS = 2 * 60 * 1000;
 
 let JUDGE_SYSTEM = `You check a security review report for internal consistency. You do not judge whether the
 reviewer was right, only whether the report agrees with itself.
@@ -26,15 +29,23 @@ expected result for a well-written report.`;
 
 export let runConsistencyJudge = async (d: {
   model: ReviewModel;
+  modelAccess?: ReviewModelAccess;
   report: unknown;
   scores: unknown;
   abortSignal?: AbortSignal;
 }) => {
+  let model = await acquireReviewModel({
+    model: d.model,
+    access: d.modelAccess,
+    signal: d.abortSignal
+  });
+
   let result = await generateText({
-    model: d.model.model,
+    model: model.model,
     instructions: JUDGE_SYSTEM,
     prompt: `<report>\n${JSON.stringify(d.report, null, 2)}\n</report>\n\n<scores>\n${JSON.stringify(d.scores, null, 2)}\n</scores>`,
     abortSignal: d.abortSignal,
+    timeout: JUDGE_TIMEOUT_MS,
     output: Output.object({
       schema: jsonSchema<ConsistencyVerdict>({
         type: 'object',
@@ -58,6 +69,6 @@ export let runConsistencyJudge = async (d: {
 
   return {
     verdict: result.output,
-    usage: addUsage(emptyUsage(), result.usage, d.model.pricing)
+    usage: addUsage(emptyUsage(), result.usage, model.pricing)
   };
 };

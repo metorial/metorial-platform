@@ -6,6 +6,7 @@ import type {
   SecurityReviewBlockReason,
   SecurityReviewComputedScores
 } from '@metorial-subspace/db';
+import { neutralizeInternalTermsDeep } from './terminology';
 import {
   type CollectedEvidence,
   declaredCapabilities,
@@ -39,7 +40,8 @@ let exposureSentences: Record<SecurityLevel, string> = {
 };
 
 let blockReasonText: Record<SecurityReviewBlockReason, string> = {
-  ai_disabled: 'AI analysis is disabled for this project, so only deterministic checks ran.',
+  ai_disabled:
+    'AI analysis is not available for this review, so only deterministic checks ran.',
   billing:
     'The AI review budget for this project is used up, so only deterministic checks ran.',
   admin_disabled: 'AI review is disabled for this provider.'
@@ -73,7 +75,7 @@ export type AssembleInput = {
 };
 
 export let assembleReport = (d: AssembleInput) => {
-  let draft = d.draft ?? {};
+  let draft = neutralizeInternalTermsDeep(d.draft ?? {});
   let tools = d.evidence.tools;
 
   let deterministicBehaviors = d.evidence.behaviors ?? [];
@@ -133,7 +135,7 @@ export let assembleReport = (d: AssembleInput) => {
   let isSlate = d.evidence.kind == 'slate';
   let limitations = [
     ...(isSlate ? [] : (draft.method?.limitations ?? [])),
-    ...d.evidence.limitations,
+    ...neutralizeInternalTermsDeep(d.evidence.limitations),
     ...(d.blockReason ? [blockReasonText[d.blockReason]] : []),
     ...(d.budgetExhausted
       ? ['The review reached its analysis budget before covering everything.']
@@ -153,7 +155,7 @@ export let assembleReport = (d: AssembleInput) => {
           'Deterministic scanners for prompt injection, secrets and vulnerable dependencies'
         ],
         outOfScope: isSlate
-          ? (d.evidence.outOfScope ?? [])
+          ? neutralizeInternalTermsDeep(d.evidence.outOfScope ?? [])
           : (draft.method?.outOfScope ?? [
               'Runtime behavior of the server',
               'Data returned by tools'

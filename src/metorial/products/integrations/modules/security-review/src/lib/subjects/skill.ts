@@ -102,7 +102,7 @@ type ClassifiedFile = {
   gap: 'unreadable' | 'failed' | null;
 };
 
-let classifyFiles = async (files: LoadedFile[]) => {
+let classifyFiles = async (files: LoadedFile[], names: Map<string, string>) => {
   let results = new Map<string, ClassifiedFile>();
   if (!files.length) return results;
 
@@ -136,13 +136,16 @@ let classifyFiles = async (files: LoadedFile[]) => {
 
     if (head.status != 'ok') {
       results.set(file.id, {
-        classification: classifyByExtensionOnly(file.fileName),
+        classification: classifyByExtensionOnly(names.get(file.id) ?? file.fileName),
         gap: head.status
       });
       return;
     }
 
-    let classification = classifyHead({ head: head.bytes, fileName: file.fileName });
+    let classification = classifyHead({
+      head: head.bytes,
+      fileName: names.get(file.id) ?? file.fileName
+    });
     results.set(file.id, { classification, gap: null });
 
     if (head.source == 'object') {
@@ -162,8 +165,12 @@ let classifyFiles = async (files: LoadedFile[]) => {
 
 let buildTree = async (version: LoadedVersion) => {
   let items = version.storeVersion.items;
+  let names = new Map<string, string>();
+  for (let item of items) if (item.file) names.set(item.file.id, item.path);
+
   let classified = await classifyFiles(
-    items.map(item => item.file).filter((file): file is LoadedFile => !!file)
+    items.map(item => item.file).filter((file): file is LoadedFile => !!file),
+    names
   );
 
   let tree = new Map<string, SkillTreeEntry>();

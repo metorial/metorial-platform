@@ -101,6 +101,31 @@ describe('report draft', () => {
 });
 
 describe('tools', () => {
+  it('accepts a section sent as a JSON-encoded string', async () => {
+    let written: string[] = [];
+    let tools = createReviewTools({
+      workspace: await createReviewWorkspace({ evidence: {}, history: {} }),
+      ledger: new EvidenceLedger(),
+      draft: new ReportDraft(report),
+      state: createRunState(),
+      stages: ['collecting'],
+      hooks: { onSectionWritten: async d => void written.push(d.section) }
+    });
+
+    let encoded = await execTool(tools.write_section, {
+      section: 'summary',
+      value: JSON.stringify({ text: 'fine' })
+    });
+    expect(encoded.ok).toBe(true);
+    expect(written).toEqual(['summary']);
+
+    let plain = await execTool(tools.write_section, {
+      section: 'summary',
+      value: 'just text'
+    });
+    expect(plain.ok).toBe(false);
+  });
+
   it('counts fix rounds until the report validates', async () => {
     let ledger = new EvidenceLedger();
     let draft = new ReportDraft(report);

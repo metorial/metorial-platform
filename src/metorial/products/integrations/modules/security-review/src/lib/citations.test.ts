@@ -3,7 +3,7 @@ import { resolveCitation } from './citations';
 
 let sources = {
   facts: [
-    { id: 'slate-origin', title: 'Built by Metorial', detail: 'First-party integration.' }
+    { id: 'metorial-origin', title: 'Built by Metorial', detail: 'First-party integration.' }
   ],
   files: {
     'code/src/index.ts': ['let a = 1;', 'let b = 2;', 'let c = 3;'].join('\n'),
@@ -49,10 +49,10 @@ describe('resolveCitation', () => {
 
   it('adds the title and detail of a fact from the evidence', () => {
     expect(
-      resolveCitation({ type: 'fact', id: 'slate-origin', title: 'forged' }, sources)
+      resolveCitation({ type: 'fact', id: 'metorial-origin', title: 'forged' }, sources)
     ).toEqual({
       type: 'fact',
-      id: 'slate-origin',
+      id: 'metorial-origin',
       title: 'Built by Metorial',
       detail: 'First-party integration.'
     });

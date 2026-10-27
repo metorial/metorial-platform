@@ -8,7 +8,7 @@ import {
 import { metorialDb } from '@metorial-subspace/module-tenant';
 import { flagService, isFlagEnabled } from '@metorial/module-flags';
 import { securityReviewGlobalRepository } from '@metorial/multi-region';
-import { parseThoroughness } from '../definitions/thoroughness';
+import { isAiReviewAvailable, parseThoroughness } from '../definitions/thoroughness';
 
 let GLOBAL_THOROUGHNESS: SecurityReviewThoroughness = 'standard';
 let DEFAULT_THOROUGHNESS: SecurityReviewThoroughness = 'standard';
@@ -134,9 +134,16 @@ class InternalSecurityReviewGateServiceImpl {
   }
 
   async resolveReviewGate(d: { review: SecurityReview; slateRegistryId: string | null }) {
-    return d.review.scope == 'global'
-      ? await this.resolveGlobalGate(d)
-      : await this.resolveTenantGate(d);
+    let gate =
+      d.review.scope == 'global'
+        ? await this.resolveGlobalGate(d)
+        : await this.resolveTenantGate(d);
+
+    if (gate.allowAi && !isAiReviewAvailable()) {
+      return this.blocked({ blockReason: 'ai_disabled', thoroughness: gate.thoroughness });
+    }
+
+    return gate;
   }
 }
 

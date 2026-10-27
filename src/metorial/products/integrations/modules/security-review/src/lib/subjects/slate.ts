@@ -52,7 +52,7 @@ export let collectSlateEvidence = async (d: {
 
   let facts: LedgerFact[] = [
     {
-      id: 'slate-origin',
+      id: 'metorial-origin',
       title: 'Built and operated by Metorial',
       detail: `${d.provider.name} is a first-party Metorial integration (${d.slate.identifierInRegistry ?? d.slate.identifier}, version ${d.slateVersion.version}). Its source is published in the Metorial registry and it runs on Metorial infrastructure.`
     },

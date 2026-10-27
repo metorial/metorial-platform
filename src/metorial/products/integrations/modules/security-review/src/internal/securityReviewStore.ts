@@ -205,6 +205,10 @@ class InternalSecurityReviewStoreServiceImpl {
     });
   }
 
+  async setRunLog(d: { runOid: bigint; log: string }) {
+    await db.securityReviewRun.update({ where: { oid: d.runOid }, data: { log: d.log } });
+  }
+
   async updateRun(d: {
     runOid: bigint;
     status?: 'succeeded' | 'failed' | 'budget_exhausted';
@@ -217,12 +221,14 @@ class InternalSecurityReviewStoreServiceImpl {
     };
     billed?: boolean;
     errorMessage?: string;
+    log?: string;
   }) {
     await db.securityReviewRun.update({
       where: { oid: d.runOid },
       data: {
         status: d.status,
         errorMessage: d.errorMessage,
+        log: d.log,
         steps: d.steps,
         inputTokens: d.usage.inputTokens,
         outputTokens: d.usage.outputTokens,

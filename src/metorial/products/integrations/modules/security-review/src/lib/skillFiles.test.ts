@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { classifyHead } from './skillFiles';
+import { classifyByExtensionOnly, classifyHead } from './skillFiles';
 
 let bytes = (...values: number[]) => Uint8Array.from(values);
 let text = (value: string) => new TextEncoder().encode(value);
@@ -90,5 +90,23 @@ describe('classifyHead', () => {
     let full = text('héllo wörld ✓');
     let result = classifyHead({ head: full.subarray(0, full.length - 1), fileName: 'a.txt' });
     expect(result.kind).toBe('text');
+  });
+});
+
+describe('classifyByExtensionOnly', () => {
+  it('knows markdown and other common documentation files', () => {
+    for (let name of [
+      'SKILL.md',
+      'docs/guide.mdx',
+      'LICENSE',
+      'Makefile',
+      '.gitignore',
+      'a.rst'
+    ])
+      expect(classifyByExtensionOnly(name).kind).toBe('text');
+  });
+
+  it('still treats unknown extensions as unknown binary', () => {
+    expect(classifyByExtensionOnly('payload.xyz').kind).toBe('unknown_binary');
   });
 });

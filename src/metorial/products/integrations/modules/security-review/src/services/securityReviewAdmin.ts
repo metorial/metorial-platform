@@ -50,7 +50,7 @@ export let securityReviewAdminInclude = {
 
 let adminRevisionInclude = {
   findings: { orderBy: [{ severity: 'desc' as const }, { key: 'asc' as const }] },
-  runs: { orderBy: { startedAt: 'desc' as const } }
+  runs: { omit: { log: true }, orderBy: { startedAt: 'desc' as const } }
 };
 
 class SecurityReviewAdminServiceImpl {
@@ -336,6 +336,23 @@ class SecurityReviewAdminServiceImpl {
       .reduce((sum, run) => sum + run.costMicros, 0n);
 
     return { revisions, isDisabled, costMicros };
+  }
+
+  async getSecurityReviewRunLog(d: { review: SecurityReview; runId: string }) {
+    let run = await db.securityReviewRun.findFirst({
+      where: { id: d.runId, revision: { reviewOid: d.review.oid } },
+      select: {
+        id: true,
+        status: true,
+        model: true,
+        log: true,
+        startedAt: true,
+        completedAt: true
+      }
+    });
+    if (!run) throw new ServiceError(notFoundError('security_review_run', d.runId));
+
+    return run;
   }
 
   async exportSecurityReviewEvidence(d: {

@@ -15,6 +15,12 @@ export let env = createValidatedEnv({
     ORIGIN_URL: v.string()
   },
 
+  models: {
+    CLOUDFLARE_AI_API_TOKEN: v.optional(v.string()),
+    CLOUDFLARE_ACCOUNT_ID: v.optional(v.string()),
+    AI_GATEWAY_API_KEY: v.optional(v.string())
+  },
+
   scout: {
     SCOUT_URL: v.optional(v.string()),
     SCOUT_TOKEN: v.optional(v.string())

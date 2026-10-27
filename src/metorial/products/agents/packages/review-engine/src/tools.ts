@@ -41,6 +41,18 @@ export type ReviewToolHooks<R extends Record<string, any>> = {
 
 let formatErrors = (errors: string[]) => ({ ok: false as const, errors });
 
+// Models regularly send a section as a JSON-encoded string instead of structured JSON.
+let parseStructuredValue = (value: unknown) => {
+  if (typeof value != 'string') return value;
+
+  try {
+    let parsed = JSON.parse(value);
+    return typeof parsed == 'object' && parsed !== null ? parsed : value;
+  } catch {
+    return value;
+  }
+};
+
 export let createReviewTools = <R extends Record<string, any>>(d: {
   workspace: ReviewWorkspace;
   ledger: EvidenceLedger;
@@ -59,8 +71,10 @@ export let createReviewTools = <R extends Record<string, any>>(d: {
       description:
         'Run a bash command in the review workspace. /evidence and /history are read-only, ' +
         '/workspace is your scratch space and persists across reviews, /report holds the sections ' +
-        'you have written (read-only, use write_section to change it). Supports grep, find, cat, ' +
-        'sed, awk, jq, head, tail, wc, sort, uniq, diff and pipes.',
+        'you have written (read-only, use write_section to change it). This is a sandboxed shell with ' +
+        'the usual file and text tools (ls, cat, find, grep, rg, sed, awk, sort, uniq, wc, head, tail, ' +
+        'cut, tr, diff, xargs), jq, yq and sqlite3, pipes, loops and variables. There is no node, ' +
+        'python, perl, curl or git: use jq for JSON.',
       inputSchema: jsonSchema<{ command: string }>({
         type: 'object',
         properties: { command: { type: 'string', description: 'The command to run.' } },
@@ -93,18 +107,27 @@ export let createReviewTools = <R extends Record<string, any>>(d: {
       description:
         'Write or replace one section of the report. The value is validated against the section ' +
         'shape and every evidence reference is checked against the evidence ledger. Invalid ' +
-        'sections are rejected with a list of errors; fix them and write the section again.',
+        'sections are rejected with a list of errors; fix them and write the section again. ' +
+        'Pass value as structured JSON (an object or an array, as the section documents), not as a ' +
+        'string that contains JSON.',
       inputSchema: jsonSchema<{ section: string; value: unknown }>({
         type: 'object',
         properties: {
           section: { type: 'string', enum: d.draft.sectionNames },
-          value: { description: 'The section value, matching the documented shape.' }
+          value: {
+            description:
+              'The section value as a JSON object or array matching the documented shape. Never a JSON-encoded string.'
+          }
         },
         required: ['section', 'value'],
         additionalProperties: false
       }),
       execute: async input => {
-        let result = d.draft.writeSection(input.section, input.value, ctx);
+        let result = d.draft.writeSection(
+          input.section,
+          parseStructuredValue(input.value),
+          ctx
+        );
         if (result.errors.length) return formatErrors(result.errors);
 
         await d.workspace.writeReportFile(

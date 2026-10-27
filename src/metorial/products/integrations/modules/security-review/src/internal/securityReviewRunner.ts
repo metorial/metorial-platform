@@ -26,7 +26,11 @@ import {
   runConsistencyJudge,
   runReviewAgent
 } from '@metorial/review-engine';
-import { judgeModel, thoroughnessTiers } from '../definitions/thoroughness';
+import {
+  getJudgeModel,
+  getThoroughnessTier,
+  reviewModelAccess
+} from '../definitions/thoroughness';
 import {
   SECURITY_REVIEW_PROMPT_VERSION,
   SECURITY_REVIEW_RULES_VERSION
@@ -41,7 +45,8 @@ import {
 import { assembleReport } from '../lib/assemble';
 import type { CollectedEvidence } from '../lib/evidence';
 import { classifyFindings, isReportStatus, toReportFinding } from '../lib/findings';
-import type { SecurityReviewRunInput } from '../lib/revisions';
+import { STALE_RUNNING_MS, type SecurityReviewRunInput } from '../lib/revisions';
+import { redactSecrets, RunLog } from '../lib/runLog';
 import { buildSystemPrompt, buildUserPrompt } from '../lib/playbooks';
 import { createSecurityReportDefinition } from '../lib/report';
 import { workspaceKeyFor, workspaceStore } from '../lib/storage';
@@ -58,7 +63,6 @@ import { internalSecurityReviewSinkService } from './securityReviewSink';
 import { internalSecurityReviewStoreService } from './securityReviewStore';
 
 let RUN_TIMEOUT_MS = 20 * 60 * 1000;
-let STALE_RUNNING_MS = 3 * 60 * 1000;
 let HISTORY_REVISIONS = 5;
 let JUDGE_FIX_STEPS = 6;
 let STAGES: SecurityReviewStage[] = ['collecting', 'verifying', 'analyzing', 'writing'];
@@ -154,9 +158,14 @@ class InternalSecurityReviewRunnerServiceImpl {
     previousFindings: SecurityReviewFinding[];
     lockedFindings: ReturnType<typeof toReportFinding>[];
     input: SecurityReviewRunInput;
+    runLog: RunLog;
+    onRunCreated: (runOid: bigint) => void;
     signal?: AbortSignal;
   }): Promise<AgentRunResult> {
-    let tier = thoroughnessTiers[d.gate.thoroughness];
+    let tier = getThoroughnessTier({
+      thoroughness: d.gate.thoroughness,
+      scope: d.review.scope
+    });
     let eventBase = d.gate.billing
       ? await getSubspaceSystemProviderEventBase({
           job: 'security-review',
@@ -170,6 +179,7 @@ class InternalSecurityReviewRunnerServiceImpl {
       maxCostMicros: tier.maxCostMicros,
       isBillable: !!eventBase
     });
+    d.onRunCreated(run.oid);
     let runEvent: SecurityReviewRunEvent = {
       reviewId: d.review.id,
       revisionId: d.revision.id,
@@ -199,6 +209,10 @@ class InternalSecurityReviewRunnerServiceImpl {
     }
 
     let spent = emptyUsage();
+    let runLog = d.runLog;
+    runLog.add(
+      `run ${run.id} started · ${d.evidence.kind} "${d.evidence.title}" · ${tier.model.slug} · ${d.gate.thoroughness} · budget $${(tier.maxCostMicros / 1_000_000).toFixed(2)} · up to ${tier.maxSteps} steps · ${Object.keys(d.files).length} evidence files`
+    );
     let errorMessage: string | undefined;
     let steps = 0;
     let status: 'succeeded' | 'failed' | 'budget_exhausted' = 'failed';
@@ -294,21 +308,43 @@ class InternalSecurityReviewRunnerServiceImpl {
               revision: d.revision,
               progress: { report, scores: preview(report).scores }
             }),
-          previewScores: async report => preview(report).scores
+          previewScores: async report => {
+            let { scores, findings } = preview(report);
+            let { findings: securityFindings, ...counts } = scores.counts;
+
+            return {
+              ...scores,
+              counts: {
+                ...counts,
+                securityFindings,
+                capabilityObservations: findings.filter(
+                  finding => finding.kind == 'capability'
+                ).length
+              },
+              note: 'securityFindings counts only findings of kind security. Capability observations and positives are listed separately and never change the score, so zeros in securityFindings do not mean your capability findings were lost.'
+            };
+          }
         }
       });
 
       let system = buildSystemPrompt({ kind: d.evidence.kind, definition });
       let onStep = async (progress: { usage: ReviewUsage; steps: number }) => {
+        await internalSecurityReviewSinkService.progress({
+          review: d.review,
+          revision: d.revision,
+          progress: {}
+        });
         await internalSecurityReviewStoreService.updateRun({
           runOid: run.oid,
           steps: steps + progress.steps,
-          usage: sumUsage(spent, progress.usage)
+          usage: sumUsage(spent, progress.usage),
+          log: runLog.toString()
         });
       };
 
       let result = await runReviewAgent({
         model: tier.model,
+        modelAccess: reviewModelAccess,
         system,
         prompt: buildUserPrompt({
           title: d.evidence.title,
@@ -323,22 +359,39 @@ class InternalSecurityReviewRunnerServiceImpl {
         maxCostMicros: tier.maxCostMicros,
         maxFixRounds: tier.maxFixRounds,
         abortSignal: signal,
+        onLog: entry => runLog.add(entry),
         onStep
       });
       spent = sumUsage(spent, result.usage);
       steps += result.steps;
+      runLog.add(
+        `agent finished: ${result.outcome} after ${result.steps} steps · ${JSON.stringify(result.modelSteps)} · $${(result.usage.costMicros / 1_000_000).toFixed(4)}`
+      );
 
       let unresolvedIssues: string[] = [];
       let unchanged = result.outcome == 'unchanged' ? state.recheck : null;
 
       if (state.submitted && !unchanged) {
         let judged = await runConsistencyJudge({
-          model: judgeModel,
+          model: getJudgeModel(),
+          modelAccess: reviewModelAccess,
           report: draft.current,
           scores: preview(draft.current).scores,
           abortSignal: signal
+        }).catch(error => {
+          runLog.add(
+            `consistency check failed and was skipped: ${redactSecrets(error instanceof Error ? error.message : String(error))}`
+          );
+          return { verdict: { consistent: true, issues: [] }, usage: emptyUsage() };
         });
         spent = sumUsage(spent, judged.usage);
+        runLog.add(
+          judged.verdict.consistent
+            ? 'consistency check: report is consistent'
+            : `consistency check found ${judged.verdict.issues.length} issue(s):\n${judged.verdict.issues
+                .map(issue => `  - ${issue.section}: ${issue.message}`)
+                .join('\n')}`
+        );
 
         let issues = judged.verdict.consistent
           ? []
@@ -347,8 +400,11 @@ class InternalSecurityReviewRunnerServiceImpl {
         if (issues.length && spent.costMicros < tier.maxCostMicros) {
           state.submitted = false;
 
+          runLog.add('fix round started: resolving the consistency check issues');
+
           let fix = await runReviewAgent({
             model: tier.model,
+            modelAccess: reviewModelAccess,
             system,
             prompt: `A consistency check of your submitted report found these problems:\n${issues
               .map(issue => `- ${issue}`)
@@ -361,10 +417,12 @@ class InternalSecurityReviewRunnerServiceImpl {
             maxCostMicros: tier.maxCostMicros - spent.costMicros,
             maxFixRounds: 1,
             abortSignal: signal,
+            onLog: entry => runLog.add(entry),
             onStep
           });
           spent = sumUsage(spent, fix.usage);
           steps += fix.steps;
+          runLog.add(`fix round finished: ${fix.outcome} after ${fix.steps} steps`);
         }
 
         if (issues.length && !state.submitted) unresolvedIssues = issues;
@@ -378,6 +436,9 @@ class InternalSecurityReviewRunnerServiceImpl {
       let budgetExhausted =
         result.outcome == 'cost_budget_exhausted' || result.outcome == 'step_budget_exhausted';
       status = budgetExhausted ? 'budget_exhausted' : 'succeeded';
+      runLog.add(
+        `run ${status}${budgetExhausted ? ` (${result.outcome == 'cost_budget_exhausted' ? 'cost limit' : 'step limit'})` : ''} · ${steps} steps · $${(spent.costMicros / 1_000_000).toFixed(4)} · ${state.submitted ? 'report submitted' : 'no report submitted'}`
+      );
 
       return {
         draft: draft.current,
@@ -391,19 +452,15 @@ class InternalSecurityReviewRunnerServiceImpl {
     } catch (error) {
       errorMessage =
         error instanceof Error ? `${error.name}: ${error.message}` : 'Unknown agent error';
-      errorMessage = errorMessage
-        .replace(/(bearer\s+)[^\s]+/gi, '$1[redacted]')
-        .replace(
-          /((?:api[_-]?key|token|secret|authorization)[\s"\x27:=]+)[^\s,"\x27}]+/gi,
-          '$1[redacted]'
-        )
-        .slice(0, 4000);
+      errorMessage = redactSecrets(errorMessage).slice(0, 4000);
+      runLog.add(`run failed: ${errorMessage}`);
       throw error;
     } finally {
       await internalSecurityReviewStoreService.updateRun({
         runOid: run.oid,
         status,
         errorMessage,
+        log: runLog.toString(),
         steps,
         usage: spent,
         billed: !!eventBase
@@ -428,6 +485,8 @@ class InternalSecurityReviewRunnerServiceImpl {
     signal?: AbortSignal;
   }) {
     let { review, input } = d;
+    let reviewLog = new RunLog();
+    let runOid: bigint | undefined;
 
     if (review.dismissedAt && input.trigger != 'admin') return;
 
@@ -472,6 +531,15 @@ class InternalSecurityReviewRunnerServiceImpl {
     let evidenceHash = hashEvidence(files);
     let previous = review.currentRevision;
 
+    reviewLog.add(
+      `review started · ${review.scope} scope · trigger ${input.trigger}${input.reason ? ` (${input.reason})` : ''} · ${gate.allowAi ? `AI review, ${gate.thoroughness}` : `deterministic only${gate.blockReason ? `, blocked: ${gate.blockReason}` : ''}`}`
+    );
+    reviewLog.add(
+      `evidence collected · ${evidence.kind} "${evidence.title}" · ${Object.keys(files).length} files · ${evidence.tools ? `${evidence.tools.length} tools` : 'tools not available yet'} · ${evidence.findings.length} deterministic finding(s) · evidence hash ${evidenceHash.slice(0, 12)}`
+    );
+    for (let limitation of evidence.limitations)
+      reviewLog.add(`evidence limitation: ${limitation}`);
+
     let isUnchanged =
       previous &&
       isReportStatus(previous.status) &&
@@ -497,6 +565,9 @@ class InternalSecurityReviewRunnerServiceImpl {
     let lockedFindings = previousFindings
       .filter(finding => finding.isLocked && finding.change != 'resolved')
       .map(toReportFinding);
+    reviewLog.add(
+      `previous revision ${previous ? `#${previous.number} (${previous.status})` : 'none'} · ${previousFindings.length} earlier finding(s) · ${lockedFindings.length} locked`
+    );
 
     if (input.deterministicOnly && review.subjectType == 'skill_version') {
       evidence.limitations.push('The AI review of this version has not run yet.');
@@ -542,19 +613,29 @@ class InternalSecurityReviewRunnerServiceImpl {
           previousFindings,
           lockedFindings,
           input,
+          runLog: reviewLog,
+          onRunCreated: oid => (runOid = oid),
           signal: d.signal
         });
       } catch (error) {
         if (error instanceof BillingBlockedError) {
           blockReason = 'billing';
+          reviewLog.add('review blocked: billing');
         } else {
           console.error(`Security review ${review.id} agent run failed`, error);
           failureCode = 'agent_error';
+          reviewLog.add(
+            'review failed: the agent run errored, falling back to deterministic checks'
+          );
         }
       }
+    } else {
+      reviewLog.add('AI review skipped, assembling deterministic report');
     }
 
     if (agent?.unchanged && previous) {
+      reviewLog.add('recheck found no change, keeping the previous report');
+      await this.saveReviewLog({ runOid, log: reviewLog });
       await internalSecurityReviewStoreService.completeRecheck({
         review,
         revision,
@@ -597,15 +678,22 @@ class InternalSecurityReviewRunnerServiceImpl {
       lockedKeys: new Set(lockedFindings.map(finding => finding.key))
     });
 
+    let completionStatus = this.completionStatus({
+      agent,
+      blockReason,
+      deferred: !!input.deterministicOnly && !failureCode
+    });
+    reviewLog.add(
+      `report assembled · security ${assembled.scores.security} (${assembled.scores.band}) · exposure ${assembled.scores.exposure} · risk ${assembled.scores.risk} · ${findings.length} finding(s) · ${assembled.report.method?.limitations?.length ?? 0} limitation(s)`
+    );
+    reviewLog.add(`review ${completionStatus}${failureCode ? ` (${failureCode})` : ''}`);
+    await this.saveReviewLog({ runOid, log: reviewLog });
+
     await internalSecurityReviewSinkService.complete({
       review,
       revision,
       completion: {
-        status: this.completionStatus({
-          agent,
-          blockReason,
-          deferred: !!input.deterministicOnly && !failureCode
-        }),
+        status: completionStatus,
         mode: agent ? 'ai' : 'deterministic',
         blockReason: agent ? undefined : blockReason,
         failureCode,
@@ -626,6 +714,14 @@ class InternalSecurityReviewRunnerServiceImpl {
         costMicros: agent?.costMicros ?? 0
       }
     });
+  }
+
+  private async saveReviewLog(d: { runOid: bigint | undefined; log: RunLog }) {
+    if (!d.runOid) return;
+
+    await internalSecurityReviewStoreService
+      .setRunLog({ runOid: d.runOid, log: d.log.toString() })
+      .catch(error => console.error('Failed to save security review log', error));
   }
 
   // Forks and duplicates start out identical to a skill this tenant already had reviewed. The

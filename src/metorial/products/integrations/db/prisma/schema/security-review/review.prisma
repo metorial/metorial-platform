@@ -270,6 +270,7 @@ model SecurityReviewRun {
   maxCostMicros     BigInt
 
   errorMessage String?
+  log          String?
 
   isBillable Boolean   @default(false)
   billedAt   DateTime?

@@ -821,7 +821,7 @@ export let scanSkill = (d: SkillScanInput): SkillScanResult => {
         },
         `${path}: ${label}, ${entry.size} bytes`
       );
-    } else if (entry.kind == 'unknown_binary') {
+    } else if (entry.kind == 'unknown_binary' && !entry.notRead) {
       addFinding(
         {
           key: `unknown-binary-${slug(path)}`,

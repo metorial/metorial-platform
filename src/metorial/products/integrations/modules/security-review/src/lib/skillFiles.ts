@@ -271,7 +271,84 @@ registerExtensions('text', [
   'sql',
   'ini',
   'cfg',
-  'env'
+  'env',
+  'mdx',
+  'rst',
+  'adoc',
+  'tex',
+  'log',
+  'lock',
+  'tsv',
+  'jsonl',
+  'ndjson',
+  'json5',
+  'jsonc',
+  'ipynb',
+  'graphql',
+  'gql',
+  'proto',
+  'tf',
+  'hcl',
+  'properties',
+  'gradle',
+  'plist',
+  'xsd',
+  'xsl',
+  'scss',
+  'sass',
+  'less',
+  'vue',
+  'svelte',
+  'astro',
+  'mts',
+  'cts',
+  'php',
+  'kt',
+  'kts',
+  'swift',
+  'scala',
+  'lua',
+  'pl',
+  'r',
+  'cs',
+  'cc',
+  'cxx',
+  'hpp',
+  'hh',
+  'm',
+  'dart',
+  'ex',
+  'exs',
+  'erl',
+  'hs',
+  'clj',
+  'fish',
+  'ps',
+  'gitignore',
+  'dockerignore',
+  'editorconfig',
+  'conf',
+  'service',
+  'diff',
+  'patch'
+]);
+
+let textFileNames = new Set([
+  'license',
+  'licence',
+  'readme',
+  'notice',
+  'authors',
+  'contributors',
+  'changelog',
+  'copying',
+  'makefile',
+  'dockerfile',
+  'procfile',
+  'gemfile',
+  'rakefile',
+  'justfile',
+  'codeowners'
 ]);
 
 let mediaKinds = new Set<SecurityFileKind>(['image', 'pdf', 'audio', 'video', 'font']);
@@ -286,9 +363,16 @@ export let fileExtension = (fileName: string) => {
 export let expectedKindForExtension = (extension: string | null) =>
   extension ? (extensionKinds[extension] ?? null) : null;
 
+let expectedKindForName = (fileName: string): SecurityFileKind | null => {
+  let base = (fileName.split('/').pop() ?? fileName).toLowerCase();
+  if (textFileNames.has(base)) return 'text';
+  if (base.startsWith('.') && base.indexOf('.', 1) == -1) return 'text';
+  return expectedKindForExtension(fileExtension(fileName));
+};
+
 export let classifyHead = (d: { head: Uint8Array; fileName: string }): FileClassification => {
   let extension = fileExtension(d.fileName);
-  let expected = expectedKindForExtension(extension);
+  let expected = expectedKindForName(d.fileName);
 
   if (!d.head.length) {
     return { kind: 'empty', detectedMime: null, extension, isDisguised: false };
@@ -321,7 +405,7 @@ export let classifyHead = (d: { head: Uint8Array; fileName: string }): FileClass
 
 export let classifyByExtensionOnly = (fileName: string): FileClassification => {
   let extension = fileExtension(fileName);
-  let expected = expectedKindForExtension(extension);
+  let expected = expectedKindForName(fileName);
 
   return {
     kind: expected ?? 'unknown_binary',
