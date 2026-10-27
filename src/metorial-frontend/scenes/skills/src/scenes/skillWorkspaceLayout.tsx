@@ -384,6 +384,7 @@ let ItemMark = styled.span<{ $color?: string }>`
 `;
 
 let Main = styled.main`
+  position: relative;
   min-width: 0;
   min-height: 0;
   overflow: auto;

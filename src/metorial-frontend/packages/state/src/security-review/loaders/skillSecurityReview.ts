@@ -3,11 +3,19 @@ import type {
   DashboardInstanceSkillsSecurityReviewRevisionsListQuery
 } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
+import {
+  clearReassess,
+  requestReassess,
+  useOptimisticReassess
+} from '../../lib/optimisticReassess';
 import { usePolling } from '../../lib/usePolling';
 import { useDashboardFlags } from '../../organization/loaders/flags';
 import { withAuth } from '../../user';
 
 let POLL_INTERVAL_MS = 3_000;
+
+let reassessKey = (i: { instanceId: string; skillId: string }) =>
+  `skill:${i.instanceId}:${i.skillId}`;
 
 export type SkillSecurityReview = DashboardInstanceSkillsSecurityReviewGetOutput;
 
@@ -52,8 +60,18 @@ export let skillSecurityReviewLoader = createLoader({
   fetch: (i: { instanceId: string; skillId: string }) =>
     withAuth(sdk => sdk.skills.securityReview.get(i.instanceId, i.skillId)),
   mutators: {
-    reassess: (_: void, { input }) =>
-      withAuth(sdk => sdk.skills.securityReview.reassess(input.instanceId, input.skillId)),
+    reassess: async (_: void, { input, output }) => {
+      requestReassess(reassessKey(input), output?.currentRevision?.id ?? null);
+
+      try {
+        return await withAuth(sdk =>
+          sdk.skills.securityReview.reassess(input.instanceId, input.skillId)
+        );
+      } catch (error) {
+        clearReassess(reassessKey(input));
+        throw error;
+      }
+    },
 
     dismiss: (_: void, { input }) =>
       withAuth(sdk => sdk.skills.securityReview.dismiss(input.instanceId, input.skillId)),
@@ -81,10 +99,14 @@ export let useSkillSecurityReview = (
     isEnabled && instanceId && skillId ? { instanceId, skillId } : null
   );
 
-  usePolling(data.refetch, isSkillSecurityReviewPending(data.data), POLL_INTERVAL_MS);
+  let key = instanceId && skillId ? reassessKey({ instanceId, skillId }) : null;
+  let review = useOptimisticReassess(key, data.data);
+
+  usePolling(key, data.refetch, isSkillSecurityReviewPending(review), POLL_INTERVAL_MS);
 
   return {
     ...data,
+    data: review ?? null,
     useReassessMutator: data.useMutator('reassess'),
     useDismissMutator: data.useMutator('dismiss'),
     useRestoreMutator: data.useMutator('restore')

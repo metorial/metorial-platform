@@ -3,11 +3,22 @@ import type {
   DashboardInstanceSecurityReviewsRevisionsListQuery
 } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
+import {
+  clearReassess,
+  requestReassess,
+  useOptimisticReassess
+} from '../../lib/optimisticReassess';
 import { usePolling } from '../../lib/usePolling';
 import { useDashboardFlags } from '../../organization/loaders/flags';
 import { withAuth } from '../../user';
 
 let POLL_INTERVAL_MS = 3_000;
+
+let reassessKey = (i: {
+  instanceId: string;
+  providerId: string;
+  providerVersionId?: string;
+}) => `provider:${i.instanceId}:${i.providerId}:${i.providerVersionId ?? ''}`;
 
 export type SecurityReview = DashboardInstanceProvidersSecurityReviewGetOutput;
 
@@ -57,8 +68,19 @@ export let securityReviewLoader = createLoader({
       )
     ),
   mutators: {
-    reassess: (_: void, { input, output }) =>
-      withAuth(sdk => sdk.securityReviews.reassess(input.instanceId, output.id))
+    reassess: async (_: void, { input, output }) => {
+      let key = reassessKey(input);
+      requestReassess(key, output.currentRevision?.id ?? null);
+
+      try {
+        return await withAuth(sdk =>
+          sdk.securityReviews.reassess(input.instanceId, output.id)
+        );
+      } catch (error) {
+        clearReassess(key);
+        throw error;
+      }
+    }
   }
 });
 
@@ -85,10 +107,21 @@ export let useSecurityReview = (
       : null
   );
 
-  usePolling(data.refetch, isSecurityReviewPending(data.data), POLL_INTERVAL_MS);
+  let key =
+    instanceId && providerId
+      ? reassessKey({
+          instanceId,
+          providerId,
+          providerVersionId: providerVersionId ?? undefined
+        })
+      : null;
+  let review = useOptimisticReassess(key, data.data);
+
+  usePolling(key, data.refetch, isSecurityReviewPending(review), POLL_INTERVAL_MS);
 
   return {
     ...data,
+    data: review ?? null,
     useReassessMutator: data.useMutator('reassess')
   };
 };

@@ -324,7 +324,7 @@ export let SecurityReviewProgress = ({
               : `Review in progress · Step ${stageIndex + 1} of ${reviewStages.length}`}
           </Eyebrow>
           <Title as="h3" size="4" weight="strong">
-            {stage?.title ?? 'Your security review is queued.'}
+            {stage?.title ?? 'Your security review will begin shortly.'}
           </Title>
           <Text size="2" color="gray700">
             {stage?.detail ?? 'The review starts as soon as a reviewer is available.'}
@@ -350,7 +350,7 @@ export let SecurityReviewProgress = ({
 
       <Activity>
         <ActivityDot />
-        {activity ?? (isQueued ? 'Waiting for an available reviewer' : stage?.description)}
+        {activity ?? (isQueued ? 'Waiting for the review to begin' : stage?.description)}
       </Activity>
     </>
   );
@@ -410,12 +410,9 @@ export let SecurityReviewNotices = ({
           <span>
             {inProgress.status == 'queued'
               ? 'A new assessment is queued.'
-              : `Reassessing${stage ? ` · ${stage.label}` : ''}${activity ? ` · ${activity}` : ''}`}
+              : `Reassessing${stage ? `: ${stage.label}` : ''}${activity ? ` - ${activity}` : ''}`}
           </span>
         </ProgressStripLabel>
-        <Text size="1" color="gray600">
-          The current report stays available
-        </Text>
       </ProgressStrip>
     );
   }
@@ -473,7 +470,7 @@ export let SecurityReviewNotices = ({
     );
   } else if (revision.scores?.confidence == 'low') {
     notices.push(
-      <Callout key="low-confidence" color="yellow" size="1">
+      <Callout key="low-confidence" color="orange" size="1">
         <strong>Limited evidence.</strong> Parts of this {subject} could not be verified. See
         Method and Limits for the gaps.
       </Callout>

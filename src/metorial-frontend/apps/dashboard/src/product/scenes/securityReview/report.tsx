@@ -491,7 +491,7 @@ let ToolCapabilitiesSection = ({
                 iconRight={expanded ? <RiArrowUpSLine /> : <RiArrowDownSLine />}
                 onClick={() => setExpanded(!expanded)}
               >
-                {expanded ? 'Show Key Tools' : 'View All Tools'}
+                {expanded ? 'Collapse' : 'View All Tools'}
               </Button>
             )}
           </TableFooter>

@@ -11,7 +11,7 @@ import {
 } from '@metorial/state';
 import { Button, Callout, confirm, RenderDate, Text, Title } from '@metorial/ui';
 import { RiEyeOffLine, RiLockLine, RiRefreshLine } from '@remixicon/react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import {
   getDisplayedRevision,
@@ -64,9 +64,14 @@ export let SkillSecurityPage = () => {
   );
 
   let currentRevisionId = review.data?.currentRevision?.id ?? null;
+  let lastRevisionId = useRef<string | null | undefined>(undefined);
+  let isLoaded = !!review.data;
   useEffect(() => {
-    if (currentRevisionId) revisions.refetch();
-  }, [currentRevisionId]);
+    if (!isLoaded) return;
+    if (lastRevisionId.current !== undefined && lastRevisionId.current != currentRevisionId)
+      revisions.refetch();
+    lastRevisionId.current = currentRevisionId;
+  }, [isLoaded, currentRevisionId]);
 
   let history = revisions.data?.items ?? [];
   let displayed =

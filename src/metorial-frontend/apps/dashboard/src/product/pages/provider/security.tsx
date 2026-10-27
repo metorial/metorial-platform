@@ -12,7 +12,7 @@ import {
 } from '@metorial/state';
 import { Button, Callout, Select, Text, Title } from '@metorial/ui';
 import { RiRefreshLine } from '@remixicon/react';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import {
   getDisplayedRevision,
@@ -70,9 +70,14 @@ export let ProviderSecurityPage = () => {
   );
 
   let currentRevisionId = review.data?.currentRevision?.id ?? null;
+  let lastRevisionId = useRef<string | null | undefined>(undefined);
+  let isLoaded = !!review.data;
   useEffect(() => {
-    if (currentRevisionId) revisions.refetch();
-  }, [currentRevisionId]);
+    if (!isLoaded) return;
+    if (lastRevisionId.current !== undefined && lastRevisionId.current != currentRevisionId)
+      revisions.refetch();
+    lastRevisionId.current = currentRevisionId;
+  }, [isLoaded, currentRevisionId]);
 
   let history = revisions.data?.items ?? [];
   let versionIds = useMemo(
@@ -194,7 +199,7 @@ export let ProviderSecurityPage = () => {
 
           <Text size="1" color="gray600" style={{ marginTop: 12 }}>
             Read-only review. No tools are executed and no configuration secrets are included.
-            You can leave this page; the report appears here when it is ready.
+            You can leave this page. The report appears here when it's ready.
           </Text>
         </>
       );
