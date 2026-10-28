@@ -12,7 +12,7 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "ts-proto": "^2.15.3",
+    "ts-proto": "^2.18.0",
     "grpc-tools": "^1.13.1",
     "grpc_tools_node_protoc_ts": "^5.3.3"
   },
