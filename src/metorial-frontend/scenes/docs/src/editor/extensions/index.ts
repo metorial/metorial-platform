@@ -39,6 +39,9 @@ import { ImagePlaceholder } from './ImagePlaceholder';
 import { HeadingWithId } from './HeadingWithId';
 import { lowlight } from './lowlight';
 import { RemoteCursorOverlay } from './RemoteCursorOverlay';
+import { CommentHighlights, type CommentHighlightsOptions } from './CommentHighlights';
+import { EditorAttribution, type EditorAttributionOptions } from './EditorAttribution';
+import { CommentThreadMark, DocumentAnnotationAttributes } from '@metorial/docs-editor-schema';
 
 export { lowlight } from './lowlight';
 
@@ -52,6 +55,8 @@ export let buildExtensions = (opts?: {
       imageUrl?: string;
     };
     onFirstRender?: () => void;
+    attribution?: EditorAttributionOptions;
+    comments?: CommentHighlightsOptions;
   };
 }) => [
   StarterKit.configure({
@@ -157,9 +162,18 @@ export let buildExtensions = (opts?: {
         RemoteCursorOverlay({
           awareness: opts.collaboration.awareness,
           user: opts.collaboration.user
-        })
+        }),
+        ...(opts.collaboration.attribution
+          ? [EditorAttribution.configure(opts.collaboration.attribution)]
+          : []),
+        ...(opts.collaboration.comments
+          ? [CommentHighlights.configure(opts.collaboration.comments)]
+          : [])
       ]
     : []),
+
+  DocumentAnnotationAttributes,
+  CommentThreadMark,
 
   Callout,
   ImagePlaceholder,
