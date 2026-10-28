@@ -22,7 +22,6 @@ import Highlight from '@tiptap/extension-highlight';
 import Subscript from '@tiptap/extension-subscript';
 import Superscript from '@tiptap/extension-superscript';
 import TextAlign from '@tiptap/extension-text-align';
-import Underline from '@tiptap/extension-underline';
 import CharacterCount from '@tiptap/extension-character-count';
 import Collaboration from '@tiptap/extension-collaboration';
 import { Markdown } from 'tiptap-markdown';
@@ -101,7 +100,6 @@ export let buildExtensions = (opts?: {
     multicolor: false
   }),
 
-  Underline,
   Subscript,
   Superscript,
   Typography,
