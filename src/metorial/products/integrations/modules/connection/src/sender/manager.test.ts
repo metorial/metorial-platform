@@ -18,7 +18,8 @@ vi.mock('@lowerdeck/error', () => ({
 vi.mock('@lowerdeck/lock', () => ({ createLock: vi.fn(() => ({})) }));
 let sentry = vi.hoisted(() => ({ captureException: vi.fn(), captureMessage: vi.fn() }));
 
-vi.mock('@lowerdeck/sentry', () => ({
+vi.mock('@lowerdeck/sentry', async importOriginal => ({
+  ...(await importOriginal<typeof import('@lowerdeck/sentry')>()),
   getSentry: vi.fn(() => sentry)
 }));
 vi.mock('@metorial-subspace/conduit', () => ({
@@ -34,7 +35,10 @@ vi.mock('@metorial-subspace/module-agent', () => ({}));
 vi.mock('@metorial-subspace/module-callback', () => ({ callbackEventService: {} }));
 vi.mock('@metorial-subspace/module-enclave', () => ({}));
 vi.mock('@metorial-subspace/module-provider-internal', () => ({
-  checkToolAccess: vi.fn(() => ({ allowed: true }))
+  checkToolAccess: vi.fn(() => ({ allowed: true })),
+  checkToolAuthMethodSatisfied: vi.fn(() => ({ allowed: true })),
+  checkToolScopesSatisfied: vi.fn(() => ({ allowed: true })),
+  resolveGrantedScopes: vi.fn(() => ['channels:read'])
 }));
 vi.mock('@metorial/module-rate-limit', () => ({
   rateLimitService: { consume: vi.fn() }
@@ -62,6 +66,7 @@ vi.mock('../shared/createError', () => ({ createError: vi.fn() }));
 vi.mock('../shared/createMessage', () => ({ createMessage: vi.fn() }));
 vi.mock('../shared/createWarning', () => ({ createWarning: vi.fn() }));
 vi.mock('../shared/upsertParticipant', () => ({ upsertParticipant: vi.fn() }));
+vi.mock('../lib/providerToolCache', () => ({ listSpecificationTools: vi.fn() }));
 vi.mock('./connectionSpecification', () => ({
   isConnectionScopedProviderVersion: vi.fn(),
   resolveConnectionScopedSpecification: vi.fn()
@@ -89,9 +94,14 @@ vi.mock('../lib/callbackEventTools', async importOriginal => ({
 import { ServiceError } from '@lowerdeck/error';
 import { serialize } from '@lowerdeck/serialize';
 import { rateLimitService } from '@metorial/module-rate-limit';
-import { checkToolAccess } from '@metorial-subspace/module-provider-internal';
+import {
+  checkToolAccess,
+  checkToolScopesSatisfied
+} from '@metorial-subspace/module-provider-internal';
 import { parseNameFromSessionProviderTemplates } from '@metorial-subspace/module-session';
+import { isAlreadyCaptured } from '@sentry/core';
 import { broadcastNats } from '../lib/nats';
+import { listSpecificationTools } from '../lib/providerToolCache';
 import type { RequestScopedTool, RequestScopedTools } from '../lib/requestTools';
 import { createMessage } from '../shared/createMessage';
 import { SenderManager, type CallToolProps } from './manager';
@@ -168,6 +178,65 @@ describe('SenderManager tool resolution', () => {
     ).rejects.toThrow('Invalid tool ID format');
     expect(manager.getLegacyToolMatch).toHaveBeenCalled();
     expect(manager.getProviderToolByResolvedName).not.toHaveBeenCalled();
+  });
+});
+
+describe('SenderManager tool scope errors', () => {
+  let provider = { id: 'spr_1', provider: { name: 'Slack' } };
+
+  let tool = { key: 'metorial_chat$workspace.list' };
+
+  let resolveTool = () => {
+    let manager = createManager(true) as any;
+    manager.ensureProviderInstance = vi.fn(async () => ({
+      status: 'ok',
+      instance: { pairVersion: { specificationOid: 1n } }
+    }));
+    manager.resolveConnectionSpecification = vi.fn(async () => null);
+
+    return manager.getProviderToolByResolvedName({
+      provider,
+      originalToolName: tool.key,
+      finalToolName: tool.key
+    });
+  };
+
+  beforeEach(() => {
+    vi.mocked(listSpecificationTools).mockResolvedValue([tool] as any);
+    vi.mocked(checkToolAccess).mockReturnValue({ allowed: true } as any);
+    vi.mocked(checkToolScopesSatisfied).mockReturnValue({ allowed: false });
+  });
+
+  afterEach(() => {
+    vi.mocked(checkToolAccess).mockReturnValue({ allowed: true } as any);
+    vi.mocked(checkToolScopesSatisfied).mockReturnValue({ allowed: true });
+    vi.mocked(listSpecificationTools).mockReset();
+  });
+
+  it('throws missing scope errors while preventing Sentry capture', async () => {
+    let error = await resolveTool().catch((error: unknown) => error);
+
+    expect(error).toBeInstanceOf(ServiceError);
+    expect(error.message).toContain(
+      'Tool requires scopes that have not been granted to this credential'
+    );
+    expect(isAlreadyCaptured(error)).toBe(true);
+  });
+
+  it('keeps other tool access errors reportable', async () => {
+    vi.mocked(checkToolAccess).mockReturnValue({ allowed: false } as any);
+
+    let error = await resolveTool().catch((error: unknown) => error);
+
+    expect(error).toBeInstanceOf(ServiceError);
+    expect(error.message).toContain('Tool access not allowed');
+    expect(isAlreadyCaptured(error)).toBeFalsy();
+  });
+
+  it('resolves tools when their required scopes are granted', async () => {
+    vi.mocked(checkToolScopesSatisfied).mockReturnValue({ allowed: true });
+
+    await expect(resolveTool()).resolves.toMatchObject({ provider, tool });
   });
 });
 
