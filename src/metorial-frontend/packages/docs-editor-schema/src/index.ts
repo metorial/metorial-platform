@@ -1,5 +1,6 @@
-import { Editor, Node, mergeAttributes } from '@tiptap/core';
-import { Fragment } from '@tiptap/pm/model';
+import { Editor, Node, getSchema, mergeAttributes } from '@tiptap/core';
+import { Fragment, type Schema } from '@tiptap/pm/model';
+import { EditorState, type Transaction } from '@tiptap/pm/state';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import HardBreak from '@tiptap/extension-hard-break';
 import Heading from '@tiptap/extension-heading';
@@ -21,17 +22,73 @@ import CharacterCount from '@tiptap/extension-character-count';
 import Collaboration from '@tiptap/extension-collaboration';
 import { StarterKit } from '@tiptap/starter-kit';
 import {
+  initProseMirrorDoc,
   prosemirrorJSONToYXmlFragment,
+  updateYFragment,
   yXmlFragmentToProsemirrorJSON
 } from '@tiptap/y-tiptap';
 import { createLowlight } from 'lowlight';
 import { Markdown } from 'tiptap-markdown';
 import * as Y from 'yjs';
+import { CommentThreadMark, DocumentAnnotationAttributes } from './annotationSchema';
+import {
+  addCommentThreadMark,
+  alignAnnotationsToTexts,
+  applyAnnotationModel,
+  createDocumentBody,
+  encodeAnnotationModel,
+  getTextblockTexts,
+  modelFromDoc,
+  readStoredAnnotations,
+  reconcileAnnotationModel,
+  removeCommentThreadMark,
+  type DocumentAnnotations,
+  type DocumentBody,
+  type DocumentCommentAnchor
+} from './annotations';
 import {
   hardBreakMarkdownSpec,
   htmlMarkMarkdownSpec,
   tableMarkdownSpec
 } from './markdownHtml';
+
+export * from './annotationGuard';
+export * from './annotationSchema';
+export {
+  addCommentThreadMark,
+  alignAnnotationsToTexts,
+  alignSequences,
+  applyAnnotationModel,
+  applyEditorChange,
+  areAnnotationCommentsEqual,
+  areDocumentBodiesEqual,
+  collectTextblocks,
+  getAnnotationsBlockEditors,
+  getAnnotationsCommentThreadIds,
+  getChangeRatio,
+  getCommentAnchorForRange,
+  getTextblockTexts,
+  hashText,
+  isAnnotatedTextblock,
+  isDocumentAnnotations,
+  modelFromDoc,
+  posToTextOffset,
+  readStoredAnnotations,
+  removeCommentThreadMark,
+  resolveCommentAnchor,
+  textOffsetToPos,
+  withCommentAnchor,
+  withoutCommentAnchor
+} from './annotations';
+export type {
+  AnnotationModel,
+  DocumentAnnotationBlock,
+  DocumentAnnotationComment,
+  DocumentAnnotations,
+  DocumentBody,
+  DocumentCommentAnchor,
+  Textblock
+} from './annotations';
 
 export type CalloutType = 'info' | 'warning' | 'success' | 'danger';
 
@@ -353,6 +410,8 @@ export let buildHeadlessExtensions = (opts?: {
   EquationBlock,
   ImagePlaceholder,
   AgentBlock,
+  DocumentAnnotationAttributes,
+  CommentThreadMark,
   ...(opts?.collaboration
     ? [
         Collaboration.configure({
@@ -390,21 +449,46 @@ export let decodeYjsUpdate = (update: string) => {
   return bytes;
 };
 
-export let markdownToYjsUpdate = (markdown: string, origin?: unknown) => {
-  if (markdown.trim().length === 0) return null;
+let headlessSchema: Schema | undefined;
 
-  let ydoc = new Y.Doc();
-  let body = ydoc.getXmlFragment('body');
-  let editor = new Editor({
+let getHeadlessSchema = () => {
+  headlessSchema ??= getSchema(buildHeadlessExtensions());
+  return headlessSchema;
+};
+
+let createMarkdownEditor = (markdown: string) =>
+  new Editor({
     extensions: buildHeadlessExtensions(),
     content: markdown,
     editable: false
   });
 
+let getAnnotatedDocJSON = (editor: Editor, annotations?: DocumentAnnotations | null) => {
+  let tr = editor.state.tr;
+  let model = alignAnnotationsToTexts(annotations ?? null, getTextblockTexts(tr.doc));
+  applyAnnotationModel(tr, model);
+
+  return tr.doc.toJSON();
+};
+
+export let markdownToYjsUpdate = (
+  markdown: string,
+  origin?: unknown,
+  annotations?: DocumentAnnotations | null
+) => {
+  if (markdown.trim().length === 0) return null;
+
+  let ydoc = new Y.Doc();
+  let body = ydoc.getXmlFragment('body');
+  let editor = createMarkdownEditor(markdown);
+
   try {
+    let json = getAnnotatedDocJSON(editor, annotations);
+
     ydoc.transact(() => {
-      prosemirrorJSONToYXmlFragment(editor.schema, editor.getJSON(), body);
+      prosemirrorJSONToYXmlFragment(editor.schema, json, body);
     }, origin);
+
     return body.length > 0 ? encodeYjsUpdate(Y.encodeStateAsUpdate(ydoc)) : null;
   } finally {
     editor.destroy();
@@ -416,21 +500,192 @@ export let replaceYjsBodyFromMarkdown = (d: {
   ydoc: Y.Doc;
   markdown: string;
   origin?: unknown;
+  annotations?: DocumentAnnotations | null;
 }) => {
   let body = d.ydoc.getXmlFragment('body');
-  let editor = new Editor({
-    extensions: buildHeadlessExtensions(),
-    content: d.markdown,
-    editable: false
-  });
+  let editor = createMarkdownEditor(d.markdown);
 
   try {
+    let json = getAnnotatedDocJSON(editor, d.annotations);
+
     d.ydoc.transact(() => {
       if (body.length > 0) body.delete(0, body.length);
-      prosemirrorJSONToYXmlFragment(editor.schema, editor.getJSON(), body);
+      prosemirrorJSONToYXmlFragment(editor.schema, json, body);
     }, d.origin);
   } finally {
     editor.destroy();
+  }
+};
+
+let splitStoredFrontMatter = (content: string) => {
+  let input = content.replace(/^\uFEFF/, '');
+  let match = input.match(/^---\r?\n([\s\S]*?)\r?\n(?:---|\.\.\.)\r?\n?/);
+  if (!match) return { frontMatter: undefined, body: input };
+
+  return {
+    frontMatter: (match[1] ?? '').trim(),
+    body: input.slice(match[0].length)
+  };
+};
+
+let stripMatchingStoredTitle = (body: string, title: string) => {
+  let match = body.match(/^\s*#\s+([^\r\n]+)(?:\r?\n|$)/);
+  if (!match) return body;
+  if ((match[1] ?? '').trim() !== title.trim()) return body;
+
+  return body.slice(match[0].length).replace(/^\s+/, '');
+};
+
+export let getDocumentBodyMarkdown = (d: { content: string; title: string }) => {
+  let { frontMatter, body } = splitStoredFrontMatter(d.content);
+  return {
+    frontMatter,
+    body: stripMatchingStoredTitle(body, d.title)
+  };
+};
+
+let getMarkdownTextblockTexts = (markdown: string) => {
+  let editor = createMarkdownEditor(markdown);
+
+  try {
+    return getTextblockTexts(editor.state.doc);
+  } finally {
+    editor.destroy();
+  }
+};
+
+export let reconcileDocumentBody = (d: {
+  previous: { content: string; title: string; annotations: unknown } | null;
+  next: { content: string; title: string };
+  actorIds: string[];
+}): DocumentBody => {
+  let stored = d.previous ? readStoredAnnotations(d.previous) : null;
+  let isSameContent =
+    !!d.previous && d.previous.content === d.next.content && d.previous.title === d.next.title;
+
+  if (isSameContent && stored?.status === 'verified') {
+    return createDocumentBody(d.next.content, stored.annotations);
+  }
+
+  let previousTexts = d.previous
+    ? getMarkdownTextblockTexts(getDocumentBodyMarkdown(d.previous).body)
+    : [];
+  let nextTexts = isSameContent
+    ? previousTexts
+    : getMarkdownTextblockTexts(getDocumentBodyMarkdown(d.next).body);
+
+  let model = reconcileAnnotationModel({
+    previous: alignAnnotationsToTexts(stored?.annotations ?? null, previousTexts),
+    texts: nextTexts,
+    actorIds: d.actorIds
+  });
+
+  return createDocumentBody(d.next.content, encodeAnnotationModel(model));
+};
+
+export let yjsUpdateToDocumentBody = (
+  update: string,
+  fallback: { title: string; frontMatter?: string }
+) => {
+  let ydoc = new Y.Doc();
+
+  try {
+    Y.applyUpdate(ydoc, decodeYjsUpdate(update));
+
+    let meta = ydoc.getMap<string>('meta');
+    let editor = new Editor({
+      extensions: buildHeadlessExtensions(),
+      content: yXmlFragmentToProsemirrorJSON(ydoc.getXmlFragment('body')),
+      editable: false
+    });
+
+    try {
+      let markdown =
+        (
+          editor.storage as { markdown?: { getMarkdown: () => string } }
+        ).markdown?.getMarkdown() ?? '';
+      let title = meta.get('title') ?? fallback.title;
+      let frontMatter = meta.get('frontMatter') ?? fallback.frontMatter;
+      let content = composeFullMarkdown({ frontMatter, title, body: markdown });
+
+      return {
+        title,
+        frontMatter,
+        body: createDocumentBody(
+          content,
+          encodeAnnotationModel(modelFromDoc(editor.state.doc))
+        )
+      };
+    } finally {
+      editor.destroy();
+    }
+  } finally {
+    ydoc.destroy();
+  }
+};
+
+let transformYjsBody = <T>(stateUpdate: string, transform: (tr: Transaction) => T | null) => {
+  let ydoc = new Y.Doc();
+
+  try {
+    Y.applyUpdate(ydoc, decodeYjsUpdate(stateUpdate));
+
+    let fragment = ydoc.getXmlFragment('body');
+    let { doc, meta } = initProseMirrorDoc(fragment, getHeadlessSchema());
+    let tr = EditorState.create({ doc }).tr;
+
+    let result = transform(tr);
+    if (result === null || !tr.docChanged) return null;
+
+    let stateVector = Y.encodeStateVector(ydoc);
+    updateYFragment(ydoc, fragment, tr.doc, meta);
+
+    return {
+      result,
+      update: encodeYjsUpdate(Y.encodeStateAsUpdate(ydoc, stateVector))
+    };
+  } finally {
+    ydoc.destroy();
+  }
+};
+
+export let applyCommentAnchorToYjsUpdate = (d: {
+  stateUpdate: string;
+  threadId: string;
+  anchor: DocumentCommentAnchor;
+}) => {
+  let transformed = transformYjsBody(d.stateUpdate, tr =>
+    addCommentThreadMark({ tr, threadId: d.threadId, anchor: d.anchor })
+  );
+  if (!transformed) return null;
+
+  return { update: transformed.update, quote: transformed.result.quote };
+};
+
+export let removeCommentAnchorFromYjsUpdate = (d: {
+  stateUpdate: string;
+  threadId: string;
+}) => {
+  let transformed = transformYjsBody(d.stateUpdate, tr =>
+    removeCommentThreadMark({ tr, threadId: d.threadId }) ? true : null
+  );
+
+  return transformed ? { update: transformed.update } : null;
+};
+
+export let getYjsBodyAnnotationModel = (stateUpdate: string | Uint8Array) => {
+  let ydoc = new Y.Doc();
+
+  try {
+    Y.applyUpdate(
+      ydoc,
+      typeof stateUpdate == 'string' ? decodeYjsUpdate(stateUpdate) : stateUpdate
+    );
+
+    let { doc } = initProseMirrorDoc(ydoc.getXmlFragment('body'), getHeadlessSchema());
+    return modelFromDoc(doc);
+  } finally {
+    ydoc.destroy();
   }
 };
 
