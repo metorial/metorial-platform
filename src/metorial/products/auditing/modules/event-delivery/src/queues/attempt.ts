@@ -1,4 +1,4 @@
-import { safeFetch } from '@lowerdeck/ssrf';
+import { safeFetch, SsrfBlockedError } from '@lowerdeck/ssrf';
 import { db, ID, withTransaction } from '@metorial/db';
 import { createQueue, QueueRetryError } from '@metorial/queue';
 import { resolveSystemEventDeliveryPayload } from '../lib/payload';
@@ -205,7 +205,7 @@ export let attemptDeliveryQueueProcessor = attemptDeliveryQueue.process(async da
         retryAfterSeconds = parseRetryAfterSeconds(response.headers.get('retry-after'));
       }
     } catch (error: any) {
-      if (error instanceof DeliveryUrlNotAllowedError) {
+      if (error instanceof DeliveryUrlNotAllowedError || error instanceof SsrfBlockedError) {
         errorCode = 'url_not_allowed';
         errorMessage = error.message;
       } else if (error?.name == 'TimeoutError' || error?.name == 'AbortError') {

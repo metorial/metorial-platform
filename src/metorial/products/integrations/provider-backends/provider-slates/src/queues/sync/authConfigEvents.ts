@@ -4,6 +4,10 @@ import { Hash } from '@lowerdeck/hash';
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db, getId } from '@metorial-subspace/db';
 import {
+  recordProviderAuthErrorUsage,
+  recordProviderAuthEventUsage
+} from '@metorial/module-usage';
+import {
   createProviderInvocationId,
   getRetentionPolicy,
   redactJsonShape,
@@ -42,8 +46,7 @@ let getErrorInfo = (event: SlateAuthConfigEventItem) => {
   if (fromEvent) {
     return {
       code: fromEvent.code,
-      message:
-        fromEvent.message ?? DEFAULT_ERROR_MESSAGES[fromEvent.code] ?? fromEvent.code
+      message: fromEvent.message ?? DEFAULT_ERROR_MESSAGES[fromEvent.code] ?? fromEvent.code
     };
   }
 
@@ -68,18 +71,13 @@ let getErrorInfo = (event: SlateAuthConfigEventItem) => {
 };
 
 let getProviderInvocationId = (slateInvocationId: string | null | undefined) =>
-  slateInvocationId
-    ? createProviderInvocationId('slate.invocation', slateInvocationId)
-    : null;
+  slateInvocationId ? createProviderInvocationId('slate.invocation', slateInvocationId) : null;
 
 let getEventStatus = (event: SlateAuthConfigEventItem): 'succeeded' | 'failed' => {
   if (event.type.endsWith('_failed')) return 'failed';
 
   let invocationStatus = event.invocation?.status;
-  if (
-    invocationStatus === 'invocation_failed' ||
-    invocationStatus === 'message_failed'
-  ) {
+  if (invocationStatus === 'invocation_failed' || invocationStatus === 'message_failed') {
     return 'failed';
   }
 
@@ -175,7 +173,8 @@ export let syncAuthConfigEventQueueProcessor = syncAuthConfigEventQueue.process(
         payload: retention.storeErrorPayload ? safePayload : redactJsonShape(safePayload),
         authConfigOid: authConfigVersion.authConfigOid,
         authCredentialsOid:
-          authConfigVersion.authCredentialsOid ?? authConfigVersion.authConfig.authCredentialsOid,
+          authConfigVersion.authCredentialsOid ??
+          authConfigVersion.authConfig.authCredentialsOid,
         providerOid: authConfigVersion.authConfig.providerOid,
         tenantOid: authConfigVersion.authConfig.tenantOid,
         projectOid: authConfigVersion.authConfig.projectOid,
@@ -184,6 +183,8 @@ export let syncAuthConfigEventQueueProcessor = syncAuthConfigEventQueue.process(
         solutionOid: authConfigVersion.authConfig.solutionOid
       }
     });
+
+    await recordProviderAuthEventUsage(authConfigEvent);
   }
 
   if (data.event.type !== 'oauth_token_refresh_failed') return;
@@ -215,7 +216,8 @@ export let syncAuthConfigEventQueueProcessor = syncAuthConfigEventQueue.process(
       authConfigEventOid: authConfigEvent.oid,
       authConfigOid: authConfigVersion.authConfigOid,
       authCredentialsOid:
-        authConfigVersion.authCredentialsOid ?? authConfigVersion.authConfig.authCredentialsOid,
+        authConfigVersion.authCredentialsOid ??
+        authConfigVersion.authConfig.authCredentialsOid,
       providerOid: authConfigVersion.authConfig.providerOid,
       tenantOid: authConfigVersion.authConfig.tenantOid,
       projectOid: authConfigVersion.authConfig.projectOid,
@@ -224,6 +226,8 @@ export let syncAuthConfigEventQueueProcessor = syncAuthConfigEventQueue.process(
       solutionOid: authConfigVersion.authConfig.solutionOid
     }
   });
+
+  await recordProviderAuthErrorUsage(error);
 
   let hash = await Hash.sha256(
     canonicalize([

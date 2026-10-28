@@ -367,6 +367,23 @@ class ConsumerAccessRequestServiceImpl {
       );
     }
 
+    if (d.input.status == 'approved') {
+      let consumerGroup =
+        d.input.consumerGroup ?? d.consumerAccessRequest.consumerProfile.personalConsumerGroup;
+
+      if (consumerGroup.surfaceOid != d.consumerAccessRequest.surface.oid) {
+        throw new ServiceError(notFoundError('consumer.group'));
+      }
+
+      if (consumerGroup.status != 'active') {
+        throw new ServiceError(
+          preconditionFailedError({
+            message: 'Cannot grant access to an inactive consumer group.'
+          })
+        );
+      }
+    }
+
     let consumerAccessRequest = await withTransaction(async db => {
       return await db.consumerAccessRequest.update({
         where: {
@@ -381,23 +398,6 @@ class ConsumerAccessRequestServiceImpl {
         include
       });
     });
-
-    if (consumerAccessRequest.status == 'approved') {
-      let consumerGroup =
-        d.input.consumerGroup ?? consumerAccessRequest.consumerProfile.personalConsumerGroup;
-
-      if (consumerGroup.surfaceOid != consumerAccessRequest.surface.oid) {
-        throw new ServiceError(notFoundError('consumer.group'));
-      }
-
-      if (consumerGroup.status != 'active') {
-        throw new ServiceError(
-          preconditionFailedError({
-            message: 'Cannot grant access to an inactive consumer group.'
-          })
-        );
-      }
-    }
 
     await Fabric.fire('consumer.access_request.reviewed:after', {
       consumerAccessRequest,

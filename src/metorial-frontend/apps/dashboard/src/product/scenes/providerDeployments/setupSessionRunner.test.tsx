@@ -20,12 +20,18 @@ vi.mock('@metorial/state', () => ({
 let root: Root;
 let runner: ReturnType<typeof useProviderSetupSessionRunner>;
 let onComplete = vi.fn();
-let popup: { closed: boolean; location: { href: string }; focus: () => void; close: () => void };
+let popup: {
+  closed: boolean;
+  location: { href: string };
+  focus: () => void;
+  close: () => void;
+};
 
-let Harness = () => {
+let Harness = (props: { source?: 'explorer' }) => {
   runner = useProviderSetupSessionRunner({
     instanceId: 'instance',
     providerId: 'provider',
+    source: props.source,
     onComplete
   });
   return null;
@@ -72,6 +78,22 @@ afterEach(async () => {
 });
 
 describe('useProviderSetupSessionRunner', () => {
+  it.each([undefined, 'explorer' as const])(
+    'only marks explicitly requested explorer sessions (source=%s)',
+    async source => {
+      act(() => root.render(<Harness source={source} />));
+      await startSession();
+
+      let input = state.create.mock.calls[0]![0];
+      if (source) {
+        expect(input).toHaveProperty('source', 'explorer');
+      } else {
+        expect(input).not.toHaveProperty('source');
+      }
+      expect(input).not.toHaveProperty('ownedByCaller');
+    }
+  );
+
   it('keeps polling when the browser reports the setup window as closed', async () => {
     await startSession();
     popup.closed = true;

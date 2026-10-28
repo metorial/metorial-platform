@@ -1,10 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@metorial/module-event-tracker', () => ({
+vi.mock('@metorial/module-event-tracker/src/lib/resolvePayload', () => ({
   resolveSystemEventPayload: vi.fn()
 }));
 
 import { v1SystemEventListPresenter, v1SystemEventPresenter } from './event';
+
+let context = {
+  apiVersion: 'mt_2026_01_01_magnetar',
+  accessType: 'user_auth_token'
+} as const;
 
 let organization = { id: 'org_1' } as any;
 let event = {
@@ -24,14 +29,18 @@ let event = {
 
 describe('system event callback payload presentation', () => {
   it('includes hydrated callback payloads in single-event responses', async () => {
-    let presented = await v1SystemEventPresenter.present({ event, organization }).run();
+    let presented = await v1SystemEventPresenter
+      .present({ event, organization }, context)
+      .run();
 
     expect(presented.payload).toEqual({ action: 'opened' });
     expect(presented.callback_event_id).toBe('cbe_1');
   });
 
   it('omits payloads and payload schema from list items', async () => {
-    let presented = await v1SystemEventListPresenter.present({ event, organization }).run();
+    let presented = await v1SystemEventListPresenter
+      .present({ event, organization }, context)
+      .run();
 
     expect(presented).not.toHaveProperty('payload');
     expect(v1SystemEventListPresenter.schema.properties).not.toHaveProperty('payload');

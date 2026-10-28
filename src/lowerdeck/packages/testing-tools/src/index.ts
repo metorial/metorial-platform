@@ -5,3 +5,4 @@ export * from './vitest/ci';
 export * from './prisma';
 export * from './factories';
 export * from './http';
+export * from './e2e';

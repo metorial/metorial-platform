@@ -19,8 +19,15 @@ import {
   MagicMcpServer,
   MagicMcpToken,
   MagicMcpTokenStatus,
+  OrganizationActor,
   Prisma
 } from '@metorial/db';
+import {
+  assertCanUseCoreOwnedResources,
+  getOwnershipAccessor,
+  internalOwnershipAccessor,
+  subspaceScopeService
+} from '@metorial-subspace/module-tenant';
 import {
   accessTagService,
   consumerMagicMcpReadRoles,
@@ -139,6 +146,7 @@ class MagicMcpTokenImpl {
       magicMcpEndpoint?: MagicMcpEndpoint;
       skillPlugin?: { oid: bigint } | null;
     };
+    organizationActor?: OrganizationActor;
   }) {
     if (d.input.magicMcpServer && d.input.magicMcpEndpoint) {
       throw new ServiceError(
@@ -153,6 +161,23 @@ class MagicMcpTokenImpl {
       magicMcpServer: d.input.magicMcpServer,
       magicMcpEndpoint: d.input.magicMcpEndpoint
     });
+
+    if (d.input.magicMcpServer || d.input.magicMcpEndpoint) {
+      let accessor = internalOwnershipAccessor;
+      if (d.organizationActor) {
+        let { tenant } = await subspaceScopeService.ensureForInstance(d.instance);
+        accessor = await getOwnershipAccessor({
+          tenant,
+          organizationActor: d.organizationActor
+        });
+      }
+
+      await assertCanUseCoreOwnedResources(
+        accessor,
+        [d.input.magicMcpServer, d.input.magicMcpEndpoint],
+        { resource: d.input.magicMcpServer ? 'magic MCP server' : 'magic MCP endpoint' }
+      );
+    }
 
     await Fabric.fire('magic_mcp.token.created:before', {
       instance: d.instance
@@ -426,7 +451,9 @@ class MagicMcpTokenImpl {
                       {
                         AND: [
                           {
-                            magicMcpServerOid: null
+                            magicMcpServerOid: null,
+                            magicMcpEndpointOid: null,
+                            isGroupLocked: false
                           },
                           {
                             groups: {
@@ -438,7 +465,8 @@ class MagicMcpTokenImpl {
                       {
                         AND: [
                           {
-                            magicMcpServerOid: null
+                            magicMcpServerOid: null,
+                            magicMcpEndpointOid: null
                           },
                           {
                             groups: {

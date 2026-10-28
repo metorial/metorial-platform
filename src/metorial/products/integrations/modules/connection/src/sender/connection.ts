@@ -172,8 +172,16 @@ export class SenderConnection {
     return this.manager.getToolById(d);
   }
 
+  shouldRedactStoredToolInput(toolId: string) {
+    return this.manager.shouldRedactStoredToolInput(toolId);
+  }
+
   callTool(d: CallToolProps) {
     return this.manager.callTool(d);
+  }
+
+  sendMcpMessageToProvider(d: Parameters<SenderManager['sendMcpMessageToProvider']>[0]) {
+    return this.manager.sendMcpMessageToProvider(d);
   }
 
   initialize(d: InitProps) {

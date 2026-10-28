@@ -34,6 +34,7 @@ import {
 import { normalizeJsonSchema } from '@metorial-subspace/provider-utils';
 import { Fabric } from '@metorial/fabric';
 import { stampPublicMcpOwnership } from '../lib/publicMcpOwnership';
+import { sessionTypeSkipsConfig } from '../lib/setupSessionType';
 import { providerSetupSessionUpdatedQueue } from '../queues/lifecycle/providerSetupSession';
 import { providerAuthConfigService } from './providerAuthConfig';
 import { providerAuthConfigInternalService } from './providerAuthConfigInternal';
@@ -48,11 +49,13 @@ class providerSetupSessionInternalServiceImpl {
       provider: Provider;
       providerVariant: ProviderVariant;
       currentVersion:
-        | (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null })
-        | null;
+        (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null }) | null;
     };
     credentials?: ProviderAuthCredentials;
     ownerActorOid?: bigint | null;
+    source?: 'explorer';
+    isOwnerLocked?: boolean;
+    isOwnerOnlyVisible?: boolean;
     ownerPublicMcpServerOid?: bigint | null;
     expiresAt: Date;
     input: {
@@ -103,10 +106,10 @@ class providerSetupSessionInternalServiceImpl {
             })
           );
         }
-        if (concreteType === 'auth_only' && d.input.configInput) {
+        if (sessionTypeSkipsConfig(concreteType) && d.input.configInput) {
           throw new ServiceError(
             badRequestError({
-              message: 'Config input provided for auth_only session type'
+              message: `Config input provided for ${concreteType} session type`
             })
           );
         }
@@ -116,7 +119,11 @@ class providerSetupSessionInternalServiceImpl {
         let configInput = d.input.configInput;
         let originalConcreteType = concreteType;
 
-        if (concreteType === 'auth_only' || concreteType === 'auth_and_config') {
+        if (
+          concreteType === 'auth_only' ||
+          concreteType === 'auth_and_config' ||
+          concreteType === 'admin'
+        ) {
           let { authMethod } = await providerAuthConfigInternalService.getVersionAndAuthMethod(
             {
               tenant: d.tenant,
@@ -129,6 +136,19 @@ class providerSetupSessionInternalServiceImpl {
           );
 
           assertAuthMethodAllowedForTenant({ tenant: d.tenant, authMethod });
+
+          if (
+            concreteType === 'admin' &&
+            (authMethod.type !== 'oauth' ||
+              !authMethod.value.capabilities?.adminSetup?.enabled)
+          ) {
+            throw new ServiceError(
+              badRequestError({
+                message: 'The selected auth method does not support admin setup',
+                code: 'admin_setup_not_supported'
+              })
+            );
+          }
 
           if (credentials && authMethod.type !== 'oauth') credentials = undefined;
           if (
@@ -176,7 +196,10 @@ class providerSetupSessionInternalServiceImpl {
                 providerDeployment: d.providerDeployment,
                 credentials,
                 authMethod,
+                source: d.source,
                 ownerActorOid: d.ownerActorOid,
+                isOwnerLocked: d.isOwnerLocked,
+                isOwnerOnlyVisible: d.isOwnerOnlyVisible,
                 ownerPublicMcpServerOid: d.ownerPublicMcpServerOid,
                 expiresAt: d.expiresAt,
                 input: {
@@ -184,7 +207,8 @@ class providerSetupSessionInternalServiceImpl {
                   description: d.input.description,
                   metadata: d.input.metadata,
                   toolFilters: d.input.toolFilters,
-                  config: d.input.authConfigInput
+                  config: d.input.authConfigInput,
+                  isAdminSetup: concreteType === 'admin'
                 },
                 import: {
                   ip: d.import.ip,
@@ -197,8 +221,10 @@ class providerSetupSessionInternalServiceImpl {
           }
         }
 
+        let skipsConfig = sessionTypeSkipsConfig(concreteType);
+
         if (
-          concreteType !== 'auth_only' &&
+          !skipsConfig &&
           !configInput &&
           !d.input.providerConfig &&
           !(concreteType === 'config_only' && d.input.requiresToolFiltersSelection)
@@ -215,13 +241,16 @@ class providerSetupSessionInternalServiceImpl {
           }
         }
 
-        if (concreteType !== 'auth_only' && configInput) {
+        if (!skipsConfig && configInput) {
           let configInner = await this.createProviderConfig({
             tenant: d.tenant,
             environment: d.environment,
             provider: d.provider,
             providerDeployment: d.providerDeployment,
+            source: d.source,
             ownerActorOid: d.ownerActorOid,
+            isOwnerLocked: d.isOwnerLocked,
+            isOwnerOnlyVisible: d.isOwnerOnlyVisible,
             ownerPublicMcpServerOid: d.ownerPublicMcpServerOid,
             input: {
               name: d.input.name,
@@ -235,7 +264,7 @@ class providerSetupSessionInternalServiceImpl {
           inner = { ...inner, ...configInner };
         }
 
-        if (concreteType !== 'auth_only' && d.input.providerConfig) {
+        if (!skipsConfig && d.input.providerConfig) {
           inner.configOid = d.input.providerConfig.oid;
           inner.deploymentOid = inner.deploymentOid ?? d.input.providerConfig.deploymentOid;
         }
@@ -254,12 +283,14 @@ class providerSetupSessionInternalServiceImpl {
       provider: Provider;
       providerVariant: ProviderVariant;
       currentVersion:
-        | (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null })
-        | null;
+        (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null }) | null;
     };
     credentials?: ProviderAuthCredentials;
     authMethod: ProviderAuthMethod;
     ownerActorOid?: bigint | null;
+    source?: 'explorer';
+    isOwnerLocked?: boolean;
+    isOwnerOnlyVisible?: boolean;
     ownerPublicMcpServerOid?: bigint | null;
     expiresAt: Date;
     input: {
@@ -268,6 +299,7 @@ class providerSetupSessionInternalServiceImpl {
       metadata?: Record<string, any>;
       toolFilters?: PrismaJson.ToolFilter | null;
       config: Record<string, any>;
+      isAdminSetup?: boolean;
     };
     import: {
       ip: string | undefined;
@@ -304,7 +336,8 @@ class providerSetupSessionInternalServiceImpl {
           toolFilters: d.input.toolFilters,
           config: d.input.config,
           authMethodId: d.authMethod.id,
-          expiresAt: d.expiresAt
+          expiresAt: d.expiresAt,
+          isAdminSetup: d.input.isAdminSetup
         }
       });
 
@@ -335,8 +368,10 @@ class providerSetupSessionInternalServiceImpl {
         provider: d.provider,
         providerDeployment: d.providerDeployment,
         ownerActorOid: d.ownerActorOid,
+        isOwnerLocked: d.isOwnerLocked,
+        isOwnerOnlyVisible: d.isOwnerOnlyVisible,
         import: d.import,
-        source: d.ownerPublicMcpServerOid ? 'public_mcp' : 'setup_session',
+        source: d.source ?? (d.ownerPublicMcpServerOid ? 'public_mcp' : 'setup_session'),
         input: {
           name: d.input.name,
           description: d.input.description,
@@ -385,10 +420,12 @@ class providerSetupSessionInternalServiceImpl {
       provider: Provider;
       providerVariant: ProviderVariant;
       currentVersion:
-        | (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null })
-        | null;
+        (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null }) | null;
     };
     ownerActorOid?: bigint | null;
+    source?: 'explorer';
+    isOwnerLocked?: boolean;
+    isOwnerOnlyVisible?: boolean;
     ownerPublicMcpServerOid?: bigint | null;
     input: {
       name?: string;
@@ -411,7 +448,10 @@ class providerSetupSessionInternalServiceImpl {
       environment: d.environment,
       provider: d.provider,
       providerDeployment: d.providerDeployment,
+      source: d.source,
       ownerActorOid: d.ownerActorOid,
+      isOwnerLocked: d.isOwnerLocked,
+      isOwnerOnlyVisible: d.isOwnerOnlyVisible,
       input: {
         name: d.input.name,
         description: d.input.description,
@@ -481,14 +521,18 @@ class providerSetupSessionInternalServiceImpl {
               sessionOid: d.session.oid,
               setupOid: d.setup.oid
             },
-            {
-              ...getId('providerSetupSessionEvent'),
-              type: 'auth_config_set',
-              ip: d.context.ip,
-              ua: d.context.ua,
-              sessionOid: d.session.oid,
-              setupOid: d.setup.oid
-            }
+            ...(d.session.typeConcrete === 'admin'
+              ? []
+              : [
+                  {
+                    ...getId('providerSetupSessionEvent'),
+                    type: 'auth_config_set' as const,
+                    ip: d.context.ip,
+                    ua: d.context.ua,
+                    sessionOid: d.session.oid,
+                    setupOid: d.setup.oid
+                  }
+                ])
           ]
         });
 
@@ -580,7 +624,7 @@ class providerSetupSessionInternalServiceImpl {
     return withTransaction(async db => {
       let currentSession = await db.providerSetupSession.findFirstOrThrow({
         where: { oid: d.session.oid },
-        include: { authConfig: true, config: true }
+        include: { authConfig: true, config: true, oauthSetup: true }
       });
       d.session = currentSession;
       let result = d.session;
@@ -617,6 +661,12 @@ class providerSetupSessionInternalServiceImpl {
 
       if (d.session.typeConcrete === 'config_only' && hasConfig) isComplete = true;
 
+      if (
+        d.session.typeConcrete === 'admin' &&
+        currentSession.oauthSetup?.status === 'completed'
+      )
+        isComplete = true;
+
       if (isComplete) {
         await stampPublicMcpOwnership({
           ownerPublicMcpServerOid: currentSession.ownerPublicMcpServerOid,
@@ -647,7 +697,11 @@ class providerSetupSessionInternalServiceImpl {
           ]
         });
 
-        if (completedSession.identityOid && !completedSession.identityCredentialOid) {
+        if (
+          completedSession.typeConcrete !== 'admin' &&
+          completedSession.identityOid &&
+          !completedSession.identityCredentialOid
+        ) {
           let identity = await db.identity.findFirstOrThrow({
             where: {
               oid: completedSession.identityOid,

@@ -41,6 +41,8 @@ import {
 import { providerAuthConfigInternalService } from './providerAuthConfigInternal';
 import { providerAuthCredentialsService } from './providerAuthCredentials';
 
+let DEFAULT_SETUP_EXPIRY_MINUTES = 30;
+
 let include = {
   provider: true,
   deployment: true,
@@ -68,8 +70,7 @@ type CreateProviderOAuthSetupParams = {
     provider: Provider;
     providerVariant: ProviderVariant;
     currentVersion:
-      | (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null })
-      | null;
+      (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null }) | null;
   };
   credentials?: ProviderAuthCredentials;
   input: {
@@ -83,6 +84,7 @@ type CreateProviderOAuthSetupParams = {
     redirectUrl?: string;
     config: Record<string, any>;
     expiresAt?: Date;
+    isAdminSetup?: boolean;
   };
 };
 
@@ -270,6 +272,7 @@ class providerOAuthSetupServiceImpl {
         credentials,
         authMethod,
         callbackUrlOverride,
+        isAdminSetup: d.input.isAdminSetup,
         redirectUrl: `${env.service.INTEGRATIONS_API_URL}/oauth-setup/${newId.id}/callback?client_secret=${clientSecret}`
       });
 
@@ -303,7 +306,7 @@ class providerOAuthSetupServiceImpl {
           slateOAuthSetupOid: backendProviderOAuthSetup.slateOAuthSetup?.oid,
           shuttleOAuthSetupOid: backendProviderOAuthSetup.shuttleOAuthSetup?.oid,
 
-          expiresAt: addMinutes(new Date(), 30)
+          expiresAt: d.input.expiresAt ?? addMinutes(new Date(), DEFAULT_SETUP_EXPIRY_MINUTES)
         },
         include
       });

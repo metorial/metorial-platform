@@ -104,7 +104,7 @@ class resourceCountServiceImpl {
         db.identityActor.count({
           where: {
             ...scopedWhere,
-            type: { in: ['person', 'consumer'] },
+            type: { in: ['person', 'consumer', 'organization_member'] },
             status: 'active',
             isParentDeleted: false
           }

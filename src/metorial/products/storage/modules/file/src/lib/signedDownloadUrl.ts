@@ -82,7 +82,8 @@ export let verifySignedFileDownloadKey = async (d: { fileId: string; key: string
 
     return {
       fileId: data.fileId,
-      storeId: data.storeId
+      storeId: data.storeId,
+      expiresAt: payload.expiresAt
     };
   } catch {
     return null;

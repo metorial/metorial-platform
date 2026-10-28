@@ -6,7 +6,12 @@ run = ["dev:start"]
 
 [endpoints.rpc]
 port = 52110
+health = "/ping"
 env = [{ key = "RELAY_PORT", value = "{{BIND_PORT}}" }]
+
+[e2e]
+start = ["e2e:start"]
+image = "relay"
 
 [[resources]]
 type = "redis"
@@ -24,3 +29,16 @@ package = "@metorial/relay"
 name = "relay"
 engine = "postgres"
 env = "DATABASE_URL"
+
+[[ci.images]]
+name = "relay"
+group = "oss"
+dockerfile = "Dockerfile"
+image = "metorial/mte-relay"
+ecr = "metorial-enterprise-saas/mte-relay"
+canonical = "ghcr.io/metorial/relay"
+
+[ci.suite]
+name = "relay"
+runner = "compose"
+profiles = ["infra", "service"]

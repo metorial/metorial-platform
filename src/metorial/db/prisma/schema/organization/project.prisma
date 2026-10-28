@@ -19,6 +19,8 @@ model Project {
   previousSlugs String[]
   name          String
 
+  hidePublicRemoteProviders Boolean @default(false)
+
   onlyAllowTrustedProviders      Boolean @default(false)
   magicMcpSessionDurationMinutes Int     @default(1440)
 
@@ -63,8 +65,12 @@ model Project {
   consumerAuthClientRegistrationsPerHourLimit   Int @default(25)
 
   autoAddOrganizationMembersToPortals Boolean @default(false)
+  allowConsumerSkillEditing           Boolean @default(true)
 
   reducedSubprocessors Boolean @default(false)
+
+  allowApiAccessToConsumerOwnedResources    Boolean @default(true)
+  allowMemberAccessToConsumerOwnedResources Boolean @default(true)
 
   createdAt DateTime  @default(now())
   deletedAt DateTime?

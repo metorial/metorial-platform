@@ -579,8 +579,8 @@ export class Agent {
                     ? 'error'
                     : 'stopped';
 
-            const response = await stream.response;
-            messages.push(...response.messages);
+            let steps = await stream.steps;
+            messages.push(...steps.flatMap(step => step.response.messages));
             doneEmitted = true;
 
             yield {

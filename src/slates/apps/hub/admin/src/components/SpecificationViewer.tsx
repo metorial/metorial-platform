@@ -80,17 +80,17 @@ let PropertyItem = ({
         <Text size="2" weight="strong">
           {name}
         </Text>
-        <Badge color={typeColor} size="1">
+        <Badge color={typeColor} size="2">
           {typeLabel}
         </Badge>
         {!isRequired && (
-          <Badge color="gray" size="1">
+          <Badge color="gray" size="2">
             Optional
           </Badge>
         )}
       </Flex>
       {prop.description && (
-        <Text size="1" color="gray600">
+        <Text size="2" color="gray600">
           {prop.description}
         </Text>
       )}
@@ -301,7 +301,7 @@ export let SpecificationViewer = ({
                         </Text>
                         <MonoCode>{tool.key}</MonoCode>
                         {toolStats && toolStats.total > 0 && (
-                          <Badge color="gray" size="1">
+                          <Badge color="gray" size="2">
                             {toolStats.total.toString()} calls
                           </Badge>
                         )}
@@ -361,11 +361,11 @@ export let SpecificationViewer = ({
                       </Text>
                       <MonoCode>{trigger.key}</MonoCode>
                       {trigger.triggerGroupId ? (
-                        <Badge color="green" size="1">
+                        <Badge color="green" size="2">
                           Grouped
                         </Badge>
                       ) : (
-                        <Badge color="gray" size="1">
+                        <Badge color="gray" size="2">
                           No group
                         </Badge>
                       )}
@@ -411,7 +411,7 @@ export let SpecificationViewer = ({
                         {triggerGroup.name}
                       </Text>
                       <MonoCode>{triggerGroup.key}</MonoCode>
-                      <Badge color="blue" size="1">
+                      <Badge color="blue" size="2">
                         {triggerGroup.invocation?.type}
                       </Badge>
                     </Flex>
@@ -478,7 +478,7 @@ export let SpecificationViewer = ({
                           {method.name}
                         </Text>
                         <MonoCode>{method.key}</MonoCode>
-                        <Badge color="blue" size="1">
+                        <Badge color="blue" size="2">
                           {method.type}
                         </Badge>
                       </Flex>

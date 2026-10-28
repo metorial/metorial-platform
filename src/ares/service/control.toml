@@ -13,6 +13,7 @@ run = ["dev:start"]
 
 [endpoints.auth]
 port = 52120
+health = "/ping"
 env = [
   { key = "ARES_AUTH_PORT", value = "{{BIND_PORT}}" },
   { key = "ARES_AUTH_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
@@ -36,6 +37,10 @@ env = [
 port = 52123
 env = [{ key = "ARES_INTERNAL_PORT", value = "{{BIND_PORT}}" }]
 
+[e2e]
+start = ["e2e:start"]
+image = "ares"
+
 [[resources]]
 type = "redis"
 env = [{ key = "REDIS_URL", value = "redis://{{HOSTNAME}}:{{PORT}}/0" }]
@@ -50,6 +55,8 @@ EMAIL_NAME = "Ares Dev"
 EMAIL_ADDRESS = "dev@metorial.com"
 SAML_AUDIENCE = "https://saml.dev.metorial.com"
 AUTH_TICKET_SECRET = "dev-secret-change-in-production"
+TWO_FACTOR_SETUP_ENABLED = "true"
+TWO_FACTOR_ENCRYPTION_KEY = "dev-two-factor-key-change-in-production"
 TURNSTILE_SITE_KEY = true
 TURNSTILE_SECRET_KEY = true
 
@@ -64,3 +71,11 @@ package = "@metorial/ares"
 name = "ares-sso"
 engine = "postgres"
 env = "SSO_DATABASE_URL"
+
+[[ci.images]]
+name = "ares"
+group = "oss"
+dockerfile = "Dockerfile"
+image = "metorial/mte-ares"
+ecr = "metorial-enterprise-saas/mte-ares"
+canonical = "ghcr.io/metorial/ares"

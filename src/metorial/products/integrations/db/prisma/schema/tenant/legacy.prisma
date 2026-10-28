@@ -25,6 +25,8 @@ model Tenant {
   // No relation: Project.tenantOid already points here, so an FK would cycle
   projectOid BigInt?
 
+  hidePublicRemoteProviders Boolean @default(false)
+
   onlyAllowTrustedProviders Boolean @default(false)
   isWhitelabel              Boolean @default(false)
 
@@ -50,6 +52,9 @@ model Tenant {
   disableCallbacks         Boolean                   @default(false)
 
   reducedSubprocessors Boolean @default(false)
+
+  allowApiAccessToConsumerOwnedResources    Boolean @default(true)
+  allowMemberAccessToConsumerOwnedResources Boolean @default(true)
 
   retiredAt DateTime?
 
@@ -318,12 +323,13 @@ model TenantActor {
 
   createdAt DateTime @default(now())
 
-  customProviderVersions    CustomProviderVersion[]
-  customProviderDeployments CustomProviderDeployment[]
-  customProviderCommits     CustomProviderCommit[]
-  upcomingCustomProviders   UpcomingCustomProvider[]
-  monitorAlertEvents        MonitorAlertEvent[]
-  monitorAlertRecipients    MonitorAlertRecipient[]
+  customProviderVersions     CustomProviderVersion[]
+  customProviderDeployments  CustomProviderDeployment[]
+  customProviderCommits      CustomProviderCommit[]
+  upcomingCustomProviders    UpcomingCustomProvider[]
+  monitorAlertEvents         MonitorAlertEvent[]
+  monitorAlertRecipients     MonitorAlertRecipient[]
+  providerSetupSessionEmails ProviderSetupSessionEmail[]
 
   @@unique([tenantOid, identifier])
   @@unique([tenantOid, organizationActorOid])

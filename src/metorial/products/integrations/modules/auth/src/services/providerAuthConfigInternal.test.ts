@@ -8,6 +8,9 @@ let mocks = vi.hoisted(() => ({
   providerAuthConfigUpdateCreate: vi.fn(),
   providerAuthImportCreate: vi.fn(),
   providerDeploymentUpdate: vi.fn(),
+  providerAuthMethodFindMany: vi.fn(),
+  providerAuthMethodFindFirst: vi.fn(),
+  getCurrentVersionOptional: vi.fn(),
   addAfterTransactionHook: vi.fn(),
   queueAdd: vi.fn()
 }));
@@ -30,7 +33,11 @@ vi.mock('@metorial-subspace/db', () => {
     providerAuthConfigVersion: { create: mocks.providerAuthConfigVersionCreate },
     providerAuthConfigUpdate: { create: mocks.providerAuthConfigUpdateCreate },
     providerAuthImport: { create: mocks.providerAuthImportCreate },
-    providerDeployment: { update: mocks.providerDeploymentUpdate }
+    providerDeployment: { update: mocks.providerDeploymentUpdate },
+    providerAuthMethod: {
+      findMany: mocks.providerAuthMethodFindMany,
+      findFirst: mocks.providerAuthMethodFindFirst
+    }
   };
 
   return {
@@ -44,11 +51,14 @@ vi.mock('@metorial-subspace/db', () => {
 
 vi.mock('@metorial-subspace/module-provider-internal', () => ({
   checkProviderMatch: vi.fn(),
-  providerDeploymentInternalService: { getCurrentVersionOptional: vi.fn() }
+  providerDeploymentInternalService: {
+    getCurrentVersionOptional: mocks.getCurrentVersionOptional
+  }
 }));
 
 vi.mock('@metorial-subspace/module-tenant', () => ({
   checkTenant: vi.fn(),
+  getConsumerOwnedResourceName: vi.fn(async () => null),
   getMetorialSolution: vi.fn(async () => ({ oid: 7, id: 'sol_1' }))
 }));
 
@@ -143,6 +153,86 @@ describe('createProviderAuthConfigInternal double writes', () => {
     expect(mocks.providerAuthImportCreate.mock.calls[0]![0].data).toMatchObject({
       projectOid: null,
       instanceOid: null
+    });
+  });
+});
+
+describe('getVersionAndAuthMethod auth method resolution', () => {
+  let timestamp = new Date('2026-01-01T00:00:00Z');
+
+  let authMethod = (d: {
+    id: string;
+    globalOid: bigint;
+    key: string;
+    type?: string;
+    isDefault?: boolean;
+  }) => ({
+    oid: d.globalOid * 10n,
+    id: d.id,
+    globalOid: d.globalOid,
+    specId: `spec_${d.key}`,
+    specUniqueIdentifier: `unique_${d.key}`,
+    key: d.key,
+    callableId: `callable_${d.key}`,
+    type: d.type ?? 'oauth',
+    isDefault: d.isDefault ?? false,
+    createdAt: timestamp
+  });
+
+  let resolve = (authMethodId: string) =>
+    providerAuthConfigInternalService.getVersionAndAuthMethod({
+      tenant: { oid: 10n } as any,
+      environment: { oid: 30n } as any,
+      provider: { oid: 50n, defaultVariant: null } as any,
+      authMethodId
+    });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.getCurrentVersionOptional.mockResolvedValue({ oid: 80n, specificationOid: 90n });
+  });
+
+  it('resolves the requested auth method within the current specification', async () => {
+    let requested = authMethod({ id: 'pam_new', globalOid: 1n, key: 'oauth' });
+    mocks.providerAuthMethodFindMany.mockResolvedValue([requested]);
+
+    let result = await resolve('pam_new');
+
+    expect(result.authMethod).toBe(requested);
+    expect(mocks.providerAuthMethodFindMany.mock.calls[0]![0].where).toEqual({
+      providerOid: 50n,
+      specificationOid: 90n
+    });
+    expect(mocks.providerAuthMethodFindFirst).not.toHaveBeenCalled();
+  });
+
+  it('re-matches an auth method pinned in an older specification by its key', async () => {
+    let rekeyed = authMethod({ id: 'pam_new', globalOid: 2n, key: 'oauth' });
+    mocks.providerAuthMethodFindMany.mockResolvedValue([
+      authMethod({ id: 'pam_other', globalOid: 3n, key: 'oauth_v2', isDefault: true }),
+      rekeyed
+    ]);
+    mocks.providerAuthMethodFindFirst.mockResolvedValue(
+      authMethod({ id: 'pam_old', globalOid: 1n, key: 'oauth' })
+    );
+
+    let result = await resolve('pam_old');
+
+    expect(result.authMethod).toBe(rekeyed);
+    expect(mocks.providerAuthMethodFindFirst.mock.calls[0]![0].where).toEqual({
+      providerOid: 50n,
+      id: 'pam_old'
+    });
+  });
+
+  it('rejects an auth method id that matches nothing', async () => {
+    mocks.providerAuthMethodFindMany.mockResolvedValue([
+      authMethod({ id: 'pam_new', globalOid: 1n, key: 'oauth' })
+    ]);
+    mocks.providerAuthMethodFindFirst.mockResolvedValue(null);
+
+    await expect(resolve('pam_missing')).rejects.toMatchObject({
+      data: expect.objectContaining({ code: 'invalid_auth_method' })
     });
   });
 });

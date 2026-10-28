@@ -41,6 +41,9 @@ let isPrismaUniqueConstraintError = (error: unknown) =>
   'code' in error &&
   (error as { code: string }).code === 'P2002';
 
+// Prisma passes `contains` through to (I)LIKE without escaping its wildcards.
+let escapeLikePattern = (value: string) => value.replace(/[\\%_]/g, '\\$&');
+
 class OrganizationMemberService {
   private async ensureOrganizationMemberActive(organizationMember: OrganizationMember) {
     if (organizationMember.status !== 'active') {
@@ -295,7 +298,16 @@ class OrganizationMemberService {
     return member;
   }
 
-  async listOrganizationMembers(d: { organization: Organization; teamIds?: string[] }) {
+  async listOrganizationMembers(d: {
+    organization: Organization;
+    teamIds?: string[];
+    search?: string;
+  }) {
+    let search = d.search?.trim();
+    let match = search
+      ? { contains: escapeLikePattern(search), mode: 'insensitive' as const }
+      : undefined;
+
     let teams = d.teamIds
       ? await db.team.findMany({
           where: {
@@ -326,6 +338,15 @@ class OrganizationMemberService {
                       }
                     }
                   }
+                : undefined,
+
+              OR: match
+                ? [
+                    { actor: { name: match } },
+                    { actor: { email: match } },
+                    { user: { name: match } },
+                    { user: { email: match } }
+                  ]
                 : undefined
             },
             include

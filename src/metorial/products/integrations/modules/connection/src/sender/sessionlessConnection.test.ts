@@ -14,6 +14,13 @@ let matchesWhere = (row: any, where: Record<string, any>) =>
     return row[key] === condition;
   });
 
+vi.mock('@metorial/module-usage', () => ({
+  recordConnectionCreatedUsage: vi.fn(async () => {}),
+  recordConnectionTimeUsage: vi.fn(async () => {}),
+  recordSessionErrorUsage: vi.fn(async () => {}),
+  recordSessionMessageUsage: vi.fn(async () => {})
+}));
+
 vi.mock('@lowerdeck/error', () => ({
   ServiceError: class ServiceError extends Error {},
   badRequestError: ({ message }: { message: string }) => new Error(message),
@@ -66,6 +73,9 @@ vi.mock('@metorial-subspace/db', () => ({
   getId: vi.fn(() => ({ id: 'sev_1', oid: 1n })),
   ID: {},
   withTransaction: vi.fn()
+}));
+vi.mock('@metorial/module-rate-limit', () => ({
+  rateLimitService: { consume: vi.fn() }
 }));
 vi.mock('@metorial-subspace/module-agent', () => ({}));
 vi.mock('@metorial-subspace/module-callback', () => ({ callbackEventService: {} }));

@@ -11,7 +11,6 @@ import {
   Table as DashboardTable,
   getDateRangeFilterValue,
   getEnumListFilterValue,
-  getStringFilterValue,
   type FilterPayload
 } from '@metorial/table';
 import { Avatar, Badge, confirm, Flex, RenderDate, Text } from '@metorial/ui';
@@ -39,7 +38,6 @@ let useChatInstancesTableState = (
     chatConnectionId: props.chatConnectionId,
     order: 'desc',
     status: getStatusFilterValue(opts.filter.status) ?? ['draft', 'active'],
-    id: getStringFilterValue(opts.filter.id),
     search: opts.search,
     createdAt: getDateRangeFilterValue(opts.filter.createdAt),
     updatedAt: getDateRangeFilterValue(opts.filter.updatedAt)
@@ -177,13 +175,6 @@ let chatInstancesTable = new DashboardTable<ChatInstancesTableProps, ChatInstanc
         { id: 'archived', label: 'Archived' },
         { id: 'deleted', label: 'Deleted' }
       ]
-    },
-    {
-      id: 'id',
-      fields: ['id'],
-      label: 'Instance ID',
-      description: 'Filter by instance ID',
-      type: 'string'
     },
     {
       id: 'createdAt',

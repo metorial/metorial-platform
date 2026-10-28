@@ -30,7 +30,9 @@ import {
 } from '@metorial-subspace/module-tenant';
 import { normalizeJsonSchema } from '@metorial-subspace/provider-utils';
 import { env } from '../env';
+import { adminSetupToolFiltersError } from '../lib/adminSetupErrors';
 import { stampPublicMcpOwnership } from '../lib/publicMcpOwnership';
+import { sessionTypeSkipsConfig } from '../lib/setupSessionType';
 import { providerSetupSessionUpdatedQueue } from '../queues/lifecycle/providerSetupSession';
 import { providerAuthConfigService } from './providerAuthConfig';
 import { providerOAuthSetupInclude } from './providerOAuthSetup';
@@ -55,13 +57,22 @@ let hasSchemaProperties = (schema: unknown) => {
 };
 
 let assertProviderSelectable = (
-  session: Pick<ProviderSetupSession, 'ownerPublicMcpServerOid'>
+  session: Pick<ProviderSetupSession, 'ownerPublicMcpServerOid' | 'typeSelected'>
 ) => {
   if (session.ownerPublicMcpServerOid) {
     throw new ServiceError(
       badRequestError({
         code: 'public_mcp_provider_fixed',
         message: 'The provider of this setup session cannot be changed.'
+      })
+    );
+  }
+
+  if (session.typeSelected === 'admin') {
+    throw new ServiceError(
+      badRequestError({
+        code: 'admin_setup_provider_fixed',
+        message: 'The provider of an admin setup session cannot be changed.'
       })
     );
   }
@@ -85,6 +96,8 @@ class providerSetupSessionUiServiceImpl {
       } | null;
     };
     ownerActorOid: bigint | null;
+    isOwnerLocked?: boolean;
+    isOwnerOnlyVisible?: boolean;
     ownerPublicMcpServerOid: bigint | null;
     toolFilters?: PrismaJson.ToolFilter | null;
   }) {
@@ -117,6 +130,8 @@ class providerSetupSessionUiServiceImpl {
         fromVaultOid: d.config.fromVaultOid,
         parentConfigOid: d.config.oid,
         ownerActorOid: d.ownerActorOid ?? d.config.ownerActorOid,
+        isOwnerLocked: !!d.isOwnerLocked || d.config.isOwnerLocked,
+        isOwnerOnlyVisible: !!d.isOwnerOnlyVisible || d.config.isOwnerOnlyVisible,
         ownerPublicMcpServerOid: d.ownerPublicMcpServerOid ?? d.config.ownerPublicMcpServerOid
       }
     });
@@ -169,7 +184,7 @@ class providerSetupSessionUiServiceImpl {
 
     if (
       !d.providerSetupSession.typeConcrete ||
-      d.providerSetupSession.typeConcrete === 'auth_only'
+      sessionTypeSkipsConfig(d.providerSetupSession.typeConcrete)
     ) {
       return {
         type: 'none' as const
@@ -353,7 +368,8 @@ class providerSetupSessionUiServiceImpl {
   }) {
     let session = d.providerSetupSession;
 
-    let requiresConfigStep = session.typeConcrete !== 'auth_only' && !session.configOid;
+    let requiresConfigStep =
+      !sessionTypeSkipsConfig(session.typeConcrete) && !session.configOid;
     if (
       session.status !== 'pending' ||
       session.expiresAt < new Date() ||
@@ -392,6 +408,10 @@ class providerSetupSessionUiServiceImpl {
           message: 'Config input is required for auth_and_config session type'
         })
       );
+    }
+
+    if (d.providerSetupSession.typeConcrete === 'admin' && d.input.toolFilters) {
+      throw adminSetupToolFiltersError();
     }
 
     if (d.providerSetupSession.oauthSetupOid || d.providerSetupSession.authConfigOid) {
@@ -447,6 +467,8 @@ class providerSetupSessionUiServiceImpl {
             credentials: currentSession.authCredentials ?? undefined,
             authMethod,
             ownerActorOid: currentSession.ownerActorOid,
+            isOwnerLocked: currentSession.isOwnerLocked,
+            isOwnerOnlyVisible: currentSession.isOwnerOnlyVisible,
             ownerPublicMcpServerOid: currentSession.ownerPublicMcpServerOid,
             expiresAt: currentSession.expiresAt,
             input: {
@@ -454,7 +476,8 @@ class providerSetupSessionUiServiceImpl {
               description: currentSession.description ?? undefined,
               metadata: currentSession.metadata ?? undefined,
               toolFilters: d.input.toolFilters,
-              config: d.input.authConfigInput
+              config: d.input.authConfigInput,
+              isAdminSetup: currentSession.typeConcrete === 'admin'
             },
             import: {
               ip: d.context.ip,
@@ -511,11 +534,11 @@ class providerSetupSessionUiServiceImpl {
 
     if (
       !d.providerSetupSession.typeConcrete ||
-      d.providerSetupSession.typeConcrete === 'auth_only'
+      sessionTypeSkipsConfig(d.providerSetupSession.typeConcrete)
     ) {
       throw new ServiceError(
         badRequestError({
-          message: 'Cannot set config for auth_only session type'
+          message: 'Cannot set config for this session type'
         })
       );
     }
@@ -588,6 +611,8 @@ class providerSetupSessionUiServiceImpl {
             : await this.cloneConfigForToolFilters({
                 config: currentSession.config,
                 ownerActorOid: currentSession.ownerActorOid,
+                isOwnerLocked: currentSession.isOwnerLocked,
+                isOwnerOnlyVisible: currentSession.isOwnerOnlyVisible,
                 ownerPublicMcpServerOid: currentSession.ownerPublicMcpServerOid,
                 toolFilters: d.input.toolFilters
               });
@@ -608,6 +633,8 @@ class providerSetupSessionUiServiceImpl {
             environment: currentSession.environment,
             providerDeployment: currentSession.deployment ?? undefined,
             ownerActorOid: currentSession.ownerActorOid,
+            isOwnerLocked: currentSession.isOwnerLocked,
+            isOwnerOnlyVisible: currentSession.isOwnerOnlyVisible,
             ownerPublicMcpServerOid: currentSession.ownerPublicMcpServerOid,
             input: {
               name: currentSession.name ?? undefined,
@@ -762,6 +789,8 @@ class providerSetupSessionUiServiceImpl {
             environment: session.environment,
             provider,
             ownerActorOid: session.ownerActorOid,
+            isOwnerLocked: session.isOwnerLocked,
+            isOwnerOnlyVisible: session.isOwnerOnlyVisible,
             ownerPublicMcpServerOid: session.ownerPublicMcpServerOid,
             expiresAt: session.expiresAt,
             input: {

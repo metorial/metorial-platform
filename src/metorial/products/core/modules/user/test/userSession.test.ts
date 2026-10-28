@@ -30,6 +30,10 @@ vi.mock('@metorial/fabric', () => ({
   }
 }));
 
+vi.mock('@metorial/config', () => ({
+  getConfig: vi.fn(() => ({ env: 'production' }))
+}));
+
 vi.mock('@metorial/id', () => ({
   generateCustomId: vi.fn(
     (prefix, length) =>
@@ -128,6 +132,22 @@ describe('userSessionService', () => {
       });
 
       expect(generateCustomId).toHaveBeenCalledWith('metorial_ses', 50);
+    });
+
+    it('should expire the session after the production cookie lifetime', async () => {
+      let create = vi.fn().mockImplementation(async ({ data }) => data);
+
+      withTransaction.mockImplementation(async (cb: any) => cb({ userSession: { create } }));
+
+      let before = Date.now();
+      let result = await userSessionService.createUserSession({
+        user: mockUser,
+        context: mockContext
+      });
+
+      let lifetimeMs = result.expiresAt.getTime() - before;
+      expect(lifetimeMs).toBeGreaterThanOrEqual(1000 * 60 * 60 * 24 * 7);
+      expect(lifetimeMs).toBeLessThan(1000 * 60 * 60 * 24 * 7 + 60_000);
     });
 
     it('should associate session with user oid', async () => {
@@ -260,7 +280,8 @@ describe('userSessionService', () => {
       expect(result).toEqual(mockSession);
       expect(db.userSession.findFirst).toHaveBeenCalledWith({
         where: {
-          clientSecret: 'metorial_ses_abc123'
+          clientSecret: 'metorial_ses_abc123',
+          OR: [{ expiresAt: null }, { expiresAt: { gt: expect.any(Date) } }]
         },
         include: {
           user: true
@@ -289,7 +310,8 @@ describe('userSessionService', () => {
 
       expect(db.userSession.findFirst).toHaveBeenCalledWith({
         where: {
-          clientSecret: 'metorial_ses_exact_match_123'
+          clientSecret: 'metorial_ses_exact_match_123',
+          OR: [{ expiresAt: null }, { expiresAt: { gt: expect.any(Date) } }]
         },
         include: {
           user: true

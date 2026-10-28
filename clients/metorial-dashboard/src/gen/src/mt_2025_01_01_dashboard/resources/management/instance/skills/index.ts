@@ -4,6 +4,7 @@ export * from './create';
 export * from './delete';
 export * from './duplicate';
 export * from './exports';
+export * from './files';
 export * from './fork-syncs';
 export * from './fork';
 export * from './get';

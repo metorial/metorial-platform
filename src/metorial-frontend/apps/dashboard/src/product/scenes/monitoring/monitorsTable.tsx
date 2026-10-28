@@ -13,8 +13,11 @@ import {
   TableStateProviderResult,
   getDateRangeFilterValue,
   getEnumListFilterValue,
-  getStringFilterValue
+  getListFilterValue,
+  type TableFilter
 } from '@metorial/table';
+import { useMemo } from 'react';
+import { entityFilters } from '../entityFilters';
 import { MonitorStatusBadge, MonitorTargetBadge } from './badges';
 
 type Monitor = DashboardInstanceMonitorsListOutput['items'][number];
@@ -36,12 +39,10 @@ let monitorsTableState: TableStateProvider<
 > = (props, opts) => {
   let monitors = useMonitors(props.instance.data?.id, {
     order: 'desc',
-    id: getStringFilterValue(opts.filter.id),
     search: opts.search,
     target: getTargetFilterValue(opts.filter.target),
     status: getStatusFilterValue(opts.filter.status),
-    providerId: getStringFilterValue(opts.filter.providerId),
-    protoGuardFilterId: getStringFilterValue(opts.filter.protoGuardFilterId),
+    providerId: getListFilterValue(opts.filter.providerId),
     createdAt: getDateRangeFilterValue(opts.filter.createdAt),
     updatedAt: getDateRangeFilterValue(opts.filter.updatedAt),
     firstAlertAt: getDateRangeFilterValue(opts.filter.firstAlertAt),
@@ -58,6 +59,64 @@ let monitorsTableState: TableStateProvider<
     loadPrevious: monitors.previous
   };
 };
+
+let useMonitorsFilters = (instanceId: string | undefined) =>
+  useMemo<TableFilter<Monitor>[]>(
+    () => [
+      {
+        id: 'target',
+        fields: ['target'],
+        label: 'Target',
+        description: 'Filter by monitor target',
+        type: 'select',
+        options: [
+          { id: 'protoguard_filter', label: 'Protoguard Filter' },
+          { id: 'schema_change', label: 'Schema Change' }
+        ]
+      },
+      {
+        id: 'status',
+        fields: ['status'],
+        label: 'Status',
+        description: 'Filter by monitor status',
+        type: 'select',
+        options: [
+          { id: 'active', label: 'Active' },
+          { id: 'inactive', label: 'Inactive' }
+        ]
+      },
+      entityFilters.provider(instanceId),
+      {
+        id: 'createdAt',
+        fields: ['createdAt'],
+        label: 'Created',
+        description: 'Filter by created date',
+        type: 'date'
+      },
+      {
+        id: 'updatedAt',
+        fields: ['updatedAt'],
+        label: 'Updated',
+        description: 'Filter by updated date',
+        type: 'date'
+      },
+      {
+        id: 'firstAlertAt',
+        fields: ['firstAlertAt'],
+        label: 'First Alert',
+        description: 'Filter by first alert date',
+        type: 'date'
+      },
+      {
+        id: 'lastAlertAt',
+        fields: ['lastAlertAt'],
+        label: 'Last Alert',
+        description: 'Filter by last alert date',
+        type: 'date'
+      }
+    ],
+    [instanceId]
+  );
 
 let monitorsTable = new DashboardTable<MonitorsTableStateProps, Monitor>('monitors')
   .state(monitorsTableState)
@@ -154,79 +213,6 @@ let monitorsTable = new DashboardTable<MonitorsTableStateProps, Monitor>('monito
       render: monitor => <RenderDate date={monitor.updatedAt} />
     }
   ])
-  .filters([
-    {
-      id: 'target',
-      fields: ['target'],
-      label: 'Target',
-      description: 'Filter by monitor target',
-      type: 'select',
-      options: [
-        { id: 'protoguard_filter', label: 'Protoguard Filter' },
-        { id: 'schema_change', label: 'Schema Change' }
-      ]
-    },
-    {
-      id: 'status',
-      fields: ['status'],
-      label: 'Status',
-      description: 'Filter by monitor status',
-      type: 'select',
-      options: [
-        { id: 'active', label: 'Active' },
-        { id: 'inactive', label: 'Inactive' }
-      ]
-    },
-    {
-      id: 'id',
-      fields: ['id'],
-      label: 'Monitor ID',
-      description: 'Filter by monitor ID',
-      type: 'string'
-    },
-    {
-      id: 'providerId',
-      fields: ['providerId'],
-      label: 'Provider ID',
-      description: 'Filter by provider ID',
-      type: 'string'
-    },
-    {
-      id: 'protoGuardFilterId',
-      fields: ['protoGuardFilterId'],
-      label: 'Protoguard Filter ID',
-      description: 'Filter by Protoguard filter ID',
-      type: 'string'
-    },
-    {
-      id: 'createdAt',
-      fields: ['createdAt'],
-      label: 'Created',
-      description: 'Filter by created date',
-      type: 'date'
-    },
-    {
-      id: 'updatedAt',
-      fields: ['updatedAt'],
-      label: 'Updated',
-      description: 'Filter by updated date',
-      type: 'date'
-    },
-    {
-      id: 'firstAlertAt',
-      fields: ['firstAlertAt'],
-      label: 'First Alert',
-      description: 'Filter by first alert date',
-      type: 'date'
-    },
-    {
-      id: 'lastAlertAt',
-      fields: ['lastAlertAt'],
-      label: 'Last Alert',
-      description: 'Filter by last alert date',
-      type: 'date'
-    }
-  ])
   .search('Search monitors')
   .link((monitor, props) =>
     Paths.organization.instance.monitor(
@@ -240,9 +226,11 @@ let monitorsTable = new DashboardTable<MonitorsTableStateProps, Monitor>('monito
 
 export let MonitorsTable = () => {
   let instance = useCurrentInstance();
+  let tableFilters = useMonitorsFilters(instance.data?.id);
 
   return monitorsTable({
     instance,
+    tableFilters,
     emptyState: 'No monitors found.'
   });
 };

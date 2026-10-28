@@ -1,3 +1,4 @@
+import type { Instance, Project } from '@metorial/db';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let { db } = vi.hoisted(() => ({
@@ -41,14 +42,16 @@ vi.mock('@metorial/module-store', () => ({
 import { skillParticipantService } from './skillParticipant';
 
 let scope = {
-  project: { oid: 1n },
-  instance: { oid: 2n }
+  project: { oid: 1n } as Project,
+  instance: { oid: 2n } as Instance
 };
+
 let skill = {
   oid: 3n,
   id: 'skill_1',
   storeOid: 4n
 };
+
 let resourceActor = {
   oid: 5n,
   id: 'rac_consumer'

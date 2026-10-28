@@ -453,6 +453,10 @@ export let mapDashboardBootOutput =
           [
             1,
             [
+              'is_organization_member',
+              'is_portal_consumer',
+              'is_manually_created',
+              'is_pending',
               'created_at',
               'updated_at',
               [

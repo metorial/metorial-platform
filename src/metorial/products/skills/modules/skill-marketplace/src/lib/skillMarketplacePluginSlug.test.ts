@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { findFirst, generatePlainId } = vi.hoisted(() => ({
+let { findFirst, pluginFindFirst, cellPluginFindFirst, generatePlainId } = vi.hoisted(() => ({
   findFirst: vi.fn(),
+  pluginFindFirst: vi.fn(),
+  cellPluginFindFirst: vi.fn(),
   generatePlainId: vi.fn()
 }));
 
@@ -13,12 +15,19 @@ vi.mock('@metorial/db', () => ({
   db: {
     skillMarketplacePlugin: {
       findFirst
+    },
+    skillPlugin: {
+      findFirst: pluginFindFirst
+    },
+    cellSkillPlugin: {
+      findFirst: cellPluginFindFirst
     }
   }
 }));
 
 import {
   getArchivedMarketplacePluginSlug,
+  getAvailableSkillPluginSlug,
   getMarketplacePluginSlug,
   getSkillPluginSlug
 } from './skillMarketplacePluginSlug';
@@ -39,6 +48,31 @@ describe('skill plugin slugs', () => {
     expect(getSkillPluginSlug('!!!')).toBe('randomslugvalue123456');
     expect(generatePlainId).toHaveBeenCalledWith(8);
     expect(findFirst).not.toHaveBeenCalled();
+  });
+
+  it('uses the plain plugin slug when no local or synced plugin has it', async () => {
+    pluginFindFirst.mockResolvedValue(null);
+    cellPluginFindFirst.mockResolvedValue(null);
+
+    await expect(getAvailableSkillPluginSlug('My Skill Plugin')).resolves.toBe(
+      'my-skill-plugin'
+    );
+  });
+
+  it('suffixes plugin slugs taken locally or by another cell', async () => {
+    pluginFindFirst.mockResolvedValueOnce({ id: 'local' }).mockResolvedValue(null);
+    cellPluginFindFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 'remote' })
+      .mockResolvedValue(null);
+
+    await expect(getAvailableSkillPluginSlug('My Skill Plugin')).resolves.toBe(
+      'my-skill-plugin-3'
+    );
+    expect(cellPluginFindFirst).toHaveBeenCalledWith({
+      where: { slug: 'my-skill-plugin-2' },
+      select: { id: true }
+    });
   });
 
   it('uses the nice marketplace slug when it is available', async () => {

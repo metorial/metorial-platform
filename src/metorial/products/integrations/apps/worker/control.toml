@@ -5,6 +5,18 @@ mode = "oss"
 [dev]
 run = ["dev:start"]
 
+[[health]]
+port = 12131
+path = "/"
+
+[e2e]
+start = ["e2e:start"]
+image = "subspace-worker"
+
+[e2e.env]
+HEALTH_PORT = "12131"
+METORIAL_ENABLED_FLAGS = "*"
+
 [[resources]]
 type = "nats"
 env = [{ key = "NATS_URL", value = "nats://{{HOSTNAME}}:{{PORT}}" }]
@@ -85,7 +97,7 @@ env = "SUBSPACE_DATABASE_URL"
 
 [dev.db.main]
 package = "@metorial/db"
-name = "metorial-enterprise"
+name = "metorial-oss"
 engine = "postgres"
 env = "DATABASE_URL"
 
@@ -103,7 +115,7 @@ env = "PAYMENT_DATABASE_URL"
 
 [dev.db.global]
 package = "@metorial/multi-region"
-name = "metorial-enterprise-global"
+name = "metorial-oss-global"
 engine = "postgres"
 env = "GLOBAL_DATABASE_URL"
 

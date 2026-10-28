@@ -44,3 +44,24 @@ export let useProviderVersion = (
 
   return data;
 };
+
+export let providerVersionsByIdsLoader = createLoader({
+  name: 'providerVersionsByIds',
+  parents: [providerVersionsLoader],
+  fetch: (i: { instanceId: string; ids: string[] }) =>
+    withAuth(sdk =>
+      Promise.all(i.ids.map(id => sdk.providers.versions.get(i.instanceId, id)))
+    ),
+  mutators: {}
+});
+
+export let useProviderVersionsByIds = (
+  instanceId: string | null | undefined,
+  ids: string[] | null | undefined
+) => {
+  let uniqueIds = ids?.length ? [...new Set(ids)].sort() : null;
+
+  return providerVersionsByIdsLoader.use(
+    instanceId && uniqueIds ? { instanceId, ids: uniqueIds } : null
+  );
+};

@@ -84,15 +84,15 @@ export let SlateDetail = () => {
 
           <Group.Content>
             <Flex gap={8} wrap="wrap" style={{ marginBottom: 20 }}>
-              <Badge color={slateData.access === 'public' ? 'green' : 'gray'} size="1">
+              <Badge color={slateData.access === 'public' ? 'green' : 'gray'} size="2">
                 {slateData.access}
               </Badge>
-              <Badge color={slateData.status === 'active' ? 'green' : 'gray'} size="1">
+              <Badge color={slateData.status === 'active' ? 'green' : 'gray'} size="2">
                 {slateData.status}
               </Badge>
               <Badge
                 color={slateData.scope?.type === 'workspace' ? 'purple' : 'blue'}
-                size="1"
+                size="2"
               >
                 {slateData.scope?.type}: {slateData.scope?.name}
               </Badge>
@@ -129,7 +129,7 @@ export let SlateDetail = () => {
                 </Text>
                 <Flex gap={8} wrap="wrap">
                   {slateData.skills.map(skill => (
-                    <Badge key={skill} color="blue" size="1">
+                    <Badge key={skill} color="blue" size="2">
                       {skill}
                     </Badge>
                   ))}
@@ -169,17 +169,17 @@ export let SlateDetail = () => {
                               ? 'blue'
                               : 'orange'
                         }
-                        size="1"
+                        size="2"
                       >
                         {version.backend}
                       </Badge>
                       {version.isUnbuiltCurrent && (
-                        <Badge color="green" size="1">
+                        <Badge color="green" size="2">
                           Unbuilt Current
                         </Badge>
                       )}
                       {version.isBuiltOrUnbuiltCurrent && (
-                        <Badge color="blue" size="1">
+                        <Badge color="blue" size="2">
                           Built/Unbuilt Current
                         </Badge>
                       )}

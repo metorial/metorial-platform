@@ -56,6 +56,9 @@ export let webhookRegistrationController = Controller.create(
               ]),
               { description: 'Filter by webhook registration lifecycle status' }
             ),
+            search: v.optional(v.string(), {
+              description: 'Match a webhook registration by its exact ID'
+            }),
             created_at: dateFilterValidator('webhook registration creation time'),
             updated_at: dateFilterValidator('webhook registration last update time')
           })
@@ -68,6 +71,7 @@ export let webhookRegistrationController = Controller.create(
           ids: normalizeArrayParam(ctx.query.id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
           status: normalizeArrayParam(ctx.query.status),
+          search: ctx.query.search,
           createdAt: ctx.query.created_at,
           updatedAt: ctx.query.updated_at
         });

@@ -258,6 +258,8 @@ class ProviderListingGroupService {
     instance: Instance;
     auditScope?: AuditScope;
   }) {
+    checkTenant(await resolveMetorialFacing(d), d.providerListingGroup);
+
     let eventBase = toProviderEventBase(d);
     await Fabric.fire('provider.provider_listing_group.listing.added:before', eventBase);
 
@@ -289,6 +291,8 @@ class ProviderListingGroupService {
     instance: Instance;
     auditScope?: AuditScope;
   }) {
+    checkTenant(await resolveMetorialFacing(d), d.providerListingGroup);
+
     let eventBase = toProviderEventBase(d);
     await Fabric.fire('provider.provider_listing_group.listing.removed:before', eventBase);
 

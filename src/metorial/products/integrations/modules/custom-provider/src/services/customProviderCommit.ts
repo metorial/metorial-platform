@@ -215,10 +215,15 @@ class customProviderCommitServiceImpl {
           }
         });
       } else if (d.input.action.type === 'merge_version_into_environment') {
-        checkTenant(d, d.input.action.fromEnvironment);
-        checkTenant(d, d.input.action.toEnvironment);
-
         let action = d.input.action;
+
+        // Merges cross environments by design, so only the tenant and solution must match
+        for (let environment of [action.fromEnvironment, action.toEnvironment]) {
+          checkTenant(
+            { ...d, solution },
+            { tenantOid: environment.tenantOid, solutionOid: environment.solutionOid }
+          );
+        }
 
         if (action.toEnvironment.oid === action.fromEnvironment.oid) {
           throw new ServiceError(
@@ -359,8 +364,10 @@ class customProviderCommitServiceImpl {
 
                 customProviderEnvironments
                   ? {
-                      toEnvironmentOid: customProviderEnvironments.in,
-                      fromEnvironmentOid: customProviderEnvironments.in
+                      OR: [
+                        { toEnvironmentOid: customProviderEnvironments.in },
+                        { fromEnvironmentOid: customProviderEnvironments.in }
+                      ]
                     }
                   : undefined!,
                 d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,

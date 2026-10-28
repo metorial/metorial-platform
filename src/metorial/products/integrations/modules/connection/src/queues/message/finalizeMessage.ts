@@ -1,6 +1,7 @@
 import { createQueue } from '@lowerdeck/queue';
 import { db, dbPrimary } from '@metorial-subspace/db';
 import { Fabric } from '@metorial/fabric';
+import { recordSessionMessageUsage } from '@metorial/module-usage';
 import { env } from '../../env';
 import { recordMessageAuditEvent } from '../../audit/recordMessage';
 import {
@@ -21,7 +22,12 @@ let finalizeMessage = async (messageId: string, progress: { activityRecorded: bo
     where: { id: messageId },
     include: {
       session: true,
-      sessionProvider: { include: { provider: { select: { id: true, name: true } } } },
+      sessionProvider: {
+        include: {
+          provider: { select: { id: true, name: true } },
+          deployment: { select: { id: true } }
+        }
+      },
       connection: { select: { id: true } },
       senderParticipant: {
         include: {
@@ -50,6 +56,8 @@ let finalizeMessage = async (messageId: string, progress: { activityRecorded: bo
     response: { client: incrementClientProductive, provider: incrementProviderProductive }
   });
   progress.activityRecorded = true;
+
+  await recordSessionMessageUsage(message);
 
   let clientMessageIncrement = creation.client + incrementClientProductive;
   let providerMessageIncrement = creation.provider + incrementProviderProductive;

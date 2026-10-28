@@ -60,7 +60,7 @@ import {
 } from '@metorial-subspace/module-tenant';
 import { type AuditSubspaceIntegrationProvider, Fabric } from '@metorial/fabric';
 import { env } from '../env';
-import { integrationProviderVersionInclude } from '../lib/integrationIncludes';
+import { integrationProviderVersionPresentableInclude } from '../lib/integrationIncludes';
 import {
   createIntegrationProviderVersion,
   createIntegrationVersion,
@@ -79,7 +79,7 @@ export let integrationProviderInclude = {
   integration: true,
   provider: true,
   currentVersion: {
-    include: integrationProviderVersionInclude
+    include: integrationProviderVersionPresentableInclude
   },
   callbacks: {
     where: { status: 'active' as const, ownership: 'user' as const },
@@ -586,6 +586,7 @@ class integrationProviderServiceImpl {
                 d.search
                   ? {
                       OR: [
+                        { id: d.search },
                         { name: { contains: d.search, mode: 'insensitive' as const } },
                         { description: { contains: d.search, mode: 'insensitive' as const } },
                         {
@@ -1209,28 +1210,29 @@ class integrationProviderServiceImpl {
 
     assertCallbacksAllowed({ tenant: d.tenant, provider: current.provider });
 
-    let existing = await db.callback.findFirst({
-      where: { integrationProviderOid: current.oid, status: 'active', ownership: 'user' },
-      select: { id: true }
-    });
-    if (existing) {
-      throw new ServiceError(
-        badRequestError({
-          code: 'callback_exists',
-          message: 'This integration provider already has a callback.',
-          description: `Update callback "${existing.id}" instead, or disable callbacks on the integration provider to tear it down.`
-        })
-      );
-    }
-
-    await db.integrationProvider.update({
-      where: { oid: current.oid },
-      data: { areCallbacksEnabled: true }
-    });
-
     let callback = await callbackInternalService.reconcileCallbackForIntegrationProvider({
       integrationProviderId: current.id,
-      input: d.input
+      input: d.input,
+      beforeReconcile: async () => {
+        let existing = await db.callback.findFirst({
+          where: { integrationProviderOid: current.oid, status: 'active', ownership: 'user' },
+          select: { id: true }
+        });
+        if (existing) {
+          throw new ServiceError(
+            badRequestError({
+              code: 'callback_exists',
+              message: 'This integration provider already has a callback.',
+              description: `Update callback "${existing.id}" instead, or disable callbacks on the integration provider to tear it down.`
+            })
+          );
+        }
+
+        await db.integrationProvider.update({
+          where: { oid: current.oid },
+          data: { areCallbacksEnabled: true }
+        });
+      }
     });
     if (!callback) {
       throw new Error(

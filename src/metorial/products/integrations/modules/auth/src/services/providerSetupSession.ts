@@ -41,23 +41,39 @@ import {
 import { checkProviderMatch } from '@metorial-subspace/module-provider-internal';
 import { assertNotPublicMcpOwned } from '@metorial-subspace/public-mcp-guard';
 import {
+  assertCanSeeOwnedResource,
+  assertCanUseOwnedResource,
   getMetorialSolution,
+  getOwnershipAccessor,
+  ownedResourceWhere,
+  resolveOwnerActorOid,
   checkTenant,
   metorialDb,
   type MetorialFacing,
+  type OwnershipFacing,
+  type RedactableOwnedResource,
+  redactClientSecretsForCaller,
   resolveMetorialFacing,
   resolveMetorialFacingWithOptionalActor,
   toProviderEventBase,
   ownerActorSelect
 } from '@metorial-subspace/module-tenant';
 import { Fabric, type AuditSubspaceProviderSetupSession } from '@metorial/fabric';
-import { addMinutes } from 'date-fns';
+import { addDays, addMinutes } from 'date-fns';
+import {
+  adminSetupInvalidBindingError,
+  adminSetupToolFiltersError
+} from '../lib/adminSetupErrors';
+import { isAdminSetupSession } from '../lib/setupSessionType';
 import {
   providerSetupSessionCreatedQueue,
   providerSetupSessionUpdatedQueue
 } from '../queues/lifecycle/providerSetupSession';
 import { providerAuthConfigInclude } from './providerAuthConfig';
 import { providerSetupSessionInternalService } from './providerSetupSessionInternal';
+
+let DEFAULT_SESSION_EXPIRY_MINUTES = 30;
+let ADMIN_SESSION_EXPIRY_DAYS = 14;
 
 let include = {
   identity: true,
@@ -76,7 +92,8 @@ let include = {
     }
   },
   ownerActor: ownerActorSelect,
-  ownerPublicMcpServer: { select: { id: true } }
+  ownerPublicMcpServer: { select: { id: true } },
+  oauthSetup: true
 };
 
 export let providerSetupSessionInclude = include;
@@ -107,12 +124,16 @@ export type CreateProviderSetupSessionParams = {
     provider: Provider;
     providerVariant: ProviderVariant;
     currentVersion:
-      | (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null })
-      | null;
+      (ProviderDeploymentVersion & { lockedVersion: ProviderVersion | null }) | null;
   };
   providerConfig?: ProviderConfig;
   identity?: Identity;
   ownerActorOid?: bigint | null;
+  ownerActorId?: string | null;
+  source?: 'explorer';
+  isOwnerLocked?: boolean;
+  isOwnerOnlyVisible?: boolean;
+  isSystemOwned?: boolean;
   credentials?: ProviderAuthCredentials;
   brand?: Brand;
   input: {
@@ -165,6 +186,7 @@ export type UpdateProviderSetupSessionFacingParams = Omit<
 
 type ListProviderSetupSessionsParams = {
   status?: ProviderSetupSessionStatus[];
+  types?: ProviderSetupSessionTypeConcrete[];
   allowDeleted?: boolean;
 
   ids?: string[];
@@ -174,6 +196,8 @@ type ListProviderSetupSessionsParams = {
   providerAuthConfigIds?: string[];
   providerAuthCredentialsIds?: string[];
   publicMcpServerIds?: string[];
+  ownershipWhere?: Record<string, any>;
+  includeSystemOwned?: boolean;
 
   createdAt?: DateFilter;
   updatedAt?: DateFilter;
@@ -182,6 +206,7 @@ type ListProviderSetupSessionsParams = {
 type GetProviderSetupSessionByIdParams = {
   providerSetupSessionId: string;
   allowDeleted?: boolean;
+  includeSystemOwned?: boolean;
 };
 
 class providerSetupSessionServiceImpl {
@@ -189,8 +214,14 @@ class providerSetupSessionServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
+    let accessor = await getOwnershipAccessor({ tenant: scope.tenant, organizationActor });
+
     return this.listProviderSetupSessionsInternal({
       ...rest,
+      ownershipWhere: ownedResourceWhere(accessor, {
+        ownership: 'all',
+        includeSystemOwned: d.includeSystemOwned
+      }),
       tenant: scope.tenant,
       environment: scope.environment
     });
@@ -220,15 +251,25 @@ class providerSetupSessionServiceImpl {
               solutionOid: solution.oid,
               environmentOid: d.environment.oid,
               integrationSetupSessionProviderOid: null,
+              ...(d.includeSystemOwned ? {} : { isSystemOwned: false }),
 
               ...normalizeStatusForList(d).onlyParent,
 
               AND: [
+                d.ownershipWhere ?? undefined!,
                 d.publicMcpServerIds
                   ? { ownerPublicMcpServer: { id: { in: d.publicMcpServerIds } } }
                   : { ownerPublicMcpServerOid: null },
                 d.ids ? { id: { in: d.ids } } : undefined!,
                 d.status ? { status: { in: d.status } } : undefined!,
+                d.types
+                  ? {
+                      OR: [
+                        { typeSelected: { in: d.types } },
+                        { typeConcrete: { in: d.types } }
+                      ]
+                    }
+                  : undefined!,
                 providers ? { providerOid: providers.in } : undefined!,
                 deployments ? { deploymentOid: deployments.in } : undefined!,
                 authConfigs ? { authConfigOid: authConfigs.in } : undefined!,
@@ -244,15 +285,29 @@ class providerSetupSessionServiceImpl {
     );
   }
 
+  async redactProviderSetupSessionsForCaller<T extends RedactableOwnedResource>(
+    d: OwnershipFacing & { setupSessions: T[] }
+  ) {
+    return await redactClientSecretsForCaller({ ...d, resources: d.setupSessions });
+  }
+
   async getProviderSetupSessionById(d: MetorialFacing<GetProviderSetupSessionByIdParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.getProviderSetupSessionByIdInternal({
+    let providerSetupSession = await this.getProviderSetupSessionByIdInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    assertCanSeeOwnedResource(
+      await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+      providerSetupSession,
+      { resource: 'provider.setup_session', id: d.providerSetupSessionId }
+    );
+
+    return providerSetupSession;
   }
 
   async getProviderSetupSessionByIdInternal(
@@ -266,6 +321,7 @@ class providerSetupSessionServiceImpl {
         solutionOid: solution.oid,
         environmentOid: d.environment.oid,
         integrationSetupSessionProviderOid: null,
+        ...(d.includeSystemOwned ? {} : { isSystemOwned: false }),
         ...normalizeStatusForGet(d).onlyParent
       },
       include
@@ -283,11 +339,24 @@ class providerSetupSessionServiceImpl {
       consumerId?: string;
     }
   ) {
-    let { instance, organizationActor, consumerId, ...rest } = d;
+    let { instance, organizationActor, consumerId, ownerActorId, ...rest } = d;
     let scope = await resolveMetorialFacingWithOptionalActor(d);
 
+    if (rest.providerConfig && !consumerId) {
+      await assertCanUseOwnedResource(
+        await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+        rest.providerConfig,
+        { resource: 'provider config' }
+      );
+    }
+
     let identity = rest.identity;
-    let ownerActorOid = rest.ownerActorOid;
+    let ownerActorOid =
+      (await resolveOwnerActorOid({
+        tenant: scope.tenant,
+        environment: scope.environment,
+        ownerActorId
+      })) ?? rest.ownerActorOid;
     let privateMetadata = rest.input.privateMetadata;
 
     if (consumerId) {
@@ -381,6 +450,14 @@ class providerSetupSessionServiceImpl {
 
     assertNotPublicMcpOwned(d.providerConfig, 'provider_config');
 
+    if (d.input.type === 'admin' && (d.identity || d.providerConfig)) {
+      throw adminSetupInvalidBindingError();
+    }
+
+    if (d.input.type === 'admin' && d.input.configuration?.toolFilters?.enabled) {
+      throw adminSetupToolFiltersError();
+    }
+
     if (!d.provider) {
       let providerOid: bigint | undefined;
 
@@ -403,6 +480,15 @@ class providerSetupSessionServiceImpl {
       }
     }
 
+    if (d.input.type === 'admin' && !d.provider) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Admin setup sessions require a provider',
+          code: 'admin_setup_provider_required'
+        })
+      );
+    }
+
     if (!d.provider && (d.input.authConfigInput || d.input.configInput)) {
       throw new ServiceError(
         badRequestError({
@@ -411,10 +497,21 @@ class providerSetupSessionServiceImpl {
       );
     }
 
-    let ownerActorOid = d.ownerActorOid ?? d.identity?.actorOid ?? null;
+    let ownerActorOid = d.isSystemOwned
+      ? null
+      : (d.ownerActorOid ?? d.identity?.actorOid ?? null);
+    let isOwnerLocked = !!d.isOwnerLocked || !!d.providerConfig?.isOwnerLocked;
+    let isOwnerOnlyVisible =
+      !d.isSystemOwned &&
+      !!ownerActorOid &&
+      (!!d.isOwnerOnlyVisible || !!d.providerConfig?.isOwnerOnlyVisible);
 
     return withTransaction(async db => {
-      let expiresAt = d.input.expiresAt ?? addMinutes(new Date(), 30);
+      let expiresAt =
+        d.input.expiresAt ??
+        (d.input.type === 'admin'
+          ? addDays(new Date(), ADMIN_SESSION_EXPIRY_DAYS)
+          : addMinutes(new Date(), DEFAULT_SESSION_EXPIRY_MINUTES));
       let inner: {
         authMethodOid?: bigint | null;
         authCredentialsOid?: bigint | null;
@@ -437,7 +534,10 @@ class providerSetupSessionServiceImpl {
             provider: d.provider,
             providerDeployment: d.providerDeployment,
             credentials: d.credentials,
+            source: d.source,
             ownerActorOid,
+            isOwnerLocked,
+            isOwnerOnlyVisible,
             ownerPublicMcpServerOid: d.internal?.ownerPublicMcpServerOid,
             expiresAt,
             input: {
@@ -501,7 +601,11 @@ class providerSetupSessionServiceImpl {
           providerOid: d.provider?.oid,
           deploymentOid: d.providerDeployment?.oid ?? d.providerConfig?.deploymentOid,
           identityOid: d.identity?.oid ?? null,
+          source: d.source,
           ownerActorOid,
+          isOwnerLocked,
+          isOwnerOnlyVisible,
+          isSystemOwned: !!d.isSystemOwned,
           brandOid: d.brand?.oid,
           authCredentialsOid: inner.authCredentialsOid ?? d.credentials?.oid,
           integrationSetupSessionProviderOid: d.internal?.integrationSetupSessionProviderOid,
@@ -578,11 +682,16 @@ class providerSetupSessionServiceImpl {
   async updateProviderSetupSessionInternal(d: UpdateProviderSetupSessionParams) {
     assertNotPublicMcpOwned(d.providerSetupSession, 'provider_setup_session');
     let solution = await getMetorialSolution();
+    checkTenant(d, d.providerSetupSession);
     checkDeletedEdit(d.providerSetupSession, 'update');
     checkTenant(d, d.input.identity);
     checkDeletedRelation(d.input.identity);
 
     let providerSetupSession = d.providerSetupSession;
+
+    if (d.input.identity && isAdminSetupSession(providerSetupSession)) {
+      throw adminSetupInvalidBindingError();
+    }
 
     if (
       d.input.identity &&
@@ -619,6 +728,58 @@ class providerSetupSessionServiceImpl {
       );
 
       return config;
+    });
+  }
+
+  async archiveProviderSetupSession(
+    d: MetorialFacing<{
+      providerSetupSession: ProviderSetupSession & AuditSubspaceProviderSetupSession;
+    }>
+  ) {
+    let { instance, organizationActor, ...rest } = d;
+    let scope = await resolveMetorialFacingWithOptionalActor(d);
+
+    let eventBase = toProviderEventBase(d);
+    await Fabric.fire('provider.setup_session.deleted:before', eventBase);
+
+    let setupSession = await this.archiveProviderSetupSessionInternal({
+      ...rest,
+      tenant: scope.tenant,
+      environment: scope.environment
+    });
+
+    await Fabric.fire('provider.setup_session.deleted:after', { ...eventBase, setupSession });
+
+    return setupSession;
+  }
+
+  async archiveProviderSetupSessionInternal(d: {
+    tenant: Tenant;
+    environment: Environment;
+    providerSetupSession: ProviderSetupSession;
+  }) {
+    assertNotPublicMcpOwned(d.providerSetupSession, 'provider_setup_session');
+    checkTenant(d, d.providerSetupSession);
+    checkDeletedEdit(d.providerSetupSession, 'archive');
+
+    let solution = await getMetorialSolution();
+
+    return withTransaction(async db => {
+      let setupSession = await db.providerSetupSession.update({
+        where: {
+          oid: d.providerSetupSession.oid,
+          tenantOid: d.tenant.oid,
+          solutionOid: solution.oid
+        },
+        data: { status: 'archived' },
+        include
+      });
+
+      await addAfterTransactionHook(() =>
+        providerSetupSessionUpdatedQueue.add({ providerSetupSessionId: setupSession.id })
+      );
+
+      return setupSession;
     });
   }
 }

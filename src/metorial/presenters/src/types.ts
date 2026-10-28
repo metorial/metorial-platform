@@ -42,6 +42,7 @@ import type {
   WebhookEvent,
   WebhookRegistrationWithRelations
 } from '@metorial-subspace/module-callback';
+import type { providerSetupSessionEmailInclude } from '@metorial-subspace/module-auth';
 import type { publisherService } from '@metorial-subspace/module-catalog';
 import type {
   customProviderDeploymentService,
@@ -57,7 +58,7 @@ import type {
   integrationInstanceGroupInclude,
   integrationInstanceGroupProviderInclude,
   integrationInstanceInclude,
-  integrationInstanceProviderInclude,
+  integrationInstanceProviderPresentableInclude,
   integrationInstanceProviderVersionInclude,
   integrationProviderInclude,
   integrationProviderVersionInclude,
@@ -212,6 +213,9 @@ import {
   type ResourceActorPresentationRecord
 } from '@metorial/module-resource-actor';
 import type {
+  SkillFile,
+  SkillFileChangeResult,
+  SkillFileContent,
   SkillGroupItemResource,
   SkillGroupResource,
   SkillItemResource,
@@ -289,6 +293,7 @@ type OwnerActorSelect = {
   select: {
     id: true;
     type: true;
+    name: true;
     instanceConsumer: { select: { consumer: { select: { id: true } } } };
   };
 };
@@ -297,6 +302,7 @@ type MagicMcpServerOwnerActor = Prisma.IdentityActorGetPayload<{
   select: {
     id: true;
     type: true;
+    name: true;
     consumerActor: { select: { consumer: { select: { id: true } } } };
   };
 }> | null;
@@ -324,6 +330,10 @@ type RawIdentityActor = SubspacePrisma.IdentityActorGetPayload<{
       };
     };
   }>;
+  consumerProfile?: {
+    id: string;
+    surface: { portal: { id: string } | null };
+  };
 };
 
 type RawIdentityCredential = SubspacePrisma.IdentityCredentialGetPayload<{
@@ -837,7 +847,7 @@ type SubspaceIntegrationInstanceGroupProvider =
   }>;
 type SubspaceIntegrationInstanceProvider =
   SubspacePrisma.IntegrationInstanceProviderGetPayload<{
-    include: typeof integrationInstanceProviderInclude;
+    include: typeof integrationInstanceProviderPresentableInclude;
   }>;
 type SubspaceIntegrationProvider = SubspacePrisma.IntegrationProviderGetPayload<{
   include: typeof integrationProviderInclude;
@@ -1018,6 +1028,7 @@ type RawProviderSetupSession = SubspacePrisma.ProviderSetupSessionGetPayload<{
         };
       };
     };
+    oauthSetup: true;
   };
 }>;
 
@@ -1264,6 +1275,12 @@ export let projectReducedSubprocessorsConfigurationType = PresentableType.create
   project: Project;
   reducedSubprocessors: boolean;
 }>()('project_reduced_subprocessors_configuration');
+
+export let projectResourceOwnershipConfigurationType = PresentableType.create<{
+  project: Project;
+  allowApiAccessToConsumerOwnedResources: boolean;
+  allowMemberAccessToConsumerOwnedResources: boolean;
+}>()('project_resource_ownership_configuration');
 
 export let projectDataRetentionConfigurationType = PresentableType.create<{
   project: Project;
@@ -1787,6 +1804,21 @@ export let skillAgentType = PresentableType.create<{
   }>;
 }>()('skillAgent');
 
+export let skillFileType = PresentableType.create<{
+  skillFile: SkillFile;
+  skill: { id: string };
+}>()('skillFile');
+
+export let skillFileContentType = PresentableType.create<{
+  skillFileContent: SkillFileContent;
+  skill: { id: string };
+}>()('skillFileContent');
+
+export let skillFileChangeType = PresentableType.create<{
+  skillFileChange: SkillFileChangeResult;
+  skill: { id: string };
+}>()('skillFileChange');
+
 export let skillConfigurationType = PresentableType.create<{
   skillConfiguration: SkillConfiguration;
 }>()('skillConfiguration');
@@ -2237,6 +2269,16 @@ export let usageType = PresentableType.create<{
   }[];
 }>()('usage');
 
+export let instanceUsageTimelineType = PresentableType.create<{
+  instanceId: string;
+  timeline: import('@metorial/module-usage').UsageTimeline;
+}>()('instance.usage.timeline');
+
+export let instanceUsageSummaryType = PresentableType.create<{
+  instanceId: string;
+  summary: import('@metorial/module-usage').UsageSummary;
+}>()('instance.usage.summary');
+
 export let profileType = PresentableType.create<{
   profile: Profile;
 }>()('profile');
@@ -2287,6 +2329,7 @@ export let magicMcpServerProviderType = PresentableType.create<{
 export let magicMcpEndpointType = PresentableType.create<{
   magicMcpEndpoint: MagicMcpEndpoint & {
     consumerProfile: ConsumerProfile | null;
+    ownerActor: MagicMcpServerOwnerActor;
     consumerIntegrationEndpoints: (ConsumerIntegrationEndpoint & {
       consumer: Consumer;
       consumerProfile: ConsumerProfile;
@@ -2316,6 +2359,7 @@ export let magicMcpSessionType = PresentableType.create<{
     magicMcpEndpoint:
       | (MagicMcpEndpoint & {
           consumerProfile: ConsumerProfile | null;
+          ownerActor: MagicMcpServerOwnerActor;
           consumerIntegrationEndpoints: (ConsumerIntegrationEndpoint & {
             consumer: Consumer;
             consumerProfile: ConsumerProfile;
@@ -2496,7 +2540,8 @@ export let consumerProfileType = PresentableType.create<{
     consumer: Consumer & {
       user?: User | null;
     };
-    surface: EnrichedConsumerSurface;
+    organizationMember?: { id: string } | null;
+    surface: EnrichedConsumerSurface & { portal?: { id: string } | null };
     // groups: (ConsumerProfileGroup & {
     //   group: ConsumerGroup;
     // })[];
@@ -2739,6 +2784,7 @@ export let providerTypeType = PresentableType.create<{
   providerType: RawProvider['type'];
   provider: RawProvider;
   tenant?: SubspacePrisma.TenantGetPayload<{}>;
+  oauthCallbackUrl?: string | null;
 }>()('provider.type');
 
 export let providerListingCategoryType = PresentableType.create<{
@@ -2950,6 +2996,14 @@ export let providerSetupSessionType = PresentableType.create<{
   setupSession: RawProviderSetupSession & PublicMcpOwnerRef;
 }>()('setupSession');
 
+export let providerSetupSessionEmailType = PresentableType.create<{
+  setupSessionEmail: SubspacePrisma.ProviderSetupSessionEmailGetPayload<{
+    include: typeof providerSetupSessionEmailInclude;
+  }>;
+  deduplicated?: boolean;
+  hideMemberRecipientEmail?: boolean;
+}>()('setupSessionEmail');
+
 export let providerAuthImportType = PresentableType.create<{
   authImport: RawProviderAuthImport;
 }>()('authImport');
@@ -2979,6 +3033,7 @@ type RawSessionTemplateProvider = SubspacePrisma.SessionTemplateProviderGetPaylo
 type RawSessionTemplate = SubspacePrisma.SessionTemplateGetPayload<{
   include: {
     identityActor: true;
+    ownerActor: OwnerActorSelect;
     identity: true;
     integrationInstance: true;
     integrationInstanceGroup: true;
@@ -3087,6 +3142,10 @@ export let integrationInternetGatewayNetworkLogsType = PresentableType.create<{
   logs: IntegrationInternetGatewayNetworkLogsResponse;
 }>()('integration.internet_gateway.network_logs');
 
+export let ownershipAccessType = PresentableType.create<{
+  ownershipAccess: { isRestrictedByProject: boolean; ownActorIds: string[] };
+}>()('ownershipAccess');
+
 export let resourceCountsType = PresentableType.create<{
   resources: {
     resource: string;
@@ -3166,6 +3225,10 @@ export let sandboxMachineAccessType = PresentableType.create<{
   scope: 'shell' | 'files' | 'port';
   ports: number[] | '*' | null;
 }>()('sandbox.machine.access');
+
+export let sandboxMachineExecResultType = PresentableType.create<{
+  result: SandboxResolved<typeof sandboxMachineAccessService.execCommand>;
+}>()('sandbox.machine.exec_result');
 
 export let sandboxDiskType = PresentableType.create<{
   disk: SandboxResolved<typeof sandboxDiskService.get>;
@@ -3361,6 +3424,7 @@ type RawSessionEvent = SubspacePrisma.SessionEventGetPayload<{
 type RawSession = SubspacePrisma.SessionGetPayload<{
   include: {
     identityActor: true;
+    ownerActor: OwnerActorSelect;
     identity: true;
     providers: {
       include: {

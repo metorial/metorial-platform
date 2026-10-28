@@ -261,7 +261,8 @@ class OrganizationInviteService {
     let invite = await db.organizationInvite.findFirst({
       where: {
         key: d.key,
-        status: 'pending'
+        status: 'pending',
+        expiresAt: { gt: new Date() }
       },
       include: {
         organization: true,

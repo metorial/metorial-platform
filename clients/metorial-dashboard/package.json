@@ -16,9 +16,9 @@
     "dist"
   ],
   "dependencies": {
-    "@metorial/fetch": "^1.0.0-rc.5",
-    "@metorial/generated": "^1.0.0-rc.5",
-    "@metorial/util-endpoint": "^1.0.0-rc.5",
+    "@metorial/fetch": "^3.0.0",
+    "@metorial/generated": "^3.3.1",
+    "@metorial/util-endpoint": "^3.0.0",
     "@metorial/util-resource-mapper": "^3.2.0"
   },
   "devDependencies": {

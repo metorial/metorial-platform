@@ -3,6 +3,7 @@ import { Hash } from '@lowerdeck/hash';
 import { createLock } from '@lowerdeck/lock';
 import { Service } from '@lowerdeck/service';
 import {
+  addAfterTransactionHook,
   db,
   getId,
   type Provider,
@@ -20,6 +21,10 @@ import type {
 } from '@metorial-subspace/provider-utils';
 import { env } from '../env';
 import { specificationCreatedQueue } from '../queues/lifecycle/specification';
+import {
+  enqueueProviderSpecSearchIndex,
+  SPEC_SEARCH_INDEX_DELAY_MS
+} from '../queues/search/enqueue';
 
 let specLock = createLock({
   name: 'sub/pint/pspec/lock/ensure',
@@ -341,7 +346,10 @@ class providerSpecificationInternalServiceImpl {
           });
 
           let triggerGroupOidByKey = new Map(
-            spec.providerTriggerGroups.map(triggerGroup => [triggerGroup.key, triggerGroup.oid])
+            spec.providerTriggerGroups.map(triggerGroup => [
+              triggerGroup.key,
+              triggerGroup.oid
+            ])
           );
 
           await Promise.all(
@@ -363,6 +371,14 @@ class providerSpecificationInternalServiceImpl {
           );
 
           await specificationCreatedQueue.add({ specificationId: spec.id });
+
+          // Delayed so the specification lifecycle queues can move currentInstanceOid first
+          await addAfterTransactionHook(() =>
+            enqueueProviderSpecSearchIndex({
+              providerId: d.provider.id,
+              delay: SPEC_SEARCH_INDEX_DELAY_MS
+            })
+          );
 
           return spec;
         });

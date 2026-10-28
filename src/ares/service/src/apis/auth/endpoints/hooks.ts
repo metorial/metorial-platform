@@ -3,7 +3,6 @@ import { createHono, type Context as HonoContext } from '@lowerdeck/hono';
 import { generateCustomId } from '@lowerdeck/id';
 import { v } from '@lowerdeck/validation';
 import * as Cookies from 'cookie';
-import { randomBytes } from 'crypto';
 import type {
   Account,
   SsoImportedDelegation,
@@ -13,7 +12,6 @@ import { db } from '../../../db';
 import { env } from '../../../env';
 import { getRequestContext } from '../../../lib/context';
 import {
-  createDelegationCodeChallenge,
   getDelegationCallbackUri,
   getDelegationResponseMode,
   getIdpInitiatedConsumerLoginRedirect
@@ -23,6 +21,8 @@ import { validateRedirectUrl } from '../../../lib/validateRedirectUrl';
 import { authService } from '../../../services/auth';
 import { deviceService } from '../../../services/device';
 import { ssoAuthService } from '../../../services/sso/auth';
+import { getSsoAuthCompletionRedirect } from '../../../services/sso/authRedirect';
+import { getSsoAuthStartUrl } from '../../../services/sso/authStart';
 import type { DelegationSnapshot } from '../../../services/sso/delegation';
 import { ssoDelegationClient } from '../../../services/sso/delegationClient';
 import {
@@ -55,10 +55,7 @@ let getAccountLoginUrl = (d: {
   return authUrl.toString();
 };
 
-let createCodeVerifier = () => randomBytes(32).toString('base64url');
-
-let getLocalDelegationCallbackUri = () =>
-  getDelegationCallbackUri(env.service.ARES_AUTH_URL);
+let getLocalDelegationCallbackUri = () => getDelegationCallbackUri(env.service.ARES_AUTH_URL);
 
 let importedDelegationInclude = {
   remoteInstance: true,
@@ -185,18 +182,16 @@ export let authHooksApp = createHono()
 
     ctx.res.headers.append(
       'Set-Cookie',
-      Cookies.serialize(
-        `metorial_oauth_state_${state}`,
-        JSON.stringify({
+      Cookies.stringifySetCookie({
+        name: `metorial_oauth_state_${state}`,
+        value: JSON.stringify({
           appClientId: ticket.appClientId,
           provider: ticket.provider,
           redirectUrl: ticket.redirectUrl,
           deviceId: ticket.deviceId
         }),
-        {
-          path: '/'
-        }
-      )
+        path: '/'
+      })
     );
 
     let url = await authService.getSocialProviderAuthUrl({
@@ -217,7 +212,7 @@ export let authHooksApp = createHono()
     }
 
     let cookieHeader = ctx.req.header('cookie') ?? '';
-    let cookies = Cookies.parse(cookieHeader);
+    let cookies = Cookies.parseCookie(cookieHeader);
     let stateCookieName = `metorial_oauth_state_${state}`;
     let stateCookie = cookies[stateCookieName];
     if (!stateCookie) {
@@ -279,7 +274,11 @@ export let authHooksApp = createHono()
 
       ctx.res.headers.append(
         'Set-Cookie',
-        Cookies.serialize(SESSION_ID_COOKIE_NAME, session.id, baseCookieOpts)
+        Cookies.stringifySetCookie({
+          name: SESSION_ID_COOKIE_NAME,
+          value: session.id,
+          ...baseCookieOpts
+        })
       );
 
       let redirectUrl = new URL(res.authAttempt.redirectUrl);
@@ -293,7 +292,9 @@ export let authHooksApp = createHono()
 
     ctx.res.headers.append(
       'Set-Cookie',
-      Cookies.serialize(stateCookieName, '', {
+      Cookies.stringifySetCookie({
+        name: stateCookieName,
+        value: '',
         path: '/',
         expires: new Date(0)
       })
@@ -338,62 +339,19 @@ export let authHooksApp = createHono()
 
       ctx.res.headers.append(
         'Set-Cookie',
-        Cookies.serialize(
-          `metorial_sso_state_${ssoAuth.id}`,
-          JSON.stringify({
+        Cookies.stringifySetCookie({
+          name: `metorial_sso_state_${ssoAuth.id}`,
+          value: JSON.stringify({
             appClientId: ticket.appClientId,
             deviceId: ticket.deviceId,
             redirectUrl: ticket.redirectUrl
           }),
-          {
-            path: '/'
-          }
-        )
+          path: '/'
+        })
       );
 
-      if (tenant.importedDelegationOid) {
-        let imported = await db.ssoImportedDelegation.findUnique({
-          where: { oid: tenant.importedDelegationOid },
-          include: {
-            remoteInstance: true,
-            localExportedDelegation: true
-          }
-        });
-        if (!imported || imported.status !== 'active') {
-          throw new ServiceError(badRequestError({ message: 'SSO delegation is disabled' }));
-        }
-
-        let codeVerifier = createCodeVerifier();
-        await db.ssoAuth.update({
-          where: { oid: ssoAuth.oid },
-          data: { codeVerifier }
-        });
-
-        let authorizationUrl = new URL(imported.remoteInstance.authorizationEndpointUrl);
-        authorizationUrl.searchParams.set('client_id', imported.clientId);
-        authorizationUrl.searchParams.set(
-          'response_type',
-          'urn:metorial.com:ares:sso-delegation'
-        );
-        authorizationUrl.searchParams.set(
-          'redirect_uri',
-          getLocalDelegationCallbackUri()
-        );
-        authorizationUrl.searchParams.set('state', ssoAuth.state);
-        authorizationUrl.searchParams.set(
-          'code_challenge',
-          createDelegationCodeChallenge(codeVerifier)
-        );
-        authorizationUrl.searchParams.set('code_challenge_method', 'S256');
-        if (connection?.sourceId) {
-          authorizationUrl.searchParams.set('connection_id', connection.sourceId);
-        }
-        if (ticket.email) authorizationUrl.searchParams.set('login_hint', ticket.email);
-        return ctx.redirect(authorizationUrl.toString());
-      }
-
       return ctx.redirect(
-        `${env.service.ARES_SSO_URL}/sso/auth?client_secret=${ssoAuth.clientSecret}`
+        await getSsoAuthStartUrl({ auth: ssoAuth, tenant, connection, email: ticket.email })
       );
     } catch (error) {
       return renderSsoError(ctx, error);
@@ -460,6 +418,19 @@ export let authHooksApp = createHono()
             }
           });
 
+          // Elevation auths must never reach `/sso-response`, which turns a completed auth
+          // into a login session; their owner completes them from its own redirect URI.
+          if (auth.purpose === 'elevation') {
+            return ctx.redirect(
+              getSsoAuthCompletionRedirect({
+                redirectUri: auth.redirectUri,
+                purpose: auth.purpose,
+                tenantId: auth.tenant.id,
+                authId: auth.id
+              }).url
+            );
+          }
+
           let next = new URL(`${env.service.ARES_AUTH_URL}/metorial-ares/hooks/sso-response`);
           next.searchParams.set('tenant_id', auth.tenant.id);
           next.searchParams.set('auth_id', auth.id);
@@ -501,7 +472,7 @@ export let authHooksApp = createHono()
       });
 
       let cookieHeader = ctx.req.header('cookie') ?? '';
-      let deviceToken = Cookies.parse(cookieHeader)[DEVICE_TOKEN_COOKIE_NAME];
+      let deviceToken = Cookies.parseCookie(cookieHeader)[DEVICE_TOKEN_COOKIE_NAME];
       let deviceInfo = deviceToken ? parseDeviceToken(deviceToken) : null;
       let device = await deviceService.ensureDevice({
         deviceId: deviceInfo?.deviceId,
@@ -522,15 +493,19 @@ export let authHooksApp = createHono()
 
       ctx.res.headers.append(
         'Set-Cookie',
-        Cookies.serialize(
-          DEVICE_TOKEN_COOKIE_NAME,
-          `${device.id}:${device.clientSecret}`,
-          baseCookieOpts
-        )
+        Cookies.stringifySetCookie({
+          name: DEVICE_TOKEN_COOKIE_NAME,
+          value: `${device.id}:${device.clientSecret}`,
+          ...baseCookieOpts
+        })
       );
       ctx.res.headers.append(
         'Set-Cookie',
-        Cookies.serialize(SESSION_ID_COOKIE_NAME, session.id, baseCookieOpts)
+        Cookies.stringifySetCookie({
+          name: SESSION_ID_COOKIE_NAME,
+          value: session.id,
+          ...baseCookieOpts
+        })
       );
 
       let completedRedirect = getIdpInitiatedConsumerLoginRedirect({
@@ -553,11 +528,12 @@ export let authHooksApp = createHono()
 
       let { tenant, account, connection, userProfile } = await ssoAuthService.completeAuth({
         authId,
-        tenantId
+        tenantId,
+        purpose: 'authentication'
       });
 
       let cookieHeader = ctx.req.header('cookie') ?? '';
-      let cookies = Cookies.parse(cookieHeader);
+      let cookies = Cookies.parseCookie(cookieHeader);
       let stateCookie = cookies[`metorial_sso_state_${authId}`];
       if (!stateCookie) {
         throw new ServiceError(badRequestError({ message: 'Invalid SSO state' }));
@@ -607,7 +583,11 @@ export let authHooksApp = createHono()
 
       ctx.res.headers.append(
         'Set-Cookie',
-        Cookies.serialize(SESSION_ID_COOKIE_NAME, session.id, baseCookieOpts)
+        Cookies.stringifySetCookie({
+          name: SESSION_ID_COOKIE_NAME,
+          value: session.id,
+          ...baseCookieOpts
+        })
       );
 
       let redirectUrl = new URL(authAttempt.redirectUrl);
@@ -651,7 +631,11 @@ export let authHooksApp = createHono()
 
       ctx.res.headers.append(
         'Set-Cookie',
-        Cookies.serialize(SESSION_ID_COOKIE_NAME, session.id, baseCookieOpts)
+        Cookies.stringifySetCookie({
+          name: SESSION_ID_COOKIE_NAME,
+          value: session.id,
+          ...baseCookieOpts
+        })
       );
     } else {
       authorizationCode = authAttempt.authorizationCode ?? undefined;

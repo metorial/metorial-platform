@@ -1,8 +1,14 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { sandboxMachineAccessService, sandboxMachineService } from '@metorial/module-sandbox';
+import {
+  machineExecDefaultTimeoutSeconds,
+  machineExecMaxTimeoutSeconds,
+  sandboxMachineAccessService,
+  sandboxMachineService
+} from '@metorial/module-sandbox';
 import {
   sandboxMachineAccessPresenter,
+  sandboxMachineExecResultPresenter,
   sandboxMachinePresenter,
   sandboxMachineUsagePresenter
 } from '@metorial/presenters';
@@ -464,6 +470,61 @@ export let sandboxMachineController = Controller.create(
         });
 
         return sandboxMachineAccessPresenter.present({ access, scope: 'shell', ports: null });
+      }),
+
+    exec: sandboxMachineGroup
+      .post(instancePath('sandbox/machines/:machineId/exec', 'sandbox.machines.exec'), {
+        name: 'Run a command',
+        description:
+          'Runs a shell command in the machine and returns its exit code and output. Non-interactive; starts the machine if needed.'
+      })
+      .use(checkAccess({ possibleScopes: [...sandboxWriteScopes] }))
+      .body(
+        'default',
+        v.object({
+          command: v.string({
+            description: 'The command to run with /bin/sh -c',
+            examples: ['ls -la /tmp'],
+            modifiers: [v.minLength(1)]
+          }),
+          cwd: v.optional(
+            v.string({
+              description: 'The working directory to run the command in',
+              examples: ['/home/user']
+            })
+          ),
+          env: v.optional(
+            v.record(v.string(), {
+              description: 'Environment variables to set for the command'
+            })
+          ),
+          timeout_seconds: v.optional(
+            v.number({
+              description: `How long the command may run before it is stopped, in seconds. Defaults to ${machineExecDefaultTimeoutSeconds}, at most ${machineExecMaxTimeoutSeconds}.`,
+              examples: [machineExecDefaultTimeoutSeconds],
+              modifiers: [v.integer(), v.minValue(1), v.maxValue(machineExecMaxTimeoutSeconds)]
+            })
+          )
+        })
+      )
+      .output(sandboxMachineExecResultPresenter)
+      .do(async ctx => {
+        // Exec can outlast the server idle timeout; it enforces its own deadline.
+        ctx.setIdleTimeout?.(0);
+
+        let result = await sandboxMachineAccessService.execCommand({
+          auditScope: ctx.auditScope,
+          machine: ctx.machine,
+          signal: ctx.signal,
+          input: {
+            command: ctx.body.command,
+            cwd: ctx.body.cwd,
+            env: ctx.body.env,
+            timeoutSeconds: ctx.body.timeout_seconds
+          }
+        });
+
+        return sandboxMachineExecResultPresenter.present({ result });
       }),
 
     createFilesAccess: sandboxMachineGroup

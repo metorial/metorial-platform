@@ -95,6 +95,26 @@ const server = createTestServer({
 await server.get('/health');
 ```
 
+### E2E helpers
+
+```typescript
+import { createE2EVitestConfig, eventually, uniqueId } from '@lowerdeck/testing-tools';
+
+export default createE2EVitestConfig();
+
+let name = uniqueId('store');
+
+await eventually(async () => {
+  expect(await countJobs()).toBe(1);
+}, { timeoutMs: 10_000, intervalMs: 250 });
+```
+
+`createE2EVitestConfig()` runs `e2e/**/*.e2e.ts` serially with 60s test and 120s hook timeouts
+and fails when no tests are found; the `.e2e.ts` suffix keeps unit runs from picking them up.
+`eventually` retries an assertion until it passes or the timeout elapses (for queue- or
+worker-driven side effects). `uniqueId` returns collision-free names so suites can share
+databases without cleanup.
+
 ## License
 
 This project is licensed under the Apache License 2.0.

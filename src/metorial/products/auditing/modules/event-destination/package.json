@@ -6,6 +6,7 @@
   "main": "src/index.ts",
   "scripts": {
     "test": "vitest run --passWithNoTests",
+    "test:e2e": "metorial-e2e",
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
@@ -22,12 +23,14 @@
     "@metorial/db": "^1.0.0",
     "@metorial/fabric": "^1.0.0",
     "@metorial/module-event-delivery": "^1.0.0",
+    "@metorial/module-search": "^1.0.0",
     "@metorial/queue": "^1.0.0",
     "@metorial/webhook-event-schema": "workspace:*"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",
     "typescript": "5.9.3",
-    "vitest": "^5.0.4"
+    "vitest": "^5.0.4",
+    "@metorial/e2e": "1.0.0"
   }
 }

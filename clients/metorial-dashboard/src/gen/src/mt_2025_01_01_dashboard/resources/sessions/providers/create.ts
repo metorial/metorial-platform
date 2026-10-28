@@ -116,48 +116,38 @@ export type SessionsProvidersCreateBody = {
       )[]
     | null
     | undefined;
-} & (
-  | (
-      | { providerDeploymentId?: string | undefined }
-      | {
-          providerDeployment?:
-            | {
-                providerId: string;
-                name?: string | undefined;
-                description?: string | undefined;
-                metadata?: Record<string, any> | undefined;
-                lockedProviderVersionId?: string | undefined;
-              }
-            | undefined;
-        }
-    )
-  | (
-      | { providerConfigId?: string | undefined }
-      | {
-          providerConfig?:
-            | { name?: string | undefined; value: Record<string, any> }
-            | {
-                name?: string | undefined;
-                providerConfigVaultId: string;
-                providerId?: string | undefined;
-              }
-            | undefined;
-        }
-    )
-  | (
-      | { providerAuthConfigId?: string | undefined }
-      | {
-          providerAuthConfig?:
-            | {
-                name?: string | undefined;
-                providerAuthMethodId: string;
-                credentials: Record<string, any>;
-                providerId?: string | undefined;
-              }
-            | undefined;
-        }
-    )
-);
+} & ({
+  providerDeploymentId?: string | undefined;
+  providerDeployment?:
+    | {
+        providerId: string;
+        name?: string | undefined;
+        description?: string | undefined;
+        metadata?: Record<string, any> | undefined;
+        lockedProviderVersionId?: string | undefined;
+      }
+    | undefined;
+} & ({
+  providerConfigId?: string | undefined;
+  providerConfig?:
+    | { name?: string | undefined; value: Record<string, any> }
+    | {
+        name?: string | undefined;
+        providerConfigVaultId: string;
+        providerId?: string | undefined;
+      }
+    | undefined;
+} & {
+  providerAuthConfigId?: string | undefined;
+  providerAuthConfig?:
+    | {
+        name?: string | undefined;
+        providerAuthMethodId: string;
+        credentials: Record<string, any>;
+        providerId?: string | undefined;
+      }
+    | undefined;
+}));
 
 export let mapSessionsProvidersCreateBody =
   /* @__PURE__ */ createMapper<SessionsProvidersCreateBody>([

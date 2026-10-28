@@ -2,7 +2,6 @@ import { db, ID } from '@metorial/db';
 import { dispatchSystemEventDelivery } from '@metorial/module-event-delivery';
 import type { PresenterContext } from '@metorial/presenter';
 import { createQueue } from '@metorial/queue';
-import { webhookEvents } from '@metorial/webhook-event-schema';
 import { randomBigInt } from '../lib/oid';
 
 let eventPresenterContext: PresenterContext = {
@@ -46,6 +45,9 @@ export let enqueueSystemEvent = async (d: {
 };
 
 export let systemEventIngestQueueProcessor = systemEventIngestQueue.process(async data => {
+  // The event schema imports @metorial/presenters, which (through module services) imports this
+  // module, so loading it eagerly creates an initialization cycle.
+  let { webhookEvents } = await import('@metorial/webhook-event-schema');
   let definition = (webhookEvents as any)[data.eventType];
   if (!definition) return;
 

@@ -177,7 +177,7 @@ let getSkillAgentTableRow = (p: {
         </Text>
       )}
     </AgentName>,
-    <Badge color={p.agent.status === 'active' ? 'green' : 'gray'} size="1">
+    <Badge color={p.agent.status === 'active' ? 'green' : 'gray'} size="2">
       {p.agent.status}
     </Badge>,
     <Text color={p.agent.path ? 'gray800' : 'gray500'} size="2">

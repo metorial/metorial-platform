@@ -44,6 +44,8 @@ export type SessionProviderAuthConfigSource =
 export let resolveSessionProviderInput = async (d: {
   instance: Instance;
   auditScope?: AuditScope;
+  ownerActorId?: string;
+  source?: 'explorer';
   sessionTemplateId?: string;
   providerDeployment?: SessionProviderDeploymentSource;
   providerConfig?: SessionProviderConfigSource;
@@ -85,30 +87,30 @@ export let resolveSessionProviderInput = async (d: {
     deploymentId = d.providerDeployment.providerDeploymentId;
   }
 
-  let configId: string | undefined;
-  let configHasEphemeral = false;
-  if (d.providerConfig?.type === 'reference') {
-    configId = d.providerConfig.providerConfigId;
-  } else if (d.providerConfig?.type === 'ephemeral') {
-    let provider = deploymentId
-      ? await providerService.getProviderById({
-          instance: d.instance,
-          providerId: deploymentId
-        })
-      : undefined;
-    let providerDeployment = deploymentId
-      ? await providerDeploymentService.getProviderDeploymentById({
+  let loadProviderDeployment = () =>
+    deploymentId
+      ? providerDeploymentService.getProviderDeploymentById({
           instance: d.instance,
           providerDeploymentId: deploymentId
         })
       : undefined;
 
-    if (!provider && providerDeployment?.provider) {
-      provider = await providerService.getProviderById({
-        instance: d.instance,
-        providerId: providerDeployment.provider.id
-      });
-    }
+  let configId: string | undefined;
+  let configHasEphemeral = false;
+  if (d.providerConfig?.type === 'reference') {
+    let providerConfig = await providerConfigService.getProviderConfigById({
+      instance: d.instance,
+      providerConfigId: d.providerConfig.providerConfigId
+    });
+    configId = providerConfig.id;
+  } else if (d.providerConfig?.type === 'ephemeral') {
+    let providerDeployment = await loadProviderDeployment();
+    let provider = providerDeployment
+      ? await providerService.getProviderById({
+          instance: d.instance,
+          providerId: providerDeployment.provider.id
+        })
+      : undefined;
 
     if (!provider) {
       throw new ServiceError(
@@ -133,6 +135,10 @@ export let resolveSessionProviderInput = async (d: {
       auditScope: d.auditScope,
       provider,
       providerDeployment,
+      ownerActorId: d.ownerActorId,
+      source: d.source,
+      isOwnerLocked: d.source === 'explorer' ? true : undefined,
+      isOwnerOnlyVisible: d.source === 'explorer' ? true : undefined,
       input: {
         name: d.providerConfig.name ?? 'Ephemeral config',
         isEphemeral: true,
@@ -146,29 +152,21 @@ export let resolveSessionProviderInput = async (d: {
   let authConfigId: string | undefined;
   let authConfigHasEphemeral = false;
   if (d.providerAuthConfig?.type === 'reference') {
-    authConfigId = d.providerAuthConfig.providerAuthConfigId;
+    let providerAuthConfig = await providerAuthConfigService.getProviderAuthConfigById({
+      instance: d.instance,
+      providerAuthConfigId: d.providerAuthConfig.providerAuthConfigId
+    });
+    authConfigId = providerAuthConfig.id;
   }
   if (d.providerAuthConfig?.type === 'ephemeral') {
-    let providerId = d.providerAuthConfig.providerId || deploymentId;
+    let providerDeployment = await loadProviderDeployment();
+    let providerId = d.providerAuthConfig.providerId || providerDeployment?.provider.id;
     let provider = providerId
       ? await providerService.getProviderById({
           instance: d.instance,
           providerId
         })
       : undefined;
-    let providerDeployment = deploymentId
-      ? await providerDeploymentService.getProviderDeploymentById({
-          instance: d.instance,
-          providerDeploymentId: deploymentId
-        })
-      : undefined;
-
-    if (!provider && providerDeployment) {
-      provider = await providerService.getProviderById({
-        instance: d.instance,
-        providerId: providerDeployment.provider.id
-      });
-    }
 
     if (!provider) {
       throw new ServiceError(
@@ -183,7 +181,10 @@ export let resolveSessionProviderInput = async (d: {
       auditScope: d.auditScope,
       provider,
       providerDeployment,
-      source: 'manual',
+      ownerActorId: d.ownerActorId,
+      isOwnerLocked: d.source === 'explorer' ? true : undefined,
+      isOwnerOnlyVisible: d.source === 'explorer' ? true : undefined,
+      source: d.source ?? 'manual',
       import: {
         ip: undefined,
         ua: undefined,

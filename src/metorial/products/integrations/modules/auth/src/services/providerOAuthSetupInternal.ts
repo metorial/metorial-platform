@@ -16,7 +16,9 @@ import { providerOAuthSetupUpdatedQueue } from '../queues/lifecycle/providerOAut
 import { providerAuthConfigInternalService } from './providerAuthConfigInternal';
 import { providerSetupSessionInternalService } from './providerSetupSessionInternal';
 
-let include = {};
+let include = {
+  providerSetupSession: true
+};
 
 let syncLock = createLock({
   name: 'sub/auth/setupInternal/sync',
@@ -82,11 +84,13 @@ class providerOAuthSetupInternalServiceImpl {
             authConfig =
               await providerAuthConfigInternalService.createProviderAuthConfigInternal({
                 backend: backend.backend,
-                source: providerOAuthSetup.ownerPublicMcpServerOid
-                  ? 'public_mcp'
-                  : providerOAuthSetup.providerSetupSession
-                    ? 'setup_session'
-                    : 'system',
+                source:
+                  providerOAuthSetup.providerSetupSession?.source ??
+                  (providerOAuthSetup.ownerPublicMcpServerOid
+                    ? 'public_mcp'
+                    : providerOAuthSetup.providerSetupSession
+                      ? 'setup_session'
+                      : 'system'),
                 type: 'oauth_automated',
                 tenant: providerOAuthSetup.tenant,
                 environment: providerOAuthSetup.environment,
@@ -94,6 +98,9 @@ class providerOAuthSetupInternalServiceImpl {
                 providerDeployment: providerOAuthSetup.deployment ?? undefined,
                 credentials: providerOAuthSetup.authCredentials,
                 ownerActorOid: providerOAuthSetup.providerSetupSession?.ownerActorOid,
+                isOwnerLocked: providerOAuthSetup.providerSetupSession?.isOwnerLocked,
+                isOwnerOnlyVisible:
+                  providerOAuthSetup.providerSetupSession?.isOwnerOnlyVisible,
                 input: {
                   name: providerOAuthSetup.name ?? undefined,
                   description: providerOAuthSetup.description ?? undefined,
@@ -154,6 +161,8 @@ class providerOAuthSetupInternalServiceImpl {
 
             errorCode: record.error?.code,
             errorMessage: record.error?.message ?? record.error?.code,
+
+            adminInstructions: record.adminInstructions ?? undefined,
 
             slateOAuthSetupOid: record.slateOAuthSetup?.oid,
             shuttleOAuthSetupOid: record.shuttleOAuthSetup?.oid,

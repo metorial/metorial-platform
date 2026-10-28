@@ -59,7 +59,7 @@ export let SubRegistryDetail = () => {
         <Group.Header
           title={subRegistry.data!.name}
           description={
-            <Badge color="gray" size="1">
+            <Badge color="gray" size="2">
               <code>{subRegistry.data!.identifier}</code>
             </Badge>
           }
@@ -140,14 +140,14 @@ export let SubRegistryDetail = () => {
                 <Callout key={filter.id} color="gray">
                   <Flex align="center" justify="space-between" style={{ width: '100%' }}>
                     <Flex align="center" gap={12}>
-                      <Badge color="blue" size="1">{filter.type}</Badge>
+                      <Badge color="blue" size="2">{filter.type}</Badge>
                       <Text size="2" weight="medium">
                         <MonoText>{filter.value}</MonoText>
                       </Text>
                     </Flex>
                     <Button
                       variant="outline"
-                      size="1"
+                      size="2"
                       color="red"
                       onClick={() => handleRemoveFilter(filter.id)}
                     >

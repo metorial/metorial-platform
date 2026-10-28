@@ -5,6 +5,7 @@ enum ProviderAuthConfigType {
 }
 
 enum ProviderAuthConfigSource {
+  explorer
   manual
   setup_session
   system
@@ -73,6 +74,10 @@ model ProviderAuthConfig {
 
   owningIntegrationInstanceProviderOid BigInt?
   owningIntegrationInstanceProvider    IntegrationInstanceProvider? @relation(fields: [owningIntegrationInstanceProviderOid], references: [oid])
+
+  isOwnerLocked      Boolean @default(false)
+  isOwnerOnlyVisible Boolean @default(false)
+  isSystemOwned      Boolean @default(false)
 
   ownerActorOid BigInt?
   ownerActor    IdentityActor? @relation(fields: [ownerActorOid], references: [oid], onDelete: SetNull)

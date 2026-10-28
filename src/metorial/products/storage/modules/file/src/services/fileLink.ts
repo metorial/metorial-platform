@@ -7,7 +7,14 @@ import {
 import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { FileLink, Instance, Prisma, Project, ResourceActor } from '@metorial/db';
+import type {
+  FileLink,
+  FileStatus,
+  Instance,
+  Prisma,
+  Project,
+  ResourceActor
+} from '@metorial/db';
 import { db, ID, withTransaction } from '@metorial/db';
 import {
   normalizeDateFilter,
@@ -48,6 +55,7 @@ class FileLinkServiceImpl {
       file: {
         oid: bigint;
         id: string;
+        status: FileStatus;
         purpose: {
           canHaveLinks: boolean;
         };
@@ -64,6 +72,13 @@ class FileLinkServiceImpl {
       project: cargoOwnerScopeProject(d),
       resourceActor: d.input.actor
     });
+    if (d.file.status !== 'active') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Deleted files cannot be linked'
+        })
+      );
+    }
     if (!d.file.purpose.canHaveLinks) {
       throw new ServiceError(
         forbiddenError({

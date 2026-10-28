@@ -119,6 +119,9 @@ export let captureDescriptor = (cache: string, key: string): InputDescriptor => 
 };
 
 export let gitInputs = (): Map<string, { mode: string; oid: string }> => {
+  if (process.env.IMAGE_GIT_INPUTS) {
+    return new Map(JSON.parse(readFileSync(process.env.IMAGE_GIT_INPUTS, 'utf8')));
+  }
   let inputs = new Map<string, { mode: string; oid: string }>();
   let collect = (directory: string, prefix: string) => {
     let modified = new Set(

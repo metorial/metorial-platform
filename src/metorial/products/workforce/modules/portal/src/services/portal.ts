@@ -228,7 +228,7 @@ class PortalServiceImpl {
     });
   }
 
-  listPortals(d: { instance: Instance; search?: string }) {
+  listPortals(d: { instance: Instance; search?: string; portalIds?: string[] }) {
     let normalizedSearch = d.search?.trim();
     if (!normalizedSearch?.length) normalizedSearch = undefined;
 
@@ -238,6 +238,7 @@ class PortalServiceImpl {
           ...opts,
           where: {
             instanceOid: d.instance.oid,
+            id: d.portalIds ? { in: d.portalIds } : undefined,
             status: 'active',
             surface: {
               status: 'active'
@@ -285,6 +286,10 @@ class PortalServiceImpl {
     isDefaultPortal?: boolean;
     automatic?: boolean;
   }) {
+    let allowedRedirectUrlFilters = resolvePortalAllowedRedirectUrlFilters(
+      d.input.allowedRedirectUrlFilters
+    );
+
     let portalId = await ID.generateId('portal');
     let slug = await getPortalSlug({
       input: d.input.name
@@ -320,7 +325,7 @@ class PortalServiceImpl {
           description: d.input.description,
           slug,
           allowedRedirectUrlFilters: toNullablePortalAllowedRedirectUrlFilters(
-            resolvePortalAllowedRedirectUrlFilters(d.input.allowedRedirectUrlFilters)
+            allowedRedirectUrlFilters
           ),
           organizationOid: d.organization.oid,
           surfaceOid: surface.oid,
@@ -374,6 +379,13 @@ class PortalServiceImpl {
       );
     }
 
+    let allowedRedirectUrlFilters =
+      d.input.allowedRedirectUrlFilters !== undefined
+        ? toNullablePortalAllowedRedirectUrlFilters(
+            resolvePortalAllowedRedirectUrlFilters(d.input.allowedRedirectUrlFilters)
+          )
+        : undefined;
+
     let surface = await consumerSurfaceService.updateConsumerSurface({
       consumerSurface: d.portal.surface,
       auditScope: d.auditScope,
@@ -397,12 +409,7 @@ class PortalServiceImpl {
         data: {
           name: d.input.name,
           description: d.input.description,
-          allowedRedirectUrlFilters:
-            d.input.allowedRedirectUrlFilters !== undefined
-              ? toNullablePortalAllowedRedirectUrlFilters(
-                  resolvePortalAllowedRedirectUrlFilters(d.input.allowedRedirectUrlFilters)
-                )
-              : undefined
+          allowedRedirectUrlFilters
         },
         include
       });

@@ -1,4 +1,6 @@
+import type { SkillConfiguration } from '@metorial/db';
 import { describe, expect, it } from 'vitest';
+import { combineConfigs } from '../../lib/combineConfigs';
 import { isAllowedBySkillConfig } from './config';
 import { parseSkillDocumentFrontmatter } from './frontmatter';
 
@@ -83,5 +85,27 @@ describe('skill serializer config filtering', () => {
         allowNonStandardDirectories: true
       })
     ).toBe(true);
+  });
+
+  it('allows no files besides SKILL.md when combined allow-lists are disjoint', () => {
+    let config = combineConfigs(
+      [
+        {
+          allowScripts: true,
+          allowedFileExtensions: ['.md'],
+          allowNonStandardDirectories: true
+        },
+        {
+          allowScripts: false,
+          allowedFileExtensions: ['.json'],
+          allowNonStandardDirectories: true
+        }
+      ] as SkillConfiguration[],
+      null
+    );
+
+    expect(isAllowedBySkillConfig('/SKILL.md', config)).toBe(true);
+    expect(isAllowedBySkillConfig('/references/readme.md', config)).toBe(false);
+    expect(isAllowedBySkillConfig('/references/data.json', config)).toBe(false);
   });
 });

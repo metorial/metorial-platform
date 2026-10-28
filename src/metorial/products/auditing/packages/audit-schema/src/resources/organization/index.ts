@@ -6,12 +6,18 @@ import {
 } from './access';
 import { organizationActorResource } from './actor';
 import { organizationClaimResource } from './claim';
+import {
+  organizationBetaResource,
+  organizationFlagCohortResource,
+  organizationFlagOverrideResource
+} from './flag';
 import { organizationInviteResource } from './invite';
 import { organizationMemberResource } from './member';
 import {
   projectAuthConfigConfigurationResource,
   projectBrandResource,
   projectDataRetentionConfigurationResource,
+  projectResourceOwnershipConfigurationResource,
   projectIntegrationNamingConfigurationResource,
   projectReducedSubprocessorsConfigurationResource,
   projectRetentionResource,
@@ -34,6 +40,9 @@ export let organizationResources = resourceSet({
   organization_member: organizationMemberResource,
   organization_invite: organizationInviteResource,
   organization_claim: organizationClaimResource,
+  organization_flag_override: organizationFlagOverrideResource,
+  organization_beta: organizationBetaResource,
+  organization_flag_cohort: organizationFlagCohortResource,
   audit_log_stream: auditLogStreamResource,
   audit_log_retention: auditLogRetentionResource,
   event_destination: eventDestinationResource,
@@ -49,7 +58,9 @@ export let organizationResources = resourceSet({
   project_auth_config_configuration: projectAuthConfigConfigurationResource,
   project_integration_naming_configuration: projectIntegrationNamingConfigurationResource,
   project_skill_sync_configuration: projectSkillSyncConfigurationResource,
-  project_reduced_subprocessors_configuration: projectReducedSubprocessorsConfigurationResource,
+  project_reduced_subprocessors_configuration:
+    projectReducedSubprocessorsConfigurationResource,
+  project_resource_ownership_configuration: projectResourceOwnershipConfigurationResource,
   project_tool_calling_configuration: projectToolCallingConfigurationResource,
   project_sessionless_mcp_configuration: projectSessionlessMcpConfigurationResource,
   project_data_retention_configuration: projectDataRetentionConfigurationResource,

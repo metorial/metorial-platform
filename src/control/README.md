@@ -13,7 +13,7 @@ npm install --global total-control
 
 It registers `control` and can be called from any directory below an OSS or
 enterprise checkout. The launcher walks upward to find the checkout and runs
-that checkout's Control Rust CLI, so Cargo must be available:
+that checkout's TypeScript Control CLI with Bun, so Bun must be available:
 
 ```sh
 cd src/metorial/services/core-api
@@ -22,27 +22,59 @@ control dev core-api
 
 Use `npx total-control <command>` when you do not want a global install.
 
-## Build and use
+## Use
+
+From the checkout root:
 
 ```sh
-cargo build --release
-target/release/control --help
-target/release/control dev backend
-target/release/control prepare --no-docker
-target/release/control env
-target/release/control run test
-target/release/control test:unit @lowerdeck/hash
-target/release/control cleanup --dry-run
-target/release/control docker stop
-target/release/control workspace create feature/my-change
-target/release/control workspace list
-target/release/control workspace remove feature/my-change
-target/release/control workspace start
-target/release/control workspace stop feature/my-change
+bun run control --help
+bun run control dev backend
+bun run control prepare --no-docker
+bun run control env
+bun run control run test
+bun run control test:unit @lowerdeck/hash
+bun run control test:e2e @metorial/module-user
+bun run control cleanup --dry-run
+bun run control docker stop
+bun run control workspace create feature/my-change
+bun run control workspace list
+bun run control workspace remove feature/my-change
+bun run control workspace start
+bun run control workspace stop feature/my-change
 ```
 
 Pass `--root PATH` to start project detection somewhere other than the current
 directory.
+
+## Implementation and verification
+
+The CLI is implemented in `src/*.ts` and runs directly with Bun, including in CI.
+Actions invoke `bun <control-directory>/src/main.ts`; no build or binary artifact
+is needed. The in-repository `@lowerdeck/validation` package resolves through
+`tsconfig.json`, so planning commands can run without a monorepo install.
+The npm package remains a lightweight Node launcher that finds the checkout and
+invokes its TypeScript entrypoint with Bun.
+
+From this directory:
+
+```sh
+bun run typecheck
+bun run test
+bun run lint
+CONTROL_DOCKER_TESTS=1 bun test test/docker.integration.test.ts
+```
+
+The original Rust implementation has been removed. Compatibility tests compare
+commands against captured outputs from that implementation, including generated
+environment files. Commands, tests, CI and workspace setup require no Rust
+compiler for Control.
+
+The tests cover strict manifest validation, selection and dependency ordering,
+environments, metadata upgrades, process cancellation and binary pipelines,
+locks, Turbo generation, CI and E2E plans, proxy sessions, command execution,
+worktree creation/removal and rollback. The opt-in Docker test provisions all five
+infrastructure services, creates Postgres and MongoDB databases, verifies repeat
+provisioning, and removes its isolated containers and volumes.
 
 ## `control.toml`
 
@@ -117,8 +149,9 @@ unclosed templates are errors. Dependency URLs can use
 `{{CONTROL_PORT_ETCD_CLIENT}}`, and `{{CONTROL_PORT_ETCD_PEER}}`. Source
 checkouts receive the standard development ports; host workspaces receive their
 persisted allocation. Native development defaults the hostname to `localhost`;
-host workspaces always use `localhost`, while Docker workspaces use their
-branch-derived `<branch>.localhost` hostname.
+source checkouts use `metorial-root.localhost`; branch workspaces use their
+branch-derived `metorial-<branch>.localhost` hostname. Host listeners use persisted
+private bind ports behind the shared hostname proxy.
 
 Package and group arguments select manifests. With no selectors all manifests
 are used. Each generated Turbo mirror receives its manifest's isolated
@@ -176,10 +209,98 @@ tests. E2E suites belong in `test:e2e` and are not run by `control test:unit`.
 This command does not refresh environments, install dependencies, generate
 clients, build packages, start Docker, or prepare databases.
 
+## E2E tests
+
+```sh
+control test:e2e                                   # every stack and test package
+control test:e2e @metorial/module-user '@metorial/api-*'
+control test:e2e @metorial/app-api --keep          # one stack, leave containers up
+control test:e2e @metorial/api-core -- e2e/management -t creates   # Vitest args per suite
+control test:e2e --plan                            # print the resolved plan as JSON
+control test:e2e --images DIR --workspace PATH     # CI: run tested images
+```
+
+A package that declares `[e2e] tests` is a **stack** (system under test, SUT).
+Its test packages are the workspace packages matched by `tests` (relative to
+the manifest) that declare a `test:e2e` script. Packages without that script
+are skipped. Filters match stack or
+test package names (`*` wildcards); selecting a stack selects all its tests.
+
+```toml
+[endpoints.api]
+port = 4310
+health = "/ping"            # or { path = "/ping", status = 200 }
+env = [{ key = "API_PORT", value = "{{BIND_PORT}}" }]
+
+# For processes without a named HTTP endpoint.
+[[health]]
+port = 12131
+path = "/"
+
+[e2e]
+# Every service that e2e can start (SUT or dependency):
+start = ["e2e:start"]       # package.json scripts started from source (no watch)
+image = "app-api"           # tested image artifact name for --images
+
+# Stack-only keys:
+tests = ["../../products/*/modules/*", "../../apis/*"]
+services = ["@metorial/shuttle"]   # started in addition to [[dependencies]]
+health_timeout = 300
+
+[[e2e.resources]]
+type = "object-storage"     # reachable as http://services:52010
+
+[e2e.env]                   # e2e-only overrides, e.g. dummies for `true` secrets
+AWS_ACCESS_KEY_ID = "e2e"
+```
+
+Every dependency and SUT must declare at least one health check and, depending
+on the mode, `e2e.start` or `e2e.image`; the plan fails otherwise. All services
+share one network namespace with a gateway that forwards the standard
+`localhost` infrastructure ports, so `control.toml` URLs work unchanged and
+endpoint ports must be unique across a run.
+
+Arguments after `--` reach every selected suite's Vitest run (file filters,
+`-t <name>`), so they're mostly useful together with a single test package.
+Only one e2e run executes per machine at a time: runs take an exclusive lock
+(`metorial-control-e2e.lock` in the temp directory) and wait for the holder to
+finish.
+
+A run creates a Compose project under `.control/e2e/<run>/` with tmpfs
+Postgres, MongoDB, Redis, NATS (and object storage when requested), then:
+
+1. creates every declared database;
+2. starts all dependencies at once and waits until every health check passes;
+3. starts all SUTs and waits for their health checks;
+4. runs `turbo run test:e2e` for each stack's selected test packages with the
+   stack's environment plus `CONTROL_E2E=1` and `CONTROL_E2E_ENDPOINTS`
+   (package → endpoint name → URL).
+
+`test:e2e` results are cached per test package. Besides the package's own
+inputs and dependencies, the Turbo hash includes `CONTROL_E2E_STACK_KEY`: a
+digest of the stack's environment and of every service it runs against, each
+fingerprinted by the `e2e:fingerprint` Turbo task (the service package and its
+dependency closure, excluding `e2e/` folders and unit tests). Editing one
+module's e2e suite therefore reruns only that suite, while any change to code
+the services run reruns the whole stack. Failed suites are never cached. A
+package that defines `test:e2e` outside a control stack opts out with a
+package `turbo.json` setting `"cache": false`. When `TURBO_API` points at a
+local remote-cache proxy, the runner reaches it through `host.docker.internal`
+and receives `TURBO_TEAM`, `TURBO_TOKEN` and
+`TURBO_REMOTE_CACHE_SIGNATURE_KEY` from the calling environment.
+
+Locally, the runner container syncs the checkout into a persistent
+`control-e2e-<hash>` volume (excluding `node_modules`, `.env*`, build output),
+installs dependencies when the lockfile changed, generates clients, pushes
+schemas, builds, and starts services from source. With `--images`, services run
+from the digest-pinned images in `DIR/<image>.json` and the runner uses the
+prepared `--workspace` as is. Logs are written to `.control/e2e/<run>/logs`;
+containers and volumes are removed unless `--keep` is passed.
+
 `control workspace create BRANCH` creates a sibling host-runtime worktree and
 stores that runtime in `.control/workspace.json`. Enterprise mode creates the
 enterprise worktree and a paired OSS worktree at its `oss/` path. It runs
-`bun install`, builds Control, and runs the normal preparation sequence during
+`bun install` and the normal preparation sequence during
 first initialization. Application services are not started.
 
 Docker workspaces perform setup inside a persistent Ubuntu development
@@ -187,9 +308,9 @@ container. Host workspaces perform setup directly on the host and generate an
 isolated dependency stack at `.control/services.docker-compose.yml`. Its
 Postgres, MongoDB, Redis, NATS, and etcd host ports are allocated once and
 persisted in workspace metadata. Containers, networks, volumes, and ports are
-therefore independent between host workspaces. Application ports declared by
-`[[dev.expose]]` remain fixed, so multiple host workspaces cannot run the same
-application service concurrently.
+therefore independent between host workspaces. Public application ports declared by
+`[[dev.expose]]` remain fixed. Each host workspace receives private bind ports
+and routes through the shared hostname proxy, allowing concurrent workspaces.
 
 `control workspace list` prints linked worktrees for the repository (branch,
 path, and workspace identity when metadata is present).
@@ -212,8 +333,9 @@ For a host workspace, `workspace start` starts its generated dependency stack,
 ensures host setup is current, and opens the local worktree in VS Code.
 `workspace dev` and `workspace shell` execute from the worktree on the host.
 `workspace stop` retains dependency data, while `workspace stop --volumes`
-removes it. `--rebuild` is Docker-only. Host mode requires Bun, Cargo, Docker,
-and the `code` shell command to be installed locally.
+removes it. `--rebuild` is Docker-only. Host mode requires Bun, Docker, and the `code` shell command to be installed locally.
+Rust remains part of the development container toolchain for application packages;
+Control itself runs entirely in TypeScript.
 
 When a new host workspace is created, Control starts the source checkout's
 `dev_services` Postgres service and clones every non-template user database into
@@ -251,7 +373,7 @@ target that workspace from the source checkout (or any other worktree). Omit it
 to operate on the current checkout.
 
 The command builds an Ubuntu 24.04 image containing zsh, Bun 1.2.15, Node.js
-22/npm, the globally installed `total-control` launcher, Go 1.25, Rust 1.91.1,
+22/npm, the checkout-aware `control` launcher, Go 1.25, Rust 1.91.1,
 Air, and native build tools. It bind mounts the worktree at `/workspace`.
 `workspace start` and its `workspace connect` alias start the dependency stack
 and idle container, open a VS Code window attached to the named container, and
@@ -276,13 +398,13 @@ request by host header. A workspace for branch `feature/auth` therefore uses
 URLs such as:
 
 ```text
-http://feature-auth.localhost:4310
-http://feature-auth.localhost:4300
+http://metorial-feature-auth.localhost:4310
+http://metorial-feature-auth.localhost:4300
 ```
 
 Port 80 on the workspace hostname redirects to the same host on port 4300, so
-`http://feature-auth.localhost/` is equivalent to
-`http://feature-auth.localhost:4300/`.
+`http://metorial-feature-auth.localhost/` is equivalent to
+`http://metorial-feature-auth.localhost:4300/`.
 
 On start, Control writes `HOST.md` at the workspace root (visible inside the
 container as `/workspace/HOST.md`) listing every exposed HTTP endpoint for that

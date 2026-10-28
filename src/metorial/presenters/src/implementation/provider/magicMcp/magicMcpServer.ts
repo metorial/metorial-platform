@@ -3,7 +3,7 @@ import { v } from '@lowerdeck/validation';
 import { getConfig } from '@metorial/config';
 import { Presenter } from '@metorial/presenter';
 import { magicMcpServerType } from '../../../types';
-import { ownerActorSchema, presentOwnerActor } from '../../_shared';
+import { presentOwnerActor, presentResourceSource, resourceAccessSchema } from '../../_shared';
 import { v1ConsumerIntegrationPresenter } from './consumerOwnership';
 import {
   dashboardMagicMcpServerProviderPresenter,
@@ -15,7 +15,9 @@ let magicMcpServerSchema = v.object({
   object: v.literal('magic_mcp.server'),
   id: v.string(),
   status: v.enumOf(['active', 'archived', 'deleted']),
-  source: v.enumOf(['manual', 'consumer_provider_template']),
+  source: v.enumOf(['manual', 'consumer_provider_template', 'explorer'], {
+    description: 'How this Magic MCP server was created or configured'
+  }),
   provider_management_mode: v.enumOf([
     'manual',
     'inherited_from_provider_template',
@@ -33,7 +35,7 @@ let magicMcpServerSchema = v.object({
   name: v.nullable(v.string()),
   description: v.nullable(v.string()),
   metadata: v.record(v.any()),
-  owner_actor: ownerActorSchema,
+  access: resourceAccessSchema,
   created_at: v.date(),
   updated_at: v.date()
 });
@@ -156,7 +158,14 @@ export let v1MagicMcpServerPresenter = Presenter.create(magicMcpServerType)
         name: magicMcpServer.name,
         description: magicMcpServer.description,
         metadata: magicMcpServer.metadata,
-        owner_actor: presentOwnerActor(magicMcpServer.ownerActor),
+        access: {
+          source: presentResourceSource(magicMcpServer.source),
+          type: magicMcpServer.isOwnerLocked ? ('owner_locked' as const) : ('public' as const),
+          visibility: magicMcpServer.isOwnerOnlyVisible
+            ? ('owner' as const)
+            : ('anyone' as const),
+          owner: presentOwnerActor(magicMcpServer.ownerActor)
+        },
         created_at: magicMcpServer.createdAt,
         updated_at: magicMcpServer.updatedAt
       };

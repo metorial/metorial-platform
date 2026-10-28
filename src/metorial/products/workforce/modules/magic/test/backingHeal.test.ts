@@ -120,6 +120,15 @@ describe('healMagicMcpServerBacking', () => {
     expect(magicMcpServerBackingService.upsertMagicMcpServerBacking).not.toHaveBeenCalled();
   });
 
+  it('reports missing providers when the integration instance is still a draft', async () => {
+    mockServerStatus('missing_providers');
+
+    await expect(healMagicMcpServerBacking({ instance, server })).rejects.toMatchObject({
+      data: { code: 'magic_mcp_backing_providers_unavailable' }
+    });
+    expect(magicMcpServerBackingService.upsertMagicMcpServerBacking).not.toHaveBeenCalled();
+  });
+
   it('reports a reconnect-required error when a rebuild cannot find the integration instance', async () => {
     mockServerStatus('missing');
     vi.mocked(magicMcpServerBackingService.upsertMagicMcpServerBacking).mockRejectedValue(
@@ -217,6 +226,18 @@ describe('healMagicMcpEndpointBacking', () => {
 
     await expect(healMagicMcpEndpointBacking({ instance, endpoint })).rejects.toMatchObject({
       data: { code: 'magic_mcp_server_needs_reconnect' }
+    });
+    expect(
+      magicMcpEndpointBackingService.upsertMagicMcpEndpointBacking
+    ).not.toHaveBeenCalled();
+  });
+
+  it('reports missing providers when a member server has none', async () => {
+    mockServerStatus('missing_providers');
+    mockEndpointStatus('healthy');
+
+    await expect(healMagicMcpEndpointBacking({ instance, endpoint })).rejects.toMatchObject({
+      data: { code: 'magic_mcp_backing_providers_unavailable' }
     });
     expect(
       magicMcpEndpointBackingService.upsertMagicMcpEndpointBacking

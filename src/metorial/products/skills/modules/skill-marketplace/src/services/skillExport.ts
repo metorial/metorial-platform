@@ -1,3 +1,4 @@
+import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { env } from '../env';
@@ -181,7 +182,7 @@ class SkillExportServiceImpl {
       include: skillExportInclude
     });
 
-    if (!skillExport) throw new Error(`Skill export not found: ${d.skillExportId}`);
+    if (!skillExport) throw new ServiceError(notFoundError('skill.export', d.skillExportId));
 
     return skillExport;
   }
@@ -217,7 +218,7 @@ class SkillExportServiceImpl {
     }
 
     if (d.input.target === 'plugin') {
-      let skillPlugin = await db.skillPlugin.findFirstOrThrow({
+      let skillPlugin = await db.skillPlugin.findFirst({
         where: {
           id: d.input.skillPluginId,
           projectOid: d.project.oid,
@@ -228,6 +229,9 @@ class SkillExportServiceImpl {
           destination: true
         }
       });
+      if (!skillPlugin) {
+        throw new ServiceError(notFoundError('skill.plugin', d.input.skillPluginId));
+      }
 
       return {
         target: 'plugin',
@@ -239,7 +243,7 @@ class SkillExportServiceImpl {
       };
     }
 
-    let skillMarketplace = await db.skillMarketplace.findFirstOrThrow({
+    let skillMarketplace = await db.skillMarketplace.findFirst({
       where: {
         id: d.input.skillMarketplaceId,
         projectOid: d.project.oid,
@@ -250,6 +254,9 @@ class SkillExportServiceImpl {
         destination: true
       }
     });
+    if (!skillMarketplace) {
+      throw new ServiceError(notFoundError('skill.marketplace', d.input.skillMarketplaceId));
+    }
 
     return {
       target: 'marketplace',

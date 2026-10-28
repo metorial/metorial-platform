@@ -490,7 +490,6 @@ export class AgentRunState {
       }
 
       case 'step.done':
-      case 'turn.done':
         this.addUsage(event);
         break;
 
@@ -505,6 +504,7 @@ export class AgentRunState {
 
       case 'step.start':
       case 'turn.start':
+      case 'turn.done':
       case 'retry':
       case 'tool.input.start':
       case 'tool.input.delta':

@@ -24,6 +24,10 @@ export let ID = createIdGenerator({
 
   user: idType.sorted('usr_'),
   userPassword: idType.sorted('upw_'),
+  userTwoFactor: idType.sorted('u2f_'),
+  userTwoFactorSetup: idType.sorted('u2s_'),
+  userRecoveryCode: idType.sorted('urc_'),
+  userTwoFactorSetup_secret: idType.key('two_factor_setup_'),
   userEmail: idType.sorted('ume_'),
   userEmailVerification: idType.sorted('uev_'),
   userIdentity: idType.sorted('uid_'),

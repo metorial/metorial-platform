@@ -22,8 +22,8 @@ import {
   type MetorialFacing,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
-import { integrationProviderVersionInclude } from '../../lib/integrationIncludes';
-import { integrationInstanceProviderVersionInclude } from '../integrationInstance';
+import { integrationProviderVersionPresentableInclude } from '../../lib/integrationIncludes';
+import { integrationInstanceProviderVersionPresentableInclude } from '../integrationInstance';
 import { integrationInstanceProviderService } from '../integrationInstanceProvider';
 import { integrationProviderService } from '../integrationProvider';
 import { getMagicMcpOwnerIntegration, resolveMagicMcpBackingPolicy } from './shared';
@@ -33,12 +33,12 @@ export let magicMcpServerProviderInclude = {
   integrationProvider: {
     include: {
       provider: true,
-      currentVersion: { include: integrationProviderVersionInclude }
+      currentVersion: { include: integrationProviderVersionPresentableInclude }
     }
   },
   integrationInstanceProvider: {
     include: {
-      currentVersion: { include: integrationInstanceProviderVersionInclude }
+      currentVersion: { include: integrationInstanceProviderVersionPresentableInclude }
     }
   }
 } as const;

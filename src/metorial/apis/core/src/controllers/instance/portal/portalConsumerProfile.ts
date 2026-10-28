@@ -111,7 +111,7 @@ export let portalConsumerProfileController = Controller.create(
         );
       }),
 
-    get: consumerProfileGroup
+    get: portalGroup
       .get(
         instancePath(
           'portals/:portalId/consumer-profile/:consumerProfileId',
@@ -130,13 +130,31 @@ export let portalConsumerProfileController = Controller.create(
       .use(hasFlags(['paid-portals', 'portals-access']))
       .output(consumerProfilePresenter)
       .do(async ctx => {
+        let consumerProfile =
+          ctx.apiVersion === 'mt_2025_01_01_dashboard' && !ctx.consumerProfile
+            ? await consumerProfileService.getConsumerProfileForPortalAccount({
+                instance: ctx.instance,
+                consumerSurface: ctx.portal.surface,
+                consumerProfileId: ctx.params.consumerProfileId
+              })
+            : ctx.consumerProfile
+              ? await consumerProfileService.getConsumerProfileVisibleToConsumer({
+                  consumerSurface: ctx.portal.surface,
+                  consumerProfile: ctx.consumerProfile,
+                  consumerGroups: ctx.consumerGroups ?? [],
+                  consumerProfileId: ctx.params.consumerProfileId
+                })
+              : await consumerProfileService.getConsumerProfileById({
+                  consumerSurface: ctx.portal.surface,
+                  consumerProfileId: ctx.params.consumerProfileId
+                });
         let assignedConsumerGroups = await consumerProfileService.getGroupsForProfile({
-          consumerProfile: ctx.consumerProfile
+          consumerProfile
         });
 
         return consumerProfilePresenter.present({
-          consumerProfile: ctx.consumerProfile,
-          instanceConsumer: ctx.consumerProfile.instanceConsumer,
+          consumerProfile,
+          instanceConsumer: consumerProfile.instanceConsumer,
           assignedConsumerGroups
         });
       }),

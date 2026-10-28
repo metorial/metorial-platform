@@ -4,7 +4,8 @@ import {
   providerAuthCredentialsAuditResource,
   providerAuthExportAuditResource,
   providerAuthImportAuditResource,
-  providerSetupSessionAuditResource
+  providerSetupSessionAuditResource,
+  providerSetupSessionEmailAuditResource
 } from './auth';
 import { callbackAuditResource, webhookRegistrationAuditResource } from './callback';
 import {
@@ -75,6 +76,7 @@ export let subspaceAuditResources = resourceSet({
   provider_auth_config: providerAuthConfigAuditResource,
   provider_auth_credentials: providerAuthCredentialsAuditResource,
   provider_setup_session: providerSetupSessionAuditResource,
+  provider_setup_session_email: providerSetupSessionEmailAuditResource,
   provider_auth_export: providerAuthExportAuditResource,
   provider_auth_import: providerAuthImportAuditResource,
 

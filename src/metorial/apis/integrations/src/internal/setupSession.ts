@@ -4,7 +4,7 @@ import { providerSetupSessionUiService } from '@metorial-subspace/module-auth';
 import { integrationSetupSessionService } from '@metorial-subspace/module-integration';
 import { publicMcpServerAuthorizationService } from '@metorial-subspace/module-public-mcp';
 import { brandService } from '@metorial-subspace/module-tenant';
-import { app } from './_app';
+import { app, sessionCredentialValidator } from './_app';
 import {
   integrationSetupSessionUrl,
   setupSessionBrandPresenter,
@@ -110,7 +110,11 @@ export let getFullSession = async (
     configSchema: configSchema
       ? setupSessionSchemaPresenter('provider.setup_session.config_schema', configSchema)
       : null,
-    oauthSetup: oauthSetup ? setupSessionOAuthSetupPresenter(oauthSetup) : null,
+    oauthSetup: oauthSetup
+      ? setupSessionOAuthSetupPresenter(oauthSetup, {
+          isAdminSetup: session.typeConcrete === 'admin'
+        })
+      : null,
     publicMcp
   };
 };
@@ -120,8 +124,8 @@ export let setupSessionController = app.controller({
     .handler()
     .input(
       v.object({
-        sessionId: v.string(),
-        clientSecret: v.string(),
+        sessionId: sessionCredentialValidator,
+        clientSecret: sessionCredentialValidator,
         autoStartOauth: v.optional(v.boolean())
       })
     )
@@ -150,8 +154,8 @@ export let setupSessionController = app.controller({
     .handler()
     .input(
       v.object({
-        sessionId: v.string(),
-        clientSecret: v.string()
+        sessionId: sessionCredentialValidator,
+        clientSecret: sessionCredentialValidator
       })
     )
     .do(async ctx => {
@@ -171,8 +175,8 @@ export let setupSessionController = app.controller({
     .handler()
     .input(
       v.object({
-        sessionId: v.string(),
-        clientSecret: v.string()
+        sessionId: sessionCredentialValidator,
+        clientSecret: sessionCredentialValidator
       })
     )
     .do(async ctx => {
@@ -189,8 +193,8 @@ export let setupSessionController = app.controller({
     .handler()
     .input(
       v.object({
-        sessionId: v.string(),
-        clientSecret: v.string(),
+        sessionId: sessionCredentialValidator,
+        clientSecret: sessionCredentialValidator,
 
         configInput: v.record(v.any()),
         toolFilters: v.optional(v.any())
@@ -213,8 +217,8 @@ export let setupSessionController = app.controller({
     .handler()
     .input(
       v.object({
-        sessionId: v.string(),
-        clientSecret: v.string(),
+        sessionId: sessionCredentialValidator,
+        clientSecret: sessionCredentialValidator,
 
         authConfigInput: v.record(v.any()),
         toolFilters: v.optional(v.any())
@@ -237,7 +241,11 @@ export let setupSessionController = app.controller({
       });
 
       return {
-        oauthSetup: oauthSetup ? setupSessionOAuthSetupPresenter(oauthSetup) : null
+        oauthSetup: oauthSetup
+          ? setupSessionOAuthSetupPresenter(oauthSetup, {
+              isAdminSetup: session.typeConcrete === 'admin'
+            })
+          : null
       };
     }),
 
@@ -245,8 +253,8 @@ export let setupSessionController = app.controller({
     .handler()
     .input(
       v.object({
-        sessionId: v.string(),
-        clientSecret: v.string(),
+        sessionId: sessionCredentialValidator,
+        clientSecret: sessionCredentialValidator,
         search: v.optional(v.string()),
         after: v.optional(v.string()),
         before: v.optional(v.string()),
@@ -277,8 +285,8 @@ export let setupSessionController = app.controller({
     .handler()
     .input(
       v.object({
-        sessionId: v.string(),
-        clientSecret: v.string(),
+        sessionId: sessionCredentialValidator,
+        clientSecret: sessionCredentialValidator,
         providerId: v.string()
       })
     )
@@ -303,8 +311,8 @@ export let setupSessionController = app.controller({
     .handler()
     .input(
       v.object({
-        sessionId: v.string(),
-        clientSecret: v.string()
+        sessionId: sessionCredentialValidator,
+        clientSecret: sessionCredentialValidator
       })
     )
     .do(async ctx => {
@@ -324,8 +332,8 @@ export let setupSessionController = app.controller({
     .handler()
     .input(
       v.object({
-        sessionId: v.string(),
-        clientSecret: v.string(),
+        sessionId: sessionCredentialValidator,
+        clientSecret: sessionCredentialValidator,
         toolFilters: v.optional(v.any())
       })
     )
@@ -345,6 +353,8 @@ export let setupSessionController = app.controller({
       });
       if (!oauthSetup) return null;
 
-      return setupSessionOAuthSetupPresenter(oauthSetup);
+      return setupSessionOAuthSetupPresenter(oauthSetup, {
+        isAdminSetup: (startedSession ?? ctx.session).typeConcrete === 'admin'
+      });
     })
 });

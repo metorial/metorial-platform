@@ -57,7 +57,7 @@ export let VersionDetail = () => {
                     <Flex align="center" gap={8}>
                       <Badge color="blue">v{versionData.version}</Badge>
                       {versionData.isCurrent && (
-                        <Badge color="green" size="1">
+                        <Badge color="green" size="2">
                           Current
                         </Badge>
                       )}
@@ -92,7 +92,7 @@ export let VersionDetail = () => {
                 Latest Deployment
                 <Badge
                   color={deploymentStatusColors[latestDeployment.status] || 'gray'}
-                  size="1"
+                  size="2"
                   style={{ marginLeft: 8 }}
                 >
                   {latestDeployment.status}
@@ -109,7 +109,7 @@ export let VersionDetail = () => {
                 Latest Discovery
                 <Badge
                   color={latestDiscovery.status === 'succeeded' ? 'green' : 'red'}
-                  size="1"
+                  size="2"
                   style={{ marginLeft: 8 }}
                 >
                   {latestDiscovery.status}

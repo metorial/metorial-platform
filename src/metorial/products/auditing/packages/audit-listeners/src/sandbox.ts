@@ -108,6 +108,25 @@ export let recordSandboxMachineAccessCreated = async (
   });
 };
 
+export let recordSandboxMachineExec = async (
+  event: FabricEvents['sandbox.machine.exec:after']
+) => {
+  await recordAuditEventAfterCommit(async recordedAt => {
+    await auditTrackerService.recordEvent(event.auditScope, 'sandbox_machine_exec', 'run', {
+      payload: {
+        machineId: event.machine.id,
+        machineName: event.machine.name,
+        commandByteSize: event.commandByteSize,
+        outcome: event.outcome,
+        exitCode: event.exitCode,
+        timedOut: event.timedOut,
+        durationMs: event.durationMs
+      },
+      recordedAt
+    });
+  });
+};
+
 export let recordSandboxDiskCreated = async (
   event: FabricEvents['sandbox.disk.created:after']
 ) => {
@@ -227,6 +246,7 @@ Fabric.listen('sandbox.machine.updated:after', recordSandboxMachineUpdated);
 Fabric.listen('sandbox.machine.deleted:after', recordSandboxMachineDeleted);
 Fabric.listen('sandbox.machine.lifecycle:after', recordSandboxMachineLifecycle);
 Fabric.listen('sandbox.machine.access.created:after', recordSandboxMachineAccessCreated);
+Fabric.listen('sandbox.machine.exec:after', recordSandboxMachineExec);
 
 Fabric.listen('sandbox.disk.created:after', recordSandboxDiskCreated);
 Fabric.listen('sandbox.disk.updated:after', recordSandboxDiskUpdated);

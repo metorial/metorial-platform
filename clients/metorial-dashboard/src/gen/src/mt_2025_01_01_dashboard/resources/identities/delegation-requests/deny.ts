@@ -12,7 +12,7 @@ export type IdentitiesDelegationRequestsDenyOutput = {
   requester: {
     object: 'identity.actor';
     id: string;
-    type: 'person' | 'agent' | 'consumer';
+    type: 'person' | 'agent' | 'consumer' | 'organization_member';
     status: 'active' | 'archived' | 'deleted';
     name: string;
     description: string | null;
@@ -61,7 +61,7 @@ export type IdentitiesDelegationRequestsDenyOutput = {
       actor: {
         object: 'identity.actor';
         id: string;
-        type: 'person' | 'agent' | 'consumer';
+        type: 'person' | 'agent' | 'consumer' | 'organization_member';
         status: 'active' | 'archived' | 'deleted';
         name: string;
         description: string | null;
@@ -86,7 +86,7 @@ export type IdentitiesDelegationRequestsDenyOutput = {
       requester: {
         object: 'identity.actor';
         id: string;
-        type: 'person' | 'agent' | 'consumer';
+        type: 'person' | 'agent' | 'consumer' | 'organization_member';
         status: 'active' | 'archived' | 'deleted';
         name: string;
         description: string | null;

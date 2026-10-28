@@ -14,8 +14,8 @@ import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { styled } from 'styled-components';
 import { EmptyState } from '@metorial/empty-state';
+import { buildProviderListingLookup, getProviderLabel } from './providerLabels';
 import { showCreateIntegrationProviderFirstFlow } from './providerPanelFlow';
-
 
 let ProviderAvatarStack = styled.div`
   display: flex;
@@ -85,20 +85,7 @@ export let IntegrationsGrid = (
 
   return renderWithPagination(integrations)(integrations =>
     renderWithLoader({ providerListings })(({ providerListings }) => {
-      let listingLookup = new Map<
-        string,
-        { name: string | null | undefined; imageUrl: string | null | undefined }
-      >();
-
-      for (let listing of providerListings.data) {
-        let preview = {
-          name: listing.name ?? listing.provider.name,
-          imageUrl: listing.imageUrl
-        };
-
-        listingLookup.set(listing.id, preview);
-        listingLookup.set(listing.provider.id, preview);
-      }
+      let listingLookup = buildProviderListingLookup(providerListings.data);
 
       return (
         <>
@@ -125,11 +112,8 @@ export let IntegrationsGrid = (
                       visibleProviders.length > 0 ? (
                         <ProviderAvatarStack>
                           {visibleProviders.map((provider, idx) => {
-                            let listing = listingLookup.get(provider.provider.id);
-                            let name =
-                              listing?.name ??
-                              provider.provider.name ??
-                              provider.provider.slug;
+                            let listing = listingLookup[provider.provider.id];
+                            let name = listing?.name ?? getProviderLabel(provider);
 
                             return (
                               <ProviderAvatarItem

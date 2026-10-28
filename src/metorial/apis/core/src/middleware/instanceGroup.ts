@@ -1,11 +1,19 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { createAuditScope } from '@metorial/audit-scope';
-import { getConsumerAccessContextForConsumerProfile } from '@metorial/consumer-auth';
+import { resolveConsumerProfileAccess } from '@metorial/consumer-auth';
 import { accessService } from '@metorial/module-access';
 import { consumerProfileService } from '@metorial/module-consumer-core';
-import { resourceActorService } from '@metorial/module-resource-actor';
 import { Path } from '@metorial/rest';
 import { apiGroup } from './apiGroup';
+
+let assertPathInstance = (
+  pathInstanceId: string | undefined,
+  instance: { id: string; slug: string }
+) => {
+  if (pathInstanceId && pathInstanceId != instance.id && pathInstanceId != instance.slug) {
+    throw new ServiceError(notFoundError('instance', pathInstanceId));
+  }
+};
 
 export let instanceGroup = apiGroup.use(async ctx => {
   let consumerPlaceholder = {
@@ -19,6 +27,8 @@ export let instanceGroup = apiGroup.use(async ctx => {
   };
 
   if (ctx.auth.type == 'fine_grained' && ctx.auth.restrictions.type == 'instance') {
+    assertPathInstance(ctx.params.instanceId, ctx.auth.restrictions.instance);
+
     return {
       type: 'fine_grained' as const,
       instance: {
@@ -36,6 +46,8 @@ export let instanceGroup = apiGroup.use(async ctx => {
   }
 
   if (ctx.auth.type == 'machine' && ctx.auth.restrictions.type == 'instance') {
+    assertPathInstance(ctx.params.instanceId, ctx.auth.restrictions.instance);
+
     let base = {
       type: 'actor' as const,
       instance: {
@@ -100,34 +112,24 @@ export let instanceGroup = apiGroup.use(async ctx => {
       );
     }
 
-    let consumerRes = await getConsumerAccessContextForConsumerProfile({
-      profile: consumerProfile
+    let consumerAccess = await resolveConsumerProfileAccess({
+      consumerProfile,
+      organization: res.organization,
+      project: res.project,
+      instance: res.instance,
+      context: ctx.context
     });
-    let resourceActor =
-      consumerProfile.resourceActors.find(actor => actor.projectOid == res.project.oid) ??
-      (await resourceActorService.ensureConsumerProfileActor({
-        project: res.project,
-        consumerProfile
-      }));
 
     return Object.assign(res, consumerPlaceholder, {
-      consumerGroups: consumerRes.consumerGroups,
-      accessTags: consumerRes.accessTags,
+      consumerGroups: consumerAccess.consumerGroups,
+      accessTags: consumerAccess.accessTags,
 
       consumerSurface: consumerProfile.surface,
       portal: consumerProfile.surface.portal,
       consumerProfile: consumerProfile,
       consumerProfileFromHeader: true,
-      resourceActor,
-      auditScope: createAuditScope({
-        organization: res.organization,
-        instance: res.instance,
-        actor: {
-          type: 'consumer_profile',
-          id: consumerProfile.id
-        },
-        context: ctx.context
-      }),
+      resourceActor: consumerAccess.resourceActor,
+      auditScope: consumerAccess.auditScope,
       member: undefined
     });
   }

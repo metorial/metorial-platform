@@ -12,6 +12,7 @@ import type {
   Session
 } from '../../state/types';
 import { PublicMcpConsent } from './_publicMcpConsent';
+import { PublicMcpTerms } from './_publicMcpTerms';
 import { RetryError } from './_retryError';
 import { CompletedStep } from './_steps/completedStep';
 import { OAuthLoadingStep, OAuthRedirectStep } from './_steps/oauthStep';
@@ -22,10 +23,12 @@ import { useSetupFlow, type SetupFlow as SetupFlowState } from './_useSetupFlow'
 
 let FlowStep = ({
   flow,
-  completionRedirectUrl
+  completionRedirectUrl,
+  isPublicMcp
 }: {
   flow: SetupFlowState;
   completionRedirectUrl?: string | null;
+  isPublicMcp: boolean;
 }) => {
   if (flow.step === 'provider') {
     return (
@@ -43,6 +46,7 @@ let FlowStep = ({
         schema={flow.authConfigSchema}
         mutation={flow.submitAuthConfig}
         submitLabel="Connect"
+        footer={isPublicMcp && <PublicMcpTerms />}
       />
     );
   }
@@ -52,7 +56,13 @@ let FlowStep = ({
   }
 
   if (flow.step === 'oauth_redirect' && flow.oauthSetup) {
-    return <OAuthRedirectStep oauthSetup={flow.oauthSetup} />;
+    return (
+      <OAuthRedirectStep
+        oauthSetup={flow.oauthSetup}
+        isAdminSession={flow.isAdminSession}
+        providerName={flow.provider?.name}
+      />
+    );
   }
 
   if (flow.step === 'config') {
@@ -62,6 +72,7 @@ let FlowStep = ({
         schema={flow.configSchema}
         mutation={flow.submitConfig}
         submitLabel={flow.needsAuthConfig ? 'Continue' : 'Connect'}
+        footer={isPublicMcp && <PublicMcpTerms />}
       >
         {flow.toolAccess && <ToolAccess toolAccess={flow.toolAccess} />}
       </SchemaFormStep>
@@ -105,6 +116,10 @@ export let SetupFlow = ({
   let layout = flow.session.configuration?.ui?.layout ?? 'box';
   let isCompleted = flow.step === 'completed';
   let stageLabels = isCompleted || isPublicMcp ? [] : flow.stageLabels;
+  let headerTitle =
+    flow.isAdminSession && flow.provider?.name
+      ? `Approve ${flow.provider.name} for your organization`
+      : undefined;
 
   let content = (
     <MobileSheetProvider value={isElementsMode}>
@@ -114,7 +129,11 @@ export let SetupFlow = ({
         spaceBottom: 48,
         error: err => <RetryError message={err.message} />
       })(() => (
-        <FlowStep flow={flow} completionRedirectUrl={completionRedirectUrl} />
+        <FlowStep
+          flow={flow}
+          completionRedirectUrl={completionRedirectUrl}
+          isPublicMcp={isPublicMcp}
+        />
       ))}
     </MobileSheetProvider>
   );
@@ -133,6 +152,7 @@ export let SetupFlow = ({
         brand={brand}
         providerName={flow.provider?.name}
         providerImageUrl={flow.provider?.imageUrl}
+        title={headerTitle}
         isWhitelabel={isWhitelabel}
         hideBrand={isPublicMcp}
       >
@@ -146,6 +166,7 @@ export let SetupFlow = ({
       brand={brand}
       providerName={flow.provider?.name}
       providerImageUrl={flow.provider?.imageUrl}
+      headerTitle={headerTitle}
       hideHeader={isCompleted}
       currentStep={flow.stageIndex}
       stepLabels={stageLabels}

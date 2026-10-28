@@ -28,6 +28,7 @@ class tenantServiceImpl {
       identifier: string;
       resourceTenantId: string;
       resourceTenantIdentifier: string;
+      hidePublicRemoteProviders?: boolean;
       onlyAllowTrustedProviders?: boolean;
       isWhitelabel?: boolean;
       logRetentionInDays?: number;
@@ -44,6 +45,8 @@ class tenantServiceImpl {
       collectErrors?: boolean;
       disableCallbacks?: boolean;
       reducedSubprocessors?: boolean;
+      allowApiAccessToConsumerOwnedResources?: boolean;
+      allowMemberAccessToConsumerOwnedResources?: boolean;
       projectOid?: bigint;
       skipNetworks?: boolean;
       environments: {
@@ -82,7 +85,10 @@ class tenantServiceImpl {
         storeToolCallAttachments: d.input.storeToolCallAttachments,
         collectErrors: d.input.collectErrors,
         disableCallbacks: d.input.disableCallbacks,
-        reducedSubprocessors: d.input.reducedSubprocessors
+        reducedSubprocessors: d.input.reducedSubprocessors,
+        allowApiAccessToConsumerOwnedResources: d.input.allowApiAccessToConsumerOwnedResources,
+        allowMemberAccessToConsumerOwnedResources:
+          d.input.allowMemberAccessToConsumerOwnedResources
       };
 
       let isTenantUnchanged =
@@ -103,6 +109,7 @@ class tenantServiceImpl {
                 identifier: d.input.identifier,
                 resourceTenantId: d.input.resourceTenantId,
                 resourceTenantIdentifier: d.input.resourceTenantIdentifier,
+                hidePublicRemoteProviders: d.input.hidePublicRemoteProviders ?? true,
                 onlyAllowTrustedProviders: d.input.onlyAllowTrustedProviders,
                 isWhitelabel: d.input.isWhitelabel,
                 logRetentionInDays: d.input.logRetentionInDays ?? 30,
@@ -121,6 +128,10 @@ class tenantServiceImpl {
                 collectErrors: d.input.collectErrors ?? true,
                 disableCallbacks: d.input.disableCallbacks ?? false,
                 reducedSubprocessors: d.input.reducedSubprocessors ?? false,
+                allowApiAccessToConsumerOwnedResources:
+                  d.input.allowApiAccessToConsumerOwnedResources,
+                allowMemberAccessToConsumerOwnedResources:
+                  d.input.allowMemberAccessToConsumerOwnedResources,
 
                 urlKey: generatePlainId(10).toLowerCase()
               }
@@ -128,6 +139,11 @@ class tenantServiceImpl {
 
       if (d.input.projectOid !== undefined) {
         await linkTenantToProjectMirror({ tenant, projectOid: d.input.projectOid });
+      }
+
+      if (existingTenant && !isTenantUnchanged) {
+        let { clearTenantScopeCaches } = await import('./subspaceScope');
+        await clearTenantScopeCaches(tenant.id);
       }
 
       let retentionRelevantFieldsChanged =
@@ -329,6 +345,16 @@ class tenantServiceImpl {
 
       throw error;
     }
+  }
+
+  async updateTenantPublicRemoteProviderVisibility(d: {
+    tenant: Tenant;
+    hidePublicRemoteProviders: boolean;
+  }) {
+    return await db.tenant.update({
+      where: { oid: d.tenant.oid },
+      data: { hidePublicRemoteProviders: d.hidePublicRemoteProviders }
+    });
   }
 
   async ensureNetworksForTenant(tenant: Tenant) {

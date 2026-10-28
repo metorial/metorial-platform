@@ -13,6 +13,8 @@ import {
   MAX_WEBHOOK_BODY_BYTES,
   payloadTooLargeError
 } from '../../lib/ingestWebhookRequest';
+import { oauthErrorPage } from '../../lib/oauthErrorPage';
+import { resolveCallbackSetupId } from '../../lib/resolveCallbackSetupId';
 import { slateOAuthHandlerService } from '../../services/slateOAuthHandler';
 import { slateWebhookRegistrationService } from '../../services/slateWebhookRegistration';
 import { integrationAttachmentApp } from './integrationAttachment';
@@ -126,13 +128,33 @@ let handleWebhookReceive = async (c: Context) => {
   return c.json({ webhookEventId: final.id }, 200 as any);
 };
 
-let SETUP_COOKIE_NAME = 'slates_hub_oauth_setup_id';
+let LAST_SETUP_COOKIE_NAME = 'slates_hub_oauth_setup_id';
+let SETUP_COOKIE_PREFIX = 'slates_hub_oauth_setup_';
+let SETUP_COOKIE_MAX_AGE_SECONDS = 60 * 60;
 
 let cookieOpts = {
   secure: env.service.METORIAL_ENV !== 'development',
   httpOnly: true,
   sameSite: 'lax' as const,
   path: '/'
+};
+
+let setupCookieName = (setupId: string) => `${SETUP_COOKIE_PREFIX}${setupId}`;
+
+// Per-setup cookies keep concurrent flows apart; the legacy cookie holds the last-started id
+// for providers that don't echo `state`.
+let readSetupCookies = (c: Context) => {
+  let cookies = getCookie(c);
+  let lastSetupCookieId = cookies[LAST_SETUP_COOKIE_NAME] || undefined;
+
+  let setupCookieIds = Object.entries(cookies)
+    .filter(([name, value]) => value && name === setupCookieName(value))
+    .map(([, value]) => value);
+  if (lastSetupCookieId && !setupCookieIds.includes(lastSetupCookieId)) {
+    setupCookieIds.push(lastSetupCookieId);
+  }
+
+  return { setupCookieIds, lastSetupCookieId };
 };
 
 export let hubApp = createHono()
@@ -148,7 +170,7 @@ export let hubApp = createHono()
     c.res.headers.set('Access-Control-Allow-Credentials', 'true');
   })
   .get('/ping', c => c.text('OK'))
-  .get('/slates-hub/authorization', async c => {
+  .get('/slates-hub/authorization', oauthErrorPage, async c => {
     let oauthSetupId = c.req.query('setup_id');
     if (!oauthSetupId)
       throw new ServiceError(badRequestError({ message: 'setup_id is required' }));
@@ -157,29 +179,41 @@ export let hubApp = createHono()
       setupId: oauthSetupId
     });
 
-    setCookie(c, SETUP_COOKIE_NAME, res.setupCookieValue, cookieOpts);
+    let setupCookieOpts = { ...cookieOpts, maxAge: SETUP_COOKIE_MAX_AGE_SECONDS };
+    setCookie(c, setupCookieName(res.setupCookieValue), res.setupCookieValue, setupCookieOpts);
+    setCookie(c, LAST_SETUP_COOKIE_NAME, res.setupCookieValue, setupCookieOpts);
 
     return c.redirect(res.authorizationUrl);
   })
-  .get('/slates-hub/callback', async c => {
-    let setupCookie = getCookie(c, SETUP_COOKIE_NAME);
-    if (!setupCookie)
+  .get('/slates-hub/callback', oauthErrorPage, async c => {
+    let { setupCookieIds, lastSetupCookieId } = readSetupCookies(c);
+    if (!setupCookieIds.length)
       throw new ServiceError(badRequestError({ message: 'OAuth setup cookie is missing' }));
 
-    deleteCookie(c, SETUP_COOKIE_NAME, cookieOpts);
-
     let code = c.req.query('code') ?? c.req.query('oauth_verifier');
-    let state = c.req.query('state');
+    let lookup = {
+      state: c.req.query('state') || undefined,
+      setupCookieIds,
+      lastSetupCookieId
+    };
+
+    let callbackSetupId = resolveCallbackSetupId(lookup);
+    if (callbackSetupId && setupCookieIds.includes(callbackSetupId)) {
+      deleteCookie(c, setupCookieName(callbackSetupId), cookieOpts);
+      if (lastSetupCookieId === callbackSetupId) {
+        deleteCookie(c, LAST_SETUP_COOKIE_NAME, cookieOpts);
+      }
+    }
+
     let error = c.req.query('error');
     let errorDescription = c.req.query('error_description');
     let callbackParams = omit(Object.fromEntries(new URL(c.req.url).searchParams), 'state');
 
-    if (error || !code) {
+    if (error) {
       let res = await slateOAuthHandlerService.reportError({
         input: {
-          lastOAuthSetupCookieId: setupCookie,
-          state: state || undefined,
-          error: error || 'missing_code',
+          ...lookup,
+          error,
           errorDescription: errorDescription || undefined
         }
       });
@@ -189,9 +223,8 @@ export let hubApp = createHono()
 
     let res = await slateOAuthHandlerService.completeOAuthFlow({
       input: {
-        code,
-        lastOAuthSetupCookieId: setupCookie,
-        state: state || undefined,
+        ...lookup,
+        code: code || undefined,
         callbackParams
       }
     });

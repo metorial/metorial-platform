@@ -16,6 +16,11 @@ import { fileLinkService, fileReferenceService } from '@metorial/module-file';
 import { applyStoreByteSizeDelta, refreshStoreByteSize } from '../lib/storeByteSize';
 import { createStoreItemAuditRecorder } from '../lib/storeItemAudit';
 import {
+  assertSkillStoreItemAllowed,
+  isSkillAgentPath,
+  skillRootDocumentPath
+} from '../lib/skillStorePath';
+import {
   listAncestorDirectoryPaths,
   normalizeStorePath,
   type NormalizedStorePath
@@ -82,8 +87,6 @@ let modifyOperationLimit = 500;
 let maxStoreItems = 1000;
 let maxSkillStoreFiles = 1000;
 let maxSkillStoreBytes = 1024n * 1024n * 1024n * 10n;
-let reservedSkillDocumentName = 'SKILL.md';
-let agentsDirectoryPath = '/agents/';
 
 type SkillStoreRecord = Pick<Skill, 'oid' | 'id'>;
 
@@ -204,10 +207,6 @@ class StoreItemMutationServiceImpl {
     return path.name!.replace(/\.md$/i, '');
   }
 
-  private isAgentPath(path: NormalizedStorePath) {
-    return path.parentPath === agentsDirectoryPath && path.name?.toLowerCase().endsWith('.md');
-  }
-
   private getAgentNameFromItem(
     item: StoreItemRecord,
     path: NormalizedStorePath,
@@ -219,30 +218,13 @@ class StoreItemMutationServiceImpl {
     return item.document?.title?.trim() || slug;
   }
 
-  private assertSkillStoreItemAllowed(d: { path: NormalizedStorePath; kind: StoreItemKind }) {
-    if (d.path.name === reservedSkillDocumentName && d.kind !== 'document') {
-      throw new ServiceError(
-        badRequestError({
-          message: 'SKILL.md is reserved for documents in skill stores'
-        })
-      );
-    }
+  private assertSkillStoreRemoveAllowed(d: {
+    store: Pick<Store, 'pathMode'>;
+    item: StoreItemRecord;
+  }) {
+    let path = this.normalizeExistingItemPath(d);
 
-    if (d.path.parentPath === agentsDirectoryPath) {
-      if (d.kind !== 'document' || !d.path.name?.toLowerCase().endsWith('.md')) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Only markdown documents can be added to the agents directory of a skill'
-          })
-        );
-      }
-    }
-  }
-
-  private assertSkillStoreRemoveAllowed(item: StoreItemRecord) {
-    let path = this.normalizeExistingItemPath(item);
-
-    if (path.path === `/${reservedSkillDocumentName}`) {
+    if (path.path === skillRootDocumentPath) {
       throw new ServiceError(
         badRequestError({
           message: 'SKILL.md cannot be removed from a skill store'
@@ -252,28 +234,27 @@ class StoreItemMutationServiceImpl {
   }
 
   private assertSkillStoreModifyAllowed(d: {
+    store: Pick<Store, 'pathMode'>;
     item: StoreItemRecord;
     nextPath: NormalizedStorePath;
     nextKind: StoreItemKind;
   }) {
     this.assertRootSkillDocumentMoveAllowed(d);
 
-    this.assertSkillStoreItemAllowed({
+    assertSkillStoreItemAllowed({
       path: d.nextPath,
       kind: d.nextKind
     });
   }
 
   private assertRootSkillDocumentMoveAllowed(d: {
+    store: Pick<Store, 'pathMode'>;
     item: StoreItemRecord;
     nextPath: NormalizedStorePath;
   }) {
-    let currentPath = this.normalizeExistingItemPath(d.item);
+    let currentPath = this.normalizeExistingItemPath(d);
 
-    if (
-      currentPath.path === `/${reservedSkillDocumentName}` &&
-      d.nextPath.path !== currentPath.path
-    ) {
+    if (currentPath.path === skillRootDocumentPath && d.nextPath.path !== currentPath.path) {
       throw new ServiceError(
         badRequestError({
           message: 'SKILL.md cannot be moved in a skill store'
@@ -383,17 +364,22 @@ class StoreItemMutationServiceImpl {
   }
 
   private async syncSkillAgentForStoreItemTransition(d: {
+    store: Pick<Store, 'pathMode'>;
     skill: SkillStoreRecord | null;
     previousItem?: StoreItemRecord | null;
     nextItem?: StoreItemRecord | null;
   }) {
     if (!d.skill) return;
 
-    let previousPath = d.previousItem ? this.normalizeExistingItemPath(d.previousItem) : null;
-    let nextPath = d.nextItem ? this.normalizeExistingItemPath(d.nextItem) : null;
+    let previousPath = d.previousItem
+      ? this.normalizeExistingItemPath({ store: d.store, item: d.previousItem })
+      : null;
+    let nextPath = d.nextItem
+      ? this.normalizeExistingItemPath({ store: d.store, item: d.nextItem })
+      : null;
     let wasAgent =
-      !!previousPath && this.isAgentPath(previousPath) && d.previousItem?.kind === 'document';
-    let isAgent = !!nextPath && this.isAgentPath(nextPath) && d.nextItem?.kind === 'document';
+      !!previousPath && isSkillAgentPath(previousPath) && d.previousItem?.kind === 'document';
+    let isAgent = !!nextPath && isSkillAgentPath(nextPath) && d.nextItem?.kind === 'document';
 
     if (wasAgent && !isAgent) {
       await this.archiveActiveSkillAgentsForStoreItem({
@@ -413,10 +399,14 @@ class StoreItemMutationServiceImpl {
     });
   }
 
-  private normalizeExistingItemPath(item: Pick<StoreItemRecord, 'path' | 'kind'>) {
+  private normalizeExistingItemPath(d: {
+    store: Pick<Store, 'pathMode'>;
+    item: Pick<StoreItemRecord, 'path' | 'kind'>;
+  }) {
     return normalizeStorePath({
-      path: item.path,
-      kind: item.kind === 'directory' ? 'directory' : 'file'
+      path: d.item.path,
+      kind: d.item.kind === 'directory' ? 'directory' : 'file',
+      mode: d.store.pathMode
     });
   }
 
@@ -563,6 +553,7 @@ class StoreItemMutationServiceImpl {
   private async normalizeStoreItemOperation(d: {
     project: Project;
     instance: Instance;
+    store: Pick<Store, 'pathMode'>;
     operation: StoreItemOperationInput;
   }): Promise<NormalizedStoreItemOperation> {
     let { operation } = d;
@@ -589,7 +580,8 @@ class StoreItemMutationServiceImpl {
         kind,
         path: normalizeStorePath({
           path: operation.path,
-          kind: kind === 'directory' ? 'directory' : 'file'
+          kind: kind === 'directory' ? 'directory' : 'file',
+          mode: d.store.pathMode
         }),
         target: target ?? undefined
       };
@@ -659,14 +651,15 @@ class StoreItemMutationServiceImpl {
   }
 
   private async ensureDirectoryRecord(d: {
-    store: Pick<Store, 'oid'>;
+    store: Pick<Store, 'oid' | 'pathMode'>;
     path: string;
     isAutoCreated: boolean;
   }) {
     return await withTransaction(async client => {
       let normalizedPath = normalizeStorePath({
         path: d.path,
-        kind: 'directory'
+        kind: 'directory',
+        mode: d.store.pathMode
       });
       let existingDirectory = await this.getStoreDirectoryByPath({
         store: d.store,
@@ -764,6 +757,21 @@ class StoreItemMutationServiceImpl {
             include: storeItemInclude
           })
         };
+      }
+
+      if (d.directory.path !== '/') {
+        let conflictingFile = await this.getStoreItemByPath({
+          store: d.store,
+          path: d.directory.path.slice(0, -1)
+        });
+
+        if (conflictingFile) {
+          throw new ServiceError(
+            badRequestError({
+              message: `Store item path already exists: ${conflictingFile.path}`
+            })
+          );
+        }
       }
 
       let itemId = await ID.generateId('storeItem');
@@ -868,7 +876,8 @@ class StoreItemMutationServiceImpl {
 
         let parentPath = normalizeStorePath({
           path: directory.path,
-          kind: 'directory'
+          kind: 'directory',
+          mode: d.store.pathMode
         }).parentPath;
 
         await client.storeDirectory.delete({
@@ -897,7 +906,8 @@ class StoreItemMutationServiceImpl {
         store: d.store,
         path: normalizeStorePath({
           path: '/',
-          kind: 'directory'
+          kind: 'directory',
+          mode: d.store.pathMode
         }),
         actor: d.actor,
         includeSelf: true
@@ -958,7 +968,9 @@ class StoreItemMutationServiceImpl {
         let conflictingItem = await client.storeItem.findFirst({
           where: {
             storeOid: d.item.storeOid,
-            path: nextPath,
+            path: {
+              in: [nextPath, `${nextPath}/`]
+            },
             NOT: {
               id: d.item.id
             }
@@ -1036,6 +1048,18 @@ class StoreItemMutationServiceImpl {
         throw new ServiceError(
           badRequestError({
             message: `Store directory does not exist: ${d.path.parentPath}`
+          })
+        );
+      }
+
+      let conflictingDirectory = await this.getStoreItemByPath({
+        store: d.store,
+        path: `${d.path.path}/`
+      });
+      if (conflictingDirectory) {
+        throw new ServiceError(
+          badRequestError({
+            message: `Store item path already exists: ${conflictingDirectory.path}`
           })
         );
       }
@@ -1177,7 +1201,7 @@ class StoreItemMutationServiceImpl {
   private async removeStoreItem(d: { store: Store; item: StoreItemRecord }) {
     return await withTransaction(async client => {
       if (d.item.kind === 'directory') {
-        let normalizedPath = this.normalizeExistingItemPath(d.item);
+        let normalizedPath = this.normalizeExistingItemPath(d);
 
         if (normalizedPath.path === '/') {
           throw new ServiceError(
@@ -1217,7 +1241,8 @@ class StoreItemMutationServiceImpl {
           pruneStartPath: d.item.parentDirectory?.path
             ? normalizeStorePath({
                 path: d.item.parentDirectory.path,
-                kind: 'directory'
+                kind: 'directory',
+                mode: d.store.pathMode
               }).path
             : null
         };
@@ -1240,7 +1265,8 @@ class StoreItemMutationServiceImpl {
         pruneStartPath: d.item.parentDirectory?.path
           ? normalizeStorePath({
               path: d.item.parentDirectory.path,
-              kind: 'directory'
+              kind: 'directory',
+              mode: d.store.pathMode
             }).path
           : null
       };
@@ -1256,7 +1282,7 @@ class StoreItemMutationServiceImpl {
     actor?: Pick<ResourceActor, 'oid'>;
   }) {
     return await withTransaction(async client => {
-      let normalizedCurrentPath = this.normalizeExistingItemPath(d.item);
+      let normalizedCurrentPath = this.normalizeExistingItemPath(d);
 
       if (normalizedCurrentPath.path === '/') {
         throw new ServiceError(
@@ -1291,7 +1317,9 @@ class StoreItemMutationServiceImpl {
         let conflictingItem = await client.storeItem.findFirst({
           where: {
             storeOid: d.store.oid,
-            path: d.nextPath.path,
+            path: {
+              in: [d.nextPath.path, d.nextPath.path.slice(0, -1)]
+            },
             NOT: {
               id: d.item.id
             }
@@ -1337,7 +1365,8 @@ class StoreItemMutationServiceImpl {
       let previousParentPath = d.item.parentDirectory?.path
         ? normalizeStorePath({
             path: d.item.parentDirectory.path,
-            kind: 'directory'
+            kind: 'directory',
+            mode: d.store.pathMode
           }).path
         : null;
 
@@ -1396,10 +1425,11 @@ class StoreItemMutationServiceImpl {
       let skill = await this.getSkillForStore(d.store);
       let normalizedPath = normalizeStorePath({
         path: d.path,
-        kind: 'file'
+        kind: 'file',
+        mode: d.store.pathMode
       });
       if (skill) {
-        this.assertSkillStoreItemAllowed({
+        assertSkillStoreItemAllowed({
           path: normalizedPath,
           kind: this.getContentItemKind(d.target)
         });
@@ -1447,7 +1477,9 @@ class StoreItemMutationServiceImpl {
             id: d.store.id
           },
           data: {
-            itemCount: currentStore.itemCount + itemCountDelta
+            itemCount: {
+              increment: itemCountDelta
+            }
           }
         });
       }
@@ -1463,6 +1495,7 @@ class StoreItemMutationServiceImpl {
       await enqueueStoreLifecycle({ storeId: d.store.id, event: 'contents-changed' });
 
       await this.syncSkillAgentForStoreItemTransition({
+        store: d.store,
         skill,
         previousItem: result.previousItem,
         nextItem: result.item
@@ -1526,6 +1559,7 @@ class StoreItemMutationServiceImpl {
         await this.normalizeStoreItemOperation({
           project: d.project,
           instance: d.instance,
+          store: d.store,
           operation
         })
       );
@@ -1558,7 +1592,7 @@ class StoreItemMutationServiceImpl {
       for (let operation of operations) {
         if (operation.type === 'add') {
           if (skill) {
-            this.assertSkillStoreItemAllowed({
+            assertSkillStoreItemAllowed({
               path: operation.path,
               kind: operation.kind
             });
@@ -1636,6 +1670,7 @@ class StoreItemMutationServiceImpl {
           });
           auditRecorder.record('add', result.item);
           await this.syncSkillAgentForStoreItemTransition({
+            store: d.store,
             skill,
             previousItem: null,
             nextItem: result.item
@@ -1651,8 +1686,9 @@ class StoreItemMutationServiceImpl {
 
         if (operation.type === 'remove') {
           if (skill) {
-            this.assertSkillStoreRemoveAllowed(item);
+            this.assertSkillStoreRemoveAllowed({ store: d.store, item });
             await this.syncSkillAgentForStoreItemTransition({
+              store: d.store,
               skill,
               previousItem: item,
               nextItem: null
@@ -1679,7 +1715,7 @@ class StoreItemMutationServiceImpl {
         }
 
         if (item.kind === 'directory') {
-          let normalizedCurrentPath = this.normalizeExistingItemPath(item);
+          let normalizedCurrentPath = this.normalizeExistingItemPath({ store: d.store, item });
           if (normalizedCurrentPath.path === '/') {
             throw new ServiceError(
               badRequestError({
@@ -1707,10 +1743,12 @@ class StoreItemMutationServiceImpl {
 
           let nextPath = normalizeStorePath({
             path: operation.path,
-            kind: 'directory'
+            kind: 'directory',
+            mode: d.store.pathMode
           });
           if (skill) {
             this.assertSkillStoreModifyAllowed({
+              store: d.store,
               item,
               nextPath,
               nextKind: 'directory'
@@ -1758,19 +1796,22 @@ class StoreItemMutationServiceImpl {
 
         let nextPath = normalizeStorePath({
           path: operation.path ?? item.path,
-          kind: 'file'
+          kind: 'file',
+          mode: d.store.pathMode
         });
         let nextKind = operation.target
           ? this.getContentItemKind(operation.target)
           : item.kind;
         if (isSkillTemplateStore) {
           this.assertRootSkillDocumentMoveAllowed({
+            store: d.store,
             item,
             nextPath
           });
         }
         if (skill) {
           this.assertSkillStoreModifyAllowed({
+            store: d.store,
             item,
             nextPath,
             nextKind
@@ -1780,7 +1821,8 @@ class StoreItemMutationServiceImpl {
         let previousParentPath = item.parentDirectory?.path
           ? normalizeStorePath({
               path: item.parentDirectory.path,
-              kind: 'directory'
+              kind: 'directory',
+              mode: d.store.pathMode
             }).path
           : null;
         let hierarchy = await this.ensureDirectoryHierarchy({
@@ -1812,6 +1854,7 @@ class StoreItemMutationServiceImpl {
         });
         auditRecorder.record('modify', updatedItem, item.path);
         await this.syncSkillAgentForStoreItemTransition({
+          store: d.store,
           skill,
           previousItem: item,
           nextItem: updatedItem
@@ -1837,7 +1880,9 @@ class StoreItemMutationServiceImpl {
             id: d.store.id
           },
           data: {
-            itemCount
+            itemCount: {
+              increment: itemCount - currentStore.itemCount
+            }
           }
         });
       }

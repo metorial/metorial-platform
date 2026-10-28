@@ -1,4 +1,5 @@
 enum IdentityActorType {
+  organization_member
   person
   agent
   consumer
@@ -33,9 +34,10 @@ model IdentityActor {
   archivedAt DateTime?
   syncedAt   DateTime  @default(now()) @updatedAt
 
-  agent                Agent?
-  consumerActor        ConsumerActor?
-  ownedMagicMcpServers MagicMcpServer[]
+  agent                  Agent?
+  consumerActor          ConsumerActor?
+  ownedMagicMcpServers   MagicMcpServer[]
+  ownedMagicMcpEndpoints MagicMcpEndpoint[]
 
   @@index([organizationOid])
   @@index([projectOid])

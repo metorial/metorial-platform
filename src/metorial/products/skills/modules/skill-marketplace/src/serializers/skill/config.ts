@@ -7,6 +7,7 @@ import {
 export type SkillConfigurationPolicy = {
   allowScripts: boolean;
   allowedFileExtensions?: string[] | null;
+  restrictsFileExtensions?: boolean;
   allowNonStandardDirectories: boolean;
 };
 
@@ -36,10 +37,11 @@ export let getEffectiveAllowedFileExtensions = (config: SkillConfigurationPolicy
   let allowedExtensions = (config.allowedFileExtensions ?? [])
     .map(normalizeFileExtension)
     .filter((extension): extension is string => !!extension);
+  let restrictsExtensions = config.restrictsFileExtensions ?? allowedExtensions.length > 0;
 
   if (config.allowScripts) {
     return {
-      shouldFilter: allowedExtensions.length > 0,
+      shouldFilter: restrictsExtensions,
       extensions: allowedExtensions
     };
   }
@@ -52,7 +54,7 @@ export let getEffectiveAllowedFileExtensions = (config: SkillConfigurationPolicy
 
   return {
     shouldFilter: true,
-    extensions: allowedExtensions.length
+    extensions: restrictsExtensions
       ? allowedExtensions.filter(extension => safeExtensions.has(extension))
       : [...safeExtensions]
   };

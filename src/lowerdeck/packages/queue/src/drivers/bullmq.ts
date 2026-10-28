@@ -113,11 +113,11 @@ let getSerializedExecutionContext = (
 
 let sanitizeJobId = (jobId?: string) => jobId?.replace(/:/g, '_');
 
-let isPostgresDeadlockError = (error: unknown) => {
+let getDatabaseConflictCode = (error: unknown) => {
   let seen = new Set<object>();
 
-  let inspect = (value: unknown): boolean => {
-    if (!value || typeof value !== 'object' || seen.has(value)) return false;
+  let inspect = (value: unknown): string | undefined => {
+    if (!value || typeof value !== 'object' || seen.has(value)) return undefined;
     seen.add(value);
 
     let candidate = value as {
@@ -128,9 +128,15 @@ let isPostgresDeadlockError = (error: unknown) => {
       driverAdapterError?: unknown;
     };
 
-    if (candidate.code === '40P01' || candidate.message === 'deadlock detected') {
-      return true;
+    if (
+      candidate.code === 'P2034' ||
+      candidate.code === '40P01' ||
+      candidate.code === '40001'
+    ) {
+      return candidate.code;
     }
+
+    if (candidate.message === 'deadlock detected') return '40P01';
 
     return (
       inspect(candidate.cause) ||
@@ -366,23 +372,28 @@ export let createBullMqQueue = <JobData>(
                   async () => await cb(payload as any, job)
                 );
               } catch (e: any) {
+                let conflictCode = getDatabaseConflictCode(e);
+                let attemptLimit = job.opts?.attempts ?? opts.jobOpts?.attempts ?? 25;
+
                 if (e instanceof QueueRetryError) {
                   await delay(1000);
                   throw e;
-                } else if (
-                  isPostgresDeadlockError(e) &&
-                  job.attemptsMade + 1 < (job.opts.attempts ?? opts.jobOpts?.attempts ?? 25)
-                ) {
-                  await delay(1000 + Math.random() * 5000);
+                } else if (conflictCode && job.attemptsMade + 1 < attemptLimit) {
+                  await delay(1000 + Math.random() * 10000);
                   throw e;
-                } else if (
-                  isLockContentionError(e) &&
-                  job.attemptsMade + 1 < (job.opts?.attempts ?? opts.jobOpts?.attempts ?? 25)
-                ) {
+                } else if (isLockContentionError(e) && job.attemptsMade + 1 < attemptLimit) {
                   // Another holder had the lock for the whole acquisition window. The job is
                   // retried with backoff, so only an exhausted retry budget is worth reporting.
                   throw e;
                 } else {
+                  if (conflictCode) {
+                    Sentry.setContext('databaseConflict', {
+                      retryCount: job.attemptsMade,
+                      attemptLimit,
+                      code: conflictCode
+                    });
+                  }
+
                   Sentry.captureException(e);
                   console.error(e);
                   throw e;

@@ -11,12 +11,14 @@ export let SchemaFormStep = ({
   schema,
   mutation,
   submitLabel,
-  children
+  children,
+  footer
 }: {
   schema: JsonSchema | null;
   mutation: ReturnType<typeof useMutation<Record<string, unknown>, void>>;
   submitLabel: string;
   children?: ReactNode;
+  footer?: ReactNode;
 }) => {
   let effectiveSchema = schema ?? emptySchema;
 
@@ -48,6 +50,8 @@ export let SchemaFormStep = ({
           </Button>
 
           <mutation.RenderError />
+
+          {footer}
         </Flex>
       </form>
     </StepContainer>

@@ -1,4 +1,4 @@
-import { badRequestError, forbiddenError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { accessService } from '@metorial/module-access';
@@ -129,6 +129,13 @@ export let projectManagementController = Controller.create(
       )
       .output(projectPresenter)
       .do(async ctx => {
+        await accessService.checkTargetAccess({
+          authInfo: ctx.auth,
+          organization: ctx.organization,
+          member: ctx.member,
+          possibleScopes: ['organization.project:write']
+        });
+
         let project = await projectService.createProject({
           input: {
             name: ctx.body.name,
@@ -146,7 +153,7 @@ export let projectManagementController = Controller.create(
         name: 'Delete organization project',
         description: 'Remove an organization project'
       })
-      .use(checkAccess({ possibleScopes: ['organization.project:write'] }))
+      .use(checkAccess({ possibleScopes: ['organization.project:manage'] }))
       .output(projectPresenter)
       .do(async ctx => {
         let project = await projectService.getProjectById({
@@ -161,7 +168,7 @@ export let projectManagementController = Controller.create(
           organization: ctx.organization,
           member: ctx.member,
           project,
-          possibleScopes: ['organization.project:write']
+          possibleScopes: ['organization.project:manage']
         });
 
         project = await projectService.deleteProject({
@@ -235,14 +242,6 @@ export let projectManagementController = Controller.create(
       )
       .output(projectBrandPresenter)
       .do(async ctx => {
-        if (ctx.member?.role == 'member') {
-          throw new ServiceError(
-            forbiddenError({
-              message: 'You are not permitted to manage organization projects'
-            })
-          );
-        }
-
         if (ctx.body.name === undefined && ctx.body.image_file_id === undefined) {
           throw new ServiceError(
             badRequestError({
@@ -256,6 +255,14 @@ export let projectManagementController = Controller.create(
           projectId: ctx.params.projectId,
           member: ctx.member,
           actor: ctx.actor
+        });
+
+        await accessService.checkTargetAccess({
+          authInfo: ctx.auth,
+          organization: ctx.organization,
+          member: ctx.member,
+          project,
+          possibleScopes: ['organization.project:write']
         });
 
         let projectBrand = await projectBrandService.upsertProjectBrand({

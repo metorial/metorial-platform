@@ -39,6 +39,8 @@ vi.mock('@metorial-subspace/db', () => ({
   addAfterTransactionHook: mocks.addAfterTransactionHook
 }));
 
+vi.mock('@metorial/db', () => import('../../../../../../db/src/lib/unique'));
+
 vi.mock('@metorial-subspace/module-search', () => ({
   voyager: { record: { search: vi.fn() } },
   voyagerIndex: { agentClient: { id: 'idx_agent_client' } },
@@ -147,6 +149,23 @@ describe('Agent client double writes', () => {
     expect(call.create.instanceOid).toBeNull();
     expect(call.update.projectOid).toBeNull();
     expect(call.update.instanceOid).toBeNull();
+  });
+
+  it('retries the upsert when a concurrent open created the client first', async () => {
+    mocks.agentClientUpsert
+      .mockRejectedValueOnce(
+        Object.assign(new Error('Unique constraint failed'), { code: 'P2002' })
+      )
+      .mockResolvedValueOnce({ oid: 9n, id: 'kac_existing' });
+
+    let result = await agentClientService.upsertAgentClientInternal({
+      tenant,
+      environment,
+      input
+    });
+
+    expect(mocks.agentClientUpsert).toHaveBeenCalledTimes(2);
+    expect(result.agentClient).toEqual({ oid: 9n, id: 'kac_existing' });
   });
 
   it('keeps the lookup on the legacy source of truth', async () => {

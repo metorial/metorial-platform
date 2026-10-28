@@ -293,6 +293,7 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
               url: URL;
               flags: RequestFlags;
               span: Span;
+              server: any;
             };
           }>();
 
@@ -373,7 +374,11 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
                         context: c.env.context,
                         requestId: c.env.requestId,
 
-                        sharedMiddlewareMemo: new Map<string, Promise<any>>()
+                        sharedMiddlewareMemo: new Map<string, Promise<any>>(),
+
+                        signal: c.req.raw.signal,
+                        setIdleTimeout: (seconds: number) =>
+                          c.env.server?.timeout?.(c.req.raw, seconds)
                       };
 
                       // let clientString = c.req.header('metorial-client');
@@ -559,7 +564,7 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
                     'access-control-allow-origin': origin,
                     'access-control-allow-methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
                     'access-control-allow-headers':
-                      'Content-Type, Authorization, Cookies, metorial-version, metorial-instance-id, metorial-consumer-profile-id, metorial-organization-id, baggage, sentry-trace, metorial-client, metorial-consumer-session-client-secret',
+                      'Content-Type, Authorization, Cookies, metorial-version, metorial-instance-id, metorial-consumer-profile-id, metorial-organization-id, baggage, sentry-trace, metorial-client, metorial-consumer-session-client-secret, metorial-verification-token',
                     'access-control-max-age': '604800',
                     'access-control-allow-credentials': 'true',
                     'x-powered-by': 'Metorial'
@@ -693,6 +698,7 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
                       origin,
                       url,
                       span,
+                      server,
                       ...auth
                     });
 

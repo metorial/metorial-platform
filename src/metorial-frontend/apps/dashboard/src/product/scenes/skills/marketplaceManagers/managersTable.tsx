@@ -1,6 +1,4 @@
-import {
-  useDeletePortalConsumerAccess
-} from '@metorial/state';
+import { useDeletePortalConsumerAccess } from '@metorial/state';
 import { Table } from '@metorial/table';
 import {
   getEnumListFilterValue,
@@ -169,7 +167,9 @@ let marketplaceManagersPeopleTable = new Table<
       isDefault: true,
       header: 'Kind',
       render: row => (
-        <Badge color="gray" size="1">{row.kind == 'account' ? 'Account' : 'Group'}</Badge>
+        <Badge color="gray" size="2">
+          {row.kind == 'account' ? 'Account' : 'Group'}
+        </Badge>
       )
     },
     {
@@ -224,7 +224,7 @@ let groupMarketplaceManagersTable = new Table<
             {row.name}
           </Text>
           {row.description ? (
-            <Text size="1" color="gray600">
+            <Text size="2" color="gray600">
               {row.description}
             </Text>
           ) : null}

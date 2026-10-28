@@ -13,6 +13,7 @@ import {
   dashboardPublicMcpServerGrantPresenter,
   dashboardPublicMcpServerPresenter,
   dashboardPublicMcpServerSlugAvailabilityPresenter,
+  dashboardSetupSessionEmailPresenter,
   dashboardSetupSessionPresenter,
   dashboardChatConnectionPresenter,
   dashboardChatConnectionProviderPresenter,
@@ -179,6 +180,7 @@ import {
   v1ProjectAuthConfigConfigurationPresenter,
   v1ProjectBrandPresenter,
   v1ProjectDataRetentionConfigurationPresenter,
+  v1ProjectResourceOwnershipConfigurationPresenter,
   v1ProjectIntegrationNamingConfigurationPresenter,
   v1ProjectPresenter,
   v1ProjectReducedSubprocessorsConfigurationPresenter,
@@ -224,6 +226,7 @@ import {
   v1ProviderVersionPresenter,
   v1PublisherPresenter,
   v1ResourceCountsPresenter,
+  v1OwnershipAccessPresenter,
   v1SandboxPresenter,
   v1SandboxRegionPresenter,
   v1SandboxSpecPresenter,
@@ -236,6 +239,7 @@ import {
   v1SandboxMachineUsageTimelinePresenter,
   v1SandboxMachineUsageSummaryPresenter,
   v1SandboxMachineAccessPresenter,
+  v1SandboxMachineExecResultPresenter,
   v1SandboxDiskPresenter,
   v1SandboxDiskMountPresenter,
   v1SandboxDiskResizePresenter,
@@ -261,8 +265,12 @@ import {
   v1SessionProviderPresenter,
   v1SessionTemplatePresenter,
   v1SessionTemplateProviderPresenter,
+  v1SetupSessionEmailPresenter,
   v1SetupSessionPresenter,
   v1SkillAgentPresenter,
+  v1SkillFileChangePresenter,
+  v1SkillFileContentPresenter,
+  v1SkillFilePresenter,
   v1SkillConfigurationPresenter,
   v1SkillExportPresenter,
   v1SkillForkSyncPresenter,
@@ -306,6 +314,8 @@ import {
   v1WebhookRegistrationPresenter,
   v1TokenPresenter,
   v1UsagePresenter,
+  v1InstanceUsageSummaryPresenter,
+  v1InstanceUsageTimelinePresenter,
   v1UserPresenter,
   v1WebhookEventPresenter
 } from './implementation';
@@ -433,6 +443,7 @@ import {
   projectBrandType,
   projectDataRetentionConfigurationType,
   projectIntegrationNamingConfigurationType,
+  projectResourceOwnershipConfigurationType,
   projectReducedSubprocessorsConfigurationType,
   projectRetentionType,
   projectSessionlessMcpConfigurationType,
@@ -466,6 +477,7 @@ import {
   providerRunLogsType,
   providerRunType,
   providerSessionType,
+  providerSetupSessionEmailType,
   providerSetupSessionType,
   providerSpecificationChangeNotificationType,
   providerSpecificationType,
@@ -478,6 +490,7 @@ import {
   providerVersionType,
   publisherType,
   resourceCountsType,
+  ownershipAccessType,
   sandboxType,
   sandboxRegionType,
   sandboxSpecType,
@@ -490,6 +503,7 @@ import {
   sandboxMachineUsageTimelineType,
   sandboxMachineUsageSummaryType,
   sandboxMachineAccessType,
+  sandboxMachineExecResultType,
   sandboxDiskType,
   sandboxDiskMountType,
   sandboxDiskResizeType,
@@ -518,6 +532,9 @@ import {
   sessionTemplateType,
   systemEventType,
   skillAgentType,
+  skillFileChangeType,
+  skillFileContentType,
+  skillFileType,
   skillConfigurationType,
   skillExportType,
   skillForkSyncType,
@@ -574,6 +591,8 @@ import {
   tokenType,
   toolCallType,
   usageType,
+  instanceUsageSummaryType,
+  instanceUsageTimelineType,
   userType,
   webhookEventType
 } from './types';
@@ -865,6 +884,14 @@ export let projectDataRetentionConfigurationPresenter = declarePresenter(
   }
 );
 
+export let projectResourceOwnershipConfigurationPresenter = declarePresenter(
+  projectResourceOwnershipConfigurationType,
+  {
+    mt_2025_01_01_dashboard: v1ProjectResourceOwnershipConfigurationPresenter,
+    mt_2026_01_01_magnetar: v1ProjectResourceOwnershipConfigurationPresenter
+  }
+);
+
 export let projectReducedSubprocessorsConfigurationPresenter = declarePresenter(
   projectReducedSubprocessorsConfigurationType,
   {
@@ -991,6 +1018,21 @@ export let storeParticipantPresenter = declarePresenter(storeParticipantType, {
 export let skillAgentPresenter = declarePresenter(skillAgentType, {
   mt_2025_01_01_dashboard: v1SkillAgentPresenter,
   mt_2026_01_01_magnetar: v1SkillAgentPresenter
+});
+
+export let skillFilePresenter = declarePresenter(skillFileType, {
+  mt_2025_01_01_dashboard: v1SkillFilePresenter,
+  mt_2026_01_01_magnetar: v1SkillFilePresenter
+});
+
+export let skillFileContentPresenter = declarePresenter(skillFileContentType, {
+  mt_2025_01_01_dashboard: v1SkillFileContentPresenter,
+  mt_2026_01_01_magnetar: v1SkillFileContentPresenter
+});
+
+export let skillFileChangePresenter = declarePresenter(skillFileChangeType, {
+  mt_2025_01_01_dashboard: v1SkillFileChangePresenter,
+  mt_2026_01_01_magnetar: v1SkillFileChangePresenter
 });
 
 export let skillConfigurationPresenter = declarePresenter(skillConfigurationType, {
@@ -1127,6 +1169,16 @@ export let keyProviderValidationPresenter = declarePresenter(keyProviderValidati
 export let usagePresenter = declarePresenter(usageType, {
   mt_2025_01_01_dashboard: v1UsagePresenter,
   mt_2026_01_01_magnetar: v1UsagePresenter
+});
+
+export let instanceUsageTimelinePresenter = declarePresenter(instanceUsageTimelineType, {
+  mt_2025_01_01_dashboard: v1InstanceUsageTimelinePresenter,
+  mt_2026_01_01_magnetar: v1InstanceUsageTimelinePresenter
+});
+
+export let instanceUsageSummaryPresenter = declarePresenter(instanceUsageSummaryType, {
+  mt_2025_01_01_dashboard: v1InstanceUsageSummaryPresenter,
+  mt_2026_01_01_magnetar: v1InstanceUsageSummaryPresenter
 });
 
 export let profilePresenter = declarePresenter(profileType, {
@@ -1687,6 +1739,15 @@ export let providerSetupSessionPresenter = declarePresenter(providerSetupSession
   mt_2026_04_01_consumer: v1SetupSessionPresenter
 });
 
+export let providerSetupSessionEmailPresenter = declarePresenter(
+  providerSetupSessionEmailType,
+  {
+    mt_2025_01_01_dashboard: dashboardSetupSessionEmailPresenter,
+    mt_2026_01_01_magnetar: v1SetupSessionEmailPresenter,
+    mt_2026_04_01_consumer: v1SetupSessionEmailPresenter
+  }
+);
+
 export let providerAuthImportPresenter = declarePresenter(providerAuthImportType, {
   mt_2025_01_01_dashboard: v1ProviderAuthImportPresenter,
   mt_2026_01_01_magnetar: v1ProviderAuthImportPresenter
@@ -1727,6 +1788,11 @@ export let integrationInternetGatewayNetworkLogsPresenter = declarePresenter(
     mt_2026_01_01_magnetar: v1IntegrationInternetGatewayNetworkLogsPresenter
   }
 );
+
+export let ownershipAccessPresenter = declarePresenter(ownershipAccessType, {
+  mt_2025_01_01_dashboard: v1OwnershipAccessPresenter,
+  mt_2026_01_01_magnetar: v1OwnershipAccessPresenter
+});
 
 export let resourceCountsPresenter = declarePresenter(resourceCountsType, {
   mt_2025_01_01_dashboard: v1ResourceCountsPresenter,
@@ -2015,6 +2081,11 @@ export let sandboxMachineUsageSummaryPresenter = declarePresenter(
 export let sandboxMachineAccessPresenter = declarePresenter(sandboxMachineAccessType, {
   mt_2025_01_01_dashboard: v1SandboxMachineAccessPresenter,
   mt_2026_01_01_magnetar: v1SandboxMachineAccessPresenter
+});
+
+export let sandboxMachineExecResultPresenter = declarePresenter(sandboxMachineExecResultType, {
+  mt_2025_01_01_dashboard: v1SandboxMachineExecResultPresenter,
+  mt_2026_01_01_magnetar: v1SandboxMachineExecResultPresenter
 });
 
 export let sandboxDiskPresenter = declarePresenter(sandboxDiskType, {

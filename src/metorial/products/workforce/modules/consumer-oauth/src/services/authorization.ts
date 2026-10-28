@@ -95,6 +95,22 @@ class ConsumerOAuthAuthorizationService {
     }
 
     let normalizedCodeChallengeMethod = this.getNormalizedCodeChallengeMethod(d.input);
+    if (
+      client.requirePkce &&
+      client.tokenEndpointAuthMethod == 'none' &&
+      (normalizedCodeChallengeMethod != 's256' || !d.input.codeChallenge)
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'code_challenge is required for public clients',
+          oauth: {
+            error: 'invalid_request',
+            errorMessage: 'code_challenge is required for public clients'
+          }
+        })
+      );
+    }
+
     let attempt = await db.consumerAuthAttempt.create({
       data: {
         id: await ID.generateId('consumerAuthAttempt'),

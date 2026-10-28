@@ -1,23 +1,34 @@
 import { OTPInput, REGEXP_ONLY_DIGITS, type SlotProps } from 'input-otp';
 import React from 'react';
-import { styled } from 'styled-components';
+import { css, keyframes, styled } from 'styled-components';
 import { theme } from '../theme';
 
-let Wrapper = styled.div`
+let shake = keyframes`
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+`;
+
+let Wrapper = styled.div<{ $error: boolean }>`
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 10px;
+
+  ${({ $error }) =>
+    $error &&
+    css`
+      animation: ${shake} 360ms ease-in-out;
+    `}
 `;
 
 let Group = styled.div`
   display: flex;
 `;
 
-let SlotWrapper = styled.div<{ $active: boolean }>`
+let SlotWrapper = styled.div<{ $active: boolean; $error: boolean }>`
   height: 55px;
   width: 40px;
-  border: 1px solid ${theme.colors.gray500};
+  border: 1px solid ${({ $error }) => ($error ? theme.colors.red550 : theme.colors.gray500)};
   position: relative;
   font-size: 20px;
   font-weight: 500;
@@ -63,8 +74,8 @@ let Dash = styled.div`
   }
 `;
 
-let Slot = (slot: SlotProps) => (
-  <SlotWrapper $active={slot.isActive}>
+let Slot = ({ error, ...slot }: SlotProps & { error: boolean }) => (
+  <SlotWrapper $active={slot.isActive} $error={error}>
     {slot.char !== null && <div>{slot.char}</div>}
     {slot.hasFakeCaret && <Caret />}
   </SlotWrapper>
@@ -76,6 +87,7 @@ export let CodeInput = (p: {
   value?: string;
   disabled?: boolean;
   autoFocus?: boolean;
+  error?: boolean;
 }) => (
   <OTPInput
     maxLength={6}
@@ -92,16 +104,16 @@ export let CodeInput = (p: {
       if (code.length == 6) p.onComplete(code);
     }}
     render={({ slots }) => (
-      <Wrapper>
+      <Wrapper $error={!!p.error}>
         <Group>
           {slots.slice(0, 3).map((slot, index) => (
-            <Slot key={index} {...slot} />
+            <Slot key={index} {...slot} error={!!p.error} />
           ))}
         </Group>
         <Dash />
         <Group>
           {slots.slice(3).map((slot, index) => (
-            <Slot key={index} {...slot} />
+            <Slot key={index} {...slot} error={!!p.error} />
           ))}
         </Group>
       </Wrapper>

@@ -25,7 +25,12 @@ let indexDisk = vi.fn();
 let search = { isSearchEnabled: vi.fn(), searchSandboxDiskIds: vi.fn() };
 
 vi.mock('../src/queues/search', () => ({ indexSandboxDiskQueue: { add: indexDisk } }));
-vi.mock('@metorial/module-search', () => search);
+vi.mock('@metorial/module-search', async () => ({
+  ...(await vi.importActual<typeof import('@metorial/module-search/src/searchFilter')>(
+    '@metorial/module-search/src/searchFilter'
+  )),
+  ...search
+}));
 
 vi.mock('../src/lib/regions', () => ({ getRegionClient: vi.fn(() => genesis) }));
 vi.mock('@metorial/db', () => ({ db }));
@@ -272,7 +277,7 @@ describe('sandboxDiskService.get and list', () => {
     );
   });
 
-  it('searches Voyager and intersects results with the other disk filters', async () => {
+  it('searches Voyager alongside an exact id match and the other disk filters', async () => {
     search.isSearchEnabled.mockReturnValue(true);
     search.searchSandboxDiskIds.mockResolvedValue(['sbd_1', 'sbd_2']);
     db.sandboxDisk.findMany.mockResolvedValue([]);
@@ -301,12 +306,17 @@ describe('sandboxDiskService.get and list', () => {
     });
     expect(db.sandboxDisk.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { instanceOid: 7n, status: 'active', id: { in: ['sbd_1'] } }
+        where: {
+          instanceOid: 7n,
+          status: 'active',
+          OR: [{ id: { in: ['sbd_1', 'sbd_2'] } }, { id: 'Data' }],
+          id: { in: ['sbd_1'] }
+        }
       })
     );
   });
 
-  it('returns no matches when Voyager finds no disks', async () => {
+  it('only matches the exact id when Voyager finds no disks', async () => {
     search.isSearchEnabled.mockReturnValue(true);
     search.searchSandboxDiskIds.mockResolvedValue([]);
     db.sandboxDisk.findMany.mockResolvedValue([]);
@@ -315,7 +325,7 @@ describe('sandboxDiskService.get and list', () => {
 
     expect(db.sandboxDisk.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { instanceOid: 7n, status: 'active', id: { in: [] } }
+        where: { instanceOid: 7n, status: 'active', OR: [{ id: 'missing' }] }
       })
     );
   });

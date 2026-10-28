@@ -607,27 +607,6 @@ class StoreAccessServiceImpl {
               overridePermissions: d.overridePermissions
             })
           : [];
-        let publicStoreParticipants = actor
-          ? await this.ensureStoreParticipantsHavePermissions({
-              actor,
-              items: stores
-                .map(store => ({
-                  storeOid: store.oid,
-                  permissions: getPublicStorePermissions({
-                    access: store.access,
-                    requiredPermission: d.requiredPermission
-                  })
-                }))
-                .filter(
-                  (
-                    item
-                  ): item is {
-                    storeOid: bigint;
-                    permissions: StoreParticipantPermissions[];
-                  } => item.permissions !== undefined
-                )
-            })
-          : [];
         let skillStoreAccess = actor
           ? await this.getSkillStoreAccess({
               project: d.project,
@@ -641,6 +620,23 @@ class StoreAccessServiceImpl {
         let skillStoreOidSet = new Set(
           skillStoreAccess.skillStoreOids.map(storeOid => storeOid.toString())
         );
+        let publicStoreOids = actor
+          ? stores
+              .filter(store => !skillStoreOidSet.has(store.oid.toString()))
+              .filter(store =>
+                getPublicStorePermissions({
+                  access: store.access,
+                  requiredPermission: d.requiredPermission
+                })?.includes(d.requiredPermission)
+              )
+              .map(store => store.oid)
+          : [];
+        if (actor) {
+          await this.ensureStoreParticipantsHavePermissions({
+            actor,
+            items: publicStoreOids.map(storeOid => ({ storeOid, permissions: [] }))
+          });
+        }
         let participantStoreOids = this.getAccessibleStoreOids(
           participants,
           d.requiredPermission
@@ -651,7 +647,7 @@ class StoreAccessServiceImpl {
           relevantStoreOids,
           accessibleStoreOids: uniqueBigInts([
             ...participantStoreOids,
-            ...this.getAccessibleStoreOids(publicStoreParticipants, d.requiredPermission),
+            ...publicStoreOids,
             ...skillStoreAccess.accessibleStoreOids
           ])
         };

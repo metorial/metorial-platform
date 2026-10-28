@@ -4,6 +4,7 @@ export let magicMcpServerOwnerActorSelect = {
   select: {
     id: true,
     type: true,
+    name: true,
     consumerActor: { select: { consumer: { select: { id: true } } } }
   }
 } as const;

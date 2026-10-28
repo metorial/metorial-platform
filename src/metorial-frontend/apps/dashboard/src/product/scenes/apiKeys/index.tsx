@@ -42,34 +42,15 @@ import { useApiKeysWithAutoInit } from './useApiKeysWithAutoInit';
 let apiKeyHeaders = ['Status', 'Type', 'Name', 'Secret', 'Expires', 'Last Used', ' '];
 
 type ApiKeyType = ApiKeysGetOutput['type'];
-type ApiKeyFilterType = ApiKeysFilter['type'];
+type InstanceApiKeyType = Exclude<ApiKeyType, 'organization_management_token'>;
+type InstanceApiKeysFilter = Extract<ApiKeysFilter, { type: 'instance_access_token' }>;
 
 let normalizeOptionalString = (value: string | undefined) => value || undefined;
 let normalizeIpFilters = (value: string[] | undefined) =>
   Array.from(new Set((value ?? []).map(item => item.trim()).filter(Boolean)));
 
-let isApiKeyType = (value: string): value is ApiKeyType =>
-  value === 'organization_management_token' ||
-  value === 'instance_access_token_secret' ||
-  value === 'instance_access_token_publishable';
-
-let getApiKeySceneName = (type: ApiKeyFilterType) => {
-  switch (type) {
-    case 'organization_management_token':
-      return 'Organization Token';
-    case 'instance_access_token':
-      return 'API Key';
-  }
-};
-
-let getDefaultCreateApiKeyType = (type: ApiKeyFilterType): ApiKeyType => {
-  switch (type) {
-    case 'organization_management_token':
-      return 'organization_management_token';
-    case 'instance_access_token':
-      return 'instance_access_token_secret';
-  }
-};
+let isInstanceApiKeyType = (value: string): value is InstanceApiKeyType =>
+  value === 'instance_access_token_secret' || value === 'instance_access_token_publishable';
 
 let getApiKeyTypeLabel = (type: ApiKeyType) => {
   switch (type) {
@@ -88,7 +69,7 @@ export let ApiKeysScene = ({
   extra,
   tableLayout
 }: {
-  filter: ApiKeysFilter;
+  filter: InstanceApiKeysFilter;
   header: {
     title: string;
     description: string;
@@ -96,12 +77,8 @@ export let ApiKeysScene = ({
   extra?: React.ReactNode;
   tableLayout?: 'product';
 }) => {
-  let name = getApiKeySceneName(filter.type);
-  let apiKeyTypeItems: Array<{ id: ApiKeyType; label: string }> = [
-    {
-      id: 'organization_management_token',
-      label: getApiKeyTypeLabel('organization_management_token')
-    },
+  let name = 'API Key';
+  let apiKeyTypeItems: Array<{ id: InstanceApiKeyType; label: string }> = [
     {
       id: 'instance_access_token_secret',
       label: getApiKeyTypeLabel('instance_access_token_secret')
@@ -124,26 +101,16 @@ export let ApiKeysScene = ({
           name: '',
           description: '',
           expiresAt: undefined,
-          type: getDefaultCreateApiKeyType(filter.type)
+          type: 'instance_access_token_secret' as InstanceApiKeyType
         },
         onSubmit: async values => {
-          let input: ApiKeysCreateBody =
-            filter.type === 'instance_access_token'
-              ? {
-                  type: values.type,
-                  instanceId: filter.instanceId,
-                  name: values.name,
-                  description: normalizeOptionalString(values.description),
-                  expiresAt: values.expiresAt
-                }
-              : {
-                  type: 'organization_management_token',
-                  name: values.name,
-                  description: normalizeOptionalString(values.description),
-                  expiresAt: values.expiresAt
-                };
-
-          let [res] = await mutator.mutate(input);
+          let [res] = await mutator.mutate({
+            type: values.type,
+            instanceId: filter.instanceId,
+            name: values.name,
+            description: normalizeOptionalString(values.description),
+            expiresAt: values.expiresAt
+          } satisfies ApiKeysCreateBody);
 
           if (res) {
             close();
@@ -183,12 +150,8 @@ export let ApiKeysScene = ({
               .optional()
               .min(new Date(), 'Expires at must be in the future'),
             type: yup
-              .mixed<ApiKeyType>()
-              .oneOf([
-                'organization_management_token',
-                'instance_access_token_secret',
-                'instance_access_token_publishable'
-              ])
+              .mixed<InstanceApiKeyType>()
+              .oneOf(['instance_access_token_secret', 'instance_access_token_publishable'])
               .required('Type is required')
           }) as any
       });
@@ -218,25 +181,19 @@ export let ApiKeysScene = ({
             />
             <form.RenderError field="expiresAt" />
 
-            {filter.type === 'instance_access_token' && (
-              <>
-                <Spacer height={15} />
+            <Spacer height={15} />
 
-                <Select
-                  label="Type"
-                  value={form.values.type}
-                  items={apiKeyTypeItems.filter(
-                    item => item.id !== 'organization_management_token'
-                  )}
-                  onChange={v => {
-                    if (isApiKeyType(v)) {
-                      form.setFieldValue('type', v);
-                    }
-                  }}
-                />
-                <form.RenderError field="type" />
-              </>
-            )}
+            <Select
+              label="Type"
+              value={form.values.type}
+              items={apiKeyTypeItems}
+              onChange={v => {
+                if (isInstanceApiKeyType(v)) {
+                  form.setFieldValue('type', v);
+                }
+              }}
+            />
+            <form.RenderError field="type" />
 
             <Spacer height={15} />
 
@@ -298,12 +255,8 @@ export let ApiKeysScene = ({
               .min(new Date(), 'Expires at must be in the future'),
             ipFilters: yup.array(yup.string().trim()).required(),
             type: yup
-              .mixed<ApiKeyType>()
-              .oneOf([
-                'organization_management_token',
-                'instance_access_token_secret',
-                'instance_access_token_publishable'
-              ])
+              .mixed<InstanceApiKeyType>()
+              .oneOf(['instance_access_token_secret', 'instance_access_token_publishable'])
               .optional()
           }) as any
       });
@@ -351,7 +304,7 @@ export let ApiKeysScene = ({
               value={form.values.type ?? ''}
               items={apiKeyTypeItems}
               onChange={v => {
-                if (isApiKeyType(v)) {
+                if (isInstanceApiKeyType(v)) {
                   form.setFieldValue('type', v);
                 }
               }}
@@ -546,19 +499,19 @@ let getApiKeyTableCells = (
 ) => [
   ...(!compact
     ? [
-        <Badge size="1" color={apiKey.status == 'active' ? 'green' : 'gray'}>
+        <Badge size="2" color={apiKey.status == 'active' ? 'green' : 'gray'}>
           {capitalize(apiKey.status)}
         </Badge>
       ]
     : []),
-  <Badge size="1" color={apiKey.type.includes('publishable') ? 'blue' : 'purple'}>
+  <Badge size="2" color={apiKey.type.includes('publishable') ? 'blue' : 'purple'}>
     {getApiKeyTypeLabel(apiKey.type)}
   </Badge>,
   <Flex gap={3} direction="column">
     <Text size="2" weight="strong">
       {apiKey.name}
     </Text>
-    <Text size="1" color="gray600" truncate>
+    <Text size="2" color="gray600" truncate>
       {apiKey.description}
     </Text>
   </Flex>,

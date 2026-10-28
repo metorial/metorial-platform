@@ -28,6 +28,18 @@ let { db, ensureMagicMcpEndpointBackingMock } = vi.hoisted(() => {
   };
 });
 
+vi.mock('@metorial-subspace/module-tenant', () => ({
+  assertCanAttachCoreOwnedResources: vi.fn(),
+  assertCanChangeCoreOwnerLock: vi.fn(),
+  assertCanChangeCoreOwnerOnlyVisibility: vi.fn(),
+  assertCanSeeCoreOwnedResource: vi.fn(),
+  assertCanUseCoreOwnedResources: vi.fn(),
+  getOwnershipAccessor: vi.fn(),
+  internalOwnershipAccessor: { kind: 'internal' },
+  ownedCoreResourceWhere: vi.fn(() => ({ AND: [] })),
+  subspaceScopeService: { ensureForInstance: vi.fn() }
+}));
+
 vi.mock('@metorial/db', () => ({
   db,
   ID: {
@@ -43,6 +55,11 @@ vi.mock('@metorial/fabric', () => ({
   Fabric: {
     fire: vi.fn()
   }
+}));
+
+vi.mock('@metorial/module-flags', () => ({
+  flagService: { getFlags: vi.fn() },
+  isFlagEnabled: (flag: unknown) => flag === true
 }));
 
 vi.mock('@metorial/module-access', () => ({

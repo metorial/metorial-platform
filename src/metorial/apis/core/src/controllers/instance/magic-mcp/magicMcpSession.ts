@@ -1,3 +1,4 @@
+import { hydrateResourceOwners } from '@metorial/module-resource-actor';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
@@ -70,7 +71,7 @@ export let magicMcpSessionController = Controller.create(
 
         let list = await paginator.run(ctx.query);
 
-        return Paginator.present(list, magicMcpSession =>
+        return Paginator.present(await hydrateResourceOwners(list), magicMcpSession =>
           magicMcpSessionPresenter.present({ magicMcpSession })
         );
       }),
@@ -92,7 +93,9 @@ export let magicMcpSessionController = Controller.create(
       .output(magicMcpSessionPresenter)
       .use(hasFlags(['magic-mcp-enabled']))
       .do(async ctx => {
-        return magicMcpSessionPresenter.present({ magicMcpSession: ctx.magicMcpSession });
+        return magicMcpSessionPresenter.present(
+          await hydrateResourceOwners({ magicMcpSession: ctx.magicMcpSession })
+        );
       })
   }
 );

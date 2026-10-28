@@ -15,16 +15,18 @@ import {
 import { Badge, RenderDate, Text, confirm } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { RiDeleteBinLine } from '@remixicon/react';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
 import { Table as DashboardTable } from '@metorial/table';
 import {
   FilterPayload,
+  TableFilter,
   TableStateProvider,
   TableStateProviderResult,
   getDateRangeFilterValue,
   getEnumListFilterValue,
-  getStringFilterValue
+  getListFilterValue
 } from '@metorial/table';
+import { entityFilters } from '../entityFilters';
 
 type AuthConfigItem =
   DashboardInstanceProviderDeploymentsAuthConfigsListOutput['items'][number];
@@ -66,6 +68,61 @@ let getStatusFilterValue = (
   return getEnumListFilterValue(value, ['active', 'archived']);
 };
 
+export let useProviderAuthConfigFilters = (
+  instanceId: string | null | undefined,
+  providerId?: string
+) =>
+  useMemo<TableFilter<AuthConfigRow>[]>(
+    () => [
+      {
+        id: 'status',
+        fields: ['status'],
+        label: 'Status',
+        description: 'Filter by status',
+        type: 'select',
+        options: [
+          { id: 'active', label: 'Active' },
+          { id: 'archived', label: 'Archived' }
+        ]
+      },
+      entityFilters.provider(instanceId),
+      entityFilters.providerDeployment(instanceId),
+      entityFilters.providerAuthCredentials(instanceId),
+      entityFilters.providerAuthMethod(instanceId, { providerId }),
+      {
+        id: 'createdAt',
+        fields: ['createdAt'],
+        label: 'Created',
+        description: 'Filter by created date',
+        type: 'date'
+      },
+      {
+        id: 'updatedAt',
+        fields: ['updatedAt'],
+        label: 'Updated',
+        description: 'Filter by updated date',
+        type: 'date'
+      }
+    ],
+    [instanceId, providerId]
+  );
+
+export let getProviderAuthConfigFilterQuery = (
+  filter: Record<string, FilterPayload>,
+  filters?: AuthConfigFilters
+) => ({
+  status: getStatusFilterValue(filter.status) ?? filters?.status,
+  providerId: getListFilterValue(filter.providerId) ?? filters?.providerId,
+  providerDeploymentId:
+    getListFilterValue(filter.providerDeploymentId) ?? filters?.providerDeploymentId,
+  providerAuthCredentialsId:
+    getListFilterValue(filter.providerAuthCredentialsId) ?? filters?.providerAuthCredentialsId,
+  providerAuthMethodId:
+    getListFilterValue(filter.providerAuthMethodId) ?? filters?.providerAuthMethodId,
+  createdAt: getDateRangeFilterValue(filter.createdAt) ?? filters?.createdAt,
+  updatedAt: getDateRangeFilterValue(filter.updatedAt) ?? filters?.updatedAt
+});
+
 let getAuthConfigStatusColor = (status: AuthConfigItem['status']) => {
   if (status === 'active') return 'green';
   if (status === 'archived') return 'orange';
@@ -84,23 +141,11 @@ let providerAuthConfigsTableState: TableStateProvider<
   }
 ) => {
   let authConfigs = useProviderAuthConfigs(props.instanceId, {
+    ownership: 'all',
     order: 'desc',
     ...props.filters,
-    status: getStatusFilterValue(opts.filter.status) ?? props.filters?.status,
-    id: getStringFilterValue(opts.filter.id) ?? props.filters?.id,
-    providerId: getStringFilterValue(opts.filter.providerId) ?? props.filters?.providerId,
-    providerDeploymentId:
-      getStringFilterValue(opts.filter.providerDeploymentId) ??
-      props.filters?.providerDeploymentId,
-    providerAuthCredentialsId:
-      getStringFilterValue(opts.filter.providerAuthCredentialsId) ??
-      props.filters?.providerAuthCredentialsId,
-    providerAuthMethodId:
-      getStringFilterValue(opts.filter.providerAuthMethodId) ??
-      props.filters?.providerAuthMethodId,
-    search: opts.search ?? props.filters?.search,
-    createdAt: getDateRangeFilterValue(opts.filter.createdAt) ?? props.filters?.createdAt,
-    updatedAt: getDateRangeFilterValue(opts.filter.updatedAt) ?? props.filters?.updatedAt
+    ...getProviderAuthConfigFilterQuery(opts.filter, props.filters),
+    search: opts.search ?? props.filters?.search
   });
 
   let providerIds = [
@@ -254,68 +299,6 @@ let providerAuthConfigsFilterTable = new DashboardTable<
       render: row => <RenderDate date={row.updatedAt} />
     }
   ])
-  .filters([
-    {
-      id: 'status',
-      fields: ['status'],
-      label: 'Status',
-      description: 'Filter by status',
-      type: 'select',
-      options: [
-        { id: 'active', label: 'Active' },
-        { id: 'archived', label: 'Archived' }
-      ]
-    },
-    {
-      id: 'id',
-      fields: ['id'],
-      label: 'Auth Config ID',
-      description: 'Filter by auth config ID',
-      type: 'string'
-    },
-    {
-      id: 'providerId',
-      fields: ['providerId'],
-      label: 'Provider ID',
-      description: 'Filter by provider ID',
-      type: 'string'
-    },
-    {
-      id: 'providerDeploymentId',
-      fields: ['providerDeploymentId'],
-      label: 'Deployment ID',
-      description: 'Filter by deployment ID',
-      type: 'string'
-    },
-    {
-      id: 'providerAuthCredentialsId',
-      fields: ['providerAuthCredentialsId'],
-      label: 'Credentials ID',
-      description: 'Filter by credentials ID',
-      type: 'string'
-    },
-    {
-      id: 'providerAuthMethodId',
-      fields: ['providerAuthMethodId'],
-      label: 'Auth Method ID',
-      description: 'Filter by auth method ID',
-      type: 'string'
-    },
-    {
-      id: 'createdAt',
-      fields: ['createdAt'],
-      label: 'Created',
-      description: 'Filter by created date',
-      type: 'date'
-    },
-    {
-      id: 'updatedAt',
-      fields: ['updatedAt'],
-      label: 'Updated',
-      description: 'Filter by updated date',
-      type: 'date'
-    }
-  ])
   .search('Search auth configs...')
   .link((row, props) =>
     Paths.instance.providerAuthConfig(
@@ -384,6 +367,10 @@ export let ProviderAuthConfigsOverviewTable = ({
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let tableFilters = useProviderAuthConfigFilters(
+    instanceId,
+    typeof filters?.providerId == 'string' ? filters.providerId : undefined
+  );
 
   return renderWithLoader({ organization, project, instance })(() =>
     providerAuthConfigsFilterTable({
@@ -392,6 +379,7 @@ export let ProviderAuthConfigsOverviewTable = ({
       project,
       instance,
       filters,
+      tableFilters,
       emptyState,
       headerActions
     })

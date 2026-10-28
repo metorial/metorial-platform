@@ -66,7 +66,7 @@ vi.mock('@metorial-subspace/list-utils', () => ({
   resolveIdentities: vi.fn(),
   resolveIdentityActors: vi.fn(),
   resolveIdentityCredentials: vi.fn(),
-  resolveProviderConfigs: vi.fn(),
+  resolveProviderConfigVaults: vi.fn(),
   resolveProviderDeployments: vi.fn(),
   resolveProviders: vi.fn(),
   resolveProviderSpecifications: vi.fn()
@@ -89,6 +89,7 @@ vi.mock('@metorial-subspace/module-search', () => ({
 
 vi.mock('@metorial-subspace/module-tenant', () => ({
   checkTenant: vi.fn(),
+  getConsumerOwnedResourceName: vi.fn(async () => null),
   ownerActorSelect: { select: { id: true } },
   getMetorialSolution: vi.fn(async () => ({ oid: 1 })),
   resolveConsumerActorIds: vi.fn(),

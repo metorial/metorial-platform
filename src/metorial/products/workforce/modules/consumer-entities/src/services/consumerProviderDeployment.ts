@@ -371,7 +371,11 @@ class ConsumerProviderDeploymentServiceImpl {
     return (
       servers.find(server => {
         let status = statuses.get(server.id);
-        return status === 'needs_reconnect' || status === 'missing';
+        return (
+          status === 'needs_reconnect' ||
+          status === 'missing_providers' ||
+          status === 'missing'
+        );
       }) ?? null
     );
   }

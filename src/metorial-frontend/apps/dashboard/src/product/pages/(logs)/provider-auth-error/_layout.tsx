@@ -126,7 +126,7 @@ export let ProviderAuthErrorLayout = () => {
               <ExtraItem>
                 <ExtraLabel>Code</ExtraLabel>
                 {group.data.code ? (
-                  <Badge size="1" color="red">
+                  <Badge size="2" color="red">
                     {getErrorLabel(group.data.code)}
                   </Badge>
                 ) : (

@@ -9,6 +9,8 @@ export let env = createValidatedEnv({
     RELAY_URL: v.string(),
 
     ARES_AUTH_URL: v.string(),
+    TWO_FACTOR_SETUP_ENABLED: v.optional(v.string()),
+    WEBAUTHN_RP_ID: v.optional(v.string()),
     ARES_ADMIN_URL: v.string(),
     ARES_SSO_URL: v.string(),
 
@@ -35,6 +37,7 @@ export let env = createValidatedEnv({
   },
 
   keys: {
-    AUTH_TICKET_SECRET: v.string()
+    AUTH_TICKET_SECRET: v.string(),
+    TWO_FACTOR_ENCRYPTION_KEY: v.optional(v.string())
   }
 });

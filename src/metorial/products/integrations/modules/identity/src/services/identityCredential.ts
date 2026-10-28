@@ -159,7 +159,7 @@ class identityCredentialServiceImpl {
                 solutionOid: solution.oid,
                 environmentOid: d.environment.oid,
 
-                ...normalizeStatusForList(d).hasParent
+                ...normalizeStatusForGet(d).hasParent
               },
 
               ...normalizeStatusForList(d).noParent,
@@ -425,6 +425,13 @@ class identityCredentialServiceImpl {
       }
 
       let delegationConfigMap = new Map(delegationConfigs.map(c => [c.id, c]));
+      for (let delegationConfigId of delegationConfigIds) {
+        if (!delegationConfigMap.has(delegationConfigId)) {
+          throw new ServiceError(
+            notFoundError('identity.delegation_config', delegationConfigId)
+          );
+        }
+      }
 
       let combination = await providerCombinationService.getCombinationsInternal({
         tenant: d.tenant,

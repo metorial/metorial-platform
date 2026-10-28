@@ -111,7 +111,7 @@ export let identityController = Controller.create(
       .do(async ctx => {
         let paginator = await identityService.listIdentities({
           instance: ctx.instance,
-          allowDeleted: true,
+          allowDeleted: false,
 
           search: ctx.query.search,
 

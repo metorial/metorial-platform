@@ -31,7 +31,8 @@ export let createCachedFunction = <I, O>(opts: {
   let useRedisClient = createRedisClient({ redisUrl: opts.redisUrl }).lazy();
 
   let getHash = (i: I) => `cache:${version}:${opts.name}:val:${opts.getHash(i)}`;
-  let getTagKeys = (tags: string[]) => tags.map(tag => `cache:${version}:tag:${tag}`);
+  let getTagKeys = (tags: string[]) =>
+    tags.map(tag => `cache:${version}:${opts.name}:tag:${tag}`);
 
   let removeFromTags = async (hash: string, value: O, i: I) => {
     if (!opts.getTags) return;
@@ -136,7 +137,7 @@ export let createCachedFunction = <I, O>(opts: {
       cache.delete(hash);
     }
 
-    await redis.del(tagKey);
+    if (hashes.length) await redis.sRem(tagKey, hashes);
   };
 
   let clear = async (i: I) => {

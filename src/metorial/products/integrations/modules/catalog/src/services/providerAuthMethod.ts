@@ -23,7 +23,10 @@ type ListProviderAuthMethodsParams = {
   adapter?: string;
 };
 
-let matchesAdapter = (value: { adapters?: string[] | null } | null | undefined, adapter?: string) => {
+let matchesAdapter = (
+  value: { adapters?: string[] | null } | null | undefined,
+  adapter?: string
+) => {
   if (!adapter) return true;
 
   let adapters = value?.adapters;
@@ -183,7 +186,7 @@ class providerAuthMethodServiceImpl {
       { ifExists: true }
     );
     if (!providerAuthMethod) {
-      throw new ServiceError(notFoundError('provider_tool', d.providerAuthMethodId));
+      throw new ServiceError(notFoundError('provider_auth_method', d.providerAuthMethodId));
     }
 
     return providerAuthMethod;

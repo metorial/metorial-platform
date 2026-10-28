@@ -70,6 +70,7 @@ model ConsumerAuthClient {
   registrationIp String?
 
   tokenEndpointAuthMethod ConsumerAuthClientTokenEndpointAuthMethod @default(client_secret_basic)
+  requirePkce             Boolean                                   @default(false)
 
   redirectUris String[]
 

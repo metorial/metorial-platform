@@ -6,6 +6,7 @@
   "main": "src/index.ts",
   "scripts": {
     "test": "vitest run --passWithNoTests",
+    "test:e2e": "metorial-e2e",
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
@@ -30,6 +31,7 @@
     "@metorial/fabric": "^1.0.0",
     "@metorial/id": "^1.0.0",
     "@metorial/module-consumer-access": "1.0.0",
+    "@metorial/module-flags": "^1.0.0",
     "@metorial/module-search": "^1.0.0",
     "@metorial/queue": "^1.0.0",
     "@metorial/redis": "1.0.0",
@@ -43,6 +45,7 @@
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",
     "typescript": "5.9.3",
-    "vitest": "^5.0.4"
+    "vitest": "^5.0.4",
+    "@metorial/e2e": "1.0.0"
   }
 }

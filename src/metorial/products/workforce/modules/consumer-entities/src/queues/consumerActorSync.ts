@@ -126,7 +126,7 @@ export let reconcileOrphanedConsumerActorsManyProcessor =
       where: {
         status: 'active',
         OR: [
-          { type: 'consumer' },
+          { type: { in: ['consumer', 'organization_member'] } },
           { privateMetadata: { path: ['$owner'], equals: 'consumer' } },
           { consumerOid: { not: null } },
           { instanceConsumerOid: { not: null } },
@@ -148,7 +148,11 @@ export let reconcileOrphanedConsumerActorsManyProcessor =
 
     let linkedActors = await db.consumerActor.findMany({
       where: { id: { in: identityActors.map(actor => actor.id) } },
-      select: { id: true, instanceConsumer: { select: { id: true } } }
+      select: {
+        id: true,
+        instanceConsumer: { select: { id: true } },
+        consumerProfile: { select: { organizationMemberOid: true } }
+      }
     });
     let linkedActorsById = new Map(linkedActors.map(actor => [actor.id, actor]));
 
@@ -157,7 +161,10 @@ export let reconcileOrphanedConsumerActorsManyProcessor =
       identityActors
         .filter(
           actor =>
-            actor.type !== 'consumer' ||
+            actor.type !==
+              (linkedActorsById.get(actor.id)?.consumerProfile.organizationMemberOid
+                ? 'organization_member'
+                : 'consumer') ||
             !actor.consumerOid ||
             !actor.instanceConsumerOid ||
             !actor.consumerProfileOid

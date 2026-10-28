@@ -897,7 +897,7 @@ let SkillRow = (p: {
         content
       )}
       {p.combined && (
-        <Badge size="1" color="purple">
+        <Badge size="2" color="purple">
           Single Skill
         </Badge>
       )}
@@ -1004,7 +1004,7 @@ let PluginTreeItem = (p: {
               </Text>
             </RowMain>
 
-            <Badge size="1" color="gray">
+            <Badge size="2" color="gray">
               {p.item.identifier}
             </Badge>
 

@@ -30,6 +30,20 @@ describe('assertDeliveryUrlAllowed', () => {
     expectBlocked('http://[::1]/hook');
   });
 
+  it('rejects names that always resolve to loopback', () => {
+    expectBlocked('http://localhost:8080/hook');
+    expectBlocked('http://LOCALHOST./hook');
+    expectBlocked('http://api.localhost/hook');
+    expectBlocked('http://localhost.localdomain/hook');
+    expectBlocked('http://ip6-localhost/hook');
+    expectBlocked('http://ip6-loopback/hook');
+  });
+
+  it('allows names that merely contain localhost', () => {
+    expect(() => assertDeliveryUrlAllowed('https://localhost.example.com/hook')).not.toThrow();
+    expect(() => assertDeliveryUrlAllowed('https://mylocalhost/hook')).not.toThrow();
+  });
+
   it('rejects private ranges', () => {
     expectBlocked('http://10.0.0.5/hook');
     expectBlocked('http://192.168.1.10/hook');

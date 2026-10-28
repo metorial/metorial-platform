@@ -7,7 +7,7 @@ export type DashboardInstanceMagicMcpSessionsGetOutput = {
     object: 'magic_mcp.server';
     id: string;
     status: 'active' | 'archived' | 'deleted';
-    source: 'manual' | 'consumer_provider_template';
+    source: 'manual' | 'consumer_provider_template' | 'explorer';
     providerManagementMode:
       | 'manual'
       | 'inherited_from_provider_template'
@@ -137,11 +137,21 @@ export type DashboardInstanceMagicMcpSessionsGetOutput = {
     name: string | null;
     description: string | null;
     metadata: Record<string, any>;
-    ownerActor: {
-      id: string;
-      type: 'person' | 'agent' | 'consumer';
-      consumerId: string | null;
-    } | null;
+    access: {
+      source: 'explorer' | null;
+      type: 'public' | 'owner_locked';
+      visibility: 'anyone' | 'owner';
+      owner: {
+        type: 'person' | 'agent' | 'consumer' | 'organization_member';
+        name: string | null;
+        imageUrl: string | null;
+        email: string | null;
+        organizationMember?: { id: string } | undefined;
+        consumer?:
+          | { id: string; profileId: string; portalId: string | null }
+          | undefined;
+      } | null;
+    };
     createdAt: Date;
     updatedAt: Date;
   } | null;
@@ -182,6 +192,22 @@ export type DashboardInstanceMagicMcpSessionsGetOutput = {
     name: string | null;
     description: string | null;
     metadata: Record<string, any>;
+    enableSkillEditing: boolean;
+    access: {
+      source: 'explorer' | null;
+      type: 'public' | 'owner_locked';
+      visibility: 'anyone' | 'owner';
+      owner: {
+        type: 'person' | 'agent' | 'consumer' | 'organization_member';
+        name: string | null;
+        imageUrl: string | null;
+        email: string | null;
+        organizationMember?: { id: string } | undefined;
+        consumer?:
+          | { id: string; profileId: string; portalId: string | null }
+          | undefined;
+      } | null;
+    };
     createdAt: Date;
     updatedAt: Date;
   } | null;
@@ -295,7 +321,27 @@ export let mapDashboardInstanceMagicMcpSessionsGetOutput =
                 ]
               ]
             ],
-            ['owner_actor', 1, [1, ['consumer_id']]],
+            [
+              'access',
+              0,
+              [
+                1,
+                [
+                  [
+                    'owner',
+                    0,
+                    [
+                      1,
+                      [
+                        'image_url',
+                        'organization_member',
+                        ['consumer', 0, [1, ['profile_id', 'portal_id']]]
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ],
             'created_at',
             'updated_at'
           ]
@@ -308,6 +354,28 @@ export let mapDashboardInstanceMagicMcpSessionsGetOutput =
           1,
           [
             ['servers', 0, [2, [3, [[0, [1, ['tool_filters']]]]]]],
+            'enable_skill_editing',
+            [
+              'access',
+              0,
+              [
+                1,
+                [
+                  [
+                    'owner',
+                    0,
+                    [
+                      1,
+                      [
+                        'image_url',
+                        'organization_member',
+                        ['consumer', 0, [1, ['profile_id', 'portal_id']]]
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ],
             'created_at',
             'updated_at'
           ]

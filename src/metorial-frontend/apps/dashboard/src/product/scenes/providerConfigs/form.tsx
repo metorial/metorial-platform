@@ -44,6 +44,7 @@ export type ProviderConfigFormProps = {
   embedded?: boolean;
   defaultName?: string;
   hideDetailsInputs?: boolean;
+  source?: 'explorer';
 };
 
 export let ProviderConfigForm = (
@@ -114,7 +115,8 @@ export let ProviderConfigForm = (
         ...(props.providerDeploymentId
           ? { providerDeploymentId: props.providerDeploymentId }
           : {}),
-        providerConfigVaultId: values.providerConfigVaultId
+        providerConfigVaultId: values.providerConfigVaultId,
+        ...(props.source ? { source: props.source } : {})
       });
 
       if (!result) return;
@@ -132,7 +134,8 @@ export let ProviderConfigForm = (
       ...(props.providerDeploymentId
         ? { providerDeploymentId: props.providerDeploymentId }
         : {}),
-      value: values.configData
+      value: values.configData,
+      ...(props.source ? { source: props.source } : {})
     });
 
     if (!result) return;

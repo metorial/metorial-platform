@@ -18,6 +18,7 @@ import type {
   ProviderDeployment as SubspaceProviderDeployment,
   ProviderListingGroup as SubspaceProviderListingGroup,
   ProviderSetupSession as SubspaceProviderSetupSession,
+  ProviderSetupSessionEmail as SubspaceProviderSetupSessionEmail,
   PublicMcpServer as SubspacePublicMcpServer,
   PublicMcpServerGrant as SubspacePublicMcpServerGrant,
   Session as SubspaceSession,
@@ -112,7 +113,10 @@ import {
   WorkspacePolicyAssignment,
   WorkspaceProfile
 } from '@metorial/db';
-import type { OAuthAuthorizationRequestWithRelations } from '@metorial/module-machine-access';
+import type {
+  OAuthAuthorizationRequestWithRelations,
+  SecretVerification
+} from '@metorial/module-machine-access';
 
 export type MachineAccessInput =
   | {
@@ -212,6 +216,8 @@ export type AuditSubspaceProviderDeployment = SubspaceProviderDeployment & {
 export type AuditSubspaceProviderSetupSession = SubspaceProviderSetupSession & {
   provider?: { id: string; name: string } | null;
 };
+
+export type AuditSubspaceProviderSetupSessionEmail = SubspaceProviderSetupSessionEmail;
 
 export type AuditSubspacePublicMcpServer = SubspacePublicMcpServer & {
   provider: { id: string; name: string };
@@ -615,6 +621,7 @@ export type ProjectCreateInput = {
 };
 
 export type ProjectUpdateInput = {
+  hidePublicRemoteProviders?: boolean;
   name?: string;
   slug?: string;
   onlyAllowTrustedProviders?: boolean;
@@ -792,6 +799,7 @@ export type AuditSandboxImageBuild = {
 
 export type SandboxMachineLifecycleAction = 'start' | 'pause' | 'hibernate' | 'restart';
 export type SandboxMachineAccessKind = 'shell' | 'files' | 'port';
+export type SandboxMachineExecOutcome = 'exited' | 'deadline' | 'disconnected' | 'rejected';
 
 export type StoreItemFabricOperation = {
   type: 'add' | 'modify' | 'remove';
@@ -893,6 +901,7 @@ export interface FabricEvents {
   'sandbox.machine.deleted:after': { auditScope: AuditScope; machine: AuditSandboxMachine };
   'sandbox.machine.lifecycle:after': { auditScope: AuditScope; machine: AuditSandboxMachine; action: SandboxMachineLifecycleAction };
   'sandbox.machine.access.created:after': { auditScope: AuditScope; machine: AuditSandboxMachine; kind: SandboxMachineAccessKind; ports: number[] | '*' | null; ttlSeconds: number | null };
+  'sandbox.machine.exec:after': { auditScope: AuditScope; machine: AuditSandboxMachine; commandByteSize: number; outcome: SandboxMachineExecOutcome; exitCode: number | null; timedOut: boolean; durationMs: number };
 
   'sandbox.disk.created:after': { auditScope: AuditScope; disk: AuditSandboxDisk; sourceDiskId: string | null; sourceImageId: string | null };
   'sandbox.disk.updated:after': { auditScope: AuditScope; disk: AuditSandboxDisk; previousDisk: AuditSandboxDisk };
@@ -1007,8 +1016,8 @@ export interface FabricEvents {
   'organization.project.retention.updated:after': { organization: Organization; project: Project; previousProject: Project; auditScope: AuditScope; input: { logRetentionInDays?: number; enforceSessionExpiry?: boolean } };
   'organization.project.auth_config_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { allowAuthConfigExport?: boolean; allowAuthConfigImport?: boolean; onlyAllowOAuthAuthMethods?: boolean; consumerAuthClientRegistrationsPerHourLimit?: number; consumerAuthClientRegistrationsPerMinuteLimit?: number } };
   'organization.project.auth_config_configuration.updated:after': { organization: Organization; project: Project; previousProject: Project; auditScope: AuditScope; input: { allowAuthConfigExport?: boolean; allowAuthConfigImport?: boolean; onlyAllowOAuthAuthMethods?: boolean; consumerAuthClientRegistrationsPerHourLimit?: number; consumerAuthClientRegistrationsPerMinuteLimit?: number }; configuration: { allowAuthConfigExport: boolean; allowAuthConfigImport: boolean; onlyAllowOAuthAuthMethods: boolean }; previousConfiguration: { allowAuthConfigExport: boolean; allowAuthConfigImport: boolean; onlyAllowOAuthAuthMethods: boolean } };
-  'organization.project.workforce_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { autoAddOrganizationMembersToPortals?: boolean } };
-  'organization.project.workforce_configuration.updated:after': { organization: Organization; project: Project; previousProject: Project; auditScope: AuditScope; input: { autoAddOrganizationMembersToPortals?: boolean } };
+  'organization.project.workforce_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { autoAddOrganizationMembersToPortals?: boolean; allowConsumerSkillEditing?: boolean } };
+  'organization.project.workforce_configuration.updated:after': { organization: Organization; project: Project; previousProject: Project; auditScope: AuditScope; input: { autoAddOrganizationMembersToPortals?: boolean; allowConsumerSkillEditing?: boolean } };
   'organization.project.integration_naming_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { useIntegrationNames?: boolean } };
   'organization.project.integration_naming_configuration.updated:after': { organization: Organization; project: Project; auditScope: AuditScope; input: { useIntegrationNames?: boolean }; configuration: { useIntegrationNames: boolean }; previousConfiguration: { useIntegrationNames: boolean } };
   'organization.project.tool_calling_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { collectOperationDescriptionForToolCalls?: boolean, messageProcessingTimeoutMs?: number } };
@@ -1019,6 +1028,8 @@ export interface FabricEvents {
   'organization.project.data_retention_configuration.updated:after': { organization: Organization; project: Project; auditScope: AuditScope; input: { dataRetentionLevel?: ProjectDataRetentionLevel, storeToolCallAttachments?: boolean, collectErrors?: boolean, disableCallbacks?: boolean }; configuration: { dataRetentionLevel: ProjectDataRetentionLevel, storeToolCallAttachments: boolean, collectErrors: boolean, disableCallbacks: boolean }; previousConfiguration: { dataRetentionLevel: ProjectDataRetentionLevel, storeToolCallAttachments: boolean, collectErrors: boolean, disableCallbacks: boolean } };
   'organization.project.reduced_subprocessors_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { reducedSubprocessors?: boolean } };
   'organization.project.reduced_subprocessors_configuration.updated:after': { organization: Organization; project: Project; auditScope: AuditScope; input: { reducedSubprocessors?: boolean }; configuration: { reducedSubprocessors: boolean }; previousConfiguration: { reducedSubprocessors: boolean } };
+  'organization.project.resource_ownership_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { allowApiAccessToConsumerOwnedResources?: boolean, allowMemberAccessToConsumerOwnedResources?: boolean } };
+  'organization.project.resource_ownership_configuration.updated:after': { organization: Organization; project: Project; auditScope: AuditScope; input: { allowApiAccessToConsumerOwnedResources?: boolean, allowMemberAccessToConsumerOwnedResources?: boolean }; configuration: { allowApiAccessToConsumerOwnedResources: boolean, allowMemberAccessToConsumerOwnedResources: boolean }; previousConfiguration: { allowApiAccessToConsumerOwnedResources: boolean, allowMemberAccessToConsumerOwnedResources: boolean } };
   'organization.project.skill_sync_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { skillSyncGitLfsThresholdBytes?: number | null } };
   'organization.project.skill_sync_configuration.updated:after': { organization: Organization; project: Project; previousProject: Project; auditScope: AuditScope; input: { skillSyncGitLfsThresholdBytes?: number | null } };
   'organization.project.brand.updated:before': { organization: Organization; project: Project; brand: AuditProjectBrand; input: { name?: string; imageFileId?: string | null; image?: PrismaJson.EntityImage }; auditScope: AuditScope };
@@ -1095,7 +1106,7 @@ export interface FabricEvents {
   'machine_access.deleted:before': { machineAccess: MachineAccess; organization: Organization; auditScope: AuditScope };
   'machine_access.deleted:after': { machineAccess: MachineAccess; organization: Organization; auditScope: AuditScope };
 
-  'machine_access.api_key.created:before': { machineAccess: MachineAccess; organization: Organization; auditScope: AuditScope };
+  'machine_access.api_key.created:before': { machineAccess: MachineAccess; organization: Organization; auditScope: AuditScope; kind: ApiKey['kind'] };
   'machine_access.api_key.created:after': { machineAccess: MachineAccess; apiKey: ApiKey; organization: Organization; auditScope: AuditScope };
   'machine_access.api_key.updated:before': { machineAccess: MachineAccess; apiKey: ApiKey; organization: Organization; auditScope: AuditScope };
   'machine_access.api_key.updated:after': { machineAccess: MachineAccess; apiKey: ApiKey; previousApiKey: ApiKey; organization: Organization; auditScope: AuditScope };
@@ -1106,6 +1117,8 @@ export interface FabricEvents {
   'machine_access.api_key.expired:before': { machineAccess: MachineAccess; apiKey: ApiKey; organization: Organization; auditScope: AuditScope };
   'machine_access.api_key.expired:after': { machineAccess: MachineAccess; apiKey: ApiKey; previousApiKey: ApiKey; organization: Organization; auditScope: AuditScope };
   'machine_access.api_key:revealed': { machineAccess: MachineAccess; apiKey: ApiKey; organization: Organization; auditScope: AuditScope };
+
+  'machine_access.secret.requested:before': { secretType: 'api_key' | 'service_account_client_secret'; instance: Instance | null; verification: SecretVerification; auditScope?: AuditScope };
 
   'outpost.created:before': { organization: Organization; input: { name: string; description?: string }; auditScope: AuditScope };
   'outpost.created:after': { organization: Organization; input: { name: string; description?: string }; auditScope: AuditScope; outpost: Outpost };
@@ -1410,6 +1423,7 @@ export interface FabricEvents {
   'skill.plugin.updated:after': { organization: Organization; instance: Instance; skillPlugin: SkillPlugin };
   'skill.plugin.archived:after': { organization: Organization; instance: Instance; skillPlugin: SkillPlugin };
   'skill.plugin.deleted:after': { organization: Organization; instance: Instance; skillPlugin: SkillPlugin };
+  'skill.plugin.slug.reassigned:after': { skillPlugin: SkillPlugin; previousSlug: string };
 
   'skill.marketplace.created:before': { organization: Organization; instance: Instance };
   'skill.marketplace.created:after': { organization: Organization; instance: Instance; skillMarketplace: SkillMarketplace };
@@ -1454,7 +1468,7 @@ export interface FabricEvents {
   'file.created:after': FileFabricOwner & { file: AuditFile };
   'file.deleted:after': FileFabricOwner & { file: AuditFile };
 
-  'document.created:before': { instance: Instance };
+  'document.created:before': { instance: Instance; isTemplateBacking: boolean };
   'document.created:after': { instance: Instance; auditScope: AuditScope; document: AuditDocument };
   'document.deleted:after': { instance: Instance; auditScope: AuditScope; document: AuditDocument };
   'document.comment_thread.created:after': { instance: Instance; auditScope: AuditScope; document: AuditDocumentCommentEventDocument; thread: DocumentCommentThread; comment: DocumentComment };
@@ -1598,6 +1612,11 @@ export interface FabricEvents {
   'provider.setup_session.created:after': ProviderEventBase & { setupSession: AuditSubspaceProviderSetupSession };
   'provider.setup_session.updated:before': ProviderEventBase;
   'provider.setup_session.updated:after': ProviderEventBase & { setupSession: AuditSubspaceProviderSetupSession; previousSetupSession: AuditSubspaceProviderSetupSession };
+  'provider.setup_session.deleted:before': ProviderEventBase;
+  'provider.setup_session.deleted:after': ProviderEventBase & { setupSession: AuditSubspaceProviderSetupSession };
+
+  'provider.setup_session.email.created:before': ProviderEventBase & { setupSession: AuditSubspaceProviderSetupSession; recipient: { email: string; organizationMemberId: string | null } };
+  'provider.setup_session.email.created:after': ProviderEventBase & { setupSession: AuditSubspaceProviderSetupSession; setupSessionEmail: AuditSubspaceProviderSetupSessionEmail };
 
   'provider.public_mcp_server.created:before': ProviderEventBase;
   'provider.public_mcp_server.created:after': ProviderEventBase & { publicMcpServer: AuditSubspacePublicMcpServer };

@@ -4,6 +4,10 @@
   "author": "Tobias Herber",
   "license": "FSL-1.1",
   "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./markdown": "./src/markdown.tsx"
+  },
   "scripts": {
     "test": "vitest run --passWithNoTests",
     "lint": "prettier src/**/*.ts --check"
@@ -11,7 +15,7 @@
   "dependencies": {
     "@looped/hooks": "^0.1.3",
     "@metorial/ui": "^1.0.0",
-    "apexcharts": "^8.2.0",
+    "apexcharts": "^8.4.0",
     "react": "19.3.0",
     "react-apexcharts": "^2.1.1",
     "react-markdown": "^10.1.0",

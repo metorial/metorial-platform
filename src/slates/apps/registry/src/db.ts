@@ -1,9 +1,16 @@
-import { PrismaPg } from '@prisma/adapter-pg';
+import { createPrismaPgAdapter } from '@lowerdeck/prisma-pg';
 import { PrismaClient } from '../prisma/generated/client';
 
-let adapter = new PrismaPg({
-  connectionString: process.env.SLATES_REGISTRY_DATABASE_URL ?? process.env.DATABASE_URL
-});
+let adapter = createPrismaPgAdapter(
+  {
+    connectionString: process.env.SLATES_REGISTRY_DATABASE_URL ?? process.env.DATABASE_URL
+  },
+  {
+    environment: process.env.METORIAL_ENV,
+    databaseName: 'slates-registry',
+    role: 'primary'
+  }
+);
 
 export let db = new PrismaClient({ adapter });
 

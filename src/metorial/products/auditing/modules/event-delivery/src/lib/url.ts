@@ -4,6 +4,19 @@ import { isIP } from 'net';
 
 export class DeliveryUrlNotAllowedError extends Error {}
 
+let loopbackHostnames = [
+  'localhost',
+  'localhost.localdomain',
+  'ip6-localhost',
+  'ip6-loopback'
+];
+
+let isLoopbackHostname = (hostname: string) => {
+  let name = hostname.replace(/\.$/, '');
+
+  return loopbackHostnames.includes(name) || name.endsWith('.localhost');
+};
+
 export let assertDeliveryUrlAllowed = (url: string) => {
   let parsed: URL;
   try {
@@ -23,6 +36,10 @@ export let assertDeliveryUrlAllowed = (url: string) => {
   let hostname = parsed.hostname.replace(/^\[|\]$/g, '');
   if (isIP(hostname) && !isPublicIp(hostname)) {
     throw new DeliveryUrlNotAllowedError('Delivery URL must not point at a private address');
+  }
+
+  if (isLoopbackHostname(hostname)) {
+    throw new DeliveryUrlNotAllowedError('Delivery URL must not point at localhost');
   }
 
   return parsed;

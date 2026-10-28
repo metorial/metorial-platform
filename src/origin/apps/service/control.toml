@@ -14,6 +14,7 @@ run = ["dev:start"]
 
 [endpoints.api]
 port = 52090
+health = "/ping"
 env = [{ key = "ORIGIN_API_PORT", value = "{{BIND_PORT}}" }]
 
 [endpoints.scm]
@@ -22,6 +23,10 @@ env = [
   { key = "ORIGIN_SCM_PORT", value = "{{BIND_PORT}}" },
   { key = "ORIGIN_SERVICE_PUBLIC_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
 ]
+
+[e2e]
+start = ["e2e:start"]
+image = "origin"
 
 [[resources]]
 type = "redis"
@@ -50,3 +55,11 @@ package = "@metorial/origin"
 name = "origin"
 engine = "postgres"
 env = "DATABASE_URL"
+
+[[ci.images]]
+name = "origin"
+group = "oss"
+dockerfile = "Dockerfile"
+image = "metorial/mte-origin"
+ecr = "metorial-enterprise-saas/mte-origin"
+canonical = "ghcr.io/metorial/mte-origin"

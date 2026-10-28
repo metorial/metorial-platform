@@ -186,6 +186,7 @@ class ConsumerProviderSetupSessionServiceImpl {
         }),
         identityActorId: consumerIdentity.identityActorId,
         identityId: consumerIdentity.identityId,
+        ownerActorId: consumerIdentity.identityActorId,
         redirectUrl: await buildProviderSetupRedirectUrl({
           portal,
           requestOrigin: d.requestOrigin

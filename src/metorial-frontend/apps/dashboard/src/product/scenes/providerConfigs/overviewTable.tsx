@@ -15,16 +15,18 @@ import {
 import { Badge, RenderDate, Text, confirm } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
 import { RiDeleteBinLine } from '@remixicon/react';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
 import { Table as DashboardTable } from '@metorial/table';
 import {
   FilterPayload,
+  TableFilter,
   TableStateProvider,
   TableStateProviderResult,
   getDateRangeFilterValue,
   getEnumListFilterValue,
-  getStringFilterValue
+  getListFilterValue
 } from '@metorial/table';
+import { entityFilters } from '../entityFilters';
 
 type ProviderConfig = DashboardInstanceProviderDeploymentsConfigsListOutput['items'][number];
 
@@ -50,6 +52,58 @@ let getStatusFilterValue = (
 ): DashboardInstanceProviderDeploymentsConfigsListQuery['status'] =>
   getEnumListFilterValue(value, ['active', 'archived']);
 
+export let useProviderConfigFilters = (instanceId: string | null | undefined) =>
+  useMemo<TableFilter<ProviderConfigRow>[]>(
+    () => [
+      {
+        id: 'status',
+        fields: ['status'],
+        label: 'Status',
+        description: 'Filter by status',
+        type: 'select',
+        options: [
+          { id: 'active', label: 'Active' },
+          { id: 'archived', label: 'Archived' }
+        ]
+      },
+      entityFilters.provider(instanceId),
+      entityFilters.providerSpecification(instanceId),
+      entityFilters.providerDeployment(instanceId),
+      entityFilters.providerConfigVault(instanceId),
+      {
+        id: 'createdAt',
+        fields: ['createdAt'],
+        label: 'Created',
+        description: 'Filter by created date',
+        type: 'date'
+      },
+      {
+        id: 'updatedAt',
+        fields: ['updatedAt'],
+        label: 'Updated',
+        description: 'Filter by updated date',
+        type: 'date'
+      }
+    ],
+    [instanceId]
+  );
+
+export let getProviderConfigFilterQuery = (
+  filter: Record<string, FilterPayload>,
+  filters?: ProviderConfigFilters
+) => ({
+  status: getStatusFilterValue(filter.status) ?? filters?.status,
+  providerId: getListFilterValue(filter.providerId) ?? filters?.providerId,
+  providerSpecificationId:
+    getListFilterValue(filter.providerSpecificationId) ?? filters?.providerSpecificationId,
+  providerDeploymentId:
+    getListFilterValue(filter.providerDeploymentId) ?? filters?.providerDeploymentId,
+  providerConfigVaultId:
+    getListFilterValue(filter.providerConfigVaultId) ?? filters?.providerConfigVaultId,
+  createdAt: getDateRangeFilterValue(filter.createdAt) ?? filters?.createdAt,
+  updatedAt: getDateRangeFilterValue(filter.updatedAt) ?? filters?.updatedAt
+});
+
 type ProviderConfigsOverviewTableProps = {
   instanceId: string;
   organization: ReturnType<typeof useCurrentOrganization>;
@@ -70,23 +124,11 @@ let providerConfigsOverviewTableState: TableStateProvider<
   }
 ) => {
   let configs = useProviderConfigs(props.instanceId, {
+    ownership: 'all',
     order: 'desc',
     ...props.filters,
-    status: getStatusFilterValue(opts.filter.status) ?? props.filters?.status,
-    id: getStringFilterValue(opts.filter.id) ?? props.filters?.id,
-    providerId: getStringFilterValue(opts.filter.providerId) ?? props.filters?.providerId,
-    providerSpecificationId:
-      getStringFilterValue(opts.filter.providerSpecificationId) ??
-      props.filters?.providerSpecificationId,
-    providerDeploymentId:
-      getStringFilterValue(opts.filter.providerDeploymentId) ??
-      props.filters?.providerDeploymentId,
-    providerConfigVaultId:
-      getStringFilterValue(opts.filter.providerConfigVaultId) ??
-      props.filters?.providerConfigVaultId,
-    search: opts.search ?? props.filters?.search,
-    createdAt: getDateRangeFilterValue(opts.filter.createdAt) ?? props.filters?.createdAt,
-    updatedAt: getDateRangeFilterValue(opts.filter.updatedAt) ?? props.filters?.updatedAt
+    ...getProviderConfigFilterQuery(opts.filter, props.filters),
+    search: opts.search ?? props.filters?.search
   });
 
   let providerIds = [
@@ -259,68 +301,6 @@ let providerConfigsOverviewTable = new DashboardTable<
       render: row => <RenderDate date={row.updatedAt} />
     }
   ])
-  .filters([
-    {
-      id: 'status',
-      fields: ['status'],
-      label: 'Status',
-      description: 'Filter by status',
-      type: 'select',
-      options: [
-        { id: 'active', label: 'Active' },
-        { id: 'archived', label: 'Archived' }
-      ]
-    },
-    {
-      id: 'id',
-      fields: ['id'],
-      label: 'Config ID',
-      description: 'Filter by config ID',
-      type: 'string'
-    },
-    {
-      id: 'providerId',
-      fields: ['providerId'],
-      label: 'Provider ID',
-      description: 'Filter by provider ID',
-      type: 'string'
-    },
-    {
-      id: 'providerSpecificationId',
-      fields: ['providerSpecificationId'],
-      label: 'Specification ID',
-      description: 'Filter by specification ID',
-      type: 'string'
-    },
-    {
-      id: 'providerDeploymentId',
-      fields: ['providerDeploymentId'],
-      label: 'Deployment ID',
-      description: 'Filter by deployment ID',
-      type: 'string'
-    },
-    {
-      id: 'providerConfigVaultId',
-      fields: ['providerConfigVaultId'],
-      label: 'Vault ID',
-      description: 'Filter by vault ID',
-      type: 'string'
-    },
-    {
-      id: 'createdAt',
-      fields: ['createdAt'],
-      label: 'Created',
-      description: 'Filter by created date',
-      type: 'date'
-    },
-    {
-      id: 'updatedAt',
-      fields: ['updatedAt'],
-      label: 'Updated',
-      description: 'Filter by updated date',
-      type: 'date'
-    }
-  ])
   .search('Search configs...')
   .link((row, props) =>
     Paths.instance.providerConfig(
@@ -389,6 +369,7 @@ export let ProviderConfigsOverviewTable = ({
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
+  let tableFilters = useProviderConfigFilters(instanceId);
 
   return renderWithLoader({ organization, project, instance })(() =>
     providerConfigsOverviewTable({
@@ -397,6 +378,7 @@ export let ProviderConfigsOverviewTable = ({
       project,
       instance,
       filters,
+      tableFilters,
       emptyState,
       headerActions
     })

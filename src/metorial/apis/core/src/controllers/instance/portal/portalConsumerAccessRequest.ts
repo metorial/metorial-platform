@@ -8,6 +8,7 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
+import { requireNonPublishableMachineAccess } from '../../../middleware/requireNonPublishableMachineAccess';
 import { consumerAccessRequestPresenter } from '@metorial/presenters';
 import { portalGroup } from './portal';
 
@@ -40,6 +41,7 @@ export let portalConsumerAccessRequestController = Controller.create(
         name: 'List portal access requests',
         description: 'Returns a paginated list of access requests for a portal.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.portal.access:read'] }))
       .use(hasFlags(['paid-portals', 'portals-access']))
       .query(
@@ -83,6 +85,7 @@ export let portalConsumerAccessRequestController = Controller.create(
           description: 'Retrieves a access request by ID.'
         }
       )
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.portal.access:read'] }))
       .use(hasFlags(['paid-portals', 'portals-access']))
       .output(consumerAccessRequestPresenter)
@@ -103,6 +106,7 @@ export let portalConsumerAccessRequestController = Controller.create(
           description: 'Approves or rejects a access request.'
         }
       )
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.portal.access:write'] }))
       .use(hasFlags(['paid-portals', 'portals-access']))
       .body(

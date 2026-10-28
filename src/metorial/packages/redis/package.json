@@ -9,11 +9,11 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
-    "bullmq": "^6.3.14",
+    "bullmq": "^6.3.19",
     "ioredis": "^6.0.0",
     "mitt": "^3.0.1",
     "nanoid": "^6.0.2",
-    "p-queue": "^9.3.5",
+    "p-queue": "^10.0.0",
     "redis": "^6.3.0",
     "@lowerdeck/serialize": "workspace:2.0.0",
     "@lowerdeck/execution-context": "workspace:2.0.0",

@@ -5,6 +5,9 @@
   "version": "1.0.0",
   "private": true,
   "bin": "./src/cli.ts",
+  "scripts": {
+    "test": "bun test e2e"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },

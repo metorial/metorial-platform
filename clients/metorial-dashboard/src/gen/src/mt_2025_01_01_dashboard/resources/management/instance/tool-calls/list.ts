@@ -195,12 +195,20 @@ export type ManagementInstanceToolCallsListQuery = {
   providerAuthConfigId?: string | string[] | undefined;
   agentId?: string | string[] | undefined;
   actorId?: string | string[] | undefined;
+  consumerProfileId?: string | string[] | undefined;
   consumerId?: string | string[] | undefined;
   identityId?: string | string[] | undefined;
   agentInstanceId?: string | string[] | undefined;
   toolId?: string | string[] | undefined;
+  status?:
+    | 'waiting_for_response'
+    | 'succeeded'
+    | 'failed'
+    | ('waiting_for_response' | 'succeeded' | 'failed')[]
+    | undefined;
   createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
   updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
+  search?: string | undefined;
 };
 
 export let mapManagementInstanceToolCallsListQuery =
@@ -221,6 +229,7 @@ export let mapManagementInstanceToolCallsListQuery =
             'provider_auth_config_id',
             'agent_id',
             'actor_id',
+            'consumer_profile_id',
             'consumer_id',
             'identity_id',
             'agent_instance_id',

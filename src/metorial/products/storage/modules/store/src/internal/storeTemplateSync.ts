@@ -339,6 +339,7 @@ class InternalStoreTemplateSyncServiceImpl {
           if (
             store.name !== d.storeTemplate.name ||
             store.access !== 'public_read' ||
+            store.pathMode !== 'unicode' ||
             !store.isReadOnly ||
             !store.isTemplateBacking ||
             store.parentStoreTemplateOid !== d.storeTemplate.oid
@@ -350,6 +351,7 @@ class InternalStoreTemplateSyncServiceImpl {
               data: {
                 name: d.storeTemplate.name,
                 access: 'public_read',
+                pathMode: 'unicode',
                 isReadOnly: true,
                 isTemplateBacking: true,
                 parentStoreTemplateOid: d.storeTemplate.oid
@@ -368,6 +370,7 @@ class InternalStoreTemplateSyncServiceImpl {
             id: await ID.generateId('store'),
             name: d.storeTemplate.name,
             access: 'public_read',
+            pathMode: 'unicode',
             itemCount: 0,
             projectOid: d.project.oid,
             instanceOid: d.instance.oid,

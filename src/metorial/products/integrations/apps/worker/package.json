@@ -12,6 +12,7 @@
     "sentry:sourcemaps": "(sentry-cli sourcemaps inject --org metorial --project mte-subspace-worker ./dist && sentry-cli sourcemaps upload --org metorial --project mte-subspace-worker ./dist) || true",
     "sentry:sourcemaps:if-token": "sh -c 'if [ -n \"$SENTRY_AUTH_TOKEN\" ]; then bun run sentry:sourcemaps; else echo \"Skipping Sentry sourcemap upload\"; fi'",
     "dev:start": "bun --watch ./src/server.ts",
+    "e2e:start": "bun ./src/server.ts",
     "control:db:generate": "true",
     "control:db:push": "true"
   },
@@ -45,8 +46,8 @@
     "@metorial-subspace/provider-native": "^1.0.0",
     "@metorial-subspace/provider-shuttle": "^1.0.0",
     "@metorial-subspace/provider-slates": "^1.0.0",
-    "@sentry/bun": "^10.76.2",
-    "@vercel/ncc": "^0.38.4",
+    "@sentry/bun": "^11.8.0",
+    "@vercel/ncc": "^0.45.0",
     "@sentry/cli": "^3.8.0",
     "@metorial-subspace/module-callback": "^1.0.0",
     "@lowerdeck/env": "workspace:2.0.0",

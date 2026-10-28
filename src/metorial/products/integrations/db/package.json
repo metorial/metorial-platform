@@ -30,13 +30,14 @@
     "@lowerdeck/validation": "workspace:2.0.0",
     "@metorial-subspace/tsconfig": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.32.1",
-    "@prisma/adapter-pg": "^7.10.0",
-    "@prisma/client": "^7.10.0",
+    "@prisma/adapter-pg": "^7.10.1",
+    "@prisma/client": "^7.10.1",
     "@prisma/extension-read-replicas": "^0.5.0",
-    "dotenv": "^18.0.7",
+    "dotenv": "^18.0.8",
     "ioredis": "^6.0.0",
-    "p-queue": "^9.3.5",
-    "prisma": "^7.10.0",
-    "prisma-json-types-generator": "^5.1.1"
+    "p-queue": "^10.0.0",
+    "prisma": "^7.10.1",
+    "prisma-json-types-generator": "^5.2.0",
+    "@lowerdeck/prisma-pg": "workspace:2.0.0"
   }
 }

@@ -13,10 +13,12 @@ vi.mock('@metorial/fabric', () => ({
 
 let clears: { cache: string; tag: string }[] = [];
 let cache = (name: string) => ({
-  clearByTag: async (tag: string) => {
+  clearByTagAndWait: async (tag: string) => {
     clears.push({ cache: name, tag });
   }
 });
+
+let pendingAfterCommit: (() => Promise<void>)[] = [];
 
 vi.mock('../src/lib/cache', async () => {
   let actual = await vi.importActual<any>('../src/lib/cache');
@@ -31,7 +33,12 @@ vi.mock('../src/lib/cache', async () => {
   };
 });
 vi.mock('@metorial/cache', () => ({ createCachedFunction: () => vi.fn() }));
-vi.mock('@metorial/db', () => ({ db: {} }));
+vi.mock('@metorial/db', () => ({
+  db: {},
+  addAwaitedAfterTransactionHook: async (hook: () => Promise<void>) => {
+    pendingAfterCommit.push(hook);
+  }
+}));
 vi.mock('../src/services/outpostInstance', () => ({ outpostInstanceService: {} }));
 vi.mock('../src/services/outpostTokenKeyPair', () => ({ outpostTokenKeyPairService: {} }));
 
@@ -42,6 +49,10 @@ registerOutpostCacheInvalidation();
 
 let fire = async (event: string, payload: any) => {
   for (let handler of listeners.get(event) ?? []) await handler(payload);
+
+  expect(clears).toEqual([]);
+
+  for (let hook of pendingAfterCommit.splice(0)) await hook();
 };
 
 let tagsClearedIn = (name: string) =>
@@ -50,6 +61,7 @@ let tagsClearedIn = (name: string) =>
 describe('outpost cache invalidation', () => {
   beforeEach(() => {
     clears = [];
+    pendingAfterCommit = [];
   });
 
   it.each([

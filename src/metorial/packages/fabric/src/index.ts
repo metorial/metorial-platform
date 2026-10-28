@@ -60,6 +60,7 @@ export type {
   AuditSubspaceProviderConfigVault,
   AuditSubspaceProviderDeployment,
   AuditSubspaceProviderSetupSession,
+  AuditSubspaceProviderSetupSessionEmail,
   AuditSubspacePublicMcpServer,
   AuditSubspacePublicMcpServerGrant,
   AuditSubspaceScmRepo,
@@ -79,6 +80,7 @@ export type {
   KeyProviderEventValidation,
   MagicMcpServerMembershipFabricChange,
   ProviderEventBase,
+  SandboxMachineExecOutcome,
   SkillStoreFabricOwner,
   StoreItemFabricOperation
 } from './types';

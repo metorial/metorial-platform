@@ -26,8 +26,14 @@ vi.mock('@metorial-subspace/db', () => ({
   )
 }));
 
+vi.mock('@metorial/module-usage', () => ({
+  recordSessionCreatedUsage: vi.fn(async () => {})
+}));
+
 vi.mock('@metorial-subspace/module-tenant', () => ({
-  getMetorialSolution: vi.fn(async () => ({ oid: 7 }))
+  getMetorialSolution: vi.fn(async () => ({ oid: 7 })),
+  mergeResourceOwners: vi.fn(() => null),
+  ownerActorSelect: {}
 }));
 
 vi.mock('../sessionProvider', () => ({
@@ -35,6 +41,10 @@ vi.mock('../sessionProvider', () => ({
 }));
 
 vi.mock('../sessionProviderInput', () => ({
+  hasOwnerLockedProvider: (providers: { config?: { isOwnerLocked?: boolean } }[]) =>
+    providers.some(provider => !!provider.config?.isOwnerLocked),
+  hasOwnerOnlyVisibleProvider: (providers: { config?: { isOwnerOnlyVisible?: boolean } }[]) =>
+    providers.some(provider => !!provider.config?.isOwnerOnlyVisible),
   sessionProviderInputService: {
     resolveProviderSessionInput: mocks.resolveProviderSessionInput,
     createSessionProvidersForInput: mocks.createSessionProvidersForInput
@@ -71,6 +81,32 @@ describe('createSessionRecord double writes', () => {
       providers: []
     });
   });
+
+  it.each([true, false])(
+    'stores explorer provenance independently of ownership flags (%s)',
+    async enabled => {
+      await createSessionRecord({
+        tenant: linkedTenant as any,
+        environment: linkedEnvironment as any,
+        isEphemeral: false,
+        owner: { ownerActorOid: 5n, isOwnerLocked: false },
+        input: {
+          providers: [],
+          source: 'explorer',
+          isOwnerLocked: enabled,
+          isOwnerOnlyVisible: enabled
+        },
+        resolvedProviders: { template: null, providers: [] } as any
+      });
+
+      expect(createdData()).toMatchObject({
+        source: 'explorer',
+        ownerActorOid: 5n,
+        isOwnerLocked: enabled,
+        isOwnerOnlyVisible: enabled
+      });
+    }
+  );
 
   it('mirrors the tenant and environment references onto the session', async () => {
     await run({ tenant: linkedTenant, environment: linkedEnvironment });
@@ -182,5 +218,114 @@ describe('createSessionRecord double writes', () => {
     });
 
     expect(createdData().sessionEvents).toBeUndefined();
+  });
+});
+
+describe('createSessionRecord ownership', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.sessionCreate.mockResolvedValue({ oid: 1n, id: 'session_1', providers: [] });
+    mocks.createSessionProvidersForInput.mockResolvedValue([]);
+    mocks.resolveProviderSessionInput.mockResolvedValue({
+      templates: new Map(),
+      providers: []
+    });
+  });
+
+  it('is ownerless and unlocked by default', async () => {
+    await run({ tenant: linkedTenant, environment: linkedEnvironment });
+
+    expect(createdData()).toMatchObject({ ownerActorOid: null, isOwnerLocked: false });
+  });
+
+  it('inherits the owner and lock from the template', async () => {
+    mocks.resolveProviderSessionInput.mockResolvedValue({
+      templates: new Map([['st_1', { id: 'st_1', ownerActorOid: 91n, isOwnerLocked: true }]]),
+      providers: []
+    });
+
+    await createSessionRecord({
+      tenant: linkedTenant as any,
+      environment: linkedEnvironment as any,
+      isEphemeral: false,
+      input: { providers: [{ sessionTemplateId: 'st_1' }] }
+    });
+
+    expect(createdData()).toMatchObject({ ownerActorOid: 91n, isOwnerLocked: true });
+  });
+
+  it('inherits a lock from any provider resource', async () => {
+    await createSessionRecord({
+      tenant: linkedTenant as any,
+      environment: linkedEnvironment as any,
+      isEphemeral: false,
+      input: { providers: [{ deploymentId: 'pd_1' }] },
+      resolvedProviders: {
+        template: null,
+        providers: [{ provider: { oid: 1n }, config: { isOwnerLocked: true } }]
+      } as any
+    });
+
+    expect(createdData()).toMatchObject({ ownerActorOid: null, isOwnerLocked: true });
+  });
+
+  it('prefers an explicit owner over the template', async () => {
+    await createSessionRecord({
+      tenant: linkedTenant as any,
+      environment: linkedEnvironment as any,
+      isEphemeral: false,
+      owner: { ownerActorOid: 5n, isOwnerLocked: false },
+      input: { providers: [{ deploymentId: 'pd_1' }] }
+    } as any);
+
+    expect(createdData()).toMatchObject({ ownerActorOid: 5n, isOwnerLocked: false });
+  });
+
+  it('inherits owner-only visibility from the template when owned', async () => {
+    mocks.resolveProviderSessionInput.mockResolvedValue({
+      templates: new Map([
+        [
+          'st_1',
+          { id: 'st_1', ownerActorOid: 91n, isOwnerLocked: true, isOwnerOnlyVisible: true }
+        ]
+      ]),
+      providers: []
+    });
+
+    await createSessionRecord({
+      tenant: linkedTenant as any,
+      environment: linkedEnvironment as any,
+      isEphemeral: false,
+      input: { providers: [{ sessionTemplateId: 'st_1' }] }
+    });
+
+    expect(createdData()).toMatchObject({ ownerActorOid: 91n, isOwnerOnlyVisible: true });
+  });
+
+  it('never marks an unowned session owner-only visible', async () => {
+    await createSessionRecord({
+      tenant: linkedTenant as any,
+      environment: linkedEnvironment as any,
+      isEphemeral: false,
+      input: { providers: [{ deploymentId: 'pd_1' }] },
+      resolvedProviders: {
+        template: null,
+        providers: [{ provider: { oid: 1n }, config: { isOwnerOnlyVisible: true } }]
+      } as any
+    });
+
+    expect(createdData()).toMatchObject({ ownerActorOid: null, isOwnerOnlyVisible: false });
+  });
+
+  it('writes the system-owned flag', async () => {
+    await createSessionRecord({
+      tenant: linkedTenant as any,
+      environment: linkedEnvironment as any,
+      isEphemeral: false,
+      isSystemOwned: true,
+      input: { providers: [{ deploymentId: 'pd_1' }] }
+    } as any);
+
+    expect(createdData()).toMatchObject({ isSystemOwned: true });
   });
 });

@@ -151,6 +151,16 @@ let Day = styled('button').attrs({
   }
 `;
 
+let Extra = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 10px 10px 10px;
+  padding-top: 10px;
+  border-top: 1px solid ${theme.colors.gray300};
+`;
+
 let Footer = styled('footer')`
   display: flex;
   justify-content: flex-end;
@@ -169,6 +179,8 @@ let WeekDay = styled('div')`
 export let DatePicker = (
   props: DatePickerProps & {
     placeholder?: string;
+    icon?: React.ReactNode;
+    extra?: React.ReactNode;
     size?: ButtonSize;
     label: string;
     hideLabel?: boolean;
@@ -198,15 +210,35 @@ export let DatePicker = (
 
           {props.description && <InputDescription>{props.description}</InputDescription>}
 
-          <Trigger
-            style={{
-              ...sizeStyles,
-              fontSize: 14
-            }}
-            disabled={props.disabled}
-          >
-            {state.stringValue || <span data-placeholder>{props.placeholder}</span>}
-          </Trigger>
+          {props.icon ? (
+            <RadixPopover.Trigger asChild>
+              <Button
+                type="button"
+                variant="soft"
+                size={props.size ?? '3'}
+                iconRight={props.icon}
+                aria-label={props.label}
+                disabled={props.disabled}
+                style={{
+                  background: theme.colors.gray300,
+                  borderColor: theme.colors.gray300,
+                  height: `calc(${sizeStyles.height} + 8px)`,
+                  width: `calc(${sizeStyles.height} + 8px)`
+                }}
+              />
+            </RadixPopover.Trigger>
+          ) : (
+            <Trigger
+              style={{
+                ...sizeStyles,
+                fontSize: 14
+              }}
+              aria-label={props.label}
+              disabled={props.disabled}
+            >
+              {state.stringValue || <span data-placeholder>{props.placeholder}</span>}
+            </Trigger>
+          )}
         </div>
 
         <RadixPopover.Portal>
@@ -274,6 +306,8 @@ export let DatePicker = (
                 ))}
               </Month>
             </AnimatePanes>
+
+            {props.extra ? <Extra>{props.extra}</Extra> : null}
 
             <Footer>
               {props.resettable && (

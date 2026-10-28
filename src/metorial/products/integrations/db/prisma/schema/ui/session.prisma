@@ -12,6 +12,7 @@ enum ProviderSetupSessionType {
   auth_only
   config_only
   auth_and_config
+  admin
   auto
 }
 
@@ -19,6 +20,7 @@ enum ProviderSetupSessionTypeConcrete {
   auth_only
   config_only
   auth_and_config
+  admin
 }
 
 enum ProviderSetupSessionUiMode {
@@ -77,6 +79,12 @@ model ProviderSetupSession {
   identityOid BigInt?
   identity    Identity? @relation(fields: [identityOid], references: [oid], onDelete: Cascade)
 
+  source IntegrationResourceSource?
+
+  isOwnerLocked      Boolean @default(false)
+  isOwnerOnlyVisible Boolean @default(false)
+  isSystemOwned      Boolean @default(false)
+
   ownerActorOid BigInt?
   ownerActor    IdentityActor? @relation(fields: [ownerActorOid], references: [oid], onDelete: SetNull)
 
@@ -112,6 +120,7 @@ model ProviderSetupSession {
   expiresAt DateTime
 
   events ProviderSetupSessionEvent[]
+  emails ProviderSetupSessionEmail[]
 
   @@index([createdAt])
   @@index([updatedAt])
@@ -154,6 +163,29 @@ model ProviderSetupSessionEvent {
   createdAt DateTime @default(now())
 
   @@index([type])
+}
+
+model ProviderSetupSessionEmail {
+  oid BigInt @id
+  id  String @unique
+
+  recipientEmail       String
+  organizationMemberId String?
+
+  throttleBucket Int
+
+  setupSessionOid BigInt
+  setupSession    ProviderSetupSession @relation(fields: [setupSessionOid], references: [oid], onDelete: Cascade)
+
+  senderActorOid BigInt?
+  senderActor    TenantActor? @relation(fields: [senderActorOid], references: [oid], onDelete: SetNull)
+
+  failedAt  DateTime?
+  createdAt DateTime  @default(now())
+
+  @@unique([setupSessionOid, recipientEmail, throttleBucket])
+  @@index([senderActorOid])
+  @@index([createdAt])
 }
 
 enum IntegrationSetupSessionStatus {
@@ -214,6 +246,10 @@ model IntegrationSetupSession {
 
   integrationInstanceOid BigInt
   integrationInstance    IntegrationInstance @relation(fields: [integrationInstanceOid], references: [oid], onDelete: Cascade)
+
+  isOwnerLocked      Boolean @default(false)
+  isOwnerOnlyVisible Boolean @default(false)
+  isSystemOwned      Boolean @default(false)
 
   ownerActorOid BigInt?
   ownerActor    IdentityActor? @relation(fields: [ownerActorOid], references: [oid], onDelete: SetNull)

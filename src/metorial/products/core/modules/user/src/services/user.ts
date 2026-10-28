@@ -8,8 +8,16 @@ import {
 } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { Context } from '@metorial/context';
-import { db, ID, User, UserType, withTransaction } from '@metorial/db';
+import {
+  addAfterTransactionHook,
+  db,
+  ID,
+  User,
+  UserType,
+  withTransaction
+} from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
+import { findUserOidsByEmail, normalizeUserEmail } from '../lib/email';
 import { cleanupUserFileImage, resolveUserFileImage } from '../lib/fileImage';
 import { syncUserUpdateQueue } from '../queues/syncUserUpdate';
 
@@ -34,13 +42,11 @@ class UserService {
     type?: UserType;
     context: Context;
   }) {
+    let data = { ...d, input: { ...d.input, email: normalizeUserEmail(d.input.email) } };
+
     return withTransaction(async db => {
-      let existingUser = await db.user.findFirst({
-        where: {
-          email: d.input.email
-        }
-      });
-      if (existingUser) {
+      let existingUserOids = await findUserOidsByEmail(data.input.email);
+      if (existingUserOids.length) {
         throw new ServiceError(
           conflictError({
             message: 'User with this email already exists'
@@ -48,7 +54,7 @@ class UserService {
         );
       }
 
-      await Fabric.fire('user.created:before', d);
+      await Fabric.fire('user.created:before', data);
 
       let user = await db.user.create({
         data: {
@@ -56,7 +62,7 @@ class UserService {
           status: 'active',
           type: d.type ?? 'user',
 
-          email: d.input.email,
+          email: data.input.email,
           name: d.input.name,
           image: d.input.image ?? { type: 'default' },
 
@@ -64,7 +70,7 @@ class UserService {
         }
       });
 
-      await Fabric.fire('user.created:after', { ...d, user, performedBy: user });
+      await Fabric.fire('user.created:after', { ...data, user, performedBy: user });
 
       return user;
     });
@@ -85,7 +91,24 @@ class UserService {
   }) {
     await this.ensureUserActive(d.user);
 
+    let nextEmail =
+      d.input.email !== undefined &&
+      normalizeUserEmail(d.input.email) !== normalizeUserEmail(d.user.email)
+        ? normalizeUserEmail(d.input.email)
+        : undefined;
+
     return withTransaction(async db => {
+      if (nextEmail !== undefined) {
+        let existingUserOids = await findUserOidsByEmail(nextEmail);
+        if (existingUserOids.length) {
+          throw new ServiceError(
+            conflictError({
+              message: 'User with this email already exists'
+            })
+          );
+        }
+      }
+
       await Fabric.fire('user.updated:before', { ...d, performedBy: d.user });
 
       let nextImage = d.input.image;
@@ -101,7 +124,7 @@ class UserService {
         where: { id: d.user.id },
         data: {
           name: d.input.name,
-          email: d.input.email,
+          email: nextEmail,
           image: nextImage,
           firstName: d.input.firstName,
           lastName: d.input.lastName,
@@ -120,9 +143,11 @@ class UserService {
         );
       }
 
-      await syncUserUpdateQueue.add({
-        userId: user.id
-      });
+      await addAfterTransactionHook(() =>
+        syncUserUpdateQueue.add({
+          userId: user.id
+        })
+      );
 
       await Fabric.fire('user.updated:after', { ...d, user, performedBy: d.user });
 

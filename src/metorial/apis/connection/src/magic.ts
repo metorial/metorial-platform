@@ -7,12 +7,20 @@ import {
 import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
 import type { Context } from '@lowerdeck/hono';
 import { getSentry } from '@lowerdeck/sentry';
+import type { RequestScopedToolsResolver } from '@metorial-subspace/module-connection';
+import {
+  assertCanUseCoreOwnedResources,
+  getOwnershipAccessor,
+  internalOwnershipAccessor,
+  subspaceScopeService
+} from '@metorial-subspace/module-tenant';
 import { extractToken } from '@metorial/bearer';
 import { Instance } from '@metorial/db';
 import { generateSnowflakeId } from '@metorial/id';
 import { AuthInfo } from '@metorial/module-access';
 import {
   consumerIntegrationService,
+  createSkillEditingTools,
   enqueueMaterializeMagicMcpSessionOwnership
 } from '@metorial/module-consumer-entities';
 import {
@@ -129,7 +137,7 @@ let ensureMagicMcpApiKeyAccess = async (d: {
   magicMcpTarget: MagicMcpTargetForRouting;
 }): Promise<MagicMcpSessionOwnerConsumerProfile | null> => {
   let requestForAuth = toApiKeyRequest(d.request, d.tokenSecret);
-  let { instance, auth } = await authenticateAndResolveInstance(
+  let { instance, auth, organizationActor } = await authenticateAndResolveInstance(
     requestForAuth,
     d.url,
     d.authenticate
@@ -171,6 +179,16 @@ let ensureMagicMcpApiKeyAccess = async (d: {
 
     return auth.restrictions.consumer.consumerProfile;
   }
+
+  let accessor = internalOwnershipAccessor;
+  if (organizationActor) {
+    let { tenant } = await subspaceScopeService.ensureForInstance(instance);
+    accessor = await getOwnershipAccessor({ tenant, organizationActor });
+  }
+
+  await assertCanUseCoreOwnedResources(accessor, [d.magicMcpTarget.target], {
+    resource: d.magicMcpTarget.type === 'server' ? 'magic MCP server' : 'magic MCP endpoint'
+  });
 
   return null;
 };
@@ -304,6 +322,37 @@ export let resolveMagicMcpSubspaceSession = async (d: {
   };
 };
 
+export let resolveMagicMcpRequestTools = (d: {
+  sessionInfo: MagicMcpSubspaceSessionInfo;
+  context: { ip: string; ua?: string | null };
+}): RequestScopedToolsResolver | undefined => {
+  let target = d.sessionInfo.magicMcpTarget;
+  if (target.type !== 'endpoint' || !target.target.enableSkillEditing) return undefined;
+
+  let magicMcpToken = d.sessionInfo.magicMcpToken;
+  if (magicMcpToken?.consumerTokens.length !== 1) return undefined;
+
+  let endpoint = target.target;
+  if (
+    magicMcpToken.skillPluginOid &&
+    endpoint.skillPluginOid &&
+    magicMcpToken.skillPluginOid !== endpoint.skillPluginOid
+  ) {
+    return undefined;
+  }
+
+  let consumerProfile = magicMcpToken.consumerTokens[0]!.consumerProfile;
+  let skillPluginOid = magicMcpToken.skillPluginOid ?? endpoint.skillPluginOid;
+
+  return () =>
+    createSkillEditingTools({
+      instance: endpoint.instance,
+      consumerProfile,
+      skillPluginOid,
+      context: d.context
+    });
+};
+
 export let handleMagicMcpRequest = async (d: {
   c: Context;
   magicMcpTargetIdOrAlias?: string;
@@ -334,10 +383,16 @@ export let handleMagicMcpRequest = async (d: {
         ua: context.ua
       });
 
+      let requestTools = resolveMagicMcpRequestTools({
+        sessionInfo,
+        context: { ip: context.ip, ua: context.ua }
+      });
+
       return await handleMcpRequest(d.c, {
         instance: sessionInfo.magicMcpTarget.target.instance,
         sessionId: sessionInfo.subspaceSessionId,
         agentClient: sessionInfo.agentClient,
+        requestTools,
         enforceIngressNetworkPolicy: true,
         ingressIp: context.ip,
         onSubspaceSessionResolved: async ({ subspaceSessionId }) => {

@@ -22,6 +22,7 @@ export * from './projectBrand';
 export * from './projectDataRetentionConfiguration';
 export * from './projectIntegrationNamingConfiguration';
 export * from './projectReducedSubprocessorsConfiguration';
+export * from './projectResourceOwnershipConfiguration';
 export * from './projectRetention';
 export * from './projectSessionlessMcpConfiguration';
 export * from './projectSkillSyncConfiguration';

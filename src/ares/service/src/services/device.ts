@@ -16,6 +16,7 @@ import { auditLogService } from './auditLog';
 import { markAresUserChanged } from '../queues/syncCallback';
 import { userService } from './user';
 import { userPasswordService } from './userPassword';
+import { userTwoFactorService } from './userTwoFactor';
 
 class DeviceService {
   async getAllUsersForDevice(d: { device: AuthDevice }) {
@@ -120,6 +121,13 @@ class DeviceService {
     let authorizationCode = generatePlainId(50);
 
     let session = await withTransaction(async db => {
+      await userTwoFactorService.assertVerified({
+        userOid: d.authAttempt.userOid,
+        authIntentOid: d.authAttempt.authIntentOid,
+        loginMethod: d.authAttempt.loginMethod,
+        deviceOid: d.authAttempt.deviceOid,
+        appOid: d.authAttempt.appOid
+      });
       if (d.authAttempt.loginMethod == 'password') {
         if (!d.authAttempt.authIntentOid) {
           throw new ServiceError(unauthorizedError({ message: 'Invalid auth attempt' }));

@@ -1,3 +1,4 @@
+export { getConsumerInviteExpiresAt } from '../lib/consumerInviteExpiry';
 export * from './consumer';
 export * from './consumerAuth';
 export * from './consumerGroup';

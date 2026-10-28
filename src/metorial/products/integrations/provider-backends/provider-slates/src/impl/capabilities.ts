@@ -11,6 +11,7 @@ import {
   type ProviderSpecificationGetRes
 } from '@metorial-subspace/provider-utils';
 import { slates } from '../client';
+import { toAuthMethodCapabilities } from './authMethodCapabilities';
 import { normalizeToolCategories, resolveToolCategoryKeys } from './toolCategories';
 
 type SlateSpecificationRecord = Awaited<ReturnType<typeof slates.slateSpecification.get>>;
@@ -204,7 +205,8 @@ export class ProviderCapabilities extends IProviderCapabilities {
         scopes: am.scopes,
         adapters: am.adapters,
         type: am.type,
-        capabilities: {},
+        // TODO: drop once @slates/proto ships admin RPCs
+        capabilities: toAuthMethodCapabilities(am.capabilities),
         metadata: {}
       })),
       tools: specRecord.tools

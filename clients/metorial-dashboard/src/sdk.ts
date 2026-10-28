@@ -98,6 +98,7 @@ import {
   MetorialDashboardInstanceProviderDeploymentsConfigsEndpoint,
   MetorialDashboardInstanceProviderDeploymentsConfigVaultsEndpoint,
   MetorialDashboardInstanceProviderDeploymentsEndpoint,
+  MetorialDashboardInstanceProviderDeploymentsSetupSessionsEmailsEndpoint,
   MetorialDashboardInstanceProviderDeploymentsSetupSessionsEndpoint,
   MetorialDashboardInstanceProviderGroupsEndpoint,
   MetorialDashboardInstanceProviderInvocationsEndpoint,
@@ -169,6 +170,8 @@ import {
   MetorialDashboardInstanceSkillsVersionsEndpoint,
   MetorialDashboardInstanceSkillsVersionsSnapshotEndpoint,
   MetorialDashboardInstancesResourceCountsEndpoint,
+  MetorialDashboardInstancesOwnershipAccessEndpoint,
+  MetorialDashboardInstancesUsageEndpoint,
   MetorialDashboardInstanceStoresEndpoint,
   MetorialDashboardInstanceStoresItemsEndpoint,
   MetorialDashboardInstanceStoresParticipantsEndpoint,
@@ -219,6 +222,7 @@ import {
   MetorialDashboardProjectsConfigureDataRetentionEndpoint,
   MetorialDashboardProjectsConfigureIntegrationNamingEndpoint,
   MetorialDashboardProjectsConfigureRetentionEndpoint,
+  MetorialDashboardProjectsConfigureResourceOwnershipEndpoint,
   MetorialDashboardProjectsConfigureSessionlessMcpEndpoint,
   MetorialDashboardProjectsConfigureSkillSyncEndpoint,
   MetorialDashboardProjectsConfigureToolCallingEndpoint,
@@ -679,6 +683,8 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     ),
     configureIntegrationNaming:
       new MetorialDashboardProjectsConfigureIntegrationNamingEndpoint(manager),
+    configureResourceOwnership:
+      new MetorialDashboardProjectsConfigureResourceOwnershipEndpoint(manager),
     configureRetention: new MetorialDashboardProjectsConfigureRetentionEndpoint(manager),
     configureSessionlessMcp: new MetorialDashboardProjectsConfigureSessionlessMcpEndpoint(
       manager
@@ -961,6 +967,8 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     manager
   ),
   resourceCounts: new MetorialDashboardInstancesResourceCountsEndpoint(manager),
+  ownershipAccess: new MetorialDashboardInstancesOwnershipAccessEndpoint(manager),
+  instanceUsage: new MetorialDashboardInstancesUsageEndpoint(manager),
   networkPolicies: Object.assign(
     new MetorialDashboardInstanceNetworkPoliciesEndpoint(manager),
     { rules: new MetorialDashboardInstanceNetworkPoliciesRulesEndpoint(manager) }
@@ -1116,8 +1124,13 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
       authCredentials: new MetorialDashboardInstanceProviderDeploymentsAuthCredentialsEndpoint(
         manager
       ),
-      setupSessions: new MetorialDashboardInstanceProviderDeploymentsSetupSessionsEndpoint(
-        manager
+      setupSessions: Object.assign(
+        new MetorialDashboardInstanceProviderDeploymentsSetupSessionsEndpoint(manager),
+        {
+          emails: new MetorialDashboardInstanceProviderDeploymentsSetupSessionsEmailsEndpoint(
+            manager
+          )
+        }
       )
     }
   ),

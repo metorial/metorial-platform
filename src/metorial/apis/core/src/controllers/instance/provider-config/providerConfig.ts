@@ -1,3 +1,4 @@
+import { hydrateResourceOwners } from '@metorial/module-resource-actor';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
@@ -15,6 +16,61 @@ import { checkAccess } from '../../../middleware/checkAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { configSchemaPresenter, providerConfigPresenter } from '@metorial/presenters';
 import { toolFiltersValidator } from '../sessions/_shared';
+import { getOwnershipActor, resolveExplorerOwner } from '../../../lib/ownershipActor';
+
+let ownershipFilterValidator = v.optional(v.enumOf(['shared', 'usable', 'all']), {
+  description:
+    "Which resources to return under the resource ownership rules. 'shared' returns only resources that aren't owned, 'usable' returns shared resources plus owned resources the caller can use, 'all' returns every resource the caller can see. Defaults to 'shared' when ownership is enforced for the project and 'all' otherwise."
+});
+
+let createProviderConfigBody = (d: { includeSource: boolean }) =>
+  v.intersection([
+    v.object({
+      provider_id: v.string({
+        description: 'Provider ID',
+        examples: ['pro_5gHjKlMnPqRsTuVw']
+      }),
+      provider_deployment_id: v.optional(
+        v.string({
+          description: 'Optional provider deployment ID',
+          examples: ['pdp_4dEfGhJkLmNpQrSt']
+        })
+      ),
+      name: v.optional(v.string({ examples: ['Production Config'] })),
+      description: v.optional(
+        v.string({ examples: ['Configuration for production environment'] })
+      ),
+      metadata: v.optional(
+        v.record(v.any(), {
+          examples: [{ label: 'primary', notes: 'Default production config' }]
+        }),
+        { description: 'Custom key-value pairs for storing additional information' }
+      ),
+      tool_filters: toolFiltersValidator,
+      ...(d.includeSource
+        ? {
+            source: v.optional(v.enumOf(['explorer']), {
+              description:
+                'Mark this resource as originating from the dashboard explorer and enable its owner lock and owner-only visibility.'
+            })
+          }
+        : {})
+    }),
+    v.union([
+      v.object({
+        value: v.record(v.any(), {
+          description: 'Provider-specific configuration values',
+          examples: [{ api_key: 'sk-xxx', base_url: 'https://api.example.com' }]
+        })
+      }),
+      v.object({
+        provider_config_vault_id: v.string({
+          description: 'Config vault ID to use as template',
+          examples: ['pcvt_3bCdEfGhJkLmNpQr']
+        })
+      })
+    ])
+  ]);
 
 let providerConfigGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.providerConfigId) {
@@ -28,6 +84,7 @@ let providerConfigGroup = instanceGroup.use(async ctx => {
 
   let config = await providerConfigService.getProviderConfigById({
     instance: ctx.instance,
+    organizationActor: getOwnershipActor(ctx),
     providerConfigId: ctx.params.providerConfigId
   });
 
@@ -52,6 +109,7 @@ export let providerConfigController = Controller.create(
         'default',
         Paginator.validate(
           v.object({
+            ownership: ownershipFilterValidator,
             status: v.optional(
               v.union([
                 v.enumOf(['active', 'archived']),
@@ -103,6 +161,8 @@ export let providerConfigController = Controller.create(
       .do(async ctx => {
         let paginator = await providerConfigService.listProviderConfigs({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
+          ownership: ctx.query.ownership,
           allowDeleted: false,
 
           search: ctx.query.search,
@@ -124,7 +184,9 @@ export let providerConfigController = Controller.create(
 
         let list = await paginator.run(ctx.query);
 
-        return Paginator.present(list, config => providerConfigPresenter.present({ config }));
+        return Paginator.present(await hydrateResourceOwners(list), config =>
+          providerConfigPresenter.present({ config })
+        );
       }),
 
     get: providerConfigGroup
@@ -138,7 +200,9 @@ export let providerConfigController = Controller.create(
       .use(checkAccess({ possibleScopes: ['instance.provider.config:read'] }))
       .output(providerConfigPresenter)
       .do(async ctx => {
-        return providerConfigPresenter.present({ config: ctx.config });
+        return providerConfigPresenter.present(
+          await hydrateResourceOwners({ config: ctx.config })
+        );
       }),
 
     create: instanceGroup
@@ -149,47 +213,11 @@ export let providerConfigController = Controller.create(
       })
       .use(checkAccess({ possibleScopes: ['instance.provider.config:write'] }))
       .body(
-        'default',
-        v.intersection([
-          v.object({
-            provider_id: v.string({
-              description: 'Provider ID',
-              examples: ['pro_5gHjKlMnPqRsTuVw']
-            }),
-            provider_deployment_id: v.optional(
-              v.string({
-                description: 'Optional provider deployment ID',
-                examples: ['pdp_4dEfGhJkLmNpQrSt']
-              })
-            ),
-            name: v.optional(v.string({ examples: ['Production Config'] })),
-            description: v.optional(
-              v.string({ examples: ['Configuration for production environment'] })
-            ),
-            metadata: v.optional(
-              v.record(v.any(), {
-                examples: [{ label: 'primary', notes: 'Default production config' }]
-              }),
-              { description: 'Custom key-value pairs for storing additional information' }
-            ),
-            tool_filters: toolFiltersValidator
-          }),
-          v.union([
-            v.object({
-              value: v.record(v.any(), {
-                description: 'Provider-specific configuration values',
-                examples: [{ api_key: 'sk-xxx', base_url: 'https://api.example.com' }]
-              })
-            }),
-            v.object({
-              provider_config_vault_id: v.string({
-                description: 'Config vault ID to use as template',
-                examples: ['pcvt_3bCdEfGhJkLmNpQr']
-              })
-            })
-          ])
-        ])
+        'mt_2026_01_01_magnetar',
+        createProviderConfigBody({ includeSource: false }),
+        v => v
       )
+      .body('default', createProviderConfigBody({ includeSource: true }))
       .output(providerConfigPresenter)
       .do(async ctx => {
         let provider = await providerService.getProviderById({
@@ -210,11 +238,17 @@ export let providerConfigController = Controller.create(
               })
             : undefined;
 
+        let ownerActorId = await resolveExplorerOwner(ctx, ctx.body.source);
+
         let config = await providerConfigService.createProviderConfig({
           instance: ctx.instance,
           auditScope: ctx.auditScope,
           provider,
           providerDeployment,
+          ownerActorId,
+          source: ctx.body.source,
+          isOwnerLocked: ctx.body.source === 'explorer' ? true : undefined,
+          isOwnerOnlyVisible: ctx.body.source === 'explorer' ? true : undefined,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
@@ -233,7 +267,7 @@ export let providerConfigController = Controller.create(
           }
         });
 
-        return providerConfigPresenter.present({ config });
+        return providerConfigPresenter.present(await hydrateResourceOwners({ config }));
       }),
 
     update: providerConfigGroup
@@ -249,7 +283,7 @@ export let providerConfigController = Controller.create(
       )
       .use(checkAccess({ possibleScopes: ['instance.provider.config:write'] }))
       .body(
-        'default',
+        'mt_2026_01_01_magnetar',
         v.object({
           name: v.optional(v.string()),
           description: v.optional(v.string()),
@@ -257,6 +291,22 @@ export let providerConfigController = Controller.create(
             description: 'Custom key-value pairs for storing additional information'
           }),
           tool_filters: toolFiltersValidator
+        }),
+        v => v
+      )
+      .body(
+        'default',
+        v.object({
+          name: v.optional(v.string()),
+          description: v.optional(v.string()),
+          metadata: v.optional(v.record(v.any()), {
+            description: 'Custom key-value pairs for storing additional information'
+          }),
+          tool_filters: toolFiltersValidator,
+          source: v.optional(v.enumOf(['explorer']), {
+            description:
+              'Mark this resource as originating from the dashboard explorer and enable its owner lock and owner-only visibility.'
+          })
         })
       )
       .output(providerConfigPresenter)
@@ -264,18 +314,22 @@ export let providerConfigController = Controller.create(
         let config = await providerConfigService.updateProviderConfig({
           instance: ctx.instance,
           auditScope: ctx.auditScope,
+          organizationActor: getOwnershipActor(ctx),
           providerConfig: ctx.config,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,
             metadata: ctx.body.metadata,
+            source: ctx.body.source,
+            isOwnerLocked: ctx.body.source === 'explorer' ? true : undefined,
+            isOwnerOnlyVisible: ctx.body.source === 'explorer' ? true : undefined,
             ...(ctx.body.tool_filters !== undefined
               ? { toolFilters: normalizeToolFilters(ctx.body.tool_filters as any) }
               : {})
           }
         });
 
-        return providerConfigPresenter.present({ config });
+        return providerConfigPresenter.present(await hydrateResourceOwners({ config }));
       }),
 
     delete: providerConfigGroup
@@ -298,7 +352,7 @@ export let providerConfigController = Controller.create(
           providerConfig: ctx.config
         });
 
-        return providerConfigPresenter.present({ config });
+        return providerConfigPresenter.present(await hydrateResourceOwners({ config }));
       }),
 
     getConfigSchema: instanceGroup

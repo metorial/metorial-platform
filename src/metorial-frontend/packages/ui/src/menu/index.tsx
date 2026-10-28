@@ -336,6 +336,17 @@ export let Menu = React.forwardRef<HTMLButtonElement, MenuProps>(
     let [open, setOpen] = useState(false);
     let zIndex = useDialogZIndex(open);
 
+    // Radix opens the menu on pointerdown, which browsers still dispatch on a disabled button,
+    // so a trigger the child disables itself has to be disabled on the Radix trigger as well.
+    let childProps = React.isValidElement(children)
+      ? (children.props as { disabled?: boolean; loading?: boolean; skeleton?: boolean })
+      : null;
+    let triggerDisabled =
+      !!triggerProps.disabled ||
+      !!childProps?.disabled ||
+      !!childProps?.loading ||
+      !!childProps?.skeleton;
+
     useEffect(() => setIsOpen?.(open), [open]);
 
     useSuppressTooltipWhileOpen(open);
@@ -420,7 +431,13 @@ export let Menu = React.forwardRef<HTMLButtonElement, MenuProps>(
             of a tooltip trigger, and the open state is published so a tooltip on the trigger
             knows to hide. */}
         <OverlayOpenProvider value={open}>
-          <RadixMenu.Trigger aria-label={label} {...triggerProps} asChild ref={ref}>
+          <RadixMenu.Trigger
+            aria-label={label}
+            {...triggerProps}
+            disabled={triggerDisabled}
+            asChild
+            ref={ref}
+          >
             {children}
           </RadixMenu.Trigger>
         </OverlayOpenProvider>

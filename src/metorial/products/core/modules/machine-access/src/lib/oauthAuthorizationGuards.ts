@@ -26,7 +26,11 @@ export let ensureScopesAllowed = (d: {
   if (!scopes.every(scope => d.allowedScopes.includes(scope))) {
     throw new ServiceError(
       badRequestError({
-        message: 'Requested scopes are not allowed for this oauth application'
+        message: 'Requested scopes are not allowed for this oauth application',
+        oauth: {
+          error: 'invalid_scope',
+          errorMessage: 'Requested scopes are not allowed for this oauth application'
+        }
       })
     );
   }
@@ -64,19 +68,33 @@ export let ensureAuthorizationRequestPending = (oauthAuthorizationRequest: {
   }
 };
 
-export let ensureAuthorizationUsable = (
-  oauthAuthorization: OAuthAuthorization & {
-    oauthApplication: OAuthApplication;
-    oauthInstallation: OAuthInstallation;
-    machineAccess: MachineAccess;
-  }
-) => {
-  if (
-    oauthAuthorization.status != 'active' ||
-    oauthAuthorization.oauthApplication.status != 'active' ||
-    oauthAuthorization.oauthInstallation.status != 'active' ||
-    oauthAuthorization.machineAccess.status != 'active'
-  ) {
+type GuardedOAuthAuthorization = OAuthAuthorization & {
+  oauthApplication: OAuthApplication;
+  oauthInstallation: OAuthInstallation;
+  machineAccess: MachineAccess;
+};
+
+type GuardedOAuthToken = OAuthToken & { oauthAuthorization: GuardedOAuthAuthorization };
+
+let isAuthorizationActive = (oauthAuthorization: GuardedOAuthAuthorization) =>
+  oauthAuthorization.status == 'active' &&
+  oauthAuthorization.oauthApplication.status == 'active' &&
+  oauthAuthorization.oauthInstallation.status == 'active' &&
+  oauthAuthorization.machineAccess.status == 'active';
+
+let isTokenCompletelyExpired = (oauthToken: OAuthToken) =>
+  !!oauthToken.completelyExpiresAt && oauthToken.completelyExpiresAt < new Date();
+
+let invalidGrantError = (message: string) =>
+  new ServiceError(
+    badRequestError({
+      message,
+      oauth: { error: 'invalid_grant', errorMessage: message }
+    })
+  );
+
+export let ensureAuthorizationUsable = (oauthAuthorization: GuardedOAuthAuthorization) => {
+  if (!isAuthorizationActive(oauthAuthorization)) {
     throw new ServiceError(
       unauthorizedError({
         message: 'OAuth authorization is revoked or inactive'
@@ -85,36 +103,30 @@ export let ensureAuthorizationUsable = (
   }
 };
 
-export let ensureTokenRefreshable = (
-  oauthToken: OAuthToken & {
-    oauthAuthorization: OAuthAuthorization & {
-      oauthApplication: OAuthApplication;
-      oauthInstallation: OAuthInstallation;
-      machineAccess: MachineAccess;
-    };
+export let ensureAuthorizationGrantable = (oauthAuthorization: GuardedOAuthAuthorization) => {
+  if (!isAuthorizationActive(oauthAuthorization)) {
+    throw invalidGrantError('OAuth authorization is revoked or inactive');
   }
-) => {
+};
+
+export let ensureTokenRefreshable = (oauthToken: GuardedOAuthToken) => {
+  ensureAuthorizationGrantable(oauthToken.oauthAuthorization);
+
+  if (isTokenCompletelyExpired(oauthToken)) {
+    throw invalidGrantError('OAuth token can no longer be refreshed or used');
+  }
+};
+
+export let ensureTokenUsable = (oauthToken: GuardedOAuthToken) => {
   ensureAuthorizationUsable(oauthToken.oauthAuthorization);
 
-  if (oauthToken.completelyExpiresAt && oauthToken.completelyExpiresAt < new Date()) {
+  if (isTokenCompletelyExpired(oauthToken)) {
     throw new ServiceError(
       unauthorizedError({
         message: 'OAuth token can no longer be refreshed or used'
       })
     );
   }
-};
-
-export let ensureTokenUsable = (
-  oauthToken: OAuthToken & {
-    oauthAuthorization: OAuthAuthorization & {
-      oauthApplication: OAuthApplication;
-      oauthInstallation: OAuthInstallation;
-      machineAccess: MachineAccess;
-    };
-  }
-) => {
-  ensureTokenRefreshable(oauthToken);
 
   if (oauthToken.accessTokenExpiresAt < new Date()) {
     throw new ServiceError(

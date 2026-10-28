@@ -1,4 +1,5 @@
 import { createLocallyCachedFunction } from '@lowerdeck/cache';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import {
   db,
@@ -72,6 +73,39 @@ let getTenantConfig = createLocallyCachedFunction({
 });
 
 let clearTenantCache = (tenantOid: bigint) => getTenantConfig.clearAndWait({ tenantOid });
+
+let findFilter = async (filterId: string) => {
+  let filter = await db.protoGuardFilter.findFirst({
+    where: { OR: [{ id: filterId }, { key: filterId }] }
+  });
+  if (!filter) throw new ServiceError(notFoundError('protoguard_filter', filterId));
+
+  return filter;
+};
+
+let assertAlertConfidenceThreshold = (threshold: number | null) => {
+  if (threshold === null) return;
+  if (Number.isFinite(threshold) && threshold >= 0 && threshold <= 1) return;
+
+  throw new ServiceError(
+    badRequestError({
+      code: 'invalid_alert_confidence_threshold',
+      message: 'The alert confidence threshold must be a number between 0 and 1.'
+    })
+  );
+};
+
+let assertAlertFilterCountThreshold = (threshold: number | null) => {
+  if (threshold === null) return;
+  if (Number.isInteger(threshold) && threshold >= 1) return;
+
+  throw new ServiceError(
+    badRequestError({
+      code: 'invalid_alert_filter_count_threshold',
+      message: 'The alert filter count threshold must be a whole number of at least 1.'
+    })
+  );
+};
 
 export let getProtoGuardConfigForEvaluation = async (d: { tenantOid: bigint }) =>
   getTenantConfig({ tenantOid: d.tenantOid });
@@ -164,9 +198,7 @@ class protoGuardConfigServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let { tenant } = await resolveMetorialFacing({ instance, organizationActor });
 
-    let filter = await db.protoGuardFilter.findFirstOrThrow({
-      where: { OR: [{ id: d.filterId }, { key: d.filterId }] }
-    });
+    let filter = await findFilter(d.filterId);
     let previousSetting = await db.protoGuardTenantFilterSetting.findUnique({
       where: { tenantOid_filterOid: { tenantOid: tenant.oid, filterOid: filter.oid } }
     });
@@ -191,11 +223,7 @@ class protoGuardConfigServiceImpl {
   async setTenantFilterEnabledInternal(
     d: SetTenantFilterEnabledParams & { filter?: ProtoGuardFilter }
   ) {
-    let filter =
-      d.filter ??
-      (await db.protoGuardFilter.findFirstOrThrow({
-        where: { OR: [{ id: d.filterId }, { key: d.filterId }] }
-      }));
+    let filter = d.filter ?? (await findFilter(d.filterId));
 
     let setting = await db.protoGuardTenantFilterSetting.upsert({
       where: {
@@ -224,9 +252,9 @@ class protoGuardConfigServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let { tenant } = await resolveMetorialFacing({ instance, organizationActor });
 
-    let filter = await db.protoGuardFilter.findFirstOrThrow({
-      where: { OR: [{ id: d.filterId }, { key: d.filterId }] }
-    });
+    assertAlertConfidenceThreshold(d.threshold);
+
+    let filter = await findFilter(d.filterId);
     let previousSetting = await db.protoGuardTenantFilterSetting.findUnique({
       where: { tenantOid_filterOid: { tenantOid: tenant.oid, filterOid: filter.oid } }
     });
@@ -255,11 +283,9 @@ class protoGuardConfigServiceImpl {
   async setTenantFilterAlertConfidenceThresholdInternal(
     d: SetTenantFilterAlertConfidenceThresholdParams & { filter?: ProtoGuardFilter }
   ) {
-    let filter =
-      d.filter ??
-      (await db.protoGuardFilter.findFirstOrThrow({
-        where: { OR: [{ id: d.filterId }, { key: d.filterId }] }
-      }));
+    assertAlertConfidenceThreshold(d.threshold);
+
+    let filter = d.filter ?? (await findFilter(d.filterId));
 
     let setting = await db.protoGuardTenantFilterSetting.upsert({
       where: {
@@ -289,6 +315,8 @@ class protoGuardConfigServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let { tenant } = await resolveMetorialFacing({ instance, organizationActor });
 
+    assertAlertFilterCountThreshold(d.threshold);
+
     let previousSetting = await db.protoGuardTenantSetting.findUnique({
       where: { tenantOid: tenant.oid }
     });
@@ -310,6 +338,8 @@ class protoGuardConfigServiceImpl {
   async setTenantAlertFilterCountThresholdInternal(
     d: SetTenantAlertFilterCountThresholdParams
   ) {
+    assertAlertFilterCountThreshold(d.threshold);
+
     if (d.threshold === null) {
       await db.protoGuardTenantSetting.deleteMany({
         where: { tenantOid: d.tenant.oid }

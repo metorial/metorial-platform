@@ -7,8 +7,7 @@ import {
   useAllCallbackInstances,
   useDeleteIntegrationProvider,
   useIntegrationInstanceProviders,
-  useIntegrationProviders,
-  useProviderListings
+  useIntegrationProviders
 } from '@metorial/state';
 import { Table as DashboardTable } from '@metorial/table';
 import { Badge, Button, Flex, Menu, Spacer, Text, confirm } from '@metorial/ui';
@@ -16,13 +15,17 @@ import { ID, ProviderImage, Table } from '@metorial/ui-product';
 import { RiMore2Line, RiSettings3Line } from '@remixicon/react';
 import { Fragment, useMemo, useState } from 'react';
 import { CallbackSyncBadge, CallbackSyncErrorCallout } from '../callbacks/shared';
+import { showAdminSetupLinkModal, supportsAdminSetup } from './adminSetupLinkModal';
+import {
+  getProviderDisplayName,
+  getProviderLabel,
+  type ProviderListingLookup,
+  useIntegrationProviderListingLookup
+} from './providerLabels';
 import {
   showIntegrationInstanceProviderPanelFlow,
   showIntegrationProviderPanelFlow
 } from './providerPanelFlow';
-
-let getProviderLabel = (provider?: { provider?: any }) =>
-  provider?.provider?.name ?? provider?.provider?.slug ?? 'Provider';
 
 let getConfigLabel = (config?: any | null) => config?.name ?? config?.id ?? 'None';
 
@@ -36,8 +39,6 @@ let getAuthLabel = (
   integrationProvider.authCredentials?.id ??
   'None';
 
-type ProviderListingLookup = Record<string, { name: string; imageUrl: string }>;
-
 export let IntegrationProvidersManager = (p: {
   instanceId: string;
   integration: IntegrationPreview;
@@ -49,13 +50,9 @@ export let IntegrationProvidersManager = (p: {
   });
   let deleteProvider = useDeleteIntegrationProvider();
 
-  let providerIds = useMemo(
-    () => [...new Set((p.integration.providers ?? []).map(item => item.provider.id))],
-    [p.integration.providers]
-  );
-  let listings = useProviderListings(
+  let { listings, lookup } = useIntegrationProviderListingLookup(
     p.instanceId,
-    providerIds.length > 0 ? { id: providerIds, limit: 100 } : null
+    p.integration.providers
   );
 
   let removeProvider = (provider: IntegrationProvider) => {
@@ -76,29 +73,22 @@ export let IntegrationProvidersManager = (p: {
     });
   };
 
-  return renderWithLoader({ listings })(() => {
-    let listingLookup: ProviderListingLookup = {};
-
-    for (let listing of listings.data?.items ?? []) {
-      listingLookup[listing.provider.id] = {
-        name: listing.name ?? listing.provider.name,
-        imageUrl: listing.imageUrl
-      };
-    }
-
-    return (
-      <IntegrationProvidersTable
-        providers={providers}
-        integration={p.integration}
-        listingLookup={listingLookup}
-        onComplete={p.onComplete}
-        removeProvider={removeProvider}
-      />
-    );
-  });
+  return renderWithLoader({
+    ...(p.integration.providers.length > 0 ? { listings } : {})
+  })(() => (
+    <IntegrationProvidersTable
+      instanceId={p.instanceId}
+      providers={providers}
+      integration={p.integration}
+      listingLookup={lookup}
+      onComplete={p.onComplete}
+      removeProvider={removeProvider}
+    />
+  ));
 };
 
 let IntegrationProvidersTable = (p: {
+  instanceId: string;
   providers: ReturnType<typeof useIntegrationProviders>;
   integration: IntegrationPreview;
   listingLookup: ProviderListingLookup;
@@ -146,11 +136,21 @@ let IntegrationProvidersTable = (p: {
                 <Menu
                   items={[
                     { id: 'configure', label: 'Configure' },
+                    ...(supportsAdminSetup(provider)
+                      ? [{ id: 'admin_setup_link', label: 'Create Admin Setup Link' }]
+                      : []),
                     { id: 'remove', label: 'Remove' }
                   ]}
                   onItemClick={id => {
                     if (id === 'configure') openConfigure();
                     if (id === 'remove') p.removeProvider(provider);
+                    if (id === 'admin_setup_link') {
+                      showAdminSetupLinkModal({
+                        instanceId: p.instanceId,
+                        integrationProvider: provider,
+                        providerName
+                      });
+                    }
                   }}
                 >
                   <Button
@@ -192,7 +192,7 @@ type IntegrationInstanceProvidersManagerProps = {
   integration: IntegrationPreview;
   integrationInstance: IntegrationInstance;
   onComplete?: () => void;
-  listingLookup?: ProviderListingLookup;
+  listingLookup: ProviderListingLookup;
 };
 
 let isInstanceProviderConfigureDisabled = (row: InstanceProviderRow) => {
@@ -237,7 +237,7 @@ let useIntegrationInstanceProvidersTableState = (
     status: ['active', 'archived']
   });
 
-  let integrationProviders = props.integration.providers ?? [];
+  let integrationProviders = props.integration.providers;
   let providerItems = providers.data?.items;
 
   let items = useMemo<InstanceProviderRow[]>(() => {
@@ -295,13 +295,13 @@ let integrationInstanceProvidersTable = new DashboardTable<
       isDefault: true,
       header: 'Provider',
       render: (row: InstanceProviderRow, props: IntegrationInstanceProvidersManagerProps) => {
-        let listing = props.listingLookup?.[row.integrationProvider.provider.id];
+        let listing = props.listingLookup[row.integrationProvider.provider.id];
         let providerName = listing?.name ?? getProviderLabel(row.integrationProvider);
 
         return (
           <Flex gap={10} align="center">
             {isInstanceProviderPending(row) ? (
-              <Badge size="1" color="orange">
+              <Badge size="2" color="orange">
                 Pending
               </Badge>
             ) : null}
@@ -379,14 +379,10 @@ export let IntegrationInstanceProvidersManager = (p: {
   integrationInstance: IntegrationInstance;
   onComplete?: () => void;
 }) => {
-  let integrationProviders = p.integration.providers ?? [];
-  let providerIds = useMemo(
-    () => [...new Set(integrationProviders.map(item => item.provider.id))],
-    [p.integration.providers]
-  );
-  let listings = useProviderListings(
+  let integrationProviders = p.integration.providers;
+  let { listings, lookup } = useIntegrationProviderListingLookup(
     p.instanceId,
-    providerIds.length > 0 ? { id: providerIds, limit: 100 } : null
+    integrationProviders
   );
   let hasCallbacks = integrationProviders.some(
     provider => provider.callbacks.status === 'enabled'
@@ -395,7 +391,7 @@ export let IntegrationInstanceProvidersManager = (p: {
     integrationInstanceId: p.integrationInstance.id
   });
 
-  let renderContent = (listingLookup: ProviderListingLookup) => {
+  let renderContent = () => {
     let callbackInstanceByCallbackId = new Map(
       (callbackInstances.data ?? []).map(
         callbackInstance => [callbackInstance.callbackId, callbackInstance] as const
@@ -412,9 +408,7 @@ export let IntegrationInstanceProvidersManager = (p: {
       return [
         {
           id: integrationProvider.id,
-          name:
-            listingLookup[integrationProvider.provider.id]?.name ??
-            getProviderLabel(integrationProvider),
+          name: getProviderDisplayName(lookup, integrationProvider),
           sync: callbackInstance.sync
         }
       ];
@@ -434,30 +428,19 @@ export let IntegrationInstanceProvidersManager = (p: {
           integration: p.integration,
           integrationInstance: p.integrationInstance,
           onComplete: p.onComplete,
-          listingLookup,
+          listingLookup: lookup,
           emptyState: 'This integration does not have any providers yet.'
         })}
       </>
     );
   };
 
-  if (providerIds.length === 0 && !hasCallbacks) {
-    return renderContent({});
+  if (integrationProviders.length === 0 && !hasCallbacks) {
+    return renderContent();
   }
 
   return renderWithLoader({
-    ...(providerIds.length > 0 ? { listings } : {}),
+    ...(integrationProviders.length > 0 ? { listings } : {}),
     ...(hasCallbacks ? { callbackInstances } : {})
-  })(() => {
-    let listingLookup: ProviderListingLookup = {};
-
-    for (let listing of listings.data?.items ?? []) {
-      listingLookup[listing.provider.id] = {
-        name: listing.name ?? listing.provider.name,
-        imageUrl: listing.imageUrl
-      };
-    }
-
-    return renderContent(listingLookup);
-  });
+  })(renderContent);
 };

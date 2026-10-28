@@ -18,7 +18,7 @@ let VersionRow = ({
       <Entity.Field
         prefix={
           isCurrent && (
-            <Badge color="blue" size="1">
+            <Badge color="blue" size="2">
               Default
             </Badge>
           )

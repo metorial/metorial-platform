@@ -1,5 +1,26 @@
 import { expect, test } from 'bun:test';
-import { affected, suites } from './changes';
+import { affected, controlTasks, suites } from './changes';
+
+let controlSuites = {
+  oss: {
+    name: 'metorial',
+    package: '@metorial/app-api',
+    stackPackages: [],
+    workspacePackages: [],
+    services: [],
+    tests: ['src/metorial/products/*/modules/*', 'src/metorial/apis/*'],
+    groups: 4
+  },
+  enterprise: {
+    name: 'metorial-enterprise',
+    package: '@metorial/mte-core-api',
+    stackPackages: [],
+    workspacePackages: ['@metorial-enterprise/fabric'],
+    services: [],
+    tests: ['src/metorial/modules/*', 'src/metorial/apis/*'],
+    groups: 2
+  }
+};
 
 test('unchanged and unrelated workspaces do not select tests', () => {
   expect(affected([], ['src/forge/service'], false)).toBe(false);
@@ -32,14 +53,94 @@ test('source, shared dependency, deleted files and imported configuration select
 });
 
 test('E2E suites include every application container dependency', () => {
-  expect(suites.find(suite => suite.name === 'shuttle')!.services).toContain('forge');
+  expect(suites.find(suite => suite.name === 'shuttle')!.services).toContain(
+    '@metorial/forge'
+  );
   expect(suites.find(suite => suite.name === 'slates-hub')!.services).toEqual([
-    'slates',
-    'forge',
-    'function-bay',
-    'signal'
+    '@metorial/forge',
+    '@metorial/function-bay',
+    '@metorial/nebula',
+    '@metorial/signal',
+    '@metorial/slates',
+    '@metorial/slates-registry'
   ]);
-  expect(suites.find(suite => suite.name === 'function-bay')!.services).toContain('forge');
+  expect(suites.find(suite => suite.name === 'function-bay')!.services).toContain(
+    '@metorial/forge'
+  );
+});
+
+test('control suites select stack test packages and prune them for CI', async () => {
+  let { controlTestPackages, controlTasks } = await import('./changes');
+  let packages = new Map([
+    [
+      '@metorial/module-user',
+      { directory: 'src/metorial/products/core/modules/user', e2e: true }
+    ],
+    ['@metorial/api-core', { directory: 'src/metorial/apis/core', e2e: true }],
+    ['@metorial/db', { directory: 'src/metorial/db', e2e: false }],
+    ['@metorial/module-x', { directory: 'src/metorial/products/core/modules/x', e2e: false }]
+  ]);
+  expect(controlTestPackages(controlSuites.oss, packages)).toEqual([
+    '@metorial/api-core',
+    '@metorial/module-user'
+  ]);
+  expect(controlTasks(controlSuites.oss)).toBe(
+    'prisma:generate test:e2e --filter=./src/metorial/products/*/modules/* --filter=./src/metorial/apis/*'
+  );
+  expect(controlTasks(controlSuites.enterprise)).toBe(
+    'prisma:generate test:e2e --filter=./src/metorial/modules/* --filter=./src/metorial/apis/* --filter=@metorial-enterprise/fabric'
+  );
+  expect(controlSuites.enterprise.package).toBe('@metorial/mte-core-api');
+});
+
+test('control suites run as duration-balanced matrix groups with per-package shards', async () => {
+  let { controlMatrix } = await import('./changes');
+  let packages = new Map([
+    ['@metorial/api-core', { directory: 'src/metorial/apis/core', e2e: true }],
+    ...Array.from(
+      { length: 8 },
+      (_, index) =>
+        [
+          `@metorial/module-m${index}`,
+          { directory: `src/metorial/products/core/modules/m${index}`, e2e: true }
+        ] as const
+    )
+  ]);
+  let durations: Record<string, number> = { '@metorial/api-core': 600 };
+  for (let index = 0; index < 8; index++) durations[`@metorial/module-m${index}`] = 50;
+
+  let matrix = controlMatrix(controlSuites.oss, packages, durations);
+
+  expect(matrix.map(entry => entry.name)).toEqual([
+    'metorial 1/4',
+    'metorial 2/4',
+    'metorial 3/4',
+    'metorial 4/4'
+  ]);
+  expect(new Set(matrix.map(entry => entry.key)).size).toBe(4);
+  for (let entry of matrix) {
+    expect(entry).toMatchObject({
+      control: true,
+      package: '@metorial/app-api',
+      workspace: '.',
+      tasks: controlTasks(controlSuites.oss)
+    });
+    expect(entry.args).toMatch(
+      /^@metorial\/[\w-]+( @metorial\/[\w-]+)*( -- --package-shard=.+)?$/
+    );
+  }
+  let shardArgs = matrix.flatMap(entry => entry.args.match(/--package-shard=\S+/g) ?? []);
+  expect(shardArgs.sort()).toEqual([
+    '--package-shard=@metorial/api-core=1/4',
+    '--package-shard=@metorial/api-core=2/4',
+    '--package-shard=@metorial/api-core=3/4',
+    '--package-shard=@metorial/api-core=4/4'
+  ]);
+
+  let single = new Map([...packages].slice(0, 1));
+  expect(controlMatrix(controlSuites.oss, single, {})).toEqual([
+    expect.objectContaining({ name: 'metorial', key: 'metorial', args: '@metorial/api-core' })
+  ]);
 });
 
 test('unit selection follows Turbo input exclusions and external config globs', async () => {

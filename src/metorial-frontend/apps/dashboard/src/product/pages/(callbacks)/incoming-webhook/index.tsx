@@ -81,7 +81,7 @@ export let IncomingWebhookPage = () => {
                     padding="15px"
                   />
                 ) : (
-                  <Text size="1" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                  <Text size="2" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
                     {decodedBody.text}
                   </Text>
                 )

@@ -30,6 +30,7 @@
     "admin:build": "vite build --config admin/vite.config.ts",
     "admin:dev": "vite --config admin/vite.config.ts",
     "dev:start": "bun --watch ./src/server.ts",
+    "e2e:start": "bun ./src/server.ts",
     "control:db:generate": "bun run prisma:generate",
     "control:db:push": "bun run prisma:push",
     "test:e2e": "bunx vitest run --config vitest.e2e.config.ts --configLoader runner"
@@ -39,9 +40,8 @@
     "@types/lodash": "^4.17.26",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
-    "@vercel/ncc": "^0.38.4",
+    "@vercel/ncc": "^0.45.0",
     "@vitejs/plugin-react": "^5.2.0",
-    "@types/minimatch": "^6.0.0",
     "vite": "^7.3.7",
     "@lowerdeck/testing-tools": "workspace:2.0.0",
     "vitest": "5.0.4"
@@ -50,9 +50,9 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@aws-sdk/client-cloudwatch-logs": "^3.1150.0",
-    "@aws-sdk/client-iam": "^3.1150.0",
-    "@aws-sdk/client-lambda": "^3.1150.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.1153.0",
+    "@aws-sdk/client-iam": "^3.1153.0",
+    "@aws-sdk/client-lambda": "^3.1153.0",
     "@hono/zod-validator": "^0.9.1",
     "@lowerdeck/api-key": "workspace:2.0.0",
     "@lowerdeck/api-mux": "workspace:2.0.0",
@@ -95,11 +95,11 @@
     "@metorial-platform-systems/signal-client": "workspace:*",
     "@metorial-services/slates-registry-client": "workspace:*",
     "@metorial-services/slates-registry-internal-client": "^1.0.0",
-    "@prisma/adapter-pg": "^7.10.0",
-    "@prisma/client": "^7.10.0",
+    "@prisma/adapter-pg": "^7.10.1",
+    "@prisma/client": "^7.10.1",
     "@prisma/extension-read-replicas": "^0.5.0",
     "@remixicon/react": "^4.9.0",
-    "@sentry/bun": "^10.76.2",
+    "@sentry/bun": "^11.8.0",
     "@sentry/cli": "^3.8.0",
     "@slates/proto": "^1.0.0-rc.25",
     "@types/semver": "^7.8.0",
@@ -110,9 +110,9 @@
     "jszip": "^3.10.2",
     "lodash": "4.18.1",
     "object-storage-client": "^0.2.5",
-    "p-queue": "^9.3.5",
-    "prisma": "^7.10.0",
-    "prisma-json-types-generator": "^5.1.1",
+    "p-queue": "^10.0.0",
+    "prisma": "^7.10.1",
+    "prisma-json-types-generator": "^5.2.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-router-dom": "^7.18.4",
@@ -121,6 +121,7 @@
     "styled-components": "^6.6.0",
     "unzipper": "^0.12.5",
     "yaml": "^2.9.1",
-    "zod": "^4.6.7"
+    "zod": "^4.6.7",
+    "@lowerdeck/prisma-pg": "workspace:2.0.0"
   }
 }

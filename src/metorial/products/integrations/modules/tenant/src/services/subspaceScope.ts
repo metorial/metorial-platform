@@ -132,7 +132,8 @@ let loadProjectWithInstances = async (project: ScopeProject): Promise<LoadedProj
     project.instances &&
     project.name &&
     project.oid != null &&
-    project.onlyAllowTrustedProviders != null
+    project.onlyAllowTrustedProviders != null &&
+    project.hidePublicRemoteProviders != null
   ) {
     return project as LoadedProject;
   }
@@ -473,6 +474,17 @@ class subspaceScopeServiceImpl {
     };
   }
 
+  async clearProjectScopeCache(project: ScopeProject) {
+    let loadedProject = await loadProjectWithInstances(project);
+
+    await projectScopeCache.clearAndWait({ project: loadedProject });
+    await Promise.all(
+      (loadedProject.instances ?? []).map(instance =>
+        instanceScopeCache.clearAndWait({ instance })
+      )
+    );
+  }
+
   async ensureForProjectUncached(project: ScopeProject) {
     let loadedProject = await loadProjectWithInstances(project);
     await assertProjectScope(loadedProject);
@@ -488,6 +500,11 @@ class subspaceScopeServiceImpl {
         identifier: tenantIdentifier,
         name: loadedProject.name,
         onlyAllowTrustedProviders: loadedProject.onlyAllowTrustedProviders,
+        allowApiAccessToConsumerOwnedResources:
+          loadedProject.allowApiAccessToConsumerOwnedResources,
+        allowMemberAccessToConsumerOwnedResources:
+          loadedProject.allowMemberAccessToConsumerOwnedResources,
+        hidePublicRemoteProviders: loadedProject.hidePublicRemoteProviders,
         resourceTenantId: resourceTenant.id,
         resourceTenantIdentifier: resourceTenant.identifier,
         projectOid: loadedProject.oid,
@@ -612,10 +629,14 @@ export let subspaceScopeService = Service.create(
   () => new subspaceScopeServiceImpl()
 ).build();
 
+let projectScopeTag = (tenantId: string) => `subspaceScope:project:tenant:${tenantId}`;
+let instanceScopeTag = (tenantId: string) => `subspaceScope:instance:tenant:${tenantId}`;
+
 let projectScopeCache = createCachedFunction({
   name: 'subspaceScope:project',
   redisUrl: env.service.REDIS_URL,
   getHash: (i: { project: ScopeProject }) => i.project.id,
+  getTags: scope => [projectScopeTag(scope.tenant.id)],
   ttlSeconds: scopeCacheTtlSeconds,
   provider: async (i: { project: ScopeProject }) =>
     await subspaceScopeService.ensureForProjectUncached(i.project)
@@ -625,7 +646,13 @@ let instanceScopeCache = createCachedFunction({
   name: 'subspaceScope:instance',
   redisUrl: env.service.REDIS_URL,
   getHash: (i: { instance: ScopeInstance }) => i.instance.id,
+  getTags: scope => [instanceScopeTag(scope.tenant.id)],
   ttlSeconds: scopeCacheTtlSeconds,
   provider: async (i: { instance: ScopeInstance }) =>
     await subspaceScopeService.ensureForInstanceUncached(i.instance)
 });
+
+export let clearTenantScopeCaches = async (tenantId: string) => {
+  await projectScopeCache.clearByTagAndWait(projectScopeTag(tenantId));
+  await instanceScopeCache.clearByTagAndWait(instanceScopeTag(tenantId));
+};

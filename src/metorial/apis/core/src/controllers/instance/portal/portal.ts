@@ -80,7 +80,8 @@ export let portalController = Controller.create(
       .do(async ctx => {
         let paginator = await portalService.listPortals({
           instance: ctx.instance,
-          search: ctx.query.search
+          search: ctx.query.search,
+          portalIds: ctx.portal ? [ctx.portal.id] : undefined
         });
         let list = await paginator.run(ctx.query);
 

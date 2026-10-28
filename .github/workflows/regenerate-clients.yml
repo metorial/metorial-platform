@@ -1,0 +1,230 @@
+name: Regenerate clients
+
+# Targets check out their default branch, not the submodule pin. GH_TOKEN is metorial-bot's token, so
+# PRs open as the bot; it needs write access to every target repo. GITHUB_TOKEN can't push cross-repo.
+
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+    inputs:
+      api_url:
+        description: API to introspect
+        default: https://api.metorial.com
+
+permissions: {}
+
+concurrency:
+  group: regenerate-clients
+  cancel-in-progress: false
+
+env:
+  API_URL: ${{ inputs.api_url || 'https://api.metorial.com' }}
+  PR_BODY: >-
+    Regenerated from ${{ inputs.api_url || 'https://api.metorial.com' }} introspection by
+    ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}.
+
+jobs:
+  sdks:
+    name: Regenerate SDKs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out platform
+        uses: actions/checkout@v4
+        with:
+          path: platform
+          token: ${{ secrets.GH_TOKEN }}
+          persist-credentials: false
+
+      # Not recursive: that would also fill clients/* at their pinned SHAs.
+      - name: Check out outpost
+        env:
+          GIT_CONFIG_COUNT: '1'
+          GIT_CONFIG_KEY_0: url.https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/.insteadOf
+          GIT_CONFIG_VALUE_0: https://github.com/
+        run: git -C platform submodule update --init --depth 1 src/outpost
+
+      - name: Check out Node SDK
+        uses: actions/checkout@v4
+        with:
+          repository: metorial/metorial-node
+          path: platform/clients/metorial-node
+          token: ${{ secrets.GH_TOKEN }}
+          persist-credentials: false
+
+      - name: Check out Python SDK
+        uses: actions/checkout@v4
+        with:
+          repository: metorial/metorial-python
+          path: platform/clients/metorial-python
+          token: ${{ secrets.GH_TOKEN }}
+          persist-credentials: false
+
+      - name: Check out Go SDK
+        uses: actions/checkout@v4
+        with:
+          repository: metorial/metorial-go
+          path: platform/clients/metorial-go
+          token: ${{ secrets.GH_TOKEN }}
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.2'
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: platform/clients/metorial-go/go.mod
+          cache-dependency-path: platform/clients/metorial-go/go.sum
+
+      - name: Install dependencies
+        run: |
+          (cd platform && bun install)
+          (cd platform/clients/metorial-node && bun install && bunx turbo run build --filter=@metorial/generated^...)
+
+      - name: Regenerate SDKs
+        id: regenerate
+        working-directory: platform/scripts/generators
+        run: |
+          bun run generate:client:typescript
+          bun run generate:client:python
+          bun run generate:client:go
+          (cd ../../clients/metorial-go && go build ./...)
+
+      # !cancelled(): one failed SDK PR must not block the others.
+      - name: Open Node SDK PR
+        uses: ./platform/.github/actions/open-generated-pr
+        with:
+          path: platform/clients/metorial-node
+          paths: sdk/gen/src
+          token: ${{ secrets.GH_TOKEN }}
+          title: Regenerate from the Metorial API
+          body: ${{ env.PR_BODY }}
+
+      - name: Open Python SDK PR
+        if: ${{ !cancelled() && steps.regenerate.outcome == 'success' }}
+        uses: ./platform/.github/actions/open-generated-pr
+        with:
+          path: platform/clients/metorial-python
+          paths: src/metorial/_generated
+          token: ${{ secrets.GH_TOKEN }}
+          title: Regenerate from the Metorial API
+          body: ${{ env.PR_BODY }}
+
+      - name: Open Go SDK PR
+        if: ${{ !cancelled() && steps.regenerate.outcome == 'success' }}
+        uses: ./platform/.github/actions/open-generated-pr
+        with:
+          path: platform/clients/metorial-go
+          paths: v1
+          token: ${{ secrets.GH_TOKEN }}
+          title: Regenerate from the Metorial API
+          body: ${{ env.PR_BODY }}
+
+  cli-and-slate:
+    name: Regenerate CLI catalog and slate contract
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out platform actions
+        uses: actions/checkout@v4
+        with:
+          path: platform
+          sparse-checkout: .github
+          token: ${{ secrets.GH_TOKEN }}
+          persist-credentials: false
+
+      - name: Check out CLI
+        uses: actions/checkout@v4
+        with:
+          repository: metorial/cli
+          path: platform/cli
+          token: ${{ secrets.GH_TOKEN }}
+          persist-credentials: false
+
+      - name: Check out integrations
+        uses: actions/checkout@v4
+        with:
+          repository: metorial/metorial
+          path: integrations
+          token: ${{ secrets.GH_TOKEN }}
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.2'
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: platform/cli/go.mod
+          cache-dependency-path: platform/cli/go.sum
+
+      - name: Install dependencies
+        working-directory: integrations
+        run: bun install
+
+      - name: Build slate dependencies
+        working-directory: integrations
+        run: bunx turbo run build --filter="@slates-integrations/metorial-admin^..."
+
+      - name: Regenerate CLI catalog
+        working-directory: platform/cli
+        run: |
+          make generate
+          go build ./...
+          go test ./...
+
+      - name: Regenerate slate contract
+        id: slate
+        continue-on-error: true
+        working-directory: integrations/integrations/metorial-admin
+        env:
+          METORIAL_CLI_DIR: ${{ github.workspace }}/platform/cli
+        run: |
+          set -o pipefail
+          status=0
+          bun run sync-contract --bump 2>&1 | tee "$RUNNER_TEMP/sync-contract.log" || status=$?
+          if [ "$status" -ne 0 ] && grep -q 'breaks existing tools' "$RUNNER_TEMP/sync-contract.log"; then
+            echo 'breaking=true' >> "$GITHUB_OUTPUT"
+          fi
+          exit "$status"
+
+      - name: Build and test slate
+        id: build
+        if: steps.slate.outcome == 'success'
+        working-directory: integrations
+        run: |
+          bunx turbo run build --filter="./integrations/metorial-admin"
+          bunx turbo run test --filter="./integrations/metorial-admin"
+
+      # CLI catalog and slate contract share a manifest, so a slate failure blocks both.
+      - name: Open CLI PR
+        if: steps.build.outcome == 'success'
+        uses: ./platform/.github/actions/open-generated-pr
+        with:
+          path: platform/cli
+          paths: internal/generated/admin/catalog.go
+          token: ${{ secrets.GH_TOKEN }}
+          title: Regenerate admin CLI catalog from the Metorial API
+          body: ${{ env.PR_BODY }}
+
+      - name: Open slate PR
+        if: steps.build.outcome == 'success'
+        uses: ./platform/.github/actions/open-generated-pr
+        with:
+          path: integrations
+          paths: integrations/metorial-admin/src/lib/contract.json integrations/metorial-admin/package.json
+          token: ${{ secrets.GH_TOKEN }}
+          title: Sync metorial-admin tools with the admin CLI
+          body: ${{ env.PR_BODY }}
+
+      - name: Report slate failure
+        if: steps.slate.outcome == 'failure'
+        env:
+          BREAKING: ${{ steps.slate.outputs.breaking }}
+        run: |
+          if [ "$BREAKING" = 'true' ]; then
+            echo "::error::The slate guard found breaking tool changes; the CLI and slate PRs were not opened. See the 'Regenerate slate contract' step."
+          else
+            echo "::error::Regenerating the slate contract failed; the CLI and slate PRs were not opened. See the 'Regenerate slate contract' step."
+          fi
+          exit 1

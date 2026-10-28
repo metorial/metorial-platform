@@ -68,13 +68,13 @@ export let ProvidersGrid = ({ mode = 'default', ...filter }: ProvidersGridProps)
                     {!isHome && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                         {listing.attributes.isVerified && (
-                          <Badge size="1" color="blue">
-                            <RiCheckLine size={12} style={{ marginRight: 3 }} /> Verified
+                          <Badge size="1" color="blue" icon={<RiCheckLine />}>
+                            Verified
                           </Badge>
                         )}
 
                         {listing.attributes.isOfficial && (
-                          <Badge size="1" color="gray">
+                          <Badge size="2" color="gray">
                             Official
                           </Badge>
                         )}
@@ -83,7 +83,9 @@ export let ProvidersGrid = ({ mode = 'default', ...filter }: ProvidersGridProps)
                   </div>
                 }
                 bottom={
-                  listing.provider?.slug ? <Text size="1">{listing.provider.slug}</Text> : undefined
+                  listing.provider?.slug ? (
+                    <Text size="2">{listing.provider.slug}</Text>
+                  ) : undefined
                 }
               />
             );

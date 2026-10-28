@@ -1,11 +1,44 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { useCurrentInstance } from '@metorial/state';
+import {
+  useLogsUsageFilters,
+  UsageEventsCard,
+  type LogsUsageFilterSpec
+} from '../../../scenes/instanceUsage';
 import { ProviderAuthErrorGroupsTable } from '../../../scenes/providerAuthErrors/groupsTable';
+
+let usageFilterSpec: LogsUsageFilterSpec = {
+  dimensions: { providerId: 'providerId' },
+  errorTypeParam: 'type',
+  unsupported: [{ param: 'providerAuthConfigId', label: 'auth config' }],
+  search: true
+};
 
 export let ProviderAuthErrorsPage = () => {
   let instance = useCurrentInstance();
+  let { range, filter, picker, hint } = useLogsUsageFilters(usageFilterSpec);
 
-  return renderWithLoader({ instance })(({ instance: _instance }) => (
-    <ProviderAuthErrorGroupsTable />
+  return renderWithLoader({ instance })(() => (
+    <ProviderAuthErrorGroupsTable
+      layout={{
+        framed: true,
+        topContent: (
+          <UsageEventsCard
+            actions={picker}
+            variant="strip"
+            title="Auth errors"
+            info="Authentication error occurrences over time, stacked by error type. The table groups similar errors into one row."
+            hint={hint}
+            filter={filter}
+            range={range}
+            kinds={['auth_error']}
+            mode="group"
+            groupBy="error_type"
+            collapseKey="logs-auth-errors"
+            height={120}
+          />
+        )
+      }}
+    />
   ));
 };

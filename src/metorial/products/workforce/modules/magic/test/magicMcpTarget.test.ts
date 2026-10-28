@@ -53,14 +53,14 @@ describe('magic MCP target resolution', () => {
     expect(result).toEqual({ type: entry.type, target: entry.target });
     expect(db.magicMcpServerAlias.findUnique).not.toHaveBeenCalled();
     expect(db.magicMcpServer.findFirst.mock.calls[0]).toEqual([
-      { where: { id: entry.target.id, status: 'active' } }
+      { where: { id: entry.target.id, status: 'active', isSystemOwned: false } }
     ]);
     expect(db.magicMcpEndpoint.findFirst.mock.calls[0]).toEqual([
-      { where: { id: entry.target.id, status: 'active' } }
+      { where: { id: entry.target.id, status: 'active', isSystemOwned: false } }
     ]);
     expect(db[entry.model].findFirst).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        where: { oid: entry.target.oid, status: 'active' },
+        where: { oid: entry.target.oid, status: 'active', isSystemOwned: false },
         relationLoadStrategy: 'query'
       })
     );
@@ -74,14 +74,14 @@ describe('magic MCP target resolution', () => {
 
     expect(result).toEqual({ type: 'server', target: server });
     expect(db.magicMcpServerAlias.findUnique).toHaveBeenCalledWith({
-      where: { slug: 'notion-alias', server: { status: 'active' } }
+      where: { slug: 'notion-alias', server: { status: 'active', isSystemOwned: false } }
     });
     expect(db.magicMcpEndpoint.findFirst.mock.calls).toEqual([
-      [{ where: { id: 'notion-alias', status: 'active' } }],
-      [{ where: { slug: 'notion-alias', status: 'active' } }]
+      [{ where: { id: 'notion-alias', status: 'active', isSystemOwned: false } }],
+      [{ where: { slug: 'notion-alias', status: 'active', isSystemOwned: false } }]
     ]);
     expect(db.magicMcpServer.findFirst).toHaveBeenLastCalledWith({
-      where: { oid: server.oid, status: 'active' },
+      where: { oid: server.oid, status: 'active', isSystemOwned: false },
       include: { aliases: true, instance: true, subspaceSession: true },
       relationLoadStrategy: 'query'
     });
@@ -97,11 +97,11 @@ describe('magic MCP target resolution', () => {
 
     expect(result).toEqual({ type: 'endpoint', target: endpoint });
     expect(db.magicMcpEndpoint.findFirst.mock.calls).toEqual([
-      [{ where: { id: 'endpoint-slug', status: 'active' } }],
-      [{ where: { slug: 'endpoint-slug', status: 'active' } }],
+      [{ where: { id: 'endpoint-slug', status: 'active', isSystemOwned: false } }],
+      [{ where: { slug: 'endpoint-slug', status: 'active', isSystemOwned: false } }],
       [
         {
-          where: { oid: endpoint.oid, status: 'active' },
+          where: { oid: endpoint.oid, status: 'active', isSystemOwned: false },
           include: {
             consumerProfile: true,
             instance: true,
@@ -150,7 +150,9 @@ describe('magic MCP target resolution', () => {
 
     expect(result).toBeNull();
     expect(db[entry.model].findFirst).toHaveBeenLastCalledWith(
-      expect.objectContaining({ where: { oid: entry.target.oid, status: 'active' } })
+      expect.objectContaining({
+        where: { oid: entry.target.oid, status: 'active', isSystemOwned: false }
+      })
     );
     expect(db.magicMcpServerAlias.findUnique).not.toHaveBeenCalled();
   });
@@ -159,11 +161,11 @@ describe('magic MCP target resolution', () => {
     expect(await resolveMagicMcpTargetByIdOrAliasSafe('missing')).toBeNull();
 
     expect(db.magicMcpServer.findFirst.mock.calls).toEqual([
-      [{ where: { id: 'missing', status: 'active' } }]
+      [{ where: { id: 'missing', status: 'active', isSystemOwned: false } }]
     ]);
     expect(db.magicMcpEndpoint.findFirst.mock.calls).toEqual([
-      [{ where: { id: 'missing', status: 'active' } }],
-      [{ where: { slug: 'missing', status: 'active' } }]
+      [{ where: { id: 'missing', status: 'active', isSystemOwned: false } }],
+      [{ where: { slug: 'missing', status: 'active', isSystemOwned: false } }]
     ]);
   });
 

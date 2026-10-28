@@ -6,7 +6,12 @@ run = ["dev:start"]
 
 [endpoints.rpc]
 port = 52060
+health = "/ping"
 env = [{ key = "VOYAGER_PORT", value = "{{BIND_PORT}}" }]
+
+[e2e]
+start = ["e2e:start"]
+image = "voyager"
 
 [[resources]]
 type = "redis"
@@ -30,3 +35,16 @@ package = "@metorial/voyager"
 name = "voyager-search"
 engine = "postgres"
 env = "SEARCH_DATABASE_URL"
+
+[[ci.images]]
+name = "voyager"
+group = "oss"
+dockerfile = "Dockerfile"
+image = "metorial/mte-voyager"
+ecr = "metorial-enterprise-saas/mte-voyager"
+canonical = "ghcr.io/metorial/voyager"
+
+[ci.suite]
+name = "voyager"
+runner = "compose"
+profiles = ["infra", "service"]

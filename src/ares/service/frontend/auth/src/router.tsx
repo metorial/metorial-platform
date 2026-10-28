@@ -1,3 +1,4 @@
+import { TwoFactorSetup } from './pages/twoFactorSetup';
 import { ModalRoot, Toaster } from '@metorial-io/ui';
 import { useEffect, useRef } from 'react';
 import { createBrowserRouter, Outlet, RouterProvider } from 'react-router-dom';
@@ -32,6 +33,7 @@ let router = createBrowserRouter([
     ),
     errorElement: <RouterErrorPage />,
     children: [
+      { path: 'two-factor/setup', element: <TwoFactorSetup /> },
       {
         path: '',
         element: <Redirect to="https://metorial.com" />

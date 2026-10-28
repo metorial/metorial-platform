@@ -1,7 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
-import { ownerActorSchema, presentOwnerActor } from '../../_shared';
-import { env } from '@metorial-subspace/module-auth/src/env';
+import { presentOwnerActor, presentResourceSource, resourceAccessSchema } from '../../_shared';
+import { getProviderSetupSessionUrl } from '@metorial-subspace/module-auth/src/lib/setupSessionUrl';
 import { providerSetupSessionType } from '../../../types';
 import {
   presentRawProviderAuthMethod,
@@ -22,6 +22,9 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
         ? ('expired' as const)
         : setupSession.status;
 
+    let oauthErrorMessage =
+      setupSession.oauthSetup?.errorMessage || setupSession.oauthSetup?.errorCode;
+
     return {
       object: 'provider.setup_session' as const,
 
@@ -29,7 +32,14 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
       type: setupSession.typeSelected,
       status,
 
-      url: `${env.service.INTEGRATIONS_UI_URL}/setup-session/${setupSession.id}?client_secret=${setupSession.clientSecret}`,
+      url: getProviderSetupSessionUrl(setupSession),
+
+      error: oauthErrorMessage
+        ? {
+            code: setupSession.oauthSetup?.errorCode || 'oauth_error',
+            message: oauthErrorMessage
+          }
+        : null,
 
       name: setupSession.name,
       description: setupSession.description,
@@ -74,7 +84,12 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
       provider_id: setupSession.provider?.id ?? null,
       identity_id: setupSession.identity?.id ?? null,
       identity_credential_id: setupSession.identityCredential?.id ?? null,
-      owner_actor: presentOwnerActor(setupSession.ownerActor),
+      access: {
+        source: presentResourceSource(setupSession.source),
+        type: setupSession.isOwnerLocked ? ('owner_locked' as const) : ('public' as const),
+        visibility: setupSession.isOwnerOnlyVisible ? ('owner' as const) : ('anyone' as const),
+        owner: presentOwnerActor(setupSession.ownerActor)
+      },
 
       auth_method:
         setupSession.provider && setupSession.authMethod
@@ -166,9 +181,10 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
         description: 'Unique setup session identifier',
         examples: ['pas_6eFgHjKlMnPqRsTu']
       }),
-      type: v.enumOf(['auth_only', 'config_only', 'auth_and_config'], {
+      type: v.enumOf(['auth_only', 'config_only', 'auth_and_config', 'admin'], {
         name: 'type',
-        description: 'Setup session type'
+        description:
+          'Setup session type. `admin` sessions produce an admin consent link and complete without creating credentials.'
       }),
       status: v.enumOf(['failed', 'archived', 'deleted', 'pending', 'completed', 'expired'], {
         name: 'status',
@@ -179,6 +195,28 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
         description: 'URL where user completes authentication',
         examples: ['https://provider.metorial.com/setup/pas_6eFgHjKlMnPqRsTu']
       }),
+      error: v.nullable(
+        v.object(
+          {
+            code: v.string({
+              name: 'code',
+              description:
+                'Machine-readable error code reported by the OAuth provider or integration',
+              examples: ['consent_required']
+            }),
+            message: v.string({
+              name: 'message',
+              description: 'Human-readable error message',
+              examples: ['consent_required: AADSTS90094: Admin consent is required.']
+            })
+          },
+          {
+            name: 'error',
+            description:
+              'The error reported during the OAuth step of this session, or null if none occurred'
+          }
+        )
+      ),
       name: v.nullable(
         v.string({
           name: 'name',
@@ -227,7 +265,7 @@ export let v1SetupSessionPresenter = Presenter.create(providerSetupSessionType)
           examples: ['idc_3nOpRsTuVwXyZaBc']
         })
       ),
-      owner_actor: ownerActorSchema,
+      access: resourceAccessSchema,
       auth_method: v.nullable(v1ProviderAuthMethodPresenter.schema),
       deployment: v.nullable(v1ProviderDeploymentPreviewPresenter.schema),
       credentials: v.nullable(v1ProviderAuthCredentialsPresenter.schema),

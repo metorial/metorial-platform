@@ -9,17 +9,22 @@ let mocks = vi.hoisted(() => ({
   enqueue: vi.fn(async () => ({}))
 }));
 
-vi.mock('@metorial/db', () => ({
-  db: {
-    webDiscovery: {
-      upsert: mocks.upsert,
-      updateMany: mocks.updateMany,
-      findUnique: mocks.findUnique,
-      findUniqueOrThrow: mocks.findUniqueOrThrow
-    }
-  },
-  ID: { generateId: mocks.generateId }
-}));
+vi.mock('@metorial/db', async () => {
+  let { withUniqueConstraintRecovery } = await import('../../../../../db/src/lib/unique');
+
+  return {
+    db: {
+      webDiscovery: {
+        upsert: mocks.upsert,
+        updateMany: mocks.updateMany,
+        findUnique: mocks.findUnique,
+        findUniqueOrThrow: mocks.findUniqueOrThrow
+      }
+    },
+    ID: { generateId: mocks.generateId },
+    withUniqueConstraintRecovery
+  };
+});
 
 vi.mock('../src/queues/discovery', () => ({ runDiscoveryQueue: { add: mocks.enqueue } }));
 
@@ -66,6 +71,55 @@ describe('webDiscoveryService.discover', () => {
 
     expect(discovery.id).toBe('wdsc_existing');
     expect(mocks.updateMany).not.toHaveBeenCalled();
+    expect(mocks.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('reuses the winning discovery when concurrent creation hits the url key constraint', async () => {
+    let existing = row({ status: 'pending' });
+    mocks.upsert.mockRejectedValueOnce({ code: 'P2002', meta: { target: ['urlKey'] } });
+    mocks.findUnique.mockResolvedValueOnce(existing);
+
+    let discovery = await webDiscoveryService.discover({ url });
+
+    expect(discovery).toBe(existing);
+    expect(mocks.findUnique).toHaveBeenCalledWith({
+      where: { urlKey: 'docs.mcp.cloudflare.com/mcp' }
+    });
+    expect(mocks.updateMany).not.toHaveBeenCalled();
+    expect(mocks.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('still resets a failed discovery recovered after a unique constraint conflict', async () => {
+    mocks.upsert.mockRejectedValueOnce({ code: 'P2002' });
+    mocks.findUnique.mockResolvedValueOnce(row({ status: 'failed' }));
+    mocks.updateMany.mockResolvedValueOnce({ count: 1 });
+    mocks.findUniqueOrThrow.mockResolvedValueOnce(
+      row({ status: 'pending', startedAt: new Date() })
+    );
+
+    await webDiscoveryService.discover({ url });
+
+    expect(mocks.updateMany).toHaveBeenCalledTimes(1);
+    expect(mocks.enqueue).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves a unique constraint error when no matching discovery exists', async () => {
+    let error = { code: 'P2002', meta: { target: ['id'] } };
+    mocks.upsert.mockRejectedValueOnce(error);
+    mocks.findUnique.mockResolvedValueOnce(null);
+
+    await expect(webDiscoveryService.discover({ url })).rejects.toBe(error);
+
+    expect(mocks.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('propagates database failures other than unique constraint conflicts', async () => {
+    let error = { code: 'P1001' };
+    mocks.upsert.mockRejectedValueOnce(error);
+
+    await expect(webDiscoveryService.discover({ url })).rejects.toBe(error);
+
+    expect(mocks.findUnique).not.toHaveBeenCalled();
     expect(mocks.enqueue).not.toHaveBeenCalled();
   });
 

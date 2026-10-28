@@ -77,7 +77,27 @@ export let providerSetupSessionAuditResource = resource({
   presenter: undefined,
   actions: {
     create: true,
-    update: true
+    update: true,
+    delete: true
+  }
+});
+
+/**
+ * A setup session link emailed to a prospective approver. The link itself embeds the
+ * session's client secret and is omitted; the recipient address is kept because who
+ * was asked to approve access is the point of the entry.
+ */
+export let providerSetupSessionEmailAuditResource = resource({
+  name: 'provider_setup_session_email',
+  payload: v.typedAny<{
+    id: string;
+    setupSessionId: string;
+    recipientEmail: string;
+    organizationMemberId: string | null;
+  }>('provider_setup_session_email'),
+  presenter: undefined,
+  actions: {
+    create: true
   }
 });
 

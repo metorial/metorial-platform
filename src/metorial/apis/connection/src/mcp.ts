@@ -2,7 +2,8 @@ import {
   handleMcpRequest as handleSubspaceMcpRequest,
   isModernMcpRequest,
   isSessionlessMcpEnabled,
-  McpConnection
+  McpConnection,
+  type RequestScopedToolsResolver
 } from '@metorial-subspace/module-connection';
 import { subspaceScopeService } from '@metorial-subspace/module-tenant';
 import {
@@ -13,7 +14,7 @@ import type { Instance } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import type { Context } from 'hono';
-import { streamSSE } from 'hono/streaming';
+import { type SSEStreamingApi, streamSSE } from 'hono/streaming';
 import z from 'zod';
 import {
   assertOutpostConnectionAccess,
@@ -115,6 +116,7 @@ type HandleMcpRequestInput = {
   ingressIp?: string | null;
   publicBaseUrl?: string;
   publicMcpAccess?: PublicMcpAccess;
+  requestTools?: RequestScopedToolsResolver;
   onSubspaceSessionResolved?: (d: {
     subspaceSessionId: string;
     response: Response;
@@ -138,10 +140,14 @@ let handleMcpRequestInner = async (c: Context, d: HandleMcpRequestInput) => {
   let { tenant, solution } = await subspaceScopeService.ensureForInstance(d.instance);
   let connectionToken =
     c.req.header('mcp-session-id') || c.req.query('connection_token') || undefined;
+  let isLegacySseMessage =
+    c.req.method === 'POST' &&
+    !c.req.header('mcp-session-id') &&
+    !!c.req.query('connection_token');
   let transport: 'sse' | 'streamable_http' =
-    connectionToken || (c.req.method === 'POST' && !c.req.query('connection_token'))
-      ? 'streamable_http'
-      : 'sse';
+    isLegacySseMessage || (!connectionToken && c.req.method !== 'POST')
+      ? 'sse'
+      : 'streamable_http';
   let proxyUrl = d.publicBaseUrl
     ? `${d.publicBaseUrl}${new URL(c.req.url).search}`
     : publicProxyUrl(c, resolveOutpostOrigin(getOutpostAuth(c)));
@@ -198,6 +204,7 @@ let handleMcpRequestInner = async (c: Context, d: HandleMcpRequestInput) => {
     tenantId: tenant.id,
     agentClient: d.agentClient ?? undefined,
     connectionPrivateMetadata: privateMetadata.data,
+    requestTools: d.requestTools,
     ingressPolicyCheck
   };
   let connectionInput = {
@@ -244,12 +251,17 @@ let handleMcpRequestInner = async (c: Context, d: HandleMcpRequestInput) => {
         endpoint.searchParams.set('connection_token', created.token);
         applyConnectionHeaders(c, connection);
         await stream.writeSSE({ event: 'endpoint', data: endpoint.toString() });
+        let stopKeepAlive = startSseKeepAlive(stream);
 
-        for await (let event of listener.iterator()) {
-          await stream.writeSSE({
-            id: event.message?.id,
-            data: JSON.stringify(event.mcp)
-          });
+        try {
+          for await (let event of listener.iterator()) {
+            await stream.writeSSE({
+              id: event.message?.id,
+              data: JSON.stringify(event.mcp)
+            });
+          }
+        } finally {
+          stopKeepAlive();
         }
       });
     }
@@ -279,12 +291,17 @@ let handleMcpRequestInner = async (c: Context, d: HandleMcpRequestInput) => {
         replayFromMessageId: lastMessageId
       });
       stream.onAbort(async () => await listener.close());
+      let stopKeepAlive = startSseKeepAlive(stream);
 
-      for await (let event of listener.iterator()) {
-        await stream.writeSSE({
-          id: event.message?.id,
-          data: JSON.stringify(event.mcp)
-        });
+      try {
+        for await (let event of listener.iterator()) {
+          await stream.writeSSE({
+            id: event.message?.id,
+            data: JSON.stringify(event.mcp)
+          });
+        }
+      } finally {
+        stopKeepAlive();
       }
     });
   }
@@ -354,6 +371,28 @@ let handleMcpRequestInner = async (c: Context, d: HandleMcpRequestInput) => {
   }
 
   return c.text('Method Not Allowed', 405);
+};
+
+// Must stay well below the load balancer idle timeout (60s on the AWS ALBs), which
+// otherwise cuts idle SSE streams. The MCP-level pings (PING_INTERVAL_MS) are too
+// infrequent to rely on for this.
+let SSE_KEEP_ALIVE_INTERVAL_MS = 25_000;
+
+let startSseKeepAlive = (stream: SSEStreamingApi) => {
+  let writeKeepAlive = () => void stream.write(': keepalive\n\n');
+
+  // In production the ALB doesn't see the response start until the first body byte.
+  writeKeepAlive();
+
+  let interval = setInterval(() => {
+    if (stream.aborted || stream.closed) return stop();
+    writeKeepAlive();
+  }, SSE_KEEP_ALIVE_INTERVAL_MS);
+
+  let stop = () => clearInterval(interval);
+  stream.onAbort(stop);
+
+  return stop;
 };
 
 let readMessage = async (c: Context): Promise<JSONRPCMessage | Response> => {

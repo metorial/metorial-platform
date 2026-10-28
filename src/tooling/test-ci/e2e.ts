@@ -2,19 +2,17 @@ import { createClient } from '@lowerdeck/rpc-client';
 import { prepareCompose } from './images';
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { readInventory } from './inventory';
 
 let [command, suite, sourceWorkspace, artifactDirectory] = process.argv.slice(2);
-let directories: Record<string, string> = {
-  forge: 'src/forge/service',
-  nebula: 'src/nebula/service',
-  'function-bay': 'src/function-bay/service',
-  shuttle: 'src/shuttle/service',
-  'slates-hub': 'src/slates/apps/hub',
-  relay: 'src/relay/service',
-  voyager: 'src/voyager/service'
-};
-let directory = directories[suite];
-if (!directory) throw new Error(`Unknown E2E suite: ${suite}`);
+let definition = readInventory().suites.find(
+  candidate => candidate.name === suite && candidate.runner === 'compose'
+);
+if (!definition) throw new Error(`Unknown E2E suite: ${suite}`);
+let directory = definition.directory.replace(
+  sourceWorkspace.endsWith('/oss') ? /^oss\// : /^\.\//,
+  ''
+);
 let stack = resolve(process.env.RUNNER_TEMP ?? '/tmp', `test-stack-${suite}`);
 let composePath = join(stack, 'compose.json');
 let project = `ci-${suite}-${process.env.GITHUB_RUN_ID ?? process.pid}-${process.env.GITHUB_RUN_ATTEMPT ?? 1}`;
@@ -41,7 +39,7 @@ let compose = (...args: string[]) =>
 if (command === 'prepare') {
   mkdirSync(stack, { recursive: true });
   let revision = run(['git', 'rev-parse', 'HEAD'], sourceWorkspace).trim();
-  let profiles = suite === 'slates-hub' ? ['hub', 'infra'] : ['infra', 'service'];
+  let profiles = definition.profiles;
   let flags = profiles.flatMap(profile => ['--profile', profile]);
   let config = JSON.parse(
     run(
@@ -60,6 +58,13 @@ if (command === 'prepare') {
       join(sourceWorkspace, directory)
     )
   );
+  if (process.env.CONTROL_CI_RUNTIME) {
+    let runtime = JSON.parse(readFileSync(process.env.CONTROL_CI_RUNTIME, 'utf8'));
+    for (let service of Object.values(config.services) as any[]) {
+      if (service.image && runtime.images[service.image])
+        service.image = runtime.images[service.image];
+    }
+  }
   let ciEnvironment = Object.fromEntries(
     readFileSync(join(sourceWorkspace, directory, '.env.ci'), 'utf8')
       .split('\n')
@@ -169,6 +174,10 @@ if (command === 'prepare') {
   compose('up', '-d', '--no-build', '--wait', '--wait-timeout', '240');
   refreshPorts(applications);
   environment = testEnvironment();
+  if (process.env.CONTROL_CI_RUNTIME) {
+    let runtime = JSON.parse(readFileSync(process.env.CONTROL_CI_RUNTIME, 'utf8'));
+    environment.CONTROL_E2E_STACK_KEY = runtime.keys[definition.package];
+  }
   for (let name of applications) {
     let service = config.services[name];
     let container = compose('ps', '-q', name).trim();

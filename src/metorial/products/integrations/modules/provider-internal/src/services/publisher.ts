@@ -87,7 +87,7 @@ class publisherInternalServiceImpl {
     if (
       publisher &&
       publisher.name === d.input.name &&
-      publisher.description === d.input.description &&
+      (publisher.description ?? null) === (d.input.description ?? null) &&
       (publisher.source === d.input.source ||
         canonicalize(publisher.source) === canonicalize(d.input.source)) &&
       (publisher.image === d.input.image ||
@@ -124,6 +124,7 @@ class publisherInternalServiceImpl {
         update: {
           name: d.input.name,
           description: d.input.description,
+          image: d.input.image,
           source: d.input.source
         }
       });

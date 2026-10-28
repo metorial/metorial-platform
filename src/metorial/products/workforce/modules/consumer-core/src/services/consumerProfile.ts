@@ -28,8 +28,9 @@ import {
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { createLock } from '@metorial/lock';
+import { archiveDeletedConsumerProfileActorsQueue } from '@metorial/module-consumer-entities';
 import { namespaceService, organizationActorService } from '@metorial/module-organization';
-import { searchConsumerIds } from '@metorial/module-search';
+import { buildSearchFilter, searchConsumerIds } from '@metorial/module-search';
 import {
   consumerEmailEquals,
   normalizeConsumerEmail,
@@ -43,6 +44,7 @@ import {
 import { reconcileUserConsumersQueue } from '../queues/reconcileUserConsumer';
 import { syncUserConsumersQueue } from '../queues/syncUserConsumer';
 import { consumerService } from './consumer';
+import { consumerInviteService } from './consumerInvite';
 import type { EnrichedConsumerSurface } from './consumerSurface';
 import { consumerSurfaceInclude, consumerSurfaceService } from './consumerSurface';
 
@@ -55,6 +57,8 @@ let include = {
     }
   },
   resourceActors: true,
+  organizationActor: true,
+  organizationMember: { select: { id: true } },
   surface: {
     include: {
       ...consumerSurfaceInclude,
@@ -425,42 +429,40 @@ class ConsumerProfileServiceImpl {
     statuses?: Array<'active' | 'invited'>;
     visibleToConsumerGroups?: ConsumerGroup[];
   }) {
-    let search = d.search?.trim();
     let emails = normalizeConsumerEmails(d.emails);
     let consumerGroupId = d.consumerGroupId?.trim();
     let statuses = d.statuses?.length ? new Set(d.statuses) : null;
-    let instance = search
-      ? await db.instance.findFirst({
+
+    let matchInstanceConsumers = (
+      id: Prisma.StringFilter | string
+    ): Prisma.ConsumerProfileWhereInput => ({
+      consumer: {
+        instanceConsumers: { some: { instanceOid: d.consumerSurface.instanceOid, id } }
+      }
+    });
+
+    let search = await buildSearchFilter<Prisma.ConsumerProfileWhereInput>({
+      search: d.search,
+      findIds: async query => {
+        let instance = await db.instance.findFirst({
           where: {
             oid: d.consumerSurface.instanceOid
           },
           select: {
             id: true
           }
-        })
-      : null;
-    let searchedConsumerIds =
-      search && instance
-        ? await searchConsumerIds({
-            instanceId: instance.id,
-            query: search
-          })
-        : undefined;
-    let searchedConsumerOids =
-      search && searchedConsumerIds?.length
-        ? (
-            await db.instanceConsumer.findMany({
-              where: {
-                instanceOid: d.consumerSurface.instanceOid,
-                id: { in: searchedConsumerIds }
-              },
-              select: { consumerOid: true },
-              distinct: ['consumerOid']
-            })
-          ).map(consumer => consumer.consumerOid)
-        : search
-          ? []
-          : undefined;
+        });
+        if (!instance) return [];
+
+        return await searchConsumerIds({ instanceId: instance.id, query });
+      },
+      matchIds: ids => matchInstanceConsumers({ in: ids }),
+      exact: query => [
+        { id: query },
+        { consumer: { id: query } },
+        matchInstanceConsumers(query)
+      ]
+    });
 
     let groupMembershipWhere: Prisma.ConsumerProfileWhereInput | undefined;
     let inviteStatusWhere: Prisma.ConsumerProfileWhereInput | undefined;
@@ -519,7 +521,7 @@ class ConsumerProfileServiceImpl {
       ...(visibilityWhere ? [visibilityWhere] : []),
       ...(inviteStatusWhere ? [inviteStatusWhere] : []),
       ...(emails?.length ? [{ email: { in: emails } }] : []),
-      ...(search ? [{ consumerOid: { in: searchedConsumerOids ?? [] } }] : [])
+      ...(search ? [search] : [])
     ];
 
     let paginator = Paginator.create(({ prisma }) =>
@@ -645,6 +647,30 @@ class ConsumerProfileServiceImpl {
     };
   }
 
+  async getConsumerProfileForPortalAccount(d: {
+    instance: Instance;
+    consumerSurface: ConsumerSurface;
+    consumerProfileId: string;
+  }) {
+    let consumerProfile = await db.consumerProfile.findFirst({
+      where: {
+        instanceOid: d.instance.oid,
+        id: d.consumerProfileId,
+        status: 'active',
+        OR: [
+          { surfaceOid: d.consumerSurface.oid },
+          { surface: { type: { in: ['organization_members', 'cli'] } } }
+        ]
+      },
+      include
+    });
+    if (!consumerProfile) {
+      throw new ServiceError(notFoundError('consumer.profile'));
+    }
+
+    return await this.enrichConsumerProfile({ consumerProfile });
+  }
+
   async getConsumerProfileByIdForInstance(d: {
     instance: Instance;
     consumerProfileId: string;
@@ -759,6 +785,18 @@ class ConsumerProfileServiceImpl {
         surface: d.consumerProfile.surface
       });
 
+      let invite = await db.consumerInvite.findUnique({
+        where: { consumerProfileOid: d.consumerProfile.oid },
+        select: { id: true, status: true }
+      });
+      if (invite?.status === 'pending') {
+        await consumerInviteService.deleteConsumerInvite({
+          consumerSurface: d.consumerProfile.surface,
+          consumerInviteId: invite.id,
+          auditScope: d.auditScope
+        });
+      }
+
       let consumerProfile = await db.consumerProfile.update({
         where: {
           oid: d.consumerProfile.oid
@@ -772,6 +810,16 @@ class ConsumerProfileServiceImpl {
         include
       });
 
+      await db.consumerSession.updateMany({
+        where: {
+          consumerProfileOid: d.consumerProfile.oid,
+          loggedOutAt: null
+        },
+        data: {
+          loggedOutAt: new Date()
+        }
+      });
+
       await Fabric.fire('consumer.profile.deleted:after', {
         consumerProfile,
         surface: consumerProfile.surface,
@@ -781,6 +829,9 @@ class ConsumerProfileServiceImpl {
       // A deleted profile keeps its row and carries a status, so the copy is an update like any other.
       await addAwaitedAfterTransactionHook(() =>
         metorialResourceService.syncConsumerProfile(consumerProfile)
+      );
+      await addAwaitedAfterTransactionHook(() =>
+        archiveDeletedConsumerProfileActorsQueue.add({ consumerProfileId: consumerProfile.id })
       );
 
       return consumerProfile;

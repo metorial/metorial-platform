@@ -1,6 +1,6 @@
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
-import { withAuth } from '../../user';
+import { withAuth, withVerification } from '../../user';
 
 export let serviceAccountsLoader = createLoader({
   name: 'serviceAccounts',
@@ -73,7 +73,9 @@ export let serviceAccountLoader = createLoader({
 
     createClientSecret: (_: {}, { input: { organizationId, serviceAccountId } }) =>
       withAuth(sdk =>
-        sdk.serviceAccounts.clientSecrets.create(organizationId, serviceAccountId)
+        withVerification(opts =>
+          sdk.serviceAccounts.clientSecrets.create(organizationId, serviceAccountId, opts)
+        )
       ),
 
     deleteClientSecret: (

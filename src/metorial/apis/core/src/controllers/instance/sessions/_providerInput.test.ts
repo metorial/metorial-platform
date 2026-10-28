@@ -6,8 +6,10 @@ let mocks = vi.hoisted(() => ({
   getProviderVersionById: vi.fn(),
   getProviderDeploymentById: vi.fn(),
   createProviderDeployment: vi.fn(),
+  getProviderConfigById: vi.fn(),
   createProviderConfig: vi.fn(),
   getProviderConfigVaultById: vi.fn(),
+  getProviderAuthConfigById: vi.fn(),
   createProviderAuthConfig: vi.fn()
 }));
 
@@ -21,6 +23,7 @@ vi.mock('@metorial-subspace/module-deployment', () => ({
     createProviderDeployment: mocks.createProviderDeployment
   },
   providerConfigService: {
+    getProviderConfigById: mocks.getProviderConfigById,
     createProviderConfig: mocks.createProviderConfig
   },
   providerConfigVaultService: {
@@ -29,6 +32,7 @@ vi.mock('@metorial-subspace/module-deployment', () => ({
 }));
 vi.mock('@metorial-subspace/module-auth', () => ({
   providerAuthConfigService: {
+    getProviderAuthConfigById: mocks.getProviderAuthConfigById,
     createProviderAuthConfig: mocks.createProviderAuthConfig
   }
 }));
@@ -42,8 +46,10 @@ beforeEach(() => {
 });
 
 describe('resolveSessionProviderInput', () => {
-  it('preserves reference validation and deferred config/auth lookup', async () => {
+  it('validates deployment, config and auth config references', async () => {
     mocks.getProviderDeploymentById.mockResolvedValue({ id: 'pdp_1' });
+    mocks.getProviderConfigById.mockResolvedValue({ id: 'pcf_1' });
+    mocks.getProviderAuthConfigById.mockResolvedValue({ id: 'pac_1' });
 
     let result = await resolveSessionProviderInput({
       instance,
@@ -64,6 +70,14 @@ describe('resolveSessionProviderInput', () => {
     expect(mocks.getProviderDeploymentById).toHaveBeenCalledWith({
       instance,
       providerDeploymentId: 'pdp_1'
+    });
+    expect(mocks.getProviderConfigById).toHaveBeenCalledWith({
+      instance,
+      providerConfigId: 'pcf_1'
+    });
+    expect(mocks.getProviderAuthConfigById).toHaveBeenCalledWith({
+      instance,
+      providerAuthConfigId: 'pac_1'
     });
     expect(result).toEqual({
       sessionTemplateId: undefined,
@@ -111,29 +125,75 @@ describe('resolveSessionProviderInput', () => {
     expect(result.__allowEphemeral).toBe(false);
   });
 
-  it('preserves the former deployment-id provider lookup for ephemeral configs', async () => {
-    mocks.getProviderDeploymentById.mockResolvedValue({ id: 'pdp_1' });
-    mocks.getProviderById.mockRejectedValue(new Error('provider not found'));
+  it('rejects config references that cannot be resolved', async () => {
+    mocks.getProviderConfigById.mockRejectedValue(new Error('config not found'));
 
     await expect(
       resolveSessionProviderInput({
         instance,
-        providerDeployment: {
-          type: 'reference',
-          providerDeploymentId: 'pdp_1'
-        },
-        providerConfig: {
-          type: 'ephemeral',
-          config: { type: 'inline', data: { region: 'us' } }
-        }
+        providerConfig: { type: 'reference', providerConfigId: 'pcf_missing' }
       })
-    ).rejects.toThrow('provider not found');
+    ).rejects.toThrow('config not found');
+  });
 
-    expect(mocks.getProviderById).toHaveBeenCalledWith({
+  it("resolves the provider of an ephemeral config from the deployment's provider", async () => {
+    let provider = { id: 'pro_1' };
+    let providerDeployment = { id: 'pdp_1', provider: { id: 'pro_1' } };
+    mocks.getProviderDeploymentById.mockResolvedValue(providerDeployment);
+    mocks.getProviderById.mockResolvedValue(provider);
+    mocks.createProviderConfig.mockResolvedValue({ id: 'pcf_new' });
+
+    let result = await resolveSessionProviderInput({
       instance,
-      providerId: 'pdp_1'
+      providerDeployment: {
+        type: 'reference',
+        providerDeploymentId: 'pdp_1'
+      },
+      providerConfig: {
+        type: 'ephemeral',
+        config: { type: 'inline', data: { region: 'us' } }
+      }
     });
-    expect(mocks.createProviderConfig).not.toHaveBeenCalled();
+
+    expect(mocks.getProviderById).toHaveBeenCalledWith({ instance, providerId: 'pro_1' });
+    expect(mocks.createProviderConfig).toHaveBeenCalledWith({
+      instance,
+      provider,
+      providerDeployment,
+      input: {
+        name: 'Ephemeral config',
+        isEphemeral: true,
+        config: { type: 'inline', data: { region: 'us' } }
+      }
+    });
+    expect(result).toMatchObject({ configId: 'pcf_new', __allowEphemeral: true });
+  });
+
+  it("falls back to the deployment's provider for ephemeral auth configs", async () => {
+    let provider = { id: 'pro_1' };
+    let providerDeployment = { id: 'pdp_1', provider: { id: 'pro_1' } };
+    mocks.getProviderDeploymentById.mockResolvedValue(providerDeployment);
+    mocks.getProviderById.mockResolvedValue(provider);
+    mocks.createProviderAuthConfig.mockResolvedValue({ id: 'pac_new' });
+
+    let result = await resolveSessionProviderInput({
+      instance,
+      providerDeployment: {
+        type: 'reference',
+        providerDeploymentId: 'pdp_1'
+      },
+      providerAuthConfig: {
+        type: 'ephemeral',
+        providerAuthMethodId: 'pam_1',
+        credentials: { token: 'secret' }
+      }
+    });
+
+    expect(mocks.getProviderById).toHaveBeenCalledWith({ instance, providerId: 'pro_1' });
+    expect(mocks.createProviderAuthConfig).toHaveBeenCalledWith(
+      expect.objectContaining({ provider, providerDeployment })
+    );
+    expect(result.authConfigId).toBe('pac_new');
   });
 
   it('preserves provider resolution before loading an ephemeral vault config', async () => {
@@ -154,39 +214,47 @@ describe('resolveSessionProviderInput', () => {
     expect(mocks.createProviderConfig).not.toHaveBeenCalled();
   });
 
-  it('preserves ephemeral auth defaults, attribution, and explicit provider resolution', async () => {
-    let provider = { id: 'pro_1' };
-    mocks.getProviderById.mockResolvedValue(provider);
-    mocks.createProviderAuthConfig.mockResolvedValue({ id: 'pac_new' });
+  it.each([undefined, 'explorer' as const])(
+    'preserves ephemeral auth attribution with source=%s',
+    async source => {
+      let provider = { id: 'pro_1' };
+      mocks.getProviderById.mockResolvedValue(provider);
+      mocks.createProviderAuthConfig.mockResolvedValue({ id: 'pac_new' });
 
-    let result = await resolveSessionProviderInput({
-      instance,
-      providerAuthConfig: {
-        type: 'ephemeral',
-        providerId: 'pro_1',
-        providerAuthMethodId: 'pam_1',
-        credentials: { token: 'secret' }
-      }
-    });
+      let result = await resolveSessionProviderInput({
+        instance,
+        source,
+        ownerActorId: source ? 'act_1' : undefined,
+        providerAuthConfig: {
+          type: 'ephemeral',
+          providerId: 'pro_1',
+          providerAuthMethodId: 'pam_1',
+          credentials: { token: 'secret' }
+        }
+      });
 
-    expect(mocks.createProviderAuthConfig).toHaveBeenCalledWith({
-      instance,
-      provider,
-      providerDeployment: undefined,
-      source: 'manual',
-      import: {
-        ip: undefined,
-        ua: undefined,
-        note: 'Created via ephemeral provider configuration'
-      },
-      input: {
-        name: 'Ephemeral auth config',
-        authMethodId: 'pam_1',
-        isEphemeral: true,
-        config: { token: 'secret' }
-      }
-    });
-    expect(result.authConfigId).toBe('pac_new');
-    expect(result.__allowEphemeral).toBe(true);
-  });
+      expect(mocks.createProviderAuthConfig).toHaveBeenCalledWith({
+        instance,
+        provider,
+        providerDeployment: undefined,
+        source: source ?? 'manual',
+        ownerActorId: source ? 'act_1' : undefined,
+        isOwnerLocked: source ? true : undefined,
+        isOwnerOnlyVisible: source ? true : undefined,
+        import: {
+          ip: undefined,
+          ua: undefined,
+          note: 'Created via ephemeral provider configuration'
+        },
+        input: {
+          name: 'Ephemeral auth config',
+          authMethodId: 'pam_1',
+          isEphemeral: true,
+          config: { token: 'secret' }
+        }
+      });
+      expect(result.authConfigId).toBe('pac_new');
+      expect(result.__allowEphemeral).toBe(true);
+    }
+  );
 });

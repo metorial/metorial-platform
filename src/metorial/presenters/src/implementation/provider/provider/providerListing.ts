@@ -1,6 +1,10 @@
 import { v } from '@lowerdeck/validation';
 import { getImageUrl } from '@metorial/db';
-import { Presenter } from '@metorial/presenter';
+import {
+  Presenter,
+  type GetTypeOfPresentable,
+  type PresenterContext
+} from '@metorial/presenter';
 import { providerListingType } from '../../../types';
 import { v1ProviderListingCategoryPresenter } from './category';
 import { v1ProviderListingCollectionPresenter } from './collection';
@@ -59,62 +63,67 @@ let presentProviderListingDocs = (docs: any, onlyAllowOAuthAuthMethods: boolean)
   };
 };
 
+let presentProviderListing = async (
+  { providerListing }: GetTypeOfPresentable<typeof providerListingType>,
+  opts: PresenterContext
+) => {
+  return {
+    object: 'provider.listing' as const,
+    id: providerListing.id,
+
+    attributes: {
+      is_public: providerListing.isPublic,
+      is_customized: providerListing.isCustomized,
+      is_metorial: providerListing.isMetorial,
+      is_verified: providerListing.isVerified,
+      is_official: providerListing.isOfficial
+
+      // deployments_count: providerListing.deploymentsCount,
+      // provider_sessions_count: providerListing.providerSessionsCount,
+      // provider_messages_count: providerListing.providerMessagesCount,
+      // rank: providerListing.rank,
+    },
+
+    name: providerListing.name,
+    description: providerListing.description,
+    slug: providerListing.prettySlug ?? providerListing.slug,
+
+    image_url: await getImageUrl(providerListing),
+
+    readme:
+      (providerListing as typeof providerListing & { readme?: string | null }).readme ?? null,
+    skills: providerListing.skills,
+
+    categories: await Promise.all(
+      providerListing.categories.map(c =>
+        v1ProviderListingCategoryPresenter.present({ category: c }, opts).run()
+      )
+    ),
+
+    collections: await Promise.all(
+      providerListing.collections.map(c =>
+        v1ProviderListingCollectionPresenter.present({ collection: c }, opts).run()
+      )
+    ),
+
+    groups: await Promise.all(
+      providerListing.groups.map(g =>
+        v1ProviderListingGroupPresenter.present({ group: g }, opts).run()
+      )
+    ),
+
+    created_at: providerListing.createdAt,
+    updated_at: providerListing.updatedAt
+  };
+};
+
 export let v1ProviderListingPresenter = Presenter.create(providerListingType)
-  .presenter(async ({ providerListing, tenant }, opts) => {
-    return {
-      object: 'provider.listing' as const,
-      id: providerListing.id,
-
-      attributes: {
-        is_public: providerListing.isPublic,
-        is_customized: providerListing.isCustomized,
-        is_metorial: providerListing.isMetorial,
-        is_verified: providerListing.isVerified,
-        is_official: providerListing.isOfficial
-
-        // deployments_count: providerListing.deploymentsCount,
-        // provider_sessions_count: providerListing.providerSessionsCount,
-        // provider_messages_count: providerListing.providerMessagesCount,
-        // rank: providerListing.rank,
-      },
-
-      name: providerListing.name,
-      description: providerListing.description,
-      slug: providerListing.prettySlug ?? providerListing.slug,
-
-      image_url: await getImageUrl(providerListing),
-
-      readme:
-        (providerListing as typeof providerListing & { readme?: string | null }).readme ??
-        null,
-      skills: providerListing.skills,
-
-      provider: await v1ProviderPresenter
-        .present({ provider: providerListing.provider, tenant }, opts)
-        .run(),
-
-      categories: await Promise.all(
-        providerListing.categories.map(c =>
-          v1ProviderListingCategoryPresenter.present({ category: c }, opts).run()
-        )
-      ),
-
-      collections: await Promise.all(
-        providerListing.collections.map(c =>
-          v1ProviderListingCollectionPresenter.present({ collection: c }, opts).run()
-        )
-      ),
-
-      groups: await Promise.all(
-        providerListing.groups.map(g =>
-          v1ProviderListingGroupPresenter.present({ group: g }, opts).run()
-        )
-      ),
-
-      created_at: providerListing.createdAt,
-      updated_at: providerListing.updatedAt
-    };
-  })
+  .presenter(async (input, opts) => ({
+    ...(await presentProviderListing(input, opts)),
+    provider: await v1ProviderPresenter
+      .present({ provider: input.providerListing.provider, tenant: input.tenant }, opts)
+      .run()
+  }))
   .schema(
     v.object({
       object: v.literal('provider.listing', {
@@ -203,7 +212,7 @@ export let v1ProviderListingPresenter = Presenter.create(providerListingType)
 
 export let dashboardProviderListingPresenter = Presenter.create(providerListingType)
   .presenter(async (input, opts) => {
-    let inner = await v1ProviderListingPresenter.present(input, opts).run();
+    let inner = await presentProviderListing(input, opts);
 
     return {
       ...inner,

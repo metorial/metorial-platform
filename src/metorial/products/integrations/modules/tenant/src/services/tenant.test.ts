@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 let mocks = vi.hoisted(() => ({
   tenantFindUnique: vi.fn(),
   tenantUpsert: vi.fn(),
+  tenantUpdate: vi.fn(),
   tenantFindFirst: vi.fn(),
   tenantFindFirstOrThrow: vi.fn(),
   environmentFindMany: vi.fn(),
@@ -15,7 +16,8 @@ let mocks = vi.hoisted(() => ({
   reconcileMonitorAddManyWithOps: vi.fn(),
   reconcileBackingsAddManyWithOps: vi.fn(),
   retentionAdd: vi.fn(),
-  retentionDowngradeAdd: vi.fn()
+  retentionDowngradeAdd: vi.fn(),
+  clearTenantScopeCaches: vi.fn()
 }));
 
 vi.mock('@lowerdeck/service', () => ({
@@ -40,6 +42,7 @@ vi.mock('@metorial-subspace/db', () => ({
     tenant: {
       findUnique: mocks.tenantFindUnique,
       upsert: mocks.tenantUpsert,
+      update: mocks.tenantUpdate,
       findFirst: mocks.tenantFindFirst,
       findFirstOrThrow: mocks.tenantFindFirstOrThrow
     },
@@ -87,6 +90,10 @@ vi.mock('../queues/retention/downgradeSync', () => ({
   tenantSessionRetentionDowngradeSyncQueue: { add: mocks.retentionDowngradeAdd }
 }));
 
+vi.mock('./subspaceScope', () => ({
+  clearTenantScopeCaches: mocks.clearTenantScopeCaches
+}));
+
 import { tenantService } from './tenant';
 
 let tenant = { oid: 20n, id: 'ktn_20', identifier: 'mte-pro-2', projectOid: null };
@@ -128,6 +135,41 @@ describe('tenantService.upsertTenant', () => {
     mocks.environmentUpdateMany.mockResolvedValue({ count: 1 });
     mocks.solutionFindMany.mockResolvedValue([]);
   });
+
+  it.each([undefined, true, false])(
+    'sets the creation policy to %s without updating it',
+    async value => {
+      mocks.tenantFindUnique.mockResolvedValue(null);
+
+      await tenantService.upsertTenant({
+        input: { ...input, hidePublicRemoteProviders: value }
+      });
+
+      let write = mocks.tenantUpsert.mock.calls[0]![0];
+      expect(write.create.hidePublicRemoteProviders).toBe(value ?? true);
+      expect(write.update).not.toHaveProperty('hidePublicRemoteProviders');
+    }
+  );
+
+  it.each([true, false])(
+    'preserves an existing %s policy during repeated upserts',
+    async value => {
+      let existing = { ...tenant, hidePublicRemoteProviders: value };
+      mocks.tenantFindUnique.mockResolvedValue(existing);
+      mocks.tenantUpsert.mockResolvedValue(existing);
+      mocks.tenantFindFirstOrThrow.mockResolvedValue(existing);
+
+      for (let next of [!value, undefined]) {
+        await tenantService.upsertTenant({
+          input: { ...input, hidePublicRemoteProviders: next }
+        });
+      }
+
+      for (let [write] of mocks.tenantUpsert.mock.calls) {
+        expect(write.update).not.toHaveProperty('hidePublicRemoteProviders');
+      }
+    }
+  );
 
   it('never writes mirror references that have no mirror record behind them', async () => {
     mocks.environmentFindMany.mockResolvedValueOnce([]);
@@ -173,6 +215,7 @@ describe('tenantService.upsertTenant', () => {
     await tenantService.upsertTenant({ input });
 
     expect(mocks.tenantUpsert).not.toHaveBeenCalled();
+    expect(mocks.clearTenantScopeCaches).not.toHaveBeenCalled();
     expect(mocks.environmentCreateMany).not.toHaveBeenCalled();
     expect(mocks.environmentUpdateMany).not.toHaveBeenCalled();
     expect(mocks.linkTenantToProjectMirror).toHaveBeenCalledWith({
@@ -200,6 +243,7 @@ describe('tenantService.upsertTenant', () => {
     await tenantService.upsertTenant({ input });
 
     expect(mocks.tenantUpsert).toHaveBeenCalledTimes(1);
+    expect(mocks.clearTenantScopeCaches).toHaveBeenCalledWith(tenant.id);
     expect(mocks.environmentUpdateMany).toHaveBeenCalledTimes(1);
   });
 
@@ -382,5 +426,21 @@ describe('tenantService.upsertTenant retention downgrade sync', () => {
     await tenantService.upsertTenant({ input: { ...input, dataRetentionLevel: 'none' } });
 
     expect(mocks.retentionDowngradeAdd).not.toHaveBeenCalled();
+  });
+});
+
+describe('tenantService.updateTenantPublicRemoteProviderVisibility', () => {
+  it.each([true, false])('explicitly updates the policy to %s', async value => {
+    vi.clearAllMocks();
+
+    await tenantService.updateTenantPublicRemoteProviderVisibility({
+      tenant: tenant as any,
+      hidePublicRemoteProviders: value
+    });
+
+    expect(mocks.tenantUpdate).toHaveBeenCalledWith({
+      where: { oid: tenant.oid },
+      data: { hidePublicRemoteProviders: value }
+    });
   });
 });

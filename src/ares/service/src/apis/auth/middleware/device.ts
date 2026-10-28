@@ -1,5 +1,5 @@
 import type { ServiceRequest } from '@lowerdeck/rpc-server';
-import type Cookie from 'cookie';
+import type * as Cookie from 'cookie';
 import { env } from '../../../env';
 import { deviceService } from '../../../services/device';
 import { publicApp } from '../_app';

@@ -1,0 +1,48 @@
+{
+  "name": "@metorial/e2e",
+  "version": "1.0.0",
+  "private": true,
+  "author": "Tobias Herber",
+  "license": "FSL-1.1",
+  "type": "module",
+  "main": "src/index.ts",
+  "bin": {
+    "metorial-e2e": "./src/bin.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./env": "./src/env.ts",
+    "./api": "./src/api.ts",
+    "./bootstrap": "./src/bootstrap.ts",
+    "./db": "./src/db.ts",
+    "./vitest.e2e.config": "./vitest.e2e.config.ts"
+  },
+  "typesVersions": {
+    "*": {
+      "env": ["./src/env.ts"],
+      "api": ["./src/api.ts"],
+      "bootstrap": ["./src/bootstrap.ts"],
+      "db": ["./src/db.ts"],
+      "vitest.e2e.config": ["./vitest.e2e.config.ts"]
+    }
+  },
+  "scripts": {
+    "test": "bun test src",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "dependencies": {
+    "@lowerdeck/rpc-client": "workspace:2.0.0",
+    "@lowerdeck/testing-tools": "workspace:2.0.0",
+    "@metorial-subspace/db": "^1.0.0",
+    "@metorial/audit-scope": "^1.0.0",
+    "@metorial/consumer-sdk": "1.0.0-internal",
+    "@metorial/dashboard-sdk": "1.0.0-internal",
+    "@metorial/db": "^1.0.0",
+    "vitest": "^5.0.4"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "^1.0.0",
+    "@types/bun": "latest",
+    "typescript": "5.9.3"
+  }
+}

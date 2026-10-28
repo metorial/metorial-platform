@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { formatTimeTick, formatTooltipTime, toTimestamp } from './time';
+import {
+  formatBucketRange,
+  formatBucketTime,
+  formatTimeTick,
+  formatTooltipTime,
+  toTimestamp
+} from './time';
 
 let HOUR = 3_600_000;
 let DAY = 24 * HOUR;
@@ -41,5 +47,32 @@ describe('formatTooltipTime', () => {
     expect(formatTooltipTime(new Date(2025, 11, 31, 23, 0), { now })).toBe(
       'Dec 31, 2025, 23:00'
     );
+  });
+});
+
+describe('formatBucketRange', () => {
+  let now = new Date(2026, 9, 22, 12, 0);
+
+  it('shows the clock range for sub-day buckets', () => {
+    expect(formatBucketRange(new Date(2026, 9, 21, 19, 0), HOUR, { now })).toBe(
+      'Oct 21 · 19:00 – 20:00'
+    );
+  });
+
+  it('shows only the day for daily buckets and a day range for longer ones', () => {
+    expect(formatBucketRange(new Date(2026, 9, 21), DAY, { now })).toBe('Oct 21');
+    expect(formatBucketRange(new Date(2026, 9, 14), 7 * DAY, { now })).toBe('Oct 14 – Oct 20');
+  });
+
+  it('includes the year for buckets outside the current year', () => {
+    expect(formatBucketRange(new Date(2025, 11, 31), DAY, { now })).toBe('Dec 31, 2025');
+  });
+});
+
+describe('formatBucketTime', () => {
+  it('uses the clock for sub-day buckets and the day otherwise', () => {
+    expect(formatBucketTime(new Date(2026, 9, 21, 19, 0), HOUR)).toBe('19:00');
+    expect(formatBucketTime(new Date(2026, 9, 21, 19, 0, 30), 10_000)).toBe('19:00:30');
+    expect(formatBucketTime(new Date(2026, 9, 21), DAY)).toBe('Oct 21');
   });
 });

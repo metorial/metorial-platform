@@ -1,5 +1,6 @@
 import { DatePicker, OptionToggle, Select, Text, Tooltip } from '@metorial/ui';
 import { endOfDay, isSameDay, startOfDay } from 'date-fns';
+import { RiCalendarLine } from '@remixicon/react';
 import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import {
@@ -18,11 +19,11 @@ import {
   resolveMetricsRange
 } from './range';
 
-let Wrapper = styled.div`
+let Wrapper = styled.div<{ $justify: 'between' | 'end' }>`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
+  justify-content: ${({ $justify }) => ($justify == 'end' ? 'flex-end' : 'space-between')};
   gap: 10px;
 `;
 
@@ -66,6 +67,9 @@ export type MetricsToolbarProps = {
   maxSpanMs?: number;
   start?: React.ReactNode;
   end?: React.ReactNode;
+  size?: '1' | '2' | '3';
+  justify?: 'between' | 'end';
+  intervalInPicker?: boolean;
 };
 
 let groupDisabledReasons = (choices: MetricsIntervalChoice[]) => {
@@ -94,7 +98,10 @@ export let MetricsToolbar = ({
   retentionMs,
   maxSpanMs,
   start,
-  end
+  end,
+  size = '2',
+  justify = 'between',
+  intervalInPicker
 }: MetricsToolbarProps) => {
   let now = new Date();
   let range = resolveMetricsRange(value.range, { now, presets, retentionMs, maxSpanMs });
@@ -132,13 +139,14 @@ export let MetricsToolbar = ({
 
   let intervalSelect = (
     <IntervalControl>
-      <Text as="span" size="2" weight="medium" color="gray600">
+      <Text as="span" size={size == '1' ? '1' : '2'} weight="medium" color="gray600">
         Interval
       </Text>
 
       <Select
         label="Interval"
         hideLabel
+        size={size}
         value={value.interval}
         onChange={interval => {
           if (interval != value.interval) onChange({ ...value, interval });
@@ -158,15 +166,15 @@ export let MetricsToolbar = ({
   );
 
   return (
-    <Wrapper>
+    <Wrapper $justify={justify}>
       <Group>
         {start}
 
         <PresetSlot>
           <OptionToggle
             ariaLabel="Time Range"
-            size="2"
-            itemMinWidth={52}
+            size={size}
+            itemMinWidth={size == '1' ? 40 : 52}
             value={value.range.type == 'preset' ? value.range.preset : ''}
             onChange={preset => onChange({ ...value, range: { type: 'preset', preset } })}
             items={presetChoices.map(preset => ({
@@ -181,8 +189,11 @@ export let MetricsToolbar = ({
         <DatePicker
           label="Custom Range"
           hideLabel
+          size={size}
           type="range"
           placeholder="Custom…"
+          icon={intervalInPicker ? <RiCalendarLine size={16} /> : undefined}
+          extra={intervalInPicker && !hideInterval ? intervalSelect : undefined}
           value={customValue}
           onChange={onCustomRange}
           minDate={
@@ -192,27 +203,29 @@ export let MetricsToolbar = ({
         />
       </Group>
 
-      <Group>
-        {hideInterval ? null : disabledReasons.length ? (
-          <Tooltip
-            content={
-              <ReasonList>
-                {disabledReasons.map(({ reason, labels }) => (
-                  <li key={reason}>
-                    {labels.join(', ')}: {reason}
-                  </li>
-                ))}
-              </ReasonList>
-            }
-          >
-            {intervalSelect}
-          </Tooltip>
-        ) : (
-          intervalSelect
-        )}
+      {(hideInterval || intervalInPicker) && !end ? null : (
+        <Group>
+          {hideInterval || intervalInPicker ? null : disabledReasons.length ? (
+            <Tooltip
+              content={
+                <ReasonList>
+                  {disabledReasons.map(({ reason, labels }) => (
+                    <li key={reason}>
+                      {labels.join(', ')}: {reason}
+                    </li>
+                  ))}
+                </ReasonList>
+              }
+            >
+              {intervalSelect}
+            </Tooltip>
+          ) : (
+            intervalSelect
+          )}
 
-        {end}
-      </Group>
+          {end}
+        </Group>
+      )}
     </Wrapper>
   );
 };

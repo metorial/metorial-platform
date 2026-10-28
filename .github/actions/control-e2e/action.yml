@@ -1,0 +1,53 @@
+name: Run control e2e stacks against built images
+description: Run the TypeScript control CLI against the tested image artifacts
+inputs:
+  image-artifact:
+    description: Optional complete prepared image inventory
+    default: ''
+  test-workspace:
+    description: Prepared test workspace mounted into the e2e runner
+    required: true
+  control-directory:
+    description: Directory of the control package, relative to the repository root
+    default: src/control
+  args:
+    description: Extra arguments for `control test:e2e` (filters, --oss, ...)
+    default: ''
+  test-args:
+    description: Arguments after `test:e2e`, such as a group's test packages and `-- --package-shard=...`
+    default: ''
+  log-name:
+    description: Distinguishes the uploaded logs of matrix entries that share a job
+    default: ''
+runs:
+  using: composite
+  steps:
+    - uses: actions/download-artifact@v4
+      with:
+        name: ${{ inputs.image-artifact }}
+        pattern: ${{ !inputs.image-artifact && 'test-image-*' || '' }}
+        path: ${{ runner.temp }}/test-images
+        merge-multiple: true
+    - name: Run e2e stacks
+      shell: bash
+      env:
+        CONTROL_DIRECTORY: ${{ inputs.control-directory }}
+        TEST_WORKSPACE: ${{ inputs.test-workspace }}
+        ARGS: ${{ inputs.args }}
+        TEST_ARGS: ${{ inputs.test-args }}
+      run: |
+        set -euo pipefail
+        read -r -a args <<< "$ARGS"
+        read -r -a test_args <<< "$TEST_ARGS"
+        bun "$CONTROL_DIRECTORY/src/main.ts" "${args[@]}" test:e2e \
+          --images "$RUNNER_TEMP/test-images" \
+          --workspace "$(cd "$TEST_WORKSPACE" && pwd)" \
+          "${test_args[@]}"
+    - name: Upload e2e logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: control-e2e-logs-${{ github.job }}${{ inputs.log-name && format('-{0}', inputs.log-name) || '' }}-${{ github.run_attempt }}
+        path: .control/e2e/*/logs
+        if-no-files-found: ignore
+        retention-days: 7

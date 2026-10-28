@@ -1,35 +1,35 @@
 /// <reference path="./worker.d.ts" />
 
-import * as monaco from 'monaco-editor/esm/vs/editor/editor.api.js';
-import CssWorker from 'monaco-editor/esm/vs/language/css/css.worker.js?worker';
-import HtmlWorker from 'monaco-editor/esm/vs/language/html/html.worker.js?worker';
-import JsonWorker from 'monaco-editor/esm/vs/language/json/json.worker.js?worker';
-import TypeScriptWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker.js?worker';
-import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker.js?worker';
-import 'monaco-editor/esm/vs/basic-languages/css/css.contribution.js';
-import 'monaco-editor/esm/vs/basic-languages/html/html.contribution.js';
+import * as monaco from 'monaco-editor/editor/editor.api.js';
+import CssWorker from 'monaco-editor/languages/features/css/css.worker.js?worker';
+import HtmlWorker from 'monaco-editor/languages/features/html/html.worker.js?worker';
+import JsonWorker from 'monaco-editor/languages/features/json/json.worker.js?worker';
+import TypeScriptWorker from 'monaco-editor/languages/features/typescript/ts.worker.js?worker';
+import EditorWorker from 'monaco-editor/editor/editor.worker.js?worker';
+import 'monaco-editor/languages/definitions/css/register.js';
+import 'monaco-editor/languages/definitions/html/register.js';
 import {
   conf as javascriptConfiguration,
   language as javascriptLanguage
-} from 'monaco-editor/esm/vs/basic-languages/javascript/javascript.js';
-import 'monaco-editor/esm/vs/basic-languages/markdown/markdown.contribution.js';
-import 'monaco-editor/esm/vs/basic-languages/python/python.contribution.js';
-import 'monaco-editor/esm/vs/basic-languages/rust/rust.contribution.js';
-import 'monaco-editor/esm/vs/basic-languages/shell/shell.contribution.js';
-import 'monaco-editor/esm/vs/basic-languages/sql/sql.contribution.js';
+} from 'monaco-editor/languages/definitions/javascript/javascript.js';
+import 'monaco-editor/languages/definitions/markdown/register.js';
+import 'monaco-editor/languages/definitions/python/register.js';
+import 'monaco-editor/languages/definitions/rust/register.js';
+import 'monaco-editor/languages/definitions/shell/register.js';
+import 'monaco-editor/languages/definitions/sql/register.js';
 import {
   conf as typescriptConfiguration,
   language as typescriptLanguage
-} from 'monaco-editor/esm/vs/basic-languages/typescript/typescript.js';
-import 'monaco-editor/esm/vs/basic-languages/xml/xml.contribution.js';
-import 'monaco-editor/esm/vs/basic-languages/yaml/yaml.contribution.js';
-import 'monaco-editor/esm/vs/language/css/monaco.contribution.js';
-import 'monaco-editor/esm/vs/language/html/monaco.contribution.js';
-import 'monaco-editor/esm/vs/language/json/monaco.contribution.js';
-import 'monaco-editor/esm/vs/language/typescript/monaco.contribution.js';
-import 'monaco-editor/esm/vs/editor/contrib/hover/browser/hoverContribution.js';
-import 'monaco-editor/esm/vs/editor/contrib/parameterHints/browser/parameterHints.js';
-import 'monaco-editor/esm/vs/editor/contrib/suggest/browser/suggestController.js';
+} from 'monaco-editor/languages/definitions/typescript/typescript.js';
+import 'monaco-editor/languages/definitions/xml/register.js';
+import 'monaco-editor/languages/definitions/yaml/register.js';
+import 'monaco-editor/languages/features/css/register.js';
+import 'monaco-editor/languages/features/html/register.js';
+import 'monaco-editor/languages/features/json/register.js';
+import * as monacoTypescript from 'monaco-editor/languages/features/typescript/register.js';
+import 'monaco-editor/editor/contrib/hover/browser/hoverContribution.js';
+import 'monaco-editor/editor/contrib/parameterHints/browser/parameterHints.js';
+import 'monaco-editor/editor/contrib/suggest/browser/suggestController.js';
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 
 let themeName = 'metorial-light';
@@ -348,39 +348,39 @@ let configureMonaco = () => {
     }
   };
 
-  monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
+  monacoTypescript.javascriptDefaults.setCompilerOptions({
     allowJs: true,
     allowNonTsExtensions: true,
     checkJs: true,
     noResolve: true,
-    module: monaco.languages.typescript.ModuleKind.ESNext,
-    moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
-    target: monaco.languages.typescript.ScriptTarget.ES2020
+    module: monacoTypescript.ModuleKind.ESNext,
+    moduleResolution: monacoTypescript.ModuleResolutionKind.NodeJs,
+    target: monacoTypescript.ScriptTarget.ES2020
   });
-  monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
+  monacoTypescript.typescriptDefaults.setCompilerOptions({
     allowNonTsExtensions: true,
     noResolve: true,
-    module: monaco.languages.typescript.ModuleKind.ESNext,
-    moduleResolution: monaco.languages.typescript.ModuleResolutionKind.NodeJs,
-    target: monaco.languages.typescript.ScriptTarget.ES2020
+    module: monacoTypescript.ModuleKind.ESNext,
+    moduleResolution: monacoTypescript.ModuleResolutionKind.NodeJs,
+    target: monacoTypescript.ScriptTarget.ES2020
   });
-  monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
+  monacoTypescript.javascriptDefaults.setDiagnosticsOptions({
     noSemanticValidation: false,
     noSyntaxValidation: false,
     diagnosticCodesToIgnore: unresolvedSymbolDiagnosticCodes
   });
-  monaco.languages.typescript.javascriptDefaults.setEagerModelSync(false);
-  monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
+  monacoTypescript.javascriptDefaults.setEagerModelSync(false);
+  monacoTypescript.typescriptDefaults.setDiagnosticsOptions({
     noSemanticValidation: false,
     noSyntaxValidation: false,
     diagnosticCodesToIgnore: unresolvedSymbolDiagnosticCodes
   });
-  monaco.languages.typescript.typescriptDefaults.setEagerModelSync(false);
-  monaco.languages.typescript.javascriptDefaults.addExtraLib(
+  monacoTypescript.typescriptDefaults.setEagerModelSync(false);
+  monacoTypescript.javascriptDefaults.addExtraLib(
     commonJavascriptGlobals,
     'inmemory://metorial-editor/common-globals.d.ts'
   );
-  monaco.languages.typescript.typescriptDefaults.addExtraLib(
+  monacoTypescript.typescriptDefaults.addExtraLib(
     commonJavascriptGlobals,
     'inmemory://metorial-editor/common-globals.d.ts'
   );
@@ -601,7 +601,7 @@ export let MonacoCodeEditor = forwardRef<MonacoCodeEditorHandle, MonacoCodeEdito
         suggestOnTriggerCharacters: true,
         tabCompletion: 'on',
         parameterHints: { enabled: true },
-        hover: { enabled: true },
+        hover: { enabled: 'on' },
         wordBasedSuggestions: 'currentDocument',
         renderLineHighlight: 'line',
         renderWhitespace: 'selection',

@@ -83,8 +83,16 @@ export class McpManager {
     return this._connection.getToolById(d);
   }
 
+  shouldRedactStoredToolInput(toolId: string) {
+    return this._connection.shouldRedactStoredToolInput(toolId);
+  }
+
   callTool(d: CallToolProps) {
     return this._connection.callTool(d);
+  }
+
+  sendMcpMessageToProvider(d: Parameters<SenderConnection['sendMcpMessageToProvider']>[0]) {
+    return this._connection.sendMcpMessageToProvider(d);
   }
 
   initialize(d: InitProps) {

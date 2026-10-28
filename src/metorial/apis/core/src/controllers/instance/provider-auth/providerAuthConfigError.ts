@@ -105,7 +105,14 @@ export let providerAuthConfigErrorController = Controller.create(
             type: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by auth config error type(s)'
             }),
-            created_at: dateFilterValidator('provider auth config error creation time')
+            created_at: dateFilterValidator('provider auth config error creation time'),
+            search: v.optional(
+              v.string({
+                description:
+                  'Search by error ID or error type, or by the name of a related provider, auth config, auth credentials, or auth method',
+                examples: ['github']
+              })
+            )
           })
         )
       )
@@ -123,7 +130,8 @@ export let providerAuthConfigErrorController = Controller.create(
           ),
           providerInvocationIds: normalizeArrayParam(ctx.query.provider_invocation_id),
           types: normalizeArrayParam(ctx.query.type),
-          createdAt: ctx.query.created_at
+          createdAt: ctx.query.created_at,
+          search: ctx.query.search
         });
 
         let list = await paginator.run(ctx.query);
@@ -190,7 +198,14 @@ export let providerAuthConfigErrorController = Controller.create(
             type: v.optional(v.union([v.string(), v.array(v.string())]), {
               description: 'Filter by auth config error type(s)'
             }),
-            created_at: dateFilterValidator('provider auth config error group creation time')
+            created_at: dateFilterValidator('provider auth config error group creation time'),
+            search: v.optional(
+              v.string({
+                description:
+                  'Search by error group ID or error type, or by the name of a related provider, auth config, auth credentials, or auth method',
+                examples: ['github']
+              })
+            )
           })
         )
       )
@@ -202,7 +217,8 @@ export let providerAuthConfigErrorController = Controller.create(
           authConfigIds: normalizeArrayParam(ctx.query.provider_auth_config_id),
           authCredentialsIds: normalizeArrayParam(ctx.query.provider_auth_credentials_id),
           types: normalizeArrayParam(ctx.query.type),
-          createdAt: ctx.query.created_at
+          createdAt: ctx.query.created_at,
+          search: ctx.query.search
         });
 
         let list = await paginator.run(ctx.query);

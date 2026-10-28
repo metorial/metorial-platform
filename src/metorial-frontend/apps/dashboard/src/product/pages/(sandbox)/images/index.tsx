@@ -68,7 +68,7 @@ let ImageCard = memo(({ image }: { image: Image }) => {
         bottom={
           <>
             {image.owner === 'own' && image.latestVersionId && (
-              <Badge color="gray" size="1">
+              <Badge color="gray" size="2">
                 {imageVersionLabel({
                   id: image.latestVersionId,
                   versionNumber: image.latestVersionNumber
@@ -76,7 +76,7 @@ let ImageCard = memo(({ image }: { image: Image }) => {
               </Badge>
             )}
             {image.owner === 'global' && (
-              <Badge color="gray" size="1">
+              <Badge color="gray" size="2">
                 Managed by Metorial
               </Badge>
             )}

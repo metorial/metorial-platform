@@ -31,19 +31,28 @@ import {
   resolveProviderConfigs,
   resolveProviderDeployments,
   resolveProviders,
+  resolveSessionProviders,
   resolveSessions
 } from '@metorial-subspace/list-utils';
 import { providerToolService } from '@metorial-subspace/module-catalog';
 import { checkToolAccess } from '@metorial-subspace/module-provider-internal';
 import {
+  assertCanChangeOwnerLock,
+  assertCanChangeOwnerOnlyVisibility,
+  assertCanSeeOwnedResource,
+  canSeeOwnedResource,
   checkTenant,
   getMetorialSolution,
+  getOwnershipAccessor,
   type MetorialFacing,
+  ownedResourceWhere,
+  type OwnershipAccessor,
+  type OwnershipFilter,
   resolveMetorialFacing,
   toProviderEventBase
 } from '@metorial-subspace/module-tenant';
 import { Fabric, type AuditSubspaceSessionTemplate } from '@metorial/fabric';
-import { metorialDb } from '@metorial-subspace/module-tenant';
+import { metorialDb, ownerActorSelect } from '@metorial-subspace/module-tenant';
 import { sessionTemplateArchivedQueue } from '../queues/lifecycle/sessionTemplate';
 import { queueJobId, withSessionTemplateSyncLock } from '../lib/sessionTemplateSync';
 import {
@@ -82,6 +91,7 @@ let assertMagicMcpSessionTemplateMutable = async (d: {
 
 let include = {
   identityActor: true,
+  ownerActor: ownerActorSelect,
   identity: true,
   integrationInstance: true,
   integrationInstanceGroup: true,
@@ -122,6 +132,9 @@ let assertCanWriteSessionTemplate = async (
 };
 
 export type ListSessionTemplatesParams = {
+  ownership?: OwnershipFilter;
+  ownershipWhere?: Record<string, any>;
+  includeSystemOwned?: boolean;
   status?: SessionTemplateStatus[];
   allowDeleted?: boolean;
 
@@ -145,11 +158,13 @@ export type ListSessionTemplatesParams = {
 export type GetSessionTemplateByIdParams = {
   sessionTemplateId: string;
   allowDeleted?: boolean;
+  includeSystemOwned?: boolean;
 };
 
 export type GetManySessionTemplatesByIdsParams = {
   ids: string[];
   allowDeleted?: boolean;
+  includeSystemOwned?: boolean;
 };
 
 export type CreateSessionTemplateParams = {
@@ -159,8 +174,10 @@ export type CreateSessionTemplateParams = {
     metadata?: Record<string, any>;
     privateMetadata?: Record<string, any>;
     isInternal?: boolean;
+    isSystemOwned?: boolean;
     providers: SessionProviderInput[];
   };
+  ownershipAccessor?: OwnershipAccessor;
 };
 
 export type UpsertInternalLinkedSessionTemplateParams = {
@@ -173,6 +190,11 @@ export type UpsertInternalLinkedSessionTemplateParams = {
     privateMetadata?: Record<string, any> | null;
     integrationInstance?: IntegrationInstance | null;
     integrationInstanceGroup?: IntegrationInstanceGroup | null;
+    owner?: {
+      ownerActorOid: bigint | null;
+      isOwnerLocked: boolean;
+      isOwnerOnlyVisible?: boolean;
+    };
   };
 };
 
@@ -183,6 +205,9 @@ export type UpdateSessionTemplateParams = {
     description?: string;
     metadata?: Record<string, any>;
     privateMetadata?: Record<string, any>;
+    source?: 'explorer';
+    isOwnerLocked?: boolean;
+    isOwnerOnlyVisible?: boolean;
   };
   _allowLinked?: boolean;
   _allowMagicMcpUpdate?: boolean;
@@ -212,6 +237,14 @@ class sessionTemplateServiceImpl {
 
     return this.listSessionTemplatesInternal({
       ...rest,
+      ownershipWhere: ownedResourceWhere(
+        await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+        {
+          ownership: d.ownership,
+          includeSystemOwned: d.includeSystemOwned,
+          fallback: { field: 'identityActorOid', relation: 'identityActor' }
+        }
+      ),
       tenant: scope.tenant,
       environment: scope.environment
     });
@@ -224,7 +257,7 @@ class sessionTemplateServiceImpl {
     let ts = { tenant: d.tenant, environment: d.environment, solution };
 
     let sessions = await resolveSessions(ts, d.sessionIds);
-    let sessionProviders = await resolveProviders(ts, d.sessionProviderIds);
+    let sessionProviders = await resolveSessionProviders(ts, d.sessionProviderIds);
     let providers = await resolveProviders(ts, d.providerIds);
     let deployments = await resolveProviderDeployments(ts, d.providerDeploymentIds);
     let configs = await resolveProviderConfigs(ts, d.providerConfigIds);
@@ -256,17 +289,19 @@ class sessionTemplateServiceImpl {
               environmentOid: d.environment.oid,
 
               isInternal: false,
+              ...(d.includeSystemOwned ? {} : { isSystemOwned: false }),
 
               ...normalizeStatusForList(d).noParent,
 
               AND: [
+                d.ownershipWhere ?? undefined!,
                 d.ids ? { id: { in: d.ids } } : undefined!,
 
                 sessions
                   ? { sessionProviders: { some: { sessionOid: sessions.in } } }
                   : undefined!,
                 sessionProviders
-                  ? { sessionProviders: { some: { providerOid: sessionProviders.in } } }
+                  ? { sessionProviders: { some: { oid: sessionProviders.in } } }
                   : undefined!,
 
                 providers
@@ -333,11 +368,19 @@ class sessionTemplateServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.getSessionTemplateByIdInternal({
+    let sessionTemplate = await this.getSessionTemplateByIdInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    assertCanSeeOwnedResource(
+      await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+      sessionTemplate,
+      { resource: 'session.template', id: d.sessionTemplateId }
+    );
+
+    return sessionTemplate;
   }
 
   async getSessionTemplateByIdInternal(
@@ -351,6 +394,7 @@ class sessionTemplateServiceImpl {
         tenantOid: d.tenant.oid,
         solutionOid: solution.oid,
         environmentOid: d.environment.oid,
+        ...(d.includeSystemOwned ? {} : { isSystemOwned: false }),
         ...normalizeStatusForGet(d).noParent
       },
       include
@@ -365,11 +409,17 @@ class sessionTemplateServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.getManySessionTemplatesByIdsInternal({
+    let sessionTemplates = await this.getManySessionTemplatesByIdsInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    let accessor = await getOwnershipAccessor({ tenant: scope.tenant, organizationActor });
+
+    return sessionTemplates.filter(sessionTemplate =>
+      canSeeOwnedResource(accessor, sessionTemplate)
+    );
   }
 
   async getManySessionTemplatesByIdsInternal(
@@ -383,6 +433,7 @@ class sessionTemplateServiceImpl {
         tenantOid: d.tenant.oid,
         solutionOid: solution.oid,
         environmentOid: d.environment.oid,
+        ...(d.includeSystemOwned ? {} : { isSystemOwned: false }),
         ...normalizeStatusForGet(d).noParent
       },
       include
@@ -399,7 +450,11 @@ class sessionTemplateServiceImpl {
     let sessionTemplate = await this.createSessionTemplateInternal({
       ...rest,
       tenant: scope.tenant,
-      environment: scope.environment
+      environment: scope.environment,
+      ownershipAccessor: await getOwnershipAccessor({
+        tenant: scope.tenant,
+        organizationActor
+      })
     });
 
     await Fabric.fire('provider.session_template.created:after', {
@@ -427,6 +482,7 @@ class sessionTemplateServiceImpl {
           privateMetadata: d.input.privateMetadata,
 
           isInternal: !!d.input.isInternal,
+          isSystemOwned: !!d.input.isSystemOwned,
 
           tenantOid: d.tenant.oid,
           projectOid: d.tenant.projectOid,
@@ -443,7 +499,10 @@ class sessionTemplateServiceImpl {
           environment: d.environment,
           template,
 
-          providers: d.input.providers
+          isNewTemplate: true,
+
+          providers: d.input.providers,
+          ownershipAccessor: d.ownershipAccessor
         });
 
       return template;
@@ -476,6 +535,22 @@ class sessionTemplateServiceImpl {
           d.input.integrationInstance?.identityOid ??
           d.input.integrationInstanceGroup?.identityOid ??
           null,
+        ownerActorOid:
+          d.input.owner?.ownerActorOid ??
+          d.input.integrationInstance?.ownerActorOid ??
+          d.input.integrationInstanceGroup?.ownerActorOid ??
+          d.sessionTemplate?.ownerActorOid ??
+          null,
+        isOwnerLocked:
+          !!d.input.owner?.isOwnerLocked ||
+          !!d.input.integrationInstance?.isOwnerLocked ||
+          !!d.input.integrationInstanceGroup?.isOwnerLocked ||
+          (!d.input.owner && !!d.sessionTemplate?.isOwnerLocked),
+        isOwnerOnlyVisible:
+          !!d.input.owner?.isOwnerOnlyVisible ||
+          !!d.input.integrationInstance?.isOwnerOnlyVisible ||
+          !!d.input.integrationInstanceGroup?.isOwnerOnlyVisible ||
+          (!d.input.owner && !!d.sessionTemplate?.isOwnerOnlyVisible),
         defaultSessionTemplateForIntegrationInstanceOid:
           d.linkAsDefault === false ? null : (d.input.integrationInstance?.oid ?? null),
         defaultSessionTemplateForIntegrationInstanceGroupOid:
@@ -521,6 +596,20 @@ class sessionTemplateServiceImpl {
 
     let scope = await resolveMetorialFacing(d);
 
+    await assertCanChangeOwnerLock(
+      await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+      d.template,
+      d.input.isOwnerLocked,
+      { resource: 'session template' }
+    );
+
+    await assertCanChangeOwnerOnlyVisibility(
+      await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+      d.template,
+      d.input.isOwnerOnlyVisible,
+      { resource: 'session template' }
+    );
+
     let eventBase = toProviderEventBase(d);
     await Fabric.fire('provider.session_template.updated:before', eventBase);
 
@@ -562,7 +651,10 @@ class sessionTemplateServiceImpl {
           name: d.input.name,
           description: d.input.description,
           metadata: d.input.metadata,
-          privateMetadata: d.input.privateMetadata
+          privateMetadata: d.input.privateMetadata,
+          source: d.input.source,
+          isOwnerLocked: d.input.isOwnerLocked,
+          isOwnerOnlyVisible: d.input.isOwnerOnlyVisible
         },
         include
       });

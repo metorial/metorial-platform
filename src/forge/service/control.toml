@@ -6,7 +6,12 @@ run = ["dev:start"]
 
 [endpoints.api]
 port = 52020
+health = "/ping"
 env = [{ key = "FORGE_API_PORT", value = "{{BIND_PORT}}" }]
+
+[e2e]
+start = ["e2e:start"]
+image = "forge"
 
 [[resources]]
 type = "redis"
@@ -29,3 +34,16 @@ package = "@metorial/forge"
 name = "forge"
 engine = "postgres"
 env = "DATABASE_URL"
+
+[[ci.images]]
+name = "forge"
+group = "oss"
+dockerfile = "Dockerfile"
+image = "metorial/mte-forge"
+ecr = "metorial-enterprise-saas/mte-forge"
+canonical = "ghcr.io/metorial/forge"
+
+[ci.suite]
+name = "forge"
+runner = "compose"
+profiles = ["infra", "service"]
