@@ -22,6 +22,7 @@
     "@metorial-subspace/module-tenant": "^1.0.0",
     "@metorial-services/scout-client": "^1.0.0",
     "@metorial/audit-scope": "^1.0.0",
+    "@metorial/config": "^1.0.0",
     "@metorial/context": "^1.0.0",
     "@metorial/cron": "1.0.0",
     "@metorial/db": "^1.0.0",
@@ -34,7 +35,9 @@
     "@metorial/module-store": "^1.0.0",
     "@metorial/queue": "1.0.0",
     "@metorial/redis": "1.0.0",
+    "@metorial/review-engine": "^1.0.0",
     "ai": "^7.0.146",
+    "ioredis": "^6.0.0",
     "just-bash": "^3.6.0",
     "zod": "^4.6.7",
     "yjs": "^13.6.31"

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   acquireReviewModel,
   createMemoryRateLimiter,
+  createRedisRateLimiter,
   createReviewModels,
   type ReviewModel
 } from '../src';
@@ -146,5 +147,49 @@ describe('cloudflare fallback chain', () => {
 
     expect(models.balanced.requestsPerMinute).toBeUndefined();
     expect(models.balanced.fallback).toBeUndefined();
+  });
+});
+
+describe('redis rate limiter', () => {
+  it('prefixes the key and forwards the interval and wait limit', async () => {
+    let calls: { key: string; args: number[] }[] = [];
+    let limiter = createRedisRateLimiter({
+      keyPrefix: 'p:',
+      runScript: async d => {
+        calls.push({ key: d.key, args: d.args });
+        return 1500;
+      }
+    });
+
+    expect(await limiter.reserve({ key: 'a', intervalMs: 3000, maxWaitMs: 60_000 })).toBe(
+      1500
+    );
+    expect(await limiter.reserve({ key: 'a', intervalMs: 3000, maxWaitMs: Infinity })).toBe(
+      1500
+    );
+    expect(calls).toEqual([
+      { key: 'p:a', args: [3000, 60_000] },
+      { key: 'p:a', args: [3000, Number.MAX_SAFE_INTEGER] }
+    ]);
+  });
+
+  it('reports a refused reservation as null', async () => {
+    let limiter = createRedisRateLimiter({ keyPrefix: '', runScript: async () => -1 });
+
+    expect(await limiter.reserve({ key: 'a', intervalMs: 3000, maxWaitMs: 0 })).toBeNull();
+  });
+
+  it('lets requests through when Redis fails', async () => {
+    let errors: unknown[] = [];
+    let limiter = createRedisRateLimiter({
+      keyPrefix: '',
+      runScript: async () => {
+        throw new Error('down');
+      },
+      onError: error => errors.push(error)
+    });
+
+    expect(await limiter.reserve({ key: 'a', intervalMs: 3000, maxWaitMs: 0 })).toBe(0);
+    expect(errors).toHaveLength(1);
   });
 });

@@ -1,5 +1,6 @@
 import { gateway } from 'ai';
 import { model, provider } from '../../lib/definitions';
+import { cloudflareChatModel } from '../../lib/definitions/cloudflareModels';
 
 let deepseek = provider({
   name: 'DeepSeek',
@@ -61,3 +62,13 @@ export let deepseekV4Pro = model({
   slug: 'deepseek-v4-pro',
   provider: deepseek
 });
+
+export let deepseekV41FlashCloudflare = cloudflareChatModel
+  ? model({
+      model: cloudflareChatModel.model,
+      name: 'DeepSeek V4.1 Flash',
+      slug: cloudflareChatModel.slug,
+      provider: deepseek,
+      routed: cloudflareChatModel
+    })
+  : null;

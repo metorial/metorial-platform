@@ -5,6 +5,7 @@ import {
   type LanguageModel,
   type LanguageModelUsage,
   type ModelMessage,
+  type PrepareStepFunction,
   type ToolSet
 } from 'ai';
 import type { ClientHandoffToolMetadata } from '../definitions/handoffTool';
@@ -127,12 +128,15 @@ const SUBAGENT_SESSION_RUNTIME = new WeakMap<SubagentSessionsConfig, SubagentSes
 
 const TASK_SESSION_MODES = ['stateless', 'new', 'resume', 'fork'] as const;
 
+export type StepModelSelector = (signal?: AbortSignal) => Promise<LanguageModel>;
+
 // ── Agent ────────────────────────────────────────────────────────────
 
 export class Agent {
   readonly name: string;
   readonly description?: string;
   readonly model: LanguageModel;
+  readonly selectStepModel?: StepModelSelector;
   readonly systemPrompt?: string;
   readonly maxSteps: number;
   readonly temperature?: number;
@@ -180,6 +184,11 @@ export class Agent {
     /** Short description of this agent's purpose. Used in the task tool for subagent selection. */
     description?: string;
     model: LanguageModel;
+    /**
+     * Picks the model for each step, e.g. to move to a fallback model when the primary one is
+     * rate limited. `model` is still used wherever the agent needs a model outside a step.
+     */
+    selectStepModel?: StepModelSelector;
     systemPrompt?: string;
     tools?: ToolSet;
     filesystem?: FsProvider;
@@ -236,6 +245,7 @@ export class Agent {
     this.name = options.name;
     this.description = options.description;
     this.model = options.model;
+    this.selectStepModel = options.selectStepModel;
     this.systemPrompt = options.systemPrompt;
     this.maxSteps = options.maxSteps ?? 100;
     this.temperature = options.temperature;
@@ -347,6 +357,94 @@ export class Agent {
     let summarizedHistory = false;
     let compaction = this.compaction;
 
+    let prepareCompaction: PrepareStepFunction<ToolSet> = async ({
+      messages: stepMessages,
+      steps
+    }) => {
+      if (!compaction) return undefined;
+
+      let reservedTokens = compaction.reservedTokens ?? 20_000;
+      let threshold = compaction.contextWindow - reservedTokens;
+      let lastInputTokens = steps.at(-1)?.usage.inputTokens ?? 0;
+      let tokensBefore = Math.max(lastInputTokens, defaultEstimateTokens(stepMessages));
+      let shouldCompact = compaction.shouldCompact
+        ? compaction.shouldCompact({
+            lastInputTokens,
+            contextWindow: compaction.contextWindow,
+            reservedTokens,
+            messages: stepMessages,
+            turnNumber: steps.length
+          })
+        : tokensBefore >= threshold;
+
+      if (!shouldCompact) return undefined;
+
+      let pruned = pruneOldToolResults(stepMessages, {
+        protectedTokens: compaction.protectedTokens ?? 40_000,
+        minSavings: compaction.minPruneSavings ?? 8_000,
+        inPlace: true
+      });
+      let tokensAfterPrune = defaultEstimateTokens(stepMessages);
+      let strategy = compaction.strategy;
+      let needsSummary = tokensAfterPrune >= threshold && !summarizedHistory && !!strategy;
+
+      if (pruned.tokensSaved <= 0 && !needsSummary) return undefined;
+
+      compactionEvents.push({
+        type: 'compaction.start',
+        reason: 'overflow',
+        tokensBefore
+      });
+
+      if (pruned.tokensSaved > 0) {
+        compactionEvents.push({
+          type: 'compaction.pruned',
+          tokensRemoved: pruned.tokensSaved,
+          messagesRemoved: 0
+        });
+      }
+
+      if (!needsSummary || !strategy) {
+        compactionEvents.push({
+          type: 'compaction.done',
+          tokensBefore,
+          tokensAfter: tokensAfterPrune
+        });
+        return { messages: stepMessages };
+      }
+
+      // The SDK rebuilds the next step from the original prompt plus new
+      // response messages. Summarize only that prompt and keep the tail.
+      summarizedHistory = true;
+      let responseTail = stepMessages.slice(messages.length);
+      let result = await strategy.compact({
+        messages: [...messages],
+        model: this.model,
+        systemPrompt: this.systemPrompt,
+        totalTokens: defaultEstimateTokens(messages),
+        targetTokens: threshold,
+        signal: options?.signal
+      });
+
+      messages.splice(0, messages.length, ...result.messages);
+
+      if (result.summary) {
+        compactionEvents.push({
+          type: 'compaction.summary',
+          summary: result.summary
+        });
+      }
+
+      let nextMessages = [...messages, ...responseTail];
+      compactionEvents.push({
+        type: 'compaction.done',
+        tokensBefore,
+        tokensAfter: defaultEstimateTokens(nextMessages)
+      });
+
+      return { messages: nextMessages };
+    };
+
     const stream = streamText({
       model: this.model,
       system,
@@ -356,93 +454,13 @@ export class Agent {
       temperature: this.temperature,
       maxOutputTokens: this.maxTokens,
       abortSignal: options?.signal,
-      prepareStep: compaction
-        ? async ({ messages: stepMessages, steps }) => {
-            if (!compaction) return undefined;
+      prepareStep: async step => {
+        let stepModel = await this.selectStepModel?.(options?.signal);
+        let compacted = await prepareCompaction(step);
 
-            let reservedTokens = compaction.reservedTokens ?? 20_000;
-            let threshold = compaction.contextWindow - reservedTokens;
-            let lastInputTokens = steps.at(-1)?.usage.inputTokens ?? 0;
-            let tokensBefore = Math.max(lastInputTokens, defaultEstimateTokens(stepMessages));
-            let shouldCompact = compaction.shouldCompact
-              ? compaction.shouldCompact({
-                  lastInputTokens,
-                  contextWindow: compaction.contextWindow,
-                  reservedTokens,
-                  messages: stepMessages,
-                  turnNumber: steps.length
-                })
-              : tokensBefore >= threshold;
-
-            if (!shouldCompact) return undefined;
-
-            let pruned = pruneOldToolResults(stepMessages, {
-              protectedTokens: compaction.protectedTokens ?? 40_000,
-              minSavings: compaction.minPruneSavings ?? 8_000,
-              inPlace: true
-            });
-            let tokensAfterPrune = defaultEstimateTokens(stepMessages);
-            let strategy = compaction.strategy;
-            let needsSummary =
-              tokensAfterPrune >= threshold && !summarizedHistory && !!strategy;
-
-            if (pruned.tokensSaved <= 0 && !needsSummary) return undefined;
-
-            compactionEvents.push({
-              type: 'compaction.start',
-              reason: 'overflow',
-              tokensBefore
-            });
-
-            if (pruned.tokensSaved > 0) {
-              compactionEvents.push({
-                type: 'compaction.pruned',
-                tokensRemoved: pruned.tokensSaved,
-                messagesRemoved: 0
-              });
-            }
-
-            if (!needsSummary || !strategy) {
-              compactionEvents.push({
-                type: 'compaction.done',
-                tokensBefore,
-                tokensAfter: tokensAfterPrune
-              });
-              return { messages: stepMessages };
-            }
-
-            // The SDK rebuilds the next step from the original prompt plus new
-            // response messages. Summarize only that prompt and keep the tail.
-            summarizedHistory = true;
-            let responseTail = stepMessages.slice(messages.length);
-            let result = await strategy.compact({
-              messages: [...messages],
-              model: this.model,
-              systemPrompt: this.systemPrompt,
-              totalTokens: defaultEstimateTokens(messages),
-              targetTokens: threshold,
-              signal: options?.signal
-            });
-
-            messages.splice(0, messages.length, ...result.messages);
-
-            if (result.summary) {
-              compactionEvents.push({
-                type: 'compaction.summary',
-                summary: result.summary
-              });
-            }
-
-            let nextMessages = [...messages, ...responseTail];
-            compactionEvents.push({
-              type: 'compaction.done',
-              tokensBefore,
-              tokensAfter: defaultEstimateTokens(nextMessages)
-            });
-
-            return { messages: nextMessages };
-          }
-        : undefined
+        if (!stepModel) return compacted;
+        return { ...compacted, model: stepModel };
+      }
     });
 
     let stepNumber = 0;
@@ -690,6 +708,7 @@ function createChildFromTemplate(
     name: template.name,
     description: template.description,
     model: template.model,
+    selectStepModel: template.selectStepModel,
     systemPrompt: template.systemPrompt,
     tools: template.tools,
     filesystem: template.filesystem,

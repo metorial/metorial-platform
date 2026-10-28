@@ -1,8 +1,13 @@
-import { implementation, restoreAssistantAccess } from '../../../lib/definitions';
+import {
+  createStepModelSelector,
+  implementation,
+  restoreAssistantAccess
+} from '../../../lib/definitions';
 import { Agent } from '../../../lib/open-harness';
 import { attachAgentRunExtension } from '../../../lib/run/extension';
 import { createSkillWorkspace } from '../../../lib/skillWorkspace';
 import { claudeHaiku45, claudeSonnet46 } from '../../models/anthropic';
+import { deepseekV41FlashCloudflare } from '../../models/deepseek';
 import { webSearchTools } from '../../tools/webSearch';
 import {
   buildSkillEditorRequest,
@@ -34,9 +39,11 @@ let readOnlyReason = (request: SkillEditorRequest) =>
     ? `the skill is read-only in ${request.mode} mode`
     : 'you only have read access to this skill';
 
+let defaultSkillsModel = deepseekV41FlashCloudflare ?? claudeSonnet46;
+
 export let skillEditorAssistantImplementation = implementation({
-  defaultModel: claudeSonnet46,
-  availableModels: [claudeSonnet46, claudeHaiku45],
+  defaultModel: defaultSkillsModel,
+  availableModels: [defaultSkillsModel, claudeSonnet46, claudeHaiku45],
   slug: 'skills',
   name: 'Skills Assistant',
 
@@ -78,7 +85,7 @@ export let skillEditorAssistantImplementation = implementation({
       access: d.access,
       conversationInput: d.conversationInput,
       requestInput: d.requestInput,
-      fastModelId: (await claudeHaiku45).slug
+      fastModelId: (await defaultSkillsModel).slug
     });
   },
 
@@ -117,6 +124,9 @@ export let skillEditorAssistantImplementation = implementation({
     let agent = new Agent({
       name: 'Skills Assistant',
       model: d.model.model,
+      selectStepModel: d.model.routed
+        ? createStepModelSelector({ model: d.model.routed, agentName: 'Skills Assistant' })
+        : undefined,
       systemPrompt: skillEditorSystemPrompt({
         request,
         blockAlias: request.blockRef
