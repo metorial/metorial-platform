@@ -3,7 +3,7 @@ import {
   useSkillAssistantWorkspace,
   type SkillAssistantRequestContext
 } from '@metorial/state';
-import { Menu, Text, theme, Tooltip } from '@metorial/ui';
+import { floatingTokens, Menu, Text, theme, Tooltip } from '@metorial/ui';
 import {
   RiAddLine,
   RiArrowDownSLine,
@@ -47,14 +47,17 @@ let writeStoredConversations = (skillId: string, conversations: StoredConversati
 
 let DockRoot = styled.div`
   position: absolute;
-  left: 50%;
-  bottom: 20px;
+  left: calc(50% + var(--canvas-center-shift, 0px));
+  bottom: 16px;
   z-index: 30;
   display: flex;
   flex-direction: column;
-  width: min(680px, calc(100% - 48px));
+  width: min(640px, calc(100% - 32px - 2 * var(--canvas-center-shift, 0px)));
   transform: translateX(-50%);
   pointer-events: none;
+  transition:
+    left 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+    width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 
   & > * {
     pointer-events: auto;
@@ -67,10 +70,10 @@ let Panel = styled.div`
   min-height: 0;
   max-height: min(60vh, 560px);
   margin-bottom: 10px;
-  border: 1px solid ${theme.colors.gray400};
+  border: 1px solid ${floatingTokens.border};
   border-radius: 14px;
   background: ${theme.colors.background};
-  box-shadow: ${theme.shadows.large};
+  box-shadow: ${floatingTokens.shadow};
   overflow: hidden;
 `;
 
@@ -108,10 +111,10 @@ let ComposerCard = styled.div`
   align-items: flex-end;
   gap: 8px;
   padding: 8px 8px 8px 12px;
-  border: 1px solid ${theme.colors.gray400};
+  border: 1px solid ${floatingTokens.border};
   border-radius: 14px;
   background: ${theme.colors.background};
-  box-shadow: ${theme.shadows.large};
+  box-shadow: ${floatingTokens.shadow};
 `;
 
 let ComposerInput = styled(TextareaAutosize)`
@@ -242,6 +245,26 @@ export let SkillAssistantDock = () => {
     if (element) element.scrollTop = element.scrollHeight;
   }, [assistant.history.liveState, messageCount, expanded]);
 
+  let composerRef = useRef<HTMLDivElement | null>(null);
+  let reportDockHeight = workspace?.reportDockHeight;
+
+  useEffect(() => {
+    let element = composerRef.current;
+    if (!element || !reportDockHeight) return;
+
+    let report = () =>
+      reportDockHeight(Math.ceil(element!.getBoundingClientRect().height) + 16);
+    report();
+
+    let observer = new ResizeObserver(report);
+    observer.observe(element);
+
+    return () => {
+      observer.disconnect();
+      reportDockHeight(0);
+    };
+  }, [reportDockHeight]);
+
   let submit = async () => {
     let text = draft.trim();
     if (!text || assistant.isBusy || !workspace) return;
@@ -343,7 +366,10 @@ export let SkillAssistantDock = () => {
         </Panel>
       )}
 
-      <ComposerCard onFocus={() => conversationId && messageCount > 0 && setExpanded(true)}>
+      <ComposerCard
+        ref={composerRef}
+        onFocus={() => conversationId && messageCount > 0 && setExpanded(true)}
+      >
         <ModeChip
           data-mode={canEdit ? 'edit' : 'read'}
           title={

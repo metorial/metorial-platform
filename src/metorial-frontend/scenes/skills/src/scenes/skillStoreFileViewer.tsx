@@ -234,6 +234,7 @@ export let SkillStoreFileTree = (p: {
   instanceId: string | null | undefined;
   storeId: string | null | undefined;
   getDocumentPath: (documentId: string, itemId: string) => string;
+  openFilesInline?: boolean;
   readOnly?: boolean;
   shareContext?: SkillSharePanelContext | null;
 }) => {
@@ -539,6 +540,7 @@ export let SkillStoreFileTree = (p: {
         onFileSelect={createStoreFile}
         onFilesDrop={createStoreFiles}
         getDocumentPath={p.getDocumentPath}
+        openFilesInline={p.openFilesInline}
         onMove={renameStoreItem}
         onRename={renameStoreItem}
         onToggle={path =>

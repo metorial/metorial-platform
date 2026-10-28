@@ -1,4 +1,5 @@
 import { DocumentEditorScene } from '@metorial/scene-docs';
+import { useSkillWorkspace } from '@metorial/scene-skills';
 import { useCurrentInstance, useCurrentOrganization, useSkill } from '@metorial/state';
 import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
@@ -13,12 +14,14 @@ export let SkillAgentDocumentPage = () => {
   let organization = useCurrentOrganization();
   let { skillId, documentId } = useParams();
   let skill = useSkill(instance.data?.id, skillId);
+  let workspace = useSkillWorkspace();
 
   return (
     <DocumentPage>
       <DocumentEditorScene
         instanceId={instance.data?.id}
         documentId={documentId}
+        chrome={workspace ? 'external' : undefined}
         loadError={skill.error}
         setRestrictHeight={enabled => (window as any).metorial_setRestrictHeight?.(enabled)}
         hideSharingControls

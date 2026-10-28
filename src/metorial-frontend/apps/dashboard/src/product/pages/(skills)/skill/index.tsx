@@ -1,5 +1,6 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { DocumentEditorScene } from '@metorial/scene-docs';
+import { useSkillWorkspace } from '@metorial/scene-skills';
 import {
   useAllStoreItems,
   useCurrentInstance,
@@ -27,6 +28,7 @@ export let SkillPage = () => {
   let organization = useCurrentOrganization();
   let instance = useCurrentInstance();
   let { skillId } = useParams();
+  let workspace = useSkillWorkspace();
   let skill = useSkill(instance.data?.id, skillId);
   let storeItems = useAllStoreItems(instance.data?.id, skill.data?.storeId, {
     order: 'asc',
@@ -52,6 +54,8 @@ export let SkillPage = () => {
           <DocumentEditorScene
             instanceId={instance.data?.id}
             documentId={skillDocument.id}
+            chrome={workspace ? 'external' : undefined}
+            titleAccessory={workspace?.skillDocumentTitleAccessory}
             setRestrictHeight={enabled =>
               (window as any).metorial_setRestrictHeight?.(enabled)
             }

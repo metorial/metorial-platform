@@ -45,12 +45,7 @@ export type SkillAssistantChangesItem = Extract<
 >;
 
 export type SkillAssistantRequestStatus =
-  | 'idle'
-  | 'sending'
-  | 'running'
-  | 'completed'
-  | 'failed'
-  | 'cancelled';
+  'idle' | 'sending' | 'running' | 'completed' | 'failed' | 'cancelled';
 
 let ownedRequestsStorageKey = 'metorial:skill-agent:requests';
 let maxOwnedRequests = 50;
@@ -332,6 +327,7 @@ export type SkillAssistantWorkspace = {
   canWrite: boolean;
   document: SkillAssistantDocumentBinding | null;
   registerDocument: (binding: SkillAssistantDocumentBinding) => () => void;
+  reportDockHeight: (height: number) => void;
 };
 
 let SkillAssistantWorkspaceContext = createContext<SkillAssistantWorkspace | null>(null);
@@ -341,6 +337,7 @@ export let SkillAssistantWorkspaceProvider = (p: {
   instanceId: string | null | undefined;
   skillId: string | null | undefined;
   canWrite: boolean;
+  onDockHeightChange?: (height: number) => void;
   children: ReactNode;
 }) => {
   let [document, setDocument] = useState<SkillAssistantDocumentBinding | null>(null);
@@ -349,6 +346,13 @@ export let SkillAssistantWorkspaceProvider = (p: {
     setDocument(binding);
     return () => setDocument(current => (current == binding ? null : current));
   }, []);
+
+  let onDockHeightChangeRef = useRef(p.onDockHeightChange);
+  onDockHeightChangeRef.current = p.onDockHeightChange;
+  let reportDockHeight = useCallback(
+    (height: number) => onDockHeightChangeRef.current?.(height),
+    []
+  );
 
   let value = useMemo<SkillAssistantWorkspace | null>(
     () =>
@@ -359,10 +363,19 @@ export let SkillAssistantWorkspaceProvider = (p: {
             skillId: p.skillId,
             canWrite: p.canWrite,
             document,
-            registerDocument
+            registerDocument,
+            reportDockHeight
           }
         : null,
-    [document, p.canWrite, p.instanceId, p.organizationId, p.skillId, registerDocument]
+    [
+      document,
+      p.canWrite,
+      p.instanceId,
+      p.organizationId,
+      p.skillId,
+      registerDocument,
+      reportDockHeight
+    ]
   );
 
   return createElement(SkillAssistantWorkspaceContext.Provider, { value }, p.children);

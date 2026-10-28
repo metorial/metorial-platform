@@ -599,6 +599,7 @@ let SkillFileTreeRow = (p: {
   onFileSelect: (parentPath: string, file: File) => Promise<void>;
   onFilesDrop: (parentPath: string, files: File[]) => Promise<void>;
   getDocumentPath: (documentId: string, itemId: string) => string;
+  openFilesInline?: boolean;
   shareContext?: SkillSharePanelContext | null;
   instanceId: string | null | undefined;
   editingItemPath: string | null;
@@ -627,7 +628,8 @@ let SkillFileTreeRow = (p: {
       ? p.getDocumentPath(p.node.documentId, p.node.itemId)
       : p.node.kind == 'file' &&
           p.node.itemId &&
-          isSkillTextFile({ fileName: p.node.name, fileType: p.node.fileType })
+          (p.openFilesInline ||
+            isSkillTextFile({ fileName: p.node.name, fileType: p.node.fileType }))
         ? p.getDocumentPath('', p.node.itemId)
         : null;
   let isActive = documentPath?.split(/[?#]/)[0] == location.pathname;
@@ -1085,6 +1087,7 @@ let SkillFileTreeRow = (p: {
                   onFileSelect={p.onFileSelect}
                   onFilesDrop={p.onFilesDrop}
                   getDocumentPath={p.getDocumentPath}
+                  openFilesInline={p.openFilesInline}
                   shareContext={p.shareContext}
                   instanceId={p.instanceId}
                   editingItemPath={p.editingItemPath}
@@ -1126,6 +1129,7 @@ let SkillFileTreeInner = (p: {
   onFileSelect: (parentPath: string, file: File) => Promise<void>;
   onFilesDrop: (parentPath: string, files: File[]) => Promise<void>;
   getDocumentPath: (documentId: string, itemId: string) => string;
+  openFilesInline?: boolean;
   shareContext?: SkillSharePanelContext | null;
   instanceId: string | null | undefined;
   editingItemPath: string | null;
@@ -1156,6 +1160,7 @@ let SkillFileTreeInner = (p: {
             onFileSelect={p.onFileSelect}
             onFilesDrop={p.onFilesDrop}
             getDocumentPath={p.getDocumentPath}
+            openFilesInline={p.openFilesInline}
             shareContext={p.shareContext}
             instanceId={p.instanceId}
             editingItemPath={p.editingItemPath}
@@ -1192,6 +1197,7 @@ export let SkillFileTree = (p: {
   onFileSelect: (parentPath: string, file: File) => Promise<void>;
   onFilesDrop: (parentPath: string, files: File[]) => Promise<void>;
   getDocumentPath: (documentId: string, itemId: string) => string;
+  openFilesInline?: boolean;
   shareContext?: SkillSharePanelContext | null;
   instanceId: string | null | undefined;
   onRename: (itemId: string, parentPath: string, name: string) => Promise<void>;
@@ -1223,6 +1229,7 @@ export let SkillFileTree = (p: {
       onFileSelect={p.onFileSelect}
       onFilesDrop={p.onFilesDrop}
       getDocumentPath={p.getDocumentPath}
+      openFilesInline={p.openFilesInline}
       shareContext={p.shareContext}
       instanceId={p.instanceId}
       onCancelRename={() => setEditingItemPath(null)}

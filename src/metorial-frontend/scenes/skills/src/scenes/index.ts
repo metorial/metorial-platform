@@ -49,8 +49,14 @@ import type {
 import type { SkillVersionsScene as _SkillVersionsScene } from './skillVersions';
 import type { SkillWorkspaceLayout as _SkillWorkspaceLayout } from './skillWorkspaceLayout';
 import type { SkillTextFileEditorScene as _SkillTextFileEditorScene } from './skillTextFileEditor';
+import type { SkillItemScene as _SkillItemScene } from './skillItem';
 
-export type { SkillWorkspaceLayoutProps, SkillWorkspaceRoutes } from './skillWorkspaceLayout';
+export type {
+  SkillWorkspaceFork,
+  SkillWorkspaceImageInput,
+  SkillWorkspaceLayoutProps,
+  SkillWorkspaceRoutes
+} from './skillWorkspaceLayout';
 
 export let SkillLinkProvidersScene = dynamicComponent<
   Parameters<typeof _SkillLinkProvidersScene>
@@ -139,3 +145,7 @@ export let SkillWorkspaceLayout = dynamicComponent<Parameters<typeof _SkillWorks
 export let SkillTextFileEditorScene = dynamicComponent<
   Parameters<typeof _SkillTextFileEditorScene>
 >(() => import('./skillTextFileEditor').then(m => m.SkillTextFileEditorScene));
+
+export let SkillItemScene = dynamicComponent<Parameters<typeof _SkillItemScene>>(() =>
+  import('./skillItem').then(m => m.SkillItemScene)
+);

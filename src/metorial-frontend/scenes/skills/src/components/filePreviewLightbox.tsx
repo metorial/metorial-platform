@@ -3,21 +3,14 @@ import { ManagedFile, useFile } from '@metorial/state';
 import { Spinner, Text, theme } from '@metorial/ui';
 import * as RadixDialog from '@radix-ui/react-dialog';
 import { RiCloseLine } from '@remixicon/react';
-import * as pdfjsLib from 'pdfjs-dist';
-import { ReactNode, Ref, useEffect, useMemo, useRef, useState } from 'react';
+import { ReactNode, Ref, useEffect, useMemo, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { getSkillFileExtension, isSkillTextFile } from './textFile';
+import { useDownloadHref, usePreviewObjectUrl } from './filePreview/load';
+import { PdfPageCanvas, usePdfDocument } from './filePreview/pdf';
+import { getSkillFileExtension, getSkillFileKind } from './textFile';
 
 type PreviewKind = 'image' | 'pdf' | 'video' | 'audio' | 'text' | 'fallback';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.mjs',
-  import.meta.url
-).toString();
-
-let imageExtensions = new Set(['avif', 'gif', 'jpeg', 'jpg', 'png', 'svg', 'webp']);
-let videoExtensions = new Set(['mp4', 'mov', 'm4v', 'webm', 'ogv']);
-let audioExtensions = new Set(['aac', 'flac', 'm4a', 'mp3', 'oga', 'ogg', 'wav', 'weba']);
 let fadeIn = keyframes`
   from { opacity: 0; }
   to { opacity: 1; }
@@ -239,7 +232,7 @@ let PdfCanvasWrap = styled.div`
   box-sizing: border-box;
 `;
 
-let PdfCanvas = styled.canvas`
+let PdfCanvas = styled(PdfPageCanvas)`
   display: block;
   align-self: flex-start;
   background: white;
@@ -363,82 +356,14 @@ let getCodeLanguage = (fileName: string) => {
 let getPreviewKind = (file: ManagedFile | null | undefined): PreviewKind => {
   if (!file) return 'fallback';
 
-  let extension = getSkillFileExtension(file.fileName || file.title);
-  let fileType = file.fileType?.toLowerCase() ?? '';
+  let kind = getSkillFileKind({
+    fileName: file.fileName || file.title,
+    fileType: file.fileType
+  });
 
-  if (fileType.startsWith('image/') || imageExtensions.has(extension)) return 'image';
-  if (fileType == 'application/pdf' || extension == 'pdf') return 'pdf';
-  if (fileType.startsWith('video/') || videoExtensions.has(extension)) return 'video';
-  if (fileType.startsWith('audio/') || audioExtensions.has(extension)) return 'audio';
-  if (isSkillTextFile({ fileName: file.fileName || file.title, fileType })) {
-    return 'text';
-  }
-
-  return 'fallback';
-};
-
-let usePreviewObjectUrl = (downloadUrl: string) => {
-  let [objectUrl, setObjectUrl] = useState<string | null>(null);
-  let [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    let createdObjectUrl: string | null = null;
-
-    setObjectUrl(null);
-    setError(null);
-
-    fetch(downloadUrl)
-      .then(async response => {
-        if (!response.ok) throw new Error(`Failed to load file (${response.status})`);
-        return await response.blob();
-      })
-      .then(blob => {
-        if (cancelled) return;
-        createdObjectUrl = URL.createObjectURL(blob);
-        setObjectUrl(createdObjectUrl);
-      })
-      .catch(err => {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load file');
-      });
-
-    return () => {
-      cancelled = true;
-      if (createdObjectUrl) URL.revokeObjectURL(createdObjectUrl);
-    };
-  }, [downloadUrl]);
-
-  return { objectUrl, error };
-};
-
-let usePreviewArrayBuffer = (downloadUrl: string) => {
-  let [arrayBuffer, setArrayBuffer] = useState<ArrayBuffer | null>(null);
-  let [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    setArrayBuffer(null);
-    setError(null);
-
-    fetch(downloadUrl)
-      .then(async response => {
-        if (!response.ok) throw new Error(`Failed to load file (${response.status})`);
-        return await response.arrayBuffer();
-      })
-      .then(buffer => {
-        if (!cancelled) setArrayBuffer(buffer);
-      })
-      .catch(err => {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load file');
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [downloadUrl]);
-
-  return { arrayBuffer, error };
+  if (kind == 'code' || kind == 'table') return 'text';
+  if (kind == 'binary') return 'fallback';
+  return kind;
 };
 
 let ObjectUrlLoadingState = (p: { error: string | null }) => {
@@ -495,90 +420,20 @@ let AudioFilePreview = (p: { downloadUrl: string }) => {
 };
 
 let PdfFilePreview = (p: { downloadUrl: string }) => {
-  let canvasRef = useRef<HTMLCanvasElement | null>(null);
-  let { arrayBuffer, error } = usePreviewArrayBuffer(p.downloadUrl);
+  let { pdf, error } = usePdfDocument(p.downloadUrl);
   let [pageNumber, setPageNumber] = useState(1);
-  let [pageCount, setPageCount] = useState<number | null>(null);
   let [renderError, setRenderError] = useState<string | null>(null);
   let [rendering, setRendering] = useState(false);
+  let pageCount = pdf?.numPages ?? null;
 
   useEffect(() => {
     setPageNumber(1);
-    setPageCount(null);
     setRenderError(null);
   }, [p.downloadUrl]);
 
   useEffect(() => {
-    if (!arrayBuffer) return;
-
-    let cancelled = false;
-    let renderTask: { cancel: () => void; promise: Promise<void> } | null = null;
-    let loadingTask: pdfjsLib.PDFDocumentLoadingTask | null = null;
-
-    setRendering(true);
-    setRenderError(null);
-
-    try {
-      // pdf.js transfers/detaches the buffer it receives. Keep the state-held buffer intact
-      // so changing pages can create a fresh document from the same fetched bytes.
-      loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer.slice(0)) });
-    } catch (err) {
-      setRenderError(err instanceof Error ? err.message : 'Failed to load PDF');
-      setRendering(false);
-      return;
-    }
-
-    loadingTask.promise
-      .then(async pdf => {
-        if (cancelled) {
-          await loadingTask.destroy();
-          return;
-        }
-
-        let nextPageNumber = Math.min(pageNumber, pdf.numPages);
-        setPageCount(pdf.numPages);
-        if (nextPageNumber != pageNumber) {
-          setPageNumber(nextPageNumber);
-          await loadingTask.destroy();
-          return;
-        }
-
-        let page = await pdf.getPage(nextPageNumber);
-        let viewport = page.getViewport({ scale: 1.35 });
-        let canvas = canvasRef.current;
-        let context = canvas?.getContext('2d');
-
-        if (!canvas || !context || cancelled) {
-          await loadingTask.destroy();
-          return;
-        }
-
-        let devicePixelRatio = window.devicePixelRatio || 1;
-        canvas.width = Math.floor(viewport.width * devicePixelRatio);
-        canvas.height = Math.floor(viewport.height * devicePixelRatio);
-        canvas.style.width = `${viewport.width}px`;
-        canvas.style.height = `${viewport.height}px`;
-        context.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
-        context.clearRect(0, 0, viewport.width, viewport.height);
-
-        renderTask = page.render({ canvas, canvasContext: context, viewport });
-        await renderTask.promise;
-        await loadingTask.destroy();
-      })
-      .catch(err => {
-        if (cancelled || err?.name == 'RenderingCancelledException') return;
-        setRenderError(err instanceof Error ? err.message : 'Failed to render PDF');
-      })
-      .finally(() => {
-        if (!cancelled) setRendering(false);
-      });
-
-    return () => {
-      cancelled = true;
-      renderTask?.cancel();
-      void loadingTask?.destroy();
-    };
-  }, [arrayBuffer, pageNumber]);
+    if (pdf) setRendering(true);
+  }, [pdf, pageNumber]);
 
   if (error || renderError) {
     return (
@@ -590,7 +445,7 @@ let PdfFilePreview = (p: { downloadUrl: string }) => {
     );
   }
 
-  if (!arrayBuffer) {
+  if (!pdf) {
     return (
       <LoadingFrame>
         <Spinner size={18} />
@@ -601,7 +456,15 @@ let PdfFilePreview = (p: { downloadUrl: string }) => {
   return (
     <PdfPreviewWrap>
       <PdfCanvasWrap>
-        <PdfCanvas ref={canvasRef} />
+        <PdfCanvas
+          pdf={pdf}
+          pageNumber={pageNumber}
+          onRendered={() => setRendering(false)}
+          onError={message => {
+            setRendering(false);
+            setRenderError(message);
+          }}
+        />
       </PdfCanvasWrap>
       <PdfControls>
         <PdfButton
@@ -728,16 +591,7 @@ export let SkillFilePreviewLightbox = (p: {
   let [open, setOpen] = useState(false);
   let file = useFile(open ? p.instanceId : null, open ? p.fileId : null);
   let downloadUrl = file.data?.downloadUrl ?? null;
-  let downloadUrlDownload = useMemo(() => {
-    if (!file.data?.downloadUrl) return null;
-    try {
-      let url = new URL(file.data.downloadUrl);
-      url.searchParams.set('download', '1');
-      return url.toString();
-    } catch {
-      return file.data.downloadUrl;
-    }
-  }, [file.data?.downloadUrl]);
+  let downloadUrlDownload = useDownloadHref(file.data?.downloadUrl);
   let previewKind = useMemo(() => getPreviewKind(file.data), [file.data]);
   let isImagePreview = downloadUrl != null && previewKind == 'image';
   let isPdfPreview = downloadUrl != null && previewKind == 'pdf';
