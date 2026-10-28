@@ -1,3 +1,4 @@
+import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
@@ -803,7 +804,7 @@ class adminProviderTelemetryServiceImpl {
   }
 
   async getProvider(input: any) {
-    let listing = await db.providerListing.findFirstOrThrow({
+    let listing = await db.providerListing.findFirst({
       where: firstPartyProviderWhere({
         providerIds: [input.providerId],
         includeDeprecated: true
@@ -811,17 +812,25 @@ class adminProviderTelemetryServiceImpl {
       include: providerListingInclude
     });
 
+    if (!listing) {
+      throw new ServiceError(notFoundError('provider', input.providerId));
+    }
+
     return presentProvider(listing, input.range);
   }
 
   async updateProvider(input: any) {
-    let listing = await db.providerListing.findFirstOrThrow({
+    let listing = await db.providerListing.findFirst({
       where: firstPartyProviderWhere({
         providerIds: [input.providerId],
         includeDeprecated: true
       }),
       include: { provider: true }
     });
+
+    if (!listing) {
+      throw new ServiceError(notFoundError('provider', input.providerId));
+    }
 
     await providerService.updateProvider({
       provider: listing.provider,
