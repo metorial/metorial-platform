@@ -865,14 +865,17 @@ export let EditorScroll = styled.div`
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  padding: 0 var(--docs-inset-right, 0px) 0 var(--docs-inset-left, 0px);
   background: ${({ theme }) => theme.color.bg};
+  transition: padding 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
 `;
 
 export let EditorContent = styled.div<{ $readOnly?: boolean }>`
   position: relative;
   max-width: ${({ theme }) => theme.size.contentWidth};
   margin: 0 auto;
-  padding: 48px 64px 140px;
+  padding: calc(48px + var(--docs-inset-top, 0px)) 64px
+    calc(140px + var(--docs-inset-bottom, 0px));
 
   ${({ $readOnly }) =>
     $readOnly &&
@@ -945,6 +948,55 @@ export let EditorContent = styled.div<{ $readOnly?: boolean }>`
       float: left;
       height: 0;
       pointer-events: none;
+    }
+
+    .docs-attributed {
+      position: relative;
+    }
+
+    /* Sits in the gap between the block and the BlockHandle so hovering it never
+       steals the handle's hit area. */
+    .docs-attributed::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      bottom: 2px;
+      left: -6px;
+      width: 5px;
+      border-left: 3px solid var(--editor-color);
+      border-radius: 2px;
+      opacity: 0;
+      cursor: default;
+      transition: opacity ${({ theme }) => theme.motion.fast};
+    }
+
+    .docs-attributed:hover::after {
+      opacity: 0.55;
+    }
+
+    &.docs-show-editors .docs-attributed {
+      background: color-mix(in srgb, var(--editor-color) 8%, transparent);
+      border-radius: 4px;
+    }
+
+    &.docs-show-editors .docs-attributed::after {
+      opacity: 1;
+    }
+
+    .docs-comment-highlight {
+      background: ${({ theme }) => theme.color.commentHighlight};
+      border-bottom: 2px solid ${({ theme }) => theme.color.commentHighlightBorder};
+      cursor: pointer;
+      transition: background ${({ theme }) => theme.motion.fast};
+    }
+
+    .docs-comment-highlight.docs-comment-highlight--active {
+      background: ${({ theme }) => theme.color.commentHighlightActive};
+    }
+
+    .docs-comment-pending {
+      background: ${({ theme }) => theme.color.commentHighlightActive};
+      border-radius: 2px;
     }
   }
 `;

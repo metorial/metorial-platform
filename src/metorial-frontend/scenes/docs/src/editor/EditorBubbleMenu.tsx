@@ -22,6 +22,7 @@ import {
   IconUnlink,
   IconClose,
   IconCheck,
+  IconComment,
   IconSparkle
 } from './icons';
 import { AskAiPanel } from './agent/AskAiPanel';
@@ -156,6 +157,8 @@ interface Props {
    *  clicked. The bubble menu will then open in link-edit mode at the
    *  current selection (or current cursor, if the selection is empty). */
   linkPromptToken?: number;
+  readOnly?: boolean;
+  onComment?: (range: { from: number; to: number }) => void;
 }
 
 let BUBBLE_MENU_OPTIONS = { placement: 'top', offset: 8 } as const;
@@ -211,7 +214,7 @@ function resolveLinkTargetRange(editor: Editor): SavedRange {
   return { from, to };
 }
 
-export function EditorBubbleMenu({ editor, linkPromptToken }: Props) {
+export function EditorBubbleMenu({ editor, linkPromptToken, readOnly, onComment }: Props) {
   let [mode, setMode] = useState<'menu' | 'link' | 'ai'>('menu');
   let [linkUrl, setLinkUrl] = useState('');
   let [linkError, setLinkError] = useState<string | null>(null);
@@ -401,7 +404,17 @@ export function EditorBubbleMenu({ editor, linkPromptToken }: Props) {
   if (!editor) return null;
 
   let hasExistingLink = !!editor.getAttributes('link').href;
-  let canAskAi = !!getDocsAgentApi(editor)?.canWrite;
+  let canAskAi = !readOnly && !!getDocsAgentApi(editor)?.canWrite;
+  let startComment = () => {
+    let { from, to } = editor.state.selection;
+    onComment?.({ from, to });
+    editor.view.dispatch(editor.state.tr.setMeta(inlineBubbleMenuPluginKey, 'hide'));
+  };
+  let commentButton = onComment && (
+    <Btn type="button" onClick={startComment} title="Comment">
+      <IconComment />
+    </Btn>
+  );
 
   return (
     <BubbleMenu
@@ -411,7 +424,9 @@ export function EditorBubbleMenu({ editor, linkPromptToken }: Props) {
       shouldShow={props => overlay.canShow() && bubbleShouldShow(props)}
     >
       <Floating ref={overlay.element} onMouseDown={preserveEditorSelection}>
-        {mode === 'ai' ? (
+        {readOnly ? (
+          commentButton
+        ) : mode === 'ai' ? (
           <AskAiPanel editor={editor} onClose={() => setMode('menu')} />
         ) : mode === 'menu' ? (
           <>
@@ -483,6 +498,12 @@ export function EditorBubbleMenu({ editor, linkPromptToken }: Props) {
             >
               <IconLink />
             </Btn>
+            {commentButton && (
+              <>
+                <Divider />
+                {commentButton}
+              </>
+            )}
           </>
         ) : (
           <LinkEditor data-link-mode="true">

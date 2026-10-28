@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import styled from 'styled-components';
 import { Avatar } from '../components/Avatar';
 import { Popover, usePopoverAnchor } from '../components/Popover';
+import type { AttributionPerson } from './AttributionPopover';
 import type { SharedPerson } from './HeaderActions';
 import { IconChevronDown, IconCode, IconHistory, IconText } from './icons';
 
@@ -24,6 +25,7 @@ interface TitleStatusBarProps {
   frontMatterError?: string | null;
   onToggleFrontMatter?: () => void;
   onOpenPageInfo?: () => void;
+  attributionCounts?: { person: AttributionPerson; blocks: number }[];
 }
 
 let TRIGGER_SELECTOR = '[data-title-status-editors-trigger]';
@@ -152,6 +154,26 @@ let EditorRow = styled.div`
   padding: 6px 12px;
 `;
 
+let PopoverDivider = styled.div`
+  height: 1px;
+  margin: 6px 0;
+  background: ${({ theme }) => theme.color.border};
+`;
+
+let BlockCount = styled.span`
+  margin-left: auto;
+  font-size: 12px;
+  color: ${({ theme }) => theme.color.textMuted};
+  font-variant-numeric: tabular-nums;
+`;
+
+let ColorSwatch = styled.span`
+  width: 3px;
+  height: 18px;
+  border-radius: 2px;
+  flex-shrink: 0;
+`;
+
 let EditorInfo = styled.div`
   display: flex;
   flex-direction: column;
@@ -214,7 +236,8 @@ export function TitleStatusBar({
   hasFrontMatter = false,
   frontMatterError = null,
   onToggleFrontMatter,
-  onOpenPageInfo
+  onOpenPageInfo,
+  attributionCounts
 }: TitleStatusBarProps) {
   let { triggerRef, open, anchor, closeMenu, toggle } = usePopoverAnchor('left');
   let tokenCount = Math.max(0, Math.round(charCount / 4));
@@ -334,6 +357,30 @@ export function TitleStatusBar({
               </EditorInfo>
             </EditorRow>
           ))}
+          {!!attributionCounts?.length && (
+            <>
+              <PopoverDivider />
+              <PopoverTitle>Blocks By Primary Editor</PopoverTitle>
+              {attributionCounts.map(({ person, blocks }) => (
+                <EditorRow key={person.id}>
+                  <ColorSwatch style={{ background: person.color }} />
+                  <Avatar
+                    name={person.name}
+                    imageUrl={person.imageUrl}
+                    email={person.email}
+                    size={22}
+                    noTooltip
+                  />
+                  <EditorInfo>
+                    <span className="name">{person.name}</span>
+                  </EditorInfo>
+                  <BlockCount>
+                    {blocks.toLocaleString()} {blocks === 1 ? 'block' : 'blocks'}
+                  </BlockCount>
+                </EditorRow>
+              ))}
+            </>
+          )}
         </PopoverList>
       </Popover>
     </>

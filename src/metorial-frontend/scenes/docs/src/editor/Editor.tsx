@@ -1,3 +1,4 @@
+import { normalizeEditors } from '@metorial/docs-editor-schema';
 import { dismissEditorOverlays } from './overlays';
 import { dismissSlash } from './extensions/SlashCommand';
 import { TextSelection } from '@tiptap/pm/state';
@@ -6,11 +7,12 @@ import {
   useEditor,
   type Editor as TiptapEditor
 } from '@tiptap/react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import styled, { useTheme } from 'styled-components';
 import type { Awareness } from 'y-protocols/awareness';
 import type { Doc as YDoc } from 'yjs';
 import type { Theme } from '../styles/theme';
+import { AttributionPopover, type AttributionPerson } from './AttributionPopover';
 import { BlockHandle } from './BlockHandle';
 import { CalloutMenu } from './CalloutMenu';
 import { EditorBubbleMenu } from './EditorBubbleMenu';
@@ -37,6 +39,11 @@ let Wrap = styled.div`
   min-width: 0;
   min-height: 0;
   background: ${({ theme }) => theme.color.bg};
+`;
+
+let ScrollInner = styled.div`
+  position: relative;
+  min-height: 100%;
 `;
 
 let FrontMatterWrap = styled.div<{ $invalid?: boolean }>`
@@ -133,6 +140,13 @@ interface EditorProps {
     };
     onFirstRender?: () => void;
   };
+  resolveAttributionPerson?: (actorId: string) => AttributionPerson;
+  getLocalActorId?: () => string | null;
+  commentRail?: ReactNode;
+  commentRailWidth?: number;
+  onRequestComment?: (range: { from: number; to: number }) => void;
+  onActivateCommentThread?: (threadId: string) => void;
+  titleAccessory?: ReactNode;
 }
 
 export function Editor({
@@ -158,11 +172,25 @@ export function Editor({
   onOpenPageInfo,
   allowInitialHashScroll,
   onInitialHashScrollComplete,
-  collaboration
+  collaboration,
+  resolveAttributionPerson,
+  getLocalActorId,
+  commentRail,
+  commentRailWidth = 0,
+  onRequestComment,
+  onActivateCommentThread,
+  titleAccessory
 }: EditorProps) {
   let theme = useTheme() as Theme;
   let themeRef = useRef(theme);
   themeRef.current = theme;
+
+  let resolveAttributionPersonRef = useRef(resolveAttributionPerson);
+  resolveAttributionPersonRef.current = resolveAttributionPerson;
+  let getLocalActorIdRef = useRef(getLocalActorId);
+  getLocalActorIdRef.current = getLocalActorId;
+  let onActivateCommentThreadRef = useRef(onActivateCommentThread);
+  onActivateCommentThreadRef.current = onActivateCommentThread;
 
   let upload = useImageUpload();
   let uploadRef = useRef<ImageUploadFn>(upload);
@@ -205,7 +233,15 @@ export function Editor({
                 ydoc: collaboration.ydoc,
                 awareness: collaboration.awareness,
                 user: collaboration.user,
-                onFirstRender: collaboration.onFirstRender
+                onFirstRender: collaboration.onFirstRender,
+                attribution: {
+                  getActorId: () => getLocalActorIdRef.current?.() ?? null,
+                  getEditorColor: actorId =>
+                    resolveAttributionPersonRef.current?.(actorId).color ?? 'transparent'
+                },
+                comments: {
+                  onActivate: threadId => onActivateCommentThreadRef.current?.(threadId)
+                }
               }
             }
           : undefined
@@ -353,6 +389,30 @@ export function Editor({
 
     collaboration.awareness.setLocalStateField('user', collaboration.user);
   }, [collaboration]);
+
+  useEffect(() => {
+    if (!editor || !('refreshEditorAttribution' in editor.commands)) return;
+    editor.commands.refreshEditorAttribution();
+  }, [editor, resolveAttributionPerson]);
+
+  let currentDoc = editor?.state.doc;
+  let attributionCounts = useMemo(() => {
+    if (!currentDoc || !collaboration || !resolveAttributionPerson) return undefined;
+
+    let counts = new Map<string, number>();
+    currentDoc.descendants(node => {
+      if (!node.isTextblock) return true;
+
+      let primary = normalizeEditors(node.attrs.editors)[0];
+      if (primary && node.textContent.trim())
+        counts.set(primary, (counts.get(primary) ?? 0) + 1);
+      return false;
+    });
+
+    return [...counts.entries()]
+      .map(([actorId, blocks]) => ({ person: resolveAttributionPerson(actorId), blocks }))
+      .sort((a, b) => b.blocks - a.blocks);
+  }, [collaboration, currentDoc, resolveAttributionPerson]);
 
   useEffect(() => {
     if (!editor) return;
@@ -533,68 +593,73 @@ export function Editor({
   return (
     <Wrap>
       <EditorScroll ref={scrollRef}>
-        <EditorContent $readOnly={readOnly}>
-          <TitleInput
-            ref={titleRef}
-            value={title}
-            placeholder="Untitled"
-            spellCheck
-            readOnly={readOnly}
-            rows={1}
-            onFocus={() => {
-              if (readOnly) return;
-              setTitleInputFocused(true);
-            }}
-            onBlur={() => {
-              if (readOnly) return;
-              setTitleInputFocused(false);
-            }}
-            onChange={e => onTitleChange(e.target.value)}
-            onKeyDown={handleTitleKeyDown}
-          />
-          {statusCurrentUser &&
-            statusEditors &&
-            statusUpdatedAt &&
-            typeof statusWordCount === 'number' &&
-            typeof statusCharCount === 'number' && (
-              <TitleStatusBar
-                currentUser={statusCurrentUser}
-                editors={statusEditors}
-                updatedAt={statusUpdatedAt}
-                wordCount={statusWordCount}
-                charCount={statusCharCount}
-                frontMatterOpen={frontMatterOpen}
-                hasFrontMatter={frontMatter.trim().length > 0}
-                frontMatterError={frontMatterError}
-                onToggleFrontMatter={onToggleFrontMatter}
-                onOpenPageInfo={onOpenPageInfo}
-              />
+        <ScrollInner style={{ paddingRight: commentRail ? commentRailWidth : 0 }}>
+          <EditorContent $readOnly={readOnly}>
+            {titleAccessory}
+            <TitleInput
+              ref={titleRef}
+              value={title}
+              placeholder="Untitled"
+              spellCheck
+              readOnly={readOnly}
+              rows={1}
+              onFocus={() => {
+                if (readOnly) return;
+                setTitleInputFocused(true);
+              }}
+              onBlur={() => {
+                if (readOnly) return;
+                setTitleInputFocused(false);
+              }}
+              onChange={e => onTitleChange(e.target.value)}
+              onKeyDown={handleTitleKeyDown}
+            />
+            {statusCurrentUser &&
+              statusEditors &&
+              statusUpdatedAt &&
+              typeof statusWordCount === 'number' &&
+              typeof statusCharCount === 'number' && (
+                <TitleStatusBar
+                  currentUser={statusCurrentUser}
+                  editors={statusEditors}
+                  updatedAt={statusUpdatedAt}
+                  wordCount={statusWordCount}
+                  charCount={statusCharCount}
+                  frontMatterOpen={frontMatterOpen}
+                  hasFrontMatter={frontMatter.trim().length > 0}
+                  frontMatterError={frontMatterError}
+                  onToggleFrontMatter={onToggleFrontMatter}
+                  onOpenPageInfo={onOpenPageInfo}
+                  attributionCounts={attributionCounts}
+                />
+              )}
+            {frontMatterOpen && (
+              <FrontMatterWrap $invalid={!!frontMatterError}>
+                <FrontMatterFence>---</FrontMatterFence>
+                <FrontMatterInput
+                  ref={frontMatterRef}
+                  value={frontMatter}
+                  readOnly={readOnly}
+                  placeholder="key: value"
+                  spellCheck={false}
+                  onFocus={() => {
+                    if (readOnly) return;
+                    setFrontMatterFocused(true);
+                  }}
+                  onBlur={() => {
+                    if (readOnly) return;
+                    setFrontMatterFocused(false);
+                  }}
+                  onChange={e => onFrontMatterChange?.(e.target.value)}
+                />
+                <FrontMatterFence>---</FrontMatterFence>
+                {frontMatterError && <FrontMatterError>{frontMatterError}</FrontMatterError>}
+              </FrontMatterWrap>
             )}
-          {frontMatterOpen && (
-            <FrontMatterWrap $invalid={!!frontMatterError}>
-              <FrontMatterFence>---</FrontMatterFence>
-              <FrontMatterInput
-                ref={frontMatterRef}
-                value={frontMatter}
-                readOnly={readOnly}
-                placeholder="key: value"
-                spellCheck={false}
-                onFocus={() => {
-                  if (readOnly) return;
-                  setFrontMatterFocused(true);
-                }}
-                onBlur={() => {
-                  if (readOnly) return;
-                  setFrontMatterFocused(false);
-                }}
-                onChange={e => onFrontMatterChange?.(e.target.value)}
-              />
-              <FrontMatterFence>---</FrontMatterFence>
-              {frontMatterError && <FrontMatterError>{frontMatterError}</FrontMatterError>}
-            </FrontMatterWrap>
-          )}
-          <TiptapEditorContent editor={editor} />
-        </EditorContent>
+            <TiptapEditorContent editor={editor} />
+          </EditorContent>
+          {commentRail}
+        </ScrollInner>
       </EditorScroll>
       {/* {editor && (
         <TableOfContents
@@ -605,15 +670,25 @@ export function Editor({
           onInitialHashScrollComplete={onInitialHashScrollComplete}
         />
       )} */}
+      {(!readOnly || onRequestComment) && (
+        <EditorBubbleMenu
+          editor={editor}
+          linkPromptToken={linkPromptToken}
+          readOnly={readOnly}
+          onComment={onRequestComment}
+        />
+      )}
       {!readOnly && (
         <>
-          <EditorBubbleMenu editor={editor} linkPromptToken={linkPromptToken} />
           <TableMenu editor={editor} />
           <CalloutMenu editor={editor} />
           {editor && <BlockHandle editor={editor} onMenuOpenChange={setBlockMenuOpen} />}
         </>
       )}
       {editor && <LinkPreviewPopover editor={editor} suppress={blockMenuOpen} />}
+      {editor && collaboration && resolveAttributionPerson && (
+        <AttributionPopover editor={editor} resolvePerson={resolveAttributionPerson} />
+      )}
     </Wrap>
   );
 }
