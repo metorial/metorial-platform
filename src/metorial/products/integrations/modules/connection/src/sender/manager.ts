@@ -8,7 +8,7 @@ import {
   ServiceError
 } from '@lowerdeck/error';
 import { createLock } from '@lowerdeck/lock';
-import { getSentry } from '@lowerdeck/sentry';
+import { getSentry, markSentryCaptured } from '@lowerdeck/sentry';
 import { serialize } from '@lowerdeck/serialize';
 import { rateLimitService } from '@metorial/module-rate-limit';
 import { ConduitSendError } from '@metorial-subspace/conduit';
@@ -1485,11 +1485,14 @@ export class SenderManager {
     if (grantedScopes !== null) {
       let scopeCheck = checkToolScopesSatisfied(tool, grantedScopes);
       if (!scopeCheck.allowed) {
-        throw new ServiceError(
+        let error = new ServiceError(
           badRequestError({
             message: 'Tool requires scopes that have not been granted to this credential'
           })
         );
+
+        markSentryCaptured(error);
+        throw error;
       }
     }
 

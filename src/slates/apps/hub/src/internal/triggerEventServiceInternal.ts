@@ -1,7 +1,11 @@
 import { Service } from '@lowerdeck/service';
-import type { TriggerEventInvocationStatus, TriggerRawEventSource } from '../../prisma/generated/client';
+import type {
+  TriggerEventInvocationStatus,
+  TriggerRawEventSource
+} from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId } from '../id';
+import { retryOnOidCollision } from '../lib/retryOnOidCollision';
 
 class triggerEventServiceInternalImpl {
   async upsertPending(d: {
@@ -11,9 +15,12 @@ class triggerEventServiceInternalImpl {
     triggerId: string;
     source: TriggerRawEventSource;
   }) {
-    try {
-      return await db.triggerEvent.create({
-        data: {
+    return retryOnOidCollision(() =>
+      db.triggerEvent.upsert({
+        where: {
+          rawEventOid_triggerId: { rawEventOid: d.rawEventOid, triggerId: d.triggerId }
+        },
+        create: {
           ...getId('triggerEvent'),
           status: 'pending',
           triggerRegistrationInstanceOid: d.triggerRegistrationInstanceOid,
@@ -21,14 +28,10 @@ class triggerEventServiceInternalImpl {
           webhookEventOid: d.webhookEventOid,
           triggerId: d.triggerId,
           source: d.source
-        }
-      });
-    } catch (err: any) {
-      if (err.code !== 'P2002') throw err;
-      return db.triggerEvent.findUniqueOrThrow({
-        where: { rawEventOid_triggerId: { rawEventOid: d.rawEventOid, triggerId: d.triggerId } }
-      });
-    }
+        },
+        update: {}
+      })
+    );
   }
 
   async recordInvocation(d: {

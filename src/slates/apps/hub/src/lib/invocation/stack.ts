@@ -21,6 +21,7 @@ import {
 import { hub } from '../../hub';
 import { ID, snowflake } from '../../id';
 import { invocationsBucketRecord } from '../../storage';
+import { retryOnOidCollision } from '../retryOnOidCollision';
 import { mintLiveInvocationToken } from './liveToken';
 import { isJsonRpcServerError, reportSlateInvocationServerError } from './report';
 import { storeSlateInvocation } from './store';
@@ -148,18 +149,20 @@ export class SlateInvocationStack {
       ...this.#productiveMessages
     ];
 
-    let invocationRecord = await db.slateInvocation.create({
-      data: {
-        oid: snowflake.nextId(),
-        id: invocationId,
-        deploymentOid: activeDeploymentOid,
-        bucketOid: invocationsBucketRecord.oid,
-        isPending: true,
-        providerInvocationId: '',
-        hasInvocationError: false,
-        hasResponseError: false
-      }
-    });
+    let invocationRecord = await retryOnOidCollision(() =>
+      db.slateInvocation.create({
+        data: {
+          oid: snowflake.nextId(),
+          id: invocationId,
+          deploymentOid: activeDeploymentOid,
+          bucketOid: invocationsBucketRecord.oid,
+          isPending: true,
+          providerInvocationId: '',
+          hasInvocationError: false,
+          hasResponseError: false
+        }
+      })
+    );
 
     try {
       let [runtimeTenant, deploymentTenant] = await Promise.all([

@@ -222,7 +222,10 @@ class DocumentServiceImpl {
 
     let actor = d.input.authorization.resourceActor;
 
-    await Fabric.fire('document.created:before', { instance: d.instance });
+    await Fabric.fire('document.created:before', {
+      instance: d.instance,
+      isTemplateBacking: d.internal?.isTemplateBacking ?? false
+    });
 
     return await withTransaction(async db => {
       let documentId = d.input.id ?? (await ID.generateId('document'));
@@ -705,7 +708,10 @@ class DocumentServiceImpl {
       );
     }
 
-    await Fabric.fire('document.created:before', { instance: d.instance });
+    await Fabric.fire('document.created:before', {
+      instance: d.instance,
+      isTemplateBacking: false
+    });
 
     let clonedDocument = await withTransaction(async db => {
       let documentId = d.input.id ?? (await ID.generateId('document'));

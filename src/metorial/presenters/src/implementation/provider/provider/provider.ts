@@ -38,8 +38,7 @@ export let v1ProviderPresenter = Presenter.create(providerType)
           ? {
               status: 'enabled' as 'enabled' | 'disabled',
               callback_url: (await getOAuthCallbackUrl(provider.type, provider, tenant)) as
-                | string
-                | null,
+                string | null,
               auto_registration: {
                 status:
                   provider.type.attributes.auth.oauth.oauthAutoRegistration?.status ==
@@ -133,7 +132,8 @@ export let dashboardProviderPresenter = Presenter.create(providerType)
           {
             providerType: input.provider.type,
             provider: input.provider as any,
-            tenant: input.tenant
+            tenant: input.tenant,
+            oauthCallbackUrl: inner.oauth?.callback_url ?? null
           },
           opts
         )

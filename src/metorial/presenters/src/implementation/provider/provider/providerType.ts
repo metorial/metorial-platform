@@ -4,7 +4,7 @@ import { Presenter } from '@metorial/presenter';
 import { providerTypeType } from '../../../types';
 
 export let v1ProviderTypePresenter = Presenter.create(providerTypeType)
-  .presenter(async ({ providerType, provider, tenant }) => {
+  .presenter(async ({ providerType, provider, tenant, oauthCallbackUrl }) => {
     let attributes = providerType.attributes;
 
     return {
@@ -43,9 +43,10 @@ export let v1ProviderTypePresenter = Presenter.create(providerTypeType)
                   ? {
                       status: 'enabled' as const,
                       oauth_callback_url: tenant
-                        ? ((await getOAuthCallbackUrl(providerType, provider, tenant)) as
-                            | string
-                            | null)
+                        ? oauthCallbackUrl !== undefined
+                          ? oauthCallbackUrl
+                          : ((await getOAuthCallbackUrl(providerType, provider, tenant)) as
+                              string | null)
                         : null,
                       oauth_auto_registration: attributes.auth.oauth.oauthAutoRegistration
                         ? {
