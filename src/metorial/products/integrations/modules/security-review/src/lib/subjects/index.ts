@@ -46,10 +46,7 @@ export let loadCustomProviderSubject = async (customProviderVersionOid: bigint) 
     }
   });
 
-export let collectEvidence = async (d: {
-  review: SecurityReview;
-  includeTenantSignals: boolean;
-}) => {
+export let collectEvidence = async (d: { review: SecurityReview }) => {
   if (d.review.subjectType == 'slate_version') {
     let subject = d.review.providerVersionOid
       ? await loadSlateSubject(d.review.providerVersionOid)
@@ -74,8 +71,7 @@ export let collectEvidence = async (d: {
       tenant: subject.tenant,
       customProvider: subject.customProvider,
       customProviderVersion: subject,
-      providerVersion: subject.providerVersion,
-      includeTenantSignals: d.includeTenantSignals
+      providerVersion: subject.providerVersion
     });
   }
 
@@ -106,7 +102,6 @@ let directoryListing = (evidence: CollectedEvidence) => {
     ['skill.json', 'Skill name, description, license and provenance.'],
     ['inventory.json', 'Every file in the skill with its detected type and size.'],
     ['changes/', 'What changed since the last reviewed version: summary.json and diffs.'],
-    ['signals/protoguard.json', "ProtoGuard alerts from this project's traffic, redacted."],
     ['facts.json', 'Pre-computed facts and the findings already recorded from them.']
   ] as const;
 
@@ -195,8 +190,7 @@ export let buildLedger = (d: {
 // The README embeds limitations that change with transient conditions (an unreachable
 // vulnerability database) and runtime signals change with every alert, so neither counts as
 // new evidence on their own.
-let volatileEvidence = (path: string) =>
-  path == 'README.md' || path.startsWith('signals/') || path.startsWith('changes/');
+let volatileEvidence = (path: string) => path == 'README.md' || path.startsWith('changes/');
 
 export let hashEvidence = (files: Record<string, string>) => {
   let hash = createHash('sha256');

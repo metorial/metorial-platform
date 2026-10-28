@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
   tenant: vi.fn(),
+  tenantSettings: vi.fn(),
   project: vi.fn(),
   coreProject: vi.fn(),
   allowed: vi.fn(),
@@ -11,7 +12,7 @@ let mocks = vi.hoisted(() => ({
 
 vi.mock('@metorial-subspace/db', () => ({
   db: {
-    tenant: { findUniqueOrThrow: mocks.tenant },
+    tenant: { findUniqueOrThrow: mocks.tenant, findUnique: mocks.tenantSettings },
     project: { findUniqueOrThrow: mocks.project }
   }
 }));
@@ -106,5 +107,55 @@ describe('security review generation access', () => {
       'rate limit exceeded'
     );
     expect(mocks.consume).not.toHaveBeenCalled();
+  });
+});
+
+describe('usage review access', () => {
+  let enabled = (settings: Record<string, boolean> | null) => {
+    mocks.tenantSettings.mockResolvedValue(settings);
+    return gate.isUsageReviewEnabled({ tenantOid: 1n });
+  };
+
+  it('is off for tenants that have not opted in', async () => {
+    expect(
+      await enabled({
+        usageReviewsEnabled: false,
+        aiAnalysisEnabled: true,
+        reducedSubprocessors: false
+      })
+    ).toBe(false);
+    expect(await enabled(null)).toBe(false);
+  });
+
+  it('needs AI analysis and no reduced subprocessors', async () => {
+    expect(
+      await enabled({
+        usageReviewsEnabled: true,
+        aiAnalysisEnabled: false,
+        reducedSubprocessors: false
+      })
+    ).toBe(false);
+    expect(
+      await enabled({
+        usageReviewsEnabled: true,
+        aiAnalysisEnabled: true,
+        reducedSubprocessors: true
+      })
+    ).toBe(false);
+  });
+
+  it('is on once the tenant opted in with AI analysis', async () => {
+    expect(
+      await enabled({
+        usageReviewsEnabled: true,
+        aiAnalysisEnabled: true,
+        reducedSubprocessors: false
+      })
+    ).toBe(true);
+  });
+
+  it('never resolves a gate for a review without a tenant', async () => {
+    expect(await gate.resolveUsageGate({ review: { tenantOid: null } as any })).toBeNull();
+    expect(mocks.tenantSettings).not.toHaveBeenCalled();
   });
 });

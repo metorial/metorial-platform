@@ -4,12 +4,19 @@ import {
   getId,
   type SecurityReview,
   type SecurityReviewRevision,
+  type SecurityReviewRevisionContext,
+  type SecurityReviewRevisionStatus,
+  type SecurityReviewThoroughness,
+  type SecurityReviewTrigger,
+  type SecurityUsageComputedScores,
+  type SecurityUsageReport,
   withTransaction
 } from '@metorial-subspace/db';
 import { skillSecurityVerdict } from '@metorial-subspace/module-security-review-request';
 import {
   SECURITY_REVIEW_PROMPT_VERSION,
-  SECURITY_REVIEW_RULES_VERSION
+  SECURITY_REVIEW_RULES_VERSION,
+  SECURITY_USAGE_PROMPT_VERSION
 } from '../definitions/versions';
 import { isReportStatus, toFindingRows } from '../lib/findings';
 import {
@@ -184,6 +191,112 @@ class InternalSecurityReviewStoreServiceImpl {
         where: { oid: d.review.oid },
         data: { lastCheckedAt: new Date() }
       });
+    });
+  }
+
+  async createUsageRevision(d: {
+    review: SecurityReview;
+    baseRevision: SecurityReviewRevision;
+    trigger: SecurityReviewTrigger;
+    thoroughness: SecurityReviewThoroughness;
+    context: SecurityReviewRevisionContext;
+    workspaceKey: string;
+  }) {
+    return await withTransaction(async db => {
+      let last = await db.securityReviewRevision.findFirst({
+        where: { reviewOid: d.review.oid },
+        orderBy: { number: 'desc' },
+        select: { number: true }
+      });
+
+      return await db.securityReviewRevision.create({
+        data: {
+          ...getId('securityReviewRevision'),
+          reviewOid: d.review.oid,
+          baseRevisionOid: d.baseRevision.oid,
+          number: (last?.number ?? 0) + 1,
+          status: 'running',
+          mode: 'ai',
+          trigger: d.trigger,
+          thoroughness: d.thoroughness,
+          rulesVersion: SECURITY_REVIEW_RULES_VERSION,
+          promptVersion: SECURITY_USAGE_PROMPT_VERSION,
+          context: d.context,
+          workspaceKey: d.workspaceKey,
+          stage: 'collecting',
+          startedAt: new Date(),
+          heartbeatAt: new Date()
+        }
+      });
+    });
+  }
+
+  async updateUsageRevision(d: {
+    revision: SecurityReviewRevision;
+    progress: {
+      stage?: SecurityReviewRevision['stage'];
+      activity?: string;
+      report?: SecurityUsageReport;
+      scores?: SecurityUsageComputedScores;
+    };
+  }) {
+    await db.securityReviewRevision.update({
+      where: { oid: d.revision.oid },
+      data: {
+        stage: d.progress.stage,
+        activity: d.progress.activity,
+        usageReport: d.progress.report,
+        usageScores: d.progress.scores,
+        heartbeatAt: new Date()
+      }
+    });
+  }
+
+  async completeUsageRevision(d: {
+    review: SecurityReview;
+    revision: SecurityReviewRevision;
+    completion: {
+      status: SecurityReviewRevisionStatus;
+      failureCode?: string;
+      report: SecurityUsageReport;
+      scores: SecurityUsageComputedScores;
+      findings: RevisionCompletion['findings'];
+      context: SecurityReviewRevisionContext;
+    };
+  }) {
+    let completion = d.completion;
+
+    return await withTransaction(async db => {
+      let revision = await db.securityReviewRevision.update({
+        where: { oid: d.revision.oid },
+        data: {
+          status: completion.status,
+          failureCode: completion.failureCode ?? null,
+          stage: null,
+          activity: null,
+          usageReport: completion.report,
+          usageScores: completion.scores,
+          exposure: completion.scores.exposure,
+          confidence: completion.scores.confidence,
+          context: completion.context,
+          completedAt: new Date(),
+          heartbeatAt: new Date()
+        }
+      });
+
+      await db.securityReviewFinding.deleteMany({ where: { revisionOid: revision.oid } });
+      await db.securityReviewFinding.createMany({
+        data: toFindingRows(completion.findings, revision.oid)
+      });
+
+      if (isReportStatus(completion.status)) {
+        await db.securityReview.update({
+          where: { oid: d.review.oid },
+          data: { currentRevisionOid: revision.oid, lastCheckedAt: new Date() }
+        });
+      }
+
+      return revision;
     });
   }
 

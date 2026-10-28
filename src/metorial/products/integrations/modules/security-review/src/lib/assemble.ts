@@ -6,25 +6,25 @@ import type {
   SecurityReviewBlockReason,
   SecurityReviewComputedScores
 } from '@metorial-subspace/db';
-import { neutralizeInternalTermsDeep } from './terminology';
+import { resolveFindingCitations, resolveReportCitations } from './citations';
 import {
   type CollectedEvidence,
   declaredCapabilities,
   hintMismatchFindings
 } from './evidence';
-import { resolveFindingCitations, resolveReportCitations } from './citations';
 import { computeScores } from './scoring';
+import { neutralizeInternalTermsDeep } from './terminology';
 
 let provenanceLabels: Record<SecurityProvenanceClass, string> = {
   metorial_built: 'built and operated by Metorial',
-  tenant_code: 'custom code deployed by this project',
-  tenant_image: 'a custom container image deployed by this project',
+  tenant_code: 'custom code deployed by your organization',
+  tenant_image: 'a custom container image deployed by your organization',
   tenant_remote_vendor_verified: 'hosted by the vendor on its documented domain',
   tenant_remote_vendor_plausible: "hosted on the vendor's domain but not documented by it",
   tenant_remote_third_party: 'hosted by an identifiable third party',
   tenant_remote_unverifiable: 'hosted by an operator that could not be identified',
   impersonation_suspected: 'presented under a brand that does not match its host',
-  tenant_authored: 'authored by this project',
+  tenant_authored: 'authored by your organization',
   imported_public_repo: 'imported from a public repository',
   imported_private_repo: 'imported from a private repository',
   uploaded_archive: 'uploaded as an archive',

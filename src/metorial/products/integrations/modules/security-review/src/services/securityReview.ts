@@ -1,4 +1,5 @@
 import {
+  badRequestError,
   forbiddenError,
   notFoundError,
   ServiceError,
@@ -25,6 +26,10 @@ import {
 import { internalSecurityReviewSubjectService } from '../internal/securityReviewSubject';
 import { internalSecurityReviewGateService } from '../internal/securityReviewGate';
 import { markSkillDestinationsDirty } from '../internal/skillDistribution';
+import { resolveUsageBaseRevision, subjectKeyForProviderUsage } from '../lib/usage/base';
+import { MIN_USAGE_CALLS } from '../lib/usage/policy';
+import { hasObservedUsage } from '../lib/usage/presence';
+import { USAGE_WINDOW_DAYS } from '../lib/usage/stats';
 import { enqueueSecurityReview } from '../queues/run';
 
 let REASSESS_LIMITS = [
@@ -41,6 +46,9 @@ let reviewInclude = { provider: true, providerVersion: true } as const;
 let revisionInclude = {
   findings: { orderBy: [{ severity: 'desc' as const }, { key: 'asc' as const }] }
 };
+
+export type UsageReviewStatus =
+  'disabled' | 'waiting_for_review' | 'not_enough_data' | 'pending' | 'running' | 'ready';
 
 class SecurityReviewServiceImpl {
   private async loadState(d: SecurityReview) {
@@ -73,6 +81,140 @@ class SecurityReviewServiceImpl {
     ]);
 
     return { review, current, inProgress };
+  }
+
+  private async loadUsageState(d: {
+    tenant: Tenant;
+    instanceId: string;
+    provider: Pick<Provider, 'oid' | 'id'>;
+  }) {
+    let empty = { review: null, current: null, inProgress: null, canRun: false } as const;
+
+    if (
+      !(await internalSecurityReviewGateService.isUsageReviewEnabled({
+        tenantOid: d.tenant.oid
+      }))
+    ) {
+      return { status: 'disabled' as UsageReviewStatus, ...empty };
+    }
+
+    let review = await db.securityReview.findUnique({
+      where: {
+        subjectKey: subjectKeyForProviderUsage({
+          instanceId: d.instanceId,
+          providerId: d.provider.id
+        })
+      }
+    });
+
+    if (review && review.status == 'active') {
+      let state = await this.loadState(review);
+      if (state.current) {
+        return {
+          status: 'ready' as UsageReviewStatus,
+          review: state.review,
+          current: state.current,
+          inProgress: state.inProgress?.status == 'failed' ? null : state.inProgress,
+          canRun: true
+        };
+      }
+      if (state.inProgress && state.inProgress.status != 'failed') {
+        return {
+          status: 'running' as UsageReviewStatus,
+          review: state.review,
+          current: null,
+          inProgress: state.inProgress,
+          canRun: false
+        };
+      }
+    }
+
+    let base = await resolveUsageBaseRevision({
+      review: { tenantOid: d.tenant.oid, providerOid: d.provider.oid }
+    });
+    if (!base) return { status: 'waiting_for_review' as UsageReviewStatus, ...empty };
+
+    let instance = await db.instance.findUnique({ where: { id: d.instanceId } });
+    let usage = instance
+      ? await db.providerToolUsageHourly.aggregate({
+          where: {
+            instanceOid: instance.oid,
+            providerOid: d.provider.oid,
+            hour: { gte: new Date(Date.now() - USAGE_WINDOW_DAYS * 24 * 60 * 60 * 1000) }
+          },
+          _sum: { calls: true }
+        })
+      : null;
+
+    if ((usage?._sum.calls ?? 0) >= MIN_USAGE_CALLS) {
+      return { status: 'pending' as UsageReviewStatus, ...empty, canRun: true };
+    }
+
+    return {
+      status: 'not_enough_data' as UsageReviewStatus,
+      ...empty,
+      canRun:
+        !!instance &&
+        (await hasObservedUsage({ instanceOid: instance.oid, providerOid: d.provider.oid }))
+    };
+  }
+
+  async reassessUsageReview(d: MetorialFacing<{ provider: Pick<Provider, 'oid' | 'id'> }>) {
+    let { tenant } = await resolveMetorialFacing(d);
+
+    let instance = await db.instance.findUnique({ where: { id: d.instance.id } });
+    if (
+      !instance ||
+      !(await internalSecurityReviewGateService.isUsageReviewEnabled({
+        tenantOid: tenant.oid
+      }))
+    ) {
+      throw new ServiceError(
+        forbiddenError({ message: 'Usage reviews are not enabled for this project' })
+      );
+    }
+
+    if (
+      !(await resolveUsageBaseRevision({
+        review: { tenantOid: tenant.oid, providerOid: d.provider.oid }
+      }))
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'The security assessment of this provider has to finish first'
+        })
+      );
+    }
+
+    if (
+      !(await hasObservedUsage({ instanceOid: instance.oid, providerOid: d.provider.oid }))
+    ) {
+      throw new ServiceError(
+        badRequestError({ message: 'This integration has not been used in this project yet' })
+      );
+    }
+
+    let review = await internalSecurityReviewSubjectService.ensureUsageReview({
+      instanceOid: instance.oid,
+      providerOid: d.provider.oid
+    });
+    if (!review) throw new ServiceError(notFoundError('security_review', d.provider.id));
+
+    await internalSecurityReviewGateService.assertGenerationAllowed({ review });
+    await this.assertReassessAllowed({ review });
+
+    await enqueueSecurityReview({
+      reviewId: review.id,
+      trigger: 'reassess',
+      force: true,
+      immediate: true
+    });
+
+    return await this.loadUsageState({
+      tenant,
+      instanceId: d.instance.id,
+      provider: d.provider
+    });
   }
 
   private assertVisible(d: { review: SecurityReview; tenant: Tenant }) {
@@ -163,7 +305,13 @@ class SecurityReviewServiceImpl {
     let state = await this.ensureForProviderVersion({ tenant, providerVersion });
     if (!state) throw new ServiceError(notFoundError('security_review', d.provider.id));
 
-    return state;
+    let usage = await this.loadUsageState({
+      tenant,
+      instanceId: d.instance.id,
+      provider: d.provider
+    });
+
+    return { ...state, usage };
   }
 
   // Callers resolve the skill through skill access first, so anyone who can read the skill
@@ -295,7 +443,11 @@ class SecurityReviewServiceImpl {
 
     // Skill reviews are only reachable through their skill, which enforces skill access.
     let review = await db.securityReview.findUnique({ where: { id: d.securityReviewId } });
-    if (!review || review.subjectType == 'skill_version') {
+    if (
+      !review ||
+      review.subjectType == 'skill_version' ||
+      review.subjectType == 'provider_usage'
+    ) {
       throw new ServiceError(notFoundError('security_review', d.securityReviewId));
     }
     this.assertVisible({ review, tenant });

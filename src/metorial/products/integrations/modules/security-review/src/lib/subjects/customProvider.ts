@@ -12,7 +12,7 @@ import { parseLockfiles, queryAdvisories, scanSecrets } from '../detectors';
 import type { CollectedEvidence, SubjectKind } from '../evidence';
 import { origin } from '../origin';
 import { censusFindings, computeSpecCensus } from './census';
-import { buildProtoGuardDigest, scanToolDefinitions } from './protoguard';
+import { scanToolDefinitions } from './protoguard';
 import { buildRemoteEvidence } from './remote';
 import { loadSpecification } from './specification';
 
@@ -284,7 +284,6 @@ export let collectCustomProviderEvidence = async (d: {
   customProvider: CustomProvider;
   customProviderVersion: CustomProviderVersion & { immutableCodeBucket: CodeBucket | null };
   providerVersion: ProviderVersion | null;
-  includeTenantSignals: boolean;
 }): Promise<CollectedEvidence> => {
   let from = d.customProviderVersion.payload?.from ?? d.customProvider.payload.from;
   let kind: SubjectKind = from.type;
@@ -297,14 +296,6 @@ export let collectCustomProviderEvidence = async (d: {
     ? await computeSpecCensus({ providerVersionOid: d.providerVersion.oid })
     : null;
   let variance = census ? censusFindings(census) : { facts: [], findings: [] };
-
-  let digest =
-    d.includeTenantSignals && d.providerVersion
-      ? await buildProtoGuardDigest({
-          tenantOid: d.tenant.oid,
-          providerVersionOid: d.providerVersion.oid
-        })
-      : null;
 
   let files: Record<string, string> = { ...(specification?.files ?? {}) };
   let codeFiles: Record<string, string> = {};
@@ -341,17 +332,6 @@ export let collectCustomProviderEvidence = async (d: {
     limitations.push(
       'Container images are not unpacked; only the image reference and tools were reviewed.'
     );
-  }
-
-  if (digest) {
-    files['signals/protoguard.json'] = JSON.stringify(digest, null, 2);
-    facts.push({
-      id: 'protoguard-runtime',
-      title: `${digest.alerts} ProtoGuard alerts in the last ${digest.windowDays} days`,
-      detail: digest.filters
-        .map(filter => `${filter.filter} (${filter.severity}): ${filter.count}`)
-        .join('\n')
-    });
   }
 
   if (!tools) {

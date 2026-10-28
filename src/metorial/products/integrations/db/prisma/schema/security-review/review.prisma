@@ -2,6 +2,7 @@ enum SecurityReviewSubjectType {
   slate_version
   custom_provider_version
   skill_version
+  provider_usage
 }
 
 enum SecurityReviewScope {
@@ -48,6 +49,9 @@ model SecurityReview {
   providerVersionOid BigInt?
   providerVersion    ProviderVersion? @relation(fields: [providerVersionOid], references: [oid])
 
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
   customProviderVersionOid BigInt?                @unique
   customProviderVersion    CustomProviderVersion? @relation(fields: [customProviderVersionOid], references: [oid])
 
@@ -62,6 +66,7 @@ model SecurityReview {
 
   @@index([providerOid])
   @@index([providerVersionOid])
+  @@index([instanceOid, providerOid])
   @@index([skillId])
   @@index([tenantOid])
   @@index([status])
@@ -101,6 +106,8 @@ enum SecurityReviewTrigger {
   reassess
   admin
   skill_import
+  usage_threshold
+  usage_changed
 }
 
 enum SecurityReviewBlockReason {
@@ -158,6 +165,12 @@ model SecurityReviewRevision {
   /// [SecurityReviewScores]
   scores Json?
 
+  /// [SecurityUsageReviewReport]
+  usageReport Json?
+
+  /// [SecurityUsageReviewScores]
+  usageScores Json?
+
   securityScore   Int?
   exposure        SecurityReviewLevel?
   risk            SecurityReviewLevel?
@@ -185,6 +198,10 @@ model SecurityReviewRevision {
 
   specificationOid BigInt?
   specification    ProviderSpecification? @relation(fields: [specificationOid], references: [oid])
+
+  baseRevisionOid BigInt?
+  baseRevision    SecurityReviewRevision?  @relation("SecurityUsageBaseRevision", fields: [baseRevisionOid], references: [oid], onDelete: SetNull)
+  usageRevisions  SecurityReviewRevision[] @relation("SecurityUsageBaseRevision")
 
   heartbeatAt DateTime?
   startedAt   DateTime?

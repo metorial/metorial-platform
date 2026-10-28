@@ -76,7 +76,14 @@ export let dashboardAiAnalysisConfigurationController = Controller.create(
           ai_analysis_enabled: v.optional(
             v.boolean({
               description:
-                "Whether Metorial may analyze this project's custom providers with AI to produce security reviews",
+                'Whether Metorial may analyze this project with AI to produce security reviews.',
+              examples: [true]
+            })
+          ),
+          usage_reviews_enabled: v.optional(
+            v.boolean({
+              description:
+                'Whether Metorial may use aggregated, non-content usage data of this project to produce usage-based security reviews of the providers it uses',
               examples: [true]
             })
           ),
@@ -113,6 +120,7 @@ export let dashboardAiAnalysisConfigurationController = Controller.create(
             auditScope: ctx.auditScope,
             input: {
               aiAnalysisEnabled: ctx.body.ai_analysis_enabled,
+              usageReviewsEnabled: ctx.body.usage_reviews_enabled,
               skillReviewHoldPending: ctx.body.skill_review_hold_pending
             }
           });

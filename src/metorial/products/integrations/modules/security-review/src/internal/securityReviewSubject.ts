@@ -2,6 +2,7 @@ import { Service } from '@lowerdeck/service';
 import { db, getId } from '@metorial-subspace/db';
 import { securityReviewGlobalRepository } from '@metorial/multi-region';
 import { metorialDb } from '@metorial-subspace/module-tenant';
+import { subjectKeyForProviderUsage } from '../lib/usage/base';
 import {
   loadSlateSubject,
   subjectKeyForCustomProviderVersion,
@@ -77,6 +78,38 @@ class InternalSecurityReviewSubjectServiceImpl {
         providerOid: version.customProvider.providerOid ?? undefined,
         providerVersionOid: version.providerVersionOid ?? undefined
       }
+    });
+  }
+
+  async ensureUsageReview(d: { instanceOid: bigint; providerOid: bigint }) {
+    let [instance, provider] = await Promise.all([
+      db.instance.findUnique({ where: { oid: d.instanceOid } }),
+      db.provider.findUnique({ where: { oid: d.providerOid } })
+    ]);
+    if (!instance || !provider) return null;
+
+    let tenant = await db.tenant.findFirst({ where: { projectOid: instance.projectOid } });
+    if (!tenant) return null;
+
+    let subjectKey = subjectKeyForProviderUsage({
+      instanceId: instance.id,
+      providerId: provider.id
+    });
+
+    return await db.securityReview.upsert({
+      where: { subjectKey },
+      create: {
+        ...getId('securityReview'),
+        subjectType: 'provider_usage',
+        scope: 'tenant',
+        subjectKey,
+        status: 'active',
+        tenantOid: tenant.oid,
+        projectOid: instance.projectOid,
+        providerOid: provider.oid,
+        instanceOid: instance.oid
+      },
+      update: {}
     });
   }
 

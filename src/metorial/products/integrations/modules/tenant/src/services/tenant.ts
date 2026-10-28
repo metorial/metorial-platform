@@ -46,6 +46,7 @@ class tenantServiceImpl {
       disableCallbacks?: boolean;
       reducedSubprocessors?: boolean;
       aiAnalysisEnabled?: boolean;
+      usageReviewsEnabled?: boolean;
       allowApiAccessToConsumerOwnedResources?: boolean;
       allowMemberAccessToConsumerOwnedResources?: boolean;
       projectOid?: bigint;
@@ -88,6 +89,7 @@ class tenantServiceImpl {
         disableCallbacks: d.input.disableCallbacks,
         reducedSubprocessors: d.input.reducedSubprocessors,
         aiAnalysisEnabled: d.input.aiAnalysisEnabled,
+        usageReviewsEnabled: d.input.usageReviewsEnabled,
         allowApiAccessToConsumerOwnedResources: d.input.allowApiAccessToConsumerOwnedResources,
         allowMemberAccessToConsumerOwnedResources:
           d.input.allowMemberAccessToConsumerOwnedResources
@@ -131,6 +133,7 @@ class tenantServiceImpl {
                 disableCallbacks: d.input.disableCallbacks ?? false,
                 reducedSubprocessors: d.input.reducedSubprocessors ?? false,
                 aiAnalysisEnabled: d.input.aiAnalysisEnabled ?? false,
+                usageReviewsEnabled: d.input.usageReviewsEnabled ?? false,
                 allowApiAccessToConsumerOwnedResources:
                   d.input.allowApiAccessToConsumerOwnedResources,
                 allowMemberAccessToConsumerOwnedResources:

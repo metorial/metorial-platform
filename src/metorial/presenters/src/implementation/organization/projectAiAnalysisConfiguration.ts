@@ -5,14 +5,17 @@ import { projectAiAnalysisConfigurationType } from '../../types';
 export let v1ProjectAiAnalysisConfigurationPresenter = Presenter.create(
   projectAiAnalysisConfigurationType
 )
-  .presenter(async ({ project, aiAnalysisEnabled, skillReviewHoldPending }) => ({
-    object: 'organization.project.ai_analysis_configuration' as const,
+  .presenter(
+    async ({ project, aiAnalysisEnabled, usageReviewsEnabled, skillReviewHoldPending }) => ({
+      object: 'organization.project.ai_analysis_configuration' as const,
 
-    project_id: project.id,
-    ai_analysis_enabled: aiAnalysisEnabled,
-    skill_review_hold_pending: skillReviewHoldPending,
-    updated_at: project.updatedAt
-  }))
+      project_id: project.id,
+      ai_analysis_enabled: aiAnalysisEnabled,
+      usage_reviews_enabled: usageReviewsEnabled,
+      skill_review_hold_pending: skillReviewHoldPending,
+      updated_at: project.updatedAt
+    })
+  )
   .schema(
     v.object({
       object: v.literal('organization.project.ai_analysis_configuration'),
@@ -22,7 +25,12 @@ export let v1ProjectAiAnalysisConfigurationPresenter = Presenter.create(
       }),
       ai_analysis_enabled: v.boolean({
         description:
-          "Whether Metorial may analyze this project's custom providers with AI to produce security reviews",
+          'Whether Metorial may analyze this project with AI to produce security reviews.',
+        examples: [true]
+      }),
+      usage_reviews_enabled: v.boolean({
+        description:
+          'Whether Metorial may use aggregated, non-content usage data of this project to produce usage-based security reviews of the providers it uses. Requires AI analysis to be enabled',
         examples: [true]
       }),
       skill_review_hold_pending: v.boolean({

@@ -89,6 +89,34 @@ export let providerSecurityReviewController = Controller.create(
         return providerSecurityReviewPresenter.present(state);
       }),
 
+    reassessUsage: providerGroup
+      .post(
+        instancePath(
+          'providers/:providerId/security-review/usage/reassess',
+          'providers.securityReview.usage.reassess'
+        ),
+        {
+          name: 'Reassess usage review',
+          description:
+            'Starts a new usage review of the provider, based on how it is used in this project. Usage reviews must be enabled for the project.'
+        }
+      )
+      .use(checkAccess({ possibleScopes: ['instance.provider:write'] }))
+      .output(providerSecurityReviewPresenter)
+      .do(async ctx => {
+        await securityReviewService.reassessUsageReview({
+          instance: ctx.instance,
+          provider: ctx.provider
+        });
+
+        let state = await securityReviewService.getSecurityReviewForProvider({
+          instance: ctx.instance,
+          provider: ctx.provider
+        });
+
+        return providerSecurityReviewPresenter.present(state);
+      }),
+
     get: securityReviewGroup
       .get(instancePath('security-reviews/:securityReviewId', 'securityReviews.get'), {
         name: 'Get security review',

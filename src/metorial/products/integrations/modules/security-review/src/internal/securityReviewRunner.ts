@@ -63,6 +63,7 @@ import { internalSecurityReviewLeaseService } from './securityReviewLease';
 import { internalSecurityReviewMirrorService } from './securityReviewMirror';
 import { internalSecurityReviewSinkService } from './securityReviewSink';
 import { internalSecurityReviewStoreService } from './securityReviewStore';
+import { internalSecurityUsageReviewRunnerService } from './securityUsageReviewRunner';
 
 let RUN_TIMEOUT_MS = 20 * 60 * 1000;
 let HISTORY_REVISIONS = 5;
@@ -83,6 +84,11 @@ class InternalSecurityReviewRunnerServiceImpl {
       include: reviewInclude
     });
     if (!review || review.status == 'deleted' || review.status == 'disabled') return;
+
+    if (review.subjectType == 'provider_usage') {
+      await internalSecurityUsageReviewRunnerService.runUsageReview({ review, input: d });
+      return;
+    }
 
     if (review.scope != 'global' || !review.globalId) {
       await this.executeReview({ review, input: d });
@@ -531,10 +537,7 @@ class InternalSecurityReviewRunnerServiceImpl {
     });
     if (input.deterministicOnly) gate = { ...gate, allowAi: false };
 
-    let evidence = await collectEvidence({
-      review,
-      includeTenantSignals: gate.includeTenantSignals
-    });
+    let evidence = await collectEvidence({ review });
     if (!evidence) return;
 
     let files = buildEvidenceFiles(evidence);

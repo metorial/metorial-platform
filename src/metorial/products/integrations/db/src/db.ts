@@ -16,6 +16,8 @@ import type {
   SecurityReviewFindingPayload,
   SecurityReviewRevisionContext,
   SecuritySpecCensus,
+  SecurityUsageReport,
+  SecurityUsageComputedScores,
   Specification,
   SpecificationAuthMethod,
   SpecificationFeatures,
@@ -241,6 +243,10 @@ declare global {
     type SecurityReviewReport = SecurityReport;
 
     type SecurityReviewScores = SecurityReviewComputedScores;
+
+    type SecurityUsageReviewReport = SecurityUsageReport;
+
+    type SecurityUsageReviewScores = SecurityUsageComputedScores;
 
     type SecurityReviewCensus = SecuritySpecCensus;
 

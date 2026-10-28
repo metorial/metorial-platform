@@ -7,7 +7,9 @@ import type {
   SecurityReviewComputedScores,
   SecurityReviewFindingPayload,
   SecurityReviewRevisionContext,
-  SecurityToolHints
+  SecurityToolHints,
+  SecurityUsageComputedScores,
+  SecurityUsageReport
 } from '@metorial-subspace/db';
 import { Presenter } from '@metorial/presenter';
 import {
@@ -36,6 +38,13 @@ let evidenceFileLabels: [RegExp, string][] = [
   [/^remote\.json$/, 'Remote server configuration'],
   [/^image\.json$/, 'Container image reference'],
   [/^signals\/protoguard\.json$/, 'ProtoGuard alerts'],
+  [/^base\/report\.json$/, 'Provider security report'],
+  [/^usage\/overview\.json$/, 'Usage overview'],
+  [/^usage\/tools\.json$/, 'Tool usage'],
+  [/^usage\/scopes\.json$/, 'Granted scopes'],
+  [/^usage\/protoguard\.json$/, 'ProtoGuard matches'],
+  [/^usage\/daily\.json$/, 'Daily usage'],
+  [/^usage\/tool-filters\.json$/, 'Tool filters'],
   [/^docs\/(.+)$/, 'Documentation']
 ];
 
@@ -184,6 +193,24 @@ export let presentScores = (scores: SecurityReviewComputedScores | null) =>
       }
     : null;
 
+let presentFindings = (findings: RevisionInput['findings']) =>
+  findings.map(finding => {
+    let value = finding.value as SecurityReviewFindingPayload;
+
+    return {
+      key: finding.key,
+      kind: finding.kind,
+      category: finding.category,
+      severity: finding.severity,
+      change: finding.change,
+      title: value.title,
+      body: value.body,
+      recommendation: value.recommendation ?? null,
+      tool_keys: value.tools,
+      evidence: presentEvidence(value.evidence)
+    };
+  });
+
 let presentRevision = (d: { review: ReviewInput; revision: RevisionInput }) => {
   let { review, revision } = d;
   let context = revision.context as SecurityReviewRevisionContext | null;
@@ -206,22 +233,101 @@ let presentRevision = (d: { review: ReviewInput; revision: RevisionInput }) => {
 
     scores: presentScores(revision.scores as SecurityReviewComputedScores | null),
     report: presentReport(revision.report as SecurityReport | null),
-    findings: revision.findings.map(finding => {
-      let value = finding.value as SecurityReviewFindingPayload;
+    findings: presentFindings(revision.findings),
 
-      return {
-        key: finding.key,
-        kind: finding.kind,
-        category: finding.category,
-        severity: finding.severity,
-        change: finding.change,
-        title: value.title,
-        body: value.body,
-        recommendation: value.recommendation ?? null,
-        tool_keys: value.tools,
-        evidence: presentEvidence(value.evidence)
-      };
-    }),
+    started_at: revision.startedAt,
+    completed_at: revision.completedAt,
+    created_at: revision.createdAt
+  };
+};
+
+let presentUsageScores = (scores: SecurityUsageComputedScores | null) =>
+  scores
+    ? {
+        exposure: scores.exposure,
+        confidence: scores.confidence,
+        headline: [...scores.headline],
+        counts: {
+          tools_allowed: scores.counts.toolsAllowed,
+          tools_used: scores.counts.toolsUsed,
+          tools_never_used: scores.counts.toolsNeverUsed,
+          scopes_granted: scores.counts.scopesGranted,
+          scopes_unused: scores.counts.scopesUnused,
+          findings: {
+            info: scores.counts.findings.info,
+            low: scores.counts.findings.low,
+            medium: scores.counts.findings.medium,
+            high: scores.counts.findings.high,
+            critical: scores.counts.findings.critical
+          }
+        },
+        stats: {
+          window_days: scores.stats.windowDays,
+          calls: scores.stats.calls,
+          errors: scores.stats.errors,
+          auth_configs: scores.stats.authConfigs,
+          configs: scores.stats.configs,
+          tools: scores.stats.tools.map(tool => ({
+            key: tool.key,
+            calls: tool.calls,
+            errors: tool.errors,
+            allowed: tool.allowed,
+            tags: tool.tags
+          })),
+          scopes: scores.stats.scopes.map(scope => ({
+            scope: scope.scope,
+            auth_configs: scope.authConfigs,
+            required_by_used_tool: scope.requiredByUsedTool
+          })),
+          protoguard: {
+            matches: scores.stats.protoguard.matches,
+            alerts: scores.stats.protoguard.alerts,
+            filters: scores.stats.protoguard.filters.map(filter => ({
+              filter: filter.filter,
+              issue_type: filter.issueType,
+              severity: filter.severity,
+              matches: filter.matches
+            }))
+          }
+        }
+      }
+    : null;
+
+let presentUsageBody = (
+  section: { body: string; evidence: SecurityLedgerRef[] } | undefined
+) => (section ? { body: section.body, evidence: presentEvidence(section.evidence) } : null);
+
+let presentUsageReport = (report: SecurityUsageReport | null) => ({
+  summary: report?.summary
+    ? { text: report.summary.text, exposure_note: report.summary.exposureNote }
+    : null,
+  observed_exposure: presentUsageBody(report?.observedExposure),
+  access: presentUsageBody(report?.access),
+  runtime: presentUsageBody(report?.runtime),
+  recommendations: (report?.recommendations ?? []).map(presentPoint),
+  method: report?.method
+    ? { included: report.method.included, limitations: report.method.limitations }
+    : null
+});
+
+let presentUsageRevision = (d: { review: ReviewInput; revision: RevisionInput }) => {
+  let { review, revision } = d;
+
+  return {
+    object: 'provider.security_review.usage_revision' as const,
+
+    id: revision.id,
+    security_review_id: review.id,
+    number: revision.number,
+
+    status: revision.status,
+    stage: revision.stage,
+    activity: revision.activity,
+    block_reason: revision.blockReason,
+
+    scores: presentUsageScores(revision.usageScores as SecurityUsageComputedScores | null),
+    report: presentUsageReport(revision.usageReport as SecurityUsageReport | null),
+    findings: presentFindings(revision.findings),
 
     started_at: revision.startedAt,
     completed_at: revision.completedAt,
@@ -260,11 +366,42 @@ export let levelSchema = v.enumOf(['unknown', 'low', 'moderate', 'high', 'critic
 let riskSchema = v.enumOf(['low', 'moderate', 'high', 'critical'], {
   description: 'Overall risk of connecting the provider, combining security and exposure'
 });
+let capabilityTagSchema = v.enumOf([
+  'read',
+  'write',
+  'untrusted_input',
+  'destructive',
+  'external_send',
+  'bulk_private_data',
+  'access_control',
+  'financial',
+  'code_execution',
+  'infrastructure'
+]);
+
 export let severitySchema = v.enumOf(['info', 'low', 'medium', 'high', 'critical']);
 
 export let pointSchema = v.object({
   title: v.string({ description: 'Short title of the observation' }),
   body: v.string({ description: 'Explanation of the observation' }),
+  evidence: evidenceSchema
+});
+
+let findingSchema = v.object({
+  key: v.string({ description: 'Stable key of the finding across revisions' }),
+  kind: v.enumOf(['security', 'capability', 'positive'], {
+    description:
+      'Security issues lower the score, capabilities describe dangerous operations, positives are good practice'
+  }),
+  category: v.string({ description: 'Finding category', examples: ['input_validation'] }),
+  severity: severitySchema,
+  change: v.enumOf(['new', 'persisting', 'resolved'], {
+    description: 'How the finding relates to the previous revision'
+  }),
+  title: v.string({ description: 'Short title' }),
+  body: v.string({ description: 'Explanation' }),
+  recommendation: v.nullable(v.string({ description: 'Suggested fix' })),
+  tool_keys: v.array(v.string(), { description: 'Tools the finding applies to' }),
   evidence: evidenceSchema
 });
 
@@ -410,24 +547,10 @@ let revisionSchema = v.object({
             v.object({
               key: v.string({ description: 'Tool key' }),
               name: v.nullable(v.string({ description: 'Tool display name' })),
-              tags: v.array(
-                v.enumOf([
-                  'read',
-                  'write',
-                  'untrusted_input',
-                  'destructive',
-                  'external_send',
-                  'bulk_private_data',
-                  'access_control',
-                  'financial',
-                  'code_execution',
-                  'infrastructure'
-                ]),
-                {
-                  description: 'Capabilities of the tool',
-                  examples: [['read', 'external_send']]
-                }
-              ),
+              tags: v.array(capabilityTagSchema, {
+                description: 'Capabilities of the tool',
+                examples: [['read', 'external_send']]
+              }),
               behavior: v.string({ description: 'What the tool actually does' }),
               declared_hints: v.object({
                 read_only: v.nullable(v.boolean()),
@@ -470,30 +593,187 @@ let revisionSchema = v.object({
     { description: 'Report sections; sections that are not written yet are null' }
   ),
 
-  findings: v.array(
-    v.object({
-      key: v.string({ description: 'Stable key of the finding across revisions' }),
-      kind: v.enumOf(['security', 'capability', 'positive'], {
-        description:
-          'Security issues lower the score, capabilities describe dangerous operations, positives are good practice'
-      }),
-      category: v.string({ description: 'Finding category', examples: ['input_validation'] }),
-      severity: severitySchema,
-      change: v.enumOf(['new', 'persisting', 'resolved'], {
-        description: 'How the finding relates to the previous revision'
-      }),
-      title: v.string({ description: 'Short title' }),
-      body: v.string({ description: 'Explanation' }),
-      recommendation: v.nullable(v.string({ description: 'Suggested fix' })),
-      tool_keys: v.array(v.string(), { description: 'Tools the finding applies to' }),
-      evidence: evidenceSchema
-    })
-  ),
+  findings: v.array(findingSchema),
 
   started_at: v.nullable(v.date({ description: 'When the review started running' })),
   completed_at: v.nullable(v.date({ description: 'When the review finished' })),
   created_at: v.date({ description: 'When the revision was created' })
 });
+
+let usageRevisionSchema = v.object({
+  object: v.literal('provider.security_review.usage_revision', {
+    description: "String representing the object's type"
+  }),
+  id: v.string({
+    description: 'Unique identifier of the usage revision',
+    examples: ['srr_4dEfGhJkLmNpQrSt']
+  }),
+  security_review_id: v.string({
+    description: 'The usage review this revision belongs to',
+    examples: ['srv_5gHjKlMnPqRsTuVw']
+  }),
+  number: v.number({
+    description: 'Sequential revision number within the usage review',
+    examples: [2]
+  }),
+
+  status: v.enumOf(
+    ['queued', 'running', 'completed', 'completed_with_gaps', 'failed', 'blocked'],
+    { description: 'Lifecycle state of the usage revision' }
+  ),
+  stage: v.nullable(
+    v.enumOf(['collecting', 'verifying', 'analyzing', 'writing'], {
+      description: 'Current stage while the revision is running'
+    })
+  ),
+  activity: v.nullable(
+    v.string({ description: 'Short description of what the reviewer is doing right now' })
+  ),
+  block_reason: v.nullable(
+    v.enumOf(['billing', 'ai_disabled', 'admin_disabled'], {
+      description: 'Why the usage review could not run, when the revision is blocked'
+    })
+  ),
+
+  scores: v.nullable(
+    v.object(
+      {
+        exposure: levelSchema,
+        confidence: v.enumOf(['low', 'medium', 'high'], {
+          description: 'How much usage data the assessment is based on'
+        }),
+        headline: v.array(v.string(), {
+          description: 'Two-part headline: the observed exposure and the main reason'
+        }),
+        counts: v.object({
+          tools_allowed: v.number({ description: 'Tools the integration allows' }),
+          tools_used: v.number({ description: 'Allowed tools that were called' }),
+          tools_never_used: v.number({ description: 'Allowed tools that were never called' }),
+          scopes_granted: v.number({
+            description: 'Distinct scopes granted to connected accounts'
+          }),
+          scopes_unused: v.number({ description: 'Granted scopes no called tool needs' }),
+          findings: v.object({
+            info: v.number({ description: 'Informational findings' }),
+            low: v.number({ description: 'Low severity findings' }),
+            medium: v.number({ description: 'Medium severity findings' }),
+            high: v.number({ description: 'High severity findings' }),
+            critical: v.number({ description: 'Critical findings' })
+          })
+        }),
+        stats: v.object({
+          window_days: v.number({ description: 'Days of usage the assessment covers' }),
+          calls: v.number({ description: 'Tool calls in the window' }),
+          errors: v.number({ description: 'Tool calls that failed in the window' }),
+          auth_configs: v.number({ description: 'Active auth configs' }),
+          configs: v.number({ description: 'Active provider configs' }),
+          tools: v.array(
+            v.object({
+              key: v.string({ description: 'Tool key' }),
+              calls: v.number({ description: 'Calls in the window' }),
+              errors: v.number({ description: 'Failed calls in the window' }),
+              allowed: v.boolean({
+                description: 'Whether the integration currently allows the tool'
+              }),
+              tags: v.array(capabilityTagSchema, { description: 'Capabilities of the tool' })
+            })
+          ),
+          scopes: v.array(
+            v.object({
+              scope: v.string({ description: 'Scope granted to connected accounts' }),
+              auth_configs: v.number({ description: 'Auth configs that hold the scope' }),
+              required_by_used_tool: v.boolean({
+                description: 'Whether a tool that was called needs the scope'
+              })
+            })
+          ),
+          protoguard: v.object({
+            matches: v.number({ description: 'ProtoGuard matches in the window' }),
+            alerts: v.number({ description: 'ProtoGuard alerts in the window' }),
+            filters: v.array(
+              v.object({
+                filter: v.string({ description: 'ProtoGuard filter that matched' }),
+                issue_type: v.string({ description: 'Type of issue that matched' }),
+                severity: v.string({ description: 'Severity of the match' }),
+                matches: v.number({ description: 'Number of matches' })
+              })
+            )
+          })
+        })
+      },
+      {
+        description: 'Scores computed from the usage data; null until the review has finished'
+      }
+    )
+  ),
+
+  report: v.object(
+    {
+      summary: v.nullable(
+        v.object({
+          text: v.string({ description: 'What the observed usage shows' }),
+          exposure_note: v.string({ description: 'What the observed exposure means' })
+        })
+      ),
+      observed_exposure: v.nullable(
+        v.object({
+          body: v.string({
+            description: 'What the called tools can do to connected accounts'
+          }),
+          evidence: evidenceSchema
+        })
+      ),
+      access: v.nullable(
+        v.object({
+          body: v.string({ description: 'How granted scopes compare with the scopes used' }),
+          evidence: evidenceSchema
+        })
+      ),
+      runtime: v.nullable(
+        v.object({
+          body: v.string({ description: 'What ProtoGuard matched at runtime' }),
+          evidence: evidenceSchema
+        })
+      ),
+      recommendations: v.array(pointSchema),
+      method: v.nullable(
+        v.object({
+          included: v.array(v.string(), { description: 'What the usage review covered' }),
+          limitations: v.array(v.string(), { description: 'Known gaps in the usage review' })
+        })
+      )
+    },
+    { description: 'Report sections; sections that are not written yet are null' }
+  ),
+
+  findings: v.array(findingSchema),
+
+  started_at: v.nullable(v.date({ description: 'When the usage review started running' })),
+  completed_at: v.nullable(v.date({ description: 'When the usage review finished' })),
+  created_at: v.date({ description: 'When the usage revision was created' })
+});
+
+let usageReviewSchema = v.object(
+  {
+    status: v.enumOf(
+      ['disabled', 'waiting_for_review', 'not_enough_data', 'pending', 'running', 'ready'],
+      {
+        description:
+          '`disabled` when usage reviews are off for the project, `waiting_for_review` until the provider has an AI-written security review, `not_enough_data` until the integration has been used enough, `pending` once a review is scheduled and `ready` when a usage review exists'
+      }
+    ),
+    can_run: v.boolean({
+      description:
+        'Whether a usage review can be started now. Needs a finished security review and at least one tool call in this project, even when there is not enough data for an automatic review'
+    }),
+    current_revision: v.nullable(usageRevisionSchema),
+    in_progress_revision: v.nullable(usageRevisionSchema)
+  },
+  {
+    description:
+      'Review of how the integration is actually used in this project, based on aggregated usage data'
+  }
+);
 
 export let v1ProviderSecurityReviewRevisionPresenter = Presenter.create(
   providerSecurityReviewRevisionType
@@ -503,7 +783,7 @@ export let v1ProviderSecurityReviewRevisionPresenter = Presenter.create(
   .build();
 
 export let v1ProviderSecurityReviewPresenter = Presenter.create(providerSecurityReviewType)
-  .presenter(async ({ review, current, inProgress }) => ({
+  .presenter(async ({ review, current, inProgress, usage }) => ({
     object: 'provider.security_review' as const,
 
     id: review.id,
@@ -517,6 +797,21 @@ export let v1ProviderSecurityReviewPresenter = Presenter.create(providerSecurity
     current_revision: current ? presentRevision({ review, revision: current }) : null,
     in_progress_revision: inProgress
       ? presentRevision({ review, revision: inProgress })
+      : null,
+
+    usage_review: usage
+      ? {
+          status: usage.status,
+          can_run: usage.canRun,
+          current_revision:
+            usage.review && usage.current
+              ? presentUsageRevision({ review: usage.review, revision: usage.current })
+              : null,
+          in_progress_revision:
+            usage.review && usage.inProgress
+              ? presentUsageRevision({ review: usage.review, revision: usage.inProgress })
+              : null
+        }
       : null,
 
     last_checked_at: review.lastCheckedAt,
@@ -550,6 +845,7 @@ export let v1ProviderSecurityReviewPresenter = Presenter.create(providerSecurity
       }),
       current_revision: v.nullable(revisionSchema),
       in_progress_revision: v.nullable(revisionSchema),
+      usage_review: v.nullable(usageReviewSchema),
       last_checked_at: v.nullable(
         v.date({
           description:

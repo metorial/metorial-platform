@@ -1,4 +1,4 @@
-import { db, type SecurityReportFinding } from '@metorial-subspace/db';
+import type { SecurityReportFinding } from '@metorial-subspace/db';
 import {
   scanTextForReview,
   scanToolDefinitionForReview
@@ -6,11 +6,6 @@ import {
 import type { LedgerFact } from '@metorial/review-engine';
 import { addressesReviewer } from '../detectors';
 import type { EvidenceTool } from '../evidence';
-
-let DIGEST_WINDOW_DAYS = 30;
-let DIGEST_MAX_ALERTS = 500;
-let DIGEST_MAX_SAMPLES = 5;
-let SAMPLE_MAX_LENGTH = 400;
 
 let toolKeySlug = (key: string) =>
   key
@@ -74,62 +69,4 @@ export let scanToolDefinitions = (tools: EvidenceTool[]) => {
 export let scanText = (d: { label: string; content: string }) => {
   let hits = scanTextForReview(d.content);
   return { hits: hits.length, aimedAtReviewer: addressesReviewer(d.content) };
-};
-
-let redact = (value: string) =>
-  value
-    .replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, '[email]')
-    .replace(/\b[A-Za-z0-9_-]{24,}\b/g, '[token]')
-    .slice(0, SAMPLE_MAX_LENGTH);
-
-export let buildProtoGuardDigest = async (d: {
-  tenantOid: bigint;
-  providerVersionOid: bigint;
-}) => {
-  let since = new Date(Date.now() - DIGEST_WINDOW_DAYS * 24 * 60 * 60 * 1000);
-
-  let instances = await db.protoGuardAlertInstance.findMany({
-    where: {
-      createdAt: { gte: since },
-      stage: 'active',
-      isSuppressed: false,
-      alert: {
-        tenantOid: d.tenantOid,
-        providerRun: { providerVersionOid: d.providerVersionOid }
-      }
-    },
-    orderBy: { createdAt: 'desc' },
-    take: DIGEST_MAX_ALERTS,
-    select: {
-      issueType: true,
-      severity: true,
-      path: true,
-      matchedText: true,
-      alertOid: true,
-      filter: { select: { key: true } }
-    }
-  });
-
-  if (!instances.length) return null;
-
-  let byFilter = new Map<string, { filter: string; severity: string; count: number }>();
-  for (let instance of instances) {
-    let key = instance.filter.key;
-    let entry = byFilter.get(key) ?? { filter: key, severity: instance.severity, count: 0 };
-    entry.count++;
-    byFilter.set(key, entry);
-  }
-
-  return {
-    windowDays: DIGEST_WINDOW_DAYS,
-    alerts: new Set(instances.map(instance => instance.alertOid)).size,
-    matches: instances.length,
-    filters: [...byFilter.values()].sort((a, b) => b.count - a.count),
-    samples: instances.slice(0, DIGEST_MAX_SAMPLES).map(instance => ({
-      issueType: instance.issueType,
-      severity: instance.severity,
-      path: instance.path,
-      excerpt: instance.matchedText == null ? null : redact(instance.matchedText)
-    }))
-  };
 };

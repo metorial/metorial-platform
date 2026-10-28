@@ -69,6 +69,7 @@ model Project {
 
   reducedSubprocessors   Boolean @default(false)
   aiAnalysisEnabled      Boolean @default(false)
+  usageReviewsEnabled    Boolean @default(false)
   skillReviewHoldPending Boolean @default(false)
 
   allowApiAccessToConsumerOwnedResources    Boolean @default(true)

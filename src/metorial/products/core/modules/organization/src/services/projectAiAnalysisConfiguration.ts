@@ -28,6 +28,7 @@ class ProjectAiAnalysisConfigurationService {
 
     return {
       aiAnalysisEnabled: tenant.aiAnalysisEnabled,
+      usageReviewsEnabled: tenant.usageReviewsEnabled,
       skillReviewHoldPending: d.project.skillReviewHoldPending
     };
   }
@@ -38,6 +39,7 @@ class ProjectAiAnalysisConfigurationService {
     auditScope: AuditScope;
     input: {
       aiAnalysisEnabled?: boolean;
+      usageReviewsEnabled?: boolean;
       skillReviewHoldPending?: boolean;
     };
   }) {
@@ -54,7 +56,8 @@ class ProjectAiAnalysisConfigurationService {
         resourceTenantId: tenant.resourceTenantId!,
         resourceTenantIdentifier: tenant.resourceTenantIdentifier!,
         environments: [],
-        aiAnalysisEnabled: d.input.aiAnalysisEnabled ?? tenant.aiAnalysisEnabled
+        aiAnalysisEnabled: d.input.aiAnalysisEnabled ?? tenant.aiAnalysisEnabled,
+        usageReviewsEnabled: d.input.usageReviewsEnabled ?? tenant.usageReviewsEnabled
       }
     });
 
@@ -62,6 +65,7 @@ class ProjectAiAnalysisConfigurationService {
       where: { oid: d.project.oid },
       data: {
         aiAnalysisEnabled: updatedTenant.aiAnalysisEnabled,
+        usageReviewsEnabled: updatedTenant.usageReviewsEnabled,
         skillReviewHoldPending: d.input.skillReviewHoldPending
       }
     });
@@ -72,10 +76,12 @@ class ProjectAiAnalysisConfigurationService {
       project,
       configuration: {
         aiAnalysisEnabled: project.aiAnalysisEnabled,
+        usageReviewsEnabled: project.usageReviewsEnabled,
         skillReviewHoldPending: project.skillReviewHoldPending
       },
       previousConfiguration: {
         aiAnalysisEnabled: tenant.aiAnalysisEnabled,
+        usageReviewsEnabled: tenant.usageReviewsEnabled,
         skillReviewHoldPending: d.project.skillReviewHoldPending
       },
       auditScope: d.auditScope
@@ -83,6 +89,7 @@ class ProjectAiAnalysisConfigurationService {
 
     return {
       aiAnalysisEnabled: project.aiAnalysisEnabled,
+      usageReviewsEnabled: project.usageReviewsEnabled,
       skillReviewHoldPending: project.skillReviewHoldPending
     };
   }

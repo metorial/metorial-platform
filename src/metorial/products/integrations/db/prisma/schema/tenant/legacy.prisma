@@ -53,6 +53,7 @@ model Tenant {
 
   reducedSubprocessors Boolean @default(false)
   aiAnalysisEnabled    Boolean @default(false)
+  usageReviewsEnabled  Boolean @default(false)
 
   allowApiAccessToConsumerOwnedResources    Boolean @default(true)
   allowMemberAccessToConsumerOwnedResources Boolean @default(true)
@@ -130,6 +131,8 @@ model Tenant {
   webhookRegistrations                       WebhookRegistration[]
   providerUses                               ProviderUse[]
   securityReviews                            SecurityReview[]
+  providerToolUsageHourly                    ProviderToolUsageHourly[]
+  providerProtoGuardHourly                   ProviderProtoGuardHourly[]
   identityActors                             IdentityActor[]
   agents                                     Agent[]
   identities                                 Identity[]

@@ -18,6 +18,9 @@ export type ThoroughnessTier = {
 let SLATE_MIN_COST_MICROS = 3_000_000;
 let SLATE_MIN_STEPS = 1000;
 let MODEL_RATE_LIMIT_MAX_WAIT_MS = 2 * 60 * 1000;
+let USAGE_REVIEW_MAX_STEPS = 80;
+let USAGE_REVIEW_MAX_COST_MICROS = 400_000;
+let USAGE_REVIEW_MAX_FIX_ROUNDS = 2;
 
 export let reviewModelAccess: ReviewModelAccess = {
   limiter: redisModelRateLimiter,
@@ -74,6 +77,13 @@ export let getThoroughnessTier = (d: {
         : tier.maxCostMicros
   };
 };
+
+export let getUsageReviewTier = (): ThoroughnessTier => ({
+  model: requireModels().balanced,
+  maxSteps: USAGE_REVIEW_MAX_STEPS,
+  maxCostMicros: USAGE_REVIEW_MAX_COST_MICROS,
+  maxFixRounds: USAGE_REVIEW_MAX_FIX_ROUNDS
+});
 
 export let getJudgeModel = () => requireModels().fast;
 

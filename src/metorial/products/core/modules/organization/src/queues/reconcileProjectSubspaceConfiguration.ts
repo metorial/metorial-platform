@@ -91,6 +91,7 @@ export let reconcileProjectSubspaceConfigurationSingleQueueProcessor =
         tenant.useIntegrationNamesForSessionProviderNameTemplates ||
       project.reducedSubprocessors !== tenant.reducedSubprocessors ||
       project.aiAnalysisEnabled !== tenant.aiAnalysisEnabled ||
+      project.usageReviewsEnabled !== tenant.usageReviewsEnabled ||
       project.allowApiAccessToConsumerOwnedResources !==
         tenant.allowApiAccessToConsumerOwnedResources ||
       project.allowMemberAccessToConsumerOwnedResources !==
@@ -115,6 +116,7 @@ export let reconcileProjectSubspaceConfigurationSingleQueueProcessor =
           tenant.useIntegrationNamesForSessionProviderNameTemplates,
         reducedSubprocessors: tenant.reducedSubprocessors,
         aiAnalysisEnabled: tenant.aiAnalysisEnabled,
+        usageReviewsEnabled: tenant.usageReviewsEnabled,
         allowApiAccessToConsumerOwnedResources: tenant.allowApiAccessToConsumerOwnedResources,
         allowMemberAccessToConsumerOwnedResources:
           tenant.allowMemberAccessToConsumerOwnedResources

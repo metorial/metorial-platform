@@ -19,7 +19,6 @@ export type ReviewGate = {
   allowAi: boolean;
   blockReason?: SecurityReviewBlockReason;
   thoroughness: SecurityReviewThoroughness;
-  includeTenantSignals: boolean;
   billing: { instanceOid: bigint } | null;
 };
 
@@ -83,7 +82,6 @@ class InternalSecurityReviewGateServiceImpl {
       allowAi: false,
       blockReason: d.blockReason,
       thoroughness: d.thoroughness,
-      includeTenantSignals: false,
       billing: null
     };
   }
@@ -127,7 +125,6 @@ class InternalSecurityReviewGateServiceImpl {
     return {
       allowAi: true,
       thoroughness: GLOBAL_THOROUGHNESS,
-      includeTenantSignals: false,
       billing: null
     };
   }
@@ -181,9 +178,37 @@ class InternalSecurityReviewGateServiceImpl {
     return {
       allowAi: true,
       thoroughness,
-      includeTenantSignals: true,
       billing: { instanceOid: coreInstance.oid }
     };
+  }
+
+  async isUsageReviewEnabled(d: { tenantOid: bigint }) {
+    let tenant = await db.tenant.findUnique({
+      where: { oid: d.tenantOid },
+      select: {
+        usageReviewsEnabled: true,
+        aiAnalysisEnabled: true,
+        reducedSubprocessors: true
+      }
+    });
+
+    return (
+      !!tenant?.usageReviewsEnabled &&
+      !!tenant.aiAnalysisEnabled &&
+      !tenant.reducedSubprocessors
+    );
+  }
+
+  // Usage reviews never leave a blocked revision behind: when anything stops them they
+  // simply do not run, and the dashboard shows that no usage review is available.
+  async resolveUsageGate(d: { review: SecurityReview }): Promise<ReviewGate | null> {
+    if (!d.review.tenantOid) return null;
+    if (!(await this.isUsageReviewEnabled({ tenantOid: d.review.tenantOid }))) return null;
+
+    let gate = await this.resolveReviewGate({ review: d.review, slateRegistryId: null });
+    if (!gate.allowAi || !gate.billing) return null;
+
+    return gate;
   }
 
   async resolveReviewGate(d: { review: SecurityReview; slateRegistryId: string | null }) {

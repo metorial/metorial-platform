@@ -11,9 +11,9 @@ import {
   type SectionValidationResult
 } from '@metorial/review-engine';
 
-let SUMMARY_MAX = 320;
-let NOTE_MAX = 220;
-let BODY_MAX = 700;
+export let SUMMARY_MAX = 320;
+export let NOTE_MAX = 220;
+export let BODY_MAX = 700;
 let TITLE_MAX = 100;
 
 let capabilityTags = [
@@ -100,7 +100,7 @@ let bannedPhrases = [
   'delve'
 ];
 
-let text = (max: number) => v.string({ modifiers: [v.minLength(1), v.maxLength(max)] });
+export let text = (max: number) => v.string({ modifiers: [v.minLength(1), v.maxLength(max)] });
 
 let ledgerRef = v.union([
   v.object({
@@ -119,9 +119,9 @@ let ledgerRef = v.union([
   })
 ]);
 
-let evidence = v.array(ledgerRef);
+export let evidence = v.array(ledgerRef);
 
-let point = v.object({ title: text(TITLE_MAX), body: text(BODY_MAX), evidence });
+export let point = v.object({ title: text(TITLE_MAX), body: text(BODY_MAX), evidence });
 
 let finding = v.object({
   key: v.string({ modifiers: [v.regex(/^[a-z0-9]+(-[a-z0-9]+)*$/), v.maxLength(64)] }),
@@ -228,13 +228,17 @@ export let checkStyle = (value: unknown) => {
   return errors;
 };
 
-let checkEvidence = (refs: SecurityLedgerRef[], ctx: ReportValidationContext, path: string) =>
+export let checkEvidence = (
+  refs: SecurityLedgerRef[],
+  ctx: ReportValidationContext,
+  path: string
+) =>
   refs
     .map(ref => ctx.ledger.check(ref as any))
     .filter((error): error is string => !!error)
     .map(error => `${path}: ${error}`);
 
-let section =
+export let section =
   <T>(
     validator: ValidationType<T>,
     extra?: (value: T, ctx: ReportValidationContext) => string[]
@@ -247,7 +251,7 @@ let section =
     return errors.length ? { errors } : { value: result.value, errors: [] };
   };
 
-let countSentences = (value: string) =>
+export let countSentences = (value: string) =>
   value
     .split(/(?<=[.!?])\s+/)
     .map(sentence => sentence.trim())

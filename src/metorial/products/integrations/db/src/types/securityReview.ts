@@ -190,6 +190,7 @@ export type SecurityReviewRevisionContext = {
   limitations?: string[];
   validationErrors?: string[];
   admin?: { actorId: string; action: 'edit' | 'rerun'; at: string };
+  usage?: SecurityUsageSnapshot;
   skill?: {
     skillVersionId: string;
     fileCount: number;
@@ -197,4 +198,78 @@ export type SecurityReviewRevisionContext = {
     kinds: Record<string, number>;
     aiDeferredUntil?: string;
   };
+};
+
+export type SecurityUsageSnapshot = {
+  takenAt: string;
+  baseRevisionId: string;
+  calls: number;
+  toolsUsed: string[];
+  allowedTools: string[];
+  scopes: string[];
+  authConfigs: number;
+  configs: number;
+  severeProtoGuardMatches: number;
+};
+
+export type SecurityUsageToolStat = {
+  key: string;
+  calls: number;
+  errors: number;
+  allowed: boolean;
+  tags: SecurityCapabilityTag[];
+};
+
+export type SecurityUsageScopeStat = {
+  scope: string;
+  authConfigs: number;
+  requiredByUsedTool: boolean;
+};
+
+export type SecurityUsageProtoGuardStat = {
+  filter: string;
+  issueType: string;
+  severity: string;
+  matches: number;
+};
+
+export type SecurityUsageStats = {
+  windowDays: number;
+  calls: number;
+  errors: number;
+  authConfigs: number;
+  configs: number;
+  tools: SecurityUsageToolStat[];
+  scopes: SecurityUsageScopeStat[];
+  protoguard: {
+    matches: number;
+    alerts: number;
+    filters: SecurityUsageProtoGuardStat[];
+  };
+};
+
+export type SecurityUsageComputedScores = {
+  rulesVersion: string;
+  exposure: SecurityLevel;
+  confidence: SecurityConfidenceLevel;
+  headline: [string, string];
+  counts: {
+    toolsAllowed: number;
+    toolsUsed: number;
+    toolsNeverUsed: number;
+    scopesGranted: number;
+    scopesUnused: number;
+    findings: Record<SecurityFindingSeverityLevel, number>;
+  };
+  stats: SecurityUsageStats;
+};
+
+export type SecurityUsageReport = {
+  summary?: { text: string; exposureNote: string };
+  observedExposure?: { body: string; evidence: SecurityLedgerRef[] };
+  access?: { body: string; evidence: SecurityLedgerRef[] };
+  runtime?: { body: string; evidence: SecurityLedgerRef[] };
+  findings?: SecurityReportFinding[];
+  recommendations?: SecurityReportPoint[];
+  method?: { included: string[]; limitations: string[] };
 };

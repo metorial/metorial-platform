@@ -58,6 +58,8 @@ model Project {
   managedProviderAuthCredentialsBackings     ManagedProviderAuthCredentialsBacking[]
   monitors                                   Monitor[]
   securityReviews                            SecurityReview[]
+  providerToolUsageHourly                    ProviderToolUsageHourly[]
+  providerProtoGuardHourly                   ProviderProtoGuardHourly[]
   monitorAlerts                              MonitorAlert[]
   internetGateways                           IntegrationInternetGateway[]
   networkPolicies                            NetworkPolicy[]

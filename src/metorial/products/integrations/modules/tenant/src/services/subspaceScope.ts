@@ -509,6 +509,9 @@ class subspaceScopeServiceImpl {
         aiAnalysisEnabled: loadedProject.subspaceTenantId
           ? undefined
           : loadedProject.aiAnalysisEnabled,
+        usageReviewsEnabled: loadedProject.subspaceTenantId
+          ? undefined
+          : loadedProject.usageReviewsEnabled,
         resourceTenantId: resourceTenant.id,
         resourceTenantIdentifier: resourceTenant.identifier,
         projectOid: loadedProject.oid,

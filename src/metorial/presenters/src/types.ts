@@ -1277,6 +1277,7 @@ export let projectReducedSubprocessorsConfigurationType = PresentableType.create
 export let projectAiAnalysisConfigurationType = PresentableType.create<{
   project: Project;
   aiAnalysisEnabled: boolean;
+  usageReviewsEnabled: boolean;
   skillReviewHoldPending: boolean;
 }>()('project_ai_analysis_configuration');
 
@@ -3836,6 +3837,14 @@ export let providerSecurityReviewType = PresentableType.create<{
   review: RawSecurityReview;
   current: RawSecurityReviewRevision | null;
   inProgress: RawSecurityReviewRevision | null;
+  usage?: {
+    status:
+      'disabled' | 'waiting_for_review' | 'not_enough_data' | 'pending' | 'running' | 'ready';
+    review: RawSecurityReview | null;
+    current: RawSecurityReviewRevision | null;
+    inProgress: RawSecurityReviewRevision | null;
+    canRun: boolean;
+  };
 }>()('provider.security_review');
 
 export let providerSecurityReviewRevisionType = PresentableType.create<{

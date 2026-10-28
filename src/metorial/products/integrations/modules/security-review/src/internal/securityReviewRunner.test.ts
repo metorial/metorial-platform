@@ -52,13 +52,14 @@ vi.mock('./securityReviewGate', () => ({
   internalSecurityReviewGateService: {
     isReviewGenerationAllowed: mocks.allowed,
     checkGenerationRateLimit: mocks.rateLimit,
-    resolveReviewGate: async () => ({ allowAi: false, includeTenantSignals: false })
+    resolveReviewGate: async () => ({ allowAi: false })
   }
 }));
 
 vi.mock('./securityReviewLease', () => ({}));
 vi.mock('./securityReviewMirror', () => ({}));
 vi.mock('./securityReviewStore', () => ({}));
+vi.mock('./securityUsageReviewRunner', () => ({}));
 
 vi.mock('./securityReviewSink', () => ({
   internalSecurityReviewSinkService: { start: mocks.start, complete: mocks.complete }

@@ -31,8 +31,11 @@ model Instance {
   deletedAt DateTime?
   updatedAt DateTime  @default(now()) @updatedAt
 
-  consumers        InstanceConsumer[]
-  consumerProfiles ConsumerProfile[]
+  consumers                InstanceConsumer[]
+  consumerProfiles         ConsumerProfile[]
+  securityReviews          SecurityReview[]
+  providerToolUsageHourly  ProviderToolUsageHourly[]
+  providerProtoGuardHourly ProviderProtoGuardHourly[]
 
   agents                                     Agent[]
   agentClients                               AgentClient[]

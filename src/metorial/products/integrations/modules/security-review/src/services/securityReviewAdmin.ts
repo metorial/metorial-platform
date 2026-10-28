@@ -214,8 +214,18 @@ class SecurityReviewAdminServiceImpl {
         select: { number: true }
       });
 
-      let { oid, id, number, globalId, findings, createdAt, updatedAt, ...original } =
-        d.revision;
+      let {
+        oid,
+        id,
+        number,
+        globalId,
+        findings,
+        createdAt,
+        updatedAt,
+        usageReport,
+        usageScores,
+        ...original
+      } = d.revision;
 
       let snapshot = await db.securityReviewRevision.create({
         data: {
@@ -226,7 +236,9 @@ class SecurityReviewAdminServiceImpl {
           report: original.report ?? undefined,
           scores: original.scores ?? undefined,
           census: original.census ?? undefined,
-          context: original.context ?? undefined
+          context: original.context ?? undefined,
+          usageReport: usageReport ?? undefined,
+          usageScores: usageScores ?? undefined
         }
       });
       await db.securityReviewFinding.createMany({
@@ -358,7 +370,7 @@ class SecurityReviewAdminServiceImpl {
   async exportSecurityReviewEvidence(d: {
     review: SecurityReview & { currentRevision: SecurityReviewRevision | null };
   }) {
-    let evidence = await collectEvidence({ review: d.review, includeTenantSignals: false });
+    let evidence = await collectEvidence({ review: d.review });
     if (!evidence) {
       throw new ServiceError(
         badRequestError({ message: 'The evidence for this review cannot be collected' })

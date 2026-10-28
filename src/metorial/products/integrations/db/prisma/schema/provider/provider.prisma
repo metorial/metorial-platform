@@ -119,6 +119,8 @@ model Provider {
   monitors                       Monitor[]
   chats                          Chat[]
   securityReviews                SecurityReview[]
+  providerToolUsageHourly        ProviderToolUsageHourly[]
+  providerProtoGuardHourly       ProviderProtoGuardHourly[]
 
   @@index([status])
   @@index([access])
