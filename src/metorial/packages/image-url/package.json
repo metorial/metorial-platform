@@ -8,6 +8,9 @@
     "test": "vitest run --passWithNoTests",
     "lint": "prettier src/**/*.ts --check"
   },
+  "dependencies": {
+    "@metorial/skill-icons": "^1.0.0"
+  },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",
     "typescript": "^5.9.3",

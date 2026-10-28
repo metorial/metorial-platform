@@ -38,6 +38,7 @@
     "@metorial/module-store": "^1.0.0",
     "@metorial/queue": "^1.0.0",
     "@metorial/skills-common": "^1.0.0",
+    "@metorial/skill-icons": "^1.0.0",
     "@metorial/skills-images": "^1.0.0",
     "@metorial/skills-search": "^1.0.0"
   },

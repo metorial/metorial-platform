@@ -10,6 +10,11 @@ import type {
   StoreParticipantPermissions
 } from '@metorial/db';
 import { db } from '@metorial/db';
+import {
+  isSkillIconId,
+  renderSkillIconDataUrl,
+  renderSkillIconSvg
+} from '@metorial/skill-icons';
 import { maxDownloadedImageBytes, readBoundedResponse } from './boundedFetch';
 
 export * from './boundedFetch';
@@ -143,12 +148,27 @@ class InternalImageServiceImpl {
 
     if (entity.image?.type == 'url') return entity.image.url;
 
+    if (entity.image?.type == 'icon' && isSkillIconId(entity.image.icon)) {
+      return renderSkillIconDataUrl(entity.image);
+    }
+
     return new URL(
       `https://avatar-cdn.metorial.com/aimg_${entity.id.split('_').pop()}`
     ).toString();
   }
 
   async downloadImage(entity: GetImageFieldsParams) {
+    if (entity.image?.type == 'icon' && isSkillIconId(entity.image.icon)) {
+      let svg = renderSkillIconSvg({ icon: entity.image.icon, color: entity.image.color });
+      let bytes = new TextEncoder().encode(svg);
+
+      return {
+        url: renderSkillIconDataUrl(entity.image),
+        fetch: async () => bytes.buffer as ArrayBuffer,
+        extension: 'svg'
+      };
+    }
+
     let url = await internalImageService.getImageUrl(entity);
     let extension = 'svg';
 

@@ -53,12 +53,15 @@ export let applyPlugin = createApplicator(
       orderBy: { id: 'asc' }
     });
     let image = input.skillPlugin.image;
-    if (image?.type !== 'file') {
+    let isCustomImage = (candidate: typeof image | null | undefined) =>
+      candidate?.type === 'file' || candidate?.type === 'icon';
+
+    if (!isCustomImage(image)) {
       for (let skill of skills) {
-        if (skill.skill.image?.type === 'file') image = skill.skill.image;
+        if (isCustomImage(skill.skill.image)) image = skill.skill.image;
       }
     }
-    if (image?.type !== 'file' && project.organization.image?.type === 'file') {
+    if (!isCustomImage(image) && project.organization.image?.type === 'file') {
       image = project.organization.image;
     }
     let hash = await Hash.sha256(

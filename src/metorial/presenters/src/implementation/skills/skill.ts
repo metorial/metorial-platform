@@ -9,6 +9,23 @@ import {
 } from '../files/documentParticipant';
 import { v1IntegrationPreviewPresenter, v1ProviderPreview } from '../provider';
 
+let presentSkillImage = (image: PrismaJson.EntityImage | null) => ({
+  object: 'skill.image' as const,
+  type:
+    image?.type == 'file' || image?.type == 'url' || image?.type == 'icon'
+      ? image.type
+      : 'default',
+  icon: image?.type == 'icon' ? image.icon : null,
+  color: image?.type == 'icon' ? image.color : null
+});
+
+let skillImageSchema = v.object({
+  object: v.literal('skill.image'),
+  type: v.enumOf(['file', 'url', 'icon', 'default']),
+  icon: v.nullable(v.string()),
+  color: v.nullable(v.string())
+});
+
 export let v1SkillPreviewPresenter = Object.assign(
   async (
     skill: Pick<
@@ -75,6 +92,7 @@ export let v1SkillPresenter = Presenter.create(skillType)
     name: skill.name,
     description: skill.description,
     image_url: await getImageUrl(skill.localSkill),
+    image: presentSkillImage(skill.localSkill.image),
     client_name: skill.clientName,
     client_description: skill.clientDescription,
     client_metadata: skill.clientMetadata,
@@ -130,6 +148,7 @@ export let v1SkillPresenter = Presenter.create(skillType)
       name: v.string(),
       description: v.nullable(v.string()),
       image_url: v.string(),
+      image: skillImageSchema,
       client_name: v.string(),
       client_description: v.nullable(v.string()),
       client_metadata: v.nullable(v.record(v.any())),

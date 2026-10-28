@@ -44,6 +44,7 @@ import type { SkillTemplateRecord } from '@metorial/module-skill-templates';
 import { getProjectTenantIdentifier } from '@metorial/skills-common';
 import { Fabric } from '@metorial/fabric';
 import { internalImageService } from '@metorial/skills-images';
+import { isSkillIcon } from '@metorial/skill-icons';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/skills-search';
 import { getSkillSlug } from '../lib/skillSlug';
 import { enqueueSkillLifecycle } from '../queues/lifecycle';
@@ -480,6 +481,7 @@ class SkillServiceImpl {
       license?: string | null;
       compatibility?: string | null;
       imageFileId?: string | null;
+      imageIcon?: { icon: string; color: string } | null;
       image?: EntityImage | null;
     };
   }) {
@@ -493,6 +495,7 @@ class SkillServiceImpl {
       d.input.license === undefined &&
       d.input.compatibility === undefined &&
       d.input.imageFileId === undefined &&
+      d.input.imageIcon === undefined &&
       d.input.image === undefined
     ) {
       throw new ServiceError(
@@ -512,7 +515,29 @@ class SkillServiceImpl {
       );
     }
 
+    if (d.input.imageIcon !== undefined && d.input.imageFileId !== undefined) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Provide either an image file or an icon, not both'
+        })
+      );
+    }
+
+    if (d.input.imageIcon && !isSkillIcon(d.input.imageIcon)) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Unknown skill icon or color'
+        })
+      );
+    }
+
     let nextImage = d.input.image;
+    if (d.input.imageIcon !== undefined) {
+      nextImage = d.input.imageIcon
+        ? { type: 'icon', icon: d.input.imageIcon.icon, color: d.input.imageIcon.color }
+        : { type: 'default' };
+    }
+
     if (d.input.imageFileId !== undefined) {
       nextImage = await internalImageService.resolveImageEntityImage({
         project: d.project,
@@ -549,6 +574,7 @@ class SkillServiceImpl {
       d.input.license !== undefined ||
       d.input.compatibility !== undefined ||
       d.input.imageFileId !== undefined ||
+      d.input.imageIcon !== undefined ||
       d.input.image !== undefined
     ) {
       await db.skill.update({
@@ -568,7 +594,11 @@ class SkillServiceImpl {
         }
       });
 
-      if (d.input.imageFileId !== undefined || d.input.image !== undefined) {
+      if (
+        d.input.imageFileId !== undefined ||
+        d.input.imageIcon !== undefined ||
+        d.input.image !== undefined
+      ) {
         await internalImageService.cleanupImageEntityImage({
           image:
             d.skill.image && canonicalize(d.skill.image) !== canonicalize(nextImage)

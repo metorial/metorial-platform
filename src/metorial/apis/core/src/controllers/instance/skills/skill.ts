@@ -287,7 +287,23 @@ export let skillController = Controller.create(
           compatibility: v.optional(v.nullable(skillCompatibilityValidator)),
           client_metadata: v.optional(v.nullable(v.record(v.any()))),
           metadata: v.optional(v.nullable(v.record(v.any()))),
-          image_file_id: v.optional(v.nullable(v.string()))
+          image_file_id: v.optional(v.nullable(v.string())),
+          image_icon: v.optional(
+            v.nullable(
+              v.object({
+                icon: v.string({
+                  description: 'Library icon id, e.g. rocket-2-line'
+                }),
+                color: v.string({
+                  description: 'Tile color: gray, blue, green, yellow, orange, red or purple'
+                })
+              })
+            ),
+            {
+              description:
+                'Use a library icon with a tile color as the skill image. Pass null to reset to the default image. Cannot be combined with image_file_id.'
+            }
+          )
         })
       )
       .output(skillPresenter)
@@ -302,7 +318,8 @@ export let skillController = Controller.create(
           compatibility: ctx.body.compatibility,
           clientMetadata: ctx.body.client_metadata,
           metadata: ctx.body.metadata,
-          imageFileId: ctx.body.image_file_id
+          imageFileId: ctx.body.image_file_id,
+          imageIcon: ctx.body.image_icon
         };
 
         let updated = await skillService.updateSkill({
