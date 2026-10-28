@@ -43,12 +43,16 @@
     "@tiptap/starter-kit": "3.31.4",
     "@tiptap/y-tiptap": "3.0.9",
     "lowlight": "^3.3.0",
+    "markdown-it": "14.2.0",
+    "markdown-it-task-lists": "2.1.1",
+    "parse5": "8.0.1",
     "tiptap-markdown": "^0.9.0",
     "yjs": "^13.6.33"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",
     "@types/jsdom": "^28.0.3",
+    "@types/markdown-it": "^13.0.9",
     "jsdom": "29.1.1",
     "typescript": "5.9.3",
     "vitest": "^5.0.4"

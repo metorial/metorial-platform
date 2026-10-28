@@ -1,5 +1,5 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { JSDOM } from 'jsdom';
 import { getSchema } from '@tiptap/core';
 import { EditorState } from '@tiptap/pm/state';
 import { initProseMirrorDoc, updateYFragment } from '@tiptap/y-tiptap';
@@ -24,16 +24,6 @@ import {
   yjsUpdateToMarkdown,
   type DocumentBody
 } from './index';
-
-let dom = new JSDOM('<!doctype html><html><body></body></html>');
-(globalThis as any).window = dom.window;
-(globalThis as any).document = dom.window.document;
-(globalThis as any).DOMParser = dom.window.DOMParser;
-(globalThis as any).Node = dom.window.Node;
-Object.defineProperty(globalThis, 'navigator', {
-  configurable: true,
-  value: dom.window.navigator
-});
 
 let title = 'Doc';
 

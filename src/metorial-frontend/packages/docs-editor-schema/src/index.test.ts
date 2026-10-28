@@ -1,6 +1,6 @@
+// @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { JSDOM } from 'jsdom';
-import { Editor } from '@tiptap/core';
+import { getSchema } from '@tiptap/core';
 import { prosemirrorJSONToYXmlFragment } from '@tiptap/y-tiptap';
 import {
   buildHeadlessExtensions,
@@ -15,16 +15,6 @@ import {
   yjsUpdateToDocumentSnapshot
 } from './index';
 import * as Y from 'yjs';
-
-let dom = new JSDOM('<!doctype html><html><body></body></html>');
-(globalThis as any).window = dom.window;
-(globalThis as any).document = dom.window.document;
-(globalThis as any).DOMParser = dom.window.DOMParser;
-(globalThis as any).Node = dom.window.Node;
-Object.defineProperty(globalThis, 'navigator', {
-  configurable: true,
-  value: dom.window.navigator
-});
 
 describe('docs editor schema conversion', () => {
   it('round-trips common markdown through Yjs', () => {
@@ -117,9 +107,8 @@ describe('docs editor schema conversion', () => {
 
   it('serializes only the children of agent blocks', () => {
     let ydoc = new Y.Doc();
-    let editor = new Editor({ extensions: buildHeadlessExtensions(), editable: false });
     prosemirrorJSONToYXmlFragment(
-      editor.schema,
+      getSchema(buildHeadlessExtensions()),
       {
         type: 'doc',
         content: [
@@ -133,7 +122,6 @@ describe('docs editor schema conversion', () => {
       },
       ydoc.getXmlFragment('body')
     );
-    editor.destroy();
 
     let encoded = btoa(String.fromCharCode(...Y.encodeStateAsUpdate(ydoc)));
     expect(yjsUpdateToMarkdown(encoded).trim()).toBe('Before\n\nGenerated');

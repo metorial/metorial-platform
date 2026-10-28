@@ -5,11 +5,10 @@ import {
   reconcileDocumentBody,
   type DocumentBody
 } from '@metorial/docs-editor-schema';
-import { withHeadlessDom } from './headlessDom';
 
 export let reconcileStoredDocumentBody = (
   d: Parameters<typeof reconcileDocumentBody>[0]
-): DocumentBody => withHeadlessDom(() => reconcileDocumentBody(d));
+): DocumentBody => reconcileDocumentBody(d);
 
 export let resolveDocumentDraftBody = (d: {
   draft: { title: string; content: string; annotations?: unknown };
@@ -67,5 +66,5 @@ export let buildLiveStateFromStoredBody = (d: {
   let { body } = getDocumentBodyMarkdown(d);
   let stored = readStoredAnnotations(d);
 
-  return withHeadlessDom(() => markdownToYjsUpdate(body, undefined, stored.annotations));
+  return markdownToYjsUpdate(body, undefined, stored.annotations);
 };

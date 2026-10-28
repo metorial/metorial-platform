@@ -12,7 +12,6 @@ import {
   repairStoredDocumentBody,
   resolveDocumentDraftBody
 } from './documentBody';
-import { withHeadlessDom } from './headlessDom';
 
 let title = 'Doc';
 let compose = (...paragraphs: string[]) => [`# ${title}`, ...paragraphs].join('\n\n');
@@ -49,19 +48,59 @@ let flushLiveState = (body: DocumentBody) =>
     { title }
   ).body;
 
-describe('withHeadlessDom', () => {
-  it('only exposes DOM globals while the callback runs', () => {
-    expect(typeof (globalThis as any).document).toBe('undefined');
+describe('document body without a DOM', () => {
+  let domGlobals = ['window', 'document', 'DOMParser', 'Node'] as const;
 
-    let insideType = withHeadlessDom(() => typeof (globalThis as any).document);
+  let expectNoDomGlobals = () => {
+    for (let key of domGlobals) expect(typeof (globalThis as any)[key]).toBe('undefined');
+  };
 
-    expect(insideType).toBe('object');
-    expect(typeof (globalThis as any).document).toBe('undefined');
-    expect(typeof (globalThis as any).DOMParser).toBe('undefined');
+  it('runs every writer and the live state builder without DOM globals', () => {
+    expectNoDomGlobals();
+
+    let body = createBody(compose('First.', '<info>\n\nCallout\n\n</info>'), 'actor_a');
+    let edited = editBody(body, compose('First.', 'Changed.'), ['actor_b']);
+    let repaired = repairStoredDocumentBody({
+      title,
+      content: edited.content,
+      annotations: null,
+      creatorId: 'actor_a'
+    });
+
+    expect(flushLiveState(repaired).content).toContain('Changed.');
+    expectNoDomGlobals();
   });
 
-  it('rejects async callbacks', () => {
-    expect(() => withHeadlessDom(async () => 1)).toThrow(/synchronous/);
+  it('never reads DOM globals while importing markdown', () => {
+    let touched: string[] = [];
+
+    for (let key of domGlobals) {
+      Object.defineProperty(globalThis, key, {
+        configurable: true,
+        get: () => {
+          touched.push(key);
+          return undefined;
+        }
+      });
+    }
+
+    try {
+      let body = createBody(
+        compose('Text with <u>underline</u>.', '| A |\n| - |\n| 1 |'),
+        'actor_a'
+      );
+      let edited = editBody(body, compose('Edited with <mark>mark</mark>.'), ['actor_b']);
+
+      buildLiveStateFromStoredBody({
+        title,
+        content: edited.content,
+        annotations: edited.annotations
+      });
+    } finally {
+      for (let key of domGlobals) delete (globalThis as any)[key];
+    }
+
+    expect(touched).toEqual([]);
   });
 });
 
