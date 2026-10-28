@@ -158,6 +158,7 @@ export let ChatConnectionOverviewPage = () => {
           {provider?.manualWebhookTriggerGroups.length &&
           !provider.authCredentialsIsManaged ? (
             <ProviderWebhookRegistrationsBox
+              providerAuthCredentialsId={provider.authCredentialsId ?? undefined}
               instanceId={instance.data!.id}
               provider={{ id: provider.provider.id, name: provider.provider.name }}
             />

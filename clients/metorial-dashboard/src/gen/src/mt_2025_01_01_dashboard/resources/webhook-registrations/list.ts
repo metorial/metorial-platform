@@ -24,6 +24,7 @@ export type WebhookRegistrationsListOutput = {
       createdAt: Date;
       updatedAt: Date;
     };
+    providerAuthCredentialsId: string | null;
     createdAt: Date;
     updatedAt: Date;
   }[];
@@ -32,7 +33,19 @@ export type WebhookRegistrationsListOutput = {
 
 export let mapWebhookRegistrationsListOutput =
   /* @__PURE__ */ createMapper<WebhookRegistrationsListOutput>(
-    [7, [1, ['receive_url', ['provider', 0, 8], 'created_at', 'updated_at']]],
+    [
+      7,
+      [
+        1,
+        [
+          'receive_url',
+          ['provider', 0, 8],
+          'provider_auth_credentials_id',
+          'created_at',
+          'updated_at'
+        ]
+      ]
+    ],
     1
   );
 
@@ -45,6 +58,8 @@ export type WebhookRegistrationsListQuery = {
 } & {
   id?: string | string[] | undefined;
   providerId?: string | string[] | undefined;
+  providerAuthCredentialsId?: string | string[] | undefined;
+  isShared?: boolean | undefined;
   status?:
     | 'awaiting_setup'
     | 'active'
@@ -60,5 +75,19 @@ export type WebhookRegistrationsListQuery = {
 export let mapWebhookRegistrationsListQuery =
   /* @__PURE__ */ createMapper<WebhookRegistrationsListQuery>([
     3,
-    [[0, [1, ['provider_id', ['created_at', 1, 5], ['updated_at', 1, 5]]]]]
+    [
+      [
+        0,
+        [
+          1,
+          [
+            'provider_id',
+            'provider_auth_credentials_id',
+            'is_shared',
+            ['created_at', 1, 5],
+            ['updated_at', 1, 5]
+          ]
+        ]
+      ]
+    ]
   ]);

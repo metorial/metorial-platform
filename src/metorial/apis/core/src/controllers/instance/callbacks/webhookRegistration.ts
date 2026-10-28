@@ -49,6 +49,14 @@ export let webhookRegistrationController = Controller.create(
             provider_id: v.optional(stringOrArray(), {
               description: 'Filter by provider ID(s)'
             }),
+            provider_auth_credentials_id: v.optional(stringOrArray(), {
+              description:
+                'Filter by the custom provider auth credentials associated with the receiver'
+            }),
+            is_shared: v.optional(v.boolean(), {
+              description:
+                'When true, only return receivers shared by every app of the provider. When false, only return receivers scoped to specific provider auth credentials.'
+            }),
             status: v.optional(
               v.union([
                 webhookRegistrationStatusValidator,
@@ -70,6 +78,10 @@ export let webhookRegistrationController = Controller.create(
           allowDeleted: false,
           ids: normalizeArrayParam(ctx.query.id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
+          providerAuthCredentialsIds: normalizeArrayParam(
+            ctx.query.provider_auth_credentials_id
+          ),
+          isShared: ctx.query.is_shared,
           status: normalizeArrayParam(ctx.query.status),
           search: ctx.query.search,
           createdAt: ctx.query.created_at,
@@ -116,6 +128,10 @@ export let webhookRegistrationController = Controller.create(
             description: 'Provider to register the webhook receiver on',
             examples: ['pro_5gHjKlMnPqRsTuVw']
           }),
+          provider_auth_credentials_id: v.optional(v.string(), {
+            description:
+              'Custom auth credentials for the provider app that owns this receiver. Omit for a shared receiver.'
+          }),
           name: v.string({
             description: 'Display name for the webhook registration',
             examples: ['Production GitHub Webhook']
@@ -141,6 +157,7 @@ export let webhookRegistrationController = Controller.create(
           instance: ctx.instance,
           provider: { id: ctx.body.provider_id },
           input: {
+            providerAuthCredentialsId: ctx.body.provider_auth_credentials_id,
             name: ctx.body.name,
             description: ctx.body.description,
             metadata: ctx.body.metadata

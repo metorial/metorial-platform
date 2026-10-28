@@ -32,6 +32,8 @@ import {
 export type ListWebhookRegistrationsParams = {
   ids?: string[];
   providerIds?: string[];
+  providerAuthCredentialsIds?: string[];
+  isShared?: boolean;
   search?: string;
   status?: WebhookRegistrationStatus[];
   allowDeleted?: boolean;
@@ -47,6 +49,7 @@ export type GetWebhookRegistrationByIdParams = {
 export type CreateWebhookRegistrationParams = {
   provider: { id: string };
   input: {
+    providerAuthCredentialsId?: string;
     name: string;
     description?: string;
     metadata?: Record<string, any>;
@@ -122,6 +125,12 @@ class webhookRegistrationServiceImpl {
               d.ids ? { id: { in: d.ids } } : undefined!,
               search ? { id: search } : undefined!,
               providers ? { providerOid: providers.in } : undefined!,
+              d.providerAuthCredentialsIds
+                ? { providerAuthCredentials: { id: { in: d.providerAuthCredentialsIds } } }
+                : undefined!,
+              d.isShared !== undefined
+                ? { providerAuthCredentialsOid: d.isShared ? null : { not: null } }
+                : undefined!,
               d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
               d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
             ].filter(Boolean) as Prisma.WebhookRegistrationWhereInput[]
@@ -244,6 +253,27 @@ class webhookRegistrationServiceImpl {
       provider: d.provider
     });
 
+    let providerAuthCredentials =
+      d.input.providerAuthCredentialsId !== undefined
+        ? await db.providerAuthCredentials.findFirst({
+            where: {
+              id: d.input.providerAuthCredentialsId,
+              tenantOid: d.tenant.oid,
+              solutionOid: solution.oid,
+              environmentOid: d.environment.oid,
+              providerOid: provider.oid,
+              status: 'active',
+              origin: 'tenant_created'
+            }
+          })
+        : null;
+
+    if (d.input.providerAuthCredentialsId !== undefined && !providerAuthCredentials) {
+      throw new ServiceError(
+        notFoundError('provider_auth_credentials', d.input.providerAuthCredentialsId)
+      );
+    }
+
     let created = await db.webhookRegistration.create({
       data: {
         ...getId('webhookRegistration'),
@@ -255,6 +285,7 @@ class webhookRegistrationServiceImpl {
 
         providerOid: provider.oid,
         providerVariantOid: providerVariant.oid,
+        providerAuthCredentialsOid: providerAuthCredentials?.oid,
 
         tenantOid: d.tenant.oid,
         projectOid: d.tenant.projectOid!,
@@ -285,7 +316,8 @@ class webhookRegistrationServiceImpl {
         tenant: d.tenant,
         provider,
         providerVariant,
-        webhookRegistration: created
+        webhookRegistration: created,
+        providerAuthCredentials
       });
     } catch (error) {
       await db.webhookRegistration.update({
