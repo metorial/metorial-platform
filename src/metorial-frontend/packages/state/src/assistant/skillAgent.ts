@@ -79,6 +79,11 @@ export let refreshSkillStoreLoaders = () => {
   skillAgentsLoader.refetchAll();
 };
 
+let refreshSkillStoreLoadersStaggered = () => {
+  refreshSkillStoreLoaders();
+  for (let delay of [1000, 3000]) setTimeout(refreshSkillStoreLoaders, delay);
+};
+
 let getErrorMessage = (error: unknown) => {
   if (error instanceof Error) return error.message;
   if (typeof error == 'string') return error;
@@ -127,20 +132,16 @@ export let useSkillAssistant = (d: {
     [isOwnedLiveState, liveItems]
   );
 
-  let seenChangeItemsRef = useRef(new Set<string>());
+  let changeSignature = liveItems
+    .map(item => {
+      if (item.type == 'skill/changes') return `${item.id}:${item.changes.length}`;
+      if (item.type == 'files/write' || item.type == 'shell') return `${item.id}:${item.status}`;
+      return '';
+    })
+    .join('|');
   useEffect(() => {
-    let hasNewChanges = false;
-    for (let item of liveItems) {
-      if (item.type != 'skill/changes' || seenChangeItemsRef.current.has(item.id)) continue;
-      seenChangeItemsRef.current.add(item.id);
-      if (item.changes.some(change => change.status == 'committed')) hasNewChanges = true;
-    }
-    if (!hasNewChanges) return;
-
-    refreshSkillStoreLoaders();
-    setTimeout(refreshSkillStoreLoaders, 1500);
-  }, [liveItems]);
-
+    if (changeSignature.replace(/\|/g, '')) refreshSkillStoreLoadersStaggered();
+  }, [changeSignature]);
 
   let requestStatusById = useMemo(() => {
     let statuses = new Map<string, string>();
@@ -186,18 +187,10 @@ export let useSkillAssistant = (d: {
             ? 'completed'
             : 'idle';
 
-  let hadChangesRef = useRef(false);
-  useEffect(() => {
-    if (liveItems.some(item => item.type == 'skill/changes')) hadChangesRef.current = true;
-  }, [liveItems]);
-
   let wasRunningRef = useRef(false);
   let isRunning = status == 'running' || status == 'sending';
   useEffect(() => {
-    if (wasRunningRef.current && !isRunning && hadChangesRef.current) {
-      hadChangesRef.current = false;
-      refreshSkillStoreLoaders();
-    }
+    if (wasRunningRef.current && !isRunning) refreshSkillStoreLoadersStaggered();
     wasRunningRef.current = isRunning;
   }, [isRunning]);
 
