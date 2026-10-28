@@ -57,7 +57,8 @@ model SecurityReview {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  revisions SecurityReviewRevision[] @relation("SecurityReviewRevisions")
+  revisions  SecurityReviewRevision[]             @relation("SecurityReviewRevisions")
+  webDomains SecurityReviewWebDomainUsageReview[]
 
   @@index([providerOid])
   @@index([providerVersionOid])
@@ -282,6 +283,51 @@ model SecurityReviewRun {
   completedAt DateTime?
 
   @@index([revisionOid])
+}
+
+model SecurityReviewWebDomainUsage {
+  oid BigInt @id
+  id  String @unique
+
+  domain String @unique
+
+  attempts   Int @default(0)
+  dispatched Int @default(0)
+  succeeded  Int @default(0)
+  blocked    Int @default(0)
+  failed     Int @default(0)
+
+  lastOutcome   String
+  lastReason    String?
+  retriever     String
+  lastOperation String
+
+  reputation          String?
+  threatTypes         String[]
+  reputationCheckedAt DateTime?
+
+  firstSeenAt   DateTime  @default(now())
+  lastAttemptAt DateTime
+  lastUsedAt    DateTime?
+
+  reviews SecurityReviewWebDomainUsageReview[]
+
+  @@index([lastAttemptAt])
+  @@index([lastOutcome, lastAttemptAt])
+}
+
+model SecurityReviewWebDomainUsageReview {
+  oid BigInt @id
+  id  String @unique
+
+  domainUsageOid BigInt
+  domainUsage    SecurityReviewWebDomainUsage @relation(fields: [domainUsageOid], references: [oid], onDelete: Cascade)
+
+  reviewOid BigInt
+  review    SecurityReview @relation(fields: [reviewOid], references: [oid], onDelete: Cascade)
+
+  @@unique([domainUsageOid, reviewOid])
+  @@index([reviewOid])
 }
 
 enum SecurityFileKind {

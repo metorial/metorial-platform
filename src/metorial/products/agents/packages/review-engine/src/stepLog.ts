@@ -1,12 +1,16 @@
 import type { StepResult, ToolSet } from 'ai';
 import { addUsage, emptyUsage, type ReviewModel, type ReviewUsage } from './model';
+import { isSensitiveWebText, webDomainForLog } from './webPolicy';
 
 let MAX_TEXT = 1200;
 let MAX_TOOL_INPUT = 600;
 let MAX_TOOL_OUTPUT = 800;
 
 let clip = (value: string, max: number) => {
-  let flat = value.replace(/\s+/g, ' ').trim();
+  let screened = value.replace(/https?:\/\/[^\s"'<>]+/gi, '[url omitted]');
+  if (isSensitiveWebText(screened)) return '[sensitive text omitted]';
+
+  let flat = screened.replace(/\s+/g, ' ').trim();
   return flat.length > max ? `${flat.slice(0, max)}… [+${flat.length - max} chars]` : flat;
 };
 
@@ -31,16 +35,29 @@ export let formatStepLog = (d: {
   if (d.step.text) lines.push(`  said: ${clip(d.step.text, MAX_TEXT)}`);
 
   for (let call of d.step.toolCalls) {
-    lines.push(`  → ${call.toolName} ${clip(stringify(call.input), MAX_TOOL_INPUT)}`);
+    let input =
+      call.toolName == 'web_search'
+        ? '[query omitted]'
+        : call.toolName == 'fetch_url'
+          ? { domain: webDomainForLog(String((call.input as { url?: unknown })?.url ?? '')) }
+          : call.input;
+    lines.push(`  → ${call.toolName} ${clip(stringify(input), MAX_TOOL_INPUT)}`);
   }
 
   for (let result of d.step.toolResults) {
-    lines.push(`  ← ${result.toolName} ${clip(stringify(result.output), MAX_TOOL_OUTPUT)}`);
+    let output = ['web_search', 'fetch_url'].includes(result.toolName)
+      ? '[web output omitted]'
+      : result.output;
+    lines.push(`  ← ${result.toolName} ${clip(stringify(output), MAX_TOOL_OUTPUT)}`);
   }
 
   for (let part of d.step.content) {
     if (part.type == 'tool-error') {
-      let message = part.error instanceof Error ? part.error.message : stringify(part.error);
+      let message = ['web_search', 'fetch_url'].includes(part.toolName)
+        ? 'Web request failed'
+        : part.error instanceof Error
+          ? part.error.message
+          : stringify(part.error);
       lines.push(`  ✗ ${part.toolName} failed: ${clip(message, MAX_TOOL_OUTPUT)}`);
     }
   }

@@ -36,6 +36,8 @@ import {
   SECURITY_REVIEW_RULES_VERSION
 } from '../definitions/versions';
 import { env } from '../env';
+import { containsTokenForReview } from '@metorial-subspace/module-protoguard';
+import { securityReviewWebAccessService } from '../services/securityReviewWebAccess';
 import {
   type AgentRunResult,
   carryOverReport,
@@ -290,6 +292,11 @@ class InternalSecurityReviewRunnerServiceImpl {
         web:
           d.evidence.kind == 'remote'
             ? createWebAccess({
+                webRiskApiKey: env.scout.GOOGLE_WEB_RISK_API_KEY,
+                containsSensitiveText: containsTokenForReview,
+                abortSignal: signal,
+                onAccess: event =>
+                  securityReviewWebAccessService.recordAccess({ runOid: run.oid, event }),
                 scout:
                   env.scout.SCOUT_URL && env.scout.SCOUT_TOKEN
                     ? { endpoint: env.scout.SCOUT_URL, token: env.scout.SCOUT_TOKEN }

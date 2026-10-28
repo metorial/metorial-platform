@@ -2,6 +2,7 @@ let MAX_LOG_CHARS = 400_000;
 
 export let redactSecrets = (value: string) =>
   value
+    .replace(/https?:\/\/[^\s"'<>]+/gi, '[url omitted]')
     .replace(/(bearer\s+)[^\s]+/gi, '$1[redacted]')
     .replace(
       /((?:api[_-]?key|token|secret|authorization)["\x27]?\s*[:=]\s*["\x27]?)[^\s,"\x27}]+/gi,

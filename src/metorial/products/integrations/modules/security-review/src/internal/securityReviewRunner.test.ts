@@ -22,6 +22,10 @@ vi.mock('@metorial-subspace/db', () => ({
 }));
 
 vi.mock('@metorial-subspace/module-tenant', () => ({}));
+vi.mock('@metorial-subspace/module-protoguard', () => ({
+  containsTokenForReview: () => false
+}));
+vi.mock('../services/securityReviewWebAccess', () => ({ securityReviewWebAccessService: {} }));
 vi.mock('@metorial/fabric', () => ({}));
 vi.mock('@metorial/review-engine', () => ({}));
 vi.mock('../definitions/thoroughness', () => ({}));

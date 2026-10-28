@@ -85,6 +85,7 @@ ORIGIN_URL = "http://{{HOSTNAME}}:52090/metorial-origin"
 REGISTRY_URL = "https://metorial-saas-dev2.registry.metorial-enterprise.com/metorial-registry-root"
 SCOUT_URL = "https://scout-fra-fly-prod.metorial-enterprise.com/metorial-scout"
 SCOUT_TOKEN = true
+GOOGLE_WEB_RISK_API_KEY = { from = "GOOGLE_WEB_RISK_API_KEY", required = false }
 AUTH_TICKET_SECRET = "auth-ticket-secret"
 ENCRYPTION_SECRET = "encryption-secret"
 CONSUMER_TOKEN_SECRET = "consumer-token-secret"

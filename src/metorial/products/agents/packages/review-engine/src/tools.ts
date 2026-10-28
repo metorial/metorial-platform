@@ -3,6 +3,7 @@ import { jsonSchema, tool, type ToolSet } from 'ai';
 import type { EvidenceLedger } from './ledger';
 import type { ReportDraft } from './report';
 import type { WebAccess } from './web';
+import { WebAccessError } from './webPolicy';
 import type { ReviewWorkspace } from './workspace';
 
 let MAX_WEB_FETCHES = 20;
@@ -218,7 +219,7 @@ export let createReviewTools = <R extends Record<string, any>>(d: {
             if (/^https?:\/\//.test(entry.source)) {
               return fetchedThisRun.has(entry.source.trim())
                 ? []
-                : [`url "${entry.source}" was not fetched during this re-check`];
+                : ['A URL was not fetched during this re-check'];
             }
 
             let error = d.ledger.check({ type: 'file', path: entry.source });
@@ -240,20 +241,29 @@ export let createReviewTools = <R extends Record<string, any>>(d: {
     tools.web_search = tool({
       description:
         'Search the web. Use this to find the official documentation, repository or announcement ' +
-        'for a vendor and its MCP server. Results are not evidence; fetch a page to cite it.',
+        'for a vendor and its MCP server. Queries containing sensitive data are rejected. ' +
+        'Results are not evidence; fetch a page to cite it.',
       inputSchema: jsonSchema<{ query: string }>({
         type: 'object',
-        properties: { query: { type: 'string' } },
+        properties: { query: { type: 'string', maxLength: 256 } },
         required: ['query'],
         additionalProperties: false
       }),
-      execute: async input => {
+      execute: async (input, { abortSignal }) => {
         if (d.state.webSearches >= MAX_WEB_SEARCHES) {
           return formatErrors(['Web search budget for this review is exhausted']);
         }
         d.state.webSearches++;
 
-        return { ok: true, results: await web.search(input.query) };
+        try {
+          return { ok: true, results: await web.search(input.query, { signal: abortSignal }) };
+        } catch (error) {
+          return formatErrors([
+            error instanceof WebAccessError
+              ? error.message
+              : 'Web search was blocked or unavailable'
+          ]);
+        }
       }
     });
 
@@ -261,38 +271,45 @@ export let createReviewTools = <R extends Record<string, any>>(d: {
       description:
         'Fetch a web page. The page is snapshotted into /workspace/web/ and becomes citable ' +
         'evidence as {"type":"url","url":...}. Returns the snapshot path and a preview; use bash ' +
-        'to read the full snapshot.',
+        'to read the full snapshot. Only public HTTPS URLs are accepted, with no credentials or ' +
+        'sensitive data. Query parameters are limited to page and language selectors. ' +
+        'Cite the normalized URL returned by this tool.',
       inputSchema: jsonSchema<{ url: string }>({
         type: 'object',
-        properties: { url: { type: 'string' } },
+        properties: { url: { type: 'string', maxLength: 2048 } },
         required: ['url'],
         additionalProperties: false
       }),
-      execute: async input => {
+      execute: async (input, { abortSignal }) => {
         if (d.state.webFetches >= MAX_WEB_FETCHES) {
           return formatErrors(['Web fetch budget for this review is exhausted']);
         }
         d.state.webFetches++;
 
         try {
-          let page = await web.fetch(input.url);
+          let page = await web.fetch(input.url, { signal: abortSignal });
           let hash = await Hash.sha256(page.markdown);
           let path = `/web/${hash.slice(0, 16)}.md`;
 
           await d.workspace.writeWorkspaceFile(
             path,
-            `<!-- source: ${input.url} -->\n${page.markdown}`
+            `<!-- source: ${page.url} -->\n${page.markdown}`
           );
-          d.ledger.addUrl(input.url, hash);
-          fetchedThisRun.add(input.url.trim());
+          d.ledger.addUrl(page.url, hash);
+          fetchedThisRun.add(page.url.trim());
 
           return {
             ok: true,
+            url: page.url,
             snapshot: `/workspace${path}`,
             preview: page.markdown.slice(0, 2_000)
           };
         } catch (error) {
-          return formatErrors([error instanceof Error ? error.message : 'Fetch failed']);
+          return formatErrors([
+            error instanceof WebAccessError
+              ? error.message
+              : 'Page fetch was blocked or unavailable'
+          ]);
         }
       }
     });

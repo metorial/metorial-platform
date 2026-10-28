@@ -31,4 +31,13 @@ describe('RunLog', () => {
     expect(log.toString()).toContain('[log truncated');
     expect(log.toString()).not.toContain('after the limit');
   });
+
+  it('omits raw URLs from model and error messages', () => {
+    let log = new RunLog();
+    log.add('Could not fetch https://vendor.com/customer/alice?data=private');
+
+    expect(log.toString()).toContain('[url omitted]');
+    expect(log.toString()).not.toContain('alice');
+    expect(log.toString()).not.toContain('private');
+  });
 });

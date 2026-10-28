@@ -75,4 +75,33 @@ describe('formatStepLog', () => {
 
     expect(text).toContain('  ✗ bash failed: boom');
   });
+
+  it('omits web queries, raw URLs, page output and provider error details', () => {
+    let text = formatStepLog({
+      step: step({
+        reasoningText: 'Fetching https://docs.vendor.com/private-data now',
+        toolCalls: [
+          { toolName: 'web_search', input: { query: 'private customer query' } },
+          { toolName: 'fetch_url', input: { url: 'https://docs.vendor.com/?token=private' } }
+        ],
+        toolResults: [{ toolName: 'fetch_url', output: { preview: 'private page text' } }],
+        content: [
+          {
+            type: 'tool-error',
+            toolName: 'fetch_url',
+            error: new Error('private upstream details')
+          }
+        ]
+      }),
+      stepNumber: 1,
+      model,
+      total: emptyUsage(),
+      durationMs: 10
+    });
+
+    expect(text).toContain('docs.vendor.com');
+    expect(text).toContain('[query omitted]');
+    expect(text).not.toContain('private');
+    expect(text).not.toContain('https://');
+  });
 });

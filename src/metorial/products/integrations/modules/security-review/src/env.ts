@@ -22,6 +22,7 @@ export let env = createValidatedEnv({
   },
 
   scout: {
+    GOOGLE_WEB_RISK_API_KEY: v.optional(v.string()),
     SCOUT_URL: v.optional(v.string()),
     SCOUT_TOKEN: v.optional(v.string())
   }
