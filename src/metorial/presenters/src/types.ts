@@ -2761,6 +2761,7 @@ export let providerTypeType = PresentableType.create<{
   providerType: RawProvider['type'];
   provider: RawProvider;
   tenant?: SubspacePrisma.TenantGetPayload<{}>;
+  oauthCallbackUrl?: string | null;
 }>()('provider.type');
 
 export let providerListingCategoryType = PresentableType.create<{
