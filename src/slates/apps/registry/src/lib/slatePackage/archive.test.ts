@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+import { ServiceError } from '@lowerdeck/error';
 import JSZip from 'jszip';
 import { getSlatePackageChecksum, readZipEntries } from './archive';
 import { getPrebuiltEntrypointProblem } from './entrypoint';
@@ -58,6 +59,22 @@ describe('slate package archives', () => {
       Object.keys(files).sort()
     );
     await expect(readZipEntries(prefixed, { requireCanonicalPaths: true })).rejects.toThrow();
+    expect(getSlatePackageChecksum(await readZipEntries(prefixed))).not.toBe(
+      await checksumOf(files)
+    );
+  });
+
+  it('rejects entries that cannot be inflated as a bad package', async () => {
+    let zip = new JSZip();
+    zip.file('dist/index.js', 'x'.repeat(10_000), { compression: 'DEFLATE' });
+    let archive = Buffer.from(await zip.generateAsync({ type: 'nodebuffer' }));
+    let nameStart = archive.indexOf('dist/index.js');
+    // 0x07 starts a deflate block with the reserved block type.
+    archive[nameStart + 'dist/index.js'.length + archive.readUInt16LE(nameStart - 2)] = 0x07;
+
+    let error = await readZipEntries(archive).catch(error => error);
+    expect(error).toBeInstanceOf(ServiceError);
+    expect(error.message).toContain('could not be read');
   });
 });
 

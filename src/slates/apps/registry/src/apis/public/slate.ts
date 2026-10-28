@@ -42,8 +42,7 @@ let limitBody = (maxSize: number) =>
 
 let accessSchema = z.enum(['public', 'private']);
 
-// Must run before limitBody, which buffers chunked bodies.
-let authorizeZipUpload: MiddlewareHandler = async (c, next) => {
+let requireZipContentType: MiddlewareHandler = async (c, next) => {
   let contentType = c.req.header('Content-Type')?.split(';')[0]?.trim();
   if (contentType !== 'application/zip') {
     throw new ServiceError(
@@ -53,6 +52,11 @@ let authorizeZipUpload: MiddlewareHandler = async (c, next) => {
     );
   }
 
+  await next();
+};
+
+// Must run before limitBody, which buffers chunked bodies.
+let authorizeUpload: MiddlewareHandler = async (c, next) => {
   let auth = await useUserAuth(c);
   await slateVersionService.getPublishableScope({
     user: auth.user,
@@ -143,6 +147,7 @@ export let slatesController = createHono()
   })
   .post(
     ':scopeId/:slateId/versions',
+    authorizeUpload,
     limitBody(MAX_JSON_UPLOAD_BYTES),
     useValidation(
       'json',
@@ -176,7 +181,8 @@ export let slatesController = createHono()
   )
   .put(
     ':scopeId/:slateId/versions/:version',
-    authorizeZipUpload,
+    requireZipContentType,
+    authorizeUpload,
     limitBody(MAX_ZIP_UPLOAD_BYTES),
     useValidation(
       'query',

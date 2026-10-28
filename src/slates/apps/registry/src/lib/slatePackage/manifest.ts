@@ -163,7 +163,6 @@ export let normalizeSlatePackage = (d: {
     let lowerPath = entry.path.toLowerCase();
 
     while (lowerPath.startsWith('./')) lowerPath = lowerPath.slice(2);
-    while (lowerPath.startsWith('../')) lowerPath = lowerPath.slice(3);
     while (lowerPath.startsWith('/')) lowerPath = lowerPath.slice(1);
 
     if (lowerPath.startsWith('dist/')) isPrebuilt = true;

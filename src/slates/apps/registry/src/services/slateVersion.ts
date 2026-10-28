@@ -5,9 +5,9 @@ import {
   notFoundError,
   preconditionFailedError,
   ServiceError,
-  unauthorizedError
+  tooManyRequestsError
 } from '@lowerdeck/error';
-import { createLock } from '@lowerdeck/lock';
+import { createLock, LockAcquisitionError } from '@lowerdeck/lock';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import semver from 'semver';
@@ -48,7 +48,18 @@ let packageLock = createLock({
   redisUrl: env.service.REDIS_URL
 });
 
-export type SlateVersionLookupStatus =
+let PUBLISH_LOCK_ACQUISITION_TIMEOUT_MS = 30_000;
+let PUBLISH_LOCK_RETRY_DELAY_MS = 200;
+
+let concurrentPublishError = (name: string) =>
+  new ServiceError(
+    tooManyRequestsError({
+      message: `Another publish of ${name} is in progress.`,
+      hint: 'Retry the upload in a moment.'
+    })
+  );
+
+type SlateVersionLookupStatus =
   'published' | 'not_published' | 'scope_not_found' | 'scope_forbidden' | 'slate_deleted';
 
 type SlateAccessInput = {
@@ -56,11 +67,26 @@ type SlateAccessInput = {
   defaultAccess?: SlateAccess;
 };
 
+type NormalizedSlateVersionInput = {
+  user: User;
+  input: SlateAccessInput & {
+    backend: SlateVersionBackend;
+    bundleBuffer: Buffer;
+    slatePackage: ReturnType<typeof normalizeSlatePackage>;
+  };
+};
+
+let isUniqueConstraintError = (error: unknown) =>
+  typeof error === 'object' &&
+  error !== null &&
+  'code' in error &&
+  (error as { code: string }).code === 'P2002';
+
 class slateVersionServiceImpl {
   async getPublishableScope(d: { user: User; scopeIdentifier: string }) {
     if (d.user.access !== 'read_write') {
       throw new ServiceError(
-        unauthorizedError({
+        forbiddenError({
           message: 'User does not have permission to publish slates.'
         })
       );
@@ -124,79 +150,39 @@ class slateVersionServiceImpl {
     });
   }
 
-  async publishNormalizedSlateVersion(d: {
-    user: User;
-    input: SlateAccessInput & {
-      backend: SlateVersionBackend;
-      bundleBuffer: Buffer;
-      slatePackage: ReturnType<typeof normalizeSlatePackage>;
-    };
-  }) {
+  async publishNormalizedSlateVersion(d: NormalizedSlateVersionInput) {
     let slateJson = d.input.slatePackage.manifest;
 
-    return packageLock.usingLock(slateJson.name, async () => {
-      let scope = await this.getPublishableScope({
-        user: d.user,
-        scopeIdentifier: d.input.slatePackage.scopeIdentifier
-      });
-
-      let existingSlate = await db.slate.findFirst({
-        where: {
-          identifier: d.input.slatePackage.slateIdentifier,
-          scopeOid: scope.oid,
-          tenantOid: d.user.tenantOid
-        },
-        select: { oid: true, id: true, status: true, access: true }
-      });
-      if (existingSlate?.status === 'deleted') {
-        throw new ServiceError(
-          preconditionFailedError({
-            message: 'Cannot publish to a slate that has been deleted.'
-          })
-        );
+    try {
+      return await packageLock.usingLock(
+        slateJson.name,
+        () => this.publishNormalizedSlateVersionLocked(d),
+        {
+          acquisitionTimeoutMs: PUBLISH_LOCK_ACQUISITION_TIMEOUT_MS,
+          // The lock also gives up after retryCount attempts.
+          retryCount: Math.ceil(
+            PUBLISH_LOCK_ACQUISITION_TIMEOUT_MS / PUBLISH_LOCK_RETRY_DELAY_MS
+          ),
+          retryDelay: PUBLISH_LOCK_RETRY_DELAY_MS
+        }
+      );
+    } catch (error) {
+      if (error instanceof LockAcquisitionError && error.isContention) {
+        throw concurrentPublishError(slateJson.name);
       }
-
-      if (existingSlate) {
-        let existingVersion = await db.slateVersion.findFirst({
-          where: { slateOid: existingSlate.oid, version: slateJson.version },
-          include
-        });
-        let existingChecksum = existingVersion?.bundleArtifact.checksum;
-
-        if (existingVersion && existingChecksum === d.input.slatePackage.contentChecksum) {
-          return existingVersion;
-        }
-        if (existingVersion) {
-          throw new ServiceError(
-            conflictError({
-              message: existingChecksum
-                ? `Version ${slateJson.version} of ${slateJson.name} already exists with different contents.`
-                : `Version ${slateJson.version} of ${slateJson.name} already exists and predates content checksums, so it cannot be republished.`,
-              hint: 'Bump the version in package.json and publish again.'
-            })
-          );
-        }
-      } else {
-        // Identifiers are unique across tenants; don't reveal the owner.
-        let conflictingSlate = await db.slate.findFirst({
-          where: { identifier: d.input.slatePackage.slateIdentifier },
-          select: { oid: true }
-        });
-        if (conflictingSlate) {
-          throw new ServiceError(
-            conflictError({
-              message: `The slate identifier "${d.input.slatePackage.slateIdentifier}" is already used by another scope.`,
-              hint: 'Pick a different slate name in slate.json.'
-            })
-          );
-        }
+      // Concurrent publishes of other slates can race on unique identifiers; a retry resolves it.
+      if (isUniqueConstraintError(error)) {
+        console.warn(`[Registry]: Unique constraint race publishing ${slateJson.name}`, error);
+        throw concurrentPublishError(slateJson.name);
       }
+      throw error;
+    }
+  }
 
-      let publicAccessPermitted = env.access.PUBLIC_ACCESS_PERMITTED !== false;
-      let access =
-        d.input.access ??
-        existingSlate?.access ??
-        (d.input.defaultAccess === 'public' && publicAccessPermitted ? 'public' : 'private');
+  private async publishNormalizedSlateVersionLocked(d: NormalizedSlateVersionInput) {
+    let slateJson = d.input.slatePackage.manifest;
+    let publicAccessPermitted = env.access.PUBLIC_ACCESS_PERMITTED !== false;
+    let assertAccessPermitted = (access: SlateAccess) => {
       if (access === 'public' && !publicAccessPermitted) {
         throw new ServiceError(
           forbiddenError({
@@ -205,40 +191,113 @@ class slateVersionServiceImpl {
           })
         );
       }
+    };
 
-      let allocatedSlateIds = getId('slate');
-      let allocatedArtifactIds = getId('artifact');
-      let slateId = existingSlate?.id ?? allocatedSlateIds.id;
-      let storageKey = `slate/${slateId}/${slateJson.version}/${allocatedArtifactIds.id}.zip`;
-      let bucket = env.storage.PACKAGE_BUCKET_NAME;
+    let scope = await this.getPublishableScope({
+      user: d.user,
+      scopeIdentifier: d.input.slatePackage.scopeIdentifier
+    });
 
-      await storage.putObject(bucket, storageKey, d.input.bundleBuffer, 'application/zip');
+    let existingSlate = await db.slate.findFirst({
+      where: {
+        identifier: d.input.slatePackage.slateIdentifier,
+        scopeOid: scope.oid,
+        tenantOid: d.user.tenantOid
+      },
+      select: { oid: true, id: true, status: true, access: true }
+    });
+    if (existingSlate?.status === 'deleted') {
+      throw new ServiceError(
+        preconditionFailedError({
+          message: 'Cannot publish to a slate that has been deleted.'
+        })
+      );
+    }
 
-      let existingCategories = await db.slateCategory.findMany({
-        where: { identifier: { in: slateJson.categories ?? [] } }
+    if (existingSlate) {
+      let existingVersion = await db.slateVersion.findFirst({
+        where: { slateOid: existingSlate.oid, version: slateJson.version },
+        include
       });
-      let existingCategoryIds = existingCategories.map(category => category.oid);
-      let existingCategoryIdentifiers = existingCategories.map(
-        category => category.identifier
-      );
-      let missingCategories = (slateJson.categories ?? []).filter(
-        category => !existingCategoryIdentifiers.includes(category)
-      );
+      let existingChecksum = existingVersion?.bundleArtifact.checksum;
 
-      for (let missing of missingCategories) {
-        let newCategory = await db.slateCategory.upsert({
-          where: { identifier: missing },
-          create: {
-            ...getId('slateCategory'),
-            identifier: missing,
-            name: missing
-          },
-          update: {}
+      if (existingVersion && existingChecksum === d.input.slatePackage.contentChecksum) {
+        if (!d.input.access || d.input.access === existingSlate.access) return existingVersion;
+
+        assertAccessPermitted(d.input.access);
+        await db.slate.update({
+          where: { oid: existingSlate.oid },
+          data: { access: d.input.access }
         });
-        existingCategoryIds.push(newCategory.oid);
+        return db.slateVersion.findFirstOrThrow({
+          where: { oid: existingVersion.oid },
+          include
+        });
       }
+      if (existingVersion) {
+        throw new ServiceError(
+          conflictError({
+            message: existingChecksum
+              ? `Version ${slateJson.version} of ${slateJson.name} already exists with different contents.`
+              : `Version ${slateJson.version} of ${slateJson.name} already exists and predates content checksums, so it cannot be republished.`,
+            hint: 'Bump the version in package.json and publish again.'
+          })
+        );
+      }
+    } else {
+      // Identifiers are unique across tenants; don't reveal the owner.
+      let conflictingSlate = await db.slate.findFirst({
+        where: { identifier: d.input.slatePackage.slateIdentifier },
+        select: { oid: true }
+      });
+      if (conflictingSlate) {
+        throw new ServiceError(
+          conflictError({
+            message: `The slate identifier "${d.input.slatePackage.slateIdentifier}" is already used by another scope.`,
+            hint: 'Pick a different slate name in slate.json.'
+          })
+        );
+      }
+    }
 
-      return db.$transaction(async db => {
+    let access =
+      d.input.access ??
+      existingSlate?.access ??
+      (d.input.defaultAccess === 'public' && publicAccessPermitted ? 'public' : 'private');
+    assertAccessPermitted(access);
+
+    let allocatedSlateIds = getId('slate');
+    let allocatedArtifactIds = getId('artifact');
+    let slateId = existingSlate?.id ?? allocatedSlateIds.id;
+    let storageKey = `slate/${slateId}/${slateJson.version}/${allocatedArtifactIds.id}.zip`;
+    let bucket = env.storage.PACKAGE_BUCKET_NAME;
+
+    let existingCategories = await db.slateCategory.findMany({
+      where: { identifier: { in: slateJson.categories ?? [] } }
+    });
+    let existingCategoryIds = existingCategories.map(category => category.oid);
+    let existingCategoryIdentifiers = existingCategories.map(category => category.identifier);
+    let missingCategories = (slateJson.categories ?? []).filter(
+      category => !existingCategoryIdentifiers.includes(category)
+    );
+
+    for (let missing of missingCategories) {
+      let newCategory = await db.slateCategory.upsert({
+        where: { identifier: missing },
+        create: {
+          ...getId('slateCategory'),
+          identifier: missing,
+          name: missing
+        },
+        update: {}
+      });
+      existingCategoryIds.push(newCategory.oid);
+    }
+
+    await storage.putObject(bucket, storageKey, d.input.bundleBuffer, 'application/zip');
+
+    try {
+      return await db.$transaction(async db => {
         let slate = await db.slate.findFirst({
           where: {
             identifier: d.input.slatePackage.slateIdentifier,
@@ -387,7 +446,10 @@ class slateVersionServiceImpl {
           include
         });
       });
-    });
+    } catch (error) {
+      await storage.deleteObject(bucket, storageKey).catch(() => {});
+      throw error;
+    }
   }
 
   async lookupSlateVersions(d: {

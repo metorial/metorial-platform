@@ -4,6 +4,7 @@ import unzipper from 'unzipper';
 
 export type SlatePackageEntry = {
   path: string;
+  archivePath?: string;
   buffer: Buffer;
 };
 
@@ -19,17 +20,22 @@ let normalizeEntryPath = (path: string) =>
 
 let invalidPackage = (message: string) => new ServiceError(badRequestError({ message }));
 
-// Zip headers can understate sizes.
+// Declared sizes in zip headers are attacker-controlled, so count inflated bytes.
 let readEntryBuffer = async (entry: unzipper.File, remainingBytes: number) => {
   let chunks: Buffer[] = [];
   let size = 0;
 
-  for await (let chunk of entry.stream()) {
-    size += chunk.length;
-    if (size > remainingBytes) {
-      throw invalidPackage('The slate package is too large when unpacked.');
+  try {
+    for await (let chunk of entry.stream()) {
+      size += chunk.length;
+      if (size > remainingBytes) {
+        throw invalidPackage('The slate package is too large when unpacked.');
+      }
+      chunks.push(chunk);
     }
-    chunks.push(chunk);
+  } catch (error) {
+    if (error instanceof ServiceError) throw error;
+    throw invalidPackage(`The slate package entry ${entry.path} could not be read.`);
   }
 
   return Buffer.concat(chunks);
@@ -70,19 +76,21 @@ export let readZipEntries = async (
 
     let content = await readEntryBuffer(entry, remainingBytes);
     remainingBytes -= content.length;
-    entries.push({ path, buffer: content });
+    entries.push({ path, archivePath: entry.path, buffer: content });
   }
 
   return entries;
 };
 
-// Hashes contents, not zip bytes, so re-zipped identical files match.
+// Hashes contents, not zip bytes, so re-zipped identical files match. Uses the stored
+// paths, since the hub deploys those: a package/-prefixed copy is a different bundle.
 export let getSlatePackageChecksum = (entries: SlatePackageEntry[]) => {
   let hash = createHash('sha256');
-  let sorted = [...entries].sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+  let paths = entries.map(entry => ({ path: entry.archivePath ?? entry.path, entry }));
+  paths.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
 
-  for (let entry of sorted) {
-    hash.update(`${entry.path}\0${entry.buffer.length}\0`);
+  for (let { path, entry } of paths) {
+    hash.update(`${path}\0${entry.buffer.length}\0`);
     hash.update(entry.buffer);
   }
 
