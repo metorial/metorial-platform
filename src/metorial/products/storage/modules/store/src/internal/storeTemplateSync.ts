@@ -5,8 +5,10 @@ import { Service } from '@lowerdeck/service';
 import {
   documentInclude,
   documentService,
+  internalDocumentContentStoreService,
   internalDocumentDraftService,
-  internalDocumentVersioningService
+  internalDocumentVersioningService,
+  reconcileStoredDocumentBody
 } from '@metorial/module-documents';
 import {
   filePurposeService,
@@ -569,11 +571,17 @@ class InternalStoreTemplateSyncServiceImpl {
             if (!hasContentChange && !hasTitleChange) return currentDocument;
 
             let contentRecord = hasContentChange
-              ? await db.documentContent.create({
-                  data: {
-                    content
-                  }
-                })
+              ? await internalDocumentContentStoreService.createContent(
+                  reconcileStoredDocumentBody({
+                    previous: {
+                      title: currentDocument.title,
+                      content: currentDocument.content.content,
+                      annotations: currentDocument.content.annotations
+                    },
+                    next: { title, content },
+                    actorIds: []
+                  })
+                )
               : null;
 
             let version = contentRecord

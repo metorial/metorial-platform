@@ -10,6 +10,7 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
+    "@types/jsdom": "^28.0.3",
     "@metorial/tsconfig": "^1.0.0"
   },
   "peerDependencies": {
@@ -23,6 +24,7 @@
     "@lowerdeck/lock": "workspace:2.0.0",
     "@lowerdeck/pagination": "workspace:2.0.0",
     "@lowerdeck/redis": "workspace:2.0.0",
+    "@lowerdeck/sentry": "workspace:2.0.0",
     "@lowerdeck/service": "workspace:2.0.0",
     "@lowerdeck/tokens": "workspace:2.0.0",
     "@metorial/audit-scope": "^1.0.0",
@@ -38,6 +40,7 @@
     "@metorial/module-store": "^1.0.0",
     "@metorial/queue": "^1.0.0",
     "hono": "4.13.13",
+    "jsdom": "29.1.1",
     "y-protocols": "^1.0.7",
     "yjs": "^13.6.33"
   },

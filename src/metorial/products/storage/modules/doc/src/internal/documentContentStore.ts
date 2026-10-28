@@ -1,6 +1,12 @@
 import { Service } from '@lowerdeck/service';
 import type { Prisma } from '@metorial/db';
 import { withTransaction } from '@metorial/db';
+import type { DocumentBody } from '@metorial/docs-editor-schema';
+
+type StoredDocumentContent = {
+  content: string;
+  annotations: PrismaJson.DocumentAnnotations | null;
+};
 
 type DocumentStoreSource = {
   id: string;
@@ -27,6 +33,62 @@ let effectiveDocumentStoreSelect = {
 } satisfies Prisma.DocumentSelect;
 
 class InternalDocumentContentStoreServiceImpl {
+  async createContent(body: DocumentBody) {
+    return await withTransaction(
+      async db =>
+        await db.documentContent.create({
+          data: {
+            content: body.content,
+            annotations: body.annotations
+          }
+        })
+    );
+  }
+
+  async updateContent(d: { oid: bigint; body: DocumentBody }) {
+    return await withTransaction(
+      async db =>
+        await db.documentContent.update({
+          where: {
+            oid: d.oid
+          },
+          data: {
+            content: d.body.content,
+            annotations: d.body.annotations
+          }
+        })
+    );
+  }
+
+  async copyContent(source: StoredDocumentContent) {
+    return await withTransaction(
+      async db =>
+        await db.documentContent.create({
+          data: {
+            content: source.content,
+            annotations: source.annotations ?? undefined
+          }
+        })
+    );
+  }
+
+  async replaceAnnotationsIfContentUnchanged(d: { oid: bigint; body: DocumentBody }) {
+    let result = await withTransaction(
+      async db =>
+        await db.documentContent.updateMany({
+          where: {
+            oid: d.oid,
+            content: d.body.content
+          },
+          data: {
+            annotations: d.body.annotations
+          }
+        })
+    );
+
+    return result.count > 0;
+  }
+
   async getEffectiveDocumentStoreSource(
     document: DocumentStoreSource
   ): Promise<DocumentStoreSource> {

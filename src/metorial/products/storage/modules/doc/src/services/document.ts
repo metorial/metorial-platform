@@ -45,7 +45,11 @@ import {
 } from '../internal/documentDraft';
 import { internalDocumentParticipantService } from '../internal/documentParticipant';
 import { internalDocumentVersioningService } from '../internal/documentVersioning';
+import type { DocumentBody } from '@metorial/docs-editor-schema';
+import { reconcileStoredDocumentBody } from '../lib/documentBody';
 import { rewriteDocumentMarkdownTitle } from '../lib/documentMarkdown';
+import { verifyDocumentContentAnnotations } from '../queues/documentAnnotationsRepair';
+import { queueDocumentCommentAnchorSync } from '../queues/documentCommentAnchorSync';
 import { documentFlushQueue } from '../queues/documentFlush';
 
 let draftFlushDelayMs = 60 * 1000;
@@ -77,6 +81,7 @@ export type ResolvedDocumentRecord = Prisma.DocumentGetPayload<{
 }> & {
   resolvedTitle?: string;
   resolvedContent?: string;
+  resolvedAnnotations?: PrismaJson.DocumentAnnotations | null;
   hasDraft?: boolean;
   draftUpdatedAt?: Date;
   draftRevision?: number;
@@ -145,12 +150,16 @@ class DocumentServiceImpl {
 
   private async resolveDocument(document: DocumentRecord): Promise<ResolvedDocumentRecord> {
     let draft = await internalDocumentDraftService.getDraftByDocumentId(document.id);
-    if (!draft) return await this.withEffectiveFileStore(document);
+    if (!draft) {
+      await verifyDocumentContentAnnotations(document.content);
+      return await this.withEffectiveFileStore(document);
+    }
 
     return await this.withEffectiveFileStore({
       ...document,
       resolvedTitle: draft.title,
       resolvedContent: draft.content,
+      resolvedAnnotations: draft.annotations ?? null,
       hasDraft: true,
       draftRevision: draft.revision,
       draftUpdatedAt: new Date(draft.updatedAt)
@@ -244,11 +253,13 @@ class DocumentServiceImpl {
         }
       });
 
-      let content = await db.documentContent.create({
-        data: {
-          content: d.input.content
-        }
-      });
+      let content = await internalDocumentContentStoreService.createContent(
+        reconcileStoredDocumentBody({
+          previous: null,
+          next: { title: d.input.title, content: d.input.content },
+          actorIds: actor ? [actor.id] : []
+        })
+      );
 
       let document = await db.document.create({
         data: {
@@ -374,7 +385,25 @@ class DocumentServiceImpl {
       });
     }
 
-    return await this.resolveDocument(document);
+    let resolved = await this.resolveDocument(document);
+
+    return {
+      ...resolved,
+      annotationActors: await this.getAnnotationActors(resolved)
+    };
+  }
+
+  private async getAnnotationActors(document: ResolvedDocumentRecord) {
+    let annotations = document.hasDraft
+      ? document.resolvedAnnotations
+      : document.content.annotations;
+    let actorIds = annotations?.actors ?? [];
+    if (!actorIds.length) return [];
+
+    return await db.resourceActor.findMany({
+      where: { id: { in: actorIds }, projectOid: document.projectOid },
+      include: resourceActorPresentationInclude
+    });
   }
 
   async getDocumentPermissions(d: {
@@ -540,6 +569,9 @@ class DocumentServiceImpl {
       title?: string;
       content?: string;
       authorization: ResourceAuthorization;
+      internal?: {
+        body?: DocumentBody;
+      };
       /**
        * Where the edit came from. Kept on the draft so it can be attributed when the
        * version that seals these edits is later audited.
@@ -549,7 +581,16 @@ class DocumentServiceImpl {
       overridePermissions?: boolean;
     };
   }) {
-    if (d.input.title === undefined && d.input.content === undefined) {
+    let internalBody = d.input.internal?.body;
+    if (internalBody && d.input.content !== undefined) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Document content and body cannot be updated together'
+        })
+      );
+    }
+
+    if (d.input.title === undefined && d.input.content === undefined && !internalBody) {
       throw new ServiceError(
         badRequestError({
           message: 'At least one document field must be updated'
@@ -578,20 +619,28 @@ class DocumentServiceImpl {
         let currentDraft = await internalDocumentDraftService.getDraftByDocumentId(
           d.document.id
         );
-        let currentContent =
-          currentDraft?.content ?? d.document.resolvedContent ?? d.document.content.content;
+        let current = {
+          title: currentDraft?.title ?? d.document.title,
+          content: currentDraft?.content ?? d.document.content.content,
+          annotations: currentDraft
+            ? (currentDraft.annotations ?? null)
+            : d.document.content.annotations
+        };
+        let currentContent = current.content;
+        let nextTitle = d.input.title ?? current.title;
+        let nextBody =
+          internalBody ??
+          reconcileStoredDocumentBody({
+            previous: current,
+            next: { title: nextTitle, content: d.input.content ?? current.content },
+            actorIds: actor && d.input.content !== undefined ? [actor.id] : []
+          });
+
         let nextDraft: DocumentDraft = {
           documentId: d.document.id,
-          title:
-            d.input.title ??
-            currentDraft?.title ??
-            d.document.resolvedTitle ??
-            d.document.title,
-          content:
-            d.input.content ??
-            currentDraft?.content ??
-            d.document.resolvedContent ??
-            d.document.content.content,
+          title: nextTitle,
+          content: nextBody.content,
+          annotations: nextBody.annotations,
           actors: currentDraft ? getDocumentDraftActors(currentDraft) : [],
           revision: (currentDraft?.revision ?? 0) + 1,
           updatedAt: new Date().toISOString(),
@@ -600,7 +649,7 @@ class DocumentServiceImpl {
         let nextIsContentOwner = d.document.isContentOwner;
 
         if (
-          d.input.content !== undefined &&
+          (d.input.content !== undefined || internalBody) &&
           currentContent !== nextDraft.content &&
           !d.document.isContentOwner
         ) {
@@ -643,6 +692,7 @@ class DocumentServiceImpl {
           isContentOwner: nextIsContentOwner,
           resolvedTitle: nextDraft.title,
           resolvedContent: nextDraft.content,
+          resolvedAnnotations: nextDraft.annotations ?? null,
           hasDraft: true,
           draftRevision: nextDraft.revision,
           draftUpdatedAt: new Date(nextDraft.updatedAt)
@@ -661,6 +711,7 @@ class DocumentServiceImpl {
     }
 
     await this.queueDocumentFlush(d.document.id, draftFlushDelayMs);
+    await queueDocumentCommentAnchorSync(d.document.id);
 
     return await this.withEffectiveFileStore(resolved);
   }
@@ -711,6 +762,9 @@ class DocumentServiceImpl {
       let documentId = d.input.id ?? (await ID.generateId('document'));
       let sourceTitle = d.document.resolvedTitle ?? d.document.title;
       let sourceContent = d.document.resolvedContent ?? d.document.content.content;
+      let sourceAnnotations = d.document.hasDraft
+        ? (d.document.resolvedAnnotations ?? null)
+        : d.document.content.annotations;
       let nextTitle = d.input.title ?? sourceTitle;
       let nextContent = d.input.rewriteContentTitle
         ? rewriteDocumentMarkdownTitle(sourceContent, nextTitle)
@@ -737,11 +791,17 @@ class DocumentServiceImpl {
 
       let content =
         cloneType === 'duplicate'
-          ? await db.documentContent.create({
-              data: {
-                content: nextContent
-              }
-            })
+          ? await internalDocumentContentStoreService.createContent(
+              reconcileStoredDocumentBody({
+                previous: {
+                  title: sourceTitle,
+                  content: sourceContent,
+                  annotations: sourceAnnotations
+                },
+                next: { title: nextTitle, content: nextContent },
+                actorIds: []
+              })
+            )
           : null;
 
       let document = await db.document.create({

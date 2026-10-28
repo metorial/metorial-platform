@@ -10,6 +10,7 @@ export type DocumentDraft = {
   documentId: string;
   title: string;
   content: string;
+  annotations?: PrismaJson.DocumentAnnotations;
   actors: DocumentDraftActor[];
   actorIds?: string[];
   revision: number;

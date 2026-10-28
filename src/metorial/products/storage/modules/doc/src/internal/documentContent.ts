@@ -2,7 +2,14 @@ import { Service } from '@lowerdeck/service';
 import type { Context } from '@metorial/context';
 import type { Instance, Prisma, Project, ResourceActor } from '@metorial/db';
 import { withTransaction } from '@metorial/db';
+import {
+  areAnnotationCommentsEqual,
+  areDocumentBodiesEqual,
+  type DocumentBody
+} from '@metorial/docs-editor-schema';
+import { resolveDocumentDraftBody } from '../lib/documentBody';
 import { documentInclude } from '../services/document';
+import { internalDocumentContentStoreService } from './documentContentStore';
 import { type DocumentDraft } from './documentDraft';
 import { internalDocumentParticipantService } from './documentParticipant';
 import { internalDocumentVersioningService } from './documentVersioning';
@@ -34,7 +41,8 @@ class InternalDocumentContentServiceImpl {
             contentOid: true,
             content: {
               select: {
-                content: true
+                content: true,
+                annotations: true
               }
             }
           }
@@ -47,12 +55,15 @@ class InternalDocumentContentServiceImpl {
   async getParentSyncState(d: {
     document: Pick<DocumentRecord, 'isContentOwner' | 'parentDocumentOid'>;
     nextContent: string;
+    nextAnnotations?: unknown;
   }) {
     let parentLiveContent = await this.getParentLiveContent(d.document);
     let shouldKeepParentSync =
       !d.document.isContentOwner &&
       !!parentLiveContent &&
-      parentLiveContent.content.content === d.nextContent;
+      parentLiveContent.content.content === d.nextContent &&
+      (d.nextAnnotations === undefined ||
+        areAnnotationCommentsEqual(parentLiveContent.content.annotations, d.nextAnnotations));
 
     return {
       parentLiveContent,
@@ -64,7 +75,7 @@ class InternalDocumentContentServiceImpl {
     project: Project;
     instance: Instance;
     document: DocumentRecord;
-    nextContent: string;
+    nextBody: DocumentBody;
     listEditedAt?: Date;
   }) {
     return await withTransaction(async db => {
@@ -80,7 +91,8 @@ class InternalDocumentContentServiceImpl {
       let didCreateVersion = false;
       let { parentLiveContent, shouldKeepParentSync } = await this.getParentSyncState({
         document: d.document,
-        nextContent: d.nextContent
+        nextContent: d.nextBody.content,
+        nextAnnotations: d.nextBody.annotations
       });
       let hasLinkedChildContentConsumers = d.document.isContentOwner
         ? (await db.document.count({
@@ -115,11 +127,9 @@ class InternalDocumentContentServiceImpl {
         });
       } else if (shouldCreateNewVersion) {
         if (d.document.currentVersion) {
-          let retiredContent = await db.documentContent.create({
-            data: {
-              content: d.document.content.content
-            }
-          });
+          let retiredContent = await internalDocumentContentStoreService.copyContent(
+            d.document.content
+          );
 
           await db.documentVersion.update({
             where: {
@@ -133,31 +143,23 @@ class InternalDocumentContentServiceImpl {
 
         if (d.document.isContentOwner) {
           if (shouldDetachOwnedContent) {
-            let liveContent = await db.documentContent.create({
-              data: {
-                content: d.nextContent
-              }
-            });
+            let liveContent = await internalDocumentContentStoreService.createContent(
+              d.nextBody
+            );
 
             liveContentOid = liveContent.oid;
           } else {
-            await db.documentContent.update({
-              where: {
-                oid: d.document.contentOid
-              },
-              data: {
-                content: d.nextContent
-              }
+            await internalDocumentContentStoreService.updateContent({
+              oid: d.document.contentOid,
+              body: d.nextBody
             });
           }
         } else if (shouldKeepParentSync) {
           liveContentOid = parentLiveContent!.contentOid;
         } else {
-          let liveContent = await db.documentContent.create({
-            data: {
-              content: d.nextContent
-            }
-          });
+          let liveContent = await internalDocumentContentStoreService.createContent(
+            d.nextBody
+          );
 
           liveContentOid = liveContent.oid;
         }
@@ -173,11 +175,9 @@ class InternalDocumentContentServiceImpl {
         didCreateVersion = true;
       } else if (d.document.isContentOwner) {
         if (shouldDetachOwnedContent) {
-          let liveContent = await db.documentContent.create({
-            data: {
-              content: d.nextContent
-            }
-          });
+          let liveContent = await internalDocumentContentStoreService.createContent(
+            d.nextBody
+          );
 
           liveContentOid = liveContent.oid;
 
@@ -206,13 +206,9 @@ class InternalDocumentContentServiceImpl {
             });
           }
         } else {
-          await db.documentContent.update({
-            where: {
-              oid: d.document.contentOid
-            },
-            data: {
-              content: d.nextContent
-            }
+          await internalDocumentContentStoreService.updateContent({
+            oid: d.document.contentOid,
+            body: d.nextBody
           });
         }
       } else if (shouldKeepParentSync) {
@@ -243,11 +239,7 @@ class InternalDocumentContentServiceImpl {
           });
         }
       } else {
-        let liveContent = await db.documentContent.create({
-          data: {
-            content: d.nextContent
-          }
-        });
+        let liveContent = await internalDocumentContentStoreService.createContent(d.nextBody);
 
         liveContentOid = liveContent.oid;
 
@@ -288,6 +280,41 @@ class InternalDocumentContentServiceImpl {
     });
   }
 
+  private async writeDocumentAnnotations(d: {
+    document: DocumentRecord;
+    nextBody: DocumentBody;
+  }) {
+    return await withTransaction(async db => {
+      if (d.document.isContentOwner) {
+        await internalDocumentContentStoreService.updateContent({
+          oid: d.document.contentOid,
+          body: d.nextBody
+        });
+
+        return { liveContentOid: d.document.contentOid, isContentOwner: true };
+      }
+
+      if (areAnnotationCommentsEqual(d.document.content.annotations, d.nextBody.annotations)) {
+        return { liveContentOid: d.document.contentOid, isContentOwner: false };
+      }
+
+      let liveContent = await internalDocumentContentStoreService.createContent(d.nextBody);
+
+      if (d.document.currentVersion?.contentOid === d.document.contentOid) {
+        await db.documentVersion.update({
+          where: {
+            id: d.document.currentVersion.id
+          },
+          data: {
+            contentOid: liveContent.oid
+          }
+        });
+      }
+
+      return { liveContentOid: liveContent.oid, isContentOwner: true };
+    });
+  }
+
   async persistDraftToDocument(d: {
     project: Project;
     instance: Instance;
@@ -297,11 +324,22 @@ class InternalDocumentContentServiceImpl {
   }) {
     return await withTransaction(async db => {
       let nextTitle = d.draft.title;
-      let nextContent = d.draft.content;
+      let nextBody = resolveDocumentDraftBody({
+        draft: d.draft,
+        stored: {
+          title: d.document.title,
+          content: d.document.content.content,
+          annotations: d.document.content.annotations
+        },
+        actorIds: d.actors.map(({ actor }) => actor.id)
+      });
+      let nextContent = nextBody.content;
       let hasContentChange = nextContent !== d.document.content.content;
+      let hasAnnotationChange =
+        !hasContentChange && !areDocumentBodiesEqual(nextBody, d.document.content);
       let hasTitleChange = nextTitle !== d.document.title;
 
-      if (!hasContentChange && !hasTitleChange) {
+      if (!hasContentChange && !hasTitleChange && !hasAnnotationChange) {
         let { parentLiveContent, shouldKeepParentSync } = await this.getParentSyncState({
           document: d.document,
           nextContent
@@ -354,7 +392,8 @@ class InternalDocumentContentServiceImpl {
             return {
               document: updatedDocument,
               createdVersionId: null,
-              didPersistChange: false
+              didPersistChange: false,
+              didPersistAnnotations: false
             };
           }
         }
@@ -362,7 +401,8 @@ class InternalDocumentContentServiceImpl {
         return {
           document: d.document,
           createdVersionId: null,
-          didPersistChange: false
+          didPersistChange: false,
+          didPersistAnnotations: false
         };
       }
 
@@ -379,7 +419,7 @@ class InternalDocumentContentServiceImpl {
           project: d.project,
           instance: d.instance,
           document: d.document,
-          nextContent,
+          nextBody,
           listEditedAt
         });
 
@@ -390,7 +430,17 @@ class InternalDocumentContentServiceImpl {
           ? (writeResult.activeVersion?.id ?? null)
           : null;
         draftVersionExpiresAt = writeResult.draftVersionExpiresAt;
+      } else if (hasAnnotationChange) {
+        let writeResult = await this.writeDocumentAnnotations({
+          document: d.document,
+          nextBody
+        });
+
+        liveContentOid = writeResult.liveContentOid;
+        isContentOwner = writeResult.isContentOwner;
       }
+
+      let hasLiveContentChange = hasContentChange || liveContentOid !== d.document.contentOid;
 
       await db.file.update({
         where: {
@@ -409,8 +459,8 @@ class InternalDocumentContentServiceImpl {
         },
         data: {
           title: nextTitle,
-          contentOid: hasContentChange ? liveContentOid : undefined,
-          isContentOwner: hasContentChange ? isContentOwner : undefined,
+          contentOid: hasLiveContentChange ? liveContentOid : undefined,
+          isContentOwner: hasLiveContentChange ? isContentOwner : undefined,
           currentVersionOid: hasContentChange ? (activeVersion?.oid ?? null) : undefined,
           draftVersionExpiresAt: hasContentChange ? draftVersionExpiresAt : undefined
         },
@@ -441,7 +491,8 @@ class InternalDocumentContentServiceImpl {
       return {
         document: updatedDocument,
         createdVersionId,
-        didPersistChange: true
+        didPersistChange: hasContentChange || hasTitleChange,
+        didPersistAnnotations: hasContentChange || hasAnnotationChange
       };
     });
   }

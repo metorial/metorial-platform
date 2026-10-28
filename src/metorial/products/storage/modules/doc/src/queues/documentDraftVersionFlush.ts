@@ -2,7 +2,11 @@ import { storeVersionService } from '@metorial/module-store';
 import { createCron } from '@metorial/cron';
 import { db, withTransaction } from '@metorial/db';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
-import { internalDocumentDraftService, internalDocumentVersioningService } from '../internal';
+import {
+  internalDocumentContentStoreService,
+  internalDocumentDraftService,
+  internalDocumentVersioningService
+} from '../internal';
 import { documentInclude } from '../services/document';
 import { documentVersionSyncManyQueue } from './documentVersionSync';
 import { enqueueDocumentLifecycle } from './lifecycle';
@@ -106,11 +110,9 @@ export let flushExpiredDraftVersion = async (d: {
       }
       if (draftVersionExpiresAt.getTime() > now.getTime()) return null;
 
-      let retiredContent = await db.documentContent.create({
-        data: {
-          content: document.content.content
-        }
-      });
+      let retiredContent = await internalDocumentContentStoreService.copyContent(
+        document.content
+      );
 
       await db.documentVersion.update({
         where: {

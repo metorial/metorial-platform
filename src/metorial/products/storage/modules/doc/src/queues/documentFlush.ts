@@ -9,6 +9,7 @@ import {
   internalDocumentDraftService
 } from '../internal';
 import { documentInclude } from '../services/document';
+import { queueDocumentCommentAnchorSync } from './documentCommentAnchorSync';
 import { documentVersionSyncManyQueue } from './documentVersionSync';
 import { enqueueDocumentLifecycle } from './lifecycle';
 let batchSize = 100;
@@ -130,6 +131,9 @@ export let flushDocumentDraft = async (d: {
       await storeVersionService.touchStoresLastEditedAtForDocument({
         documentOid: result.document.oid
       });
+    }
+    if (result.didPersistAnnotations) {
+      await queueDocumentCommentAnchorSync(result.document.id);
     }
 
     if (result.createdVersionId) {

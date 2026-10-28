@@ -12,9 +12,11 @@ import type { ResourceAuthorization } from '@metorial/module-access';
 import { upgradeWebSocket, websocket } from 'hono/bun';
 import type { WSContext } from 'hono/ws';
 import { internalDocumentCollaborationService } from '../internal/documentCollaboration';
+import { findLiveAnnotationViolations } from '../internal/documentLiveAnnotationGuard';
 import { internalDocumentSyncService } from '../internal/documentSync';
 import { queueDocumentCollaborationFlush } from '../queues/documentCollaborationFlush';
 import { documentService } from '../services/document';
+import { documentLiveStateService } from '../services/documentLiveState';
 import {
   canSendDocumentLiveMessage,
   hasSameDocumentLiveIdentity,
@@ -389,7 +391,7 @@ let buildCollaborationResetPayload = async (
           update: state.stateUpdate,
           generation: state.generation
         })
-      : internalDocumentCollaborationService.getSnapshot(documentId)
+      : documentLiveStateService.ensureLiveState(documentId)
   ]);
 
   return {
@@ -629,11 +631,11 @@ export let createDocumentLiveApi = (options: DocumentLiveApiOptions) =>
             await persistLiveSession(session);
             scheduleSessionExpiry(session, ws);
 
-            let collaboration =
-              await internalDocumentCollaborationService.getSnapshot(documentId);
+            let collaboration = await documentLiveStateService.ensureLiveState(documentId);
             send(ws, 'document_snapshot', buildDocumentPayload(scopedDocument.document));
             send(ws, 'collaboration_snapshot', {
               sessionId,
+              actorId,
               document: buildDocumentPayload(scopedDocument.document),
               stateUpdate: collaboration.update,
               generation: collaboration.generation,
@@ -749,9 +751,25 @@ export let createDocumentLiveApi = (options: DocumentLiveApiOptions) =>
                   actorId: session.actorId,
                   actorContext: session.context,
                   generation:
-                    typeof parsed.data.generation === 'number' ? parsed.data.generation : 0
+                    typeof parsed.data.generation === 'number' ? parsed.data.generation : 0,
+                  validate: async ({ previous, next }) => {
+                    let violations = await findLiveAnnotationViolations({
+                      document: scopedDocument.document,
+                      actorId: session.actorId,
+                      previous,
+                      next
+                    });
+                    if (violations.length > 0) {
+                      console.warn('Rejected live document update with forged annotations', {
+                        documentId: session.documentId,
+                        sessionId,
+                        violations
+                      });
+                    }
+                    return violations.length === 0;
+                  }
                 });
-                if (merged.stale) {
+                if (merged.stale || merged.rejected) {
                   let ws = socketsBySessionId.get(sessionId);
                   if (ws) await sendCollaborationReset(ws, session.documentId);
                   return;

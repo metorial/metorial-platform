@@ -137,6 +137,64 @@ class InternalDocumentCollaborationServiceImpl {
     return { update, generation };
   }
 
+  async ensureState(d: { documentId: string; build: () => Promise<string | null> }) {
+    return await this.withDocumentLock(d.documentId, async () => {
+      let redis = await getRedis();
+      let keys = collaborationKeys(d.documentId);
+      let generation = await this.getGeneration(d.documentId);
+      let existing = await redis.get(keys.state);
+      if (typeof existing == 'string' && existing.length > 0) {
+        return { update: existing, generation };
+      }
+
+      let update = await d.build();
+      if (update) {
+        await redis.set(keys.state, update, {
+          EX: collaborationTtlSeconds
+        });
+      }
+
+      return { update, generation };
+    });
+  }
+
+  async transformState<T>(d: {
+    documentId: string;
+    build: () => Promise<string | null>;
+    transform: (state: string) => { delta: string | null; result: T };
+  }) {
+    return await this.withDocumentLock(d.documentId, async () => {
+      let redis = await getRedis();
+      let keys = collaborationKeys(d.documentId);
+      let generation = await this.getGeneration(d.documentId);
+      let existing = await redis.get(keys.state);
+      let state =
+        typeof existing == 'string' && existing.length > 0 ? existing : await d.build();
+      if (!state) return null;
+
+      let { delta, result } = d.transform(state);
+      if (!delta) {
+        if (state !== existing) {
+          await redis.set(keys.state, state, { EX: collaborationTtlSeconds });
+        }
+
+        return { result, delta: null, generation, revision: null };
+      }
+
+      let doc = new Y.Doc();
+      Y.applyUpdate(doc, decodeUpdate(state));
+      Y.applyUpdate(doc, decodeUpdate(delta));
+
+      await redis.set(keys.state, encodeUpdate(Y.encodeStateAsUpdate(doc)), {
+        EX: collaborationTtlSeconds
+      });
+      let revision = Number(await redis.hIncrBy(dirtyDocumentsHash, d.documentId, 1));
+
+      doc.destroy();
+      return { result, delta, generation, revision };
+    });
+  }
+
   async initializeState(d: { documentId: string; update: string; generation?: number }) {
     return await this.withDocumentLock(d.documentId, async () => {
       let redis = await getRedis();
@@ -186,28 +244,42 @@ class InternalDocumentCollaborationServiceImpl {
     actorId?: string;
     actorContext?: Context;
     generation?: number;
+    validate?: (d: { previous: string | null; next: string }) => Promise<boolean>;
   }) {
     return await this.withDocumentLock(d.documentId, async () => {
       let redis = await getRedis();
       let keys = collaborationKeys(d.documentId);
       let generation = await this.getGeneration(d.documentId);
       let existing = await redis.get(keys.state);
+      let previous = typeof existing == 'string' && existing.length > 0 ? existing : null;
       if (d.generation !== undefined && d.generation !== generation) {
         return {
-          stale: true,
-          update: typeof existing == 'string' ? existing : null,
+          stale: true as const,
+          rejected: false as const,
+          update: previous,
           generation
         };
       }
       let doc = new Y.Doc();
 
-      if (typeof existing == 'string' && existing.length > 0) {
-        Y.applyUpdate(doc, decodeUpdate(existing));
+      if (previous) {
+        Y.applyUpdate(doc, decodeUpdate(previous));
       }
 
       Y.applyUpdate(doc, decodeUpdate(d.update));
 
       let merged = encodeUpdate(Y.encodeStateAsUpdate(doc));
+      doc.destroy();
+
+      if (d.validate && !(await d.validate({ previous, next: merged }))) {
+        return {
+          stale: false as const,
+          rejected: true as const,
+          update: previous,
+          generation
+        };
+      }
+
       await redis.set(keys.state, merged, {
         EX: collaborationTtlSeconds
       });
@@ -221,9 +293,9 @@ class InternalDocumentCollaborationServiceImpl {
         );
       }
 
-      doc.destroy();
       return {
-        stale: false,
+        stale: false as const,
+        rejected: false as const,
         update: merged,
         revision: Number(revision),
         generation

@@ -1,10 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
-import {
-  composeFullMarkdown,
-  yjsUpdateToDocumentSnapshot
-} from '@metorial/docs-editor-schema';
+import { yjsUpdateToDocumentBody } from '@metorial/docs-editor-schema';
 import { resourceActorService } from '@metorial/module-resource-actor';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
 import { internalDocumentCollaborationService } from '../internal';
@@ -109,14 +106,9 @@ export let flushDocumentCollaborationState = async (d: {
     return null;
   }
 
-  let snapshot = yjsUpdateToDocumentSnapshot(stateUpdate);
-  let title = snapshot.title ?? currentDocument.title;
-  let frontMatter =
-    snapshot.frontMatter ?? getFrontMatterFromMarkdown(currentDocument.content.content);
-  let content = composeFullMarkdown({
-    frontMatter,
-    title,
-    body: snapshot.body
+  let snapshot = yjsUpdateToDocumentBody(stateUpdate, {
+    title: currentDocument.title,
+    frontMatter: getFrontMatterFromMarkdown(currentDocument.content.content)
   });
 
   let collaborationActor = await internalDocumentCollaborationService.getActor(d.documentId);
@@ -139,8 +131,10 @@ export let flushDocumentCollaborationState = async (d: {
         resourceActor: actor
       },
       context: collaborationActor?.context,
-      title,
-      content
+      title: snapshot.title,
+      internal: {
+        body: snapshot.body
+      }
     }
   });
 
