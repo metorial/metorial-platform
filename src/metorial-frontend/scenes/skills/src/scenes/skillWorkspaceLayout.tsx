@@ -137,7 +137,6 @@ export type SkillWorkspaceRoutes = {
   mergeRequests: string;
   mergeRequest: (mergeRequestId: string) => string;
   document: (documentId: string, itemId: string) => string;
-  agent: (documentId: string) => string;
   providers: string;
   agents: string;
   settings: string;
@@ -568,13 +567,15 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
     () => buildFileEntries(storeItems.data ?? [], p.routes.document),
     [storeItems.data, p.routes.document]
   );
+  let getAgentHref = (agent: { documentId: string; storeItemId: string | null }) =>
+    agent.storeItemId ? p.routes.document(agent.documentId, agent.storeItemId) : null;
   let agentEntries: WorkspaceFileEntry[] = agents.map(agent => ({
     id: agent.id,
     name: agent.name,
     path: agent.name,
     kind: 'agent',
     depth: 0,
-    href: p.routes.agent(agent.documentId),
+    href: getAgentHref(agent),
     documentId: agent.documentId
   }));
 
@@ -618,12 +619,10 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
   let closePanelRoute = () => navigate(canvasCacheRef.current?.href ?? p.routes.overview);
 
   let documentPrefix = routePrefix(marker => p.routes.document(marker, marker));
-  let agentPrefix = routePrefix(marker => p.routes.agent(marker));
   let isOverview = isRouteActive(canvasPathname, p.routes.overview, true);
   let isDocumentRoute =
     isOverview ||
-    (!!documentPrefix && canvasPathname.startsWith(documentPrefix)) ||
-    (!!agentPrefix && canvasPathname.startsWith(agentPrefix));
+    (!!documentPrefix && canvasPathname.startsWith(documentPrefix));
 
   let mainEntry = fileEntries.find(entry => entry.isMain);
   let activeEntry =
@@ -859,12 +858,13 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
     agents.length ? (
       <SectionList>
         {agents.map(agent => {
-          let href = p.routes.agent(agent.documentId);
+          let href = getAgentHref(agent);
           return (
             <SectionRow
               key={agent.id}
-              $active={isRouteActive(location.pathname, href, true)}
-              onClick={() => navigate(href)}
+              $active={!!href && isRouteActive(location.pathname, href, true)}
+              disabled={!href}
+              onClick={() => href && navigate(href)}
               onPointerEnter={() =>
                 prefetchDocument({ instanceId: p.instanceId, documentId: agent.documentId })
               }

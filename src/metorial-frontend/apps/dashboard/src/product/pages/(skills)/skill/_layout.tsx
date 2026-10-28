@@ -170,7 +170,6 @@ export let SkillLayout = () => {
               mergeRequest: mergeRequestId =>
                 `${skillPath}/merge-requests/${mergeRequestId}/conversation`,
               document: (_, itemId) => `${skillPath}/item/${itemId}`,
-              agent: documentId => `${skillPath}/agent/${documentId}`,
               providers: `${skillPath}/providers`,
               agents: `${skillPath}/agents`,
               settings: `${skillPath}/settings`,

@@ -160,11 +160,13 @@ export let showSkillAgentFormModal = (p: {
 let getSkillAgentTableRow = (p: {
   agent: SkillAgent;
   isDeleting: boolean;
-  getDocumentPath: (documentId: string) => string;
+  getDocumentPath: (documentId: string, itemId: string) => string;
   onEdit?: (agent: SkillAgent) => void;
   onDelete?: (agent: SkillAgent) => void;
 }) => {
-  let documentPath = p.getDocumentPath(p.agent.documentId);
+  let documentPath = p.agent.storeItemId
+    ? p.getDocumentPath(p.agent.documentId, p.agent.storeItemId)
+    : undefined;
 
   let row = [
     <AgentName>
@@ -228,7 +230,7 @@ let getSkillAgentTableRow = (p: {
 export let SkillAgentsScene = (p: {
   instanceId: string | null | undefined;
   skillId: string | null | undefined;
-  getDocumentPath: (documentId: string) => string;
+  getDocumentPath: (documentId: string, itemId: string) => string;
   readOnly?: boolean;
 }) => {
   let skillAgents = useSkillAgents(p.instanceId, p.skillId, { order: 'asc' });
