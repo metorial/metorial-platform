@@ -224,6 +224,31 @@ export let reviewStages: {
   }
 ];
 
+export let usageReviewStages: typeof reviewStages = [
+  {
+    id: 'collecting',
+    label: 'Gather Usage',
+    description: 'Tools, scopes and filters',
+    title: 'Looking at how it is used.',
+    detail:
+      'Reading aggregated tool usage, granted scopes, tool filters, and ProtoGuard results.'
+  },
+  {
+    id: 'analyzing',
+    label: 'Compare Access',
+    description: 'Allowed versus used',
+    title: 'Comparing what is allowed with what is used.',
+    detail: 'Checking which powerful tools and scopes are available but never needed.'
+  },
+  {
+    id: 'writing',
+    label: 'Write Report',
+    description: 'Exposure and findings',
+    title: 'Turning usage into a verdict.',
+    detail: 'Writing the observed exposure, findings and recommendations.'
+  }
+];
+
 export let skillReviewStages: typeof reviewStages = [
   {
     id: 'collecting',

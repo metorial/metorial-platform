@@ -1,3 +1,4 @@
+import type React from 'react';
 import { theme } from '@metorial/ui';
 import { styled } from 'styled-components';
 import type { ReportContentsEntry } from './aside';
@@ -63,10 +64,18 @@ export let SecurityReportVerdictFooter = styled.div`
 
 let numbered = (index: number) => String(index + 1).padStart(2, '0');
 
+export type ExtraReportSection = {
+  id: string;
+  label: string;
+  render: (number: string) => React.ReactNode;
+};
+
 export let SecurityReportSections = ({
-  revision
+  revision,
+  extraSections = []
 }: {
   revision: AnySecurityReviewRevision;
+  extraSections?: ExtraReportSection[];
 }) => {
   let sections = [
     {
@@ -89,6 +98,7 @@ export let SecurityReportSections = ({
       id: 'findings',
       render: (n: string) => <FindingsSection number={n} revision={revision} />
     },
+    ...extraSections,
     {
       id: 'changes',
       render: (n: string) => <ChangesSection number={n} revision={revision} />
@@ -106,7 +116,8 @@ export let SecurityReportSections = ({
 };
 
 export let getSecurityReportContents = (
-  revision: AnySecurityReviewRevision
+  revision: AnySecurityReviewRevision,
+  extraSections: ExtraReportSection[] = []
 ): ReportContentsEntry[] => {
   let isSkill = isSkillRevision(revision);
 
@@ -121,6 +132,7 @@ export let getSecurityReportContents = (
       label: isSkill ? 'Behaviors & exposure' : 'Capabilities & exposure'
     },
     { id: 'findings', label: 'Findings' },
+    ...extraSections.map(section => ({ id: section.id, label: section.label })),
     { id: 'changes', label: 'What changed' },
     { id: 'method', label: 'Method & limits' }
   ];

@@ -258,8 +258,8 @@ export let SecurityReportAside = ({
         <RiInformationLine size={14} />
         <Text size="1" color="gray700">
           <strong>Generate by Metorial Protoguard:</strong> This report covers the reviewed
-          version and the evidence available at the time. New versions or changes to the
-          provider will lead to new assessments and reports.
+          version and the evidence available at the time. New versions or changes will lead to
+          updated assessments.
         </Text>
       </Note>
     </Aside>

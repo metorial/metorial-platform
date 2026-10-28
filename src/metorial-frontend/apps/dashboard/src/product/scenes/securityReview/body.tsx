@@ -1,4 +1,4 @@
-import { useSecurityReviewGenerationEnabled } from '@metorial/state';
+import { useSecurityReviewGenerationEnabled, type UsageReviewRevision } from '@metorial/state';
 import { Button } from '@metorial/ui';
 import {
   SecurityReviewNotices,
@@ -30,7 +30,8 @@ export let SecurityAssessmentBody = ({
   detailed,
   versionLabel,
   toolCount,
-  retry
+  retry,
+  usage
 }: {
   review: AnySecurityReview;
   revision?: AnySecurityReviewRevision | null;
@@ -38,6 +39,7 @@ export let SecurityAssessmentBody = ({
   versionLabel?: string | null;
   toolCount?: number;
   retry?: { onClick: () => void; loading: boolean; success: boolean };
+  usage?: UsageReviewRevision | null;
 }) => {
   let canGenerate = useSecurityReviewGenerationEnabled();
   let { current, inProgress, failed } = getReviewRevisions<AnySecurityReviewRevision>(review);
@@ -74,7 +76,7 @@ export let SecurityAssessmentBody = ({
     return (
       <>
         <SecurityReviewNotices review={review} revision={shown} versionLabel={versionLabel} />
-        <SecurityReviewVerdict revision={shown} detailed={detailed} />
+        <SecurityReviewVerdict revision={shown} detailed={detailed} usage={usage} />
       </>
     );
   }

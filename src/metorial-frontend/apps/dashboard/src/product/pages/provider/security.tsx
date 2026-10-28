@@ -29,7 +29,9 @@ import {
   SecurityReportVerdict,
   SecurityReportVerdictFooter,
   SecurityReportVerdictHeader,
-  SecurityReviewMeta
+  SecurityReviewMeta,
+  UsageReviewSection,
+  type ExtraReportSection
 } from '../../scenes/securityReview';
 import { useProviderVersionContext } from './providerVersionContext';
 
@@ -57,6 +59,7 @@ export let ProviderSecurityPage = () => {
     isDefaultVersion ? undefined : selectedVersionId
   );
   let reassess = review.useReassessMutator();
+  let reassessUsage = review.useReassessUsageMutator();
 
   let [searchParams, setSearchParams] = useSearchParams();
   let selectedRevisionId = searchParams.get(REVISION_PARAM);
@@ -139,6 +142,28 @@ export let ProviderSecurityPage = () => {
     let canReassess = canGenerate && review.data.maintainedBy == 'organization' && !inProgress;
     let isHistorical = !!displayed && !!current && displayed.id != current.id;
     let versionLabel = displayedVersion.data?.version;
+
+    let usage = review.data.usageReview;
+    let extraSections: ExtraReportSection[] = usage
+      ? [
+          {
+            id: 'usage',
+            label: 'Observed usage',
+            render: number => (
+              <UsageReviewSection
+                number={number}
+                usage={usage}
+                canReassess={canGenerate}
+                reassess={{
+                  onClick: () => reassessUsage.mutate(undefined),
+                  loading: reassessUsage.isLoading,
+                  success: reassessUsage.isSuccess
+                }}
+              />
+            )
+          }
+        ]
+      : [];
 
     let reassessButton =
       review.data.maintainedBy == 'organization' ? (
@@ -257,13 +282,14 @@ export let ProviderSecurityPage = () => {
               )}
             </SecurityReportVerdict>
 
-            <SecurityReportSections revision={displayed} />
+            <SecurityReportSections revision={displayed} extraSections={extraSections} />
+            <reassessUsage.RenderError />
           </div>
 
           <SecurityReportAside
             revision={displayed}
             versionLabel={versionLabel}
-            contents={getSecurityReportContents(displayed)}
+            contents={getSecurityReportContents(displayed, extraSections)}
             history={history}
             currentRevisionId={currentRevisionId}
             selectedRevisionId={displayed.id}

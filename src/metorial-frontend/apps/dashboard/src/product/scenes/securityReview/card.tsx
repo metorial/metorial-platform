@@ -67,6 +67,7 @@ export let SecurityAssessmentCard = ({
             <SecurityAssessmentBody
               review={review.data}
               versionLabel={version.data?.version}
+              usage={review.data.usageReview?.currentRevision}
             />
 
             <Footer>

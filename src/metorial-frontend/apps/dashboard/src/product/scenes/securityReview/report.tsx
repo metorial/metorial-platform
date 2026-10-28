@@ -644,6 +644,38 @@ let FindingBody = ({ finding }: { finding: SecurityReviewFinding }) => (
   </FindingContent>
 );
 
+export let FindingsAccordion = ({
+  findings,
+  showNew
+}: {
+  findings: SecurityReviewFinding[];
+  showNew: boolean;
+}) => (
+  <Accordion
+    type="multiple"
+    items={findings.map(finding => ({
+      title: (
+        <FindingTitle>
+          {findingIcons[finding.kind]}
+          {finding.title}
+          {finding.kind == 'security' ? (
+            <LevelBadge level={severityLevels[finding.severity]}>
+              {severityLabels[finding.severity]}
+            </LevelBadge>
+          ) : (
+            <Badge color={finding.kind == 'positive' ? 'green' : 'yellow'}>
+              {findingKindLabels[finding.kind]}
+            </Badge>
+          )}
+          {finding.change == 'new' && showNew && <Badge color="blue">New</Badge>}
+        </FindingTitle>
+      ),
+      description: finding.category.replace(/_/g, ' '),
+      content: <FindingBody finding={finding} />
+    }))}
+  />
+);
+
 export let FindingsSection = ({
   number,
   revision
@@ -732,31 +764,7 @@ export let FindingsSection = ({
       </Filters>
 
       {filtered.length ? (
-        <Accordion
-          type="multiple"
-          items={filtered.map(finding => ({
-            title: (
-              <FindingTitle>
-                {findingIcons[finding.kind]}
-                {finding.title}
-                {finding.kind == 'security' ? (
-                  <LevelBadge level={severityLevels[finding.severity]}>
-                    {severityLabels[finding.severity]}
-                  </LevelBadge>
-                ) : (
-                  <Badge color={finding.kind == 'positive' ? 'green' : 'yellow'}>
-                    {findingKindLabels[finding.kind]}
-                  </Badge>
-                )}
-                {finding.change == 'new' && getPreviousScore(revision) && (
-                  <Badge color="blue">New</Badge>
-                )}
-              </FindingTitle>
-            ),
-            description: finding.category.replace(/_/g, ' '),
-            content: <FindingBody finding={finding} />
-          }))}
-        />
+        <FindingsAccordion findings={filtered} showNew={!!getPreviousScore(revision)} />
       ) : (
         <Card>
           <IconRow>
@@ -917,4 +925,16 @@ export let MethodSection = ({
       )}
     </Section>
   );
+};
+
+export {
+  Card as ReportCard,
+  Chip as ReportChip,
+  Chips as ReportChips,
+  IconRow as ReportIconRow,
+  PendingSection as ReportPendingSection,
+  Section as ReportSection,
+  Tags as ReportTags,
+  TableFooter as ReportTableFooter,
+  ToolKey as ReportToolKey
 };

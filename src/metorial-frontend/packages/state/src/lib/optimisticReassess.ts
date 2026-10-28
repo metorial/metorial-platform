@@ -23,6 +23,15 @@ export let clearReassess = (key: string) => {
   if (requests.delete(key)) notify();
 };
 
+export let useIsReassessRequested = (key: string | null) =>
+  useSyncExternalStore(
+    listener => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    () => (key ? requests.has(key) : false)
+  );
+
 type RevisionLike = {
   id: string;
   status: string;

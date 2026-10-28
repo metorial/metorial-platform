@@ -1,3 +1,4 @@
+import type { UsageReviewRevision } from '@metorial/state';
 import {
   Badge,
   Callout,
@@ -11,6 +12,7 @@ import {
 } from '@metorial/ui';
 import { LevelBadge, ScoreRing } from '@metorial/ui-product';
 import {
+  RiBarChart2Line,
   RiErrorWarningLine,
   RiFlashlightLine,
   RiLockLine,
@@ -89,6 +91,10 @@ let Axis = styled.div`
     margin-top: 2px;
     color: ${theme.colors.gray600};
   }
+`;
+
+let WideAxis = styled(Axis)`
+  grid-column: 1 / -1;
 `;
 
 let AxisTitle = styled.div`
@@ -170,10 +176,12 @@ let AiLabel = styled.span`
 
 export let SecurityReviewVerdict = ({
   revision,
-  detailed
+  detailed,
+  usage
 }: {
   revision: AnySecurityReviewRevision;
   detailed?: boolean;
+  usage?: UsageReviewRevision | null;
 }) => {
   let scores = revision.scores;
   let isSkill = isSkillRevision(revision);
@@ -276,23 +284,56 @@ export let SecurityReviewVerdict = ({
               )}
             </div>
           </Axis>
+
+          {usage?.scores && (
+            <WideAxis>
+              <RiBarChart2Line size={16} />
+              <div>
+                <AxisTitle>
+                  Observed Usage
+                  <AxisStatus>
+                    {levelLabels[usage.scores.exposure]} ·{' '}
+                    {usage.scores.stats.calls.toLocaleString()} calls in{' '}
+                    {usage.scores.stats.windowDays} days
+                  </AxisStatus>
+                </AxisTitle>
+                {usage.report.summary && (
+                  <Text size="1" color="gray700" style={{ marginTop: 4 }}>
+                    {usage.report.summary.text}
+                  </Text>
+                )}
+              </div>
+            </WideAxis>
+          )}
         </Axes>
       )}
     </>
   );
 };
 
+type ProgressRevision = {
+  object: string;
+  status: string;
+  stage: string | null;
+  activity?: string | null;
+};
+
 export let SecurityReviewProgress = ({
   revision,
   toolCount,
-  subject = 'provider'
+  subject = 'provider',
+  stages,
+  label = 'security review'
 }: {
-  revision: AnySecurityReviewRevision | null;
+  revision: ProgressRevision | null;
   toolCount?: number;
   subject?: 'provider' | 'skill';
+  stages?: ReturnType<typeof getReviewStages>;
+  label?: string;
 }) => {
-  let reviewStages = getReviewStages(revision ? getReviewSubject(revision) : subject);
-  let activity = revision && !isSkillRevision(revision) ? revision.activity : null;
+  let reviewStages =
+    stages ?? getReviewStages(revision?.object.startsWith('skill.') ? 'skill' : subject);
+  let activity = revision && !revision.object.startsWith('skill.') ? revision.activity : null;
 
   let stageIndex = revision?.stage
     ? reviewStages.findIndex(stage => stage.id == revision.stage)
@@ -323,7 +364,7 @@ export let SecurityReviewProgress = ({
               : `Review in progress · Step ${stageIndex + 1} of ${reviewStages.length}`}
           </Eyebrow>
           <Title as="h3" size="4" weight="strong">
-            {stage?.title ?? 'Your security review will begin shortly.'}
+            {stage?.title ?? `Your ${label} will begin shortly.`}
           </Title>
           <Text size="2" color="gray700">
             {stage?.detail ?? 'The review starts as soon as a reviewer is available.'}
@@ -334,7 +375,7 @@ export let SecurityReviewProgress = ({
       <StepsWrapper>
         <ProgressSteps
           orientation="horizontal"
-          aria-label="Security review stages"
+          aria-label={`${label} stages`}
           steps={reviewStages.map(item => ({
             id: item.id,
             label: item.label,
@@ -439,22 +480,21 @@ export let SecurityReviewNotices = ({
     notices.push(
       <Callout key="billing" color="orange" size="1">
         <strong>The AI review is paused.</strong> Your organization has reached its security
-        review allowance. Only deterministic checks ran for this revision. Upgrade your plan to
-        resume AI reviews.
+        review allowance. Only basic checks ran for this revision. Upgrade your plan to resume
+        AI reviews.
       </Callout>
     );
   } else if (revision.blockReason == 'ai_disabled') {
     notices.push(
       <Callout key="ai-disabled" color="gray" size="1">
-        <strong>AI review is disabled for this project.</strong> Only deterministic checks ran,
-        and no {subject} source was sent for AI review.
+        <strong>AI review is disabled for this project.</strong> Only basic checks ran, and no{' '}
+        {subject} source was sent for AI review.
       </Callout>
     );
   } else if (revision.blockReason == 'admin_disabled') {
     notices.push(
       <Callout key="admin-disabled" color="gray" size="1">
-        <strong>AI review is unavailable for this {subject}.</strong> Only deterministic checks
-        ran.
+        <strong>AI review is unavailable for this {subject}.</strong> Only basic checks ran.
       </Callout>
     );
   }
