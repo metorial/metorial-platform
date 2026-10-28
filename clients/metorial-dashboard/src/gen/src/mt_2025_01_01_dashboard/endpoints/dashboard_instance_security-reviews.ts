@@ -68,7 +68,7 @@ export class MetorialDashboardInstanceSecurityReviewsEndpoint {
 
   /**
    * @name Reassess security review
-   * @description Starts a new review of a custom provider. Available once every 24 hours; reviews of Metorial integrations are maintained by Metorial.
+   * @description Starts a new review of a custom provider.
    *
    * @param `instanceId` - string
    * @param `securityReviewId` - string

@@ -4,6 +4,7 @@ export type DashboardProjectsConfigureAiAnalysisGetOutput = {
   object: 'organization.project.ai_analysis_configuration';
   projectId: string;
   aiAnalysisEnabled: boolean;
+  usageReviewsEnabled: boolean;
   skillReviewHoldPending: boolean;
   updatedAt: Date;
 };
@@ -13,6 +14,7 @@ export let mapDashboardProjectsConfigureAiAnalysisGetOutput =
     [
       'project_id',
       'ai_analysis_enabled',
+      'usage_reviews_enabled',
       'skill_review_hold_pending',
       'updated_at'
     ],

@@ -70,7 +70,7 @@ export class MetorialSkillsSecurityReviewEndpoint {
 
   /**
    * @name Reassess skill security review
-   * @description Starts a new review of the skill. Available once every 24 hours.
+   * @description Starts a new review of the skill. Pending edits are sealed into a new version first.
    *
    * @param `skillId` - string
    * @param `opts` - { headers?: Record<string, string> }

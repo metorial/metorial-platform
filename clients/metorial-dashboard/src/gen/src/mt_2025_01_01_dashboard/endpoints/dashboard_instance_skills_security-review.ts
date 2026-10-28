@@ -72,7 +72,7 @@ export class MetorialDashboardInstanceSkillsSecurityReviewEndpoint {
 
   /**
    * @name Reassess skill security review
-   * @description Starts a new review of the skill. Available once every 24 hours.
+   * @description Starts a new review of the skill. Pending edits are sealed into a new version first.
    *
    * @param `instanceId` - string
    * @param `skillId` - string

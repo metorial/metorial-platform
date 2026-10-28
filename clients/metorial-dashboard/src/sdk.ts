@@ -110,6 +110,7 @@ import {
   MetorialDashboardInstanceProvidersTriggersEndpoint,
   MetorialDashboardInstanceProvidersVersionsEndpoint,
   MetorialDashboardInstanceProvidersSecurityReviewEndpoint,
+  MetorialDashboardInstanceProvidersSecurityReviewUsageEndpoint,
   MetorialDashboardInstanceSecurityReviewsEndpoint,
   MetorialDashboardInstanceSecurityReviewsRevisionsEndpoint,
   MetorialDashboardInstanceProviderTemplatesEndpoint,
@@ -1098,7 +1099,10 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   providers: Object.assign(new MetorialDashboardInstanceProvidersEndpoint(manager), {
     tools: new MetorialDashboardInstanceProvidersToolsEndpoint(manager),
     versions: new MetorialDashboardInstanceProvidersVersionsEndpoint(manager),
-    securityReview: new MetorialDashboardInstanceProvidersSecurityReviewEndpoint(manager),
+    securityReview: Object.assign(
+      new MetorialDashboardInstanceProvidersSecurityReviewEndpoint(manager),
+      { usage: new MetorialDashboardInstanceProvidersSecurityReviewUsageEndpoint(manager) }
+    ),
     triggers: new MetorialDashboardInstanceProvidersTriggersEndpoint(manager),
     authMethods: new MetorialDashboardInstanceProvidersAuthMethodsEndpoint(manager),
     authConfigs: new MetorialDashboardInstanceProviderDeploymentsAuthConfigsEndpoint(manager),
