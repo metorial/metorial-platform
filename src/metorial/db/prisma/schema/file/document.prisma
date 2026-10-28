@@ -4,6 +4,9 @@ model DocumentContent {
   cargoOid BigInt? @unique
   content  String
 
+  /// [DocumentAnnotations]
+  annotations Json?
+
   documents        Document[]
   documentVersions DocumentVersion[]
 }
@@ -59,6 +62,7 @@ model Document {
   mergeRequestItemsAsBaseDocument   SkillMergeRequestItem[] @relation("SkillMergeRequestItemBaseDocument")
   mergeRequestItemsAsSourceDocument SkillMergeRequestItem[] @relation("SkillMergeRequestItemSourceDocument")
   mergeRequestItemsAsTargetDocument SkillMergeRequestItem[] @relation("SkillMergeRequestItemTargetDocument")
+  commentThreads                    DocumentCommentThread[]
 
   @@index([resourceTenantOid, resourceGroupOid])
   @@index([resourceTenantOid, resourceGroupOid, isTemplateBacking])

@@ -144,6 +144,10 @@ model ResourceActor {
   skillMergeRequestEvents   SkillMergeRequestEvent[]
   lastModifiedStoreItems    StoreItem[]
 
+  createdDocumentCommentThreads  DocumentCommentThread[] @relation("DocumentCommentThreadCreator")
+  resolvedDocumentCommentThreads DocumentCommentThread[] @relation("DocumentCommentThreadResolver")
+  documentComments               DocumentComment[]
+
   createdProductAssistantConversations     ProductAssistantConversation[]            @relation("ProductAssistantConversationCreator")
   productAssistantRequests                 ProductAssistantRequest[]
   productAssistantConversationParticipants ProductAssistantConversationParticipant[]

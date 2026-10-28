@@ -392,8 +392,7 @@ declare global {
     type ProviderOAuthConfig = any;
 
     type CustomServerDeploymentStepLogs = (
-      | [number, string[], 0 | 1 | undefined]
-      | [number, string[], 0 | 1]
+      [number, string[], 0 | 1 | undefined] | [number, string[], 0 | 1]
     )[]; // ts, lines, 1=error
 
     type CodeBucketTemplateContents = {
@@ -424,6 +423,14 @@ declare global {
     type ProductAssistantSubspaceMcpToolList = ProductAssistant.SubspaceMcpToolList;
 
     type SystemEventPayload = { [key: string]: any };
+
+    type DocumentAnnotations = {
+      v: 1;
+      contentHash: string;
+      actors: string[];
+      blocks: { id: string; h: string; e: number[] }[];
+      comments: { t: string; s: [number, number]; e: [number, number]; q: string }[];
+    };
 
     type WebImageCandidate = {
       url: string;

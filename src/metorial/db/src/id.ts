@@ -274,6 +274,8 @@ export let ID = createIdGenerator({
   documentParticipant: idType.sorted('docp_'),
   documentVersion: idType.sorted('docv_'),
   documentVersionEditor: idType.sorted('docve_'),
+  documentCommentThread: idType.sorted('doccth_'),
+  documentComment: idType.sorted('doccm_'),
   skillGroup: idType.sorted('skg'),
   skillGroupItem: idType.sorted('skgi'),
   providerTemplate: idType.sorted('ptm'),
