@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { keyframes, styled } from 'styled-components';
+import { css, keyframes, styled } from 'styled-components';
 import { theme } from '..';
 import { useDialogZIndex } from '../dialog/state';
 import { OverlayOpenProvider, useSuppressTooltipWhileOpen } from '../tooltip/state';
@@ -13,6 +13,14 @@ let fadeInBottom = keyframes`
 let fadeOutBottom = keyframes`
   from { opacity: 1; transform: translateY(0); }
   to { opacity: 0; transform: translateY(-10px); }
+`;
+
+let openingAnimation = css`
+  ${fadeInBottom} 0.2s ease forwards
+`;
+
+let closingAnimation = css`
+  ${fadeOutBottom} 0.2s ease forwards
 `;
 
 let Trigger = styled.div`
@@ -31,7 +39,7 @@ let Content = styled.div<{ $closing?: boolean }>`
   border-radius: 10px;
   min-width: 200px;
   gap: 5px;
-  animation: ${p => (p.$closing ? fadeOutBottom : fadeInBottom)} 0.2s ease forwards;
+  animation: ${p => (p.$closing ? closingAnimation : openingAnimation)};
 `;
 
 let Separator = styled.div`
