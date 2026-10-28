@@ -11,6 +11,7 @@ export type {
   AuditConsumerSurface,
   AuditConsumerSurfaceProviderGroup,
   AuditDocument,
+  AuditDocumentCommentEventDocument,
   AuditFile,
   AuditInstanceConsumer,
   AuditMagicMcpEndpoint,

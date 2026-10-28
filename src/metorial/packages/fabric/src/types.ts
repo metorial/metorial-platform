@@ -48,6 +48,8 @@ import {
   ConsumerSession,
   ConsumerSurface,
   Document,
+  DocumentComment,
+  DocumentCommentThread,
   EventDeliveryIntent,
   EventDestination,
   EventDestinationListener,
@@ -729,6 +731,8 @@ export type AuditDocument = Document & {
   currentVersion?: { id: string } | null;
   content: { content: string };
 };
+
+export type AuditDocumentCommentEventDocument = { id: string; title: string };
 
 export type AuditStore = Store;
 
@@ -1453,6 +1457,12 @@ export interface FabricEvents {
   'document.created:before': { instance: Instance };
   'document.created:after': { instance: Instance; auditScope: AuditScope; document: AuditDocument };
   'document.deleted:after': { instance: Instance; auditScope: AuditScope; document: AuditDocument };
+  'document.comment_thread.created:after': { instance: Instance; auditScope: AuditScope; document: AuditDocumentCommentEventDocument; thread: DocumentCommentThread; comment: DocumentComment };
+  'document.comment_thread.updated:after': { instance: Instance; auditScope: AuditScope; document: AuditDocumentCommentEventDocument; thread: DocumentCommentThread; previousThread: DocumentCommentThread };
+  'document.comment_thread.deleted:after': { instance: Instance; auditScope: AuditScope; document: AuditDocumentCommentEventDocument; thread: DocumentCommentThread };
+  'document.comment.created:after': { instance: Instance; auditScope: AuditScope; document: AuditDocumentCommentEventDocument; thread: DocumentCommentThread; comment: DocumentComment };
+  'document.comment.updated:after': { instance: Instance; auditScope: AuditScope; document: AuditDocumentCommentEventDocument; thread: DocumentCommentThread; comment: DocumentComment; previousComment: DocumentComment };
+  'document.comment.deleted:after': { instance: Instance; auditScope: AuditScope; document: AuditDocumentCommentEventDocument; thread: DocumentCommentThread; comment: DocumentComment };
   'document.version.sealed:after': { document: { id: string; title: string }; version: { id: string; versionNumber: number; byteSize: number; editedAt: Date }; previousVersionId: string | null; editors: { auditScope: AuditScope }[] };
 
   'store.created:after': { auditScope: AuditScope; store: AuditStore };

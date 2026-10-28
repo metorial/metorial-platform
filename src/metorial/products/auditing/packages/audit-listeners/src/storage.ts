@@ -1,7 +1,9 @@
 import type { AuditScope } from '@metorial/audit-scope';
+import type { DocumentComment, DocumentCommentThread } from '@metorial/db';
 import {
   Fabric,
   type AuditDocument,
+  type AuditDocumentCommentEventDocument,
   type AuditFile,
   type AuditStore,
   type FabricEvents
@@ -166,12 +168,129 @@ export let recordDocumentVersionSealed = async (
   );
 };
 
+let documentCommentThreadPayload = (
+  document: AuditDocumentCommentEventDocument,
+  thread: DocumentCommentThread
+) => ({
+  id: thread.id,
+  documentId: document.id,
+  documentTitle: document.title,
+  status: thread.status,
+  anchorStatus: thread.anchorStatus,
+  resolvedAt: thread.resolvedAt
+});
+
+let documentCommentPayload = (
+  document: AuditDocumentCommentEventDocument,
+  thread: DocumentCommentThread,
+  comment: DocumentComment
+) => ({
+  id: comment.id,
+  threadId: thread.id,
+  documentId: document.id,
+  documentTitle: document.title,
+  byteSize: new TextEncoder().encode(comment.body).length
+});
+
+export let recordDocumentCommentThreadCreated = async (
+  event: FabricEvents['document.comment_thread.created:after']
+) => {
+  await recordAuditEventAfterCommit(async recordedAt => {
+    await auditTrackerService.recordEvent(
+      event.auditScope,
+      'document_comment_thread',
+      'create',
+      {
+        payload: documentCommentThreadPayload(event.document, event.thread),
+        recordedAt
+      }
+    );
+  });
+};
+
+export let recordDocumentCommentThreadUpdated = async (
+  event: FabricEvents['document.comment_thread.updated:after']
+) => {
+  await recordAuditEventAfterCommit(async recordedAt => {
+    await auditTrackerService.recordEvent(
+      event.auditScope,
+      'document_comment_thread',
+      'update',
+      {
+        payload: documentCommentThreadPayload(event.document, event.thread),
+        previousPayload: documentCommentThreadPayload(event.document, event.previousThread),
+        recordedAt
+      }
+    );
+  });
+};
+
+export let recordDocumentCommentThreadDeleted = async (
+  event: FabricEvents['document.comment_thread.deleted:after']
+) => {
+  await recordAuditEventAfterCommit(async recordedAt => {
+    await auditTrackerService.recordEvent(
+      event.auditScope,
+      'document_comment_thread',
+      'delete',
+      {
+        payload: documentCommentThreadPayload(event.document, event.thread),
+        recordedAt
+      }
+    );
+  });
+};
+
+export let recordDocumentCommentCreated = async (
+  event: FabricEvents['document.comment.created:after']
+) => {
+  await recordAuditEventAfterCommit(async recordedAt => {
+    await auditTrackerService.recordEvent(event.auditScope, 'document_comment', 'create', {
+      payload: documentCommentPayload(event.document, event.thread, event.comment),
+      recordedAt
+    });
+  });
+};
+
+export let recordDocumentCommentUpdated = async (
+  event: FabricEvents['document.comment.updated:after']
+) => {
+  await recordAuditEventAfterCommit(async recordedAt => {
+    await auditTrackerService.recordEvent(event.auditScope, 'document_comment', 'update', {
+      payload: documentCommentPayload(event.document, event.thread, event.comment),
+      previousPayload: documentCommentPayload(
+        event.document,
+        event.thread,
+        event.previousComment
+      ),
+      recordedAt
+    });
+  });
+};
+
+export let recordDocumentCommentDeleted = async (
+  event: FabricEvents['document.comment.deleted:after']
+) => {
+  await recordAuditEventAfterCommit(async recordedAt => {
+    await auditTrackerService.recordEvent(event.auditScope, 'document_comment', 'delete', {
+      payload: documentCommentPayload(event.document, event.thread, event.comment),
+      recordedAt
+    });
+  });
+};
+
 Fabric.listen('file.created:after', recordFileCreated);
 Fabric.listen('file.deleted:after', recordFileDeleted);
 
 Fabric.listen('document.created:after', recordDocumentCreated);
 Fabric.listen('document.deleted:after', recordDocumentDeleted);
 Fabric.listen('document.version.sealed:after', recordDocumentVersionSealed);
+Fabric.listen('document.comment_thread.created:after', recordDocumentCommentThreadCreated);
+Fabric.listen('document.comment_thread.updated:after', recordDocumentCommentThreadUpdated);
+Fabric.listen('document.comment_thread.deleted:after', recordDocumentCommentThreadDeleted);
+Fabric.listen('document.comment.created:after', recordDocumentCommentCreated);
+Fabric.listen('document.comment.updated:after', recordDocumentCommentUpdated);
+Fabric.listen('document.comment.deleted:after', recordDocumentCommentDeleted);
 
 Fabric.listen('store.created:after', recordStoreCreated);
 Fabric.listen('store.updated:after', recordStoreUpdated);
