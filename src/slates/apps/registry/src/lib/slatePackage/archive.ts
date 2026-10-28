@@ -60,6 +60,7 @@ export let readZipEntries = async (
 
   let remainingBytes = MAX_SLATE_PACKAGE_UNPACKED_BYTES;
   let entries: SlatePackageEntry[] = [];
+  let seenPaths = new Set<string>();
 
   for (let entry of files) {
     let path = normalizeEntryPath(entry.path);
@@ -73,6 +74,12 @@ export let readZipEntries = async (
         `Slate package paths must be relative to the package root: ${entry.path}`
       );
     }
+
+    // Zips allow repeated names, and normalizing can make two paths equal.
+    if (seenPaths.has(path)) {
+      throw invalidPackage(`The slate package contains ${path} more than once.`);
+    }
+    seenPaths.add(path);
 
     let content = await readEntryBuffer(entry, remainingBytes);
     remainingBytes -= content.length;

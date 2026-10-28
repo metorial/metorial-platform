@@ -64,6 +64,14 @@ describe('slate package archives', () => {
     );
   });
 
+  it('rejects paths that appear twice after normalizing', async () => {
+    let error = await readZipEntries(
+      await createZipArchive({ ...files, 'docs/a.md': 'a', 'package/docs/a.md': 'b' })
+    ).catch(error => error);
+    expect(error).toBeInstanceOf(ServiceError);
+    expect(error.message).toContain('docs/a.md more than once');
+  });
+
   it('rejects entries that cannot be inflated as a bad package', async () => {
     let zip = new JSZip();
     zip.file('dist/index.js', 'x'.repeat(10_000), { compression: 'DEFLATE' });

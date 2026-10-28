@@ -76,11 +76,16 @@ type NormalizedSlateVersionInput = {
   };
 };
 
-let isUniqueConstraintError = (error: unknown) =>
-  typeof error === 'object' &&
-  error !== null &&
-  'code' in error &&
-  (error as { code: string }).code === 'P2002';
+// Rows that concurrent publishes of different slates can both try to create.
+let RACEABLE_UNIQUE_MODELS = new Set(['Slate', 'SlateVersion', 'SlateCategory']);
+
+let isPublishRaceError = (error: unknown) => {
+  let prismaError = error as { code?: string; meta?: { modelName?: string } } | null;
+  return (
+    prismaError?.code === 'P2002' &&
+    RACEABLE_UNIQUE_MODELS.has(prismaError.meta?.modelName ?? '')
+  );
+};
 
 class slateVersionServiceImpl {
   async getPublishableScope(d: { user: User; scopeIdentifier: string }) {
@@ -170,8 +175,7 @@ class slateVersionServiceImpl {
       if (error instanceof LockAcquisitionError && error.isContention) {
         throw concurrentPublishError(slateJson.name);
       }
-      // Concurrent publishes of other slates can race on unique identifiers; a retry resolves it.
-      if (isUniqueConstraintError(error)) {
+      if (isPublishRaceError(error)) {
         console.warn(`[Registry]: Unique constraint race publishing ${slateJson.name}`, error);
         throw concurrentPublishError(slateJson.name);
       }
