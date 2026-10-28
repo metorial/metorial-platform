@@ -7,6 +7,7 @@ import {
   dashboardApiKeyPresenter,
   dashboardAuditLogStreamPresenter,
   dashboardConfigPresenter,
+  dashboardDocumentPresenter,
   dashboardProviderAuthConfigPresenter,
   dashboardPublicMcpServerClientPresenter,
   dashboardPublicMcpServerGrantPresenter,
@@ -98,6 +99,8 @@ import {
   // Custom Provider presenters
   v1CustomProviderPresenter,
   v1CustomProviderVersionPresenter,
+  v1DocumentCommentPresenter,
+  v1DocumentCommentThreadPresenter,
   v1DocumentEditTokenPresenter,
   v1DocumentParticipantPresenter,
   v1DocumentPermissionsPresenter,
@@ -352,6 +355,8 @@ import {
   customProviderType,
   customProviderVersionType,
   deploymentPreviewType,
+  documentCommentThreadType,
+  documentCommentType,
   documentEditTokenType,
   documentParticipantType,
   documentPermissionsType,
@@ -924,7 +929,7 @@ export let fileLinkPresenter = declarePresenter(fileLinkType, {
 });
 
 export let documentPresenter = declarePresenter(documentType, {
-  mt_2025_01_01_dashboard: v1DocumentPresenter,
+  mt_2025_01_01_dashboard: dashboardDocumentPresenter,
   mt_2026_01_01_magnetar: v1DocumentPresenter
 });
 
@@ -946,6 +951,16 @@ export let documentVersionPresenter = declarePresenter(documentVersionType, {
 export let documentParticipantPresenter = declarePresenter(documentParticipantType, {
   mt_2025_01_01_dashboard: v1DocumentParticipantPresenter,
   mt_2026_01_01_magnetar: v1DocumentParticipantPresenter
+});
+
+export let documentCommentThreadPresenter = declarePresenter(documentCommentThreadType, {
+  mt_2025_01_01_dashboard: v1DocumentCommentThreadPresenter,
+  mt_2026_01_01_magnetar: v1DocumentCommentThreadPresenter
+});
+
+export let documentCommentPresenter = declarePresenter(documentCommentType, {
+  mt_2025_01_01_dashboard: v1DocumentCommentPresenter,
+  mt_2026_01_01_magnetar: v1DocumentCommentPresenter
 });
 
 export let storePresenter = declarePresenter(storeType, {

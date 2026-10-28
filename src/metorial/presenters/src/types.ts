@@ -110,6 +110,8 @@ import {
   ConsumerSurfaceProviderGroup,
   ConsumerToken,
   Document,
+  DocumentComment,
+  DocumentCommentThread,
   DocumentParticipant,
   EventDeliveryAttempt,
   EventDeliveryIntent,
@@ -1586,6 +1588,9 @@ export let documentType = PresentableType.create<{
     createdByResourceActor?: ResourceActorPresentationRecord | null;
     resolvedTitle?: string;
     resolvedContent?: string;
+    resolvedAnnotations?: PrismaJson.DocumentAnnotations | null;
+    hasDraft?: boolean;
+    annotationActors?: ResourceActorPresentationRecord[];
   };
 }>()('document');
 
@@ -1632,6 +1637,24 @@ export let documentParticipantType = PresentableType.create<{
     resourceActor: ResourceActorPresentationRecord;
   };
 }>()('documentParticipant');
+
+type DocumentCommentPresentationRecord = DocumentComment & {
+  resourceActor: ResourceActorPresentationRecord;
+};
+
+export let documentCommentType = PresentableType.create<{
+  documentComment: DocumentCommentPresentationRecord;
+  thread: DocumentCommentThread;
+}>()('documentComment');
+
+export let documentCommentThreadType = PresentableType.create<{
+  documentCommentThread: DocumentCommentThread & {
+    document: Document;
+    createdByResourceActor: ResourceActorPresentationRecord;
+    resolvedByResourceActor: ResourceActorPresentationRecord | null;
+    comments: DocumentCommentPresentationRecord[];
+  };
+}>()('documentCommentThread');
 
 export let storeType = PresentableType.create<{
   store: Store;
