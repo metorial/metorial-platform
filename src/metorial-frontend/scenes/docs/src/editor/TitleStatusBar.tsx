@@ -143,8 +143,6 @@ let PopoverTitle = styled.div`
   font-size: 11px;
   font-weight: 600;
   color: ${({ theme }) => theme.color.textSubtle};
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 `;
 
 let EditorRow = styled.div`
@@ -165,13 +163,6 @@ let BlockCount = styled.span`
   font-size: 12px;
   color: ${({ theme }) => theme.color.textMuted};
   font-variant-numeric: tabular-nums;
-`;
-
-let ColorSwatch = styled.span`
-  width: 3px;
-  height: 18px;
-  border-radius: 2px;
-  flex-shrink: 0;
 `;
 
 let EditorInfo = styled.div`
@@ -360,10 +351,9 @@ export function TitleStatusBar({
           {!!attributionCounts?.length && (
             <>
               <PopoverDivider />
-              <PopoverTitle>Blocks By Primary Editor</PopoverTitle>
+              <PopoverTitle>Blocks by primary editor</PopoverTitle>
               {attributionCounts.map(({ person, blocks }) => (
                 <EditorRow key={person.id}>
-                  <ColorSwatch style={{ background: person.color }} />
                   <Avatar
                     name={person.name}
                     imageUrl={person.imageUrl}

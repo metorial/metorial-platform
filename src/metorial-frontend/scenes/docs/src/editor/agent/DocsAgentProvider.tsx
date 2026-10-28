@@ -427,6 +427,8 @@ export let DocsAgentProvider = (p: {
     return {
       canWrite,
 
+      hasPendingJobs: () => Object.keys(jobsRef.current).length > 0,
+
       insertAgentBlock: () => {
         if (!canWrite) return;
         let blockId = createAgentJobId();

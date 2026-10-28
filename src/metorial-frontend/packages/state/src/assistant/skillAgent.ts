@@ -108,6 +108,7 @@ export let useSkillAssistant = (d: {
   let [sendError, setSendError] = useState<string | null>(null);
   let [lastRequestId, setLastRequestId] = useState<string | null>(null);
   let [liveRequestId, setLiveRequestId] = useState<string | null>(null);
+  let [cancelledRequestId, setCancelledRequestId] = useState<string | null>(null);
 
   useEffect(() => {
     if (history.activeRequestId) setLiveRequestId(history.activeRequestId);
@@ -134,8 +135,12 @@ export let useSkillAssistant = (d: {
       seenChangeItemsRef.current.add(item.id);
       if (item.changes.some(change => change.status == 'committed')) hasNewChanges = true;
     }
-    if (hasNewChanges) refreshSkillStoreLoaders();
+    if (!hasNewChanges) return;
+
+    refreshSkillStoreLoaders();
+    setTimeout(refreshSkillStoreLoaders, 1500);
   }, [liveItems]);
+
 
   let requestStatusById = useMemo(() => {
     let statuses = new Map<string, string>();
@@ -150,8 +155,24 @@ export let useSkillAssistant = (d: {
     ? requestStatusById.get(trackedRequestId)
     : undefined;
 
+  let isCancelledAndSettled =
+    !!trackedRequestId &&
+    trackedRequestId == cancelledRequestId &&
+    !history.activeRequestId &&
+    (!trackedRequestStatus || trackedRequestStatus == 'pending');
+
   let isTrackedRequestPending =
-    !!trackedRequestId && (!trackedRequestStatus || trackedRequestStatus == 'pending');
+    !!trackedRequestId &&
+    !isCancelledAndSettled &&
+    (!trackedRequestStatus || trackedRequestStatus == 'pending');
+
+  let refetchHistory = history.refetch;
+  useEffect(() => {
+    if (!cancelledRequestId || trackedRequestStatus != 'pending') return;
+
+    let interval = setInterval(() => refetchHistory(), 1000);
+    return () => clearInterval(interval);
+  }, [cancelledRequestId, trackedRequestStatus, refetchHistory]);
 
   let status: SkillAssistantRequestStatus = isSending
     ? 'sending'
@@ -159,11 +180,26 @@ export let useSkillAssistant = (d: {
       ? 'running'
       : trackedRequestStatus == 'failed'
         ? 'failed'
-        : trackedRequestStatus == 'cancelled'
+        : trackedRequestStatus == 'cancelled' || isCancelledAndSettled
           ? 'cancelled'
           : trackedRequestId
             ? 'completed'
             : 'idle';
+
+  let hadChangesRef = useRef(false);
+  useEffect(() => {
+    if (liveItems.some(item => item.type == 'skill/changes')) hadChangesRef.current = true;
+  }, [liveItems]);
+
+  let wasRunningRef = useRef(false);
+  let isRunning = status == 'running' || status == 'sending';
+  useEffect(() => {
+    if (wasRunningRef.current && !isRunning && hadChangesRef.current) {
+      hadChangesRef.current = false;
+      refreshSkillStoreLoaders();
+    }
+    wasRunningRef.current = isRunning;
+  }, [isRunning]);
 
   let referenceMessage = history.referenceMessage;
   let defaultParentMessageId = !referenceMessage
@@ -259,6 +295,7 @@ export let useSkillAssistant = (d: {
       assistantConversationId: conversationId,
       assistantMessageId: message.id
     });
+    setCancelledRequestId(requestId);
     history.refetch();
   }, [
     cancelMessage,

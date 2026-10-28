@@ -1,5 +1,4 @@
 import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
-import { PageHeader } from '@metorial/layout';
 import {
   refetchSkillGroupMembershipLoaders,
   useAllSkillGroupItems,
@@ -31,6 +30,7 @@ import { Box, ItemGrid, Table } from '@metorial/ui-product';
 import { RiAddLine, RiMore2Line, RiSettings3Line } from '@remixicon/react';
 import { useMemo, useState } from 'react';
 import styled from 'styled-components';
+import { SkillPanelPage } from '../components/skillPanelPage';
 
 let EmptyState = styled.div`
   line-height: 1.6;
@@ -566,12 +566,10 @@ export let SkillGroupsForSkillScene = (p: {
 
   return renderWithPagination(skillGroups, { hidePaginationWhenUnavailable: true })(
     skillGroups => (
-      <>
-        <PageHeader
-          size="6"
-          title="Groups"
-          description="Manage the groups this skill belongs to."
-          actions={
+      <SkillPanelPage
+        title="Groups"
+        description="Manage the groups this skill belongs to."
+        actions={
             !p.readOnly ? (
               <Button
                 size="2"
@@ -584,7 +582,7 @@ export let SkillGroupsForSkillScene = (p: {
               </Button>
             ) : null
           }
-        />
+      >
         {skillGroups.data.items.length === 0 ? (
           <EmptyState>
             <Text color="gray600" size="2">
@@ -622,7 +620,7 @@ export let SkillGroupsForSkillScene = (p: {
             }))}
           />
         )}
-      </>
+      </SkillPanelPage>
     )
   );
 };

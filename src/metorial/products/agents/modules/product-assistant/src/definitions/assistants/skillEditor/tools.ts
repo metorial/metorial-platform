@@ -176,7 +176,7 @@ let createDocumentTools = (d: { view: ActiveDocumentView; writable: boolean }) =
       additionalProperties: false
     }),
     execute: async input => {
-      if (!d.view.hasPendingBlocks) await d.view.refresh();
+      await d.view.refresh();
       return await d.view.read(input);
     }
   });

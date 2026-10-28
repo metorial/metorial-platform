@@ -7,6 +7,8 @@ import { TextSelection } from '@tiptap/pm/state';
 import { offset } from '@floating-ui/dom';
 import styled from 'styled-components';
 import { IconGrip } from './icons';
+import { normalizeEditors } from '@metorial/docs-editor-schema';
+import type { AttributionPerson } from './AttributionPopover';
 import { BlockMenu } from './BlockMenu';
 import type { SlashItem } from './SlashMenu';
 
@@ -109,9 +111,27 @@ let PinnedHandle = styled.div`
   }
 `;
 
+function collectBlockEditors(node: ProseMirrorNode | undefined): string[] {
+  if (!node) return [];
+
+  let editors: string[] = [];
+  let visit = (child: ProseMirrorNode) => {
+    if (child.isTextblock) editors.push(...normalizeEditors(child.attrs.editors));
+  };
+
+  visit(node);
+  node.descendants(child => {
+    visit(child);
+    return true;
+  });
+
+  return normalizeEditors(editors);
+}
+
 interface Props {
   editor: Editor;
   onMenuOpenChange?: (open: boolean) => void;
+  resolvePerson?: (actorId: string) => AttributionPerson;
 }
 
 function getTopLevelNodeAtPos(
@@ -189,7 +209,7 @@ function normalizeNextDragImage(event: DragEvent) {
   });
 }
 
-export function BlockHandle({ editor, onMenuOpenChange }: Props) {
+export function BlockHandle({ editor, onMenuOpenChange, resolvePerson }: Props) {
   let currentRef = useRef<{
     node: ProseMirrorNode;
     pos: number;
@@ -198,6 +218,7 @@ export function BlockHandle({ editor, onMenuOpenChange }: Props) {
   let [currentNodeType, setCurrentNodeType] = useState<string | null>(null);
   let [menuOpen, setMenuOpen] = useState(false);
   let [activeTitle, setActiveTitle] = useState<string | undefined>(undefined);
+  let [blockEditors, setBlockEditors] = useState<AttributionPerson[]>([]);
   let [codeLanguage, setCodeLanguage] = useState('plaintext');
   let [isImageBlock, setIsImageBlock] = useState(false);
   let [headingLink, setHeadingLink] = useState<string | undefined>(undefined);
@@ -275,6 +296,11 @@ export function BlockHandle({ editor, onMenuOpenChange }: Props) {
   let openMenuFromButton = (btn: HTMLButtonElement) => {
     menuOpenRef.current = true;
     menuTriggerRef.current = btn;
+    setBlockEditors(
+      resolvePerson
+        ? collectBlockEditors(currentRef.current?.node).map(resolvePerson)
+        : []
+    );
     let rect = btn.getBoundingClientRect();
     if (
       Number.isFinite(rect.right) &&
@@ -658,6 +684,7 @@ export function BlockHandle({ editor, onMenuOpenChange }: Props) {
         headingLink={headingLink}
         codeLanguage={codeLanguage}
         activeTitle={activeTitle}
+        editors={blockEditors}
         onSelect={handleSelect}
         onCopyHeadingLink={copyHeadingLink}
         onCodeLanguageChange={updateCodeLanguage}

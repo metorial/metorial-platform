@@ -43,6 +43,12 @@ let splitFrontMatter = (content: string) => {
   return { frontMatter: (match[1] ?? '').trim(), body: input.slice(match[0].length) };
 };
 
+let cleanTitle = (content: string) =>
+  content
+    .trim()
+    .replace(/^#+\s*/, '')
+    .trim();
+
 let splitTitle = (body: string) => {
   let match = body.match(/^\s*#\s+([^\r\n]+)(?:\r?\n|$)/);
   if (!match) return { title: undefined, body };
@@ -78,6 +84,7 @@ export class ActiveDocumentView {
   private title: string | undefined;
   private frontMatter: string | undefined;
   private loaded = false;
+  private streamedTargets = new Set<string>();
 
   constructor(
     readonly documentId: string,
@@ -134,26 +141,18 @@ export class ActiveDocumentView {
 
   async refresh() {
     let fresh = await this.loadFresh();
+    this.streamedTargets.clear();
     this.title = fresh.title;
     this.frontMatter = fresh.frontMatter;
 
-    if (!this.loaded || !this.hasPendingBlocks) {
-      let previousByRef = new Map(this.blocks.map(block => [block.ref, block.alias]));
-      this.blocks = fresh.blocks.map(block => ({
-        alias: (block.ref && previousByRef.get(block.ref)) || this.nextAlias(),
-        ref: block.ref,
-        pending: false,
-        markdown: block.markdown
-      }));
-      this.loaded = true;
-      return;
-    }
-
-    let freshByRef = new Map(fresh.blocks.map(block => [block.ref, block.markdown]));
-    this.blocks = this.blocks.filter(block => block.pending || freshByRef.has(block.ref));
-    for (let block of this.blocks) {
-      if (!block.pending) block.markdown = freshByRef.get(block.ref)!;
-    }
+    let previousByRef = new Map(this.blocks.map(block => [block.ref, block.alias]));
+    this.blocks = fresh.blocks.map(block => ({
+      alias: (block.ref && previousByRef.get(block.ref)) || this.nextAlias(),
+      ref: block.ref,
+      pending: false,
+      markdown: block.markdown
+    }));
+    this.loaded = true;
   }
 
   getTitle() {
@@ -228,6 +227,12 @@ export class ActiveDocumentView {
   toPreviewOperation(operation: Partial<BlockEditOperation>): DocumentEditOperation | null {
     if (!operation.type || !operation.target) return null;
 
+    if (operation.type == 'replace' || operation.type == 'delete') {
+      this.streamedTargets.add(operation.target);
+      if ('targetEnd' in operation && operation.targetEnd)
+        this.streamedTargets.add(operation.targetEnd);
+    }
+
     let targetEnd = 'targetEnd' in operation ? operation.targetEnd : undefined;
 
     return {
@@ -243,6 +248,7 @@ export class ActiveDocumentView {
 
   private async findStaleTargets(aliases: string[]) {
     let targets = aliases
+      .filter(alias => !this.streamedTargets.has(alias))
       .map(alias => this.blocks.find(block => block.alias == alias))
       .filter((block): block is ShadowBlock => !!block && !block.pending && !!block.ref);
     if (targets.length == 0) return [];
@@ -286,6 +292,8 @@ export class ActiveDocumentView {
         )
       : new Set<string>();
 
+    this.streamedTargets.clear();
+
     return d.operations.map((operation, index) =>
       this.applyOperation({
         operation,
@@ -325,8 +333,10 @@ export class ActiveDocumentView {
       if (operation.type != 'replace')
         return fail(`${operation.target} only supports replace`);
 
-      if (operation.target == documentTitleTarget) this.title = content.trim();
-      else this.frontMatter = content.trim() || undefined;
+      if (operation.target == documentTitleTarget) {
+        this.title = cleanTitle(content);
+        resolved.content = this.title;
+      } else this.frontMatter = content.trim() || undefined;
 
       return { operation: resolved };
     }

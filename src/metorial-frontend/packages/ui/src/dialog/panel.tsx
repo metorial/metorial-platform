@@ -34,6 +34,12 @@ let Header = styled('header')`
   border-top-left-radius: var(--dialog-radius);
 `;
 
+let HeaderActions = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+`;
+
 let Content = styled('main')`
   display: flex;
   flex-direction: column;
@@ -119,14 +125,24 @@ export let Panel = {
   Content: ({ children }: { children: React.ReactNode }) => {
     return <Content>{children}</Content>;
   },
-  Header: ({ children }: { children: React.ReactNode }) => {
+  Header: ({
+    children,
+    actions
+  }: {
+    children: React.ReactNode;
+    actions?: React.ReactNode;
+  }) => {
     return (
       <Header>
         <div>{children}</div>
 
-        <RadixDialogDialog.Close asChild>
-          <Button type="button" aria-label="Close" iconLeft={<RiCloseLine />} />
-        </RadixDialogDialog.Close>
+        <HeaderActions>
+          {actions}
+
+          <RadixDialogDialog.Close asChild>
+            <Button type="button" aria-label="Close" iconLeft={<RiCloseLine />} />
+          </RadixDialogDialog.Close>
+        </HeaderActions>
       </Header>
     );
   }

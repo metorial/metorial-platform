@@ -1,5 +1,6 @@
 import {
   type ComponentType,
+  useCallback,
   createContext,
   createElement,
   type ReactNode,
@@ -53,12 +54,38 @@ type Publish = (state: DocumentEditorChromeState | null) => void;
 let PublishContext = createContext<Publish | null>(null);
 let StateContext = createContext<DocumentEditorChromeState | null>(null);
 
+let RELEASE_GRACE_MS = 1500;
+
 export let DocumentEditorChromeProvider = (p: { children: ReactNode }) => {
   let [state, setState] = useState<DocumentEditorChromeState | null>(null);
+  let releaseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  let publish = useCallback<Publish>(next => {
+    if (releaseTimer.current) clearTimeout(releaseTimer.current);
+    releaseTimer.current = null;
+
+    if (next) {
+      setState(next);
+      return;
+    }
+
+    setState(prev => (prev ? { ...prev, toolbarDisabled: true } : prev));
+    releaseTimer.current = setTimeout(() => {
+      releaseTimer.current = null;
+      setState(null);
+    }, RELEASE_GRACE_MS);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (releaseTimer.current) clearTimeout(releaseTimer.current);
+    },
+    []
+  );
 
   return createElement(
     PublishContext.Provider,
-    { value: setState },
+    { value: publish },
     createElement(StateContext.Provider, { value: state }, p.children)
   );
 };

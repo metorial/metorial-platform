@@ -1,5 +1,4 @@
 import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
-import { PageHeader } from '@metorial/layout';
 import {
   type IntegrationPreview,
   type SkillItem,
@@ -29,6 +28,7 @@ import {
 import { Box, ItemGrid, Table } from '@metorial/ui-product';
 import { RiAddLine, RiMore2Line } from '@remixicon/react';
 import { useMemo, useState } from 'react';
+import { SkillPanelPage } from '../components/skillPanelPage';
 import styled from 'styled-components';
 
 let EmptyState = styled.div`
@@ -823,12 +823,10 @@ export let SkillLinkProvidersScene = (p: {
       }
 
       return (
-        <>
-          <PageHeader
-            size="6"
-            title="Providers"
-            description="Link providers and integrations to be used with this skill."
-            actions={
+        <SkillPanelPage
+          title="Providers"
+          description="Link providers and integrations to be used with this skill."
+          actions={
               !p.readOnly ? (
                 <AddSkillItemMenu
                   disabled={!p.instanceId || !p.skillId}
@@ -837,7 +835,7 @@ export let SkillLinkProvidersScene = (p: {
                 />
               ) : null
             }
-          />
+        >
           {skillItems.data.length === 0 ? (
             <EmptyState>
               <Text color="gray600" size="2">
@@ -861,7 +859,7 @@ export let SkillLinkProvidersScene = (p: {
               <deleteSkillItem.RenderError />
             </>
           )}
-        </>
+        </SkillPanelPage>
       );
     }
   );

@@ -14,6 +14,7 @@ export let COMMENTS_RAIL_WIDTH = 300;
 
 let PENDING_ID = '__pending__';
 let FALLBACK_CARD_HEIGHT = 96;
+let SETTLE_MS = 320;
 
 let RailRoot = styled.div`
   position: absolute;
@@ -28,19 +29,22 @@ let RailRoot = styled.div`
   }
 `;
 
-let Positioned = styled.div`
+let Positioned = styled.div<{ $placed: boolean; $animateTop: boolean }>`
   position: absolute;
   left: 0;
   right: 0;
-  transition: top 160ms ease;
+  opacity: ${({ $placed }) => ($placed ? 1 : 0)};
+  pointer-events: ${({ $placed }) => ($placed ? 'auto' : 'none')};
+  transition: ${({ $animateTop, theme }) =>
+    `opacity ${theme.motion.base}${$animateTop ? ', top 160ms ease' : ''}`};
 `;
 
 let PendingCard = styled.div`
   padding: 12px;
-  border: 1px solid ${({ theme }) => theme.color.commentHighlightBorder};
-  border-radius: 10px;
+  border: 1px solid ${({ theme }) => theme.color.borderStrong};
+  border-radius: ${({ theme }) => theme.size.radiusLg};
   background: ${({ theme }) => theme.color.bgElevated};
-  box-shadow: ${({ theme }) => theme.shadow.lg};
+  box-shadow: ${({ theme }) => theme.shadow.sm};
 `;
 
 let areTopsEqual = (a: Map<string, number>, b: Map<string, number>) =>
@@ -60,6 +64,7 @@ export let CommentsRail = ({
   threads,
   activeThreadId,
   onActivate,
+  onClose,
   pending,
   creating,
   createSucceeded,
@@ -72,6 +77,7 @@ export let CommentsRail = ({
   threads: DocumentCommentThread[];
   activeThreadId: string | null;
   onActivate: (threadId: string) => void;
+  onClose: (threadId: string) => void;
   pending: boolean;
   creating?: boolean;
   createSucceeded?: boolean;
@@ -83,6 +89,20 @@ export let CommentsRail = ({
   let cardRefs = useRef(new Map<string, HTMLDivElement>());
   let [tops, setTops] = useState(() => new Map<string, number>());
   let [, setLayoutTick] = useState(0);
+  let [settling, setSettling] = useState(true);
+  let placedIds = useRef(new Set<string>());
+
+  useEffect(() => {
+    let start = performance.now();
+    let frame = 0;
+    let step = () => {
+      setLayoutTick(tick => tick + 1);
+      if (performance.now() - start < SETTLE_MS) frame = requestAnimationFrame(step);
+      else setSettling(false);
+    };
+    frame = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   useEffect(() => {
     let bump = () => setLayoutTick(tick => tick + 1);
@@ -138,32 +158,39 @@ export let CommentsRail = ({
     else cardRefs.current.delete(id);
   };
 
-  let placement = (id: string): React.CSSProperties => {
+  let placement = (id: string) => {
     let top = tops.get(id);
-    return top === undefined ? { top: 0, visibility: 'hidden' } : { top };
+    let placed = top !== undefined;
+    let animateTop = placed && !settling && placedIds.current.has(id);
+    if (placed) placedIds.current.add(id);
+
+    return { style: { top: top ?? 0 }, $placed: placed, $animateTop: animateTop };
   };
 
   return (
     <RailRoot ref={rootRef}>
       {threads.map(thread => (
-        <Positioned key={thread.id} style={placement(thread.id)}>
+        <Positioned key={thread.id} {...placement(thread.id)}>
           <CommentThreadCard
             ref={setCardRef(thread.id)}
             access={access}
             thread={thread}
             active={thread.id === activeThreadId}
+            floating
             onActivate={onActivate}
+            onClose={onClose}
           />
         </Positioned>
       ))}
 
       {pending && (
-        <Positioned style={placement(PENDING_ID)}>
+        <Positioned {...placement(PENDING_ID)}>
           <PendingCard ref={setCardRef(PENDING_ID)}>
             <CommentComposer
               label="Add a comment"
               submitLabel="Comment"
               autoFocus
+              bare
               loading={creating}
               success={createSucceeded}
               RenderError={CreateError}

@@ -1,11 +1,13 @@
 import { FloatingPopover, floatingSurface, NavIconButton, theme } from '@metorial/ui';
+import { Reorder, useDragControls } from 'framer-motion';
 import type { ReactNode } from 'react';
-import { useState } from 'react';
+import type { RefObject } from 'react';
+import { useRef, useState } from 'react';
 import styled, { css } from 'styled-components';
 import { PANEL_COLUMN_WIDTH, SIDEBAR_INSET, SIDEBAR_WIDTH } from './layout';
 import { usePresence, workspaceEase } from './motion';
 import type { WorkspacePanelId } from './preferences';
-import type { WorkspaceSectionVariant } from './section';
+import { SectionDragHandleContext, type WorkspaceSectionVariant } from './section';
 
 export type WorkspaceSectionEntry = {
   id: WorkspacePanelId;
@@ -73,25 +75,88 @@ let SlotInner = styled.div<{ $flush?: boolean }>`
   }
 `;
 
+let SectionSlot = (p: {
+  id: WorkspacePanelId;
+  state: 'entering' | 'present' | 'leaving';
+  flush?: boolean;
+  draggable: boolean;
+  constraints?: RefObject<HTMLElement | null>;
+  children: ReactNode;
+}) => {
+  let controls = useDragControls();
+  let [dragging, setDragging] = useState(false);
+
+  let content = (
+    <Slot $state={p.state} data-section={p.id}>
+      <SlotInner $flush={p.flush}>{p.children}</SlotInner>
+    </Slot>
+  );
+
+  if (!p.draggable) return content;
+
+  return (
+    <Reorder.Item
+      value={p.id}
+      dragListener={false}
+      dragControls={controls}
+      dragConstraints={p.constraints}
+      dragElastic={0}
+      onDragStart={() => setDragging(true)}
+      onDragEnd={() => setDragging(false)}
+      style={{ position: 'relative', zIndex: dragging ? 2 : 0, listStyle: 'none' }}
+      whileDrag={{ scale: 1.01, filter: 'drop-shadow(0 2px 6px rgba(0, 0, 0, 0.08))' }}
+      transition={{ duration: 0.2 }}
+    >
+      <SectionDragHandleContext.Provider
+        value={{ dragging, onPointerDown: event => controls.start(event) }}
+      >
+        {content}
+      </SectionDragHandleContext.Provider>
+    </Reorder.Item>
+  );
+};
+
 let SectionStack = (p: {
   sections: WorkspaceSectionEntry[];
   variant: WorkspaceSectionVariant;
   flush?: boolean;
   animateInitial?: boolean;
+  onReorder?: (ids: WorkspacePanelId[]) => void;
 }) => {
   let items = usePresence(
     p.sections.map(section => ({ key: section.id, value: section })),
     { animateInitial: p.animateInitial }
   );
 
+  let groupRef = useRef<HTMLElement | null>(null);
+  let draggable = !!p.onReorder && p.sections.length > 1;
+  let present = items.filter(item => item.state != 'leaving').map(item => item.key);
+
+  let slots = items.map(item => (
+    <SectionSlot
+      key={item.key}
+      id={item.key as WorkspacePanelId}
+      state={item.state}
+      flush={p.flush}
+      draggable={draggable && item.state != 'leaving'}
+      constraints={groupRef}
+    >
+      {item.value.render(p.variant)}
+    </SectionSlot>
+  ));
+
+  if (!draggable) return <>{slots}</>;
+
   return (
-    <>
-      {items.map(item => (
-        <Slot key={item.key} $state={item.state} data-section={item.key}>
-          <SlotInner $flush={p.flush}>{item.value.render(p.variant)}</SlotInner>
-        </Slot>
-      ))}
-    </>
+    <Reorder.Group
+      ref={groupRef as RefObject<HTMLUListElement | null>}
+      axis="y"
+      values={present}
+      onReorder={ids => p.onReorder?.(ids as WorkspacePanelId[])}
+      style={{ margin: 0, padding: 0, listStyle: 'none' }}
+    >
+      {slots}
+    </Reorder.Group>
   );
 };
 
@@ -99,9 +164,10 @@ export let PanelColumn = (p: {
   side: 'left' | 'right';
   sections: WorkspaceSectionEntry[];
   away?: boolean;
+  onReorder?: (ids: WorkspacePanelId[]) => void;
 }) => (
   <Column $side={p.side} $away={p.away} aria-hidden={p.away || undefined}>
-    <SectionStack sections={p.sections} variant="floating" />
+    <SectionStack sections={p.sections} variant="floating" onReorder={p.onReorder} />
   </Column>
 );
 

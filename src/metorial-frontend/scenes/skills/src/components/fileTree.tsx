@@ -1,3 +1,4 @@
+import { prefetchDocument, prefetchStoreItem } from '@metorial/state';
 import { ContextMenu, Menu, Spinner, Text, theme } from '@metorial/ui';
 import * as RadixCollapsible from '@radix-ui/react-collapsible';
 import {
@@ -10,7 +11,7 @@ import {
   RiMore2Line
 } from '@remixicon/react';
 import type { DragEvent, MouseEvent } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { SkillFilePreviewLightbox } from './filePreviewLightbox';
@@ -120,6 +121,8 @@ let TreeRowLink = styled(Link)`
     background: ${theme.colors.gray400};
   }
 `;
+
+export let SkillFileTreeStoreContext = createContext<string | null | undefined>(null);
 
 let TreeRowShell = styled.div<{ $active?: boolean; $dropTarget?: boolean }>`
   display: flex;
@@ -614,6 +617,7 @@ let SkillFileTreeRow = (p: {
 }) => {
   let location = useLocation();
   let navigate = useNavigate();
+  let storeId = useContext(SkillFileTreeStoreContext);
   let isDirectory = p.node.kind == 'directory';
   let isOpen = p.expandedPaths.has(p.node.path);
   let creatingInDirectory = p.creatingItem?.parentPath == p.node.path;
@@ -693,6 +697,16 @@ let SkillFileTreeRow = (p: {
       <TreeRowShell
         $active={isActive}
         draggable={canDrag}
+        onPointerEnter={() => {
+          if (p.node.kind != 'document') return;
+
+          prefetchStoreItem({
+            instanceId: p.instanceId,
+            storeId,
+            itemId: p.node.itemId
+          });
+          prefetchDocument({ instanceId: p.instanceId, documentId: p.node.documentId });
+        }}
         onClick={e => {
           if (isNestedTreeActionClick(e)) return;
           if (documentPath) {

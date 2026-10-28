@@ -5,12 +5,18 @@ import {
   theme,
   Tooltip
 } from '@metorial/ui';
-import { RiAddLine, RiArrowDownSLine, RiMoreLine } from '@remixicon/react';
-import type { ReactNode } from 'react';
+import { RiAddLine, RiArrowDownSLine, RiDraggable, RiMoreLine } from '@remixicon/react';
+import type { PointerEvent, ReactNode } from 'react';
+import { createContext, useContext } from 'react';
 import styled, { css } from 'styled-components';
 import { workspaceEase } from './motion';
 
 export type WorkspaceSectionVariant = 'floating' | 'sidebar' | 'flyout';
+
+export let SectionDragHandleContext = createContext<{
+  dragging: boolean;
+  onPointerDown: (event: PointerEvent) => void;
+} | null>(null);
 
 let Root = styled.section<{ $variant: WorkspaceSectionVariant }>`
   flex: 0 0 auto;
@@ -58,6 +64,49 @@ let Header = styled.header<{ $variant: WorkspaceSectionVariant }>`
     width: 16px;
     height: 16px;
     color: ${theme.colors.gray700};
+  }
+`;
+
+let DragHandle = styled.span<{ $dragging: boolean }>`
+  position: relative;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+  color: ${theme.colors.gray700};
+  cursor: ${({ $dragging }) => ($dragging ? 'grabbing' : 'grab')};
+  touch-action: none;
+
+  svg {
+    position: absolute;
+    inset: 0;
+    width: 16px;
+    height: 16px;
+    transition:
+      opacity 0.22s ease,
+      transform 0.32s ${workspaceEase};
+  }
+
+  > svg:last-child {
+    opacity: ${({ $dragging }) => ($dragging ? 1 : 0)};
+    transform: ${({ $dragging }) =>
+      $dragging ? 'scale(1.1) rotate(0deg)' : 'scale(0.5) rotate(-90deg)'};
+  }
+
+  > svg:first-child {
+    opacity: ${({ $dragging }) => ($dragging ? 0 : 1)};
+    transform: ${({ $dragging }) =>
+      $dragging ? 'scale(0.5) rotate(90deg)' : 'scale(1) rotate(0deg)'};
+  }
+
+  ${Header}:hover & > svg:last-child {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+
+  ${Header}:hover & > svg:first-child {
+    opacity: 0;
+    transform: scale(0.5) rotate(90deg);
   }
 `;
 
@@ -125,6 +174,7 @@ let Chevron = styled(RiArrowDownSLine)<{ $collapsed: boolean }>`
   width: 20px;
   margin-left: 2px;
   color: ${theme.colors.gray600};
+  cursor: pointer;
   transform: rotate(${({ $collapsed }) => ($collapsed ? '-90deg' : '0deg')});
   transition: transform 0.32s ${workspaceEase};
 `;
@@ -271,6 +321,8 @@ export let WorkspaceSection = (p: {
 }) => {
   let collapsible = p.variant != 'flyout' && !!p.onCollapsedChange;
   let collapsed = collapsible && !!p.collapsed;
+  let drag = useContext(SectionDragHandleContext);
+  let draggable = !!drag && p.variant == 'floating';
 
   let addButton = p.add ? (
     'items' in p.add ? (
@@ -295,13 +347,24 @@ export let WorkspaceSection = (p: {
   return (
     <Root $variant={p.variant}>
       <Header $variant={p.variant}>
+        {draggable ? (
+          <DragHandle
+            $dragging={drag!.dragging}
+            onPointerDown={drag!.onPointerDown}
+            aria-label={`Reorder ${p.title}`}
+            role="button"
+          >
+            {p.icon}
+            <RiDraggable />
+          </DragHandle>
+        ) : null}
         <HeaderButton
           aria-expanded={collapsible ? !collapsed : undefined}
           disabled={!collapsible}
           onClick={() => collapsible && p.onCollapsedChange?.(!collapsed)}
           type="button"
         >
-          {p.icon}
+          {draggable ? null : p.icon}
           <Title>{p.title}</Title>
           {p.count ? <Count>{p.count}</Count> : null}
           <Spacer />
@@ -321,7 +384,13 @@ export let WorkspaceSection = (p: {
           />
         ) : null}
 
-        {collapsible ? <Chevron $collapsed={collapsed} aria-hidden /> : null}
+        {collapsible ? (
+          <Chevron
+            $collapsed={collapsed}
+            aria-hidden
+            onClick={() => p.onCollapsedChange?.(!collapsed)}
+          />
+        ) : null}
       </Header>
 
       <Body $collapsed={collapsed} aria-hidden={collapsed || undefined}>

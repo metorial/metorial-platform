@@ -5,6 +5,7 @@ import { Button, Input, Spacer, Text, confirm, theme } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import styled from 'styled-components';
 import { SkillImageUploader } from '../components/skillImageUploader';
+import { SkillPanelPage } from '../components/skillPanelPage';
 
 let PageStack = styled.div`
   display: flex;
@@ -102,15 +103,11 @@ export let SkillSettingsScene = (p: {
   });
 
   return renderWithLoader({ skill })(({ skill }) => (
-    <PageStack>
-      <div>
-        <PageHeader
-          size="6"
-          title="Settings"
-          description="Manage this skill's details and discovery metadata."
-          inline
-        />
-      </div>
+    <SkillPanelPage
+      title="Settings"
+      description="Manage this skill's details and discovery metadata."
+    >
+      <PageStack>
       {p.instanceId && !p.readOnly && (
         <SettingsSection>
           <SectionHeader>
@@ -268,7 +265,8 @@ export let SkillSettingsScene = (p: {
           <deleteMutator.RenderError />
         </SettingsSection>
       )}
-    </PageStack>
+      </PageStack>
+    </SkillPanelPage>
   ));
 };
 

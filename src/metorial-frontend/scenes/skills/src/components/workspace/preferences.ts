@@ -15,6 +15,7 @@ export type WorkspacePreferences = {
   position: WorkspacePanelPosition;
   modes: Record<WorkspacePanelId, WorkspacePanelMode>;
   collapsed: Record<string, Partial<Record<WorkspacePanelId, boolean>>>;
+  order: WorkspacePanelId[];
   toolbar: boolean;
   assistant: boolean;
 };
@@ -25,12 +26,20 @@ let defaultPreferences: WorkspacePreferences = {
   position: 'left',
   modes: { files: 'auto', mergeRequests: 'auto', providers: 'auto', agents: 'auto' },
   collapsed: {},
+  order: workspacePanelIds,
   toolbar: false,
   assistant: true
 };
 
 let positions: WorkspacePanelPosition[] = ['left', 'right', 'split', 'dock', 'sidebar'];
 let modes: WorkspacePanelMode[] = ['auto', 'on', 'off'];
+
+export let applyPanelOrder = (stored: WorkspacePanelId[]): WorkspacePanelId[] => {
+  let known = stored.filter(
+    (id, index) => workspacePanelIds.includes(id) && stored.indexOf(id) == index
+  );
+  return [...known, ...workspacePanelIds.filter(id => !known.includes(id))];
+};
 
 let parse = (raw: string | null): WorkspacePreferences => {
   if (!raw) return defaultPreferences;
@@ -52,6 +61,7 @@ let parse = (raw: string | null): WorkspacePreferences => {
         ])
       ) as WorkspacePreferences['modes'],
       collapsed: value.collapsed && typeof value.collapsed == 'object' ? value.collapsed : {},
+      order: applyPanelOrder(Array.isArray(value.order) ? value.order : []),
       toolbar: typeof value.toolbar == 'boolean' ? value.toolbar : defaultPreferences.toolbar,
       assistant:
         typeof value.assistant == 'boolean' ? value.assistant : defaultPreferences.assistant
@@ -133,6 +143,11 @@ export let useWorkspacePreferences = (skillId: string) => {
     [update, skillId]
   );
 
+  let setOrder = useCallback(
+    (order: WorkspacePanelId[]) => update(p => ({ ...p, order: applyPanelOrder(order) })),
+    [update]
+  );
+
   let setToolbar = useCallback(
     (toolbar: boolean) => update(p => ({ ...p, toolbar })),
     [update]
@@ -149,6 +164,7 @@ export let useWorkspacePreferences = (skillId: string) => {
     setPosition,
     setMode,
     setCollapsed,
+    setOrder,
     setToolbar,
     setAssistant
   };

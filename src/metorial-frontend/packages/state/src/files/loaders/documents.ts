@@ -98,11 +98,39 @@ export let updateDocument = (
   }
 ) => withAuth(sdk => sdk.documents.update(body.instanceId, body.documentId, body));
 
-export let getDocumentEditToken = (d: { instanceId: string; documentId: string }) =>
-  withAuth(
+let MIN_REUSABLE_TOKEN_LIFETIME_MS = 60_000;
+let knownEditTokens = new Map<string, DocumentEditToken>();
+let pendingEditTokenPrefetches = new Set<string>();
+
+let editTokenKey = (d: { instanceId: string; documentId: string }) =>
+  `${d.instanceId}:${d.documentId}`;
+
+export let getDocumentEditToken = async (d: { instanceId: string; documentId: string }) => {
+  let token = await withAuth(
     sdk =>
       sdk.documents.editToken.get(d.instanceId, d.documentId) as Promise<DocumentEditToken>
   );
+  knownEditTokens.set(editTokenKey(d), token);
+  return token;
+};
+
+export let peekDocumentEditToken = (d: { instanceId: string; documentId: string }) => {
+  let token = knownEditTokens.get(editTokenKey(d));
+  if (!token) return null;
+
+  let lifetime = new Date(token.expiresAt).getTime() - Date.now();
+  return lifetime > MIN_REUSABLE_TOKEN_LIFETIME_MS ? token : null;
+};
+
+let prefetchDocumentEditToken = (d: { instanceId: string; documentId: string }) => {
+  let key = editTokenKey(d);
+  if (peekDocumentEditToken(d) || pendingEditTokenPrefetches.has(key)) return;
+
+  pendingEditTokenPrefetches.add(key);
+  getDocumentEditToken(d)
+    .catch(() => {})
+    .finally(() => pendingEditTokenPrefetches.delete(key));
+};
 
 export let documentPermissionsLoader = createLoader({
   name: 'documentPermissions',
@@ -236,4 +264,16 @@ export let useDocumentVersion = (
       ? { instanceId, documentId, documentVersionId }
       : null
   );
+};
+
+export let prefetchDocument = (d: {
+  instanceId: string | null | undefined;
+  documentId: string | null | undefined;
+}) => {
+  if (!d.instanceId || !d.documentId) return;
+
+  let input = { instanceId: d.instanceId, documentId: d.documentId };
+  void documentLoader.fetch(input);
+  void documentPermissionsLoader.fetch(input);
+  prefetchDocumentEditToken(input);
 };

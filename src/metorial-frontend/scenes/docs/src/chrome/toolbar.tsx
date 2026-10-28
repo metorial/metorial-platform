@@ -7,14 +7,14 @@ import { lightTheme } from '../styles/theme';
 
 export let DocumentEditorChromeToolbar = () => {
   let chrome = useDocumentEditorChrome();
-  if (!chrome || chrome.readOnly) return null;
+  if (!chrome) return null;
 
   return (
     <ThemeProvider theme={lightTheme}>
       <DocsStyles>
         <Toolbar
           editor={chrome.editor as TiptapEditor | null}
-          disabled={chrome.toolbarDisabled}
+          disabled={chrome.toolbarDisabled || chrome.readOnly}
           onRequestLinkEdit={chrome.actions.requestLinkEdit}
         />
       </DocsStyles>

@@ -1,5 +1,4 @@
 import {
-  Avatar,
   FloatingBar,
   FloatingBarSeparator,
   FloatingMenu,
@@ -174,41 +173,6 @@ let ReadOnlyChip = styled.span`
     width: 13px;
     height: 13px;
   }
-`;
-
-let AvatarButton = styled.button`
-  display: inline-flex;
-  align-items: center;
-  height: 32px;
-  padding: 0 4px 0 10px;
-  border: 0;
-  border-radius: 7px;
-  background: transparent;
-  cursor: pointer;
-
-  &:hover {
-    background: ${theme.colors.gray250};
-  }
-
-  > * {
-    margin-left: -6px;
-    border: 2px solid ${theme.colors.background};
-    border-radius: 999px;
-  }
-`;
-
-let AvatarOverflow = styled.span`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 999px;
-  background: ${theme.colors.gray300};
-  color: ${theme.colors.gray800};
-  font-size: 10.5px;
-  font-weight: 600;
-  box-sizing: content-box;
 `;
 
 let SwitcherSearch = styled.label`
@@ -414,6 +378,7 @@ let FileSwitcherContent = (p: {
   readOnly?: boolean;
   filesPinned: boolean;
   onNavigate: () => void;
+  onEntryHover?: (entry: WorkspaceFileEntry) => void;
   onNewDocument?: () => void;
   onPinFiles?: () => void;
 }) => {
@@ -456,6 +421,7 @@ let FileSwitcherContent = (p: {
               $active={entry.href == p.activeHref}
               $depth={normalized ? 0 : entry.depth}
               onClick={p.onNavigate}
+              onPointerEnter={() => p.onEntryHover?.(entry)}
             >
               <WorkspaceFileIcon kind={entry.kind} name={entry.name} />
               <span>{normalized ? entry.path : entry.name}</span>
@@ -477,6 +443,7 @@ let FileSwitcherContent = (p: {
             $active={entry.href == p.activeHref}
             $depth={0}
             onClick={p.onNavigate}
+            onPointerEnter={() => p.onEntryHover?.(entry)}
           >
             <WorkspaceFileIcon kind="agent" name={entry.name} />
             <span>{entry.name}</span>
@@ -543,6 +510,7 @@ export let WorkspaceNavLeft = (p: {
   onSwitcherOpenChange: (open: boolean) => void;
   filesPinned: boolean;
   onPinFiles?: () => void;
+  onEntryHover?: (entry: WorkspaceFileEntry) => void;
   onNewDocument?: () => void;
   toolbar: { on: boolean; onToggle: () => void } | null;
   moreItems: FloatingMenuItem[];
@@ -603,6 +571,7 @@ export let WorkspaceNavLeft = (p: {
             readOnly={p.readOnly}
             filesPinned={p.filesPinned}
             onNavigate={() => p.onSwitcherOpenChange(false)}
+            onEntryHover={p.onEntryHover}
             onNewDocument={p.onNewDocument}
             onPinFiles={p.onPinFiles}
           />
@@ -636,8 +605,6 @@ export let WorkspaceNavLeft = (p: {
   );
 };
 
-export type WorkspaceParticipant = { id: string; name: string; imageUrl?: string | null };
-
 export let WorkspaceNavRight = (p: {
   clusterRef: RefObject<HTMLDivElement | null>;
   size: WorkspaceSize;
@@ -645,10 +612,8 @@ export let WorkspaceNavRight = (p: {
   onSettled: () => void;
   createMergeRequest?: (() => void) | null;
   comments: { open: boolean; count: number; onToggle: () => void } | null;
-  onVersionHistory: () => void;
+  onVersionHistory: (() => void) | null;
   share: ((trigger: ReactNode) => ReactNode) | null;
-  participants: WorkspaceParticipant[];
-  onParticipants: () => void;
   onExport?: (() => void) | null;
   exportLoading?: boolean;
   forkLabel: string;
@@ -659,25 +624,6 @@ export let WorkspaceNavRight = (p: {
 
   let compact = p.size == 'xs';
   let collapseMergeRequest = p.tight || p.size != 'lg';
-  let maxAvatars = p.size == 'sm' ? 1 : 3;
-  let shownParticipants = p.participants.slice(0, maxAvatars);
-  let participantLabel = `${p.participants.length} participant${p.participants.length == 1 ? '' : 's'}`;
-
-  let avatars = (
-    <AvatarButton aria-label={participantLabel} type="button">
-      {shownParticipants.map(participant => (
-        <Avatar
-          key={participant.id}
-          entity={{ name: participant.name, imageUrl: participant.imageUrl ?? undefined }}
-          size={26}
-          noTooltip
-        />
-      ))}
-      {p.participants.length > maxAvatars ? (
-        <AvatarOverflow>+{p.participants.length - maxAvatars}</AvatarOverflow>
-      ) : null}
-    </AvatarButton>
-  );
 
   return (
     <Cluster ref={p.clusterRef} $side="right" $size={p.size}>
@@ -713,19 +659,11 @@ export let WorkspaceNavRight = (p: {
           <NavIconButton
             icon={<RiHistoryLine />}
             label="Version history"
-            onClick={p.onVersionHistory}
+            disabled={!p.onVersionHistory}
+            onClick={p.onVersionHistory ?? undefined}
           />
         ) : null}
         {p.share ? p.share(<NavShareButton type="button">Share</NavShareButton>) : null}
-        {!compact && p.participants.length ? (
-          p.share ? (
-            p.share(avatars)
-          ) : (
-            <Tooltip content={participantLabel}>
-              <span onClick={p.onParticipants}>{avatars}</span>
-            </Tooltip>
-          )
-        ) : null}
       </FloatingBar>
 
       <FloatingBar data-key="actions">

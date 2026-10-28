@@ -7,6 +7,7 @@ import type { SkillSharePanelContext } from '@metorial/scene-skills';
 import {
   DocumentParticipant,
   getDocumentEditToken,
+  peekDocumentEditToken,
   DocumentVersion as StateDocumentVersion,
   useCreateFileLink,
   useDocument,
@@ -26,12 +27,14 @@ import type { ChangeEvent, ReactNode } from 'react';
 import { type DocumentEditorChrome, usePublishDocumentEditorChrome } from '../chrome';
 import { DocumentEditorChromeToolbar } from '../chrome/toolbar';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useBlocker, useLocation, useNavigate } from 'react-router-dom';
 import styled, { ThemeProvider } from 'styled-components';
 import { parseDocument } from 'yaml';
 import { DocsAgentProvider } from '../editor/agent/DocsAgentProvider';
 import { getCollaboratorColor } from '../editor/collaboratorColors';
 import { Editor } from '../editor/Editor';
+import { EditorContent, EditorScroll } from '../editor/EditorStyles';
 import {
   BackButton,
   CloudStatus,
@@ -249,6 +252,8 @@ let Toast = styled.div<{ $visible?: boolean }>`
   z-index: 100;
 `;
 
+let noop = () => {};
+
 let SkeletonBlock = styled.div<{ $width?: string; $height?: string; $radius?: string }>`
   width: ${({ $width }) => $width ?? '100%'};
   height: ${({ $height }) => $height ?? '14px'};
@@ -276,22 +281,12 @@ let SkeletonHeaderButton = styled(SkeletonBlock)`
   flex: 0 0 auto;
 `;
 
-let SkeletonEditorScroll = styled.div`
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
+let SkeletonEditorScroll = styled(EditorScroll)`
   overflow: hidden;
 `;
 
-let SkeletonEditorContent = styled.div`
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: calc(48px + var(--docs-inset-top, 0px)) calc(64px + var(--docs-inset-right, 0px))
-    48px calc(64px + var(--docs-inset-left, 0px));
-`;
-
 let SkeletonTitle = styled(SkeletonBlock)`
-  margin-bottom: 16px;
+  margin-bottom: 24px;
 `;
 
 let SkeletonStatusBar = styled.div`
@@ -594,8 +589,8 @@ let DocumentEditorSkeleton = (p: { onBack?: () => void; chrome?: DocumentEditorC
 
             <Main>
               <SkeletonEditorScroll>
-                <SkeletonEditorContent>
-                  <SkeletonTitle $width="52%" $height="44px" $radius="10px" />
+                <EditorContent>
+                  <SkeletonTitle $width="52%" $height="48px" $radius="10px" />
                   <SkeletonStatusBar>
                     <SkeletonBlock $width="92px" $height="24px" $radius="8px" />
                     <SkeletonBlock $width="128px" $height="24px" $radius="8px" />
@@ -616,7 +611,7 @@ let DocumentEditorSkeleton = (p: { onBack?: () => void; chrome?: DocumentEditorC
                     <SkeletonBlock $width="84%" $height="16px" $radius="5px" />
                     <SkeletonBlock $width="62%" $height="16px" $radius="5px" />
                   </SkeletonParagraph>
-                </SkeletonEditorContent>
+                </EditorContent>
               </SkeletonEditorScroll>
             </Main>
           </Shell>
@@ -689,14 +684,29 @@ let DocumentEditorInner = (p: {
   let [documentEditToken, setDocumentEditToken] = useState<{
     status: 'idle' | 'loading' | 'ready' | 'error';
     token: Awaited<ReturnType<typeof getDocumentEditToken>> | null;
-  }>({
-    status: 'loading',
-    token: null
+  }>(() => {
+    let token = peekDocumentEditToken({
+      instanceId: p.instanceId,
+      documentId: p.documentId
+    });
+    return token ? { status: 'ready', token } : { status: 'loading', token: null };
   });
   useEffect(() => {
     let cancelled = false;
     let retryTimer: number | null = null;
     let attempts = 0;
+
+    let knownToken = peekDocumentEditToken({
+      instanceId: p.instanceId,
+      documentId: p.documentId
+    });
+    if (knownToken) {
+      setDocumentEditToken(current =>
+        current.token == knownToken ? current : { status: 'ready', token: knownToken }
+      );
+      return;
+    }
+
     setDocumentEditToken({
       status: 'loading',
       token: null
@@ -737,7 +747,7 @@ let DocumentEditorInner = (p: {
   let isEditTokenReady =
     documentEditToken.status === 'ready' || documentEditToken.status === 'error';
   let isReady = !!document.data && !!permissions.data && !!user.data && isEditTokenReady;
-  let [showSkeleton, setShowSkeleton] = useState(true);
+  let [showSkeleton, setShowSkeleton] = useState(!isReady);
 
   useEffect(() => {
     if (!isReady) {
@@ -881,6 +891,10 @@ let DocumentEditorLoaded = (p: {
     getInitialMarkdown: getInitialMarkdownForCollaboration,
     seedInitialBody: seedYjsBodyFromMarkdown
   });
+  let readyDocumentRef = useRef<string | null>(null);
+  if (collaboration.isReadyForEditor) readyDocumentRef.current = p.documentId;
+  let showCachedContent =
+    !collaboration.isReadyForEditor && readyDocumentRef.current !== p.documentId;
   let canWrite = collaboration.canWrite;
   let readOnly = !canWrite;
   let assistantWorkspace = useSkillAssistantWorkspace();
@@ -1134,23 +1148,19 @@ let DocumentEditorLoaded = (p: {
   );
 
   let people = useMemo(() => p.participants.map(mapParticipantToPerson), [p.participants]);
-  let livePeople = useMemo(
-    () => collaboration.participants.map(mapParticipantToPerson),
-    [collaboration.participants]
-  );
   let sharePeople = useMemo(() => {
-    let byEmail = new Map<string, SharedPerson>();
+    let byParticipantId = new Map<string, SharedPerson>();
 
-    for (let person of people) {
-      byEmail.set(person.email, person);
+    for (let participant of p.participants) {
+      byParticipantId.set(participant.id, mapParticipantToPerson(participant));
     }
 
-    for (let person of livePeople) {
-      byEmail.set(person.email, person);
+    for (let participant of collaboration.participants) {
+      byParticipantId.set(participant.id, mapParticipantToPerson(participant));
     }
 
-    return [...byEmail.values()];
-  }, [livePeople, people]);
+    return [...byParticipantId.values()];
+  }, [collaboration.participants, p.participants]);
   let versionHistory = useMemo(() => p.versions.map(mapVersion), [p.versions]);
   let documentLink = getCanonicalDocumentLink();
   let fallbackStats = useMemo(() => countFallbackStats(markdown), [markdown]);
@@ -1243,12 +1253,30 @@ let DocumentEditorLoaded = (p: {
   let createCommentThread = commentThreads.useCreateThreadMutator();
   let [commentsPanelOpen, setCommentsPanelOpen] = useState(false);
   let [activeCommentThreadId, setActiveCommentThreadId] = useState<string | null>(null);
+  let [dismissedThreadIds, setDismissedThreadIds] = useState<ReadonlySet<string>>(
+    () => new Set()
+  );
+
+  let activateCommentThread = useCallback((threadId: string) => {
+    setActiveCommentThreadId(threadId);
+    setDismissedThreadIds(current => {
+      if (!current.has(threadId)) return current;
+      let next = new Set(current);
+      next.delete(threadId);
+      return next;
+    });
+  }, []);
+
+  let dismissCommentThread = useCallback((threadId: string) => {
+    setDismissedThreadIds(current => new Set(current).add(threadId));
+    setActiveCommentThreadId(current => (current === threadId ? null : current));
+  }, []);
   let [pendingComment, setPendingComment] = useState(false);
   let canComment = !collaboration.isFallback && !!collaboration.actorId;
   let commentThreadList = commentThreads.data?.items ?? [];
   let openCommentThreads = commentThreadList.filter(thread => thread.status === 'open');
   let railCommentThreads = openCommentThreads.filter(
-    thread => thread.anchorStatus === 'attached'
+    thread => thread.anchorStatus === 'attached' && !dismissedThreadIds.has(thread.id)
   );
   let openCommentThreadIds = openCommentThreads.map(thread => thread.id).join(',');
   let commentsAccess: CommentsAccess = {
@@ -1321,7 +1349,7 @@ let DocumentEditorLoaded = (p: {
   };
 
   let selectCommentThread = (thread: DocumentCommentThread) => {
-    setActiveCommentThreadId(thread.id);
+    activateCommentThread(thread.id);
 
     let editor = editorInstanceRef.current;
     let anchor = editor ? getCommentThreadAnchors(editor.state).get(thread.id) : undefined;
@@ -1340,7 +1368,8 @@ let DocumentEditorLoaded = (p: {
         access={commentsAccess}
         threads={railCommentThreads}
         activeThreadId={activeCommentThreadId}
-        onActivate={setActiveCommentThreadId}
+        onActivate={activateCommentThread}
+        onClose={dismissCommentThread}
         pending={pendingComment}
         creating={createCommentThread.isLoading}
         createSucceeded={createCommentThread.isSuccess}
@@ -1801,6 +1830,30 @@ let DocumentEditorLoaded = (p: {
               />
 
               <Main ref={mainRef}>
+                {viewMode !== 'preview' && showCachedContent && (
+                  <Editor
+                    key="cached-content"
+                    initialMarkdown={markdown}
+                    readOnly
+                    title={title}
+                    frontMatter={frontMatter}
+                    frontMatterOpen={frontMatterOpen}
+                    onTitleChange={noop}
+                    onMarkdownChange={noop}
+                    statusCurrentUser={{
+                      name: p.user.name,
+                      email: p.user.email,
+                      imageUrl: p.user.imageUrl,
+                      role: 'viewer'
+                    }}
+                    statusEditors={statusEditors}
+                    statusUpdatedAt={lastUpdatedAt}
+                    statusWordCount={wordCount}
+                    statusCharCount={charCount}
+                    commentRailWidth={COMMENTS_RAIL_WIDTH}
+                    titleAccessory={p.titleAccessory}
+                  />
+                )}
                 {viewMode !== 'preview' && collaboration.isReadyForEditor && (
                   <Editor
                     key={editorKey}
@@ -1837,7 +1890,7 @@ let DocumentEditorLoaded = (p: {
                     commentRail={commentRail}
                     commentRailWidth={COMMENTS_RAIL_WIDTH}
                     onRequestComment={canComment ? handleRequestComment : undefined}
-                    onActivateCommentThread={setActiveCommentThreadId}
+                    onActivateCommentThread={activateCommentThread}
                     titleAccessory={p.titleAccessory}
                   />
                 )}
@@ -1860,7 +1913,7 @@ let DocumentEditorLoaded = (p: {
                 )}
               </Main>
 
-              <Toast $visible={!!toast}>{toast}</Toast>
+              {createPortal(<Toast $visible={!!toast}>{toast}</Toast>, document.body)}
 
               <VersionHistoryPanel
                 open={versionHistoryOpen}

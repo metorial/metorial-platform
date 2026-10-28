@@ -87,14 +87,8 @@ let SkillAgentsPage = dynamicPage(() =>
 let SkillAgentDocumentPage = dynamicPage(() =>
   import('./pages/(skills)/skill/agent').then(c => c.SkillAgentDocumentPage)
 );
-let SkillParticipantsPage = dynamicPage(() =>
-  import('./pages/(skills)/skill/participants').then(c => c.SkillParticipantsPage)
-);
 let SkillGroupsForSkillPage = dynamicPage(() =>
   import('./pages/(skills)/skill/groups').then(c => c.SkillGroupsPage)
-);
-let SkillVersionsPage = dynamicPage(() =>
-  import('./pages/(skills)/skill/versions').then(c => c.SkillVersionsPage)
 );
 let SkillMergeRequestsPage = dynamicPage(() =>
   import('./pages/(skills)/skill/merge-requests').then(c => c.SkillMergeRequestsPage)
@@ -1133,16 +1127,8 @@ export let productSkillsSlice = createSlice([
                 element: <SkillAgentDocumentPage />
               },
               {
-                path: 'participants',
-                element: <SkillParticipantsPage />
-              },
-              {
                 path: 'groups',
                 element: <SkillGroupsForSkillPage />
-              },
-              {
-                path: 'versions',
-                element: <SkillVersionsPage />
               },
               {
                 path: 'merge-requests',

@@ -27,8 +27,6 @@ let Title = styled.div`
   font-size: 11px;
   font-weight: 600;
   color: ${({ theme }) => theme.color.textSubtle};
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 `;
 
 let Row = styled.div`
@@ -37,13 +35,6 @@ let Row = styled.div`
   gap: 10px;
   padding: 5px 12px;
   font-size: 13px;
-`;
-
-let Swatch = styled.span`
-  width: 3px;
-  height: 18px;
-  border-radius: 2px;
-  flex-shrink: 0;
 `;
 
 let Name = styled.span`
@@ -140,13 +131,12 @@ export function AttributionPopover({
           setHovered(null);
         }}
       >
-        <Title>Edited By</Title>
+        <Title>Edited by</Title>
         {hovered?.editors.map((actorId, index) => {
           let person = resolvePerson(actorId);
 
           return (
             <Row key={actorId}>
-              <Swatch style={{ background: person.color }} />
               <Avatar
                 name={person.name}
                 imageUrl={person.imageUrl}

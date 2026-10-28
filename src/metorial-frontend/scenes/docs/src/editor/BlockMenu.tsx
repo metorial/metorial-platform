@@ -1,5 +1,7 @@
 import { useEditorOverlay, useOverlayPosition } from './overlays';
 import { useRef } from 'react';
+import { Avatar } from '../components/Avatar';
+import type { AttributionPerson } from './AttributionPopover';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import type { Theme } from '../styles/theme';
@@ -129,6 +131,23 @@ let Divider = styled.div`
   background: ${({ theme }) => theme.color.border};
 `;
 
+let EditorRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 30px;
+  padding: 0 8px;
+  font-size: 13px;
+  color: ${({ theme }) => theme.color.text};
+`;
+
+let EditorName = styled.span`
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
 let ActionList = styled.div`
   display: flex;
   flex-direction: column;
@@ -174,6 +193,7 @@ interface Props {
   headingLink?: string;
   codeLanguage?: string;
   activeTitle?: string;
+  editors?: AttributionPerson[];
   onSelect: (item: SlashItem) => void;
   onCopyHeadingLink?: () => void;
   onCodeLanguageChange?: (lang: string) => void;
@@ -194,6 +214,7 @@ export function BlockMenu({
   headingLink,
   codeLanguage = 'plaintext',
   activeTitle,
+  editors = [],
   onSelect,
   onCopyHeadingLink,
   onCodeLanguageChange,
@@ -336,6 +357,25 @@ export function BlockMenu({
             Delete
           </ActionBtn>
         </ActionList>
+
+        {editors.length > 0 && (
+          <>
+            <Divider />
+            <SectionTitle>Edited by</SectionTitle>
+            {editors.map(person => (
+              <EditorRow key={person.id}>
+                <Avatar
+                  name={person.name}
+                  imageUrl={person.imageUrl}
+                  email={person.email}
+                  size={20}
+                  noTooltip
+                />
+                <EditorName>{person.name}</EditorName>
+              </EditorRow>
+            ))}
+          </>
+        )}
       </Scroll>
     </Wrap>,
     document.body

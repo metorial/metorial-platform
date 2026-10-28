@@ -1,4 +1,5 @@
-import { confirm, RenderDate } from '@metorial/ui';
+import { Button, confirm, Menu } from '@metorial/ui';
+import { RiCheckLine, RiCloseLine, RiInboxUnarchiveLine, RiMore2Line } from '@remixicon/react';
 import {
   useDocumentCommentThreads,
   type DocumentComment,
@@ -7,7 +8,7 @@ import {
 import { forwardRef, useState } from 'react';
 import styled from 'styled-components';
 import { Avatar } from '../components/Avatar';
-import { IconCheck, IconTrash } from '../editor/icons';
+import { CommentBody } from './CommentBody';
 import { CommentComposer } from './CommentComposer';
 
 export type CommentsAccess = {
@@ -17,53 +18,78 @@ export type CommentsAccess = {
   canWrite: boolean;
 };
 
-let Card = styled.div<{ $active?: boolean }>`
+let formatCommentTime = (value: string | Date) => {
+  let date = new Date(value);
+  let seconds = Math.max(0, Math.round((Date.now() - date.getTime()) / 1000));
+  if (seconds < 60) return 'Just now';
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  if (seconds < 7 * 86400) return `${Math.floor(seconds / 86400)}d ago`;
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
+let ReplyButtonWrap = styled.div`
+  position: absolute;
+  right: 14px;
+  bottom: -14px;
+  z-index: 1;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity ${({ theme }) => theme.motion.fast};
+`;
+
+let Card = styled.div<{ $active?: boolean; $floating?: boolean }>`
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 12px;
+  gap: 12px;
+  padding: 14px;
   border: 1px solid
-    ${({ $active, theme }) => ($active ? theme.color.commentHighlightBorder : theme.color.border)};
-  border-radius: 10px;
+    ${({ $active, theme }) => ($active ? theme.color.borderStrong : theme.color.border)};
+  border-radius: ${({ theme }) => theme.size.radiusLg};
   background: ${({ theme }) => theme.color.bgElevated};
-  box-shadow: ${({ $active, theme }) => ($active ? theme.shadow.lg : 'none')};
+  box-shadow: ${({ $floating, theme }) => ($floating ? theme.shadow.sm : 'none')};
   cursor: ${({ $active }) => ($active ? 'default' : 'pointer')};
   transition:
     box-shadow ${({ theme }) => theme.motion.fast},
     border-color ${({ theme }) => theme.motion.fast};
+
+  &:hover {
+    border-color: ${({ theme }) => theme.color.borderStrong};
+  }
+
+  &:hover ${ReplyButtonWrap}, &:focus-within ${ReplyButtonWrap} {
+    opacity: 1;
+    pointer-events: auto;
+  }
 `;
 
-let Quote = styled.blockquote`
-  margin: 0;
-  padding: 2px 0 2px 10px;
-  border-left: 3px solid ${({ theme }) => theme.color.commentHighlightBorder};
+let ReplyDivider = styled.div`
+  padding-top: 12px;
+  border-top: 1px solid ${({ theme }) => theme.color.border};
+`;
+
+let Quote = styled.div<{ $detached?: boolean }>`
+  padding: 8px 10px;
+  border-radius: ${({ theme }) => theme.size.radiusSm};
+  background: ${({ theme }) => theme.color.bgAlt};
+  box-shadow: inset 0 0 0 1px ${({ theme }) => theme.color.border};
   font-size: 12.5px;
+  line-height: 1.45;
   color: ${({ theme }) => theme.color.textMuted};
+  text-decoration: ${({ $detached }) => ($detached ? 'line-through' : 'none')};
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-`;
-
-let StatusRow = styled.div`
-  display: flex;
-  gap: 6px;
-`;
-
-let StatusBadge = styled.span<{ $tone: 'muted' | 'warning' }>`
-  font-size: 11px;
-  font-weight: 600;
-  padding: 1px 7px;
-  border-radius: 999px;
-  color: ${({ $tone, theme }) => ($tone === 'warning' ? theme.color.danger : theme.color.textMuted)};
-  background: ${({ theme }) => theme.color.bgActive};
 `;
 
 let CommentRow = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 `;
 
 let CommentHeader = styled.div`
@@ -92,80 +118,59 @@ let AuthorName = styled.span`
 let Timestamp = styled.span`
   font-size: 11.5px;
   color: ${({ theme }) => theme.color.textSubtle};
+  line-height: 1.3;
 `;
 
-let Body = styled.div`
-  font-size: 13.5px;
-  line-height: 1.5;
-  color: ${({ theme }) => theme.color.text};
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-`;
-
-let IconAction = styled.button`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  border: 0;
-  border-radius: ${({ theme }) => theme.size.radiusSm};
-  background: transparent;
-  color: ${({ theme }) => theme.color.textMuted};
-  cursor: pointer;
-
-  &:hover:not(:disabled) {
-    background: ${({ theme }) => theme.color.bgHover};
-    color: ${({ theme }) => theme.color.text};
-  }
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
-  }
-
-  svg {
-    width: 14px;
-    height: 14px;
-  }
-`;
-
-let TextActions = styled.div`
+let HeaderActions = styled.div`
   display: flex;
-  gap: 10px;
-`;
-
-let TextAction = styled.button`
-  padding: 0;
-  border: 0;
-  background: transparent;
-  font: inherit;
-  font-size: 12px;
-  color: ${({ theme }) => theme.color.textSubtle};
-  cursor: pointer;
-
-  &:hover {
-    color: ${({ theme }) => theme.color.text};
-  }
+  align-items: center;
+  gap: 4px;
 `;
 
 let CommentItem = ({
   access,
   thread,
   comment,
-  threadActions
+  resolveButton,
+  closeButton,
+  onDeleteThread
 }: {
   access: CommentsAccess;
   thread: DocumentCommentThread;
   comment: DocumentComment;
-  threadActions?: React.ReactNode;
+  resolveButton?: React.ReactNode;
+  closeButton?: React.ReactNode;
+  onDeleteThread?: () => void;
 }) => {
   let threads = useDocumentCommentThreads(access.instanceId, access.documentId);
   let updateComment = threads.useUpdateCommentMutator();
   let deleteComment = threads.useDeleteCommentMutator();
   let [editing, setEditing] = useState(false);
   let isAuthor = !!access.actorId && comment.authorId === access.actorId;
+
+  let menuItems = [
+    ...(isAuthor
+      ? [
+          { id: 'edit', label: 'Edit' },
+          { id: 'delete', label: 'Delete comment' }
+        ]
+      : []),
+    ...(onDeleteThread ? [{ id: 'delete-thread', label: 'Delete thread' }] : [])
+  ];
+
+  let onMenuItem = (id: string) => {
+    if (id === 'edit') setEditing(true);
+    if (id === 'delete') {
+      confirm({
+        title: 'Delete comment?',
+        description: 'This comment will be removed for everyone.',
+        confirmText: 'Delete',
+        onConfirm: () =>
+          void deleteComment.mutate({ threadId: thread.id, commentId: comment.id })
+      });
+    }
+    if (id === 'delete-thread') onDeleteThread?.();
+  };
 
   return (
     <CommentRow>
@@ -179,12 +184,26 @@ let CommentItem = ({
         />
         <AuthorMeta>
           <AuthorName>{comment.author.name}</AuthorName>
-          <Timestamp>
-            <RenderDate date={comment.createdAt} />
+          <Timestamp title={new Date(comment.createdAt).toLocaleString()}>
+            {formatCommentTime(comment.createdAt)}
             {comment.editedAt && ' · edited'}
           </Timestamp>
         </AuthorMeta>
-        {threadActions}
+        <HeaderActions onClick={event => event.stopPropagation()}>
+          {resolveButton}
+          {menuItems.length > 0 && !editing && (
+            <Menu items={menuItems} onItemClick={onMenuItem}>
+              <Button
+                size="1"
+                variant="outline"
+                aria-label="Comment options"
+                iconRight={<RiMore2Line />}
+                loading={deleteComment.isLoading}
+              />
+            </Menu>
+          )}
+          {closeButton}
+        </HeaderActions>
       </CommentHeader>
 
       {editing ? (
@@ -209,31 +228,9 @@ let CommentItem = ({
           }}
         />
       ) : (
-        <Body>{comment.body}</Body>
+        <CommentBody markdown={comment.body} />
       )}
 
-      {isAuthor && !editing && (
-        <TextActions>
-          <TextAction type="button" onClick={() => setEditing(true)}>
-            Edit
-          </TextAction>
-          <TextAction
-            type="button"
-            disabled={deleteComment.isLoading}
-            onClick={() =>
-              confirm({
-                title: 'Delete comment?',
-                description: 'This comment will be removed for everyone.',
-                confirmText: 'Delete',
-                onConfirm: () =>
-                  void deleteComment.mutate({ threadId: thread.id, commentId: comment.id })
-              })
-            }
-          >
-            Delete
-          </TextAction>
-        </TextActions>
-      )}
       <deleteComment.RenderError />
     </CommentRow>
   );
@@ -246,10 +243,13 @@ export let CommentThreadCard = forwardRef<
     thread: DocumentCommentThread;
     active?: boolean;
     showQuote?: boolean;
+    floating?: boolean;
     onActivate?: (threadId: string) => void;
+    onClose?: (threadId: string) => void;
     style?: React.CSSProperties;
   }
->(({ access, thread, active, showQuote, onActivate, style }, ref) => {
+>(({ access, thread, active, showQuote, floating, onActivate, onClose, style }, ref) => {
+  let [replying, setReplying] = useState(false);
   let threads = useDocumentCommentThreads(access.instanceId, access.documentId);
   let reply = threads.useReplyMutator();
   let updateThread = threads.useUpdateThreadMutator();
@@ -260,58 +260,52 @@ export let CommentThreadCard = forwardRef<
   let canReply = !!access.actorId;
   let resolved = thread.status === 'resolved';
 
-  let threadActions = (
-    <>
-      {canResolve && (
-        <IconAction
-          type="button"
-          title={resolved ? 'Reopen thread' : 'Resolve thread'}
-          aria-label={resolved ? 'Reopen thread' : 'Resolve thread'}
-          disabled={updateThread.isLoading}
-          onClick={event => {
-            event.stopPropagation();
-            void updateThread.mutate({
-              threadId: thread.id,
-              status: resolved ? 'open' : 'resolved'
-            });
-          }}
-        >
-          <IconCheck />
-        </IconAction>
-      )}
-      {access.canWrite && (
-        <IconAction
-          type="button"
-          title="Delete thread"
-          aria-label="Delete thread"
-          disabled={deleteThread.isLoading}
-          onClick={event => {
-            event.stopPropagation();
-            confirm({
-              title: 'Delete comment thread?',
-              description: 'The thread and all replies will be removed for everyone.',
-              confirmText: 'Delete',
-              onConfirm: () => void deleteThread.mutate({ threadId: thread.id })
-            });
-          }}
-        >
-          <IconTrash />
-        </IconAction>
-      )}
-    </>
-  );
+  let closeButton = onClose ? (
+    <Button
+      size="1"
+      variant="outline"
+      title="Hide thread"
+      aria-label="Hide thread"
+      iconRight={<RiCloseLine />}
+      onClick={() => onClose(thread.id)}
+    />
+  ) : null;
+
+  let confirmDeleteThread = () =>
+    confirm({
+      title: 'Delete comment thread?',
+      description: 'The thread and all replies will be removed for everyone.',
+      confirmText: 'Delete',
+      onConfirm: () => void deleteThread.mutate({ threadId: thread.id })
+    });
+
+  let resolveButton = canResolve ? (
+    <Button
+      size="1"
+      variant="outline"
+      title={resolved ? 'Reopen thread' : 'Resolve thread'}
+      aria-label={resolved ? 'Reopen thread' : 'Resolve thread'}
+      iconRight={resolved ? <RiInboxUnarchiveLine /> : <RiCheckLine />}
+      disabled={updateThread.isLoading}
+      onClick={() =>
+        void updateThread.mutate({
+          threadId: thread.id,
+          status: resolved ? 'open' : 'resolved'
+        })
+      }
+    />
+  ) : null;
 
   return (
-    <Card ref={ref} style={style} $active={active} onClick={() => onActivate?.(thread.id)}>
-      {(resolved || thread.anchorStatus === 'detached') && (
-        <StatusRow>
-          {resolved && <StatusBadge $tone="muted">Resolved</StatusBadge>}
-          {thread.anchorStatus === 'detached' && (
-            <StatusBadge $tone="warning">Text removed</StatusBadge>
-          )}
-        </StatusRow>
+    <Card
+      ref={ref}
+      style={style}
+      $active={active}
+      $floating={floating}
+      onClick={() => onActivate?.(thread.id)}>
+      {showQuote && (
+        <Quote $detached={thread.anchorStatus === 'detached'}>{thread.quote}</Quote>
       )}
-      {showQuote && <Quote>{thread.quote}</Quote>}
 
       {thread.comments.map((comment, index) => (
         <CommentItem
@@ -319,26 +313,48 @@ export let CommentThreadCard = forwardRef<
           access={access}
           thread={thread}
           comment={comment}
-          threadActions={index === 0 ? threadActions : undefined}
+          resolveButton={index === 0 ? resolveButton : undefined}
+          closeButton={index === 0 ? closeButton : undefined}
+          onDeleteThread={index === 0 && access.canWrite ? confirmDeleteThread : undefined}
         />
       ))}
-      {thread.comments.length === 0 && threadActions}
 
       <updateThread.RenderError />
       <deleteThread.RenderError />
 
-      {active && canReply && (
-        <CommentComposer
-          label="Reply"
-          submitLabel="Reply"
-          loading={reply.isLoading}
-          success={reply.isSuccess}
-          RenderError={reply.RenderError}
-          onSubmit={async body => {
-            let [result] = await reply.mutate({ threadId: thread.id, body });
-            return !!result;
-          }}
-        />
+      {replying && canReply && (
+        <ReplyDivider>
+          <CommentComposer
+            label="Reply"
+            submitLabel="Reply"
+            bare
+            autoFocus
+            loading={reply.isLoading}
+            success={reply.isSuccess}
+            RenderError={reply.RenderError}
+            onCancel={() => setReplying(false)}
+            onSubmit={async body => {
+              let [result] = await reply.mutate({ threadId: thread.id, body });
+              if (!result) return false;
+              setReplying(false);
+              return true;
+            }}
+          />
+        </ReplyDivider>
+      )}
+
+      {!replying && canReply && (
+        <ReplyButtonWrap>
+          <Button
+            size="1"
+            onClick={event => {
+              event.stopPropagation();
+              setReplying(true);
+            }}
+          >
+            Reply
+          </Button>
+        </ReplyButtonWrap>
       )}
     </Card>
   );

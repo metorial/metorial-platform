@@ -163,6 +163,9 @@ interface Props {
 
 let BUBBLE_MENU_OPTIONS = { placement: 'top', offset: 8 } as const;
 
+let getScrollBoundary = (editor: Editor | null) =>
+  editor?.view.dom.closest<HTMLElement>('[data-editor-scroll]') ?? undefined;
+
 let inlineBubbleMenuPluginKey = new PluginKey('inlineBubbleMenu');
 
 let bubbleShouldShow = ({
@@ -182,6 +185,7 @@ let bubbleShouldShow = ({
   // Keep the menu visible regardless of selection state in that case.
   if (element?.querySelector('[data-link-mode="true"], [data-keep-open="true"]')) return true;
 
+  if (getDocsAgentApi(e)?.hasPendingJobs()) return false;
   if (from === to) return false;
   if (state.selection instanceof CellSelection) return false;
   if (e.isActive('image')) return false;
@@ -396,10 +400,14 @@ export function EditorBubbleMenu({ editor, linkPromptToken, readOnly, onComment 
   let overlay = useBubbleOverlay(editor, inlineBubbleMenuPluginKey, () =>
     closeLinkMode({ hideMenu: true })
   );
-  let options = useMemo(
-    () => ({ ...BUBBLE_MENU_OPTIONS, ...overlay.lifecycle }),
-    [overlay.lifecycle]
-  );
+  let options = useMemo(() => {
+    let boundary = getScrollBoundary(editor);
+    return {
+      ...BUBBLE_MENU_OPTIONS,
+      ...(boundary ? { flip: { boundary, padding: 8 }, shift: { boundary, padding: 8 } } : {}),
+      ...overlay.lifecycle
+    };
+  }, [editor, overlay.lifecycle]);
 
   if (!editor) return null;
 

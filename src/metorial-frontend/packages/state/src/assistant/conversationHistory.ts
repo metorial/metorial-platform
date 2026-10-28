@@ -626,7 +626,7 @@ export let useConversationHistory = (
   );
 
   let liveItems = liveState?.items ?? [];
-  let hasRunningLiveItems = liveItems.some(isLiveItemRunning);
+  let hasRunningLiveItems = !!activeRequestId && liveItems.some(isLiveItemRunning);
   let isWaitingForResponse = !!activeRequestId && liveItems.length === 0;
   let isAssistantBusy =
     isWaitingForResponse || streamStatus == 'connecting' || hasRunningLiveItems;

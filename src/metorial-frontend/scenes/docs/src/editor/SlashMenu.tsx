@@ -60,8 +60,8 @@ let canUseAgent = (editor: Editor) => !!getDocsAgentApi(editor)?.canWrite;
 
 export let slashItems: SlashItem[] = [
   {
-    title: 'AI block',
-    description: 'Describe a section and let the assistant write it',
+    title: 'Write with AI',
+    description: 'Describe what you need and let the assistant write it',
     group: 'AI',
     icon: <IconSparkle />,
     keywords: ['ai', 'assistant', 'generate', 'write', 'agent'],

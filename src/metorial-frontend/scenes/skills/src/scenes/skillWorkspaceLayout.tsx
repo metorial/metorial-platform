@@ -7,10 +7,11 @@ import {
   useAllStoreItems,
   useCreateDocument,
   useDocumentEditorChrome,
+  prefetchDocument,
+  prefetchStoreItem,
   useModifyStoreItems,
   useSkillAgents,
   useSkillMergeRequests,
-  useSkillParticipants,
   useUploadFile,
   type SkillItem
 } from '@metorial/state';
@@ -49,7 +50,6 @@ import {
   RiFontSize2,
   RiGitMergeLine,
   RiGitPullRequestLine,
-  RiGroupLine,
   RiHistoryLine,
   RiImageLine,
   RiInformationLine,
@@ -141,8 +141,6 @@ export type SkillWorkspaceRoutes = {
   agents: string;
   settings: string;
   groups: string;
-  versions: string;
-  participants: string;
 };
 
 export type SkillWorkspaceFork = {
@@ -203,6 +201,7 @@ let Canvas = styled.main<{ $document: boolean }>`
       ? '0'
       : 'var(--canvas-top, 104px) var(--canvas-right, 48px) var(--assistant-h, 120px) var(--canvas-left, 48px)'};
   box-sizing: border-box;
+  isolation: isolate;
   transition: padding 0.3s ${workspaceEase};
 `;
 
@@ -419,6 +418,22 @@ let useUntitledDocument = (d: {
   };
 };
 
+let useLingering = (value: boolean, ms: number) => {
+  let [lingered, setLingered] = useState(value);
+
+  useEffect(() => {
+    if (value) {
+      setLingered(true);
+      return;
+    }
+
+    let timer = setTimeout(() => setLingered(false), ms);
+    return () => clearTimeout(timer);
+  }, [value, ms]);
+
+  return value || lingered;
+};
+
 let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }) => {
   let location = useLocation();
   let navigate = useNavigate();
@@ -491,10 +506,6 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
     status: ['active']
   });
   let skillAgents = useSkillAgents(p.instanceId, p.skill.id, { order: 'asc' });
-  let participants = useSkillParticipants(p.instanceId, p.skill.id, {
-    order: 'asc',
-    limit: 100
-  });
   let outgoingMergeRequests = useSkillMergeRequests(p.instanceId, {
     sourceSkillId: p.skill.id,
     status: 'open',
@@ -536,7 +547,6 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
   );
   let providerListings = useAllProviderListings(p.instanceId, linkedProviderIds);
   let agents = skillAgents.data?.items ?? [];
-  let participantItems = participants.data?.items ?? [];
 
   let dedupe = <T extends { id: string }>(items: T[]) =>
     items.filter((item, index, all) => all.findIndex(other => other.id == item.id) == index);
@@ -561,21 +571,17 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
     path: agent.name,
     kind: 'agent',
     depth: 0,
-    href: p.routes.agent(agent.documentId)
+    href: p.routes.agent(agent.documentId),
+    documentId: agent.documentId
   }));
 
   let outlet = useOutlet();
   let isMergeRequestRoute = isRouteActive(location.pathname, p.routes.mergeRequests);
   let panelRoute: 'page' | 'mergeRequest' | null = isMergeRequestRoute
     ? 'mergeRequest'
-    : [
-          p.routes.settings,
-          p.routes.groups,
-          p.routes.versions,
-          p.routes.participants,
-          p.routes.providers,
-          p.routes.agents
-        ].some(route => isRouteActive(location.pathname, route, true))
+    : [p.routes.settings, p.routes.groups, p.routes.providers, p.routes.agents].some(route =>
+          isRouteActive(location.pathname, route, true)
+        )
       ? 'page'
       : null;
 
@@ -671,7 +677,7 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
 
   let canWrite = !p.readOnly;
   let isFork = !!p.fork;
-  let toolbarAvailable = !!chrome && !chrome.readOnly;
+  let toolbarAvailable = useLingering(!!chrome && !chrome.readOnly, 6000);
   let toolbarVisible = toolbarAvailable && prefs.preferences.toolbar;
 
   let sectionMenu = (id: WorkspacePanelId): FloatingMenuItem[] => {
@@ -852,6 +858,9 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
               key={agent.id}
               $active={isRouteActive(location.pathname, href, true)}
               onClick={() => navigate(href)}
+              onPointerEnter={() =>
+                prefetchDocument({ instanceId: p.instanceId, documentId: agent.documentId })
+              }
               type="button"
             >
               <SectionRowMain>
@@ -910,11 +919,20 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
     )
   });
 
-  let order: WorkspacePanelId[] = ['files', 'mergeRequests', 'providers', 'agents'];
+  let order = prefs.preferences.order;
   let visibleSections = order.filter(isSectionVisible).map(buildSection);
   let sidebarSections = order
     .filter(id => prefs.preferences.modes[id] != 'off')
     .map(buildSection);
+
+  let reorderSections = useCallback(
+    (ids: WorkspacePanelId[]) => {
+      let queue = [...ids];
+      let current = prefs.preferences.order;
+      prefs.setOrder(current.map(id => (ids.includes(id) ? (queue.shift() ?? id) : id)));
+    },
+    [prefs.setOrder, prefs.preferences.order]
+  );
 
   let assistantVisible = prefs.preferences.assistant;
   let snackbarBottom = assistantVisible && p.assistantHeight ? p.assistantHeight + 8 : 24;
@@ -978,8 +996,7 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
   let size = layout.size;
   let createMergeRequest =
     p.fork?.onRequestMerge && p.fork.hasChanges !== false ? p.fork.onRequestMerge : null;
-  let openVersionHistory = () =>
-    chrome ? chrome.actions.openVersionHistory() : navigate(p.routes.versions);
+  let openVersionHistory = chrome ? () => chrome.actions.openVersionHistory() : null;
 
   let moreItems: FloatingMenuItem[] = [
     ...(canWrite && p.onImageChange
@@ -1181,7 +1198,8 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
             id: 'xs-history',
             icon: <RiHistoryLine />,
             label: 'Version history',
-            onClick: openVersionHistory
+            disabled: !openVersionHistory,
+            onClick: openVersionHistory ?? undefined
           },
           ...(p.onExport
             ? [
@@ -1249,19 +1267,6 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
       label: 'Groups',
       onClick: () => navigate(p.routes.groups)
     },
-    {
-      id: 'versions',
-      icon: <RiHistoryLine />,
-      label: 'Versions',
-      onClick: () => navigate(p.routes.versions)
-    },
-    {
-      id: 'participants',
-      icon: <RiGroupLine />,
-      label: 'Participants',
-      kbd: participantItems.length ? String(participantItems.length) : undefined,
-      onClick: () => navigate(p.routes.participants)
-    },
     { type: 'separator', id: 'panels-sep' },
     { type: 'label', id: 'panels-label', label: 'Panels' },
     segmentedItem({
@@ -1299,7 +1304,6 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
           <SkillSharePopover
             instanceId={p.instanceId}
             context={p.shareContext}
-            onShared={() => participants.refetch()}
             trigger={trigger}
           />
         )
@@ -1358,9 +1362,7 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
     <>
       {[
         { route: p.routes.settings, icon: <RiSettings3Line />, label: 'Settings' },
-        { route: p.routes.groups, icon: <RiFolderLine />, label: 'Groups' },
-        { route: p.routes.versions, icon: <RiHistoryLine />, label: 'Versions' },
-        { route: p.routes.participants, icon: <RiGroupLine />, label: 'Participants' }
+        { route: p.routes.groups, icon: <RiFolderLine />, label: 'Groups' }
       ].map(entry => (
         <SidebarFooterRow
           key={entry.label}
@@ -1397,21 +1399,25 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
           if (!open) closePanelRoute();
         }}
       >
-        <RoutePanelBody>
-          <RoutePanelClose>
-            <NavIconButton
-              icon={<RiCloseLine />}
-              label="Close"
-              tooltip={null}
-              onClick={closePanelRoute}
-            />
-          </RoutePanelClose>
-          {panelContentRef.current}
-        </RoutePanelBody>
+        {panelKindRef.current == 'mergeRequest' ? (
+          <RoutePanelBody>
+            <RoutePanelClose>
+              <NavIconButton
+                icon={<RiCloseLine />}
+                label="Close"
+                tooltip={null}
+                onClick={closePanelRoute}
+              />
+            </RoutePanelClose>
+            {panelContentRef.current}
+          </RoutePanelBody>
+        ) : (
+          panelContentRef.current
+        )}
       </Panel.Wrapper>
 
-      <PanelColumn side="left" sections={leftSections} />
-      <PanelColumn side="right" sections={rightSections} />
+      <PanelColumn side="left" sections={leftSections} onReorder={reorderSections} />
+      <PanelColumn side="right" sections={rightSections} onReorder={reorderSections} />
       <PanelDock sections={visibleSections} visible={position == 'dock'} />
       <WorkspaceSidebar
         visible={position == 'sidebar'}
@@ -1437,6 +1443,14 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
         onSwitcherOpenChange={setSwitcherOpen}
         filesPinned={isSectionVisible('files')}
         onPinFiles={() => prefs.setMode('files', 'on')}
+        onEntryHover={entry => {
+          prefetchStoreItem({
+            instanceId: p.instanceId,
+            storeId: p.skill.storeId,
+            itemId: entry.id
+          });
+          prefetchDocument({ instanceId: p.instanceId, documentId: entry.documentId });
+        }}
         onNewDocument={canWrite ? () => void createUntitledDocument() : undefined}
         toolbar={
           toolbarAvailable ? { on: prefs.preferences.toolbar, onToggle: toggleToolbar } : null
@@ -1469,12 +1483,6 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
         }
         onVersionHistory={openVersionHistory}
         share={share}
-        participants={participantItems.map(participant => ({
-          id: participant.id,
-          name: participant.actor.name,
-          imageUrl: participant.actor.imageUrl
-        }))}
-        onParticipants={() => navigate(p.routes.participants)}
         onExport={p.onExport}
         exportLoading={p.exportLoading}
         forkLabel={isFork ? 'Fork' : 'Duplicate'}

@@ -1,71 +1,32 @@
 import type { DocumentCommentThread } from '@metorial/state';
-import { Panel } from '@metorial/ui';
+import { OptionToggle, Panel } from '@metorial/ui';
 import { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { useDismissEditorOverlays } from '../editor/overlays';
 import { CommentThreadCard, type CommentsAccess } from './CommentThreadCard';
 
-type CommentsFilter = 'all' | 'open' | 'resolved' | 'detached';
+type CommentsFilter = 'all' | 'open' | 'resolved';
 
 let filters: { id: CommentsFilter; label: string }[] = [
   { id: 'all', label: 'All' },
   { id: 'open', label: 'Open' },
-  { id: 'resolved', label: 'Resolved' },
-  { id: 'detached', label: 'Text removed' }
+  { id: 'resolved', label: 'Resolved' }
 ];
 
 let matchesFilter = (thread: DocumentCommentThread, filter: CommentsFilter) => {
-  if (filter === 'open') return thread.status === 'open' && thread.anchorStatus === 'attached';
+  if (filter === 'open') return thread.status === 'open';
   if (filter === 'resolved') return thread.status === 'resolved';
-  if (filter === 'detached') return thread.anchorStatus === 'detached';
   return true;
 };
 
-let HeaderTitle = styled.span`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 16px;
-  font-weight: 600;
-  color: ${({ theme }) => theme.color.text};
-`;
-
-let HeaderCount = styled.span`
-  font-size: 12px;
-  font-weight: 500;
-  color: ${({ theme }) => theme.color.textMuted};
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: ${({ theme }) => theme.color.bgAlt};
-`;
-
-let FilterBar = styled.div`
-  display: flex;
-  gap: 4px;
-  padding: 2px;
-  margin-bottom: 14px;
-  border-radius: 8px;
-  background: ${({ theme }) => theme.color.bgAlt};
-`;
-
-let FilterButton = styled.button<{ $active?: boolean }>`
-  flex: 1;
-  height: 28px;
-  border: 0;
-  border-radius: 6px;
-  font: inherit;
-  font-size: 12.5px;
-  font-weight: 500;
-  cursor: pointer;
-  color: ${({ $active, theme }) => ($active ? theme.color.text : theme.color.textMuted)};
-  background: ${({ $active, theme }) => ($active ? theme.color.bgElevated : 'transparent')};
-  box-shadow: ${({ $active, theme }) => ($active ? theme.shadow.sm : 'none')};
+let FilterWrap = styled.div`
+  margin-bottom: 16px;
 `;
 
 let List = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   padding-bottom: 12px;
 `;
 
@@ -105,28 +66,20 @@ export let CommentsPanel = ({
   return (
     <Panel.Wrapper isOpen={open} onOpenChange={onOpenChange} width={440}>
       <Panel.Header>
-        <HeaderTitle>
-          Comments
-          <HeaderCount>
-            {threads.filter(thread => matchesFilter(thread, 'open')).length}
-          </HeaderCount>
-        </HeaderTitle>
+        <Panel.Title>Comments</Panel.Title>
       </Panel.Header>
       <Panel.Content>
-        <FilterBar role="tablist" aria-label="Filter comments">
-          {filters.map(option => (
-            <FilterButton
-              key={option.id}
-              type="button"
-              role="tab"
-              aria-selected={filter === option.id}
-              $active={filter === option.id}
-              onClick={() => setFilter(option.id)}
-            >
-              {option.label}
-            </FilterButton>
-          ))}
-        </FilterBar>
+        <FilterWrap>
+          <OptionToggle
+            ariaLabel="Filter comments"
+            value={filter}
+            onChange={value => setFilter(value as CommentsFilter)}
+            items={filters.map(option => ({ id: option.id, label: option.label }))}
+            size="2"
+            itemMinWidth={0}
+            fullWidth
+          />
+        </FilterWrap>
 
         <List>
           {visible.length === 0 ? (

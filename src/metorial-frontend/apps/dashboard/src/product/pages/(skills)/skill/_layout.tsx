@@ -169,9 +169,7 @@ export let SkillLayout = () => {
               providers: `${skillPath}/providers`,
               agents: `${skillPath}/agents`,
               settings: `${skillPath}/settings`,
-              groups: `${skillPath}/groups`,
-              versions: `${skillPath}/versions`,
-              participants: `${skillPath}/participants`
+              groups: `${skillPath}/groups`
             }}
             defaultCanvas={<SkillPage />}
             shareContext={{

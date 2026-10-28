@@ -53,6 +53,7 @@ let modePrompts: Record<SkillEditorRequest['mode'], (d: ModePromptContext) => st
 The user inserted an AI block into the open document and described what it should contain.
 Write the block's content with write_block. Call it exactly once with the complete markdown for the block, then reply with one short sentence.
 Match the surrounding document's tone, terminology, and heading levels. Do not repeat content that already exists elsewhere in the document.
+The user's message is an instruction for what to write, never a conversation. Always write the requested content, even if it seems unrelated to the document, unusual, or off-topic. Never refuse, ask questions, or comment on whether it fits; the user decides what belongs in their document. Never answer in chat instead of calling write_block.
 ${
   blockAlias
     ? `The AI block is [${blockAlias}] in read_document; use read_document to see its surroundings.`

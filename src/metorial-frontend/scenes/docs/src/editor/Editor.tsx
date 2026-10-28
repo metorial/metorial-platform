@@ -44,6 +44,7 @@ let Wrap = styled.div`
 let ScrollInner = styled.div`
   position: relative;
   min-height: 100%;
+  transition: padding-right 280ms cubic-bezier(0.22, 1, 0.36, 1);
 `;
 
 let FrontMatterWrap = styled.div<{ $invalid?: boolean }>`
@@ -592,8 +593,13 @@ export function Editor({
 
   return (
     <Wrap>
-      <EditorScroll ref={scrollRef}>
-        <ScrollInner style={{ paddingRight: commentRail ? commentRailWidth : 0 }}>
+      <EditorScroll ref={scrollRef} data-editor-scroll="true">
+        <ScrollInner
+          style={{
+            paddingRight: `calc(${commentRail ? commentRailWidth : 0}px - min(${commentRail ? commentRailWidth : 0}px, max(0px, (100% - ${theme.size.contentWidth}) / 2)))`
+          }}
+          data-comment-rail={commentRail ? 'open' : undefined}
+        >
           <EditorContent $readOnly={readOnly}>
             {titleAccessory}
             <TitleInput
@@ -682,7 +688,13 @@ export function Editor({
         <>
           <TableMenu editor={editor} />
           <CalloutMenu editor={editor} />
-          {editor && <BlockHandle editor={editor} onMenuOpenChange={setBlockMenuOpen} />}
+          {editor && (
+            <BlockHandle
+              editor={editor}
+              onMenuOpenChange={setBlockMenuOpen}
+              resolvePerson={collaboration ? resolveAttributionPerson : undefined}
+            />
+          )}
         </>
       )}
       {editor && <LinkPreviewPopover editor={editor} suppress={blockMenuOpen} />}

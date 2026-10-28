@@ -25,6 +25,7 @@ export type WorkspaceFileEntry = {
   kind: 'document' | 'file' | 'directory' | 'agent';
   depth: number;
   href: string | null;
+  documentId?: string;
   isMain?: boolean;
 };
 
@@ -133,6 +134,7 @@ export let buildFileEntries = (
         kind: item.kind,
         depth: parts.length - 1,
         href: item.kind == 'directory' ? null : getHref(item.document?.id ?? '', item.id),
+        documentId: item.kind == 'document' ? item.document?.id : undefined,
         isMain: isSkillDocumentPath(path)
       } satisfies WorkspaceFileEntry;
     })

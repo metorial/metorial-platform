@@ -14,7 +14,8 @@ import styled from 'styled-components';
 import {
   SkillFileTree,
   SkillFileTreeCreateKind,
-  SkillFileTreeNode
+  SkillFileTreeNode,
+  SkillFileTreeStoreContext
 } from '../components/fileTree';
 import type { SkillSharePanelContext } from '../components/skillSharePanel';
 
@@ -524,38 +525,40 @@ export let SkillStoreFileTree = (p: {
   }, [optimisticItems.length]);
 
   return renderWithLoader({ storeItems, storePermissions })(() => (
-    <FileTreeWrap>
-      <SkillFileTree
-        emptyLabel="This store does not contain any files or documents yet."
-        expandedPaths={expandedPaths}
-        isCreating={isCreating}
-        nodes={treeNodes}
-        instanceId={p.instanceId}
-        shareContext={p.shareContext}
-        canWrite={
-          !p.readOnly && !!storePermissions.data?.permissions.includes('content_write')
-        }
-        onCreate={createStoreItem}
-        onDelete={deleteStoreItem}
-        onFileSelect={createStoreFile}
-        onFilesDrop={createStoreFiles}
-        getDocumentPath={p.getDocumentPath}
-        openFilesInline={p.openFilesInline}
-        onMove={renameStoreItem}
-        onRename={renameStoreItem}
-        onToggle={path =>
-          setExpandedPaths(current => {
-            let next = new Set(current);
-            if (next.has(path)) next.delete(path);
-            else next.add(path);
-            return next;
-          })
-        }
-      />
-      <createDocument.RenderError />
-      <uploadFile.RenderError />
-      <modifyStoreItems.RenderError />
-    </FileTreeWrap>
+    <SkillFileTreeStoreContext.Provider value={p.storeId}>
+      <FileTreeWrap>
+        <SkillFileTree
+          emptyLabel="This store does not contain any files or documents yet."
+          expandedPaths={expandedPaths}
+          isCreating={isCreating}
+          nodes={treeNodes}
+          instanceId={p.instanceId}
+          shareContext={p.shareContext}
+          canWrite={
+            !p.readOnly && !!storePermissions.data?.permissions.includes('content_write')
+          }
+          onCreate={createStoreItem}
+          onDelete={deleteStoreItem}
+          onFileSelect={createStoreFile}
+          onFilesDrop={createStoreFiles}
+          getDocumentPath={p.getDocumentPath}
+          openFilesInline={p.openFilesInline}
+          onMove={renameStoreItem}
+          onRename={renameStoreItem}
+          onToggle={path =>
+            setExpandedPaths(current => {
+              let next = new Set(current);
+              if (next.has(path)) next.delete(path);
+              else next.add(path);
+              return next;
+            })
+          }
+        />
+        <createDocument.RenderError />
+        <uploadFile.RenderError />
+        <modifyStoreItems.RenderError />
+      </FileTreeWrap>
+    </SkillFileTreeStoreContext.Provider>
   ));
 };
 

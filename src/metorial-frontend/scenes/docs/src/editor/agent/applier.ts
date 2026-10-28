@@ -166,7 +166,13 @@ export class AgentEditApplier {
       operation.target == agentTargets.frontMatter
     ) {
       if (!operation.finished) return;
-      if (operation.target == agentTargets.title) this.d.setTitle?.(operation.content.trim());
+      if (operation.target == agentTargets.title)
+        this.d.setTitle?.(
+          operation.content
+            .trim()
+            .replace(/^#+\s*/, '')
+            .trim()
+        );
       else this.d.setFrontMatter?.(operation.content.trim());
       this.finish(d.key, state, false);
       return;

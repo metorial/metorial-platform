@@ -2,6 +2,7 @@ import type { Editor } from '@tiptap/core';
 
 export type DocsAgentApi = {
   canWrite: boolean;
+  hasPendingJobs: () => boolean;
   insertAgentBlock: () => void;
   summarizeSection: () => void;
   summarizeSelection: () => void;

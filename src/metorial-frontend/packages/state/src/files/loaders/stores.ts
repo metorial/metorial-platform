@@ -191,3 +191,17 @@ export let useStoreItem = (
     instanceId && storeId && itemId ? { instanceId, storeId, itemId } : null
   );
 };
+
+export let prefetchStoreItem = (d: {
+  instanceId: string | null | undefined;
+  storeId: string | null | undefined;
+  itemId: string | null | undefined;
+}) => {
+  if (!d.instanceId || !d.storeId || !d.itemId) return;
+
+  void storeItemLoader.fetch({
+    instanceId: d.instanceId,
+    storeId: d.storeId,
+    itemId: d.itemId
+  });
+};
