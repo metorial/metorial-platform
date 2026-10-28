@@ -2192,6 +2192,7 @@
         "@metorial/microfrontend": "^1.0.0",
         "@metorial/scene-assistant": "^1.0.0",
         "@metorial/scene-scm": "^1.0.0",
+        "@metorial/skill-icons": "^1.0.0",
         "@metorial/state": "^1.0.0",
         "@metorial/ui": "^1.0.0",
         "@metorial/ui-product": "^1.0.0",
@@ -2627,6 +2628,9 @@
     "src/metorial/packages/image-url": {
       "name": "@metorial/image-url",
       "version": "1.0.0",
+      "dependencies": {
+        "@metorial/skill-icons": "^1.0.0",
+      },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "^5.9.3",
@@ -2777,6 +2781,18 @@
         "vitest": "^5.0.4",
       },
     },
+    "src/metorial/packages/skill-icons": {
+      "name": "@metorial/skill-icons",
+      "version": "1.0.0",
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "@remixicon/react": "^4.9.0",
+        "react": "19.3.0",
+        "react-dom": "19.3.0",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
     "src/metorial/packages/system-email": {
       "name": "@metorial/system-email",
       "version": "1.0.0",
@@ -2885,6 +2901,7 @@
         "@modelcontextprotocol/sdk": "^1.32.1",
         "ai": "^7.0.138",
         "just-bash": "^3.6.0",
+        "yjs": "^13.6.31",
         "zod": "^4.6.7",
       },
       "devDependencies": {
@@ -4656,6 +4673,7 @@
         "@metorial/module-resource-actor": "^1.0.0",
         "@metorial/module-store": "^1.0.0",
         "@metorial/queue": "^1.0.0",
+        "@metorial/skill-icons": "^1.0.0",
         "@metorial/skills-common": "^1.0.0",
         "@metorial/skills-images": "^1.0.0",
         "@metorial/skills-search": "^1.0.0",
@@ -4886,6 +4904,7 @@
         "@metorial/config": "^1.0.0",
         "@metorial/db": "^1.0.0",
         "@metorial/module-file": "^1.0.0",
+        "@metorial/skill-icons": "^1.0.0",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -4946,6 +4965,7 @@
         "@lowerdeck/lock": "workspace:2.0.0",
         "@lowerdeck/pagination": "workspace:2.0.0",
         "@lowerdeck/redis": "workspace:2.0.0",
+        "@lowerdeck/sentry": "workspace:2.0.0",
         "@lowerdeck/service": "workspace:2.0.0",
         "@lowerdeck/tokens": "workspace:2.0.0",
         "@metorial/audit-scope": "^1.0.0",
@@ -4961,12 +4981,14 @@
         "@metorial/module-store": "^1.0.0",
         "@metorial/queue": "^1.0.0",
         "hono": "4.13.13",
+        "jsdom": "29.1.1",
         "y-protocols": "^1.0.7",
         "yjs": "^13.6.33",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
         "@types/bun": "latest",
+        "@types/jsdom": "^28.0.3",
       },
       "peerDependencies": {
         "typescript": "^5",
@@ -7997,6 +8019,8 @@
     "@metorial/shuttle": ["@metorial/shuttle@workspace:src/shuttle/service"],
 
     "@metorial/signal": ["@metorial/signal@workspace:src/signal/service"],
+
+    "@metorial/skill-icons": ["@metorial/skill-icons@workspace:src/metorial/packages/skill-icons"],
 
     "@metorial/skills-common": ["@metorial/skills-common@workspace:src/metorial/products/skills/packages/common"],
 
