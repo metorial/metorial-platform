@@ -64,7 +64,7 @@ let presentFile = (file: {
   id: string;
   status: string;
   fileName: string;
-  fileSize: number;
+  fileSize: bigint;
   fileType: string;
   title: string | null;
   purpose: { name: string; slug: string };
@@ -77,7 +77,7 @@ let presentFile = (file: {
   status: file.status,
 
   file_name: file.fileName,
-  file_size: file.fileSize,
+  file_size: Number(file.fileSize),
   file_type: file.fileType,
 
   title: file.title,
@@ -96,7 +96,7 @@ let presentFileUpload = (
     id: string;
     status: string;
     fileName: string;
-    fileSize: number;
+    fileSize: bigint;
     fileType: string;
     title: string | null;
     purpose: { name: string; slug: string };
@@ -113,7 +113,7 @@ let presentFileUpload = (
   status: upload.status,
 
   file_name: upload.fileName,
-  file_size: upload.fileSize,
+  file_size: Number(upload.fileSize),
   file_type: upload.fileType,
 
   title: upload.title,
@@ -409,7 +409,7 @@ let getFileContentHandler = async (c: Context) => {
         headers: getFileContentHeaders({
           fileName: resolved.file.fileName,
           contentType: resolved.file.fileType,
-          size: resolved.file.fileSize,
+          size: Number(resolved.file.fileSize),
           source: resolved.isDelegated ? 'delegate' : 'object',
           isExpiring: resolved.link.expiresAt != null,
           shouldDownload

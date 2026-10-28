@@ -1276,6 +1276,13 @@ export let projectReducedSubprocessorsConfigurationType = PresentableType.create
   reducedSubprocessors: boolean;
 }>()('project_reduced_subprocessors_configuration');
 
+export let projectAiAnalysisConfigurationType = PresentableType.create<{
+  project: Project;
+  aiAnalysisEnabled: boolean;
+  usageReviewsEnabled: boolean;
+  skillReviewHoldPending: boolean;
+}>()('project_ai_analysis_configuration');
+
 export let projectResourceOwnershipConfigurationType = PresentableType.create<{
   project: Project;
   allowApiAccessToConsumerOwnedResources: boolean;
@@ -2899,6 +2906,8 @@ export let protoGuardAlertType = PresentableType.create<{
 
 export let protoGuardConfigType = PresentableType.create<{
   config: {
+    enabled: boolean;
+    alertProbabilityThreshold: number;
     alertFilterCountThreshold: number;
     filters: {
       filter: SubspacePrisma.ProtoGuardFilterGetPayload<{}>;
@@ -2907,6 +2916,12 @@ export let protoGuardConfigType = PresentableType.create<{
     }[];
   };
 }>()('protoguard.filter_config');
+
+export let protoGuardSuppressionType = PresentableType.create<{
+  suppression: SubspacePrisma.ProtoGuardSuppressionGetPayload<{
+    include: { filter: true; provider: true };
+  }>;
+}>()('protoguard.suppression');
 
 export let deploymentPreviewType = PresentableType.create<{
   deployment: RawProviderDeploymentPreview;
@@ -3833,3 +3848,42 @@ export let chatAuthenticatedUserType = PresentableType.create<{
   author: RawChatAuthenticatedUserAuthor;
   workspace: ChatWorkspace | null;
 }>()('chat_authenticated_user');
+
+type RawSecurityReview = SubspacePrisma.SecurityReviewGetPayload<{
+  include: { provider: true; providerVersion: true };
+}>;
+
+type RawSecurityReviewRevision = SubspacePrisma.SecurityReviewRevisionGetPayload<{
+  include: { findings: true };
+}>;
+
+export let providerSecurityReviewType = PresentableType.create<{
+  review: RawSecurityReview;
+  current: RawSecurityReviewRevision | null;
+  inProgress: RawSecurityReviewRevision | null;
+  usage?: {
+    status:
+      'disabled' | 'waiting_for_review' | 'not_enough_data' | 'pending' | 'running' | 'ready';
+    review: RawSecurityReview | null;
+    current: RawSecurityReviewRevision | null;
+    inProgress: RawSecurityReviewRevision | null;
+    canRun: boolean;
+  };
+}>()('provider.security_review');
+
+export let providerSecurityReviewRevisionType = PresentableType.create<{
+  review: RawSecurityReview;
+  revision: RawSecurityReviewRevision;
+}>()('provider.security_review.revision');
+
+export let skillSecurityReviewType = PresentableType.create<{
+  review: RawSecurityReview;
+  current: RawSecurityReviewRevision | null;
+  inProgress: RawSecurityReviewRevision | null;
+  verdict: 'pass' | 'warn' | 'fail' | 'pending' | 'unavailable' | 'dismissed';
+}>()('skill.security_review');
+
+export let skillSecurityReviewRevisionType = PresentableType.create<{
+  review: RawSecurityReview;
+  revision: RawSecurityReviewRevision;
+}>()('skill.security_review.revision');

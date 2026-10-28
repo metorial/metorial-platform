@@ -36,6 +36,9 @@ let ProviderOverviewPage = dynamicPage(() =>
 let ProviderUsagePage = dynamicPage(() =>
   import('./pages/provider/usage').then(c => c.ProviderUsagePage)
 );
+let ProviderSecurityPage = dynamicPage(() =>
+  import('./pages/provider/security').then(c => c.ProviderSecurityPage)
+);
 let ProviderVersionsPage = dynamicPage(() =>
   import('./pages/provider/versions').then(c => c.ProviderVersionsPage)
 );
@@ -102,6 +105,9 @@ let SkillMergeRequestPage = dynamicPage(() =>
 );
 let SkillSettingsPage = dynamicPage(() =>
   import('./pages/(skills)/skill/settings').then(c => c.SkillSettingsPage)
+);
+let SkillSecurityPage = dynamicPage(() =>
+  import('./pages/(skills)/skill/security').then(c => c.SkillSecurityPage)
 );
 let SkillTemplateLayout = dynamicPage(() =>
   import('./pages/(skills)/skill-template/_layout').then(c => c.SkillTemplateLayout)
@@ -1151,6 +1157,10 @@ export let productSkillsSlice = createSlice([
               {
                 path: 'settings',
                 element: <SkillSettingsPage />
+              },
+              {
+                path: 'security',
+                element: <SkillSecurityPage />
               }
             ]
           },
@@ -1340,6 +1350,10 @@ export let productIntegrationsSlice = createSlice([
                     element: <ProviderAuthMethodsPage />
                   }
                 ]
+              },
+              {
+                path: 'security',
+                element: <ProviderSecurityPage />
               },
               {
                 path: 'versions',

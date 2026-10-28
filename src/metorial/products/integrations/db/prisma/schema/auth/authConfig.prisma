@@ -125,6 +125,7 @@ model ProviderAuthConfig {
   @@index([needsScopeSync])
   @@index([projectOid])
   @@index([instanceOid])
+  @@index([instanceOid, providerOid, status])
   @@index([ownerActorOid])
   @@index([ownerPublicMcpServerOid])
 }

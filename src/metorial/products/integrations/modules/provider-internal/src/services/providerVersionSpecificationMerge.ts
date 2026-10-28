@@ -1,6 +1,7 @@
 import { createLock } from '@lowerdeck/lock';
 import { Service } from '@lowerdeck/service';
 import { db, getId, type Provider, type ProviderVersion } from '@metorial-subspace/db';
+import { requestSecurityReview } from '@metorial-subspace/module-security-review-request';
 import { schemaChangeNotificationAlertIngestQueue } from '@metorial-subspace/module-monitor/src/queues/schemaChange';
 import type {
   Specification,
@@ -184,6 +185,7 @@ class providerVersionSpecificationMergeServiceImpl {
       await schemaChangeNotificationAlertIngestQueue.add({
         notificationId: notification.id
       });
+      await requestSecurityReview({ subject: 'specChange', id: change.id });
     } catch (e) {
       console.error('Failed to record provider version specification change:', e);
     }

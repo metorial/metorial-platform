@@ -129,4 +129,5 @@ model SkillVersion {
 
   @@unique([skillOid, versionNumber])
   @@index([skillOid, createdAt])
+  @@index([createdAt])
 }

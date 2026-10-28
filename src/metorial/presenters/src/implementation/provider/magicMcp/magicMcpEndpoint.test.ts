@@ -69,6 +69,7 @@ describe('magic MCP endpoint presentation', () => {
       let presented = await v1MagicMcpEndpointPresenter.present(input).run();
 
       expect(presented.access).toEqual({
+        source: null,
         type,
         visibility,
         owner: { type: 'person', name: 'Owner', image_url: null, email: null }
@@ -78,6 +79,15 @@ describe('magic MCP endpoint presentation', () => {
       expect(presented).not.toHaveProperty('is_owner_only_visible');
     }
   );
+
+  it('presents the explorer source of an endpoint', async () => {
+    let input = await hydrateResourceOwners({
+      magicMcpEndpoint: { ...magicMcpEndpoint(false), source: 'explorer', ownerActor: null }
+    });
+    let presented = await v1MagicMcpEndpointPresenter.present(input).run();
+
+    expect(presented.access.source).toBe('explorer');
+  });
 
   it('documents enable_skill_editing in the schema', () => {
     expect(v1MagicMcpEndpointPresenter.schema.properties).toHaveProperty(

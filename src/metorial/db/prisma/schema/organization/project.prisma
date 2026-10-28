@@ -67,7 +67,10 @@ model Project {
   autoAddOrganizationMembersToPortals Boolean @default(false)
   allowConsumerSkillEditing           Boolean @default(true)
 
-  reducedSubprocessors Boolean @default(false)
+  reducedSubprocessors   Boolean @default(false)
+  aiAnalysisEnabled      Boolean @default(false)
+  usageReviewsEnabled    Boolean @default(false)
+  skillReviewHoldPending Boolean @default(false)
 
   allowApiAccessToConsumerOwnedResources    Boolean @default(true)
   allowMemberAccessToConsumerOwnedResources Boolean @default(true)

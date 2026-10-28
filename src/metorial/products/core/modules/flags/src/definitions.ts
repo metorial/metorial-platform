@@ -7,6 +7,9 @@ export type DisabledFlag = {
 
 export type FlagValue = boolean | DisabledFlag;
 
+export let aiReviewThoroughnessLevels = ['basic', 'standard', 'deep'] as const;
+export type AiReviewThoroughness = (typeof aiReviewThoroughnessLevels)[number];
+
 export type Flags = {
   'test-flag': FlagValue;
 
@@ -23,6 +26,7 @@ export type Flags = {
   'advanced-security-management-enabled': FlagValue;
   'networking-enabled': FlagValue;
   'sandbox-enabled': FlagValue;
+  'security-reviews-enabled': FlagValue;
   'public-mcp-servers-enabled': FlagValue;
   outposts: FlagValue;
 
@@ -45,6 +49,10 @@ export type Flags = {
   'paid-network-ip-access': FlagValue;
   'paid-sandboxes': FlagValue;
   'paid-advanced-org-management': FlagValue;
+  'paid-ai-reviews': FlagValue;
+  'paid-protoguard': FlagValue;
+
+  'ai-review-thoroughness': AiReviewThoroughness;
 
   'sandbox-builder-memory-mib': number;
   'sandbox-max-memory-gib': number;
@@ -52,7 +60,7 @@ export type Flags = {
 };
 
 export type BooleanFlagKey = {
-  [K in keyof Flags]: Flags[K] extends number ? never : K;
+  [K in keyof Flags]: Flags[K] extends FlagValue ? K : never;
 }[keyof Flags];
 
 export let disabledFlag = (reason: string): DisabledFlag => ({ enabled: false, reason });
@@ -78,6 +86,7 @@ export let defaultFlags: Flags = {
   'advanced-security-management-enabled': false,
   'networking-enabled': false,
   'sandbox-enabled': false,
+  'security-reviews-enabled': false,
   'public-mcp-servers-enabled': false,
   outposts: false,
 
@@ -100,6 +109,10 @@ export let defaultFlags: Flags = {
   'paid-network-ip-access': true,
   'paid-sandboxes': true,
   'paid-advanced-org-management': true,
+  'paid-ai-reviews': true,
+  'paid-protoguard': true,
+
+  'ai-review-thoroughness': 'standard',
 
   'sandbox-builder-memory-mib': 8192,
   'sandbox-max-memory-gib': 32,
@@ -124,7 +137,7 @@ export let applyEnabledFlags = (flags: Flags, enabled: string | undefined): Flag
 
   let result: Record<string, unknown> = { ...flags };
   for (let [name, value] of Object.entries(flags)) {
-    if (typeof value === 'number') continue;
+    if (typeof value === 'number' || typeof value === 'string') continue;
     if (names.has('*') || names.has(name)) result[name] = true;
   }
   return result as Flags;

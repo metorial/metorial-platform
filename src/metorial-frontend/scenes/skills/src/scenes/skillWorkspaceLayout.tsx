@@ -67,6 +67,7 @@ import {
   RiRefreshLine,
   RiRobot2Line,
   RiSettings3Line,
+  RiShieldCheckLine,
   RiSideBarLine,
   RiSparkling2Line,
   RiToolsLine,
@@ -141,6 +142,7 @@ export type SkillWorkspaceRoutes = {
   agents: string;
   settings: string;
   groups: string;
+  security?: string;
 };
 
 export type SkillWorkspaceFork = {
@@ -162,6 +164,7 @@ export type SkillWorkspaceLayoutProps = {
     image?: SkillImageSelection | null;
   };
   routes: SkillWorkspaceRoutes;
+  securityBadge?: ReactNode;
   children?: ReactNode;
   defaultCanvas?: ReactNode;
   workspaceLabel?: string | null;
@@ -579,9 +582,13 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
   let isMergeRequestRoute = isRouteActive(location.pathname, p.routes.mergeRequests);
   let panelRoute: 'page' | 'mergeRequest' | null = isMergeRequestRoute
     ? 'mergeRequest'
-    : [p.routes.settings, p.routes.groups, p.routes.providers, p.routes.agents].some(route =>
-          isRouteActive(location.pathname, route, true)
-        )
+    : [
+          p.routes.settings,
+          p.routes.groups,
+          p.routes.security,
+          p.routes.providers,
+          p.routes.agents
+        ].some(route => !!route && isRouteActive(location.pathname, route, true))
       ? 'page'
       : null;
 
@@ -1267,6 +1274,16 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
       label: 'Groups',
       onClick: () => navigate(p.routes.groups)
     },
+    ...(p.routes.security
+      ? [
+          {
+            id: 'security',
+            icon: <RiShieldCheckLine />,
+            label: 'Security',
+            onClick: () => navigate(p.routes.security!)
+          }
+        ]
+      : []),
     { type: 'separator', id: 'panels-sep' },
     { type: 'label', id: 'panels-label', label: 'Panels' },
     segmentedItem({
@@ -1362,7 +1379,17 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
     <>
       {[
         { route: p.routes.settings, icon: <RiSettings3Line />, label: 'Settings' },
-        { route: p.routes.groups, icon: <RiFolderLine />, label: 'Groups' }
+        { route: p.routes.groups, icon: <RiFolderLine />, label: 'Groups' },
+        ...(p.routes.security
+          ? [
+              {
+                route: p.routes.security,
+                icon: <RiShieldCheckLine />,
+                label: 'Security',
+                badge: p.securityBadge
+              }
+            ]
+          : [])
       ].map(entry => (
         <SidebarFooterRow
           key={entry.label}
@@ -1374,6 +1401,7 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
           <SectionRowMain>
             <SectionRowTitle>{entry.label}</SectionRowTitle>
           </SectionRowMain>
+          {'badge' in entry && entry.badge ? entry.badge : null}
         </SidebarFooterRow>
       ))}
     </>

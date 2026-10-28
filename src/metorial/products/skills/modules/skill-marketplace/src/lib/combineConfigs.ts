@@ -1,4 +1,6 @@
-import type { SkillConfiguration } from '@metorial/db';
+import type { SkillConfiguration, SkillSecurityReviewPolicy } from '@metorial/db';
+
+let securityReviewPolicyStrictness: SkillSecurityReviewPolicy[] = ['off', 'warn', 'block'];
 
 export let intersectStringArrays = (arrays: string[][]): string[] => {
   if (arrays.length === 0) return [];
@@ -12,6 +14,16 @@ export let intersectStringArrays = (arrays: string[][]): string[] => {
 
 export let intersectBooleans = (values: boolean[]) => values.every(v => v);
 
+export let strictestSecurityReviewPolicy = (policies: SkillSecurityReviewPolicy[]) =>
+  policies.reduce<SkillSecurityReviewPolicy>(
+    (strictest, policy) =>
+      securityReviewPolicyStrictness.indexOf(policy) >
+      securityReviewPolicyStrictness.indexOf(strictest)
+        ? policy
+        : strictest,
+    'off'
+  );
+
 export let combineConfigs = (
   configs: (SkillConfiguration | undefined | null)[],
   defaultConfig: SkillConfiguration | null | undefined
@@ -24,7 +36,8 @@ export let combineConfigs = (
     return {
       allowScripts: true,
       allowedFileExtensions: [],
-      allowNonStandardDirectories: true
+      allowNonStandardDirectories: true,
+      securityReviewPolicy: 'off' as const
     };
   }
 
@@ -38,6 +51,9 @@ export let combineConfigs = (
     restrictsFileExtensions: extensionAllowLists.length > 0,
     allowNonStandardDirectories: intersectBooleans(
       producedConfigs.map(c => c.allowNonStandardDirectories)
+    ),
+    securityReviewPolicy: strictestSecurityReviewPolicy(
+      producedConfigs.map(c => c.securityReviewPolicy)
     )
   };
 };

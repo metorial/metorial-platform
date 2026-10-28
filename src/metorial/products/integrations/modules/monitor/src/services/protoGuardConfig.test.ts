@@ -57,7 +57,9 @@ describe('getProtoGuardConfigForEvaluation', () => {
         oid: filterOid,
         key: 'instruction_override',
         defaultEnabled: true,
-        alertConfidenceThreshold: 0.8
+        alertConfidenceThreshold: 0.8,
+        scoreWeight: 3,
+        stage: 'active'
       }
     ]);
     findManySettings.mockResolvedValue([
@@ -68,22 +70,63 @@ describe('getProtoGuardConfigForEvaluation', () => {
       }
     ]);
     findUniqueTenantSetting.mockResolvedValue({
-      alertFilterCountThreshold: 3
+      enabled: true,
+      alertFilterCountThreshold: 3,
+      alertProbabilityThreshold: null
     });
 
     let { getProtoGuardConfigForEvaluation } = await import('./protoGuardConfig');
     let result = await getProtoGuardConfigForEvaluation({ tenantOid });
 
+    expect(result.enabled).toBe(true);
     expect(result.alertFilterCountThreshold).toBe(3);
+    expect(result.alertProbabilityThreshold).toBe(0.8);
     expect(result.filters).toEqual([
       {
         key: 'instruction_override',
         oid: filterOid,
+        stage: 'active',
+        scoreWeight: 3,
         enabled: false,
         alertConfidenceThreshold: 0.92
       }
     ]);
   });
+
+  it('treats a tenant without a setting row as enabled with default thresholds', async () => {
+    findManyFilters.mockResolvedValue([]);
+    findManySettings.mockResolvedValue([]);
+    findUniqueTenantSetting.mockResolvedValue(null);
+
+    let { getProtoGuardConfigForEvaluation } = await import('./protoGuardConfig');
+    let result = await getProtoGuardConfigForEvaluation({ tenantOid: BigInt(9) });
+
+    expect(result).toMatchObject({
+      enabled: true,
+      alertProbabilityThreshold: 0.8,
+      alertFilterCountThreshold: 2
+    });
+  });
+
+  it('reports a disabled tenant', async () => {
+    findManyFilters.mockResolvedValue([]);
+    findManySettings.mockResolvedValue([]);
+    findUniqueTenantSetting.mockResolvedValue({
+      enabled: false,
+      alertFilterCountThreshold: null,
+      alertProbabilityThreshold: 0.65
+    });
+
+    let { getProtoGuardConfigForEvaluation } = await import('./protoGuardConfig');
+    let result = await getProtoGuardConfigForEvaluation({ tenantOid: BigInt(10) });
+
+    expect(result).toMatchObject({
+      enabled: false,
+      alertProbabilityThreshold: 0.65,
+      alertFilterCountThreshold: 2
+    });
+  });
+
   it('reads the global filter list once across tenants', async () => {
     findManyFilters.mockResolvedValue([
       {
@@ -194,7 +237,46 @@ describe('protoGuardConfigService', () => {
       ).rejects.toMatchObject({ data: { code: 'invalid_alert_filter_count_threshold' } });
     }
 
+    for (let threshold of [0, -0.2, 1.01, Number.POSITIVE_INFINITY]) {
+      await expect(
+        protoGuardConfigService.updateTenantSettingsInternal({
+          tenant,
+          input: { alertProbabilityThreshold: threshold }
+        } as any)
+      ).rejects.toMatchObject({ data: { code: 'invalid_alert_probability_threshold' } });
+    }
+
     expect(upsertFilterSetting).not.toHaveBeenCalled();
     expect(upsertTenantSetting).not.toHaveBeenCalled();
+  });
+
+  it('clears the count threshold without deleting the tenant setting', async () => {
+    let { protoGuardConfigService } = await import('./protoGuardConfig');
+
+    await protoGuardConfigService.setTenantAlertFilterCountThresholdInternal({
+      tenant: { oid: BigInt(1), id: 'tenant_1', projectOid: null },
+      threshold: null
+    } as any);
+
+    let call = upsertTenantSetting.mock.calls[0][0];
+
+    expect(call.update).toMatchObject({ alertFilterCountThreshold: null });
+    expect(call.update.enabled).toBeUndefined();
+  });
+
+  it('only writes the tenant setting fields that were provided', async () => {
+    let { protoGuardConfigService } = await import('./protoGuardConfig');
+
+    await protoGuardConfigService.updateTenantSettingsInternal({
+      tenant: { oid: BigInt(1), id: 'tenant_1', projectOid: BigInt(11) },
+      input: { enabled: false }
+    } as any);
+
+    let call = upsertTenantSetting.mock.calls[0][0];
+
+    expect(call.update.enabled).toBe(false);
+    expect(call.update.alertProbabilityThreshold).toBeUndefined();
+    expect(call.update.alertFilterCountThreshold).toBeUndefined();
+    expect(call.create).toMatchObject({ enabled: false, projectOid: BigInt(11) });
   });
 });

@@ -24,6 +24,7 @@ export type {
   AuditSandboxMachine,
   AuditSkillGroup,
   AuditSkillMergeRequest,
+  AuditSkillSecurityReview,
   AuditSkillTemplate,
   AuditStore,
   AuditSubspaceAgent,
@@ -52,6 +53,8 @@ export type {
   AuditSubspaceProtoGuardAlertThreshold,
   AuditSubspaceProtoGuardFilterDefinition,
   AuditSubspaceProtoGuardFilterSetting,
+  AuditSubspaceProtoGuardSuppression,
+  AuditSubspaceProtoGuardTenantSetting,
   AuditSubspaceProviderAuthConfig,
   AuditSubspaceProviderAuthCredentials,
   AuditSubspaceProviderAuthExport,
@@ -81,6 +84,7 @@ export type {
   MagicMcpServerMembershipFabricChange,
   ProviderEventBase,
   SandboxMachineExecOutcome,
+  SecurityReviewRunEvent,
   SkillStoreFabricOwner,
   StoreItemFabricOperation
 } from './types';

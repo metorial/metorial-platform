@@ -3,6 +3,7 @@ import {
   Fabric,
   type AuditSkillGroup,
   type AuditSkillMergeRequest,
+  type AuditSkillSecurityReview,
   type AuditSkillTemplate,
   type FabricEvents
 } from '@metorial/fabric';
@@ -282,10 +283,37 @@ let recordSkillMergeRequest =
     });
   };
 
+let recordSkillSecurityReview =
+  (action: 'dismiss' | 'restore') =>
+  async (event: {
+    auditScope: FabricEvents['skill.security_review.audit.dismissed:after']['auditScope'];
+    securityReview: AuditSkillSecurityReview;
+  }) => {
+    await recordAuditEventAfterCommit(async recordedAt => {
+      await auditTrackerService.recordEvent(
+        event.auditScope,
+        'skill_security_review',
+        action,
+        {
+          payload: {
+            id: event.securityReview.id,
+            skillId: event.securityReview.skillId,
+            securityScore: event.securityReview.securityScore,
+            risk: event.securityReview.risk
+          },
+          recordedAt
+        }
+      );
+    });
+  };
+
 export let recordSkillMergeRequestCreated = recordSkillMergeRequest('create');
 export let recordSkillMergeRequestMerged = recordSkillMergeRequest('merge');
 export let recordSkillMergeRequestClosed = recordSkillMergeRequest('close');
 export let recordSkillMergeRequestRolledBack = recordSkillMergeRequest('rollback');
+
+export let recordSkillSecurityReviewDismissed = recordSkillSecurityReview('dismiss');
+export let recordSkillSecurityReviewRestored = recordSkillSecurityReview('restore');
 
 Fabric.listen('skill.group.audit.created:after', recordSkillGroupCreated);
 Fabric.listen('skill.group.audit.updated:after', recordSkillGroupUpdated);
@@ -304,3 +332,9 @@ Fabric.listen(
   'skill.merge_request.audit.rolled_back:after',
   recordSkillMergeRequestRolledBack
 );
+
+Fabric.listen(
+  'skill.security_review.audit.dismissed:after',
+  recordSkillSecurityReviewDismissed
+);
+Fabric.listen('skill.security_review.audit.restored:after', recordSkillSecurityReviewRestored);

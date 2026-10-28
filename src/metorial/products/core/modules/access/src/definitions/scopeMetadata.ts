@@ -129,6 +129,10 @@ let scopeResourceMetadata: Record<string, { name: string; description: string }>
     name: 'Skills',
     description: 'These endpoints manage skills, skill items, templates, and template items.'
   },
+  'instance.skill.security_review': {
+    name: 'Skill Security Reviews',
+    description: 'These endpoints manage the automatic security reviews of skills.'
+  },
   'instance.session': {
     name: 'Sessions',
     description: 'These endpoints manage session records and session lifecycle.'
@@ -390,6 +394,11 @@ let scopeActionMetadata: Record<string, { name: string; description: string }> =
   reveal: {
     name: 'Reveal',
     description: 'It allows revealing stored secret values.'
+  },
+  dismiss: {
+    name: 'Dismiss',
+    description:
+      'It allows dismissing and restoring a resource, which stops it from being reviewed.'
   }
 };
 

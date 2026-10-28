@@ -27,6 +27,10 @@ let db = {
   }
 };
 
+vi.mock('@metorial-subspace/module-security-review-request', () => ({
+  requestSecurityReview: vi.fn()
+}));
+
 vi.mock('@lowerdeck/queue', () => ({
   QueueRetryError: class QueueRetryError extends Error {},
   createQueue: (opts: { name: string }) => {

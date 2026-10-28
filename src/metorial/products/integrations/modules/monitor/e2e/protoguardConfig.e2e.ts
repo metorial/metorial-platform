@@ -271,7 +271,7 @@ describe('module-monitor protoguard config in evaluation', () => {
     await protoGuardConfigService.setTenantFilterAlertConfidenceThreshold({
       ...base,
       filterId: 'prompt_exfiltration',
-      threshold: 1
+      threshold: 0.5
     });
     await protoGuardConfigService.setTenantAlertFilterCountThreshold({
       ...base,

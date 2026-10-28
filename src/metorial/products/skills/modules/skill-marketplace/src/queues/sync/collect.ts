@@ -4,6 +4,7 @@ import { CargoSkillLimitError } from '../../lib/limits';
 import { applyMarketplace } from '../../serializers/marketplace';
 import { applyPlugin } from '../../serializers/plugin';
 import { applySkill } from '../../serializers/skill';
+import { getWithheldSkillIds } from '../../lib/securityReviewPolicy';
 import { getSyncItemKey, getSyncTaskItemKey } from './_lib/item';
 import { appendSkillDestinationSyncLog } from './_lib/logs';
 import { createTaskManager, type SyncTask } from './_lib/task';
@@ -274,7 +275,20 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(async data => {
           taskManager.addOrUpdateItem({ skillPlugin });
         }
 
+        let withheldSkillIds = await getWithheldSkillIds({
+          projectOid: skillPlugin.projectOid,
+          instanceOid: skillPlugin.instanceOid,
+          skills: skillPlugin.skillPluginSkills,
+          configs: [
+            skillPlugin.skillConfiguration,
+            marketplacePlugin.skillConfiguration,
+            marketplace.skillConfiguration
+          ]
+        });
+
         for (let skillPluginSkill of skillPlugin.skillPluginSkills) {
+          if (withheldSkillIds.has(skillPluginSkill.skill.id)) continue;
+
           let skillHash = await getSerializerHash(applySkill, {
             skill: skillPluginSkill.skill,
             skillPlugin,
@@ -346,7 +360,16 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(async data => {
         taskManager.addOrUpdateItem({ skillPlugin });
       }
 
+      let withheldSkillIds = await getWithheldSkillIds({
+        projectOid: skillPlugin.projectOid,
+        instanceOid: skillPlugin.instanceOid,
+        skills: skillPlugin.skillPluginSkills,
+        configs: [skillPlugin.skillConfiguration]
+      });
+
       for (let skillPluginSkill of skillPlugin.skillPluginSkills) {
+        if (withheldSkillIds.has(skillPluginSkill.skill.id)) continue;
+
         let skillHash = await getSerializerHash(applySkill, {
           skill: skillPluginSkill.skill,
           skillPlugin,

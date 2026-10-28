@@ -163,6 +163,7 @@ let makeProject = (overrides: Record<string, unknown> = {}) =>
     name: 'Project',
     onlyAllowTrustedProviders: false,
     hidePublicRemoteProviders: false,
+    aiAnalysisEnabled: false,
     organizationOid: 1n,
     resourceTenantOid: 100n,
     instances: [],
@@ -201,6 +202,33 @@ describe('Subspace scope provisioning', () => {
       );
     }
   );
+
+  it('seeds AI analysis from the project only when its tenant is first linked', async () => {
+    await subspaceScopeService.ensureForProjectUncached(
+      makeProject({ aiAnalysisEnabled: true })
+    );
+
+    expect(mocks.tenantUpsert).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        input: expect.objectContaining({ aiAnalysisEnabled: true })
+      })
+    );
+
+    mocks.tenantFind.mockResolvedValue({ identifier: 'mte-pro-2' });
+    await subspaceScopeService.ensureForProjectUncached(
+      makeProject({
+        aiAnalysisEnabled: true,
+        internalTenantIdentifier: 'mte-pro-2',
+        subspaceTenantId: 'ktn_canonical'
+      })
+    );
+
+    expect(mocks.tenantUpsert).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        input: expect.objectContaining({ aiAnalysisEnabled: undefined })
+      })
+    );
+  });
 
   it('clears cached project and instance scopes after an admin policy change', async () => {
     let instance = { id: 'ins_3' };

@@ -7,6 +7,7 @@ export type DashboardInstanceSkillsConfigurationsCreateOutput = {
   allowScripts: boolean;
   allowedFileExtensions: string[];
   allowNonStandardDirectories: boolean;
+  securityReviewPolicy: 'off' | 'warn' | 'block';
   deletedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -19,6 +20,7 @@ export let mapDashboardInstanceSkillsConfigurationsCreateOutput =
       'allow_scripts',
       'allowed_file_extensions',
       'allow_non_standard_directories',
+      'security_review_policy',
       'deleted_at',
       'created_at',
       'updated_at'
@@ -30,11 +32,13 @@ export type DashboardInstanceSkillsConfigurationsCreateBody = {
   allowScripts?: boolean | undefined;
   allowedFileExtensions?: string[] | null | undefined;
   allowNonStandardDirectories?: boolean | undefined;
+  securityReviewPolicy?: 'off' | 'warn' | 'block' | undefined;
 };
 
 export let mapDashboardInstanceSkillsConfigurationsCreateBody =
   /* @__PURE__ */ mapObject<DashboardInstanceSkillsConfigurationsCreateBody>([
     'allow_scripts',
     'allowed_file_extensions',
-    'allow_non_standard_directories'
+    'allow_non_standard_directories',
+    'security_review_policy'
   ]);

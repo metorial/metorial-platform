@@ -7,13 +7,17 @@ import {
   mapDashboardInstanceProtoGuardConfigGetOutput,
   mapDashboardInstanceProtoGuardConfigSetAlertFilterCountThresholdBody,
   mapDashboardInstanceProtoGuardConfigSetAlertFilterCountThresholdOutput,
+  mapDashboardInstanceProtoGuardConfigUpdateBody,
   mapDashboardInstanceProtoGuardConfigUpdateFilterBody,
   mapDashboardInstanceProtoGuardConfigUpdateFilterOutput,
+  mapDashboardInstanceProtoGuardConfigUpdateOutput,
   type DashboardInstanceProtoGuardConfigGetOutput,
   type DashboardInstanceProtoGuardConfigSetAlertFilterCountThresholdBody,
   type DashboardInstanceProtoGuardConfigSetAlertFilterCountThresholdOutput,
+  type DashboardInstanceProtoGuardConfigUpdateBody,
   type DashboardInstanceProtoGuardConfigUpdateFilterBody,
-  type DashboardInstanceProtoGuardConfigUpdateFilterOutput
+  type DashboardInstanceProtoGuardConfigUpdateFilterOutput,
+  type DashboardInstanceProtoGuardConfigUpdateOutput
 } from '../resources';
 
 /**
@@ -65,6 +69,34 @@ export class MetorialProtoGuardConfigEndpoint {
 
     return this._get(request).transform(
       mapDashboardInstanceProtoGuardConfigGetOutput
+    );
+  }
+
+  /**
+   * @name Update ProtoGuard config
+   * @description Enables or disables ProtoGuard for this instance and sets its alert thresholds.
+   *
+   * @param `body` - DashboardInstanceProtoGuardConfigUpdateBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceProtoGuardConfigUpdateOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  update(
+    body: DashboardInstanceProtoGuardConfigUpdateBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceProtoGuardConfigUpdateOutput> {
+    let path = 'protoguard-config';
+
+    let request = {
+      path,
+      body: mapDashboardInstanceProtoGuardConfigUpdateBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._patch(request).transform(
+      mapDashboardInstanceProtoGuardConfigUpdateOutput
     );
   }
 

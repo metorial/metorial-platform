@@ -494,7 +494,7 @@ class InternalStoreTemplateSyncServiceImpl {
             data: {
               storeId: d.item.fileStoreId!,
               fileName: name,
-              fileSize: size,
+              fileSize: BigInt(size),
               fileType: mimeType,
               title: name,
               status: 'active',
@@ -605,7 +605,7 @@ class InternalStoreTemplateSyncServiceImpl {
               data: {
                 storeId: d.item.fileStoreId!,
                 fileName: title,
-                fileSize: d.item.contentByteSize ?? Buffer.byteLength(content, 'utf8'),
+                fileSize: BigInt(d.item.contentByteSize ?? Buffer.byteLength(content, 'utf8')),
                 fileType: 'text/markdown',
                 title,
                 isReadOnly: true,

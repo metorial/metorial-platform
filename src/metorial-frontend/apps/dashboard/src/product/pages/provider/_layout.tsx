@@ -12,7 +12,9 @@ import {
   useCustomProvider,
   useProvider,
   useProviderListing,
-  useProviderVersions
+  useProviderVersions,
+  useSecurityReview,
+  useSecurityReviewsEnabled
 } from '@metorial/state';
 import { Callout, RenderDate, Spacer } from '@metorial/ui';
 import { ID, ProviderImage } from '@metorial/ui-product';
@@ -20,6 +22,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { OpenExplorerButton } from '../../components/openExplorer';
 import { UseProviderButton } from '../../scenes/providers/useProviderButton';
+import { isSecurityReviewNotFound } from '../../scenes/securityReview';
 import {
   ProviderVersionContext,
   type ProviderVersion,
@@ -37,6 +40,7 @@ export let ProviderLayout = () => {
 
   let { providerId } = useParams();
   let provider = useProvider(instance.data?.id, providerId);
+  let securityReviewsEnabled = useSecurityReviewsEnabled();
   let providerData: ProviderData | null = provider.data;
 
   let pathname = useLocation().pathname;
@@ -116,6 +120,16 @@ export let ProviderLayout = () => {
   let effectiveVersionId = selectedVersionId ?? fallbackVersionId;
   let selectedVersion = allVersions.find(v => v.id === effectiveVersionId);
   let isDefaultVersion = effectiveVersionId === currentVersionId;
+  let securityReview = useSecurityReview(
+    instance.data?.id,
+    provider.data?.id,
+    isDefaultVersion ? undefined : effectiveVersionId
+  );
+  let showSecurity =
+    securityReviewsEnabled &&
+    !!securityReview.data &&
+    securityReview.data.status != 'disabled' &&
+    !isSecurityReviewNotFound(securityReview.error);
 
   let listingData = useProviderListing(instance.data?.id, providerId);
   let listing: ProviderListing | undefined = listingData.data ?? undefined;
@@ -185,6 +199,14 @@ export let ProviderLayout = () => {
             label: 'Tools & Capabilities',
             to: Paths.instance.provider(...providerPathParams, 'capabilities')
           },
+          ...(showSecurity
+            ? [
+                {
+                  label: 'Security',
+                  to: Paths.instance.provider(...providerPathParams, 'security')
+                }
+              ]
+            : []),
           {
             label: 'Versions',
             to: Paths.instance.provider(...providerPathParams, 'versions')

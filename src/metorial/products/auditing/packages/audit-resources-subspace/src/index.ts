@@ -45,7 +45,9 @@ import {
 import {
   protoGuardAlertAuditResource,
   protoGuardAlertThresholdAuditResource,
-  protoGuardFilterSettingAuditResource
+  protoGuardTenantSettingAuditResource,
+  protoGuardFilterSettingAuditResource,
+  protoGuardSuppressionAuditResource
 } from './protoguard';
 import {
   providerListingGroupAuditResource,
@@ -127,5 +129,7 @@ export let subspaceAuditResources = resourceSet({
 
   protoguard_filter_setting: protoGuardFilterSettingAuditResource,
   protoguard_alert_threshold: protoGuardAlertThresholdAuditResource,
+  protoguard_tenant_setting: protoGuardTenantSettingAuditResource,
+  protoguard_suppression: protoGuardSuppressionAuditResource,
   protoguard_alert: protoGuardAlertAuditResource
 });

@@ -5,6 +5,7 @@ export * from './providerCollection';
 export * from './providerGroup';
 export * from './providerListing';
 export * from './providerPublisher';
+export * from './providerSecurityReview';
 export * from './providerSpecification';
 export * from './providerTool';
 export * from './providerTrigger';

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
+  protoGuardService: { scheduleMessageScan: vi.fn() },
   db: {
     sessionMessage: {
       create: vi.fn(),
@@ -21,6 +22,9 @@ let mocks = vi.hoisted(() => ({
   messageFailureReasonToErrorType: vi.fn(() => 'message_processing_provider_error')
 }));
 
+vi.mock('@metorial-subspace/module-protoguard', () => ({
+  protoGuardService: mocks.protoGuardService
+}));
 vi.mock('@metorial-subspace/db', () => ({
   db: mocks.db,
   getId: mocks.getId,

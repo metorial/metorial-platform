@@ -17,8 +17,8 @@ model Cell {
   consumerSurfaces                  ConsumerSurface[]
   users                             User[]
   oauthApplications                 OAuthApplication[]
-  oauthAuthorizationRequestsCreated OAuthAuthorizationRequest[] @relation("createdBy")
-  oauthAuthorizationRequestsClaimed OAuthAuthorizationRequest[] @relation("claimedBy")
+  oauthAuthorizationRequestsCreated OAuthAuthorizationRequest[]    @relation("createdBy")
+  oauthAuthorizationRequestsClaimed OAuthAuthorizationRequest[]    @relation("claimedBy")
   oauthTokens                       OAuthToken[]
   oauthJwks                         OAuthJwk[]
   globalLeases                      GlobalLease[]
@@ -33,6 +33,8 @@ model Cell {
   workspaceGroupAssignments         WorkspaceGroupAssignment[]
   workspacePolicyAssignments        WorkspacePolicyAssignment[]
   cliSignupAttempts                 CliSignupAttempt[]
+  globalSecurityReviews             GlobalSecurityReview[]
+  globalSecurityReviewRevisions     GlobalSecurityReviewRevision[] @relation("GlobalSecurityReviewRevisionRunner")
 }
 
 model CellToken {

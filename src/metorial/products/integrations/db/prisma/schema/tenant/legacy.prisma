@@ -52,6 +52,8 @@ model Tenant {
   disableCallbacks         Boolean                   @default(false)
 
   reducedSubprocessors Boolean @default(false)
+  aiAnalysisEnabled    Boolean @default(false)
+  usageReviewsEnabled  Boolean @default(false)
 
   allowApiAccessToConsumerOwnedResources    Boolean @default(true)
   allowMemberAccessToConsumerOwnedResources Boolean @default(true)
@@ -128,6 +130,9 @@ model Tenant {
   chatEvents                                 ChatEvent[]
   webhookRegistrations                       WebhookRegistration[]
   providerUses                               ProviderUse[]
+  securityReviews                            SecurityReview[]
+  providerToolUsageHourly                    ProviderToolUsageHourly[]
+  providerProtoGuardHourly                   ProviderProtoGuardHourly[]
   identityActors                             IdentityActor[]
   agents                                     Agent[]
   identities                                 Identity[]
@@ -157,6 +162,7 @@ model Tenant {
   protoGuardFilterSettings                   ProtoGuardTenantFilterSetting[]
   protoGuardRuns                             ProtoGuardRun[]
   protoGuardAlerts                           ProtoGuardAlert[]
+  protoGuardSuppressions                     ProtoGuardSuppression[]
   monitors                                   Monitor[]
   monitorAlerts                              MonitorAlert[]
   projects                                   Project[]

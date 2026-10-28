@@ -11,9 +11,13 @@ import { identitySubspaceQueueProcessor } from '@metorial-subspace/module-identi
 import { integrationSubspaceQueueProcessor } from '@metorial-subspace/module-integration/src/queues';
 import { chatSubspaceQueueProcessor } from '@metorial-subspace/module-chat/src/queues';
 import { monitorSubspaceQueueProcessor } from '@metorial-subspace/module-monitor/src/queues';
-import { syncProtoGuardFilters } from '@metorial-subspace/module-connection/src/protoguard/registry';
+import {
+  protoGuardQueueProcessor,
+  syncProtoGuardFilters
+} from '@metorial-subspace/module-protoguard';
 import { providerInternalSubspaceQueueProcessor } from '@metorial-subspace/module-provider-internal/src/queues';
 import { publicMcpSubspaceQueueProcessor } from '@metorial-subspace/module-public-mcp/src/queues';
+import { securityReviewSubspaceQueueProcessor } from '@metorial-subspace/module-security-review';
 import { sessionSubspaceQueueProcessor } from '@metorial-subspace/module-session/src/queues';
 import { tenantSubspaceQueueProcessors } from '@metorial-subspace/module-tenant/src/queues';
 import { nativeProviderSubspaceQueues } from '@metorial-subspace/provider-native';
@@ -42,6 +46,8 @@ runQueueProcessors([
   integrationSubspaceQueueProcessor,
   chatSubspaceQueueProcessor,
   monitorSubspaceQueueProcessor,
+  protoGuardQueueProcessor,
   agentSubspaceQueueProcessor,
-  publicMcpSubspaceQueueProcessor
+  publicMcpSubspaceQueueProcessor,
+  securityReviewSubspaceQueueProcessor
 ]);

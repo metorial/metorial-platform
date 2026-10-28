@@ -133,7 +133,8 @@ let loadProjectWithInstances = async (project: ScopeProject): Promise<LoadedProj
     project.name &&
     project.oid != null &&
     project.onlyAllowTrustedProviders != null &&
-    project.hidePublicRemoteProviders != null
+    project.hidePublicRemoteProviders != null &&
+    project.aiAnalysisEnabled != null
   ) {
     return project as LoadedProject;
   }
@@ -505,6 +506,12 @@ class subspaceScopeServiceImpl {
         allowMemberAccessToConsumerOwnedResources:
           loadedProject.allowMemberAccessToConsumerOwnedResources,
         hidePublicRemoteProviders: loadedProject.hidePublicRemoteProviders,
+        aiAnalysisEnabled: loadedProject.subspaceTenantId
+          ? undefined
+          : loadedProject.aiAnalysisEnabled,
+        usageReviewsEnabled: loadedProject.subspaceTenantId
+          ? undefined
+          : loadedProject.usageReviewsEnabled,
         resourceTenantId: resourceTenant.id,
         resourceTenantIdentifier: resourceTenant.identifier,
         projectOid: loadedProject.oid,

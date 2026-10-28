@@ -243,7 +243,7 @@ describe('api-files uploads', () => {
     });
 
     let stored = await db.file.findUniqueOrThrow({ where: { id: upload.body.id } });
-    expect(stored).toMatchObject({ fileSize: 256, isReadOnly: false, status: 'active' });
+    expect(stored).toMatchObject({ fileSize: 256n, isReadOnly: false, status: 'active' });
 
     let empty = await uploadDirect(instanceAuth(), {
       content: new Uint8Array(),

@@ -12,10 +12,13 @@ import {
   useCurrentProject,
   useDuplicateSkill,
   useSkill,
+  useSkillSecurityReview,
+  useSkillSecurityReviewsEnabled,
   useStorePermissions
 } from '@metorial/state';
 import { snackbar } from '@metorial/ui';
 import { useNavigate, useParams } from 'react-router-dom';
+import { SkillVerdictBadge } from '../../../scenes/securityReview';
 import { showSkillCloneFormModal } from '../../../scenes/skills/cloneModal';
 import { SkillPage } from './index';
 
@@ -43,6 +46,8 @@ export let SkillLayout = () => {
   let createSkillForkSync = useCreateSkillForkSync();
   let createSkillExport = useCreateSkillExport();
   let updateSkill = skill.updateMutator();
+  let securityReviewsEnabled = useSkillSecurityReviewsEnabled();
+  let securityReview = useSkillSecurityReview(instance.data?.id, skill.data?.id);
   let navigate = useNavigate();
   let canReadStore =
     storePermissions.data?.hasFullAccess ||
@@ -169,8 +174,12 @@ export let SkillLayout = () => {
               providers: `${skillPath}/providers`,
               agents: `${skillPath}/agents`,
               settings: `${skillPath}/settings`,
-              groups: `${skillPath}/groups`
+              groups: `${skillPath}/groups`,
+              ...(securityReviewsEnabled ? { security: `${skillPath}/security` } : {})
             }}
+            securityBadge={
+              securityReview.data ? <SkillVerdictBadge review={securityReview.data} /> : null
+            }
             defaultCanvas={<SkillPage />}
             shareContext={{
               mode: 'dashboard',

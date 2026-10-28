@@ -2,7 +2,14 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { Instance, Prisma, Project } from '@metorial/db';
-import { db, ID, withTransaction, type TransactionDB } from '@metorial/db';
+import {
+  addAfterTransactionHook,
+  db,
+  ID,
+  withTransaction,
+  type TransactionDB
+} from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import {
   normalizeDateFilter,
   resolveStoreVersions,
@@ -163,7 +170,8 @@ class StoreVersionServiceImpl {
         storeOid: d.storeOid
       },
       select: {
-        oid: true
+        oid: true,
+        id: true
       }
     });
 
@@ -171,7 +179,7 @@ class StoreVersionServiceImpl {
 
     let id = await ID.generateId('skillVersion');
 
-    return await tx.skillVersion.upsert({
+    let skillVersion = await tx.skillVersion.upsert({
       where: {
         storeVersionOid: d.storeVersionOid
       },
@@ -183,6 +191,17 @@ class StoreVersionServiceImpl {
       },
       update: {}
     });
+
+    if (skillVersion.id == id) {
+      await addAfterTransactionHook(() =>
+        Fabric.fire('skill.version.created:after', {
+          skillId: skill.id,
+          skillVersionId: skillVersion.id
+        })
+      );
+    }
+
+    return skillVersion;
   }
 
   async touchStoreLastEditedAt(d: { storeOid: bigint; at?: Date }) {

@@ -43,6 +43,45 @@ export let protoGuardAlertThresholdAuditResource = resource({
   }
 });
 
+export let protoGuardTenantSettingAuditResource = resource({
+  name: 'protoguard_tenant_setting',
+  payload: v.typedAny<{
+    settingId: string | null;
+    enabled: boolean;
+    alertProbabilityThreshold: number;
+    isUsingDefaultProbabilityThreshold: boolean;
+    defaultAlertProbabilityThreshold: number;
+    alertFilterCountThreshold: number;
+    isUsingDefaultFilterCountThreshold: boolean;
+    defaultAlertFilterCountThreshold: number;
+  }>('protoguard_tenant_setting'),
+  presenter: undefined,
+  actions: {
+    update: true
+  }
+});
+
+export let protoGuardSuppressionAuditResource = resource({
+  name: 'protoguard_suppression',
+  payload: v.typedAny<{
+    id: string;
+    status: string;
+    reason: string | null;
+    filter: { id: string; key: string; name: string };
+    providerId: string | null;
+    toolKey: string | null;
+    hasContentHmac: boolean;
+    expiresAt: Date | null;
+    archivedAt: Date | null;
+    createdAt: Date;
+  }>('protoguard_suppression'),
+  presenter: undefined,
+  actions: {
+    create: true,
+    archive: true
+  }
+});
+
 export let protoGuardAlertAuditResource = resource({
   name: 'protoguard_alert',
   payload: v.typedAny<{

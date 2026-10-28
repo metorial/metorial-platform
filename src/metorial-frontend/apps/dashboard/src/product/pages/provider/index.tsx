@@ -15,6 +15,7 @@ import { OpenExplorerBox } from '../../components/openExplorer';
 import { UsageOverviewTiles } from '../../scenes/instanceUsage';
 import { showCreateIntegrationProviderFirstFlow } from '../../scenes/integrations/providerPanelFlow';
 import { showMagicMcpServerCreateFlow } from '../../scenes/providerDeployments/magicMcpForm';
+import { SecurityAssessmentCard } from '../../scenes/securityReview';
 import { Skills } from './components/skills';
 
 export let ProviderOverviewPage = () => {
@@ -76,6 +77,18 @@ export let ProviderOverviewPage = () => {
       />
 
       <Spacer height={15} />
+
+      <SecurityAssessmentCard
+        instanceId={instance.data?.id}
+        providerId={provider.data.id}
+        reportHref={Paths.instance.provider(
+          instance.data?.organization,
+          instance.data?.project,
+          instance.data,
+          provider.data.slug,
+          'security'
+        )}
+      />
 
       {listing.data?.skills && listing.data.skills.length > 0 && (
         <>

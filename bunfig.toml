@@ -9,5 +9,6 @@ minimumReleaseAgeExcludes = [
   "@slates/adapter-chat",
   "@slates/provider",
   "@metorial/util-resource-mapper",
+  "object-storage-client",
 ]
 linker = "hoisted"

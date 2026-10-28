@@ -186,6 +186,15 @@ export type ProviderEventBase = {
   auditScope?: AuditScope;
 };
 
+export type SecurityReviewRunEvent = {
+  reviewId: string;
+  revisionId: string;
+  runId: string;
+  model: string;
+  thoroughness: string;
+  maxCostMicros: number;
+};
+
 export type OutpostRequestedService = {
   id: string;
   version?: string;
@@ -469,6 +478,30 @@ export type AuditSubspaceProtoGuardAlertThreshold = {
   alertFilterCountThreshold: number;
   isUsingDefault: boolean;
   defaultAlertFilterCountThreshold: number;
+};
+
+export type AuditSubspaceProtoGuardTenantSetting = {
+  settingId: string | null;
+  enabled: boolean;
+  alertProbabilityThreshold: number;
+  isUsingDefaultProbabilityThreshold: boolean;
+  defaultAlertProbabilityThreshold: number;
+  alertFilterCountThreshold: number;
+  isUsingDefaultFilterCountThreshold: boolean;
+  defaultAlertFilterCountThreshold: number;
+};
+
+export type AuditSubspaceProtoGuardSuppression = {
+  id: string;
+  status: string;
+  reason: string | null;
+  filter: { id: string; key: string; name: string };
+  providerId: string | null;
+  toolKey: string | null;
+  hasContentHmac: boolean;
+  expiresAt: Date | null;
+  archivedAt: Date | null;
+  createdAt: Date;
 };
 
 export type AuditSubspaceProtoGuardAlertMatch = {
@@ -769,6 +802,13 @@ export type AuditSkillMergeRequest = {
   targetSkillId: string;
 };
 
+export type AuditSkillSecurityReview = {
+  id: string;
+  skillId: string;
+  securityScore: number | null;
+  risk: string | null;
+};
+
 export type AuditSandboxMachine = {
   id: string;
   name: string | null;
@@ -1028,6 +1068,8 @@ export interface FabricEvents {
   'organization.project.data_retention_configuration.updated:after': { organization: Organization; project: Project; auditScope: AuditScope; input: { dataRetentionLevel?: ProjectDataRetentionLevel, storeToolCallAttachments?: boolean, collectErrors?: boolean, disableCallbacks?: boolean }; configuration: { dataRetentionLevel: ProjectDataRetentionLevel, storeToolCallAttachments: boolean, collectErrors: boolean, disableCallbacks: boolean }; previousConfiguration: { dataRetentionLevel: ProjectDataRetentionLevel, storeToolCallAttachments: boolean, collectErrors: boolean, disableCallbacks: boolean } };
   'organization.project.reduced_subprocessors_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { reducedSubprocessors?: boolean } };
   'organization.project.reduced_subprocessors_configuration.updated:after': { organization: Organization; project: Project; auditScope: AuditScope; input: { reducedSubprocessors?: boolean }; configuration: { reducedSubprocessors: boolean }; previousConfiguration: { reducedSubprocessors: boolean } };
+  'organization.project.ai_analysis_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { aiAnalysisEnabled?: boolean; usageReviewsEnabled?: boolean; skillReviewHoldPending?: boolean } };
+  'organization.project.ai_analysis_configuration.updated:after': { organization: Organization; project: Project; auditScope: AuditScope; input: { aiAnalysisEnabled?: boolean; usageReviewsEnabled?: boolean; skillReviewHoldPending?: boolean }; configuration: { aiAnalysisEnabled: boolean; usageReviewsEnabled: boolean; skillReviewHoldPending: boolean }; previousConfiguration: { aiAnalysisEnabled: boolean; usageReviewsEnabled: boolean; skillReviewHoldPending: boolean } };
   'organization.project.resource_ownership_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { allowApiAccessToConsumerOwnedResources?: boolean, allowMemberAccessToConsumerOwnedResources?: boolean } };
   'organization.project.resource_ownership_configuration.updated:after': { organization: Organization; project: Project; auditScope: AuditScope; input: { allowApiAccessToConsumerOwnedResources?: boolean, allowMemberAccessToConsumerOwnedResources?: boolean }; configuration: { allowApiAccessToConsumerOwnedResources: boolean, allowMemberAccessToConsumerOwnedResources: boolean }; previousConfiguration: { allowApiAccessToConsumerOwnedResources: boolean, allowMemberAccessToConsumerOwnedResources: boolean } };
   'organization.project.skill_sync_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { skillSyncGitLfsThresholdBytes?: number | null } };
@@ -1417,6 +1459,8 @@ export interface FabricEvents {
   'skill.updated:after': { instance: Instance; skill: Skill };
   'skill.archived:after': { instance: Instance; skill: Skill };
   'skill.deleted:after': { instance: Instance; skill: Skill };
+  'skill.version.created:after': { skillId: string; skillVersionId: string };
+  'skill.import.item.completed:after': { skillImportId: string; skillId: string };
 
   'skill.plugin.created:before': { organization: Organization; instance: Instance };
   'skill.plugin.created:after': { organization: Organization; instance: Instance; skillPlugin: SkillPlugin };
@@ -1456,6 +1500,9 @@ export interface FabricEvents {
   'skill.merge_request.audit.merged:after': { auditScope: AuditScope; mergeRequest: AuditSkillMergeRequest };
   'skill.merge_request.audit.closed:after': { auditScope: AuditScope; mergeRequest: AuditSkillMergeRequest };
   'skill.merge_request.audit.rolled_back:after': { auditScope: AuditScope; mergeRequest: AuditSkillMergeRequest };
+
+  'skill.security_review.audit.dismissed:after': { auditScope: AuditScope; securityReview: AuditSkillSecurityReview };
+  'skill.security_review.audit.restored:after': { auditScope: AuditScope; securityReview: AuditSkillSecurityReview };
 
   'skill.store.size:before': SkillStoreFabricOwner;
 
@@ -1686,6 +1733,8 @@ export interface FabricEvents {
   'provider.tool_call.created:before': ProviderEventBase;
   'provider.tool_call.created:after': ProviderEventBase & { toolCall: SubspaceToolCall };
 
+  'protoguard.scan.completed:after': { organizationId: string; scanKey: string };
+
   'protoguard.filter_setting.updated:before': ProviderEventBase & { filterId: string };
   'protoguard.filter_setting.updated:after': ProviderEventBase & {
     setting: AuditSubspaceProtoGuardFilterSetting;
@@ -1698,7 +1747,26 @@ export interface FabricEvents {
     previousThreshold: AuditSubspaceProtoGuardAlertThreshold;
   };
 
+  'protoguard.tenant_setting.updated:before': ProviderEventBase;
+  'protoguard.tenant_setting.updated:after': ProviderEventBase & {
+    setting: AuditSubspaceProtoGuardTenantSetting;
+    previousSetting: AuditSubspaceProtoGuardTenantSetting;
+  };
+
+  'protoguard.suppression.created:before': ProviderEventBase & { filterId: string };
+  'protoguard.suppression.created:after': ProviderEventBase & {
+    suppression: AuditSubspaceProtoGuardSuppression;
+  };
+
+  'protoguard.suppression.archived:before': ProviderEventBase & { suppressionId: string };
+  'protoguard.suppression.archived:after': ProviderEventBase & {
+    suppression: AuditSubspaceProtoGuardSuppression;
+  };
+
   'protoguard.alert.created:after': { auditScope: AuditScope; alert: AuditSubspaceProtoGuardAlert };
+
+  'security_review.run.started:before': ProviderEventBase & { run: SecurityReviewRunEvent };
+  'security_review.run.completed:after': ProviderEventBase & { run: SecurityReviewRunEvent; costMicros: number };
 
   'provider.custom_provider.created:before': ProviderEventBase;
   'provider.custom_provider.created:after': ProviderEventBase & { customProvider: AuditSubspaceCustomProvider };

@@ -52,7 +52,7 @@ let file = {
   id: 'fil_1',
   status: 'active',
   fileName: 'notes.txt',
-  fileSize: 12,
+  fileSize: 12n,
   fileType: 'text/plain',
   title: 'Notes',
   storeId: 'obj_key_1',

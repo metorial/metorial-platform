@@ -70,9 +70,11 @@ class monitorInternalServiceImpl {
 
   async upsertProviderSpecChangeMonitor(d: UpsertProviderSpecChangeMonitorParams) {
     let solution = await getMetorialSolution();
-    let key = [scopeKey({ ...d, solution, owner: 'tenant' }), 'schema_change', d.provider.id].join(
-      ':'
-    );
+    let key = [
+      scopeKey({ ...d, solution, owner: 'tenant' }),
+      'schema_change',
+      d.provider.id
+    ].join(':');
 
     return await db.monitor.upsert({
       where: { key },

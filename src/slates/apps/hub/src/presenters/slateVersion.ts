@@ -32,6 +32,7 @@ export let slateVersionPresenter = (
   isCurrent: slateVersion.isCurrent,
 
   slateId: slateVersion.slate.id,
+  registryVersionId: slateVersion.versionIdOnRegistry,
 
   manifest: slateVersion.manifest,
 

@@ -143,7 +143,7 @@ class SkillImportServiceImpl {
       }
       let maxBytes =
         sourceFileFormat === 'zip' ? maxUploadedArchiveBytes : maxUploadedMarkdownBytes;
-      if (sourceFile.fileSize > maxBytes) {
+      if (sourceFile.fileSize > BigInt(maxBytes)) {
         throw new ServiceError(
           badRequestError({ message: 'Uploaded skill import is too large' })
         );

@@ -141,7 +141,7 @@ export let seedPendingUpload = async (
       purposeOid: purpose.oid,
       storeId,
       fileName: input.name ?? `${uniqueId('pending')}.bin`,
-      fileSize: input.size,
+      fileSize: BigInt(input.size),
       fileType: input.mimeType ?? 'application/octet-stream',
       uploadUrlExpiresAt: new Date(Date.now() + 10 * 60 * 1000),
       expiresAt: input.expiresAt ?? new Date(Date.now() + 24 * 60 * 60 * 1000)

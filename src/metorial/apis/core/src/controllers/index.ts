@@ -43,6 +43,7 @@ import {
   dashboardResourceCountsController,
   dashboardOwnershipAccessController,
   dashboardSessionlessMcpConfigurationController,
+  dashboardAiAnalysisConfigurationController,
   dashboardToolCallingConfigurationController,
   dashboardUsageController,
   dashboardUserController,
@@ -120,6 +121,7 @@ import {
   portalController,
   protoGuardAlertController,
   protoGuardConfigController,
+  protoGuardSuppressionController,
   providerAuthConfigController,
   providerAuthConfigErrorController,
   providerAuthConfigEventController,
@@ -138,6 +140,7 @@ import {
   publicMcpServerController,
   providerListingController,
   providerRunController,
+  providerSecurityReviewController,
   providerSetupSessionController,
   providerSpecificationChangeNotificationController,
   providerSpecificationController,
@@ -177,6 +180,7 @@ import {
   skillMergeRequestCommentController,
   skillMergeRequestController,
   skillMergeRequestEventController,
+  skillSecurityReviewController,
   skillParticipantController,
   skillPluginController,
   skillPluginRepositoryController,
@@ -252,6 +256,7 @@ let setControllerDocsMetadata = <
   providerGroupController,
   providerListingController,
   providerVersionController,
+  providerSecurityReviewController,
   providerSpecificationController,
   providerSpecificationChangeNotificationController,
   providerTriggerController,
@@ -267,7 +272,8 @@ let setControllerDocsMetadata = <
   monitorController,
   monitorAlertController,
   protoGuardAlertController,
-  protoGuardConfigController
+  protoGuardConfigController,
+  protoGuardSuppressionController
 ].forEach(controller =>
   setControllerDocsMetadata(controller, {
     category: monitoringDocsCategory
@@ -479,6 +485,7 @@ let setControllerDocsMetadata = <
   skillMergeRequestController,
   skillMergeRequestCommentController,
   skillMergeRequestEventController,
+  skillSecurityReviewController,
   skillPluginController,
   skillPluginRepositoryController,
   skillPluginSkillController
@@ -590,6 +597,7 @@ export let magnetarController = Controller.create<any>(
     monitorAlertController,
     protoGuardAlertController,
     protoGuardConfigController,
+    protoGuardSuppressionController,
     sessionMessageController,
     sessionConnectionController,
     sessionEventController,
@@ -638,6 +646,7 @@ export let magnetarController = Controller.create<any>(
     skillMergeRequestController,
     skillMergeRequestCommentController,
     skillMergeRequestEventController,
+    skillSecurityReviewController,
     skillPluginController,
     skillPluginSkillController,
 
@@ -715,6 +724,7 @@ export let dashboardController = Controller.create<any>(
     dashboardIntegrationNamingConfigurationController,
     dashboardToolCallingConfigurationController,
     dashboardSessionlessMcpConfigurationController,
+    dashboardAiAnalysisConfigurationController,
     dashboardDataRetentionConfigurationController,
     dashboardResourceOwnershipConfigurationController,
     dashboardOAuthAuthorizationRequestController,
@@ -810,6 +820,7 @@ export let dashboardController = Controller.create<any>(
     skillMergeRequestController,
     skillMergeRequestCommentController,
     skillMergeRequestEventController,
+    skillSecurityReviewController,
     skillPluginController,
     skillPluginRepositoryController,
     skillPluginSkillController,
@@ -840,6 +851,7 @@ export let dashboardController = Controller.create<any>(
     providerSetupSessionController,
 
     providerVersionController,
+    providerSecurityReviewController,
     providerSpecificationController,
     providerSpecificationChangeNotificationController,
     providerTriggerController,
@@ -890,6 +902,7 @@ export let dashboardController = Controller.create<any>(
     monitorAlertController,
     protoGuardAlertController,
     protoGuardConfigController,
+    protoGuardSuppressionController,
     sessionMessageController,
     sessionConnectionController,
     sessionEventController,
@@ -952,6 +965,7 @@ export let fullDashboardController = Controller.create<any>(dashboardController.
   dashboardIntegrationNamingConfigurationController,
   dashboardToolCallingConfigurationController,
   dashboardSessionlessMcpConfigurationController,
+  dashboardAiAnalysisConfigurationController,
   dashboardDataRetentionConfigurationController,
   dashboardResourceOwnershipConfigurationController,
   dashboardOAuthAuthorizationRequestController,

@@ -18,7 +18,7 @@ type DocumentRecord = Prisma.DocumentGetPayload<{
   include: typeof documentInclude;
 }>;
 
-let getTextByteSize = (content: string) => new TextEncoder().encode(content).length;
+let getTextByteSize = (content: string) => BigInt(new TextEncoder().encode(content).length);
 
 class InternalDocumentContentServiceImpl {
   private async getParentLiveContent(

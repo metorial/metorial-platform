@@ -18,6 +18,7 @@ export * from './monitoring';
 export * from './oauth';
 export * from './organization';
 export * from './provider';
+export * from './security-review';
 export * from './network';
 export * from './sandbox';
 export * from './session';
