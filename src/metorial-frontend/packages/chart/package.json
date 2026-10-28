@@ -12,7 +12,7 @@
     "@metorial/ui": "^1.0.0",
     "react-dom": "19.1.1",
     "styled-components": "^6.1.13",
-    "apexcharts": "^8.2.0",
+    "apexcharts": "^8.4.0",
     "react": "19.3.0",
     "react-apexcharts": "^2.1.1"
   },

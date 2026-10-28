@@ -11,8 +11,8 @@
   "dependencies": {
     "@metorial/ui": "^1.0.0",
     "@remixicon/react": "^4.9.0",
-    "apexcharts": "^8.2.0",
-    "framer-motion": "^14.2.0",
+    "apexcharts": "^8.4.0",
+    "framer-motion": "^14.4.0",
     "react": "19.3.0",
     "react-apexcharts": "^2.1.1",
     "react-use": "^17.6.1",
