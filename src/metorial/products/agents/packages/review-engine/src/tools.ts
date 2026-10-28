@@ -81,7 +81,8 @@ export let createReviewTools = <R extends Record<string, any>>(d: {
         required: ['command'],
         additionalProperties: false
       }),
-      execute: async input => await d.workspace.exec(input.command)
+      execute: async (input, { abortSignal }) =>
+        await d.workspace.exec(input.command, { signal: abortSignal })
     }),
 
     set_stage: tool({
