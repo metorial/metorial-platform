@@ -1,5 +1,8 @@
+import { badRequestError, createError, ServiceError } from '@lowerdeck/error';
 import { createHono } from '@lowerdeck/hono';
 import { Paginator } from '@lowerdeck/pagination';
+import type { MiddlewareHandler } from 'hono';
+import { bodyLimit } from 'hono/body-limit';
 import { z } from 'zod';
 import { paginatorSchema } from '../../lib/paginatorSchema';
 import { getPreferredCurrentSlateVersion } from '../../lib/slateVersion/current';
@@ -9,11 +12,85 @@ import { slateService, slateVersionService } from '../../services';
 import { storage } from '../../storage';
 import { useAuth, useUserAuth } from './_app';
 
+let MB = 1024 * 1024;
+let MAX_ZIP_UPLOAD_BYTES = 64 * MB;
+// Base64 grows the zip by a third, plus room for the JSON around it.
+let MAX_JSON_UPLOAD_BYTES = Math.ceil((MAX_ZIP_UPLOAD_BYTES * 4) / 3) + MB;
+let MAX_LOOKUP_BODY_BYTES = MB;
+let MAX_LOOKUP_ITEMS = 2000;
+// npm's package name limit.
+let MAX_IDENTIFIER_LENGTH = 214;
+let MAX_VERSION_LENGTH = 256;
+
 let supportsPrebuiltSchema = z.object({
   supports_prebuilt: z.coerce.boolean().optional()
 });
 
+let payloadTooLargeError = createError({
+  status: 413,
+  code: 'payload_too_large',
+  message: 'The request body is too large.'
+});
+
+let limitBody = (maxSize: number) =>
+  bodyLimit({
+    maxSize,
+    onError: () => {
+      throw new ServiceError(payloadTooLargeError());
+    }
+  });
+
+let accessSchema = z.enum(['public', 'private']);
+
+// Must run before limitBody, which buffers chunked bodies.
+let authorizeZipUpload: MiddlewareHandler = async (c, next) => {
+  let contentType = c.req.header('Content-Type')?.split(';')[0]?.trim();
+  if (contentType !== 'application/zip') {
+    throw new ServiceError(
+      badRequestError({
+        message: 'Slate bundles must be uploaded with Content-Type: application/zip.'
+      })
+    );
+  }
+
+  let auth = await useUserAuth(c);
+  await slateVersionService.getPublishableScope({
+    user: auth.user,
+    scopeIdentifier: c.req.param('scopeId') ?? ''
+  });
+
+  await next();
+};
+
 export let slatesController = createHono()
+  .post(
+    'version-lookup',
+    limitBody(MAX_LOOKUP_BODY_BYTES),
+    useValidation(
+      'json',
+      z.object({
+        items: z
+          .array(
+            z.object({
+              identifier: z.string().max(MAX_IDENTIFIER_LENGTH),
+              version: z.string().min(1).max(MAX_VERSION_LENGTH)
+            })
+          )
+          .max(MAX_LOOKUP_ITEMS)
+      })
+    ),
+    async c => {
+      let auth = await useUserAuth(c);
+      let body = c.req.valid('json');
+
+      return c.json({
+        items: await slateVersionService.lookupSlateVersions({
+          tenant: auth.tenant,
+          items: body.items
+        })
+      });
+    }
+  )
   .get(
     '',
     useValidation(
@@ -66,6 +143,7 @@ export let slatesController = createHono()
   })
   .post(
     ':scopeId/:slateId/versions',
+    limitBody(MAX_JSON_UPLOAD_BYTES),
     useValidation(
       'json',
       z.object({
@@ -89,7 +167,40 @@ export let slatesController = createHono()
           versionOverride: body.version,
 
           access: body.access,
-          contentBase64: body.contentBase64
+          content: Buffer.from(body.contentBase64, 'base64')
+        }
+      });
+
+      return c.json(await slateVersionPresenter(slateVersion));
+    }
+  )
+  .put(
+    ':scopeId/:slateId/versions/:version',
+    authorizeZipUpload,
+    limitBody(MAX_ZIP_UPLOAD_BYTES),
+    useValidation(
+      'query',
+      z.object({
+        access: accessSchema.optional(),
+        default_access: accessSchema.optional()
+      })
+    ),
+    async c => {
+      let auth = await useUserAuth(c);
+      let query = c.req.valid('query');
+
+      let slateVersion = await slateVersionService.publishSlateVersion({
+        user: auth.user,
+        input: {
+          identifier: {
+            scopeIdentifier: c.req.param('scopeId'),
+            slateIdentifier: c.req.param('slateId')
+          },
+          versionOverride: c.req.param('version'),
+          access: query.access,
+          defaultAccess: query.default_access,
+          content: Buffer.from(await c.req.arrayBuffer()),
+          prebuiltOnly: true
         }
       });
 
@@ -172,27 +283,28 @@ export let slatesController = createHono()
     ':scopeId/:slateId/versions/:versionId/download',
     useValidation('query', supportsPrebuiltSchema),
     async c => {
-    let auth = await useAuth(c);
-    let query = c.req.valid('query');
+      let auth = await useAuth(c);
+      let query = c.req.valid('query');
 
-    let slate = await slateService.getSlateById({
-      tenant: auth.tenant,
-      subRegistry: auth.subRegistry,
-      id: `${c.req.param('scopeId')}/${c.req.param('slateId')}`,
-      supportsPrebuilt: query.supports_prebuilt
-    });
+      let slate = await slateService.getSlateById({
+        tenant: auth.tenant,
+        subRegistry: auth.subRegistry,
+        id: `${c.req.param('scopeId')}/${c.req.param('slateId')}`,
+        supportsPrebuilt: query.supports_prebuilt
+      });
 
-    let slateVersion = await slateVersionService.getSlateVersionById({
-      slate,
-      id: c.req.param('versionId'),
-      supportsPrebuilt: query.supports_prebuilt
-    });
+      let slateVersion = await slateVersionService.getSlateVersionById({
+        slate,
+        id: c.req.param('versionId'),
+        supportsPrebuilt: query.supports_prebuilt
+      });
 
-    let { url } = await storage.getPublicURL(
-      slateVersion.bundleArtifact.bucket,
-      slateVersion.bundleArtifact.storageKey,
-      60
-    );
+      let { url } = await storage.getPublicURL(
+        slateVersion.bundleArtifact.bucket,
+        slateVersion.bundleArtifact.storageKey,
+        60
+      );
 
-    return c.redirect(url);
-  });
+      return c.redirect(url);
+    }
+  );

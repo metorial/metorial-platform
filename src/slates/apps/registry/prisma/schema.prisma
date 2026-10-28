@@ -348,6 +348,7 @@ model Artifact {
 
   size     BigInt
   mimeType String
+  /// Hash of sorted file paths and contents, not zip bytes; '' for older artifacts.
   checksum String
 
   createdAt DateTime @default(now())

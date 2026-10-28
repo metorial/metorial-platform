@@ -1,19 +1,39 @@
 import { badRequestError, ServiceError, validationError } from '@lowerdeck/error';
 import { type ValidationTypeValue, v } from '@lowerdeck/validation';
 import semver from 'semver';
-import type { SlatePackageEntry } from './archive';
+import { getSlatePackageChecksum, type SlatePackageEntry } from './archive';
 
 export type NormalizedSlatePackage = {
   docsFiles: {
     path: string;
     content: string;
   }[];
-  npmPackageName: string;
   fullIdentifier: string;
   scopeIdentifier: string;
   slateIdentifier: string;
   manifest: ValidationTypeValue<typeof slateJsonValidation>;
+  contentChecksum: string;
   isPrebuilt?: boolean;
+};
+
+// Identifiers end up in URL paths.
+let identifierSegmentPattern = /^[A-Za-z0-9_][A-Za-z0-9._-]*$/;
+
+export let parseSlateFullIdentifier = (name: string) => {
+  let fullIdentifier = name.replace(/^@/, '');
+  let [scopeIdentifier, slateIdentifier, ...rest] = fullIdentifier.split('/');
+
+  if (
+    !scopeIdentifier ||
+    !slateIdentifier ||
+    rest.length > 0 ||
+    !identifierSegmentPattern.test(scopeIdentifier) ||
+    !identifierSegmentPattern.test(slateIdentifier)
+  ) {
+    return null;
+  }
+
+  return { fullIdentifier, scopeIdentifier, slateIdentifier };
 };
 
 // AWS Lambda caps function timeouts at 900 seconds and Function Bay passes the
@@ -243,13 +263,12 @@ export let normalizeSlatePackage = (d: {
     }
   }
 
-  let fullIdentifier = manifest.name.replace('@', '');
-  let fullParts = fullIdentifier.split('/');
-
-  if (fullParts.length !== 2) {
+  let identifier = parseSlateFullIdentifier(manifest.name);
+  if (!identifier) {
     throw new ServiceError(
       badRequestError({
-        message: 'Package name must be in the format @scope/identifier.'
+        message:
+          'Package name must be in the format @scope/identifier, using letters, digits, ".", "_" and "-".'
       })
     );
   }
@@ -257,10 +276,8 @@ export let normalizeSlatePackage = (d: {
   return {
     isPrebuilt,
     docsFiles,
-    npmPackageName: packageJson.name,
-    fullIdentifier,
-    scopeIdentifier: fullParts[0]!,
-    slateIdentifier: fullParts[1]!,
-    manifest
+    ...identifier,
+    manifest,
+    contentChecksum: getSlatePackageChecksum(d.entries)
   } satisfies NormalizedSlatePackage;
 };
