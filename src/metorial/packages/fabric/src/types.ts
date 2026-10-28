@@ -1102,7 +1102,7 @@ export interface FabricEvents {
   'machine_access.deleted:before': { machineAccess: MachineAccess; organization: Organization; auditScope: AuditScope };
   'machine_access.deleted:after': { machineAccess: MachineAccess; organization: Organization; auditScope: AuditScope };
 
-  'machine_access.api_key.created:before': { machineAccess: MachineAccess; organization: Organization; auditScope: AuditScope };
+  'machine_access.api_key.created:before': { machineAccess: MachineAccess; organization: Organization; auditScope: AuditScope; kind: ApiKey['kind'] };
   'machine_access.api_key.created:after': { machineAccess: MachineAccess; apiKey: ApiKey; organization: Organization; auditScope: AuditScope };
   'machine_access.api_key.updated:before': { machineAccess: MachineAccess; apiKey: ApiKey; organization: Organization; auditScope: AuditScope };
   'machine_access.api_key.updated:after': { machineAccess: MachineAccess; apiKey: ApiKey; previousApiKey: ApiKey; organization: Organization; auditScope: AuditScope };
@@ -1464,7 +1464,7 @@ export interface FabricEvents {
   'file.created:after': FileFabricOwner & { file: AuditFile };
   'file.deleted:after': FileFabricOwner & { file: AuditFile };
 
-  'document.created:before': { instance: Instance };
+  'document.created:before': { instance: Instance; isTemplateBacking: boolean };
   'document.created:after': { instance: Instance; auditScope: AuditScope; document: AuditDocument };
   'document.deleted:after': { instance: Instance; auditScope: AuditScope; document: AuditDocument };
   'document.version.sealed:after': { document: { id: string; title: string }; version: { id: string; versionNumber: number; byteSize: number; editedAt: Date }; previousVersionId: string | null; editors: { auditScope: AuditScope }[] };

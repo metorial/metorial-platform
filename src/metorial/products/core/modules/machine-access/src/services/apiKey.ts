@@ -117,6 +117,7 @@ class ApiKeyService {
 
       await Fabric.fire('machine_access.api_key.created:before', {
         ...d,
+        kind: d.kind ?? 'user_created',
         machineAccess
       });
 
