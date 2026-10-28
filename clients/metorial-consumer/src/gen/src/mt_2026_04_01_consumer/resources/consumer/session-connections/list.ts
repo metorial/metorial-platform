@@ -120,10 +120,7 @@ export type ConsumerSessionConnectionsListQuery = {
   order?: 'asc' | 'desc' | undefined;
 } & {
   connectionState?:
-    | 'connected'
-    | 'disconnected'
-    | ('connected' | 'disconnected')[]
-    | undefined;
+    'connected' | 'disconnected' | ('connected' | 'disconnected')[] | undefined;
   agentId?: string | undefined;
   sessionId?: string | undefined;
   createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;

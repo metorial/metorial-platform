@@ -1,4 +1,5 @@
 export * from './clone';
+export * from './comment-threads';
 export * from './create';
 export * from './delete';
 export * from './edit-token';

@@ -33,6 +33,8 @@ import {
   MetorialDashboardInstanceCustomProvidersEndpoint,
   MetorialDashboardInstanceCustomProvidersEnvironmentsEndpoint,
   MetorialDashboardInstanceCustomProvidersVersionsEndpoint,
+  MetorialDashboardInstanceDocumentsCommentThreadsCommentsEndpoint,
+  MetorialDashboardInstanceDocumentsCommentThreadsEndpoint,
   MetorialDashboardInstanceDocumentsEditTokenEndpoint,
   MetorialDashboardInstanceDocumentsEndpoint,
   MetorialDashboardInstanceDocumentsParticipantsEndpoint,
@@ -886,6 +888,12 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   }),
 
   documents: Object.assign(new MetorialDashboardInstanceDocumentsEndpoint(manager), {
+    commentThreads: Object.assign(
+      new MetorialDashboardInstanceDocumentsCommentThreadsEndpoint(manager),
+      {
+        comments: new MetorialDashboardInstanceDocumentsCommentThreadsCommentsEndpoint(manager)
+      }
+    ),
     editToken: new MetorialDashboardInstanceDocumentsEditTokenEndpoint(manager),
     participants: new MetorialDashboardInstanceDocumentsParticipantsEndpoint(manager),
     permissions: new MetorialDashboardInstanceDocumentsPermissionsEndpoint(manager),

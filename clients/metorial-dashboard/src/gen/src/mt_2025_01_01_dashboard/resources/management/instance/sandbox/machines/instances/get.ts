@@ -28,12 +28,7 @@ export type ManagementInstanceSandboxMachinesInstancesGetOutput = {
     diskId: string;
     mountPath: string;
     status:
-      | 'failed'
-      | 'pending'
-      | 'mounted'
-      | 'recovering'
-      | 'skipped'
-      | 'released';
+      'failed' | 'pending' | 'mounted' | 'recovering' | 'skipped' | 'released';
   }[];
   disksReady: boolean;
   runtime: {

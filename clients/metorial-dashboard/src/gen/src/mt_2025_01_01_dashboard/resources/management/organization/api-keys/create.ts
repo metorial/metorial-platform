@@ -198,8 +198,7 @@ export type ManagementOrganizationApiKeysCreateBody = (
   | { type: 'organization_management_token' }
   | {
       type:
-        | 'instance_access_token_secret'
-        | 'instance_access_token_publishable';
+        'instance_access_token_secret' | 'instance_access_token_publishable';
       instanceId: string;
     }
 ) & {

@@ -8,6 +8,12 @@ export type SkillsDuplicateOutput = {
   name: string;
   description: string | null;
   imageUrl: string;
+  image: {
+    object: 'skill.image';
+    type: 'file' | 'url' | 'icon' | 'default';
+    icon: string | null;
+    color: string | null;
+  };
   clientName: string;
   clientDescription: string | null;
   clientMetadata: Record<string, any> | null;

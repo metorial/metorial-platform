@@ -103,10 +103,7 @@ export type SessionsConnectionsListQuery = {
 } & {
   status?: 'active' | 'archived' | ('active' | 'archived')[] | undefined;
   connectionState?:
-    | 'connected'
-    | 'disconnected'
-    | ('connected' | 'disconnected')[]
-    | undefined;
+    'connected' | 'disconnected' | ('connected' | 'disconnected')[] | undefined;
   id?: string | string[] | undefined;
   agentId?: string | string[] | undefined;
   actorId?: string | string[] | undefined;
