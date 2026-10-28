@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { scanTextForReview, scanToolDefinitionForReview } from './reviewScan';
+import {
+  containsTokenForReview,
+  scanTextForReview,
+  scanToolDefinitionForReview
+} from './reviewScan';
 
 vi.mock('../definitions/rulesets', async importOriginal => {
   let original = await importOriginal<typeof import('../definitions/rulesets')>();
@@ -17,6 +21,30 @@ vi.mock('../definitions/rulesets', async importOriginal => {
 
 let AWS_KEY = ['AKIA', 'IOSFODNN7EXAMPLE'].join('');
 let GITHUB_TOKEN = ['ghp', '_', 'a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6q7R8'].join('');
+
+describe('containsTokenForReview', () => {
+  it.each([
+    AWS_KEY,
+    GITHUB_TOKEN,
+    `eyJ${'a'.repeat(12)}.eyJ${'b'.repeat(12)}.${'c'.repeat(12)}`,
+    'aB3dE6gH9jK2mN5pQ8sT1vW4',
+    `Bearer ${GITHUB_TOKEN}`
+  ])('detects known credentials and opaque tokens: %s', value => {
+    expect(containsTokenForReview(value)).toBe(true);
+    expect(containsTokenForReview(value)).toBe(true);
+  });
+
+  it.each([
+    '',
+    'documents:read documents:write',
+    '2026-10-28',
+    'organization-example',
+    '123456789012345678901234567890',
+    '550e8400-e29b-41d4-a716-446655440000'
+  ])('preserves ordinary metadata: %s', value => {
+    expect(containsTokenForReview(value)).toBe(false);
+  });
+});
 
 describe('scanTextForReview', () => {
   it('reports alerting findings with family details', () => {

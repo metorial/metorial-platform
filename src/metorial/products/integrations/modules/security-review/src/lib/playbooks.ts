@@ -195,6 +195,9 @@ The tenant connected an MCP server hosted elsewhere. There is no source. Your ma
 establish who operates the host. Use web_search and fetch_url to find the vendor's official
 documentation and check whether it links to this exact URL, and compare the OAuth issuer and the
 server info with the brand in the name and description.
+The httpsEnabled flag and warnings in /evidence/remote.json identify endpoints that do not use HTTPS.
+HTTP endpoints are allowed, but explain their unencrypted transport and its implications in the review.
+Query values marked [REDACTED] matched a token detector; do not try to reconstruct or use them.
 - tenant_remote_vendor_verified: the host is on the vendor's domain and the vendor's own docs link it.
 - tenant_remote_vendor_plausible: the vendor's registrable domain, not documented.
 - tenant_remote_third_party: an identifiable third party (repository, company) operates it.

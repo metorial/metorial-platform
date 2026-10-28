@@ -13,6 +13,7 @@ import type { CollectedEvidence, SubjectKind } from '../evidence';
 import { origin } from '../origin';
 import { censusFindings, computeSpecCensus } from './census';
 import { buildProtoGuardDigest, scanToolDefinitions } from './protoguard';
+import { buildRemoteEvidence } from './remote';
 import { loadSpecification } from './specification';
 
 let MAX_CODE_FILE_BYTES = 200_000;
@@ -25,7 +26,6 @@ let SKIPPED_DIRECTORIES = [
   '__pycache__/',
   '.venv/'
 ];
-let SECRET_KEY_PATTERN = /secret|password|token|key|credential/i;
 
 let slugify = (value: string) =>
   value
@@ -223,47 +223,6 @@ let codeEvidence = async (d: {
   };
 };
 
-let publicOAuthFields = (config: Record<string, any> | undefined) => {
-  if (!config) return null;
-
-  return Object.fromEntries(
-    Object.entries(config).filter(
-      ([key, value]) =>
-        !SECRET_KEY_PATTERN.test(key) &&
-        (typeof value == 'string' ? /^https?:\/\//.test(value) : Array.isArray(value))
-    )
-  );
-};
-
-let remoteEvidence = (from: Extract<CustomProviderFrom, { type: 'remote' }>) => {
-  let host: string | null = null;
-  try {
-    host = new URL(from.remoteUrl).hostname;
-  } catch {}
-
-  return {
-    files: {
-      'remote.json': JSON.stringify(
-        {
-          url: from.remoteUrl,
-          host,
-          protocol: from.protocol,
-          oauth: publicOAuthFields(from.oauthConfig)
-        },
-        null,
-        2
-      )
-    },
-    facts: [
-      {
-        id: 'remote-host',
-        title: `Hosted at ${host ?? from.remoteUrl}`,
-        detail: `The server is reached at ${from.remoteUrl} over ${from.protocol}.`
-      }
-    ] satisfies LedgerFact[]
-  };
-};
-
 let containerEvidence = (from: Extract<CustomProviderFrom, { type: 'container' }>) => {
   let imageRef = from.repository.imageRef;
   let registry =
@@ -369,7 +328,7 @@ export let collectCustomProviderEvidence = async (d: {
   }
 
   if (from.type == 'remote') {
-    let remote = remoteEvidence(from);
+    let remote = buildRemoteEvidence(from);
     Object.assign(files, remote.files);
     facts.push(...remote.facts);
   }

@@ -252,6 +252,7 @@ class InternalSecurityReviewRunnerServiceImpl {
       let draft = new ReportDraft(definition, initialReport);
 
       let workspace = await createReviewWorkspace({
+        abortSignal: signal,
         evidence: d.files,
         history: await this.loadHistory({ review: d.review }),
         workspace: workspaceFiles,
