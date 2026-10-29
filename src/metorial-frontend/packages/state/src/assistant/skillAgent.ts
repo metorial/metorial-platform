@@ -14,7 +14,7 @@ import {
   storeItemLoader,
   storeItemsLoader
 } from '../files/loaders/stores';
-import { skillAgentsLoader } from '../skills/loaders/skills';
+import { skillAgentsLoader, skillLoader } from '../skills/loaders/skills';
 import { useConversationHistory } from './conversationHistory';
 import {
   useCancelConversationMessage,
@@ -24,7 +24,7 @@ import {
 
 export let skillsAssistantSlug = 'skills';
 
-export type SkillAssistantMode = 'block' | 'rewrite' | 'summarize' | 'document' | 'skill';
+export type SkillAssistantMode = 'block' | 'rewrite' | 'summarize' | 'document' | 'skill' | 'metadata';
 
 export type SkillAssistantRequestContext = {
   mode: SkillAssistantMode;
@@ -77,6 +77,7 @@ export let refreshSkillStoreLoaders = () => {
   allStoreItemsLoader.refetchAll();
   storeItemLoader.refetchAll();
   skillAgentsLoader.refetchAll();
+  skillLoader.refetchAll();
 };
 
 let refreshSkillStoreLoadersStaggered = () => {

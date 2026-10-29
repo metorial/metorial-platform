@@ -1518,6 +1518,7 @@ export interface FabricEvents {
   'document.created:before': { instance: Instance; isTemplateBacking: boolean };
   'document.created:after': { instance: Instance; auditScope: AuditScope; document: AuditDocument };
   'document.deleted:after': { instance: Instance; auditScope: AuditScope; document: AuditDocument };
+  'document.title_changed:after': { instance: Instance; documentId: string; previousTitle: string; title: string };
   'document.comment_thread.created:after': { instance: Instance; auditScope: AuditScope; document: AuditDocumentCommentEventDocument; thread: DocumentCommentThread; comment: DocumentComment };
   'document.comment_thread.updated:after': { instance: Instance; auditScope: AuditScope; document: AuditDocumentCommentEventDocument; thread: DocumentCommentThread; previousThread: DocumentCommentThread };
   'document.comment_thread.deleted:after': { instance: Instance; auditScope: AuditScope; document: AuditDocumentCommentEventDocument; thread: DocumentCommentThread };

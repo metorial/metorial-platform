@@ -1,6 +1,6 @@
 import { useCallback, useSyncExternalStore } from 'react';
 
-export type WorkspacePanelId = 'files' | 'mergeRequests' | 'providers' | 'agents';
+export type WorkspacePanelId = 'files' | 'mergeRequests' | 'providers' | 'agents' | 'security';
 export type WorkspacePanelMode = 'auto' | 'on' | 'off';
 export type WorkspacePanelPosition = 'left' | 'right' | 'split' | 'dock' | 'sidebar';
 
@@ -8,7 +8,8 @@ export let workspacePanelIds: WorkspacePanelId[] = [
   'files',
   'mergeRequests',
   'providers',
-  'agents'
+  'agents',
+  'security'
 ];
 
 export type WorkspacePreferences = {
@@ -24,7 +25,13 @@ let storageKey = 'metorial.skill-workspace.preferences.v1';
 
 let defaultPreferences: WorkspacePreferences = {
   position: 'left',
-  modes: { files: 'auto', mergeRequests: 'auto', providers: 'auto', agents: 'auto' },
+  modes: {
+    files: 'auto',
+    mergeRequests: 'auto',
+    providers: 'auto',
+    agents: 'auto',
+    security: 'auto'
+  },
   collapsed: {},
   order: workspacePanelIds,
   toolbar: false,

@@ -20,7 +20,7 @@ import { snackbar } from '@metorial/ui';
 import { useCallback, useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { useNavigate, useParams } from 'react-router-dom';
-import { SkillVerdictBadge } from '../../../scenes/securityReview';
+import { getSkillWorkspaceSecurity, SkillVerdictBadge } from '../../../scenes/securityReview';
 import { showSkillCloneFormModal } from '../../../scenes/skills/cloneModal';
 import { recordRecentSkill } from '../../../scenes/skills/navigation/recentSkills';
 import { SkillDocumentSkeleton, SkillPage } from './index';
@@ -219,6 +219,11 @@ export let SkillLayout = () => {
                   securityReview.data ? (
                     <SkillVerdictBadge review={securityReview.data} />
                   ) : null
+                }
+                security={
+                  securityReviewsEnabled
+                    ? getSkillWorkspaceSecurity(securityReview.data)
+                    : null
                 }
                 defaultCanvas={<SkillPage />}
                 shareContext={{

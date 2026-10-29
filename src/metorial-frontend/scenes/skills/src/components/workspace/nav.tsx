@@ -34,6 +34,7 @@ import styled, { css, keyframes } from 'styled-components';
 import { type WorkspaceFileEntry, WorkspaceFileIcon } from './files';
 import type { WorkspaceSize } from './layout';
 import { useMorphWidths, workspaceEase } from './motion';
+import { SecurityIndicator, type SkillWorkspaceSecurity } from './security';
 
 let Cluster = styled.div<{ $side: 'left' | 'right'; $size: WorkspaceSize; $offset?: number }>`
   position: absolute;
@@ -525,6 +526,7 @@ export let WorkspaceNavLeft = (p: {
   onNewDocument?: () => void;
   toolbar: { on: boolean; onToggle: () => void } | null;
   moreItems: FloatingMenuItem[];
+  security?: { summary: SkillWorkspaceSecurity; active: boolean; onOpen: () => void } | null;
 }) => {
   useMorphWidths(p.clusterRef, p.onSettled);
   let navigate = useNavigate();
@@ -612,6 +614,14 @@ export let WorkspaceNavLeft = (p: {
           minWidth={280}
         />
       </FloatingBar>
+
+      {p.security ? (
+        <SecurityIndicator
+          security={p.security.summary}
+          active={p.security.active}
+          onOpenReport={p.security.onOpen}
+        />
+      ) : null}
     </Cluster>
   );
 };

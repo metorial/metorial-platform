@@ -7,3 +7,4 @@ export * from './lib';
 export * from './report';
 export * from './skillVerdictBadge';
 export * from './usageReview';
+export * from './workspaceSummary';

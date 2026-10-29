@@ -73,6 +73,7 @@ export let SkillPage = () => {
                 (window as any).metorial_setRestrictHeight?.(enabled)
               }
               hideSharingControls
+              skillMetadataSkillId={skill.data.id}
               skillShareContext={{
                 mode: 'dashboard',
                 organizationId: organization.data?.id,

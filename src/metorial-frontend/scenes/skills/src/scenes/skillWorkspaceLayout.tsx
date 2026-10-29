@@ -92,6 +92,10 @@ import {
   WorkspaceFileIcon
 } from '../components/workspace/files';
 import { SkillWorkspaceContext } from '../components/workspace/context';
+import {
+  SecurityCardBody,
+  type SkillWorkspaceSecurity
+} from '../components/workspace/security';
 import { DocumentIconRow } from '../components/workspace/documentIconRow';
 import { IconPicker, type SkillImageChange } from '../components/workspace/iconPicker';
 import { useWorkspaceLayout } from '../components/workspace/layout';
@@ -103,6 +107,7 @@ import {
 } from '../components/workspace/nav';
 import {
   useWorkspacePreferences,
+  workspacePanelIds,
   type WorkspacePanelId,
   type WorkspacePanelMode,
   type WorkspacePanelPosition
@@ -144,6 +149,8 @@ export type SkillWorkspaceRoutes = {
   security?: string;
 };
 
+export type { SkillWorkspaceSecurity };
+
 export type SkillWorkspaceFork = {
   onRequestMerge?: (() => void) | null;
   onSync?: (() => void) | null;
@@ -164,6 +171,7 @@ export type SkillWorkspaceLayoutProps = {
   };
   routes: SkillWorkspaceRoutes;
   securityBadge?: ReactNode;
+  security?: SkillWorkspaceSecurity | null;
   children?: ReactNode;
   defaultCanvas?: ReactNode;
   workspaceLabel?: string | null;
@@ -306,7 +314,8 @@ let sectionMeta: Record<WorkspacePanelId, { title: string; icon: ReactNode }> = 
   files: { title: 'Files', icon: <RiFileList3Line /> },
   mergeRequests: { title: 'Merge requests', icon: <RiGitPullRequestLine /> },
   providers: { title: 'Providers', icon: <RiPlugLine /> },
-  agents: { title: 'Agents', icon: <RiRobot2Line /> }
+  agents: { title: 'Agents', icon: <RiRobot2Line /> },
+  security: { title: 'Security', icon: <RiShieldCheckLine /> }
 };
 
 let routePath = (route: string) => route.split(/[?#]/)[0]?.replace(/\/+$/, '') || '/';
@@ -623,6 +632,8 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
     panelContentRef.current = outlet ?? p.children;
     panelKindRef.current = panelRoute;
   }
+  let isSecurityRoute =
+    !!p.routes.security && isRouteActive(location.pathname, p.routes.security, true);
   let closePanelRoute = () => navigate(canvasCacheRef.current?.href ?? p.routes.overview);
 
   let documentPrefix = routePrefix(marker => p.routes.document(marker, marker));
@@ -699,14 +710,19 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
     files: fileEntries.some(entry => entry.kind != 'directory' && !entry.isMain),
     mergeRequests: openMergeRequests.length + recentMergeRequests.length > 0,
     providers: linkedItems.length > 0,
-    agents: agents.length > 0
+    agents: agents.length > 0,
+    security: false
   };
 
-  let isSectionVisible = (id: WorkspacePanelId) => {
+  let isSectionVisible = (id: WorkspacePanelId): boolean => {
     if (!panelsReady) return false;
+    if (id == 'security' && !p.security) return false;
     let mode = prefs.preferences.modes[id];
     if (mode == 'on') return true;
     if (mode == 'off') return false;
+    if (id == 'security') {
+      return workspacePanelIds.some(other => other != 'security' && isSectionVisible(other));
+    }
     return hasActivity[id];
   };
 
@@ -745,6 +761,17 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
               icon: <RiListCheck />,
               label: 'View all merge requests',
               onClick: () => navigate(p.routes.mergeRequests)
+            }
+          ] satisfies FloatingMenuItem[])
+        : []),
+      ...(id == 'security' && p.routes.security
+        ? ([
+            { type: 'separator', id: 'sep' },
+            {
+              id: 'report',
+              icon: <RiShieldCheckLine />,
+              label: 'Open full report',
+              onClick: () => navigate(p.routes.security!)
             }
           ] satisfies FloatingMenuItem[])
         : []),
@@ -910,18 +937,28 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
       <SectionEmpty>Sub-agents stored with this skill.</SectionEmpty>
     );
 
+  let renderSecurity = () =>
+    p.security && p.routes.security ? (
+      <SecurityCardBody
+        security={p.security}
+        onOpenReport={() => navigate(p.routes.security!)}
+      />
+    ) : null;
+
   let sectionBodies: Record<WorkspacePanelId, () => ReactNode> = {
     files: renderFiles,
     mergeRequests: renderMergeRequests,
     providers: renderProviders,
-    agents: renderAgents
+    agents: renderAgents,
+    security: renderSecurity
   };
 
   let sectionCounts: Record<WorkspacePanelId, number> = {
     files: 0,
     mergeRequests: openMergeRequests.length,
     providers: linkedItems.length,
-    agents: agents.length
+    agents: agents.length,
+    security: p.security?.issues.length ?? 0
   };
 
   let sectionAdd = (id: WorkspacePanelId) => {
@@ -959,6 +996,7 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
   let visibleSections = order.filter(isSectionVisible).map(buildSection);
   let sidebarSections = order
     .filter(id => panelsReady && prefs.preferences.modes[id] != 'off')
+    .filter(id => id != 'security')
     .map(buildSection);
 
   let reorderSections = useCallback(
@@ -1323,16 +1361,18 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
       options: positionOptions,
       onChange: prefs.setPosition
     }),
-    ...order.map(id =>
-      segmentedItem({
-        id: `mode-${id}`,
-        icon: sectionMeta[id].icon,
-        label: sectionMeta[id].title,
-        value: prefs.preferences.modes[id],
-        options: modeOptions,
-        onChange: mode => prefs.setMode(id, mode)
-      })
-    ),
+    ...order
+      .filter(id => id != 'security' || !!p.security)
+      .map(id =>
+        segmentedItem({
+          id: `mode-${id}`,
+          icon: sectionMeta[id].icon,
+          label: sectionMeta[id].title,
+          value: prefs.preferences.modes[id],
+          options: modeOptions,
+          onChange: mode => prefs.setMode(id, mode)
+        })
+      ),
     { type: 'separator', id: 'assistant-sep' },
     {
       id: 'assistant',
@@ -1450,7 +1490,9 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
       <Panel.Wrapper
         isOpen={!!panelRoute}
         width={
-          panelKindRef.current == 'mergeRequest' ? 'min(1080px, 94vw)' : 'min(760px, 94vw)'
+          panelKindRef.current == 'mergeRequest' || isSecurityRoute
+            ? 'min(1080px, 94vw)'
+            : 'min(760px, 94vw)'
         }
         onOpenChange={open => {
           if (!open) closePanelRoute();
@@ -1513,6 +1555,15 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
           toolbarAvailable ? { on: prefs.preferences.toolbar, onToggle: toggleToolbar } : null
         }
         moreItems={moreItems}
+        security={
+          p.security && p.routes.security
+            ? {
+                summary: p.security,
+                active: isRouteActive(location.pathname, p.routes.security, true),
+                onOpen: () => navigate(p.routes.security!)
+              }
+            : null
+        }
       />
 
       <ToolbarSlot $visible={toolbarVisible} aria-hidden={!toolbarVisible || undefined}>

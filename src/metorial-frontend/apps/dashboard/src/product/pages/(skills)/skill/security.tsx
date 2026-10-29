@@ -11,9 +11,9 @@ import {
   useSkillSecurityReviewsEnabled,
   useStorePermissions
 } from '@metorial/state';
-import { Button, Callout, confirm, RenderDate, Text, Title } from '@metorial/ui';
+import { Button, Callout, confirm, Panel, RenderDate, Text, Title } from '@metorial/ui';
 import { RiEyeOffLine, RiFileAddLine, RiLockLine, RiRefreshLine } from '@remixicon/react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import {
   getDisplayedRevision,
@@ -22,8 +22,6 @@ import {
   isSecurityReviewNotFound,
   SecurityAssessmentBody,
   SecurityReportAside,
-  SecurityReportHeader,
-  SecurityReportHeaderActions,
   SecurityReportLayout,
   SecurityReportSections,
   SecurityReportVerdict,
@@ -36,6 +34,25 @@ import {
 
 let REVISION_PARAM = 'revision';
 let HISTORY_LIMIT = 5;
+
+let SecurityPanelPage = ({
+  actions,
+  children
+}: {
+  actions?: ReactNode;
+  children: ReactNode;
+}) => (
+  <>
+    <Panel.Header actions={actions}>
+      <Panel.Title>Security Assessment</Panel.Title>
+      <Panel.Description>
+        What this skill makes an agent do, and whether its files can be trusted.
+      </Panel.Description>
+    </Panel.Header>
+
+    <Panel.Content>{children}</Panel.Content>
+  </>
+);
 
 export let SkillSecurityPage = () => {
   let instance = useCurrentInstance();
@@ -97,10 +114,12 @@ export let SkillSecurityPage = () => {
 
   if (!isEnabled || isSecurityReviewNotFound(review.error)) {
     return (
-      <EmptyState
-        title="Security Assessment Unavailable"
-        description="Security reviews are not available for this skill."
-      />
+      <SecurityPanelPage>
+        <EmptyState
+          title="Security Assessment Unavailable"
+          description="Security reviews are not available for this skill."
+        />
+      </SecurityPanelPage>
     );
   }
 
@@ -121,57 +140,46 @@ export let SkillSecurityPage = () => {
       </Button>
     );
 
-    let header = (
-      <SecurityReportHeader>
-        <div>
-          <Title as="h2" size="5" weight="strong">
-            Security Assessment
-          </Title>
-          <Text size="2" color="gray600">
-            What this skill makes an agent do, and whether its files can be trusted.
-          </Text>
-        </div>
+    let headerActions = (
+      <>
+        <SkillVerdictBadge review={review.data} size="2" />
 
-        <SecurityReportHeaderActions>
-          <SkillVerdictBadge review={review.data} size="2" />
+        {!isDismissed && (
+          <Button
+            size="2"
+            variant="outline"
+            iconLeft={<RiEyeOffLine />}
+            disabled={reassess.isLoading}
+            loading={dismiss.isLoading}
+            success={dismiss.isSuccess}
+            onClick={() =>
+              confirm({
+                title: 'Dismiss Security Review',
+                description:
+                  'This skill will no longer be reviewed, and its verdict will no longer hold it back. You can restore the review at any time.',
+                confirmText: 'Dismiss Review',
+                onConfirm: () => dismiss.mutate(undefined)
+              })
+            }
+          >
+            Dismiss Review
+          </Button>
+        )}
 
-          {!isDismissed && (
-            <Button
-              size="2"
-              variant="outline"
-              iconLeft={<RiEyeOffLine />}
-              disabled={reassess.isLoading}
-              loading={dismiss.isLoading}
-              success={dismiss.isSuccess}
-              onClick={() =>
-                confirm({
-                  title: 'Dismiss Security Review',
-                  description:
-                    'This skill will no longer be reviewed, and its verdict will no longer hold it back. You can restore the review at any time.',
-                  confirmText: 'Dismiss Review',
-                  onConfirm: () => dismiss.mutate(undefined)
-                })
-              }
-            >
-              Dismiss Review
-            </Button>
-          )}
-
-          {!isDismissed && canWriteSkill && (
-            <Button
-              size="2"
-              variant="outline"
-              iconLeft={<RiRefreshLine />}
-              disabled={!canGenerate || !!inProgress || dismiss.isLoading}
-              loading={reassess.isLoading}
-              success={reassess.isSuccess}
-              onClick={() => reassess.mutate(undefined)}
-            >
-              {inProgress ? 'Reassessing' : hasNoVersions ? 'Review Now' : 'Reassess Skill'}
-            </Button>
-          )}
-        </SecurityReportHeaderActions>
-      </SecurityReportHeader>
+        {!isDismissed && canWriteSkill && (
+          <Button
+            size="2"
+            variant="outline"
+            iconLeft={<RiRefreshLine />}
+            disabled={!canGenerate || !!inProgress || dismiss.isLoading}
+            loading={reassess.isLoading}
+            success={reassess.isSuccess}
+            onClick={() => reassess.mutate(undefined)}
+          >
+            {inProgress ? 'Reassessing' : hasNoVersions ? 'Review Now' : 'Reassess Skill'}
+          </Button>
+        )}
+      </>
     );
 
     let errors = (
@@ -184,8 +192,7 @@ export let SkillSecurityPage = () => {
 
     if (isDismissed) {
       return (
-        <>
-          {header}
+        <SecurityPanelPage actions={headerActions}>
           {errors}
 
           <SecurityReportVerdict id="verdict">
@@ -208,14 +215,13 @@ export let SkillSecurityPage = () => {
               action={restoreButton}
             />
           </SecurityReportVerdict>
-        </>
+        </SecurityPanelPage>
       );
     }
 
     if (!displayed) {
       return (
-        <>
-          {header}
+        <SecurityPanelPage actions={headerActions}>
           {errors}
 
           <SecurityReportVerdict id="verdict">
@@ -274,13 +280,12 @@ export let SkillSecurityPage = () => {
               You can leave this page; the report appears here when it is ready.
             </Text>
           )}
-        </>
+        </SecurityPanelPage>
       );
     }
 
     return (
-      <>
-        {header}
+      <SecurityPanelPage actions={headerActions}>
         {errors}
 
         {isHistorical && (
@@ -335,7 +340,7 @@ export let SkillSecurityPage = () => {
             onSelectRevision={selectRevision}
           />
         </SecurityReportLayout>
-      </>
+      </SecurityPanelPage>
     );
   });
 };

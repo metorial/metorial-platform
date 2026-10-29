@@ -53,7 +53,8 @@ export type {
   SkillWorkspaceFork,
   SkillWorkspaceImageInput,
   SkillWorkspaceLayoutProps,
-  SkillWorkspaceRoutes
+  SkillWorkspaceRoutes,
+  SkillWorkspaceSecurity
 } from './skillWorkspaceLayout';
 
 export let SkillLinkProvidersScene = dynamicComponent<
