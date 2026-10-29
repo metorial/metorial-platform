@@ -34,7 +34,6 @@ import { parseDocument } from 'yaml';
 import { DocsAgentProvider } from '../editor/agent/DocsAgentProvider';
 import { getCollaboratorColor } from '../editor/collaboratorColors';
 import { Editor } from '../editor/Editor';
-import { EditorContent, EditorScroll } from '../editor/EditorStyles';
 import {
   BackButton,
   CloudStatus,
@@ -62,23 +61,20 @@ import { Toolbar } from '../editor/Toolbar';
 import { VersionHistoryPanel, type DocumentVersion } from '../editor/VersionHistoryPanel';
 import { Preview } from '../preview/Preview';
 import { DocsStyles } from '../styles/GlobalStyles';
+import {
+  DocumentSkeletonContent,
+  Main,
+  Shell,
+  SkeletonBlock,
+  SkeletonEditorScroll,
+  SkeletonHeaderButton
+} from './documentSkeleton';
 import { lightTheme } from '../styles/theme';
 
 let AUTOSAVE_DELAY_MS = 1000;
 let MIN_PREVIEW_WIDTH = 360;
 let DEFAULT_PREVIEW_WIDTH = 520;
 let MIN_EDITOR_WIDTH = 420;
-
-let Shell = styled.div`
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-  background: ${({ theme }) => theme.color.bg};
-  color: ${({ theme }) => theme.color.text};
-  font-family: ${({ theme }) => theme.font.sans};
-  line-height: 1.6;
-`;
 
 let Header = styled.header`
   display: flex;
@@ -200,13 +196,6 @@ let ReadOnlyBadge = styled.span<{ $active?: boolean }>`
   }
 `;
 
-let Main = styled.div`
-  display: flex;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-`;
-
 let PreviewResizeHandle = styled.div<{ $active?: boolean }>`
   flex: 0 0 1px;
   width: 1px;
@@ -253,60 +242,6 @@ let Toast = styled.div<{ $visible?: boolean }>`
 `;
 
 let noop = () => {};
-
-let SkeletonBlock = styled.div<{ $width?: string; $height?: string; $radius?: string }>`
-  width: ${({ $width }) => $width ?? '100%'};
-  height: ${({ $height }) => $height ?? '14px'};
-  border-radius: ${({ $radius }) => $radius ?? '999px'};
-  background: linear-gradient(
-    90deg,
-    ${({ theme }) => theme.color.bgAlt} 0%,
-    ${({ theme }) => theme.color.bgHover} 48%,
-    ${({ theme }) => theme.color.bgAlt} 100%
-  );
-  background-size: 220% 100%;
-  animation: docsSkeletonPulse 1.4s ease-in-out infinite;
-
-  @keyframes docsSkeletonPulse {
-    0% {
-      background-position: 100% 0;
-    }
-    100% {
-      background-position: -100% 0;
-    }
-  }
-`;
-
-let SkeletonHeaderButton = styled(SkeletonBlock)`
-  flex: 0 0 auto;
-`;
-
-let SkeletonEditorScroll = styled(EditorScroll)`
-  overflow: hidden;
-`;
-
-let SkeletonTitle = styled(SkeletonBlock)`
-  margin-bottom: 24px;
-`;
-
-let SkeletonStatusBar = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  min-height: 24px;
-  margin: 0 0 25px -8px;
-`;
-
-let SkeletonParagraph = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin: 6px 0 22px;
-`;
-
-let SkeletonHeading = styled(SkeletonBlock)`
-  margin: 34px 0 14px;
-`;
 
 let FadeHost = styled.div`
   position: relative;
@@ -559,7 +494,10 @@ let getSkillShareContextFromState = (
   };
 };
 
-let DocumentEditorSkeleton = (p: { onBack?: () => void; chrome?: DocumentEditorChrome }) => {
+export let DocumentEditorSkeleton = (p: {
+  onBack?: () => void;
+  chrome?: DocumentEditorChrome;
+}) => {
   let theme = useMemo(() => lightTheme, []);
 
   return (
@@ -588,31 +526,7 @@ let DocumentEditorSkeleton = (p: { onBack?: () => void; chrome?: DocumentEditorC
             )}
 
             <Main>
-              <SkeletonEditorScroll>
-                <EditorContent>
-                  <SkeletonTitle $width="52%" $height="48px" $radius="10px" />
-                  <SkeletonStatusBar>
-                    <SkeletonBlock $width="92px" $height="24px" $radius="8px" />
-                    <SkeletonBlock $width="128px" $height="24px" $radius="8px" />
-                    <SkeletonBlock $width="112px" $height="24px" $radius="8px" />
-                    <SkeletonBlock $width="138px" $height="24px" $radius="8px" />
-                  </SkeletonStatusBar>
-
-                  <SkeletonParagraph>
-                    <SkeletonBlock $width="94%" $height="16px" $radius="5px" />
-                    <SkeletonBlock $width="89%" $height="16px" $radius="5px" />
-                    <SkeletonBlock $width="96%" $height="16px" $radius="5px" />
-                    <SkeletonBlock $width="72%" $height="16px" $radius="5px" />
-                  </SkeletonParagraph>
-
-                  <SkeletonHeading $width="34%" $height="26px" $radius="7px" />
-                  <SkeletonParagraph>
-                    <SkeletonBlock $width="91%" $height="16px" $radius="5px" />
-                    <SkeletonBlock $width="84%" $height="16px" $radius="5px" />
-                    <SkeletonBlock $width="62%" $height="16px" $radius="5px" />
-                  </SkeletonParagraph>
-                </EditorContent>
-              </SkeletonEditorScroll>
+              <DocumentSkeletonContent />
             </Main>
           </Shell>
         </ImageUploadProvider>
@@ -897,7 +811,9 @@ let DocumentEditorLoaded = (p: {
     !collaboration.isReadyForEditor && readyDocumentRef.current !== p.documentId;
   let canWrite = collaboration.canWrite;
   let readOnly = !canWrite;
-  let assistantWorkspace = useSkillAssistantWorkspace();
+  let isAccessResolved = collaboration.isAccessResolved;
+  let skillAssistantWorkspace = useSkillAssistantWorkspace();
+  let assistantWorkspace = isAccessResolved ? skillAssistantWorkspace : null;
   let collaborationMeta = useMemo(
     () => collaboration.ydoc.getMap<string>('meta'),
     [collaboration.ydoc]
@@ -1656,7 +1572,7 @@ let DocumentEditorLoaded = (p: {
   }, [flushSave]);
 
   usePublishDocumentEditorChrome(
-    isExternalChrome,
+    isExternalChrome && isAccessResolved,
     {
       documentId: p.documentId,
       title,
@@ -1978,6 +1894,7 @@ export let DocumentEditorScene = ({
 
   return (
     <DocumentEditorInner
+      key={`${instanceId}:${documentId}`}
       instanceId={instanceId}
       documentId={documentId}
       currentConsumerId={currentConsumerId}

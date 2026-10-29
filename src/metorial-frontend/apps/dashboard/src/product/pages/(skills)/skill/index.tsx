@@ -1,5 +1,5 @@
 import { renderWithLoader } from '@metorial/data-hooks';
-import { DocumentEditorScene } from '@metorial/scene-docs';
+import { DocumentEditorScene, DocumentSkeleton } from '@metorial/scene-docs';
 import { useSkillWorkspace } from '@metorial/scene-skills';
 import {
   useAllStoreItems,
@@ -24,6 +24,12 @@ let EmptyState = styled.div`
   padding: 32px;
 `;
 
+export let SkillDocumentSkeleton = () => (
+  <DocumentPage>
+    <DocumentSkeleton />
+  </DocumentPage>
+);
+
 export let SkillPage = () => {
   let organization = useCurrentOrganization();
   let instance = useCurrentInstance();
@@ -37,37 +43,45 @@ export let SkillPage = () => {
 
   return (
     <DocumentPage>
-      {renderWithLoader({ skill, storeItems })(({ skill, storeItems }) => {
-        let skillDocument = storeItems.data.find(
-          item => item.path.replace(/^\/+/, '').toLowerCase() == 'skill.md'
-        )?.document;
+      {!skill.data || !storeItems.data ? (
+        skill.error || storeItems.error ? (
+          renderWithLoader({ skill, storeItems })(() => null)
+        ) : (
+          <DocumentSkeleton />
+        )
+      ) : (
+        renderWithLoader({ skill, storeItems })(({ skill, storeItems }) => {
+          let skillDocument = storeItems.data.find(
+            item => item.path.replace(/^\/+/, '').toLowerCase() == 'skill.md'
+          )?.document;
 
-        if (!skillDocument) {
+          if (!skillDocument) {
+            return (
+              <EmptyState>
+                <Text color="gray600">This skill does not contain a SKILL.md document.</Text>
+              </EmptyState>
+            );
+          }
+
           return (
-            <EmptyState>
-              <Text color="gray600">This skill does not contain a SKILL.md document.</Text>
-            </EmptyState>
+            <DocumentEditorScene
+              instanceId={instance.data?.id}
+              documentId={skillDocument.id}
+              chrome={workspace ? 'external' : undefined}
+              titleAccessory={workspace?.skillDocumentTitleAccessory}
+              setRestrictHeight={enabled =>
+                (window as any).metorial_setRestrictHeight?.(enabled)
+              }
+              hideSharingControls
+              skillShareContext={{
+                mode: 'dashboard',
+                organizationId: organization.data?.id,
+                skills: [{ id: skill.data.id, name: skill.data.name }]
+              }}
+            />
           );
-        }
-
-        return (
-          <DocumentEditorScene
-            instanceId={instance.data?.id}
-            documentId={skillDocument.id}
-            chrome={workspace ? 'external' : undefined}
-            titleAccessory={workspace?.skillDocumentTitleAccessory}
-            setRestrictHeight={enabled =>
-              (window as any).metorial_setRestrictHeight?.(enabled)
-            }
-            hideSharingControls
-            skillShareContext={{
-              mode: 'dashboard',
-              organizationId: organization.data?.id,
-              skills: [{ id: skill.data.id, name: skill.data.name }]
-            }}
-          />
-        );
-      })}
+        })
+      )}
     </DocumentPage>
   );
 };

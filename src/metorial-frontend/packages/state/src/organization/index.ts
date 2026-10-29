@@ -13,6 +13,7 @@ export * from './loaders/organization';
 export * from './loaders/organizationInvite';
 export * from './loaders/organizationInviteAccept';
 export * from './loaders/organizationMember';
+export * from './loaders/organizationConfig';
 export * from './loaders/outpost';
 export * from './loaders/project';
 export * from './loaders/projectBrand';

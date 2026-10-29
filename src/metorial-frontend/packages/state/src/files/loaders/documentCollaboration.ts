@@ -294,6 +294,7 @@ export let useDocumentCollaboration = (
   let [initialBodyStateReceived, setInitialBodyStateReceived] = useState(false);
   let [initialBodySeeded, setInitialBodySeeded] = useState(false);
   let [effectiveCanWrite, setEffectiveCanWrite] = useState(false);
+  let [isAccessResolved, setIsAccessResolved] = useState(false);
   let [actorId, setActorId] = useState<string | null>(null);
   let [commentThreadsRevision, setCommentThreadsRevision] = useState(0);
   let [collaborationEpoch, setCollaborationEpoch] = useState(0);
@@ -375,6 +376,7 @@ export let useDocumentCollaboration = (
       setIsFallback(false);
       effectiveCanWriteRef.current = false;
       setEffectiveCanWrite(false);
+      setIsAccessResolved(false);
       return;
     }
 
@@ -385,6 +387,7 @@ export let useDocumentCollaboration = (
       setIsFallback(true);
       effectiveCanWriteRef.current = false;
       setEffectiveCanWrite(false);
+      setIsAccessResolved(true);
       return;
     }
 
@@ -406,6 +409,7 @@ export let useDocumentCollaboration = (
       let writable = access.permissions.includes('content_write');
       effectiveCanWriteRef.current = writable;
       setEffectiveCanWrite(writable);
+      setIsAccessResolved(true);
       scheduleTokenRefresh(new Date(access.expiresAt));
     };
 
@@ -845,6 +849,7 @@ export let useDocumentCollaboration = (
     initialBodyStateReceived,
     initialBodySeeded,
     canWrite: effectiveCanWrite,
+    isAccessResolved,
     sessionId: sessionIdRef.current,
     actorId,
     commentThreadsRevision,

@@ -177,6 +177,7 @@ export type SkillWorkspaceLayoutProps = {
   allowedIntegrationIds?: string[];
   allowProviders?: boolean;
   readOnly?: boolean;
+  onDocumentReady?: () => void;
   onNameChange?: (name: string) => Promise<void>;
   onImageChange?: (input: SkillWorkspaceImageInput) => Promise<void>;
 };
@@ -563,9 +564,15 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
     ...(recentIncomingMergeRequests.data?.items ?? [])
   ]).filter(request => new Date(request.updatedAt).getTime() > weekAgo);
 
+  let mainItemId = (storeItems.data ?? []).find(item => isSkillDocumentPath(item.path))?.id;
+  let documentHref = useCallback(
+    (documentId: string, itemId: string) =>
+      itemId == mainItemId ? p.routes.overview : p.routes.document(documentId, itemId),
+    [mainItemId, p.routes.overview, p.routes.document]
+  );
   let fileEntries = useMemo(
-    () => buildFileEntries(storeItems.data ?? [], p.routes.document),
-    [storeItems.data, p.routes.document]
+    () => buildFileEntries(storeItems.data ?? [], documentHref),
+    [storeItems.data, documentHref]
   );
   let getAgentHref = (agent: { documentId: string; storeItemId: string | null }) =>
     agent.storeItemId ? p.routes.document(agent.documentId, agent.storeItemId) : null;
@@ -621,8 +628,7 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
   let documentPrefix = routePrefix(marker => p.routes.document(marker, marker));
   let isOverview = isRouteActive(canvasPathname, p.routes.overview, true);
   let isDocumentRoute =
-    isOverview ||
-    (!!documentPrefix && canvasPathname.startsWith(documentPrefix));
+    isOverview || (!!documentPrefix && canvasPathname.startsWith(documentPrefix));
 
   let mainEntry = fileEntries.find(entry => entry.isMain);
   let activeEntry =
@@ -667,6 +673,28 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
     });
   };
 
+  let isLoaded = (loader: { data?: unknown; error?: unknown }) =>
+    loader.data != null || loader.error != null;
+  let panelsReady = [
+    skillItems,
+    skillAgents,
+    outgoingMergeRequests,
+    incomingMergeRequests,
+    recentOutgoingMergeRequests,
+    recentIncomingMergeRequests,
+    storeItems
+  ].every(isLoaded);
+
+  let documentReady = panelsReady && (!!chrome || !isDocumentRoute);
+  let onDocumentReady = p.onDocumentReady;
+  useEffect(() => {
+    if (!onDocumentReady) return;
+    if (documentReady) return onDocumentReady();
+
+    let timeout = setTimeout(onDocumentReady, 8000);
+    return () => clearTimeout(timeout);
+  }, [documentReady, onDocumentReady]);
+
   let hasActivity: Record<WorkspacePanelId, boolean> = {
     files: fileEntries.some(entry => entry.kind != 'directory' && !entry.isMain),
     mergeRequests: openMergeRequests.length + recentMergeRequests.length > 0,
@@ -675,6 +703,7 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
   };
 
   let isSectionVisible = (id: WorkspacePanelId) => {
+    if (!panelsReady) return false;
     let mode = prefs.preferences.modes[id];
     if (mode == 'on') return true;
     if (mode == 'off') return false;
@@ -759,7 +788,7 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
       <SkillStoreFileTree
         instanceId={p.instanceId}
         storeId={p.skill.storeId}
-        getDocumentPath={p.routes.document}
+        getDocumentPath={documentHref}
         shareContext={p.shareContext}
         readOnly={p.readOnly}
         openFilesInline
@@ -929,7 +958,7 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
   let order = prefs.preferences.order;
   let visibleSections = order.filter(isSectionVisible).map(buildSection);
   let sidebarSections = order
-    .filter(id => prefs.preferences.modes[id] != 'off')
+    .filter(id => panelsReady && prefs.preferences.modes[id] != 'off')
     .map(buildSection);
 
   let reorderSections = useCallback(
@@ -1500,6 +1529,7 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
         tight={layout.tight}
         onSettled={layout.measure}
         createMergeRequest={createMergeRequest}
+        socialReady={!!chrome || (panelsReady && !isDocumentRoute)}
         comments={
           chrome
             ? {

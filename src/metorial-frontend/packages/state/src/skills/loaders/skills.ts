@@ -22,6 +22,7 @@ import type {
   DashboardInstanceSkillsVersionsSnapshotGetOutput
 } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
+import { useEffect, useState } from 'react';
 import { autoPaginate } from '../../lib/autoPaginate';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
@@ -86,6 +87,47 @@ export let useSkills = (
       ),
     instanceId ? `${instanceId}:${JSON.stringify(query ?? {})}` : null
   );
+};
+
+export let useInfiniteSkills = (
+  instanceId: string | null | undefined,
+  query?: Omit<DashboardInstanceSkillsListQuery, 'after' | 'before' | 'cursor'> | null
+) => {
+  let resetKey = instanceId ? `${instanceId}:${JSON.stringify(query ?? {})}` : null;
+
+  let [activeResetKey, setActiveResetKey] = useState(resetKey);
+  let [cursors, setCursors] = useState<string[]>(['']);
+  let [pages, setPages] = useState<Record<string, Skill[]>>({});
+
+  if (activeResetKey != resetKey) {
+    setActiveResetKey(resetKey);
+    setCursors(['']);
+    setPages({});
+  }
+
+  let cursor = cursors[cursors.length - 1];
+  let page = skillsLoader.use(
+    instanceId && query !== null
+      ? { instanceId, ...(query ?? {}), ...(cursor ? { after: cursor } : {}) }
+      : null
+  );
+
+  useEffect(() => {
+    if (page.data) setPages(current => ({ ...current, [cursor]: page.data!.items }));
+  }, [page.data, cursor]);
+
+  let items = cursors.flatMap(c => pages[c] ?? []);
+  let hasMore = !!page.data?.pagination.hasMoreAfter;
+
+  return {
+    items,
+    isLoading: !items.length && !page.data,
+    hasMore,
+    loadMore: () => {
+      let last = items[items.length - 1];
+      if (last && hasMore) setCursors(current => [...current, last.id]);
+    }
+  };
 };
 
 export let allSkillsLoader = createLoader({

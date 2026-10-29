@@ -17,12 +17,35 @@ import {
   useStorePermissions
 } from '@metorial/state';
 import { snackbar } from '@metorial/ui';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import styled from 'styled-components';
 import { useNavigate, useParams } from 'react-router-dom';
 import { SkillVerdictBadge } from '../../../scenes/securityReview';
 import { showSkillCloneFormModal } from '../../../scenes/skills/cloneModal';
 import { recordRecentSkill } from '../../../scenes/skills/navigation/recentSkills';
-import { SkillPage } from './index';
+import { SkillDocumentSkeleton, SkillPage } from './index';
+
+let LoadingHost = styled.div`
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+`;
+
+let LoadingOverlay = styled.div<{ $visible: boolean }>`
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  overflow: hidden;
+  --docs-inset-top: 56px;
+  background: #fff;
+  opacity: ${({ $visible }) => ($visible ? 1 : 0)};
+  visibility: ${({ $visible }) => ($visible ? 'visible' : 'hidden')};
+  pointer-events: ${({ $visible }) => ($visible ? 'auto' : 'none')};
+  transition:
+    opacity 0.28s ease,
+    visibility 0s linear ${({ $visible }) => ($visible ? '0s' : '0.28s')};
+`;
 
 let downloadExport = (url: string, fileName: string) => {
   let link = document.createElement('a');
@@ -57,6 +80,13 @@ export let SkillLayout = () => {
   let canWriteStore =
     storePermissions.data?.hasFullAccess ||
     storePermissions.data?.permissions.includes('content_write');
+
+  let [readySkillId, setReadySkillId] = useState<string | null>(null);
+  let onDocumentReady = useCallback(() => setReadySkillId(skillId ?? null), [skillId]);
+  let showSkeleton = readySkillId != (skillId ?? null) && !skill.error;
+
+  let permissionsLoading =
+    !!skill.data?.storeId && !storePermissions.data && !storePermissions.error;
 
   useEffect(() => {
     if (instance.data?.id && skill.data?.id)
@@ -156,82 +186,89 @@ export let SkillLayout = () => {
   };
 
   return (
-    <>
-      {renderWithLoader(
-        { skill },
-        {
-          spaceTop: 50
-        }
-      )(({ skill }) => {
-        let isFork = skill.data.hierarchy.type == 'fork';
+    <LoadingHost>
+      {(!skill.data || permissionsLoading) && !skill.error
+        ? null
+        : renderWithLoader({ skill })(({ skill }) => {
+            let isFork = skill.data.hierarchy.type == 'fork';
 
-        return (
-          <SkillWorkspaceLayout
-            instanceId={instance.data?.id}
-            skill={skill.data}
-            workspaceLabel="Skills"
-            backPath={Paths.instance.skills(organization.data, project.data, instance.data)}
-            routes={{
-              overview: skillPath,
-              mergeRequests: `${skillPath}/merge-requests`,
-              mergeRequest: mergeRequestId =>
-                `${skillPath}/merge-requests/${mergeRequestId}/conversation`,
-              document: (_, itemId) => `${skillPath}/item/${itemId}`,
-              providers: `${skillPath}/providers`,
-              agents: `${skillPath}/agents`,
-              settings: `${skillPath}/settings`,
-              groups: `${skillPath}/groups`,
-              ...(securityReviewsEnabled ? { security: `${skillPath}/security` } : {})
-            }}
-            securityBadge={
-              securityReview.data ? <SkillVerdictBadge review={securityReview.data} /> : null
-            }
-            defaultCanvas={<SkillPage />}
-            shareContext={{
-              mode: 'dashboard',
-              organizationId: organization.data?.id,
-              skills: [{ id: skill.data.id, name: skill.data.name }]
-            }}
-            readOnly={!canWriteStore}
-            onNameChange={async name => {
-              let [, error] = await updateSkill.mutate({ name });
-              if (error) throw error;
-              skill.refetch();
-            }}
-            onImageChange={async input => {
-              let [, error] = await updateSkill.mutate(input);
-              if (error) throw error;
-              skill.refetch();
-            }}
-            onDuplicate={instance.data ? duplicate : null}
-            onExport={instance.data ? exportSkill : null}
-            exportLoading={createSkillExport.isLoading}
-            fork={
-              isFork
-                ? {
-                    onRequestMerge:
-                      instance.data && canReadStore
-                        ? () =>
-                            showCreateSkillMergeRequestModal({
-                              instanceId: instance.data!.id,
-                              sourceSkillId: skill.data.id,
-                              onCreated: mergeRequestId =>
-                                navigate(
-                                  `${skillPath}/merge-requests/${mergeRequestId}/conversation`
-                                )
-                            })
-                        : null,
-                    onSync: instance.data && canWriteStore ? syncWithUpstream : null,
-                    parentHref: skill.data.hierarchy.parentSkillId
-                      ? skillHref(skill.data.hierarchy.parentSkillId)
-                      : null,
-                    parentName: parentSkill.data?.name ?? null
-                  }
-                : null
-            }
-          />
-        );
-      })}
-    </>
+            return (
+              <SkillWorkspaceLayout
+                onDocumentReady={onDocumentReady}
+                instanceId={instance.data?.id}
+                skill={skill.data}
+                workspaceLabel="Skills"
+                backPath={Paths.instance.skills(
+                  organization.data,
+                  project.data,
+                  instance.data
+                )}
+                routes={{
+                  overview: skillPath,
+                  mergeRequests: `${skillPath}/merge-requests`,
+                  mergeRequest: mergeRequestId =>
+                    `${skillPath}/merge-requests/${mergeRequestId}/conversation`,
+                  document: (_, itemId) => `${skillPath}/item/${itemId}`,
+                  providers: `${skillPath}/providers`,
+                  agents: `${skillPath}/agents`,
+                  settings: `${skillPath}/settings`,
+                  groups: `${skillPath}/groups`,
+                  ...(securityReviewsEnabled ? { security: `${skillPath}/security` } : {})
+                }}
+                securityBadge={
+                  securityReview.data ? (
+                    <SkillVerdictBadge review={securityReview.data} />
+                  ) : null
+                }
+                defaultCanvas={<SkillPage />}
+                shareContext={{
+                  mode: 'dashboard',
+                  organizationId: organization.data?.id,
+                  skills: [{ id: skill.data.id, name: skill.data.name }]
+                }}
+                readOnly={!canWriteStore}
+                onNameChange={async name => {
+                  let [, error] = await updateSkill.mutate({ name });
+                  if (error) throw error;
+                  skill.refetch();
+                }}
+                onImageChange={async input => {
+                  let [, error] = await updateSkill.mutate(input);
+                  if (error) throw error;
+                  skill.refetch();
+                }}
+                onDuplicate={instance.data ? duplicate : null}
+                onExport={instance.data ? exportSkill : null}
+                exportLoading={createSkillExport.isLoading}
+                fork={
+                  isFork
+                    ? {
+                        onRequestMerge:
+                          instance.data && canReadStore
+                            ? () =>
+                                showCreateSkillMergeRequestModal({
+                                  instanceId: instance.data!.id,
+                                  sourceSkillId: skill.data.id,
+                                  onCreated: mergeRequestId =>
+                                    navigate(
+                                      `${skillPath}/merge-requests/${mergeRequestId}/conversation`
+                                    )
+                                })
+                            : null,
+                        onSync: instance.data && canWriteStore ? syncWithUpstream : null,
+                        parentHref: skill.data.hierarchy.parentSkillId
+                          ? skillHref(skill.data.hierarchy.parentSkillId)
+                          : null,
+                        parentName: parentSkill.data?.name ?? null
+                      }
+                    : null
+                }
+              />
+            );
+          })}
+      <LoadingOverlay $visible={showSkeleton} aria-hidden={!showSkeleton || undefined}>
+        <SkillDocumentSkeleton />
+      </LoadingOverlay>
+    </LoadingHost>
   );
 };

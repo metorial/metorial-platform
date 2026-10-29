@@ -1,4 +1,5 @@
 import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
+import type { DashboardInstanceSkillsListOutput } from '@metorial/dashboard-sdk';
 import { EmptyState } from '@metorial/empty-state';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
@@ -13,7 +14,7 @@ import {
   useSkillGroups,
   useSkills
 } from '@metorial/state';
-import { Button, Input, OptionToggle, RenderDate, Select, Text } from '@metorial/ui';
+import { Button, Input, OptionToggle, RenderDate, Select, Text, Toolbar } from '@metorial/ui';
 import { ItemGrid, Table } from '@metorial/ui-product';
 import { useDebounced } from '@metorial/use-debounced';
 import { RiGridLine, RiListUnordered } from '@remixicon/react';
@@ -29,16 +30,7 @@ let skillsPageSize = 48;
 
 type SkillsView = 'grid' | 'list';
 
-let Toolbar = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 24px;
-
-  @media (max-width: 720px) {
-    flex-wrap: wrap;
-  }
-`;
+type Skill = DashboardInstanceSkillsListOutput['items'][number];
 
 let GroupField = styled.div`
   width: 200px;
@@ -147,7 +139,6 @@ let GroupFilter = (p: {
       <Select
         label="Group"
         hideLabel
-        size="3"
         value={p.current}
         onChange={p.onChange}
         items={[
@@ -159,13 +150,68 @@ let GroupFilter = (p: {
   );
 };
 
+let SkillsResults = (p: { instanceId: string; view: SkillsView; skills: Skill[] }) => {
+  let pathParams = usePathParams();
+
+  let pinned = useInstancePinnedSkills({ instanceId: p.instanceId });
+  let previews = useSkillContentPreviews(
+    p.view == 'grid' ? p.instanceId : null,
+    p.skills.map(skill => skill.id)
+  );
+
+  if (!p.skills.length) return null;
+
+  if (p.view == 'list') {
+    return (
+      <Table
+        headers={['Name', 'Updated']}
+        data={p.skills.map(skill => ({
+          href: Paths.instance.skill(...pathParams, skill.id),
+          data: [
+            <ListName>
+              <SkillIconTile image={skill.image} imageUrl={skill.imageUrl} size={20} />
+              <Text size="2" weight="strong">
+                {skill.name}
+              </Text>
+            </ListName>,
+            <RenderDate date={skill.updatedAt} format="date" />
+          ]
+        }))}
+      />
+    );
+  }
+
+  return (
+    <ItemGrid.Root width="232px">
+      {p.skills.map(skill => {
+        let isPinned = pinned.has(skill.id);
+
+        return (
+          <li key={skill.id}>
+            <SkillPreviewCard
+              skill={skill}
+              content={previews.data ? previews.getContent(skill.id) : undefined}
+              href={Paths.instance.skill(...pathParams, skill.id)}
+              isPinned={isPinned}
+              menu={[
+                isPinned
+                  ? { label: 'Unpin', onClick: () => pinned.remove(skill.id) }
+                  : { label: 'Pin', onClick: () => pinned.add(skill.id) }
+              ]}
+            />
+          </li>
+        );
+      })}
+    </ItemGrid.Root>
+  );
+};
+
 let SkillsCollection = (p: {
   instanceId: string;
   search: string;
   skillGroupId: string | undefined;
   view: SkillsView;
 }) => {
-  let organization = useCurrentOrganization();
   let navigate = useNavigate();
   let pathParams = usePathParams();
 
@@ -176,11 +222,6 @@ let SkillsCollection = (p: {
     search: p.search || undefined,
     skillGroupId: p.skillGroupId
   });
-  let pinned = useInstancePinnedSkills(organization.data?.id, p.instanceId);
-  let previews = useSkillContentPreviews(
-    p.view == 'grid' ? p.instanceId : null,
-    (skills.data?.items ?? []).map(skill => skill.id)
-  );
 
   let isFiltered = !!p.search || !!p.skillGroupId;
 
@@ -204,53 +245,9 @@ let SkillsCollection = (p: {
         }}
       />
     )
-  })(skills => {
-    if (!skills.data.items.length) return null;
-
-    if (p.view == 'list') {
-      return (
-        <Table
-          headers={['Name', 'Updated']}
-          data={skills.data.items.map(skill => ({
-            href: Paths.instance.skill(...pathParams, skill.id),
-            data: [
-              <ListName>
-                <SkillIconTile image={skill.image} imageUrl={skill.imageUrl} size={20} />
-                <Text size="2" weight="strong">
-                  {skill.name}
-                </Text>
-              </ListName>,
-              <RenderDate date={skill.updatedAt} format="date" />
-            ]
-          }))}
-        />
-      );
-    }
-
-    return (
-      <ItemGrid.Root width="232px">
-        {skills.data.items.map(skill => {
-          let isPinned = pinned.isPinned(skill.id);
-
-          return (
-            <li key={skill.id}>
-              <SkillPreviewCard
-                skill={skill}
-                content={previews.data ? previews.getContent(skill.id) : undefined}
-                href={Paths.instance.skill(...pathParams, skill.id)}
-                isPinned={isPinned}
-                menu={[
-                  isPinned
-                    ? { label: 'Unpin', onClick: () => pinned.unpin(skill.id) }
-                    : { label: 'Pin', onClick: () => pinned.pin(skill.id) }
-                ]}
-              />
-            </li>
-          );
-        })}
-      </ItemGrid.Root>
-    );
-  });
+  })(skills => (
+    <SkillsResults instanceId={p.instanceId} view={p.view} skills={skills.data.items} />
+  ));
 };
 
 export let SkillsPage = () => {
@@ -280,7 +277,7 @@ export let SkillsPage = () => {
         actions={<CreateSkillButton instanceId={instance.data.id} />}
       />
 
-      <Toolbar>
+      <Toolbar style={{ marginBottom: 24 }}>
         <GroupFilter
           instanceId={instance.data.id}
           current={groupId}
@@ -291,7 +288,6 @@ export let SkillsPage = () => {
           <Input
             label="Search"
             hideLabel
-            size="3"
             placeholder="Search skills..."
             value={search}
             onInput={value => setParam('search', value)}
@@ -301,7 +297,6 @@ export let SkillsPage = () => {
         <ViewField>
           <OptionToggle
             ariaLabel="View"
-            size="1"
             itemMinWidth={0}
             value={view}
             onChange={value => setParam('view', value == 'list' ? 'list' : null)}

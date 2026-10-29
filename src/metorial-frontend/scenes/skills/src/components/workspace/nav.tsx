@@ -155,6 +155,17 @@ let SwitchChevron = styled(RiArrowDownSLine)`
   color: ${theme.colors.gray600};
 `;
 
+let socialReveal = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+`;
+
+let SocialReveal = styled.div`
+  animation: ${socialReveal} 0.34s ${workspaceEase} both;
+`;
+
 let ReadOnlyChip = styled.span`
   display: inline-flex;
   align-items: center;
@@ -611,6 +622,7 @@ export let WorkspaceNavRight = (p: {
   tight: boolean;
   onSettled: () => void;
   createMergeRequest?: (() => void) | null;
+  socialReady: boolean;
   comments: { open: boolean; count: number; onToggle: () => void } | null;
   onVersionHistory: (() => void) | null;
   share: ((trigger: ReactNode) => ReactNode) | null;
@@ -645,26 +657,30 @@ export let WorkspaceNavRight = (p: {
         </div>
       ) : null}
 
-      <FloatingBar data-key="social">
-        {p.comments ? (
-          <NavIconButton
-            icon={<RiChat3Line />}
-            label="Comments"
-            active={p.comments.open}
-            badge={p.comments.count || undefined}
-            onClick={p.comments.onToggle}
-          />
-        ) : null}
-        {!compact ? (
-          <NavIconButton
-            icon={<RiHistoryLine />}
-            label="Version history"
-            disabled={!p.onVersionHistory}
-            onClick={p.onVersionHistory ?? undefined}
-          />
-        ) : null}
-        {p.share ? p.share(<NavShareButton type="button">Share</NavShareButton>) : null}
-      </FloatingBar>
+      {p.socialReady ? (
+        <SocialReveal data-key="social">
+          <FloatingBar>
+            {p.comments ? (
+              <NavIconButton
+                icon={<RiChat3Line />}
+                label="Comments"
+                active={p.comments.open}
+                badge={p.comments.count || undefined}
+                onClick={p.comments.onToggle}
+              />
+            ) : null}
+            {!compact ? (
+              <NavIconButton
+                icon={<RiHistoryLine />}
+                label="Version history"
+                disabled={!p.onVersionHistory}
+                onClick={p.onVersionHistory ?? undefined}
+              />
+            ) : null}
+            {p.share ? p.share(<NavShareButton type="button">Share</NavShareButton>) : null}
+          </FloatingBar>
+        </SocialReveal>
+      ) : null}
 
       <FloatingBar data-key="actions">
         {p.onExport && !compact ? (

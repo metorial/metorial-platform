@@ -107,7 +107,7 @@ let Item = styled('div').withConfig({
 
   &:hover,
   &:focus {
-    background: ${theme.colors.gray400};
+    background: ${p => (p.activeBackground ? theme.colors.gray400 : theme.colors.gray350)};
   }
 
   &::after {
@@ -129,8 +129,9 @@ let ItemFrame = styled('div')`
   position: relative;
   min-width: 0;
 
-  &:hover ${Item}, &:focus-within ${Item} {
-    background: ${theme.colors.gray400};
+  &:hover ${Item}:not([data-active='true']),
+  &:focus-within ${Item}:not([data-active='true']) {
+    background: ${theme.colors.gray350};
   }
 `;
 
@@ -215,6 +216,7 @@ let SidebarItemRow = ({
   let active = item.isActive && !item.childrenActive;
   let itemContent = (
     <Item
+      data-active={active || menuOpen}
       activeBackground={active || menuOpen}
       activeBar={active}
       activeColor={active}
@@ -357,7 +359,7 @@ let SidebarGroup = ({
           >
             <Items>
               {items.map((item, index) => (
-                <Fragment key={index}>
+                <Fragment key={item.to ?? `${item.label}-${index}`}>
                   <SidebarItemRow item={item} />
 
                   <AnimatePresence>
