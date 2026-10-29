@@ -123,9 +123,10 @@ let Placeholder = styled.span`
   justify-content: center;
   color: ${theme.colors.gray600};
 
-  svg {
+  && svg {
     width: 45%;
     height: 45%;
+    transform: none;
   }
 `;
 
@@ -163,7 +164,7 @@ export let SecurityCardBody = (p: {
           ) : (
             <SummaryMeta>
               {security.status == 'pending'
-                ? 'Review in progress'
+                ? 'No report yet'
                 : (security.scoreLabel ?? 'No issues found')}
             </SummaryMeta>
           )}

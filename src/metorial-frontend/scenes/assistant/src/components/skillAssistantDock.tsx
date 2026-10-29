@@ -1,5 +1,11 @@
 import {
+  clearSkillAssistantReviewPending,
+  hasSkillAssistantReviewPending,
+  takeQueuedSkillAssistantPrompt,
+  useSecurityReviewGenerationEnabled,
   useSkillAssistant,
+  useSkillSecurityReview,
+  useSkillSecurityReviewsEnabled,
   useSkillAssistantWorkspace,
   type SkillAssistantRequestContext
 } from '@metorial/state';
@@ -16,7 +22,7 @@ import {
 } from '@remixicon/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
-import styled from 'styled-components';
+import styled, { css, keyframes } from 'styled-components';
 import { AssistantTranscript } from './transcript';
 
 type StoredConversation = { id: string; title: string; createdAt: number };
@@ -45,14 +51,46 @@ let writeStoredConversations = (skillId: string, conversations: StoredConversati
   } catch {}
 };
 
-let DockRoot = styled.div`
+let skillDocumentPath = /(^|\/)SKILL\.md$/i;
+
+let largePanelHeight = 'min(68vh, 680px)';
+let panelEase = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
+
+let panelAnimationMs = 240;
+
+let panelIn = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+`;
+
+let panelOut = keyframes`
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+`;
+
+let DockRoot = styled.div<{ $large?: boolean }>`
   position: absolute;
   left: calc(50% + var(--canvas-center-shift, 0px));
   bottom: 16px;
   z-index: 30;
   display: flex;
   flex-direction: column;
-  width: min(640px, calc(100% - 32px - 2 * var(--canvas-center-shift, 0px)));
+  width: min(
+    ${p => (p.$large ? '840px' : '640px')},
+    calc(100% - 32px - 2 * var(--canvas-center-shift, 0px))
+  );
   transform: translateX(-50%);
   pointer-events: none;
   transition:
@@ -64,11 +102,28 @@ let DockRoot = styled.div`
   }
 `;
 
-let Panel = styled.div`
+let Panel = styled.div<{ $large?: boolean; $closing?: boolean }>`
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  max-height: min(60vh, 560px);
+  min-height: ${p => (p.$large ? largePanelHeight : '0px')};
+  max-height: ${p => (p.$large ? largePanelHeight : 'min(60vh, 560px)')};
+  transition:
+    min-height 0.6s ${panelEase},
+    max-height 0.6s ${panelEase};
+  transform-origin: bottom center;
+  animation: ${p =>
+    p.$closing
+      ? css`
+          ${panelOut} ${panelAnimationMs}ms ${panelEase} forwards
+        `
+      : css`
+          ${panelIn} ${panelAnimationMs}ms ${panelEase}
+        `};
+  pointer-events: ${p => (p.$closing ? 'none' : 'auto')};
+
+  @media (prefers-reduced-motion: reduce) {
+    animation-duration: 0.01ms;
+  }
   margin-bottom: 10px;
   border: 1px solid ${floatingTokens.border};
   border-radius: 14px;
@@ -191,6 +246,7 @@ export let SkillAssistantDock = () => {
   let [draft, setDraft] = useState('');
   let [expanded, setExpanded] = useState(false);
   let pendingTitleRef = useRef('');
+  let initialRunPhaseRef = useRef<'idle' | 'pending' | 'running' | 'done'>('idle');
   let scrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -265,9 +321,8 @@ export let SkillAssistantDock = () => {
     };
   }, [reportDockHeight]);
 
-  let submit = async () => {
-    let text = draft.trim();
-    if (!text || assistant.isBusy || !workspace) return;
+  let sendText = async (text: string): Promise<boolean> => {
+    if (!text || assistant.isBusy || !workspace) return false;
 
     let context: SkillAssistantRequestContext = document
       ? {
@@ -284,10 +339,95 @@ export let SkillAssistantDock = () => {
 
     try {
       await assistant.send({ text, context });
+      return true;
     } catch {
       setDraft(current => current || text);
+      return false;
     }
   };
+
+  let submit = () => void sendText(draft.trim());
+
+  let sendTextRef = useRef(sendText);
+  sendTextRef.current = sendText;
+  let hasWorkspace = !!workspace;
+
+  useEffect(() => {
+    if (!skillId || !hasWorkspace) return;
+
+    let queuedPrompt = takeQueuedSkillAssistantPrompt(skillId);
+    if (!queuedPrompt) return;
+
+    initialRunPhaseRef.current = 'pending';
+    void sendTextRef.current(queuedPrompt).then(sent => {
+      if (!sent) finishInitialGenerationRef.current?.();
+    });
+  }, [skillId, hasWorkspace]);
+
+  let isInitialGeneration = !!workspace?.isInitialGeneration;
+  let finishInitialGeneration = workspace?.finishInitialGeneration;
+  let finishInitialGenerationRef = useRef(finishInitialGeneration);
+  finishInitialGenerationRef.current = finishInitialGeneration;
+
+  let hasEditedSkillDocument = assistant.history.liveItems.some(item => {
+    if (item.type == 'files/write') return skillDocumentPath.test(item.path);
+    if (item.type == 'document/edit') return item.operations.length > 0;
+    if (item.type == 'skill/changes') {
+      return item.changes.some(change => skillDocumentPath.test(change.path));
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (isInitialGeneration && hasEditedSkillDocument) finishInitialGeneration?.();
+  }, [isInitialGeneration, hasEditedSkillDocument, finishInitialGeneration]);
+
+  let panelOpen = expanded && (!!conversationId || isInitialGeneration);
+  let [panelMounted, setPanelMounted] = useState(panelOpen);
+
+  useEffect(() => {
+    if (panelOpen) {
+      setPanelMounted(true);
+      return;
+    }
+
+    let timeout = setTimeout(() => setPanelMounted(false), panelAnimationMs);
+    return () => clearTimeout(timeout);
+  }, [panelOpen]);
+
+  let securityReviewsEnabled = useSkillSecurityReviewsEnabled();
+  let canGenerateSecurityReview = useSecurityReviewGenerationEnabled();
+  let securityReview = useSkillSecurityReview(workspace?.instanceId, skillId);
+  let reassessSecurityReview = securityReview.useReassessMutator();
+  let shouldReviewRef = useRef(false);
+  shouldReviewRef.current =
+    securityReviewsEnabled && canGenerateSecurityReview && !!workspace?.canWrite;
+  let reassessRef = useRef(reassessSecurityReview.mutate);
+  reassessRef.current = reassessSecurityReview.mutate;
+
+  useEffect(() => {
+    if (initialRunPhaseRef.current == 'pending' && assistant.isBusy) {
+      initialRunPhaseRef.current = 'running';
+    } else if (initialRunPhaseRef.current == 'running' && !assistant.isBusy) {
+      initialRunPhaseRef.current = 'done';
+      finishInitialGenerationRef.current?.();
+    }
+  }, [assistant.isBusy]);
+
+  useEffect(() => {
+    if (!skillId || !hasSkillAssistantReviewPending(skillId)) return;
+
+    if (assistant.status == 'failed' || assistant.status == 'cancelled') {
+      clearSkillAssistantReviewPending(skillId);
+    } else if (assistant.status == 'completed') {
+      clearSkillAssistantReviewPending(skillId);
+      if (shouldReviewRef.current) {
+        void reassessRef.current().then(([, error]) => {
+          if (error) console.warn('Unable to start the skill security review', error);
+        });
+      }
+    }
+  }, [assistant.status, skillId]);
 
   let startNewChat = () => {
     assistant.startNewConversation();
@@ -315,9 +455,9 @@ export let SkillAssistantDock = () => {
       : 'Ask a question about this skill…';
 
   return (
-    <DockRoot>
-      {expanded && conversationId && (
-        <Panel>
+    <DockRoot $large={isInitialGeneration}>
+      {panelMounted && (
+        <Panel $large={isInitialGeneration} $closing={!panelOpen}>
           <PanelHeader>
             <PanelTitle>
               <RiSparkling2Line size={15} />

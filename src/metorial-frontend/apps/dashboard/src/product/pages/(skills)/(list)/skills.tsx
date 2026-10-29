@@ -3,13 +3,16 @@ import type { DashboardInstanceSkillsListOutput } from '@metorial/dashboard-sdk'
 import { EmptyState } from '@metorial/empty-state';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
+import { SkillStartInput } from '@metorial/scene-assistant';
 import { showScmRepositoryPicker } from '@metorial/scene-scm';
 import { SkillIconTile, useSkillImportActions } from '@metorial/scene-skills';
 import {
   useCurrentInstance,
   useCurrentOrganization,
+  useCreateSkill,
   useCurrentProject,
   useInstancePinnedSkills,
+  queueSkillAssistantPrompt,
   useSkillContentPreviews,
   useSkillGroups,
   useSkills
@@ -124,6 +127,63 @@ let CreateSkillButton = (p: { instanceId: string }) => {
     >
       Create Skill
     </Button>
+  );
+};
+
+let skillStartSuggestions = [
+  {
+    id: 'review',
+    label: 'Code review',
+    prompt:
+      'A skill that reviews pull requests against our conventions: check naming, error handling and test coverage, and summarize findings by severity.'
+  },
+  {
+    id: 'support',
+    label: 'Support replies',
+    prompt:
+      'A skill that drafts customer support replies in a friendly, concise tone, using our product docs to answer and escalating billing questions.'
+  },
+  {
+    id: 'release',
+    label: 'Release notes',
+    prompt:
+      'A skill that turns a list of merged changes into release notes grouped by feature, fix and breaking change.'
+  }
+];
+
+let provisionalSkillName = (description: string) => {
+  let firstLine = description.split('\n')[0]!.trim();
+  return firstLine.length > 60 ? `${firstLine.slice(0, 57).trim()}...` : firstLine;
+};
+
+let CreateSkillWithAgent = (p: { instanceId: string }) => {
+  let createSkill = useCreateSkill();
+  let navigate = useNavigate();
+  let pathParams = usePathParams();
+
+  return (
+    <div style={{ marginBottom: 32 }}>
+      <SkillStartInput
+        title="What skill do you want to create?"
+        placeholder="Describe the skill you want. What should it do, and when should an agent use it?"
+        suggestions={skillStartSuggestions}
+        onSubmit={async description => {
+          let [skill, error] = await createSkill.mutate({
+            instanceId: p.instanceId,
+            name: provisionalSkillName(description)
+          });
+          if (error || !skill) {
+            throw new Error(error?.data.message ?? 'Unable to create the skill.');
+          }
+
+          queueSkillAssistantPrompt(
+            skill.id,
+            `${description}\n\nSet a fitting name and description for this skill, then write SKILL.md and any other files it needs.`
+          );
+          navigate(Paths.instance.skill(...pathParams, skill.id));
+        }}
+      />
+    </div>
   );
 };
 
@@ -276,6 +336,8 @@ export let SkillsPage = () => {
         description="Create reusable skills that extend integrations with documents, custom logic, and resources."
         actions={<CreateSkillButton instanceId={instance.data.id} />}
       />
+
+      <CreateSkillWithAgent instanceId={instance.data.id} />
 
       <Toolbar style={{ marginBottom: 24 }}>
         <GroupFilter

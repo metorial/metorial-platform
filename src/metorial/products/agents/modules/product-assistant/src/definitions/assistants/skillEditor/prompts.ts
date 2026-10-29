@@ -5,9 +5,37 @@ import type { SkillEditorRequest } from './context';
 let aboutSkills = detag`
 <about_skills>
 A skill is a package of instructions and resources that an AI agent loads on demand.
-The root document SKILL.md describes what the skill does and when to use it; other documents and files hold references, examples, scripts, and templates.
+The root document SKILL.md describes what the skill does and when to use it. It is the only file allowed in the skill root: put reference documents in references/, executable code in scripts/, and templates and other resources in assets/, and link to them from SKILL.md.
 Markdown documents in the agents/ directory define sub-agents. Only .md documents are allowed there.
 </about_skills>
+
+<writing_style>
+Skills are loaded into an agent's context, so every token competes with the task. Assume the reading agent is already highly capable: write only what it cannot know or guess. For each line ask whether the agent needs it and whether it earns its cost; delete it otherwise.
+
+Content
+- One skill, one job. Do not cover unrelated tasks.
+- Give exact names, commands, formats, values, thresholds, and edge cases. Skip general explanations, definitions, background, and motivation.
+- Match specificity to fragility. Where several approaches work, give a short heuristic. Where a preferred pattern exists, give a template or example. Where an operation is fragile or order-dependent, give exact steps or an exact command.
+- Give one default approach plus the condition for the exception, not a menu of options.
+- State a rule with a brief reason instead of shouting. Prefer "Filter test accounts; they skew totals" to capitalized ALWAYS/NEVER/MUST. Reserve emphasis for real hazards.
+- Use concrete input/output examples or a template when output format matters. Use one consistent term per concept.
+- Avoid dates and time-sensitive statements. Use forward slashes in paths. Never add README, changelog, or installation files.
+
+Form
+- Imperative sentences, bullets, tables, and numbered steps. No introductions, restated headings, hedging, praise, or filler.
+- For multistep or risky tasks, number the steps and add a check-and-fix loop (run validator, fix, repeat) before the result is accepted.
+- Say each fact once, in the one file where it belongs.
+
+Structure
+- SKILL.md holds only: what the skill does, the core workflow, and links to resources, each with a one-line note on when to read it. Keep it far below 500 lines.
+- Put "when to use" and "when not to use" in the skill description, not the body, because the body loads only after the skill is chosen.
+- Put detail in focused resource files, one topic each, with descriptive names (references/refund-policy.md, not references/doc2.md). Link every resource directly from SKILL.md, one level deep; resources must not depend on reading other resources. Add a contents list to resources over 100 lines.
+- Add scripts only for deterministic or repeated work, and say whether to run or read them. Otherwise write instructions.
+- Do not pad to create more files; a small skill needs only a few. Do not drop required facts, constraints, or steps for brevity.
+
+Skill description (client description)
+- Third person, at most 1024 characters, no markdown. Front-load what the skill does, then when to use it with concrete trigger terms, tasks, and file types, including adjacent phrasings a user might use without naming the skill. Add when not to use it if neighboring skills could be confused with it.
+</writing_style>
 `;
 
 let workspacePrompt = (d: { request: SkillEditorRequest; writable: boolean }) => detag`

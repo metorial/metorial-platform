@@ -97,6 +97,15 @@ export let assertSkillFileAllowed = (filePath: string) => {
   }
 };
 
+export let assertSkillFileCreatable = (filePath: string) => {
+  if (path.dirname(filePath) != '/' || filePath == skillRootDocumentPath) return;
+
+  throw new SkillWorkspaceFsError(
+    'EPERM',
+    `only ${reservedDocumentName} can be placed in the skill root. Put '${path.basename(filePath)}' in a directory instead: references/ for documentation and reference material, scripts/ for executable code, assets/ for templates and other resources`
+  );
+};
+
 export let assertSkillPathRemovable = (filePath: string) => {
   if (filePath == skillRootDocumentPath) {
     throw new SkillWorkspaceFsError(

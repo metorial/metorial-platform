@@ -9,12 +9,23 @@ import {
   useState,
   type ReactNode
 } from 'react';
+import { documentLoader, documentsLoader } from '../files/loaders/documents';
 import {
   allStoreItemsLoader,
   storeItemLoader,
-  storeItemsLoader
+  storeItemsLoader,
+  storeLoader
 } from '../files/loaders/stores';
-import { skillAgentsLoader, skillLoader } from '../skills/loaders/skills';
+import { skillContentPreviewsLoader } from '../skills/loaders/skillContentPreviews';
+import {
+  allSkillItemsLoader,
+  allSkillsLoader,
+  skillAgentsLoader,
+  skillItemLoader,
+  skillItemsLoader,
+  skillLoader,
+  skillsLoader
+} from '../skills/loaders/skills';
 import { useConversationHistory } from './conversationHistory';
 import {
   useCancelConversationMessage,
@@ -49,6 +60,7 @@ export type SkillAssistantRequestStatus =
 
 let ownedRequestsStorageKey = 'metorial:skill-agent:requests';
 let maxOwnedRequests = 50;
+let maxInitialGenerationMs = 10 * 60 * 1000;
 
 let readOwnedRequests = () => {
   try {
@@ -72,17 +84,74 @@ let rememberOwnedRequest = (requestId: string) => {
   return next;
 };
 
+let queuedPromptStorageKey = (skillId: string) => `metorial:skill-agent:queued-prompt:${skillId}`;
+
+export let queueSkillAssistantPrompt = (skillId: string, text: string) => {
+  try {
+    window.sessionStorage.setItem(queuedPromptStorageKey(skillId), text);
+  } catch {}
+};
+
+export let hasQueuedSkillAssistantPrompt = (skillId: string) => {
+  try {
+    return !!window.sessionStorage.getItem(queuedPromptStorageKey(skillId));
+  } catch {
+    return false;
+  }
+};
+
+let reviewPendingStorageKey = (skillId: string) =>
+  `metorial:skill-agent:review-after-generation:${skillId}`;
+
+export let hasSkillAssistantReviewPending = (skillId: string) => {
+  try {
+    return window.sessionStorage.getItem(reviewPendingStorageKey(skillId)) == '1';
+  } catch {
+    return false;
+  }
+};
+
+export let clearSkillAssistantReviewPending = (skillId: string) => {
+  try {
+    window.sessionStorage.removeItem(reviewPendingStorageKey(skillId));
+  } catch {}
+};
+
+export let takeQueuedSkillAssistantPrompt = (skillId: string) => {
+  try {
+    let text = window.sessionStorage.getItem(queuedPromptStorageKey(skillId));
+    window.sessionStorage.removeItem(queuedPromptStorageKey(skillId));
+    if (text) window.sessionStorage.setItem(reviewPendingStorageKey(skillId), '1');
+    return text || null;
+  } catch {
+    return null;
+  }
+};
+
+let skillLoadersToRefresh = [
+  storeLoader,
+  storeItemsLoader,
+  allStoreItemsLoader,
+  storeItemLoader,
+  documentLoader,
+  documentsLoader,
+  skillLoader,
+  skillsLoader,
+  allSkillsLoader,
+  skillItemLoader,
+  skillItemsLoader,
+  allSkillItemsLoader,
+  skillAgentsLoader,
+  skillContentPreviewsLoader
+];
+
 export let refreshSkillStoreLoaders = () => {
-  storeItemsLoader.refetchAll();
-  allStoreItemsLoader.refetchAll();
-  storeItemLoader.refetchAll();
-  skillAgentsLoader.refetchAll();
-  skillLoader.refetchAll();
+  for (let loader of skillLoadersToRefresh) loader.refetchAll({ ignoreFocus: true });
 };
 
 let refreshSkillStoreLoadersStaggered = () => {
   refreshSkillStoreLoaders();
-  for (let delay of [1000, 3000]) setTimeout(refreshSkillStoreLoaders, delay);
+  for (let delay of [1000, 3000, 6000]) setTimeout(refreshSkillStoreLoaders, delay);
 };
 
 let getErrorMessage = (error: unknown) => {
@@ -137,6 +206,9 @@ export let useSkillAssistant = (d: {
     .map(item => {
       if (item.type == 'skill/changes') return `${item.id}:${item.changes.length}`;
       if (item.type == 'files/write' || item.type == 'shell') return `${item.id}:${item.status}`;
+      if (item.type == 'tool') {
+        return `${item.id}:${item.calls.map(call => `${call.id}${call.status}`).join(',')}`;
+      }
       return '';
     })
     .join('|');
@@ -359,6 +431,8 @@ export type SkillAssistantWorkspace = {
   document: SkillAssistantDocumentBinding | null;
   registerDocument: (binding: SkillAssistantDocumentBinding) => () => void;
   reportDockHeight: (height: number) => void;
+  isInitialGeneration: boolean;
+  finishInitialGeneration: () => void;
 };
 
 let SkillAssistantWorkspaceContext = createContext<SkillAssistantWorkspace | null>(null);
@@ -372,6 +446,24 @@ export let SkillAssistantWorkspaceProvider = (p: {
   children: ReactNode;
 }) => {
   let [document, setDocument] = useState<SkillAssistantDocumentBinding | null>(null);
+  let [initialGenerationSkillId, setInitialGenerationSkillId] = useState<string | null>(() =>
+    p.skillId && hasQueuedSkillAssistantPrompt(p.skillId) ? p.skillId : null
+  );
+
+  useEffect(() => {
+    if (p.skillId && hasQueuedSkillAssistantPrompt(p.skillId)) {
+      setInitialGenerationSkillId(p.skillId);
+    }
+  }, [p.skillId]);
+
+  let finishInitialGeneration = useCallback(() => setInitialGenerationSkillId(null), []);
+
+  useEffect(() => {
+    if (!initialGenerationSkillId) return;
+
+    let timeout = setTimeout(finishInitialGeneration, maxInitialGenerationMs);
+    return () => clearTimeout(timeout);
+  }, [initialGenerationSkillId, finishInitialGeneration]);
 
   let registerDocument = useCallback((binding: SkillAssistantDocumentBinding) => {
     setDocument(binding);
@@ -395,11 +487,15 @@ export let SkillAssistantWorkspaceProvider = (p: {
             canWrite: p.canWrite,
             document,
             registerDocument,
-            reportDockHeight
+            reportDockHeight,
+            isInitialGeneration: initialGenerationSkillId == p.skillId,
+            finishInitialGeneration
           }
         : null,
     [
       document,
+      finishInitialGeneration,
+      initialGenerationSkillId,
       p.canWrite,
       p.instanceId,
       p.organizationId,

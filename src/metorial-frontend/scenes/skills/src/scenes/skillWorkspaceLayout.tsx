@@ -2,6 +2,8 @@ import { SkillAssistantDock } from '@metorial/scene-assistant';
 import {
   DocumentEditorChromeProvider,
   SkillAssistantWorkspaceProvider,
+  hasQueuedSkillAssistantPrompt,
+  useSkillAssistantWorkspace,
   useAllProviderListings,
   useAllSkillItems,
   useAllStoreItems,
@@ -452,6 +454,28 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
   let chrome = useDocumentEditorChrome();
   let prefs = useWorkspacePreferences(p.skill.id);
 
+  let assistantWorkspace = useSkillAssistantWorkspace();
+  let isInitialGeneration = !!assistantWorkspace?.isInitialGeneration;
+  let finishInitialGeneration = assistantWorkspace?.finishInitialGeneration;
+  let initialGenerationPathRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!isInitialGeneration) {
+      initialGenerationPathRef.current = null;
+      return;
+    }
+
+    if (initialGenerationPathRef.current === null) {
+      initialGenerationPathRef.current = location.pathname;
+    } else if (initialGenerationPathRef.current !== location.pathname) {
+      finishInitialGeneration?.();
+    }
+  }, [isInitialGeneration, location.pathname, finishInitialGeneration]);
+
+  let setAssistantVisible = prefs.setAssistant;
+  useEffect(() => {
+    if (hasQueuedSkillAssistantPrompt(p.skill.id)) setAssistantVisible(true);
+  }, [p.skill.id, setAssistantVisible]);
+
   let rootRef = useRef<HTMLDivElement>(null);
   let navLeftRef = useRef<HTMLDivElement>(null);
   let navRightRef = useRef<HTMLDivElement>(null);
@@ -696,7 +720,7 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
     storeItems
   ].every(isLoaded);
 
-  let documentReady = panelsReady && (!!chrome || !isDocumentRoute);
+  let documentReady = panelsReady && (!!chrome || !isDocumentRoute || isInitialGeneration);
   let onDocumentReady = p.onDocumentReady;
   useEffect(() => {
     if (!onDocumentReady) return;
@@ -1556,7 +1580,7 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
         }
         moreItems={moreItems}
         security={
-          p.security && p.routes.security
+          p.security && p.security.score != null && p.routes.security
             ? {
                 summary: p.security,
                 active: isRouteActive(location.pathname, p.routes.security, true),

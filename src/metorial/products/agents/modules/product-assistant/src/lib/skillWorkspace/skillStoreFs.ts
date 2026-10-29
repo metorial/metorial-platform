@@ -11,6 +11,7 @@ import { InMemoryFs } from 'just-bash';
 import { posix as path } from 'node:path';
 import {
   assertSkillFileAllowed,
+  assertSkillFileCreatable,
   assertSkillPathRemovable,
   assertValidWorkspacePath,
   isDocumentPath,
@@ -180,6 +181,7 @@ export class SkillStoreFs implements IFileSystem {
 
   private assertCanCreateFile(filePath: string) {
     if (this.identity.has(filePath) || this.dirty.has(filePath)) return;
+    assertSkillFileCreatable(filePath);
     if (this.listFiles().length < maxSkillWorkspaceFiles) return;
 
     throw new SkillWorkspaceFsError(
@@ -333,6 +335,7 @@ export class SkillStoreFs implements IFileSystem {
       if (!stat.isFile) continue;
 
       assertSkillFileAllowed(copiedPath);
+      if (!this.identity.has(copiedPath)) assertSkillFileCreatable(copiedPath);
       this.dirty.add(copiedPath);
     }
   }
@@ -349,7 +352,10 @@ export class SkillStoreFs implements IFileSystem {
       assertSkillPathRemovable(affectedPath);
       let targetPath = to + affectedPath.slice(from.length);
       let stat = await this.inner.stat(affectedPath);
-      if (stat.isFile) assertSkillFileAllowed(targetPath);
+      if (stat.isFile) {
+        assertSkillFileAllowed(targetPath);
+        if (affectedPath.indexOf('/', 1) != -1) assertSkillFileCreatable(targetPath);
+      }
     }
 
     await this.inner.mv(from, to);

@@ -33,11 +33,13 @@ describe('SkillStoreFs', () => {
     await expect(fs.mv('/SKILL.md', '/OTHER.md')).rejects.toThrow(/EPERM/);
     await expect(fs.writeFile('/agents/tool.json', '{}')).rejects.toThrow(/EPERM/);
     await expect(fs.writeFile('/bad:name.md', 'x')).rejects.toThrow(/EINVAL/);
+    await expect(fs.writeFile('/notes.md', 'x')).rejects.toThrow(/skill root/);
+    await expect(fs.mv('/docs/guide.md', '/guide.md')).rejects.toThrow(/skill root/);
   });
 
   it('collects creates, modifications, moves and deletes', async () => {
     let fs = createFs();
-    await fs.writeFile('/notes.md', 'Notes');
+    await fs.writeFile('/docs/notes.md', 'Notes');
     await fs.writeFile('/SKILL.md', '# Skill\n\nUpdated');
     await fs.mv('/docs/guide.md', '/docs/handbook.md');
     await fs.rm('/scripts/run.sh');
@@ -48,7 +50,7 @@ describe('SkillStoreFs', () => {
       ['delete', '/scripts/run.sh'],
       ['modify', '/SKILL.md'],
       ['move', '/docs/handbook.md'],
-      ['create', '/notes.md'],
+      ['create', '/docs/notes.md'],
       ['create', '/empty']
     ]);
   });
@@ -92,11 +94,11 @@ describe('SkillStoreFs', () => {
 
   it('rebases after acknowledging and reverts failed changes', async () => {
     let fs = createFs();
-    await fs.writeFile('/notes.md', 'Notes');
+    await fs.writeFile('/docs/notes.md', 'Notes');
     await fs.rm('/docs/guide.md');
 
     let [remove, create] = await fs.collectChanges();
-    await fs.acknowledge(create!, { path: '/notes.md', kind: 'document', itemId: 'notes' });
+    await fs.acknowledge(create!, { path: '/docs/notes.md', kind: 'document', itemId: 'notes' });
     await fs.revert(remove!);
 
     expect(await fs.collectChanges()).toEqual([]);

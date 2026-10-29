@@ -249,10 +249,10 @@ let FadeHost = styled.div`
   min-height: 0;
 `;
 
-let SkeletonFadeLayer = styled.div<{ $fading?: boolean }>`
+let SkeletonFadeLayer = styled.div<{ $fading?: boolean; $belowAssistant?: boolean }>`
   position: absolute;
   inset: 0;
-  z-index: 50;
+  z-index: ${({ $belowAssistant, $fading }) => ($belowAssistant || $fading ? 25 : 50)};
   opacity: ${({ $fading }) => ($fading ? 0 : 1)};
   pointer-events: ${({ $fading }) => ($fading ? 'none' : 'auto')};
   transition: opacity 200ms ease;
@@ -662,7 +662,13 @@ let DocumentEditorInner = (p: {
   }, [p.documentId, p.instanceId]);
   let isEditTokenReady =
     documentEditToken.status === 'ready' || documentEditToken.status === 'error';
-  let isReady = !!document.data && !!permissions.data && !!user.data && isEditTokenReady;
+  let isInitialGeneration = !!useSkillAssistantWorkspace()?.isInitialGeneration;
+  let isReady =
+    !!document.data &&
+    !!permissions.data &&
+    !!user.data &&
+    isEditTokenReady &&
+    !isInitialGeneration;
   let [showSkeleton, setShowSkeleton] = useState(!isReady);
 
   useEffect(() => {
@@ -715,7 +721,7 @@ let DocumentEditorInner = (p: {
     <FadeHost>
       {isReady ? editor : null}
       {showSkeleton && (
-        <SkeletonFadeLayer $fading={isReady}>
+        <SkeletonFadeLayer $fading={isReady} $belowAssistant={isInitialGeneration}>
           <DocumentEditorSkeleton onBack={p.onBack} chrome={p.chrome} />
         </SkeletonFadeLayer>
       )}

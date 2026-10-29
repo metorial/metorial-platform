@@ -39,7 +39,9 @@ export let getSkillWorkspaceSecurity = (
     score: scores?.securityScore ?? null,
     color: scores ? bandColors[scores.band] : 'gray',
     scoreLabel: scores ? bandLabels[scores.band] : null,
-    verdictLabel: getSkillVerdictLabel(review),
+    verdictLabel: isRevisionRunning(revision)
+      ? 'Review In Progress'
+      : getSkillVerdictLabel(review),
     issues
   };
 };
