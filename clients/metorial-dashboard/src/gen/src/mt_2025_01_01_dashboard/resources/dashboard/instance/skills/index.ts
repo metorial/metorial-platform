@@ -1,5 +1,6 @@
 export * from './agents';
 export * from './configurations';
+export * from './content-previews';
 export * from './create';
 export * from './delete';
 export * from './duplicate';

@@ -150,6 +150,7 @@ import {
   MetorialDashboardInstanceSessionTemplatesProvidersEndpoint,
   MetorialDashboardInstanceSkillsAgentsEndpoint,
   MetorialDashboardInstanceSkillsConfigurationsEndpoint,
+  MetorialDashboardInstanceSkillsContentPreviewsEndpoint,
   MetorialDashboardInstanceSkillsEndpoint,
   MetorialDashboardInstanceSkillsExportsEndpoint,
   MetorialDashboardInstanceSkillsForkSyncsEndpoint,
@@ -192,6 +193,7 @@ import {
   MetorialDashboardOrganizationsApiKeysEndpoint,
   MetorialDashboardOrganizationsAuditLogStreamsEndpoint,
   MetorialDashboardOrganizationsAuditLogStreamsEventsEndpoint,
+  MetorialDashboardOrganizationsConfigsEndpoint,
   MetorialDashboardOrganizationsConfigureAuditLogRetentionEndpoint,
   MetorialDashboardOrganizationsEndpoint,
   MetorialDashboardOrganizationsInstancesEndpoint,
@@ -662,6 +664,7 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   organizations: Object.assign(new MetorialDashboardOrganizationsEndpoint(manager), {
     configureAuditLogRetention:
       new MetorialDashboardOrganizationsConfigureAuditLogRetentionEndpoint(manager),
+    configs: new MetorialDashboardOrganizationsConfigsEndpoint(manager),
     invites: new MetorialDashboardOrganizationsInvitesEndpoint(manager),
     flags: new MetorialOrganizationsFlagsEndpoint(manager),
     scopes: new MetorialOrganizationsScopesEndpoint(manager),
@@ -924,6 +927,7 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   skills: Object.assign(new MetorialDashboardInstanceSkillsEndpoint(manager), {
     agents: new MetorialDashboardInstanceSkillsAgentsEndpoint(manager),
     configurations: new MetorialDashboardInstanceSkillsConfigurationsEndpoint(manager),
+    contentPreviews: new MetorialDashboardInstanceSkillsContentPreviewsEndpoint(manager),
     forkSyncs: new MetorialDashboardInstanceSkillsForkSyncsEndpoint(manager),
     items: new MetorialDashboardInstanceSkillsItemsEndpoint(manager),
     mergeRequests: Object.assign(
