@@ -186,16 +186,6 @@ class slateVersionServiceImpl {
   private async publishNormalizedSlateVersionLocked(d: NormalizedSlateVersionInput) {
     let slateJson = d.input.slatePackage.manifest;
     let publicAccessPermitted = env.access.PUBLIC_ACCESS_PERMITTED !== false;
-    let assertAccessPermitted = (access: SlateAccess) => {
-      if (access === 'public' && !publicAccessPermitted) {
-        throw new ServiceError(
-          forbiddenError({
-            message: 'Public access is not permitted on this tenant.',
-            hint: 'Publish with access=private.'
-          })
-        );
-      }
-    };
 
     let scope = await this.getPublishableScope({
       user: d.user,
@@ -226,17 +216,7 @@ class slateVersionServiceImpl {
       let existingChecksum = existingVersion?.bundleArtifact.checksum;
 
       if (existingVersion && existingChecksum === d.input.slatePackage.contentChecksum) {
-        if (!d.input.access || d.input.access === existingSlate.access) return existingVersion;
-
-        assertAccessPermitted(d.input.access);
-        await db.slate.update({
-          where: { oid: existingSlate.oid },
-          data: { access: d.input.access }
-        });
-        return db.slateVersion.findFirstOrThrow({
-          where: { oid: existingVersion.oid },
-          include
-        });
+        return existingVersion;
       }
       if (existingVersion) {
         throw new ServiceError(
@@ -268,7 +248,14 @@ class slateVersionServiceImpl {
       d.input.access ??
       existingSlate?.access ??
       (d.input.defaultAccess === 'public' && publicAccessPermitted ? 'public' : 'private');
-    assertAccessPermitted(access);
+    if (access === 'public' && !publicAccessPermitted) {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'Public access is not permitted on this tenant.',
+          hint: 'Publish with access=private.'
+        })
+      );
+    }
 
     let allocatedSlateIds = getId('slate');
     let allocatedArtifactIds = getId('artifact');

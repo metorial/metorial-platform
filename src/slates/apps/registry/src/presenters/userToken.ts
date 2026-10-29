@@ -8,7 +8,7 @@ export let userTokenPresenter = (token: UserToken & { user: User; tenant: Tenant
   status: token.status,
 
   name: token.name,
-  secretRedacted: apiKeys.redact(token.secret),
+  secretRedacted: token.secretRedacted ?? (token.secret ? apiKeys.redact(token.secret) : null),
 
   tenantId: token.tenant.id,
   userId: token.user.id,
