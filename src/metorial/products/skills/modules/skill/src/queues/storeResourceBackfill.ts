@@ -26,7 +26,7 @@ let skillGrantCheckpoint = createQueueCheckpoint({
 export let skillParticipantStoreBackfillCron = createCron(
   {
     name: 'cargo/skill/participant/store-backfill/cron',
-    cron: '0 * * * *'
+    cron: '7,37 * * * *'
   },
   async () => {
     await enqueueWatermarkScan({
@@ -100,7 +100,7 @@ export let skillParticipantStoreBackfillSingleQueueProcessor =
 export let skillGrantStoreBackfillCron = createCron(
   {
     name: 'cargo/skill/grant/store-backfill/cron',
-    cron: '0 * * * *'
+    cron: '14,44 * * * *'
   },
   async () => {
     await enqueueWatermarkScan({

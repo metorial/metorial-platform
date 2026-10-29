@@ -10,7 +10,7 @@ export let STORE_PARTICIPANT_BACKFILL_BATCH_SIZE = 500;
 export let storeParticipantBackfillCron = createCron(
   {
     name: 'cargo/store/participant/backfill/cron',
-    cron: '0 * * * *'
+    cron: '0,30 * * * *'
   },
   async () => {
     await storeParticipantBackfillManyQueue.add({});
