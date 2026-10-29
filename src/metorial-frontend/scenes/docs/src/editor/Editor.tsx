@@ -20,6 +20,7 @@ import { EditorContent, EditorScroll, TitleInput } from './EditorStyles';
 import type { SharedPerson } from './HeaderActions';
 import { useImageUpload, type ImageUploadFn } from './ImageUploadContext';
 import { LinkPreviewPopover } from './LinkPreviewPopover';
+import { SkillMetadataSection } from './SkillMetadataSection';
 import { TableMenu } from './TableMenu';
 import { TableOfContents } from './TableOfContents';
 import { TitleStatusBar } from './TitleStatusBar';
@@ -47,64 +48,13 @@ let ScrollInner = styled.div`
   transition: padding-right 280ms cubic-bezier(0.22, 1, 0.36, 1);
 `;
 
-let FrontMatterWrap = styled.div<{ $invalid?: boolean }>`
-  margin: -4px 0 18px;
-  border: 1px solid
-    ${({ $invalid, theme }) => ($invalid ? theme.color.danger : theme.color.border)};
-  border-radius: ${({ theme }) => theme.size.radius};
-  background: ${({ theme }) => theme.color.bgAlt};
-  overflow: hidden;
-`;
-
-let FrontMatterFence = styled.div`
-  padding: 6px 12px;
-  font-family: ${({ theme }) => theme.font.mono};
-  font-size: 12px;
-  color: ${({ theme }) => theme.color.textSubtle};
-  border-bottom: 1px solid ${({ theme }) => theme.color.border};
-  background: ${({ theme }) => theme.color.bg};
-`;
-
-let FrontMatterInput = styled.textarea`
-  display: block;
-  width: 100%;
-  margin: 0;
-  border: 0;
-  resize: none;
-  outline: 0;
-  background: transparent;
-  color: ${({ theme }) => theme.color.text};
-  font-family: ${({ theme }) => theme.font.mono};
-  font-size: 12.5px;
-  line-height: 1.5;
-  padding: 10px 12px;
-  min-height: 92px;
-  box-sizing: border-box;
-
-  &::placeholder {
-    color: ${({ theme }) => theme.color.textSubtle};
-  }
-`;
-
-let FrontMatterError = styled.div`
-  padding: 8px 12px 10px;
-  border-top: 1px solid ${({ theme }) => theme.color.border};
-  font-size: 12px;
-  color: ${({ theme }) => theme.color.danger};
-  background: ${({ theme }) => theme.color.bg};
-`;
-
 interface EditorProps {
   initialMarkdown: string;
   readOnly?: boolean;
   title: string;
-  frontMatter?: string;
-  frontMatterOpen?: boolean;
-  frontMatterError?: string | null;
+  skillMetadata?: { instanceId: string; skillId: string; documentId: string };
   onTitleChange: (title: string) => void;
   onMarkdownChange: (markdown: string) => void;
-  onFrontMatterChange?: (frontMatter: string) => void;
-  onToggleFrontMatter?: () => void;
   /** Bubbles the underlying tiptap editor instance up to the App so the
    *  toolbar (now hosted in the top header) can drive it. Called with
    *  `null` on unmount. */
@@ -154,13 +104,9 @@ export function Editor({
   initialMarkdown,
   readOnly = false,
   title,
-  frontMatter = '',
-  frontMatterOpen = false,
-  frontMatterError = null,
+  skillMetadata,
   onTitleChange,
   onMarkdownChange,
-  onFrontMatterChange,
-  onToggleFrontMatter,
   onEditorReady,
   onTitleFocusChange,
   linkPromptToken,
@@ -203,11 +149,10 @@ export function Editor({
   let editorRef = useRef<TiptapEditor | null>(null);
 
   let titleRef = useRef<HTMLTextAreaElement | null>(null);
-  let frontMatterRef = useRef<HTMLTextAreaElement | null>(null);
   let scrollRef = useRef<HTMLDivElement | null>(null);
   let [blockMenuOpen, setBlockMenuOpen] = useState(false);
   let [titleInputFocused, setTitleInputFocused] = useState(false);
-  let [frontMatterFocused, setFrontMatterFocused] = useState(false);
+  let [skillMetadataOpen, setSkillMetadataOpen] = useState(false);
   let [structuredBlockFocused, setStructuredBlockFocused] = useState(false);
 
   /** Move focus to the title input and place the caret at the end. */
@@ -451,14 +396,6 @@ export function Editor({
   }, [title]);
 
   useEffect(() => {
-    if (!frontMatterOpen) return;
-    let el = frontMatterRef.current;
-    if (!el) return;
-    el.style.height = 'auto';
-    el.style.height = `${Math.max(el.scrollHeight, 92)}px`;
-  }, [frontMatter, frontMatterOpen]);
-
-  useEffect(() => {
     if (typeof window === 'undefined') return;
     if (window.location.hash.trim()) return;
     let scroller = scrollRef.current;
@@ -526,19 +463,12 @@ export function Editor({
   }, [editor]);
 
   useEffect(() => {
-    if (!frontMatterOpen) {
-      setFrontMatterFocused(false);
-    }
-  }, [frontMatterOpen]);
-
-  useEffect(() => {
     if (!readOnly) return;
     setTitleInputFocused(false);
-    setFrontMatterFocused(false);
     setStructuredBlockFocused(false);
   }, [readOnly]);
 
-  let toolbarDisabled = titleInputFocused || frontMatterFocused || structuredBlockFocused;
+  let toolbarDisabled = titleInputFocused || structuredBlockFocused;
 
   useEffect(() => {
     onTitleFocusChange?.(toolbarDisabled);
@@ -631,36 +561,23 @@ export function Editor({
                   updatedAt={statusUpdatedAt}
                   wordCount={statusWordCount}
                   charCount={statusCharCount}
-                  frontMatterOpen={frontMatterOpen}
-                  hasFrontMatter={frontMatter.trim().length > 0}
-                  frontMatterError={frontMatterError}
-                  onToggleFrontMatter={onToggleFrontMatter}
+                  skillMetadataOpen={skillMetadata ? skillMetadataOpen : undefined}
+                  onToggleSkillMetadata={
+                    skillMetadata ? () => setSkillMetadataOpen(open => !open) : undefined
+                  }
                   onOpenPageInfo={onOpenPageInfo}
                   attributionCounts={attributionCounts}
                 />
               )}
-            {frontMatterOpen && (
-              <FrontMatterWrap $invalid={!!frontMatterError}>
-                <FrontMatterFence>---</FrontMatterFence>
-                <FrontMatterInput
-                  ref={frontMatterRef}
-                  value={frontMatter}
-                  readOnly={readOnly}
-                  placeholder="key: value"
-                  spellCheck={false}
-                  onFocus={() => {
-                    if (readOnly) return;
-                    setFrontMatterFocused(true);
-                  }}
-                  onBlur={() => {
-                    if (readOnly) return;
-                    setFrontMatterFocused(false);
-                  }}
-                  onChange={e => onFrontMatterChange?.(e.target.value)}
-                />
-                <FrontMatterFence>---</FrontMatterFence>
-                {frontMatterError && <FrontMatterError>{frontMatterError}</FrontMatterError>}
-              </FrontMatterWrap>
+            {skillMetadata && (
+              <SkillMetadataSection
+                instanceId={skillMetadata.instanceId}
+                skillId={skillMetadata.skillId}
+                documentId={skillMetadata.documentId}
+                readOnly={readOnly}
+                open={skillMetadataOpen}
+                onOpen={() => setSkillMetadataOpen(true)}
+              />
             )}
             <TiptapEditorContent editor={editor} />
           </EditorContent>

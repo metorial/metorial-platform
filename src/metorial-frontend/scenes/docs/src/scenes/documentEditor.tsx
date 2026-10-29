@@ -295,6 +295,7 @@ export type DocumentEditorSceneProps = {
   setRestrictHeight?: (enabled: boolean) => void;
   hideSharingControls?: boolean;
   skillShareContext?: SkillSharePanelContext | null;
+  skillMetadataSkillId?: string | null;
   loadError?: unknown;
   chrome?: DocumentEditorChrome;
   titleAccessory?: ReactNode;
@@ -581,6 +582,7 @@ let DocumentEditorInner = (p: {
   onBack?: () => void;
   hideSharingControls?: boolean;
   skillShareContext?: SkillSharePanelContext | null;
+  skillMetadataSkillId?: string | null;
   chrome?: DocumentEditorChrome;
   titleAccessory?: ReactNode;
 }) => {
@@ -703,6 +705,7 @@ let DocumentEditorInner = (p: {
       onSharedSkill={() => participants.refetch()}
       hideSharingControls={p.hideSharingControls}
       skillShareContext={p.skillShareContext}
+      skillMetadataSkillId={p.skillMetadataSkillId}
       chrome={p.chrome}
       titleAccessory={p.titleAccessory}
     />
@@ -734,6 +737,7 @@ let DocumentEditorLoaded = (p: {
   onSharedSkill?: () => void | Promise<void>;
   hideSharingControls?: boolean;
   skillShareContext?: SkillSharePanelContext | null;
+  skillMetadataSkillId?: string | null;
   chrome?: DocumentEditorChrome;
   titleAccessory?: ReactNode;
 }) => {
@@ -745,9 +749,6 @@ let DocumentEditorLoaded = (p: {
   );
   let [title, setTitle] = useState(p.document.title);
   let [frontMatter, setFrontMatter] = useState(initialDocumentState.frontMatter);
-  let [frontMatterOpen, setFrontMatterOpen] = useState(
-    initialDocumentState.frontMatter.trim().length > 0
-  );
   let [markdown, setMarkdown] = useState(initialDocumentState.body);
   let titleRef = useRef(p.document.title);
   let frontMatterRef = useRef(initialDocumentState.frontMatter);
@@ -990,7 +991,6 @@ let DocumentEditorLoaded = (p: {
       markdownRef.current = titleSplit.body;
       setTitle(importedTitle);
       setFrontMatter(split.frontMatter);
-      setFrontMatterOpen(split.frontMatter.trim().length > 0);
       setMarkdown(titleSplit.body);
 
       if (collaboration.isFallback) {
@@ -1314,6 +1314,17 @@ let DocumentEditorLoaded = (p: {
       getSkillShareContextFromState(location.state, p.currentConsumerId),
     [location.state, p.currentConsumerId, p.skillShareContext]
   );
+  let skillMetadata = useMemo(
+    () =>
+      p.skillMetadataSkillId
+        ? {
+            instanceId: p.instanceId,
+            skillId: p.skillMetadataSkillId,
+            documentId: p.documentId
+          }
+        : undefined,
+    [p.documentId, p.instanceId, p.skillMetadataSkillId]
+  );
   let hasUnsavedChanges =
     canWrite &&
     (title !== lastPersistedRef.current.title ||
@@ -1351,7 +1362,6 @@ let DocumentEditorLoaded = (p: {
         if (typeof nextFrontMatter == 'string' && nextFrontMatter !== frontMatterRef.current) {
           frontMatterRef.current = nextFrontMatter;
           setFrontMatter(nextFrontMatter);
-          setFrontMatterOpen(nextFrontMatter.trim().length > 0);
           setLastUpdatedAt(new Date());
         }
       } finally {
@@ -1448,7 +1458,6 @@ let DocumentEditorLoaded = (p: {
     markdownRef.current = nextDocumentState.body;
     setTitle(p.document.title);
     setFrontMatter(nextDocumentState.frontMatter);
-    setFrontMatterOpen(nextDocumentState.frontMatter.trim().length > 0);
     setMarkdown(nextDocumentState.body);
     setLastUpdatedAt(p.document.updatedAt);
     setSaveStatus('saved');
@@ -1470,7 +1479,6 @@ let DocumentEditorLoaded = (p: {
     markdownRef.current = nextDocumentState.body;
     setTitle(collaboration.snapshot.title);
     setFrontMatter(nextDocumentState.frontMatter);
-    setFrontMatterOpen(nextDocumentState.frontMatter.trim().length > 0);
     setMarkdown(nextDocumentState.body);
     setLastUpdatedAt(
       collaboration.snapshot.updatedAt instanceof Date
@@ -1752,8 +1760,6 @@ let DocumentEditorLoaded = (p: {
                     initialMarkdown={markdown}
                     readOnly
                     title={title}
-                    frontMatter={frontMatter}
-                    frontMatterOpen={frontMatterOpen}
                     onTitleChange={noop}
                     onMarkdownChange={noop}
                     statusCurrentUser={{
@@ -1776,13 +1782,9 @@ let DocumentEditorLoaded = (p: {
                     initialMarkdown={markdown}
                     readOnly={readOnly}
                     title={title}
-                    frontMatter={frontMatter}
-                    frontMatterOpen={frontMatterOpen}
-                    frontMatterError={frontMatterValidation.error}
+                    skillMetadata={skillMetadata}
                     onTitleChange={handleTitleChange}
                     onMarkdownChange={handleMarkdownChange}
-                    onFrontMatterChange={handleFrontMatterChange}
-                    onToggleFrontMatter={() => setFrontMatterOpen(current => !current)}
                     onEditorReady={setEditorInstance}
                     onTitleFocusChange={setToolbarDisabled}
                     linkPromptToken={linkPromptToken}
@@ -1871,6 +1873,7 @@ export let DocumentEditorScene = ({
   setRestrictHeight,
   hideSharingControls,
   skillShareContext,
+  skillMetadataSkillId,
   loadError,
   chrome,
   titleAccessory
@@ -1901,6 +1904,7 @@ export let DocumentEditorScene = ({
       onBack={onBack}
       hideSharingControls={hideSharingControls}
       skillShareContext={skillShareContext}
+      skillMetadataSkillId={skillMetadataSkillId}
       chrome={chrome}
       titleAccessory={titleAccessory}
     />

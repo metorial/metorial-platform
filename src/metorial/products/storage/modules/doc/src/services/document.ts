@@ -616,6 +616,10 @@ class DocumentServiceImpl {
     this.ensureDocumentActive(d.document);
     this.assertDocumentWritable(d.document);
 
+    let titleChange: { current: { previous: string; next: string } | null } = {
+      current: null
+    };
+
     let resolved = await internalDocumentDraftService.withDocumentLock(
       d.document.id,
       async () => {
@@ -631,6 +635,8 @@ class DocumentServiceImpl {
         };
         let currentContent = current.content;
         let nextTitle = d.input.title ?? current.title;
+        titleChange.current =
+          nextTitle != current.title ? { previous: current.title, next: nextTitle } : null;
         let nextBody =
           internalBody ??
           reconcileStoredDocumentBody({
@@ -715,6 +721,15 @@ class DocumentServiceImpl {
 
     await this.queueDocumentFlush(d.document.id, draftFlushDelayMs);
     await queueDocumentCommentAnchorSync(d.document.id);
+
+    if (titleChange.current) {
+      await Fabric.fire('document.title_changed:after', {
+        instance: d.instance,
+        documentId: d.document.id,
+        previousTitle: titleChange.current.previous,
+        title: titleChange.current.next
+      });
+    }
 
     return await this.withEffectiveFileStore(resolved);
   }

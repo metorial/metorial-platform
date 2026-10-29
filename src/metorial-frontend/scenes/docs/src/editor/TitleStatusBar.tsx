@@ -20,10 +20,8 @@ interface TitleStatusBarProps {
   updatedAt: Date;
   wordCount: number;
   charCount: number;
-  frontMatterOpen?: boolean;
-  hasFrontMatter?: boolean;
-  frontMatterError?: string | null;
-  onToggleFrontMatter?: () => void;
+  skillMetadataOpen?: boolean;
+  onToggleSkillMetadata?: () => void;
   onOpenPageInfo?: () => void;
   attributionCounts?: { person: AttributionPerson; blocks: number }[];
 }
@@ -92,7 +90,7 @@ let Text = styled.span`
   white-space: nowrap;
 `;
 
-let FrontMatterBtn = styled.button<{ $active?: boolean }>`
+let MetadataBtn = styled.button<{ $active?: boolean }>`
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -223,10 +221,8 @@ export function TitleStatusBar({
   updatedAt,
   wordCount,
   charCount,
-  frontMatterOpen = false,
-  hasFrontMatter = false,
-  frontMatterError = null,
-  onToggleFrontMatter,
+  skillMetadataOpen = false,
+  onToggleSkillMetadata,
   onOpenPageInfo,
   attributionCounts
 }: TitleStatusBarProps) {
@@ -302,26 +298,22 @@ export function TitleStatusBar({
           </StatusItemBtn>
         </Tooltip>
 
-        <FrontMatterBtn
-          type="button"
-          $active={frontMatterOpen}
-          onClick={() => onToggleFrontMatter?.()}
-          title={
-            frontMatterError
-              ? `Invalid front matter: ${frontMatterError}`
-              : frontMatterOpen
-                ? 'Collapse front matter'
-                : 'Expand front matter'
-          }
-        >
-          <IconWrap>
-            <IconCode />
-          </IconWrap>
-          <Text>{hasFrontMatter ? 'Front matter' : 'Add front matter'}</Text>
-          <span className="chevron">
-            <IconChevronDown />
-          </span>
-        </FrontMatterBtn>
+        {onToggleSkillMetadata && (
+          <MetadataBtn
+            type="button"
+            $active={skillMetadataOpen}
+            onClick={onToggleSkillMetadata}
+            title={skillMetadataOpen ? 'Collapse client details' : 'Expand client details'}
+          >
+            <IconWrap>
+              <IconCode />
+            </IconWrap>
+            <Text>Client details</Text>
+            <span className="chevron">
+              <IconChevronDown />
+            </span>
+          </MetadataBtn>
+        )}
       </Bar>
 
       <Popover
