@@ -186,6 +186,55 @@ describe('module-store store participants', () => {
     });
   });
 
+  it('keeps every role when the same participant is recorded concurrently', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let store = await createStore(fixture);
+    let actor = await createActor(fixture);
+    let roles = ['viewer', 'user', 'editor', 'forker', 'creator'] as const;
+
+    await Promise.all(
+      roles.map(role =>
+        storeParticipantService.recordParticipation({ store, actor, roles: [role] })
+      )
+    );
+
+    let [participant, ...rest] = await participantsOf(store);
+    expect(rest).toEqual([]);
+    expect(participant!.roles).toEqual(['creator', 'editor', 'viewer', 'user', 'forker']);
+    expect(participant!.actors[0]!.roles).toEqual(participant!.roles);
+  });
+
+  it('repairs participant roles that are missing from their participant rows', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let store = await createStore(fixture);
+    let actor = await createActor(fixture);
+
+    await storeParticipantService.recordParticipation({
+      store,
+      actor,
+      roles: ['viewer', 'user']
+    });
+    let [participant] = await participantsOf(store);
+    await db.storeParticipant.update({
+      where: { oid: participant!.oid },
+      data: { roles: ['viewer'] }
+    });
+
+    expect(
+      await storeParticipantService.findParticipantsMissingActorRoles({ limit: 100_000 })
+    ).toContain(participant!.oid);
+
+    await storeParticipantService.syncParticipantRoles({
+      storeParticipantOid: participant!.oid
+    });
+
+    let [repaired] = await participantsOf(store);
+    expect(repaired!.roles).toEqual(['viewer', 'user']);
+    expect(
+      await storeParticipantService.findParticipantsMissingActorRoles({ limit: 100_000 })
+    ).not.toContain(participant!.oid);
+  });
+
   it('returns deduplicated participants only for the requested store and tenant', async () => {
     let fixture = await loadOrganizationFixture(org.ids);
     let other = await loadOrganizationFixture(otherOrg.ids);

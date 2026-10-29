@@ -228,16 +228,18 @@ class StoreParticipantServiceImpl {
         d.createdAt && d.createdAt < current ? d.createdAt : undefined;
       let consumerOid = await this.resolveConsumerOid(actor);
 
-      let existingActorRow = await db.storeParticipantActor.findUnique({
-        where: {
-          storeOid_resourceActorOid: { storeOid: d.store.oid, resourceActorOid: actor.oid }
-        }
-      });
+      await this.lockStoreParticipants(d.store.oid);
 
       let participant = await this.ensureParticipant({
         storeOid: d.store.oid,
         consumerOid,
         actorOid: actor.oid
+      });
+
+      let existingActorRow = await db.storeParticipantActor.findUnique({
+        where: {
+          storeOid_resourceActorOid: { storeOid: d.store.oid, resourceActorOid: actor.oid }
+        }
       });
 
       let nextParticipantRoles = mergeRoles(participant.roles, roles);
@@ -409,6 +411,57 @@ class StoreParticipantServiceImpl {
         create,
         update: {}
       });
+    });
+  }
+
+  async syncParticipantRoles(d: { storeParticipantOid: bigint }) {
+    return await withTransaction(async db => {
+      let target = await db.storeParticipant.findUnique({
+        where: { oid: d.storeParticipantOid },
+        select: { storeOid: true }
+      });
+      if (!target) return undefined;
+
+      await this.lockStoreParticipants(target.storeOid);
+
+      let participant = await db.storeParticipant.findUnique({
+        where: { oid: d.storeParticipantOid },
+        include: { actors: { select: { roles: true } } }
+      });
+      if (!participant) return undefined;
+
+      let roles = participant.actors.reduce(
+        (all, actor) => mergeRoles(all, actor.roles),
+        mergeRoles(participant.roles, [])
+      );
+      if (sameRoles(participant.roles, roles)) return participant;
+
+      return await db.storeParticipant.update({
+        where: { oid: participant.oid },
+        data: { roles }
+      });
+    });
+  }
+
+  async findParticipantsMissingActorRoles(d: { limit: number }) {
+    let rows = await db.$queryRaw<{ oid: bigint }[]>`
+      SELECT DISTINCT pp.oid
+      FROM "StoreParticipantPrincipal" pp
+      JOIN "StoreParticipant" spa ON spa."storeParticipantOid" = pp.oid
+      WHERE NOT (spa.roles::text[] <@ pp.roles::text[])
+      LIMIT ${d.limit}
+    `;
+
+    return rows.map(row => row.oid);
+  }
+
+  // Creating and merging participants and their roles are read-modify-write sequences, and a
+  // unique violation would abort the whole transaction, so concurrent writers of one store queue up.
+  private async lockStoreParticipants(storeOid: bigint) {
+    await withTransaction(async db => {
+      await db.$executeRaw`
+        SELECT pg_advisory_xact_lock(hashtext(${`store-participants:${storeOid}`}))
+      `;
     });
   }
 
