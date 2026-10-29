@@ -1,9 +1,15 @@
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import {
+  badRequestError,
+  notFoundError,
+  ServiceError,
+  tooManyRequestsError
+} from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { Workflow, WorkflowRun } from '../../prisma/generated/client';
 import { db } from '../db';
 import { encryption } from '../encryption';
+import { env } from '../env';
 import { ID, snowflake } from '../id';
 import { createZipFromFiles } from '../lib/zip';
 import { startBuildQueue } from '../providers';
@@ -19,6 +25,25 @@ let include = {
 };
 
 class workflowRunServiceImpl {
+  private async assertLocalPendingLimit() {
+    if (env.provider.DEFAULT_PROVIDER !== 'local') return;
+
+    let limit = env.provider.LOCAL_MAX_PENDING_RUNS ?? 20;
+    let pending = await db.workflowRun.findMany({
+      where: { status: 'pending' },
+      select: { oid: true },
+      take: limit
+    });
+
+    if (pending.length >= limit) {
+      throw new ServiceError(
+        tooManyRequestsError({
+          message: `Too many pending runs for the local provider (limit ${limit})`
+        })
+      );
+    }
+  }
+
   async createWorkflowRun(d: {
     workflow: Workflow;
     input: {
@@ -37,6 +62,8 @@ class workflowRunServiceImpl {
         })
       );
     }
+
+    await this.assertLocalPendingLimit();
 
     let zip = await createZipFromFiles(d.input.files);
 

@@ -20,7 +20,8 @@ export let env = createValidatedEnv({
   },
 
   provider: {
-    DEFAULT_PROVIDER: v.enumOf(['aws.code-build', 'local'])
+    DEFAULT_PROVIDER: v.enumOf(['aws.code-build', 'local']),
+    LOCAL_MAX_PENDING_RUNS: v.optional(v.number())
   },
 
   codeBuild: {
