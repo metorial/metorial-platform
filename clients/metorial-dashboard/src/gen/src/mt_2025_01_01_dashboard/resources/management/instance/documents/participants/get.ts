@@ -79,6 +79,7 @@ export type ManagementInstanceDocumentsParticipantsGetOutput = {
         })
       | null;
   };
+  storeParticipantId: string | null;
   createdAt: Date;
 };
 
@@ -164,6 +165,7 @@ export let mapManagementInstanceDocumentsParticipantsGetOutput =
           ]
         ]
       ],
+      'store_participant_id',
       'created_at'
     ],
     1

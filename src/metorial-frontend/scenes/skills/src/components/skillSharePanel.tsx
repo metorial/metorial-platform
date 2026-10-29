@@ -6,6 +6,7 @@ import {
   usePortalConsumerProfiles,
   usePortals,
   useShareSkill,
+  useSkillAccess,
   useSkillParticipants,
   useUser
 } from '@metorial/state';
@@ -324,6 +325,18 @@ export let SkillSharePanelContent = (p: {
     mode == 'dashboard' ||
     (!!currentConsumerParticipant && canParticipantWrite(currentConsumerParticipant.roles));
 
+  let skillAccess = useSkillAccess(p.instanceId, selectedSkillId, canManageAccess);
+  let grantedPermissionByProfileId = useMemo(() => {
+    let map = new Map<string, 'read' | 'write'>();
+    for (let grant of skillAccess.data?.grants ?? []) {
+      let profileId = grant.subject.consumerProfileId;
+      if (grant.subject.type != 'consumer_profile' || !profileId) continue;
+      if (grant.level == 'read' && map.has(profileId)) continue;
+      map.set(profileId, grant.level == 'read' ? 'read' : 'write');
+    }
+    return map;
+  }, [skillAccess.data?.grants]);
+
   let memberByActorId = useMemo(() => {
     let map = new Map<string, NonNullable<typeof organizationMembers.data>['items'][number]>();
     for (let member of organizationMembers.data?.items ?? []) {
@@ -459,7 +472,7 @@ export let SkillSharePanelContent = (p: {
     setSelectedAccountKeys(new Set());
     setSearch('');
     setIsSearching(false);
-    await participants.refetch();
+    await Promise.all([participants.refetch(), skillAccess.refetch()]);
     await p.onShared?.();
   };
 
@@ -472,29 +485,22 @@ export let SkillSharePanelContent = (p: {
     let consumerProfileId = participant.actor.consumer?.id
       ? profileByConsumerId.get(participant.actor.consumer.id)?.id
       : null;
-    let actorId = participant.actor.organizationActor?.id;
     let isCurrentConsumer =
       !!participant.actor.consumer?.id &&
       participant.actor.consumer.id == p.context?.currentConsumerId;
-    let isCurrentOrganizationMember =
-      mode == 'dashboard' &&
-      !!currentUserEmail &&
-      participant.actor.organizationActor?.email == currentUserEmail;
-    if (isCurrentConsumer || isCurrentOrganizationMember) return;
-    if (mode != 'dashboard' && actorId) return;
-    let memberId = mode == 'dashboard' && actorId ? memberByActorId.get(actorId)?.id : null;
-    if (!consumerProfileId && !memberId) return;
+    if (!consumerProfileId || isCurrentConsumer) return;
+    if (mode != 'dashboard' && participant.actor.organizationActor?.id) return;
 
     let [shared] = await shareSkill.mutate({
       instanceId: p.instanceId,
       skillId: selectedSkillId,
-      consumerProfileIds: consumerProfileId ? [consumerProfileId] : [],
-      organizationMemberIds: memberId ? [memberId] : [],
+      consumerProfileIds: [consumerProfileId],
+      organizationMemberIds: [],
       permission: nextPermission
     });
 
     if (!shared) return;
-    await participants.refetch();
+    await Promise.all([participants.refetch(), skillAccess.refetch()]);
     await p.onShared?.();
   };
 
@@ -714,27 +720,19 @@ export let SkillSharePanelContent = (p: {
                 <>
                   <RowList>
                     {accessibleParticipants.map(participant => {
-                      let participantPermission = getParticipantPermission(participant.roles);
                       let isCreator = participant.roles.includes('creator');
                       let consumerProfileId = participant.actor.consumer?.id
                         ? profileByConsumerId.get(participant.actor.consumer.id)?.id
                         : null;
-                      let actorId = participant.actor.organizationActor?.id;
-                      let isOrganizationMember = !!actorId;
+                      let isOrganizationMember = !!participant.actor.organizationActor?.id;
                       let isCurrentConsumer =
                         !!participant.actor.consumer?.id &&
                         participant.actor.consumer.id == p.context?.currentConsumerId;
-                      let isCurrentOrganizationMember =
-                        mode == 'dashboard' &&
-                        !!currentUserEmail &&
-                        participant.actor.organizationActor?.email == currentUserEmail;
-                      let isSelf = isCurrentConsumer || isCurrentOrganizationMember;
-                      let memberId =
-                        mode == 'dashboard' && actorId
-                          ? memberByActorId.get(actorId)?.id
-                          : null;
-                      let canChangeAccess =
-                        !!consumerProfileId || (mode == 'dashboard' && !!memberId);
+                      let participantPermission =
+                        consumerProfileId && skillAccess.data
+                          ? (grantedPermissionByProfileId.get(consumerProfileId) ?? 'none')
+                          : getParticipantPermission(participant.roles);
+                      let isConsumerOwner = isCreator && !isOrganizationMember;
                       return (
                         <AccessRow key={participant.id}>
                           <Avatar
@@ -758,9 +756,9 @@ export let SkillSharePanelContent = (p: {
                               size="2"
                               disabled={
                                 !canManageAccess ||
-                                isCreator ||
-                                isSelf ||
-                                !canChangeAccess ||
+                                !consumerProfileId ||
+                                isConsumerOwner ||
+                                isCurrentConsumer ||
                                 (mode == 'portal' && isOrganizationMember)
                               }
                               value={participantPermission}

@@ -80,6 +80,7 @@ export type DashboardInstanceDocumentsParticipantsListOutput = {
           })
         | null;
     };
+    storeParticipantId: string | null;
     createdAt: Date;
   }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
@@ -175,6 +176,7 @@ export let mapDashboardInstanceDocumentsParticipantsListOutput =
               ]
             ]
           ],
+          'store_participant_id',
           'created_at'
         ]
       ]

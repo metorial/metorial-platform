@@ -1,4 +1,5 @@
 import type {
+  DashboardInstanceSkillsAccessGetOutput,
   DashboardInstanceSkillsAgentsCreateBody,
   DashboardInstanceSkillsAgentsGetOutput,
   DashboardInstanceSkillsAgentsListQuery,
@@ -27,6 +28,7 @@ import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 
 export type Skill = DashboardInstanceSkillsGetOutput;
+export type SkillAccess = DashboardInstanceSkillsAccessGetOutput;
 export type SkillAgent = DashboardInstanceSkillsAgentsGetOutput;
 export type SkillConfiguration = DashboardInstanceSkillsConfigurationsGetOutput;
 export type SkillItem = DashboardInstanceSkillsItemsGetOutput;
@@ -399,6 +401,20 @@ export let useSkillParticipants = (
     instanceId && skillId ? `${instanceId}:${skillId}:participants` : null
   );
 };
+
+export let skillAccessLoader = createLoader({
+  name: 'skillAccess',
+  parents: [skillLoader],
+  fetch: (i: { instanceId: string; skillId: string }) =>
+    withAuth(sdk => sdk.skills.access.get(i.instanceId, i.skillId)),
+  mutators: {}
+});
+
+export let useSkillAccess = (
+  instanceId: string | null | undefined,
+  skillId: string | null | undefined,
+  enabled: boolean = true
+) => skillAccessLoader.use(instanceId && skillId && enabled ? { instanceId, skillId } : null);
 
 export let skillParticipantLoader = createLoader({
   name: 'skillParticipant',

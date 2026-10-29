@@ -1,3 +1,4 @@
+export * from './access';
 export * from './agents';
 export * from './configurations';
 export * from './create';
