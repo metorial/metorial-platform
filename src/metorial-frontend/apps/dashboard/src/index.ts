@@ -22,6 +22,7 @@ export {
 } from './product';
 
 export { ApiKeysScene } from './product/scenes/apiKeys';
+export { useSkillsSidebarGroups } from './product/scenes/skills/navigation/sidebarGroups';
 export {
   defineEntityFilter,
   entityFilters,

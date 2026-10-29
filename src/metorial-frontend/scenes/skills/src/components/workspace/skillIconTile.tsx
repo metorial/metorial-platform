@@ -61,6 +61,7 @@ export let SkillIconGlyph = (p: {
         viewBox="0 0 24 24"
         fill={colors.foreground}
         aria-hidden
+        style={{ width: p.size, height: p.size }}
       >
         {paths.map((d, index) => (
           <path key={index} d={d} />
@@ -75,7 +76,7 @@ export let SkillIconGlyph = (p: {
       height={p.size}
       viewBox="0 0 24 24"
       aria-hidden
-      style={{ flex: '0 0 auto' }}
+      style={{ flex: '0 0 auto', width: p.size, height: p.size }}
     >
       <rect width="24" height="24" rx="5.28" fill={colors.background} />
       <g transform="translate(5.28 5.28) scale(0.56)" fill={colors.foreground}>

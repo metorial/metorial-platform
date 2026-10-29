@@ -17,9 +17,11 @@ import {
   useStorePermissions
 } from '@metorial/state';
 import { snackbar } from '@metorial/ui';
+import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { SkillVerdictBadge } from '../../../scenes/securityReview';
 import { showSkillCloneFormModal } from '../../../scenes/skills/cloneModal';
+import { recordRecentSkill } from '../../../scenes/skills/navigation/recentSkills';
 import { SkillPage } from './index';
 
 let downloadExport = (url: string, fileName: string) => {
@@ -55,6 +57,11 @@ export let SkillLayout = () => {
   let canWriteStore =
     storePermissions.data?.hasFullAccess ||
     storePermissions.data?.permissions.includes('content_write');
+
+  useEffect(() => {
+    if (instance.data?.id && skill.data?.id)
+      recordRecentSkill(instance.data.id, skill.data.id);
+  }, [instance.data?.id, skill.data?.id]);
 
   let skillPathParams = [
     organization.data,

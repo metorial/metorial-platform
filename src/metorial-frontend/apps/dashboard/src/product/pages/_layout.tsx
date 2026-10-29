@@ -19,12 +19,12 @@ import {
   RiHome6Line,
   RiInstanceLine,
   RiLineChartLine,
+  RiColorFilterAiLine,
   RiListCheck2,
   RiPlugLine,
   RiRssLine,
   RiShieldKeyholeLine,
   RiFlowChart,
-  RiSparkling2Line,
   RiStackLine,
   RiStore2Line,
   RiCompassDiscoverLine,
@@ -33,6 +33,7 @@ import {
 } from '@remixicon/react';
 import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
+import { useSkillsSidebarGroups } from '../scenes/skills/navigation/sidebarGroups';
 
 export let ProjectPageLayout = () => {
   let instance = useCurrentInstance();
@@ -68,6 +69,8 @@ export let ProjectPageLayout = () => {
   let sandboxEnabled = !!dashboardFlags.data?.flags['sandbox-enabled'];
   let networkingEnabled = !!dashboardFlags.data?.flags['networking-enabled'];
   let publicMcpEnabled = !!dashboardFlags.data?.flags['public-mcp-servers-enabled'];
+
+  let skillsSidebarGroups = useSkillsSidebarGroups({ enabled: skillsEnabled });
 
   return (
     <AppLayout
@@ -209,8 +212,8 @@ export let ProjectPageLayout = () => {
                 collapsible: true,
                 items: [
                   {
-                    icon: <RiSparkling2Line />,
-                    label: 'Skills',
+                    icon: <RiColorFilterAiLine />,
+                    label: 'Overview',
                     to: Paths.instance.skills(...params),
                     getProps: (i: { pathname: string; to: string }) => ({
                       isActive: checkPath(i, { exact: true })
@@ -244,6 +247,8 @@ export let ProjectPageLayout = () => {
               }
             ]
           : []),
+
+        ...skillsSidebarGroups,
 
         ...(sandboxEnabled
           ? [
