@@ -175,8 +175,10 @@ model UserToken {
   id     String      @unique
   status TokenStatus
 
-  name   String
-  secret String @unique
+  name           String
+  secret         String? @unique
+  secretHash     String? @unique
+  secretRedacted String?
 
   userOid BigInt
   user    User   @relation(fields: [userOid], references: [oid])
@@ -348,6 +350,7 @@ model Artifact {
 
   size     BigInt
   mimeType String
+  /// Hash of sorted file paths and contents, not zip bytes; '' for older artifacts.
   checksum String
 
   createdAt DateTime @default(now())

@@ -31,10 +31,10 @@
     "@types/bun": "latest",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
-    "@types/tar-stream": "^3.1.5",
     "@vercel/ncc": "^0.45.0",
     "@vitejs/plugin-react": "^5.2.0",
     "autoprefixer": "^10.6.1",
+    "jszip": "^3.10.2",
     "vite": "^7.3.7"
   },
   "peerDependencies": {
@@ -83,7 +83,6 @@
     "@types/unzipper": "^0.10.11",
     "date-fns": "^4.4.0",
     "hono": "4.13.13",
-    "jszip": "^3.10.2",
     "lodash-es": "^4.18.1",
     "object-storage-client": "^0.2.5",
     "prisma": "^7.10.1",
@@ -93,7 +92,6 @@
     "react-router-dom": "^7.18.4",
     "semver": "^7.8.5",
     "styled-components": "^6.6.0",
-    "tar-stream": "^3.2.2",
     "unzipper": "^0.12.5",
     "yaml": "^2.9.1",
     "@lowerdeck/delay": "workspace:2.0.0",
