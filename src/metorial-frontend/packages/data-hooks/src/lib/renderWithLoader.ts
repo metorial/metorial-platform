@@ -91,6 +91,16 @@ let renderLoaderError = (error: LoaderError, opts: RenderWithLoaderOptions) =>
           'An error occurred'
       });
 
+// Callers pass a new inline closure on every render. Mounting the closure itself as
+// a component would give React a new element type each time and remount the whole
+// subtree, so it runs inside this stable component instead (which also keeps hooks
+// used inside the closure in a consistent component).
+let RenderChildren = (p: { render: (props: any) => React.ReactNode; props: any }) =>
+  p.render(p.props);
+
+let renderChildren = (render: (props: any) => React.ReactNode, props: any) =>
+  React.createElement(RenderChildren, { render, props });
+
 let renderContentStyle = (visible: boolean): React.CSSProperties =>
   visible
     ? { display: 'contents' }
@@ -130,8 +140,10 @@ let RenderWithLoaderInner = <Loaders extends RenderWithLoaderLoaders>({
   let discoveryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   let [nestedPendingCount, setNestedPendingCount] = useState(0);
   let [spinnerDelayComplete, setSpinnerDelayComplete] = useState(false);
+  let lastLoadedRef = useRef<Loaders | null>(null);
 
   phaseRef.current = phase;
+  if (!isLoading && !hasError) lastLoadedRef.current = loaders;
 
   let clearDiscoveryTimeout = useCallback(() => {
     if (!discoveryTimeoutRef.current) return;
@@ -180,7 +192,14 @@ let RenderWithLoaderInner = <Loaders extends RenderWithLoaderLoaders>({
     (phase == 'localLoading' || (phase == 'discovering' && nestedPendingCount > 0));
   let isPendingForBoundary = hasNotRevealed && !hasError;
   let isVisiblyPending = (hasNotRevealed && !hasError) || (phase == 'revealed' && isLoading);
-  let shouldRenderOwnSpinner = isVisiblyPending && !(usesSharedBoundary && hasNotRevealed);
+
+  // A reload after the first reveal (e.g. a changed filter or id) keeps showing the
+  // previous content until the spinner delay passes, instead of blanking it in between.
+  let isShowingPreviousContent =
+    phase == 'revealed' && isLoading && !spinnerDelayComplete && !!lastLoadedRef.current;
+
+  let shouldRenderOwnSpinner =
+    isVisiblyPending && !(usesSharedBoundary && hasNotRevealed) && !isShowingPreviousContent;
   let providedGate = !usesSharedBoundary && hasNotRevealed ? gate : null;
 
   useInitialLoadRegistration(isPendingForBoundary);
@@ -229,12 +248,16 @@ let RenderWithLoaderInner = <Loaders extends RenderWithLoaderLoaders>({
     return renderLoaderError(error, opts);
   }
 
-  let canRenderChildren = !isLoading && !hasError && phase != 'localLoading';
-  let inner = canRenderChildren
+  let renderedLoaders = isShowingPreviousContent
+    ? lastLoadedRef.current
+    : !isLoading && phase != 'localLoading'
+      ? loaders
+      : null;
+  let inner = renderedLoaders
     ? React.createElement('div', {
         key: 'content',
         style: renderContentStyle(phase == 'revealed'),
-        children: children(loaders as any)
+        children: renderChildren(children, renderedLoaders)
       })
     : null;
 
@@ -303,17 +326,19 @@ export let renderWithPagination =
     }) => React.ReactNode
   ) => {
     let boundary = useInitialLoadBoundaryState();
+    let parentGate = useContext(InitialLoaderGateContext);
+    let gateIdRef = useRef(Symbol('renderWithPagination'));
     let initialLoadRef = useRef(true);
     let directionRef = useRef<'next' | 'previous' | null>(null);
     let [, setSearchParams] = useSearchParams();
     let paginationSearchParamsEnabled = usePaginationSearchParamsEnabled();
+    let [spinnerDelayComplete, setSpinnerDelayComplete] = useState(false);
 
-    let [items, setItems] = useState(() => loader.data?.items ?? []);
-    useEffect(() => {
-      if (!loader.isLoading || loader.data?.items.length) {
-        setItems(loader.data?.items ?? []);
-      }
-    }, [loader.isLoading, loader.data?.items]);
+    let itemsRef = useRef<any[]>(loader.data?.items ?? []);
+    if (!loader.isLoading || loader.data?.items.length) {
+      itemsRef.current = loader.data?.items ?? [];
+    }
+    let items = itemsRef.current;
 
     if (!loader.isLoading && initialLoadRef.current) initialLoadRef.current = false;
 
@@ -321,10 +346,22 @@ export let renderWithPagination =
 
     useInitialLoadRegistration(isInitialLoading);
 
+    useEffect(() => {
+      parentGate?.register(gateIdRef.current, isInitialLoading);
+      return () => parentGate?.register(gateIdRef.current, false);
+    }, [isInitialLoading, parentGate]);
+
+    useEffect(() => {
+      if (!isInitialLoading) return;
+
+      let timeout = setTimeout(() => setSpinnerDelayComplete(true), LOADER_SPINNER_DELAY_MS);
+      return () => clearTimeout(timeout);
+    }, [isInitialLoading]);
+
     if (isInitialLoading) {
       if (boundary?.isAccepting()) return null;
 
-      return renderLoadingContent(opts);
+      return renderLoaderSpinner(opts, spinnerDelayComplete);
     }
 
     if (loader.error) {
@@ -339,9 +376,7 @@ export let renderWithPagination =
       }
     };
 
-    // let inner = children(loaderWithCachedData as any);
-
-    let inner = React.createElement(children, loaderWithCachedData as any);
+    let inner = renderChildren(children, loaderWithCachedData);
     let shouldShowPagination =
       !opts.hidePaginationWhenUnavailable ||
       !!loader.data?.pagination.hasMoreBefore ||
