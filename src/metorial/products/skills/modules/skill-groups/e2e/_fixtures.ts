@@ -6,7 +6,8 @@ import {
   accessTagService,
   createResourceAuthorization,
   type ResourceAuthorization,
-  type RestrictedResourceActor
+  type RestrictedResourceActor,
+  storeAccessGrantService
 } from '@metorial/module-access';
 import { resourceActorService } from '@metorial/module-resource-actor';
 import { type SkillRecord, skillService } from '@metorial/module-skill';
@@ -155,7 +156,7 @@ export let grantAccess = async (
     }
   });
 
-  return await db.accessTagEntity.create({
+  let entity = await db.accessTagEntity.create({
     data: {
       accessTagOid: d.accessTag.oid,
       accessTagPolicyOid: policy.oid,
@@ -163,6 +164,12 @@ export let grantAccess = async (
       skillGroupOid: d.skillGroup?.oid
     }
   });
+
+  if (d.skill) {
+    await storeAccessGrantService.syncLegacySkillGrants({ skillOid: d.skill.oid });
+  }
+
+  return entity;
 };
 
 // Restricted authorizations normally come from a consumer profile; the skill and store write

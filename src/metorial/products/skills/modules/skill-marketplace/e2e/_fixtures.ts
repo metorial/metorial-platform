@@ -9,7 +9,8 @@ import {
   consumerSkillMarketplaceWriteRoles,
   consumerSkillPluginWriteRoles,
   consumerSkillReadRoles,
-  createResourceAuthorization
+  createResourceAuthorization,
+  storeAccessGrantService
 } from '@metorial/module-access';
 import { documentService, flushDocumentDraft } from '@metorial/module-documents';
 import { skillService } from '@metorial/module-skill';
@@ -408,7 +409,7 @@ export let grantAccess = async (
     }
   });
 
-  return await db.accessTagEntity.create({
+  let entity = await db.accessTagEntity.create({
     data: {
       accessTagOid: d.accessTag.oid,
       accessTagPolicyOid: policy.oid,
@@ -417,6 +418,12 @@ export let grantAccess = async (
       skillPluginOid: d.skillPlugin?.oid
     }
   });
+
+  if (d.skill) {
+    await storeAccessGrantService.syncLegacySkillGrants({ skillOid: d.skill.oid });
+  }
+
+  return entity;
 };
 
 // Mirrors how the sync collector loads serializer inputs, so serializers can run in-process
