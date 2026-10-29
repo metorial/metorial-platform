@@ -50,7 +50,6 @@ class userTokenServiceImpl {
       include
     });
 
-    // The only time the plaintext secret is available.
     return { token, secret };
   }
 
