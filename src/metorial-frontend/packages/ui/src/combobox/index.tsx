@@ -3,12 +3,13 @@ import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { RiArrowDownSLine, RiCheckLine } from '@remixicon/react';
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { keyframes, styled } from 'styled-components';
-import { ButtonSize, getButtonSize } from '../button/constants';
+import { ControlSize, getControlSize, getFieldFontSize, useControlSize } from '../controlSize';
 import { useDialogContext, useZindex } from '../dialog/state';
 import { Error } from '../error';
 import { InputDescription, InputLabel } from '../input';
 import { Spinner } from '../spinner';
 import { theme } from '../theme';
+import { surface } from '../controlSize/scale';
 
 let fadeIn = keyframes`
   from {
@@ -130,11 +131,11 @@ let Popup = styled(BaseCombobox.Popup)`
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 6px;
+  padding: ${surface.padding}px;
   box-shadow: ${theme.shadows.medium};
   background: ${theme.colors.gray200};
   border: 1px solid ${theme.colors.gray400};
-  border-radius: 10px;
+  border-radius: ${surface.borderRadius};
   max-height: min(320px, var(--available-height));
   overflow: hidden;
 
@@ -171,7 +172,7 @@ let Item = styled(BaseCombobox.Item)`
   gap: 6px;
   min-height: 38px;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: ${surface.itemBorderRadius};
   outline: none;
   cursor: pointer;
   transition: background 0.2s ease;
@@ -288,7 +289,7 @@ type CachedComboboxProviderResult<TData = unknown> = {
 };
 
 type ComboboxPropsBase<TData> = {
-  size?: ButtonSize;
+  size?: ControlSize;
   label?: React.ReactNode;
   description?: React.ReactNode;
   hideLabel?: boolean;
@@ -391,7 +392,7 @@ let ComboboxInner = <TData,>({
   empty,
   search,
   setSearch,
-  size = '3',
+  size: sizeProp,
   label,
   description,
   hideLabel,
@@ -416,7 +417,8 @@ let ComboboxInner = <TData,>({
   let generatedId = useId();
   let { id: providedId, name, onFocus, ...restInputProps } = inputProps;
   let id = providedId ?? generatedId;
-  let sizeStyles = getButtonSize(size);
+  let size = useControlSize(sizeProp);
+  let sizeStyles = getControlSize(size);
   let normalizedValue = value ?? null;
   let normalizedGroups = useMemo(() => normalizeGroups(items), [items]);
   let flatItems = useMemo(() => flattenGroups(normalizedGroups), [normalizedGroups]);
@@ -567,7 +569,7 @@ let ComboboxInner = <TData,>({
               padding: sizeStyles.padding,
               paddingRight: 0,
               height: sizeStyles.height,
-              fontSize: '14px'
+              fontSize: getFieldFontSize(size)
             }}
             {...restInputProps}
           />

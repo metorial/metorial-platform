@@ -11,7 +11,12 @@ import React, {
 } from 'react';
 import { styled } from 'styled-components';
 import { theme } from '..';
-import { ButtonSize, getButtonSize } from '../button/constants';
+import {
+  ControlSize,
+  getFieldFontSize,
+  getNestedControlSize,
+  useControlSize
+} from '../controlSize';
 import { InputDescription, InputLabel } from '../input';
 import type { ColorKey } from '../theme/colors';
 import { Tooltip } from '../tooltip';
@@ -35,13 +40,17 @@ let Wrapper = styled('div')`
 
 let Root = styled(RadixToggleGroup.Root)<{
   $fullWidth?: boolean;
+  $height: string;
+  $inset: number;
   $borderRadius: string;
   $background: ColorKey;
 }>`
   position: relative;
   display: inline-flex;
+  box-sizing: border-box;
   width: ${({ $fullWidth }) => ($fullWidth ? '100%' : 'fit-content')};
-  padding: 4px;
+  height: ${({ $height }) => $height};
+  padding: ${({ $inset }) => $inset}px;
   border-radius: ${({ $borderRadius }) => $borderRadius};
   background: ${({ $background }) => theme.colors[$background]};
   isolation: isolate;
@@ -57,11 +66,11 @@ let Root = styled(RadixToggleGroup.Root)<{
   }
 `;
 
-let Indicator = styled('div')<{ $borderRadius: string }>`
+let Indicator = styled('div')<{ $borderRadius: string; $inset: number }>`
   position: absolute;
-  top: 4px;
-  left: 4px;
-  height: calc(100% - 8px);
+  top: ${({ $inset }) => $inset}px;
+  left: ${({ $inset }) => $inset}px;
+  height: calc(100% - ${({ $inset }) => $inset * 2}px);
   border-radius: ${({ $borderRadius }) => $borderRadius};
   background: ${theme.colors.background};
   box-shadow: ${theme.shadows.small};
@@ -91,7 +100,7 @@ let ItemIcon = styled('span')`
 
 let Item = styled(RadixToggleGroup.Item)<{
   $fullWidth?: boolean;
-  $size: ButtonSize;
+  $size: ControlSize;
   $borderRadius: string;
   $minWidth: number;
 }>`
@@ -101,14 +110,14 @@ let Item = styled(RadixToggleGroup.Item)<{
   flex: ${({ $fullWidth }) => ($fullWidth ? '1 1 0' : '0 0 auto')};
   gap: 6px;
   min-width: ${({ $minWidth }) => $minWidth}px;
-  min-height: ${({ $size }) => getButtonSize($size).height};
+  height: 100%;
   align-items: center;
   justify-content: center;
   border: none;
   border-radius: ${({ $borderRadius }) => $borderRadius};
   background: transparent;
-  padding: ${({ $size }) => getButtonSize($size).padding};
-  font-size: ${({ $size }) => getButtonSize($size).fontSize};
+  padding: ${({ $size }) => getNestedControlSize($size).padding};
+  font-size: ${({ $size }) => getFieldFontSize($size)};
   font-weight: 500;
   color: ${theme.colors.gray700};
   white-space: nowrap;
@@ -147,7 +156,7 @@ export let OptionToggle = ({
   disabled,
   fullWidth,
   background = 'gray300',
-  size = '3',
+  size: sizeProp,
   itemMinWidth = 92
 }: {
   items: OptionToggleItem[];
@@ -160,7 +169,7 @@ export let OptionToggle = ({
   disabled?: boolean;
   fullWidth?: boolean;
   background?: ColorKey;
-  size?: ButtonSize;
+  size?: ControlSize;
   itemMinWidth?: number;
 }) => {
   let id = useId();
@@ -169,8 +178,9 @@ export let OptionToggle = ({
   let itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   let measurementFrameRef = useRef<number | null>(null);
   let [indicator, setIndicator] = useState<{ width: number; left: number } | null>(null);
-  let sizeStyles = getButtonSize(size);
-  let itemBorderRadius = `calc(${sizeStyles.borderRadius} - 2px)`;
+  let size = useControlSize(sizeProp);
+  let sizeStyles = getNestedControlSize(size);
+  let itemBorderRadius = sizeStyles.itemBorderRadius;
 
   let selectedItem = useMemo(() => items.find(item => item.id == value), [items, value]);
   let itemIds = useMemo(() => items.map(item => item.id).join('\0'), [items]);
@@ -200,9 +210,9 @@ export let OptionToggle = ({
 
     updateIndicator({
       width: item.offsetWidth,
-      left: item.offsetLeft - 4
+      left: item.offsetLeft - sizeStyles.inset
     });
-  }, [selectedItem?.id, updateIndicator]);
+  }, [selectedItem?.id, sizeStyles.inset, updateIndicator]);
 
   let scheduleMeasureIndicator = useCallback(() => {
     if (measurementFrameRef.current !== null) {
@@ -277,12 +287,15 @@ export let OptionToggle = ({
         aria-label={!label ? ariaLabel : undefined}
         aria-labelledby={label ? labelId : undefined}
         $fullWidth={fullWidth}
+        $height={sizeStyles.height}
+        $inset={sizeStyles.inset}
         $borderRadius={sizeStyles.borderRadius}
         $background={background}
       >
         <Indicator
           aria-hidden
           $borderRadius={itemBorderRadius}
+          $inset={sizeStyles.inset}
           style={{
             opacity: indicator ? 1 : 0,
             width: indicator?.width,

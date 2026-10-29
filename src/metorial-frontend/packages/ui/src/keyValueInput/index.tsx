@@ -2,7 +2,7 @@ import { RiAddLine, RiDeleteBin4Line, RiEyeLine, RiEyeOffLine } from '@remixicon
 import React, { useState } from 'react';
 import { styled } from 'styled-components';
 import { Button } from '../button';
-import { ButtonSize, getButtonSize } from '../button/constants';
+import { ControlSize, getControlSize, useControlSize } from '../controlSize';
 import { Error } from '../error';
 import { Input, InputDescription, InputLabel } from '../input';
 import { theme } from '../theme';
@@ -30,7 +30,7 @@ export type KeyValueInputProps = {
   masked?: boolean;
   error?: string | (string | undefined)[];
   disabled?: boolean;
-  size?: ButtonSize;
+  size?: ControlSize;
 };
 
 let emptyEntry: KeyValueEntry = { key: '', value: '' };
@@ -88,8 +88,9 @@ export let KeyValueInput = ({
   masked,
   error,
   disabled,
-  size = '2'
+  size: sizeProp
 }: KeyValueInputProps) => {
+  let size = useControlSize(sizeProp, '2');
   let [revealed, setRevealed] = useState<Set<number>>(() => new Set());
   let [focusIndex, setFocusIndex] = useState<number | null>(null);
   let [pasteTruncated, setPasteTruncated] = useState(false);
@@ -99,7 +100,7 @@ export let KeyValueInput = ({
   let duplicates = getDuplicateKeys(rows);
   let canAdd = !disabled && (maxRows === undefined || rows.length < maxRows);
   let actionCount = masked ? 2 : 1;
-  let actionWidth = getButtonSize(size).height;
+  let actionWidth = getControlSize(size).height;
 
   let updateRow = (index: number, patch: Partial<KeyValueEntry>) => {
     onChange(rows.map((row, i) => (i == index ? { ...row, ...patch } : row)));

@@ -1,7 +1,7 @@
 import React, { useId } from 'react';
 import { styled } from 'styled-components';
 import { Button } from '../button';
-import { ButtonSize } from '../button/constants';
+import { ControlSize } from '../controlSize';
 import { Error } from '../error';
 import { InputHeader } from '../input';
 import { NumberInputField } from './field';
@@ -29,7 +29,7 @@ export type NumberInputProps = {
   stepper?: boolean;
   presets?: NumberInputPreset[];
   format?: Intl.NumberFormatOptions;
-  size?: ButtonSize;
+  size?: ControlSize;
   placeholder?: string;
   name?: string;
   disabled?: boolean;

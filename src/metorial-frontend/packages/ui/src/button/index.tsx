@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Check, ChevronDown } from 'react-feather';
 import { styled } from 'styled-components';
 import _useDelayed from 'use-delayed';
+import { useControlSize } from '../controlSize';
 import { Menu, MenuProps } from '../menu';
 import { Skeleton } from '../skeleton';
 import { Spinner } from '../spinner';
@@ -120,7 +121,7 @@ export let Button = React.forwardRef(
       fullWidth,
       variant,
       color,
-      size,
+      size: sizeProp,
       shadow,
       onHover,
       menu,
@@ -144,6 +145,8 @@ export let Button = React.forwardRef(
     let [isHovered, setIsHovered] = useState(false);
     useEffect(() => onHover?.(), [isHovered]);
     let isMouseOverRef = useRef(false);
+
+    let size = useControlSize(sizeProp);
 
     let style = getButtonStyles({
       color,
