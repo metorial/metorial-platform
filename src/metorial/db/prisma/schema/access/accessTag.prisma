@@ -69,6 +69,9 @@ model AccessTagEntity {
   skillPluginOid BigInt?
   skillPlugin    SkillPlugin? @relation(fields: [skillPluginOid], references: [oid], onDelete: Cascade)
 
+  storeOid BigInt?
+  store    Store?  @relation(fields: [storeOid], references: [oid], onDelete: Cascade)
+
   // serverOAuthSession    ServerOAuthSession? @relation(fields: [serverOAuthSessionOid], references: [oid])
   // serverOAuthSessionOid BigInt?
 
@@ -77,6 +80,8 @@ model AccessTagEntity {
   @@unique([accessTagOid, accessTagPolicyOid, skillGroupOid])
   @@unique([accessTagOid, accessTagPolicyOid, skillMarketplaceOid])
   @@unique([accessTagOid, accessTagPolicyOid, skillPluginOid])
+  @@unique([accessTagOid, accessTagPolicyOid, storeOid])
+  @@index([storeOid])
   @@index([skillMarketplaceOid])
   @@index([skillPluginOid])
   @@index([magicMcpTokenOid])

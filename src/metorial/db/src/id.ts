@@ -270,6 +270,7 @@ export let ID = createIdGenerator({
   storeVersion: idType.sorted('stv_'),
   storeVersionItem: idType.sorted('stvi_'),
   storeParticipant: idType.sorted('stp_'),
+  storeParticipantActor: idType.sorted('stpa_'),
   document: idType.sorted('doc_'),
   documentParticipant: idType.sorted('docp_'),
   documentVersion: idType.sorted('docv_'),

@@ -87,6 +87,9 @@ model DocumentParticipant {
   resourceActorOid BigInt
   resourceActor    ResourceActor @relation(fields: [resourceActorOid], references: [oid], onDelete: Cascade)
 
+  storeParticipantOid BigInt?
+  storeParticipant    StoreParticipant? @relation(fields: [storeParticipantOid], references: [oid], onDelete: SetNull)
+
   editCount Int @default(0)
 
   lastEditedAt DateTime?
@@ -95,6 +98,7 @@ model DocumentParticipant {
   createdAt DateTime @default(now())
 
   @@unique([documentOid, resourceActorOid])
+  @@index([storeParticipantOid])
 }
 
 model DocumentVersion {

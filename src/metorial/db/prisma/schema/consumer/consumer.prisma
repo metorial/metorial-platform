@@ -45,6 +45,7 @@ model Consumer {
   workspaceProfiles          WorkspaceProfile[]
   resourceActors             ResourceActor[]
   consumerOrganizationActors ConsumerOrganizationActor[]
+  storeParticipants          StoreParticipant[]
 
   @@unique([email, organizationOid])
 }

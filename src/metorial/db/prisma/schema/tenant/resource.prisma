@@ -137,7 +137,8 @@ model ResourceActor {
   closedMergeRequests       SkillMergeRequest[]        @relation("SkillMergeRequestCloser")
   rolledBackMergeRequests   SkillMergeRequest[]        @relation("SkillMergeRequestRollbacker")
   documentVersionEditors    DocumentVersionEditors[]
-  storeParticipants         StoreParticipant[]
+  storeParticipantActors    StoreParticipantActor[]
+  primaryStoreParticipants  StoreParticipant[]         @relation("StoreParticipantPrimaryActor")
   skillParticipants         SkillParticipant[]
   resolvedMergeRequestItems SkillMergeRequestItem[]    @relation("SkillMergeRequestItemResolver")
   skillMergeRequestComments SkillMergeRequestComment[]
