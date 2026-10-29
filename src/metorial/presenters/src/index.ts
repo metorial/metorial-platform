@@ -272,6 +272,7 @@ import {
   v1SetupSessionEmailPresenter,
   v1SetupSessionPresenter,
   v1SkillAgentPresenter,
+  v1SkillContentPreviewPresenter,
   v1SkillFileChangePresenter,
   v1SkillFileContentPresenter,
   v1SkillFilePresenter,
@@ -545,6 +546,7 @@ import {
   skillFileChangeType,
   skillFileContentType,
   skillFileType,
+  skillContentPreviewType,
   skillConfigurationType,
   skillExportType,
   skillForkSyncType,
@@ -1053,6 +1055,11 @@ export let skillFileContentPresenter = declarePresenter(skillFileContentType, {
 export let skillFileChangePresenter = declarePresenter(skillFileChangeType, {
   mt_2025_01_01_dashboard: v1SkillFileChangePresenter,
   mt_2026_01_01_magnetar: v1SkillFileChangePresenter
+});
+
+export let skillContentPreviewPresenter = declarePresenter(skillContentPreviewType, {
+  mt_2025_01_01_dashboard: v1SkillContentPreviewPresenter,
+  mt_2026_01_01_magnetar: v1SkillContentPreviewPresenter
 });
 
 export let skillConfigurationPresenter = declarePresenter(skillConfigurationType, {

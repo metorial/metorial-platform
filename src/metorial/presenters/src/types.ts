@@ -218,6 +218,7 @@ import type {
   SkillFileContent,
   SkillGroupItemResource,
   SkillGroupResource,
+  SkillContentPreview,
   SkillItemResource,
   SkillResource,
   SkillTemplateItemResource,
@@ -1825,6 +1826,10 @@ export let skillFileChangeType = PresentableType.create<{
   skillFileChange: SkillFileChangeResult;
   skill: { id: string };
 }>()('skillFileChange');
+
+export let skillContentPreviewType = PresentableType.create<{
+  skillContentPreview: SkillContentPreview;
+}>()('skillContentPreview');
 
 export let skillConfigurationType = PresentableType.create<{
   skillConfiguration: SkillConfiguration;

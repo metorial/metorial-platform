@@ -173,6 +173,7 @@ import {
   skillGroupController,
   skillGroupItemController,
   skillImportController,
+  skillContentPreviewController,
   skillItemController,
   skillMarketplaceController,
   skillMarketplacePluginController,
@@ -824,6 +825,7 @@ export let dashboardController = Controller.create<any>(
     skillPluginController,
     skillPluginRepositoryController,
     skillPluginSkillController,
+    skillContentPreviewController,
     skillSyncController,
 
     consumerController,
