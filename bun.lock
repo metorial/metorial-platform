@@ -3298,6 +3298,7 @@
         "@metorial/consumer-auth": "1.0.0",
         "@metorial/context": "1.0.0",
         "@metorial/db": "1.0.0",
+        "@metorial/module-flags": "1.0.0",
         "@metorial/module-machine-access": "1.0.0",
         "@metorial/module-organization": "1.0.0",
         "@metorial/module-resource-actor": "1.0.0",
@@ -4778,6 +4779,7 @@
         "@lowerdeck/lock": "workspace:2.0.0",
         "@lowerdeck/pagination": "workspace:2.0.0",
         "@lowerdeck/queue": "workspace:2.0.0",
+        "@lowerdeck/queue-checkpoint": "workspace:2.0.0",
         "@lowerdeck/service": "workspace:2.0.0",
         "@lowerdeck/slugify": "workspace:2.0.0",
         "@metorial-subspace/db": "^1.0.0",
@@ -4802,6 +4804,7 @@
       },
       "devDependencies": {
         "@metorial/e2e": "1.0.0",
+        "@metorial/module-flags": "^1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "@types/bun": "latest",
       },
@@ -5177,6 +5180,7 @@
       },
       "devDependencies": {
         "@metorial/e2e": "1.0.0",
+        "@metorial/module-flags": "^1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "@types/bun": "latest",
       },
@@ -5282,6 +5286,7 @@
       },
       "devDependencies": {
         "@metorial/e2e": "1.0.0",
+        "@metorial/module-store": "^1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",
         "vitest": "^5.0.4",

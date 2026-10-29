@@ -108,6 +108,7 @@ describe('api-core skills', () => {
         getRoute(`/skills/${skill.id}/items`, resourceAuth),
         getRoute(`/skills/${skill.id}/versions`, resourceAuth),
         getRoute(`/skills/${skill.id}/participants`, resourceAuth),
+        getRoute(`/skills/${skill.id}/access`, resourceAuth),
         getRoute(`/skills/${skill.id}/agents`, resourceAuth),
         {
           label: 'PATCH /skills/:id',
@@ -135,6 +136,43 @@ describe('api-core skills', () => {
 
       let otherList = await listAll(otherOrg.clients.instance, '/skills');
       expect(ids(otherList)).not.toContain(skill.id);
+    });
+
+    it('serves deduplicated participants and the access grants of a skill', async () => {
+      let created = expectOk(
+        await memberApi(org, member).post('/skills', { name: uniqueId('participant-skill') })
+      );
+      let api = org.clients.instance;
+
+      let participants = await listAll(api, `/skills/${created.id}/participants`, {
+        limit: 1
+      });
+      expect(participants).toHaveLength(1);
+      expectPresented(participants[0], 'skill.participant');
+      expect(participants[0]).toMatchObject({
+        skill_id: created.id,
+        roles: ['creator', 'editor']
+      });
+      expect(participants[0].actor.organization_actor).not.toBeNull();
+      expect(participants[0].last_active_at).toEqual(expect.any(String));
+      expect(participants[0].surfaces).toHaveLength(1);
+      expect(participants[0].surfaces[0]).toMatchObject({ roles: ['creator', 'editor'] });
+
+      let fetched = expectOk(
+        await api.get(`/skills/${created.id}/participants/${participants[0].id}`)
+      );
+      expect(fetched.id).toBe(participants[0].id);
+
+      let access = expectOk(await api.get(`/skills/${created.id}/access`));
+      expectPresented(access, 'skill.access');
+      expect(access).toEqual({ object: 'skill.access', skill_id: created.id, grants: [] });
+
+      let other = await createSkill(api);
+      expectError(
+        await api.get(`/skills/${other.id}/participants/${participants[0].id}`),
+        404
+      );
+      expectError(await otherOrg.clients.instance.get(`/skills/${created.id}/access`), 404);
     });
 
     it('lets a non-admin member create, update and archive skills', async () => {

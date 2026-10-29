@@ -6,7 +6,7 @@ let { db } = vi.hoisted(() => ({
     skill: {
       findFirst: vi.fn()
     },
-    storeParticipant: {
+    storeParticipantActor: {
       findMany: vi.fn()
     },
     skillParticipant: {
@@ -62,7 +62,7 @@ describe('skill participant store projection', () => {
     vi.clearAllMocks();
 
     db.skill.findFirst.mockResolvedValue(skill);
-    db.storeParticipant.findMany.mockResolvedValue([]);
+    db.storeParticipantActor.findMany.mockResolvedValue([]);
     db.skillParticipant.findUnique.mockResolvedValue(null);
     db.skillParticipant.findFirst.mockResolvedValue(null);
     db.skillParticipant.findMany.mockResolvedValue([]);
@@ -90,7 +90,7 @@ describe('skill participant store projection', () => {
         })
       })
     );
-    expect(db.storeParticipant.findMany).not.toHaveBeenCalled();
+    expect(db.storeParticipantActor.findMany).not.toHaveBeenCalled();
   });
 
   it('retains the participant identity when individual access is removed', async () => {
@@ -155,7 +155,7 @@ describe('skill participant store projection', () => {
       skill,
       resourceActor
     };
-    db.storeParticipant.findMany.mockResolvedValue([
+    db.storeParticipantActor.findMany.mockResolvedValue([
       {
         storeOid: skill.storeOid,
         resourceActorOid: resourceActor.oid,
@@ -188,7 +188,7 @@ describe('skill participant store projection', () => {
       skill,
       resourceActor
     };
-    db.storeParticipant.findMany.mockResolvedValue([
+    db.storeParticipantActor.findMany.mockResolvedValue([
       {
         storeOid: skill.storeOid,
         resourceActorOid: resourceActor.oid,
@@ -216,7 +216,7 @@ describe('skill participant store projection', () => {
       skill,
       resourceActor
     };
-    db.storeParticipant.findMany.mockResolvedValue([
+    db.storeParticipantActor.findMany.mockResolvedValue([
       {
         storeOid: skill.storeOid,
         resourceActorOid: resourceActor.oid,

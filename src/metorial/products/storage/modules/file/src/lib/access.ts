@@ -1,6 +1,6 @@
 import type { Instance, ResourceActor } from '@metorial/db';
 import {
-  createResourceAuthorization,
+  resolveResourceAuthorization,
   type AnyAccessTagSelector,
   type ResourceAuthorization
 } from '@metorial/module-access';
@@ -64,15 +64,8 @@ export type CargoAccessInput = {
   authorization?: ResourceAuthorization;
 };
 
-export let getInstanceCargoAccess = (ctx: InstanceCargoAccessContext) => {
-  let authorization = createResourceAuthorization({
-    restricted: hasInstanceConsumerAccess(ctx),
-    resourceActor: ctx.resourceActor,
-    accessTags: ctx.accessTags,
-    project: ctx.project,
-    instance: ctx.instance,
-    consumerProfile: ctx.consumerProfile
-  });
+export let getInstanceCargoAccess = async (ctx: InstanceCargoAccessContext) => {
+  let { authorization } = await resolveResourceAuthorization(ctx);
 
   if (ctx.member?.actor) {
     return {

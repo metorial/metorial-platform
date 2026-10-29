@@ -27,12 +27,13 @@ import {
   createStore,
   modifyItems,
   scopeOf,
-  storePaths
+  storePaths,
+  useStoreResourceFlags
 } from './_fixtures';
 
 let participantPermissions = async (store: Pick<Store, 'oid'>, actor: ResourceActor) =>
   (
-    await db.storeParticipant.findUnique({
+    await db.storeParticipantActor.findUnique({
       where: {
         storeOid_resourceActorOid: { storeOid: store.oid, resourceActorOid: actor.oid }
       }
@@ -69,10 +70,14 @@ let listStoreIds = async (
     await firstPage(await storeService.listStores({ ...scopeOf(fixture), authorization, ids }))
   ).map(store => store.id);
 
-describe('module-store access', () => {
+describe.each([
+  ['legacy', false],
+  ['v2', true]
+])('module-store access (%s)', (_, enabled) => {
   let org = useOrganization();
   let member = useMember(org);
   let otherOrg = useOrganization();
+  useStoreResourceFlags(enabled);
 
   it('denies restricted consumers every operation on a private store', async () => {
     let fixture = await loadOrganizationFixture(org.ids);
@@ -238,107 +243,6 @@ describe('module-store access', () => {
     expect(await participantPermissions(store, actor)).toEqual([]);
   });
 
-  it('grants, widens and revokes access through explicit participants', async () => {
-    let fixture = await loadOrganizationFixture(org.ids);
-    let other = await loadOrganizationFixture(otherOrg.ids);
-    let store = await createStore(fixture);
-    let { actor, authorization } = await consumerAuthorization(fixture);
-
-    let readParticipant = await storeAccessService.ensureActorStorePermissions({
-      store,
-      actor,
-      permissions: ['content_read']
-    });
-    expect((await readStore(fixture, store, authorization)).id).toBe(store.id);
-    await expectServiceError(
-      modifyItems(fixture, store, [{ type: 'add', path: 'dir' }], authorization),
-      'forbidden'
-    );
-
-    let widened = await storeAccessService.ensureActorStorePermissions({
-      store,
-      actor,
-      permissions: ['content_write']
-    });
-    expect(widened?.id).toBe(readParticipant?.id);
-    expect(await participantPermissions(store, actor)).toEqual([
-      'content_read',
-      'content_write'
-    ]);
-    await modifyItems(fixture, store, [{ type: 'add', path: 'dir' }], authorization);
-    expect(await storePaths(store.id)).toEqual(['/', '/dir/']);
-
-    let participants = await firstPage(
-      await storeParticipantService.listStoreParticipants({
-        ...scopeOf(fixture),
-        storeIds: [store.id]
-      })
-    );
-    expect(participants.map(participant => participant.resourceActor.id)).toEqual([actor.id]);
-
-    let participant = await storeParticipantService.getStoreParticipantById({
-      ...scopeOf(fixture),
-      storeParticipantId: readParticipant!.id
-    });
-    expect(participant).toMatchObject({
-      store: { id: store.id },
-      resourceActorOid: actor.oid
-    });
-
-    await expectServiceError(
-      storeParticipantService.getStoreParticipantById({
-        ...scopeOf(other),
-        storeParticipantId: readParticipant!.id
-      }),
-      'not_found'
-    );
-    let otherParticipants = await firstPage(
-      await storeParticipantService.listStoreParticipants({ ...scopeOf(other) })
-    );
-    expect(otherParticipants.map(item => item.id)).not.toContain(readParticipant!.id);
-
-    await storeAccessService.ensureActorStorePermissions({
-      store,
-      actor,
-      permissions: [],
-      overridePermissions: true
-    });
-    expect(await participantPermissions(store, actor)).toEqual([]);
-    await expectServiceError(readStore(fixture, store, authorization), 'forbidden');
-  });
-
-  it('gives the creating actor full access to its private store and nobody else', async () => {
-    let fixture = await loadOrganizationFixture(org.ids);
-    let creator = await consumerAuthorization(fixture);
-    let stranger = await consumerAuthorization(fixture);
-
-    let store = await createStore(fixture, { actor: creator.actor });
-
-    expect(store).toMatchObject({
-      access: 'private',
-      createdByResourceActorOid: creator.actor.oid
-    });
-    expect(await participantPermissions(store, creator.actor)).toEqual([
-      'content_read',
-      'content_write'
-    ]);
-
-    await modifyItems(fixture, store, [{ type: 'add', path: 'mine' }], creator.authorization);
-    expect((await readStore(fixture, store, creator.authorization)).id).toBe(store.id);
-
-    await expectServiceError(readStore(fixture, store, stranger.authorization), 'forbidden');
-    expect(await listStoreIds(fixture, stranger.authorization, [store.id])).toEqual([]);
-
-    let createdBy = await firstPage(
-      await storeService.listStores({
-        ...scopeOf(fixture),
-        authorization: createResourceAuthorization({ restricted: false }),
-        createdByActorIds: [creator.actor.id]
-      })
-    );
-    expect(createdBy.map(item => item.id)).toEqual([store.id]);
-  });
-
   it('rejects resource actors that belong to another project', async () => {
     let fixture = await loadOrganizationFixture(org.ids);
     let other = await loadOrganizationFixture(otherOrg.ids);
@@ -438,5 +342,112 @@ describe('module-store access', () => {
     expect(privateStore.access).toBe('private');
 
     await expectServiceError(readStore(fixture, privateStore, authorization), 'forbidden');
+  });
+});
+
+describe('module-store legacy participant permissions', () => {
+  let org = useOrganization();
+  let otherOrg = useOrganization();
+  useStoreResourceFlags(false);
+
+  it('grants, widens and revokes access through explicit participants', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let other = await loadOrganizationFixture(otherOrg.ids);
+    let store = await createStore(fixture);
+    let { actor, authorization } = await consumerAuthorization(fixture);
+
+    let readParticipant = await storeAccessService.ensureActorStorePermissions({
+      store,
+      actor,
+      permissions: ['content_read']
+    });
+    expect((await readStore(fixture, store, authorization)).id).toBe(store.id);
+    await expectServiceError(
+      modifyItems(fixture, store, [{ type: 'add', path: 'dir' }], authorization),
+      'forbidden'
+    );
+
+    let widened = await storeAccessService.ensureActorStorePermissions({
+      store,
+      actor,
+      permissions: ['content_write']
+    });
+    expect(widened?.id).toBe(readParticipant?.id);
+    expect(await participantPermissions(store, actor)).toEqual([
+      'content_read',
+      'content_write'
+    ]);
+    await modifyItems(fixture, store, [{ type: 'add', path: 'dir' }], authorization);
+    expect(await storePaths(store.id)).toEqual(['/', '/dir/']);
+
+    let participants = await firstPage(
+      await storeParticipantService.listStoreParticipants({
+        ...scopeOf(fixture),
+        storeIds: [store.id]
+      })
+    );
+    expect(participants.map(participant => participant.resourceActor.id)).toEqual([actor.id]);
+
+    let participant = await storeParticipantService.getStoreParticipantById({
+      ...scopeOf(fixture),
+      storeParticipantId: readParticipant!.id
+    });
+    expect(participant).toMatchObject({
+      store: { id: store.id },
+      resourceActorOid: actor.oid
+    });
+
+    await expectServiceError(
+      storeParticipantService.getStoreParticipantById({
+        ...scopeOf(other),
+        storeParticipantId: readParticipant!.id
+      }),
+      'not_found'
+    );
+    let otherParticipants = await firstPage(
+      await storeParticipantService.listStoreParticipants({ ...scopeOf(other) })
+    );
+    expect(otherParticipants.map(item => item.id)).not.toContain(readParticipant!.id);
+
+    await storeAccessService.ensureActorStorePermissions({
+      store,
+      actor,
+      permissions: [],
+      overridePermissions: true
+    });
+    expect(await participantPermissions(store, actor)).toEqual([]);
+    await expectServiceError(readStore(fixture, store, authorization), 'forbidden');
+  });
+
+  it('gives the creating actor full access to its private store and nobody else', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let creator = await consumerAuthorization(fixture);
+    let stranger = await consumerAuthorization(fixture);
+
+    let store = await createStore(fixture, { actor: creator.actor });
+
+    expect(store).toMatchObject({
+      access: 'private',
+      createdByResourceActorOid: creator.actor.oid
+    });
+    expect(await participantPermissions(store, creator.actor)).toEqual([
+      'content_read',
+      'content_write'
+    ]);
+
+    await modifyItems(fixture, store, [{ type: 'add', path: 'mine' }], creator.authorization);
+    expect((await readStore(fixture, store, creator.authorization)).id).toBe(store.id);
+
+    await expectServiceError(readStore(fixture, store, stranger.authorization), 'forbidden');
+    expect(await listStoreIds(fixture, stranger.authorization, [store.id])).toEqual([]);
+
+    let createdBy = await firstPage(
+      await storeService.listStores({
+        ...scopeOf(fixture),
+        authorization: createResourceAuthorization({ restricted: false }),
+        createdByActorIds: [creator.actor.id]
+      })
+    );
+    expect(createdBy.map(item => item.id)).toEqual([store.id]);
   });
 });

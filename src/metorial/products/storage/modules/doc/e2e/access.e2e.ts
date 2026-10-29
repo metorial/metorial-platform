@@ -156,7 +156,7 @@ describe('module-documents access', () => {
     expect(participant).toMatchObject({ role: 'viewer', editCount: 0, lastEditedAt: null });
     expect(participant!.lastViewedAt).not.toBeNull();
 
-    let storeParticipant = await db.storeParticipant.findUniqueOrThrow({
+    let storeParticipant = await db.storeParticipantActor.findUniqueOrThrow({
       where: {
         storeOid_resourceActorOid: {
           storeOid: store.oid,

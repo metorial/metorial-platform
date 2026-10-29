@@ -1,6 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import { isStoreResourceFlagEnabled } from '@metorial/module-access';
 import { documentParticipantService } from '@metorial/module-documents';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
@@ -19,7 +20,11 @@ export let documentParticipantGroup = documentGroup.use(async ctx => {
 
   let documentParticipant = await documentParticipantService.getDocumentParticipantById({
     documentParticipantId: ctx.params.documentParticipantId,
-    ...(await getInstanceCargoAccess(ctx))
+    ...(await getInstanceCargoAccess(ctx)),
+    dedupeByStoreParticipant: await isStoreResourceFlagEnabled({
+      project: ctx.project,
+      flag: 'store-participants-v2'
+    })
   });
 
   if (documentParticipant.document.id !== ctx.document.id) {
@@ -64,7 +69,11 @@ export let documentParticipantController = Controller.create(
           ...(await getInstanceCargoAccess(ctx)),
           ids: normalizeArrayParam(ctx.query.id),
           createdAt: ctx.query.created_at,
-          lastEditedAt: ctx.query.updated_at
+          lastEditedAt: ctx.query.updated_at,
+          dedupeByStoreParticipant: await isStoreResourceFlagEnabled({
+            project: ctx.project,
+            flag: 'store-participants-v2'
+          })
         });
         let list = await paginator.run(ctx.query);
 

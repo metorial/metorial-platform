@@ -10,8 +10,9 @@ import {
 } from '@metorial/module-access';
 import { documentService } from '@metorial/module-documents';
 import { filePurposeService, fileService } from '@metorial/module-file';
+import { applyEnabledFlags, defaultFlags, setFlagProvider } from '@metorial/module-flags';
 import { resourceActorService } from '@metorial/module-resource-actor';
-import { expect } from 'vitest';
+import { afterEach, beforeEach, expect } from 'vitest';
 import { storeItemService, storeService, type StoreItemOperationInput } from '../src';
 
 export let privileged = createResourceAuthorization({ restricted: false });
@@ -157,6 +158,22 @@ export let consumerAuthorization = async (fixture: OrganizationFixture) => {
   };
 
   return { actor, authorization };
+};
+
+let stackFlags = () => applyEnabledFlags(defaultFlags, process.env.METORIAL_ENABLED_FLAGS);
+
+export let useStoreResourceFlags = (enabled: boolean) => {
+  beforeEach(() => {
+    setFlagProvider(async () => ({
+      ...stackFlags(),
+      'store-participants-v2': enabled,
+      'store-access-v2': enabled
+    }));
+  });
+
+  afterEach(() => {
+    setFlagProvider(async () => stackFlags());
+  });
 };
 
 export let captureFabric = <K extends keyof FabricEvents>(event: K) => {

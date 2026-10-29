@@ -143,6 +143,7 @@ export let consumerScopes = [
   'consumer#instance.document:write' as const,
   'consumer#instance.store:read' as const,
   'consumer#instance.store:write' as const,
+  'consumer#instance.store:manage_access' as const,
 
   'consumer#instance.assistant:read' as const,
   'consumer#instance.assistant:write' as const,

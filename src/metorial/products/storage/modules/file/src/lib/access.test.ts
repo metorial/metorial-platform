@@ -12,13 +12,21 @@ vi.mock('@metorial/module-resource-actor', () => ({
   resourceActorService: {}
 }));
 
-vi.mock(
-  '@metorial/module-access',
-  async () =>
-    await vi.importActual(
-      '../../../../../core/modules/access/src/services/resourceAuthorization'
-    )
-);
+vi.mock('@metorial/module-access', async () => {
+  let actual = await vi.importActual<
+    typeof import('../../../../../core/modules/access/src/services/resourceAuthorization')
+  >('../../../../../core/modules/access/src/services/resourceAuthorization');
+
+  return {
+    ...actual,
+    resolveResourceAuthorization: async (d: any) => ({
+      authorization: actual.createResourceAuthorization({
+        ...d,
+        restricted: !!d.consumerProfile?.consumer && !d.member?.actor
+      })
+    })
+  };
+});
 
 import { getInstanceCargoAccess, hasInstanceConsumerAccess } from './access';
 
@@ -77,8 +85,8 @@ let accessTags = [{ accessTagOid: 30n }];
 let scopeContext = { project, instance };
 
 describe('local Cargo access', () => {
-  it('prefers member access over consumer access', () => {
-    let access = getInstanceCargoAccess({
+  it('prefers member access over consumer access', async () => {
+    let access = await getInstanceCargoAccess({
       member,
       consumerProfile,
       resourceActor: memberResourceActor,
@@ -113,9 +121,9 @@ describe('local Cargo access', () => {
     ).toBe(false);
   });
 
-  it('uses consumer access without member permissions', () => {
+  it('uses consumer access without member permissions', async () => {
     expect(
-      getInstanceCargoAccess({
+      await getInstanceCargoAccess({
         consumerProfile,
         resourceActor: consumerResourceActor,
         accessTags,

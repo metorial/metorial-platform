@@ -44,6 +44,7 @@ import {
 } from './storeAccess';
 import { storeItemInclude, type StoreItemRecord } from './storeItem';
 import { storeItemMutationService, type StoreItemOperationInput } from './storeItemMutation';
+import { storeParticipantService } from './storeParticipant';
 import { storeTemplateService, type StoreTemplateRecord } from './storeTemplate';
 import { storeVersionService } from './storeVersion';
 
@@ -316,6 +317,12 @@ class StoreServiceImpl {
           store: createdStore,
           actor: d.input.actor,
           permissions: [storeReadPermission, storeWritePermission]
+        });
+
+        await storeParticipantService.recordParticipationSafely({
+          store: createdStore,
+          actor: d.input.actor,
+          roles: ['creator']
         });
       }
 

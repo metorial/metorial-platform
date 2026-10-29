@@ -58,7 +58,7 @@ export let resolveStoreVersions = createResolver(async ({ scope, ids }) =>
 );
 
 export let resolveStoreParticipants = createResolver(async ({ scope, ids }) =>
-  db.storeParticipant.findMany({
+  db.storeParticipantActor.findMany({
     where: {
       id: { in: ids },
       store: scope

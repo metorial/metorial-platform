@@ -283,6 +283,7 @@ import {
   v1SkillMergeRequestEventPresenter,
   v1SkillMergeRequestItemPresenter,
   v1SkillMergeRequestPresenter,
+  v1SkillAccessPresenter,
   v1SkillParticipantPresenter,
   v1SkillPluginPresenter,
   v1SkillPluginRepositoryPresenter,
@@ -545,6 +546,7 @@ import {
   skillMergeRequestEventType,
   skillMergeRequestItemType,
   skillMergeRequestType,
+  skillAccessType,
   skillParticipantType,
   skillPluginRepositoryType,
   skillPluginSkillType,
@@ -1085,6 +1087,11 @@ export let skillSyncRepositoryChecksPresenter = declarePresenter(
     mt_2026_01_01_magnetar: v1SkillSyncRepositoryChecksPresenter
   }
 );
+
+export let skillAccessPresenter = declarePresenter(skillAccessType, {
+  mt_2025_01_01_dashboard: v1SkillAccessPresenter,
+  mt_2026_01_01_magnetar: v1SkillAccessPresenter
+});
 
 export let skillParticipantPresenter = declarePresenter(skillParticipantType, {
   mt_2025_01_01_dashboard: v1SkillParticipantPresenter,

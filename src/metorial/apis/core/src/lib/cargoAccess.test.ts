@@ -1,18 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@metorial/module-access', () => ({
-  createResourceAuthorization: ({
-    restricted,
+  resolveResourceAuthorization: async ({
+    member,
+    consumerProfile,
     resourceActor,
     accessTags
   }: {
-    restricted: boolean;
+    member?: { actor?: unknown };
+    consumerProfile?: { consumer?: unknown };
     resourceActor?: unknown;
     accessTags?: unknown;
-  }) =>
-    restricted
-      ? { type: 'restricted', resourceActor, accessTags }
-      : { type: 'privileged', resourceActor }
+  }) => ({
+    authorization:
+      consumerProfile?.consumer && !member?.actor
+        ? { type: 'restricted', resourceActor, accessTags }
+        : { type: 'privileged', resourceActor }
+  })
 }));
 
 import {

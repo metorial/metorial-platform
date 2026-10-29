@@ -18,7 +18,8 @@ import {
   grantAccess,
   memberAuthorization,
   organizationResourceActor,
-  privileged
+  privileged,
+  useStoreResourceFlags
 } from './_fixtures';
 
 let consumerRead = async (
@@ -49,10 +50,14 @@ let listParticipants = async (
     })
   );
 
-describe('module-skill access', () => {
+describe.each([
+  ['legacy', false],
+  ['v2', true]
+])('module-skill access (%s)', (_, enabled) => {
   let org = useOrganization();
   let otherOrg = useOrganization();
   let member = useMember(org);
+  useStoreResourceFlags(enabled);
 
   let memberFixture = async () =>
     await loadOrganizationFixture({ ...org.ids, userId: member.user.id });
@@ -221,7 +226,7 @@ describe('module-skill access', () => {
     let skill = await createSkill(fixture, {
       authorization: await memberAuthorization(fixture)
     });
-    let storeParticipant = await db.storeParticipant.findFirstOrThrow({
+    let storeParticipant = await db.storeParticipantActor.findFirstOrThrow({
       where: { store: { id: skill.storeId }, resourceActorOid: creator.oid }
     });
     expect([...storeParticipant.permissions].sort()).toEqual([
@@ -276,7 +281,7 @@ describe('module-skill access', () => {
     expect(rolesByActor.get(user.id)).toEqual(['editor']);
     expect(participants).toHaveLength(2);
 
-    let userStoreAccess = await db.storeParticipant.findFirstOrThrow({
+    let userStoreAccess = await db.storeParticipantActor.findFirstOrThrow({
       where: { store: { id: skill.storeId }, resourceActorOid: user.oid }
     });
     expect([...userStoreAccess.permissions].sort()).toEqual(['content_read', 'content_write']);
@@ -312,7 +317,7 @@ describe('module-skill access', () => {
       })
     ).toBe(0);
     expect(
-      await db.storeParticipant.count({
+      await db.storeParticipantActor.count({
         where: { store: { id: skill.storeId }, resourceActorOid: foreignActor.oid }
       })
     ).toBe(0);

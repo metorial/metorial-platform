@@ -10,6 +10,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
   storeAccessService,
+  storeParticipantService,
   storeReadPermission,
   storeService,
   storeVersionService,
@@ -39,6 +40,9 @@ import {
   assertResourceActorScope,
   assertResourceAuthorizationScope,
   consumerSkillReadRoles,
+  getStoreResourceKindAccessWhere,
+  isStoreResourceFlagEnabled,
+  skillStoreResourceKind,
   type ResourceAuthorization
 } from '@metorial/module-access';
 import type { SkillTemplateRecord } from '@metorial/module-skill-templates';
@@ -72,9 +76,25 @@ export type SkillRecord = Prisma.SkillGetPayload<{
 }>;
 
 export let getConsumerSkillAccessWhere = async (d: {
+  project?: { oid: bigint };
   accessTags?: AnyAccessTagSelector;
 }): Promise<Prisma.SkillWhereInput | undefined> => {
   if (!d.accessTags) return undefined;
+
+  if (
+    d.project &&
+    (await isStoreResourceFlagEnabled({ project: d.project, flag: 'store-access-v2' }))
+  ) {
+    return {
+      store: {
+        is: await getStoreResourceKindAccessWhere({
+          kind: skillStoreResourceKind,
+          accessTags: d.accessTags,
+          level: 'read'
+        })
+      }
+    };
+  }
 
   let accessTagFilter = await accessTagService.getAccessTagFilter({
     tags: d.accessTags,
@@ -289,6 +309,20 @@ class SkillServiceImpl {
         if (d.parentSkill && d.parentSkillCloneType === 'fork') {
           await skillParticipantService.ensureSkillParticipantRoles({
             skill: d.parentSkill,
+            actor,
+            roles: ['forker']
+          });
+        }
+
+        await storeParticipantService.recordParticipationSafely({
+          store,
+          actor,
+          roles: ['creator']
+        });
+
+        if (d.parentSkill?.store && d.parentSkillCloneType === 'fork') {
+          await storeParticipantService.recordParticipationSafely({
+            store: d.parentSkill.store,
             actor,
             roles: ['forker']
           });
@@ -687,6 +721,12 @@ class SkillServiceImpl {
       skill: d.skill,
       actor: d.actor,
       permission: d.actor.organizationActorOid ? 'write' : 'read'
+    });
+
+    await storeParticipantService.recordParticipationSafely({
+      store: d.skill.store!,
+      actor: d.actor,
+      roles: d.actor.consumerProfileOid ? ['viewer', 'user'] : ['viewer']
     });
 
     if (d.actor.consumerProfileOid) {

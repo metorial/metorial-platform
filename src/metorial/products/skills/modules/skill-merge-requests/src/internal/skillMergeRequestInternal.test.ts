@@ -1,7 +1,14 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+let mocks = vi.hoisted(() => ({
+  isStoreResourceFlagEnabled: vi.fn(),
+  getStoreResourceAccessWhere: vi.fn()
+}));
 
 vi.mock('@metorial/module-access', () => ({
   consumerSkillReadRoles: ['consumer#instance.skill:read'],
+  isStoreResourceFlagEnabled: mocks.isStoreResourceFlagEnabled,
+  getStoreResourceAccessWhere: mocks.getStoreResourceAccessWhere,
   accessTagService: {
     getAccessTagFilter: async (d: { tags?: { accessTagOid: bigint }[]; roles: string[] }) =>
       d.tags
@@ -24,6 +31,11 @@ let actor = {
   projectOid: 1n,
   consumerProfileOid: 4n
 } as any;
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  mocks.isStoreResourceFlagEnabled.mockResolvedValue(false);
+});
 
 describe('skill merge request visibility', () => {
   it.each([
@@ -81,7 +93,7 @@ describe('skill merge request visibility', () => {
         },
         { createdByResourceActorOid: actor.oid },
         {
-          storeParticipants: {
+          storeParticipantActors: {
             some: {
               resourceActorOid: actor.oid,
               permissions: {
@@ -93,6 +105,42 @@ describe('skill merge request visibility', () => {
       ]
     };
 
+    expect(where).toEqual({
+      projectOid,
+      instanceOid,
+      OR: [
+        { sourceSkill: { store: readableStoreWhere } },
+        { targetSkill: { store: readableStoreWhere } }
+      ]
+    });
+  });
+
+  it('reads store-level grants when store-access-v2 is on', async () => {
+    let storeAccessWhere = { OR: [{ oid: { in: [9n] } }] };
+    mocks.isStoreResourceFlagEnabled.mockResolvedValue(true);
+    mocks.getStoreResourceAccessWhere.mockResolvedValue(storeAccessWhere);
+
+    let where = await getVisibleSkillMergeRequestWhere({
+      projectOid,
+      instanceOid,
+      authorization: {
+        type: 'restricted',
+        resourceActor: actor,
+        accessTags: [{ accessTagOid: 5n }]
+      } as any
+    });
+    let readableStoreWhere = {
+      OR: [storeAccessWhere, { createdByResourceActorOid: actor.oid }]
+    };
+
+    expect(mocks.isStoreResourceFlagEnabled).toHaveBeenCalledWith({
+      project: { oid: projectOid },
+      flag: 'store-access-v2'
+    });
+    expect(mocks.getStoreResourceAccessWhere).toHaveBeenCalledWith({
+      accessTags: [{ accessTagOid: 5n }],
+      level: 'read'
+    });
     expect(where).toEqual({
       projectOid,
       instanceOid,

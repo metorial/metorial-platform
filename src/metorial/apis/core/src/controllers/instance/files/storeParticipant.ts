@@ -1,6 +1,7 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import { isStoreResourceFlagEnabled } from '@metorial/module-access';
 import { storeParticipantService } from '@metorial/module-store';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
@@ -12,6 +13,19 @@ import { storeGroup } from './store';
 export let storeParticipantGroup = storeGroup.use(async ctx => {
   if (!ctx.params.storeParticipantId) {
     throw new Error('storeParticipantId is required');
+  }
+
+  if (
+    await isStoreResourceFlagEnabled({ project: ctx.project, flag: 'store-participants-v2' })
+  ) {
+    let storeParticipant = await storeParticipantService.getStoreResourceParticipantById({
+      project: ctx.project,
+      instance: ctx.instance,
+      store: ctx.store,
+      participantId: ctx.params.storeParticipantId
+    });
+
+    return { storeParticipant };
   }
 
   let storeParticipant = await storeParticipantService.getStoreParticipantById({
@@ -43,6 +57,24 @@ export let storeParticipantController = Controller.create(
       .outputList(storeParticipantPresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
+        if (
+          await isStoreResourceFlagEnabled({
+            project: ctx.project,
+            flag: 'store-participants-v2'
+          })
+        ) {
+          let paginator = await storeParticipantService.listStoreResourceParticipants({
+            project: ctx.project,
+            instance: ctx.instance,
+            store: ctx.store
+          });
+          let list = await paginator.run(ctx.query);
+
+          return Paginator.present(list, storeParticipant =>
+            storeParticipantPresenter.present({ storeParticipant })
+          );
+        }
+
         let paginator = await storeParticipantService.listStoreParticipants({
           storeIds: [ctx.store.id],
           ...(await getInstanceCargoAccess(ctx))

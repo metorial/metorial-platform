@@ -30,7 +30,7 @@ let {
     accessTagEntity: {
       findMany: vi.fn()
     },
-    storeParticipant: {
+    storeParticipantActor: {
       findMany: vi.fn()
     },
     organizationMember: {
@@ -161,7 +161,7 @@ describe('consumer skill sharing', () => {
     db.consumerGroup.findMany.mockResolvedValue([personalConsumerGroup]);
     transactionDb.consumerAccess.findMany.mockResolvedValue([]);
     db.accessTagEntity.findMany.mockResolvedValue([]);
-    db.storeParticipant.findMany.mockResolvedValue([]);
+    db.storeParticipantActor.findMany.mockResolvedValue([]);
     createConsumerAccessMock.mockResolvedValue({
       id: 'consumer_access_1',
       consumerGroup: personalConsumerGroup

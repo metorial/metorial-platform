@@ -26,6 +26,9 @@ export type Flags = {
   'public-mcp-servers-enabled': FlagValue;
   outposts: FlagValue;
 
+  'store-participants-v2': FlagValue;
+  'store-access-v2': FlagValue;
+
   'paid-oauth-import': FlagValue;
   'paid-oauth-export': FlagValue;
   'paid-callbacks': FlagValue;
@@ -80,6 +83,9 @@ export let defaultFlags: Flags = {
   'sandbox-enabled': false,
   'public-mcp-servers-enabled': false,
   outposts: false,
+
+  'store-participants-v2': false,
+  'store-access-v2': false,
 
   'paid-oauth-import': true,
   'paid-oauth-export': true,

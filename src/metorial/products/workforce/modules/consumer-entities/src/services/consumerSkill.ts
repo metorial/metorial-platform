@@ -31,7 +31,9 @@ import {
 import {
   accessTagService,
   consumerSkillManageAccessRoles,
-  createResourceAuthorization
+  createResourceAuthorization,
+  isStoreResourceFlagEnabled,
+  skillStoreResourceAccess
 } from '@metorial/module-access';
 import { resourceActorService } from '@metorial/module-resource-actor';
 import {
@@ -113,15 +115,24 @@ class ConsumerSkillServiceImpl {
     skill: Skill;
     consumerProfile: ConsumerProfile;
   }) {
+    let tags = await this.getConsumerWriteAccessTags(d.consumerProfile);
+    let useStoreAccess =
+      d.skill.projectOid != null &&
+      (await isStoreResourceFlagEnabled({
+        project: { oid: d.skill.projectOid },
+        flag: 'store-access-v2'
+      }));
+
     let accessTagFilter = await accessTagService.getAccessTagFilter({
-      tags: await this.getConsumerWriteAccessTags(d.consumerProfile),
-      roles: [...consumerSkillManageAccessRoles]
+      tags,
+      roles: useStoreAccess
+        ? skillStoreResourceAccess.policies.manage.roles
+        : [...consumerSkillManageAccessRoles]
     });
     let manageableSkill = await db.skill.findFirst({
-      where: {
-        oid: d.skill.oid,
-        accessTagEntities: accessTagFilter
-      },
+      where: useStoreAccess
+        ? { oid: d.skill.oid, store: { is: { accessTagEntities: accessTagFilter } } }
+        : { oid: d.skill.oid, accessTagEntities: accessTagFilter },
       select: {
         oid: true
       }
