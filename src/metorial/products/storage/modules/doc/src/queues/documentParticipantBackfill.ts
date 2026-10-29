@@ -8,7 +8,7 @@ export let DOCUMENT_PARTICIPANT_BACKFILL_BATCH_SIZE = 500;
 export let documentParticipantBackfillCron = createCron(
   {
     name: 'cargo/document/participant/backfill/cron',
-    cron: '0 * * * *'
+    cron: '21,51 * * * *'
   },
   async () => {
     await documentParticipantBackfillManyQueue.add({});
