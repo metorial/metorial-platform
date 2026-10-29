@@ -449,7 +449,7 @@ export let SecurityReviewNotices = ({
           <Spinner size={14} />
           <span>
             {inProgress.status == 'queued'
-              ? 'A new assessment is queued.'
+              ? 'Your reassessment is starting shortly'
               : `Reassessing${stage ? `: ${stage.label}` : ''}${activity ? ` - ${activity}` : ''}`}
           </span>
         </ProgressStripLabel>
