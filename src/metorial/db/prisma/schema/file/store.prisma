@@ -76,13 +76,15 @@ model Store {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  items             StoreItem[]
-  versions          StoreVersion[]
-  storeParticipants StoreParticipant[]
-  skill             Skill?
-  storeDirectories  StoreDirectory[]
-  sourceTemplates   StoreTemplate[]       @relation("StoreTemplateSource")
-  templateBacking   StoreTemplateBacking?
+  items                  StoreItem[]
+  versions               StoreVersion[]
+  storeParticipants      StoreParticipant[]
+  storeParticipantActors StoreParticipantActor[]
+  accessTagEntities      AccessTagEntity[]
+  skill                  Skill?
+  storeDirectories       StoreDirectory[]
+  sourceTemplates        StoreTemplate[]         @relation("StoreTemplateSource")
+  templateBacking        StoreTemplateBacking?
 
   @@index([resourceTenantOid, resourceGroupOid, dirtyAt])
   @@index([resourceTenantOid, resourceGroupOid, isTemplateBacking])
@@ -279,21 +281,66 @@ enum StoreParticipantPermissions {
   content_write
 }
 
+enum StoreParticipantRole {
+  creator
+  editor
+  viewer
+  user
+  forker
+}
+
 model StoreParticipant {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
+  roles StoreParticipantRole[] @default([])
+
+  storeOid BigInt
+  store    Store  @relation(fields: [storeOid], references: [oid], onDelete: Cascade)
+
+  consumerOid BigInt?
+  consumer    Consumer? @relation(fields: [consumerOid], references: [oid], onDelete: SetNull)
+
+  primaryResourceActorOid BigInt
+  primaryResourceActor    ResourceActor @relation("StoreParticipantPrimaryActor", fields: [primaryResourceActorOid], references: [oid], onDelete: Cascade)
+
+  lastActiveAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+
+  actors               StoreParticipantActor[]
+  documentParticipants DocumentParticipant[]
+
+  @@unique([storeOid, consumerOid])
+  @@unique([storeOid, primaryResourceActorOid])
+  @@index([consumerOid])
+  @@index([primaryResourceActorOid])
+  @@map("StoreParticipantPrincipal")
+}
+
+model StoreParticipantActor {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  roles       StoreParticipantRole[]        @default([])
   permissions StoreParticipantPermissions[]
 
   storeOid BigInt
   store    Store  @relation(fields: [storeOid], references: [oid], onDelete: Cascade)
 
+  storeParticipantOid BigInt?
+  storeParticipant    StoreParticipant? @relation(fields: [storeParticipantOid], references: [oid], onDelete: SetNull)
+
   resourceActorOid BigInt
   resourceActor    ResourceActor @relation(fields: [resourceActorOid], references: [oid], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
+  lastActiveAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
 
   @@unique([storeOid, resourceActorOid])
+  @@index([storeParticipantOid])
+  @@map("StoreParticipant")
 }
 
 model StoreDirectory {

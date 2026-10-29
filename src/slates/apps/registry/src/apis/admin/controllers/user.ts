@@ -105,7 +105,7 @@ export let userController = app.controller({
         })
       )
       .do(async ctx => {
-        let token = await userTokenService.createUserToken({
+        let { token, secret } = await userTokenService.createUserToken({
           user: ctx.user,
           input: {
             name: ctx.input.name
@@ -114,7 +114,7 @@ export let userController = app.controller({
 
         return {
           ...userTokenPresenter(token),
-          secret: token.secret
+          secret
         };
       }),
 
@@ -135,10 +135,7 @@ export let userController = app.controller({
 
         let list = await paginator.run(ctx.input);
 
-        return Paginator.presentLight(list, token => ({
-          ...userTokenPresenter(token),
-          secret: token.secret
-        }));
+        return Paginator.presentLight(list, userTokenPresenter);
       }),
 
     get: userApp
@@ -157,10 +154,7 @@ export let userController = app.controller({
           user: ctx.user
         });
 
-        return {
-          ...userTokenPresenter(token),
-          secret: token.secret
-        };
+        return userTokenPresenter(token);
       }),
 
     delete: userApp

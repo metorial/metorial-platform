@@ -11,6 +11,7 @@ export let consumerDocumentReadRoles = ['consumer#instance.document:read'] as co
 export let consumerDocumentWriteRoles = ['consumer#instance.document:write'] as const;
 export let consumerStoreReadRoles = ['consumer#instance.store:read'] as const;
 export let consumerStoreWriteRoles = ['consumer#instance.store:write'] as const;
+export let consumerStoreManageAccessRoles = ['consumer#instance.store:manage_access'] as const;
 export let consumerAssistantReadRoles = ['consumer#instance.assistant:read'] as const;
 export let consumerAssistantWriteRoles = ['consumer#instance.assistant:write'] as const;
 export let consumerAssistantConversationReadRoles = [
@@ -53,7 +54,8 @@ export let consumerDocumentAccessRoles = [
 ] as const;
 export let consumerStoreAccessRoles = [
   ...consumerStoreReadRoles,
-  ...consumerStoreWriteRoles
+  ...consumerStoreWriteRoles,
+  ...consumerStoreManageAccessRoles
 ] as const;
 export let consumerAssistantAccessRoles = [
   ...consumerAssistantReadRoles,

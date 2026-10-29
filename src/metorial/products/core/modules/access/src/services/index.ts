@@ -5,3 +5,4 @@ export * from './fineGrainedAuth';
 export * from './fineGrainedKey';
 export * from './resourceAuthorization';
 export * from './sessionClientSecretReference';
+export * from './storeAccessGrant';

@@ -66,6 +66,7 @@ describe('definitions', () => {
       expect(scopes).toContain('consumer#instance.document:write');
       expect(scopes).toContain('consumer#instance.store:read');
       expect(scopes).toContain('consumer#instance.store:write');
+      expect(scopes).toContain('consumer#instance.store:manage_access');
     });
 
     it('should contain instance.secret scopes', () => {

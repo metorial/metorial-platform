@@ -1,7 +1,9 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
+import { isStoreResourceFlagEnabled } from '@metorial/module-access';
 import { skillParticipantService } from '@metorial/module-skill';
+import { storeParticipantService } from '@metorial/module-store';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { checkAccess } from '../../../middleware/checkAccess';
@@ -16,6 +18,20 @@ let skillReadScopes = ['instance.skill:read', 'consumer#instance.skill:read'] as
 export let skillParticipantGroup = skillGroup.use(async ctx => {
   if (!ctx.params.skillParticipantId) {
     throw new Error('skillParticipantId is required');
+  }
+
+  if (
+    ctx.skill.store &&
+    (await isStoreResourceFlagEnabled({ project: ctx.project, flag: 'store-participants-v2' }))
+  ) {
+    let participant = await storeParticipantService.getStoreResourceParticipantById({
+      project: ctx.project,
+      instance: ctx.instance,
+      store: ctx.skill.store,
+      participantId: ctx.params.skillParticipantId
+    });
+
+    return { skillParticipant: { ...participant, skill: ctx.skill } };
   }
 
   let skillParticipant = await skillParticipantService.getSkillParticipantById({
@@ -47,6 +63,27 @@ export let skillParticipantController = Controller.create(
       .outputList(skillParticipantPresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
+        if (
+          ctx.skill.store &&
+          (await isStoreResourceFlagEnabled({
+            project: ctx.project,
+            flag: 'store-participants-v2'
+          }))
+        ) {
+          let paginator = await storeParticipantService.listStoreResourceParticipants({
+            project: ctx.project,
+            instance: ctx.instance,
+            store: ctx.skill.store
+          });
+          let list = await paginator.run(ctx.query);
+
+          return Paginator.present(list, participant =>
+            skillParticipantPresenter.present({
+              skillParticipant: { ...participant, skill: ctx.skill }
+            })
+          );
+        }
+
         let paginator = await skillParticipantService.listSkillParticipants({
           skillId: ctx.skill.id,
           ...(await getInstanceCargoAccess(ctx))

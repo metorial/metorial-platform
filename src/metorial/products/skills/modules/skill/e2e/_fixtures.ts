@@ -6,11 +6,14 @@ import {
   accessTagService,
   createResourceAuthorization,
   type ResourceAuthorization,
-  type RestrictedResourceActor
+  type RestrictedResourceActor,
+  storeAccessGrantService
 } from '@metorial/module-access';
 import { documentService, flushDocumentDraft } from '@metorial/module-documents';
+import { applyEnabledFlags, defaultFlags, setFlagProvider } from '@metorial/module-flags';
 import { resourceActorService } from '@metorial/module-resource-actor';
 import { storeVersionService } from '@metorial/module-store';
+import { afterEach, beforeEach } from 'vitest';
 import { type SkillRecord, skillService } from '../src';
 
 export let privileged = createResourceAuthorization({ restricted: false });
@@ -132,13 +135,32 @@ export let grantAccess = async (
     }
   });
 
-  return await db.accessTagEntity.create({
+  let entity = await db.accessTagEntity.create({
     data: {
       accessTagOid: d.accessTag.oid,
       accessTagPolicyOid: policy.oid,
       skillOid: d.skill?.oid,
       skillGroupOid: d.skillGroup?.oid
     }
+  });
+  if (d.skill) await storeAccessGrantService.syncLegacySkillGrants({ skillOid: d.skill.oid });
+
+  return entity;
+};
+
+let stackFlags = () => applyEnabledFlags(defaultFlags, process.env.METORIAL_ENABLED_FLAGS);
+
+export let useStoreResourceFlags = (enabled: boolean) => {
+  beforeEach(() => {
+    setFlagProvider(async () => ({
+      ...stackFlags(),
+      'store-participants-v2': enabled,
+      'store-access-v2': enabled
+    }));
+  });
+
+  afterEach(() => {
+    setFlagProvider(async () => stackFlags());
   });
 };
 

@@ -10,7 +10,7 @@ import type { User, UserToken } from '../../prisma/generated/client';
 import { db } from '../db';
 import { env } from '../env';
 import { getId } from '../id';
-import { apiKeys } from '../keys';
+import { apiKeys, hashSecret } from '../keys';
 
 let include = {
   user: true,
@@ -25,19 +25,22 @@ class userTokenServiceImpl {
     };
     user: User;
   }) {
-    return await db.userToken.create({
+    let secret = apiKeys
+      .create({
+        type: 'user_auth_token',
+        config: { url: env.url.SERVICE_PUBLIC_URL }
+      })
+      .toString();
+
+    let token = await db.userToken.create({
       data: {
         ...getId('userToken'),
         status: 'active',
 
         name: d.input.name,
 
-        secret: apiKeys
-          .create({
-            type: 'user_auth_token',
-            config: { url: env.url.SERVICE_PUBLIC_URL }
-          })
-          .toString(),
+        secretHash: hashSecret(secret),
+        secretRedacted: apiKeys.redact(secret),
 
         userOid: d.user.oid,
         tenantOid: d.user.tenantOid,
@@ -46,6 +49,8 @@ class userTokenServiceImpl {
       },
       include
     });
+
+    return { token, secret };
   }
 
   async getTokenById(d: { id: string; user: User }) {
@@ -119,11 +124,13 @@ class userTokenServiceImpl {
   }
 
   async authenticateWithUserToken(d: { secret: string }) {
-    let token = await db.userToken.findUnique({
+    let token = await db.userToken.findFirst({
       where: {
-        secret: d.secret,
         status: 'active',
-        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }]
+        AND: [
+          { OR: [{ secretHash: hashSecret(d.secret) }, { secret: d.secret }] },
+          { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] }
+        ]
       },
       include: {
         user: true,

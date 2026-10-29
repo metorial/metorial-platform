@@ -183,7 +183,7 @@ export let slateController = app.controller({
                 : null,
 
             access: ctx.input.access,
-            contentBase64: ctx.input.contentBase64
+            content: Buffer.from(ctx.input.contentBase64, 'base64')
           }
         });
 

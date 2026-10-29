@@ -5,6 +5,7 @@ import { documentCollaborationFlushProcessors } from './documentCollaborationFlu
 import { documentCommentAnchorSyncProcessors } from './documentCommentAnchorSync';
 import { documentDraftVersionFlushProcessors } from './documentDraftVersionFlush';
 import { documentFlushProcessors } from './documentFlush';
+import { documentParticipantBackfillProcessors } from './documentParticipantBackfill';
 import { documentVersionSealProcessors } from './documentVersionSeal';
 import { documentVersionSyncProcessors } from './documentVersionSync';
 import { documentLifecycleProcessors } from './lifecycle';
@@ -15,6 +16,7 @@ export * from './documentCollaborationFlush';
 export * from './documentCommentAnchorSync';
 export * from './documentDraftVersionFlush';
 export * from './documentFlush';
+export * from './documentParticipantBackfill';
 export * from './documentVersionSeal';
 export * from './documentVersionSync';
 export * from './lifecycle';
@@ -25,6 +27,7 @@ export let documentQueueProcessor = combineQueueProcessors([
   documentCollaborationFlushProcessors,
   documentDraftVersionFlushProcessors,
   documentCleanupProcessors,
+  documentParticipantBackfillProcessors,
   documentVersionSealProcessors,
   documentVersionSyncProcessors,
   documentAnnotationsRepairProcessors,

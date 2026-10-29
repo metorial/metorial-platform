@@ -105,7 +105,7 @@ export let userController = app.controller({
         })
       )
       .do(async ctx => {
-        let token = await userTokenService.createUserToken({
+        let { token, secret } = await userTokenService.createUserToken({
           user: ctx.user,
           input: {
             name: ctx.input.name
@@ -114,7 +114,7 @@ export let userController = app.controller({
 
         return {
           ...userTokenPresenter(token),
-          secret: token.secret
+          secret
         };
       }),
 

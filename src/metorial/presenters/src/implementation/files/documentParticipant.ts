@@ -80,7 +80,12 @@ export let v1DocumentParticipantPresenter = Presenter.create(documentParticipant
     edit_count: documentParticipant.editCount,
     last_edited_at: documentParticipant.lastEditedAt,
     last_viewed_at: documentParticipant.lastViewedAt,
-    actor: await presentDocumentParticipantActor(documentParticipant.resourceActor, opts),
+    actor: await presentDocumentParticipantActor(
+      documentParticipant.storeParticipant?.primaryResourceActor ??
+        documentParticipant.resourceActor,
+      opts
+    ),
+    store_participant_id: documentParticipant.storeParticipant?.id ?? null,
     created_at: documentParticipant.createdAt
   }))
   .schema(
@@ -94,6 +99,7 @@ export let v1DocumentParticipantPresenter = Presenter.create(documentParticipant
       last_edited_at: v.nullable(v.date()),
       last_viewed_at: v.nullable(v.date()),
       actor: documentParticipantActorSchema,
+      store_participant_id: v.nullable(v.string()),
       created_at: v.date()
     })
   )

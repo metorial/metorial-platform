@@ -1,11 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
-  getAccessTagFilter: vi.fn()
+  getAccessTagFilter: vi.fn(),
+  isStoreResourceFlagEnabled: vi.fn(),
+  getStoreResourceKindAccessWhere: vi.fn()
 }));
 
 vi.mock('@metorial/module-access', () => ({
   consumerSkillWriteRoles: ['consumer#instance.skill:write'],
+  skillStoreResourceKind: { kind: 'skill' },
+  isStoreResourceFlagEnabled: mocks.isStoreResourceFlagEnabled,
+  getStoreResourceKindAccessWhere: mocks.getStoreResourceKindAccessWhere,
   accessTagService: {
     getAccessTagFilter: mocks.getAccessTagFilter
   }
@@ -36,6 +41,7 @@ describe('skill metadata write access', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getAccessTagFilter.mockResolvedValue(accessTagFilter);
+    mocks.isStoreResourceFlagEnabled.mockResolvedValue(false);
   });
 
   it('requires a direct write grant on the exact scoped skill', async () => {
@@ -74,6 +80,34 @@ describe('skill metadata write access', () => {
       oid: 6n,
       instanceOid: 2n
     });
+  });
+
+  it('requires a store-level write grant when store-access-v2 is on', async () => {
+    mocks.isStoreResourceFlagEnabled.mockResolvedValue(true);
+    mocks.getStoreResourceKindAccessWhere.mockResolvedValue({ marker: 'skill-store-write' });
+
+    let where = await getSkillMetadataWriteAccessWhere({
+      ...scope,
+      skill: { oid: 6n },
+      authorization: {
+        type: 'restricted',
+        resourceActor: actor,
+        accessTags: [{ accessTagOid: 7n }]
+      }
+    });
+
+    expect(mocks.getStoreResourceKindAccessWhere).toHaveBeenCalledWith({
+      kind: { kind: 'skill' },
+      accessTags: [{ accessTagOid: 7n }],
+      level: 'write'
+    });
+    expect(where).toEqual({
+      oid: 6n,
+      projectOid: 1n,
+      instanceOid: 2n,
+      store: { is: { marker: 'skill-store-write' } }
+    });
+    expect(where).not.toHaveProperty('accessTagEntities');
   });
 
   it('leaves privileged metadata writes to the scoped record assertion', async () => {

@@ -178,6 +178,7 @@ import {
   SkillTemplate,
   Store,
   StoreParticipant,
+  StoreParticipantActor,
   SandboxRegion,
   SystemEvent,
   Team,
@@ -1660,6 +1661,8 @@ export let documentParticipantType = PresentableType.create<{
   documentParticipant: DocumentParticipant & {
     document: Document;
     resourceActor: ResourceActorPresentationRecord;
+    storeParticipant?:
+      (StoreParticipant & { primaryResourceActor: ResourceActorPresentationRecord }) | null;
   };
 }>()('documentParticipant');
 
@@ -1782,11 +1785,19 @@ export let storeItemListType = PresentableType.create<{
   }>[];
 }>()('storeItemList');
 
+export type StoreResourceParticipantPresentationRecord = StoreParticipant & {
+  store: Store;
+  primaryResourceActor: ResourceActorPresentationRecord;
+  actors: (StoreParticipantActor & { resourceActor: ResourceActorPresentationRecord })[];
+};
+
 export let storeParticipantType = PresentableType.create<{
-  storeParticipant: StoreParticipant & {
-    store: Store;
-    resourceActor: ResourceActorPresentationRecord;
-  };
+  storeParticipant:
+    | (StoreParticipantActor & {
+        store: Store;
+        resourceActor: ResourceActorPresentationRecord;
+      })
+    | StoreResourceParticipantPresentationRecord;
 }>()('storeParticipant');
 
 export let skillAgentType = PresentableType.create<{
@@ -2082,11 +2093,24 @@ export let skillSyncRepositoryChecksType = PresentableType.create<{
   repositoryChecks: SkillSyncRepositoryCheck[];
 }>()('skillSyncRepositoryChecks');
 
+export let skillAccessType = PresentableType.create<{
+  skill: Skill;
+  grants: {
+    level: 'read' | 'write' | 'manage';
+    accessTag: AccessTag & {
+      consumerGroup: (ConsumerGroup & { personalOwner: ConsumerProfile | null }) | null;
+      consumerProfile: ConsumerProfile | null;
+    };
+  }[];
+}>()('skillAccess');
+
 export let skillParticipantType = PresentableType.create<{
-  skillParticipant: SkillParticipant & {
-    skill: Skill;
-    resourceActor: ResourceActorPresentationRecord;
-  };
+  skillParticipant:
+    | (SkillParticipant & {
+        skill: Skill;
+        resourceActor: ResourceActorPresentationRecord;
+      })
+    | (StoreResourceParticipantPresentationRecord & { skill: Skill });
 }>()('skillParticipant');
 
 export let skillVersionType = PresentableType.create<{

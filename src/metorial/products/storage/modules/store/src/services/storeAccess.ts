@@ -7,7 +7,7 @@ import type {
   ResourceActor,
   Store,
   StoreAccess,
-  StoreParticipant,
+  StoreParticipantActor,
   StoreParticipantPermissions
 } from '@metorial/db';
 import { ID, withTransaction } from '@metorial/db';
@@ -17,8 +17,16 @@ import {
   assertResourceAuthorizationScope,
   consumerSkillReadRoles,
   consumerSkillWriteRoles,
-  type ResourceAuthorization
+  getStoreResourceAccessWhere,
+  isStoreResourceFlagEnabled,
+  type ResourceAuthorization,
+  standaloneStoreResourceAccess,
+  storeAccessGrantService
 } from '@metorial/module-access';
+import {
+  isParticipationOnlyActorRow,
+  legacyStoreParticipantActorWhere
+} from '../lib/participantActorRows';
 
 export type StoreAccessInput = {
   authorization: ResourceAuthorization;
@@ -234,8 +242,9 @@ class StoreAccessServiceImpl {
         let storeOids = await this.listRelevantStoreOidsForDocument(d);
         if (storeOids.length === 0) return [];
 
-        let participants = await db.storeParticipant.findMany({
+        let participants = await db.storeParticipantActor.findMany({
           where: {
+            AND: [legacyStoreParticipantActorWhere],
             storeOid: {
               in: storeOids
             }
@@ -277,6 +286,74 @@ class StoreAccessServiceImpl {
     );
   }
 
+  async syncStandaloneStoreGrantsForActorRow(d: { storeParticipantActorId: string }) {
+    let row = await withTransaction(
+      async db =>
+        await db.storeParticipantActor.findUnique({
+          where: { id: d.storeParticipantActorId },
+          include: { resourceActor: true }
+        }),
+      { ifExists: true }
+    );
+    if (!row || isParticipationOnlyActorRow(row)) return;
+
+    await this.mirrorStandaloneStoreGrants({
+      actor: row.resourceActor,
+      before: [],
+      after: [row]
+    });
+  }
+
+  private async mirrorStandaloneStoreGrants(d: {
+    actor: ResourceActor;
+    before: Array<Pick<StoreParticipantActor, 'storeOid' | 'permissions'>>;
+    after: Array<Pick<StoreParticipantActor, 'storeOid' | 'permissions'>>;
+  }) {
+    if (!d.actor.consumerProfileOid) return;
+
+    let beforeByStore = new Map(d.before.map(row => [row.storeOid.toString(), row]));
+    let changed = d.after.filter(row => {
+      let previous = beforeByStore.get(row.storeOid.toString());
+      return !previous || !samePermissions(previous.permissions, row.permissions);
+    });
+    if (!changed.length) return;
+
+    await withTransaction(async db => {
+      let profile = await db.consumerProfile.findUnique({
+        where: { oid: d.actor.consumerProfileOid! },
+        select: {
+          organizationOid: true,
+          personalConsumerGroup: { select: { accessTagOid: true } }
+        }
+      });
+      if (!profile) return;
+
+      let standaloneStores = await db.store.findMany({
+        where: {
+          oid: { in: changed.map(row => row.storeOid) },
+          skill: { is: null }
+        },
+        select: { oid: true }
+      });
+      let standaloneStoreOids = new Set(standaloneStores.map(store => store.oid.toString()));
+
+      for (let row of changed) {
+        if (!standaloneStoreOids.has(row.storeOid.toString())) continue;
+
+        await storeAccessGrantService.setAccessLevel({
+          store: { oid: row.storeOid, organizationOid: profile.organizationOid },
+          access: standaloneStoreResourceAccess,
+          accessTagOids: [profile.personalConsumerGroup.accessTagOid],
+          level: row.permissions.includes(storeWritePermission)
+            ? 'write'
+            : row.permissions.includes(storeReadPermission)
+              ? 'read'
+              : 'none'
+        });
+      }
+    });
+  }
+
   private async upsertStoreParticipants(d: {
     storeOids: bigint[];
     actor: ResourceActor;
@@ -286,9 +363,9 @@ class StoreAccessServiceImpl {
     return await withTransaction(
       async client => {
         let storeOids = uniqueBigInts(d.storeOids);
-        if (storeOids.length === 0) return [] as StoreParticipant[];
+        if (storeOids.length === 0) return [] as StoreParticipantActor[];
 
-        let participants = await client.storeParticipant.findMany({
+        let participants = await client.storeParticipantActor.findMany({
           where: {
             storeOid: {
               in: storeOids
@@ -297,20 +374,21 @@ class StoreAccessServiceImpl {
           }
         });
 
+        let before = [...participants];
         let byStoreOid = new Map(
           participants.map(participant => [participant.storeOid.toString(), participant])
         );
         let nextPermissions = d.defaultPermissions ?? [];
 
         if (d.overridePermissions) {
-          let updatedParticipants: StoreParticipant[] = [];
+          let updatedParticipants: StoreParticipantActor[] = [];
 
           for (let storeOid of storeOids) {
             let existing = byStoreOid.get(storeOid.toString());
 
             if (existing) {
               if (!samePermissions(existing.permissions, nextPermissions)) {
-                existing = await client.storeParticipant.update({
+                existing = await client.storeParticipantActor.update({
                   where: {
                     id: existing.id
                   },
@@ -324,7 +402,7 @@ class StoreAccessServiceImpl {
               continue;
             }
 
-            let participant = await client.storeParticipant.upsert({
+            let participant = await client.storeParticipantActor.upsert({
               where: {
                 storeOid_resourceActorOid: {
                   storeOid,
@@ -345,14 +423,34 @@ class StoreAccessServiceImpl {
             updatedParticipants.push(participant);
           }
 
+          await this.mirrorStandaloneStoreGrants({
+            actor: d.actor,
+            before,
+            after: updatedParticipants
+          });
+
           return updatedParticipants;
         }
 
         if (d.defaultPermissions !== undefined) {
           for (let storeOid of storeOids) {
-            if (byStoreOid.has(storeOid.toString())) continue;
+            let existing = byStoreOid.get(storeOid.toString());
+            if (existing && !isParticipationOnlyActorRow(existing)) continue;
 
-            let participant = await client.storeParticipant.upsert({
+            if (existing) {
+              let updated = await client.storeParticipantActor.update({
+                where: { id: existing.id },
+                data: { permissions: nextPermissions }
+              });
+
+              byStoreOid.set(storeOid.toString(), updated);
+              participants = participants.map(participant =>
+                participant.id == updated.id ? updated : participant
+              );
+              continue;
+            }
+
+            let participant = await client.storeParticipantActor.upsert({
               where: {
                 storeOid_resourceActorOid: {
                   storeOid,
@@ -373,6 +471,12 @@ class StoreAccessServiceImpl {
           }
         }
 
+        await this.mirrorStandaloneStoreGrants({
+          actor: d.actor,
+          before,
+          after: participants
+        });
+
         return participants;
       },
       { ifExists: true }
@@ -380,7 +484,7 @@ class StoreAccessServiceImpl {
   }
 
   private getAccessibleStoreOids(
-    participants: Array<Pick<StoreParticipant, 'storeOid' | 'permissions'>>,
+    participants: Array<Pick<StoreParticipantActor, 'storeOid' | 'permissions'>>,
     requiredPermission: StoreParticipantPermissions
   ) {
     return participants
@@ -469,6 +573,30 @@ class StoreAccessServiceImpl {
     };
   }
 
+  private async getV2AccessibleStoreOids(d: {
+    storeOids: bigint[];
+    accessTags?: AnyAccessTagSelector;
+    requiredPermission: StoreParticipantPermissions;
+  }) {
+    if (!d.storeOids.length) return [];
+
+    let accessWhere = await getStoreResourceAccessWhere({
+      accessTags: d.accessTags,
+      level: d.requiredPermission === storeWritePermission ? 'write' : 'read'
+    });
+
+    let stores = await withTransaction(
+      async db =>
+        await db.store.findMany({
+          where: { oid: { in: d.storeOids }, AND: [accessWhere] },
+          select: { oid: true }
+        }),
+      { ifExists: true }
+    );
+
+    return stores.map(store => store.oid);
+  }
+
   private async ensureStoreParticipantsHavePermissions(d: {
     actor: ResourceActor;
     items: Array<{
@@ -478,9 +606,9 @@ class StoreAccessServiceImpl {
   }) {
     return await withTransaction(
       async client => {
-        if (d.items.length === 0) return [] as StoreParticipant[];
+        if (d.items.length === 0) return [] as StoreParticipantActor[];
 
-        let existingParticipants = await client.storeParticipant.findMany({
+        let existingParticipants = await client.storeParticipantActor.findMany({
           where: {
             storeOid: {
               in: d.items.map(item => item.storeOid)
@@ -495,14 +623,14 @@ class StoreAccessServiceImpl {
             participant
           ])
         );
-        let participants: StoreParticipant[] = [];
+        let participants: StoreParticipantActor[] = [];
 
         for (let item of d.items) {
           let existing = byStoreOid.get(item.storeOid.toString());
           if (existing) {
             let nextPermissions = mergePermissions(existing.permissions, item.permissions);
             if (!samePermissions(existing.permissions, nextPermissions)) {
-              existing = await client.storeParticipant.update({
+              existing = await client.storeParticipantActor.update({
                 where: {
                   id: existing.id
                 },
@@ -516,7 +644,7 @@ class StoreAccessServiceImpl {
             continue;
           }
 
-          let participant = await client.storeParticipant.create({
+          let participant = await client.storeParticipantActor.create({
             data: {
               id: await ID.generateId('storeParticipant'),
               storeOid: item.storeOid,
@@ -527,6 +655,12 @@ class StoreAccessServiceImpl {
           byStoreOid.set(item.storeOid.toString(), participant);
           participants.push(participant);
         }
+
+        await this.mirrorStandaloneStoreGrants({
+          actor: d.actor,
+          before: existingParticipants,
+          after: participants
+        });
 
         return participants;
       },
@@ -641,6 +775,22 @@ class StoreAccessServiceImpl {
           participants,
           d.requiredPermission
         ).filter(storeOid => !skillStoreOidSet.has(storeOid.toString()));
+
+        if (
+          await isStoreResourceFlagEnabled({ project: d.project, flag: 'store-access-v2' })
+        ) {
+          return {
+            actor,
+            relevantStoreOids,
+            accessibleStoreOids: actor
+              ? await this.getV2AccessibleStoreOids({
+                  storeOids: relevantStoreOids,
+                  accessTags: this.getAccessTags(d),
+                  requiredPermission: d.requiredPermission
+                })
+              : []
+          };
+        }
 
         return {
           actor,

@@ -13,7 +13,7 @@ let uploadScopes = ['instance.file:write', 'consumer#instance.file:write'] as co
 
 type ResolvedUploadTarget = {
   owner: ScopeOwner;
-  cargoAccess?: ReturnType<typeof getInstanceCargoAccess>;
+  cargoAccess?: Awaited<ReturnType<typeof getInstanceCargoAccess>>;
   auditScope?: AuditScope;
   isInstanceOwner: boolean;
   canWrite: boolean;
@@ -94,7 +94,7 @@ export let resolveUploadTarget = async (d: {
         type: 'instance',
         instance: instanceAccess.instance
       },
-      cargoAccess: getInstanceCargoAccess(cargoAccessContext),
+      cargoAccess: await getInstanceCargoAccess(cargoAccessContext),
       auditScope:
         d.auth.auditScope ??
         (instanceAccess.actor

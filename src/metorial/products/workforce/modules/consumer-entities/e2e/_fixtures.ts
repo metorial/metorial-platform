@@ -8,8 +8,26 @@ import {
   consumerProfileService,
   consumerSurfaceService
 } from '@metorial/module-consumer-core';
+import { applyEnabledFlags, defaultFlags, setFlagProvider } from '@metorial/module-flags';
 import { magicMcpServerService } from '@metorial/module-magic';
 import { portalService } from '@metorial/module-portal';
+import { afterEach, beforeEach } from 'vitest';
+
+let stackFlags = () => applyEnabledFlags(defaultFlags, process.env.METORIAL_ENABLED_FLAGS);
+
+export let useStoreResourceFlags = (enabled: boolean) => {
+  beforeEach(() => {
+    setFlagProvider(async () => ({
+      ...stackFlags(),
+      'store-participants-v2': enabled,
+      'store-access-v2': enabled
+    }));
+  });
+
+  afterEach(() => {
+    setFlagProvider(async () => stackFlags());
+  });
+};
 
 export let createSurface = async (
   fixture: OrganizationFixture,

@@ -2,6 +2,8 @@ import type { Prisma, StoreParticipantPermissions } from '@metorial/db';
 import {
   accessTagService,
   consumerSkillReadRoles,
+  getStoreResourceAccessWhere,
+  isStoreResourceFlagEnabled,
   type ResourceAuthorization
 } from '@metorial/module-access';
 
@@ -23,6 +25,32 @@ export let getVisibleSkillMergeRequestWhere = async (d: {
   if (d.authorization.type === 'privileged') return scopeWhere;
 
   let actorOid = d.authorization.resourceActor.oid;
+
+  if (
+    await isStoreResourceFlagEnabled({
+      project: { oid: d.projectOid },
+      flag: 'store-access-v2'
+    })
+  ) {
+    let readableStoreWhere: Prisma.StoreWhereInput = {
+      OR: [
+        await getStoreResourceAccessWhere({
+          accessTags: d.authorization.accessTags,
+          level: 'read'
+        }),
+        { createdByResourceActorOid: actorOid }
+      ]
+    };
+
+    return {
+      ...scopeWhere,
+      OR: [
+        { sourceSkill: { store: readableStoreWhere } },
+        { targetSkill: { store: readableStoreWhere } }
+      ]
+    };
+  }
+
   let accessTagFilter = await accessTagService.getAccessTagFilter({
     tags: d.authorization.accessTags,
     roles: [...consumerSkillReadRoles]
@@ -60,7 +88,7 @@ export let getVisibleSkillMergeRequestWhere = async (d: {
       ...(readableSkillWhere ? [readableSkillWhere] : []),
       { createdByResourceActorOid: actorOid },
       {
-        storeParticipants: {
+        storeParticipantActors: {
           some: {
             resourceActorOid: actorOid,
             permissions: {

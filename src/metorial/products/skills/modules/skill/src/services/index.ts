@@ -2,6 +2,7 @@ export * from '../lib/skillDocument';
 export * from '../lib/skillStoreLock';
 export * from './resource';
 export * from './skill';
+export * from './skillAccessGrant';
 export * from './skillAgent';
 export * from './skillFile';
 export * from './skillItem';

@@ -25,6 +25,39 @@ export let documentParticipantInclude = {
   }
 } satisfies Prisma.DocumentParticipantInclude;
 
+export let dedupedDocumentParticipantInclude = {
+  ...documentParticipantInclude,
+  storeParticipant: {
+    include: {
+      primaryResourceActor: { include: resourceActorPresentationInclude }
+    }
+  }
+} satisfies Prisma.DocumentParticipantInclude;
+
+type DedupedDocumentParticipant = Prisma.DocumentParticipantGetPayload<{
+  include: typeof dedupedDocumentParticipantInclude;
+}>;
+
+let maxDate = (left: Date | null, right: Date | null) =>
+  !left ? right : !right ? left : left > right ? left : right;
+
+let mergeDocumentParticipants = (participants: DedupedDocumentParticipant[]) => {
+  let [first, ...rest] = participants;
+
+  return rest.reduce(
+    (merged, participant) => ({
+      ...merged,
+      role: merged.role == 'editor' || participant.role == 'editor' ? 'editor' : 'viewer',
+      editCount: merged.editCount + participant.editCount,
+      lastEditedAt: maxDate(merged.lastEditedAt, participant.lastEditedAt),
+      lastViewedAt: maxDate(merged.lastViewedAt, participant.lastViewedAt),
+      createdAt:
+        participant.createdAt < merged.createdAt ? participant.createdAt : merged.createdAt
+    }),
+    first!
+  );
+};
+
 class DocumentParticipantServiceImpl {
   async getDocumentParticipantById(d: {
     project: Project;
@@ -33,6 +66,7 @@ class DocumentParticipantServiceImpl {
     authorization: ResourceAuthorization;
     defaultPermissions?: StoreParticipantPermissions[];
     overridePermissions?: boolean;
+    dedupeByStoreParticipant?: boolean;
   }) {
     let participant = await db.documentParticipant.findFirst({
       where: {
@@ -46,7 +80,9 @@ class DocumentParticipantServiceImpl {
         id: d.documentParticipantId,
         resourceActor: exposedParticipantResourceActorWhere
       },
-      include: documentParticipantInclude
+      include: d.dedupeByStoreParticipant
+        ? dedupedDocumentParticipantInclude
+        : documentParticipantInclude
     });
 
     if (!participant) {
@@ -78,6 +114,7 @@ class DocumentParticipantServiceImpl {
     authorization: ResourceAuthorization;
     defaultPermissions?: StoreParticipantPermissions[];
     overridePermissions?: boolean;
+    dedupeByStoreParticipant?: boolean;
   }) {
     let document = await db.document.findFirst({
       where: {
@@ -109,30 +146,86 @@ class DocumentParticipantServiceImpl {
     let documents = await resolveDocuments(d, [d.documentId]);
     let actors = await resolveResourceActors(d, d.actorIds);
 
+    let where = {
+      oid: participants ? participants.in : undefined,
+      document: {
+        projectOid: d.project.oid,
+        instanceOid: d.instance.oid,
+        oid: documents ? documents.in : undefined,
+        file: {
+          status: 'active'
+        }
+      },
+      resourceActorOid: actors ? actors.in : undefined,
+      resourceActor: exposedParticipantResourceActorWhere,
+      createdAt: d.createdAt ? normalizeDateFilter(d.createdAt) : undefined,
+      lastEditedAt: d.lastEditedAt ? normalizeDateFilter(d.lastEditedAt) : undefined,
+      lastViewedAt: d.lastViewedAt ? normalizeDateFilter(d.lastViewedAt) : undefined
+    } satisfies Prisma.DocumentParticipantWhereInput;
+
+    if (!d.dedupeByStoreParticipant) {
+      return Paginator.create(({ prisma }) =>
+        prisma(
+          async opts =>
+            await db.documentParticipant.findMany({
+              ...opts,
+              where,
+              include: documentParticipantInclude
+            })
+        )
+      );
+    }
+
+    let linkedWhere = {
+      documentOid: document.oid,
+      resourceActor: exposedParticipantResourceActorWhere,
+      storeParticipantOid: { not: null }
+    } satisfies Prisma.DocumentParticipantWhereInput;
+
+    let groups = await db.documentParticipant.groupBy({
+      by: ['storeParticipantOid'],
+      where: linkedWhere,
+      _min: { oid: true }
+    });
+    let representativeOids = groups
+      .map(group => group._min.oid)
+      .filter((oid): oid is bigint => oid != null);
+
     return Paginator.create(({ prisma }) =>
-      prisma(
-        async opts =>
-          await db.documentParticipant.findMany({
-            ...opts,
-            where: {
-              oid: participants ? participants.in : undefined,
-              document: {
-                projectOid: d.project.oid,
-                instanceOid: d.instance.oid,
-                oid: documents ? documents.in : undefined,
-                file: {
-                  status: 'active'
-                }
-              },
-              resourceActorOid: actors ? actors.in : undefined,
-              resourceActor: exposedParticipantResourceActorWhere,
-              createdAt: d.createdAt ? normalizeDateFilter(d.createdAt) : undefined,
-              lastEditedAt: d.lastEditedAt ? normalizeDateFilter(d.lastEditedAt) : undefined,
-              lastViewedAt: d.lastViewedAt ? normalizeDateFilter(d.lastViewedAt) : undefined
-            },
-            include: documentParticipantInclude
-          })
-      )
+      prisma(async opts => {
+        let page = await db.documentParticipant.findMany({
+          ...opts,
+          where: {
+            ...where,
+            OR: [{ storeParticipantOid: null }, { oid: { in: representativeOids } }]
+          },
+          include: dedupedDocumentParticipantInclude
+        });
+
+        let storeParticipantOids = page
+          .map(participant => participant.storeParticipantOid)
+          .filter((oid): oid is bigint => oid != null);
+        if (!storeParticipantOids.length) return page;
+
+        let siblings = await db.documentParticipant.findMany({
+          where: { ...linkedWhere, storeParticipantOid: { in: storeParticipantOids } },
+          include: dedupedDocumentParticipantInclude,
+          orderBy: { oid: 'asc' }
+        });
+
+        return page.map(participant =>
+          participant.storeParticipantOid
+            ? mergeDocumentParticipants([
+                participant,
+                ...siblings.filter(
+                  sibling =>
+                    sibling.storeParticipantOid == participant.storeParticipantOid &&
+                    sibling.oid != participant.oid
+                )
+              ])
+            : participant
+        );
+      })
     );
   }
 }

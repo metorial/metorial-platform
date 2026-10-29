@@ -27,7 +27,8 @@ import {
   consumerSkillMarketplaceWriteRoles,
   consumerSkillPluginWriteRoles,
   consumerSkillReadRoles,
-  consumerSkillWriteRoles
+  consumerSkillWriteRoles,
+  storeAccessGrantService
 } from '@metorial/module-access';
 
 type ConsumerAccessPermission =
@@ -313,6 +314,16 @@ let getStoredConsumerAccessResource = (
 };
 
 class ConsumerAccessPolicyServiceImpl {
+  private async syncSkillStoreGrants(skillOids: (bigint | null)[]) {
+    let uniqueSkillOids = new Set(
+      skillOids.filter((skillOid): skillOid is bigint => skillOid != null)
+    );
+
+    for (let skillOid of uniqueSkillOids) {
+      await storeAccessGrantService.syncLegacySkillGrants({ skillOid });
+    }
+  }
+
   private async getOrCreatePolicy(d: {
     organization: Organization;
     permission: ConsumerAccessPermission;
@@ -550,6 +561,8 @@ class ConsumerAccessPolicyServiceImpl {
         });
       }
 
+      if ('skill' in d.resource) await this.syncSkillStoreGrants([d.resource.skill.oid]);
+
       return policy;
     });
   }
@@ -586,6 +599,8 @@ class ConsumerAccessPolicyServiceImpl {
           ...resourceData
         }
       });
+
+      if ('skill' in d.resource) await this.syncSkillStoreGrants([d.resource.skill.oid]);
     });
   }
 
@@ -607,15 +622,21 @@ class ConsumerAccessPolicyServiceImpl {
       let accessTagOids = await this.getSubjectAccessTagOids({
         subject: d.subject
       });
+      let where = {
+        accessTagOid: {
+          in: accessTagOids
+        },
+        accessTagPolicyOid: policy.oid
+      };
 
-      await db.accessTagEntity.deleteMany({
-        where: {
-          accessTagOid: {
-            in: accessTagOids
-          },
-          accessTagPolicyOid: policy.oid
-        }
+      let affectedSkills = await db.accessTagEntity.findMany({
+        where: { ...where, skillOid: { not: null } },
+        select: { skillOid: true }
       });
+
+      await db.accessTagEntity.deleteMany({ where });
+
+      await this.syncSkillStoreGrants(affectedSkills.map(entity => entity.skillOid));
     });
   }
 
@@ -654,6 +675,8 @@ class ConsumerAccessPolicyServiceImpl {
           }
         }
       });
+
+      await this.syncSkillStoreGrants([d.skill.oid]);
     });
   }
 

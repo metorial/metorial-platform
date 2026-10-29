@@ -233,6 +233,8 @@ model WorkflowRunStep {
   endedAt   DateTime?
 
   workflowRunOutputTemps WorkflowRunOutputTemp[]
+
+  @@index([runOid])
 }
 
 model WorkflowRunOutputTemp {

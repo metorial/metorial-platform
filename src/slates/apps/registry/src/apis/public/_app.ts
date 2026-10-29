@@ -21,7 +21,20 @@ let useExtractToken = async (ctx: Context) => {
   return token;
 };
 
-export let useAuth = async (ctx: Context) => {
+// Upload routes authenticate in a middleware and again in the handler. Keyed by
+// context, since bodyLimit replaces the raw request for chunked bodies.
+let authByContext = new WeakMap<Context, ReturnType<typeof resolveAuth>>();
+
+export let useAuth = (ctx: Context) => {
+  let auth = authByContext.get(ctx);
+  if (!auth) {
+    auth = resolveAuth(ctx);
+    authByContext.set(ctx, auth);
+  }
+  return auth;
+};
+
+let resolveAuth = async (ctx: Context) => {
   let token = await useExtractToken(ctx);
   if (!token && env.access.PUBLIC_ACCESS_PERMITTED === false) {
     throw new ServiceError(
