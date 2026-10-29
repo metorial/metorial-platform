@@ -14,7 +14,8 @@ import {
   type AssistantAccessClaims
 } from '../../../lib/definitions';
 
-export type SkillEditorMode = 'block' | 'rewrite' | 'summarize' | 'document' | 'skill' | 'ask';
+export type SkillEditorMode =
+  'block' | 'rewrite' | 'summarize' | 'document' | 'skill' | 'metadata' | 'ask';
 export type SkillEditorRequestedMode = Exclude<SkillEditorMode, 'ask'>;
 
 let refSchema = v.string({ description: 'Encoded Yjs relative position' });
@@ -25,7 +26,9 @@ export let skillEditorConversationInput = v.object({
 });
 
 export let skillEditorRequestInput = v.object({
-  mode: v.optional(v.enumOf(['block', 'rewrite', 'summarize', 'document', 'skill'])),
+  mode: v.optional(
+    v.enumOf(['block', 'rewrite', 'summarize', 'document', 'skill', 'metadata'])
+  ),
   documentId: v.optional(v.string()),
   selection: v.optional(
     v.object({
@@ -160,7 +163,7 @@ export let findSkillDocument = async (
   return { id: item.document.id, path: item.path, title: item.document.title };
 };
 
-let writeOnlyModes: SkillEditorRequestedMode[] = ['block', 'rewrite'];
+let writeOnlyModes: SkillEditorRequestedMode[] = ['block', 'rewrite', 'metadata'];
 
 export let resolveSkillEditorMode = (d: {
   requestedMode: SkillEditorRequestedMode;
@@ -168,7 +171,7 @@ export let resolveSkillEditorMode = (d: {
   placement: 'inline' | 'chat';
   hasDocument: boolean;
 }): SkillEditorMode => {
-  let needsDocument = d.requestedMode != 'skill';
+  let needsDocument = d.requestedMode != 'skill' && d.requestedMode != 'metadata';
   if (needsDocument && !d.hasDocument) {
     throw new ServiceError(
       badRequestError({ message: `The ${d.requestedMode} mode requires a documentId.` })

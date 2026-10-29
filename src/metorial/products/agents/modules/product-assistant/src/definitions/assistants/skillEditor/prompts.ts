@@ -91,7 +91,7 @@ Edit the open document with edit_document. Each operation targets a block id fro
 - delete: remove target (through targetEnd)
 Use "@title" with replace to rename the document.
 Read before editing, prefer small targeted operations over rewriting the whole document, and re-read after an error about changed blocks.
-Edits appear in the user's editor immediately. Other skill files can be created and changed with the file tools.
+Edits appear in the user's editor immediately. Other skill files can be created and changed with the file tools, and the skill's name, description, client name and client description with update_skill_metadata.
 When you're done, briefly summarize what you changed.
 </task>
 `,
@@ -100,7 +100,17 @@ When you're done, briefly summarize what you changed.
 <task>
 Help the user build and maintain this skill: answer questions about it, and create, edit, rename, or delete its documents and files.
 Explore before you change anything, keep SKILL.md accurate when you add or remove resources, and keep edits focused on the request.
-When you're done, briefly summarize which files you changed.
+The skill's name, description, client name (the identifier agents see), and client description (the text agents use to decide whether to load the skill) can be changed with update_skill_metadata. SKILL.md has no front matter to maintain for these.
+When you're done, briefly summarize which files and fields you changed.
+</task>
+`,
+
+  metadata: () => detag`
+<task>
+Write the client description of this skill. Agents only see the skill's name and this description when deciding whether to load it, so it must make discovery reliable.
+Read SKILL.md first, and skim the other files if SKILL.md does not make the purpose clear. Then call write_client_description exactly once.
+The description is plain text, in third person, 1-3 sentences and at most 1024 characters. Say what the skill does and when to use it, naming the concrete tasks, tools, file types, or keywords that should trigger it. Do not use markdown, do not start with "This skill", and do not repeat the skill's name.
+After calling the tool, reply with one short sentence.
 </task>
 `,
 

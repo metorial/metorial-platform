@@ -20,6 +20,7 @@ import {
   type SkillEditorRequest
 } from './context';
 import { skillEditorSystemPrompt } from './prompts';
+import { createSkillMetadataTools } from './metadataTools';
 import { createSkillEditorTools } from './tools';
 
 let modeSettings: Record<
@@ -31,6 +32,7 @@ let modeSettings: Record<
   summarize: { maxSteps: 8, workspace: false, web: false, writableWorkspace: false },
   document: { maxSteps: 256, workspace: true, web: true, writableWorkspace: true },
   skill: { maxSteps: 256, workspace: true, web: true, writableWorkspace: true },
+  metadata: { maxSteps: 24, workspace: true, web: false, writableWorkspace: false },
   ask: { maxSteps: 64, workspace: true, web: true, writableWorkspace: false }
 };
 
@@ -119,6 +121,12 @@ export let skillEditorAssistantImplementation = implementation({
     await workspace.view?.ensureLoaded();
 
     let editorTools = createSkillEditorTools({ request, workspace });
+    let metadataTools = createSkillMetadataTools({
+      request,
+      project: d.project,
+      instance: d.instance,
+      access
+    });
     let web = settings.web ? webSearchTools : {};
 
     let agent = new Agent({
@@ -140,6 +148,7 @@ export let skillEditorAssistantImplementation = implementation({
       tools: {
         ...(settings.workspace ? workspace.tools : {}),
         ...editorTools.tools,
+        ...metadataTools,
         ...web
       },
       maxSteps: settings.maxSteps
