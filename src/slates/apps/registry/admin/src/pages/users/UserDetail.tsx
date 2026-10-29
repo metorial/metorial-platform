@@ -20,6 +20,7 @@ export let UserDetail = () => {
   let revokeToken = useRevokeUserToken();
 
   let [showCreateForm, setShowCreateForm] = useState(false);
+  let [createdSecret, setCreatedSecret] = useState<string | null>(null);
 
   let tokenForm = useForm({
     initialValues: {
@@ -27,8 +28,9 @@ export let UserDetail = () => {
     },
     onSubmit: async values => {
       if (!tenantId || !userId || !values.tokenName.trim()) return;
-      let [, error] = await createToken.mutate({ tenantId, userId, name: values.tokenName.trim() });
+      let [created, error] = await createToken.mutate({ tenantId, userId, name: values.tokenName.trim() });
       if (!error) {
+        setCreatedSecret(created?.secret ?? null);
         tokenForm.setFieldValue('tokenName', '');
         setShowCreateForm(false);
       }
@@ -117,6 +119,21 @@ export let UserDetail = () => {
             </Button>
           )}
 
+          {createdSecret && (
+            <>
+              <Spacer size={16} />
+              <Callout color="green">
+                <Flex direction="column" gap={8}>
+                  <Text size="2" weight="medium">Copy the new token now. It is not shown again.</Text>
+                  <Copy value={createdSecret} />
+                  <Button variant="outline" size="2" onClick={() => setCreatedSecret(null)}>
+                    Done
+                  </Button>
+                </Flex>
+              </Callout>
+            </>
+          )}
+
           <Spacer size={24} />
 
           {tokens.data?.items.length === 0 ? (
@@ -144,7 +161,7 @@ export let UserDetail = () => {
                         </Button>
                       )}
                     </Flex>
-                    <Copy value={token.secret} />
+                    {token.secretRedacted && <MonoCode>{token.secretRedacted}</MonoCode>}
                     <Flex gap={16} align="center">
                       <Flex align="center" gap={4}>
                         <Text size="1" color="gray600">Created:</Text>

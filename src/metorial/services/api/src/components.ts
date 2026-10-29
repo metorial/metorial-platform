@@ -48,6 +48,7 @@ let server = apiMux(
 
 Bun.serve({
   port: apiPort,
+  idleTimeout: 250,
   fetch: server
 });
 
