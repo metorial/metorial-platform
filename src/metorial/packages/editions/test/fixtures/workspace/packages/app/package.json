@@ -1,0 +1,7 @@
+{
+  "name": "@fixture/app",
+  "main": "src/main.ts",
+  "dependencies": {
+    "@fixture/shared": "workspace:*"
+  }
+}
