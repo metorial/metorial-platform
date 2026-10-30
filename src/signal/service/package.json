@@ -76,6 +76,7 @@
     "prisma": "^7.10.1",
     "prisma-json-types-generator": "^5.2.0",
     "yaml": "^2.9.1",
-    "@lowerdeck/delay": "workspace:2.0.0"
+    "@lowerdeck/delay": "workspace:2.0.0",
+    "@metorial/settings": "workspace:*"
   }
 }

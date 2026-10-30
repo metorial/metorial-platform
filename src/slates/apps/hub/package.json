@@ -122,6 +122,7 @@
     "unzipper": "^0.12.5",
     "yaml": "^2.9.1",
     "zod": "^4.6.7",
-    "@lowerdeck/prisma-pg": "workspace:2.0.0"
+    "@lowerdeck/prisma-pg": "workspace:2.0.0",
+    "@metorial/settings": "workspace:*"
   }
 }

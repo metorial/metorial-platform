@@ -1,3 +1,3 @@
-import { createValidatedEnv } from '@lowerdeck/env';
+import { defineSettings } from '@metorial/settings';
 
-export let env = createValidatedEnv({});
+export let env = defineSettings({});

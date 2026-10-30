@@ -27,7 +27,8 @@
     "p-queue": "^10.0.0",
     "prisma": "^7.10.1",
     "prisma-json-types-generator": "^5.2.0",
-    "@lowerdeck/prisma-pg": "workspace:2.0.0"
+    "@lowerdeck/prisma-pg": "workspace:2.0.0",
+    "@metorial/branding": "workspace:*"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

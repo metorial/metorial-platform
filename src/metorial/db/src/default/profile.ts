@@ -1,3 +1,4 @@
+import { branding } from '@metorial/branding';
 import { db } from '../db';
 import { ID } from '../id';
 import { createEnsureRecord } from '../lib';
@@ -21,7 +22,7 @@ export let systemProfile = ensureProfile(() => ({
   isVerified: true,
   image: {
     type: 'url',
-    url: 'https://cdn.metorial.com/2025-06-13--14-59-55/logos/metorial/primary_logo/raw.svg'
+    url: branding.logoUrl
   },
   attributes: {}
 }));

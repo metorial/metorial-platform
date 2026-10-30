@@ -25,7 +25,9 @@
     "@metorial/audit-scope": "workspace:*",
     "@metorial/db": "^1.0.0",
     "@metorial/fabric": "^1.0.0",
-    "lru-cache": "^11.5.3"
+    "lru-cache": "^11.5.3",
+    "@metorial/settings": "workspace:*",
+    "@metorial/branding": "workspace:*"
   },
   "devDependencies": {
     "@metorial-subspace/tsconfig": "^1.0.0",

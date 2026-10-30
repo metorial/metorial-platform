@@ -178,6 +178,8 @@
         "@metorial-io/ui": "^1.0.0",
         "@metorial-io/ui-product": "^1.0.0",
         "@metorial-platform-systems/relay-client": "workspace:*",
+        "@metorial/branding": "workspace:*",
+        "@metorial/settings": "workspace:*",
         "@metorial/ui": "^1.0.0",
         "@prisma/adapter-pg": "^7.10.1",
         "@prisma/client": "^7.10.1",
@@ -293,6 +295,7 @@
         "@lowerdeck/slugify": "workspace:2.0.0",
         "@lowerdeck/snowflake": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/settings": "workspace:*",
         "@prisma/adapter-pg": "^7.10.1",
         "@prisma/client": "^7.10.1",
         "@prisma/extension-read-replicas": "^0.5.0",
@@ -456,6 +459,7 @@
         "@lowerdeck/snowflake": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial-platform-systems/forge-client": "workspace:*",
+        "@metorial/settings": "workspace:*",
         "@prisma/adapter-pg": "^7.10.1",
         "@prisma/client": "^7.10.1",
         "@prisma/extension-read-replicas": "^0.5.0",
@@ -2288,6 +2292,7 @@
         "@metorial/config": "^1.0.0",
         "@metorial/context": "^1.0.0",
         "@metorial/db": "^1.0.0",
+        "@metorial/editions": "workspace:*",
         "@metorial/fabric": "^1.0.0",
         "@metorial/id": "^1.0.0",
         "@metorial/module-access": "^1.0.0",
@@ -2296,6 +2301,7 @@
         "@metorial/module-magic": "^1.0.0",
         "@metorial/module-outpost": "^1.0.0",
         "@metorial/rest": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "@modelcontextprotocol/sdk": "^1.32.1",
         "hono": "^4.13.13",
         "zod": "^4.6.7",
@@ -2431,6 +2437,7 @@
         "@metorial-subspace/module-tenant": "^1.0.0",
         "@metorial-subspace/provider-slates": "^1.0.0",
         "@metorial/image-url": "^1.0.0",
+        "@metorial/settings": "workspace:*",
       },
       "devDependencies": {
         "@metorial/e2e": "1.0.0",
@@ -2480,6 +2487,7 @@
         "@lowerdeck/execution-context": "workspace:2.0.0",
         "@lowerdeck/prisma-pg": "workspace:2.0.0",
         "@lowerdeck/snowflake": "workspace:2.0.0",
+        "@metorial/branding": "workspace:*",
         "@metorial/id": "^1.0.0",
         "@metorial/image-url": "^1.0.0",
         "@modelcontextprotocol/sdk": "^1.32.1",
@@ -2520,6 +2528,7 @@
         "@metorial/fabric": "^1.0.0",
         "@metorial/id": "^1.0.0",
         "@metorial/queue": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "@prisma/adapter-pg": "7.10.1",
         "@prisma/client": "^7.10.1",
         "@prisma/extension-read-replicas": "^0.5.0",
@@ -2561,6 +2570,20 @@
         "vitest": "^5.0.4",
       },
     },
+    "src/metorial/packages/branding": {
+      "name": "@metorial/branding",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/editions": "workspace:*",
+        "@metorial/settings": "workspace:*",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
     "src/metorial/packages/cache": {
       "name": "@metorial/cache",
       "version": "1.0.0",
@@ -2581,6 +2604,7 @@
         "@lowerdeck/env": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial/db": "^1.0.0",
+        "@metorial/settings": "workspace:*",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -2645,6 +2669,21 @@
         "typescript": "5.9.3",
       },
     },
+    "src/metorial/packages/editions": {
+      "name": "@metorial/editions",
+      "version": "1.0.0",
+      "bin": {
+        "metorial-editions": "./src/tooling/cli.ts",
+      },
+      "dependencies": {
+        "esbuild": "^0.28.2",
+        "typescript": "5.9.3",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "vitest": "^5.0.4",
+      },
+    },
     "src/metorial/packages/event": {
       "name": "@metorial/event",
       "version": "1.0.0",
@@ -2696,6 +2735,9 @@
     "src/metorial/packages/image-url": {
       "name": "@metorial/image-url",
       "version": "1.0.0",
+      "dependencies": {
+        "@metorial/branding": "workspace:*",
+      },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "^5.9.3",
@@ -2846,6 +2888,20 @@
         "vitest": "^5.0.4",
       },
     },
+    "src/metorial/packages/settings": {
+      "name": "@metorial/settings",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/env": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/editions": "workspace:*",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
     "src/metorial/packages/system-email": {
       "name": "@metorial/system-email",
       "version": "1.0.0",
@@ -2944,6 +3000,7 @@
         "@metorial/module-resource-actor": "1.0.0",
         "@metorial/queue": "1.0.0",
         "@metorial/redis": "1.0.0",
+        "@metorial/settings": "workspace:*",
         "@modelcontextprotocol/sdk": "^1.32.1",
         "ai": "^7.0.146",
         "just-bash": "^3.6.0",
@@ -3006,6 +3063,7 @@
         "@metorial/module-audit-log": "workspace:*",
         "@metorial/module-organization": "^1.0.0",
         "@metorial/queue": "1.0.0",
+        "@metorial/settings": "workspace:*",
       },
       "devDependencies": {
         "@metorial/e2e": "1.0.0",
@@ -3063,6 +3121,7 @@
         "@metorial/db": "^1.0.0",
         "@metorial/fabric": "^1.0.0",
         "@metorial/queue": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "object-storage-client": "^0.2.5",
       },
       "devDependencies": {
@@ -3091,6 +3150,7 @@
         "@metorial/module-event-delivery": "^1.0.0",
         "@metorial/module-search": "^1.0.0",
         "@metorial/queue": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "@metorial/webhook-event-schema": "workspace:*",
       },
       "devDependencies": {
@@ -3135,6 +3195,7 @@
         "@metorial/module-event-delivery": "^1.0.0",
         "@metorial/presenter": "^1.0.0",
         "@metorial/queue": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "object-storage-client": "^0.2.5",
       },
       "devDependencies": {
@@ -3168,6 +3229,7 @@
         "@lowerdeck/sentry": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial/audit-scope": "workspace:*",
+        "@metorial/settings": "workspace:*",
         "mongoose": "^9.11.2",
       },
       "devDependencies": {
@@ -3228,6 +3290,7 @@
         "@lowerdeck/programmable-promise": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial-platform-systems/voyager-client": "workspace:*",
+        "@metorial/settings": "workspace:*",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -3304,6 +3367,7 @@
         "@metorial/module-resource-actor": "1.0.0",
         "@metorial/module-user": "1.0.0",
         "@metorial/queue": "1.0.0",
+        "@metorial/settings": "workspace:*",
       },
       "devDependencies": {
         "@metorial/e2e": "1.0.0",
@@ -3348,6 +3412,7 @@
         "@metorial-platform-systems/relay-client": "workspace:*",
         "@metorial/db": "^1.0.0",
         "@metorial/queue": "^1.0.0",
+        "@metorial/settings": "workspace:*",
       },
       "devDependencies": {
         "@metorial/e2e": "1.0.0",
@@ -3390,6 +3455,7 @@
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial/api-keys": "^1.0.0",
         "@metorial/audit-scope": "workspace:*",
+        "@metorial/branding": "workspace:*",
         "@metorial/config": "^1.0.0",
         "@metorial/context": "^1.0.0",
         "@metorial/cron": "^1.0.0",
@@ -3399,6 +3465,7 @@
         "@metorial/module-organization": "^1.0.0",
         "@metorial/multi-region": "^1.0.0",
         "@metorial/queue": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "date-fns": "^4.4.0",
         "ipaddr.js": "^2.5.0",
       },
@@ -3421,10 +3488,12 @@
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial/cron": "^1.0.0",
         "@metorial/db": "^1.0.0",
+        "@metorial/editions": "workspace:*",
         "@metorial/fabric": "^1.0.0",
         "@metorial/id": "^1.0.0",
         "@metorial/image-url": "^1.0.0",
         "@metorial/queue": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "date-fns": "^4.4.0",
         "mongoose": "^9.11.2",
         "rehype-parse": "^9.0.1",
@@ -3470,6 +3539,7 @@
         "@metorial/lock": "^1.0.0",
         "@metorial/module-search": "^1.0.0",
         "@metorial/queue": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "ipaddr.js": "^2.5.0",
       },
       "devDependencies": {
@@ -3495,6 +3565,7 @@
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial-subspace/module-tenant": "^1.0.0",
         "@metorial/audit-scope": "workspace:*",
+        "@metorial/branding": "workspace:*",
         "@metorial/config": "^1.0.0",
         "@metorial/context": "^1.0.0",
         "@metorial/cron": "^1.0.0",
@@ -3505,6 +3576,7 @@
         "@metorial/module-email": "^1.0.0",
         "@metorial/module-file": "^1.0.0",
         "@metorial/queue": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "date-fns": "^4.4.0",
         "react": "19.3.0",
       },
@@ -3540,6 +3612,7 @@
         "@metorial/lock": "^1.0.0",
         "@metorial/module-organization": "^1.0.0",
         "@metorial/queue": "^1.0.0",
+        "@metorial/settings": "workspace:*",
       },
       "devDependencies": {
         "@metorial/e2e": "1.0.0",
@@ -3586,6 +3659,7 @@
         "@lowerdeck/env": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial-platform-systems/voyager-client": "workspace:*",
+        "@metorial/settings": "workspace:*",
       },
       "devDependencies": {
         "@metorial/e2e": "1.0.0",
@@ -3606,6 +3680,7 @@
         "@metorial/context": "^1.0.0",
         "@metorial/db": "^1.0.0",
         "@metorial/fabric": "^1.0.0",
+        "@metorial/settings": "workspace:*",
       },
       "devDependencies": {
         "@metorial/e2e": "1.0.0",
@@ -3631,6 +3706,7 @@
         "@metorial/id": "^1.0.0",
         "@metorial/queue": "^1.0.0",
         "@metorial/redis": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "date-fns": "^4.4.0",
         "mongoose": "^9.11.2",
       },
@@ -3679,6 +3755,7 @@
         "@metorial/cron": "^1.0.0",
         "@metorial/db": "^1.0.0",
         "@metorial/queue": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "htmlparser2": "^8.0.2",
         "image-size": "^2.0.4",
         "tldts": "^7.4.19",
@@ -3803,6 +3880,7 @@
         "@metorial-subspace/provider-shuttle": "^1.0.0",
         "@metorial-subspace/provider-slates": "^1.0.0",
         "@metorial/service-init": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "@sentry/bun": "^11.8.0",
         "@sentry/cli": "^3.8.0",
         "@vercel/ncc": "^0.45.0",
@@ -3828,6 +3906,7 @@
         "@lowerdeck/tokens": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial-subspace/tsconfig": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "@modelcontextprotocol/sdk": "^1.32.1",
         "@prisma/adapter-pg": "^7.10.1",
         "@prisma/client": "^7.10.1",
@@ -3868,6 +3947,7 @@
         "@metorial-subspace/provider": "^1.0.0",
         "@metorial-subspace/provider-utils": "^1.0.0",
         "@metorial/db": "workspace:*",
+        "@metorial/settings": "workspace:*",
       },
       "devDependencies": {
         "@metorial-subspace/tsconfig": "^1.0.0",
@@ -3902,6 +3982,7 @@
         "@metorial/db": "^1.0.0",
         "@metorial/fabric": "^1.0.0",
         "@metorial/module-email": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "date-fns": "^4.4.0",
         "react": "19.3.0",
       },
@@ -3935,6 +4016,7 @@
         "@metorial/db": "^1.0.0",
         "@metorial/fabric": "^1.0.0",
         "@metorial/module-event-tracker": "workspace:*",
+        "@metorial/settings": "workspace:*",
         "date-fns": "^4.4.0",
       },
       "devDependencies": {
@@ -3966,6 +4048,7 @@
         "@metorial/audit-scope": "workspace:*",
         "@metorial/db": "^1.0.0",
         "@metorial/fabric": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "date-fns": "^4.4.0",
       },
       "devDependencies": {
@@ -4005,6 +4088,7 @@
         "@metorial/module-file": "^1.0.0",
         "@metorial/presenter": "^1.0.0",
         "@metorial/presenters": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "@slates/adapter-chat": "1.0.0-rc.14",
         "date-fns": "^4.4.0",
         "object-storage-client": "^0.2.5",
@@ -4061,6 +4145,7 @@
         "@metorial/fabric": "^1.0.0",
         "@metorial/module-rate-limit": "^1.0.0",
         "@metorial/module-usage": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "@modelcontextprotocol/sdk": "^1.32.1",
         "@types/lodash": "^4.17.26",
         "date-fns": "^4.4.0",
@@ -4106,6 +4191,7 @@
         "@metorial/db": "^1.0.0",
         "@metorial/fabric": "^1.0.0",
         "@metorial/module-skill": "^1.0.0",
+        "@metorial/settings": "workspace:*",
       },
       "devDependencies": {
         "@metorial-subspace/tsconfig": "^1.0.0",
@@ -4139,6 +4225,7 @@
         "@metorial-subspace/public-mcp-guard": "^1.0.0",
         "@metorial/db": "^1.0.0",
         "@metorial/fabric": "^1.0.0",
+        "@metorial/settings": "workspace:*",
       },
       "devDependencies": {
         "@metorial-subspace/tsconfig": "^1.0.0",
@@ -4172,6 +4259,7 @@
         "@metorial/db": "^1.0.0",
         "@metorial/fabric": "^1.0.0",
         "@metorial/module-networking": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "ipaddr.js": "^2.5.0",
       },
       "devDependencies": {
@@ -4205,6 +4293,7 @@
         "@metorial-subspace/provider": "^1.0.0",
         "@metorial-subspace/provider-utils": "^1.0.0",
         "@metorial/db": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "date-fns": "^4.4.0",
       },
       "devDependencies": {
@@ -4246,6 +4335,7 @@
         "@metorial/db": "^1.0.0",
         "@metorial/fabric": "^1.0.0",
         "@metorial/module-skill": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "date-fns": "^4.4.0",
       },
       "devDependencies": {
@@ -4272,6 +4362,7 @@
         "@metorial-subspace/list-utils": "^1.0.0",
         "@metorial-subspace/module-tenant": "^1.0.0",
         "@metorial/fabric": "^1.0.0",
+        "@metorial/settings": "workspace:*",
       },
       "devDependencies": {
         "@metorial-subspace/tsconfig": "^1.0.0",
@@ -4304,7 +4395,9 @@
         "@metorial-subspace/module-tenant": "^1.0.0",
         "@metorial-subspace/provider-utils": "^1.0.0",
         "@metorial-subspace/public-mcp-guard": "^1.0.0",
+        "@metorial/branding": "workspace:*",
         "@metorial/module-web": "1.0.0",
+        "@metorial/settings": "workspace:*",
         "date-fns": "^4.4.0",
         "safe-regex2": "^5.1.2",
       },
@@ -4343,6 +4436,7 @@
         "@metorial/fabric": "^1.0.0",
         "@metorial/module-flags": "^1.0.0",
         "@metorial/multi-region": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "date-fns": "^4.4.0",
         "ioredis": "^6.0.0",
       },
@@ -4363,6 +4457,7 @@
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial-platform-systems/voyager-client": "workspace:*",
         "@metorial-subspace/db": "^1.0.0",
+        "@metorial/settings": "workspace:*",
       },
       "devDependencies": {
         "@metorial/e2e": "1.0.0",
@@ -4406,6 +4501,7 @@
         "@metorial/module-access": "^1.0.0",
         "@metorial/module-rate-limit": "^1.0.0",
         "@metorial/module-usage": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "@modelcontextprotocol/sdk": "^1.32.1",
         "p-queue": "^10.0.0",
       },
@@ -4433,8 +4529,10 @@
         "@metorial-subspace/db": "^1.0.0",
         "@metorial-subspace/list-utils": "^1.0.0",
         "@metorial/audit-scope": "workspace:*",
+        "@metorial/branding": "workspace:*",
         "@metorial/db": "^1.0.0",
         "@metorial/fabric": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "lru-cache": "^11.5.3",
       },
       "devDependencies": {
@@ -4486,6 +4584,7 @@
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial-subspace/db": "^1.0.0",
         "@metorial-subspace/module-provider-internal": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "@modelcontextprotocol/sdk": "^1.32.1",
         "object-storage-client": "^0.2.5",
         "zod": "^4.6.7",
@@ -4611,6 +4710,8 @@
         "@metorial-subspace/db": "^1.0.0",
         "@metorial-subspace/module-provider-internal": "^1.0.0",
         "@metorial-subspace/provider-utils": "^1.0.0",
+        "@metorial/branding": "workspace:*",
+        "@metorial/settings": "workspace:*",
         "zod": "^4.6.7",
       },
       "devDependencies": {
@@ -4649,6 +4750,7 @@
         "@metorial-subspace/retry-utils": "^1.0.0",
         "@metorial/module-usage": "^1.0.0",
         "@metorial/module-web": "1.0.0",
+        "@metorial/settings": "workspace:*",
         "@modelcontextprotocol/sdk": "^1.32.1",
         "p-queue": "^10.0.0",
         "zod": "^4.6.7",
@@ -4683,7 +4785,9 @@
         "@metorial-subspace/module-catalog": "^1.0.0",
         "@metorial-subspace/module-provider-internal": "^1.0.0",
         "@metorial-subspace/provider-utils": "^1.0.0",
+        "@metorial/editions": "workspace:*",
         "@metorial/module-usage": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "p-queue": "^10.0.0",
       },
       "devDependencies": {
@@ -4750,6 +4854,7 @@
         "@metorial/module-networking": "^1.0.0",
         "@metorial/module-search": "^1.0.0",
         "@metorial/queue": "^1.0.0",
+        "@metorial/settings": "workspace:*",
       },
       "devDependencies": {
         "@metorial/e2e": "1.0.0",
@@ -4797,6 +4902,7 @@
         "@metorial/module-search": "^1.0.0",
         "@metorial/module-store": "^1.0.0",
         "@metorial/queue": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "@metorial/skills-common": "^1.0.0",
         "@metorial/skills-images": "^1.0.0",
         "@metorial/skills-search": "^1.0.0",
@@ -4822,6 +4928,7 @@
         "@metorial/db": "^1.0.0",
         "@metorial/list-utils": "^1.0.0",
         "@metorial/queue": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "@metorial/skills-common": "^1.0.0",
       },
       "devDependencies": {
@@ -4851,6 +4958,7 @@
         "@metorial/module-search": "^1.0.0",
         "@metorial/module-skill": "^1.0.0",
         "@metorial/queue": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "@metorial/skills-common": "^1.0.0",
         "@metorial/skills-search": "^1.0.0",
       },
@@ -4886,6 +4994,7 @@
         "@metorial/module-skill-marketplace": "^1.0.0",
         "@metorial/module-store": "^1.0.0",
         "@metorial/queue": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "@metorial/skills-scm-utils": "^1.0.0",
         "jszip": "^3.10.2",
       },
@@ -4929,6 +5038,7 @@
         "@metorial/module-skill-configurations": "^1.0.0",
         "@metorial/module-store": "^1.0.0",
         "@metorial/queue": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "@metorial/skills-common": "^1.0.0",
         "@metorial/skills-images": "^1.0.0",
         "@metorial/skills-scm-utils": "^1.0.0",
@@ -4970,6 +5080,7 @@
         "@metorial/module-skill": "^1.0.0",
         "@metorial/module-store": "^1.0.0",
         "@metorial/queue": "^1.0.0",
+        "@metorial/settings": "workspace:*",
       },
       "devDependencies": {
         "@metorial/e2e": "1.0.0",
@@ -5005,6 +5116,7 @@
         "@metorial/module-skill": "^1.0.0",
         "@metorial/module-store": "^1.0.0",
         "@metorial/queue": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "@metorial/skills-common": "^1.0.0",
         "@metorial/skills-search": "^1.0.0",
       },
@@ -5037,9 +5149,13 @@
       "dependencies": {
         "@lowerdeck/error": "workspace:2.0.0",
         "@lowerdeck/service": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:*",
+        "@metorial/branding": "workspace:*",
         "@metorial/config": "^1.0.0",
         "@metorial/db": "^1.0.0",
+        "@metorial/editions": "workspace:*",
         "@metorial/module-file": "^1.0.0",
+        "@metorial/settings": "workspace:*",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -5059,6 +5175,7 @@
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial-platform-systems/origin-client": "workspace:*",
         "@metorial/db": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "@metorial/skills-common": "^1.0.0",
       },
       "devDependencies": {
@@ -5079,6 +5196,7 @@
         "@lowerdeck/programmable-promise": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial-platform-systems/voyager-client": "workspace:*",
+        "@metorial/settings": "workspace:*",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -5145,6 +5263,7 @@
         "@metorial/list-utils": "^1.0.0",
         "@metorial/module-resource-actor": "^1.0.0",
         "@metorial/queue": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "ipaddr.js": "^2.5.0",
         "object-storage-client": "^0.2.5",
       },
@@ -5350,6 +5469,7 @@
         "@metorial/module-search": "^1.0.0",
         "@metorial/queue": "^1.0.0",
         "@metorial/redis": "1.0.0",
+        "@metorial/settings": "workspace:*",
         "@metorial/unified-id": "^1.0.0",
         "ajv": "^8.20.0",
         "date-fns": "^4.4.0",
@@ -5447,6 +5567,7 @@
         "@metorial/config": "1.0.0",
         "@metorial/db": "1.0.0",
         "@metorial/module-organization": "1.0.0",
+        "@metorial/settings": "workspace:*",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -5569,6 +5690,7 @@
         "@lowerdeck/service": "workspace:2.0.0",
         "@lowerdeck/snowflake": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/settings": "workspace:*",
         "@prisma/adapter-pg": "^7.10.1",
         "@prisma/client": "^7.10.1",
         "@prisma/extension-read-replicas": "^0.5.0",
@@ -5678,6 +5800,7 @@
         "@lowerdeck/snowflake": "workspace:2.0.0",
         "@lowerdeck/telemetry": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/settings": "workspace:*",
         "@octokit/auth-app": "^8.3.1",
         "@octokit/core": "^7.0.8",
         "@prisma/adapter-pg": "^7.10.1",
@@ -6180,6 +6303,7 @@
         "@lowerdeck/snowflake": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial-platform-systems/forge-client": "workspace:*",
+        "@metorial/settings": "workspace:*",
         "@metorial/system-email": "^1.0.0",
         "@prisma/adapter-pg": "^7.10.1",
         "@prisma/client": "^7.10.1",
@@ -6338,6 +6462,7 @@
         "@metorial-platform-systems/function-bay-client": "workspace:*",
         "@metorial-platform-systems/nebula-client": "workspace:*",
         "@metorial/mcp-server": "^1.0.0-rc.11",
+        "@metorial/settings": "workspace:*",
         "@modelcontextprotocol/sdk": "^1.32.1",
         "@prisma/adapter-pg": "^7.10.1",
         "@prisma/client": "^7.10.1",
@@ -6435,6 +6560,7 @@
         "@lowerdeck/snowflake": "workspace:2.0.0",
         "@lowerdeck/telemetry": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/settings": "workspace:*",
         "@prisma/adapter-pg": "^7.10.1",
         "@prisma/client": "^7.10.1",
         "@prisma/extension-read-replicas": "^0.5.0",
@@ -6509,6 +6635,7 @@
         "@metorial-platform-systems/signal-client": "workspace:*",
         "@metorial-services/slates-registry-client": "workspace:*",
         "@metorial-services/slates-registry-internal-client": "^1.0.0",
+        "@metorial/settings": "workspace:*",
         "@prisma/adapter-pg": "^7.10.1",
         "@prisma/client": "^7.10.1",
         "@prisma/extension-read-replicas": "^0.5.0",
@@ -6589,6 +6716,7 @@
         "@metorial-io/ui": "^1.0.0",
         "@metorial-io/ui-product": "^1.0.0",
         "@metorial-platform-systems/ares-client": "workspace:*",
+        "@metorial/settings": "workspace:*",
         "@metorial/util-endpoint": "^3.0.0",
         "@prisma/adapter-pg": "^7.10.1",
         "@prisma/client": "^7.10.1",
@@ -6742,6 +6870,7 @@
         "@lowerdeck/snowflake": "workspace:2.0.0",
         "@lowerdeck/telemetry": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/settings": "workspace:*",
         "@prisma/adapter-pg": "^7.10.1",
         "@prisma/client": "^7.10.1",
         "@prisma/extension-read-replicas": "^0.5.0",
@@ -6807,6 +6936,7 @@
         "@lowerdeck/slugify": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial-platform-systems/forge-client": "workspace:*",
+        "@metorial/settings": "workspace:*",
         "@prisma/adapter-pg": "^7.10.1",
         "@prisma/client": "^7.10.1",
         "@prisma/extension-read-replicas": "^0.5.0",
@@ -7939,6 +8069,8 @@
 
     "@metorial/bearer": ["@metorial/bearer@workspace:src/metorial/packages/bearer"],
 
+    "@metorial/branding": ["@metorial/branding@workspace:src/metorial/packages/branding"],
+
     "@metorial/cache": ["@metorial/cache@workspace:src/metorial/packages/cache"],
 
     "@metorial/chart": ["@metorial/chart@workspace:src/metorial-frontend/packages/chart"],
@@ -7982,6 +8114,8 @@
     "@metorial/dynamic-component": ["@metorial/dynamic-component@workspace:src/metorial-frontend/packages/dynamic-component"],
 
     "@metorial/e2e": ["@metorial/e2e@workspace:src/metorial/packages/e2e"],
+
+    "@metorial/editions": ["@metorial/editions@workspace:src/metorial/packages/editions"],
 
     "@metorial/editor-tabs": ["@metorial/editor-tabs@workspace:src/metorial-frontend/packages/editor-tabs"],
 
@@ -8162,6 +8296,8 @@
     "@metorial/scene-skills": ["@metorial/scene-skills@workspace:src/metorial-frontend/scenes/skills"],
 
     "@metorial/service-init": ["@metorial/service-init@workspace:src/metorial/packages/service-init"],
+
+    "@metorial/settings": ["@metorial/settings@workspace:src/metorial/packages/settings"],
 
     "@metorial/shuttle": ["@metorial/shuttle@workspace:src/shuttle/service"],
 
@@ -12025,11 +12161,21 @@
 
     "@metorial-platform-systems/voyager-client/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
+    "@metorial-subspace/adapter/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
+
+    "@metorial-subspace/adapter-chat/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
+
+    "@metorial-subspace/app-worker/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
+
     "@metorial-subspace/archived-cleanup/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
+
+    "@metorial-subspace/conduit/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
 
     "@metorial-subspace/connection-utils/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
 
     "@metorial-subspace/db/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
+
+    "@metorial-subspace/generator/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
 
     "@metorial-subspace/list-utils/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
 
@@ -12047,11 +12193,17 @@
 
     "@metorial-subspace/public-mcp-guard/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
 
+    "@metorial-subspace/redis-url/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
+
     "@metorial-subspace/retry-utils/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
+
+    "@metorial-subspace/store/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
 
     "@metorial/ares/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
 
     "@metorial/ares/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@metorial/code-bucket-service-generated/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
 
     "@metorial/code-workspace/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
@@ -12069,15 +12221,33 @@
 
     "@metorial/mcp-proxy/vitest": ["vitest@4.1.12", "", { "dependencies": { "@vitest/expect": "4.1.12", "@vitest/mocker": "4.1.12", "@vitest/pretty-format": "4.1.12", "@vitest/runner": "4.1.12", "@vitest/snapshot": "4.1.12", "@vitest/spy": "4.1.12", "@vitest/utils": "4.1.12", "es-module-lexer": "^2.0.0", "expect-type": "^1.3.0", "magic-string": "^0.30.21", "obug": "^2.1.1", "pathe": "^2.0.3", "picomatch": "^4.0.3", "std-env": "^4.0.0-rc.1", "tinybench": "^2.9.0", "tinyexec": "^1.0.2", "tinyglobby": "^0.2.15", "tinyrainbow": "^3.1.0", "vite": "^6.0.0 || ^7.0.0 || ^8.0.0", "why-is-node-running": "^2.3.0" }, "peerDependencies": { "@edge-runtime/vm": "*", "@opentelemetry/api": "^1.9.0", "@types/node": "^20.0.0 || ^22.0.0 || >=24.0.0", "@vitest/browser-playwright": "4.1.12", "@vitest/browser-preview": "4.1.12", "@vitest/browser-webdriverio": "^4.1.11", "@vitest/coverage-istanbul": "4.1.12", "@vitest/coverage-v8": "4.1.12", "@vitest/ui": "4.1.12", "happy-dom": "*", "jsdom": "*" }, "optionalPeers": ["@edge-runtime/vm", "@opentelemetry/api", "@types/node", "@vitest/browser-playwright", "@vitest/browser-preview", "@vitest/browser-webdriverio", "@vitest/coverage-istanbul", "@vitest/coverage-v8", "@vitest/ui", "happy-dom", "jsdom"], "bin": { "vitest": "./vitest.mjs" } }, "sha512-5eWdz2yb3ajxWF3C8C4TjkXl7FGm3n2E/VlazALrQHzK7nYMSGFnCZto0bbPNl77AwkOZVLk0YnBAejUu0NiWA=="],
 
+    "@metorial/module-documents/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
+
     "@metorial/module-file/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
 
+    "@metorial/module-skill/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
+
     "@metorial/module-skill-configurations/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
+
+    "@metorial/module-skill-groups/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
+
+    "@metorial/module-skill-import/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
+
+    "@metorial/module-skill-marketplace/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
+
+    "@metorial/module-skill-merge-requests/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
+
+    "@metorial/module-skill-templates/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
+
+    "@metorial/module-store/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
 
     "@metorial/multi-region/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
 
     "@metorial/nebula/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
 
     "@metorial/nebula/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@metorial/origin/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
 
     "@metorial/origin/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
@@ -12095,7 +12265,17 @@
 
     "@metorial/skills-common/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
 
+    "@metorial/skills-images/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
+
+    "@metorial/skills-scm-utils/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
+
+    "@metorial/skills-search/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
+
     "@metorial/slates/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
+
+    "@metorial/slates-registry/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
+
+    "@metorial/synthesis/@types/bun": ["@types/bun@1.4.4", "", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
 
     "@metorial/synthesis/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
@@ -13105,11 +13285,21 @@
 
     "@metorial-platform-systems/voyager-client/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
+    "@metorial-subspace/adapter-chat/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
+
+    "@metorial-subspace/adapter/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
+
+    "@metorial-subspace/app-worker/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
+
     "@metorial-subspace/archived-cleanup/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
+
+    "@metorial-subspace/conduit/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
 
     "@metorial-subspace/connection-utils/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
 
     "@metorial-subspace/db/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
+
+    "@metorial-subspace/generator/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
 
     "@metorial-subspace/list-utils/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
 
@@ -13127,11 +13317,17 @@
 
     "@metorial-subspace/public-mcp-guard/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
 
+    "@metorial-subspace/redis-url/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
+
     "@metorial-subspace/retry-utils/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
+
+    "@metorial-subspace/store/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
 
     "@metorial/ares/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
 
     "@metorial/ares/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@metorial/code-bucket-service-generated/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
 
     "@metorial/code-workspace/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
@@ -13157,15 +13353,33 @@
 
     "@metorial/mcp-proxy/vitest/why-is-node-running": ["why-is-node-running@2.3.0", "", { "dependencies": { "siginfo": "^2.0.0", "stackback": "0.0.2" }, "bin": { "why-is-node-running": "cli.js" } }, "sha512-hUrmaWBdVDcxvYqnyh09zunKzROWjbZTiNy8dBEjkS7ehEDQibXJ7XvlmtbwuTclUiIyN+CyXQD4Vmko8fNm8w=="],
 
+    "@metorial/module-documents/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
+
     "@metorial/module-file/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
 
     "@metorial/module-skill-configurations/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
+
+    "@metorial/module-skill-groups/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
+
+    "@metorial/module-skill-import/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
+
+    "@metorial/module-skill-marketplace/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
+
+    "@metorial/module-skill-merge-requests/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
+
+    "@metorial/module-skill-templates/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
+
+    "@metorial/module-skill/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
+
+    "@metorial/module-store/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
 
     "@metorial/multi-region/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
 
     "@metorial/nebula/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
 
     "@metorial/nebula/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@metorial/origin/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
 
     "@metorial/origin/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
@@ -13183,7 +13397,17 @@
 
     "@metorial/skills-common/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
 
+    "@metorial/skills-images/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
+
+    "@metorial/skills-scm-utils/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
+
+    "@metorial/skills-search/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
+
+    "@metorial/slates-registry/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
+
     "@metorial/slates/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
+
+    "@metorial/synthesis/@types/bun/bun-types": ["bun-types@1.4.4", "", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
 
     "@metorial/synthesis/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
@@ -13817,9 +14041,25 @@
 
     "@metorial-platform-systems/shuttle-client/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
 
+    "@metorial-subspace/adapter-chat/@types/bun/bun-types/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@metorial-subspace/adapter-chat/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
+
+    "@metorial-subspace/adapter/@types/bun/bun-types/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@metorial-subspace/adapter/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
+
+    "@metorial-subspace/app-worker/@types/bun/bun-types/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@metorial-subspace/app-worker/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
+
     "@metorial-subspace/archived-cleanup/@types/bun/bun-types/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
     "@metorial-subspace/archived-cleanup/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
+
+    "@metorial-subspace/conduit/@types/bun/bun-types/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@metorial-subspace/conduit/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
 
     "@metorial-subspace/connection-utils/@types/bun/bun-types/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
@@ -13828,6 +14068,10 @@
     "@metorial-subspace/db/@types/bun/bun-types/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
     "@metorial-subspace/db/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
+
+    "@metorial-subspace/generator/@types/bun/bun-types/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@metorial-subspace/generator/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
 
     "@metorial-subspace/list-utils/@types/bun/bun-types/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
@@ -13861,11 +14105,23 @@
 
     "@metorial-subspace/public-mcp-guard/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
 
+    "@metorial-subspace/redis-url/@types/bun/bun-types/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@metorial-subspace/redis-url/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
+
     "@metorial-subspace/retry-utils/@types/bun/bun-types/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
     "@metorial-subspace/retry-utils/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
 
+    "@metorial-subspace/store/@types/bun/bun-types/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@metorial-subspace/store/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
+
     "@metorial/ares/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
+
+    "@metorial/code-bucket-service-generated/@types/bun/bun-types/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@metorial/code-bucket-service-generated/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
 
     "@metorial/e2e/@types/bun/bun-types/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
@@ -13891,6 +14147,10 @@
 
     "@metorial/mcp-proxy/vitest/magic-string/@jridgewell/sourcemap-codec": ["@jridgewell/sourcemap-codec@1.5.5", "", {}, "sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og=="],
 
+    "@metorial/module-documents/@types/bun/bun-types/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@metorial/module-documents/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
+
     "@metorial/module-file/@types/bun/bun-types/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
     "@metorial/module-file/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
@@ -13899,11 +14159,41 @@
 
     "@metorial/module-skill-configurations/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
 
+    "@metorial/module-skill-groups/@types/bun/bun-types/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@metorial/module-skill-groups/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
+
+    "@metorial/module-skill-import/@types/bun/bun-types/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@metorial/module-skill-import/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
+
+    "@metorial/module-skill-marketplace/@types/bun/bun-types/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@metorial/module-skill-marketplace/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
+
+    "@metorial/module-skill-merge-requests/@types/bun/bun-types/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@metorial/module-skill-merge-requests/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
+
+    "@metorial/module-skill-templates/@types/bun/bun-types/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@metorial/module-skill-templates/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
+
+    "@metorial/module-skill/@types/bun/bun-types/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@metorial/module-skill/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
+
+    "@metorial/module-store/@types/bun/bun-types/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@metorial/module-store/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
+
     "@metorial/multi-region/@types/bun/bun-types/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
     "@metorial/multi-region/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
 
     "@metorial/nebula/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
+
+    "@metorial/origin/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
 
     "@metorial/relay/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
 
@@ -13915,9 +14205,27 @@
 
     "@metorial/skills-common/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
 
+    "@metorial/skills-images/@types/bun/bun-types/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@metorial/skills-images/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
+
+    "@metorial/skills-scm-utils/@types/bun/bun-types/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@metorial/skills-scm-utils/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
+
+    "@metorial/skills-search/@types/bun/bun-types/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@metorial/skills-search/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
+
+    "@metorial/slates-registry/@types/bun/bun-types/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
+
+    "@metorial/slates-registry/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
+
     "@metorial/slates/@types/bun/bun-types/@types/node": ["@types/node@25.9.9", "", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-b4e2xxj/yMeT2hNlD6x7zNFiQK2Dlmkb9CQ6v3/1G2RezKN4YS2lcEv8lzGm1mhs4f2lM4yNAMI/zUDBZBBt7w=="],
 
     "@metorial/slates/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
+
+    "@metorial/synthesis/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
 
     "@metorial/voyager/@types/bun/bun-types/undici-types": ["undici-types@8.11.2", "", {}, "sha512-iMVNmWZ0leK/goS6eXMizSzmm9CDWtyphwbaCms3DNLqRxDL+mMoNVcZMTyyVgXP0N+Z8neAMzDoUOUJL8veKg=="],
 
@@ -13999,11 +14307,21 @@
 
     "@metorial-platform-systems/shuttle-client/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
+    "@metorial-subspace/adapter-chat/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@metorial-subspace/adapter/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@metorial-subspace/app-worker/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
     "@metorial-subspace/archived-cleanup/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@metorial-subspace/conduit/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "@metorial-subspace/connection-utils/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "@metorial-subspace/db/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@metorial-subspace/generator/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "@metorial-subspace/list-utils/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
@@ -14021,7 +14339,13 @@
 
     "@metorial-subspace/public-mcp-guard/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
+    "@metorial-subspace/redis-url/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
     "@metorial-subspace/retry-utils/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@metorial-subspace/store/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@metorial/code-bucket-service-generated/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "@metorial/e2e/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
@@ -14033,13 +14357,37 @@
 
     "@metorial/lock/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
+    "@metorial/module-documents/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
     "@metorial/module-file/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "@metorial/module-skill-configurations/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
+    "@metorial/module-skill-groups/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@metorial/module-skill-import/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@metorial/module-skill-marketplace/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@metorial/module-skill-merge-requests/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@metorial/module-skill-templates/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@metorial/module-skill/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@metorial/module-store/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
     "@metorial/multi-region/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "@metorial/skills-common/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@metorial/skills-images/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@metorial/skills-scm-utils/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@metorial/skills-search/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@metorial/slates-registry/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "@metorial/slates/@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.24.6", "", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 

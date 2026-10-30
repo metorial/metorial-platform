@@ -50,18 +50,7 @@ let generatePrettySlug = (fullIdentifier: string) => {
   return slugify(`${workspace}-${name}`);
 };
 
-let metorialDomains = [
-  '.slates.dev',
-  '.metorial.com',
-  '.metorial.dev',
-  '.metorial.net',
-  '.metorial.app',
-  '.metorial.cloud',
-  '.metorial.io',
-  '.metorial.ai',
-  '.metorial-enterprise.com',
-  'localhost'
-];
+let metorialDomains = env.service.SLATES_FIRST_PARTY_DOMAINS;
 
 let normalizeDocs = (docs: unknown): PrismaJson.ProviderListingDocReference[] => {
   if (!Array.isArray(docs)) return [];

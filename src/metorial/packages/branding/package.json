@@ -1,0 +1,21 @@
+{
+  "name": "@metorial/branding",
+  "version": "1.0.0",
+  "author": "Tobias Herber",
+  "license": "FSL-1.1",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "dependencies": {
+    "@lowerdeck/validation": "workspace:2.0.0",
+    "@metorial/editions": "workspace:*",
+    "@metorial/settings": "workspace:*"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "^1.0.0",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.4"
+  }
+}

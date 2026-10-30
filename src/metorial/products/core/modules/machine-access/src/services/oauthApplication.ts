@@ -1,3 +1,4 @@
+import { branding } from '@metorial/branding';
 import {
   badRequestError,
   forbiddenError,
@@ -951,7 +952,7 @@ class OAuthApplicationService {
       scopes: cliAuthScopes,
       image: {
         type: 'url' as const,
-        url: 'https://cdn.metorial.com/2025-06-13--14-59-55/logos/metorial/primary_logo/raw.svg'
+        url: branding.logoUrl
       }
     };
 

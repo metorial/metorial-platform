@@ -40,7 +40,8 @@
     "date-fns": "^4.4.0",
     "mitt": "^3.0.1",
     "mongoose": "^9.11.2",
-    "redis": "^6.3.0"
+    "redis": "^6.3.0",
+    "@metorial/settings": "workspace:*"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

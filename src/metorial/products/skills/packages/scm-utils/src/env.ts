@@ -1,8 +1,8 @@
-import { createValidatedEnv } from '@lowerdeck/env';
+import { defineSettings } from '@metorial/settings';
 import { v } from '@lowerdeck/validation';
 
 export let getSkillsScmUtilsEnv = () =>
-  createValidatedEnv({
+  defineSettings({
     origin: {
       ORIGIN_URL: v.string()
     }

@@ -1,3 +1,4 @@
+import { branding } from '@metorial/branding';
 import { isServiceError } from '@lowerdeck/error';
 import { createIntegration, createTool, NativeToolError, z } from '../registry';
 import { scout } from '../scout';
@@ -150,7 +151,7 @@ if (scout != null) {
     name: 'Metorial Search',
     description:
       'Search the web and fetch readable content from selected pages. Built for fast discovery and content extraction.',
-    logoUrl: 'https://cdn.metorial.com/metorial-bw.svg',
+    logoUrl: branding.monoLogoUrl,
     readme: `
 # Metorial Search
 
@@ -171,7 +172,7 @@ Use this provider when you want both discovery and page retrieval in one place.
     name: 'Metorial Crawl',
     description:
       'Extract readable content and links from a known URL. Best for focused page retrieval after discovery is already done.',
-    logoUrl: 'https://cdn.metorial.com/metorial-bw.svg',
+    logoUrl: branding.monoLogoUrl,
     readme: `
 # Metorial Crawl
 

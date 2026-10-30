@@ -16,6 +16,7 @@ import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import type { Context } from 'hono';
 import { type SSEStreamingApi, streamSSE } from 'hono/streaming';
 import z from 'zod';
+import { env } from './env';
 import {
   assertOutpostConnectionAccess,
   getOutpostAuth,
@@ -68,14 +69,18 @@ let publicProxyUrl = (c: Context, originOverride?: string) => {
 
   let hostname = inputUrl.hostname;
 
+  let rewriteSuffix = env.hosts.PUBLIC_HOST_REWRITE_SUFFIXES.find(suffix =>
+    hostname.endsWith(suffix)
+  );
+
   if (
-    hostname.endsWith('.metorial.com') &&
+    rewriteSuffix &&
     (hostname.startsWith('api-') ||
       hostname.startsWith('connect-') ||
       hostname.startsWith('mcp-'))
   ) {
     let identifier = hostname.split('.')[0]!.split('-')[0]!;
-    hostname = `${identifier}.metorial.com`;
+    hostname = `${identifier}${rewriteSuffix}`;
   }
 
   return process.env.NODE_ENV == 'production'
