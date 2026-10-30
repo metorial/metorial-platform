@@ -6,6 +6,7 @@ import { createRequire } from 'module';
 
 async function main() {
   await import('./init');
+  (await import('./metorialApiUrl')).checkMetorialApiUrl();
   await import('./instrument');
   await import('./endpoints');
   await import('./worker');

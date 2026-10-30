@@ -55,6 +55,7 @@ env = [{ key = "REDIS_URL", value = "redis://{{HOSTNAME}}:{{PORT}}/0" }]
 
 [dev.env]
 METORIAL_ENV = "development"
+METORIAL_API_URL = "http://{{HOSTNAME}}:4310"
 METORIAL_SOURCE = "oss"
 IS_ENTERPRISE = "false"
 METORIAL_HOSTNAME = "{{HOSTNAME}}"
