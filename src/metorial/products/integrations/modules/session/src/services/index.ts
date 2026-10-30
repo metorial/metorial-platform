@@ -1,5 +1,3 @@
-export * from './adminProviderTelemetry';
-export * from './adminProviderTelemetryErrorGroup';
 export * from './ephemeralManagedSession';
 export * from './internalToolCall';
 export * from './providerInvocation';
@@ -7,7 +5,6 @@ export * from './providerPublicToolCall';
 export * from './providerRun';
 export * from './providerRunLogs';
 export * from './providerRunUsageRecord';
-export * from './providerTelemetryErrorGroupExport';
 export * from './session';
 export * from './sessionConnection';
 export * from './sessionError';
