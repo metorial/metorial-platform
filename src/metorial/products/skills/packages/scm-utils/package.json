@@ -24,7 +24,8 @@
     "@metorial-platform-systems/origin-client": "workspace:*",
     "@metorial/db": "^1.0.0",
     "@metorial/skills-common": "^1.0.0",
-    "@metorial/settings": "workspace:*"
+    "@metorial/settings": "workspace:*",
+    "@metorial/shared-settings": "workspace:*"
   },
   "exports": {
     ".": "./src/index.ts"

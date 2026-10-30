@@ -76,6 +76,7 @@
     "object-storage-client": "^0.2.5",
     "prisma": "^7.10.1",
     "yaml": "^2.9.1",
-    "@metorial/settings": "workspace:*"
+    "@metorial/settings": "workspace:*",
+    "@metorial/shared-settings": "workspace:*"
   }
 }

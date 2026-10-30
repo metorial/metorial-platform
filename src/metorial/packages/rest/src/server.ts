@@ -8,6 +8,7 @@ import {
 import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
 import { getSentry } from '@lowerdeck/sentry';
 import { Context } from '@metorial/context';
+import { domainSettings, matchesDomain } from '@metorial/shared-settings';
 import { generateId } from '@metorial/id';
 import { PresenterContext } from '@metorial/presenter';
 import opentelemetry, { context, propagation, Span } from '@opentelemetry/api';
@@ -728,7 +729,7 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
                           if (origin) {
                             try {
                               let url = new URL(origin);
-                              if (url.hostname.endsWith('.metorial.com')) {
+                              if (matchesDomain(url.hostname, domainSettings().apps)) {
                                 noCors = false;
                               }
                             } catch {}

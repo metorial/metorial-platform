@@ -1,14 +1,15 @@
 import { defineSettings } from '@metorial/settings';
+import { metorialEnv, metorialRegion, objectStorageUrl, redisUrl, serviceUrl } from '@metorial/shared-settings';
 import { v } from '@lowerdeck/validation';
 
 export let env = defineSettings({
   service: {
-    REDIS_URL: v.string(),
+    REDIS_URL: redisUrl,
     DATABASE_URL: v.string(),
 
     SERVICE_PUBLIC_URL: v.string(),
-    METORIAL_ENV: v.enumOf(['development', 'staging', 'production']),
-    METORIAL_REGION: v.optional(v.string()),
+    METORIAL_ENV: metorialEnv,
+    METORIAL_REGION: metorialRegion,
 
     SLATES_HUB_PUBLIC_PORT: v.optional(v.number()),
     SLATES_HUB_INTERNAL_PORT: v.optional(v.number()),
@@ -16,7 +17,7 @@ export let env = defineSettings({
   },
 
   functionBay: {
-    FUNCTION_BAY_API_URL: v.string(),
+    FUNCTION_BAY_API_URL: serviceUrl('functionBay'),
     FUNCTION_BAY_TENANT_IDENTIFIER: v.string(),
 
     FUNCTION_BAY_DEFAULT_MEMORY_MB: v.number(),
@@ -24,7 +25,7 @@ export let env = defineSettings({
   },
 
   storage: {
-    OBJECT_STORAGE_URL: v.string(),
+    OBJECT_STORAGE_URL: objectStorageUrl,
     INVOCATIONS_BUCKET_NAME: v.string(),
     MAX_ATTACHMENT_SIZE_BYTES: v.optional(v.number())
   },
@@ -54,7 +55,7 @@ export let env = defineSettings({
   },
 
   nebula: {
-    NEBULA_API_URL: v.string(),
+    NEBULA_API_URL: serviceUrl('nebula'),
     NEBULA_CONSUMER_IDENTIFIER: v.string(),
     NEBULA_CONSUMER_TOKEN: v.string()
   },

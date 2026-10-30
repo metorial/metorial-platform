@@ -29,7 +29,8 @@
     "@metorial/fabric": "^1.0.0",
     "@metorial/module-event-tracker": "workspace:*",
     "date-fns": "^4.4.0",
-    "@metorial/settings": "workspace:*"
+    "@metorial/settings": "workspace:*",
+    "@metorial/shared-settings": "workspace:*"
   },
   "devDependencies": {
     "@metorial-subspace/tsconfig": "^1.0.0",

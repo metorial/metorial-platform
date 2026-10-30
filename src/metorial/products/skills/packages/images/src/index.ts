@@ -11,7 +11,7 @@ import type {
   StoreParticipantPermissions
 } from '@metorial/db';
 import { db } from '@metorial/db';
-import { env } from './env';
+import { domainSettings } from '@metorial/shared-settings';
 import { maxDownloadedImageBytes, readBoundedResponse } from './boundedFetch';
 
 export * from './boundedFetch';
@@ -21,7 +21,10 @@ export type GetImageFieldsParams = {
   image: EntityImage | null;
 };
 
-let allowedHosts = env.images.IMAGE_ALLOWED_HOSTS;
+let allowedHosts = (() => {
+  let domains = domainSettings();
+  return [...domains.owned, ...domains.assets, ...domains.dev];
+})();
 
 let imageMimeTypeToExtensionMap: Record<string, string> = {
   'image/jpeg': 'jpg',

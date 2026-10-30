@@ -12,14 +12,14 @@ import remarkRehype from 'remark-rehype';
 import remarkStringify from 'remark-stringify';
 import { unified } from 'unified';
 import { visit } from 'unist-util-visit';
-import { env } from '../env';
+import { domainSettings, matchesDomain } from '@metorial/shared-settings';
 import { hastSchema } from './hastSchema';
 import { isRelativeUrl, joinUrls } from './urls';
 
-let isFirstPartyHost = (hostname: string) =>
-  env.links.MARKDOWN_FIRST_PARTY_DOMAINS.some(
-    domain => hostname == domain || hostname.endsWith(`.${domain}`)
-  );
+let isFirstPartyHost = (hostname: string) => {
+  let domains = domainSettings();
+  return matchesDomain(hostname, [...domains.owned, ...domains.dev]);
+};
 
 export type MarkdownOptions = {
   id: string;

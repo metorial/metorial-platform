@@ -2,7 +2,8 @@ import { v, type ValidationType } from '@lowerdeck/validation';
 import type { Edition } from '@metorial/editions';
 import type { SettingDefinition, SettingOptions } from './types';
 
-type ScopedOptions<T> = SettingOptions<T> & { editions: readonly Edition[] };
+type ScopedOptions<T> = SettingOptions<T> &
+  ({ editions: readonly Edition[] } | { requiredIn: readonly Edition[] });
 
 type SettingFactory = {
   <T>(validator: ValidationType<T>, options: ScopedOptions<T>): SettingDefinition<T, true>;
@@ -36,7 +37,7 @@ let create = (
   kind: 'setting',
   validator,
   options,
-  scoped: !!options.editions,
+  scoped: !!options.editions || !!options.requiredIn,
   parse
 });
 

@@ -1,5 +1,6 @@
 import { apiMux } from '@lowerdeck/api-mux';
 import { rpcMux } from '@lowerdeck/rpc-server';
+import { domainSettings } from '@metorial/shared-settings';
 import { authRPC } from './controllers';
 import { endpointApp } from './endpoints';
 
@@ -10,12 +11,8 @@ let authMux = rpcMux(
         ? { check: () => true }
         : {
             domains: [
-              'localhost',
-              'metorial.test',
-              'metorial.com',
-              'metorial.work',
-              'metorial.app',
-              'metorial.cloud',
+              ...domainSettings().apps,
+              ...domainSettings().dev,
               ...(process.env.CORS_DOMAINS?.split(',').map(d => d.trim()) ?? [])
             ]
           },

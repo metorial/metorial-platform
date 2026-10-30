@@ -1,4 +1,5 @@
 import { defineSettings } from '@metorial/settings';
+import { metorialRegion } from '@metorial/shared-settings';
 import { v } from '@lowerdeck/validation';
 
 export let env = defineSettings({
@@ -15,7 +16,7 @@ export let env = defineSettings({
     // Region this cell runs in (e.g. "us1"/"eu1"). Encoded as a suffix on
     // minted urlKeys so the router can pick the right regional host, mirroring
     // the file-router's download-key region suffix.
-    METORIAL_REGION: v.optional(v.string())
+    METORIAL_REGION: metorialRegion
   },
   secrets: {
     SLATE_ATTACHMENT_SIGNING_SECRET: v.string()

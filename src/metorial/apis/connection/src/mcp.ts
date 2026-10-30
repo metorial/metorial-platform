@@ -16,7 +16,7 @@ import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import type { Context } from 'hono';
 import { type SSEStreamingApi, streamSSE } from 'hono/streaming';
 import z from 'zod';
-import { env } from './env';
+import { hostSettings } from './env';
 import {
   assertOutpostConnectionAccess,
   getOutpostAuth,
@@ -69,7 +69,7 @@ let publicProxyUrl = (c: Context, originOverride?: string) => {
 
   let hostname = inputUrl.hostname;
 
-  let rewriteSuffix = env.hosts.PUBLIC_HOST_REWRITE_SUFFIXES.find(suffix =>
+  let rewriteSuffix = hostSettings.publicHostRewriteSuffixes.find(suffix =>
     hostname.endsWith(suffix)
   );
 

@@ -1,44 +1,13 @@
-import { defineSettings } from '@metorial/settings';
 import { v } from '@lowerdeck/validation';
+import { defineSettings, setting } from '@metorial/settings';
+import { metorialEnv, publicUrls, redisUrl } from '@metorial/shared-settings';
 
-export let env = defineSettings({
-  service: {
-    REDIS_URL: v.string()
-  },
+export let serviceSettings = defineSettings('service', { redisUrl });
 
-  smtp: {
-    EMAIL_HOST: v.optional(v.string()),
-    EMAIL_PORT: v.optional(v.number()),
-    EMAIL_SECURE: v.optional(v.boolean()),
-    EMAIL_USER: v.optional(v.string()),
-    EMAIL_PASS: v.optional(v.string()),
+export let urlSettings = defineSettings('urls', publicUrls);
 
-    EMAIL_SES_ACCESS_KEY_ID: v.optional(v.string()),
-    EMAIL_SES_SECRET_ACCESS_KEY: v.optional(v.string()),
-    EMAIL_SES_REGION: v.optional(v.string()),
+export let environmentSettings = defineSettings('environment', { environment: metorialEnv });
 
-    EMAIL_FROM: v.string(),
-    EMAIL_FROM_NAME: v.string()
-  },
-
-  urls: {
-    API_URL: v.string(),
-    FILES_URL: v.string(),
-    APP_URL: v.string(),
-    PORTALS_URL: v.string(),
-    PUBLIC_MCP_URL: v.optional(v.string())
-  },
-
-  env: {
-    METORIAL_ENV: v.enumOf(['development', 'staging', 'production']),
-    NODE_ENV: v.enumOf(['development', 'production'])
-  },
-
-  encryption: {
-    ENCRYPTION_SECRET: v.string()
-  },
-
-  nebula: {
-    NEBULA_API_URL: v.string()
-  }
+export let encryptionSettings = defineSettings('encryption', {
+  secret: setting(v.string(), { env: 'ENCRYPTION_SECRET', audience: 'deployment' })
 });

@@ -34,7 +34,8 @@
     "@metorial/queue": "^1.0.0",
     "ipaddr.js": "^2.5.0",
     "object-storage-client": "^0.2.5",
-    "@metorial/settings": "workspace:*"
+    "@metorial/settings": "workspace:*",
+    "@metorial/shared-settings": "workspace:*"
   },
   "module": "src/index.ts",
   "types": "src/index.ts",

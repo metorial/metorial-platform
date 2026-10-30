@@ -27,7 +27,8 @@
     "@metorial/fabric": "^1.0.0",
     "lru-cache": "^11.5.3",
     "@metorial/settings": "workspace:*",
-    "@metorial/branding": "workspace:*"
+    "@metorial/branding": "workspace:*",
+    "@metorial/shared-settings": "workspace:*"
   },
   "devDependencies": {
     "@metorial-subspace/tsconfig": "^1.0.0",

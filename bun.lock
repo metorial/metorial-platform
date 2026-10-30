@@ -180,6 +180,7 @@
         "@metorial-platform-systems/relay-client": "workspace:*",
         "@metorial/branding": "workspace:*",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
         "@metorial/ui": "^1.0.0",
         "@prisma/adapter-pg": "^7.10.1",
         "@prisma/client": "^7.10.1",
@@ -296,6 +297,7 @@
         "@lowerdeck/snowflake": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
         "@prisma/adapter-pg": "^7.10.1",
         "@prisma/client": "^7.10.1",
         "@prisma/extension-read-replicas": "^0.5.0",
@@ -460,6 +462,7 @@
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial-platform-systems/forge-client": "workspace:*",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
         "@prisma/adapter-pg": "^7.10.1",
         "@prisma/client": "^7.10.1",
         "@prisma/extension-read-replicas": "^0.5.0",
@@ -2577,6 +2580,7 @@
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial/editions": "workspace:*",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -2604,7 +2608,9 @@
         "@lowerdeck/env": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial/db": "^1.0.0",
+        "@metorial/editions": "workspace:*",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -2865,6 +2871,7 @@
         "@lowerdeck/execution-context": "workspace:2.0.0",
         "@lowerdeck/sentry": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/shared-settings": "workspace:*",
         "@opentelemetry/api": "^1.9.1",
         "@types/qs": "^6.15.1",
         "async-ratelimiter": "^1.6.10",
@@ -2891,10 +2898,27 @@
     "src/metorial/packages/settings": {
       "name": "@metorial/settings",
       "version": "1.0.0",
+      "bin": {
+        "metorial-settings": "./src/cli.ts",
+      },
       "dependencies": {
         "@lowerdeck/env": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial/editions": "workspace:*",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
+    "src/metorial/packages/shared-settings": {
+      "name": "@metorial/shared-settings",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial/editions": "workspace:*",
+        "@metorial/settings": "workspace:*",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -3122,6 +3146,7 @@
         "@metorial/fabric": "^1.0.0",
         "@metorial/queue": "^1.0.0",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
         "object-storage-client": "^0.2.5",
       },
       "devDependencies": {
@@ -3196,6 +3221,7 @@
         "@metorial/presenter": "^1.0.0",
         "@metorial/queue": "^1.0.0",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
         "object-storage-client": "^0.2.5",
       },
       "devDependencies": {
@@ -3291,6 +3317,7 @@
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial-platform-systems/voyager-client": "workspace:*",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -3413,6 +3440,7 @@
         "@metorial/db": "^1.0.0",
         "@metorial/queue": "^1.0.0",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
       },
       "devDependencies": {
         "@metorial/e2e": "1.0.0",
@@ -3494,6 +3522,7 @@
         "@metorial/image-url": "^1.0.0",
         "@metorial/queue": "^1.0.0",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
         "date-fns": "^4.4.0",
         "mongoose": "^9.11.2",
         "rehype-parse": "^9.0.1",
@@ -3681,6 +3710,7 @@
         "@metorial/db": "^1.0.0",
         "@metorial/fabric": "^1.0.0",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
       },
       "devDependencies": {
         "@metorial/e2e": "1.0.0",
@@ -3907,6 +3937,7 @@
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial-subspace/tsconfig": "^1.0.0",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
         "@modelcontextprotocol/sdk": "^1.32.1",
         "@prisma/adapter-pg": "^7.10.1",
         "@prisma/client": "^7.10.1",
@@ -3948,6 +3979,7 @@
         "@metorial-subspace/provider-utils": "^1.0.0",
         "@metorial/db": "workspace:*",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
       },
       "devDependencies": {
         "@metorial-subspace/tsconfig": "^1.0.0",
@@ -3983,6 +4015,7 @@
         "@metorial/fabric": "^1.0.0",
         "@metorial/module-email": "^1.0.0",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
         "date-fns": "^4.4.0",
         "react": "19.3.0",
       },
@@ -4017,6 +4050,7 @@
         "@metorial/fabric": "^1.0.0",
         "@metorial/module-event-tracker": "workspace:*",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
         "date-fns": "^4.4.0",
       },
       "devDependencies": {
@@ -4049,6 +4083,7 @@
         "@metorial/db": "^1.0.0",
         "@metorial/fabric": "^1.0.0",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
         "date-fns": "^4.4.0",
       },
       "devDependencies": {
@@ -4089,6 +4124,7 @@
         "@metorial/presenter": "^1.0.0",
         "@metorial/presenters": "^1.0.0",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
         "@slates/adapter-chat": "1.0.0-rc.14",
         "date-fns": "^4.4.0",
         "object-storage-client": "^0.2.5",
@@ -4146,6 +4182,7 @@
         "@metorial/module-rate-limit": "^1.0.0",
         "@metorial/module-usage": "^1.0.0",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
         "@modelcontextprotocol/sdk": "^1.32.1",
         "@types/lodash": "^4.17.26",
         "date-fns": "^4.4.0",
@@ -4192,6 +4229,7 @@
         "@metorial/fabric": "^1.0.0",
         "@metorial/module-skill": "^1.0.0",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
       },
       "devDependencies": {
         "@metorial-subspace/tsconfig": "^1.0.0",
@@ -4226,6 +4264,7 @@
         "@metorial/db": "^1.0.0",
         "@metorial/fabric": "^1.0.0",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
       },
       "devDependencies": {
         "@metorial-subspace/tsconfig": "^1.0.0",
@@ -4260,6 +4299,7 @@
         "@metorial/fabric": "^1.0.0",
         "@metorial/module-networking": "^1.0.0",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
         "ipaddr.js": "^2.5.0",
       },
       "devDependencies": {
@@ -4294,6 +4334,7 @@
         "@metorial-subspace/provider-utils": "^1.0.0",
         "@metorial/db": "^1.0.0",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
         "date-fns": "^4.4.0",
       },
       "devDependencies": {
@@ -4336,6 +4377,7 @@
         "@metorial/fabric": "^1.0.0",
         "@metorial/module-skill": "^1.0.0",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
         "date-fns": "^4.4.0",
       },
       "devDependencies": {
@@ -4363,6 +4405,7 @@
         "@metorial-subspace/module-tenant": "^1.0.0",
         "@metorial/fabric": "^1.0.0",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
       },
       "devDependencies": {
         "@metorial-subspace/tsconfig": "^1.0.0",
@@ -4398,6 +4441,7 @@
         "@metorial/branding": "workspace:*",
         "@metorial/module-web": "1.0.0",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
         "date-fns": "^4.4.0",
         "safe-regex2": "^5.1.2",
       },
@@ -4437,6 +4481,7 @@
         "@metorial/module-flags": "^1.0.0",
         "@metorial/multi-region": "^1.0.0",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
         "date-fns": "^4.4.0",
         "ioredis": "^6.0.0",
       },
@@ -4458,6 +4503,7 @@
         "@metorial-platform-systems/voyager-client": "workspace:*",
         "@metorial-subspace/db": "^1.0.0",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
       },
       "devDependencies": {
         "@metorial/e2e": "1.0.0",
@@ -4502,6 +4548,7 @@
         "@metorial/module-rate-limit": "^1.0.0",
         "@metorial/module-usage": "^1.0.0",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
         "@modelcontextprotocol/sdk": "^1.32.1",
         "p-queue": "^10.0.0",
       },
@@ -4533,6 +4580,7 @@
         "@metorial/db": "^1.0.0",
         "@metorial/fabric": "^1.0.0",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
         "lru-cache": "^11.5.3",
       },
       "devDependencies": {
@@ -4585,6 +4633,7 @@
         "@metorial-subspace/db": "^1.0.0",
         "@metorial-subspace/module-provider-internal": "^1.0.0",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
         "@modelcontextprotocol/sdk": "^1.32.1",
         "object-storage-client": "^0.2.5",
         "zod": "^4.6.7",
@@ -4751,6 +4800,7 @@
         "@metorial/module-usage": "^1.0.0",
         "@metorial/module-web": "1.0.0",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
         "@modelcontextprotocol/sdk": "^1.32.1",
         "p-queue": "^10.0.0",
         "zod": "^4.6.7",
@@ -4785,9 +4835,9 @@
         "@metorial-subspace/module-catalog": "^1.0.0",
         "@metorial-subspace/module-provider-internal": "^1.0.0",
         "@metorial-subspace/provider-utils": "^1.0.0",
-        "@metorial/editions": "workspace:*",
         "@metorial/module-usage": "^1.0.0",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
         "p-queue": "^10.0.0",
       },
       "devDependencies": {
@@ -5149,7 +5199,7 @@
       "dependencies": {
         "@lowerdeck/error": "workspace:2.0.0",
         "@lowerdeck/service": "workspace:2.0.0",
-        "@lowerdeck/validation": "workspace:*",
+        "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial/branding": "workspace:*",
         "@metorial/config": "^1.0.0",
         "@metorial/db": "^1.0.0",
@@ -5176,6 +5226,7 @@
         "@metorial-platform-systems/origin-client": "workspace:*",
         "@metorial/db": "^1.0.0",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
         "@metorial/skills-common": "^1.0.0",
       },
       "devDependencies": {
@@ -5197,6 +5248,7 @@
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial-platform-systems/voyager-client": "workspace:*",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
       },
       "devDependencies": {
         "@metorial/tsconfig": "^1.0.0",
@@ -5264,6 +5316,7 @@
         "@metorial/module-resource-actor": "^1.0.0",
         "@metorial/queue": "^1.0.0",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
         "ipaddr.js": "^2.5.0",
         "object-storage-client": "^0.2.5",
       },
@@ -5691,6 +5744,7 @@
         "@lowerdeck/snowflake": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
         "@prisma/adapter-pg": "^7.10.1",
         "@prisma/client": "^7.10.1",
         "@prisma/extension-read-replicas": "^0.5.0",
@@ -5801,6 +5855,7 @@
         "@lowerdeck/telemetry": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
         "@octokit/auth-app": "^8.3.1",
         "@octokit/core": "^7.0.8",
         "@prisma/adapter-pg": "^7.10.1",
@@ -6304,6 +6359,7 @@
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial-platform-systems/forge-client": "workspace:*",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
         "@metorial/system-email": "^1.0.0",
         "@prisma/adapter-pg": "^7.10.1",
         "@prisma/client": "^7.10.1",
@@ -6463,6 +6519,7 @@
         "@metorial-platform-systems/nebula-client": "workspace:*",
         "@metorial/mcp-server": "^1.0.0-rc.11",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
         "@modelcontextprotocol/sdk": "^1.32.1",
         "@prisma/adapter-pg": "^7.10.1",
         "@prisma/client": "^7.10.1",
@@ -6636,6 +6693,7 @@
         "@metorial-services/slates-registry-client": "workspace:*",
         "@metorial-services/slates-registry-internal-client": "^1.0.0",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
         "@prisma/adapter-pg": "^7.10.1",
         "@prisma/client": "^7.10.1",
         "@prisma/extension-read-replicas": "^0.5.0",
@@ -6717,6 +6775,7 @@
         "@metorial-io/ui-product": "^1.0.0",
         "@metorial-platform-systems/ares-client": "workspace:*",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
         "@metorial/util-endpoint": "^3.0.0",
         "@prisma/adapter-pg": "^7.10.1",
         "@prisma/client": "^7.10.1",
@@ -6871,6 +6930,7 @@
         "@lowerdeck/telemetry": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
         "@prisma/adapter-pg": "^7.10.1",
         "@prisma/client": "^7.10.1",
         "@prisma/extension-read-replicas": "^0.5.0",
@@ -6937,6 +6997,7 @@
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial-platform-systems/forge-client": "workspace:*",
         "@metorial/settings": "workspace:*",
+        "@metorial/shared-settings": "workspace:*",
         "@prisma/adapter-pg": "^7.10.1",
         "@prisma/client": "^7.10.1",
         "@prisma/extension-read-replicas": "^0.5.0",
@@ -8298,6 +8359,8 @@
     "@metorial/service-init": ["@metorial/service-init@workspace:src/metorial/packages/service-init"],
 
     "@metorial/settings": ["@metorial/settings@workspace:src/metorial/packages/settings"],
+
+    "@metorial/shared-settings": ["@metorial/shared-settings@workspace:src/metorial/packages/shared-settings"],
 
     "@metorial/shuttle": ["@metorial/shuttle@workspace:src/shuttle/service"],
 

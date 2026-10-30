@@ -39,6 +39,7 @@
     "prisma": "^7.10.1",
     "prisma-json-types-generator": "^5.2.0",
     "@lowerdeck/prisma-pg": "workspace:2.0.0",
-    "@metorial/settings": "workspace:*"
+    "@metorial/settings": "workspace:*",
+    "@metorial/shared-settings": "workspace:*"
   }
 }

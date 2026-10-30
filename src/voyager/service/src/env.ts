@@ -1,9 +1,10 @@
 import { defineSettings } from '@metorial/settings';
+import { redisUrl } from '@metorial/shared-settings';
 import { v } from '@lowerdeck/validation';
 
 export let env = defineSettings({
   service: {
-    REDIS_URL: v.string(),
+    REDIS_URL: redisUrl,
     DATABASE_URL: v.string(),
     SEARCH_DATABASE_URL: v.string(),
     ALGOLIA_APP_ID: v.optional(v.string()),

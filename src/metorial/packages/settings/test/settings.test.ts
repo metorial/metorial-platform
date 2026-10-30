@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   defineSettings,
   describeSettings,
+  listSettingIssues,
   dumpSettings,
   resetSettingsRegistry,
   setting
@@ -22,7 +23,8 @@ let touched = [
   'SETTINGS_TEST_ON_PREM',
   'METORIAL_EDITION',
   'METORIAL_CONFIG_FILE',
-  'LOWERDECK_OFFLINE'
+  'LOWERDECK_OFFLINE',
+  'METORIAL_SETTINGS_MODE'
 ];
 
 beforeEach(() => {
@@ -32,6 +34,112 @@ beforeEach(() => {
 
 afterEach(() => {
   for (let key of touched) delete process.env[key];
+});
+
+describe('defineSettings (grouped)', () => {
+  it('reads camelCase keys from the mapped env var', () => {
+    process.env.SETTINGS_TEST_STRING = 'hello';
+
+    let settings = defineSettings('service', {
+      greeting: setting(v.string(), { env: 'SETTINGS_TEST_STRING' }),
+      count: setting(v.number(), { env: 'SETTINGS_TEST_NUMBER', default: 3 })
+    });
+
+    expect(settings.greeting).toBe('hello');
+    expect(settings.count).toBe(3);
+  });
+
+  it('reads the config file by group and camelCase key', () => {
+    let dir = mkdtempSync(join(tmpdir(), 'settings-'));
+    let path = join(dir, 'config.json');
+    writeFileSync(path, JSON.stringify({ service: { greeting: 'from-file' } }));
+    process.env.METORIAL_CONFIG_FILE = path;
+
+    let settings = defineSettings('service', {
+      greeting: setting(v.string(), { env: 'SETTINGS_TEST_STRING' })
+    });
+
+    expect(settings.greeting).toBe('from-file');
+  });
+
+  it('requires an env mapping', () => {
+    expect(() => defineSettings('service', { greeting: setting(v.string()) })).toThrow(
+      'needs an env option'
+    );
+  });
+
+  it('exposes issues with env, audience and message', () => {
+    try {
+      defineSettings('service', {
+        greeting: setting(v.string(), { env: 'SETTINGS_TEST_STRING', audience: 'customer' })
+      });
+      expect.unreachable();
+    } catch (error: any) {
+      expect(error.issues).toEqual([
+        expect.objectContaining({
+          group: 'service',
+          key: 'greeting',
+          env: 'SETTINGS_TEST_STRING',
+          audience: 'customer'
+        })
+      ]);
+    }
+  });
+});
+
+describe('registry', () => {
+  it('lists a setting declared in two places once, preferring the grouped style', () => {
+    process.env.SETTINGS_TEST_STRING = 'x';
+
+    defineSettings({ legacy: { SETTINGS_TEST_STRING: v.string() } });
+    defineSettings('grouped', {
+      greeting: setting(v.string(), { env: 'SETTINGS_TEST_STRING', audience: 'customer' })
+    });
+
+    let described = describeSettings();
+
+    expect(described).toHaveLength(1);
+    expect(described[0]).toMatchObject({ group: 'grouped', key: 'greeting' });
+  });
+
+  it('collects issues instead of throwing in collect mode', () => {
+    process.env.METORIAL_SETTINGS_MODE = 'collect';
+
+    let settings = defineSettings('service', {
+      greeting: setting(v.string(), { env: 'SETTINGS_TEST_STRING', audience: 'customer' }),
+      other: setting(v.string(), { env: 'SETTINGS_TEST_NUMBER', default: 'fine' })
+    });
+
+    expect(settings.greeting).toBeUndefined();
+    expect(settings.other).toBe('fine');
+    expect(listSettingIssues()).toEqual([
+      expect.objectContaining({ env: 'SETTINGS_TEST_STRING', audience: 'customer' })
+    ]);
+  });
+});
+
+describe('requiredIn', () => {
+  let define = () =>
+    defineSettings('service', {
+      licenseKey: setting(v.string(), { env: 'SETTINGS_TEST_STRING', requiredIn: ['on-prem'] })
+    });
+
+  it('is optional in other editions', () => {
+    expect(define().licenseKey).toBeUndefined();
+    expect(describeSettings()[0]?.required).toBe(false);
+  });
+
+  it('is required in the listed editions', () => {
+    process.env.METORIAL_EDITION = 'on-prem';
+
+    expect(() => define()).toThrow('SETTINGS_TEST_STRING');
+
+    resetSettingsRegistry();
+    process.env.SETTINGS_TEST_STRING = 'abc';
+
+    expect(define().licenseKey).toBe('abc');
+    expect(describeSettings()[0]?.required).toBe(true);
+  });
 });
 
 describe('defineSettings', () => {
@@ -185,10 +293,10 @@ describe('defineSettings', () => {
     ]);
 
     expect(dumpSettings()).toEqual({
-      SETTINGS_TEST_STRING: 'visible',
-      SETTINGS_TEST_SECRET_TOKEN: '[redacted]'
+      SETTINGS_TEST_STRING: { value: 'visible', source: 'env' },
+      SETTINGS_TEST_SECRET_TOKEN: { value: '[redacted]', source: 'env' }
     });
 
-    expect(dumpSettings({ reveal: true }).SETTINGS_TEST_SECRET_TOKEN).toBe('hunter2');
+    expect(dumpSettings({ reveal: true }).SETTINGS_TEST_SECRET_TOKEN?.value).toBe('hunter2');
   });
 });

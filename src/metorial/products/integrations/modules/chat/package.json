@@ -39,7 +39,8 @@
     "@slates/adapter-chat": "1.0.0-rc.14",
     "date-fns": "^4.4.0",
     "object-storage-client": "^0.2.5",
-    "@metorial/settings": "workspace:*"
+    "@metorial/settings": "workspace:*",
+    "@metorial/shared-settings": "workspace:*"
   },
   "devDependencies": {
     "@metorial-subspace/tsconfig": "^1.0.0",

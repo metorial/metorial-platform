@@ -50,8 +50,6 @@ let generatePrettySlug = (fullIdentifier: string) => {
   return slugify(`${workspace}-${name}`);
 };
 
-let metorialDomains = env.service.SLATES_FIRST_PARTY_DOMAINS;
-
 let normalizeDocs = (docs: unknown): PrismaJson.ProviderListingDocReference[] => {
   if (!Array.isArray(docs)) return [];
 
@@ -254,9 +252,6 @@ export let syncSlateVersionQueueProcessor = syncSlateVersionQueue.process(async 
   });
 
   let registry = await getRegistries(slate.registryId);
-  let parsedUrl = new URL(registry.url);
-  let isMetorialRegistry = metorialDomains.some(domain => parsedUrl.hostname.endsWith(domain));
-
   let registryRecord: Awaited<ReturnType<typeof slates.slate.getRegistryRecord>>;
   let registryVersionRecord: Awaited<ReturnType<typeof slates.slateVersion.getRegistryRecord>>;
 
@@ -306,13 +301,7 @@ export let syncSlateVersionQueueProcessor = syncSlateVersionQueue.process(async 
     readmeNames.some(n => d.path.toLocaleLowerCase().endsWith(n))
   )?.content;
 
-  let publisher = isMetorialRegistry
-    ? await publisherInternalService.upsertPublisherForMetorial()
-    : await publisherInternalService.upsertPublisherForExternal({
-        identifier: `slates::${slate.registryId}::${slate.scope.id}`,
-        name: registryRecord.name,
-        description: registryRecord.description ?? undefined
-      });
+  let publisher = await publisherInternalService.upsertPublisherForMetorial();
 
   let spec = version.specification?.id
     ? await slates.slateSpecification.get({

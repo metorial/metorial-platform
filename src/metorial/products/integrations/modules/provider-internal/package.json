@@ -34,7 +34,8 @@
     "date-fns": "^4.4.0",
     "safe-regex2": "^5.1.2",
     "@metorial/settings": "workspace:*",
-    "@metorial/branding": "workspace:*"
+    "@metorial/branding": "workspace:*",
+    "@metorial/shared-settings": "workspace:*"
   },
   "devDependencies": {
     "@metorial-subspace/tsconfig": "^1.0.0",

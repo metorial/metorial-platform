@@ -38,9 +38,6 @@ export let loadConfigFile = (): ConfigFile => {
   return contents;
 };
 
-export let readConfigFileValue = (file: ConfigFile, group: string, key: string) =>
-  file?.[group]?.[key] ?? file?.[key];
-
 export let resetConfigFileCache = () => {
   cache = null;
 };

@@ -35,6 +35,6 @@
     "@lowerdeck/canonicalize": "workspace:2.0.0",
     "@lowerdeck/case": "workspace:2.0.0",
     "@metorial/settings": "workspace:*",
-    "@metorial/editions": "workspace:*"
+    "@metorial/shared-settings": "workspace:*"
   }
 }

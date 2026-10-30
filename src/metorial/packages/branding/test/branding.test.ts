@@ -7,7 +7,7 @@ let load = async () => {
 
 afterEach(() => {
   delete process.env.METORIAL_EDITION;
-  delete process.env.APP_URL;
+  delete process.env.METORIAL_PUBLIC_URL;
   delete process.env.METORIAL_LOGO_URL;
 });
 
@@ -24,7 +24,7 @@ describe('branding', () => {
 
   it('serves on-prem assets from the app host', async () => {
     process.env.METORIAL_EDITION = 'on-prem';
-    process.env.APP_URL = 'https://metorial.example.com';
+    process.env.METORIAL_PUBLIC_URL = 'https://metorial.example.com';
 
     let branding = await load();
 

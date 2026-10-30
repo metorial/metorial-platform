@@ -1,34 +1,81 @@
 import { isOfflineMode, resolveOfflinePlaceholder } from '@lowerdeck/env';
+import { v } from '@lowerdeck/validation';
 import { getEdition } from '@metorial/editions';
-import { loadConfigFile, readConfigFileValue } from './file';
+import { loadConfigFile } from './file';
 import { isSecretKey, registerSetting, type RegisteredSetting } from './registry';
 import { isSettingDefinition } from './setting';
-import type {
-  ResolvedGroups,
-  ResolvedSettings,
-  SettingDefinition,
-  SettingsSchema
+import {
+  SettingsValidationError,
+  type GroupSchema,
+  type ResolvedGroup,
+  type ResolvedGroups,
+  type ResolvedSettings,
+  type SettingDefinition,
+  type SettingsIssue,
+  type SettingsSchema
 } from './types';
 
-let toDefinition = (entry: SettingsSchema[string][string]): SettingDefinition =>
-  isSettingDefinition(entry)
-    ? entry
-    : { kind: 'setting', validator: entry as any, options: {}, scoped: false };
+type PlannedSetting = {
+  group: string;
+  key: string;
+  env: string;
+  fileKeys: string[];
+  definition: SettingDefinition;
+};
+
+type DefineSettings = {
+  <G extends GroupSchema>(group: string, entries: G): ResolvedGroup<G>;
+  <S extends SettingsSchema>(schema: S): ResolvedSettings<S>;
+};
+
+let planLegacy = (schema: SettingsSchema): PlannedSetting[] =>
+  Object.entries(schema).flatMap(([group, entries]) =>
+    Object.entries(entries).map(([key, entry]) => ({
+      group,
+      key,
+      env: key,
+      fileKeys: [key],
+      definition: isSettingDefinition(entry)
+        ? entry
+        : ({
+            kind: 'setting',
+            validator: entry,
+            options: {},
+            scoped: false
+          } as SettingDefinition)
+    }))
+  );
+
+let planGrouped = (group: string, entries: GroupSchema): PlannedSetting[] =>
+  Object.entries(entries).map(([key, definition]) => {
+    let env = definition.options.env;
+
+    if (!env) throw new Error(`Setting ${group}.${key} needs an env option`);
+
+    return { group, key, env, fileKeys: [key, env], definition };
+  });
+
+let readFileValue = (file: Record<string, any>, planned: PlannedSetting) => {
+  for (let fileKey of planned.fileKeys) {
+    let value = file?.[planned.group]?.[fileKey];
+    if (value !== undefined) return value;
+  }
+
+  return file?.[planned.env];
+};
 
 let readRaw = (
-  definition: SettingDefinition,
+  planned: PlannedSetting,
   file: Record<string, any>,
-  resolved: ResolvedGroups,
-  group: string,
-  key: string
+  resolved: ResolvedGroups
 ): { raw: unknown; source: RegisteredSetting['source'] } => {
-  let fromEnv = process.env[key];
+  let fromEnv = process.env[planned.env];
   if (fromEnv !== undefined) return { raw: fromEnv, source: 'env' };
 
-  let fromFile = readConfigFileValue(file, group, key);
+  let fromFile = readFileValue(file, planned);
   if (fromFile !== undefined) return { raw: fromFile, source: 'file' };
 
-  let fallback = definition.options.default;
+  let fallback = planned.definition.options.default;
 
   if (fallback !== undefined) {
     let raw = typeof fallback == 'function' ? fallback(resolved) : fallback;
@@ -38,57 +85,83 @@ let readRaw = (
   return { raw: undefined, source: 'unset' };
 };
 
-export let defineSettings = <S extends SettingsSchema>(schema: S): ResolvedSettings<S> => {
+let resolveAll = (planned: PlannedSetting[]) => {
   let edition = getEdition();
   let file = loadConfigFile();
 
   let resolved: ResolvedGroups = {};
-  let errors: string[] = [];
+  let issues: SettingsIssue[] = [];
 
-  for (let [group, entries] of Object.entries(schema)) {
-    resolved[group] = {};
+  for (let item of planned) {
+    let { group, key, env, definition } = item;
+    let { options } = definition;
+    let optionalHere = !!options.requiredIn && !options.requiredIn.includes(edition);
+    let validator = optionalHere ? v.optional(definition.validator) : definition.validator;
 
-    for (let [key, entry] of Object.entries(entries)) {
-      let definition = toDefinition(entry);
-      let { options, validator } = definition;
+    resolved[group] ??= {};
 
-      let base = {
-        group,
-        key,
-        type: validator.type,
-        optional: !!validator.optional || options.default !== undefined,
-        secret: options.secret ?? isSecretKey(key),
-        description: options.description ?? validator.description,
-        editions: options.editions
-      };
+    let staticDefault = typeof options.default == 'function' ? undefined : options.default;
 
-      if (options.editions && !options.editions.includes(edition)) {
-        resolved[group]![key] = undefined;
-        registerSetting({ ...base, active: false, source: 'unset', value: undefined });
-        continue;
-      }
+    let base = {
+      group,
+      key,
+      env,
+      type: definition.validator.type,
+      required: !validator.optional && options.default === undefined,
+      audience: options.audience ?? ('deployment' as const),
+      secret: options.secret ?? isSecretKey(env),
+      description: options.description ?? definition.validator.description,
+      editions: options.editions,
+      defaultValue: staticDefault,
+      derivedDefault: typeof options.default == 'function',
+      example: definition.validator.examples?.[0]
+    };
 
-      let { raw, source } = readRaw(definition, file, resolved, group, key);
-      let input = definition.parse ? definition.parse(raw) : raw;
-      let result = validator.validate(input);
-
-      if (!result.success && isOfflineMode()) {
-        result = resolveOfflinePlaceholder(key, validator) ?? result;
-      }
-
-      if (!result.success) {
-        errors.push(`${key} - ${result.errors[0]?.message ?? 'invalid'}`);
-        continue;
-      }
-
-      resolved[group]![key] = result.value;
-      registerSetting({ ...base, active: true, source, value: result.value });
+    if (options.editions && !options.editions.includes(edition)) {
+      resolved[group][key] = undefined;
+      registerSetting({ ...base, active: false, source: 'unset', value: undefined });
+      continue;
     }
+
+    let { raw, source } = readRaw(item, file, resolved);
+    let result = validator.validate(definition.parse ? definition.parse(raw) : raw);
+
+    if (!result.success && isOfflineMode()) {
+      result = resolveOfflinePlaceholder(env, validator) ?? result;
+    }
+
+    if (!result.success) {
+      let message = result.errors[0]?.message ?? 'invalid';
+
+      issues.push({ group, key, env, audience: base.audience, message });
+      registerSetting({
+        ...base,
+        active: true,
+        source: 'unset',
+        value: undefined,
+        error: message
+      });
+      continue;
+    }
+
+    resolved[group][key] = result.value;
+    registerSetting({ ...base, active: true, source, value: result.value });
   }
 
-  if (errors.length) {
-    throw new Error(`SETTINGS VALIDATION:\n${errors.map(error => `  ${error}`).join('\n')}`);
+  if (issues.length && process.env.METORIAL_SETTINGS_MODE != 'collect') {
+    throw new SettingsValidationError(issues);
   }
 
-  return resolved as ResolvedSettings<S>;
+  return resolved;
 };
+
+export let defineSettings: DefineSettings = ((
+  first: string | SettingsSchema,
+  second?: GroupSchema
+) => {
+  if (typeof first == 'string') {
+    return resolveAll(planGrouped(first, second ?? {}))[first] ?? {};
+  }
+
+  return resolveAll(planLegacy(first));
+}) as DefineSettings;

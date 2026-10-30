@@ -17,5 +17,11 @@
     "@metorial/tsconfig": "^1.0.0",
     "typescript": "^5.9.3",
     "vitest": "^5.0.4"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "metorial-settings": "./src/cli.ts"
   }
 }
