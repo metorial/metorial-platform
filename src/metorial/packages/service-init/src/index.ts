@@ -158,3 +158,5 @@ export let initializeMetorialServiceEnvironment = async (
 
   initializeRedisUrl(env);
 };
+
+export * from './boot';
