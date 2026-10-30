@@ -1,3 +1,4 @@
+import { checkEdition } from '@metorial/editions';
 import { setSentry, shouldIgnoreSentryHttpError } from '@lowerdeck/sentry';
 import { initTelemetry } from '@lowerdeck/telemetry';
 import * as Sentry from '@sentry/bun';
@@ -13,6 +14,7 @@ initTelemetry({
 });
 
 if (
+  checkEdition('cloud') &&
   process.env.METORIAL_ENV !== 'development' &&
   !global.sentryInitialized &&
   process.env.SENTRY_DSN

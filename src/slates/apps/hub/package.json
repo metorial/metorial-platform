@@ -69,6 +69,7 @@
     "@lowerdeck/lock": "workspace:2.0.0",
     "@lowerdeck/once": "workspace:2.0.0",
     "@lowerdeck/pagination": "workspace:2.0.0",
+    "@lowerdeck/prisma-pg": "workspace:2.0.0",
     "@lowerdeck/programmable-promise": "workspace:2.0.0",
     "@lowerdeck/queue": "workspace:2.0.0",
     "@lowerdeck/redis": "workspace:2.0.0",
@@ -95,6 +96,9 @@
     "@metorial-platform-systems/signal-client": "workspace:*",
     "@metorial-services/slates-registry-client": "workspace:*",
     "@metorial-services/slates-registry-internal-client": "^1.0.0",
+    "@metorial/editions": "workspace:*",
+    "@metorial/settings": "workspace:*",
+    "@metorial/shared-settings": "workspace:*",
     "@prisma/adapter-pg": "^7.10.1",
     "@prisma/client": "^7.10.1",
     "@prisma/extension-read-replicas": "^0.5.0",
@@ -121,9 +125,6 @@
     "styled-components": "^6.6.0",
     "unzipper": "^0.12.5",
     "yaml": "^2.9.1",
-    "zod": "^4.6.7",
-    "@lowerdeck/prisma-pg": "workspace:2.0.0",
-    "@metorial/settings": "workspace:*",
-    "@metorial/shared-settings": "workspace:*"
+    "zod": "^4.6.7"
   }
 }

@@ -1,3 +1,4 @@
+import { checkEdition } from '@metorial/editions';
 import { setSentry } from '@lowerdeck/sentry';
 import * as Sentry from '@sentry/bun';
 
@@ -7,6 +8,7 @@ declare global {
 }
 
 if (
+  checkEdition('cloud') &&
   process.env.METORIAL_ENV != 'development' &&
   !global.sentryInitialized &&
   process.env.SENTRY_DSN

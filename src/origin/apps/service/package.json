@@ -78,6 +78,7 @@
     "protobufjs": "^8.8.1",
     "yaml": "^2.9.1",
     "@metorial/settings": "workspace:*",
-    "@metorial/shared-settings": "workspace:*"
+    "@metorial/shared-settings": "workspace:*",
+    "@metorial/editions": "workspace:*"
   }
 }

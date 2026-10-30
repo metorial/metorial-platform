@@ -1,11 +1,28 @@
+import { perEdition } from '@metorial/editions';
+
 let cspDirectives = [
   `default-src 'self'`,
-  `script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com`,
+  perEdition({
+    cloud: `script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com`,
+    'on-prem': `script-src 'self' 'unsafe-inline'`
+  }),
   `style-src 'self' 'unsafe-inline'`,
-  `img-src 'self' data: *.metorial-cdn.com metorial.com *.metorial.com *.metorial.net *.metorial.dev *.metorial-files.com metorial-files.com *.metorial-staging.com`,
-  `font-src 'self' *.metorial-cdn.com`,
-  `connect-src 'self' *.metorial.com *.metorial.net *.metorial.dev`,
-  `frame-src https://challenges.cloudflare.com`,
+  perEdition({
+    cloud: `img-src 'self' data: *.metorial-cdn.com metorial.com *.metorial.com *.metorial.net *.metorial.dev *.metorial-files.com metorial-files.com *.metorial-staging.com`,
+    'on-prem': `img-src 'self' data:`
+  }),
+  perEdition({
+    cloud: `font-src 'self' *.metorial-cdn.com`,
+    'on-prem': `font-src 'self'`
+  }),
+  perEdition({
+    cloud: `connect-src 'self' *.metorial.com *.metorial.net *.metorial.dev`,
+    'on-prem': `connect-src 'self'`
+  }),
+  perEdition({
+    cloud: `frame-src https://challenges.cloudflare.com`,
+    'on-prem': `frame-src 'none'`
+  }),
   `frame-ancestors 'none'`,
   `base-uri 'self'`,
   `form-action 'self'`
