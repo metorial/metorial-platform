@@ -1,3 +1,4 @@
+import { checkEdition } from '@metorial/editions';
 import { Callout, theme } from '@metorial/ui';
 import styled from 'styled-components';
 import type { PublicMcpContext } from '../../state/types';
@@ -20,14 +21,18 @@ export let PublicMcpConsent = ({ publicMcp }: { publicMcp: PublicMcpContext }) =
     <Text>
       <strong>{publicMcp.clientName}</strong> wants to connect to{' '}
       <strong>{publicMcp.serverName}</strong>. Your credentials are protected by{' '}
-      <a
-        href="https://www.metorial.com"
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{ color: 'unset', textDecoration: 'underline' }}
-      >
-        Metorial
-      </a>
+      {checkEdition('cloud') ? (
+        <a
+          href="https://www.metorial.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: 'unset', textDecoration: 'underline' }}
+        >
+          Metorial
+        </a>
+      ) : (
+        'Metorial'
+      )}
       .
     </Text>
 

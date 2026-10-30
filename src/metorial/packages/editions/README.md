@@ -32,5 +32,6 @@ metorial-editions verify --edition on-prem --entry <package> --sourcemaps dist -
 - `verify --sourcemaps` fails if a bundle contains an excluded workspace package or a denied npm package.
 - `verify --egress <dir> --policy <file>` scans bundles and frontend output for denied hostnames (bundle hits are mapped to their source through the sourcemap). The policy file can also list `denyPackages` and `denyWorkspacePackages`, which fail a build regardless of package manifests.
 - `"metorial": { "editionDependencies": { "cloud": ["pkg"] } }` marks dependencies that are only used in the listed edition (loaded behind `checkEdition`), so the package graph check does not follow them for other editions.
-- Vite: `editionsVitePlugin()` from `@metorial/editions/vite`; esbuild: `editionsEsbuildPlugin(edition)`.
+- Vite: `editionsVitePlugin()` from `@metorial/editions/vite` (the edition comes from `METORIAL_EDITION`; frontends with edition-only entries swap them in `transformIndexHtml` with `order: 'pre'`); esbuild: `editionsEsbuildPlugin(edition)`.
+- Frontend packages that are only used behind a guard need `"sideEffects": false`; for third-party packages without it, use Rollup's `treeshake.moduleSideEffects` in the app's Vite config.
 - `METORIAL_EDITION` is part of turbo's `globalEnv`, so cache keys differ per edition.
