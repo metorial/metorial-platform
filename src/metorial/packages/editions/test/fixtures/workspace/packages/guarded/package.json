@@ -1,0 +1,14 @@
+{
+  "name": "@fixture/guarded",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@fixture/cloud-only": "workspace:*"
+  },
+  "metorial": {
+    "editionDependencies": {
+      "cloud": [
+        "@fixture/cloud-only"
+      ]
+    }
+  }
+}

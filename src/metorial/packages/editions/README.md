@@ -30,5 +30,7 @@ metorial-editions verify --edition on-prem --entry <package> --sourcemaps dist -
 - `build` bundles with esbuild, the edition plugin, `minifySyntax` (needed to drop dead branches) and external sourcemaps.
 - `verify --entry` fails if a package excluded from the edition is reachable in the workspace dependency graph.
 - `verify --sourcemaps` fails if a bundle contains an excluded workspace package or a denied npm package.
+- `verify --egress <dir> --policy <file>` scans bundles and frontend output for denied hostnames (bundle hits are mapped to their source through the sourcemap). The policy file can also list `denyPackages` and `denyWorkspacePackages`, which fail a build regardless of package manifests.
+- `"metorial": { "editionDependencies": { "cloud": ["pkg"] } }` marks dependencies that are only used in the listed edition (loaded behind `checkEdition`), so the package graph check does not follow them for other editions.
 - Vite: `editionsVitePlugin()` from `@metorial/editions/vite`; esbuild: `editionsEsbuildPlugin(edition)`.
 - `METORIAL_EDITION` is part of turbo's `globalEnv`, so cache keys differ per edition.

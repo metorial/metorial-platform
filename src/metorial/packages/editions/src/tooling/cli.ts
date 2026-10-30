@@ -2,13 +2,16 @@
 import { parseArgs } from 'node:util';
 import { isEdition, type Edition } from '../edition';
 import { buildEdition } from './build';
+import { verifyEgress } from './egress';
+import { readPolicy } from './policy';
 import { verifyPackageGraph, verifySourceMaps, type Violation } from './verify';
 import { readWorkspace } from './workspace';
 
 let usage = `Usage:
   metorial-editions build <entry> --edition <edition> --outdir <dir> [--external a,b] [--minify]
   metorial-editions verify --edition <edition> --entry <package|dir> [--entry ...]
-                           [--sourcemaps <dir|file.map> ...] [--deny-package <name> ...] [--root <dir>]`;
+                           [--sourcemaps <dir|file.map> ...] [--deny-package <name> ...]
+                           [--egress <dir|file> ...] [--policy <policy.json>] [--root <dir>]`;
 
 let fail = (message: string): never => {
   console.error(message);
@@ -54,16 +57,22 @@ let runVerify = async (args: string[]) => {
       entry: { type: 'string', multiple: true },
       sourcemaps: { type: 'string', multiple: true },
       'deny-package': { type: 'string', multiple: true },
+      egress: { type: 'string', multiple: true },
+      policy: { type: 'string' },
       root: { type: 'string' }
     }
   });
 
   let edition = readEdition(values.edition);
   let workspace = await readWorkspace(values.root ?? process.cwd());
+  let policy = values.policy ? await readPolicy(values.policy) : {};
+  let denyPackages = [...(policy.denyPackages ?? []), ...(values['deny-package'] ?? [])];
   let violations: Violation[] = [];
 
   if (values.entry?.length) {
-    violations.push(...verifyPackageGraph(workspace, edition, values.entry));
+    violations.push(
+      ...verifyPackageGraph(workspace, edition, values.entry, policy.denyWorkspacePackages)
+    );
   }
 
   if (values.sourcemaps?.length) {
@@ -72,12 +81,20 @@ let runVerify = async (args: string[]) => {
         workspace,
         edition,
         values.sourcemaps,
-        values['deny-package']
+        denyPackages,
+        policy.denyWorkspacePackages
       ))
     );
   }
 
-  if (!values.entry?.length && !values.sourcemaps?.length) return fail(usage);
+  if (values.egress?.length) {
+    if (!policy.egress) return fail('--egress needs a --policy with an "egress" section');
+
+    violations.push(...(await verifyEgress(values.egress, policy.egress, workspace.root)));
+  }
+
+  if (!values.entry?.length && !values.sourcemaps?.length && !values.egress?.length)
+    return fail(usage);
 
   for (let violation of violations) console.error(`[${violation.kind}] ${violation.message}`);
 

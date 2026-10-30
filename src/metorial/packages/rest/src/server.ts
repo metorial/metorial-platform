@@ -1,3 +1,4 @@
+import { checkEdition } from '@metorial/editions';
 import { isLocalDevelopmentOrigin } from '@lowerdeck/cors';
 import {
   badRequestError,
@@ -575,7 +576,7 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
                     let url = new URL(req.url);
                     if (url.pathname == '/ping')
                       return new Response('OK', { headers: corsHeaders });
-                    if (url.pathname == '/')
+                    if (url.pathname == '/' && checkEdition('cloud'))
                       return Response.redirect('https://metorial.com/api', 301);
                     if (url.pathname == '/metorial/introspect/versions') {
                       return json(

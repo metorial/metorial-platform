@@ -73,3 +73,21 @@ export let matchesDomain = (hostname: string, domains: readonly string[]) => {
     return host === normalized || host.endsWith(`.${normalized}`);
   });
 };
+
+let developmentOrigins = perEdition<string[]>({
+  cloud: ['localhost', 'metorial.test'],
+  'on-prem': []
+});
+
+let extraTrustedDomains = perEdition<string[]>({
+  cloud: ['metorial-staging.com', 'metorial-internal.com'],
+  'on-prem': []
+});
+
+export let trustedOriginDomains = () => [
+  ...extraTrustedDomains,
+  ...domainSettings().apps,
+  ...(process.env.CORS_DOMAINS?.split(',').map(domain => domain.trim()) ?? [])
+];
+
+export let corsDomains = () => [...developmentOrigins, ...trustedOriginDomains()];

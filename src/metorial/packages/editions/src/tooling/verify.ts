@@ -3,20 +3,22 @@ import { dirname, join, resolve } from 'node:path';
 import type { Edition } from '../edition';
 import {
   findOwningPackage,
+  getEditionDependencies,
   isPackageAllowed,
   resolveWorkspaceEntry,
   type Workspace
 } from './workspace';
 
 export type Violation = {
-  kind: 'graph' | 'bundle' | 'denied-package';
+  kind: 'graph' | 'bundle' | 'denied-package' | 'egress';
   message: string;
 };
 
 export let verifyPackageGraph = (
   workspace: Workspace,
   edition: Edition,
-  entries: string[]
+  entries: string[],
+  denyWorkspace: string[] = []
 ): Violation[] => {
   let violations: Violation[] = [];
   let parents = new Map<string, string | null>();
@@ -33,7 +35,7 @@ export let verifyPackageGraph = (
     let name = queue.shift()!;
     let pkg = workspace.packages.get(name)!;
 
-    if (!isPackageAllowed(pkg, edition)) {
+    if (!isPackageAllowed(pkg, edition) || denyWorkspace.includes(name)) {
       let chain: string[] = [];
 
       for (let step: string | null = name; step; step = parents.get(step) ?? null) {
@@ -48,7 +50,7 @@ export let verifyPackageGraph = (
       continue;
     }
 
-    for (let dependency of pkg.dependencies) {
+    for (let dependency of getEditionDependencies(pkg, edition)) {
       if (!workspace.packages.has(dependency) || parents.has(dependency)) continue;
 
       parents.set(dependency, name);
@@ -88,7 +90,8 @@ export let verifySourceMaps = async (
   workspace: Workspace,
   edition: Edition,
   paths: string[],
-  denyPackages: string[] = []
+  denyPackages: string[] = [],
+  denyWorkspace: string[] = []
 ): Promise<Violation[]> => {
   let violations: Violation[] = [];
   let seen = new Set<string>();
@@ -106,7 +109,10 @@ export let verifySourceMaps = async (
 
         let owner = findOwningPackage(workspace, absolute);
 
-        if (owner && !isPackageAllowed(owner, edition)) {
+        if (
+          owner &&
+          (!isPackageAllowed(owner, edition) || denyWorkspace.includes(owner.name))
+        ) {
           violations.push({
             kind: 'bundle',
             message: `${owner.name} is not available in the ${edition} edition but ${absolute} was bundled`

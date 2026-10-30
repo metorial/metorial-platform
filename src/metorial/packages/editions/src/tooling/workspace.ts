@@ -8,6 +8,7 @@ export type WorkspacePackage = {
   dir: string;
   editions: Edition[] | null;
   dependencies: string[];
+  editionDependencies: Partial<Record<Edition, string[]>>;
 };
 
 export type Workspace = {
@@ -27,6 +28,20 @@ let readEditions = (manifest: any): Edition[] | null => {
   }
 
   return declared;
+};
+
+let readEditionDependencies = (manifest: any) => {
+  let declared = manifest?.metorial?.editionDependencies;
+  let result: Partial<Record<Edition, string[]>> = {};
+
+  for (let [edition, names] of Object.entries(declared ?? {})) {
+    if (!isEdition(edition))
+      throw new Error(`Unknown edition "${edition}" in a package manifest`);
+
+    result[edition] = names as string[];
+  }
+
+  return result;
 };
 
 export let readWorkspace = async (root: string): Promise<Workspace> => {
@@ -52,6 +67,7 @@ export let readWorkspace = async (root: string): Promise<Workspace> => {
         name: manifest.name,
         dir: dirname(manifestPath),
         editions: readEditions(manifest),
+        editionDependencies: readEditionDependencies(manifest),
         dependencies: [
           ...Object.keys(manifest.dependencies ?? {}),
           ...Object.keys(manifest.optionalDependencies ?? {})
@@ -92,3 +108,13 @@ export let findOwningPackage = (workspace: Workspace, absolutePath: string) => {
 
 export let isPackageAllowed = (pkg: WorkspacePackage, edition: Edition) =>
   !pkg.editions || pkg.editions.includes(edition);
+
+export let getEditionDependencies = (pkg: WorkspacePackage, edition: Edition) => {
+  let restricted = new Set<string>();
+
+  for (let [declaredEdition, names] of Object.entries(pkg.editionDependencies)) {
+    if (declaredEdition != edition) for (let name of names ?? []) restricted.add(name);
+  }
+
+  return pkg.dependencies.filter(name => !restricted.has(name));
+};

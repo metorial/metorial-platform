@@ -12,6 +12,8 @@
     "./vite": "./src/tooling/vite.ts",
     "./build": "./src/tooling/build.ts",
     "./verify": "./src/tooling/verify.ts",
+    "./egress": "./src/tooling/egress.ts",
+    "./policy": "./src/tooling/policy.ts",
     "./workspace": "./src/tooling/workspace.ts"
   },
   "bin": {
@@ -23,7 +25,8 @@
   },
   "dependencies": {
     "typescript": "5.9.3",
-    "esbuild": "^0.28.2"
+    "esbuild": "^0.28.2",
+    "@jridgewell/trace-mapping": "^0.3.31"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

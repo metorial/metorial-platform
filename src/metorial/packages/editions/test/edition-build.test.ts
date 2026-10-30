@@ -9,6 +9,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { writeFileSync } from 'node:fs';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 let cli = resolve(__dirname, '../src/tooling/cli.ts');
@@ -105,5 +106,105 @@ describe('edition verify', () => {
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('@fixture/cloud-only');
+  });
+});
+
+describe('edition-only dependencies', () => {
+  it('follows a dependency only in the editions that declare it', () => {
+    let onPrem = run(['verify', '--edition', 'on-prem', '--entry', '@fixture/guarded']);
+    expect(onPrem.status, onPrem.stderr).toBe(0);
+
+    let cloud = run(['verify', '--edition', 'cloud', '--entry', '@fixture/guarded']);
+    expect(cloud.status, cloud.stderr).toBe(0);
+  });
+});
+
+describe('edition policy', () => {
+  let writePolicy = (policy: object) => {
+    let path = join(mkdtempSync(join(tmpdir(), 'editions-policy-')), 'policy.json');
+    writeFileSync(path, JSON.stringify(policy));
+    return path;
+  };
+
+  it('fails when a bundle references a denied host', () => {
+    let { outdir } = build('cloud');
+    let policy = writePolicy({ egress: { denyHosts: ['*.example.com'] } });
+    let result = run(['verify', '--edition', 'cloud', '--egress', outdir, '--policy', policy]);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('cloud.example.com');
+  });
+
+  it('accepts a denied host with an explicit allow entry', () => {
+    let { outdir } = build('cloud');
+    let policy = writePolicy({
+      egress: {
+        denyHosts: ['*.example.com'],
+        allow: [{ host: 'cloud.example.com', reason: 'test' }]
+      }
+    });
+    let result = run(['verify', '--edition', 'cloud', '--egress', outdir, '--policy', policy]);
+
+    expect(result.status, result.stderr).toBe(0);
+  });
+
+  it('passes an edition bundle that does not contain the denied host', () => {
+    let { outdir } = build('on-prem');
+    let policy = writePolicy({ egress: { denyHosts: ['cloud.example.com'] } });
+    let result = run([
+      'verify',
+      '--edition',
+      'on-prem',
+      '--egress',
+      outdir,
+      '--policy',
+      policy
+    ]);
+
+    expect(result.status, result.stderr).toBe(0);
+  });
+
+  it('denies workspace packages listed in the policy even if their manifest allows them', () => {
+    let { outdir } = build('on-prem');
+    let policy = writePolicy({ denyWorkspacePackages: ['@fixture/on-prem-only'] });
+
+    let bundle = run([
+      'verify',
+      '--edition',
+      'on-prem',
+      '--sourcemaps',
+      outdir,
+      '--policy',
+      policy
+    ]);
+    expect(bundle.status).toBe(1);
+    expect(bundle.stderr).toContain('@fixture/on-prem-only');
+
+    let graph = run([
+      'verify',
+      '--edition',
+      'on-prem',
+      '--entry',
+      '@fixture/guarded',
+      '--policy',
+      policy
+    ]);
+    expect(graph.status, graph.stderr).toBe(0);
+  });
+
+  it('passes when no denied npm package is bundled', () => {
+    let { outdir } = build('cloud');
+    let policy = writePolicy({ denyPackages: ['esbuild'] });
+    let result = run([
+      'verify',
+      '--edition',
+      'cloud',
+      '--sourcemaps',
+      outdir,
+      '--policy',
+      policy
+    ]);
+
+    expect(result.status, result.stderr).toBe(0);
   });
 });
