@@ -148,10 +148,9 @@ export class SlateInvocationStack {
         : []),
       ...(metorialApiUrl
         ? [
-            // TODO: drop the unknown cast once @slates/proto ships slates/hub.runtime_info.set
             {
-              jsonrpc: '2.0',
-              method: 'slates/hub.runtime_info.set',
+              jsonrpc: '2.0' as const,
+              method: 'slates/hub.runtime_info.set' as const,
               params: {
                 runtimeInfo: {
                   metorial: {
@@ -161,7 +160,7 @@ export class SlateInvocationStack {
                   }
                 }
               }
-            } as unknown as SlatesRequest
+            }
           ]
         : []),
 
