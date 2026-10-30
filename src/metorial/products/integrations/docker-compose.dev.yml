@@ -49,7 +49,10 @@ services:
   #     - subspace-network
 
   object-storage:
-    image: ghcr.io/metorial/object-storage:latest
+    image: ghcr.io/metorial/mte-object-store:dev
+    build:
+      context: ../../../..
+      dockerfile: src/object-storage/Dockerfile
     ports:
       - '55010:52010'
     volumes:

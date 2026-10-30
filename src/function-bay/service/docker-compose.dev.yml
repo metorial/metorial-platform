@@ -38,7 +38,10 @@ services:
 
   object-storage:
     profiles: ['infra']
-    image: ghcr.io/metorial/object-storage:latest
+    image: ghcr.io/metorial/mte-object-store:dev
+    build:
+      context: ../../..
+      dockerfile: src/object-storage/Dockerfile
     container_name: function-bay-object-storage
     restart: unless-stopped
     volumes:

@@ -35,6 +35,9 @@ export let prepareCompose = (d: {
     delete service.container_name;
     delete service.restart;
 
+    if (/ghcr\.io\/metorial\/mte-object-store[:@]/.test(service.image ?? ''))
+      delete service.build;
+
     if (
       service.build ||
       /ghcr.io\/metorial\/(forge|function-bay|signal):/.test(service.image ?? '')

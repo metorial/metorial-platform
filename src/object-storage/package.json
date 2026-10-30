@@ -1,0 +1,13 @@
+{
+  "name": "@metorial/object-storage",
+  "version": "1.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "scripts": {
+    "rust:fmt": "cargo fmt --all --check",
+    "rust:check": "cargo check --workspace --all-targets --locked",
+    "rust:lint": "cargo clippy --workspace --all-targets --locked -- -D warnings",
+    "rust:test": "cargo test --workspace --locked",
+    "rust:build": "cargo build --release --locked --bin object-store-service"
+  }
+}

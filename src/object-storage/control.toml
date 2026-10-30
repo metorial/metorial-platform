@@ -1,0 +1,10 @@
+name = "@metorial/object-storage"
+group = "oss"
+
+[[ci.images]]
+name = "object-store"
+group = "oss"
+dockerfile = "Dockerfile"
+image = "metorial/mte-object-store"
+ecr = "metorial-enterprise-saas/mte-object-store"
+canonical = "ghcr.io/metorial/mte-object-store"

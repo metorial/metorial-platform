@@ -36,7 +36,10 @@ services:
 
   object-storage:
     profiles: ['infra']
-    image: ghcr.io/metorial/object-storage:latest
+    image: ghcr.io/metorial/mte-object-store:dev
+    build:
+      context: ../../../..
+      dockerfile: src/object-storage/Dockerfile
     container_name: slates-hub-object-storage
     restart: unless-stopped
     ports:

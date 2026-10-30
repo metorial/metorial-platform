@@ -90,6 +90,9 @@ jobs:
           - name: code-bucket
             image: ghcr.io/metorial/mte-code-bucket
             dockerfile: ./src/origin/apps/code-bucket/Dockerfile
+          - name: object-store
+            image: ghcr.io/metorial/mte-object-store
+            dockerfile: ./src/object-storage/Dockerfile
           - name: synthesis
             image: ghcr.io/metorial/synthesis
             dockerfile: ./src/synthesis/service/Dockerfile

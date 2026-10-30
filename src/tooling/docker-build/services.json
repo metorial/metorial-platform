@@ -208,6 +208,15 @@
     "buildArguments": {},
     "extraInputs": []
   },
+  "object-store": {
+    "dockerfile": "src/object-storage/Dockerfile",
+    "image": "ghcr.io/metorial/mte-object-store",
+    "platform": "linux/amd64",
+    "workspace": ".",
+    "tasks": [],
+    "buildArguments": {},
+    "extraInputs": []
+  },
   "code-bucket": {
     "dockerfile": "src/origin/apps/code-bucket/Dockerfile",
     "image": "ghcr.io/metorial/mte-code-bucket",

@@ -94,7 +94,7 @@
     "ipaddr.js": "^2.5.0",
     "jsonata": "^2.2.2",
     "jszip": "^3.10.2",
-    "object-storage-client": "^0.2.5",
+    "object-storage-client": "workspace:*",
     "p-queue": "^10.0.0",
     "pg": "^8.23.1",
     "prisma": "^7.10.1",

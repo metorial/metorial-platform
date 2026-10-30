@@ -108,7 +108,7 @@
     "ipaddr.js": "^2.5.0",
     "jszip": "^3.10.2",
     "marked": "^18.1.1",
-    "object-storage-client": "^0.2.5",
+    "object-storage-client": "workspace:*",
     "otplib": "^13.5.0",
     "prisma": "^7.10.1",
     "prisma-json-types-generator": "^5.2.0",

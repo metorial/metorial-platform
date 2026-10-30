@@ -1,0 +1,33 @@
+# Example configuration file for the object storage service
+# Copy this to config.toml and modify as needed
+
+[server]
+# Host to bind to
+# Use "127.0.0.1" for local-only access
+# Use "0.0.0.0" to accept connections from any interface (required for Docker)
+host = "0.0.0.0"
+port = 8080
+
+[backend]
+# Backend type: "local", "s3", "gcs", or "azure"
+type = "local"
+
+# For local backend:
+root_path = "/app/data"  # Use "./data" for local development
+physical_bucket = "object-store-data"
+
+# For S3 backend:
+# type = "s3"
+# region = "us-east-1"
+# physical_bucket = "my-bucket"
+# endpoint = "http://localhost:9000"  # Optional, for MinIO or S3-compatible services
+
+# For GCS backend:
+# type = "gcs"
+# physical_bucket = "my-gcs-bucket"
+
+# For Azure backend:
+# type = "azure"
+# account = "myaccount"
+# access_key = "myaccesskey"
+# physical_bucket = "mycontainer"

@@ -76,7 +76,7 @@
     "jose": "^6.2.13",
     "jszip": "^3.10.2",
     "lodash": "4.18.1",
-    "object-storage-client": "^0.2.5",
+    "object-storage-client": "workspace:*",
     "prisma": "^7.10.1",
     "prisma-json-types-generator": "^5.2.0",
     "undici": "^8.12.3",

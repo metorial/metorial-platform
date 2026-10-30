@@ -71,7 +71,7 @@
     "jszip": "^3.10.2",
     "long": "^5.3.2",
     "nice-grpc": "^2.1.17",
-    "object-storage-client": "^0.2.5",
+    "object-storage-client": "workspace:*",
     "pg": "^8.23.1",
     "prisma": "^7.10.1",
     "prisma-json-types-generator": "^5.2.0",
