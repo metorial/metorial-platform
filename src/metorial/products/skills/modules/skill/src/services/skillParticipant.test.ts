@@ -1,8 +1,8 @@
 import type { Instance, Project } from '@metorial/db';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { db, recordParticipationMock } = vi.hoisted(() => ({
-  recordParticipationMock: vi.fn(),
+let { db, setAccessRoleMock } = vi.hoisted(() => ({
+  setAccessRoleMock: vi.fn(),
   db: {
     skill: {
       findFirst: vi.fn(),
@@ -39,7 +39,7 @@ vi.mock('@metorial/list-utils', () => ({
 vi.mock('@metorial/module-store', () => ({
   storeReadPermission: 'content_read',
   storeWritePermission: 'content_write',
-  storeParticipantService: { recordParticipationSafely: recordParticipationMock }
+  storeParticipantService: { setAccessRoleSafely: setAccessRoleMock }
 }));
 
 import { skillParticipantService } from './skillParticipant';
@@ -95,10 +95,10 @@ describe('skill participant store projection', () => {
       })
     );
     expect(db.storeParticipantActor.findMany).not.toHaveBeenCalled();
-    expect(recordParticipationMock).toHaveBeenCalledWith({
+    expect(setAccessRoleMock).toHaveBeenCalledWith({
       store: { oid: skill.storeOid },
       actor: resourceActor,
-      roles: ['viewer']
+      role: 'viewer'
     });
   });
 
@@ -115,14 +115,14 @@ describe('skill participant store projection', () => {
       permission: 'write'
     });
 
-    expect(recordParticipationMock).toHaveBeenCalledWith({
+    expect(setAccessRoleMock).toHaveBeenCalledWith({
       store: { oid: skill.storeOid },
       actor: resourceActor,
-      roles: ['editor']
+      role: 'editor'
     });
   });
 
-  it('does not record store participation when access is removed', async () => {
+  it('clears the store access role when access is removed', async () => {
     let existing = {
       oid: 6n,
       id: 'skp_1',
@@ -144,10 +144,14 @@ describe('skill participant store projection', () => {
       permission: 'none'
     });
 
-    expect(recordParticipationMock).not.toHaveBeenCalled();
+    expect(setAccessRoleMock).toHaveBeenCalledWith({
+      store: { oid: skill.storeOid },
+      actor: resourceActor,
+      role: null
+    });
   });
 
-  it('does not record store participation for a skill without a store', async () => {
+  it('does not touch the store for a skill without a store', async () => {
     db.skill.findUnique.mockResolvedValue({ storeOid: null });
     db.skillParticipant.create.mockImplementation(async ({ data }: any) => ({
       ...data,
@@ -161,7 +165,7 @@ describe('skill participant store projection', () => {
       permission: 'read'
     });
 
-    expect(recordParticipationMock).not.toHaveBeenCalled();
+    expect(setAccessRoleMock).not.toHaveBeenCalled();
   });
 
   it('retains the participant identity when individual access is removed', async () => {

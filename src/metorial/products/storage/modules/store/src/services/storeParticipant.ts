@@ -424,15 +424,78 @@ class StoreParticipantServiceImpl {
 
       await this.lockStoreParticipants(target.storeOid);
 
+      return await this.recomputeParticipantRoles(d.storeParticipantOid);
+    });
+  }
+
+  async setAccessRoleSafely(d: {
+    store: { oid: bigint };
+    actor: { oid: bigint };
+    role: 'editor' | 'viewer' | null;
+  }) {
+    let run = async () => {
+      try {
+        await this.setAccessRole(d);
+      } catch (error) {
+        console.error('Failed to set store access role', error);
+      }
+    };
+
+    await addAwaitedAfterTransactionHook(run);
+  }
+
+  async setAccessRole(d: {
+    store: { oid: bigint };
+    actor: { oid: bigint };
+    role: 'editor' | 'viewer' | null;
+  }) {
+    return await withTransaction(async db => {
+      await this.lockStoreParticipants(d.store.oid);
+
+      let row = await db.storeParticipantActor.findUnique({
+        where: {
+          storeOid_resourceActorOid: { storeOid: d.store.oid, resourceActorOid: d.actor.oid }
+        }
+      });
+
+      if (!row) {
+        if (d.role) await this.recordParticipation({ ...d, roles: [d.role] });
+        return;
+      }
+
+      let nextRoles = mergeRoles(
+        row.roles.filter(role => role != 'editor' && role != 'viewer'),
+        d.role ? [d.role] : []
+      );
+      if (!sameRoles(row.roles, nextRoles)) {
+        await db.storeParticipantActor.update({
+          where: { oid: row.oid },
+          data: { roles: nextRoles }
+        });
+      }
+
+      if (d.role) {
+        await this.recordParticipation({ ...d, roles: [d.role] });
+        row = await db.storeParticipantActor.findUniqueOrThrow({ where: { oid: row.oid } });
+      }
+
+      if (row.storeParticipantOid)
+        await this.recomputeParticipantRoles(row.storeParticipantOid);
+    });
+  }
+
+  private async recomputeParticipantRoles(storeParticipantOid: bigint) {
+    return await withTransaction(async db => {
       let participant = await db.storeParticipant.findUnique({
-        where: { oid: d.storeParticipantOid },
+        where: { oid: storeParticipantOid },
         include: { actors: { select: { roles: true } } }
       });
       if (!participant) return undefined;
+      if (participant.actors.length == 0) return participant;
 
       let roles = participant.actors.reduce(
         (all, actor) => mergeRoles(all, actor.roles),
-        mergeRoles(participant.roles, [])
+        [] as StoreParticipantRole[]
       );
       if (sameRoles(participant.roles, roles)) return participant;
 

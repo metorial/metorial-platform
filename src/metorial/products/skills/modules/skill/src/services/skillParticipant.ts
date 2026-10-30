@@ -125,21 +125,19 @@ class SkillParticipantServiceImpl {
   }) {
     let participant = await this.upsertAccessRole(d);
 
-    if (participant && d.permission != 'none') {
-      await this.recordStoreParticipation({
-        skill: d.skill,
-        actor: d.actor,
-        role: d.permission == 'write' ? 'editor' : 'viewer'
-      });
-    }
+    await this.setStoreAccessRole({
+      skill: d.skill,
+      actor: d.actor,
+      role: d.permission == 'write' ? 'editor' : d.permission == 'read' ? 'viewer' : null
+    });
 
     return participant;
   }
 
-  private async recordStoreParticipation(d: {
+  private async setStoreAccessRole(d: {
     skill: Pick<Skill, 'oid'>;
     actor: Pick<ResourceActor, 'oid'>;
-    role: SkillParticipantRole;
+    role: 'editor' | 'viewer' | null;
   }) {
     let skill = await withTransaction(
       async db =>
@@ -151,10 +149,10 @@ class SkillParticipantServiceImpl {
     );
     if (!skill?.storeOid) return;
 
-    await storeParticipantService.recordParticipationSafely({
+    await storeParticipantService.setAccessRoleSafely({
       store: { oid: skill.storeOid },
       actor: d.actor,
-      roles: [d.role]
+      role: d.role
     });
   }
 

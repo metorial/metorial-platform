@@ -204,6 +204,70 @@ describe('module-store store participants', () => {
     expect(participant!.actors[0]!.roles).toEqual(participant!.roles);
   });
 
+  it('replaces access roles when access changes and keeps the other roles', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let store = await createStore(fixture);
+    let actor = await createActor(fixture);
+
+    await storeParticipantService.recordParticipation({
+      store,
+      actor,
+      roles: ['creator', 'user']
+    });
+    await storeParticipantService.setAccessRole({ store, actor, role: 'editor' });
+    expect((await participantsOf(store))[0]!.roles).toEqual(['creator', 'editor', 'user']);
+
+    await storeParticipantService.setAccessRole({ store, actor, role: 'viewer' });
+    let [downgraded] = await participantsOf(store);
+    expect(downgraded!.roles).toEqual(['creator', 'viewer', 'user']);
+    expect(downgraded!.actors[0]!.roles).toEqual(['creator', 'viewer', 'user']);
+
+    await storeParticipantService.setAccessRole({ store, actor, role: null });
+    let [revoked, ...rest] = await participantsOf(store);
+    expect(rest).toEqual([]);
+    expect(revoked!.roles).toEqual(['creator', 'user']);
+  });
+
+  it('keeps roles of the participant rows that did not change', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let store = await createStore(fixture);
+    let actor = await createActor(fixture);
+    let otherActor = await createActor(fixture);
+
+    await storeParticipantService.recordParticipation({ store, actor, roles: ['editor'] });
+    let [participant] = await participantsOf(store);
+    await db.storeParticipantActor.create({
+      data: {
+        id: uniqueId('stpa'),
+        storeOid: store.oid,
+        resourceActorOid: otherActor.oid,
+        storeParticipantOid: participant!.oid,
+        roles: ['editor', 'creator'],
+        permissions: []
+      }
+    });
+
+    await storeParticipantService.setAccessRole({ store, actor, role: 'viewer' });
+
+    let [merged] = await participantsOf(store);
+    expect(merged!.roles).toEqual(['creator', 'editor', 'viewer']);
+
+    await storeParticipantService.setAccessRole({ store, actor, role: null });
+    expect((await participantsOf(store))[0]!.roles).toEqual(['creator', 'editor']);
+  });
+
+  it('records the role of an actor without a participant row', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let store = await createStore(fixture);
+    let actor = await createActor(fixture);
+
+    await storeParticipantService.setAccessRole({ store, actor, role: null });
+    expect(await participantsOf(store)).toEqual([]);
+
+    await storeParticipantService.setAccessRole({ store, actor, role: 'viewer' });
+    expect((await participantsOf(store))[0]!.roles).toEqual(['viewer']);
+  });
+
   it('repairs participant roles that are missing from their participant rows', async () => {
     let fixture = await loadOrganizationFixture(org.ids);
     let store = await createStore(fixture);

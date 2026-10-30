@@ -226,6 +226,23 @@ let share = async (
     ...sharer
   });
 
+let participantRoles = async (
+  fixture: OrganizationFixture,
+  skillId: string,
+  profile: Profile
+) => {
+  let skill = await getSkill(fixture, skillId);
+  let actor = await profileActor(fixture, profile);
+  let row = await db.storeParticipantActor.findUnique({
+    where: {
+      storeOid_resourceActorOid: { storeOid: skill.storeOid!, resourceActorOid: actor.oid }
+    },
+    include: { storeParticipant: true }
+  });
+
+  return row?.storeParticipant?.roles ?? [];
+};
+
 let fullAuthorAccess = [
   'skill_read',
   'skill_write',
@@ -258,6 +275,7 @@ describe.each([
 
     await share(fixture, skill.id, 'read', peer, sharer);
     expect(await skillAccess(fixture, skill.id, peer)).toEqual(['skill_read', 'store_read']);
+    expect(await participantRoles(fixture, skill.id, peer)).toEqual(['viewer']);
 
     await share(fixture, skill.id, 'write', peer, sharer);
     expect(await skillAccess(fixture, skill.id, peer)).toEqual([
@@ -266,9 +284,14 @@ describe.each([
       'store_read',
       'store_write'
     ]);
+    expect(await participantRoles(fixture, skill.id, peer)).toEqual(['editor']);
+
+    await share(fixture, skill.id, 'read', peer, sharer);
+    expect(await participantRoles(fixture, skill.id, peer)).toEqual(['viewer']);
 
     await share(fixture, skill.id, 'none', peer, sharer);
     expect(await skillAccess(fixture, skill.id, peer)).toEqual([]);
+    expect(await participantRoles(fixture, skill.id, peer)).toEqual([]);
 
     expect(await skillAccess(fixture, skill.id, author)).toEqual(fullAuthorAccess);
     expect(await skillAccess(fixture, skill.id, stranger)).toEqual([]);
