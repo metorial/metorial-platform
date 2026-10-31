@@ -27,6 +27,7 @@ export interface Dependency {
 export interface Endpoint {
   port: number;
   bind_port?: number;
+  protocol?: 'http' | 'h2c';
   env: { key: string; value: string }[];
   health?: string | { path: string; status?: number };
 }

@@ -1,7 +1,7 @@
-import { createValidatedEnv } from '@lowerdeck/env';
+import { defineSettings } from '@metorial/settings';
 import { v } from '@lowerdeck/validation';
 
-export let env = createValidatedEnv({
+export let env = defineSettings({
   subspace: {
     SUBSPACE_SOLUTION: v.string()
   },

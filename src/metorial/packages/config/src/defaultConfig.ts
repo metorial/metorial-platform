@@ -1,46 +1,20 @@
-import { env } from './env';
+import { encryptionSettings, environmentSettings, serviceSettings, urlSettings } from './env';
 import { MetorialConfig } from './types';
 
 export let defaultConfig: MetorialConfig = {
-  redisUrl: env.service.REDIS_URL,
+  redisUrl: serviceSettings.redisUrl,
 
-  env: env.env.METORIAL_ENV,
-
-  email: env.smtp.EMAIL_HOST
-    ? {
-        type: 'smtp',
-        host: env.smtp.EMAIL_HOST!,
-        port: env.smtp.EMAIL_PORT!,
-        secure: env.smtp.EMAIL_SECURE!,
-        auth: {
-          user: env.smtp.EMAIL_USER!,
-          pass: env.smtp.EMAIL_PASS!
-        },
-        fromEmail: env.smtp.EMAIL_FROM,
-        fromName: env.smtp.EMAIL_FROM_NAME
-      }
-    : {
-        type: 'ses',
-        aws: env.smtp.EMAIL_SES_ACCESS_KEY_ID
-          ? {
-              accessKeyId: env.smtp.EMAIL_SES_ACCESS_KEY_ID!,
-              secretAccessKey: env.smtp.EMAIL_SES_SECRET_ACCESS_KEY!,
-              region: env.smtp.EMAIL_SES_REGION!
-            }
-          : undefined,
-        fromEmail: env.smtp.EMAIL_FROM,
-        fromName: env.smtp.EMAIL_FROM_NAME
-      },
+  env: environmentSettings.environment,
 
   urls: {
     getInviteUrl: invite => {
       if (invite.type === 'enterprise') {
         return new URL(
-          `${env.urls.APP_URL}/join/enterprise/${invite.enterpriseId}/${invite.key}`
+          `${urlSettings.appUrl}/join/enterprise/${invite.enterpriseId}/${invite.key}`
         ).toString();
       }
 
-      let url = new URL(`${env.urls.APP_URL}/join?invite_key=${invite.key}`);
+      let url = new URL(`${urlSettings.appUrl}/join?invite_key=${invite.key}`);
       if (invite.email) {
         url.searchParams.set('email', invite.email);
       }
@@ -48,12 +22,12 @@ export let defaultConfig: MetorialConfig = {
       return url.toString();
     },
 
-    apiUrl: env.urls.API_URL,
-    filesUrl: env.urls.FILES_URL,
-    appUrl: env.urls.APP_URL,
-    portalsUrl: env.urls.PORTALS_URL,
-    publicMcpUrl: env.urls.PUBLIC_MCP_URL?.replace(/\/+$/, '') || null
+    apiUrl: urlSettings.apiUrl,
+    filesUrl: urlSettings.filesUrl,
+    appUrl: urlSettings.appUrl,
+    portalsUrl: urlSettings.portalsUrl,
+    publicMcpUrl: urlSettings.publicMcpUrl?.replace(/\/+$/, '') || null
   },
 
-  encryptionSecret: env.encryption.ENCRYPTION_SECRET
+  encryptionSecret: encryptionSettings.secret
 };

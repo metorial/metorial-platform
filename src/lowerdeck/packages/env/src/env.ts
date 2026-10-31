@@ -2,7 +2,7 @@ import type { ValidationType, ValidationTypeValue } from '@lowerdeck/validation'
 
 export let isOfflineMode = () => process.env.LOWERDECK_OFFLINE == '1';
 
-let resolveOfflinePlaceholder = (key: string, validator: ValidationType<any>) => {
+export let resolveOfflinePlaceholder = (key: string, validator: ValidationType<any>) => {
   let looksLikeUrl = /(_URL|_URI|_ENDPOINT|_ORIGIN)$/.test(key);
 
   let candidates = [

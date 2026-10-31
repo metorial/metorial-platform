@@ -1,3 +1,4 @@
+import { assets } from './assets';
 let escapeHtml = (value: string) =>
   value
     .replaceAll('&', '&amp;')
@@ -60,7 +61,7 @@ export let scmResultHtml = (d: {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${title} - Metorial</title>
-  <link rel="icon" type="image/svg+xml" href="https://metorial.com/favicon.svg" />
+  <link rel="icon" type="image/svg+xml" href="${assets.faviconSvg}" />
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; min-height: 100vh; padding: 24px; display: flex; align-items: center; justify-content: center; background: #f5f5f7; color: #1d1d1f; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
@@ -90,7 +91,7 @@ export let scmResultHtml = (d: {
 </head>
 <body>
   <main class="card">
-    <img class="logo" src="https://cdn.metorial.com/2025-06-13--14-59-55/logos/metorial/primary_logo/raw.svg" alt="Metorial" />
+    <img class="logo" src="${assets.logo}" alt="Metorial" />
     <h1>${title}</h1>
     <p class="description">${description}</p>
     <div class="status ${statusClass}">${statusLabel}</div>

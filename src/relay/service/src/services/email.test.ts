@@ -14,7 +14,7 @@ import { emailService } from './email';
 
 let input = {
   type: 'email' as const,
-  to: ['customer@example.com'],
+  to: ['customer@acme.io'],
   template: { documents: ['Security Report'] },
   content: { subject: 'Approved', html: '<p>Approved</p>', text: 'Approved' },
   identity: { oid: 1 } as any
@@ -76,13 +76,13 @@ describe('Relay idempotent admission', () => {
   it('drops ignored recipients and only sends to the rest', async () => {
     await emailService.sendEmail({
       ...input,
-      to: ['customer@example.com', 'sa-abc@900.service-accounts.metorial.net']
+      to: ['customer@acme.io', 'sa-abc@900.service-accounts.metorial.net', 'qa@example.com']
     });
 
     let data = mocks.create.mock.calls[0]![0].data;
     expect(data.numberOfDestinations).toBe(1);
     expect(data.destinations.create).toEqual([
-      expect.objectContaining({ destination: 'customer@example.com', status: 'pending' })
+      expect.objectContaining({ destination: 'customer@acme.io', status: 'pending' })
     ]);
     expect(mocks.enqueue).toHaveBeenCalledTimes(1);
   });
@@ -93,7 +93,11 @@ describe('Relay idempotent admission', () => {
     await expect(
       emailService.sendEmail({
         ...input,
-        to: ['sa-abc@900.service-accounts.metorial.net', 'deleted_1@deleted.local']
+        to: [
+          'sa-abc@900.service-accounts.metorial.net',
+          'deleted_1@deleted.local',
+          'qa@example.net'
+        ]
       })
     ).resolves.toMatchObject({ id: email.id });
 

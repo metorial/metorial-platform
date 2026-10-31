@@ -1,3 +1,4 @@
+import { perEdition } from '@metorial/editions';
 import { createHash } from 'crypto';
 
 export let DELEGATION_TOKEN_TTL_SECONDS = 10 * 60;
@@ -12,9 +13,7 @@ export let isDelegationTokenExpired = (d: { expiresAt: Date; now: Date }) =>
 export let createDelegationCodeChallenge = (verifier: string) =>
   createHash('sha256').update(verifier).digest('base64url');
 
-export let normalizeDelegationAuthorizationEndpoint = (
-  authorizationUrl: string
-) => {
+export let normalizeDelegationAuthorizationEndpoint = (authorizationUrl: string) => {
   let url = new URL(authorizationUrl);
   url.searchParams.delete('client_id');
   url.searchParams.delete('response_type');
@@ -37,8 +36,7 @@ export let getEffectiveDelegationTokenUrl = (d: {
 };
 
 export let allowHttpDelegationRedirect =
-  process.env.NODE_ENV === 'development' ||
-  process.env.METORIAL_ENV === 'development';
+  process.env.NODE_ENV === 'development' || process.env.METORIAL_ENV === 'development';
 
 export let getDelegationCallbackUri = (authBaseUrl: string) =>
   new URL('/metorial-ares/hooks/sso-delegation-response', authBaseUrl).toString();
@@ -68,11 +66,7 @@ export let validateDelegationRedirectUri = (d: {
   let url = new URL(d.redirectUri);
   if (
     url.protocol !== 'https:' &&
-    !(
-      d.allowHttpLocalhost &&
-      url.protocol === 'http:' &&
-      url.hostname === 'localhost'
-    )
+    !(d.allowHttpLocalhost && url.protocol === 'http:' && url.hostname === 'localhost')
   ) {
     throw new Error('Delegation redirect_uri must use HTTPS');
   }
@@ -85,11 +79,16 @@ export let validateDelegationRedirectUri = (d: {
 export let normalizeDelegationRedirectUri = (redirectUri: string) =>
   new URL(redirectUri).toString();
 
-export let FALLBACK_DELEGATION_REDIRECT_URI =
-  'https://id.metorial.com/metorial-ares/hooks/sso-delegation-response';
+export let getFallbackDelegationRedirectUri = (authBaseUrl: string) =>
+  perEdition({
+    cloud: 'https://id.metorial.com/metorial-ares/hooks/sso-delegation-response',
+    'on-prem': getDelegationCallbackUri(authBaseUrl)
+  });
 
-export let getExportedDelegationRedirectUri = (stored?: string | null) =>
-  stored ?? FALLBACK_DELEGATION_REDIRECT_URI;
+export let getExportedDelegationRedirectUri = (
+  stored: string | null | undefined,
+  authBaseUrl: string
+) => stored ?? getFallbackDelegationRedirectUri(authBaseUrl);
 
 export let pickLatestExportedDelegation = <T extends { updatedAt: Date }>(exports: T[]) => {
   if (exports.length === 0) return null;
@@ -109,13 +108,14 @@ export let buildIdpInitiatedDelegationRedirect = (d: {
 
 export let resolveIdpInitiatedSamlCompletion = (d: {
   exportedDelegations: { updatedAt: Date; redirectUri: string | null; clientId: string }[];
+  authBaseUrl: string;
 }) => {
   let exported = pickLatestExportedDelegation(d.exportedDelegations);
   if (!exported) return { type: 'local' as const };
   return {
     type: 'delegated' as const,
     clientId: exported.clientId,
-    redirectUri: getExportedDelegationRedirectUri(exported.redirectUri)
+    redirectUri: getExportedDelegationRedirectUri(exported.redirectUri, d.authBaseUrl)
   };
 };
 

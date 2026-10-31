@@ -1,3 +1,4 @@
+import { branding } from '@metorial/branding';
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { db, getId, Prisma, type EntityImage, type Tenant } from '@metorial-subspace/db';
@@ -13,7 +14,7 @@ let defaultBrand = db.brand.upsert({
     identifier: 'default',
     image: {
       type: 'url',
-      url: 'https://cdn.metorial.com/2025-06-13--14-59-55/logos/metorial/primary_logo/raw.svg'
+      url: branding.logoUrl
     }
   },
   include

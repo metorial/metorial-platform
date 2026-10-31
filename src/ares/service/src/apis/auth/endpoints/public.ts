@@ -1,6 +1,7 @@
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { createHono } from '@lowerdeck/hono';
 import { v } from '@lowerdeck/validation';
+import { perEdition } from '@metorial/editions';
 import path, { join } from 'path';
 import { env } from '../../../env';
 import { htmlEncode } from '../../../lib/htmlEncode';
@@ -58,7 +59,9 @@ export let publicApp = app
       })
     );
 
-    return ctx.redirect('https://metorial.com/');
+    return ctx.redirect(
+      perEdition({ cloud: 'https://metorial.com/', 'on-prem': env.service.ARES_AUTH_URL })
+    );
   })
   .get('/verify-email', async ctx => {
     let key = ctx.req.query('key');

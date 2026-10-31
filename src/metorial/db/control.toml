@@ -1,6 +1,13 @@
 name = "@metorial/db"
 group = "oss"
 
+[[dependencies]]
+identifier = "@metorial/object-storage"
+start = false
+env = [
+  { endpoint = "api", key = "OBJECT_STORAGE_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
+
 [dev.env]
 METORIAL_ENV = "development"
 METORIAL_SOURCE = "oss"
@@ -24,7 +31,6 @@ SYNTHESIS_API_URL = "http://{{HOSTNAME}}:52160/metorial-synthesis"
 PROVIDER_OAUTH_TICKET_SECRET = "provider-oauth-ticket-secret"
 AUTH_TICKET_SECRET = "auth-ticket-secret"
 ENCRYPTION_SECRET = "encryption-secret"
-OBJECT_STORAGE_URL = "http://services:52010"
 FILES_BUCKET_NAME = "mte-files"
 USAGE_MONGO_URI = "mongodb://mongo:mongo@localhost:{{CONTROL_PORT_MONGO}}/?authSource=admin"
 API_URL = "http://{{HOSTNAME}}:4310"

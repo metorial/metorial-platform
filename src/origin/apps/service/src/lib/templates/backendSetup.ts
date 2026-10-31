@@ -1,3 +1,4 @@
+import { assets } from './assets';
 export let backendSetupHtml = (d: {
   sessionId: string;
   installationSessionId?: string;
@@ -177,7 +178,7 @@ export let backendSetupHtml = (d: {
 </head>
 <body>
   <div class="container">
-    <img src="https://cdn.metorial.com/2025-06-13--14-59-55/logos/metorial/primary_logo/raw.svg" alt="Metorial" class="logo" />
+    <img src="${assets.logo}" alt="Metorial" class="logo" />
 
     <h1>Setup Custom Provider</h1>
     <p class="subtitle">Configure your GitHub Enterprise, GitLab, or Bitbucket instance</p>

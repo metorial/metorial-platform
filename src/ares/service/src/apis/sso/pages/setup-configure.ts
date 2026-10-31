@@ -1,3 +1,5 @@
+import { marked } from 'marked';
+
 export let setupConfigureHtml = (d: {
   clientSecret: string;
   providerId: string;
@@ -67,7 +69,6 @@ export let setupConfigureHtml = (d: {
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Configure ${d.providerName} - Metorial</title>
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
   <style>
     * {
@@ -388,7 +389,7 @@ export let setupConfigureHtml = (d: {
         <h1>Setup Instructions</h1>
       </div>
       <div class="left-panel-content">
-        <div class="markdown-content" id="markdown-content"></div>
+        <div class="markdown-content" id="markdown-content">${marked.parse(d.markdownContent, { async: false })}</div>
       </div>
     </div>
 
@@ -409,13 +410,9 @@ export let setupConfigureHtml = (d: {
   </div>
 
   <script>
-    const markdown = \`${d.markdownContent.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`;
     const clientSecret = '${d.clientSecret}';
     const providerId = '${d.providerId}';
     const providerType = '${d.providerType}';
-
-    // Render markdown
-    document.getElementById('markdown-content').innerHTML = marked.parse(markdown);
 
     function toggleMetadataInput() {
       const metadataType = document.querySelector('input[name="metadataType"]:checked').value;

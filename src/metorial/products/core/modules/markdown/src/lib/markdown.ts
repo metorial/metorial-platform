@@ -12,8 +12,14 @@ import remarkRehype from 'remark-rehype';
 import remarkStringify from 'remark-stringify';
 import { unified } from 'unified';
 import { visit } from 'unist-util-visit';
+import { domainSettings, matchesDomain } from '@metorial/shared-settings';
 import { hastSchema } from './hastSchema';
 import { isRelativeUrl, joinUrls } from './urls';
+
+let isFirstPartyHost = (hostname: string) => {
+  let domains = domainSettings();
+  return matchesDomain(hostname, [...domains.owned, ...domains.dev]);
+};
 
 export type MarkdownOptions = {
   id: string;
@@ -82,7 +88,7 @@ let rehypePrefixRelativeUrls = (opts: MarkdownOptions) => {
           try {
             let u = new URL(node.properties.href);
 
-            if (u.hostname != 'metorial.com' && !u.hostname.endsWith('.metorial.com')) {
+            if (!isFirstPartyHost(u.hostname)) {
               node.properties.target = '_blank';
               node.properties.rel = 'noopener noreferrer';
             }
@@ -106,7 +112,7 @@ let rehypePrefixRelativeUrls = (opts: MarkdownOptions) => {
 
             node.properties.src = u.toString();
 
-            if (u.hostname != 'metorial.com' && !u.hostname.endsWith('.metorial.com')) {
+            if (!isFirstPartyHost(u.hostname)) {
               q.add(async () => {
                 node.properties.src = await getImageUrl({
                   id: opts.id,

@@ -1,10 +1,11 @@
 import { createMetorialDashboardSDK, MetorialDashboardSDK } from '@metorial/dashboard-sdk';
+import { checkEdition } from '@metorial/editions';
 import { awaitConfig } from '@metorial/frontend-config';
 
 let sdks = new Map<string, MetorialDashboardSDK>();
 
 let normalizeMetorialApiUrl = (value: string) => {
-  if (typeof window === 'undefined') return value;
+  if (!checkEdition('cloud') || typeof window === 'undefined') return value;
 
   let url = new URL(value);
   if (url.hostname !== 'platform.metorial.com') return value;

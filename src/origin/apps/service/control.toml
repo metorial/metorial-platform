@@ -3,6 +3,13 @@ group = "oss"
 mode = "enterprise"
 
 [[dependencies]]
+identifier = "@metorial/object-storage"
+start = false
+env = [
+  { endpoint = "api", key = "OBJECT_STORAGE_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
+
+[[dependencies]]
 identifier = "@metorial/code-bucket-service-generated"
 env = [
   { endpoint = "rpc", key = "CODE_BUCKET_SERVICE_URL", value = "{{HOSTNAME}}:{{PORT}}" },
@@ -38,7 +45,6 @@ METORIAL_SOURCE = "oss"
 IS_ENTERPRISE = "false"
 METORIAL_HOSTNAME = "{{HOSTNAME}}"
 NODE_ENV = "development"
-OBJECT_STORAGE_URL = "http://services:52010"
 CODE_BUCKET_OBJECT_STORAGE_BUCKET = "code-bucket"
 SCM_GITHUB_APP_ID = true
 SCM_GITHUB_APP_SLUG = true
@@ -63,3 +69,6 @@ dockerfile = "Dockerfile"
 image = "metorial/mte-origin"
 ecr = "metorial-enterprise-saas/mte-origin"
 canonical = "ghcr.io/metorial/mte-origin"
+
+[e2e.env]
+OBJECT_STORAGE_URL = "http://services:52010"

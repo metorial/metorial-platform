@@ -28,7 +28,8 @@
     "@metorial/redis": "1.0.0",
     "ai": "^7.0.146",
     "just-bash": "^3.6.0",
-    "zod": "^4.6.7"
+    "zod": "^4.6.7",
+    "@metorial/settings": "workspace:*"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

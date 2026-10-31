@@ -1,0 +1,9 @@
+{
+  "name": "@fixture/cloud-only",
+  "main": "src/index.ts",
+  "metorial": {
+    "editions": [
+      "cloud"
+    ]
+  }
+}

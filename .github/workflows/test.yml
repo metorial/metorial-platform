@@ -68,3 +68,43 @@ jobs:
       - name: Report Warp Cache
         if: always()
         run: sh ./src/tooling/warp-cache/report.sh
+
+  check-object-storage:
+    name: 'Check object storage'
+    runs-on: ubuntu-latest
+    env:
+      TURBO_SCM_BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.2'
+
+      - name: Find affected Rust tasks
+        id: affected
+        run: |
+          set -euo pipefail
+          count=$(bunx turbo@2.11.7 run rust:check --affected --filter=@metorial/object-storage --dry=json | bun -e 'console.log(JSON.parse(await Bun.stdin.text()).tasks.length)')
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+
+      - name: Install Rust
+        if: steps.affected.outputs.count != '0'
+        uses: dtolnay/rust-toolchain@1.91.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Restore Cargo and target caches
+        if: steps.affected.outputs.count != '0'
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src/object-storage
+          save-if: ${{ github.ref == 'refs/heads/dev' }}
+
+      - name: Format, check, lint and test
+        if: steps.affected.outputs.count != '0'
+        run: bunx turbo@2.11.7 run rust:fmt rust:check rust:lint rust:test --affected --filter=@metorial/object-storage --ui=stream

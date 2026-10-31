@@ -16,6 +16,7 @@
     "@metorial/product-assistant-client": "1.0.0",
     "@metorial/dashboard-sdk": "1.0.0-internal",
     "@metorial/data-hooks": "^1.0.0",
+    "@metorial/editions": "workspace:*",
     "@metorial/frontend-config": "^1.0.0",
     "@metorial/generated": "latest",
     "@metorial/storage": "^1.0.0",

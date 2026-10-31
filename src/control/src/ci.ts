@@ -1,9 +1,10 @@
-import { existsSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { within } from './files';
 import { applies, dependencyClosure, discover } from './manifest';
 import { discoverPackages, globMatch, relativePath } from './packages';
 import { infrastructureImages } from './e2e';
+import { objectStorageImage } from './images';
 import type { ProjectRoot } from './types';
 
 export let inventory = (project: ProjectRoot) => {
@@ -130,6 +131,17 @@ export let inventory = (project: ProjectRoot) => {
       )
     ].sort();
     let requiredImages = new Set<string>();
+
+    let usesObjectStorage =
+      config.runner === 'compose'
+        ? existsSync(resolve(base, 'docker-compose.dev.yml')) &&
+          readFileSync(resolve(base, 'docker-compose.dev.yml'), 'utf8').includes(
+            objectStorageImage
+          )
+        : [...roots, ...dependencyClosure(manifests, roots, project.kind)].some(item =>
+            item.manifest.e2e.resources.some(resource => resource.type === 'object-storage')
+          );
+    if (usesObjectStorage) requiredImages.add('object-store');
 
     let manifestPaths = new Set<string>();
 

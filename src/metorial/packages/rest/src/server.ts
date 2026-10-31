@@ -1,3 +1,4 @@
+import { checkEdition } from '@metorial/editions';
 import { isLocalDevelopmentOrigin } from '@lowerdeck/cors';
 import {
   badRequestError,
@@ -8,6 +9,7 @@ import {
 import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
 import { getSentry } from '@lowerdeck/sentry';
 import { Context } from '@metorial/context';
+import { domainSettings, matchesDomain } from '@metorial/shared-settings';
 import { generateId } from '@metorial/id';
 import { PresenterContext } from '@metorial/presenter';
 import opentelemetry, { context, propagation, Span } from '@opentelemetry/api';
@@ -574,7 +576,7 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
                     let url = new URL(req.url);
                     if (url.pathname == '/ping')
                       return new Response('OK', { headers: corsHeaders });
-                    if (url.pathname == '/')
+                    if (url.pathname == '/' && checkEdition('cloud'))
                       return Response.redirect('https://metorial.com/api', 301);
                     if (url.pathname == '/metorial/introspect/versions') {
                       return json(
@@ -728,7 +730,7 @@ export class RestServer<AuthInfo, ApiVersion extends string> {
                           if (origin) {
                             try {
                               let url = new URL(origin);
-                              if (url.hostname.endsWith('.metorial.com')) {
+                              if (matchesDomain(url.hostname, domainSettings().apps)) {
                                 noCors = false;
                               }
                             } catch {}

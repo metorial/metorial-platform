@@ -51,6 +51,7 @@
     "@sentry/cli": "^3.8.0",
     "@metorial-subspace/module-callback": "^1.0.0",
     "@lowerdeck/env": "workspace:2.0.0",
-    "@lowerdeck/sentry": "workspace:2.0.0"
+    "@lowerdeck/sentry": "workspace:2.0.0",
+    "@metorial/settings": "workspace:*"
   }
 }

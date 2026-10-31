@@ -73,9 +73,12 @@
     "ipaddr.js": "^2.5.0",
     "jszip": "^3.10.2",
     "nodemailer": "^10.1.7",
-    "object-storage-client": "^0.2.5",
+    "object-storage-client": "workspace:*",
     "prisma": "^7.10.1",
     "prisma-json-types-generator": "^5.2.0",
-    "yaml": "^2.9.1"
+    "yaml": "^2.9.1",
+    "@metorial/settings": "workspace:*",
+    "@metorial/shared-settings": "workspace:*",
+    "@metorial/editions": "workspace:*"
   }
 }

@@ -1,3 +1,4 @@
+import { assets } from './assets';
 export let installationSessionHtml = (d: {
   sessionId: string;
   backends: Array<{
@@ -14,10 +15,10 @@ export let installationSessionHtml = (d: {
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Connect Repository Provider - Metorial</title>
 
-  <link rel="icon" type="image/png" href="https://metorial.com/favicon-96x96.png" sizes="96x96" />
-  <link rel="icon" type="image/svg+xml" href="https://metorial.com/favicon.svg" />
-  <link rel="shortcut icon" href="https://metorial.com/favicon.ico" />
-  <link rel="apple-touch-icon" sizes="180x180" href="https://metorial.com/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" href="${assets.favicon96}" sizes="96x96" />
+  <link rel="icon" type="image/svg+xml" href="${assets.faviconSvg}" />
+  <link rel="shortcut icon" href="${assets.faviconIco}" />
+  <link rel="apple-touch-icon" sizes="180x180" href="${assets.appleTouchIcon}" />
   <meta name="apple-mobile-web-app-title" content="Metorial" />
 
   <style>
@@ -165,7 +166,7 @@ export let installationSessionHtml = (d: {
 </head>
 <body>
   <div class="container">
-    <img src="https://cdn.metorial.com/2025-06-13--14-59-55/logos/metorial/primary_logo/raw.svg" alt="Metorial" class="logo" />
+    <img src="${assets.logo}" alt="Metorial" class="logo" />
 
     <h1>Connect Repository Provider</h1>
     <p class="subtitle">Choose a provider to connect your repositories</p>
@@ -204,14 +205,14 @@ export let installationSessionHtml = (d: {
   <script>
     function getBackendIconUrl(type) {
       const icons = {
-        'github': 'https://provider-logos.metorial-cdn.com/github.png',
-        'github_enterprise': 'https://provider-logos.metorial-cdn.com/github.png',
-        'gitlab': 'https://provider-logos.metorial-cdn.com/gitlab.svg',
-        'gitlab_selfhosted': 'https://provider-logos.metorial-cdn.com/gitlab.svg',
-        'bitbucket': 'https://provider-logos.metorial-cdn.com/bitbucket.svg',
-        'bitbucket_data_center': 'https://provider-logos.metorial-cdn.com/bitbucket.svg'
+        'github': '${assets.providerLogo('github.png')}',
+        'github_enterprise': '${assets.providerLogo('github.png')}',
+        'gitlab': '${assets.providerLogo('gitlab.svg')}',
+        'gitlab_selfhosted': '${assets.providerLogo('gitlab.svg')}',
+        'bitbucket': '${assets.providerLogo('bitbucket.svg')}',
+        'bitbucket_data_center': '${assets.providerLogo('bitbucket.svg')}'
       };
-      return icons[type] || 'https://provider-logos.metorial-cdn.com/github.png';
+      return icons[type] || '${assets.providerLogo('github.png')}';
     }
   </script>
 </body>
@@ -219,12 +220,12 @@ export let installationSessionHtml = (d: {
 
 function getBackendIconUrl(type: string): string {
   const icons: Record<string, string> = {
-    github: 'https://provider-logos.metorial-cdn.com/github.png',
-    github_enterprise: 'https://provider-logos.metorial-cdn.com/github.png',
-    gitlab: 'https://provider-logos.metorial-cdn.com/gitlab.svg',
-    gitlab_selfhosted: 'https://provider-logos.metorial-cdn.com/gitlab.svg',
-    bitbucket: 'https://provider-logos.metorial-cdn.com/bitbucket.svg',
-    bitbucket_data_center: 'https://provider-logos.metorial-cdn.com/bitbucket.svg'
+    github: assets.providerLogo('github.png'),
+    github_enterprise: assets.providerLogo('github.png'),
+    gitlab: assets.providerLogo('gitlab.svg'),
+    gitlab_selfhosted: assets.providerLogo('gitlab.svg'),
+    bitbucket: assets.providerLogo('bitbucket.svg'),
+    bitbucket_data_center: assets.providerLogo('bitbucket.svg')
   };
-  return icons[type] || 'https://provider-logos.metorial-cdn.com/github.png';
+  return icons[type] || assets.providerLogo('github.png');
 }

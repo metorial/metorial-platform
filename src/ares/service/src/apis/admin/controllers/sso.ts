@@ -72,7 +72,7 @@ export let ssoController = adminApp.controller({
       let setup = await ssoSetupService.createSetup({
         tenant,
         input: {
-          redirectUri: `${env.service.ARES_ADMIN_URL}/apps/${input.appId}?sso_setup_complete=1`
+          redirectUri: `${env.service.ARES_ADMIN_URL!}/apps/${input.appId}?sso_setup_complete=1`
         }
       });
 

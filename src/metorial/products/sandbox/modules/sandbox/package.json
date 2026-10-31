@@ -26,7 +26,8 @@
     "@metorial/module-flags": "^1.0.0",
     "@metorial/module-networking": "^1.0.0",
     "@metorial/module-search": "^1.0.0",
-    "@metorial/queue": "^1.0.0"
+    "@metorial/queue": "^1.0.0",
+    "@metorial/settings": "workspace:*"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

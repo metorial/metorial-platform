@@ -1,4 +1,5 @@
 import { createHono } from '@lowerdeck/hono';
+import { env } from '../../../env';
 import { getSentry } from '@lowerdeck/sentry';
 import * as Cookies from 'cookie';
 import { db } from '../../../db';
@@ -183,7 +184,8 @@ export let jxnApp = createHono()
       });
 
       let delegatedCompletion = resolveIdpInitiatedSamlCompletion({
-        exportedDelegations: connection.tenant.exportedDelegations as any
+        exportedDelegations: connection.tenant.exportedDelegations as any,
+        authBaseUrl: env.service.ARES_AUTH_URL
       });
       if (delegatedCompletion.type === 'delegated') {
         let result = await ssoDelegationService.completeIdpInitiatedExport({

@@ -1,12 +1,13 @@
-import { createValidatedEnv } from '@lowerdeck/env';
+import { defineSettings } from '@metorial/settings';
+import { objectStorageUrl, redisUrl } from '@metorial/shared-settings';
 import { v } from '@lowerdeck/validation';
 
-export let env = createValidatedEnv({
+export let env = defineSettings({
   service: {
-    REDIS_URL: v.string()
+    REDIS_URL: redisUrl
   },
   storage: {
-    OBJECT_STORAGE_URL: v.string(),
+    OBJECT_STORAGE_URL: objectStorageUrl,
     CHAT_EVENT_PAYLOADS_BUCKET_NAME: v.string()
   }
 });

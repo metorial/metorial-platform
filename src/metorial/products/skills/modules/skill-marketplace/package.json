@@ -52,7 +52,8 @@
     "date-fns": "^4.4.0",
     "p-queue": "^10.0.0",
     "semver": "^7.8.5",
-    "yaml": "^2.9.1"
+    "yaml": "^2.9.1",
+    "@metorial/settings": "workspace:*"
   },
   "module": "src/index.ts",
   "types": "src/index.ts",

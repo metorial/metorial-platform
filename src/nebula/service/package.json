@@ -64,6 +64,9 @@
     "@sentry/bun": "^11.8.0",
     "@sentry/cli": "^3.8.0",
     "date-fns": "^4.4.0",
-    "prisma": "^7.10.1"
+    "prisma": "^7.10.1",
+    "@metorial/settings": "workspace:*",
+    "@metorial/shared-settings": "workspace:*",
+    "@metorial/editions": "workspace:*"
   }
 }

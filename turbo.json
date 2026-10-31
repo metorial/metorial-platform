@@ -227,6 +227,26 @@
       "outputs": [],
       "env": ["CI", "NODE_ENV", "TEST_CACHE_RUNTIME"]
     },
+    "rust:fmt": {
+      "inputs": ["**/*.rs", "Cargo.toml", "Cargo.lock", "rustfmt.toml"],
+      "outputs": []
+    },
+    "rust:check": {
+      "inputs": ["**/*.rs", "**/Cargo.toml", "Cargo.lock"],
+      "outputs": []
+    },
+    "rust:lint": {
+      "inputs": ["**/*.rs", "**/Cargo.toml", "Cargo.lock", "clippy.toml"],
+      "outputs": []
+    },
+    "rust:test": {
+      "inputs": ["**/*.rs", "**/Cargo.toml", "Cargo.lock", "object-store/tests/**"],
+      "outputs": []
+    },
+    "rust:build": {
+      "inputs": ["**/*.rs", "**/Cargo.toml", "Cargo.lock"],
+      "outputs": ["target/release/object-store-service"]
+    },
     "check-types": {
       "dependsOn": ["^check-types"]
     },

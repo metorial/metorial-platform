@@ -1,23 +1,14 @@
-import { createValidatedEnv } from '@lowerdeck/env';
 import { v } from '@lowerdeck/validation';
+import { defineSettings } from '@metorial/settings';
+import { emailTransportSettings, redisUrl } from '@metorial/shared-settings';
 
-export let env = createValidatedEnv({
+export let env = defineSettings({
   service: {
-    REDIS_URL: v.string(),
+    REDIS_URL: redisUrl,
     DATABASE_URL: v.string(),
 
     RELAY_PORT: v.optional(v.number())
-  },
-
-  email: {
-    EMAIL_HOST: v.optional(v.string()),
-    EMAIL_PORT: v.optional(v.number()),
-    EMAIL_SECURE: v.optional(v.boolean()),
-    EMAIL_USER: v.optional(v.string()),
-    EMAIL_PASSWORD: v.optional(v.string()),
-
-    EMAIL_SES_ACCESS_KEY_ID: v.optional(v.string()),
-    EMAIL_SES_SECRET_ACCESS_KEY: v.optional(v.string()),
-    EMAIL_SES_REGION: v.optional(v.string())
   }
 });
+
+export let emailSettings = emailTransportSettings();

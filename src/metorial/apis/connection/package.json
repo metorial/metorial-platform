@@ -30,7 +30,9 @@
     "@metorial/rest": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.32.1",
     "hono": "^4.13.13",
-    "zod": "^4.6.7"
+    "zod": "^4.6.7",
+    "@metorial/editions": "workspace:*",
+    "@metorial/settings": "workspace:*"
   },
   "scripts": {
     "test:e2e": "metorial-e2e"

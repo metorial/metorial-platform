@@ -1,0 +1,8 @@
+{
+  "name": "@fixture/shared",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@fixture/cloud-only": "workspace:*",
+    "@fixture/on-prem-only": "workspace:*"
+  }
+}

@@ -1,4 +1,5 @@
 import { createClient } from '@lowerdeck/rpc-client';
+import { runtimeEnv } from '@metorial/frontend-config';
 import type { IntegrationsClient } from '@metorial/api-integrations';
 
 export type IntegrationsApiUrls = Record<string, string>;
@@ -52,7 +53,9 @@ let clients = new Map<string, IntegrationsRpcClient>();
 let configuredApiUrls: IntegrationsApiUrls | undefined;
 
 let getConfiguredApiUrls = () => {
-  configuredApiUrls ??= parseIntegrationsApiUrls(import.meta.env.VITE_INTEGRATIONS_API_URLS);
+  configuredApiUrls ??= parseIntegrationsApiUrls(
+    runtimeEnv('VITE_INTEGRATIONS_API_URLS', import.meta.env.VITE_INTEGRATIONS_API_URLS)!
+  );
   return configuredApiUrls;
 };
 

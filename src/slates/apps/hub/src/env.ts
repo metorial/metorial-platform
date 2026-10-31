@@ -1,14 +1,21 @@
-import { createValidatedEnv } from '@lowerdeck/env';
 import { v } from '@lowerdeck/validation';
+import { defineSettings } from '@metorial/settings';
+import {
+  metorialEnv,
+  metorialRegion,
+  objectStorageUrl,
+  redisUrl,
+  serviceUrl
+} from '@metorial/shared-settings';
 
-export let env = createValidatedEnv({
+export let env = defineSettings({
   service: {
-    REDIS_URL: v.string(),
+    REDIS_URL: redisUrl,
     DATABASE_URL: v.string(),
 
     SERVICE_PUBLIC_URL: v.string(),
-    METORIAL_ENV: v.enumOf(['development', 'staging', 'production']),
-    METORIAL_REGION: v.optional(v.string()),
+    METORIAL_ENV: metorialEnv,
+    METORIAL_REGION: metorialRegion,
     METORIAL_API_URL: v.optional(v.string()),
 
     SLATES_HUB_PUBLIC_PORT: v.optional(v.number()),
@@ -17,7 +24,7 @@ export let env = createValidatedEnv({
   },
 
   functionBay: {
-    FUNCTION_BAY_API_URL: v.string(),
+    FUNCTION_BAY_API_URL: serviceUrl('functionBay'),
     FUNCTION_BAY_TENANT_IDENTIFIER: v.string(),
 
     FUNCTION_BAY_DEFAULT_MEMORY_MB: v.number(),
@@ -25,7 +32,7 @@ export let env = createValidatedEnv({
   },
 
   storage: {
-    OBJECT_STORAGE_URL: v.string(),
+    OBJECT_STORAGE_URL: objectStorageUrl,
     INVOCATIONS_BUCKET_NAME: v.string(),
     MAX_ATTACHMENT_SIZE_BYTES: v.optional(v.number())
   },
@@ -56,7 +63,7 @@ export let env = createValidatedEnv({
   },
 
   nebula: {
-    NEBULA_API_URL: v.string(),
+    NEBULA_API_URL: serviceUrl('nebula'),
     NEBULA_CONSUMER_IDENTIFIER: v.string(),
     NEBULA_CONSUMER_TOKEN: v.string()
   },

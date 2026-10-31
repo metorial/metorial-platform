@@ -2,6 +2,13 @@ name = "@metorial-subspace/app-worker"
 group = "oss"
 mode = "oss"
 
+[[dependencies]]
+identifier = "@metorial/object-storage"
+start = false
+env = [
+  { endpoint = "api", key = "OBJECT_STORAGE_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
+
 [dev]
 run = ["dev:start"]
 
@@ -14,6 +21,7 @@ start = ["e2e:start"]
 image = "subspace-worker"
 
 [e2e.env]
+OBJECT_STORAGE_URL = "http://services:52010"
 HEALTH_PORT = "12131"
 METORIAL_ENABLED_FLAGS = "*"
 
@@ -72,7 +80,6 @@ SLATES_HUB_URL = "http://{{HOSTNAME}}:52046/slates-hub"
 SLATES_HUB_PUBLIC_URL = "http://{{HOSTNAME}}:52045"
 SLATE_ATTACHMENT_SIGNING_SECRET = "dev-slate-attachment-signing-secret"
 VOYAGER_URL = "http://{{HOSTNAME}}:52060/metorial-voyager"
-OBJECT_STORAGE_URL = "http://services:52010"
 MESSAGE_BUCKET_NAME = "messages"
 EVENT_PAYLOADS_BUCKET_NAME = "event-payloads"
 CHAT_EVENT_PAYLOADS_BUCKET_NAME = "chat-event-payloads"

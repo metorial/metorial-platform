@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "@metorial/tsconfig/base.json",
+  "exclude": ["dist", "test/fixtures"],
+  "include": ["src", "test"],
+  "compilerOptions": {
+    "outDir": "dist",
+    "noEmit": true,
+    "allowImportingTsExtensions": true
+  }
+}

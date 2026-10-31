@@ -75,11 +75,14 @@
     "drizzle-orm": "^0.45.4",
     "ipaddr.js": "^2.5.0",
     "jszip": "^3.10.2",
-    "object-storage-client": "^0.2.5",
+    "object-storage-client": "workspace:*",
     "pg": "^8.23.1",
     "prisma": "^7.10.1",
     "prisma-json-types-generator": "^5.2.0",
     "snowflake-uuid": "^1.0.0",
-    "yaml": "^2.9.1"
+    "yaml": "^2.9.1",
+    "@metorial/settings": "workspace:*",
+    "@metorial/shared-settings": "workspace:*",
+    "@metorial/editions": "workspace:*"
   }
 }

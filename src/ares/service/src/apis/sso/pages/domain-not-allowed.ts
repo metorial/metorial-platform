@@ -1,3 +1,4 @@
+import { branding } from '@metorial/branding';
 import { htmlEncode } from '../../../lib/htmlEncode';
 
 export let ssoDomainNotAllowedHtml = (d: {
@@ -91,7 +92,7 @@ export let ssoDomainNotAllowedHtml = (d: {
 <body>
   <main>
     <section>
-      <img src="https://cdn.metorial.com/2025-06-13--14-59-55/logos/metorial/primary_logo/raw.svg" alt="Metorial" />
+      <img src="${branding.logoUrl}" alt="Metorial" />
 
       <h1>This email domain is not configured</h1>
 

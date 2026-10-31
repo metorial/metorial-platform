@@ -19,7 +19,7 @@ import { emailService } from './email';
 
 let input = {
   type: 'email' as const,
-  to: ['customer@example.com'],
+  to: ['customer@acme.io'],
   template: {},
   content: { subject: 'Approved', html: '<p>Approved</p>', text: 'Approved' }
 };

@@ -1,9 +1,10 @@
-import { createValidatedEnv } from '@lowerdeck/env';
+import { defineSettings } from '@metorial/settings';
+import { objectStorageUrl, redisUrl, serviceUrl } from '@metorial/shared-settings';
 import { v } from '@lowerdeck/validation';
 
-export let env = createValidatedEnv({
+export let env = defineSettings({
   service: {
-    REDIS_URL: v.string(),
+    REDIS_URL: redisUrl,
     DATABASE_URL: v.string(),
     PROVIDER_OAUTH_URL: v.string(),
 
@@ -23,12 +24,12 @@ export let env = createValidatedEnv({
   },
 
   storage: {
-    OBJECT_STORAGE_URL: v.string(),
+    OBJECT_STORAGE_URL: objectStorageUrl,
     LOGS_BUCKET_NAME: v.string()
   },
 
   functionBay: {
-    FUNCTION_BAY_API_URL: v.string(),
+    FUNCTION_BAY_API_URL: serviceUrl('functionBay'),
     FUNCTION_BAY_TENANT_IDENTIFIER: v.string(),
 
     FUNCTION_BAY_DEFAULT_MEMORY_MB: v.number(),
@@ -36,7 +37,7 @@ export let env = createValidatedEnv({
   },
 
   nebula: {
-    NEBULA_API_URL: v.string(),
+    NEBULA_API_URL: serviceUrl('nebula'),
     NEBULA_CONSUMER_IDENTIFIER: v.string(),
     NEBULA_CONSUMER_TOKEN: v.string()
   },

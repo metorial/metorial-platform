@@ -1,5 +1,6 @@
 import { apiMux } from '@lowerdeck/api-mux';
 import { rpcMux } from '@lowerdeck/rpc-server';
+import { aresCorsDomains } from '../../lib/corsDomains';
 import { adminRPC } from './controllers';
 import { endpointApp } from './endpoints';
 
@@ -11,15 +12,7 @@ let adminMux = rpcMux(
       process.env.ALLOW_CORS == 'true'
         ? { check: () => true }
         : {
-            domains: [
-              'localhost',
-              'metorial.test',
-              'metorial.com',
-              'metorial.work',
-              'metorial.app',
-              'metorial.cloud',
-              ...(process.env.CORS_DOMAINS?.split(',').map(d => d.trim()) ?? [])
-            ]
+            domains: aresCorsDomains()
           },
     path: '/metorial-ares-admin/api'
   },
