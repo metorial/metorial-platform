@@ -206,12 +206,7 @@ export let start = async (
   databasesOnly = false
 ): Promise<ComposeProject[]> => {
   let requirements = infrastructure.requirementsFromManifests(manifests);
-  if (databasesOnly)
-    requirements.redis =
-      requirements.nats =
-      requirements.etcd =
-      requirements.object_storage =
-        false;
+  if (databasesOnly) requirements.redis = requirements.nats = requirements.etcd = false;
 
   let names = infrastructure.serviceNames(requirements);
   let generated = join(root, '.control/dev/services.docker-compose.yml');
@@ -223,8 +218,7 @@ export let start = async (
       project_name: `control_dev_${hash}`,
       network: 'control-services',
       ports,
-      restart: true,
-      object_storage_build: infrastructure.objectStorageBuild(root)
+      restart: true
     });
     projects.push([generated, names]);
     projects.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
@@ -255,9 +249,7 @@ export let start = async (
                 .filter(([, required]) => required)
                 .map(([name]) =>
                   portReachable(
-                    name === 'object_storage'
-                      ? 35010
-                      : ports[name === 'etcd' ? 'etcd_client' : (name as keyof ServicePorts)]
+                    ports[name === 'etcd' ? 'etcd_client' : (name as keyof ServicePorts)]
                   )
                 )
             )

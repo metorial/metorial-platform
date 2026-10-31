@@ -2,6 +2,13 @@ name = "@metorial/app-api"
 group = "oss"
 mode = "oss"
 
+[[dependencies]]
+identifier = "@metorial/object-storage"
+start = false
+env = [
+  { endpoint = "api", key = "OBJECT_STORAGE_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
+
 [dev]
 run = ["dev:start"]
 
@@ -49,6 +56,7 @@ health_timeout = 300
 type = "object-storage"
 
 [e2e.env]
+OBJECT_STORAGE_URL = "http://services:52010"
 AWS_ACCESS_KEY_ID = "e2e"
 AWS_SECRET_ACCESS_KEY = "e2e"
 AWS_REGION = "us-east-1"
@@ -103,7 +111,6 @@ SANDBOX_SIGNATURE_CREDENTIALS = { from = "SANDBOX_SIGNATURE_CREDENTIALS", requir
 AUTH_TICKET_SECRET = "auth-ticket-secret"
 ENCRYPTION_SECRET = "encryption-secret"
 OUTPOST_KEY_ENCRYPTION_SECRET = "outpost-key-encryption-secret"
-OBJECT_STORAGE_URL = "http://services:52010"
 FILES_BUCKET_NAME = "mte-files"
 USAGE_MONGO_URI = "mongodb://mongo:mongo@localhost:{{CONTROL_PORT_MONGO}}/?authSource=admin"
 API_URL = "http://{{HOSTNAME}}:4310"

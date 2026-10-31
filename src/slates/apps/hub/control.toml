@@ -2,6 +2,13 @@ name = "@metorial/slates"
 group = "oss"
 
 [[dependencies]]
+identifier = "@metorial/object-storage"
+start = false
+env = [
+  { endpoint = "api", key = "OBJECT_STORAGE_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
+
+[[dependencies]]
 identifier = "@metorial/function-bay"
 env = [
   { endpoint = "api", key = "FUNCTION_BAY_API_URL", value = "http://{{HOSTNAME}}:{{PORT}}/metorial-function-bay" },
@@ -60,7 +67,6 @@ IS_ENTERPRISE = "false"
 METORIAL_HOSTNAME = "{{HOSTNAME}}"
 NODE_ENV = "development"
 ENCRYPTION_KEY = "sTrG+z8ewVo7JJsgmv39UL/YDdgxlHSVhVPJOV7Omdg"
-OBJECT_STORAGE_URL = "http://services:52010"
 FUNCTION_BAY_TENANT_IDENTIFIER = "dev-tenant"
 FUNCTION_BAY_DEFAULT_MEMORY_MB = "512"
 FUNCTION_BAY_DEFAULT_TIMEOUT_SECONDS = "60"
@@ -94,3 +100,6 @@ canonical = "ghcr.io/metorial/slates-hub"
 name = "slates-hub"
 runner = "compose"
 profiles = ["hub", "infra"]
+
+[e2e.env]
+OBJECT_STORAGE_URL = "http://services:52010"

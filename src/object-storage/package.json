@@ -4,6 +4,7 @@
   "private": true,
   "license": "Apache-2.0",
   "scripts": {
+    "dev:start": "cargo run --bin object-store-service",
     "rust:fmt": "cargo fmt --all --check",
     "rust:check": "cargo check --workspace --all-targets --locked",
     "rust:lint": "cargo clippy --workspace --all-targets --locked -- -D warnings",

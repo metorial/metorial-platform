@@ -1,6 +1,13 @@
 name = "@metorial/code-bucket-service-generated"
 group = "oss"
 
+[[dependencies]]
+identifier = "@metorial/object-storage"
+start = false
+env = [
+  { endpoint = "api", key = "CODE_BUCKET_OBJECT_STORAGE_ENDPOINT", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
+
 [dev]
 run = ["dev:start"]
 
@@ -32,7 +39,6 @@ IS_ENTERPRISE = "false"
 METORIAL_HOSTNAME = "{{HOSTNAME}}"
 NODE_ENV = "development"
 CODE_BUCKET_JWT_SECRET = "origin-code-bucket-dev-secret"
-CODE_BUCKET_OBJECT_STORAGE_ENDPOINT = "http://services:52010"
 CODE_BUCKET_OBJECT_STORAGE_BUCKET = "code-bucket"
 
 [[ci.images]]

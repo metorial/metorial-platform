@@ -6,7 +6,7 @@ import { join, resolve } from 'node:path';
 import { atomicWrite, canonical, sortedEntries } from './files';
 import { rootEnvironment } from './environment';
 import { discover, loadExternals, readExternals, selectWithDependencies } from './manifest';
-import { objectStorageBuild, requirementsFromManifests, writeCompose } from './infrastructure';
+import { requirementsFromManifests, writeCompose } from './infrastructure';
 import { createPostgres, mongoExec } from './docker';
 import * as commands from './process';
 import * as proxy from './proxy';
@@ -187,12 +187,7 @@ let ensureRunning = async (project: ProjectRoot, rebuild: boolean) => {
   writeCompose(
     join(assets, 'services.docker-compose.yml'),
     requirementsFromManifests(selected),
-    {
-      project_name: servicesProject(data),
-      network: 'workspace-services',
-      restart: true,
-      object_storage_build: objectStorageBuild(project.root)
-    }
+    { project_name: servicesProject(data), network: 'workspace-services', restart: true }
   );
 
   if (

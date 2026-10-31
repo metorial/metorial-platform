@@ -95,9 +95,12 @@ export class ObjectStorageClient {
 
   private handleError(error: AxiosError): never {
     if (error.response) {
-      const message = typeof error.response.data === 'string'
-        ? error.response.data
-        : JSON.stringify(error.response.data);
+      const data = error.response.data;
+      const message = typeof data === 'string'
+        ? data
+        : Buffer.isBuffer(data) || data instanceof ArrayBuffer
+          ? Buffer.from(data as ArrayBuffer).toString('utf8')
+          : JSON.stringify(data);
       throw new ObjectStorageError(error.response.status, message);
     }
     throw error;

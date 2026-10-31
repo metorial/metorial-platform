@@ -1,7 +1,4 @@
 import { atomicWrite } from './files';
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
-import { objectStorageDockerfile, objectStorageImage } from './images';
 import type { LoadedManifest, ServicePorts } from './types';
 
 export interface Requirements {
@@ -10,7 +7,6 @@ export interface Requirements {
   redis: boolean;
   nats: boolean;
   etcd: boolean;
-  object_storage?: boolean;
 }
 
 export interface RenderOptions {
@@ -19,25 +15,16 @@ export interface RenderOptions {
   network_name?: string;
   ports?: ServicePorts;
   restart: boolean;
-  object_storage_build?: { context: string; dockerfile: string };
 }
 
 export let requirementsFromManifests = (manifests: LoadedManifest[]): Requirements => {
-  let result: Requirements = {
-    postgres: false,
-    mongo: false,
-    redis: false,
-    nats: false,
-    etcd: false
-  };
+  let result = { postgres: false, mongo: false, redis: false, nats: false, etcd: false };
 
   for (let { manifest } of manifests) {
     result.postgres ||= !!Object.keys(manifest.postgres).length;
     result.mongo ||= !!Object.keys(manifest.mongo).length;
 
     for (let resource of manifest.resources) result[resource.type] = true;
-    if (JSON.stringify(manifest.env).includes('//services:52010'))
-      result.object_storage = true;
   }
 
   return result;
@@ -49,8 +36,7 @@ export let serviceNames = (requirements: Requirements) =>
     mongo: 'mongodb',
     redis: 'redis-db',
     nats: 'nats-1',
-    etcd: 'etcd',
-    object_storage: 'object-storage'
+    etcd: 'etcd'
   })
     .filter(([name]) => requirements[name as keyof Requirements])
     .map(([, name]) => name);
@@ -68,7 +54,7 @@ export let serviceDefinitions = (
   let services: Record<string, Record<string, unknown>> = {};
   let add = (
     name: string,
-    type: Exclude<keyof Requirements, 'object_storage'>,
+    type: keyof Requirements,
     definition: Record<string, unknown>,
     port: number,
     check: string[],
@@ -148,30 +134,6 @@ export let serviceDefinitions = (
     '5s'
   );
 
-  if (requirements.object_storage)
-    services['object-storage'] = {
-      image: objectStorageImage,
-      ...(options.object_storage_build ? { build: options.object_storage_build } : {}),
-      environment: {
-        RUST_LOG: 'info',
-        OBJECT_STORE__SERVER__HOST: '0.0.0.0',
-        OBJECT_STORE__SERVER__PORT: '52010',
-        OBJECT_STORE__BACKEND__TYPE: 'local',
-        OBJECT_STORE__BACKEND__ROOT_PATH: '/app/data',
-        OBJECT_STORE__BACKEND__PUBLIC_URL: 'http://localhost:35010'
-      },
-      ...(options.ports ? { ports: ['35010:52010'] } : {}),
-      volumes: ['object_storage-data:/app/data'],
-      networks: [options.network],
-      healthcheck: {
-        test: ['CMD-SHELL', 'curl -f http://localhost:52010/health || exit 1'],
-        interval: '2s',
-        timeout: '5s',
-        retries: 30
-      },
-      ...(options.restart ? { restart: 'unless-stopped' } : {})
-    };
-
   return services;
 };
 
@@ -199,11 +161,4 @@ export let writeCompose = (
   atomicWrite(path, renderCompose(requirements, options));
 
   return path;
-};
-
-export let objectStorageBuild = (root: string) => {
-  let context = existsSync(join(root, 'oss', objectStorageDockerfile))
-    ? join(root, 'oss')
-    : root;
-  return { context, dockerfile: objectStorageDockerfile };
 };

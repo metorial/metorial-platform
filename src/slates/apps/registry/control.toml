@@ -1,6 +1,13 @@
 name = "@metorial/slates-registry"
 group = "oss"
 
+[[dependencies]]
+identifier = "@metorial/object-storage"
+start = false
+env = [
+  { endpoint = "api", key = "OBJECT_STORAGE_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
+
 [dev]
 prepare = ["admin:build"]
 run = ["dev:start"]
@@ -35,7 +42,6 @@ METORIAL_SOURCE = "oss"
 IS_ENTERPRISE = "false"
 METORIAL_HOSTNAME = "{{HOSTNAME}}"
 NODE_ENV = "development"
-OBJECT_STORAGE_URL = "http://services:52010"
 PACKAGE_BUCKET_NAME = "package-bucket"
 
 [dev.db.main]
@@ -51,3 +57,6 @@ dockerfile = "Dockerfile"
 image = "metorial/mte-slates-registry"
 ecr = "metorial-enterprise-saas/mte-slates-registry"
 canonical = "ghcr.io/metorial/slates-registry"
+
+[e2e.env]
+OBJECT_STORAGE_URL = "http://services:52010"
