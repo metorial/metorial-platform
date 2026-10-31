@@ -602,6 +602,78 @@ describe('Organization actor tenant linking', () => {
     });
   });
 
+  it.each([
+    { target: 'ResourceActor_pkey' },
+    { target: ['oid'] },
+    {
+      driverAdapterError: {
+        cause: {
+          kind: 'UniqueConstraintViolation',
+          constraint: { index: 'ResourceActor_pkey' }
+        }
+      }
+    },
+    {
+      driverAdapterError: {
+        cause: { kind: 'UniqueConstraintViolation', constraint: { fields: ['oid'] } }
+      }
+    }
+  ])('retries an unrelated resource actor primary key collision (%j)', async meta => {
+    mocks.resourceActorFind.mockResolvedValue(null);
+    mocks.resourceActorCreate
+      .mockRejectedValueOnce({ code: 'P2002', meta })
+      .mockResolvedValueOnce(resourceActor);
+    mocks.generateId.mockResolvedValueOnce('rac_conflict').mockResolvedValueOnce('rac_300');
+
+    await subspaceScopeService.ensureForOrganizationActor({
+      tenant: tenant as any,
+      organizationActor: organizationActor as any
+    });
+
+    expect(mocks.resourceActorCreate).toHaveBeenCalledTimes(2);
+    expect(mocks.resourceActorCreate.mock.calls.map(([input]) => input.data.id)).toEqual([
+      'rac_conflict',
+      'rac_300'
+    ]);
+    expect(mocks.upsertActor).toHaveBeenCalledWith({
+      tenant,
+      input: expect.objectContaining({ resourceActorId: 'rac_300' })
+    });
+  });
+
+  it('stops retrying repeated primary key collisions', async () => {
+    let error = { code: 'P2002', meta: { target: 'ResourceActor_pkey' } };
+    mocks.resourceActorFind.mockResolvedValue(null);
+    mocks.resourceActorCreate.mockRejectedValue(error);
+
+    await expect(
+      subspaceScopeService.ensureForOrganizationActor({
+        tenant: tenant as any,
+        organizationActor: organizationActor as any
+      })
+    ).rejects.toBe(error);
+
+    expect(mocks.resourceActorCreate).toHaveBeenCalledTimes(3);
+    expect(mocks.upsertActor).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { code: 'P2002', meta: { target: ['id'] } },
+    { code: 'P2003', meta: { target: 'ResourceActor_pkey' } }
+  ])('does not retry unrelated database errors (%j)', async error => {
+    mocks.resourceActorFind.mockResolvedValue(null);
+    mocks.resourceActorCreate.mockRejectedValue(error);
+
+    await expect(
+      subspaceScopeService.ensureForOrganizationActor({
+        tenant: tenant as any,
+        organizationActor: organizationActor as any
+      })
+    ).rejects.toBe(error);
+
+    expect(mocks.resourceActorCreate).toHaveBeenCalledTimes(1);
+  });
+
   it('rethrows unique constraint errors when no conflicting resource actor can be found', async () => {
     mocks.resourceActorFind.mockResolvedValue(null);
     mocks.resourceActorCreate.mockRejectedValue({ code: 'P2002' });
