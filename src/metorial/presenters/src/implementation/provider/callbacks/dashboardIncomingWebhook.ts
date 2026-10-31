@@ -3,6 +3,21 @@ import { Presenter } from '@metorial/presenter';
 import { incomingWebhookType } from '../../../types';
 import { v1IncomingWebhookPresenter } from './incomingWebhook';
 
+let sensitiveHeaderNames = ['authorization', 'proxy-authorization', 'cookie'];
+let sensitiveHeaderParts = ['token', 'secret', 'signature', 'key', 'auth'];
+
+let redactHeaders = (headers: Record<string, string>) =>
+  Object.fromEntries(
+    Object.entries(headers).map(([name, value]) => {
+      let lower = name.toLowerCase();
+      let isSensitive =
+        sensitiveHeaderNames.includes(lower) ||
+        sensitiveHeaderParts.some(part => lower.includes(part));
+
+      return [name, isSensitive ? '[REDACTED]' : value];
+    })
+  );
+
 export let dashboardIncomingWebhookPresenter = Presenter.create(incomingWebhookType)
   .presenter(async ({ incomingWebhook }, opts) => {
     let inner = await v1IncomingWebhookPresenter.present({ incomingWebhook }, opts).run();
@@ -14,7 +29,7 @@ export let dashboardIncomingWebhookPresenter = Presenter.create(incomingWebhookT
             object: 'incoming_webhook.details' as const,
             method: incomingWebhook.request.method,
             url: incomingWebhook.request.url,
-            headers: incomingWebhook.request.headers,
+            headers: redactHeaders(incomingWebhook.request.headers),
             body: incomingWebhook.request.body
           }
         : null

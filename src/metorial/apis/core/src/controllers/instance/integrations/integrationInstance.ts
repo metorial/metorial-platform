@@ -10,6 +10,7 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { requireNonPublishableMachineAccess } from '../../../middleware/requireNonPublishableMachineAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import {
   integrationInstancePresenter,
@@ -59,6 +60,7 @@ export let integrationInstanceController = Controller.create(
         name: 'List integration instances',
         description: 'Returns a paginated list of integration instances.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .outputList(integrationInstancePresenter)
       .query(
@@ -133,6 +135,7 @@ export let integrationInstanceController = Controller.create(
           description: 'Retrieves a specific integration instance.'
         }
       )
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .output(integrationInstancePresenter)
       .do(async ctx =>
@@ -153,6 +156,7 @@ export let integrationInstanceController = Controller.create(
             'Creates or updates the shared session template for a specific integration instance.'
         }
       )
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
         'default',
@@ -193,6 +197,7 @@ export let integrationInstanceController = Controller.create(
             'Creates a session from the shared session template of a specific integration instance.'
         }
       )
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
         'default',
@@ -224,6 +229,7 @@ export let integrationInstanceController = Controller.create(
         name: 'Create integration instance',
         description: 'Creates a new integration instance.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
         'default',
@@ -283,6 +289,7 @@ export let integrationInstanceController = Controller.create(
           description: 'Updates a specific integration instance.'
         }
       )
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
         'mt_2026_01_01_magnetar',
@@ -356,6 +363,7 @@ export let integrationInstanceController = Controller.create(
           description: 'Archives a specific integration instance.'
         }
       )
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .output(integrationInstancePresenter)
       .do(async ctx => {

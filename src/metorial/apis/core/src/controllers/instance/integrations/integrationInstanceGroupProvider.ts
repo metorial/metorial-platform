@@ -9,6 +9,7 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { requireNonPublishableMachineAccess } from '../../../middleware/requireNonPublishableMachineAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { integrationInstanceGroupProviderPresenter } from '@metorial/presenters';
 import { normalizeToolFilters, toolFiltersValidator } from '../sessions/_shared';
@@ -71,6 +72,7 @@ export let integrationInstanceGroupProviderController = Controller.create(
           description: 'Returns a paginated list of integration instance group providers.'
         }
       )
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .outputList(integrationInstanceGroupProviderPresenter)
       .query(
@@ -152,6 +154,7 @@ export let integrationInstanceGroupProviderController = Controller.create(
           description: 'Retrieves a specific integration instance group provider.'
         }
       )
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .output(integrationInstanceGroupProviderPresenter)
       .do(async ctx =>
@@ -172,6 +175,7 @@ export let integrationInstanceGroupProviderController = Controller.create(
             'Creates or updates the effective integration instance group provider materialization.'
         }
       )
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
         'default',
@@ -220,6 +224,7 @@ export let integrationInstanceGroupProviderController = Controller.create(
           description: 'Archives a specific integration instance group provider.'
         }
       )
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .output(integrationInstanceGroupProviderPresenter)
       .do(async ctx => {

@@ -5,7 +5,9 @@ import { providerRunLogsService, providerRunService } from '@metorial-subspace/m
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
+import { getOwnershipActor } from '../../../lib/ownershipActor';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { requireNonPublishableMachineAccess } from '../../../middleware/requireNonPublishableMachineAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { providerRunLogsPresenter, subspaceProviderRunPresenter } from '@metorial/presenters';
 
@@ -21,6 +23,7 @@ let providerRunGroup = instanceGroup.use(async ctx => {
 
   let providerRun = await providerRunService.getProviderRunById({
     instance: ctx.instance,
+    organizationActor: getOwnershipActor(ctx),
     providerRunId: ctx.params.providerRunId
   });
 
@@ -39,6 +42,7 @@ export let providerRunController = Controller.create(
         name: 'List all provider runs',
         description: 'Returns a paginated list of provider runs across all sessions.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .outputList(subspaceProviderRunPresenter)
       .query(
@@ -78,6 +82,7 @@ export let providerRunController = Controller.create(
       .do(async ctx => {
         let paginator = await providerRunService.listProviderRuns({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
           allowDeleted: false,
 
           ids: normalizeArrayParam(ctx.query.id),
@@ -105,6 +110,7 @@ export let providerRunController = Controller.create(
         name: 'Get provider run',
         description: 'Retrieves a specific provider run by ID.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .output(subspaceProviderRunPresenter)
       .do(async ctx => {
@@ -118,11 +124,13 @@ export let providerRunController = Controller.create(
         name: 'Get provider run logs',
         description: 'Retrieves the logs for a specific provider run.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .output(providerRunLogsPresenter)
       .do(async ctx => {
         let providerRun = await providerRunService.getProviderRunById({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
           providerRunId: ctx.params.providerRunId
         });
         let logs = await providerRunLogsService.getProviderRunLogs({

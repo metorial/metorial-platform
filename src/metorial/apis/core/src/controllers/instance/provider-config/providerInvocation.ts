@@ -2,7 +2,9 @@ import { v } from '@lowerdeck/validation';
 import { providerInvocationService } from '@metorial-subspace/module-session';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
+import { getOwnershipActor } from '../../../lib/ownershipActor';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { requireNonPublishableMachineAccess } from '../../../middleware/requireNonPublishableMachineAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { isDashboardGroup } from '../../../middleware/isDashboard';
 import {
@@ -27,6 +29,7 @@ export let providerInvocationController = Controller.create(
         }
       )
       .use(isDashboardGroup())
+      .use(requireNonPublishableMachineAccess())
       .use(
         checkAccess({
           possibleScopes: ['instance.provider.session:read', 'instance.provider.auth:read']
@@ -36,6 +39,7 @@ export let providerInvocationController = Controller.create(
       .do(async ctx => {
         let item = await providerInvocationService.getProviderInvocation({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
           providerInvocationId: ctx.params.providerInvocationId
         });
 
@@ -50,6 +54,7 @@ export let providerInvocationController = Controller.create(
         confidential: true
       })
       .use(isDashboardGroup())
+      .use(requireNonPublishableMachineAccess())
       .use(
         checkAccess({
           possibleScopes: ['instance.provider.session:read', 'instance.provider.auth:read']
@@ -79,6 +84,7 @@ export let providerInvocationController = Controller.create(
       .do(async ctx => {
         let items = await providerInvocationService.listProviderInvocations({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
           inputs: {
             providerRunIds: normalizeArrayParam(ctx.query.provider_run_id),
             sessionMessageIds: normalizeArrayParam(ctx.query.session_message_id),

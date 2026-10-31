@@ -8,6 +8,7 @@ import { getOwnershipActor } from '../../../lib/ownershipActor';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { requireNonPublishableMachineAccess } from '../../../middleware/requireNonPublishableMachineAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { resolveActorIdsForLogFilters, resolveSearchActorIds } from './_logFilterActors';
 
@@ -23,6 +24,7 @@ let toolCallGroup = instanceGroup.use(async ctx => {
 
   let toolCall = await toolCallService.getToolCallById({
     instance: ctx.instance,
+    organizationActor: getOwnershipActor(ctx),
     toolCallId: ctx.params.toolCallId
   });
 
@@ -41,6 +43,7 @@ export let toolCallController = Controller.create(
         name: 'List all tool calls',
         description: 'Returns a paginated list of tool calls across all sessions.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .outputList(toolCallPresenter)
       .query(
@@ -124,6 +127,7 @@ export let toolCallController = Controller.create(
 
         let paginator = await toolCallService.listToolCalls({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
           allowDeleted: false,
           actorIds,
           sessionIds: normalizeArrayParam(ctx.query.session_id),
@@ -157,6 +161,7 @@ export let toolCallController = Controller.create(
         name: 'Get tool call',
         description: 'Retrieves a specific tool call by ID.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .output(toolCallPresenter)
       .do(async ctx => {
@@ -170,6 +175,7 @@ export let toolCallController = Controller.create(
         name: 'Create tool call',
         description: 'Creates a new tool call in a session by invoking a specific tool.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .output(toolCallPresenter)
       .body(

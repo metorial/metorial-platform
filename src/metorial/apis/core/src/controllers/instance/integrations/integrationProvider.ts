@@ -9,6 +9,7 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { requireNonPublishableMachineAccess } from '../../../middleware/requireNonPublishableMachineAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { integrationProviderPresenter } from '@metorial/presenters';
 import { normalizeToolFilters, toolFiltersValidator } from '../sessions/_shared';
@@ -54,6 +55,7 @@ export let integrationProviderController = Controller.create(
         name: 'List integration providers',
         description: 'Returns a paginated list of integration providers.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .outputList(integrationProviderPresenter)
       .query(
@@ -118,6 +120,7 @@ export let integrationProviderController = Controller.create(
           description: 'Retrieves a specific integration provider.'
         }
       )
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .output(integrationProviderPresenter)
       .do(async ctx =>
@@ -129,6 +132,7 @@ export let integrationProviderController = Controller.create(
         name: 'Create integration provider',
         description: 'Creates a new integration provider.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
         'default',
@@ -190,6 +194,7 @@ export let integrationProviderController = Controller.create(
           description: 'Updates a specific integration provider.'
         }
       )
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
         'default',
@@ -244,6 +249,7 @@ export let integrationProviderController = Controller.create(
           description: 'Archives a specific integration provider.'
         }
       )
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .output(integrationProviderPresenter)
       .do(async ctx => {

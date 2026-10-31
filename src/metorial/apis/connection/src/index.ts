@@ -121,6 +121,7 @@ export let startMcpServer = (d: {
   console.log('MCP server started on port', d.port);
 };
 
+export { assertCanUseSessionById } from '@metorial-subspace/module-tenant';
 export { authenticateAndResolveInstance, authenticateSessionConnection } from './getSession';
 export { handleMagicMcpRequest } from './magic';
 export { handleMcpRequest } from './mcp';

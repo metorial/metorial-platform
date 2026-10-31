@@ -25,6 +25,10 @@ import {
 } from '@metorial-subspace/module-tenant';
 import { enrichSessionParticipantsWithConsumer } from '../lib/enrichSessionParticipants';
 import { narrowSessionIdFilter } from '../lib/fineGrainedSessionFilter';
+import {
+  getSessionVisibilityWhere,
+  type SessionVisibilityWhere
+} from '../lib/sessionVisibility';
 
 let include = {
   provider: true,
@@ -80,7 +84,11 @@ class sessionParticipantServiceImpl {
       ...rest,
       sessionIds,
       tenant: scope.tenant,
-      environment: scope.environment
+      environment: scope.environment,
+      sessionVisibility: await getSessionVisibilityWhere({
+        tenant: scope.tenant,
+        organizationActor
+      })
     });
 
     return paginator.mapAll(participants =>
@@ -92,10 +100,11 @@ class sessionParticipantServiceImpl {
   }
 
   async listSessionParticipantsInternal(
-    d: { tenant: Tenant; environment: Environment } & Omit<
-      ListSessionParticipantsParams,
-      'accessTagSessionIds'
-    >
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+      sessionVisibility?: SessionVisibilityWhere;
+    } & Omit<ListSessionParticipantsParams, 'accessTagSessionIds'>
   ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
@@ -117,6 +126,17 @@ class sessionParticipantServiceImpl {
               environmentOid: d.environment.oid,
 
               AND: [
+                d.sessionVisibility
+                  ? {
+                      OR: [
+                        { sessionConnections: { some: { session: d.sessionVisibility } } },
+                        { sessionMessagesSender: { some: { session: d.sessionVisibility } } },
+                        {
+                          sessionMessagesResponder: { some: { session: d.sessionVisibility } }
+                        }
+                      ]
+                    }
+                  : undefined!,
                 !d.includeInternal && !d.sessionIds?.length
                   ? {
                       OR: [

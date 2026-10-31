@@ -38,6 +38,11 @@ import {
 import { narrowSessionIdFilter } from '../lib/fineGrainedSessionFilter';
 import { sessionErrorInclude } from './sessionError';
 import { sessionParticipantInclude } from './sessionParticipant';
+import {
+  assertSessionVisible,
+  getSessionVisibilityWhere,
+  type SessionVisibilityWhere
+} from '../lib/sessionVisibility';
 
 let include = {
   session: true,
@@ -188,15 +193,21 @@ class sessionMessageServiceImpl {
       ...rest,
       sessionIds,
       tenant: scope.tenant,
-      environment: scope.environment
+      environment: scope.environment,
+      sessionVisibility: await getSessionVisibilityWhere({
+        tenant: scope.tenant,
+        organizationActor
+      })
     });
   }
 
   async listSessionMessagesInternal(
-    d: { tenant: Tenant; environment: Environment; bodyLimitBytes?: number } & Omit<
-      ListSessionMessagesParams,
-      'accessTagSessionIds'
-    >
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+      sessionVisibility?: SessionVisibilityWhere;
+      bodyLimitBytes?: number;
+    } & Omit<ListSessionMessagesParams, 'accessTagSessionIds'>
   ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
@@ -219,6 +230,7 @@ class sessionMessageServiceImpl {
             environmentOid: d.environment.oid,
 
             AND: [
+              d.sessionVisibility ? { session: d.sessionVisibility } : undefined!,
               !d.includeInternal && !d.sessionIds?.length
                 ? { session: { isInternal: false } }
                 : undefined!,
@@ -282,11 +294,21 @@ class sessionMessageServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.getSessionMessageByIdInternal({
+    let item = await this.getSessionMessageByIdInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    await assertSessionVisible({
+      tenant: scope.tenant,
+      organizationActor,
+      sessionOid: item.sessionOid,
+      resource: 'session_message',
+      id: d.sessionMessageId
+    });
+
+    return item;
   }
 
   async getSessionMessageByIdInternal(

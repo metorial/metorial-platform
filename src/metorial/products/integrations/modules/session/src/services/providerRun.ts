@@ -24,6 +24,11 @@ import {
   type MetorialFacing,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
+import {
+  assertSessionVisible,
+  getSessionVisibilityWhere,
+  type SessionVisibilityWhere
+} from '../lib/sessionVisibility';
 
 let include = {
   session: true,
@@ -61,12 +66,20 @@ class providerRunServiceImpl {
     return this.listProviderRunsInternal({
       ...rest,
       tenant: scope.tenant,
-      environment: scope.environment
+      environment: scope.environment,
+      sessionVisibility: await getSessionVisibilityWhere({
+        tenant: scope.tenant,
+        organizationActor
+      })
     });
   }
 
   async listProviderRunsInternal(
-    d: { tenant: Tenant; environment: Environment } & ListProviderRunsParams
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+      sessionVisibility?: SessionVisibilityWhere;
+    } & ListProviderRunsParams
   ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
@@ -90,6 +103,7 @@ class providerRunServiceImpl {
               ...normalizeStatusForList(d).onlyParent,
 
               AND: [
+                d.sessionVisibility ? { session: d.sessionVisibility } : undefined!,
                 !d.includeInternal && !d.sessionIds?.length
                   ? { session: { isInternal: false } }
                   : undefined!,
@@ -117,11 +131,21 @@ class providerRunServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.getProviderRunByIdInternal({
+    let item = await this.getProviderRunByIdInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    await assertSessionVisible({
+      tenant: scope.tenant,
+      organizationActor,
+      sessionOid: item.sessionOid,
+      resource: 'provider_run',
+      id: d.providerRunId
+    });
+
+    return item;
   }
 
   async getProviderRunByIdInternal(

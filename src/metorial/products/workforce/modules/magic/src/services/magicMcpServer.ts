@@ -46,6 +46,7 @@ import {
   assertCanChangeCoreOwnerOnlyVisibility,
   assertCanSeeCoreOwnedResource,
   assertCanUseSubspaceResources,
+  assertSubspaceResourcesOwnedByCoreParent,
   getOwnershipAccessor,
   internalOwnershipAccessor,
   ownedCoreResourceWhere,
@@ -440,11 +441,25 @@ class MagicMcpServerImpl {
   private async assertCanAttachProviderResources(d: {
     instance: Instance;
     organizationActor?: OrganizationActor;
+    accessTags?: AnyAccessTagSelector;
     server: Pick<MagicMcpServer, 'ownerActorOid'>;
     integrationInstanceIds?: (string | null | undefined)[];
     providerConfigIds?: (string | null | undefined)[];
     providerAuthConfigIds?: (string | null | undefined)[];
   }) {
+    if (d.accessTags) {
+      let { tenant } = await subspaceScopeService.ensureForInstance(d.instance);
+
+      await assertSubspaceResourcesOwnedByCoreParent({
+        tenant,
+        parent: d.server,
+        integrationInstanceIds: d.integrationInstanceIds,
+        providerConfigIds: d.providerConfigIds,
+        providerAuthConfigIds: d.providerAuthConfigIds
+      });
+      return;
+    }
+
     if (!d.organizationActor) return;
 
     let { tenant } = await subspaceScopeService.ensureForInstance(d.instance);
@@ -964,15 +979,14 @@ class MagicMcpServerImpl {
       providerAuthConfigIds: [d.input.providerAuthConfigId]
     });
 
-    if (!d.accessTags) {
-      await this.assertCanAttachProviderResources({
-        instance: d.instance,
-        organizationActor: d.organizationActor,
-        server: d.server,
-        providerConfigIds: [d.input.providerConfigId],
-        providerAuthConfigIds: [d.input.providerAuthConfigId]
-      });
-    }
+    await this.assertCanAttachProviderResources({
+      instance: d.instance,
+      organizationActor: d.organizationActor,
+      accessTags: d.accessTags,
+      server: d.server,
+      providerConfigIds: [d.input.providerConfigId],
+      providerAuthConfigIds: [d.input.providerAuthConfigId]
+    });
 
     let server = d.server.hasSubspaceBacking
       ? d.server
@@ -1033,15 +1047,14 @@ class MagicMcpServerImpl {
       providerAuthConfigIds: changedProviderAuthConfigIds
     });
 
-    if (!d.accessTags) {
-      await this.assertCanAttachProviderResources({
-        instance: d.instance,
-        organizationActor: d.organizationActor,
-        server: d.server,
-        providerConfigIds: changedProviderConfigIds,
-        providerAuthConfigIds: changedProviderAuthConfigIds
-      });
-    }
+    await this.assertCanAttachProviderResources({
+      instance: d.instance,
+      organizationActor: d.organizationActor,
+      accessTags: d.accessTags,
+      server: d.server,
+      providerConfigIds: changedProviderConfigIds,
+      providerAuthConfigIds: changedProviderAuthConfigIds
+    });
 
     return await magicMcpServerProviderService.updateMagicMcpServerProvider({
       instance: d.instance,
