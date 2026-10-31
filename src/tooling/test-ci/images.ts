@@ -35,8 +35,20 @@ export let prepareCompose = (d: {
     delete service.container_name;
     delete service.restart;
 
-    if (/ghcr\.io\/metorial\/mte-object-store[:@]/.test(service.image ?? ''))
+    if (/ghcr\.io\/metorial\/mte-object-store[:@]/.test(service.image ?? '')) {
+      let result = artifactSchema.validate(d.readArtifact('object-store'));
+      if (!result.success) throw new Error('Invalid image artifact for object-store');
+      let artifact = result.value;
+      if (
+        artifact.name !== 'object-store' ||
+        artifact.sourceRevision !== d.revision ||
+        !/^ghcr\.io\/metorial\/[a-z0-9-]+@sha256:[a-f0-9]{64}$/.test(artifact.image)
+      ) {
+        throw new Error(`Image artifact does not match object-store at ${d.revision}`);
+      }
+      service.image = artifact.image;
       delete service.build;
+    }
 
     if (
       service.build ||

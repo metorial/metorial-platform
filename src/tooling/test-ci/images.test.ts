@@ -32,6 +32,27 @@ let options = () => ({
 });
 
 describe('image-only E2E Compose', () => {
+  test('pins the object store to its built image without treating it as an application', () => {
+    let config: any = fixture();
+    config.services['object-storage'] = {
+      image: 'ghcr.io/metorial/mte-object-store:dev',
+      build: { dockerfile: 'src/object-storage/Dockerfile' },
+      profiles: ['infra'],
+      volumes: ['object-store-data:/app/data']
+    };
+
+    let prepared = prepareCompose({ ...options(), config });
+
+    expect(prepared.applications).toEqual(['forge']);
+    expect(prepared.config.services['object-storage'].image).toBe(
+      `ghcr.io/metorial/object-store@sha256:${digest}`
+    );
+    expect(prepared.config.services['object-storage'].build).toBeUndefined();
+    expect(prepared.config.services['object-storage'].volumes).toEqual([
+      'object-store-data:/app/data'
+    ]);
+  });
+
   test('pins images and isolates fixture databases from workers', () => {
     let original = fixture();
     let { config, applications } = prepareCompose({ ...options(), config: original });

@@ -116,7 +116,7 @@ export let renderCompose = (
   };
   if (plan.objectStorage)
     services['object-storage'] = {
-      image: objectStorageImage,
+      image: plan.objectStorageImage ?? objectStorageImage,
       ...(plan.mode === 'local'
         ? { build: { context: ossRoot, dockerfile: objectStorageDockerfile } }
         : {}),
