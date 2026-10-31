@@ -5,6 +5,7 @@ import { sessionErrorGroupService } from '@metorial-subspace/module-session';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { requireNonPublishableMachineAccess } from '../../../middleware/requireNonPublishableMachineAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { subspaceSessionErrorGroupPresenter } from '@metorial/presenters';
 
@@ -39,6 +40,7 @@ export let sessionErrorGroupController = Controller.create(
         name: 'List all session error groups',
         description: 'Returns a paginated list of error groups across all sessions.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .outputList(subspaceSessionErrorGroupPresenter)
       .query(
@@ -106,6 +108,7 @@ export let sessionErrorGroupController = Controller.create(
           description: 'Retrieves a specific error group by ID across all sessions.'
         }
       )
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .output(subspaceSessionErrorGroupPresenter)
       .do(async ctx => {

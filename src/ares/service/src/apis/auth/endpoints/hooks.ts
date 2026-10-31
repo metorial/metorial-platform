@@ -41,6 +41,23 @@ import {
   SESSION_ID_COOKIE_NAME
 } from '../middleware/device';
 
+let assertTicketDeviceIsBrowserDevice = async (ctx: HonoContext, ticketDeviceId: string) => {
+  let deviceToken = Cookies.parseCookie(ctx.req.header('cookie') ?? '')[
+    DEVICE_TOKEN_COOKIE_NAME
+  ];
+  let deviceInfo = deviceToken ? parseDeviceToken(deviceToken) : null;
+  let device =
+    deviceInfo && deviceInfo.deviceId == ticketDeviceId
+      ? await deviceService.getDeviceSafe(deviceInfo)
+      : null;
+
+  if (!device) {
+    throw new ServiceError(
+      badRequestError({ message: 'This sign-in link must be opened in the original browser.' })
+    );
+  }
+};
+
 let getAccountLoginUrl = (d: {
   accountClientId: string;
   redirectUrl: string;
@@ -166,6 +183,7 @@ export let authHooksApp = createHono()
         redirectUrl: v.string()
       })
     );
+    await assertTicketDeviceIsBrowserDevice(ctx, ticket.deviceId);
 
     let { app, account } = await resolveClient(ticket.appClientId);
     validateRedirectUrl(ticket.redirectUrl, app.redirectDomains);
@@ -316,6 +334,7 @@ export let authHooksApp = createHono()
           email: v.optional(v.string())
         })
       );
+      await assertTicketDeviceIsBrowserDevice(ctx, ticket.deviceId);
 
       let { app, account: clientAccount } = await resolveClient(ticket.appClientId);
       validateRedirectUrl(ticket.redirectUrl, app.redirectDomains);

@@ -25,6 +25,10 @@ import {
 } from '@metorial-subspace/module-tenant';
 import { enrichSessionParticipantsWithConsumer } from '../lib/enrichSessionParticipants';
 import { narrowSessionIdFilter } from '../lib/fineGrainedSessionFilter';
+import {
+  getSessionVisibilityWhere,
+  type SessionVisibilityWhere
+} from '../lib/sessionVisibility';
 
 let include = {
   provider: true,
@@ -43,6 +47,14 @@ let include = {
   }
 };
 export let sessionParticipantInclude = include;
+
+let visibleParticipantWhere = (sessionVisibility: NonNullable<SessionVisibilityWhere>) => ({
+  OR: [
+    { sessionConnections: { some: { session: sessionVisibility } } },
+    { sessionMessagesSender: { some: { session: sessionVisibility } } },
+    { sessionMessagesResponder: { some: { session: sessionVisibility } } }
+  ]
+});
 
 export type ListSessionParticipantsParams = {
   types?: SessionParticipantType[];
@@ -80,7 +92,11 @@ class sessionParticipantServiceImpl {
       ...rest,
       sessionIds,
       tenant: scope.tenant,
-      environment: scope.environment
+      environment: scope.environment,
+      sessionVisibility: await getSessionVisibilityWhere({
+        tenant: scope.tenant,
+        organizationActor
+      })
     });
 
     return paginator.mapAll(participants =>
@@ -92,10 +108,11 @@ class sessionParticipantServiceImpl {
   }
 
   async listSessionParticipantsInternal(
-    d: { tenant: Tenant; environment: Environment } & Omit<
-      ListSessionParticipantsParams,
-      'accessTagSessionIds'
-    >
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+      sessionVisibility?: SessionVisibilityWhere;
+    } & Omit<ListSessionParticipantsParams, 'accessTagSessionIds'>
   ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
@@ -117,6 +134,9 @@ class sessionParticipantServiceImpl {
               environmentOid: d.environment.oid,
 
               AND: [
+                d.sessionVisibility
+                  ? visibleParticipantWhere(d.sessionVisibility)
+                  : undefined!,
                 !d.includeInternal && !d.sessionIds?.length
                   ? {
                       OR: [
@@ -180,7 +200,11 @@ class sessionParticipantServiceImpl {
     let participant = await this.getSessionParticipantByIdInternal({
       ...rest,
       tenant: scope.tenant,
-      environment: scope.environment
+      environment: scope.environment,
+      sessionVisibility: await getSessionVisibilityWhere({
+        tenant: scope.tenant,
+        organizationActor
+      })
     });
 
     let [enriched] = await enrichSessionParticipantsWithConsumer({
@@ -191,13 +215,18 @@ class sessionParticipantServiceImpl {
   }
 
   async getSessionParticipantByIdInternal(
-    d: { tenant: Tenant; environment: Environment } & GetSessionParticipantByIdParams
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+      sessionVisibility?: SessionVisibilityWhere;
+    } & GetSessionParticipantByIdParams
   ) {
     let sessionParticipant = await db.sessionParticipant.findFirst({
       where: {
         id: d.sessionParticipantId,
         tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid
+        environmentOid: d.environment.oid,
+        AND: d.sessionVisibility ? [visibleParticipantWhere(d.sessionVisibility)] : []
       },
       include
     });

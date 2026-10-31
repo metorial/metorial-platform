@@ -8,7 +8,9 @@ let ADMIN_SESSION_COOKIE = 'slates_admin_session';
 
 export let authedApp = app.use(async ctx => {
   if (!(await adminAuthService.isEnabled())) {
-    return { adminUser: null };
+    if (adminAuthService.allowsUnauthenticatedAccess()) return { adminUser: null };
+
+    throw new ServiceError(unauthorizedError({ message: 'Admin auth is not configured' }));
   }
 
   let token = ctx.getCookie(ADMIN_SESSION_COOKIE);

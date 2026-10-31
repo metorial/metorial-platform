@@ -132,6 +132,8 @@ class MachineAccessAuthService {
           oauthToken.oauthAuthorization.oauthApplication.status != 'active' ||
           oauthToken.oauthAuthorization.oauthInstallation.status != 'active' ||
           oauthToken.oauthAuthorization.machineAccess.status != 'active' ||
+          (oauthToken.oauthAuthorization.organizationMember &&
+            oauthToken.oauthAuthorization.organizationMember.status != 'active') ||
           oauthToken.accessTokenExpiresAt < new Date() ||
           (oauthToken.completelyExpiresAt && oauthToken.completelyExpiresAt < new Date())
         ) {

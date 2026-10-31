@@ -7,7 +7,9 @@ import { Controller } from '@metorial/rest';
 import { resolveActorIdsForLogFilters } from './_logFilterActors';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
+import { getOwnershipActor } from '../../../lib/ownershipActor';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { requireNonPublishableMachineAccess } from '../../../middleware/requireNonPublishableMachineAccess';
 import {
   constrainFineGrainedSessionQuery,
   getFineGrainedAllowedSessionIds,
@@ -48,6 +50,7 @@ let sessionParticipantGroup = instanceGroup
 
     let sessionParticipant = await sessionParticipantService.getSessionParticipantById({
       instance: ctx.instance,
+      organizationActor: getOwnershipActor(ctx),
       sessionParticipantId: ctx.params.sessionParticipantId
     });
 
@@ -74,6 +77,7 @@ export let sessionParticipantController = Controller.create(
         name: 'List session participants',
         description: 'Returns a paginated list of participants in a session.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(
         checkAccess({
           possibleScopes: ['instance.provider.session:read'],
@@ -150,6 +154,7 @@ export let sessionParticipantController = Controller.create(
 
         let paginator = await sessionParticipantService.listSessionParticipants({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
           accessTagSessionIds: getFineGrainedAllowedSessionIds(ctx),
           types: normalizeParticipantTypes(normalizeArrayParam(ctx.query.type)),
           ids: normalizeArrayParam(ctx.query.id),
@@ -182,6 +187,7 @@ export let sessionParticipantController = Controller.create(
           description: 'Retrieves a specific participant in a session.'
         }
       )
+      .use(requireNonPublishableMachineAccess())
       .use(
         checkAccess({
           possibleScopes: ['instance.provider.session:read'],

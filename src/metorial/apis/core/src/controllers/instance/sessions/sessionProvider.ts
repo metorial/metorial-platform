@@ -16,6 +16,7 @@ import {
   deploymentValidator
 } from '../../../lib/providerValidators';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { requireNonPublishableMachineAccess } from '../../../middleware/requireNonPublishableMachineAccess';
 import {
   constrainFineGrainedSessionQuery,
   getFineGrainedAllowedSessionIds,
@@ -45,6 +46,7 @@ let subspaceSessionProviderGroup = instanceGroup
 
     let sessionProvider = await sessionProviderService.getSessionProviderById({
       instance: ctx.instance,
+      organizationActor: getOwnershipActor(ctx),
       sessionProviderId: ctx.params.sessionProviderId
     });
 
@@ -153,6 +155,7 @@ export let sessionProviderController = Controller.create(
         name: 'List session providers',
         description: 'Returns a paginated list of providers connected to a session.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(
         checkAccess({
           possibleScopes: ['instance.provider.session:read'],
@@ -201,6 +204,7 @@ export let sessionProviderController = Controller.create(
       .do(async ctx => {
         let paginator = await sessionProviderService.listSessionProviders({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
           accessTagSessionIds: getFineGrainedAllowedSessionIds(ctx),
           allowDeleted: false,
           ids: normalizeArrayParam(ctx.query.id),
@@ -233,6 +237,7 @@ export let sessionProviderController = Controller.create(
         name: 'Get session provider',
         description: 'Retrieves a specific provider connected to a session.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(
         checkAccess({
           possibleScopes: ['instance.provider.session:read'],
@@ -249,6 +254,7 @@ export let sessionProviderController = Controller.create(
         name: 'Create session provider',
         description: 'Adds a new provider to an active session.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(
         checkAccess({
           possibleScopes: ['instance.provider.session:write'],
@@ -292,6 +298,7 @@ export let sessionProviderController = Controller.create(
           description: 'Updates a provider connected to a session.'
         }
       )
+      .use(requireNonPublishableMachineAccess())
       .use(
         checkAccess({
           possibleScopes: ['instance.provider.session:write'],
@@ -330,6 +337,7 @@ export let sessionProviderController = Controller.create(
           description: 'Removes a provider from a session.'
         }
       )
+      .use(requireNonPublishableMachineAccess())
       .use(
         checkAccess({
           possibleScopes: ['instance.provider.session:write'],

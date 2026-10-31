@@ -39,6 +39,11 @@ import {
   sessionMessageInclude,
   sessionMessageService
 } from './sessionMessage';
+import {
+  assertSessionVisible,
+  getSessionVisibilityWhere,
+  type SessionVisibilityWhere
+} from '../lib/sessionVisibility';
 
 let include = {
   session: true
@@ -140,15 +145,20 @@ class sessionEventServiceImpl {
       ...rest,
       sessionIds,
       tenant: scope.tenant,
-      environment: scope.environment
+      environment: scope.environment,
+      sessionVisibility: await getSessionVisibilityWhere({
+        tenant: scope.tenant,
+        organizationActor
+      })
     });
   }
 
   async listSessionEventsInternal(
-    d: { tenant: Tenant; environment: Environment } & Omit<
-      ListSessionEventsParams,
-      'accessTagSessionIds'
-    >
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+      sessionVisibility?: SessionVisibilityWhere;
+    } & Omit<ListSessionEventsParams, 'accessTagSessionIds'>
   ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
@@ -172,6 +182,7 @@ class sessionEventServiceImpl {
             ...normalizeStatusForList(d).onlyParent,
 
             AND: [
+              d.sessionVisibility ? { session: d.sessionVisibility } : undefined!,
               !d.includeInternal && !d.sessionIds?.length
                 ? { session: { isInternal: false } }
                 : undefined!,
@@ -203,11 +214,21 @@ class sessionEventServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.getSessionEventByIdInternal({
+    let item = await this.getSessionEventByIdInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    await assertSessionVisible({
+      tenant: scope.tenant,
+      organizationActor,
+      sessionOid: item.sessionOid,
+      resource: 'session_event',
+      id: d.sessionEventId
+    });
+
+    return item;
   }
 
   async getSessionEventByIdInternal(

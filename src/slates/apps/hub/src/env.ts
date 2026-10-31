@@ -52,7 +52,8 @@ export let env = defineSettings({
 
   ares: {
     ARES_AUTH_URL: v.optional(v.string()),
-    ARES_INTERNAL_URL: v.optional(v.string())
+    ARES_INTERNAL_URL: v.optional(v.string()),
+    SLATES_ADMIN_ALLOWED_EMAIL_DOMAINS: v.optional(v.string())
   },
 
   slates: {

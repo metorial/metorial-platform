@@ -1077,20 +1077,6 @@ class AuthServiceImpl {
     });
     let success = !!code;
 
-    if (!success) {
-      let verificationAttempts = await db.authIntentVerificationAttempt.count({
-        where: { authIntentOid: d.step.authIntentOid }
-      });
-
-      if (verificationAttempts > 15) {
-        throw new ServiceError(
-          forbiddenError({
-            message: 'You have entered the wrong code too many times. Please try again later.'
-          })
-        );
-      }
-    }
-
     await db.authIntentVerificationAttempt.create({
       data: {
         ...getId('authIntentVerificationAttempt'),
@@ -1099,6 +1085,17 @@ class AuthServiceImpl {
         status: success ? 'success' : 'failure'
       }
     });
+
+    let failedAttempts = await db.authIntentVerificationAttempt.count({
+      where: { authIntentOid: d.step.authIntentOid, status: 'failure' }
+    });
+    if (failedAttempts > 15) {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'You have entered the wrong code too many times. Please try again later.'
+        })
+      );
+    }
 
     if (success) {
       await db.authIntentStep.update({

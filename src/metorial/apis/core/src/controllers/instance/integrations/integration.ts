@@ -6,6 +6,7 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { requireNonPublishableMachineAccess } from '../../../middleware/requireNonPublishableMachineAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { integrationPresenter } from '@metorial/presenters';
 
@@ -40,6 +41,7 @@ export let integrationController = Controller.create(
         name: 'List integrations',
         description: 'Returns a paginated list of integrations.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .outputList(integrationPresenter)
       .query(
@@ -86,6 +88,7 @@ export let integrationController = Controller.create(
         name: 'Get integration',
         description: 'Retrieves a specific integration.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .output(integrationPresenter)
       .do(async ctx => integrationPresenter.present({ integration: ctx.integration })),
@@ -95,6 +98,7 @@ export let integrationController = Controller.create(
         name: 'Create integration',
         description: 'Creates a new integration.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
         'default',
@@ -135,6 +139,7 @@ export let integrationController = Controller.create(
         name: 'Update integration',
         description: 'Updates a specific integration.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
         'default',
@@ -176,6 +181,7 @@ export let integrationController = Controller.create(
         name: 'Delete integration',
         description: 'Archives a specific integration.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .output(integrationPresenter)
       .do(async ctx => {

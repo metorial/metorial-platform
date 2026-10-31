@@ -586,20 +586,17 @@ class sessionServiceImpl {
     });
 
     let scope = await resolveMetorialFacing(d);
+    let accessor = await getOwnershipAccessor({ tenant: scope.tenant, organizationActor });
 
-    await assertCanChangeOwnerLock(
-      await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
-      d.session,
-      d.input.isOwnerLocked,
-      { resource: 'session' }
-    );
+    await assertCanUseOwnedResource(accessor, d.session, { resource: 'session' });
 
-    await assertCanChangeOwnerOnlyVisibility(
-      await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
-      d.session,
-      d.input.isOwnerOnlyVisible,
-      { resource: 'session' }
-    );
+    await assertCanChangeOwnerLock(accessor, d.session, d.input.isOwnerLocked, {
+      resource: 'session'
+    });
+
+    await assertCanChangeOwnerOnlyVisibility(accessor, d.session, d.input.isOwnerOnlyVisible, {
+      resource: 'session'
+    });
 
     let eventBase = toProviderEventBase(d);
     await Fabric.fire('provider.session.updated:before', eventBase);
@@ -669,6 +666,12 @@ class sessionServiceImpl {
     });
 
     let scope = await resolveMetorialFacing(d);
+
+    await assertCanUseOwnedResource(
+      await getOwnershipAccessor({ tenant: scope.tenant, organizationActor }),
+      d.session,
+      { resource: 'session' }
+    );
 
     let eventBase = toProviderEventBase(d);
     await Fabric.fire('provider.session.deleted:before', eventBase);

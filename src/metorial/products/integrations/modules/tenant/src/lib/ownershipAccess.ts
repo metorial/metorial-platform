@@ -746,18 +746,30 @@ export let assertCanUseSessionById = async (d: {
   sessionId: string;
 }) => {
   let { tenant, environment } = await resolveMetorialFacing(d);
-  let session = await db.session.findFirst({
-    where: { id: d.sessionId, tenantOid: tenant.oid, environmentOid: environment.oid },
-    select: {
-      id: true,
-      ownerActorOid: true,
-      identityActorOid: true,
-      isOwnerLocked: true,
-      isOwnerOnlyVisible: true,
-      isSystemOwned: true
-    }
-  });
-  if (!session) return;
+  let scope = { id: d.sessionId, tenantOid: tenant.oid, environmentOid: environment.oid };
+
+  let session: OwnedResource | null =
+    (await db.session.findFirst({
+      where: scope,
+      select: {
+        ownerActorOid: true,
+        identityActorOid: true,
+        isOwnerLocked: true,
+        isOwnerOnlyVisible: true,
+        isSystemOwned: true
+      }
+    })) ??
+    (await db.ephemeralManagedSession.findFirst({
+      where: scope,
+      select: {
+        ownerActorOid: true,
+        actorOid: true,
+        isOwnerLocked: true,
+        isOwnerOnlyVisible: true,
+        isSystemOwned: true
+      }
+    }));
+  if (!session) throw new ServiceError(notFoundError('session', d.sessionId));
 
   let accessor = d.organizationActor
     ? await getOwnershipAccessor({ tenant, organizationActor: d.organizationActor })

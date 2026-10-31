@@ -49,8 +49,6 @@ export let getConsumerSetupSync = () => consumerSetup.current ?? undefined;
 export let setConsumerSetup = (setup: ConsumerSetup | null) => {
   consumerSetup.current = setup;
   consumerSetup.index++;
-
-  console.log('setConsumerSetup', setup, consumerSetup);
 };
 
 export let ensureDashboardSDKForApi = async (

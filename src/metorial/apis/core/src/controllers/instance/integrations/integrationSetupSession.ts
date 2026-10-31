@@ -11,6 +11,7 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { requireNonPublishableMachineAccess } from '../../../middleware/requireNonPublishableMachineAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { integrationSetupSessionPresenter } from '@metorial/presenters';
 import { getOwnershipActor } from '../../../lib/ownershipActor';
@@ -103,6 +104,7 @@ export let integrationSetupSessionController = Controller.create(
         name: 'List integration setup sessions',
         description: 'Returns a paginated list of integration setup sessions.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .outputList(integrationSetupSessionPresenter)
       .query(
@@ -162,6 +164,7 @@ export let integrationSetupSessionController = Controller.create(
           description: 'Retrieves a specific integration setup session.'
         }
       )
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .output(integrationSetupSessionPresenter)
       .do(async ctx => {
@@ -185,6 +188,7 @@ export let integrationSetupSessionController = Controller.create(
         description:
           'Creates a new integration setup session. Creates a draft integration instance unless integration_instance_id is given, in which case that instance is reused and its config and auth config are overwritten on completion.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
         'default',

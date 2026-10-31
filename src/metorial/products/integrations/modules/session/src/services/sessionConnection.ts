@@ -28,6 +28,11 @@ import {
 import { enrichSessionParticipantsWithConsumer } from '../lib/enrichSessionParticipants';
 import { narrowSessionIdFilter } from '../lib/fineGrainedSessionFilter';
 import { sessionParticipantInclude } from './sessionParticipant';
+import {
+  assertSessionVisible,
+  getSessionVisibilityWhere,
+  type SessionVisibilityWhere
+} from '../lib/sessionVisibility';
 
 let include = {
   session: true,
@@ -73,7 +78,11 @@ class sessionConnectionServiceImpl {
       ...rest,
       sessionIds,
       tenant: scope.tenant,
-      environment: scope.environment
+      environment: scope.environment,
+      sessionVisibility: await getSessionVisibilityWhere({
+        tenant: scope.tenant,
+        organizationActor
+      })
     });
 
     return paginator.mapAll(async items => {
@@ -99,10 +108,11 @@ class sessionConnectionServiceImpl {
   }
 
   async listSessionConnectionsInternal(
-    d: { tenant: Tenant; environment: Environment } & Omit<
-      ListSessionConnectionsParams,
-      'accessTagSessionIds'
-    >
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+      sessionVisibility?: SessionVisibilityWhere;
+    } & Omit<ListSessionConnectionsParams, 'accessTagSessionIds'>
   ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
@@ -130,6 +140,7 @@ class sessionConnectionServiceImpl {
               state: d.connectionState ? { in: d.connectionState } : undefined,
 
               AND: [
+                d.sessionVisibility ? { session: d.sessionVisibility } : undefined!,
                 !d.includeInternal && !d.sessionIds?.length
                   ? { isInternal: false }
                   : undefined!,
@@ -167,6 +178,14 @@ class sessionConnectionServiceImpl {
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
+    });
+
+    await assertSessionVisible({
+      tenant: scope.tenant,
+      organizationActor,
+      sessionOid: sessionConnection.sessionOid,
+      resource: 'session_connection',
+      id: d.sessionConnectionId
     });
 
     if (!sessionConnection.participant) return sessionConnection;
