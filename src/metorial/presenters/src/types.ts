@@ -1503,10 +1503,24 @@ export let oauthAuthorizationType = PresentableType.create<{
   };
 }>()('oauth_authorization');
 
-export let consumerOAuthAuthorizationType = PresentableType.create<{
-  oauthAuthorization: OAuthAuthorization & {
-    oauthApplication: OAuthApplication;
+export type ConsumerOAuthAuthorizationView = {
+  id: string;
+  status: 'active' | 'revoked';
+  scopes: string[];
+  oauthApplication: {
+    id: string;
+    name: string;
+    description: string | null;
+    websiteUrl: string | null;
+    image: PrismaJson.EntityImage | null;
   };
+  lastUsedAt: Date | null;
+  revokedAt: Date | null;
+  createdAt: Date;
+};
+
+export let consumerOAuthAuthorizationType = PresentableType.create<{
+  oauthAuthorization: ConsumerOAuthAuthorizationView;
 }>()('consumer_oauth_authorization');
 
 export let oauthAuthorizationRequestType = PresentableType.create<{

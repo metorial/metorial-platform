@@ -127,3 +127,21 @@ export let consumerAuthClientInactivityExpiryMonths = 3;
 export let consumerAuthClientExpiryRenewalIntervalDays = 1;
 export let consumerAuthClientRegistrationsPerMinuteLimit = 25;
 export let consumerAuthClientRegistrationsPerHourLimit = 500;
+
+export type ConsumerPortalGrantStatus = 'active' | 'revoked';
+
+export type ConsumerPortalGrantView = {
+  id: string;
+  status: ConsumerPortalGrantStatus;
+  scopes: string[];
+  oauthApplication: {
+    id: string;
+    name: string;
+    description: string | null;
+    websiteUrl: string | null;
+    image: { type: 'url'; url: string } | null;
+  };
+  lastUsedAt: Date | null;
+  revokedAt: Date | null;
+  createdAt: Date;
+};

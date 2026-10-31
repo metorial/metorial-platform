@@ -2,6 +2,7 @@ export * from './_types';
 export * from './authorization';
 export * from './client';
 export * from './dashboard';
+export * from './portalGrants';
 export * from './registration';
 export * from './routing';
 export * from './testAuthorization';
