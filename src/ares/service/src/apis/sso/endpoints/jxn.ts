@@ -36,10 +36,22 @@ export let jxnApp = createHono()
     let RelayState = form.get('RelayState') || '';
     let SAMLResponse = form.get('SAMLResponse') || '';
 
-    let res = await jackson.oauthController.samlResponse({
-      RelayState: RelayState as string,
-      SAMLResponse: SAMLResponse as string
-    });
+    let res: Awaited<ReturnType<typeof jackson.oauthController.samlResponse>>;
+    try {
+      res = await jackson.oauthController.samlResponse({
+        RelayState: RelayState as string,
+        SAMLResponse: SAMLResponse as string
+      });
+    } catch (error) {
+      Sentry.captureException(error, { extra: { RelayState } });
+
+      return c.html(
+        errorHtml({
+          title: 'Authentication Error',
+          message: 'Metorial could not authenticate you.'
+        })
+      );
+    }
     if (res.error) {
       Sentry.captureException(new Error(`SAML callback error: ${JSON.stringify(res.error)}`), {
         extra: {
