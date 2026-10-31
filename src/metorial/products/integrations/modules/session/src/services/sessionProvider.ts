@@ -40,6 +40,11 @@ import {
 import { sessionProviderNameTemplateService } from './sessionProviderNameTemplate';
 import { assertInternalSessionMutable } from './_shared/internalAdapter';
 import { assertNotPublicMcpOwned } from '@metorial-subspace/public-mcp-guard';
+import {
+  assertSessionVisible,
+  getSessionVisibilityWhere,
+  type SessionVisibilityWhere
+} from '../lib/sessionVisibility';
 
 let include = {
   provider: true,
@@ -115,15 +120,20 @@ class sessionProviderServiceImpl {
       ...rest,
       sessionIds,
       tenant: scope.tenant,
-      environment: scope.environment
+      environment: scope.environment,
+      sessionVisibility: await getSessionVisibilityWhere({
+        tenant: scope.tenant,
+        organizationActor
+      })
     });
   }
 
   async listSessionProvidersInternal(
-    d: { tenant: Tenant; environment: Environment } & Omit<
-      ListSessionProvidersParams,
-      'accessTagSessionIds'
-    >
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+      sessionVisibility?: SessionVisibilityWhere;
+    } & Omit<ListSessionProvidersParams, 'accessTagSessionIds'>
   ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
@@ -148,6 +158,7 @@ class sessionProviderServiceImpl {
               ...normalizeStatusForList(d).noParent,
 
               AND: [
+                d.sessionVisibility ? { session: d.sessionVisibility } : undefined!,
                 !d.includeInternal && !d.sessionIds?.length
                   ? { session: { isInternal: false } }
                   : undefined!,
@@ -173,11 +184,21 @@ class sessionProviderServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.getSessionProviderByIdInternal({
+    let item = await this.getSessionProviderByIdInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    await assertSessionVisible({
+      tenant: scope.tenant,
+      organizationActor,
+      sessionOid: item.sessionOid,
+      resource: 'session_provider',
+      id: d.sessionProviderId
+    });
+
+    return item;
   }
 
   async getSessionProviderByIdInternal(

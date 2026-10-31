@@ -25,6 +25,14 @@ let authFieldsToRedact = [
   'state'
 ];
 
+let configFieldsToRedact = ['config', 'previousConfig', 'newConfig'];
+
+let getFieldsToRedact = (method: string | null | undefined) => {
+  if (method?.startsWith('slates/auth.')) return authFieldsToRedact;
+  if (method?.startsWith('slates/config.')) return configFieldsToRedact;
+  return null;
+};
+
 export type SlateInvocationProviderMetadata = {
   id: string;
   status: 'succeeded' | 'failed';
@@ -56,10 +64,11 @@ export let storeSlateInvocation = (
       let sanitizedRequests = d.requestMessages.map(m => {
         if ('id' in m && m.id) idToMethodMap.set(m.id, m.method);
 
-        if (m.method.startsWith('slates/auth.')) {
+        let fieldsToRedact = getFieldsToRedact(m.method);
+        if (fieldsToRedact && m.params && typeof m.params === 'object') {
           let updatedParams: any = deepClone(m.params);
 
-          for (let field of authFieldsToRedact) {
+          for (let field of fieldsToRedact) {
             if (field in updatedParams) {
               updatedParams[field] = '[REDACTED]';
             }
@@ -80,10 +89,11 @@ export let storeSlateInvocation = (
 
         if ('error' in m) hasResponseError = true;
 
-        if (method && 'result' in m && method.startsWith('slates/auth.')) {
+        let fieldsToRedact = getFieldsToRedact(method);
+        if (fieldsToRedact && 'result' in m && m.result && typeof m.result === 'object') {
           let updatedResult: any = deepClone(m.result);
 
-          for (let field of authFieldsToRedact) {
+          for (let field of fieldsToRedact) {
             if (field in updatedResult) {
               updatedResult[field] = '[REDACTED]';
             }

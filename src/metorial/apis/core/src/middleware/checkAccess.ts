@@ -2,6 +2,12 @@ import { Instance, Organization, OrganizationMember, Project } from '@metorial/d
 import { accessService, Scope } from '@metorial/module-access';
 import { apiGroup } from './apiGroup';
 
+let getAccessMember = (ctx: object) => {
+  if ('member' in ctx && ctx.member) return ctx.member as OrganizationMember;
+  if ('accessMember' in ctx && ctx.accessMember) return ctx.accessMember as OrganizationMember;
+  return undefined;
+};
+
 export let checkAccess = apiGroup.createMiddleware(
   async (
     ctx,
@@ -16,6 +22,8 @@ export let checkAccess = apiGroup.createMiddleware(
       fineGrainedPolicy: input.fineGrainedPolicy
     });
 
+    let member = getAccessMember(ctx);
+
     if ('instance' in ctx && ctx.instance) {
       let instance = ctx.instance as Instance & {
         organization: Organization;
@@ -25,7 +33,7 @@ export let checkAccess = apiGroup.createMiddleware(
       await accessService.checkTargetAccess({
         authInfo: ctx.auth,
         organization: instance.organization,
-        member: 'member' in ctx && ctx.member ? (ctx.member as OrganizationMember) : undefined,
+        member,
         project: instance.project,
         instance,
         possibleScopes: input.possibleScopes
@@ -36,7 +44,7 @@ export let checkAccess = apiGroup.createMiddleware(
       await accessService.checkTargetAccess({
         authInfo: ctx.auth,
         organization: project.organization,
-        member: 'member' in ctx && ctx.member ? (ctx.member as OrganizationMember) : undefined,
+        member,
         project,
         possibleScopes: input.possibleScopes
       });
@@ -54,7 +62,7 @@ export let checkAccess = apiGroup.createMiddleware(
       await accessService.checkTargetAccess({
         authInfo: ctx.auth,
         organization: ctx.organization as Organization,
-        member: 'member' in ctx && ctx.member ? (ctx.member as OrganizationMember) : undefined,
+        member,
         possibleScopes: input.possibleScopes
       });
     }

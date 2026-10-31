@@ -9,7 +9,8 @@ import {
   OAuthApplication,
   OAuthAuthorization,
   OAuthInstallation,
-  OAuthToken
+  OAuthToken,
+  OrganizationMember
 } from '@metorial/db';
 import { normalizeScopes } from './oauthAuthorizationScopes';
 
@@ -72,6 +73,7 @@ type GuardedOAuthAuthorization = OAuthAuthorization & {
   oauthApplication: OAuthApplication;
   oauthInstallation: OAuthInstallation;
   machineAccess: MachineAccess;
+  organizationMember?: OrganizationMember | null;
 };
 
 type GuardedOAuthToken = OAuthToken & { oauthAuthorization: GuardedOAuthAuthorization };
@@ -80,7 +82,9 @@ let isAuthorizationActive = (oauthAuthorization: GuardedOAuthAuthorization) =>
   oauthAuthorization.status == 'active' &&
   oauthAuthorization.oauthApplication.status == 'active' &&
   oauthAuthorization.oauthInstallation.status == 'active' &&
-  oauthAuthorization.machineAccess.status == 'active';
+  oauthAuthorization.machineAccess.status == 'active' &&
+  (!oauthAuthorization.organizationMember ||
+    oauthAuthorization.organizationMember.status == 'active');
 
 let isTokenCompletelyExpired = (oauthToken: OAuthToken) =>
   !!oauthToken.completelyExpiresAt && oauthToken.completelyExpiresAt < new Date();

@@ -6,7 +6,9 @@ import { sessionEventService } from '@metorial-subspace/module-session';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
+import { getOwnershipActor } from '../../../lib/ownershipActor';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { requireNonPublishableMachineAccess } from '../../../middleware/requireNonPublishableMachineAccess';
 import {
   constrainFineGrainedSessionQuery,
   getFineGrainedAllowedSessionIds,
@@ -28,6 +30,7 @@ let sessionEventGroup = instanceGroup
 
     let sessionEvent = await sessionEventService.getSessionEventById({
       instance: ctx.instance,
+      organizationActor: getOwnershipActor(ctx),
       sessionEventId: ctx.params.sessionEventId
     });
 
@@ -55,6 +58,7 @@ export let sessionEventController = Controller.create(
         name: 'List session events',
         description: 'Returns a paginated list of events for a session.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(
         checkAccess({
           possibleScopes: ['instance.provider.session:read'],
@@ -99,6 +103,7 @@ export let sessionEventController = Controller.create(
       .do(async ctx => {
         let paginator = await sessionEventService.listSessionEvents({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
           accessTagSessionIds: getFineGrainedAllowedSessionIds(ctx),
           allowDeleted: false,
           types: normalizeArrayParam(ctx.query.type) as SessionEventType[] | undefined,
@@ -125,6 +130,7 @@ export let sessionEventController = Controller.create(
         name: 'Get session event',
         description: 'Retrieves a specific event from a session.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(
         checkAccess({
           possibleScopes: ['instance.provider.session:read'],

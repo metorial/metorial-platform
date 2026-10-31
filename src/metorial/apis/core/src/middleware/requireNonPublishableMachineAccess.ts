@@ -10,7 +10,11 @@ export let requireNonPublishableMachineAccess = instanceGroup.createMiddleware(a
     );
   }
 
-  if (ctx.auth.type == 'machine' && ctx.auth.machineAccess.type == 'instance_consumer') {
+  if (
+    ctx.auth.type == 'machine' &&
+    (ctx.auth.machineAccess.type == 'instance_consumer' ||
+      ('consumer' in ctx.auth.restrictions && ctx.auth.restrictions.consumer))
+  ) {
     throw new ServiceError(
       unauthorizedError({
         message: 'This endpoint is not available for consumer access tokens'

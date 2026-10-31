@@ -61,9 +61,12 @@ let buildOAuthClientRegistration = (d: {
     expiresAt: Date;
   };
   base: string;
+  includeClientSecret?: boolean;
 }) => ({
   client_id: d.registration.clientId,
-  client_secret: d.registration.clientSecret ?? undefined,
+  client_secret: d.includeClientSecret
+    ? (d.registration.clientSecret ?? undefined)
+    : undefined,
   redirect_uris: d.registration.redirectUris,
   client_name: d.registration.name,
   client_uri: d.registration.clientUri ?? undefined,
@@ -234,7 +237,9 @@ export let createPortalHandler = (d: {
         }
       });
 
-      return c.json(buildOAuthClientRegistration({ registration, base }));
+      return c.json(
+        buildOAuthClientRegistration({ registration, base, includeClientSecret: true })
+      );
     },
 
     authorize: async ({ route }, c) => {
@@ -430,7 +435,9 @@ export let createPluginHandler = (d: {
           }
         });
 
-      return c.json(buildOAuthClientRegistration({ registration, base }));
+      return c.json(
+        buildOAuthClientRegistration({ registration, base, includeClientSecret: true })
+      );
     },
 
     authorize: async ({ route }, c) => {
