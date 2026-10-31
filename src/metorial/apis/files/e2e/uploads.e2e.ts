@@ -310,14 +310,14 @@ describe('api-files uploads', () => {
     let uploadsBefore = await db.fileUpload.count({
       where: { instance: { id: org.ids.instanceId } }
     });
-    let unsigned = await postUploadJson(auth, valid);
-    expect(unsigned.status).toBe(400);
-    expect(unsigned.body.message).toBe(
-      'Signed upload URLs are not available for the configured object storage'
-    );
+    let created = await postUploadJson(auth, valid);
+    expect(created.status).toBe(200);
+    expect(created.body.object).toBe('file_upload');
+    expect(created.body.upload.method).toBe('PUT');
+    expect(() => new URL(created.body.upload.url)).not.toThrow();
     expect(
       await db.fileUpload.count({ where: { instance: { id: org.ids.instanceId } } })
-    ).toBe(uploadsBefore);
+    ).toBe(uploadsBefore + 1);
   });
 
   it('completes pending uploads over HTTP for the owning instance only', async () => {

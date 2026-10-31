@@ -21,12 +21,20 @@ export let getDisplayedNetworkPublicIp = (
   hasPublicIpAccess: boolean
 ) => (hasPublicIpAccess ? (ip ?? '-') : 'shared');
 
+let defaultTitle = 'Integration Internet Gateway';
+let defaultDescription =
+  'Monitor network activity, manage firewalls, and control egress for provider deployments in secure enclaves.';
+
 export let NetworkManagedPage = ({
   children,
-  fallbackWithLayout = false
+  fallbackWithLayout = false,
+  title = defaultTitle,
+  description = defaultDescription
 }: {
   children: React.ReactNode;
   fallbackWithLayout?: boolean;
+  title?: string;
+  description?: string;
 }) => {
   let flags = useDashboardFlags();
 
@@ -35,21 +43,11 @@ export let NetworkManagedPage = ({
       fallbackWithLayout ? <ContentLayout>{content}</ContentLayout> : content;
 
     if (!flags.data.flags['networking-enabled']) {
-      return fallback(
-        <ComingSoon
-          title="Integration Internet Gateway"
-          description="Monitor network activity, manage firewalls, and control egress for provider deployments in secure enclaves."
-        />
-      );
+      return fallback(<ComingSoon title={title} description={description} />);
     }
 
     if (!flags.data.flags['paid-networking']) {
-      return fallback(
-        <Upgrade
-          title="Integration Internet Gateway"
-          description="Monitor network activity, manage firewalls, and control egress for provider deployments in secure enclaves."
-        />
-      );
+      return fallback(<Upgrade title={title} description={description} />);
     }
 
     return children;

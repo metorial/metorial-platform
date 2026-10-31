@@ -28,6 +28,7 @@
     "@metorial/branding": "workspace:*",
     "@metorial/editions": "workspace:*",
     "@metorial/settings": "workspace:*",
+    "@metorial/shared-settings": "workspace:*",
     "@lowerdeck/validation": "workspace:2.0.0"
   },
   "exports": {
