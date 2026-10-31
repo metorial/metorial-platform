@@ -5,7 +5,8 @@ let {
   getAccessTagFilterMock,
   isStoreResourceFlagEnabledMock,
   getStoreResourceAccessWhereMock,
-  setAccessLevelMock
+  setAccessLevelMock,
+  recordParticipationMock
 } = vi.hoisted(() => ({
   db: {
     store: {
@@ -27,7 +28,12 @@ let {
   getAccessTagFilterMock: vi.fn(),
   isStoreResourceFlagEnabledMock: vi.fn(),
   getStoreResourceAccessWhereMock: vi.fn(),
-  setAccessLevelMock: vi.fn()
+  setAccessLevelMock: vi.fn(),
+  recordParticipationMock: vi.fn()
+}));
+
+vi.mock('./storeParticipant', () => ({
+  storeParticipantService: { recordParticipationSafely: recordParticipationMock }
 }));
 
 vi.mock('@metorial/db', () => ({
@@ -487,6 +493,78 @@ describe('store access dual mode', () => {
     });
 
     expect(setAccessLevelMock).not.toHaveBeenCalled();
+  });
+
+  it('links a newly created permission row to a store participant', async () => {
+    await storeAccessService.ensureActorStorePermissions({
+      store,
+      actor: consumerActor,
+      permissions: [storeReadPermission]
+    });
+
+    expect(recordParticipationMock).toHaveBeenCalledTimes(1);
+    expect(recordParticipationMock).toHaveBeenCalledWith({
+      store: { oid: store.oid },
+      actor: consumerActor
+    });
+  });
+
+  it('links a permission row that exists without a store participant', async () => {
+    db.storeParticipantActor.findMany.mockResolvedValue([
+      {
+        id: 'stp_1',
+        storeOid: store.oid,
+        resourceActorOid: consumerActor.oid,
+        storeParticipantOid: null,
+        permissions: [storeReadPermission]
+      }
+    ]);
+
+    await storeAccessService.ensureActorStorePermissions({
+      store,
+      actor: consumerActor,
+      permissions: [storeReadPermission]
+    });
+
+    expect(recordParticipationMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not link rows that already have a store participant', async () => {
+    db.storeParticipantActor.findMany.mockResolvedValue([
+      {
+        id: 'stp_1',
+        storeOid: store.oid,
+        resourceActorOid: consumerActor.oid,
+        storeParticipantOid: 60n,
+        permissions: [storeReadPermission]
+      }
+    ]);
+    db.storeParticipantActor.update.mockImplementation(async ({ where, data }) => ({
+      id: where.id,
+      storeOid: store.oid,
+      resourceActorOid: consumerActor.oid,
+      storeParticipantOid: 60n,
+      permissions: data.permissions
+    }));
+
+    await storeAccessService.ensureActorStorePermissions({
+      store,
+      actor: consumerActor,
+      permissions: [storeReadPermission, storeWritePermission]
+    });
+
+    expect(recordParticipationMock).not.toHaveBeenCalled();
+  });
+
+  it('links rows created when permissions are overridden', async () => {
+    await storeAccessService.ensureActorStorePermissions({
+      store,
+      actor: consumerActor,
+      permissions: [storeReadPermission],
+      overridePermissions: true
+    });
+
+    expect(recordParticipationMock).toHaveBeenCalledTimes(1);
   });
 
   it('does not mirror organization actors', async () => {

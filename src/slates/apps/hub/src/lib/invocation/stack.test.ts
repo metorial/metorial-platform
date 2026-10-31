@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
+  env: { storage: {}, service: {} as Record<string, string | undefined> },
   createInvocation: vi.fn(),
   generateId: vi.fn(),
   nextOid: vi.fn(),
@@ -16,7 +17,7 @@ vi.mock('../../db', () => ({
   db: { slateInvocation: { create: mocks.createInvocation } }
 }));
 
-vi.mock('../../env', () => ({ env: { storage: {}, service: {} } }));
+vi.mock('../../env', () => ({ env: mocks.env }));
 
 vi.mock('../../functionBay', () => ({
   functionBay: { function: { invoke: mocks.invokeFunction } },
@@ -38,44 +39,52 @@ vi.mock('./store', () => ({ storeSlateInvocation: mocks.storeInvocation }));
 
 import { SlateInvocationStack } from './stack';
 
-let invoke = () =>
+let invoke = (capabilities?: { hub?: { runtimeInfo?: boolean } }) =>
   new SlateInvocationStack({
     slateVersion: {
       id: 'version_1',
       activeDeploymentOid: 20n,
       providerDeploymentInfo: { functionId: 'function_1' }
     } as any,
-    participants: []
+    participants: [],
+    capabilities
   }).invoke('slates/provider.identify', {});
 
+let sentMessages = () =>
+  mocks.invokeFunction.mock.calls.at(-1)![0].payload.messages as {
+    method: string;
+    params: unknown;
+  }[];
+
+beforeEach(() => {
+  vi.resetAllMocks();
+  mocks.env.service = {};
+
+  let oid = 10n;
+  mocks.nextOid.mockImplementation(() => oid++);
+  mocks.generateId.mockResolvedValue('shiv_1');
+  mocks.createInvocation.mockImplementation(async ({ data }) => ({
+    ...data,
+    createdAt: new Date()
+  }));
+
+  mocks.invokeFunction.mockImplementation(async ({ payload }) => ({
+    id: 'provider_invocation_1',
+    type: 'success',
+    result: {
+      messages: payload.messages
+        .filter((message: { id?: string }) => message.id)
+        .map((message: { id: string }) => ({
+          jsonrpc: '2.0',
+          id: message.id,
+          result: { provider: { name: 'Test Provider' } }
+        }))
+    }
+  }));
+  mocks.storeInvocation.mockResolvedValue(undefined);
+});
+
 describe('SlateInvocationStack invocation record creation', () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-
-    let oid = 10n;
-    mocks.nextOid.mockImplementation(() => oid++);
-    mocks.generateId.mockResolvedValue('shiv_1');
-    mocks.createInvocation.mockImplementation(async ({ data }) => ({
-      ...data,
-      createdAt: new Date()
-    }));
-
-    mocks.invokeFunction.mockImplementation(async ({ payload }) => ({
-      id: 'provider_invocation_1',
-      type: 'success',
-      result: {
-        messages: payload.messages
-          .filter((message: { id?: string }) => message.id)
-          .map((message: { id: string }) => ({
-            jsonrpc: '2.0',
-            id: message.id,
-            result: { provider: { name: 'Test Provider' } }
-          }))
-      }
-    }));
-    mocks.storeInvocation.mockResolvedValue(undefined);
-  });
-
   it('regenerates a colliding oid while preserving the public invocation id', async () => {
     mocks.createInvocation.mockRejectedValueOnce({
       code: 'P2002',
@@ -129,5 +138,60 @@ describe('SlateInvocationStack invocation record creation', () => {
     expect(mocks.createInvocation).toHaveBeenCalledTimes(1);
     expect(mocks.invokeFunction).not.toHaveBeenCalled();
     expect(mocks.storeInvocation).not.toHaveBeenCalled();
+  });
+});
+
+describe('SlateInvocationStack runtime info', () => {
+  beforeEach(() => {
+    mocks.env.service = {
+      METORIAL_API_URL: 'https://api-eu1.metorial.test',
+      METORIAL_REGION: 'eu1',
+      METORIAL_ENV: 'staging'
+    };
+  });
+
+  it('tells slates that support it which Metorial environment runs them', async () => {
+    await invoke({ hub: { runtimeInfo: true } });
+
+    expect(
+      sentMessages().find(message => message.method === 'slates/hub.runtime_info.set')
+    ).toEqual({
+      jsonrpc: '2.0',
+      method: 'slates/hub.runtime_info.set',
+      params: {
+        runtimeInfo: {
+          metorial: {
+            apiUrl: 'https://api-eu1.metorial.test',
+            region: 'eu1',
+            environment: 'staging'
+          }
+        }
+      }
+    });
+  });
+
+  it('skips runtime info for slates that do not advertise support', async () => {
+    await invoke();
+
+    expect(sentMessages().map(message => message.method)).not.toContain(
+      'slates/hub.runtime_info.set'
+    );
+  });
+
+  it('skips runtime info when the hub has no Metorial API URL configured', async () => {
+    mocks.env.service.METORIAL_API_URL = undefined;
+    await invoke({ hub: { runtimeInfo: true } });
+
+    expect(sentMessages().map(message => message.method)).not.toContain(
+      'slates/hub.runtime_info.set'
+    );
+  });
+
+  it('refuses to send a plain http Metorial API URL outside development', async () => {
+    mocks.env.service.METORIAL_API_URL = 'http://api-eu1.metorial.test';
+
+    await expect(invoke({ hub: { runtimeInfo: true } })).rejects.toThrow(
+      'METORIAL_API_URL must be an absolute https URL'
+    );
   });
 });

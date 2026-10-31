@@ -129,6 +129,7 @@ declare global {
         capabilitiesNotification?: boolean;
         // Understands slates/hub.live_invocation.set
         liveInvocation?: boolean;
+        runtimeInfo?: boolean;
       };
       provider?: {
         // Implements slates/trigger_groups.list and the rest of the

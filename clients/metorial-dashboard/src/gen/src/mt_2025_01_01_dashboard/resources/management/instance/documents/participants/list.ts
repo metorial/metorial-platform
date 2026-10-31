@@ -80,6 +80,7 @@ export type ManagementInstanceDocumentsParticipantsListOutput = {
           })
         | null;
     };
+    storeParticipantId: string | null;
     createdAt: Date;
   }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
@@ -175,6 +176,7 @@ export let mapManagementInstanceDocumentsParticipantsListOutput =
               ]
             ]
           ],
+          'store_participant_id',
           'created_at'
         ]
       ]

@@ -79,6 +79,7 @@ export type DocumentsParticipantsGetOutput = {
         })
       | null;
   };
+  storeParticipantId: string | null;
   createdAt: Date;
 };
 
@@ -164,6 +165,7 @@ export let mapDocumentsParticipantsGetOutput =
           ]
         ]
       ],
+      'store_participant_id',
       'created_at'
     ],
     1

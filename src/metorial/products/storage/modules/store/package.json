@@ -6,6 +6,7 @@
   "private": true,
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "parity": "bun run scripts/store-resource-parity.ts",
     "_test": "vitest run --passWithNoTests",
     "test:e2e": "metorial-e2e"
   },

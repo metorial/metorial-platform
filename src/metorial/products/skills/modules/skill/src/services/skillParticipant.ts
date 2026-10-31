@@ -20,6 +20,7 @@ import {
   exposedParticipantResourceActorWhere,
   resourceActorPresentationInclude
 } from '@metorial/module-resource-actor';
+import { storeParticipantService } from '@metorial/module-store';
 
 export let skillParticipantInclude = {
   skill: true,
@@ -118,6 +119,44 @@ class SkillParticipantServiceImpl {
   }
 
   async setSkillParticipantAccessRole(d: {
+    skill: Pick<Skill, 'oid'>;
+    actor: Pick<ResourceActor, 'oid'>;
+    permission: 'read' | 'write' | 'none';
+  }) {
+    let participant = await this.upsertAccessRole(d);
+
+    await this.setStoreAccessRole({
+      skill: d.skill,
+      actor: d.actor,
+      role: d.permission == 'write' ? 'editor' : d.permission == 'read' ? 'viewer' : null
+    });
+
+    return participant;
+  }
+
+  private async setStoreAccessRole(d: {
+    skill: Pick<Skill, 'oid'>;
+    actor: Pick<ResourceActor, 'oid'>;
+    role: 'editor' | 'viewer' | null;
+  }) {
+    let skill = await withTransaction(
+      async db =>
+        await db.skill.findUnique({
+          where: { oid: d.skill.oid },
+          select: { storeOid: true }
+        }),
+      { ifExists: true }
+    );
+    if (!skill?.storeOid) return;
+
+    await storeParticipantService.setAccessRoleSafely({
+      store: { oid: skill.storeOid },
+      actor: d.actor,
+      role: d.role
+    });
+  }
+
+  private async upsertAccessRole(d: {
     skill: Pick<Skill, 'oid'>;
     actor: Pick<ResourceActor, 'oid'>;
     permission: 'read' | 'write' | 'none';

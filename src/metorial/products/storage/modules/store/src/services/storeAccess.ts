@@ -27,6 +27,7 @@ import {
   isParticipationOnlyActorRow,
   legacyStoreParticipantActorWhere
 } from '../lib/participantActorRows';
+import { storeParticipantService } from './storeParticipant';
 
 export type StoreAccessInput = {
   authorization: ResourceAuthorization;
@@ -354,6 +355,20 @@ class StoreAccessServiceImpl {
     });
   }
 
+  private async linkUnlinkedParticipantRows(d: {
+    actor: ResourceActor;
+    rows: Array<Pick<StoreParticipantActor, 'storeOid' | 'storeParticipantOid'>>;
+  }) {
+    for (let row of d.rows) {
+      if (row.storeParticipantOid) continue;
+
+      await storeParticipantService.recordParticipationSafely({
+        store: { oid: row.storeOid },
+        actor: d.actor
+      });
+    }
+  }
+
   private async upsertStoreParticipants(d: {
     storeOids: bigint[];
     actor: ResourceActor;
@@ -428,6 +443,10 @@ class StoreAccessServiceImpl {
             before,
             after: updatedParticipants
           });
+          await this.linkUnlinkedParticipantRows({
+            actor: d.actor,
+            rows: updatedParticipants
+          });
 
           return updatedParticipants;
         }
@@ -476,6 +495,7 @@ class StoreAccessServiceImpl {
           before,
           after: participants
         });
+        await this.linkUnlinkedParticipantRows({ actor: d.actor, rows: participants });
 
         return participants;
       },
@@ -661,6 +681,7 @@ class StoreAccessServiceImpl {
           before: existingParticipants,
           after: participants
         });
+        await this.linkUnlinkedParticipantRows({ actor: d.actor, rows: participants });
 
         return participants;
       },

@@ -10,7 +10,8 @@ import { ID } from '@metorial/db';
 import {
   consumerSkillReadRoles,
   consumerSkillWriteRoles,
-  createResourceAuthorization
+  createResourceAuthorization,
+  storeAccessGrantService
 } from '@metorial/module-access';
 import {
   consumerProfileService,
@@ -84,7 +85,10 @@ let setAccess = async (
   await db.accessTagEntity.deleteMany({
     where: { skillOid: skill.oid, accessTagOid: consumer.accessTagOid }
   });
-  if (access === 'none') return;
+  if (access === 'none') {
+    await storeAccessGrantService.syncLegacySkillGrants({ skillOid: skill.oid });
+    return;
+  }
 
   let policy = await db.accessTagPolicy.create({
     data: {
@@ -104,6 +108,7 @@ let setAccess = async (
       skillOid: skill.oid
     }
   });
+  await storeAccessGrantService.syncLegacySkillGrants({ skillOid: skill.oid });
 };
 
 let visibleIds = async (

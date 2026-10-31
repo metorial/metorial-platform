@@ -1,10 +1,12 @@
 import type { Instance, Project } from '@metorial/db';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { db } = vi.hoisted(() => ({
+let { db, setAccessRoleMock } = vi.hoisted(() => ({
+  setAccessRoleMock: vi.fn(),
   db: {
     skill: {
-      findFirst: vi.fn()
+      findFirst: vi.fn(),
+      findUnique: vi.fn()
     },
     storeParticipantActor: {
       findMany: vi.fn()
@@ -36,7 +38,8 @@ vi.mock('@metorial/list-utils', () => ({
 
 vi.mock('@metorial/module-store', () => ({
   storeReadPermission: 'content_read',
-  storeWritePermission: 'content_write'
+  storeWritePermission: 'content_write',
+  storeParticipantService: { setAccessRoleSafely: setAccessRoleMock }
 }));
 
 import { skillParticipantService } from './skillParticipant';
@@ -62,6 +65,7 @@ describe('skill participant store projection', () => {
     vi.clearAllMocks();
 
     db.skill.findFirst.mockResolvedValue(skill);
+    db.skill.findUnique.mockResolvedValue({ storeOid: skill.storeOid });
     db.storeParticipantActor.findMany.mockResolvedValue([]);
     db.skillParticipant.findUnique.mockResolvedValue(null);
     db.skillParticipant.findFirst.mockResolvedValue(null);
@@ -91,6 +95,77 @@ describe('skill participant store projection', () => {
       })
     );
     expect(db.storeParticipantActor.findMany).not.toHaveBeenCalled();
+    expect(setAccessRoleMock).toHaveBeenCalledWith({
+      store: { oid: skill.storeOid },
+      actor: resourceActor,
+      role: 'viewer'
+    });
+  });
+
+  it('records the editor role in the store when write access is shared', async () => {
+    db.skillParticipant.create.mockImplementation(async ({ data }: any) => ({
+      ...data,
+      skill,
+      resourceActor
+    }));
+
+    await skillParticipantService.setSkillParticipantAccessRole({
+      skill,
+      actor: resourceActor,
+      permission: 'write'
+    });
+
+    expect(setAccessRoleMock).toHaveBeenCalledWith({
+      store: { oid: skill.storeOid },
+      actor: resourceActor,
+      role: 'editor'
+    });
+  });
+
+  it('clears the store access role when access is removed', async () => {
+    let existing = {
+      oid: 6n,
+      id: 'skp_1',
+      skillOid: skill.oid,
+      resourceActorOid: resourceActor.oid,
+      roles: ['viewer'],
+      skill,
+      resourceActor
+    };
+    db.skillParticipant.findUnique.mockResolvedValue(existing);
+    db.skillParticipant.update.mockImplementation(async ({ data }: any) => ({
+      ...existing,
+      ...data
+    }));
+
+    await skillParticipantService.setSkillParticipantAccessRole({
+      skill,
+      actor: resourceActor,
+      permission: 'none'
+    });
+
+    expect(setAccessRoleMock).toHaveBeenCalledWith({
+      store: { oid: skill.storeOid },
+      actor: resourceActor,
+      role: null
+    });
+  });
+
+  it('does not touch the store for a skill without a store', async () => {
+    db.skill.findUnique.mockResolvedValue({ storeOid: null });
+    db.skillParticipant.create.mockImplementation(async ({ data }: any) => ({
+      ...data,
+      skill,
+      resourceActor
+    }));
+
+    await skillParticipantService.setSkillParticipantAccessRole({
+      skill,
+      actor: resourceActor,
+      permission: 'read'
+    });
+
+    expect(setAccessRoleMock).not.toHaveBeenCalled();
   });
 
   it('retains the participant identity when individual access is removed', async () => {

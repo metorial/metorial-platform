@@ -20,6 +20,7 @@ import {
 } from '../../functionBay';
 import { hub } from '../../hub';
 import { ID, snowflake } from '../../id';
+import { getMetorialApiUrl } from '../../metorialApiUrl';
 import { invocationsBucketRecord } from '../../storage';
 import { retryOnOidCollision } from '../retryOnOidCollision';
 import { mintLiveInvocationToken } from './liveToken';
@@ -92,6 +93,7 @@ export class SlateInvocationStack {
     let capabilities = this.#capabilities?.hub;
     let supportsHubCapabilities = !!capabilities?.capabilitiesNotification;
     let supportsLiveInvocation = !!capabilities?.liveInvocation;
+    let metorialApiUrl = capabilities?.runtimeInfo ? getMetorialApiUrl() : undefined;
 
     let liveInvocationToken =
       this.#tenant && supportsLiveInvocation
@@ -140,6 +142,23 @@ export class SlateInvocationStack {
               params: {
                 token: liveInvocationToken.token,
                 baseUrl: env.service.SERVICE_PUBLIC_URL
+              }
+            }
+          ]
+        : []),
+      ...(metorialApiUrl
+        ? [
+            {
+              jsonrpc: '2.0' as const,
+              method: 'slates/hub.runtime_info.set' as const,
+              params: {
+                runtimeInfo: {
+                  metorial: {
+                    apiUrl: metorialApiUrl,
+                    region: env.service.METORIAL_REGION,
+                    environment: env.service.METORIAL_ENV
+                  }
+                }
               }
             }
           ]

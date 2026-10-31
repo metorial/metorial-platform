@@ -17,6 +17,16 @@ export let storeParticipantBackfillCron = createCron(
   }
 );
 
+let repairParticipantRoles = async () => {
+  let oids = await storeParticipantService.findParticipantsMissingActorRoles({
+    limit: STORE_PARTICIPANT_BACKFILL_BATCH_SIZE
+  });
+
+  for (let oid of oids) {
+    await storeParticipantService.syncParticipantRoles({ storeParticipantOid: oid });
+  }
+};
+
 export let storeParticipantBackfillManyQueue = createQueue<{ cursor?: string }>({
   name: 'cargo/store/participant/backfill/many',
   workerOpts: { concurrency: 1 }
@@ -24,6 +34,8 @@ export let storeParticipantBackfillManyQueue = createQueue<{ cursor?: string }>(
 
 export let storeParticipantBackfillManyQueueProcessor =
   storeParticipantBackfillManyQueue.process(async data => {
+    if (!data.cursor) await repairParticipantRoles();
+
     let rows = await db.storeParticipantActor.findMany({
       where: {
         AND: [legacyStoreParticipantActorWhere],
