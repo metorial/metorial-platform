@@ -48,6 +48,14 @@ let include = {
 };
 export let sessionParticipantInclude = include;
 
+let visibleParticipantWhere = (sessionVisibility: NonNullable<SessionVisibilityWhere>) => ({
+  OR: [
+    { sessionConnections: { some: { session: sessionVisibility } } },
+    { sessionMessagesSender: { some: { session: sessionVisibility } } },
+    { sessionMessagesResponder: { some: { session: sessionVisibility } } }
+  ]
+});
+
 export type ListSessionParticipantsParams = {
   types?: SessionParticipantType[];
   connectionTypes?: SessionParticipantConnectionType[];
@@ -127,15 +135,7 @@ class sessionParticipantServiceImpl {
 
               AND: [
                 d.sessionVisibility
-                  ? {
-                      OR: [
-                        { sessionConnections: { some: { session: d.sessionVisibility } } },
-                        { sessionMessagesSender: { some: { session: d.sessionVisibility } } },
-                        {
-                          sessionMessagesResponder: { some: { session: d.sessionVisibility } }
-                        }
-                      ]
-                    }
+                  ? visibleParticipantWhere(d.sessionVisibility)
                   : undefined!,
                 !d.includeInternal && !d.sessionIds?.length
                   ? {
@@ -200,7 +200,11 @@ class sessionParticipantServiceImpl {
     let participant = await this.getSessionParticipantByIdInternal({
       ...rest,
       tenant: scope.tenant,
-      environment: scope.environment
+      environment: scope.environment,
+      sessionVisibility: await getSessionVisibilityWhere({
+        tenant: scope.tenant,
+        organizationActor
+      })
     });
 
     let [enriched] = await enrichSessionParticipantsWithConsumer({
@@ -211,13 +215,18 @@ class sessionParticipantServiceImpl {
   }
 
   async getSessionParticipantByIdInternal(
-    d: { tenant: Tenant; environment: Environment } & GetSessionParticipantByIdParams
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+      sessionVisibility?: SessionVisibilityWhere;
+    } & GetSessionParticipantByIdParams
   ) {
     let sessionParticipant = await db.sessionParticipant.findFirst({
       where: {
         id: d.sessionParticipantId,
         tenantOid: d.tenant.oid,
-        environmentOid: d.environment.oid
+        environmentOid: d.environment.oid,
+        AND: d.sessionVisibility ? [visibleParticipantWhere(d.sessionVisibility)] : []
       },
       include
     });

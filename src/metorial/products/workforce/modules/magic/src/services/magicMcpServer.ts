@@ -46,7 +46,7 @@ import {
   assertCanChangeCoreOwnerOnlyVisibility,
   assertCanSeeCoreOwnedResource,
   assertCanUseSubspaceResources,
-  assertSubspaceResourcesOwnedByCoreParent,
+  assertConsumerCanAttachSubspaceResources,
   getOwnershipAccessor,
   internalOwnershipAccessor,
   ownedCoreResourceWhere,
@@ -450,7 +450,7 @@ class MagicMcpServerImpl {
     if (d.accessTags) {
       let { tenant } = await subspaceScopeService.ensureForInstance(d.instance);
 
-      await assertSubspaceResourcesOwnedByCoreParent({
+      await assertConsumerCanAttachSubspaceResources({
         tenant,
         parent: d.server,
         integrationInstanceIds: d.integrationInstanceIds,

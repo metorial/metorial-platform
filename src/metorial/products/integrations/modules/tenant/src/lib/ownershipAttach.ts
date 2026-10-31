@@ -1,8 +1,10 @@
-import { forbiddenError, ServiceError } from '@lowerdeck/error';
 import { db, type Tenant } from '@metorial-subspace/db';
 import { metorialDb } from './metorialDb';
-import { effectiveOwnerActorOid } from './ownership';
-import { assertCanAttachOwnedResources, type OwnershipAccessor } from './ownershipAccess';
+import {
+  assertCanAttachOwnedResources,
+  internalOwnershipAccessor,
+  type OwnershipAccessor
+} from './ownershipAccess';
 
 type SubspaceResourceIds = {
   tenant: Pick<Tenant, 'oid'>;
@@ -74,22 +76,8 @@ export let assertCanAttachSubspaceResourcesToCoreParent = async (
   });
 };
 
-export let assertSubspaceResourcesOwnedByCoreParent = async (d: SubspaceResourceIds) => {
-  let { configs, authConfigs, integrationInstances } = await loadSubspaceResources(d);
-  let resources = [
-    ...configs.map(resource => ({ resource, name: 'provider config' })),
-    ...authConfigs.map(resource => ({ resource, name: 'provider auth config' })),
-    ...integrationInstances.map(resource => ({ resource, name: 'integration instance' }))
-  ];
-  if (!resources.length) return;
-
-  let parentOwnerActorOid = await resolveSubspaceParentOwnerActorOid(d);
-
-  for (let { resource, name } of resources) {
-    if (!parentOwnerActorOid || effectiveOwnerActorOid(resource) !== parentOwnerActorOid) {
-      throw new ServiceError(
-        forbiddenError({ message: `You cannot attach this ${name} to this resource` })
-      );
-    }
-  }
-};
+export let assertConsumerCanAttachSubspaceResources = async (d: SubspaceResourceIds) =>
+  await assertCanAttachSubspaceResourcesToCoreParent({
+    ...d,
+    accessor: { ...internalOwnershipAccessor, kind: 'consumer', isEnforced: true }
+  });
