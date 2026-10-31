@@ -22,6 +22,7 @@ pub enum BackendConfig {
         root_path: PathBuf,
         #[serde(default = "default_physical_bucket")]
         physical_bucket: String,
+        public_url: Option<String>,
     },
     S3 {
         region: String,
@@ -60,6 +61,7 @@ impl Default for Config {
             backend: BackendConfig::Local {
                 root_path: PathBuf::from("./data"),
                 physical_bucket: default_physical_bucket(),
+                public_url: None,
             },
         }
     }

@@ -30,9 +30,10 @@ async fn main() -> anyhow::Result<()> {
         object_store::config::BackendConfig::Local {
             root_path,
             physical_bucket,
+            public_url,
         } => {
             info!("Using local backend at {:?}", root_path);
-            Arc::new(LocalBackend::new(root_path, physical_bucket))
+            Arc::new(LocalBackend::new(root_path, physical_bucket).with_public_base_url(public_url))
         }
         object_store::config::BackendConfig::S3 {
             region,

@@ -1,5 +1,5 @@
 import ts from 'typescript';
-import { editions, isEdition, type Edition } from '../edition';
+import { editions, isEdition, type Edition } from '../edition.ts';
 
 let packageName = '@metorial/editions';
 let maxPasses = 25;

@@ -15,6 +15,8 @@ type = "local"
 # For local backend:
 root_path = "/app/data"  # Use "./data" for local development
 physical_bucket = "object-store-data"
+# Base URL clients reach this service at; public URLs are unsigned links to it
+# public_url = "http://localhost:8080"
 
 # For S3 backend:
 # type = "s3"

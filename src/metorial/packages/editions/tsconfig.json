@@ -4,6 +4,8 @@
   "exclude": ["dist", "test/fixtures"],
   "include": ["src", "test"],
   "compilerOptions": {
-    "outDir": "dist"
+    "outDir": "dist",
+    "noEmit": true,
+    "allowImportingTsExtensions": true
   }
 }

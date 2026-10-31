@@ -1,4 +1,4 @@
-import { inlineConfigElementId } from './runtime';
+import { inlineConfigElementId } from './runtime.ts';
 
 let escapeForHtml = (json: string) =>
   json

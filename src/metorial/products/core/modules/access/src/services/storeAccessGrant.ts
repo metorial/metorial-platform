@@ -21,23 +21,37 @@ class StoreAccessGrantServiceImpl {
       for (let level of storeResourceAccessLevels) {
         let config = d.access.policies[level];
 
-        let policy = await db.accessTagPolicy.upsert({
-          where: {
-            organizationOid_systemIdentifier: {
-              organizationOid: d.organizationOid,
-              systemIdentifier: config.systemIdentifier
-            }
-          },
-          create: {
-            id: await ID.generateId('accessTagPolicy'),
-            name: config.name,
-            systemIdentifier: config.systemIdentifier,
+        let where = {
+          organizationOid_systemIdentifier: {
             organizationOid: d.organizationOid,
-            roles: config.roles
-          },
-          update: {},
+            systemIdentifier: config.systemIdentifier
+          }
+        };
+
+        let policy = await db.accessTagPolicy.findUnique({
+          where,
           select: { oid: true, roles: true }
         });
+
+        if (!policy) {
+          await db.accessTagPolicy.createMany({
+            data: [
+              {
+                id: await ID.generateId('accessTagPolicy'),
+                name: config.name,
+                systemIdentifier: config.systemIdentifier,
+                organizationOid: d.organizationOid,
+                roles: config.roles
+              }
+            ],
+            skipDuplicates: true
+          });
+
+          policy = await db.accessTagPolicy.findUniqueOrThrow({
+            where,
+            select: { oid: true, roles: true }
+          });
+        }
 
         let rolesDrifted =
           policy.roles.length != config.roles.length ||

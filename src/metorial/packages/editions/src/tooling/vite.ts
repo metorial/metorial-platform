@@ -1,5 +1,5 @@
-import { defaultEdition, isEdition, type Edition } from '../edition';
-import { transformEditionSource } from './transform';
+import { defaultEdition, isEdition, type Edition } from '../edition.ts';
+import { transformEditionSource } from './transform.ts';
 
 let sourceFilter = /\.[cm]?[jt]sx?$/;
 

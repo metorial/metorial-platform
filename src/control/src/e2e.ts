@@ -130,6 +130,7 @@ export let renderCompose = (
         OBJECT_STORE__SERVER__PORT: '52010',
         OBJECT_STORE__BACKEND__TYPE: 'local',
         OBJECT_STORE__BACKEND__ROOT_PATH: '/app/data',
+        OBJECT_STORE__BACKEND__PUBLIC_URL: 'http://services:52010',
         OBJECT_STORE__BACKEND__REGION: 'us-east-1',
         OBJECT_STORE__BACKEND__PHYSICAL_BUCKET: 'e2e'
       },

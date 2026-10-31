@@ -55,6 +55,7 @@ export let rootEnvironment = (project: ProjectRoot): Environment => {
   for (let [key, value] of sortedEntries(defaultPorts)) output[portKey(key)] ??= String(value);
 
   let data = metadataIfPresent(project.root);
+  if (!data) output.CONTROL_LOCAL_SERVICES = '1';
   if (data) {
     output.METORIAL_HOSTNAME = data.hostname;
 
@@ -209,6 +210,13 @@ export let allForManifest = (loaded: LoadedManifest, root: Environment): Environ
     for (let env of resource.env)
       output[env.key] = interpolateStructured(env.value, templates);
   }
+
+  if (root.CONTROL_LOCAL_SERVICES)
+    for (let [key, value] of Object.entries(output))
+      if (typeof value == 'string' && value.includes('//services:'))
+        output[key] = value
+          .replaceAll('//services:52010', '//localhost:35010')
+          .replaceAll('//services:', '//localhost:');
 
   return output;
 };

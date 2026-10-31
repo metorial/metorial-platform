@@ -18,6 +18,22 @@ use crate::error::{BackendError, BackendResult};
 pub struct LocalBackend {
     root_path: PathBuf,
     bucket_name: String,
+    public_base_url: Option<String>,
+}
+
+fn percent_encode(segment: &str) -> String {
+    let mut encoded = String::with_capacity(segment.len());
+
+    for byte in segment.bytes() {
+        match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                encoded.push(byte as char)
+            }
+            _ => encoded.push_str(&format!("%{:02X}", byte)),
+        }
+    }
+
+    encoded
 }
 
 impl LocalBackend {
@@ -25,7 +41,15 @@ impl LocalBackend {
         Self {
             root_path,
             bucket_name,
+            public_base_url: None,
         }
+    }
+
+    pub fn with_public_base_url(mut self, public_base_url: Option<String>) -> Self {
+        self.public_base_url = public_base_url
+            .map(|url| url.trim_end_matches('/').to_string())
+            .filter(|url| !url.is_empty());
+        self
     }
 
     fn get_full_path(&self, key: &str) -> BackendResult<PathBuf> {
@@ -292,12 +316,29 @@ impl Backend for LocalBackend {
 
     async fn get_public_url(
         &self,
-        _key: &str,
+        key: &str,
         _expiration_secs: u64,
         _purpose: PublicUrlPurpose,
     ) -> BackendResult<String> {
-        Err(BackendError::Provider(
-            "Public URL generation is not supported for local backend".to_string(),
+        let Some(base_url) = &self.public_base_url else {
+            return Err(BackendError::Provider(
+                "Public URL generation requires a public_url for the local backend".to_string(),
+            ));
+        };
+
+        let (bucket, object_key) = key
+            .split_once('/')
+            .ok_or_else(|| BackendError::InvalidPath(format!("Invalid key: {}", key)))?;
+
+        Ok(format!(
+            "{}/buckets/{}/objects/{}",
+            base_url,
+            percent_encode(bucket),
+            object_key
+                .split('/')
+                .map(percent_encode)
+                .collect::<Vec<_>>()
+                .join("/")
         ))
     }
 }
@@ -437,5 +478,33 @@ mod tests {
             .put_object("../etc/passwd", stream, None, HashMap::new())
             .await;
         assert!(matches!(result, Err(BackendError::InvalidPath(_))));
+    }
+
+    #[tokio::test]
+    async fn test_public_url() {
+        let temp_dir = TempDir::new().unwrap();
+        let backend = LocalBackend::new(temp_dir.path().to_path_buf(), "test-bucket".to_string())
+            .with_public_base_url(Some("http://localhost:35010/".to_string()));
+
+        let url = backend
+            .get_public_url("files/a b/c.txt", 60, PublicUrlPurpose::Retrieve)
+            .await
+            .unwrap();
+
+        assert_eq!(
+            url,
+            "http://localhost:35010/buckets/files/objects/a%20b/c.txt"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_public_url_without_base_url() {
+        let temp_dir = TempDir::new().unwrap();
+        let backend = LocalBackend::new(temp_dir.path().to_path_buf(), "test-bucket".to_string());
+
+        assert!(backend
+            .get_public_url("files/a.txt", 60, PublicUrlPurpose::Upload)
+            .await
+            .is_err());
     }
 }
