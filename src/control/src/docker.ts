@@ -1,5 +1,5 @@
 import { rustPathHash } from './hash';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { createConnection } from 'node:net';
 import { basename, dirname, join, resolve } from 'node:path';
 import { canonical } from './files';
@@ -76,6 +76,54 @@ export let stop = async (root: string, projects: ComposeProject[], env: Environm
         env
       )
       .catch(error => console.error(`warning: could not stop Docker services: ${error}`));
+  }
+};
+
+export let composeProjectName = (compose: string) => {
+  try {
+    let name = JSON.parse(readFileSync(compose, 'utf8')).name;
+
+    return typeof name === 'string' && name ? name : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+export let reset = async (
+  root: string,
+  projects: ComposeProject[],
+  env: Environment,
+  dryRun: boolean
+) => {
+  for (let [compose] of [...projects].reverse()) {
+    let args = [...composePrefix(compose), 'down', '--volumes', '--remove-orphans'];
+    let name = composeProjectName(compose);
+    let label = `label=com.docker.compose.project=${name}`;
+
+    if (dryRun) {
+      console.log(`would run: docker ${args.join(' ')}`);
+      if (name) console.log(`would remove leftover volumes with ${label}`);
+
+      continue;
+    }
+
+    await commands.run('docker', args, root, env);
+
+    if (name) {
+      let leftover = (
+        await commands.output(
+          'docker',
+          ['volume', 'ls', '--quiet', '--filter', label],
+          root,
+          env
+        )
+      )
+        .split('\n')
+        .filter(Boolean);
+
+      if (leftover.length)
+        await commands.run('docker', ['volume', 'rm', ...leftover], root, env);
+    }
   }
 };
 

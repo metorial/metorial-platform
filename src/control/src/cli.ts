@@ -32,6 +32,7 @@ let commandOptions: Record<
   cleanup: { flags: ['dry-run', 'docker'] },
   docker: {},
   'docker stop': {},
+  'docker reset': { flags: ['yes', 'dry-run'] },
   workspace: {},
   'workspace create': { flags: ['no-open'], min: 1, max: 1 },
   'workspace list': { max: 0 },
@@ -320,7 +321,20 @@ export let run = async (args = process.argv.slice(2), cwd = process.cwd()) => {
     }
     case 'docker': {
       let { selected, env } = await dev.selection(project, positional, false);
-      await docker.stop(project.root, docker.composeProjects(project.root, selected), env);
+      let projects = docker.composeProjects(project.root, selected);
+
+      if (parsed.subcommand === 'reset') {
+        if (!flags.has('yes') && !flags.has('dry-run'))
+          throw new Error(
+            'docker reset deletes all data in the declared Compose volumes; pass --yes to confirm or --dry-run to preview'
+          );
+
+        await docker.reset(project.root, projects, env, flags.has('dry-run'));
+
+        return;
+      }
+
+      await docker.stop(project.root, projects, env);
 
       return;
     }

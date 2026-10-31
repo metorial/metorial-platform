@@ -8,6 +8,7 @@ import * as manifest from '../src/manifest';
 import * as workspace from '../src/workspace';
 import * as turbo from '../src/turbo';
 import * as cleanup from '../src/cleanup';
+import * as docker from '../src/docker';
 import * as proxy from '../src/proxy';
 import * as infrastructure from '../src/infrastructure';
 import { packageDirectory, parseArguments } from '../src/cli';
@@ -38,6 +39,8 @@ describe('CLI contract', () => {
     ['db', 'generate', '@metorial/db'],
     ['db', 'push', 'backend'],
     ['docker', 'stop'],
+    ['docker', 'reset', '--yes'],
+    ['docker', 'reset', '--dry-run'],
     ['ci', 'describe', '--json'],
     ['env', '--json'],
     ['cleanup', '--dry-run', '--docker'],
@@ -401,5 +404,19 @@ describe('generated workspaces and infrastructure', () => {
   ])('keeps Rust resource hashes for %j', (value, stringHash, pathHash) => {
     expect(rustHash(rustString(value))).toBe(stringHash);
     expect(rustPathHash(value)).toBe(pathHash);
+  });
+});
+
+describe('docker reset', () => {
+  test('reads the project name only from a generated JSON compose file', () => {
+    let root = temporary();
+    let generated = join(root, 'services.docker-compose.yml');
+    let handwritten = join(root, 'docker-compose.yml');
+    atomicWrite(generated, JSON.stringify({ name: 'control_dev_abc12345', services: {} }));
+    atomicWrite(handwritten, 'services:\n  db:\n    image: postgres:17\n');
+
+    expect(docker.composeProjectName(generated)).toBe('control_dev_abc12345');
+    expect(docker.composeProjectName(handwritten)).toBeUndefined();
+    expect(docker.composeProjectName(join(root, 'missing.yml'))).toBeUndefined();
   });
 });

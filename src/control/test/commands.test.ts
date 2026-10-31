@@ -66,6 +66,54 @@ let fixture = async () => {
   return { root, run, calls };
 };
 
+test('docker reset refuses to delete data without confirmation and previews with --dry-run', async () => {
+  let value = await fixture();
+  packageFixture(
+    value.root,
+    'src/db',
+    'db',
+    "name='db'\n[docker]\ncompose=['docker-compose.yml']\nservices=['postgres']",
+    {}
+  );
+
+  let refused = await value.run(['docker', 'reset']);
+  expect(refused.code).toBe(1);
+  expect(refused.stderr).toContain('--yes');
+  expect(value.calls().filter(call => call.program === 'docker')).toHaveLength(0);
+
+  let preview = await value.run(['docker', 'reset', '--dry-run']);
+  expect(preview.code).toBe(0);
+  expect(preview.stdout).toContain('would run: docker compose');
+  expect(preview.stdout).toContain('down --volumes --remove-orphans');
+  expect(value.calls().filter(call => call.program === 'docker')).toHaveLength(0);
+});
+
+test('docker reset removes declared Compose services together with their volumes', async () => {
+  let value = await fixture();
+  packageFixture(
+    value.root,
+    'src/db',
+    'db',
+    "name='db'\n[docker]\ncompose=['docker-compose.yml']\nservices=['postgres']",
+    {}
+  );
+
+  let result = await value.run(['docker', 'reset', '--yes']);
+  expect(result.code, result.stderr).toBe(0);
+
+  let [call] = value.calls().filter(call => call.program === 'docker');
+  expect(call?.args).toEqual(
+    expect.arrayContaining([
+      '--file',
+      join(value.root, 'src/db/docker-compose.yml'),
+      'down',
+      '--volumes',
+      '--remove-orphans'
+    ])
+  );
+  expect(call?.args).not.toContain('stop');
+});
+
 test('prepare writes environments then runs root build and package preparation with isolated values', async () => {
   let value = await fixture();
   let result = await value.run(['prepare', '--no-docker']);

@@ -36,12 +36,18 @@ bun run control test:unit @lowerdeck/hash
 bun run control test:e2e @metorial/module-user
 bun run control cleanup --dry-run
 bun run control docker stop
+bun run control docker reset --yes
 bun run control workspace create feature/my-change
 bun run control workspace list
 bun run control workspace remove feature/my-change
 bun run control workspace start
 bun run control workspace stop feature/my-change
 ```
+
+`docker stop` keeps data; `docker reset` removes the declared Compose services together
+with their volumes, so every database and the object store start empty on the next
+`control dev`. It refuses to run without `--yes`; `--dry-run` prints the Compose
+commands instead.
 
 Pass `--root PATH` to start project detection somewhere other than the current
 directory.
