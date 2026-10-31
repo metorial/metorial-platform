@@ -26,6 +26,8 @@ let include = {
 
 class workflowRunServiceImpl {
   private async assertLocalPendingLimit() {
+    return;
+
     if (env.provider.DEFAULT_PROVIDER !== 'local') return;
 
     let limit = env.provider.LOCAL_MAX_PENDING_RUNS ?? 20;

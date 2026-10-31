@@ -48,7 +48,7 @@ export let publicApp = app
     let preload = {
       adminAppClientId,
       authUrl: env.service.ARES_AUTH_URL,
-      adminUrl: env.service.ARES_ADMIN_URL
+      adminUrl: env.service.ARES_ADMIN_URL!
     };
 
     return c.html(

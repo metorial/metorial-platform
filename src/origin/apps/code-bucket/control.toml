@@ -24,6 +24,7 @@ env = [{ key = "CODE_BUCKET_WORKSPACE_ADDRESS", value = ":{{BIND_PORT}}" }]
 
 [endpoints.rpc]
 port = 5050
+protocol = "h2c"
 env = [{ key = "CODE_BUCKET_RPC_ADDRESS", value = ":{{BIND_PORT}}" }]
 
 [[resources]]

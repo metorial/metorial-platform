@@ -426,7 +426,10 @@ class SsoDelegationServiceImpl {
     let delegation = pickLatestExportedDelegation(exportedDelegations);
     if (!delegation) throw new ServiceError(notFoundError('sso.delegation'));
 
-    let redirectUri = getExportedDelegationRedirectUri(delegation.redirectUri);
+    let redirectUri = getExportedDelegationRedirectUri(
+      delegation.redirectUri,
+      env.service.ARES_AUTH_URL
+    );
     let code = createOpaqueSecret();
     await db.ssoDelegationAuthorizationCode.create({
       data: {

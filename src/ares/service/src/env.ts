@@ -1,4 +1,4 @@
-import { defineSettings } from '@metorial/settings';
+import { defineSettings, setting } from '@metorial/settings';
 import { emailAddress, emailName, redisUrl, serviceUrl } from '@metorial/shared-settings';
 import { v } from '@lowerdeck/validation';
 
@@ -12,7 +12,7 @@ export let env = defineSettings({
     ARES_AUTH_URL: v.string(),
     TWO_FACTOR_SETUP_ENABLED: v.optional(v.string()),
     WEBAUTHN_RP_ID: v.optional(v.string()),
-    ARES_ADMIN_URL: v.string(),
+    ARES_ADMIN_URL: setting(v.string(), { requiredIn: ['cloud'] }),
     ARES_SSO_URL: v.string(),
 
     ARES_AUTH_PORT: v.optional(v.number()),

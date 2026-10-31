@@ -230,6 +230,7 @@ test package names (`*` wildcards); selecting a stack selects all its tests.
 [endpoints.api]
 port = 4310
 health = "/ping"            # or { path = "/ping", status = 200 }
+protocol = "h2c"             # optional: the proxy talks cleartext HTTP/2 (gRPC) to this endpoint
 env = [{ key = "API_PORT", value = "{{BIND_PORT}}" }]
 
 # For processes without a named HTTP endpoint.

@@ -79,13 +79,16 @@ export let validateDelegationRedirectUri = (d: {
 export let normalizeDelegationRedirectUri = (redirectUri: string) =>
   new URL(redirectUri).toString();
 
-export let FALLBACK_DELEGATION_REDIRECT_URI = perEdition({
-  cloud: 'https://id.metorial.com/metorial-ares/hooks/sso-delegation-response',
-  'on-prem': `${process.env.ARES_AUTH_URL}/metorial-ares/hooks/sso-delegation-response`
-});
+export let getFallbackDelegationRedirectUri = (authBaseUrl: string) =>
+  perEdition({
+    cloud: 'https://id.metorial.com/metorial-ares/hooks/sso-delegation-response',
+    'on-prem': getDelegationCallbackUri(authBaseUrl)
+  });
 
-export let getExportedDelegationRedirectUri = (stored?: string | null) =>
-  stored ?? FALLBACK_DELEGATION_REDIRECT_URI;
+export let getExportedDelegationRedirectUri = (
+  stored: string | null | undefined,
+  authBaseUrl: string
+) => stored ?? getFallbackDelegationRedirectUri(authBaseUrl);
 
 export let pickLatestExportedDelegation = <T extends { updatedAt: Date }>(exports: T[]) => {
   if (exports.length === 0) return null;
@@ -105,13 +108,14 @@ export let buildIdpInitiatedDelegationRedirect = (d: {
 
 export let resolveIdpInitiatedSamlCompletion = (d: {
   exportedDelegations: { updatedAt: Date; redirectUri: string | null; clientId: string }[];
+  authBaseUrl: string;
 }) => {
   let exported = pickLatestExportedDelegation(d.exportedDelegations);
   if (!exported) return { type: 'local' as const };
   return {
     type: 'delegated' as const,
     clientId: exported.clientId,
-    redirectUri: getExportedDelegationRedirectUri(exported.redirectUri)
+    redirectUri: getExportedDelegationRedirectUri(exported.redirectUri, d.authBaseUrl)
   };
 };
 

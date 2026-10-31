@@ -228,7 +228,7 @@ export let register = async (
         );
       routes.set(endpoint.port, {
         port: endpoint.port,
-        target: `http://${host}:${data.runtime === 'host' ? (endpoint.bind_port ?? endpoint.port) : endpoint.port}`
+        target: `${endpoint.protocol === 'h2c' ? 'h2c' : 'http'}://${host}:${data.runtime === 'host' ? (endpoint.bind_port ?? endpoint.port) : endpoint.port}`
       });
     }
   }

@@ -1,6 +1,20 @@
+import { branding } from '@metorial/branding';
 import { perEdition } from '@metorial/editions';
 
-let cspDirectives = [
+let assetOrigins = () =>
+  [
+    ...new Set(
+      [branding.assetsBaseUrl, branding.avatarUrl('image'), branding.logoUrl].flatMap(url => {
+        try {
+          return [new URL(url).origin];
+        } catch {
+          return [];
+        }
+      })
+    )
+  ].join(' ');
+
+let buildCspDirectives = () => [
   `default-src 'self'`,
   perEdition({
     cloud: `script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com`,
@@ -9,7 +23,7 @@ let cspDirectives = [
   `style-src 'self' 'unsafe-inline'`,
   perEdition({
     cloud: `img-src 'self' data: *.metorial-cdn.com metorial.com *.metorial.com *.metorial.net *.metorial.dev *.metorial-files.com metorial-files.com *.metorial-staging.com`,
-    'on-prem': `img-src 'self' data:`
+    'on-prem': `img-src 'self' data: ${assetOrigins()}`
   }),
   perEdition({
     cloud: `font-src 'self' *.metorial-cdn.com`,
@@ -28,12 +42,15 @@ let cspDirectives = [
   `form-action 'self'`
 ];
 
+let cspDirectives: string[] | undefined;
+let getCsp = () => (cspDirectives ??= buildCspDirectives()).join('; ');
+
 let getHeaders = (): Record<string, string> =>
   process.env.NODE_ENV === 'production'
     ? {
         'X-Content-Type-Options': 'nosniff',
         'X-Frame-Options': 'DENY',
-        'Content-Security-Policy': cspDirectives.join('; '),
+        'Content-Security-Policy': getCsp(),
         'Referrer-Policy': 'strict-origin-when-cross-origin',
         'X-XSS-Protection': '0',
         'Permissions-Policy': 'camera=(), microphone=(), geolocation=()'
