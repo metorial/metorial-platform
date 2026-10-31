@@ -66,7 +66,11 @@ export let validateDelegationRedirectUri = (d: {
   let url = new URL(d.redirectUri);
   if (
     url.protocol !== 'https:' &&
-    !(d.allowHttpLocalhost && url.protocol === 'http:' && url.hostname === 'localhost')
+    !(
+      d.allowHttpLocalhost &&
+      url.protocol === 'http:' &&
+      (url.hostname === 'localhost' || url.hostname.endsWith('.localhost'))
+    )
   ) {
     throw new Error('Delegation redirect_uri must use HTTPS');
   }
