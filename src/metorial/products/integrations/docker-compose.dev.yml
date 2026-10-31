@@ -264,6 +264,7 @@ services:
       SIGNAL_SENDER_IDENTIFIER: subspace-slates-hub
       SLATES_HUB_INSTANCE_IDENTIFIER: dev-subspace
       SERVICE_PUBLIC_URL: http://localhost:52045
+      METORIAL_API_URL: ${METORIAL_API_URL:-http://localhost:4310}
     depends_on:
       postgres:
         condition: service_healthy

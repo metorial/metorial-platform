@@ -1,6 +1,12 @@
-import { defineSettings } from '@metorial/settings';
-import { metorialEnv, metorialRegion, objectStorageUrl, redisUrl, serviceUrl } from '@metorial/shared-settings';
 import { v } from '@lowerdeck/validation';
+import { defineSettings } from '@metorial/settings';
+import {
+  metorialEnv,
+  metorialRegion,
+  objectStorageUrl,
+  redisUrl,
+  serviceUrl
+} from '@metorial/shared-settings';
 
 export let env = defineSettings({
   service: {
@@ -10,6 +16,7 @@ export let env = defineSettings({
     SERVICE_PUBLIC_URL: v.string(),
     METORIAL_ENV: metorialEnv,
     METORIAL_REGION: metorialRegion,
+    METORIAL_API_URL: v.optional(v.string()),
 
     SLATES_HUB_PUBLIC_PORT: v.optional(v.number()),
     SLATES_HUB_INTERNAL_PORT: v.optional(v.number()),

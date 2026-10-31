@@ -105,7 +105,7 @@
     "@remixicon/react": "^4.9.0",
     "@sentry/bun": "^11.8.0",
     "@sentry/cli": "^3.8.0",
-    "@slates/proto": "^1.0.0-rc.25",
+    "@slates/proto": "^1.0.0-rc.28",
     "@types/semver": "^7.8.0",
     "@types/unzipper": "^0.10.11",
     "date-fns": "^4.4.0",
