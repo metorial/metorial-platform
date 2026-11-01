@@ -1,3 +1,4 @@
+import { checkEdition } from '@metorial/editions';
 import { Signer } from '@aws-sdk/rds-signer';
 
 export type ServiceEnvironment = Record<string, string | undefined>;
@@ -141,7 +142,7 @@ export let initializeMetorialServiceEnvironment = async (
     }
     await signGlobalDatabaseUrlWithIam(env);
 
-    if (env.USAGE_MONGO_HOST) {
+    if (checkEdition('cloud') && env.USAGE_MONGO_HOST) {
       env.USAGE_MONGO_URL = `mongodb://${encode(env.USAGE_MONGO_USERNAME)}:${encode(env.USAGE_MONGO_PASSWORD)}@${env.USAGE_MONGO_HOST}:${env.USAGE_MONGO_PORT}/${env.USAGE_MONGO_DATABASE_NAME}?authSource=admin&authMechanism=SCRAM-SHA-1&tls=true&tlsAllowInvalidCertificates=true&replicaSet=rs0&readPreference=secondaryPreferred&retryWrites=false`;
     }
 

@@ -24,6 +24,11 @@ model AuditLog {
   eventOid BigInt?
   event    AuditLogEvent? @relation(fields: [eventOid], references: [oid], onDelete: SetNull)
 
+  /// [AuditPayload]
+  payload            Json?
+  /// [AuditPayload]
+  previousAttributes Json?
+
   recordedAt DateTime @default(now())
 
   @@index([actorType, actorId, recordedAt])

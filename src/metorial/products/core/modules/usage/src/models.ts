@@ -5,8 +5,9 @@ import {
   type UsageDimensions,
   type UsageMetricKind
 } from './lib/types';
+import { USAGE_RETENTION_MS } from './constants';
 
-export let USAGE_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+export { USAGE_RETENTION_MS } from './constants';
 
 export interface UsageMetric {
   _id: string;

@@ -1,7 +1,4 @@
-process.env.TZ = 'UTC';
-
 import { runQueueProcessors } from '@metorial/queue';
-
 import { documentQueueProcessor as cargoDocumentQueueProcessor } from '@metorial/module-documents';
 import { fileQueueProcessor as cargoFileQueueProcessor } from '@metorial/module-file';
 import { storeQueueProcessor as cargoStoreQueueProcessor } from '@metorial/module-store';
@@ -31,7 +28,7 @@ import { organizationQueueProcessor } from '@metorial/module-organization';
 import { outpostQueueProcessor } from '@metorial/module-outpost';
 import { portalQueueProcessor } from '@metorial/module-portal';
 import { productAssistantQueueProcessor } from '@metorial/module-product-assistant';
-import { sandboxQueueProcessor, startSandboxBackfill } from '@metorial/module-sandbox';
+import { checkEdition } from '@metorial/editions';
 import { skillQueueProcessor as cargoSkillQueueProcessor } from '@metorial/module-skill';
 import { skillConfigurationQueueProcessor } from '@metorial/module-skill-configurations';
 import { skillGroupQueueProcessor } from '@metorial/module-skill-groups';
@@ -44,6 +41,10 @@ import { userQueueProcessor } from '@metorial/module-user';
 import { webQueueProcessor } from '@metorial/module-web';
 import { multiRegionQueueProcessor } from '@metorial/multi-region';
 
+process.env.TZ = 'UTC';
+
+let sandbox = checkEdition('cloud') ? await import('@metorial/module-sandbox') : undefined;
+
 export let worker = runQueueProcessors([
   auditTrackerQueueProcessor,
   auditLogQueueProcessor,
@@ -53,7 +54,7 @@ export let worker = runQueueProcessors([
   eventDestinationQueueProcessor,
   productAssistantQueueProcessor,
   networkingQueueProcessor,
-  sandboxQueueProcessor,
+  ...(sandbox ? [sandbox.sandboxQueueProcessor] : []),
   userQueueProcessor,
   machineAccessQueueProcessor,
   organizationQueueProcessor,
@@ -86,7 +87,9 @@ startNetworkingBackfill().catch(err =>
   console.error('Failed to start networking backfill', err)
 );
 
-startSandboxBackfill().catch(err => console.error('Failed to start sandbox backfill', err));
+sandbox
+  ?.startSandboxBackfill()
+  .catch(err => console.error('Failed to start sandbox backfill', err));
 
 startCliAuthScopesSync().catch(err =>
   console.error('Failed to start CLI auth scopes sync', err)

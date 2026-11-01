@@ -1,32 +1,22 @@
+import { checkEdition } from '@metorial/editions';
 import { createCron } from '@metorial/cron';
 import { combineQueueProcessors, createQueue, hourlyPacedDelay } from '@metorial/queue';
-import { UsageMetricModel, type UsageMetric } from '../models';
-import { getUsageBackfillCutoff } from '../lib/backfillState';
+import { floorToMinute } from '../lib/bucket';
 import {
-  decodeUsageBucketKey,
-  floorToMinute,
-  getUsageMetricId,
-  parseUsageBucketHash
-} from '../lib/bucket';
-import {
-  acknowledgeClaimedUsageBucket,
   claimUsageMinute,
   listClaimedUsageBuckets,
   listPendingUsageMinutes,
-  parseClaimedUsageBucketKey,
-  readClaimedUsageBucket
+  parseClaimedUsageBucketKey
 } from '../lib/buffer';
-import { isUsageEnabled, usageDbConnect } from '../lib/connection';
-import {
-  USAGE_MESSAGE_BACKFILL_ID,
-  USAGE_MESSAGE_REVISION,
-  usageMessageKinds
-} from '../lib/messageRevision';
+import { isUsageEnabled } from '../lib/connection';
 
 let FLUSH_BATCH_SIZE = 500;
-let FLUSH_WRITE_CHUNK_SIZE = 1000;
 let FLUSH_GRACE_MS = 60_000;
 let STUCK_CLAIM_AFTER_MS = 10 * 60_000;
+
+let storage = checkEdition('cloud')
+  ? await import('../lib/flushCloud')
+  : await import('../lib/postgres');
 
 let getFlushJobId = (claimedKey: string) => {
   let { minute, nonce } = parseClaimedUsageBucketKey(claimedKey);
@@ -89,51 +79,7 @@ export let usageFlushClaimProcessor = usageFlushClaimQueue.process(async () => {
 });
 
 export let usageFlushBucketProcessor = usageFlushBucketQueue.process(async data => {
-  let { minute, nonce } = parseClaimedUsageBucketKey(data.claimedKey);
-
-  await usageDbConnect();
-
-  let [cutoff, messageCutoff] = await Promise.all([
-    getUsageBackfillCutoff(),
-    getUsageBackfillCutoff(USAGE_MESSAGE_BACKFILL_ID)
-  ]);
-
-  let hash = await readClaimedUsageBucket(data.claimedKey);
-  let buckets = [...parseUsageBucketHash(hash).entries()];
-
-  let documents = buckets.flatMap(([field, counters]): UsageMetric[] => {
-    let key = decodeUsageBucketKey(field);
-    let isMessage = usageMessageKinds.includes(key.kind);
-
-    // Rebuilt messages have their own cutoff so they cannot overlap with live counters.
-    if (minute < (isMessage ? messageCutoff : cutoff).getTime()) return [];
-
-    return [
-      {
-        _id: getUsageMetricId(['live', minute, nonce, field]),
-        ts: new Date(minute),
-        source: 'live',
-        ...(isMessage ? { messageRevision: USAGE_MESSAGE_REVISION } : {}),
-        ...key,
-        ...counters
-      }
-    ];
-  });
-
-  for (let i = 0; i < documents.length; i += FLUSH_WRITE_CHUNK_SIZE) {
-    await UsageMetricModel.bulkWrite(
-      documents.slice(i, i + FLUSH_WRITE_CHUNK_SIZE).map(document => ({
-        updateOne: {
-          filter: { _id: document._id },
-          update: { $set: document },
-          upsert: true
-        }
-      })),
-      { ordered: false }
-    );
-  }
-
-  await acknowledgeClaimedUsageBucket(data.claimedKey);
+  await storage.flushUsageBucket(data.claimedKey);
 });
 
 export let usageFlushProcessors = combineQueueProcessors([
