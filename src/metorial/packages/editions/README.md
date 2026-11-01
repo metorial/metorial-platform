@@ -35,3 +35,5 @@ metorial-editions verify --edition on-prem --entry <package> --sourcemaps dist -
 - Vite: `editionsVitePlugin()` from `@metorial/editions/vite` (the edition comes from `METORIAL_EDITION`; frontends with edition-only entries swap them in `transformIndexHtml` with `order: 'pre'`); esbuild: `editionsEsbuildPlugin(edition)`.
 - Frontend packages that are only used behind a guard need `"sideEffects": false`; for third-party packages without it, use Rollup's `treeshake.moduleSideEffects` in the app's Vite config.
 - `METORIAL_EDITION` is part of turbo's `globalEnv`, so cache keys differ per edition.
+
+- Policies can use `denySources` (workspace-relative files or directories) to verify that cloud-only implementations inside shared packages are absent from bundle sourcemaps.

@@ -1,4 +1,3 @@
-export * from './adminAuth';
 export * from './changeNotification';
 export * from './readerToken';
 export * from './scope';

@@ -82,7 +82,8 @@ let runVerify = async (args: string[]) => {
         edition,
         values.sourcemaps,
         denyPackages,
-        policy.denyWorkspacePackages
+        policy.denyWorkspacePackages,
+        policy.denySources
       ))
     );
   }

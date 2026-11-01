@@ -3,6 +3,7 @@ import type { EgressPolicy } from './egress';
 
 export type EditionPolicy = {
   denyPackages?: string[];
+  denySources?: string[];
   denyWorkspacePackages?: string[];
   egress?: EgressPolicy;
 };

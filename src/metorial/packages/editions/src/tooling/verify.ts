@@ -91,7 +91,8 @@ export let verifySourceMaps = async (
   edition: Edition,
   paths: string[],
   denyPackages: string[] = [],
-  denyWorkspace: string[] = []
+  denyWorkspace: string[] = [],
+  denySources: string[] = []
 ): Promise<Violation[]> => {
   let violations: Violation[] = [];
   let seen = new Set<string>();
@@ -106,6 +107,16 @@ export let verifySourceMaps = async (
         if (seen.has(absolute)) continue;
 
         seen.add(absolute);
+
+        for (let denied of denySources) {
+          let deniedPath = resolve(workspace.root, denied);
+          if (absolute != deniedPath && !absolute.startsWith(`${deniedPath}/`)) continue;
+
+          violations.push({
+            kind: 'bundle',
+            message: `${absolute} must not be part of the ${edition} edition`
+          });
+        }
 
         let owner = findOwningPackage(workspace, absolute);
 

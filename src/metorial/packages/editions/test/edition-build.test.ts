@@ -192,6 +192,39 @@ describe('edition policy', () => {
     expect(graph.status, graph.stderr).toBe(0);
   });
 
+  it('rejects a denied source directory in a bundle', () => {
+    let { outdir } = build('on-prem');
+    let policy = writePolicy({ denySources: ['packages/on-prem-only/src'] });
+    let result = run([
+      'verify',
+      '--edition',
+      'on-prem',
+      '--sourcemaps',
+      outdir,
+      '--policy',
+      policy
+    ]);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('must not be part of the on-prem edition');
+  });
+
+  it('accepts a bundle without the denied source', () => {
+    let { outdir } = build('on-prem');
+    let policy = writePolicy({ denySources: ['packages/cloud-only/src'] });
+    let result = run([
+      'verify',
+      '--edition',
+      'on-prem',
+      '--sourcemaps',
+      outdir,
+      '--policy',
+      policy
+    ]);
+
+    expect(result.status, result.stderr).toBe(0);
+  });
+
   it('passes when no denied npm package is bundled', () => {
     let { outdir } = build('cloud');
     let policy = writePolicy({ denyPackages: ['esbuild'] });
