@@ -92,6 +92,7 @@ export type ScmProvider = {
   appSlug: string | null;
   isDefault: boolean;
   hasCredentials: boolean;
+  appWebhookUrl?: string;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -145,7 +146,9 @@ export type ScmRepositoryPreview = {
 
 type OriginObject<T> = Omit<T, 'object'> & { object: string };
 
-export let normalizeScmConnection = (connection: OriginObject<ScmConnection>): ScmConnection => ({
+export let normalizeScmConnection = (
+  connection: OriginObject<ScmConnection>
+): ScmConnection => ({
   ...connection,
   object: 'origin#scm_installation'
 });

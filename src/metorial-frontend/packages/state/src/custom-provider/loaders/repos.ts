@@ -1,9 +1,12 @@
+import { checkEdition } from '@metorial/editions';
+import type { OnPremScmProviderType } from '@metorial/dashboard-sdk';
 import {
   DashboardInstanceScmAccountsPreviewBody,
   DashboardInstanceScmInstallationCreateBody,
   DashboardInstanceScmInstallationListQuery,
   DashboardInstanceScmReposCreateBody,
   DashboardInstanceScmReposCreateOutput,
+  DashboardInstanceScmProvidersListOutput,
   DashboardInstanceScmReposPreviewBody
 } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
@@ -227,6 +230,12 @@ export let useCreateScmConnection = scmConnectionsLoader.createExternalMutator(
     )
 );
 
+type ScmProvidersList = Omit<DashboardInstanceScmProvidersListOutput, 'items'> & {
+  items: (DashboardInstanceScmProvidersListOutput['items'][number] & {
+    appWebhookUrl?: string | null;
+  })[];
+};
+
 export let scmProvidersLoader = createLoader({
   name: 'scmProviders',
   parents: [],
@@ -237,7 +246,12 @@ export let scmProvidersLoader = createLoader({
     before?: string;
     cursor?: string;
     order?: 'asc' | 'desc';
-  }) => withAuth(sdk => sdk.scm.providers.list(i.instanceId, i)),
+  }) =>
+    withAuth<ScmProvidersList>(sdk =>
+      checkEdition('on-prem')
+        ? sdk.scm.onPrem.listProviders(i.instanceId, i)
+        : sdk.scm.providers.list(i.instanceId, i)
+    ),
   mutators: {}
 });
 
@@ -248,14 +262,13 @@ export let useScmProviders = (instanceId: string | null | undefined) => {
 };
 
 export let useCreateScmProvider = scmProvidersLoader.createExternalMutator(
-  (i: {
-    instanceId: string;
-    type: 'github_enterprise' | 'gitlab_selfhosted' | 'bitbucket_data_center';
-  }) =>
+  (i: { instanceId: string; type: OnPremScmProviderType }) =>
     withAuth(sdk =>
-      sdk.scm.providers.create(i.instanceId, {
-        type: i.type
-      })
+      checkEdition('on-prem')
+        ? sdk.scm.onPrem.createProvider(i.instanceId, i.type)
+        : sdk.scm.providers.create(i.instanceId, {
+            type: i.type as 'github_enterprise' | 'gitlab_selfhosted' | 'bitbucket_data_center'
+          })
     )
 );
 
@@ -287,4 +300,36 @@ export let useManagedScmRepos = (instanceId: string | null | undefined) => {
   return usePaginator(pagination =>
     scmManagedReposLoader.use(instanceId ? { instanceId, ...pagination } : null)
   );
+};
+
+export let scmProviderOptionsLoader = createLoader({
+  name: 'scmProviderOptions',
+  parents: [],
+  mutators: {},
+  fetch: (i: { instanceId: string }) => withAuth(sdk => sdk.scm.onPrem.options(i.instanceId))
+});
+
+export let useScmProviderOptions = (instanceId: string | null | undefined) => {
+  let options = scmProviderOptionsLoader.use(
+    checkEdition('on-prem') && instanceId ? { instanceId } : null
+  );
+  return checkEdition('on-prem')
+    ? (options.data ?? [])
+    : [
+        {
+          type: 'github_enterprise' as const,
+          label: 'GitHub Enterprise',
+          allowedDomains: null
+        },
+        {
+          type: 'gitlab_selfhosted' as const,
+          label: 'GitLab Self-Managed',
+          allowedDomains: null
+        },
+        {
+          type: 'bitbucket_data_center' as const,
+          label: 'Bitbucket Data Center',
+          allowedDomains: null
+        }
+      ];
 };
