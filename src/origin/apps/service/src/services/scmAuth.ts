@@ -1,3 +1,9 @@
+import {
+  assertScmBackendAllowed,
+  getAllowedScmBackendIds,
+  isScmBackendAllowed
+} from '../lib/scmPolicy';
+import { checkEdition } from '@metorial/editions';
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import type { Actor, ScmBackend, ScmProvider, Tenant } from '../../prisma/generated/client';
@@ -43,6 +49,8 @@ class scmAuthServiceImpl {
     if (!backend) {
       throw new ServiceError(notFoundError('scm_backend'));
     }
+
+    assertScmBackendAllowed(backend);
 
     if (
       i.provider === 'github' &&
@@ -219,6 +227,7 @@ class scmAuthServiceImpl {
     if (session.status === 'succeeded' || session.status === 'pending_approval')
       return session;
     let backend = session.selectedBackend;
+    assertScmBackendAllowed(backend ?? undefined);
     if (backend.type !== 'github' && backend.type !== 'github_enterprise') {
       throw new ServiceError(notFoundError('scm_backend.github'));
     }
@@ -309,6 +318,7 @@ class scmAuthServiceImpl {
         throw new ServiceError(badRequestError({ message: 'Invalid state' }));
       }
       let backend = session.selectedBackend;
+      assertScmBackendAllowed(backend ?? undefined);
       if (backend.type !== 'github' && backend.type !== 'github_enterprise') {
         throw new ServiceError(notFoundError('scm_backend.github'));
       }
@@ -339,6 +349,7 @@ class scmAuthServiceImpl {
 
     let matched = false;
     for (let backend of backends.values()) {
+      if (!isScmBackendAllowed(backend)) continue;
       try {
         let installation = await this.loadGitHubInstallation(backend, i.installationId);
         let updated = await this.refreshExistingGitHubInstallations(backend, installation);
@@ -362,6 +373,7 @@ class scmAuthServiceImpl {
     });
     if (session.status === 'succeeded' || session.expiresAt <= new Date()) return session;
     let backend = session.selectedBackend;
+    assertScmBackendAllowed(backend ?? undefined);
     if (
       session.status !== 'pending_approval' ||
       !backend ||
@@ -384,11 +396,19 @@ class scmAuthServiceImpl {
     });
   }
 
-  async handleGitHubAppInstallationCreated(i: { installationId: string }) {
-    let backend = await db.scmBackend.findFirst({
-      where: { type: 'github', isDefault: true, tenantOid: null }
-    });
+  async handleGitHubAppInstallationCreated(i: {
+    installationId: string;
+    backend?: ScmBackend;
+  }) {
+    let backend =
+      i.backend ??
+      (checkEdition('cloud')
+        ? await db.scmBackend.findFirst({
+            where: { type: 'github', isDefault: true, tenantOid: null }
+          })
+        : null);
     if (!backend) return 0;
+    assertScmBackendAllowed(backend);
     let installation = await this.loadGitHubInstallation(backend, i.installationId);
     await this.refreshExistingGitHubInstallations(backend, installation);
     return await this.completePendingGitHubSessions(backend, installation);
@@ -419,6 +439,7 @@ class scmAuthServiceImpl {
     }
 
     let backend = session.selectedBackend;
+    assertScmBackendAllowed(backend ?? undefined);
     if (backend.type !== 'gitlab' && backend.type !== 'gitlab_selfhosted') {
       throw new ServiceError(notFoundError('scm_backend.gitlab'));
     }
@@ -505,6 +526,7 @@ class scmAuthServiceImpl {
     }
 
     let backend = session.selectedBackend;
+    assertScmBackendAllowed(backend ?? undefined);
     if (backend.type !== 'bitbucket' && backend.type !== 'bitbucket_data_center') {
       throw new ServiceError(notFoundError('scm_backend.bitbucket'));
     }
@@ -557,9 +579,12 @@ class scmAuthServiceImpl {
     ownerActor: Actor;
     provider: ScmProvider;
   }) {
+    let allowed = await getAllowedScmBackendIds(i.tenant.oid);
+
     let installation = await db.scmInstallation.findFirst({
       where: {
         tenantOid: i.tenant.oid,
+        backendOid: allowed ? { in: allowed } : undefined,
         provider: i.provider,
         ownerActorOid: i.ownerActor.oid
       }
@@ -569,6 +594,7 @@ class scmAuthServiceImpl {
     installation = await db.scmInstallation.findFirst({
       where: {
         tenantOid: i.tenant.oid,
+        backendOid: allowed ? { in: allowed } : undefined,
         provider: i.provider
       }
     });

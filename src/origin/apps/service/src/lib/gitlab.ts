@@ -1,3 +1,4 @@
+import { assertScmBackendAllowed } from './scmPolicy';
 import { Gitlab } from '@gitbeaker/rest';
 import { badRequestError, ServiceError, unauthorizedError } from '@lowerdeck/error';
 import type { ScmBackend, ScmInstallation } from '../../prisma/generated/client';
@@ -10,6 +11,8 @@ type GitLabInstallation = ScmInstallation & { backend: ScmBackend };
 let tokenRefreshes = new Map<bigint, Promise<string>>();
 
 export let createGitLabClient = (backend?: ScmBackend) => {
+  assertScmBackendAllowed(backend);
+
   let host = backend?.webUrl ?? 'https://gitlab.com';
   let oauthToken = undefined; // Will be set when we have a token
 
@@ -20,6 +23,8 @@ export let createGitLabClient = (backend?: ScmBackend) => {
 };
 
 export let createGitLabClientWithToken = (token: string, backend?: ScmBackend) => {
+  assertScmBackendAllowed(backend);
+
   let host = backend?.webUrl ?? 'https://gitlab.com';
 
   return new Gitlab({
@@ -33,6 +38,8 @@ export let getGitLabOAuthUrl = (i: {
   redirectUri: string;
   state: string;
 }) => {
+  assertScmBackendAllowed(i.backend);
+
   let webUrl = i.backend.webUrl;
   let clientId = i.backend.clientId;
 
@@ -51,6 +58,8 @@ export let exchangeGitLabOAuthCode = async (i: {
   code: string;
   redirectUri: string;
 }): Promise<{ accessToken: string; refreshToken: string; expiresAt: Date }> => {
+  assertScmBackendAllowed(i.backend);
+
   let webUrl = i.backend.webUrl;
   let clientId = i.backend.clientId;
   let clientSecret = i.backend.clientSecret;
@@ -99,6 +108,8 @@ export let refreshGitLabAccessToken = async (i: {
   backend: ScmBackend;
   refreshToken: string;
 }): Promise<{ accessToken: string; refreshToken: string; expiresAt: Date }> => {
+  assertScmBackendAllowed(i.backend);
+
   let webUrl = i.backend.webUrl;
   let clientId = i.backend.clientId;
   let clientSecret = i.backend.clientSecret;
@@ -208,6 +219,8 @@ let refreshGitLabInstallationCredentials = async (
 export let getGitLabAccessTokenWithInstallation = async (
   installation: GitLabInstallation
 ): Promise<string> => {
+  assertScmBackendAllowed(installation.backend);
+
   if (!installation.accessToken) {
     throw new ServiceError(badRequestError({ message: 'Access token not found' }));
   }

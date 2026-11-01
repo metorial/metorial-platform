@@ -1,3 +1,5 @@
+import { checkEdition } from '@metorial/editions';
+import { assertScmBackendAllowed } from './scmPolicy';
 import { createAppAuth } from '@octokit/auth-app';
 import { Octokit } from '@octokit/core';
 import type { ScmBackend } from '../../prisma/generated/client';
@@ -6,11 +8,12 @@ import { env, SCM_GITHUB_APP_PRIVATE_KEY } from '../env';
 let GITHUB_REST_API_VERSION = '2022-11-28';
 
 export let createGitHubAppClient = (backend?: ScmBackend) => {
-  let appId = backend?.appId ?? env.gh.SCM_GITHUB_APP_ID;
-  let privateKey = (backend?.appPrivateKey ?? SCM_GITHUB_APP_PRIVATE_KEY)?.replace(
-    /\\n/g,
-    '\n'
-  );
+  assertScmBackendAllowed(backend);
+
+  let appId = backend?.appId ?? (checkEdition('cloud') ? env.gh.SCM_GITHUB_APP_ID : undefined);
+  let privateKey = (
+    backend?.appPrivateKey ?? (checkEdition('cloud') ? SCM_GITHUB_APP_PRIVATE_KEY : undefined)
+  )?.replace(/\\n/g, '\n');
   let baseUrl = backend?.apiUrl ?? 'https://api.github.com';
 
   return new Octokit({
@@ -33,24 +36,31 @@ export let exchangeGitHubOAuthCode = async (i: {
   code: string;
   redirectUri: string;
 }) => {
+  assertScmBackendAllowed(i.backend);
+
   if (!i.backend.clientId || !i.backend.clientSecret) {
     throw new Error('GitHub backend is missing OAuth credentials');
   }
 
-  let response = await fetch(new URL('/login/oauth/access_token', i.backend.webUrl), {
-    method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'User-Agent': 'Metorial Origin'
-    },
-    body: new URLSearchParams({
-      client_id: i.backend.clientId,
-      client_secret: i.backend.clientSecret,
-      code: i.code,
-      redirect_uri: i.redirectUri
-    })
-  });
+  let response = await fetch(
+    checkEdition('on-prem')
+      ? `${i.backend.webUrl.replace(/\/$/, '')}/login/oauth/access_token`
+      : new URL('/login/oauth/access_token', i.backend.webUrl),
+    {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'Metorial Origin'
+      },
+      body: new URLSearchParams({
+        client_id: i.backend.clientId,
+        client_secret: i.backend.clientSecret,
+        code: i.code,
+        redirect_uri: i.redirectUri
+      })
+    }
+  );
   let body = (await response.json()) as {
     access_token?: string;
     error?: string;
@@ -63,6 +73,8 @@ export let exchangeGitHubOAuthCode = async (i: {
 };
 
 export let getGitHubAuthenticatedUser = async (backend: ScmBackend, accessToken: string) => {
+  assertScmBackendAllowed(backend);
+
   let github = new Octokit({
     auth: accessToken,
     baseUrl: backend.apiUrl,
@@ -121,11 +133,12 @@ export let createGitHubInstallationClient = async (
   installationId: string,
   backend?: ScmBackend
 ) => {
-  let appId = backend?.appId ?? env.gh.SCM_GITHUB_APP_ID;
-  let privateKey = (backend?.appPrivateKey ?? SCM_GITHUB_APP_PRIVATE_KEY)?.replace(
-    /\\n/g,
-    '\n'
-  );
+  assertScmBackendAllowed(backend);
+
+  let appId = backend?.appId ?? (checkEdition('cloud') ? env.gh.SCM_GITHUB_APP_ID : undefined);
+  let privateKey = (
+    backend?.appPrivateKey ?? (checkEdition('cloud') ? SCM_GITHUB_APP_PRIVATE_KEY : undefined)
+  )?.replace(/\\n/g, '\n');
   let baseUrl = backend?.apiUrl ?? 'https://api.github.com';
 
   let octokit = new Octokit({
@@ -160,4 +173,14 @@ export let getInstallationAccessToken = async (
   );
 
   return response.data.token;
+};
+
+export let getGitHubTransferEndpoints = (backend: ScmBackend, owner: string, repo: string) => {
+  if (checkEdition('cloud')) return {};
+  assertScmBackendAllowed(backend);
+
+  return {
+    githubApiUrl: backend.apiUrl,
+    githubLfsEndpoint: `${backend.webUrl.replace(/\/$/, '')}/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}.git/info/lfs`
+  };
 };

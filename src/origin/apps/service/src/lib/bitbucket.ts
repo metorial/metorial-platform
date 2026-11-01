@@ -1,3 +1,4 @@
+import { assertScmBackendAllowed } from './scmPolicy';
 import { delay } from '@lowerdeck/delay';
 import { badRequestError, ServiceError, unauthorizedError } from '@lowerdeck/error';
 import type { ScmBackend, ScmInstallation } from '../../prisma/generated/client';
@@ -64,7 +65,9 @@ export class BitbucketClient {
   constructor(
     private backend: ScmBackend,
     private accessToken: string
-  ) {}
+  ) {
+    assertScmBackendAllowed(backend);
+  }
 
   private async request<T>(
     path: string,
@@ -75,6 +78,8 @@ export class BitbucketClient {
       headers?: Record<string, string>;
     }
   ): Promise<T> {
+    assertScmBackendAllowed(this.backend);
+
     let url = new URL(path, `${trimSlash(this.backend.apiUrl)}/`);
     for (let [key, value] of Object.entries(options?.query ?? {})) {
       if (value != null) url.searchParams.set(key, String(value));
@@ -852,6 +857,8 @@ export let getBitbucketOAuthUrl = (i: {
   redirectUri: string;
   state: string;
 }) => {
+  assertScmBackendAllowed(i.backend);
+
   let url = new URL(
     isDataCenter(i.backend)
       ? `${trimSlash(i.backend.webUrl)}/rest/oauth2/latest/authorize`
@@ -868,6 +875,8 @@ let exchangeBitbucketToken = async (i: {
   backend: ScmBackend;
   grant: { code: string; redirectUri: string } | { refreshToken: string };
 }): Promise<BitbucketCredentials> => {
+  assertScmBackendAllowed(i.backend);
+
   let tokenUrl = isDataCenter(i.backend)
     ? `${trimSlash(i.backend.webUrl)}/rest/oauth2/latest/token`
     : 'https://bitbucket.org/site/oauth2/access_token';
@@ -926,10 +935,10 @@ export let exchangeBitbucketOAuthCode = (i: {
 let tokenNeedsRefresh = (expiresAt: Date | null) =>
   !expiresAt || expiresAt.getTime() <= Date.now() + 5 * 60 * 1000;
 
-let refreshInstallation = async (
-  installation: BitbucketInstallation
-): Promise<string> =>
+let refreshInstallation = async (installation: BitbucketInstallation): Promise<string> =>
   usingScmTokenRefreshLock('bitbucket', installation.oid, async () => {
+    assertScmBackendAllowed(installation.backend);
+
     let persisted = await db.scmInstallation.findUnique({
       where: { oid: installation.oid }
     });
@@ -980,6 +989,8 @@ let refreshInstallation = async (
 export let getBitbucketAccessTokenWithInstallation = async (
   installation: BitbucketInstallation
 ) => {
+  assertScmBackendAllowed(installation.backend);
+
   if (!installation.accessToken) {
     throw new ServiceError(badRequestError({ message: 'Access token not found' }));
   }

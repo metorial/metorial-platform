@@ -1,6 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createGitLabClientWithInstallation } from '../lib/gitlab';
 
+vi.mock('../lib/scmTokenRefreshLock', () => ({
+  usingScmTokenRefreshLock: async (
+    _provider: string,
+    _id: bigint,
+    run: () => Promise<unknown>
+  ) => await run()
+}));
+
+vi.mock('../queues/scm/repositorySync/recover', () => ({
+  accelerateRepositorySyncsForProviderEvent: vi.fn()
+}));
+
 vi.mock('../db', () => ({ db: {} }));
 vi.mock('../lib/githubApp', () => ({ createGitHubInstallationClient: vi.fn() }));
 vi.mock('../lib/gitlab', () => ({
@@ -83,8 +95,8 @@ describe('SCM repository GitLab authentication', () => {
   it('initializes GitLab projects with an explicit default branch', async () => {
     expect(
       getGitLabCreateProjectInput({
-      name: 'new-project',
-      description: 'Project description',
+        name: 'new-project',
+        description: 'Project description',
         isPrivate: true,
         namespaceId: 8
       })

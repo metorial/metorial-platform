@@ -1,3 +1,9 @@
+import { checkEdition } from '@metorial/editions';
+import {
+  scmSetupTypes,
+  getScmProviderOptions,
+  normalizeScmBackendUrls
+} from '../lib/scmPolicy';
 import { createHono, useValidatedBody } from '@lowerdeck/hono';
 import { v } from '@lowerdeck/validation';
 import { db } from '../db';
@@ -17,12 +23,17 @@ export let scmBackendSetupPublicController = createHono()
 
     let setupSession = await scmInstallationSessionService.createBackendSetupSession({
       tenant,
-      type: 'github_enterprise',
+      type: checkEdition('on-prem')
+        ? (getScmProviderOptions()[0]?.type ?? 'github_enterprise')
+        : 'github_enterprise',
       parentInstallationSession: session
     });
 
     return c.html(
       backendSetupHtml({
+        ...(checkEdition('on-prem')
+          ? { options: getScmProviderOptions(), selectedType: setupSession.type }
+          : {}),
         sessionId: setupSession.id,
         installationSessionId: session.id
       })
@@ -37,6 +48,9 @@ export let scmBackendSetupPublicController = createHono()
 
     return c.html(
       backendSetupHtml({
+        ...(checkEdition('on-prem')
+          ? { options: getScmProviderOptions(), selectedType: setupSession.type }
+          : {}),
         sessionId: setupSession.id,
         installationSessionId: setupSession.parentInstallationSession?.id
       })
@@ -48,18 +62,15 @@ export let scmBackendSetupPublicController = createHono()
     let body = await useValidatedBody(
       c,
       v.object({
-        type: v.union([
-          v.literal('github_enterprise'),
-          v.literal('gitlab_selfhosted'),
-          v.literal('bitbucket_data_center')
-        ]),
+        type: v.enumOf([...scmSetupTypes]),
         name: v.string(),
         apiUrl: v.string(),
         clientId: v.string(),
         clientSecret: v.string(),
         appId: v.optional(v.string()),
         appSlug: v.optional(v.string()),
-        appPrivateKey: v.optional(v.string())
+        appPrivateKey: v.optional(v.string()),
+        ...(checkEdition('on-prem') ? { appWebhookSecret: v.optional(v.string()) } : {})
       })
     );
 
@@ -69,37 +80,44 @@ export let scmBackendSetupPublicController = createHono()
 
     let tenant = await db.tenant.findUniqueOrThrow({ where: { oid: setupSession.tenantOid } });
 
-    let inputUrl = new URL(body.apiUrl);
-    inputUrl.search = '';
-    inputUrl.hash = '';
-    if (body.type === 'github_enterprise') {
-      inputUrl.pathname = inputUrl.pathname.replace(/\/api\/v3\/?$/, '');
-    } else if (body.type === 'gitlab_selfhosted') {
-      inputUrl.pathname = inputUrl.pathname.replace(/\/api\/v4\/?$/, '');
+    let urls: { webUrl: string; apiUrl: string };
+    if (checkEdition('on-prem')) {
+      urls = normalizeScmBackendUrls(body.type, body.apiUrl);
     } else {
-      inputUrl.pathname = inputUrl.pathname.replace(/\/rest\/api\/(?:1\.0|latest)\/?$/, '');
-    }
-    let webUrl = inputUrl.toString().replace(/\/$/, '');
+      let inputUrl = new URL(body.apiUrl);
+      inputUrl.search = '';
+      inputUrl.hash = '';
+      if (body.type === 'github_enterprise') {
+        inputUrl.pathname = inputUrl.pathname.replace(/\/api\/v3\/?$/, '');
+      } else if (body.type === 'gitlab_selfhosted') {
+        inputUrl.pathname = inputUrl.pathname.replace(/\/api\/v4\/?$/, '');
+      } else {
+        inputUrl.pathname = inputUrl.pathname.replace(/\/rest\/api\/(?:1\.0|latest)\/?$/, '');
+      }
+      let webUrl = inputUrl.toString().replace(/\/$/, '');
 
-    let apiUrl =
-      body.type === 'github_enterprise'
-        ? `${webUrl}/api/v3`
-        : body.type === 'gitlab_selfhosted'
-          ? `${webUrl}/api/v4`
-          : `${webUrl}/rest/api/1.0`;
+      let apiUrl =
+        body.type === 'github_enterprise'
+          ? `${webUrl}/api/v3`
+          : body.type === 'gitlab_selfhosted'
+            ? `${webUrl}/api/v4`
+            : `${webUrl}/rest/api/1.0`;
+
+      urls = { webUrl, apiUrl };
+    }
 
     let backend = await scmBackendService.createScmBackend({
       tenant,
       type: body.type,
       name: body.name,
       description: undefined,
-      webUrl,
-      apiUrl,
+      ...urls,
       clientId: body.clientId,
       clientSecret: body.clientSecret,
       appId: body.appId,
       appSlug: body.appSlug,
-      appPrivateKey: body.appPrivateKey
+      appPrivateKey: body.appPrivateKey,
+      ...(checkEdition('on-prem') ? { appWebhookSecret: body.appWebhookSecret } : {})
     });
 
     await scmInstallationSessionService.completeBackendSetupSession({

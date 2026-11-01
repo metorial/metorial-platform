@@ -1,3 +1,11 @@
+import { getAllowedScmBackendIds } from '../lib/scmPolicy';
+import { checkEdition } from '@metorial/editions';
+import {
+  assertScmBackendAllowed,
+  assertScmTypeAllowed,
+  isScmBackendAllowed,
+  normalizeScmBackendUrls
+} from '../lib/scmPolicy';
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
@@ -8,6 +16,8 @@ import { getId } from '../id';
 
 class scmBackendServiceImpl {
   async ensureDefaultBackends() {
+    if (checkEdition('on-prem')) return;
+
     // Ensure default GitHub.com backend exists (if credentials provided)
     if (
       env.gh.SCM_GITHUB_APP_ID &&
@@ -108,6 +118,8 @@ class scmBackendServiceImpl {
       throw new ServiceError(notFoundError('scm_backend'));
     }
 
+    assertScmBackendAllowed(backend);
+
     return backend;
   }
 
@@ -123,17 +135,21 @@ class scmBackendServiceImpl {
       throw new ServiceError(notFoundError('scm_backend'));
     }
 
+    assertScmBackendAllowed(backend);
+
     return backend;
   }
 
   async listScmBackends(d: { tenant: Tenant }) {
+    let allowed = await getAllowedScmBackendIds(d.tenant.oid);
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
           await db.scmBackend.findMany({
             ...opts,
             where: {
-              OR: [{ tenantOid: d.tenant.oid }, { tenantOid: null }]
+              OR: [{ tenantOid: d.tenant.oid }, { tenantOid: null }],
+              oid: allowed ? { in: allowed } : undefined
             }
           })
       )
@@ -142,7 +158,7 @@ class scmBackendServiceImpl {
 
   async createScmBackend(d: {
     tenant: Tenant;
-    type: 'github_enterprise' | 'gitlab_selfhosted' | 'bitbucket_data_center';
+    type: ScmBackend['type'];
     name: string;
     description?: string;
     apiUrl: string;
@@ -150,9 +166,22 @@ class scmBackendServiceImpl {
     appId?: string;
     appSlug?: string;
     appPrivateKey?: string;
+    appWebhookSecret?: string;
     clientId: string;
     clientSecret: string;
   }) {
+    if (checkEdition('on-prem')) {
+      assertScmTypeAllowed(d.type);
+      let urls = normalizeScmBackendUrls(d.type, d.webUrl);
+      d = { ...d, ...urls };
+      assertScmBackendAllowed({
+        ...urls,
+        type: d.type,
+        isDefault: false,
+        tenantOid: d.tenant.oid
+      });
+    }
+
     try {
       new URL(d.apiUrl);
       new URL(d.webUrl);
@@ -164,7 +193,10 @@ class scmBackendServiceImpl {
       );
     }
 
-    if (d.type === 'github_enterprise' && (!d.appId || !d.appSlug || !d.appPrivateKey)) {
+    if (
+      (d.type === 'github_enterprise' || (checkEdition('on-prem') && d.type === 'github')) &&
+      (!d.appId || !d.appSlug || !d.appPrivateKey)
+    ) {
       throw new ServiceError(
         badRequestError({
           message: 'GitHub Enterprise backends require appId, appSlug, and appPrivateKey'
@@ -184,6 +216,7 @@ class scmBackendServiceImpl {
         appId: d.appId,
         appSlug: d.appSlug,
         appPrivateKey: d.appPrivateKey,
+        ...(checkEdition('on-prem') ? { appWebhookSecret: d.appWebhookSecret } : {}),
         clientId: d.clientId,
         clientSecret: d.clientSecret,
         isDefault: false
@@ -198,9 +231,12 @@ class scmBackendServiceImpl {
     appId?: string;
     appSlug?: string;
     appPrivateKey?: string;
+    appWebhookSecret?: string;
     clientId?: string;
     clientSecret?: string;
   }) {
+    assertScmBackendAllowed(d.backend);
+
     if (d.backend.isDefault) {
       throw new ServiceError(
         badRequestError({
@@ -217,6 +253,7 @@ class scmBackendServiceImpl {
         appId: d.appId,
         appSlug: d.appSlug,
         appPrivateKey: d.appPrivateKey,
+        ...(checkEdition('on-prem') ? { appWebhookSecret: d.appWebhookSecret } : {}),
         clientId: d.clientId,
         clientSecret: d.clientSecret
       }
@@ -224,6 +261,8 @@ class scmBackendServiceImpl {
   }
 
   async deleteScmBackend(d: { backend: ScmBackend }) {
+    assertScmBackendAllowed(d.backend);
+
     if (d.backend.isDefault) {
       throw new ServiceError(
         badRequestError({

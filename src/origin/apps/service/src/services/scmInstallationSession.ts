@@ -1,3 +1,5 @@
+import { getAllowedScmBackendIds } from '../lib/scmPolicy';
+import { assertScmTypeAllowed } from '../lib/scmPolicy';
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { randomBytes } from 'crypto';
@@ -146,8 +148,10 @@ class ScmInstallationSessionServiceImpl {
     parentInstallationSession?: ScmInstallationSession;
     redirectUrl?: string;
   }) {
+    assertScmTypeAllowed(d.type);
+
     let state = randomBytes(32).toString('hex');
-    let expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+    let expiresAt = new Date(Date.now() + 30 * 60 * 1000);
 
     return await db.scmBackendSetupSession.create({
       data: {
@@ -243,9 +247,12 @@ class ScmInstallationSessionServiceImpl {
   }
 
   async getAvailableBackends(d: { tenant: Tenant }): Promise<ScmBackend[]> {
+    let allowed = await getAllowedScmBackendIds(d.tenant.oid);
+
     return await db.scmBackend.findMany({
       where: {
-        OR: [{ isDefault: true, tenantOid: null }, { tenantOid: d.tenant.oid }]
+        OR: [{ isDefault: true, tenantOid: null }, { tenantOid: d.tenant.oid }],
+        oid: allowed ? { in: allowed } : undefined
       },
       orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }]
     });

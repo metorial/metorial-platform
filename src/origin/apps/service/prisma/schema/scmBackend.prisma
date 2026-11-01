@@ -21,9 +21,10 @@ model ScmBackend {
   apiUrl String // e.g., "https://api.github.com", "https://gitlab.com/api/v4", "https://gitlab.company.com/api/v4"
   webUrl String // e.g., "https://github.com", "https://gitlab.com", "https://gitlab.company.com"
 
-  appId         String?
-  appSlug       String? // GitHub App slug (e.g., "my-app-name")
-  appPrivateKey String?
+  appId            String?
+  appSlug          String? // GitHub App slug (e.g., "my-app-name")
+  appWebhookSecret String?
+  appPrivateKey    String?
 
   clientId     String?
   clientSecret String?

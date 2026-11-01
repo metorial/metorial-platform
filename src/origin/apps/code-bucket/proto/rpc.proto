@@ -76,6 +76,8 @@ message CreateBucketFromGithubRequest {
   string path = 4;
   string ref = 5;
   string token = 6;
+  string github_api_url = 7;
+  string github_lfs_endpoint = 8;
 }
 
 message CreateBucketResponse {}
@@ -217,6 +219,8 @@ message ExportBucketToGithubRequest {
   // Files at or above this size are routed through Git LFS.
   // Zero or negative means use the service default.
   int64 lfs_threshold_bytes = 10;
+  string github_api_url = 11;
+  string github_lfs_endpoint = 12;
 }
 
 message ExportBucketToGithubResponse {}

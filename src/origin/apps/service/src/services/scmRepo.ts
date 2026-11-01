@@ -1,3 +1,6 @@
+import { getAllowedScmBackendIds } from '../lib/scmPolicy';
+import { checkEdition } from '@metorial/editions';
+import { assertScmBackendAllowed, assertScmTypeAllowed } from '../lib/scmPolicy';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import crypto from 'crypto';
@@ -103,6 +106,8 @@ let verifyHmacSignature = (payload: string, signature: string, secret: string) =
 
 class scmRepoServiceImpl {
   async listAccountPreviews(i: { installation: ScmInstallation & { backend: ScmBackend } }) {
+    assertScmBackendAllowed(i.installation.backend);
+
     if (i.installation.provider == 'github') {
       // For GitHub Apps, the installation is tied to a single account
       // Return that account directly from the installation data
@@ -191,7 +196,9 @@ class scmRepoServiceImpl {
 
       let page = providerCursor ? Number(providerCursor) : 1;
       if (!Number.isInteger(page) || page < 1) {
-        throw new ServiceError(badRequestError({ message: 'Invalid repository preview cursor' }));
+        throw new ServiceError(
+          badRequestError({ message: 'Invalid repository preview cursor' })
+        );
       }
       let response = await withScmProviderError(
         'github',
@@ -211,21 +218,21 @@ class scmRepoServiceImpl {
       return {
         repositories: filteredRepos.map(
           r =>
-          ({
-            provider: i.installation.provider,
-            name: r.name,
-            identifier: `github.com/${r.full_name}`,
-            externalId: r.id.toString(),
-            createdAt: r.created_at ? new Date(r.created_at) : new Date(),
-            updatedAt: r.updated_at ? new Date(r.updated_at) : new Date(),
-            lastPushedAt: r.pushed_at ? new Date(r.pushed_at) : null,
-            account: {
-              externalId: r.owner.id.toString(),
-              name: r.owner.login,
-              identifier: `github.com/${r.owner.login}`,
-              provider: i.installation.provider
-            }
-          }) satisfies ScmRepoPreview
+            ({
+              provider: i.installation.provider,
+              name: r.name,
+              identifier: `github.com/${r.full_name}`,
+              externalId: r.id.toString(),
+              createdAt: r.created_at ? new Date(r.created_at) : new Date(),
+              updatedAt: r.updated_at ? new Date(r.updated_at) : new Date(),
+              lastPushedAt: r.pushed_at ? new Date(r.pushed_at) : null,
+              account: {
+                externalId: r.owner.id.toString(),
+                name: r.owner.login,
+                identifier: `github.com/${r.owner.login}`,
+                provider: i.installation.provider
+              }
+            }) satisfies ScmRepoPreview
         ),
         nextCursor: encodeRepositoryPreviewCursor(
           response.data.repositories.length === limit ? String(page + 1) : undefined,
@@ -248,7 +255,9 @@ class scmRepoServiceImpl {
       // supply the actual personal namespace ID required by GitLab's project APIs.
       let idAfter = providerCursor ? Number(providerCursor) : undefined;
       if (idAfter !== undefined && (!Number.isInteger(idAfter) || idAfter < 1)) {
-        throw new ServiceError(badRequestError({ message: 'Invalid repository preview cursor' }));
+        throw new ServiceError(
+          badRequestError({ message: 'Invalid repository preview cursor' })
+        );
       }
       let projects: any[];
       let nextProviderCursor: string | undefined;
@@ -260,7 +269,8 @@ class scmRepoServiceImpl {
         projects = await withScmProviderError('gitlab', 'list user projects', () =>
           gitlab.Users.allProjects(user.id, { perPage: limit, idAfter, maxPages: 1 })
         );
-        nextProviderCursor = projects.length === limit ? String(projects.at(-1)?.id) : undefined;
+        nextProviderCursor =
+          projects.length === limit ? String(projects.at(-1)?.id) : undefined;
       } else {
         // List projects for a specific group
         let groupId = getGitLabNamespaceId(i.externalAccountId);
@@ -276,26 +286,23 @@ class scmRepoServiceImpl {
       return {
         repositories: projects.map(
           (p: any) =>
-          ({
-            provider: i.installation.provider,
-            name: p.name,
-            identifier: `${hostname}/${p.path_with_namespace}`,
-            externalId: p.id.toString(),
-            createdAt: p.created_at ? new Date(p.created_at) : new Date(),
-            updatedAt: p.updated_at ? new Date(p.updated_at) : new Date(),
-            lastPushedAt: p.last_activity_at ? new Date(p.last_activity_at) : null,
-            account: {
-              externalId: i.externalAccountId!,
-              name: p.namespace.path,
-              identifier: `${hostname}/${p.namespace.full_path}`,
-              provider: i.installation.provider
-            }
-          }) satisfies ScmRepoPreview
+            ({
+              provider: i.installation.provider,
+              name: p.name,
+              identifier: `${hostname}/${p.path_with_namespace}`,
+              externalId: p.id.toString(),
+              createdAt: p.created_at ? new Date(p.created_at) : new Date(),
+              updatedAt: p.updated_at ? new Date(p.updated_at) : new Date(),
+              lastPushedAt: p.last_activity_at ? new Date(p.last_activity_at) : null,
+              account: {
+                externalId: i.externalAccountId!,
+                name: p.namespace.path,
+                identifier: `${hostname}/${p.namespace.full_path}`,
+                provider: i.installation.provider
+              }
+            }) satisfies ScmRepoPreview
         ),
-        nextCursor: encodeRepositoryPreviewCursor(
-          nextProviderCursor,
-          i.externalAccountId
-        )
+        nextCursor: encodeRepositoryPreviewCursor(nextProviderCursor, i.externalAccountId)
       };
     }
 
@@ -316,21 +323,21 @@ class scmRepoServiceImpl {
       return {
         repositories: page.repositories.map(
           repo =>
-          ({
-            provider: i.installation.provider,
-            name: repo.name,
-            identifier: `${hostname}/${repo.owner.slug}/${repo.slug}`,
-            externalId: repo.id,
-            createdAt: repo.createdAt ? new Date(repo.createdAt) : new Date(),
-            updatedAt: repo.updatedAt ? new Date(repo.updatedAt) : new Date(),
-            lastPushedAt: repo.updatedAt ? new Date(repo.updatedAt) : null,
-            account: {
-              externalId: repo.owner.id,
-              name: repo.owner.name,
-              identifier: `${hostname}/${repo.owner.slug}`,
-              provider: i.installation.provider
-            }
-          }) satisfies ScmRepoPreview
+            ({
+              provider: i.installation.provider,
+              name: repo.name,
+              identifier: `${hostname}/${repo.owner.slug}/${repo.slug}`,
+              externalId: repo.id,
+              createdAt: repo.createdAt ? new Date(repo.createdAt) : new Date(),
+              updatedAt: repo.updatedAt ? new Date(repo.updatedAt) : new Date(),
+              lastPushedAt: repo.updatedAt ? new Date(repo.updatedAt) : null,
+              account: {
+                externalId: repo.owner.id,
+                name: repo.owner.name,
+                identifier: `${hostname}/${repo.owner.slug}`,
+                provider: i.installation.provider
+              }
+            }) satisfies ScmRepoPreview
         ),
         nextCursor: encodeRepositoryPreviewCursor(page.nextCursor, i.externalAccountId)
       };
@@ -424,11 +431,13 @@ class scmRepoServiceImpl {
 
   async getManyScmReposByIds(i: { tenant: Tenant; scmRepoIds: string[] }) {
     if (i.scmRepoIds.length === 0) return [];
+    let allowed = await getAllowedScmBackendIds(i.tenant.oid);
 
     return await db.scmRepository.findMany({
       where: {
         tenantOid: i.tenant.oid,
-        id: { in: i.scmRepoIds }
+        id: { in: i.scmRepoIds },
+        backendOid: allowed ? { in: allowed } : undefined
       },
       include: {
         account: true
@@ -800,10 +809,13 @@ class scmRepoServiceImpl {
     let hostname = url.hostname;
     let pathParts = url.pathname.split('/').filter(p => p);
 
+    let allowed = await getAllowedScmBackendIds(i.tenant.oid);
+
     let allInstallations = await db.scmInstallation.findMany({
       where: {
         tenantOid: i.tenant.oid,
-        ownerActorOid: i.actor.oid
+        ownerActorOid: i.actor.oid,
+        backendOid: allowed ? { in: allowed } : undefined
       },
       include: {
         backend: true
@@ -863,7 +875,8 @@ class scmRepoServiceImpl {
       installation =>
         installation.provider === provider &&
         (new URL(installation.backend.webUrl).hostname === hostname ||
-          ['github.com', 'gitlab.com', 'bitbucket.org'].includes(hostname))
+          (checkEdition('cloud') &&
+            ['github.com', 'gitlab.com', 'bitbucket.org'].includes(hostname)))
     );
 
     if (installations.length === 0) {
@@ -902,10 +915,12 @@ class scmRepoServiceImpl {
   }
 
   async getScmRepoById(i: { tenant: Tenant; scmRepoId: string }) {
+    let allowed = await getAllowedScmBackendIds(i.tenant.oid);
     let repo = await db.scmRepository.findFirst({
       where: {
         tenantOid: i.tenant.oid,
-        id: i.scmRepoId
+        id: i.scmRepoId,
+        backendOid: allowed ? { in: allowed } : undefined
       },
       include: {
         account: true
@@ -934,6 +949,12 @@ class scmRepoServiceImpl {
     });
     if (!webhook) {
       throw new ServiceError(badRequestError({ message: 'Invalid webhook' }));
+    }
+    if (checkEdition('on-prem')) {
+      let backend = await db.scmBackend.findUnique({
+        where: { oid: webhook.repo.backendOid }
+      });
+      assertScmBackendAllowed(backend ?? undefined);
     }
 
     if (!verifyHmacSignature(i.payload, i.signature, webhook.signingSecret)) {
@@ -1000,7 +1021,9 @@ class scmRepoServiceImpl {
         push = received.pushes[0];
       }
       if (push) await createHandleRepoPushQueue.add({ pushId: push.id }, { id: push.id });
-      let providerPrId = String((event as any).pull_request?.number ?? (event as any).number ?? '');
+      let providerPrId = String(
+        (event as any).pull_request?.number ?? (event as any).number ?? ''
+      );
       await accelerateRepositorySyncsForProviderEvent({
         repoOid: webhook.repo.oid,
         providerPrId: providerPrId || undefined,
@@ -1026,6 +1049,12 @@ class scmRepoServiceImpl {
     });
     if (!webhook) {
       throw new ServiceError(badRequestError({ message: 'Invalid webhook' }));
+    }
+    if (checkEdition('on-prem')) {
+      let backend = await db.scmBackend.findUnique({
+        where: { oid: webhook.repo.backendOid }
+      });
+      assertScmBackendAllowed(backend ?? undefined);
     }
 
     // Verify token
@@ -1070,6 +1099,13 @@ class scmRepoServiceImpl {
             }
           });
           if (i.eventType != 'Push Hook') return undefined;
+          if (checkEdition('on-prem')) {
+            let backend = await db.scmBackend.findUnique({
+              where: { oid: webhook.repo.backendOid }
+            });
+            assertScmBackendAllowed(backend ?? undefined);
+          }
+
           let hostname = new URL(webhook.repo.installation.backend.webUrl).hostname;
           return tx.scmRepositoryPush.create({
             data: {
@@ -1135,6 +1171,13 @@ class scmRepoServiceImpl {
     let isCloud = webhook.repo.installation.backend.type === 'bitbucket';
     let isPush = isCloud ? i.eventType === 'repo:push' : i.eventType === 'repo:refs_changed';
     let actor = event.actor ?? event.user ?? {};
+    if (checkEdition('on-prem')) {
+      let backend = await db.scmBackend.findUnique({
+        where: { oid: webhook.repo.backendOid }
+      });
+      assertScmBackendAllowed(backend ?? undefined);
+    }
+
     let hostname = new URL(webhook.repo.installation.backend.webUrl).hostname;
     let changes: any[] = isCloud ? (event.push?.changes ?? []) : (event.changes ?? []);
     let pushes: {

@@ -1,3 +1,5 @@
+import { getAllowedScmBackendIds } from '../lib/scmPolicy';
+import { assertScmBackendAllowed } from '../lib/scmPolicy';
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
@@ -18,10 +20,13 @@ class ScmInstallationServiceImpl {
     if (!scmInstallation)
       throw new ServiceError(notFoundError('scm_installation', d.scmInstallationId));
 
+    assertScmBackendAllowed(scmInstallation.backend);
+
     return scmInstallation;
   }
 
   async listScmInstallations(d: { tenant: Tenant; actor: Actor }) {
+    let allowed = await getAllowedScmBackendIds(d.tenant.oid);
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
@@ -29,7 +34,8 @@ class ScmInstallationServiceImpl {
             ...opts,
             where: {
               tenantOid: d.tenant.oid,
-              ownerActorOid: d.actor.oid
+              ownerActorOid: d.actor.oid,
+              backendOid: allowed ? { in: allowed } : undefined
             },
             include: {
               backend: true

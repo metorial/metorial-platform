@@ -1,3 +1,5 @@
+import { scmSetupTypes, getScmProviderOptions } from '../lib/scmPolicy';
+import { checkEdition } from '@metorial/editions';
 import { v } from '@lowerdeck/validation';
 import { presentScmBackendSetupSession } from '../presenters/scmBackendSetupSession';
 import { scmInstallationSessionService } from '../services';
@@ -22,7 +24,7 @@ export let scmBackendSetupSessionController = app.controller({
     .input(
       v.object({
         tenantId: v.string(),
-        type: v.enumOf(['github_enterprise', 'gitlab_selfhosted', 'bitbucket_data_center']),
+        type: v.enumOf([...scmSetupTypes]),
         parentInstallationSessionId: v.optional(v.string()),
         redirectUrl: v.optional(v.string())
       })
