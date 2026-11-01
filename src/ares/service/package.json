@@ -11,7 +11,7 @@
     "sentry:sourcemaps": "(sentry-cli sourcemaps inject --org metorial --project mte-hrzn-ares ./dist && sentry-cli sourcemaps upload --org metorial --project mte-hrzn-ares ./dist) || true",
     "sentry:sourcemaps:if-token": "sh -c 'if [ -n \"$SENTRY_AUTH_TOKEN\" ]; then bun run sentry:sourcemaps; else echo \"Skipping Sentry sourcemap upload\"; fi'",
     "server:start": "bun ./dist/index.js",
-    "frontend:build": "bun run frontend:build:auth && bun run frontend:build:admin",
+    "frontend:build": "bun run frontend:build:auth && if [ \"$METORIAL_EDITION\" != \"on-prem\" ]; then bun run frontend:build:admin; fi",
     "frontend:build:auth": "cd frontend/auth && vite build",
     "frontend:build:admin": "cd frontend/admin && vite build",
     "frontend:dev": "cd frontend/auth && vite",
@@ -124,5 +124,12 @@
   },
   "overrides": {
     "@react-email/components": "1.0.8"
+  },
+  "metorial": {
+    "editionDependencies": {
+      "cloud": [
+        "@marsidev/react-turnstile"
+      ]
+    }
   }
 }

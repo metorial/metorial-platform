@@ -1,3 +1,4 @@
+import { checkEdition } from '@metorial/editions';
 import { createCachedFunction } from '@lowerdeck/cache';
 import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
@@ -53,11 +54,7 @@ let findAuthSessionCached = createCachedFunction<
 });
 
 export type SessionLifecycleState =
-  | 'active'
-  | 'superseded'
-  | 'logged_out'
-  | 'expired'
-  | 'revoked';
+  'active' | 'superseded' | 'logged_out' | 'expired' | 'revoked';
 
 export let SESSION_LIFECYCLE_STATES: [SessionLifecycleState, ...SessionLifecycleState[]] = [
   'active',
@@ -251,6 +248,8 @@ class SessionService {
   }
 
   async findAdminForSession(d: { session: AuthDeviceUserSession & { user: User } }) {
+    if (checkEdition('on-prem')) return null;
+
     let admin = await db.admin.findUnique({
       where: { email: d.session.user.email }
     });
@@ -258,6 +257,8 @@ class SessionService {
   }
 
   async upsertDevAdminSession(d: { session: AuthDeviceUserSession & { user: User } }) {
+    if (checkEdition('on-prem')) throw new Error('Admin access is unavailable');
+
     if (process.env.NODE_ENV != 'development') {
       throw new Error('NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO');
     }

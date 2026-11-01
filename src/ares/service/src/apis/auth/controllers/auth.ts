@@ -1,3 +1,4 @@
+import { checkEdition } from '@metorial/editions';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { v } from '@lowerdeck/validation';
 import { env } from '../../../env';
@@ -46,12 +47,13 @@ export let authenticationController = publicApp.controller({
             : null
         },
 
-        captcha: env.turnstile.TURNSTILE_SITE_KEY
-          ? {
-              type: 'required' as const,
-              siteKey: env.turnstile.TURNSTILE_SITE_KEY
-            }
-          : null,
+        captcha:
+          checkEdition('cloud') && env.turnstile.TURNSTILE_SITE_KEY
+            ? {
+                type: 'required' as const,
+                siteKey: env.turnstile.TURNSTILE_SITE_KEY
+              }
+            : null,
 
         defaultRedirectUrl: app.defaultRedirectUrl,
 
