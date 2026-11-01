@@ -7,6 +7,14 @@ export type {
   RequestScopedTools,
   RequestScopedToolsResolver
 } from './lib/requestTools';
+export type {
+  RequestScopedSkill,
+  RequestScopedSkillContent,
+  RequestScopedSkillDirectoryEntry,
+  RequestScopedSkillDocument,
+  RequestScopedSkills,
+  RequestScopedSkillsResolver
+} from './lib/requestSkills';
 export * from './lib/sessionless';
 export * from './lib/syntheticTool';
 export * from './mcp';

@@ -4800,6 +4800,8 @@
         "@metorial/skills-common": "^1.0.0",
         "@metorial/skills-images": "^1.0.0",
         "@metorial/skills-search": "^1.0.0",
+        "p-queue": "^10.0.0",
+        "yaml": "^2.9.1",
       },
       "devDependencies": {
         "@metorial/e2e": "1.0.0",
@@ -4936,7 +4938,6 @@
         "date-fns": "^4.4.0",
         "p-queue": "^10.0.0",
         "semver": "^7.8.5",
-        "yaml": "^2.9.1",
       },
       "devDependencies": {
         "@metorial/e2e": "1.0.0",
@@ -5282,9 +5283,11 @@
         "@metorial/module-skill": "1.0.0",
         "@metorial/portal-url": "1.0.0",
         "@metorial/queue": "1.0.0",
+        "p-queue": "^10.0.0",
       },
       "devDependencies": {
         "@metorial/e2e": "1.0.0",
+        "@metorial/module-skill-groups": "^1.0.0",
         "@metorial/module-store": "^1.0.0",
         "@metorial/tsconfig": "^1.0.0",
         "typescript": "5.9.3",

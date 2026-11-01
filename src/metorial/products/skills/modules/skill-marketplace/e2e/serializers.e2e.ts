@@ -3,7 +3,8 @@ import { db, loadOrganizationFixture, type OrganizationFixture } from '@metorial
 import { getConfig } from '@metorial/config';
 import { skillAgentService, skillService } from '@metorial/module-skill';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { parseSkillDocumentFrontmatter, skillPluginService } from '../src';
+import { parseSkillDocumentFrontmatter } from '@metorial/module-skill/frontmatter';
+import { skillPluginService } from '../src';
 import { applyMarketplace } from '../src/serializers/marketplace';
 import { applyPlugin } from '../src/serializers/plugin';
 import { applySkill } from '../src/serializers/skill';
@@ -400,7 +401,9 @@ describe('export serializers', () => {
         await loadStandalonePluginSerializerInput(plugin.id)
       );
       expect(standalone.hash).not.toBe(output.hash);
-      expect(standalone.json('.claude-plugin/plugin.json')).toMatchObject({ version: '0.0.1' });
+      expect(standalone.json('.claude-plugin/plugin.json')).toMatchObject({
+        version: '0.0.1'
+      });
       expect(await getPlugin(fixture, plugin.id)).toMatchObject({
         version: '0.0.1',
         versionHash: stored.versionHash

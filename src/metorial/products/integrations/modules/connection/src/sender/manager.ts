@@ -102,6 +102,7 @@ import {
 } from '../lib/connectionStatusTool';
 import { broadcastNats } from '../lib/nats';
 import { listSpecificationTools } from '../lib/providerToolCache';
+import type { RequestScopedSkills, RequestScopedSkillsResolver } from '../lib/requestSkills';
 import {
   buildRequestScopedTool,
   METORIAL_TOOL_KEY_PREFIX,
@@ -237,6 +238,7 @@ export interface SenderMangerProps {
       };
   connectionPrivateMetadata?: Record<string, any>;
   requestTools?: RequestScopedToolsResolver;
+  requestSkills?: RequestScopedSkillsResolver;
   adapter?: { identifier: string };
   ingressPolicyCheck?: {
     sourceIp: string;
@@ -258,7 +260,8 @@ export class SenderManager {
     readonly transport: SessionConnectionTransport,
     readonly agentClient: SenderMangerProps['agentClient'],
     readonly connectionPrivateMetadata: SenderMangerProps['connectionPrivateMetadata'],
-    private readonly requestToolsResolver?: RequestScopedToolsResolver
+    private readonly requestToolsResolver?: RequestScopedToolsResolver,
+    private readonly requestSkillsResolver?: RequestScopedSkillsResolver
   ) {}
 
   // Public MCP sessions are only reachable through the grant that currently owns them.
@@ -633,7 +636,8 @@ export class SenderManager {
       d.transport,
       d.agentClient,
       d.connectionPrivateMetadata,
-      d.requestTools
+      d.requestTools,
+      d.requestSkills
     );
     if (environment) manager.#environmentPromise = Promise.resolve(environment);
 
@@ -1294,6 +1298,20 @@ export class SenderManager {
     })();
 
     return this.#requestToolsPromise;
+  }
+
+  #requestSkillsPromise: Promise<RequestScopedSkills | null> | null = null;
+
+  getRequestSkills() {
+    let resolver = this.requestSkillsResolver;
+    if (this.session.isInternal || !resolver) return Promise.resolve(null);
+
+    this.#requestSkillsPromise ??= resolver().catch(error => {
+      Sentry.captureException(error);
+      return null;
+    });
+
+    return this.#requestSkillsPromise;
   }
 
   private reportUnprefixedRequestTools(toolKeys: string[]) {

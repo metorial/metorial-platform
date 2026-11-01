@@ -176,6 +176,10 @@ export class SenderConnection {
     return this.manager.shouldRedactStoredToolInput(toolId);
   }
 
+  getRequestSkills() {
+    return this.manager.getRequestSkills();
+  }
+
   callTool(d: CallToolProps) {
     return this.manager.callTool(d);
   }

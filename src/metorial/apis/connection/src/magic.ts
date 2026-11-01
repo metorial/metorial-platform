@@ -7,7 +7,10 @@ import {
 import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
 import type { Context } from '@lowerdeck/hono';
 import { getSentry } from '@lowerdeck/sentry';
-import type { RequestScopedToolsResolver } from '@metorial-subspace/module-connection';
+import type {
+  RequestScopedSkillsResolver,
+  RequestScopedToolsResolver
+} from '@metorial-subspace/module-connection';
 import {
   assertCanUseCoreOwnedResources,
   getOwnershipAccessor,
@@ -21,6 +24,7 @@ import { AuthInfo } from '@metorial/module-access';
 import {
   consumerIntegrationService,
   createSkillEditingTools,
+  createSkillMcpCatalog,
   enqueueMaterializeMagicMcpSessionOwnership
 } from '@metorial/module-consumer-entities';
 import {
@@ -322,35 +326,46 @@ export let resolveMagicMcpSubspaceSession = async (d: {
   };
 };
 
-export let resolveMagicMcpRequestTools = (d: {
+export let resolveMagicMcpRequestExtensions = (d: {
   sessionInfo: MagicMcpSubspaceSessionInfo;
   context: { ip: string; ua?: string | null };
-}): RequestScopedToolsResolver | undefined => {
+}): {
+  requestTools?: RequestScopedToolsResolver;
+  requestSkills?: RequestScopedSkillsResolver;
+} => {
   let target = d.sessionInfo.magicMcpTarget;
-  if (target.type !== 'endpoint' || !target.target.enableSkillEditing) return undefined;
-
-  let magicMcpToken = d.sessionInfo.magicMcpToken;
-  if (magicMcpToken?.consumerTokens.length !== 1) return undefined;
+  if (target.type !== 'endpoint') return {};
 
   let endpoint = target.target;
+  if (!endpoint.enableSkillEditing && !endpoint.enableSkillResources) return {};
+
+  let magicMcpToken = d.sessionInfo.magicMcpToken;
+  if (magicMcpToken?.consumerTokens.length !== 1) return {};
+
   if (
     magicMcpToken.skillPluginOid &&
     endpoint.skillPluginOid &&
     magicMcpToken.skillPluginOid !== endpoint.skillPluginOid
   ) {
-    return undefined;
+    return {};
   }
 
-  let consumerProfile = magicMcpToken.consumerTokens[0]!.consumerProfile;
-  let skillPluginOid = magicMcpToken.skillPluginOid ?? endpoint.skillPluginOid;
+  let input = {
+    instance: endpoint.instance,
+    consumerProfile: magicMcpToken.consumerTokens[0]!.consumerProfile,
+    skillPluginOid: magicMcpToken.skillPluginOid ?? endpoint.skillPluginOid,
+    magicMcpEndpoint: endpoint,
+    context: d.context
+  };
 
-  return () =>
-    createSkillEditingTools({
-      instance: endpoint.instance,
-      consumerProfile,
-      skillPluginOid,
-      context: d.context
-    });
+  return {
+    requestTools: endpoint.enableSkillEditing
+      ? () => createSkillEditingTools(input)
+      : undefined,
+    requestSkills: endpoint.enableSkillResources
+      ? () => createSkillMcpCatalog(input)
+      : undefined
+  };
 };
 
 export let handleMagicMcpRequest = async (d: {
@@ -383,7 +398,7 @@ export let handleMagicMcpRequest = async (d: {
         ua: context.ua
       });
 
-      let requestTools = resolveMagicMcpRequestTools({
+      let { requestTools, requestSkills } = resolveMagicMcpRequestExtensions({
         sessionInfo,
         context: { ip: context.ip, ua: context.ua }
       });
@@ -393,6 +408,7 @@ export let handleMagicMcpRequest = async (d: {
         sessionId: sessionInfo.subspaceSessionId,
         agentClient: sessionInfo.agentClient,
         requestTools,
+        requestSkills,
         enforceIngressNetworkPolicy: true,
         ingressIp: context.ip,
         onSubspaceSessionResolved: async ({ subspaceSessionId }) => {

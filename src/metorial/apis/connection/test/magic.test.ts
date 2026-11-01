@@ -11,6 +11,7 @@ vi.mock('@metorial/module-consumer-entities', () => ({
     findLatestConsumerAuthClientForMagicMcpToken: vi.fn()
   },
   createSkillEditingTools: vi.fn(),
+  createSkillMcpCatalog: vi.fn(),
   enqueueMaterializeMagicMcpSessionOwnership: vi.fn()
 }));
 
@@ -46,7 +47,8 @@ vi.mock('@metorial/module-outpost', () => ({
 
 import {
   consumerIntegrationService,
-  createSkillEditingTools
+  createSkillEditingTools,
+  createSkillMcpCatalog
 } from '@metorial/module-consumer-entities';
 import {
   ensureMagicMcpSubspaceSession,
@@ -54,7 +56,10 @@ import {
   resolveMagicMcpTargetByIdOrAlias,
   resolveMagicMcpTargetByIdOrAliasSafe
 } from '@metorial/module-magic';
-import { resolveMagicMcpRequestTools, resolveMagicMcpSubspaceSession } from '../src/magic';
+import {
+  resolveMagicMcpRequestExtensions,
+  resolveMagicMcpSubspaceSession
+} from '../src/magic';
 
 describe('resolveMagicMcpSubspaceSession', () => {
   beforeEach(() => {
@@ -174,14 +179,21 @@ describe('resolveMagicMcpSubspaceSession', () => {
   });
 });
 
-describe('resolveMagicMcpRequestTools', () => {
+describe('resolveMagicMcpRequestExtensions', () => {
   let context = { ip: '127.0.0.1', ua: 'test' };
   let instance = { id: 'ins_1', oid: 22n };
   let consumerProfile = { oid: 55n };
   let skillEditingTools = { tools: [], call: vi.fn(), redactForLog: vi.fn() };
+  let skillCatalog = {
+    listSkills: vi.fn(),
+    getSkill: vi.fn(),
+    readResource: vi.fn(),
+    readDirectory: vi.fn()
+  };
 
   let endpointSession = (d: {
-    enableSkillEditing: boolean;
+    enableSkillEditing?: boolean;
+    enableSkillResources?: boolean;
     consumerTokens?: { consumerProfile: unknown }[];
     tokenSkillPluginOid?: bigint | null;
     endpointSkillPluginOid?: bigint | null;
@@ -194,7 +206,8 @@ describe('resolveMagicMcpRequestTools', () => {
           id: 'mep_1',
           oid: 11n,
           instance,
-          enableSkillEditing: d.enableSkillEditing,
+          enableSkillEditing: d.enableSkillEditing ?? false,
+          enableSkillResources: d.enableSkillResources ?? false,
           skillPluginOid:
             d.endpointSkillPluginOid === undefined ? 66n : d.endpointSkillPluginOid
         }
@@ -212,10 +225,11 @@ describe('resolveMagicMcpRequestTools', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(createSkillEditingTools).mockResolvedValue(skillEditingTools as any);
+    vi.mocked(createSkillMcpCatalog).mockResolvedValue(skillCatalog as any);
   });
 
   it('lazily builds skill editing tools for a consumer token on an enabled endpoint', async () => {
-    let resolveTools = resolveMagicMcpRequestTools({
+    let { requestTools, requestSkills } = resolveMagicMcpRequestExtensions({
       sessionInfo: endpointSession({
         enableSkillEditing: true,
         consumerTokens: [{ consumerProfile }]
@@ -223,16 +237,55 @@ describe('resolveMagicMcpRequestTools', () => {
       context
     });
 
-    expect(resolveTools).toBeTypeOf('function');
+    expect(requestTools).toBeTypeOf('function');
+    expect(requestSkills).toBeUndefined();
     expect(createSkillEditingTools).not.toHaveBeenCalled();
 
-    expect(await resolveTools!()).toBe(skillEditingTools);
+    expect(await requestTools!()).toBe(skillEditingTools);
     expect(createSkillEditingTools).toHaveBeenCalledWith({
       instance,
       consumerProfile,
       skillPluginOid: 66n,
+      magicMcpEndpoint: expect.objectContaining({ oid: 11n }),
       context
     });
+  });
+
+  it('lazily builds the skill catalog when only skill resources are enabled', async () => {
+    let { requestTools, requestSkills } = resolveMagicMcpRequestExtensions({
+      sessionInfo: endpointSession({
+        enableSkillResources: true,
+        consumerTokens: [{ consumerProfile }]
+      }),
+      context
+    });
+
+    expect(requestTools).toBeUndefined();
+    expect(requestSkills).toBeTypeOf('function');
+    expect(createSkillMcpCatalog).not.toHaveBeenCalled();
+
+    expect(await requestSkills!()).toBe(skillCatalog);
+    expect(createSkillMcpCatalog).toHaveBeenCalledWith({
+      instance,
+      consumerProfile,
+      skillPluginOid: 66n,
+      magicMcpEndpoint: expect.objectContaining({ oid: 11n }),
+      context
+    });
+  });
+
+  it('builds both when skill resources and skill editing are enabled', () => {
+    let { requestTools, requestSkills } = resolveMagicMcpRequestExtensions({
+      sessionInfo: endpointSession({
+        enableSkillEditing: true,
+        enableSkillResources: true,
+        consumerTokens: [{ consumerProfile }]
+      }),
+      context
+    });
+
+    expect(requestTools).toBeTypeOf('function');
+    expect(requestSkills).toBeTypeOf('function');
   });
 
   it.each([
@@ -241,7 +294,7 @@ describe('resolveMagicMcpRequestTools', () => {
   ])(
     'scopes the tools to the skill plugin set on %s',
     async (_name, tokenSkillPluginOid, endpointSkillPluginOid, expected) => {
-      let resolveTools = resolveMagicMcpRequestTools({
+      let { requestTools } = resolveMagicMcpRequestExtensions({
         sessionInfo: endpointSession({
           enableSkillEditing: true,
           consumerTokens: [{ consumerProfile }],
@@ -251,7 +304,7 @@ describe('resolveMagicMcpRequestTools', () => {
         context
       });
 
-      await resolveTools!();
+      await requestTools!();
 
       expect(createSkillEditingTools).toHaveBeenCalledWith(
         expect.objectContaining({ skillPluginOid: expected })
@@ -259,10 +312,11 @@ describe('resolveMagicMcpRequestTools', () => {
     }
   );
 
-  it('skips the tools when the token and the endpoint are scoped to different plugins', () => {
-    let resolveTools = resolveMagicMcpRequestTools({
+  it('skips everything when the token and the endpoint are scoped to different plugins', () => {
+    let extensions = resolveMagicMcpRequestExtensions({
       sessionInfo: endpointSession({
         enableSkillEditing: true,
+        enableSkillResources: true,
         consumerTokens: [{ consumerProfile }],
         tokenSkillPluginOid: 77n,
         endpointSkillPluginOid: 66n
@@ -270,21 +324,20 @@ describe('resolveMagicMcpRequestTools', () => {
       context
     });
 
-    expect(resolveTools).toBeUndefined();
+    expect(extensions).toEqual({});
     expect(createSkillEditingTools).not.toHaveBeenCalled();
+    expect(createSkillMcpCatalog).not.toHaveBeenCalled();
   });
 
-  it('skips the tools without any lookups when the endpoint flag is off', () => {
-    let resolveTools = resolveMagicMcpRequestTools({
-      sessionInfo: endpointSession({
-        enableSkillEditing: false,
-        consumerTokens: [{ consumerProfile }]
-      }),
+  it('skips everything without any lookups when both endpoint flags are off', () => {
+    let extensions = resolveMagicMcpRequestExtensions({
+      sessionInfo: endpointSession({ consumerTokens: [{ consumerProfile }] }),
       context
     });
 
-    expect(resolveTools).toBeUndefined();
+    expect(extensions).toEqual({});
     expect(createSkillEditingTools).not.toHaveBeenCalled();
+    expect(createSkillMcpCatalog).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -294,18 +347,23 @@ describe('resolveMagicMcpRequestTools', () => {
       { consumerTokens: [{ consumerProfile }, { consumerProfile: { oid: 56n } }] }
     ],
     ['a publishable key instead of a magic MCP token', { withoutToken: true }]
-  ])('skips the tools for callers with %s', (_name, session) => {
-    let resolveTools = resolveMagicMcpRequestTools({
-      sessionInfo: endpointSession({ enableSkillEditing: true, ...session }),
+  ])('skips everything for callers with %s', (_name, session) => {
+    let extensions = resolveMagicMcpRequestExtensions({
+      sessionInfo: endpointSession({
+        enableSkillEditing: true,
+        enableSkillResources: true,
+        ...session
+      }),
       context
     });
 
-    expect(resolveTools).toBeUndefined();
+    expect(extensions).toEqual({});
     expect(createSkillEditingTools).not.toHaveBeenCalled();
+    expect(createSkillMcpCatalog).not.toHaveBeenCalled();
   });
 
-  it('skips the tools for server targets', () => {
-    let resolveTools = resolveMagicMcpRequestTools({
+  it('skips everything for server targets', () => {
+    let extensions = resolveMagicMcpRequestExtensions({
       sessionInfo: {
         magicMcpTarget: { type: 'server', target: { id: 'mms_1', instance } },
         magicMcpToken: { skillPluginOid: null, consumerTokens: [{ consumerProfile }] },
@@ -314,21 +372,23 @@ describe('resolveMagicMcpRequestTools', () => {
       context
     });
 
-    expect(resolveTools).toBeUndefined();
-    expect(createSkillEditingTools).not.toHaveBeenCalled();
+    expect(extensions).toEqual({});
   });
 
-  it('resolves to no tools when skills are unavailable for the consumer', async () => {
+  it('resolves to nothing when skills are unavailable for the consumer', async () => {
     vi.mocked(createSkillEditingTools).mockResolvedValue(null);
+    vi.mocked(createSkillMcpCatalog).mockResolvedValue(null);
 
-    let resolveTools = resolveMagicMcpRequestTools({
+    let { requestTools, requestSkills } = resolveMagicMcpRequestExtensions({
       sessionInfo: endpointSession({
         enableSkillEditing: true,
+        enableSkillResources: true,
         consumerTokens: [{ consumerProfile }]
       }),
       context
     });
 
-    expect(await resolveTools!()).toBeNull();
+    expect(await requestTools!()).toBeNull();
+    expect(await requestSkills!()).toBeNull();
   });
 });
