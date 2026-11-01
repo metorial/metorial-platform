@@ -6,11 +6,7 @@ import React, { useState } from 'react';
 import { css, styled } from 'styled-components';
 import { describeSessionEnd, type TerminalConnectionState } from './state';
 import { TerminalStrip } from './strip';
-import {
-  DEFAULT_TERMINAL_FONT_SIZE,
-  TERMINAL_FONT_STYLESHEET,
-  terminalSurface
-} from './theme';
+import { DEFAULT_TERMINAL_FONT_SIZE, terminalSurface } from './theme';
 import { TerminalToolbar } from './toolbar';
 import type { TerminalStatus, TerminalTransport } from './types';
 import { useTerminalController, type TerminalController } from './useTerminalController';
@@ -217,8 +213,6 @@ export let Terminal = ({
 
   return (
     <>
-      <link rel="stylesheet" href={TERMINAL_FONT_STYLESHEET} />
-
       <Wrapper $fullscreen={isFullscreen} style={{ height }}>
         <TerminalToolbar
           controller={controller}

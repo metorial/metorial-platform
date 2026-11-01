@@ -145,7 +145,6 @@ export let RunLogs = ({
           ))
         )}
       </Body>
-      <link rel="stylesheet" href="/fonts/jetbrains-mono.css" />
     </Wrapper>
   );
 };
