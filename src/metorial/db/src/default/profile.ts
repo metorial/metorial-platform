@@ -13,16 +13,17 @@ let ensureProfile = createEnsureRecord(
   })
 );
 
-export let systemProfile = ensureProfile(() => ({
-  name: 'Metorial',
-  slug: 'system',
-  type: 'system',
-  isMetorial: true,
-  isOfficial: true,
-  isVerified: true,
-  image: {
-    type: 'url',
-    url: branding.logoUrl
-  },
-  attributes: {}
-}));
+export let ensureSystemProfile = () =>
+  ensureProfile(() => ({
+    name: 'Metorial',
+    slug: 'system',
+    type: 'system',
+    isMetorial: true,
+    isOfficial: true,
+    isVerified: true,
+    image: {
+      type: 'url',
+      url: branding.logoUrl
+    },
+    attributes: {}
+  }));
