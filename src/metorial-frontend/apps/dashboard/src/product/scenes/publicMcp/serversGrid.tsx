@@ -13,11 +13,11 @@ import {
   getEnumListFilterValue,
   getFilterPayload,
   TableFilter,
-  TableFilters,
+  FilterToolbar,
   TableFilterState,
   useFilterQuery
 } from '@metorial/table';
-import { Avatar, Input, Spacer, Text } from '@metorial/ui';
+import { Avatar, Spacer, Text } from '@metorial/ui';
 import { ItemGrid } from '@metorial/ui-product';
 import { useDebounced } from '@metorial/use-debounced';
 import { useMemo, useState } from 'react';
@@ -43,19 +43,6 @@ let filters: TableFilter<any>[] = [
     ]
   }
 ];
-
-let Toolbar = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  flex-wrap: nowrap;
-`;
-
-let SearchWrapper = styled.div`
-  flex: 1 1 auto;
-  min-width: 220px;
-`;
 
 let BottomRow = styled.div`
   display: flex;
@@ -121,27 +108,12 @@ export let PublicMcpServersGrid = (
 
   return (
     <>
-      <Toolbar>
-        <SearchWrapper>
-          <Input
-            label="Search"
-            hideLabel
-            size="2"
-            placeholder="Search public MCP servers..."
-            value={search}
-            onInput={setSearch}
-          />
-        </SearchWrapper>
-
-        <TableFilters
-          filters={filters}
-          filterState={[filterState, setFilterState]}
-          fullWidth={false}
-          wrap={false}
-          defaultFilterId="status"
-          resetCurrentFilterOnOpen
-        />
-      </Toolbar>
+      <FilterToolbar
+        searchState={[search, setSearch]}
+        filterState={[filterState, setFilterState]}
+        filters={filters}
+        placeholder="Search public MCP servers or filter..."
+      />
 
       <Spacer size={15} />
 

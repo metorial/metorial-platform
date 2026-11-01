@@ -1,10 +1,8 @@
 import type { DashboardInstanceIntegrationsListQuery } from '@metorial/dashboard-sdk';
 import { useCurrentInstance } from '@metorial/state';
-import { Input } from '@metorial/ui';
 import { type Dispatch, type SetStateAction, useMemo } from 'react';
-import styled from 'styled-components';
 import {
-  TableFilters,
+  FilterToolbar,
   TableFilter,
   TableFilterState,
   getFilterPayload,
@@ -15,18 +13,6 @@ import {
 import { useDebounced } from '@metorial/use-debounced';
 import { entityFilters } from '../entityFilters';
 
-let Toolbar = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  flex-wrap: nowrap;
-`;
-
-let SearchWrapper = styled.div`
-  flex: 1 1 auto;
-  min-width: 220px;
-`;
 
 let integrationStatusValues = ['active', 'archived', 'deleted'] as const;
 
@@ -101,31 +87,11 @@ export let IntegrationFilters = (p: {
   searchState: [string, Dispatch<SetStateAction<string>>];
   filterState: [TableFilterState[], Dispatch<SetStateAction<TableFilterState[]>>];
   filters: TableFilter<any>[];
-}) => {
-  let [search, setSearch] = p.searchState;
-  let [filterState, setFilterState] = p.filterState;
-
-  return (
-    <Toolbar>
-      <SearchWrapper>
-        <Input
-          label="Search"
-          hideLabel
-          size="2"
-          placeholder="Search integrations..."
-          value={search}
-          onInput={setSearch}
-        />
-      </SearchWrapper>
-
-      <TableFilters
-        filters={p.filters}
-        filterState={[filterState, setFilterState]}
-        fullWidth={false}
-        wrap={false}
-        defaultFilterId="status"
-        resetCurrentFilterOnOpen
-      />
-    </Toolbar>
-  );
-};
+}) => (
+  <FilterToolbar
+    searchState={p.searchState}
+    filterState={p.filterState}
+    filters={p.filters}
+    placeholder="Search integrations or filter..."
+  />
+);

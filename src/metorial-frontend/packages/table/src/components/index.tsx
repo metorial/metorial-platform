@@ -5,7 +5,6 @@ import {
   CenteredSpinner,
   Checkbox,
   Error,
-  Input,
   Menu,
   Spacer,
   Text,
@@ -17,7 +16,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import React, { Fragment, memo as reactMemo, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { styled } from 'styled-components';
-import { TableFilter, TableFilterState, getFilterPayload } from '../filter';
+import { FilterToolbar, TableFilter, TableFilterState, getFilterPayload } from '../filter';
 import { Observer, useObserver } from '../state';
 import {
   TableActions,
@@ -28,7 +27,6 @@ import {
   TableStateProviderResult
 } from '../type';
 import { Columns } from './columns';
-import { TableFilters } from './filter';
 import { useFilterQuery } from './query';
 
 let Wrapper = styled('div')`
@@ -43,22 +41,7 @@ let Header = styled('header')`
   justify-content: space-between;
   flex-wrap: wrap;
   align-items: center;
-  margin-bottom: 2px;
-`;
-
-let HeaderSection = styled('section')`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  justify-content: space-between;
-  width: 100%;
-`;
-
-let HeaderEnd = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-left: auto;
+  margin-bottom: 10px;
 `;
 
 let TableWrapper = styled('div')`
@@ -206,6 +189,8 @@ let ActionBar = styled(motion.div)`
   pointer-events: auto;
 `;
 
+let noFilters: TableFilter<any>[] = [];
+
 let RowPanel = (props: { row: any; rowPanel: (row: any) => React.ReactNode }) => {
   return <>{props.rowPanel(props.row)}</>;
 };
@@ -328,6 +313,7 @@ export let TableComponent = reactMemo(
     framed?: boolean;
   }) => {
     let filterState = useState([] as TableFilterState[]);
+    let tableFilters = props.filters ?? noFilters;
     let filterPayload = useMemo(() => getFilterPayload(filterState[0]), [filterState[0]]);
     let [hasHydratedLayout, setHasHydratedLayout] = useState(false);
 
@@ -509,36 +495,26 @@ export let TableComponent = reactMemo(
               paddingTop: isGroup ? 10 : 0
             }}
           >
-            <HeaderSection>
-              {props.search && (
-                <div style={{ width: 350, maxWidth: '100%', flexGrow: 0, flexShrink: 0 }}>
-                  <Input
-                    label="Search"
-                    hideLabel
-                    size="2"
-                    placeholder={props.search.placeholder}
-                    value={search}
-                    onInput={v => setSearch(v)}
-                  />
-                </div>
-              )}
+            <FilterToolbar
+              filters={tableFilters}
+              filterState={filterState}
+              searchState={props.search ? [search, setSearch] : undefined}
+              placeholder={
+                props.search?.placeholder ??
+                (tableFilters.length ? 'Filter...' : undefined)
+              }
+              end={
+                <>
+                  {props.toolbarEnd}
 
-              {props.filters && props.filters.length > 0 && (
-                <TableFilters filters={props.filters} filterState={filterState} />
-              )}
+                  <Columns columns={props.columns} layoutObserver={props.layoutObserver} />
 
-              <Spacer />
-
-              <HeaderEnd>
-                {props.toolbarEnd}
-
-                <Columns columns={props.columns} layoutObserver={props.layoutObserver} />
-              </HeaderEnd>
-
-              {props.headerActions && (
-                <props.headerActions filter={filterPayload} search={debouncedSearch} />
-              )}
-            </HeaderSection>
+                  {props.headerActions && (
+                    <props.headerActions filter={filterPayload} search={debouncedSearch} />
+                  )}
+                </>
+              }
+            />
           </Header>
         )}
 

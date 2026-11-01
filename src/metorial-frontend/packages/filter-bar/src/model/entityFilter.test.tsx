@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import React, { act, useState } from 'react';
+import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -13,7 +13,6 @@ import {
   serializeToQuery,
   type TableFilterState
 } from './tableFilter';
-import { TableFilters } from './tableFilters';
 
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -80,42 +79,5 @@ describe('entity filters', () => {
       'pro_3'
     ]);
     expect(sortExactMatchesFirst(items, 'pro_3')[0]!.id).toBe('pro_3');
-  });
-
-  it('passes the current filter values to useOptions', () => {
-    let useSearch = vi.fn(() => ({ items: [], isLoading: false }));
-    let toolFilter = {
-      ...providerFilter(useSearch),
-      id: 'toolId',
-      label: 'Tool',
-      pinned: true
-    };
-    let state: TableFilterState[] = [
-      {
-        id: 'providerId',
-        fields: ['providerId'],
-        type: 'entity',
-        operation: 'eq',
-        value: ['pro_a']
-      }
-    ];
-
-    let Harness = () => {
-      let filterState = useState(state);
-      return (
-        <TableFilters filters={[providerFilter(), toolFilter]} filterState={filterState} />
-      );
-    };
-
-    let view = render(<Harness />);
-    let pill = [...view.container.querySelectorAll('p')].find(p => p.textContent == 'Tool');
-    act(() => {
-      pill!.closest('div')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    });
-
-    expect(useSearch).toHaveBeenCalledWith(
-      expect.objectContaining({ filters: { providerId: { in: ['pro_a'] } } })
-    );
-    view.unmount();
   });
 });

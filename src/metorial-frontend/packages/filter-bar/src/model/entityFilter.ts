@@ -6,6 +6,7 @@ import {
   type TableFilter,
   type TableFilterEntityOption,
   type TableFilterEntityOptions,
+  type TableFilterHighlight,
   type TableFilterPayloadMap
 } from './tableFilter';
 
@@ -24,6 +25,7 @@ export type EntityFilterInput = EntityFilterSource & {
   label: string;
   fields?: string[];
   pinned?: boolean;
+  highlight?: TableFilterHighlight;
   description?: `Filter by ${string}`;
 };
 
@@ -36,6 +38,7 @@ export let createEntityFilter = (d: EntityFilterInput): TableFilter<{ id: string
     label: d.label,
     description: d.description ?? `Filter by ${d.label.toLowerCase()}`,
     pinned: d.pinned,
+    highlight: d.highlight,
     type: 'entity',
     remoteSearch: d.remoteSearch,
     searchPlaceholder: d.searchPlaceholder,

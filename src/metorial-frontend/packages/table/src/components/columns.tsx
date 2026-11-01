@@ -108,7 +108,7 @@ export let Columns = memo(
       <Wrapper>
         <RadixPopover.Root open={open} onOpenChange={setOpen}>
           <RadixPopover.Trigger asChild>
-            <Button iconLeft={<RiTableView />} size="2" variant="outline">
+            <Button iconLeft={<RiTableView />} variant="outline">
               Columns
             </Button>
           </RadixPopover.Trigger>

@@ -17,7 +17,7 @@ import {
   FilterPayload,
   TableFilter,
   TableFilterState,
-  TableFilters,
+  FilterToolbar,
   TableStateProvider,
   TableStateProviderResult,
   getEnumListFilterValue,
@@ -25,7 +25,7 @@ import {
   getListFilterValue,
   useFilterQuery
 } from '@metorial/table';
-import { Avatar, Badge, Input, RenderDate, Spacer, Text, theme } from '@metorial/ui';
+import { Avatar, Badge, RenderDate, Spacer, Text, theme } from '@metorial/ui';
 import { ID, ItemGrid } from '@metorial/ui-product';
 import { useDebounced } from '@metorial/use-debounced';
 import { ResourceOwnerInline } from '../../components/resourceOwnerEntity';
@@ -35,18 +35,6 @@ import { entityFilters } from '../entityFilters';
 import { showMagicMcpServerCreateFlow } from '../providerDeployments/magicMcpForm';
 
 type Server = DashboardInstanceMagicMcpServersListOutput['items'][number];
-
-let Toolbar = styled.div`
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  flex-wrap: wrap;
-`;
-
-let SearchWrapper = styled.div`
-  flex: 1;
-  min-width: 260px;
-`;
 
 let ProviderAvatarStack = styled.div`
   display: flex;
@@ -298,24 +286,12 @@ export let MagicMcpServersGrid = (filter: DashboardInstanceMagicMcpServersListQu
 
   return (
     <>
-      <Toolbar>
-        <SearchWrapper>
-          <Input
-            label="Search"
-            hideLabel
-            placeholder="Search Magic MCP servers..."
-            value={search}
-            onInput={setSearch}
-            size="2"
-          />
-        </SearchWrapper>
-
-        <TableFilters
-          filters={filters}
-          filterState={[filterState, setFilterState]}
-          fullWidth={false}
-        />
-      </Toolbar>
+      <FilterToolbar
+        searchState={[search, setSearch]}
+        filterState={[filterState, setFilterState]}
+        filters={filters}
+        placeholder="Search Magic MCP servers or filter..."
+      />
 
       <Spacer size={15} />
 

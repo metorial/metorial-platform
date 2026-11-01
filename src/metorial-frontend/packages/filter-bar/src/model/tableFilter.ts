@@ -3,7 +3,17 @@ export type TableFilterEntityOption = {
   label: string;
   description?: string;
   slug?: string;
+  count?: number;
 };
+
+export type TableFilterSelectOption = {
+  id: string;
+  label: string;
+  description?: string;
+  count?: number;
+};
+
+export type TableFilterHighlight = boolean | { label?: string };
 
 export type TableFilterEntityOptions = {
   items: TableFilterEntityOption[];
@@ -17,6 +27,7 @@ export type TableFilter<Item extends { id: string }> = {
   label: string;
   description: `Filter by ${string}`;
   pinned?: boolean;
+  highlight?: TableFilterHighlight;
 } & (
   | {
       type: 'number';
@@ -29,7 +40,7 @@ export type TableFilter<Item extends { id: string }> = {
     }
   | {
       type: 'select';
-      options: { id: string; label: string }[];
+      options: TableFilterSelectOption[];
     }
   | {
       type: 'entity';

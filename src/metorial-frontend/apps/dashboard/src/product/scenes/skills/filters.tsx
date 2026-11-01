@@ -6,9 +6,9 @@ import type {
   DashboardInstanceSkillsListQuery
 } from '@metorial/dashboard-sdk';
 import { useCurrentInstance } from '@metorial/state';
-import { SearchFiltersToolbar } from '@metorial/ui-product';
 import { type Dispatch, type SetStateAction, useMemo } from 'react';
 import {
+  FilterToolbar,
   TableFilter,
   TableFilterState,
   getFilterPayload,
@@ -273,10 +273,11 @@ export let SkillResourceFilters = (p: {
   filters: TableFilter<any>[];
   placeholder: string;
 }) => (
-  <SearchFiltersToolbar
-    {...p}
-    defaultFilterId={
-      p.filters.some(filter => filter.id == 'status') ? 'status' : p.filters[0]?.id
-    }
+  <FilterToolbar
+    searchState={p.searchState}
+    filterState={p.filterState}
+    filters={p.filters}
+    placeholder={p.placeholder}
+    style={{ marginBottom: 15 }}
   />
 );

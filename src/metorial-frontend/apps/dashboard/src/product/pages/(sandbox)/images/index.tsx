@@ -9,12 +9,12 @@ import {
 import {
   type TableFilter,
   type TableFilterState,
-  TableFilters,
+  FilterToolbar,
   getEnumListFilterValue,
   getFilterPayload,
   useFilterQuery
 } from '@metorial/table';
-import { Badge, Button, Input, Text } from '@metorial/ui';
+import { Badge, Button, Text } from '@metorial/ui';
 import { ItemGrid } from '@metorial/ui-product';
 import { useDebounced } from '@metorial/use-debounced';
 import { memo, useCallback, useState } from 'react';
@@ -169,24 +169,12 @@ let ImagesContent = () => {
   return (
     <ImageStack>
       {(filtered || !!images.data?.items.length) && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ flex: 1 }}>
-            <Input
-              size="2"
-              label="Search Images"
-              hideLabel
-              placeholder="Search images..."
-              value={search}
-              onInput={setSearch}
-            />
-          </div>
-          <TableFilters
-            filters={filters}
-            filterState={[filterState, setFilterState]}
-            fullWidth={false}
-            defaultFilterId="owner"
-          />
-        </div>
+        <FilterToolbar
+          searchState={[search, setSearch]}
+          filterState={[filterState, setFilterState]}
+          filters={filters}
+          placeholder="Search images or filter..."
+        />
       )}
       {content}
     </ImageStack>

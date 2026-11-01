@@ -10,12 +10,12 @@ import {
   useCurrentProject,
   useCustomProviders
 } from '@metorial/state';
-import { Input, Spacer, Text, theme } from '@metorial/ui';
+import { Spacer, Text, theme } from '@metorial/ui';
 import { ItemGrid } from '@metorial/ui-product';
 import { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import {
-  TableFilters,
+  FilterToolbar,
   useFilterQuery,
   FilterPayload,
   TableFilter,
@@ -54,18 +54,6 @@ let getTypeLabel = (type: CustomProvider['type']) => {
   if (type === 'container') return 'Container';
   return 'Remote';
 };
-
-let Toolbar = styled.div`
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  flex-wrap: wrap;
-`;
-
-let SearchWrapper = styled.div`
-  flex: 1;
-  min-width: 260px;
-`;
 
 let HeaderRow = styled.div`
   display: flex;
@@ -247,24 +235,12 @@ export let CustomProvidersGrid = ({
 
   return (
     <>
-      <Toolbar>
-        <SearchWrapper>
-          <Input
-            label="Search"
-            hideLabel
-            size="2"
-            placeholder="Search providers..."
-            value={search}
-            onInput={setSearch}
-          />
-        </SearchWrapper>
-
-        <TableFilters
-          filters={tableFilters}
-          filterState={[filterState, setFilterState]}
-          fullWidth={false}
-        />
-      </Toolbar>
+      <FilterToolbar
+        searchState={[search, setSearch]}
+        filterState={[filterState, setFilterState]}
+        filters={tableFilters}
+        placeholder="Search providers or filter..."
+      />
 
       <Spacer size={15} />
 
