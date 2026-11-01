@@ -1,3 +1,4 @@
+import { checkEdition } from '@metorial/editions';
 import {
   agentsLoader,
   callbacksLoader,
@@ -21,8 +22,6 @@ import {
   providerToolsLoader,
   providersLoader,
   providerVersionsLoader,
-  sandboxImagesLoader,
-  sandboxMachinesLoader,
   sessionsLoader,
   skillGroupsLoader,
   skillMarketplacesLoader,
@@ -52,6 +51,10 @@ export {
   type EntityFilterOptions,
   type EntityListQuery
 } from './define';
+
+let sandboxFilters = checkEdition('cloud')
+  ? (await import('./sandbox')).sandboxFilters
+  : ({} as typeof import('./sandbox').sandboxFilters);
 
 type InstanceId = string | null | undefined;
 
@@ -463,31 +466,5 @@ export let entityFilters = {
       useList: q => useEntityList(chatInstancesLoader.use(listParams(instanceId, q)), named)
     })(opts),
 
-  sandboxMachine: (instanceId: InstanceId, opts?: EntityFilterOptions) =>
-    defineEntityFilter({
-      id: 'machineId',
-      label: 'Machine',
-      noun: 'machines',
-      mode: 'search',
-      useList: q =>
-        useEntityList(sandboxMachinesLoader.use(listParams(instanceId, q)), item => ({
-          id: item.id,
-          label: item.name || item.slug || item.id,
-          slug: item.slug ?? undefined
-        }))
-    })(opts),
-
-  sandboxImage: (instanceId: InstanceId, opts?: EntityFilterOptions) =>
-    defineEntityFilter({
-      id: 'imageId',
-      label: 'Image',
-      noun: 'images',
-      mode: 'search',
-      useList: q =>
-        useEntityList(sandboxImagesLoader.use(listParams(instanceId, q)), item => ({
-          id: item.id,
-          label: item.name || item.identifier || item.id,
-          slug: item.identifier ?? undefined
-        }))
-    })(opts)
+  ...sandboxFilters
 };
