@@ -9,6 +9,7 @@ vi.mock('../db', () => ({ db: { scmBackend: { findUnique: mocks.find } } }));
 vi.mock('../services/scmAuth', () => ({
   scmAuthService: { handleGitHubAppInstallationCreated: mocks.created }
 }));
+vi.mock('../env', () => ({ delegateSecretsToNebula: false }));
 vi.mock('../lib/scmPolicy', () => ({ assertScmBackendAllowed: mocks.assert }));
 
 let backend = { id: 'backend-a', type: 'github', appWebhookSecret: 'secret-a' };

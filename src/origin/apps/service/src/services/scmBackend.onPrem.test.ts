@@ -7,6 +7,7 @@ vi.mock('../db', () => ({
 }));
 vi.mock('../id', () => ({ getId: () => ({ id: 'configured-backend' }) }));
 vi.mock('../env', () => ({
+  delegateSecretsToNebula: false,
   env: {
     gh: {
       SCM_GITHUB_APP_ID: 'env-app',

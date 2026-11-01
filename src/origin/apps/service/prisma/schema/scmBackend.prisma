@@ -26,8 +26,13 @@ model ScmBackend {
   appWebhookSecret String?
   appPrivateKey    String?
 
+  appWebhookSecretNebulaSecretId String?
+  appPrivateKeyNebulaSecretId    String?
+
   clientId     String?
   clientSecret String?
+
+  clientSecretNebulaSecretId String?
 
   tenantOid BigInt?
   tenant    Tenant? @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)

@@ -1,6 +1,7 @@
 import { createHono } from '@lowerdeck/hono';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { db } from '../db';
+import { hasBackendSecret, readBackendSecret } from '../lib/scmCredentials';
 import { assertScmBackendAllowed } from '../lib/scmPolicy';
 import { scmAuthService } from '../services/scmAuth';
 
@@ -11,15 +12,22 @@ export let scmAppWebhookController = createHono().post(
     if (
       !backend ||
       !['github', 'github_enterprise'].includes(backend.type) ||
-      !backend.appWebhookSecret
+      !hasBackendSecret(backend, 'appWebhookSecret')
     )
       return c.text('Not Found', 404);
     assertScmBackendAllowed(backend);
 
+    let webhookSecret = await readBackendSecret(
+      backend,
+      'appWebhookSecret',
+      'origin:github:app-webhook'
+    );
+    if (!webhookSecret) return c.text('Not Found', 404);
+
     let payload = await c.req.text();
     let received = Buffer.from(c.req.header('X-Hub-Signature-256') ?? '');
     let expected = Buffer.from(
-      `sha256=${createHmac('sha256', backend.appWebhookSecret).update(payload).digest('hex')}`
+      `sha256=${createHmac('sha256', webhookSecret).update(payload).digest('hex')}`
     );
     if (received.length !== expected.length || !timingSafeEqual(received, expected))
       return c.text('Invalid signature', 401);

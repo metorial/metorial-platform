@@ -10,6 +10,7 @@ let mocks = vi.hoisted(() => ({
 
 vi.mock('@octokit/core', () => ({ Octokit: mocks.octokit }));
 vi.mock('../env', () => ({
+  delegateSecretsToNebula: false,
   env: { gh: { SCM_GITHUB_APP_ID: 'environment-app-id' } },
   SCM_GITHUB_APP_PRIVATE_KEY: 'environment-private-key'
 }));
@@ -58,14 +59,14 @@ afterAll(() => {
   vi.unstubAllGlobals();
 });
 
-it('does not fall back to environment app credentials', () => {
-  expect(() => github.createGitHubAppClient()).toThrow(/Configure/);
+it('does not fall back to environment app credentials', async () => {
+  await expect(github.createGitHubAppClient()).rejects.toThrow(/Configure/);
   expect(mocks.octokit).not.toHaveBeenCalled();
 });
 
 it('rejects a locked domain before constructing a client or exchanging a token', async () => {
   let denied = { ...backend, webUrl: 'https://other.example.com' };
-  expect(() => github.createGitHubAppClient(denied)).toThrow(/domain/);
+  await expect(github.createGitHubAppClient(denied)).rejects.toThrow(/domain/);
   await expect(
     github.exchangeGitHubOAuthCode({
       backend: denied,
@@ -77,8 +78,8 @@ it('rejects a locked domain before constructing a client or exchanging a token',
   expect(mocks.fetch).not.toHaveBeenCalled();
 });
 
-it('uses only configured app credentials and endpoints for an allowed backend', () => {
-  github.createGitHubAppClient(backend);
+it('uses only configured app credentials and endpoints for an allowed backend', async () => {
+  await github.createGitHubAppClient(backend);
   expect(mocks.octokit).toHaveBeenCalledWith(
     expect.objectContaining({
       baseUrl: backend.apiUrl,

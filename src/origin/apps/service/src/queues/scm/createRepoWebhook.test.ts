@@ -32,6 +32,7 @@ vi.mock('@lowerdeck/queue', () => ({
 }));
 vi.mock('../../db', () => ({ db: mocks.db }));
 vi.mock('../../env', () => ({
+  delegateSecretsToNebula: false,
   env: {
     service: {
       REDIS_URL: 'redis://localhost',
@@ -201,6 +202,7 @@ describe('repository webhook single reconciliation', () => {
       data: {
         id: 'osw_new',
         signingSecret: 'secret',
+        signingSecretNebulaSecretId: null,
         repoOid: 1n,
         externalId: '11',
         registeredEvents: ['push'],

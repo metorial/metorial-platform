@@ -4,16 +4,25 @@ import { createAppAuth } from '@octokit/auth-app';
 import { Octokit } from '@octokit/core';
 import type { ScmBackend } from '../../prisma/generated/client';
 import { env, SCM_GITHUB_APP_PRIVATE_KEY } from '../env';
+import { readBackendSecret } from './scmCredentials';
 
 let GITHUB_REST_API_VERSION = '2022-11-28';
 
-export let createGitHubAppClient = (backend?: ScmBackend) => {
+let getAppPrivateKey = async (backend?: ScmBackend) => {
+  let backendKey = backend
+    ? await readBackendSecret(backend, 'appPrivateKey', 'origin:github:app')
+    : null;
+
+  return (
+    backendKey ?? (checkEdition('cloud') ? SCM_GITHUB_APP_PRIVATE_KEY : undefined)
+  )?.replace(/\\n/g, '\n');
+};
+
+export let createGitHubAppClient = async (backend?: ScmBackend) => {
   assertScmBackendAllowed(backend);
 
   let appId = backend?.appId ?? (checkEdition('cloud') ? env.gh.SCM_GITHUB_APP_ID : undefined);
-  let privateKey = (
-    backend?.appPrivateKey ?? (checkEdition('cloud') ? SCM_GITHUB_APP_PRIVATE_KEY : undefined)
-  )?.replace(/\\n/g, '\n');
+  let privateKey = await getAppPrivateKey(backend);
   let baseUrl = backend?.apiUrl ?? 'https://api.github.com';
 
   return new Octokit({
@@ -38,7 +47,9 @@ export let exchangeGitHubOAuthCode = async (i: {
 }) => {
   assertScmBackendAllowed(i.backend);
 
-  if (!i.backend.clientId || !i.backend.clientSecret) {
+  let clientSecret = await readBackendSecret(i.backend, 'clientSecret', 'origin:github:oauth');
+
+  if (!i.backend.clientId || !clientSecret) {
     throw new Error('GitHub backend is missing OAuth credentials');
   }
 
@@ -55,7 +66,7 @@ export let exchangeGitHubOAuthCode = async (i: {
       },
       body: new URLSearchParams({
         client_id: i.backend.clientId,
-        client_secret: i.backend.clientSecret,
+        client_secret: clientSecret,
         code: i.code,
         redirect_uri: i.redirectUri
       })
@@ -84,7 +95,7 @@ export let getGitHubAuthenticatedUser = async (backend: ScmBackend, accessToken:
 };
 
 export let listGitHubInstallationRequests = async (backend: ScmBackend) => {
-  let github = createGitHubAppClient(backend);
+  let github = await createGitHubAppClient(backend);
   let requests: any[] = [];
   for (let page = 1; ; page++) {
     let response = await github.request('GET /app/installation-requests', {
@@ -102,7 +113,7 @@ export let getGitHubInstallationForAccount = async (i: {
   accountLogin: string;
   accountType: 'user' | 'organization';
 }) => {
-  let github = createGitHubAppClient(i.backend);
+  let github = await createGitHubAppClient(i.backend);
   try {
     if (i.accountType === 'user') {
       return (
@@ -136,9 +147,7 @@ export let createGitHubInstallationClient = async (
   assertScmBackendAllowed(backend);
 
   let appId = backend?.appId ?? (checkEdition('cloud') ? env.gh.SCM_GITHUB_APP_ID : undefined);
-  let privateKey = (
-    backend?.appPrivateKey ?? (checkEdition('cloud') ? SCM_GITHUB_APP_PRIVATE_KEY : undefined)
-  )?.replace(/\\n/g, '\n');
+  let privateKey = await getAppPrivateKey(backend);
   let baseUrl = backend?.apiUrl ?? 'https://api.github.com';
 
   let octokit = new Octokit({
@@ -163,7 +172,7 @@ export let getInstallationAccessToken = async (
   installationId: string,
   backend?: ScmBackend
 ): Promise<string> => {
-  let octokit = createGitHubAppClient(backend);
+  let octokit = await createGitHubAppClient(backend);
 
   let response = await octokit.request(
     'POST /app/installations/{installation_id}/access_tokens',

@@ -1,6 +1,7 @@
 import { checkEdition } from '@metorial/editions';
 import { env } from '../env';
 import type { ScmBackend } from '../../prisma/generated/client';
+import { hasBackendSecret } from '../lib/scmCredentials';
 
 export let scmBackendPresenter = (backend: ScmBackend) => ({
   object: 'origin#scmBackend' as const,
@@ -15,8 +16,8 @@ export let scmBackendPresenter = (backend: ScmBackend) => ({
   // Don't expose sensitive credentials
   hasCredentials:
     checkEdition('on-prem') && !['github', 'github_enterprise'].includes(backend.type)
-      ? !!(backend.clientId && backend.clientSecret)
-      : !!(backend.appId && backend.appPrivateKey),
+      ? !!(backend.clientId && hasBackendSecret(backend, 'clientSecret'))
+      : !!(backend.appId && hasBackendSecret(backend, 'appPrivateKey')),
   ...(checkEdition('on-prem') && ['github', 'github_enterprise'].includes(backend.type)
     ? {
         appWebhookUrl: `${env.service.ORIGIN_SERVICE_PUBLIC_URL}/origin/webhook-ingest/github-app/${backend.id}`

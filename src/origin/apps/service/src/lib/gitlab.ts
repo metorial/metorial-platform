@@ -3,6 +3,12 @@ import { Gitlab } from '@gitbeaker/rest';
 import { badRequestError, ServiceError, unauthorizedError } from '@lowerdeck/error';
 import type { ScmBackend, ScmInstallation } from '../../prisma/generated/client';
 import { db } from '../db';
+import {
+  hasInstallationTokens,
+  readBackendSecret,
+  readInstallationTokens,
+  writeRefreshedInstallationTokens
+} from './scmCredentials';
 import { withScmProviderError, wrapScmProviderError } from './scmProviderError';
 import { usingScmTokenRefreshLock } from './scmTokenRefreshLock';
 
@@ -62,7 +68,7 @@ export let exchangeGitLabOAuthCode = async (i: {
 
   let webUrl = i.backend.webUrl;
   let clientId = i.backend.clientId;
-  let clientSecret = i.backend.clientSecret;
+  let clientSecret = await readBackendSecret(i.backend, 'clientSecret', 'origin:gitlab:oauth');
 
   let response = await withScmProviderError('gitlab', 'exchange the OAuth token', () =>
     fetch(`${webUrl}/oauth/token`, {
@@ -112,7 +118,7 @@ export let refreshGitLabAccessToken = async (i: {
 
   let webUrl = i.backend.webUrl;
   let clientId = i.backend.clientId;
-  let clientSecret = i.backend.clientSecret;
+  let clientSecret = await readBackendSecret(i.backend, 'clientSecret', 'origin:gitlab:oauth');
 
   let response = await withScmProviderError('gitlab', 'refresh the OAuth token', () =>
     fetch(`${webUrl}/oauth/token`, {
@@ -171,11 +177,12 @@ let refreshGitLabInstallationCredentials = async (
       where: { oid: installation.oid }
     });
     let current = persisted ? { ...installation, ...persisted } : installation;
+    let tokens = await readInstallationTokens(current, 'origin:gitlab:refresh');
 
-    if (current.accessToken && !tokenNeedsRefresh(current.accessTokenExpiresAt)) {
-      return current.accessToken;
+    if (tokens.accessToken && !tokenNeedsRefresh(current.accessTokenExpiresAt)) {
+      return tokens.accessToken;
     }
-    if (!current.refreshToken) {
+    if (!tokens.refreshToken) {
       throw new ServiceError(
         unauthorizedError({
           message: 'GitLab authentication expired. Reconnect the GitLab integration.'
@@ -186,30 +193,30 @@ let refreshGitLabInstallationCredentials = async (
     try {
       let refreshed = await refreshGitLabAccessToken({
         backend: current.backend,
-        refreshToken: current.refreshToken
+        refreshToken: tokens.refreshToken
       });
 
-      await db.scmInstallation.update({
-        where: { oid: current.oid },
-        data: {
-          accessToken: refreshed.accessToken,
-          refreshToken: refreshed.refreshToken,
-          accessTokenExpiresAt: refreshed.expiresAt
-        }
-      });
+      await writeRefreshedInstallationTokens(current, refreshed);
 
       return refreshed.accessToken;
     } catch (error) {
       let winner = await db.scmInstallation.findUnique({
         where: { oid: current.oid }
       });
+      let winnerTokens = winner
+        ? await readInstallationTokens(winner, 'origin:gitlab:refresh-winner').catch(
+            () => null
+          )
+        : null;
+
       if (
-        winner?.accessToken &&
+        winner &&
+        winnerTokens?.accessToken &&
         !tokenNeedsRefresh(winner.accessTokenExpiresAt) &&
-        (winner.accessToken !== current.accessToken ||
-          winner.refreshToken !== current.refreshToken)
+        (winnerTokens.accessToken !== tokens.accessToken ||
+          winnerTokens.refreshToken !== tokens.refreshToken)
       ) {
-        return winner.accessToken;
+        return winnerTokens.accessToken;
       }
 
       throw error;
@@ -221,11 +228,18 @@ export let getGitLabAccessTokenWithInstallation = async (
 ): Promise<string> => {
   assertScmBackendAllowed(installation.backend);
 
-  if (!installation.accessToken) {
+  if (!hasInstallationTokens(installation)) {
     throw new ServiceError(badRequestError({ message: 'Access token not found' }));
   }
 
-  if (!tokenNeedsRefresh(installation.accessTokenExpiresAt)) return installation.accessToken;
+  if (!tokenNeedsRefresh(installation.accessTokenExpiresAt)) {
+    let tokens = await readInstallationTokens(installation, 'origin:gitlab:api');
+    if (!tokens.accessToken) {
+      throw new ServiceError(badRequestError({ message: 'Access token not found' }));
+    }
+
+    return tokens.accessToken;
+  }
 
   let refresh = tokenRefreshes.get(installation.oid);
   if (!refresh) {

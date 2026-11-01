@@ -10,6 +10,12 @@ env = [
 ]
 
 [[dependencies]]
+identifier = "@metorial/nebula"
+env = [
+  { endpoint = "api", key = "NEBULA_API_URL", value = "http://{{HOSTNAME}}:{{PORT}}/metorial-nebula" },
+]
+
+[[dependencies]]
 identifier = "@metorial/code-bucket-service-generated"
 env = [
   { endpoint = "rpc", key = "CODE_BUCKET_SERVICE_URL", value = "{{HOSTNAME}}:{{PORT}}" },
@@ -46,6 +52,8 @@ IS_ENTERPRISE = "false"
 METORIAL_HOSTNAME = "{{HOSTNAME}}"
 NODE_ENV = "development"
 CODE_BUCKET_OBJECT_STORAGE_BUCKET = "code-bucket"
+NEBULA_CONSUMER_TOKEN = "local-dev-nebula-origin-registration-secret"
+ORIGIN_DELEGATE_SECRETS_TO_NEBULA = "true"
 SCM_GITHUB_APP_ID = true
 SCM_GITHUB_APP_SLUG = true
 SCM_GITHUB_APP_PRIVATE_KEY_BASE_64 = true

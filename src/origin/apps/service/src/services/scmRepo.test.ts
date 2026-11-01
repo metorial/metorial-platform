@@ -14,6 +14,7 @@ vi.mock('../queues/scm/repositorySync/recover', () => ({
 }));
 
 vi.mock('../db', () => ({ db: {} }));
+vi.mock('../env', () => ({ delegateSecretsToNebula: false }));
 vi.mock('../lib/githubApp', () => ({ createGitHubInstallationClient: vi.fn() }));
 vi.mock('../lib/gitlab', () => ({
   createGitLabClientWithInstallation: vi.fn()

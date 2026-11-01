@@ -13,6 +13,11 @@ import type { ScmBackend, Tenant } from '../../prisma/generated/client';
 import { db } from '../db';
 import { env, SCM_GITHUB_APP_PRIVATE_KEY } from '../env';
 import { getId } from '../id';
+import {
+  discardBackendSecrets,
+  discardNebulaSecrets,
+  writeBackendSecrets
+} from '../lib/scmCredentials';
 
 class scmBackendServiceImpl {
   async ensureDefaultBackends() {
@@ -204,24 +209,52 @@ class scmBackendServiceImpl {
       );
     }
 
-    return db.scmBackend.create({
-      data: {
-        ...getId('scmBackend'),
+    let ids = getId('scmBackend');
+    let secrets = await writeBackendSecrets({
+      backend: {
+        id: ids.id,
         tenantOid: d.tenant.oid,
-        type: d.type,
-        name: d.name,
-        description: d.description,
-        apiUrl: d.apiUrl,
-        webUrl: d.webUrl,
-        appId: d.appId,
-        appSlug: d.appSlug,
-        appPrivateKey: d.appPrivateKey,
-        ...(checkEdition('on-prem') ? { appWebhookSecret: d.appWebhookSecret } : {}),
-        clientId: d.clientId,
+        clientSecret: null,
+        clientSecretNebulaSecretId: null,
+        appPrivateKey: null,
+        appPrivateKeyNebulaSecretId: null,
+        appWebhookSecret: null,
+        appWebhookSecretNebulaSecretId: null
+      },
+      secrets: {
         clientSecret: d.clientSecret,
-        isDefault: false
+        appPrivateKey: d.appPrivateKey,
+        ...(checkEdition('on-prem') && d.appWebhookSecret !== undefined
+          ? { appWebhookSecret: d.appWebhookSecret }
+          : {})
       }
     });
+
+    try {
+      return await db.scmBackend.create({
+        data: {
+          ...ids,
+          tenantOid: d.tenant.oid,
+          type: d.type,
+          name: d.name,
+          description: d.description,
+          apiUrl: d.apiUrl,
+          webUrl: d.webUrl,
+          appId: d.appId,
+          appSlug: d.appSlug,
+          clientId: d.clientId,
+          isDefault: false,
+          ...secrets.patch
+        }
+      });
+    } catch (error) {
+      await discardNebulaSecrets({
+        tenantOid: d.tenant.oid,
+        nebulaSecretIds: secrets.createdNebulaSecretIds
+      });
+
+      throw error;
+    }
   }
 
   async updateScmBackend(d: {
@@ -245,19 +278,37 @@ class scmBackendServiceImpl {
       );
     }
 
-    return db.scmBackend.update({
-      where: { oid: d.backend.oid },
-      data: {
-        name: d.name,
-        description: d.description,
-        appId: d.appId,
-        appSlug: d.appSlug,
+    let secrets = await writeBackendSecrets({
+      backend: d.backend,
+      secrets: {
+        clientSecret: d.clientSecret,
         appPrivateKey: d.appPrivateKey,
-        ...(checkEdition('on-prem') ? { appWebhookSecret: d.appWebhookSecret } : {}),
-        clientId: d.clientId,
-        clientSecret: d.clientSecret
+        ...(checkEdition('on-prem') && d.appWebhookSecret !== undefined
+          ? { appWebhookSecret: d.appWebhookSecret }
+          : {})
       }
     });
+
+    try {
+      return await db.scmBackend.update({
+        where: { oid: d.backend.oid },
+        data: {
+          name: d.name,
+          description: d.description,
+          appId: d.appId,
+          appSlug: d.appSlug,
+          clientId: d.clientId,
+          ...secrets.patch
+        }
+      });
+    } catch (error) {
+      await discardNebulaSecrets({
+        tenantOid: d.backend.tenantOid,
+        nebulaSecretIds: secrets.createdNebulaSecretIds
+      });
+
+      throw error;
+    }
   }
 
   async deleteScmBackend(d: { backend: ScmBackend }) {
@@ -274,6 +325,8 @@ class scmBackendServiceImpl {
     await db.scmBackend.delete({
       where: { oid: d.backend.oid }
     });
+
+    await discardBackendSecrets(d.backend);
   }
 }
 

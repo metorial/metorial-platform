@@ -16,6 +16,7 @@ import { getId } from '../id';
 import { createBitbucketClientWithInstallation } from '../lib/bitbucket';
 import { createGitHubInstallationClient } from '../lib/githubApp';
 import { createGitLabClientWithInstallation } from '../lib/gitlab';
+import { readWebhookSigningSecret } from '../lib/scmCredentials';
 import {
   getGitLabNamespaceId,
   getGitLabPersonalNamespaceId,
@@ -957,7 +958,12 @@ class scmRepoServiceImpl {
       assertScmBackendAllowed(backend ?? undefined);
     }
 
-    if (!verifyHmacSignature(i.payload, i.signature, webhook.signingSecret)) {
+    let signingSecret = await readWebhookSigningSecret(
+      webhook,
+      webhook.repo.tenantOid,
+      'origin:webhook:verify'
+    );
+    if (!verifyHmacSignature(i.payload, i.signature, signingSecret)) {
       throw new ServiceError(badRequestError({ message: 'Invalid signature' }));
     }
 
@@ -1058,7 +1064,12 @@ class scmRepoServiceImpl {
     }
 
     // Verify token
-    if (i.token !== webhook.signingSecret) {
+    let signingSecret = await readWebhookSigningSecret(
+      webhook,
+      webhook.repo.tenantOid,
+      'origin:webhook:verify'
+    );
+    if (i.token !== signingSecret) {
       throw new ServiceError(badRequestError({ message: 'Invalid token' }));
     }
 
@@ -1163,7 +1174,12 @@ class scmRepoServiceImpl {
     if (!webhook || webhook.repo.provider !== 'bitbucket') {
       throw new ServiceError(badRequestError({ message: 'Invalid webhook' }));
     }
-    if (!verifyHmacSignature(i.payload, i.signature, webhook.signingSecret)) {
+    let signingSecret = await readWebhookSigningSecret(
+      webhook,
+      webhook.repo.tenantOid,
+      'origin:webhook:verify'
+    );
+    if (!verifyHmacSignature(i.payload, i.signature, signingSecret)) {
       throw new ServiceError(badRequestError({ message: 'Invalid signature' }));
     }
 

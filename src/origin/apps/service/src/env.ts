@@ -1,6 +1,6 @@
 import { checkEdition } from '@metorial/editions';
 import { defineSettings, setting } from '@metorial/settings';
-import { objectStorageUrl, redisUrl } from '@metorial/shared-settings';
+import { objectStorageUrl, redisUrl, serviceUrl } from '@metorial/shared-settings';
 import { v } from '@lowerdeck/validation';
 
 export let env = defineSettings({
@@ -17,6 +17,19 @@ export let env = defineSettings({
   storage: {
     OBJECT_STORAGE_URL: objectStorageUrl,
     CODE_BUCKET_OBJECT_STORAGE_BUCKET: v.string()
+  },
+
+  nebula: {
+    NEBULA_API_URL: serviceUrl('nebula'),
+    NEBULA_CONSUMER_TOKEN: v.string()
+  },
+
+  secrets: {
+    ORIGIN_DELEGATE_SECRETS_TO_NEBULA: setting(v.boolean(), {
+      audience: 'deployment',
+      default: false,
+      description: 'Store new SCM secrets in Nebula (always enabled in the on-prem edition)'
+    })
   },
 
   codeBucket: {
@@ -45,6 +58,9 @@ export let env = defineSettings({
     SCM_BITBUCKET_CLIENT_SECRET: setting(v.optional(v.string()), { editions: ['cloud'] })
   }
 });
+
+export let delegateSecretsToNebula =
+  checkEdition('on-prem') || env.secrets.ORIGIN_DELEGATE_SECRETS_TO_NEBULA;
 
 export let SCM_GITHUB_APP_PRIVATE_KEY =
   checkEdition('cloud') && env.gh.SCM_GITHUB_APP_PRIVATE_KEY_BASE_64

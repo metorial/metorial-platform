@@ -31,6 +31,7 @@ CONSUMER_INSTANCE_TOKEN_SECRET = "local-dev-nebula-consumer-token-secret-with-en
 CONSUMER_INSTANCE_TOKEN_TTL_SECONDS = "3600"
 CONSUMER_REGISTRATION_SLATES = "local-dev-nebula-slates-registration-secret"
 CONSUMER_REGISTRATION_SHUTTLE = "local-dev-nebula-shuttle-registration-secret"
+CONSUMER_REGISTRATION_ORIGIN = "local-dev-nebula-origin-registration-secret"
 
 [dev.db.main]
 package = "@metorial/nebula"

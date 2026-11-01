@@ -23,10 +23,9 @@ type RepositoryWithInstallation = ScmRepository & {
   installation: ScmInstallation & { backend: ScmBackend };
 };
 
-type WebhookReference = Pick<
-  ScmRepositoryWebhook,
-  'id' | 'externalId' | 'signingSecret'
->;
+type WebhookReference = Pick<ScmRepositoryWebhook, 'id' | 'externalId'> & {
+  signingSecret: string;
+};
 
 export type RepositoryWebhookState = {
   externalId: string;
