@@ -4,17 +4,17 @@ import { usageDbConnect } from './connection';
 
 let STATE_ID = 'default';
 
-let cachedCutoff: Date | null = null;
+let cachedCutoffs = new Map<string, Date>();
 
-export let getUsageBackfillState = async () => {
+export let getUsageBackfillState = async (stateId = STATE_ID) => {
   await usageDbConnect();
 
-  let existing = await UsageBackfillStateModel.findById(STATE_ID).lean();
+  let existing = await UsageBackfillStateModel.findById(stateId).lean();
   if (existing) return existing;
 
   try {
     return await UsageBackfillStateModel.findOneAndUpdate(
-      { _id: STATE_ID },
+      { _id: stateId },
       {
         $setOnInsert: {
           cutoff: new Date(floorToMinute(Date.now())),
@@ -26,28 +26,31 @@ export let getUsageBackfillState = async () => {
     );
   } catch (e: any) {
     if (e?.code != 11000) throw e;
-    return await UsageBackfillStateModel.findById(STATE_ID).lean();
+    return await UsageBackfillStateModel.findById(stateId).lean();
   }
 };
 
-export let getUsageBackfillCutoff = async () => {
+export let getUsageBackfillCutoff = async (stateId = STATE_ID) => {
+  let cachedCutoff = cachedCutoffs.get(stateId);
   if (cachedCutoff) return cachedCutoff;
 
-  let state = await getUsageBackfillState();
+  let state = await getUsageBackfillState(stateId);
   if (!state) throw new Error('Usage backfill state could not be created');
 
   cachedCutoff = new Date(state.cutoff);
+  cachedCutoffs.set(stateId, cachedCutoff);
   return cachedCutoff;
 };
 
 export let updateUsageBackfillSource = async (
   source: string,
-  update: Omit<UsageBackfillSourceState, 'updatedAt'>
+  update: Omit<UsageBackfillSourceState, 'updatedAt'>,
+  stateId = STATE_ID
 ) => {
   await usageDbConnect();
 
   await UsageBackfillStateModel.updateOne(
-    { _id: STATE_ID },
+    { _id: stateId },
     { $set: { [`sources.${source}`]: { ...update, updatedAt: new Date() } } }
   );
 };

@@ -17,6 +17,11 @@ import {
   readClaimedUsageBucket
 } from '../lib/buffer';
 import { isUsageEnabled, usageDbConnect } from '../lib/connection';
+import {
+  USAGE_MESSAGE_BACKFILL_ID,
+  USAGE_MESSAGE_REVISION,
+  usageMessageKinds
+} from '../lib/messageRevision';
 
 let FLUSH_BATCH_SIZE = 500;
 let FLUSH_WRITE_CHUNK_SIZE = 1000;
@@ -88,26 +93,31 @@ export let usageFlushBucketProcessor = usageFlushBucketQueue.process(async data 
 
   await usageDbConnect();
 
-  // Minutes before the cutoff are covered by the backfill, so writing them would count twice.
-  let cutoff = await getUsageBackfillCutoff();
-  if (minute < cutoff.getTime()) {
-    await acknowledgeClaimedUsageBucket(data.claimedKey);
-    return;
-  }
+  let [cutoff, messageCutoff] = await Promise.all([
+    getUsageBackfillCutoff(),
+    getUsageBackfillCutoff(USAGE_MESSAGE_BACKFILL_ID)
+  ]);
 
   let hash = await readClaimedUsageBucket(data.claimedKey);
   let buckets = [...parseUsageBucketHash(hash).entries()];
 
-  let documents = buckets.map(([field, counters]): UsageMetric => {
+  let documents = buckets.flatMap(([field, counters]): UsageMetric[] => {
     let key = decodeUsageBucketKey(field);
+    let isMessage = usageMessageKinds.includes(key.kind);
 
-    return {
-      _id: getUsageMetricId(['live', minute, nonce, field]),
-      ts: new Date(minute),
-      source: 'live',
-      ...key,
-      ...counters
-    };
+    // Rebuilt messages have their own cutoff so they cannot overlap with live counters.
+    if (minute < (isMessage ? messageCutoff : cutoff).getTime()) return [];
+
+    return [
+      {
+        _id: getUsageMetricId(['live', minute, nonce, field]),
+        ts: new Date(minute),
+        source: 'live',
+        ...(isMessage ? { messageRevision: USAGE_MESSAGE_REVISION } : {}),
+        ...key,
+        ...counters
+      }
+    ];
   });
 
   for (let i = 0; i < documents.length; i += FLUSH_WRITE_CHUNK_SIZE) {

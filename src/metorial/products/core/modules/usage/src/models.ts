@@ -12,6 +12,7 @@ export interface UsageMetric {
   _id: string;
   ts: Date;
   source: 'live' | 'backfill';
+  messageRevision?: number;
 
   organizationId: string | null;
   instanceId: string;
@@ -36,6 +37,7 @@ export let UsageMetricSchema = new mongoose.Schema<UsageMetric>(
     _id: String,
     ts: Date,
     source: { type: String, enum: ['live', 'backfill'] },
+    messageRevision: Number,
 
     organizationId: { type: String, default: null },
     instanceId: String,

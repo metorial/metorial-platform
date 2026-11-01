@@ -1,6 +1,12 @@
 import { UsageMetricModel } from '../models';
+import { getUsageBackfillState } from './backfillState';
 import { emptyUsageCounters } from './bucket';
 import { getUsageBucketStarts } from './interval';
+import {
+  USAGE_MESSAGE_BACKFILL_ID,
+  USAGE_MESSAGE_REVISION,
+  usageMessageKinds
+} from './messageRevision';
 import {
   USAGE_OTHER_GROUP,
   usageGroupByDimensions,
@@ -33,12 +39,28 @@ export type UsageTotals = UsageCounters & {
   activeAgents: number;
 };
 
-let buildMatch = (filter: UsageFilter) => {
+let buildMatch = async (filter: UsageFilter) => {
+  let hasMessages = filter.kinds.some(kind => usageMessageKinds.includes(kind));
+  let messageState = hasMessages
+    ? await getUsageBackfillState(USAGE_MESSAGE_BACKFILL_ID)
+    : null;
+
   let match: Record<string, any> = {
     instanceId: { $in: filter.instanceIds },
     kind: { $in: filter.kinds },
     ts: { $gte: filter.from, $lt: filter.to }
   };
+
+  if (hasMessages) {
+    // Publish rebuilt history only once every page is durable; until then retain the old view.
+    match.$or = messageState?.sources?.session_message?.done
+      ? [{ kind: { $nin: usageMessageKinds } }, { messageRevision: USAGE_MESSAGE_REVISION }]
+      : [
+          { kind: { $nin: usageMessageKinds } },
+          { messageRevision: { $ne: USAGE_MESSAGE_REVISION } },
+          { source: 'live' }
+        ];
+  }
 
   for (let [key, values] of Object.entries(filter.dims ?? {})) {
     if (values?.length) match[`dims.${key}`] = { $in: values };
@@ -105,7 +127,7 @@ export let queryUsageTimeline = async (
   }
 ) => {
   let rows = (await UsageMetricModel.aggregate([
-    { $match: buildMatch(filter) },
+    { $match: await buildMatch(filter) },
     {
       $group: {
         _id: {
@@ -179,13 +201,11 @@ export let queryUsageTimeline = async (
 
   return {
     total: presentPoints(total),
-    series: [...series.values()].map(
-      (entry): UsageSeries => ({
-        kind: entry.kind,
-        group: entry.group,
-        points: presentPoints(entry.points)
-      })
-    )
+    series: [...series.values()].map((entry): UsageSeries => ({
+      kind: entry.kind,
+      group: entry.group,
+      points: presentPoints(entry.points)
+    }))
   };
 };
 
@@ -197,10 +217,11 @@ export let queryUsageSummary = async (
   }
 ) => {
   let distinctAccumulator = filter.includeDistinct ? distinctAccumulators : {};
+  let match = await buildMatch(filter);
 
   let [kindRows, groupRows] = await Promise.all([
     UsageMetricModel.aggregate([
-      { $match: buildMatch(filter) },
+      { $match: match },
       {
         $group: {
           _id: { kind: '$kind', group: null },
@@ -212,7 +233,7 @@ export let queryUsageSummary = async (
 
     filter.groupBy
       ? (UsageMetricModel.aggregate([
-          { $match: buildMatch(filter) },
+          { $match: match },
           {
             $group: {
               _id: {
