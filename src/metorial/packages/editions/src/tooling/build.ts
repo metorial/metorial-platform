@@ -2,6 +2,7 @@ import { build } from 'esbuild';
 import { resolve } from 'node:path';
 import type { Edition } from '../edition';
 import { editionsEsbuildPlugin } from './esbuild';
+import { postgresSamlPlugin } from './postgresSaml';
 
 let defaultExternals = ['bun', 'bun:*'];
 
@@ -32,7 +33,10 @@ export let buildEdition = async (options: BuildEditionOptions) => {
     sourcesContent: false,
     external: [...defaultExternals, ...(options.external ?? [])],
     define: { __METORIAL_EDITION__: JSON.stringify(options.edition) },
-    plugins: [editionsEsbuildPlugin(options.edition)],
+    plugins: [
+      editionsEsbuildPlugin(options.edition),
+      ...(options.edition === 'on-prem' ? [postgresSamlPlugin()] : [])
+    ],
     banner: { js: requireBanner },
     metafile: true,
     logLevel: 'error'
