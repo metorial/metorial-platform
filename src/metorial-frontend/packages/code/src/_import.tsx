@@ -128,7 +128,7 @@ export let CodeBlock = ({
         }
         data-variant={variant}
       >
-        <link rel="stylesheet" href="https://fonts.metorial.com/jetbrains-mono.css" />
+        <link rel="stylesheet" href="/fonts/jetbrains-mono.css" />
 
         <Main>
           <LeftShadow style={{ opacity: scrolledLeft ? 1 : 0 }} />

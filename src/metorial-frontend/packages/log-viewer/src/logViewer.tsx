@@ -591,7 +591,7 @@ export let LogViewer = ({
         )}
       </Body>
 
-      <link rel="stylesheet" href="https://fonts.metorial.com/jetbrains-mono.css" />
+      <link rel="stylesheet" href="/fonts/jetbrains-mono.css" />
     </Wrapper>
   );
 };
