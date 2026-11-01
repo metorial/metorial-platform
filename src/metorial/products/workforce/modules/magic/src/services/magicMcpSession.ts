@@ -70,6 +70,7 @@ let getAccessWhere = (accessTagFilter: Awaited<ReturnType<typeof getAccessTagFil
   return {
     OR: [
       {
+        magicMcpEndpointOid: null,
         magicMcpServer: {
           status: 'active' as const,
           accessTagEntities: accessTagFilter

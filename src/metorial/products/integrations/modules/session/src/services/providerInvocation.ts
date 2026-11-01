@@ -1,5 +1,7 @@
+import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { db, type Environment, type Tenant } from '@metorial-subspace/db';
+import type { OrganizationActor } from '@metorial/db';
 import {
   getMetorialSolution,
   type MetorialFacing,
@@ -10,6 +12,7 @@ import {
   parseProviderInvocationId,
   type ProviderInvocation
 } from '@metorial-subspace/provider-utils';
+import { getSessionVisibilityWhere, getVisibleSessionOids } from '../lib/sessionVisibility';
 
 let mergeInvocation = (
   map: Map<string, ProviderInvocation>,
@@ -52,15 +55,67 @@ export type GetProviderInvocationParams = {
   providerInvocationId: string;
 };
 
+let filterVisibleInvocations = async (d: {
+  tenant: Tenant;
+  organizationActor?: OrganizationActor;
+  invocations: ProviderInvocation[];
+}) => {
+  if (!(await getSessionVisibilityWhere(d))) return d.invocations;
+
+  let providerRunIds = d.invocations.flatMap(invocation => invocation.providerRunIds);
+  let sessionMessageIds = d.invocations.flatMap(invocation => invocation.sessionMessageIds);
+
+  let [providerRuns, sessionMessages] = await Promise.all([
+    providerRunIds.length
+      ? db.providerRun.findMany({
+          where: { id: { in: providerRunIds }, tenantOid: d.tenant.oid },
+          select: { id: true, sessionOid: true }
+        })
+      : [],
+    sessionMessageIds.length
+      ? db.sessionMessage.findMany({
+          where: { id: { in: sessionMessageIds }, tenantOid: d.tenant.oid },
+          select: { id: true, sessionOid: true }
+        })
+      : []
+  ]);
+  let sources = [...providerRuns, ...sessionMessages];
+
+  let visibleSessionOids = await getVisibleSessionOids({
+    tenant: d.tenant,
+    organizationActor: d.organizationActor,
+    sessionOids: sources.map(source => source.sessionOid)
+  });
+  if (!visibleSessionOids) return d.invocations;
+
+  let hiddenIds = new Set(
+    sources
+      .filter(source => !visibleSessionOids.has(source.sessionOid))
+      .map(source => source.id)
+  );
+
+  return d.invocations.filter(
+    invocation =>
+      !invocation.providerRunIds.some(id => hiddenIds.has(id)) &&
+      !invocation.sessionMessageIds.some(id => hiddenIds.has(id))
+  );
+};
+
 class providerInvocationServiceImpl {
   async listProviderInvocations(d: MetorialFacing<ListProviderInvocationsParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.listProviderInvocationsInternal({
+    let invocations = await this.listProviderInvocationsInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
+    });
+
+    return await filterVisibleInvocations({
+      tenant: scope.tenant,
+      organizationActor,
+      invocations
     });
   }
 
@@ -227,11 +282,22 @@ class providerInvocationServiceImpl {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
-    return this.getProviderInvocationInternal({
+    let invocation = await this.getProviderInvocationInternal({
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
     });
+
+    let [visible] = await filterVisibleInvocations({
+      tenant: scope.tenant,
+      organizationActor,
+      invocations: [invocation]
+    });
+    if (!visible) {
+      throw new ServiceError(notFoundError('provider_invocation', d.providerInvocationId));
+    }
+
+    return visible;
   }
 
   async getProviderInvocationInternal(

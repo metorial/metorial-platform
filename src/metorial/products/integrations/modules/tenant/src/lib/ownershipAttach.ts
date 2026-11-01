@@ -1,17 +1,20 @@
 import { db, type Tenant } from '@metorial-subspace/db';
 import { metorialDb } from './metorialDb';
-import { assertCanAttachOwnedResources, type OwnershipAccessor } from './ownershipAccess';
+import {
+  assertCanAttachOwnedResources,
+  internalOwnershipAccessor,
+  type OwnershipAccessor
+} from './ownershipAccess';
 
-export let assertCanAttachSubspaceResourcesToCoreParent = async (d: {
-  accessor: OwnershipAccessor;
+type SubspaceResourceIds = {
   tenant: Pick<Tenant, 'oid'>;
   parent: { ownerActorOid?: bigint | null } | null | undefined;
   providerConfigIds?: (string | null | undefined)[];
   providerAuthConfigIds?: (string | null | undefined)[];
   integrationInstanceIds?: (string | null | undefined)[];
-}) => {
-  if (!d.accessor.isEnforced || !d.parent) return;
+};
 
+let loadSubspaceResources = async (d: SubspaceResourceIds) => {
   let ids = (values?: (string | null | undefined)[]) =>
     (values ?? []).filter((value): value is string => !!value);
   let where = (values?: (string | null | undefined)[]) => ({
@@ -31,7 +34,11 @@ export let assertCanAttachSubspaceResourcesToCoreParent = async (d: {
       : []
   ]);
 
-  let parentOwnerActorId = d.parent.ownerActorOid
+  return { configs, authConfigs, integrationInstances };
+};
+
+let resolveSubspaceParentOwnerActorOid = async (d: SubspaceResourceIds) => {
+  let parentOwnerActorId = d.parent?.ownerActorOid
     ? ((
         await metorialDb.identityActor.findUnique({
           where: { oid: d.parent.ownerActorOid },
@@ -40,7 +47,7 @@ export let assertCanAttachSubspaceResourcesToCoreParent = async (d: {
       )?.id ?? null)
     : null;
 
-  let subspaceParentOwnerActorOid = parentOwnerActorId
+  return parentOwnerActorId
     ? ((
         await db.identityActor.findFirst({
           where: { id: parentOwnerActorId, tenantOid: d.tenant.oid },
@@ -48,8 +55,15 @@ export let assertCanAttachSubspaceResourcesToCoreParent = async (d: {
         })
       )?.oid ?? null)
     : null;
+};
 
-  let subspaceParent = { ownerActorOid: subspaceParentOwnerActorOid };
+export let assertCanAttachSubspaceResourcesToCoreParent = async (
+  d: SubspaceResourceIds & { accessor: OwnershipAccessor }
+) => {
+  if (!d.accessor.isEnforced || !d.parent) return;
+
+  let { configs, authConfigs, integrationInstances } = await loadSubspaceResources(d);
+  let subspaceParent = { ownerActorOid: await resolveSubspaceParentOwnerActorOid(d) };
 
   await assertCanAttachOwnedResources(d.accessor, subspaceParent, configs, {
     resource: 'provider config'
@@ -61,3 +75,9 @@ export let assertCanAttachSubspaceResourcesToCoreParent = async (d: {
     resource: 'integration instance'
   });
 };
+
+export let assertConsumerCanAttachSubspaceResources = async (d: SubspaceResourceIds) =>
+  await assertCanAttachSubspaceResourcesToCoreParent({
+    ...d,
+    accessor: { ...internalOwnershipAccessor, kind: 'consumer', isEnforced: true }
+  });

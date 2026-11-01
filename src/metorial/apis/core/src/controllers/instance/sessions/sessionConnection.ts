@@ -6,7 +6,9 @@ import { Controller } from '@metorial/rest';
 import { resolveActorIdsForLogFilters } from './_logFilterActors';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
+import { getOwnershipActor } from '../../../lib/ownershipActor';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { requireNonPublishableMachineAccess } from '../../../middleware/requireNonPublishableMachineAccess';
 import {
   constrainFineGrainedSessionQuery,
   getFineGrainedAllowedSessionIds,
@@ -28,6 +30,7 @@ let sessionConnectionGroup = instanceGroup
 
     let sessionConnection = await sessionConnectionService.getSessionConnectionById({
       instance: ctx.instance,
+      organizationActor: getOwnershipActor(ctx),
       sessionConnectionId: ctx.params.sessionConnectionId
     });
 
@@ -54,6 +57,7 @@ export let sessionConnectionController = Controller.create(
         name: 'List session connections',
         description: 'Returns a paginated list of connections for a session.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(
         checkAccess({
           possibleScopes: ['instance.provider.session:read'],
@@ -129,6 +133,7 @@ export let sessionConnectionController = Controller.create(
 
         let paginator = await sessionConnectionService.listSessionConnections({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
           accessTagSessionIds: getFineGrainedAllowedSessionIds(ctx),
           allowDeleted: false,
           ids: normalizeArrayParam(ctx.query.id),
@@ -161,6 +166,7 @@ export let sessionConnectionController = Controller.create(
           description: 'Retrieves a specific connection from a session.'
         }
       )
+      .use(requireNonPublishableMachineAccess())
       .use(
         checkAccess({
           possibleScopes: ['instance.provider.session:read'],

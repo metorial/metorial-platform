@@ -53,6 +53,11 @@ import {
   sessionMessageInclude,
   sessionMessageService
 } from './sessionMessage';
+import {
+  assertSessionVisible,
+  getSessionVisibilityWhere,
+  type SessionVisibilityWhere
+} from '../lib/sessionVisibility';
 
 let include = {
   attachments: true,
@@ -146,7 +151,11 @@ class toolCallServiceImpl {
     let paginator = await this.listToolCallsInternal({
       ...rest,
       tenant: scope.tenant,
-      environment: scope.environment
+      environment: scope.environment,
+      sessionVisibility: await getSessionVisibilityWhere({
+        tenant: scope.tenant,
+        organizationActor
+      })
     });
 
     return paginator.mapAll(async items => {
@@ -176,7 +185,11 @@ class toolCallServiceImpl {
   }
 
   async listToolCallsInternal(
-    d: { tenant: Tenant; environment: Environment } & ListToolCallsParams
+    d: {
+      tenant: Tenant;
+      environment: Environment;
+      sessionVisibility?: SessionVisibilityWhere;
+    } & ListToolCallsParams
   ) {
     let solution = await getMetorialSolution();
     let ts = { tenant: d.tenant, environment: d.environment, solution };
@@ -207,6 +220,7 @@ class toolCallServiceImpl {
             message: normalizeStatusForList(d).onlyParent,
 
             AND: [
+              d.sessionVisibility ? { session: d.sessionVisibility } : undefined!,
               !d.includeInternal && !d.sessionIds?.length
                 ? { session: { isInternal: false } }
                 : undefined!,
@@ -406,6 +420,14 @@ class toolCallServiceImpl {
       ...rest,
       tenant: scope.tenant,
       environment: scope.environment
+    });
+
+    await assertSessionVisible({
+      tenant: scope.tenant,
+      organizationActor,
+      sessionOid: toolCall.sessionOid,
+      resource: 'tool_call',
+      id: d.toolCallId
     });
 
     let participants = await enrichSessionParticipantsWithConsumer({

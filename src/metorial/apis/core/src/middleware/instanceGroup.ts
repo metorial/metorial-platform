@@ -130,7 +130,8 @@ export let instanceGroup = apiGroup.use(async ctx => {
       consumerProfileFromHeader: true,
       resourceActor: consumerAccess.resourceActor,
       auditScope: consumerAccess.auditScope,
-      member: undefined
+      member: undefined,
+      accessMember: res.member
     });
   }
 

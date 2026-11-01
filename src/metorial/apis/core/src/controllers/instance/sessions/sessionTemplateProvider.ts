@@ -10,6 +10,7 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { requireNonPublishableMachineAccess } from '../../../middleware/requireNonPublishableMachineAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { normalizeToolFilters, toolFiltersValidator } from './_shared';
 import { getOwnershipActor } from '../../../lib/ownershipActor';
@@ -45,6 +46,7 @@ export let sessionTemplateProviderController = Controller.create(
         name: 'List session template providers',
         description: 'Returns a paginated list of providers configured for a session template.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .outputList(sessionTemplateProviderPresenter)
       .query(
@@ -113,6 +115,7 @@ export let sessionTemplateProviderController = Controller.create(
           description: 'Retrieves a specific provider configuration from a session template.'
         }
       )
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .output(sessionTemplateProviderPresenter)
       .do(async ctx => {
@@ -126,6 +129,7 @@ export let sessionTemplateProviderController = Controller.create(
         name: 'Create session template provider',
         description: 'Adds a new provider configuration to a session template.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
         'default',
@@ -172,6 +176,7 @@ export let sessionTemplateProviderController = Controller.create(
           description: 'Updates a provider configuration in a session template.'
         }
       )
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
         'default',
@@ -206,6 +211,7 @@ export let sessionTemplateProviderController = Controller.create(
           description: 'Removes a provider configuration from a session template.'
         }
       )
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .output(sessionTemplateProviderPresenter)
       .do(async ctx => {

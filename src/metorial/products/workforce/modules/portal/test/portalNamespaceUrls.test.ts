@@ -17,7 +17,7 @@ vi.mock('@lowerdeck/slugify', () => ({
 }));
 
 let config = {
-  env: 'production' as 'production' | 'development',
+  env: 'production' as 'production' | 'development' | 'staging',
   urls: {
     apiUrl: 'https://api.metorial.test',
     portalsUrl: 'http://localhost:4300'
@@ -222,6 +222,28 @@ describe('portalService.getPrimaryPortalUrls', () => {
       'http://metorial-root.localhost:4310/connect/portal/acme'
     );
   });
+
+  it.each([null, 'https://mcp.acme.com'])(
+    'uses the normal staging API URL even with a namespace and custom origin %s',
+    async magicMcpOrigin => {
+      config.env = 'staging';
+      config.urls.apiUrl = 'https://api.metorial-staging.com/';
+      mockNamespaces([
+        namespaceProperty({
+          value: 'acme-portal',
+          compartment: 'metorial-staging.com',
+          purposes: ['metorial_portal', 'metorial_portal_single']
+        })
+      ]);
+      vi.mocked(db.organization.findUnique).mockResolvedValueOnce({
+        magicMcpOrigin
+      } as any);
+
+      expect(await portalService.getPrimaryPortalConnectUrl({ portal })).toBe(
+        'https://api.metorial-staging.com/connect/portal/acme'
+      );
+    }
+  );
 
   it("prefers the organization's custom Magic MCP origin over the namespace or API URL", async () => {
     mockNamespaces([

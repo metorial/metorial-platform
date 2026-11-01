@@ -1,3 +1,4 @@
+import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { oauthAuthorizationService } from '@metorial/module-machine-access';
@@ -34,6 +35,15 @@ export let dashboardOAuthAuthorizationRequestController = Controller.create(
           await oauthAuthorizationService.getOAuthAuthorizationRequestByUrlToken({
             urlToken: ctx.params.urlToken
           });
+
+        if (
+          oauthAuthorizationRequest.status != 'pending' &&
+          oauthAuthorizationRequest.userId != ctx.user.id
+        ) {
+          throw new ServiceError(
+            notFoundError('oauth_authorization_request', ctx.params.urlToken)
+          );
+        }
 
         return oauthAuthorizationRequestPresenter.present({
           oauthAuthorizationRequest

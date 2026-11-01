@@ -25,6 +25,11 @@ type TargetAccessInput = {
   instance?: { id: string };
 };
 
+let getInstanceRestriction = (authInfo: AuthInfo) =>
+  authInfo.type == 'machine' && authInfo.restrictions.type == 'instance'
+    ? authInfo.restrictions.instance
+    : null;
+
 type TargetAccessFilter = {
   all: boolean;
   projectIds: string[];
@@ -77,6 +82,15 @@ class AccessService {
   }) {
     if (!d.organization) {
       return null;
+    }
+
+    let instanceRestriction = getInstanceRestriction(d.authInfo);
+    if (
+      instanceRestriction &&
+      ((d.instance && d.instance.id != instanceRestriction.id) ||
+        (d.project && d.project.id != instanceRestriction.project.id))
+    ) {
+      return [];
     }
 
     if (d.authInfo.type == 'fine_grained' || d.organization.authVersion != 'v2') {
@@ -233,6 +247,19 @@ class AccessService {
   }
 
   async getTargetAccessFilter(d: TargetAccessInput & { possibleScopes: Scope[] }) {
+    let instanceRestriction = getInstanceRestriction(d.authInfo);
+    if (instanceRestriction) {
+      let isProjectFilter = d.possibleScopes.some(scope =>
+        scope.startsWith('organization.project:')
+      );
+
+      return {
+        all: false,
+        projectIds: isProjectFilter ? [instanceRestriction.project.id] : [],
+        instanceIds: isProjectFilter ? [] : [instanceRestriction.id]
+      } satisfies TargetAccessFilter;
+    }
+
     let entries = await this.getEffectiveAccessEntries(d);
     if (!entries) return null;
     if (!d.organization) return null;

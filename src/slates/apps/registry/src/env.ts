@@ -29,6 +29,7 @@ export let env = createValidatedEnv({
 
   ares: {
     ARES_AUTH_URL: v.optional(v.string()),
-    ARES_CLIENT_ID: v.optional(v.string())
+    ARES_CLIENT_ID: v.optional(v.string()),
+    SLATES_ADMIN_ALLOWED_EMAIL_DOMAINS: v.optional(v.string())
   }
 });

@@ -107,6 +107,14 @@ export let projectManagementController = Controller.create(
           actor: ctx.actor
         });
 
+        await accessService.checkTargetAccess({
+          authInfo: ctx.auth,
+          organization: ctx.organization,
+          member: ctx.member,
+          project,
+          possibleScopes: ['organization.project:read']
+        });
+
         let projectBrand = await projectBrandService.getProjectBrand({
           project
         });

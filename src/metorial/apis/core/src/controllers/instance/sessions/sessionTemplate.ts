@@ -8,6 +8,7 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { requireNonPublishableMachineAccess } from '../../../middleware/requireNonPublishableMachineAccess';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
 import { toolFiltersValidator } from './_shared';
 import { getOwnershipActor } from '../../../lib/ownershipActor';
@@ -43,6 +44,7 @@ export let sessionTemplateController = Controller.create(
         name: 'List session templates',
         description: 'Returns a paginated list of session templates.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .outputList(sessionTemplatePresenter)
       .query(
@@ -116,6 +118,7 @@ export let sessionTemplateController = Controller.create(
         name: 'Get session template',
         description: 'Retrieves a specific session template by ID.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .output(sessionTemplatePresenter)
       .do(async ctx => {
@@ -129,6 +132,7 @@ export let sessionTemplateController = Controller.create(
         name: 'Create session template',
         description: 'Creates a new session template.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
         'default',
@@ -184,6 +188,7 @@ export let sessionTemplateController = Controller.create(
         name: 'Update session template',
         description: 'Updates a specific session template.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
         'mt_2026_01_01_magnetar',
@@ -240,6 +245,7 @@ export let sessionTemplateController = Controller.create(
           description: 'Deletes a specific session template.'
         }
       )
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .output(sessionTemplatePresenter)
       .do(async ctx => {
@@ -266,6 +272,7 @@ export let sessionTemplateController = Controller.create(
             'Returns the effective set of tools available through the providers in a session template, filtered by the tool filters of each provider, deployment, config, and auth config.'
         }
       )
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
       .output(providerToolsPresenter)
       .do(async ctx => {

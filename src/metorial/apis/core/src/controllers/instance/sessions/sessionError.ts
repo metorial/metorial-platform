@@ -5,7 +5,9 @@ import { sessionErrorService } from '@metorial-subspace/module-session';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
+import { getOwnershipActor } from '../../../lib/ownershipActor';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { requireNonPublishableMachineAccess } from '../../../middleware/requireNonPublishableMachineAccess';
 import {
   constrainFineGrainedSessionQuery,
   getFineGrainedAllowedSessionIds,
@@ -28,6 +30,7 @@ let sessionErrorGroup = instanceGroup
 
     let sessionError = await sessionErrorService.getSessionErrorById({
       instance: ctx.instance,
+      organizationActor: getOwnershipActor(ctx),
       sessionErrorId: ctx.params.sessionErrorId
     });
 
@@ -54,6 +57,7 @@ export let sessionErrorController = Controller.create(
         name: 'List all session errors',
         description: 'Returns a paginated list of errors across all sessions.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(
         checkAccess({
           possibleScopes: ['instance.provider.session:read'],
@@ -122,6 +126,7 @@ export let sessionErrorController = Controller.create(
       .do(async ctx => {
         let paginator = await sessionErrorService.listSessionErrors({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
           accessTagSessionIds: getFineGrainedAllowedSessionIds(ctx),
           allowDeleted: false,
           types: normalizeArrayParam(ctx.query.type),
@@ -150,6 +155,7 @@ export let sessionErrorController = Controller.create(
         name: 'Get session error',
         description: 'Retrieves a specific error that occurred in a session.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(
         checkAccess({
           possibleScopes: ['instance.provider.session:read'],

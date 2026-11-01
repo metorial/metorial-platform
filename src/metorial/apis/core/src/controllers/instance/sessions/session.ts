@@ -13,6 +13,7 @@ import {
   deploymentValidator
 } from '../../../lib/providerValidators';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { requireNonPublishableMachineAccess } from '../../../middleware/requireNonPublishableMachineAccess';
 import {
   constrainFineGrainedSessionQuery,
   getFineGrainedAllowedSessionIds,
@@ -148,6 +149,7 @@ export let sessionController = Controller.create(
         name: 'List sessions',
         description: 'Returns a paginated list of sessions.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(
         checkAccess({
           possibleScopes: ['instance.provider.session:read'],
@@ -226,6 +228,7 @@ export let sessionController = Controller.create(
 
         let paginator = await sessionService.listSessions({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
           accessTagSessionIds: getFineGrainedAllowedSessionIds(ctx),
           allowDeleted: false,
 
@@ -264,6 +267,7 @@ export let sessionController = Controller.create(
         name: 'Get session',
         description: 'Retrieves a specific session by ID.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(
         checkAccess({
           possibleScopes: ['instance.provider.session:read'],
@@ -290,6 +294,7 @@ export let sessionController = Controller.create(
         name: 'Create session',
         description: 'Creates a new session with provider deployments.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(checkAccess({ possibleScopes: ['instance.provider.session:write'] }))
       .body(
         'mt_2026_01_01_magnetar',
@@ -364,6 +369,7 @@ export let sessionController = Controller.create(
         name: 'Update session',
         description: 'Updates a session.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(
         checkAccess({
           possibleScopes: ['instance.provider.session:write'],
@@ -430,6 +436,7 @@ export let sessionController = Controller.create(
         name: 'Delete session',
         description: 'Deletes a session.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(
         checkAccess({
           possibleScopes: ['instance.provider.session:write'],
@@ -440,6 +447,7 @@ export let sessionController = Controller.create(
       .do(async ctx => {
         let session = await sessionService.deleteSession({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
           auditScope: ctx.auditScope,
           session: ctx.session
         });

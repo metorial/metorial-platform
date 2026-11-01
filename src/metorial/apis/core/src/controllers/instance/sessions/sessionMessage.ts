@@ -5,7 +5,9 @@ import { sessionMessageService } from '@metorial-subspace/module-session';
 import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
+import { getOwnershipActor } from '../../../lib/ownershipActor';
 import { checkAccess } from '../../../middleware/checkAccess';
+import { requireNonPublishableMachineAccess } from '../../../middleware/requireNonPublishableMachineAccess';
 import {
   constrainFineGrainedSessionQuery,
   getFineGrainedAllowedSessionIds,
@@ -27,6 +29,7 @@ let sessionMessageGroup = instanceGroup
 
     let sessionMessage = await sessionMessageService.getSessionMessageById({
       instance: ctx.instance,
+      organizationActor: getOwnershipActor(ctx),
       sessionMessageId: ctx.params.sessionMessageId
     });
 
@@ -53,6 +56,7 @@ export let sessionMessageController = Controller.create(
         name: 'List session messages',
         description: 'Returns a paginated list of messages for a session.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(
         checkAccess({
           possibleScopes: ['instance.provider.session:read'],
@@ -122,6 +126,7 @@ export let sessionMessageController = Controller.create(
       .do(async ctx => {
         let paginator = await sessionMessageService.listSessionMessages({
           instance: ctx.instance,
+          organizationActor: getOwnershipActor(ctx),
           accessTagSessionIds: getFineGrainedAllowedSessionIds(ctx),
           allowDeleted: false,
           types: normalizeArrayParam(ctx.query.type),
@@ -154,6 +159,7 @@ export let sessionMessageController = Controller.create(
         name: 'Get session message',
         description: 'Retrieves a specific message from a session.'
       })
+      .use(requireNonPublishableMachineAccess())
       .use(
         checkAccess({
           possibleScopes: ['instance.provider.session:read'],

@@ -1,4 +1,4 @@
-import { ServiceError, unauthorizedError } from '@lowerdeck/error';
+import { forbiddenError, ServiceError, unauthorizedError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { addHours } from 'date-fns';
 import { aresClient } from '../aresClient';
@@ -8,7 +8,21 @@ import { getId } from '../id';
 
 let SESSION_DURATION_HOURS = 24 * 7;
 
+let allowedEmailDomains = (env.ares.SLATES_ADMIN_ALLOWED_EMAIL_DOMAINS ?? 'metorial.com')
+  .split(',')
+  .map(domain => domain.trim().toLowerCase())
+  .filter(Boolean);
+
+let isAllowedAdminEmail = (email: string) => {
+  let domain = email.toLowerCase().split('@').pop();
+  return !!domain && allowedEmailDomains.includes(domain);
+};
+
 class adminAuthServiceImpl {
+  allowsUnauthenticatedAccess() {
+    return process.env.NODE_ENV == 'development';
+  }
+
   async isEnabled() {
     return !!(env.ares.ARES_AUTH_URL && env.ares.ARES_CLIENT_ID);
   }
@@ -33,6 +47,12 @@ class adminAuthServiceImpl {
       clientId: env.ares.ARES_CLIENT_ID,
       authorizationCode: d.code
     });
+
+    if (!isAllowedAdminEmail(result.user.email)) {
+      throw new ServiceError(
+        forbiddenError({ message: 'This account is not allowed to access the admin panel' })
+      );
+    }
 
     let adminUser = await db.adminUser.upsert({
       where: { email: result.user.email },
@@ -70,6 +90,10 @@ class adminAuthServiceImpl {
 
     if (session.expiresAt < new Date()) {
       throw new ServiceError(unauthorizedError({ message: 'Session expired' }));
+    }
+
+    if (!isAllowedAdminEmail(session.adminUser.email)) {
+      throw new ServiceError(unauthorizedError({ message: 'Invalid session' }));
     }
 
     return { adminUser: session.adminUser, session };
