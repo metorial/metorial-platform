@@ -1,3 +1,4 @@
+import { perEdition } from '@metorial/editions';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { authState } from '../state/auth';
@@ -40,7 +41,10 @@ export let AuthScene = ({ type }: { type: 'login' | 'signup' | 'switch' }) => {
   return (
     <AuthHomeScene
       clientId={clientId}
-      nextUrl={nextUrl ?? 'https://metorial.com'}
+      nextUrl={
+        nextUrl ??
+        perEdition({ cloud: 'https://metorial.com', 'on-prem': window.location.origin })
+      }
       email={email ?? undefined}
       type={type}
       reason={reason}

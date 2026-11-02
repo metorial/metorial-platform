@@ -1,11 +1,12 @@
-import { createValidatedEnv } from '@lowerdeck/env';
+import { defineSettings } from '@metorial/settings';
+import { redisUrl, serviceUrl } from '@metorial/shared-settings';
 import { v } from '@lowerdeck/validation';
 
-export let env = createValidatedEnv({
+export let env = defineSettings({
   service: {
-    REDIS_URL: v.string(),
+    REDIS_URL: redisUrl,
 
-    SHUTTLE_URL: v.string(),
+    SHUTTLE_URL: serviceUrl('shuttle'),
     SHUTTLE_LIVE_URL: v.string(),
     SHUTTLE_PUBLIC_URL: v.string(),
 

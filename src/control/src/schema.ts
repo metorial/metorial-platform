@@ -51,7 +51,7 @@ let keyValue = strictObject({ key: str, value: str });
 let healthSpec = strictObject({ path: str, status: v.optional(port) });
 
 let resource = strictObject({
-  type: v.enumOf(['redis', 'nats', 'etcd']),
+  type: v.enumOf(['redis', 'nats', 'etcd', 'mail']),
   env: v.optional(v.array(keyValue))
 });
 
@@ -89,7 +89,15 @@ export let manifestSchema = strictObject({
       strictObject({
         port,
         env: v.optional(v.array(keyValue)),
-        health: v.optional(v.union([str, healthSpec]))
+        health: v.optional(v.union([str, healthSpec])),
+        protocol: v.optional(v.enumOf(['http', 'h2c'])),
+        link: v.optional(
+          strictObject({
+            label: str,
+            group: v.optional(v.enumOf(['app', 'admin', 'tool'])),
+            path: v.optional(str)
+          })
+        )
       })
     )
   ),
@@ -206,7 +214,9 @@ export let workspaceMetadataSchema = v.object({
       redis: port,
       nats: port,
       etcd_client: port,
-      etcd_peer: port
+      etcd_peer: port,
+      mail: v.optional(port),
+      mail_ui: v.optional(port)
     })
   ),
   endpoint_ports: v.optional(v.record(v.record(port)))

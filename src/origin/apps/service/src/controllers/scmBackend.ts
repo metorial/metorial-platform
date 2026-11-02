@@ -1,3 +1,5 @@
+import { scmSetupTypes, getScmProviderOptions } from '../lib/scmPolicy';
+import { checkEdition } from '@metorial/editions';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { scmBackendPresenter } from '../presenters/scmBackend';
@@ -17,7 +19,16 @@ export let scmBackendApp = tenantApp.use(async ctx => {
   return { backend };
 });
 
+let providerOptionsHandler = tenantApp
+  .handler()
+  .input(v.object({ tenantId: v.string() }))
+  .do(async () => getScmProviderOptions());
+
 export let scmBackendController = app.controller({
+  ...(checkEdition('on-prem')
+    ? { options: providerOptionsHandler }
+    : ({} as { options: typeof providerOptionsHandler })),
+
   list: tenantApp
     .handler()
     .input(
@@ -52,7 +63,7 @@ export let scmBackendController = app.controller({
     .input(
       v.object({
         tenantId: v.string(),
-        type: v.enumOf(['github_enterprise', 'gitlab_selfhosted', 'bitbucket_data_center']),
+        type: v.enumOf([...scmSetupTypes]),
         name: v.string(),
         description: v.optional(v.string()),
         apiUrl: v.string(),
@@ -61,6 +72,7 @@ export let scmBackendController = app.controller({
         appId: v.optional(v.string()),
         appSlug: v.optional(v.string()),
         appPrivateKey: v.optional(v.string()),
+        ...(checkEdition('on-prem') ? { appWebhookSecret: v.optional(v.string()) } : {}),
         clientId: v.string(),
         clientSecret: v.string()
       })
@@ -76,6 +88,7 @@ export let scmBackendController = app.controller({
         appId: ctx.input.appId,
         appSlug: ctx.input.appSlug,
         appPrivateKey: ctx.input.appPrivateKey,
+        ...(checkEdition('on-prem') ? { appWebhookSecret: ctx.input.appWebhookSecret } : {}),
         clientId: ctx.input.clientId,
         clientSecret: ctx.input.clientSecret
       });
@@ -94,6 +107,7 @@ export let scmBackendController = app.controller({
         appId: v.optional(v.string()),
         appSlug: v.optional(v.string()),
         appPrivateKey: v.optional(v.string()),
+        ...(checkEdition('on-prem') ? { appWebhookSecret: v.optional(v.string()) } : {}),
         clientId: v.optional(v.string()),
         clientSecret: v.optional(v.string())
       })
@@ -106,6 +120,7 @@ export let scmBackendController = app.controller({
         appId: ctx.input.appId,
         appSlug: ctx.input.appSlug,
         appPrivateKey: ctx.input.appPrivateKey,
+        ...(checkEdition('on-prem') ? { appWebhookSecret: ctx.input.appWebhookSecret } : {}),
         clientId: ctx.input.clientId,
         clientSecret: ctx.input.clientSecret
       });

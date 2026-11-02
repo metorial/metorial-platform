@@ -1,7 +1,12 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { oauthAuthorizationService } from '@metorial/module-machine-access';
 import { Controller } from '@metorial/rest';
+import { pageAuthorizations } from '../../lib/authorizationPaging';
+import {
+  getConsumerAuthorization,
+  listConsumerAuthorizations,
+  revokeConsumerAuthorization
+} from '../../lib/consumerOAuthAuthorizations';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { checkAccess } from '../../middleware/checkAccess';
 import { consumerGroup, consumerPath } from '../../middleware/consumerGroup';
@@ -36,12 +41,18 @@ export let consumerOAuthAuthorizationController = Controller.create(
         )
       )
       .do(async ctx => {
-        let paginator = await oauthAuthorizationService.listConsumerOAuthAuthorizations({
-          consumerProfile: ctx.consumerProfile,
-          statuses: normalizeArrayParam(ctx.query.status)
-        });
-
-        let list = await paginator.run(ctx.query);
+        let statuses = normalizeArrayParam(ctx.query.status);
+        let list = await Paginator.create(({ externalCursor }) =>
+          externalCursor(async page =>
+            pageAuthorizations(
+              await listConsumerAuthorizations({
+                consumerProfile: ctx.consumerProfile,
+                statuses
+              }),
+              page
+            )
+          )
+        ).run(ctx.query);
 
         return Paginator.present(list, oauthAuthorization =>
           consumerOAuthAuthorizationPresenter.present({ oauthAuthorization })
@@ -59,11 +70,10 @@ export let consumerOAuthAuthorizationController = Controller.create(
       .use(checkAccess({ possibleScopes: ['consumer#instance.profile:read'] }))
       .output(consumerOAuthAuthorizationPresenter)
       .do(async ctx => {
-        let oauthAuthorization =
-          await oauthAuthorizationService.getConsumerOAuthAuthorizationById({
-            consumerProfile: ctx.consumerProfile,
-            oauthAuthorizationId: ctx.params.oauthAuthorizationId
-          });
+        let oauthAuthorization = await getConsumerAuthorization({
+          consumerProfile: ctx.consumerProfile,
+          oauthAuthorizationId: ctx.params.oauthAuthorizationId
+        });
 
         return consumerOAuthAuthorizationPresenter.present({ oauthAuthorization });
       }),
@@ -83,12 +93,11 @@ export let consumerOAuthAuthorizationController = Controller.create(
       .use(checkAccess({ possibleScopes: ['consumer#instance.profile:read'] }))
       .output(consumerOAuthAuthorizationPresenter)
       .do(async ctx => {
-        let oauthAuthorization =
-          await oauthAuthorizationService.revokeConsumerOAuthAuthorization({
-            consumerProfile: ctx.consumerProfile,
-            oauthAuthorizationId: ctx.params.oauthAuthorizationId,
-            context: ctx.context
-          });
+        let oauthAuthorization = await revokeConsumerAuthorization({
+          consumerProfile: ctx.consumerProfile,
+          oauthAuthorizationId: ctx.params.oauthAuthorizationId,
+          context: ctx.context
+        });
 
         return consumerOAuthAuthorizationPresenter.present({ oauthAuthorization });
       })

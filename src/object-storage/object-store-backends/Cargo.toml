@@ -1,0 +1,38 @@
+[package]
+name = "object-store-backends"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+tokio = { workspace = true }
+async-trait = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+# Storage backends
+aws-sdk-s3 = { workspace = true }
+aws-config = { workspace = true }
+aws-smithy-types = { workspace = true }
+google-cloud-storage = { workspace = true }
+azure_storage = { workspace = true }
+azure_storage_blobs = { workspace = true }
+azure_core = "0.20"
+
+sha2 = { workspace = true }
+hex = { workspace = true }
+chrono = { workspace = true }
+futures = "0.3"
+time = "0.3"
+bytes = "1.5"
+tokio-util = { version = "0.7", features = ["io"] }
+http-body-util = "0.1"
+hyper = "1.0"
+
+[dev-dependencies]
+mockall = { workspace = true }
+tempfile = "3.8"

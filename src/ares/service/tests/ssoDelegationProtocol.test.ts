@@ -6,11 +6,11 @@ import {
   createDelegationMetadataTokenBody,
   DELEGATION_TOKEN_EXPIRY_GRACE_MS,
   DELEGATION_TOKEN_TTL_SECONDS,
-  FALLBACK_DELEGATION_REDIRECT_URI,
   getDelegationCallbackUri,
   getDelegationResponseMode,
   getEffectiveDelegationTokenUrl,
   getExportedDelegationRedirectUri,
+  getFallbackDelegationRedirectUri,
   getIdpInitiatedConsumerLoginRedirect,
   hashDelegationSecret,
   isDelegationTokenExpired,
@@ -19,6 +19,8 @@ import {
   pickLatestExportedDelegation,
   resolveIdpInitiatedSamlCompletion
 } from '../src/lib/ssoDelegationProtocol';
+
+let authUrl = 'https://auth.example.test';
 
 describe('SSO delegation protocol', () => {
   it('allows ten minutes plus a short expiry grace for delegation tokens', () => {
@@ -91,13 +93,16 @@ describe('SSO delegation protocol', () => {
   });
 
   it('falls back to the dashboard delegation callback when an export has no stored URI', () => {
-    expect(getExportedDelegationRedirectUri(null)).toBe(
+    expect(getExportedDelegationRedirectUri(null, authUrl)).toBe(
       'https://id.metorial.com/metorial-ares/hooks/sso-delegation-response'
     );
-    expect(getExportedDelegationRedirectUri(undefined)).toBe(FALLBACK_DELEGATION_REDIRECT_URI);
+    expect(getExportedDelegationRedirectUri(undefined, authUrl)).toBe(
+      getFallbackDelegationRedirectUri(authUrl)
+    );
     expect(
       getExportedDelegationRedirectUri(
-        'https://auth.horizon.test/metorial-ares/hooks/sso-delegation-response'
+        'https://auth.horizon.test/metorial-ares/hooks/sso-delegation-response',
+        authUrl
       )
     ).toBe('https://auth.horizon.test/metorial-ares/hooks/sso-delegation-response');
   });
@@ -119,13 +124,16 @@ describe('SSO delegation protocol', () => {
   });
 
   it('keeps IdP-initiated SAML local when the tenant has no exports', () => {
-    expect(resolveIdpInitiatedSamlCompletion({ exportedDelegations: [] })).toEqual({
+    expect(
+      resolveIdpInitiatedSamlCompletion({ exportedDelegations: [], authBaseUrl: authUrl })
+    ).toEqual({
       type: 'local'
     });
   });
 
   it('routes IdP-initiated SAML through delegated auth and ignores app defaultRedirectUrl', () => {
     let completion = resolveIdpInitiatedSamlCompletion({
+      authBaseUrl: authUrl,
       exportedDelegations: [
         {
           clientId: 'sso_del_client_1',
@@ -138,7 +146,7 @@ describe('SSO delegation protocol', () => {
     expect(completion).toEqual({
       type: 'delegated',
       clientId: 'sso_del_client_1',
-      redirectUri: FALLBACK_DELEGATION_REDIRECT_URI
+      redirectUri: getFallbackDelegationRedirectUri(authUrl)
     });
 
     if (completion.type !== 'delegated') throw new Error('expected delegated');

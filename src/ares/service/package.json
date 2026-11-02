@@ -11,7 +11,7 @@
     "sentry:sourcemaps": "(sentry-cli sourcemaps inject --org metorial --project mte-hrzn-ares ./dist && sentry-cli sourcemaps upload --org metorial --project mte-hrzn-ares ./dist) || true",
     "sentry:sourcemaps:if-token": "sh -c 'if [ -n \"$SENTRY_AUTH_TOKEN\" ]; then bun run sentry:sourcemaps; else echo \"Skipping Sentry sourcemap upload\"; fi'",
     "server:start": "bun ./dist/index.js",
-    "frontend:build": "bun run frontend:build:auth && bun run frontend:build:admin",
+    "frontend:build": "bun run frontend:build:auth && if [ \"$METORIAL_EDITION\" != \"on-prem\" ]; then bun run frontend:build:admin; fi",
     "frontend:build:auth": "cd frontend/auth && vite build",
     "frontend:build:admin": "cd frontend/admin && vite build",
     "frontend:dev": "cd frontend/auth && vite",
@@ -88,6 +88,10 @@
     "@metorial-io/ui": "^1.0.0",
     "@metorial-io/ui-product": "^1.0.0",
     "@metorial-platform-systems/relay-client": "workspace:*",
+    "@metorial/branding": "workspace:*",
+    "@metorial/editions": "workspace:*",
+    "@metorial/settings": "workspace:*",
+    "@metorial/shared-settings": "workspace:*",
     "@metorial/ui": "^1.0.0",
     "@prisma/adapter-pg": "^7.10.1",
     "@prisma/client": "^7.10.1",
@@ -103,7 +107,8 @@
     "input-otp": "^1.5.0",
     "ipaddr.js": "^2.5.0",
     "jszip": "^3.10.2",
-    "object-storage-client": "^0.2.5",
+    "marked": "^18.1.1",
+    "object-storage-client": "workspace:*",
     "otplib": "^13.5.0",
     "prisma": "^7.10.1",
     "prisma-json-types-generator": "^5.2.0",
@@ -119,5 +124,12 @@
   },
   "overrides": {
     "@react-email/components": "1.0.8"
+  },
+  "metorial": {
+    "editionDependencies": {
+      "cloud": [
+        "@marsidev/react-turnstile"
+      ]
+    }
   }
 }

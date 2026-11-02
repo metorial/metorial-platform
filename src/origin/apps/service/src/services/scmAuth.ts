@@ -1,3 +1,9 @@
+import {
+  assertScmBackendAllowed,
+  getAllowedScmBackendIds,
+  isScmBackendAllowed
+} from '../lib/scmPolicy';
+import { checkEdition } from '@metorial/editions';
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import type { Actor, ScmBackend, ScmProvider, Tenant } from '../../prisma/generated/client';
@@ -21,6 +27,7 @@ import {
   exchangeGitLabOAuthCode,
   getGitLabOAuthUrl
 } from '../lib/gitlab';
+import { upsertInstallationWithTokens } from '../lib/scmCredentials';
 import { withScmProviderError } from '../lib/scmProviderError';
 import { scmInstallationSessionService } from './scmInstallationSession';
 
@@ -43,6 +50,8 @@ class scmAuthServiceImpl {
     if (!backend) {
       throw new ServiceError(notFoundError('scm_backend'));
     }
+
+    assertScmBackendAllowed(backend);
 
     if (
       i.provider === 'github' &&
@@ -124,7 +133,7 @@ class scmAuthServiceImpl {
   }
 
   private async loadGitHubInstallation(backend: ScmBackend, installationId: string) {
-    let github = createGitHubAppClient(backend);
+    let github = await createGitHubAppClient(backend);
     return (
       await withScmProviderError('github', 'load the app installation', () =>
         github.request('GET /app/installations/{installation_id}', {
@@ -219,6 +228,7 @@ class scmAuthServiceImpl {
     if (session.status === 'succeeded' || session.status === 'pending_approval')
       return session;
     let backend = session.selectedBackend;
+    assertScmBackendAllowed(backend ?? undefined);
     if (backend.type !== 'github' && backend.type !== 'github_enterprise') {
       throw new ServiceError(notFoundError('scm_backend.github'));
     }
@@ -309,6 +319,7 @@ class scmAuthServiceImpl {
         throw new ServiceError(badRequestError({ message: 'Invalid state' }));
       }
       let backend = session.selectedBackend;
+      assertScmBackendAllowed(backend ?? undefined);
       if (backend.type !== 'github' && backend.type !== 'github_enterprise') {
         throw new ServiceError(notFoundError('scm_backend.github'));
       }
@@ -339,6 +350,7 @@ class scmAuthServiceImpl {
 
     let matched = false;
     for (let backend of backends.values()) {
+      if (!isScmBackendAllowed(backend)) continue;
       try {
         let installation = await this.loadGitHubInstallation(backend, i.installationId);
         let updated = await this.refreshExistingGitHubInstallations(backend, installation);
@@ -362,6 +374,7 @@ class scmAuthServiceImpl {
     });
     if (session.status === 'succeeded' || session.expiresAt <= new Date()) return session;
     let backend = session.selectedBackend;
+    assertScmBackendAllowed(backend ?? undefined);
     if (
       session.status !== 'pending_approval' ||
       !backend ||
@@ -384,11 +397,19 @@ class scmAuthServiceImpl {
     });
   }
 
-  async handleGitHubAppInstallationCreated(i: { installationId: string }) {
-    let backend = await db.scmBackend.findFirst({
-      where: { type: 'github', isDefault: true, tenantOid: null }
-    });
+  async handleGitHubAppInstallationCreated(i: {
+    installationId: string;
+    backend?: ScmBackend;
+  }) {
+    let backend =
+      i.backend ??
+      (checkEdition('cloud')
+        ? await db.scmBackend.findFirst({
+            where: { type: 'github', isDefault: true, tenantOid: null }
+          })
+        : null);
     if (!backend) return 0;
+    assertScmBackendAllowed(backend);
     let installation = await this.loadGitHubInstallation(backend, i.installationId);
     await this.refreshExistingGitHubInstallations(backend, installation);
     return await this.completePendingGitHubSessions(backend, installation);
@@ -419,6 +440,7 @@ class scmAuthServiceImpl {
     }
 
     let backend = session.selectedBackend;
+    assertScmBackendAllowed(backend ?? undefined);
     if (backend.type !== 'gitlab' && backend.type !== 'gitlab_selfhosted') {
       throw new ServiceError(notFoundError('scm_backend.gitlab'));
     }
@@ -437,39 +459,23 @@ class scmAuthServiceImpl {
         gitlab.Users.showCurrentUser()
       );
 
-      let data = {
-        provider: i.provider,
-        tenantOid: session.tenantOid,
-        backendOid: backend.oid,
-        ownerActorOid: session.ownerActorOid,
+      let createdInstallation = await upsertInstallationWithTokens(
+        {
+          provider: i.provider,
+          tenantOid: session.tenantOid,
+          backendOid: backend.oid,
+          ownerActorOid: session.ownerActorOid,
 
-        accessToken,
-        refreshToken,
-        accessTokenExpiresAt: expiresAt,
-        accountType: 'user' as const,
+          accountType: 'user' as const,
 
-        externalAccountId: user.id.toString(),
-        externalAccountLogin: user.username,
-        externalAccountName: user.name || user.username,
-        externalAccountEmail: user.email || null,
-        externalAccountImageUrl: user.avatar_url != null ? String(user.avatar_url) : null
-      };
-
-      let createdInstallation = await db.scmInstallation.upsert({
-        where: {
-          tenantOid_provider_backendOid_externalAccountId: {
-            tenantOid: session.tenantOid,
-            provider: i.provider,
-            backendOid: backend.oid,
-            externalAccountId: user.id.toString()
-          }
+          externalAccountId: user.id.toString(),
+          externalAccountLogin: user.username,
+          externalAccountName: user.name || user.username,
+          externalAccountEmail: user.email || null,
+          externalAccountImageUrl: user.avatar_url != null ? String(user.avatar_url) : null
         },
-        update: data,
-        create: {
-          ...getId('scmInstallation'),
-          ...data
-        }
-      });
+        { accessToken, refreshToken, expiresAt }
+      );
 
       await scmInstallationSessionService.completeInstallationSession({
         sessionId: session.id,
@@ -505,6 +511,7 @@ class scmAuthServiceImpl {
     }
 
     let backend = session.selectedBackend;
+    assertScmBackendAllowed(backend ?? undefined);
     if (backend.type !== 'bitbucket' && backend.type !== 'bitbucket_data_center') {
       throw new ServiceError(notFoundError('scm_backend.bitbucket'));
     }
@@ -518,33 +525,27 @@ class scmAuthServiceImpl {
     let user = await withScmProviderError('bitbucket', 'load the authenticated user', () =>
       client.getCurrentUser()
     );
-    let data = {
-      provider: i.provider,
-      tenantOid: session.tenantOid,
-      backendOid: backend.oid,
-      ownerActorOid: session.ownerActorOid,
-      accessToken: credentials.accessToken,
-      refreshToken: credentials.refreshToken,
-      accessTokenExpiresAt: credentials.expiresAt,
-      accountType: user.type,
-      externalAccountId: user.id,
-      externalAccountLogin: user.slug,
-      externalAccountName: user.name,
-      externalAccountEmail: null,
-      externalAccountImageUrl: null
-    };
-    let installation = await db.scmInstallation.upsert({
-      where: {
-        tenantOid_provider_backendOid_externalAccountId: {
-          tenantOid: session.tenantOid,
-          provider: i.provider,
-          backendOid: backend.oid,
-          externalAccountId: user.id
-        }
+    let installation = await upsertInstallationWithTokens(
+      {
+        provider: i.provider,
+        tenantOid: session.tenantOid,
+        backendOid: backend.oid,
+        ownerActorOid: session.ownerActorOid,
+
+        accountType: user.type,
+
+        externalAccountId: user.id,
+        externalAccountLogin: user.slug,
+        externalAccountName: user.name,
+        externalAccountEmail: null,
+        externalAccountImageUrl: null
       },
-      update: data,
-      create: { ...getId('scmInstallation'), ...data }
-    });
+      {
+        accessToken: credentials.accessToken,
+        refreshToken: credentials.refreshToken,
+        expiresAt: credentials.expiresAt
+      }
+    );
     await scmInstallationSessionService.completeInstallationSession({
       sessionId: session.id,
       installationOid: installation.oid
@@ -557,9 +558,12 @@ class scmAuthServiceImpl {
     ownerActor: Actor;
     provider: ScmProvider;
   }) {
+    let allowed = await getAllowedScmBackendIds(i.tenant.oid);
+
     let installation = await db.scmInstallation.findFirst({
       where: {
         tenantOid: i.tenant.oid,
+        backendOid: allowed ? { in: allowed } : undefined,
         provider: i.provider,
         ownerActorOid: i.ownerActor.oid
       }
@@ -569,6 +573,7 @@ class scmAuthServiceImpl {
     installation = await db.scmInstallation.findFirst({
       where: {
         tenantOid: i.tenant.oid,
+        backendOid: allowed ? { in: allowed } : undefined,
         provider: i.provider
       }
     });

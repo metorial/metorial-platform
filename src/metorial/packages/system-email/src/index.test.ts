@@ -19,6 +19,15 @@ describe('isNonDeliverableEmail', () => {
   it('also matches reserved top-level domains', () => {
     expect(isNonDeliverableEmail('a@host.invalid')).toBe(true);
     expect(isNonDeliverableEmail('a@host.localhost')).toBe(true);
-    expect(isNonDeliverableEmail('a@example.com')).toBe(false);
+    expect(isNonDeliverableEmail('a@metorial.com')).toBe(false);
+  });
+
+  it('matches the reserved example domains and their subdomains', () => {
+    expect(isNonDeliverableEmail('a@example.com')).toBe(true);
+    expect(isNonDeliverableEmail('a@example.net')).toBe(true);
+    expect(isNonDeliverableEmail('a@example.org')).toBe(true);
+    expect(isNonDeliverableEmail('a@mail.Example.ORG')).toBe(true);
+    expect(isNonDeliverableEmail('a@notexample.com')).toBe(false);
+    expect(isNonDeliverableEmail('a@example.com.evil.io')).toBe(false);
   });
 });

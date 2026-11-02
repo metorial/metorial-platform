@@ -11,6 +11,7 @@ import {
   type UsageAccumulatedBucket
 } from '../lib/bucket';
 import { isUsageEnabled, usageDbConnect } from '../lib/connection';
+import { USAGE_MESSAGE_BACKFILL_ID, USAGE_MESSAGE_REVISION } from '../lib/messageRevision';
 import {
   buildAuthErrorUsageEvent,
   buildAuthEventUsageEvent,
@@ -99,7 +100,7 @@ let backfillSources: Record<string, (window: BackfillWindow) => Promise<Backfill
       where: {
         oid: oidAfter(window.cursor),
         createdAt: { gte: window.from, lt: window.cutoff },
-        finalizedAt: { not: null },
+        status: { in: ['succeeded', 'failed'] },
         session: { isInternal: false }
       },
       orderBy: { oid: 'asc' },
@@ -354,10 +355,25 @@ let backfillSources: Record<string, (window: BackfillWindow) => Promise<Backfill
 
 let backfillSourceNames = Object.keys(backfillSources);
 
-let getBackfillJobId = (source: string, cursor: string | null, suffix?: number) =>
-  ['usage-backfill', source, cursor ?? 'start', ...(suffix ? [suffix] : [])].join('-');
+let getBackfillJobId = (
+  source: string,
+  cursor: string | null,
+  stateId?: string,
+  suffix?: number
+) =>
+  [
+    'usage-backfill',
+    stateId ?? 'default',
+    source,
+    cursor ?? 'start',
+    ...(suffix ? [suffix] : [])
+  ].join('-');
 
-export let usageBackfillPageQueue = createQueue<{ source: string; cursor: string | null }>({
+export let usageBackfillPageQueue = createQueue<{
+  source: string;
+  cursor: string | null;
+  stateId?: string;
+}>({
   name: 'usage/backfill/page',
   workerOpts: { concurrency: 2, limiter: { max: 5, duration: 1000 } }
 });
@@ -367,12 +383,16 @@ export let usageBackfillCron = createCron(
   async () => {
     if (!isUsageEnabled()) return;
 
-    let state = await getUsageBackfillState();
-    if (!state) return;
+    let [state, messageState] = await Promise.all([
+      getUsageBackfillState(),
+      getUsageBackfillState(USAGE_MESSAGE_BACKFILL_ID)
+    ]);
+    if (!state || !messageState) return;
 
     let now = Date.now();
     let pending = backfillSourceNames.flatMap(source => {
-      let sourceState = state.sources?.[source];
+      let stateId = source == 'session_message' ? USAGE_MESSAGE_BACKFILL_ID : undefined;
+      let sourceState = (stateId ? messageState : state).sources?.[source];
       if (sourceState?.done) return [];
 
       let isStale =
@@ -382,8 +402,8 @@ export let usageBackfillCron = createCron(
 
       return [
         {
-          data: { source, cursor },
-          opts: { id: getBackfillJobId(source, cursor, isStale ? now : undefined) }
+          data: { source, cursor, stateId },
+          opts: { id: getBackfillJobId(source, cursor, stateId, isStale ? now : undefined) }
         }
       ];
     });
@@ -396,7 +416,10 @@ export let usageBackfillPageProcessor = usageBackfillPageQueue.process(async dat
   let fetchPage = backfillSources[data.source];
   if (!fetchPage) return;
 
-  let state = await getUsageBackfillState();
+  let isMessageSource = data.source == 'session_message';
+  if (isMessageSource && data.stateId != USAGE_MESSAGE_BACKFILL_ID) return;
+
+  let state = await getUsageBackfillState(data.stateId);
   if (!state || state.sources?.[data.source]?.done) return;
 
   let cutoff = new Date(state.cutoff);
@@ -414,6 +437,7 @@ export let usageBackfillPageProcessor = usageBackfillPageQueue.process(async dat
   let documents = [...buckets.values()].map((bucket): UsageMetric => ({
     _id: getUsageMetricId([
       'backfill',
+      ...(data.stateId ? [data.stateId] : []),
       data.source,
       data.cursor ?? 'start',
       bucket.minute,
@@ -421,6 +445,7 @@ export let usageBackfillPageProcessor = usageBackfillPageQueue.process(async dat
     ]),
     ts: new Date(bucket.minute),
     source: 'backfill',
+    ...(isMessageSource ? { messageRevision: USAGE_MESSAGE_REVISION } : {}),
     ...decodeUsageBucketKey(bucket.field),
     ...bucket.counters
   }));
@@ -437,12 +462,16 @@ export let usageBackfillPageProcessor = usageBackfillPageQueue.process(async dat
   let nextCursor = page.lastOid?.toString() ?? data.cursor;
   let isDone = page.size < BACKFILL_BATCH_SIZE;
 
-  await updateUsageBackfillSource(data.source, { done: isDone, cursor: nextCursor });
+  await updateUsageBackfillSource(
+    data.source,
+    { done: isDone, cursor: nextCursor },
+    data.stateId
+  );
 
   if (!isDone) {
     await usageBackfillPageQueue.add(
-      { source: data.source, cursor: nextCursor },
-      { id: getBackfillJobId(data.source, nextCursor), ...hourlyPacedDelay() }
+      { source: data.source, cursor: nextCursor, stateId: data.stateId },
+      { id: getBackfillJobId(data.source, nextCursor, data.stateId), ...hourlyPacedDelay() }
     );
   }
 });

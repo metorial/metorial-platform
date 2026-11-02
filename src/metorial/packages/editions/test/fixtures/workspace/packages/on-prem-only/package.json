@@ -1,0 +1,9 @@
+{
+  "name": "@fixture/on-prem-only",
+  "main": "src/index.ts",
+  "metorial": {
+    "editions": [
+      "on-prem"
+    ]
+  }
+}

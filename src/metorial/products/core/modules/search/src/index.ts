@@ -1,3 +1,4 @@
+import { checkEdition } from '@metorial/editions';
 import { createVoyagerClient } from '@metorial-platform-systems/voyager-client';
 import { env } from './env';
 
@@ -182,6 +183,12 @@ let ensureVoyagerSource = async () => {
 };
 
 let ensureVoyagerIndex = async (index: VoyagerIndex) => {
+  if (
+    checkEdition('on-prem') &&
+    ['sandboxImage', 'sandboxMachine', 'sandboxDisk'].includes(index)
+  )
+    return null;
+
   if (!voyager) return null;
 
   if (!voyagerIndexPromises[index]) {

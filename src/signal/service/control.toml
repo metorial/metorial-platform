@@ -1,8 +1,12 @@
 name = "@metorial/signal"
 group = "oss"
 
-[dev]
-run = ["dev:start"]
+[[dependencies]]
+identifier = "@metorial/object-storage"
+start = false
+env = [
+  { endpoint = "api", key = "OBJECT_STORAGE_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
 
 [endpoints.api]
 port = 52050
@@ -23,7 +27,6 @@ METORIAL_SOURCE = "oss"
 IS_ENTERPRISE = "false"
 METORIAL_HOSTNAME = "{{HOSTNAME}}"
 NODE_ENV = "development"
-OBJECT_STORAGE_URL = "http://services:52010"
 LOGS_BUCKET_NAME = "signal-logs"
 
 [dev.db.main]
@@ -39,3 +42,6 @@ dockerfile = "Dockerfile"
 image = "metorial/mte-signal"
 ecr = "metorial-enterprise-saas/mte-signal"
 canonical = "ghcr.io/metorial/signal"
+
+[e2e.env]
+OBJECT_STORAGE_URL = "http://services:52010"

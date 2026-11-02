@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
 import { readJson, sortedEntries, sortJson } from './files';
 import { discoverPackages, globMatch, relativePath, wildcard } from './packages';
@@ -31,6 +32,7 @@ export interface Plan extends RunnerPlan {
   postgres: Database[];
   mongo: Database[];
   objectStorage: boolean;
+  objectStorageImage?: string;
 }
 
 export let serializedPlan = (plan: Plan): RunnerPlan => {
@@ -38,6 +40,7 @@ export let serializedPlan = (plan: Plan): RunnerPlan => {
     postgres: _postgres,
     mongo: _mongo,
     objectStorage: _objectStorage,
+    objectStorageImage: _objectStorageImage,
     ...serialized
   } = plan;
 
@@ -92,6 +95,20 @@ export let readImages = (directory: string, manifests: LoadedManifest[]) => {
   }
 
   return images;
+};
+
+export let readObjectStorageImage = (directory: string) => {
+  let path = join(directory, 'object-store.json');
+  if (!existsSync(path)) return undefined;
+
+  let artifact = readJson<{ name: string; image: string }>(path);
+  if (artifact.name !== 'object-store' || typeof artifact.image !== 'string')
+    throw new Error(`invalid tested image artifact ${path}`);
+
+  if (process.env.GITHUB_ACTIONS === 'true' && !isPinnedImage(artifact.image))
+    throw new Error(`${path}: image must be a digest-pinned ghcr.io/metorial reference`);
+
+  return artifact.image;
 };
 
 export let buildPlan = (
@@ -240,6 +257,9 @@ export let buildPlan = (
       health
     };
   };
+  let objectStorage = suts.some(item =>
+    item.manifest.e2e.resources.some(resource => resource.type === 'object-storage')
+  );
   let dependencyServices = dependencies.map(loaded => service(loaded, 'dependency'));
   let sutServices = suts.map(loaded => service(loaded, 'system under test'));
   let endpoints = JSON.stringify(
@@ -357,9 +377,10 @@ export let buildPlan = (
     stacks: plannedStacks,
     postgres: databases('postgres'),
     mongo: databases('mongo'),
-    objectStorage: suts.some(item =>
-      item.manifest.e2e.resources.some(resource => resource.type === 'object-storage')
-    )
+    objectStorage,
+    ...(objectStorage && options.images !== undefined
+      ? { objectStorageImage: readObjectStorageImage(options.images) }
+      : {})
   };
 };
 

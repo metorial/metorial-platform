@@ -18,8 +18,8 @@ export async function ensureAdminApp() {
   try {
     let app = await adminService.createApp({
       slug: ADMIN_APP_SLUG,
-      defaultRedirectUrl: env.service.ARES_ADMIN_URL,
-      redirectDomains: [new URL(env.service.ARES_ADMIN_URL).hostname]
+      defaultRedirectUrl: env.service.ARES_ADMIN_URL!,
+      redirectDomains: [new URL(env.service.ARES_ADMIN_URL!).hostname]
     });
 
     let accessGroup = await accessGroupService.create({

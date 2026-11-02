@@ -1,3 +1,4 @@
+import { checkEdition } from '@metorial/editions';
 import { theme } from '@metorial/ui';
 import styled from 'styled-components';
 
@@ -29,13 +30,17 @@ let Logo = styled.img`
   border-radius: 3px;
 `;
 
-export let SecuredByFooter = () => (
-  <Wrapper>
-    <span>Secured by</span>
+export let SecuredByFooter = () => {
+  if (!checkEdition('cloud')) return null;
 
-    <Link href={METORIAL_URL} target="_blank" rel="noopener noreferrer">
-      <Logo src={METORIAL_LOGO_URL} alt="Metorial" />
-      Metorial
-    </Link>
-  </Wrapper>
-);
+  return (
+    <Wrapper>
+      <span>Secured by</span>
+
+      <Link href={METORIAL_URL} target="_blank" rel="noopener noreferrer">
+        <Logo src={METORIAL_LOGO_URL} alt="Metorial" />
+        Metorial
+      </Link>
+    </Wrapper>
+  );
+};

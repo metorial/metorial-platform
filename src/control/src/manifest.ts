@@ -247,7 +247,9 @@ export let validate = (manifest: Manifest, path: string, scripts: string[] = [])
           'CONTROL_PORT_REDIS',
           'CONTROL_PORT_NATS',
           'CONTROL_PORT_ETCD_CLIENT',
-          'CONTROL_PORT_ETCD_PEER'
+          'CONTROL_PORT_ETCD_PEER',
+          'CONTROL_PORT_MAIL',
+          'CONTROL_PORT_MAIL_UI'
         ],
         `resource ${resource.type}`
       );

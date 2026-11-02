@@ -1,4 +1,4 @@
-import { deleteAuditEventsBefore } from '@metorial/audit-models';
+import { checkEdition } from '@metorial/editions';
 import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
 import {
@@ -8,6 +8,8 @@ import {
   deleteInChunks,
   QueueRetryError
 } from '@metorial/queue';
+
+let cloud = checkEdition('cloud') ? await import('@metorial/audit-models') : undefined;
 
 export let AUDIT_LOG_CLEANUP_BATCH_SIZE = 500;
 
@@ -100,7 +102,7 @@ export let cleanupOrganizationAuditLogsQueueProcessor =
       return;
     }
 
-    await deleteAuditEventsBefore({ organizationOid: organization.oid, recordedAt });
+    await cloud?.deleteAuditEventsBefore({ organizationOid: organization.oid, recordedAt });
   });
 
 export let auditLogCleanupQueueProcessor = combineQueueProcessors([

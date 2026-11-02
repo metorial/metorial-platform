@@ -1,4 +1,4 @@
-import { ingestAuditEvents } from '@metorial/audit-models';
+import { checkEdition } from '@metorial/editions';
 import { createCron } from '@metorial/cron';
 import { createQueue } from '@metorial/queue';
 import { createHash } from 'node:crypto';
@@ -11,6 +11,8 @@ import {
   listClaimedAuditEvents,
   type StashedAuditEvent
 } from '../lib/stash';
+
+let cloud = checkEdition('cloud') ? await import('@metorial/audit-models') : undefined;
 
 let AUDIT_EVENT_BATCH_SIZE = 100;
 
@@ -82,8 +84,15 @@ export let processAuditEventQueueProcessor = processAuditEventQueue.process(asyn
     items.map(item => presentStashedAuditEvent(item.event))
   );
 
-  await ingestAuditEvents(presentedEvents);
-  await ingestAuditEventsToPostgres(items.map(item => item.event));
+  if (cloud) {
+    await cloud.ingestAuditEvents(presentedEvents);
+    await ingestAuditEventsToPostgres(items.map(item => item.event));
+  } else {
+    await ingestAuditEventsToPostgres(
+      items.map(item => item.event),
+      presentedEvents
+    );
+  }
 
   for (let item of items) {
     await acknowledgeClaimedAuditEvent(item.encodedEvent);

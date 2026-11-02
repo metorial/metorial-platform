@@ -8,6 +8,7 @@ import * as manifest from '../src/manifest';
 import * as workspace from '../src/workspace';
 import * as turbo from '../src/turbo';
 import * as cleanup from '../src/cleanup';
+import * as docker from '../src/docker';
 import * as proxy from '../src/proxy';
 import * as infrastructure from '../src/infrastructure';
 import { packageDirectory, parseArguments } from '../src/cli';
@@ -38,6 +39,8 @@ describe('CLI contract', () => {
     ['db', 'generate', '@metorial/db'],
     ['db', 'push', 'backend'],
     ['docker', 'stop'],
+    ['docker', 'reset', '--yes'],
+    ['docker', 'reset', '--dry-run'],
     ['ci', 'describe', '--json'],
     ['env', '--json'],
     ['cleanup', '--dry-run', '--docker'],
@@ -318,7 +321,7 @@ describe('generated workspaces and infrastructure', () => {
     expect(existsSync(join(path, 'packages/api-worker'))).toBe(false);
   });
 
-  test.each(['postgres', 'mongo', 'redis', 'nats', 'etcd'] as const)(
+  test.each(['postgres', 'mongo', 'redis', 'nats', 'etcd', 'mail'] as const)(
     'renders only requested %s infrastructure',
     type => {
       let requirements = {
@@ -327,6 +330,7 @@ describe('generated workspaces and infrastructure', () => {
         redis: false,
         nats: false,
         etcd: false,
+        mail: false,
         [type]: true
       };
       let rendered = JSON.parse(
@@ -383,6 +387,54 @@ describe('generated workspaces and infrastructure', () => {
     expect(existsSync(dynamic)).toBe(false);
   });
 
+  test('proxy routes the shared mail port to the workspace mailpit', async () => {
+    let root = temporary();
+    let value = project(root);
+    let mail = load("name='relay'\n[[resources]]\ntype='mail'");
+    let dynamic = join(root, '.control/proxy/dynamic');
+
+    expect(proxy.publicPorts([mail], value).has(proxy.mailPort)).toBe(true);
+
+    let host = workspaceData(root, {
+      service_ports: { ...environment.defaultPorts, mail_ui: 31999 }
+    });
+    let unregisterFirst = await proxy.register(value, host, [mail]);
+    let unregisterSecond = await proxy.register(value, host, [mail]);
+
+    expect(readFileSync(join(dynamic, 'feature.yml'), 'utf8')).toContain(
+      'http://host.docker.internal:31999'
+    );
+
+    await unregisterFirst();
+    await unregisterSecond();
+
+    let docker = workspaceData(root, { id: 'docker', runtime: 'docker' });
+    let unregister = await proxy.register(value, docker, [mail]);
+
+    expect(readFileSync(join(dynamic, 'docker.yml'), 'utf8')).toContain(
+      `http://${proxy.mailProxyAlias(docker)}:8025`
+    );
+
+    await unregister();
+  });
+
+  test('workspace mailpit joins the proxy network under its alias', () => {
+    let rendered = JSON.parse(
+      infrastructure.renderCompose(
+        { postgres: false, mongo: false, redis: false, nats: false, etcd: false, mail: true },
+        { network: 'test', mail_proxy_alias: 'metorial-mail-feature', restart: true }
+      )
+    );
+
+    expect(rendered.services.mailpit.networks['control-proxy'].aliases).toEqual([
+      'metorial-mail-feature'
+    ]);
+    expect(rendered.networks['control-proxy']).toEqual({
+      name: 'control_proxy',
+      external: true
+    });
+  });
+
   test('proxy binds IPv4 and IPv6 loopbacks and redirects root HTTP', () => {
     let compose = JSON.parse(proxy.renderCompose('/proxy', new Set([4310])));
 
@@ -401,5 +453,19 @@ describe('generated workspaces and infrastructure', () => {
   ])('keeps Rust resource hashes for %j', (value, stringHash, pathHash) => {
     expect(rustHash(rustString(value))).toBe(stringHash);
     expect(rustPathHash(value)).toBe(pathHash);
+  });
+});
+
+describe('docker reset', () => {
+  test('reads the project name only from a generated JSON compose file', () => {
+    let root = temporary();
+    let generated = join(root, 'services.docker-compose.yml');
+    let handwritten = join(root, 'docker-compose.yml');
+    atomicWrite(generated, JSON.stringify({ name: 'control_dev_abc12345', services: {} }));
+    atomicWrite(handwritten, 'services:\n  db:\n    image: postgres:17\n');
+
+    expect(docker.composeProjectName(generated)).toBe('control_dev_abc12345');
+    expect(docker.composeProjectName(handwritten)).toBeUndefined();
+    expect(docker.composeProjectName(join(root, 'missing.yml'))).toBeUndefined();
   });
 });

@@ -366,15 +366,17 @@ func (x *CreateBucketFromContentsRequest) GetContents() []*FileContentsBase {
 }
 
 type CreateBucketFromGithubRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NewBucketId   string                 `protobuf:"bytes,1,opt,name=new_bucket_id,json=newBucketId,proto3" json:"new_bucket_id,omitempty"`
-	Owner         string                 `protobuf:"bytes,2,opt,name=owner,proto3" json:"owner,omitempty"`
-	Repo          string                 `protobuf:"bytes,3,opt,name=repo,proto3" json:"repo,omitempty"`
-	Path          string                 `protobuf:"bytes,4,opt,name=path,proto3" json:"path,omitempty"`
-	Ref           string                 `protobuf:"bytes,5,opt,name=ref,proto3" json:"ref,omitempty"`
-	Token         string                 `protobuf:"bytes,6,opt,name=token,proto3" json:"token,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	NewBucketId       string                 `protobuf:"bytes,1,opt,name=new_bucket_id,json=newBucketId,proto3" json:"new_bucket_id,omitempty"`
+	Owner             string                 `protobuf:"bytes,2,opt,name=owner,proto3" json:"owner,omitempty"`
+	Repo              string                 `protobuf:"bytes,3,opt,name=repo,proto3" json:"repo,omitempty"`
+	Path              string                 `protobuf:"bytes,4,opt,name=path,proto3" json:"path,omitempty"`
+	Ref               string                 `protobuf:"bytes,5,opt,name=ref,proto3" json:"ref,omitempty"`
+	Token             string                 `protobuf:"bytes,6,opt,name=token,proto3" json:"token,omitempty"`
+	GithubApiUrl      string                 `protobuf:"bytes,7,opt,name=github_api_url,json=githubApiUrl,proto3" json:"github_api_url,omitempty"`
+	GithubLfsEndpoint string                 `protobuf:"bytes,8,opt,name=github_lfs_endpoint,json=githubLfsEndpoint,proto3" json:"github_lfs_endpoint,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *CreateBucketFromGithubRequest) Reset() {
@@ -445,6 +447,20 @@ func (x *CreateBucketFromGithubRequest) GetRef() string {
 func (x *CreateBucketFromGithubRequest) GetToken() string {
 	if x != nil {
 		return x.Token
+	}
+	return ""
+}
+
+func (x *CreateBucketFromGithubRequest) GetGithubApiUrl() string {
+	if x != nil {
+		return x.GithubApiUrl
+	}
+	return ""
+}
+
+func (x *CreateBucketFromGithubRequest) GetGithubLfsEndpoint() string {
+	if x != nil {
+		return x.GithubLfsEndpoint
 	}
 	return ""
 }
@@ -1810,7 +1826,9 @@ type ExportBucketToGithubRequest struct {
 	ExplicitDeletesOnly bool                   `protobuf:"varint,9,opt,name=explicit_deletes_only,json=explicitDeletesOnly,proto3" json:"explicit_deletes_only,omitempty"`
 	// Files at or above this size are routed through Git LFS.
 	// Zero or negative means use the service default.
-	LfsThresholdBytes int64 `protobuf:"varint,10,opt,name=lfs_threshold_bytes,json=lfsThresholdBytes,proto3" json:"lfs_threshold_bytes,omitempty"`
+	LfsThresholdBytes int64  `protobuf:"varint,10,opt,name=lfs_threshold_bytes,json=lfsThresholdBytes,proto3" json:"lfs_threshold_bytes,omitempty"`
+	GithubApiUrl      string `protobuf:"bytes,11,opt,name=github_api_url,json=githubApiUrl,proto3" json:"github_api_url,omitempty"`
+	GithubLfsEndpoint string `protobuf:"bytes,12,opt,name=github_lfs_endpoint,json=githubLfsEndpoint,proto3" json:"github_lfs_endpoint,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -1913,6 +1931,20 @@ func (x *ExportBucketToGithubRequest) GetLfsThresholdBytes() int64 {
 		return x.LfsThresholdBytes
 	}
 	return 0
+}
+
+func (x *ExportBucketToGithubRequest) GetGithubApiUrl() string {
+	if x != nil {
+		return x.GithubApiUrl
+	}
+	return ""
+}
+
+func (x *ExportBucketToGithubRequest) GetGithubLfsEndpoint() string {
+	if x != nil {
+		return x.GithubLfsEndpoint
+	}
+	return ""
 }
 
 type ExportBucketToGithubResponse struct {
@@ -2653,14 +2685,16 @@ const file_rpc_proto_rawDesc = "" +
 	"\acontent\x18\x02 \x01(\fR\acontent\"|\n" +
 	"\x1fCreateBucketFromContentsRequest\x12\"\n" +
 	"\rnew_bucket_id\x18\x01 \x01(\tR\vnewBucketId\x125\n" +
-	"\bcontents\x18\x02 \x03(\v2\x19.rpc.rpc.FileContentsBaseR\bcontents\"\xa9\x01\n" +
+	"\bcontents\x18\x02 \x03(\v2\x19.rpc.rpc.FileContentsBaseR\bcontents\"\xff\x01\n" +
 	"\x1dCreateBucketFromGithubRequest\x12\"\n" +
 	"\rnew_bucket_id\x18\x01 \x01(\tR\vnewBucketId\x12\x14\n" +
 	"\x05owner\x18\x02 \x01(\tR\x05owner\x12\x12\n" +
 	"\x04repo\x18\x03 \x01(\tR\x04repo\x12\x12\n" +
 	"\x04path\x18\x04 \x01(\tR\x04path\x12\x10\n" +
 	"\x03ref\x18\x05 \x01(\tR\x03ref\x12\x14\n" +
-	"\x05token\x18\x06 \x01(\tR\x05token\"\x16\n" +
+	"\x05token\x18\x06 \x01(\tR\x05token\x12$\n" +
+	"\x0egithub_api_url\x18\a \x01(\tR\fgithubApiUrl\x12.\n" +
+	"\x13github_lfs_endpoint\x18\b \x01(\tR\x11githubLfsEndpoint\"\x16\n" +
 	"\x14CreateBucketResponse\"\x84\x01\n" +
 	"\x15GetBucketTokenRequest\x12\x1b\n" +
 	"\tbucket_id\x18\x01 \x01(\tR\bbucketId\x12,\n" +
@@ -2741,7 +2775,7 @@ const file_rpc_proto_rawDesc = "" +
 	"keep_paths\x18\x03 \x03(\tR\tkeepPaths\x12)\n" +
 	"\x10exclude_prefixes\x18\x04 \x03(\tR\x0fexcludePrefixes\">\n" +
 	"\x17PruneBucketPathResponse\x12#\n" +
-	"\rdeleted_paths\x18\x01 \x03(\tR\fdeletedPaths\"\xd4\x02\n" +
+	"\rdeleted_paths\x18\x01 \x03(\tR\fdeletedPaths\"\xaa\x03\n" +
 	"\x1bExportBucketToGithubRequest\x12\x1b\n" +
 	"\tbucket_id\x18\x01 \x01(\tR\bbucketId\x12\x14\n" +
 	"\x05owner\x18\x02 \x01(\tR\x05owner\x12\x12\n" +
@@ -2753,7 +2787,9 @@ const file_rpc_proto_rawDesc = "" +
 	"\fdelete_paths\x18\b \x03(\tR\vdeletePaths\x122\n" +
 	"\x15explicit_deletes_only\x18\t \x01(\bR\x13explicitDeletesOnly\x12.\n" +
 	"\x13lfs_threshold_bytes\x18\n" +
-	" \x01(\x03R\x11lfsThresholdBytes\"\x1e\n" +
+	" \x01(\x03R\x11lfsThresholdBytes\x12$\n" +
+	"\x0egithub_api_url\x18\v \x01(\tR\fgithubApiUrl\x12.\n" +
+	"\x13github_lfs_endpoint\x18\f \x01(\tR\x11githubLfsEndpoint\"\x1e\n" +
 	"\x1cExportBucketToGithubResponse\"\xc4\x01\n" +
 	"\x1dCreateBucketFromGitlabRequest\x12\"\n" +
 	"\rnew_bucket_id\x18\x01 \x01(\tR\vnewBucketId\x12\x1d\n" +

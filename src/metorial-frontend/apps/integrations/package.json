@@ -14,6 +14,8 @@
     "@lowerdeck/rpc-client": "workspace:2.0.0",
     "@metorial/api-integrations": "^1.0.0",
     "@metorial/data-hooks": "^1.0.0",
+    "@metorial/editions": "workspace:*",
+    "@metorial/frontend-config": "^1.0.0",
     "@metorial/markdown": "^1.0.0",
     "@metorial/pages": "^1.0.0",
     "@metorial/tool-selection": "^1.0.0",

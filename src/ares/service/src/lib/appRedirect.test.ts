@@ -84,6 +84,27 @@ describe('wrapHorizonRedirectUrl', () => {
     expect(url.searchParams.get('redirect_url')).toBe('https://customer.metorial.com/test');
   });
 
+  it('leaves a redirect that already points at the wrapper untouched', () => {
+    let target = `${WRAPPER}?redirect_url=https%3A%2F%2Fcustomer.metorial.com%2Ftest`;
+
+    expect(wrapHorizonRedirectUrl({ defaultRedirectUrl: WRAPPER, redirectUrl: target })).toBe(
+      target
+    );
+  });
+
+  it('wraps a redirect to another path on the wrapper origin', () => {
+    let resolved = wrapHorizonRedirectUrl({
+      defaultRedirectUrl: 'https://metorial.example.com/passport/idp-callback',
+      redirectUrl: 'https://metorial.example.com/?code=abc'
+    });
+
+    let url = new URL(resolved);
+    expect(url.pathname).toBe('/passport/idp-callback');
+    expect(url.searchParams.get('redirect_url')).toBe(
+      'https://metorial.example.com/?code=abc'
+    );
+  });
+
   it('rejects an invalid redirect URL', () => {
     expect(() =>
       wrapHorizonRedirectUrl({ defaultRedirectUrl: WRAPPER, redirectUrl: 'not-a-url' })

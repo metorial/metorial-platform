@@ -64,6 +64,8 @@
     "p-queue": "^10.0.0",
     "prisma": "^7.10.1",
     "prisma-json-types-generator": "^5.2.0",
-    "zod": "^4.6.7"
+    "zod": "^4.6.7",
+    "@metorial/settings": "workspace:*",
+    "@metorial/shared-settings": "workspace:*"
   }
 }

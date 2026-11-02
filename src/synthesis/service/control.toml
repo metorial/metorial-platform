@@ -1,9 +1,6 @@
 name = "@metorial/synthesis"
 group = "oss"
 
-[dev]
-run = ["dev:start"]
-
 [endpoints.api]
 port = 52160
 health = "/ping"

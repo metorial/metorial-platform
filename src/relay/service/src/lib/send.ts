@@ -7,7 +7,7 @@ import {
 import nodemailer from 'nodemailer';
 import MailComposer from 'nodemailer/lib/mail-composer';
 import type { EmailIdentity } from '../../prisma/generated/browser';
-import { env } from '../env';
+import { emailSettings } from '../env';
 
 export interface SendAttachment {
   filename: string;
@@ -15,32 +15,32 @@ export interface SendAttachment {
   content: Uint8Array;
 }
 
-let transport = env.email.EMAIL_SES_REGION
+let transport = emailSettings.sesRegion
   ? {
       type: 'ses' as const,
       client: new SESClient(
-        env.email.EMAIL_SES_ACCESS_KEY_ID
+        emailSettings.sesAccessKeyId
           ? {
-              region: env.email.EMAIL_SES_REGION!,
+              region: emailSettings.sesRegion!,
               credentials: {
-                accessKeyId: env.email.EMAIL_SES_ACCESS_KEY_ID!,
-                secretAccessKey: env.email.EMAIL_SES_SECRET_ACCESS_KEY!
+                accessKeyId: emailSettings.sesAccessKeyId!,
+                secretAccessKey: emailSettings.sesSecretAccessKey!
               }
             }
           : {
-              region: env.email.EMAIL_SES_REGION
+              region: emailSettings.sesRegion
             }
       )
     }
   : {
       type: 'smtp' as const,
       client: nodemailer.createTransport({
-        host: env.email.EMAIL_HOST,
-        port: env.email.EMAIL_PORT,
-        secure: env.email.EMAIL_SECURE,
+        host: emailSettings.smtpHost,
+        port: emailSettings.smtpPort,
+        secure: emailSettings.smtpSecure,
         auth: {
-          user: env.email.EMAIL_USER,
-          pass: env.email.EMAIL_PASSWORD
+          user: emailSettings.smtpUser,
+          pass: emailSettings.smtpPassword
         }
       })
     };

@@ -1461,7 +1461,7 @@ export interface FabricEvents {
   'file.upload.completed:before': FileFabricOwner & { fileUpload: FileUpload };
   'file.upload.completed:after': FileFabricOwner & { fileUpload: FileUpload; file: File };
 
-  'file.created:before': FileFabricOwner;
+  'file.created:before': FileFabricOwner & { isTemplateBacking?: boolean };
   'file.created:after': FileFabricOwner & { file: AuditFile };
   'file.deleted:after': FileFabricOwner & { file: AuditFile };
 

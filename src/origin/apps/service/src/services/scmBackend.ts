@@ -1,3 +1,11 @@
+import { getAllowedScmBackendIds } from '../lib/scmPolicy';
+import { checkEdition } from '@metorial/editions';
+import {
+  assertScmBackendAllowed,
+  assertScmTypeAllowed,
+  isScmBackendAllowed,
+  normalizeScmBackendUrls
+} from '../lib/scmPolicy';
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
@@ -5,9 +13,16 @@ import type { ScmBackend, Tenant } from '../../prisma/generated/client';
 import { db } from '../db';
 import { env, SCM_GITHUB_APP_PRIVATE_KEY } from '../env';
 import { getId } from '../id';
+import {
+  discardBackendSecrets,
+  discardNebulaSecrets,
+  writeBackendSecrets
+} from '../lib/scmCredentials';
 
 class scmBackendServiceImpl {
   async ensureDefaultBackends() {
+    if (checkEdition('on-prem')) return;
+
     // Ensure default GitHub.com backend exists (if credentials provided)
     if (
       env.gh.SCM_GITHUB_APP_ID &&
@@ -108,6 +123,8 @@ class scmBackendServiceImpl {
       throw new ServiceError(notFoundError('scm_backend'));
     }
 
+    assertScmBackendAllowed(backend);
+
     return backend;
   }
 
@@ -123,17 +140,21 @@ class scmBackendServiceImpl {
       throw new ServiceError(notFoundError('scm_backend'));
     }
 
+    assertScmBackendAllowed(backend);
+
     return backend;
   }
 
   async listScmBackends(d: { tenant: Tenant }) {
+    let allowed = await getAllowedScmBackendIds(d.tenant.oid);
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
           await db.scmBackend.findMany({
             ...opts,
             where: {
-              OR: [{ tenantOid: d.tenant.oid }, { tenantOid: null }]
+              OR: [{ tenantOid: d.tenant.oid }, { tenantOid: null }],
+              oid: allowed ? { in: allowed } : undefined
             }
           })
       )
@@ -142,7 +163,7 @@ class scmBackendServiceImpl {
 
   async createScmBackend(d: {
     tenant: Tenant;
-    type: 'github_enterprise' | 'gitlab_selfhosted' | 'bitbucket_data_center';
+    type: ScmBackend['type'];
     name: string;
     description?: string;
     apiUrl: string;
@@ -150,9 +171,22 @@ class scmBackendServiceImpl {
     appId?: string;
     appSlug?: string;
     appPrivateKey?: string;
+    appWebhookSecret?: string;
     clientId: string;
     clientSecret: string;
   }) {
+    if (checkEdition('on-prem')) {
+      assertScmTypeAllowed(d.type);
+      let urls = normalizeScmBackendUrls(d.type, d.webUrl);
+      d = { ...d, ...urls };
+      assertScmBackendAllowed({
+        ...urls,
+        type: d.type,
+        isDefault: false,
+        tenantOid: d.tenant.oid
+      });
+    }
+
     try {
       new URL(d.apiUrl);
       new URL(d.webUrl);
@@ -164,7 +198,10 @@ class scmBackendServiceImpl {
       );
     }
 
-    if (d.type === 'github_enterprise' && (!d.appId || !d.appSlug || !d.appPrivateKey)) {
+    if (
+      (d.type === 'github_enterprise' || (checkEdition('on-prem') && d.type === 'github')) &&
+      (!d.appId || !d.appSlug || !d.appPrivateKey)
+    ) {
       throw new ServiceError(
         badRequestError({
           message: 'GitHub Enterprise backends require appId, appSlug, and appPrivateKey'
@@ -172,23 +209,52 @@ class scmBackendServiceImpl {
       );
     }
 
-    return db.scmBackend.create({
-      data: {
-        ...getId('scmBackend'),
+    let ids = getId('scmBackend');
+    let secrets = await writeBackendSecrets({
+      backend: {
+        id: ids.id,
         tenantOid: d.tenant.oid,
-        type: d.type,
-        name: d.name,
-        description: d.description,
-        apiUrl: d.apiUrl,
-        webUrl: d.webUrl,
-        appId: d.appId,
-        appSlug: d.appSlug,
-        appPrivateKey: d.appPrivateKey,
-        clientId: d.clientId,
+        clientSecret: null,
+        clientSecretNebulaSecretId: null,
+        appPrivateKey: null,
+        appPrivateKeyNebulaSecretId: null,
+        appWebhookSecret: null,
+        appWebhookSecretNebulaSecretId: null
+      },
+      secrets: {
         clientSecret: d.clientSecret,
-        isDefault: false
+        appPrivateKey: d.appPrivateKey,
+        ...(checkEdition('on-prem') && d.appWebhookSecret !== undefined
+          ? { appWebhookSecret: d.appWebhookSecret }
+          : {})
       }
     });
+
+    try {
+      return await db.scmBackend.create({
+        data: {
+          ...ids,
+          tenantOid: d.tenant.oid,
+          type: d.type,
+          name: d.name,
+          description: d.description,
+          apiUrl: d.apiUrl,
+          webUrl: d.webUrl,
+          appId: d.appId,
+          appSlug: d.appSlug,
+          clientId: d.clientId,
+          isDefault: false,
+          ...secrets.patch
+        }
+      });
+    } catch (error) {
+      await discardNebulaSecrets({
+        tenantOid: d.tenant.oid,
+        nebulaSecretIds: secrets.createdNebulaSecretIds
+      });
+
+      throw error;
+    }
   }
 
   async updateScmBackend(d: {
@@ -198,9 +264,12 @@ class scmBackendServiceImpl {
     appId?: string;
     appSlug?: string;
     appPrivateKey?: string;
+    appWebhookSecret?: string;
     clientId?: string;
     clientSecret?: string;
   }) {
+    assertScmBackendAllowed(d.backend);
+
     if (d.backend.isDefault) {
       throw new ServiceError(
         badRequestError({
@@ -209,21 +278,42 @@ class scmBackendServiceImpl {
       );
     }
 
-    return db.scmBackend.update({
-      where: { oid: d.backend.oid },
-      data: {
-        name: d.name,
-        description: d.description,
-        appId: d.appId,
-        appSlug: d.appSlug,
+    let secrets = await writeBackendSecrets({
+      backend: d.backend,
+      secrets: {
+        clientSecret: d.clientSecret,
         appPrivateKey: d.appPrivateKey,
-        clientId: d.clientId,
-        clientSecret: d.clientSecret
+        ...(checkEdition('on-prem') && d.appWebhookSecret !== undefined
+          ? { appWebhookSecret: d.appWebhookSecret }
+          : {})
       }
     });
+
+    try {
+      return await db.scmBackend.update({
+        where: { oid: d.backend.oid },
+        data: {
+          name: d.name,
+          description: d.description,
+          appId: d.appId,
+          appSlug: d.appSlug,
+          clientId: d.clientId,
+          ...secrets.patch
+        }
+      });
+    } catch (error) {
+      await discardNebulaSecrets({
+        tenantOid: d.backend.tenantOid,
+        nebulaSecretIds: secrets.createdNebulaSecretIds
+      });
+
+      throw error;
+    }
   }
 
   async deleteScmBackend(d: { backend: ScmBackend }) {
+    assertScmBackendAllowed(d.backend);
+
     if (d.backend.isDefault) {
       throw new ServiceError(
         badRequestError({
@@ -235,6 +325,8 @@ class scmBackendServiceImpl {
     await db.scmBackend.delete({
       where: { oid: d.backend.oid }
     });
+
+    await discardBackendSecrets(d.backend);
   }
 }
 

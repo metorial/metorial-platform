@@ -36,12 +36,46 @@ bun run control test:unit @lowerdeck/hash
 bun run control test:e2e @metorial/module-user
 bun run control cleanup --dry-run
 bun run control docker stop
+bun run control docker reset --yes
 bun run control workspace create feature/my-change
 bun run control workspace list
 bun run control workspace remove feature/my-change
 bun run control workspace start
 bun run control workspace stop feature/my-change
 ```
+
+`docker stop` keeps data; `docker reset` removes the declared Compose services together
+with their volumes, so every database and the object store start empty on the next
+`control dev`. It refuses to run without `--yes`; `--dry-run` prints the Compose
+commands instead.
+
+### Daemon, TUI and web UI
+
+`control dev` no longer needs one terminal per workspace. Workspaces run inside one shared
+background daemon that is started on demand; the CLI is a thin client and `control dev`
+attaches the log TUI. Pass `--foreground` for the previous behavior (Turbo TUI in the
+current terminal).
+
+```sh
+bun run control up              # start the workspace in the daemon and return
+bun run control ls              # all workspaces known to the daemon
+bun run control status          # units of this workspace
+bun run control logs -f api     # plain log list; a TUI on a terminal unless piped
+bun run control tui             # log TUI
+bun run control restart api     # one unit (infra included); no argument restarts the workspace
+bun run control job db:push     # db:generate | db:push | db:migrate | prepare
+bun run control open mail       # dashboard, mail, any declared link, or the web UI
+bun run control sh api          # shell with the environment of a unit
+bun run control down            # stop the workspace
+bun run control daemon status   # start | stop | restart | status | logs
+```
+
+The web UI listens on `http://localhost:1000` (`CONTROL_UI_PORT` to change it). It lists the
+workspaces, links to the dashboard, mail and admin panels, restarts units or whole
+workspaces, runs database jobs and offers a terminal in the workspace environment.
+Manifests declare their links with `link = { label = "...", group = "app" | "admin" | "tool" }`
+on an endpoint. Daemon state lives in `~/.metorial-control-dev-service` (`CONTROL_HOME`);
+stopping the daemon stops the workspaces it runs. See `docs/daemon-plan.md`.
 
 Pass `--root PATH` to start project detection somewhere other than the current
 directory.
@@ -146,7 +180,11 @@ Literal, inherited, and default environment values support the strict
 unclosed templates are errors. Dependency URLs can use
 `{{CONTROL_PORT_POSTGRES}}`, `{{CONTROL_PORT_MONGO}}`,
 `{{CONTROL_PORT_REDIS}}`, `{{CONTROL_PORT_NATS}}`,
-`{{CONTROL_PORT_ETCD_CLIENT}}`, and `{{CONTROL_PORT_ETCD_PEER}}`. Source
+`{{CONTROL_PORT_ETCD_CLIENT}}`, `{{CONTROL_PORT_ETCD_PEER}}`,
+`{{CONTROL_PORT_MAIL}}` (SMTP), and `{{CONTROL_PORT_MAIL_UI}}`. A `mail`
+resource starts Mailpit, which catches all outgoing email; its inbox is at
+`http://localhost:<CONTROL_PORT_MAIL_UI>` and, through the shared proxy, at
+`http://<workspace hostname>:8025` for every workspace. Source
 checkouts receive the standard development ports; host workspaces receive their
 persisted allocation. Native development defaults the hostname to `localhost`;
 source checkouts use `metorial-root.localhost`; branch workspaces use their
@@ -230,6 +268,7 @@ test package names (`*` wildcards); selecting a stack selects all its tests.
 [endpoints.api]
 port = 4310
 health = "/ping"            # or { path = "/ping", status = 200 }
+protocol = "h2c"             # optional: the proxy talks cleartext HTTP/2 (gRPC) to this endpoint
 env = [{ key = "API_PORT", value = "{{BIND_PORT}}" }]
 
 # For processes without a named HTTP endpoint.

@@ -4,6 +4,7 @@ import { atomicWrite, packageName, readJson, sortedEntries, writeJson } from './
 import { applies } from './manifest';
 import { withLock } from './lock';
 import * as commands from './process';
+import { defaultPorts } from './environment';
 import type { LoadedManifest, ProjectRoot, WorkspaceMetadata } from './types';
 
 export interface Route {
@@ -16,12 +17,24 @@ interface Registrations {
   sessions: Record<string, { pid: number; routes: Route[] }>;
 }
 
-export let publicPorts = (manifests: LoadedManifest[], project: ProjectRoot) =>
-  new Set(
-    manifests
-      .filter(item => applies(item.manifest, project.kind))
-      .flatMap(item => Object.values(item.manifest.endpoints).map(endpoint => endpoint.port))
+export let mailPort = 8025;
+
+export let mailProxyAlias = (data: WorkspaceMetadata) => `metorial-mail-${data.id}`;
+
+let usesMail = (manifests: LoadedManifest[]) =>
+  manifests.some(item => item.manifest.resources.some(resource => resource.type === 'mail'));
+
+export let publicPorts = (manifests: LoadedManifest[], project: ProjectRoot) => {
+  let applicable = manifests.filter(item => applies(item.manifest, project.kind));
+  let ports = new Set(
+    applicable.flatMap(item =>
+      Object.values(item.manifest.endpoints).map(endpoint => endpoint.port)
+    )
   );
+  if (usesMail(applicable)) ports.add(mailPort);
+
+  return ports;
+};
 
 export let proxyRoot = (_project: ProjectRoot, data: WorkspaceMetadata) => {
   if (process.env.CONTROL_PROXY_ROOT !== undefined) return process.env.CONTROL_PROXY_ROOT;
@@ -228,10 +241,19 @@ export let register = async (
         );
       routes.set(endpoint.port, {
         port: endpoint.port,
-        target: `http://${host}:${data.runtime === 'host' ? (endpoint.bind_port ?? endpoint.port) : endpoint.port}`
+        target: `${endpoint.protocol === 'h2c' ? 'h2c' : 'http'}://${host}:${data.runtime === 'host' ? (endpoint.bind_port ?? endpoint.port) : endpoint.port}`
       });
     }
   }
+
+  if (usesMail(selected))
+    routes.set(mailPort, {
+      port: mailPort,
+      target:
+        data.runtime === 'host'
+          ? `http://host.docker.internal:${data.service_ports?.mail_ui ?? defaultPorts.mail_ui}`
+          : `http://${mailProxyAlias(data)}:8025`
+    });
 
   let token = `${process.pid}-${BigInt(Date.now()) * 1000000n + (process.hrtime.bigint() % 1000000n)}`;
   let path = join(root, 'registrations', `${data.id}.json`);
@@ -252,7 +274,10 @@ export let register = async (
     for (let route of routes.values())
       for (let session of Object.values(registrations.sessions))
         for (let existing of session.routes) {
-          if (existing.port === route.port)
+          if (
+            existing.port === route.port &&
+            !(route.port === mailPort && existing.target === route.target)
+          )
             throw new Error(
               `workspace ${JSON.stringify(data.id)} already has ${existing.target !== route.target ? 'a different route' : 'an active development service'} on public port ${route.port}`
             );

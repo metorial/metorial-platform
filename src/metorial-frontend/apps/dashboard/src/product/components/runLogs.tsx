@@ -145,7 +145,6 @@ export let RunLogs = ({
           ))
         )}
       </Body>
-      <link rel="stylesheet" href="https://fonts.metorial.com/jetbrains-mono.css" />
     </Wrapper>
   );
 };

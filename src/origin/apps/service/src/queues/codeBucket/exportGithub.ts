@@ -3,7 +3,7 @@ import Long from 'long';
 import { db } from '../../db';
 import { env } from '../../env';
 import { codeBucketClient } from '../../lib/codeWorkspace';
-import { getInstallationAccessToken } from '../../lib/githubApp';
+import { getInstallationAccessToken, getGitHubTransferEndpoints } from '../../lib/githubApp';
 import { codeBucketService } from '../../services/codeBucket';
 
 export let exportGithubQueue = createQueue<{
@@ -38,6 +38,11 @@ export let exportGithubQueueProcessor = exportGithubQueue.process(async data => 
 
   await codeBucketClient.exportBucketToGithub({
     bucketId: data.bucketId,
+    ...getGitHubTransferEndpoints(
+      repo.installation.backend,
+      repo.externalOwner,
+      repo.externalName
+    ),
     owner: repo.externalOwner,
     repo: repo.externalName,
     path: data.path,

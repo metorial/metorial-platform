@@ -1,10 +1,29 @@
 import { spawn as nodeSpawn, spawnSync, type ChildProcess } from 'node:child_process';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { pipeline } from 'node:stream/promises';
 import type { Environment } from './types';
 
 let shutdownTimeout = 15_000;
 
 let processGroups = new WeakSet<ChildProcess>();
+
+export type OutputSink = (text: string, stream: 'out' | 'err') => void;
+
+export let outputSink = new AsyncLocalStorage<OutputSink>();
+
+export let say = (message: string) => {
+  let sink = outputSink.getStore();
+
+  if (sink) sink(`${message}\n`, 'out');
+  else console.log(message);
+};
+
+export let warn = (message: string) => {
+  let sink = outputSink.getStore();
+
+  if (sink) sink(`${message}\n`, 'err');
+  else console.error(message);
+};
 
 export class Interrupted extends Error {
   constructor() {
@@ -33,14 +52,22 @@ export let spawn = (
   interactive = false,
   capture = false
 ) => {
-  let isolated = process.platform !== 'win32' && !interactive;
+  let sink = interactive ? outputSink.getStore() : undefined;
+  let isolated = process.platform !== 'win32' && (!interactive || !!sink);
   let child = nodeSpawn(program, args, {
     cwd,
     env: { ...process.env, ...env },
     detached: isolated,
-    stdio: capture ? ['pipe', 'pipe', 'pipe'] : 'inherit'
+    stdio: capture || sink ? ['pipe', 'pipe', 'pipe'] : 'inherit'
   });
   if (isolated) processGroups.add(child);
+
+  if (sink) {
+    child.stdin?.end();
+    child.stdout?.on('data', chunk => sink(Buffer.from(chunk).toString(), 'out'));
+    child.stderr?.on('data', chunk => sink(Buffer.from(chunk).toString(), 'err'));
+  }
+
   return child;
 };
 

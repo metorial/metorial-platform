@@ -1,0 +1,25 @@
+name = "@metorial/object-storage"
+group = "oss"
+
+[dev]
+run = ["dev:start"]
+
+[endpoints.api]
+port = 52010
+health = "/health"
+env = [{ key = "OBJECT_STORE__SERVER__PORT", value = "{{BIND_PORT}}" }]
+
+[dev.env]
+RUST_LOG = "info"
+OBJECT_STORE__SERVER__HOST = "0.0.0.0"
+OBJECT_STORE__BACKEND__TYPE = "local"
+OBJECT_STORE__BACKEND__ROOT_PATH = "./.data"
+OBJECT_STORE__BACKEND__PUBLIC_URL = "http://{{HOSTNAME}}:52010"
+
+[[ci.images]]
+name = "object-store"
+group = "oss"
+dockerfile = "Dockerfile"
+image = "metorial/mte-object-store"
+ecr = "metorial-enterprise-saas/mte-object-store"
+canonical = "ghcr.io/metorial/mte-object-store"

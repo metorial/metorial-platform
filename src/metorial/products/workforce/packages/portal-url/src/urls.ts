@@ -97,6 +97,10 @@ export let getPortalConnectUrl = (d: {
   magicMcpOrigin?: string | null;
 }) => {
   let config = getConfig();
+  if (config.env == 'staging') {
+    return `${config.urls.apiUrl.replace(/\/+$/, '')}/connect/portal/${d.portal.slug}`;
+  }
+
   let namespaceOrigin =
     config.env != 'development' && d.namespaces.length
       ? new URL(getPortalUrls(d)[0]!.url).origin

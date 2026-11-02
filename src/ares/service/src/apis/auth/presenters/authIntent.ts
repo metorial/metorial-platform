@@ -1,3 +1,4 @@
+import { checkEdition } from '@metorial/editions';
 import type {
   AuthIntent,
   AuthIntentCode,
@@ -75,7 +76,7 @@ export let authIntentPresenter = (
     ),
 
     captcha:
-      turnstileVerifier.enabled && env.turnstile.TURNSTILE_SITE_KEY
+      checkEdition('cloud') && turnstileVerifier.enabled && env.turnstile.TURNSTILE_SITE_KEY
         ? {
             object: 'ares#auth_intent.captcha' as const,
 

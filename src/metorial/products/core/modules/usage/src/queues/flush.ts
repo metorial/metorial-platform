@@ -1,27 +1,22 @@
+import { checkEdition } from '@metorial/editions';
 import { createCron } from '@metorial/cron';
 import { combineQueueProcessors, createQueue, hourlyPacedDelay } from '@metorial/queue';
-import { UsageMetricModel, type UsageMetric } from '../models';
-import { getUsageBackfillCutoff } from '../lib/backfillState';
+import { floorToMinute } from '../lib/bucket';
 import {
-  decodeUsageBucketKey,
-  floorToMinute,
-  getUsageMetricId,
-  parseUsageBucketHash
-} from '../lib/bucket';
-import {
-  acknowledgeClaimedUsageBucket,
   claimUsageMinute,
   listClaimedUsageBuckets,
   listPendingUsageMinutes,
-  parseClaimedUsageBucketKey,
-  readClaimedUsageBucket
+  parseClaimedUsageBucketKey
 } from '../lib/buffer';
-import { isUsageEnabled, usageDbConnect } from '../lib/connection';
+import { isUsageEnabled } from '../lib/connection';
 
 let FLUSH_BATCH_SIZE = 500;
-let FLUSH_WRITE_CHUNK_SIZE = 1000;
 let FLUSH_GRACE_MS = 60_000;
 let STUCK_CLAIM_AFTER_MS = 10 * 60_000;
+
+let storage = checkEdition('cloud')
+  ? await import('../lib/flushCloud')
+  : await import('../lib/postgres');
 
 let getFlushJobId = (claimedKey: string) => {
   let { minute, nonce } = parseClaimedUsageBucketKey(claimedKey);
@@ -84,46 +79,7 @@ export let usageFlushClaimProcessor = usageFlushClaimQueue.process(async () => {
 });
 
 export let usageFlushBucketProcessor = usageFlushBucketQueue.process(async data => {
-  let { minute, nonce } = parseClaimedUsageBucketKey(data.claimedKey);
-
-  await usageDbConnect();
-
-  // Minutes before the cutoff are covered by the backfill, so writing them would count twice.
-  let cutoff = await getUsageBackfillCutoff();
-  if (minute < cutoff.getTime()) {
-    await acknowledgeClaimedUsageBucket(data.claimedKey);
-    return;
-  }
-
-  let hash = await readClaimedUsageBucket(data.claimedKey);
-  let buckets = [...parseUsageBucketHash(hash).entries()];
-
-  let documents = buckets.map(([field, counters]): UsageMetric => {
-    let key = decodeUsageBucketKey(field);
-
-    return {
-      _id: getUsageMetricId(['live', minute, nonce, field]),
-      ts: new Date(minute),
-      source: 'live',
-      ...key,
-      ...counters
-    };
-  });
-
-  for (let i = 0; i < documents.length; i += FLUSH_WRITE_CHUNK_SIZE) {
-    await UsageMetricModel.bulkWrite(
-      documents.slice(i, i + FLUSH_WRITE_CHUNK_SIZE).map(document => ({
-        updateOne: {
-          filter: { _id: document._id },
-          update: { $set: document },
-          upsert: true
-        }
-      })),
-      { ordered: false }
-    );
-  }
-
-  await acknowledgeClaimedUsageBucket(data.claimedKey);
+  await storage.flushUsageBucket(data.claimedKey);
 });
 
 export let usageFlushProcessors = combineQueueProcessors([

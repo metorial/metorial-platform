@@ -1,3 +1,4 @@
+import { createError, ServiceError } from '@lowerdeck/error';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
@@ -177,4 +178,15 @@ describe('code bucket import errors', () => {
       data: { status: 'ready', errorMessage: null }
     });
   });
+});
+
+it('preserves the operator policy reason for rejected imports', () => {
+  let error = new ServiceError(
+    createError({
+      code: 'scm_policy_denied',
+      status: 403,
+      message: 'The provider domain is not allowed by the installation policy'
+    })
+  );
+  expect(getCodeBucketImportFailureMessage('github', error)).toBe(error.data.message);
 });

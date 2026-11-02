@@ -8,7 +8,7 @@ import { db } from '../db';
 import { getId } from '../id';
 import { getBitbucketAccessTokenWithInstallation } from '../lib/bitbucket';
 import { codeBucketClient } from '../lib/codeWorkspace';
-import { getInstallationAccessToken } from '../lib/githubApp';
+import { getInstallationAccessToken, getGitHubTransferEndpoints } from '../lib/githubApp';
 import { getGitLabAccessTokenWithInstallation } from '../lib/gitlab';
 import { normalizePath } from '../lib/normalizePath';
 import { getBitbucketCloneUrl } from '../queues/codeBucket/bitbucket';
@@ -338,6 +338,11 @@ class codeBucketServiceImpl {
 
       await codeBucketClient.exportBucketToGithub({
         bucketId: d.codeBucket.id,
+        ...getGitHubTransferEndpoints(
+          repo.installation.backend,
+          repo.externalOwner,
+          repo.externalName
+        ),
         owner: repo.externalOwner,
         repo: repo.externalName,
         path: d.path,

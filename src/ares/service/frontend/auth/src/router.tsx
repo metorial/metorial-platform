@@ -1,3 +1,4 @@
+import { perEdition } from '@metorial/editions';
 import { TwoFactorSetup } from './pages/twoFactorSetup';
 import { ModalRoot, Toaster } from '@metorial-io/ui';
 import { useEffect, useRef } from 'react';
@@ -36,7 +37,9 @@ let router = createBrowserRouter([
       { path: 'two-factor/setup', element: <TwoFactorSetup /> },
       {
         path: '',
-        element: <Redirect to="https://metorial.com" />
+        element: (
+          <Redirect to={perEdition({ cloud: 'https://metorial.com', 'on-prem': '/login' })} />
+        )
       },
       {
         path: 'login',

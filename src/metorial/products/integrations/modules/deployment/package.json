@@ -30,7 +30,9 @@
     "@metorial-subspace/provider-utils": "^1.0.0",
     "@metorial-subspace/public-mcp-guard": "^1.0.0",
     "@metorial/db": "^1.0.0",
-    "@metorial/fabric": "^1.0.0"
+    "@metorial/fabric": "^1.0.0",
+    "@metorial/settings": "workspace:*",
+    "@metorial/shared-settings": "workspace:*"
   },
   "devDependencies": {
     "@metorial-subspace/tsconfig": "^1.0.0",

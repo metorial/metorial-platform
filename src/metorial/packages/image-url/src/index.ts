@@ -1,3 +1,5 @@
+import { branding } from '@metorial/branding';
+
 export type EntityImage =
   | {
       type: 'file';
@@ -39,7 +41,7 @@ export let getImageFieldsDefaultImpl = async (entity: GetImageFieldsParams) => {
     };
   }
 
-  let url = new URL(`https://avatar-cdn.metorial.com/aimg_${entity.id.split('_').pop()}`);
+  let url = new URL(branding.avatarUrl(`aimg_${entity.id.split('_').pop()}`));
   // if (entity.email) url.searchParams.set('email', md5(entity.email));
 
   return {

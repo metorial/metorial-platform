@@ -280,8 +280,6 @@ export let CustomProviderVersion = ({
           </Group.Row>
         )}
       </Group.Wrapper>
-
-      <link rel="stylesheet" href="https://fonts.metorial.com/jetbrains-mono.css" />
     </>
   ));
 };

@@ -590,8 +590,6 @@ export let LogViewer = ({
           </NewLinesPill>
         )}
       </Body>
-
-      <link rel="stylesheet" href="https://fonts.metorial.com/jetbrains-mono.css" />
     </Wrapper>
   );
 };

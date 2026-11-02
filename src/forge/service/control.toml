@@ -1,6 +1,13 @@
 name = "@metorial/forge"
 group = "oss"
 
+[[dependencies]]
+identifier = "@metorial/object-storage"
+start = false
+env = [
+  { endpoint = "api", key = "OBJECT_STORAGE_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
+
 [dev]
 run = ["dev:start"]
 
@@ -25,7 +32,6 @@ METORIAL_HOSTNAME = "{{HOSTNAME}}"
 NODE_ENV = "development"
 ENCRYPTION_KEY = "sTrG+z8ewVo7JJsgmv39UL/YDdgxlHSVhVPJOV7Omdg"
 DEFAULT_PROVIDER = "local"
-OBJECT_STORAGE_URL = "http://services:52010"
 ARTIFACT_BUCKET_NAME = "artifacts"
 LOG_BUCKET_NAME = "logs"
 
@@ -47,3 +53,6 @@ canonical = "ghcr.io/metorial/forge"
 name = "forge"
 runner = "compose"
 profiles = ["infra", "service"]
+
+[e2e.env]
+OBJECT_STORAGE_URL = "http://services:52010"

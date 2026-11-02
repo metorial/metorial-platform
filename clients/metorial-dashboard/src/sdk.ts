@@ -1,3 +1,4 @@
+import { MetorialOnPremScmEndpoint } from './onPremScm';
 import { createFetchWithRetry } from '@metorial/fetch';
 import { MetorialEndpointManager, MetorialSDKError } from '@metorial/util-endpoint';
 import { MetorialAuthEndpoint } from './auth';
@@ -1228,6 +1229,7 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   }),
 
   scm: {
+    onPrem: new MetorialOnPremScmEndpoint(manager),
     installation: new MetorialDashboardInstanceScmInstallationEndpoint(manager),
     repos: new MetorialDashboardInstanceScmReposEndpoint(manager),
     accounts: new MetorialDashboardInstanceScmAccountsEndpoint(manager),

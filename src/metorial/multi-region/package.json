@@ -39,7 +39,8 @@
     "prisma-json-types-generator": "^5.2.0",
     "stripe": "^23.0.0",
     "typescript": "^5.9.3",
-    "@lowerdeck/queue": "workspace:2.0.0"
+    "@lowerdeck/queue": "workspace:2.0.0",
+    "@metorial/settings": "workspace:*"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

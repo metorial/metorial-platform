@@ -94,13 +94,16 @@
     "ipaddr.js": "^2.5.0",
     "jsonata": "^2.2.2",
     "jszip": "^3.10.2",
-    "object-storage-client": "^0.2.5",
+    "object-storage-client": "workspace:*",
     "p-queue": "^10.0.0",
     "pg": "^8.23.1",
     "prisma": "^7.10.1",
     "prisma-json-types-generator": "^5.2.0",
     "ws": "^8.22.0",
     "yaml": "^2.9.1",
-    "zod": "^4.6.7"
+    "zod": "^4.6.7",
+    "@metorial/settings": "workspace:*",
+    "@metorial/shared-settings": "workspace:*",
+    "@metorial/editions": "workspace:*"
   }
 }

@@ -2,6 +2,13 @@ name = "@metorial/shuttle"
 group = "oss"
 
 [[dependencies]]
+identifier = "@metorial/object-storage"
+start = false
+env = [
+  { endpoint = "api", key = "OBJECT_STORAGE_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
+]
+
+[[dependencies]]
 identifier = "@metorial/function-bay"
 env = [
   { endpoint = "api", key = "FUNCTION_BAY_API_URL", value = "http://{{HOSTNAME}}:{{PORT}}/metorial-function-bay" },
@@ -46,7 +53,6 @@ ENCRYPTION_KEY = "local-dev-encryption-key"
 HOLOPOD_HTTP_ENDPOINT = "http://holopod:3000"
 SHUTTLE_ALLOW_PRIVATE_URLS = "true"
 SHUTTLE_UNSAFE_SSRF_BYPASS = "true"
-OBJECT_STORAGE_URL = "http://services:52010"
 LOGS_BUCKET_NAME = "shuttle-logs"
 FUNCTION_BAY_TENANT_IDENTIFIER = "dev-tenant"
 FUNCTION_BAY_DEFAULT_MEMORY_MB = "512"
@@ -73,3 +79,6 @@ canonical = "ghcr.io/metorial/shuttle"
 name = "shuttle"
 runner = "compose"
 profiles = ["infra", "service"]
+
+[e2e.env]
+OBJECT_STORAGE_URL = "http://services:52010"

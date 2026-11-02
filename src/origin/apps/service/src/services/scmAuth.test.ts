@@ -21,6 +21,14 @@ let mocks = vi.hoisted(() => ({
   }
 }));
 
+vi.mock('../lib/scmTokenRefreshLock', () => ({
+  usingScmTokenRefreshLock: async (
+    _provider: string,
+    _id: bigint,
+    run: () => Promise<unknown>
+  ) => await run()
+}));
+
 vi.mock('../db', () => ({ db: mocks.db }));
 vi.mock('../env', () => ({
   env: { service: { ORIGIN_SERVICE_PUBLIC_URL: 'https://origin.example.com' } }

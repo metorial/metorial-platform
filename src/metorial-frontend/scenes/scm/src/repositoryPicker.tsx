@@ -1,3 +1,5 @@
+import { useScmProviderOptions } from '@metorial/state';
+import type { OnPremScmProviderType } from '@metorial/dashboard-sdk';
 import type { DashboardInstanceScmReposCreateOutput } from '@metorial/dashboard-sdk';
 import { renderWithLoader } from '@metorial/data-hooks';
 import {
@@ -578,9 +580,9 @@ export let ScmRepositoryPicker = (p: ScmRepositoryPickerProps) => {
     popup?.focus();
   };
 
-  let setupProvider = async (
-    type: 'github_enterprise' | 'gitlab_selfhosted' | 'bitbucket_data_center'
-  ) => {
+  let providerOptions = useScmProviderOptions(p.instanceId);
+
+  let setupProvider = async (type: OnPremScmProviderType) => {
     let [result] = await createProvider.mutate({ instanceId: p.instanceId, type });
     if (!result?.url) return;
     let popup = window.open(result.url, '_blank');
@@ -692,30 +694,14 @@ export let ScmRepositoryPicker = (p: ScmRepositoryPickerProps) => {
             <Spacer size={8} />
             <Menu
               lightMode
-              items={[
-                {
-                  id: 'github_enterprise',
-                  label: 'GitHub Enterprise'
-                },
-                {
-                  id: 'gitlab_selfhosted',
-                  label: 'GitLab Self-Managed'
-                },
-                {
-                  id: 'bitbucket_data_center',
-                  label: 'Bitbucket Data Center'
-                }
-              ]}
-              onItemClick={id =>
-                setupProvider(
-                  id as 'github_enterprise' | 'gitlab_selfhosted' | 'bitbucket_data_center'
-                )
-              }
+              items={providerOptions.map(option => ({ id: option.type, label: option.label }))}
+              onItemClick={id => setupProvider(id as OnPremScmProviderType)}
             >
               <Button
                 size="2"
                 variant="outline"
                 loading={createProvider.isLoading}
+                disabled={!providerOptions.length}
                 iconLeft={<RiSettings3Line />}
               >
                 Set up custom provider
@@ -859,33 +845,17 @@ export let ScmRepositoryPicker = (p: ScmRepositoryPickerProps) => {
                         <Menu
                           matchTriggerWidth
                           lightMode
-                          items={[
-                            {
-                              id: 'github_enterprise',
-                              label: 'GitHub Enterprise'
-                            },
-                            {
-                              id: 'gitlab_selfhosted',
-                              label: 'GitLab Self-Managed'
-                            },
-                            {
-                              id: 'bitbucket_data_center',
-                              label: 'Bitbucket Data Center'
-                            }
-                          ]}
-                          onItemClick={id =>
-                            setupProvider(
-                              id as
-                                | 'github_enterprise'
-                                | 'gitlab_selfhosted'
-                                | 'bitbucket_data_center'
-                            )
-                          }
+                          items={providerOptions.map(option => ({
+                            id: option.type,
+                            label: option.label
+                          }))}
+                          onItemClick={id => setupProvider(id as OnPremScmProviderType)}
                         >
                           <Button
                             size="2"
                             variant="outline"
                             loading={createProvider.isLoading}
+                            disabled={!providerOptions.length}
                             iconLeft={<RiSettings3Line />}
                           >
                             Set up provider

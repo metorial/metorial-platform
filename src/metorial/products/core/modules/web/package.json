@@ -19,7 +19,8 @@
     "@metorial/queue": "^1.0.0",
     "htmlparser2": "^8.0.2",
     "image-size": "^2.0.4",
-    "tldts": "^7.4.19"
+    "tldts": "^7.4.19",
+    "@metorial/settings": "workspace:*"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

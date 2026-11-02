@@ -1,6 +1,5 @@
 import { getSentry } from '@lowerdeck/sentry';
 import { RedisClient } from 'bun';
-import { adminApi } from './apis/admin';
 import { authApi } from './apis/auth';
 import { internalApi } from './apis/internal';
 import { ssoApi } from './apis/sso';
@@ -13,11 +12,6 @@ let Sentry = getSentry();
 let authServer = Bun.serve({
   fetch: withSecurityHeaders(authApi),
   port: aresPorts.auth
-});
-
-let adminServer = Bun.serve({
-  fetch: withSecurityHeaders(adminApi),
-  port: aresPorts.admin
 });
 
 let ssoServer = Bun.serve({
@@ -62,6 +56,5 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 console.log(`Auth service running on http://localhost:${authServer.port}`);
-console.log(`Admin service running on http://localhost:${adminServer.port}`);
 console.log(`SSO service running on http://localhost:${ssoServer.port}`);
 console.log(`Internal service running on http://localhost:${internalServer.port}`);

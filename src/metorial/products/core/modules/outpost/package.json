@@ -29,7 +29,8 @@
     "@metorial-outpost/crypto": "workspace:*",
     "@metorial-outpost/server": "workspace:*",
     "@metorial-outpost/tokens": "workspace:*",
-    "@metorial/queue": "^1.0.0"
+    "@metorial/queue": "^1.0.0",
+    "@metorial/settings": "workspace:*"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

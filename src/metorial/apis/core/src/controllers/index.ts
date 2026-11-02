@@ -1,3 +1,4 @@
+import { checkEdition } from '@metorial/editions';
 import { Controller } from '@metorial/rest';
 import {
   callbackDocsCategory,
@@ -189,19 +190,7 @@ import {
   storeParticipantController,
   tokenController,
   toolCallController,
-  webhookRegistrationController,
-  sandboxRegionController,
-  sandboxSpecController,
-  sandboxMachineController,
-  sandboxMachineUsageController,
-  sandboxMachineInstanceController,
-  sandboxMachineOperationController,
-  sandboxMachineEventController,
-  sandboxMachineErrorController,
-  sandboxDiskController,
-  sandboxDiskResizeController,
-  sandboxImageController,
-  sandboxImageBuildController
+  webhookRegistrationController
 } from './instance';
 import {
   accessPolicyManagementController,
@@ -232,6 +221,14 @@ import {
   teamManagementController
 } from './management';
 import { testHelperConsumerOAuthController } from './test-helpers';
+
+let onPremScmControllers = checkEdition('on-prem')
+  ? await import('./instance/scm/providerOptions')
+  : ({} as typeof import('./instance/scm/providerOptions'));
+
+let sandboxControllers = checkEdition('cloud')
+  ? await import('./instance/sandbox/controllers')
+  : ({} as typeof import('./instance/sandbox/controllers'));
 
 let setControllerDocsMetadata = <
   T extends { descriptor: Record<string, any>; handlers: Record<string, any> }
@@ -342,20 +339,7 @@ let setControllerDocsMetadata = <
   })
 );
 
-[
-  sandboxRegionController,
-  sandboxSpecController,
-  sandboxMachineController,
-  sandboxMachineUsageController,
-  sandboxMachineInstanceController,
-  sandboxMachineOperationController,
-  sandboxMachineEventController,
-  sandboxMachineErrorController,
-  sandboxDiskController,
-  sandboxDiskResizeController,
-  sandboxImageController,
-  sandboxImageBuildController
-].forEach(controller =>
+Object.values(sandboxControllers).forEach(controller =>
   setControllerDocsMetadata(controller, {
     category: sandboxDocsCategory
   })
@@ -563,18 +547,7 @@ export let magnetarController = Controller.create<any>(
     integrationFirewallAssignmentController,
     networkPolicyController,
 
-    sandboxRegionController,
-    sandboxSpecController,
-    sandboxMachineController,
-    sandboxMachineUsageController,
-    sandboxMachineInstanceController,
-    sandboxMachineOperationController,
-    sandboxMachineEventController,
-    sandboxMachineErrorController,
-    sandboxDiskController,
-    sandboxDiskResizeController,
-    sandboxImageController,
-    sandboxImageBuildController,
+    ...sandboxControllers,
 
     sessionController,
     sessionTemplateController,
@@ -862,18 +835,7 @@ export let dashboardController = Controller.create<any>(
     integrationFirewallAssignmentController,
     networkPolicyController,
 
-    sandboxRegionController,
-    sandboxSpecController,
-    sandboxMachineController,
-    sandboxMachineUsageController,
-    sandboxMachineInstanceController,
-    sandboxMachineOperationController,
-    sandboxMachineEventController,
-    sandboxMachineErrorController,
-    sandboxDiskController,
-    sandboxDiskResizeController,
-    sandboxImageController,
-    sandboxImageBuildController,
+    ...sandboxControllers,
 
     sessionTemplateController,
     sessionTemplateProviderController,
@@ -907,6 +869,7 @@ export let dashboardController = Controller.create<any>(
 
     scmConnectionsController,
     scmProvidersController,
+    ...onPremScmControllers,
     scmInstallationController,
     scmReposController,
     scmAccountsController,

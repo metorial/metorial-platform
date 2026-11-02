@@ -13,9 +13,10 @@ vi.mock('../env', () => ({
   env: { service: { REDIS_URL: 'redis://localhost' } }
 }));
 
-import { usingScmTokenRefreshLock } from './scmTokenRefreshLock';
-
 it('locks token refreshes by provider and installation', async () => {
+  vi.resetModules();
+  let { usingScmTokenRefreshLock } = await import('./scmTokenRefreshLock');
+
   await expect(
     usingScmTokenRefreshLock('gitlab', 42n, async () => 'access-token')
   ).resolves.toBe('access-token');

@@ -1,3 +1,4 @@
+import { checkEdition } from '@metorial/editions';
 import { sandboxImageBuildContextFilePurposeSlug } from './lib/uploadPolicy';
 import { filePurposeService } from './services/filePurpose';
 
@@ -63,12 +64,16 @@ export let purposes = {
     canHaveLinks: true
   }),
 
-  sandbox_image_build_context: ensureFilePurpose({
-    name: 'Sandbox Image Build Context',
-    slug: sandboxImageBuildContextFilePurposeSlug,
-    ownerType: 'instance',
-    canHaveLinks: false
-  })
+  ...(checkEdition('cloud')
+    ? {
+        sandbox_image_build_context: ensureFilePurpose({
+          name: 'Sandbox Image Build Context',
+          slug: sandboxImageBuildContextFilePurposeSlug,
+          ownerType: 'instance',
+          canHaveLinks: false
+        })
+      }
+    : {})
 };
 
 export let purposeSlugs = Object.keys(purposes) as (keyof typeof purposes)[];

@@ -24,7 +24,8 @@
     "@metorial-subspace/module-integration": "^1.0.0",
     "@metorial-subspace/module-public-mcp": "^1.0.0",
     "@metorial-subspace/module-tenant": "^1.0.0",
-    "@metorial-subspace/provider-slates": "^1.0.0"
+    "@metorial-subspace/provider-slates": "^1.0.0",
+    "@metorial/settings": "workspace:*"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

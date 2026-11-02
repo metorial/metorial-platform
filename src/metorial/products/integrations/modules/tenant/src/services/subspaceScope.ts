@@ -29,6 +29,8 @@ import { environmentService } from './environment';
 import { solutionService } from './solution';
 import { tenantService } from './tenant';
 
+let resourceActorCreateAttempts = 3;
+
 type ScopeProject = Pick<Project, 'id'> &
   Partial<Project> & {
     instances?: Instance[];
@@ -349,26 +351,54 @@ let resolveOrganizationActorResourceActor = async (d: {
 
   let identifier = getOrganizationActorIdentifier(loadedOrganizationActor);
 
-  return await withUniqueConstraintRecovery(
-    async () =>
-      await metorialDb.resourceActor.create({
-        data: {
-          id: await ID.generateId('resourceActor'),
-          projectOid,
-          identifier,
-          name: loadedOrganizationActor.name,
-          type: 'external',
-          organizationActorOid: loadedOrganizationActor.oid
-        }
-      }),
-    async () =>
-      await metorialDb.resourceActor.findFirst({
-        where: {
-          projectOid,
-          OR: [{ organizationActorOid: loadedOrganizationActor.oid }, { identifier }]
-        }
-      })
-  );
+  // Random Snowflake worker IDs can collide across processes; a fresh create allocates a new oid.
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await withUniqueConstraintRecovery(
+        async () =>
+          await metorialDb.resourceActor.create({
+            data: {
+              id: await ID.generateId('resourceActor'),
+              projectOid,
+              identifier,
+              name: loadedOrganizationActor.name,
+              type: 'external',
+              organizationActorOid: loadedOrganizationActor.oid
+            }
+          }),
+        async () =>
+          await metorialDb.resourceActor.findFirst({
+            where: {
+              projectOid,
+              OR: [{ organizationActorOid: loadedOrganizationActor.oid }, { identifier }]
+            }
+          })
+      );
+    } catch (error) {
+      let conflict = error as {
+        code?: string;
+        meta?: {
+          target?: unknown;
+          driverAdapterError?: {
+            cause?: { constraint?: { index?: string; fields?: string[] } };
+          };
+        };
+      } | null;
+      let constraint = conflict?.meta?.driverAdapterError?.cause?.constraint;
+      let target = conflict?.meta?.target ?? constraint?.index ?? constraint?.fields;
+      let isPrimaryKeyConflict =
+        target === 'ResourceActor_pkey' ||
+        (Array.isArray(target) && target.length === 1 && target[0] === 'oid');
+
+      if (
+        attempt >= resourceActorCreateAttempts ||
+        conflict?.code !== 'P2002' ||
+        !isPrimaryKeyConflict
+      ) {
+        throw error;
+      }
+    }
+  }
 };
 
 let persistProjectTenantLink = async (d: {

@@ -27,7 +27,12 @@ export let wrapHorizonRedirectUrl = (d: {
     throw new ServiceError(badRequestError({ message: 'Invalid redirect URL' }));
   }
 
-  if (target.origin === wrapper.origin) return d.redirectUrl;
+  let wrapperBase = wrapper.pathname.replace(/\/[^/]*$/, '');
+  let isWrapperCallback =
+    target.pathname === wrapper.pathname ||
+    target.pathname.startsWith(`${wrapperBase}/callback/`);
+
+  if (target.origin === wrapper.origin && isWrapperCallback) return d.redirectUrl;
 
   wrapper.searchParams.set('redirect_url', d.redirectUrl);
 

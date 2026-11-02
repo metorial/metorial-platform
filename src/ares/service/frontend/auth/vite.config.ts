@@ -1,9 +1,10 @@
+import { editionsVitePlugin } from '@metorial/editions/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
 // `vite` (dev server) uses `/`; `vite build` must use the backend asset prefix.
 export default defineConfig(({ command }) => ({
-  plugins: [react()],
+  plugins: [editionsVitePlugin(), react()],
 
   base: command === 'serve' ? '/' : '/metorial-ares',
 

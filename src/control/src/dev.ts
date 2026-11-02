@@ -110,11 +110,11 @@ export let prepareSelected = async (
     ['Pushing selected database schemas', 'control:db:push']
   ]) {
     if (!packages.length) continue;
-    console.log(label);
+    commands.say(label);
 
     await runTurboTask(project.root, env, task!, packages, 3);
   }
-  console.log('Building packages');
+  commands.say('Building packages');
 
   await commands.run('bun', ['run', 'build'], project.root, env);
 
@@ -122,7 +122,7 @@ export let prepareSelected = async (
     let filter = loaded.manifest.package?.name ?? loaded.path;
 
     for (let script of loaded.manifest.prepare) {
-      console.log(`Preparing [${filter}]: turbo run ${script}`);
+      commands.say(`Preparing [${filter}]: turbo run ${script}`);
 
       await runTurboTask(project.root, environment.allForManifest(loaded, env), script, [
         filter
@@ -140,10 +140,10 @@ export let runPrepare = async (
   if (!selected.length) throw new Error('no control.toml manifests were selected');
 
   if (!noDocker) {
-    console.log('Starting development services');
+    commands.say('Starting development services');
 
     await docker.start(project.root, selected, env);
-    console.log('Development services ready');
+    commands.say('Development services ready');
   }
 
   await prepareSelected(project, selected, env, false);
@@ -152,13 +152,13 @@ export let runPrepare = async (
 export let runDatabaseTask = async (
   project: ProjectRoot,
   selectors: string[],
-  task: 'generate' | 'push'
+  task: 'generate' | 'push' | 'migrate'
 ) => {
   let { selected, env } = await selection(project, selectors);
   if (!selected.length) throw new Error('no control.toml manifests were selected');
 
   if (task === 'push') {
-    console.log('Starting required development database services');
+    commands.say('Starting required development database services');
 
     await docker.start(project.root, selected, env, true);
   }
@@ -168,12 +168,12 @@ export let runDatabaseTask = async (
 
   let packages = databasePackages(selected);
   if (!packages.length) {
-    console.log('No database packages selected');
+    commands.say('No database packages selected');
 
     return;
   }
-  console.log(
-    `${task === 'generate' ? 'Generating selected database clients' : 'Pushing selected database schemas'}: ${packages.join(', ')}`
+  commands.say(
+    `${{ generate: 'Generating selected database clients', push: 'Pushing selected database schemas', migrate: 'Migrating selected databases' }[task]}: ${packages.join(', ')}`
   );
 
   await runTurboTask(project.root, env, `control:db:${task}`, packages, 3);
@@ -191,7 +191,7 @@ export let cleanupCommands = async (selected: LoadedManifest[], env: Environment
           environment.allForManifest(loaded, env)
         );
       } catch (error) {
-        console.error(`warning: cleanup command failed in ${dirname(loaded.path)}: ${error}`);
+        commands.warn(`warning: cleanup command failed in ${dirname(loaded.path)}: ${error}`);
         firstError ??= error;
       }
     }
@@ -214,44 +214,44 @@ export let run = async (
 
   if (dryRun) {
     let packages = turbo.plan(selected, project.root, env);
-    console.log(`root: ${project.root}`);
-    console.log(
+    commands.say(`root: ${project.root}`);
+    commands.say(
       `infrastructure: ${infrastructure.serviceNames(infrastructure.requirementsFromManifests(selected)).join(', ')}`
     );
 
     if (!noPrepare) {
       let packages = databasePackages(selected).join(', ');
-      console.log(`prepare: turbo run control:db:generate (${packages})`);
-      console.log(`prepare: turbo run control:db:push (${packages})`);
-      console.log('prepare: bun run build');
+      commands.say(`prepare: turbo run control:db:generate (${packages})`);
+      commands.say(`prepare: turbo run control:db:push (${packages})`);
+      commands.say('prepare: bun run build');
     }
 
     for (let loaded of selected) {
       let filter = loaded.manifest.package?.name ?? loaded.path;
 
       for (let script of loaded.manifest.prepare)
-        console.log(`prepare [${filter}]: turbo run ${script} --filter=${filter}`);
+        commands.say(`prepare [${filter}]: turbo run ${script} --filter=${filter}`);
 
       for (let [name, run] of Object.entries(loaded.manifest.run).sort(([a], [b]) =>
         a < b ? -1 : a > b ? 1 : 0
       ))
-        console.log(`dev [${dirname(loaded.path)}:${name}]: ${run.command}`);
+        commands.say(`dev [${dirname(loaded.path)}:${name}]: ${run.command}`);
     }
-    console.log(`would generate ${packages.length} Turbo mirror package(s)`);
+    commands.say(`would generate ${packages.length} Turbo mirror package(s)`);
 
     return;
   }
 
   let managed = !!process.env.CONTROL_WORKSPACE_ID?.trim();
-  if (managed && !noDocker) console.log('Using workspace-managed development services');
+  if (managed && !noDocker) commands.say('Using workspace-managed development services');
 
   let projects: docker.ComposeProject[] = [];
 
   try {
     if (!noDocker && !managed) {
-      console.log('Starting development services');
+      commands.say('Starting development services');
       projects = await docker.start(project.root, selected, env);
-      console.log('Development services ready');
+      commands.say('Development services ready');
     }
 
     await prepareSelected(project, selected, env, noPrepare);
@@ -261,12 +261,14 @@ export let run = async (
 
     let generated = join(project.root, '.control/dev/turbo');
     turbo.generate(generated, packages);
-    console.log(`Prepared ${packages.length} run command(s)`);
+    commands.say(`Prepared ${packages.length} run command(s)`);
 
     let data = await workspace.metadata(project);
     await proxy.ensure(project, data, proxy.publicPorts(manifests, project));
 
     let unregister = await proxy.register(project, data, selected);
+    if (proxy.publicPorts(selected, project).has(proxy.mailPort))
+      commands.say(`Mail inbox: http://${data.hostname}:${proxy.mailPort}`);
     let interactive = !!(process.stdin.isTTY && process.stdout.isTTY);
     let args = [
       'run',

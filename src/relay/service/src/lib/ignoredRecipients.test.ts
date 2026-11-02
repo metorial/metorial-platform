@@ -18,8 +18,14 @@ describe('isIgnoredEmailRecipient', () => {
     expect(isIgnoredEmailRecipient('user@localhost')).toBe(true);
   });
 
+  it('ignores the reserved example domains', () => {
+    expect(isIgnoredEmailRecipient('customer@example.com')).toBe(true);
+    expect(isIgnoredEmailRecipient('customer@example.net')).toBe(true);
+    expect(isIgnoredEmailRecipient('customer@example.org')).toBe(true);
+  });
+
   it('keeps regular addresses', () => {
-    expect(isIgnoredEmailRecipient('customer@example.com')).toBe(false);
+    expect(isIgnoredEmailRecipient('customer@acme.io')).toBe(false);
     expect(isIgnoredEmailRecipient('user@metorial.com')).toBe(false);
     expect(isIgnoredEmailRecipient('user@service-accounts.metorial.com')).toBe(false);
     expect(isIgnoredEmailRecipient('not-an-email')).toBe(false);
@@ -34,10 +40,11 @@ describe('filterIgnoredEmailRecipients', () => {
   it('drops ignored recipients and keeps the rest', () => {
     expect(
       filterIgnoredEmailRecipients([
-        'customer@example.com',
+        'customer@acme.io',
         'sa-abc@900.service-accounts.metorial.net',
-        'deleted_1@deleted.local'
+        'deleted_1@deleted.local',
+        'tester@example.org'
       ])
-    ).toEqual(['customer@example.com']);
+    ).toEqual(['customer@acme.io']);
   });
 });
