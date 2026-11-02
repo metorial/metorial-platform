@@ -64,7 +64,10 @@ let getSelectedSkillIds = async (
   return new Set([...skills.map(skill => skill.id), ...groupItems.map(item => item.skill.id)]);
 };
 
-export let createConsumerSkillAccess = async (d: ConsumerSkillAccessInput) => {
+export let createConsumerSkillAccess = async (
+  d: ConsumerSkillAccessInput,
+  opts: { requireSkillEditing?: boolean } = {}
+) => {
   let consumerProfile = await db.consumerProfile.findUnique({
     where: { oid: d.consumerProfile.oid },
     select: {
@@ -93,6 +96,7 @@ export let createConsumerSkillAccess = async (d: ConsumerSkillAccessInput) => {
     where: { oid: d.instance.oid },
     include: { organization: true, project: true }
   });
+  if (opts.requireSkillEditing && !instance.project.allowConsumerSkillEditing) return null;
 
   let skillsEnabled = await flagService.isFlagEnabledForScope({
     organization: instance.organization,

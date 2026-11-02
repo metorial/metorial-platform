@@ -321,9 +321,8 @@ let presentChange = (change: SkillFileChangeResult) => ({
 export let createSkillEditingTools = async (
   d: ConsumerSkillAccessInput
 ): Promise<SkillEditingTools | null> => {
-  let skillAccess = await createConsumerSkillAccess(d);
+  let skillAccess = await createConsumerSkillAccess(d, { requireSkillEditing: true });
   if (!skillAccess) return null;
-  if (!skillAccess.instance.project.allowConsumerSkillEditing) return null;
 
   let { canCreateSkills, getAccess, resolveSkill } = skillAccess;
 
