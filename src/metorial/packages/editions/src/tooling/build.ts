@@ -15,6 +15,7 @@ export type BuildEditionOptions = {
   outdir: string;
   external?: string[];
   minify?: boolean;
+  splitting?: boolean;
   sourcemap?: 'external' | 'none';
 };
 
@@ -24,6 +25,7 @@ export let buildEdition = async (options: BuildEditionOptions) => {
     outdir: resolve(options.outdir),
     outExtension: { '.js': '.mjs' },
     bundle: true,
+    splitting: options.splitting ?? false,
     platform: 'node',
     format: 'esm',
     target: 'esnext',

@@ -8,7 +8,7 @@ import { verifyPackageGraph, verifySourceMaps, type Violation } from './verify';
 import { readWorkspace } from './workspace';
 
 let usage = `Usage:
-  metorial-editions build <entry> --edition <edition> --outdir <dir> [--external a,b] [--minify]
+  metorial-editions build <entry> --edition <edition> --outdir <dir> [--external a,b] [--minify] [--splitting]
   metorial-editions verify --edition <edition> --entry <package|dir> [--entry ...]
                            [--sourcemaps <dir|file.map> ...] [--deny-package <name> ...]
                            [--egress <dir|file> ...] [--policy <policy.json>] [--root <dir>]`;
@@ -31,7 +31,8 @@ let runBuild = async (args: string[]) => {
       edition: { type: 'string' },
       outdir: { type: 'string' },
       external: { type: 'string' },
-      minify: { type: 'boolean' }
+      minify: { type: 'boolean' },
+      splitting: { type: 'boolean' }
     }
   });
 
@@ -43,7 +44,8 @@ let runBuild = async (args: string[]) => {
     edition: readEdition(values.edition),
     outdir: values.outdir,
     external: values.external?.split(',').filter(Boolean),
-    minify: values.minify
+    minify: values.minify,
+    splitting: values.splitting
   });
 
   for (let output of outputs) console.log(output);

@@ -7,6 +7,10 @@ declare global {
 }
 
 let queryParams = new URLSearchParams(window.location.search);
+
+// The workspace is served from the root of its own host in the cloud and below a path prefix when it shares a host.
+let basePath = location.pathname.replace(/\/[^/]*$/, '');
+
 let id = queryParams.get('id');
 let token = queryParams.get('token');
 if (!id || !token) {
@@ -62,7 +66,7 @@ window.product = {
   additionalBuiltinExtensions: [
     {
       scheme: location.protocol == 'https:' ? 'https' : 'http',
-      path: `${queryParams.get('extension_prefix') ?? ''}/extensions/memfs`
+      path: `${queryParams.get('extension_prefix') ?? basePath}/extensions/memfs`
     }
   ]
 };
@@ -93,16 +97,16 @@ let loadScript = (
 let delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 setTimeout(async () => {
-  await loadScript({ src: '/vscode/out/vs/loader.js' });
-  await loadScript({ src: '/vscode/out/vs/webPackagePaths.js' });
+  await loadScript({ src: `${basePath}/vscode/out/vs/loader.js` });
+  await loadScript({ src: `${basePath}/vscode/out/vs/webPackagePaths.js` });
   await loadScript({
     code: `
     Object.keys(self.webPackagePaths).forEach(function (key) {
-      self.webPackagePaths[key] = \`${window.location.origin}/vscode/\${key}/\${self.webPackagePaths[key]}\`;
+      self.webPackagePaths[key] = \`${window.location.origin}${basePath}/vscode/\${key}/\${self.webPackagePaths[key]}\`;
     });
 
     require.config({
-      baseUrl: \`${window.location.origin}/vscode/out\`,
+      baseUrl: \`${window.location.origin}${basePath}/vscode/out\`,
       recordStats: true,
       trustedTypesPolicy: window.trustedTypes?.createPolicy('amdLoader', {
         createScriptURL(value) {
@@ -113,9 +117,9 @@ setTimeout(async () => {
     });
   `
   });
-  await loadScript({ src: '/vscode/out/vs/workbench/workbench.web.main.nls.js' });
-  await loadScript({ src: '/vscode/out/vs/workbench/workbench.web.main.js' });
-  await loadScript({ src: '/vscode/out/vs/code/browser/workbench/workbench.js' });
+  await loadScript({ src: `${basePath}/vscode/out/vs/workbench/workbench.web.main.nls.js` });
+  await loadScript({ src: `${basePath}/vscode/out/vs/workbench/workbench.web.main.js` });
+  await loadScript({ src: `${basePath}/vscode/out/vs/code/browser/workbench/workbench.js` });
 
   await delay(1000);
 

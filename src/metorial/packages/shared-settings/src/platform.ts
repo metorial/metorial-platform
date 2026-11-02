@@ -13,9 +13,37 @@ export let metorialEnv = setting(v.enumOf(['development', 'staging', 'production
 export let metorialRegion = setting(v.optional(v.string()), { env: 'METORIAL_REGION' });
 
 export let publicUrls = {
-  apiUrl: setting(v.string(), { env: 'API_URL' }),
-  filesUrl: setting(v.string(), { env: 'FILES_URL' }),
-  portalsUrl: setting(v.string(), { env: 'PORTALS_URL' }),
+  apiUrl: setting(v.string(), {
+    env: 'API_URL',
+    audience: 'derived',
+    description:
+      'Public URL of the API, defaults to the installation URL with the /v1 prefix on-prem',
+    default: perEdition<LazyDefault>({
+      cloud: undefined,
+      'on-prem': () => `${installationSettings().publicUrl}/v1`
+    })
+  }),
+
+  filesUrl: setting(v.string(), {
+    env: 'FILES_URL',
+    audience: 'derived',
+    description: 'Public URL files are served from, defaults to the installation URL on-prem',
+    default: perEdition<LazyDefault>({
+      cloud: undefined,
+      'on-prem': () => installationSettings().publicUrl
+    })
+  }),
+
+  portalsUrl: setting(v.string(), {
+    env: 'PORTALS_URL',
+    audience: 'derived',
+    description:
+      'Public URL portals are served from, defaults to the installation URL on-prem',
+    default: perEdition<LazyDefault>({
+      cloud: undefined,
+      'on-prem': () => installationSettings().publicUrl
+    })
+  }),
 
   appUrl: setting(v.string(), {
     env: 'APP_URL',

@@ -1754,6 +1754,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@metorial/data-hooks": "^1.0.0",
+        "@metorial/editions": "workspace:*",
         "@metorial/frontend-config": "^1.0.0",
         "@metorial/state": "^1.0.0",
         "@metorial/ui": "^1.0.0",

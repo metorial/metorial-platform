@@ -12,6 +12,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./env": "./src/env.ts",
+    "./edition": "./src/edition.ts",
     "./api": "./src/api.ts",
     "./bootstrap": "./src/bootstrap.ts",
     "./db": "./src/db.ts",
@@ -20,6 +21,7 @@
   "typesVersions": {
     "*": {
       "env": ["./src/env.ts"],
+      "edition": ["./src/edition.ts"],
       "api": ["./src/api.ts"],
       "bootstrap": ["./src/bootstrap.ts"],
       "db": ["./src/db.ts"],

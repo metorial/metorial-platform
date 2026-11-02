@@ -8,6 +8,7 @@ import {
   listAll
 } from './assertions';
 import { readSessionCookie } from './bootstrap';
+import { e2eEdition, runsOn } from './edition';
 import { assertE2EEnvironment, e2eEndpoint, metorialEndpoints } from './env';
 import { startMcpTestServer } from './mcpServer';
 
@@ -268,5 +269,27 @@ describe('mcp test server', () => {
     } finally {
       await server.stop();
     }
+  });
+});
+
+describe('edition', () => {
+  test('defaults to cloud', () => {
+    delete process.env.METORIAL_E2E_EDITION;
+    expect(e2eEdition()).toBe('cloud');
+    expect(runsOn('cloud')).toBe(true);
+    expect(runsOn('on-prem')).toBe(false);
+  });
+
+  test('reads the on-prem edition', () => {
+    process.env.METORIAL_E2E_EDITION = 'on-prem';
+    expect(e2eEdition()).toBe('on-prem');
+    expect(runsOn('on-prem')).toBe(true);
+    expect(runsOn(['cloud', 'on-prem'])).toBe(true);
+    expect(runsOn(['cloud'])).toBe(false);
+  });
+
+  test('rejects unknown editions', () => {
+    process.env.METORIAL_E2E_EDITION = 'self-hosted';
+    expect(() => e2eEdition()).toThrow('METORIAL_E2E_EDITION');
   });
 });

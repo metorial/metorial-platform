@@ -57,7 +57,10 @@ let build = (edition: string) => {
 
   expect(result.status, result.stderr).toBe(0);
 
-  let bundle = readFileSync(join(outdir, 'main.mjs'), 'utf8');
+  let bundle = readdirSync(outdir)
+    .filter(file => file.endsWith('.mjs'))
+    .map(file => readFileSync(join(outdir, file), 'utf8'))
+    .join('\n');
 
   return { outdir, bundle };
 };
