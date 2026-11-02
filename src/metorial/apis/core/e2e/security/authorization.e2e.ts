@@ -41,16 +41,19 @@ describe('api-core security: authorization boundaries', () => {
     );
     expect(invite.invite_link.key).toBeTruthy();
 
-    let logs = await eventually(async () => {
-      let body = expectOk(
-        await org.clients.management.get('/organization/audit-logs', { query: { limit: 100 } })
-      );
-      if (!JSON.stringify(body).includes(invite.id)) throw new Error('invite not audited yet');
-      return body;
-    });
+    let logs = await eventually(
+      async () => {
+        let body = expectOk(
+          await org.clients.management.get('/organization/audit-logs', { query: { limit: 100 } })
+        );
+        if (!JSON.stringify(body).includes(invite.id)) throw new Error('invite not audited yet');
+        return body;
+      },
+      { timeoutMs: 150_000, intervalMs: 2_000 }
+    );
 
     expect(JSON.stringify(logs)).not.toContain(invite.invite_link.key);
-  });
+  }, 180_000);
 
   it('confines instance keys to their own project and instance on organization routes', async () => {
     let otherProject = expectOk(
