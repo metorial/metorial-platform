@@ -8,9 +8,6 @@ env = [
   { endpoint = "api", key = "OBJECT_STORAGE_URL", value = "http://{{HOSTNAME}}:{{PORT}}" },
 ]
 
-[dev]
-run = ["dev:start"]
-
 [endpoints.api]
 port = 52050
 health = "/ping"
