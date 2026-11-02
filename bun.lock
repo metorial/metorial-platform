@@ -5661,6 +5661,7 @@
         "@metorial/api-outpost": "1.0.0",
         "@metorial/audit-listeners": "1.0.0",
         "@metorial/auth": "1.0.0",
+        "@metorial/db": "1.0.0",
         "@metorial/editions": "workspace:*",
         "@metorial/logging": "1.0.0",
         "@metorial/module-access": "1.0.0",
