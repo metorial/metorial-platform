@@ -3,6 +3,7 @@ import {
   diag,
   DiagConsoleLogger,
   DiagLogLevel,
+  propagation,
   SpanStatusCode,
   trace
 } from '@opentelemetry/api';
@@ -20,10 +21,10 @@ import {
   AlwaysOffSampler,
   BatchSpanProcessor,
   ParentBasedSampler,
-  TraceIdRatioBasedSampler
-} from '@opentelemetry/sdk-trace-base';
-import type { ReadableSpan, SpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
+  TraceIdRatioBasedSampler,
+  TracerProvider
+} from '@opentelemetry/sdk-trace';
+import type { ReadableSpan, SpanProcessor } from '@opentelemetry/sdk-trace';
 import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
 import { PrismaInstrumentation } from '@prisma/instrumentation';
 import {
@@ -182,7 +183,7 @@ export let initTelemetry = (opts: { serviceName: string; allowRootSpans?: boolea
   let traceSampleRate = getTraceSampleRate();
   let prismaSpanMinDurationMs = getPrismaSpanMinDurationMs();
 
-  let provider = new NodeTracerProvider({
+  let provider = new TracerProvider({
     resource: resourceFromAttributes({
       [ATTR_SERVICE_NAME]: serviceName,
       [DEPLOYMENT_ENVIRONMENT_RESOURCE_ATTRIBUTE]:
@@ -196,23 +197,24 @@ export let initTelemetry = (opts: { serviceName: string; allowRootSpans?: boolea
     }),
     spanProcessors: [
       createFilteringSpanProcessor(
-        new BatchSpanProcessor(
-          new OTLPTraceExporter({
+        new BatchSpanProcessor({
+          exporter: new OTLPTraceExporter({
             url: endpoint,
             headers: parseHeaders(process.env.OTEL_EXPORTER_OTLP_HEADERS)
           })
-        ),
+        }),
         prismaSpanMinDurationMs
       )
     ]
   });
 
-  provider.register({
-    contextManager: new AsyncLocalStorageContextManager(),
-    propagator: new CompositePropagator({
+  trace.setGlobalTracerProvider(provider);
+  otelContext.setGlobalContextManager(new AsyncLocalStorageContextManager().enable());
+  propagation.setGlobalPropagator(
+    new CompositePropagator({
       propagators: [new W3CTraceContextPropagator(), new W3CBaggagePropagator()]
     })
-  });
+  );
 
   registerInstrumentations({
     tracerProvider: provider,
