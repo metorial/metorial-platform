@@ -43,7 +43,9 @@ describe('AwsKmsKeyProviderAdapter', () => {
   it('requires imported KMS keys to be full key ARNs', async () => {
     let adapter = new AwsKmsKeyProviderAdapter();
 
-    await expect(adapter.validateKeyProvider({ keyId: 'alias/customer-key' })).rejects.toMatchObject({
+    await expect(
+      adapter.validateKeyProvider({ keyId: 'alias/customer-key' })
+    ).rejects.toMatchObject({
       code: 'kms_key_arn_required'
     });
   });

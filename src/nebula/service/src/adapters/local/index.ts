@@ -33,6 +33,10 @@ let getMasterKey = (keyProvider?: KeyProvider) => {
 export class LocalKeyProviderAdapter extends KeyProviderAdapter {
   readonly type = 'local' as const;
 
+  getSystemFingerprint() {
+    return 'local';
+  }
+
   async createSystemKeyProvider() {
     assertLocalAllowed();
     getMasterKey();
@@ -41,7 +45,8 @@ export class LocalKeyProviderAdapter extends KeyProviderAdapter {
       name: 'Local Default',
       keyInfo: {
         variant: 'local',
-        version: 1
+        version: 1,
+        fingerprint: this.getSystemFingerprint()
       }
     };
   }

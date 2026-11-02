@@ -1,26 +1,47 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { createLock } from '@lowerdeck/lock';
 import { Paginator } from '@lowerdeck/pagination';
+import { Hash } from '@lowerdeck/hash';
 import { Service } from '@lowerdeck/service';
+import { checkEdition } from '@metorial/editions';
 import type { KeyProvider, Tenant } from '../../prisma/generated/client';
 import { getKeyProviderAdapter } from '../adapters';
 import { normalizeAdapterError } from '../adapters/_lib/errors';
 import { db } from '../db';
-import { env } from '../env';
+import {
+  defaultProviderType,
+  env,
+  isTenantProviderTypeEnabled,
+  type ProviderType
+} from '../env';
 import { ID, snowflake } from '../id';
 import { keyProviderErrorService } from './keyProviderError';
 
 let defaultProviderSystemIdentifier = 'system:global:default';
+let fingerprintIdentifierLength = 8;
 
 let defaultProviderLock = createLock({
   name: 'neb/kprov/default/lock',
   redisUrl: env.service.REDIS_URL
 });
 
-let toProviderType = (type: KeyProvider['type'] | 'aws.kms') =>
-  type === 'aws.kms' ? 'aws_kms' : type;
+let tenantProvidersUnavailable = () =>
+  new ServiceError(
+    badRequestError({ message: 'Tenant key providers are not available in this edition' })
+  );
 
-let getConfiguredProviderType = () => toProviderType(env.provider.DEFAULT_PROVIDER);
+let resolveTenantProviderType = (type?: ProviderType | null) => {
+  if (!checkEdition('cloud')) throw tenantProvidersUnavailable();
+
+  let resolved = type ?? defaultProviderType;
+  if (!isTenantProviderTypeEnabled(resolved)) {
+    throw new ServiceError(
+      badRequestError({ message: `Key provider type ${resolved} is not enabled` })
+    );
+  }
+
+  return resolved;
+};
 
 let getSystemIdentifier = (d: {
   owner: KeyProvider['owner'];
@@ -37,28 +58,43 @@ let getSystemIdentifier = (d: {
 class KeyProviderServiceImpl {
   async ensureSystemDefaultProvider() {
     return await defaultProviderLock.usingLock(defaultProviderSystemIdentifier, async () => {
-      let existing = await db.keyProvider.findFirst({
+      let type = defaultProviderType;
+      let adapter = getKeyProviderAdapter(type);
+      let fingerprint = adapter.getSystemFingerprint();
+
+      let candidates = await db.keyProvider.findMany({
         where: {
           owner: 'system',
-          systemIdentifier: defaultProviderSystemIdentifier,
+          type,
           tenantOid: null,
-          deletedAt: null
-        }
+          deletedAt: null,
+          systemIdentifier: { startsWith: defaultProviderSystemIdentifier }
+        },
+        orderBy: { createdAt: 'desc' }
       });
-      if (existing) return existing;
 
-      let type = getConfiguredProviderType();
-      let adapter = getKeyProviderAdapter(type);
+      for (let candidate of candidates) {
+        let storedFingerprint = (candidate.keyInfo as any)?.fingerprint;
+        let matches = storedFingerprint
+          ? storedFingerprint === fingerprint
+          : await adapter.matchesLegacySystemKeyInfo(candidate.keyInfo);
+
+        if (matches) return candidate;
+      }
 
       try {
         let provider = await adapter.createSystemKeyProvider();
         let id = await ID.generateId('keyProvider');
+        let fingerprintHash = (await Hash.sha256(fingerprint)).slice(
+          0,
+          fingerprintIdentifierLength
+        );
 
         return await db.keyProvider.create({
           data: {
             oid: snowflake.nextId(),
             id,
-            systemIdentifier: defaultProviderSystemIdentifier,
+            systemIdentifier: `${defaultProviderSystemIdentifier}:${type}:${fingerprintHash}`,
             name: provider.name,
             type,
             owner: 'system',
@@ -73,8 +109,12 @@ class KeyProviderServiceImpl {
     });
   }
 
-  async importKeyProvider(d: { tenant: Tenant; keyInput: Record<string, any> }) {
-    let type = getConfiguredProviderType();
+  async importKeyProvider(d: {
+    tenant: Tenant;
+    type?: ProviderType | null;
+    keyInput: Record<string, any>;
+  }) {
+    let type = resolveTenantProviderType(d.type);
     let adapter = getKeyProviderAdapter(type);
 
     try {
@@ -119,7 +159,7 @@ class KeyProviderServiceImpl {
       name: string;
     };
   }) {
-    let type = getConfiguredProviderType();
+    let type = resolveTenantProviderType();
     let adapter = getKeyProviderAdapter(type);
 
     try {
@@ -190,11 +230,13 @@ class KeyProviderServiceImpl {
           ...opts,
           where: {
             deletedAt: null,
-            OR: [
-              { owner: 'system', tenantOid: null },
-              { owner: 'system', tenantOid: d.tenant.oid },
-              { owner: 'tenant', tenantOid: d.tenant.oid }
-            ]
+            OR: checkEdition('cloud')
+              ? [
+                  { owner: 'system', tenantOid: null },
+                  { owner: 'system', tenantOid: d.tenant.oid },
+                  { owner: 'tenant', tenantOid: d.tenant.oid }
+                ]
+              : [{ owner: 'system', tenantOid: null }]
           },
           orderBy: { createdAt: 'desc' }
         })
@@ -207,7 +249,7 @@ class KeyProviderServiceImpl {
       return await this.getKeyProviderById({ tenant: d.tenant, id: d.keyProviderId });
     }
 
-    if (d.tenant.defaultKeyProviderOid) {
+    if (checkEdition('cloud') && d.tenant.defaultKeyProviderOid) {
       let tenantDefault = await db.keyProvider.findUnique({
         where: { oid: d.tenant.defaultKeyProviderOid }
       });
@@ -257,11 +299,12 @@ class KeyProviderServiceImpl {
   async getSetupInfo(d: {
     tenant: Tenant;
     input: {
+      type?: ProviderType | null;
       region?: string | null;
       keyId?: string | null;
     };
   }) {
-    let type = getConfiguredProviderType();
+    let type = resolveTenantProviderType(d.input.type);
     let adapter = getKeyProviderAdapter(type);
 
     return await adapter.getSetupInfo({
@@ -276,7 +319,7 @@ class KeyProviderServiceImpl {
   guardKeyProviderForTenant(d: { tenant: Tenant; keyProvider: KeyProvider }) {
     if (d.keyProvider.owner === 'system' && d.keyProvider.tenantOid === null) return;
 
-    if (!d.tenant || d.keyProvider.tenantOid !== d.tenant.oid) {
+    if (!checkEdition('cloud') || !d.tenant || d.keyProvider.tenantOid !== d.tenant.oid) {
       throw new ServiceError(notFoundError('key.provider'));
     }
   }

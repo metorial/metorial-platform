@@ -21,9 +21,9 @@ describe('secretPurposeService', () => {
 
     expect(purpose.identifier).toBe('legacy_custom_purpose');
     expect(purpose.oid).toBeTypeOf('number');
-    await expect(secretPurposeCache.getByIdentifierOrLoad('legacy_custom_purpose')).resolves.toEqual(
-      purpose
-    );
+    await expect(
+      secretPurposeCache.getByIdentifierOrLoad('legacy_custom_purpose')
+    ).resolves.toEqual(purpose);
   });
 
   it('getPurposeIdentifier prefers purposeOid over purposeLegacy', async () => {
@@ -71,9 +71,9 @@ describe('secretPurposeService', () => {
       }
     });
 
-    await expect(secretPurposeService.ensurePurpose('remote_registry_credentials')).resolves.toEqual(
-      purpose
-    );
+    await expect(
+      secretPurposeService.ensurePurpose('remote_registry_credentials')
+    ).resolves.toEqual(purpose);
     expect(await testDb.secretPurpose.count()).toBe(1);
   });
 
