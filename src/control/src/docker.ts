@@ -254,7 +254,8 @@ export let start = async (
   databasesOnly = false
 ): Promise<ComposeProject[]> => {
   let requirements = infrastructure.requirementsFromManifests(manifests);
-  if (databasesOnly) requirements.redis = requirements.nats = requirements.etcd = false;
+  if (databasesOnly)
+    requirements.redis = requirements.nats = requirements.etcd = requirements.mail = false;
 
   let names = infrastructure.serviceNames(requirements);
   let generated = join(root, '.control/dev/services.docker-compose.yml');
@@ -297,7 +298,7 @@ export let start = async (
                 .filter(([, required]) => required)
                 .map(([name]) =>
                   portReachable(
-                    ports[name === 'etcd' ? 'etcd_client' : (name as keyof ServicePorts)]
+                    ports[name === 'etcd' ? 'etcd_client' : (name as keyof ServicePorts)]!
                   )
                 )
             )

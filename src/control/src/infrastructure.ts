@@ -7,18 +7,27 @@ export interface Requirements {
   redis: boolean;
   nats: boolean;
   etcd: boolean;
+  mail: boolean;
 }
 
 export interface RenderOptions {
   project_name?: string;
   network: string;
   network_name?: string;
+  mail_proxy_alias?: string;
   ports?: ServicePorts;
   restart: boolean;
 }
 
 export let requirementsFromManifests = (manifests: LoadedManifest[]): Requirements => {
-  let result = { postgres: false, mongo: false, redis: false, nats: false, etcd: false };
+  let result = {
+    postgres: false,
+    mongo: false,
+    redis: false,
+    nats: false,
+    etcd: false,
+    mail: false
+  };
 
   for (let { manifest } of manifests) {
     result.postgres ||= !!Object.keys(manifest.postgres).length;
@@ -36,7 +45,8 @@ export let serviceNames = (requirements: Requirements) =>
     mongo: 'mongodb',
     redis: 'redis-db',
     nats: 'nats-1',
-    etcd: 'etcd'
+    etcd: 'etcd',
+    mail: 'mailpit'
   })
     .filter(([name]) => requirements[name as keyof Requirements])
     .map(([, name]) => name);
@@ -65,16 +75,22 @@ export let serviceDefinitions = (
       ...definition,
       ...(options.ports
         ? {
-            ports: [
-              `${options.ports[type === 'etcd' ? 'etcd_client' : type]}:${port}`,
-              ...(type === 'etcd' ? [`${options.ports.etcd_peer}:2380`] : [])
-            ]
+            ports:
+              type === 'mail'
+                ? [`${options.ports.mail}:${port}`, `${options.ports.mail_ui}:8025`]
+                : [
+                    `${options.ports[type === 'etcd' ? 'etcd_client' : type]}:${port}`,
+                    ...(type === 'etcd' ? [`${options.ports.etcd_peer}:2380`] : [])
+                  ]
           }
         : {}),
       volumes: [
         `${type}-data:${type === 'postgres' ? '/var/lib/postgresql/data' : type === 'mongo' ? '/data/db' : type === 'etcd' ? '/bitnami/etcd' : '/data'}`
       ],
-      networks: [options.network],
+      networks:
+        type === 'mail' && options.mail_proxy_alias
+          ? { [options.network]: {}, 'control-proxy': { aliases: [options.mail_proxy_alias] } }
+          : [options.network],
       healthcheck: { test: check, interval: '2s', timeout, retries: 30 },
       ...(options.restart ? { restart: 'unless-stopped' } : {})
     };
@@ -134,6 +150,18 @@ export let serviceDefinitions = (
     '5s'
   );
 
+  add(
+    'mailpit',
+    'mail',
+    {
+      image: 'axllent/mailpit:v1.27',
+      environment: { MP_DATABASE: '/data/mailpit.db' }
+    },
+    1025,
+    ['CMD', '/mailpit', 'readyz'],
+    '3s'
+  );
+
   return services;
 };
 
@@ -143,7 +171,10 @@ export let renderCompose = (requirements: Requirements, options: RenderOptions) 
       ...(options.project_name ? { name: options.project_name } : {}),
       services: serviceDefinitions(requirements, options),
       networks: {
-        [options.network]: options.network_name ? { name: options.network_name } : {}
+        [options.network]: options.network_name ? { name: options.network_name } : {},
+        ...(requirements.mail && options.mail_proxy_alias
+          ? { 'control-proxy': { name: 'control_proxy', external: true } }
+          : {})
       },
       ...(volumeNames(requirements).length
         ? { volumes: Object.fromEntries(volumeNames(requirements).map(name => [name, {}])) }

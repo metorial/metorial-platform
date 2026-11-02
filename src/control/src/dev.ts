@@ -267,6 +267,8 @@ export let run = async (
     await proxy.ensure(project, data, proxy.publicPorts(manifests, project));
 
     let unregister = await proxy.register(project, data, selected);
+    if (proxy.publicPorts(selected, project).has(proxy.mailPort))
+      console.log(`Mail inbox: http://${data.hostname}:${proxy.mailPort}`);
     let interactive = !!(process.stdin.isTTY && process.stdout.isTTY);
     let args = [
       'run',

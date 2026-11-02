@@ -50,7 +50,10 @@ export interface Manifest {
   dependencies: Dependency[];
   endpoints: Record<string, Endpoint>;
   dependency_endpoints: Record<string, Record<string, { hostname: string; port: number }>>;
-  resources: { type: 'redis' | 'nats' | 'etcd'; env: { key: string; value: string }[] }[];
+  resources: {
+    type: 'redis' | 'nats' | 'etcd' | 'mail';
+    env: { key: string; value: string }[];
+  }[];
   groups: Record<string, string[]>;
   env: Record<string, EnvValue>;
   expose: { port: number }[];
@@ -113,6 +116,8 @@ export interface ServicePorts {
   nats: number;
   etcd_client: number;
   etcd_peer: number;
+  mail?: number;
+  mail_ui?: number;
 }
 
 export interface WorkspaceMetadata {

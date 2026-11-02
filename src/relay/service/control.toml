@@ -17,6 +17,14 @@ image = "relay"
 type = "redis"
 env = [{ key = "REDIS_URL", value = "redis://{{HOSTNAME}}:{{PORT}}/0" }]
 
+[[resources]]
+type = "mail"
+env = [
+  { key = "EMAIL_HOST", value = "{{HOSTNAME}}" },
+  { key = "EMAIL_PORT", value = "{{PORT}}" },
+  { key = "EMAIL_SECURE", value = "false" }
+]
+
 [dev.env]
 METORIAL_ENV = "development"
 METORIAL_SOURCE = "oss"

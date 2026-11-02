@@ -152,7 +152,11 @@ Literal, inherited, and default environment values support the strict
 unclosed templates are errors. Dependency URLs can use
 `{{CONTROL_PORT_POSTGRES}}`, `{{CONTROL_PORT_MONGO}}`,
 `{{CONTROL_PORT_REDIS}}`, `{{CONTROL_PORT_NATS}}`,
-`{{CONTROL_PORT_ETCD_CLIENT}}`, and `{{CONTROL_PORT_ETCD_PEER}}`. Source
+`{{CONTROL_PORT_ETCD_CLIENT}}`, `{{CONTROL_PORT_ETCD_PEER}}`,
+`{{CONTROL_PORT_MAIL}}` (SMTP), and `{{CONTROL_PORT_MAIL_UI}}`. A `mail`
+resource starts Mailpit, which catches all outgoing email; its inbox is at
+`http://localhost:<CONTROL_PORT_MAIL_UI>` and, through the shared proxy, at
+`http://<workspace hostname>:8025` for every workspace. Source
 checkouts receive the standard development ports; host workspaces receive their
 persisted allocation. Native development defaults the hostname to `localhost`;
 source checkouts use `metorial-root.localhost`; branch workspaces use their
