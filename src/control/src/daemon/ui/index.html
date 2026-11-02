@@ -557,6 +557,7 @@
           .forEach(el => (el.onclick = () => select(el.dataset.ws)));
       };
 
+      let renderedFor;
       let renderMain = () => {
         let w = cur();
         if (!w) return;
@@ -586,6 +587,8 @@
           .join('');
         let dbOff = w.phase !== 'running' ? 'disabled' : '';
 
+        let keep = renderedFor === state.cur ? document.querySelector('.right') : null;
+        renderedFor = state.cur;
         $('main').innerHTML = `
     <header>
       <h2><i class="dot ${phaseDot(w)}"></i>${w.id}</h2>
@@ -665,13 +668,16 @@
         document
           .querySelectorAll('.row')
           .forEach(r => (r.onclick = () => selectUnit(r.dataset.unit)));
+        if (keep) document.querySelector('.right').replaceWith(keep);
         $('clear').onclick = () => {
           $('logs').innerHTML = '';
+          $('count').textContent = '';
         };
         renderTabs();
         if (state.tab === 'logs') showLogsPane();
         else showTermPane();
-        attachLogs(true);
+        attachLogs(!keep);
+        if (keep && term && state.tab === 'term') fit.fit();
       };
 
       let renderTabs = () => {
@@ -710,18 +716,35 @@
         es = new EventSource(
           `/api${base()}/logs?follow=1&tail=1000&units=${encodeURIComponent(units)}`
         );
-        let n = 0;
-        es.onmessage = ev => {
-          let l = JSON.parse(ev.data);
-          let d = document.createElement('div');
-          d.innerHTML = `<span class="t">${new Date(l.ts).toTimeString().slice(0, 8)}</span> ${state.sel === '*' ? `<span class="u" style="color:${hue(l.unit)}">${esc(l.unit.padEnd(14))}</span> ` : ''}<span class="${l.stream === 'sys' ? 'sys' : l.stream === 'err' ? 'er' : ''}">${ansi(l.text)}</span>`;
-          el.appendChild(d);
-          if (++n > 3000) {
+        let n = 0,
+          pending = [],
+          scheduled = false;
+        let flush = () => {
+          scheduled = false;
+          if (es !== source) return;
+          let fragment = document.createDocumentFragment();
+          for (let l of pending) {
+            let d = document.createElement('div');
+            d.innerHTML = `<span class="t">${new Date(l.ts).toTimeString().slice(0, 8)}</span> ${state.sel === '*' ? `<span class="u" style="color:${hue(l.unit)}">${esc(l.unit.padEnd(14))}</span> ` : ''}<span class="${l.stream === 'sys' ? 'sys' : l.stream === 'err' ? 'er' : ''}">${ansi(l.text)}</span>`;
+            fragment.appendChild(d);
+          }
+          n += pending.length;
+          pending = [];
+          el.appendChild(fragment);
+          while (n > 3000) {
             el.firstChild.remove();
             n--;
           }
           if ($('follow') && $('follow').checked) el.scrollTop = el.scrollHeight;
           if ($('count')) $('count').textContent = n + ' lines';
+        };
+        let source = es;
+        es.onmessage = ev => {
+          pending.push(JSON.parse(ev.data));
+          if (!scheduled) {
+            scheduled = true;
+            requestAnimationFrame(flush);
+          }
         };
       };
       let showLogsPane = () => {
