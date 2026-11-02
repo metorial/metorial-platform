@@ -114,7 +114,7 @@ let buildSkillSelection = async (selection: MagicMcpEndpointSkillSelectionInput 
 
   if (!selection.skills.length && !selection.skillGroups.length) {
     throw new ServiceError(
-      badRequestError({ message: 'A skill selection needs at least one skill or skill group' })
+      badRequestError({ message: 'Pick at least one skill or skill group' })
     );
   }
 
