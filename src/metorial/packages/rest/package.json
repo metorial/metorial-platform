@@ -14,7 +14,7 @@
     "@lowerdeck/execution-context": "workspace:2.0.0",
     "@lowerdeck/sentry": "workspace:2.0.0",
     "@lowerdeck/validation": "workspace:2.0.0",
-    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/api": "^1.10.0",
     "@types/qs": "^6.15.1",
     "async-ratelimiter": "^1.6.10",
     "qs": "^6.16.1",

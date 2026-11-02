@@ -43,9 +43,9 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@aws-sdk/client-cloudwatch-logs": "^3.1153.0",
-    "@aws-sdk/client-iam": "^3.1153.0",
-    "@aws-sdk/client-lambda": "^3.1153.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.1156.0",
+    "@aws-sdk/client-iam": "^3.1156.0",
+    "@aws-sdk/client-lambda": "^3.1156.0",
     "@bufbuild/protobuf": "^2.16.0",
     "@hono/zod-validator": "^0.9.1",
     "@lowerdeck/api-mux": "workspace:2.0.0",
@@ -83,8 +83,8 @@
     "@prisma/adapter-pg": "^7.10.1",
     "@prisma/client": "^7.10.1",
     "@prisma/extension-read-replicas": "^0.5.0",
-    "@sentry/bun": "^11.8.0",
-    "@sentry/cli": "^3.8.0",
+    "@sentry/bun": "^11.9.0",
+    "@sentry/cli": "^3.8.2",
     "@toon-format/toon": "^4.4.0",
     "@types/pg": "^8.23.1",
     "axios": "^1.20.0",
