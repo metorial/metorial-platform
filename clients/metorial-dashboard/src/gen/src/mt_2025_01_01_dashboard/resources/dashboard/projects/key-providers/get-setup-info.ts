@@ -26,6 +26,7 @@ export let mapDashboardProjectsKeyProvidersGetSetupInfoOutput =
   );
 
 export type DashboardProjectsKeyProvidersGetSetupInfoQuery = {
+  type?: 'aws_kms' | 'gcp_kms' | 'azure_key_vault' | undefined;
   region?: string | undefined;
   keyId?: string | undefined;
 };

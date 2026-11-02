@@ -21,6 +21,8 @@ export type Flags = {
   'skills-enabled': FlagValue;
   'assistant-enabled': FlagValue;
   'advanced-security-management-enabled': FlagValue;
+  'key-providers-gcp-kms-enabled': FlagValue;
+  'key-providers-azure-key-vault-enabled': FlagValue;
   'networking-enabled': FlagValue;
   'sandbox-enabled': FlagValue;
   'public-mcp-servers-enabled': FlagValue;
@@ -79,6 +81,8 @@ export let defaultFlags: Flags = {
   'skills-enabled': false,
   'assistant-enabled': false,
   'advanced-security-management-enabled': false,
+  'key-providers-gcp-kms-enabled': false,
+  'key-providers-azure-key-vault-enabled': false,
   'networking-enabled': false,
   'sandbox-enabled': false,
   'public-mcp-servers-enabled': false,
