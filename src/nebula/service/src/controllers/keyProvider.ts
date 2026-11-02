@@ -5,6 +5,8 @@ import { keyProviderService } from '../services';
 import { app } from './_app';
 import { tenantApp } from './tenant';
 
+let providerTypeSchema = v.enumOf(['aws_kms', 'gcp_kms', 'azure_key_vault', 'local']);
+
 export let keyProviderApp = tenantApp.use(async ctx => {
   let keyProviderId = ctx.body.keyProviderId;
   if (!keyProviderId) throw new Error('Key provider ID is required');
@@ -23,12 +25,14 @@ export let keyProviderController = app.controller({
     .input(
       v.object({
         tenantId: v.string(),
+        type: v.optional(providerTypeSchema),
         keyInput: v.record(v.any())
       })
     )
     .do(async ctx => {
       let keyProvider = await keyProviderService.importKeyProvider({
         tenant: ctx.tenant,
+        type: ctx.input.type,
         keyInput: ctx.input.keyInput
       });
       return await keyProviderPresenter(keyProvider);
@@ -76,6 +80,7 @@ export let keyProviderController = app.controller({
     .input(
       v.object({
         tenantId: v.string(),
+        type: v.optional(providerTypeSchema),
         region: v.optional(v.string()),
         keyId: v.optional(v.string())
       })
@@ -84,6 +89,7 @@ export let keyProviderController = app.controller({
       let setupInfo = await keyProviderService.getSetupInfo({
         tenant: ctx.tenant,
         input: {
+          type: ctx.input.type,
           region: ctx.input.region,
           keyId: ctx.input.keyId
         }

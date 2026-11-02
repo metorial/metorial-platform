@@ -9,9 +9,10 @@ import { tenantApp } from './tenant';
 export let consumerInstanceApp = tenantApp.use(async ctx => {
   let token = ctx.body.consumerToken ?? ctx.body.token;
   try {
-    let { consumer, consumerInstance } = await consumerService.authenticateConsumerInstanceToken({
-      token: typeof token === 'string' ? token : ''
-    });
+    let { consumer, consumerInstance } =
+      await consumerService.authenticateConsumerInstanceToken({
+        token: typeof token === 'string' ? token : ''
+      });
 
     return { consumer, consumerInstance };
   } catch {

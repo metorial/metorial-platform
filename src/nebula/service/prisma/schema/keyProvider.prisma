@@ -1,5 +1,7 @@
 enum KeyProviderType {
   aws_kms
+  gcp_kms
+  azure_key_vault
   local
 }
 

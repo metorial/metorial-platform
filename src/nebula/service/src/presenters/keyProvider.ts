@@ -6,9 +6,17 @@ let isMetorialManaged = (keyProvider: KeyProvider) =>
   keyProvider.isMetorialManaged ||
   (keyProvider.keyInfo as any)?.managedByNebula === true;
 
+let providerLabels: Record<string, string> = {
+  aws_kms: 'AWS KMS',
+  gcp_kms: 'GCP KMS',
+  azure_key_vault: 'Azure Key Vault'
+};
+
 let metorialManagedKeyId = async (keyProvider: KeyProvider, info: any) => {
-  let hash = (await Hash.sha256(info.keyId ?? keyProvider.id)).slice(0, 20);
-  return `AWS KMS (via Metorial, ref: ${hash})`;
+  let hash = (
+    await Hash.sha256(info.keyId ?? info.keyName ?? info.vaultUrl ?? keyProvider.id)
+  ).slice(0, 20);
+  return `${providerLabels[keyProvider.type] ?? keyProvider.type} (via Metorial, ref: ${hash})`;
 };
 
 let safeKeyInfo = async (keyProvider: KeyProvider) => {
@@ -24,6 +32,30 @@ let safeKeyInfo = async (keyProvider: KeyProvider) => {
       keyId: safeKeyId ?? info.keyId,
       keyArn: safeKeyId ?? info.keyArn,
       accountId: safeKeyId ? null : info.accountId
+    };
+  }
+
+  if (keyProvider.type === 'gcp_kms') {
+    let safeKeyName = isMetorialManaged(keyProvider)
+      ? await metorialManagedKeyId(keyProvider, info)
+      : null;
+
+    return {
+      keyName: safeKeyName ?? info.keyName,
+      projectId: safeKeyName ? null : info.projectId,
+      location: safeKeyName ? null : info.location
+    };
+  }
+
+  if (keyProvider.type === 'azure_key_vault') {
+    let safeKeyName = isMetorialManaged(keyProvider)
+      ? await metorialManagedKeyId(keyProvider, info)
+      : null;
+
+    return {
+      keyName: safeKeyName ?? info.keyName,
+      vaultUrl: safeKeyName ? null : info.vaultUrl,
+      algorithm: info.algorithm
     };
   }
 

@@ -85,9 +85,11 @@ let purgeDisabledSecretSingleQueue = createQueue<{ secretOid: bigint }>({
   }
 });
 
-let purgeDisabledSecretSingleQueueProcessor = purgeDisabledSecretSingleQueue.process(async data => {
-  await purgeDisabledSecret(data.secretOid);
-});
+let purgeDisabledSecretSingleQueueProcessor = purgeDisabledSecretSingleQueue.process(
+  async data => {
+    await purgeDisabledSecret(data.secretOid);
+  }
+);
 
 export let purgeDisabledSecretsProcessors = combineQueueProcessors([
   purgeDisabledSecretsCron,

@@ -19,7 +19,9 @@ describe('key provider errors', () => {
     });
 
     let dbTenant = await testDb.tenant.findUniqueOrThrow({ where: { id: tenant.id } });
-    let dbProvider = await testDb.keyProvider.findUniqueOrThrow({ where: { id: provider.id } });
+    let dbProvider = await testDb.keyProvider.findUniqueOrThrow({
+      where: { id: provider.id }
+    });
 
     await keyProviderErrorService.recordKeyProviderError({
       tenant: dbTenant,

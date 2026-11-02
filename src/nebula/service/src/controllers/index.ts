@@ -16,6 +16,8 @@ export let rootController = app.controller({
 });
 
 export let nebulaRPC = createServer({})(rootController);
-export let nebulaApi = apiMux([{ endpoint: rpcMux({ path: '/metorial-nebula' }, [nebulaRPC]) }]);
+export let nebulaApi = apiMux([
+  { endpoint: rpcMux({ path: '/metorial-nebula' }, [nebulaRPC]) }
+]);
 
 export type NebulaClient = InferClient<typeof rootController>;

@@ -17,7 +17,9 @@ describe('secretPurposeCache', () => {
 
     await secretPurposeCache.loadAll();
 
-    await expect(secretPurposeCache.getByIdentifierOrLoad('registry_credentials')).resolves.toMatchObject({
+    await expect(
+      secretPurposeCache.getByIdentifierOrLoad('registry_credentials')
+    ).resolves.toMatchObject({
       oid: 101
     });
     await expect(secretPurposeCache.getByOidOrLoad(102)).resolves.toMatchObject({
@@ -35,9 +37,9 @@ describe('secretPurposeCache', () => {
 
     secretPurposeCache.set(purpose);
 
-    await expect(secretPurposeCache.getByIdentifierOrLoad('server_config_value')).resolves.toEqual(
-      purpose
-    );
+    await expect(
+      secretPurposeCache.getByIdentifierOrLoad('server_config_value')
+    ).resolves.toEqual(purpose);
     await expect(secretPurposeCache.getByOidOrLoad(201)).resolves.toEqual(purpose);
   });
 
@@ -70,9 +72,9 @@ describe('secretPurposeCache', () => {
       }
     });
 
-    await expect(secretPurposeCache.getByIdentifierOrLoad('slate_oauth_setup')).resolves.toEqual(
-      purpose
-    );
+    await expect(
+      secretPurposeCache.getByIdentifierOrLoad('slate_oauth_setup')
+    ).resolves.toEqual(purpose);
     await expect(secretPurposeCache.getByOidOrLoad(401)).resolves.toEqual(purpose);
   });
 
@@ -87,8 +89,8 @@ describe('secretPurposeCache', () => {
     });
 
     await expect(secretPurposeCache.getByOidOrLoad(402)).resolves.toEqual(purpose);
-    await expect(secretPurposeCache.getByIdentifierOrLoad('slate_oauth_credentials')).resolves.toEqual(
-      purpose
-    );
+    await expect(
+      secretPurposeCache.getByIdentifierOrLoad('slate_oauth_credentials')
+    ).resolves.toEqual(purpose);
   });
 });
