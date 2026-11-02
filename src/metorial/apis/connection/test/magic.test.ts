@@ -11,7 +11,7 @@ vi.mock('@metorial/module-consumer-entities', () => ({
     findLatestConsumerAuthClientForMagicMcpToken: vi.fn()
   },
   createSkillEditingTools: vi.fn(),
-  createSkillMcpCatalog: vi.fn(),
+  createConsumerSkillSource: vi.fn(),
   enqueueMaterializeMagicMcpSessionOwnership: vi.fn()
 }));
 
@@ -48,7 +48,7 @@ vi.mock('@metorial/module-outpost', () => ({
 import {
   consumerIntegrationService,
   createSkillEditingTools,
-  createSkillMcpCatalog
+  createConsumerSkillSource
 } from '@metorial/module-consumer-entities';
 import {
   ensureMagicMcpSubspaceSession,
@@ -225,7 +225,7 @@ describe('resolveMagicMcpRequestExtensions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(createSkillEditingTools).mockResolvedValue(skillEditingTools as any);
-    vi.mocked(createSkillMcpCatalog).mockResolvedValue(skillCatalog as any);
+    vi.mocked(createConsumerSkillSource).mockResolvedValue(skillCatalog as any);
   });
 
   it('lazily builds skill editing tools for a consumer token on an enabled endpoint', async () => {
@@ -262,10 +262,10 @@ describe('resolveMagicMcpRequestExtensions', () => {
 
     expect(requestTools).toBeUndefined();
     expect(requestSkills).toBeTypeOf('function');
-    expect(createSkillMcpCatalog).not.toHaveBeenCalled();
+    expect(createConsumerSkillSource).not.toHaveBeenCalled();
 
     expect(await requestSkills!()).toBe(skillCatalog);
-    expect(createSkillMcpCatalog).toHaveBeenCalledWith({
+    expect(createConsumerSkillSource).toHaveBeenCalledWith({
       instance,
       consumerProfile,
       skillPluginOid: 66n,
@@ -326,7 +326,7 @@ describe('resolveMagicMcpRequestExtensions', () => {
 
     expect(extensions).toEqual({});
     expect(createSkillEditingTools).not.toHaveBeenCalled();
-    expect(createSkillMcpCatalog).not.toHaveBeenCalled();
+    expect(createConsumerSkillSource).not.toHaveBeenCalled();
   });
 
   it('skips everything without any lookups when both endpoint flags are off', () => {
@@ -337,7 +337,7 @@ describe('resolveMagicMcpRequestExtensions', () => {
 
     expect(extensions).toEqual({});
     expect(createSkillEditingTools).not.toHaveBeenCalled();
-    expect(createSkillMcpCatalog).not.toHaveBeenCalled();
+    expect(createConsumerSkillSource).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -359,7 +359,7 @@ describe('resolveMagicMcpRequestExtensions', () => {
 
     expect(extensions).toEqual({});
     expect(createSkillEditingTools).not.toHaveBeenCalled();
-    expect(createSkillMcpCatalog).not.toHaveBeenCalled();
+    expect(createConsumerSkillSource).not.toHaveBeenCalled();
   });
 
   it('skips everything for server targets', () => {
@@ -377,7 +377,7 @@ describe('resolveMagicMcpRequestExtensions', () => {
 
   it('resolves to nothing when skills are unavailable for the consumer', async () => {
     vi.mocked(createSkillEditingTools).mockResolvedValue(null);
-    vi.mocked(createSkillMcpCatalog).mockResolvedValue(null);
+    vi.mocked(createConsumerSkillSource).mockResolvedValue(null);
 
     let { requestTools, requestSkills } = resolveMagicMcpRequestExtensions({
       sessionInfo: endpointSession({

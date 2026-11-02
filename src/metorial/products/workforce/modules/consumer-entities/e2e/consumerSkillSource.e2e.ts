@@ -13,19 +13,23 @@ import type { ConsumerSurface } from '@metorial/db';
 import { magicMcpEndpointService, magicMcpTokenService } from '@metorial/module-magic';
 import { parseSkillDocumentFrontmatter } from '@metorial/module-skill/frontmatter';
 import { skillGroupItemService, skillGroupService } from '@metorial/module-skill-groups';
+import {
+  createSkillMcpCatalog,
+  type SkillMcpCatalog
+} from '@metorial-subspace/module-connection';
 import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
   consumerIntegrationService,
   consumerSkillService,
-  createSkillEditingTools,
-  createSkillMcpCatalog
+  createConsumerSkillSource,
+  createSkillEditingTools
 } from '../src';
 import { createProfile, createSurface } from './_fixtures';
 
 type Profile = Awaited<ReturnType<typeof createProfile>>;
 
-type Catalog = NonNullable<Awaited<ReturnType<typeof createSkillMcpCatalog>>>;
+type Catalog = SkillMcpCatalog;
 
 let sha256 = (bytes: Uint8Array) =>
   `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
@@ -81,15 +85,15 @@ describe('module-consumer-entities skills over MCP', () => {
     profile: Profile,
     magicMcpEndpoint?: { oid: bigint }
   ) => {
-    let catalog = await createSkillMcpCatalog({
+    let source = await createConsumerSkillSource({
       instance: fixture.instance,
       consumerProfile: profile,
       magicMcpEndpoint,
       context: fixture.context
     });
-    if (!catalog) throw new Error('Expected a skill catalog');
+    if (!source) throw new Error('Expected a skill catalog');
 
-    return catalog;
+    return createSkillMcpCatalog(source);
   };
 
   let authorSkill = async (
@@ -466,7 +470,7 @@ describe('module-consumer-entities skills over MCP', () => {
     });
 
     expect(
-      await createSkillMcpCatalog({
+      await createConsumerSkillSource({
         instance: fixture.instance,
         consumerProfile: author,
         context: fixture.context

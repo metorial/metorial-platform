@@ -1,5 +1,3 @@
-export * from '../lib/skillEditingTools';
-export * from '../lib/skillMcpCatalog';
 export * from './consumerActivity';
 export * from './consumerActivityScope';
 export * from './consumerActor';

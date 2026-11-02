@@ -1,57 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import {
-  assignSkillNames,
-  isExcludedSkillPath,
-  parseSkillCursor,
-  parseSkillUri,
-  toSkillUri
-} from './skillMcpNames';
+import { assignSkillNames, isExcludedSkillPath } from './skillCatalogNames';
 
-describe('skill URIs', () => {
-  it('builds the SKILL.md and skill root URIs', () => {
-    expect(toSkillUri('refunds', '/SKILL.md')).toBe('skill://refunds/SKILL.md');
-    expect(toSkillUri('refunds', '')).toBe('skill://refunds');
-  });
-
-  it('percent-encodes path segments and decodes them back', () => {
-    let uri = toSkillUri('refunds', '/references/Q&A notes.md');
-
-    expect(uri).toBe('skill://refunds/references/Q%26A%20notes.md');
-    expect(parseSkillUri(uri)).toEqual({
-      skillName: 'refunds',
-      path: '/references/Q&A notes.md'
-    });
-  });
-
-  it('parses directory URIs with and without a trailing slash', () => {
-    expect(parseSkillUri('skill://refunds')).toEqual({ skillName: 'refunds', path: '' });
-    expect(parseSkillUri('skill://refunds/templates/')).toEqual({
-      skillName: 'refunds',
-      path: '/templates'
-    });
-  });
-
-  it.each(['file://refunds/SKILL.md', 'skill://', 'skill://refunds/%E0%A4%A'])(
-    'rejects %s',
-    uri => {
-      expect(parseSkillUri(uri)).toBeNull();
-    }
-  );
-
+describe('isExcludedSkillPath', () => {
   it('excludes the agents directory', () => {
     expect(isExcludedSkillPath('/agents/reviewer.md')).toBe(true);
     expect(isExcludedSkillPath('/references/agents.md')).toBe(false);
-  });
-});
-
-describe('parseSkillCursor', () => {
-  it('starts at the first skill without a cursor', () => {
-    expect(parseSkillCursor(undefined)).toBe(0);
-    expect(parseSkillCursor('40')).toBe(40);
-  });
-
-  it.each(['-1', '1.5', 'abc'])('rejects %s', cursor => {
-    expect(() => parseSkillCursor(cursor)).toThrow('Invalid cursor');
   });
 });
 

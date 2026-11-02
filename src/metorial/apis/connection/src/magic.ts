@@ -24,7 +24,7 @@ import { AuthInfo } from '@metorial/module-access';
 import {
   consumerIntegrationService,
   createSkillEditingTools,
-  createSkillMcpCatalog,
+  createConsumerSkillSource,
   enqueueMaterializeMagicMcpSessionOwnership
 } from '@metorial/module-consumer-entities';
 import {
@@ -363,7 +363,7 @@ export let resolveMagicMcpRequestExtensions = (d: {
       ? () => createSkillEditingTools(input)
       : undefined,
     requestSkills: endpoint.enableSkillResources
-      ? () => createSkillMcpCatalog(input)
+      ? () => createConsumerSkillSource(input)
       : undefined
   };
 };

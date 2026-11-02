@@ -45,6 +45,7 @@ import {
   isSkillDocumentPath,
   upsertSkillDocument
 } from '../lib/skillDocument';
+import { renderSkillDocumentFrontmatter, skillDocumentPath } from '../lib/skillFrontmatter';
 import { withSkillStoreMutationLock } from '../lib/skillStoreLock';
 import { skillService, type SkillRecord } from './skill';
 
@@ -98,10 +99,13 @@ export type SkillFileText = SkillFile & {
   content: string | null;
 };
 
-export type SkillSnapshotFile = {
+export type SkillSnapshotEntry = {
   path: string;
   mimeType: string;
   size: number;
+};
+
+export type SkillSnapshotFile = SkillSnapshotEntry & {
   sha256: string;
   text: string | null;
 };
@@ -114,12 +118,18 @@ type SkillSnapshotSource =
   | { path: string; document: NonNullable<SkillFileItemRecord['document']>; file: null }
   | { path: string; document: null; file: NonNullable<SkillFileItemRecord['file']> };
 
-export type SkillDocumentTransform = (d: { path: string; content: string }) => string;
-
 export type SkillSnapshotOptions = {
   includePath?: (path: string) => boolean;
   limits?: { maxFiles: number; maxBytes: number };
-  transformDocument?: SkillDocumentTransform;
+  skillName?: string;
+};
+
+type SkillSnapshotInput = {
+  project: Project;
+  instance: Instance;
+  skill: SkillRecord;
+  authorization: ResourceAuthorization;
+  options?: SkillSnapshotOptions;
 };
 
 export type SkillFileChange =
@@ -802,14 +812,18 @@ class SkillFileServiceImpl {
   }
 
   private async snapshotDocument(d: {
+    skill: SkillRecord;
     source: Extract<SkillSnapshotSource, { file: null }>;
-    transformDocument?: SkillDocumentTransform;
+    skillName?: string;
   }): Promise<SkillSnapshotFileContent> {
     let content = await this.resolveDocumentContent({
       document: d.source.document,
       flushLiveEdits: false
     });
-    let text = d.transformDocument?.({ path: d.source.path, content }) ?? content;
+    let text =
+      d.source.path === skillDocumentPath
+        ? renderSkillDocumentFrontmatter(content, { skill: d.skill, name: d.skillName })
+        : content;
     let bytes = new TextEncoder().encode(text);
 
     return {
@@ -823,13 +837,15 @@ class SkillFileServiceImpl {
   }
 
   private async snapshotSource(d: {
+    skill: SkillRecord;
     source: SkillSnapshotSource;
-    transformDocument?: SkillDocumentTransform;
+    skillName?: string;
   }): Promise<SkillSnapshotFileContent> {
     if (d.source.document) {
       return await this.snapshotDocument({
+        skill: d.skill,
         source: d.source,
-        transformDocument: d.transformDocument
+        skillName: d.skillName
       });
     }
 
@@ -881,13 +897,10 @@ class SkillFileServiceImpl {
     return sources;
   }
 
-  async listSkillSnapshotFiles(d: {
-    project: Project;
-    instance: Instance;
-    skill: SkillRecord;
-    authorization: ResourceAuthorization;
-    options?: SkillSnapshotOptions;
-  }): Promise<SkillSnapshotFile[] | null> {
+  private async collectSnapshot<T extends SkillSnapshotEntry>(
+    d: SkillSnapshotInput,
+    toEntry: (source: SkillSnapshotSource, options: SkillSnapshotOptions) => Promise<T>
+  ): Promise<T[] | null> {
     await this.assertReadAccess(d);
 
     let options = d.options ?? {};
@@ -895,44 +908,57 @@ class SkillFileServiceImpl {
     if (!sources) return null;
 
     let queue = new PQueue({ concurrency: snapshotHashConcurrency });
-
-    let files = await Promise.all(
-      sources.map(source =>
-        queue.add(async (): Promise<SkillSnapshotFile> => {
-          if (source.document) {
-            let { bytes: _bytes, ...file } = await this.snapshotDocument({
-              source,
-              transformDocument: options.transformDocument
-            });
-
-            return file;
-          }
-
-          return {
-            path: source.path,
-            mimeType: source.file.fileType,
-            size: source.file.fileSize,
-            sha256: await fileService.getContentSha256({ file: source.file }),
-            text: null
-          };
-        })
-      )
+    let entries = await Promise.all(
+      sources.map(source => queue.add(() => toEntry(source, options)))
     );
 
-    let servedBytes = files.reduce((sum, file) => sum + file.size, 0);
+    let servedBytes = entries.reduce((sum, entry) => sum + entry.size, 0);
     if (options.limits && servedBytes > options.limits.maxBytes) return null;
 
-    return files;
+    return entries;
   }
 
-  async readSkillSnapshotFile(d: {
-    project: Project;
-    instance: Instance;
-    skill: SkillRecord;
-    authorization: ResourceAuthorization;
-    path: string;
-    options?: SkillSnapshotOptions;
-  }): Promise<SkillSnapshotFileContent | null> {
+  async listSkillSnapshotFiles(d: SkillSnapshotInput): Promise<SkillSnapshotFile[] | null> {
+    return await this.collectSnapshot(d, async (source, options) => {
+      if (source.document) {
+        let { bytes: _bytes, ...file } = await this.snapshotDocument({
+          skill: d.skill,
+          source,
+          skillName: options.skillName
+        });
+
+        return file;
+      }
+
+      return {
+        path: source.path,
+        mimeType: source.file.fileType,
+        size: source.file.fileSize,
+        sha256: await fileService.getContentSha256({ file: source.file }),
+        text: null
+      };
+    });
+  }
+
+  async listSkillSnapshotEntries(d: SkillSnapshotInput): Promise<SkillSnapshotEntry[] | null> {
+    return await this.collectSnapshot(d, async (source, options) => {
+      if (source.document) {
+        let { path, mimeType, size } = await this.snapshotDocument({
+          skill: d.skill,
+          source,
+          skillName: options.skillName
+        });
+
+        return { path, mimeType, size };
+      }
+
+      return { path: source.path, mimeType: source.file.fileType, size: source.file.fileSize };
+    });
+  }
+
+  async readSkillSnapshotFile(
+    d: SkillSnapshotInput & { path: string }
+  ): Promise<SkillSnapshotFileContent | null> {
     await this.assertReadAccess(d);
 
     let options = d.options ?? {};
@@ -941,7 +967,11 @@ class SkillFileServiceImpl {
     let source = sources?.find(entry => entry.path === d.path);
     if (!source) return null;
 
-    return await this.snapshotSource({ source, transformDocument: options.transformDocument });
+    return await this.snapshotSource({
+      skill: d.skill,
+      source,
+      skillName: options.skillName
+    });
   }
 
   async applySkillFileChange(

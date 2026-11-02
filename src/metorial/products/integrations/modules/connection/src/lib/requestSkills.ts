@@ -1,58 +1,68 @@
 export let SKILLS_EXTENSION_ID = 'io.modelcontextprotocol/skills';
 export let SKILL_URI_PREFIX = 'skill://';
 
-export interface RequestScopedSkillResource {
-  uri: string;
-  digest: string;
-  size: number;
+export interface SkillSourceLimits {
+  maxFiles: number;
+  maxBytes: number;
 }
 
-export interface RequestScopedSkill {
-  uri: string;
+export interface SkillSourceSkill {
+  id: string;
+  name: string;
+}
+
+export interface SkillSourceDocument {
   frontmatter: Record<string, unknown>;
-  resources: RequestScopedSkillResource[];
-}
-
-export interface RequestScopedSkillDocument {
-  uri: string;
-  name: string;
-  description?: string;
   size: number;
 }
 
-export type RequestScopedSkillContent =
-  | { uri: string; mimeType: string; text: string }
-  | { uri: string; mimeType: string; blob: string };
-
-export interface RequestScopedSkillDirectoryEntry {
-  uri: string;
-  name: string;
+export interface SkillSourceEntry {
+  path: string;
   mimeType: string;
-  size?: number;
+  size: number;
+}
+
+export interface SkillSourceFile extends SkillSourceEntry {
+  sha256: string;
+}
+
+export interface SkillSourceFileContent {
+  path: string;
+  mimeType: string;
+  size: number;
+  text: string | null;
+  bytes: Uint8Array;
 }
 
 // Skills belong to the calling consumer: resolved per request and never stored on the
-// session, because hosted sessions are shared across callers.
-export interface RequestScopedSkills {
-  listSkills: (d: { cursor?: string }) => Promise<{
-    skills: RequestScopedSkill[];
-    nextCursor?: string;
-  }>;
+// session, because hosted sessions are shared across callers. Each skill is served as an
+// Agent Skills package whose SKILL.md frontmatter name matches `name`; the limits must be
+// enforced from stored sizes before any file content is read.
+export interface RequestScopedSkillSource {
+  listSkills: () => Promise<SkillSourceSkill[]>;
 
-  listSkillDocuments: (d: { cursor?: string }) => Promise<{
-    documents: RequestScopedSkillDocument[];
-    nextCursor?: string;
-  }>;
+  getSkillDocument: (d: {
+    skillId: string;
+    limits: SkillSourceLimits;
+  }) => Promise<SkillSourceDocument | null>;
 
-  getSkill: (d: { uri: string }) => Promise<RequestScopedSkill | null>;
+  listSkillFiles: (d: {
+    skillId: string;
+    limits: SkillSourceLimits;
+  }) => Promise<{ frontmatter: Record<string, unknown>; files: SkillSourceFile[] } | null>;
 
-  readResource: (d: { uri: string }) => Promise<RequestScopedSkillContent | null>;
+  listSkillEntries: (d: {
+    skillId: string;
+    limits: SkillSourceLimits;
+  }) => Promise<SkillSourceEntry[] | null>;
 
-  readDirectory: (d: {
-    uri: string;
-  }) => Promise<{ resources: RequestScopedSkillDirectoryEntry[] } | null>;
+  readSkillFile: (d: {
+    skillId: string;
+    path: string;
+    limits: SkillSourceLimits;
+  }) => Promise<SkillSourceFileContent | null>;
 }
 
-export type RequestScopedSkillsResolver = () => Promise<RequestScopedSkills | null>;
+export type RequestScopedSkillsResolver = () => Promise<RequestScopedSkillSource | null>;
 
 export let isSkillResourceUri = (uri: string) => uri.startsWith(SKILL_URI_PREFIX);

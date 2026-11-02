@@ -2,6 +2,8 @@ import { slugify } from '@lowerdeck/slugify';
 import type { Skill } from '@metorial/db';
 import { parse, stringify } from 'yaml';
 
+export let skillDocumentPath = '/SKILL.md';
+
 export let maxSkillNameLength = 64;
 
 let frontmatterRegex = /^(?:\uFEFF)?---[ \t]*\r?\n(?:([\s\S]*?)\r?\n)?---[ \t]*(?:\r?\n|$)/;

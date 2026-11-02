@@ -102,7 +102,8 @@ import {
 } from '../lib/connectionStatusTool';
 import { broadcastNats } from '../lib/nats';
 import { listSpecificationTools } from '../lib/providerToolCache';
-import type { RequestScopedSkills, RequestScopedSkillsResolver } from '../lib/requestSkills';
+import type { RequestScopedSkillsResolver } from '../lib/requestSkills';
+import { createSkillMcpCatalog, type SkillMcpCatalog } from '../mcp/skillCatalog';
 import {
   buildRequestScopedTool,
   METORIAL_TOOL_KEY_PREFIX,
@@ -1300,16 +1301,18 @@ export class SenderManager {
     return this.#requestToolsPromise;
   }
 
-  #requestSkillsPromise: Promise<RequestScopedSkills | null> | null = null;
+  #requestSkillsPromise: Promise<SkillMcpCatalog | null> | null = null;
 
   getRequestSkills() {
     let resolver = this.requestSkillsResolver;
     if (this.session.isInternal || !resolver) return Promise.resolve(null);
 
-    this.#requestSkillsPromise ??= resolver().catch(error => {
-      Sentry.captureException(error);
-      return null;
-    });
+    this.#requestSkillsPromise ??= resolver()
+      .then(source => (source ? createSkillMcpCatalog(source) : null))
+      .catch(error => {
+        Sentry.captureException(error);
+        return null;
+      });
 
     return this.#requestSkillsPromise;
   }

@@ -4,7 +4,7 @@ import type {
   JSONRPCResponse,
   ListResourcesResult
 } from '@modelcontextprotocol/sdk/types.js';
-import type { RequestScopedSkills } from '../lib/requestSkills';
+import type { SkillMcpCatalog } from './skillCatalog';
 
 type ID = string | number;
 
@@ -54,7 +54,7 @@ let withServiceErrorsAsInvalidParams = async <T extends SkillsResponse | null>(
 
 let skillHandlers: Record<
   SkillMethod,
-  (skills: RequestScopedSkills, id: ID, params: SkillParams) => Promise<SkillsResponse>
+  (skills: SkillMcpCatalog, id: ID, params: SkillParams) => Promise<SkillsResponse>
 > = {
   'skills/list': async (skills, id, { cursor }) =>
     resultResponse(id, { resultType: 'complete', ...(await skills.listSkills({ cursor })) }),
@@ -79,7 +79,7 @@ let skillHandlers: Record<
 };
 
 export let handleSkillsRequest = async (d: {
-  skills: RequestScopedSkills | null;
+  skills: SkillMcpCatalog | null;
   id: ID;
   method: SkillMethod;
   params: unknown;
@@ -93,18 +93,14 @@ export let handleSkillsRequest = async (d: {
 };
 
 // Returns null for URIs outside the consumer's catalog so upstream skill:// resources still resolve.
-export let readSkillResource = async (d: {
-  skills: RequestScopedSkills;
-  id: ID;
-  uri: string;
-}) =>
+export let readSkillResource = async (d: { skills: SkillMcpCatalog; id: ID; uri: string }) =>
   await withServiceErrorsAsInvalidParams(d.id, async () => {
     let content = await d.skills.readResource({ uri: d.uri });
     return content ? resultResponse(d.id, { contents: [content] }) : null;
   });
 
 export let listSkillResources = async (d: {
-  skills: RequestScopedSkills;
+  skills: SkillMcpCatalog;
   id: ID;
   cursor?: string;
   encodeNextCursor: (skillsCursor?: string) => string | undefined;
