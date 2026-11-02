@@ -1,0 +1,846 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Control</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.css"
+    />
+    <style>
+      :root {
+        --bg: #f6f6f4;
+        --panel: #ffffff;
+        --line: #e3e3de;
+        --text: #1c1c1a;
+        --mute: #75756e;
+        --ok: #1f8a4c;
+        --warn: #b7791f;
+        --bad: #c0392b;
+        --info: #2b6cb0;
+        --term-bg: #121212;
+        --term-fg: #d6d6d0;
+        --hover: #efefea;
+        --sel: #e8e8e2;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0f0f0e;
+          --panel: #171716;
+          --line: #2a2a27;
+          --text: #ecece8;
+          --mute: #8d8d85;
+          --ok: #4cc97e;
+          --warn: #e0a84a;
+          --bad: #ef6b5b;
+          --info: #6aa8ee;
+          --term-bg: #0a0a0a;
+          --hover: #1f1f1d;
+          --sel: #242421;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font:
+          13px/1.45 ui-sans-serif,
+          system-ui,
+          sans-serif;
+        height: 100vh;
+        display: grid;
+        grid-template-columns: 240px 1fr;
+      }
+      .mono {
+        font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+      }
+      button {
+        font: inherit;
+        color: inherit;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 5px 10px;
+        cursor: pointer;
+      }
+      button:hover:not(:disabled) {
+        background: var(--hover);
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
+      button.danger {
+        color: var(--bad);
+      }
+      button.sm {
+        padding: 2px 8px;
+        font-size: 12px;
+      }
+      aside {
+        border-right: 1px solid var(--line);
+        background: var(--panel);
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        overflow: auto;
+      }
+      aside h1 {
+        font-size: 13px;
+        margin: 0;
+        padding: 14px 16px;
+        display: flex;
+        justify-content: space-between;
+      }
+      aside h1 small {
+        color: var(--mute);
+        font-weight: 400;
+      }
+      .ws {
+        padding: 10px 16px;
+        border-top: 1px solid var(--line);
+        cursor: pointer;
+      }
+      .ws:hover {
+        background: var(--hover);
+      }
+      .ws.active {
+        background: var(--sel);
+      }
+      .ws b {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .ws .sub {
+        color: var(--mute);
+        font-size: 12px;
+        display: block;
+        margin-left: 15px;
+      }
+      .side-foot {
+        margin-top: auto;
+        padding: 12px 16px;
+        border-top: 1px solid var(--line);
+        color: var(--mute);
+        font-size: 12px;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--mute);
+        display: inline-block;
+        flex: none;
+      }
+      .dot.running,
+      .dot.healthy {
+        background: var(--ok);
+      }
+      .dot.starting,
+      .dot.restarting,
+      .dot.infra,
+      .dot.preparing,
+      .dot.stopping {
+        background: var(--warn);
+        animation: pulse 1s infinite;
+      }
+      .dot.crashed,
+      .dot.failed {
+        background: var(--bad);
+      }
+      .dot.stopped,
+      .dot.idle {
+        background: transparent;
+        border: 1.5px solid var(--mute);
+      }
+      @keyframes pulse {
+        50% {
+          opacity: 0.3;
+        }
+      }
+      main {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        min-height: 0;
+      }
+      header {
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--line);
+        background: var(--panel);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 14px;
+        align-items: center;
+      }
+      header h2 {
+        margin: 0;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      header .meta {
+        color: var(--mute);
+      }
+      header .spacer {
+        flex: 1;
+      }
+      header label {
+        color: var(--mute);
+        display: flex;
+        gap: 4px;
+        align-items: center;
+      }
+      .err {
+        color: var(--bad);
+        padding: 8px 20px;
+        border-bottom: 1px solid var(--line);
+      }
+      .links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 10px 20px;
+        border-bottom: 1px solid var(--line);
+        align-items: center;
+        min-height: 46px;
+      }
+      .links .grp {
+        color: var(--mute);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin: 0 4px 0 10px;
+      }
+      .links .grp:first-child {
+        margin-left: 0;
+      }
+      .chip {
+        display: inline-flex;
+        gap: 6px;
+        padding: 3px 9px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--panel);
+        color: var(--text);
+        text-decoration: none;
+      }
+      .chip:hover {
+        background: var(--hover);
+      }
+      .body {
+        flex: 1;
+        display: grid;
+        grid-template-columns: minmax(340px, 440px) 1fr;
+        min-height: 0;
+      }
+      .left {
+        border-right: 1px solid var(--line);
+        overflow: auto;
+      }
+      .sec {
+        padding: 12px 20px 4px;
+        color: var(--mute);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .sec .acts {
+        display: flex;
+        gap: 6px;
+        text-transform: none;
+        letter-spacing: 0;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 14px 1fr auto auto;
+        gap: 10px;
+        align-items: center;
+        padding: 6px 20px;
+        cursor: pointer;
+        border-left: 2px solid transparent;
+      }
+      .row:hover {
+        background: var(--hover);
+      }
+      .row.sel {
+        background: var(--sel);
+        border-left-color: var(--info);
+      }
+      .row .n {
+        font-weight: 500;
+      }
+      .row .d {
+        color: var(--mute);
+        font-size: 12px;
+      }
+      .row .acts {
+        opacity: 0;
+        display: flex;
+        gap: 4px;
+      }
+      .row:hover .acts,
+      .row.sel .acts {
+        opacity: 1;
+      }
+      .job {
+        padding: 5px 20px;
+        display: flex;
+        gap: 10px;
+        color: var(--mute);
+      }
+      .job .ok {
+        color: var(--ok);
+      }
+      .job .bad {
+        color: var(--bad);
+      }
+      .right {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        min-height: 0;
+      }
+      .tabs {
+        display: flex;
+        gap: 2px;
+        padding: 8px 12px 0;
+        border-bottom: 1px solid var(--line);
+        background: var(--panel);
+        overflow-x: auto;
+      }
+      .tab {
+        padding: 6px 12px;
+        border-radius: 6px 6px 0 0;
+        color: var(--mute);
+        cursor: pointer;
+        white-space: nowrap;
+        border: 1px solid transparent;
+        border-bottom: none;
+      }
+      .tab.on {
+        color: #d6d6d0;
+        background: var(--term-bg);
+        border-color: var(--line);
+      }
+      .panes {
+        flex: 1;
+        position: relative;
+        background: var(--term-bg);
+        min-height: 0;
+      }
+      #logs,
+      #term {
+        position: absolute;
+        inset: 0;
+      }
+      #logs {
+        overflow: auto;
+        padding: 10px 14px;
+        font-size: 12px;
+        line-height: 1.55;
+        color: #d6d6d0;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+      #term {
+        padding: 6px 10px;
+        display: none;
+      }
+      .logbar {
+        background: var(--term-bg);
+        border-top: 1px solid #2a2a27;
+        padding: 6px 12px;
+        display: flex;
+        gap: 12px;
+        color: #8d8d85;
+        align-items: center;
+      }
+      .logbar label {
+        display: flex;
+        gap: 4px;
+        align-items: center;
+        cursor: pointer;
+      }
+      #logs .t {
+        color: #6f6f68;
+      }
+      #logs .u {
+        font-weight: 600;
+      }
+      #logs .sys {
+        color: #8d8d85;
+      }
+      #logs .er {
+        color: #ef6b5b;
+      }
+      .toast {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        background: var(--text);
+        color: var(--bg);
+        padding: 8px 14px;
+        border-radius: 8px;
+        opacity: 0;
+        transition: opacity 0.2s;
+        pointer-events: none;
+      }
+      .toast.on {
+        opacity: 1;
+      }
+      .empty {
+        padding: 40px;
+        color: var(--mute);
+      }
+      @media (max-width: 1100px) {
+        .body {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto 1fr;
+        }
+        .left {
+          border-right: none;
+          border-bottom: 1px solid var(--line);
+          max-height: 40vh;
+        }
+      }
+      @media (max-width: 900px) {
+        body {
+          grid-template-columns: 1fr;
+        }
+        aside {
+          display: none;
+        }
+        .body {
+          grid-template-columns: 1fr;
+        }
+        .left {
+          border-right: none;
+          max-height: 45vh;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <aside>
+      <h1>Control <small id="port"></small></h1>
+      <div id="wslist"></div>
+      <div class="side-foot" id="foot">daemon</div>
+    </aside>
+    <main id="main">
+      <div class="empty">
+        No workspaces registered yet. Run <code>control up</code> inside a checkout.
+      </div>
+    </main>
+    <div class="toast" id="toast"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.js"></script>
+    <script>
+      let state = {
+        ws: {},
+        cur: localStorage.getItem('ws') || '',
+        sel: '*',
+        tab: 'logs',
+        infra: false
+      };
+      let $ = id => document.getElementById(id);
+      let esc = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
+      let toast = m => {
+        let t = $('toast');
+        t.textContent = m;
+        t.classList.add('on');
+        clearTimeout(toast.h);
+        toast.h = setTimeout(() => t.classList.remove('on'), 2200);
+      };
+      let call = async (path, method = 'POST', body) => {
+        let r = await fetch('/api' + path, {
+          method,
+          headers: { 'content-type': 'application/json' },
+          body: body ? JSON.stringify(body) : undefined
+        });
+        let d = await r.json().catch(() => ({}));
+        if (!r.ok) {
+          toast(d.error || 'request failed');
+          throw new Error(d.error);
+        }
+        return d;
+      };
+      let cur = () => state.ws[state.cur];
+      let base = () => `/workspaces/${encodeURIComponent(state.cur)}`;
+      let phaseDot = w =>
+        w.units.some(u => u.state === 'crashed') && w.phase === 'running'
+          ? 'crashed'
+          : w.phase;
+      let since = t => {
+        if (!t) return '–';
+        let s = Math.round((Date.now() - t) / 1000);
+        return s < 60
+          ? s + 's'
+          : s < 3600
+            ? Math.floor(s / 60) + 'm'
+            : Math.floor(s / 3600) + 'h ' + Math.floor((s % 3600) / 60) + 'm';
+      };
+
+      // ---- ansi → html
+      let ansiColors = {
+        30: '#4a4a46',
+        31: '#ef6b5b',
+        32: '#4cc97e',
+        33: '#e0a84a',
+        34: '#6aa8ee',
+        35: '#c88be0',
+        36: '#56c6c6',
+        37: '#d6d6d0',
+        90: '#7d7d75',
+        91: '#ff8a7a',
+        92: '#7ee0a0',
+        93: '#f0c36a',
+        94: '#8fbaf5',
+        95: '#dca8ee',
+        96: '#7edede',
+        97: '#fff'
+      };
+      let ansi = text => {
+        let out = '',
+          open = false;
+        for (let part of esc(text).split(/(\u001b\[[0-9;]*m)/)) {
+          let m = part.match(/^\u001b\[([0-9;]*)m$/);
+          if (!m) {
+            out += part.replace(/\u001b\[[0-9;?]*[A-Za-ln-z]/g, '');
+            continue;
+          }
+          if (open) {
+            out += '</span>';
+            open = false;
+          }
+          let codes = m[1].split(';').map(Number),
+            style = '';
+          for (let c of codes) {
+            if (ansiColors[c]) style += 'color:' + ansiColors[c] + ';';
+            else if (c === 1) style += 'font-weight:600;';
+          }
+          if (style) {
+            out += `<span style="${style}">`;
+            open = true;
+          }
+        }
+        return out + (open ? '</span>' : '');
+      };
+      let hue = n => {
+        let h = 0;
+        for (let c of n) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+        return `hsl(${h % 360} 55% 62%)`;
+      };
+
+      // ---- rendering
+      let renderSide = () => {
+        $('wslist').innerHTML = Object.values(state.ws)
+          .sort((a, b) => (a.id < b.id ? -1 : 1))
+          .map(w => {
+            let svc = w.units.filter(u => u.kind === 'service'),
+              up = svc.filter(u => u.state === 'running').length;
+            return `<div class="ws ${w.id === state.cur ? 'active' : ''}" data-ws="${w.id}"><b><i class="dot ${phaseDot(w)}"></i>${w.id}</b><span class="sub mono">${esc(w.branch)} · ${svc.length ? up + '/' + svc.length + ' services' : w.phase}</span></div>`;
+          })
+          .join('');
+        document
+          .querySelectorAll('.ws')
+          .forEach(el => (el.onclick = () => select(el.dataset.ws)));
+      };
+
+      let renderMain = () => {
+        let w = cur();
+        if (!w) return;
+        let running = !['idle', 'stopped', 'failed'].includes(w.phase);
+        let busy = ['infra', 'preparing', 'starting', 'stopping'].includes(w.phase);
+        let svc = w.units.filter(u => u.kind === 'service'),
+          infra = w.units.filter(u => u.kind === 'infra');
+        let row =
+          u => `<div class="row ${state.sel === u.name ? 'sel' : ''}" data-unit="${u.name}"><i class="dot ${u.state}"></i>
+      <div><span class="n">${u.name}</span> <span class="d mono">${u.ports.map(p => ':' + p).join(' ')}</span>${u.state === 'crashed' ? '<div class="d" style="color:var(--bad)">crashed · restarting with backoff</div>' : ''}</div>
+      <span class="d">${u.restarts ? '↻' + u.restarts : ''}</span>
+      <span class="acts"><button class="sm" data-act="restart" data-u="${u.name}" ${w.phase !== 'running' ? 'disabled' : ''}>Restart</button>${u.kind === 'service' ? `<button class="sm" data-act="${u.state === 'stopped' ? 'start' : 'stop'}" data-u="${u.name}" ${w.phase !== 'running' ? 'disabled' : ''}>${u.state === 'stopped' ? 'Start' : 'Stop'}</button>` : ''}</span></div>`;
+        let groups = { app: 'apps', admin: 'admin', tool: 'tools' };
+        let links = Object.entries(groups)
+          .map(([g, label]) => {
+            let items = w.links.filter(l => l.group === g);
+            return items.length
+              ? `<span class="grp">${label}</span>` +
+                  items
+                    .map(
+                      l =>
+                        `<a class="chip" target="_blank" href="${l.url}">${esc(l.label)}</a>`
+                    )
+                    .join('')
+              : '';
+          })
+          .join('');
+        let dbOff = w.phase !== 'running' ? 'disabled' : '';
+
+        $('main').innerHTML = `
+    <header>
+      <h2><i class="dot ${phaseDot(w)}"></i>${w.id}</h2>
+      <span class="meta mono">${esc(w.branch)} · ${w.hostname} · ${w.phase}${running ? ' · up ' + since(w.startedAt) : ''}</span>
+      <span class="spacer"></span>
+      <label title="Also stop/restart docker infrastructure"><input type="checkbox" id="infraBox" ${state.infra ? 'checked' : ''}>incl. infra</label>
+      <button id="bStart" ${running || busy ? 'disabled' : ''}>Start</button>
+      <button id="bRestart" ${w.phase === 'running' || w.phase === 'failed' ? '' : 'disabled'}>Restart workspace</button>
+      <button id="bStop" class="danger" ${w.phase === 'running' ? '' : 'disabled'}>Stop</button>
+    </header>
+    ${w.error ? `<div class="err mono">${esc(w.error)}</div>` : ''}
+    <div class="links">${links || `<span style="color:var(--mute)">${w.phase === 'running' ? 'no links declared' : 'links appear once the workspace has started'}</span>`}</div>
+    <div class="body">
+      <section class="left">
+        <div class="sec">Services <span class="acts"><button class="sm" data-all="svc" ${dbOff}>Restart all</button></span></div>
+        ${svc.map(row).join('') || '<div class="job">none</div>'}
+        <div class="sec">Infrastructure <span class="acts"><button class="sm" data-all="infra" ${dbOff}>Restart all</button></span></div>
+        ${infra.map(row).join('') || '<div class="job">none</div>'}
+        <div class="sec">Database &amp; tasks</div>
+        <div style="padding:6px 20px;display:flex;gap:6px;flex-wrap:wrap">
+          ${['db:generate', 'db:push', 'db:migrate', 'prepare'].map(k => `<button class="sm" data-job="${k}" ${dbOff}>${k.replace(':', ' ')}</button>`).join('')}
+        </div>
+        <div class="sec">Recent jobs</div>
+        ${w.jobs.map(j => `<div class="job mono"><span class="${j.state === 'done' ? 'ok' : j.state === 'failed' ? 'bad' : ''}">${j.state === 'done' ? '✓' : j.state === 'failed' ? '✖' : '…'}</span>${j.kind}<span style="margin-left:auto">${j.endedAt ? ((j.endedAt - j.startedAt) / 1000).toFixed(1) + 's' : 'running'}</span></div>`).join('') || '<div class="job">none</div>'}
+      </section>
+      <section class="right">
+        <div class="tabs" id="tabs"></div>
+        <div class="panes"><div id="logs" class="mono"></div><div id="term"></div></div>
+        <div class="logbar mono"><label><input type="checkbox" id="follow" checked>follow</label><button class="sm" id="clear">clear</button><span id="count"></span></div>
+      </section>
+    </div>`;
+
+        $('infraBox').onchange = e => (state.infra = e.target.checked);
+        $('bStart').onclick = () =>
+          call(base() + '/start', 'POST', {}).then(() => toast('starting ' + w.id));
+        $('bRestart').onclick = () =>
+          call(base() + '/restart', 'POST', { infra: state.infra }).then(() =>
+            toast('restarting ' + w.id)
+          );
+        $('bStop').onclick = () =>
+          call(base() + '/stop', 'POST', { infra: state.infra }).then(() =>
+            toast('stopping ' + w.id)
+          );
+        document.querySelectorAll('[data-job]').forEach(
+          b =>
+            (b.onclick = e => {
+              e.stopPropagation();
+              call(base() + '/jobs', 'POST', { kind: b.dataset.job }).then(() => {
+                toast(b.dataset.job + ' started');
+                selectUnit('jobs');
+              });
+            })
+        );
+        document
+          .querySelectorAll('[data-all]')
+          .forEach(
+            b =>
+              (b.onclick = () =>
+                w.units
+                  .filter(u => u.kind === (b.dataset.all === 'svc' ? 'service' : 'infra'))
+                  .forEach((u, i) =>
+                    setTimeout(
+                      () => call(base() + `/units/${u.name}/restart`).catch(() => {}),
+                      i * 100
+                    )
+                  ))
+          );
+        document.querySelectorAll('[data-act]').forEach(
+          b =>
+            (b.onclick = e => {
+              e.stopPropagation();
+              call(base() + `/units/${encodeURIComponent(b.dataset.u)}/${b.dataset.act}`).then(
+                () => toast(b.dataset.act + ' ' + b.dataset.u)
+              );
+            })
+        );
+        document
+          .querySelectorAll('.row')
+          .forEach(r => (r.onclick = () => selectUnit(r.dataset.unit)));
+        $('clear').onclick = () => {
+          $('logs').innerHTML = '';
+        };
+        renderTabs();
+        if (state.tab === 'logs') showLogsPane();
+        else showTermPane();
+        attachLogs(true);
+      };
+
+      let renderTabs = () => {
+        let w = cur();
+        if (!w) return;
+        let names = ['*', ...w.units.map(u => u.name), 'jobs', 'prepare', 'infra', 'control'];
+        $('tabs').innerHTML =
+          names
+            .map(
+              n =>
+                `<div class="tab ${state.tab === 'logs' && state.sel === n ? 'on' : ''}" data-tab="${n}">${n === '*' ? 'all logs' : n}</div>`
+            )
+            .join('') +
+          `<div class="tab ${state.tab === 'term' ? 'on' : ''}" data-tab="__term" style="margin-left:auto">⌨ terminal${state.sel !== '*' && w.units.find(u => u.name === state.sel && u.kind === 'service') ? ' · ' + state.sel : ''}</div>`;
+        document
+          .querySelectorAll('.tab')
+          .forEach(
+            t =>
+              (t.onclick = () =>
+                t.dataset.tab === '__term' ? openTerm() : selectUnit(t.dataset.tab))
+          );
+      };
+
+      // ---- logs
+      let es, lastW, lastSel;
+      let attachLogs = force => {
+        let w = cur();
+        if (!w || state.tab !== 'logs') return;
+        if (!force && lastW === state.cur && lastSel === state.sel) return;
+        lastW = state.cur;
+        lastSel = state.sel;
+        if (es) es.close();
+        let el = $('logs');
+        el.innerHTML = '';
+        let units = state.sel === '*' ? '' : state.sel;
+        es = new EventSource(
+          `/api${base()}/logs?follow=1&tail=1000&units=${encodeURIComponent(units)}`
+        );
+        let n = 0;
+        es.onmessage = ev => {
+          let l = JSON.parse(ev.data);
+          let d = document.createElement('div');
+          d.innerHTML = `<span class="t">${new Date(l.ts).toTimeString().slice(0, 8)}</span> ${state.sel === '*' ? `<span class="u" style="color:${hue(l.unit)}">${esc(l.unit.padEnd(14))}</span> ` : ''}<span class="${l.stream === 'sys' ? 'sys' : l.stream === 'err' ? 'er' : ''}">${ansi(l.text)}</span>`;
+          el.appendChild(d);
+          if (++n > 3000) {
+            el.firstChild.remove();
+            n--;
+          }
+          if ($('follow') && $('follow').checked) el.scrollTop = el.scrollHeight;
+          if ($('count')) $('count').textContent = n + ' lines';
+        };
+      };
+      let showLogsPane = () => {
+        $('logs').style.display = 'block';
+        $('term').style.display = 'none';
+      };
+      let showTermPane = () => {
+        $('logs').style.display = 'none';
+        $('term').style.display = 'block';
+      };
+
+      // ---- terminal
+      let term, fit, sock;
+      let openTerm = () => {
+        let w = cur();
+        if (!w) return;
+        state.tab = 'term';
+        renderTabs();
+        showTermPane();
+        if (sock) sock.close();
+        if (term) term.dispose();
+        term = new Terminal({
+          fontFamily: 'ui-monospace, Menlo, monospace',
+          fontSize: 12,
+          cursorBlink: true,
+          theme: { background: '#0a0a0a' }
+        });
+        fit = new FitAddon.FitAddon();
+        term.loadAddon(fit);
+        $('term').innerHTML = '';
+        term.open($('term'));
+        fit.fit();
+        let unit =
+          state.sel !== '*' && w.units.find(u => u.name === state.sel && u.kind === 'service')
+            ? state.sel
+            : '';
+        sock = new WebSocket(
+          `ws://${location.host}/ws/terminal?workspace=${encodeURIComponent(w.id)}&unit=${encodeURIComponent(unit)}`
+        );
+        sock.binaryType = 'arraybuffer';
+        let send = o => sock.readyState === 1 && sock.send(JSON.stringify(o));
+        sock.onopen = () => send({ type: 'resize', cols: term.cols, rows: term.rows });
+        sock.onmessage = e =>
+          term.write(typeof e.data === 'string' ? e.data : new Uint8Array(e.data));
+        sock.onclose = () => term && term.write('\r\n[disconnected]\r\n');
+        term.onData(data => send({ type: 'input', data }));
+        term.onResize(({ cols, rows }) => send({ type: 'resize', cols, rows }));
+        term.focus();
+      };
+      addEventListener('resize', () => fit && state.tab === 'term' && fit.fit());
+
+      let selectUnit = n => {
+        state.sel = n;
+        state.tab = 'logs';
+        renderTabs();
+        showLogsPane();
+        attachLogs();
+        document
+          .querySelectorAll('.row')
+          .forEach(r => r.classList.toggle('sel', r.dataset.unit === n));
+      };
+      let select = id => {
+        state.cur = id;
+        localStorage.setItem('ws', id);
+        state.sel = '*';
+        state.tab = 'logs';
+        renderSide();
+        renderMain();
+      };
+
+      // ---- live state
+      let sig = w =>
+        JSON.stringify([
+          w.phase,
+          w.error,
+          w.units.map(u => [u.name, u.state, u.restarts]),
+          w.jobs.map(j => [j.id, j.state]),
+          w.links.length
+        ]);
+      let connect = () => {
+        let events = new EventSource('/api/events');
+        events.onmessage = ev => {
+          let w = JSON.parse(ev.data),
+            prev = state.ws[w.id];
+          state.ws[w.id] = w;
+          if (!state.cur || !state.ws[state.cur]) state.cur = w.id;
+          renderSide();
+          if (w.id === state.cur && (!prev || sig(prev) !== sig(w) || !$('bStart'))) {
+            if (state.tab === 'term') {
+              renderSideOnly(w);
+              return;
+            }
+            let top = document.querySelector('.left')?.scrollTop;
+            renderMain();
+            if (top) document.querySelector('.left').scrollTop = top;
+          }
+        };
+        events.onerror = () => {
+          $('foot').textContent = 'daemon unreachable — retrying…';
+        };
+      };
+      let renderSideOnly = w => {
+        renderSide();
+      };
+      fetch('/api/ping')
+        .then(r => r.json())
+        .then(p => {
+          $('port').textContent = ':' + p.port;
+          $('foot').innerHTML =
+            `daemon <span class="mono">pid ${p.pid}</span><br>up ${since(p.startedAt)}`;
+        });
+      connect();
+      setInterval(() => {
+        let w = cur();
+        if (w && w.phase === 'running' && state.tab !== 'term')
+          document.querySelector('header .meta') &&
+            (document.querySelector('header .meta').textContent =
+              `${w.branch} · ${w.hostname} · ${w.phase} · up ${since(w.startedAt)}`);
+      }, 15000);
+    </script>
+  </body>
+</html>
