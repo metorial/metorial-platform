@@ -69,6 +69,7 @@ describe('magic MCP endpoint presentation', () => {
       let presented = await v1MagicMcpEndpointPresenter.present(input).run();
 
       expect(presented.access).toEqual({
+        source: null,
         type,
         visibility,
         owner: { type: 'person', name: 'Owner', image_url: null, email: null }
