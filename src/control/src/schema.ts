@@ -90,7 +90,14 @@ export let manifestSchema = strictObject({
         port,
         env: v.optional(v.array(keyValue)),
         health: v.optional(v.union([str, healthSpec])),
-        protocol: v.optional(v.enumOf(['http', 'h2c']))
+        protocol: v.optional(v.enumOf(['http', 'h2c'])),
+        link: v.optional(
+          strictObject({
+            label: str,
+            group: v.optional(v.enumOf(['app', 'admin', 'tool'])),
+            path: v.optional(str)
+          })
+        )
       })
     )
   ),

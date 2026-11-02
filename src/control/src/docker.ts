@@ -75,7 +75,7 @@ export let stop = async (root: string, projects: ComposeProject[], env: Environm
         root,
         env
       )
-      .catch(error => console.error(`warning: could not stop Docker services: ${error}`));
+      .catch(error => commands.warn(`warning: could not stop Docker services: ${error}`));
   }
 };
 
@@ -304,7 +304,7 @@ export let start = async (
             )
           ).every(Boolean);
         if (!(await reachable())) {
-          console.error(
+          commands.warn(
             'generated Docker services have stale host port bindings; recreating containers'
           );
 

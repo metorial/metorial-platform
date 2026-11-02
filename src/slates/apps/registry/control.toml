@@ -26,6 +26,7 @@ env = [{ key = "SLATES_REGISTRY_INTERNAL_PORT", value = "{{BIND_PORT}}" }]
 
 [endpoints.admin]
 port = 52042
+link = { label = "Slates Registry Admin", group = "admin" }
 env = [{ key = "SLATES_REGISTRY_ADMIN_PORT", value = "{{BIND_PORT}}" }]
 
 [e2e]

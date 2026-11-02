@@ -260,6 +260,9 @@
     "control:db:push": {
       "cache": false
     },
+    "control:db:migrate": {
+      "cache": false
+    },
     "@metorial-subspace/app-worker#server:build": {
       "dependsOn": [
         "admin:build",

@@ -26,5 +26,8 @@
     "@types/bun": "latest",
     "prettier": "^3.9.10",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@opentui/core": "^0.7.0"
   }
 }

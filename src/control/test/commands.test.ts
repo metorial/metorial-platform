@@ -180,7 +180,7 @@ test('run lists scripts without Bun and forwards arguments from invoking subdire
 
 test('development generates Turbo workspace, unregisters proxy and executes cleanup', async () => {
   let value = await fixture();
-  let result = await value.run(['dev', '--no-docker', '--no-prepare']);
+  let result = await value.run(['dev', '--foreground', '--no-docker', '--no-prepare']);
 
   expect(result.code).toBe(0);
 
@@ -202,7 +202,7 @@ test('development generates Turbo workspace, unregisters proxy and executes clea
 
 test('failed preparation does not start application processes', async () => {
   let value = await fixture();
-  let result = await value.run(['dev', '--no-docker'], value.root, {
+  let result = await value.run(['dev', '--foreground', '--no-docker'], value.root, {
     CONTROL_FAIL_TASK: 'bundle'
   });
 

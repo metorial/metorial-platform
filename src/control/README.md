@@ -49,6 +49,34 @@ with their volumes, so every database and the object store start empty on the ne
 `control dev`. It refuses to run without `--yes`; `--dry-run` prints the Compose
 commands instead.
 
+### Daemon, TUI and web UI
+
+`control dev` no longer needs one terminal per workspace. Workspaces run inside one shared
+background daemon that is started on demand; the CLI is a thin client and `control dev`
+attaches the log TUI. Pass `--foreground` for the previous behavior (Turbo TUI in the
+current terminal).
+
+```sh
+bun run control up              # start the workspace in the daemon and return
+bun run control ls              # all workspaces known to the daemon
+bun run control status          # units of this workspace
+bun run control logs -f api     # plain log list; a TUI on a terminal unless piped
+bun run control tui             # log TUI
+bun run control restart api     # one unit (infra included); no argument restarts the workspace
+bun run control job db:push     # db:generate | db:push | db:migrate | prepare
+bun run control open mail       # dashboard, mail, any declared link, or the web UI
+bun run control sh api          # shell with the environment of a unit
+bun run control down            # stop the workspace
+bun run control daemon status   # start | stop | restart | status | logs
+```
+
+The web UI listens on `http://localhost:1000` (`CONTROL_UI_PORT` to change it). It lists the
+workspaces, links to the dashboard, mail and admin panels, restarts units or whole
+workspaces, runs database jobs and offers a terminal in the workspace environment.
+Manifests declare their links with `link = { label = "...", group = "app" | "admin" | "tool" }`
+on an endpoint. Daemon state lives in `~/.metorial-control-dev-service` (`CONTROL_HOME`);
+stopping the daemon stops the workspaces it runs. See `docs/daemon-plan.md`.
+
 Pass `--root PATH` to start project detection somewhere other than the current
 directory.
 
