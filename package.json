@@ -20,7 +20,7 @@
   },
   "devDependencies": {
     "prettier": "^3.9.10",
-    "turbo": "2.11.9",
+    "turbo": "2.11.10",
     "typescript": "5.9.3"
   },
   "engines": {
@@ -89,7 +89,7 @@
   ],
   "dependencies": {
     "sade": "^1.8.1",
-    "ts-proto": "^2.18.0"
+    "ts-proto": "^2.18.3"
   },
   "overrides": {
     "react": "19.3.0",

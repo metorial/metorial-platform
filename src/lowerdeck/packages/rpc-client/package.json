@@ -33,7 +33,7 @@
     "vitest": "^5.0.4"
   },
   "dependencies": {
-    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/api": "^1.10.0",
     "@lowerdeck/canonicalize": "workspace:2.0.0",
     "@lowerdeck/error": "workspace:2.0.0",
     "@lowerdeck/id": "workspace:2.0.0",
