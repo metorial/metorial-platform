@@ -382,7 +382,8 @@ class FileServiceImpl {
 
       await Fabric.fire('file.created:before', {
         ...fileFabricOwnerFromScope(d, d.input.size),
-        auditScope: d.auditScope
+        auditScope: d.auditScope,
+        isTemplateBacking: d.internal?.isTemplateBacking ?? false
       });
 
       let createdFile = await db.file.create({
