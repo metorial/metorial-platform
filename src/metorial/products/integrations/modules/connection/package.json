@@ -52,7 +52,7 @@
     "@metorial/module-usage": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.32.1",
     "p-queue": "^10.0.0",
-    "@types/lodash": "^4.17.26",
+    "@types/lodash": "^4.17.27",
     "date-fns": "^4.4.0",
     "lodash": "^4.18.1",
     "lru-cache": "^11.5.3",
