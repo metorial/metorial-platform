@@ -28,6 +28,7 @@ import { organizationQueueProcessor } from '@metorial/module-organization';
 import { outpostQueueProcessor } from '@metorial/module-outpost';
 import { portalQueueProcessor } from '@metorial/module-portal';
 import { productAssistantQueueProcessor } from '@metorial/module-product-assistant';
+import { ensureSystemProfile } from '@metorial/db';
 import { checkEdition } from '@metorial/editions';
 import { skillQueueProcessor as cargoSkillQueueProcessor } from '@metorial/module-skill';
 import { skillConfigurationQueueProcessor } from '@metorial/module-skill-configurations';
@@ -42,6 +43,8 @@ import { webQueueProcessor } from '@metorial/module-web';
 import { multiRegionQueueProcessor } from '@metorial/multi-region';
 
 process.env.TZ = 'UTC';
+
+await ensureSystemProfile();
 
 let sandbox = checkEdition('cloud') ? await import('@metorial/module-sandbox') : undefined;
 
