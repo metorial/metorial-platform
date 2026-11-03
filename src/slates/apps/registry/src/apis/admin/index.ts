@@ -1,19 +1,19 @@
 import { apiMux } from '@lowerdeck/api-mux';
 import { createStaticAssetResponse } from '@lowerdeck/hono';
-import { resolve, sep } from 'node:path';
 import { slatesRegistryAdminApi } from './controllers';
 
-let adminDir = resolve('./dist/admin');
+let adminDir = './dist/admin';
 
 let frontendHandler = async (req: Request) => {
   let url = new URL(req.url);
   let path = url.pathname || '/index.html';
   if (path === '/') path = '/index.html';
 
-  let targetPath = resolve(adminDir, `.${path}`);
-  if (!targetPath.startsWith(`${adminDir}${sep}`)) {
+  if (path.includes('..')) {
     return new Response('Not Found', { status: 404 });
   }
+
+  let targetPath = `${adminDir}${path}`;
 
   let file = Bun.file(targetPath);
   if (await file.exists()) {
