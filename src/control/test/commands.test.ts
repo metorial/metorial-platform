@@ -3,7 +3,13 @@ import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { atomicWrite, readJson, writeJson } from '../src/files';
 import { writeMetadata } from '../src/workspace';
-import { executable, packageFixture, temporary, workspaceData } from './helpers';
+import {
+  executable,
+  packageFixture,
+  temporary,
+  workspaceData,
+  writeManifest
+} from './helpers';
 
 let main = resolve(import.meta.dir, '../src/main.ts');
 
@@ -28,7 +34,7 @@ let fixture = async () => {
   mkdirSync(bin);
 
   let log = join(root, 'commands.jsonl');
-  let stub = `let fs=await import('node:fs');let args=process.argv.slice(2);fs.appendFileSync(process.env.CONTROL_TEST_LOG,JSON.stringify({program:process.argv[1].split('/').pop(),args,cwd:process.cwd(),value:process.env.VALUE})+'\\n');if(process.env.CONTROL_FAIL_TASK && args.includes(process.env.CONTROL_FAIL_TASK))process.exit(7);`;
+  let stub = `let fs=await import('node:fs');let args=process.argv.slice(2);fs.appendFileSync(process.env.CONTROL_TEST_LOG,JSON.stringify({program:process.argv[1].split('/').pop(),args,cwd:process.cwd(),value:process.env.VALUE,databaseUrl:process.env.DATABASE_URL})+'\\n');if(process.env.CONTROL_FAIL_TASK && args.includes(process.env.CONTROL_FAIL_TASK))process.exit(7);`;
 
   for (let name of ['bun', 'docker', 'code']) executable(bin, name, stub);
   mkdirSync(join(root, 'node_modules/.bin'), { recursive: true });
@@ -54,7 +60,13 @@ let fixture = async () => {
 
     return { stdout, stderr, code };
   };
-  let calls = (): { program: string; args: string[]; cwd: string; value?: string }[] =>
+  let calls = (): {
+    program: string;
+    args: string[];
+    cwd: string;
+    value?: string;
+    databaseUrl?: string;
+  }[] =>
     existsSync(log)
       ? readFileSync(log, 'utf8')
           .trim()
@@ -126,11 +138,16 @@ test('prepare writes environments then runs root build and package preparation w
     ['run', 'build'],
     ['run', 'bundle']
   ]);
-  expect(calls[1]!.args).toEqual(['run', 'bundle', '--ui=stream', '--filter', 'api']);
+  expect(calls[1]!.args).toEqual([
+    'run',
+    'bundle',
+    '--ui=stream',
+    '--env-mode=loose',
+    '--filter',
+    'api'
+  ]);
   expect(calls[1]!.value).toBe('test $& value');
-  expect(readFileSync(join(value.root, 'src/api/.env'), 'utf8')).toContain(
-    "VALUE='test $& value'"
-  );
+  expect(existsSync(join(value.root, 'src/api/.env'))).toBe(false);
 });
 
 test('unit filters pass unchanged with no setup commands', async () => {
@@ -143,6 +160,7 @@ test('unit filters pass unchanged with no setup commands', async () => {
     'run',
     'test',
     '--ui=stream',
+    '--env-mode=loose',
     '--concurrency=1',
     '--filter',
     '@x/hash',
@@ -190,6 +208,7 @@ test('development generates Turbo workspace, unregisters proxy and executes clea
     'run',
     'dev',
     '--ui=stream',
+    '--env-mode=loose',
     '--continue=always',
     '--concurrency=2',
     '--filter',
@@ -217,8 +236,8 @@ test('database generation targets selected owners without starting Docker', asyn
     'control:db:generate': 'true',
     'control:db:push': 'true'
   });
-  atomicWrite(
-    join(value.root, 'src/api/control.toml'),
+  writeManifest(
+    join(value.root, 'src/api'),
     "name='api'\n[dev.db.main]\nname='app'\nengine='postgres'\nenv='DATABASE_URL'\npackage='db'"
   );
 
@@ -230,11 +249,13 @@ test('database generation targets selected owners without starting Docker', asyn
     'run',
     'control:db:generate',
     '--ui=stream',
+    '--env-mode=loose',
     '--concurrency=3',
     '--filter',
     'db'
   ]);
-  expect(readFileSync(join(value.root, 'src/db/.env'), 'utf8')).toContain('/app');
+  expect(existsSync(join(value.root, 'src/db/.env'))).toBe(false);
+  expect(value.calls()[0]!.databaseUrl).toContain('/app');
 });
 
 test('workspace lifecycle forwards host stop and rejects Docker-only rebuild', async () => {
@@ -335,8 +356,8 @@ test('failed host initialization rolls back the worktree and newly created branc
 
 test('image E2E execution starts services in order, probes health, captures logs and cleans up on failure', async () => {
   let value = await fixture();
-  atomicWrite(
-    join(value.root, 'src/api/control.toml'),
+  writeManifest(
+    join(value.root, 'src/api'),
     "name='api'\n[endpoints.http]\nport=52001\nhealth='/ready'\n[e2e]\nimage='api'\ntests=['../tests']"
   );
   packageFixture(value.root, 'src/tests', 'api-tests', undefined, { 'test:e2e': 'true' });

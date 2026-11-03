@@ -1,8 +1,0 @@
-name = "@metorial/multi-region"
-group = "oss"
-
-[dev.db.global]
-package = "@metorial/multi-region"
-name = "metorial-enterprise-global"
-engine = "postgres"
-env = "GLOBAL_DATABASE_URL"

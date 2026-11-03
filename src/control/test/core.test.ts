@@ -20,7 +20,7 @@ let load = (text: string) => {
   let root = temporary();
   packageFixture(root, '', 'api', text, { dev: 'true' });
 
-  return manifest.load(join(root, 'control.toml'));
+  return manifest.load(join(root, 'control', 'index.ts'));
 };
 
 describe('CLI contract', () => {
@@ -348,7 +348,7 @@ describe('generated workspaces and infrastructure', () => {
 
   test('cleanup stays confined and collects legacy generated directories', () => {
     let loaded = load("[cleanup]\npaths=['build','../outside','/absolute']");
-    let root = dirname(loaded.path);
+    let root = loaded.directory;
     mkdirSync(join(root, 'build'), { recursive: true });
 
     mkdirSync(join(root, 'api/node_modules/deep'), { recursive: true });

@@ -1,7 +1,8 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, isAbsolute, join } from 'node:path';
-import { packageScripts, readJson, sortedEntries, walk } from './files';
-import { externalSchema, manifestSchema, parse } from './schema';
+import { MARKER } from './marker';
+import { packageScripts, readJson, sortedEntries, walk, walkManifests } from './files';
+import { externalSchema, manifestSchema, parse, type RawManifest } from './schema';
 import type { Database, EnvValue, LoadedManifest, Manifest, RootKind } from './types';
 
 export let applies = (manifest: Manifest, kind: RootKind) =>
@@ -28,12 +29,41 @@ export let validateTemplates = (value: string, allowed: string[]) => {
     throw new Error(`unmatched template delimiter in ${JSON.stringify(value)}`);
 };
 
-export let load = (path: string): LoadedManifest => {
-  let raw = parse(
-    manifestSchema,
-    Bun.TOML.parse(readFileSync(path, 'utf8')),
-    `invalid ${path}`
+let evaluator = join(import.meta.dir, 'evaluate.ts');
+let loaderConfig = join(import.meta.dir, '..', 'tsconfig.loader.json');
+
+let evaluate = (paths: string[]): Record<string, unknown> => {
+  if (!paths.length) return {};
+
+  let result = Bun.spawnSync(
+    [process.execPath, '--tsconfig-override', loaderConfig, evaluator, ...paths],
+    { stdout: 'pipe', stderr: 'pipe' }
   );
+  let output = result.stdout.toString();
+  let start = output.lastIndexOf(MARKER);
+
+  if (!result.success || start < 0)
+    throw new Error(
+      `failed to evaluate control manifests: ${result.stderr.toString().trim() || output.trim()}`
+    );
+
+  return JSON.parse(output.slice(start + MARKER.length));
+};
+
+export let loadMany = (paths: string[]): LoadedManifest[] => {
+  let evaluated = evaluate(paths) as Record<string, { raw: unknown } | { error: string }>;
+
+  return paths.map(path => {
+    let item = evaluated[path];
+    if (!item || 'error' in item) throw new Error(`invalid ${path}: ${item?.error}`);
+
+    return build(path, parse(manifestSchema, item.raw, `invalid ${path}`));
+  });
+};
+
+export let load = (path: string): LoadedManifest => loadMany([path])[0]!;
+
+export let build = (path: string, raw: RawManifest): LoadedManifest => {
   if (raw.name !== undefined && raw.package)
     throw new Error(`${path}: use either top-level name/group/dev or package/run, not both`);
 
@@ -152,7 +182,7 @@ export let load = (path: string): LoadedManifest => {
 
   validate(manifest, path, dev?.run ?? []);
 
-  return { path, manifest };
+  return { path, directory: dirname(dirname(path)), manifest };
 };
 
 export let validate = (manifest: Manifest, path: string, scripts: string[] = []) => {
@@ -198,13 +228,13 @@ export let validate = (manifest: Manifest, path: string, scripts: string[] = [])
   if (manifest.package) {
     if (!manifest.package.name.trim()) fail('package.name cannot be empty');
 
-    if (!existsSync(join(dirname(path), 'package.json')))
-      fail('control.toml must be colocated with package.json');
+    if (!existsSync(join(dirname(dirname(path)), 'package.json')))
+      fail('control/index.ts must be colocated with package.json');
   } else if (Object.keys(manifest.endpoints).length) fail('endpoints require a named package');
 
   let scriptNames = [...scripts, ...manifest.e2e.start];
   if (scriptNames.length) {
-    let available = packageScripts(dirname(path));
+    let available = packageScripts(dirname(dirname(path)));
 
     for (let script of scriptNames) {
       if (!/^[a-zA-Z0-9_:.\-]+$/.test(script))
@@ -383,7 +413,7 @@ export let healthChecks = (manifest: Manifest) => [
 ];
 
 export let discover = (root: string): LoadedManifest[] => {
-  let manifests = walk(root, 'control.toml').map(load);
+  let manifests = loadMany(walkManifests(root));
   let packages = new Map<string, LoadedManifest>();
 
   for (let loaded of manifests) {

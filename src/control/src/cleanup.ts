@@ -1,5 +1,5 @@
 import { existsSync, lstatSync, readdirSync, rmSync } from 'node:fs';
-import { dirname, isAbsolute, join } from 'node:path';
+import { isAbsolute, join } from 'node:path';
 import { within } from './files';
 import type { LoadedManifest } from './types';
 
@@ -44,7 +44,7 @@ export let plan = (root: string, manifests: LoadedManifest[]) => {
     for (let path of loaded.manifest.cleanup.paths) {
       if (isAbsolute(path) || path.split(/[\\/]/).includes('..')) continue;
 
-      let joined = join(dirname(loaded.path), path);
+      let joined = join(loaded.directory, path);
       if (within(root, joined)) paths.add(joined);
     }
   }

@@ -1,0 +1,77 @@
+import {
+  ciImage,
+  dependency,
+  dev,
+  e2e,
+  endpoint,
+  inherit,
+  mergeEnv,
+  postgres,
+  project,
+  redis
+} from '@metorial/control';
+import { baseDevEnv, pickEnv } from '@metorial/control/presets';
+
+export default project({
+  name: '@metorial/origin',
+  group: 'oss',
+  mode: 'enterprise',
+  endpoints: {
+    api: endpoint(52090).health('/ping').listenEnv('ORIGIN_API_PORT'),
+    scm: endpoint(52093)
+      .listenEnv('ORIGIN_SCM_PORT')
+      .env('ORIGIN_SERVICE_PUBLIC_URL', 'http://{{HOSTNAME}}:{{PORT}}')
+  },
+  dependencies: [
+    dependency('@metorial/object-storage')
+      .noStart()
+      .env('api', 'OBJECT_STORAGE_URL', 'http://{{HOSTNAME}}:{{PORT}}'),
+    dependency('@metorial/nebula').env(
+      'api',
+      'NEBULA_API_URL',
+      'http://{{HOSTNAME}}:{{PORT}}/metorial-nebula'
+    ),
+    dependency('@metorial/code-bucket-service-generated')
+      .env('rpc', 'CODE_BUCKET_SERVICE_URL', '{{HOSTNAME}}:{{PORT}}')
+      .env('workspace', 'CODE_BUCKET_EDITOR_URL', 'http://{{HOSTNAME}}:{{PORT}}')
+  ],
+  resources: [redis({ REDIS_URL: 'redis://{{HOSTNAME}}:{{PORT}}/0' })],
+  dev: dev({
+    run: ['dev:start'],
+    env: mergeEnv(baseDevEnv('oss'), pickEnv('CODE_BUCKET_OBJECT_STORAGE_BUCKET'), {
+      NEBULA_CONSUMER_TOKEN: 'local-dev-nebula-origin-registration-secret',
+      ORIGIN_DELEGATE_SECRETS_TO_NEBULA: 'true',
+      SCM_GITHUB_APP_ID: inherit(),
+      SCM_GITHUB_APP_SLUG: inherit(),
+      SCM_GITHUB_APP_PRIVATE_KEY_BASE_64: inherit(),
+      SCM_GITHUB_APP_CLIENT_ID: inherit(),
+      SCM_GITHUB_APP_CLIENT_SECRET: inherit(),
+      SCM_GITLAB_CLIENT_ID: inherit(),
+      SCM_GITLAB_CLIENT_SECRET: inherit(),
+      SCM_BITBUCKET_CLIENT_ID: inherit(),
+      SCM_BITBUCKET_CLIENT_SECRET: inherit()
+    }),
+    databases: {
+      main: postgres({ package: '@metorial/origin', name: 'origin', env: 'DATABASE_URL' })
+    }
+  }),
+  e2e: e2e({
+    start: ['e2e:start'],
+    image: 'origin',
+    env: {
+      OBJECT_STORAGE_URL: 'http://services:52010'
+    }
+  }),
+  ci: {
+    images: [
+      ciImage({
+        name: 'origin',
+        group: 'oss',
+        dockerfile: 'Dockerfile',
+        image: 'metorial/mte-origin',
+        ecr: 'metorial-enterprise-saas/mte-origin',
+        canonical: 'ghcr.io/metorial/mte-origin'
+      })
+    ]
+  }
+});

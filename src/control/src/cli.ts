@@ -26,7 +26,7 @@ let commandOptions: Record<
     flags: ['no-docker', 'no-prepare', 'no-proxy', 'detach', 'verbose', 'no-color'],
     values: ['timeout']
   },
-  down: { flags: ['infra', 'all'], values: ['ws'], max: 0 },
+  down: { flags: ['keep-infra', 'all'], values: ['ws'], max: 0 },
   ls: { flags: ['json', 'no-color'], max: 0 },
   status: { flags: ['json', 'failing', 'no-color'], values: ['ws'], max: 0 },
   restart: { flags: ['infra', 'verbose', 'no-color'], values: ['ws', 'timeout'] },

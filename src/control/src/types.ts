@@ -107,6 +107,7 @@ export interface Manifest {
 
 export interface LoadedManifest {
   path: string;
+  directory: string;
   manifest: Manifest;
 }
 

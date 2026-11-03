@@ -187,7 +187,7 @@ let down = async (args: DaemonArgs) => {
     : [await workspaceId(args)];
 
   for (let id of ids) {
-    await client.api(path(id, '/stop'), 'POST', { infra: args.flags.has('infra') });
+    await client.api(path(id, '/stop'), 'POST', { keepInfra: args.flags.has('keep-infra') });
     await waitFor(id, info => ['stopped', 'idle'].includes(info.phase));
     console.log(`stopped ${id}`);
   }
