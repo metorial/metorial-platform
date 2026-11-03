@@ -89,7 +89,7 @@
     "dedent": "^1.7.2",
     "fflate": "0.8.3",
     "formik": "^2.4.9",
-    "framer-motion": "^14.6.0",
+    "framer-motion": "^14.7.1",
     "fuse.js": "7.5.0",
     "json-schema": "^0.4.0",
     "jsonschema": "^1.5.0",

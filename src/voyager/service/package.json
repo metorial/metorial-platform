@@ -41,9 +41,9 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@aws-sdk/client-cloudwatch-logs": "^3.1156.0",
-    "@aws-sdk/client-iam": "^3.1156.0",
-    "@aws-sdk/client-lambda": "^3.1156.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.1157.0",
+    "@aws-sdk/client-iam": "^3.1157.0",
+    "@aws-sdk/client-lambda": "^3.1157.0",
     "@lowerdeck/api-mux": "workspace:2.0.0",
     "@lowerdeck/cache": "workspace:2.0.0",
     "@lowerdeck/canonicalize": "workspace:2.0.0",
@@ -70,7 +70,7 @@
     "@sentry/cli": "^3.8.2",
     "@types/pg": "^8.23.1",
     "algoliasearch": "^5.60.0",
-    "axios": "^1.20.0",
+    "axios": "^1.21.0",
     "date-fns": "^4.4.0",
     "drizzle-orm": "^0.45.4",
     "ipaddr.js": "^2.5.0",
