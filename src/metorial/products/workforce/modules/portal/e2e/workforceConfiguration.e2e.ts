@@ -77,4 +77,28 @@ describe('module-portal project workforce configuration', () => {
     });
     expect(current.autoAddOrganizationMembersToPortals).toBe(true);
   });
+
+  it('enables organization member full skill access for new projects and lets it be turned off', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    expect(fixture.project.allowOrganizationMemberFullSkillAccess).toBe(true);
+
+    try {
+      let project =
+        await projectWorkforceConfigurationService.updateProjectWorkforceConfiguration({
+          project: fixture.project,
+          organization: fixture.organization,
+          auditScope: fixture.auditScope,
+          input: { allowOrganizationMemberFullSkillAccess: false }
+        });
+      expect(project.allowOrganizationMemberFullSkillAccess).toBe(false);
+      expect(project.allowConsumerSkillEditing).toBe(
+        fixture.project.allowConsumerSkillEditing
+      );
+    } finally {
+      await db.project.update({
+        where: { oid: fixture.project.oid },
+        data: { allowOrganizationMemberFullSkillAccess: true }
+      });
+    }
+  });
 });

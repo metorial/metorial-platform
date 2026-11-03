@@ -6,3 +6,4 @@ export * from './consumerProviderCatalog';
 export * from './consumerProviderDeployment';
 export * from './consumerProviderSetupSession';
 export * from './consumerSkill';
+export * from './skillMcpAvailability';

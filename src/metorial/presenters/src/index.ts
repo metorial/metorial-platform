@@ -40,6 +40,7 @@ import {
   dashboardProviderPresenter,
   dashboardSkillMarketplacePluginPresenter,
   dashboardSkillMarketplacePresenter,
+  dashboardSkillParticipantPresenter,
   dashboardSkillPluginPresenter,
   v1AccessPolicyPresenter,
   v1AccessPolicyVersionPresenter,
@@ -268,6 +269,7 @@ import {
   v1SkillFileChangePresenter,
   v1SkillFileContentPresenter,
   v1SkillFilePresenter,
+  v1SkillMcpAvailabilityPresenter,
   v1SkillConfigurationPresenter,
   v1SkillExportPresenter,
   v1SkillForkSyncPresenter,
@@ -531,6 +533,7 @@ import {
   skillFileChangeType,
   skillFileContentType,
   skillFileType,
+  skillMcpAvailabilityType,
   skillConfigurationType,
   skillExportType,
   skillForkSyncType,
@@ -1022,6 +1025,11 @@ export let skillFileChangePresenter = declarePresenter(skillFileChangeType, {
   mt_2026_01_01_magnetar: v1SkillFileChangePresenter
 });
 
+export let skillMcpAvailabilityPresenter = declarePresenter(skillMcpAvailabilityType, {
+  mt_2025_01_01_dashboard: v1SkillMcpAvailabilityPresenter,
+  mt_2026_01_01_magnetar: v1SkillMcpAvailabilityPresenter
+});
+
 export let skillConfigurationPresenter = declarePresenter(skillConfigurationType, {
   mt_2025_01_01_dashboard: v1SkillConfigurationPresenter,
   mt_2026_01_01_magnetar: v1SkillConfigurationPresenter
@@ -1094,7 +1102,7 @@ export let skillAccessPresenter = declarePresenter(skillAccessType, {
 });
 
 export let skillParticipantPresenter = declarePresenter(skillParticipantType, {
-  mt_2025_01_01_dashboard: v1SkillParticipantPresenter,
+  mt_2025_01_01_dashboard: dashboardSkillParticipantPresenter,
   mt_2026_01_01_magnetar: v1SkillParticipantPresenter
 });
 

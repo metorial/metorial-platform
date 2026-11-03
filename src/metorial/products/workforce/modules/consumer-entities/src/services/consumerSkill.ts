@@ -32,8 +32,11 @@ import {
   accessTagService,
   consumerSkillManageAccessRoles,
   createResourceAuthorization,
+  getStoreResourceKindAccessWhere,
+  hasOrganizationMemberSkillAccess,
   isStoreResourceFlagEnabled,
-  skillStoreResourceAccess
+  skillStoreResourceAccess,
+  skillStoreResourceKind
 } from '@metorial/module-access';
 import { resourceActorService } from '@metorial/module-resource-actor';
 import {
@@ -111,6 +114,42 @@ class ConsumerSkillServiceImpl {
     return Array.from(new Set(effectiveGroups.map(group => group.accessTagOid)));
   }
 
+  private async canManageSkillAsOrganizationMember(d: {
+    skill: Skill;
+    consumerProfile: ConsumerProfile;
+    tags: bigint[];
+  }) {
+    if (d.skill.projectOid == null) return false;
+
+    let project = await db.project.findUnique({
+      where: { oid: d.skill.projectOid },
+      select: { oid: true, allowOrganizationMemberFullSkillAccess: true }
+    });
+    if (!project) return false;
+
+    let hasMemberAccess = await hasOrganizationMemberSkillAccess({
+      project,
+      consumerProfileOid: d.consumerProfile.oid
+    });
+    if (!hasMemberAccess) return false;
+
+    let readableSkill = await db.skill.findFirst({
+      where: {
+        oid: d.skill.oid,
+        store: {
+          is: await getStoreResourceKindAccessWhere({
+            kind: skillStoreResourceKind,
+            accessTags: d.tags,
+            level: 'read'
+          })
+        }
+      },
+      select: { oid: true }
+    });
+
+    return !!readableSkill;
+  }
+
   async assertConsumerCanManageSkillAccess(d: {
     skill: Skill;
     consumerProfile: ConsumerProfile;
@@ -122,6 +161,17 @@ class ConsumerSkillServiceImpl {
         project: { oid: d.skill.projectOid },
         flag: 'store-access-v2'
       }));
+
+    if (
+      useStoreAccess &&
+      (await this.canManageSkillAsOrganizationMember({
+        skill: d.skill,
+        consumerProfile: d.consumerProfile,
+        tags
+      }))
+    ) {
+      return;
+    }
 
     let accessTagFilter = await accessTagService.getAccessTagFilter({
       tags,

@@ -4,6 +4,7 @@ import {
   accessTagService,
   type ResourceAuthorization,
   consumerSkillWriteRoles,
+  getEffectiveSkillAccessLevel,
   getStoreResourceKindAccessWhere,
   isStoreResourceFlagEnabled,
   skillStoreResourceKind
@@ -49,7 +50,11 @@ export let getSkillMetadataWriteAccessWhere = async (d: {
     let storeAccessWhere = await getStoreResourceKindAccessWhere({
       kind: skillStoreResourceKind,
       accessTags: d.authorization.accessTags,
-      level: 'write'
+      level: await getEffectiveSkillAccessLevel({
+        project: d.project,
+        authorization: d.authorization,
+        level: 'write'
+      })
     });
 
     return {

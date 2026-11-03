@@ -193,7 +193,8 @@ import { EnrichedConsumerSurface } from '@metorial/module-consumer-core';
 import {
   ConsumerActivityAgent,
   ConsumerActivitySessionConnection,
-  ConsumerProviderCatalogEntry
+  ConsumerProviderCatalogEntry,
+  SkillMcpAvailability
 } from '@metorial/module-consumer-entities';
 import { Flags } from '@metorial/module-flags';
 import type {
@@ -1675,6 +1676,7 @@ export let storePermissionsType = PresentableType.create<{
   permissions: {
     storeId: string;
     hasFullAccess: boolean;
+    canManageAccess: boolean;
     permissions: ('content_read' | 'content_write')[];
     relevantStoreIds: string[];
     readableStoreIds: string[];
@@ -1820,6 +1822,11 @@ export let skillFileChangeType = PresentableType.create<{
   skillFileChange: SkillFileChangeResult;
   skill: { id: string };
 }>()('skillFileChange');
+
+export let skillMcpAvailabilityType = PresentableType.create<{
+  skillMcpAvailability: SkillMcpAvailability;
+  skill: { id: string };
+}>()('skillMcpAvailability');
 
 export let skillConfigurationType = PresentableType.create<{
   skillConfiguration: SkillConfiguration;
@@ -2089,7 +2096,10 @@ export let skillParticipantType = PresentableType.create<{
         skill: Skill;
         resourceActor: ResourceActorPresentationRecord;
       })
-    | (StoreResourceParticipantPresentationRecord & { skill: Skill });
+    | (StoreResourceParticipantPresentationRecord & {
+        skill: Skill;
+        hasOrganizationMemberAccess?: boolean;
+      });
 }>()('skillParticipant');
 
 export let skillVersionType = PresentableType.create<{

@@ -14,6 +14,7 @@ import type { SkillRecord } from './skill';
 
 class SkillAccessGrantServiceImpl {
   private async assertCanManageAccess(d: {
+    project: Project;
     skill: SkillRecord;
     authorization: ResourceAuthorization;
     useStoreAccess: boolean;
@@ -22,6 +23,7 @@ class SkillAccessGrantServiceImpl {
 
     if (d.useStoreAccess && d.skill.store) {
       return await skillStoreResource.assertAccess({
+        project: d.project,
         store: d.skill.store,
         authorization: d.authorization,
         level: 'manage'

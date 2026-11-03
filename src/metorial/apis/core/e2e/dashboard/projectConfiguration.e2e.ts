@@ -141,9 +141,18 @@ let configurations: ConfigurationCase[] = [
   {
     path: 'workforce',
     object: 'organization.project.workforce_configuration',
-    update: { auto_add_organization_members_to_portals: true },
-    expected: { auto_add_organization_members_to_portals: true },
-    invalid: [{ auto_add_organization_members_to_portals: 'sure' }],
+    update: {
+      auto_add_organization_members_to_portals: true,
+      allow_organization_member_full_skill_access: false
+    },
+    expected: {
+      auto_add_organization_members_to_portals: true,
+      allow_organization_member_full_skill_access: false
+    },
+    invalid: [
+      { auto_add_organization_members_to_portals: 'sure' },
+      { allow_organization_member_full_skill_access: 'always' }
+    ],
     emptyBodyCode: 'bad_request'
   }
 ];

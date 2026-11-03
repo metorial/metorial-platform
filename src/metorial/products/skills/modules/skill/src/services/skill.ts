@@ -9,6 +9,7 @@ import {
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import {
+  skillStoreResource,
   storeAccessService,
   storeParticipantService,
   storeReadPermission,
@@ -532,6 +533,17 @@ class SkillServiceImpl {
     });
   }
 
+  async recordSkillEdit(d: { skill: SkillRecord; authorization: ResourceAuthorization }) {
+    let actor = d.authorization.resourceActor;
+    if (!actor || !d.skill.store) return;
+
+    await skillStoreResource.participants.record({
+      store: d.skill.store,
+      actor,
+      roles: ['editor']
+    });
+  }
+
   async updateSkill(d: {
     project: Project;
     instance: Instance;
@@ -661,6 +673,7 @@ class SkillServiceImpl {
       skill: updated,
       previousSkill: d.skill
     });
+    await this.recordSkillEdit(d);
 
     return { ...updated, store } satisfies SkillRecord;
   }

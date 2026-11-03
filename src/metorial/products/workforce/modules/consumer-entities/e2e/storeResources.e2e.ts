@@ -589,6 +589,174 @@ describe.each([
   });
 });
 
+let linkToMember = async (profile: Profile, member: { oid: bigint }) => {
+  await db.consumer.update({
+    where: { oid: profile.consumerOid },
+    data: { organizationMemberOid: member.oid }
+  });
+
+  return await db.consumerProfile.findUniqueOrThrow({
+    where: { oid: profile.oid },
+    include: { consumer: true, personalConsumerGroup: true }
+  });
+};
+
+let setFullSkillAccess = async (fixture: OrganizationFixture, enabled: boolean) => {
+  fixture.project = await db.project.update({
+    where: { oid: fixture.project.oid },
+    data: { allowOrganizationMemberFullSkillAccess: enabled }
+  });
+};
+
+let readAccess = ['skill_read', 'store_read'];
+
+describe.each([
+  ['legacy', false],
+  ['v2', true]
+])('organization member consumers (%s)', (_, enabled) => {
+  let org = useOrganization();
+  let leaver = useMember(org);
+  useStoreResourceFlags(enabled);
+
+  let setup = async (fixture: OrganizationFixture) => {
+    let surface = await authoringSurface(fixture);
+    let author = await createProfile(fixture, surface);
+    let sharer = {
+      consumerProfile: author,
+      consumerGroups: [await getEveryoneGroup(surface)]
+    };
+    let skill = await authorSkill(fixture, surface, author);
+    let hiddenSkill = await authorSkill(fixture, surface, author);
+    let memberProfile = await linkToMember(
+      await createProfile(fixture, surface),
+      fixture.member
+    );
+    let peer = await createProfile(fixture, surface);
+    await share(fixture, skill.id, 'read', memberProfile, sharer);
+    await share(fixture, skill.id, 'read', peer, sharer);
+
+    return { surface, author, sharer, skill, hiddenSkill, memberProfile, peer };
+  };
+
+  it(`${enabled ? 'gives' : 'does not give'} linked members full access to skills they can see`, async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let { skill, hiddenSkill, memberProfile, peer } = await setup(fixture);
+
+    expect(await skillAccess(fixture, skill.id, memberProfile)).toEqual(
+      enabled ? fullAuthorAccess : readAccess
+    );
+    expect(await skillAccess(fixture, hiddenSkill.id, memberProfile)).toEqual([]);
+    expect(await skillAccess(fixture, skill.id, peer)).toEqual(readAccess);
+
+    let permissions = await storeService.getStorePermissions({
+      ...scopeOf(fixture),
+      store: await db.store.findUniqueOrThrow({ where: { oid: skill.storeOid! } }),
+      authorization: await restricted(fixture, memberProfile)
+    });
+    expect(permissions.canManageAccess).toBe(enabled);
+    expect(permissions.permissions.includes('content_write')).toBe(enabled);
+  });
+
+  it('keeps linked members on their grants when the project setting is off', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let { skill, memberProfile } = await setup(fixture);
+    await setFullSkillAccess(fixture, false);
+
+    try {
+      expect(await skillAccess(fixture, skill.id, memberProfile)).toEqual(readAccess);
+    } finally {
+      await setFullSkillAccess(fixture, true);
+    }
+  });
+
+  it('keeps consumers on their grants once their member left the organization', async () => {
+    let fixture = await loadOrganizationFixture({ ...org.ids, userId: leaver.user.id });
+    let { skill, memberProfile } = await setup(fixture);
+    await db.organizationMember.update({
+      where: { oid: fixture.member.oid },
+      data: { status: 'deleted' }
+    });
+
+    try {
+      expect(await skillAccess(fixture, skill.id, memberProfile)).toEqual(readAccess);
+    } finally {
+      await db.organizationMember.update({
+        where: { oid: fixture.member.oid },
+        data: { status: 'active' }
+      });
+    }
+  });
+
+  it(`${enabled ? 'lets' : 'does not let'} linked members share skills they can see`, async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let { surface, skill, memberProfile, peer } = await setup(fixture);
+    let shareAsMember = share(fixture, skill.id, 'write', peer, {
+      consumerProfile: memberProfile,
+      consumerGroups: [await getEveryoneGroup(surface)]
+    });
+
+    if (!enabled) {
+      await expectServiceError(shareAsMember, 'forbidden');
+      return;
+    }
+
+    await shareAsMember;
+    expect(await skillAccess(fixture, skill.id, peer)).toEqual([
+      'skill_read',
+      'skill_write',
+      'store_read',
+      'store_write'
+    ]);
+  });
+
+  if (enabled) {
+    it('records linked members as editors and flags them as organization member participants', async () => {
+      let fixture = await loadOrganizationFixture(org.ids);
+      let { skill, memberProfile, peer } = await setup(fixture);
+
+      await skillService.updateSkill({
+        ...scopeOf(fixture),
+        auditScope: fixture.auditScope,
+        skill: await getSkill(fixture, skill.id),
+        authorization: await restricted(fixture, memberProfile),
+        input: { description: 'Edited by an organization member' }
+      });
+      expect(await participantRoles(fixture, skill.id, memberProfile)).toContain('editor');
+
+      let participants = await firstPage(
+        await storeParticipantService.listStoreResourceParticipants({
+          ...scopeOf(fixture),
+          store: { oid: skill.storeOid! }
+        })
+      );
+      let participantOf = async (profile: Profile) => {
+        let actor = await profileActor(fixture, profile);
+        return participants.find(participant =>
+          participant.actors.some(row => row.resourceActorOid == actor.oid)
+        )!;
+      };
+      let flagged = await storeParticipantService.findOrganizationMemberParticipantOids({
+        project: fixture.project,
+        participants
+      });
+
+      expect(flagged.has((await participantOf(memberProfile)).oid)).toBe(true);
+      expect(flagged.has((await participantOf(peer)).oid)).toBe(false);
+
+      await setFullSkillAccess(fixture, false);
+      try {
+        let disabled = await storeParticipantService.findOrganizationMemberParticipantOids({
+          project: fixture.project,
+          participants
+        });
+        expect(disabled.size).toBe(0);
+      } finally {
+        await setFullSkillAccess(fixture, true);
+      }
+    });
+  }
+});
+
 let parityQuery: ParityQuery = async sql =>
   (await db.$queryRawUnsafe(sql)) as Record<string, unknown>[];
 

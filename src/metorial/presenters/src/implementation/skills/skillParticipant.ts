@@ -59,3 +59,28 @@ export let v1SkillParticipantPresenter = Presenter.create(skillParticipantType)
     })
   )
   .build();
+
+export let dashboardSkillParticipantPresenter = Presenter.create(skillParticipantType)
+  .presenter(async (input, opts) => {
+    let inner = await v1SkillParticipantPresenter.present(input, opts).run();
+    let { skillParticipant } = input;
+
+    return {
+      ...inner,
+      has_organization_member_access:
+        isStoreResourceParticipantRecord(skillParticipant) &&
+        !!skillParticipant.hasOrganizationMemberAccess
+    };
+  })
+  .schema(
+    v.intersection([
+      v1SkillParticipantPresenter.schema,
+      v.object({
+        has_organization_member_access: v.boolean({
+          description:
+            'Whether the participant has full access through an organization membership instead of its skill grants.'
+        })
+      })
+    ])
+  )
+  .build();

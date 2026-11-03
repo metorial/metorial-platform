@@ -475,9 +475,19 @@ describe('module-store store resource framework', () => {
     store: Store,
     authorization: ResourceAuthorization
   ) => {
+    let project = await db.project.findUniqueOrThrow({ where: { oid: store.projectOid! } });
     let granted: string[] = [];
     for (let level of ['read', 'write', 'manage'] as const) {
-      if (await workspace.hasAccess({ store, authorization, level })) granted.push(level);
+      if (
+        await workspace.hasAccess({
+          project,
+          store,
+          authorization,
+          level
+        })
+      ) {
+        granted.push(level);
+      }
     }
     return granted;
   };
@@ -494,13 +504,19 @@ describe('module-store store resource framework', () => {
       expect(await levels(workspace, store, alice.authorization)).toEqual([]);
       expect(
         await workspace.hasAccess({
+          project: fixture.project,
           store,
           authorization: { type: 'privileged' },
           level: 'manage'
         })
       ).toBe(true);
       await expectServiceError(
-        workspace.assertAccess({ store, authorization: alice.authorization, level: 'read' }),
+        workspace.assertAccess({
+          project: fixture.project,
+          store,
+          authorization: alice.authorization,
+          level: 'read'
+        }),
         'forbidden'
       );
 
