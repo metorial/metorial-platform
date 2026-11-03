@@ -13,7 +13,7 @@ import {
 import type { AuditScope } from '@metorial/audit-scope';
 import type { Instance, Prisma, Project, ResourceActor, StorePathMode } from '@metorial/db';
 import type { ResourceAuthorization } from '@metorial/module-access';
-import { parseSkillDocumentFrontmatter } from '@metorial/module-skill-marketplace';
+import { parseSkillDocumentFrontmatter } from '@metorial/module-skill/frontmatter';
 import { posix as path } from 'node:path';
 import { getRelativeSkillPath, shouldImportSkillPath } from './discovery';
 import { getCodeBucketFiles } from './repository';

@@ -2,7 +2,7 @@ import type { SkillConfiguration } from '@metorial/db';
 import { describe, expect, it } from 'vitest';
 import { combineConfigs } from '../../lib/combineConfigs';
 import { isAllowedBySkillConfig } from './config';
-import { parseSkillDocumentFrontmatter } from './frontmatter';
+import { parseSkillDocumentFrontmatter } from '@metorial/module-skill/frontmatter';
 
 describe('skill document frontmatter parsing', () => {
   it('does not treat markdown horizontal rules as frontmatter', () => {

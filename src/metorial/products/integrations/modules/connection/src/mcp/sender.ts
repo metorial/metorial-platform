@@ -54,6 +54,7 @@ import {
 import { uniqBy } from 'lodash';
 import { PING_MESSAGE_ID_PREFIX } from '../const';
 import { mcpOutputSchemaNormalizer } from '../lib/mcpOutputSchemaNormalizer';
+import { isSkillResourceUri, SKILLS_EXTENSION_ID } from '../lib/requestSkills';
 import { providerToolPresenter } from '../presenter';
 import { completeMessage } from '../shared/completeMessage';
 import { injectToolCallOperationIntoInputSchema } from '../shared/toolCallOperation';
@@ -65,6 +66,12 @@ import {
 } from './control';
 import type { McpManager } from './manager';
 import { modernMethodNotFound } from './modern/results';
+import {
+  handleSkillsRequest,
+  isSkillMethod,
+  listSkillResources,
+  readSkillResource
+} from './skills';
 import {
   MODERN_ERROR_CODES,
   MODERN_REMOVED_METHODS,
@@ -82,6 +89,8 @@ let SERVER_CAPABILITIES = {
   prompts: {},
   resources: {}
 };
+
+let SKILLS_RESOURCE_CURSOR_ID = 'metorial:skills';
 
 type ID = string | number;
 
@@ -393,6 +402,18 @@ export class McpSender {
       return this.handleDiscoverMessage(id);
     }
 
+    if (isSkillMethod(method)) {
+      return {
+        store: false,
+        mcp: await handleSkillsRequest({
+          skills: await this.manager.getRequestSkills(),
+          id,
+          method,
+          params: (msg as JSONRPCRequest).params
+        })
+      };
+    }
+
     switch (method) {
       case 'initialize': {
         let initMessage = mcpValidate(id, InitializeRequestSchema, msg);
@@ -633,6 +654,9 @@ export class McpSender {
     opts: { cursor?: string },
     mcpMessage: JSONRPCMessage & ListResourcesRequest
   ) {
+    let skillsPage = await this.collectSkillsResourcePage(id, opts);
+    if (skillsPage) return { store: false, mcp: skillsPage };
+
     if (!this.connection) {
       throw new ServiceError(
         badRequestError({
@@ -707,12 +731,7 @@ export class McpSender {
     mcpMessage: JSONRPCMessage & ListResourcesRequest,
     parentMessage: SessionMessage
   ): Promise<JSONRPCResponse | JSONRPCErrorResponse> {
-    let allTools = await this.manager.listToolsIncludingInternalAndNonAllowed();
-
-    let resourceListTools = uniqBy(
-      allTools.tools.filter(t => t.value.mcpToolType.type === 'mcp.resources_list'),
-      t => t.sessionProvider.id
-    );
+    let resourceListTools = await this.listResourceListTools();
 
     let internalCursor: string | undefined;
 
@@ -848,6 +867,40 @@ export class McpSender {
     } satisfies JSONRPCResponse;
   }
 
+  private async listResourceListTools() {
+    let allTools = await this.manager.listToolsIncludingInternalAndNonAllowed();
+
+    return uniqBy(
+      allTools.tools.filter(t => t.value.mcpToolType.type === 'mcp.resources_list'),
+      t => t.sessionProvider.id
+    );
+  }
+
+  private async collectSkillsResourcePage(id: ID, opts: { cursor?: string }) {
+    let skills = await this.manager.getRequestSkills();
+    if (!skills) return null;
+
+    let decodedCursor = opts.cursor ? this.decodeResourceCursor(opts.cursor) : null;
+    if (opts.cursor && decodedCursor?.providerId !== SKILLS_RESOURCE_CURSOR_ID) return null;
+
+    let firstProviderId = (await this.listResourceListTools())[0]?.sessionProvider.id;
+
+    return await listSkillResources({
+      skills,
+      id,
+      cursor: decodedCursor?.cursor,
+      encodeNextCursor: skillsCursor =>
+        skillsCursor
+          ? this.encodeResourceCursor({
+              providerId: SKILLS_RESOURCE_CURSOR_ID,
+              cursor: skillsCursor
+            })
+          : firstProviderId
+            ? this.encodeResourceCursor({ providerId: firstProviderId })
+            : undefined
+    });
+  }
+
   private async handleResourceReadMessage(
     id: ID,
     opts: {
@@ -856,6 +909,10 @@ export class McpSender {
       request: JSONRPCMessage;
     }
   ) {
+    let skills = isSkillResourceUri(opts.uri) ? await this.manager.getRequestSkills() : null;
+    let skillResource = skills ? await readSkillResource({ skills, id, uri: opts.uri }) : null;
+    if (skillResource) return { store: false, mcp: skillResource };
+
     let providers = await this.manager.listProviders();
 
     let match: {
@@ -1041,6 +1098,16 @@ export class McpSender {
     };
   }
 
+  private async getServerCapabilities() {
+    let skills = await this.manager.getRequestSkills();
+    if (!skills) return SERVER_CAPABILITIES;
+
+    return {
+      ...SERVER_CAPABILITIES,
+      extensions: { [SKILLS_EXTENSION_ID]: { directoryRead: true } }
+    };
+  }
+
   private async handleInitMessage(id: ID, msg: InitializeRequest) {
     let init = msg.params;
     let client = init.clientInfo;
@@ -1065,7 +1132,7 @@ export class McpSender {
         id,
         result: {
           protocolVersion: init.protocolVersion,
-          capabilities: SERVER_CAPABILITIES,
+          capabilities: await this.getServerCapabilities(),
           serverInfo
         } satisfies InitializeResult
       } satisfies JSONRPCResponse
@@ -1082,7 +1149,7 @@ export class McpSender {
         id,
         result: {
           supportedVersions: SUPPORTED_SESSIONLESS_VERSIONS,
-          capabilities: SERVER_CAPABILITIES,
+          capabilities: await this.getServerCapabilities(),
           ...(serverInfo.description ? { instructions: serverInfo.description } : {})
         }
       } satisfies JSONRPCResponse

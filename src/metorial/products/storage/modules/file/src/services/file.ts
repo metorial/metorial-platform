@@ -40,6 +40,7 @@ import {
 } from '@metorial/list-utils';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import { resourceActorPresentationInclude } from '@metorial/module-resource-actor';
+import { createHash } from 'node:crypto';
 import { PublicUrlPurpose } from 'object-storage-client';
 import { fileFabricOwnerFromFile, fileFabricOwnerFromScope } from '../internal/fabric';
 import { cargoFileScope, type CargoOwnerScope } from '../internal/ownerScope';
@@ -566,6 +567,26 @@ class FileServiceImpl {
     });
 
     return await this.objectDataToBuffer(object.data);
+  }
+
+  // A File's storeId can be rewritten in place (template syncs), so the cached digest is only
+  // trusted for the store object it was computed from.
+  async getContentSha256(d: {
+    file: Pick<File, 'oid' | 'status' | 'storeId' | 'contentSha256' | 'contentSha256StoreId'>;
+  }) {
+    if (d.file.contentSha256 && d.file.contentSha256StoreId === d.file.storeId) {
+      return d.file.contentSha256;
+    }
+
+    let content = await this.downloadFileContent({ file: d.file });
+    let sha256 = createHash('sha256').update(content).digest('hex');
+
+    await db.file.updateMany({
+      where: { oid: d.file.oid, storeId: d.file.storeId },
+      data: { contentSha256: sha256, contentSha256StoreId: d.file.storeId }
+    });
+
+    return sha256;
   }
 
   /**

@@ -3,6 +3,7 @@ import {
   isModernMcpRequest,
   isSessionlessMcpEnabled,
   McpConnection,
+  type RequestScopedSkillsResolver,
   type RequestScopedToolsResolver
 } from '@metorial-subspace/module-connection';
 import { subspaceScopeService } from '@metorial-subspace/module-tenant';
@@ -122,6 +123,7 @@ type HandleMcpRequestInput = {
   publicBaseUrl?: string;
   publicMcpAccess?: PublicMcpAccess;
   requestTools?: RequestScopedToolsResolver;
+  requestSkills?: RequestScopedSkillsResolver;
   onSubspaceSessionResolved?: (d: {
     subspaceSessionId: string;
     response: Response;
@@ -210,6 +212,7 @@ let handleMcpRequestInner = async (c: Context, d: HandleMcpRequestInput) => {
     agentClient: d.agentClient ?? undefined,
     connectionPrivateMetadata: privateMetadata.data,
     requestTools: d.requestTools,
+    requestSkills: d.requestSkills,
     ingressPolicyCheck
   };
   let connectionInput = {

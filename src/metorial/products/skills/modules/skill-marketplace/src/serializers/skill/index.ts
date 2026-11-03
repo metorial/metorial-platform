@@ -1,24 +1,21 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
 import { Hash } from '@lowerdeck/hash';
-import { slugify } from '@lowerdeck/slugify';
 import { fileService } from '@metorial/module-file';
 import type { Prisma } from '@metorial/db';
 import { db } from '@metorial/db';
+import { renderSkillDocumentFrontmatter } from '@metorial/module-skill/frontmatter';
 import PQueue from 'p-queue';
-import { stringify } from 'yaml';
 import { combineConfigs } from '../../lib/combineConfigs';
 import { assertSkillStoreByteLimit, assertSkillStoreFileLimit } from '../../lib/limits';
 import { createApplicator } from '../_lib/apply';
 import { getMarketplaceForceSyncHashInput } from '../_lib/forceSync';
 import { getSkillPath, getSkillPruneScope } from '../_lib/paths';
-import type { SkillSerializerInput } from '../_lib/types';
 import {
   getEffectiveAllowedFileExtensions,
   isAllowedBySkillConfig,
   isRootSkillDocument,
   normalizeSkillPath
 } from './config';
-import { parseSkillDocumentFrontmatter } from './frontmatter';
 
 export { getSkillPath };
 
@@ -52,41 +49,6 @@ let normalizeSkillDocumentPath = (path: string) => {
   if (!sanitizedExtension.startsWith('.')) sanitizedExtension = `.${sanitizedExtension}`;
 
   return [...pathParts, `${sanitizedBaseName}${sanitizedExtension}`].join('/');
-};
-
-let isRecord = (value: unknown): value is Record<string, unknown> =>
-  !!value && typeof value === 'object' && !Array.isArray(value);
-
-let stripUndefined = (value: Record<string, unknown>) =>
-  Object.fromEntries(Object.entries(value).filter(([, v]) => v !== undefined && v !== null));
-
-let applySkillDocumentFrontmatter = (content: string, input: SkillSerializerInput) => {
-  let {
-    frontmatter: givenFrontmatter,
-    body,
-    hasFrontmatter
-  } = parseSkillDocumentFrontmatter(content);
-
-  let nextFrontmatter = Object.assign({}, givenFrontmatter, {
-    name: slugify(
-      (input.skill.clientName ?? input.skill.name ?? 'unknown').replaceAll('_', '-')
-    ),
-    description:
-      input.skill.clientDescription ||
-      givenFrontmatter.description ||
-      input.skill.description ||
-      input.skill.name ||
-      'Unknown Skill',
-    license: input.skill.license || givenFrontmatter.license || undefined,
-    compatibility: input.skill.compatibility || givenFrontmatter.compatibility || undefined,
-    metadata: {
-      ...(isRecord(input.skill.clientMetadata) ? input.skill.clientMetadata : {}),
-      ...(isRecord(givenFrontmatter.metadata) ? givenFrontmatter.metadata : {})
-    }
-  });
-
-  let separator = hasFrontmatter ? '\n' : '\n\n';
-  return `---\n${stringify(stripUndefined(nextFrontmatter)).trimEnd()}\n---${separator}${body}`;
 };
 
 export let applySkill = createApplicator(
@@ -187,7 +149,7 @@ export let applySkill = createApplicator(
             if (!isAllowedBySkillConfig(documentPath, config)) continue;
 
             let content = isRootSkillDocument(documentPath)
-              ? applySkillDocumentFrontmatter(item.document.content.content, input)
+              ? renderSkillDocumentFrontmatter(item.document.content.content, input)
               : item.document.content.content;
 
             await context.setFile(documentPath, content);

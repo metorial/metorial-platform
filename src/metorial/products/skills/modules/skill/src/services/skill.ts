@@ -120,6 +120,25 @@ export let getConsumerSkillAccessWhere = async (d: {
   return accessFilters.length ? { OR: accessFilters } : { oid: { in: [] } };
 };
 
+type ListSkillsInput = {
+  project: Project;
+  instance: Instance;
+  ids?: string[];
+  storeIds?: string[];
+  parentSkillIds?: string[];
+  parentSkillTemplateIds?: string[];
+  createdByActorIds?: string[];
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+  search?: string;
+  statuses?: Array<'active' | 'archived' | 'deleted'>;
+  skillGroupIds?: string[];
+  integrationIds?: string[];
+  providerIds?: string[];
+  allowDeleted?: boolean;
+  accessTags?: AnyAccessTagSelector;
+};
+
 class SkillServiceImpl {
   private async getSkillRecord(d: {
     project: Project;
@@ -368,24 +387,7 @@ class SkillServiceImpl {
     return skillVersion;
   }
 
-  async listSkills(d: {
-    project: Project;
-    instance: Instance;
-    ids?: string[];
-    storeIds?: string[];
-    parentSkillIds?: string[];
-    parentSkillTemplateIds?: string[];
-    createdByActorIds?: string[];
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-    search?: string;
-    statuses?: Array<'active' | 'archived' | 'deleted'>;
-    skillGroupIds?: string[];
-    integrationIds?: string[];
-    providerIds?: string[];
-    allowDeleted?: boolean;
-    accessTags?: AnyAccessTagSelector;
-  }) {
+  private async getListSkillsWhere(d: ListSkillsInput): Promise<Prisma.SkillWhereInput> {
     let skills = await resolveSkills(d, d.ids);
     let stores = await resolveStores(d, d.storeIds);
     let parentSkills = await resolveSkills(d, d.parentSkillIds);
@@ -442,27 +444,46 @@ class SkillServiceImpl {
       });
     }
 
+    return {
+      projectOid: d.project.oid,
+      instanceOid: d.instance.oid,
+      status: d.accessTags
+        ? 'active'
+        : d.statuses?.length
+          ? { in: d.statuses }
+          : d.allowDeleted
+            ? undefined
+            : 'active',
+      AND: andFilters
+    };
+  }
+
+  async listSkills(d: ListSkillsInput) {
+    let where = await this.getListSkillsWhere(d);
+
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
           await db.skill.findMany({
             ...opts,
-            where: {
-              projectOid: d.project.oid,
-              instanceOid: d.instance.oid,
-              status: d.accessTags
-                ? 'active'
-                : d.statuses?.length
-                  ? { in: d.statuses }
-                  : d.allowDeleted
-                    ? undefined
-                    : 'active',
-              AND: andFilters
-            },
+            where,
             select: { id: true }
           })
       )
     );
+  }
+
+  async listSkillRecords<S extends Prisma.SkillSelect>(
+    d: ListSkillsInput & { select: S; take: number }
+  ) {
+    let { select, take, ...input } = d;
+
+    return await db.skill.findMany({
+      where: await this.getListSkillsWhere(input),
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      take,
+      select
+    });
   }
 
   async getSkillById(d: {
