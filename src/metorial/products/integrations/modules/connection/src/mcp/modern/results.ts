@@ -13,6 +13,7 @@ let CACHEABLE_RESULT_TTL_MS: Record<string, number> = {
   'prompts/list': LIST_RESULT_TTL_MS,
   'resources/list': LIST_RESULT_TTL_MS,
   'resources/templates/list': LIST_RESULT_TTL_MS,
+  'skills/list': LIST_RESULT_TTL_MS,
   'resources/read': 0,
   'server/discover': 0
 };

@@ -39,6 +39,10 @@ export type DashboardInstanceMagicMcpEndpointsListOutput = {
     description: string | null;
     metadata: Record<string, any>;
     enableSkillEditing: boolean;
+    enableSkillResources: boolean;
+    skillSelection:
+      | { type: 'all' }
+      | { type: 'selected'; skillIds: string[]; skillGroupIds: string[] };
     access: {
       source: 'explorer' | null;
       type: 'public' | 'owner_locked';
@@ -69,6 +73,12 @@ export let mapDashboardInstanceMagicMcpEndpointsListOutput =
         [
           ['servers', 0, [2, [3, [[0, [1, ['tool_filters']]]]]]],
           'enable_skill_editing',
+          'enable_skill_resources',
+          [
+            'skill_selection',
+            1,
+            [3, [[0, [1, ['skill_ids', 'skill_group_ids']]]]]
+          ],
           [
             'access',
             0,

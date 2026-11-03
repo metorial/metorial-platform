@@ -5,6 +5,7 @@ import { db, Instance, Prisma } from '@metorial/db';
 import { consumerMagicMcpReadRoles, type AnyAccessTagSelector } from '@metorial/module-access';
 import { getAccessTagFilter } from './consumerAccess';
 import { magicMcpServerOwnerActorSelect } from '../lib/ownerActor';
+import { magicMcpEndpointSkillSelectionInclude } from './magicMcpEndpoint';
 
 let include = {
   magicMcpServer: {
@@ -47,6 +48,7 @@ let include = {
           }
         }
       },
+      skillSelections: magicMcpEndpointSkillSelectionInclude,
       subspaceSession: true
     }
   },

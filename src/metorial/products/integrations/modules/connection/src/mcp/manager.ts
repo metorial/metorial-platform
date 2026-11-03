@@ -87,6 +87,10 @@ export class McpManager {
     return this._connection.shouldRedactStoredToolInput(toolId);
   }
 
+  getRequestSkills() {
+    return this._connection.getRequestSkills();
+  }
+
   callTool(d: CallToolProps) {
     return this._connection.callTool(d);
   }

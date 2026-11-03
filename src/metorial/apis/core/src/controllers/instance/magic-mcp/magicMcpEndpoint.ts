@@ -6,6 +6,8 @@ import { MagicMcpEndpointStatus } from '@metorial/db';
 import { grantConsumerOwnedMagicMcpEndpointAccess } from '@metorial/consumer-magic-access';
 import { consumerProfileService } from '@metorial/module-consumer-core';
 import { skillPluginService } from '@metorial/module-skill-marketplace';
+import { skillService } from '@metorial/module-skill';
+import { skillGroupService } from '@metorial/module-skill-groups';
 import {
   magicMcpEndpointService,
   magicMcpServerService,
@@ -21,6 +23,7 @@ import { magicMcpEndpointPresenter } from '@metorial/presenters';
 import { toolFiltersValidator } from '../sessions/_shared';
 import { getSkillPluginAccess } from '../skills';
 import { getOwnershipActor } from '../../../lib/ownershipActor';
+import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 
 export let magicMcpEndpointGroup = instanceGroup.use(async ctx => {
   if (!ctx.params.magicMcpEndpointId) {
@@ -50,6 +53,77 @@ let enableSkillEditingValidator = v.optional(
       'Expose skill editing tools on this endpoint so the connecting consumer can read and edit the skills they have access to. Only connections authenticated with a magic MCP token bound to a single consumer get the tools; connections using a publishable key do not. Requires skills to be enabled for the instance and consumer skill editing to be allowed for the project. The tools disappear if either is turned off later.'
   })
 );
+
+let maxSelectedSkillTargets = 100;
+
+let enableSkillResourcesValidator = v.optional(
+  v.boolean({
+    description:
+      'Serve skills on this endpoint over MCP (the skills extension: skill:// resources, skills/list and skills/get) so the connecting consumer can read the skills they have access to. Only connections authenticated with a magic MCP token bound to a single consumer get the skills. Requires skills to be enabled for the instance.'
+  })
+);
+
+let skillSelectionValidator = v.optional(
+  v.union(
+    [
+      v.object({
+        type: v.literal('all', {
+          description: 'Expose every skill the consumer has access to.'
+        })
+      }),
+      v.object({
+        type: v.literal('selected', {
+          description: 'Expose only the listed skills and the skills in the listed groups.'
+        }),
+        skill_ids: v.optional(
+          v.array(v.string(), {
+            description: 'IDs of the skills to expose.',
+            modifiers: [v.maxLength(maxSelectedSkillTargets)]
+          })
+        ),
+        skill_group_ids: v.optional(
+          v.array(v.string(), {
+            description:
+              'IDs of the skill groups to expose. Membership is resolved on every request.',
+            modifiers: [v.maxLength(maxSelectedSkillTargets)]
+          })
+        )
+      })
+    ],
+    {
+      description:
+        'Which skills the endpoint exposes, both as skill resources and through the skill editing tools. Defaults to all skills the consumer has access to.'
+    }
+  )
+);
+
+let resolveSkillSelection = async (
+  ctx: Parameters<typeof getInstanceCargoAccess>[0],
+  selection:
+    | { type: 'all' }
+    | { type: 'selected'; skill_ids?: string[]; skill_group_ids?: string[] }
+    | undefined
+) => {
+  if (!selection) return undefined;
+  if (selection.type === 'all') return null;
+
+  let { project, instance, accessTags } = await getInstanceCargoAccess(ctx);
+
+  let [skills, skillGroups] = await Promise.all([
+    Promise.all(
+      (selection.skill_ids ?? []).map(skillId =>
+        skillService.getSkillById({ project, instance, skillId, accessTags })
+      )
+    ),
+    Promise.all(
+      (selection.skill_group_ids ?? []).map(skillGroupId =>
+        skillGroupService.getSkillGroupById({ project, instance, skillGroupId, accessTags })
+      )
+    )
+  ]);
+
+  return { skills, skillGroups };
+};
 
 let magicMcpEndpointServerValidator = v.object({
   magic_mcp_server_id: v.string(),
@@ -201,6 +275,8 @@ export let magicMcpEndpointController = Controller.create(
           consumer_profile_id: v.optional(v.string()),
           skill_plugin_id: v.optional(v.string()),
           enable_skill_editing: enableSkillEditingValidator,
+          enable_skill_resources: enableSkillResourcesValidator,
+          skill_selection: skillSelectionValidator,
           magic_mcp_servers: v.optional(v.array(magicMcpEndpointServerValidator))
         })
       )
@@ -236,6 +312,7 @@ export let magicMcpEndpointController = Controller.create(
               skillPluginId: ctx.body.skill_plugin_id
             })
           : undefined;
+        let skillSelection = await resolveSkillSelection(ctx, ctx.body.skill_selection);
         let servers = resolveMagicMcpEndpointServers({
           magicMcpServer: ctx.body.magic_mcp_servers
         });
@@ -265,6 +342,8 @@ export let magicMcpEndpointController = Controller.create(
             consumerProfile,
             skillPlugin,
             enableSkillEditing: ctx.body.enable_skill_editing,
+            enableSkillResources: ctx.body.enable_skill_resources,
+            skillSelection,
             servers
           }
         });
@@ -349,7 +428,9 @@ export let magicMcpEndpointController = Controller.create(
           name: v.optional(v.string()),
           description: v.optional(v.string()),
           metadata: v.optional(v.record(v.any())),
-          enable_skill_editing: enableSkillEditingValidator
+          enable_skill_editing: enableSkillEditingValidator,
+          enable_skill_resources: enableSkillResourcesValidator,
+          skill_selection: skillSelectionValidator
         }),
         v => v
       )
@@ -360,6 +441,8 @@ export let magicMcpEndpointController = Controller.create(
           description: v.optional(v.string()),
           metadata: v.optional(v.record(v.any())),
           enable_skill_editing: enableSkillEditingValidator,
+          enable_skill_resources: enableSkillResourcesValidator,
+          skill_selection: skillSelectionValidator,
           source: v.optional(v.enumOf(['explorer']), {
             description:
               'Mark this resource as originating from the dashboard explorer and enable its owner lock and owner-only visibility.'
@@ -385,6 +468,8 @@ export let magicMcpEndpointController = Controller.create(
             description: ctx.body.description,
             metadata: ctx.body.metadata,
             enableSkillEditing: ctx.body.enable_skill_editing,
+            enableSkillResources: ctx.body.enable_skill_resources,
+            skillSelection: await resolveSkillSelection(ctx, ctx.body.skill_selection),
             source: ctx.body.source,
             isOwnerLocked: ctx.body.source === 'explorer' ? true : undefined,
             isOwnerOnlyVisible: ctx.body.source === 'explorer' ? true : undefined
