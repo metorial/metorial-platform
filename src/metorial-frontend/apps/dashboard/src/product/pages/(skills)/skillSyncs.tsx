@@ -191,7 +191,7 @@ let RepositoryAction = ({ repositoryCheck }: { repositoryCheck: RepositoryCheck 
           )}
           {repositoryCheck.repositoryUrl && (
             <a href={repositoryCheck.repositoryUrl} target="_blank" rel="noopener noreferrer">
-              <Button as="span" size="1">
+              <Button as="span" size="2">
                 Open repository
               </Button>
             </a>
