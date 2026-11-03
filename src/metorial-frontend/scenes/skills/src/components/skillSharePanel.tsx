@@ -6,8 +6,10 @@ import {
   usePortalConsumerProfiles,
   usePortals,
   useShareSkill,
+  useSkill,
   useSkillAccess,
   useSkillParticipants,
+  useStorePermissions,
   useUser
 } from '@metorial/state';
 import {
@@ -213,6 +215,17 @@ let canParticipantWrite = (roles: string[]) =>
 let hasParticipantAccess = (roles: string[]) =>
   roles.some(role => role == 'editor' || role == 'viewer');
 
+let hasEditedSkill = (roles: string[]) =>
+  roles.some(role => role == 'creator' || role == 'editor' || role == 'forker');
+
+let isListedParticipant = (participant: {
+  roles: string[];
+  hasOrganizationMemberAccess: boolean;
+}) =>
+  participant.hasOrganizationMemberAccess
+    ? hasEditedSkill(participant.roles)
+    : hasParticipantAccess(participant.roles);
+
 let filterBySearch = (value: string, search: string) =>
   value.toLowerCase().includes(search.trim().toLowerCase());
 
@@ -248,10 +261,7 @@ export let SkillSharePanelContent = (p: {
     order: 'asc'
   });
   let accessibleParticipants = useMemo(
-    () =>
-      (participants.data?.items ?? []).filter(participant =>
-        hasParticipantAccess(participant.roles)
-      ),
+    () => (participants.data?.items ?? []).filter(isListedParticipant),
     [participants.data?.items]
   );
   let consumerProfiles = usePortalConsumerProfiles(p.instanceId, activePortalId, {
@@ -321,8 +331,14 @@ export let SkillSharePanelContent = (p: {
       ) ?? null
     );
   }, [accessibleParticipants, mode, p.context]);
+  let portalSkill = useSkill(mode == 'portal' ? p.instanceId : null, selectedSkillId);
+  let portalStorePermissions = useStorePermissions(
+    mode == 'portal' ? p.instanceId : null,
+    portalSkill.data?.storeId
+  );
   let canManageAccess =
     mode == 'dashboard' ||
+    !!portalStorePermissions.data?.canManageAccess ||
     (!!currentConsumerParticipant && canParticipantWrite(currentConsumerParticipant.roles));
 
   let skillAccess = useSkillAccess(p.instanceId, selectedSkillId, canManageAccess);
@@ -488,7 +504,8 @@ export let SkillSharePanelContent = (p: {
     let isCurrentConsumer =
       !!participant.actor.consumer?.id &&
       participant.actor.consumer.id == p.context?.currentConsumerId;
-    if (!consumerProfileId || isCurrentConsumer) return;
+    if (!consumerProfileId || isCurrentConsumer || participant.hasOrganizationMemberAccess)
+      return;
     if (mode != 'dashboard' && participant.actor.organizationActor?.id) return;
 
     let [shared] = await shareSkill.mutate({
@@ -728,8 +745,11 @@ export let SkillSharePanelContent = (p: {
                       let isCurrentConsumer =
                         !!participant.actor.consumer?.id &&
                         participant.actor.consumer.id == p.context?.currentConsumerId;
-                      let participantPermission =
-                        consumerProfileId && skillAccess.data
+                      let hasOrganizationMemberAccess =
+                        participant.hasOrganizationMemberAccess;
+                      let participantPermission = hasOrganizationMemberAccess
+                        ? 'write'
+                        : consumerProfileId && skillAccess.data
                           ? (grantedPermissionByProfileId.get(consumerProfileId) ?? 'none')
                           : getParticipantPermission(participant.roles);
                       let isConsumerOwner = isCreator && !isOrganizationMember;
@@ -748,6 +768,9 @@ export let SkillSharePanelContent = (p: {
                               {isCreator && <Pill>Owner</Pill>}
                             </PersonName>
                             <Muted>{participant.actor.email}</Muted>
+                            {hasOrganizationMemberAccess && (
+                              <Muted>Full access through organization membership</Muted>
+                            )}
                           </PersonInfo>
                           <AccessSelectWrap>
                             <Select
@@ -755,6 +778,7 @@ export let SkillSharePanelContent = (p: {
                               hideLabel
                               size="2"
                               disabled={
+                                hasOrganizationMemberAccess ||
                                 !canManageAccess ||
                                 !consumerProfileId ||
                                 isConsumerOwner ||
