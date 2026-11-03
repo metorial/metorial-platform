@@ -57,6 +57,7 @@ let buildSpec = strictObject({
   kind: v.literal('bun-service'),
   tasks: v.optional(strings),
   include: v.optional(strings),
+  closure: v.optional(v.boolean()),
   concurrency: v.optional(v.number({ modifiers: [v.integer(), v.minValue(1)] })),
   heapMb: v.optional(v.number({ modifiers: [v.integer(), v.minValue(1)] })),
   start: optionalString,

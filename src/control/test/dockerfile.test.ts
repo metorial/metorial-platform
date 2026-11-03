@@ -45,6 +45,15 @@ describe('generated Dockerfiles', () => {
     expect(contents).not.toContain('control-runtime');
   });
 
+  test('filters the dependency closure when closure is set', () => {
+    let { root, directory } = fixture({ closure: true, tasks: ['server:build'] });
+    generate(root, { write: true });
+    let contents = readFileSync(join(directory, 'Dockerfile'), 'utf8');
+
+    expect(contents).toContain('server:build --filter=service...');
+    expect(contents).not.toContain('--filter=service ');
+  });
+
   test('is stable and reports drift', () => {
     let { root, directory } = fixture();
     generate(root, { write: true });

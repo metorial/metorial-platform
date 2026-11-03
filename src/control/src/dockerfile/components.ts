@@ -37,8 +37,11 @@ export let base = (context: RenderContext): string[] => {
   ];
 };
 
+let filterName = (context: RenderContext) =>
+  context.build.closure ? `${context.packageName}...` : context.packageName;
+
 let filters = (context: RenderContext) =>
-  [context.packageName, ...context.build.include].map(name => `--filter=${name}`).join(' ');
+  [filterName(context), ...context.build.include].map(name => `--filter=${name}`).join(' ');
 
 export let pruner = (context: RenderContext): string[] => [
   'FROM base AS pruner',
@@ -59,15 +62,15 @@ export let dependencies = (context: RenderContext): string[] => [
 ];
 
 let turboRuns = (context: RenderContext) => {
-  let { build, packageName } = context;
-  if (!build.include.length) return [`${build.tasks.join(' ')} --filter=${packageName}`];
+  let { build } = context;
+  if (!build.include.length) return [`${build.tasks.join(' ')} --filter=${filterName(context)}`];
 
   let generate = build.tasks.filter(task => task === 'prisma:generate');
   let rest = build.tasks.filter(task => task !== 'prisma:generate');
 
   return [
     ...(generate.length ? [`${generate.join(' ')} ${filters(context)}`] : []),
-    ...(rest.length ? [`${rest.join(' ')} --filter=${packageName}`] : [])
+    ...(rest.length ? [`${rest.join(' ')} --filter=${filterName(context)}`] : [])
   ];
 };
 

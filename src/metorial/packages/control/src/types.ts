@@ -46,6 +46,7 @@ export interface RawBuild {
   kind: 'bun-service';
   tasks?: string[];
   include?: string[];
+  closure?: boolean;
   concurrency?: number;
   heapMb?: number;
   start?: string;

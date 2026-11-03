@@ -11,6 +11,7 @@ export let normalizeBuild = (raw: RawBuild): BuildSpec => ({
   kind: raw.kind,
   tasks: raw.tasks ?? ['prisma:generate', 'server:build'],
   include: raw.include ?? [],
+  closure: raw.closure ?? false,
   concurrency: raw.concurrency,
   heapMb: raw.heapMb,
   start: raw.start ?? 'dist/index.js',
