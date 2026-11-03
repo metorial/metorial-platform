@@ -2359,6 +2359,10 @@ export let magicMcpEndpointType = PresentableType.create<{
         ownerActor: MagicMcpServerOwnerActor;
       };
     })[];
+    skillSelections: {
+      skill: { id: string } | null;
+      skillGroup: { id: string } | null;
+    }[];
   };
   portal?: Portal | null;
 }>()('magic_mcp.endpoint');
@@ -2393,6 +2397,10 @@ export let magicMcpSessionType = PresentableType.create<{
               })[];
             };
           })[];
+          skillSelections: {
+            skill: { id: string } | null;
+            skillGroup: { id: string } | null;
+          }[];
         })
       | null;
     consumerIntegrationSessions: (ConsumerIntegrationSession & {

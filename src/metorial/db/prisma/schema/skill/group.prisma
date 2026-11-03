@@ -31,10 +31,11 @@ model SkillGroup {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  items                  SkillGroupItem[]
-  accessTagEntities      AccessTagEntity[]
-  consumerAccesses       ConsumerAccess[]        @relation("ConsumerAccessSkillGroup")
-  consumerAccessListings ConsumerAccessListing[]
+  items                           SkillGroupItem[]
+  accessTagEntities               AccessTagEntity[]
+  consumerAccesses                ConsumerAccess[]                 @relation("ConsumerAccessSkillGroup")
+  consumerAccessListings          ConsumerAccessListing[]
+  magicMcpEndpointSkillSelections MagicMcpEndpointSkillSelection[]
 
   @@index([instanceOid, status])
 }

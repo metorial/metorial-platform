@@ -27,6 +27,13 @@ let magicMcpEndpointPayload = (
   consumerProfileId: magicMcpEndpoint.consumerProfile?.id ?? null,
   skillPluginId: magicMcpEndpoint.skillPlugin?.id ?? null,
   enableSkillEditing: magicMcpEndpoint.enableSkillEditing,
+  enableSkillResources: magicMcpEndpoint.enableSkillResources,
+  selectedSkillIds: magicMcpEndpoint.skillSelections.flatMap(selection =>
+    selection.skill ? [selection.skill.id] : []
+  ),
+  selectedSkillGroupIds: magicMcpEndpoint.skillSelections.flatMap(selection =>
+    selection.skillGroup ? [selection.skillGroup.id] : []
+  ),
   serverCount: magicMcpEndpoint.servers.length
 });
 

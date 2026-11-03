@@ -42,6 +42,49 @@ let endpointToolFiltersSchema = v.nullable(
   v.union([endpointToolFilterSchema, v.array(endpointToolFilterSchema)])
 );
 
+let skillSelectionSchema = v.union(
+  [
+    v.object({
+      type: v.literal('all', {
+        description: 'Every skill the consumer has access to is exposed.'
+      })
+    }),
+    v.object({
+      type: v.literal('selected', {
+        description: 'Only the listed skills and the skills in the listed groups are exposed.'
+      }),
+      skill_ids: v.array(v.string(), { description: 'IDs of the selected skills.' }),
+      skill_group_ids: v.array(v.string(), {
+        description: 'IDs of the selected skill groups.'
+      })
+    })
+  ],
+  {
+    description:
+      'Which skills the endpoint exposes, both as skill resources and through the skill editing tools.'
+  }
+);
+
+let presentSkillSelection = (endpoint: {
+  skillSelectionType: 'all' | 'selected';
+  skillSelections: {
+    skill: { id: string } | null;
+    skillGroup: { id: string } | null;
+  }[];
+}) => {
+  if (endpoint.skillSelectionType === 'all') return { type: 'all' as const };
+
+  return {
+    type: 'selected' as const,
+    skill_ids: endpoint.skillSelections.flatMap(selection =>
+      selection.skill ? [selection.skill.id] : []
+    ),
+    skill_group_ids: endpoint.skillSelections.flatMap(selection =>
+      selection.skillGroup ? [selection.skillGroup.id] : []
+    )
+  };
+};
+
 let endpointServerSchema = v.intersection([
   v1MagicMcpServerPreview.schema,
   v.object({
@@ -69,6 +112,8 @@ export let v1MagicMcpEndpointPresenter = Presenter.create(magicMcpEndpointType)
       description: magicMcpEndpoint.description,
       metadata: magicMcpEndpoint.metadata,
       enable_skill_editing: magicMcpEndpoint.enableSkillEditing,
+      enable_skill_resources: magicMcpEndpoint.enableSkillResources,
+      skill_selection: presentSkillSelection(magicMcpEndpoint),
       access: {
         source: presentResourceSource(magicMcpEndpoint.source),
         type: magicMcpEndpoint.isOwnerLocked ? ('owner_locked' as const) : ('public' as const),
@@ -97,6 +142,12 @@ export let v1MagicMcpEndpointPresenter = Presenter.create(magicMcpEndpointType)
           'Whether consumers connecting through this endpoint with a consumer magic MCP token get tools to read and edit the skills they have access to. The tools are hidden while skills are disabled for the instance.',
         examples: [false]
       }),
+      enable_skill_resources: v.boolean({
+        description:
+          'Whether consumers connecting through this endpoint with a consumer magic MCP token can read the skills they have access to over MCP, as skill:// resources with skills/list and skills/get. Skills are hidden while skills are disabled for the instance.',
+        examples: [false]
+      }),
+      skill_selection: skillSelectionSchema,
       access: resourceAccessSchema,
       created_at: v.date(),
       updated_at: v.date()

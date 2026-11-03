@@ -1,21 +1,10 @@
-import {
-  badRequestError,
-  createError,
-  isServiceError,
-  notFoundError,
-  ServiceError
-} from '@lowerdeck/error';
-import { once } from '@lowerdeck/once';
+import { badRequestError, createError, isServiceError, ServiceError } from '@lowerdeck/error';
 import { v, type ValidationType, type ValidationTypeValue } from '@lowerdeck/validation';
 import type {
   RequestScopedTool,
   RequestScopedTools
 } from '@metorial-subspace/module-connection';
-import { consumerSessionInclude, resolveConsumerProfileAccess } from '@metorial/consumer-auth';
-import type { Context } from '@metorial/context';
-import { db, type ConsumerProfile, type Instance } from '@metorial/db';
-import { createResourceAuthorization } from '@metorial/module-access';
-import { flagService } from '@metorial/module-flags';
+import { db } from '@metorial/db';
 import {
   skillFileService,
   skillService,
@@ -24,6 +13,10 @@ import {
   type SkillFileChangeResult
 } from '@metorial/module-skill';
 import { consumerSkillService } from '../services/consumerSkill';
+import {
+  createConsumerSkillAccess,
+  type ConsumerSkillAccessInput
+} from './consumerSkillAccess';
 
 let maxInlineReadBytes = 256 * 1024;
 let maxListedSkills = 100;
@@ -325,118 +318,13 @@ let presentChange = (change: SkillFileChangeResult) => ({
   file: change.file ? presentFile(change.file) : null
 });
 
-export let createSkillEditingTools = async (d: {
-  instance: Pick<Instance, 'oid'>;
-  consumerProfile: Pick<ConsumerProfile, 'oid'>;
-  skillPluginOid?: bigint | null;
-  context: Context;
-}): Promise<SkillEditingTools | null> => {
-  let consumerProfile = await db.consumerProfile.findUnique({
-    where: { oid: d.consumerProfile.oid },
-    select: {
-      instanceOid: true,
-      status: true,
-      surface: {
-        select: {
-          status: true,
-          allowConsumerSkillAuthoring: true,
-          portal: { select: { status: true } }
-        }
-      }
-    }
-  });
-  if (
-    !consumerProfile ||
-    consumerProfile.instanceOid !== d.instance.oid ||
-    consumerProfile.status !== 'active' ||
-    consumerProfile.surface.status !== 'active' ||
-    (consumerProfile.surface.portal && consumerProfile.surface.portal.status !== 'active')
-  ) {
-    return null;
-  }
+export let createSkillEditingTools = async (
+  d: ConsumerSkillAccessInput
+): Promise<SkillEditingTools | null> => {
+  let skillAccess = await createConsumerSkillAccess(d, { requireSkillEditing: true });
+  if (!skillAccess) return null;
 
-  let instance = await db.instance.findUniqueOrThrow({
-    where: { oid: d.instance.oid },
-    include: { organization: true, project: true }
-  });
-
-  if (!instance.project.allowConsumerSkillEditing) return null;
-
-  let skillsEnabled = await flagService.isFlagEnabledForScope({
-    organization: instance.organization,
-    project: instance.project,
-    flag: 'skills-enabled'
-  });
-  if (!skillsEnabled) return null;
-
-  let canCreateSkills =
-    !d.skillPluginOid && consumerProfile.surface.allowConsumerSkillAuthoring;
-
-  let getAccess = once(async () => {
-    let [fullConsumerProfile, pluginSkills] = await Promise.all([
-      db.consumerProfile.findUniqueOrThrow({
-        where: { oid: d.consumerProfile.oid },
-        include: consumerSessionInclude.consumerProfile.include
-      }),
-      d.skillPluginOid
-        ? db.skillPluginSkill.findMany({
-            where: {
-              skillPluginOid: d.skillPluginOid,
-              status: 'active',
-              skillPlugin: { status: 'active' }
-            },
-            select: { skill: { select: { id: true } } }
-          })
-        : null
-    ]);
-    let project = instance.project;
-
-    let consumerAccess = await resolveConsumerProfileAccess({
-      consumerProfile: fullConsumerProfile,
-      organization: instance.organization,
-      project,
-      instance,
-      context: d.context
-    });
-
-    return {
-      scope: { project, instance },
-      organization: instance.organization,
-      consumerProfile: fullConsumerProfile,
-      consumerGroups: consumerAccess.consumerGroups,
-      accessTags: consumerAccess.accessTags,
-      auditScope: consumerAccess.auditScope,
-      pluginSkillIds: pluginSkills ? new Set(pluginSkills.map(entry => entry.skill.id)) : null,
-      authorization: createResourceAuthorization({
-        restricted: true,
-        resourceActor: consumerAccess.resourceActor,
-        accessTags: consumerAccess.accessTags,
-        project,
-        instance,
-        consumerProfile: fullConsumerProfile
-      })
-    };
-  });
-
-  let resolveSkill = async (reference: string) => {
-    let identifier = reference.trim();
-    if (!identifier) {
-      throw new ServiceError(badRequestError({ message: 'The skill argument is required' }));
-    }
-
-    let access = await getAccess();
-
-    let skill = await skillService.getSkillById({
-      ...access.scope,
-      skillId: identifier,
-      accessTags: access.accessTags
-    });
-    if (access.pluginSkillIds && !access.pluginSkillIds.has(skill.id)) {
-      throw new ServiceError(notFoundError('skill', identifier));
-    }
-
-    return { access, skill };
-  };
+  let { canCreateSkills, getAccess, resolveSkill } = skillAccess;
 
   let applyFileChange = async (reference: string, change: SkillFileChange) => {
     let { access, skill } = await resolveSkill(reference);
@@ -456,12 +344,12 @@ export let createSkillEditingTools = async (d: {
 
   let listSkills = async (input: { search?: string }) => {
     let access = await getAccess();
-    if (access.pluginSkillIds?.size === 0) return { skills: [] };
+    if (access.allowedSkillIds?.size === 0) return { skills: [] };
 
     let paginator = await skillService.listSkills({
       ...access.scope,
       search: input.search,
-      ids: access.pluginSkillIds ? [...access.pluginSkillIds] : undefined,
+      ids: access.allowedSkillIds ? [...access.allowedSkillIds] : undefined,
       accessTags: access.accessTags
     });
     let list = await paginator.run({ limit: maxListedSkills });
