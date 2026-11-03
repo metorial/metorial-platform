@@ -17,7 +17,11 @@ export type {
   SkillSourceLimits,
   SkillSourceSkill
 } from './lib/requestSkills';
-export { createSkillMcpCatalog, type SkillMcpCatalog } from './mcp/skillCatalog';
+export {
+  createSkillMcpCatalog,
+  skillResourceLimits,
+  type SkillMcpCatalog
+} from './mcp/skillCatalog';
 export * from './lib/sessionless';
 export * from './lib/syntheticTool';
 export * from './mcp';

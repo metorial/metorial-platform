@@ -14,6 +14,7 @@ export * from './imports';
 export * from './items';
 export * from './list';
 export * from './marketplaces';
+export * from './mcp-availability';
 export * from './merge-requests';
 export * from './participants';
 export * from './plugins';

@@ -4,13 +4,17 @@ import PQueue from 'p-queue';
 import {
   SKILL_URI_PREFIX,
   type RequestScopedSkillSource,
+  type SkillSourceLimits,
   type SkillSourceSkill
 } from '../lib/requestSkills';
 
 let skillsPerListPage = 20;
 let skillConcurrency = 4;
 
-let skillLimits = { maxFiles: 512, maxBytes: 16 * 1024 * 1024 };
+export let skillResourceLimits: SkillSourceLimits = {
+  maxFiles: 512,
+  maxBytes: 16 * 1024 * 1024
+};
 
 let skillDocumentPath = '/SKILL.md';
 let directoryMimeType = 'inode/directory';
@@ -134,7 +138,10 @@ export let createSkillMcpCatalog = (source: RequestScopedSkillSource): SkillMcpC
   };
 
   let getEntry = async (skill: SkillSourceSkill): Promise<SkillMcpEntry | null> => {
-    let listed = await source.listSkillFiles({ skillId: skill.id, limits: skillLimits });
+    let listed = await source.listSkillFiles({
+      skillId: skill.id,
+      limits: skillResourceLimits
+    });
     if (!listed) return null;
 
     return {
@@ -149,7 +156,10 @@ export let createSkillMcpCatalog = (source: RequestScopedSkillSource): SkillMcpC
   };
 
   let getSkillDocument = async (skill: SkillSourceSkill): Promise<SkillMcpDocument | null> => {
-    let document = await source.getSkillDocument({ skillId: skill.id, limits: skillLimits });
+    let document = await source.getSkillDocument({
+      skillId: skill.id,
+      limits: skillResourceLimits
+    });
     if (!document) return null;
 
     let { name, description } = document.frontmatter;
@@ -212,7 +222,7 @@ export let createSkillMcpCatalog = (source: RequestScopedSkillSource): SkillMcpC
     let file = await source.readSkillFile({
       skillId: resolved.skill.id,
       path: resolved.path,
-      limits: skillLimits
+      limits: skillResourceLimits
     });
     if (!file) return null;
 
@@ -231,7 +241,7 @@ export let createSkillMcpCatalog = (source: RequestScopedSkillSource): SkillMcpC
 
     let entries = await source.listSkillEntries({
       skillId: resolved.skill.id,
-      limits: skillLimits
+      limits: skillResourceLimits
     });
     if (!entries) return null;
 

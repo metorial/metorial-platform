@@ -582,6 +582,89 @@ describe('skillFileService', () => {
     ]);
     expect(mocks.flushDocumentCollaborationState).not.toHaveBeenCalled();
   });
+  describe('getSkillSnapshotUsage', () => {
+    let usageOf = (limits: { maxFiles: number; maxBytes: number }) =>
+      skillFileService.getSkillSnapshotUsage({
+        ...access,
+        options: { includePath: path => !path.startsWith('/agents/'), limits }
+      });
+
+    let refusedBySnapshot = async (limits: { maxFiles: number; maxBytes: number }) =>
+      (await skillFileService.listSkillSnapshotEntries({
+        ...access,
+        options: { includePath: path => !path.startsWith('/agents/'), limits }
+      })) === null;
+
+    beforeEach(() => {
+      mocks.db.storeItem.findMany.mockResolvedValue([
+        documentItem('/SKILL.md', '# Notes'),
+        fileItem('/assets/logo.png', 'fil_logo'),
+        documentItem('/agents/writer.md', 'x'.repeat(10_000))
+      ]);
+    });
+
+    it('reports a skill within the limits as fitting', async () => {
+      let usage = await usageOf({ maxFiles: 10, maxBytes: 10_000 });
+
+      expect(usage.fileCount).toBe(2);
+      expect(usage.exceededLimits).toEqual([]);
+      expect(await refusedBySnapshot({ maxFiles: 10, maxBytes: 10_000 })).toBe(false);
+      expect(mocks.downloadFileContent).not.toHaveBeenCalled();
+    });
+
+    it('measures the served SKILL.md, frontmatter included', async () => {
+      let usage = await usageOf({ maxFiles: 10, maxBytes: 10_000 });
+      let entries = await skillFileService.listSkillSnapshotEntries({
+        ...access,
+        options: { includePath: path => !path.startsWith('/agents/') }
+      });
+
+      expect(usage.size).toBe(entries!.reduce((sum, entry) => sum + entry.size, 0));
+      expect(usage.size).toBeGreaterThan('# Notes'.length + 42);
+    });
+
+    it('reports too many files exactly when the snapshot refuses them', async () => {
+      let limits = { maxFiles: 1, maxBytes: 10_000 };
+
+      expect((await usageOf(limits)).exceededLimits).toEqual(['file_count']);
+      expect(await refusedBySnapshot(limits)).toBe(true);
+    });
+
+    it('reports a stored size over the limit exactly when the snapshot refuses it', async () => {
+      let limits = { maxFiles: 10, maxBytes: 40 };
+
+      expect((await usageOf(limits)).exceededLimits).toEqual(['size']);
+      expect(await refusedBySnapshot(limits)).toBe(true);
+    });
+
+    it('reports a skill pushed over the limit by the rendered SKILL.md', async () => {
+      mocks.db.storeItem.findMany.mockResolvedValue([documentItem('/SKILL.md', '# Notes')]);
+      let limits = { maxFiles: 10, maxBytes: 10 };
+
+      let usage = await usageOf(limits);
+
+      expect(usage.exceededLimits).toEqual(['size']);
+      expect(usage.size).toBeGreaterThan(10);
+      expect(await refusedBySnapshot(limits)).toBe(true);
+    });
+
+    it('reports both limits when both are exceeded', async () => {
+      expect((await usageOf({ maxFiles: 1, maxBytes: 10 })).exceededLimits).toEqual([
+        'file_count',
+        'size'
+      ]);
+    });
+
+    it('checks read access before loading anything', async () => {
+      mocks.assertStoreAccessForStore.mockRejectedValue(
+        new ServiceError(forbiddenError({ message: 'No access' }))
+      );
+
+      await expect(usageOf({ maxFiles: 10, maxBytes: 10_000 })).rejects.toThrow('No access');
+      expect(mocks.db.storeItem.findMany).not.toHaveBeenCalled();
+    });
+  });
+
   describe('readSkillFileText', () => {
     let read = (d: { path: string; maxBytes?: number }) =>
       skillFileService.readSkillFileText({ ...access, ...d });
