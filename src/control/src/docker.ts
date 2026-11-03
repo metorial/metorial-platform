@@ -1,7 +1,7 @@
 import { rustPathHash } from './hash';
 import { existsSync, readFileSync } from 'node:fs';
 import { createConnection } from 'node:net';
-import { basename, dirname, join, resolve } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 import { canonical } from './files';
 import { defaultPorts, mongoUrl, portKey } from './environment';
 import * as infrastructure from './infrastructure';
@@ -40,7 +40,7 @@ export let declaredComposeProjects = (
     projects.set(path, new Set([...(projects.get(path) ?? []), ...services]));
 
   for (let loaded of manifests) {
-    let base = dirname(loaded.path) || root;
+    let base = loaded.directory || root;
 
     for (let path of loaded.manifest.docker.compose)
       add(resolve(base, path), loaded.manifest.docker.services);
@@ -319,7 +319,7 @@ export let start = async (
     }
 
     for (let loaded of manifests) {
-      let base = dirname(loaded.path);
+      let base = loaded.directory;
 
       for (let db of Object.values(loaded.manifest.postgres)) {
         let configured = { ...db, compose: generated, service: 'postgres-db2' };

@@ -1,5 +1,4 @@
-import { dirname, join } from 'node:path';
-import { readJson, walk } from './files';
+import { join } from 'node:path';
 import * as environment from './environment';
 import * as manifest from './manifest';
 import * as workspace from './workspace';
@@ -61,23 +60,25 @@ export let databaseOwnerEnvironments = (manifests: LoadedManifest[], root: Envir
   return values;
 };
 
-export let writeDatabaseOwnerEnvironments = (
+export let runDatabaseTurbo = async (
   root: string,
   manifests: LoadedManifest[],
-  env: Environment
+  env: Environment,
+  task: string
 ) => {
-  let paths = new Map<string, string>();
+  let owners = databaseOwnerEnvironments(manifests, env);
+  let groups = new Map<string, { env: Environment; packages: string[] }>();
 
-  for (let path of walk(root, 'package.json')) {
-    let name = readJson<{ name?: string }>(path).name;
-    if (name && !paths.has(name)) paths.set(name, dirname(path));
+  for (let name of databasePackages(manifests)) {
+    let merged = { ...env, ...owners[name] };
+    let key = JSON.stringify(Object.entries(merged).sort(([a], [b]) => (a < b ? -1 : 1)));
+    let group = groups.get(key) ?? { env: merged, packages: [] };
+    group.packages.push(name);
+    groups.set(key, group);
   }
 
-  for (let [name, values] of Object.entries(databaseOwnerEnvironments(manifests, env))) {
-    let directory = paths.get(name);
-    if (!directory) throw new Error(`unknown database package ${JSON.stringify(name)}`);
-    environment.writeDotenv(join(directory, '.env'), values);
-  }
+  for (let group of groups.values())
+    await runTurboTask(root, group.env, task, group.packages, 3);
 };
 
 export let runTurboTask = async (
@@ -97,11 +98,7 @@ export let prepareSelected = async (
   env: Environment,
   skipCommands: boolean
 ) => {
-  for (let loaded of selected.filter(environment.hasValues))
-    environment.writeForManifest(loaded, env);
-
   if (skipCommands) return;
-  writeDatabaseOwnerEnvironments(project.root, selected, env);
 
   let packages = databasePackages(selected);
 
@@ -112,7 +109,7 @@ export let prepareSelected = async (
     if (!packages.length) continue;
     commands.say(label);
 
-    await runTurboTask(project.root, env, task!, packages, 3);
+    await runDatabaseTurbo(project.root, selected, env, task!);
   }
   commands.say('Building packages');
 
@@ -137,7 +134,7 @@ export let runPrepare = async (
   noDocker: boolean
 ) => {
   let { selected, env } = await selection(project, selectors);
-  if (!selected.length) throw new Error('no control.toml manifests were selected');
+  if (!selected.length) throw new Error('no control manifests were selected');
 
   if (!noDocker) {
     commands.say('Starting development services');
@@ -155,7 +152,7 @@ export let runDatabaseTask = async (
   task: 'generate' | 'push' | 'migrate'
 ) => {
   let { selected, env } = await selection(project, selectors);
-  if (!selected.length) throw new Error('no control.toml manifests were selected');
+  if (!selected.length) throw new Error('no control manifests were selected');
 
   if (task === 'push') {
     commands.say('Starting required development database services');
@@ -164,7 +161,6 @@ export let runDatabaseTask = async (
   }
 
   await prepareSelected(project, selected, env, true);
-  writeDatabaseOwnerEnvironments(project.root, selected, env);
 
   let packages = databasePackages(selected);
   if (!packages.length) {
@@ -176,7 +172,7 @@ export let runDatabaseTask = async (
     `${{ generate: 'Generating selected database clients', push: 'Pushing selected database schemas', migrate: 'Migrating selected databases' }[task]}: ${packages.join(', ')}`
   );
 
-  await runTurboTask(project.root, env, `control:db:${task}`, packages, 3);
+  await runDatabaseTurbo(project.root, selected, env, `control:db:${task}`);
 };
 
 export let cleanupCommands = async (selected: LoadedManifest[], env: Environment) => {
@@ -187,11 +183,11 @@ export let cleanupCommands = async (selected: LoadedManifest[], env: Environment
       try {
         await commands.shell(
           command,
-          dirname(loaded.path),
+          loaded.directory,
           environment.allForManifest(loaded, env)
         );
       } catch (error) {
-        commands.warn(`warning: cleanup command failed in ${dirname(loaded.path)}: ${error}`);
+        commands.warn(`warning: cleanup command failed in ${loaded.directory}: ${error}`);
         firstError ??= error;
       }
     }
@@ -209,8 +205,7 @@ export let run = async (
   dryRun: boolean
 ) => {
   let { manifests, selected, env } = await selection(project, selectors, !dryRun);
-  if (!selected.length)
-    throw new Error('no control.toml manifests or run commands were selected');
+  if (!selected.length) throw new Error('no control manifests or run commands were selected');
 
   if (dryRun) {
     let packages = turbo.plan(selected, project.root, env);
@@ -235,7 +230,7 @@ export let run = async (
       for (let [name, run] of Object.entries(loaded.manifest.run).sort(([a], [b]) =>
         a < b ? -1 : a > b ? 1 : 0
       ))
-        commands.say(`dev [${dirname(loaded.path)}:${name}]: ${run.command}`);
+        commands.say(`dev [${loaded.directory}:${name}]: ${run.command}`);
     }
     commands.say(`would generate ${packages.length} Turbo mirror package(s)`);
 
@@ -274,6 +269,7 @@ export let run = async (
       'run',
       'dev',
       `--ui=${interactive ? 'tui' : 'stream'}`,
+      '--env-mode=loose',
       '--continue=always',
       `--concurrency=${packages.length + 1}`,
       ...turbo.filters(packages)

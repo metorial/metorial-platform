@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import { within } from './files';
 import { applies, dependencyClosure, discover } from './manifest';
 import { discoverPackages, globMatch, relativePath } from './packages';
@@ -23,7 +23,7 @@ export let inventory = (project: ProjectRoot) => {
   };
 
   for (let loaded of manifests) {
-    let base = dirname(loaded.path);
+    let base = loaded.directory;
     let packageName = loaded.manifest.package?.name ?? '';
 
     for (let image of loaded.manifest.ci.images) {
@@ -113,7 +113,7 @@ export let inventory = (project: ProjectRoot) => {
     if (!['control', 'compose'].includes(config.runner) || config.groups === 0)
       throw new Error('invalid CI test runner or group count');
 
-    let base = dirname(loaded.path);
+    let base = loaded.directory;
     let roots = [
       loaded,
       ...loaded.manifest.e2e.services.map(name => {

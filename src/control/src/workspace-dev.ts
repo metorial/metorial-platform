@@ -181,7 +181,7 @@ let ensureRunning = async (project: ProjectRoot, rebuild: boolean) => {
   );
 
   let selected = selectWithDependencies(manifests, [], project.kind, externals);
-  if (!selected.length) throw new Error('no control.toml manifests were selected');
+  if (!selected.length) throw new Error('no control manifests were selected');
 
   let assets = join(project.root, '.control/workspace');
   writeCompose(

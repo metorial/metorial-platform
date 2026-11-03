@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, renameSync, rmSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { atomicWrite, sortedEntries, writeJson } from './files';
-import { allForManifest, resolveEnvironment, writeDotenv } from './environment';
+import { allForManifest, resolveEnvironment } from './environment';
 import type { Environment, LoadedManifest } from './types';
 
 export interface TurboPackage {
@@ -45,7 +45,7 @@ export let plan = (
       packages.push({
         name,
         directory: join('packages', name),
-        cwd: resolve(dirname(loaded.path) || root, run.cwd ?? '.'),
+        cwd: resolve(loaded.directory || root, run.cwd ?? '.'),
         command: run.command,
         environment: {
           ...allForManifest(loaded, rootEnvironment),
@@ -74,7 +74,7 @@ export let generate = (workspace: string, packages: TurboPackage[]) => {
 
   writeJson(join(staging, 'turbo.json'), {
     $schema: 'https://turbo.build/schema.json',
-    tasks: { dev: { cache: false, persistent: true } }
+    tasks: { dev: { cache: false, persistent: true, passThroughEnv: ['*'] } }
   });
 
   let workspaces: Record<string, unknown> = { '': { name: '@metorial/control-dev' } };
@@ -87,7 +87,7 @@ export let generate = (workspace: string, packages: TurboPackage[]) => {
     writeJson(join(directory, 'package.json'), {
       name: item.name,
       private: true,
-      scripts: { dev: 'bun --env-file=.env ./run.mjs' },
+      scripts: { dev: 'bun ./run.mjs' },
       ...(item.dependencies.length ? { dependencies } : {})
     });
     workspaces[item.directory] = {
@@ -100,11 +100,9 @@ export let generate = (workspace: string, packages: TurboPackage[]) => {
           }
         : {})
     };
-    writeDotenv(join(directory, '.env'), item.environment);
-
     atomicWrite(
       join(directory, 'run.mjs'),
-      `let cwd = ${JSON.stringify(item.cwd)};\nlet command = ${JSON.stringify(item.command)};\nlet cmd = process.platform === 'win32'\n  ? ['cmd.exe', '/D', '/S', '/C', command]\n  : ['/bin/sh', '-eu', '-c', command];\nlet child = Bun.spawn({ cmd, cwd, env: process.env, stdin: 'inherit', stdout: 'inherit', stderr: 'inherit' });\nprocess.exit(await child.exited);\n`
+      `let cwd = ${JSON.stringify(item.cwd)};\nlet command = ${JSON.stringify(item.command)};\nlet env = { ...process.env, ...${JSON.stringify(item.environment)} };\nlet cmd = process.platform === 'win32'\n  ? ['cmd.exe', '/D', '/S', '/C', command]\n  : ['/bin/sh', '-eu', '-c', command];\nlet child = Bun.spawn({ cmd, cwd, env, stdin: 'inherit', stdout: 'inherit', stderr: 'inherit' });\nprocess.exit(await child.exited);\n`
     );
   }
   writeJson(join(staging, 'bun.lock'), { lockfileVersion: 1, workspaces, packages: {} });
@@ -124,6 +122,7 @@ export let runArgs = (task: string, filters: string[], concurrency?: number) => 
   'run',
   task,
   '--ui=stream',
+  '--env-mode=loose',
   ...(concurrency !== undefined ? [`--concurrency=${concurrency}`] : []),
   ...filters.flatMap(filter => ['--filter', filter])
 ];
