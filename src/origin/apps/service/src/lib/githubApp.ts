@@ -185,7 +185,7 @@ export let getInstallationAccessToken = async (
 };
 
 export let getGitHubTransferEndpoints = (backend: ScmBackend, owner: string, repo: string) => {
-  if (checkEdition('cloud')) return {};
+  if (checkEdition('cloud')) return { githubApiUrl: '', githubLfsEndpoint: '' };
   assertScmBackendAllowed(backend);
 
   return {
