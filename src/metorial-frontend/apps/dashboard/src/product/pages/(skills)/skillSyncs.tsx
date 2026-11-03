@@ -650,10 +650,6 @@ let ExternalLink = styled.a`
   font-size: 13px;
   font-weight: 500;
   text-decoration: none;
-
-  &:hover {
-    text-decoration: underline;
-  }
 `;
 
 let CheckList = styled.ul`
