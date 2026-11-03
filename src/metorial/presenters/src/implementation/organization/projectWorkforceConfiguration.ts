@@ -10,6 +10,8 @@ export let v1ProjectWorkforceConfigurationPresenter = Presenter.create(
     project_id: project.id,
     auto_add_organization_members_to_portals: project.autoAddOrganizationMembersToPortals,
     allow_consumer_skill_editing: project.allowConsumerSkillEditing,
+    allow_organization_member_full_skill_access:
+      project.allowOrganizationMemberFullSkillAccess,
     updated_at: project.updatedAt
   }))
   .schema(
@@ -18,6 +20,7 @@ export let v1ProjectWorkforceConfigurationPresenter = Presenter.create(
       project_id: v.string(),
       auto_add_organization_members_to_portals: v.boolean(),
       allow_consumer_skill_editing: v.boolean(),
+      allow_organization_member_full_skill_access: v.boolean(),
       updated_at: v.date()
     })
   )

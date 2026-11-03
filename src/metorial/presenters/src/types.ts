@@ -1675,6 +1675,7 @@ export let storePermissionsType = PresentableType.create<{
   permissions: {
     storeId: string;
     hasFullAccess: boolean;
+    canManageAccess: boolean;
     permissions: ('content_read' | 'content_write')[];
     relevantStoreIds: string[];
     readableStoreIds: string[];
@@ -2089,7 +2090,10 @@ export let skillParticipantType = PresentableType.create<{
         skill: Skill;
         resourceActor: ResourceActorPresentationRecord;
       })
-    | (StoreResourceParticipantPresentationRecord & { skill: Skill });
+    | (StoreResourceParticipantPresentationRecord & {
+        skill: Skill;
+        hasOrganizationMemberAccess?: boolean;
+      });
 }>()('skillParticipant');
 
 export let skillVersionType = PresentableType.create<{

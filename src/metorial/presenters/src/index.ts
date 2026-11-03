@@ -40,6 +40,7 @@ import {
   dashboardProviderPresenter,
   dashboardSkillMarketplacePluginPresenter,
   dashboardSkillMarketplacePresenter,
+  dashboardSkillParticipantPresenter,
   dashboardSkillPluginPresenter,
   v1AccessPolicyPresenter,
   v1AccessPolicyVersionPresenter,
@@ -1094,7 +1095,7 @@ export let skillAccessPresenter = declarePresenter(skillAccessType, {
 });
 
 export let skillParticipantPresenter = declarePresenter(skillParticipantType, {
-  mt_2025_01_01_dashboard: v1SkillParticipantPresenter,
+  mt_2025_01_01_dashboard: dashboardSkillParticipantPresenter,
   mt_2026_01_01_magnetar: v1SkillParticipantPresenter
 });
 
