@@ -43,10 +43,6 @@ let RepoUrl = styled.a`
   text-overflow: ellipsis;
   white-space: nowrap;
   text-decoration: none;
-
-  &:hover {
-    text-decoration: underline;
-  }
 `;
 
 let Actions = styled.div`

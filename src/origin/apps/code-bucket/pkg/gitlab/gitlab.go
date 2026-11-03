@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 
@@ -20,8 +21,58 @@ import (
 
 const (
 	maxGitlabCommitPayloadBytes = 8 * 1024 * 1024
-	maxGitlabFileInfoAttempts   = 4
+	maxGitlabRequestAttempts    = 6
+	maxGitlabRetryDelay         = 30 * time.Second
+	maxGitlabRetryAfter         = 60 * time.Second
 )
+
+func isRetryableGitlabStatus(status int) bool {
+	return status == http.StatusTooManyRequests || status >= http.StatusInternalServerError
+}
+
+func gitlabRetryDelay(resp *http.Response, attempt int) time.Duration {
+	delay := time.Second * time.Duration(1<<(attempt-1))
+	if resp != nil {
+		if seconds, err := strconv.Atoi(resp.Header.Get("Retry-After")); err == nil && seconds > 0 {
+			delay = time.Duration(seconds) * time.Second
+			if delay > maxGitlabRetryAfter {
+				delay = maxGitlabRetryAfter
+			}
+			return delay
+		}
+	}
+	if delay > maxGitlabRetryDelay {
+		delay = maxGitlabRetryDelay
+	}
+	return delay
+}
+
+func doGitlabRequestWithRetry(client *http.Client, newRequest func() (*http.Request, error), wait func(time.Duration)) (*http.Response, error) {
+	for attempt := 1; ; attempt++ {
+		req, err := newRequest()
+		if err != nil {
+			return nil, err
+		}
+
+		resp, err := client.Do(req)
+		if err != nil {
+			if attempt >= maxGitlabRequestAttempts {
+				return nil, err
+			}
+			wait(gitlabRetryDelay(nil, attempt))
+			continue
+		}
+
+		if !isRetryableGitlabStatus(resp.StatusCode) || attempt >= maxGitlabRequestAttempts {
+			return resp, nil
+		}
+
+		delay := gitlabRetryDelay(resp, attempt)
+		_, _ = io.Copy(io.Discard, resp.Body)
+		_ = resp.Body.Close()
+		wait(delay)
+	}
+}
 
 func DownloadRepo(projectID int64, repoPath, ref, token, gitlabAPIURL string) (*zipImporter.ZipFileIterator, error) {
 	url := fmt.Sprintf("%s/projects/%d/repository/archive.zip?sha=%s", gitlabAPIURL, projectID, ref)
@@ -274,15 +325,15 @@ func createCommit(client *http.Client, projectID int64, branch, commitMessage, t
 	}
 
 	commitURL := fmt.Sprintf("%s/projects/%d/repository/commits", gitlabAPIURL, projectID)
-	req, err := http.NewRequest("POST", commitURL, bytes.NewBuffer(commitJSON))
-	if err != nil {
-		return fmt.Errorf("failed to create commit request: %w", err)
-	}
-
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := client.Do(req)
+	resp, err := doGitlabRequestWithRetry(client, func() (*http.Request, error) {
+		req, err := http.NewRequest("POST", commitURL, bytes.NewReader(commitJSON))
+		if err != nil {
+			return nil, fmt.Errorf("failed to create commit request: %w", err)
+		}
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+		req.Header.Set("Content-Type", "application/json")
+		return req, nil
+	}, time.Sleep)
 	if err != nil {
 		return fmt.Errorf("failed to create commit: %w", err)
 	}
@@ -308,12 +359,10 @@ func sha256Hex(content []byte) string {
 }
 
 func getFileInfo(client *http.Client, projectID int64, filePath, branch, token, gitlabAPIURL string) (gitlabFileInfo, error) {
-	return getFileInfoWithRetry(client, projectID, filePath, branch, token, gitlabAPIURL, func(attempt int) {
-		time.Sleep(250 * time.Millisecond * time.Duration(1<<(attempt-1)))
-	})
+	return getFileInfoWithRetry(client, projectID, filePath, branch, token, gitlabAPIURL, time.Sleep)
 }
 
-func getFileInfoWithRetry(client *http.Client, projectID int64, filePath, branch, token, gitlabAPIURL string, wait func(int)) (gitlabFileInfo, error) {
+func getFileInfoWithRetry(client *http.Client, projectID int64, filePath, branch, token, gitlabAPIURL string, wait func(time.Duration)) (gitlabFileInfo, error) {
 	fileURL, err := url.Parse(fmt.Sprintf("%s/projects/%d/repository/files/%s",
 		gitlabAPIURL,
 		projectID,
@@ -326,49 +375,33 @@ func getFileInfoWithRetry(client *http.Client, projectID int64, filePath, branch
 	query.Set("ref", branch)
 	fileURL.RawQuery = query.Encode()
 
-	for attempt := 1; attempt <= maxGitlabFileInfoAttempts; attempt++ {
-		if attempt > 1 {
-			wait(attempt - 1)
-		}
-
+	resp, err := doGitlabRequestWithRetry(client, func() (*http.Request, error) {
 		req, err := http.NewRequest("GET", fileURL.String(), nil)
 		if err != nil {
-			return gitlabFileInfo{}, err
+			return nil, err
 		}
 		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+		return req, nil
+	}, wait)
+	if err != nil {
+		return gitlabFileInfo{}, err
+	}
+	defer resp.Body.Close()
 
-		resp, err := client.Do(req)
-		if err != nil {
-			if attempt < maxGitlabFileInfoAttempts {
-				continue
-			}
-			return gitlabFileInfo{}, err
-		}
-
-		if (resp.StatusCode == http.StatusTooManyRequests || resp.StatusCode >= http.StatusInternalServerError) && attempt < maxGitlabFileInfoAttempts {
-			_, _ = io.Copy(io.Discard, resp.Body)
-			_ = resp.Body.Close()
-			continue
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode == http.StatusNotFound {
-			return gitlabFileInfo{Exists: false}, nil
-		}
-
-		body, _ := io.ReadAll(resp.Body)
-		if resp.StatusCode != http.StatusOK {
-			return gitlabFileInfo{}, fmt.Errorf("failed to get file metadata (status %d): %s", resp.StatusCode, string(body))
-		}
-
-		var info gitlabFileInfo
-		if err := json.Unmarshal(body, &info); err != nil {
-			return gitlabFileInfo{}, err
-		}
-		info.Exists = true
-
-		return info, nil
+	if resp.StatusCode == http.StatusNotFound {
+		return gitlabFileInfo{Exists: false}, nil
 	}
 
-	return gitlabFileInfo{}, fmt.Errorf("failed to get file metadata after %d attempts", maxGitlabFileInfoAttempts)
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return gitlabFileInfo{}, fmt.Errorf("failed to get file metadata (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	var info gitlabFileInfo
+	if err := json.Unmarshal(body, &info); err != nil {
+		return gitlabFileInfo{}, err
+	}
+	info.Exists = true
+
+	return info, nil
 }
