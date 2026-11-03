@@ -33,11 +33,16 @@ let initBuckets = async () => {
   }
 })();
 
-export let sessionMessageBucketRecord = await db.sessionMessageStorageBucket.upsert({
-  where: { bucket: env.storage.MESSAGE_BUCKET_NAME },
-  update: {},
-  create: {
-    oid: Math.floor(Math.random() * 1_000_000),
-    bucket: env.storage.MESSAGE_BUCKET_NAME
-  }
-});
+let upsertSessionMessageBucket = () =>
+  db.sessionMessageStorageBucket.upsert({
+    where: { bucket: env.storage.MESSAGE_BUCKET_NAME },
+    update: {},
+    create: {
+      oid: Math.floor(Math.random() * 1_000_000),
+      bucket: env.storage.MESSAGE_BUCKET_NAME
+    }
+  });
+
+export let sessionMessageBucketRecord = await upsertSessionMessageBucket().catch(
+  upsertSessionMessageBucket
+);
