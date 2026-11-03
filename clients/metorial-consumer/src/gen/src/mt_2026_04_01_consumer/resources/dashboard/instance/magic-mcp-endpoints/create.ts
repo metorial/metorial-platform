@@ -41,6 +41,24 @@ export type DashboardInstanceMagicMcpEndpointsCreateOutput = {
   description: string | null;
   metadata: Record<string, any>;
   enableSkillEditing: boolean;
+  enableSkillResources: boolean;
+  skillSelection:
+    | { type: 'all' }
+    | { type: 'selected'; skillIds: string[]; skillGroupIds: string[] };
+  access: {
+    source: 'explorer' | null;
+    type: 'public' | 'owner_locked';
+    visibility: 'anyone' | 'owner';
+    owner: {
+      type: 'person' | 'agent' | 'consumer' | 'organization_member';
+      name: string | null;
+      imageUrl: string | null;
+      email: string | null;
+      organizationMember?: { id: string } | undefined;
+      consumer?:
+        { id: string; profileId: string; portalId: string | null } | undefined;
+    } | null;
+  };
   createdAt: Date;
   updatedAt: Date;
 } & {
@@ -67,6 +85,33 @@ export let mapDashboardInstanceMagicMcpEndpointsCreateOutput =
             [
               ['servers', 0, [2, [3, [[0, [1, ['tool_filters']]]]]]],
               'enable_skill_editing',
+              'enable_skill_resources',
+              [
+                'skill_selection',
+                1,
+                [3, [[0, [1, ['skill_ids', 'skill_group_ids']]]]]
+              ],
+              [
+                'access',
+                0,
+                [
+                  1,
+                  [
+                    [
+                      'owner',
+                      0,
+                      [
+                        1,
+                        [
+                          'image_url',
+                          'organization_member',
+                          ['consumer', 0, [1, ['profile_id', 'portal_id']]]
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ],
               'created_at',
               'updated_at',
               [
@@ -101,6 +146,11 @@ export type DashboardInstanceMagicMcpEndpointsCreateBody = {
   consumerProfileId?: string | undefined;
   skillPluginId?: string | undefined;
   enableSkillEditing?: boolean | undefined;
+  enableSkillResources?: boolean | undefined;
+  skillSelection?:
+    | { type: 'all' }
+    | { type: 'selected'; skillIds: string[]; skillGroupIds: string[] }
+    | undefined;
   magicMcpServers?:
     | {
         magicMcpServerId: string;
@@ -134,5 +184,7 @@ export let mapDashboardInstanceMagicMcpEndpointsCreateBody =
     'consumer_profile_id',
     'skill_plugin_id',
     'enable_skill_editing',
+    'enable_skill_resources',
+    ['skill_selection', 1, [3, [[0, [1, ['skill_ids', 'skill_group_ids']]]]]],
     ['magic_mcp_servers', 1, [2, [1, ['magic_mcp_server_id', 'tool_filters']]]]
   ]);

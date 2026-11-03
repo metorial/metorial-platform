@@ -1,4 +1,5 @@
 import {
+  badRequestError,
   conflictError,
   forbiddenError,
   notFoundError,
@@ -19,6 +20,8 @@ import {
   MagicMcpServer,
   OrganizationActor,
   Prisma,
+  Skill,
+  SkillGroup,
   withTransaction
 } from '@metorial/db';
 import {
@@ -89,6 +92,11 @@ type MagicMcpEndpointToolFilter =
 export type MagicMcpEndpointToolFilters =
   MagicMcpEndpointToolFilter | MagicMcpEndpointToolFilter[] | null;
 
+export type MagicMcpEndpointSkillSelectionInput = {
+  skills: Pick<Skill, 'oid'>[];
+  skillGroups: Pick<SkillGroup, 'oid'>[];
+};
+
 type MagicMcpEndpointServerInput = {
   magicMcpServerId: string;
   toolFilters?: MagicMcpEndpointToolFilters;
@@ -99,6 +107,32 @@ let toNullableJson = (value: Prisma.InputJsonValue | null | undefined) => {
   if (value === null) return Prisma.JsonNull;
 
   return value;
+};
+
+let buildSkillSelection = async (selection: MagicMcpEndpointSkillSelectionInput | null) => {
+  if (!selection) return { type: 'all' as const, rows: [] };
+
+  if (!selection.skills.length && !selection.skillGroups.length) {
+    throw new ServiceError(
+      badRequestError({ message: 'Pick at least one skill or skill group' })
+    );
+  }
+
+  let skillOids = [...new Set(selection.skills.map(skill => skill.oid))];
+  let skillGroupOids = [...new Set(selection.skillGroups.map(group => group.oid))];
+
+  let rows = await Promise.all([
+    ...skillOids.map(async skillOid => ({
+      id: await ID.generateId('magicMcpEndpointSkillSelection'),
+      skillOid
+    })),
+    ...skillGroupOids.map(async skillGroupOid => ({
+      id: await ID.generateId('magicMcpEndpointSkillSelection'),
+      skillGroupOid
+    }))
+  ]);
+
+  return { type: 'selected' as const, rows };
 };
 
 let hasToolFiltersInput = (input: MagicMcpEndpointServerInput | undefined) =>
@@ -114,6 +148,13 @@ let dedupeServerInputs = (servers?: MagicMcpEndpointServerInput[]) => {
 
   return Array.from(entries.values());
 };
+
+export let magicMcpEndpointSkillSelectionInclude = {
+  include: {
+    skill: { select: { id: true } },
+    skillGroup: { select: { id: true } }
+  }
+} satisfies Prisma.MagicMcpEndpoint$skillSelectionsArgs;
 
 export let magicMcpEndpointInclude = {
   consumerProfile: true,
@@ -136,7 +177,8 @@ export let magicMcpEndpointInclude = {
     }
   },
   subspaceSession: true,
-  skillPlugin: true
+  skillPlugin: true,
+  skillSelections: magicMcpEndpointSkillSelectionInclude
 } satisfies Prisma.MagicMcpEndpointInclude;
 
 export type MagicMcpEndpointWithRelations = Prisma.MagicMcpEndpointGetPayload<{
@@ -158,7 +200,7 @@ let applyEndpointBacking = async (d: {
 };
 
 class MagicMcpEndpointImpl {
-  private async assertSkillEditingAvailable(d: { instance: Pick<Instance, 'oid'> }) {
+  private async assertSkillsEnabled(d: { instance: Pick<Instance, 'oid'>; feature: string }) {
     let skillsEnabled = await flagService.isFlagEnabledForInstance({
       instance: d.instance,
       flag: 'skills-enabled'
@@ -166,11 +208,14 @@ class MagicMcpEndpointImpl {
     if (!skillsEnabled) {
       throw new ServiceError(
         forbiddenError({
-          message:
-            'Skill editing can only be enabled when skills are enabled for this instance'
+          message: `${d.feature} can only be enabled when skills are enabled for this instance`
         })
       );
     }
+  }
+
+  private async assertSkillEditingAvailable(d: { instance: Pick<Instance, 'oid'> }) {
+    await this.assertSkillsEnabled({ instance: d.instance, feature: 'Skill editing' });
 
     let instance = await db.instance.findUniqueOrThrow({
       where: { oid: d.instance.oid },
@@ -317,6 +362,8 @@ class MagicMcpEndpointImpl {
       consumerProfile?: Pick<ConsumerProfile, 'oid'>;
       skillPlugin?: { oid: bigint } | null;
       enableSkillEditing?: boolean;
+      enableSkillResources?: boolean;
+      skillSelection?: MagicMcpEndpointSkillSelectionInput | null;
       servers?: MagicMcpEndpointServerInput[];
       isSystemOwned?: boolean;
     };
@@ -324,6 +371,10 @@ class MagicMcpEndpointImpl {
   }) {
     if (d.input.enableSkillEditing) {
       await this.assertSkillEditingAvailable({ instance: d.instance });
+    }
+
+    if (d.input.enableSkillResources) {
+      await this.assertSkillsEnabled({ instance: d.instance, feature: 'Skill sharing' });
     }
 
     await Fabric.fire('magic_mcp.endpoint.created:before', {
@@ -388,6 +439,8 @@ class MagicMcpEndpointImpl {
     let inheritedIsOwnerOnlyVisible =
       accessor.isEnforced && servers.some(server => server.isOwnerOnlyVisible);
 
+    let skillSelection = await buildSkillSelection(d.input.skillSelection ?? null);
+
     let endpointServerRows = await Promise.all(
       servers.map(async server => ({
         id: await ID.generateId('magicMcpEndpoint'),
@@ -408,6 +461,8 @@ class MagicMcpEndpointImpl {
               consumerProfileOid: d.input.consumerProfile?.oid,
               skillPluginOid: d.input.skillPlugin?.oid,
               enableSkillEditing: d.input.enableSkillEditing ?? false,
+              enableSkillResources: d.input.enableSkillResources ?? false,
+              skillSelectionType: skillSelection.type,
               name: d.input.name,
               description: d.input.description,
               slug: buildSlug(d.input.name),
@@ -425,6 +480,9 @@ class MagicMcpEndpointImpl {
                       data: endpointServerRows
                     }
                   }
+                : undefined,
+              skillSelections: skillSelection.rows.length
+                ? { createMany: { data: skillSelection.rows } }
                 : undefined
             },
             include: magicMcpEndpointInclude
@@ -515,6 +573,8 @@ class MagicMcpEndpointImpl {
       description?: string | null;
       metadata?: Record<string, unknown> | null;
       enableSkillEditing?: boolean;
+      enableSkillResources?: boolean;
+      skillSelection?: MagicMcpEndpointSkillSelectionInput | null;
       source?: 'explorer';
       isOwnerLocked?: boolean;
       isOwnerOnlyVisible?: boolean;
@@ -576,7 +636,25 @@ class MagicMcpEndpointImpl {
       await this.assertSkillEditingAvailable({ instance: { oid: d.endpoint.instanceOid } });
     }
 
+    if (d.input.enableSkillResources && !d.endpoint.enableSkillResources) {
+      await this.assertSkillsEnabled({
+        instance: { oid: d.endpoint.instanceOid },
+        feature: 'Skill sharing'
+      });
+    }
+
+    let skillSelection =
+      d.input.skillSelection === undefined
+        ? undefined
+        : await buildSkillSelection(d.input.skillSelection);
+
     let magicMcpEndpoint = await withTransaction(async db => {
+      if (skillSelection) {
+        await db.magicMcpEndpointSkillSelection.deleteMany({
+          where: { magicMcpEndpointOid: d.endpoint.oid }
+        });
+      }
+
       return await db.magicMcpEndpoint.update({
         where: {
           id: d.endpoint.id
@@ -587,6 +665,11 @@ class MagicMcpEndpointImpl {
             d.input.description === undefined ? d.endpoint.description : d.input.description,
           metadata: d.input.metadata === undefined ? d.endpoint.metadata : d.input.metadata,
           enableSkillEditing: d.input.enableSkillEditing,
+          enableSkillResources: d.input.enableSkillResources,
+          skillSelectionType: skillSelection?.type,
+          skillSelections: skillSelection?.rows.length
+            ? { createMany: { data: skillSelection.rows } }
+            : undefined,
           source: d.input.source,
           isOwnerLocked: nextIsOwnerLocked,
           isOwnerOnlyVisible: nextIsOwnerOnlyVisible

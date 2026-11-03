@@ -870,6 +870,7 @@ export type AuditMagicMcpEndpoint = MagicMcpEndpoint & {
   consumerProfile: { id: string } | null;
   skillPlugin: { id: string } | null;
   servers: { magicMcpServer: { id: string; name: string | null } }[];
+  skillSelections: { skill: { id: string } | null; skillGroup: { id: string } | null }[];
 };
 
 export type AuditMagicMcpGroup = MagicMcpGroup & {
