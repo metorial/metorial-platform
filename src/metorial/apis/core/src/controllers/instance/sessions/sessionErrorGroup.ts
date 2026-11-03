@@ -6,10 +6,10 @@ import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { requireNonPublishableMachineAccess } from '../../../middleware/requireNonPublishableMachineAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { subspaceSessionErrorGroupPresenter } from '@metorial/presenters';
 
-let sessionErrorGroupGroup = instanceGroup.use(async ctx => {
+let sessionErrorGroupGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.sessionErrorGroupId) {
     throw new ServiceError(
       badRequestError({
@@ -35,7 +35,7 @@ export let sessionErrorGroupController = Controller.create(
     hideInDocs: true
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('session-error-groups', 'sessions.errorGroups.list'), {
         name: 'List all session error groups',
         description: 'Returns a paginated list of error groups across all sessions.'

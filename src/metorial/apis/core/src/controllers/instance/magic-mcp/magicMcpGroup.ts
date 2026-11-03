@@ -7,11 +7,11 @@ import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireNonPublishableMachineAccess } from '../../../middleware/requireNonPublishableMachineAccess';
 import { magicMcpGroupPresenter } from '@metorial/presenters';
 
-export let magicMcpGroupGroup = instanceGroup.use(async ctx => {
+export let magicMcpGroupGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.magicMcpGroupId) {
     throw new ServiceError(
       badRequestError({
@@ -38,7 +38,7 @@ export let magicMcpGroupController = Controller.create(
     hideInDocs: true
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('magic-mcp-groups', 'magicMcpGroups.list'), {
         name: 'List magic MCP groups',
         description: 'Returns a paginated list of magic MCP groups.'
@@ -90,7 +90,7 @@ export let magicMcpGroupController = Controller.create(
         return magicMcpGroupPresenter.present({ magicMcpGroup: ctx.magicMcpGroup });
       }),
 
-    create: instanceGroup
+    create: integrationsGroup
       .post(instancePath('magic-mcp-groups', 'magicMcpGroups.create'), {
         name: 'Create magic MCP group',
         description: 'Creates a magic MCP group.'

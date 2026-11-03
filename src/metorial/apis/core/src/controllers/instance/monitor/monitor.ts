@@ -5,7 +5,7 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { monitorPresenter } from '@metorial/presenters';
 import {
   getRequiredParam,
@@ -14,7 +14,7 @@ import {
   stringOrArray
 } from './_shared';
 
-let monitorGroup = instanceGroup.use(async ctx => {
+let monitorGroup = integrationsGroup.use(async ctx => {
   let monitor = await monitorService.getMonitorById({
     instance: ctx.instance,
     monitorId: getRequiredParam(ctx.params, 'monitorId')
@@ -29,7 +29,7 @@ export let monitorController = Controller.create(
     description: 'Monitors track automated observability checks for this instance.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('monitors', 'monitors.list'), {
         name: 'List monitors',
         description: 'Returns a paginated list of monitors for this instance.'

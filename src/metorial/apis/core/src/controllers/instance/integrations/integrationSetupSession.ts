@@ -12,7 +12,7 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { requireNonPublishableMachineAccess } from '../../../middleware/requireNonPublishableMachineAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { integrationSetupSessionPresenter } from '@metorial/presenters';
 import { getOwnershipActor } from '../../../lib/ownershipActor';
 
@@ -71,7 +71,7 @@ let toSubspaceSetupSessionConfiguration = (
       }
     : undefined;
 
-let integrationSetupSessionGroup = instanceGroup.use(async ctx => {
+let integrationSetupSessionGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.integrationSetupSessionId) {
     throw new ServiceError(
       badRequestError({
@@ -99,7 +99,7 @@ export let integrationSetupSessionController = Controller.create(
       'Integration setup sessions orchestrate configuring every provider required by an integration instance.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('integration-setup-sessions', 'integrations.setupSessions.list'), {
         name: 'List integration setup sessions',
         description: 'Returns a paginated list of integration setup sessions.'
@@ -182,7 +182,7 @@ export let integrationSetupSessionController = Controller.create(
         );
       }),
 
-    create: instanceGroup
+    create: integrationsGroup
       .post(instancePath('integration-setup-sessions', 'integrations.setupSessions.create'), {
         name: 'Create integration setup session',
         description:

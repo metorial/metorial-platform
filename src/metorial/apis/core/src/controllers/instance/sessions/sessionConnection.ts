@@ -14,10 +14,10 @@ import {
   getFineGrainedAllowedSessionIds,
   requireFineGrainedSessionFromResource
 } from '../../../middleware/checkFineGrainedSessionAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { subspaceSessionConnectionPresenter } from '@metorial/presenters';
 
-let sessionConnectionGroup = instanceGroup
+let sessionConnectionGroup = integrationsGroup
   .use(async ctx => {
     if (!ctx.params.sessionConnectionId) {
       throw new ServiceError(
@@ -52,7 +52,7 @@ export let sessionConnectionController = Controller.create(
       'Session connections represent the MCP connections established within a session. This read-only resource provides visibility into the connection state and capabilities.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('session-connections', 'sessions.connections.list'), {
         name: 'List session connections',
         description: 'Returns a paginated list of connections for a session.'

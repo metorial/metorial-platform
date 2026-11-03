@@ -9,14 +9,14 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { isDashboardGroup } from '../../../middleware/isDashboard';
 import {
   providerAuthConfigErrorGroupPresenter,
   providerAuthConfigErrorPresenter
 } from '@metorial/presenters';
 
-let providerAuthConfigErrorGroup = instanceGroup.use(async ctx => {
+let providerAuthConfigErrorGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.providerAuthConfigErrorId) {
     throw new ServiceError(
       badRequestError({
@@ -34,7 +34,7 @@ let providerAuthConfigErrorGroup = instanceGroup.use(async ctx => {
   return { authConfigError };
 });
 
-let providerAuthConfigErrorGlobalGroup = instanceGroup.use(async ctx => {
+let providerAuthConfigErrorGlobalGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.providerAuthConfigErrorGroupId) {
     throw new ServiceError(
       badRequestError({
@@ -59,7 +59,7 @@ export let providerAuthConfigErrorController = Controller.create(
       'Provider auth config errors capture provider-side authentication failures and group repeated failures into reusable diagnostics.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('provider-auth-config-errors', 'providerAuthConfigErrors.list'), {
         name: 'List provider auth config errors',
         description:
@@ -161,7 +161,7 @@ export let providerAuthConfigErrorController = Controller.create(
         });
       }),
 
-    listGroups: instanceGroup
+    listGroups: integrationsGroup
       .get(
         instancePath(
           'provider-auth-config-error-groups',

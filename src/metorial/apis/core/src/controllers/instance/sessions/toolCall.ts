@@ -9,10 +9,10 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { requireNonPublishableMachineAccess } from '../../../middleware/requireNonPublishableMachineAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { resolveActorIdsForLogFilters, resolveSearchActorIds } from './_logFilterActors';
 
-let toolCallGroup = instanceGroup.use(async ctx => {
+let toolCallGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.toolCallId) {
     throw new ServiceError(
       badRequestError({
@@ -38,7 +38,7 @@ export let toolCallController = Controller.create(
       'Tool calls represent individual tool invocations within a session. They track the input, output, and status of each tool execution.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('tool-calls', 'toolCalls.list'), {
         name: 'List all tool calls',
         description: 'Returns a paginated list of tool calls across all sessions.'
@@ -170,7 +170,7 @@ export let toolCallController = Controller.create(
         });
       }),
 
-    create: instanceGroup
+    create: integrationsGroup
       .post(instancePath('tool-calls', 'toolCalls.create'), {
         name: 'Create tool call',
         description: 'Creates a new tool call in a session by invoking a specific tool.'

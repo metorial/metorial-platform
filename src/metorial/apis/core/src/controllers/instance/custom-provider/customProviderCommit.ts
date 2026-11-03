@@ -11,10 +11,10 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { subspaceCustomProviderCommitPresenter } from '@metorial/presenters';
 
-let customProviderCommitGroup = instanceGroup.use(async ctx => {
+let customProviderCommitGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.customProviderCommitId) {
     throw new ServiceError(
       badRequestError({
@@ -40,7 +40,7 @@ export let customProviderCommitController = Controller.create(
     hideInDocs: true
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('custom-provider-commits', 'customProviders.commits.list'), {
         name: 'List custom provider commits',
         description: 'Returns a paginated list of commits for a custom provider.'
@@ -117,7 +117,7 @@ export let customProviderCommitController = Controller.create(
         });
       }),
 
-    create: instanceGroup
+    create: integrationsGroup
       .post(instancePath('custom-provider-commits', 'customProviders.commits.create'), {
         name: 'Create custom provider commit',
         description: 'Creates a new commit to promote or rollback a version in an environment.'

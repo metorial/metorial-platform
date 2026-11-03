@@ -9,11 +9,11 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { requireNonPublishableMachineAccess } from '../../../middleware/requireNonPublishableMachineAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { toolFiltersValidator } from './_shared';
 import { getOwnershipActor } from '../../../lib/ownershipActor';
 
-let sessionTemplateGroup = instanceGroup.use(async ctx => {
+let sessionTemplateGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.sessionTemplateId) {
     throw new ServiceError(
       badRequestError({
@@ -39,7 +39,7 @@ export let sessionTemplateController = Controller.create(
       'Session templates define reusable configurations for sessions, including which providers to include. Templates can be used to quickly create new sessions with consistent settings.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('session-templates', 'sessionTemplates.list'), {
         name: 'List session templates',
         description: 'Returns a paginated list of session templates.'
@@ -127,7 +127,7 @@ export let sessionTemplateController = Controller.create(
         );
       }),
 
-    create: instanceGroup
+    create: integrationsGroup
       .post(instancePath('session-templates', 'sessionTemplates.create'), {
         name: 'Create session template',
         description: 'Creates a new session template.'

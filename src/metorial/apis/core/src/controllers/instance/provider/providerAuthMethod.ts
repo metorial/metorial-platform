@@ -8,9 +8,9 @@ import {
 import { providerAuthMethodPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 
-let providerAuthMethodGroup = instanceGroup.use(async ctx => {
+let providerAuthMethodGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.providerAuthMethodId) {
     throw new ServiceError(
       badRequestError({
@@ -35,7 +35,7 @@ export let providerAuthMethodController = Controller.create(
       'An auth method defines one way to authenticate with a provider (OAuth, API token, or custom credentials). A provider version may support multiple auth methods.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('provider-auth-methods', 'providers.authMethods.list'), {
         name: 'List provider auth methods',
         description: 'Returns a paginated list of provider auth methods.'

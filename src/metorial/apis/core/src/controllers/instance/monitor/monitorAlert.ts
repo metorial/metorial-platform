@@ -5,7 +5,7 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { monitorAlertPresenter } from '@metorial/presenters';
 import {
   actorInput,
@@ -16,7 +16,7 @@ import {
   stringOrArray
 } from './_shared';
 
-let monitorAlertGroup = instanceGroup.use(async ctx => {
+let monitorAlertGroup = integrationsGroup.use(async ctx => {
   let alert = await alertService.getAlertById({
     instance: ctx.instance,
     alertId: getRequiredParam(ctx.params, 'monitorAlertId'),
@@ -32,7 +32,7 @@ export let monitorAlertController = Controller.create(
     description: 'Monitor alerts represent detected prompt-injection or schema-change events.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('monitor-alerts', 'monitorAlerts.list'), {
         name: 'List monitor alerts',
         description: 'Returns a paginated list of monitor alerts for this instance.'
@@ -105,7 +105,7 @@ export let monitorAlertController = Controller.create(
       .output(monitorAlertPresenter)
       .do(async ctx => monitorAlertPresenter.present({ alert: ctx.alert })),
 
-    viewed: instanceGroup
+    viewed: integrationsGroup
       .post(instancePath('monitor-alerts/:monitorAlertId/viewed', 'monitorAlerts.viewed'), {
         name: 'Mark monitor alert viewed',
         description: 'Marks a monitor alert as viewed by the current actor.'
@@ -122,7 +122,7 @@ export let monitorAlertController = Controller.create(
         return monitorAlertPresenter.present({ alert });
       }),
 
-    resolve: instanceGroup
+    resolve: integrationsGroup
       .post(instancePath('monitor-alerts/:monitorAlertId/resolve', 'monitorAlerts.resolve'), {
         name: 'Resolve monitor alert',
         description: 'Marks a monitor alert as resolved.'
@@ -139,7 +139,7 @@ export let monitorAlertController = Controller.create(
         return monitorAlertPresenter.present({ alert });
       }),
 
-    unresolve: instanceGroup
+    unresolve: integrationsGroup
       .post(
         instancePath('monitor-alerts/:monitorAlertId/unresolve', 'monitorAlerts.unresolve'),
         {

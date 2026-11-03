@@ -14,10 +14,10 @@ import {
   getFineGrainedAllowedSessionIds,
   requireFineGrainedSessionFromResource
 } from '../../../middleware/checkFineGrainedSessionAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { subspaceSessionEventPresenter } from '@metorial/presenters';
 
-let sessionEventGroup = instanceGroup
+let sessionEventGroup = integrationsGroup
   .use(async ctx => {
     if (!ctx.params.sessionEventId) {
       throw new ServiceError(
@@ -53,7 +53,7 @@ export let sessionEventController = Controller.create(
     hideInDocs: true
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('session-events', 'sessions.events.list'), {
         name: 'List session events',
         description: 'Returns a paginated list of events for a session.'

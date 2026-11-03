@@ -23,7 +23,7 @@ import {
   requireFineGrainedSessionBody,
   requireFineGrainedSessionFromResource
 } from '../../../middleware/checkFineGrainedSessionAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { sessionProviderPresenter } from '@metorial/presenters';
 import { normalizeToolFilters, toolFiltersValidator } from './_shared';
 import {
@@ -33,7 +33,7 @@ import {
   type SessionProviderDeploymentSource
 } from './_providerInput';
 
-let subspaceSessionProviderGroup = instanceGroup
+let subspaceSessionProviderGroup = integrationsGroup
   .use(async ctx => {
     if (!ctx.params.sessionProviderId) {
       throw new ServiceError(
@@ -150,7 +150,7 @@ export let sessionProviderController = Controller.create(
       'Session providers represent the providers that are actively connected to a session. Each session can have multiple providers, and providers can be added or removed during the session lifecycle.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('session-providers', 'sessions.providers.list'), {
         name: 'List session providers',
         description: 'Returns a paginated list of providers connected to a session.'
@@ -249,7 +249,7 @@ export let sessionProviderController = Controller.create(
         return sessionProviderPresenter.present({ sessionProvider: ctx.sessionProvider });
       }),
 
-    create: instanceGroup
+    create: integrationsGroup
       .post(instancePath('session-providers', 'sessions.providers.create'), {
         name: 'Create session provider',
         description: 'Adds a new provider to an active session.'

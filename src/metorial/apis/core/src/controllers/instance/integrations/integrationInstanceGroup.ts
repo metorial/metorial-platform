@@ -8,7 +8,7 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { requireNonPublishableMachineAccess } from '../../../middleware/requireNonPublishableMachineAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import {
   integrationInstanceGroupPresenter,
   providerSessionPresenter,
@@ -22,7 +22,7 @@ let integrationInstanceGroupProviderInputValidator = v.object({
   tool_filters: toolFiltersValidator
 });
 
-let integrationInstanceGroupGroup = instanceGroup.use(async ctx => {
+let integrationInstanceGroupGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.integrationInstanceGroupId) {
     throw new ServiceError(
       badRequestError({
@@ -50,7 +50,7 @@ export let integrationInstanceGroupController = Controller.create(
       'Integration instance groups combine instance providers into a grouped routed configuration.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('integration-instance-groups', 'integrations.instanceGroups.list'), {
         name: 'List integration instance groups',
         description: 'Returns a paginated list of integration instance groups.'
@@ -223,7 +223,7 @@ export let integrationInstanceGroupController = Controller.create(
         return providerSessionPresenter.present(await hydrateResourceOwners({ session }));
       }),
 
-    create: instanceGroup
+    create: integrationsGroup
       .post(
         instancePath('integration-instance-groups', 'integrations.instanceGroups.create'),
         {

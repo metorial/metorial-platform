@@ -13,10 +13,10 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { authImportSchemaPresenter, providerAuthImportPresenter } from '@metorial/presenters';
 
-let providerAuthImportGroup = instanceGroup.use(async ctx => {
+let providerAuthImportGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.providerAuthImportId) {
     throw new ServiceError(
       badRequestError({
@@ -41,7 +41,7 @@ export let providerAuthImportController = Controller.create(
       "An auth import lets you bring in existing OAuth tokens or credentials from another system, so users don't need to re-authenticate to use Metorial."
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(
         instancePath(
           'provider-auth-config-imports',
@@ -125,7 +125,7 @@ export let providerAuthImportController = Controller.create(
         );
       }),
 
-    create: instanceGroup
+    create: integrationsGroup
       .post(
         instancePath(
           'provider-auth-config-imports',
@@ -220,7 +220,7 @@ export let providerAuthImportController = Controller.create(
         );
       }),
 
-    getSchema: instanceGroup
+    getSchema: integrationsGroup
       .get(
         instancePath(
           'provider-auth-config-imports/schema',

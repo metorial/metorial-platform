@@ -6,10 +6,10 @@ import {
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { bucketEditorTokenPresenter } from '@metorial/presenters';
 
-let customProviderCodeGroup = instanceGroup.use(async ctx => {
+let customProviderCodeGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.customProviderId) {
     throw new ServiceError(
       badRequestError({

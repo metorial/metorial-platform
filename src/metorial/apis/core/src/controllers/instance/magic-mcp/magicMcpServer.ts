@@ -26,7 +26,7 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import {
   magicMcpServerPresenter,
@@ -37,7 +37,7 @@ import {
 import { normalizeToolFilters, toolFiltersValidator } from '../sessions/_shared';
 import { getOwnershipActor } from '../../../lib/ownershipActor';
 
-export let magicMcpServerGroup = instanceGroup.use(async ctx => {
+export let magicMcpServerGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.magicMcpServerId) {
     throw new ServiceError(
       badRequestError({
@@ -335,7 +335,7 @@ export let magicMcpServerController = Controller.create(
     hideInDocs: true
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('magic-mcp-servers', 'magicMcpServers.list'), {
         name: 'List magic MCP servers',
         description: 'Returns a paginated list of magic MCP servers.'
@@ -747,7 +747,7 @@ export let magicMcpServerController = Controller.create(
         });
       }),
 
-    create: instanceGroup
+    create: integrationsGroup
       .post(instancePath('magic-mcp-servers', 'magicMcpServers.create'), {
         name: 'Create magic MCP server',
         description:

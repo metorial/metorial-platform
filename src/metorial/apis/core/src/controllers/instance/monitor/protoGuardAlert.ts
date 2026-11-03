@@ -5,11 +5,11 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { protoGuardAlertPresenter } from '@metorial/presenters';
 import { getRequiredParam, stringOrArray } from './_shared';
 
-let protoGuardAlertGroup = instanceGroup.use(async ctx => {
+let protoGuardAlertGroup = integrationsGroup.use(async ctx => {
   let alert = await protoGuardAlertService.getAlertById({
     instance: ctx.instance,
     alertId: getRequiredParam(ctx.params, 'protoGuardAlertId')
@@ -24,7 +24,7 @@ export let protoGuardAlertController = Controller.create(
     description: 'ProtoGuard alerts describe prompt-injection detections.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('protoguard-alerts', 'protoGuardAlerts.list'), {
         name: 'List ProtoGuard alerts',
         description: 'Returns a paginated list of ProtoGuard alerts for this instance.'

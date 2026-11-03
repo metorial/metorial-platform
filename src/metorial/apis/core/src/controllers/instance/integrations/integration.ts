@@ -7,10 +7,10 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { requireNonPublishableMachineAccess } from '../../../middleware/requireNonPublishableMachineAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { integrationPresenter } from '@metorial/presenters';
 
-let integrationGroup = instanceGroup.use(async ctx => {
+let integrationGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.integrationId) {
     throw new ServiceError(
       badRequestError({
@@ -36,7 +36,7 @@ export let integrationController = Controller.create(
       'Integrations define reusable provider contracts that can then be materialized into integration instances.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('integrations', 'integrations.list'), {
         name: 'List integrations',
         description: 'Returns a paginated list of integrations.'
@@ -93,7 +93,7 @@ export let integrationController = Controller.create(
       .output(integrationPresenter)
       .do(async ctx => integrationPresenter.present({ integration: ctx.integration })),
 
-    create: instanceGroup
+    create: integrationsGroup
       .post(instancePath('integrations', 'integrations.create'), {
         name: 'Create integration',
         description: 'Creates a new integration.'

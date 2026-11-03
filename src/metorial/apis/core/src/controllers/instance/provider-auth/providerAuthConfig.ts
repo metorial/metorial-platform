@@ -10,12 +10,12 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { providerAuthConfigPresenter } from '@metorial/presenters';
 import { toolFiltersValidator } from '../sessions/_shared';
 import { getOwnershipActor, resolveExplorerOwner } from '../../../lib/ownershipActor';
 
-let providerAuthConfigGroup = instanceGroup.use(async ctx => {
+let providerAuthConfigGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.providerAuthConfigId) {
     throw new ServiceError(
       badRequestError({
@@ -41,7 +41,7 @@ export let providerAuthConfigController = Controller.create(
       "An auth config is a user's authenticated connection to a provider. Created when a user completes OAuth or manually enters an API token."
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('provider-auth-configs', 'providerDeployments.authConfigs.list'), {
         name: 'List provider auth configs',
         description: 'Returns a paginated list of provider auth configs.'
@@ -167,7 +167,7 @@ export let providerAuthConfigController = Controller.create(
         );
       }),
 
-    create: instanceGroup
+    create: integrationsGroup
       .post(instancePath('provider-auth-configs', 'providerDeployments.authConfigs.create'), {
         name: 'Create provider auth config',
         description: 'Creates a new provider auth config.',
