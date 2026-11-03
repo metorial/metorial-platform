@@ -825,6 +825,7 @@ class SkillFileServiceImpl {
 
       return applied;
     });
+    await skillService.recordSkillEdit(d);
 
     return await Promise.all(
       appliedChanges.map(async ({ item, ...change }) => ({

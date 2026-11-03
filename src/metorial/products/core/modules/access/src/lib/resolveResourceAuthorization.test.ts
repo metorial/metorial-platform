@@ -141,7 +141,7 @@ describe('resolveResourceAuthorization', () => {
 
     expect((await resolveConsumer()).authorization.type).toBe('privileged');
     expect(mocks.findOrganizationMember.mock.calls[0]![0].where.OR).toEqual([
-      { oid: 11n },
+      { oid: { in: [11n] } },
       { actorOid: { in: [10n] } }
     ]);
   });

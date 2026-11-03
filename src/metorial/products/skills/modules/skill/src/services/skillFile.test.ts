@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
+  recordSkillEdit: vi.fn(),
   db: {
     storeItem: {
       findFirst: vi.fn(),
@@ -34,7 +35,10 @@ vi.mock('../lib/skillStoreLock', () => ({
 }));
 
 vi.mock('./skill', () => ({
-  skillService: { assertSkillWriteAccess: mocks.assertSkillWriteAccess }
+  skillService: {
+    assertSkillWriteAccess: mocks.assertSkillWriteAccess,
+    recordSkillEdit: mocks.recordSkillEdit
+  }
 }));
 
 vi.mock('@metorial/module-store', async () => {
@@ -556,6 +560,7 @@ describe('skillFileService', () => {
         file: expect.objectContaining({ path: '/b.txt', kind: 'file', fileId: 'fil_a' })
       }
     ]);
+    expect(mocks.recordSkillEdit).toHaveBeenCalledTimes(1);
   });
 
   it('lists files with draft-aware document etags', async () => {

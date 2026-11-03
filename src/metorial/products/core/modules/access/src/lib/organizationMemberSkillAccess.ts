@@ -57,15 +57,24 @@ export let findLinkedOrganizationMember = async (d: {
   });
 };
 
-export type OrganizationMemberSkillAccessProject = Pick<
-  Project,
-  'oid' | 'allowOrganizationMemberFullSkillAccess'
->;
+export type OrganizationMemberSkillAccessProject = Pick<Project, 'oid'> &
+  Partial<Pick<Project, 'allowOrganizationMemberFullSkillAccess'>>;
+
+let getAllowOrganizationMemberFullSkillAccess = async (
+  project: OrganizationMemberSkillAccessProject
+) =>
+  project.allowOrganizationMemberFullSkillAccess ??
+  !!(
+    await db.project.findUnique({
+      where: { oid: project.oid },
+      select: { allowOrganizationMemberFullSkillAccess: true }
+    })
+  )?.allowOrganizationMemberFullSkillAccess;
 
 export let isOrganizationMemberFullSkillAccessEnabled = async (d: {
   project: OrganizationMemberSkillAccessProject;
 }) =>
-  d.project.allowOrganizationMemberFullSkillAccess &&
+  (await getAllowOrganizationMemberFullSkillAccess(d.project)) &&
   (await isStoreResourceFlagEnabled({ project: d.project, flag: 'store-access-v2' }));
 
 let resolveOrganizationMemberSkillAccess = async (d: {

@@ -6,7 +6,9 @@ let {
   isStoreResourceFlagEnabledMock,
   getStoreResourceAccessWhereMock,
   setAccessLevelMock,
-  recordParticipationMock
+  recordParticipationMock,
+  hasOrganizationMemberSkillAccessMock,
+  getStoreResourceKindAccessWhereMock
 } = vi.hoisted(() => ({
   db: {
     store: {
@@ -29,7 +31,13 @@ let {
   isStoreResourceFlagEnabledMock: vi.fn(),
   getStoreResourceAccessWhereMock: vi.fn(),
   setAccessLevelMock: vi.fn(),
-  recordParticipationMock: vi.fn()
+  recordParticipationMock: vi.fn(),
+  hasOrganizationMemberSkillAccessMock: vi.fn(async () => false),
+  getStoreResourceKindAccessWhereMock: vi.fn()
+}));
+
+vi.mock('../lib/storeResource', () => ({
+  skillStoreResource: { hasAccess: vi.fn() }
 }));
 
 vi.mock('./storeParticipant', () => ({
@@ -44,9 +52,13 @@ vi.mock('@metorial/db', () => ({
 }));
 
 vi.mock('@metorial/module-access', () => ({
+  consumerSkillManageAccessRoles: ['consumer#instance.skill:manage_access'],
   consumerSkillReadRoles: ['consumer#instance.skill:read'],
   consumerSkillWriteRoles: ['consumer#instance.skill:write'],
+  skillStoreResourceKind: { kind: 'skill' },
   standaloneStoreResourceAccess: { kind: 'store' },
+  hasOrganizationMemberSkillAccess: hasOrganizationMemberSkillAccessMock,
+  getStoreResourceKindAccessWhere: getStoreResourceKindAccessWhereMock,
   assertResourceAuthorizationScope: vi.fn(),
   isStoreResourceFlagEnabled: isStoreResourceFlagEnabledMock,
   getStoreResourceAccessWhere: getStoreResourceAccessWhereMock,
@@ -402,6 +414,37 @@ describe('store access dual mode', () => {
       AND: [{ marker: 'v2-access-where' }]
     });
     expect(db.storeParticipantActor.findMany).toHaveBeenCalled();
+  });
+
+  it('lets consumers with organization member access write skill stores they can read', async () => {
+    isStoreResourceFlagEnabledMock.mockResolvedValue(true);
+    hasOrganizationMemberSkillAccessMock.mockResolvedValueOnce(true);
+    getStoreResourceKindAccessWhereMock.mockResolvedValueOnce({ marker: 'skill-read-where' });
+    db.storeParticipantActor.findMany.mockResolvedValue([]);
+    db.store.findMany.mockReset();
+    db.store.findMany.mockResolvedValueOnce([store]).mockResolvedValueOnce([store]);
+
+    let result = await storeAccessService.resolveAccessibleStoreOids({
+      ...scope,
+      authorization: consumerAuthorization,
+      requiredPermission: storeWritePermission,
+      storeOids: [store.oid]
+    });
+
+    expect(result.accessibleStoreOids).toEqual([store.oid]);
+    expect(hasOrganizationMemberSkillAccessMock).toHaveBeenCalledWith({
+      project: scope.project,
+      authorization: consumerAuthorization
+    });
+    expect(getStoreResourceKindAccessWhereMock).toHaveBeenCalledWith({
+      kind: { kind: 'skill' },
+      accessTags,
+      level: 'read'
+    });
+    expect(db.store.findMany.mock.calls[1]![0].where).toEqual({
+      oid: { in: [store.oid] },
+      AND: [{ OR: [{ marker: 'v2-access-where' }, { marker: 'skill-read-where' }] }]
+    });
   });
 
   it('fills a participation-only row with default permissions', async () => {

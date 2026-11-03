@@ -3,11 +3,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 let mocks = vi.hoisted(() => ({
   isStoreResourceFlagEnabled: vi.fn(),
   findConsumerProfile: vi.fn(),
-  findOrganizationMember: vi.fn()
+  findOrganizationMember: vi.fn(),
+  findProject: vi.fn()
 }));
 
 vi.mock('@metorial/db', () => ({
   db: {
+    project: { findUnique: mocks.findProject },
     consumerProfile: { findUnique: mocks.findConsumerProfile },
     organizationMember: { findFirst: mocks.findOrganizationMember }
   }
@@ -102,6 +104,22 @@ describe('hasOrganizationMemberSkillAccess', () => {
     ).toBe(false);
     expect(mocks.isStoreResourceFlagEnabled).not.toHaveBeenCalled();
     expect(mocks.findConsumerProfile).not.toHaveBeenCalled();
+  });
+
+  it('loads the project setting when the caller only provides the project oid', async () => {
+    mocks.findProject.mockResolvedValueOnce({ allowOrganizationMemberFullSkillAccess: true });
+    expect(
+      await hasOrganizationMemberSkillAccess({ project: { oid: 1n }, consumerProfileOid: 3n })
+    ).toBe(true);
+
+    mocks.findProject.mockResolvedValueOnce({ allowOrganizationMemberFullSkillAccess: false });
+    expect(
+      await hasOrganizationMemberSkillAccess({ project: { oid: 1n }, consumerProfileOid: 3n })
+    ).toBe(false);
+    expect(mocks.findProject).toHaveBeenCalledWith({
+      where: { oid: 1n },
+      select: { allowOrganizationMemberFullSkillAccess: true }
+    });
   });
 
   it('does not elevate consumers without an active organization member', async () => {
