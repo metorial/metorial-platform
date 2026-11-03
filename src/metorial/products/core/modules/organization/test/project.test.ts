@@ -221,7 +221,7 @@ describe('ProjectService', () => {
       );
     });
 
-    it('should restrict access to consumer-owned resources for new projects', async () => {
+    it('should restrict consumer-owned resources and enable member skill access for new projects', async () => {
       let mockOrg = { id: 'org-1', oid: 1 };
       let create = vi.fn().mockResolvedValue({
         id: 'proj-1',
@@ -249,7 +249,8 @@ describe('ProjectService', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             allowApiAccessToConsumerOwnedResources: false,
-            allowMemberAccessToConsumerOwnedResources: false
+            allowMemberAccessToConsumerOwnedResources: false,
+            allowOrganizationMemberFullSkillAccess: true
           })
         })
       );

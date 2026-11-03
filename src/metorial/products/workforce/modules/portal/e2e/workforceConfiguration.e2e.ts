@@ -78,7 +78,7 @@ describe('module-portal project workforce configuration', () => {
     expect(current.autoAddOrganizationMembersToPortals).toBe(true);
   });
 
-  it('defaults organization member full skill access to on and lets it be turned off', async () => {
+  it('enables organization member full skill access for new projects and lets it be turned off', async () => {
     let fixture = await loadOrganizationFixture(org.ids);
     expect(fixture.project.allowOrganizationMemberFullSkillAccess).toBe(true);
 
