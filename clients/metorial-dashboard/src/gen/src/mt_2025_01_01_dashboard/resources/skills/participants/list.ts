@@ -6,6 +6,7 @@ export type SkillsParticipantsListOutput = {
     id: string;
     skillId: string;
     roles: ('creator' | 'editor' | 'viewer' | 'user' | 'forker')[];
+    hasOrganizationMemberAccess: boolean;
     actor: {
       type: 'organization_actor' | 'consumer' | 'resource_actor';
       name: string;
@@ -173,6 +174,7 @@ export let mapSkillsParticipantsListOutput =
         1,
         [
           'skill_id',
+          'has_organization_member_access',
           [
             'actor',
             0,

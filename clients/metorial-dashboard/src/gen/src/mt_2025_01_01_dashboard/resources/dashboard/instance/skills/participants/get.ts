@@ -5,6 +5,7 @@ export type DashboardInstanceSkillsParticipantsGetOutput = {
   id: string;
   skillId: string;
   roles: ('creator' | 'editor' | 'viewer' | 'user' | 'forker')[];
+  hasOrganizationMemberAccess: boolean;
   actor: {
     type: 'organization_actor' | 'consumer' | 'resource_actor';
     name: string;
@@ -166,6 +167,7 @@ export let mapDashboardInstanceSkillsParticipantsGetOutput =
   /* @__PURE__ */ mapObject<DashboardInstanceSkillsParticipantsGetOutput>(
     [
       'skill_id',
+      'has_organization_member_access',
       [
         'actor',
         0,

@@ -5,6 +5,7 @@ export type DashboardProjectsConfigureWorkforceGetOutput = {
   projectId: string;
   autoAddOrganizationMembersToPortals: boolean;
   allowConsumerSkillEditing: boolean;
+  allowOrganizationMemberFullSkillAccess: boolean;
   updatedAt: Date;
 };
 
@@ -14,6 +15,7 @@ export let mapDashboardProjectsConfigureWorkforceGetOutput =
       'project_id',
       'auto_add_organization_members_to_portals',
       'allow_consumer_skill_editing',
+      'allow_organization_member_full_skill_access',
       'updated_at'
     ],
     1
