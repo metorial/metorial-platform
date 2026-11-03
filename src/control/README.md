@@ -188,6 +188,13 @@ source checkouts use `metorial-root.localhost`; branch workspaces use their
 branch-derived `metorial-<branch>.localhost` hostname. Host listeners use persisted
 private bind ports behind the shared hostname proxy.
 
+With the workspace running and its Mailpit link reachable, use
+`control email list` to find message IDs and `control email open <id>` to read a
+message in the terminal. HTML bodies are converted to Markdown with Turndown.
+Plain-text messages display their text body. Pass `--html` to print only the
+original HTML body. Both commands support `--ws <id>`. The list defaults to the
+latest 50 messages and accepts `--start <offset>` and `--limit <count>`.
+
 Package and group arguments select manifests. With no selectors all manifests
 are used. Each generated Turbo mirror receives its manifest's isolated
 environment.
@@ -356,6 +363,68 @@ and routes through the shared hostname proxy, allowing concurrent workspaces.
 path, and workspace identity when metadata is present).
 `control workspace remove BRANCH` removes the matching worktree, including the
 paired OSS worktree in enterprise mode.
+
+## Stacks
+
+A stack is a named set of services that runs together in Docker Compose. Stacks are not
+hard coded: the root `control/index.ts` declares them with `stack()` and every service
+opts in with `stackMember()`, so a service can join several stacks.
+
+```ts
+// control/index.ts
+rootProject({ mode: 'enterprise', stacks: [stack({ id: 'cloud', label: 'Metorial Cloud' })] });
+
+// a service's control/index.ts
+project({
+  name: '@metorial/ares',
+  stacks: {
+    cloud: stackMember(),
+    'on-prem': stackMember({ production: { image: 'ghcr.io/metorial/ares' } })
+  }
+});
+```
+
+`stackMember()` accepts `env` for both environments, `development: { run, env }` to override
+the commands run in dev (or `false` to leave the service out of the dev stack), and
+`production: { image, dockerfile, workspace, args, command, env }` (or `false`) to choose
+the container. Without overrides the production container is built from the package's
+`ci.images` or `ci.dockerfiles` entry. Stack declarations in a checkout that does not
+define the stack are ignored, so the OSS submodule still works on its own.
+
+```bash
+control stack ls                               # stacks defined in this checkout
+control stack plan cloud --env prod            # units a run would start
+control stack start cloud --env dev            # all members in one container, run by bun
+control stack start cloud --env prod --name qa # one production container per member
+control stack restart cloud
+control stack stop cloud [--volumes]
+control stack clean cloud                      # stop it and delete its data, keep the run
+control stack rm cloud                         # forget a stopped run
+```
+
+Data survives `stop` and `restart`: infrastructure and any member that declares
+`volumes` (a map of volume name to container path) keep named Docker volumes.
+`stack clean` stops the run and deletes those volumes but keeps the run registered and its
+synced workspace, so the next start comes up empty and fast.
+
+`--name` defaults to the stack identifier and must be unique; the run is registered as
+`stack-<name>` and shows up in `control ls`, the daemon API and the web UI next to the
+workspaces. Address it with `--stack <name>` on `logs`, `status`, `restart`, `tui`, `open`
+and `sh`, for example `control logs --stack cloud ares --follow`.
+
+A development run starts the shared infrastructure the members declare, creates their
+databases, then starts one `app` container that syncs the checkout into a volume, installs,
+builds and supervises one bun process per member (`scripts/dev-tools/stack/runner.ts`).
+Source edits are re-synced every few seconds, so each service's own watcher reloads. A
+production run starts one container per member. Containers share the network namespace of
+a `gateway` container that forwards the fixed development ports to the infrastructure
+containers and carries the `metorial-stack-<name>.localhost` hostname, so environment
+values resolve the same way they do for a host workspace. The shared hostname proxy routes
+the endpoint ports to the stack.
+
+## Build cache
+
+The daemon starts the Warp Cache (`src/tooling/warp-cache`), a Turborepo remote-cache server, backed by `~/.metorial-control-dev-service/cache`, and exports `TURBO_API`, `TURBO_TEAM` and `TURBO_TOKEN` so every Turbo run that Control spawns uses it. The token is generated on each daemon start and the server stops with the daemon. Stack containers reach it at `host.docker.internal`. Set `CONTROL_CACHE=0` to disable it or `CONTROL_CACHE_PORT` (default 8787) to move it; if the port is taken the daemon logs a warning and continues without it. Server output goes to `cache.log` in the Control home.
 
 ## Hot reload of definitions
 

@@ -1,9 +1,16 @@
-import { ciImage, dev, endpoint, mergeEnv, project } from '@metorial/control';
+import { ciImage, dev, endpoint, mergeEnv, project, stackMember } from '@metorial/control';
 import { services } from '@metorial/control/presets';
 
 export default project({
   name: '@metorial/object-storage',
   group: 'oss',
+  stacks: {
+    'on-prem': stackMember({
+      development: { container: true },
+      env: { OBJECT_STORE__BACKEND__ROOT_PATH: '/app/data' },
+      volumes: { data: '/app/data' }
+    })
+  },
   endpoints: {
     api: endpoint(52010).health('/health').listenEnv('OBJECT_STORE__SERVER__PORT')
   },

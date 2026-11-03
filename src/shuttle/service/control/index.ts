@@ -9,12 +9,17 @@ import {
   mergeEnv,
   postgres,
   project,
-  redis
+  redis,
+  stackMember
 } from '@metorial/control';
 import { baseDevEnv, pickEnv, ownMigration } from '@metorial/control/presets';
 
 export default project({
   name: '@metorial/shuttle',
+  stacks: {
+    cloud: stackMember(),
+    'on-prem': stackMember({ mode: 'oss' })
+  },
   group: 'oss',
   endpoints: {
     api: endpoint(52080).health('/ping').listenEnv('SHUTTLE_API_PORT'),

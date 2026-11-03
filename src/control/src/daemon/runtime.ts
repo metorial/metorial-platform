@@ -67,6 +67,7 @@ export class WorkspaceRuntime {
   info(): WorkspaceInfo {
     return {
       id: this.data.id,
+      kind: 'workspace',
       root: this.project.root,
       branch: this.data.branch,
       hostname: this.data.hostname,
@@ -571,7 +572,7 @@ export class WorkspaceRuntime {
 let seconds = (job: JobInfo) =>
   (((job.endedAt ?? Date.now()) - job.startedAt) / 1000).toFixed(1);
 
-let servicePorts = (selected: LoadedManifest[]) => {
+export let servicePorts = (selected: LoadedManifest[]) => {
   let result = new Map<string, number[]>();
 
   for (let loaded of selected) {
@@ -585,7 +586,7 @@ let servicePorts = (selected: LoadedManifest[]) => {
   return result;
 };
 
-let linksFor = (data: WorkspaceMetadata, selected: LoadedManifest[]): LinkInfo[] => {
+export let linksFor = (data: WorkspaceMetadata, selected: LoadedManifest[]): LinkInfo[] => {
   let links: LinkInfo[] = [];
 
   for (let loaded of selected)

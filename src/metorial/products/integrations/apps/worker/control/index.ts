@@ -1,15 +1,16 @@
 import {
   bunService,
   dependency,
-  dockerfile,
   dev,
+  dockerfile,
   e2e,
   healthCheck,
   mergeEnv,
   mongodb,
   nats,
   postgres,
-  project
+  project,
+  stackMember
 } from '@metorial/control';
 import {
   baseDevEnv,
@@ -21,6 +22,9 @@ import {
 
 export default project({
   name: '@metorial-subspace/app-worker',
+  stacks: {
+    'on-prem': stackMember({ mode: 'oss' })
+  },
   group: 'oss',
   mode: 'oss',
   dependencies: [

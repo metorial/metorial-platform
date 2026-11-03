@@ -24,10 +24,12 @@
   "devDependencies": {
     "@lowerdeck/validation": "workspace:2.0.0",
     "@types/bun": "latest",
+    "@types/turndown": "^5.0.6",
     "prettier": "^3.9.10",
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@opentui/core": "^0.7.0"
+    "@opentui/core": "^0.7.0",
+    "turndown": "^7.2.4"
   }
 }

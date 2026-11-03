@@ -9,12 +9,17 @@ import {
   mergeEnv,
   postgres,
   project,
-  redis
+  redis,
+  stackMember
 } from '@metorial/control';
 import { baseDevEnv, pickEnv, ownMigration } from '@metorial/control/presets';
 
 export default project({
   name: '@metorial/origin',
+  stacks: {
+    cloud: stackMember(),
+    'on-prem': stackMember({ mode: 'oss' })
+  },
   group: 'oss',
   mode: 'enterprise',
   endpoints: {

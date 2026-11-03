@@ -23,7 +23,7 @@ export class DependencyDefinition {
 
 export let dependency = (identifier: string) => new DependencyDefinition({ identifier });
 
-export type ResourceType = 'redis' | 'nats' | 'etcd' | 'mail';
+export type ResourceType = 'redis' | 'nats' | 'etcd' | 'mail' | 'postgres';
 
 export class ResourceDefinition {
   constructor(
@@ -44,6 +44,7 @@ export let redis = resource('redis');
 export let nats = resource('nats');
 export let etcd = resource('etcd');
 export let mail = resource('mail');
+export let postgresServer = resource('postgres');
 
 export class DatabaseDefinition {
   constructor(

@@ -8,12 +8,17 @@ import {
   mergeEnv,
   postgres,
   project,
-  redis
+  redis,
+  stackMember
 } from '@metorial/control';
 import { baseDevEnv, ownMigration } from '@metorial/control/presets';
 
 export default project({
   name: '@metorial/synthesis',
+  stacks: {
+    cloud: stackMember(),
+    'on-prem': stackMember({ mode: 'oss' })
+  },
   group: 'oss',
   endpoints: {
     api: endpoint(52160).health('/ping').listenEnv('SYNTHESIS_API_PORT'),

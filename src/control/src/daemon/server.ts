@@ -1,9 +1,13 @@
 import { replayLines } from './logs';
 import { readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { Hub } from './hub';
+import { Hub, type StackRegistration } from './hub';
+import { detect } from '../root';
+import { discover } from '../manifest';
+import { definitions } from '../stack/plan';
 import { allowedHosts, paths, uiPort } from './home';
 import { buildId } from './build';
+import { applyCacheEnvironment, startCache, stopCache } from './cache';
 import { jobKinds, type JobKind } from './types';
 
 class HttpError extends Error {
@@ -62,6 +66,10 @@ let sse = (setup: (send: (value: unknown) => void) => () => void) => {
 
 export let startServer = async () => {
   let location = paths();
+  let cacheProblem = await startCache();
+  if (cacheProblem) console.error(`warp cache disabled: ${cacheProblem}`);
+  else applyCacheEnvironment();
+
   let hub = new Hub();
   await hub.load();
   process.setMaxListeners(0);
@@ -104,6 +112,27 @@ export let startServer = async () => {
       return json((await hub.register(root)).info());
     }
 
+    if (path === '/api/stacks' && method === 'POST') {
+      let registration = (await body(request)) as StackRegistration;
+
+      return json((await hub.registerStack(registration)).info());
+    }
+
+    if (path === '/api/stacks/definitions' && method === 'GET') {
+      let root = url.searchParams.get('root') ?? '';
+      let project = detect(root);
+
+      return json(
+        definitions(discover(project.root), project.kind).map(definition => ({
+          ...definition,
+          running: hub
+            .list()
+            .filter(item => item.info().stack?.identifier === definition.id)
+            .map(item => item.id)
+        }))
+      );
+    }
+
     if (path === '/api/events')
       return sse(send => {
         for (let runtime of hub.list()) send(runtime.info());
@@ -143,10 +172,23 @@ export let startServer = async () => {
       return json(runtime.info(), 202);
     }
 
+    if (rest === '' && method === 'DELETE') {
+      await hub.remove(runtime.id);
+
+      return json({ ok: true });
+    }
+
     if (rest === 'stop') {
       runtime.stop(payload).catch(() => {});
 
       return json(runtime.info(), 202);
+    }
+
+    if (rest === 'clean') {
+      if (!runtime.clean) return json({ error: 'only stacks can be cleaned' }, 400);
+      await runtime.clean();
+
+      return json(runtime.info());
     }
 
     if (rest === 'restart') {
@@ -282,6 +324,7 @@ export let startServer = async () => {
     if (stopping) return;
     stopping = true;
     await hub.shutdown();
+    stopCache();
     unixServer.stop(true);
     webServer.stop(true);
     rmSync(location.socket, { force: true });

@@ -46,14 +46,48 @@ export interface Database {
   auth_source?: string;
 }
 
+export interface StackDefinition {
+  id: string;
+  label: string;
+  mode: 'both' | RootKind;
+  description?: string;
+  edition?: 'cloud' | 'on-prem';
+}
+
+export interface StackMember {
+  mode: 'both' | RootKind;
+  init: boolean;
+  volumes: Record<string, string>;
+  env: Record<string, EnvValue>;
+  development: {
+    disabled: boolean;
+    container: boolean;
+    run?: string[];
+    env: Record<string, EnvValue>;
+  };
+  production: {
+    disabled: boolean;
+    image?: string;
+    dockerfile?: string;
+    workspace?: string;
+    args: Record<string, string>;
+    command?: string;
+    target?: string;
+    env: Record<string, EnvValue>;
+  };
+}
+
 export interface Manifest {
+  stack_only: boolean;
+  stack_definitions: StackDefinition[];
+  stacks: Record<string, StackMember>;
   package?: { name: string; groups: string[] };
   mode: 'both' | RootKind;
   dependencies: Dependency[];
   endpoints: Record<string, Endpoint>;
   dependency_endpoints: Record<string, Record<string, { hostname: string; port: number }>>;
   resources: {
-    type: 'redis' | 'nats' | 'etcd' | 'mail';
+    type: 'redis' | 'nats' | 'etcd' | 'mail' | 'postgres';
     env: { key: string; value: string }[];
   }[];
   groups: Record<string, string[]>;

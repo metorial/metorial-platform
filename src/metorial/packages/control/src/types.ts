@@ -89,13 +89,42 @@ export interface RawCiSuite {
   profiles?: string[];
 }
 
+export interface RawStack {
+  id: string;
+  label?: string;
+  mode?: ControlMode;
+  description?: string;
+  edition?: 'cloud' | 'on-prem';
+}
+
+export interface RawStackProduction {
+  disabled?: boolean;
+  image?: string;
+  dockerfile?: string;
+  workspace?: string;
+  args?: Record<string, string>;
+  command?: string;
+  target?: string;
+  env?: RawEnv;
+}
+
+export interface RawStackMember {
+  mode?: ControlMode;
+  init?: boolean;
+  volumes?: Record<string, string>;
+  env?: RawEnv;
+  development?: { disabled?: boolean; container?: boolean; run?: string[]; env?: RawEnv };
+  production?: RawStackProduction;
+}
+
 export interface RawManifest {
   name?: string;
+  stack_only?: boolean;
   group?: string;
   mode?: ControlMode;
   dependencies?: (string | RawDependency)[];
   endpoints?: Record<string, RawEndpoint>;
-  resources?: { type: 'redis' | 'nats' | 'etcd' | 'mail'; env?: RawKeyValue[] }[];
+  resources?: { type: 'redis' | 'nats' | 'etcd' | 'mail' | 'postgres'; env?: RawKeyValue[] }[];
   dev?: {
     prepare?: string[];
     run?: string[];
@@ -120,5 +149,7 @@ export interface RawManifest {
     resources?: { type: 'object-storage' }[];
   };
   ci?: { images?: RawCiImage[]; dockerfiles?: RawDockerfile[]; suite?: RawCiSuite };
+  stack_definitions?: RawStack[];
+  stacks?: Record<string, RawStackMember>;
   [key: string]: unknown;
 }

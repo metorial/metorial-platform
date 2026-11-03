@@ -8,12 +8,17 @@ import {
   mergeEnv,
   postgres,
   project,
-  redis
+  redis,
+  stackMember
 } from '@metorial/control';
 import { baseDevEnv, ownMigration } from '@metorial/control/presets';
 
 export default project({
   name: '@metorial/signal',
+  stacks: {
+    cloud: stackMember(),
+    'on-prem': stackMember({ mode: 'oss' })
+  },
   group: 'oss',
   endpoints: {
     api: endpoint(52050).health('/ping').listenEnv('SIGNAL_API_PORT')

@@ -1,16 +1,17 @@
 import {
   bunService,
   ciSuite,
-  dockerfile,
   dependency,
   dev,
+  dockerfile,
   e2e,
   endpoint,
   mergeEnv,
   mongodb,
   nats,
   objectStorage,
-  project
+  project,
+  stackMember
 } from '@metorial/control';
 import {
   baseDevEnv,
@@ -22,6 +23,9 @@ import {
 
 export default project({
   name: '@metorial/app-api',
+  stacks: {
+    'on-prem': stackMember()
+  },
   group: 'oss',
   mode: 'oss',
   endpoints: {

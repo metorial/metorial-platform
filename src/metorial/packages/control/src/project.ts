@@ -11,7 +11,10 @@ import type {
   RawDockerfile,
   RawCiSuite,
   RawEnv,
-  RawManifest
+  RawManifest,
+  RawStack,
+  RawStackMember,
+  RawStackProduction
 } from './types';
 
 export class DevDefinition {
@@ -88,6 +91,70 @@ export class CiSuiteDefinition {
 
 export let ciSuite = (spec: RawCiSuite) => new CiSuiteDefinition(spec);
 
+export class StackDefinition {
+  constructor(readonly spec: RawStack) {}
+}
+
+export let stack = (spec: RawStack) => new StackDefinition(spec);
+
+export interface StackMemberInput {
+  mode?: 'oss' | 'enterprise';
+  init?: boolean;
+  volumes?: Record<string, string>;
+  env?: EnvInput;
+  development?:
+    | false
+    | {
+        container?: boolean;
+        run?: string[];
+        env?: EnvInput;
+      };
+  production?:
+    | false
+    | {
+        image?: string;
+        dockerfile?: string;
+        workspace?: string;
+        args?: Record<string, string>;
+        command?: string;
+        target?: string;
+        env?: EnvInput;
+      };
+}
+
+export class StackMemberDefinition {
+  constructor(readonly spec: RawStackMember) {}
+}
+
+export let stackMember = (input: StackMemberInput = {}) => {
+  let production: RawStackProduction | undefined;
+  if (input.production === false) production = { disabled: true };
+  else if (input.production) {
+    let { env, ...rest } = input.production;
+    production = strip({ ...rest, env: env ? compileEnv(env) : undefined });
+  }
+
+  let development: RawStackMember['development'];
+  if (input.development === false) development = { disabled: true };
+  else if (input.development)
+    development = strip({
+      container: input.development.container,
+      run: input.development.run,
+      env: input.development.env ? compileEnv(input.development.env) : undefined
+    });
+
+  return new StackMemberDefinition(
+    strip({
+      mode: input.mode,
+      init: input.init,
+      volumes: input.volumes,
+      env: input.env ? compileEnv(input.env) : undefined,
+      development,
+      production
+    })
+  );
+};
+
 export interface CiInput {
   images?: CiImageDefinition[];
   dockerfiles?: DockerfileDefinition[];
@@ -107,11 +174,14 @@ export interface ProjectInput {
   health?: HealthDefinition[];
   e2e?: E2eDefinition;
   ci?: CiInput;
+  stacks?: Record<string, StackMemberDefinition>;
+  stackOnly?: boolean;
 }
 
 export interface RootProjectInput {
   mode: 'oss' | 'enterprise';
   ci?: CiInput;
+  stacks?: StackDefinition[];
 }
 
 export let PROJECT_BRAND = Symbol.for('metorial.control.project');
@@ -175,6 +245,7 @@ export let project = (input: ProjectInput): ProjectDefinition =>
   new ProjectDefinition(
     strip({
       name: input.name,
+      stack_only: input.stackOnly,
       group: input.group,
       mode: input.mode,
       dependencies: input.dependencies?.map(item => item.toRaw()),
@@ -189,11 +260,22 @@ export let project = (input: ProjectInput): ProjectDefinition =>
       cleanup: input.cleanup?.spec,
       health: input.health?.map(item => item.spec),
       e2e: compileE2e(input.e2e?.input),
-      ci: compileCi(input.ci)
+      ci: compileCi(input.ci),
+      stacks: input.stacks
+        ? Object.fromEntries(
+            Object.entries(input.stacks).map(([id, member]) => [id, member.spec])
+          )
+        : undefined
     })
   );
 
 export let rootProject = (input: RootProjectInput): ProjectDefinition =>
-  new ProjectDefinition(strip({ mode: input.mode, ci: compileCi(input.ci) }));
+  new ProjectDefinition(
+    strip({
+      mode: input.mode,
+      ci: compileCi(input.ci),
+      stack_definitions: input.stacks?.map(item => item.spec)
+    })
+  );
 
 export let compile = (definition: ProjectDefinition): RawManifest => definition.raw;

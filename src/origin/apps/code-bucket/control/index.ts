@@ -5,12 +5,17 @@ import {
   endpoint,
   mergeEnv,
   project,
-  redis
+  redis,
+  stackMember
 } from '@metorial/control';
 import { baseDevEnv, pickEnv } from '@metorial/control/presets';
 
 export default project({
   name: '@metorial/code-bucket-service-generated',
+  stacks: {
+    cloud: stackMember(),
+    'on-prem': stackMember({ development: { container: true } })
+  },
   group: 'oss',
   endpoints: {
     http: endpoint(52091)

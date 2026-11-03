@@ -8,12 +8,17 @@ import {
   mergeEnv,
   postgres,
   project,
-  redis
+  redis,
+  stackMember
 } from '@metorial/control';
 import { baseDevEnv, pickEnv, ownMigration } from '@metorial/control/presets';
 
 export default project({
   name: '@metorial/nebula',
+  stacks: {
+    cloud: stackMember(),
+    'on-prem': stackMember({ mode: 'oss' })
+  },
   group: 'oss',
   endpoints: {
     api: endpoint(52170).health('/ping').listenEnv('NEBULA_API_PORT')

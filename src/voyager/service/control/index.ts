@@ -7,12 +7,17 @@ import {
   endpoint,
   postgres,
   project,
-  redis
+  redis,
+  stackMember
 } from '@metorial/control';
 import { baseDevEnv, ownMigration } from '@metorial/control/presets';
 
 export default project({
   name: '@metorial/voyager',
+  stacks: {
+    cloud: stackMember(),
+    'on-prem': stackMember({ mode: 'oss' })
+  },
   group: 'oss',
   endpoints: {
     rpc: endpoint(52060).health('/ping').listenEnv('VOYAGER_PORT')

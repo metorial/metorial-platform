@@ -65,7 +65,9 @@ let buildSpec = strictObject({
   health: v.optional(v.array(strictObject({ port, path: str }))),
   migrations: v.optional(v.array(migration)),
   assets: v.optional(v.array(strictObject({ from: str, to: optionalString }))),
-  packages: v.optional(strictObject({ build: v.optional(strings), runtime: v.optional(strings) })),
+  packages: v.optional(
+    strictObject({ build: v.optional(strings), runtime: v.optional(strings) })
+  ),
   modules: v.optional(v.enumOf(['production', 'none'])),
   sentry: v.optional(v.boolean()),
   node: v.optional(v.boolean()),
@@ -86,7 +88,7 @@ let keyValue = strictObject({ key: str, value: str });
 let healthSpec = strictObject({ path: str, status: v.optional(port) });
 
 let resource = strictObject({
-  type: v.enumOf(['redis', 'nats', 'etcd', 'mail']),
+  type: v.enumOf(['redis', 'nats', 'etcd', 'mail', 'postgres']),
   env: v.optional(v.array(keyValue))
 });
 
@@ -103,7 +105,49 @@ let database = (mongo: boolean) =>
     ...(mongo ? { auth_source: optionalString } : {})
   });
 
+let stackId = v.string();
+
+let stackMember = strictObject({
+  mode: v.optional(v.enumOf(['both', 'oss', 'enterprise'])),
+  init: v.optional(v.boolean()),
+  volumes: v.optional(v.record(str)),
+  env: v.optional(env),
+  development: v.optional(
+    strictObject({
+      disabled: v.optional(v.boolean()),
+      container: v.optional(v.boolean()),
+      run: v.optional(strings),
+      env: v.optional(env)
+    })
+  ),
+  production: v.optional(
+    strictObject({
+      disabled: v.optional(v.boolean()),
+      image: optionalString,
+      dockerfile: optionalString,
+      workspace: optionalString,
+      args: v.optional(v.record(str)),
+      command: optionalString,
+      target: optionalString,
+      env: v.optional(env)
+    })
+  )
+});
+
 export let manifestSchema = strictObject({
+  stack_definitions: v.optional(
+    v.array(
+      strictObject({
+        id: stackId,
+        label: optionalString,
+        mode: v.optional(v.enumOf(['both', 'oss', 'enterprise'])),
+        description: optionalString,
+        edition: v.optional(v.enumOf(['cloud', 'on-prem']))
+      })
+    )
+  ),
+  stack_only: v.optional(v.boolean()),
+  stacks: v.optional(v.record(stackMember)),
   name: optionalString,
   group: optionalString,
   mode: v.optional(v.enumOf(['both', 'oss', 'enterprise'])),
@@ -216,7 +260,11 @@ export let manifestSchema = strictObject({
       ),
       dockerfiles: v.optional(
         v.array(
-          strictObject({ dockerfile: optionalString, workspace: optionalString, build: buildSpec })
+          strictObject({
+            dockerfile: optionalString,
+            workspace: optionalString,
+            build: buildSpec
+          })
         )
       ),
       suite: v.optional(

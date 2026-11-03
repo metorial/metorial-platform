@@ -549,7 +549,7 @@
           .map(w => {
             let svc = w.units.filter(u => u.kind === 'service'),
               up = svc.filter(u => u.state === 'running').length;
-            return `<div class="ws ${w.id === state.cur ? 'active' : ''}" data-ws="${w.id}"><b><i class="dot ${phaseDot(w)}"></i>${w.id}</b><span class="sub mono">${esc(w.branch)} · ${svc.length ? up + '/' + svc.length + ' services' : w.phase}</span></div>`;
+            return `<div class="ws ${w.id === state.cur ? 'active' : ''}" data-ws="${w.id}"><b><i class="dot ${phaseDot(w)}"></i>${w.id}${w.kind === 'stack' ? ` <span class="d">stack · ${w.stack.mode === 'production' ? 'prod' : 'dev'}</span>` : ''}</b><span class="sub mono">${esc(w.branch)} · ${svc.length ? up + '/' + svc.length + ' services' : w.phase}</span></div>`;
           })
           .join('');
         document
@@ -586,33 +586,34 @@
           })
           .join('');
         let dbOff = w.phase !== 'running' ? 'disabled' : '';
+        let isStack = w.kind === 'stack';
 
         let keep = renderedFor === state.cur ? document.querySelector('.right') : null;
         renderedFor = state.cur;
         $('main').innerHTML = `
     <header>
       <h2><i class="dot ${phaseDot(w)}"></i>${w.id}</h2>
-      <span class="meta mono">${esc(w.branch)} · ${w.hostname} · ${w.phase}${running ? ' · up ' + since(w.startedAt) : ''}</span>
+      <span class="meta mono">${isStack ? `stack ${esc(w.stack.identifier)} (${w.stack.mode}) · ` : ''}${esc(w.branch)} · ${w.hostname} · ${w.phase}${running ? ' · up ' + since(w.startedAt) : ''}</span>
       <span class="spacer"></span>
       <label title="Also stop/restart docker infrastructure"><input type="checkbox" id="infraBox" ${state.infra ? 'checked' : ''}>incl. infra</label>
       <button id="bStart" ${running || busy ? 'disabled' : ''}>Start</button>
-      <button id="bRestart" ${w.phase === 'running' || w.phase === 'failed' ? '' : 'disabled'}>Restart workspace</button>
+      <button id="bRestart" ${w.phase === 'running' || w.phase === 'failed' ? '' : 'disabled'}>Restart ${isStack ? 'stack' : 'workspace'}</button>
       <button id="bStop" class="danger" ${w.phase === 'running' ? '' : 'disabled'}>Stop</button>
     </header>
     ${w.error ? `<div class="err mono">${esc(w.error)}</div>` : ''}
-    <div class="links">${links || `<span style="color:var(--mute)">${w.phase === 'running' ? 'no links declared' : 'links appear once the workspace has started'}</span>`}</div>
+    <div class="links">${links || `<span style="color:var(--mute)">${w.phase === 'running' ? 'no links declared' : 'links appear once the ' + (w.kind === 'stack' ? 'stack' : 'workspace') + ' has started'}</span>`}</div>
     <div class="body">
       <section class="left">
         <div class="sec">Services <span class="acts"><button class="sm" data-all="svc" ${dbOff}>Restart all</button></span></div>
         ${svc.map(row).join('') || '<div class="job">none</div>'}
         <div class="sec">Infrastructure <span class="acts"><button class="sm" data-all="infra" ${dbOff}>Restart all</button></span></div>
         ${infra.map(row).join('') || '<div class="job">none</div>'}
-        <div class="sec">Database &amp; tasks</div>
+        ${isStack ? '' : `<div class="sec">Database &amp; tasks</div>
         <div style="padding:6px 20px;display:flex;gap:6px;flex-wrap:wrap">
           ${['db:generate', 'db:push', 'db:migrate', 'prepare'].map(k => `<button class="sm" data-job="${k}" ${dbOff}>${k.replace(':', ' ')}</button>`).join('')}
         </div>
         <div class="sec">Recent jobs</div>
-        ${w.jobs.map(j => `<div class="job mono"><span class="${j.state === 'done' ? 'ok' : j.state === 'failed' ? 'bad' : ''}">${j.state === 'done' ? '✓' : j.state === 'failed' ? '✖' : '…'}</span>${j.kind}<span style="margin-left:auto">${j.endedAt ? ((j.endedAt - j.startedAt) / 1000).toFixed(1) + 's' : 'running'}</span></div>`).join('') || '<div class="job">none</div>'}
+        ${w.jobs.map(j => `<div class="job mono"><span class="${j.state === 'done' ? 'ok' : j.state === 'failed' ? 'bad' : ''}">${j.state === 'done' ? '✓' : j.state === 'failed' ? '✖' : '…'}</span>${j.kind}<span style="margin-left:auto">${j.endedAt ? ((j.endedAt - j.startedAt) / 1000).toFixed(1) + 's' : 'running'}</span></div>`).join('') || '<div class="job">none</div>'}`}
       </section>
       <section class="right">
         <div class="tabs" id="tabs"></div>
@@ -683,7 +684,13 @@
       let renderTabs = () => {
         let w = cur();
         if (!w) return;
-        let names = ['*', ...w.units.map(u => u.name), 'jobs', 'prepare', 'infra', 'control'];
+        let names = [
+          '*',
+          ...w.units.map(u => u.name),
+          ...(w.kind === 'stack'
+            ? ['runner', 'build', 'infra', 'control']
+            : ['jobs', 'prepare', 'infra', 'control'])
+        ];
         $('tabs').innerHTML =
           names
             .map(

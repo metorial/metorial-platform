@@ -3,8 +3,11 @@ import { dirname, isAbsolute, join } from 'node:path';
 import { normalizeBuild } from './dockerfile/normalize';
 import { MARKER } from './marker';
 import { packageScripts, readJson, sortedEntries, walk, walkManifests } from './files';
+import { validateStacks } from './stack/validate';
 import { externalSchema, manifestSchema, parse, type RawManifest } from './schema';
 import type { Database, EnvValue, LoadedManifest, Manifest, RootKind } from './types';
+
+export let stackIdentifier = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 export let applies = (manifest: Manifest, kind: RootKind) =>
   manifest.mode === 'both' || manifest.mode === kind;
@@ -70,6 +73,39 @@ export let build = (path: string, raw: RawManifest): LoadedManifest => {
 
   let dev = raw.name !== undefined ? raw.dev : undefined;
   let manifest: Manifest = {
+    stack_definitions: (raw.stack_definitions ?? []).map(item => ({
+      ...item,
+      label: item.label ?? item.id,
+      mode: item.mode ?? 'both'
+    })),
+    stack_only: raw.stack_only ?? false,
+    stacks: Object.fromEntries(
+      sortedEntries(raw.stacks ?? {}).map(([id, member]) => [
+        id,
+        {
+          mode: member.mode ?? 'both',
+          init: member.init ?? false,
+          volumes: member.volumes ?? {},
+          env: member.env ?? {},
+          development: {
+            disabled: member.development?.disabled ?? false,
+            container: member.development?.container ?? false,
+            run: member.development?.run,
+            env: member.development?.env ?? {}
+          },
+          production: {
+            disabled: member.production?.disabled ?? false,
+            image: member.production?.image,
+            dockerfile: member.production?.dockerfile,
+            workspace: member.production?.workspace,
+            args: member.production?.args ?? {},
+            command: member.production?.command,
+            target: member.production?.target,
+            env: member.production?.env ?? {}
+          }
+        }
+      ])
+    ),
     package:
       raw.name !== undefined
         ? { name: raw.name, groups: raw.group ? [raw.group] : [] }
@@ -237,6 +273,30 @@ export let validate = (manifest: Manifest, path: string, scripts: string[] = [])
     if (!existsSync(join(dirname(dirname(path)), 'package.json')))
       fail('control/index.ts must be colocated with package.json');
   } else if (Object.keys(manifest.endpoints).length) fail('endpoints require a named package');
+
+  if (manifest.stack_definitions.length && manifest.package)
+    fail('stack definitions can only be declared by the root project');
+
+  unique(
+    manifest.stack_definitions.map(item => item.id),
+    'stack definition'
+  );
+
+  for (let definition of manifest.stack_definitions)
+    if (!stackIdentifier.test(definition.id))
+      fail(`invalid stack identifier ${JSON.stringify(definition.id)}`);
+
+  for (let [id, member] of sortedEntries(manifest.stacks)) {
+    if (!stackIdentifier.test(id)) fail(`invalid stack identifier ${JSON.stringify(id)}`);
+
+    if (!manifest.package) fail('stack membership requires a named package');
+
+    for (let values of [member.env, member.development.env, member.production.env])
+      for (let [key, value] of sortedEntries(values)) envValue(key, value);
+
+    if (member.development.disabled && member.production.disabled)
+      fail(`stack ${JSON.stringify(id)} disables both development and production`);
+  }
 
   let scriptNames = [...scripts, ...manifest.e2e.start];
   if (scriptNames.length) {
@@ -418,8 +478,13 @@ export let healthChecks = (manifest: Manifest) => [
   ...manifest.health
 ];
 
-export let discover = (root: string): LoadedManifest[] => {
-  let manifests = loadMany(walkManifests(root));
+export let discover = (
+  root: string,
+  options: { stackOnly?: boolean } = {}
+): LoadedManifest[] => {
+  let manifests = loadMany(walkManifests(root)).filter(
+    loaded => options.stackOnly || !loaded.manifest.stack_only
+  );
   let packages = new Map<string, LoadedManifest>();
 
   for (let loaded of manifests) {
@@ -503,6 +568,7 @@ export let discover = (root: string): LoadedManifest[] => {
 
   refreshDependencyEndpoints(manifests);
   validateDependencyEndpoints(manifests);
+  validateStacks(manifests);
 
   return manifests;
 };
