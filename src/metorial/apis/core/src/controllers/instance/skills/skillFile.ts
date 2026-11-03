@@ -1,10 +1,12 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v, type ValidationTypeValue } from '@lowerdeck/validation';
 import { type SkillFileChange, skillFileService } from '@metorial/module-skill';
+import { skillMcpAvailabilityService } from '@metorial/module-consumer-entities';
 import {
   skillFileChangePresenter,
   skillFileContentPresenter,
-  skillFilePresenter
+  skillFilePresenter,
+  skillMcpAvailabilityPresenter
 } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
@@ -132,6 +134,28 @@ export let skillFileController = Controller.create(
           { items: skillFiles, pagination: { hasNextPage: false, hasPreviousPage: false } },
           skillFile => skillFilePresenter.present({ skillFile, skill: ctx.skill })
         );
+      }),
+
+    getMcpAvailability: skillGroup
+      .get(instancePath('skills/:skillId/mcp-availability', 'skills.mcpAvailability.get'), {
+        name: 'Get skill MCP availability',
+        description:
+          'Returns whether apps connected over MCP can see the skill. Skills with too many files or too large a total size are left out of MCP connections and keep working everywhere else.'
+      })
+      .use(hasFlags(['skills-enabled']))
+      .use(checkAccess({ possibleScopes: [...skillReadScopes] }))
+      .use(requireConsumerTokenForPublishableKey())
+      .output(skillMcpAvailabilityPresenter)
+      .do(async ctx => {
+        let skillMcpAvailability = await skillMcpAvailabilityService.getSkillMcpAvailability({
+          ...(await getInstanceCargoAccess(ctx)),
+          skill: ctx.skill.localSkill
+        });
+
+        return skillMcpAvailabilityPresenter.present({
+          skillMcpAvailability,
+          skill: ctx.skill
+        });
       }),
 
     get: skillGroup

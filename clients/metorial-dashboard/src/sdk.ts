@@ -152,6 +152,7 @@ import {
   MetorialDashboardInstanceSkillsGroupsItemsEndpoint,
   MetorialDashboardInstanceSkillsImportsEndpoint,
   MetorialDashboardInstanceSkillsItemsEndpoint,
+  MetorialDashboardInstanceSkillsMcpAvailabilityEndpoint,
   MetorialDashboardInstanceSkillsMarketplacesEndpoint,
   MetorialDashboardInstanceSkillsMarketplacesPluginsEndpoint,
   MetorialDashboardInstanceSkillsMarketplacesRepositoriesEndpoint,
@@ -912,6 +913,7 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     configurations: new MetorialDashboardInstanceSkillsConfigurationsEndpoint(manager),
     forkSyncs: new MetorialDashboardInstanceSkillsForkSyncsEndpoint(manager),
     items: new MetorialDashboardInstanceSkillsItemsEndpoint(manager),
+    mcpAvailability: new MetorialDashboardInstanceSkillsMcpAvailabilityEndpoint(manager),
     mergeRequests: Object.assign(
       new MetorialDashboardInstanceSkillsMergeRequestsEndpoint(manager),
       {

@@ -23,6 +23,7 @@ import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { SkillMcpLimitsBadge } from '../components/skillMcpLimitsBadge';
 import { SkillSharePopover, type SkillSharePanelContext } from '../components/skillSharePanel';
 import { showSkillAgentFormModal } from './skillAgents';
 import { showSkillItemPickerPanel, type SkillItemPickerKind } from './skillLinkProviders';
@@ -569,6 +570,7 @@ export let SkillWorkspaceLayout = (p: SkillWorkspaceLayoutProps) => {
             onNameChange={p.onNameChange}
           />
           {p.skill.visibility ? <Visibility>{p.skill.visibility}</Visibility> : null}
+          <SkillMcpLimitsBadge instanceId={p.instanceId} skillId={p.skill.id} />
         </Breadcrumbs>
 
         <NavActions>
