@@ -5,7 +5,14 @@ import type {
   DependencyDefinition,
   ResourceDefinition
 } from './resources';
-import type { ControlMode, RawCiImage, RawCiSuite, RawEnv, RawManifest } from './types';
+import type {
+  ControlMode,
+  RawCiImage,
+  RawDockerfile,
+  RawCiSuite,
+  RawEnv,
+  RawManifest
+} from './types';
 
 export class DevDefinition {
   constructor(
@@ -69,6 +76,12 @@ export class CiImageDefinition {
 
 export let ciImage = (spec: RawCiImage) => new CiImageDefinition(spec);
 
+export class DockerfileDefinition {
+  constructor(readonly spec: RawDockerfile) {}
+}
+
+export let dockerfile = (spec: RawDockerfile) => new DockerfileDefinition(spec);
+
 export class CiSuiteDefinition {
   constructor(readonly spec: RawCiSuite) {}
 }
@@ -77,6 +90,7 @@ export let ciSuite = (spec: RawCiSuite) => new CiSuiteDefinition(spec);
 
 export interface CiInput {
   images?: CiImageDefinition[];
+  dockerfiles?: DockerfileDefinition[];
   suite?: CiSuiteDefinition;
 }
 
@@ -118,6 +132,7 @@ let compileCi = (ci: CiInput | undefined): RawManifest['ci'] =>
   ci
     ? strip({
         images: ci.images?.map(image => image.spec),
+        dockerfiles: ci.dockerfiles?.map(item => item.spec),
         suite: ci.suite?.spec
       })
     : undefined;

@@ -1,4 +1,5 @@
 import {
+  bunService,
   ciImage,
   ciSuite,
   dependency,
@@ -10,7 +11,7 @@ import {
   project,
   redis
 } from '@metorial/control';
-import { baseDevEnv, pickEnv } from '@metorial/control/presets';
+import { baseDevEnv, pickEnv, ownMigration } from '@metorial/control/presets';
 
 export default project({
   name: '@metorial/shuttle',
@@ -70,10 +71,17 @@ export default project({
       ciImage({
         name: 'shuttle',
         group: 'oss',
-        dockerfile: 'Dockerfile',
         image: 'metorial/mte-shuttle',
         ecr: 'metorial-enterprise-saas/mte-shuttle',
-        canonical: 'ghcr.io/metorial/shuttle'
+        canonical: 'ghcr.io/metorial/shuttle',
+        build: bunService({
+          ports: [52080, 52081],
+          health: [
+            { port: 52080, path: '/ping' },
+            { port: 12121, path: '/' }
+          ],
+          migrations: [ownMigration('shuttle', '@metorial/shuttle', { prefix: 'SHUTTLE' })]
+        })
       })
     ],
     suite: ciSuite({ name: 'shuttle', runner: 'compose', profiles: ['infra', 'service'] })

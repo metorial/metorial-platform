@@ -3,11 +3,24 @@ import * as environment from './environment';
 import * as manifest from './manifest';
 import * as workspace from './workspace';
 import * as docker from './docker';
+import { generate as generateDockerfiles } from './dockerfile/generate';
 import * as turbo from './turbo';
 import * as commands from './process';
 import * as infrastructure from './infrastructure';
 import * as proxy from './proxy';
 import type { Environment, LoadedManifest, ProjectRoot } from './types';
+
+export let syncDockerfiles = (project: ProjectRoot, manifests: LoadedManifest[]) => {
+  try {
+    return generateDockerfiles(project, { write: true }, manifests).changed;
+  } catch (error) {
+    commands.say(
+      `could not generate Dockerfiles: ${error instanceof Error ? error.message : error}`
+    );
+
+    return [];
+  }
+};
 
 export let selection = async (
   project: ProjectRoot,
@@ -18,6 +31,7 @@ export let selection = async (
 
   let manifests = manifest.discover(project.root);
   await workspace.configureManifests(project, manifests);
+  if (initialize) syncDockerfiles(project, manifests);
 
   let externals = manifest.loadExternals(project.root, manifests);
   let selected = manifest.selectWithDependencies(

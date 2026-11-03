@@ -12,6 +12,8 @@ import * as docker from './docker';
 import * as cleanup from './cleanup';
 import * as e2e from './e2e';
 import { inventory } from './ci';
+import { generate as generateDockerfiles } from './dockerfile/generate';
+import { relativePath } from './packages';
 import * as daemon from './daemon/commands';
 import type { ProjectRoot } from './types';
 
@@ -57,6 +59,7 @@ let commandOptions: Record<
   docker: {},
   'docker stop': {},
   'docker reset': { flags: ['yes', 'dry-run'] },
+  'docker generate': { flags: ['check'], max: 0 },
   workspace: {},
   'workspace create': { flags: ['no-open'], min: 1, max: 1 },
   'workspace list': { max: 0 },
@@ -375,6 +378,26 @@ export let run = async (args = process.argv.slice(2), cwd = process.cwd()) => {
       return;
     }
     case 'docker': {
+      if (parsed.subcommand === 'generate') {
+        let result = generateDockerfiles(project, { write: !flags.has('check') });
+
+        if (flags.has('check')) {
+          if (result.changed.length)
+            throw new Error(
+              `generated Dockerfiles are out of date: ${result.changed.map(path => relativePath(project.root, path)).join(', ')}\nrun \`control docker generate\``
+            );
+          console.log(`${result.files.length} generated Dockerfile(s) are up to date`);
+
+          return;
+        }
+
+        console.log(
+          `generated ${result.files.length} Dockerfile(s), ${result.changed.length} changed`
+        );
+
+        return;
+      }
+
       let { selected, env } = await dev.selection(project, positional, false);
       let projects = docker.composeProjects(project.root, selected);
 

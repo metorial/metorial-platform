@@ -1,3 +1,4 @@
+import type { BuildSpec } from './dockerfile/types';
 export type RootKind = 'enterprise' | 'oss';
 
 export interface ProjectRoot {
@@ -94,7 +95,9 @@ export interface Manifest {
       source?: string;
       platform: string;
       stagingOnly: boolean;
+      build?: BuildSpec;
     }[];
+    dockerfiles: { dockerfile?: string; workspace?: string; build: BuildSpec }[];
     suite?: {
       name: string;
       runner: string;

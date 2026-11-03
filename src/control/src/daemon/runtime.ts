@@ -348,6 +348,8 @@ export class WorkspaceRuntime {
 
       try {
         next = await dev.selection(this.project, this.lastStart.selectors ?? [], false);
+        for (let path of dev.syncDockerfiles(this.project, next.manifests))
+          this.logs.system('control', `regenerated ${relative(this.project.root, path)}`);
         if (!next.selected.length) throw new Error('no control manifests were selected');
         packages = turbo.plan(next.selected, this.project.root, next.env);
         if (!packages.length) throw new Error('selected manifests contain no run commands');

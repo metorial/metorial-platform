@@ -1,4 +1,5 @@
 import {
+  bunService,
   ciImage,
   dependency,
   dev,
@@ -9,7 +10,7 @@ import {
   project,
   redis
 } from '@metorial/control';
-import { baseDevEnv } from '@metorial/control/presets';
+import { baseDevEnv, ownMigration } from '@metorial/control/presets';
 
 export default project({
   name: '@metorial/slates-registry',
@@ -56,10 +57,24 @@ export default project({
       ciImage({
         name: 'slates-registry',
         group: 'oss',
-        dockerfile: 'Dockerfile',
         image: 'metorial/mte-slates-registry',
         ecr: 'metorial-enterprise-saas/mte-slates-registry',
-        canonical: 'ghcr.io/metorial/slates-registry'
+        canonical: 'ghcr.io/metorial/slates-registry',
+        build: bunService({
+          tasks: ['prisma:generate', 'server:build', 'admin:build'],
+          ports: [52040, 52041, 52042],
+          health: [
+            { port: 52040, path: '/ping' },
+            { port: 52041, path: '/ping' },
+            { port: 12121, path: '/' }
+          ],
+          migrations: [
+            ownMigration('slates-registry', '@metorial/slates-registry', {
+              prefix: 'SLATES_REGISTRY',
+              path: 'prisma/schema.prisma'
+            })
+          ]
+        })
       })
     ]
   }

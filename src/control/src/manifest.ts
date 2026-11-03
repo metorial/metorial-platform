@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, isAbsolute, join } from 'node:path';
+import { normalizeBuild } from './dockerfile/normalize';
 import { MARKER } from './marker';
 import { packageScripts, readJson, sortedEntries, walk, walkManifests } from './files';
 import { externalSchema, manifestSchema, parse, type RawManifest } from './schema';
@@ -122,9 +123,14 @@ export let build = (path: string, raw: RawManifest): LoadedManifest => {
     ci: {
       images: (raw.ci?.images ?? []).map(image => ({
         ...image,
+        build: image.build ? normalizeBuild(image.build) : undefined,
         group: image.group ?? 'oss',
         platform: image.platform ?? 'linux/amd64',
         stagingOnly: image.stagingOnly ?? false
+      })),
+      dockerfiles: (raw.ci?.dockerfiles ?? []).map(item => ({
+        ...item,
+        build: normalizeBuild(item.build)
       })),
       suite: raw.ci?.suite
         ? {

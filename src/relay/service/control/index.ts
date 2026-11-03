@@ -1,4 +1,5 @@
 import {
+  bunService,
   ciImage,
   ciSuite,
   dev,
@@ -9,7 +10,7 @@ import {
   project,
   redis
 } from '@metorial/control';
-import { baseDevEnv } from '@metorial/control/presets';
+import { baseDevEnv, ownMigration } from '@metorial/control/presets';
 
 export default project({
   name: '@metorial/relay',
@@ -34,10 +35,19 @@ export default project({
       ciImage({
         name: 'relay',
         group: 'oss',
-        dockerfile: 'Dockerfile',
         image: 'metorial/mte-relay',
         ecr: 'metorial-enterprise-saas/mte-relay',
-        canonical: 'ghcr.io/metorial/relay'
+        canonical: 'ghcr.io/metorial/relay',
+        build: bunService({
+          ports: [52110],
+          health: [
+            { port: 52110, path: '/ping' },
+            { port: 12121, path: '/' }
+          ],
+          migrations: [
+            ownMigration('relay', '@metorial/relay', { path: 'prisma/schema.prisma' })
+          ]
+        })
       })
     ],
     suite: ciSuite({ name: 'relay', runner: 'compose', profiles: ['infra', 'service'] })

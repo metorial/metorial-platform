@@ -1,5 +1,7 @@
 import {
+  bunService,
   dependency,
+  dockerfile,
   dev,
   e2e,
   healthCheck,
@@ -9,7 +11,13 @@ import {
   postgres,
   project
 } from '@metorial/control';
-import { baseDevEnv, pickEnv, platformEnv, sharedDatabases } from '@metorial/control/presets';
+import {
+  baseDevEnv,
+  migrations,
+  pickEnv,
+  platformEnv,
+  sharedDatabases
+} from '@metorial/control/presets';
 
 export default project({
   name: '@metorial-subspace/app-worker',
@@ -62,5 +70,16 @@ export default project({
       HEALTH_PORT: '12131',
       METORIAL_ENABLED_FLAGS: '*'
     }
-  })
+  }),
+  ci: {
+    dockerfiles: [
+      dockerfile({
+        build: bunService({
+          include: ['@metorial/db', '@metorial/multi-region', '@metorial-subspace/db'],
+          health: [{ port: 12121, path: '/' }],
+          migrations: [migrations.core, migrations.global, migrations.subspace]
+        })
+      })
+    ]
+  }
 });

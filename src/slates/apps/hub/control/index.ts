@@ -1,4 +1,5 @@
 import {
+  bunService,
   ciImage,
   ciSuite,
   dependency,
@@ -11,7 +12,7 @@ import {
   project,
   redis
 } from '@metorial/control';
-import { baseDevEnv, pickEnv, services } from '@metorial/control/presets';
+import { baseDevEnv, pickEnv, services, ownMigration } from '@metorial/control/presets';
 
 export default project({
   name: '@metorial/slates',
@@ -94,10 +95,21 @@ export default project({
       ciImage({
         name: 'slates-hub',
         group: 'oss',
-        dockerfile: 'Dockerfile',
         image: 'metorial/mte-slates-hub',
         ecr: 'metorial-enterprise-saas/mte-slates-hub',
-        canonical: 'ghcr.io/metorial/slates-hub'
+        canonical: 'ghcr.io/metorial/slates-hub',
+        build: bunService({
+          tasks: ['prisma:generate', 'server:build', 'admin:build'],
+          ports: [52045, 52046, 52047],
+          health: [
+            { port: 52045, path: '/ping' },
+            { port: 52046, path: '/ping' },
+            { port: 12121, path: '/' }
+          ],
+          migrations: [
+            ownMigration('slates-hub', '@metorial/slates', { prefix: 'SLATES_HUB' })
+          ]
+        })
       })
     ],
     suite: ciSuite({ name: 'slates-hub', runner: 'compose', profiles: ['hub', 'infra'] })

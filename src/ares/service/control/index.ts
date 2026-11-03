@@ -1,4 +1,5 @@
 import {
+  bunService,
   ciImage,
   dependency,
   dev,
@@ -10,7 +11,7 @@ import {
   project,
   redis
 } from '@metorial/control';
-import { baseDevEnv } from '@metorial/control/presets';
+import { baseDevEnv, ownMigration } from '@metorial/control/presets';
 
 export default project({
   name: '@metorial/ares',
@@ -60,10 +61,19 @@ export default project({
       ciImage({
         name: 'ares',
         group: 'oss',
-        dockerfile: 'Dockerfile',
         image: 'metorial/mte-ares',
         ecr: 'metorial-enterprise-saas/mte-ares',
-        canonical: 'ghcr.io/metorial/ares'
+        canonical: 'ghcr.io/metorial/ares',
+        build: bunService({
+          tasks: ['prisma:generate', 'server:build', 'frontend:build'],
+          ports: [52120, 52121, 52122, 52123, 12121],
+          health: [
+            { port: 52120, path: '/ping' },
+            { port: 12121, path: '/' }
+          ],
+          assets: [{ from: 'frontend/auth/dist' }, { from: 'frontend/admin/dist' }],
+          migrations: [ownMigration('ares', '@metorial/ares')]
+        })
       })
     ]
   }

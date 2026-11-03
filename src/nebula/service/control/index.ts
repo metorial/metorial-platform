@@ -1,4 +1,5 @@
 import {
+  bunService,
   ciImage,
   ciSuite,
   dev,
@@ -9,7 +10,7 @@ import {
   project,
   redis
 } from '@metorial/control';
-import { baseDevEnv, pickEnv } from '@metorial/control/presets';
+import { baseDevEnv, pickEnv, ownMigration } from '@metorial/control/presets';
 
 export default project({
   name: '@metorial/nebula',
@@ -41,10 +42,17 @@ export default project({
       ciImage({
         name: 'nebula',
         group: 'oss',
-        dockerfile: 'Dockerfile',
         image: 'metorial/mte-nebula',
         ecr: 'metorial-enterprise-saas/mte-nebula',
-        canonical: 'ghcr.io/metorial/nebula'
+        canonical: 'ghcr.io/metorial/nebula',
+        build: bunService({
+          ports: [52170],
+          health: [
+            { port: 52170, path: '/ping' },
+            { port: 12121, path: '/' }
+          ],
+          migrations: [ownMigration('nebula', '@metorial/nebula', { prefix: 'NEBULA' })]
+        })
       })
     ],
     suite: ciSuite({ name: 'nebula', runner: 'compose', profiles: ['infra', 'service'] })

@@ -1,4 +1,5 @@
 import {
+  bunService,
   ciImage,
   dependency,
   dev,
@@ -10,7 +11,7 @@ import {
   project,
   redis
 } from '@metorial/control';
-import { baseDevEnv, pickEnv } from '@metorial/control/presets';
+import { baseDevEnv, pickEnv, ownMigration } from '@metorial/control/presets';
 
 export default project({
   name: '@metorial/origin',
@@ -67,10 +68,17 @@ export default project({
       ciImage({
         name: 'origin',
         group: 'oss',
-        dockerfile: 'Dockerfile',
         image: 'metorial/mte-origin',
         ecr: 'metorial-enterprise-saas/mte-origin',
-        canonical: 'ghcr.io/metorial/mte-origin'
+        canonical: 'ghcr.io/metorial/mte-origin',
+        build: bunService({
+          ports: [52090, 52093],
+          health: [
+            { port: 52090, path: '/ping' },
+            { port: 12121, path: '/' }
+          ],
+          migrations: [ownMigration('origin', '@metorial/origin', { prefix: 'ORIGIN' })]
+        })
       })
     ]
   }

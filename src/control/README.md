@@ -474,3 +474,21 @@ services. `workspace stop` stops both the workspace container and dependencies
 without removing containers or volumes. `workspace start` or `workspace connect`
 resumes them. `workspace stop --volumes` explicitly removes the container,
 compiler/dependency/VS Code volumes, and dependency data.
+
+## Generated Dockerfiles
+
+Images are built from Dockerfiles that control generates from a `build` spec in a
+service's `control/index.ts` (`bunService(...)` from `@metorial/control`, set on a
+`ciImage` or a `dockerfile()` definition). The output is written beside the
+package as `Dockerfile` and committed; do not edit it by hand.
+
+```sh
+control docker generate          # write all Dockerfiles
+control docker generate --check  # fail if any are out of date (CI)
+```
+
+They are also regenerated on every `control dev` start and whenever a manifest
+changes while the daemon runs. Images run as the unprivileged `metorial` user
+under `tini`, and database migrations run at startup through `control-runtime`
+(`oss/src/control/runtime`) from the `migrations` listed in the spec
+(`migrations.core`, `ownMigration(...)`, ...).

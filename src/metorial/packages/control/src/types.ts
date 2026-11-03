@@ -26,6 +26,40 @@ export interface RawDependency {
   env?: { endpoint: string; key: string; value: string }[];
 }
 
+export interface RawBuildMigration {
+  name: string;
+  package: string;
+  path?: string;
+  env: string | string[];
+  fallback?: string | string[];
+  parts?: string | string[];
+  query?: string;
+  precedence?: 'url' | 'parts';
+  defaults?: { port?: string; name?: string };
+  encode?: boolean;
+  iam?: { arnEnv: string; regionEnv?: string };
+  lock?: number;
+  renames?: { table: string; from: string; to: string }[];
+}
+
+export interface RawBuild {
+  kind: 'bun-service';
+  tasks?: string[];
+  include?: string[];
+  concurrency?: number;
+  heapMb?: number;
+  start?: string;
+  ports?: number[];
+  health?: { port: number; path: string }[];
+  migrations?: RawBuildMigration[];
+  assets?: { from: string; to?: string }[];
+  packages?: { build?: string[]; runtime?: string[] };
+  modules?: 'production' | 'none';
+  sentry?: boolean;
+  node?: boolean;
+  env?: Record<string, string>;
+}
+
 export interface RawCiImage {
   name: string;
   group?: string;
@@ -37,6 +71,13 @@ export interface RawCiImage {
   source?: string;
   platform?: string;
   stagingOnly?: boolean;
+  build?: RawBuild;
+}
+
+export interface RawDockerfile {
+  dockerfile?: string;
+  workspace?: string;
+  build: RawBuild;
 }
 
 export interface RawCiSuite {
@@ -77,6 +118,6 @@ export interface RawManifest {
     env?: RawEnv;
     resources?: { type: 'object-storage' }[];
   };
-  ci?: { images?: RawCiImage[]; suite?: RawCiSuite };
+  ci?: { images?: RawCiImage[]; dockerfiles?: RawDockerfile[]; suite?: RawCiSuite };
   [key: string]: unknown;
 }

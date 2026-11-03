@@ -1,4 +1,5 @@
 import {
+  bunService,
   ciImage,
   ciSuite,
   dependency,
@@ -10,7 +11,7 @@ import {
   project,
   redis
 } from '@metorial/control';
-import { baseDevEnv, pickEnv } from '@metorial/control/presets';
+import { baseDevEnv, pickEnv, ownMigration } from '@metorial/control/presets';
 
 export default project({
   name: '@metorial/function-bay',
@@ -54,10 +55,19 @@ export default project({
       ciImage({
         name: 'function-bay',
         group: 'oss',
-        dockerfile: 'Dockerfile',
         image: 'metorial/mte-function-bay',
         ecr: 'metorial-enterprise-saas/mte-function-bay',
-        canonical: 'ghcr.io/metorial/function-bay'
+        canonical: 'ghcr.io/metorial/function-bay',
+        build: bunService({
+          ports: [52030],
+          health: [
+            { port: 52030, path: '/ping' },
+            { port: 12121, path: '/' }
+          ],
+          migrations: [
+            ownMigration('function-bay', '@metorial/function-bay', { prefix: 'FUNCTION_BAY' })
+          ]
+        })
       }),
       ciImage({
         name: 'deflector',

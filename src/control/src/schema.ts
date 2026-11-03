@@ -37,6 +37,40 @@ let optionalString = v.optional(str);
 
 let port = v.number({ modifiers: [v.integer(), v.minValue(0), v.maxValue(65535)] });
 
+let migration = strictObject({
+  name: str,
+  package: str,
+  path: optionalString,
+  env: v.union([str, strings]),
+  fallback: v.optional(v.union([str, strings])),
+  parts: v.optional(v.union([str, strings])),
+  query: optionalString,
+  precedence: v.optional(v.enumOf(['url', 'parts'])),
+  defaults: v.optional(strictObject({ port: optionalString, name: optionalString })),
+  encode: v.optional(v.boolean()),
+  iam: v.optional(strictObject({ arnEnv: str, regionEnv: optionalString })),
+  lock: v.optional(v.number({ modifiers: [v.integer()] })),
+  renames: v.optional(v.array(strictObject({ table: str, from: str, to: str })))
+});
+
+let buildSpec = strictObject({
+  kind: v.literal('bun-service'),
+  tasks: v.optional(strings),
+  include: v.optional(strings),
+  concurrency: v.optional(v.number({ modifiers: [v.integer(), v.minValue(1)] })),
+  heapMb: v.optional(v.number({ modifiers: [v.integer(), v.minValue(1)] })),
+  start: optionalString,
+  ports: v.optional(v.array(port)),
+  health: v.optional(v.array(strictObject({ port, path: str }))),
+  migrations: v.optional(v.array(migration)),
+  assets: v.optional(v.array(strictObject({ from: str, to: optionalString }))),
+  packages: v.optional(strictObject({ build: v.optional(strings), runtime: v.optional(strings) })),
+  modules: v.optional(v.enumOf(['production', 'none'])),
+  sentry: v.optional(v.boolean()),
+  node: v.optional(v.boolean()),
+  env: v.optional(v.record(str))
+});
+
 let envSpec = strictObject({
   value: optionalString,
   from: optionalString,
@@ -174,8 +208,14 @@ export let manifestSchema = strictObject({
             canonical: optionalString,
             source: optionalString,
             platform: optionalString,
-            stagingOnly: v.optional(v.boolean())
+            stagingOnly: v.optional(v.boolean()),
+            build: v.optional(buildSpec)
           })
+        )
+      ),
+      dockerfiles: v.optional(
+        v.array(
+          strictObject({ dockerfile: optionalString, workspace: optionalString, build: buildSpec })
         )
       ),
       suite: v.optional(

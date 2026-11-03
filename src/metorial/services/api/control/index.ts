@@ -1,5 +1,7 @@
 import {
+  bunService,
   ciSuite,
+  dockerfile,
   dependency,
   dev,
   e2e,
@@ -10,7 +12,13 @@ import {
   objectStorage,
   project
 } from '@metorial/control';
-import { baseDevEnv, pickEnv, platformEnv, sharedDatabases } from '@metorial/control/presets';
+import {
+  baseDevEnv,
+  migrations,
+  pickEnv,
+  platformEnv,
+  sharedDatabases
+} from '@metorial/control/presets';
 
 export default project({
   name: '@metorial/app-api',
@@ -80,5 +88,19 @@ export default project({
     },
     resources: [objectStorage()]
   }),
-  ci: { suite: ciSuite({ name: 'metorial', groups: 4 }) }
+  ci: {
+    dockerfiles: [
+      dockerfile({
+        build: bunService({
+          tasks: ['prisma:generate', 'oss:server:build'],
+          include: ['@metorial/db', '@metorial/multi-region', '@metorial-subspace/db'],
+          heapMb: 15360,
+          ports: [4310, 4311, 4315, 4316, 4317, 4318],
+          health: [{ port: 4310, path: '/ping' }],
+          migrations: [migrations.core, migrations.global, migrations.subspace]
+        })
+      })
+    ],
+    suite: ciSuite({ name: 'metorial', groups: 4 })
+  }
 });

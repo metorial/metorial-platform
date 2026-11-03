@@ -1,4 +1,5 @@
 import {
+  bunService,
   ciImage,
   ciSuite,
   dev,
@@ -8,7 +9,7 @@ import {
   project,
   redis
 } from '@metorial/control';
-import { baseDevEnv } from '@metorial/control/presets';
+import { baseDevEnv, ownMigration } from '@metorial/control/presets';
 
 export default project({
   name: '@metorial/voyager',
@@ -35,10 +36,19 @@ export default project({
       ciImage({
         name: 'voyager',
         group: 'oss',
-        dockerfile: 'Dockerfile',
         image: 'metorial/mte-voyager',
         ecr: 'metorial-enterprise-saas/mte-voyager',
-        canonical: 'ghcr.io/metorial/voyager'
+        canonical: 'ghcr.io/metorial/voyager',
+        build: bunService({
+          ports: [52060],
+          health: [
+            { port: 52060, path: '/ping' },
+            { port: 12121, path: '/' }
+          ],
+          migrations: [
+            ownMigration('voyager', '@metorial/voyager', { path: 'prisma/schema.prisma' })
+          ]
+        })
       })
     ],
     suite: ciSuite({ name: 'voyager', runner: 'compose', profiles: ['infra', 'service'] })

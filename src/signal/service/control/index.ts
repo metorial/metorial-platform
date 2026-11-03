@@ -1,4 +1,5 @@
 import {
+  bunService,
   ciImage,
   dependency,
   dev,
@@ -9,7 +10,7 @@ import {
   project,
   redis
 } from '@metorial/control';
-import { baseDevEnv } from '@metorial/control/presets';
+import { baseDevEnv, ownMigration } from '@metorial/control/presets';
 
 export default project({
   name: '@metorial/signal',
@@ -43,10 +44,22 @@ export default project({
       ciImage({
         name: 'signal',
         group: 'oss',
-        dockerfile: 'Dockerfile',
         image: 'metorial/mte-signal',
         ecr: 'metorial-enterprise-saas/mte-signal',
-        canonical: 'ghcr.io/metorial/signal'
+        canonical: 'ghcr.io/metorial/signal',
+        build: bunService({
+          ports: [52050],
+          health: [
+            { port: 52050, path: '/ping' },
+            { port: 12121, path: '/' }
+          ],
+          migrations: [
+            ownMigration('signal', '@metorial/signal', {
+              prefix: 'SIGNAL',
+              path: 'prisma/schema.prisma'
+            })
+          ]
+        })
       })
     ]
   }

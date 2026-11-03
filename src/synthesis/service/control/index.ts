@@ -1,4 +1,5 @@
 import {
+  bunService,
   ciImage,
   dev,
   e2e,
@@ -9,7 +10,7 @@ import {
   project,
   redis
 } from '@metorial/control';
-import { baseDevEnv } from '@metorial/control/presets';
+import { baseDevEnv, ownMigration } from '@metorial/control/presets';
 
 export default project({
   name: '@metorial/synthesis',
@@ -40,10 +41,19 @@ export default project({
       ciImage({
         name: 'synthesis',
         group: 'oss',
-        dockerfile: 'Dockerfile',
         image: 'metorial/mte-synthesis',
         ecr: 'metorial-enterprise-saas/mte-synthesis',
-        canonical: 'ghcr.io/metorial/synthesis'
+        canonical: 'ghcr.io/metorial/synthesis',
+        build: bunService({
+          ports: [52160],
+          health: [
+            { port: 52160, path: '/ping' },
+            { port: 12121, path: '/' }
+          ],
+          migrations: [
+            ownMigration('synthesis', '@metorial/synthesis', { prefix: 'SYNTHESIS' })
+          ]
+        })
       })
     ]
   }

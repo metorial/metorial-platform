@@ -198,12 +198,13 @@ jobs:
             ${{ matrix.service.image }}:${{ steps.image.outputs.tag }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
             TURBO_API=http://127.0.0.1:8787
             TURBO_TEAM=metorial
           secrets: |
             turbo_token=${{ env.TURBO_TOKEN }}
             turbo_signature=${{ env.TURBO_REMOTE_CACHE_SIGNATURE_KEY }}
+            sentry_auth_token=${{ secrets.SENTRY_AUTH_TOKEN }}
+            sentry_auth_token=${{ secrets.SENTRY_AUTH_TOKEN }}
 
       - name: Publish reused image aliases
         if: steps.image.outputs.hit == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)

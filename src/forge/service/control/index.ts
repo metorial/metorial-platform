@@ -1,4 +1,5 @@
 import {
+  bunService,
   ciImage,
   ciSuite,
   dependency,
@@ -10,7 +11,7 @@ import {
   project,
   redis
 } from '@metorial/control';
-import { baseDevEnv, pickEnv } from '@metorial/control/presets';
+import { baseDevEnv, pickEnv, ownMigration } from '@metorial/control/presets';
 
 export default project({
   name: '@metorial/forge',
@@ -46,10 +47,22 @@ export default project({
       ciImage({
         name: 'forge',
         group: 'oss',
-        dockerfile: 'Dockerfile',
         image: 'metorial/mte-forge',
         ecr: 'metorial-enterprise-saas/mte-forge',
-        canonical: 'ghcr.io/metorial/forge'
+        canonical: 'ghcr.io/metorial/forge',
+        build: bunService({
+          ports: [52020],
+          health: [
+            { port: 52020, path: '/ping' },
+            { port: 12121, path: '/' }
+          ],
+          migrations: [
+            ownMigration('forge', '@metorial/forge', {
+              prefix: 'FORGE',
+              path: 'prisma/schema.prisma'
+            })
+          ]
+        })
       })
     ],
     suite: ciSuite({ name: 'forge', runner: 'compose', profiles: ['infra', 'service'] })

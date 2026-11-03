@@ -19,7 +19,7 @@ both dependency and final builds.
 `services.json` records OSS images and their build recipes. Turbo tasks are read
 from each Dockerfile's prune command to keep fingerprinting and builds aligned.
 Enterprise runs shared services with `workspace: ./oss`, giving exactly the same
-inputs as OSS. Enterprise services use their own workspace and Dockerfiles; pass
+inputs as OSS. Enterprise services use their own workspace and control-generated Dockerfiles; pass
 all output-affecting build arguments through `build-arguments` as JSON. Credentials
 for caching and Sentry upload are excluded. Unsupported dynamic external image
 references or direct COPY inputs fail rather than silently produce unsafe keys.
