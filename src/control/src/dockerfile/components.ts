@@ -130,20 +130,37 @@ let runtimeConfig = (context: RenderContext) => {
   return JSON.stringify({ databases }, null, 2).split('\n');
 };
 
-export let runner = (context: RenderContext): string[] => {
-  let { build, packageDirectory } = context;
-  let owner = `--chown=${user.name}:${user.name}`;
-  let migrating = build.migrations.length > 0;
+export let runnerBase = (context: RenderContext): string[] => {
   let runtimePackages = [
-    ...new Set(['ca-certificates', 'curl', 'tini', ...build.packages.runtime])
+    ...new Set(['ca-certificates', 'curl', 'tini', ...context.build.packages.runtime])
   ];
 
-  let lines = [
-    `FROM oven/bun:${bunVersion}-slim AS runner`,
+  return [
+    `FROM oven/bun:${bunVersion}-slim AS runner-base`,
     `RUN apt-get update && apt-get install -y --no-install-recommends ${runtimePackages.join(' ')} && rm -rf /var/lib/apt/lists/* \\`,
     ` && groupadd --system --gid ${user.id} ${user.name} \\`,
     ` && useradd --system --uid ${user.id} --gid ${user.name} --create-home --shell /usr/sbin/nologin ${user.name}`,
-    'WORKDIR /app',
+    'WORKDIR /app'
+  ];
+};
+
+export let tools = (): string[] => {
+  let owner = `--chown=${user.id}:${user.id}`;
+
+  return [
+    'FROM runner-base AS tools',
+    `COPY --from=control-runtime --link ${owner} /runtime/control-runtime.js ./control/control-runtime.js`,
+    `COPY --from=prisma-cli --link ${owner} /opt/prisma /opt/prisma`
+  ];
+};
+
+export let runner = (context: RenderContext): string[] => {
+  let { build, packageDirectory } = context;
+  let owner = `--chown=${user.id}:${user.id}`;
+  let migrating = build.migrations.length > 0;
+
+  let lines = [
+    `FROM ${migrating ? 'tools' : 'runner-base'} AS runner`,
     'ENV NODE_ENV=production',
     'ENV TZ=UTC',
     ...Object.entries(build.env).map(([key, value]) => `ENV ${key}=${value}`)
@@ -164,8 +181,6 @@ export let runner = (context: RenderContext): string[] => {
 
   if (migrating) {
     lines.push(
-      `COPY --from=control-runtime --link ${owner} /runtime/control-runtime.js ./control/control-runtime.js`,
-      `COPY --from=prisma-cli --link ${owner} /opt/prisma /opt/prisma`,
       ...build.migrations.map(migration => {
         let { source, target, directory } = context.schemas[migration.name]!;
         let slash = directory ? '/' : '';

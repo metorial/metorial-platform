@@ -37,20 +37,24 @@ FROM base AS prisma-cli
 WORKDIR /opt/prisma
 RUN --mount=type=cache,target=/root/.bun/install/cache bun add prisma@7.10.1 && ./node_modules/.bin/prisma --version
 
-FROM oven/bun:1.4.2-slim AS runner
+FROM oven/bun:1.4.2-slim AS runner-base
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl tini && rm -rf /var/lib/apt/lists/* \
  && groupadd --system --gid 10001 metorial \
  && useradd --system --uid 10001 --gid metorial --create-home --shell /usr/sbin/nologin metorial
 WORKDIR /app
+
+FROM runner-base AS tools
+COPY --from=control-runtime --link --chown=10001:10001 /runtime/control-runtime.js ./control/control-runtime.js
+COPY --from=prisma-cli --link --chown=10001:10001 /opt/prisma /opt/prisma
+
+FROM tools AS runner
 ENV NODE_ENV=production
 ENV TZ=UTC
-COPY --from=builder --link --chown=metorial:metorial /app/src/metorial/products/integrations/apps/worker/dist ./dist
-COPY --from=control-runtime --link --chown=metorial:metorial /runtime/control-runtime.js ./control/control-runtime.js
-COPY --from=prisma-cli --link --chown=metorial:metorial /opt/prisma /opt/prisma
-COPY --from=builder --link --chown=metorial:metorial /app/src/metorial/db/prisma/schema/ ./prisma/core/schema/
-COPY --from=builder --link --chown=metorial:metorial /app/src/metorial/multi-region/prisma/schema/ ./prisma/global/schema/
-COPY --from=builder --link --chown=metorial:metorial /app/src/metorial/products/integrations/db/prisma/schema/ ./prisma/subspace/schema/
-COPY --link --chown=metorial:metorial <<'EOF' ./.control/runtime.json
+COPY --from=builder --link --chown=10001:10001 /app/src/metorial/products/integrations/apps/worker/dist ./dist
+COPY --from=builder --link --chown=10001:10001 /app/src/metorial/db/prisma/schema/ ./prisma/core/schema/
+COPY --from=builder --link --chown=10001:10001 /app/src/metorial/multi-region/prisma/schema/ ./prisma/global/schema/
+COPY --from=builder --link --chown=10001:10001 /app/src/metorial/products/integrations/db/prisma/schema/ ./prisma/subspace/schema/
+COPY --link --chown=10001:10001 <<'EOF' ./.control/runtime.json
 {
   "databases": [
     {

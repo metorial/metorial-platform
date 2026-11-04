@@ -73,6 +73,8 @@ export let renderDockerfile = (
     ...(build.migrations.length
       ? [components.controlRuntime(context), components.prismaCli()]
       : []),
+    components.runnerBase(context),
+    ...(build.migrations.length ? [components.tools()] : []),
     components.runner(context)
   ]);
 };

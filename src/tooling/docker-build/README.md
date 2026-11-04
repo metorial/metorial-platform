@@ -39,6 +39,16 @@ output lets `prune-docker` reuse it without a second prune. Dependency layer cac
 continue to work. Whole locks invalidate descriptors, but image identity includes
 only the exact pruned lock: unrelated resolutions do not invalidate images.
 
+## Shared tools cache
+
+Generated Dockerfiles with migrations have `control-runtime`, `prisma-cli`, `runner-base`
+and `tools` stages. These do not depend on the service's code, so the `tools-cache`
+composite action derives a shared registry cache
+(`<repo>:buildcache-tools-<hash of the stage definitions>`) and the workflows build
+`--target tools` against it (`cache-to` only for non-fork runs), then pass it to the final
+build's `cache-from`. `pruner`, `pruned` and `builder` are intentionally not shared; builds
+rely on the Turbo cache.
+
 The version change deliberately causes initial image-cache misses. Existing
 SHA/branch/deployment aliases and registry-copy verification remain compatible.
 

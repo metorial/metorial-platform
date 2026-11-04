@@ -78,6 +78,7 @@
     "protobufjs": "^8.8.1",
     "yaml": "^2.9.1",
     "@metorial-platform-systems/nebula-client": "workspace:*",
+    "@metorial/code-bucket-service-generated": "^1.0.0",
     "@metorial/settings": "workspace:*",
     "@metorial/shared-settings": "workspace:*",
     "@metorial/editions": "workspace:*"
