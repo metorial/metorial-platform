@@ -30,9 +30,9 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@aws-sdk/client-cloudwatch-logs": "^3.1156.0",
-    "@aws-sdk/client-iam": "^3.1156.0",
-    "@aws-sdk/client-lambda": "^3.1156.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.1158.0",
+    "@aws-sdk/client-iam": "^3.1158.0",
+    "@aws-sdk/client-lambda": "^3.1158.0",
     "@bufbuild/protobuf": "^2.16.0",
     "@gitbeaker/rest": "^43.8.0",
     "@grpc/grpc-js": "^1.14.6",
@@ -65,7 +65,7 @@
     "@prisma/client": "^7.10.1",
     "@sentry/bun": "^11.9.0",
     "@sentry/cli": "^3.8.2",
-    "axios": "^1.20.0",
+    "axios": "^1.21.0",
     "date-fns": "^4.4.0",
     "ipaddr.js": "^2.5.0",
     "jszip": "^3.10.2",
