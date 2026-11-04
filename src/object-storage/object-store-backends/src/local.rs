@@ -9,9 +9,11 @@ use tokio::io::{AsyncReadExt, AsyncSeekExt, AsyncWriteExt};
 use tokio_util::io::ReaderStream;
 use tracing::{debug, info};
 
+use bytes::Bytes;
+
 use crate::backend::{
     Backend, ByteRange, ByteStream, ObjectData, ObjectMetadata, ObjectPage, ObjectRangeData,
-    PublicUrlPurpose,
+    PublicUrlPurpose, SignedUrl, WritePrecondition,
 };
 use crate::error::{BackendError, BackendResult};
 
@@ -19,6 +21,7 @@ pub struct LocalBackend {
     root_path: PathBuf,
     bucket_name: String,
     public_base_url: Option<String>,
+    conditional_writes: tokio::sync::Mutex<()>,
 }
 
 fn percent_encode(segment: &str) -> String {
@@ -42,6 +45,7 @@ impl LocalBackend {
             root_path,
             bucket_name,
             public_base_url: None,
+            conditional_writes: tokio::sync::Mutex::new(()),
         }
     }
 
@@ -152,6 +156,36 @@ impl Backend for LocalBackend {
         Ok(metadata)
     }
 
+    async fn put_object_if(
+        &self,
+        key: &str,
+        data: Bytes,
+        content_type: Option<String>,
+        precondition: WritePrecondition,
+    ) -> BackendResult<ObjectMetadata> {
+        let _guard = self.conditional_writes.lock().await;
+
+        let current = match self.head_object(key).await {
+            Ok(metadata) => Some(metadata),
+            Err(BackendError::NotFound(_)) => None,
+            Err(e) => return Err(e),
+        };
+
+        let satisfied = match (&precondition, &current) {
+            (WritePrecondition::IfAbsent, None) => true,
+            (WritePrecondition::IfMatch(etag), Some(current)) => &current.etag == etag,
+            _ => false,
+        };
+
+        if !satisfied {
+            return Err(BackendError::PreconditionFailed(key.to_string()));
+        }
+
+        let stream: ByteStream = Box::pin(futures::stream::once(async move { Ok(data) }));
+        self.put_object(key, stream, content_type, HashMap::new())
+            .await
+    }
+
     async fn get_object(&self, key: &str) -> BackendResult<ObjectData> {
         debug!("Getting object: {}", key);
 
@@ -247,11 +281,11 @@ impl Backend for LocalBackend {
         let object_path = self.get_full_path(key)?;
         let meta_path = self.get_metadata_path(key)?;
 
-        if !object_path.exists() {
-            return Err(BackendError::NotFound(key.to_string()));
+        match fs::remove_file(&object_path).await {
+            Ok(()) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+            Err(e) => return Err(e.into()),
         }
-
-        fs::remove_file(&object_path).await?;
 
         if meta_path.exists() {
             fs::remove_file(&meta_path).await?;
@@ -319,7 +353,7 @@ impl Backend for LocalBackend {
         key: &str,
         _expiration_secs: u64,
         _purpose: PublicUrlPurpose,
-    ) -> BackendResult<String> {
+    ) -> BackendResult<SignedUrl> {
         let Some(base_url) = &self.public_base_url else {
             return Err(BackendError::Provider(
                 "Public URL generation requires a public_url for the local backend".to_string(),
@@ -330,7 +364,7 @@ impl Backend for LocalBackend {
             .split_once('/')
             .ok_or_else(|| BackendError::InvalidPath(format!("Invalid key: {}", key)))?;
 
-        Ok(format!(
+        Ok(SignedUrl::new(format!(
             "{}/buckets/{}/objects/{}",
             base_url,
             percent_encode(bucket),
@@ -339,7 +373,7 @@ impl Backend for LocalBackend {
                 .map(percent_encode)
                 .collect::<Vec<_>>()
                 .join("/")
-        ))
+        )))
     }
 }
 
@@ -492,9 +526,10 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            url,
+            url.url,
             "http://localhost:35010/buckets/files/objects/a%20b/c.txt"
         );
+        assert!(url.headers.is_empty());
     }
 
     #[tokio::test]

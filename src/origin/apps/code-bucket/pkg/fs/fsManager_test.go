@@ -750,6 +750,7 @@ func TestPutSignedURLFromReaderSetsExplicitContentLength(t *testing.T) {
 	var (
 		gotContentLength int64
 		gotContentType   string
+		gotBlobType      string
 		gotBody          []byte
 		gotMethod        string
 	)
@@ -758,6 +759,7 @@ func TestPutSignedURLFromReaderSetsExplicitContentLength(t *testing.T) {
 		gotMethod = r.Method
 		gotContentLength = r.ContentLength
 		gotContentType = r.Header.Get("Content-Type")
+		gotBlobType = r.Header.Get("x-ms-blob-type")
 		gotBody, _ = io.ReadAll(r.Body)
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -769,6 +771,7 @@ func TestPutSignedURLFromReaderSetsExplicitContentLength(t *testing.T) {
 	err := fsm.putSignedURLFromReader(
 		context.Background(),
 		server.URL,
+		map[string]string{"x-ms-blob-type": "BlockBlob"},
 		bytes.NewReader(body),
 		int64(len(body)),
 		"application/zip",
@@ -789,6 +792,9 @@ func TestPutSignedURLFromReaderSetsExplicitContentLength(t *testing.T) {
 	if gotContentType != "application/zip" {
 		t.Fatalf("expected application/zip, got %s", gotContentType)
 	}
+	if gotBlobType != "BlockBlob" {
+		t.Fatalf("expected the signed headers to be sent, got %q", gotBlobType)
+	}
 	if !bytes.Equal(gotBody, body) {
 		t.Fatalf("expected body %q, got %q", body, gotBody)
 	}
@@ -806,6 +812,7 @@ func TestPutSignedURLFromReaderSurfacesRejection(t *testing.T) {
 	err := fsm.putSignedURLFromReader(
 		context.Background(),
 		server.URL,
+		nil,
 		bytes.NewReader([]byte("x")),
 		1,
 		"application/zip",
@@ -829,6 +836,7 @@ func TestPutSignedURLFromReaderAcceptsNonOK2xx(t *testing.T) {
 		err := fsm.putSignedURLFromReader(
 			context.Background(),
 			server.URL,
+			nil,
 			bytes.NewReader([]byte("x")),
 			1,
 			"application/zip",

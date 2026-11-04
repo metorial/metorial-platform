@@ -77,6 +77,8 @@ export enum PublicUrlPurpose {
 
 export interface PublicURLResponse {
   url: string;
+  /** Headers the caller must send with the request for the signed URL to be accepted. */
+  headers: Record<string, string>;
   expires_in: number;
 }
 
@@ -448,7 +450,7 @@ export class ObjectStorageClient {
         `/buckets/${bucket}/public-url/${key}`,
         { params }
       );
-      return response.data;
+      return { ...response.data, headers: response.data.headers ?? {} };
     } catch (error) {
       this.handleError(error as AxiosError);
     }

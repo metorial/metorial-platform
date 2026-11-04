@@ -471,6 +471,20 @@ func TestGetPublicURL(t *testing.T) {
 	assert.Equal(t, uint64(7200), response.ExpiresIn)
 }
 
+func TestGetPublicURLReturnsRequiredHeaders(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"url":"https://example.com/blob?sig=1","headers":{"x-ms-blob-type":"BlockBlob"},"expires_in":60}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL)
+	purpose := PublicUrlPurposeUpload
+	response, err := client.GetPublicURL("test-bucket", "test-key", nil, &purpose)
+	require.NoError(t, err)
+	assert.Equal(t, map[string]string{"x-ms-blob-type": "BlockBlob"}, response.Headers)
+}
+
 func TestGetPublicURLDefaultExpiration(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "GET", r.Method)

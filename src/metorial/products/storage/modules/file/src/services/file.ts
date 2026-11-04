@@ -703,7 +703,7 @@ class FileServiceImpl {
           PublicUrlPurpose.Upload
         );
 
-        return res.url;
+        return { url: res.url, headers: res.headers };
       }
     });
 

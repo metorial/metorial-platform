@@ -90,6 +90,7 @@ pub struct GetPublicUrlQuery {
 #[derive(Debug, Serialize)]
 pub struct PublicUrlResponse {
     pub url: String,
+    pub headers: HashMap<String, String>,
     pub expires_in: u64,
 }
 
@@ -461,7 +462,8 @@ pub async fn get_public_url(
         .await?;
 
     Ok(Json(PublicUrlResponse {
-        url,
+        url: url.url,
+        headers: url.headers,
         expires_in: expiration_secs,
     }))
 }

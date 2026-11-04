@@ -11,6 +11,9 @@ pub enum BackendError {
     #[error("Range not satisfiable for object of {size} bytes")]
     RangeNotSatisfiable { size: u64 },
 
+    #[error("Precondition failed for object: {0}")]
+    PreconditionFailed(String),
+
     #[error("Provider error: {0}")]
     Provider(String),
 

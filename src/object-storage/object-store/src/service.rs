@@ -2,7 +2,7 @@ use bytes::Bytes;
 use object_store_backends::error::BackendError;
 use object_store_backends::{
     Backend, ByteRange, ByteStream, ObjectData, ObjectMetadata, ObjectPage, ObjectRangeData,
-    PublicUrlPurpose,
+    PublicUrlPurpose, SignedUrl,
 };
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -351,7 +351,7 @@ impl ObjectStoreService {
         key: &str,
         expiration_secs: u64,
         purpose: PublicUrlPurpose,
-    ) -> ServiceResult<String> {
+    ) -> ServiceResult<SignedUrl> {
         self.metadata.get_bucket(bucket).await?;
 
         validate_object_key(key)?;

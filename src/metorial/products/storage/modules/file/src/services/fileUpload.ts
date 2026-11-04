@@ -87,15 +87,18 @@ class FileUploadServiceImpl {
         );
       }
 
-      return getCloudFrontUploadUrl({
-        host,
-        secret,
-        uploadId: d.uploadId,
-        storeId: d.storeId,
-        size: d.size,
-        contentType: d.contentType,
-        expiresAt: d.expiresAt
-      });
+      return {
+        url: getCloudFrontUploadUrl({
+          host,
+          secret,
+          uploadId: d.uploadId,
+          storeId: d.storeId,
+          size: d.size,
+          contentType: d.contentType,
+          expiresAt: d.expiresAt
+        }),
+        headers: {} as Record<string, string>
+      };
     }
 
     try {
@@ -106,7 +109,7 @@ class FileUploadServiceImpl {
         PublicUrlPurpose.Upload
       );
 
-      return res.url;
+      return { url: res.url, headers: res.headers };
     } catch (error) {
       if (error instanceof ObjectStorageError) {
         throw new ServiceError(
@@ -223,7 +226,7 @@ class FileUploadServiceImpl {
 
     await Fabric.fire('file.upload.created:before', fabricOwner);
 
-    let uploadUrl = await this.createSignedUploadUrl({
+    let signedUpload = await this.createSignedUploadUrl({
       uploadId,
       storeId,
       size: d.input.size,
@@ -260,7 +263,7 @@ class FileUploadServiceImpl {
       return created;
     });
 
-    return { upload, uploadUrl };
+    return { upload, uploadUrl: signedUpload.url, uploadHeaders: signedUpload.headers };
   }
 
   async getPendingUploadById(

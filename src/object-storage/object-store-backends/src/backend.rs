@@ -18,6 +18,46 @@ pub enum PublicUrlPurpose {
     Upload,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct SignedUrl {
+    pub url: String,
+    /// Headers the caller must send, unchanged, with the request to `url`. Some providers refuse
+    /// the request without them (Azure requires `x-ms-blob-type` on uploads).
+    #[serde(default)]
+    pub headers: HashMap<String, String>,
+}
+
+impl SignedUrl {
+    pub fn new(url: impl Into<String>) -> Self {
+        Self {
+            url: url.into(),
+            headers: HashMap::new(),
+        }
+    }
+
+    pub fn with_header(mut self, name: &str, value: &str) -> Self {
+        self.headers.insert(name.to_string(), value.to_string());
+        self
+    }
+}
+
+/// Condition a write has to satisfy on the backend, evaluated atomically with the write.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum WritePrecondition {
+    /// Only create the object when no object exists under the key.
+    IfAbsent,
+    /// Only replace the object when its current `ObjectMetadata::etag` equals this value.
+    IfMatch(String),
+}
+
+/// `ObjectMetadata::etag` is an opaque version token: unquoted, identical across put, get, head and
+/// list for the same version of an object, and accepted by `WritePrecondition::IfMatch`.
+pub fn normalize_etag(raw: &str) -> String {
+    let raw = raw.trim();
+    let raw = raw.strip_prefix("W/").unwrap_or(raw);
+    raw.trim_matches('"').to_string()
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ObjectMetadata {
     pub key: String,
@@ -152,6 +192,16 @@ pub trait Backend: Send + Sync {
         metadata: HashMap<String, String>,
     ) -> BackendResult<ObjectMetadata>;
 
+    /// Writes `data` only when `precondition` holds, otherwise fails with
+    /// `BackendError::PreconditionFailed`. The check and the write are atomic on the backend.
+    async fn put_object_if(
+        &self,
+        key: &str,
+        data: Bytes,
+        content_type: Option<String>,
+        precondition: WritePrecondition,
+    ) -> BackendResult<ObjectMetadata>;
+
     async fn get_object(&self, key: &str) -> BackendResult<ObjectData>;
 
     /// Reads only `range` of the object, natively on the backend; the rest is never transferred.
@@ -165,8 +215,10 @@ pub trait Backend: Send + Sync {
 
     async fn delete_objects(&self, keys: &[String]) -> BackendResult<Vec<BackendResult<()>>> {
         let mut results = Vec::with_capacity(keys.len());
-        for key in keys {
-            results.push(self.delete_object(key).await);
+        for chunk in keys.chunks(16) {
+            results.extend(
+                futures::future::join_all(chunk.iter().map(|key| self.delete_object(key))).await,
+            );
         }
         Ok(results)
     }
@@ -218,7 +270,7 @@ pub trait Backend: Send + Sync {
         key: &str,
         expiration_secs: u64,
         purpose: PublicUrlPurpose,
-    ) -> BackendResult<String>;
+    ) -> BackendResult<SignedUrl>;
 }
 
 pub fn compute_etag(data: &[u8]) -> String {
@@ -230,7 +282,15 @@ pub fn compute_etag(data: &[u8]) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::ByteRange;
+    use super::{normalize_etag, ByteRange};
+
+    #[test]
+    fn normalizes_etags() {
+        assert_eq!(normalize_etag("\"abc\""), "abc");
+        assert_eq!(normalize_etag("W/\"abc\""), "abc");
+        assert_eq!(normalize_etag(" abc "), "abc");
+        assert_eq!(normalize_etag("abc-3"), "abc-3");
+    }
 
     #[test]
     fn parses_single_ranges() {

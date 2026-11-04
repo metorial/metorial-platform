@@ -297,6 +297,7 @@ func (rs *RcpService) ExportBucketFilesAsZipToUpload(ctx context.Context, req *r
 
 	result, err := rs.fsm.ExportBucketFilesAsZipToUpload(ctx, req.BucketId, req.Prefix, fs.ZipUploadDestination{
 		URL:         req.UploadUrl,
+		Headers:     req.UploadHeaders,
 		Bucket:      req.UploadBucket,
 		Key:         req.UploadKey,
 		ContentType: req.ContentType,

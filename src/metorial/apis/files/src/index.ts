@@ -105,7 +105,8 @@ let presentFileUpload = (
     createdAt: Date;
     updatedAt: Date;
   },
-  uploadUrl: string
+  uploadUrl: string,
+  uploadHeaders: Record<string, string> = {}
 ) => ({
   object: 'file_upload',
 
@@ -126,6 +127,7 @@ let presentFileUpload = (
   upload: {
     url: uploadUrl,
     method: 'PUT',
+    headers: uploadHeaders,
     expires_at: upload.uploadUrlExpiresAt
   },
 
@@ -290,7 +292,7 @@ let handleJsonUpload = async (c: Context, auth: AuthInfo, context: RequestContex
     );
   }
 
-  let { upload, uploadUrl } = await fileUploadService.createPendingUpload({
+  let { upload, uploadUrl, uploadHeaders } = await fileUploadService.createPendingUpload({
     ...access.scope,
     auditScope: requireUploadAuditScope(target),
     purpose: body.purpose,
@@ -313,7 +315,7 @@ let handleJsonUpload = async (c: Context, auth: AuthInfo, context: RequestContex
     }
   });
 
-  return c.json(presentFileUpload(upload, uploadUrl));
+  return c.json(presentFileUpload(upload, uploadUrl, uploadHeaders));
 };
 
 let createFileUploadHandler =

@@ -21,6 +21,7 @@ aws-smithy-types = { workspace = true }
 google-cloud-storage = { workspace = true }
 azure_storage = { workspace = true }
 azure_storage_blobs = { workspace = true }
+azure_identity = { workspace = true }
 azure_core = "0.20"
 
 sha2 = { workspace = true }
@@ -36,3 +37,4 @@ hyper = "1.0"
 [dev-dependencies]
 mockall = { workspace = true }
 tempfile = "3.8"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }

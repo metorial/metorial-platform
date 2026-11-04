@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use aws_config::meta::region::RegionProviderChain;
 use aws_config::BehaviorVersion;
-use aws_sdk_s3::config::Region;
+use aws_sdk_s3::config::{Region, RequestChecksumCalculation, ResponseChecksumValidation};
 use aws_sdk_s3::presigning::PresigningConfig;
 use aws_sdk_s3::primitives::ByteStream as AwsByteStream;
 use aws_sdk_s3::types::{CompletedMultipartUpload, CompletedPart};
@@ -13,9 +13,11 @@ use std::time::Duration;
 use tokio_util::io::ReaderStream;
 use tracing::{debug, info, warn};
 
+use bytes::Bytes;
+
 use crate::backend::{
-    Backend, ByteRange, ByteStream, ObjectData, ObjectMetadata, ObjectPage, ObjectRangeData,
-    PublicUrlPurpose,
+    normalize_etag, Backend, ByteRange, ByteStream, ObjectData, ObjectMetadata, ObjectPage,
+    ObjectRangeData, PublicUrlPurpose, SignedUrl, WritePrecondition,
 };
 use crate::error::{BackendError, BackendResult};
 use crate::upload::{
@@ -24,16 +26,30 @@ use crate::upload::{
 
 pub struct S3Backend {
     client: Client,
+    signing_client: Client,
     bucket_name: String,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct S3Options {
+    pub region: String,
+    /// Endpoint the service talks to, for S3-compatible stores such as MinIO or Ceph.
+    pub endpoint: Option<String>,
+    /// Endpoint embedded in signed URLs, when clients reach the store under a different address
+    /// than the service does. Defaults to `endpoint`.
+    pub public_endpoint: Option<String>,
+    /// Defaults to true when `endpoint` is set and false otherwise.
+    pub force_path_style: Option<bool>,
 }
 
 impl S3Backend {
     pub async fn new(bucket_name: String) -> BackendResult<Self> {
         let config = aws_config::defaults(BehaviorVersion::latest()).load().await;
-        let client = Client::new(&config);
+        let client = Self::build_client(&config, None, false);
 
         info!("Initialized S3 backend with bucket: {}", bucket_name);
         Ok(Self {
+            signing_client: client.clone(),
             client,
             bucket_name,
         })
@@ -44,27 +60,70 @@ impl S3Backend {
         region: String,
         endpoint: Option<String>,
     ) -> BackendResult<Self> {
-        let region_provider = RegionProviderChain::first_try(Region::new(region));
+        Self::new_with_options(
+            bucket_name,
+            S3Options {
+                region,
+                endpoint,
+                ..Default::default()
+            },
+        )
+        .await
+    }
 
-        let mut config_loader =
-            aws_config::defaults(BehaviorVersion::latest()).region(region_provider);
+    pub async fn new_with_options(bucket_name: String, options: S3Options) -> BackendResult<Self> {
+        let region_provider = RegionProviderChain::first_try(Region::new(options.region.clone()));
 
-        if let Some(endpoint_url) = endpoint {
-            config_loader = config_loader.endpoint_url(&endpoint_url);
+        let config = aws_config::defaults(BehaviorVersion::latest())
+            .region(region_provider)
+            .load()
+            .await;
+
+        let custom_endpoint = options.endpoint.is_some();
+        let force_path_style = options.force_path_style.unwrap_or(custom_endpoint);
+
+        let client = Self::build_client(&config, options.endpoint.as_deref(), force_path_style);
+
+        let signing_client = match options.public_endpoint.as_deref() {
+            Some(public_endpoint) => {
+                Self::build_client(&config, Some(public_endpoint), force_path_style)
+            }
+            None => client.clone(),
+        };
+
+        if let Some(endpoint) = &options.endpoint {
             info!(
-                "Using custom S3 endpoint: {} for bucket: {}",
-                endpoint_url, bucket_name
+                "Using custom S3 endpoint: {} (public: {:?}, path style: {}) for bucket: {}",
+                endpoint, options.public_endpoint, force_path_style, bucket_name
             );
         }
-
-        let config = config_loader.load().await;
-        let client = Client::new(&config);
 
         info!("Initialized S3 backend with bucket: {}", bucket_name);
         Ok(Self {
             client,
+            signing_client,
             bucket_name,
         })
+    }
+
+    // Checksums are only sent when an operation requires them. The SDK default adds CRC32 to every
+    // request, which MinIO and Ceph releases without trailing-checksum support reject, and which
+    // ends up in presigned PUT URLs as a header the uploader cannot satisfy.
+    fn build_client(
+        config: &aws_config::SdkConfig,
+        endpoint: Option<&str>,
+        force_path_style: bool,
+    ) -> Client {
+        let mut builder = aws_sdk_s3::config::Builder::from(config)
+            .request_checksum_calculation(RequestChecksumCalculation::WhenRequired)
+            .response_checksum_validation(ResponseChecksumValidation::WhenRequired)
+            .force_path_style(force_path_style);
+
+        if let Some(endpoint) = endpoint {
+            builder = builder.endpoint_url(endpoint);
+        }
+
+        Client::from_conf(builder.build())
     }
 
     fn s3_metadata_to_object_metadata(
@@ -79,7 +138,7 @@ impl S3Backend {
             key: key.clone(),
             size: size as u64,
             content_type,
-            etag: etag.unwrap_or_else(|| {
+            etag: etag.map(|etag| normalize_etag(&etag)).unwrap_or_else(|| {
                 use sha2::{Digest, Sha256};
                 let mut hasher = Sha256::new();
                 hasher.update(key.as_bytes());
@@ -153,7 +212,7 @@ impl S3Backend {
                     last_modified: Utc::now(),
                     etag: output
                         .e_tag()
-                        .map(|s| s.to_string())
+                        .map(normalize_etag)
                         .unwrap_or_else(|| upload.etag()),
                     custom_metadata,
                 })
@@ -303,7 +362,7 @@ impl Backend for S3Backend {
                         size,
                         content_type,
                         last_modified: Utc::now(),
-                        etag: output.e_tag().map(|s| s.to_string()).unwrap_or(etag),
+                        etag: output.e_tag().map(normalize_etag).unwrap_or(etag),
                         custom_metadata,
                     })
                 }
@@ -319,6 +378,58 @@ impl Backend for S3Backend {
 
         self.put_object_multipart(key, upload, content_type, custom_metadata)
             .await
+    }
+
+    async fn put_object_if(
+        &self,
+        key: &str,
+        data: Bytes,
+        content_type: Option<String>,
+        precondition: WritePrecondition,
+    ) -> BackendResult<ObjectMetadata> {
+        let size = data.len() as u64;
+        let fallback_etag = crate::backend::compute_etag(&data);
+
+        let mut request = self
+            .client
+            .put_object()
+            .bucket(&self.bucket_name)
+            .key(key)
+            .body(AwsByteStream::from(data));
+
+        if let Some(ct) = content_type.as_ref() {
+            request = request.content_type(ct);
+        }
+
+        request = match &precondition {
+            WritePrecondition::IfAbsent => request.if_none_match("*"),
+            WritePrecondition::IfMatch(etag) => request.if_match(format!("\"{}\"", etag)),
+        };
+
+        match request.send().await {
+            Ok(output) => Ok(ObjectMetadata {
+                key: key.to_string(),
+                size,
+                content_type,
+                last_modified: Utc::now(),
+                etag: output.e_tag().map(normalize_etag).unwrap_or(fallback_etag),
+                custom_metadata: HashMap::new(),
+            }),
+            Err(e) => {
+                let status = e.raw_response().map(|r| r.status().as_u16());
+
+                // 409 is ConditionalRequestConflict: a concurrent conditional write to the key.
+                if matches!(status, Some(412) | Some(409)) {
+                    Err(BackendError::PreconditionFailed(key.to_string()))
+                } else {
+                    warn!("Failed conditional upload to S3: {}: {:?}", key, e);
+                    Err(BackendError::Provider(format!(
+                        "Failed to upload object '{}': {}",
+                        key, e
+                    )))
+                }
+            }
+        }
     }
 
     async fn get_object(&self, key: &str) -> BackendResult<ObjectData> {
@@ -724,7 +835,7 @@ impl Backend for S3Backend {
         key: &str,
         expiration_secs: u64,
         purpose: PublicUrlPurpose,
-    ) -> BackendResult<String> {
+    ) -> BackendResult<SignedUrl> {
         let presigning_config = PresigningConfig::expires_in(Duration::from_secs(expiration_secs))
             .map_err(|e| {
                 BackendError::Provider(format!("Failed to create presigning config: {}", e))
@@ -732,7 +843,7 @@ impl Backend for S3Backend {
 
         let presigned_request = match purpose {
             PublicUrlPurpose::Retrieve => self
-                .client
+                .signing_client
                 .get_object()
                 .bucket(&self.bucket_name)
                 .key(key)
@@ -749,7 +860,7 @@ impl Backend for S3Backend {
                     ))
                 })?,
             PublicUrlPurpose::Upload => self
-                .client
+                .signing_client
                 .put_object()
                 .bucket(&self.bucket_name)
                 .key(key)
@@ -771,7 +882,13 @@ impl Backend for S3Backend {
             "Generated presigned {:?} URL for S3 object: {} (expires in {} seconds)",
             purpose, key, expiration_secs
         );
-        Ok(presigned_request.uri().to_string())
+
+        let mut signed = SignedUrl::new(presigned_request.uri().to_string());
+        for (name, value) in presigned_request.headers() {
+            signed.headers.insert(name.to_string(), value.to_string());
+        }
+
+        Ok(signed)
     }
 }
 

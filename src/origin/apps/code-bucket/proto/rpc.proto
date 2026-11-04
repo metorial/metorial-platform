@@ -140,6 +140,7 @@ message ExportBucketFilesAsZipToUploadRequest {
   string upload_bucket = 4;
   string upload_key = 5;
   string content_type = 6; // Optional, defaults to application/zip
+  map<string, string> upload_headers = 7; // Sent with upload_url requests, as returned by the signer
 }
 
 message ExportBucketFilesAsZipToUploadResponse {

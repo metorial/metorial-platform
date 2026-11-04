@@ -1,7 +1,5 @@
 use object_store::{Config, ObjectStoreService};
-use object_store_backends::{
-    azure::AzureBackend, gcs::GcsBackend, local::LocalBackend, s3::S3Backend, Backend,
-};
+use object_store_backends::Backend;
 use std::sync::Arc;
 use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -24,44 +22,12 @@ async fn main() -> anyhow::Result<()> {
         Config::from_env().unwrap_or_else(|_| Config::default())
     };
 
-    info!("Starting object storage service with config: {:?}", config);
+    info!(
+        "Starting object storage service with backend: {:?}",
+        config.backend
+    );
 
-    let backend: Arc<dyn Backend> = match config.backend {
-        object_store::config::BackendConfig::Local {
-            root_path,
-            physical_bucket,
-            public_url,
-        } => {
-            info!("Using local backend at {:?}", root_path);
-            Arc::new(LocalBackend::new(root_path, physical_bucket).with_public_base_url(public_url))
-        }
-        object_store::config::BackendConfig::S3 {
-            region,
-            physical_bucket,
-            endpoint,
-        } => {
-            info!(
-                "Using S3 backend with bucket: {}, region: {}, endpoint: {:?}",
-                physical_bucket, region, endpoint
-            );
-            Arc::new(S3Backend::new_with_config(physical_bucket, region, endpoint).await?)
-        }
-        object_store::config::BackendConfig::Gcs { physical_bucket } => {
-            info!("Using GCS backend with bucket: {}", physical_bucket);
-            Arc::new(GcsBackend::new(physical_bucket).await?)
-        }
-        object_store::config::BackendConfig::Azure {
-            account,
-            access_key,
-            physical_bucket,
-        } => {
-            info!(
-                "Using Azure backend with account: {}, container: {}",
-                account, physical_bucket
-            );
-            Arc::new(AzureBackend::new(account, access_key, physical_bucket)?)
-        }
-    };
+    let backend: Arc<dyn Backend> = config.backend.build().await?;
 
     backend.init().await?;
 
