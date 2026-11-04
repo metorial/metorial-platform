@@ -6,6 +6,8 @@ import { Fabric, type KeyProviderEventKeyProvider } from '@metorial/fabric';
 import { createSecretsService } from '../lib/secretsService';
 import { getTenantForNebula, nebula } from '../nebula';
 
+export type KeyProviderType = 'aws_kms' | 'gcp_kms' | 'azure_key_vault' | 'local';
+
 let secretsKeyProvider = createSecretsService(
   nebula.keyProvider,
   ['get', 'list', 'getSetupInfo', 'validate', 'setDefault', 'import', 'createManaged'],
@@ -141,6 +143,7 @@ class KeyProviderServiceImpl {
     organization: Organization;
     project: Project;
     input: {
+      type?: KeyProviderType;
       region?: string;
       keyId?: string;
     };
@@ -148,6 +151,7 @@ class KeyProviderServiceImpl {
     return await secretsKeyProvider.getSetupInfo({
       organization: d.organization,
       project: d.project,
+      type: d.input.type,
       region: d.input.region,
       keyId: d.input.keyId
     });
@@ -214,6 +218,7 @@ class KeyProviderServiceImpl {
     project: Project;
     performedBy: OrganizationActor;
     context?: Context;
+    type?: KeyProviderType;
     keyInput: Record<string, unknown>;
   }) {
     let keyProviders = await listAllKeyProviders(d);
@@ -230,6 +235,7 @@ class KeyProviderServiceImpl {
     let keyProvider = await secretsKeyProvider.import({
       organization: d.organization,
       project: d.project,
+      type: d.type,
       keyInput: d.keyInput
     });
     let updatedTenant = await getTenantForNebula(d.project);

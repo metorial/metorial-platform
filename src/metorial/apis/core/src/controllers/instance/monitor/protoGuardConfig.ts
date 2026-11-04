@@ -3,7 +3,7 @@ import { v } from '@lowerdeck/validation';
 import { protoGuardConfigService } from '@metorial-subspace/module-monitor';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { protoGuardConfigPresenter } from '@metorial/presenters';
 import { getRequiredParam } from './_shared';
 
@@ -15,7 +15,7 @@ export let protoGuardConfigController = Controller.create(
     description: 'ProtoGuard config controls prompt-injection filters and alert thresholds.'
   },
   {
-    get: instanceGroup
+    get: integrationsGroup
       .get(instancePath('protoguard-config', 'protoGuardConfig.get'), {
         name: 'Get ProtoGuard config',
         description: 'Retrieves ProtoGuard filter configuration for this instance.'
@@ -30,7 +30,7 @@ export let protoGuardConfigController = Controller.create(
         return protoGuardConfigPresenter.present({ config });
       }),
 
-    updateFilter: instanceGroup
+    updateFilter: integrationsGroup
       .post(
         instancePath('protoguard-config/filters/:filterId', 'protoGuardConfig.updateFilter'),
         {
@@ -88,7 +88,7 @@ export let protoGuardConfigController = Controller.create(
         return protoGuardConfigPresenter.present({ config });
       }),
 
-    setAlertFilterCountThreshold: instanceGroup
+    setAlertFilterCountThreshold: integrationsGroup
       .post(
         instancePath(
           'protoguard-config/alert-filter-count-threshold',

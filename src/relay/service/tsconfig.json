@@ -25,7 +25,7 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
   },
-  "exclude": [
+  "exclude": ["control",
     "node_modules",
     "tests/e2e",
     "tests/helpers"

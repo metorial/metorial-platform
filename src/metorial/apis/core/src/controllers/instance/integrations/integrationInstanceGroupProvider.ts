@@ -10,11 +10,11 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { requireNonPublishableMachineAccess } from '../../../middleware/requireNonPublishableMachineAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { integrationInstanceGroupProviderPresenter } from '@metorial/presenters';
 import { normalizeToolFilters, toolFiltersValidator } from '../sessions/_shared';
 
-let integrationInstanceGroupProviderGroup = instanceGroup.use(async ctx => {
+let integrationInstanceGroupProviderGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.integrationInstanceGroupProviderId) {
     throw new ServiceError(
       badRequestError({
@@ -34,7 +34,7 @@ let integrationInstanceGroupProviderGroup = instanceGroup.use(async ctx => {
   return { integrationInstanceGroupProvider };
 });
 
-let integrationInstanceGroupGroup = instanceGroup.use(async ctx => {
+let integrationInstanceGroupGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.integrationInstanceGroupId) {
     throw new ServiceError(
       badRequestError({
@@ -61,7 +61,7 @@ export let integrationInstanceGroupProviderController = Controller.create(
       'Integration instance group providers define the effective routed provider set for an integration instance group.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(
         instancePath(
           'integration-instance-group-providers',

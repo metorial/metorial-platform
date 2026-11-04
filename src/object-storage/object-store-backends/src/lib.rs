@@ -7,8 +7,8 @@ pub mod s3;
 pub mod upload;
 
 pub use backend::{
-    Backend, ByteRange, ByteStream, ObjectData, ObjectMetadata, ObjectPage, ObjectRangeData,
-    PublicUrlPurpose,
+    normalize_etag, Backend, ByteRange, ByteStream, ObjectData, ObjectMetadata, ObjectPage,
+    ObjectRangeData, PublicUrlPurpose, SignedUrl, WritePrecondition,
 };
 pub use error::{BackendError, BackendResult};
 pub use upload::{ChunkedUpload, MULTIPART_PART_SIZE, SINGLE_REQUEST_THRESHOLD};

@@ -10,12 +10,12 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { requireNonPublishableMachineAccess } from '../../../middleware/requireNonPublishableMachineAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { integrationInstanceProviderPresenter } from '@metorial/presenters';
 import { normalizeToolFilters, toolFiltersValidator } from '../sessions/_shared';
 import { getOwnershipActor } from '../../../lib/ownershipActor';
 
-let integrationInstanceProviderGroup = instanceGroup.use(async ctx => {
+let integrationInstanceProviderGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.integrationInstanceProviderId) {
     throw new ServiceError(
       badRequestError({
@@ -35,7 +35,7 @@ let integrationInstanceProviderGroup = instanceGroup.use(async ctx => {
   return { integrationInstanceProvider };
 });
 
-let integrationInstanceGroup = instanceGroup.use(async ctx => {
+let integrationInstanceGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.integrationInstanceId) {
     throw new ServiceError(
       badRequestError({
@@ -61,7 +61,7 @@ export let integrationInstanceProviderController = Controller.create(
       'Integration instance providers resolve the effective per-instance provider materialization for an integration.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(
         instancePath(
           'integration-instance-providers',

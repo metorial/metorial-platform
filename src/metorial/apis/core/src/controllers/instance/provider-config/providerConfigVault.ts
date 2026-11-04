@@ -10,10 +10,10 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { providerConfigVaultPresenter } from '@metorial/presenters';
 
-let providerConfigVaultGroup = instanceGroup.use(async ctx => {
+let providerConfigVaultGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.providerConfigVaultId) {
     throw new ServiceError(
       badRequestError({
@@ -38,7 +38,7 @@ export let providerConfigVaultController = Controller.create(
       'A config vault is a saved, reusable set of configuration values. Use vaults to store credentials once and apply them to multiple deployments without re-entering.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('provider-config-vaults', 'providerDeployments.configVaults.list'), {
         name: 'List provider config vaults',
         description: 'Returns a paginated list of provider config vaults.'
@@ -120,7 +120,7 @@ export let providerConfigVaultController = Controller.create(
         });
       }),
 
-    create: instanceGroup
+    create: integrationsGroup
       .post(
         instancePath('provider-config-vaults', 'providerDeployments.configVaults.create'),
         {

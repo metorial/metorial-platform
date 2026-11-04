@@ -18,6 +18,7 @@ import type { Context } from 'hono';
 import { type SSEStreamingApi, streamSSE } from 'hono/streaming';
 import z from 'zod';
 import { hostSettings } from './env';
+import { assertIntegrationRuntimeEnabled } from './integrationRuntime';
 import {
   assertOutpostConnectionAccess,
   getOutpostAuth,
@@ -143,6 +144,8 @@ let handleMcpRequestInner = async (c: Context, d: HandleMcpRequestInput) => {
     projectOid: d.instance.projectOid,
     instanceOid: d.instance.oid
   });
+
+  await assertIntegrationRuntimeEnabled(d.instance);
 
   let { tenant, solution } = await subspaceScopeService.ensureForInstance(d.instance);
   let connectionToken =

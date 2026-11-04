@@ -134,30 +134,61 @@ root_path = "./data"
 physical_bucket = "object-store-data"
 ```
 
-**S3:**
+**S3 and S3-compatible stores (MinIO, Ceph, SeaweedFS):**
 ```toml
 [backend]
 type = "s3"
 region = "us-east-1"
 physical_bucket = "my-bucket"
-endpoint = "http://localhost:9000"  # Optional, for MinIO
+endpoint = "http://ceph.internal:7480"   # Optional; setting it switches to path-style addressing
+public_endpoint = "https://s3.example.com" # Optional; host that signed URLs point at
+force_path_style = true                    # Optional; defaults to true when `endpoint` is set
 ```
+
+Credentials come from the standard AWS chain (environment, shared config, IRSA, instance roles), so
+no keys need to live in the config.
 
 **Google Cloud Storage:**
 ```toml
 [backend]
 type = "gcs"
 physical_bucket = "my-gcs-bucket"
+# endpoint = "http://fake-gcs:4443"        # Optional; emulator or private endpoint
+# public_endpoint = "https://storage.example.com"
+# credentials_file = "/etc/gcs/key.json"   # Optional service account key
 ```
+
+Without `credentials_file` the service uses Application Default Credentials (GKE workload identity,
+the metadata server, `GOOGLE_APPLICATION_CREDENTIALS`). Signed URLs are then produced keylessly
+through the IAM `signBlob` API, so the service account needs `roles/iam.serviceAccountTokenCreator` on itself.
 
 **Azure Blob Storage:**
 ```toml
 [backend]
 type = "azure"
 account = "myaccount"
-access_key = "myaccesskey"
 physical_bucket = "mycontainer"
+# access_key = "..."            # Shared key; signed URLs use a service SAS
+# connection_string = "..."     # Alternative to account/access_key (also for Azurite)
+# endpoint = "http://azurite:10000/devstoreaccount1"
+# public_endpoint = "https://myaccount.blob.example.com"
+# auth = "default"              # access_key | default | workload_identity | managed_identity
 ```
+
+Without an `access_key` the service authenticates keylessly (`default` tries workload identity,
+managed identity and the Azure CLI in order) and signs URLs with a user-delegation SAS. The identity
+needs the `Storage Blob Data Contributor` role plus permission to request a user delegation key
+(`Storage Blob Delegator`). A user-delegation SAS cannot outlive its delegation key.
+
+Upload URLs from Azure require the `x-ms-blob-type: BlockBlob` header. Every public URL response carries
+a `headers` map (empty for backends that need none) that callers must send along with the request.
+
+### Testing backends
+
+`object-store-backends/tests/conformance.rs` runs one behavioural suite (etags, conditional writes
+and races, ranges, copy, listing, multipart-sized uploads, signed URLs) against every backend.
+`scripts/test-emulators.sh` starts SeaweedFS, Azurite and fake-gcs-server in docker and runs it.
+Keyless authentication paths need a real cloud identity and are covered only by unit tests.
 
 ## API Reference
 

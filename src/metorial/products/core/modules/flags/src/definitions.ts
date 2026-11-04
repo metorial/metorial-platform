@@ -21,6 +21,8 @@ export type Flags = {
   'skills-enabled': FlagValue;
   'assistant-enabled': FlagValue;
   'advanced-security-management-enabled': FlagValue;
+  'key-providers-gcp-kms-enabled': FlagValue;
+  'key-providers-azure-key-vault-enabled': FlagValue;
   'networking-enabled': FlagValue;
   'sandbox-enabled': FlagValue;
   'public-mcp-servers-enabled': FlagValue;
@@ -29,6 +31,8 @@ export type Flags = {
   'store-participants-v2': FlagValue;
   'store-access-v2': FlagValue;
 
+  'paid-integrations': FlagValue;
+  'paid-integration-runtime': FlagValue;
   'paid-oauth-import': FlagValue;
   'paid-oauth-export': FlagValue;
   'paid-callbacks': FlagValue;
@@ -79,6 +83,8 @@ export let defaultFlags: Flags = {
   'skills-enabled': false,
   'assistant-enabled': false,
   'advanced-security-management-enabled': false,
+  'key-providers-gcp-kms-enabled': false,
+  'key-providers-azure-key-vault-enabled': false,
   'networking-enabled': false,
   'sandbox-enabled': false,
   'public-mcp-servers-enabled': false,
@@ -87,6 +93,8 @@ export let defaultFlags: Flags = {
   'store-participants-v2': false,
   'store-access-v2': false,
 
+  'paid-integrations': true,
+  'paid-integration-runtime': true,
   'paid-oauth-import': true,
   'paid-oauth-export': true,
   'paid-callbacks': true,

@@ -24,7 +24,9 @@ describe('secret E2E', () => {
   it('stores and uses a secret with the correct proof', async () => {
     let tenant = await createTenant();
     let registration = await registerWorker();
-    let consumer = await testDb.consumer.findUniqueOrThrow({ where: { identifier: 'worker' } });
+    let consumer = await testDb.consumer.findUniqueOrThrow({
+      where: { identifier: 'worker' }
+    });
 
     let secret = await nebulaClient.secret.create({
       tenantId: tenant.id,

@@ -1,8 +1,13 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, isAbsolute, join } from 'node:path';
-import { packageScripts, readJson, sortedEntries, walk } from './files';
-import { externalSchema, manifestSchema, parse } from './schema';
+import { normalizeBuild } from './dockerfile/normalize';
+import { MARKER } from './marker';
+import { packageScripts, readJson, sortedEntries, walk, walkManifests } from './files';
+import { validateStacks } from './stack/validate';
+import { externalSchema, manifestSchema, parse, type RawManifest } from './schema';
 import type { Database, EnvValue, LoadedManifest, Manifest, RootKind } from './types';
+
+export let stackIdentifier = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 export let applies = (manifest: Manifest, kind: RootKind) =>
   manifest.mode === 'both' || manifest.mode === kind;
@@ -28,17 +33,79 @@ export let validateTemplates = (value: string, allowed: string[]) => {
     throw new Error(`unmatched template delimiter in ${JSON.stringify(value)}`);
 };
 
-export let load = (path: string): LoadedManifest => {
-  let raw = parse(
-    manifestSchema,
-    Bun.TOML.parse(readFileSync(path, 'utf8')),
-    `invalid ${path}`
+let evaluator = join(import.meta.dir, 'evaluate.ts');
+let loaderConfig = join(import.meta.dir, '..', 'tsconfig.loader.json');
+
+let evaluate = (paths: string[]): Record<string, unknown> => {
+  if (!paths.length) return {};
+
+  let result = Bun.spawnSync(
+    [process.execPath, '--tsconfig-override', loaderConfig, evaluator, ...paths],
+    { stdout: 'pipe', stderr: 'pipe' }
   );
+  let output = result.stdout.toString();
+  let start = output.lastIndexOf(MARKER);
+
+  if (!result.success || start < 0)
+    throw new Error(
+      `failed to evaluate control manifests: ${result.stderr.toString().trim() || output.trim()}`
+    );
+
+  return JSON.parse(output.slice(start + MARKER.length));
+};
+
+export let loadMany = (paths: string[]): LoadedManifest[] => {
+  let evaluated = evaluate(paths) as Record<string, { raw: unknown } | { error: string }>;
+
+  return paths.map(path => {
+    let item = evaluated[path];
+    if (!item || 'error' in item) throw new Error(`invalid ${path}: ${item?.error}`);
+
+    return build(path, parse(manifestSchema, item.raw, `invalid ${path}`));
+  });
+};
+
+export let load = (path: string): LoadedManifest => loadMany([path])[0]!;
+
+export let build = (path: string, raw: RawManifest): LoadedManifest => {
   if (raw.name !== undefined && raw.package)
     throw new Error(`${path}: use either top-level name/group/dev or package/run, not both`);
 
   let dev = raw.name !== undefined ? raw.dev : undefined;
   let manifest: Manifest = {
+    stack_definitions: (raw.stack_definitions ?? []).map(item => ({
+      ...item,
+      label: item.label ?? item.id,
+      mode: item.mode ?? 'both'
+    })),
+    stack_only: raw.stack_only ?? false,
+    stacks: Object.fromEntries(
+      sortedEntries(raw.stacks ?? {}).map(([id, member]) => [
+        id,
+        {
+          mode: member.mode ?? 'both',
+          init: member.init ?? false,
+          volumes: member.volumes ?? {},
+          env: member.env ?? {},
+          development: {
+            disabled: member.development?.disabled ?? false,
+            container: member.development?.container ?? false,
+            run: member.development?.run,
+            env: member.development?.env ?? {}
+          },
+          production: {
+            disabled: member.production?.disabled ?? false,
+            image: member.production?.image,
+            dockerfile: member.production?.dockerfile,
+            workspace: member.production?.workspace,
+            args: member.production?.args ?? {},
+            command: member.production?.command,
+            target: member.production?.target,
+            env: member.production?.env ?? {}
+          }
+        }
+      ])
+    ),
     package:
       raw.name !== undefined
         ? { name: raw.name, groups: raw.group ? [raw.group] : [] }
@@ -92,9 +159,14 @@ export let load = (path: string): LoadedManifest => {
     ci: {
       images: (raw.ci?.images ?? []).map(image => ({
         ...image,
+        build: image.build ? normalizeBuild(image.build) : undefined,
         group: image.group ?? 'oss',
         platform: image.platform ?? 'linux/amd64',
         stagingOnly: image.stagingOnly ?? false
+      })),
+      dockerfiles: (raw.ci?.dockerfiles ?? []).map(item => ({
+        ...item,
+        build: normalizeBuild(item.build)
       })),
       suite: raw.ci?.suite
         ? {
@@ -152,7 +224,7 @@ export let load = (path: string): LoadedManifest => {
 
   validate(manifest, path, dev?.run ?? []);
 
-  return { path, manifest };
+  return { path, directory: dirname(dirname(path)), manifest };
 };
 
 export let validate = (manifest: Manifest, path: string, scripts: string[] = []) => {
@@ -198,13 +270,37 @@ export let validate = (manifest: Manifest, path: string, scripts: string[] = [])
   if (manifest.package) {
     if (!manifest.package.name.trim()) fail('package.name cannot be empty');
 
-    if (!existsSync(join(dirname(path), 'package.json')))
-      fail('control.toml must be colocated with package.json');
+    if (!existsSync(join(dirname(dirname(path)), 'package.json')))
+      fail('control/index.ts must be colocated with package.json');
   } else if (Object.keys(manifest.endpoints).length) fail('endpoints require a named package');
+
+  if (manifest.stack_definitions.length && manifest.package)
+    fail('stack definitions can only be declared by the root project');
+
+  unique(
+    manifest.stack_definitions.map(item => item.id),
+    'stack definition'
+  );
+
+  for (let definition of manifest.stack_definitions)
+    if (!stackIdentifier.test(definition.id))
+      fail(`invalid stack identifier ${JSON.stringify(definition.id)}`);
+
+  for (let [id, member] of sortedEntries(manifest.stacks)) {
+    if (!stackIdentifier.test(id)) fail(`invalid stack identifier ${JSON.stringify(id)}`);
+
+    if (!manifest.package) fail('stack membership requires a named package');
+
+    for (let values of [member.env, member.development.env, member.production.env])
+      for (let [key, value] of sortedEntries(values)) envValue(key, value);
+
+    if (member.development.disabled && member.production.disabled)
+      fail(`stack ${JSON.stringify(id)} disables both development and production`);
+  }
 
   let scriptNames = [...scripts, ...manifest.e2e.start];
   if (scriptNames.length) {
-    let available = packageScripts(dirname(path));
+    let available = packageScripts(dirname(dirname(path)));
 
     for (let script of scriptNames) {
       if (!/^[a-zA-Z0-9_:.\-]+$/.test(script))
@@ -382,8 +478,13 @@ export let healthChecks = (manifest: Manifest) => [
   ...manifest.health
 ];
 
-export let discover = (root: string): LoadedManifest[] => {
-  let manifests = walk(root, 'control.toml').map(load);
+export let discover = (
+  root: string,
+  options: { stackOnly?: boolean } = {}
+): LoadedManifest[] => {
+  let manifests = loadMany(walkManifests(root)).filter(
+    loaded => options.stackOnly || !loaded.manifest.stack_only
+  );
   let packages = new Map<string, LoadedManifest>();
 
   for (let loaded of manifests) {
@@ -467,6 +568,7 @@ export let discover = (root: string): LoadedManifest[] => {
 
   refreshDependencyEndpoints(manifests);
   validateDependencyEndpoints(manifests);
+  validateStacks(manifests);
 
   return manifests;
 };

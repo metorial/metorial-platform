@@ -14,8 +14,12 @@ export let paths = () => {
     socket: join(root, 'daemon.sock'),
     pid: join(root, 'daemon.pid'),
     registry: join(root, 'workspaces.json'),
+    stacks: join(root, 'stacks.json'),
     daemonLog: join(root, 'daemon.log'),
-    logs: join(root, 'logs')
+    logs: join(root, 'logs'),
+    cache: join(root, 'cache'),
+    cachePid: join(root, 'cache.pid'),
+    cacheLog: join(root, 'cache.log')
   };
 };
 

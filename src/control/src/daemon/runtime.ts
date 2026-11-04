@@ -1,4 +1,5 @@
 import type { ChildProcess } from 'node:child_process';
+import { relative } from 'node:path';
 
 import * as commands from '../process';
 import * as dev from '../dev';
@@ -9,6 +10,7 @@ import * as turbo from '../turbo';
 import * as workspace from '../workspace';
 import type { Environment, LoadedManifest, ProjectRoot, WorkspaceMetadata } from '../types';
 import { LogStore } from './logs';
+import * as reload from './reload';
 import type {
   JobInfo,
   JobKind,
@@ -45,6 +47,9 @@ export class WorkspaceRuntime {
   private projects: docker.ComposeProject[] = [];
   private unregister?: () => Promise<void>;
   private lastStart: StartOptions = {};
+  private stopWatching?: () => void;
+  private routes = '';
+  private infrastructure = '';
   private jobCounter = 0;
   private queue: Promise<unknown> = Promise.resolve();
 
@@ -62,6 +67,7 @@ export class WorkspaceRuntime {
   info(): WorkspaceInfo {
     return {
       id: this.data.id,
+      kind: 'workspace',
       root: this.project.root,
       branch: this.data.branch,
       hostname: this.data.hostname,
@@ -118,7 +124,7 @@ export class WorkspaceRuntime {
         this.project,
         options.selectors ?? []
       );
-      if (!selected.length) throw new Error('no control.toml manifests were selected');
+      if (!selected.length) throw new Error('no control manifests were selected');
 
       this.selected = selected;
       this.env = env;
@@ -176,8 +182,20 @@ export class WorkspaceRuntime {
 
       this.set('starting');
       await this.startServices(packages);
+      this.routes = reload.routeKey(selected);
+      this.infrastructure = reload.infrastructureKey(selected);
+      this.stopWatching?.();
+      this.stopWatching = reload.watchDefinitions(manifests, file => {
+        this.logs.system(
+          'control',
+          `definition changed: ${relative(this.project.root, file)}`
+        );
+        void this.reloadDefinitions();
+      });
       this.set('running');
     } catch (error) {
+      this.stopWatching?.();
+      this.stopWatching = undefined;
       await this.killServices();
       await this.unregister?.().catch(() => {});
       this.unregister = undefined;
@@ -283,11 +301,13 @@ export class WorkspaceRuntime {
     );
   }
 
-  async stop(options: { infra?: boolean } = {}) {
+  async stop(options: { keepInfra?: boolean } = {}) {
     if (['idle', 'stopped', 'stopping'].includes(this.phase)) return;
 
     await this.serialized(async () => {
       this.set('stopping');
+      this.stopWatching?.();
+      this.stopWatching = undefined;
       await this.killServices();
 
       try {
@@ -302,7 +322,7 @@ export class WorkspaceRuntime {
           commands.warn(`cleanup failed: ${error}`);
         }
 
-        if (options.infra || this.selected.some(item => item.manifest.docker.stop)) {
+        if (!options.keepInfra) {
           await docker.stop(this.project.root, this.projects, this.env);
           for (let unit of this.units.values())
             if (unit.kind === 'infra') unit.state = 'stopped';
@@ -315,8 +335,139 @@ export class WorkspaceRuntime {
 
   async restartWorkspace(options: { infra?: boolean } = {}) {
     let previous = this.lastStart;
-    await this.stop(options);
+    await this.stop({ keepInfra: !options.infra });
     await this.start(previous);
+  }
+
+  async reloadDefinitions() {
+    await this.serialized(async () => {
+      if (this.phase !== 'running') return;
+
+      let started = Date.now();
+      let next: Awaited<ReturnType<typeof dev.selection>>;
+      let packages: turbo.TurboPackage[];
+
+      try {
+        next = await dev.selection(this.project, this.lastStart.selectors ?? [], false);
+        for (let path of dev.syncDockerfiles(this.project, next.manifests))
+          this.logs.system('control', `regenerated ${relative(this.project.root, path)}`);
+        if (!next.selected.length) throw new Error('no control manifests were selected');
+        packages = turbo.plan(next.selected, this.project.root, next.env);
+        if (!packages.length) throw new Error('selected manifests contain no run commands');
+      } catch (error) {
+        this.logs.system(
+          'control',
+          `definition reload failed, keeping the running configuration: ${error instanceof Error ? error.message : error}`
+        );
+
+        return;
+      }
+
+      let current = new Map(
+        [...this.units.values()]
+          .filter(unit => unit.kind === 'service' && unit.package)
+          .map(unit => [unit.name, unit.package!])
+      );
+      let changes = reload.diffPackages(current, packages);
+      let routes = reload.routeKey(next.selected);
+      let infrastructure = reload.infrastructureKey(next.selected);
+      let routesChanged = routes !== this.routes;
+      let ports = servicePorts(next.selected);
+
+      if (
+        !changes.added.length &&
+        !changes.changed.length &&
+        !changes.removed.length &&
+        !routesChanged &&
+        infrastructure === this.infrastructure
+      ) {
+        this.logs.system('control', 'definitions reloaded, no material changes');
+
+        return;
+      }
+
+      this.selected = next.selected;
+      this.env = next.env;
+
+      if (routesChanged && this.unregister) {
+        try {
+          await this.unregister();
+          await proxy.ensure(
+            this.project,
+            this.data,
+            proxy.publicPorts(next.manifests, this.project)
+          );
+          this.unregister = await proxy.register(this.project, this.data, next.selected);
+        } catch (error) {
+          this.unregister = undefined;
+          this.logs.system(
+            'control',
+            `could not update proxy routes: ${error instanceof Error ? error.message : error}`
+          );
+        }
+      }
+      this.routes = routes;
+      this.links = linksFor(this.data, next.selected);
+
+      if (infrastructure !== this.infrastructure) {
+        this.logs.system(
+          'control',
+          'infrastructure, database or prepare definitions changed; restart the workspace to apply them'
+        );
+        this.infrastructure = infrastructure;
+      }
+
+      for (let name of changes.removed) {
+        let unit = this.units.get(name)!;
+        await this.stopUnit(unit);
+        this.units.delete(name);
+      }
+
+      for (let pkg of changes.changed) {
+        let unit = this.units.get(pkg.name)!;
+        let active = this.children.has(unit.name) || unit.timer !== undefined;
+        unit.package = pkg;
+        unit.ports = ports.get(pkg.name) ?? [];
+        unit.attempts = 0;
+        this.logs.system(unit.name, 'definition changed');
+
+        if (!active) continue;
+        unit.state = 'restarting';
+        this.changed();
+        await this.stopUnit(unit);
+        this.spawnUnit(unit);
+      }
+
+      for (let pkg of changes.added) {
+        let unit: Unit = {
+          name: pkg.name,
+          kind: 'service',
+          state: 'stopped',
+          restarts: 0,
+          ports: ports.get(pkg.name) ?? [],
+          stopping: false,
+          attempts: 0,
+          package: pkg
+        };
+        this.units.set(pkg.name, unit);
+        this.spawnUnit(unit);
+      }
+
+      for (let unit of this.units.values())
+        if (unit.kind === 'service') unit.ports = ports.get(unit.name) ?? unit.ports;
+
+      let names = (items: { name: string }[]) => items.map(item => item.name).join(', ');
+      let summary = [
+        changes.changed.length && `restarted ${names(changes.changed)}`,
+        changes.added.length && `started ${names(changes.added)}`,
+        changes.removed.length && `stopped ${changes.removed.join(', ')}`
+      ].filter(Boolean);
+      this.logs.system(
+        'control',
+        `definitions reloaded in ${Date.now() - started}ms${summary.length ? `: ${summary.join('; ')}` : ''}`
+      );
+      this.changed();
+    });
   }
 
   async restartUnit(name: string) {
@@ -421,7 +572,7 @@ export class WorkspaceRuntime {
 let seconds = (job: JobInfo) =>
   (((job.endedAt ?? Date.now()) - job.startedAt) / 1000).toFixed(1);
 
-let servicePorts = (selected: LoadedManifest[]) => {
+export let servicePorts = (selected: LoadedManifest[]) => {
   let result = new Map<string, number[]>();
 
   for (let loaded of selected) {
@@ -435,7 +586,7 @@ let servicePorts = (selected: LoadedManifest[]) => {
   return result;
 };
 
-let linksFor = (data: WorkspaceMetadata, selected: LoadedManifest[]): LinkInfo[] => {
+export let linksFor = (data: WorkspaceMetadata, selected: LoadedManifest[]): LinkInfo[] => {
   let links: LinkInfo[] = [];
 
   for (let loaded of selected)

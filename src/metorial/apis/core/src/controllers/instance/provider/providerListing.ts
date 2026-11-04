@@ -7,10 +7,10 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { providerListingPresenter } from '@metorial/presenters';
 
-let providerListingGroup = instanceGroup.use(async ctx => {
+let providerListingGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.providerListingId) {
     throw new ServiceError(
       badRequestError({
@@ -57,7 +57,7 @@ export let providerListingController = Controller.create(
     hideInDocs: true
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('provider-listings', 'providerListings.list'), {
         name: 'List provider listings',
         description: 'Returns a paginated list of provider listings.'

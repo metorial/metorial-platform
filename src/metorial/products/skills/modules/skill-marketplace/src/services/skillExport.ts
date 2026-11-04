@@ -388,6 +388,7 @@ class SkillExportServiceImpl {
       bucketId: d.target.destination.codeBucketId,
       prefix: '',
       uploadUrl: destination.type === 'signed_url' ? destination.url : '',
+      uploadHeaders: destination.type === 'signed_url' ? destination.headers : {},
       uploadBucket: destination.type === 'internal' ? destination.bucket : '',
       uploadKey: destination.type === 'internal' ? destination.key : '',
       contentType: 'application/zip'

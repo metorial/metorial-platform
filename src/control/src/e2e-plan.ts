@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { join, dirname, resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { readJson, sortedEntries, sortJson } from './files';
 import { discoverPackages, globMatch, relativePath, wildcard } from './packages';
 import * as manifest from './manifest';
@@ -135,7 +135,7 @@ export let buildPlan = (
 
       for (let pattern of loaded.manifest.e2e.tests) {
         let matched = packages.filter(item =>
-          globMatch(resolve(dirname(loaded.path), pattern), item.directory)
+          globMatch(resolve(loaded.directory, pattern), item.directory)
         );
         if (!matched.length)
           throw new Error(
@@ -246,7 +246,7 @@ export let buildPlan = (
 
     return {
       name,
-      directory: relativePath(project.root, dirname(loaded.path)),
+      directory: relativePath(project.root, loaded.directory),
       start: e2e.start,
       ...(images && e2e.image ? { image: images[e2e.image]! } : {}),
       env: {

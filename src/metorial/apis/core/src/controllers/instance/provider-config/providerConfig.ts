@@ -13,7 +13,7 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { configSchemaPresenter, providerConfigPresenter } from '@metorial/presenters';
 import { toolFiltersValidator } from '../sessions/_shared';
 import { getOwnershipActor, resolveExplorerOwner } from '../../../lib/ownershipActor';
@@ -72,7 +72,7 @@ let createProviderConfigBody = (d: { includeSource: boolean }) =>
     ])
   ]);
 
-let providerConfigGroup = instanceGroup.use(async ctx => {
+let providerConfigGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.providerConfigId) {
     throw new ServiceError(
       badRequestError({
@@ -98,7 +98,7 @@ export let providerConfigController = Controller.create(
       'A config holds settings for a deployment, like API endpoints or feature flags. Create configs with values directly, or from a saved config vault with pre-saved values.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('provider-configs', 'providerDeployments.configs.list'), {
         name: 'List provider configs',
         description: 'Returns a paginated list of provider configs.'
@@ -205,7 +205,7 @@ export let providerConfigController = Controller.create(
         );
       }),
 
-    create: instanceGroup
+    create: integrationsGroup
       .post(instancePath('provider-configs', 'providerDeployments.configs.create'), {
         name: 'Create provider config',
         description: 'Creates a new provider config.',
@@ -355,7 +355,7 @@ export let providerConfigController = Controller.create(
         return providerConfigPresenter.present(await hydrateResourceOwners({ config }));
       }),
 
-    getConfigSchema: instanceGroup
+    getConfigSchema: integrationsGroup
       .get(
         instancePath('provider-config-schema', 'providerDeployments.configs.getConfigSchema'),
         {

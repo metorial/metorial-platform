@@ -1,0 +1,21 @@
+{
+  "name": "@metorial/control",
+  "version": "1.0.0",
+  "author": "Tobias Herber",
+  "license": "FSL-1.1",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./presets": "./src/presets/index.ts",
+    "./raw": "./src/raw.ts"
+  },
+  "scripts": {
+    "test": "bun test src",
+    "typecheck": "tsc --project tsconfig.json",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.3",
+    "typescript": "5.9.3"
+  }
+}

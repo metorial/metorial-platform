@@ -17,6 +17,8 @@ import { existsSync } from 'node:fs';
 import { paths, uiPort } from './home';
 import { jobKinds, type JobKind, type UnitInfo, type WorkspaceInfo } from './types';
 import { logFileName, replayLines, type LogLine } from './logs';
+import { definitions, parseStackMode, planStack, stackRunId } from '../stack/plan';
+import { discover } from '../manifest';
 
 export interface DaemonArgs {
   root: string;
@@ -187,7 +189,7 @@ let down = async (args: DaemonArgs) => {
     : [await workspaceId(args)];
 
   for (let id of ids) {
-    await client.api(path(id, '/stop'), 'POST', { infra: args.flags.has('infra') });
+    await client.api(path(id, '/stop'), 'POST', { keepInfra: args.flags.has('keep-infra') });
     await waitFor(id, info => ['stopped', 'idle'].includes(info.phase));
     console.log(`stopped ${id}`);
   }
@@ -203,13 +205,16 @@ let ls = async (args: DaemonArgs) => {
 
   console.log(
     table([
-      ['WORKSPACE', 'BRANCH', 'STATE', 'SERVICES', 'DASHBOARD', 'UP'],
+      ['WORKSPACE', 'KIND', 'BRANCH', 'STATE', 'SERVICES', 'DASHBOARD', 'UP'],
       ...all.map(info => {
         let state = workspaceState(info);
         let link = info.links.find(item => item.group === 'app');
 
         return [
           info.id,
+          info.kind === 'stack'
+            ? `stack (${info.stack?.mode === 'production' ? 'prod' : 'dev'})`
+            : 'workspace',
           info.branch,
           paint(
             info.phase === 'running'
@@ -241,7 +246,7 @@ let status = async (args: DaemonArgs) => {
   if (args.flags.has('failing')) info = { ...info, units: info.units.filter(isFailing) };
   let color = colored(args);
   console.log(
-    `workspace ${info.id} (${info.branch})  ${paint(info.phase === 'running' ? 32 : 33, info.phase, color)}${info.error ? `  ${info.error}` : ''}`
+    `${info.kind === 'stack' ? 'stack' : 'workspace'} ${info.id} (${info.branch})  ${paint(info.phase === 'running' ? 32 : 33, info.phase, color)}${info.error ? `  ${info.error}` : ''}`
   );
   for (let link of info.links) console.log(`  ${link.label.padEnd(14)} ${link.url}`);
   console.log(`  ${'Control UI'.padEnd(14)} ${client.uiUrl()}`);
@@ -454,6 +459,176 @@ let shell = async (args: DaemonArgs) => {
   process.stdin.pause();
 };
 
+let stackIdentifier = (args: DaemonArgs) => {
+  let identifier = args.positional[0];
+  if (!identifier) throw new Error('missing stack identifier');
+
+  return identifier;
+};
+
+let stackName = (args: DaemonArgs) => args.values.name ?? stackIdentifier(args);
+
+let stackRegistration = (args: DaemonArgs) => ({
+  root: detect(args.root).root,
+  identifier: stackIdentifier(args),
+  mode: parseStackMode(args.values.env ?? 'development'),
+  name: stackName(args)
+});
+
+let stack = async (args: DaemonArgs, subcommand: string) => {
+  switch (subcommand) {
+    case 'ls': {
+      await client.ensureDaemon();
+      let project = detect(args.root);
+      let found = await client.api<
+        { id: string; label: string; mode: string; description?: string; running: string[] }[]
+      >(`/stacks/definitions?root=${encodeURIComponent(project.root)}`);
+      if (args.flags.has('json')) return console.log(JSON.stringify(found, null, 2));
+      if (!found.length) return console.log('no stacks are defined in this checkout');
+
+      console.log(
+        table([
+          ['STACK', 'LABEL', 'RUNNING'],
+          ...found.map(item => [item.id, item.label, item.running.join(', ') || '–'])
+        ])
+      );
+
+      return;
+    }
+    case 'plan': {
+      let project = detect(args.root);
+      let plan = planStack(
+        project,
+        discover(project.root, { stackOnly: true }),
+        stackIdentifier(args),
+        parseStackMode(args.values.env ?? 'development'),
+        { name: args.values.name }
+      );
+      if (args.flags.has('json'))
+        return console.log(
+          JSON.stringify(
+            { ...plan, selected: plan.selected.map(item => item.manifest.package?.name) },
+            null,
+            2
+          )
+        );
+
+      console.log(
+        `stack ${plan.definition.id} (${plan.mode}) as ${plan.id}  ${plan.hostname}`
+      );
+      console.log(
+        table([
+          ['UNIT', 'PACKAGE', 'RUNS AS', 'PORTS'],
+          ...plan.units.map(unit => [
+            unit.name,
+            unit.package,
+            unit.container ? `container ${unit.container.image}` : 'bun process',
+            unit.ports.map(port => `:${port}`).join(' ')
+          ])
+        ])
+      );
+
+      return;
+    }
+    case 'start': {
+      await client.ensureDaemon();
+      let info = await client.api<WorkspaceInfo>('/stacks', 'POST', stackRegistration(args));
+
+      if (!['idle', 'stopped', 'failed'].includes(info.phase)) {
+        console.log(`stack ${info.id} is already ${info.phase}`);
+
+        return;
+      }
+
+      await client.api(path(info.id, '/start'), 'POST', {
+        noPrepare: args.flags.has('no-prepare')
+      });
+      if (args.flags.has('detach'))
+        return console.log(`starting ${info.id} in the background`);
+
+      let final = await followStack(info.id, args, item =>
+        ['running', 'failed'].includes(item.phase)
+      );
+      if (final.phase === 'failed') throw new Error(final.error ?? 'stack failed to start');
+
+      console.log(`\n${final.id} is ready`);
+      for (let link of final.links) console.log(`  ${link.label.padEnd(14)} ${link.url}`);
+      console.log(`  ${'Control UI'.padEnd(14)} ${client.uiUrl()}`);
+
+      return;
+    }
+    case 'stop': {
+      await client.ensureDaemon();
+      let id = stackRunId(stackName(args));
+      await client.api(path(id, '/stop'), 'POST', { volumes: args.flags.has('volumes') });
+      await waitFor(id, info => ['stopped', 'idle'].includes(info.phase));
+      console.log(`stopped ${id}`);
+
+      return;
+    }
+    case 'clean': {
+      await client.ensureDaemon();
+      let id = stackRunId(stackName(args));
+      await client.api(path(id, '/clean'), 'POST', {});
+      console.log(`cleaned ${id}`);
+
+      return;
+    }
+    case 'rm': {
+      await client.ensureDaemon();
+      let id = stackRunId(stackName(args));
+      await client.api(path(id), 'DELETE');
+      console.log(`removed ${id}`);
+
+      return;
+    }
+    case 'restart': {
+      await client.ensureDaemon();
+      let id = stackRunId(stackName(args));
+      await client.api(path(id, '/restart'), 'POST', {});
+      await waitFor(id, info => info.phase === 'stopping');
+      let info = await followStack(id, args, item =>
+        ['running', 'failed'].includes(item.phase)
+      );
+      console.log(
+        info.phase === 'running' ? `${id} restarted and ready` : `${id} failed: ${info.error}`
+      );
+
+      return;
+    }
+  }
+
+  throw new Error(`unknown stack command ${JSON.stringify(subcommand)}`);
+};
+
+let followStack = async (
+  id: string,
+  args: DaemonArgs,
+  done: (info: WorkspaceInfo) => boolean
+) => {
+  let color = colored(args);
+  let controller = new AbortController();
+  let printing = (async () => {
+    try {
+      for await (let line of client.followLogs(
+        id,
+        verbose(args) ? ['control', 'infra', 'build', 'runner'] : ['control'],
+        0,
+        undefined,
+        controller.signal
+      ))
+        console.log(logLine(line as LogLine, 8, color));
+    } catch {}
+  })();
+
+  try {
+    return await waitFor(id, done);
+  } finally {
+    controller.abort();
+    await printing;
+  }
+};
+
 let daemon = async (args: DaemonArgs, subcommand: string) => {
   switch (subcommand) {
     case 'run':
@@ -516,10 +691,23 @@ export let dispatch = async (
       return job(args);
     case 'open':
       return open(args);
+    case 'email': {
+      await client.ensureDaemon();
+      let info = await client.api<WorkspaceInfo>(path(await workspaceId(args)));
+      let mail = info.links.find(link => link.label === 'Mailpit');
+      if (!mail) throw new Error(`workspace ${info.id} has no Mailpit inbox`);
+
+      let email = await import('../email');
+      return subcommand === 'list'
+        ? email.list(mail.url, args.values)
+        : email.open(mail.url, args.positional[0]!, args.flags.has('html'));
+    }
     case 'sh':
       return shell(args);
     case 'daemon':
       return daemon(args, subcommand!);
+    case 'stack':
+      return stack(args, subcommand!);
   }
 };
 

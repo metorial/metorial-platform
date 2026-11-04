@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import { atomicWrite, readJson, sortedEntries } from './files';
 import { discover, loadExternals, selectWithDependencies } from './manifest';
 import { configureManifests, metadata, metadataIfPresent } from './workspace';
@@ -242,7 +242,7 @@ export let writeDotenv = (path: string, values: Environment) =>
   );
 
 export let writeForManifest = (loaded: LoadedManifest, root: Environment) => {
-  let path = join(dirname(loaded.path), '.env');
+  let path = join(loaded.directory, '.env');
   writeDotenv(path, allForManifest(loaded, root));
 
   return path;

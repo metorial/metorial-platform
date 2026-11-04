@@ -5,10 +5,10 @@ import { providerListingCategoryService } from '@metorial-subspace/module-catalo
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { providerCategoryPresenter } from '@metorial/presenters';
 
-let providerCategoryGroup = instanceGroup.use(async ctx => {
+let providerCategoryGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.providerCategoryId) {
     throw new ServiceError(
       badRequestError({
@@ -33,7 +33,7 @@ export let providerCategoryController = Controller.create(
     hideInDocs: true
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('provider-categories', 'providerCategories.list'), {
         name: 'List provider categories',
         description: 'Returns a paginated list of provider categories.'

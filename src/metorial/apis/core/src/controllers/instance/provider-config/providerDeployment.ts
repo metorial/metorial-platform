@@ -13,11 +13,11 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { configValidator } from '../../../lib/providerValidators';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { providerDeploymentPresenter } from '@metorial/presenters';
 import { toolFiltersValidator } from '../sessions/_shared';
 
-let providerDeploymentGroup = instanceGroup.use(async ctx => {
+let providerDeploymentGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.providerDeploymentId) {
     throw new ServiceError(
       badRequestError({
@@ -112,7 +112,7 @@ export let providerDeploymentController = Controller.create(
       'A deployment is a running instance of a provider, pinned to a specific version. Deployments support custom configuration values and user authentication.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('provider-deployments', 'providerDeployments.list'), {
         name: 'List provider deployments',
         description: 'Returns a paginated list of provider deployments.'
@@ -258,7 +258,7 @@ export let providerDeploymentController = Controller.create(
         return providerDeploymentPresenter.present({ deployment: ctx.deployment });
       }),
 
-    create: instanceGroup
+    create: integrationsGroup
       .post(instancePath('provider-deployments', 'providerDeployments.create'), {
         name: 'Create provider deployment',
         description: 'Creates a new provider deployment.'

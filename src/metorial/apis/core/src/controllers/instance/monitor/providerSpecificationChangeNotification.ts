@@ -5,11 +5,11 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { providerSpecificationChangeNotificationPresenter } from '@metorial/presenters';
 import { getRequiredParam, notificationTargetValidator, stringOrArray } from './_shared';
 
-let providerSpecificationChangeNotificationGroup = instanceGroup.use(async ctx => {
+let providerSpecificationChangeNotificationGroup = integrationsGroup.use(async ctx => {
   let notification =
     await providerSpecificationChangeNotificationService.getProviderSpecificationChangeNotificationById(
       {
@@ -28,7 +28,7 @@ export let providerSpecificationChangeNotificationController = Controller.create
       'Provider specification change notifications describe provider schema changes.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(
         instancePath(
           'provider-specification-change-notifications',

@@ -13,12 +13,12 @@ import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { magicMcpTokenPresenter } from '@metorial/presenters';
 import { getOwnershipActor } from '../../../lib/ownershipActor';
 
-export let magicMcpTokenGroup = instanceGroup.use(async ctx => {
+export let magicMcpTokenGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.magicMcpTokenId) {
     throw new ServiceError(
       badRequestError({
@@ -47,7 +47,7 @@ export let magicMcpTokenController = Controller.create(
     hideInDocs: true
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('magic-mcp-tokens', 'magicMcpTokens.list'), {
         name: 'List magic MCP tokens',
         description: 'Returns a paginated list of magic MCP tokens.',
@@ -118,7 +118,7 @@ export let magicMcpTokenController = Controller.create(
         return magicMcpTokenPresenter.present({ magicMcpToken: ctx.magicMcpToken });
       }),
 
-    create: instanceGroup
+    create: integrationsGroup
       .post(instancePath('magic-mcp-tokens', 'magicMcpTokens.create'), {
         name: 'Create magic MCP token',
         description: 'Creates a new magic MCP token.',

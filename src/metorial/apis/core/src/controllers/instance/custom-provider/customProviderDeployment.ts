@@ -7,13 +7,13 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import {
   subspaceCustomProviderDeploymentLogsPresenter,
   subspaceCustomProviderDeploymentPresenter
 } from '@metorial/presenters';
 
-let customProviderDeploymentGroup = instanceGroup.use(async ctx => {
+let customProviderDeploymentGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.customProviderDeploymentId) {
     throw new ServiceError(
       badRequestError({
@@ -39,7 +39,7 @@ export let customProviderDeploymentController = Controller.create(
       'Deployments track the build and deployment process of custom provider versions. View deployment status and logs.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('custom-provider-deployments', 'customProviders.deployments.list'), {
         name: 'List custom provider deployments',
         description: 'Returns a paginated list of deployments for a custom provider.'

@@ -30,8 +30,16 @@ export interface LinkInfo {
   url: string;
 }
 
+export interface StackInfo {
+  identifier: string;
+  mode: 'development' | 'production';
+  name: string;
+}
+
 export interface WorkspaceInfo {
   id: string;
+  kind: 'workspace' | 'stack';
+  stack?: StackInfo;
   root: string;
   branch: string;
   hostname: string;

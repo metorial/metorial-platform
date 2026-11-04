@@ -19,7 +19,7 @@ import {
   getFineGrainedAllowedSessionIds,
   requireFineGrainedSessionParam
 } from '../../../middleware/checkFineGrainedSessionAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { providerSessionPresenter } from '@metorial/presenters';
 import { normalizeToolFilters, toolFiltersValidator } from './_shared';
 import {
@@ -30,7 +30,7 @@ import {
 } from './_providerInput';
 import { getOwnershipActor, resolveExplorerOwner } from '../../../lib/ownershipActor';
 
-let sessionGroup = instanceGroup
+let sessionGroup = integrationsGroup
   .use(requireFineGrainedSessionParam('sessionId')())
   .use(async ctx => {
     if (!ctx.params.sessionId) {
@@ -144,7 +144,7 @@ export let sessionController = Controller.create(
       'Sessions are connections to providers that allow clients to interact with MCP servers. Each session can include one or more provider deployments.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('sessions', 'sessions.list'), {
         name: 'List sessions',
         description: 'Returns a paginated list of sessions.'
@@ -289,7 +289,7 @@ export let sessionController = Controller.create(
         );
       }),
 
-    create: instanceGroup
+    create: integrationsGroup
       .post(instancePath('sessions', 'sessions.create'), {
         name: 'Create session',
         description: 'Creates a new session with provider deployments.'

@@ -24,7 +24,7 @@ export let e2eEndpoint = (pkg: string, name: string) => {
   let url = e2eEndpoints()[pkg]?.[name];
   if (!url) {
     throw new Error(
-      `No e2e endpoint "${name}" for ${pkg}. Is the package part of this e2e stack and does its control.toml declare [endpoints.${name}]?`
+      `No e2e endpoint "${name}" for ${pkg}. Is the package part of this e2e stack and does its control/index.ts declare endpoints.${name}?`
     );
   }
   return url;

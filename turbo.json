@@ -15,7 +15,7 @@
         "!dev.Dockerfile",
         "!.dockerignore",
         "!README*",
-        "!control.toml"
+        "!control/**"
       ],
       "outputs": ["dist/**"]
     },
@@ -27,7 +27,7 @@
         "!dev.Dockerfile",
         "!.dockerignore",
         "!README*",
-        "!control.toml"
+        "!control/**"
       ],
       "outputs": ["dist/**"]
     },
@@ -43,7 +43,7 @@
         "!dev.Dockerfile",
         "!.dockerignore",
         "!README*",
-        "!control.toml"
+        "!control/**"
       ],
       "outputs": ["prisma/generated/**"]
     },
@@ -74,7 +74,7 @@
         "!dev.Dockerfile",
         "!.dockerignore",
         "!README*",
-        "!control.toml"
+        "!control/**"
       ],
       "outputs": ["dist/**", "frontend/*/dist/**"],
       "env": ["SENTRY_AUTH_TOKEN", "METORIAL_ENV", "VITE_*"]
@@ -87,7 +87,7 @@
         "!dev.Dockerfile",
         "!.dockerignore",
         "!README*",
-        "!control.toml"
+        "!control/**"
       ],
       "outputs": ["dist/**"],
       "env": ["METORIAL_ENV", "VITE_*"]
@@ -100,7 +100,7 @@
         "!dev.Dockerfile",
         "!.dockerignore",
         "!README*",
-        "!control.toml"
+        "!control/**"
       ],
       "outputs": ["dist/admin/**"],
       "env": ["METORIAL_ENV", "VITE_*"]
@@ -113,7 +113,7 @@
         "!dev.Dockerfile",
         "!.dockerignore",
         "!README*",
-        "!control.toml"
+        "!control/**"
       ],
       "outputs": ["dist-worker/**"],
       "env": ["METORIAL_ENV"]
@@ -147,7 +147,7 @@
         "!dev.Dockerfile",
         "!.dockerignore",
         "!README*",
-        "!control.toml"
+        "!control/**"
       ],
       "env": ["METORIAL_ENV"],
       "outputs": ["dist/**", "!dist/admin/**"]
@@ -160,7 +160,7 @@
         "!dev.Dockerfile",
         "!.dockerignore",
         "!README*",
-        "!control.toml"
+        "!control/**"
       ],
       "env": ["METORIAL_ENV"],
       "outputs": ["dist/**"]
@@ -225,7 +225,7 @@
         "!Dockerfile",
         "!dev.Dockerfile",
         "!.dockerignore",
-        "!control.toml",
+        "!control/**",
         "$TURBO_ROOT$/tsconfig*.json"
       ],
       "outputs": [],
@@ -256,16 +256,20 @@
     },
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "passThroughEnv": ["*"]
     },
     "control:db:generate": {
-      "cache": false
+      "cache": false,
+      "passThroughEnv": ["*"]
     },
     "control:db:push": {
-      "cache": false
+      "cache": false,
+      "passThroughEnv": ["*"]
     },
     "control:db:migrate": {
-      "cache": false
+      "cache": false,
+      "passThroughEnv": ["*"]
     },
     "@metorial-subspace/app-worker#server:build": {
       "dependsOn": [
@@ -283,7 +287,7 @@
         "!dev.Dockerfile",
         "!.dockerignore",
         "!README*",
-        "!control.toml"
+        "!control/**"
       ],
       "env": ["METORIAL_ENV"],
       "outputs": ["dist/**", "!dist/admin/**"]
@@ -296,7 +300,7 @@
         "!Dockerfile",
         "!dev.Dockerfile",
         "!.dockerignore",
-        "!control.toml",
+        "!control/**",
         "$TURBO_ROOT$/tsconfig*.json"
       ],
       "outputs": []

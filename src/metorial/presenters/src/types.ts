@@ -193,7 +193,8 @@ import { EnrichedConsumerSurface } from '@metorial/module-consumer-core';
 import {
   ConsumerActivityAgent,
   ConsumerActivitySessionConnection,
-  ConsumerProviderCatalogEntry
+  ConsumerProviderCatalogEntry,
+  SkillMcpAvailability
 } from '@metorial/module-consumer-entities';
 import { Flags } from '@metorial/module-flags';
 import type {
@@ -1821,6 +1822,11 @@ export let skillFileChangeType = PresentableType.create<{
   skillFileChange: SkillFileChangeResult;
   skill: { id: string };
 }>()('skillFileChange');
+
+export let skillMcpAvailabilityType = PresentableType.create<{
+  skillMcpAvailability: SkillMcpAvailability;
+  skill: { id: string };
+}>()('skillMcpAvailability');
 
 export let skillConfigurationType = PresentableType.create<{
   skillConfiguration: SkillConfiguration;

@@ -3,6 +3,8 @@ import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
 import { projectLoader } from './project';
 
+export type KeyProviderType = 'aws_kms' | 'gcp_kms' | 'azure_key_vault';
+
 export let projectKeyProvidersLoader = createLoader({
   name: 'projectKeyProviders',
   parents: [projectLoader],
@@ -28,7 +30,7 @@ export let projectKeyProvidersLoader = createLoader({
         sdk.projects.keyProviders.createManaged(input.organizationId, input.projectId, i)
       ),
     import: (
-      i: { keyInput: Record<string, unknown> },
+      i: { type?: KeyProviderType; keyInput: Record<string, unknown> },
       { input }: { input: { organizationId: string; projectId: string } }
     ) =>
       withAuth(sdk =>
@@ -144,11 +146,13 @@ export let projectKeyProviderSetupInfoLoader = createLoader({
   fetch: (i: {
     organizationId: string;
     projectId: string;
+    type?: KeyProviderType;
     region?: string;
     keyId?: string;
   }) =>
     withAuth(sdk =>
       sdk.projects.keyProviders.getSetupInfo(i.organizationId, i.projectId, '_', {
+        type: i.type,
         region: i.region,
         keyId: i.keyId
       })
@@ -159,13 +163,14 @@ export let projectKeyProviderSetupInfoLoader = createLoader({
 export let useProjectKeyProviderSetupInfo = (
   organizationId: string | null | undefined,
   projectId: string | null | undefined,
-  query?: { region?: string; keyId?: string } | null
+  query?: { type?: KeyProviderType; region?: string; keyId?: string } | null
 ) => {
   return projectKeyProviderSetupInfoLoader.use(
     organizationId && projectId
       ? {
           organizationId,
           projectId,
+          type: query?.type,
           region: query?.region,
           keyId: query?.keyId
         }

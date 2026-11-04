@@ -37,10 +37,16 @@ export let packageFixture = (
   mkdirSync(path, { recursive: true });
   writeJson(join(path, 'package.json'), { name, scripts });
 
-  if (manifest !== undefined) atomicWrite(join(path, 'control.toml'), manifest);
+  if (manifest !== undefined) writeManifest(path, manifest);
 
   return path;
 };
+
+export let writeManifest = (directory: string, toml: string) =>
+  atomicWrite(
+    join(directory, 'control', 'index.ts'),
+    `import { rawProject } from '@metorial/control/raw';\n\nexport default rawProject(${JSON.stringify(Bun.TOML.parse(toml))});\n`
+  );
 
 export let checkout = (kind: ProjectRoot['kind'] = 'oss') => {
   let root = temporary();

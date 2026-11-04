@@ -13,7 +13,7 @@ let fixture = (text: string) => {
     'control:db:push': 'true'
   });
 
-  return { root, path: join(root, 'control.toml') };
+  return { root, path: join(root, 'control', 'index.ts') };
 };
 
 describe('strict manifest validation', () => {

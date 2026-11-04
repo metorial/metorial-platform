@@ -7,9 +7,9 @@ import { providerPresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 
-let providerGroup = instanceGroup.use(async ctx => {
+let providerGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.providerId) {
     throw new ServiceError(
       badRequestError({
@@ -34,7 +34,7 @@ export let providerController = Controller.create(
       'A provider is a read-only template for an MCP server integration (like GitHub or Slack). To use a provider, create a deployment from it.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('providers', 'providers.list'), {
         name: 'List providers',
         description: 'Returns a paginated list of providers.'

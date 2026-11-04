@@ -17,7 +17,7 @@ import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { magicMcpEndpointPresenter } from '@metorial/presenters';
 import { toolFiltersValidator } from '../sessions/_shared';
@@ -25,7 +25,7 @@ import { getSkillPluginAccess } from '../skills';
 import { getOwnershipActor } from '../../../lib/ownershipActor';
 import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 
-export let magicMcpEndpointGroup = instanceGroup.use(async ctx => {
+export let magicMcpEndpointGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.magicMcpEndpointId) {
     throw new ServiceError(
       badRequestError({
@@ -174,7 +174,7 @@ export let magicMcpEndpointController = Controller.create(
     hideInDocs: true
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('magic-mcp-endpoints', 'magicMcpEndpoints.list'), {
         name: 'List magic MCP endpoints',
         description: 'Returns a paginated list of magic MCP endpoints.'
@@ -252,7 +252,7 @@ export let magicMcpEndpointController = Controller.create(
         );
       }),
 
-    create: instanceGroup
+    create: integrationsGroup
       .post(instancePath('magic-mcp-endpoints', 'magicMcpEndpoints.create'), {
         name: 'Create magic MCP endpoint',
         description: 'Creates a magic MCP endpoint.'

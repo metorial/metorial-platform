@@ -96,8 +96,9 @@ const (
 )
 
 type PublicURLResponse struct {
-	URL       string `json:"url"`
-	ExpiresIn uint64 `json:"expires_in"`
+	URL       string            `json:"url"`
+	Headers   map[string]string `json:"headers"`
+	ExpiresIn uint64            `json:"expires_in"`
 }
 
 type Error struct {

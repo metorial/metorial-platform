@@ -12,6 +12,8 @@ import * as docker from './docker';
 import * as cleanup from './cleanup';
 import * as e2e from './e2e';
 import { inventory } from './ci';
+import { generate as generateDockerfiles } from './dockerfile/generate';
+import { relativePath } from './packages';
 import * as daemon from './daemon/commands';
 import type { ProjectRoot } from './types';
 
@@ -26,18 +28,34 @@ let commandOptions: Record<
     flags: ['no-docker', 'no-prepare', 'no-proxy', 'detach', 'verbose', 'no-color'],
     values: ['timeout']
   },
-  down: { flags: ['infra', 'all'], values: ['ws'], max: 0 },
+  down: { flags: ['keep-infra', 'all'], values: ['ws', 'stack'], max: 0 },
   ls: { flags: ['json', 'no-color'], max: 0 },
-  status: { flags: ['json', 'failing', 'no-color'], values: ['ws'], max: 0 },
-  restart: { flags: ['infra', 'verbose', 'no-color'], values: ['ws', 'timeout'] },
+  status: { flags: ['json', 'failing', 'no-color'], values: ['ws', 'stack'], max: 0 },
+  restart: { flags: ['infra', 'verbose', 'no-color'], values: ['ws', 'stack', 'timeout'] },
   logs: {
     flags: ['follow', 'list', 'tui', 'errors', 'path', 'json', 'no-color'],
-    values: ['tail', 'ws', 'grep', 'since']
+    values: ['tail', 'ws', 'stack', 'grep', 'since']
   },
-  tui: { values: ['ws'] },
-  job: { flags: ['no-color'], values: ['ws'], min: 1 },
-  open: { values: ['ws'], max: 1 },
-  sh: { values: ['ws'], max: 1 },
+  tui: { values: ['ws', 'stack'] },
+  job: { flags: ['no-color'], values: ['ws', 'stack'], min: 1 },
+  open: { values: ['ws', 'stack'], max: 1 },
+  email: {},
+  'email list': { values: ['ws', 'stack', 'start', 'limit'], max: 0 },
+  'email open': { flags: ['html'], values: ['ws', 'stack'], min: 1, max: 1 },
+  sh: { values: ['ws', 'stack'], max: 1 },
+  stack: {},
+  'stack start': {
+    flags: ['detach', 'no-prepare', 'verbose', 'no-color'],
+    values: ['env', 'name'],
+    min: 1,
+    max: 1
+  },
+  'stack stop': { flags: ['volumes'], values: ['name'], max: 1 },
+  'stack restart': { flags: ['verbose', 'no-color'], values: ['name'], max: 1 },
+  'stack clean': { values: ['name'], max: 1 },
+  'stack rm': { values: ['name'], max: 1 },
+  'stack ls': { flags: ['json'], max: 0 },
+  'stack plan': { flags: ['json'], values: ['env', 'name'], min: 1, max: 1 },
   daemon: {},
   'daemon start': { max: 0 },
   'daemon stop': { max: 0 },
@@ -57,6 +75,7 @@ let commandOptions: Record<
   docker: {},
   'docker stop': {},
   'docker reset': { flags: ['yes', 'dry-run'] },
+  'docker generate': { flags: ['check'], max: 0 },
   workspace: {},
   'workspace create': { flags: ['no-open'], min: 1, max: 1 },
   'workspace list': { max: 0 },
@@ -92,7 +111,7 @@ let parseArgumentsUnchecked = (args: string[]): Arguments => {
     help: false,
     version: false
   };
-  let nested = new Set(['ci', 'db', 'docker', 'workspace', 'daemon']);
+  let nested = new Set(['ci', 'db', 'docker', 'workspace', 'daemon', 'email', 'stack']);
 
   for (let index = 0; index < args.length; index++) {
     let argument = args[index]!;
@@ -295,11 +314,15 @@ export let run = async (args = process.argv.slice(2), cwd = process.cwd()) => {
     case 'tui':
     case 'job':
     case 'open':
+    case 'email':
     case 'sh':
     case 'daemon':
+    case 'stack':
       await daemon.dispatch(parsed.command, parsed.subcommand, {
         root: start,
-        workspace: parsed.values.ws,
+        workspace:
+          parsed.values.ws ??
+          (parsed.values.stack ? `stack-${parsed.values.stack}` : undefined),
         positional,
         flags,
         values: parsed.values
@@ -375,6 +398,26 @@ export let run = async (args = process.argv.slice(2), cwd = process.cwd()) => {
       return;
     }
     case 'docker': {
+      if (parsed.subcommand === 'generate') {
+        let result = generateDockerfiles(project, { write: !flags.has('check') });
+
+        if (flags.has('check')) {
+          if (result.changed.length)
+            throw new Error(
+              `generated Dockerfiles are out of date: ${result.changed.map(path => relativePath(project.root, path)).join(', ')}\nrun \`control docker generate\``
+            );
+          console.log(`${result.files.length} generated Dockerfile(s) are up to date`);
+
+          return;
+        }
+
+        console.log(
+          `generated ${result.files.length} Dockerfile(s), ${result.changed.length} changed`
+        );
+
+        return;
+      }
+
       let { selected, env } = await dev.selection(project, positional, false);
       let projects = docker.composeProjects(project.root, selected);
 

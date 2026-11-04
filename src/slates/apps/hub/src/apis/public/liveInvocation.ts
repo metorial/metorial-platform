@@ -136,6 +136,7 @@ export let liveInvocationApp = createHono<{
           referenceId: id,
           uploadUrl: signed.url,
           uploadMethod: 'PUT' as const,
+          uploadHeaders: signed.headers,
           expiresAt: new Date(Date.now() + signed.expires_in * 1000).toISOString()
         };
       })

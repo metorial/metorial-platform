@@ -315,6 +315,7 @@ describe('api-files uploads', () => {
     expect(created.body.object).toBe('file_upload');
     expect(created.body.upload.method).toBe('PUT');
     expect(() => new URL(created.body.upload.url)).not.toThrow();
+    expect(created.body.upload.headers).toEqual(expect.any(Object));
     expect(
       await db.fileUpload.count({ where: { instance: { id: org.ids.instanceId } } })
     ).toBe(uploadsBefore + 1);

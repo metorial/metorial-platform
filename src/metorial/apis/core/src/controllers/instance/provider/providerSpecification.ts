@@ -6,10 +6,10 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { providerSpecificationPresenter } from '@metorial/presenters';
 
-let providerSpecificationGroup = instanceGroup.use(async ctx => {
+let providerSpecificationGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.providerSpecificationId) {
     throw new ServiceError(
       badRequestError({
@@ -34,7 +34,7 @@ export let providerSpecificationController = Controller.create(
       'A specification defines what a provider version can do: its tools, auth methods, and required configuration fields.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('provider-specifications', 'providers.specifications.list'), {
         name: 'List provider specifications',
         description: 'Returns a paginated list of provider specifications.'

@@ -1,7 +1,7 @@
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use futures::StreamExt;
-use object_store_backends::{Backend, BackendError};
+use object_store_backends::{Backend, BackendError, WritePrecondition};
 use serde::{Deserialize, Serialize};
 use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
@@ -194,24 +194,26 @@ impl MetadataStore {
         }
     }
 
-    async fn save_bucket(&self, bucket: &Bucket) -> ServiceResult<()> {
+    async fn save_new_bucket(&self, bucket: &Bucket) -> ServiceResult<()> {
         let key = Self::bucket_key(&bucket.name);
         let data = serde_json::to_vec(bucket)?;
 
-        // Convert Vec<u8> to stream
-        let stream: object_store_backends::ByteStream =
-            Box::pin(futures::stream::once(async move { Ok(Bytes::from(data)) }));
-
-        self.backend
-            .put_object(
+        match self
+            .backend
+            .put_object_if(
                 &key,
-                stream,
+                Bytes::from(data),
                 Some("application/json".to_string()),
-                HashMap::new(),
+                WritePrecondition::IfAbsent,
             )
-            .await?;
-
-        Ok(())
+            .await
+        {
+            Ok(_) => Ok(()),
+            Err(BackendError::PreconditionFailed(_)) => {
+                Err(ServiceError::BucketAlreadyExists(bucket.name.clone()))
+            }
+            Err(e) => Err(e.into()),
+        }
     }
 
     async fn delete_bucket_object(&self, name: &str) -> ServiceResult<()> {
@@ -250,7 +252,7 @@ impl MetadataStore {
             return Err(ServiceError::BucketAlreadyExists(name.to_string()));
         }
 
-        self.save_bucket(&bucket).await?;
+        self.save_new_bucket(&bucket).await?;
 
         {
             let mut cache = self.cache.write().await;
@@ -354,9 +356,10 @@ impl MetadataStore {
         let now = Utc::now();
         let expires_at = now + chrono::Duration::seconds(ttl_seconds);
 
-        match self.backend.get_object(&lock_key).await {
+        let precondition = match self.backend.get_object(&lock_key).await {
             Ok(mut obj_data) => {
-                // Collect stream to bytes
+                let etag = obj_data.metadata.etag.clone();
+
                 let mut data = Vec::new();
                 while let Some(chunk) = obj_data.stream.next().await {
                     let chunk = chunk.map_err(|e| ServiceError::Internal(e.to_string()))?;
@@ -371,13 +374,14 @@ impl MetadataStore {
                 }
 
                 debug!("Lock {} expired, acquiring", resource);
+                WritePrecondition::IfMatch(etag)
             }
             Err(BackendError::NotFound(_)) => {
-                // No lock exists
                 debug!("No lock found for {}, acquiring", resource);
+                WritePrecondition::IfAbsent
             }
             Err(e) => return Err(ServiceError::Backend(e)),
-        }
+        };
 
         let lock = Lock {
             resource: resource.to_string(),
@@ -387,18 +391,24 @@ impl MetadataStore {
         };
 
         let data = serde_json::to_vec(&lock)?;
-        // Convert Vec<u8> to stream
-        let stream: object_store_backends::ByteStream =
-            Box::pin(futures::stream::once(async move { Ok(Bytes::from(data)) }));
 
-        self.backend
-            .put_object(
+        match self
+            .backend
+            .put_object_if(
                 &lock_key,
-                stream,
+                Bytes::from(data),
                 Some("application/json".to_string()),
-                HashMap::new(),
+                precondition,
             )
-            .await?;
+            .await
+        {
+            Ok(_) => {}
+            Err(BackendError::PreconditionFailed(_)) => {
+                debug!("Lock {} was taken by another owner first", resource);
+                return Ok(false);
+            }
+            Err(e) => return Err(ServiceError::Backend(e)),
+        }
 
         debug!("Lock acquired for resource: {}", resource);
         Ok(true)

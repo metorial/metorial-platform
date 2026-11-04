@@ -7,7 +7,7 @@ import {
   renameSync,
   writeFileSync
 } from 'node:fs';
-import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 
 export let sortedEntries = <T>(value: Record<string, T>): [string, T][] =>
   Object.entries(value).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
@@ -57,7 +57,10 @@ export let ancestors = function* (start: string): Generator<string> {
   }
 };
 
-export let walk = (root: string, filename: string): string[] => {
+let walkFiles = (
+  root: string,
+  accept: (directory: string, name: string) => boolean
+): string[] => {
   let result: string[] = [];
   let visit = (directory: string, depth: number) => {
     let entries;
@@ -76,7 +79,7 @@ export let walk = (root: string, filename: string): string[] => {
 
         if (depth === 0 && entry.name === 'out') continue;
         visit(join(directory, entry.name), depth + 1);
-      } else if (entry.isFile() && entry.name === filename) {
+      } else if (entry.isFile() && accept(directory, entry.name)) {
         result.push(join(directory, entry.name));
       }
     }
@@ -86,6 +89,18 @@ export let walk = (root: string, filename: string): string[] => {
 
   return result.sort(comparePaths);
 };
+
+export let walk = (root: string, filename: string): string[] =>
+  walkFiles(root, (_directory, name) => name === filename);
+
+export let walkManifests = (root: string): string[] =>
+  walkFiles(
+    root,
+    (directory, name) =>
+      name === 'index.ts' &&
+      basename(directory) === 'control' &&
+      existsSync(join(dirname(directory), 'package.json'))
+  );
 
 export let packageName = (directory: string): string | undefined => {
   if (!existsSync(join(directory, 'package.json'))) return;

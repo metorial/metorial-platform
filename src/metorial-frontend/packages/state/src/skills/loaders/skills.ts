@@ -13,6 +13,7 @@ import type {
   DashboardInstanceSkillsItemsCreateBody,
   DashboardInstanceSkillsItemsGetOutput,
   DashboardInstanceSkillsItemsListQuery,
+  DashboardInstanceSkillsMcpAvailabilityGetOutput,
   DashboardInstanceSkillsListQuery,
   DashboardInstanceSkillsParticipantsGetOutput,
   DashboardInstanceSkillsParticipantsListQuery,
@@ -31,6 +32,7 @@ export type Skill = DashboardInstanceSkillsGetOutput;
 export type SkillAccess = DashboardInstanceSkillsAccessGetOutput;
 export type SkillAgent = DashboardInstanceSkillsAgentsGetOutput;
 export type SkillConfiguration = DashboardInstanceSkillsConfigurationsGetOutput;
+export type SkillMcpAvailability = DashboardInstanceSkillsMcpAvailabilityGetOutput;
 export type SkillItem = DashboardInstanceSkillsItemsGetOutput;
 export type SkillParticipant = DashboardInstanceSkillsParticipantsGetOutput;
 export type SkillVersion = DashboardInstanceSkillsVersionsGetOutput;
@@ -415,6 +417,19 @@ export let useSkillAccess = (
   skillId: string | null | undefined,
   enabled: boolean = true
 ) => skillAccessLoader.use(instanceId && skillId && enabled ? { instanceId, skillId } : null);
+
+export let skillMcpAvailabilityLoader = createLoader({
+  name: 'skillMcpAvailability',
+  parents: [skillLoader],
+  fetch: (i: { instanceId: string; skillId: string }) =>
+    withAuth(sdk => sdk.skills.mcpAvailability.get(i.instanceId, i.skillId)),
+  mutators: {}
+});
+
+export let useSkillMcpAvailability = (
+  instanceId: string | null | undefined,
+  skillId: string | null | undefined
+) => skillMcpAvailabilityLoader.use(instanceId && skillId ? { instanceId, skillId } : null);
 
 export let skillParticipantLoader = createLoader({
   name: 'skillParticipant',

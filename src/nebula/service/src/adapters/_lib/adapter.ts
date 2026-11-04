@@ -7,6 +7,15 @@ export type AdapterKeyProviderInput =
       region?: string;
     }
   | {
+      type: 'gcp_kms';
+      keyName?: string;
+    }
+  | {
+      type: 'azure_key_vault';
+      vaultUrl?: string;
+      keyName?: string;
+    }
+  | {
       type: 'local';
     };
 
@@ -48,7 +57,10 @@ export type KeyProviderSetupInfo = {
 
 export let detag = (strings: TemplateStringsArray, ...values: any[]) => {
   let raw = strings.reduce((out, str, idx) => `${out}${str}${values[idx] ?? ''}`, '');
-  let lines = raw.replace(/^\n/, '').replace(/\n\s*$/, '').split('\n');
+  let lines = raw
+    .replace(/^\n/, '')
+    .replace(/\n\s*$/, '')
+    .split('\n');
   let indents = lines
     .filter(line => line.trim().length > 0)
     .map(line => line.match(/^\s*/)?.[0].length ?? 0);
@@ -59,6 +71,12 @@ export let detag = (strings: TemplateStringsArray, ...values: any[]) => {
 
 export abstract class KeyProviderAdapter {
   abstract readonly type: KeyProvider['type'];
+
+  abstract getSystemFingerprint(): string;
+
+  async matchesLegacySystemKeyInfo(_keyInfo: any): Promise<boolean> {
+    return true;
+  }
 
   abstract createSystemKeyProvider(): Promise<{
     name: string;
@@ -82,7 +100,10 @@ export abstract class KeyProviderAdapter {
 
   abstract getSetupInfo(input: KeyProviderSetupInfoInput): Promise<KeyProviderSetupInfo>;
 
-  abstract generateDataKey(keyProvider: KeyProvider, context: DataKeyContext): Promise<DataKeyResult>;
+  abstract generateDataKey(
+    keyProvider: KeyProvider,
+    context: DataKeyContext
+  ): Promise<DataKeyResult>;
 
   abstract decryptDataKey(
     keyProvider: KeyProvider,

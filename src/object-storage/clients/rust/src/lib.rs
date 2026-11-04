@@ -105,6 +105,8 @@ pub enum PublicUrlPurpose {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PublicUrlResponse {
     pub url: String,
+    #[serde(default)]
+    pub headers: HashMap<String, String>,
     pub expires_in: u64,
 }
 
@@ -866,6 +868,40 @@ mod tests {
             "https://example.com/signed-url?signature=abc123"
         );
         assert_eq!(response.expires_in, 7200);
+    }
+
+    #[tokio::test]
+    async fn test_get_public_url_returns_required_headers() {
+        let mut server = Server::new_async().await;
+        let _m = server
+            .mock("GET", "/buckets/test-bucket/public-url/test-key")
+            .match_query(mockito::Matcher::UrlEncoded(
+                "purpose".into(),
+                "upload".into(),
+            ))
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(
+                r#"{"url":"https://example.com/blob?sig=1","headers":{"x-ms-blob-type":"BlockBlob"},"expires_in":60}"#,
+            )
+            .create_async()
+            .await;
+
+        let client = ObjectStoreClient::new(server.url());
+        let response = client
+            .get_public_url(
+                "test-bucket",
+                "test-key",
+                None,
+                Some(PublicUrlPurpose::Upload),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(
+            response.headers.get("x-ms-blob-type").map(String::as_str),
+            Some("BlockBlob")
+        );
     }
 
     #[tokio::test]

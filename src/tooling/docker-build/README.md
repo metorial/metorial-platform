@@ -19,7 +19,7 @@ both dependency and final builds.
 `services.json` records OSS images and their build recipes. Turbo tasks are read
 from each Dockerfile's prune command to keep fingerprinting and builds aligned.
 Enterprise runs shared services with `workspace: ./oss`, giving exactly the same
-inputs as OSS. Enterprise services use their own workspace and Dockerfiles; pass
+inputs as OSS. Enterprise services use their own workspace and control-generated Dockerfiles; pass
 all output-affecting build arguments through `build-arguments` as JSON. Credentials
 for caching and Sentry upload are excluded. Unsupported dynamic external image
 references or direct COPY inputs fail rather than silently produce unsafe keys.
@@ -38,6 +38,16 @@ run normal discovery/pruning once and retain that context. The `prepared` action
 output lets `prune-docker` reuse it without a second prune. Dependency layer caches
 continue to work. Whole locks invalidate descriptors, but image identity includes
 only the exact pruned lock: unrelated resolutions do not invalidate images.
+
+## Shared tools cache
+
+Generated Dockerfiles with migrations have `control-runtime`, `prisma-cli`, `runner-base`
+and `tools` stages. These do not depend on the service's code, so the `tools-cache`
+composite action derives a shared registry cache
+(`<repo>:buildcache-tools-<hash of the stage definitions>`) and the workflows build
+`--target tools` against it (`cache-to` only for non-fork runs), then pass it to the final
+build's `cache-from`. `pruner`, `pruned` and `builder` are intentionally not shared; builds
+rely on the Turbo cache.
 
 The version change deliberately causes initial image-cache misses. Existing
 SHA/branch/deployment aliases and registry-copy verification remain compatible.

@@ -1,0 +1,21 @@
+{
+  "name": "control-runtime",
+  "version": "1.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "bun build ./src/cli.ts --target=bun --outfile=./dist/control-runtime.js",
+    "test": "bun test test",
+    "typecheck": "tsc --project tsconfig.json"
+  },
+  "dependencies": {
+    "@aws-sdk/rds-signer": "3.1156.0",
+    "pg": "8.23.1"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.3",
+    "@types/pg": "8.15.5",
+    "typescript": "5.9.3"
+  }
+}

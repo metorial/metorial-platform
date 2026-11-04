@@ -4,7 +4,7 @@ import { LogStore, replayLines } from '../src/daemon/logs';
 import { WorkspaceRuntime } from '../src/daemon/runtime';
 import { delay } from '../src/process';
 import { writeMetadata } from '../src/workspace';
-import { checkout, packageFixture, workspaceData } from './helpers';
+import { checkout, packageFixture, workspaceData, writeManifest } from './helpers';
 
 let until = async (check: () => boolean, label: string, timeout = 8000) => {
   let deadline = Date.now() + timeout;
@@ -125,6 +125,62 @@ describe('WorkspaceRuntime', () => {
     expect(runtime.info().units.every(unit => unit.state === 'stopped')).toBe(true);
   }, 30_000);
 
+  test('reloads changed definitions and restarts only the units that differ', async () => {
+    let { runtime, logs, project } = await build();
+    await runtime.start({ noDocker: true, noPrepare: true, noProxy: true });
+
+    let unit = (name: string) => runtime.info().units.find(item => item.name === name)!;
+    let system = () => logs.query({ units: ['control'] }).map(line => line.text);
+    await until(() => !!unit('api').pid && !!unit('api-worker').pid, 'services up');
+
+    let apiPid = unit('api').pid;
+    let workerPid = unit('api-worker').pid;
+
+    await runtime.reloadDefinitions();
+    expect(unit('api').pid).toBe(apiPid);
+    expect(system().some(line => line.includes('no material changes'))).toBe(true);
+
+    let manifest = (worker: string) =>
+      [
+        "name='api'",
+        '[run.dev]',
+        "command='echo api-up; exec sleep 300'",
+        '[run.worker]',
+        `command='${worker}'`,
+        "depends_on=['dev']",
+        '[run.flaky]',
+        "command='echo boom; exit 3'"
+      ].join('\n');
+
+    writeManifest(join(project.root, 'api'), manifest('echo worker-v2; exec sleep 300'));
+    await runtime.reloadDefinitions();
+
+    await until(
+      () => !!unit('api-worker').pid && unit('api-worker').pid !== workerPid,
+      'worker restarted'
+    );
+    expect(unit('api').pid).toBe(apiPid);
+    await until(
+      () => logs.query({ units: ['api-worker'] }).some(line => line.text === 'worker-v2'),
+      'new worker output'
+    );
+    expect(system().some(line => line.includes('restarted api-worker'))).toBe(true);
+
+    writeManifest(join(project.root, 'api'), manifest('echo worker-v3; exec sleep 300'));
+    await until(
+      () => logs.query({ units: ['api-worker'] }).some(line => line.text === 'worker-v3'),
+      'file watcher reload',
+      10_000
+    );
+
+    writeManifest(join(project.root, 'api'), "name='api'\nbogus=true");
+    await runtime.reloadDefinitions();
+    expect(system().some(line => line.includes('definition reload failed'))).toBe(true);
+    expect(unit('api').pid).toBe(apiPid);
+
+    await runtime.stop();
+  }, 30_000);
+
   test('reports a failed start without leaving processes behind', async () => {
     let project = checkout();
     let data = workspaceData(project.root, {
@@ -136,7 +192,7 @@ describe('WorkspaceRuntime', () => {
     await runtime.start({ noDocker: true, noPrepare: true, noProxy: true });
 
     expect(runtime.phase).toBe('failed');
-    expect(runtime.error).toContain('no control.toml');
+    expect(runtime.error).toContain('no control manifests');
     expect(runtime.startable).toBe(true);
   });
 });

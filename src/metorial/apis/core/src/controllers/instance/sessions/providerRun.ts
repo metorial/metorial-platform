@@ -8,10 +8,10 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { getOwnershipActor } from '../../../lib/ownershipActor';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { requireNonPublishableMachineAccess } from '../../../middleware/requireNonPublishableMachineAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { providerRunLogsPresenter, subspaceProviderRunPresenter } from '@metorial/presenters';
 
-let providerRunGroup = instanceGroup.use(async ctx => {
+let providerRunGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.providerRunId) {
     throw new ServiceError(
       badRequestError({
@@ -37,7 +37,7 @@ export let providerRunController = Controller.create(
       'Provider runs track the execution of provider operations within a session. This read-only resource provides visibility into provider activity.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('provider-runs', 'providerRuns.list'), {
         name: 'List all provider runs',
         description: 'Returns a paginated list of provider runs across all sessions.'
@@ -119,7 +119,7 @@ export let providerRunController = Controller.create(
         });
       }),
 
-    getLogs: instanceGroup
+    getLogs: integrationsGroup
       .get(instancePath('provider-runs/:providerRunId/logs', 'providerRuns.getLogs'), {
         name: 'Get provider run logs',
         description: 'Retrieves the logs for a specific provider run.'

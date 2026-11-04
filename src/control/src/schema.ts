@@ -37,6 +37,43 @@ let optionalString = v.optional(str);
 
 let port = v.number({ modifiers: [v.integer(), v.minValue(0), v.maxValue(65535)] });
 
+let migration = strictObject({
+  name: str,
+  package: str,
+  path: optionalString,
+  env: v.union([str, strings]),
+  fallback: v.optional(v.union([str, strings])),
+  parts: v.optional(v.union([str, strings])),
+  query: optionalString,
+  precedence: v.optional(v.enumOf(['url', 'parts'])),
+  defaults: v.optional(strictObject({ port: optionalString, name: optionalString })),
+  encode: v.optional(v.boolean()),
+  iam: v.optional(strictObject({ arnEnv: str, regionEnv: optionalString })),
+  lock: v.optional(v.number({ modifiers: [v.integer()] })),
+  renames: v.optional(v.array(strictObject({ table: str, from: str, to: str })))
+});
+
+let buildSpec = strictObject({
+  kind: v.literal('bun-service'),
+  tasks: v.optional(strings),
+  include: v.optional(strings),
+  closure: v.optional(v.boolean()),
+  concurrency: v.optional(v.number({ modifiers: [v.integer(), v.minValue(1)] })),
+  heapMb: v.optional(v.number({ modifiers: [v.integer(), v.minValue(1)] })),
+  start: optionalString,
+  ports: v.optional(v.array(port)),
+  health: v.optional(v.array(strictObject({ port, path: str }))),
+  migrations: v.optional(v.array(migration)),
+  assets: v.optional(v.array(strictObject({ from: str, to: optionalString }))),
+  packages: v.optional(
+    strictObject({ build: v.optional(strings), runtime: v.optional(strings) })
+  ),
+  modules: v.optional(v.enumOf(['production', 'none'])),
+  sentry: v.optional(v.boolean()),
+  node: v.optional(v.boolean()),
+  env: v.optional(v.record(str))
+});
+
 let envSpec = strictObject({
   value: optionalString,
   from: optionalString,
@@ -51,7 +88,7 @@ let keyValue = strictObject({ key: str, value: str });
 let healthSpec = strictObject({ path: str, status: v.optional(port) });
 
 let resource = strictObject({
-  type: v.enumOf(['redis', 'nats', 'etcd', 'mail']),
+  type: v.enumOf(['redis', 'nats', 'etcd', 'mail', 'postgres']),
   env: v.optional(v.array(keyValue))
 });
 
@@ -68,7 +105,49 @@ let database = (mongo: boolean) =>
     ...(mongo ? { auth_source: optionalString } : {})
   });
 
+let stackId = v.string();
+
+let stackMember = strictObject({
+  mode: v.optional(v.enumOf(['both', 'oss', 'enterprise'])),
+  init: v.optional(v.boolean()),
+  volumes: v.optional(v.record(str)),
+  env: v.optional(env),
+  development: v.optional(
+    strictObject({
+      disabled: v.optional(v.boolean()),
+      container: v.optional(v.boolean()),
+      run: v.optional(strings),
+      env: v.optional(env)
+    })
+  ),
+  production: v.optional(
+    strictObject({
+      disabled: v.optional(v.boolean()),
+      image: optionalString,
+      dockerfile: optionalString,
+      workspace: optionalString,
+      args: v.optional(v.record(str)),
+      command: optionalString,
+      target: optionalString,
+      env: v.optional(env)
+    })
+  )
+});
+
 export let manifestSchema = strictObject({
+  stack_definitions: v.optional(
+    v.array(
+      strictObject({
+        id: stackId,
+        label: optionalString,
+        mode: v.optional(v.enumOf(['both', 'oss', 'enterprise'])),
+        description: optionalString,
+        edition: v.optional(v.enumOf(['cloud', 'on-prem']))
+      })
+    )
+  ),
+  stack_only: v.optional(v.boolean()),
+  stacks: v.optional(v.record(stackMember)),
   name: optionalString,
   group: optionalString,
   mode: v.optional(v.enumOf(['both', 'oss', 'enterprise'])),
@@ -174,7 +253,17 @@ export let manifestSchema = strictObject({
             canonical: optionalString,
             source: optionalString,
             platform: optionalString,
-            stagingOnly: v.optional(v.boolean())
+            stagingOnly: v.optional(v.boolean()),
+            build: v.optional(buildSpec)
+          })
+        )
+      ),
+      dockerfiles: v.optional(
+        v.array(
+          strictObject({
+            dockerfile: optionalString,
+            workspace: optionalString,
+            build: buildSpec
           })
         )
       ),

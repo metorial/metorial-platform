@@ -1,3 +1,4 @@
+import { checkEdition } from '@metorial/editions';
 import { sha256Hex, zeroBuffer } from './crypto';
 
 type CacheEntry = {
@@ -5,7 +6,7 @@ type CacheEntry = {
   expiresAt: number;
 };
 
-let ttlMs = 10 * 60 * 1000;
+let ttlMs = checkEdition('cloud') ? 10 * 60 * 1000 : 30 * 1000;
 
 class DataKeyCache {
   private entries = new Map<string, CacheEntry>();
@@ -47,7 +48,11 @@ class DataKeyCache {
 
 export let dataKeyCache = new DataKeyCache();
 
-export let getDataKeyCacheKey = (d: { keyId: string; encryptedDataKey: Uint8Array; keyInfo: any }) =>
+export let getDataKeyCacheKey = (d: {
+  keyId: string;
+  encryptedDataKey: Uint8Array;
+  keyInfo: any;
+}) =>
   `${d.keyId}:${sha256Hex(
     Buffer.concat([
       Buffer.from(d.encryptedDataKey),

@@ -14,10 +14,10 @@ import {
   requireFineGrainedSessionFromResource,
   requireFineGrainedSessionParam
 } from '../../../middleware/checkFineGrainedSessionAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { subspaceSessionErrorPresenter } from '@metorial/presenters';
 
-let sessionErrorGroup = instanceGroup
+let sessionErrorGroup = integrationsGroup
   .use(async ctx => {
     if (!ctx.params.sessionErrorId) {
       throw new ServiceError(
@@ -52,7 +52,7 @@ export let sessionErrorController = Controller.create(
       'Session errors track errors that occurred during a session. This read-only resource provides visibility into issues that happened during provider execution.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('session-errors', 'sessions.errors.list'), {
         name: 'List all session errors',
         description: 'Returns a paginated list of errors across all sessions.'

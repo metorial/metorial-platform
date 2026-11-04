@@ -15,7 +15,8 @@ vi.mock('@lowerdeck/lock', () => ({
 
 let db = await setupPrismaTestDb<PrismaClient>({
   guard: 'nebula-test',
-  prismaClientFactory: url => new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) })
+  prismaClientFactory: url =>
+    new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) })
 });
 
 afterAll(async () => {

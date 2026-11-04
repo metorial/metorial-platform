@@ -20,6 +20,9 @@ case "${1:-}" in
     forward_port 32707 mongodb:27017
     forward_port 36379 redis-db:6379
     forward_port 34222 nats-1:4222
+    forward_port 32379 etcd:2379
+    forward_port 31025 mailpit:1025
+    forward_port 38025 mailpit:8025
     touch /tmp/control-e2e-gateway-ready
     trap 'exit 0' TERM INT
     sleep infinity &

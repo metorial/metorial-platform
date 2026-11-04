@@ -8,10 +8,10 @@ import {
 import { providerTriggerPresenter } from '@metorial/presenters';
 import { Controller, Path } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { isDashboardGroup } from '../../../middleware/isDashboard';
 
-let providerTriggerGroup = instanceGroup.use(async ctx => {
+let providerTriggerGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.providerTriggerId) {
     throw new ServiceError(
       badRequestError({
@@ -36,7 +36,7 @@ export let providerTriggerController = Controller.create(
       'A provider trigger describes an event source a provider can emit for callbacks. Use triggers to discover which callback subscriptions a provider version supports.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(
         [
           Path('/provider-triggers', 'providers.triggers.list'),
@@ -81,7 +81,7 @@ export let providerTriggerController = Controller.create(
         );
       }),
 
-    dashboardList: instanceGroup
+    dashboardList: integrationsGroup
       .get(
         Path(
           '/dashboard/instances/:instanceId/provider-triggers',

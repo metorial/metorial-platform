@@ -9,13 +9,13 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import {
   subspaceCustomProviderEnvPresenter,
   subspaceCustomProviderPresenter
 } from '@metorial/presenters';
 
-export let customProviderGroup = instanceGroup.use(async ctx => {
+export let customProviderGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.customProviderId) {
     throw new ServiceError(
       badRequestError({
@@ -195,7 +195,7 @@ export let customProviderController = Controller.create(
       'Custom providers allow you to deploy your own MCP servers. Create providers from container images, remote URLs, or serverless functions.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('custom-providers', 'customProviders.list'), {
         name: 'List custom providers',
         description: 'Returns a paginated list of custom providers.'
@@ -293,7 +293,7 @@ export let customProviderController = Controller.create(
         });
       }),
 
-    create: instanceGroup
+    create: integrationsGroup
       .post(instancePath('custom-providers', 'customProviders.create'), {
         name: 'Create custom provider',
         description: 'Creates a new custom provider.'
