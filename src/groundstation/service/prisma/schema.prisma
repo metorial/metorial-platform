@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client"
+  output   = "./generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator json {
+  provider = "prisma-json-types-generator"
+}
+
+model Tenant {
+  oid BigInt @id
+  id  String @unique
+
+  ref String @unique
+
+  skewBoundSeconds   Int  @default(86400)
+  backfillMaxAgeDays Int?
+  hashKeyVersion     Int  @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ingestTokens IngestToken[]
+}
+
+model IngestToken {
+  oid BigInt @id
+  id  String @unique
+
+  prefix     String @unique
+  secretHash String
+
+  name         String
+  principalRef String?
+
+  /// [ContentPolicy]
+  contentPolicy Json
+
+  /// [IngestTokenLimits]
+  limits Json
+
+  allowedClients  String[]
+  allowedChannels String[]
+
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  @@index([tenantOid])
+}

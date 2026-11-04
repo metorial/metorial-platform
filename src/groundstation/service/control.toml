@@ -1,0 +1,41 @@
+name = "@metorial/groundstation"
+group = "oss"
+
+[endpoints.api]
+port = 52180
+health = "/ping"
+env = [{ key = "GROUNDSTATION_API_PORT", value = "{{BIND_PORT}}" }]
+
+[endpoints.ingest]
+port = 52181
+health = "/ping"
+env = [{ key = "GROUNDSTATION_INGEST_PORT", value = "{{BIND_PORT}}" }]
+
+[e2e]
+start = ["e2e:start"]
+image = "groundstation"
+
+[[resources]]
+type = "redis"
+env = [{ key = "REDIS_URL", value = "redis://{{HOSTNAME}}:{{PORT}}/0" }]
+
+[dev.env]
+METORIAL_ENV = "development"
+METORIAL_SOURCE = "oss"
+IS_ENTERPRISE = "false"
+METORIAL_HOSTNAME = "{{HOSTNAME}}"
+NODE_ENV = "development"
+
+[dev.db.main]
+package = "@metorial/groundstation"
+name = "groundstation"
+engine = "postgres"
+env = "DATABASE_URL"
+
+[[ci.images]]
+name = "groundstation"
+group = "oss"
+dockerfile = "Dockerfile"
+image = "metorial/mte-groundstation"
+ecr = "metorial-enterprise-saas/mte-groundstation"
+canonical = "ghcr.io/metorial/groundstation"
