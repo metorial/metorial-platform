@@ -230,32 +230,30 @@ test('failed preparation does not start application processes', async () => {
   expect(existsSync(join(value.root, '.control/dev/turbo'))).toBe(false);
 });
 
-test('database generation targets selected owners without starting Docker', async () => {
+test('database generation runs selected owners directly without starting Docker', async () => {
   let value = await fixture();
   packageFixture(value.root, 'src/db', 'db', undefined, {
+    'control:db:generate': 'prisma generate',
+    'control:db:push': 'true'
+  });
+  packageFixture(value.root, 'src/noop', 'noop', undefined, {
     'control:db:generate': 'true',
     'control:db:push': 'true'
   });
   writeManifest(
     join(value.root, 'src/api'),
-    "name='api'\n[dev.db.main]\nname='app'\nengine='postgres'\nenv='DATABASE_URL'\npackage='db'"
+    "name='api'\n[dev.db.main]\nname='app'\nengine='postgres'\nenv='DATABASE_URL'\npackage='db'\n[dev.db.other]\nname='other'\nengine='postgres'\nenv='OTHER_URL'\npackage='noop'"
   );
 
   let result = await value.run(['db', 'generate', 'api']);
 
   expect(result.code).toBe(0);
   expect(value.calls()).toHaveLength(1);
-  expect(value.calls()[0]!.args).toEqual([
-    'run',
-    'control:db:generate',
-    '--ui=stream',
-    '--env-mode=loose',
-    '--concurrency=3',
-    '--filter',
-    'db'
-  ]);
-  expect(existsSync(join(value.root, 'src/db/.env'))).toBe(false);
+  expect(value.calls()[0]!.program).toBe('bun');
+  expect(value.calls()[0]!.args).toEqual(['run', 'control:db:generate']);
+  expect(value.calls()[0]!.cwd).toEndWith('src/db');
   expect(value.calls()[0]!.databaseUrl).toContain('/app');
+  expect(existsSync(join(value.root, 'src/db/.env'))).toBe(false);
 });
 
 test('workspace lifecycle forwards host stop and rejects Docker-only rebuild', async () => {
