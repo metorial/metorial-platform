@@ -8,6 +8,7 @@ export type NexusSlices =
   | 'index'
   | 'join'
   | 'jumpstart'
+  | 'keeper'
   | 'oauth'
   | 'organization'
   | 'portal'
