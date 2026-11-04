@@ -189,6 +189,10 @@
       "dependsOn": ["^build", "@metorial/shuttle#prisma:generate"],
       "outputs": ["dist/**"]
     },
+    "@metorial-platform-systems/groundstation-client#build": {
+      "dependsOn": ["^build", "@metorial/groundstation#prisma:generate"],
+      "outputs": ["dist/**"]
+    },
     "@metorial-platform-systems/signal-client#build": {
       "dependsOn": ["^build", "@metorial/signal#prisma:generate"],
       "outputs": ["dist/**"]
