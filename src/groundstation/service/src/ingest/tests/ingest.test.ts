@@ -49,10 +49,24 @@ describe('ingestFetch', () => {
     expect(response.status).toBe(413);
   });
 
-  it('reaches stub handlers with a valid request', async () => {
+  it('requires a credential on authenticated routes', async () => {
     let response = await post('/v1/logs', { 'content-type': 'application/json' });
+    let body = (await response.json()) as { code: string };
 
-    expect(response.status).toBe(501);
+    expect(response.status).toBe(401);
+    expect(body.code).toBe('missing_credential');
+    expect(response.headers.get('www-authenticate')).toContain('Bearer');
+  });
+
+  it('rejects malformed credentials without touching storage', async () => {
+    let response = await post('/v1/logs', {
+      'content-type': 'application/json',
+      authorization: 'Bearer not-a-token'
+    });
+    let body = (await response.json()) as { code: string };
+
+    expect(response.status).toBe(401);
+    expect(body.code).toBe('invalid_credential');
   });
 
   it('lists bulk dialects', async () => {

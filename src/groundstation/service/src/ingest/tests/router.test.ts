@@ -50,8 +50,8 @@ describe('matchRoute', () => {
   it('compiles static routes with several methods onto one path', () => {
     let handler = async () => new Response();
     let compiled = compileRoutes([
-      { method: 'GET', path: '/x', accepts: [], handler },
-      { method: 'POST', path: '/x', accepts: [], handler }
+      { method: 'GET', path: '/x', auth: 'none', accepts: [], handler },
+      { method: 'POST', path: '/x', auth: 'none', accepts: [], handler }
     ]);
 
     expect(matchRoute('POST', '/x', compiled).type).toBe('match');

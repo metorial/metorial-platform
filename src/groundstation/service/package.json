@@ -16,6 +16,7 @@
     "db:generate": "bun prisma generate",
     "db:push:dev": "sh -c 'set -a; . ./.env; set +a; bun prisma db push --accept-data-loss'",
     "test": "vitest run --passWithNoTests",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "typecheck": "tsc --noEmit",
     "dev:start": "bun --watch ./src/server.ts",
     "e2e:start": "bun ./src/server.ts",
@@ -33,7 +34,10 @@
   },
   "dependencies": {
     "@lowerdeck/api-mux": "workspace:2.0.0",
+    "@lowerdeck/base62": "workspace:2.0.0",
+    "@lowerdeck/cache": "workspace:2.0.0",
     "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/hash": "workspace:2.0.0",
     "@lowerdeck/id": "workspace:2.0.0",
     "@lowerdeck/pagination": "workspace:2.0.0",
     "@lowerdeck/rpc-client": "workspace:2.0.0",

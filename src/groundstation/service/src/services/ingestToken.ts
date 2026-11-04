@@ -1,16 +1,30 @@
-import { notFoundError, notImplementedError, ServiceError } from '@lowerdeck/error';
+import {
+  badRequestError,
+  notFoundError,
+  preconditionFailedError,
+  ServiceError
+} from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { ContentPolicy, IngestTokenLimits } from '@metorial/groundstation-spec';
+import {
+  defaultContentPolicy,
+  defaultIngestTokenLimits,
+  type ContentPolicy,
+  type IngestChannel,
+  type IngestTokenLimits
+} from '@metorial/groundstation-spec';
 import type { IngestToken, Tenant } from '../../prisma/generated/client';
+import { getCachedIngestToken } from '../auth/tokenCache';
+import { generateIngestToken, hashIngestTokenSecret } from '../auth/tokenSecret';
 import { db } from '../db';
+import { getId } from '../id';
 
 let include = { tenant: true };
 
 type IngestTokenWithTenant = IngestToken & { tenant: Tenant };
 
 class ingestTokenServiceImpl {
-  async createIngestToken(_d: {
+  async createIngestToken(d: {
     tenant: Tenant;
     input: {
       name: string;
@@ -18,11 +32,37 @@ class ingestTokenServiceImpl {
       contentPolicy?: ContentPolicy;
       limits?: IngestTokenLimits;
       allowedClients?: string[];
-      allowedChannels?: string[];
+      allowedChannels?: IngestChannel[];
       expiresAt?: Date;
     };
-  }): Promise<{ ingestToken: IngestTokenWithTenant; secret: string }> {
-    throw new ServiceError(notImplementedError());
+  }) {
+    this.assertExpiryInFuture(d.input.expiresAt);
+
+    let { prefix, secret, token } = generateIngestToken();
+
+    let ingestToken = await db.ingestToken.create({
+      data: {
+        ...getId('ingestToken'),
+
+        prefix,
+        secretHash: await hashIngestTokenSecret(secret),
+
+        name: d.input.name,
+        principalRef: d.input.principalRef,
+
+        contentPolicy: d.input.contentPolicy ?? defaultContentPolicy,
+        limits: d.input.limits ?? defaultIngestTokenLimits,
+        allowedClients: d.input.allowedClients ?? [],
+        allowedChannels: d.input.allowedChannels ?? [],
+
+        expiresAt: d.input.expiresAt,
+
+        tenantOid: d.tenant.oid
+      },
+      include
+    });
+
+    return { ingestToken, secret: token };
   }
 
   async getIngestTokenById(d: { id: string; tenant: Tenant }) {
@@ -48,24 +88,63 @@ class ingestTokenServiceImpl {
     );
   }
 
-  async updateIngestToken(_d: {
+  async updateIngestToken(d: {
     ingestToken: IngestTokenWithTenant;
     input: {
       name?: string;
       contentPolicy?: ContentPolicy;
       limits?: IngestTokenLimits;
       allowedClients?: string[];
-      allowedChannels?: string[];
+      allowedChannels?: IngestChannel[];
       expiresAt?: Date | null;
     };
-  }): Promise<IngestTokenWithTenant> {
-    throw new ServiceError(notImplementedError());
+  }) {
+    if (d.ingestToken.revokedAt) {
+      throw new ServiceError(
+        preconditionFailedError({ message: 'A revoked ingest token cannot be updated.' })
+      );
+    }
+
+    if (d.input.expiresAt) this.assertExpiryInFuture(d.input.expiresAt);
+
+    let ingestToken = await db.ingestToken.update({
+      where: { oid: d.ingestToken.oid },
+      data: {
+        name: d.input.name,
+        contentPolicy: d.input.contentPolicy,
+        limits: d.input.limits,
+        allowedClients: d.input.allowedClients,
+        allowedChannels: d.input.allowedChannels,
+        expiresAt: d.input.expiresAt
+      },
+      include
+    });
+
+    await getCachedIngestToken.clearAndWait({ prefix: ingestToken.prefix });
+
+    return ingestToken;
   }
 
-  async revokeIngestToken(_d: {
-    ingestToken: IngestTokenWithTenant;
-  }): Promise<IngestTokenWithTenant> {
-    throw new ServiceError(notImplementedError());
+  async revokeIngestToken(d: { ingestToken: IngestTokenWithTenant }) {
+    if (d.ingestToken.revokedAt) return d.ingestToken;
+
+    let ingestToken = await db.ingestToken.update({
+      where: { oid: d.ingestToken.oid },
+      data: { revokedAt: new Date() },
+      include
+    });
+
+    await getCachedIngestToken.clearAndWait({ prefix: ingestToken.prefix });
+
+    return ingestToken;
+  }
+
+  private assertExpiryInFuture(expiresAt: Date | undefined) {
+    if (expiresAt && expiresAt.getTime() <= Date.now()) {
+      throw new ServiceError(
+        badRequestError({ message: 'The expiry of an ingest token must be in the future.' })
+      );
+    }
   }
 }
 

@@ -1,6 +1,10 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { contentPolicySchema, ingestTokenLimitsSchema } from '@metorial/groundstation-spec';
+import {
+  contentPolicySchema,
+  ingestChannels,
+  ingestTokenLimitsSchema
+} from '@metorial/groundstation-spec';
 import { ingestTokenPresenter } from '../presenters';
 import { ingestTokenService } from '../services';
 import { tenantApp } from './tenant';
@@ -18,7 +22,7 @@ export let ingestTokenController = tenantApp.controller({
         contentPolicy: v.optional(contentPolicySchema),
         limits: v.optional(ingestTokenLimitsSchema),
         allowedClients: v.optional(v.array(v.string())),
-        allowedChannels: v.optional(v.array(v.string())),
+        allowedChannels: v.optional(v.array(v.enumOf(ingestChannels))),
 
         expiresAt: v.optional(v.date())
       })
@@ -86,7 +90,7 @@ export let ingestTokenController = tenantApp.controller({
         contentPolicy: v.optional(contentPolicySchema),
         limits: v.optional(ingestTokenLimitsSchema),
         allowedClients: v.optional(v.array(v.string())),
-        allowedChannels: v.optional(v.array(v.string())),
+        allowedChannels: v.optional(v.array(v.enumOf(ingestChannels))),
 
         expiresAt: v.optional(v.nullable(v.date()))
       })

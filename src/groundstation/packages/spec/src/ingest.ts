@@ -6,6 +6,22 @@ export let otlpSignals = ['logs', 'metrics', 'traces'] as const;
 
 export type OtlpSignal = (typeof otlpSignals)[number];
 
+export let ingestChannels = [
+  'otlp.logs',
+  'otlp.metrics',
+  'otlp.traces',
+  'hook',
+  'transcript',
+  'headless',
+  'acp',
+  'sse',
+  'admin_api',
+  's3_report',
+  'envelope'
+] as const;
+
+export type IngestChannel = (typeof ingestChannels)[number];
+
 export let ingestPayloadTypes = ['protobuf', 'json', 'ndjson'] as const;
 
 export type IngestPayloadType = (typeof ingestPayloadTypes)[number];

@@ -1,3 +1,3 @@
-import type { IngestHandler } from '../request';
+import type { PublicIngestHandler } from '../request';
 
-export let pingHandler: IngestHandler = async () => new Response('OK');
+export let pingHandler: PublicIngestHandler = async () => new Response('OK');

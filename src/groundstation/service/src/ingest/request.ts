@@ -1,3 +1,4 @@
+import type { IngestPrincipal } from '../auth/principal';
 import type {
   IngestContentEncoding,
   IngestPayloadType,
@@ -20,4 +21,10 @@ export type IngestRequest = {
   raw: Request;
 };
 
-export type IngestHandler = (request: IngestRequest) => Promise<Response>;
+export type AuthenticatedIngestRequest = IngestRequest & {
+  principal: IngestPrincipal;
+};
+
+export type PublicIngestHandler = (request: IngestRequest) => Promise<Response>;
+
+export type IngestHandler = (request: AuthenticatedIngestRequest) => Promise<Response>;

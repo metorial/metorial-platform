@@ -1,7 +1,12 @@
+import { isServiceError } from '@lowerdeck/error';
+import { assertIngestAllowed } from '../auth/principal';
+import { verifyIngestCredential } from '../auth/verify';
 import { methodNotAllowedError, routeNotFoundError } from './errors';
 import { parseIngestRequest } from './parse';
-import { caughtErrorResponse, errorResponse } from './response';
+import { caughtErrorResponse, errorResponse, jsonResponse } from './response';
 import { matchRoute } from './router';
+
+let authenticateHeaders = { 'WWW-Authenticate': 'Bearer realm="groundstation"' };
 
 export let ingestFetch = async (request: Request): Promise<Response> => {
   try {
@@ -13,10 +18,32 @@ export let ingestFetch = async (request: Request): Promise<Response> => {
       return errorResponse(methodNotAllowedError(), { Allow: match.allow.join(', ') });
     }
 
-    let ingestRequest = parseIngestRequest(request, match.definition, match.params);
+    let definition = match.definition;
+
+    let ingestRequest = parseIngestRequest(request, definition, match.params);
     if (ingestRequest instanceof Response) return ingestRequest;
 
-    return await match.definition.handler(ingestRequest);
+    if (definition.auth == 'none') return await definition.handler(ingestRequest);
+
+    let principal;
+
+    try {
+      principal = await verifyIngestCredential(ingestRequest.credential);
+    } catch (error) {
+      if (isServiceError(error) && error.data.status == 401) {
+        return jsonResponse(401, error.toResponse(), authenticateHeaders);
+      }
+
+      throw error;
+    }
+
+    let denied = assertIngestAllowed(principal, {
+      client: ingestRequest.client,
+      channel: definition.channel
+    });
+    if (denied) return errorResponse(denied);
+
+    return await definition.handler({ ...ingestRequest, principal });
   } catch (error) {
     return caughtErrorResponse(error);
   }

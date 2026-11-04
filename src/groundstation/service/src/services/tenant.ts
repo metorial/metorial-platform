@@ -1,17 +1,31 @@
-import { notFoundError, notImplementedError, ServiceError } from '@lowerdeck/error';
+import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import type { Tenant } from '../../prisma/generated/client';
+import { getCachedIngestToken, tenantCacheTag } from '../auth/tokenCache';
 import { db } from '../db';
+import { getId } from '../id';
 
 class tenantServiceImpl {
-  async upsertTenant(_d: {
+  async upsertTenant(d: {
     input: {
       ref: string;
       skewBoundSeconds?: number;
       backfillMaxAgeDays?: number | null;
     };
-  }): Promise<Tenant> {
-    throw new ServiceError(notImplementedError());
+  }) {
+    let settings = {
+      skewBoundSeconds: d.input.skewBoundSeconds,
+      backfillMaxAgeDays: d.input.backfillMaxAgeDays
+    };
+
+    let tenant = await db.tenant.upsert({
+      where: { ref: d.input.ref },
+      create: { ...getId('tenant'), ref: d.input.ref, ...settings },
+      update: settings
+    });
+
+    await getCachedIngestToken.clearByTagAndWait(tenantCacheTag(tenant.id));
+
+    return tenant;
   }
 
   async getTenantById(d: { id: string }) {
