@@ -28,5 +28,20 @@ export let unsupportedContentEncodingError = createError({
 export let payloadTooLargeError = createError({
   status: 413,
   code: 'payload_too_large',
-  message: 'The request body is too large.'
+  message: 'The request body is too large.',
+  hint: 'The limit applies to the compressed and the decompressed body. Send smaller batches.'
+});
+
+export let tooManyItemsError = createError({
+  status: 413,
+  code: 'too_many_items',
+  message: 'The request contains too many items.',
+  hint: 'Send smaller batches.'
+});
+
+export let unreadableBodyError = createError({
+  status: 400,
+  code: 'unreadable_body',
+  message: 'The request body could not be read.',
+  hint: 'Check that the body matches its Content-Encoding and is valid UTF-8 where text is expected.'
 });

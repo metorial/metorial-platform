@@ -17,6 +17,7 @@ export type IngestRequest = {
   contentEncoding: IngestContentEncoding;
   credential?: string;
 
+  // Already decompressed and size-capped; reading it can fail with a ServiceError.
   body: ReadableStream<Uint8Array> | null;
   raw: Request;
 };

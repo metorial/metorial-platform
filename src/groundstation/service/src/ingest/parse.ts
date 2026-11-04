@@ -3,6 +3,7 @@ import {
   type IngestContentEncoding,
   type IngestPayloadType
 } from '@metorial/groundstation-spec';
+import { decodeBody } from './body';
 import {
   payloadTooLargeError,
   unsupportedContentEncodingError,
@@ -74,7 +75,7 @@ export let parseIngestRequest = (
     contentEncoding,
     credential: extractCredential(request.headers),
 
-    body: request.body,
+    body: decodeBody(request.body, contentEncoding),
     raw: request
   };
 };
