@@ -1,0 +1,36 @@
+name: Plan shared tools cache
+description: Derive the shared registry cache for the control-runtime, prisma-cli and runner-base stages
+inputs:
+  dockerfile:
+    required: true
+  repository:
+    description: Registry repository that holds the shared build cache
+    required: true
+outputs:
+  enabled:
+    value: ${{ steps.plan.outputs.enabled }}
+  ref:
+    value: ${{ steps.plan.outputs.ref }}
+runs:
+  using: composite
+  steps:
+    - id: plan
+      shell: bash
+      env:
+        INPUT_DOCKERFILE: ${{ inputs.dockerfile }}
+        INPUT_REPOSITORY: ${{ inputs.repository }}
+      run: |
+        set -euo pipefail
+        if ! grep -q ' AS tools$' "$INPUT_DOCKERFILE"; then
+          echo "enabled=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        key=$(awk '
+          / AS base$/ { on = 1 }
+          / AS pruner$/ { on = 0 }
+          / AS control-runtime$/ { on = 1 }
+          / AS runner$/ { on = 0 }
+          on
+        ' "$INPUT_DOCKERFILE" | sha256sum | cut -c1-32)
+        echo "enabled=true" >> "$GITHUB_OUTPUT"
+        echo "ref=${INPUT_REPOSITORY}:buildcache-tools-${key}" >> "$GITHUB_OUTPUT"
