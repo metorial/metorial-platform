@@ -19,5 +19,5 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
   },
-  "exclude": ["admin"]
+  "exclude": ["control","admin"]
 }
