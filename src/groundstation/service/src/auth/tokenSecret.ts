@@ -2,11 +2,11 @@ import { base62 } from '@lowerdeck/base62';
 import { Hash } from '@lowerdeck/hash';
 import { timingSafeEqual } from 'node:crypto';
 
-let tokenPrefix = 'gsk';
-let prefixBytes = 8;
+let tokenPrefix = 'metorial_agit';
+let prefixBytes = 16;
 let secretBytes = 32;
 
-let tokenPattern = /^gsk_([0-9A-Za-z]{8,24})_([0-9A-Za-z]{32,96})$/;
+let tokenPattern = new RegExp(`^${tokenPrefix}_([0-9A-Za-z]{8,32})_([0-9A-Za-z]{32,96})$`);
 
 export type ParsedIngestToken = {
   prefix: string;

@@ -19,7 +19,12 @@ import { generateIngestToken, hashIngestTokenSecret } from '../auth/tokenSecret'
 import { db } from '../db';
 import { getId } from '../id';
 
+let maxCreateAttempts = 5;
+
 let include = { tenant: true };
+
+let isUniqueViolation = (error: unknown) =>
+  (error as { code?: string } | null)?.code == 'P2002';
 
 type IngestTokenWithTenant = IngestToken & { tenant: Tenant };
 
@@ -38,31 +43,37 @@ class ingestTokenServiceImpl {
   }) {
     this.assertExpiryInFuture(d.input.expiresAt);
 
-    let { prefix, secret, token } = generateIngestToken();
+    for (let attempt = 1; ; attempt++) {
+      let { prefix, secret, token } = generateIngestToken();
 
-    let ingestToken = await db.ingestToken.create({
-      data: {
-        ...getId('ingestToken'),
+      try {
+        let ingestToken = await db.ingestToken.create({
+          data: {
+            ...getId('ingestToken'),
 
-        prefix,
-        secretHash: await hashIngestTokenSecret(secret),
+            prefix,
+            secretHash: await hashIngestTokenSecret(secret),
 
-        name: d.input.name,
-        principalRef: d.input.principalRef,
+            name: d.input.name,
+            principalRef: d.input.principalRef,
 
-        contentPolicy: d.input.contentPolicy ?? defaultContentPolicy,
-        limits: d.input.limits ?? defaultIngestTokenLimits,
-        allowedClients: d.input.allowedClients ?? [],
-        allowedChannels: d.input.allowedChannels ?? [],
+            contentPolicy: d.input.contentPolicy ?? defaultContentPolicy,
+            limits: d.input.limits ?? defaultIngestTokenLimits,
+            allowedClients: d.input.allowedClients ?? [],
+            allowedChannels: d.input.allowedChannels ?? [],
 
-        expiresAt: d.input.expiresAt,
+            expiresAt: d.input.expiresAt,
 
-        tenantOid: d.tenant.oid
-      },
-      include
-    });
+            tenantOid: d.tenant.oid
+          },
+          include
+        });
 
-    return { ingestToken, secret: token };
+        return { ingestToken, secret: token };
+      } catch (error) {
+        if (!isUniqueViolation(error) || attempt >= maxCreateAttempts) throw error;
+      }
+    }
   }
 
   async getIngestTokenById(d: { id: string; tenant: Tenant }) {

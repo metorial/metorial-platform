@@ -4,6 +4,7 @@ import { ingestTokenService, tenantService } from '../../services';
 import { cleanDatabase, testDb } from '../../test/setup';
 import { eventually, expectServiceError, sleep } from '../../test/helpers';
 import { ingestTokenPresenter } from '../../presenters';
+import { parseIngestToken } from '../tokenSecret';
 import { verifyIngestCredential } from '../verify';
 
 let createTenant = (ref: string = `org_${crypto.randomUUID()}`) =>
@@ -88,9 +89,9 @@ describe('ingest token service', () => {
   it('stores only a hash of the secret and returns the token once', async () => {
     let { ingestToken, secret } = await createToken();
 
-    expect(secret.startsWith('gsk_')).toBe(true);
+    expect(secret.startsWith('metorial_agit_')).toBe(true);
     expect(secret).toContain(ingestToken.prefix);
-    expect(ingestToken.secretHash).not.toContain(secret.split('_')[2]);
+    expect(ingestToken.secretHash).not.toContain(parseIngestToken(secret)!.secret);
     expect(ingestToken.contentPolicy).toEqual({ defaultMode: 'basic' });
     expect(ingestToken.limits).toEqual({});
 
@@ -100,7 +101,7 @@ describe('ingest token service', () => {
       JSON.stringify(value, (_, v) => (typeof v == 'bigint' ? String(v) : v))
     );
 
-    expect(storedValues.join(' ')).not.toContain(secret.split('_')[2]!);
+    expect(storedValues.join(' ')).not.toContain(parseIngestToken(secret)!.secret);
   });
 
   it('never presents the secret hash', async () => {
@@ -202,10 +203,10 @@ describe('ingest credential verification', () => {
 
   it('rejects unknown tokens, wrong secrets and missing credentials', async () => {
     let { ingestToken, secret } = await createToken();
-    let [, prefix] = secret.split('_');
+    let { prefix } = parseIngestToken(secret)!;
 
-    let wrongSecret = `gsk_${prefix}_${'A'.repeat(43)}`;
-    let unknown = `gsk_${'B'.repeat(11)}_${'C'.repeat(43)}`;
+    let wrongSecret = `metorial_agit_${prefix}_${'A'.repeat(43)}`;
+    let unknown = `metorial_agit_${'B'.repeat(11)}_${'C'.repeat(43)}`;
 
     await expectServiceError(verifyIngestCredential(wrongSecret), 'invalid_credential');
     await expectServiceError(verifyIngestCredential(unknown), 'invalid_credential');
@@ -295,7 +296,10 @@ describe('authenticated ingest routes', () => {
   it('answers 401 with a challenge for bad credentials', async () => {
     let { ingestToken, secret } = await createToken();
 
-    let unknown = await ingest('/v1/logs', `gsk_${'B'.repeat(11)}_${'C'.repeat(43)}`);
+    let unknown = await ingest(
+      '/v1/logs',
+      `metorial_agit_${'B'.repeat(11)}_${'C'.repeat(43)}`
+    );
 
     expect(unknown.status).toBe(401);
     expect(unknown.headers.get('www-authenticate')).toContain('Bearer');

@@ -10,8 +10,14 @@ describe('ingest token secrets', () => {
   it('generates tokens that parse back into prefix and secret', () => {
     let { prefix, secret, token } = generateIngestToken();
 
-    expect(token.startsWith('gsk_')).toBe(true);
+    expect(token.startsWith('metorial_agit_')).toBe(true);
     expect(parseIngestToken(token)).toEqual({ prefix, secret });
+  });
+
+  it('generates prefixes with at least 16 characters', () => {
+    for (let i = 0; i < 200; i++) {
+      expect(generateIngestToken().prefix.length).toBeGreaterThanOrEqual(16);
+    }
   });
 
   it('generates distinct tokens', () => {
@@ -25,10 +31,10 @@ describe('ingest token secrets', () => {
 
     expect(parseIngestToken('')).toBeNull();
     expect(parseIngestToken('Bearer x')).toBeNull();
-    expect(parseIngestToken(token.replace('gsk_', 'sk_'))).toBeNull();
+    expect(parseIngestToken(token.replace('metorial_agit_', 'sk_'))).toBeNull();
     expect(parseIngestToken(`${token}!`)).toBeNull();
     expect(parseIngestToken(token.slice(0, -40))).toBeNull();
-    expect(parseIngestToken('gsk_abc_def')).toBeNull();
+    expect(parseIngestToken('metorial_agit_abc_def')).toBeNull();
   });
 
   it('hashes deterministically and compares in constant time', async () => {
