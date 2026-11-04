@@ -88,6 +88,7 @@ services:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/forge
       REDIS_URL: redis://redis:6379/0
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      NODE_ENV: test
       DEFAULT_PROVIDER: aws.code-build
       OBJECT_STORAGE_URL: http://object-storage:52010
       LOG_BUCKET_NAME: logs
