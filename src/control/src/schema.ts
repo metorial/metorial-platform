@@ -174,6 +174,7 @@ export let manifestSchema = strictObject({
           strictObject({
             label: str,
             group: v.optional(v.enumOf(['app', 'admin', 'tool'])),
+            menu: v.optional(str),
             path: v.optional(str)
           })
         )

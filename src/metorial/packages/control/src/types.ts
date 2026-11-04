@@ -17,7 +17,12 @@ export interface RawEndpoint {
   env?: RawKeyValue[];
   health?: string | { path: string; status?: number };
   protocol?: 'http' | 'h2c';
-  link?: { label: string; group?: 'app' | 'admin' | 'tool'; path?: string };
+  link?: {
+    label: string;
+    group?: 'app' | 'admin' | 'tool';
+    menu?: string;
+    path?: string;
+  };
 }
 
 export interface RawDependency {

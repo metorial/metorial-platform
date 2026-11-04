@@ -595,6 +595,7 @@ export let linksFor = (data: WorkspaceMetadata, selected: LoadedManifest[]): Lin
         links.push({
           label: endpoint.link.label,
           group: endpoint.link.group ?? 'app',
+          menu: endpoint.link.menu,
           url: `http://${data.hostname}:${endpoint.port}${endpoint.link.path ?? ''}`
         });
 

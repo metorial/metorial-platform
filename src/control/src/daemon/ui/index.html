@@ -234,6 +234,46 @@
       .chip:hover {
         background: var(--hover);
       }
+      .menu {
+        position: relative;
+        display: inline-flex;
+      }
+      .menu > button.chip {
+        font: inherit;
+        cursor: pointer;
+      }
+      .menu .caret {
+        color: var(--mute);
+        font-size: 9px;
+        align-self: center;
+      }
+      .pop {
+        display: none;
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        z-index: 20;
+        min-width: 190px;
+        padding: 4px;
+        flex-direction: column;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      }
+      .menu.open .pop {
+        display: flex;
+      }
+      .pop a {
+        padding: 6px 10px;
+        border-radius: 5px;
+        color: var(--text);
+        text-decoration: none;
+        white-space: nowrap;
+      }
+      .pop a:hover {
+        background: var(--hover);
+      }
       .body {
         flex: 1;
         display: grid;
@@ -451,7 +491,8 @@
         cur: localStorage.getItem('ws') || '',
         sel: '*',
         tab: 'logs',
-        infra: false
+        infra: false,
+        menu: null
       };
       let $ = id => document.getElementById(id);
       let esc = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
@@ -574,14 +615,25 @@
         let links = Object.entries(groups)
           .map(([g, label]) => {
             let items = w.links.filter(l => l.group === g);
+            let chip = l =>
+              `<a class="chip" target="_blank" href="${l.url}">${esc(l.label)}</a>`;
+            let menus = [...new Set(items.filter(l => l.menu).map(l => l.menu))];
+            let menuHtml = menus
+              .map(
+                m =>
+                  `<span class="menu ${state.menu === m ? 'open' : ''}"><button class="chip" data-menu="${esc(m)}">${esc(m)} <span class="caret">▾</span></button><span class="pop">${items
+                    .filter(l => l.menu === m)
+                    .map(l => `<a target="_blank" href="${l.url}">${esc(l.label)}</a>`)
+                    .join('')}</span></span>`
+              )
+              .join('');
             return items.length
               ? `<span class="grp">${label}</span>` +
                   items
-                    .map(
-                      l =>
-                        `<a class="chip" target="_blank" href="${l.url}">${esc(l.label)}</a>`
-                    )
-                    .join('')
+                    .filter(l => !l.menu)
+                    .map(chip)
+                    .join('') +
+                  menuHtml
               : '';
           })
           .join('');
@@ -608,12 +660,16 @@
         ${svc.map(row).join('') || '<div class="job">none</div>'}
         <div class="sec">Infrastructure <span class="acts"><button class="sm" data-all="infra" ${dbOff}>Restart all</button></span></div>
         ${infra.map(row).join('') || '<div class="job">none</div>'}
-        ${isStack ? '' : `<div class="sec">Database &amp; tasks</div>
+        ${
+          isStack
+            ? ''
+            : `<div class="sec">Database &amp; tasks</div>
         <div style="padding:6px 20px;display:flex;gap:6px;flex-wrap:wrap">
           ${['db:generate', 'db:push', 'db:migrate', 'prepare'].map(k => `<button class="sm" data-job="${k}" ${dbOff}>${k.replace(':', ' ')}</button>`).join('')}
         </div>
         <div class="sec">Recent jobs</div>
-        ${w.jobs.map(j => `<div class="job mono"><span class="${j.state === 'done' ? 'ok' : j.state === 'failed' ? 'bad' : ''}">${j.state === 'done' ? '✓' : j.state === 'failed' ? '✖' : '…'}</span>${j.kind}<span style="margin-left:auto">${j.endedAt ? ((j.endedAt - j.startedAt) / 1000).toFixed(1) + 's' : 'running'}</span></div>`).join('') || '<div class="job">none</div>'}`}
+        ${w.jobs.map(j => `<div class="job mono"><span class="${j.state === 'done' ? 'ok' : j.state === 'failed' ? 'bad' : ''}">${j.state === 'done' ? '✓' : j.state === 'failed' ? '✖' : '…'}</span>${j.kind}<span style="margin-left:auto">${j.endedAt ? ((j.endedAt - j.startedAt) / 1000).toFixed(1) + 's' : 'running'}</span></div>`).join('') || '<div class="job">none</div>'}`
+        }
       </section>
       <section class="right">
         <div class="tabs" id="tabs"></div>
@@ -633,6 +689,14 @@
           call(base() + '/stop', 'POST', { infra: state.infra }).then(() =>
             toast('stopping ' + w.id)
           );
+        document.querySelectorAll('[data-menu]').forEach(
+          b =>
+            (b.onclick = e => {
+              e.stopPropagation();
+              state.menu = state.menu === b.dataset.menu ? null : b.dataset.menu;
+              b.parentElement.classList.toggle('open', state.menu === b.dataset.menu);
+            })
+        );
         document.querySelectorAll('[data-job]').forEach(
           b =>
             (b.onclick = e => {
@@ -863,6 +927,11 @@
           $('foot').innerHTML =
             `daemon <span class="mono">pid ${p.pid}</span><br>up ${since(p.startedAt)}`;
         });
+      document.addEventListener('click', e => {
+        if (!state.menu || e.target.closest('.menu')) return;
+        state.menu = null;
+        document.querySelectorAll('.menu.open').forEach(m => m.classList.remove('open'));
+      });
       connect();
       setInterval(() => {
         let w = cur();
