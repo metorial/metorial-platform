@@ -16,6 +16,7 @@
     "db:generate": "bun prisma generate",
     "db:push:dev": "sh -c 'set -a; . ./.env; set +a; bun prisma db push --accept-data-loss'",
     "test": "vitest run --passWithNoTests",
+    "test:e2e": "metorial-e2e",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "typecheck": "tsc --noEmit",
     "dev:start": "bun --watch ./src/server.ts",
@@ -24,6 +25,8 @@
     "control:db:push": "bun run prisma:push"
   },
   "devDependencies": {
+    "@lowerdeck/testing-tools": "workspace:2.0.0",
+    "@metorial/e2e": "1.0.0",
     "@types/bun": "latest",
     "@types/node": "^25.9.9",
     "@vercel/ncc": "^0.45.0",
