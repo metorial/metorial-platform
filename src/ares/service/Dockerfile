@@ -43,13 +43,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 WORKDIR /app
 ENV NODE_ENV=production
 ENV TZ=UTC
-COPY --from=builder --link --chown=metorial:metorial /app/src/ares/service/dist ./dist
-COPY --from=builder --link --chown=metorial:metorial /app/src/ares/service/frontend/auth/dist ./frontend/auth/dist
-COPY --from=builder --link --chown=metorial:metorial /app/src/ares/service/frontend/admin/dist ./frontend/admin/dist
-COPY --from=control-runtime --link --chown=metorial:metorial /runtime/control-runtime.js ./control/control-runtime.js
-COPY --from=prisma-cli --link --chown=metorial:metorial /opt/prisma /opt/prisma
-COPY --from=builder --link --chown=metorial:metorial /app/src/ares/service/prisma/schema/ ./prisma/ares/schema/
-COPY --link --chown=metorial:metorial <<'EOF' ./.control/runtime.json
+COPY --from=builder --link --chown=10001:10001 /app/src/ares/service/dist ./dist
+COPY --from=builder --link --chown=10001:10001 /app/src/ares/service/frontend/auth/dist ./frontend/auth/dist
+COPY --from=builder --link --chown=10001:10001 /app/src/ares/service/frontend/admin/dist ./frontend/admin/dist
+COPY --from=control-runtime --link --chown=10001:10001 /runtime/control-runtime.js ./control/control-runtime.js
+COPY --from=prisma-cli --link --chown=10001:10001 /opt/prisma /opt/prisma
+COPY --from=builder --link --chown=10001:10001 /app/src/ares/service/prisma/schema/ ./prisma/ares/schema/
+COPY --link --chown=10001:10001 <<'EOF' ./.control/runtime.json
 {
   "databases": [
     {

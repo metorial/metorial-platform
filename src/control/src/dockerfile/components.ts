@@ -132,7 +132,7 @@ let runtimeConfig = (context: RenderContext) => {
 
 export let runner = (context: RenderContext): string[] => {
   let { build, packageDirectory } = context;
-  let owner = `--chown=${user.name}:${user.name}`;
+  let owner = `--chown=${user.id}:${user.id}`;
   let migrating = build.migrations.length > 0;
   let runtimePackages = [
     ...new Set(['ca-certificates', 'curl', 'tini', ...build.packages.runtime])
