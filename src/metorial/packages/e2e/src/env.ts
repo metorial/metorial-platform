@@ -3,6 +3,38 @@ export type E2EEndpoints = Record<string, Record<string, string>>;
 export let isE2EEnvironment = () => process.env.CONTROL_E2E === '1';
 
 /**
+ * Remote mode runs the suites against an already running stack (for example the on-prem
+ * images) addressed by its public URL. Nothing in the stack's databases or code is reachable
+ * from the test process, so only suites that stay on the HTTP contract can run.
+ */
+export let remoteTargetUrl = () => process.env.METORIAL_E2E_REMOTE_URL?.replace(/\/+$/, '');
+
+export let isRemoteE2E = () => !!remoteTargetUrl();
+
+export let remoteProvisioning = () => {
+  let url = remoteTargetUrl();
+  let token = process.env.METORIAL_E2E_PROVISION_TOKEN;
+  if (!url || !token) {
+    throw new Error(
+      'Remote e2e needs METORIAL_E2E_REMOTE_URL and METORIAL_E2E_PROVISION_TOKEN to be set.'
+    );
+  }
+
+  return {
+    url: `${process.env.METORIAL_E2E_PROVISION_URL ?? `${url}/v1`}/.metorial/test/e2e-organization`,
+    token
+  };
+};
+
+export let assertLocalStack = (what: string) => {
+  if (isRemoteE2E()) {
+    throw new Error(
+      `${what} needs in-process access to the stack and is not available when running against a remote stack (METORIAL_E2E_REMOTE_URL).`
+    );
+  }
+};
+
+/**
  * Guards against pointing destructive e2e fixtures at a developer database: `control test:e2e`
  * sets `CONTROL_E2E=1` and only resolves databases on its own disposable Postgres/Mongo.
  */
@@ -46,7 +78,27 @@ export let metorialSutPackage = () => {
   return sut;
 };
 
+let remoteOnly = (name: string): string => {
+  throw new Error(`The ${name} endpoint is not reachable when running against a remote stack.`);
+};
+
 export let metorialEndpoints = () => {
+  let remote = remoteTargetUrl();
+  if (remote) {
+    return {
+      api: `${remote}/v1`,
+      files: remote,
+      get integrations() {
+        return remoteOnly('integrations');
+      },
+      get subspaceInternal() {
+        return remoteOnly('subspaceInternal');
+      },
+      mcp: undefined as string | undefined,
+      portal: undefined as string | undefined
+    };
+  }
+
   let sut = metorialSutPackage();
   let optional = (name: string) =>
     hasE2EEndpoint(sut, name) ? e2eEndpoint(sut, name) : undefined;
