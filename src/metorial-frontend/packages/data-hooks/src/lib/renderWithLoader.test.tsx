@@ -1,10 +1,15 @@
 // @vitest-environment jsdom
 
+import { internalServerError, ServiceError } from '@lowerdeck/error';
 import React, { act, useState } from 'react';
 import { createRoot, Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { InitialLoadBoundary } from './initialLoad';
-import { renderWithLoader, renderWithPagination } from './renderWithLoader';
+import {
+  renderWithLoader,
+  renderWithPagination,
+  setLoaderErrorPresenter
+} from './renderWithLoader';
 
 let routerMock = vi.hoisted(() => ({
   setSearchParams: () => {}
@@ -42,6 +47,15 @@ let paginationLoader = (isLoaded: boolean) => ({
   next: () => {},
   previous: () => {},
   refetch: () => {}
+});
+
+let failingLoader = (refetch: () => void) => ({
+  input: undefined,
+  data: null,
+  error: new ServiceError(internalServerError({ message: 'Unable to perform request' })),
+  isLoading: false,
+  mutators: {},
+  refetch
 });
 
 let getByTestId = (container: HTMLElement, testId: string) =>
@@ -469,5 +483,113 @@ describe('renderWithLoader', () => {
     ).toBe('none');
     expect(getByTestId(container, 'pagination-loading')).not.toBeNull();
     expect(getByTestId(container, 'pagination-ready')).toBeNull();
+  });
+});
+
+describe('loader error presenter', () => {
+  let container: HTMLDivElement;
+  let root: Root;
+
+  beforeEach(() => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+  });
+
+  afterEach(() => {
+    setLoaderErrorPresenter(null);
+    act(() => root.unmount());
+    container.remove();
+  });
+
+  let presentRetryButton = () =>
+    setLoaderErrorPresenter(({ retry }) => (
+      <button data-testid="retry" onClick={() => retry?.()}>
+        Try again
+      </button>
+    ));
+
+  it('renders the default error when no presenter is set', () => {
+    let Page = () =>
+      renderWithLoader({ item: failingLoader(() => {}) })(() => <div>never</div>);
+    act(() => root.render(<Page />));
+
+    expect(container.textContent).toContain('Unable to perform request');
+  });
+
+  it('lets a host present the error and retry only the failed loaders', async () => {
+    let failedRefetch = vi.fn();
+    let healthyRefetch = vi.fn();
+    presentRetryButton();
+
+    let Page = () =>
+      renderWithLoader({
+        ok: { ...loader(true), refetch: healthyRefetch },
+        bad: failingLoader(failedRefetch)
+      })(() => <div>never</div>);
+    act(() => root.render(<Page />));
+
+    let retry = getByTestId(container, 'retry') as HTMLButtonElement;
+    expect(retry).not.toBeNull();
+
+    await act(async () => retry.click());
+    expect(failedRefetch).toHaveBeenCalledTimes(1);
+    expect(healthyRefetch).not.toHaveBeenCalled();
+  });
+
+  it('passes no retry when no failed loader can refetch', () => {
+    let receivedRetry: unknown = 'unset';
+    setLoaderErrorPresenter(({ retry }) => {
+      receivedRetry = retry;
+      return null;
+    });
+
+    let Page = () =>
+      renderWithLoader({ item: { ...failingLoader(() => {}), refetch: undefined } })(() => (
+        <div>never</div>
+      ));
+    act(() => root.render(<Page />));
+
+    expect(receivedRetry).toBeUndefined();
+  });
+
+  it('falls back to the default rendering when the presenter returns undefined', () => {
+    setLoaderErrorPresenter(() => undefined);
+
+    let Page = () =>
+      renderWithLoader({ item: failingLoader(() => {}) })(() => <div>never</div>);
+    act(() => root.render(<Page />));
+
+    expect(container.textContent).toContain('Unable to perform request');
+  });
+
+  it('prefers a per-call error renderer over the presenter', () => {
+    presentRetryButton();
+
+    let Page = () =>
+      renderWithLoader(
+        { item: failingLoader(() => {}) },
+        { error: () => <div data-testid="custom-error">Custom</div> }
+      )(() => <div>never</div>);
+    act(() => root.render(<Page />));
+
+    expect(getByTestId(container, 'custom-error')).not.toBeNull();
+    expect(getByTestId(container, 'retry')).toBeNull();
+  });
+
+  it('retries a failed paginated loader', async () => {
+    let refetch = vi.fn();
+    presentRetryButton();
+
+    let Page = () =>
+      renderWithPagination({
+        ...paginationLoader(true),
+        data: null,
+        ...failingLoader(refetch)
+      })(() => <div>never</div>);
+    act(() => root.render(<Page />));
+
+    await act(async () => (getByTestId(container, 'retry') as HTMLButtonElement).click());
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 });

@@ -62,8 +62,12 @@ export let getNexusUrl = (slice: NexusSlices, cb: () => string) => {
 
   if (sliceAccess.owner === 'self') return path;
 
-  let url = new URL(`https://${sliceAccess.property.hostname}`);
-  if (sliceAccess.property.hostname.endsWith('localhost')) url.protocol = 'http:';
+  let host = sliceAccess.property.hostname;
+  let url = new URL(`https://${host}`);
+
+  // `host` may carry a port (local stacks), so check the parsed host name.
+  let isLocalhost = url.hostname === 'localhost' || url.hostname.endsWith('.localhost');
+  if (isLocalhost && !host.endsWith(':443')) url.protocol = 'http:';
   url.pathname = path;
 
   return url.toString();
