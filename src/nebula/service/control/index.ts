@@ -41,7 +41,16 @@ export default project({
       main: postgres({ package: '@metorial/nebula', name: 'nebula', env: 'DATABASE_URL' })
     }
   }),
-  e2e: e2e({ start: ['e2e:start'], image: 'nebula' }),
+  e2e: e2e({
+    start: ['e2e:start'],
+    image: 'nebula',
+    tests: ['.'],
+    env: {
+      CONSUMER_REGISTRATION_WORKER: 'e2e-worker-registration-secret',
+      CONSUMER_REGISTRATION_OWNER: 'e2e-owner-registration-secret',
+      CONSUMER_REGISTRATION_OTHER: 'e2e-other-registration-secret'
+    }
+  }),
   ci: {
     images: [
       ciImage({
@@ -60,6 +69,6 @@ export default project({
         })
       })
     ],
-    suite: ciSuite({ name: 'nebula', runner: 'compose', profiles: ['infra', 'service'] })
+    suite: ciSuite({ name: 'nebula', groups: 1 })
   }
 });
