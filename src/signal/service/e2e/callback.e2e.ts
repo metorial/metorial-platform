@@ -1,34 +1,33 @@
-import { beforeEach, describe, expect, it } from 'vitest';
-import { env } from '../../env';
-import { storageKey } from '../../lib/storageKey';
-import { storage } from '../../storage';
-import { signalClient } from '../../test/client';
-import { fixtures } from '../../test/fixtures';
-import { cleanDatabase, testDb } from '../../test/setup';
+import { uniqueId } from '@lowerdeck/testing-tools';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { db as testDb } from '../src/db';
+import { env } from '../src/env';
+import { storageKey } from '../src/lib/storageKey';
+import { storage } from '../src/storage';
+import { signal as signalClient } from './client';
+import { createTenant } from './fixtures';
 
-describe('callback.e2e', () => {
-  let f = fixtures(testDb);
-
-  beforeEach(async () => {
-    await cleanDatabase();
+describe('signal callback', () => {
+  beforeAll(async () => {
     await storage.upsertBucket(env.storage.LOGS_BUCKET_NAME);
   });
 
   it('offloads callback event input and output payloads asynchronously', async () => {
-    let tenant = await f.tenant.default();
+    let tenant = await createTenant();
+    let callbackId = uniqueId('callback');
     let inputJson = JSON.stringify({ stage: 'input', ok: true });
     let outputJson = JSON.stringify({ stage: 'output', ok: true });
 
     await signalClient.callback.upsert({
       tenantId: tenant.id,
-      callbackId: 'callback-orders',
+      callbackId,
       name: 'Order callbacks',
       destinations: []
     });
 
     let recorded = await signalClient.callback.recordEvent({
       tenantId: tenant.id,
-      callbackId: 'callback-orders',
+      callbackId,
       status: 'failed',
       eventType: 'order.finished',
       inputJson,
@@ -38,7 +37,7 @@ describe('callback.e2e', () => {
     });
 
     expect(recorded).toMatchObject({
-      callbackId: 'callback-orders',
+      callbackId,
       type: 'order.finished',
       input: { stage: 'input', ok: true },
       output: { stage: 'output', ok: true }
@@ -100,7 +99,7 @@ describe('callback.e2e', () => {
 
     let fetched = await signalClient.callback.getEvent({
       tenantId: tenant.id,
-      callbackId: 'callback-orders',
+      callbackId,
       callbackEventId: recorded.id
     });
 
@@ -112,7 +111,7 @@ describe('callback.e2e', () => {
 
     let listed = await signalClient.callback.listEvents({
       tenantId: tenant.id,
-      callbackId: 'callback-orders',
+      callbackId,
       limit: 10
     });
 
