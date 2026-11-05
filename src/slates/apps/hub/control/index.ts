@@ -8,6 +8,7 @@ import {
   endpoint,
   inherit,
   mergeEnv,
+  objectStorage,
   postgres,
   project,
   redis,
@@ -91,9 +92,11 @@ export default project({
   e2e: e2e({
     start: ['e2e:start'],
     image: 'slates-hub',
+    tests: ['.'],
     env: {
       OBJECT_STORAGE_URL: 'http://services:52010'
-    }
+    },
+    resources: [objectStorage()]
   }),
   ci: {
     images: [
@@ -117,6 +120,6 @@ export default project({
         })
       })
     ],
-    suite: ciSuite({ name: 'slates-hub', runner: 'compose', profiles: ['hub', 'infra'] })
+    suite: ciSuite({ name: 'slates-hub', groups: 1 })
   }
 });

@@ -11,7 +11,6 @@ services:
       POSTGRES_DB: slates-hub
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init-test-db.sh:/docker-entrypoint-initdb.d/init-test-db.sh
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U slates-hub']
       interval: 5s

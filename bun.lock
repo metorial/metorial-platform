@@ -6787,6 +6787,7 @@
         "zod": "^4.6.7",
       },
       "devDependencies": {
+        "@metorial/e2e": "1.0.0",
         "@lowerdeck/testing-tools": "workspace:2.0.0",
         "@types/bun": "latest",
         "@types/lodash": "^4.17.27",

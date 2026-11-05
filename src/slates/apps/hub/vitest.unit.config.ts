@@ -3,11 +3,6 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     include: ['src/**/*.test.ts'],
-    exclude: [
-      'src/**/*.e2e.test.ts',
-      'src/test/cleanupCron.test.ts',
-      'src/test/deploymentZeroDowntime.test.ts'
-    ],
     pool: 'forks',
     env: {
       NODE_ENV: 'test',
@@ -24,6 +19,7 @@ export default defineConfig({
       OBJECT_STORAGE_URL: 'http://127.0.0.1:9000',
       INVOCATIONS_BUCKET_NAME: 'unit-test',
       ENCRYPTION_KEY: 'unit-test-encryption-key',
+      SLATE_ATTACHMENT_SIGNING_SECRET: 'unit-test-attachment-signing-secret',
       SLATES_HUB_INSTANCE_IDENTIFIER: 'unit-test',
       NEBULA_API_URL: 'http://127.0.0.1:4313',
       NEBULA_CONSUMER_IDENTIFIER: 'unit-test',
