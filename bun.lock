@@ -6696,6 +6696,7 @@
       },
       "devDependencies": {
         "@lowerdeck/testing-tools": "workspace:2.0.0",
+        "@metorial/e2e": "1.0.0",
         "@types/bun": "latest",
         "@types/node": "^25.9.9",
         "@vercel/ncc": "^0.45.0",

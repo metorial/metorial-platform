@@ -1,6 +1,7 @@
 import {
   bunService,
   ciImage,
+  ciSuite,
   dependency,
   dev,
   e2e,
@@ -40,6 +41,7 @@ export default project({
   e2e: e2e({
     start: ['e2e:start'],
     image: 'signal',
+    tests: ['.'],
     env: {
       OBJECT_STORAGE_URL: 'http://services:52010'
     }
@@ -66,6 +68,7 @@ export default project({
           ]
         })
       })
-    ]
+    ],
+    suite: ciSuite({ name: 'signal', groups: 1 })
   }
 });

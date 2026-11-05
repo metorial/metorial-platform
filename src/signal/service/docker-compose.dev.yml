@@ -10,7 +10,6 @@ services:
       POSTGRES_DB: signal
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init-test-db.sh:/docker-entrypoint-initdb.d/init-test-db.sh
     ports:
       - '25432:5432'
     networks:
