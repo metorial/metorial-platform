@@ -175,6 +175,11 @@ describe('http clients', () => {
     });
   });
 
+  test('rest keeps the path of the base url', async () => {
+    let response = await rest(`http://localhost:${server.port}/prefix/`).get('/missing');
+    expect(response.url).toBe(`http://localhost:${server.port}/prefix/missing`);
+  });
+
   test('expectOk throws with the response body', async () => {
     let response = await rest(`http://localhost:${server.port}`).get('/missing');
     expect(response.status).toBe(404);

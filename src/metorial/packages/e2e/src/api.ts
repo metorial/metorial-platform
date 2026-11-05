@@ -74,7 +74,7 @@ export let rest = (baseUrl: string, auth: RestAuth = {}) => {
     path: string,
     options: RestRequestOptions = {}
   ): Promise<RestResponse<T>> => {
-    let url = new URL(path, baseUrl);
+    let url = new URL(`${baseUrl.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`);
     for (let [key, value] of Object.entries(options.query ?? {})) {
       if (value !== undefined) url.searchParams.set(key, String(value));
     }
