@@ -7,6 +7,7 @@ import {
   e2e,
   endpoint,
   mergeEnv,
+  objectStorage,
   postgres,
   project,
   redis,
@@ -44,7 +45,8 @@ export default project({
     tests: ['.'],
     env: {
       OBJECT_STORAGE_URL: 'http://services:52010'
-    }
+    },
+    resources: [objectStorage()]
   }),
   ci: {
     images: [
