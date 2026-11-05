@@ -42,6 +42,7 @@ export interface BuildSpec {
   runtime: 'bundle' | 'source';
   release: boolean;
   versioned: boolean;
+  generateFirst: boolean;
 }
 
 export interface RenderContext {

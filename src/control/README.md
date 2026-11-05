@@ -571,6 +571,8 @@ Further `bunService` options:
 - `strip`: package names removed from `node_modules` after install.
 - `assets`: `from` is relative to the package; a leading `/` makes it relative to
   the workspace root and then requires an explicit `to`.
+- `generateFirst`: run `prisma:generate` as its own Turbo run before the other tasks
+  (needed when a package's build is not ordered after generation by Turbo).
 - `runtime: 'source'`: the image keeps the builder stage and runs `start` from the
   package directory instead of a bundled `dist`.
 - `release` bakes `METORIAL_RELEASE_CHANNEL` (build arg, default `dev`); `versioned`

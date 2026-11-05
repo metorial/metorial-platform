@@ -42,6 +42,7 @@ export let normalizeBuild = (raw: RawBuild): BuildSpec => {
     strip: raw.strip ?? [],
     runtime: raw.runtime ?? 'bundle',
     release: raw.release ?? false,
-    versioned: raw.versioned ?? false
+    versioned: raw.versioned ?? false,
+    generateFirst: raw.generateFirst ?? false
   };
 };

@@ -63,7 +63,7 @@ export let dependencies = (context: RenderContext): string[] => [
 
 let turboRuns = (context: RenderContext) => {
   let { build } = context;
-  if (!build.include.length)
+  if (!build.include.length && !build.generateFirst)
     return [`${build.tasks.join(' ')} --filter=${filterName(context)}`];
 
   let generate = build.tasks.filter(task => task === 'prisma:generate');

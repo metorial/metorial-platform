@@ -70,6 +70,7 @@ export interface RawBuild {
   runtime?: 'bundle' | 'source';
   release?: boolean;
   versioned?: boolean;
+  generateFirst?: boolean;
 }
 
 export interface RawCiImage {

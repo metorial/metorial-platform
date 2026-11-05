@@ -77,7 +77,8 @@ let buildSpec = strictObject({
   strip: v.optional(strings),
   runtime: v.optional(v.enumOf(['bundle', 'source'])),
   release: v.optional(v.boolean()),
-  versioned: v.optional(v.boolean())
+  versioned: v.optional(v.boolean()),
+  generateFirst: v.optional(v.boolean())
 });
 
 let envSpec = strictObject({
