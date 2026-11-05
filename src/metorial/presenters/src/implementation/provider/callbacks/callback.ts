@@ -176,6 +176,8 @@ export let dashboardCallbackPresenter = Presenter.create(callbackType)
         ? callback.integrationProvider.currentVersion.authCredentials.origin !==
           'tenant_created'
         : false,
+      auth_credentials_id:
+        callback.integrationProvider.currentVersion?.authCredentials?.id ?? null,
       sync: callbackSyncPresenter(callback)
     };
   })
@@ -187,6 +189,13 @@ export let dashboardCallbackPresenter = Presenter.create(callbackType)
         description: 'Whether the selected auth credentials are managed by Metorial',
         examples: [true, false]
       }),
+      auth_credentials_id: v.nullable(
+        v.string({
+          name: 'auth_credentials_id',
+          description: 'The auth credentials selected for the callback provider',
+          examples: ['par_6eFgHjKlMnPqRsTu']
+        })
+      ),
       sync: callbackSyncPresenter.schema
     }) as any
   )

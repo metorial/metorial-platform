@@ -23,12 +23,19 @@ export type ManagementInstanceWebhookRegistrationsGetOutput = {
     createdAt: Date;
     updatedAt: Date;
   };
+  providerAuthCredentialsId: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
 
 export let mapManagementInstanceWebhookRegistrationsGetOutput =
   /* @__PURE__ */ mapObject<ManagementInstanceWebhookRegistrationsGetOutput>(
-    ['receive_url', ['provider', 0, 8], 'created_at', 'updated_at'],
+    [
+      'receive_url',
+      ['provider', 0, 8],
+      'provider_auth_credentials_id',
+      'created_at',
+      'updated_at'
+    ],
     1
   );

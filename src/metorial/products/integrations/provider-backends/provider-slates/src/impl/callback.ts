@@ -1,4 +1,4 @@
-import { isServiceError } from '@lowerdeck/error';
+import { badRequestError, isServiceError, ServiceError } from '@lowerdeck/error';
 import { db, snowflake, type Provider, type Tenant } from '@metorial-subspace/db';
 import {
   IProviderCallbacks,
@@ -265,9 +265,31 @@ export class ProviderCallbacks extends IProviderCallbacks {
 
     let tenant = await getTenantForSlates(data.tenant);
 
+    let credentials = data.providerAuthCredentials;
+    let slateCredentials = credentials?.slateCredentialsOid
+      ? await db.slateOAuthCredentials.findFirst({
+          where: {
+            oid: credentials.slateCredentialsOid,
+            tenantOid: data.tenant.oid,
+            slateOid: slate.oid
+          }
+        })
+      : null;
+
+    if (credentials && !slateCredentials) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'webhook_registration_credentials_not_supported',
+          message: 'These credentials cannot be used to register a webhook receiver.'
+        })
+      );
+    }
+
     let res = await slates.slateWebhookRegistration.create({
       tenantId: tenant.id,
       slateId: slate.id,
+      authRouting: slateCredentials ? 'restricted_credential' : 'any',
+      slateOAuthCredentialsIds: slateCredentials ? [slateCredentials.id] : undefined,
 
       name: data.webhookRegistration.name,
       description: data.webhookRegistration.description ?? undefined,
@@ -373,8 +395,7 @@ export class ProviderCallbacks extends IProviderCallbacks {
       webhookRegistrationIds: slatesRegistrationIds,
       slateIds,
       statuses: data.statuses as
-        | ('pending' | 'failed_retrying' | 'failed_final' | 'succeeded')[]
-        | undefined,
+        ('pending' | 'failed_retrying' | 'failed_final' | 'succeeded')[] | undefined,
 
       limit: data.input.limit,
       after: data.input.after,

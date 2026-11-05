@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let queues = new Map<string, any>();
 let db = {
-  triggerRegistrationInstance: { findUnique: vi.fn() },
-  slateWebhookRegistration: { findMany: vi.fn() },
-  triggerRegistrationWebhook: { create: vi.fn() }
+  triggerRegistrationInstance: { findUnique: vi.fn(), findMany: vi.fn() },
+  slateWebhookRegistration: { findMany: vi.fn(), findUnique: vi.fn() },
+  triggerRegistrationWebhook: { create: vi.fn(), deleteMany: vi.fn() }
 };
 let decrypt = vi.fn();
 let invocation = { createInvocationWithState: vi.fn(), getRoutingMatchers: vi.fn() };
@@ -16,6 +16,7 @@ vi.mock('@lowerdeck/queue', () => ({
   createQueue: ({ name }: { name: string }) => {
     let queue = {
       add: vi.fn(),
+      addManyWithOps: vi.fn(),
       process: (handler: any) => {
         queue.handler = handler;
         return queue;
@@ -126,6 +127,116 @@ describe('manual webhook trigger setup', () => {
     expect(db.triggerRegistrationWebhook.create).toHaveBeenCalledWith({
       data: { oid: 10n, triggerRegistrationInstanceOid: 3n, webhookRegistrationOid: 7n }
     });
+  });
+
+  it.each([11n, 12n])(
+    'selects only the matching app receiver for credential %s',
+    async credentialOid => {
+      authConfig.oauthCredentialsOid = credentialOid;
+      db.slateWebhookRegistration.findMany.mockResolvedValue([
+        {
+          oid: 7n,
+          owner: 'tenant',
+          authRouting: 'any',
+          authMethods: [],
+          oauthCredentials: []
+        },
+        ...[11n, 12n].map(oid => ({
+          oid: oid + 100n,
+          owner: 'tenant',
+          authRouting: 'restricted_credential',
+          authMethods: [],
+          oauthCredentials: [{ oauthCredentialsOid: oid }]
+        }))
+      ]);
+
+      await run();
+
+      expect(db.triggerRegistrationWebhook.create).toHaveBeenCalledWith({
+        data: {
+          oid: 10n,
+          triggerRegistrationInstanceOid: 3n,
+          webhookRegistrationOid: credentialOid + 100n
+        }
+      });
+      expect(db.triggerRegistrationWebhook.deleteMany).toHaveBeenCalledWith({
+        where: {
+          triggerRegistrationInstanceOid: 3n,
+          triggerWebhookTargetOid: null,
+          webhookRegistrationOid: { not: credentialOid + 100n }
+        }
+      });
+    }
+  );
+
+  it('does not attach a trigger to another app when there is no fallback', async () => {
+    authConfig.oauthCredentialsOid = 12n;
+    db.slateWebhookRegistration.findMany.mockResolvedValue([
+      {
+        oid: 111n,
+        owner: 'tenant',
+        authRouting: 'restricted_credential',
+        oauthCredentials: [{ oauthCredentialsOid: 11n }]
+      }
+    ]);
+
+    await run();
+
+    expect(db.triggerRegistrationWebhook.create).not.toHaveBeenCalled();
+    expect(instanceError).toHaveBeenCalledWith(
+      expect.objectContaining({ code: 'no_matching_webhook_registration' })
+    );
+  });
+
+  it('removes an old shared link even when the scoped link already exists', async () => {
+    db.triggerRegistrationWebhook.create.mockRejectedValue({ code: 'P2002' });
+
+    await run();
+
+    expect(db.triggerRegistrationWebhook.deleteMany).toHaveBeenCalled();
+  });
+
+  it('preserves the old link if provisioning the replacement fails', async () => {
+    db.triggerRegistrationWebhook.create.mockRejectedValue(new Error('database unavailable'));
+
+    await expect(run()).rejects.toThrow('database unavailable');
+
+    expect(db.triggerRegistrationWebhook.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it('rematches already-linked instances for a newly activated app credential', async () => {
+    db.slateWebhookRegistration.findUnique.mockResolvedValue({
+      triggerGroupOid: 4n,
+      tenantOid: 1n,
+      owner: 'tenant',
+      authRouting: 'restricted_credential',
+      oauthCredentials: [{ oauthCredentialsOid: 12n }]
+    });
+    db.triggerRegistrationInstance.findMany.mockResolvedValue([{ id: 'existing_instance' }]);
+    await import('./webhookRegistrationRematch');
+
+    await queues
+      .get('shub/trg/whk/rematch/1')
+      .handler({ webhookRegistrationId: 'new_receiver' });
+
+    expect(db.triggerRegistrationInstance.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          triggerRegistration: { tenantOid: 1n },
+          triggerGroupOid: 4n,
+          OR: [
+            { webhooks: { none: {} } },
+            { triggerRegistration: { authConfig: { oauthCredentialsOid: { in: [12n] } } } }
+          ]
+        })
+      })
+    );
+    expect(queues.get('shub/trg/inst/setup/1').addManyWithOps).toHaveBeenCalledWith([
+      {
+        data: { triggerRegistrationInstanceId: 'existing_instance' },
+        opts: { id: 'existing_instance' }
+      }
+    ]);
   });
 
   it('uses stored routing matchers even while the config is processing', async () => {

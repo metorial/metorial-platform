@@ -8,6 +8,7 @@ import {
   useCurrentOrganization,
   useCurrentProject,
   useDeleteWebhookRegistration,
+  useProviderAuthCredentials,
   useSetupWebhookRegistration,
   useWebhookRegistrations,
   WebhookRegistrationPreview
@@ -24,6 +25,7 @@ import {
   Badge,
   Button,
   Callout,
+  Combobox,
   confirm,
   Dialog,
   Input,
@@ -57,10 +59,12 @@ import {
 let showCreateWebhookRegistrationModal = (p: {
   instanceId: string;
   provider?: { id: string; name: string };
+  providerAuthCredentialsId?: string;
   onCreate: (created: { id: string }) => void;
 }) =>
   showModal(({ dialogProps, close }) => {
     let [providerId, setProviderId] = useState(p.provider?.id ?? '');
+    let [credentials, setCredentials] = useState<{ id: string; label: string } | null>(null);
     let createRegistration = useCreateWebhookRegistration();
 
     let form = useForm({
@@ -74,6 +78,7 @@ let showCreateWebhookRegistrationModal = (p: {
         let [created] = await createRegistration.mutate({
           instanceId: p.instanceId,
           providerId,
+          providerAuthCredentialsId: p.providerAuthCredentialsId ?? credentials?.id,
           name: values.name.trim(),
           description: values.description.trim() || undefined
         });
@@ -124,6 +129,43 @@ let showCreateWebhookRegistrationModal = (p: {
               <Input label="Description" {...form.getFieldProps('description')} />
               <form.RenderError field="description" />
 
+              {!p.provider ? (
+                <>
+                  <Spacer size={10} />
+
+                  <Combobox
+                    label="App Credentials"
+                    description="Pick the provider app this receiver belongs to. Leave empty to share the receiver across every app of the provider."
+                    placeholder="Shared by all apps"
+                    value={credentials?.id ?? null}
+                    valueLabel={credentials?.label}
+                    provider={({ searchQuery }) => {
+                      let authCredentials = useProviderAuthCredentials(p.instanceId, {
+                        providerId,
+                        origin: 'custom',
+                        status: 'active',
+                        limit: 25,
+                        search: searchQuery || undefined
+                      });
+
+                      return {
+                        items: (authCredentials.data?.items ?? []).map(item => ({
+                          id: item.id,
+                          label: item.name ?? item.id
+                        })),
+                        isLoading: authCredentials.isLoading,
+                        empty: searchQuery
+                          ? 'No matching app credentials found.'
+                          : 'No app credentials for this provider.'
+                      };
+                    }}
+                    onChange={(value, item) =>
+                      setCredentials(value && item ? { id: value, label: item.label } : null)
+                    }
+                  />
+                </>
+              ) : null}
+
               <Spacer size={18} />
 
               <Dialog.Actions>
@@ -141,7 +183,10 @@ let showCreateWebhookRegistrationModal = (p: {
                     type="button"
                     variant="outline"
                     disabled={createRegistration.isLoading}
-                    onClick={() => setProviderId('')}
+                    onClick={() => {
+                      setProviderId('');
+                      setCredentials(null);
+                    }}
                   >
                     Back
                   </Button>
@@ -551,10 +596,12 @@ export let WebhookRegistrationsTable = ({ instanceId }: { instanceId: string }) 
 export let CreateWebhookRegistrationButton = ({
   instanceId,
   provider,
+  providerAuthCredentialsId,
   onCreate
 }: {
   instanceId: string;
   provider?: { id: string; name: string };
+  providerAuthCredentialsId?: string;
   onCreate?: (created: { id: string }) => void;
 }) => (
   <Button
@@ -563,6 +610,7 @@ export let CreateWebhookRegistrationButton = ({
       showCreateWebhookRegistrationModal({
         instanceId,
         provider,
+        providerAuthCredentialsId,
         onCreate: created => onCreate?.(created)
       })
     }

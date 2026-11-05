@@ -18,7 +18,13 @@ export let triggerWebhookRegistrationRematchQueueProcessor =
   triggerWebhookRegistrationRematchQueue.process(async data => {
     let registration = await db.slateWebhookRegistration.findUnique({
       where: { id: data.webhookRegistrationId },
-      select: { triggerGroupOid: true, tenantOid: true, owner: true }
+      select: {
+        triggerGroupOid: true,
+        tenantOid: true,
+        owner: true,
+        authRouting: true,
+        oauthCredentials: { select: { oauthCredentialsOid: true } }
+      }
     });
     if (!registration) return;
     if (registration.owner === 'tenant' && !registration.tenantOid) return;
@@ -36,7 +42,24 @@ export let triggerWebhookRegistrationRematchQueueProcessor =
         // instances - so we don't need to worry about handling those here.
         triggerGroupOid: registration.triggerGroupOid,
 
-        webhooks: { none: {} },
+        OR: [
+          { webhooks: { none: {} } },
+          ...(registration.authRouting === 'restricted_credential'
+            ? [
+                {
+                  triggerRegistration: {
+                    authConfig: {
+                      oauthCredentialsOid: {
+                        in: registration.oauthCredentials.map(
+                          credential => credential.oauthCredentialsOid
+                        )
+                      }
+                    }
+                  }
+                }
+              ]
+            : [])
+        ],
         id: data.cursor ? { gt: data.cursor } : undefined
       },
       orderBy: { id: 'asc' },

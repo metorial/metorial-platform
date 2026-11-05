@@ -5,6 +5,10 @@ let webhookRegistrationUpdate = vi.fn();
 let webhookRegistrationFindFirst = vi.fn();
 let providerFindFirst = vi.fn();
 
+let credentialsFindFirst = vi.fn();
+
+let webhookRegistrationFindMany = vi.fn();
+
 let backendCallbacks = {
   createWebhookRegistration: vi.fn(),
   finishWebhookRegistrationSetup: vi.fn(),
@@ -19,13 +23,19 @@ vi.mock('@metorial-subspace/db', () => ({
     webhookRegistration: {
       create: webhookRegistrationCreate,
       update: webhookRegistrationUpdate,
-      findFirst: webhookRegistrationFindFirst
+      findFirst: webhookRegistrationFindFirst,
+      findMany: webhookRegistrationFindMany
     },
+    providerAuthCredentials: { findFirst: credentialsFindFirst },
     provider: {
       findFirst: providerFindFirst
     }
   },
   getId: (model: string) => ({ oid: BigInt(100), id: `${model}_id` })
+}));
+
+vi.mock('@lowerdeck/pagination', () => ({
+  Paginator: { create: (factory: any) => factory({ prisma: (query: any) => query({}) }) }
 }));
 
 vi.mock('@lowerdeck/service', () => ({
@@ -156,6 +166,102 @@ describe('webhookRegistrationService', () => {
           receiveUrl: 'https://triggers.metorial.com/w/abc',
           setup: { document: 'Paste the URL into GitHub.' }
         }
+      })
+    );
+  });
+
+  it('persists the app credential and forwards it to the backend', async () => {
+    providerFindFirst.mockResolvedValue(activeProvider('supported'));
+    let credentials = { oid: 50n, id: 'pac_app_2', slateCredentialsOid: 60n };
+    credentialsFindFirst.mockResolvedValue(credentials);
+
+    let { webhookRegistrationService } = await import('./webhookRegistration');
+    await webhookRegistrationService.createWebhookRegistration({
+      instance,
+      provider: { id: 'pro_1' },
+      input: { name: 'App 2 Receiver', providerAuthCredentialsId: credentials.id }
+    });
+
+    expect(credentialsFindFirst).toHaveBeenCalledWith({
+      where: {
+        id: credentials.id,
+        tenantOid: 1n,
+        solutionOid: 3,
+        environmentOid: 2n,
+        providerOid: 7n,
+        status: 'active',
+        origin: 'tenant_created'
+      }
+    });
+    expect(webhookRegistrationCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ providerAuthCredentialsOid: 50n })
+      })
+    );
+    expect(backendCallbacks.createWebhookRegistration).toHaveBeenCalledWith(
+      expect.objectContaining({ providerAuthCredentials: credentials })
+    );
+  });
+
+  it('rejects credentials unavailable in the provider and instance scope before creating a receiver', async () => {
+    providerFindFirst.mockResolvedValue(activeProvider('supported'));
+    credentialsFindFirst.mockResolvedValue(null);
+
+    let { webhookRegistrationService } = await import('./webhookRegistration');
+    await expect(
+      webhookRegistrationService.createWebhookRegistration({
+        instance,
+        provider: { id: 'pro_1' },
+        input: { name: 'App 2 Receiver', providerAuthCredentialsId: 'pac_other' }
+      })
+    ).rejects.toThrow();
+
+    expect(webhookRegistrationCreate).not.toHaveBeenCalled();
+    expect(backendCallbacks.createWebhookRegistration).not.toHaveBeenCalled();
+  });
+
+  it.each([['pac_app_2'], []])(
+    'filters receivers by the supplied credential IDs: %j',
+    async (...ids) => {
+      let { webhookRegistrationService } = await import('./webhookRegistration');
+      await webhookRegistrationService.listWebhookRegistrations({
+        instance,
+        providerIds: ['pro_1'],
+        providerAuthCredentialsIds: ids
+      });
+
+      expect(webhookRegistrationFindMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            tenantOid: 1n,
+            solutionOid: 3,
+            environmentOid: 2n,
+            AND: expect.arrayContaining([
+              { providerOid: { in: [7n] } },
+              { providerAuthCredentials: { id: { in: ids } } }
+            ])
+          })
+        })
+      );
+    }
+  );
+
+  it.each([
+    [true, null],
+    [false, { not: null }]
+  ])('filters receivers by whether they are shared: %s', async (isShared, oidFilter) => {
+    let { webhookRegistrationService } = await import('./webhookRegistration');
+    await webhookRegistrationService.listWebhookRegistrations({
+      instance,
+      providerIds: ['pro_1'],
+      isShared
+    });
+
+    expect(webhookRegistrationFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([{ providerAuthCredentialsOid: oidFilter }])
+        })
       })
     );
   });

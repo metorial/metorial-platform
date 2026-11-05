@@ -22,6 +22,7 @@ export type CallbacksListOutput = {
     createdAt: Date;
     updatedAt: Date;
     authCredentialsIsManaged: boolean;
+    authCredentialsId: string | null;
     sync: {
       object: 'callback.sync';
       status: 'pending' | 'synced' | 'failed';
@@ -49,6 +50,7 @@ export let mapCallbacksListOutput =
           'created_at',
           'updated_at',
           'auth_credentials_is_managed',
+          'auth_credentials_id',
           ['sync', 0, [1, ['synced_at']]]
         ]
       ]

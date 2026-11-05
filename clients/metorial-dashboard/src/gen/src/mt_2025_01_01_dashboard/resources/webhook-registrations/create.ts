@@ -23,22 +23,33 @@ export type WebhookRegistrationsCreateOutput = {
     createdAt: Date;
     updatedAt: Date;
   };
+  providerAuthCredentialsId: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
 
 export let mapWebhookRegistrationsCreateOutput =
   /* @__PURE__ */ mapObject<WebhookRegistrationsCreateOutput>(
-    ['receive_url', ['provider', 0, 8], 'created_at', 'updated_at'],
+    [
+      'receive_url',
+      ['provider', 0, 8],
+      'provider_auth_credentials_id',
+      'created_at',
+      'updated_at'
+    ],
     1
   );
 
 export type WebhookRegistrationsCreateBody = {
   providerId: string;
+  providerAuthCredentialsId?: string | undefined;
   name: string;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
 };
 
 export let mapWebhookRegistrationsCreateBody =
-  /* @__PURE__ */ mapObject<WebhookRegistrationsCreateBody>(['provider_id']);
+  /* @__PURE__ */ mapObject<WebhookRegistrationsCreateBody>([
+    'provider_id',
+    'provider_auth_credentials_id'
+  ]);

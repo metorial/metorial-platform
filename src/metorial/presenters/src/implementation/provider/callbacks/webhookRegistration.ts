@@ -29,6 +29,7 @@ export let v1WebhookRegistrationPresenter = Presenter.create(webhookRegistration
     },
 
     provider: v1ProviderPreview(webhookRegistration.provider),
+    provider_auth_credentials_id: webhookRegistration.providerAuthCredentials?.id ?? null,
 
     created_at: webhookRegistration.createdAt,
     updated_at: webhookRegistration.updatedAt
@@ -129,6 +130,15 @@ export let v1WebhookRegistrationPresenter = Presenter.create(webhookRegistration
       ),
 
       provider: v1ProviderPreview.schema,
+
+      provider_auth_credentials_id: v.nullable(
+        v.string({
+          name: 'provider_auth_credentials_id',
+          description:
+            'Custom provider auth credentials (the provider app) this receiver belongs to. Null for a receiver shared by every app of the provider.',
+          examples: ['par_6eFgHjKlMnPqRsTu']
+        })
+      ),
 
       created_at: v.date({
         name: 'created_at',
