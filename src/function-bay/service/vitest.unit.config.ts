@@ -4,7 +4,6 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts'],
-    exclude: ['src/**/*.e2e.test.ts', 'src/queues/enclaveOverride.test.ts'],
     env: {
       NODE_ENV: 'test',
       REDIS_URL: 'redis://127.0.0.1:6379',
