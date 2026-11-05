@@ -1,5 +1,6 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { documentService } from '@metorial/module-documents';
+import { ObjectStorageError } from 'object-storage-client';
 import { env } from '../env';
 import { fileDownloadService } from '../services/fileDownload';
 import { resolveDelegatedFileContent } from './delegation';
@@ -122,7 +123,12 @@ export let getCargoFileContent = async (d: { fileId: string; key: string }) => {
     };
   }
 
-  let stored = await getStoredFileContentStream({ file });
+  let stored = await getStoredFileContentStream({ file }).catch(error => {
+    if (error instanceof ObjectStorageError && error.statusCode == 404) {
+      throw new ServiceError(notFoundError('file', file.id));
+    }
+    throw error;
+  });
 
   return {
     type: 'content' as const,
