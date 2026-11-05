@@ -8,7 +8,6 @@ export default defineConfig(({ mode }) => {
     test: {
       pool: 'forks',
       exclude: ['**/node_modules/**', '**/dist/**', '**/*.e2e.test.ts'],
-      setupFiles: ['./src/test/setup.ts'],
       env: {
         ...env,
         NODE_ENV: 'test'
