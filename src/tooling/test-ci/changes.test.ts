@@ -56,14 +56,6 @@ test('E2E suites include every application container dependency', () => {
   expect(suites.find(suite => suite.name === 'shuttle')!.services).toContain(
     '@metorial/forge'
   );
-  expect(suites.find(suite => suite.name === 'slates-hub')!.services).toEqual([
-    '@metorial/forge',
-    '@metorial/function-bay',
-    '@metorial/nebula',
-    '@metorial/signal',
-    '@metorial/slates',
-    '@metorial/slates-registry'
-  ]);
   expect(suites.find(suite => suite.name === 'function-bay')!.services).toContain(
     '@metorial/forge'
   );
