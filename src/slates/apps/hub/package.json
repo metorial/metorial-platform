@@ -50,9 +50,9 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@aws-sdk/client-cloudwatch-logs": "^3.1156.0",
-    "@aws-sdk/client-iam": "^3.1156.0",
-    "@aws-sdk/client-lambda": "^3.1156.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.1158.0",
+    "@aws-sdk/client-iam": "^3.1158.0",
+    "@aws-sdk/client-lambda": "^3.1158.0",
     "@hono/zod-validator": "^0.9.1",
     "@lowerdeck/api-key": "workspace:2.0.0",
     "@lowerdeck/api-mux": "workspace:2.0.0",
@@ -119,7 +119,7 @@
     "prisma-json-types-generator": "^5.2.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "react-router-dom": "^7.18.4",
+    "react-router-dom": "^7.18.5",
     "semver": "^7.8.5",
     "sonner": "^2.0.8",
     "styled-components": "^6.6.0",

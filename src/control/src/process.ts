@@ -199,6 +199,30 @@ export let output = async (
   return (await result).trim();
 };
 
+export let runCaptured = async (
+  label: string,
+  program: string,
+  args: string[],
+  cwd: string,
+  env: Environment = {}
+) => {
+  let child = spawn(program, args, cwd, env, false, true);
+  let chunks: Buffer[] = [];
+  child.stdout?.on('data', chunk => chunks.push(Buffer.from(chunk)));
+  child.stderr?.on('data', chunk => chunks.push(Buffer.from(chunk)));
+  child.stdin?.end();
+
+  try {
+    await wait(child, program, true);
+  } catch (error) {
+    if (error instanceof Interrupted) throw error;
+
+    throw new Error(`${label} failed\n${Buffer.concat(chunks).toString().trim()}`, {
+      cause: error
+    });
+  }
+};
+
 export let runQuiet = async (
   program: string,
   args: string[],
