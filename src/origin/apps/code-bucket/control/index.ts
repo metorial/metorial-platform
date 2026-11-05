@@ -14,7 +14,7 @@ export default project({
   name: '@metorial/code-bucket-service-generated',
   stacks: {
     cloud: stackMember(),
-    'on-prem': stackMember({ development: { container: true } })
+    'on-prem': stackMember({ mode: 'oss', development: { container: true } })
   },
   group: 'oss',
   endpoints: {

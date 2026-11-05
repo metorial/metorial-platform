@@ -71,7 +71,13 @@ let buildSpec = strictObject({
   modules: v.optional(v.enumOf(['production', 'none'])),
   sentry: v.optional(v.boolean()),
   node: v.optional(v.boolean()),
-  env: v.optional(v.record(str))
+  env: v.optional(v.record(str)),
+  buildEnv: v.optional(v.record(str)),
+  sources: v.optional(strings),
+  strip: v.optional(strings),
+  runtime: v.optional(v.enumOf(['bundle', 'source'])),
+  release: v.optional(v.boolean()),
+  versioned: v.optional(v.boolean())
 });
 
 let envSpec = strictObject({

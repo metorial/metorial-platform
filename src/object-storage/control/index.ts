@@ -6,6 +6,7 @@ export default project({
   group: 'oss',
   stacks: {
     'on-prem': stackMember({
+      mode: 'oss',
       development: { container: true },
       env: { OBJECT_STORE__BACKEND__ROOT_PATH: '/app/data' },
       volumes: { data: '/app/data' }

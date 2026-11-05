@@ -36,6 +36,12 @@ export interface BuildSpec {
   sentry: boolean;
   node: boolean;
   env: Record<string, string>;
+  buildEnv: Record<string, string>;
+  sources: string[];
+  strip: string[];
+  runtime: 'bundle' | 'source';
+  release: boolean;
+  versioned: boolean;
 }
 
 export interface RenderContext {

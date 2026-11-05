@@ -63,13 +63,23 @@ export let renderDockerfile = (
     )
   };
 
+  if (build.runtime === 'source')
+    return components.join([
+      components.header(),
+      components.base(context),
+      components.pruner(context),
+      components.dependencies(context),
+      components.builder(context),
+      components.runner(context)
+    ]);
+
   return components.join([
     components.header(),
     components.base(context),
     components.pruner(context),
     components.dependencies(context),
     components.builder(context),
-    ...(build.modules === 'production' ? [components.productionDependencies()] : []),
+    ...(build.modules === 'production' ? [components.productionDependencies(context)] : []),
     ...(build.migrations.length
       ? [components.controlRuntime(context), components.prismaCli()]
       : []),
@@ -82,7 +92,7 @@ export let renderDockerfile = (
 export let generate = (
   project: ProjectRoot,
   options: { write: boolean },
-  manifests: LoadedManifest[] = discover(project.root)
+  manifests: LoadedManifest[] = discover(project.root, { stackOnly: true })
 ): GenerateResult => {
   let packages = discoverPackages(project.root);
   let files: GeneratedDockerfile[] = [];

@@ -63,7 +63,7 @@ export let commandHelp: Record<string, string> = {
     'Read a captured email as Markdown\n\nUsage: control email open <MESSAGE ID> [-w <ID>] [--html]\n\nUse --html to print the original HTML body.',
   sh: 'Open a shell in the directory of a unit with its environment\n\nUsage: control sh [UNIT] [-w <ID>]',
   stack:
-    'Run a named set of services together in Docker Compose\n\nUsage: control stack <start|stop|restart|rm|ls|plan>\n\nStacks are declared by the services that belong to them. A development stack runs every\nmember in one container with bun; a production stack runs one container per member.\nRunning stacks show up in `control ls`; address them with `--stack <NAME>` on logs, status,\nrestart, tui, open and sh.',
+    'Run a named set of services together in Docker Compose\n\nUsage: control stack <start|stop|restart|rm|ls|plan|images>\n\nStacks are declared by the services that belong to them. A development stack runs every\nmember in one container with bun; a production stack runs one container per member.\nRunning stacks show up in `control ls`; address them with `--stack <NAME>` on logs, status,\nrestart, tui, open and sh.',
   'stack start':
     'Start a stack\n\nUsage: control stack start <STACK> [--env dev|prod] [--name <NAME>]\n\nOptions:\n      --env <ENV>   dev (default) or prod\n      --name <NAME> Name of this run (default: the stack identifier)\n      --no-prepare  Skip builds and database pushes in dev\n      --detach      Return immediately after starting\n      --verbose     Print infra and build output while starting',
   'stack stop':
@@ -72,6 +72,8 @@ export let commandHelp: Record<string, string> = {
     'Restart a stack run\n\nUsage: control stack restart <STACK> [--name <NAME>]',
   'stack rm': 'Forget a stopped stack run\n\nUsage: control stack rm <STACK> [--name <NAME>]',
   'stack ls': 'List the stacks defined in this checkout\n\nUsage: control stack ls [--json]',
+  'stack images':
+    'Print the images a production stack builds\n\nUsage: control stack images <STACK> [--json]',
   'stack plan':
     'Print the units a stack would run\n\nUsage: control stack plan <STACK> [--env dev|prod] [--name <NAME>] [--json]',
   daemon:

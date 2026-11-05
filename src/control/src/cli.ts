@@ -56,6 +56,7 @@ let commandOptions: Record<
   'stack rm': { values: ['name'], max: 1 },
   'stack ls': { flags: ['json'], max: 0 },
   'stack plan': { flags: ['json'], values: ['env', 'name'], min: 1, max: 1 },
+  'stack images': { flags: ['json'], min: 1, max: 1 },
   daemon: {},
   'daemon start': { max: 0 },
   'daemon stop': { max: 0 },
