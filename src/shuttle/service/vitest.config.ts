@@ -11,7 +11,6 @@ export default defineConfig(({ mode }) => {
   const config = createVitestConfig({
     test: {
       pool: 'forks',
-      setupFiles: ['./src/test/setup.ts'],
       env: {
         ...env,
         NODE_ENV: 'test'
