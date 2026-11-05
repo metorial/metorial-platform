@@ -1379,22 +1379,22 @@ let TrustPaths = Object.assign(
   }
 );
 
-let KeeperPaths = Object.assign(
-  (...subPages: SubPages) => getNexusUrl('keeper', () => joinPaths(...subPages)),
+let LicensesPaths = Object.assign(
+  (...subPages: SubPages) => getNexusUrl('licenses', () => joinPaths(...subPages)),
   {
     licenses: (organizationId: string | null | undefined, ...subPages: SubPages) => {
       if (!organizationId) return '#';
-      return KeeperPaths(organizationId, 'licenses', ...subPages);
+      return LicensesPaths(organizationId, 'licenses', ...subPages);
     },
     license: (
       organizationId: string | null | undefined,
       licenseId: string | null | undefined
     ) => {
       if (!licenseId) return '#';
-      return KeeperPaths.licenses(organizationId, licenseId);
+      return LicensesPaths.licenses(organizationId, licenseId);
     },
     exchange: (organizationId?: string | null) =>
-      organizationId ? KeeperPaths(organizationId, 'exchange') : KeeperPaths('exchange')
+      organizationId ? LicensesPaths(organizationId, 'exchange') : LicensesPaths('exchange')
   }
 );
 
@@ -2274,7 +2274,7 @@ export let Paths = {
   account: AccountPaths,
   documents: DocumentsPaths,
   trust: TrustPaths,
-  keeper: KeeperPaths,
+  licenses: LicensesPaths,
   support: SupportPaths,
   enterprise: EnterprisePaths,
   organization: OrganizationPaths,
