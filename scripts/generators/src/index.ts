@@ -399,6 +399,9 @@ for (let version of filteredVersions) {
       if (goBody.includes('time.Time')) {
         imports.push(`\t"time"`);
       }
+      if (goBody.includes('nullable.Nullable[')) {
+        imports.push(`\t"github.com/metorial/metorial-go/v1/nullable"`);
+      }
 
       fileContent += `package ${pkgName}\n\n`;
       if (imports.length > 0) {
