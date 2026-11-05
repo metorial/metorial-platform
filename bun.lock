@@ -321,6 +321,7 @@
       },
       "devDependencies": {
         "@lowerdeck/testing-tools": "workspace:2.0.0",
+        "@metorial/e2e": "1.0.0",
         "@types/bun": "latest",
         "@types/lodash": "^4.17.27",
         "@vercel/ncc": "^0.45.0",
@@ -491,6 +492,7 @@
       },
       "devDependencies": {
         "@lowerdeck/testing-tools": "workspace:2.0.0",
+        "@metorial/e2e": "1.0.0",
         "@types/bun": "latest",
         "@types/lodash": "^4.17.27",
         "@vercel/ncc": "^0.45.0",
@@ -3047,6 +3049,7 @@
         "@metorial-subspace/module-tenant": "^1.0.0",
         "@metorial/cron": "1.0.0",
         "@metorial/db": "^1.0.0",
+        "@metorial/editions": "workspace:*",
         "@metorial/module-resource-actor": "1.0.0",
         "@metorial/queue": "1.0.0",
         "@metorial/redis": "1.0.0",
@@ -5796,6 +5799,7 @@
       },
       "devDependencies": {
         "@lowerdeck/testing-tools": "workspace:2.0.0",
+        "@metorial/e2e": "1.0.0",
         "@types/bun": "latest",
         "@types/node": "^25.9.9",
         "@vercel/ncc": "^0.45.0",
@@ -6607,6 +6611,7 @@
       },
       "devDependencies": {
         "@lowerdeck/testing-tools": "workspace:2.0.0",
+        "@metorial/e2e": "1.0.0",
         "@types/bun": "latest",
         "@types/node": "^25.9.9",
         "@types/ws": "^8.18.2",
@@ -6787,8 +6792,8 @@
         "zod": "^4.6.7",
       },
       "devDependencies": {
-        "@metorial/e2e": "1.0.0",
         "@lowerdeck/testing-tools": "workspace:2.0.0",
+        "@metorial/e2e": "1.0.0",
         "@types/bun": "latest",
         "@types/lodash": "^4.17.27",
         "@types/react": "19.3.0",
