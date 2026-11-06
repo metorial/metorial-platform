@@ -259,6 +259,12 @@ class AdminServiceImpl {
     );
   }
 
+  async getAppBySlug(d: { slug: string }) {
+    let app = await db.app.findUnique({ where: { slug: d.slug } });
+    if (!app) throw new ServiceError(notFoundError('app', d.slug));
+    return app;
+  }
+
   async getApp(d: { appId: string }) {
     let app = await db.app.findUnique({
       where: { id: d.appId },

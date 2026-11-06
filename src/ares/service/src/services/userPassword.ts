@@ -33,6 +33,9 @@ export let isValidPassword = (password: string) =>
   /\p{Nd}/u.test(password) &&
   /[\p{P}\p{S}]/u.test(password);
 
+export let passwordPolicyMessage =
+  'Use 12 or more characters with an uppercase letter, a lowercase letter, a number, and a special character.';
+
 class UserPasswordServiceImpl {
   private async getUser(d: { appId: string; userId: string }) {
     let user = await db.user.findFirst({
@@ -124,12 +127,7 @@ class UserPasswordServiceImpl {
 
   async set(d: { appId: string; userId: string; password: string; context: Context }) {
     if (!isValidPassword(d.password)) {
-      throw new ServiceError(
-        badRequestError({
-          message:
-            'Use 12 or more characters with an uppercase letter, a lowercase letter, a number, and a special character.'
-        })
-      );
+      throw new ServiceError(badRequestError({ message: passwordPolicyMessage }));
     }
 
     let user = await this.getUser(d);
