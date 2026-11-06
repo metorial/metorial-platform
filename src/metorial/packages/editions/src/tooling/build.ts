@@ -1,6 +1,8 @@
 import { build } from 'esbuild';
+import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import type { Edition } from '../edition';
+import { makeEsmCyclesSafe } from './esmCycles';
 import { editionsEsbuildPlugin } from './esbuild';
 import { postgresSamlPlugin } from './postgresSaml';
 
@@ -46,6 +48,16 @@ export let buildEdition = async (options: BuildEditionOptions) => {
     metafile: true,
     logLevel: 'error'
   });
+
+  let outputs = Object.keys(result.metafile.outputs)
+    .filter(output => /\.[cm]?js$/.test(output))
+    .map(output => resolve(output));
+
+  for (let output of outputs) {
+    let code = await readFile(output, 'utf8');
+    let patched = makeEsmCyclesSafe(code, output);
+    if (patched != code) await writeFile(output, patched);
+  }
 
   return Object.keys(result.metafile.outputs).map(output => resolve(output));
 };
