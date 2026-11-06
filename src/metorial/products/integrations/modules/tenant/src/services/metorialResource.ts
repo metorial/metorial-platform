@@ -83,7 +83,7 @@ class metorialResourceServiceImpl {
     });
     assertMirrorIdentity('organization member', member, matches);
 
-    return await retryMirrorUpsertOnRace(() =>
+    return await retryMirrorUpsertOnRace(async () =>
       db.organizationMember.upsert({
         where: { oid: member.oid },
         update: {
@@ -151,7 +151,7 @@ class metorialResourceServiceImpl {
     });
     assertMirrorIdentity('consumer', consumer, matches);
 
-    return await retryMirrorUpsertOnRace(() =>
+    return await retryMirrorUpsertOnRace(async () =>
       db.consumer.upsert({
         where: { oid: consumer.oid },
         update: {
@@ -207,7 +207,7 @@ class metorialResourceServiceImpl {
     });
     assertMirrorIdentity('instance consumer', instanceConsumer, matches);
 
-    return await retryMirrorUpsertOnRace(() =>
+    return await retryMirrorUpsertOnRace(async () =>
       db.instanceConsumer.upsert({
         where: { oid: instanceConsumer.oid },
         update: {
@@ -258,7 +258,7 @@ class metorialResourceServiceImpl {
     });
     assertMirrorIdentity('consumer profile', consumerProfile, matches);
 
-    return await retryMirrorUpsertOnRace(() =>
+    return await retryMirrorUpsertOnRace(async () =>
       db.consumerProfile.upsert({
         where: { oid: consumerProfile.oid },
         update: {

@@ -80,7 +80,7 @@ export let createEnsureRecord = <
     }
 
     // try {
-    let res = await retryOnUniqueViolation(() =>
+    let res = await retryOnUniqueViolation(async () =>
       type.upsert({
         where,
         create: value,

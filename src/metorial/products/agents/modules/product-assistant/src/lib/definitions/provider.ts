@@ -17,7 +17,7 @@ export interface Provider {
 export let provider = async (d: { slug: ProviderSlug; name: string }): Promise<Provider> => {
   let imageUrl = `https://models.dev/logos/${d.slug}.svg`;
 
-  let _persisted = await retryOnUniqueViolation(() =>
+  let _persisted = await retryOnUniqueViolation(async () =>
     db.productAssistantModelProvider.upsert({
       where: { slug: d.slug },
       update: { name: d.name, imageUrl },
