@@ -346,7 +346,7 @@ export let start = async (
 
     return projects;
   } catch (error) {
-    await stop(root, started, env);
+    await commands.cancellation.run(undefined, () => stop(root, started, env));
     throw error;
   }
 };

@@ -95,9 +95,12 @@ export let startServer = async () => {
       if (origin && !allowed.has(new URL(origin).host)) throw new HttpError(403, 'bad origin');
     }
 
-    if (method === 'GET' && (path === '/' || path === '/index.html'))
+    if (method === 'GET' && (path === '/' || path === '/index.html' || path.startsWith('/w/')))
       return new Response(readFileSync(join(import.meta.dir, 'ui/index.html')), {
-        headers: { 'content-type': 'text/html; charset=utf-8' }
+        headers: {
+          'content-type': 'text/html; charset=utf-8',
+          'cache-control': 'no-store'
+        }
       });
 
     if (path === '/api/ping')
@@ -184,8 +187,43 @@ export let startServer = async () => {
       return json(runtime.info(), 202);
     }
 
+    if (rest === 'reset' && method === 'POST') {
+      if (payload.confirmed !== true)
+        throw new HttpError(400, 'confirm deletion of all persistent data');
+      if (['infra', 'preparing', 'starting', 'stopping'].includes(runtime.phase))
+        throw new HttpError(409, `workspace is ${runtime.phase}`);
+
+      await runtime.clean();
+
+      return json(runtime.info());
+    }
+
+    if (rest === 'license/clear' && method === 'POST') {
+      let workspace = runtime.info();
+      if (workspace.kind !== 'stack' || workspace.stack?.identifier !== 'on-prem')
+        throw new HttpError(400, 'only on-prem stacks have a license');
+      if (payload.confirmed !== true)
+        throw new HttpError(400, 'confirm clearing the license and initial setup state');
+      if (workspace.phase !== 'running')
+        throw new HttpError(409, `workspace is ${workspace.phase}`);
+
+      let app = workspace.links.find(link => link.label === 'Metorial');
+      if (!app) throw new HttpError(409, 'stack has no Metorial endpoint');
+
+      let response = await fetch(new URL('/license/clear', app.url), {
+        method: 'POST',
+        redirect: 'manual',
+        signal: AbortSignal.timeout(15_000)
+      });
+      if (!response.ok && response.status !== 302)
+        throw new HttpError(502, `clearing the license failed (${response.status})`);
+
+      return json({ ok: true });
+    }
+
     if (rest === 'clean') {
-      if (!runtime.clean) return json({ error: 'only stacks can be cleaned' }, 400);
+      if (runtime.info().kind !== 'stack')
+        return json({ error: 'only stacks can be cleaned' }, 400);
       await runtime.clean();
 
       return json(runtime.info());

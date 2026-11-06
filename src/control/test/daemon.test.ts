@@ -1,5 +1,8 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
 import { join } from 'node:path';
+import * as docker from '../src/docker';
+import * as dev from '../src/dev';
+import * as commands from '../src/process';
 import { LogStore, replayLines } from '../src/daemon/logs';
 import { WorkspaceRuntime } from '../src/daemon/runtime';
 import { delay } from '../src/process';
@@ -80,6 +83,102 @@ describe('WorkspaceRuntime', () => {
 
     return { runtime, logs, project };
   };
+
+  test('resets declared volumes even before the workspace has started', async () => {
+    let { runtime, project } = await build();
+    writeManifest(project.root, '[docker]\ncompose=["services.docker-compose.yml"]');
+    let reset = spyOn(docker, 'reset').mockResolvedValue(undefined);
+
+    try {
+      await runtime.clean();
+
+      expect(reset).toHaveBeenCalledTimes(1);
+      expect(reset.mock.calls[0]![0]).toBe(project.root);
+      expect(reset.mock.calls[0]![1]).toContainEqual([
+        join(project.root, 'services.docker-compose.yml'),
+        []
+      ]);
+      expect(reset.mock.calls[0]![3]).toBe(false);
+      expect(runtime.phase).toBe('stopped');
+    } finally {
+      reset.mockRestore();
+    }
+  });
+
+  test('interrupts a blocked preparation and can restart immediately', async () => {
+    let { runtime } = await build();
+    let preparing = false;
+    let prepare = spyOn(dev, 'prepareSelected').mockImplementation(async () => {
+      preparing = true;
+      await commands.delay(60_000);
+    });
+    let start = runtime.start({ noDocker: true, noPrepare: true, noProxy: true });
+
+    try {
+      await until(() => preparing, 'preparation');
+      prepare.mockRestore();
+      await runtime.restartWorkspace();
+      await start;
+
+      expect(runtime.phase).toBe('running');
+      expect(runtime.error).toBeUndefined();
+    } finally {
+      prepare.mockRestore();
+      await runtime.stop();
+    }
+  });
+
+  test('stops and restarts individual services while dependencies are starting', async () => {
+    let { runtime } = await build();
+    let start = runtime.start({ noDocker: true, noPrepare: true, noProxy: true });
+
+    try {
+      await until(
+        () =>
+          runtime.phase === 'starting' &&
+          !!runtime.info().units.find(u => u.name === 'api')?.pid,
+        'first service'
+      );
+      await runtime.stopServiceUnit('api-worker');
+      await runtime.restartUnit('api');
+      await start;
+
+      expect(runtime.phase).toBe('running');
+      expect(runtime.info().units.find(u => u.name === 'api-worker')!.state).toBe('stopped');
+      expect(runtime.info().units.find(u => u.name === 'api')!.pid).toBeDefined();
+    } finally {
+      await runtime.stop();
+    }
+  });
+
+  test('cancels a start before the first asynchronous step finishes', async () => {
+    let { runtime } = await build();
+    let start = runtime.start({ noDocker: true, noPrepare: true, noProxy: true });
+    await runtime.stop();
+    await start;
+
+    expect(runtime.phase).toBe('stopped');
+    expect(runtime.info().units.every(unit => !unit.pid)).toBe(true);
+  });
+
+  test('stops services before resetting and reports reset failures', async () => {
+    let { runtime } = await build();
+    await runtime.start({ noDocker: true, noPrepare: true, noProxy: true });
+    let reset = spyOn(docker, 'reset').mockImplementation(async () => {
+      expect(runtime.info().units.every(unit => unit.state === 'stopped')).toBe(true);
+
+      throw new Error('volume is in use');
+    });
+
+    try {
+      await expect(runtime.clean()).rejects.toThrow('volume is in use');
+      expect(runtime.phase).toBe('failed');
+      expect(runtime.info().error).toBe('volume is in use');
+    } finally {
+      reset.mockRestore();
+      await runtime.stop();
+    }
+  });
 
   test('starts services in order, captures logs, restarts one unit and stops', async () => {
     let { runtime, logs } = await build();

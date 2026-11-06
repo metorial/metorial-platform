@@ -52,6 +52,7 @@ export class WorkspaceRuntime {
   private infrastructure = '';
   private jobCounter = 0;
   private queue: Promise<unknown> = Promise.resolve();
+  private startup?: AbortController;
 
   constructor(
     readonly project: ProjectRoot,
@@ -112,7 +113,17 @@ export class WorkspaceRuntime {
     if (!this.startable) throw new Error(`workspace ${this.id} is ${this.phase}`);
     this.lastStart = options;
 
-    return this.serialized(() => this.doStart(options));
+    let startup = new AbortController();
+    this.startup = startup;
+    this.set('preparing');
+
+    return this.serialized(async () => {
+      try {
+        await commands.cancellation.run(startup.signal, () => this.doStart(options));
+      } finally {
+        if (this.startup === startup) this.startup = undefined;
+      }
+    });
   }
 
   private async doStart(options: StartOptions) {
@@ -126,12 +137,14 @@ export class WorkspaceRuntime {
       );
       if (!selected.length) throw new Error('no control manifests were selected');
 
+      commands.checkInterrupted();
       this.selected = selected;
       this.env = env;
       let packages = turbo.plan(selected, this.project.root, env);
       if (!packages.length) throw new Error('selected manifests contain no run commands');
 
       this.data = await workspace.metadata(this.project);
+      commands.checkInterrupted();
       let ports = servicePorts(selected);
 
       for (let pkg of packages)
@@ -153,6 +166,7 @@ export class WorkspaceRuntime {
           docker.start(this.project.root, selected, env)
         );
 
+        commands.checkInterrupted();
         for (let [compose, services] of this.projects)
           for (let service of services)
             this.units.set(service, {
@@ -173,6 +187,7 @@ export class WorkspaceRuntime {
         dev.prepareSelected(this.project, selected, env, !!options.noPrepare)
       );
 
+      commands.checkInterrupted();
       if (!options.noProxy) {
         await this.within('control', () =>
           proxy.ensure(this.project, this.data, proxy.publicPorts(manifests, this.project))
@@ -180,8 +195,10 @@ export class WorkspaceRuntime {
         this.unregister = await proxy.register(this.project, this.data, selected);
       }
 
+      commands.checkInterrupted();
       this.set('starting');
       await this.startServices(packages);
+      commands.checkInterrupted();
       this.routes = reload.routeKey(selected);
       this.infrastructure = reload.infrastructureKey(selected);
       this.stopWatching?.();
@@ -196,9 +213,12 @@ export class WorkspaceRuntime {
     } catch (error) {
       this.stopWatching?.();
       this.stopWatching = undefined;
-      await this.killServices();
-      await this.unregister?.().catch(() => {});
+      await commands.cancellation.run(undefined, async () => {
+        await this.killServices();
+        await this.unregister?.().catch(() => {});
+      });
       this.unregister = undefined;
+      if (error instanceof commands.Interrupted) return;
       this.set('failed', error instanceof Error ? error.message : String(error));
       this.logs.system('control', `start failed: ${this.error}`);
     }
@@ -210,13 +230,15 @@ export class WorkspaceRuntime {
     let pending = [...packages];
 
     while (pending.length) {
+      commands.checkInterrupted();
       let ready = pending.filter(item =>
         item.dependencies.every(name => started.has(name) || !names.has(name))
       );
       if (!ready.length) ready = [...pending];
 
       for (let item of ready) {
-        this.spawnUnit(this.units.get(item.name)!);
+        let unit = this.units.get(item.name)!;
+        if (!unit.stopping && !this.children.has(item.name)) this.spawnUnit(unit);
         started.add(item.name);
       }
       pending = pending.filter(item => !started.has(item.name));
@@ -288,7 +310,8 @@ export class WorkspaceRuntime {
       return;
     }
 
-    await commands.terminateTree(child);
+    if (this.startup || unit.state === 'starting') commands.signalTree(child, 'SIGKILL');
+    else await commands.terminateTree(child);
     for (let waited = 0; this.children.get(unit.name) === child && waited < 50; waited++)
       await commands.delay(100);
   }
@@ -303,6 +326,8 @@ export class WorkspaceRuntime {
 
   async stop(options: { keepInfra?: boolean } = {}) {
     if (['idle', 'stopped', 'stopping'].includes(this.phase)) return;
+    this.startup?.abort();
+    this.set('stopping');
 
     await this.serialized(async () => {
       this.set('stopping');
@@ -337,6 +362,32 @@ export class WorkspaceRuntime {
     let previous = this.lastStart;
     await this.stop({ keepInfra: !options.infra });
     await this.start(previous);
+  }
+
+  async clean() {
+    await this.stop();
+
+    await this.serialized(async () => {
+      this.set('stopping');
+
+      try {
+        let { selected, env } = await dev.selection(
+          this.project,
+          this.lastStart.selectors ?? [],
+          false
+        );
+        let projects = docker.composeProjects(this.project.root, selected);
+
+        await this.within('control', () =>
+          docker.reset(this.project.root, projects, env, false)
+        );
+        this.set('stopped');
+      } catch (error) {
+        this.set('failed', error instanceof Error ? error.message : String(error));
+
+        throw error;
+      }
+    });
   }
 
   async reloadDefinitions() {
@@ -473,10 +524,12 @@ export class WorkspaceRuntime {
   async restartUnit(name: string) {
     let unit = this.units.get(name);
     if (!unit) throw new Error(`unknown unit ${JSON.stringify(name)}`);
-    if (!['running', 'stopped', 'failed'].includes(this.phase))
+    if (
+      !['preparing', 'infra', 'starting', 'running', 'stopped', 'failed'].includes(this.phase)
+    )
       throw new Error(`workspace ${this.id} is ${this.phase}`);
 
-    await this.serialized(async () => {
+    let restart = async () => {
       this.logs.system(name, 'restart requested');
 
       if (unit.kind === 'service') {
@@ -502,7 +555,10 @@ export class WorkspaceRuntime {
       unit.restarts++;
       unit.state = 'healthy';
       this.changed();
-    });
+    };
+
+    if (this.startup && unit.kind === 'service') await restart();
+    else await this.serialized(restart);
   }
 
   async stopServiceUnit(name: string) {
