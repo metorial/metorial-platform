@@ -3,17 +3,25 @@ let esmHelper =
 
 // esbuild wraps modules that cannot be hoisted (dynamic imports, top-level await) in a lazy
 // initializer. When an async initializer is re-entered through an import cycle it hands back its
-// own pending promise, so the module ends up awaiting itself and the process hangs silently.
-// The replacement keeps the helper's line count so source maps stay aligned. Native ESM skips a module that is already being evaluated further up the import chain, so the
-// replacement helper tracks that chain through async context and does the same.
+// own pending promise, so modules end up awaiting each other and the process hangs silently.
+// Native ESM skips a module that is already being evaluated; the replacement helper does the same
+// by tracking which module waits on which and skipping any wait that would close a cycle. This
+// also covers cycles entered from two concurrent import chains, which a per-chain check misses.
+// The replacement stays on one line (padded) so source maps stay aligned.
 let cycleSafeEsmHelper = (fn: string, res: string, err: string, e: string) =>
   [
-    `var __esmChain = new (require("node:async_hooks").AsyncLocalStorage)();`,
-    `var __esm = (${fn}, ${res}, ${err}, self) => (self = function() {`,
+    `var __esmCur = new (require("node:async_hooks").AsyncLocalStorage)(); var __esmWaits = new Map();`,
+    `var __esmReaches = (from, to) => { let seen = new Set(), stack = [from]; while (stack.length) { let m = stack.pop(); if (m === to) return true; if (seen.has(m)) continue; seen.add(m); let out = __esmWaits.get(m); if (out) for (let n of out) stack.push(n); } return false; };`,
+    `var __esmWait = (cur, self) => { let set = __esmWaits.get(cur); set || __esmWaits.set(cur, set = new Set()); set.add(self); };`,
+    `var __esm = (${fn}, ${res}, ${err}, self, pending) => (self = function() {`,
     `if (${err}) throw ${err}[0];`,
-    `if (!${fn}) { for (let link = __esmChain.getStore(); link; link = link.parent) if (link.module === self) return; return ${res}; }`,
-    `try { let init = ${fn}[__getOwnPropNames(${fn})[0]]; ${fn} = 0; return ${res} = __esmChain.run({ module: self, parent: __esmChain.getStore() }, () => init(0)), ${res}; }`,
-    `catch (${e}) { throw ${err} = [${e}], ${e}; }`,
+    `let cur = __esmCur.getStore();`,
+    `if (cur === self) { if (!${fn}) return; }`,
+    `else if (cur && pending) { if (__esmReaches(self, cur)) return; __esmWait(cur, self); }`,
+    `if (!${fn}) return ${res};`,
+    `let done = () => (pending = 0, __esmWaits.delete(self));`,
+    `try { let init = ${fn}[__getOwnPropNames(${fn})[0]]; ${fn} = 0; pending = 1; if (cur && cur !== self) __esmWait(cur, self); ${res} = __esmCur.run(self, () => init(0)); if (${res} && ${res}.then) ${res}.then(done, done); else done(); return ${res}; }`,
+    `catch (${e}) { done(); throw ${err} = [${e}], ${e}; }`,
     `});`
   ].join(' ');
 

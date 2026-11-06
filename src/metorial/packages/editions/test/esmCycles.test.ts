@@ -37,6 +37,35 @@ describe('async import cycles in a bundle', () => {
     expect(result.status).toBe(0);
   });
 
+  it('finish evaluating cycles entered from concurrent import chains', async () => {
+    let directory = mkdtempSync(join(tmpdir(), 'editions-esm-cycles-'));
+
+    writeFileSync(
+      join(directory, 'x.ts'),
+      "import { y } from './y';\nexport let x = await Promise.resolve('x');\nexport let useY = () => y;\n"
+    );
+    writeFileSync(
+      join(directory, 'y.ts'),
+      "import { x } from './x';\nexport let y = await Promise.resolve('y');\nexport let useX = () => x;\n"
+    );
+    writeFileSync(
+      join(directory, 'a.ts'),
+      "let [xm, ym] = await Promise.all([import('./x'), import('./y')]);\nconsole.log(`done:${xm.x}:${ym.y}`);\n"
+    );
+
+    let [output] = await buildEdition({
+      entry: join(directory, 'a.ts'),
+      edition: 'on-prem',
+      outdir: join(directory, 'out'),
+      sourcemap: 'none'
+    });
+
+    let result = spawnSync('bun', [output!], { encoding: 'utf8', timeout: 20_000 });
+
+    expect(result.stdout).toContain('done:x:y');
+    expect(result.status).toBe(0);
+  });
+
   it('fails the build when the esbuild runtime helper is unrecognized', () => {
     expect(() => makeEsmCyclesSafe('var __esm = () => 1;', 'out.mjs')).toThrow(/cycle-safe/);
     expect(makeEsmCyclesSafe('console.log(1)', 'out.mjs')).toBe('console.log(1)');
