@@ -28,6 +28,7 @@ metorial-editions build <entry> --edition on-prem --outdir dist
 metorial-editions verify --edition on-prem --entry <package> --sourcemaps dist --deny-package stripe
 ```
 
+- Use `--outfile dist/index.js` instead of `--outdir dist` to preserve an existing service startup path. Output is ESM and runs with Bun.
 - `build` bundles with esbuild, the edition plugin, `minifySyntax` (needed to drop dead branches) and external sourcemaps.
 - `verify --entry` fails if a package excluded from the edition is reachable in the workspace dependency graph.
 - `verify --sourcemaps` fails if a bundle contains an excluded workspace package or a denied npm package.

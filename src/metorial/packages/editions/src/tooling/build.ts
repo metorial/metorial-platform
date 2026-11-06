@@ -12,7 +12,8 @@ let requireBanner =
 export type BuildEditionOptions = {
   entry: string;
   edition: Edition;
-  outdir: string;
+  outdir?: string;
+  outfile?: string;
   external?: string[];
   minify?: boolean;
   splitting?: boolean;
@@ -22,7 +23,8 @@ export type BuildEditionOptions = {
 export let buildEdition = async (options: BuildEditionOptions) => {
   let result = await build({
     entryPoints: [resolve(options.entry)],
-    outdir: resolve(options.outdir),
+    outdir: options.outdir ? resolve(options.outdir) : undefined,
+    outfile: options.outfile ? resolve(options.outfile) : undefined,
     outExtension: { '.js': '.mjs' },
     bundle: true,
     splitting: options.splitting ?? false,
