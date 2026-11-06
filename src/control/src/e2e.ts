@@ -485,6 +485,13 @@ export let run = async (project: ProjectRoot, options: Options) => {
         .catch(() => undefined);
       if (logs !== undefined) atomicWrite(join(directory, 'logs/compose.log'), logs);
 
+      for (let name of Object.keys(rendered.services)) {
+        let serviceLogs = await compose
+          .output(['logs', '--no-color', '--timestamps', name])
+          .catch(() => undefined);
+        if (serviceLogs) atomicWrite(join(directory, `logs/${name}.log`), serviceLogs);
+      }
+
       if (options.keep)
         console.log(
           `Kept e2e containers; stop them with: docker compose --file ${compose.file} down -v`
