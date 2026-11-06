@@ -21,6 +21,7 @@ import type { Context } from '../lib/context';
 import { parseEmail } from '../lib/parseEmail';
 import { markAresUserChanged } from '../queues/syncCallback';
 import { auditLogService } from './auditLog';
+import { isValidPassword, passwordPolicyMessage, userPasswordService } from './userPassword';
 
 export class EmailInUseError extends ServiceError<ReturnType<typeof conflictError>> {
   constructor() {
@@ -511,6 +512,47 @@ class UserServiceImpl {
 
       return { user: raced, created: false };
     }
+  }
+
+  async createUserWithPassword(d: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    password: string;
+    replacePassword: boolean;
+    context: Context;
+    app: App;
+  }) {
+    if (!isValidPassword(d.password)) {
+      throw new ServiceError(badRequestError({ message: passwordPolicyMessage }));
+    }
+
+    let { user, created } = await this.resolveOrCreateUser({
+      email: d.email,
+      firstName: d.firstName,
+      lastName: d.lastName,
+      acceptedTerms: true,
+      context: d.context,
+      app: d.app,
+      type: 'standard_user',
+      signupMethod: 'email'
+    });
+
+    if (!created && !d.replacePassword) {
+      let existing = await userPasswordService.get({ appId: d.app.id, userId: user.id });
+      if (existing.hasPassword) throw new EmailInUseError();
+    }
+
+    await userPasswordService.set({
+      appId: d.app.id,
+      userId: user.id,
+      password: d.password,
+      context: d.context
+    });
+
+    if (!created) await markAresUserChanged({ userId: user.id });
+
+    return { user, created };
   }
 
   async recordLogin(d: { user: User; method: AuthLoginMethod | null; db?: TransactionDB }) {

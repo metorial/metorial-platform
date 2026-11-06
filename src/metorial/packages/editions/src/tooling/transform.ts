@@ -1,4 +1,5 @@
 import ts from 'typescript';
+import { defaultReleaseChannel, isReleaseChannel, type ReleaseChannel } from '../channel.ts';
 import { editions, isEdition, type Edition } from '../edition.ts';
 
 let packageName = '@metorial/editions';
@@ -9,7 +10,9 @@ let transformableCalls = [
   'assertEdition',
   'perEdition',
   'getEdition',
-  'isBuilt'
+  'isBuilt',
+  'getReleaseChannel',
+  'checkReleaseChannel'
 ] as const;
 
 type TransformableCall = (typeof transformableCalls)[number];
@@ -18,6 +21,7 @@ type Replacement = { start: number; end: number; text: string };
 
 export type TransformOptions = {
   edition: Edition;
+  channel?: ReleaseChannel;
   fileName: string;
 };
 
@@ -141,7 +145,16 @@ let collectReplacements = (code: string, options: TransformOptions) => {
   let visit = (node: ts.Node) => {
     if (ts.isCallExpression(node) && ts.isIdentifier(node.expression)) {
       let kind = localNames.get(node.expression.text);
-      let replacement = kind ? replaceCall(source, code, node, kind, options.edition) : null;
+      let replacement = kind
+        ? replaceCall(
+            source,
+            code,
+            node,
+            kind,
+            options.edition,
+            options.channel ?? defaultReleaseChannel
+          )
+        : null;
 
       if (replacement) {
         replacements.push({
@@ -166,11 +179,40 @@ let replaceCall = (
   code: string,
   call: ts.CallExpression,
   kind: TransformableCall,
-  edition: Edition
+  edition: Edition,
+  channel: ReleaseChannel
 ) => {
   if (kind == 'getEdition') return JSON.stringify(edition);
 
   if (kind == 'isBuilt') return 'true';
+
+  if (kind == 'getReleaseChannel') return JSON.stringify(channel);
+
+  if (kind == 'checkReleaseChannel') {
+    if (!call.arguments.length) {
+      throw new Error(
+        `${describeLocation(source, call)} checkReleaseChannel() needs at least one channel`
+      );
+    }
+
+    let allowed = call.arguments.map(argument => {
+      if (!ts.isStringLiteral(argument) && !ts.isNoSubstitutionTemplateLiteral(argument)) {
+        throw new Error(
+          `${describeLocation(source, argument)} checkReleaseChannel() only accepts string literal channels`
+        );
+      }
+
+      if (!isReleaseChannel(argument.text)) {
+        throw new Error(
+          `${describeLocation(source, argument)} Unknown release channel "${argument.text}"`
+        );
+      }
+
+      return argument.text;
+    });
+
+    return allowed.includes(channel) ? 'true' : 'false';
+  }
 
   if (kind == 'perEdition') return selectEditionValue(source, code, call, edition);
 

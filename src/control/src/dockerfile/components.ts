@@ -92,6 +92,12 @@ export let builder = (context: RenderContext): string[] => {
     'ARG TURBO_TEAM',
     'ENV TURBO_API=${TURBO_API}',
     'ENV TURBO_TEAM=${TURBO_TEAM}',
+    ...(build.release
+      ? [
+          'ARG METORIAL_RELEASE_CHANNEL=release',
+          'ENV METORIAL_RELEASE_CHANNEL=${METORIAL_RELEASE_CHANNEL}'
+        ]
+      : []),
     ...(build.heapMb ? [`ENV NODE_OPTIONS=--max_old_space_size=${build.heapMb}`] : []),
     ...Object.entries(build.buildEnv).map(([key, value]) => `ENV ${key}=${value}`),
     'COPY --from=pruned /full/ ./',
@@ -172,7 +178,7 @@ export let tools = (): string[] => {
 let releaseLines = (build: BuildSpec) => [
   ...(build.release
     ? [
-        'ARG METORIAL_RELEASE_CHANNEL=dev',
+        'ARG METORIAL_RELEASE_CHANNEL=release',
         'ENV METORIAL_RELEASE_CHANNEL=${METORIAL_RELEASE_CHANNEL}'
       ]
     : []),

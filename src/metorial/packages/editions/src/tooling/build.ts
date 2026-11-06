@@ -1,6 +1,7 @@
 import { build } from 'esbuild';
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { resolveReleaseChannel, type ReleaseChannel } from '../channel';
 import type { Edition } from '../edition';
 import { makeEsmCyclesSafe } from './esmCycles';
 import { editionsEsbuildPlugin } from './esbuild';
@@ -14,7 +15,9 @@ let requireBanner =
 export type BuildEditionOptions = {
   entry: string;
   edition: Edition;
-  outdir: string;
+  channel?: ReleaseChannel;
+  outdir?: string;
+  outfile?: string;
   external?: string[];
   minify?: boolean;
   splitting?: boolean;
@@ -22,9 +25,12 @@ export type BuildEditionOptions = {
 };
 
 export let buildEdition = async (options: BuildEditionOptions) => {
+  let channel = resolveReleaseChannel(options.channel ?? process.env.METORIAL_RELEASE_CHANNEL);
+
   let result = await build({
     entryPoints: [resolve(options.entry)],
-    outdir: resolve(options.outdir),
+    outdir: options.outdir ? resolve(options.outdir) : undefined,
+    outfile: options.outfile ? resolve(options.outfile) : undefined,
     outExtension: { '.js': '.mjs' },
     bundle: true,
     splitting: options.splitting ?? false,
@@ -38,10 +44,11 @@ export let buildEdition = async (options: BuildEditionOptions) => {
     external: [...defaultExternals, ...(options.external ?? [])],
     define: {
       __METORIAL_EDITION__: JSON.stringify(options.edition),
-      __METORIAL_BUILT__: 'true'
+      __METORIAL_BUILT__: 'true',
+      __METORIAL_RELEASE_CHANNEL__: JSON.stringify(channel)
     },
     plugins: [
-      editionsEsbuildPlugin(options.edition),
+      editionsEsbuildPlugin(options.edition, channel),
       ...(options.edition === 'on-prem' ? [postgresSamlPlugin()] : [])
     ],
     banner: { js: requireBanner },
