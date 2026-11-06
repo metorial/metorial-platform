@@ -311,10 +311,18 @@ export let waitForHealth = async (
         );
     }
 
-    if (Date.now() >= deadline)
-      throw new Error(
-        `e2e services did not become healthy within ${timeoutSeconds}s: ${remaining.map(item => `${item.service.name} (${item.check.url})`).join(', ')}`
+    if (Date.now() >= deadline) {
+      let logs = await Promise.all(
+        remaining.map(
+          async ({ service }) =>
+            `--- ${service.name} ---\n${await compose.output(['logs', '--no-color', '--tail', '80', appServiceName(service.name)]).catch(() => '')}`
+        )
       );
+
+      throw new Error(
+        `e2e services did not become healthy within ${timeoutSeconds}s: ${remaining.map(item => `${item.service.name} (${item.check.url})`).join(', ')}\n${logs.join('\n')}`
+      );
+    }
     pending = remaining;
 
     await commands.delay(1000);
