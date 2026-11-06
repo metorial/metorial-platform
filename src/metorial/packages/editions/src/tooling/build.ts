@@ -34,7 +34,10 @@ export let buildEdition = async (options: BuildEditionOptions) => {
     sourcemap: options.sourcemap == 'none' ? false : 'external',
     sourcesContent: false,
     external: [...defaultExternals, ...(options.external ?? [])],
-    define: { __METORIAL_EDITION__: JSON.stringify(options.edition) },
+    define: {
+      __METORIAL_EDITION__: JSON.stringify(options.edition),
+      __METORIAL_BUILT__: 'true'
+    },
     plugins: [
       editionsEsbuildPlugin(options.edition),
       ...(options.edition === 'on-prem' ? [postgresSamlPlugin()] : [])
