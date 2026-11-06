@@ -168,7 +168,7 @@ export class SlateInvocationStack {
       ...this.#productiveMessages
     ];
 
-    let invocationRecord = await retryOnOidCollision(() =>
+    let invocationRecord = await retryOnOidCollision(async () =>
       db.slateInvocation.create({
         data: {
           oid: snowflake.nextId(),

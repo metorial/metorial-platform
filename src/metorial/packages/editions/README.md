@@ -15,6 +15,7 @@ if (checkEdition('cloud')) {
 ```
 
 - `checkEdition(...editions)`, `assertEdition(...editions)`, `perEdition({ ... })`, `getEdition()`.
+- `isBuilt()` is `false` when running from source and folded to `true` in every bundle, so `if (!isBuilt()) { await import('./devOnly') }` keeps development shortcuts out of builds entirely (no env var can enable them).
 - Arguments must be string literals. The build transform replaces the calls with literals and the bundler removes the dead branches (and their imports).
 - Without a build (dev, tests) the edition comes from `METORIAL_EDITION` and defaults to `cloud`.
 - Packages that exist in one edition only declare it in `package.json`: `"metorial": { "editions": ["cloud"] }`.

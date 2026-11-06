@@ -159,7 +159,7 @@ export let upsertProjectMirror = async (d: {
   });
   assertMirrorIdentity('project', d.project, matches);
 
-  return await retryMirrorUpsertOnRace(() =>
+  return await retryMirrorUpsertOnRace(async () =>
     subspaceDb.project.upsert({
       where: { oid: d.project.oid },
       update: {
@@ -200,7 +200,7 @@ export let upsertInstanceMirror = async (d: {
   });
   assertMirrorIdentity('instance', d.instance, matches);
 
-  return await retryMirrorUpsertOnRace(() =>
+  return await retryMirrorUpsertOnRace(async () =>
     subspaceDb.instance.upsert({
       where: { oid: d.instance.oid },
       update: {
@@ -244,7 +244,7 @@ export let upsertOrganizationActorMirror = async (
   });
   assertMirrorIdentity('organization actor', organizationActor, matches);
 
-  return await retryMirrorUpsertOnRace(() =>
+  return await retryMirrorUpsertOnRace(async () =>
     subspaceDb.organizationActor.upsert({
       where: { oid: organizationActor.oid },
       update: {

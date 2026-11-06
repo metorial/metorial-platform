@@ -63,6 +63,15 @@ describe('transformEditionSource', () => {
     expect(transform(code, 'cloud')!).toContain(`let edition = "cloud";`);
   });
 
+  it('folds isBuilt to true so guarded code is removed from bundles', () => {
+    let code = `
+      import { isBuilt } from '@metorial/editions';
+      if (!isBuilt()) { await import('./devOnly'); }
+    `;
+
+    expect(transform(code, 'on-prem')!).toContain('if (!true)');
+  });
+
   it('replaces satisfied assertEdition and keeps failing ones', () => {
     let code = `
       import { assertEdition } from '@metorial/editions';
