@@ -1,4 +1,4 @@
-import { resolveReleaseChannel, type ReleaseChannel } from '../channel';
+import { resolveReleaseChannel, type ReleaseChannel } from '../channel.ts';
 import { defaultEdition, isEdition, type Edition } from '../edition.ts';
 import { transformEditionSource } from './transform.ts';
 

@@ -1,5 +1,5 @@
 import ts from 'typescript';
-import { defaultReleaseChannel, isReleaseChannel, type ReleaseChannel } from '../channel';
+import { defaultReleaseChannel, isReleaseChannel, type ReleaseChannel } from '../channel.ts';
 import { editions, isEdition, type Edition } from '../edition.ts';
 
 let packageName = '@metorial/editions';
