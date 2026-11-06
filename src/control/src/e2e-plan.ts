@@ -295,7 +295,11 @@ export let buildPlan = (
       name: sutServices[index]!.name,
       tests: item.tests,
       services,
-      env: { ...sutServices[index]!.env, CONTROL_E2E_ENDPOINTS: endpoints }
+      env: {
+        ...sutServices[index]!.env,
+        CONTROL_E2E_ENDPOINTS: endpoints,
+        ...(mode === 'images' ? { CONTROL_E2E_BUILT: '1' } : {})
+      }
     };
   });
   let files: Record<string, Environment> = {};
