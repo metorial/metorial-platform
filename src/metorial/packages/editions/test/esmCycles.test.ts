@@ -66,6 +66,32 @@ describe('async import cycles in a bundle', () => {
     expect(result.status).toBe(0);
   });
 
+  it('waits for top-level-await modules that are only re-exported', async () => {
+    let directory = mkdtempSync(join(tmpdir(), 'editions-esm-cycles-'));
+
+    writeFileSync(
+      join(directory, 'slow.ts'),
+      "export let slow = await new Promise<string>(resolve => setTimeout(() => resolve('slow'), 20));\n"
+    );
+    writeFileSync(join(directory, 'barrel.ts'), "export * from './slow';\n");
+    writeFileSync(
+      join(directory, 'a.ts'),
+      "let barrel = await import('./barrel');\nconsole.log(`done:${barrel.slow}`);\n"
+    );
+
+    let [output] = await buildEdition({
+      entry: join(directory, 'a.ts'),
+      edition: 'on-prem',
+      outdir: join(directory, 'out'),
+      sourcemap: 'none'
+    });
+
+    let result = spawnSync('bun', [output!], { encoding: 'utf8', timeout: 20_000 });
+
+    expect(result.stdout).toContain('done:slow');
+    expect(result.status).toBe(0);
+  });
+
   it('fails the build when the esbuild runtime helper is unrecognized', () => {
     expect(() => makeEsmCyclesSafe('var __esm = () => 1;', 'out.mjs')).toThrow(/cycle-safe/);
     expect(makeEsmCyclesSafe('console.log(1)', 'out.mjs')).toBe('console.log(1)');

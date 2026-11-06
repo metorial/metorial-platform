@@ -7,10 +7,12 @@ let esmHelper =
 // Native ESM skips a module that is already being evaluated; the replacement helper does the same
 // by tracking which module waits on which and skipping any wait that would close a cycle. This
 // also covers cycles entered from two concurrent import chains, which a per-chain check misses.
+// Dependencies esbuild forgets to await (it skips `export *` of a top-level-await module) are
+// awaited by the module that started them, so their exports exist once the importer resumes.
 // The replacement stays on one line (padded) so source maps stay aligned.
 let cycleSafeEsmHelper = (fn: string, res: string, err: string, e: string) =>
   [
-    `var __esmCur = new (require("node:async_hooks").AsyncLocalStorage)(); var __esmWaits = new Map();`,
+    `var __esmCur = new (require("node:async_hooks").AsyncLocalStorage)(); var __esmWaits = new Map(); var __esmKids = new Map();`,
     `var __esmReaches = (from, to) => { let seen = new Set(), stack = [from]; while (stack.length) { let m = stack.pop(); if (m === to) return true; if (seen.has(m)) continue; seen.add(m); let out = __esmWaits.get(m); if (out) for (let n of out) stack.push(n); } return false; };`,
     `var __esmWait = (cur, self) => { let set = __esmWaits.get(cur); set || __esmWaits.set(cur, set = new Set()); set.add(self); };`,
     `var __esm = (${fn}, ${res}, ${err}, self, pending) => (self = function() {`,
@@ -18,10 +20,13 @@ let cycleSafeEsmHelper = (fn: string, res: string, err: string, e: string) =>
     `let cur = __esmCur.getStore();`,
     `if (cur === self) { if (!${fn}) return; }`,
     `else if (cur && pending) { if (__esmReaches(self, cur)) return; __esmWait(cur, self); }`,
-    `if (!${fn}) return ${res};`,
-    `let done = () => (pending = 0, __esmWaits.delete(self));`,
-    `try { let init = ${fn}[__getOwnPropNames(${fn})[0]]; ${fn} = 0; pending = 1; if (cur && cur !== self) __esmWait(cur, self); ${res} = __esmCur.run(self, () => init(0)); if (${res} && ${res}.then) ${res}.then(done, done); else done(); return ${res}; }`,
-    `catch (${e}) { done(); throw ${err} = [${e}], ${e}; }`,
+    `if (${fn}) {`,
+    `let done = () => (pending = 0, __esmWaits.delete(self), __esmKids.delete(self));`,
+    `try { let init = ${fn}[__getOwnPropNames(${fn})[0]]; ${fn} = 0; pending = 1; if (cur && cur !== self) __esmWait(cur, self); let kids = []; __esmKids.set(self, kids); let r = __esmCur.run(self, () => init(0));`,
+    `if ((r && r.then) || kids.length) ${res} = (async () => { await r; while (kids.length) await Promise.all(kids.splice(0)); })().then(done, ${e} => { done(); throw ${e}; }); else { ${res} = r; done(); } }`,
+    `catch (${e}) { done(); throw ${err} = [${e}], ${e}; } }`,
+    `if (cur && cur !== self && ${res} && ${res}.then) __esmKids.get(cur)?.push(${res});`,
+    `return ${res};`,
     `});`
   ].join(' ');
 
