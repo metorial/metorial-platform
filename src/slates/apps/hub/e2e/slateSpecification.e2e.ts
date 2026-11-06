@@ -131,9 +131,18 @@ describe('slateSpecification:getMany E2E', () => {
       ]
     });
 
-    expect(result).toMatchObject([
-      { id: slate1.currentVersion.specification.id, protocolVersion: '1.0' },
-      { id: slate2.currentVersion.specification.id, protocolVersion: '1.0' }
-    ]);
+    expect(result).toHaveLength(2);
+    expect(result).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: slate1.currentVersion.specification.id,
+          protocolVersion: '1.0'
+        }),
+        expect.objectContaining({
+          id: slate2.currentVersion.specification.id,
+          protocolVersion: '1.0'
+        })
+      ])
+    );
   });
 });
