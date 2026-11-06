@@ -13,7 +13,7 @@ import {
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
 import { getProviderTenantFilter } from './provider';
-import { providerVariantInclude } from './providerVariant';
+import { providerVariantInclude } from './providerVariantInclude';
 
 let include = {
   provider: true,
