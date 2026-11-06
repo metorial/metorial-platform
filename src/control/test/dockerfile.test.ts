@@ -116,3 +116,18 @@ describe('generated Dockerfiles', () => {
     expect(build.modules).toBe('none');
   });
 });
+
+describe('compiled release channels', () => {
+  test('provides the channel before build tasks and defaults to release', () => {
+    let { root, directory } = fixture({ release: true });
+    generate(root, { write: true });
+
+    let contents = readFileSync(join(directory, 'Dockerfile'), 'utf8');
+    let builder = contents.split('FROM dependencies AS builder')[1]!.split('FROM ')[0]!;
+
+    expect(builder).toContain('ARG METORIAL_RELEASE_CHANNEL=release');
+    expect(
+      builder.indexOf('ENV METORIAL_RELEASE_CHANNEL=${METORIAL_RELEASE_CHANNEL}')
+    ).toBeLessThan(builder.indexOf('run-turbo.sh'));
+  });
+});

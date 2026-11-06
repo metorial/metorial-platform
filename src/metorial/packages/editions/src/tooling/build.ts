@@ -1,4 +1,5 @@
 import { build } from 'esbuild';
+import { resolveReleaseChannel, type ReleaseChannel } from '../channel';
 import { resolve } from 'node:path';
 import type { Edition } from '../edition';
 import { editionsEsbuildPlugin } from './esbuild';
@@ -12,6 +13,7 @@ let requireBanner =
 export type BuildEditionOptions = {
   entry: string;
   edition: Edition;
+  channel?: ReleaseChannel;
   outdir?: string;
   outfile?: string;
   external?: string[];
@@ -21,6 +23,8 @@ export type BuildEditionOptions = {
 };
 
 export let buildEdition = async (options: BuildEditionOptions) => {
+  let channel = resolveReleaseChannel(options.channel ?? process.env.METORIAL_RELEASE_CHANNEL);
+
   let result = await build({
     entryPoints: [resolve(options.entry)],
     outdir: options.outdir ? resolve(options.outdir) : undefined,
@@ -38,10 +42,11 @@ export let buildEdition = async (options: BuildEditionOptions) => {
     external: [...defaultExternals, ...(options.external ?? [])],
     define: {
       __METORIAL_EDITION__: JSON.stringify(options.edition),
-      __METORIAL_BUILT__: 'true'
+      __METORIAL_BUILT__: 'true',
+      __METORIAL_RELEASE_CHANNEL__: JSON.stringify(channel)
     },
     plugins: [
-      editionsEsbuildPlugin(options.edition),
+      editionsEsbuildPlugin(options.edition, channel),
       ...(options.edition === 'on-prem' ? [postgresSamlPlugin()] : [])
     ],
     banner: { js: requireBanner },

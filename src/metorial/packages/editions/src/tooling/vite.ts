@@ -1,3 +1,4 @@
+import { resolveReleaseChannel, type ReleaseChannel } from '../channel';
 import { defaultEdition, isEdition, type Edition } from '../edition.ts';
 import { transformEditionSource } from './transform.ts';
 
@@ -12,19 +13,25 @@ export let resolveBuildEdition = (): Edition => {
   return raw;
 };
 
-export let editionsVitePlugin = (edition: Edition = resolveBuildEdition()) => ({
+export let editionsVitePlugin = (
+  edition: Edition = resolveBuildEdition(),
+  channel: ReleaseChannel = resolveReleaseChannel(process.env.METORIAL_RELEASE_CHANNEL)
+) => ({
   name: 'metorial-editions',
   enforce: 'pre' as const,
 
   config: () => ({
-    define: { __METORIAL_EDITION__: JSON.stringify(edition) }
+    define: {
+      __METORIAL_EDITION__: JSON.stringify(edition),
+      __METORIAL_RELEASE_CHANNEL__: JSON.stringify(channel)
+    }
   }),
 
   transform: (code: string, id: string) => {
     let fileName = id.split('?')[0]!;
     if (!sourceFilter.test(fileName)) return null;
 
-    let transformed = transformEditionSource(code, { edition, fileName });
+    let transformed = transformEditionSource(code, { edition, channel, fileName });
     if (transformed == null) return null;
 
     return { code: transformed, map: null };

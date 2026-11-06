@@ -244,3 +244,60 @@ describe('edition policy', () => {
     expect(result.status, result.stderr).toBe(0);
   });
 });
+
+describe('release channel builds', () => {
+  it.each(['dev', 'release'] as const)(
+    'compiles the %s channel and removes other branches',
+    channel => {
+      let outdir = mkdtempSync(join(tmpdir(), 'channel-build-'));
+      let result = run([
+        'build',
+        join(workspace, 'packages/app/src/channel.ts'),
+        '--edition',
+        'on-prem',
+        '--channel',
+        channel,
+        '--outdir',
+        outdir,
+        '--splitting'
+      ]);
+
+      expect(result.status, result.stderr).toBe(0);
+
+      let contents = readdirSync(outdir)
+        .map(file => readFileSync(join(outdir, file), 'utf8'))
+        .join('\n');
+      expect(contents.includes('devOnly.ts')).toBe(channel == 'dev');
+      expect(contents.includes('DEV_CHANNEL_ONLY_LICENSE')).toBe(channel == 'dev');
+
+      let executed = spawnSync('bun', [join(outdir, 'channel.mjs')], {
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          METORIAL_RELEASE_CHANNEL: channel == 'dev' ? 'release' : 'dev',
+          NODE_ENV: 'development'
+        }
+      });
+
+      expect(executed.status, executed.stderr).toBe(0);
+      expect(executed.stdout.trim().split('\n').at(-1)).toBe(channel);
+      expect(executed.stdout.includes('DEV_CHANNEL_ONLY_LICENSE')).toBe(channel == 'dev');
+    }
+  );
+
+  it('rejects an invalid channel at build time', () => {
+    let result = run([
+      'build',
+      join(workspace, 'packages/app/src/channel.ts'),
+      '--edition',
+      'on-prem',
+      '--channel',
+      'invalid',
+      '--outdir',
+      join(workspace, 'invalid')
+    ]);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('Unknown METORIAL_RELEASE_CHANNEL');
+  });
+});

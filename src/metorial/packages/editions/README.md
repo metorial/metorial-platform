@@ -39,3 +39,20 @@ metorial-editions verify --edition on-prem --entry <package> --sourcemaps dist -
 - `METORIAL_EDITION` is part of turbo's `globalEnv`, so cache keys differ per edition.
 
 - Policies can use `denySources` (workspace-relative files or directories) to verify that cloud-only implementations inside shared packages are absent from bundle sourcemaps.
+
+## Release channels
+
+Release channel is a separate build dimension from edition. `getReleaseChannel()` and
+`checkReleaseChannel('dev')` are folded to literals by both bundler plugins. Source execution
+reads `METORIAL_RELEASE_CHANNEL`; unspecified channels default to `release`, and invalid
+channels fail. Built artifacts cannot switch channels through runtime environment variables.
+
+```sh
+metorial-editions build src/main.ts --edition on-prem --channel dev --outdir dist
+```
+
+`buildEdition({ channel })` and `editionsEsbuildPlugin(edition, channel)` accept an explicit
+channel. The CLI, `buildEdition`, and Vite plugin otherwise read `METORIAL_RELEASE_CHANNEL`.
+Turbo includes this variable in its global cache key. Guard dynamic imports with
+`if (!isBuilt() || checkReleaseChannel('dev'))` to retain a shortcut in local source execution
+and dev-channel builds while omitting it from release builds.
