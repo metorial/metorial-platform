@@ -37,7 +37,7 @@ export let model = async (d: {
     outputCostPerMillionTokens: info?.cost?.output ?? 0
   };
 
-  let _persisted = await retryOnUniqueViolation(() =>
+  let _persisted = await retryOnUniqueViolation(async () =>
     db.productAssistantModel.upsert({
       where: {
         slug_providerOid: { slug: d.slug, providerOid: provider._persisted.oid }
