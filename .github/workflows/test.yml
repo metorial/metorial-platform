@@ -94,7 +94,7 @@ jobs:
 
       - name: Install Rust
         if: steps.affected.outputs.count != '0'
-        uses: dtolnay/rust-toolchain@1.91.0
+        uses: dtolnay/rust-toolchain@1.91.1
         with:
           components: rustfmt, clippy
 
