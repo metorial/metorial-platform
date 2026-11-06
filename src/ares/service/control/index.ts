@@ -60,7 +60,7 @@ export default project({
       sso: postgres({ package: '@metorial/ares', name: 'ares-sso', env: 'SSO_DATABASE_URL' })
     }
   }),
-  e2e: e2e({ start: ['e2e:start'], image: 'ares' }),
+  e2e: e2e({ start: ['e2e:start'], image: 'ares', tests: ['.'] }),
   ci: {
     images: [
       ciImage({
