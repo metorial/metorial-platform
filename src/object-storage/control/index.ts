@@ -8,7 +8,11 @@ export default project({
     'on-prem': stackMember({
       mode: 'oss',
       development: { container: true },
-      env: { OBJECT_STORE__BACKEND__ROOT_PATH: '/app/data' },
+      env: {
+        OBJECT_STORE__SERVER__HOST: '0.0.0.0',
+        OBJECT_STORE__BACKEND__TYPE: 'local',
+        OBJECT_STORE__BACKEND__ROOT_PATH: '/app/data'
+      },
       volumes: { data: '/app/data' }
     })
   },
