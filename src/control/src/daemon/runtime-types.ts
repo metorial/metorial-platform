@@ -13,7 +13,7 @@ export interface Runtime {
   info(): WorkspaceInfo;
   start(options?: StartOptions): Promise<void>;
   stop(options?: { keepInfra?: boolean }): Promise<void>;
-  clean?(): Promise<void>;
+  clean(): Promise<void>;
   restartWorkspace(options?: { infra?: boolean }): Promise<void>;
   restartUnit(name: string): Promise<void>;
   stopServiceUnit(name: string): Promise<void>;
