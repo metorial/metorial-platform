@@ -315,7 +315,7 @@ export let waitForHealth = async (
       let logs = await Promise.all(
         remaining.map(
           async ({ service }) =>
-            `--- ${service.name} ---\n${await compose.output(['logs', '--no-color', '--tail', '80', appServiceName(service.name)]).catch(() => '')}`
+            `--- ${service.name} ---\n${uniqueTail(await compose.output(['logs', '--no-color', appServiceName(service.name)]).catch(() => ''), 150)}`
         )
       );
 
@@ -327,6 +327,19 @@ export let waitForHealth = async (
 
     await commands.delay(1000);
   }
+};
+
+let uniqueTail = (text: string, count: number) => {
+  let seen = new Set<string>();
+  let lines: string[] = [];
+
+  for (let line of text.split('\n')) {
+    if (!line.replace(/^[^|]*\|/, '').trim() || seen.has(line)) continue;
+    seen.add(line);
+    lines.push(line);
+  }
+
+  return lines.slice(-count).join('\n');
 };
 
 export let execute = async (compose: Compose, plan: Plan) => {
