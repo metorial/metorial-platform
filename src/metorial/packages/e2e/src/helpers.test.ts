@@ -180,6 +180,11 @@ describe('http clients', () => {
     expect(response.url).toBe(`http://localhost:${server.port}/prefix/missing`);
   });
 
+  test('rest keeps the base url untouched for an empty path', async () => {
+    let response = await rest(`http://localhost:${server.port}/prefix/item`).post('', {});
+    expect(response.url).toBe(`http://localhost:${server.port}/prefix/item`);
+  });
+
   test('expectOk throws with the response body', async () => {
     let response = await rest(`http://localhost:${server.port}`).get('/missing');
     expect(response.status).toBe(404);

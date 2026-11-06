@@ -1,4 +1,4 @@
-import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
+import { spawn, type ChildProcess } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -63,9 +63,36 @@ let rsyncArgs = () => [
   '--archive',
   '--delete',
   ...syncExcludes.map(pattern => `--exclude=${pattern}`),
+  '--filter=:- .gitignore',
   `${source.replace(/\/$/, '')}/`,
   `${workspace.replace(/\/$/, '')}/`
 ];
+
+let slowSyncMs = 5000;
+let syncing = false;
+
+let syncSource = () =>
+  new Promise<void>(resolve => {
+    if (syncing) return resolve();
+    syncing = true;
+
+    let startedAt = Date.now();
+    let errors = '';
+    let finish = (failure?: string) => {
+      syncing = false;
+      let elapsed = Date.now() - startedAt;
+      if (failure) log(`Source sync failed: ${failure}`);
+      else if (elapsed > slowSyncMs) log(`Source sync took ${(elapsed / 1000).toFixed(1)}s`);
+      resolve();
+    };
+
+    let child = spawn('rsync', rsyncArgs(), { stdio: ['ignore', 'ignore', 'pipe'] });
+    child.stderr?.on('data', chunk => (errors += chunk.toString()));
+    child.on('error', error => finish(error.message));
+    child.on('exit', code =>
+      finish(code === 0 ? undefined : `exit code ${code}${errors ? `: ${errors.trim()}` : ''}`)
+    );
+  });
 
 let run = (command: string[], options: { cwd: string; env?: Record<string, string> }) =>
   new Promise<number>((resolve, reject) => {
@@ -342,7 +369,7 @@ let main = async (planPath: string) => {
 
   while (true) {
     await Bun.sleep(syncSeconds * 1000);
-    if (phase === 'ready' || phase === 'failed') spawnSync('rsync', rsyncArgs());
+    if (phase === 'ready' || phase === 'failed') await syncSource();
   }
 };
 
