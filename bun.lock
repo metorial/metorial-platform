@@ -6870,6 +6870,8 @@
         "yaml": "^2.9.1",
       },
       "devDependencies": {
+        "@lowerdeck/testing-tools": "workspace:2.0.0",
+        "@metorial/e2e": "1.0.0",
         "@types/bun": "latest",
         "@types/react": "19.3.0",
         "@types/react-dom": "19.3.0",
@@ -6878,6 +6880,7 @@
         "autoprefixer": "^10.6.2",
         "jszip": "^3.10.2",
         "vite": "^7.3.7",
+        "vitest": "5.0.4",
       },
       "peerDependencies": {
         "typescript": "^5",
@@ -7090,6 +7093,8 @@
         "yaml": "^2.9.1",
       },
       "devDependencies": {
+        "@lowerdeck/testing-tools": "workspace:2.0.0",
+        "@metorial/e2e": "1.0.0",
         "@types/bun": "latest",
         "@types/node": "^25.9.9",
         "@vercel/ncc": "^0.45.0",

@@ -2,6 +2,7 @@ import {
   ciImage,
   dependency,
   dev,
+  e2e,
   endpoint,
   mergeEnv,
   project,
@@ -19,6 +20,7 @@ export default project({
   group: 'oss',
   endpoints: {
     http: endpoint(52091)
+      .health('/files', 401)
       .env('CODE_BUCKET_HTTP_ADDRESS', ':{{BIND_PORT}}')
       .env('CODE_BUCKET_EDITOR_API_URL', 'http://{{HOSTNAME}}:{{PORT}}'),
     workspace: endpoint(52092).env('CODE_BUCKET_WORKSPACE_ADDRESS', ':{{BIND_PORT}}'),
@@ -35,6 +37,15 @@ export default project({
     env: mergeEnv(baseDevEnv('oss'), pickEnv('CODE_BUCKET_OBJECT_STORAGE_BUCKET'), {
       CODE_BUCKET_JWT_SECRET: 'origin-code-bucket-dev-secret'
     })
+  }),
+  e2e: e2e({
+    start: ['e2e:start'],
+    image: 'code-bucket',
+    env: {
+      CODE_BUCKET_JWT_SECRET: 'origin-code-bucket-e2e-secret',
+      CODE_BUCKET_OBJECT_STORAGE_BUCKET: 'code-bucket',
+      CODE_BUCKET_OBJECT_STORAGE_ENDPOINT: 'http://services:52010'
+    }
   }),
   ci: {
     images: [
