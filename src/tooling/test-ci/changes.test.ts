@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { affected, controlTasks, suites } from './changes';
+import { affected, controlSuites as inventoryControlSuites, controlTasks } from './changes';
 
 let controlSuites = {
   oss: {
@@ -53,12 +53,12 @@ test('source, shared dependency, deleted files and imported configuration select
 });
 
 test('E2E suites include every application container dependency', () => {
-  expect(suites.find(suite => suite.name === 'shuttle')!.services).toContain(
+  expect(inventoryControlSuites.find(suite => suite.name === 'shuttle')!.services).toContain(
     '@metorial/forge'
   );
-  expect(suites.find(suite => suite.name === 'function-bay')!.services).toContain(
-    '@metorial/forge'
-  );
+  expect(
+    inventoryControlSuites.find(suite => suite.name === 'function-bay')!.services
+  ).toContain('@metorial/forge');
 });
 
 test('control suites select stack test packages and prune them for CI', async () => {
