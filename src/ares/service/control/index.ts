@@ -1,6 +1,7 @@
 import {
   bunService,
   ciImage,
+  ciSuite,
   dependency,
   dev,
   e2e,
@@ -80,6 +81,7 @@ export default project({
           migrations: [ownMigration('ares', '@metorial/ares')]
         })
       })
-    ]
+    ],
+    suite: ciSuite({ name: 'ares', groups: 1 })
   }
 });

@@ -1,6 +1,7 @@
 import {
   bunService,
   ciImage,
+  ciSuite,
   dependency,
   dev,
   e2e,
@@ -90,6 +91,7 @@ export default project({
           migrations: [ownMigration('origin', '@metorial/origin', { prefix: 'ORIGIN' })]
         })
       })
-    ]
+    ],
+    suite: ciSuite({ name: 'origin', groups: 1 })
   }
 });
