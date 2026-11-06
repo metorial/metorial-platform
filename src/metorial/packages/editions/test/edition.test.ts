@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { assertEdition, checkEdition, getEdition, perEdition } from '../src';
+import { assertEdition, checkEdition, getEdition, isBuilt, perEdition } from '../src';
 
 afterEach(() => {
   delete process.env.METORIAL_EDITION;
@@ -24,5 +24,11 @@ describe('edition runtime', () => {
     process.env.METORIAL_EDITION = 'nope';
 
     expect(() => getEdition()).toThrow('Unknown METORIAL_EDITION');
+  });
+});
+
+describe('isBuilt', () => {
+  it('is false when running from source', () => {
+    expect(isBuilt()).toBe(false);
   });
 });
