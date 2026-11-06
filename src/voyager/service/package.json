@@ -27,9 +27,12 @@
     "dev:start": "bun --watch ./src/server.ts",
     "e2e:start": "bun ./src/server.ts",
     "control:db:generate": "bun run prisma:generate",
-    "control:db:push": "bun run prisma:push"
+    "control:db:push": "bun run prisma:push",
+    "test:e2e": "metorial-e2e"
   },
   "devDependencies": {
+    "@lowerdeck/testing-tools": "workspace:2.0.0",
+    "@metorial/e2e": "1.0.0",
     "@types/bun": "latest",
     "@types/node": "^25.9.9",
     "@vercel/ncc": "^0.45.0",
