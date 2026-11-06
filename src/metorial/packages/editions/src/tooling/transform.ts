@@ -8,7 +8,8 @@ let transformableCalls = [
   'checkEdition',
   'assertEdition',
   'perEdition',
-  'getEdition'
+  'getEdition',
+  'isBuilt'
 ] as const;
 
 type TransformableCall = (typeof transformableCalls)[number];
@@ -168,6 +169,8 @@ let replaceCall = (
   edition: Edition
 ) => {
   if (kind == 'getEdition') return JSON.stringify(edition);
+
+  if (kind == 'isBuilt') return 'true';
 
   if (kind == 'perEdition') return selectEditionValue(source, code, call, edition);
 

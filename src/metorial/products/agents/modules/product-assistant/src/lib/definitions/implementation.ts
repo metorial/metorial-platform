@@ -107,7 +107,7 @@ let buildImplementation = async (
     ).values()
   );
 
-  let _persisted = await retryOnUniqueViolation(() =>
+  let _persisted = await retryOnUniqueViolation(async () =>
     db.productAssistantImplementation.upsert({
       where: {
         slug: d.slug

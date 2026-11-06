@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { join } from 'node:path';
 import * as manifest from '../src/manifest';
 import { renderStackCompose } from '../src/stack/compose';
+import { routeComposeLine } from '../src/daemon/stack-runtime';
 import { parseStackMode, planStack } from '../src/stack/plan';
 import { checkout, packageFixture, writeManifest } from './helpers';
 
@@ -301,5 +302,40 @@ describe('edition stacks', () => {
 
     expect(plan.units[0]!.container).toBeDefined();
     expect(plan.units[0]!.process).toBeUndefined();
+  });
+});
+
+describe('stack log routing', () => {
+  test('routes runner output to the unit named in its prefix', () => {
+    expect(routeComposeLine('app-1  | [on-prem-core-api] booted')).toEqual({
+      unit: 'on-prem-core-api',
+      text: 'booted'
+    });
+  });
+
+  test('sends runner and unprefixed app output to runner', () => {
+    expect(routeComposeLine('app-1  | [stack] Starting x')).toEqual({
+      unit: 'runner',
+      text: 'Starting x'
+    });
+    expect(routeComposeLine('app-1  | bun install')).toEqual({
+      unit: 'runner',
+      text: 'bun install'
+    });
+  });
+
+  test('keys container output by service name without the replica suffix', () => {
+    expect(routeComposeLine('postgres-db2-1  | ready')).toEqual({
+      unit: 'postgres-db2',
+      text: 'ready'
+    });
+    expect(routeComposeLine('on-prem-code-bucket-1 | hi')).toEqual({
+      unit: 'on-prem-code-bucket',
+      text: 'hi'
+    });
+  });
+
+  test('ignores lines that are not compose output', () => {
+    expect(routeComposeLine('no separator here')).toBeUndefined();
   });
 });

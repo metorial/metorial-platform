@@ -53,6 +53,8 @@ interface ComposeContainer {
 }
 
 let pollInterval = 2_000;
+let runnerTimeout = 15_000;
+let runnerFailureLimit = 5;
 let prepareTimeout = 30 * 60_000;
 let containerTimeout = 3 * 60_000;
 
@@ -68,6 +70,7 @@ export class StackRuntime implements Runtime {
   private infra: string[] = [];
   private runnerUrl?: string;
   private runner?: RunnerState;
+  private runnerFailures = 0;
   private containers: ComposeContainer[] = [];
   private links: LinkInfo[] = [];
   private unregister?: () => Promise<void>;
@@ -375,19 +378,8 @@ export class StackRuntime implements Runtime {
   }
 
   private route(line: string, stream: 'out' | 'err') {
-    let match = line.match(/^(\S+?)\s+\| (.*)$/);
-    if (!match) return;
-
-    let [, service, text] = match as unknown as [string, string, string];
-    let prefix = service === 'app' ? text.match(/^\[([^\]]+)\] (.*)$/) : undefined;
-    if (prefix)
-      return void this.logs.append(
-        prefix[1] === 'stack' ? 'runner' : prefix[1]!,
-        prefix[2]! + '\n',
-        stream
-      );
-
-    this.logs.append(service === 'app' ? 'runner' : service, text + '\n', stream);
+    let routed = routeComposeLine(line);
+    if (routed) this.logs.append(routed.unit, routed.text + '\n', stream);
   }
 
   private startPolling() {
@@ -415,10 +407,12 @@ export class StackRuntime implements Runtime {
     if (this.runnerUrl) {
       try {
         this.runner = (await fetch(`${this.runnerUrl}/state`, {
-          signal: AbortSignal.timeout(2000)
+          signal: AbortSignal.timeout(runnerTimeout)
         }).then(response => response.json())) as RunnerState;
+        this.runnerFailures = 0;
       } catch {
-        this.runner = undefined;
+        this.runnerFailures++;
+        if (this.runnerFailures >= runnerFailureLimit) this.runner = undefined;
       }
     }
 
@@ -574,6 +568,20 @@ export class StackRuntime implements Runtime {
     if (!['idle', 'stopped', 'failed'].includes(this.phase)) await this.stop();
   }
 }
+
+export let routeComposeLine = (line: string): { unit: string; text: string } | undefined => {
+  let match = line.match(/^(\S+?)\s+\| (.*)$/);
+  if (!match) return;
+
+  let [, container, text] = match as unknown as [string, string, string];
+  let service = container.replace(/-\d+$/, '');
+  if (service !== 'app') return { unit: service, text };
+
+  let prefix = text.match(/^\[([^\]]+)\] (.*)$/);
+  if (!prefix) return { unit: 'runner', text };
+
+  return { unit: prefix[1] === 'stack' ? 'runner' : prefix[1]!, text: prefix[2]! };
+};
 
 let runnerUnitState = (status: RunnerState['units'][number]['status']): UnitState => {
   switch (status) {
