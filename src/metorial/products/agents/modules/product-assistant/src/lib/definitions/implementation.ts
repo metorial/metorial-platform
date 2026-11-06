@@ -7,7 +7,7 @@ import type {
   Project,
   ResourceActor
 } from '@metorial/db';
-import { db, ID, Prisma } from '@metorial/db';
+import { db, ID, retryOnUniqueViolation, Prisma } from '@metorial/db';
 import { Agent } from '../open-harness';
 import type { Model } from './model';
 
@@ -65,8 +65,7 @@ type ImplementationWithInput<Input, HandledInput> = ImplementationBase & {
 };
 
 export type ImplementationDefinition<Input = undefined, HandledInput = Input> =
-  | ImplementationWithoutInput
-  | ImplementationWithInput<Input, HandledInput>;
+  ImplementationWithoutInput | ImplementationWithInput<Input, HandledInput>;
 
 type PersistedImplementationBase = Omit<
   ImplementationBase,
@@ -86,8 +85,7 @@ export type ImplementationWithInputResult<Input, HandledInput> = PersistedImplem
   Omit<ImplementationWithInput<Input, HandledInput>, 'defaultModel' | 'availableModels'>;
 
 export type Implementation =
-  | ImplementationWithoutInputResult
-  | ImplementationWithInputResult<any, any>;
+  ImplementationWithoutInputResult | ImplementationWithInputResult<any, any>;
 
 type ImplementationFactory = {
   (d: ImplementationWithoutInput): Promise<ImplementationWithoutInputResult>;
@@ -109,19 +107,21 @@ let buildImplementation = async (
     ).values()
   );
 
-  let _persisted = await db.productAssistantImplementation.upsert({
-    where: {
-      slug: d.slug
-    },
-    update: {
-      name: d.name
-    },
-    create: {
-      id: await ID.generateId('productAssistantImplementation'),
-      slug: d.slug,
-      name: d.name
-    }
-  });
+  let _persisted = await retryOnUniqueViolation(() =>
+    db.productAssistantImplementation.upsert({
+      where: {
+        slug: d.slug
+      },
+      update: {
+        name: d.name
+      },
+      create: {
+        id: await ID.generateId('productAssistantImplementation'),
+        slug: d.slug,
+        name: d.name
+      }
+    })
+  );
 
   let persistedModels = await db.productAssistantModel.findMany({
     where: {
