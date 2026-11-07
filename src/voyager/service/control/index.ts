@@ -35,7 +35,7 @@ export default project({
       })
     }
   }),
-  e2e: e2e({ start: ['e2e:start'], image: 'voyager' }),
+  e2e: e2e({ start: ['e2e:start'], image: 'voyager', tests: ['.'] }),
   ci: {
     images: [
       ciImage({

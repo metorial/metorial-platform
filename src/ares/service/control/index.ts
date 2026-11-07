@@ -1,6 +1,7 @@
 import {
   bunService,
   ciImage,
+  ciSuite,
   dependency,
   dev,
   e2e,
@@ -60,7 +61,7 @@ export default project({
       sso: postgres({ package: '@metorial/ares', name: 'ares-sso', env: 'SSO_DATABASE_URL' })
     }
   }),
-  e2e: e2e({ start: ['e2e:start'], image: 'ares' }),
+  e2e: e2e({ start: ['e2e:start'], image: 'ares', tests: ['.'] }),
   ci: {
     images: [
       ciImage({
@@ -80,6 +81,7 @@ export default project({
           migrations: [ownMigration('ares', '@metorial/ares')]
         })
       })
-    ]
+    ],
+    suite: ciSuite({ name: 'ares', groups: 1 })
   }
 });

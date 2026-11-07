@@ -12,6 +12,10 @@ export let skillDestinationSyncCleanupCron = createCron(
 
     await db.skillDestinationSync.deleteMany({
       where: {
+        status: { in: ['completed', 'canceled', 'failed'] },
+        repositoryPropagations: {
+          none: { status: { in: ['pending', 'processing', 'waiting_for_review'] } }
+        },
         createdAt: {
           lt: twoWeeksAgo
         }
@@ -27,10 +31,34 @@ export let skillDestinationDeletedFileCleanupCron = createCron(
     startupJitterMs: 30_000
   },
   async () => {
+    let cutoff = subDays(new Date(), 14);
+
+    // Age alone is insufficient: disconnected or stalled repositories can still need
+    // these deletions when they recover. Keep them until every current link caught up.
     await db.skillDestinationDeletedFile.deleteMany({
       where: {
-        createdAt: {
-          lt: subDays(new Date(), 14)
+        createdAt: { lt: cutoff },
+        destination: {
+          OR: [
+            {
+              skillMarketplace: {
+                repositories: {
+                  every: {
+                    skillRepository: { deletionsAppliedAt: { not: null, gte: cutoff } }
+                  }
+                }
+              }
+            },
+            {
+              skillPlugin: {
+                repositories: {
+                  every: {
+                    skillRepository: { deletionsAppliedAt: { not: null, gte: cutoff } }
+                  }
+                }
+              }
+            }
+          ]
         }
       }
     });

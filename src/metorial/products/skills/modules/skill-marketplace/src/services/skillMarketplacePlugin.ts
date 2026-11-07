@@ -321,21 +321,25 @@ class SkillMarketplacePluginServiceImpl {
       skillMarketplaceId: d.skillMarketplacePlugin.skillMarketplace.id
     });
 
-    let skillMarketplacePlugin = await db.skillMarketplacePlugin.update({
-      where: {
-        id: d.skillMarketplacePlugin.id
-      },
-      data: {
-        status: 'archived',
-        pluginSlug,
-        skillConfigurationOid: null
-      },
-      include: skillMarketplacePluginInclude
-    });
+    let skillMarketplacePlugin = await withTransaction(async db => {
+      let skillMarketplacePlugin = await db.skillMarketplacePlugin.update({
+        where: {
+          id: d.skillMarketplacePlugin.id
+        },
+        data: {
+          status: 'archived',
+          pluginSlug,
+          skillConfigurationOid: null
+        },
+        include: skillMarketplacePluginInclude
+      });
 
-    await enqueueSkillMarketplacePluginLifecycle({
-      skillMarketplacePluginId: skillMarketplacePlugin.id,
-      event: 'archived'
+      await enqueueSkillMarketplacePluginLifecycle({
+        skillMarketplacePluginId: skillMarketplacePlugin.id,
+        event: 'archived'
+      });
+
+      return skillMarketplacePlugin;
     });
 
     await consumerAccessService.reconcileSkillPluginConsumerAccess({

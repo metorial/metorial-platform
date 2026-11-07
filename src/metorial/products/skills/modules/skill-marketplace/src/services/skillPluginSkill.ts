@@ -388,27 +388,29 @@ class SkillPluginSkillServiceImpl {
               })
             ).oid;
 
-    let skillPluginSkill = await db.skillPluginSkill.update({
-      where: {
-        id: d.skillPluginSkill.id
-      },
-      data: {
-        clientName: d.input.clientName,
-        clientDescription: d.input.clientDescription,
-        clientMetadata: d.input.clientMetadata as any,
-        license: d.input.license,
-        compatibility: d.input.compatibility,
-        skillConfigurationOid
-      },
-      include: skillPluginSkillInclude
-    });
+    return await withTransaction(async db => {
+      let skillPluginSkill = await db.skillPluginSkill.update({
+        where: {
+          id: d.skillPluginSkill.id
+        },
+        data: {
+          clientName: d.input.clientName,
+          clientDescription: d.input.clientDescription,
+          clientMetadata: d.input.clientMetadata as any,
+          license: d.input.license,
+          compatibility: d.input.compatibility,
+          skillConfigurationOid
+        },
+        include: skillPluginSkillInclude
+      });
 
-    await enqueueSkillPluginSkillLifecycle({
-      skillPluginSkillId: d.skillPluginSkill.id,
-      event: 'updated'
-    });
+      await enqueueSkillPluginSkillLifecycle({
+        skillPluginSkillId: d.skillPluginSkill.id,
+        event: 'updated'
+      });
 
-    return skillPluginSkill;
+      return skillPluginSkill;
+    });
   }
 
   async removeSkillPluginSkill(d: {
@@ -423,28 +425,30 @@ class SkillPluginSkillServiceImpl {
       accessTags: d.accessTags
     });
 
-    let skillPluginSkill = await db.skillPluginSkill.update({
-      where: {
-        id: d.skillPluginSkill.id
-      },
-      data: {
-        status: 'archived',
-        clientName: null,
-        clientDescription: null,
-        clientMetadata: null,
-        license: null,
-        compatibility: null,
-        skillConfigurationOid: null
-      },
-      include: skillPluginSkillInclude
-    });
+    return await withTransaction(async db => {
+      let skillPluginSkill = await db.skillPluginSkill.update({
+        where: {
+          id: d.skillPluginSkill.id
+        },
+        data: {
+          status: 'archived',
+          clientName: null,
+          clientDescription: null,
+          clientMetadata: null,
+          license: null,
+          compatibility: null,
+          skillConfigurationOid: null
+        },
+        include: skillPluginSkillInclude
+      });
 
-    await enqueueSkillPluginSkillLifecycle({
-      skillPluginSkillId: d.skillPluginSkill.id,
-      event: 'archived'
-    });
+      await enqueueSkillPluginSkillLifecycle({
+        skillPluginSkillId: d.skillPluginSkill.id,
+        event: 'archived'
+      });
 
-    return skillPluginSkill;
+      return skillPluginSkill;
+    });
   }
 }
 

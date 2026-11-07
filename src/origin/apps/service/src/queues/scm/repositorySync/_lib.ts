@@ -12,17 +12,27 @@ import {
 
 export type RepositorySyncLogEntry = [number, string];
 
+export let getRepositorySyncContentsRetryDelayMs = (d: {
+  attemptCount: number;
+  error: unknown;
+}) =>
+  getScmProviderErrorDetails(d.error).classification === 'rate_limited'
+    ? Math.min(15 * 60_000, 60_000 * 2 ** d.attemptCount)
+    : Math.min(60_000, 2_000 * 2 ** d.attemptCount);
+
 export let shouldRetryRepositorySyncContents = (d: {
   repositoryAccessMode: string;
   status: string;
   attemptCount: number;
   error: unknown;
 }) => {
-  if (d.status !== 'syncing_contents' || d.attemptCount >= 3) {
+  let classification = getScmProviderErrorDetails(d.error).classification;
+  let maxAttempts = classification === 'rate_limited' ? 6 : 3;
+
+  if (d.status !== 'syncing_contents' || d.attemptCount >= maxAttempts) {
     return false;
   }
 
-  let classification = getScmProviderErrorDetails(d.error).classification;
   return (
     (d.repositoryAccessMode === 'default_branch' && classification === 'conflict') ||
     isRetryableScmProviderError(d.error)

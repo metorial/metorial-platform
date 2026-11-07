@@ -1,10 +1,9 @@
-import type { SkillDestination, SkillMarketplace, SkillRepository } from '@metorial/db';
-import { db, ID, withTransaction } from '@metorial/db';
+import type { SkillDestination, SkillMarketplace } from '@metorial/db';
+import { addAfterTransactionHook, ID, withTransaction } from '@metorial/db';
 import { syncStartQueue } from '../queues/sync/start';
 
 export let forceSkillDestinationSync = async (d: {
   destination: Pick<SkillDestination, 'oid'>;
-  repository?: Pick<SkillRepository, 'id'>;
   incrementForceSyncCounterFor?: Pick<SkillMarketplace, 'oid'>;
 }) => {
   let sync = await withTransaction(async db => {
@@ -20,6 +19,7 @@ export let forceSkillDestinationSync = async (d: {
         oid: d.destination.oid
       },
       data: {
+        syncRecoveryVersion: 1,
         isDirty: false,
         lastTransientChangeAt: null,
         firstTransientChangeAt: null,
@@ -28,18 +28,19 @@ export let forceSkillDestinationSync = async (d: {
       }
     });
 
-    return await db.skillDestinationSync.create({
+    let sync = await db.skillDestinationSync.create({
       data: {
         id: await ID.generateId('skillDestinationSync'),
         destinationOid: d.destination.oid,
         status: 'pending'
       }
     });
-  });
 
-  await syncStartQueue.add({
-    skillDestinationSyncId: sync.id,
-    skillRepositoryId: d.repository?.id
+    await addAfterTransactionHook(async () => {
+      await syncStartQueue.add({ skillDestinationSyncId: sync.id }, { id: sync.id });
+    });
+
+    return sync;
   });
 
   return sync;

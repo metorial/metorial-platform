@@ -1,5 +1,7 @@
 FROM node:22-bookworm-slim AS node
 
+FROM golang:1.25-bookworm AS go
+
 FROM oven/bun:1.4.2
 
 RUN apt-get update \
@@ -23,6 +25,9 @@ RUN ln -sf /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
     && node --version \
     && bun --version \
     && git config --global --add safe.directory '*'
+
+COPY --from=go /usr/local/go /usr/local/go
+ENV PATH="/usr/local/go/bin:${PATH}"
 
 COPY entrypoint.sh /usr/local/bin/control-e2e
 RUN chmod 0755 /usr/local/bin/control-e2e

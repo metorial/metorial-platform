@@ -1,8 +1,12 @@
-import { addAfterTransactionHook, db } from '@metorial/db';
+import { addAfterTransactionHook, db, withTransaction } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
 import { indexSkillMarketplaceQueue } from '../search/skillMarketplace';
 import { indexSkillPluginQueue } from '../search/skillPlugin';
-import { getLifecycleJobId, getPropagationJobOpts, type LifecycleEvent } from '@metorial/skills-common';
+import {
+  getLifecycleJobId,
+  getPropagationJobOpts,
+  type LifecycleEvent
+} from '@metorial/skills-common';
 
 let skillMarketplacePluginLifecycleQueue = createQueue<{
   skillMarketplacePluginId: string;
@@ -18,6 +22,8 @@ export let enqueueSkillMarketplacePluginLifecycle = async (d: {
   skillMarketplacePluginId: string;
   event: LifecycleEvent;
 }) => {
+  await markMarketplacePluginDestinationsDirty(d);
+
   await addAfterTransactionHook(async () => {
     await skillMarketplacePluginLifecycleQueue.add(d, {
       id: getLifecycleJobId('marketplacePlugin', d.skillMarketplacePluginId)
@@ -63,21 +69,29 @@ let propagateSkillMarketplacePluginDirtyQueue = createQueue<{
   }
 });
 
-export let propagateSkillMarketplacePluginDirtyQueueProcessor =
-  propagateSkillMarketplacePluginDirtyQueue.process(async data => {
-    await db.skillDestination.updateMany({
-      where: {
-        skillMarketplace: {
-          plugins: {
-            some: {
-              id: data.skillMarketplacePluginId
+let markMarketplacePluginDestinationsDirty = async (data: {
+  skillMarketplacePluginId: string;
+}) =>
+  await withTransaction(
+    async db => {
+      await db.skillDestination.updateMany({
+        where: {
+          skillMarketplace: {
+            plugins: {
+              some: {
+                id: data.skillMarketplacePluginId
+              }
             }
           }
+        },
+        data: {
+          isDirty: true,
+          lastTransientChangeAt: new Date()
         }
-      },
-      data: {
-        isDirty: true,
-        lastTransientChangeAt: new Date()
-      }
-    });
-  });
+      });
+    },
+    { ifExists: true }
+  );
+
+export let propagateSkillMarketplacePluginDirtyQueueProcessor =
+  propagateSkillMarketplacePluginDirtyQueue.process(markMarketplacePluginDestinationsDirty);
