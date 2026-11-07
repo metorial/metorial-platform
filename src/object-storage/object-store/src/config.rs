@@ -13,6 +13,81 @@ use std::sync::Arc;
 pub struct Config {
     pub server: ServerConfig,
     pub backend: BackendConfig,
+    #[serde(default)]
+    pub public: PublicConfig,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PublicUrlMode {
+    /// Public URLs come from the backend (presigned S3/GCS/Azure URLs, local `public_url`).
+    #[default]
+    Backend,
+    /// Public URLs point at this service's public listener, which checks the signature and streams
+    /// to and from the backend.
+    Proxy,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct PublicConfig {
+    #[serde(default)]
+    pub mode: PublicUrlMode,
+    pub base_url: Option<String>,
+    pub signing_secret: Option<String>,
+    #[serde(default = "default_public_host")]
+    pub host: String,
+    #[serde(default = "default_public_port")]
+    pub port: u16,
+    #[serde(default = "default_public_request_timeout_secs")]
+    pub request_timeout_secs: u64,
+}
+
+impl Default for PublicConfig {
+    fn default() -> Self {
+        Self {
+            mode: PublicUrlMode::Backend,
+            base_url: None,
+            signing_secret: None,
+            host: default_public_host(),
+            port: default_public_port(),
+            request_timeout_secs: default_public_request_timeout_secs(),
+        }
+    }
+}
+
+impl std::fmt::Debug for PublicConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PublicConfig")
+            .field("mode", &self.mode)
+            .field("base_url", &self.base_url)
+            .field(
+                "signing_secret",
+                &self.signing_secret.as_ref().map(|_| "<redacted>"),
+            )
+            .field("host", &self.host)
+            .field("port", &self.port)
+            .field("request_timeout_secs", &self.request_timeout_secs)
+            .finish()
+    }
+}
+
+impl PublicConfig {
+    pub fn signer(&self) -> anyhow::Result<Option<crate::public::PublicUrlSigner>> {
+        if self.mode != PublicUrlMode::Proxy {
+            return Ok(None);
+        }
+
+        let base_url = self
+            .base_url
+            .as_deref()
+            .ok_or_else(|| anyhow::anyhow!("public.mode `proxy` needs public.base_url"))?;
+        let secret = self
+            .signing_secret
+            .as_deref()
+            .ok_or_else(|| anyhow::anyhow!("public.mode `proxy` needs public.signing_secret"))?;
+
+        Ok(Some(crate::public::PublicUrlSigner::new(base_url, secret)?))
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -21,6 +96,9 @@ pub struct ServerConfig {
     pub host: String,
     #[serde(default = "default_port")]
     pub port: u16,
+    /// Port of the health listener used by orchestrators; 0 disables it.
+    #[serde(default = "default_health_port")]
+    pub health_port: u16,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -46,7 +124,10 @@ pub enum BackendConfig {
         physical_bucket: String,
         endpoint: Option<String>,
         public_endpoint: Option<String>,
+        #[serde(default, deserialize_with = "flexible_bool::optional")]
         force_path_style: Option<bool>,
+        #[serde(default, deserialize_with = "flexible_bool::required")]
+        create_bucket: bool,
     },
     Gcs {
         physical_bucket: String,
@@ -106,6 +187,22 @@ fn default_port() -> u16 {
     8080
 }
 
+fn default_health_port() -> u16 {
+    12121
+}
+
+fn default_public_host() -> String {
+    "0.0.0.0".to_string()
+}
+
+fn default_public_port() -> u16 {
+    8081
+}
+
+fn default_public_request_timeout_secs() -> u64 {
+    60 * 60
+}
+
 fn default_physical_bucket() -> String {
     "object-store-data".to_string()
 }
@@ -116,13 +213,51 @@ impl Default for Config {
             server: ServerConfig {
                 host: default_host(),
                 port: default_port(),
+                health_port: default_health_port(),
             },
             backend: BackendConfig::Local {
                 root_path: PathBuf::from("./data"),
                 physical_bucket: default_physical_bucket(),
                 public_url: None,
             },
+            public: PublicConfig::default(),
         }
+    }
+}
+
+fn environment() -> config::Environment {
+    config::Environment::with_prefix("OBJECT_STORE").separator("__")
+}
+
+// Environment values arrive as strings, and the config crate does not turn "true" into a boolean for
+// these fields. Parsing every value (`try_parsing`) would instead turn numeric-looking strings such as
+// a bucket named "2024" into numbers, so only the boolean fields accept strings.
+mod flexible_bool {
+    use serde::{de::Error, Deserialize, Deserializer};
+
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum Value {
+        Bool(bool),
+        Text(String),
+    }
+
+    pub fn optional<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<bool>, D::Error> {
+        match Option::<Value>::deserialize(deserializer)? {
+            None => Ok(None),
+            Some(Value::Bool(value)) => Ok(Some(value)),
+            Some(Value::Text(text)) => match text.trim().to_ascii_lowercase().as_str() {
+                "true" | "1" | "yes" => Ok(Some(true)),
+                "false" | "0" | "no" | "" => Ok(Some(false)),
+                other => Err(D::Error::custom(format!(
+                    "expected a boolean, got `{other}`"
+                ))),
+            },
+        }
+    }
+
+    pub fn required<'de, D: Deserializer<'de>>(deserializer: D) -> Result<bool, D::Error> {
+        Ok(optional(deserializer)?.unwrap_or(false))
     }
 }
 
@@ -130,7 +265,7 @@ impl Config {
     pub fn from_file(path: &str) -> Result<Self, config::ConfigError> {
         let settings = config::Config::builder()
             .add_source(config::File::with_name(path))
-            .add_source(config::Environment::with_prefix("OBJECT_STORE").separator("__"))
+            .add_source(environment())
             .build()?;
 
         settings.try_deserialize()
@@ -138,7 +273,7 @@ impl Config {
 
     pub fn from_env() -> Result<Self, config::ConfigError> {
         let settings = config::Config::builder()
-            .add_source(config::Environment::with_prefix("OBJECT_STORE").separator("__"))
+            .add_source(environment())
             .build()?;
 
         settings.try_deserialize()
@@ -161,6 +296,7 @@ impl BackendConfig {
                 endpoint,
                 public_endpoint,
                 force_path_style,
+                create_bucket,
             } => Arc::new(
                 S3Backend::new_with_options(
                     physical_bucket,
@@ -169,6 +305,7 @@ impl BackendConfig {
                         endpoint,
                         public_endpoint,
                         force_path_style,
+                        create_bucket,
                     },
                 )
                 .await?,

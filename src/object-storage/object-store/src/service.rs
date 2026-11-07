@@ -10,6 +10,7 @@ use tracing::{debug, info};
 
 use crate::error::{ServiceError, ServiceResult};
 use crate::metadata::{Bucket, MetadataStore};
+use crate::public::PublicUrlSigner;
 
 #[derive(Debug, Clone)]
 pub struct DeleteObjectResult {
@@ -21,11 +22,25 @@ pub struct DeleteObjectResult {
 pub struct ObjectStoreService {
     backend: Arc<dyn Backend>,
     metadata: Arc<MetadataStore>,
+    public_signer: Option<Arc<PublicUrlSigner>>,
 }
 
 impl ObjectStoreService {
     pub fn new(backend: Arc<dyn Backend>, metadata: Arc<MetadataStore>) -> Self {
-        Self { backend, metadata }
+        Self {
+            backend,
+            metadata,
+            public_signer: None,
+        }
+    }
+
+    pub fn with_public_signer(mut self, signer: Option<Arc<PublicUrlSigner>>) -> Self {
+        self.public_signer = signer;
+        self
+    }
+
+    pub fn public_signer(&self) -> Option<&Arc<PublicUrlSigner>> {
+        self.public_signer.as_ref()
     }
 
     pub async fn init(&self) -> ServiceResult<()> {
@@ -355,6 +370,16 @@ impl ObjectStoreService {
         self.metadata.get_bucket(bucket).await?;
 
         validate_object_key(key)?;
+
+        if let Some(signer) = &self.public_signer {
+            return Ok(signer.sign(
+                bucket,
+                key,
+                purpose,
+                expiration_secs,
+                chrono::Utc::now().timestamp(),
+            ));
+        }
 
         let full_key = format!("{}/{}", bucket, key);
 

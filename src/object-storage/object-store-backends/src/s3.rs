@@ -6,6 +6,7 @@ use aws_sdk_s3::presigning::PresigningConfig;
 use aws_sdk_s3::primitives::ByteStream as AwsByteStream;
 use aws_sdk_s3::types::{CompletedMultipartUpload, CompletedPart};
 use aws_sdk_s3::Client;
+use aws_smithy_types::error::display::DisplayErrorContext;
 use chrono::{DateTime, Utc};
 use futures::StreamExt;
 use std::collections::HashMap;
@@ -25,6 +26,7 @@ use crate::upload::{
 };
 
 pub struct S3Backend {
+    create_bucket: bool,
     client: Client,
     signing_client: Client,
     bucket_name: String,
@@ -40,6 +42,9 @@ pub struct S3Options {
     pub public_endpoint: Option<String>,
     /// Defaults to true when `endpoint` is set and false otherwise.
     pub force_path_style: Option<bool>,
+    /// Create the bucket on startup when it does not exist (self-hosted stores such as SeaweedFS or
+    /// MinIO, where the bucket is part of the deployment).
+    pub create_bucket: bool,
 }
 
 impl S3Backend {
@@ -52,6 +57,7 @@ impl S3Backend {
             signing_client: client.clone(),
             client,
             bucket_name,
+            create_bucket: false,
         })
     }
 
@@ -103,6 +109,7 @@ impl S3Backend {
             client,
             signing_client,
             bucket_name,
+            create_bucket: options.create_bucket,
         })
     }
 
@@ -313,6 +320,23 @@ impl Backend for S3Backend {
         {
             Ok(_) => {
                 info!("S3 bucket {} is accessible", self.bucket_name);
+                Ok(())
+            }
+            Err(_) if self.create_bucket => {
+                self.client
+                    .create_bucket()
+                    .bucket(&self.bucket_name)
+                    .send()
+                    .await
+                    .map_err(|e| {
+                        BackendError::Configuration(format!(
+                            "Cannot create S3 bucket '{}': {}",
+                            self.bucket_name,
+                            DisplayErrorContext(&e)
+                        ))
+                    })?;
+
+                info!("Created S3 bucket {}", self.bucket_name);
                 Ok(())
             }
             Err(e) => {
