@@ -47,6 +47,32 @@ let safePath = (path: unknown): path is string =>
   !path.includes('\\') &&
   !path.includes('\0');
 
+let testOnlyPattern =
+  /(^|\/)(e2e\/|vitest\.config\.[^/]+$|README\.md$)|\.(test|e2e|spec)\.[cm]?[jt]sx?$/;
+export let isTestOnlyInput = (path: string) => testOnlyPattern.test(path);
+
+let packagedInput = (
+  descriptor: InputDescriptor,
+  path: string
+) =>
+  !isTestOnlyInput(path) &&
+  (descriptor.extras.includes(path) ||
+    descriptor.directories.some(directory => path.startsWith(directory + '/')));
+
+let testScriptPattern = /^(test|e2e)(:|$)/;
+let fingerprintOid = (path: string, bytes: Buffer, oid: string) => {
+  if (!/(^|\/)package\.json$/.test(path)) return oid;
+  try {
+    let manifest = JSON.parse(bytes.toString());
+    if (!manifest.scripts) return oid;
+    for (let name of Object.keys(manifest.scripts))
+      if (testScriptPattern.test(name)) delete manifest.scripts[name];
+    return blob(Buffer.from(JSON.stringify(manifest)));
+  } catch {
+    return oid;
+  }
+};
+
 export let validateDescriptor = (value: unknown, key: string): InputDescriptor => {
   let descriptor = value as InputDescriptor;
   if (!descriptor || descriptor.version !== 1 || descriptor.key !== key)
@@ -166,22 +192,28 @@ export let descriptorInputs = (
 ) => {
   let inputs = new Map<string, { mode: string; oid: string }>();
   for (let [path, input] of tracked) {
-    if (
-      descriptor.extras.includes(path) ||
-      descriptor.directories.some(directory => path.startsWith(directory + '/'))
-    )
-      inputs.set(`full/${path}`, input);
+    if (packagedInput(descriptor, path))
+      inputs.set(`full/${path}`, {
+        mode: input.mode,
+        oid: path.endsWith('package.json')
+          ? fingerprintOid(path, content(path), input.oid)
+          : input.oid
+      });
   }
-  for (let input of descriptor.generated)
+  for (let input of descriptor.generated) {
+    let bytes = Buffer.from(input.data, 'base64');
     inputs.set(`full/${input.path}`, {
       mode: input.mode,
-      oid: blob(Buffer.from(input.data, 'base64'))
+      oid: fingerprintOid(input.path, bytes, blob(bytes))
     });
-  for (let input of descriptor.json)
+  }
+  for (let input of descriptor.json) {
+    let bytes = Buffer.from(input.data, 'base64');
     inputs.set(`json/${input.path}`, {
       mode: input.mode,
-      oid: blob(Buffer.from(input.data, 'base64'))
+      oid: fingerprintOid(input.path, bytes, blob(bytes))
     });
+  }
   return inputs;
 };
 
@@ -200,11 +232,7 @@ export let materializeDescriptor = (
   };
   let generated = new Set(descriptor.generated.map(input => input.path));
   for (let [path, input] of tracked) {
-    if (
-      !generated.has(path) &&
-      (descriptor.extras.includes(path) ||
-        descriptor.directories.some(directory => path.startsWith(directory + '/')))
-    )
+    if (!generated.has(path) && packagedInput(descriptor, path))
       write(join('out/full', path), input.mode, content(path));
   }
   for (let input of descriptor.generated)

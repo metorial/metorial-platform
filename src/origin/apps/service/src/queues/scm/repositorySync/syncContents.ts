@@ -1,3 +1,5 @@
+import { cancelSupersededRepositorySync } from '../../../services/repositorySyncSupersession';
+import { withRepositorySyncWriteLock } from '../../../lib/repositorySyncWriteLock';
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '../../../db';
 import { env } from '../../../env';
@@ -10,6 +12,7 @@ import { codeBucketService } from '../../../services';
 import { transitionRepositorySyncState } from '../../../services/repositorySyncState';
 import {
   appendRepositorySyncLog,
+  getRepositorySyncContentsRetryDelayMs,
   logRepositorySyncQueueError,
   logRepositorySyncQueueEvent,
   markRepositorySyncFailed,
@@ -24,7 +27,7 @@ export let syncContentsRepositorySyncQueue = createQueue<{ syncId: string }>({
 });
 
 export let syncContentsRepositorySyncQueueProcessor = syncContentsRepositorySyncQueue.process(
-  async data => {
+  withRepositorySyncWriteLock(async data => {
     try {
       logRepositorySyncQueueEvent('syncContents', 'processing queue item', {
         syncId: data.syncId,
@@ -61,6 +64,8 @@ export let syncContentsRepositorySyncQueueProcessor = syncContentsRepositorySync
         );
         return;
       }
+
+      if (await cancelSupersededRepositorySync(sync)) return;
 
       let path = sync.codeBucket.path ?? '/';
       logRepositorySyncQueueEvent('syncContents', 'exporting code bucket to repo', {
@@ -199,13 +204,18 @@ export let syncContentsRepositorySyncQueueProcessor = syncContentsRepositorySync
           error: e
         });
       if (failedSync && shouldRetry) {
-        let delay = Math.min(60_000, 2_000 * 2 ** failedSync.attemptCount);
+        let delay = getRepositorySyncContentsRetryDelayMs({
+          attemptCount: failedSync.attemptCount,
+          error: e
+        });
         await transitionRepositorySyncState(failedSync.id, 'syncing_contents', {
           attemptCount: { increment: 1 },
           errorMessage:
             providerError.classification === 'conflict'
               ? 'The default branch changed during this update. Retrying automatically.'
-              : 'The repository provider is temporarily unavailable. Retrying automatically.',
+              : providerError.classification === 'rate_limited'
+                ? 'The repository provider rate limit was reached. Retrying automatically.'
+                : 'The repository provider is temporarily unavailable. Retrying automatically.',
           nextPollAt: new Date(Date.now() + delay)
         });
         await syncContentsRepositorySyncQueue.add({ syncId: data.syncId }, { delay });
@@ -213,5 +223,5 @@ export let syncContentsRepositorySyncQueueProcessor = syncContentsRepositorySync
       }
       await markRepositorySyncFailed(data.syncId, e);
     }
-  }
+  })
 );

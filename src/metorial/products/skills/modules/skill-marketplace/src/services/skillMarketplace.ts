@@ -363,20 +363,27 @@ class SkillMarketplaceServiceImpl {
       });
     }
 
-    await db.skillMarketplace.update({
-      where: {
-        id: d.skillMarketplace.id
-      },
-      data: {
-        image: nextImage as any,
-        providerOverrides: d.input.providerOverrides as any,
-        name: d.input.name,
-        description: d.input.description,
-        repositoryAccessMode: d.input.repositoryAccessMode,
-        forceMergeOrPush: d.input.forceMergeOrPush,
-        mergeBeforeChecksPass: d.input.mergeBeforeChecksPass,
-        skillConfigurationOid
-      }
+    await withTransaction(async db => {
+      await db.skillMarketplace.update({
+        where: {
+          id: d.skillMarketplace.id
+        },
+        data: {
+          image: nextImage as any,
+          providerOverrides: d.input.providerOverrides as any,
+          name: d.input.name,
+          description: d.input.description,
+          repositoryAccessMode: d.input.repositoryAccessMode,
+          forceMergeOrPush: d.input.forceMergeOrPush,
+          mergeBeforeChecksPass: d.input.mergeBeforeChecksPass,
+          skillConfigurationOid
+        }
+      });
+
+      await enqueueSkillMarketplaceLifecycle({
+        skillMarketplaceId: d.skillMarketplace.id,
+        event: 'updated'
+      });
     });
 
     if (
@@ -386,13 +393,6 @@ class SkillMarketplaceServiceImpl {
     ) {
       await internalImageService.cleanupImageEntityImage({
         image: d.skillMarketplace.image as EntityImage
-      });
-    }
-
-    if (updateFlags.hasContentUpdate) {
-      await enqueueSkillMarketplaceLifecycle({
-        skillMarketplaceId: d.skillMarketplace.id,
-        event: 'updated'
       });
     }
 

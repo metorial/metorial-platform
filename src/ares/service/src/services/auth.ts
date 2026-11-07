@@ -6,6 +6,7 @@ import {
 } from '@lowerdeck/error';
 import { generateCode, generateCustomId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
+import { isBuilt } from '@metorial/editions';
 import { addMinutes, subMinutes } from 'date-fns';
 import type {
   Account,
@@ -904,7 +905,9 @@ class AuthServiceImpl {
           stepOid: d.step.oid,
           email: d.step.email!,
           code:
-            process.env.NODE_ENV == 'development' || process.env.METORIAL_ENV == 'development'
+            !isBuilt() &&
+            (process.env.NODE_ENV == 'development' ||
+              process.env.METORIAL_ENV == 'development')
               ? '111111'
               : generateCode(6)
         }

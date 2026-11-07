@@ -171,6 +171,19 @@ describe('tenantService.upsertTenant', () => {
     }
   );
 
+  it.each([undefined, false, true])(
+    'uses sessionless MCP provisioning default %s only on creation',
+    async value => {
+      await tenantService.upsertTenant({
+        input: { ...input, sessionlessMcpEnabledOnCreate: value }
+      });
+
+      let write = mocks.tenantUpsert.mock.calls[0]![0];
+      expect(write.create.sessionlessMcpEnabled).toBe(value ?? true);
+      expect(write.update.sessionlessMcpEnabled).toBeUndefined();
+    }
+  );
+
   it('never writes mirror references that have no mirror record behind them', async () => {
     mocks.environmentFindMany.mockResolvedValueOnce([]);
 

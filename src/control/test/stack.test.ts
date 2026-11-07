@@ -1,10 +1,14 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
 import { join } from 'node:path';
 import * as manifest from '../src/manifest';
+import * as e2e from '../src/e2e';
+import * as commands from '../src/process';
+import * as proxy from '../src/proxy';
+import { LogStore } from '../src/daemon/logs';
 import { renderStackCompose } from '../src/stack/compose';
-import { routeComposeLine } from '../src/daemon/stack-runtime';
+import { routeComposeLine, StackRuntime } from '../src/daemon/stack-runtime';
 import { parseStackMode, planStack } from '../src/stack/plan';
-import { checkout, packageFixture, writeManifest } from './helpers';
+import { checkout, packageFixture, workspaceData, writeManifest } from './helpers';
 
 let service = (name: string, extra = '', ports = 4000) =>
   `name='${name}'\n[endpoints.http]\nport=${ports}\nhealth='/ping'\n[dev]\nrun=['dev:start']\n[[ci.images]]\nname='${name}'\ndockerfile='Dockerfile'\n${extra}`;
@@ -27,6 +31,105 @@ let fixture = (
 };
 
 let cloud = "[[stack_definitions]]\nid='cloud'\nlabel='Cloud'\n";
+
+describe('stack startup controls', () => {
+  let build = () => {
+    let project = fixture(cloud, { api: service('api', '[stacks.cloud]\n') });
+    project.oss = join(import.meta.dir, '../../..');
+    let data = workspaceData(project.root);
+
+    return new StackRuntime(
+      project,
+      {
+        id: 'stack-cloud',
+        name: 'cloud',
+        identifier: 'cloud',
+        mode: 'production',
+        hostname: data.hostname
+      },
+      new LogStore(),
+      () => {},
+      data
+    );
+  };
+
+  let until = async (check: () => boolean) => {
+    let deadline = Date.now() + 2000;
+
+    while (!check()) {
+      if (Date.now() > deadline) throw new Error('startup did not reach the expected stage');
+      await commands.delay(10);
+    }
+  };
+
+  test('stops a stack during image preparation', async () => {
+    let runtime = build();
+    let preparing = false;
+    let image = spyOn(e2e, 'ensureRunnerImage').mockImplementation(async () => {
+      preparing = true;
+      await commands.delay(60_000);
+      return 'runner';
+    });
+    let start = runtime.start();
+
+    try {
+      await until(() => preparing);
+      await runtime.stop();
+      await start;
+
+      expect(runtime.phase).toBe('stopped');
+      expect(runtime.error).toBeUndefined();
+    } finally {
+      await runtime.stop();
+      image.mockRestore();
+    }
+  });
+
+  test('controls services during startup and restarts without waiting for readiness', async () => {
+    let runtime = build();
+    let image = spyOn(e2e, 'ensureRunnerImage').mockResolvedValue('runner');
+    let compose = spyOn(e2e.Compose.prototype, 'run').mockResolvedValue(undefined);
+    let output = spyOn(commands, 'output').mockResolvedValue('');
+    let ensure = spyOn(proxy, 'ensure').mockResolvedValue(undefined);
+    let register = spyOn(proxy, 'register').mockResolvedValue(async () => {});
+    let follow = spyOn(runtime as any, 'follow').mockImplementation(() => {});
+    let checks = 0;
+    let readiness = spyOn(runtime as any, 'waitReady').mockImplementation(async () => {
+      if (++checks === 1) await commands.delay(60_000);
+    });
+    let start = runtime.start();
+
+    try {
+      await until(() => checks === 1);
+      expect(runtime.phase).toBe('starting');
+
+      await runtime.stopServiceUnit('api');
+      await runtime.restartUnit('api');
+      expect(
+        compose.mock.calls.some(([args]) => args.join(' ') === 'stop --timeout 0 api')
+      ).toBe(true);
+      expect(
+        compose.mock.calls.some(([args]) => args.join(' ') === 'restart --timeout 0 api')
+      ).toBe(true);
+
+      await runtime.restartWorkspace();
+      await start;
+
+      expect(runtime.phase).toBe('running');
+      expect(checks).toBe(2);
+      expect(compose.mock.calls.some(([args]) => args[0] === 'down')).toBe(true);
+    } finally {
+      await runtime.stop();
+      readiness.mockRestore();
+      follow.mockRestore();
+      register.mockRestore();
+      ensure.mockRestore();
+      output.mockRestore();
+      compose.mockRestore();
+      image.mockRestore();
+    }
+  });
+});
 
 describe('stack manifests', () => {
   test('plans development stacks as bun processes and production stacks as containers', () => {

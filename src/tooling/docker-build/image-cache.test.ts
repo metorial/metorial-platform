@@ -553,7 +553,7 @@ test('resolver logging and implementation edits do not invalidate Docker input f
     expect(resolveImage(directory).tag).toBe(original.tag);
     await Bun.write(
       script,
-      implementation.replace('let fingerprintPolicy = 3;', 'let fingerprintPolicy = 4;')
+      implementation.replace('let fingerprintPolicy = 4;', 'let fingerprintPolicy = 5;')
     );
     expect(resolveImage(directory).tag).not.toBe(original.tag);
   } finally {

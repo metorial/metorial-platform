@@ -20,7 +20,7 @@ import {
   type MetorialFacing,
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
-import { providerVariantInclude } from './providerVariant';
+import { providerVariantInclude } from './providerVariantInclude';
 
 let include = {
   entry: true,

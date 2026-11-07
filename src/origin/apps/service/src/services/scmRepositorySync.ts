@@ -14,6 +14,7 @@ import { waitForCiRepositorySyncQueue } from '../queues/scm/repositorySync/waitF
 import { getRepositorySyncStatusSnapshot } from '../lib/scmRepositorySyncProvider';
 import {
   classifyRepositorySyncSnapshot,
+  isTerminalRepositorySyncStatus,
   transitionRepositorySyncState
 } from './repositorySyncState';
 
@@ -160,6 +161,7 @@ class scmRepositorySyncServiceImpl {
       }
     });
     if (!sync) throw new ServiceError(notFoundError('scmRepositorySync'));
+    if (isTerminalRepositorySyncStatus(sync.status)) return sync;
     if (!sync.providerPrId || !sync.providerPrUrl) return sync;
 
     let snapshot = await getRepositorySyncStatusSnapshot(sync);

@@ -5,6 +5,8 @@ model SkillDestination {
   codeBucketId String
   tag          Int    @default(0)
 
+  syncRecoveryVersion Int @default(0)
+
   isDirty                Boolean   @default(false)
   lastTransientChangeAt  DateTime?
   firstTransientChangeAt DateTime?
@@ -21,6 +23,7 @@ model SkillDestination {
   skillDestinationFiles        SkillDestinationFile[]
   skillDestinationDeletedFiles SkillDestinationDeletedFile[]
 
+  @@index([syncRecoveryVersion])
   @@index([isDirty])
   @@index([shouldFlushAt])
   @@index([mustFlushAt])
@@ -103,10 +106,13 @@ model SkillDestinationSync {
   status            SkillDestinationSyncStatus
   isAtRepoSyncStage Boolean                    @default(false)
 
+  contentVersion Int @default(0)
+
   destinationOid BigInt
   destination    SkillDestination @relation(fields: [destinationOid], references: [oid], onDelete: Cascade)
 
   createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
   startedAt   DateTime?
   completedAt DateTime?
 
@@ -120,6 +126,8 @@ model SkillDestinationSync {
   repositoryPropagations SkillDestinationSyncRepositoryPropagation[]
 
   @@index([destinationOid, status])
+  @@index([status, createdAt])
+  @@index([status, updatedAt])
   @@index([createdAt])
 }
 
@@ -155,6 +163,7 @@ model SkillDestinationSyncRepositoryPropagation {
   @@unique([skillDestinationSyncOid, skillRepositoryOid])
   @@index([status])
   @@index([originSyncId])
+  @@index([skillRepositoryOid])
 }
 
 model SkillOriginChangeNotificationCursor {

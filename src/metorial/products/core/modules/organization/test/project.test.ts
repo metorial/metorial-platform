@@ -134,6 +134,7 @@ describe('ProjectService', () => {
           project: {
             create: vi.fn(async args => {
               expect(args.data.hidePublicRemoteProviders).toBe(true);
+              expect(args.data.sessionlessMcpEnabled).toBe(true);
               return mockProject;
             })
           }

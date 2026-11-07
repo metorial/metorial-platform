@@ -1,9 +1,13 @@
-import { addAfterTransactionHook, db } from '@metorial/db';
+import { addAfterTransactionHook, db, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
+import { indexSkillGroupQueue } from '@metorial/module-skill-groups';
 import { enqueueManagedSkillPluginLifecycle } from '@metorial/module-skill-marketplace';
 import { createQueue } from '@metorial/queue';
-import { getLifecycleJobId, getPropagationJobOpts, type LifecycleEvent } from '@metorial/skills-common';
-import { indexSkillGroupQueue } from '@metorial/module-skill-groups';
+import {
+  getLifecycleJobId,
+  getPropagationJobOpts,
+  type LifecycleEvent
+} from '@metorial/skills-common';
 import { indexSkillQueue } from '../search/skill';
 
 let skillLifecycleQueue = createQueue<{
@@ -17,6 +21,8 @@ let skillLifecycleQueue = createQueue<{
 });
 
 export let enqueueSkillLifecycle = async (d: { skillId: string; event: LifecycleEvent }) => {
+  await markSkillDestinationsDirty(d);
+
   await addAfterTransactionHook(async () => {
     await skillLifecycleQueue.add(d, {
       id: getLifecycleJobId('skill', d.skillId)
@@ -69,39 +75,47 @@ export let propagateSkillDirtyQueue = createQueue<{
   }
 });
 
-export let propagateSkillDirtyQueueProcessor = propagateSkillDirtyQueue.process(async data => {
-  await db.skillDestination.updateMany({
-    where: {
-      OR: [
-        {
-          skillPlugin: {
-            skillPluginSkills: {
-              some: {
-                skill: { id: data.skillId }
+let markSkillDestinationsDirty = async (data: { skillId: string }) =>
+  await withTransaction(
+    async db => {
+      await db.skillDestination.updateMany({
+        where: {
+          OR: [
+            {
+              skillPlugin: {
+                skillPluginSkills: {
+                  some: {
+                    skill: { id: data.skillId }
+                  }
+                }
               }
-            }
-          }
-        },
-        {
-          skillMarketplace: {
-            plugins: {
-              some: {
-                skillPlugin: {
-                  skillPluginSkills: {
-                    some: {
-                      skill: { id: data.skillId }
+            },
+            {
+              skillMarketplace: {
+                plugins: {
+                  some: {
+                    skillPlugin: {
+                      skillPluginSkills: {
+                        some: {
+                          skill: { id: data.skillId }
+                        }
+                      }
                     }
                   }
                 }
               }
             }
-          }
+          ]
+        },
+        data: {
+          isDirty: true,
+          lastTransientChangeAt: new Date()
         }
-      ]
+      });
     },
-    data: {
-      isDirty: true,
-      lastTransientChangeAt: new Date()
-    }
-  });
-});
+    { ifExists: true }
+  );
+
+export let propagateSkillDirtyQueueProcessor = propagateSkillDirtyQueue.process(
+  markSkillDestinationsDirty
+);

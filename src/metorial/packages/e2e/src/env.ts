@@ -11,6 +11,8 @@ export let remoteTargetUrl = () => process.env.METORIAL_E2E_REMOTE_URL?.replace(
 
 export let isRemoteE2E = () => !!remoteTargetUrl();
 
+export let isBuiltE2EStack = () => process.env.CONTROL_E2E_BUILT === '1' || isRemoteE2E();
+
 export let remoteProvisioning = () => {
   let url = remoteTargetUrl();
   let token = process.env.METORIAL_E2E_PROVISION_TOKEN;

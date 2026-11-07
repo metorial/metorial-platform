@@ -36,7 +36,7 @@ vi.mock('@metorial-subspace/module-tenant', () => ({
   resolveMetorialFacing: vi.fn()
 }));
 
-vi.mock('./providerVariant', () => ({ providerVariantInclude: {} }));
+vi.mock('./providerVariantInclude', () => ({ providerVariantInclude: {} }));
 
 import {
   getProviderTenantFilter,
