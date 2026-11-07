@@ -1,13 +1,36 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { isSessionlessMcpEnabled } from './sessionless';
 
 describe('isSessionlessMcpEnabled', () => {
-  it.each([
-    [{ sessionlessMcpEnabled: null }, false],
-    [{}, false],
-    [{ sessionlessMcpEnabled: false }, false],
-    [{ sessionlessMcpEnabled: true }, true]
-  ])('resolves %j to %s', (configured, expected) => {
-    expect(isSessionlessMcpEnabled(configured)).toBe(expected);
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
+
+  it.each([
+    {
+      configured: { sessionlessMcpEnabled: null },
+      environment: 'production',
+      expected: false
+    },
+    {
+      configured: { sessionlessMcpEnabled: null },
+      environment: 'development',
+      expected: true
+    },
+    { configured: {}, environment: 'production', expected: false },
+    { configured: {}, environment: 'development', expected: true },
+    {
+      configured: { sessionlessMcpEnabled: false },
+      environment: 'development',
+      expected: false
+    },
+    { configured: { sessionlessMcpEnabled: true }, environment: 'production', expected: true }
+  ])(
+    'resolves $configured to $expected in $environment',
+    ({ configured, environment, expected }) => {
+      vi.stubEnv('METORIAL_ENV', environment);
+
+      expect(isSessionlessMcpEnabled(configured)).toBe(expected);
+    }
+  );
 });
