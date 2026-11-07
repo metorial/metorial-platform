@@ -8,7 +8,7 @@
     "test": "vitest run --passWithNoTests",
     "lint": "prettier src/**/*.ts --check",
     "prisma:generate": "./prisma-generate.sh",
-    "prisma:push": "sh -c 'set -a; . ./.env; set +a; bun prisma db push --accept-data-loss'",
+    "prisma:push": "bun prisma db push --accept-data-loss",
     "control:db:generate": "bun run prisma:generate",
     "control:db:push": "bun run prisma:push"
   },
