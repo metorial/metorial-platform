@@ -28,6 +28,9 @@ chrono = { workspace = true }
 mime_guess = { workspace = true }
 futures = "0.3"
 bytes = "1.5"
+hmac = "0.12"
+sha2 = { workspace = true }
+hex = { workspace = true }
 
 # Configuration
 config = "0.14"

@@ -33,7 +33,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry --mount=type=cache,targe
 FROM debian:trixie-slim AS runner
 
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libssl3 curl && rm -rf /var/lib/apt/lists/*
-RUN useradd -m -u 1000 appuser
+RUN groupadd --system --gid 10001 appuser && useradd -m --uid 10001 --gid appuser appuser
 
 WORKDIR /app
 
@@ -41,12 +41,14 @@ COPY --from=builder /app/target/release/object-store-service /app/object-store-s
 
 RUN mkdir -p /app/data && chown -R appuser:appuser /app
 
-USER appuser
+USER 10001:10001
 
 VOLUME /app/data
 VOLUME /app/config
 
 EXPOSE 8080
+EXPOSE 8081
+EXPOSE 12121
 
 ENV RUST_LOG=info
 
