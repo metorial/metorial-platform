@@ -1,33 +1,34 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { db, add } = vi.hoisted(() => ({
+let { db, add, hooks } = vi.hoisted(() => ({
   db: {
     skillMarketplace: { update: vi.fn() },
     skillDestination: { update: vi.fn() },
     skillDestinationSync: { create: vi.fn() }
   },
-  add: vi.fn()
+  add: vi.fn(),
+  hooks: [] as (() => Promise<void>)[]
 }));
 
 vi.mock('@metorial/db', () => ({
   db,
   ID: { generateId: vi.fn(async () => 'skillDestinationSync_1') },
-  withTransaction: vi.fn(async (callback: (tx: typeof db) => unknown) => await callback(db))
+  withTransaction: vi.fn(async (callback: (tx: typeof db) => unknown) => await callback(db)),
+  addAfterTransactionHook: vi.fn((hook: () => Promise<void>) => hooks.push(hook))
 }));
 
-vi.mock('../queues/sync/start', () => ({
-  syncStartQueue: { add }
-}));
+vi.mock('../queues/sync/start', () => ({ syncStartQueue: { add } }));
 
 import { forceSkillDestinationSync } from './destinationSync';
 
 describe('forceSkillDestinationSync', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hooks.length = 0;
     db.skillDestinationSync.create.mockResolvedValue({ id: 'skillDestinationSync_1' });
   });
 
-  it('increments the marketplace force counter before enqueueing its sync', async () => {
+  it('persists the force counter and sync intent before dispatching after commit', async () => {
     await forceSkillDestinationSync({
       destination: { oid: 10n },
       incrementForceSyncCounterFor: { oid: 20n }
@@ -44,9 +45,31 @@ describe('forceSkillDestinationSync', () => {
         status: 'pending'
       }
     });
-    expect(add).toHaveBeenCalledWith({
-      skillDestinationSyncId: 'skillDestinationSync_1',
-      skillRepositoryId: undefined
-    });
+    expect(add).not.toHaveBeenCalled();
+
+    await hooks[0]!();
+
+    expect(add).toHaveBeenCalledWith(
+      { skillDestinationSyncId: 'skillDestinationSync_1' },
+      { id: 'skillDestinationSync_1' }
+    );
+  });
+
+  it('leaves a durable pending sync when post-commit dispatch fails', async () => {
+    await forceSkillDestinationSync({ destination: { oid: 10n } });
+    add.mockRejectedValueOnce(new Error('Redis unavailable'));
+
+    await expect(hooks[0]!()).rejects.toThrow('Redis unavailable');
+
+    expect(db.skillDestinationSync.create).toHaveBeenCalledOnce();
+  });
+
+  it('does not schedule work when persisting the sync fails', async () => {
+    db.skillDestinationSync.create.mockRejectedValueOnce(new Error('database unavailable'));
+
+    await expect(forceSkillDestinationSync({ destination: { oid: 10n } })).rejects.toThrow();
+
+    expect(hooks).toHaveLength(0);
+    expect(add).not.toHaveBeenCalled();
   });
 });

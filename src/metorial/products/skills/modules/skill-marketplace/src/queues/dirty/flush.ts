@@ -1,7 +1,9 @@
 import { createCron } from '@metorial/cron';
-import { db, ID } from '@metorial/db';
+import { db, ID, withTransaction } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
 import { syncStartQueue } from '../sync/start';
+
+let pageSize = 500;
 
 export let flushDirtySkillDestinationsCron = createCron(
   {
@@ -13,7 +15,7 @@ export let flushDirtySkillDestinationsCron = createCron(
   }
 );
 
-let flushDirtySkillDestinationsManyQueue = createQueue<{
+export let flushDirtySkillDestinationsManyQueue = createQueue<{
   cursor?: string;
 }>({
   name: 'cargo/skill/dirty/flush/many',
@@ -30,7 +32,8 @@ export let flushDirtySkillDestinationsManyQueueProcessor =
         OR: [{ shouldFlushAt: { lte: new Date() } }, { mustFlushAt: { lte: new Date() } }]
       },
       orderBy: { id: 'asc' },
-      take: 100
+      select: { id: true },
+      take: pageSize
     });
 
     if (!destinations.length) return;
@@ -42,55 +45,67 @@ export let flushDirtySkillDestinationsManyQueueProcessor =
       }))
     );
 
-    await flushDirtySkillDestinationsManyQueue.add({
-      cursor: destinations[destinations.length - 1]!.id
-    });
+    if (destinations.length === pageSize) {
+      await flushDirtySkillDestinationsManyQueue.add(
+        { cursor: destinations[destinations.length - 1]!.id },
+        { delay: 1000 }
+      );
+    }
   });
 
 let flushDirtySkillDestinationsSingleQueue = createQueue<{
   destinationId: string;
 }>({
   name: 'cargo/skill/dirty/flush/single',
+  jobOpts: { removeOnFail: true },
   workerOpts: {
-    concurrency: 5
+    concurrency: 5,
+    limiter: { max: 10, duration: 1000 }
   }
 });
 
 export let flushDirtySkillDestinationsSingleQueueProcessor =
   flushDirtySkillDestinationsSingleQueue.process(async data => {
-    let now = new Date();
-    let [destination] = await db.skillDestination.updateManyAndReturn({
-      where: {
-        id: data.destinationId,
-        OR: [
-          {
-            isDirty: false,
-            shouldFlushAt: { lte: now }
-          },
-          {
-            mustFlushAt: { lte: now }
-          }
-        ]
+    let sync = await withTransaction(async db => {
+      let now = new Date();
+      let [destination] = await db.skillDestination.updateManyAndReturn({
+        where: {
+          id: data.destinationId,
+          OR: [
+            {
+              isDirty: false,
+              shouldFlushAt: { lte: now }
+            },
+            {
+              mustFlushAt: { lte: now }
+            }
+          ]
+        },
+        data: {
+          syncRecoveryVersion: 1,
+          isDirty: false,
+          lastTransientChangeAt: null,
+          firstTransientChangeAt: null,
+          shouldFlushAt: null,
+          mustFlushAt: null
+        }
+      });
+      if (!destination) return;
+
+      return await db.skillDestinationSync.create({
+        data: {
+          id: await ID.generateId('skillDestinationSync'),
+          destinationOid: destination.oid,
+          status: 'pending'
+        }
+      });
+    });
+    if (!sync) return;
+
+    await syncStartQueue.add(
+      {
+        skillDestinationSyncId: sync.id
       },
-      data: {
-        isDirty: false,
-        lastTransientChangeAt: null,
-        firstTransientChangeAt: null,
-        shouldFlushAt: null,
-        mustFlushAt: null
-      }
-    });
-    if (!destination) return;
-
-    let sync = await db.skillDestinationSync.create({
-      data: {
-        id: await ID.generateId('skillDestinationSync'),
-        destinationOid: destination.oid,
-        status: 'pending'
-      }
-    });
-
-    await syncStartQueue.add({
-      skillDestinationSyncId: sync.id
-    });
+      { id: sync.id }
+    );
   });

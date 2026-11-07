@@ -1,4 +1,4 @@
-import { addAfterTransactionHook, db } from '@metorial/db';
+import { addAfterTransactionHook, withTransaction } from '@metorial/db';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
 
 type StoreLifecycleEvent = 'created' | 'updated' | 'archived' | 'contents-changed';
@@ -24,6 +24,8 @@ export let enqueueStoreLifecycle = async (d: {
   storeId: string;
   event: StoreLifecycleEvent;
 }) => {
+  await markStoreSkillDestinationsDirty(d);
+
   await addAfterTransactionHook(async () => {
     await storeLifecycleQueue.add(d, {
       id: getLifecycleJobId(d.storeId)
@@ -47,46 +49,54 @@ let propagateStoreDirtyQueue = createQueue<{
   }
 });
 
-export let propagateStoreDirtyQueueProcessor = propagateStoreDirtyQueue.process(async data => {
-  await db.skillDestination.updateMany({
-    where: {
-      OR: [
-        {
-          skillPlugin: {
-            skillPluginSkills: {
-              some: {
-                skill: {
-                  store: { id: data.storeId }
+let markStoreSkillDestinationsDirty = async (data: { storeId: string }) =>
+  await withTransaction(
+    async db => {
+      await db.skillDestination.updateMany({
+        where: {
+          OR: [
+            {
+              skillPlugin: {
+                skillPluginSkills: {
+                  some: {
+                    skill: {
+                      store: { id: data.storeId }
+                    }
+                  }
                 }
               }
-            }
-          }
-        },
-        {
-          skillMarketplace: {
-            plugins: {
-              some: {
-                skillPlugin: {
-                  skillPluginSkills: {
-                    some: {
-                      skill: {
-                        store: { id: data.storeId }
+            },
+            {
+              skillMarketplace: {
+                plugins: {
+                  some: {
+                    skillPlugin: {
+                      skillPluginSkills: {
+                        some: {
+                          skill: {
+                            store: { id: data.storeId }
+                          }
+                        }
                       }
                     }
                   }
                 }
               }
             }
-          }
+          ]
+        },
+        data: {
+          isDirty: true,
+          lastTransientChangeAt: new Date()
         }
-      ]
+      });
     },
-    data: {
-      isDirty: true,
-      lastTransientChangeAt: new Date()
-    }
-  });
-});
+    { ifExists: true }
+  );
+
+export let propagateStoreDirtyQueueProcessor = propagateStoreDirtyQueue.process(
+  markStoreSkillDestinationsDirty
+);
 
 export let storeLifecycleProcessors = combineQueueProcessors([
   storeLifecycleQueueProcessor,

@@ -1,3 +1,5 @@
+import { cancelSupersededRepositorySync } from '../../../services/repositorySyncSupersession';
+import { withRepositorySyncWriteLock } from '../../../lib/repositorySyncWriteLock';
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '../../../db';
 import { env } from '../../../env';
@@ -24,7 +26,7 @@ export let syncContentsRepositorySyncQueue = createQueue<{ syncId: string }>({
 });
 
 export let syncContentsRepositorySyncQueueProcessor = syncContentsRepositorySyncQueue.process(
-  async data => {
+  withRepositorySyncWriteLock(async data => {
     try {
       logRepositorySyncQueueEvent('syncContents', 'processing queue item', {
         syncId: data.syncId,
@@ -61,6 +63,8 @@ export let syncContentsRepositorySyncQueueProcessor = syncContentsRepositorySync
         );
         return;
       }
+
+      if (await cancelSupersededRepositorySync(sync)) return;
 
       let path = sync.codeBucket.path ?? '/';
       logRepositorySyncQueueEvent('syncContents', 'exporting code bucket to repo', {
@@ -213,5 +217,5 @@ export let syncContentsRepositorySyncQueueProcessor = syncContentsRepositorySync
       }
       await markRepositorySyncFailed(data.syncId, e);
     }
-  }
+  })
 );
