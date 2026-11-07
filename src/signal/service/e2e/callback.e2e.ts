@@ -1,4 +1,4 @@
-import { uniqueId } from '@lowerdeck/testing-tools';
+import { eventually, uniqueId } from '@lowerdeck/testing-tools';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { db as testDb } from '../src/db';
 import { env } from '../src/env';
@@ -43,47 +43,18 @@ describe('signal callback', () => {
       output: { stage: 'output', ok: true }
     });
 
-    let inlineRecord = await testDb.callbackEvent.findUniqueOrThrow({
-      where: { id: recorded.id }
+    let offloadedRecord = await eventually(async () => {
+      let record = await testDb.callbackEvent.findUniqueOrThrow({
+        where: { id: recorded.id }
+      });
+
+      expect(record.inputJson).toBeNull();
+      expect(record.outputJson).toBeNull();
+      expect(record.inputStorageKey).toBe(storageKey.callbackEventInput(record));
+      expect(record.outputStorageKey).toBe(storageKey.callbackEventOutput(record));
+
+      return record;
     });
-
-    expect(inlineRecord.inputJson).toBe(inputJson);
-    expect(inlineRecord.outputJson).toBe(outputJson);
-    expect(inlineRecord.inputStorageKey).toBeNull();
-    expect(inlineRecord.outputStorageKey).toBeNull();
-
-    await storage.putObject(
-      env.storage.LOGS_BUCKET_NAME,
-      storageKey.callbackEventInput(inlineRecord),
-      inputJson
-    );
-    await storage.putObject(
-      env.storage.LOGS_BUCKET_NAME,
-      storageKey.callbackEventOutput(inlineRecord),
-      outputJson
-    );
-    await testDb.callbackEvent.update({
-      where: { id: recorded.id },
-      data: {
-        inputJson: null,
-        inputStorageKey: storageKey.callbackEventInput(inlineRecord),
-        outputJson: null,
-        outputStorageKey: storageKey.callbackEventOutput(inlineRecord)
-      }
-    });
-
-    let offloadedRecord = await testDb.callbackEvent.findUniqueOrThrow({
-      where: { id: recorded.id }
-    });
-
-    expect(offloadedRecord.inputJson).toBeNull();
-    expect(offloadedRecord.outputJson).toBeNull();
-    expect(offloadedRecord.inputStorageKey).toBe(
-      storageKey.callbackEventInput(offloadedRecord)
-    );
-    expect(offloadedRecord.outputStorageKey).toBe(
-      storageKey.callbackEventOutput(offloadedRecord)
-    );
 
     let storedInput = await storage.getObject(
       env.storage.LOGS_BUCKET_NAME,
