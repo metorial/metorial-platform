@@ -12,6 +12,7 @@ import { codeBucketService } from '../../../services';
 import { transitionRepositorySyncState } from '../../../services/repositorySyncState';
 import {
   appendRepositorySyncLog,
+  getRepositorySyncContentsRetryDelayMs,
   logRepositorySyncQueueError,
   logRepositorySyncQueueEvent,
   markRepositorySyncFailed,
@@ -203,13 +204,18 @@ export let syncContentsRepositorySyncQueueProcessor = syncContentsRepositorySync
           error: e
         });
       if (failedSync && shouldRetry) {
-        let delay = Math.min(60_000, 2_000 * 2 ** failedSync.attemptCount);
+        let delay = getRepositorySyncContentsRetryDelayMs({
+          attemptCount: failedSync.attemptCount,
+          error: e
+        });
         await transitionRepositorySyncState(failedSync.id, 'syncing_contents', {
           attemptCount: { increment: 1 },
           errorMessage:
             providerError.classification === 'conflict'
               ? 'The default branch changed during this update. Retrying automatically.'
-              : 'The repository provider is temporarily unavailable. Retrying automatically.',
+              : providerError.classification === 'rate_limited'
+                ? 'The repository provider rate limit was reached. Retrying automatically.'
+                : 'The repository provider is temporarily unavailable. Retrying automatically.',
           nextPollAt: new Date(Date.now() + delay)
         });
         await syncContentsRepositorySyncQueue.add({ syncId: data.syncId }, { delay });
