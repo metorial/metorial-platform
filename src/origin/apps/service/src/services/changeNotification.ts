@@ -4,10 +4,11 @@ import { Service } from '@lowerdeck/service';
 import { db } from '../db';
 
 class ChangeNotificationServiceImpl {
-  async getChangeNotificationById(d: { changeNotificationId: string }) {
+  async getChangeNotificationById(d: { tenantOid: bigint; changeNotificationId: string }) {
     let notification = await db.changeNotification.findFirst({
       where: {
-        id: d.changeNotificationId
+        id: d.changeNotificationId,
+        tenantOid: d.tenantOid
       },
       include: {
         repo: { include: { account: true } },

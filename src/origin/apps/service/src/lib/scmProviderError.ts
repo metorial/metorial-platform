@@ -187,6 +187,7 @@ let classifyScmProviderError = (
   if (normalized.includes('branch not found') || normalized.includes('reference not found')) {
     return 'missing_branch' as const;
   }
+  if (normalized.includes('rate limit')) return 'rate_limited' as const;
   if (status === 401) return 'authentication_failed' as const;
   if (status === 403) return 'permission_denied' as const;
   if (status === 404) return 'resource_not_found' as const;

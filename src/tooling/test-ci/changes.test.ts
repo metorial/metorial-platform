@@ -52,6 +52,15 @@ test('source, shared dependency, deleted files and imported configuration select
   expect(affected([], directories, true)).toBe(true);
 });
 
+test('E2E suites include every application container dependency', () => {
+  expect(controlSuites.find(suite => suite.name === 'shuttle')!.services).toContain(
+    '@metorial/forge'
+  );
+  expect(
+    controlSuites.find(suite => suite.name === 'function-bay')!.services
+  ).toContain('@metorial/forge');
+});
+
 test('Shuttle and Function Bay control suites include Forge as a stack dependency', () => {
   for (let name of ['shuttle', 'function-bay']) {
     expect(controlSuites.find(suite => suite.name === name)).toMatchObject({

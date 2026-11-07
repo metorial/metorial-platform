@@ -8,15 +8,7 @@ import {
 } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import {
-  skillStoreResource,
-  storeAccessService,
-  storeParticipantService,
-  storeReadPermission,
-  storeService,
-  storeVersionService,
-  storeWritePermission
-} from '@metorial/module-store';
+import type { AuditScope } from '@metorial/audit-scope';
 import type {
   EntityImage,
   Instance,
@@ -25,8 +17,8 @@ import type {
   ResourceActor,
   StoreParticipantPermissions
 } from '@metorial/db';
-import type { AuditScope } from '@metorial/audit-scope';
 import { db, withTransaction } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -43,14 +35,22 @@ import {
   consumerSkillReadRoles,
   getStoreResourceKindAccessWhere,
   isStoreResourceFlagEnabled,
-  skillStoreResourceKind,
-  type ResourceAuthorization
+  type ResourceAuthorization,
+  skillStoreResourceKind
 } from '@metorial/module-access';
-import type { SkillTemplateRecord } from '@metorial/module-skill-templates';
-import { getProjectTenantIdentifier } from '@metorial/skills-common';
-import { Fabric } from '@metorial/fabric';
-import { internalImageService } from '@metorial/skills-images';
 import { buildSearchFilter } from '@metorial/module-search';
+import type { SkillTemplateRecord } from '@metorial/module-skill-templates';
+import {
+  skillStoreResource,
+  storeAccessService,
+  storeParticipantService,
+  storeReadPermission,
+  storeService,
+  storeVersionService,
+  storeWritePermission
+} from '@metorial/module-store';
+import { getProjectTenantIdentifier } from '@metorial/skills-common';
+import { internalImageService } from '@metorial/skills-images';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/skills-search';
 import { getSkillSlug } from '../lib/skillSlug';
 import { enqueueSkillLifecycle } from '../queues/lifecycle';
@@ -633,21 +633,25 @@ class SkillServiceImpl {
       d.input.imageFileId !== undefined ||
       d.input.image !== undefined
     ) {
-      await db.skill.update({
-        where: {
-          id: d.skill.id
-        },
-        data: {
-          name: d.input.name,
-          description: d.input.description,
-          metadata: d.input.metadata as any,
-          clientName: d.input.clientName,
-          clientDescription: d.input.clientDescription,
-          clientMetadata: d.input.clientMetadata as any,
-          license: d.input.license,
-          compatibility: d.input.compatibility,
-          image: nextImage as any
-        }
+      await withTransaction(async db => {
+        await db.skill.update({
+          where: {
+            id: d.skill.id
+          },
+          data: {
+            name: d.input.name,
+            description: d.input.description,
+            metadata: d.input.metadata as any,
+            clientName: d.input.clientName,
+            clientDescription: d.input.clientDescription,
+            clientMetadata: d.input.clientMetadata as any,
+            license: d.input.license,
+            compatibility: d.input.compatibility,
+            image: nextImage as any
+          }
+        });
+
+        await enqueueSkillLifecycle({ skillId: d.skill.id, event: 'updated' });
       });
 
       if (d.input.imageFileId !== undefined || d.input.image !== undefined) {
@@ -659,8 +663,6 @@ class SkillServiceImpl {
         });
       }
     }
-
-    await enqueueSkillLifecycle({ skillId: d.skill.id, event: 'updated' });
 
     let updated = await this.getSkillRecord({
       project: d.project,

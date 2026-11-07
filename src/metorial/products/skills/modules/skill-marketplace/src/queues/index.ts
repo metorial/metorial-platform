@@ -1,3 +1,7 @@
+import {
+  dispatchPendingSkillSyncsCron,
+  dispatchPendingSkillSyncsQueueProcessor
+} from './sync/dispatch';
 import { combineQueueProcessors } from '@metorial/queue';
 import {
   collectDirtySkillDestinationsCron,
@@ -44,6 +48,8 @@ export let skillMarketplaceQueueProcessor = combineQueueProcessors([
   flushDirtySkillDestinationsCron,
   flushDirtySkillDestinationsManyQueueProcessor,
   flushDirtySkillDestinationsSingleQueueProcessor,
+  dispatchPendingSkillSyncsCron,
+  dispatchPendingSkillSyncsQueueProcessor,
   syncStartQueueProcessor,
   syncCollectQueueProcessor,
   syncProcessQueueProcessor,
