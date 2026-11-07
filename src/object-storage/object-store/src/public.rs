@@ -48,7 +48,7 @@ impl PublicUrlSigner {
         expiration_secs: u64,
         now: i64,
     ) -> SignedUrl {
-        let expires = now + expiration_secs.clamp(1, MAX_EXPIRATION_SECS) as i64;
+        let expires = now + clamp_expiration(expiration_secs) as i64;
         let purpose = purpose_name(purpose);
         let signature = hex::encode(
             self.mac(bucket, key, purpose, expires)
@@ -97,6 +97,10 @@ impl PublicUrlSigner {
         mac.update(format!("v1\n{}\n{}\n{}\n{}", purpose, bucket, key, expires).as_bytes());
         mac
     }
+}
+
+pub fn clamp_expiration(expiration_secs: u64) -> u64 {
+    expiration_secs.clamp(1, MAX_EXPIRATION_SECS)
 }
 
 pub fn purpose_name(purpose: PublicUrlPurpose) -> &'static str {
@@ -227,6 +231,13 @@ mod tests {
         let url = signer().sign("files", "a.txt", PublicUrlPurpose::Retrieve, u64::MAX, 0);
 
         assert_eq!(query(&url.url, "expires"), MAX_EXPIRATION_SECS.to_string());
+    }
+
+    #[test]
+    fn clamps_expirations_to_the_signable_range() {
+        assert_eq!(clamp_expiration(0), 1);
+        assert_eq!(clamp_expiration(3600), 3600);
+        assert_eq!(clamp_expiration(u64::MAX), MAX_EXPIRATION_SECS);
     }
 
     #[test]

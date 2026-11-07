@@ -360,6 +360,13 @@ impl ObjectStoreService {
         Ok(obj_metadata)
     }
 
+    pub fn effective_expiration(&self, expiration_secs: u64) -> u64 {
+        match self.public_signer {
+            Some(_) => crate::public::clamp_expiration(expiration_secs),
+            None => expiration_secs,
+        }
+    }
+
     pub async fn get_public_url(
         &self,
         bucket: &str,
