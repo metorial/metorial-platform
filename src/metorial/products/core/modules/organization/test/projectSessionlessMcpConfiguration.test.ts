@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
   ensureForProject: vi.fn(),
@@ -56,30 +56,16 @@ describe('projectSessionlessMcpConfigurationService', () => {
     mocks.ensureForProject.mockResolvedValue({ tenant });
   });
 
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
-
   describe('get', () => {
-    it('reports the global default as the value while the project has never written one', async () => {
-      vi.stubEnv('METORIAL_ENV', 'production');
+    it('reports false for an unset project setting', async () => {
       expect(
         await projectSessionlessMcpConfigurationService.getProjectSessionlessMcpConfiguration({
           project: activeProject as any
         })
       ).toEqual({ sessionlessMcpEnabled: false });
-
-      vi.stubEnv('METORIAL_ENV', 'staging');
-      expect(
-        await projectSessionlessMcpConfigurationService.getProjectSessionlessMcpConfiguration({
-          project: activeProject as any
-        })
-      ).toEqual({ sessionlessMcpEnabled: true });
     });
 
-    it('reports an explicit project value regardless of the global default', async () => {
-      vi.stubEnv('METORIAL_ENV', 'production');
-
+    it('reports an explicit project value', async () => {
       expect(
         await projectSessionlessMcpConfigurationService.getProjectSessionlessMcpConfiguration({
           project: { ...activeProject, sessionlessMcpEnabled: true } as any
@@ -125,8 +111,7 @@ describe('projectSessionlessMcpConfigurationService', () => {
       });
     });
 
-    it('can turn sessionless off in an environment where it is on by default', async () => {
-      vi.stubEnv('METORIAL_ENV', 'staging');
+    it('can turn sessionless off for a project where it is enabled', async () => {
       mocks.upsertTenant.mockResolvedValue({ ...tenant, sessionlessMcpEnabled: false });
       mocks.projectUpdate.mockResolvedValue({
         ...activeProject,
@@ -137,7 +122,7 @@ describe('projectSessionlessMcpConfigurationService', () => {
         await projectSessionlessMcpConfigurationService.updateProjectSessionlessMcpConfiguration(
           {
             ...common,
-            project: activeProject as any,
+            project: { ...activeProject, sessionlessMcpEnabled: true } as any,
             input: { sessionlessMcpEnabled: false }
           }
         );
@@ -145,8 +130,7 @@ describe('projectSessionlessMcpConfigurationService', () => {
       expect(result).toEqual({ sessionlessMcpEnabled: false });
     });
 
-    it('audits the previous value as the global default when the project had none', async () => {
-      vi.stubEnv('METORIAL_ENV', 'staging');
+    it('audits an unset previous project setting as false', async () => {
       mocks.upsertTenant.mockResolvedValue({ ...tenant, sessionlessMcpEnabled: false });
       mocks.projectUpdate.mockResolvedValue({
         ...activeProject,
@@ -165,7 +149,7 @@ describe('projectSessionlessMcpConfigurationService', () => {
         'organization.project.sessionless_mcp_configuration.updated:after',
         expect.objectContaining({
           configuration: { sessionlessMcpEnabled: false },
-          previousConfiguration: { sessionlessMcpEnabled: true }
+          previousConfiguration: { sessionlessMcpEnabled: false }
         })
       );
     });

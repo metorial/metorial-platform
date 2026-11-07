@@ -39,6 +39,7 @@ class tenantServiceImpl {
       onlyAllowOAuthAuthMethods?: boolean;
       collectOperationDescriptionForToolCalls?: boolean;
       sessionlessMcpEnabled?: boolean;
+      sessionlessMcpEnabledOnCreate?: boolean;
       useIntegrationNamesForSessionProviderNameTemplates?: boolean;
       dataRetentionLevel?: SessionDataRetentionLevel;
       storeToolCallAttachments?: boolean;
@@ -120,7 +121,10 @@ class tenantServiceImpl {
                 onlyAllowOAuthAuthMethods: d.input.onlyAllowOAuthAuthMethods ?? false,
                 collectOperationDescriptionForToolCalls:
                   d.input.collectOperationDescriptionForToolCalls ?? true,
-                sessionlessMcpEnabled: d.input.sessionlessMcpEnabled,
+                sessionlessMcpEnabled:
+                  d.input.sessionlessMcpEnabled ??
+                  d.input.sessionlessMcpEnabledOnCreate ??
+                  true,
                 useIntegrationNamesForSessionProviderNameTemplates:
                   d.input.useIntegrationNamesForSessionProviderNameTemplates ?? false,
                 dataRetentionLevel: d.input.dataRetentionLevel ?? 'full',

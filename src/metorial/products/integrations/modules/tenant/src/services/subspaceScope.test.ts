@@ -202,6 +202,21 @@ describe('Subspace scope provisioning', () => {
     }
   );
 
+  it.each([null, true, false])(
+    'inherits the project sessionless MCP setting %s on tenant creation',
+    async value => {
+      await subspaceScopeService.ensureForProjectUncached(
+        makeProject({ sessionlessMcpEnabled: value })
+      );
+
+      expect(mocks.tenantUpsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          input: expect.objectContaining({ sessionlessMcpEnabledOnCreate: value ?? false })
+        })
+      );
+    }
+  );
+
   it('clears cached project and instance scopes after an admin policy change', async () => {
     let instance = { id: 'ins_3' };
     let project = makeProject({ instances: [instance] });
