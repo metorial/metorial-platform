@@ -197,6 +197,7 @@ let sourceRunner = (context: RenderContext): string[] => {
     ...Object.entries(build.env).map(([key, value]) => `ENV ${key}=${value}`),
     ...releaseLines(build),
     `WORKDIR /app/${packageDirectory}`,
+    `USER ${user.id}:${user.id}`,
     `CMD ${JSON.stringify(['bun', `./${build.start}`])}`
   ];
 };
@@ -244,7 +245,7 @@ export let runner = (context: RenderContext): string[] => {
     );
   }
 
-  lines.push(`USER ${user.name}`);
+  lines.push(`USER ${user.id}:${user.id}`);
 
   if (build.ports.length) lines.push(`EXPOSE ${build.ports.join(' ')}`);
 

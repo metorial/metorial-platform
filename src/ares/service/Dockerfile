@@ -68,7 +68,7 @@ COPY --link --chown=10001:10001 <<'EOF' ./.control/runtime.json
 }
 EOF
 ENV PRISMA_BIN=/opt/prisma/node_modules/.bin/prisma
-USER metorial
+USER 10001:10001
 EXPOSE 52120 52121 52122 52123 12121
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
   CMD curl -fsS http://127.0.0.1:52120/ping && curl -fsS http://127.0.0.1:12121/ || exit 1

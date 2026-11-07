@@ -38,7 +38,7 @@ describe('generated Dockerfiles', () => {
     expect(contents).toContain(
       'RUN bun ./src/tooling/docker-build/prune.ts prisma:generate server:build --filter=service'
     );
-    expect(contents).toContain('USER metorial');
+    expect(contents).toContain('USER 10001:10001');
     expect(contents).toContain('ENTRYPOINT ["/usr/bin/tini", "--"]');
     expect(contents).toContain('CMD ["bun","./dist/index.js"]');
     expect(contents).toContain('curl -fsS http://127.0.0.1:3000/ping');
