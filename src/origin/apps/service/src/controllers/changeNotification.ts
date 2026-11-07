@@ -5,11 +5,12 @@ import { changeNotificationService } from '../services';
 import { app } from './_app';
 import { tenantApp } from './tenant';
 
-export let changeNotificationApp = app.use(async ctx => {
+export let changeNotificationApp = tenantApp.use(async ctx => {
   let changeNotificationId = ctx.body.changeNotificationId;
   if (!changeNotificationId) throw new Error('Change Notification ID is required');
 
   let changeNotification = await changeNotificationService.getChangeNotificationById({
+    tenantOid: ctx.tenant.oid,
     changeNotificationId
   });
 
