@@ -322,21 +322,31 @@ impl Backend for S3Backend {
                 info!("S3 bucket {} is accessible", self.bucket_name);
                 Ok(())
             }
-            Err(_) if self.create_bucket => {
-                self.client
+            Err(e)
+                if self.create_bucket && e.as_service_error().is_some_and(|e| e.is_not_found()) =>
+            {
+                match self
+                    .client
                     .create_bucket()
                     .bucket(&self.bucket_name)
                     .send()
                     .await
-                    .map_err(|e| {
-                        BackendError::Configuration(format!(
+                {
+                    Ok(_) => info!("Created S3 bucket {}", self.bucket_name),
+                    Err(e)
+                        if e.as_service_error()
+                            .is_some_and(|e| e.is_bucket_already_owned_by_you()) =>
+                    {
+                        info!("S3 bucket {} was created concurrently", self.bucket_name);
+                    }
+                    Err(e) => {
+                        return Err(BackendError::Configuration(format!(
                             "Cannot create S3 bucket '{}': {}",
                             self.bucket_name,
                             DisplayErrorContext(&e)
-                        ))
-                    })?;
-
-                info!("Created S3 bucket {}", self.bucket_name);
+                        )));
+                    }
+                }
                 Ok(())
             }
             Err(e) => {
