@@ -41,11 +41,10 @@ jobs:
           token: ${{ secrets.GH_TOKEN || github.token }}
           fetch-depth: 0
 
-      - name: Set up test workspace
-        id: tests
-        uses: ./.github/actions/setup-test-workspace
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          tasks: ${{ needs.changes.outputs.unit-tasks }}
+          bun-version: '1.4.2'
 
       - name: Set up Warp Cache
         uses: ./.github/actions/setup-warp-cache
@@ -56,6 +55,12 @@ jobs:
           signature-key: ${{ secrets.TURBO_REMOTE_CACHE_SIGNATURE_KEY }}
           role-arn: ${{ vars.WARP_CACHE_ROLE_ARN }}
           bucket: ${{ vars.WARP_CACHE_BUCKET }}
+
+      - name: Set up test workspace
+        id: tests
+        uses: ./.github/actions/setup-test-workspace
+        with:
+          tasks: ${{ needs.changes.outputs.unit-tasks }}
 
       - name: Test packages and services
         working-directory: ${{ steps.tests.outputs.workspace }}

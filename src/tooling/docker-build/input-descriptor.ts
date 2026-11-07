@@ -200,11 +200,13 @@ export let descriptorInputs = (
           : input.oid
       });
   }
-  for (let input of descriptor.generated)
+  for (let input of descriptor.generated) {
+    let bytes = Buffer.from(input.data, 'base64');
     inputs.set(`full/${input.path}`, {
       mode: input.mode,
-      oid: blob(Buffer.from(input.data, 'base64'))
+      oid: fingerprintOid(input.path, bytes, blob(bytes))
     });
+  }
   for (let input of descriptor.json) {
     let bytes = Buffer.from(input.data, 'base64');
     inputs.set(`json/${input.path}`, {
