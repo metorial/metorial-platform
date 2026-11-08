@@ -42,6 +42,8 @@ import {
   ConsumerAccess,
   ConsumerAccessListing,
   ConsumerAccessRequest,
+  ConsumerDevice,
+  ConsumerDeviceClientSetting,
   ConsumerGroup,
   ConsumerInvite,
   ConsumerProfile,
@@ -832,6 +834,11 @@ export type AuditConsumerSession = ConsumerSession & {
   consumerProfile: AuditConsumerProfile;
 };
 
+export type AuditConsumerDevice = ConsumerDevice & {
+  consumerProfile: ConsumerProfile;
+  clientSettings: ConsumerDeviceClientSetting[];
+};
+
 export type AuditPortal = Portal & {
   surface: { id: string };
 };
@@ -1318,6 +1325,9 @@ export interface FabricEvents {
 
   'consumer.session.created:after': { consumerSession: AuditConsumerSession; auditScope: AuditScope };
   'consumer.session.revoked:after': { consumerSession: AuditConsumerSession; auditScope: AuditScope };
+  'consumer.device.enrolled:after': { consumerDevice: AuditConsumerDevice; auditScope: AuditScope };
+  'consumer.device.updated:after': { consumerDevice: AuditConsumerDevice; previousConsumerDevice: AuditConsumerDevice; auditScope: AuditScope };
+  'consumer.device.ended:after': { consumerDevice: AuditConsumerDevice; previousConsumerDevice: AuditConsumerDevice; auditScope: AuditScope };
 
   'consumer.surface.created:after': { organization: Organization; instance: Instance; consumerSurface: ConsumerSurface; auditScope: AuditScope };
   'consumer.surface.updated:after': { consumerSurface: ConsumerSurface; previousConsumerSurface: ConsumerSurface; auditScope: AuditScope };

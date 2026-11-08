@@ -30,6 +30,9 @@ model MagicMcpToken {
   skillPluginOid BigInt?
   skillPlugin    SkillPlugin? @relation(fields: [skillPluginOid], references: [oid], onDelete: SetNull)
 
+  consumerDeviceOid BigInt?
+  consumerDevice    ConsumerDevice? @relation(fields: [consumerDeviceOid], references: [oid], onDelete: SetNull)
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @default(now()) @updatedAt
   deletedAt DateTime?
@@ -40,6 +43,8 @@ model MagicMcpToken {
   accessTagEntities    AccessTagEntity[]
   consumerTokens       ConsumerToken[]
   consumerAuthAttempts ConsumerAuthAttempt[]
+
+  @@index([consumerDeviceOid])
 }
 
 model MagicMcpTokenUse {

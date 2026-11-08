@@ -1,6 +1,10 @@
+import './listeners/oauthAuthorization';
 import { OrganizationMember } from '@metorial/db';
 import { combineQueueProcessors } from '@metorial/queue';
-import { consumerCreatedQueueProcessor, consumerUpdatedQueueProcessor } from './queues/lifecycle/consumer';
+import {
+  consumerCreatedQueueProcessor,
+  consumerUpdatedQueueProcessor
+} from './queues/lifecycle/consumer';
 import {
   consumerGroupArchivedQueueProcessor,
   consumerGroupCreatedQueueProcessor,

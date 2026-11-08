@@ -10,6 +10,7 @@ import {
   consumerAccessListingAuditResource
 } from './consumerAccess';
 import { consumerAccessRequestAuditResource } from './consumerAccessRequest';
+import { consumerDeviceAuditResource } from './consumerDevice';
 import { consumerGroupAuditResource } from './consumerGroup';
 import { consumerInviteAuditResource } from './consumerInvite';
 import {
@@ -39,6 +40,7 @@ export let workforceResources = resourceSet({
   consumer_invite: consumerInviteAuditResource,
   consumer_surface: consumerSurfaceAuditResource,
   consumer_session: consumerSessionAuditResource,
+  consumer_device: consumerDeviceAuditResource,
   consumer_access: consumerAccessAuditResource,
   consumer_access_listing: consumerAccessListingAuditResource,
   consumer_access_request: consumerAccessRequestAuditResource,

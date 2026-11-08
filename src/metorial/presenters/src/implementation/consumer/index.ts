@@ -4,6 +4,7 @@ export * from './consumerAccessListing';
 export * from './consumerAccessRequest';
 export * from './consumerActivity';
 export * from './consumerAndProfile';
+export * from './consumerDevice';
 export * from './consumerGroup';
 export * from './consumerInvite';
 export * from './consumerOAuthAuthorization';

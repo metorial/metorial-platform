@@ -1,3 +1,4 @@
+import './listeners/consumerDevice';
 import { combineQueueProcessors } from '@metorial/queue';
 import { magicQueues } from './queues';
 

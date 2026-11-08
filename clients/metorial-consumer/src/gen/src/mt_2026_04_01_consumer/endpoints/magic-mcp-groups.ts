@@ -144,7 +144,7 @@ export class MetorialMagicMcpGroupsEndpoint {
 
   /**
    * @name Delete magic MCP group
-   * @description Deletes a magic MCP group.
+   * @description Deletes a magic MCP group. Fails while the group is the only group of an active magic MCP token, so that deleting a group never widens what a token can access.
    *
    * @param `magicMcpGroupId` - string
    * @param `opts` - { headers?: Record<string, string> }

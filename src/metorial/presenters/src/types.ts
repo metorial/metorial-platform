@@ -99,6 +99,8 @@ import {
   ConsumerAuthClient,
   ConsumerAuthClientSurface,
   ConsumerAuthTestAuthorization,
+  ConsumerDevice,
+  ConsumerDeviceClientSetting,
   ConsumerGroup,
   ConsumerIntegration,
   ConsumerIntegrationEndpoint,
@@ -2590,6 +2592,13 @@ export let consumerProfileType = PresentableType.create<{
 export let consumerSessionType = PresentableType.create<{
   consumerSession: ConsumerSession;
 }>()('consumer.session');
+
+export let consumerDeviceType = PresentableType.create<{
+  consumerDevice: ConsumerDevice & {
+    clientSettings: ConsumerDeviceClientSetting[];
+    consumerProfile: ConsumerProfile;
+  };
+}>()('consumer.device');
 
 export let consumerProviderType = PresentableType.create<{
   consumerProvider: ConsumerProviderCatalogEntry;

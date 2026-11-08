@@ -1081,15 +1081,33 @@ class OAuthAuthorizationService {
 
       let tokenValues = createIssuedOAuthTokenValues(d);
 
-      let oauthToken = await db.oAuthToken.update({
+      // Conditional on the refresh token that was presented, so a revoke or a
+      // second refresh committed since it was read is never overwritten.
+      let refreshed = await db.oAuthToken.updateMany({
         where: {
-          oid: d.oauthToken.oid
+          oid: d.oauthToken.oid,
+          refreshToken: d.oauthToken.refreshToken
         },
         data: {
           oauthInstallationOid: d.oauthToken.oauthAuthorization.oauthInstallationOid,
           lastRefreshedAt: new Date(),
           ...tokenValues
-        },
+        }
+      });
+      if (!refreshed.count) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Invalid refresh token',
+            oauth: {
+              error: 'invalid_grant',
+              errorMessage: 'Invalid refresh token'
+            }
+          })
+        );
+      }
+
+      let oauthToken = await db.oAuthToken.findUniqueOrThrow({
+        where: { oid: d.oauthToken.oid },
         include: tokenInclude
       });
 
@@ -1810,6 +1828,15 @@ class OAuthAuthorizationService {
         include: authorizationInclude
       });
 
+      let now = new Date();
+      await db.oAuthToken.updateMany({
+        where: {
+          oauthAuthorizationOid: oauthAuthorization.oid,
+          OR: [{ refreshToken: { not: null } }, { accessTokenExpiresAt: { gt: now } }]
+        },
+        data: { refreshToken: null, accessTokenExpiresAt: now, completelyExpiresAt: now }
+      });
+
       await revokeOAuthConsumerSession({ oauthAuthorization });
 
       addAfterTransactionHook(() =>
@@ -1827,6 +1854,19 @@ class OAuthAuthorizationService {
 
       return oauthAuthorization;
     });
+  }
+
+  async revokeOAuthToken(d: { oauthToken: Pick<OAuthToken, 'oid'> }) {
+    let now = new Date();
+
+    return await withTransaction(
+      async db =>
+        await db.oAuthToken.update({
+          where: { oid: d.oauthToken.oid },
+          data: { refreshToken: null, accessTokenExpiresAt: now, completelyExpiresAt: now }
+        }),
+      { ifExists: true }
+    );
   }
 
   async revokeConsumerOAuthAuthorization(d: {

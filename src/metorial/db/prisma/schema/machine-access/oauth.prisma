@@ -332,4 +332,5 @@ model OAuthToken {
   lastUsedAt           DateTime?
 
   internalOAuthToken InternalOAuthToken?
+  consumerDevice     ConsumerDevice?
 }
