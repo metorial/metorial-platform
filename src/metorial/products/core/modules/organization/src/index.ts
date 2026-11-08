@@ -21,6 +21,7 @@ export { syncSubspaceTenantQueue } from './queues/syncSubspaceTenant';
 export * from './definitions/config';
 export * from './definitions/layout';
 export * from './definitions/notifications';
+export * from './definitions/userEmailVerification';
 export * from './services';
 
 export let organizationQueueProcessor = combineQueueProcessors([

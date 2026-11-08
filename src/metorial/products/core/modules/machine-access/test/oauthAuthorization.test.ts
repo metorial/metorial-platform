@@ -43,13 +43,16 @@ let {
     oAuthAuthorizationFlow: {
       findFirst: vi.fn(),
       upsert: vi.fn(),
-      update: vi.fn()
+      update: vi.fn(),
+      updateMany: vi.fn()
     },
     oAuthToken: {
       findUnique: vi.fn(),
+      findUniqueOrThrow: vi.fn(),
       findFirst: vi.fn(),
       create: vi.fn(),
-      update: vi.fn()
+      update: vi.fn(),
+      updateMany: vi.fn()
     },
     organizationMember: {
       findFirst: vi.fn()
@@ -291,6 +294,7 @@ describe('oauthAuthorizationService', () => {
       oid: where.oid,
       ...data
     }));
+    mockDb.oAuthAuthorizationFlow.updateMany.mockResolvedValue({ count: 1 });
     getMemberEffectiveAccessMock.mockResolvedValue({ entries: [] });
     getGrantedScopesMock.mockReturnValue(['organization:read', 'organization:write']);
     oauthGlobalRepositoryMock.claimOAuthAuthorizationRequest.mockImplementation(
@@ -556,11 +560,16 @@ describe('oauthAuthorizationService', () => {
         status: 'active'
       }
     }));
-    mockDb.oAuthToken.update.mockImplementation(async ({ where, data }: any) => ({
+    let rotatedTokenData: Record<string, unknown> = {};
+    mockDb.oAuthToken.updateMany.mockImplementation(async ({ data }: any) => {
+      rotatedTokenData = data;
+      return { count: 1 };
+    });
+    mockDb.oAuthToken.findUniqueOrThrow.mockImplementation(async ({ where }: any) => ({
       oid: where.oid ?? 601n,
       id: 'oauthToken-generated-id',
       oauthAuthorizationOid: 300n,
-      ...data,
+      ...rotatedTokenData,
       oauthAuthorization: {
         oid: 300n,
         oauthInstallationOid: 200n,
@@ -757,8 +766,8 @@ describe('oauthAuthorizationService', () => {
       status: 'accepted',
       code: 'code-1',
       redirectUri: 'https://example.com/callback',
-      codeChallengeMethod: 'none',
-      codeChallenge: null,
+      codeChallengeMethod: 's256',
+      codeChallenge: 'zlxhzi2oXcwctSMRn0OqyEVcKJPGyt9nEWTCdXRuWlA',
       expiresAt: new Date(Date.now() + 60_000)
     });
     mockDb.oAuthAuthorizationFlow.findFirst.mockResolvedValue({
@@ -767,8 +776,8 @@ describe('oauthAuthorizationService', () => {
       type: 'interactive',
       status: 'accepted',
       redirectUri: 'https://example.com/callback',
-      codeChallengeMethod: 'none',
-      codeChallenge: null,
+      codeChallengeMethod: 's256',
+      codeChallenge: 'zlxhzi2oXcwctSMRn0OqyEVcKJPGyt9nEWTCdXRuWlA',
       expiresAt: new Date(Date.now() + 60_000),
       oauthApplication: {
         oid: 100n,
@@ -827,14 +836,123 @@ describe('oauthAuthorizationService', () => {
         grantType: 'authorization_code',
         clientId: 'client-1',
         code: 'code-1',
-        redirectUri: 'https://example.com/callback'
+        redirectUri: 'https://example.com/callback',
+        codeVerifier: 'code-verifier-1-abcdefghijklmnopqrstuvwxyz0123'
       }
     });
 
+    expect(mockDb.oAuthAuthorizationFlow.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { oid: 500n, status: 'accepted' } })
+    );
     expect(unifiedApiKeyCreateMock).toHaveBeenCalled();
     expect(mockDb.oAuthToken.create).toHaveBeenCalled();
     expect(result.oauthToken.accessToken).toContain('metorial_oa_');
     expect(result.oauthToken.refreshToken).toBeNull();
+  });
+
+  describe('authorization code redemption', () => {
+    let mockAcceptedFlow = (codeChallengeMethod: 'none' | 's256') => {
+      oauthGlobalRepositoryMock.getOAuthAuthorizationRequestByCode.mockResolvedValue({
+        id: 'oarf_1',
+        oauthApplicationId: 'oauthApplication-generated-id',
+        type: 'interactive',
+        status: 'accepted',
+        code: 'code-1',
+        redirectUri: 'https://example.com/callback',
+        expiresAt: new Date(Date.now() + 60_000)
+      });
+      mockDb.oAuthAuthorizationFlow.findFirst.mockResolvedValue({
+        oid: 500n,
+        id: 'oarf_1',
+        type: 'interactive',
+        status: 'accepted',
+        redirectUri: 'https://example.com/callback',
+        codeChallengeMethod,
+        codeChallenge:
+          codeChallengeMethod == 's256' ? 'zlxhzi2oXcwctSMRn0OqyEVcKJPGyt9nEWTCdXRuWlA' : null,
+        oauthAuthorization: {
+          oid: 300n,
+          status: 'active',
+          oauthApplication: { status: 'active' },
+          oauthInstallation: { status: 'active' },
+          machineAccess: { status: 'active' },
+          organizationMember: null
+        }
+      });
+    };
+
+    let exchange = (input: { clientSecret?: string; codeVerifier?: string } = {}) =>
+      oauthAuthorizationService.exchangeOAuthToken({
+        context: baseContext,
+        input: {
+          grantType: 'authorization_code',
+          clientId: 'client-1',
+          code: 'code-1',
+          redirectUri: 'https://example.com/callback',
+          ...input
+        }
+      });
+
+    it('requires PKCE when no client secret is presented', async () => {
+      mockAcceptedFlow('none');
+
+      await expect(exchange()).rejects.toMatchObject({
+        data: expect.objectContaining({ status: 400 })
+      });
+      expect(mockDb.oAuthAuthorizationFlow.updateMany).not.toHaveBeenCalled();
+      expect(mockDb.oAuthToken.create).not.toHaveBeenCalled();
+    });
+
+    it('allows confidential clients to redeem codes without PKCE', async () => {
+      mockAcceptedFlow('none');
+
+      await exchange({ clientSecret: 'secret-1' });
+
+      expect(mockDb.oAuthToken.create).toHaveBeenCalled();
+    });
+
+    it('does not issue tokens when the code was already redeemed concurrently', async () => {
+      mockAcceptedFlow('s256');
+      mockDb.oAuthAuthorizationFlow.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        exchange({ codeVerifier: 'code-verifier-1-abcdefghijklmnopqrstuvwxyz0123' })
+      ).rejects.toMatchObject({
+        data: expect.objectContaining({ status: 400 })
+      });
+      expect(mockDb.oAuthToken.create).not.toHaveBeenCalled();
+    });
+  });
+
+  it('does not rotate a refresh token that was already rotated concurrently', async () => {
+    mockDb.oAuthToken.findFirst.mockResolvedValue({
+      oid: 601n,
+      refreshToken: 'metorial_or_old',
+      oauthAuthorization: {
+        oid: 300n,
+        oauthInstallationOid: 200n,
+        status: 'active',
+        oauthApplication: { oid: 100n, clientId: 'client-1', status: 'active' },
+        oauthInstallation: { oid: 200n, status: 'active' },
+        machineAccess: { oid: 400n, status: 'active' }
+      }
+    });
+    mockDb.oAuthToken.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(
+      oauthAuthorizationService.exchangeOAuthToken({
+        context: baseContext,
+        input: {
+          grantType: 'refresh_token',
+          clientId: 'client-1',
+          clientSecret: 'secret-1',
+          refreshToken: 'metorial_or_old'
+        }
+      })
+    ).rejects.toMatchObject({
+      data: expect.objectContaining({ status: 400 })
+    });
+    expect(mockDb.oAuthToken.findUniqueOrThrow).not.toHaveBeenCalled();
   });
 
   it('rotates refresh tokens by updating the existing token row', async () => {
@@ -872,9 +990,9 @@ describe('oauthAuthorizationService', () => {
       }
     });
 
-    expect(mockDb.oAuthToken.update).toHaveBeenCalledWith(
+    expect(mockDb.oAuthToken.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { oid: 601n },
+        where: { oid: 601n, refreshToken: 'metorial_or_old' },
         data: expect.objectContaining({
           accessToken: expect.stringContaining('metorial_oa_'),
           refreshToken: expect.stringContaining('metorial_or_'),
@@ -914,7 +1032,7 @@ describe('oauthAuthorizationService', () => {
     await expect(refresh()).rejects.toMatchObject({
       data: expect.objectContaining({ status: 401 })
     });
-    expect(mockDb.oAuthToken.update).not.toHaveBeenCalled();
+    expect(mockDb.oAuthToken.updateMany).not.toHaveBeenCalled();
   });
 
   it('exchanges server-side client credentials without issuing a refresh token', async () => {

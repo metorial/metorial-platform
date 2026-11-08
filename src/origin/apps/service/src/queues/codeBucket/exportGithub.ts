@@ -38,11 +38,11 @@ export let exportGithubQueueProcessor = exportGithubQueue.process(async data => 
 
   await codeBucketClient.exportBucketToGithub({
     bucketId: data.bucketId,
-    ...getGitHubTransferEndpoints(
+    ...(await getGitHubTransferEndpoints(
       repo.installation.backend,
       repo.externalOwner,
       repo.externalName
-    ),
+    )),
     owner: repo.externalOwner,
     repo: repo.externalName,
     path: data.path,

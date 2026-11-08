@@ -1,6 +1,6 @@
 import { ServiceError, unauthorizedError } from '@lowerdeck/error';
 import { updateExecutionContext } from '@lowerdeck/execution-context';
-import { parseForwardedFor } from '@lowerdeck/forwarded-for';
+import { extractTrustedClientIp } from '@lowerdeck/forwarded-for';
 import { extractToken } from '@metorial/bearer';
 import { getConfig } from '@metorial/config';
 import { Context } from '@metorial/context';
@@ -20,25 +20,40 @@ export let getDashboardAuthCookieFromNodeReq = (req: http.IncomingMessage) => {
   return cookies[SESSION_COOKIE_NAME] ?? null;
 };
 
+let isServedOverHttps = () => {
+  try {
+    return new URL(getConfig().urls.apiUrl).protocol == 'https:';
+  } catch {
+    return false;
+  }
+};
+
+export let isDashboardOrigin = (origin: string | null | undefined) => {
+  if (!origin) return false;
+
+  try {
+    return (
+      getConfig().env == 'development' ||
+      new URL(origin).origin == new URL(getConfig().urls.appUrl).origin
+    );
+  } catch {
+    return false;
+  }
+};
+
 export let setDashboardAuthCookie = (sessionClientSecret: string) =>
   Cookies.stringifySetCookie({
     name: SESSION_COOKIE_NAME,
     value: sessionClientSecret,
     path: '/',
     httpOnly: true,
-    // secure: getConfig().env != 'development',
+    secure: isServedOverHttps(),
     sameSite: 'lax',
     maxAge: getConfig().env == 'production' ? 60 * 60 * 24 * 7 : 60 * 60 * 24 * 365
   });
 
 export let authenticate = async (req: Request, url: URL) => {
-  let ip =
-    parseForwardedFor(
-      req.headers.get('metorial-connecting-ip') ??
-        req.headers.get('cf-connecting-ip') ??
-        req.headers.get('x-forwarded-for') ??
-        req.headers.get('x-real-ip')
-    ) ?? '0.0.0.0';
+  let ip = extractTrustedClientIp(req.headers) ?? '0.0.0.0';
   let ua = req.headers.get('user-agent') ?? undefined;
 
   let context: Context = { ip, ua };
@@ -53,6 +68,16 @@ export let authenticate = async (req: Request, url: URL) => {
         message: 'Missing Authorization header',
         description: `Expected the authentication header to be "Bearer <token>".`,
         hint: 'Copy your API key from the Metorial dashboard and use it in the "Authorization" header in the format "Bearer your_token_from_the_dashboard"'
+      })
+    );
+  }
+
+  let origin = req.headers.get('origin');
+  if (!bearerToken && origin && !isDashboardOrigin(origin)) {
+    throw new ServiceError(
+      unauthorizedError({
+        message: 'Session cookies are only accepted from the dashboard',
+        hint: 'Open the dashboard at the address configured in APP_URL.'
       })
     );
   }

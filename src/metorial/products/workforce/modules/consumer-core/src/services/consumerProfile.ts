@@ -310,6 +310,27 @@ class ConsumerProfileServiceImpl {
     return { OR: or } satisfies Prisma.ConsumerProfileWhereInput;
   }
 
+  private getConsumerDirectoryWhere(consumerGroups: ConsumerGroup[]) {
+    let visibilityWhere = this.getSharedGroupVisibilityWhere(consumerGroups);
+
+    return {
+      AND: [
+        { inviteStatus: { in: ['unset', 'accepted'] } },
+        ...(visibilityWhere ? [visibilityWhere] : [])
+      ]
+    } satisfies Prisma.ConsumerProfileWhereInput;
+  }
+
+  private filterGroupsVisibleToConsumer<T extends Pick<ConsumerGroup, 'oid'>>(
+    groups: T[],
+    consumerGroups: ConsumerGroup[] | undefined
+  ) {
+    if (!consumerGroups) return groups;
+
+    let visibleGroupOids = new Set(consumerGroups.map(group => group.oid));
+    return groups.filter(group => visibleGroupOids.has(group.oid));
+  }
+
   async enrichConsumerProfile<T extends ConsumerProfileWithRelations>(d: {
     consumerProfile: T;
     instanceConsumer?: InstanceConsumer | null;
@@ -467,10 +488,16 @@ class ConsumerProfileServiceImpl {
     let groupMembershipWhere: Prisma.ConsumerProfileWhereInput | undefined;
     let inviteStatusWhere: Prisma.ConsumerProfileWhereInput | undefined;
     let visibilityWhere = d.visibleToConsumerGroups
-      ? this.getSharedGroupVisibilityWhere(d.visibleToConsumerGroups)
+      ? this.getConsumerDirectoryWhere(d.visibleToConsumerGroups)
       : undefined;
 
-    if (consumerGroupId) {
+    if (
+      consumerGroupId &&
+      d.visibleToConsumerGroups &&
+      !d.visibleToConsumerGroups.some(group => group.id === consumerGroupId)
+    ) {
+      groupMembershipWhere = { id: { in: [] } };
+    } else if (consumerGroupId) {
       let group = await db.consumerGroup.findFirst({
         where: {
           id: consumerGroupId,
@@ -575,7 +602,6 @@ class ConsumerProfileServiceImpl {
     consumerGroups: ConsumerGroup[];
     consumerProfileId: string;
   }) {
-    let visibilityWhere = this.getSharedGroupVisibilityWhere(d.consumerGroups);
     let consumerProfile = await db.consumerProfile.findFirst({
       where: {
         AND: [
@@ -584,7 +610,7 @@ class ConsumerProfileServiceImpl {
             id: d.consumerProfileId,
             status: 'active'
           },
-          ...(visibilityWhere ? [visibilityWhere] : [])
+          this.getConsumerDirectoryWhere(d.consumerGroups)
         ]
       },
       include
@@ -1220,17 +1246,21 @@ class ConsumerProfileServiceImpl {
         }>;
       }
     >;
+    visibleToConsumerGroups?: ConsumerGroup[];
   }) {
     if (!d.consumerProfiles.length) {
       return {} as Record<string, EffectiveConsumerGroup[]>;
     }
 
-    let activeGroups = await db.consumerGroup.findMany({
-      where: {
-        surfaceOid: d.consumerSurface.oid,
-        status: 'active'
-      }
-    });
+    let activeGroups = this.filterGroupsVisibleToConsumer(
+      await db.consumerGroup.findMany({
+        where: {
+          surfaceOid: d.consumerSurface.oid,
+          status: 'active'
+        }
+      }),
+      d.visibleToConsumerGroups
+    );
 
     let toAssignedGroup = (
       group: ConsumerGroup,
@@ -1391,11 +1421,17 @@ class ConsumerProfileServiceImpl {
     });
   }
 
-  async getGroupsForProfile(d: { consumerProfile: ConsumerProfile; ssoGroupIds?: string[] }) {
-    return await getEffectiveConsumerGroups({
+  async getGroupsForProfile(d: {
+    consumerProfile: ConsumerProfile;
+    ssoGroupIds?: string[];
+    visibleToConsumerGroups?: ConsumerGroup[];
+  }) {
+    let groups = await getEffectiveConsumerGroups({
       consumerProfile: d.consumerProfile,
       ssoGroupIds: d.ssoGroupIds ?? d.consumerProfile.ssoGroupIds ?? []
     });
+
+    return this.filterGroupsVisibleToConsumer(groups, d.visibleToConsumerGroups);
   }
 
   private async resolveConsumersForUserInternal(d: {

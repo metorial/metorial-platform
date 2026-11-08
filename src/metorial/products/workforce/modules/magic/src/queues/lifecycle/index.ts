@@ -14,6 +14,7 @@ import {
   magicMcpServerDeletedQueueProcessor,
   magicMcpServerUpdatedQueueProcessor
 } from './magicMcpServer';
+import { consumerProfileDeletedMagicMcpTokensQueueProcessor } from './magicMcpToken';
 import {
   magicMcpBackingCleanupBackingsManyQueueProcessor,
   magicMcpBackingCleanupIntegrationInstancesManyQueueProcessor,
@@ -31,6 +32,7 @@ import {
 export * from './magicMcpEndpoint';
 export * from './magicMcpGroup';
 export * from './magicMcpServer';
+export * from './magicMcpToken';
 export * from './magicMcpBackingCleanup';
 export * from './providerTemplate';
 
@@ -44,6 +46,7 @@ export let magicLifecycleQueueProcessor = combineQueueProcessors([
   magicMcpServerCreatedQueueProcessor,
   magicMcpServerUpdatedQueueProcessor,
   magicMcpServerDeletedQueueProcessor,
+  consumerProfileDeletedMagicMcpTokensQueueProcessor,
   magicMcpBackingCleanupManyQueueProcessor,
   magicMcpBackingCleanupBackingsManyQueueProcessor,
   magicMcpBackingCleanupIntegrationInstancesManyQueueProcessor,

@@ -18,6 +18,7 @@ import {
   discardNebulaSecrets,
   writeBackendSecrets
 } from '../lib/scmCredentials';
+import { assertScmBackendUrlsValid } from '../lib/scmFetch';
 
 class scmBackendServiceImpl {
   async ensureDefaultBackends() {
@@ -197,6 +198,8 @@ class scmBackendServiceImpl {
         })
       );
     }
+
+    assertScmBackendUrlsValid(d.apiUrl, d.webUrl);
 
     if (
       (d.type === 'github_enterprise' || (checkEdition('on-prem') && d.type === 'github')) &&

@@ -8,6 +8,10 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { AuditScope } from '@metorial/audit-scope';
 import { UnifiedApiKey } from '@metorial/api-keys';
+import {
+  consumerSessionInclude,
+  getConsumerAccessContextForConsumerProfile
+} from '@metorial/consumer-auth';
 import { Fabric } from '@metorial/fabric';
 import { getConfig } from '@metorial/config';
 import {
@@ -72,6 +76,30 @@ let include = {
 type MagicMcpTokenWithRelations = Prisma.MagicMcpTokenGetPayload<{
   include: typeof include;
 }>;
+
+let getCurrentConsumerAccessTagOids = async (
+  token: Pick<MagicMcpTokenWithRelations, 'consumerTokens'>
+) => {
+  let profiles = await db.consumerProfile.findMany({
+    where: {
+      oid: { in: token.consumerTokens.map(consumerToken => consumerToken.consumerProfileOid) },
+      status: 'active',
+      surface: { status: 'active' }
+    },
+    include: consumerSessionInclude.consumerProfile.include
+  });
+
+  let accessTagOids = new Set<bigint>();
+
+  for (let profile of profiles) {
+    if (profile.surface.portal && profile.surface.portal.status != 'active') continue;
+
+    let { accessTags } = await getConsumerAccessContextForConsumerProfile({ profile });
+    for (let accessTagOid of accessTags) accessTagOids.add(accessTagOid);
+  }
+
+  return accessTagOids;
+};
 
 let isMagicMcpTokenExpired = (token: Pick<MagicMcpToken, 'expiresAt'>) => {
   return !!token.expiresAt && token.expiresAt < new Date();
@@ -648,6 +676,15 @@ class MagicMcpTokenImpl {
         accessTagOid: true
       }
     });
+
+    if (d.token.consumerTokens.length) {
+      let currentAccessTagOids = await getCurrentConsumerAccessTagOids(d.token);
+      consumerAccessTagEntities = consumerAccessTagEntities.filter(entity =>
+        currentAccessTagOids.has(entity.accessTagOid)
+      );
+      if (consumerAccessTagEntities.length == 0) return false;
+    }
+
     if (consumerAccessTagEntities.length == 0) return true;
 
     if (d.server) {

@@ -252,6 +252,30 @@ class OAuthAuthorizationService {
     return oauthApplication;
   }
 
+  private async consumeOAuthAuthorizationFlow(oauthAuthorizationFlow: { oid: bigint }) {
+    await withTransaction(async db => {
+      let consumed = await db.oAuthAuthorizationFlow.updateMany({
+        where: { oid: oauthAuthorizationFlow.oid, status: 'accepted' },
+        data: {
+          status: 'consumed',
+          consumedAt: new Date()
+        }
+      });
+
+      if (consumed.count != 1) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Authorization request has been consumed',
+            oauth: {
+              error: 'invalid_grant',
+              errorMessage: 'Authorization request has been consumed'
+            }
+          })
+        );
+      }
+    });
+  }
+
   private async getOAuthAuthorizationFlowById(d: { id: string }) {
     return await db.oAuthAuthorizationFlow.findFirst({
       where: { id: d.id },
@@ -550,18 +574,24 @@ class OAuthAuthorizationService {
       );
     }
 
-    return await withTransaction(async db => {
+    if (!d.clientSecret && oauthAuthorizationFlow.codeChallengeMethod != 's256') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'PKCE with S256 is required when no client secret is presented',
+          oauth: {
+            error: 'invalid_grant',
+            errorMessage: 'PKCE with S256 is required when no client secret is presented'
+          }
+        })
+      );
+    }
+
+    return await withTransaction(async () => {
+      await this.consumeOAuthAuthorizationFlow(oauthAuthorizationFlow);
+
       let oauthToken = await this.issueOAuthToken({
         oauthAuthorization,
         withRefreshToken: !!d.clientSecret
-      });
-
-      await db.oAuthAuthorizationFlow.update({
-        where: { oid: oauthAuthorizationFlow.oid },
-        data: {
-          status: 'consumed',
-          consumedAt: new Date()
-        }
       });
 
       return {
@@ -662,18 +692,12 @@ class OAuthAuthorizationService {
       );
     }
 
-    return await withTransaction(async db => {
+    return await withTransaction(async () => {
+      await this.consumeOAuthAuthorizationFlow(oauthAuthorizationFlow);
+
       let oauthToken = await this.issueOAuthToken({
         oauthAuthorization,
         withRefreshToken: !!(d.clientSecret || d.forceIncludeRefreshToken)
-      });
-
-      await db.oAuthAuthorizationFlow.update({
-        where: { oid: oauthAuthorizationFlow.oid },
-        data: {
-          status: 'consumed',
-          consumedAt: new Date()
-        }
       });
 
       return {
@@ -1081,15 +1105,31 @@ class OAuthAuthorizationService {
 
       let tokenValues = createIssuedOAuthTokenValues(d);
 
-      let oauthToken = await db.oAuthToken.update({
+      let rotated = await db.oAuthToken.updateMany({
         where: {
-          oid: d.oauthToken.oid
+          oid: d.oauthToken.oid,
+          refreshToken: d.oauthToken.refreshToken
         },
         data: {
           oauthInstallationOid: d.oauthToken.oauthAuthorization.oauthInstallationOid,
           lastRefreshedAt: new Date(),
           ...tokenValues
-        },
+        }
+      });
+      if (rotated.count != 1) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Invalid refresh token',
+            oauth: {
+              error: 'invalid_grant',
+              errorMessage: 'Invalid refresh token'
+            }
+          })
+        );
+      }
+
+      let oauthToken = await db.oAuthToken.findUniqueOrThrow({
+        where: { oid: d.oauthToken.oid },
         include: tokenInclude
       });
 
@@ -1310,82 +1350,6 @@ class OAuthAuthorizationService {
         oauthApplication: oauthAuthorization.oauthApplication,
         ...this.getAuthorizationSubject(oauthAuthorization)
       };
-    });
-  }
-
-  // Tokens are opaque and resolve their subject through their authorization on every request, so
-  // re-pointing the existing token rows keeps the CLI logged in while it now acts as the new member.
-  async transferCliAuthorization(d: {
-    oauthAuthorization: OAuthAuthorization;
-    organization: Organization;
-    toMember: OrganizationMember & { actor: OrganizationActor; user: User };
-    context: Context;
-  }) {
-    let oauthApplication = await this.getCliAuthOAuthApplicationOrThrow();
-
-    return await withTransaction(async db => {
-      let sourceAuthorization = await db.oAuthAuthorization.findFirstOrThrow({
-        where: { oid: d.oauthAuthorization.oid },
-        include: authorizationInclude
-      });
-
-      if (
-        sourceAuthorization.oauthApplicationOid != oauthApplication.oid ||
-        sourceAuthorization.organizationOid != d.organization.oid
-      ) {
-        throw new ServiceError(
-          badRequestError({
-            message: 'Only CLI authorizations of this organization can be transferred'
-          })
-        );
-      }
-
-      if (sourceAuthorization.organizationMemberOid == d.toMember.oid) {
-        return sourceAuthorization;
-      }
-
-      let scopes = await getUserEffectiveScopes({
-        organization: d.organization,
-        member: d.toMember,
-        oauthApplication,
-        requestedScopes: sourceAuthorization.scopes
-      });
-
-      let targetAuthorization =
-        await oauthAuthorizationInstallationService.getOrCreateUserAuthorization({
-          oauthApplication,
-          oauthInstallation: sourceAuthorization.oauthInstallation,
-          organization: d.organization,
-          member: d.toMember,
-          user: d.toMember.user,
-          scopes,
-          requestingIp: sourceAuthorization.requestingIp,
-          acceptingIp: d.context.ip,
-          context: d.context
-        });
-
-      await db.oAuthToken.updateMany({
-        where: { oauthAuthorizationOid: sourceAuthorization.oid },
-        data: { oauthAuthorizationOid: targetAuthorization.oid }
-      });
-
-      await cliDeviceService.upsertCliDevice({
-        ip: sourceAuthorization.requestingIp ?? d.context.ip,
-        organization: d.organization,
-        user: d.toMember.user,
-        oauthAuthorization: targetAuthorization
-      });
-
-      await this.revokeOAuthAuthorization({
-        oauthAuthorization: sourceAuthorization,
-        auditScope: createOrganizationActorAuditScope({
-          organization: d.organization,
-          organizationActor: d.toMember.actor,
-          context: d.context
-        })
-      });
-
-      return targetAuthorization;
     });
   }
 

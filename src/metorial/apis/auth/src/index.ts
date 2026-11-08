@@ -1,8 +1,25 @@
 import { cors, createHono, useRequestContext, useValidatedBody } from '@lowerdeck/hono';
 import { v } from '@lowerdeck/validation';
-import { getDashboardAuthCookie, setDashboardAuthCookie } from '@metorial/auth';
+import {
+  getDashboardAuthCookie,
+  isDashboardOrigin,
+  setDashboardAuthCookie
+} from '@metorial/auth';
+import { getConfig } from '@metorial/config';
 import { Context } from '@metorial/context';
 import { userAuthService } from '@metorial/module-user';
+import { RateLimiter } from '@metorial/rest';
+
+let LOGIN_ATTEMPTS_PER_ADDRESS = 200;
+let LOGIN_ATTEMPTS_PER_ACCOUNT = 10;
+let LOGIN_ATTEMPT_WINDOW_MS = 1000 * 60 * 15;
+
+let loginRateLimiter = new RateLimiter<{ key: string; max: number }>(
+  getConfig().redisUrl,
+  ({ auth }) => auth.key,
+  ({ auth }) => auth.max,
+  { durationMs: LOGIN_ATTEMPT_WINDOW_MS }
+);
 
 let removeCurrentSession = async (req: Request, context: Context) => {
   let currentSession = getDashboardAuthCookie(req);
@@ -26,7 +43,7 @@ let removeCurrentSession = async (req: Request, context: Context) => {
 export let authApi = createHono()
   .use(
     cors({
-      origin: o => o,
+      origin: origin => (isDashboardOrigin(origin) ? origin : null),
       allowMethods: ['POST', 'OPTIONS'],
       allowHeaders: ['Authorization', 'Content-Type', 'metorial-version'],
       credentials: true
@@ -41,6 +58,21 @@ export let authApi = createHono()
         password: v.string()
       })
     );
+
+    let loginLimits = [
+      {
+        key: `oss_login:account:${context.ip}:${body.email.trim().toLowerCase()}`,
+        max: LOGIN_ATTEMPTS_PER_ACCOUNT
+      },
+      ...(context.ip == '0.0.0.0'
+        ? []
+        : [{ key: `oss_login:ip:${context.ip}`, max: LOGIN_ATTEMPTS_PER_ADDRESS }])
+    ];
+
+    for (let auth of loginLimits) {
+      let rateLimit = await loginRateLimiter.check({ auth, context });
+      if (!rateLimit.allowed) return rateLimit.response;
+    }
 
     let newSession = await userAuthService.loginWithPassword({
       context,

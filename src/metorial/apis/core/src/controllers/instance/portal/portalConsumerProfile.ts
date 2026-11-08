@@ -4,6 +4,7 @@ import { v } from '@lowerdeck/validation';
 import { consumerProfileService } from '@metorial/module-consumer-core';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
+import { getVisibleConsumerGroups } from '../../../lib/visibleConsumerGroups';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
@@ -99,7 +100,8 @@ export let portalConsumerProfileController = Controller.create(
         let assignedConsumerGroupsByProfileId =
           await consumerProfileService.getStoredGroupsForProfiles({
             consumerSurface: ctx.portal.surface,
-            consumerProfiles: list.items
+            consumerProfiles: list.items,
+            visibleToConsumerGroups: getVisibleConsumerGroups(ctx)
           });
 
         return Paginator.present(list, consumerProfile =>
@@ -149,7 +151,8 @@ export let portalConsumerProfileController = Controller.create(
                   consumerProfileId: ctx.params.consumerProfileId
                 });
         let assignedConsumerGroups = await consumerProfileService.getGroupsForProfile({
-          consumerProfile
+          consumerProfile,
+          visibleToConsumerGroups: getVisibleConsumerGroups(ctx)
         });
 
         return consumerProfilePresenter.present({

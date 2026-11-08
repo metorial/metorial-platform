@@ -13,6 +13,7 @@ import type {
   SkillMarketplaceStatus
 } from '@metorial/db';
 import type { AuditScope } from '@metorial/audit-scope';
+import type { ResourceAuthorization } from '@metorial/module-access';
 import { db, ID, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import {
@@ -225,6 +226,7 @@ class SkillMarketplaceServiceImpl {
     project: Project;
     instance: Instance;
     auditScope: AuditScope;
+    authorization?: ResourceAuthorization;
     input: {
       name: string;
       description?: string | null;
@@ -289,7 +291,8 @@ class SkillMarketplaceServiceImpl {
           instance: d.instance,
           entity: { id: skillMarketplace.id, type: 'skill_marketplace' },
           imageFileId: d.input.imageFileId,
-          clearedImage: { type: 'default' }
+          clearedImage: { type: 'default' },
+          authorization: d.authorization
         });
 
         skillMarketplace = await db.skillMarketplace.update({
@@ -326,6 +329,7 @@ class SkillMarketplaceServiceImpl {
     project: Project;
     instance: Instance;
     auditScope: AuditScope;
+    authorization?: ResourceAuthorization;
     skillMarketplace: SkillMarketplaceRecord;
     input: SkillMarketplaceInput;
   }) {
@@ -359,7 +363,8 @@ class SkillMarketplaceServiceImpl {
         instance: d.instance,
         entity: { id: d.skillMarketplace.id, type: 'skill_marketplace' },
         imageFileId: d.input.imageFileId,
-        clearedImage: { type: 'default' }
+        clearedImage: { type: 'default' },
+        authorization: d.authorization
       });
     }
 

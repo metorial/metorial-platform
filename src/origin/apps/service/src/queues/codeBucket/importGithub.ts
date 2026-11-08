@@ -50,7 +50,7 @@ export let importGithubQueueProcessor = importGithubQueue.process(async data => 
         ref: data.ref,
         path: data.path,
         token,
-        ...getGitHubTransferEndpoints(repo.installation.backend, data.owner, data.repo)
+        ...(await getGitHubTransferEndpoints(repo.installation.backend, data.owner, data.repo))
       });
     }
   });

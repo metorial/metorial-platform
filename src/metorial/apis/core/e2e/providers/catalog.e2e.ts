@@ -76,16 +76,26 @@ describe('api-core providers: catalog', () => {
   it('limits publishable keys to the catalog read scopes', async () => {
     let publishable = await createPublishableClient(org);
 
-    expect(expectOk(await publishable.get(`/providers/${remote.providerId}`)).id).toBe(
-      remote.providerId
-    );
-    expect(
-      expectOk(
-        await publishable.get('/provider-tools', {
-          query: { provider_version_id: version.id }
-        })
-      ).items.length
-    ).toBe(tools.length);
+    for (let path of [
+      `/providers?id=${remote.providerId}`,
+      `/provider-listings?id=${remote.providerId}`,
+      `/provider-specifications?id=${version.specification_id}`
+    ]) {
+      expect(expectOk(await publishable.get(path)).items).toEqual([]);
+    }
+
+    for (let path of [
+      `/providers/${remote.providerId}`,
+      `/provider-listings/${remote.providerId}`,
+      `/provider-specifications/${version.specification_id}`,
+      `/provider-tools?provider_version_id=${version.id}`,
+      `/provider-tools/${toolNamed('echo').id}`,
+      `/provider-auth-methods?provider_version_id=${version.id}`
+    ]) {
+      expectError(await publishable.get(path), 404);
+    }
+
+    expectError(await publishable.get('/provider-specification-change-notifications'), 401);
 
     for (let path of [
       `/provider-versions/${version.id}`,

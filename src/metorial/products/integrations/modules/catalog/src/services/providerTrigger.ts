@@ -25,8 +25,7 @@ type GetProviderTriggerByIdParams = {
 };
 
 type ListDashboardProviderTriggersParams =
-  | { providerVersionId: string }
-  | { userManagedCallbacks: true };
+  { providerVersionId: string } | { userManagedCallbacks: true };
 
 class providerTriggerServiceImpl {
   async listProviderTriggers(d: MetorialFacing<ListProviderTriggersParams>) {
@@ -242,14 +241,16 @@ class providerTriggerServiceImpl {
     return this.listProviderTriggersForUserManagedCallbacks(d);
   }
 
-  async getProviderTriggerById(d: MetorialFacing<GetProviderTriggerByIdParams>) {
-    let { instance, organizationActor, ...rest } = d;
+  async getProviderTriggerById(
+    d: MetorialFacing<GetProviderTriggerByIdParams> & { publicCatalogOnly?: boolean }
+  ) {
+    let { instance, organizationActor, publicCatalogOnly, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
     return this.getProviderTriggerByIdInternal({
       ...rest,
       tenant: scope.tenant,
-      environment: scope.environment
+      environment: publicCatalogOnly ? undefined : scope.environment
     });
   }
 

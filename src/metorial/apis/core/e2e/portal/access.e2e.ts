@@ -71,6 +71,25 @@ describe('api-core portal: listings, access rules and surface provider groups', 
       let { portal, consumer } = consumerPortal;
       let server = await createMagicServer(org);
       let listing = await createListing(org, portal.id, server.id);
+      let consumerTeam = await createConsumerGroup(org, portal.id);
+      expectOk(
+        await api().post(
+          `/portals/${portal.id}/consumer-profile/${consumer.profile.id}/assign-groups`,
+          {
+            group_ids: [consumerTeam.id]
+          }
+        )
+      );
+      await grantAccess(portal.id, consumerTeam.id, server.id);
+
+      let foreignServer = await createMagicServer(org);
+      let foreignListing = await createListing(org, portal.id, foreignServer.id);
+      await grantAccess(
+        portal.id,
+        (await createConsumerGroup(org, portal.id)).id,
+        foreignServer.id
+      );
+
       let clients = await readClients();
       let expected = {
         none: 401,
@@ -91,6 +110,12 @@ describe('api-core portal: listings, access rules and surface provider groups', 
         expected
       );
       expect(ids(lists.consumer.body.items)).toContain(listing.id);
+      expect(ids(lists.consumer.body.items)).not.toContain(foreignListing.id);
+      expectError(
+        await consumer.magnetar.get(listingsPath(portal.id, `/${foreignListing.id}`)),
+        404,
+        'not_found'
+      );
 
       await expectAuthMatrix(
         clients,
@@ -299,12 +324,13 @@ describe('api-core portal: listings, access rules and surface provider groups', 
         expected
       );
       expect(ids(lists.instance.body.items)).toContain(access.id);
+      expect(ids(lists.consumer.body.items)).not.toContain(access.id);
 
       await expectAuthMatrix(
         clients,
         (client, name) =>
           client.get(instancePathFor(org, name, accessPath(portal.id, `/${access.id}`))),
-        expected
+        { ...expected, consumer: 404 }
       );
 
       expectError(
@@ -317,8 +343,8 @@ describe('api-core portal: listings, access rules and surface provider groups', 
       );
       expectError(
         await consumer.magnetar.delete(accessPath(portal.id, `/${access.id}`)),
-        403,
-        'forbidden'
+        404,
+        'not_found'
       );
     });
 

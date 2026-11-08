@@ -26,6 +26,8 @@ import { resolveUploadTarget } from './uploadAccess';
 import { assertDirectUploadBodySize, parseStoreReplace } from './uploadForm';
 import { parseUploadMode, parseUploadRequest } from './uploadRequest';
 
+let fileContentSecurityPolicy = "default-src 'none'; style-src 'unsafe-inline'; sandbox";
+
 type FileApiAuthResult = Awaited<ReturnType<typeof authenticate>>;
 
 /**
@@ -353,6 +355,13 @@ let getDocumentContentType = (contentType?: string | null) =>
     ? contentType
     : 'text/plain; charset=utf-8';
 
+let isPassiveMediaType = (contentType: string) => {
+  let mediaType = contentType.split(';')[0]!.trim().toLowerCase();
+  if (mediaType == 'image/svg+xml') return false;
+
+  return mediaType == 'application/pdf' || /^(image|video|audio)\//.test(mediaType);
+};
+
 let getContentDispositionHeader = (fileName: string, disposition: 'inline' | 'attachment') => {
   let fallbackName = fileName.replace(/["\\\r\n]/g, '_').replace(/[^\x20-\x7e]/g, '_');
   return `${disposition}; filename="${fallbackName}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
@@ -371,11 +380,13 @@ let getFileContentHeaders = (d: {
     ? getContentDispositionHeader(fileName, d.shouldDownload ? 'attachment' : 'inline')
     : undefined;
 
+  let contentType =
+    d.source === 'document'
+      ? getDocumentContentType(d.contentType)
+      : getServedContentType(d.contentType);
+
   return {
-    'Content-Type':
-      d.source === 'document'
-        ? getDocumentContentType(d.contentType)
-        : getServedContentType(d.contentType),
+    'Content-Type': contentType,
     ...(d.size !== undefined ? { 'Content-Length': String(d.size) } : {}),
     'Cache-Control':
       d.source === 'document' ||
@@ -385,6 +396,9 @@ let getFileContentHeaders = (d: {
         ? 'private, no-store'
         : 'public, max-age=31536000, immutable',
     'X-Content-Type-Options': 'nosniff',
+    ...(isPassiveMediaType(contentType)
+      ? {}
+      : { 'Content-Security-Policy': fileContentSecurityPolicy }),
     ...(contentDisposition ? { 'Content-Disposition': contentDisposition } : {})
   };
 };

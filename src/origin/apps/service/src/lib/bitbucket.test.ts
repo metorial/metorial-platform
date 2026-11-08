@@ -12,6 +12,9 @@ let mocks = vi.hoisted(() => ({
 
 vi.mock('../db', () => ({ db: mocks.db }));
 vi.mock('../env', () => ({ delegateSecretsToNebula: false }));
+vi.mock('./scmFetch', () => ({
+  scmFetch: (input: string | URL, init?: RequestInit) => globalThis.fetch(input, init)
+}));
 vi.mock('./scmTokenRefreshLock', () => ({
   usingScmTokenRefreshLock: mocks.usingTokenRefreshLock
 }));

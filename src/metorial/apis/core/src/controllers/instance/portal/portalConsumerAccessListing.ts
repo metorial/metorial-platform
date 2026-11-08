@@ -4,6 +4,7 @@ import { v } from '@lowerdeck/validation';
 import { consumerAccessListingService } from '@metorial/module-consumer-access';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
+import { getVisibleConsumerGroups } from '../../../lib/visibleConsumerGroups';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
@@ -22,7 +23,8 @@ let consumerAccessListingGroup = portalGroup.use(async ctx => {
 
   let consumerAccessListing = await consumerAccessListingService.getById({
     consumerSurface: ctx.portal.surface,
-    consumerAccessListingId: ctx.params.listingId
+    consumerAccessListingId: ctx.params.listingId,
+    visibleToConsumerGroups: getVisibleConsumerGroups(ctx)
   });
 
   return { consumerAccessListing };
@@ -94,7 +96,8 @@ export let portalConsumerAccessListingController = Controller.create(
           skillGroupIds: normalizeArrayParam(ctx.query.skill_group_id),
           skillMarketplaceIds: normalizeArrayParam(ctx.query.skill_marketplace_id),
           types: normalizeArrayParam(ctx.query.type),
-          search: ctx.query.search
+          search: ctx.query.search,
+          visibleToConsumerGroups: getVisibleConsumerGroups(ctx)
         });
         let list = await paginator.run(ctx.query);
 

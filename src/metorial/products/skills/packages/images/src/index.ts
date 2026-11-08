@@ -1,7 +1,8 @@
 import { branding } from '@metorial/branding';
 import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import { fileLinkService, fileReferenceService } from '@metorial/module-file';
+import type { ResourceAuthorization } from '@metorial/module-access';
+import { fileLinkService, fileReferenceService, fileService } from '@metorial/module-file';
 import { getConfig } from '@metorial/config';
 import type {
   EntityImage,
@@ -57,20 +58,27 @@ class InternalImageServiceImpl {
     entity: { id: string; type: string };
     fileId: string;
     actor?: ResourceActor;
+    authorization: ResourceAuthorization | undefined;
     defaultPermissions?: StoreParticipantPermissions[];
     overridePermissions?: boolean;
   }): Promise<EntityImage> {
-    let file = await db.file.findFirst({
-      where: {
-        instanceOid: d.instance.oid,
-        id: d.fileId,
-        status: 'active'
-      },
-      include: {
-        purpose: true
-      }
+    if (!d.authorization) {
+      throw new ServiceError(
+        forbiddenError({
+          message: 'Missing access to the image file'
+        })
+      );
+    }
+
+    let file = await fileService.getFileById({
+      project: d.project,
+      instance: d.instance,
+      fileId: d.fileId,
+      authorization: d.authorization,
+      defaultPermissions: d.defaultPermissions,
+      overridePermissions: d.overridePermissions
     });
-    if (!file) throw new ServiceError(notFoundError('file', d.fileId));
+    if (file.status !== 'active') throw new ServiceError(notFoundError('file', d.fileId));
     if (!file.purpose.canHaveLinks) {
       throw new ServiceError(
         forbiddenError({
@@ -113,6 +121,7 @@ class InternalImageServiceImpl {
     imageFileId: string | null;
     clearedImage: ClearImage;
     actor?: ResourceActor;
+    authorization: ResourceAuthorization | undefined;
     defaultPermissions?: StoreParticipantPermissions[];
     overridePermissions?: boolean;
   }): Promise<EntityImage | ClearImage> {
@@ -124,6 +133,7 @@ class InternalImageServiceImpl {
       entity: d.entity,
       fileId: d.imageFileId,
       actor: d.actor,
+      authorization: d.authorization,
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions
     });

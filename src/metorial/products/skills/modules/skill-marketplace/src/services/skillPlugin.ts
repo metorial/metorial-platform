@@ -12,6 +12,7 @@ import type {
 } from '@metorial/db';
 import { db, ID, withTransaction } from '@metorial/db';
 import type { AuditScope } from '@metorial/audit-scope';
+import type { ResourceAuthorization } from '@metorial/module-access';
 import { Fabric } from '@metorial/fabric';
 import {
   type DateFilter,
@@ -330,6 +331,7 @@ class SkillPluginServiceImpl {
     project: Project;
     instance: Instance;
     auditScope: AuditScope;
+    authorization?: ResourceAuthorization;
     skillMarketplaceId?: string;
     accessTags?: SkillMarketplaceAccessInput['accessTags'];
     input: {
@@ -447,7 +449,8 @@ class SkillPluginServiceImpl {
           instance: d.instance,
           entity: { id: skillPlugin.id, type: 'skill_plugin' },
           imageFileId: d.input.imageFileId,
-          clearedImage: { type: 'default' }
+          clearedImage: { type: 'default' },
+          authorization: d.authorization
         });
 
         skillPlugin = await db.skillPlugin.update({
@@ -497,6 +500,7 @@ class SkillPluginServiceImpl {
     project: Project;
     instance: Instance;
     auditScope: AuditScope;
+    authorization?: ResourceAuthorization;
     skillPlugin: SkillPluginRecord;
     accessTags?: SkillMarketplaceAccessInput['accessTags'];
     input: SkillPluginInput;
@@ -536,7 +540,8 @@ class SkillPluginServiceImpl {
         instance: d.instance,
         entity: { id: d.skillPlugin.id, type: 'skill_plugin' },
         imageFileId: d.input.imageFileId,
-        clearedImage: { type: 'default' }
+        clearedImage: { type: 'default' },
+        authorization: d.authorization
       });
     }
 

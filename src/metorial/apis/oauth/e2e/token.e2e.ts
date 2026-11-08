@@ -152,7 +152,7 @@ describe('api-oauth token', () => {
     expect(info.body).toMatchObject({
       sub: org.ids.userId,
       email: expect.any(String),
-      email_verified: true
+      email_verified: false
     });
   });
 
@@ -304,6 +304,26 @@ describe('api-oauth token', () => {
     expect(response.status).toBe(200);
     expect(response.body.access_token).toEqual(expect.any(String));
     expect(response.body.refresh_token).toBeUndefined();
+  });
+
+  it('requires PKCE to exchange codes without a secret', async () => {
+    let client = await createApplication(org.ids, {
+      allowClientSecretlessTokenExchange: true
+    });
+    let authorization = await authorizeAndConsent(client, { pkce: false });
+
+    expectOAuthError(
+      await postForm('/oauth/token', {
+        ...authorization.codeGrant,
+        client_id: client.clientId
+      }),
+      400,
+      'invalid_grant',
+      /PKCE/
+    );
+
+    let response = await postToken(authorization.codeGrant, client);
+    expect(response.status).toBe(200);
   });
 
   it('rotates refresh tokens and retires the previous access token', async () => {

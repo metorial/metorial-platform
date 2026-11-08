@@ -270,8 +270,7 @@ type ListProviderToolsParams = {
   providerVersion: ProviderVersion;
 
   providerAuthConfig?:
-    | (ProviderAuthConfig & { authMethod?: ProviderAuthMethod | null })
-    | null;
+    (ProviderAuthConfig & { authMethod?: ProviderAuthMethod | null }) | null;
   providerAuthCredentials?: ProviderAuthCredentials | null;
   providerAuthMethodIds?: string[];
 };
@@ -371,14 +370,16 @@ class providerToolServiceImpl {
     });
   }
 
-  async getProviderToolById(d: MetorialFacing<GetProviderToolByIdParams>) {
-    let { instance, organizationActor, ...rest } = d;
+  async getProviderToolById(
+    d: MetorialFacing<GetProviderToolByIdParams> & { publicCatalogOnly?: boolean }
+  ) {
+    let { instance, organizationActor, publicCatalogOnly, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
     return this.getProviderToolByIdInternal({
       ...rest,
       tenant: scope.tenant,
-      environment: scope.environment
+      environment: publicCatalogOnly ? undefined : scope.environment
     });
   }
 

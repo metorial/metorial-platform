@@ -1,4 +1,5 @@
 import { v } from '@lowerdeck/validation';
+import { accessService } from '@metorial/module-access';
 import { instanceService } from '@metorial/module-organization';
 import {
   usageGroupByValues,
@@ -48,16 +49,29 @@ export let dashboardUsageController = Controller.create(
           })
         })
       )
+      .use(checkAccess({ possibleScopes: ['organization.instance:read'] }))
       .output(usagePresenter)
       .do(async ctx => {
-        let instances = await instanceService.getManyInstancesForOrganization({
-          organization: ctx.organization
+        let targetAccessFilter = await accessService.getTargetAccessFilter({
+          authInfo: ctx.auth,
+          organization: ctx.organization,
+          member: ctx.member,
+          possibleScopes: ['organization.instance:read']
+        });
+        let accessFilter =
+          targetAccessFilter && !targetAccessFilter.all ? targetAccessFilter : undefined;
+
+        let accessibleInstances = await instanceService.getManyInstancesForOrganization({
+          organization: ctx.organization,
+          accessFilter
         });
 
         let timeline = await usageService.getUsageTimeline({
           owners: [
-            { type: 'organization', id: ctx.organization.id },
-            ...instances.map(i => ({ type: 'instance' as const, id: i.id }))
+            ...(accessFilter
+              ? []
+              : [{ type: 'organization' as const, id: ctx.organization.id }]),
+            ...accessibleInstances.map(i => ({ type: 'instance' as const, id: i.id }))
           ],
           entities: ctx.query.entities,
           from: ctx.query.from,
