@@ -1,7 +1,6 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
-  SkillMarketplaceEditorScene,
   SkillMarketplaceRepositoriesSettingsBox,
   SkillMarketplaceRepositoriesSettingsContentScene,
   SkillMarketplaceRepositoryAccessSettings,
@@ -23,6 +22,7 @@ import { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInterval } from 'react-use';
 import { shleemy } from 'shleemy';
+import { getPropagationWaitingMessage } from '../skillSyncMessages';
 import { SkillSyncDetails } from '../skillSyncs';
 import { shouldShowRepositorySyncLogs } from './repositorySyncVisibility';
 
@@ -71,14 +71,6 @@ let showManageRepositories = (
     </Dialog.Wrapper>
   ));
 
-let showMarketplacePreview = (p: {
-  instanceId: string | null | undefined;
-  skillMarketplaceId: string | null | undefined;
-}) =>
-  showModal(({ close, isOpen }) => (
-    <>{isOpen && <SkillMarketplaceEditorScene {...p} fullScreen onClose={close} />}</>
-  ));
-
 let getRepositoryName = (repository: SkillMarketplaceRepository) => {
   let url = repository.repository.url;
   if (url) {
@@ -94,6 +86,21 @@ let formatRepositoryNames = (repositories: SkillMarketplaceRepository[]) =>
   new Intl.ListFormat('en', { style: 'long', type: 'conjunction' }).format(
     repositories.map(getRepositoryName)
   );
+
+let getWaitingMessage = (sync: SkillSync, repositories: SkillMarketplaceRepository[]) => {
+  let waitingPropagation = sync.repositoryPropagations.find(
+    propagation => propagation.waitingUntil
+  );
+  if (!waitingPropagation) return null;
+
+  let repository = repositories.find(
+    repository => repository.repoId === waitingPropagation.repoId
+  );
+  return getPropagationWaitingMessage({
+    ...waitingPropagation,
+    provider: repository?.repository.provider ?? null
+  });
+};
 
 let getSyncStatusMessage = (sync: SkillSync, repositories: SkillMarketplaceRepository[]) => {
   let propagationRepositoryIds = new Set(
@@ -113,6 +120,10 @@ let getSyncStatusMessage = (sync: SkillSync, repositories: SkillMarketplaceRepos
     return `${subject} ${isSingle ? 'was' : 'were'} synced successfully ${relativeTime}.`;
   }
   if (sync.status === 'processing') {
+    let waitingMessage = getWaitingMessage(sync, repositories);
+    if (waitingMessage) {
+      return `${subject} ${isSingle ? 'is' : 'are'} paused. ${waitingMessage}.`;
+    }
     return `${subject} ${isSingle ? 'is' : 'are'} syncing now.`;
   }
   if (sync.status === 'waiting_for_review') {
@@ -218,7 +229,6 @@ export let SkillMarketplaceRepositorySyncBox = (p: {
               { id: 'link', label: 'Link Repository' },
               { id: 'access', label: 'Repository Sync Settings' },
               { id: 'manage', label: 'Manage Repositories' },
-              { id: 'preview', label: 'Content Preview' },
               { id: 'history', label: 'Sync History' },
               { id: 'force_sync', label: 'Force Sync' }
             ]}
@@ -231,7 +241,6 @@ export let SkillMarketplaceRepositorySyncBox = (p: {
               if (item === 'manage') {
                 showManageRepositories(settingsProps, refreshRepositorySyncBox);
               }
-              if (item === 'preview') showMarketplacePreview(settingsProps);
               if (item === 'history') openSyncHistory();
             }}
           >

@@ -3,12 +3,16 @@ import type {
   DashboardInstanceSkillsSyncsListQuery
 } from '@metorial/dashboard-sdk';
 import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
+import { Paths } from '@metorial/frontend-config';
 import type { SkillMarketplaceRepository, SkillPluginRepository } from '@metorial/state';
 import {
   useCurrentInstance,
+  useCurrentOrganization,
+  useCurrentProject,
   useSkillMarketplaceRepositories,
   useSkillPluginRepositories,
   useSkillSync,
+  useForceSkillSync,
   useSkillSyncRepositoryChecks,
   useSkillSyncs
 } from '@metorial/state';
@@ -17,6 +21,7 @@ import {
   Badge,
   Button,
   Callout,
+  confirm,
   Panel,
   RenderDate,
   Spacer,
@@ -25,10 +30,16 @@ import {
 } from '@metorial/ui';
 import { ID, Table } from '@metorial/ui-product';
 import { useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { RouterPanel } from '../../scenes/routerPanel';
-import { getRepositoryActionMessage } from './skillSyncMessages';
+import {
+  getForceSyncLabel,
+  getPropagationDismissalMessage,
+  getPropagationErrorMessage,
+  getPropagationWaitingMessage,
+  getRepositoryActionMessage
+} from './skillSyncMessages';
 
 type SkillSync = DashboardInstanceSkillsSyncsGetOutput;
 type SkillRepository = SkillMarketplaceRepository | SkillPluginRepository;
@@ -59,6 +70,25 @@ let statusLabel = (status: SkillSync['status']) =>
 export let SkillSyncStatusBadge = ({ status }: { status: SkillSync['status'] }) => (
   <Badge color={statusColor(status)}>{statusLabel(status)}</Badge>
 );
+
+let isContinuedSync = (sync: SkillSync) =>
+  sync.status === 'canceled' &&
+  sync.repositoryPropagations.length > 0 &&
+  sync.repositoryPropagations.every(propagation => propagation.endReason === 'superseded');
+
+let SyncStatusBadge = ({ sync }: { sync: SkillSync }) =>
+  isContinuedSync(sync) ? (
+    <Badge color="gray">Continued</Badge>
+  ) : (
+    <SkillSyncStatusBadge status={sync.status} />
+  );
+
+let PropagationStatusBadge = ({ propagation }: { propagation: RepositoryPropagation }) => {
+  if (propagation.endReason === 'superseded') return <Badge color="gray">Continued</Badge>;
+  if (propagation.endReason) return <Badge color="gray">Closed</Badge>;
+  if (propagation.waitingUntil) return <Badge color="orange">Waiting</Badge>;
+  return <SkillSyncStatusBadge status={propagation.status} />;
+};
 
 let getRepositoryId = (repository: SkillRepository) => repository.repoId;
 let getPropagationRepositoryId = (propagation: RepositoryPropagation) => propagation.repoId;
@@ -92,18 +122,27 @@ let getErrorMessage = (value: unknown) => {
 };
 
 let getRepositoryError = (
-  repository?: SkillRepository,
-  propagation?: RepositoryPropagation
+  repository: SkillRepository | undefined,
+  propagation: RepositoryPropagation | undefined,
+  provider: 'github' | 'gitlab' | 'bitbucket' | null
 ) => {
   let r = repository as any;
   let p = propagation as any;
-  let propagationError = propagation && ['failed', 'canceled'].includes(propagation.status);
+  let propagationError =
+    propagation &&
+    !propagation.endReason &&
+    ['failed', 'canceled'].includes(propagation.status);
   return (
     (propagationError
       ? (getErrorMessage(p?.error) ??
         getErrorMessage(p?.lastError) ??
         getErrorMessage(p?.syncError) ??
-        getErrorMessage(p?.errorMessage))
+        getPropagationErrorMessage({
+          provider,
+          errorCode: propagation?.errorCode,
+          errorMessage: propagation?.errorMessage,
+          unexpectedDeleteCount: propagation?.unexpectedDeleteCount
+        }))
       : null) ??
     getErrorMessage(r?.error) ??
     getErrorMessage(r?.lastError) ??
@@ -209,8 +248,10 @@ let RepositorySyncStatus = ({
   propagation?: RepositoryPropagation;
   syncStatus: SkillSync['status'];
 }) =>
-  propagation || ['pending', 'processing', 'waiting_for_review'].includes(syncStatus) ? (
-    <SkillSyncStatusBadge status={propagation?.status ?? 'pending'} />
+  propagation ? (
+    <PropagationStatusBadge propagation={propagation} />
+  ) : ['pending', 'processing', 'waiting_for_review'].includes(syncStatus) ? (
+    <SkillSyncStatusBadge status="pending" />
   ) : (
     <Badge color="gray">Skipped</Badge>
   );
@@ -242,7 +283,7 @@ export let SkillSyncsTable = ({
             headers={['Status', 'Created', 'Duration']}
             data={syncs.data.items.map(sync => ({
               data: [
-                <SkillSyncStatusBadge status={sync.status} />,
+                <SyncStatusBadge sync={sync} />,
                 <RenderDate date={sync.createdAt} />,
                 <SyncDuration sync={sync} />
               ],
@@ -377,15 +418,46 @@ export let SkillSyncDetails = ({
     let repositoryErrors = [
       ...repositoryRows.flatMap(({ repository, propagation }) => {
         if (directCheckRepositoryIds.has(getRepositoryId(repository))) return [];
-        let error = getRepositoryError(repository, propagation);
+        let error = getRepositoryError(
+          repository,
+          propagation,
+          repository.repository.provider
+        );
         return error ? [{ repository: getRepositoryLabel(repository), error }] : [];
       }),
       ...unmatchedPropagations.flatMap(propagation => {
         if (directCheckRepositoryIds.has(getPropagationRepositoryId(propagation))) return [];
-        let error = getRepositoryError(undefined, propagation);
+        let error = getRepositoryError(
+          undefined,
+          propagation,
+          repositoryCheckByRepositoryId.get(propagation.repoId)?.provider ?? null
+        );
         return error ? [{ repository: getPropagationRepositoryId(propagation), error }] : [];
       })
     ];
+    let propagationNotices = [
+      ...repositoryRows.flatMap(({ repository, propagation }) =>
+        propagation
+          ? [
+              {
+                repository: getRepositoryLabel(repository),
+                provider: repository.repository.provider,
+                propagation
+              }
+            ]
+          : []
+      ),
+      ...unmatchedPropagations.map(propagation => ({
+        repository: getPropagationRepositoryId(propagation),
+        provider: repositoryCheckByRepositoryId.get(propagation.repoId)?.provider ?? null,
+        propagation
+      }))
+    ].filter(
+      ({ propagation }) =>
+        propagation.endReason ||
+        (propagation.waitingUntil &&
+          ['pending', 'processing', 'waiting_for_review'].includes(propagation.status))
+    );
 
     return (
       <>
@@ -486,7 +558,7 @@ export let SkillSyncDetails = ({
                 ...unmatchedPropagations.map(propagation => ({
                   data: [
                     getPropagationRepositoryId(propagation) ?? 'Unknown repository',
-                    <SkillSyncStatusBadge status={propagation.status} />,
+                    <PropagationStatusBadge propagation={propagation} />,
                     repositoryCheckByRepositoryId.get(propagation.repoId)?.targetBranch ??
                       propagation.branchName,
                     propagation.repositoryAccessMode === 'default_branch'
@@ -529,6 +601,24 @@ export let SkillSyncDetails = ({
               </>
             ) : null}
 
+            {propagationNotices.length > 0 && (
+              <>
+                <Spacer height={10} />
+                <RepositoryActions>
+                  {propagationNotices.map(notice => (
+                    <PropagationNotice
+                      key={notice.propagation.id}
+                      repository={notice.repository}
+                      provider={notice.provider}
+                      propagation={notice.propagation}
+                      skillMarketplaceId={sync.data.skillMarketplaceId}
+                      compact={compact}
+                    />
+                  ))}
+                </RepositoryActions>
+              </>
+            )}
+
             {repositoryErrors.length > 0 && (
               <>
                 <Spacer height={10} />
@@ -544,6 +634,8 @@ export let SkillSyncDetails = ({
                 ))}
               </>
             )}
+
+            <ForceDeletionSync sync={sync.data} compact={compact} />
           </>
         )}
 
@@ -562,6 +654,148 @@ export let SkillSyncDetails = ({
       </>
     );
   });
+};
+
+let ForceDeletionSync = ({ sync, compact }: { sync: SkillSync; compact: boolean }) => {
+  let instance = useCurrentInstance();
+  let forceSync = useForceSkillSync();
+  let [_, setSearchParams] = useSearchParams();
+
+  let tripped = sync.repositoryPropagations.filter(
+    propagation =>
+      propagation.errorCode === 'deletion_guard_tripped' &&
+      propagation.status === 'failed' &&
+      !propagation.endReason
+  );
+  if (!tripped.length || !instance.data) return null;
+
+  let counts = tripped.map(propagation => propagation.unexpectedDeleteCount);
+  let unexpectedDeleteCount = counts.every(count => count != null)
+    ? Math.max(...(counts as number[]))
+    : null;
+  let label = getForceSyncLabel(unexpectedDeleteCount);
+  let instanceId = instance.data.id;
+
+  return (
+    <>
+      <Spacer height={10} />
+      <ForceSyncActions>
+        <Button
+          size="2"
+          color="red"
+          loading={forceSync.isLoading}
+          onClick={() =>
+            confirm({
+              title: `${label}?`,
+              description: `Metorial will start a new sync and delete the files it didn't expect in ${
+                tripped.length === 1 ? 'the repository' : `${tripped.length} repositories`
+              }. Deleted files can only be restored from the repository's history.`,
+              confirmText: label,
+              onConfirm: async () => {
+                let [forced] = await forceSync.mutate({
+                  instanceId,
+                  skillSyncId: sync.id,
+                  allowMassDelete: true
+                });
+                if (!forced || compact) return;
+                setSearchParams(params => {
+                  params.set('sync_id', forced.id);
+                  return params;
+                });
+              }
+            })
+          }
+        >
+          {label}
+        </Button>
+      </ForceSyncActions>
+    </>
+  );
+};
+
+let ContinuedInSyncLink = ({
+  syncId,
+  skillMarketplaceId,
+  compact
+}: {
+  syncId: string;
+  skillMarketplaceId: string | null;
+  compact: boolean;
+}) => {
+  let instance = useCurrentInstance();
+  let organization = useCurrentOrganization();
+  let project = useCurrentProject();
+  let [searchParams] = useSearchParams();
+
+  if (compact && skillMarketplaceId) {
+    let syncsPath = Paths.instance.skillMarketplace(
+      organization.data,
+      project.data,
+      instance.data,
+      skillMarketplaceId,
+      'syncs'
+    );
+
+    return (
+      <SyncLink to={`${syncsPath}?${new URLSearchParams({ sync_id: syncId })}`}>
+        {syncId}
+      </SyncLink>
+    );
+  }
+
+  let nextSearchParams = new URLSearchParams(searchParams);
+  nextSearchParams.set('sync_id', syncId);
+
+  return <SyncLink to={{ search: nextSearchParams.toString() }}>{syncId}</SyncLink>;
+};
+
+let PropagationNotice = ({
+  repository,
+  provider,
+  propagation,
+  skillMarketplaceId,
+  compact
+}: {
+  repository: string;
+  provider: 'github' | 'gitlab' | 'bitbucket' | null;
+  propagation: RepositoryPropagation;
+  skillMarketplaceId: string | null;
+  compact: boolean;
+}) => {
+  let input = { ...propagation, provider };
+  let message =
+    propagation.endReason === 'superseded' ? (
+      <>
+        Continued in sync{' '}
+        {propagation.continuedInSyncId ? (
+          <ContinuedInSyncLink
+            syncId={propagation.continuedInSyncId}
+            skillMarketplaceId={skillMarketplaceId}
+            compact={compact}
+          />
+        ) : (
+          'a newer sync'
+        )}
+        .
+      </>
+    ) : propagation.endReason ? (
+      getPropagationDismissalMessage(input)
+    ) : (
+      getPropagationWaitingMessage(input)
+    );
+
+  if (!message) return null;
+
+  return (
+    <Callout color="gray">
+      <div>
+        <Text size="2" weight="strong">
+          {repository}
+        </Text>
+        <Text size="2">{message}</Text>
+      </div>
+    </Callout>
+  );
 };
 
 let SkillSyncLogs = ({ logs }: { logs: SkillSync['logs'] }) => {
@@ -638,6 +872,11 @@ let RepositoryActionContent = styled.div`
   width: 100%;
 `;
 
+let ForceSyncActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+`;
+
 let RepositoryLinks = styled.div`
   display: flex;
   flex-shrink: 0;
@@ -648,6 +887,12 @@ let RepositoryLinks = styled.div`
 let ExternalLink = styled.a`
   color: ${theme.colors.primary};
   font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+`;
+
+let SyncLink = styled(Link)`
+  color: ${theme.colors.primary};
   font-weight: 500;
   text-decoration: none;
 `;

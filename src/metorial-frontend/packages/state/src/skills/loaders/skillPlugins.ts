@@ -1,6 +1,5 @@
 import type {
   DashboardInstanceSkillsPluginsCreateBody,
-  DashboardInstanceSkillsPluginsGetEditorUrlOutput,
   DashboardInstanceSkillsPluginsGetOutput,
   DashboardInstanceSkillsPluginsListQuery,
   DashboardInstanceSkillsPluginsRepositoriesCreateBody,
@@ -13,7 +12,6 @@ import type {
   DashboardInstanceSkillsPluginsUpdateBody
 } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
-import { useEffect } from 'react';
 import { autoPaginate } from '../../lib/autoPaginate';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
@@ -21,7 +19,6 @@ import { withAuth } from '../../user';
 export type SkillPlugin = DashboardInstanceSkillsPluginsGetOutput;
 export type SkillPluginSkill = DashboardInstanceSkillsPluginsSkillsGetOutput;
 export type SkillPluginRepository = DashboardInstanceSkillsPluginsRepositoriesGetOutput;
-export type SkillPluginEditorUrl = DashboardInstanceSkillsPluginsGetEditorUrlOutput;
 
 let toArrayIfString = <T extends string>(value: T | T[] | undefined) =>
   typeof value === 'string' ? [value] : value;
@@ -326,45 +323,4 @@ export let useAllSkillPluginSkills = (
         }
       : null
   );
-};
-
-export let skillPluginEditorUrlLoader = createLoader({
-  name: 'skillPluginEditorUrl',
-  parents: [],
-  fetch: (i: { instanceId: string; skillPluginId: string }) =>
-    withAuth(sdk => sdk.skillPlugins.getEditorUrl(i.instanceId, i.skillPluginId, {})),
-  mutators: {}
-});
-
-export let useSkillPluginEditorUrl = (
-  instanceId: string | null | undefined,
-  skillPluginId: string | null | undefined
-) => {
-  let data = skillPluginEditorUrlLoader.use(
-    instanceId && skillPluginId ? { instanceId, skillPluginId } : null
-  );
-
-  useEffect(() => {
-    let expiresAt = data.data?.expiresAt;
-    if (!expiresAt) return;
-
-    let expiresAtMs = new Date(expiresAt).getTime();
-    let timeUntilExpiry = expiresAtMs - Date.now();
-
-    if (timeUntilExpiry <= 0) {
-      data.refetch();
-      return;
-    }
-
-    let refreshIn = Math.max(5_000, timeUntilExpiry - 30_000);
-    let timer = setTimeout(() => {
-      data.refetch();
-    }, refreshIn);
-
-    return () => clearTimeout(timer);
-  }, [data.data?.expiresAt]);
-
-  return {
-    ...data
-  };
 };
