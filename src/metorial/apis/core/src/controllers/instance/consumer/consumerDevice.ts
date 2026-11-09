@@ -32,7 +32,7 @@ export let consumerDeviceManagementController = Controller.create(
           'Returns the Metorial Desktop devices enrolled by consumers of an instance.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:read'] }))
-      .use(hasFlags(['paid-portals', 'portals-access']))
+      .use(hasFlags(['paid-portals', 'portals-access', 'devices-enabled']))
       .query(
         'default',
         Paginator.validate(
@@ -82,7 +82,7 @@ export let consumerDeviceManagementController = Controller.create(
         description: 'Retrieves a Metorial Desktop device enrolled by a consumer.'
       })
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:read'] }))
-      .use(hasFlags(['paid-portals', 'portals-access']))
+      .use(hasFlags(['paid-portals', 'portals-access', 'devices-enabled']))
       .output(consumerDevicePresenter)
       .do(async ctx =>
         consumerDevicePresenter.present({ consumerDevice: ctx.consumerDevice })
@@ -98,7 +98,7 @@ export let consumerDeviceManagementController = Controller.create(
         }
       )
       .use(checkAccess({ possibleScopes: ['instance.portal.consumers:write'] }))
-      .use(hasFlags(['paid-portals', 'portals-access']))
+      .use(hasFlags(['paid-portals', 'portals-access', 'devices-enabled']))
       .output(consumerDevicePresenter)
       .do(async ctx => {
         let consumerDevice = await consumerDeviceService.revokeDevice({

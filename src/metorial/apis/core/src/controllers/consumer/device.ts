@@ -1,6 +1,8 @@
+import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { consumerDeviceService, consumerDeviceStatuses } from '@metorial/module-consumer-core';
+import { flagService } from '@metorial/module-flags';
 import { consumerDevicePresenter } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
@@ -18,7 +20,18 @@ let clientKeyPattern = /^[a-z0-9][a-z0-9-]{0,63}$/;
 
 let resourceId = v.string({ modifiers: [v.maxLength(maxIdLength)] });
 
-let consumerDeviceGroup = consumerGroup.use(async ctx => {
+// Not found rather than forbidden: Metorial Desktop reads a 404 on check-in as
+// "this server has no devices" and keeps its local tool choices.
+let devicesGroup = consumerGroup.use(async ctx => {
+  let enabled = await flagService.isFlagEnabledForScope({
+    organization: ctx.organization,
+    project: ctx.project,
+    flag: 'devices-enabled'
+  });
+  if (!enabled) throw new ServiceError(notFoundError('consumer.device'));
+});
+
+let consumerDeviceGroup = devicesGroup.use(async ctx => {
   let consumerDevice = await consumerDeviceService.getDeviceById({
     instance: ctx.instance,
     consumerProfile: ctx.consumerProfile,
@@ -36,7 +49,7 @@ export let consumerDeviceController = Controller.create(
     hideInDocs: true
   },
   {
-    checkIn: consumerGroup
+    checkIn: devicesGroup
       .post(consumerPath('devices/check-in', 'devices.checkIn'), {
         name: 'Check in device',
         description:
@@ -145,7 +158,7 @@ export let consumerDeviceController = Controller.create(
         return consumerDevicePresenter.present({ consumerDevice });
       }),
 
-    list: consumerGroup
+    list: devicesGroup
       .get(consumerPath('devices', 'devices.list'), {
         name: 'List devices',
         description: 'Returns the devices the authenticated consumer profile has enrolled.'
@@ -244,7 +257,7 @@ export let consumerDeviceController = Controller.create(
         return consumerDevicePresenter.present({ consumerDevice });
       }),
 
-    signOut: consumerGroup
+    signOut: devicesGroup
       .post(consumerPath('devices/sign-out', 'devices.signOut'), {
         name: 'Sign out device',
         description:
