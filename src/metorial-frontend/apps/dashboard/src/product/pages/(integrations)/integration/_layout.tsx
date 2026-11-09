@@ -198,7 +198,7 @@ export let IntegrationLayout = () => {
         integration.data
           ? [
               { label: 'ID', value: <ID id={integration.data.id} /> },
-              { label: 'Slug', value: integration.data.slug ?? '-' },
+              { label: 'Identifier', value: integration.data.slug ?? '-' },
               { label: 'Created', value: <RenderDate date={integration.data.createdAt} /> }
             ]
           : []
