@@ -33,8 +33,9 @@ bytes = "1.5"
 tokio-util = { version = "0.7", features = ["io"] }
 http-body-util = "0.1"
 hyper = "1.0"
+uuid = { workspace = true }
+reqwest = { version = "0.11", default-features = false, features = ["default-tls", "json"] }
 
 [dev-dependencies]
 mockall = { workspace = true }
 tempfile = "3.8"
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }

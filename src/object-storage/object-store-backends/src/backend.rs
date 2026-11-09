@@ -5,8 +5,11 @@ use futures::Stream;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::pin::Pin;
+use std::sync::Arc;
 
 use crate::error::BackendResult;
+use crate::multipart::{MultipartUpload, PutOptions, UploadLimits, UploadedObject};
+use crate::uploader::Uploader;
 
 pub type ByteStream = Pin<Box<dyn Stream<Item = Result<Bytes, std::io::Error>> + Send>>;
 
@@ -184,13 +187,54 @@ pub struct ObjectPage {
 pub trait Backend: Send + Sync {
     async fn init(&self) -> BackendResult<()>;
 
+    /// Removes what abandoned uploads left behind, for backends that keep partial uploads
+    /// themselves; providers clean up their own.
+    async fn remove_stale_uploads(&self) -> BackendResult<()> {
+        Ok(())
+    }
+
+    fn uploader(&self) -> &Uploader;
+
+    fn upload_limits(&self) -> UploadLimits;
+
+    /// Writes a whole object that is already in memory with one request.
+    async fn put_single(
+        &self,
+        key: &str,
+        data: Bytes,
+        opts: &PutOptions,
+    ) -> BackendResult<ObjectMetadata>;
+
+    /// Starts an upload that becomes visible under `key` only once it is completed.
+    async fn start_multipart(
+        &self,
+        key: &str,
+        opts: &PutOptions,
+    ) -> BackendResult<Arc<dyn MultipartUpload>>;
+
+    async fn put_object_stream(
+        &self,
+        key: &str,
+        stream: ByteStream,
+        opts: PutOptions,
+    ) -> BackendResult<UploadedObject> {
+        self.uploader().upload(self, key, stream, opts).await
+    }
+
     async fn put_object(
         &self,
         key: &str,
         stream: ByteStream,
         content_type: Option<String>,
         metadata: HashMap<String, String>,
-    ) -> BackendResult<ObjectMetadata>;
+    ) -> BackendResult<ObjectMetadata> {
+        let opts = PutOptions {
+            content_type,
+            metadata,
+            size_hint: None,
+        };
+        Ok(self.put_object_stream(key, stream, opts).await?.metadata)
+    }
 
     /// Writes `data` only when `precondition` holds, otherwise fails with
     /// `BackendError::PreconditionFailed`. The check and the write are atomic on the backend.
@@ -224,15 +268,7 @@ pub trait Backend: Send + Sync {
     }
 
     async fn copy_object(&self, source_key: &str, dest_key: &str) -> BackendResult<ObjectMetadata> {
-        let source = self.get_object(source_key).await?;
-
-        self.put_object(
-            dest_key,
-            source.stream,
-            source.metadata.content_type,
-            source.metadata.custom_metadata,
-        )
-        .await
+        copy_through_stream(self, source_key, dest_key).await
     }
 
     async fn list_objects(
@@ -271,6 +307,30 @@ pub trait Backend: Send + Sync {
         expiration_secs: u64,
         purpose: PublicUrlPurpose,
     ) -> BackendResult<SignedUrl>;
+}
+
+/// Copies by reading the source and uploading it again, for backends without a server-side copy
+/// that covers the object.
+pub async fn copy_through_stream<B>(
+    backend: &B,
+    source_key: &str,
+    dest_key: &str,
+) -> BackendResult<ObjectMetadata>
+where
+    B: Backend + ?Sized,
+{
+    let source = backend.get_object(source_key).await?;
+
+    let opts = PutOptions {
+        content_type: source.metadata.content_type,
+        metadata: source.metadata.custom_metadata,
+        size_hint: Some(source.metadata.size),
+    };
+
+    Ok(backend
+        .put_object_stream(dest_key, source.stream, opts)
+        .await?
+        .metadata)
 }
 
 pub fn compute_etag(data: &[u8]) -> String {

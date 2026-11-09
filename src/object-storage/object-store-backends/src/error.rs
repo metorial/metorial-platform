@@ -17,6 +17,17 @@ pub enum BackendError {
     #[error("Provider error: {0}")]
     Provider(String),
 
+    /// A transient provider failure (5xx, throttling, timeouts, dropped connections) that may
+    /// succeed when the same request is sent again.
+    #[error("Retryable provider error: {0}")]
+    Retryable(String),
+
+    #[error("Object too large: {0}")]
+    TooLarge(String),
+
+    #[error("Conflicting write: {0}")]
+    Conflict(String),
+
     #[error("Serialization error: {0}")]
     Serialization(#[from] serde_json::Error),
 
@@ -30,4 +41,14 @@ pub enum BackendError {
     Internal(String),
 }
 
+impl BackendError {
+    pub fn is_retryable(&self) -> bool {
+        matches!(self, BackendError::Retryable(_))
+    }
+}
+
 pub type BackendResult<T> = Result<T, BackendError>;
+
+pub(crate) fn is_transient_status(status: u16) -> bool {
+    status >= 500 || status == 429 || status == 408
+}
