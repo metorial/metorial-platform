@@ -281,11 +281,12 @@ const contentLength = (headers: Headers): number =>
   parseInt(headers.get('content-length') ?? '0', 10) || 0;
 
 type Query = Record<string, string | number | undefined>;
+type RequestBody = NonNullable<RequestInit['body']>;
 
 interface RequestOptions {
   query?: Query;
   headers?: Record<string, string>;
-  body?: BodyInit;
+  body?: RequestBody;
   json?: unknown;
   timeoutMs?: number;
 }
@@ -460,7 +461,7 @@ export class ObjectStorageClient {
     return await this.requestJson<DigestedObjectMetadata>(
       'PUT',
       `/buckets/${bucket}/objects/${key}`,
-      { headers, body: body as BodyInit }
+      { headers, body: body as RequestBody }
     );
   }
 
