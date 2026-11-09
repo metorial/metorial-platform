@@ -17,6 +17,8 @@ import type { LoadedManifest, ProjectRoot } from './types';
 
 export let snapshotName = 'schema.snapshot.prisma';
 
+let baselineName = '0_init';
+
 let lockName = 'migration_lock.toml';
 
 let ignoredFiles = new Set([snapshotName, lockName]);
@@ -245,13 +247,19 @@ let historyProblems = (target: MigrationTarget, base: string): string[] => {
       return { status: status!, path: path! };
     });
 
-  let problems = entries
-    .filter(entry => entry.status !== 'A')
-    .filter(entry => entry.path.includes('/') && !ignoredFiles.has(entry.path))
-    .map(
-      entry =>
-        `existing migration ${entry.path} was ${entry.status === 'D' ? 'deleted' : 'modified'} (applied migrations are immutable, add a new migration instead)`
-    );
+  let rebaselined = entries.some(
+    entry => entry.status === 'A' && entry.path === `${baselineName}/migration.sql`
+  );
+
+  let problems = rebaselined
+    ? []
+    : entries
+        .filter(entry => entry.status !== 'A')
+        .filter(entry => entry.path.includes('/') && !ignoredFiles.has(entry.path))
+        .map(
+          entry =>
+            `existing migration ${entry.path} was ${entry.status === 'D' ? 'deleted' : 'modified'} (applied migrations are immutable, add a new migration instead)`
+        );
 
   let snapshotChanged = entries.some(entry => entry.path === snapshotName);
   let migrationAdded = entries.some(entry => entry.status === 'A' && entry.path.includes('/'));

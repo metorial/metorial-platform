@@ -191,3 +191,24 @@ test('history check skips a base ref that does not exist', () => {
 
   expect(checkTarget(item, 'origin/missing')).toEqual([]);
 });
+
+test('history check allows replacing old migrations with a new 0_init baseline', () => {
+  let item = target();
+
+  write(join(item.migrations, '20260101000000_old', 'migration.sql'), 'SELECT 1;\n');
+  write(join(item.migrations, '20260102000000_older', 'migration.sql'), 'SELECT 1;\n');
+  writeSnapshot(item);
+  git(item.directory, 'init', '-q', '-b', 'main');
+  git(item.directory, 'config', 'user.email', 'test@example.com');
+  git(item.directory, 'config', 'user.name', 'Test');
+  git(item.directory, 'add', '-A');
+  git(item.directory, 'commit', '-q', '-m', 'base');
+  git(item.directory, 'checkout', '-q', '-b', 'feature');
+
+  rmSync(join(item.migrations, '20260101000000_old'), { recursive: true });
+  rmSync(join(item.migrations, '20260102000000_older'), { recursive: true });
+  initialize(item);
+  git(item.directory, 'add', '-A');
+
+  expect(checkTarget(item, 'main')).toEqual([]);
+});
