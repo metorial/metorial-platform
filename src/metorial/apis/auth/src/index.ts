@@ -11,7 +11,8 @@ import { userAuthService } from '@metorial/module-user';
 import { RateLimiter } from '@metorial/rest';
 
 let LOGIN_ATTEMPTS_PER_ADDRESS = 200;
-let LOGIN_ATTEMPTS_PER_ACCOUNT = 10;
+let LOGIN_ATTEMPTS_PER_ACCOUNT = 50;
+let LOGIN_ATTEMPTS_PER_ACCOUNT_AND_ADDRESS = 10;
 let LOGIN_ATTEMPT_WINDOW_MS = 1000 * 60 * 15;
 
 let loginRateLimiter = new RateLimiter<{ key: string; max: number }>(
@@ -59,11 +60,13 @@ export let authApi = createHono()
       })
     );
 
+    let email = body.email.trim().toLowerCase();
     let loginLimits = [
       {
-        key: `oss_login:account:${context.ip}:${body.email.trim().toLowerCase()}`,
-        max: LOGIN_ATTEMPTS_PER_ACCOUNT
+        key: `oss_login:account_address:${context.ip}:${email}`,
+        max: LOGIN_ATTEMPTS_PER_ACCOUNT_AND_ADDRESS
       },
+      { key: `oss_login:account:${email}`, max: LOGIN_ATTEMPTS_PER_ACCOUNT },
       ...(context.ip == '0.0.0.0'
         ? []
         : [{ key: `oss_login:ip:${context.ip}`, max: LOGIN_ATTEMPTS_PER_ADDRESS }])
