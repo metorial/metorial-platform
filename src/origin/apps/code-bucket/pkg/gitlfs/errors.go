@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
+	"regexp"
 )
 
 var (
@@ -31,14 +33,39 @@ func (e *Error) Error() string {
 
 func (e *Error) Unwrap() error { return e.kind }
 
-func newError(op, url string, statusCode int, body string) *Error {
+func newError(op, href string, statusCode int, body string) *Error {
 	return &Error{
 		Op:         op,
-		URL:        url,
+		URL:        redactURL(href),
 		StatusCode: statusCode,
-		Body:       truncate(body, 512),
+		Body:       truncate(redactURLs(body), 512),
 		kind:       kindForStatus(statusCode),
 	}
+}
+
+var urlPattern = regexp.MustCompile(`https?://[^\s"'<>]+`)
+
+// redactURL drops credentials, query and fragment: LFS action hrefs are often
+// presigned, so the query is a bearer credential.
+func redactURL(href string) string {
+	parsed, err := url.Parse(href)
+	if err != nil || parsed.Host == "" {
+		return "<url>"
+	}
+	return (&url.URL{Scheme: parsed.Scheme, Host: parsed.Host, Path: parsed.Path}).String()
+}
+
+func redactURLs(s string) string {
+	return urlPattern.ReplaceAllStringFunc(s, redactURL)
+}
+
+// transportError wraps a failed request without the URL net/http puts in the message.
+func transportError(op string, err error) error {
+	var urlErr *url.Error
+	if errors.As(err, &urlErr) {
+		return fmt.Errorf("%s: %w", op, &url.Error{Op: urlErr.Op, URL: redactURL(urlErr.URL), Err: urlErr.Err})
+	}
+	return fmt.Errorf("%s: %w", op, err)
 }
 
 func kindForStatus(statusCode int) error {

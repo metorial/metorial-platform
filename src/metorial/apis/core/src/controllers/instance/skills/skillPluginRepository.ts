@@ -1,15 +1,12 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import {
-  skillPluginRepositoryService,
-  skillPluginService
-} from '@metorial/module-skill-marketplace';
+import { skillPluginRepositoryService } from '@metorial/module-skill-marketplace';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
 import { isDashboardGroup } from '../../../middleware/isDashboard';
-import { bucketEditorTokenPresenter, skillPluginRepositoryPresenter } from '@metorial/presenters';
+import { skillPluginRepositoryPresenter } from '@metorial/presenters';
 import { getSkillPluginAccess, skillPluginGroup } from './skillPlugin';
 
 let readScopes = ['instance.skill:read'] as const;
@@ -131,36 +128,6 @@ export let skillPluginRepositoryController = Controller.create(
           });
 
         return skillPluginRepositoryPresenter.present({ skillPluginRepository });
-      }),
-
-    getEditorUrl: skillPluginGroup
-      .post(
-        instancePath('skill-plugins/:skillPluginId/editor-url', 'skills.plugins.getEditorUrl'),
-        {
-          name: 'Get skill plugin editor URL',
-          description: 'Creates an embeddable editor URL for a skill plugin.',
-          hideInDocs: true
-        }
-      )
-      .use(isDashboardGroup())
-      .use(hasFlags(['skills-enabled']))
-      .use(checkAccess({ possibleScopes: [...writeScopes] }))
-      .body('default', v.object({}))
-      .output(bucketEditorTokenPresenter)
-      .do(async ctx => {
-        let token = await skillPluginService.getSkillPluginEditorUrl({
-          ...(await getSkillPluginAccess(ctx)),
-          skillPlugin: ctx.skillPlugin,
-          isReadOnly: true
-        });
-
-        return bucketEditorTokenPresenter.present({
-          token: {
-            id: ctx.skillPlugin.id,
-            url: token.url,
-            expiresAt: token.expiresAt
-          }
-        });
       })
   }
 );

@@ -8,12 +8,28 @@ export let signatureForStoredFile = (fileOid: bigint): ContentSignature =>
 export let signatureForBytes = (content: Uint8Array): ContentSignature =>
   `sha256:${createHash('sha256').update(content).digest('hex')}`;
 
+export let normalizeBucketPath = (inPath: string) => {
+  if (!inPath) return '/';
+
+  let segments = inPath.split('/').filter(segment => segment && segment !== '.');
+  let normalized: string[] = [];
+
+  for (let segment of segments) {
+    if (segment === '..') normalized.pop();
+    else normalized.push(segment);
+  }
+
+  return `/${normalized.join('/')}`;
+};
+
 export interface DestinationManifestEntry {
   path: string;
   signature: ContentSignature;
   itemKey?: string | null;
 }
 
+// Rows written in manifest mode store paths without the leading slash the code bucket uses, so
+// every recorded path is compared in bucket form.
 export class DestinationManifest {
   private previous: Map<string, ContentSignature>;
   private desired = new Map<string, ContentSignature>();
@@ -27,27 +43,32 @@ export class DestinationManifest {
   ) {
     this.previous = new Map();
     for (let entry of entries) {
-      this.previous.set(entry.path, entry.signature);
-      if (itemKey && entry.itemKey === itemKey) this.owned.add(entry.path);
+      let path = normalizeBucketPath(entry.path);
+
+      this.previous.set(path, entry.signature);
+      if (itemKey && entry.itemKey === itemKey) this.owned.add(path);
     }
   }
 
   register(path: string, signature: ContentSignature): { shouldWrite: boolean } {
-    this.desired.set(path, signature);
+    let normalized = normalizeBucketPath(path);
+    this.desired.set(normalized, signature);
 
-    return { shouldWrite: this.previous.get(path) !== signature };
+    return { shouldWrite: this.previous.get(normalized) !== signature };
   }
 
   forgetPrefix(prefix: string) {
+    let normalizedPrefix = normalizeBucketPath(prefix);
+
     for (let path of [...this.previous.keys()]) {
-      if (!isUnderPrefix(path, prefix)) continue;
+      if (!isUnderPrefix(path, normalizedPrefix)) continue;
 
       this.previous.delete(path);
       this.explicitlyRemoved.add(path);
     }
 
     for (let path of [...this.desired.keys()]) {
-      if (isUnderPrefix(path, prefix)) this.desired.delete(path);
+      if (isUnderPrefix(path, normalizedPrefix)) this.desired.delete(path);
     }
   }
 
@@ -65,7 +86,7 @@ export class DestinationManifest {
 
   removedPaths(prunedPaths: string[]): string[] {
     let removed = new Set([
-      ...prunedPaths,
+      ...prunedPaths.map(normalizeBucketPath),
       ...this.explicitlyRemoved,
       ...this.abandonedPaths()
     ]);

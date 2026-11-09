@@ -35,7 +35,8 @@ export default project({
   dev: dev({
     run: ['dev:start'],
     env: mergeEnv(baseDevEnv('oss'), pickEnv('CODE_BUCKET_OBJECT_STORAGE_BUCKET'), {
-      CODE_BUCKET_JWT_SECRET: 'origin-code-bucket-dev-secret'
+      CODE_BUCKET_JWT_SECRET: 'origin-code-bucket-dev-secret',
+      ORIGIN_MANIFEST_SOURCE_BUCKETS: 'mte-files'
     })
   }),
   e2e: e2e({

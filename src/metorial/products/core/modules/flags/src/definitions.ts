@@ -34,6 +34,7 @@ export type Flags = {
 
   'store-participants-v2': FlagValue;
   'store-access-v2': FlagValue;
+  'skills-manifest-sync': FlagValue;
 
   'paid-integrations': FlagValue;
   'paid-integration-runtime': FlagValue;
@@ -101,6 +102,7 @@ export let defaultFlags: Flags = {
 
   'store-participants-v2': false,
   'store-access-v2': false,
+  'skills-manifest-sync': false,
 
   'paid-integrations': true,
   'paid-integration-runtime': true,

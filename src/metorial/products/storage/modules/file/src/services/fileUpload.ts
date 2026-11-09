@@ -11,6 +11,7 @@ import { ObjectStorageError, PublicUrlPurpose } from 'object-storage-client';
 import { fileFabricOwnerFromScope } from '../internal/fabric';
 import { cargoFileScope, type CargoOwnerScope } from '../internal/ownerScope';
 import { env } from '../env';
+import { deleteCargoObjectIfUnreferenced } from '../lib/cargoObjects';
 import { requireInstanceScope } from '../lib/instanceScope';
 import { getCloudFrontUploadUrl } from '../lib/signedUploadUrl';
 import {
@@ -141,7 +142,10 @@ class FileUploadServiceImpl {
 
   private async discardUploadedObject(upload: Pick<FileUploadRecord, 'storeId'>) {
     try {
-      await getStorage().deleteObject(getCargoFilesBucketName(), upload.storeId);
+      await deleteCargoObjectIfUnreferenced({
+        bucket: getCargoFilesBucketName(),
+        key: upload.storeId
+      });
     } catch (error) {
       if (!isObjectMissingError(error)) throw error;
     }
@@ -394,6 +398,7 @@ class FileUploadServiceImpl {
         where: { oid: upload.oid },
         data: { fileOid: file.oid }
       });
+      await fileService.requestContentHashes({ file });
 
       await Fabric.fire('file.upload.completed:after', {
         ...fabricOwner,

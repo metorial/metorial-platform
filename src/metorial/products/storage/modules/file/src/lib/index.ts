@@ -1,4 +1,6 @@
 export * from './access';
+export * from './cargoObjects';
+export * from './contentHashes';
 export * from './instanceScope';
 export * from './delegation';
 export * from './fileContent';

@@ -55,6 +55,24 @@ describe('forceSkillDestinationSync', () => {
     );
   });
 
+  it('records why the sync was forced and whether it may delete unexpected files', async () => {
+    await forceSkillDestinationSync({
+      destination: { oid: 10n },
+      trigger: 'manual',
+      allowMassDelete: true
+    });
+
+    expect(db.skillDestinationSync.create).toHaveBeenCalledWith({
+      data: {
+        id: 'skillDestinationSync_1',
+        destinationOid: 10n,
+        status: 'pending',
+        trigger: 'manual',
+        allowMassDelete: true
+      }
+    });
+  });
+
   it('leaves a durable pending sync when post-commit dispatch fails', async () => {
     await forceSkillDestinationSync({ destination: { oid: 10n } });
     add.mockRejectedValueOnce(new Error('Redis unavailable'));

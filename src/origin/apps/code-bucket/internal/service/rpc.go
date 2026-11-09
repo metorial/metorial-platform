@@ -13,10 +13,12 @@ import (
 
 	"github.com/metorial/metorial/services/code-bucket/gen/rpc"
 	"github.com/metorial/metorial/services/code-bucket/pkg/bitbucket"
+	"github.com/metorial/metorial/services/code-bucket/pkg/export"
 	"github.com/metorial/metorial/services/code-bucket/pkg/filelimit"
 	"github.com/metorial/metorial/services/code-bucket/pkg/fs"
 	"github.com/metorial/metorial/services/code-bucket/pkg/github"
 	"github.com/metorial/metorial/services/code-bucket/pkg/gitlab"
+	"github.com/metorial/metorial/services/code-bucket/pkg/objectsource"
 	zipImporter "github.com/metorial/metorial/services/code-bucket/pkg/zip-importer"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -128,14 +130,20 @@ func sanitizeProviderError(message string) string {
 
 type RcpService struct {
 	rpc.UnimplementedCodeBucketServer
-	fsm       *fs.FileSystemManager
-	jwtSecret []byte
+	fsm             *fs.FileSystemManager
+	jwtSecret       []byte
+	manifestStorage manifestStorage
+	listings        export.ListingStore
 }
 
 func newRcpService(service *Service) *RcpService {
 	rs := &RcpService{
 		fsm:       service.fsm,
 		jwtSecret: service.jwtSecret,
+	}
+	if service.fsm != nil {
+		rs.manifestStorage = objectsource.New(service.fsm.ObjectStorage(), service.manifestSourceBuckets)
+		rs.listings = objectsource.NewListingStore(service.fsm.ObjectStorage(), service.fsm.BucketName())
 	}
 
 	return rs
@@ -376,12 +384,6 @@ func (rs *RcpService) GetBucketFilesWithContentStream(req *rpc.GetBucketFilesReq
 	return nil
 }
 
-func releaseBatchItem(batch []fs.FileContentItem, i int) fs.FileContentItem {
-	item := batch[i]
-	batch[i].Content = nil
-	return item
-}
-
 func fileContentItemToRPC(file fs.FileContentItem) *rpc.FileContent {
 	return &rpc.FileContent{
 		FileInfo: &rpc.FileInfo{
@@ -406,6 +408,9 @@ func (rs *RcpService) ExportBucketToGithub(ctx context.Context, req *rpc.ExportB
 		LFSThresholdBytes: req.GetLfsThresholdBytes(),
 		BaseURL:           req.GithubApiUrl,
 		LFSEndpoint:       req.GithubLfsEndpoint,
+	}
+	if req.Manifest != nil {
+		return rs.exportManifestToGithub(ctx, req, opts)
 	}
 
 	if err := github.UploadToRepoIter(ctx, opts, func(yield func(github.FileToUpload) error) error {
@@ -443,10 +448,6 @@ func (rs *RcpService) CreateBucketFromGitlab(ctx context.Context, req *rpc.Creat
 }
 
 func (rs *RcpService) ExportBucketToGitlab(ctx context.Context, req *rpc.ExportBucketToGitlabRequest) (*rpc.ExportBucketToGitlabResponse, error) {
-	if err := rs.ensureBucketFitsBufferedExport(ctx, "GitLab", req.BucketId); err != nil {
-		return nil, providerExportError("GitLab", err)
-	}
-
 	gitlabOpts := gitlab.UploadOptions{
 		ProjectID:     req.ProjectId,
 		TargetPath:    req.Path,
@@ -456,22 +457,15 @@ func (rs *RcpService) ExportBucketToGitlab(ctx context.Context, req *rpc.ExportB
 		GitlabAPIURL:  req.GitlabApiUrl,
 		DeletePaths:   req.DeletePaths,
 	}
+	if req.Manifest != nil {
+		return rs.exportManifestToGitlab(ctx, req, gitlabOpts)
+	}
 
-	if err := gitlab.UploadToRepoIter(gitlabOpts, func(yield func(gitlab.FileToUpload) error) error {
-		return rs.fsm.WalkBucketFileContentBatches(ctx, req.BucketId, "", 0, func(batch []fs.FileContentItem) error {
-			for i := range batch {
-				file := releaseBatchItem(batch, i)
+	if err := rs.ensureBucketFitsBufferedExport(ctx, "GitLab", req.BucketId); err != nil {
+		return nil, providerExportError("GitLab", err)
+	}
 
-				if err := yield(gitlab.FileToUpload{
-					Path:    file.Info.Path,
-					Content: file.Content,
-				}); err != nil {
-					return err
-				}
-			}
-			return nil
-		})
-	}); err != nil {
+	if err := gitlab.UploadSource(ctx, gitlabOpts, rs.fsm.BucketFileSource(req.BucketId)); err != nil {
 		return nil, providerExportError("GitLab", err)
 	}
 
@@ -505,37 +499,27 @@ func (rs *RcpService) CreateBucketFromBitbucketCloud(ctx context.Context, req *r
 }
 
 func (rs *RcpService) ExportBucketToBitbucketCloud(ctx context.Context, req *rpc.ExportBucketToBitbucketCloudRequest) (*rpc.ExportBucketToBitbucketResponse, error) {
+	cloudOpts := bitbucket.CloudUploadOptions{
+		Workspace:           req.Workspace,
+		Repo:                req.Repo,
+		TargetPath:          req.Path,
+		Branch:              req.Branch,
+		CommitMessage:       req.CommitMessage,
+		Token:               req.Token,
+		APIURL:              req.BitbucketApiUrl,
+		WebURL:              req.BitbucketWebUrl,
+		DeletePaths:         req.DeletePaths,
+		ExplicitDeletesOnly: req.ExplicitDeletesOnly,
+	}
+	if req.Manifest != nil {
+		return rs.exportManifestToBitbucketCloud(ctx, req, cloudOpts)
+	}
+
 	if err := rs.ensureBucketFitsBufferedExport(ctx, "Bitbucket Cloud", req.BucketId); err != nil {
 		return nil, providerExportError("Bitbucket Cloud", err)
 	}
 
-	err := bitbucket.UploadToCloudRepo(
-		bitbucket.CloudUploadOptions{
-			Workspace:           req.Workspace,
-			Repo:                req.Repo,
-			TargetPath:          req.Path,
-			Branch:              req.Branch,
-			CommitMessage:       req.CommitMessage,
-			Token:               req.Token,
-			APIURL:              req.BitbucketApiUrl,
-			WebURL:              req.BitbucketWebUrl,
-			DeletePaths:         req.DeletePaths,
-			ExplicitDeletesOnly: req.ExplicitDeletesOnly,
-		},
-		func(yield func(bitbucket.FileToUpload) error) error {
-			return rs.fsm.WalkBucketFileContentBatches(ctx, req.BucketId, "", 0, func(batch []fs.FileContentItem) error {
-				for i := range batch {
-					file := releaseBatchItem(batch, i)
-
-					if err := yield(bitbucket.FileToUpload{Path: file.Info.Path, Content: file.Content}); err != nil {
-						return err
-					}
-				}
-				return nil
-			})
-		},
-	)
-	if err != nil {
+	if err := bitbucket.UploadSourceToCloudRepo(ctx, cloudOpts, rs.fsm.BucketFileSource(req.BucketId)); err != nil {
 		return nil, providerExportError("Bitbucket Cloud", err)
 	}
 	return &rpc.ExportBucketToBitbucketResponse{}, nil
@@ -566,36 +550,25 @@ func (rs *RcpService) CreateBucketFromBitbucketDataCenter(ctx context.Context, r
 }
 
 func (rs *RcpService) ExportBucketToBitbucketDataCenter(ctx context.Context, req *rpc.ExportBucketToBitbucketDataCenterRequest) (*rpc.ExportBucketToBitbucketResponse, error) {
+	dataCenterOpts := bitbucket.DataCenterUploadOptions{
+		CloneURL:            req.CloneUrl,
+		TargetPath:          req.Path,
+		Branch:              req.Branch,
+		CommitMessage:       req.CommitMessage,
+		Username:            req.Username,
+		Token:               req.Token,
+		DeletePaths:         req.DeletePaths,
+		ExplicitDeletesOnly: req.ExplicitDeletesOnly,
+	}
+	if req.Manifest != nil {
+		return rs.exportManifestToBitbucketDataCenter(ctx, req, dataCenterOpts)
+	}
+
 	if err := rs.ensureBucketFitsBufferedExport(ctx, "Bitbucket Data Center", req.BucketId); err != nil {
 		return nil, providerExportError("Bitbucket Data Center", err)
 	}
 
-	err := bitbucket.UploadToDataCenterRepo(
-		ctx,
-		bitbucket.DataCenterUploadOptions{
-			CloneURL:            req.CloneUrl,
-			TargetPath:          req.Path,
-			Branch:              req.Branch,
-			CommitMessage:       req.CommitMessage,
-			Username:            req.Username,
-			Token:               req.Token,
-			DeletePaths:         req.DeletePaths,
-			ExplicitDeletesOnly: req.ExplicitDeletesOnly,
-		},
-		func(yield func(bitbucket.FileToUpload) error) error {
-			return rs.fsm.WalkBucketFileContentBatches(ctx, req.BucketId, "", 0, func(batch []fs.FileContentItem) error {
-				for i := range batch {
-					file := releaseBatchItem(batch, i)
-
-					if err := yield(bitbucket.FileToUpload{Path: file.Info.Path, Content: file.Content}); err != nil {
-						return err
-					}
-				}
-				return nil
-			})
-		},
-	)
-	if err != nil {
+	if err := bitbucket.UploadSourceToDataCenterRepo(ctx, dataCenterOpts, rs.fsm.BucketFileSource(req.BucketId)); err != nil {
 		return nil, providerExportError("Bitbucket Data Center", err)
 	}
 	return &rpc.ExportBucketToBitbucketResponse{}, nil

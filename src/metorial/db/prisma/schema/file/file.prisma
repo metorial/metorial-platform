@@ -48,6 +48,8 @@ model File {
 
   contentSha256        String?
   contentSha256StoreId String?
+  contentGitBlobSha    String?
+  contentCrc32         BigInt?
 
   purposeOid Int
   purpose    FilePurpose @relation(fields: [purposeOid], references: [oid], onDelete: Cascade)

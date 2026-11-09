@@ -250,6 +250,7 @@ export let ID = createIdGenerator({
   skillForkSync: idType.sorted('skfs_'),
   skillDestination: idType.sorted('skd_'),
   skillDestinationSync: idType.sorted('skds_'),
+  skillDestinationManifest: idType.sorted('skdm_'),
   skillRepository: idType.sorted('skr_'),
   skillMarketplaceRepository: idType.sorted('skmr_'),
   skillPluginRepository: idType.sorted('skpr_'),

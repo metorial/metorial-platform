@@ -92,6 +92,8 @@ import {
   ServiceAccount,
   ServiceAccountCredential,
   Skill,
+  SkillDestination,
+  SkillDestinationSync,
   SkillGroup,
   SkillMarketplace,
   SkillPlugin,
@@ -1486,6 +1488,10 @@ export interface FabricEvents {
   'skill.marketplace.audit.created:after': { auditScope: AuditScope; skillMarketplace: SkillMarketplace };
   'skill.marketplace.audit.updated:after': { auditScope: AuditScope; skillMarketplace: SkillMarketplace; previousSkillMarketplace: SkillMarketplace };
   'skill.marketplace.audit.archived:after': { auditScope: AuditScope; skillMarketplace: SkillMarketplace };
+
+  'skill.destination.audit.sync_forced:after': { auditScope: AuditScope; skillDestination: SkillDestination; skillDestinationSync: SkillDestinationSync };
+  'skill.destination.audit.storage_migrated:after': { auditScope: AuditScope; skillDestination: SkillDestination; requestedBy: 'cron' | 'ops' };
+  'skill.destination.audit.storage_demoted:after': { auditScope: AuditScope; skillDestination: SkillDestination; previousCodeBucketId: string | null };
 
   'skill.group.audit.created:after': { auditScope: AuditScope; skillGroup: AuditSkillGroup };
   'skill.group.audit.updated:after': { auditScope: AuditScope; skillGroup: AuditSkillGroup; previousSkillGroup: AuditSkillGroup };

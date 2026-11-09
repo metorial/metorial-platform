@@ -222,9 +222,26 @@ message ExportBucketToGithubRequest {
   int64 lfs_threshold_bytes = 10;
   string github_api_url = 11;
   string github_lfs_endpoint = 12;
+
+  // When set, bucket_id, delete_paths and explicit_deletes_only are ignored.
+  ManifestSource manifest = 20;
 }
 
-message ExportBucketToGithubResponse {}
+message ExportBucketToGithubResponse {
+  ExportStats stats = 10;
+  uint32 commits_created = 11;
+  // The slice deadline or write budget ended before all work was done.
+  bool partial = 12;
+  RemoteStateCache new_remote_state = 13;
+  int64 retry_after_unix = 14;
+  // The branch head this call started from, the last commit it created (empty if none),
+  // and whether the head moved to a commit it didn't create while it ran.
+  string start_head_sha = 15;
+  string last_commit_sha = 16;
+  bool foreign_commits = 17;
+  // Content-creating requests charged against write_budget, failed attempts included.
+  uint32 write_requests = 18;
+}
 
 message CreateBucketFromGitlabRequest {
   string new_bucket_id = 1;
@@ -245,9 +262,30 @@ message ExportBucketToGitlabRequest {
   string commit_message = 7;
   repeated string delete_paths = 8;
   bool explicit_deletes_only = 9;
+
+  // Files at or above this size are routed through Git LFS; zero or negative leaves LFS
+  // to the files over the transport's own file size cap.
+  int64 lfs_threshold_bytes = 10;
+
+  // When set, bucket_id, delete_paths and explicit_deletes_only are ignored.
+  ManifestSource manifest = 20;
 }
 
-message ExportBucketToGitlabResponse {}
+message ExportBucketToGitlabResponse {
+  ExportStats stats = 10;
+  uint32 commits_created = 11;
+  // The slice deadline or write budget ended before all work was done.
+  bool partial = 12;
+  RemoteStateCache new_remote_state = 13;
+  int64 retry_after_unix = 14;
+  // The branch head this call started from, the last commit it created (empty if none),
+  // and whether the head moved to a commit it didn't create while it ran.
+  string start_head_sha = 15;
+  string last_commit_sha = 16;
+  bool foreign_commits = 17;
+  // Content-creating requests charged against write_budget, failed attempts included.
+  uint32 write_requests = 18;
+}
 
 message CreateBucketFromBitbucketCloudRequest {
   string new_bucket_id = 1;
@@ -280,6 +318,13 @@ message ExportBucketToBitbucketCloudRequest {
   string bitbucket_web_url = 9;
   repeated string delete_paths = 10;
   bool explicit_deletes_only = 11;
+
+  // Files at or above this size are routed through Git LFS; zero or negative leaves LFS
+  // to the files over the transport's own file size cap.
+  int64 lfs_threshold_bytes = 12;
+
+  // When set, bucket_id, delete_paths and explicit_deletes_only are ignored.
+  ManifestSource manifest = 20;
 }
 
 message ExportBucketToBitbucketDataCenterRequest {
@@ -292,6 +337,80 @@ message ExportBucketToBitbucketDataCenterRequest {
   string token = 7;
   repeated string delete_paths = 8;
   bool explicit_deletes_only = 9;
+
+  // Files at or above this size are routed through Git LFS; zero or negative leaves LFS
+  // to the files over the transport's own file size cap.
+  int64 lfs_threshold_bytes = 10;
+
+  // When set, bucket_id, delete_paths and explicit_deletes_only are ignored.
+  ManifestSource manifest = 20;
 }
 
-message ExportBucketToBitbucketResponse {}
+message ExportBucketToBitbucketResponse {
+  ExportStats stats = 10;
+  uint32 commits_created = 11;
+  // The slice deadline or write budget ended before all work was done.
+  bool partial = 12;
+  RemoteStateCache new_remote_state = 13;
+  int64 retry_after_unix = 14;
+  // The branch head this call started from, the last commit it created (empty if none),
+  // and whether the head moved to a commit it didn't create while it ran.
+  string start_head_sha = 15;
+  string last_commit_sha = 16;
+  bool foreign_commits = 17;
+  // Content-creating requests charged against write_budget, failed attempts included.
+  uint32 write_requests = 18;
+}
+
+message ManifestSource {
+  string bucket = 1;
+  string key = 2;
+  string sha256 = 3;
+  string previous_bucket = 4;
+  string previous_key = 5;
+  string previous_sha256 = 6;
+  uint32 max_unexpected_deletes = 7;
+  double max_unexpected_delete_ratio = 8;
+  bool allow_mass_delete = 9;
+  // Content-creating provider requests allowed in this invocation. Zero means no limit.
+  uint32 write_budget = 10;
+  // Wall-clock budget for this invocation. Zero means the service default.
+  uint32 slice_seconds = 11;
+  RemoteStateCache remote_state = 12;
+  ExportTuning tuning = 13;
+  // Prefix (in the code-bucket service's own bucket) for new remote-state listings,
+  // e.g. "remote-state/<repoId>/". Empty disables writing listings.
+  string remote_state_key_prefix = 14;
+}
+
+message RemoteStateCache {
+  string commit_sha = 1;
+  string tree_sha = 2;
+  string listing_bucket = 3;
+  string listing_key = 4;
+  uint32 entry_count = 5;
+}
+
+// Zero values mean the service default.
+message ExportTuning {
+  uint64 graphql_max_file_bytes = 1;
+  uint64 rest_max_blob_bytes = 2;
+  uint64 batch_initial_bytes = 3;
+  uint64 batch_max_bytes = 4;
+}
+
+message ExportStats {
+  uint32 files_total = 1;
+  uint32 files_uploaded = 2;
+  uint32 files_skipped = 3;
+  uint32 blobs_created = 4;
+  uint32 blobs_reused = 5;
+  uint32 lfs_uploaded = 6;
+  uint64 bytes_uploaded = 7;
+  uint32 deleted = 8;
+  uint32 unexpected_deletes = 9;
+  uint32 github_requests = 10;
+  uint64 rate_limit_wait_ms = 11;
+  uint32 commits_created = 12;
+  uint32 batch_size_reductions = 13;
+}

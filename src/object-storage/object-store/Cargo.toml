@@ -28,6 +28,14 @@ chrono = { workspace = true }
 mime_guess = { workspace = true }
 futures = "0.3"
 bytes = "1.5"
+tokio-util = { version = "0.7", features = ["rt"] }
+sha2 = { workspace = true }
+hex = { workspace = true }
+
+# Zip archives (pure-Rust Deflate so compressed output is deterministic)
+crc32fast = "1.4"
+flate2 = { version = "1.1", default-features = false, features = ["rust_backend"] }
+unicode-normalization = "0.1.24"
 
 # Configuration
 config = "0.14"
@@ -36,3 +44,8 @@ config = "0.14"
 tempfile = "3.8"
 mockall = { workspace = true }
 futures = "0.3"
+sha2 = { workspace = true }
+hex = { workspace = true }
+proptest = "1.11"
+zip = { version = "8.6", default-features = false, features = ["deflate-flate2"] }
+reqwest = { version = "0.12", features = ["stream"] }

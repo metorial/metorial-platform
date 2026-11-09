@@ -73,7 +73,7 @@ export let claimRepositorySyncMergeAttempt = async (
 
 let updateRepositorySyncStateInTransaction = async (
   syncId: string,
-  data: Prisma.ScmRepositorySyncUpdateInput,
+  data: Prisma.ScmRepositorySyncUncheckedUpdateManyInput,
   expectedStatus: ScmRepositorySyncStatus
 ) =>
   db.$transaction(async tx => {
@@ -126,18 +126,20 @@ let updateRepositorySyncStateInTransaction = async (
 export let transitionRepositorySyncState = (
   syncId: string,
   expectedStatus: ScmRepositorySyncStatus,
-  data: Prisma.ScmRepositorySyncUpdateInput
+  data: Prisma.ScmRepositorySyncUncheckedUpdateManyInput
 ) => updateRepositorySyncStateInTransaction(syncId, data, expectedStatus);
 
+export let terminalRepositorySyncStatuses: ScmRepositorySyncStatus[] = [
+  'merged',
+  'failed',
+  'cancelled',
+  'complete_unmerged',
+  'complete_direct_push',
+  'complete_no_changes'
+];
+
 export let isTerminalRepositorySyncStatus = (status: ScmRepositorySyncStatus) =>
-  [
-    'merged',
-    'failed',
-    'cancelled',
-    'complete_unmerged',
-    'complete_direct_push',
-    'complete_no_changes'
-  ].includes(status);
+  terminalRepositorySyncStatuses.includes(status);
 
 export type RepositorySyncPolicy = {
   enableAutoMerge: boolean;

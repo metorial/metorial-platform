@@ -135,9 +135,6 @@ let SkillMarketplaceLayout = dynamicPage(() =>
 let SkillMarketplacePage = dynamicPage(() =>
   import('./pages/(skills)/skill-marketplace').then(c => c.SkillMarketplacePage)
 );
-let SkillMarketplaceEditorPage = dynamicPage(() =>
-  import('./pages/(skills)/skill-marketplace/editor').then(c => c.SkillMarketplaceEditorPage)
-);
 let SkillMarketplaceSyncsPage = dynamicPage(() =>
   import('./pages/(skills)/skill-marketplace/syncs').then(c => c.SkillMarketplaceSyncsPage)
 );
@@ -1043,10 +1040,6 @@ export let productSkillsSlice = createSlice([
               {
                 path: '',
                 element: <SkillMarketplacePage />
-              },
-              {
-                path: 'editor',
-                element: <SkillMarketplaceEditorPage />
               },
               {
                 path: 'syncs',

@@ -7,8 +7,6 @@ import {
   mapDashboardInstanceSkillsPluginsArchiveOutput,
   mapDashboardInstanceSkillsPluginsCreateBody,
   mapDashboardInstanceSkillsPluginsCreateOutput,
-  mapDashboardInstanceSkillsPluginsGetEditorUrlBody,
-  mapDashboardInstanceSkillsPluginsGetEditorUrlOutput,
   mapDashboardInstanceSkillsPluginsGetOutput,
   mapDashboardInstanceSkillsPluginsListOutput,
   mapDashboardInstanceSkillsPluginsListQuery,
@@ -19,8 +17,6 @@ import {
   type DashboardInstanceSkillsPluginsArchiveOutput,
   type DashboardInstanceSkillsPluginsCreateBody,
   type DashboardInstanceSkillsPluginsCreateOutput,
-  type DashboardInstanceSkillsPluginsGetEditorUrlBody,
-  type DashboardInstanceSkillsPluginsGetEditorUrlOutput,
   type DashboardInstanceSkillsPluginsGetOutput,
   type DashboardInstanceSkillsPluginsListOutput,
   type DashboardInstanceSkillsPluginsListQuery,
@@ -226,36 +222,6 @@ export class MetorialSkillsPluginsEndpoint {
 
     return this._post(request).transform(
       mapDashboardInstanceSkillsPluginsSyncOutput
-    );
-  }
-
-  /**
-   * @name Get skill plugin editor URL
-   * @description Creates an embeddable editor URL for a skill plugin.
-   *
-   * @param `skillPluginId` - string
-   * @param `body` - DashboardInstanceSkillsPluginsGetEditorUrlBody
-   * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardInstanceSkillsPluginsGetEditorUrlOutput
-   * @see https://metorial.com/api
-   * @see https://metorial.com/docs
-   */
-  getEditorUrl(
-    skillPluginId: string,
-    body: DashboardInstanceSkillsPluginsGetEditorUrlBody,
-    opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardInstanceSkillsPluginsGetEditorUrlOutput> {
-    let path = `skill-plugins/${skillPluginId}/editor-url`;
-
-    let request = {
-      path,
-      body: mapDashboardInstanceSkillsPluginsGetEditorUrlBody.transformTo(body),
-
-      ...(opts?.headers ? { headers: opts.headers } : {})
-    } as any;
-
-    return this._post(request).transform(
-      mapDashboardInstanceSkillsPluginsGetEditorUrlOutput
     );
   }
 }

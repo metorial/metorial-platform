@@ -1,5 +1,5 @@
 import { createOriginClient } from '@metorial-platform-systems/origin-client';
-import type { SkillDestination } from '@metorial/db';
+import type { SkillDestination, SkillDestinationStorageMode } from '@metorial/db';
 import { db, ID } from '@metorial/db';
 import { getProjectTenantIdentifier } from '@metorial/skills-common';
 import { getSkillsScmUtilsEnv } from './env';
@@ -45,7 +45,18 @@ export let getOriginTenant = async (project: OriginTenantProject) => {
 export let createSkillDestination = async (d: {
   project: OriginTenantProject;
   purpose?: string;
+  storageMode?: SkillDestinationStorageMode;
 }): Promise<SkillDestination> => {
+  if (d.storageMode === 'manifest') {
+    return await db.skillDestination.create({
+      data: {
+        id: await ID.generateId('skillDestination'),
+        storageMode: 'manifest',
+        lastUsedAt: new Date()
+      }
+    });
+  }
+
   let originTenant = await getOriginTenant(d.project);
 
   let codeBucket = await origin.codeBucket.create({
@@ -63,20 +74,12 @@ export let createSkillDestination = async (d: {
   });
 };
 
-export let getSkillDestinationEditorUrl = async (d: {
-  project: OriginTenantProject;
-  destination: Pick<SkillDestination, 'codeBucketId'>;
-  isReadOnly?: boolean;
-}) => {
-  let originTenant = await getOriginTenant(d.project);
-  let res = await origin.codeBucket.getEditorToken({
-    tenantId: originTenant.id,
-    codeBucketId: d.destination.codeBucketId,
-    isReadOnly: d.isReadOnly
-  });
+export let getSkillDestinationCodeBucketId = (
+  destination: Pick<SkillDestination, 'id' | 'codeBucketId'>
+) => {
+  if (!destination.codeBucketId) {
+    throw new Error(`Skill destination ${destination.id} has no code bucket`);
+  }
 
-  return {
-    url: res.url,
-    expiresAt: res.expiresAt
-  };
+  return destination.codeBucketId;
 };

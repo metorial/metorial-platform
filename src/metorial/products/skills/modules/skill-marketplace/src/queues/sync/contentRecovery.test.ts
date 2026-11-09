@@ -22,6 +22,7 @@ vi.mock('../../env', () => ({ env: { origin: { CODE_BUCKET_SERVICE_URL: 'unused'
 vi.mock('../../serializers/marketplace', () => ({ applyMarketplace: {} }));
 vi.mock('../../serializers/plugin', () => ({ applyPlugin: {}, getPluginPath: vi.fn() }));
 vi.mock('../../serializers/skill', () => ({ applySkill: {}, getSkillPath: vi.fn() }));
+vi.mock('../../lib/securityReviewPolicy', () => ({ getWithheldSkillIds: async () => new Set<string>() }));
 vi.mock('./_lib/bucket', () => ({ destinationBucketIsAvailable: async () => true }));
 vi.mock('./_lib/lock', () => ({ withDestinationSyncLock: (run: unknown) => run }));
 vi.mock('./_lib/logs', () => ({ appendSkillDestinationSyncLog: vi.fn() }));
@@ -66,7 +67,8 @@ describe('content recovery fencing', () => {
   it('accepts queued pre-deployment work while its persisted version is still zero', async () => {
     db.skillDestinationSync.findUnique.mockResolvedValue({
       status: 'processing',
-      contentVersion: 0
+      contentVersion: 0,
+      destination: { storageMode: 'code_bucket' }
     });
 
     await process({ skillDestinationSyncId: 'sync', tasks: [] });

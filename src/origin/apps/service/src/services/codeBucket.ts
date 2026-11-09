@@ -1,5 +1,5 @@
 import { delay } from '@lowerdeck/delay';
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, conflictError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import Long from 'long';
 import type { ScmRepository } from '../../prisma/generated/browser';
@@ -22,6 +22,7 @@ import { importGithubQueue } from '../queues/codeBucket/importGithub';
 import { importGitlabQueue } from '../queues/codeBucket/importGitlab';
 import { importTemplateQueue } from '../queues/codeBucket/importTemplate';
 import { codeBucketPurposeService } from './codeBucketPurpose';
+import { terminalRepositorySyncStatuses } from './repositorySyncState';
 
 let include = {
   repository: { include: { account: true } }
@@ -30,7 +31,7 @@ let include = {
 class codeBucketServiceImpl {
   async getCodeBucketById(d: { tenant: Tenant; id: string }) {
     let codeBucket = await db.codeBucket.findFirst({
-      where: { id: d.id, tenantOid: d.tenant.oid },
+      where: { id: d.id, tenantOid: d.tenant.oid, deletedAt: null },
       include
     });
     if (!codeBucket) throw new ServiceError(notFoundError('codeBucket'));
@@ -368,7 +369,8 @@ class codeBucketServiceImpl {
         branch,
         commitMessage,
         deletePaths,
-        explicitDeletesOnly
+        explicitDeletesOnly,
+        lfsThresholdBytes: Long.fromNumber(d.gitLfsThresholdBytes ?? 0)
       });
       return;
     }
@@ -385,7 +387,8 @@ class codeBucketServiceImpl {
           branch,
           commitMessage,
           deletePaths,
-          explicitDeletesOnly
+          explicitDeletesOnly,
+          lfsThresholdBytes: Long.fromNumber(d.gitLfsThresholdBytes ?? 0)
         });
       } else {
         await codeBucketClient.exportBucketToBitbucketCloud({
@@ -399,7 +402,8 @@ class codeBucketServiceImpl {
           branch,
           commitMessage,
           deletePaths,
-          explicitDeletesOnly
+          explicitDeletesOnly,
+          lfsThresholdBytes: Long.fromNumber(d.gitLfsThresholdBytes ?? 0)
         });
       }
       return;
@@ -592,6 +596,40 @@ class codeBucketServiceImpl {
     await codeBucketClient.deleteBucketPath({
       bucketId: d.codeBucket.id,
       path: normalizePath(d.path)
+    });
+  }
+
+  async deleteCodeBucket(d: { tenant: Tenant; id: string }) {
+    let codeBucket = await db.codeBucket.findFirst({
+      where: { id: d.id, tenantOid: d.tenant.oid },
+      include
+    });
+    if (!codeBucket) throw new ServiceError(notFoundError('codeBucket'));
+    if (codeBucket.deletedAt) return codeBucket;
+
+    let inFlightSync = await db.scmRepositorySync.findFirst({
+      where: {
+        codeBucketOid: codeBucket.oid,
+        status: { notIn: terminalRepositorySyncStatuses }
+      },
+      select: { id: true }
+    });
+    if (inFlightSync) {
+      throw new ServiceError(
+        conflictError({
+          code: 'code_bucket_in_use',
+          message:
+            'This code bucket is still being exported to a repository. Delete it once the repository sync has finished.'
+        })
+      );
+    }
+
+    await codeBucketClient.deleteBucketPath({ bucketId: codeBucket.id, path: '/' });
+
+    return await db.codeBucket.update({
+      where: { oid: codeBucket.oid },
+      data: { deletedAt: new Date() },
+      include
     });
   }
 }

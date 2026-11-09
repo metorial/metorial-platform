@@ -1,15 +1,12 @@
 import { renderWithLoader } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import {
-  SkillMarketplaceEditorScene,
   SkillMarketplaceRepositoriesSettingsBox,
   SkillMarketplaceRepositoriesSettingsContentScene,
   SkillMarketplaceRepositoryAccessSettings,
   useSkillMarketplaceRepositoriesManager
 } from '@metorial/scene-skills';
 import {
-  type SkillMarketplaceRepository,
-  type SkillSync,
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
@@ -22,8 +19,8 @@ import { RiMore2Line } from '@remixicon/react';
 import { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInterval } from 'react-use';
-import { shleemy } from 'shleemy';
 import { SkillSyncDetails } from '../skillSyncs';
+import { getSyncStatusMessage } from './repositorySyncMessage';
 import { shouldShowRepositorySyncLogs } from './repositorySyncVisibility';
 
 let showRepositoryAccessSettings = (
@@ -70,59 +67,6 @@ let showManageRepositories = (
       />
     </Dialog.Wrapper>
   ));
-
-let showMarketplacePreview = (p: {
-  instanceId: string | null | undefined;
-  skillMarketplaceId: string | null | undefined;
-}) =>
-  showModal(({ close, isOpen }) => (
-    <>{isOpen && <SkillMarketplaceEditorScene {...p} fullScreen onClose={close} />}</>
-  ));
-
-let getRepositoryName = (repository: SkillMarketplaceRepository) => {
-  let url = repository.repository.url;
-  if (url) {
-    try {
-      let path = new URL(url).pathname.replace(/^\/+|\/+$/g, '').replace(/\.git$/, '');
-      if (path) return path;
-    } catch {}
-  }
-  return repository.repository.name || repository.repoId;
-};
-
-let formatRepositoryNames = (repositories: SkillMarketplaceRepository[]) =>
-  new Intl.ListFormat('en', { style: 'long', type: 'conjunction' }).format(
-    repositories.map(getRepositoryName)
-  );
-
-let getSyncStatusMessage = (sync: SkillSync, repositories: SkillMarketplaceRepository[]) => {
-  let propagationRepositoryIds = new Set(
-    sync.repositoryPropagations.map(propagation => propagation.repoId)
-  );
-  let syncedRepositories = repositories.filter(repository =>
-    propagationRepositoryIds.has(repository.repoId)
-  );
-  let relevantRepositories = syncedRepositories.length ? syncedRepositories : repositories;
-  let names = formatRepositoryNames(relevantRepositories);
-  let isSingle = relevantRepositories.length === 1;
-  let subject = `The skill ${isSingle ? 'repository' : 'repositories'} ${names}`;
-  let occurredAt = sync.completedAt ?? sync.startedAt ?? sync.createdAt;
-  let relativeTime = shleemy(new Date(occurredAt)).forHumans;
-
-  if (sync.status === 'completed') {
-    return `${subject} ${isSingle ? 'was' : 'were'} synced successfully ${relativeTime}.`;
-  }
-  if (sync.status === 'processing') {
-    return `${subject} ${isSingle ? 'is' : 'are'} syncing now.`;
-  }
-  if (sync.status === 'waiting_for_review') {
-    return `${subject} ${isSingle ? 'needs' : 'need'} your attention before syncing can continue.`;
-  }
-  if (sync.status === 'failed') {
-    return `${subject} failed to sync ${relativeTime}.`;
-  }
-  return `${subject} ${isSingle ? 'is' : 'are'} waiting to sync.`;
-};
 
 export let SkillMarketplaceRepositorySyncBox = (p: {
   skillMarketplaceId: string | null | undefined;
@@ -218,7 +162,6 @@ export let SkillMarketplaceRepositorySyncBox = (p: {
               { id: 'link', label: 'Link Repository' },
               { id: 'access', label: 'Repository Sync Settings' },
               { id: 'manage', label: 'Manage Repositories' },
-              { id: 'preview', label: 'Content Preview' },
               { id: 'history', label: 'Sync History' },
               { id: 'force_sync', label: 'Force Sync' }
             ]}
@@ -231,7 +174,6 @@ export let SkillMarketplaceRepositorySyncBox = (p: {
               if (item === 'manage') {
                 showManageRepositories(settingsProps, refreshRepositorySyncBox);
               }
-              if (item === 'preview') showMarketplacePreview(settingsProps);
               if (item === 'history') openSyncHistory();
             }}
           >

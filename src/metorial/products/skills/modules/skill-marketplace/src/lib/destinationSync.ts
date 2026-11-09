@@ -1,10 +1,16 @@
-import type { SkillDestination, SkillMarketplace } from '@metorial/db';
+import type {
+  SkillDestination,
+  SkillDestinationSyncTrigger,
+  SkillMarketplace
+} from '@metorial/db';
 import { addAfterTransactionHook, ID, withTransaction } from '@metorial/db';
 import { syncStartQueue } from '../queues/sync/start';
 
 export let forceSkillDestinationSync = async (d: {
   destination: Pick<SkillDestination, 'oid'>;
   incrementForceSyncCounterFor?: Pick<SkillMarketplace, 'oid'>;
+  trigger?: SkillDestinationSyncTrigger;
+  allowMassDelete?: boolean;
 }) => {
   let sync = await withTransaction(async db => {
     if (d.incrementForceSyncCounterFor) {
@@ -32,7 +38,9 @@ export let forceSkillDestinationSync = async (d: {
       data: {
         id: await ID.generateId('skillDestinationSync'),
         destinationOid: d.destination.oid,
-        status: 'pending'
+        status: 'pending',
+        ...(d.trigger ? { trigger: d.trigger } : {}),
+        ...(d.allowMassDelete ? { allowMassDelete: true } : {})
       }
     });
 
