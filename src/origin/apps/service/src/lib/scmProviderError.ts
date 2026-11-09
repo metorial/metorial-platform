@@ -12,6 +12,7 @@ import {
   unauthorizedError
 } from '@lowerdeck/error';
 import { getSentry } from '@lowerdeck/sentry';
+import { type ExportErrorCode, parseExportError } from './exportError';
 
 let Sentry = getSentry();
 
@@ -52,8 +53,7 @@ let getHeader = (headers: any, name: string) => {
  */
 let grpcRpcPrefix = /^\/rpc\.[^\s:]+\s+[A-Z][A-Z0-9_]*:\s*/;
 
-export let stripGrpcRpcPrefix = (message: string) =>
-  message.replace(grpcRpcPrefix, '').trim();
+export let stripGrpcRpcPrefix = (message: string) => message.replace(grpcRpcPrefix, '').trim();
 
 export let toPublicProviderErrorMessage = (message: string) => {
   let stripped = stripGrpcRpcPrefix(message);
@@ -133,6 +133,7 @@ let getSanitizedEndpoint = (error: any) => {
 export type ScmProviderErrorDetails = {
   status?: number;
   description?: string;
+  exportErrorCode?: ExportErrorCode;
   method?: string;
   endpoint?: string;
   requestId?: string;
@@ -215,7 +216,26 @@ let classifyScmProviderError = (
   return 'network_failure' as const;
 };
 
+let classifyExportError = (
+  code: ExportErrorCode
+): ScmProviderErrorDetails['classification'] => {
+  if (code === 'rate_limited') return 'rate_limited';
+  if (code === 'file_too_large') return 'file_too_large';
+  if (code === 'branch_missing') return 'missing_branch';
+  if (code === 'source_not_found') return 'resource_not_found';
+  return 'invalid_request';
+};
+
 export let getScmProviderErrorDetails = (error: unknown): ScmProviderErrorDetails => {
+  let exportError = parseExportError(error);
+  if (exportError) {
+    return {
+      description: sanitizeText(exportError.message),
+      exportErrorCode: exportError.code,
+      classification: classifyExportError(exportError.code)
+    };
+  }
+
   let value = error as any;
   let attached = value?.scmProviderDiagnostic;
   let request = getRequest(value);
