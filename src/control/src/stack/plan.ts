@@ -405,7 +405,13 @@ export let planStack = (
           )
         );
         prepare.push(
-          turboStep('Pushing database schemas', 'control:db:push', packages, processEnv, 3)
+          turboStep(
+            'Pushing database schemas',
+            'control:db:push',
+            packages,
+            { ...processEnv, ...environment.prismaDevelopmentEnvironment },
+            3
+          )
         );
       }
 

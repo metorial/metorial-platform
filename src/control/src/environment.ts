@@ -7,6 +7,10 @@ import type { Database, Environment, EnvValue, LoadedManifest, ProjectRoot } fro
 
 export let isolated = 'CONTROL_ENV_ISOLATED';
 
+export let prismaDevelopmentEnvironment = {
+  PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION: 'true'
+};
+
 export let defaultPorts = {
   postgres: 35432,
   mongo: 32707,

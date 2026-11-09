@@ -335,7 +335,15 @@ export let buildPlan = (
       prepare.push(
         step('Generating database clients', 'control:db:generate', dbPackages, env, 3)
       );
-      prepare.push(step('Pushing database schemas', 'control:db:push', dbPackages, env, 3));
+      prepare.push(
+        step(
+          'Pushing database schemas',
+          'control:db:push',
+          dbPackages,
+          { ...env, ...environment.prismaDevelopmentEnvironment },
+          3
+        )
+      );
     }
 
     prepare.push({
