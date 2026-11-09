@@ -1,11 +1,13 @@
 import {
   bunService,
   ciImage,
+  ciSuite,
   dependency,
   dev,
   e2e,
   endpoint,
   mergeEnv,
+  objectStorage,
   postgres,
   project,
   redis,
@@ -53,9 +55,12 @@ export default project({
   e2e: e2e({
     start: ['e2e:start'],
     image: 'slates-registry',
+    tests: ['.'],
     env: {
-      OBJECT_STORAGE_URL: 'http://services:52010'
-    }
+      OBJECT_STORAGE_URL: 'http://services:52010',
+      PACKAGE_BUCKET_NAME: 'package-bucket'
+    },
+    resources: [objectStorage()]
   }),
   ci: {
     images: [
@@ -81,6 +86,7 @@ export default project({
           ]
         })
       })
-    ]
+    ],
+    suite: ciSuite({ name: 'slates-registry', groups: 1 })
   }
 });

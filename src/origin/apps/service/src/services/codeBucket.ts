@@ -491,10 +491,15 @@ class codeBucketServiceImpl {
   async getFile(d: { codeBucket: CodeBucket; path: string }) {
     await this.waitForCodeBucketReady({ codeBucketId: d.codeBucket.id });
 
-    let res = await codeBucketClient.getBucketFile({
-      bucketId: d.codeBucket.id,
-      path: d.path
-    });
+    let res = await codeBucketClient
+      .getBucketFile({
+        bucketId: d.codeBucket.id,
+        path: d.path
+      })
+      .catch((error: { code?: number }) => {
+        if (error?.code === 5) throw new ServiceError(notFoundError('file'));
+        throw error;
+      });
 
     if (!res.content || !res.content.fileInfo) {
       throw new ServiceError(notFoundError('file'));

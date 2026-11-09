@@ -1,12 +1,14 @@
 import {
   bunService,
   ciImage,
+  ciSuite,
   dependency,
   dev,
   e2e,
   endpoint,
   inherit,
   mergeEnv,
+  objectStorage,
   postgres,
   project,
   redis,
@@ -65,9 +67,13 @@ export default project({
   e2e: e2e({
     start: ['e2e:start'],
     image: 'origin',
+    tests: ['.'],
     env: {
-      OBJECT_STORAGE_URL: 'http://services:52010'
-    }
+      OBJECT_STORAGE_URL: 'http://services:52010',
+      CODE_BUCKET_OBJECT_STORAGE_BUCKET: 'code-bucket',
+      NEBULA_CONSUMER_TOKEN: 'e2e-origin-registration-secret'
+    },
+    resources: [objectStorage()]
   }),
   ci: {
     images: [
@@ -86,6 +92,7 @@ export default project({
           migrations: [ownMigration('origin', '@metorial/origin', { prefix: 'ORIGIN' })]
         })
       })
-    ]
+    ],
+    suite: ciSuite({ name: 'origin', groups: 1 })
   }
 });

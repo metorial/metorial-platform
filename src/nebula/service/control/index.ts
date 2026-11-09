@@ -48,7 +48,8 @@ export default project({
     env: {
       CONSUMER_REGISTRATION_WORKER: 'e2e-worker-registration-secret',
       CONSUMER_REGISTRATION_OWNER: 'e2e-owner-registration-secret',
-      CONSUMER_REGISTRATION_OTHER: 'e2e-other-registration-secret'
+      CONSUMER_REGISTRATION_OTHER: 'e2e-other-registration-secret',
+      CONSUMER_REGISTRATION_ORIGIN: 'e2e-origin-registration-secret'
     }
   }),
   ci: {

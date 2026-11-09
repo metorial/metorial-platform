@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
   ensureForProject: vi.fn(),
@@ -56,14 +56,28 @@ describe('projectSessionlessMcpConfigurationService', () => {
     mocks.ensureForProject.mockResolvedValue({ tenant });
   });
 
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   describe('get', () => {
-    it('reports false for an unset project setting', async () => {
-      expect(
-        await projectSessionlessMcpConfigurationService.getProjectSessionlessMcpConfiguration({
-          project: activeProject as any
-        })
-      ).toEqual({ sessionlessMcpEnabled: false });
-    });
+    it.each([
+      { environment: 'development', expected: true },
+      { environment: 'production', expected: false }
+    ])(
+      'reports $expected for an unset project setting in $environment',
+      async ({ environment, expected }) => {
+        vi.stubEnv('METORIAL_ENV', environment);
+
+        expect(
+          await projectSessionlessMcpConfigurationService.getProjectSessionlessMcpConfiguration(
+            {
+              project: activeProject as any
+            }
+          )
+        ).toEqual({ sessionlessMcpEnabled: expected });
+      }
+    );
 
     it('reports an explicit project value', async () => {
       expect(
@@ -130,7 +144,8 @@ describe('projectSessionlessMcpConfigurationService', () => {
       expect(result).toEqual({ sessionlessMcpEnabled: false });
     });
 
-    it('audits an unset previous project setting as false', async () => {
+    it('audits an unset previous project setting as false in production', async () => {
+      vi.stubEnv('METORIAL_ENV', 'production');
       mocks.upsertTenant.mockResolvedValue({ ...tenant, sessionlessMcpEnabled: false });
       mocks.projectUpdate.mockResolvedValue({
         ...activeProject,

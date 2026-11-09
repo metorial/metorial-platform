@@ -121,10 +121,10 @@ describe('slateSpecification:getMany E2E', () => {
   const f = fixtures(testDb);
 
   it('returns multiple specifications by IDs', async () => {
-    const slate1 = await f.slate.complete();
-    const slate2 = await f.slate.complete();
+    let slate1 = await f.slate.complete();
+    let slate2 = await f.slate.complete();
 
-    const result = await slatesHubClient.slateSpecification.getMany({
+    let result = await slatesHubClient.slateSpecification.getMany({
       slateSpecificationIds: [
         slate1.currentVersion.specification.id,
         slate2.currentVersion.specification.id
