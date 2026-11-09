@@ -2,6 +2,7 @@ import { createCodeBucketClient } from '@metorial/code-bucket-service-generated'
 import { db, withTransaction } from '@metorial/db';
 import { fileService } from '@metorial/module-file';
 import { createQueue } from '@metorial/queue';
+import { getSkillDestinationCodeBucketId } from '@metorial/skills-scm-utils';
 import path from 'path';
 import { env } from '../../env';
 import { BatchProcessor } from '../../lib/batchProcessor';
@@ -18,35 +19,29 @@ import {
   forgetDestinationFileDeletions,
   recordDestinationFileDeletions
 } from './_lib/deletions';
-import { getSyncTaskItemKey, getSyncTaskItemWhere } from './_lib/item';
+import { getSyncItemKey, getSyncTaskItemKey, getSyncTaskItemWhere } from './_lib/item';
 import { destinationBucketIsAvailable } from './_lib/bucket';
 import { withDestinationSyncLock } from './_lib/lock';
 import { appendSkillDestinationSyncLog } from './_lib/logs';
 import {
   DestinationManifest,
+  normalizeBucketPath,
   signatureForBytes,
   signatureForStoredFile
 } from './_lib/manifest';
+import { getSkillDestinationFilePathBytes } from './_lib/manifestRows';
+import { processManifestSyncTask } from './_lib/manifestTask';
 import { type SyncTask } from './_lib/task';
 import { syncReconcileQueue } from './reconcile';
+
+let manifestTasksPerJob = 25;
+let manifestJobBudgetMs = 20_000;
+let largeFileHashRetryMs = 30_000;
+let maxLargeFileHashWaits = 240;
 
 let codeBucketClient = createCodeBucketClient({
   address: env.origin.CODE_BUCKET_SERVICE_URL
 });
-
-let normalizeBucketPath = (inPath: string) => {
-  if (!inPath) return '/';
-
-  let segments = inPath.split('/').filter(segment => segment && segment !== '.');
-  let normalized: string[] = [];
-
-  for (let segment of segments) {
-    if (segment === '..') normalized.pop();
-    else normalized.push(segment);
-  }
-
-  return `/${normalized.join('/')}`;
-};
 
 let maxInlineBatchBytes = 8 * 1024 * 1024;
 
@@ -79,6 +74,7 @@ export let syncProcessQueue = createQueue<{
   tasks: SyncTask[];
   hasChanges?: boolean;
   skillRepositoryId?: string;
+  hashWaits?: number;
 }>({
   name: 'cargo/skill/sync/process',
   workerOpts: {
@@ -101,6 +97,97 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(
     });
     if (!sync || sync.status !== 'processing' || sync.isAtRepoSyncStage) return;
     if ((data.contentVersion ?? 0) !== sync.contentVersion) return;
+
+    if (sync.destination.storageMode === 'manifest') {
+      let startedAt = Date.now();
+      let tasks = [...data.tasks];
+      let hasChanges = data.hasChanges ?? false;
+      let processedCount = 0;
+
+      let items = await db.skillDestinationItem.findMany({
+        where: { destinationOid: sync.destinationOid },
+        include: { skill: true, skillPlugin: true, skillMarketplace: true }
+      });
+      let liveItemKeys = new Set(items.map(getSyncItemKey));
+
+      let handOff = async (d: { tasks: SyncTask[]; delay?: number; hashWaits?: number }) => {
+        let versionedSync = await db.skillDestinationSync.update({
+          where: { oid: sync.oid },
+          data: { contentVersion: { increment: 1 } }
+        });
+        let payload = {
+          skillDestinationSyncId: data.skillDestinationSyncId,
+          contentVersion: versionedSync.contentVersion,
+          hasChanges,
+          skillRepositoryId: data.skillRepositoryId
+        };
+
+        if (d.tasks.length) {
+          await syncProcessQueue.add(
+            { ...payload, tasks: d.tasks, hashWaits: d.hashWaits },
+            d.delay ? { delay: d.delay } : undefined
+          );
+        } else {
+          await syncReconcileQueue.add(payload);
+        }
+      };
+
+      while (
+        tasks.length &&
+        processedCount < manifestTasksPerJob &&
+        Date.now() - startedAt < manifestJobBudgetMs
+      ) {
+        let outcome;
+        try {
+          outcome = await processManifestSyncTask({
+            skillDestinationSyncId: data.skillDestinationSyncId,
+            destination: sync.destination,
+            task: tasks[0]!,
+            liveItemKeys
+          });
+        } catch (error) {
+          if (
+            await failSyncForLimitError({
+              skillDestinationSyncId: data.skillDestinationSyncId,
+              error
+            })
+          )
+            return;
+          throw error;
+        }
+
+        if (outcome.type === 'deferred') {
+          let hashWaits = (data.hashWaits ?? 0) + 1;
+          if (hashWaits > maxLargeFileHashWaits) {
+            await failSyncForLimitError({
+              skillDestinationSyncId: data.skillDestinationSyncId,
+              error: new CargoSkillLimitError(
+                `Timed out waiting for ${outcome.fileCount} large file${outcome.fileCount === 1 ? '' : 's'} to be hashed.`
+              )
+            });
+            return;
+          }
+
+          if (!data.hashWaits) {
+            await appendSkillDestinationSyncLog(
+              data.skillDestinationSyncId,
+              `Waiting for ${outcome.fileCount} large file${outcome.fileCount === 1 ? '' : 's'} to be hashed.`
+            );
+          }
+
+          await handOff({ tasks, delay: largeFileHashRetryMs, hashWaits });
+          return;
+        }
+
+        hasChanges ||= outcome.type === 'changed';
+        tasks.shift();
+        processedCount++;
+      }
+
+      await handOff({ tasks });
+      return;
+    }
+
     if (sync.contentVersion === 0 && !(await destinationBucketIsAvailable(sync))) return;
 
     let task = data.tasks[0];
@@ -142,7 +229,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(
         select: { path: true }
       });
 
-      return files.map(file => file.path);
+      return [...new Set(files.map(file => normalizeBucketPath(file.path)))];
     };
 
     let deleteBucketPaths = async (paths: string[]) => {
@@ -153,7 +240,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(
 
       for (let candidate of normalized) {
         await codeBucketClient.deleteBucketFile({
-          bucketId: sync.destination.codeBucketId,
+          bucketId: getSkillDestinationCodeBucketId(sync.destination),
           path: candidate
         });
       }
@@ -172,21 +259,31 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(
       }
 
       let { deletedPaths } = await codeBucketClient.deleteBucketPath({
-        bucketId: sync.destination.codeBucketId,
+        bucketId: getSkillDestinationCodeBucketId(sync.destination),
         path: normalized
       });
 
+      let unslashed = normalized.slice(1);
       let recorded = await db.skillDestinationFile.findMany({
         where: {
           destinationOid: sync.destinationOid,
-          OR: [{ path: normalized }, { path: { startsWith: `${normalized}/` } }]
+          OR: [
+            { path: normalized },
+            { path: { startsWith: `${normalized}/` } },
+            { path: unslashed },
+            { path: { startsWith: `${unslashed}/` } }
+          ]
         },
         select: { path: true }
       });
 
       return await recordDestinationFileDeletions({
         destinationOid: sync.destinationOid,
-        paths: [...deletedPaths, ...recorded.map(file => file.path)]
+        paths: [
+          ...new Set(
+            [...deletedPaths, ...recorded.map(file => file.path)].map(normalizeBucketPath)
+          )
+        ]
       });
     };
 
@@ -208,7 +305,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(
       if (keepPaths.length === 0) return [];
 
       let { deletedPaths } = await codeBucketClient.pruneBucketPath({
-        bucketId: sync.destination.codeBucketId,
+        bucketId: getSkillDestinationCodeBucketId(sync.destination),
         prefix: normalizeBucketPath(scope.prefix),
         keepPaths,
         excludePrefixes: scope.excludePrefixes.map(exclude =>
@@ -239,7 +336,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(
     }>(
       async files => {
         await codeBucketClient.setBucketFiles({
-          bucketId: sync.destination.codeBucketId,
+          bucketId: getSkillDestinationCodeBucketId(sync.destination),
           files: files.map(file => ({
             path: normalizeBucketPath(file.path),
             content: contentToBytes(file.content)
@@ -259,7 +356,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(
       sourceKey: string;
     }>(async files => {
       await codeBucketClient.copyBucketFiles({
-        bucketId: sync.destination.codeBucketId,
+        bucketId: getSkillDestinationCodeBucketId(sync.destination),
         files: files.map(file => ({
           path: normalizeBucketPath(file.path),
           sourceBucket: file.sourceBucket,
@@ -454,7 +551,16 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(
       let removedPaths = manifest.removedPaths(prunedPaths);
 
       await withTransaction(async db => {
+        await db.skillDestinationFile.deleteMany({
+          where: {
+            destinationOid: sync.destinationOid,
+            path: { in: entries.map(entry => entry.path.slice(1)) }
+          }
+        });
+
         for (let entry of entries) {
+          let pathBytes = getSkillDestinationFilePathBytes(entry.path);
+
           await db.skillDestinationFile.upsert({
             where: {
               destinationOid_path: {
@@ -465,10 +571,11 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(
             create: {
               destinationOid: sync.destinationOid,
               path: entry.path,
+              pathBytes,
               signature: entry.signature,
               itemKey
             },
-            update: { signature: entry.signature, itemKey }
+            update: { pathBytes, signature: entry.signature, itemKey }
           });
         }
       });

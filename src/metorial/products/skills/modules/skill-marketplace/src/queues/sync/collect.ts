@@ -1,9 +1,21 @@
+import type { Skill } from '@metorial/db';
 import { db } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
-import { CargoSkillLimitError } from '../../lib/limits';
+import {
+  CargoSkillLimitError,
+  checkSkillDestinationSize,
+  generatedFilesPerSkillMarketplace,
+  generatedFilesPerSkillPlugin
+} from '../../lib/limits';
 import { applyMarketplace } from '../../serializers/marketplace';
 import { applyPlugin } from '../../serializers/plugin';
-import { applySkill } from '../../serializers/skill';
+import {
+  applySkill,
+  getSkillInitLookupSize,
+  initSkillFromLookup,
+  loadSkillInitLookup,
+  type SkillInitLookup
+} from '../../serializers/skill';
 import { getSyncItemKey, getSyncTaskItemKey } from './_lib/item';
 import { destinationBucketIsAvailable } from './_lib/bucket';
 import { withDestinationSyncLock } from './_lib/lock';
@@ -157,7 +169,9 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(
       }
     });
     if (!sync || sync.status !== 'processing' || sync.isAtRepoSyncStage) return;
-    if (!(await destinationBucketIsAvailable(sync))) return;
+
+    let isManifestMode = sync.destination.storageMode === 'manifest';
+    if (!isManifestMode && !(await destinationBucketIsAvailable(sync))) return;
 
     let versionedSync = await db.skillDestinationSync.update({
       where: { oid: sync.oid },
@@ -197,6 +211,57 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(
           })
         ) {
           return null;
+        }
+
+        throw error;
+      }
+    };
+
+    let skillInitLookup: SkillInitLookup | undefined;
+
+    let getSkillHash = (input: Parameters<typeof applySkill.init>[0]) => {
+      let lookup = skillInitLookup;
+      if (!lookup) return getSerializerHash(applySkill, input);
+
+      return getSerializerHash(
+        {
+          init: (input: Parameters<typeof applySkill.init>[0]) =>
+            initSkillFromLookup(input, lookup),
+          getHash: applySkill.getHash
+        },
+        input
+      );
+    };
+
+    let prepareManifestCollect = async (d: {
+      label: string;
+      skills: Skill[];
+      pluginCount: number;
+      marketplaceCount: number;
+    }) => {
+      if (!isManifestMode) return true;
+
+      try {
+        skillInitLookup = await loadSkillInitLookup(d.skills);
+
+        let size = getSkillInitLookupSize(skillInitLookup, d.skills);
+        checkSkillDestinationSize({
+          label: d.label,
+          files:
+            size.files +
+            d.pluginCount * generatedFilesPerSkillPlugin +
+            d.marketplaceCount * generatedFilesPerSkillMarketplace,
+          bytes: size.bytes
+        });
+        return true;
+      } catch (error) {
+        if (
+          await failSyncForLimitError({
+            skillDestinationSyncId: data.skillDestinationSyncId,
+            error
+          })
+        ) {
+          return false;
         }
 
         throw error;
@@ -249,6 +314,18 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(
       });
 
       if (marketplace) {
+        let isPrepared = await prepareManifestCollect({
+          label: 'A marketplace',
+          skills: marketplace.plugins.flatMap(marketplacePlugin =>
+            marketplacePlugin.skillPlugin.skillPluginSkills.map(
+              skillPluginSkill => skillPluginSkill.skill
+            )
+          ),
+          pluginCount: marketplace.plugins.length,
+          marketplaceCount: 1
+        });
+        if (!isPrepared) return;
+
         let marketplaceHash = await getSerializerHash(applyMarketplace, {
           skillMarketplace: marketplace
         });
@@ -286,7 +363,7 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(
           }
 
           for (let skillPluginSkill of skillPlugin.skillPluginSkills) {
-            let skillHash = await getSerializerHash(applySkill, {
+            let skillHash = await getSkillHash({
               skill: skillPluginSkill.skill,
               skillPlugin,
               skillPluginSkill,
@@ -349,6 +426,14 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(
           skills: plugin.skillPluginSkills
         };
 
+        let isPrepared = await prepareManifestCollect({
+          label: 'A plugin',
+          skills: plugin.skillPluginSkills.map(skillPluginSkill => skillPluginSkill.skill),
+          pluginCount: 1,
+          marketplaceCount: 0
+        });
+        if (!isPrepared) return;
+
         let pluginHash = await getSerializerHash(applyPlugin, { skillPlugin });
         if (!pluginHash) return;
         let currentPluginItem = getCurrentPluginItem(skillPlugin.id);
@@ -360,7 +445,7 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(
         }
 
         for (let skillPluginSkill of skillPlugin.skillPluginSkills) {
-          let skillHash = await getSerializerHash(applySkill, {
+          let skillHash = await getSkillHash({
             skill: skillPluginSkill.skill,
             skillPlugin,
             skillPluginSkill

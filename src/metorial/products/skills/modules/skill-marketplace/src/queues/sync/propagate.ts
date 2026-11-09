@@ -2,7 +2,11 @@ import { ServiceError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
 import { db, ID, withTransaction } from '@metorial/db';
 import { createQueue, QueueRetryError } from '@metorial/queue';
-import { getOriginTenant, origin } from '@metorial/skills-scm-utils';
+import {
+  getOriginTenant,
+  getSkillDestinationCodeBucketId,
+  origin
+} from '@metorial/skills-scm-utils';
 import {
   getRepositorySyncRetryMessage,
   isRepositorySyncRetrying
@@ -12,6 +16,15 @@ import { getPendingDestinationFileDeletions } from './_lib/deletions';
 import { withDestinationSyncLock } from './_lib/lock';
 import { appendSkillDestinationSyncLog } from './_lib/logs';
 import { syncFinishQueue } from './finish';
+import {
+  getManifestErrorCodeForRejection,
+  manifestPropagationPauseMs,
+  performManifestPropagation,
+  reconcileManifestPropagation
+} from './manifest/propagate';
+import type { ManifestOriginSync } from './manifest/originSync';
+
+let waitingPollSlackMs = 5_000;
 
 let getPublicErrorMessage = (error: unknown) => {
   let dataMessage = (error as any)?.data?.message;
@@ -44,6 +57,46 @@ let formatRepositoryName = (
   repository?: { externalOwner: string; externalName: string } | null
 ) => (repository ? `${repository.externalOwner}/${repository.externalName}` : 'repository');
 
+let getWaitingForReviewMessage = (statusSnapshot: unknown) => {
+  let snapshot = statusSnapshot as
+    | {
+        checks?: {
+          state?: string;
+          items?: { name?: string; status?: string }[];
+        };
+        review?: { state?: string };
+        mergeability?: { state?: string; reason?: string };
+      }
+    | null
+    | undefined;
+  let checksFailed = snapshot?.checks?.state === 'failed';
+  let failedChecks = (snapshot?.checks?.items ?? [])
+    .filter(check => check.status === 'failed')
+    .flatMap(check => (check.name ? [check.name] : []))
+    .slice(0, 3);
+  let reviewRequired = ['pending', 'changes_requested'].includes(
+    snapshot?.review?.state ?? ''
+  );
+  let hasConflict = snapshot?.mergeability?.state === 'conflicting';
+  let mergePermissionRequired = snapshot?.mergeability?.reason === 'merge_permission_required';
+  let failedChecksMessage = failedChecks.length
+    ? `Checks failed: ${failedChecks.join(', ')}.`
+    : 'Repository checks failed.';
+  return checksFailed && reviewRequired
+    ? `${failedChecksMessage} Review is required.`
+    : checksFailed
+      ? failedChecksMessage
+      : mergePermissionRequired
+        ? 'The connected GitLab user does not have permission to merge.'
+        : hasConflict
+          ? 'Pull request has merge conflicts.'
+          : reviewRequired
+            ? snapshot?.review?.state === 'changes_requested'
+              ? 'Review changes were requested.'
+              : 'Review required.'
+            : 'Repository action required.';
+};
+
 export let syncPropagateStartQueue = createQueue<{
   skillDestinationSyncId: string;
   contentVersion?: number;
@@ -55,8 +108,12 @@ export let syncPropagateStartQueue = createQueue<{
   }
 });
 
-export let syncPropagateStartQueueProcessor = syncPropagateStartQueue.process(
-  withDestinationSyncLock(async data => {
+export let startSkillSyncPropagation = withDestinationSyncLock(
+  async (data: {
+    skillDestinationSyncId: string;
+    contentVersion?: number;
+    skillRepositoryId?: string;
+  }) => {
     let sync = await db.skillDestinationSync.findUnique({
       where: { id: data.skillDestinationSyncId },
       include: {
@@ -66,7 +123,7 @@ export let syncPropagateStartQueueProcessor = syncPropagateStartQueue.process(
               include: {
                 repositories: {
                   include: {
-                    skillRepository: true
+                    skillRepository: { include: { lastPropagatedManifest: true } }
                   }
                 }
               }
@@ -75,7 +132,7 @@ export let syncPropagateStartQueueProcessor = syncPropagateStartQueue.process(
               include: {
                 repositories: {
                   include: {
-                    skillRepository: true
+                    skillRepository: { include: { lastPropagatedManifest: true } }
                   }
                 }
               }
@@ -86,6 +143,8 @@ export let syncPropagateStartQueueProcessor = syncPropagateStartQueue.process(
     });
     if (!sync || !['processing', 'waiting_for_review'].includes(sync.status)) return;
     if (!sync.isAtRepoSyncStage && (data.contentVersion ?? 0) !== sync.contentVersion) return;
+
+    let isManifestSync = sync.storageMode === 'manifest';
 
     let repositoryLinks =
       sync.destination.skillMarketplace?.repositories ??
@@ -110,14 +169,16 @@ export let syncPropagateStartQueueProcessor = syncPropagateStartQueue.process(
       'Preparing repository updates.'
     );
 
-    if (repositoryLinks.length === 0) {
+    if (repositoryLinks.length === 0 || (isManifestSync && !sync.manifestOid)) {
       await db.skillDestinationSync.update({
         where: { oid: sync.oid },
         data: { isAtRepoSyncStage: true }
       });
       await appendSkillDestinationSyncLog(
         data.skillDestinationSyncId,
-        'No repository updates are configured.'
+        repositoryLinks.length === 0
+          ? 'No repository updates are configured.'
+          : 'There is no content to publish to repositories.'
       );
       await syncFinishQueue.add({
         skillDestinationSyncId: data.skillDestinationSyncId
@@ -176,7 +237,16 @@ export let syncPropagateStartQueueProcessor = syncPropagateStartQueue.process(
             forceMergeOrPush,
             mergeBeforeChecksPass,
 
-            deletionsUpTo: new Date(),
+            ...(isManifestSync
+              ? {
+                  manifestOid: sync.manifestOid,
+                  previousManifestSha256:
+                    link.skillRepository.lastPropagatedManifest?.destinationOid ===
+                    sync.destinationOid
+                      ? link.skillRepository.lastPropagatedManifest.sha256
+                      : null
+                }
+              : { deletionsUpTo: new Date() }),
 
             skillDestinationSyncOid: sync.oid,
             skillRepositoryOid: link.skillRepository.oid,
@@ -204,7 +274,11 @@ export let syncPropagateStartQueueProcessor = syncPropagateStartQueue.process(
       processedPropagationIds: [],
       pendingPropagationIds: propagationIds
     });
-  })
+  }
+);
+
+export let syncPropagateStartQueueProcessor = syncPropagateStartQueue.process(
+  startSkillSyncPropagation
 );
 
 export let syncPropagatePerformQueue = createQueue<{
@@ -218,8 +292,12 @@ export let syncPropagatePerformQueue = createQueue<{
   }
 });
 
-export let syncPropagatePerformQueueProcessor = syncPropagatePerformQueue.process(
-  withDestinationSyncLock(async data => {
+export let performSkillSyncPropagation = withDestinationSyncLock(
+  async (data: {
+    skillDestinationSyncId: string;
+    processedPropagationIds: string[];
+    pendingPropagationIds: string[];
+  }) => {
     let sync = await db.skillDestinationSync.findUnique({
       where: { id: data.skillDestinationSyncId },
       include: {
@@ -293,7 +371,38 @@ export let syncPropagatePerformQueueProcessor = syncPropagatePerformQueue.proces
         }
       }
 
-      if (
+      if (sync.storageMode === 'manifest') {
+        let manifestPropagation = propagation;
+        let result = await performManifestPropagation({
+          skillDestinationSyncId: data.skillDestinationSyncId,
+          sync,
+          propagation: manifestPropagation,
+          getRepositoryName: async () => {
+            let originTenant = await getOriginTenant(
+              manifestPropagation.skillRepository.project
+            );
+            let originRepositories = await origin.scmRepository.getMany({
+              tenantId: originTenant.id,
+              scmRepositoryIds: [manifestPropagation.skillRepository.repoId]
+            });
+            let repositoryName = formatRepositoryName(originRepositories.repositories[0]);
+            if (manifestPropagation.status === 'pending') {
+              await appendSkillDestinationSyncLog(
+                data.skillDestinationSyncId,
+                `Starting update for ${repositoryName}.`
+              );
+            }
+            return repositoryName;
+          }
+        });
+        if (result === 'paused') {
+          await syncPropagatePerformQueue.add(data, {
+            delay: manifestPropagationPauseMs,
+            id: `paused:${currentPropagationId}:${Math.floor(Date.now() / manifestPropagationPauseMs)}`
+          });
+          return;
+        }
+      } else if (
         !['completed', 'canceled', 'failed'].includes(propagation.status) &&
         !propagation.originSyncId
       ) {
@@ -348,7 +457,7 @@ export let syncPropagatePerformQueueProcessor = syncPropagatePerformQueue.proces
         let originSyncInput = {
           tenantId: originTenant.id,
           scmRepositoryId: propagation.skillRepository.repoId,
-          codeBucketId: sync.destination.codeBucketId,
+          codeBucketId: getSkillDestinationCodeBucketId(sync.destination),
           deletePaths,
 
           explicitDeletesOnly: true,
@@ -419,6 +528,9 @@ export let syncPropagatePerformQueueProcessor = syncPropagatePerformQueue.proces
         data: {
           status: 'failed',
           errorMessage,
+          ...(sync.storageMode === 'manifest'
+            ? { errorCode: getManifestErrorCodeForRejection(e) }
+            : {}),
           completedAt: new Date()
         }
       });
@@ -439,7 +551,11 @@ export let syncPropagatePerformQueueProcessor = syncPropagatePerformQueue.proces
         pendingPropagationIds: newPendingPropagationIds
       });
     }
-  })
+  }
+);
+
+export let syncPropagatePerformQueueProcessor = syncPropagatePerformQueue.process(
+  performSkillSyncPropagation
 );
 
 export let syncPropagateWaitQueue = createQueue<{
@@ -452,8 +568,8 @@ export let syncPropagateWaitQueue = createQueue<{
   }
 });
 
-export let syncPropagateWaitQueueProcessor = syncPropagateWaitQueue.process(
-  withDestinationSyncLock(async data => {
+export let waitForSkillSyncPropagation = withDestinationSyncLock(
+  async (data: { skillDestinationSyncId: string; pendingPropagationIds: string[] }) => {
     let sync = await db.skillDestinationSync.findUnique({
       where: { id: data.skillDestinationSyncId },
       include: {
@@ -522,6 +638,7 @@ export let syncPropagateWaitQueueProcessor = syncPropagateWaitQueue.process(
       originRepositories.repositories.map(repository => [repository.id, repository])
     );
 
+    let nextWaitingUntil: Date | null = null;
     for (let propagation of propagations) {
       if (!['processing', 'waiting_for_review'].includes(propagation.status)) continue;
       if (!propagation.originSyncId) continue;
@@ -532,6 +649,26 @@ export let syncPropagateWaitQueueProcessor = syncPropagateWaitQueue.process(
       let repositoryName = formatRepositoryName(
         originRepositoryById.get(propagation.skillRepository.repoId)
       );
+
+      if (sync.storageMode === 'manifest') {
+        let reconciled = await reconcileManifestPropagation({
+          skillDestinationSyncId: data.skillDestinationSyncId,
+          sync,
+          propagation,
+          originSync: originSync as ManifestOriginSync,
+          repositoryName,
+          formatWaitingForReviewMessage: () =>
+            getWaitingForReviewMessage(originSync.statusSnapshot)
+        });
+        if (
+          reconciled.waitingUntil &&
+          (!nextWaitingUntil || reconciled.waitingUntil < nextWaitingUntil)
+        ) {
+          nextWaitingUntil = reconciled.waitingUntil;
+        }
+        continue;
+      }
+
       if (
         originSync.status === 'merged' ||
         originSync.status === 'complete_unmerged' ||
@@ -662,45 +799,7 @@ export let syncPropagateWaitQueueProcessor = syncPropagateWaitQueue.process(
             `${repositoryName}: Repository status is available again.`
           );
         } else if (nextStatus === 'waiting_for_review') {
-          let snapshot = originSync.statusSnapshot as
-            | {
-                checks?: {
-                  state?: string;
-                  items?: { name?: string; status?: string }[];
-                };
-                review?: { state?: string };
-                mergeability?: { state?: string; reason?: string };
-              }
-            | null
-            | undefined;
-          let checksFailed = snapshot?.checks?.state === 'failed';
-          let failedChecks = (snapshot?.checks?.items ?? [])
-            .filter(check => check.status === 'failed')
-            .flatMap(check => (check.name ? [check.name] : []))
-            .slice(0, 3);
-          let reviewRequired = ['pending', 'changes_requested'].includes(
-            snapshot?.review?.state ?? ''
-          );
-          let hasConflict = snapshot?.mergeability?.state === 'conflicting';
-          let mergePermissionRequired =
-            snapshot?.mergeability?.reason === 'merge_permission_required';
-          let failedChecksMessage = failedChecks.length
-            ? `Checks failed: ${failedChecks.join(', ')}.`
-            : 'Repository checks failed.';
-          let message =
-            checksFailed && reviewRequired
-              ? `${failedChecksMessage} Review is required.`
-              : checksFailed
-                ? failedChecksMessage
-                : mergePermissionRequired
-                  ? 'The connected GitLab user does not have permission to merge.'
-                  : hasConflict
-                    ? 'Pull request has merge conflicts.'
-                    : reviewRequired
-                      ? snapshot?.review?.state === 'changes_requested'
-                        ? 'Review changes were requested.'
-                        : 'Review required.'
-                      : 'Repository action required.';
+          let message = getWaitingForReviewMessage(originSync.statusSnapshot);
           await appendSkillDestinationSyncLog(
             data.skillDestinationSyncId,
             `${repositoryName}: ${message}`
@@ -712,6 +811,19 @@ export let syncPropagateWaitQueueProcessor = syncPropagateWaitQueue.process(
           );
         }
       }
+    }
+
+    if (nextWaitingUntil) {
+      await syncPropagateWaitQueue.add(
+        {
+          skillDestinationSyncId: data.skillDestinationSyncId,
+          pendingPropagationIds: data.pendingPropagationIds
+        },
+        {
+          delay: Math.max(nextWaitingUntil.getTime() - Date.now(), 0) + waitingPollSlackMs,
+          id: `waiting:${data.skillDestinationSyncId}:${nextWaitingUntil.getTime()}`
+        }
+      );
     }
 
     let allPropagations = await db.skillDestinationSyncRepositoryPropagation.findMany({
@@ -772,5 +884,9 @@ export let syncPropagateWaitQueueProcessor = syncPropagateWaitQueue.process(
       },
       data: { status }
     });
-  })
+  }
+);
+
+export let syncPropagateWaitQueueProcessor = syncPropagateWaitQueue.process(
+  waitForSkillSyncPropagation
 );
