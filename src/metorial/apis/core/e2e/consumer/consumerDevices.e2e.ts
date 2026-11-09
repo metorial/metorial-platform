@@ -135,9 +135,8 @@ describe('api-core consumer: devices', () => {
   it('validates the check-in and the per-tool settings', async () => {
     let portal = await createPortal(org);
     let desktop = await signInDesktop(org, portal.id);
-    let device = expectOk(
-      await desktop.client.post('/consumer/devices/check-in', checkInBody())
-    );
+    let body = checkInBody();
+    let device = expectOk(await desktop.client.post('/consumer/devices/check-in', body));
 
     expectError(
       await desktop.client.post(
@@ -179,7 +178,10 @@ describe('api-core consumer: devices', () => {
     expectOk(
       await desktop.client.post(
         '/consumer/devices/check-in',
-        checkInBody({ magic_mcp_token_ids: [uniqueId('mgtk_unknown')] })
+        checkInBody({
+          installation_id: body.installation_id,
+          magic_mcp_token_ids: [uniqueId('mgtk_unknown')]
+        })
       )
     );
 

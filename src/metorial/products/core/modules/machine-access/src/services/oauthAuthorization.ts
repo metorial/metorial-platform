@@ -1081,12 +1081,13 @@ class OAuthAuthorizationService {
 
       let tokenValues = createIssuedOAuthTokenValues(d);
 
-      // Conditional on the refresh token that was presented, so a revoke or a
-      // second refresh committed since it was read is never overwritten.
+      // Conditional on the refresh token that was presented still being live, so
+      // a revoke or a second refresh committed since it was read is never overwritten.
       let refreshed = await db.oAuthToken.updateMany({
         where: {
           oid: d.oauthToken.oid,
-          refreshToken: d.oauthToken.refreshToken
+          refreshToken: d.oauthToken.refreshToken,
+          OR: [{ completelyExpiresAt: null }, { completelyExpiresAt: { gt: new Date() } }]
         },
         data: {
           oauthInstallationOid: d.oauthToken.oauthAuthorization.oauthInstallationOid,
@@ -1832,9 +1833,9 @@ class OAuthAuthorizationService {
       await db.oAuthToken.updateMany({
         where: {
           oauthAuthorizationOid: oauthAuthorization.oid,
-          OR: [{ refreshToken: { not: null } }, { accessTokenExpiresAt: { gt: now } }]
+          OR: [{ completelyExpiresAt: null }, { completelyExpiresAt: { gt: now } }]
         },
-        data: { refreshToken: null, accessTokenExpiresAt: now, completelyExpiresAt: now }
+        data: { accessTokenExpiresAt: now, completelyExpiresAt: now }
       });
 
       await revokeOAuthConsumerSession({ oauthAuthorization });

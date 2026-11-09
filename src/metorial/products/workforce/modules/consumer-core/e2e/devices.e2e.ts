@@ -479,6 +479,7 @@ describe('module-consumer-core devices', () => {
     await signInDesktop(fixture, desktop);
     await expect(authenticate(laptopToken.accessToken)).rejects.toThrow();
     await expect(authenticate(workstationToken.accessToken)).rejects.toThrow();
+    await expect(refreshSignIn(laptopToken)).rejects.toThrow(/can no longer be refreshed/);
   });
 
   it('refreshes a sign-in only once when two refreshes race', async () => {
