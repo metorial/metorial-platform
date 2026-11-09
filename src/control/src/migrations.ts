@@ -210,8 +210,12 @@ let git = (directory: string, args: string[]) => {
   };
 };
 
-let historyProblems = (target: MigrationTarget, base: string): string[] => {
+let historyProblems = (target: MigrationTarget, base: string, root?: string): string[] => {
   if (!existsSync(target.migrations)) return [];
+
+  let repository = git(target.migrations, ['rev-parse', '--show-toplevel']);
+  if (root && repository.ok && canonical(repository.output.trim()) !== canonical(root))
+    return [];
 
   if (!git(target.migrations, ['rev-parse', '--verify', '--quiet', `${base}^{commit}`]).ok) {
     console.warn(
@@ -269,7 +273,7 @@ let historyProblems = (target: MigrationTarget, base: string): string[] => {
   return problems;
 };
 
-export let checkTarget = (target: MigrationTarget, base?: string): string[] => {
+export let checkTarget = (target: MigrationTarget, base?: string, root?: string): string[] => {
   let fix = `Run \`control db migration create ${target.name} <name>\` to generate the migration.`;
 
   if (!migrationFolders(target).length)
@@ -296,7 +300,7 @@ export let checkTarget = (target: MigrationTarget, base?: string): string[] => {
   else if (result.changed)
     problems.push(`the Prisma schema changed since the last migration. ${fix}`);
 
-  if (base) problems.push(...historyProblems(target, base));
+  if (base) problems.push(...historyProblems(target, base, root));
 
   return problems;
 };
@@ -316,7 +320,7 @@ export let check = (project: ProjectRoot, selectors: string[], base?: string) =>
       );
 
   let problems: Problem[] = selected.flatMap(target =>
-    checkTarget(target, base).map(message => ({ target: target.name, message }))
+    checkTarget(target, base, project.root).map(message => ({ target: target.name, message }))
   );
 
   return { checked: selected, problems };

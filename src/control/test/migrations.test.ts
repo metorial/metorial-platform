@@ -212,3 +212,20 @@ test('history check allows replacing old migrations with a new 0_init baseline',
 
   expect(checkTarget(item, 'main')).toEqual([]);
 });
+
+test('history check skips targets that live in another repository than the project root', () => {
+  let item = target();
+
+  initialize(item);
+  git(item.directory, 'init', '-q', '-b', 'main');
+  git(item.directory, 'config', 'user.email', 'test@example.com');
+  git(item.directory, 'config', 'user.name', 'Test');
+  git(item.directory, 'add', '-A');
+  git(item.directory, 'commit', '-q', '-m', 'base');
+  git(item.directory, 'checkout', '-q', '-b', 'feature');
+  rmSync(join(item.migrations, '0_init'), { recursive: true });
+  write(join(item.migrations, '1_other', 'migration.sql'), 'SELECT 1;\n');
+
+  expect(checkTarget(item, 'main', temporary())).toEqual([]);
+  expect(checkTarget(item, 'main', item.directory).length).toBeGreaterThan(0);
+});
