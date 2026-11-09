@@ -28,10 +28,10 @@ let provenanceBase: Record<SecurityProvenanceClass, number> = {
   tenant_remote_unverifiable: 45,
   impersonation_suspected: 10,
   tenant_authored: 80,
-  imported_public_repo: 65,
-  imported_private_repo: 70,
-  uploaded_archive: 60,
-  forked: 75
+  imported_public_repo: 75,
+  imported_private_repo: 80,
+  uploaded_archive: 70,
+  forked: 78
 };
 
 let tagTiers: Record<SecurityCapabilityTag, KnownLevel> = {

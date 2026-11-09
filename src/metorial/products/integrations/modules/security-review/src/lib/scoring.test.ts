@@ -87,6 +87,23 @@ describe('security score', () => {
     );
   });
 
+  it('keeps a clean imported skill out of the fair band', () => {
+    for (let provenance of ['imported_public_repo', 'imported_private_repo', 'forked'] as const) {
+      expect(bandForScore(computeSecurityScore({ provenance, findings: [] }))).toBe('good');
+    }
+    expect(computeSecurityScore({ provenance: 'imported_public_repo', findings: [] })).toBe(75);
+    expect(computeSecurityScore({ provenance: 'uploaded_archive', findings: [] })).toBe(70);
+  });
+
+  it('still penalizes findings on public-repo imports', () => {
+    expect(
+      computeSecurityScore({
+        provenance: 'imported_public_repo',
+        findings: [finding('security', 'high')]
+      })
+    ).toBe(60);
+  });
+
   it('ignores capability findings', () => {
     expect(
       computeSecurityScore({
