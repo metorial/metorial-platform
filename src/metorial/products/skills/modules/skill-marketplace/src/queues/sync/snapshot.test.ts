@@ -240,6 +240,11 @@ describe('sync snapshot', () => {
       where: { oid: 7n },
       data: { manifestOid: manifest.oid }
     });
+    let [uploadOrder] = storage.putObject.mock.invocationCallOrder;
+    expect(uploadOrder).toBeLessThan(db.skillDestination.update.mock.invocationCallOrder[0]!);
+    expect(uploadOrder).toBeLessThan(
+      db.skillDestinationSync.update.mock.invocationCallOrder[0]!
+    );
     expect(propagate).toHaveBeenCalledWith({
       skillDestinationSyncId: 'sync_1',
       contentVersion: 2,
@@ -289,7 +294,7 @@ describe('sync snapshot', () => {
       expect(propagate).toHaveBeenCalledOnce();
     });
 
-    it('removes the spooled file when the upload fails', async () => {
+    it('removes the spooled file and publishes nothing when the upload fails', async () => {
       state.files = manyFiles();
       spooledUploads.fail = true;
 
@@ -297,6 +302,8 @@ describe('sync snapshot', () => {
 
       expect(spooledUploads.paths).toHaveLength(1);
       expect(existsSync(spooledUploads.paths[0]!)).toBe(false);
+      expect(db.skillDestination.update).not.toHaveBeenCalled();
+      expect(db.skillDestinationSync.update).not.toHaveBeenCalled();
       expect(propagate).not.toHaveBeenCalled();
     });
   });
