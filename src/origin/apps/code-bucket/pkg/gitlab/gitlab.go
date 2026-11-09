@@ -149,6 +149,23 @@ func UploadToRepo(opts UploadOptions, files []FileToUpload) error {
 }
 
 func UploadToRepoIter(opts UploadOptions, iter FileIterator) error {
+	return uploadItems(opts, func(yield func(uploadItem) error) error {
+		return iter(func(file FileToUpload) error {
+			content := file.Content
+			return yield(uploadItem{Path: file.Path, Content: func() ([]byte, error) { return content, nil }})
+		})
+	})
+}
+
+// uploadItem defers reading content until the file is known to differ; GitBlobSHA,
+// when known, lets an unchanged file be skipped without reading it at all.
+type uploadItem struct {
+	Path       string
+	GitBlobSHA string
+	Content    func() ([]byte, error)
+}
+
+func uploadItems(opts UploadOptions, iter func(func(uploadItem) error) error) error {
 	if opts.Token == "" {
 		return fmt.Errorf("GitLab token is required")
 	}
@@ -211,20 +228,28 @@ func UploadToRepoIter(opts UploadOptions, iter FileIterator) error {
 		return nil
 	}
 
-	if err := iter(func(file FileToUpload) error {
+	if err := iter(func(file uploadItem) error {
 		fullPath := path.Join(opts.TargetPath, file.Path)
 		fullPath = strings.TrimPrefix(fullPath, "/")
 		writtenPaths[fullPath] = struct{}{}
-
-		encodedContent := base64.StdEncoding.EncodeToString(file.Content)
 
 		action := "create"
 		fileInfo, err := getFileInfo(client, opts.ProjectID, fullPath, opts.Branch, opts.Token, opts.GitlabAPIURL)
 		if err != nil {
 			return fmt.Errorf("failed to get file info for %s: %w", fullPath, err)
 		}
+		if fileInfo.Exists && file.GitBlobSHA != "" && fileInfo.BlobID == file.GitBlobSHA {
+			return nil
+		}
+
+		content, err := file.Content()
+		if err != nil {
+			return err
+		}
+		encodedContent := base64.StdEncoding.EncodeToString(content)
+
 		if fileInfo.Exists {
-			if fileInfo.ContentSHA256 == sha256Hex(file.Content) {
+			if fileInfo.ContentSHA256 == sha256Hex(content) {
 				return nil
 			}
 			action = "update"
@@ -351,6 +376,7 @@ func createCommit(client *http.Client, projectID int64, branch, commitMessage, t
 type gitlabFileInfo struct {
 	Exists        bool
 	ContentSHA256 string `json:"content_sha256"`
+	BlobID        string `json:"blob_id"`
 }
 
 func sha256Hex(content []byte) string {

@@ -224,6 +224,7 @@ type githubCommitResponse struct {
 type githubTreeResponse struct {
 	Tree []struct {
 		Path string `json:"path"`
+		Mode string `json:"mode"`
 		Type string `json:"type"`
 		SHA  string `json:"sha"`
 		Size int64  `json:"size"`
@@ -364,13 +365,13 @@ func UploadToRepoIter(ctx context.Context, opts UploadOptions, iter FileIterator
 		return fmt.Errorf("failed to get base commit %s: %w", ref.Object.SHA, err)
 	}
 
-	baseTree, err := githubJSON[githubTreeResponse](ctx, "GET", fmt.Sprintf("%s/git/trees/%s?recursive=1", repoURL, baseCommit.Tree.SHA), opts.Token, nil)
+	baseTree, _, err := listTree(ctx, legacyTreeGetter(repoURL, opts.Token), baseCommit.Tree.SHA, nil)
 	if err != nil {
 		return fmt.Errorf("failed to get base tree %s: %w", baseCommit.Tree.SHA, err)
 	}
 
 	existingBlobShas := map[string]string{}
-	for _, entry := range baseTree.Tree {
+	for _, entry := range baseTree {
 		if entry.Type == "blob" {
 			existingBlobShas[entry.Path] = entry.SHA
 		}
