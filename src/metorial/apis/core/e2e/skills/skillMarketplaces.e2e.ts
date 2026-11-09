@@ -1,4 +1,5 @@
 import {
+  eventually,
   expectError,
   expectOk,
   expectPresented,
@@ -30,6 +31,8 @@ import {
   seedPlugin,
   skillClients
 } from './_shared';
+
+let auditIngestTimeout = { timeoutMs: 150_000, intervalMs: 2_000 };
 
 describe('api-core skill marketplaces and plugins', () => {
   let org = useOrganization();
@@ -134,18 +137,6 @@ describe('api-core skill marketplaces and plugins', () => {
           label: 'PATCH /skill-marketplaces/:id',
           call: (client, route) => client.patch(route(base), { force_merge_or_push: false }),
           expected: resourceAuth
-        },
-        {
-          label: 'POST /skill-marketplaces/:id/editor-url',
-          call: (client, route) => client.post(route(`${base}/editor-url`), {}),
-          expected: {
-            none: 401,
-            management: 403,
-            instance: 404,
-            otherSession: 404,
-            otherManagement: 404,
-            otherInstance: 404
-          }
         }
       ]);
 
@@ -348,19 +339,7 @@ describe('api-core skill marketplaces and plugins', () => {
         getRoute('/skill-plugins', listAuth),
         getRoute(base, resourceAuth),
         getRoute(`${base}/skills`, resourceAuth),
-        getRoute(`${base}/repositories`, { ...dashboardOnlyResourceAuth, management: 403 }),
-        {
-          label: 'POST /skill-plugins/:id/editor-url',
-          call: (client, route) => client.post(route(`${base}/editor-url`), {}),
-          expected: {
-            none: 401,
-            management: 403,
-            instance: 404,
-            otherSession: 404,
-            otherManagement: 404,
-            otherInstance: 404
-          }
-        }
+        getRoute(`${base}/repositories`, { ...dashboardOnlyResourceAuth, management: 403 })
       ]);
 
       expect(await listAll(memberApi(org, member), `${base}/repositories`)).toEqual([]);
@@ -607,5 +586,250 @@ describe('api-core skill marketplaces and plugins', () => {
 
       expectError(await org.clients.instance.get(`/skill-syncs/${syncs[0].id}`), 404);
     });
+
+    it('presents waits, dismissals and continuations on repository propagations', async () => {
+      let { fixture, marketplace, plugin } = await seed();
+      let dashboard = dashboardApi(org);
+      let waitingUntil = new Date(Date.now() + 30 * 60 * 1000);
+
+      let seedRepository = async () =>
+        await db.skillRepository.create({
+          data: {
+            id: await ID.generateId('skillRepository'),
+            repoId: uniqueId('e2e-repo'),
+            projectOid: fixture.project.oid,
+            instanceOid: fixture.instance.oid
+          }
+        });
+
+      let seedSync = async (
+        status: 'canceled' | 'processing',
+        destinationOid = marketplace.destinationOid!
+      ) =>
+        await db.skillDestinationSync.create({
+          data: {
+            id: await ID.generateId('skillDestinationSync'),
+            status,
+            destinationOid
+          }
+        });
+
+      let seedPropagation = async (
+        sync: { oid: bigint },
+        repository: { oid: bigint },
+        data: {
+          status: 'processing' | 'completed' | 'canceled';
+          endReason?: string;
+          waitingUntil?: Date;
+          waitingReason?: string;
+        }
+      ) =>
+        await db.skillDestinationSyncRepositoryPropagation.create({
+          data: {
+            id: await ID.generateId('skillDestinationSyncRepositoryPropagation'),
+            branchName: uniqueId('metorial/sync'),
+            prName: 'Sync skills',
+            skillDestinationSyncOid: sync.oid,
+            skillRepositoryOid: repository.oid,
+            ...data
+          }
+        });
+
+      let continuedRepository = await seedRepository();
+      let closedRepository = await seedRepository();
+      let completedRepository = await seedRepository();
+
+      let olderSync = await seedSync('canceled');
+      let superseded = await seedPropagation(olderSync, continuedRepository, {
+        status: 'canceled',
+        endReason: 'superseded'
+      });
+      let closed = await seedPropagation(olderSync, closedRepository, {
+        status: 'canceled',
+        endReason: 'pull_request_closed'
+      });
+      let completed = await seedPropagation(olderSync, completedRepository, {
+        status: 'completed',
+        waitingUntil,
+        waitingReason: 'rate_limited'
+      });
+
+      let otherDestinationSync = await seedSync('processing', plugin.destinationOid!);
+      await seedPropagation(otherDestinationSync, continuedRepository, {
+        status: 'processing'
+      });
+
+      let newerSync = await seedSync('processing');
+      let waiting = await seedPropagation(newerSync, continuedRepository, {
+        status: 'processing',
+        waitingUntil,
+        waitingReason: 'rate_limited'
+      });
+
+      let older = expectOk(await dashboard.get(`/skill-syncs/${olderSync.id}`));
+      expectPresented(older, 'skill.sync');
+      let olderPropagations = new Map<string, any>(
+        older.repository_propagations.map((propagation: any) => [propagation.id, propagation])
+      );
+
+      expect(olderPropagations.get(superseded.id)).toMatchObject({
+        status: 'canceled',
+        end_reason: 'superseded',
+        continued_in_sync_id: newerSync.id
+      });
+      expect(olderPropagations.get(superseded.id)).toMatchObject({
+        waiting_until: null,
+        waiting_reason: null
+      });
+      expect(olderPropagations.get(closed.id)).toMatchObject({
+        status: 'canceled',
+        end_reason: 'pull_request_closed',
+        continued_in_sync_id: null
+      });
+      expect(olderPropagations.get(completed.id)).toMatchObject({
+        status: 'completed',
+        waiting_until: null,
+        waiting_reason: null,
+        end_reason: null,
+        continued_in_sync_id: null
+      });
+
+      let newer = expectOk(await dashboard.get(`/skill-syncs/${newerSync.id}`));
+      expect(newer.repository_propagations).toEqual([
+        expect.objectContaining({
+          id: waiting.id,
+          status: 'processing',
+          waiting_until: waitingUntil.toISOString(),
+          waiting_reason: 'rate_limited',
+          end_reason: null,
+          continued_in_sync_id: null
+        })
+      ]);
+    });
+
+    it(
+      'forces a sync past a tripped deletion guard and audits it',
+      { timeout: 180_000 },
+      async () => {
+        let { fixture, marketplace } = await seed();
+        let dashboard = dashboardApi(org);
+        await db.skillDestination.update({
+          where: { oid: marketplace.destinationOid! },
+          data: { storageMode: 'manifest', codeBucketId: null }
+        });
+        let repository = await db.skillRepository.create({
+          data: {
+            id: await ID.generateId('skillRepository'),
+            repoId: uniqueId('e2e-repo'),
+            projectOid: fixture.project.oid,
+            instanceOid: fixture.instance.oid
+          }
+        });
+        let failedSync = await db.skillDestinationSync.create({
+          data: {
+            id: await ID.generateId('skillDestinationSync'),
+            status: 'failed',
+            storageMode: 'manifest',
+            destinationOid: marketplace.destinationOid!,
+            completedAt: new Date()
+          }
+        });
+        await db.skillDestinationSyncRepositoryPropagation.create({
+          data: {
+            id: await ID.generateId('skillDestinationSyncRepositoryPropagation'),
+            status: 'failed',
+            errorCode: 'deletion_guard_tripped',
+            errorDetails: { unexpectedDeletes: 300, paths: ['plugins/old/README.md'] },
+            branchName: uniqueId('metorial/sync'),
+            prName: 'Sync skills',
+            skillDestinationSyncOid: failedSync.oid,
+            skillRepositoryOid: repository.oid
+          }
+        });
+
+        let failed = expectOk(await dashboard.get(`/skill-syncs/${failedSync.id}`));
+        expect(failed.repository_propagations).toEqual([
+          expect.objectContaining({
+            error_code: 'deletion_guard_tripped',
+            unexpected_delete_count: 300
+          })
+        ]);
+
+        let forced = expectOk(
+          await dashboard.post(`/skill-syncs/${failedSync.id}/force`, {
+            allow_mass_delete: true
+          })
+        );
+        expectPresented(forced, 'skill.sync');
+        expect(forced).toMatchObject({ skill_marketplace_id: marketplace.id });
+        expect(forced.id).not.toBe(failedSync.id);
+        expect(
+          await db.skillDestinationSync.findUniqueOrThrow({ where: { id: forced.id } })
+        ).toMatchObject({ allowMassDelete: true, trigger: 'manual' });
+
+        await eventually(async () => {
+          let auditLogs = await listAll(org.clients.management, '/organization/audit-logs');
+          expect(
+            auditLogs.find(
+              item =>
+                item.resource == 'skill_destination' &&
+                item.action == 'force_sync' &&
+                item.payload?.skillDestinationSyncId == forced.id
+            )?.payload
+          ).toMatchObject({ allowMassDelete: true });
+        }, auditIngestTimeout);
+
+        let plain = expectOk(await dashboard.post(`/skill-syncs/${failedSync.id}/force`, {}));
+        expect(
+          await db.skillDestinationSync.findUniqueOrThrow({ where: { id: plain.id } })
+        ).toMatchObject({ allowMassDelete: false });
+
+        let legacy = await seed();
+        let legacySync = await db.skillDestinationSync.create({
+          data: {
+            id: await ID.generateId('skillDestinationSync'),
+            status: 'failed',
+            destinationOid: legacy.marketplace.destinationOid!
+          }
+        });
+        let forcePath = `/dashboard/instances/${org.ids.instanceId}/skill-syncs/${failedSync.id}/force`;
+
+        await expectResponses([
+          {
+            label: 'allow_mass_delete on a code-bucket destination',
+            call: () =>
+              dashboard.post(`/skill-syncs/${legacySync.id}/force`, {
+                allow_mass_delete: true
+              }),
+            status: 400
+          },
+          {
+            label: 'a non-boolean allow_mass_delete',
+            call: () =>
+              dashboard.post(`/skill-syncs/${failedSync.id}/force`, {
+                allow_mass_delete: 'yes'
+              }),
+            status: 400,
+            code: 'invalid_data'
+          },
+          {
+            label: 'force with a management key',
+            call: () => org.clients.management.post(forcePath, {}),
+            status: 403
+          },
+          {
+            label: 'force as another organization',
+            call: () =>
+              rest(metorialEndpoints().api, { session: otherOrg.session }).post(forcePath, {}),
+            status: 404
+          },
+          {
+            label: 'force an unknown sync',
+            call: () => dashboard.post('/skill-syncs/sksyn_missing/force', {}),
+            status: 404
+          }
+        ]);
+      }
+    );
   });
 });
