@@ -3,10 +3,12 @@ import { createRepoWebhookQueueProcessor } from './createRepoWebhook';
 import { createHandleRepoPushQueueProcessor } from './handleRepoPush';
 import { repositorySyncQueueProcessor } from './repositorySync';
 import { reconcileRepoWebhooksProcessor } from './reconcileRepoWebhooks';
+import { remoteStateGcProcessor } from './remoteStateGc';
 
 export let scmQueueProcessor = combineQueueProcessors([
   createHandleRepoPushQueueProcessor,
   createRepoWebhookQueueProcessor,
   repositorySyncQueueProcessor,
-  reconcileRepoWebhooksProcessor
+  reconcileRepoWebhooksProcessor,
+  remoteStateGcProcessor
 ]);

@@ -4,9 +4,11 @@ import { db } from '../../../db';
 import { env } from '../../../env';
 import {
   closeRepositorySyncPullRequest,
-  createRepositorySyncPullRequest
+  createRepositorySyncPullRequest,
+  updateRepositorySyncPullRequest
 } from '../../../lib/scmRepositorySyncProvider';
 import { transitionRepositorySyncState } from '../../../services/repositorySyncState';
+import { getSyncSourceScope } from '../../../services/repositorySyncSupersession';
 import {
   appendRepositorySyncLog,
   logRepositorySyncQueueError,
@@ -20,6 +22,37 @@ export let createPrRepositorySyncQueue = createQueue<{ syncId: string }>({
   workerOpts: { concurrency: 50 },
   redisUrl: env.service.REDIS_URL
 });
+
+let syncInclude = {
+  repo: {
+    include: {
+      installation: {
+        include: { backend: true }
+      }
+    }
+  }
+} as const;
+
+let closeReplacedPullRequests = async (
+  sync: { oid: bigint },
+  pr: { providerPrId: string; providerPrUrl: string | null }
+) => {
+  let replaced = await db.scmRepositorySync.findMany({
+    where: {
+      supersededBySyncOid: sync.oid,
+      providerPrId: { not: null },
+      NOT: { providerPrId: pr.providerPrId }
+    },
+    include: syncInclude
+  });
+  for (let previous of replaced) {
+    await closeRepositorySyncPullRequest(previous, {
+      comment: pr.providerPrUrl
+        ? `Metorial continued this update in ${pr.providerPrUrl}.`
+        : 'Metorial continued this update in a new pull request.'
+    });
+  }
+};
 
 export let createPrRepositorySyncQueueProcessor = createPrRepositorySyncQueue.process(
   withRepositorySyncWriteLock(async data => {
@@ -59,43 +92,45 @@ export let createPrRepositorySyncQueueProcessor = createPrRepositorySyncQueue.pr
         return;
       }
 
+      let isManifest = sync.sourceType === 'manifest';
       let newer = await db.scmRepositorySync.findFirst({
         where: {
-          repoOid: sync.repoOid,
-          codeBucketOid: sync.codeBucketOid,
+          ...getSyncSourceScope(sync),
           oid: { gt: sync.oid }
         },
-        select: { id: true }
+        select: { id: true, oid: true }
       });
       if (newer) {
         await transitionRepositorySyncState(sync.id, 'creating_pr', {
           status: 'cancelled',
           completedAt: new Date(),
-          errorMessage: 'Superseded by a newer repository sync before pull request creation'
+          errorMessage: 'Superseded by a newer repository sync before pull request creation',
+          ...(isManifest && { endReason: 'superseded', supersededBySyncOid: newer.oid })
         });
         return;
       }
 
-      let older = await db.scmRepositorySync.findMany({
-        where: {
-          repoOid: sync.repoOid,
-          codeBucketOid: sync.codeBucketOid,
-          baseBranch: sync.baseBranch,
-          oid: { lt: sync.oid },
-          providerPrId: { not: null },
-          status: { notIn: ['merged', 'cancelled', 'complete_no_changes'] }
-        },
-        include: {
-          repo: {
+      let older = isManifest
+        ? []
+        : await db.scmRepositorySync.findMany({
+            where: {
+              ...getSyncSourceScope(sync),
+              baseBranch: sync.baseBranch,
+              oid: { lt: sync.oid },
+              providerPrId: { not: null },
+              status: { notIn: ['merged', 'cancelled', 'complete_no_changes'] }
+            },
             include: {
-              installation: {
-                include: { backend: true }
+              repo: {
+                include: {
+                  installation: {
+                    include: { backend: true }
+                  }
+                }
               }
-            }
-          }
-        },
-        orderBy: { oid: 'desc' }
-      });
+            },
+            orderBy: { oid: 'desc' }
+          });
       for (let previous of older) {
         let outcome = await closeRepositorySyncPullRequest(previous);
         if (outcome === 'merged') {
@@ -124,8 +159,16 @@ export let createPrRepositorySyncQueueProcessor = createPrRepositorySyncQueue.pr
         enableAutoMerge: sync.enableAutoMerge
       });
 
-      await appendRepositorySyncLog(sync.id, 'Creating a pull request.');
-      let pr = await createRepositorySyncPullRequest(sync);
+      let pr: { providerPrId: string; providerPrUrl: string | null };
+      if (isManifest && sync.providerPrId) {
+        await appendRepositorySyncLog(sync.id, 'Updating the open pull request.');
+        await updateRepositorySyncPullRequest(sync);
+        pr = { providerPrId: sync.providerPrId, providerPrUrl: sync.providerPrUrl };
+      } else {
+        await appendRepositorySyncLog(sync.id, 'Creating a pull request.');
+        pr = await createRepositorySyncPullRequest(sync);
+        if (isManifest) await closeReplacedPullRequests(sync, pr);
+      }
       await appendRepositorySyncLog(sync.id, 'Pull request is ready.');
       logRepositorySyncQueueEvent('createPr', 'provider pull request is ready', {
         syncId: sync.id,
