@@ -1,20 +1,24 @@
 use axum::body::Body;
+use axum::extract::rejection::{PathRejection, QueryRejection};
 use axum::extract::{Path, Query, State};
-use axum::http::header::{IF_RANGE, RANGE};
+use axum::http::header::{CONTENT_LENGTH, IF_RANGE, RANGE};
 use axum::http::{HeaderMap, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
 use futures::StreamExt;
-use object_store_backends::{BackendError, ByteRange, ObjectMetadata};
+use object_store_backends::{BackendError, ByteRange, ObjectMetadata, PutOptions};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::time::Duration;
 
-use crate::error::{ServiceError, ServiceResult};
+use crate::error::{RequestBodyError, ServiceError, ServiceResult};
 use crate::metadata::Bucket;
 use crate::service::ObjectStoreService;
+use crate::zip::{JobRequestError, ZipJob, ZipJobManager};
 
 pub type SharedService = Arc<ObjectStoreService>;
+pub type SharedJobs = Arc<ZipJobManager>;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreateBucketRequest {
@@ -85,6 +89,12 @@ pub struct DeleteObjectsResponse {
 pub struct GetPublicUrlQuery {
     pub expiration_secs: Option<u64>,
     pub purpose: Option<object_store_backends::PublicUrlPurpose>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ZipJobQuery {
+    /// Seconds to hold the response while the job is still queued or running.
+    pub wait: Option<f64>,
 }
 
 #[derive(Debug, Serialize)]
@@ -192,16 +202,27 @@ pub async fn put_object(
         }
     }
 
+    let size_hint = headers
+        .get(CONTENT_LENGTH)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.parse::<u64>().ok());
+
     let stream: object_store_backends::ByteStream = Box::pin(
         body.into_data_stream()
-            .map(|result| result.map_err(std::io::Error::other)),
+            .map(|result| result.map_err(RequestBodyError::from_body)),
     );
 
-    let obj_metadata = service
-        .put_object(&bucket, &key, stream, content_type, metadata)
+    let opts = PutOptions {
+        content_type,
+        metadata,
+        size_hint,
+    };
+
+    let uploaded = service
+        .put_object_stream(&bucket, &key, stream, opts)
         .await?;
 
-    Ok(Json(obj_metadata.into()))
+    Ok(Json(uploaded.metadata.into()))
 }
 
 fn object_headers(metadata: &ObjectMetadata) -> HeaderMap {
@@ -466,4 +487,83 @@ pub async fn get_public_url(
         headers: url.headers,
         expires_in: expiration_secs,
     }))
+}
+
+fn zip_job_response(job: ZipJob) -> Response {
+    let status = if job.is_active() {
+        StatusCode::ACCEPTED
+    } else {
+        StatusCode::OK
+    };
+    (status, Json(job)).into_response()
+}
+
+fn job_id(path: Result<Path<String>, PathRejection>) -> Result<String, JobRequestError> {
+    path.map(|Path(id)| id)
+        .map_err(|rejection| JobRequestError::InvalidJobId(rejection.body_text()))
+}
+
+fn wait_duration(
+    query: Result<Query<ZipJobQuery>, QueryRejection>,
+) -> Result<Duration, JobRequestError> {
+    let Query(query) =
+        query.map_err(|rejection| JobRequestError::InvalidRequest(rejection.body_text()))?;
+
+    match query.wait {
+        None => Ok(Duration::ZERO),
+        Some(seconds) if seconds.is_finite() && seconds >= 0.0 => {
+            Ok(Duration::try_from_secs_f64(seconds).unwrap_or(Duration::MAX))
+        }
+        Some(seconds) => Err(JobRequestError::InvalidRequest(format!(
+            "wait must be a non-negative number of seconds, got {}",
+            seconds
+        ))),
+    }
+}
+
+pub async fn missing_zip_job_id() -> JobRequestError {
+    JobRequestError::InvalidJobId("the path needs a job id: /zip-jobs/{jobId}".to_string())
+}
+
+pub async fn put_zip_job(
+    State(jobs): State<SharedJobs>,
+    path: Result<Path<String>, PathRejection>,
+    query: Result<Query<ZipJobQuery>, QueryRejection>,
+    headers: HeaderMap,
+    body: Body,
+) -> Result<Response, JobRequestError> {
+    let id = job_id(path)?;
+    crate::zip::validate_job_id(&id).map_err(JobRequestError::InvalidJobId)?;
+    let wait = wait_duration(query)?;
+    let content_length = headers
+        .get(CONTENT_LENGTH)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.parse::<u64>().ok());
+
+    let job = jobs
+        .submit_body(&id, content_length, body.into_data_stream(), wait)
+        .await?;
+    Ok(zip_job_response(job))
+}
+
+pub async fn get_zip_job(
+    State(jobs): State<SharedJobs>,
+    path: Result<Path<String>, PathRejection>,
+    query: Result<Query<ZipJobQuery>, QueryRejection>,
+) -> Result<Response, JobRequestError> {
+    let id = job_id(path)?;
+    let wait = wait_duration(query)?;
+
+    let job = jobs.get(&id, wait).await?;
+    Ok(zip_job_response(job))
+}
+
+pub async fn delete_zip_job(
+    State(jobs): State<SharedJobs>,
+    path: Result<Path<String>, PathRejection>,
+) -> Result<Response, JobRequestError> {
+    let id = job_id(path)?;
+
+    let job = jobs.cancel(&id).await?;
+    Ok((StatusCode::OK, Json(job)).into_response())
 }

@@ -2,7 +2,7 @@ use bytes::Bytes;
 use object_store_backends::error::BackendError;
 use object_store_backends::{
     Backend, ByteRange, ByteStream, ObjectData, ObjectMetadata, ObjectPage, ObjectRangeData,
-    PublicUrlPurpose, SignedUrl,
+    PublicUrlPurpose, PutOptions, SignedUrl, UploadedObject, Uploader,
 };
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -21,11 +21,29 @@ pub struct DeleteObjectResult {
 pub struct ObjectStoreService {
     backend: Arc<dyn Backend>,
     metadata: Arc<MetadataStore>,
+    archive_uploader: Option<Arc<Uploader>>,
 }
 
 impl ObjectStoreService {
     pub fn new(backend: Arc<dyn Backend>, metadata: Arc<MetadataStore>) -> Self {
-        Self { backend, metadata }
+        Self {
+            backend,
+            metadata,
+            archive_uploader: None,
+        }
+    }
+
+    /// Archives are written through `uploader` instead of the backend's own, so they draw on a
+    /// memory budget of their own.
+    pub fn with_archive_uploader(mut self, uploader: Arc<Uploader>) -> Self {
+        self.archive_uploader = Some(uploader);
+        self
+    }
+
+    pub fn archive_uploader(&self) -> &Uploader {
+        self.archive_uploader
+            .as_deref()
+            .unwrap_or_else(|| self.backend.uploader())
     }
 
     pub async fn init(&self) -> ServiceResult<()> {
@@ -98,19 +116,41 @@ impl ObjectStoreService {
         content_type: Option<String>,
         metadata: HashMap<String, String>,
     ) -> ServiceResult<ObjectMetadata> {
+        let opts = PutOptions {
+            content_type,
+            metadata,
+            size_hint: None,
+        };
+
+        Ok(self
+            .put_object_stream(bucket, key, stream, opts)
+            .await?
+            .metadata)
+    }
+
+    pub async fn put_object_stream(
+        &self,
+        bucket: &str,
+        key: &str,
+        stream: ByteStream,
+        opts: PutOptions,
+    ) -> ServiceResult<UploadedObject> {
         self.metadata.get_bucket(bucket).await?;
 
         validate_object_key(key)?;
 
         let full_key = format!("{}/{}", bucket, key);
 
-        let obj_metadata = self
+        let uploaded = self
             .backend
-            .put_object(&full_key, stream, content_type, metadata)
+            .put_object_stream(&full_key, stream, opts)
             .await?;
 
-        debug!("Put object: {}/{}", bucket, key);
-        Ok(obj_metadata)
+        debug!(
+            "Put object: {}/{} ({} bytes)",
+            bucket, key, uploaded.metadata.size
+        );
+        Ok(uploaded)
     }
 
     pub async fn get_object(&self, bucket: &str, key: &str) -> ServiceResult<ObjectData> {
@@ -314,6 +354,10 @@ impl ObjectStoreService {
         self.metadata.clone()
     }
 
+    pub fn backend(&self) -> &Arc<dyn Backend> {
+        &self.backend
+    }
+
     pub async fn copy_object(
         &self,
         source_bucket: &str,
@@ -374,7 +418,7 @@ fn bucket_scoped_prefix(bucket: &str, prefix: Option<&str>) -> String {
     }
 }
 
-fn validate_deletable_object_key(key: &str) -> ServiceResult<()> {
+pub(crate) fn validate_deletable_object_key(key: &str) -> ServiceResult<()> {
     validate_object_key(key)?;
 
     if key == ".bucket" || key.ends_with("/.bucket") {
@@ -386,7 +430,7 @@ fn validate_deletable_object_key(key: &str) -> ServiceResult<()> {
     Ok(())
 }
 
-fn validate_object_key(key: &str) -> ServiceResult<()> {
+pub(crate) fn validate_object_key(key: &str) -> ServiceResult<()> {
     if key.is_empty() {
         return Err(ServiceError::InvalidObjectKey(
             "Key cannot be empty".to_string(),
