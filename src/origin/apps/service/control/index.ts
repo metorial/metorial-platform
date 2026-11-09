@@ -47,6 +47,7 @@ export default project({
     env: mergeEnv(baseDevEnv('oss'), pickEnv('CODE_BUCKET_OBJECT_STORAGE_BUCKET'), {
       NEBULA_CONSUMER_TOKEN: 'local-dev-nebula-origin-registration-secret',
       ORIGIN_DELEGATE_SECRETS_TO_NEBULA: 'true',
+      ORIGIN_MANIFEST_SOURCE_BUCKETS: 'mte-files',
       SCM_GITHUB_APP_ID: inherit(),
       SCM_GITHUB_APP_SLUG: inherit(),
       SCM_GITHUB_APP_PRIVATE_KEY_BASE_64: inherit(),

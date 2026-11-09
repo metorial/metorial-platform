@@ -353,6 +353,23 @@ export let codeBucketController = app.controller({
       return { success: true };
     }),
 
+  delete: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        codeBucketId: v.string()
+      })
+    )
+    .do(async ctx => {
+      let codeBucket = await codeBucketService.deleteCodeBucket({
+        tenant: ctx.tenant,
+        id: ctx.input.codeBucketId
+      });
+
+      return codeBucketPresenter(codeBucket);
+    }),
+
   getAsZip: codeBucketApp
     .handler()
     .input(
