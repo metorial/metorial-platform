@@ -1,3 +1,4 @@
+import { getSentry } from '@lowerdeck/sentry';
 import type {
   Prisma,
   ScmRepositorySync,
@@ -23,7 +24,83 @@ let MANIFEST_RETRY_JITTER_MS = 30_000;
 let MANIFEST_MAX_UNPRODUCTIVE_RATE_LIMITED = 6;
 let MANIFEST_MAX_UNPRODUCTIVE_OTHER = 3;
 
+// Failures the repository owner has to resolve (repo rules, access, content size) are not ours
+// to alert on.
+let expectedRepositorySyncFailures = [
+  'protected_branch',
+  'missing_branch',
+  'permission_denied',
+  'authentication_failed',
+  'resource_not_found',
+  'file_too_large',
+  'deletion_guard_tripped',
+  'tree_too_large',
+  'lfs_quota_exceeded',
+  'branch_missing',
+  'destination_too_large',
+  'path_conflict'
+];
+
+let degradedRepositorySyncFailures = [
+  'rate_limited',
+  'timeout',
+  'upstream_failure',
+  'conflict',
+  'sync_lifetime_exceeded',
+  'no_progress'
+];
+
+let Sentry = getSentry();
+
 export type RepositorySyncLogEntry = [number, string];
+
+export let getRepositorySyncFailureLevel = (errorCode: string) =>
+  expectedRepositorySyncFailures.includes(errorCode)
+    ? null
+    : degradedRepositorySyncFailures.includes(errorCode)
+      ? ('warning' as const)
+      : ('error' as const);
+
+export let reportRepositorySyncFailure = (d: {
+  sync: Pick<
+    ScmRepositorySync,
+    'id' | 'status' | 'sourceType' | 'sourceKey' | 'requestKey' | 'repositoryAccessMode'
+  >;
+  errorCode: string;
+  errorMessage: string;
+  error?: unknown;
+}) => {
+  let level = getRepositorySyncFailureLevel(d.errorCode);
+  if (!level) return;
+
+  let context = {
+    level,
+    tags: {
+      area: 'repository_sync',
+      'repository_sync.error_code': d.errorCode,
+      'repository_sync.stage': d.sync.status,
+      'repository_sync.source_type': d.sync.sourceType,
+      'repository_sync.access_mode': d.sync.repositoryAccessMode
+    },
+    extra: {
+      syncId: d.sync.id,
+      requestKey: d.sync.requestKey,
+      sourceKey: d.sync.sourceKey,
+      errorMessage: d.errorMessage,
+      providerDiagnostic: d.error === undefined ? undefined : getScmProviderLogDetails(d.error)
+    },
+    fingerprint: ['repository-sync', d.errorCode]
+  };
+
+  if (d.error instanceof Error) {
+    Sentry.captureException(d.error, context);
+  } else {
+    Sentry.captureMessage(
+      `Repository sync failed (${d.errorCode}): ${d.errorMessage}`,
+      context
+    );
+  }
+};
 
 export let getRepositorySyncContentsRetryDelayMs = (d: {
   attemptCount: number;
@@ -209,7 +286,7 @@ export let markRepositorySyncFailed = async (syncId: string, error: unknown) => 
               ? 'The repository provider could not complete the update. Retry the sync.'
               : getRepositorySyncErrorMessage(error)
       : getRepositorySyncErrorMessage(error);
-  await transitionRepositorySyncState(syncId, sync.status, {
+  let updated = await transitionRepositorySyncState(syncId, sync.status, {
     status: 'failed',
     errorMessage: message,
     completedAt: new Date(),
@@ -219,6 +296,14 @@ export let markRepositorySyncFailed = async (syncId: string, error: unknown) => 
       push: [Date.now(), 'Repository update failed.'] satisfies RepositorySyncLogEntry
     }
   });
+  if (updated) {
+    reportRepositorySyncFailure({
+      sync,
+      errorCode: details.exportErrorCode ?? details.classification,
+      errorMessage: message,
+      error
+    });
+  }
 };
 
 let dismissalMessages: Record<RepositorySyncDismissal, string> = {

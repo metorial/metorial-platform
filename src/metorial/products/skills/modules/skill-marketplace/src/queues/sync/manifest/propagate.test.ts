@@ -7,7 +7,8 @@ let {
   syncManifest,
   recoverMissingManifestSources,
   recordSourceRecoveryLimitReached,
-  appendLog
+  appendLog,
+  report
 } = vi.hoisted(() => ({
   db: {
     skillDestinationManifest: { findUnique: vi.fn() },
@@ -31,7 +32,8 @@ let {
   syncManifest: vi.fn(),
   recoverMissingManifestSources: vi.fn(),
   recordSourceRecoveryLimitReached: vi.fn(),
-  appendLog: vi.fn()
+  appendLog: vi.fn(),
+  report: vi.fn()
 }));
 
 vi.mock('@metorial/db', () => ({ db }));
@@ -42,6 +44,7 @@ vi.mock('@metorial/skills-scm-utils', () => ({
 }));
 vi.mock('../../../env', () => ({ env }));
 vi.mock('../_lib/logs', () => ({ appendSkillDestinationSyncLog: appendLog }));
+vi.mock('../_lib/report', () => ({ reportSkillSyncIssue: report }));
 vi.mock('./recovery', () => ({
   recoverMissingManifestSources,
   recordSourceRecoveryLimitReached,
@@ -376,6 +379,13 @@ describe('sending a manifest to Origin', () => {
       where: { oid: 3n },
       data: expect.objectContaining({ status: 'failed', errorCode: 'manifest_missing' })
     });
+    expect(report).toHaveBeenCalledWith(
+      expect.objectContaining({
+        issue: 'propagation_failed',
+        errorCode: 'manifest_missing',
+        propagationId: 'propagation_1'
+      })
+    );
   });
 
   it('does not resend an already acknowledged propagation', async () => {
@@ -532,11 +542,47 @@ describe('reconciling Origin state', () => {
     expect(error).toHaveBeenCalledWith(
       expect.stringContaining('cargo_skill_sync_manifest_invalid')
     );
+    expect(report).toHaveBeenCalledWith(
+      expect.objectContaining({
+        issue: 'propagation_failed',
+        errorCode: 'manifest_invalid',
+        level: 'error'
+      })
+    );
     expect(db.skillRepository.update).toHaveBeenCalledWith({
       where: { oid: 1n },
       data: { nextRepairAt: null }
     });
     error.mockRestore();
+  });
+
+  it.each(['deletion_guard_tripped', 'rate_limited', 'upstream_failure'])(
+    'leaves reporting a %s failure to Origin',
+    async errorCode => {
+      await reconcile({ status: 'failed', errorCode });
+
+      expect(report).not.toHaveBeenCalled();
+    }
+  );
+
+  it('reports a sync Metorial stopped waiting for', async () => {
+    await reconcile(
+      { status: 'syncing_contents' },
+      { startedAt: new Date(now.getTime() - 3 * 24 * hour) }
+    );
+
+    expect(db.skillDestinationSyncRepositoryPropagation.updateMany).toHaveBeenCalledWith({
+      where: { oid: 3n, status: { in: ['processing', 'waiting_for_review'] } },
+      data: expect.objectContaining({ status: 'failed', errorCode: 'sync_timeout' })
+    });
+    expect(report).toHaveBeenCalledWith(
+      expect.objectContaining({
+        issue: 'propagation_failed',
+        errorCode: 'sync_timeout',
+        level: 'warning',
+        extra: expect.objectContaining({ originStatus: 'syncing_contents' })
+      })
+    );
   });
 
   it('schedules a repair for retryable failures using the repository backoff', async () => {
@@ -613,6 +659,9 @@ describe('reconciling Origin state', () => {
     expect(warn).toHaveBeenCalledWith(
       expect.stringContaining('cargo_skill_sync_source_recovery_limit_reached')
     );
+    expect(report).toHaveBeenCalledWith(
+      expect.objectContaining({ issue: 'source_recovery_limit_reached', level: 'warning' })
+    );
     expect(db.skillRepository.update).toHaveBeenCalledWith({
       where: { oid: 1n },
       data: { nextRepairAt: new Date(now.getTime() + 15 * minute) }
@@ -637,6 +686,13 @@ describe('reconciling Origin state', () => {
     });
     expect(error).toHaveBeenCalledWith(
       expect.stringMatching(/cargo_skill_sync_source_recovery_exhausted.*"level":"error"/)
+    );
+    expect(report).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        issue: 'source_recovery_exhausted',
+        errorCode: 'content_mismatch',
+        level: 'error'
+      })
     );
     expect(db.skillRepository.update).toHaveBeenCalledExactlyOnceWith({
       where: { oid: 1n },

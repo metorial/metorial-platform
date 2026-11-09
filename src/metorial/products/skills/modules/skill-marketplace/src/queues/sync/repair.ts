@@ -3,6 +3,7 @@ import { db } from '@metorial/db';
 import { createQueue, hourlyPacedDelay } from '@metorial/queue';
 import { getOriginTenant, origin } from '@metorial/skills-scm-utils';
 import { env } from '../../env';
+import { reportSkillSyncIssue } from './_lib/report';
 import { isRetryableManifestErrorCode, type ManifestOriginSync } from './manifest/originSync';
 import { getRepairDelayMs, handleSourceRecoveryLimitReached } from './manifest/propagate';
 import {
@@ -159,6 +160,18 @@ export let repairSkillRepository = async (data: { skillRepositoryId: string }) =
         failingSince: failingSince.toISOString()
       })
     );
+    reportSkillSyncIssue({
+      issue: 'repository_repair_failing',
+      errorCode: latest.errorCode,
+      message: `Repository has been failing to sync since ${failingSince.toISOString()}.`,
+      propagationId: latest.id,
+      skillRepositoryId: repository.id,
+      extra: {
+        repoId: repository.repoId,
+        repairAttempts: repository.repairAttempts,
+        failingSince: failingSince.toISOString()
+      }
+    });
   }
 
   if (isSourceRecoveryErrorCode(latest.errorCode)) {

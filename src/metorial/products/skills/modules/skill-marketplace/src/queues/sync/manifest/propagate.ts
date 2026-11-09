@@ -11,6 +11,7 @@ import { getCargoFilesBucketName } from '@metorial/module-file';
 import { getOriginTenant, origin } from '@metorial/skills-scm-utils';
 import { env } from '../../../env';
 import { appendSkillDestinationSyncLog } from '../_lib/logs';
+import { reportSkillSyncIssue } from '../_lib/report';
 import {
   getManifestErrorMessage,
   isRetryableManifestErrorCode,
@@ -169,6 +170,15 @@ export let performManifestPropagation = async (d: {
       d.skillDestinationSyncId,
       `${repositoryName}: The content snapshot for this update no longer exists.`
     );
+    reportSkillSyncIssue({
+      issue: 'propagation_failed',
+      errorCode: 'manifest_missing',
+      message: 'The manifest referenced by the propagation no longer exists.',
+      skillDestinationSyncId: d.skillDestinationSyncId,
+      propagationId: propagation.id,
+      skillRepositoryId: propagation.skillRepository.id,
+      extra: { manifestOid: propagation.manifestOid?.toString() }
+    });
     return 'done';
   }
 
@@ -396,6 +406,15 @@ export let handleSourceRecoveryLimitReached = async (d: {
       keys: d.keys?.slice(0, 20)
     })
   );
+  reportSkillSyncIssue({
+    issue: exhausted ? 'source_recovery_exhausted' : 'source_recovery_limit_reached',
+    errorCode: d.propagation.errorCode,
+    level: exhausted ? 'error' : 'warning',
+    message: errorMessage,
+    skillDestinationSyncId: d.skillDestinationSyncId,
+    propagationId: d.propagation.id,
+    extra: { windows, keys: d.keys?.slice(0, 20) }
+  });
 
   return exhausted;
 };
@@ -475,6 +494,25 @@ let failPropagation = async (d: {
         originError: d.originSync.errorMessage
       })
     );
+  }
+
+  // Origin reports the failures it ends itself; a sync it is still running only fails here when
+  // Metorial gives up waiting on it.
+  if (d.errorCode === 'manifest_invalid' || d.originSync.status !== 'failed') {
+    reportSkillSyncIssue({
+      issue: 'propagation_failed',
+      errorCode: d.errorCode,
+      level: d.errorCode === 'manifest_invalid' ? 'error' : 'warning',
+      message: d.errorMessage,
+      skillDestinationSyncId: d.skillDestinationSyncId,
+      propagationId: d.propagation.id,
+      skillRepositoryId: d.propagation.skillRepository.id,
+      extra: {
+        originSyncId: d.originSync.id,
+        originStatus: d.originSync.status,
+        originError: d.originSync.errorMessage
+      }
+    });
   }
 
   await scheduleRepair({ repository: d.propagation.skillRepository, errorCode: d.errorCode });

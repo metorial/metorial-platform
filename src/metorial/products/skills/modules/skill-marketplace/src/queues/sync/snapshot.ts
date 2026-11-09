@@ -17,6 +17,7 @@ import { isObjectMissingError, lockSkillSyncObjects } from './_lib/blobStore';
 import { getSyncItemKey } from './_lib/item';
 import { withDestinationSyncLock } from './_lib/lock';
 import { appendSkillDestinationSyncLog } from './_lib/logs';
+import { reportSkillSyncIssue } from './_lib/report';
 import { getSkillDestinationKind, getSkillDestinationManifestScope } from './_lib/scope';
 import { syncFinishQueue } from './finish';
 import { syncPropagateStartQueue } from './propagate';
@@ -94,13 +95,25 @@ export let readSkillDestinationSnapshotRows = async function* (
 let failSnapshot = async (d: {
   syncOid: bigint;
   skillDestinationSyncId: string;
+  destinationId: string;
+  errorCode: string;
   message: string;
 }) => {
-  await db.skillDestinationSync.updateMany({
+  let updated = await db.skillDestinationSync.updateMany({
     where: { oid: d.syncOid, status: 'processing' },
     data: { status: 'failed', completedAt: new Date() }
   });
   await appendSkillDestinationSyncLog(d.skillDestinationSyncId, d.message);
+
+  if (updated.count > 0 && d.errorCode !== 'destination_too_large') {
+    reportSkillSyncIssue({
+      issue: 'snapshot_failed',
+      errorCode: d.errorCode,
+      message: d.message,
+      skillDestinationSyncId: d.skillDestinationSyncId,
+      extra: { destinationId: d.destinationId }
+    });
+  }
 };
 
 export let syncSnapshotQueue = createQueue<{
@@ -130,10 +143,12 @@ export let syncSnapshotQueueProcessor = syncSnapshotQueue.process(
     if (sync.destination.storageMode !== 'manifest') return;
 
     let { destination } = sync;
-    let fail = (message: string) =>
+    let fail = (errorCode: string, message: string) =>
       failSnapshot({
         syncOid: sync.oid,
         skillDestinationSyncId: data.skillDestinationSyncId,
+        destinationId: destination.id,
+        errorCode,
         message
       });
 
@@ -163,6 +178,7 @@ export let syncSnapshotQueueProcessor = syncSnapshotQueue.process(
         data: { hash: '' }
       });
       await fail(
+        'manifest_incomplete',
         `${incompleteCount} file${incompleteCount === 1 ? ' is' : 's are'} missing content hashes (manifest_incomplete): ${incomplete
           .map(file => file.path)
           .join(
@@ -182,6 +198,7 @@ export let syncSnapshotQueueProcessor = syncSnapshotQueue.process(
 
     if (entryCount > manifestFormatLimits.maxEntries) {
       await fail(
+        'destination_too_large',
         `This destination has ${entryCount} files; at most ${manifestFormatLimits.maxEntries} can be synced (destination_too_large).`
       );
       return;
@@ -194,6 +211,7 @@ export let syncSnapshotQueueProcessor = syncSnapshotQueue.process(
 
       if (liveItemCount > 0 || (destination.currentManifest?.entryCount ?? 0) > 0) {
         await fail(
+          'empty_manifest',
           'Refusing to publish an empty manifest for a destination that still has content (empty_manifest).'
         );
         return;
@@ -229,6 +247,7 @@ export let syncSnapshotQueueProcessor = syncSnapshotQueue.process(
       if (!(error instanceof ManifestFileError)) throw error;
 
       await fail(
+        'manifest_invalid',
         `Could not build the destination manifest (manifest_invalid): ${error.message}`
       );
       return;

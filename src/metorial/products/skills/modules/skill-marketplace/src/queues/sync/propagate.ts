@@ -15,6 +15,7 @@ import { createSkillSyncBranchName, normalizeSkillSyncBranchName } from './_lib/
 import { getPendingDestinationFileDeletions } from './_lib/deletions';
 import { withDestinationSyncLock } from './_lib/lock';
 import { appendSkillDestinationSyncLog } from './_lib/logs';
+import { reportSkillSyncIssue } from './_lib/report';
 import { syncFinishQueue } from './finish';
 import {
   getManifestErrorCodeForRejection,
@@ -522,17 +523,26 @@ export let performSkillSyncPropagation = withDestinationSyncLock(
         skillDestinationSyncId: data.skillDestinationSyncId,
         error: e
       });
+      let errorCode = getManifestErrorCodeForRejection(e);
 
       await db.skillDestinationSyncRepositoryPropagation.updateMany({
         where: { id: currentPropagationId },
         data: {
           status: 'failed',
           errorMessage,
-          ...(sync.storageMode === 'manifest'
-            ? { errorCode: getManifestErrorCodeForRejection(e) }
-            : {}),
+          ...(sync.storageMode === 'manifest' ? { errorCode } : {}),
           completedAt: new Date()
         }
+      });
+      reportSkillSyncIssue({
+        issue: 'propagation_rejected',
+        errorCode,
+        level: e.data.status === 404 ? 'warning' : 'error',
+        message: errorMessage,
+        error: e,
+        skillDestinationSyncId: data.skillDestinationSyncId,
+        propagationId: currentPropagationId,
+        extra: { status: e.data.status, storageMode: sync.storageMode }
       });
     }
 

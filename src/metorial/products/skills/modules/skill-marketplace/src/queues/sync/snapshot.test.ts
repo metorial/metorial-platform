@@ -11,7 +11,7 @@ type FileRow = {
   sourceKey: string | null;
 };
 
-let { state, db, storage, spooledUploads, propagate, finish, log } = vi.hoisted(() => {
+let { state, db, storage, spooledUploads, propagate, finish, log, report } = vi.hoisted(() => {
   let state = {
     files: [] as FileRow[],
     items: [] as any[],
@@ -28,7 +28,7 @@ let { state, db, storage, spooledUploads, propagate, finish, log } = vi.hoisted(
     skillDestinationSync: {
       findUnique: vi.fn(async () => state.sync),
       update: vi.fn(async () => ({})),
-      updateMany: vi.fn(async () => ({}))
+      updateMany: vi.fn(async () => ({ count: 1 }))
     },
     skillDestinationFile: {
       findMany: vi.fn(async () => state.files.filter(isIncomplete).slice(0, 10)),
@@ -108,7 +108,8 @@ let { state, db, storage, spooledUploads, propagate, finish, log } = vi.hoisted(
     spooledUploads,
     propagate: vi.fn(),
     finish: vi.fn(),
-    log: vi.fn()
+    log: vi.fn(),
+    report: vi.fn()
   };
 });
 
@@ -128,6 +129,7 @@ vi.mock('@metorial/queue', () => ({
 }));
 vi.mock('./_lib/lock', () => ({ withDestinationSyncLock: (run: unknown) => run }));
 vi.mock('./_lib/logs', () => ({ appendSkillDestinationSyncLog: log }));
+vi.mock('./_lib/report', () => ({ reportSkillSyncIssue: report }));
 vi.mock('./finish', () => ({ syncFinishQueue: { add: finish } }));
 vi.mock('./propagate', () => ({ syncPropagateStartQueue: { add: propagate } }));
 vi.mock('../../lib/manifestFile/format', async importOriginal => {
@@ -347,6 +349,13 @@ describe('sync snapshot', () => {
       data: { status: 'failed', completedAt: expect.any(Date) }
     });
     expect(log).toHaveBeenCalledWith('sync_1', expect.stringContaining('manifest_incomplete'));
+    expect(report).toHaveBeenCalledWith(
+      expect.objectContaining({
+        issue: 'snapshot_failed',
+        errorCode: 'manifest_incomplete',
+        skillDestinationSyncId: 'sync_1'
+      })
+    );
     expect(state.manifests).toEqual([]);
     expect(propagate).not.toHaveBeenCalled();
   });
@@ -361,6 +370,7 @@ describe('sync snapshot', () => {
       'sync_1',
       expect.stringContaining('destination_too_large')
     );
+    expect(report).not.toHaveBeenCalled();
     expect(db.$queryRaw).not.toHaveBeenCalled();
     expect(propagate).not.toHaveBeenCalled();
   });
@@ -385,6 +395,9 @@ describe('sync snapshot', () => {
     await start();
 
     expect(log).toHaveBeenCalledWith('sync_1', expect.stringContaining('empty_manifest'));
+    expect(report).toHaveBeenCalledWith(
+      expect.objectContaining({ issue: 'snapshot_failed', errorCode: 'empty_manifest' })
+    );
     expect(propagate).not.toHaveBeenCalled();
     expect(finish).not.toHaveBeenCalled();
   });

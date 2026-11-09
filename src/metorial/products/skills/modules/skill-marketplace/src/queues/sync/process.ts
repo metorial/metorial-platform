@@ -23,6 +23,7 @@ import { getSyncItemKey, getSyncTaskItemKey, getSyncTaskItemWhere } from './_lib
 import { destinationBucketIsAvailable } from './_lib/bucket';
 import { withDestinationSyncLock } from './_lib/lock';
 import { appendSkillDestinationSyncLog } from './_lib/logs';
+import { reportSkillSyncIssue } from './_lib/report';
 import {
   DestinationManifest,
   normalizeBucketPath,
@@ -159,11 +160,17 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(
         if (outcome.type === 'deferred') {
           let hashWaits = (data.hashWaits ?? 0) + 1;
           if (hashWaits > maxLargeFileHashWaits) {
+            let message = `Timed out waiting for ${outcome.fileCount} large file${outcome.fileCount === 1 ? '' : 's'} to be hashed.`;
             await failSyncForLimitError({
               skillDestinationSyncId: data.skillDestinationSyncId,
-              error: new CargoSkillLimitError(
-                `Timed out waiting for ${outcome.fileCount} large file${outcome.fileCount === 1 ? '' : 's'} to be hashed.`
-              )
+              error: new CargoSkillLimitError(message)
+            });
+            reportSkillSyncIssue({
+              issue: 'content_failed',
+              errorCode: 'large_file_hash_timeout',
+              message,
+              skillDestinationSyncId: data.skillDestinationSyncId,
+              extra: { fileCount: outcome.fileCount, hashWaits }
             });
             return;
           }

@@ -42,6 +42,7 @@ import {
   logRepositorySyncQueueEvent,
   MANIFEST_SYNC_LIFETIME_MS,
   markRepositorySyncFailed,
+  reportRepositorySyncFailure,
   shouldRetryRepositorySyncContents
 } from './_lib';
 import { createPrRepositorySyncQueue } from './createPr';
@@ -92,6 +93,7 @@ let failManifestSync = async (
     errorMessage: string;
     errorDetails?: PrismaJson.RepositorySyncErrorDetails;
     data?: Record<string, unknown>;
+    error?: unknown;
   }
 ) => {
   let updated = await transitionRepositorySyncState(sync.id, 'syncing_contents', {
@@ -104,7 +106,15 @@ let failManifestSync = async (
     nextPollAt: null,
     completedAt: new Date()
   });
-  if (updated) await appendRepositorySyncLog(sync.id, 'Repository update failed.');
+  if (!updated) return;
+
+  await appendRepositorySyncLog(sync.id, 'Repository update failed.');
+  reportRepositorySyncFailure({
+    sync,
+    errorCode: d.errorCode,
+    errorMessage: d.errorMessage,
+    error: d.error
+  });
 };
 
 let waitManifestSync = async (
@@ -493,7 +503,8 @@ let syncManifestContents = async (syncId: string) => {
     await failManifestSync(current, {
       errorCode: exportError?.code ?? providerError.classification,
       errorMessage: exportError?.message ?? getRepositorySyncErrorMessage(e),
-      errorDetails: exportError?.details
+      errorDetails: exportError?.details,
+      error: e
     });
   }
 };
