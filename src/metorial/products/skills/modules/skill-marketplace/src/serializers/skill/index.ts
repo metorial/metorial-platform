@@ -1,13 +1,20 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
 import { Hash } from '@lowerdeck/hash';
 import { fileService } from '@metorial/module-file';
-import type { Prisma } from '@metorial/db';
+import type { Prisma, Skill, SkillConfiguration, Store } from '@metorial/db';
 import { db } from '@metorial/db';
 import { renderSkillDocumentFrontmatter } from '@metorial/module-skill/frontmatter';
 import PQueue from 'p-queue';
 import { combineConfigs } from '../../lib/combineConfigs';
-import { assertSkillStoreByteLimit, assertSkillStoreFileLimit } from '../../lib/limits';
+import {
+  assertSkillStoreByteLimit,
+  assertSkillStoreFileLimit,
+  checkSkillStoreByteSize,
+  checkSkillStoreFileCount,
+  getSkillStoreSizes
+} from '../../lib/limits';
 import { createApplicator } from '../_lib/apply';
+import type { SerializerInputByType } from '../_lib/types';
 import { getMarketplaceForceSyncHashInput } from '../_lib/forceSync';
 import { getSkillPath, getSkillPruneScope } from '../_lib/paths';
 import {
@@ -51,6 +58,126 @@ let normalizeSkillDocumentPath = (path: string) => {
   return [...pathParts, `${sanitizedBaseName}${sanitizedExtension}`].join('/');
 };
 
+type SkillInput = SerializerInputByType<'skill'>;
+
+let lookupPageSize = 100;
+
+let resolveSkillInit = (
+  input: SkillInput,
+  skillStore: Store,
+  defaultConfig: SkillConfiguration | null
+) => {
+  let config = combineConfigs(
+    [
+      input.skillPlugin.skillConfiguration,
+      input.skillPluginSkill.skillConfiguration,
+      input.skillMarketplacePlugin?.skillConfiguration,
+      input.skillMarketplace?.skillConfiguration
+    ],
+    defaultConfig
+  );
+
+  let effectiveAllowedFileExtensions = getEffectiveAllowedFileExtensions(config);
+
+  return {
+    skillStore,
+    config,
+    effectiveAllowedFileExtensions
+  };
+};
+
+let getDefaultConfigKey = (skill: Pick<Skill, 'projectOid' | 'instanceOid'>) =>
+  `${skill.projectOid}:${skill.instanceOid}`;
+
+export type SkillInitLookup = {
+  stores: Map<bigint, Store>;
+  storeSizes: Map<bigint, { files: number; bytes: bigint }>;
+  defaultConfigs: Map<string, SkillConfiguration>;
+};
+
+// Batched equivalent of the per-skill init queries, so collecting a large destination doesn't
+// issue several queries per skill. `initSkillFromLookup` must yield the same hash inputs.
+export let loadSkillInitLookup = async (
+  skills: Pick<Skill, 'storeOid' | 'projectOid' | 'instanceOid'>[]
+): Promise<SkillInitLookup> => {
+  let storeOids = [
+    ...new Set(skills.flatMap(skill => (skill.storeOid ? [skill.storeOid] : [])))
+  ];
+  let stores = new Map<bigint, Store>();
+
+  for (let i = 0; i < storeOids.length; i += lookupPageSize) {
+    let page = await db.store.findMany({
+      where: { oid: { in: storeOids.slice(i, i + lookupPageSize) } }
+    });
+    for (let store of page) stores.set(store.oid, store);
+  }
+
+  let scopes = [
+    ...new Map(skills.map(skill => [getDefaultConfigKey(skill), skill] as const)).values()
+  ];
+  let defaultConfigs = new Map<string, SkillConfiguration>();
+
+  for (let i = 0; i < scopes.length; i += lookupPageSize) {
+    let configs = await db.skillConfiguration.findMany({
+      where: {
+        isDefault: true,
+        OR: scopes.slice(i, i + lookupPageSize).map(skill => ({
+          projectOid: skill.projectOid,
+          instanceOid: skill.instanceOid
+        }))
+      },
+      orderBy: { oid: 'asc' }
+    });
+
+    for (let config of configs) {
+      let key = getDefaultConfigKey(config);
+      if (!defaultConfigs.has(key)) defaultConfigs.set(key, config);
+    }
+  }
+
+  return {
+    stores,
+    storeSizes: await getSkillStoreSizes(storeOids),
+    defaultConfigs
+  };
+};
+
+export let getSkillInitLookupSize = (
+  lookup: SkillInitLookup,
+  skills: Pick<Skill, 'storeOid'>[]
+) => {
+  let files = 0;
+  let bytes = 0n;
+
+  for (let skill of skills) {
+    let size = skill.storeOid ? lookup.storeSizes.get(skill.storeOid) : undefined;
+    files += size?.files ?? 0;
+    bytes += size?.bytes ?? 0n;
+  }
+
+  return { files, bytes };
+};
+
+export let initSkillFromLookup = async (input: SkillInput, lookup: SkillInitLookup) => {
+  let skillStore = lookup.stores.get(input.skill.storeOid!);
+  let storeSize = lookup.storeSizes.get(input.skill.storeOid!);
+  if (!skillStore || !storeSize) {
+    throw new Error(`Store ${input.skill.storeOid} of skill ${input.skill.id} not found`);
+  }
+
+  checkSkillStoreFileCount({ currentCount: storeSize.files });
+  await checkSkillStoreByteSize({
+    currentBytes: storeSize.bytes,
+    instanceOid: skillStore.instanceOid
+  });
+
+  return resolveSkillInit(
+    input,
+    skillStore,
+    lookup.defaultConfigs.get(getDefaultConfigKey(input.skill)) ?? null
+  );
+};
+
 export let applySkill = createApplicator(
   'skill',
   async input => {
@@ -73,23 +200,7 @@ export let applySkill = createApplicator(
       }
     });
 
-    let config = combineConfigs(
-      [
-        input.skillPlugin.skillConfiguration,
-        input.skillPluginSkill.skillConfiguration,
-        input.skillMarketplacePlugin?.skillConfiguration,
-        input.skillMarketplace?.skillConfiguration
-      ],
-      defaultConfig
-    );
-
-    let effectiveAllowedFileExtensions = getEffectiveAllowedFileExtensions(config);
-
-    return {
-      skillStore,
-      config,
-      effectiveAllowedFileExtensions
-    };
+    return resolveSkillInit(input, skillStore, defaultConfig);
   },
   {
     getPruneScope: getSkillPruneScope,

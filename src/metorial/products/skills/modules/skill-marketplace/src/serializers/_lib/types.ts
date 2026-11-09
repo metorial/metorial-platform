@@ -54,7 +54,18 @@ export interface SerializerContext {
   setBasePath: (path: string | undefined) => void;
 }
 
-export type StorageBackedFile = Pick<MetorialFile, 'oid' | 'status' | 'storeId' | 'fileSize'>;
+export type StorageBackedFile = Pick<
+  MetorialFile,
+  | 'oid'
+  | 'id'
+  | 'status'
+  | 'storeId'
+  | 'fileSize'
+  | 'contentSha256'
+  | 'contentSha256StoreId'
+  | 'contentGitBlobSha'
+  | 'contentCrc32'
+>;
 
 export interface PruneScope {
   prefix: string;
