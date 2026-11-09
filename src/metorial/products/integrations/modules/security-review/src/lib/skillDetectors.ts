@@ -19,7 +19,7 @@ let ENCODED_BLOB_LENGTH = 400;
 let ZERO_WIDTH_THRESHOLD = 3;
 let HIDDEN_COMMENT_LENGTH = 40;
 
-let scriptExtensions = new Set([
+export let scriptExtensions = new Set([
   'py',
   'sh',
   'bash',
@@ -50,7 +50,7 @@ export type SkillInventoryEntry = {
   detectedMime: string | null;
   isDisguised: boolean;
   ships: boolean;
-  notRead?: 'too_large' | 'unreadable';
+  notRead?: 'too_large' | 'unreadable' | 'not_shown';
 };
 
 export type InstructionHit = { familyName: string; matchedText: string };

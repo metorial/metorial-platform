@@ -5,7 +5,7 @@ import {
   TableFilterState,
   deserializeFromQuery,
   serializeToQuery
-} from '../filter';
+} from '@metorial/filter-bar';
 
 let emptyFilters: TableFilter<any>[] = [];
 

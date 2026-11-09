@@ -2,23 +2,18 @@ import {
   DashboardInstanceIdentitiesDelegationsListOutput,
   DashboardInstanceIdentitiesDelegationsListQuery
 } from '@metorial/dashboard-sdk';
+import {
+  col,
+  createDataList,
+  defineStatus,
+  EmptyValue,
+  f,
+  withDefaults
+} from '@metorial/data-list';
 import { Paths } from '@metorial/frontend-config';
-import {
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject,
-  useIdentityDelegations
-} from '@metorial/state';
-import { Badge, RenderDate, Text } from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
-import { Table as DashboardTable } from '@metorial/table';
-import {
-  FilterPayload,
-  TableFilter,
-  getEnumListFilterValue,
-  getListFilterValue
-} from '@metorial/table';
-import { useMemo } from 'react';
+import { useIdentityDelegations } from '@metorial/state';
+import { RenderDate } from '@metorial/ui';
+import { useInstanceContext } from '../../lib/dataList';
 import { entityFilters } from '../entityFilters';
 
 type IdentityDelegation = DashboardInstanceIdentitiesDelegationsListOutput['items'][number];
@@ -28,229 +23,104 @@ type IdentityDelegationFilters = Omit<
   'limit' | 'after' | 'before' | 'cursor'
 >;
 
-type IdentityDelegationsTableProps = {
-  instanceId: string;
-  filters?: IdentityDelegationFilters;
-  organization: ReturnType<typeof useCurrentOrganization>;
-  project: ReturnType<typeof useCurrentProject>;
-  instance: ReturnType<typeof useCurrentInstance>;
-};
+let delegationStatus = defineStatus({
+  active: { label: 'Active', color: 'green' },
+  waiting_for_consent: { label: 'Waiting for Consent', color: 'orange' },
+  denied: { label: 'Denied', color: 'red' },
+  revoked: { label: 'Revoked', color: 'gray' },
+  expired: { label: 'Expired', color: 'gray' }
+});
 
-let getDelegationStatusColor = (status: IdentityDelegation['status']) => {
-  if (status === 'active') return 'green';
-  if (status === 'waiting_for_consent') return 'orange';
-  if (status === 'denied') return 'red';
-  return 'gray';
-};
+let delegationPermissions = [
+  { id: 'provider:call', label: 'Provider Call' },
+  { id: 'provider:read', label: 'Provider Read' }
+] as const;
 
 let getPartyName = (
   parties: IdentityDelegation['parties'],
   role: 'owner' | 'delegatee' | 'delegator'
-) => {
-  return parties.find(party => party.roles.includes(role))?.actor.name ?? '-';
-};
+) => parties.find(party => party.roles.includes(role))?.actor.name;
 
-let getStatusFilterValue = (
-  value: FilterPayload | undefined
-): DashboardInstanceIdentitiesDelegationsListQuery['status'] => {
-  return getEnumListFilterValue(value, [
-    'waiting_for_consent',
-    'denied',
-    'active',
-    'revoked',
-    'expired'
-  ]);
-};
-
-let getPermissionsFilterValue = (
-  value: FilterPayload | undefined
-): DashboardInstanceIdentitiesDelegationsListQuery['permissions'] => {
-  return getEnumListFilterValue(value, ['provider:call', 'provider:read']);
-};
-
-let useIdentityDelegationsTableFilters = (instanceId: string) =>
-  useMemo<TableFilter<IdentityDelegation>[]>(
-    () => [
-      {
-        id: 'status',
-        fields: ['status'],
-        label: 'Status',
-        description: 'Filter by status',
-        type: 'select',
-        options: [
-          { id: 'active', label: 'Active' },
-          { id: 'waiting_for_consent', label: 'Waiting for Consent' },
-          { id: 'denied', label: 'Denied' },
-          { id: 'revoked', label: 'Revoked' },
-          { id: 'expired', label: 'Expired' }
-        ]
-      },
-      {
-        id: 'permissions',
-        fields: ['permissions'],
-        label: 'Permissions',
-        description: 'Filter by permissions',
-        type: 'select',
-        options: [
-          { id: 'provider:call', label: 'Provider Call' },
-          { id: 'provider:read', label: 'Provider Read' }
-        ]
-      },
-      entityFilters.identity(instanceId),
-      entityFilters.actor(instanceId, { id: 'ownerActorId', label: 'Owner' }),
-      entityFilters.actor(instanceId, { id: 'delegatorActorId', label: 'Delegator' }),
-      entityFilters.actor(instanceId, { id: 'delegateeActorId', label: 'Delegatee' })
-    ],
-    [instanceId]
-  );
-
-let useIdentityDelegationsTableState = (
-  props: IdentityDelegationsTableProps,
-  opts: {
-    filter: Record<string, FilterPayload>;
-    search?: string;
-  }
-) => {
-  let delegations = useIdentityDelegations(props.instanceId, {
-    order: 'desc',
-    ...props.filters,
-    status: getStatusFilterValue(opts.filter.status) ?? props.filters?.status,
-    permissions:
-      getPermissionsFilterValue(opts.filter.permissions) ?? props.filters?.permissions,
-    ownerActorId: getListFilterValue(opts.filter.ownerActorId) ?? props.filters?.ownerActorId,
-    delegatorActorId:
-      getListFilterValue(opts.filter.delegatorActorId) ?? props.filters?.delegatorActorId,
-    delegateeActorId:
-      getListFilterValue(opts.filter.delegateeActorId) ?? props.filters?.delegateeActorId,
-    identityId: getListFilterValue(opts.filter.identityId) ?? props.filters?.identityId
-  });
-
-  return {
-    isLoading: delegations.isLoading,
-    error: delegations.error,
-    hasMoreAfter: delegations.data?.pagination.hasMoreAfter ?? false,
-    hasMoreBefore: delegations.data?.pagination.hasMoreBefore ?? false,
-    items: delegations.data?.items ?? [],
-    loadNext: delegations.next,
-    loadPrevious: delegations.previous
-  };
-};
-
-let identityDelegationsTable = new DashboardTable<
-  IdentityDelegationsTableProps,
-  IdentityDelegation
->('identity-delegations')
-  .state(useIdentityDelegationsTableState)
-  .columns([
-    {
-      id: 'delegatee',
-      isDefault: true,
-      header: 'Delegatee',
-      render: (delegation: IdentityDelegation) => (
-        <div>
-          <Text size="2" weight="strong">
-            {getPartyName(delegation.parties, 'delegatee')}
-          </Text>
-          <Text size="1" color="gray600">
-            via {getPartyName(delegation.parties, 'delegator')}
-          </Text>
-        </div>
-      )
-    },
-    {
-      id: 'owner',
-      isDefault: true,
-      header: 'Owner',
-      render: (delegation: IdentityDelegation) => (
-        <Text size="2">{getPartyName(delegation.parties, 'owner')}</Text>
-      )
-    },
-    {
-      id: 'status',
-      isDefault: true,
-      header: 'Status',
-      render: (delegation: IdentityDelegation) => (
-        <Badge color={getDelegationStatusColor(delegation.status)}>{delegation.status}</Badge>
-      )
-    },
-    {
-      id: 'permissions',
-      isDefault: true,
-      header: 'Permissions',
-      render: (delegation: IdentityDelegation) => (
-        <Text size="2">{delegation.permissions.join(', ')}</Text>
-      )
-    },
-    {
-      id: 'identity',
-      isDefault: false,
-      header: 'Identity',
-      render: (delegation: IdentityDelegation) => (
-        <Text size="2">{delegation.identity.name}</Text>
-      )
-    },
-    {
-      id: 'level',
-      isDefault: false,
-      header: 'Level',
-      render: (delegation: IdentityDelegation) => (
-        <Text size="2">{delegation.delegationLevel}</Text>
-      )
-    },
-    {
-      id: 'expiresAt',
-      isDefault: false,
-      header: 'Expires',
-      render: (delegation: IdentityDelegation) =>
-        delegation.expiresAt ? (
-          <RenderDate date={delegation.expiresAt} />
-        ) : (
-          <Text size="2" color="gray600">
-            Never
-          </Text>
-        )
-    },
-    {
-      id: 'createdAt',
-      isDefault: true,
-      header: 'Created',
-      render: (delegation: IdentityDelegation) => <RenderDate date={delegation.createdAt} />
-    },
-    {
-      id: 'id',
-      isDefault: false,
-      header: 'Delegation ID',
-      render: (delegation: IdentityDelegation) => <ID id={delegation.id} />
-    }
-  ] as any)
-  .link(((delegation: IdentityDelegation, props: IdentityDelegationsTableProps) =>
-    Paths.organization.instance.identity.delegation(
-      props.organization.data,
-      props.project.data,
-      props.instance.data,
-      delegation.id
-    )) as any)
-  .build();
-
-export let IdentityDelegationsTable = ({
-  instanceId,
-  filters
-}: {
+let IdentityDelegationsList = createDataList<{
   instanceId: string;
   filters?: IdentityDelegationFilters;
-}) => {
-  let instance = useCurrentInstance();
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-  let tableFilters = useIdentityDelegationsTableFilters(instanceId);
+}>('identity-delegations')
+  .context(useInstanceContext)
+  .filters(props => ({
+    status: f.status(delegationStatus),
+    permissions: f.select('permissions', 'Permissions', delegationPermissions, {
+      description: 'Filter by permissions'
+    }),
+    identityId: f.entity(entityFilters.identity(props.instanceId)),
+    ownerActorId: f.entity(
+      entityFilters.actor(props.instanceId, { id: 'ownerActorId', label: 'Owner' })
+    ),
+    delegatorActorId: f.entity(
+      entityFilters.actor(props.instanceId, { id: 'delegatorActorId', label: 'Delegator' })
+    ),
+    delegateeActorId: f.entity(
+      entityFilters.actor(props.instanceId, { id: 'delegateeActorId', label: 'Delegatee' })
+    ),
+    createdAt: f.createdAt(),
+    updatedAt: f.updatedAt()
+  }))
+  .paginated(({ props, filters }) =>
+    useIdentityDelegations(
+      props.instanceId,
+      withDefaults(props.filters, { order: 'desc' as const, ...filters })
+    )
+  )
+  .columns([
+    col.twoLine({
+      id: 'delegatee',
+      header: 'Delegatee',
+      primary: (row: IdentityDelegation) => getPartyName(row.parties, 'delegatee') ?? '—',
+      secondary: row => `via ${getPartyName(row.parties, 'delegator') ?? '—'}`
+    }),
+    col.text({
+      id: 'owner',
+      header: 'Owner',
+      get: row => getPartyName(row.parties, 'owner')
+    }),
+    col.status(delegationStatus),
+    col.text({
+      id: 'permissions',
+      header: 'Permissions',
+      get: row => row.permissions.join(', ')
+    }),
+    col.text({
+      id: 'identity',
+      header: 'Identity',
+      isDefault: false,
+      get: row => row.identity.name
+    }),
+    col.text({
+      id: 'level',
+      header: 'Level',
+      isDefault: false,
+      get: row => row.delegationLevel
+    }),
+    col.custom({
+      id: 'expiresAt',
+      header: 'Expires',
+      isDefault: false,
+      render: row =>
+        row.expiresAt ? <RenderDate date={row.expiresAt} /> : <EmptyValue>Never</EmptyValue>
+    }),
+    col.createdAt(),
+    col.updatedAt(),
+    col.id({ header: 'Delegation ID' })
+  ])
+  .link((row, _props, ctx) =>
+    Paths.organization.instance.identity.delegation(
+      ctx.organization,
+      ctx.project,
+      ctx.instance,
+      row.id
+    )
+  )
+  .build();
 
-  return identityDelegationsTable({
-    instanceId,
-    filters,
-    instance,
-    organization,
-    project,
-    tableFilters,
-    emptyState: 'No delegations found.'
-  });
-};
+export let IdentityDelegationsTable = (p: Parameters<typeof IdentityDelegationsList>[0]) => (
+  <IdentityDelegationsList emptyState="No delegations found." {...p} />
+);

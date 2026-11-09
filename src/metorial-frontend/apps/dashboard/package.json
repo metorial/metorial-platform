@@ -28,6 +28,7 @@
     "@metorial/code-editor": "^1.0.0",
     "@metorial/dashboard-sdk": "1.0.0-internal",
     "@metorial/data-hooks": "^1.0.0",
+    "@metorial/data-list": "^1.0.0",
     "@metorial/details-layout": "^1.0.0",
     "@metorial/dynamic-component": "^1.0.0",
     "@metorial/editor-tabs": "^1.0.0",

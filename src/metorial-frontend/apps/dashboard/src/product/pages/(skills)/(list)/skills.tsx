@@ -1,5 +1,13 @@
-import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
 import type { DashboardInstanceSkillsListOutput } from '@metorial/dashboard-sdk';
+import {
+  col,
+  createDataList,
+  f,
+  lifecycleStatus,
+  withDefaults,
+  type DataListLayoutRenderArgs
+} from '@metorial/data-list';
+import { renderWithLoader } from '@metorial/data-hooks';
 import { EmptyState } from '@metorial/empty-state';
 import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
@@ -14,40 +22,21 @@ import {
   useInstancePinnedSkills,
   queueSkillAssistantPrompt,
   useSkillContentPreviews,
-  useSkillGroups,
   useSkills
 } from '@metorial/state';
-import { Button, Input, OptionToggle, RenderDate, Select, Text, Toolbar } from '@metorial/ui';
-import { ItemGrid, Table } from '@metorial/ui-product';
-import { useDebounced } from '@metorial/use-debounced';
-import { RiGridLine, RiListUnordered } from '@remixicon/react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Button, Text } from '@metorial/ui';
+import { ItemGrid } from '@metorial/ui-product';
+import { useNavigate } from 'react-router-dom';
 import { styled } from 'styled-components';
+import { useInstanceContext } from '../../../lib/dataList';
+import { entityFilters } from '../../../scenes/entityFilters';
 import { SkillPreviewCard } from '../../../scenes/skills/overview/skillPreviewCard';
 import { showSkillFormModal } from '../../../scenes/skills/modal';
 import { showSkillTemplateFormModal } from '../../../scenes/skills/templateModal';
 
-let allGroupsTab = 'all';
-let searchDebounceMs = 300;
 let skillsPageSize = 48;
 
-type SkillsView = 'grid' | 'list';
-
 type Skill = DashboardInstanceSkillsListOutput['items'][number];
-
-let GroupField = styled.div`
-  width: 200px;
-  flex: 0 0 auto;
-`;
-
-let SearchField = styled.div`
-  flex: 1 1 auto;
-  min-width: 0;
-`;
-
-let ViewField = styled.div`
-  flex: 0 0 auto;
-`;
 
 let ListName = styled.div`
   display: flex;
@@ -187,63 +176,44 @@ let CreateSkillWithAgent = (p: { instanceId: string }) => {
   );
 };
 
-let GroupFilter = (p: {
-  instanceId: string;
-  current: string;
-  onChange: (id: string) => void;
-}) => {
-  let groups = useSkillGroups(p.instanceId, { limit: 100 });
+let SkillsEmptyState = () => {
+  let ctx = useInstanceContext();
+  let navigate = useNavigate();
+  let pathParams = usePathParams();
 
   return (
-    <GroupField>
-      <Select
-        label="Group"
-        hideLabel
-        value={p.current}
-        onChange={p.onChange}
-        items={[
-          { id: allGroupsTab, label: 'All Groups' },
-          ...(groups.data?.items ?? []).map(group => ({ id: group.id, label: group.name }))
-        ]}
-      />
-    </GroupField>
+    <EmptyState
+      extra="Skills"
+      title="Create your first skill"
+      description="Skills let you extend integrations with documents, custom logic, and resources to create advanced agent workflows."
+      action={{
+        label: 'Create Skill',
+        onClick: () => {
+          if (!ctx.instanceId) return;
+
+          showSkillFormModal({
+            instanceId: ctx.instanceId,
+            onCreate: skill => navigate(Paths.instance.skill(...pathParams, skill.id))
+          });
+        }
+      }}
+    />
   );
 };
 
-let SkillsResults = (p: { instanceId: string; view: SkillsView; skills: Skill[] }) => {
+let SkillsGridLayout = ({ items, getItemProps }: DataListLayoutRenderArgs<Skill>) => {
+  let { instanceId } = useInstanceContext();
   let pathParams = usePathParams();
 
-  let pinned = useInstancePinnedSkills({ instanceId: p.instanceId });
+  let pinned = useInstancePinnedSkills({ instanceId });
   let previews = useSkillContentPreviews(
-    p.view == 'grid' ? p.instanceId : null,
-    p.skills.map(skill => skill.id)
+    instanceId,
+    items.map(skill => skill.id)
   );
-
-  if (!p.skills.length) return null;
-
-  if (p.view == 'list') {
-    return (
-      <Table
-        headers={['Name', 'Updated']}
-        data={p.skills.map(skill => ({
-          href: Paths.instance.skill(...pathParams, skill.id),
-          data: [
-            <ListName>
-              <SkillIconTile image={skill.image} imageUrl={skill.imageUrl} size={20} />
-              <Text size="2" weight="strong">
-                {skill.name}
-              </Text>
-            </ListName>,
-            <RenderDate date={skill.updatedAt} format="date" />
-          ]
-        }))}
-      />
-    );
-  }
 
   return (
     <ItemGrid.Root width="232px">
-      {p.skills.map(skill => {
+      {items.map(skill => {
         let isPinned = pinned.has(skill.id);
 
         return (
@@ -256,7 +226,11 @@ let SkillsResults = (p: { instanceId: string; view: SkillsView; skills: Skill[] 
               menu={[
                 isPinned
                   ? { label: 'Unpin', onClick: () => pinned.remove(skill.id) }
-                  : { label: 'Pin', onClick: () => pinned.add(skill.id) }
+                  : { label: 'Pin', onClick: () => pinned.add(skill.id) },
+                ...getItemProps(skill).menu.map(item => ({
+                  label: item.label,
+                  onClick: item.onClick
+                }))
               ]}
             />
           </li>
@@ -266,68 +240,67 @@ let SkillsResults = (p: { instanceId: string; view: SkillsView; skills: Skill[] 
   );
 };
 
-let SkillsCollection = (p: {
-  instanceId: string;
-  search: string;
-  skillGroupId: string | undefined;
-  view: SkillsView;
-}) => {
-  let navigate = useNavigate();
-  let pathParams = usePathParams();
-
-  let skills = useSkills(p.instanceId, {
-    order: 'desc',
-    limit: skillsPageSize,
-    status: ['active'],
-    search: p.search || undefined,
-    skillGroupId: p.skillGroupId
-  });
-
-  let isFiltered = !!p.search || !!p.skillGroupId;
-
-  return renderWithPagination(skills, {
-    emptyState: isFiltered ? (
-      <Text size="2" color="gray600">
-        No skills match your search.
-      </Text>
-    ) : (
-      <EmptyState
-        extra="Skills"
-        title="Create your first skill"
-        description="Skills let you extend integrations with documents, custom logic, and resources to create advanced agent workflows."
-        action={{
-          label: 'Create Skill',
-          onClick: () =>
-            showSkillFormModal({
-              instanceId: p.instanceId,
-              onCreate: skill => navigate(Paths.instance.skill(...pathParams, skill.id))
-            })
-        }}
-      />
+let SkillsList = createDataList('skills')
+  .context(useInstanceContext)
+  .filters((_props, ctx) => ({
+    status: f.status(lifecycleStatus, { only: ['active', 'archived'] }),
+    skillGroupId: f.entity(entityFilters.skillGroup(ctx.instanceId)),
+    providerId: f.entity(entityFilters.provider(ctx.instanceId)),
+    integrationId: f.entity(entityFilters.integration(ctx.instanceId)),
+    createdAt: f.createdAt(),
+    updatedAt: f.updatedAt()
+  }))
+  .search('Search skills…')
+  .paginated(({ ctx, filters, search }) =>
+    useSkills(
+      ctx.instanceId,
+      withDefaults(
+        { order: 'desc' as const, limit: skillsPageSize, status: ['active' as const] },
+        { ...filters, search }
+      )
     )
-  })(skills => (
-    <SkillsResults instanceId={p.instanceId} view={p.view} skills={skills.data.items} />
-  ));
-};
+  )
+  .columns([
+    col.custom<Skill>({
+      id: 'name',
+      header: 'Name',
+      render: skill => (
+        <ListName>
+          <SkillIconTile image={skill.image} imageUrl={skill.imageUrl} size={20} />
+          <Text size="2" weight="strong">
+            {skill.name}
+          </Text>
+        </ListName>
+      )
+    }),
+    col.text<Skill>({
+      id: 'description',
+      header: 'Description',
+      isDefault: false,
+      get: skill => skill.description
+    }),
+    col.text<Skill>({
+      id: 'slug',
+      header: 'Slug',
+      isDefault: false,
+      get: skill => skill.slug
+    }),
+    col.createdAt<Skill>({ isDefault: false }),
+    col.updatedAt<Skill>({ isDefault: true }),
+    col.id<Skill>()
+  ])
+  .link((skill, _props, ctx) =>
+    Paths.instance.skill(ctx.organization, ctx.project, ctx.instance, skill.id)
+  )
+  .layouts(['grid', 'table'], { default: 'grid' })
+  .layout('grid', {
+    label: 'Grid',
+    render: args => <SkillsGridLayout {...args} />
+  })
+  .build();
 
 export let SkillsPage = () => {
   let currentInstance = useCurrentInstance();
-  let [searchParams, setSearchParams] = useSearchParams();
-
-  let search = searchParams.get('search') ?? '';
-  let groupId = searchParams.get('group') ?? allGroupsTab;
-  let view: SkillsView = searchParams.get('view') == 'list' ? 'list' : 'grid';
-  let debouncedSearch = useDebounced(search, searchDebounceMs);
-
-  let setParam = (key: string, value: string | null) =>
-    setSearchParams(
-      params => {
-        if (value) params.set(key, value);
-        else params.delete(key);
-        return params;
-      },
-      { replace: true }
-    );
 
   return renderWithLoader({ instance: currentInstance })(({ instance }) => (
     <ContentLayout>
@@ -339,42 +312,11 @@ export let SkillsPage = () => {
 
       <CreateSkillWithAgent instanceId={instance.data.id} />
 
-      <Toolbar style={{ marginBottom: 24 }}>
-        <GroupFilter
-          instanceId={instance.data.id}
-          current={groupId}
-          onChange={id => setParam('group', id == allGroupsTab ? null : id)}
-        />
-
-        <SearchField>
-          <Input
-            label="Search"
-            hideLabel
-            placeholder="Search skills..."
-            value={search}
-            onInput={value => setParam('search', value)}
-          />
-        </SearchField>
-
-        <ViewField>
-          <OptionToggle
-            ariaLabel="View"
-            itemMinWidth={0}
-            value={view}
-            onChange={value => setParam('view', value == 'list' ? 'list' : null)}
-            items={[
-              { id: 'grid', label: 'Grid', iconLeft: <RiGridLine /> },
-              { id: 'list', label: 'List', iconLeft: <RiListUnordered /> }
-            ]}
-          />
-        </ViewField>
-      </Toolbar>
-
-      <SkillsCollection
-        instanceId={instance.data.id}
-        search={debouncedSearch}
-        skillGroupId={groupId == allGroupsTab ? undefined : groupId}
-        view={view}
+      <SkillsList
+        emptyState={{
+          initial: () => <SkillsEmptyState />,
+          filtered: 'No skills match your search.'
+        }}
       />
     </ContentLayout>
   ));

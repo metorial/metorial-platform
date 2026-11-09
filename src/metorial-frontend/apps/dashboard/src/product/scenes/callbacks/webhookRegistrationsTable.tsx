@@ -3,39 +3,23 @@ import { useForm } from '@metorial/data-hooks';
 import { Paths } from '@metorial/frontend-config';
 import { Markdown } from '@metorial/markdown';
 import {
+  createDataList,
+  col,
+  defineAction,
+  defineStatus,
+  EmptyValue,
+  f
+} from '@metorial/data-list';
+import {
   useCreateWebhookRegistration,
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject,
   useDeleteWebhookRegistration,
   useSetupWebhookRegistration,
   useWebhookRegistrations,
   WebhookRegistrationPreview
 } from '@metorial/state';
-import {
-  Table as DashboardTable,
-  getConstrainedEnumListFilterValue,
-  getListFilterValue,
-  TableFilter,
-  TableStateProvider,
-  TableStateProviderResult
-} from '@metorial/table';
-import {
-  Badge,
-  Button,
-  Callout,
-  confirm,
-  Dialog,
-  Input,
-  Panel,
-  RenderDate,
-  showModal,
-  Spacer,
-  Text
-} from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
+import { Button, Callout, Dialog, Input, Panel, showModal, Spacer, Text } from '@metorial/ui';
 import { RiDeleteBinLine, RiSettings3Line } from '@remixicon/react';
-import { useMemo, useState } from 'react';
+import { useState, type ComponentProps } from 'react';
 import {
   getJsonSchemaDefaultObject,
   getJsonSchemaObject,
@@ -47,12 +31,9 @@ import {
   getInvalidJsonStringFieldLabels,
   JsonSchemaInput
 } from '../jsonSchemaInput';
+import { useInstanceContext } from '../../lib/dataList';
 import { entityFilters } from '../entityFilters';
 import { ProviderSelectionStep } from '../providerCreationPanel';
-import {
-  getWebhookRegistrationStatusColor,
-  WEBHOOK_REGISTRATION_STATUS_LABELS
-} from './shared';
 
 let showCreateWebhookRegistrationModal = (p: {
   instanceId: string;
@@ -353,200 +334,103 @@ let showWebhookRegistrationSetupPanel = (p: {
     );
   });
 
-type WebhookRegistrationsTableProps = {
-  instanceId: string;
-  organization: ReturnType<typeof useCurrentOrganization>;
-  project: ReturnType<typeof useCurrentProject>;
-  instance: ReturnType<typeof useCurrentInstance>;
-};
+export let webhookRegistrationStatus = defineStatus({
+  awaiting_setup: { label: 'Awaiting Setup', color: 'orange' },
+  active: { label: 'Active', color: 'green' },
+  archived: { label: 'Archived', color: 'orange' },
+  deleted: { label: 'Deleted', color: 'gray' }
+});
 
-let useWebhookRegistrationsTableState: TableStateProvider<
-  WebhookRegistrationsTableProps,
-  WebhookRegistrationPreview,
-  TableStateProviderResult<WebhookRegistrationPreview> & {
-    registrations: ReturnType<typeof useWebhookRegistrations>;
-  }
-> = (props, opts) => {
-  let registrations = useWebhookRegistrations(props.instanceId, {
-    order: 'desc',
-    status: getConstrainedEnumListFilterValue(
-      opts.filter.status,
-      ['awaiting_setup', 'active', 'archived', 'deleted'],
-      undefined
-    ),
-    providerId: getListFilterValue(opts.filter.providerId)
-  });
-
-  return {
-    isLoading: registrations.isLoading,
-    error: registrations.error,
-    hasMoreAfter: registrations.data?.pagination.hasMoreAfter ?? false,
-    hasMoreBefore: registrations.data?.pagination.hasMoreBefore ?? false,
-    items: registrations.data?.items ?? [],
-    loadNext: registrations.next,
-    loadPrevious: registrations.previous,
-    registrations
-  };
-};
-
-let useWebhookRegistrationsTableFilters = (instanceId: string) =>
-  useMemo<TableFilter<WebhookRegistrationPreview>[]>(
-    () => [
-      {
-        id: 'status',
-        fields: ['status'],
-        label: 'Status',
-        description: 'Filter by status',
-        type: 'select',
-        options: [
-          { id: 'awaiting_setup', label: 'Awaiting Setup' },
-          { id: 'active', label: 'Active' },
-          { id: 'archived', label: 'Archived' }
-        ]
-      },
-      entityFilters.provider(instanceId)
-    ],
-    [instanceId]
-  );
-
-let webhookRegistrationsTable = new DashboardTable<
-  WebhookRegistrationsTableProps,
-  WebhookRegistrationPreview
->('webhook-registrations')
-  .state(useWebhookRegistrationsTableState)
-  .hookState((state, props) => {
-    let deleteRegistration = useDeleteWebhookRegistration();
-
-    return {
-      instanceId: props.instanceId,
-      registrations: state.registrations,
-      deleteRegistration
-    };
-  })
+let WebhookRegistrationsList = createDataList<{ instanceId?: string }>('webhook-registrations')
+  .context(useInstanceContext)
+  .filters((props, ctx) => ({
+    status: f.status(webhookRegistrationStatus, {
+      only: ['awaiting_setup', 'active', 'archived']
+    }),
+    providerId: f.entity(entityFilters.provider(props.instanceId ?? ctx.instanceId))
+  }))
+  .paginated(({ props, ctx, filters }) =>
+    useWebhookRegistrations(props.instanceId ?? ctx.instanceId, {
+      order: 'desc',
+      status: filters.status,
+      providerId: filters.providerId
+    })
+  )
   .columns([
-    {
-      id: 'name',
-      isDefault: true,
-      header: 'Receiver',
-      render: registration => (
-        <div>
-          <Text size="2" weight="strong">
-            {registration.name}
-          </Text>
-          <Text size="1" color="gray600">
-            {registration.provider.name}
-          </Text>
-        </div>
-      )
-    },
-    {
-      id: 'status',
-      isDefault: true,
-      header: 'Status',
-      render: registration => (
-        <Badge color={getWebhookRegistrationStatusColor(registration.status)}>
-          {WEBHOOK_REGISTRATION_STATUS_LABELS[registration.status] ?? registration.status}
-        </Badge>
-      )
-    },
-    {
+    col.name({ header: 'Receiver', description: row => row.provider.name }),
+    col.status(webhookRegistrationStatus),
+    col.custom({
       id: 'receiveUrl',
-      isDefault: true,
       header: 'Receive URL',
-      render: registration =>
-        registration.receiveUrl ? (
+      render: row =>
+        row.receiveUrl ? (
           <Text size="2" style={{ fontFamily: 'jetbrains mono, monospace' }}>
-            {registration.receiveUrl}
+            {row.receiveUrl}
           </Text>
         ) : (
-          <Text size="2" color="gray600">
-            Not provisioned
-          </Text>
+          <EmptyValue>Not provisioned</EmptyValue>
         )
-    },
-    {
-      id: 'createdAt',
-      isDefault: true,
-      header: 'Created',
-      render: registration => <RenderDate date={registration.createdAt} />
-    },
-    {
-      id: 'id',
-      isDefault: false,
-      header: 'Receiver ID',
-      render: registration => <ID id={registration.id} />
-    }
+    }),
+    col.createdAt(),
+    col.id({ header: 'Receiver ID' })
   ])
-  .link((registration, props) =>
-    Paths.instance.webhookRegistration(
-      props.organization.data,
-      props.project.data,
-      props.instance.data,
-      registration.id
-    )
+  .link((row, _props, ctx) =>
+    Paths.instance.webhookRegistration(ctx.organization, ctx.project, ctx.instance, row.id)
   )
-  .actions({
-    setup: async (registrations, state) => {
-      let registration = registrations[0];
-      if (!registration) return;
-
-      showWebhookRegistrationSetupPanel({
-        instanceId: state.instanceId,
-        registration,
-        onComplete: () => void state.registrations.refetch()
-      });
-    },
-    delete: async (registrations, state) => {
-      let registration = registrations[0];
-      if (!registration) return;
-
-      confirm({
-        title: `Delete ${registration.name}?`,
-        description:
-          'Metorial tears down the receiver on the provider and stops accepting webhooks at this URL. This cannot be undone.',
-        confirmText: 'Delete',
-        onConfirm: async () => {
-          await state.deleteRegistration.mutate({
-            instanceId: state.instanceId,
-            webhookRegistrationId: registration.id
-          });
-          await state.registrations.refetch();
-        }
-      });
-    }
-  })
-  .rowActions([
-    {
+  .itemActions([
+    defineAction({
       id: 'setup',
       label: 'View Setup',
       icon: <RiSettings3Line />,
-      action: 'setup'
-    },
-    {
+      row: true,
+      useRun:
+        ({ props, ctx }) =>
+        async row => {
+          showWebhookRegistrationSetupPanel({
+            instanceId: (props.instanceId ?? ctx.instanceId)!,
+            registration: row,
+            onComplete: () => {}
+          });
+        }
+    }),
+    defineAction({
       id: 'delete',
       label: 'Delete',
       icon: <RiDeleteBinLine />,
-      action: 'delete'
-    }
+      row: true,
+      destructive: true,
+      confirm: {
+        title: 'Delete Receiver',
+        confirmText: 'Delete',
+        description: () =>
+          'Metorial tears down the receiver on the provider and stops accepting webhooks at this URL. This cannot be undone.'
+      },
+      useRun: ({ props, ctx }) => {
+        let deleteRegistration = useDeleteWebhookRegistration();
+
+        return async row => {
+          await deleteRegistration.mutate({
+            instanceId: (props.instanceId ?? ctx.instanceId)!,
+            webhookRegistrationId: row.id
+          });
+        };
+      }
+    })
   ])
   .build();
 
-export let WebhookRegistrationsTable = ({ instanceId }: { instanceId: string }) => {
-  let instance = useCurrentInstance();
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-  let tableFilters = useWebhookRegistrationsTableFilters(instanceId);
-
-  return webhookRegistrationsTable({
-    instanceId,
-    instance,
-    organization,
-    project,
-    tableFilters,
-    emptyState:
-      'No webhook receivers yet. Create one to get a Metorial URL you can point a provider at.'
-  });
-};
+export let WebhookRegistrationsTable = (
+  props: ComponentProps<typeof WebhookRegistrationsList>
+) => (
+  <WebhookRegistrationsList
+    emptyState={{
+      initial:
+        'No webhook receivers yet. Create one to get a Metorial URL you can point a provider at.',
+      filtered: 'No webhook receivers match your filters.'
+    }}
+    {...props}
+  />
+);
 
 export let CreateWebhookRegistrationButton = ({
   instanceId,

@@ -3,6 +3,7 @@ import { ObjectStorageError } from 'object-storage-client';
 import { getCargoFilesBucketName, getStorage } from '../storage';
 
 let rangeNotSatisfiableStatus = 416;
+let fullReadFallbackMaxBytes = 16 * 1024 * 1024;
 
 export type FileHead =
   | { status: 'ok'; bytes: Buffer; source: 'database' | 'object' }
@@ -10,7 +11,7 @@ export type FileHead =
   | { status: 'failed' };
 
 export let readFileHead = async (d: {
-  file: Pick<File, 'oid' | 'storeId' | 'delegatorOid'>;
+  file: Pick<File, 'oid' | 'storeId' | 'delegatorOid'> & Partial<Pick<File, 'fileSize'>>;
   bytes: number;
 }): Promise<FileHead> => {
   if (d.file.delegatorOid) return { status: 'unreadable' };
@@ -40,6 +41,26 @@ export let readFileHead = async (d: {
       return { status: 'ok', bytes: Buffer.alloc(0), source: 'object' };
     }
 
+    return await readHeadFromFullObject(d, error);
+  }
+};
+
+// Storage servers that ignore Range answer with the whole object, which the client reports as an
+// error. Reading the object and cutting the head from it keeps those files reviewable.
+let readHeadFromFullObject = async (
+  d: { file: Pick<File, 'storeId'> & Partial<Pick<File, 'fileSize'>>; bytes: number },
+  rangeError: unknown
+): Promise<FileHead> => {
+  if (d.file.fileSize != undefined && Number(d.file.fileSize) > fullReadFallbackMaxBytes) {
+    console.error('Range read of file failed and file is too large for a full read', rangeError);
+    return { status: 'failed' };
+  }
+
+  try {
+    let object = await getStorage().getObject(getCargoFilesBucketName(), d.file.storeId);
+    return { status: 'ok', bytes: object.data.subarray(0, d.bytes), source: 'object' };
+  } catch (error) {
+    console.error('Failed to read file head from object storage', rangeError, error);
     return { status: 'failed' };
   }
 };

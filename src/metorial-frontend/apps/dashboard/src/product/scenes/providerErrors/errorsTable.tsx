@@ -1,34 +1,42 @@
 import { DashboardInstanceSessionsErrorsListQuery } from '@metorial/dashboard-sdk';
-import { renderWithPagination } from '@metorial/data-hooks';
-import { useAllSessionErrors, useCurrentInstance } from '@metorial/state';
-import { Badge, RenderDate, Text } from '@metorial/ui';
-import { Table } from '@metorial/ui-product';
+import { col, createDataList } from '@metorial/data-list';
+import { useAllSessionErrors } from '@metorial/state';
+import { Badge } from '@metorial/ui';
+import { useInstanceContext } from '../../lib/dataList';
 
-export let ServerErrorsTable = (filter: DashboardInstanceSessionsErrorsListQuery) => {
-  let instance = useCurrentInstance();
-  let errors = useAllSessionErrors(instance.data?.id, filter);
+let ServerErrorsList = createDataList<{ query: DashboardInstanceSessionsErrorsListQuery }>(
+  'server-errors'
+)
+  .context(useInstanceContext)
+  .paginated(({ props, ctx }) => useAllSessionErrors(ctx.instanceId, props.query))
+  .columns([
+    col.custom({
+      id: 'code',
+      header: 'Type',
+      render: error => <Badge color="red">{error.code ?? 'Unknown'}</Badge>
+    }),
+    col.text({
+      id: 'message',
+      header: 'Message',
+      weight: 'strong',
+      get: error => error.message ?? 'No message'
+    }),
+    col.text({
+      id: 'providerRunId',
+      header: 'Provider Run',
+      get: error => error.providerRunId,
+      fallback: 'N/A'
+    }),
+    col.createdAt({ header: 'Occurred At' }),
+    col.id()
+  ])
+  .build();
 
-  return renderWithPagination(errors)(errors => (
-    <>
-      <Table
-        headers={['Type', 'Message', 'Provider Run', 'Occurred At']}
-        data={errors.data.items.map(error => ({
-          data: [
-            <Badge color="red">{error.code ?? 'Unknown'}</Badge>,
-            <Text size="2" weight="strong">
-              {error.message ?? 'No message'}
-            </Text>,
-            <Text>{error.providerRunId ?? <span style={{ opacity: 0.6 }}>N/A</span>}</Text>,
-            <RenderDate date={error.createdAt} />
-          ]
-        }))}
-      />
-
-      {errors.data.items.length == 0 && (
-        <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No provider errors found.
-        </Text>
-      )}
-    </>
-  ));
-};
+export let ServerErrorsTable = (filter: DashboardInstanceSessionsErrorsListQuery) => (
+  <ServerErrorsList
+    query={filter}
+    emptyState="No provider errors found."
+    listVariant="embedded"
+    hideToolbar
+  />
+);

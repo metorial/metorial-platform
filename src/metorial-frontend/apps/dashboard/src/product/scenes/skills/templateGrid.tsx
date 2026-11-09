@@ -1,21 +1,38 @@
-import type { DashboardInstanceSkillsTemplatesListQuery } from '@metorial/dashboard-sdk';
-import { renderWithPagination } from '@metorial/data-hooks';
-import { Paths } from '@metorial/frontend-config';
+import type {
+  DashboardInstanceSkillsTemplatesListOutput,
+  DashboardInstanceSkillsTemplatesListQuery
+} from '@metorial/dashboard-sdk';
 import {
-  useCreateSkill,
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject,
-  useSkillTemplates
-} from '@metorial/state';
-import { Avatar, Text, theme } from '@metorial/ui';
+  col,
+  createDataList,
+  defineAction,
+  f,
+  lifecycleStatus,
+  withDefaults
+} from '@metorial/data-list';
+import { EmptyState } from '@metorial/empty-state';
+import { Paths } from '@metorial/frontend-config';
+import { useCreateSkill, useSkillTemplates } from '@metorial/state';
+import { Avatar, Text } from '@metorial/ui';
 import { ItemGrid } from '@metorial/ui-product';
 import { useNavigate } from 'react-router-dom';
 import { styled } from 'styled-components';
-import { EmptyState } from '@metorial/empty-state';
+import { useInstanceContext } from '../../lib/dataList';
+import { entityFilters } from '../entityFilters';
 import { showSkillCloneFormModal } from './cloneModal';
 import { showSkillTemplateFormModal } from './templateModal';
 
+type SkillTemplate = DashboardInstanceSkillsTemplatesListOutput['items'][number];
+
+export type SkillTemplateFilters = Omit<
+  DashboardInstanceSkillsTemplatesListQuery,
+  'after' | 'before' | 'cursor' | 'limit'
+>;
+
+let skillTemplateOwners = [
+  { id: 'system', label: 'System' },
+  { id: 'tenant', label: 'Tenant' }
+] as const;
 
 let Description = styled.span`
   display: -webkit-box;
@@ -58,136 +75,166 @@ export let SkillTemplateGridCard = (p: {
         size={30}
       />
     }
-    bottom={
-      <Text size="1">{p.skillTemplate.slug}</Text>
-    }
+    bottom={<Text size="1">{p.skillTemplate.slug}</Text>}
   />
 );
 
-export let SkillTemplatesGrid = (
-  p: { instanceId: string; getTemplatePath?: (skillTemplateId: string) => string } & Omit<
-    DashboardInstanceSkillsTemplatesListQuery,
-    'after' | 'before' | 'cursor' | 'limit'
-  >
-) => {
-  let { instanceId, getTemplatePath, ...query } = p;
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-  let instance = useCurrentInstance();
+export let SkillTemplatesEmptyState = (p: {
+  getTemplatePath?: (skillTemplateId: string) => string;
+}) => {
+  let ctx = useInstanceContext();
   let navigate = useNavigate();
-  let createSkill = useCreateSkill();
-  let skillTemplates = useSkillTemplates(instanceId, {
-    order: 'desc',
-    status: ['active'],
-    limit: 21,
-    ...query
-  });
-  let hasActiveFilters = !!(
-    query.search ||
-    query.owner ||
-    query.providerId ||
-    query.integrationId ||
-    query.createdAt ||
-    query.updatedAt ||
-    (Array.isArray(query.status) ? query.status.length > 0 : query.status)
+
+  return (
+    <EmptyState
+      extra="Skill Templates"
+      title="Create your first template"
+      description="Templates let you reuse files, providers, and integrations when creating new skills."
+      action={{
+        label: 'Create Template',
+        onClick: () => {
+          if (!ctx.instanceId) return;
+
+          showSkillTemplateFormModal({
+            instanceId: ctx.instanceId,
+            onCreate: skillTemplate =>
+              navigate(
+                p.getTemplatePath?.(skillTemplate.id) ??
+                  Paths.instance.skillTemplate(
+                    ctx.organization,
+                    ctx.project,
+                    ctx.instance,
+                    skillTemplate.id
+                  )
+              )
+          });
+        }
+      }}
+    />
   );
-  let templatePath = (skillTemplateId: string) =>
-    getTemplatePath?.(skillTemplateId) ??
-    Paths.instance.skillTemplate(
-      organization.data,
-      project.data,
-      instance.data,
-      skillTemplateId
-    );
+};
 
-  let showCreateModal = () => {
-    if (!instance.data) return;
+export let SkillTemplatesList = createDataList<{
+  instanceId?: string;
+  getTemplatePath?: (skillTemplateId: string) => string;
+  filters?: SkillTemplateFilters;
+}>('skill-templates')
+  .context(useInstanceContext)
+  .filters((props, ctx) => {
+    let instanceId = props.instanceId ?? ctx.instanceId;
 
-    showSkillTemplateFormModal({
-      instanceId: instance.data.id,
-      onCreate: skillTemplate => {
-        navigate(templatePath(skillTemplate.id));
-      }
-    });
-  };
-
-  let cloneAsSkill = (skillTemplate: {
-    id: string;
-    name: string;
-    description: string | null;
-  }) => {
-    if (!instance.data) return;
-
-    showSkillCloneFormModal({
-      title: 'Clone Template as Skill',
-      description: 'Choose a name and description for the new skill.',
-      submitLabel: 'Clone as Skill',
-      initialName: skillTemplate.name,
-      initialDescription: skillTemplate.description,
-      onSubmit: async values => {
-        let [skill] = await createSkill.mutate({
-          instanceId: instance.data!.id,
-          templateId: skillTemplate.id,
-          name: values.name,
-          description: values.description
-        });
-
-        if (!skill) return false;
-
-        navigate(
-          Paths.instance.skill(organization.data, project.data, instance.data, skill.id)
-        );
-      }
-    });
-  };
-
-  return renderWithPagination(skillTemplates, {
-    emptyState: (
-      <>
-        {query.search && (
-          <Text size="2" color="gray600">
-            No templates found.
-          </Text>
-        )}
-
-        {!hasActiveFilters && (
-          <EmptyState
-            extra="Skill Templates"
-            title="Create your first template"
-            description="Templates let you reuse files, providers, and integrations when creating new skills."
-            action={{
-              label: 'Create Template',
-              onClick: showCreateModal
-            }}
-          />
-        )}
-
-        {!query.search && hasActiveFilters && (
-          <Text size="2" color="gray600">
-            No templates match the current filters.
-          </Text>
-        )}
-      </>
+    return {
+      status: f.status(lifecycleStatus, { only: ['active', 'archived'] }),
+      owner: f.select('owner', 'Owner', skillTemplateOwners),
+      providerId: f.entity(entityFilters.provider(instanceId)),
+      integrationId: f.entity(entityFilters.integration(instanceId)),
+      createdAt: f.createdAt(),
+      updatedAt: f.updatedAt()
+    };
+  })
+  .search('Search templates…')
+  .paginated(({ props, ctx, filters, search }) =>
+    useSkillTemplates(
+      props.instanceId ?? ctx.instanceId,
+      withDefaults(
+        { order: 'desc' as const, status: ['active' as const], limit: 21, ...props.filters },
+        { ...filters, search: search ?? props.filters?.search }
+      )
     )
-  })(skillTemplates => (
-    <>
-      {skillTemplates.data.items.length > 0 && (
-        <ItemGrid.Root width="300px">
-          {skillTemplates.data.items.map(skillTemplate => (
-            <SkillTemplateGridCard
-              key={skillTemplate.id}
-              skillTemplate={skillTemplate}
-              onClick={() => navigate(templatePath(skillTemplate.id))}
-              menu={[
-                {
-                  label: 'Clone as Skill',
-                  onClick: () => cloneAsSkill(skillTemplate)
-                }
-              ]}
-            />
-          ))}
-        </ItemGrid.Root>
-      )}
-    </>
-  ));
+  )
+  .columns([
+    col.name<SkillTemplate>(),
+    col.text<SkillTemplate>({ id: 'slug', header: 'Slug', get: row => row.slug }),
+    col.text<SkillTemplate>({
+      id: 'owner',
+      header: 'Owner',
+      get: row => skillTemplateOwners.find(owner => owner.id == row.owner)?.label
+    }),
+    col.createdAt<SkillTemplate>(),
+    col.id<SkillTemplate>({ isDefault: true }),
+    col.status<SkillTemplate, any>(lifecycleStatus, { isDefault: false }),
+    col.updatedAt<SkillTemplate>()
+  ])
+  .link((row, props, ctx) =>
+    props.getTemplatePath
+      ? props.getTemplatePath(row.id)
+      : Paths.instance.skillTemplate(ctx.organization, ctx.project, ctx.instance, row.id)
+  )
+  .item(skillTemplate => ({
+    title: skillTemplate.name,
+    description: (
+      <Description>{skillTemplate.description || 'No description provided yet.'}</Description>
+    ),
+    icon: (
+      <Avatar
+        entity={{
+          name: skillTemplate.name,
+          imageUrl: `https://avatar-cdn.metorial.com/${skillTemplate.id}`
+        }}
+        size={30}
+      />
+    ),
+    footer: <Text size="1">{skillTemplate.slug}</Text>,
+    height: 200
+  }))
+  .layouts(['grid', 'table'], { default: 'grid' })
+  .itemActions([
+    defineAction<SkillTemplate, any, any>({
+      id: 'clone',
+      label: 'Clone as Skill',
+      useRun: ({ props, ctx }) => {
+        let navigate = useNavigate();
+        let createSkill = useCreateSkill();
+
+        return skillTemplate => {
+          let instanceId = props.instanceId ?? ctx.instanceId;
+          if (!instanceId) return;
+
+          showSkillCloneFormModal({
+            title: 'Clone Template as Skill',
+            description: 'Choose a name and description for the new skill.',
+            submitLabel: 'Clone as Skill',
+            initialName: skillTemplate.name,
+            initialDescription: skillTemplate.description,
+            onSubmit: async values => {
+              let [skill] = await createSkill.mutate({
+                instanceId,
+                templateId: skillTemplate.id,
+                name: values.name,
+                description: values.description
+              });
+
+              if (!skill) return false;
+
+              navigate(
+                Paths.instance.skill(ctx.organization, ctx.project, ctx.instance, skill.id)
+              );
+            }
+          });
+        };
+      }
+    })
+  ])
+  .build();
+
+export let SkillTemplatesGrid = (
+  p: {
+    instanceId: string;
+    getTemplatePath?: (skillTemplateId: string) => string;
+  } & SkillTemplateFilters
+) => {
+  let { instanceId, getTemplatePath, ...filters } = p;
+
+  return (
+    <SkillTemplatesList
+      instanceId={instanceId}
+      getTemplatePath={getTemplatePath}
+      filters={filters}
+      hideToolbar
+      emptyState={{
+        initial: () => <SkillTemplatesEmptyState getTemplatePath={getTemplatePath} />,
+        filtered: 'No templates match the current filters.'
+      }}
+    />
+  );
 };

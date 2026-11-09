@@ -20,7 +20,7 @@ import {
   type SkillEditorRequest
 } from './context';
 import { skillEditorSystemPrompt } from './prompts';
-import { createSkillMetadataTools } from './metadataTools';
+import { createSkillMetadataTools, skillMetadataExtension } from './metadataTools';
 import { createSkillEditorTools } from './tools';
 
 let modeSettings: Record<
@@ -154,6 +154,7 @@ export let skillEditorAssistantImplementation = implementation({
       maxSteps: settings.maxSteps
     });
 
-    return attachAgentRunExtension(agent, editorTools.extension);
+    attachAgentRunExtension(agent, editorTools.extension);
+    return attachAgentRunExtension(agent, skillMetadataExtension);
   }
 });

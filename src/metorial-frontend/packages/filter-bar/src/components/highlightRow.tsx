@@ -10,6 +10,7 @@ import {
   removeFilterState,
   toggleListValue
 } from '../model/state';
+import type { PillSelections } from '../model/pillSelections';
 import { getFilterPayload, type TableFilterPayloadMap } from '../model/tableFilter';
 import { useListFilterOptions } from './listOptions';
 import { OptionList, type OptionListItem } from './optionList';
@@ -168,11 +169,13 @@ let HighlightPill = ({
 let MorePopoverContent = ({
   filter,
   filters,
-  filterState: [filterState, setFilterState]
+  filterState: [filterState, setFilterState],
+  pillSelections
 }: {
   filter: ListFilter;
   filters: TableFilterPayloadMap;
   filterState: FilterStateTuple;
+  pillSelections?: PillSelections;
 }) => {
   let [search, setSearch] = useState('');
   let selected = getListValue(filterState.find(f => f.id == filter.id));
@@ -193,9 +196,10 @@ let MorePopoverContent = ({
         search={search}
         onSearch={setSearch}
         searchPlaceholder={`Search ${getHighlightLabel(filter).toLowerCase()}...`}
-        onToggle={(id, checked) =>
-          setFilterState(prev => toggleListValue(prev, filter, id, checked))
-        }
+        onToggle={(id, checked) => {
+          pillSelections?.mark(filter.id, id, checked);
+          setFilterState(prev => toggleListValue(prev, filter, id, checked));
+        }}
       />
 
       <PopoverFooter>
@@ -205,7 +209,10 @@ let MorePopoverContent = ({
           size="1"
           variant="ghost"
           disabled={!selected.length}
-          onClick={() => setFilterState(prev => removeFilterState(prev, filter.id))}
+          onClick={() => {
+            pillSelections?.clear(filter.id);
+            setFilterState(prev => removeFilterState(prev, filter.id));
+          }}
         >
           Clear
         </Button>
@@ -216,10 +223,12 @@ let MorePopoverContent = ({
 
 export let FilterHighlightRow = ({
   filter,
-  filterState
+  filterState,
+  pillSelections
 }: {
   filter: ListFilter;
   filterState: FilterStateTuple;
+  pillSelections?: PillSelections;
 }) => {
   let [state, setFilterState] = filterState;
   let filters = useMemo(() => getFilterPayload(state), [state]);
@@ -273,7 +282,10 @@ export let FilterHighlightRow = ({
   let hiddenCount = candidates.length - visibleCount;
   let showMore = hiddenCount > 0 || filter.type == 'entity';
   let label = getHighlightLabel(filter);
-  let toggle = (id: string) => setFilterState(prev => toggleListValue(prev, filter, id));
+  let toggle = (id: string) => {
+    pillSelections?.mark(filter.id, id, !selected.includes(id));
+    setFilterState(prev => toggleListValue(prev, filter, id));
+  };
 
   return (
     <Row role="group" aria-label={label}>
@@ -311,7 +323,13 @@ export let FilterHighlightRow = ({
               </MoreButton>
             }
           >
-            <MorePopoverContent key={filter.id} filter={filter} filters={filters} filterState={filterState} />
+            <MorePopoverContent
+              key={filter.id}
+              filter={filter}
+              filters={filters}
+              filterState={filterState}
+              pillSelections={pillSelections}
+            />
           </FilterPopover>
         )}
       </Track>

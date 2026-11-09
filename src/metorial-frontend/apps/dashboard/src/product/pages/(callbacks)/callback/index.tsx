@@ -1,7 +1,9 @@
 import { renderWithLoader } from '@metorial/data-hooks';
+import { col, createDataList } from '@metorial/data-list';
 import { DetailsOverviewLayout } from '@metorial/details-layout';
 import { Paths } from '@metorial/frontend-config';
 import {
+  EventPreview,
   useCallbackById,
   useCurrentInstance,
   useCurrentOrganization,
@@ -9,15 +11,36 @@ import {
   useDashboardFlags,
   useEvents
 } from '@metorial/state';
-import { Button, RenderDate, Spacer, Text } from '@metorial/ui';
-import { Box, ID, Table } from '@metorial/ui-product';
+import { Button, Spacer, Text } from '@metorial/ui';
+import { Box } from '@metorial/ui-product';
 import { Link, useParams } from 'react-router-dom';
+import { useInstanceContext } from '../../../lib/dataList';
 import { EventDeliveryBox } from '../../../scenes/callbacks/listenersBox';
 import {
   CallbackPendingCallout,
   CallbackSyncErrorCallout
 } from '../../../scenes/callbacks/shared';
 import { CallbackWebhookRegistrationsBox } from '../../../scenes/callbacks/webhookRegistrationsBox';
+
+let RecentEventsList = createDataList<{ events: EventPreview[] }>('callback-recent-events', {
+  customizable: false
+})
+  .context(useInstanceContext)
+  .items(({ props }) => ({ items: props.events }))
+  .columns([
+    col.text({
+      id: 'eventType',
+      header: 'Event',
+      weight: 'strong',
+      get: row => row.eventType
+    }),
+    col.createdAt({ header: 'Recorded' }),
+    col.id()
+  ])
+  .link((row, _props, ctx) =>
+    Paths.instance.event(ctx.organization, ctx.project, ctx.instance, row.id)
+  )
+  .build();
 
 export let CallbackOverviewPage = () => {
   let instance = useCurrentInstance();
@@ -74,24 +97,7 @@ export let CallbackOverviewPage = () => {
           }
         >
           {events.data.items.length ? (
-            <Table
-              headers={['Event', 'Recorded', 'ID']}
-              data={events.data.items.map(event => ({
-                href: Paths.instance.event(
-                  organization.data,
-                  project.data,
-                  instance.data,
-                  event.id
-                ),
-                data: [
-                  <Text key="trigger" size="2" weight="strong">
-                    {event.eventType}
-                  </Text>,
-                  <RenderDate key="recorded" date={event.createdAt} />,
-                  <ID key="id" id={event.id} />
-                ]
-              }))}
-            />
+            <RecentEventsList listVariant="embedded" events={events.data.items} />
           ) : (
             <Text size="2" color="gray600">
               No events recorded for this callback yet.

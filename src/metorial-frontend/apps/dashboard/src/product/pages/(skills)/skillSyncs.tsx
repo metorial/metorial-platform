@@ -2,7 +2,8 @@ import type {
   DashboardInstanceSkillsSyncsGetOutput,
   DashboardInstanceSkillsSyncsListQuery
 } from '@metorial/dashboard-sdk';
-import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
+import { renderWithLoader } from '@metorial/data-hooks';
+import { StatusBadge, col, createDataList, defineStatus } from '@metorial/data-list';
 import type { SkillMarketplaceRepository, SkillPluginRepository } from '@metorial/state';
 import {
   useCurrentInstance,
@@ -23,10 +24,11 @@ import {
   Text,
   theme
 } from '@metorial/ui';
-import { ID, Table } from '@metorial/ui-product';
-import { useEffect, useRef } from 'react';
+import { ID } from '@metorial/ui-product';
+import React, { useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
+import { useInstanceContext } from '../../lib/dataList';
 import { RouterPanel } from '../../scenes/routerPanel';
 import { getRepositoryActionMessage } from './skillSyncMessages';
 
@@ -37,27 +39,17 @@ type RepositoryCheck = NonNullable<
   ReturnType<typeof useSkillSyncRepositoryChecks>['data']
 >['items'][number];
 
-let statusColor = (status: SkillSync['status']): 'blue' | 'gray' | 'red' | 'orange' =>
-  status === 'completed'
-    ? 'blue'
-    : status === 'failed' || status === 'canceled'
-      ? 'red'
-      : status === 'pending' || status === 'processing' || status === 'waiting_for_review'
-        ? 'orange'
-        : 'gray';
-
-let statusLabel = (status: SkillSync['status']) =>
-  ({
-    pending: 'Pending',
-    processing: 'Syncing',
-    waiting_for_review: 'Action required',
-    completed: 'Completed',
-    failed: 'Failed',
-    canceled: 'Canceled'
-  })[status] ?? status;
+let skillSyncStatus = defineStatus({
+  pending: { label: 'Pending', color: 'orange' },
+  processing: { label: 'Syncing', color: 'orange' },
+  waiting_for_review: { label: 'Action required', color: 'orange' },
+  completed: { label: 'Completed', color: 'blue' },
+  failed: { label: 'Failed', color: 'red' },
+  canceled: { label: 'Canceled', color: 'red' }
+});
 
 export let SkillSyncStatusBadge = ({ status }: { status: SkillSync['status'] }) => (
-  <Badge color={statusColor(status)}>{statusLabel(status)}</Badge>
+  <StatusBadge status={status} descriptor={skillSyncStatus} />
 );
 
 let getRepositoryId = (repository: SkillRepository) => repository.repoId;
@@ -215,6 +207,38 @@ let RepositorySyncStatus = ({
     <Badge color="gray">Skipped</Badge>
   );
 
+type SyncTiming = Pick<SkillSync, 'startedAt' | 'completedAt'>;
+
+let SyncDuration = ({ sync }: { sync: SyncTiming }) => {
+  if (!sync.startedAt) return <Text color="gray600">Not started</Text>;
+  if (!sync.completedAt) return <Text color="gray600">In progress</Text>;
+
+  let durationMs = new Date(sync.completedAt).getTime() - new Date(sync.startedAt).getTime();
+  return <span>{Math.max(0, Math.round(durationMs / 1000))}s</span>;
+};
+
+let SkillSyncsList = createDataList<{ query: DashboardInstanceSkillsSyncsListQuery | null }>(
+  'skill-syncs',
+  { customizable: false }
+)
+  .context(useInstanceContext)
+  .paginated(({ props, ctx }) =>
+    useSkillSyncs(
+      ctx.instanceId,
+      props.query ? { ...props.query, order: props.query.order ?? 'desc' } : null
+    )
+  )
+  .columns([
+    col.status<any, any>(skillSyncStatus),
+    col.createdAt(),
+    col.custom<any>({
+      id: 'duration',
+      header: 'Duration',
+      render: sync => <SyncDuration sync={sync} />
+    })
+  ])
+  .build();
+
 export let SkillSyncsTable = ({
   emptyMessage,
   query
@@ -222,45 +246,20 @@ export let SkillSyncsTable = ({
   emptyMessage: string;
   query: DashboardInstanceSkillsSyncsListQuery | null;
 }) => {
-  let instance = useCurrentInstance();
-  let syncs = useSkillSyncs(
-    instance.data?.id,
-    query
-      ? {
-          ...query,
-          order: query.order ?? 'desc'
-        }
-      : null
-  );
   let [_, setSearchParams] = useSearchParams();
 
   return (
     <>
-      {renderWithPagination(syncs)(syncs => (
-        <>
-          <Table
-            headers={['Status', 'Created', 'Duration']}
-            data={syncs.data.items.map(sync => ({
-              data: [
-                <SkillSyncStatusBadge status={sync.status} />,
-                <RenderDate date={sync.createdAt} />,
-                <SyncDuration sync={sync} />
-              ],
-              onClick: () =>
-                setSearchParams(params => {
-                  params.set('sync_id', sync.id);
-                  return params;
-                })
-            }))}
-          />
-
-          {syncs.data.items.length == 0 && (
-            <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-              {emptyMessage}
-            </Text>
-          )}
-        </>
-      ))}
+      <SkillSyncsList
+        query={query}
+        emptyState={emptyMessage}
+        onItemClick={sync =>
+          setSearchParams(params => {
+            params.set('sync_id', sync.id);
+            return params;
+          })
+        }
+      />
 
       <RouterPanel param="sync_id" width={1000}>
         {syncId => (
@@ -279,13 +278,38 @@ export let SkillSyncsTable = ({
   );
 };
 
-let SyncDuration = ({ sync }: { sync: SkillSync }) => {
-  if (!sync.startedAt) return <Text color="gray600">Not started</Text>;
-  if (!sync.completedAt) return <Text color="gray600">In progress</Text>;
-
-  let durationMs = new Date(sync.completedAt).getTime() - new Date(sync.startedAt).getTime();
-  return <span>{Math.max(0, Math.round(durationMs / 1000))}s</span>;
+type RepositoryRow = {
+  id: string;
+  repository: React.ReactNode;
+  status: React.ReactNode;
+  branch?: string | null;
+  completedAt?: Date | string | null;
 };
+
+let createRepositoriesList = (name: string, withCompleted: boolean) =>
+  createDataList(name, { customizable: false })
+    .items(({ props }: { props: { rows: RepositoryRow[] } }) => ({ items: props.rows }))
+    .columns([
+      col.custom<RepositoryRow>({
+        id: 'repository',
+        header: 'Repository',
+        render: row => row.repository
+      }),
+      col.custom<RepositoryRow>({ id: 'status', header: 'Status', render: row => row.status }),
+      col.text<RepositoryRow>({ id: 'branch', header: 'Branch', get: row => row.branch }),
+      ...(withCompleted
+        ? [
+            col.date<RepositoryRow>('completedAt', {
+              header: 'Completed',
+              isDefault: true
+            })
+          ]
+        : [])
+    ])
+    .build();
+
+let RepositoriesList = createRepositoriesList('skill-sync-repositories', true);
+let CompactRepositoriesList = createRepositoriesList('skill-sync-repositories-compact', false);
 
 export let SkillSyncDetails = ({
   syncId,
@@ -387,6 +411,43 @@ export let SkillSyncDetails = ({
       })
     ];
 
+    let repositoryTableRows: RepositoryRow[] = [
+      ...repositoryRows.map(({ repository, propagation }) => {
+        let repositoryCheck = repositoryCheckByRepositoryId.get(getRepositoryId(repository));
+        let url = getRepositoryUrl(repository);
+
+        return {
+          id: getRepositoryId(repository),
+          repository: url ? (
+            <ExternalLink
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={event => event.stopPropagation()}
+            >
+              {getRepositoryLabel(repository)}
+            </ExternalLink>
+          ) : (
+            getRepositoryLabel(repository)
+          ),
+          status: (
+            <RepositorySyncStatus propagation={propagation} syncStatus={sync.data.status} />
+          ),
+          branch: repositoryCheck?.targetBranch ?? propagation?.branchName,
+          completedAt: propagation?.completedAt
+        };
+      }),
+      ...unmatchedPropagations.map(propagation => ({
+        id: `unmatched:${getPropagationRepositoryId(propagation)}`,
+        repository: getPropagationRepositoryId(propagation) ?? 'Unknown repository',
+        status: <SkillSyncStatusBadge status={propagation.status} />,
+        branch:
+          repositoryCheckByRepositoryId.get(propagation.repoId)?.targetBranch ??
+          propagation.branchName,
+        completedAt: propagation.completedAt
+      }))
+    ];
+
     return (
       <>
         {!compact && (
@@ -437,74 +498,11 @@ export let SkillSyncDetails = ({
               </>
             )}
 
-            <Table
-              headers={
-                compact
-                  ? ['Repository', 'Status', 'Branch']
-                  : ['Repository', 'Status', 'Branch', 'Completed']
-              }
-              data={[
-                ...repositoryRows.map(({ repository, propagation }) => {
-                  let repositoryCheck = repositoryCheckByRepositoryId.get(
-                    getRepositoryId(repository)
-                  );
-                  let isDirectPush =
-                    propagation?.repositoryAccessMode === 'default_branch' ||
-                    repositoryCheck?.repositoryAccessMode === 'default_branch';
-                  return {
-                    data: [
-                      getRepositoryUrl(repository) ? (
-                        <ExternalLink
-                          href={getRepositoryUrl(repository)!}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={event => event.stopPropagation()}
-                        >
-                          {getRepositoryLabel(repository)}
-                        </ExternalLink>
-                      ) : (
-                        getRepositoryLabel(repository)
-                      ),
-                      <RepositorySyncStatus
-                        propagation={propagation}
-                        syncStatus={sync.data.status}
-                      />,
-                      repositoryCheck?.targetBranch ?? propagation?.branchName ?? 'N/A',
-                      // isDirectPush ? 'Direct push' : (propagation?.prName ?? 'N/A'),
-                      ...(compact
-                        ? []
-                        : [
-                            propagation?.completedAt ? (
-                              <RenderDate date={propagation.completedAt} />
-                            ) : (
-                              'N/A'
-                            )
-                          ])
-                    ]
-                  };
-                }),
-                ...unmatchedPropagations.map(propagation => ({
-                  data: [
-                    getPropagationRepositoryId(propagation) ?? 'Unknown repository',
-                    <SkillSyncStatusBadge status={propagation.status} />,
-                    repositoryCheckByRepositoryId.get(propagation.repoId)?.targetBranch ??
-                      propagation.branchName,
-                    propagation.repositoryAccessMode === 'default_branch'
-                      ? 'Direct push'
-                      : propagation.prName,
-                    ...(compact
-                      ? []
-                      : [
-                          propagation.completedAt ? (
-                            <RenderDate date={propagation.completedAt} />
-                          ) : (
-                            'N/A'
-                          )
-                        ])
-                  ]
-                }))
-              ]}
-            />
+            {React.createElement(compact ? CompactRepositoriesList : RepositoriesList, {
+              rows: repositoryTableRows,
+              listVariant: 'embedded',
+              emptyState: 'No repositories.'
+            })}
 
             {repositoryChecks.error && (
               <>

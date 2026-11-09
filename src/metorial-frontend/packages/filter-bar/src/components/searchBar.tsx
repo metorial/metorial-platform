@@ -1,4 +1,10 @@
-import { type ControlSize, getControlSize, theme, Tooltip, useControlSize } from '@metorial/ui';
+import {
+  type ControlSize,
+  getControlSize,
+  theme,
+  Tooltip,
+  useControlSize
+} from '@metorial/ui';
 import { RiCloseLine, RiEqualizerLine, RiSearchLine } from '@remixicon/react';
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { styled } from 'styled-components';
@@ -10,11 +16,18 @@ import {
   matchesQuery,
   removeFilterState,
   type SearchStateTuple,
+  setListValue,
   sortFiltersForDisplay,
   toggleListValue,
   upsertFilterState
 } from '../model/state';
-import { getFilterPayload, toFilterFieldNames, type TableFilter } from '../model/tableFilter';
+import type { PillSelections } from '../model/pillSelections';
+import {
+  getFilterPayload,
+  toFilterFieldNames,
+  type TableFilter,
+  type TableFilterState
+} from '../model/tableFilter';
 import { FilterPanel } from './panel';
 import { FilterPopover } from './popover';
 import {
@@ -151,6 +164,35 @@ let Badge = styled('span')`
   justify-content: center;
 `;
 
+export let FilterBarAction = React.forwardRef<
+  HTMLButtonElement,
+  {
+    label: string;
+    icon: React.ReactNode;
+    active?: boolean;
+    badge?: number;
+  } & Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'children'>
+>(({ label, icon, active, badge, ...rest }, ref) => {
+  let size = useControlSize();
+  let sizing = getControlSize(size);
+
+  return (
+    <Tooltip content={label}>
+      <IconButton
+        ref={ref}
+        type="button"
+        $size={`calc(${sizing.height} - 10px)`}
+        $active={active}
+        aria-label={label}
+        {...rest}
+      >
+        {icon}
+        {!!badge && <Badge>{badge}</Badge>}
+      </IconButton>
+    </Tooltip>
+  );
+});
+
 let isTypingTarget = (target: EventTarget | null) =>
   target instanceof HTMLElement &&
   (target.isContentEditable || !!target.closest('input, textarea, select, [role="textbox"]'));
@@ -174,6 +216,8 @@ export type FilterSearchBarProps = {
   suggestions?: FilterSuggestionGroup[];
   size?: ControlSize;
   shortcut?: boolean;
+  pillSelections?: PillSelections;
+  barEnd?: React.ReactNode;
 };
 
 export let FilterSearchBar = ({
@@ -183,7 +227,9 @@ export let FilterSearchBar = ({
   placeholder,
   suggestions = [],
   size: sizeProp,
-  shortcut = true
+  shortcut = true,
+  pillSelections,
+  barEnd
 }: FilterSearchBarProps) => {
   let [filterState, setFilterState] = filterStateTuple;
   let [localQuery, setLocalQuery] = useState('');
@@ -219,11 +265,25 @@ export let FilterSearchBar = ({
     () =>
       filterState.flatMap(state => {
         let filter = filters.find(f => f.id == state.id);
-        if (!filter || (filter.highlight && isListFilter(filter))) return [];
-        return [{ filter, state }];
+        if (!filter) return [];
+        if (!filter.highlight || !isListFilter(filter)) return [{ filter, state }];
+
+        let fromPills = pillSelections?.ids[filter.id] ?? [];
+        let value = getListValue(state).filter(id => !fromPills.includes(id));
+        return value.length ? [{ filter, state: setListValue(filter, value) }] : [];
       }),
-    [filterState, filters]
+    [filterState, filters, pillSelections?.ids]
   );
+
+  let removeFromBar = (prev: TableFilterState[], filter: TableFilter<any>) => {
+    let fromPills = pillSelections?.ids[filter.id] ?? [];
+    if (!fromPills.length || !isListFilter(filter)) return removeFilterState(prev, filter.id);
+
+    let kept = getListValue(prev.find(f => f.id == filter.id)).filter(id =>
+      fromPills.includes(id)
+    );
+    return upsertFilterState(prev, setListValue(filter, kept));
+  };
 
   let options = useMemo((): BarOption[] => {
     let result: BarOption[] = [];
@@ -298,7 +358,15 @@ export let FilterSearchBar = ({
     }
 
     return result;
-  }, [pendingFilter, pendingQuery, asyncValues, search, suggestions, orderedFilters, filterState]);
+  }, [
+    pendingFilter,
+    pendingQuery,
+    asyncValues,
+    search,
+    suggestions,
+    orderedFilters,
+    filterState
+  ]);
 
   useEffect(() => {
     setActiveIndex((pendingId || query.trim()) && options.length ? 0 : -1);
@@ -312,7 +380,8 @@ export let FilterSearchBar = ({
     if (!shortcut) return;
 
     let onKeyDown = (e: KeyboardEvent) => {
-      if (e.key != '/' || e.metaKey || e.ctrlKey || e.altKey || isTypingTarget(e.target)) return;
+      if (e.key != '/' || e.metaKey || e.ctrlKey || e.altKey || isTypingTarget(e.target))
+        return;
 
       let input = inputRef.current;
       if (!input || !input.offsetParent) return;
@@ -446,7 +515,11 @@ export let FilterSearchBar = ({
       return;
     }
 
-    if (e.key == 'Backspace' && e.currentTarget.selectionStart == 0 && e.currentTarget.selectionEnd == 0) {
+    if (
+      e.key == 'Backspace' &&
+      e.currentTarget.selectionStart == 0 &&
+      e.currentTarget.selectionEnd == 0
+    ) {
       if (pendingFilter) {
         e.preventDefault();
         cancelPending();
@@ -456,7 +529,7 @@ export let FilterSearchBar = ({
       let last = tokenStates[tokenStates.length - 1];
       if (last) {
         e.preventDefault();
-        setFilterState(prev => removeFilterState(prev, last.filter.id));
+        setFilterState(prev => removeFromBar(prev, last.filter));
       }
     }
   };
@@ -508,7 +581,7 @@ export let FilterSearchBar = ({
               state={state}
               height={tokenHeight}
               onOpen={() => openPanel(filter.id)}
-              onRemove={() => setFilterState(prev => removeFilterState(prev, filter.id))}
+              onRemove={() => setFilterState(prev => removeFromBar(prev, filter))}
             />
           ))}
 
@@ -560,9 +633,11 @@ export let FilterSearchBar = ({
                 $size={iconButtonSize}
                 aria-label="Clear search and filters"
                 onClick={() => {
-                  let tokenIds = new Set(tokenStates.map(t => t.filter.id));
+                  let tokenFilters = tokenStates.map(t => t.filter);
                   setSearch('');
-                  setFilterState(prev => prev.filter(state => !tokenIds.has(state.id)));
+                  setFilterState(prev =>
+                    tokenFilters.reduce((state, filter) => removeFromBar(state, filter), prev)
+                  );
                   cancelPending();
                 }}
               >
@@ -595,6 +670,8 @@ export let FilterSearchBar = ({
               </IconButton>
             </Tooltip>
           )}
+
+          {barEnd}
         </End>
       </Bar>
 

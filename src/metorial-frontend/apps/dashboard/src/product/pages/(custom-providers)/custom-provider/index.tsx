@@ -1,4 +1,4 @@
-import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
+import { renderWithLoader } from '@metorial/data-hooks';
 import { DetailsOverviewLayout } from '@metorial/details-layout';
 import { Paths } from '@metorial/frontend-config';
 import {
@@ -6,77 +6,37 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useCustomProvider,
-  useCustomProviderVersions
+  useCustomProvider
 } from '@metorial/state';
-import { Button, Entity, RenderDate, Spacer, Text } from '@metorial/ui';
-import { Box, Table } from '@metorial/ui-product';
-import { Link, useParams } from 'react-router-dom';
+import { Entity, Spacer } from '@metorial/ui';
+import { Box } from '@metorial/ui-product';
+import { useParams } from 'react-router-dom';
 import { OpenExplorerBox } from '../../../components/openExplorer';
 import { getCustomProviderScmLink } from '../../../scenes/customProvider/utils';
 import { UsageOverviewTiles } from '../../../scenes/instanceUsage';
 import { SecurityAssessmentCard } from '../../../scenes/securityReview';
-import { CustomProviderVersionStatus } from '../../../scenes/customProvider/version';
+import { CustomProviderVersionsTable } from '../../../scenes/customProvider/versions';
 
 let RecentVersionsBox = (p: { customProvider: DashboardInstanceCustomProvidersGetOutput }) => {
   let instance = useCurrentInstance();
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
-  let versions = useCustomProviderVersions(instance.data?.id, p.customProvider.id, {
-    order: 'desc',
-    limit: 5
-  });
 
   return (
-    <Box
-      title="Versions"
-      description="The most recently published versions of this provider."
-      rightActions={
-        <Link
-          to={Paths.instance.customProvider(
-            organization.data,
-            project.data,
-            instance.data,
-            p.customProvider.id,
-            'versions'
-          )}
-        >
-          <Button as="span" size="1" variant="outline">
-            View All
-          </Button>
-        </Link>
-      }
-    >
-      {renderWithPagination(versions, { hidePaginationWhenUnavailable: true })(versions => (
-        <>
-          <Table
-            headers={['Version', 'Status', 'Created']}
-            data={versions.data.items.map(version => ({
-              href: Paths.instance.customProvider(
-                organization.data,
-                project.data,
-                instance.data,
-                p.customProvider.id,
-                'versions',
-                { version_id: version.id }
-              ),
-              data: [
-                <Text size="2" weight="strong">
-                  {version.index}
-                </Text>,
-                <CustomProviderVersionStatus version={version} />,
-                <RenderDate date={version.createdAt} />
-              ]
-            }))}
-          />
-
-          {versions.data.items.length === 0 ? (
-            <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-              No versions found for this provider.
-            </Text>
-          ) : null}
-        </>
-      ))}
+    <Box title="Versions" description="The most recently published versions of this provider.">
+      <CustomProviderVersionsTable
+        customProvider={p.customProvider}
+        listVariant="preview"
+        listLimit={5}
+        emptyState="No versions found for this provider."
+        viewAllHref={Paths.instance.customProvider(
+          organization.data,
+          project.data,
+          instance.data,
+          p.customProvider.id,
+          'versions'
+        )}
+      />
     </Box>
   );
 };

@@ -1,48 +1,31 @@
 import type { DashboardInstancePublicMcpServersListQuery } from '@metorial/dashboard-sdk';
-import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
+import {
+  col,
+  createDataList,
+  defineStatus,
+  f,
+  withDefaults,
+  type DataListEnrichResult
+} from '@metorial/data-list';
 import { EmptyState } from '@metorial/empty-state';
 import { Paths } from '@metorial/frontend-config';
-import {
-  useAllProviderListings,
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject,
-  usePublicMcpServers
-} from '@metorial/state';
-import {
-  getEnumListFilterValue,
-  getFilterPayload,
-  TableFilter,
-  FilterToolbar,
-  TableFilterState,
-  useFilterQuery
-} from '@metorial/table';
-import { Avatar, Spacer, Text } from '@metorial/ui';
-import { ItemGrid } from '@metorial/ui-product';
-import { useDebounced } from '@metorial/use-debounced';
-import { useMemo, useState } from 'react';
+import { useAllProviderListings, usePublicMcpServers } from '@metorial/state';
+import { Avatar, Text } from '@metorial/ui';
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import styled from 'styled-components';
+import { styled } from 'styled-components';
+import { useInstanceContext } from '../../lib/dataList';
 import { showCreatePublicMcpServerDialog } from './createDialog';
 import { PublicMcpServerStatusBadge } from './shared';
 
-let statusValues = ['active', 'disabled', 'archived'] as const;
-let defaultStatus: (typeof statusValues)[number][] = ['active', 'disabled'];
+let defaultStatus: ('active' | 'disabled' | 'archived')[] = ['active', 'disabled'];
 
-let filters: TableFilter<any>[] = [
-  {
-    id: 'status',
-    fields: ['status'],
-    label: 'Status',
-    description: 'Filter by status',
-    type: 'select',
-    options: [
-      { id: 'active', label: 'Active' },
-      { id: 'disabled', label: 'Disabled' },
-      { id: 'archived', label: 'Archived' }
-    ]
-  }
-];
+let serverStatus = defineStatus({
+  active: { label: 'Active', color: 'green' },
+  disabled: { label: 'Disabled', color: 'orange' },
+  archived: { label: 'Archived', color: 'gray' },
+  deleted: { label: 'Deleted', color: 'gray' }
+});
 
 let BottomRow = styled.div`
   display: flex;
@@ -51,164 +34,141 @@ let BottomRow = styled.div`
   min-width: 0;
 `;
 
-export let PublicMcpServersGrid = (
-  p: {
-    instanceId: string;
-  } & Omit<DashboardInstancePublicMcpServersListQuery, 'after' | 'before' | 'cursor' | 'limit'>
-) => {
-  let { instanceId, ...query } = p;
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-  let instance = useCurrentInstance();
-  let navigate = useNavigate();
+type PublicMcpServersGridProps = {
+  instanceId: string;
+} & Omit<DashboardInstancePublicMcpServersListQuery, 'after' | 'before' | 'cursor' | 'limit'>;
 
-  let [search, setSearch] = useState('');
-  let searchDebounced = useDebounced(search, 500);
-  let [filterState, setFilterState] = useState<TableFilterState[]>([]);
+let withListingImages =
+  <Row extends { id: string; providerId: string }>() =>
+  (
+    items: Row[],
+    { ctx }: { ctx: { instanceId?: string } }
+  ): DataListEnrichResult<Row & { listingName?: string; listingImageUrl?: string | null }> => {
+    let providerIds = useMemo(
+      () => [...new Set(items.map(item => item.providerId))].sort(),
+      [items]
+    );
+    let listings = useAllProviderListings(ctx.instanceId, providerIds);
 
-  useFilterQuery({
-    filters,
-    filterState: [filterState, setFilterState],
-    searchState: [search, setSearch],
-    debouncedSearch: searchDebounced
-  });
+    let enriched = useMemo(() => {
+      let lookup = new Map<string, { name?: string | null; imageUrl?: string | null }>();
 
-  let filterPayload = useMemo(() => getFilterPayload(filterState), [filterState]);
-  let selectedStatus = getEnumListFilterValue(filterPayload.status, statusValues);
-  let status = selectedStatus ?? query.status ?? defaultStatus;
-  let searchQuery = searchDebounced.trim() || query.search;
+      for (let listing of listings.data ?? []) {
+        lookup.set(listing.provider.id, {
+          name: listing.name ?? listing.provider.name,
+          imageUrl: listing.imageUrl
+        });
+      }
 
-  let servers = usePublicMcpServers(instanceId, {
-    order: 'desc',
-    ...query,
-    status,
-    search: searchQuery
-  });
+      return items.map(item => ({
+        ...item,
+        listingName: lookup.get(item.providerId)?.name ?? undefined,
+        listingImageUrl: lookup.get(item.providerId)?.imageUrl
+      }));
+    }, [items, listings.data]);
 
-  let providerIds = useMemo(
-    () => [...new Set((servers.data?.items ?? []).map(server => server.providerId))].sort(),
-    [servers.data?.items]
-  );
-  let providerListings = useAllProviderListings(instanceId, providerIds);
-
-  let showCreateServerDialog = () => {
-    showCreatePublicMcpServerDialog({
-      instanceId,
-      onCreate: server =>
-        navigate(
-          Paths.instance.publicMcp.server(
-            organization.data,
-            project.data,
-            instance.data,
-            server.id
-          )
-        )
-    });
+    return { items: enriched, isLoading: listings.isLoading, error: listings.error };
   };
 
-  return (
-    <>
-      <FilterToolbar
-        searchState={[search, setSearch]}
-        filterState={[filterState, setFilterState]}
-        filters={filters}
-        placeholder="Search public MCP servers or filter..."
+let PublicMcpServersList = createDataList<PublicMcpServersGridProps>('public-mcp-servers')
+  .context(useInstanceContext)
+  .filters(() => ({
+    status: f.status(serverStatus, { only: ['active', 'disabled', 'archived'] })
+  }))
+  .search('Search public MCP servers…')
+  .paginated(({ props, filters, search, limit }) =>
+    usePublicMcpServers(
+      props.instanceId,
+      withDefaults(
+        {
+          order: props.order ?? ('desc' as const),
+          id: props.id,
+          providerDeploymentId: props.providerDeploymentId,
+          createdAt: props.createdAt,
+          updatedAt: props.updatedAt,
+          search: props.search
+        },
+        { ...filters, status: filters.status ?? props.status ?? defaultStatus, search, limit }
+      )
+    )
+  )
+  .enrich(withListingImages())
+  .columns([
+    col.name({ description: false }),
+    col.status(serverStatus),
+    col.text({ id: 'slug', header: 'Slug', get: row => row.slug }),
+    col.createdAt(),
+    col.updatedAt(),
+    col.id({ header: 'Server ID' })
+  ])
+  .link((row, _props, ctx) =>
+    Paths.instance.publicMcp.server(ctx.organization, ctx.project, ctx.instance, row.id)
+  )
+  .item(row => ({
+    title: row.name,
+    icon: (
+      <Avatar
+        entity={{
+          name: row.listingName ?? row.name,
+          photoUrl: row.listingImageUrl ?? undefined
+        }}
+        size={30}
+        noTooltip
+        imageFit="contain"
       />
+    ),
+    footer: (
+      <BottomRow>
+        <Text size="1">{row.slug}</Text>
 
-      <Spacer size={15} />
+        {row.status !== 'active' && <PublicMcpServerStatusBadge status={row.status} />}
+      </BottomRow>
+    )
+  }))
+  .layouts(['grid', 'table'], { default: 'grid', gridWidth: '300px' })
+  .build();
 
-      {renderWithPagination(servers)(servers =>
-        renderWithLoader({ providerListings })(({ providerListings }) => {
-          let listingLookup = new Map<
-            string,
-            { name: string | null | undefined; imageUrl: string | null | undefined }
-          >();
+let PublicMcpServersEmptyState = ({ instanceId }: { instanceId: string }) => {
+  let ctx = useInstanceContext();
+  let navigate = useNavigate();
 
-          for (let listing of providerListings.data) {
-            let preview = {
-              name: listing.name ?? listing.provider.name,
-              imageUrl: listing.imageUrl
-            };
-
-            listingLookup.set(listing.id, preview);
-            listingLookup.set(listing.provider.id, preview);
-          }
-
-          if (servers.data.items.length === 0) {
-            if (searchQuery) {
-              return (
-                <Text size="2" color="gray600">
-                  No public MCP servers found.
-                </Text>
-              );
-            }
-
-            if (selectedStatus) {
-              return (
-                <Text size="2" color="gray600">
-                  No public MCP servers match the current filters.
-                </Text>
-              );
-            }
-
-            return (
-              <EmptyState
-                extra="Public MCP"
-                title="Create your first public MCP server"
-                description="Publish an integration at a public URL. Any MCP client can connect, and each user signs in with their own account."
-                action={{
-                  label: 'Create Public MCP Server',
-                  onClick: showCreateServerDialog
-                }}
-              />
-            );
-          }
-
-          return (
-            <ItemGrid.Root width="300px">
-              {servers.data.items.map(server => {
-                let listing = listingLookup.get(server.providerId);
-
-                return (
-                  <ItemGrid.Item
-                    key={server.id}
-                    href={Paths.instance.publicMcp.server(
-                      organization.data,
-                      project.data,
-                      instance.data,
-                      server.id
-                    )}
-                    entity={{ id: server.id }}
-                    title={server.name}
-                    variant="v2"
-                    height={220}
-                    icon={
-                      <Avatar
-                        entity={{
-                          name: listing?.name ?? server.name,
-                          photoUrl: listing?.imageUrl ?? undefined
-                        }}
-                        size={30}
-                        noTooltip
-                        imageFit="contain"
-                      />
-                    }
-                    bottom={
-                      <BottomRow>
-                        <Text size="1">{server.slug}</Text>
-
-                        {server.status !== 'active' && (
-                          <PublicMcpServerStatusBadge status={server.status} />
-                        )}
-                      </BottomRow>
-                    }
-                  />
-                );
-              })}
-            </ItemGrid.Root>
-          );
-        })
-      )}
-    </>
+  return (
+    <EmptyState
+      extra="Public MCP"
+      title="Create your first public MCP server"
+      description="Publish an integration at a public URL. Any MCP client can connect, and each user signs in with their own account."
+      action={{
+        label: 'Create Public MCP Server',
+        onClick: () =>
+          showCreatePublicMcpServerDialog({
+            instanceId,
+            onCreate: server =>
+              navigate(
+                Paths.instance.publicMcp.server(
+                  ctx.organization,
+                  ctx.project,
+                  ctx.instance,
+                  server.id
+                )
+              )
+          })
+      }}
+    />
   );
+};
+
+export let PublicMcpServersGrid = (
+  props: PublicMcpServersGridProps &
+    Omit<React.ComponentProps<typeof PublicMcpServersList>, keyof PublicMcpServersGridProps>
+) => {
+  let emptyState = useMemo(
+    () => ({
+      initial: () => <PublicMcpServersEmptyState instanceId={props.instanceId} />,
+      filtered: 'No public MCP servers match the current filters.',
+      search: 'No public MCP servers found.'
+    }),
+    [props.instanceId]
+  );
+
+  return <PublicMcpServersList emptyState={emptyState} {...props} />;
 };

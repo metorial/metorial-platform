@@ -1,26 +1,18 @@
 import type { DashboardOrganizationsEventDeliveriesListQuery } from '@metorial/dashboard-sdk';
+import {
+  col,
+  createDataList,
+  defineStatus,
+  f,
+  withDefaults,
+  type StatusDefinition
+} from '@metorial/data-list';
 import { Paths } from '@metorial/frontend-config';
-import {
-  EventDeliveryPreview,
-  instancesLoader,
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject,
-  useEventDeliveries
-} from '@metorial/state';
-import {
-  Table as DashboardTable,
-  getEnumListFilterValue,
-  getListFilterValue,
-  getStringFilterValue,
-  TableFilter,
-  TableStateProvider,
-  TableStateProviderResult
-} from '@metorial/table';
-import { Badge, Button, RenderDate, Text } from '@metorial/ui';
-import { ID, Table } from '@metorial/ui-product';
-import { useMemo } from 'react';
+import { EventDeliveryPreview, instancesLoader, useEventDeliveries } from '@metorial/state';
+import { RenderDate, Text } from '@metorial/ui';
+import { useMemo, type ComponentProps } from 'react';
 import { Link } from 'react-router-dom';
+import { useInstanceContext } from '../../lib/dataList';
 import { defineEntityFilter, useEntityList } from '../entityFilters';
 import {
   EVENT_DELIVERY_STATUS_LABELS,
@@ -29,48 +21,22 @@ import {
   getEventDeliveryStatusLabel
 } from './shared';
 
-type EventDeliveriesTableProps = {
-  organizationId: string;
-  eventDestinationId: string;
-  filters?: Omit<
-    DashboardOrganizationsEventDeliveriesListQuery,
-    'limit' | 'after' | 'before' | 'cursor'
-  >;
-  organization: ReturnType<typeof useCurrentOrganization>;
-  project: ReturnType<typeof useCurrentProject>;
-  instance: ReturnType<typeof useCurrentInstance>;
-};
+export type EventDeliveriesFilters = Omit<
+  DashboardOrganizationsEventDeliveriesListQuery,
+  'limit' | 'after' | 'before' | 'cursor'
+>;
 
-let deliveryStatuses = Object.keys(EVENT_DELIVERY_STATUS_LABELS) as EventDeliveryStatus[];
-
-let useEventDeliveriesTableState: TableStateProvider<
-  EventDeliveriesTableProps,
-  EventDeliveryPreview,
-  TableStateProviderResult<EventDeliveryPreview>
-> = (props, opts) => {
-  let deliveries = useEventDeliveries(props.organizationId, {
-    order: 'desc',
-    ...props.filters,
-    status:
-      getEnumListFilterValue(opts.filter.status, deliveryStatuses) ?? props.filters?.status,
-    eventType: getStringFilterValue(opts.filter.eventType) ?? props.filters?.eventType,
-    instanceId:
-      getListFilterValue(opts.filter.instanceId) ??
-      props.filters?.instanceId ??
-      props.instance.data?.id,
-    eventDestinationId: props.eventDestinationId
-  });
-
-  return {
-    isLoading: deliveries.isLoading,
-    error: deliveries.error,
-    hasMoreAfter: deliveries.data?.pagination.hasMoreAfter ?? false,
-    hasMoreBefore: deliveries.data?.pagination.hasMoreBefore ?? false,
-    items: deliveries.data?.items ?? [],
-    loadNext: deliveries.next,
-    loadPrevious: deliveries.previous
-  };
-};
+export let eventDeliveryStatus = defineStatus(
+  Object.fromEntries(
+    (Object.keys(EVENT_DELIVERY_STATUS_LABELS) as EventDeliveryStatus[]).map(status => [
+      status,
+      {
+        label: getEventDeliveryStatusLabel(status),
+        color: getEventDeliveryStatusColor(status)
+      }
+    ])
+  ) as Record<EventDeliveryStatus, StatusDefinition>
+);
 
 let instanceEntityFilter = (organizationId: string) =>
   defineEntityFilter({
@@ -96,221 +62,163 @@ let instanceEntityFilter = (organizationId: string) =>
     }
   })();
 
-let useEventDeliveriesTableFilters = (organizationId: string) =>
-  useMemo<TableFilter<EventDeliveryPreview>[]>(
-    () => [
-      {
-        id: 'status',
-        fields: ['status'],
-        label: 'Status',
-        description: 'Filter by delivery status',
-        type: 'select',
-        options: deliveryStatuses.map(status => ({
-          id: status,
-          label: EVENT_DELIVERY_STATUS_LABELS[status]
-        }))
-      },
-      {
-        id: 'eventType',
-        fields: ['eventType'],
-        label: 'Event Type',
-        description: 'Filter by event type',
-        type: 'string'
-      },
-      instanceEntityFilter(organizationId)
-    ],
-    [organizationId]
-  );
-
-let eventDeliveriesTable = new DashboardTable<EventDeliveriesTableProps, EventDeliveryPreview>(
-  'event-deliveries'
-)
-  .state(useEventDeliveriesTableState)
-  .columns([
-    {
-      id: 'eventType',
-      isDefault: true,
-      header: 'Event',
-      render: delivery => (
-        <Text size="2" weight="strong">
-          {delivery.eventType}
-        </Text>
-      )
-    },
-    {
-      id: 'status',
-      isDefault: true,
-      header: 'Status',
-      render: delivery => (
-        <Badge color={getEventDeliveryStatusColor(delivery.status)}>
-          {getEventDeliveryStatusLabel(delivery.status)}
-        </Badge>
-      )
-    },
-    {
-      id: 'attemptCount',
-      isDefault: true,
-      header: 'Attempts',
-      render: delivery => <Text size="2">{delivery.attemptCount}</Text>
-    },
-    {
-      id: 'activity',
-      isDefault: true,
-      header: 'Last Activity',
-      render: delivery => <RenderDate date={delivery.lastAttemptAt ?? delivery.createdAt} />
-    },
-    {
-      id: 'nextAttemptAt',
-      isDefault: false,
-      header: 'Next Attempt',
-      render: delivery =>
-        delivery.nextAttemptAt ? (
-          <RenderDate date={delivery.nextAttemptAt} />
-        ) : (
-          <Text size="2" color="gray600">
-            -
-          </Text>
-        )
-    },
-    {
-      id: 'completedAt',
-      isDefault: false,
-      header: 'Completed',
-      render: delivery =>
-        delivery.completedAt ? (
-          <RenderDate date={delivery.completedAt} />
-        ) : (
-          <Text size="2" color="gray600">
-            -
-          </Text>
-        )
-    },
-    {
-      id: 'eventId',
-      isDefault: true,
-      header: 'Event ID',
-      render: delivery => <ID id={delivery.eventId} />
-    },
-    {
-      id: 'instanceId',
-      isDefault: false,
-      header: 'Instance ID',
-      render: delivery =>
-        delivery.instanceId ? (
-          <ID id={delivery.instanceId} />
-        ) : (
-          <Text size="2" color="gray600">
-            -
-          </Text>
-        )
-    },
-    {
-      id: 'id',
-      isDefault: false,
-      header: 'Delivery ID',
-      render: delivery => <ID id={delivery.id} />
-    }
-  ])
-  .link((delivery, props) =>
-    Paths.instance.eventDelivery(
-      props.organization.data,
-      props.project.data,
-      props.instance.data,
-      delivery.id
+let EventDeliveriesList = createDataList<{
+  organizationId: string;
+  eventDestinationId: string;
+  filters?: EventDeliveriesFilters;
+}>('event-deliveries')
+  .context(useInstanceContext)
+  .filters(props => ({
+    status: f.status(eventDeliveryStatus, { description: 'Filter by status' }),
+    eventType: f.string('eventType', 'Event Type'),
+    instanceId: f.entity(instanceEntityFilter(props.organizationId))
+  }))
+  .paginated(({ props, ctx, filters }) =>
+    useEventDeliveries(
+      props.organizationId,
+      withDefaults(props.filters, {
+        order: 'desc' as const,
+        ...filters,
+        instanceId: filters.instanceId ?? props.filters?.instanceId ?? ctx.instanceId,
+        eventDestinationId: props.eventDestinationId
+      })
     )
+  )
+  .columns([
+    col.text({
+      id: 'eventType',
+      header: 'Event',
+      weight: 'strong',
+      get: row => row.eventType
+    }),
+    col.status(eventDeliveryStatus),
+    col.text({ id: 'attemptCount', header: 'Attempts', get: row => row.attemptCount }),
+    col.custom({
+      id: 'activity',
+      header: 'Last Activity',
+      render: row => <RenderDate date={row.lastAttemptAt ?? row.createdAt} />
+    }),
+    col.date('nextAttemptAt', { header: 'Next Attempt', isDefault: false }),
+    col.date('completedAt', { header: 'Completed', isDefault: false }),
+    col.refId('eventId', row => row.eventId, { header: 'Event ID', isDefault: true }),
+    col.refId('instanceId', row => row.instanceId, { header: 'Instance ID' }),
+    col.id({ header: 'Delivery ID' })
+  ])
+  .link((row, _props, ctx) =>
+    Paths.instance.eventDelivery(ctx.organization, ctx.project, ctx.instance, row.id)
   )
   .build();
 
-export let EventDeliveriesTable = ({
-  organizationId,
-  eventDestinationId,
-  filters,
-  emptyState
-}: {
-  organizationId: string;
-  eventDestinationId: string;
-  filters?: EventDeliveriesTableProps['filters'];
-  emptyState?: string;
-}) => {
-  let instance = useCurrentInstance();
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-  let tableFilters = useEventDeliveriesTableFilters(organizationId);
+export let EventDeliveriesTable = (props: ComponentProps<typeof EventDeliveriesList>) => (
+  <EventDeliveriesList
+    emptyState={{
+      initial: 'No deliveries recorded for this destination yet.',
+      filtered: 'No deliveries match your filters.'
+    }}
+    {...props}
+  />
+);
 
-  return eventDeliveriesTable({
-    organizationId,
-    eventDestinationId,
-    filters,
-    instance,
-    organization,
-    project,
-    tableFilters,
-    emptyState: emptyState ?? 'No deliveries recorded for this destination yet.'
-  });
+type RecentDeliveriesProps = {
+  deliveries: EventDeliveryPreview[];
+  destinationUrls?: Map<string, string>;
 };
+
+let createRecentDeliveriesList = (name: string, showDestination: boolean) =>
+  createDataList<RecentDeliveriesProps>(name, { customizable: false })
+    .context(useInstanceContext)
+    .items(({ props }) => ({ items: props.deliveries }))
+    .columns([
+      ...(showDestination
+        ? [
+            col.custom<EventDeliveryPreview, RecentDeliveriesProps>({
+              id: 'destination',
+              header: 'Destination',
+              render: (row, props) => (
+                <Text size="2">
+                  {props.destinationUrls?.get(row.eventDestinationId) ??
+                    'Endpoint unavailable'}
+                </Text>
+              )
+            })
+          ]
+        : []),
+      col.custom<
+        EventDeliveryPreview,
+        RecentDeliveriesProps,
+        ReturnType<typeof useInstanceContext>
+      >({
+        id: 'event',
+        header: 'Event',
+        render: (row, _props, ctx) => (
+          <Link
+            to={Paths.instance.event(ctx.organization, ctx.project, ctx.instance, row.eventId)}
+          >
+            <Text size="2" weight="strong">
+              {row.eventType}
+            </Text>
+          </Link>
+        )
+      }),
+      col.status(eventDeliveryStatus),
+      col.createdAt({ header: 'Recorded' })
+    ])
+    .link((row, _props, ctx) =>
+      Paths.instance.eventDelivery(ctx.organization, ctx.project, ctx.instance, row.id)
+    )
+    .build();
+
+let RecentDeliveriesList = createRecentDeliveriesList('event-deliveries-recent', false);
+let RecentDeliveriesWithDestinationList = createRecentDeliveriesList(
+  'event-deliveries-recent-destination',
+  true
+);
 
 export let EventDeliveriesSimpleTable = ({
   deliveries,
-  destinationUrls
-}: {
-  deliveries: EventDeliveryPreview[];
-  destinationUrls?: Map<string, string>;
-}) => {
-  let instance = useCurrentInstance();
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-  let showDestination = !!destinationUrls;
-
-  return (
-    <Table
-      headers={[
-        ...(showDestination ? ['Destination'] : []),
-        'Event',
-        'Status',
-        'Recorded',
-        ''
-      ]}
-      data={deliveries.map(delivery => ({
-        data: [
-          ...(showDestination
-            ? [
-                <Text key="destination" size="2">
-                  {destinationUrls?.get(delivery.eventDestinationId) ?? 'Endpoint unavailable'}
-                </Text>
-              ]
-            : []),
-          <Link
-            key="event"
-            to={Paths.instance.event(
-              organization.data,
-              project.data,
-              instance.data,
-              delivery.eventId
-            )}
-          >
-            <Text size="2" weight="strong">
-              {delivery.eventType}
-            </Text>
-          </Link>,
-          <Badge key="status" color={getEventDeliveryStatusColor(delivery.status)}>
-            {getEventDeliveryStatusLabel(delivery.status)}
-          </Badge>,
-          <RenderDate key="recorded" date={delivery.createdAt} />,
-          <Link
-            key="action"
-            to={Paths.instance.eventDelivery(
-              organization.data,
-              project.data,
-              instance.data,
-              delivery.id
-            )}
-          >
-            <Button size="2" as="span" variant="outline">
-              View Details
-            </Button>
-          </Link>
-        ]
-      }))}
+  destinationUrls,
+  ...rest
+}: RecentDeliveriesProps &
+  Pick<
+    ComponentProps<typeof RecentDeliveriesList>,
+    'listVariant' | 'listLimit' | 'viewAllHref'
+  >) =>
+  destinationUrls ? (
+    <RecentDeliveriesWithDestinationList
+      listVariant="embedded"
+      deliveries={deliveries}
+      destinationUrls={destinationUrls}
+      {...rest}
     />
+  ) : (
+    <RecentDeliveriesList listVariant="embedded" deliveries={deliveries} {...rest} />
   );
-};
+
+let DeliveryFailuresList = createDataList<{ deliveries: EventDeliveryPreview[] }>(
+  'event-delivery-failures',
+  { customizable: false }
+)
+  .context(useInstanceContext)
+  .items(({ props }) => ({ items: props.deliveries }))
+  .columns([
+    col.text({ id: 'event', header: 'Event', weight: 'strong', get: row => row.eventType }),
+    col.status(eventDeliveryStatus),
+    col.text({
+      id: 'error',
+      header: 'Error',
+      get: row => row.error?.message ?? row.error?.code
+    }),
+    col.custom({
+      id: 'occurred',
+      header: 'Occurred',
+      render: row => <RenderDate date={row.lastAttemptAt ?? row.createdAt} />
+    })
+  ])
+  .link((row, _props, ctx) =>
+    Paths.instance.eventDelivery(ctx.organization, ctx.project, ctx.instance, row.id)
+  )
+  .build();
+
+export let EventDeliveryFailuresList = (props: { deliveries: EventDeliveryPreview[] }) => (
+  <DeliveryFailuresList listVariant="embedded" deliveries={props.deliveries} />
+);

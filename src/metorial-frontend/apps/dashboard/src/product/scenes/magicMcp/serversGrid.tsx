@@ -2,409 +2,194 @@ import {
   DashboardInstanceMagicMcpServersListOutput,
   DashboardInstanceMagicMcpServersListQuery
 } from '@metorial/dashboard-sdk';
-import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
+import {
+  col,
+  createDataList,
+  f,
+  lifecycleStatus,
+  withDefaults,
+  type DataListEnrichResult
+} from '@metorial/data-list';
 import { EmptyState } from '@metorial/empty-state';
 import { Paths } from '@metorial/frontend-config';
-import {
-  useAllProviderListings,
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject,
-  useMagicMcpServers
-} from '@metorial/state';
-import {
-  Table as DashboardTable,
-  FilterPayload,
-  TableFilter,
-  TableFilterState,
-  FilterToolbar,
-  TableStateProvider,
-  TableStateProviderResult,
-  getEnumListFilterValue,
-  getFilterPayload,
-  getListFilterValue,
-  useFilterQuery
-} from '@metorial/table';
-import { Avatar, Badge, RenderDate, Spacer, Text, theme } from '@metorial/ui';
-import { ID, ItemGrid } from '@metorial/ui-product';
-import { useDebounced } from '@metorial/use-debounced';
+import { useAllProviderListings, useMagicMcpServers } from '@metorial/state';
+import { Avatar, Text } from '@metorial/ui';
+import { useMemo, type ComponentProps, type ReactNode } from 'react';
 import { ResourceOwnerInline } from '../../components/resourceOwnerEntity';
-import { useMemo, useState } from 'react';
-import styled from 'styled-components';
+import { useInstanceContext } from '../../lib/dataList';
+import {
+  ProviderAvatarStack,
+  type ProviderAvatarStackEntry
+} from '../../lib/providerAvatarStack';
 import { entityFilters } from '../entityFilters';
 import { showMagicMcpServerCreateFlow } from '../providerDeployments/magicMcpForm';
 
 type Server = DashboardInstanceMagicMcpServersListOutput['items'][number];
+type ServerWithProviders = Server & { providerAvatars: ProviderAvatarStackEntry[] };
 
-let ProviderAvatarStack = styled.div`
-  display: flex;
-  align-items: center;
-`;
-
-let ProviderAvatarItem = styled.div<{ $index: number }>`
-  position: relative;
-  z-index: ${p => 10 - p.$index};
-  margin-left: ${p => (p.$index === 0 ? '0' : '-8px')};
-  border-radius: 999px;
-  box-shadow: 0 0 0 2px ${theme.colors.background};
-`;
-
-type MagicMcpServersTableProps = DashboardInstanceMagicMcpServersListQuery & {
-  instanceId: string;
-  organization: ReturnType<typeof useCurrentOrganization>;
-  project: ReturnType<typeof useCurrentProject>;
-  instance: ReturnType<typeof useCurrentInstance>;
-};
-
-let getServerStatusFilterValue = (
-  value: FilterPayload | undefined
-): DashboardInstanceMagicMcpServersListQuery['status'] =>
-  getEnumListFilterValue(value, ['active', 'archived', 'deleted']);
-
-let getMagicMcpServerFilters = (instanceId: string | undefined): TableFilter<Server>[] => [
-  {
-    id: 'status',
-    fields: ['status'],
-    label: 'Status',
-    description: 'Filter by status',
-    type: 'select',
-    options: [
-      { id: 'active', label: 'Active' },
-      { id: 'archived', label: 'Archived' },
-      { id: 'deleted', label: 'Deleted' }
-    ]
-  },
-  entityFilters.magicMcpGroup(instanceId),
-  entityFilters.provider(instanceId)
-];
-
-let magicServersState: TableStateProvider<
-  MagicMcpServersTableProps,
-  Server,
-  TableStateProviderResult<Server>
-> = (props, opts) => {
-  let servers = useMagicMcpServers(props.instanceId, {
-    ownership: 'all',
-    order: props.order ?? 'desc',
-    status: getServerStatusFilterValue(opts.filter.status) ?? props.status,
-    magicMcpGroupId: getListFilterValue(opts.filter.magicMcpGroupId) ?? props.magicMcpGroupId,
-    providerId: getListFilterValue(opts.filter.providerId) ?? props.providerId,
-    consumerId: props.consumerId,
-    consumerProfileId: props.consumerProfileId,
-    search: opts.search ?? props.search
-  });
-
-  return {
-    isLoading: servers.isLoading,
-    error: servers.error,
-    hasMoreAfter: servers.data?.pagination.hasMoreAfter ?? false,
-    hasMoreBefore: servers.data?.pagination.hasMoreBefore ?? false,
-    items: servers.data?.items ?? [],
-    loadNext: servers.next,
-    loadPrevious: servers.previous
-  };
-};
-
-let magicServersTable = new DashboardTable<MagicMcpServersTableProps, Server>(
-  'magic-mcp-servers'
-)
-  .state(magicServersState)
-  .columns([
-    {
-      id: 'name',
-      isDefault: true,
-      header: 'Name',
-      render: server => (
-        <div>
-          <Text size="2" weight="strong">
-            {server.name ?? 'Unknown Server'}
-          </Text>
-          {server.description && (
-            <Text size="1" color="gray600">
-              {server.description}
-            </Text>
-          )}
-        </div>
-      )
-    },
-    {
-      id: 'status',
-      isDefault: true,
-      header: 'Status',
-      render: server => (
-        <Badge
-          color={
-            { active: 'green', archived: 'orange', deleted: 'gray' }[server.status] as any
-          }
-        >
-          {server.status}
-        </Badge>
-      )
-    },
-    {
-      id: 'aliases',
-      isDefault: true,
-      header: 'Aliases',
-      render: server => (
-        <Text size="2">
-          {server.endpoints.map(endpoint => endpoint.alias).join(', ') || '-'}
-        </Text>
-      )
-    },
-    {
-      id: 'owner',
-      isDefault: true,
-      header: 'Owner',
-      render: server => <ResourceOwnerInline resource={server} linked={false} />
-    },
-    {
-      id: 'createdAt',
-      isDefault: true,
-      header: 'Created',
-      render: server => <RenderDate date={server.createdAt} />
-    },
-    {
-      id: 'endpointCount',
-      isDefault: false,
-      header: 'Endpoints',
-      render: server => <Text size="2">{server.endpoints.length}</Text>
-    },
-    {
-      id: 'urls',
-      isDefault: false,
-      header: 'Endpoint URLs',
-      render: server => (
-        <Text size="2">
-          {server.endpoints.map(endpoint => endpoint.url).join(', ') || '-'}
-        </Text>
-      )
-    },
-    {
-      id: 'updatedAt',
-      isDefault: false,
-      header: 'Updated',
-      render: server => <RenderDate date={server.updatedAt} />
-    },
-    {
-      id: 'id',
-      isDefault: false,
-      header: 'Server ID',
-      render: server => <ID id={server.id} />
-    }
-  ])
-  .search('Search Magic MCP servers...')
-  .link((server, props) =>
-    Paths.instance.magicMcp.server(
-      props.organization.data,
-      props.project.data,
-      props.instance.data,
-      server.id
-    )
-  )
-  .build();
-
-export let MagicMcpServersTable = (
-  filter: DashboardInstanceMagicMcpServersListQuery & {
-    headerActions?: React.ReactNode;
-  }
-) => {
-  let instance = useCurrentInstance();
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-  let instanceId = instance.data?.id;
-  let filters = useMemo(() => getMagicMcpServerFilters(instanceId), [instanceId]);
-
-  return magicServersTable({
-    instanceId: instance.data!.id,
-    organization,
-    project,
-    instance,
-    ...filter,
-    tableFilters: filters,
-    emptyState: 'No Magic MCP servers found.',
-    headerActions: filter.headerActions ? () => filter.headerActions : undefined
-  });
-};
-
-export let MagicMcpServersGrid = (filter: DashboardInstanceMagicMcpServersListQuery = {}) => {
-  let instance = useCurrentInstance();
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-  let instanceId = instance.data?.id;
-  let [search, setSearch] = useState('');
-  let searchDebounced = useDebounced(search, 500);
-  let [filterState, setFilterState] = useState<TableFilterState[]>([]);
-  let filterPayload = useMemo(() => getFilterPayload(filterState), [filterState]);
-  let filters = useMemo(() => getMagicMcpServerFilters(instanceId), [instanceId]);
-  let status = getServerStatusFilterValue(filterPayload.status) ?? filter.status;
-  let magicMcpGroupId =
-    getListFilterValue(filterPayload.magicMcpGroupId) ?? filter.magicMcpGroupId;
-  let providerId = getListFilterValue(filterPayload.providerId) ?? filter.providerId;
-  let servers = useMagicMcpServers(instanceId, {
-    ownership: 'all',
-    order: filter.order ?? 'desc',
-    status,
-    magicMcpGroupId,
-    providerId,
-    consumerId: filter.consumerId,
-    consumerProfileId: filter.consumerProfileId,
-    search: searchDebounced || filter.search
-  });
+let withProviderAvatars = (
+  items: Server[],
+  { ctx }: { ctx: { instanceId?: string } }
+): DataListEnrichResult<ServerWithProviders> => {
   let providerIds = useMemo(
     () =>
       [
         ...new Set(
-          (servers.data?.items ?? []).flatMap(server =>
+          items.flatMap(server =>
             (server.providers ?? []).map(provider => provider.provider.id)
           )
         )
       ].sort(),
-    [servers.data?.items]
+    [items]
   );
-  let cardProviderListings = useAllProviderListings(instanceId, providerIds);
-  let hasActiveFilters = !!(
-    searchDebounced ||
-    filter.search ||
-    status ||
-    magicMcpGroupId ||
-    providerId ||
-    filter.consumerId ||
-    filter.consumerProfileId
-  );
+  let listings = useAllProviderListings(ctx.instanceId, providerIds);
 
-  useFilterQuery({
-    filters,
-    filterState: [filterState, setFilterState],
-    searchState: [search, setSearch],
-    debouncedSearch: searchDebounced
-  });
+  let enriched = useMemo(() => {
+    let lookup = new Map<string, { name?: string | null; imageUrl?: string | null }>();
 
-  let showCreateMagicMcpServerFlow = () => {
-    if (!instance.data) return;
-    showMagicMcpServerCreateFlow({ instanceId: instance.data.id });
-  };
+    for (let listing of listings.data ?? []) {
+      lookup.set(listing.provider.id, {
+        name: listing.name ?? listing.provider.name,
+        imageUrl: listing.imageUrl
+      });
+    }
+
+    return items.map(server => ({
+      ...server,
+      providerAvatars: (server.providers ?? []).map(provider => {
+        let listing = lookup.get(provider.provider.id);
+
+        return {
+          id: provider.id ?? provider.provider.id,
+          name: listing?.name ?? provider.provider.name ?? provider.provider.slug,
+          imageUrl: listing?.imageUrl
+        };
+      })
+    }));
+  }, [items, listings.data]);
+
+  return { items: enriched, isLoading: listings.isLoading, error: listings.error };
+};
+
+let MagicMcpServersList = createDataList<DashboardInstanceMagicMcpServersListQuery>(
+  'magic-mcp-servers'
+)
+  .context(useInstanceContext)
+  .filters((_props, ctx) => ({
+    status: f.status(lifecycleStatus),
+    magicMcpGroupId: f.entity(entityFilters.magicMcpGroup(ctx.instanceId)),
+    providerId: f.entity(entityFilters.provider(ctx.instanceId))
+  }))
+  .search('Search Magic MCP servers…')
+  .paginated(({ props, ctx, filters, search, limit }) =>
+    useMagicMcpServers(
+      ctx.instanceId,
+      withDefaults(
+        {
+          ownership: 'all' as const,
+          order: props.order ?? ('desc' as const),
+          status: props.status,
+          magicMcpGroupId: props.magicMcpGroupId,
+          providerId: props.providerId,
+          consumerId: props.consumerId,
+          consumerProfileId: props.consumerProfileId,
+          integrationInstanceId: props.integrationInstanceId,
+          owner: props.owner,
+          search: props.search
+        },
+        { ...filters, search, limit }
+      )
+    )
+  )
+  .enrich(withProviderAvatars)
+  .columns([
+    col.name({ fallback: 'Unknown Server' }),
+    col.status(lifecycleStatus),
+    col.text({
+      id: 'aliases',
+      header: 'Aliases',
+      get: row => row.endpoints.map(endpoint => endpoint.alias).join(', ')
+    }),
+    col.custom({
+      id: 'owner',
+      header: 'Owner',
+      render: row => <ResourceOwnerInline resource={row} linked={false} />
+    }),
+    col.createdAt(),
+    col.text({
+      id: 'endpointCount',
+      header: 'Endpoints',
+      isDefault: false,
+      get: row => row.endpoints.length
+    }),
+    col.text({
+      id: 'urls',
+      header: 'Endpoint URLs',
+      isDefault: false,
+      get: row => row.endpoints.map(endpoint => endpoint.url).join(', ')
+    }),
+    col.updatedAt(),
+    col.id({ header: 'Server ID' })
+  ])
+  .link((row, _props, ctx) =>
+    Paths.instance.magicMcp.server(ctx.organization, ctx.project, ctx.instance, row.id)
+  )
+  .item(row => ({
+    title: row.name ?? 'Unknown Server',
+    description: row.description,
+    icon:
+      row.providerAvatars.length > 0 ? (
+        <ProviderAvatarStack providers={row.providerAvatars} />
+      ) : (
+        <Avatar entity={{ name: row.name ?? 'Magic MCP Server' }} size={30} />
+      ),
+    footer: (
+      <Text size="2">
+        {row.endpoints.map(endpoint => endpoint.alias).find(Boolean) ?? row.id}
+      </Text>
+    )
+  }))
+  .layouts(['grid', 'table'], { default: 'grid', gridWidth: '300px' })
+  .build();
+
+let MagicMcpServersEmptyState = () => {
+  let ctx = useInstanceContext();
 
   return (
-    <>
-      <FilterToolbar
-        searchState={[search, setSearch]}
-        filterState={[filterState, setFilterState]}
-        filters={filters}
-        placeholder="Search Magic MCP servers or filter..."
-      />
-
-      <Spacer size={15} />
-
-      {renderWithPagination(servers)(servers =>
-        renderWithLoader({ cardProviderListings })(({ cardProviderListings }) => {
-          let listingLookup = new Map<
-            string,
-            { name: string | null | undefined; imageUrl: string | null | undefined }
-          >();
-
-          for (let listing of cardProviderListings.data) {
-            let preview = {
-              name: listing.name ?? listing.provider.name,
-              imageUrl: listing.imageUrl
-            };
-
-            listingLookup.set(listing.id, preview);
-            listingLookup.set(listing.provider.id, preview);
-          }
-
-          return (
-            <>
-              {servers.data.items.length > 0 && (
-                <ItemGrid.Root width="300px">
-                  {servers.data.items.map(server => {
-                    let visibleProviders = (server.providers ?? []).slice(0, 5);
-                    let aliases = server.endpoints
-                      .map(endpoint => endpoint.alias)
-                      .filter(Boolean);
-
-                    return (
-                      <ItemGrid.Item
-                        key={server.id}
-                        href={Paths.instance.magicMcp.server(
-                          organization.data,
-                          project.data,
-                          instance.data,
-                          server.id
-                        )}
-                        entity={{ id: server.id, hasUsage: true }}
-                        title={server.name ?? 'Unknown Server'}
-                        description={server.description}
-                        variant="v2"
-                        height={220}
-                        icon={
-                          visibleProviders.length > 0 ? (
-                            <ProviderAvatarStack>
-                              {visibleProviders.map((provider, idx) => {
-                                let listing = listingLookup.get(provider.provider.id);
-                                let name =
-                                  listing?.name ??
-                                  provider.provider.name ??
-                                  provider.provider.slug;
-
-                                return (
-                                  <ProviderAvatarItem
-                                    key={provider.id ?? provider.provider.id}
-                                    $index={idx}
-                                  >
-                                    <Avatar
-                                      entity={{
-                                        name,
-                                        photoUrl: listing?.imageUrl ?? undefined
-                                      }}
-                                      size={30}
-                                      noTooltip
-                                      imageFit="contain"
-                                    />
-                                  </ProviderAvatarItem>
-                                );
-                              })}
-                            </ProviderAvatarStack>
-                          ) : (
-                            <Avatar
-                              entity={{ name: server.name ?? 'Magic MCP Server' }}
-                              size={30}
-                            />
-                          )
-                        }
-                        bottom={<Text size="2">{aliases[0] ?? server.id}</Text>}
-                      />
-                    );
-                  })}
-                </ItemGrid.Root>
-              )}
-
-              {servers.data.items.length === 0 && searchDebounced && (
-                <Text size="2" color="gray600">
-                  No Magic MCP servers found.
-                </Text>
-              )}
-
-              {servers.data.items.length === 0 && !hasActiveFilters && (
-                <EmptyState
-                  extra="Magic MCP"
-                  title="Create your first Magic MCP server"
-                  description="Magic MCP servers connect providers to agents and clients through managed MCP endpoints."
-                  action={{
-                    label: 'Create Magic MCP Server',
-                    onClick: showCreateMagicMcpServerFlow
-                  }}
-                />
-              )}
-
-              {servers.data.items.length === 0 && !searchDebounced && hasActiveFilters && (
-                <Text size="2" color="gray600">
-                  No Magic MCP servers match the current filters.
-                </Text>
-              )}
-            </>
-          );
-        })
-      )}
-    </>
+    <EmptyState
+      extra="Magic MCP"
+      title="Create your first Magic MCP server"
+      description="Magic MCP servers connect providers to agents and clients through managed MCP endpoints."
+      action={{
+        label: 'Create Magic MCP Server',
+        onClick: () => {
+          if (ctx.instanceId) showMagicMcpServerCreateFlow({ instanceId: ctx.instanceId });
+        }
+      }}
+    />
   );
 };
+
+let emptyState = {
+  initial: () => <MagicMcpServersEmptyState />,
+  filtered: 'No Magic MCP servers match the current filters.',
+  search: 'No Magic MCP servers found.'
+};
+
+export let MagicMcpServersGrid = (props: ComponentProps<typeof MagicMcpServersList>) => (
+  <MagicMcpServersList emptyState={emptyState} {...props} />
+);
+
+export let MagicMcpServersTable = ({
+  headerActions,
+  ...props
+}: Omit<ComponentProps<typeof MagicMcpServersList>, 'headerActions'> & {
+  headerActions?: ReactNode;
+}) => (
+  <MagicMcpServersList
+    listLayout="table"
+    emptyState="No Magic MCP servers found."
+    {...props}
+    headerActions={headerActions ? () => headerActions : undefined}
+  />
+);

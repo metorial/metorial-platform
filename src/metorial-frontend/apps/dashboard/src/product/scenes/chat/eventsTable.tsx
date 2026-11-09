@@ -1,149 +1,107 @@
+import { col, createDataList, f, withDefaults } from '@metorial/data-list';
 import { Paths } from '@metorial/frontend-config';
-import {
-  useChatEvents,
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject,
-  type ChatEventPreview
-} from '@metorial/state';
-import {
-  Table as DashboardTable,
-  getDateRangeFilterValue,
-  getStringFilterValue,
-  type FilterPayload
-} from '@metorial/table';
-import { Badge, RenderDate, Text } from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
+import { useChatEvents } from '@metorial/state';
+import { Badge } from '@metorial/ui';
+import { useMemo } from 'react';
+import { useInstanceContext } from '../../lib/dataList';
 
-type ChatEventsTableProps = {
+let ChatEventsList = createDataList<{
   instanceId: string;
   chatConnectionId?: string;
   chatInstanceId?: string;
   chatId?: string;
-  organization: ReturnType<typeof useCurrentOrganization>;
-  project: ReturnType<typeof useCurrentProject>;
-  instance: ReturnType<typeof useCurrentInstance>;
-};
-
-let useChatEventsTableState = (
-  props: ChatEventsTableProps,
-  opts: { filter: Record<string, FilterPayload> }
-) => {
-  let chatEvents = useChatEvents(props.instanceId, {
-    chatConnectionId: props.chatConnectionId,
-    chatInstanceId: props.chatInstanceId,
-    chatId: props.chatId,
-    order: 'desc',
-    limit: 100,
-    type: getStringFilterValue(opts.filter.type),
-    occurredAt: getDateRangeFilterValue(opts.filter.occurredAt)
-  });
-
-  return {
-    isLoading: chatEvents.isLoading,
-    error: chatEvents.error,
-    hasMoreAfter: chatEvents.data?.pagination.hasMoreAfter ?? false,
-    hasMoreBefore: chatEvents.data?.pagination.hasMoreBefore ?? false,
-    items: chatEvents.data?.items ?? [],
-    loadNext: chatEvents.next,
-    loadPrevious: chatEvents.previous
-  };
-};
-
-let chatEventsTable = new DashboardTable<ChatEventsTableProps, ChatEventPreview>('chat-events')
-  .state<ChatEventsTableProps, ChatEventPreview, ReturnType<typeof useChatEventsTableState>>(
-    useChatEventsTableState
+}>('chat-events')
+  .context(useInstanceContext)
+  .filters(() => ({
+    type: f.string('type', 'Type', { description: 'Filter by event type' }),
+    occurredAt: f.date('occurredAt', 'Occurred', { description: 'Filter by occurrence date' })
+  }))
+  .paginated(({ props, filters, limit }) =>
+    useChatEvents(
+      props.instanceId,
+      withDefaults(
+        {
+          chatConnectionId: props.chatConnectionId,
+          chatInstanceId: props.chatInstanceId,
+          chatId: props.chatId,
+          order: 'desc' as const,
+          limit: limit ?? 100
+        },
+        filters
+      )
+    )
   )
   .columns([
-    {
-      id: 'type',
-      isDefault: true,
-      header: 'Type',
-      render: (chatEvent: ChatEventPreview) => (
-        <Text size="2" weight="strong">
-          {chatEvent.type}
-        </Text>
-      )
-    },
-    {
+    col.text({ id: 'type', header: 'Type', weight: 'strong', get: row => row.type }),
+    col.custom({
       id: 'source',
-      isDefault: true,
       header: 'Source',
-      render: (chatEvent: ChatEventPreview) => (
-        <Badge color={chatEvent.source === 'webhook' ? 'blue' : 'gray'}>
-          {chatEvent.source}
-        </Badge>
+      render: row => (
+        <Badge color={row.source === 'webhook' ? 'blue' : 'gray'}>{row.source}</Badge>
       )
-    },
-    {
-      id: 'chatId',
-      isDefault: false,
-      header: 'Chat',
-      render: (chatEvent: ChatEventPreview) =>
-        chatEvent.chatId ? <ID id={chatEvent.chatId} /> : null
-    },
-    {
-      id: 'occurredAt',
-      isDefault: true,
-      header: 'Occurred',
-      render: (chatEvent: ChatEventPreview) => <RenderDate date={chatEvent.occurredAt} />
-    },
-    {
-      id: 'createdAt',
-      isDefault: false,
-      header: 'Recorded',
-      render: (chatEvent: ChatEventPreview) => <RenderDate date={chatEvent.createdAt} />
-    },
-    {
-      id: 'id',
-      isDefault: true,
-      header: 'ID',
-      render: (chatEvent: ChatEventPreview) => <ID id={chatEvent.id} />
-    }
+    }),
+    col.refId('chatId', row => row.chatId, { header: 'Chat' }),
+    col.date('occurredAt', { header: 'Occurred', isDefault: true }),
+    col.createdAt({ header: 'Recorded', isDefault: false }),
+    col.id({ isDefault: true })
   ])
-  .filters([
-    {
-      id: 'type',
-      fields: ['type'],
-      label: 'Type',
-      description: 'Filter by event type',
-      type: 'string'
-    },
-    {
-      id: 'occurredAt',
-      fields: ['occurredAt'],
-      label: 'Occurred',
-      description: 'Filter by occurrence date',
-      type: 'date'
-    }
-  ])
-  .link(((chatEvent: ChatEventPreview, props: ChatEventsTableProps) =>
-    Paths.instance.chatEvent(
-      props.organization.data,
-      props.project.data,
-      props.instance.data,
-      chatEvent.id
-    )) as any)
+  .link((row, _props, ctx) =>
+    Paths.instance.chatEvent(ctx.organization, ctx.project, ctx.instance, row.id)
+  )
   .build();
 
-export let ChatEventsTable = (p: {
-  instanceId: string;
-  chatConnectionId?: string;
-  chatInstanceId?: string;
-  chatId?: string;
-}) => {
-  let instance = useCurrentInstance();
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
+export let ChatEventsTable = (p: Parameters<typeof ChatEventsList>[0]) => (
+  <ChatEventsList emptyState="No chat events have been received yet." {...p} />
+);
 
-  return chatEventsTable({
-    instanceId: p.instanceId,
-    chatConnectionId: p.chatConnectionId,
-    chatInstanceId: p.chatInstanceId,
-    chatId: p.chatId,
-    instance,
-    organization,
-    project,
-    emptyState: 'No chat events have been received yet.'
-  });
-};
+let FAILURE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
+let ChatInvocationFailuresList = createDataList<{
+  instanceId: string;
+  chatConnectionId: string;
+}>('chat-invocation-failures')
+  .context(useInstanceContext)
+  .paginated(({ props, limit }) => {
+    let since = useMemo(() => new Date(Date.now() - FAILURE_WINDOW_MS), []);
+
+    return useChatEvents(props.instanceId, {
+      chatConnectionId: props.chatConnectionId,
+      type: 'chat.invocation.failed',
+      occurredAt: { gt: since },
+      order: 'desc',
+      limit
+    });
+  })
+  .columns([
+    col.text({
+      id: 'operation',
+      header: 'Operation',
+      weight: 'strong',
+      get: row => row.error?.operation
+    }),
+    col.text({
+      id: 'error',
+      header: 'Error',
+      get: row => row.error?.message ?? row.error?.code
+    }),
+    col.date('occurredAt', { header: 'Occurred', isDefault: true })
+  ])
+  .link((row, _props, ctx) =>
+    Paths.instance.chatEvent(ctx.organization, ctx.project, ctx.instance, row.id)
+  )
+  .build();
+
+export let ChatInvocationFailuresTable = (p: {
+  instanceId: string;
+  chatConnectionId: string;
+  limit?: number;
+  viewAllHref?: string;
+}) => (
+  <ChatInvocationFailuresList
+    instanceId={p.instanceId}
+    chatConnectionId={p.chatConnectionId}
+    listVariant="preview"
+    listLimit={p.limit ?? 5}
+    viewAllHref={p.viewAllHref}
+  />
+);

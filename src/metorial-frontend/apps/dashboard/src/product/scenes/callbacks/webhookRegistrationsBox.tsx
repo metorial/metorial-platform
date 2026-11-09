@@ -1,16 +1,55 @@
-import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
+import { renderWithLoader } from '@metorial/data-hooks';
+import { col, createDataList, EmptyValue, StatusBadge } from '@metorial/data-list';
 import { Paths } from '@metorial/frontend-config';
-import {
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject,
-  useProvider,
-  useWebhookRegistrations
-} from '@metorial/state';
-import { Badge, Callout, Spacer, Text } from '@metorial/ui';
-import { Box, Table } from '@metorial/ui-product';
+import { useProvider, useWebhookRegistrations } from '@metorial/state';
+import { Callout, Spacer, Text } from '@metorial/ui';
+import { Box } from '@metorial/ui-product';
+import { useInstanceContext } from '../../lib/dataList';
 import { truncateReceiverUrl } from './shared';
-import { CreateWebhookRegistrationButton } from './webhookRegistrationsTable';
+import {
+  CreateWebhookRegistrationButton,
+  webhookRegistrationStatus
+} from './webhookRegistrationsTable';
+
+let ProviderWebhookRegistrationsList = createDataList<{
+  instanceId: string;
+  providerId: string;
+}>('provider-webhook-registrations', { customizable: false })
+  .context(useInstanceContext)
+  .paginated(({ props }) =>
+    useWebhookRegistrations(props.instanceId, { order: 'desc', providerId: props.providerId })
+  )
+  .columns([
+    col.custom({
+      id: 'receiver',
+      header: 'Receiver',
+      render: row => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Text size="2">{row.name}</Text>
+
+          {row.status === 'awaiting_setup' && (
+            <StatusBadge status={row.status} descriptor={webhookRegistrationStatus} />
+          )}
+        </div>
+      )
+    }),
+    col.custom({
+      id: 'receiveUrl',
+      header: 'Receive URL',
+      render: row =>
+        row.receiveUrl ? (
+          <Text size="2" style={{ fontFamily: 'jetbrains mono, monospace' }}>
+            {truncateReceiverUrl(row.receiveUrl)}
+          </Text>
+        ) : (
+          <EmptyValue>Not provisioned</EmptyValue>
+        )
+    })
+  ])
+  .link((row, _props, ctx) =>
+    Paths.instance.webhookRegistration(ctx.organization, ctx.project, ctx.instance, row.id)
+  )
+  .build();
 
 export let ProviderWebhookRegistrationsBox = ({
   instanceId,
@@ -19,15 +58,10 @@ export let ProviderWebhookRegistrationsBox = ({
   instanceId: string;
   provider: { id: string; name: string };
 }) => {
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-  let instance = useCurrentInstance();
   let registrations = useWebhookRegistrations(instanceId, {
     order: 'desc',
     providerId: provider.id
   });
-
-  let onCreate = () => void registrations.refetch();
 
   return (
     <>
@@ -36,18 +70,16 @@ export let ProviderWebhookRegistrationsBox = ({
         description={`Tool calls to ${provider.name} work without this, but inbound events require a webhook receiver registered with the provider.`}
         rightActions={
           registrations.data && !registrations.data.items.length ? (
-            <CreateWebhookRegistrationButton
-              instanceId={instanceId}
-              provider={provider}
-              onCreate={onCreate}
-            />
+            <CreateWebhookRegistrationButton instanceId={instanceId} provider={provider} />
           ) : undefined
         }
       >
-        {renderWithPagination(registrations, {
-          hidePaginationWhenUnavailable: true,
-          emptyState: (
-            <>
+        <ProviderWebhookRegistrationsList
+          listVariant="embedded"
+          instanceId={instanceId}
+          providerId={provider.id}
+          emptyState={{
+            initial: () => (
               <Callout color="orange">
                 <div>
                   <Text size="2" weight="strong">
@@ -61,42 +93,9 @@ export let ProviderWebhookRegistrationsBox = ({
                   </Text>
                 </div>
               </Callout>
-            </>
-          )
-        })(registrations => (
-          <Table
-            headers={['Receiver', 'Receive URL']}
-            data={registrations.data.items.map(registration => ({
-              href: Paths.instance.webhookRegistration(
-                organization.data,
-                project.data,
-                instance.data,
-                registration.id
-              ),
-              data: [
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span>{registration.name}</span>
-
-                  {registration.status === 'awaiting_setup' && (
-                    <Badge color="orange" size="2">
-                      Awaiting Setup
-                    </Badge>
-                  )}
-                </div>,
-
-                registration.receiveUrl ? (
-                  <Text size="2" style={{ fontFamily: 'jetbrains mono, monospace' }}>
-                    {truncateReceiverUrl(registration.receiveUrl)}
-                  </Text>
-                ) : (
-                  <Text size="2" color="gray600">
-                    Not provisioned
-                  </Text>
-                )
-              ]
-            }))}
-          />
-        ))}
+            )
+          }}
+        />
       </Box>
 
       <Spacer height={20} />

@@ -5,7 +5,7 @@ import {
   useSkillAssistantWorkspace
 } from '@metorial/state';
 import { Button } from '@metorial/ui';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 
 let Panel = styled.div`
@@ -154,12 +154,59 @@ export let SkillMetadataSection = (p: {
     if (focusedRef.current != 'description') setDescription(savedDescription);
   }, [savedDescription]);
 
+  let streamedDescription = useMemo(() => {
+    if (!assistant.isBusy) return '';
+    for (let item of [...assistant.history.liveItems].reverse()) {
+      if (item.type != 'tool' || item.tool.key != 'write_client_description') continue;
+      let text = item.calls
+        .map(call => (call.input as { clientDescription?: unknown } | undefined)?.clientDescription)
+        .filter((value): value is string => typeof value == 'string')
+        .sort((a, b) => b.length - a.length)[0];
+      if (text) return text;
+    }
+    return '';
+  }, [assistant.isBusy, assistant.history.liveItems]);
+
+  let [generated, setGenerated] = useState<string | null>(null);
+  let [typed, setTyped] = useState('');
+
+  useEffect(() => {
+    if (streamedDescription) setGenerated(streamedDescription);
+  }, [streamedDescription]);
+
+  useEffect(() => {
+    if (generated == null || typed == generated) return;
+
+    let interval = setInterval(() => {
+      setTyped(current => {
+        if (!generated.startsWith(current)) return generated.slice(0, 1);
+        let step = Math.max(2, Math.ceil((generated.length - current.length) / 25));
+        return generated.slice(0, current.length + step);
+      });
+    }, 20);
+    return () => clearInterval(interval);
+  }, [generated, typed]);
+
+  let isTyping = generated != null && typed != generated;
+  useEffect(() => {
+    if (generated == null || assistant.isBusy || isTyping) return;
+    let timeout = setTimeout(() => setGenerated(null), 4000);
+    return () => clearTimeout(timeout);
+  }, [generated, assistant.isBusy, isTyping]);
+
+  useEffect(() => {
+    if (assistant.isBusy) {
+      setGenerated(null);
+      setTyped('');
+    }
+  }, [assistant.isBusy]);
+
   useEffect(() => {
     let el = descriptionRef.current;
     if (!el) return;
     el.style.height = 'auto';
     el.style.height = `${Math.max(el.scrollHeight, 64)}px`;
-  }, [description, p.open]);
+  }, [description, typed, assistant.isBusy, p.open]);
 
   let wasBusyRef = useRef(false);
   useEffect(() => {
@@ -171,6 +218,8 @@ export let SkillMetadataSection = (p: {
 
   let canEdit = !p.readOnly && (workspace?.canWrite ?? true);
   let hasDescription = savedDescription.trim().length > 0;
+  let isGenerating = assistant.isBusy;
+  let isRevealing = generated != null;
 
   let saveName = async () => {
     focusedRef.current = null;
@@ -217,7 +266,7 @@ export let SkillMetadataSection = (p: {
 
   return (
     <>
-      {!hasDescription && (
+      {!hasDescription && !isGenerating && (
         <Callout>
           <CalloutText type="button" onClick={p.onOpen}>
             <strong>This skill has no description.</strong> Agents need a description to
@@ -227,7 +276,7 @@ export let SkillMetadataSection = (p: {
         </Callout>
       )}
 
-      {p.open && (
+      {(p.open || isGenerating) && (
         <Panel>
           <Field>
             <FieldHeader>
@@ -247,18 +296,24 @@ export let SkillMetadataSection = (p: {
           <Field>
             <FieldHeader>
               <FieldLabel>Client description</FieldLabel>
-              {hasDescription && generateButton}
+              {(hasDescription || isGenerating) && generateButton}
             </FieldHeader>
             <FieldTextarea
               ref={descriptionRef}
-              value={description}
-              readOnly={!canEdit || assistant.isBusy}
+              value={isGenerating || isRevealing ? typed : description}
+              readOnly={!canEdit || isGenerating || isTyping}
               placeholder={
                 assistant.isBusy
                   ? 'Writing a description...'
                   : 'What this skill does and when an agent should use it'
               }
-              onFocus={() => (focusedRef.current = 'description')}
+              onFocus={() => {
+                focusedRef.current = 'description';
+                if (isRevealing) {
+                  setDescription(typed);
+                  setGenerated(null);
+                }
+              }}
               onChange={e => setDescription(e.target.value)}
               onBlur={saveDescription}
             />

@@ -16,11 +16,13 @@ import {
   classifyByExtensionOnly,
   classifyHead,
   DETECTOR_TEXT_MAX_BYTES,
+  isBinaryKind,
   type FileClassification,
   HEAD_BYTES
 } from '../skillFiles';
 import {
   type InstructionHit,
+  scriptExtensions,
   sanitizeForReview,
   scanSkill,
   type SkillInventoryEntry,
@@ -283,6 +285,54 @@ let previousReviewedVersion = async (d: {
   return revision?.skillVersionId ? await loadVersion({ id: revision.skillVersionId }) : null;
 };
 
+type AgentViewCandidate = {
+  inventoryEntry: SkillInventoryEntry;
+  path: string;
+  size: number;
+  content: string;
+};
+
+let agentViewPriority = (path: string) => {
+  let name = path.split('/').pop()?.toLowerCase() ?? '';
+  if (name == 'skill.md') return 0;
+
+  let extension = name.split('.').pop() ?? '';
+  return extension == 'md' || scriptExtensions.has(extension) ? 1 : 2;
+};
+
+let inventoryPriority = (entry: SkillInventoryEntry) =>
+  isBinaryKind(entry.kind) ? 3 : entry.kind == 'empty' ? 2 : agentViewPriority(entry.path);
+
+let sortInventory = (inventory: SkillInventoryEntry[]) =>
+  inventory.sort(
+    (a, b) => inventoryPriority(a) - inventoryPriority(b) || a.path.localeCompare(b.path)
+  );
+
+// Small files and scripts claim the shared budget first, so one large file cannot push a script
+// out of the reviewing agent's view.
+let pickAgentViewPaths = (candidates: AgentViewCandidate[]) => {
+  let picked = new Set<string>();
+  let agentBytes = 0;
+
+  let ordered = candidates
+    .filter(candidate => candidate.size <= AGENT_TEXT_MAX_BYTES)
+    .sort(
+      (a, b) =>
+        agentViewPriority(a.path) - agentViewPriority(b.path) ||
+        a.size - b.size ||
+        a.path.localeCompare(b.path)
+    );
+
+  for (let candidate of ordered) {
+    if (agentBytes + candidate.size > AGENT_TOTAL_MAX_BYTES) continue;
+
+    agentBytes += candidate.size;
+    picked.add(candidate.path);
+  }
+
+  return picked;
+};
+
 export let collectSkillEvidence = async (d: {
   review: SecurityReview;
 }): Promise<CollectedEvidence | null> => {
@@ -306,12 +356,12 @@ export let collectSkillEvidence = async (d: {
   let files: Record<string, string> = {};
   let texts: SkillTextFile[] = [];
   let inventory: SkillInventoryEntry[] = [];
-  let agentBytes = 0;
   let unreadText = 0;
   let unanalysedMedia = 0;
   let unanalysedOpaque = 0;
   let unreadable = 0;
   let detectorOnly = 0;
+  let candidates: AgentViewCandidate[] = [];
 
   for (let item of version.storeVersion.items) {
     let entry = tree.get(item.path)!;
@@ -364,17 +414,28 @@ export let collectSkillEvidence = async (d: {
       continue;
     }
 
-    let inAgentView =
-      entry.size <= AGENT_TEXT_MAX_BYTES && agentBytes + entry.size <= AGENT_TOTAL_MAX_BYTES;
+    candidates.push({ inventoryEntry, path: item.path, size: entry.size, content });
+  }
+
+  let agentViewPaths = pickAgentViewPaths(candidates);
+  for (let candidate of candidates) {
+    let inAgentView = agentViewPaths.has(candidate.path);
 
     if (inAgentView) {
-      agentBytes += entry.size;
-      files[`skill/${item.path.replace(/^\/+/, '')}`] = sanitizeForReview(content);
+      files[`skill/${candidate.path.replace(/^\/+/, '')}`] = sanitizeForReview(
+        candidate.content
+      );
     } else {
+      candidate.inventoryEntry.notRead = 'not_shown';
       detectorOnly++;
     }
 
-    texts.push({ path: item.path, content, inAgentView, ships: true });
+    texts.push({
+      path: candidate.path,
+      content: candidate.content,
+      inAgentView,
+      ships: true
+    });
   }
 
   let instructionHits: Record<string, InstructionHit[]> = {};
@@ -389,6 +450,8 @@ export let collectSkillEvidence = async (d: {
       }));
     }
   }
+
+  sortInventory(inventory);
 
   let scan = scanSkill({ texts, inventory, instructionHits });
   facts.push(...scan.facts);

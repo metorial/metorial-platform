@@ -7,6 +7,7 @@ import {
   type ListFilter,
   type SearchStateTuple
 } from '../model/state';
+import { usePillSelections } from '../model/pillSelections';
 import type { TableFilter } from '../model/tableFilter';
 import { FilterHighlightRow } from './highlightRow';
 import { FilterSearchBar } from './searchBar';
@@ -50,6 +51,7 @@ export let FilterToolbar = ({
   placeholder,
   suggestions,
   end,
+  barEnd,
   size = '3',
   shortcut,
   style
@@ -60,11 +62,13 @@ export let FilterToolbar = ({
   placeholder?: string;
   suggestions?: FilterSuggestionGroup[];
   end?: React.ReactNode;
+  barEnd?: React.ReactNode;
   size?: ControlSize;
   shortcut?: boolean;
   style?: React.CSSProperties;
 }) => {
   let hasBar = !!searchState || filters.length > 0;
+  let pillSelections = usePillSelections(filterState[0]);
   let highlighted = useMemo(
     () => filters.filter((f): f is ListFilter => !!f.highlight && isListFilter(f)),
     [filters]
@@ -82,6 +86,8 @@ export let FilterToolbar = ({
               placeholder={placeholder}
               suggestions={suggestions}
               shortcut={shortcut}
+              pillSelections={pillSelections}
+              barEnd={barEnd}
             />
           ) : (
             <Spacer />
@@ -91,7 +97,12 @@ export let FilterToolbar = ({
         </Row>
 
         {highlighted.map(filter => (
-          <FilterHighlightRow key={filter.id} filter={filter} filterState={filterState} />
+          <FilterHighlightRow
+            key={filter.id}
+            filter={filter}
+            filterState={filterState}
+            pillSelections={pillSelections}
+          />
         ))}
       </Wrapper>
     </ControlSizeProvider>

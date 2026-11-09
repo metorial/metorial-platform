@@ -8,6 +8,7 @@ import type { TableFilter, TableFilterState } from '../model/tableFilter';
 import { FilterHighlightRow } from './highlightRow';
 import { OptionList } from './optionList';
 import { FilterSearchBar } from './searchBar';
+import { FilterToolbar } from './toolbar';
 
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -105,7 +106,9 @@ describe('FilterHighlightRow', () => {
     let { probe, Harness } = useStateProbe([]);
     let container = render(
       <Harness>
-        {tuple => <FilterHighlightRow filter={statusFilter as ListFilter} filterState={tuple} />}
+        {tuple => (
+          <FilterHighlightRow filter={statusFilter as ListFilter} filterState={tuple} />
+        )}
       </Harness>
     );
 
@@ -167,7 +170,9 @@ describe('FilterSearchBar', () => {
       </Harness>
     );
 
-    expect(container.querySelector('[aria-label="Status: Active. Edit filter"]')).not.toBeNull();
+    expect(
+      container.querySelector('[aria-label="Status: Active. Edit filter"]')
+    ).not.toBeNull();
 
     let input = container.querySelector('input[role="combobox"]') as HTMLInputElement;
     act(() => {
@@ -178,28 +183,69 @@ describe('FilterSearchBar', () => {
     expect(probe.current).toEqual([]);
   });
 
-  it('leaves highlighted filters out of the tokens', () => {
+  it('shows highlighted filter values chosen outside the pills as a token', () => {
     let { Harness } = useStateProbe([statusState]);
     let container = render(
       <Harness>
-        {tuple => <FilterSearchBar filters={[statusFilter]} filterState={tuple} shortcut={false} />}
+        {tuple => (
+          <FilterSearchBar filters={[statusFilter]} filterState={tuple} shortcut={false} />
+        )}
       </Harness>
     );
 
+    expect(
+      container.querySelector('[aria-label="Status: Active. Edit filter"]')
+    ).not.toBeNull();
+  });
+
+  it('keeps values chosen through the pills out of the bar, but still in the panel badge', () => {
+    let { probe, Harness } = useStateProbe([]);
+    let container = render(
+      <Harness>
+        {tuple => (
+          <FilterToolbar
+            filters={[statusFilter]}
+            filterState={tuple}
+            searchState={['', () => {}]}
+            shortcut={false}
+          />
+        )}
+      </Harness>
+    );
+
+    let pill = Array.from(container.querySelectorAll('button[aria-pressed]')).find(
+      b => !b.closest('[aria-hidden]') && b.textContent?.startsWith('Active')
+    );
+    act(() => (pill as HTMLButtonElement).click());
+
+    expect(probe.current).toEqual([
+      expect.objectContaining({ id: 'status', value: ['active'] })
+    ]);
     expect(container.querySelector('[aria-label="Status: Active. Edit filter"]')).toBeNull();
     expect(container.querySelector('[aria-label="Filters (1 applied)"]')).not.toBeNull();
+    expect(
+      Array.from(container.querySelectorAll('button[aria-pressed="true"]')).length
+    ).toBeGreaterThan(0);
   });
 
   it('removes a token through its remove button', () => {
     let { probe, Harness } = useStateProbe([statusState]);
     let container = render(
       <Harness>
-        {tuple => <FilterSearchBar filters={[plainStatusFilter]} filterState={tuple} shortcut={false} />}
+        {tuple => (
+          <FilterSearchBar
+            filters={[plainStatusFilter]}
+            filterState={tuple}
+            shortcut={false}
+          />
+        )}
       </Harness>
     );
 
     act(() =>
-      (container.querySelector('[aria-label="Remove Status filter"]') as HTMLButtonElement).click()
+      (
+        container.querySelector('[aria-label="Remove Status filter"]') as HTMLButtonElement
+      ).click()
     );
 
     expect(probe.current).toEqual([]);

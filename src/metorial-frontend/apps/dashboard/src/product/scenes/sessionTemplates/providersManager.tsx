@@ -1,5 +1,6 @@
 import { DashboardInstanceSessionTemplatesProvidersListOutput } from '@metorial/dashboard-sdk';
-import { renderWithLoader } from '@metorial/data-hooks';
+import { col, createDataList, defineAction, lifecycleStatus } from '@metorial/data-list';
+import { EmptyState } from '@metorial/empty-state';
 import {
   useDeleteSessionTemplateProvider,
   useProviderAuthConfigs,
@@ -7,69 +8,34 @@ import {
   useProviderListings,
   useSessionTemplateProviders
 } from '@metorial/state';
-import {
-  Avatar,
-  Button,
-  Dialog,
-  Flex,
-  RenderDate,
-  Spacer,
-  Text,
-  showModal
-} from '@metorial/ui';
-import { ID } from '@metorial/ui-product';
+import { Avatar, Flex, Text } from '@metorial/ui';
 import { RiDeleteBinLine, RiPencilLine } from '@remixicon/react';
-import { type ReactNode, useMemo, useState } from 'react';
-import { EmptyState } from '@metorial/empty-state';
-import { Table as DashboardTable } from '@metorial/table';
-import { TableStateProvider, TableStateProviderResult } from '@metorial/table';
+import { type ReactNode, useMemo } from 'react';
 import { ToolFilterSummaryText } from '../../lib/toolFilterSummary';
 import {
   type ProviderPanelSubmitInput,
   showAddProviderPanelFlow
 } from './addProviderPanelFlow';
 
-type SessionTemplateProviderRow =
+type SessionTemplateProviderItem =
   DashboardInstanceSessionTemplatesProvidersListOutput['items'][number];
 
-type SessionTemplateProviderToolFilter = SessionTemplateProviderRow['toolFilter'] | null;
+type SessionTemplateProviderRow = SessionTemplateProviderItem & {
+  providerName: string;
+  providerImageUrl: string | null;
+  deploymentName: string | null;
+  authConfigName: string | null;
+};
+
+type SessionTemplateProviderToolFilter = SessionTemplateProviderItem['toolFilter'] | null;
 
 type SessionTemplateProvidersTableProps = {
   instanceId: string;
   sessionTemplateId: string;
-  providers: ReturnType<typeof useSessionTemplateProviders>;
-  listingLookup: Record<string, { name: string; imageUrl: string }>;
-  deploymentLookup: Record<string, string>;
-  authConfigNameLookup: Record<string, string>;
-  emptyState?: () => ReactNode;
 };
 
-type SessionTemplateProvidersTableHookState = {
-  instanceId: string;
-  sessionTemplateId: string;
-  providers: ReturnType<typeof useSessionTemplateProviders>;
-  listingLookup: Record<string, { name: string; imageUrl: string }>;
-};
-
-let getProviderId = (provider: SessionTemplateProviderRow) =>
+let getProviderId = (provider: SessionTemplateProviderItem) =>
   provider.providerId ?? provider.deployment.providerId ?? provider.config.providerId;
-
-let getProviderDisplayName = (
-  provider: SessionTemplateProviderRow,
-  listingLookup: Record<string, { name: string; imageUrl: string }>
-) => {
-  let providerId = getProviderId(provider);
-  let listing = providerId ? listingLookup[providerId] : undefined;
-  return listing?.name ?? providerId ?? 'Provider';
-};
-
-let getProviderListing = (
-  provider: SessionTemplateProviderRow,
-  listingLookup: Record<string, { name: string; imageUrl: string }>
-) => {
-  let providerId = getProviderId(provider);
-  return providerId ? listingLookup[providerId] : undefined;
-};
 
 export let showAddProviderSidePanel = (p: {
   instanceId: string;
@@ -95,394 +61,165 @@ export let showAddProviderSidePanel = (p: {
 
 export let showAddProviderModal = showAddProviderSidePanel;
 
-let showRemoveProviderModal = (p: {
-  instanceId: string;
-  sessionTemplateId: string;
-  provider: SessionTemplateProviderRow;
-  displayName: string;
-  onComplete: () => void;
-}) =>
-  new Promise<boolean>(resolve => {
-    let settled = false;
-    let finish = (value: boolean) => {
-      if (settled) return;
-      settled = true;
-      resolve(value);
-    };
-
-    showModal(
-      ({ dialogProps, close }) => {
-        let [loading, setLoading] = useState(false);
-        let deleteMutation = useDeleteSessionTemplateProvider();
-
-        return (
-          <Dialog.Wrapper {...dialogProps} width={450}>
-            <Dialog.Title>Remove Provider</Dialog.Title>
-            <Dialog.Description>
-              Are you sure you want to remove <strong>{p.displayName}</strong> from this
-              template? Sessions created from this template will no longer include this
-              provider.
-            </Dialog.Description>
-
-            <Spacer size={20} />
-
-            <Dialog.Actions>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  finish(false);
-                  close();
-                }}
-                disabled={loading}
-              >
-                Cancel
-              </Button>
-              <Button
-                color="red"
-                loading={loading}
-                onClick={async () => {
-                  setLoading(true);
-                  let [, err] = await deleteMutation.mutate({
-                    instanceId: p.instanceId,
-                    sessionTemplateId: p.sessionTemplateId,
-                    sessionTemplateProviderId: p.provider.id
-                  });
-
-                  if (!err) {
-                    p.onComplete();
-                    finish(true);
-                    close();
-                    return;
-                  }
-
-                  setLoading(false);
-                }}
-              >
-                Remove
-              </Button>
-            </Dialog.Actions>
-          </Dialog.Wrapper>
-        );
-      },
-      {
-        onClose: () => finish(false)
-      }
+let SessionTemplateProvidersList = createDataList<SessionTemplateProvidersTableProps>(
+  'session-template-providers'
+)
+  .paginated(({ props }) =>
+    useSessionTemplateProviders(props.instanceId, props.sessionTemplateId)
+  )
+  .enrich<SessionTemplateProviderRow>((items, { props }) => {
+    let providerIds = useMemo(
+      () => [...new Set(items.map(getProviderId).filter((value): value is string => !!value))],
+      [items]
     );
-  });
+    let instanceId = providerIds.length > 0 ? props.instanceId : null;
 
-let showBulkRemoveProvidersModal = (p: {
-  instanceId: string;
-  sessionTemplateId: string;
-  sessionTemplateProviderIds: string[];
-  onComplete: () => void;
-}) =>
-  new Promise<boolean>(resolve => {
-    let settled = false;
-    let finish = (value: boolean) => {
-      if (settled) return;
-      settled = true;
-      resolve(value);
-    };
+    let authConfigs = useProviderAuthConfigs(instanceId, {
+      ownership: 'all',
+      providerId: providerIds
+    });
+    let listings = useProviderListings(instanceId, { id: providerIds });
+    let deployments = useProviderDeployments(instanceId, { providerId: providerIds });
 
-    showModal(
-      ({ dialogProps, close }) => {
-        let [loading, setLoading] = useState(false);
-        let deleteMutation = useDeleteSessionTemplateProvider();
-        let providerCount = p.sessionTemplateProviderIds.length;
-        let providerLabel = providerCount === 1 ? 'provider' : 'providers';
-
-        return (
-          <Dialog.Wrapper {...dialogProps} width={460}>
-            <Dialog.Title>
-              Remove Selected {providerCount === 1 ? 'Provider' : 'Providers'}
-            </Dialog.Title>
-            <Dialog.Description>
-              Remove <strong>{providerCount}</strong> selected {providerLabel} from this
-              template?
-            </Dialog.Description>
-
-            <Spacer size={20} />
-
-            <Dialog.Actions>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  finish(false);
-                  close();
-                }}
-                disabled={loading}
-              >
-                Cancel
-              </Button>
-              <Button
-                color="red"
-                loading={loading}
-                onClick={async () => {
-                  setLoading(true);
-
-                  for (let sessionTemplateProviderId of p.sessionTemplateProviderIds) {
-                    let [, err] = await deleteMutation.mutate({
-                      instanceId: p.instanceId,
-                      sessionTemplateId: p.sessionTemplateId,
-                      sessionTemplateProviderId
-                    });
-                    if (err) {
-                      setLoading(false);
-                      return;
-                    }
-                  }
-
-                  p.onComplete();
-                  finish(true);
-                  close();
-                }}
-              >
-                Delete
-              </Button>
-            </Dialog.Actions>
-          </Dialog.Wrapper>
-        );
-      },
-      {
-        onClose: () => finish(false)
-      }
-    );
-  });
-
-let sessionTemplateProvidersState: TableStateProvider<
-  SessionTemplateProvidersTableProps,
-  SessionTemplateProviderRow,
-  TableStateProviderResult<SessionTemplateProviderRow>
-> = props => ({
-  isLoading: props.providers.isLoading,
-  error: props.providers.error,
-  hasMoreAfter: false,
-  hasMoreBefore: false,
-  items: props.providers.data?.items ?? [],
-  loadNext: () => {},
-  loadPrevious: () => {}
-});
-
-let useSessionTemplateProvidersTableHookState = (
-  _: ReturnType<typeof sessionTemplateProvidersState>,
-  props: SessionTemplateProvidersTableProps
-): SessionTemplateProvidersTableHookState => ({
-  instanceId: props.instanceId,
-  sessionTemplateId: props.sessionTemplateId,
-  providers: props.providers,
-  listingLookup: props.listingLookup
-});
-
-let sessionTemplateProvidersTable = new DashboardTable<
-  SessionTemplateProvidersTableProps,
-  SessionTemplateProviderRow
->('session-template-providers', { hasPagination: false })
-  .state(sessionTemplateProvidersState)
-  .hookState(useSessionTemplateProvidersTableHookState)
-  .columns([
-    {
-      id: 'provider',
-      isDefault: true,
-      header: 'Provider',
-      render: (provider, props) => {
-        let listing = getProviderListing(provider, props.listingLookup);
-        let providerName = getProviderDisplayName(provider, props.listingLookup);
-
-        return (
-          <Flex gap={10} style={{ alignItems: 'center' }}>
-            <Avatar
-              entity={{ name: providerName, photoUrl: listing?.imageUrl }}
-              size={24}
-              radius={6}
-              noTooltip
-              imageFit="contain"
-            />
-            <Text size="2" weight="strong">
-              {providerName}
-            </Text>
-          </Flex>
-        );
-      }
-    },
-    {
-      id: 'deployment',
-      isDefault: true,
-      header: 'Deployment',
-      render: (provider, props) => {
-        let deploymentId = provider.deployment.id;
-        let deploymentName =
-          provider.deployment.name ??
-          (deploymentId ? (props.deploymentLookup[deploymentId] ?? null) : null);
-
-        return deploymentName ? (
-          <Text size="2">{deploymentName}</Text>
-        ) : (
-          <Text size="2" color="gray500">
-            —
-          </Text>
-        );
-      }
-    },
-    {
-      id: 'config',
-      isDefault: true,
-      header: 'Config',
-      render: provider =>
-        provider.config.name || provider.config.id ? (
-          <Text size="2">{provider.config.name ?? provider.config.id}</Text>
-        ) : (
-          <Text size="2" color="gray500">
-            —
-          </Text>
+    let rows = useMemo<SessionTemplateProviderRow[]>(() => {
+      let listingByProviderId = new Map(
+        (listings.data?.items ?? []).map(listing => [listing.provider.id, listing] as const)
+      );
+      let deploymentNameById = new Map(
+        (deployments.data?.items ?? []).map(deployment => [deployment.id, deployment.name])
+      );
+      let authConfigNameById = new Map(
+        (authConfigs.data?.items ?? []).map(
+          authConfig =>
+            [
+              authConfig.id,
+              authConfig.name ??
+                (authConfig.isDefault ? 'Default Auth Config' : 'Unnamed Auth Config')
+            ] as const
         )
-    },
-    {
-      id: 'authConfig',
-      isDefault: true,
-      header: 'Auth Config',
-      render: (provider, props) => {
-        let authConfigId = provider.authConfig?.id ?? null;
-        let authConfigLabel = authConfigId
-          ? (props.authConfigNameLookup[authConfigId] ?? null)
-          : null;
+      );
 
-        return authConfigLabel ? (
-          <Text size="2">{authConfigLabel}</Text>
-        ) : (
-          <Text size="2" color="gray500">
-            —
+      return items.map(item => {
+        let providerId = getProviderId(item);
+        let listing = providerId ? listingByProviderId.get(providerId) : undefined;
+        let authConfigId = item.authConfig?.id;
+
+        return {
+          ...item,
+          providerName: listing?.name ?? providerId ?? 'Provider',
+          providerImageUrl: listing?.imageUrl ?? null,
+          deploymentName:
+            item.deployment.name ?? deploymentNameById.get(item.deployment.id) ?? null,
+          authConfigName: authConfigId ? (authConfigNameById.get(authConfigId) ?? null) : null
+        };
+      });
+    }, [items, listings.data?.items, deployments.data?.items, authConfigs.data?.items]);
+
+    return {
+      items: rows,
+      isLoading:
+        providerIds.length > 0 &&
+        (listings.isLoading || deployments.isLoading || authConfigs.isLoading),
+      error: listings.error ?? deployments.error ?? authConfigs.error
+    };
+  })
+  .columns([
+    col.custom({
+      id: 'provider',
+      header: 'Provider',
+      render: row => (
+        <Flex gap={10} align="center">
+          <Avatar
+            entity={{ name: row.providerName, photoUrl: row.providerImageUrl ?? undefined }}
+            size={24}
+            radius={6}
+            noTooltip
+            imageFit="contain"
+          />
+          <Text size="2" weight="strong">
+            {row.providerName}
           </Text>
-        );
-      }
-    },
-    {
+        </Flex>
+      )
+    }),
+    col.text({ id: 'deployment', header: 'Deployment', get: row => row.deploymentName }),
+    col.text({
+      id: 'config',
+      header: 'Config',
+      get: row => row.config.name ?? row.config.id
+    }),
+    col.text({ id: 'authConfig', header: 'Auth Config', get: row => row.authConfigName }),
+    col.custom({
       id: 'toolFilters',
-      isDefault: true,
       header: 'Tool Filters',
-      render: (provider, props) => (
+      render: (row, props) => (
         <ToolFilterSummaryText
           instanceId={props.instanceId}
-          providerId={getProviderId(provider)}
-          toolFilter={provider.toolFilter}
+          providerId={getProviderId(row)}
+          toolFilter={row.toolFilter}
         />
       )
-    },
-    {
-      id: 'status',
-      isDefault: false,
-      header: 'Status',
-      render: provider => <Text size="2">{provider.status}</Text>
-    },
-    {
-      id: 'createdAt',
-      isDefault: false,
-      header: 'Created',
-      render: provider => <RenderDate date={provider.createdAt} />
-    },
-    {
-      id: 'updatedAt',
-      isDefault: false,
-      header: 'Updated',
-      render: provider => <RenderDate date={provider.updatedAt} />
-    },
-    {
-      id: 'providerId',
-      isDefault: false,
-      header: 'Provider ID',
-      render: provider => <ID id={getProviderId(provider)} />
-    },
-    {
-      id: 'deploymentId',
-      isDefault: false,
-      header: 'Deployment ID',
-      render: provider => <ID id={provider.deployment.id} />
-    },
-    {
-      id: 'configId',
-      isDefault: false,
-      header: 'Config ID',
-      render: provider => <ID id={provider.config.id} />
-    },
-    {
-      id: 'authConfigId',
-      isDefault: false,
-      header: 'Auth Config ID',
-      render: provider =>
-        provider.authConfig?.id ? (
-          <ID id={provider.authConfig.id} />
-        ) : (
-          <Text size="2" color="gray500">
-            —
-          </Text>
-        )
-    }
+    }),
+    col.status(lifecycleStatus, { isDefault: false }),
+    col.createdAt(),
+    col.updatedAt(),
+    col.refId('providerId', row => getProviderId(row), { header: 'Provider ID' }),
+    col.refId('deploymentId', row => row.deployment.id, { header: 'Deployment ID' }),
+    col.refId('configId', row => row.config.id, { header: 'Config ID' }),
+    col.refId('authConfigId', row => row.authConfig?.id, { header: 'Auth Config ID' })
   ])
-  .actions({
-    edit: async (providers, state) => {
-      let provider = providers[0];
-      if (!provider) return;
-
-      let resolvedProviderId = getProviderId(provider);
-      showAddProviderSidePanel({
-        instanceId: state.instanceId,
-        sessionTemplateId: state.sessionTemplateId,
-        sessionTemplateProviderId: provider.id,
-        providerId: resolvedProviderId,
-        hideProviderStep: true,
-        initialDeploymentId: provider.deployment.id,
-        initialConfigId: provider.config.id,
-        initialAuthConfigId: provider.authConfig?.id ?? undefined,
-        initialToolFilter: provider.toolFilter ?? null,
-        title: 'Edit Provider',
-        description: 'Update provider settings for this template.',
-        action: 'Save Changes',
-        onComplete: () => state.providers.refetch()
-      });
-    },
-    remove: async (providers, state) => {
-      let provider = providers[0];
-      if (!provider) return;
-
-      await showRemoveProviderModal({
-        instanceId: state.instanceId,
-        sessionTemplateId: state.sessionTemplateId,
-        provider,
-        displayName: getProviderDisplayName(provider, state.listingLookup),
-        onComplete: () => state.providers.refetch()
-      });
-    },
-    removeSelected: async (providers, state) => {
-      if (providers.length === 0) return;
-
-      await showBulkRemoveProvidersModal({
-        instanceId: state.instanceId,
-        sessionTemplateId: state.sessionTemplateId,
-        sessionTemplateProviderIds: providers.map(provider => provider.id),
-        onComplete: () => state.providers.refetch()
-      });
-    }
-  })
-  .rowActions([
-    {
+  .itemActions([
+    defineAction({
       id: 'edit',
       label: 'Edit',
       icon: <RiPencilLine />,
-      action: 'edit'
-    },
-    {
+      useRun:
+        ({ props }) =>
+        async row => {
+          showAddProviderSidePanel({
+            instanceId: props.instanceId,
+            sessionTemplateId: props.sessionTemplateId,
+            sessionTemplateProviderId: row.id,
+            providerId: getProviderId(row),
+            hideProviderStep: true,
+            initialDeploymentId: row.deployment.id,
+            initialConfigId: row.config.id,
+            initialAuthConfigId: row.authConfig?.id ?? undefined,
+            initialToolFilter: row.toolFilter ?? null,
+            title: 'Edit Provider',
+            description: 'Update provider settings for this template.',
+            action: 'Save Changes',
+            onComplete: () => {}
+          });
+        }
+    }),
+    defineAction({
       id: 'remove',
       label: 'Remove',
       icon: <RiDeleteBinLine />,
-      action: 'remove'
-    }
-  ])
-  .bulkActions([
-    {
-      id: 'remove-selected',
-      label: 'Delete',
-      icon: <RiDeleteBinLine />,
-      action: 'removeSelected'
-    }
+      destructive: true,
+      bulk: { label: 'Delete' },
+      confirm: {
+        title: 'Remove Provider',
+        confirmText: 'Remove',
+        description: rows =>
+          rows.length > 1
+            ? `Remove ${rows.length} selected providers from this template?`
+            : `Are you sure you want to remove ${rows[0]?.providerName} from this template? Sessions created from this template will no longer include this provider.`
+      },
+      useRun: ({ props }) => {
+        let deleteMutation = useDeleteSessionTemplateProvider();
+
+        return async row => {
+          let [, error] = await deleteMutation.mutate({
+            instanceId: props.instanceId,
+            sessionTemplateId: props.sessionTemplateId,
+            sessionTemplateProviderId: row.id
+          });
+          if (error) throw error;
+        };
+      }
+    })
   ])
   .build();
 
@@ -494,61 +231,14 @@ export let SessionTemplateProvidersManager = ({
   instanceId: string;
   sessionTemplateId: string;
   actions?: ReactNode;
-}) => {
-  let providers = useSessionTemplateProviders(instanceId, sessionTemplateId);
-  let items = providers.data?.items ?? [];
-  let providerIds = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          items.map(item => getProviderId(item)).filter((value): value is string => !!value)
-        )
-      ),
-    [items]
-  );
-
-  let authConfigs = useProviderAuthConfigs(instanceId, {
-    ownership: 'all',
-    providerId: providerIds.length > 0 ? providerIds : undefined
-  });
-  let listings = useProviderListings(instanceId, {
-    id: providerIds.length > 0 ? providerIds : undefined
-  });
-  let deployments = useProviderDeployments(instanceId, {
-    providerId: providerIds.length > 0 ? providerIds : undefined
-  });
-
-  let authConfigNameLookup = useMemo(() => {
-    let lookup: Record<string, string> = {};
-    for (let item of authConfigs.data?.items ?? []) {
-      lookup[item.id] =
-        item.name ?? (item.isDefault ? 'Default Auth Config' : 'Unnamed Auth Config');
-    }
-    return lookup;
-  }, [authConfigs.data?.items]);
-
-  return renderWithLoader({ listings, deployments, authConfigs })(() => {
-    let listingLookup: Record<string, { name: string; imageUrl: string }> = {};
-    for (let listing of listings.data?.items ?? []) {
-      let providerId = listing.provider?.id;
-      if (!providerId) continue;
-      listingLookup[providerId] = { name: listing.name, imageUrl: listing.imageUrl };
-    }
-
-    let deploymentLookup: Record<string, string> = {};
-    for (let deployment of deployments.data?.items ?? []) {
-      if (deployment.name) deploymentLookup[deployment.id] = deployment.name;
-    }
-
-    return sessionTemplateProvidersTable({
-      instanceId,
-      sessionTemplateId,
-      providers,
-      listingLookup,
-      deploymentLookup,
-      authConfigNameLookup,
-      headerActions: actions ? () => actions : undefined,
-      emptyState: () => (
+}) => (
+  <SessionTemplateProvidersList
+    instanceId={instanceId}
+    sessionTemplateId={sessionTemplateId}
+    listVariant="embedded"
+    headerActions={actions ? () => actions : undefined}
+    emptyState={{
+      initial: () => (
         <EmptyState
           title="No providers configured"
           description="Add providers to this setup so new sessions automatically include them."
@@ -558,11 +248,11 @@ export let SessionTemplateProvidersManager = ({
               showAddProviderSidePanel({
                 instanceId,
                 sessionTemplateId,
-                onComplete: () => providers.refetch()
+                onComplete: () => {}
               })
           }}
         />
       )
-    });
-  });
-};
+    }}
+  />
+);

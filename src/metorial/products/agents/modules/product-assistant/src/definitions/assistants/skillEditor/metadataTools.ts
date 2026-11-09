@@ -3,6 +3,12 @@ import type { Instance, Project } from '@metorial/db';
 import { skillService } from '@metorial/module-skill';
 import { jsonSchema, tool, type Tool } from 'ai';
 import type { AssistantAccess } from '../../../lib/definitions';
+import type {
+  AgentRunExtension,
+  AgentRunStateWriter,
+  AgentRunToolAdapter
+} from '../../../lib/run/extension';
+import type { StateItem } from '../../../types';
 import type { SkillEditorRequest } from './context';
 
 let clientNamePattern = /^(?!-)(?!.*--)[a-z0-9-]+(?<!-)$/;
@@ -21,6 +27,61 @@ let getErrorMessage = (error: unknown) => {
     if ('message' in error && typeof error.message == 'string') return error.message;
   }
   return String(error);
+};
+
+type ToolItem = Extract<StateItem, { type: 'tool' }>;
+
+let writeClientDescriptionTool = 'write_client_description';
+
+let upsertToolCall = (writer: AgentRunStateWriter, toolCallId: string) => {
+  let item = writer.items.find(
+    (item): item is ToolItem => item.type == 'tool' && item.tool.key == writeClientDescriptionTool
+  );
+
+  if (!item) {
+    item = {
+      id: writer.createItemId(),
+      type: 'tool',
+      tool: { key: writeClientDescriptionTool, name: writeClientDescriptionTool },
+      calls: []
+    };
+    writer.items.push(item);
+    item = writer.items[writer.items.length - 1] as ToolItem;
+  }
+
+  let call = item.calls.find(call => call.id == toolCallId);
+  if (!call) {
+    item.calls.push({ id: toolCallId, input: {}, status: 'running' });
+    call = item.calls[item.calls.length - 1]!;
+  }
+
+  return call;
+};
+
+let clientDescriptionAdapter: AgentRunToolAdapter = {
+  onInputStart: ({ toolCallId, writer }) => {
+    upsertToolCall(writer, toolCallId);
+  },
+  onInputDelta: ({ toolCallId, partialInput, writer }) => {
+    upsertToolCall(writer, toolCallId).input = partialInput;
+  },
+  onStart: ({ toolCallId, input, writer }) => {
+    upsertToolCall(writer, toolCallId).input = input;
+  },
+  onDone: ({ toolCallId, output, writer }) => {
+    let call = upsertToolCall(writer, toolCallId);
+    call.output = output;
+    call.status = 'completed';
+  },
+  onError: ({ toolCallId, error, writer }) => {
+    let call = upsertToolCall(writer, toolCallId);
+    call.error = { message: error };
+    call.status = 'failed';
+  }
+};
+
+export let skillMetadataExtension: AgentRunExtension = {
+  tools: { [writeClientDescriptionTool]: clientDescriptionAdapter }
 };
 
 export let createSkillMetadataTools = (d: {
@@ -83,7 +144,7 @@ export let createSkillMetadataTools = (d: {
   };
 
   if (d.request.mode == 'metadata') {
-    tools.write_client_description = tool({
+    tools[writeClientDescriptionTool] = tool({
       description:
         'Save the client description of this skill. This is what agents read to decide whether to load the skill. Call it exactly once.',
       inputSchema: jsonSchema<{ clientDescription: string }>({

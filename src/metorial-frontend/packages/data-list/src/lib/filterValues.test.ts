@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getDateRangeFilterValue } from './dataTableUtils';
+import { getDateRangeFilterValue } from './filterValues';
 
 describe('getDateRangeFilterValue', () => {
   it('keeps a midnight inclusive lower bound one millisecond before midnight', () => {

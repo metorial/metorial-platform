@@ -2,25 +2,26 @@ import type {
   DashboardInstanceProviderListingsListOutput,
   DashboardInstanceProviderListingsListQuery
 } from '@metorial/dashboard-sdk';
+import { f } from '@metorial/data-list';
 import { Paths } from '@metorial/frontend-config';
 import {
   providerCategoriesLoader,
   providerListingsLoader,
   useCurrentInstance
 } from '@metorial/state';
-import { Avatar } from '@metorial/ui';
-import React, { type Dispatch, type SetStateAction, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   FilterToolbar,
-  type FilterSuggestionGroup,
-  TableFilter,
   TableFilterState,
-  getFilterPayload,
   getEnumListFilterValue,
-  getListFilterValue
+  getFilterPayload,
+  getListFilterValue,
+  type FilterSuggestionGroup,
+  type TableFilter
 } from '@metorial/table';
+import { Avatar } from '@metorial/ui';
 import { useDebounced } from '@metorial/use-debounced';
+import React, { type Dispatch, type SetStateAction, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { defineEntityFilter, useEntityList } from '../entityFilters';
 
 type ProviderListing = DashboardInstanceProviderListingsListOutput['items'][number];
@@ -49,6 +50,13 @@ let providerCategoryFilter = (instanceId: string | undefined) =>
     }
   })({ highlight: { label: 'Categories' } });
 
+export let providerListingFilterDefs = (instanceId: string | undefined) => ({
+  providerCategoryId: f.entity(providerCategoryFilter(instanceId)),
+  isVerified: f.select('isVerified', 'Verified', [{ id: 'true', label: 'Verified only' }], {
+    description: 'Filter by verified status'
+  })
+});
+
 export let useProviderListingFilters = (p: {
   search: string;
   filterState: TableFilterState[];
@@ -59,17 +67,7 @@ export let useProviderListingFilters = (p: {
   let searchDebounced = useDebounced(p.search, 500);
 
   let filters: TableFilter<any>[] = useMemo(
-    () => [
-      providerCategoryFilter(instanceId),
-      {
-        id: 'isVerified',
-        fields: ['isVerified'],
-        label: 'Verified',
-        description: 'Filter by verified status',
-        type: 'select',
-        options: [{ id: 'true', label: 'Verified only' }]
-      }
-    ],
+    () => Object.values(providerListingFilterDefs(instanceId)).map(def => def.filter),
     [instanceId]
   );
 
@@ -161,7 +159,7 @@ export let ProviderListingFilters = (p: {
       searchState={p.searchState}
       filterState={p.filterState}
       filters={p.filters}
-      placeholder="Search providers or filter..."
+      placeholder="Search providers or filter…"
       suggestions={suggestions}
       end={p.end}
     />

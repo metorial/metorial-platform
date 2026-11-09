@@ -1474,7 +1474,15 @@ let DocumentEditorLoaded = (p: {
     pendingSaveRef.current = null;
     autosaveHydratedRef.current = false;
     setEditorKey(k => k + 1);
-  }, [p.document.content, p.document.id, p.document.title, p.document.updatedAt]);
+  }, [
+    p.document.content,
+    p.document.id,
+    p.document.title
+  ]);
+
+  useEffect(() => {
+    setLastUpdatedAt(p.document.updatedAt);
+  }, [p.document.updatedAt]);
 
   useEffect(() => {
     if (!readOnly || !collaboration.isFallback || !collaboration.snapshot) return;
