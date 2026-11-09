@@ -218,7 +218,7 @@ let runJob = async (job: Job) => {
     'bun',
     ['run', job.script],
     job.directory,
-    job.env
+    { ...job.env, ...environment.prismaDevelopmentEnvironment }
   );
   commands.say(`${job.script} [${job.name}] done in ${seconds(started)}s`);
 };
