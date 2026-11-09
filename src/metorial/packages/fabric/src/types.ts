@@ -43,7 +43,7 @@ import {
   ConsumerAccessListing,
   ConsumerAccessRequest,
   ConsumerDevice,
-  ConsumerDeviceClientSetting,
+  ConsumerDeviceClient,
   ConsumerGroup,
   ConsumerInvite,
   ConsumerProfile,
@@ -63,6 +63,7 @@ import {
   MagicMcpGroup,
   MagicMcpServer,
   MagicMcpToken,
+  McpClientType,
   OAuthApplication,
   OAuthApplicationClientSecret,
   OAuthApplicationSubjectType,
@@ -836,7 +837,11 @@ export type AuditConsumerSession = ConsumerSession & {
 
 export type AuditConsumerDevice = ConsumerDevice & {
   consumerProfile: ConsumerProfile;
-  clientSettings: ConsumerDeviceClientSetting[];
+  clients: (ConsumerDeviceClient & {
+    mcpClientType: McpClientType;
+    excludedMagicMcpServers: { magicMcpServer: Pick<MagicMcpServer, 'id'> }[];
+    excludedSkills: { skill: Pick<Skill, 'id'> }[];
+  })[];
 };
 
 export type AuditPortal = Portal & {

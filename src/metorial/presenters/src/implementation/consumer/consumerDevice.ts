@@ -4,45 +4,37 @@ import { Presenter } from '@metorial/presenter';
 import { consumerDeviceType } from '../../types';
 
 export let v1ConsumerDevicePresenter = Presenter.create(consumerDeviceType)
-  .presenter(async ({ consumerDevice }) => {
-    let settings = new Map(
-      consumerDevice.clientSettings.map(setting => [setting.clientKey, setting])
-    );
+  .presenter(async ({ consumerDevice }) => ({
+    object: 'consumer.device' as const,
+    id: consumerDevice.id,
+    status: consumerDevice.status,
 
-    return {
-      object: 'consumer.device' as const,
-      id: consumerDevice.id,
-      status: consumerDevice.status,
+    consumer_profile_id: consumerDevice.consumerProfile.id,
 
-      consumer_profile_id: consumerDevice.consumerProfile.id,
+    name: consumerDevice.name,
+    os: consumerDevice.os,
+    arch: consumerDevice.arch,
+    app_version: consumerDevice.appVersion,
 
-      name: consumerDevice.name,
-      os: consumerDevice.os,
-      arch: consumerDevice.arch,
-      app_version: consumerDevice.appVersion,
+    clients: consumerDevice.clients.map(client => ({
+      object: 'consumer.device.client' as const,
+      key: client.mcpClientType.key,
+      name: client.name,
+      detected: client.detected,
+      installable: client.installable,
+      supports_skills: client.supportsSkills,
+      enabled: client.enabled,
+      excluded_magic_mcp_server_ids: client.excludedMagicMcpServers.map(
+        exclusion => exclusion.magicMcpServer.id
+      ),
+      excluded_skill_ids: client.excludedSkills.map(exclusion => exclusion.skill.id)
+    })),
 
-      clients: consumerDevice.reportedClients.map(client => {
-        let setting = settings.get(client.key);
-
-        return {
-          object: 'consumer.device.client' as const,
-          key: client.key,
-          name: client.name,
-          detected: client.detected,
-          installable: client.installable,
-          supports_skills: client.supportsSkills,
-          enabled: setting?.enabled ?? true,
-          excluded_magic_mcp_server_ids: setting?.excludedMagicMcpServerIds ?? [],
-          excluded_skill_ids: setting?.excludedSkillIds ?? []
-        };
-      }),
-
-      last_seen_at: consumerDevice.lastSeenAt,
-      revoked_at: consumerDevice.revokedAt,
-      created_at: consumerDevice.createdAt,
-      updated_at: consumerDevice.updatedAt
-    };
-  })
+    last_seen_at: consumerDevice.lastSeenAt,
+    revoked_at: consumerDevice.revokedAt,
+    created_at: consumerDevice.createdAt,
+    updated_at: consumerDevice.updatedAt
+  }))
   .schema(
     v.object({
       object: v.literal('consumer.device'),

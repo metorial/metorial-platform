@@ -20,10 +20,23 @@ import {
   type OAuthTokenWithAuthorization
 } from '@metorial/module-machine-access';
 
+// The AI tools Metorial Desktop reports. Client types are shared by every
+// instance, so other keys are skipped rather than stored. A newer app that
+// reports a tool not listed yet still checks in; that tool keeps its defaults.
+let knownClientKeys = new Set(['claude-code', 'claude-desktop', 'codex', 'cursor', 'vscode']);
+
 export let consumerDeviceStatuses = Object.values(ConsumerDeviceStatus);
 
 export let consumerDeviceInclude = {
-  clientSettings: { orderBy: { clientKey: 'asc' } },
+  clients: {
+    where: { reported: true },
+    orderBy: { mcpClientType: { key: 'asc' } },
+    include: {
+      mcpClientType: true,
+      excludedMagicMcpServers: { orderBy: { oid: 'asc' }, include: { magicMcpServer: true } },
+      excludedSkills: { orderBy: { oid: 'asc' }, include: { skill: true } }
+    }
+  },
   consumerProfile: true
 } satisfies Prisma.ConsumerDeviceInclude;
 
@@ -43,7 +56,13 @@ class ConsumerDeviceServiceImpl {
       os: string;
       arch: string;
       appVersion: string;
-      reportedClients: PrismaJson.ConsumerDeviceReportedClients;
+      reportedClients: {
+        key: string;
+        name: string;
+        detected: boolean;
+        installable: boolean;
+        supportsSkills: boolean;
+      }[];
       magicMcpTokenIds?: string[];
     };
   }) {
@@ -54,7 +73,6 @@ class ConsumerDeviceServiceImpl {
       os: d.input.os,
       arch: d.input.arch,
       appVersion: d.input.appVersion,
-      reportedClients: d.input.reportedClients,
       lastSeenAt: new Date()
     };
 
@@ -73,6 +91,7 @@ class ConsumerDeviceServiceImpl {
         if (existing?.oauthTokenOid == oauthToken.oid) {
           if (existing.status != 'active') throw this.endedSignInError();
 
+          await this.syncReportedClients({ ...d, consumerDevice: existing });
           await this.linkInstallTokens({ ...d, consumerDevice: existing });
 
           return await db.consumerDevice.update({
@@ -105,7 +124,7 @@ class ConsumerDeviceServiceImpl {
           });
         }
 
-        let consumerDevice = await db.consumerDevice.upsert({
+        let enrolled = await db.consumerDevice.upsert({
           where: {
             consumerProfileOid_installationId: {
               consumerProfileOid: d.consumerProfile.oid,
@@ -125,11 +144,16 @@ class ConsumerDeviceServiceImpl {
             status: 'active',
             revokedAt: null,
             oauthTokenOid: oauthToken.oid
-          },
-          include: consumerDeviceInclude
+          }
         });
 
-        await this.linkInstallTokens({ ...d, consumerDevice });
+        await this.syncReportedClients({ ...d, consumerDevice: enrolled });
+        await this.linkInstallTokens({ ...d, consumerDevice: enrolled });
+
+        let consumerDevice = await db.consumerDevice.findUniqueOrThrow({
+          where: { oid: enrolled.oid },
+          include: consumerDeviceInclude
+        });
 
         addAfterTransactionHook(() =>
           existing
@@ -219,36 +243,65 @@ class ConsumerDeviceServiceImpl {
     };
   }) {
     this.assertDeviceActive(d.consumerDevice);
-    if (!d.consumerDevice.reportedClients.some(client => client.key == d.clientKey)) {
+    let client = d.consumerDevice.clients.find(
+      entry => entry.mcpClientType.key == d.clientKey
+    );
+    if (!client) {
       throw new ServiceError(notFoundError('consumer.device.client', d.clientKey));
     }
 
-    let data = {
-      enabled: d.input.enabled,
-      excludedMagicMcpServerIds: d.input.excludedMagicMcpServerIds
-        ? Array.from(new Set(d.input.excludedMagicMcpServerIds))
-        : undefined,
-      excludedSkillIds: d.input.excludedSkillIds
-        ? Array.from(new Set(d.input.excludedSkillIds))
-        : undefined
-    };
+    let { excludedMagicMcpServerIds, excludedSkillIds } = d.input;
 
     return await withTransaction(async db => {
-      await db.consumerDeviceClientSetting.upsert({
-        where: {
-          consumerDeviceOid_clientKey: {
-            consumerDeviceOid: d.consumerDevice.oid,
-            clientKey: d.clientKey
-          }
-        },
-        create: {
-          ...data,
-          id: await ID.generateId('consumerDeviceClientSetting'),
-          consumerDeviceOid: d.consumerDevice.oid,
-          clientKey: d.clientKey
-        },
-        update: data
+      // Always written, so concurrent changes to this tool wait for each other
+      // instead of interleaving their exclusion rewrites.
+      await db.consumerDeviceClient.update({
+        where: { oid: client.oid },
+        data: { enabled: d.input.enabled, updatedAt: new Date() }
       });
+
+      // Ids that aren't servers or skills of this instance can't match
+      // anything the device installs, so they are dropped.
+      if (excludedMagicMcpServerIds) {
+        let servers = await db.magicMcpServer.findMany({
+          where: {
+            id: { in: excludedMagicMcpServerIds },
+            instanceOid: d.consumerDevice.instanceOid
+          }
+        });
+
+        await db.consumerDeviceClientExcludedMagicMcpServer.deleteMany({
+          where: { consumerDeviceClientOid: client.oid }
+        });
+        await db.consumerDeviceClientExcludedMagicMcpServer.createMany({
+          data: await Promise.all(
+            servers.map(async server => ({
+              id: await ID.generateId('consumerDeviceClientExcludedMagicMcpServer'),
+              consumerDeviceClientOid: client.oid,
+              magicMcpServerOid: server.oid
+            }))
+          )
+        });
+      }
+
+      if (excludedSkillIds) {
+        let skills = await db.skill.findMany({
+          where: { id: { in: excludedSkillIds }, instanceOid: d.consumerDevice.instanceOid }
+        });
+
+        await db.consumerDeviceClientExcludedSkill.deleteMany({
+          where: { consumerDeviceClientOid: client.oid }
+        });
+        await db.consumerDeviceClientExcludedSkill.createMany({
+          data: await Promise.all(
+            skills.map(async skill => ({
+              id: await ID.generateId('consumerDeviceClientExcludedSkill'),
+              consumerDeviceClientOid: client.oid,
+              skillOid: skill.oid
+            }))
+          )
+        });
+      }
 
       let consumerDevice = await db.consumerDevice.update({
         where: { oid: d.consumerDevice.oid },
@@ -385,6 +438,86 @@ class ConsumerDeviceServiceImpl {
     }
 
     return oauthToken;
+  }
+
+  // Tools the app stops reporting keep their row, so their settings come back
+  // if the tool is installed again.
+  private async syncReportedClients(d: {
+    consumerDevice: Pick<ConsumerDevice, 'oid'>;
+    input: {
+      reportedClients: {
+        key: string;
+        name: string;
+        detected: boolean;
+        installable: boolean;
+        supportsSkills: boolean;
+      }[];
+    };
+  }) {
+    let reported = new Map(
+      d.input.reportedClients
+        .filter(client => knownClientKeys.has(client.key))
+        .map(client => [client.key, client])
+    );
+    let keys = [...reported.keys()];
+
+    await withTransaction(async db => {
+      await db.mcpClientType.createMany({
+        data: await Promise.all(
+          keys.map(async key => ({ id: await ID.generateId('mcpClientType'), key }))
+        ),
+        skipDuplicates: true
+      });
+
+      let clientTypes = await db.mcpClientType.findMany({ where: { key: { in: keys } } });
+      let existing = await db.consumerDeviceClient.findMany({
+        where: { consumerDeviceOid: d.consumerDevice.oid }
+      });
+      let existingByType = new Map(existing.map(client => [client.mcpClientTypeOid, client]));
+
+      for (let clientType of clientTypes) {
+        let client = reported.get(clientType.key)!;
+        let details = {
+          name: client.name,
+          detected: client.detected,
+          installable: client.installable,
+          supportsSkills: client.supportsSkills,
+          reported: true
+        };
+        let current = existingByType.get(clientType.oid);
+        let unchanged =
+          current &&
+          (Object.keys(details) as (keyof typeof details)[]).every(
+            field => current[field] == details[field]
+          );
+        if (unchanged) continue;
+
+        await db.consumerDeviceClient.upsert({
+          where: {
+            consumerDeviceOid_mcpClientTypeOid: {
+              consumerDeviceOid: d.consumerDevice.oid,
+              mcpClientTypeOid: clientType.oid
+            }
+          },
+          create: {
+            ...details,
+            id: await ID.generateId('consumerDeviceClient'),
+            consumerDeviceOid: d.consumerDevice.oid,
+            mcpClientTypeOid: clientType.oid
+          },
+          update: details
+        });
+      }
+
+      await db.consumerDeviceClient.updateMany({
+        where: {
+          consumerDeviceOid: d.consumerDevice.oid,
+          reported: true,
+          mcpClientTypeOid: { notIn: clientTypes.map(clientType => clientType.oid) }
+        },
+        data: { reported: false }
+      });
+    });
   }
 
   // Install tokens created before the device enrolled (or by an older app)

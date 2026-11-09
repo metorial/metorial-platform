@@ -13,11 +13,11 @@ let consumerDevicePayload = (
   arch: consumerDevice.arch,
   appVersion: consumerDevice.appVersion,
   status: consumerDevice.status,
-  clients: consumerDevice.clientSettings.map(setting => ({
-    key: setting.clientKey,
-    enabled: setting.enabled,
-    excludedMagicMcpServerCount: setting.excludedMagicMcpServerIds.length,
-    excludedSkillCount: setting.excludedSkillIds.length
+  clients: consumerDevice.clients.map(client => ({
+    key: client.mcpClientType.key,
+    enabled: client.enabled,
+    excludedMagicMcpServerCount: client.excludedMagicMcpServers.length,
+    excludedSkillCount: client.excludedSkills.length
   })),
   revokedAt: consumerDevice.revokedAt
 });

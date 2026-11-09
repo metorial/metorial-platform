@@ -337,14 +337,6 @@ declare global {
     type Record = { [key: string]: any };
     type OrganizationConfigValue = any;
 
-    type ConsumerDeviceReportedClients = {
-      key: string;
-      name: string;
-      detected: boolean;
-      installable: boolean;
-      supportsSkills: boolean;
-    }[];
-
     type NetworkingPolicyPortRange = { from: number; to: number };
     type NetworkingPolicyRule = {
       id: string;

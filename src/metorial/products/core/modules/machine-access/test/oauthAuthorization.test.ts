@@ -875,6 +875,7 @@ describe('oauthAuthorizationService', () => {
     mockDb.oAuthToken.findFirst.mockResolvedValue({
       oid: 601n,
       refreshToken: 'metorial_or_old',
+      completelyExpiresAt: null,
       oauthAuthorization: refreshableAuthorization
     });
     mockDb.oAuthToken.findUniqueOrThrow.mockImplementation(async ({ where }: any) => ({
@@ -889,7 +890,7 @@ describe('oauthAuthorizationService', () => {
       where: {
         oid: 601n,
         refreshToken: 'metorial_or_old',
-        OR: [{ completelyExpiresAt: null }, { completelyExpiresAt: { gt: expect.any(Date) } }]
+        completelyExpiresAt: null
       },
       data: expect.objectContaining({
         accessToken: expect.stringContaining('metorial_oa_'),
@@ -907,6 +908,7 @@ describe('oauthAuthorizationService', () => {
     mockDb.oAuthToken.findFirst.mockResolvedValue({
       oid: 601n,
       refreshToken: 'metorial_or_old',
+      completelyExpiresAt: null,
       oauthAuthorization: refreshableAuthorization
     });
     mockDb.oAuthToken.updateMany.mockResolvedValue({ count: 0 });

@@ -8,6 +8,7 @@ import {
   useOrganization
 } from '@metorial/e2e';
 import { db, loadOrganizationFixture, type OrganizationFixture } from '@metorial/e2e/db';
+import { Fabric } from '@metorial/fabric';
 import {
   machineAccessAuthService,
   oauthApplicationService,
@@ -76,8 +77,7 @@ let signInDesktop = async (
   return await authenticate(exchanged.oauthToken.accessToken);
 };
 
-let refreshSignIn = async (oauthToken: { oid: bigint }) => {
-  let stored = await db.oAuthToken.findUniqueOrThrow({ where: { oid: oauthToken.oid } });
+let refreshSignIn = async (oauthToken: { refreshToken: string | null }) => {
   let cliAuthApplication = await oauthApplicationService.getCliAuthOAuthApplication();
 
   return await oauthAuthorizationService.exchangeOAuthToken({
@@ -85,7 +85,7 @@ let refreshSignIn = async (oauthToken: { oid: bigint }) => {
     input: {
       grantType: 'refresh_token',
       clientId: cliAuthApplication!.clientId,
-      refreshToken: stored.refreshToken!
+      refreshToken: oauthToken.refreshToken!
     }
   });
 };
@@ -100,6 +100,33 @@ let createInstallToken = async (
     input: { name: uniqueId('install') },
     signedInOAuthToken
   });
+
+let createServer = async (fixture: OrganizationFixture) =>
+  await db.magicMcpServer.create({
+    data: {
+      id: await ID.generateId('magicMcpServer'),
+      status: 'active',
+      instanceOid: fixture.instance.oid,
+      metadata: {}
+    }
+  });
+
+let createSkill = async (fixture: OrganizationFixture) =>
+  await db.skill.create({
+    data: {
+      id: await ID.generateId('skill'),
+      name: uniqueId('device-skill'),
+      storeId: uniqueId('store'),
+      skillEntityId: uniqueId('entity'),
+      organizationOid: fixture.organization.oid,
+      projectOid: fixture.project.oid,
+      instanceOid: fixture.instance.oid
+    }
+  });
+
+let reportedTools = (device: {
+  clients: { name: string; mcpClientType: { key: string } }[];
+}) => device.clients.map(client => ({ key: client.mcpClientType.key, name: client.name }));
 
 let giveTokenTo = async <T extends { oid: bigint }>(
   consumerProfile: ConsumerProfile,
@@ -175,9 +202,12 @@ describe('module-consumer-core devices', () => {
       status: 'active',
       oauthTokenOid: oauthToken.oid,
       name: 'Renamed MacBook',
-      appVersion: '0.2.1',
-      reportedClients
+      appVersion: '0.2.1'
     });
+    expect(reportedTools(second)).toEqual([
+      { key: 'codex', name: 'Codex' },
+      { key: 'cursor', name: 'Cursor' }
+    ]);
     expect(stored.lastSeenAt.getTime()).toBeGreaterThanOrEqual(first.lastSeenAt.getTime());
   });
 
@@ -226,33 +256,125 @@ describe('module-consumer-core devices', () => {
     );
   });
 
-  it('stores per-tool settings as exclusions for reported tools only', async () => {
+  it('keeps a tool and its settings while the app stops reporting it', async () => {
     let fixture = await loadOrganizationFixture(org.ids);
     let desktop = await createDesktopUser(fixture);
     let oauthToken = await signInDesktop(fixture, desktop);
+    let input = deviceInput();
+    let device = await checkIn(fixture, desktop, oauthToken, input);
+
+    await consumerDeviceService.updateClientSetting({
+      consumerDevice: device,
+      clientKey: 'cursor',
+      auditScope: fixture.auditScope,
+      input: { enabled: false }
+    });
+    let withoutCursor = await checkIn(fixture, desktop, oauthToken, {
+      ...input,
+      reportedClients: reportedClients.filter(client => client.key != 'cursor')
+    });
+    expect(reportedTools(withoutCursor)).toEqual([{ key: 'codex', name: 'Codex' }]);
+
+    let withCursor = await checkIn(fixture, desktop, oauthToken, input);
+    let cursor = withCursor.clients.find(client => client.mcpClientType.key == 'cursor');
+    expect(cursor?.enabled).toBe(false);
+    expect(
+      await db.consumerDeviceClient.count({ where: { consumerDeviceOid: device.oid } })
+    ).toBe(2);
+  });
+
+  it('skips tools Metorial Desktop does not know without failing the check-in', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let desktop = await createDesktopUser(fixture);
+    let unknownKey = uniqueId('unknown-tool').toLowerCase();
+    let device = await checkIn(fixture, desktop, await signInDesktop(fixture, desktop), {
+      ...deviceInput(),
+      reportedClients: [
+        ...reportedClients,
+        {
+          key: unknownKey,
+          name: 'Unknown',
+          detected: true,
+          installable: true,
+          supportsSkills: false
+        }
+      ]
+    });
+
+    expect(reportedTools(device).map(tool => tool.key)).toEqual(['codex', 'cursor']);
+    expect(await db.mcpClientType.findUnique({ where: { key: unknownKey } })).toBeNull();
+  });
+
+  it('shares one client type per tool across devices', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let laptopUser = await createDesktopUser(fixture);
+    let workstationUser = await createDesktopUser(fixture);
+    let laptop = await checkIn(fixture, laptopUser, await signInDesktop(fixture, laptopUser));
+    let workstation = await checkIn(
+      fixture,
+      workstationUser,
+      await signInDesktop(fixture, workstationUser)
+    );
+
+    let typeOf = (device: typeof laptop) =>
+      device.clients.find(client => client.mcpClientType.key == 'cursor')!.mcpClientTypeOid;
+    expect(typeOf(laptop)).toBe(typeOf(workstation));
+    expect(await db.mcpClientType.count({ where: { key: 'cursor' } })).toBe(1);
+  });
+
+  it('stores per-tool exclusions as references to the instance servers and skills', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let other = await loadOrganizationFixture(otherOrg.ids);
+    let desktop = await createDesktopUser(fixture);
+    let oauthToken = await signInDesktop(fixture, desktop);
     let device = await checkIn(fixture, desktop, oauthToken);
-    expect(device.clientSettings).toEqual([]);
+    let server = await createServer(fixture);
+    let foreignServer = await createServer(other);
+    let skill = await createSkill(fixture);
+
+    expect(
+      device.clients.map(client => ({
+        key: client.mcpClientType.key,
+        enabled: client.enabled,
+        exclusions: client.excludedMagicMcpServers.length + client.excludedSkills.length
+      }))
+    ).toEqual([
+      { key: 'codex', enabled: true, exclusions: 0 },
+      { key: 'cursor', enabled: true, exclusions: 0 }
+    ]);
 
     let updated = await consumerDeviceService.updateClientSetting({
       consumerDevice: device,
       clientKey: 'cursor',
       auditScope: fixture.auditScope,
-      input: { excludedMagicMcpServerIds: ['mms_a', 'mms_a', 'mms_b'] }
+      input: {
+        excludedMagicMcpServerIds: [server.id, server.id, foreignServer.id, uniqueId('mms')]
+      }
     });
     let disabled = await consumerDeviceService.updateClientSetting({
       consumerDevice: updated,
       clientKey: 'cursor',
       auditScope: fixture.auditScope,
-      input: { enabled: false, excludedSkillIds: ['skl_a'] }
+      input: { enabled: false, excludedSkillIds: [skill.id] }
     });
 
-    expect(disabled.clientSettings).toHaveLength(1);
-    expect(disabled.clientSettings[0]).toMatchObject({
+    let cursor = disabled.clients.find(client => client.mcpClientType.key == 'cursor')!;
+    expect(cursor.enabled).toBe(false);
+    expect(
+      cursor.excludedMagicMcpServers.map(exclusion => exclusion.magicMcpServer.id)
+    ).toEqual([server.id]);
+    expect(cursor.excludedSkills.map(exclusion => exclusion.skill.id)).toEqual([skill.id]);
+
+    let cleared = await consumerDeviceService.updateClientSetting({
+      consumerDevice: disabled,
       clientKey: 'cursor',
-      enabled: false,
-      excludedMagicMcpServerIds: ['mms_a', 'mms_b'],
-      excludedSkillIds: ['skl_a']
+      auditScope: fixture.auditScope,
+      input: { excludedMagicMcpServerIds: [] }
     });
+    expect(
+      cleared.clients.find(client => client.mcpClientType.key == 'cursor')!
+        .excludedMagicMcpServers
+    ).toEqual([]);
 
     await expectServiceError(
       consumerDeviceService.updateClientSetting({
@@ -263,9 +385,6 @@ describe('module-consumer-core devices', () => {
       }),
       'not_found'
     );
-    expect(
-      await db.consumerDeviceClientSetting.count({ where: { consumerDeviceOid: device.oid } })
-    ).toBe(1);
   });
 
   it('links install tokens to the device of the sign-in that created them', async () => {
@@ -479,7 +598,43 @@ describe('module-consumer-core devices', () => {
     await signInDesktop(fixture, desktop);
     await expect(authenticate(laptopToken.accessToken)).rejects.toThrow();
     await expect(authenticate(workstationToken.accessToken)).rejects.toThrow();
-    await expect(refreshSignIn(laptopToken)).rejects.toThrow(/can no longer be refreshed/);
+    await expect(refreshSignIn(laptopToken)).rejects.toThrow(/Invalid refresh token/);
+  });
+
+  it('never lets a refresh that read the sign-in before a revoke bring it back', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let desktop = await createDesktopUser(fixture);
+    let oauthToken = await signInDesktop(fixture, desktop);
+
+    let reachWrite!: () => void;
+    let writeReached = new Promise<void>(resolve => (reachWrite = resolve));
+
+    // Chained here rather than awaited in the listener, so the revoke runs and
+    // commits outside the refresh's transaction, between its read and its write.
+    let revoke = writeReached.then(() =>
+      oauthAuthorizationService.revokeOAuthAuthorization({
+        oauthAuthorization: oauthToken.oauthAuthorization,
+        auditScope: fixture.auditScope
+      })
+    );
+    let stop = Fabric.listen('machine_access.oauth_token.refreshed:before', async event => {
+      if (event.oauthToken.oid != oauthToken.oid) return;
+
+      reachWrite();
+      await revoke.catch(() => {});
+    });
+
+    try {
+      await expect(refreshSignIn(oauthToken)).rejects.toThrow(/Invalid refresh token/);
+      await revoke;
+    } finally {
+      stop();
+    }
+
+    let stored = await db.oAuthToken.findUniqueOrThrow({ where: { oid: oauthToken.oid } });
+    expect(stored.refreshToken).toBe(oauthToken.refreshToken);
+    expect(stored.completelyExpiresAt!.getTime()).toBeLessThanOrEqual(Date.now());
+    await expect(authenticate(oauthToken.accessToken)).rejects.toThrow();
   });
 
   it('refreshes a sign-in only once when two refreshes race', async () => {
@@ -492,7 +647,13 @@ describe('module-consumer-core devices', () => {
       refreshSignIn(oauthToken)
     ]);
 
-    expect(results.filter(result => result.status == 'fulfilled')).toHaveLength(1);
+    let refreshed = results.flatMap(result =>
+      result.status == 'fulfilled' ? [result.value.oauthToken] : []
+    );
+    expect(refreshed).toHaveLength(1);
+    expect(
+      (await db.oAuthToken.findUniqueOrThrow({ where: { oid: oauthToken.oid } })).refreshToken
+    ).toBe(refreshed[0]!.refreshToken);
   });
 
   it('keeps devices to their consumer profile and instance', async () => {

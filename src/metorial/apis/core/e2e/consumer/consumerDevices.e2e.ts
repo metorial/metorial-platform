@@ -14,7 +14,8 @@ import {
   useOrganization,
   type BootstrappedOrganization
 } from '@metorial/e2e';
-import { db } from '@metorial/e2e/db';
+import { db, loadOrganizationFixture } from '@metorial/e2e/db';
+import { ID } from '@metorial/db';
 import {
   oauthApplicationService,
   oauthAuthorizationService
@@ -226,15 +227,39 @@ describe('api-core consumer: devices', () => {
       expect.objectContaining({ key: 'vscode', supports_skills: false })
     ]);
 
+    let fixture = await loadOrganizationFixture(org.ids);
+    let skill = await db.skill.create({
+      data: {
+        id: await ID.generateId('skill'),
+        name: uniqueId('device-skill'),
+        storeId: uniqueId('store'),
+        skillEntityId: uniqueId('entity'),
+        organizationOid: fixture.organization.oid,
+        projectOid: fixture.project.oid,
+        instanceOid: fixture.instance.oid
+      }
+    });
+    let server = await db.magicMcpServer.create({
+      data: {
+        id: await ID.generateId('magicMcpServer'),
+        status: 'active',
+        instanceOid: fixture.instance.oid,
+        metadata: {}
+      }
+    });
+
     let updated = expectOk(
       await desktop.client.patch(`/consumer/devices/${device.id}/clients/cursor`, {
         enabled: false,
-        excluded_skill_ids: ['skl_a', 'skl_a']
+        excluded_magic_mcp_server_ids: [server.id, uniqueId('mgsr_unknown')],
+        excluded_skill_ids: [skill.id, skill.id, uniqueId('skl_unknown')]
       })
     );
     expect(updated.clients[0]).toMatchObject({
+      key: 'cursor',
       enabled: false,
-      excluded_skill_ids: ['skl_a']
+      excluded_magic_mcp_server_ids: [server.id],
+      excluded_skill_ids: [skill.id]
     });
 
     let serialized = JSON.stringify(updated);

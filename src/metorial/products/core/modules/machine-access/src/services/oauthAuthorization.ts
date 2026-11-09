@@ -1081,13 +1081,13 @@ class OAuthAuthorizationService {
 
       let tokenValues = createIssuedOAuthTokenValues(d);
 
-      // Conditional on the refresh token that was presented still being live, so
-      // a revoke or a second refresh committed since it was read is never overwritten.
+      // Conditional on the token being unchanged since it was read: a revoke rewrites
+      // completelyExpiresAt and a second refresh rewrites both, so neither is overwritten.
       let refreshed = await db.oAuthToken.updateMany({
         where: {
           oid: d.oauthToken.oid,
           refreshToken: d.oauthToken.refreshToken,
-          OR: [{ completelyExpiresAt: null }, { completelyExpiresAt: { gt: new Date() } }]
+          completelyExpiresAt: d.oauthToken.completelyExpiresAt
         },
         data: {
           oauthInstallationOid: d.oauthToken.oauthAuthorization.oauthInstallationOid,
