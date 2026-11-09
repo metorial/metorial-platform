@@ -677,6 +677,8 @@ class MagicMcpTokenImpl {
       }
     });
 
+    if (consumerAccessTagEntities.length == 0) return true;
+
     if (d.token.consumerTokens.length) {
       let currentAccessTagOids = await getCurrentConsumerAccessTagOids(d.token);
       consumerAccessTagEntities = consumerAccessTagEntities.filter(entity =>
@@ -684,8 +686,6 @@ class MagicMcpTokenImpl {
       );
       if (consumerAccessTagEntities.length == 0) return false;
     }
-
-    if (consumerAccessTagEntities.length == 0) return true;
 
     if (d.server) {
       let serverAccess = await db.magicMcpServer.findFirst({
