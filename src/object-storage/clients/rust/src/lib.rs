@@ -41,6 +41,22 @@ pub struct ObjectMetadata {
     pub metadata: HashMap<String, String>,
 }
 
+/// Digests of an object's content. `git_blob_sha1` is the id git gives the content as a blob.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ContentDigests {
+    pub size: u64,
+    pub sha256: String,
+    pub crc32: u32,
+    pub git_blob_sha1: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DigestedObject {
+    #[serde(flatten)]
+    pub metadata: ObjectMetadata,
+    pub digests: ContentDigests,
+}
+
 #[derive(Debug, Clone)]
 pub struct ObjectData {
     pub metadata: ObjectMetadata,
@@ -390,6 +406,23 @@ impl ObjectStoreClient {
         match response.status() {
             StatusCode::OK => Ok(response.json().await?),
             StatusCode::NOT_FOUND => Err(Error::NotFound(format!("{}/{}", bucket, key))),
+            _ => Err(Error::ServerError(
+                response.text().await.unwrap_or_default(),
+            )),
+        }
+    }
+
+    /// Hashes a stored object on the server, streaming it without holding it in memory.
+    pub async fn get_object_digests(&self, bucket: &str, key: &str) -> Result<DigestedObject> {
+        let url = format!("{}/buckets/{}/object-digests/{}", self.base_url, bucket, key);
+        let response = self.client.get(&url).send().await?;
+
+        match response.status() {
+            StatusCode::OK => Ok(response.json().await?),
+            StatusCode::NOT_FOUND => Err(Error::NotFound(format!("{}/{}", bucket, key))),
+            StatusCode::BAD_REQUEST => {
+                Err(Error::BadRequest(response.text().await.unwrap_or_default()))
+            }
             _ => Err(Error::ServerError(
                 response.text().await.unwrap_or_default(),
             )),

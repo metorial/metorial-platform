@@ -8,6 +8,7 @@ import {
   getScmProviderErrorStatus
 } from '../../../lib/scmProviderError';
 import {
+  getRepositorySyncDismissal,
   getRepositorySyncStatusSnapshot,
   mergeRepositorySyncPullRequest
 } from '../../../lib/scmRepositorySyncProvider';
@@ -19,6 +20,7 @@ import {
 } from '../../../services/repositorySyncState';
 import {
   appendRepositorySyncLog,
+  endDismissedRepositorySync,
   getRepositorySyncErrorMessage,
   logRepositorySyncQueueError,
   logRepositorySyncQueueEvent
@@ -114,6 +116,13 @@ export let mergeRepositorySyncQueueProcessor = mergeRepositorySyncQueue.process(
           attemptCount: 0,
           nextPollAt: null
         });
+        return;
+      }
+      if (snapshot.pullRequest.state === 'closed' && sync.sourceType === 'manifest') {
+        let dismissal =
+          (await getRepositorySyncDismissal(sync, { state: 'closed', conflicting: false })) ??
+          'pull_request_closed';
+        await endDismissedRepositorySync(sync, dismissal, { statusSnapshot: snapshot });
         return;
       }
       if (snapshot.pullRequest.state === 'closed') {

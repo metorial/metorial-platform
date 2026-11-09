@@ -27,11 +27,13 @@ import {
   getPlugin,
   getSkill,
   privileged,
-  useFakeOrigin
+  useFakeOrigin,
+  useSkillsManifestSyncFlag
 } from './_fixtures';
 
 describe('managed skill plugins and exports', () => {
   let origin = useFakeOrigin();
+  useSkillsManifestSyncFlag(false);
   let org = useOrganization();
   let other = useOrganization();
 
@@ -54,7 +56,8 @@ describe('managed skill plugins and exports', () => {
     });
 
   // The stack worker cannot reach the fake Origin, so the managed-plugin lifecycle handler runs
-  // in-process; skill lifecycle events still reach the worker, which can only fail on create.
+  // in-process. Skill lifecycle events still reach the worker, which runs with every stack flag
+  // on and can win the race by creating a manifest-mode plugin itself.
   let syncManagedPlugin = async (
     skill: { id: string; oid: bigint },
     event: 'created' | 'updated' | 'archived' = 'created'
@@ -103,9 +106,15 @@ describe('managed skill plugins and exports', () => {
           slug: link.pluginSkillSlug
         }))
       ).toEqual([{ skillOid: skill.oid, status: 'active', slug: 'meeting-notes' }]);
-      expect(
-        origin.bucketCreation(managed.skillPlugin.destination!.codeBucketId)?.payload
-      ).toMatchObject({ purpose: 'cargo.skill.managed-plugin', isReadOnly: false });
+      let destination = managed.skillPlugin.destination!;
+      if (destination.storageMode === 'code_bucket') {
+        expect(origin.bucketCreation(destination.codeBucketId)?.payload).toMatchObject({
+          purpose: 'cargo.skill.managed-plugin',
+          isReadOnly: false
+        });
+      } else {
+        expect(destination.codeBucketId).toBeNull();
+      }
 
       let ensured = await ensure(fixture, skill.id);
       expect(ensured.id).toBe(managed.id);
@@ -117,6 +126,32 @@ describe('managed skill plugins and exports', () => {
           where: { skillOid: skill.oid, skillPlugin: { isManaged: true } }
         })
       ).toBe(1);
+    });
+
+    it('cleans up the destination and code bucket a losing concurrent provisioning created', async () => {
+      let skill = await createSkill(fixture);
+      let createsBefore = origin.callsTo('codeBucket:create').length;
+
+      await Promise.all([syncManagedPlugin(skill), syncManagedPlugin(skill)]);
+
+      let managed = await loadManagedPlugin(skill);
+      let createdBuckets = origin
+        .callsTo('codeBucket:create')
+        .slice(createsBefore)
+        .filter(call => call.payload.purpose === 'cargo.skill.managed-plugin')
+        .map(call => call.result.id as string);
+      let deletedBuckets = origin
+        .callsTo('codeBucket:delete')
+        .map(call => call.payload.codeBucketId as string);
+      let abandoned = createdBuckets.filter(
+        id => id !== managed.skillPlugin.destination!.codeBucketId
+      );
+
+      expect(abandoned.length).toBeGreaterThanOrEqual(1);
+      expect(deletedBuckets).toEqual(expect.arrayContaining(abandoned));
+      expect(
+        await db.skillDestination.count({ where: { codeBucketId: { in: abandoned } } })
+      ).toBe(0);
     });
 
     it('hides managed plugins and refuses manual changes to them', async () => {

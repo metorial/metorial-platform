@@ -3,9 +3,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 let mocks = vi.hoisted(() => ({
   updateMany: vi.fn(),
   findUnique: vi.fn(),
-  updateState: vi.fn()
+  updateState: vi.fn(),
+  captureException: vi.fn(),
+  captureMessage: vi.fn()
 }));
 
+vi.mock('@lowerdeck/sentry', () => ({
+  getSentry: () => ({
+    captureException: mocks.captureException,
+    captureMessage: mocks.captureMessage
+  })
+}));
 vi.mock('../../../db', () => ({
   db: {
     scmRepositorySync: {
@@ -20,11 +28,103 @@ vi.mock('../../../services/repositorySyncState', () => ({
 }));
 
 import {
+  getRepositorySyncFailureLevel,
   logRepositorySyncQueueError,
   markRepositorySyncFailed,
   getRepositorySyncContentsRetryDelayMs,
+  reportRepositorySyncFailure,
   shouldRetryRepositorySyncContents
 } from './_lib';
+
+describe('repository sync failure reporting', () => {
+  let sync = {
+    id: 'sync_report',
+    status: 'syncing_contents' as const,
+    sourceType: 'manifest' as const,
+    sourceKey: 'skd_123',
+    requestKey: 'skdp_123',
+    repositoryAccessMode: 'pull_request' as const
+  };
+
+  beforeEach(() => {
+    mocks.captureException.mockReset();
+    mocks.captureMessage.mockReset();
+    mocks.updateState.mockReset();
+    mocks.updateState.mockResolvedValue({});
+    mocks.findUnique.mockReset();
+    mocks.findUnique.mockResolvedValue(sync);
+  });
+
+  it.each([
+    ['protected_branch', null],
+    ['permission_denied', null],
+    ['deletion_guard_tripped', null],
+    ['destination_too_large', null],
+    ['rate_limited', 'warning'],
+    ['no_progress', 'warning'],
+    ['manifest_invalid', 'error'],
+    ['source_not_found', 'error'],
+    ['network_failure', 'error'],
+    ['something_new', 'error']
+  ])('reports %s at level %s', (errorCode, level) => {
+    expect(getRepositorySyncFailureLevel(errorCode)).toBe(level);
+  });
+
+  it('captures unexpected failures with grouping tags and the original error', async () => {
+    let error = new TypeError("Cannot read properties of undefined (reading 'sha')");
+
+    await markRepositorySyncFailed(sync.id, error);
+
+    expect(mocks.captureException).toHaveBeenCalledWith(
+      error,
+      expect.objectContaining({
+        level: 'error',
+        fingerprint: ['repository-sync', 'network_failure'],
+        tags: expect.objectContaining({
+          area: 'repository_sync',
+          'repository_sync.error_code': 'network_failure',
+          'repository_sync.stage': 'syncing_contents',
+          'repository_sync.source_type': 'manifest'
+        }),
+        extra: expect.objectContaining({ syncId: sync.id, requestKey: 'skdp_123' })
+      })
+    );
+  });
+
+  it('does not report failures the repository owner has to fix', async () => {
+    await markRepositorySyncFailed(
+      sync.id,
+      Object.assign(new Error('Protected branch update rejected'), { status: 403 })
+    );
+
+    expect(mocks.captureException).not.toHaveBeenCalled();
+    expect(mocks.captureMessage).not.toHaveBeenCalled();
+  });
+
+  it('does not report when another worker already ended the sync', async () => {
+    mocks.updateState.mockResolvedValue(null);
+
+    await markRepositorySyncFailed(sync.id, new TypeError('boom'));
+
+    expect(mocks.captureException).not.toHaveBeenCalled();
+  });
+
+  it('reports failures without an error object as messages', () => {
+    reportRepositorySyncFailure({
+      sync,
+      errorCode: 'sync_lifetime_exceeded',
+      errorMessage: 'The repository update took too long.'
+    });
+
+    expect(mocks.captureMessage).toHaveBeenCalledWith(
+      'Repository sync failed (sync_lifetime_exceeded): The repository update took too long.',
+      expect.objectContaining({
+        level: 'warning',
+        fingerprint: ['repository-sync', 'sync_lifetime_exceeded']
+      })
+    );
+  });
+});
 
 describe('repository sync failure diagnostics', () => {
   beforeEach(() => {
@@ -216,9 +316,9 @@ describe('repository sync failure diagnostics', () => {
         error: rateLimited
       })
     ).toBe(true);
-    expect(getRepositorySyncContentsRetryDelayMs({ attemptCount: 1, error: rateLimited })).toBe(
-      120_000
-    );
+    expect(
+      getRepositorySyncContentsRetryDelayMs({ attemptCount: 1, error: rateLimited })
+    ).toBe(120_000);
   });
 
   it('does not retry a file that is too large to export', () => {

@@ -1,7 +1,9 @@
+import { hashBytes } from '@lowerdeck/hash/content';
 import { createCron } from '@metorial/cron';
 import { db, withTransaction } from '@metorial/db';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
-import { getCargoFilesBucketName, getStorage } from '../storage';
+import { putCargoObject } from '../lib/cargoObjects';
+import { hasValidContentHashes, persistContentHashes } from '../lib/contentHashes';
 import { cleanupDeletedFileStorage } from './fileCleanup';
 
 let batchSize = 100;
@@ -74,12 +76,12 @@ export let flushPendingFileContent = async (d: { fileId: string }) => {
     return false;
   }
 
-  await getStorage().putObject(
-    getCargoFilesBucketName(),
-    pending.file.storeId,
-    Buffer.from(pending.content),
-    pending.file.fileType
-  );
+  let content = new Uint8Array(pending.content);
+  await putCargoObject({
+    key: pending.file.storeId,
+    content,
+    contentType: pending.file.fileType
+  });
 
   let result = await withTransaction(async db => {
     let currentFile = await db.file.findUnique({
@@ -111,6 +113,10 @@ export let flushPendingFileContent = async (d: { fileId: string }) => {
       fileId: pending.file.id,
       storeId: pending.file.storeId
     });
+  }
+
+  if (result === 'flushed' && !hasValidContentHashes(pending.file)) {
+    await persistContentHashes({ file: pending.file, hashes: hashBytes(content) });
   }
 
   return result === 'flushed';

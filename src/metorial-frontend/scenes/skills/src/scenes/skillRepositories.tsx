@@ -58,6 +58,12 @@ let ContentActions = styled.div`
   margin-bottom: 12px;
 `;
 
+let marketplaceManagedScopeNotice =
+  'Metorial manages the plugins/ folder and the marketplace manifest files in each linked repository, and removes anything else it finds there when it syncs.';
+
+let pluginManagedScopeNotice =
+  'Metorial manages the skills/ folder and the plugin manifest files in each linked repository, and removes anything else it finds there when it syncs.';
+
 let formatRepoProvider = (provider: 'github' | 'gitlab' | 'bitbucket' | undefined) => {
   if (provider === 'github') return 'GitHub';
   if (provider === 'gitlab') return 'GitLab';
@@ -164,7 +170,7 @@ export let SkillPluginRepositoriesSettingsBox = (p: {
       excludedRepositoryIdentifiers: linkedRepositoryIdentifiers,
       allowCreate: true,
       title: 'Link repository',
-      description: 'Select or create a Git repository, then link it to this skill plugin.',
+      description: `Select or create a Git repository, then link it to this skill plugin. ${pluginManagedScopeNotice}`,
       onManageSourceControl: manageSourceControl,
       onSelect: async repo => {
         let [created] = await createRepository.mutate({
@@ -210,7 +216,7 @@ export let SkillMarketplaceRepositoriesSettingsBox = (p: {
   return (
     <Box
       title="Repositories"
-      description="Link repositories used to source and sync this skill resource."
+      description={`Link repositories to sync this marketplace into. ${marketplaceManagedScopeNotice}`}
       rightActions={
         <Button
           size="2"
@@ -254,8 +260,7 @@ export let useSkillMarketplaceRepositoriesManager = (p: {
       excludedRepositoryIdentifiers: linkedRepositoryIdentifiers,
       allowCreate: true,
       title: 'Link repository',
-      description:
-        'Select or create a Git repository, then link it to this skill marketplace.',
+      description: `Select or create a Git repository, then link it to this skill marketplace. ${marketplaceManagedScopeNotice}`,
       onManageSourceControl: manageSourceControl,
       onClose: () => {
         repositories.refetch();
@@ -380,7 +385,7 @@ let RepositoriesBox = (p: {
   return (
     <Box
       title="Repositories"
-      description="Link repositories used to source and sync this skill resource."
+      description={`Link repositories to sync this plugin into. ${pluginManagedScopeNotice}`}
       rightActions={
         <Button size="2" iconLeft={<RiAddLine />} onClick={p.onOpenPicker} variant="outline">
           Link Repository

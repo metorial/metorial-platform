@@ -1,4 +1,4 @@
-import type { Skill, SkillMarketplace, SkillPlugin } from '@metorial/db';
+import type { Skill, SkillDestination, SkillMarketplace, SkillPlugin } from '@metorial/db';
 import {
   Fabric,
   type AuditSkillGroup,
@@ -177,6 +177,79 @@ Fabric.listen('skill.plugin.audit.archived:after', recordSkillPluginArchived);
 Fabric.listen('skill.marketplace.audit.created:after', recordSkillMarketplaceCreated);
 Fabric.listen('skill.marketplace.audit.updated:after', recordSkillMarketplaceUpdated);
 Fabric.listen('skill.marketplace.audit.archived:after', recordSkillMarketplaceArchived);
+
+let skillDestinationPayload = (skillDestination: SkillDestination) => ({
+  id: skillDestination.id,
+  storageMode: skillDestination.storageMode
+});
+
+export let recordSkillDestinationSyncForced = async (
+  event: FabricEvents['skill.destination.audit.sync_forced:after']
+) => {
+  await recordAuditEventAfterCommit(async recordedAt => {
+    await auditTrackerService.recordEvent(
+      event.auditScope,
+      'skill_destination',
+      'force_sync',
+      {
+        payload: {
+          ...skillDestinationPayload(event.skillDestination),
+          skillDestinationSyncId: event.skillDestinationSync.id,
+          allowMassDelete: event.skillDestinationSync.allowMassDelete
+        },
+        recordedAt
+      }
+    );
+  });
+};
+
+export let recordSkillDestinationStorageMigrated = async (
+  event: FabricEvents['skill.destination.audit.storage_migrated:after']
+) => {
+  await recordAuditEventAfterCommit(async recordedAt => {
+    await auditTrackerService.recordEvent(
+      event.auditScope,
+      'skill_destination',
+      'migrate_storage',
+      {
+        payload: {
+          ...skillDestinationPayload(event.skillDestination),
+          requestedBy: event.requestedBy
+        },
+        recordedAt
+      }
+    );
+  });
+};
+
+export let recordSkillDestinationStorageDemoted = async (
+  event: FabricEvents['skill.destination.audit.storage_demoted:after']
+) => {
+  await recordAuditEventAfterCommit(async recordedAt => {
+    await auditTrackerService.recordEvent(
+      event.auditScope,
+      'skill_destination',
+      'demote_storage',
+      {
+        payload: {
+          ...skillDestinationPayload(event.skillDestination),
+          previousCodeBucketId: event.previousCodeBucketId
+        },
+        recordedAt
+      }
+    );
+  });
+};
+
+Fabric.listen('skill.destination.audit.sync_forced:after', recordSkillDestinationSyncForced);
+Fabric.listen(
+  'skill.destination.audit.storage_migrated:after',
+  recordSkillDestinationStorageMigrated
+);
+Fabric.listen(
+  'skill.destination.audit.storage_demoted:after',
+  recordSkillDestinationStorageDemoted
+);
 
 export let recordSkillGroupCreated = async (
   event: FabricEvents['skill.group.audit.created:after']

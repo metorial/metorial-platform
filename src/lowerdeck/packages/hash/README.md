@@ -36,6 +36,21 @@ async function createContentHash(content: string) {
 }
 ```
 
+## Content hashes (Node and Bun only)
+
+`@lowerdeck/hash/content` hashes file content in one pass: hex sha256, the git blob SHA
+(`sha1("blob <size>\0" + bytes)`), the unsigned crc32 and the byte size.
+
+```typescript
+import { createContentHasher, hashBytes, hashStream } from '@lowerdeck/hash/content';
+
+hashBytes('hello\n').gitBlobSha; // ce013625030ba8dba906f756967f9e9ca394464a
+
+let hasher = createContentHasher({ size: expectedSize });
+for await (let chunk of stream) hasher.update(chunk);
+let { sha256, gitBlobSha, crc32, size } = hasher.digest(); // ContentSizeMismatchError if size differs
+```
+
 ## License
 
 This project is licensed under the Apache License 2.0.

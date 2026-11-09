@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -130,7 +131,7 @@ func (c *Client) DownloadTo(ctx context.Context, ref string, pointer *Pointer, w
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return fmt.Errorf("Git LFS download for object %s: %w", pointer.OID, err)
+		return transportError("Git LFS download for object "+pointer.OID, err)
 	}
 	defer resp.Body.Close()
 
@@ -194,7 +195,7 @@ func (c *Client) batchOne(ctx context.Context, operation, ref, oid string, size 
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("Git LFS batch (%s): %w", operation, err)
+		return nil, transportError(fmt.Sprintf("Git LFS batch (%s)", operation), err)
 	}
 	defer resp.Body.Close()
 
@@ -243,7 +244,7 @@ func (c *Client) putObject(ctx context.Context, action *batchAction, size int64,
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return fmt.Errorf("Git LFS upload: %w", err)
+		return transportError("Git LFS upload", err)
 	}
 	defer resp.Body.Close()
 
@@ -269,13 +270,13 @@ func (c *Client) verifyObject(ctx context.Context, action *batchAction, oid stri
 	req.Header.Set("Accept", contentType)
 	req.Header.Set("Content-Type", contentType)
 	applyActionHeaders(req, action.Header)
-	if req.Header.Get("Authorization") == "" {
+	if req.Header.Get("Authorization") == "" && c.sameHost(req.URL) {
 		c.authorize(req)
 	}
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return fmt.Errorf("Git LFS verify: %w", err)
+		return transportError("Git LFS verify", err)
 	}
 	defer resp.Body.Close()
 
@@ -286,6 +287,15 @@ func (c *Client) verifyObject(ctx context.Context, action *batchAction, oid stri
 
 	_, _ = io.Copy(io.Discard, resp.Body)
 	return nil
+}
+
+// sameHost reports whether target is on the LFS endpoint's scheme and host, the only
+// place the client's own credentials may be sent; other hosts get just the headers the
+// server put into the action.
+func (c *Client) sameHost(target *url.URL) bool {
+	endpoint, err := url.Parse(c.endpoint)
+	return err == nil && endpoint.Host != "" &&
+		strings.EqualFold(endpoint.Scheme, target.Scheme) && strings.EqualFold(endpoint.Host, target.Host)
 }
 
 func (c *Client) authorize(req *http.Request) {

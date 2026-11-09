@@ -25,6 +25,11 @@ let { db, perform, getRepositories, getRemote, syncCodeBucket } = vi.hoisted(() 
   syncCodeBucket: vi.fn()
 }));
 
+let { performManifestPropagation, reconcileManifestPropagation } = vi.hoisted(() => ({
+  performManifestPropagation: vi.fn(),
+  reconcileManifestPropagation: vi.fn()
+}));
+
 vi.mock('@metorial/db', () => ({
   db,
   ID: { generateId: async () => 'propagation' },
@@ -39,11 +44,20 @@ vi.mock('@metorial/skills-scm-utils', () => ({
     scmRepository: { getMany: getRepositories, syncCodeBucket },
     scmRepositorySync: { getMany: getRemote }
   },
-  getOriginTenant: async () => ({ id: 'tenant_1' })
+  getOriginTenant: async () => ({ id: 'tenant_1' }),
+  getSkillDestinationCodeBucketId: (destination: { codeBucketId: string }) =>
+    destination.codeBucketId
 }));
 vi.mock('./_lib/lock', () => ({ withDestinationSyncLock: (run: unknown) => run }));
 vi.mock('./_lib/deletions', () => ({ getPendingDestinationFileDeletions: async () => [] }));
 vi.mock('./_lib/logs', () => ({ appendSkillDestinationSyncLog: vi.fn() }));
+vi.mock('./manifest/propagate', () => ({
+  manifestPropagationPauseMs: 300_000,
+  performManifestPropagation,
+  reconcileManifestPropagation,
+  getManifestErrorCodeForRejection: (error: { data?: { code?: string } }) =>
+    error.data?.code ?? 'request_rejected'
+}));
 
 import {
   syncPropagateStartQueueProcessor,
@@ -338,6 +352,197 @@ describe('repository recovery reconciliation', () => {
     expect(db.skillDestinationSync.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: { status: 'failed', completedAt: expect.any(Date) }
+      })
+    );
+  });
+});
+
+describe('manifest propagation wiring', () => {
+  let performRun = syncPropagatePerformQueueProcessor as unknown as (data: {
+    skillDestinationSyncId: string;
+    pendingPropagationIds: string[];
+    processedPropagationIds: string[];
+  }) => Promise<void>;
+  let wait = syncPropagateWaitQueueProcessor as unknown as (data: {
+    skillDestinationSyncId: string;
+    pendingPropagationIds: string[];
+  }) => Promise<void>;
+
+  let manifestSync = {
+    oid: 10n,
+    destinationOid: 5n,
+    status: 'processing',
+    contentVersion: 0,
+    storageMode: 'manifest',
+    manifestOid: 70n,
+    isAtRepoSyncStage: true,
+    destination: { codeBucketId: null }
+  };
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    db.skillDestinationSync.findUnique.mockResolvedValue(manifestSync);
+    db.skillDestinationSync.findFirst.mockResolvedValue(null);
+    db.skillRepository.findFirst.mockResolvedValue({ oid: 1n });
+    db.skillDestinationSyncRepositoryPropagation.findFirst.mockResolvedValue({
+      id: 'propagation_1',
+      oid: 3n,
+      status: 'pending',
+      originSyncId: 'origin_1',
+      repositoryAccessMode: 'pull_request',
+      skillRepository: { project: {}, repoId: 'repo_1' }
+    });
+  });
+
+  it('starts manifest propagations with the manifest and the last manifest sent to that repository', async () => {
+    db.skillDestinationSync.findUnique.mockResolvedValue({
+      ...manifestSync,
+      isAtRepoSyncStage: false,
+      destination: {
+        skillMarketplace: {
+          repositoryAccessMode: 'pull_request',
+          forceMergeOrPush: false,
+          mergeBeforeChecksPass: false,
+          repositories: [
+            {
+              skillRepository: {
+                id: 'repo_a',
+                oid: 1n,
+                lastPropagatedManifest: { destinationOid: 5n, sha256: 'sha_previous' }
+              }
+            },
+            {
+              skillRepository: {
+                id: 'repo_b',
+                oid: 2n,
+                lastPropagatedManifest: { destinationOid: 99n, sha256: 'sha_elsewhere' }
+              }
+            }
+          ]
+        }
+      }
+    });
+    db.skillDestinationSyncRepositoryPropagation.findUnique.mockResolvedValue(null);
+    db.skillRepository.update.mockResolvedValue({ syncCounter: 1 });
+    db.skillDestinationSyncRepositoryPropagation.create.mockResolvedValue({
+      id: 'propagation'
+    });
+
+    await (syncPropagateStartQueueProcessor as unknown as (d: object) => Promise<void>)({
+      skillDestinationSyncId: 'sync_1'
+    });
+
+    let inputs = db.skillDestinationSyncRepositoryPropagation.create.mock.calls.map(
+      ([input]) => input.data
+    );
+    expect(inputs.map(input => [input.manifestOid, input.previousManifestSha256])).toEqual([
+      [70n, 'sha_previous'],
+      [70n, null]
+    ]);
+    expect(inputs.every(input => input.deletionsUpTo === undefined)).toBe(true);
+  });
+
+  it('finishes without propagations when a manifest sync produced no manifest', async () => {
+    db.skillDestinationSync.findUnique.mockResolvedValue({
+      ...manifestSync,
+      manifestOid: null,
+      isAtRepoSyncStage: false,
+      destination: {
+        skillMarketplace: { repositories: [{ skillRepository: { id: 'repo_a', oid: 1n } }] }
+      }
+    });
+
+    await (syncPropagateStartQueueProcessor as unknown as (d: object) => Promise<void>)({
+      skillDestinationSyncId: 'sync_1'
+    });
+
+    expect(db.skillDestinationSyncRepositoryPropagation.create).not.toHaveBeenCalled();
+    expect(perform).toHaveBeenCalledWith({ skillDestinationSyncId: 'sync_1' });
+  });
+
+  it('re-queues the same repository later while propagation is paused', async () => {
+    performManifestPropagation.mockResolvedValue('paused');
+
+    await performRun({
+      skillDestinationSyncId: 'sync_1',
+      pendingPropagationIds: ['propagation_1', 'propagation_2'],
+      processedPropagationIds: []
+    });
+
+    expect(perform).toHaveBeenCalledTimes(1);
+    expect(perform).toHaveBeenCalledWith(
+      {
+        skillDestinationSyncId: 'sync_1',
+        pendingPropagationIds: ['propagation_1', 'propagation_2'],
+        processedPropagationIds: []
+      },
+      expect.objectContaining({ delay: 300_000 })
+    );
+    expect(syncCodeBucket).not.toHaveBeenCalled();
+  });
+
+  it('moves to the next repository once the manifest was sent', async () => {
+    performManifestPropagation.mockResolvedValue('sent');
+
+    await performRun({
+      skillDestinationSyncId: 'sync_1',
+      pendingPropagationIds: ['propagation_1', 'propagation_2'],
+      processedPropagationIds: []
+    });
+
+    expect(syncCodeBucket).not.toHaveBeenCalled();
+    expect(perform).toHaveBeenCalledWith({
+      skillDestinationSyncId: 'sync_1',
+      processedPropagationIds: ['propagation_1'],
+      pendingPropagationIds: ['propagation_2']
+    });
+  });
+
+  it('records the Origin error code when Origin rejects a manifest sync outright', async () => {
+    performManifestPropagation.mockRejectedValue(
+      new ServiceError(
+        badRequestError({ message: 'Manifest is invalid.', code: 'manifest_invalid' })
+      )
+    );
+
+    await performRun({
+      skillDestinationSyncId: 'sync_1',
+      pendingPropagationIds: ['propagation_1'],
+      processedPropagationIds: []
+    });
+
+    expect(db.skillDestinationSyncRepositoryPropagation.updateMany).toHaveBeenCalledWith({
+      where: { id: 'propagation_1' },
+      data: expect.objectContaining({ status: 'failed', errorCode: 'manifest_invalid' })
+    });
+  });
+
+  it('polls again when Origin says a waiting repository can be retried', async () => {
+    let waitingUntil = new Date(Date.now() + 60_000);
+    db.skillDestinationSyncRepositoryPropagation.findMany
+      .mockResolvedValueOnce([
+        {
+          id: 'propagation_1',
+          status: 'processing',
+          originSyncId: 'origin_1',
+          skillRepository: { project: {}, repoId: 'repo_1' }
+        }
+      ])
+      .mockResolvedValueOnce([{ status: 'processing' }]);
+    getRemote.mockResolvedValue({ syncs: [{ id: 'origin_1', status: 'syncing_contents' }] });
+    getRepositories.mockResolvedValue({ repositories: [] });
+    reconcileManifestPropagation.mockResolvedValue({ waitingUntil });
+
+    await wait({ skillDestinationSyncId: 'sync_1', pendingPropagationIds: ['propagation_1'] });
+
+    expect(reconcileManifestPropagation).toHaveBeenCalledWith(
+      expect.objectContaining({ originSync: { id: 'origin_1', status: 'syncing_contents' } })
+    );
+    expect(perform).toHaveBeenCalledWith(
+      { skillDestinationSyncId: 'sync_1', pendingPropagationIds: ['propagation_1'] },
+      expect.objectContaining({
+        id: `waiting:sync_1:${waitingUntil.getTime()}`,
+        delay: expect.any(Number)
       })
     );
   });

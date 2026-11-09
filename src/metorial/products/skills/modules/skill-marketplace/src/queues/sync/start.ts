@@ -59,14 +59,20 @@ export let syncStartQueueProcessor = syncStartQueue.process(
       return;
     }
 
-    if (!(await destinationBucketIsAvailable(sync))) return;
+    if (sync.destination.storageMode !== 'manifest') {
+      if (!(await destinationBucketIsAvailable(sync))) return;
+    }
 
     try {
       if (sync.status === 'pending') {
         await withTransaction(async db => {
           await db.skillDestinationSync.update({
             where: { oid: sync.oid },
-            data: { status: 'processing', startedAt: new Date() }
+            data: {
+              status: 'processing',
+              startedAt: new Date(),
+              storageMode: sync.destination.storageMode
+            }
           });
 
           await db.skillDestinationSync.updateMany({

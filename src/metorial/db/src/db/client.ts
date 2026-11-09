@@ -463,6 +463,32 @@ declare global {
     };
     type WebImageCandidates = WebImageCandidate[];
 
+    type SkillSyncResultStats = {
+      filesTotal: number;
+      filesUploaded: number;
+      filesSkipped: number;
+      blobsCreated: number;
+      blobsReused: number;
+      lfsUploaded: number;
+      bytesUploaded: number;
+      deleted: number;
+      unexpectedDeletes: number;
+      githubRequests: number;
+      rateLimitWaitMs: number;
+      commitsCreated: number;
+      batchSizeReductions: number;
+    };
+
+    type SkillSyncPropagationErrorDetails = {
+      unexpectedDeletes?: number;
+      total?: number;
+      path?: string;
+      paths?: string[];
+      keys?: string[];
+    };
+
+    type SkillExportRenamedEntries = { path: string; archivePath: string }[];
+
     type EventDeliveryAttemptDetails = {
       request: {
         url: string;

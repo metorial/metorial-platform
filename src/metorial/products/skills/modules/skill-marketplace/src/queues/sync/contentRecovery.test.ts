@@ -66,7 +66,8 @@ describe('content recovery fencing', () => {
   it('accepts queued pre-deployment work while its persisted version is still zero', async () => {
     db.skillDestinationSync.findUnique.mockResolvedValue({
       status: 'processing',
-      contentVersion: 0
+      contentVersion: 0,
+      destination: { storageMode: 'code_bucket' }
     });
 
     await process({ skillDestinationSyncId: 'sync', tasks: [] });

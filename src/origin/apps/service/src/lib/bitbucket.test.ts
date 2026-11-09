@@ -256,6 +256,40 @@ describe('Bitbucket OAuth and REST client', () => {
     });
   });
 
+  it('compares Cloud commits by a plain two-way diffstat', async () => {
+    let fetch = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(Response.json({ values: [] }))
+      .mockResolvedValueOnce(Response.json({ values: [{ status: 'modified' }] }));
+
+    let client = createBitbucketClientWithToken('token', backend());
+    await expect(client.hasContentDifference('workspace/repo', 'base', 'head')).resolves.toBe(
+      false
+    );
+    await expect(client.hasContentDifference('workspace/repo', 'base', 'head')).resolves.toBe(
+      true
+    );
+
+    expect(String(fetch.mock.calls[0]?.[0])).toBe(
+      'https://api.bitbucket.org/2.0/repositories/workspace/repo/diffstat/head..base?topic=false&pagelen=1'
+    );
+  });
+
+  it('compares Data Center commits through the changes endpoint', async () => {
+    let fetch = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(Response.json({ values: [] }));
+
+    let client = createBitbucketClientWithToken('token', backend('bitbucket_data_center'));
+    await expect(client.hasContentDifference('PROJ/repo', 'base', 'head')).resolves.toBe(
+      false
+    );
+
+    expect(String(fetch.mock.calls[0]?.[0])).toBe(
+      'https://stash.example.com/rest/api/1.0/projects/PROJ/repos/repo/changes?since=base&until=head&limit=1'
+    );
+  });
+
   it('reads and normalizes Cloud webhook configuration', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       Response.json({

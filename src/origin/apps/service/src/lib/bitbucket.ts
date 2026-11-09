@@ -498,6 +498,23 @@ export class BitbucketClient {
     return match.latestCommit;
   }
 
+  async hasContentDifference(repositoryId: string, fromCommit: string, toCommit: string) {
+    let [owner, repo] = repositoryId.split('/');
+    if (!owner || !repo) throw new Error('Invalid Bitbucket repository ID');
+    if (!isDataCenter(this.backend)) {
+      let result = await this.request<{ values: unknown[] }>(
+        `repositories/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/diffstat/${encodeURIComponent(toCommit)}..${encodeURIComponent(fromCommit)}`,
+        { query: { topic: 'false', pagelen: 1 } }
+      );
+      return result.values.length > 0;
+    }
+    let result = await this.request<{ values: unknown[] }>(
+      `projects/${encodeURIComponent(owner)}/repos/${encodeURIComponent(repo)}/changes`,
+      { query: { since: fromCommit, until: toCommit, limit: 1 } }
+    );
+    return result.values.length > 0;
+  }
+
   async getDefaultBranch(repositoryId: string) {
     let [owner, repo] = repositoryId.split('/');
     if (!owner || !repo) throw new Error('Invalid Bitbucket repository ID');
@@ -725,6 +742,48 @@ export class BitbucketClient {
       query: isDataCenter(this.backend) ? { version: existing.version } : undefined,
       body: {}
     });
+  }
+
+  async updatePullRequest(
+    repositoryId: string,
+    id: string,
+    i: { title: string; description?: string }
+  ) {
+    let [owner, repo] = repositoryId.split('/');
+    if (!owner || !repo) throw new Error('Invalid Bitbucket repository ID');
+    if (!isDataCenter(this.backend)) {
+      await this.request(
+        `repositories/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/pullrequests/${encodeURIComponent(id)}`,
+        { method: 'PUT', body: { title: i.title, description: i.description ?? '' } }
+      );
+      return;
+    }
+
+    let existing = await this.getPullRequest(repositoryId, id);
+    await this.request(
+      `projects/${encodeURIComponent(owner)}/repos/${encodeURIComponent(repo)}/pull-requests/${encodeURIComponent(id)}`,
+      {
+        method: 'PUT',
+        body: { version: existing.version, title: i.title, description: i.description ?? '' }
+      }
+    );
+  }
+
+  async commentOnPullRequest(repositoryId: string, id: string, text: string) {
+    let [owner, repo] = repositoryId.split('/');
+    if (!owner || !repo) throw new Error('Invalid Bitbucket repository ID');
+    if (!isDataCenter(this.backend)) {
+      await this.request(
+        `repositories/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/pullrequests/${encodeURIComponent(id)}/comments`,
+        { method: 'POST', body: { content: { raw: text } } }
+      );
+      return;
+    }
+
+    await this.request(
+      `projects/${encodeURIComponent(owner)}/repos/${encodeURIComponent(repo)}/pull-requests/${encodeURIComponent(id)}/comments`,
+      { method: 'POST', body: { text } }
+    );
   }
 
   async getCiChecks(

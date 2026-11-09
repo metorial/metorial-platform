@@ -189,5 +189,23 @@ describe('DestinationManifest', () => {
 
       expect(manifest.abandonedPaths()).toEqual([]);
     });
+
+    it('matches rows recorded in manifest form without a leading slash', () => {
+      let manifest = new DestinationManifest(
+        [
+          { path: 'plugins/a/SKILL.md', signature: '', itemKey: 'plugin:p_1' },
+          { path: 'plugins/a/old.md', signature: '', itemKey: 'plugin:p_1' }
+        ],
+        'plugin:p_1'
+      );
+
+      expect(manifest.register('/plugins/a/SKILL.md', 'sha256:aaa')).toEqual({
+        shouldWrite: true
+      });
+      manifest.register('/plugins/a/old.md', 'sha256:bbb');
+
+      expect(manifest.abandonedPaths()).toEqual([]);
+      expect(manifest.removedPaths([])).toEqual([]);
+    });
   });
 });

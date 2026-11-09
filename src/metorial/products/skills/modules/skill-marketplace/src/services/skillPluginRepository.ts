@@ -161,7 +161,8 @@ class SkillPluginRepositoryServiceImpl {
       });
 
       await forceSkillDestinationSync({
-        destination: { oid: plugin.destinationOid! }
+        destination: { oid: plugin.destinationOid! },
+        trigger: 'manual'
       });
 
       return repository;

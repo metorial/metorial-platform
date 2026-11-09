@@ -36,6 +36,33 @@ import {
 } from './sync/propagate';
 import { syncReconcileQueueProcessor } from './sync/reconcile';
 import { syncStartQueueProcessor } from './sync/start';
+import {
+  skillSyncDriftCheckCron,
+  skillSyncDriftCheckManyQueueProcessor,
+  skillSyncDriftCheckSingleQueueProcessor,
+  skillSyncRepairCron,
+  skillSyncRepairManyQueueProcessor,
+  skillSyncRepairSingleQueueProcessor
+} from './sync/repair';
+import {
+  skillDestinationDeleteCodeBucketCron,
+  skillDestinationDeleteCodeBucketManyQueueProcessor,
+  skillDestinationDeleteCodeBucketSingleQueueProcessor,
+  skillDestinationMigrateStorageCron,
+  skillDestinationMigrateStorageManyQueueProcessor,
+  skillDestinationMigrateStorageSingleQueueProcessor
+} from './storage';
+import { syncSnapshotQueueProcessor } from './sync/snapshot';
+import {
+  skillSyncBlobGcCron,
+  skillSyncBlobGcManyQueueProcessor,
+  skillSyncBlobGcSingleQueueProcessor,
+  skillSyncManifestGcManyQueueProcessor,
+  skillSyncManifestGcSingleQueueProcessor,
+  skillSyncObjectSweepCron,
+  skillSyncObjectSweepManyQueueProcessor,
+  skillSyncObjectSweepSingleQueueProcessor
+} from './sync/storageGc';
 
 export * from './lifecycle';
 
@@ -64,5 +91,26 @@ export let skillMarketplaceQueueProcessor = combineQueueProcessors([
   syncFinishQueueProcessor,
   skillDestinationSyncCleanupCron,
   skillDestinationDeletedFileCleanupCron,
-  skillExportQueueProcessor
+  skillExportQueueProcessor,
+  skillSyncRepairCron,
+  skillSyncRepairManyQueueProcessor,
+  skillSyncRepairSingleQueueProcessor,
+  skillSyncDriftCheckCron,
+  skillSyncDriftCheckManyQueueProcessor,
+  skillSyncDriftCheckSingleQueueProcessor,
+  skillDestinationMigrateStorageCron,
+  skillDestinationMigrateStorageManyQueueProcessor,
+  skillDestinationMigrateStorageSingleQueueProcessor,
+  skillDestinationDeleteCodeBucketCron,
+  skillDestinationDeleteCodeBucketManyQueueProcessor,
+  skillDestinationDeleteCodeBucketSingleQueueProcessor,
+  syncSnapshotQueueProcessor,
+  skillSyncBlobGcCron,
+  skillSyncBlobGcManyQueueProcessor,
+  skillSyncBlobGcSingleQueueProcessor,
+  skillSyncManifestGcManyQueueProcessor,
+  skillSyncManifestGcSingleQueueProcessor,
+  skillSyncObjectSweepCron,
+  skillSyncObjectSweepManyQueueProcessor,
+  skillSyncObjectSweepSingleQueueProcessor
 ]);

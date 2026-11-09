@@ -30,6 +30,11 @@ enum ScmAccountType {
   organization
 }
 
+enum ScmRepositorySyncSourceType {
+  code_bucket
+  manifest
+}
+
 model ScmAccount {
   oid BigInt @id @default(autoincrement())
   id  String @unique
@@ -97,6 +102,7 @@ model ScmRepository {
   scmRepoPushes       ScmRepositoryPush[]
   changeNotifications ChangeNotification[]
   scmRepositorySyncs  ScmRepositorySync[]
+  remoteStates        ScmRepositoryRemoteState[]
 
   @@unique([tenantOid, backendOid, externalId])
   @@index([webhookReconcileBlockedUntil, oid])
@@ -110,9 +116,31 @@ model ScmRepositorySync {
   status               ScmRepositorySyncStatus @default(pending)
   repositoryAccessMode ScmRepositoryAccessMode @default(pull_request)
   requestKey           String?
+  endReason            String?
 
-  branchName String
-  baseBranch String
+  sourceType ScmRepositorySyncSourceType @default(code_bucket)
+  sourceKey  String?
+
+  manifestBucket         String?
+  manifestKey            String?
+  manifestSha256         String?
+  manifestEntryCount     Int?
+  previousManifestBucket String?
+  previousManifestKey    String?
+  previousManifestSha256 String?
+
+  /// [RepositorySyncDeletionGuard]
+  deletionGuard   Json?
+  allowMassDelete Boolean @default(false)
+
+  branchName             String
+  requestedBranchName    String?
+  baseBranch             String
+  baseCommitSha          String?
+  lastPushedCommitSha    String?
+  /// Sticky once anyone else's commits were seen on the branch since Origin created or last
+  /// reset it; a conflicting branch is only reset while this is false.
+  foreignCommitsOnBranch Boolean @default(false)
 
   title       String
   description String?
@@ -132,24 +160,40 @@ model ScmRepositorySync {
   providerMergeSha           String?
   mergeAttemptSnapshotHashes String[] @default([])
 
-  errorMessage   String?
-  ciState        String?
+  errorMessage         String?
+  errorCode            String?
+  /// [RepositorySyncErrorDetails]
+  errorDetails         Json?
+  waitingReason        String?
+  ciState              String?
   /// [RepositorySyncStatusSnapshot]
-  statusSnapshot Json?
-  attemptCount   Int     @default(0)
+  statusSnapshot       Json?
+  attemptCount         Int     @default(0)
+  noProgressSliceCount Int     @default(0)
 
   /// [SyncLogEntry]
   logs Json[] @default([])
+
+  /// [RepositorySyncResultStats]
+  resultStats Json?
 
   lastPolledAt DateTime?
   nextPollAt   DateTime?
   completedAt  DateTime?
 
+  continuedFromSyncOid BigInt?
+  continuedFromSync    ScmRepositorySync?  @relation("RepositorySyncContinuation", fields: [continuedFromSyncOid], references: [oid], onDelete: SetNull)
+  continuedBySyncs     ScmRepositorySync[] @relation("RepositorySyncContinuation")
+
+  supersededBySyncOid BigInt?
+  supersededBySync    ScmRepositorySync?  @relation("RepositorySyncSupersession", fields: [supersededBySyncOid], references: [oid], onDelete: SetNull)
+  supersededSyncs     ScmRepositorySync[] @relation("RepositorySyncSupersession")
+
   repoOid BigInt
   repo    ScmRepository @relation(fields: [repoOid], references: [oid], onDelete: Cascade)
 
-  codeBucketOid BigInt
-  codeBucket    CodeBucket @relation(fields: [codeBucketOid], references: [oid], onDelete: Cascade)
+  codeBucketOid BigInt?
+  codeBucket    CodeBucket? @relation(fields: [codeBucketOid], references: [oid], onDelete: Cascade)
 
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
@@ -164,8 +208,33 @@ model ScmRepositorySync {
   @@index([repoOid])
   @@index([repoOid, repositoryAccessMode, status])
   @@index([codeBucketOid])
+  @@index([repoOid, sourceKey, baseBranch, oid])
   @@index([status])
   @@index([status, nextPollAt])
+  @@index([supersededBySyncOid])
+  @@index([createdAt])
+}
+
+model ScmRepositoryRemoteState {
+  oid BigInt @id @default(autoincrement())
+
+  sourceKey String
+  branch    String
+
+  commitSha  String
+  treeSha    String
+  listingKey String
+  entryCount Int
+
+  repoOid BigInt
+  repo    ScmRepository @relation(fields: [repoOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([repoOid, sourceKey, branch])
+  @@index([updatedAt])
+  @@index([listingKey])
 }
 
 model ScmInstallation {
@@ -256,6 +325,7 @@ model ScmRepositoryWebhookReceivedEvent {
   pushes ScmRepositoryPush[]
 
   @@unique([webhookOid, idempotencyKey])
+  @@index([createdAt])
 }
 
 model ScmRepositoryPush {

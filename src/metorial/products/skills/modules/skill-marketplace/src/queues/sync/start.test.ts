@@ -47,7 +47,7 @@ let sync = {
   status: 'pending',
   isAtRepoSyncStage: false,
   destinationOid: 10n,
-  destination: { tag: 2 }
+  destination: { tag: 2, storageMode: 'code_bucket' }
 };
 
 describe('sync start', () => {
@@ -105,6 +105,23 @@ describe('sync start', () => {
     expect(collect).not.toHaveBeenCalled();
     expect(db.skillDestinationSync.update).not.toHaveBeenCalled();
     expect(db.skillDestination.update).not.toHaveBeenCalled();
+  });
+
+  it('starts a manifest destination without waiting on the code bucket and records its mode', async () => {
+    db.skillDestinationSync.findUnique.mockResolvedValue({
+      ...sync,
+      destination: { tag: 2, storageMode: 'manifest' }
+    });
+    available.mockResolvedValue(false);
+
+    await run({ skillDestinationSyncId: sync.id });
+
+    expect(available).not.toHaveBeenCalled();
+    expect(db.skillDestinationSync.update).toHaveBeenCalledWith({
+      where: { oid: sync.oid },
+      data: { status: 'processing', startedAt: expect.any(Date), storageMode: 'manifest' }
+    });
+    expect(collect).toHaveBeenCalledOnce();
   });
 
   it('restores pending status if dispatch fails so the dispatcher can recover it', async () => {

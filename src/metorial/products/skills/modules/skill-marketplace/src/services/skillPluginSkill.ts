@@ -1,7 +1,7 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { createSlugGenerator } from '@lowerdeck/slugify';
+import { createSlugGenerator, slugify } from '@lowerdeck/slugify';
 import type { Instance, Prisma, Project, SkillPluginSkillStatus } from '@metorial/db';
 import { db, ID, withTransaction } from '@metorial/db';
 import {
@@ -14,9 +14,12 @@ import {
 import { skillService } from '@metorial/module-skill';
 import { skillConfigurationService } from '@metorial/module-skill-configurations';
 import {
+  assertSkillMarketplaceDestinationSize,
   assertSkillMarketplaceSkillLimit,
+  assertSkillPluginDestinationSize,
   assertSkillPluginSkillLimit,
   CargoSkillLimitError,
+  getSkillStoreSizes,
   toCargoSkillLimitServiceError
 } from '../lib/limits';
 import {
@@ -82,6 +85,12 @@ let getPluginSkillSlug = createSlugGenerator(
       }
     }))
 );
+
+// The generator pads slugs shorter than 5 characters with random digits.
+let isCurrentSlug = (input: string, current: string) => {
+  let slug = slugify(input);
+  return slug.length < 5 ? current.length === 5 && current.startsWith(slug) : slug === current;
+};
 
 class SkillPluginSkillServiceImpl {
   private hasUpdate(input: SkillPluginSkillInput) {
@@ -224,13 +233,23 @@ class SkillPluginSkillServiceImpl {
         pluginSkillSlug: true
       }
     });
-    let pluginSkillSlug = await getPluginSkillSlug(
-      {
-        input: d.input.pluginSkillSlug ?? skill.clientName ?? skill.name ?? skill.id,
-        current: existingSkillPluginSkill?.pluginSkillSlug
-      },
-      { skillPluginId: d.skillPlugin.id }
-    );
+    if (
+      existingSkillPluginSkill &&
+      d.input.pluginSkillSlug !== undefined &&
+      !isCurrentSlug(d.input.pluginSkillSlug, existingSkillPluginSkill.pluginSkillSlug)
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Plugin skill slug cannot be changed'
+        })
+      );
+    }
+    let pluginSkillSlug =
+      existingSkillPluginSkill?.pluginSkillSlug ??
+      (await getPluginSkillSlug(
+        { input: d.input.pluginSkillSlug ?? skill.clientName ?? skill.name ?? skill.id },
+        { skillPluginId: d.skillPlugin.id }
+      ));
     let skillConfigurationOid =
       d.input.skillConfigurationId === undefined
         ? undefined
@@ -290,6 +309,25 @@ class SkillPluginSkillServiceImpl {
               skillMarketplaceOid: marketplacePlugin.skillMarketplaceOid,
               additionalCount: activeSkillDelta
             });
+          }
+
+          let skillSize = skill.storeOid
+            ? (await getSkillStoreSizes([skill.storeOid])).get(skill.storeOid)
+            : undefined;
+          if (skillSize) {
+            await assertSkillPluginDestinationSize({
+              skillPluginOid: d.skillPlugin.oid,
+              additionalFiles: skillSize.files,
+              additionalBytes: skillSize.bytes
+            });
+
+            for (let marketplacePlugin of marketplacePlugins) {
+              await assertSkillMarketplaceDestinationSize({
+                skillMarketplaceOid: marketplacePlugin.skillMarketplaceOid,
+                additionalFiles: skillSize.files,
+                additionalBytes: skillSize.bytes
+              });
+            }
           }
         } catch (error) {
           if (error instanceof CargoSkillLimitError) {

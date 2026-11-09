@@ -2,6 +2,7 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { db } from '../db';
+import { scmRepositorySyncPresenterInclude } from '../presenters/scmRepositorySync';
 
 class ChangeNotificationServiceImpl {
   async getChangeNotificationById(d: { tenantOid: bigint; changeNotificationId: string }) {
@@ -13,7 +14,7 @@ class ChangeNotificationServiceImpl {
       include: {
         repo: { include: { account: true } },
         repoPush: { include: { repo: true } },
-        repositorySync: true,
+        repositorySync: { include: scmRepositorySyncPresenterInclude },
         tenant: true
       }
     });
@@ -34,7 +35,7 @@ class ChangeNotificationServiceImpl {
           include: {
             repo: { include: { account: true } },
             repoPush: { include: { repo: true } },
-            repositorySync: true,
+            repositorySync: { include: scmRepositorySyncPresenterInclude },
             tenant: true
           },
           orderBy: opts.orderBy?.length ? opts.orderBy : [{ createdAt: 'desc' }]
@@ -63,7 +64,7 @@ class ChangeNotificationServiceImpl {
       include: {
         repo: { include: { account: true } },
         repoPush: { include: { repo: true } },
-        repositorySync: true,
+        repositorySync: { include: scmRepositorySyncPresenterInclude },
         tenant: true
       },
       orderBy: { oid: 'asc' },

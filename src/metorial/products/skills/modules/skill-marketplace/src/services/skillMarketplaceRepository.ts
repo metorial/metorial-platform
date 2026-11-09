@@ -161,7 +161,8 @@ class SkillMarketplaceRepositoryServiceImpl {
       });
 
       await forceSkillDestinationSync({
-        destination: { oid: marketplace.destinationOid! }
+        destination: { oid: marketplace.destinationOid! },
+        trigger: 'manual'
       });
 
       return repository;

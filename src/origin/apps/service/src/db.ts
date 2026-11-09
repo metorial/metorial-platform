@@ -47,5 +47,38 @@ declare global {
       };
       observedAt: string;
     };
+    type RepositorySyncDeletionGuard = {
+      maxUnexpectedDeletes: number;
+      maxUnexpectedDeleteRatio: number;
+    };
+    type RepositorySyncErrorDetails = {
+      paths?: string[];
+      keys?: string[];
+      total?: number;
+      path?: string;
+      key?: string;
+      reason?: string;
+      size?: number;
+      limit?: number;
+      unexpectedDeletes?: number;
+      scopeEntries?: number;
+      maxUnexpectedDeletes?: number;
+      maxUnexpectedDeleteRatio?: number;
+    };
+    type RepositorySyncResultStats = {
+      filesTotal: number;
+      filesUploaded: number;
+      filesSkipped: number;
+      blobsCreated: number;
+      blobsReused: number;
+      lfsUploaded: number;
+      bytesUploaded: number;
+      deleted: number;
+      unexpectedDeletes: number;
+      githubRequests: number;
+      rateLimitWaitMs: number;
+      commitsCreated: number;
+      batchSizeReductions: number;
+    };
   }
 }
