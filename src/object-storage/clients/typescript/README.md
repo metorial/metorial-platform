@@ -55,6 +55,10 @@ With custom timeout:
 const client = new ObjectStorageClient('http://localhost:8080', 60000);
 ```
 
+The client uses the runtime's `fetch` (pass `{ fetch }` as the third argument to replace it). The
+timeout bounds each request until its response is complete; `getObjectStream` stops the clock
+once the headers arrive.
+
 ### Bucket Operations
 
 **Create Bucket**
@@ -88,6 +92,15 @@ const obj = await client.putObject(
 // git_blob_sha1 is null when the body was sent without a Content-Length.
 ```
 
+**Put Object Without Buffering**
+```typescript
+// A file-backed Blob is read from disk as it is sent, with its Content-Length
+await client.putObject('bucket-name', 'object-key', await fs.openAsBlob(path), 'application/zip');
+
+// A ReadableStream is sent as it is produced (no Content-Length, so git_blob_sha1 is null)
+await client.putObject('bucket-name', 'object-key', readableStream);
+```
+
 **Get Object Digests**
 ```typescript
 // Hashes a stored object on the server without sending its content
@@ -99,6 +112,12 @@ const { digests } = await client.getObjectDigests('bucket-name', 'object-key');
 const objData = await client.getObject('bucket-name', 'object-key');
 // objData.data contains the object buffer
 // objData.metadata contains metadata
+```
+
+**Stream an Object**
+```typescript
+// Resolves once the headers arrive; nothing is buffered
+const { metadata, stream } = await client.getObjectStream('bucket-name', 'object-key');
 ```
 
 **Get Part of an Object**
@@ -174,6 +193,8 @@ const job = await client.waitForZipJob('export-42', spec, {
   maxAttempts: 3,
   onProgress: job => console.log(job.state, job.progress.bytesWritten),
 });
+
+// A large spec can be sent as a Blob of its JSON instead, e.g. await fs.openAsBlob(specPath)
 
 if (job.state === 'completed') {
   console.log(`${job.result!.size} bytes, sha256 ${job.result!.sha256}`);

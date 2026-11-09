@@ -11,9 +11,6 @@
     "test": "bun test"
   },
   "license": "MIT",
-  "dependencies": {
-    "axios": "^1.21.0"
-  },
   "devDependencies": {
     "@types/node": "^25.9.9",
     "typescript": "5.9.3"

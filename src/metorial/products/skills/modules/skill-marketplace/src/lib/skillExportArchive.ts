@@ -30,7 +30,10 @@ type ObjectStorage = ReturnType<typeof getStorage>;
 
 export type SkillExportZipJob = Awaited<ReturnType<ObjectStorage['getZipJob']>>;
 
-export type SkillExportZipJobSpec = Parameters<ObjectStorage['createZipJob']>[1];
+export type SkillExportZipJobSpec = Exclude<
+  Parameters<ObjectStorage['createZipJob']>[1],
+  Blob
+>;
 
 export type SkillExportZipJobOutcome =
   | { type: 'wait' }
@@ -105,8 +108,8 @@ async function* zipSpecJsonChunks(
   yield `${chunk}]}`;
 }
 
-// The object-storage client buffers the spec as one object (~230 bytes per entry), so large
-// specs are streamed from the manifest into a temporary file and sent from disk.
+// A spec held in memory costs ~230 bytes per entry, so large specs are streamed from the manifest
+// into a temporary file and sent from disk.
 export let prepareSkillExportZipSpec = async (d: {
   skillExportId: string;
   manifest: SkillExportManifestRef;

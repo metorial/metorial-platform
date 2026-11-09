@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
-import { AxiosError, AxiosHeaders, InternalAxiosRequestConfig } from 'axios';
 import { createHash, randomBytes } from 'node:crypto';
 import { mkdtempSync, rmSync, writeFileSync, existsSync } from 'node:fs';
 import { createServer } from 'node:net';
@@ -49,39 +48,35 @@ const completed = (attempt: number): ZipJob =>
     result: { size: 1, sha256: 'x', etag: 'e', renamedEntries: [] },
   });
 
-const httpError = (status: number, data: unknown, headers: Record<string, string> = {}) => {
-  const config = { headers: new AxiosHeaders() } as InternalAxiosRequestConfig;
-  return new AxiosError('request failed', 'ERR_BAD_RESPONSE', config, {}, {
-    status,
-    statusText: '',
-    data,
-    headers,
-    config,
-  });
-};
+const httpError = (status: number, data: unknown, headers: Record<string, string> = {}) =>
+  Response.json(data, { status, headers });
 
-const connectionRefused = () =>
-  new AxiosError('connect ECONNREFUSED', 'ECONNREFUSED', {
-    headers: new AxiosHeaders(),
-  } as InternalAxiosRequestConfig);
+const connectionRefused = () => new TypeError('Unable to connect. Is the computer able to access the url?');
 
-type Reply = ZipJob | Error;
+type Reply = ZipJob | Response | Error;
 
 /** A client whose PUTs and GETs answer from scripts instead of a server. */
 const stubbed = (puts: Reply[], gets: Reply[] = []) => {
-  const client = new ObjectStorageClient('http://stub.invalid');
-  const calls: { method: string; params: any; timeout?: number }[] = [];
-  const answer = (method: string, replies: Reply[]) => async (_url: string, ...rest: any[]) => {
-    const config = rest[rest.length - 1] ?? {};
-    calls.push({ method, params: config.params, timeout: config.timeout });
-    const reply = replies.shift();
+  const calls: { method: string; params: Record<string, number> }[] = [];
+  const replies: Record<string, Reply[]> = { PUT: puts, GET: gets };
+  const fetchStub = async (input: string | URL | Request, init?: RequestInit) => {
+    const method = init?.method ?? 'GET';
+    const url = new URL(String(input));
+    calls.push({
+      method,
+      params: Object.fromEntries([...url.searchParams].map(([name, value]) => [name, Number(value)])),
+    });
+    const reply = replies[method]?.shift();
     if (!reply) throw new Error(`unexpected ${method}`);
     if (reply instanceof Error) throw reply;
-    return { status: reply.state === 'queued' || reply.state === 'running' ? 202 : 200, data: reply };
+    if (reply instanceof Response) return reply;
+    return Response.json(reply, {
+      status: reply.state === 'queued' || reply.state === 'running' ? 202 : 200,
+    });
   };
-  const axios = (client as any).client;
-  axios.put = answer('PUT', puts);
-  axios.get = answer('GET', gets);
+  const client = new ObjectStorageClient('http://stub.invalid', 30000, {
+    fetch: fetchStub as typeof fetch,
+  });
   return { client, calls };
 };
 
@@ -173,7 +168,25 @@ describe('waitForZipJob retries', () => {
     expect(Date.now() - started).toBeLessThan(3500);
     expect(calls.length).toBeLessThanOrEqual(4);
     expect(calls[0]!.params.wait).toBeLessThanOrEqual(2.5);
-    expect(calls[0]!.timeout).toBeGreaterThanOrEqual(calls[0]!.params.wait * 1000 + 10000);
+  });
+
+  test('a long poll may outlast the client timeout, a plain request may not', async () => {
+    const slowFetch = async (_input: string | URL | Request, init?: RequestInit) =>
+      await new Promise<Response>((resolve, reject) => {
+        const timer = setTimeout(() => resolve(Response.json(job({ state: 'running' }))), 300);
+        init?.signal?.addEventListener('abort', () => {
+          clearTimeout(timer);
+          reject(init.signal!.reason);
+        });
+      });
+    const client = new ObjectStorageClient('http://stub.invalid', 100, {
+      fetch: slowFetch as typeof fetch,
+    });
+
+    expect((await client.getZipJob('job', { waitSeconds: 1 })).state).toBe('running');
+
+    const error = await client.getZipJob('job').catch(error => error);
+    expect(error.name).toBe('TimeoutError');
   });
 });
 

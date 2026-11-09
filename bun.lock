@@ -5820,9 +5820,6 @@
     "src/object-storage/clients/typescript": {
       "name": "object-storage-client",
       "version": "0.4.0",
-      "dependencies": {
-        "axios": "^1.21.0",
-      },
       "devDependencies": {
         "@types/node": "^25.9.9",
         "typescript": "5.9.3",
