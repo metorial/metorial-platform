@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   formatResumeTime,
+  getForceSyncDeleteCount,
   getForceSyncLabel,
   getPropagationDismissalMessage,
   getPropagationErrorMessage,
@@ -179,6 +180,30 @@ describe('skill sync propagation notices', () => {
     expect(getForceSyncLabel(300)).toBe('Sync anyway and delete 300 files');
     expect(getForceSyncLabel(1)).toBe('Sync anyway and delete 1 file');
     expect(getForceSyncLabel(null)).toBe('Sync anyway and delete files');
+  });
+
+  it('adds up the files a forced sync deletes across tripped repositories', () => {
+    expect(getForceSyncDeleteCount([300, 2])).toBe(302);
+    expect(getForceSyncDeleteCount([4])).toBe(4);
+    expect(getForceSyncDeleteCount([300, null])).toBeNull();
+    expect(getForceSyncDeleteCount([300, undefined])).toBeNull();
+  });
+
+  it('names the plugin when a plugin destination is too large', () => {
+    expect(
+      getPropagationErrorMessage({
+        provider: 'github',
+        destination: 'plugin',
+        errorCode: 'destination_too_large'
+      })
+    ).toContain('This plugin is too large to sync to a repository');
+    expect(
+      getPropagationErrorMessage({
+        provider: 'github',
+        destination: 'marketplace',
+        errorCode: 'destination_too_large'
+      })
+    ).toContain('This marketplace is too large to sync to a repository');
   });
 
   it('falls back to the stored message for other propagation errors', () => {

@@ -15,6 +15,7 @@ export type RepositoryActionMessageInput = {
 
 export type PropagationErrorInput = {
   provider: RepositoryProvider | null;
+  destination?: 'marketplace' | 'plugin';
   errorCode?: string | null;
   errorMessage?: string | null;
   unexpectedDeleteCount?: number | null;
@@ -39,6 +40,12 @@ let getPullRequestName = (repositoryCheck: { provider: RepositoryProvider | null
   repositoryCheck.provider === 'gitlab' ? 'merge request' : 'pull request';
 
 let formatFileCount = (count: number) => `${count} ${count === 1 ? 'file' : 'files'}`;
+
+// A forced sync deletes the unexpected files in every tripped repository, so the counts add up.
+export let getForceSyncDeleteCount = (counts: (number | null | undefined)[]) =>
+  counts.every(count => count != null)
+    ? (counts as number[]).reduce((total, count) => total + count, 0)
+    : null;
 
 export let getForceSyncLabel = (unexpectedDeleteCount: number | null) =>
   unexpectedDeleteCount
@@ -84,7 +91,7 @@ export let getPropagationErrorMessage = (propagation: PropagationErrorInput) => 
     case 'path_conflict':
       return `A path in the ${providerName} repository is in the way of a synced file. Move or remove it there, then sync again.`;
     case 'destination_too_large':
-      return 'This marketplace is too large to sync to a repository. Remove skills or files, then sync again.';
+      return `This ${propagation.destination ?? 'marketplace'} is too large to sync to a repository. Remove skills or files, then sync again.`;
     case 'file_too_large':
       return `A synced file is too large for ${providerName}. Remove or shrink it, then sync again.`;
     case 'lfs_quota_exceeded':

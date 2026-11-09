@@ -34,6 +34,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { RouterPanel } from '../../scenes/routerPanel';
 import {
+  getForceSyncDeleteCount,
   getForceSyncLabel,
   getPropagationDismissalMessage,
   getPropagationErrorMessage,
@@ -124,7 +125,8 @@ let getErrorMessage = (value: unknown) => {
 let getRepositoryError = (
   repository: SkillRepository | undefined,
   propagation: RepositoryPropagation | undefined,
-  provider: 'github' | 'gitlab' | 'bitbucket' | null
+  provider: 'github' | 'gitlab' | 'bitbucket' | null,
+  destination: 'marketplace' | 'plugin'
 ) => {
   let r = repository as any;
   let p = propagation as any;
@@ -139,6 +141,7 @@ let getRepositoryError = (
         getErrorMessage(p?.syncError) ??
         getPropagationErrorMessage({
           provider,
+          destination,
           errorCode: propagation?.errorCode,
           errorMessage: propagation?.errorMessage,
           unexpectedDeleteCount: propagation?.unexpectedDeleteCount
@@ -384,6 +387,7 @@ export let SkillSyncDetails = ({
 
   return renderWithLoader({ sync: stableSync })(({ sync }) => {
     let repositories = reposLoader.data?.items ?? [];
+    let destination = sync.data.skillPluginId ? ('plugin' as const) : ('marketplace' as const);
     let propagationByRepositoryId = new Map(
       sync.data.repositoryPropagations.map(
         propagation => [getPropagationRepositoryId(propagation), propagation] as const
@@ -421,7 +425,8 @@ export let SkillSyncDetails = ({
         let error = getRepositoryError(
           repository,
           propagation,
-          repository.repository.provider
+          repository.repository.provider,
+          destination
         );
         return error ? [{ repository: getRepositoryLabel(repository), error }] : [];
       }),
@@ -430,7 +435,8 @@ export let SkillSyncDetails = ({
         let error = getRepositoryError(
           undefined,
           propagation,
-          repositoryCheckByRepositoryId.get(propagation.repoId)?.provider ?? null
+          repositoryCheckByRepositoryId.get(propagation.repoId)?.provider ?? null,
+          destination
         );
         return error ? [{ repository: getPropagationRepositoryId(propagation), error }] : [];
       })
@@ -466,7 +472,7 @@ export let SkillSyncDetails = ({
             itemWidth="320px"
             attributes={[
               { label: 'Sync ID', content: <ID id={sync.data.id} /> },
-              { label: 'Status', content: <SkillSyncStatusBadge status={sync.data.status} /> },
+              { label: 'Status', content: <SyncStatusBadge sync={sync.data} /> },
               {
                 label: 'Started',
                 content: sync.data.startedAt ? (
@@ -669,10 +675,9 @@ let ForceDeletionSync = ({ sync, compact }: { sync: SkillSync; compact: boolean 
   );
   if (!tripped.length || !instance.data) return null;
 
-  let counts = tripped.map(propagation => propagation.unexpectedDeleteCount);
-  let unexpectedDeleteCount = counts.every(count => count != null)
-    ? Math.max(...(counts as number[]))
-    : null;
+  let unexpectedDeleteCount = getForceSyncDeleteCount(
+    tripped.map(propagation => propagation.unexpectedDeleteCount)
+  );
   let label = getForceSyncLabel(unexpectedDeleteCount);
   let instanceId = instance.data.id;
 
