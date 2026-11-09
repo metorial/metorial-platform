@@ -60,3 +60,21 @@ export let skillMarketplaceAuditResource = resource({
     archive: true
   }
 });
+
+export let skillDestinationAuditResource = resource({
+  name: 'skill_destination',
+  payload: v.typedAny<{
+    id: string;
+    storageMode: string;
+    skillDestinationSyncId?: string;
+    allowMassDelete?: boolean;
+    requestedBy?: string;
+    previousCodeBucketId?: string | null;
+  }>('skill_destination'),
+  presenter: undefined,
+  actions: {
+    force_sync: true,
+    migrate_storage: true,
+    demote_storage: true
+  }
+});
