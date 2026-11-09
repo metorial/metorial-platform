@@ -4,6 +4,7 @@ import {
   notFoundError,
   ServiceError
 } from '@lowerdeck/error';
+import type { ContentHashes } from '@lowerdeck/hash/content';
 import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
@@ -25,7 +26,7 @@ import type {
   StoreParticipantPermissions
 } from '@metorial/db';
 import type { AuditScope } from '@metorial/audit-scope';
-import { db, ID, withTransaction } from '@metorial/db';
+import { addAwaitedAfterTransactionHook, db, ID, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import {
   type DateFilter,
@@ -40,10 +41,17 @@ import {
 } from '@metorial/list-utils';
 import type { ResourceAuthorization } from '@metorial/module-access';
 import { resourceActorPresentationInclude } from '@metorial/module-resource-actor';
-import { createHash } from 'node:crypto';
 import { PublicUrlPurpose } from 'object-storage-client';
 import { fileFabricOwnerFromFile, fileFabricOwnerFromScope } from '../internal/fabric';
 import { cargoFileScope, type CargoOwnerScope } from '../internal/ownerScope';
+import { isContentAddressedKey, lockCargoObject } from '../lib/cargoObjects';
+import { writeContentAddressedFile } from '../lib/contentAddressedWrite';
+import {
+  type ContentHashFile,
+  getContentHashColumns,
+  getFileContentHashes,
+  hasValidContentHashes
+} from '../lib/contentHashes';
 import { requireInstanceScope } from '../lib/instanceScope';
 import { canDeleteDisplacedFile } from '../lib/fileReplacement';
 import {
@@ -57,6 +65,7 @@ import {
 } from '../lib/uploadDestination';
 import { getPurposeUploadSizeError, uploadUrlExpirationSecs } from '../lib/uploadPolicy';
 import { fileCleanupSingleQueue } from '../queues/fileCleanup';
+import { fileHashBackfillQueue, fileHashQueue, getFileHashJobId } from '../queues/fileHash';
 import { getCargoFilesBucketName, getStorage } from '../storage';
 import { documentFilePurposeSlug, filePurposeService } from './filePurpose';
 import { fileReferenceService } from './fileReference';
@@ -259,6 +268,7 @@ class FileServiceImpl {
         contentPersistence?:
           | { type: 'database'; content: Uint8Array<ArrayBuffer>; flushAfter: Date }
           | { type: 'object' };
+        contentHashes?: ContentHashes;
       };
       input: {
         id?: string;
@@ -279,7 +289,15 @@ class FileServiceImpl {
     }
   ): Promise<FileRecord> {
     let cleanupFileId: string | null = null;
+    let contentHashes = getContentHashColumns({
+      storeId: d.storeId,
+      size: d.input.size,
+      hashes: d.internal?.contentHashes
+    });
+
     let result = await withTransaction(async db => {
+      if (isContentAddressedKey(d.storeId)) await lockCargoObject(d.storeId);
+
       let fileName = d.input.name?.trim();
       if (!fileName) {
         throw new ServiceError(
@@ -335,7 +353,8 @@ class FileServiceImpl {
             purposeOid: purpose.oid,
             isReadOnly: d.internal?.isReadOnly ?? existing.isReadOnly,
             isTemplateBacking: d.internal?.isTemplateBacking ?? existing.isTemplateBacking,
-            createdByResourceActorOid: existing.createdByResourceActorOid ?? actor?.oid
+            createdByResourceActorOid: existing.createdByResourceActorOid ?? actor?.oid,
+            ...contentHashes
           },
           include
         });
@@ -400,7 +419,8 @@ class FileServiceImpl {
           expiresAt: d.input.expiresAt,
           isReadOnly: d.internal?.isReadOnly ?? false,
           isTemplateBacking: d.internal?.isTemplateBacking ?? false,
-          createdByResourceActorOid: actor?.oid
+          createdByResourceActorOid: actor?.oid,
+          ...contentHashes
         },
         include
       });
@@ -571,22 +591,32 @@ class FileServiceImpl {
 
   // A File's storeId can be rewritten in place (template syncs), so the cached digest is only
   // trusted for the store object it was computed from.
-  async getContentSha256(d: {
-    file: Pick<File, 'oid' | 'status' | 'storeId' | 'contentSha256' | 'contentSha256StoreId'>;
-  }) {
+  async getContentSha256(d: { file: ContentHashFile & Pick<File, 'status'> }) {
     if (d.file.contentSha256 && d.file.contentSha256StoreId === d.file.storeId) {
       return d.file.contentSha256;
     }
 
-    let content = await this.downloadFileContent({ file: d.file });
-    let sha256 = createHash('sha256').update(content).digest('hex');
+    return (await this.getContentHashes(d)).sha256;
+  }
 
-    await db.file.updateMany({
-      where: { oid: d.file.oid, storeId: d.file.storeId },
-      data: { contentSha256: sha256, contentSha256StoreId: d.file.storeId }
-    });
+  async getContentHashes(d: { file: ContentHashFile & Pick<File, 'status'> }) {
+    if (!hasValidContentHashes(d.file)) await this.ensureFileActive(d.file);
 
-    return sha256;
+    return await getFileContentHashes({ file: d.file });
+  }
+
+  // Hashes the file's stored object in the background, once any surrounding transaction commits.
+  async requestContentHashes(d: { file: ContentHashFile & Pick<File, 'id'> }) {
+    if (hasValidContentHashes(d.file)) return;
+
+    await addAwaitedAfterTransactionHook(
+      async () =>
+        await fileHashQueue.add({ fileId: d.file.id }, { id: getFileHashJobId(d.file) })
+    );
+  }
+
+  async requestContentHashBackfill(d: { instance?: Pick<Instance, 'id'> } = {}) {
+    await fileHashBackfillQueue.add({ instanceId: d.instance?.id });
   }
 
   /**
@@ -639,40 +669,42 @@ class FileServiceImpl {
     }
   ) {
     let mimeType = d.input.mimeType ?? d.file.type ?? 'application/octet-stream';
-    let storeId = generatePlainId(20);
+    let content = new Uint8Array(await d.file.arrayBuffer());
     let bufferContent = shouldBufferFileContent({
       fileName: d.input.name,
-      size: d.file.size
+      size: content.byteLength
     });
-
-    if (!bufferContent) {
-      await getStorage().putObject(getCargoFilesBucketName(), storeId, d.file, mimeType);
-    }
 
     let { file, input, ...scope } = d;
 
-    return await this.createFile({
-      ...scope,
-      storeId,
-      internal: {
-        isReadOnly: true,
-        contentPersistence: bufferContent
-          ? {
-              type: 'database',
-              content: new Uint8Array(await d.file.arrayBuffer()),
-              flushAfter: getPendingFileContentFlushAfter()
-            }
-          : { type: 'object' }
-      },
-      input: {
-        id: d.input.id,
-        name: d.input.name,
-        mimeType,
-        size: d.file.size,
-        title: d.input.title,
-        expiresAt: d.input.expiresAt,
-        authorization: d.input.authorization
-      }
+    return await writeContentAddressedFile({
+      content,
+      buffered: bufferContent,
+      create: async ({ storeId, hashes }) =>
+        await this.createFile({
+          ...scope,
+          storeId,
+          internal: {
+            isReadOnly: true,
+            contentHashes: hashes,
+            contentPersistence: bufferContent
+              ? {
+                  type: 'database',
+                  content,
+                  flushAfter: getPendingFileContentFlushAfter()
+                }
+              : { type: 'object' }
+          },
+          input: {
+            id: d.input.id,
+            name: d.input.name,
+            mimeType,
+            size: content.byteLength,
+            title: d.input.title,
+            expiresAt: d.input.expiresAt,
+            authorization: d.input.authorization
+          }
+        })
     });
   }
 
@@ -722,6 +754,7 @@ class FileServiceImpl {
       auditScope: AuditScope;
       purpose: string;
       storeId: string;
+      skipContentHashes?: boolean;
       input: {
         id?: string;
         name: string;
@@ -746,9 +779,9 @@ class FileServiceImpl {
       );
     }
 
-    let { storeId, input, ...scope } = d;
+    let { storeId, input, skipContentHashes, ...scope } = d;
 
-    return await this.createFile({
+    let file = await this.createFile({
       ...scope,
       storeId,
       internal: {
@@ -765,6 +798,9 @@ class FileServiceImpl {
         authorization: d.input.authorization
       }
     });
+    if (!skipContentHashes) await this.requestContentHashes({ file });
+
+    return file;
   }
 
   async createUploadedFileFromByteStream(
@@ -783,48 +819,46 @@ class FileServiceImpl {
     }
   ) {
     let mimeType = d.input.mimeType ?? 'application/octet-stream';
-    let storeId = generatePlainId(20);
     let chunks: Uint8Array[] = [];
-    let size = 0;
 
-    for await (let chunk of d.content) {
-      chunks.push(chunk);
-      size += chunk.byteLength;
-    }
+    for await (let chunk of d.content) chunks.push(chunk);
 
-    let blob = new Blob(chunks as any[]);
+    let bytes = new Uint8Array(await new Blob(chunks as any[]).arrayBuffer());
     let bufferContent = shouldBufferFileContent({
       fileName: d.input.name,
-      size
+      size: bytes.byteLength
     });
-    if (!bufferContent) {
-      await getStorage().putObject(getCargoFilesBucketName(), storeId, blob, mimeType);
-    }
 
     let { content, input, ...scope } = d;
 
-    return await this.createFile({
-      ...scope,
-      storeId,
-      internal: {
-        isReadOnly: true,
-        contentPersistence: bufferContent
-          ? {
-              type: 'database',
-              content: new Uint8Array(await blob.arrayBuffer()),
-              flushAfter: getPendingFileContentFlushAfter()
-            }
-          : { type: 'object' }
-      },
-      input: {
-        id: d.input.id,
-        name: d.input.name,
-        mimeType,
-        size,
-        title: d.input.title,
-        expiresAt: d.input.expiresAt,
-        authorization: d.input.authorization
-      }
+    return await writeContentAddressedFile({
+      content: bytes,
+      buffered: bufferContent,
+      create: async ({ storeId, hashes }) =>
+        await this.createFile({
+          ...scope,
+          storeId,
+          internal: {
+            isReadOnly: true,
+            contentHashes: hashes,
+            contentPersistence: bufferContent
+              ? {
+                  type: 'database',
+                  content: bytes,
+                  flushAfter: getPendingFileContentFlushAfter()
+                }
+              : { type: 'object' }
+          },
+          input: {
+            id: d.input.id,
+            name: d.input.name,
+            mimeType,
+            size: bytes.byteLength,
+            title: d.input.title,
+            expiresAt: d.input.expiresAt,
+            authorization: d.input.authorization
+          }
+        })
     });
   }
 

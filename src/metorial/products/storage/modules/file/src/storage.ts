@@ -5,7 +5,7 @@ import {
   PublicUrlPurpose
 } from 'object-storage-client';
 import { env } from './env';
-import { readObjectStream } from './lib/objectStream';
+import { readObjectStream, writeObjectFile } from './lib/objectStream';
 
 export let storage = new ObjectStorageClient(env.storage.OBJECT_STORAGE_URL, 1000 * 60 * 10);
 
@@ -14,6 +14,13 @@ export let getStorage = () => storage;
 
 export let getObjectStream = async (bucket: string, key: string) =>
   await readObjectStream({ baseUrl: env.storage.OBJECT_STORAGE_URL, bucket, key });
+
+export let putObjectFile = async (d: {
+  bucket: string;
+  key: string;
+  path: string;
+  contentType?: string;
+}) => await writeObjectFile({ baseUrl: env.storage.OBJECT_STORAGE_URL, ...d });
 
 export let presignObjectDownload = async (d: { key: string; expiresInSecs: number }) => {
   try {
