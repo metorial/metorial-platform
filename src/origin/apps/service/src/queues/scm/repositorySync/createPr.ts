@@ -1,3 +1,4 @@
+import { withRepositorySyncWriteLock } from '../../../lib/repositorySyncWriteLock';
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '../../../db';
 import { env } from '../../../env';
@@ -21,7 +22,7 @@ export let createPrRepositorySyncQueue = createQueue<{ syncId: string }>({
 });
 
 export let createPrRepositorySyncQueueProcessor = createPrRepositorySyncQueue.process(
-  async data => {
+  withRepositorySyncWriteLock(async data => {
     try {
       logRepositorySyncQueueEvent('createPr', 'processing queue item', {
         syncId: data.syncId,
@@ -173,5 +174,5 @@ export let createPrRepositorySyncQueueProcessor = createPrRepositorySyncQueue.pr
       });
       await markRepositorySyncFailed(data.syncId, e);
     }
-  }
+  })
 );

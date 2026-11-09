@@ -44,6 +44,7 @@ export type DashboardInstanceProvidersVersionsListQuery = {
 } & {
   id?: string | string[] | undefined;
   providerId?: string | string[] | undefined;
+  search?: string | undefined;
   createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
   updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };

@@ -69,7 +69,7 @@ vi.mock('../../../lib/ownershipActor', () => ({
 vi.mock('../../../middleware/apiGroup', () => ({ apiGroup: Group.create() }));
 
 vi.mock('../../../middleware/instanceGroup', () => ({
-  instanceGroup: Group.create(),
+  integrationsGroup: Group.create(),
   instancePath: (path: string, sdkPath: string) => [
     Path(`/${path}`, sdkPath),
     Path(`/dashboard/instances/:instanceId/${path}`, `dashboard.instance.${sdkPath}`)

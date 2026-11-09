@@ -954,6 +954,7 @@ func (fsm *FileSystemManager) GetBucketFilesAsZip(ctx context.Context, bucketId,
 
 type ZipUploadDestination struct {
 	URL         string
+	Headers     map[string]string
 	Bucket      string
 	Key         string
 	ContentType string
@@ -1020,7 +1021,7 @@ func (fsm *FileSystemManager) ExportBucketFilesAsZipToUpload(
 	}
 
 	if destination.URL != "" {
-		err = fsm.putSignedURLFromReader(ctx, destination.URL, tmpFile, byteSize, contentType)
+		err = fsm.putSignedURLFromReader(ctx, destination.URL, destination.Headers, tmpFile, byteSize, contentType)
 	} else {
 		err = fsm.putObjectFromReader(destination.Bucket, destination.Key, tmpFile, &contentType, nil)
 	}
@@ -1038,6 +1039,7 @@ func (fsm *FileSystemManager) ExportBucketFilesAsZipToUpload(
 func (fsm *FileSystemManager) putSignedURLFromReader(
 	ctx context.Context,
 	url string,
+	headers map[string]string,
 	reader io.Reader,
 	size int64,
 	contentType string,
@@ -1048,6 +1050,9 @@ func (fsm *FileSystemManager) putSignedURLFromReader(
 	}
 
 	req.ContentLength = size
+	for name, value := range headers {
+		req.Header.Set(name, value)
+	}
 	req.Header.Set("Content-Type", contentType)
 
 	resp, err := fsm.httpClient.Do(req)

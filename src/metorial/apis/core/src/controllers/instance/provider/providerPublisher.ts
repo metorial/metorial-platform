@@ -4,10 +4,10 @@ import { v } from '@lowerdeck/validation';
 import { publisherService } from '@metorial-subspace/module-catalog';
 import { Controller } from '@metorial/rest';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { publisherPresenter } from '@metorial/presenters';
 
-let publisherGroup = instanceGroup.use(async ctx => {
+let publisherGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.publisherId) {
     throw new ServiceError(
       badRequestError({
@@ -33,7 +33,7 @@ export let publisherController = Controller.create(
     hideInDocs: true
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('publishers', 'publishers.list'), {
         name: 'List publishers',
         description: 'Returns a paginated list of publishers.'

@@ -1,10 +1,35 @@
 import { spawn as nodeSpawn, spawnSync, type ChildProcess } from 'node:child_process';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { pipeline } from 'node:stream/promises';
 import type { Environment } from './types';
 
 let shutdownTimeout = 15_000;
 
 let processGroups = new WeakSet<ChildProcess>();
+
+export type OutputSink = (text: string, stream: 'out' | 'err') => void;
+
+export let outputSink = new AsyncLocalStorage<OutputSink>();
+
+export let cancellation = new AsyncLocalStorage<AbortSignal | undefined>();
+
+export let checkInterrupted = () => {
+  if (cancellation.getStore()?.aborted) throw new Interrupted();
+};
+
+export let say = (message: string) => {
+  let sink = outputSink.getStore();
+
+  if (sink) sink(`${message}\n`, 'out');
+  else console.log(message);
+};
+
+export let warn = (message: string) => {
+  let sink = outputSink.getStore();
+
+  if (sink) sink(`${message}\n`, 'err');
+  else console.error(message);
+};
 
 export class Interrupted extends Error {
   constructor() {
@@ -23,7 +48,20 @@ export class ProcessError extends Error {
 }
 
 export let delay = (milliseconds: number) =>
-  new Promise<void>(resolve => setTimeout(resolve, milliseconds));
+  new Promise<void>((resolve, reject) => {
+    checkInterrupted();
+    let signal = cancellation.getStore();
+    let abort = () => {
+      clearTimeout(timer);
+      reject(new Interrupted());
+    };
+    let timer = setTimeout(() => {
+      signal?.removeEventListener('abort', abort);
+      resolve();
+    }, milliseconds);
+
+    signal?.addEventListener('abort', abort, { once: true });
+  });
 
 export let spawn = (
   program: string,
@@ -33,14 +71,31 @@ export let spawn = (
   interactive = false,
   capture = false
 ) => {
-  let isolated = process.platform !== 'win32' && !interactive;
+  checkInterrupted();
+  let sink = interactive ? outputSink.getStore() : undefined;
+  let isolated = process.platform !== 'win32' && (!interactive || !!sink);
   let child = nodeSpawn(program, args, {
     cwd,
     env: { ...process.env, ...env },
     detached: isolated,
-    stdio: capture ? ['pipe', 'pipe', 'pipe'] : 'inherit'
+    stdio: capture || sink ? ['pipe', 'pipe', 'pipe'] : 'inherit'
   });
   if (isolated) processGroups.add(child);
+
+  let signal = cancellation.getStore();
+  let abort = () => signalTree(child, 'SIGKILL');
+  signal?.addEventListener('abort', abort, { once: true });
+  child.once('spawn', () => {
+    if (signal?.aborted) abort();
+  });
+  child.once('close', () => signal?.removeEventListener('abort', abort));
+
+  if (sink) {
+    child.stdin?.end();
+    child.stdout?.on('data', chunk => sink(Buffer.from(chunk).toString(), 'out'));
+    child.stderr?.on('data', chunk => sink(Buffer.from(chunk).toString(), 'err'));
+  }
+
   return child;
 };
 
@@ -116,6 +171,7 @@ export let wait = (
     let stderr: Buffer[] = [];
     let interrupted = false;
     let stopping: Promise<void> | undefined;
+    let signal = cancellation.getStore();
 
     let onSignal = () => {
       interrupted = true;
@@ -143,7 +199,7 @@ export let wait = (
       await stopping;
       cleanup();
 
-      if (interrupted) reject(new Interrupted());
+      if (interrupted || signal?.aborted) reject(new Interrupted());
       else if (code !== 0)
         reject(new ProcessError(program, code, Buffer.concat(stderr).toString().trim()));
       else resolve(Buffer.concat(stdout).toString());
@@ -170,6 +226,30 @@ export let output = async (
   child.stdin!.end();
 
   return (await result).trim();
+};
+
+export let runCaptured = async (
+  label: string,
+  program: string,
+  args: string[],
+  cwd: string,
+  env: Environment = {}
+) => {
+  let child = spawn(program, args, cwd, env, false, true);
+  let chunks: Buffer[] = [];
+  child.stdout?.on('data', chunk => chunks.push(Buffer.from(chunk)));
+  child.stderr?.on('data', chunk => chunks.push(Buffer.from(chunk)));
+  child.stdin?.end();
+
+  try {
+    await wait(child, program, true);
+  } catch (error) {
+    if (error instanceof Interrupted) throw error;
+
+    throw new Error(`${label} failed\n${Buffer.concat(chunks).toString().trim()}`, {
+      cause: error
+    });
+  }
 };
 
 export let runQuiet = async (

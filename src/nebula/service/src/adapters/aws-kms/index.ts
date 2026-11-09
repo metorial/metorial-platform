@@ -110,6 +110,27 @@ let getEncryptionContext = (context: DataKeyContext) => ({
 export class AwsKmsKeyProviderAdapter extends KeyProviderAdapter {
   readonly type = 'aws_kms' as const;
 
+  getSystemFingerprint() {
+    return `aws_kms:${env.kms.KMS_AWS_REGION ?? ''}:${env.kms.KMS_DEFAULT_KEY_ID ?? 'auto'}`;
+  }
+
+  override async matchesLegacySystemKeyInfo(keyInfo: any) {
+    let configuredKeyId = env.kms.KMS_DEFAULT_KEY_ID;
+    if (!configuredKeyId) return true;
+    if (configuredKeyId === keyInfo?.keyId || configuredKeyId === keyInfo?.keyArn) return true;
+
+    try {
+      let described = await this.describeKeyId({
+        keyId: configuredKeyId,
+        region: keyInfo?.region ?? env.kms.KMS_AWS_REGION
+      });
+
+      return described.keyArn === keyInfo?.keyArn;
+    } catch {
+      return true;
+    }
+  }
+
   async createSystemKeyProvider() {
     let region = env.kms.KMS_AWS_REGION;
     if (!region)
@@ -139,7 +160,10 @@ export class AwsKmsKeyProviderAdapter extends KeyProviderAdapter {
 
       return {
         name: 'Metorial AWS KMS Default',
-        keyInfo: await this.describeKeyId({ keyId, region })
+        keyInfo: {
+          ...(await this.describeKeyId({ keyId, region })),
+          fingerprint: this.getSystemFingerprint()
+        }
       };
     } catch (err) {
       throw normalizeAdapterError(err);

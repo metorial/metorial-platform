@@ -1,3 +1,4 @@
+import { isServiceError } from '@lowerdeck/error';
 import { delay } from '@lowerdeck/delay';
 import { db } from '../../db';
 import {
@@ -13,10 +14,10 @@ type ScmProvider = 'github' | 'gitlab' | 'bitbucket';
 let providerLabel = (provider: ScmProvider) =>
   provider === 'github' ? 'GitHub' : provider === 'gitlab' ? 'GitLab' : 'Bitbucket';
 
-export let getCodeBucketImportFailureMessage = (
-  provider: ScmProvider,
-  error: unknown
-) => {
+export let getCodeBucketImportFailureMessage = (provider: ScmProvider, error: unknown) => {
+  if (isServiceError(error) && error.data.code === 'scm_policy_denied')
+    return error.data.message;
+
   let details = getScmProviderErrorDetails(error);
   if (details.classification === 'resource_not_found') {
     return `${providerLabel(provider)} repository was not found. It may have been deleted, renamed, or the installation may lack access.`;

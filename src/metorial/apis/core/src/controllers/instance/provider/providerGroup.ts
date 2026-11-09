@@ -9,10 +9,10 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { providerGroupPresenter } from '@metorial/presenters';
 
-let providerGroupGroup = instanceGroup.use(async ctx => {
+let providerGroupGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.providerGroupId) {
     throw new ServiceError(
       badRequestError({
@@ -38,7 +38,7 @@ export let providerGroupController = Controller.create(
     hideInDocs: true
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('provider-groups', 'providerGroups.list'), {
         name: 'List provider groups',
         description: 'Returns a paginated list of provider groups.'
@@ -89,7 +89,7 @@ export let providerGroupController = Controller.create(
         return providerGroupPresenter.present({ group: ctx.group });
       }),
 
-    create: instanceGroup
+    create: integrationsGroup
       .post(instancePath('provider-groups', 'providerGroups.create'), {
         name: 'Create provider group',
         description: 'Creates a new custom provider group.'

@@ -256,20 +256,22 @@ class SkillConfigurationServiceImpl {
         ? await this.upsertDefaultSkillConfiguration(d)
         : await this.getSkillConfigurationRecord(d);
 
-    let updatedConfiguration = await db.skillConfiguration.update({
-      where: {
-        id: skillConfiguration.id
-      },
-      data: this.getUpdateData(d.input),
-      include: skillConfigurationInclude
-    });
+    return await withTransaction(async db => {
+      let updatedConfiguration = await db.skillConfiguration.update({
+        where: {
+          id: skillConfiguration.id
+        },
+        data: this.getUpdateData(d.input),
+        include: skillConfigurationInclude
+      });
 
-    await enqueueSkillConfigurationLifecycle({
-      skillConfigurationId: updatedConfiguration.id,
-      event: 'updated'
-    });
+      await enqueueSkillConfigurationLifecycle({
+        skillConfigurationId: updatedConfiguration.id,
+        event: 'updated'
+      });
 
-    return updatedConfiguration;
+      return updatedConfiguration;
+    });
   }
 
   async deleteSkillConfiguration(d: {
@@ -295,22 +297,24 @@ class SkillConfigurationServiceImpl {
       );
     }
 
-    let deletedConfiguration = await db.skillConfiguration.update({
-      where: {
-        id: skillConfiguration.id
-      },
-      data: {
-        deletedAt: new Date()
-      },
-      include: skillConfigurationInclude
-    });
+    return await withTransaction(async db => {
+      let deletedConfiguration = await db.skillConfiguration.update({
+        where: {
+          id: skillConfiguration.id
+        },
+        data: {
+          deletedAt: new Date()
+        },
+        include: skillConfigurationInclude
+      });
 
-    await enqueueSkillConfigurationLifecycle({
-      skillConfigurationId: deletedConfiguration.id,
-      event: 'archived'
-    });
+      await enqueueSkillConfigurationLifecycle({
+        skillConfigurationId: deletedConfiguration.id,
+        event: 'archived'
+      });
 
-    return deletedConfiguration;
+      return deletedConfiguration;
+    });
   }
 }
 

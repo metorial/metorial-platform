@@ -2,6 +2,7 @@
   "$schema": "https://turborepo.com/schema.json",
   "agentGuidance": false,
   "ui": "tui",
+  "globalEnv": ["METORIAL_EDITION", "METORIAL_RELEASE_CHANNEL"],
   "tasks": {
     "enterprise:dev": {
       "cache": false,
@@ -15,7 +16,7 @@
         "!dev.Dockerfile",
         "!.dockerignore",
         "!README*",
-        "!control.toml"
+        "!control/**"
       ],
       "outputs": ["dist/**"]
     },
@@ -27,7 +28,7 @@
         "!dev.Dockerfile",
         "!.dockerignore",
         "!README*",
-        "!control.toml"
+        "!control/**"
       ],
       "outputs": ["dist/**"]
     },
@@ -43,7 +44,7 @@
         "!dev.Dockerfile",
         "!.dockerignore",
         "!README*",
-        "!control.toml"
+        "!control/**"
       ],
       "outputs": ["prisma/generated/**"]
     },
@@ -74,7 +75,7 @@
         "!dev.Dockerfile",
         "!.dockerignore",
         "!README*",
-        "!control.toml"
+        "!control/**"
       ],
       "outputs": ["dist/**", "frontend/*/dist/**"],
       "env": ["SENTRY_AUTH_TOKEN", "METORIAL_ENV", "VITE_*"]
@@ -87,7 +88,7 @@
         "!dev.Dockerfile",
         "!.dockerignore",
         "!README*",
-        "!control.toml"
+        "!control/**"
       ],
       "outputs": ["dist/**"],
       "env": ["METORIAL_ENV", "VITE_*"]
@@ -100,7 +101,7 @@
         "!dev.Dockerfile",
         "!.dockerignore",
         "!README*",
-        "!control.toml"
+        "!control/**"
       ],
       "outputs": ["dist/admin/**"],
       "env": ["METORIAL_ENV", "VITE_*"]
@@ -113,7 +114,7 @@
         "!dev.Dockerfile",
         "!.dockerignore",
         "!README*",
-        "!control.toml"
+        "!control/**"
       ],
       "outputs": ["dist-worker/**"],
       "env": ["METORIAL_ENV"]
@@ -147,7 +148,7 @@
         "!dev.Dockerfile",
         "!.dockerignore",
         "!README*",
-        "!control.toml"
+        "!control/**"
       ],
       "env": ["METORIAL_ENV"],
       "outputs": ["dist/**", "!dist/admin/**"]
@@ -160,7 +161,7 @@
         "!dev.Dockerfile",
         "!.dockerignore",
         "!README*",
-        "!control.toml"
+        "!control/**"
       ],
       "env": ["METORIAL_ENV"],
       "outputs": ["dist/**"]
@@ -221,24 +222,51 @@
         "!Dockerfile",
         "!dev.Dockerfile",
         "!.dockerignore",
-        "!control.toml",
+        "!control/**",
         "$TURBO_ROOT$/tsconfig*.json"
       ],
       "outputs": [],
       "env": ["CI", "NODE_ENV", "TEST_CACHE_RUNTIME"]
+    },
+    "rust:fmt": {
+      "inputs": ["**/*.rs", "Cargo.toml", "Cargo.lock", "rustfmt.toml"],
+      "outputs": []
+    },
+    "rust:check": {
+      "inputs": ["**/*.rs", "**/Cargo.toml", "Cargo.lock"],
+      "outputs": []
+    },
+    "rust:lint": {
+      "inputs": ["**/*.rs", "**/Cargo.toml", "Cargo.lock", "clippy.toml"],
+      "outputs": []
+    },
+    "rust:test": {
+      "inputs": ["**/*.rs", "**/Cargo.toml", "Cargo.lock", "object-store/tests/**"],
+      "outputs": []
+    },
+    "rust:build": {
+      "inputs": ["**/*.rs", "**/Cargo.toml", "Cargo.lock"],
+      "outputs": ["target/release/object-store-service"]
     },
     "check-types": {
       "dependsOn": ["^check-types"]
     },
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "passThroughEnv": ["*"]
     },
     "control:db:generate": {
-      "cache": false
+      "cache": false,
+      "passThroughEnv": ["*"]
     },
     "control:db:push": {
-      "cache": false
+      "cache": false,
+      "passThroughEnv": ["*"]
+    },
+    "control:db:migrate": {
+      "cache": false,
+      "passThroughEnv": ["*"]
     },
     "@metorial-subspace/app-worker#server:build": {
       "dependsOn": [
@@ -256,7 +284,7 @@
         "!dev.Dockerfile",
         "!.dockerignore",
         "!README*",
-        "!control.toml"
+        "!control/**"
       ],
       "env": ["METORIAL_ENV"],
       "outputs": ["dist/**", "!dist/admin/**"]
@@ -269,7 +297,7 @@
         "!Dockerfile",
         "!dev.Dockerfile",
         "!.dockerignore",
-        "!control.toml",
+        "!control/**",
         "$TURBO_ROOT$/tsconfig*.json"
       ],
       "outputs": []

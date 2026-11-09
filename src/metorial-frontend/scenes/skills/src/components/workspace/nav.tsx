@@ -527,6 +527,7 @@ export let WorkspaceNavLeft = (p: {
   toolbar: { on: boolean; onToggle: () => void } | null;
   moreItems: FloatingMenuItem[];
   security?: { summary: SkillWorkspaceSecurity; active: boolean; onOpen: () => void } | null;
+  statusSlot?: ReactNode;
 }) => {
   useMorphWidths(p.clusterRef, p.onSettled);
   let navigate = useNavigate();
@@ -596,6 +597,7 @@ export let WorkspaceNavLeft = (p: {
             View only
           </ReadOnlyChip>
         ) : null}
+        {!compact ? p.statusSlot : null}
       </FloatingBar>
 
       <FloatingBar data-key="more">

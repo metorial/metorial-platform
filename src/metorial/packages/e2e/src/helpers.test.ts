@@ -8,7 +8,15 @@ import {
   listAll
 } from './assertions';
 import { readSessionCookie } from './bootstrap';
-import { assertE2EEnvironment, e2eEndpoint, metorialEndpoints } from './env';
+import { e2eEdition, runsOn } from './edition';
+import {
+  assertE2EEnvironment,
+  assertLocalStack,
+  e2eEndpoint,
+  isRemoteE2E,
+  metorialEndpoints,
+  remoteProvisioning
+} from './env';
 import { startMcpTestServer } from './mcpServer';
 
 let originalEnv = { ...process.env };
@@ -42,6 +50,36 @@ describe('env', () => {
     expect(() => assertE2EEnvironment()).toThrow('control test:e2e');
     process.env.CONTROL_E2E = '1';
     expect(() => assertE2EEnvironment()).not.toThrow();
+  });
+});
+
+describe('remote stack', () => {
+  test('addresses the gateway and refuses unreachable endpoints', () => {
+    process.env.METORIAL_E2E_REMOTE_URL = 'http://metorial.localhost:18080/';
+    expect(isRemoteE2E()).toBe(true);
+    expect(metorialEndpoints().api).toBe('http://metorial.localhost:18080/v1');
+    expect(() => metorialEndpoints().integrations).toThrow('remote stack');
+  });
+
+  test('provisions through the gateway unless told otherwise', () => {
+    process.env.METORIAL_E2E_REMOTE_URL = 'http://metorial.localhost:18080';
+    process.env.METORIAL_E2E_PROVISION_TOKEN = 'token';
+    expect(remoteProvisioning()).toEqual({
+      url: 'http://metorial.localhost:18080/v1/.metorial/test/e2e-organization',
+      token: 'token'
+    });
+    delete process.env.METORIAL_E2E_PROVISION_TOKEN;
+    expect(() => remoteProvisioning()).toThrow('METORIAL_E2E_PROVISION_TOKEN');
+  });
+
+  test('blocks in-process helpers and uses the remote cookie name', () => {
+    delete process.env.METORIAL_E2E_REMOTE_URL;
+    expect(() => assertLocalStack('helper')).not.toThrow();
+    process.env.METORIAL_E2E_REMOTE_URL = 'http://localhost:1';
+    expect(() => assertLocalStack('helper')).toThrow('in-process access');
+
+    process.env.METORIAL_E2E_SESSION_COOKIE = 'metorial_session';
+    expect(authHeaders({ session: 'abc' }).cookie).toBe('metorial_session=abc');
   });
 });
 
@@ -135,6 +173,16 @@ describe('http clients', () => {
       authorization: 'Bearer key',
       body: { a: 1 }
     });
+  });
+
+  test('rest keeps the path of the base url', async () => {
+    let response = await rest(`http://localhost:${server.port}/prefix/`).get('/missing');
+    expect(response.url).toBe(`http://localhost:${server.port}/prefix/missing`);
+  });
+
+  test('rest keeps the base url untouched for an empty path', async () => {
+    let response = await rest(`http://localhost:${server.port}/prefix/item`).post('', {});
+    expect(response.url).toBe(`http://localhost:${server.port}/prefix/item`);
   });
 
   test('expectOk throws with the response body', async () => {
@@ -268,5 +316,27 @@ describe('mcp test server', () => {
     } finally {
       await server.stop();
     }
+  });
+});
+
+describe('edition', () => {
+  test('defaults to cloud', () => {
+    delete process.env.METORIAL_E2E_EDITION;
+    expect(e2eEdition()).toBe('cloud');
+    expect(runsOn('cloud')).toBe(true);
+    expect(runsOn('on-prem')).toBe(false);
+  });
+
+  test('reads the on-prem edition', () => {
+    process.env.METORIAL_E2E_EDITION = 'on-prem';
+    expect(e2eEdition()).toBe('on-prem');
+    expect(runsOn('on-prem')).toBe(true);
+    expect(runsOn(['cloud', 'on-prem'])).toBe(true);
+    expect(runsOn(['cloud'])).toBe(false);
+  });
+
+  test('rejects unknown editions', () => {
+    process.env.METORIAL_E2E_EDITION = 'self-hosted';
+    expect(() => e2eEdition()).toThrow('METORIAL_E2E_EDITION');
   });
 });

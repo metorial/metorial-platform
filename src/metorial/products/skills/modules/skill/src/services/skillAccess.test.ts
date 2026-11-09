@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 let mocks = vi.hoisted(() => ({
   getAccessTagFilter: vi.fn(),
   isStoreResourceFlagEnabled: vi.fn(),
-  getStoreResourceKindAccessWhere: vi.fn()
+  getStoreResourceKindAccessWhere: vi.fn(),
+  getEffectiveSkillAccessLevel: vi.fn(async (d: { level: string }) => d.level)
 }));
 
 vi.mock('@metorial/module-access', () => ({
@@ -11,6 +12,7 @@ vi.mock('@metorial/module-access', () => ({
   skillStoreResourceKind: { kind: 'skill' },
   isStoreResourceFlagEnabled: mocks.isStoreResourceFlagEnabled,
   getStoreResourceKindAccessWhere: mocks.getStoreResourceKindAccessWhere,
+  getEffectiveSkillAccessLevel: mocks.getEffectiveSkillAccessLevel,
   accessTagService: {
     getAccessTagFilter: mocks.getAccessTagFilter
   }
@@ -108,6 +110,35 @@ describe('skill metadata write access', () => {
       store: { is: { marker: 'skill-store-write' } }
     });
     expect(where).not.toHaveProperty('accessTagEntities');
+  });
+
+  it('checks the read grant for consumers with organization member access', async () => {
+    mocks.isStoreResourceFlagEnabled.mockResolvedValue(true);
+    mocks.getEffectiveSkillAccessLevel.mockResolvedValueOnce('read');
+    mocks.getStoreResourceKindAccessWhere.mockResolvedValue({ marker: 'skill-store-read' });
+    let authorization = {
+      type: 'restricted' as const,
+      resourceActor: actor,
+      accessTags: [{ accessTagOid: 7n }]
+    };
+
+    let where = await getSkillMetadataWriteAccessWhere({
+      ...scope,
+      skill: { oid: 6n },
+      authorization
+    });
+
+    expect(mocks.getEffectiveSkillAccessLevel).toHaveBeenCalledWith({
+      project: scope.project,
+      authorization,
+      level: 'write'
+    });
+    expect(mocks.getStoreResourceKindAccessWhere).toHaveBeenCalledWith({
+      kind: { kind: 'skill' },
+      accessTags: [{ accessTagOid: 7n }],
+      level: 'read'
+    });
+    expect(where).toMatchObject({ store: { is: { marker: 'skill-store-read' } } });
   });
 
   it('leaves privileged metadata writes to the scoped record assertion', async () => {

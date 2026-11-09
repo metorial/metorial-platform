@@ -1,6 +1,6 @@
 import { ServiceError, unauthorizedError } from '@lowerdeck/error';
 import { Group } from '@lowerdeck/rpc-server';
-import { adminAuthService } from '../../../services';
+import { adminAuthService } from '../../../services/adminAuth';
 
 export let app = new Group();
 

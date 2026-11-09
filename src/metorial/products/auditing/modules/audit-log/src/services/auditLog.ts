@@ -1,8 +1,10 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import { getAuditEventsByIds } from '@metorial/audit-models';
+import { checkEdition } from '@metorial/editions';
 import { db, getImageUrl, Prisma } from '@metorial/db';
+
+let cloud = checkEdition('cloud') ? await import('@metorial/audit-models') : undefined;
 
 let auditLogInclude = {
   event: true,
@@ -70,7 +72,7 @@ class AuditLogService {
       )
     ];
     let [auditEvents, consumerProfiles, resourceActors] = await Promise.all([
-      getAuditEventsByIds(eventIds),
+      cloud ? cloud.getAuditEventsByIds(eventIds) : [],
       consumerProfileIds.length
         ? db.consumerProfile.findMany({
             where: {
@@ -197,8 +199,10 @@ class AuditLogService {
             ip: auditLog.ip,
             ua: auditLog.ua
           },
-          payload: auditEvent?.payload,
-          previousAttributes: auditEvent?.previousAttributes,
+          payload: cloud ? auditEvent?.payload : (auditLog.payload ?? undefined),
+          previousAttributes: cloud
+            ? auditEvent?.previousAttributes
+            : (auditLog.previousAttributes ?? undefined),
           recordedAt: auditLog.recordedAt
         };
       })

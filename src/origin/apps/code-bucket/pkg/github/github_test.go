@@ -37,6 +37,7 @@ type fakeGitHub struct {
 	batchStatus int
 	blobPosts   int
 	createdTree *githubCreateTreeRequest
+	treeBatches []githubCreateTreeRequest
 	commits     int
 	zipball     []byte
 
@@ -125,16 +126,19 @@ func (f *fakeGitHub) handleGetTree(w http.ResponseWriter, r *http.Request) {
 	defer f.mu.Unlock()
 
 	type sizedEntry struct {
-		githubTreeEntry
-		Size int64 `json:"size"`
+		Path string  `json:"path"`
+		Mode string  `json:"mode"`
+		Type string  `json:"type"`
+		SHA  *string `json:"sha"`
+		Size int64   `json:"size"`
+	}
+	newSized := func(entry githubTreeEntry, size int64) sizedEntry {
+		return sizedEntry{Path: entry.Path, Mode: entry.Mode, Type: entry.Type, SHA: entry.SHA, Size: size}
 	}
 
 	entries := make([]sizedEntry, 0, len(f.baseTree)+len(f.treeSizes))
 	for path, sha := range f.baseTree {
-		entries = append(entries, sizedEntry{
-			githubTreeEntry: blobEntry(path, sha),
-			Size:            f.treeSizes[path],
-		})
+		entries = append(entries, newSized(blobEntry(path, sha), f.treeSizes[path]))
 	}
 	// Sizes can be declared for paths that have no blob body, so a test can
 	// describe a large file without materialising it.
@@ -142,10 +146,7 @@ func (f *fakeGitHub) handleGetTree(w http.ResponseWriter, r *http.Request) {
 		if _, alreadyListed := f.baseTree[path]; alreadyListed {
 			continue
 		}
-		entries = append(entries, sizedEntry{
-			githubTreeEntry: blobEntry(path, "sha-"+path),
-			Size:            size,
-		})
+		entries = append(entries, newSized(blobEntry(path, "sha-"+path), size))
 	}
 
 	_ = json.NewEncoder(w).Encode(map[string]any{
@@ -196,6 +197,7 @@ func (f *fakeGitHub) handleCreateTree(w http.ResponseWriter, r *http.Request) {
 
 	f.mu.Lock()
 	f.createdTree = &req
+	f.treeBatches = append(f.treeBatches, req)
 	f.mu.Unlock()
 
 	_, _ = fmt.Fprint(w, `{"sha":"newtree"}`)
@@ -285,6 +287,13 @@ func (f *fakeGitHub) treeEntry(path string) (githubTreeEntry, bool) {
 	return githubTreeEntry{}, false
 }
 
+func (f *fakeGitHub) entryContent(entry githubTreeEntry) []byte {
+	if entry.Content != nil {
+		return []byte(*entry.Content)
+	}
+	return f.blobContent(entry.SHA)
+}
+
 func (f *fakeGitHub) blobContent(sha *string) []byte {
 	if sha == nil {
 		return nil
@@ -318,7 +327,7 @@ func TestUploadCommitsPointerForLargeFile(t *testing.T) {
 	if !ok {
 		t.Fatal("expected a tree entry for the large file")
 	}
-	committed := fake.blobContent(entry.SHA)
+	committed := fake.entryContent(entry)
 	if !bytes.Equal(committed, gitlfs.FormatPointer(oid, int64(len(content)))) {
 		t.Fatalf("expected a pointer to be committed, got %q", committed)
 	}
@@ -328,7 +337,7 @@ func TestUploadCommitsPointerForLargeFile(t *testing.T) {
 		t.Fatal("expected a .gitattributes tree entry")
 	}
 	want := "assets/big.bin " + lfsAttributes + "\n"
-	if got := string(fake.blobContent(attributes.SHA)); got != want {
+	if got := string(fake.entryContent(attributes)); got != want {
 		t.Fatalf("unexpected .gitattributes:\n%q\nwant:\n%q", got, want)
 	}
 }
@@ -351,7 +360,7 @@ func TestUploadKeepsSmallFilesOnTheBlobsAPI(t *testing.T) {
 	if !ok {
 		t.Fatal("expected a tree entry for the small file")
 	}
-	if !bytes.Equal(fake.blobContent(entry.SHA), content) {
+	if !bytes.Equal(fake.entryContent(entry), content) {
 		t.Fatal("expected the raw content to be committed")
 	}
 	if _, ok := fake.treeEntry(gitattributesPath); ok {
@@ -386,7 +395,7 @@ func TestUploadRoutesToLFSUsingAnExplicitThresholdBelowTheDefault(t *testing.T) 
 	if !ok {
 		t.Fatal("expected a tree entry for the file")
 	}
-	if !bytes.Equal(fake.blobContent(entry.SHA), gitlfs.FormatPointer(oid, int64(len(content)))) {
+	if !bytes.Equal(fake.entryContent(entry), gitlfs.FormatPointer(oid, int64(len(content)))) {
 		t.Fatal("expected a pointer to be committed")
 	}
 }
@@ -414,7 +423,7 @@ func TestUploadFallsBackToTheDefaultThresholdWhenUnset(t *testing.T) {
 	if !ok {
 		t.Fatal("expected a tree entry for the file")
 	}
-	if !bytes.Equal(fake.blobContent(entry.SHA), content) {
+	if !bytes.Equal(fake.entryContent(entry), content) {
 		t.Fatal("expected the raw content to be committed")
 	}
 }
@@ -436,7 +445,7 @@ func TestUploadMergesExistingGitattributes(t *testing.T) {
 		t.Fatal("expected a .gitattributes tree entry")
 	}
 	want := "# managed by hand\n*.md text\nbig.bin " + lfsAttributes + "\n"
-	if got := string(fake.blobContent(entry.SHA)); got != want {
+	if got := string(fake.entryContent(entry)); got != want {
 		t.Fatalf("unexpected .gitattributes:\n%q\nwant:\n%q", got, want)
 	}
 }
@@ -645,7 +654,7 @@ func TestUploadCommitsGitattributesAsContentEvenWhenLarge(t *testing.T) {
 		t.Fatal("expected a .gitattributes tree entry")
 	}
 
-	committed := string(fake.blobContent(entry.SHA))
+	committed := string(fake.entryContent(entry))
 	if _, isPointer := gitlfs.ParsePointer([]byte(committed)); isPointer {
 		t.Fatalf(".gitattributes was committed as an LFS pointer:\n%q", committed)
 	}

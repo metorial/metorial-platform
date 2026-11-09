@@ -73,6 +73,12 @@ export let dashboardWorkforceConfigurationController = Controller.create(
               description:
                 'Let portal consumers grant Skill Editing on the OAuth consent screen. Turning it off also removes the skill editing tools from endpoints that already have it enabled.'
             })
+          ),
+          allow_organization_member_full_skill_access: v.optional(
+            v.boolean({
+              description:
+                'Give portal consumers who are organization members full access to every skill they can see in the portal. Only applies with store-based skill access.'
+            })
           )
         })
       )
@@ -80,7 +86,8 @@ export let dashboardWorkforceConfigurationController = Controller.create(
       .do(async ctx => {
         if (
           ctx.body.auto_add_organization_members_to_portals === undefined &&
-          ctx.body.allow_consumer_skill_editing === undefined
+          ctx.body.allow_consumer_skill_editing === undefined &&
+          ctx.body.allow_organization_member_full_skill_access === undefined
         ) {
           throw new ServiceError(
             badRequestError({
@@ -111,7 +118,9 @@ export let dashboardWorkforceConfigurationController = Controller.create(
           input: {
             autoAddOrganizationMembersToPortals:
               ctx.body.auto_add_organization_members_to_portals,
-            allowConsumerSkillEditing: ctx.body.allow_consumer_skill_editing
+            allowConsumerSkillEditing: ctx.body.allow_consumer_skill_editing,
+            allowOrganizationMemberFullSkillAccess:
+              ctx.body.allow_organization_member_full_skill_access
           }
         });
 

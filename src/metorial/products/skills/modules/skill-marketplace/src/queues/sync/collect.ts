@@ -6,6 +6,8 @@ import { applyPlugin } from '../../serializers/plugin';
 import { applySkill } from '../../serializers/skill';
 import { getWithheldSkillIds } from '../../lib/securityReviewPolicy';
 import { getSyncItemKey, getSyncTaskItemKey } from './_lib/item';
+import { destinationBucketIsAvailable } from './_lib/bucket';
+import { withDestinationSyncLock } from './_lib/lock';
 import { appendSkillDestinationSyncLog } from './_lib/logs';
 import { createTaskManager, type SyncTask } from './_lib/task';
 import { syncProcessQueue } from './process';
@@ -142,130 +144,226 @@ let failSyncForLimitError = async (d: { skillDestinationSyncId: string; error: u
   return true;
 };
 
-export let syncCollectQueueProcessor = syncCollectQueue.process(async data => {
-  let sync = await db.skillDestinationSync.findUnique({
-    where: { id: data.skillDestinationSyncId },
-    include: {
-      destination: {
-        include: {
-          skillMarketplace: true,
-          skillPlugin: true
+export let syncCollectQueueProcessor = syncCollectQueue.process(
+  withDestinationSyncLock(async data => {
+    let sync = await db.skillDestinationSync.findUnique({
+      where: { id: data.skillDestinationSyncId },
+      include: {
+        destination: {
+          include: {
+            skillMarketplace: true,
+            skillPlugin: true
+          }
         }
       }
-    }
-  });
-  if (!sync || sync.status !== 'processing') return;
+    });
+    if (!sync || sync.status !== 'processing' || sync.isAtRepoSyncStage) return;
+    if (!(await destinationBucketIsAvailable(sync))) return;
 
-  await appendSkillDestinationSyncLog(
-    data.skillDestinationSyncId,
-    'Preparing content updates.'
-  );
+    let versionedSync = await db.skillDestinationSync.update({
+      where: { oid: sync.oid },
+      data: { contentVersion: { increment: 1 } }
+    });
+    let contentVersion = versionedSync.contentVersion;
 
-  let currentItems = await db.skillDestinationItem.findMany({
-    where: { destinationOid: sync.destination.oid },
-    include: { skill: true, skillPlugin: true, skillMarketplace: true }
-  });
+    await appendSkillDestinationSyncLog(
+      data.skillDestinationSyncId,
+      'Preparing content updates.'
+    );
 
-  let taskManager = createTaskManager(currentItems);
-  let currentItemsByKey = new Map(currentItems.map(item => [getSyncItemKey(item), item]));
-  let existingItemKeys = new Set(currentItemsByKey.keys());
+    let currentItems = await db.skillDestinationItem.findMany({
+      where: { destinationOid: sync.destination.oid },
+      include: { skill: true, skillPlugin: true, skillMarketplace: true }
+    });
 
-  let getSerializerHash = async <Input, InitResult>(
-    serializer: {
-      init: (input: Input) => Promise<InitResult>;
-      getHash: (input: Input, initResult: InitResult) => Promise<string>;
-    },
-    input: Input
-  ) => {
-    try {
-      let initResult = await serializer.init(input);
-      return await serializer.getHash(input, initResult);
-    } catch (error) {
-      if (
-        await failSyncForLimitError({
-          skillDestinationSyncId: data.skillDestinationSyncId,
-          error
-        })
-      ) {
-        return null;
+    let taskManager = createTaskManager(currentItems);
+    let currentItemsByKey = new Map(currentItems.map(item => [getSyncItemKey(item), item]));
+    let existingItemKeys = new Set(currentItemsByKey.keys());
+
+    let getSerializerHash = async <Input, InitResult>(
+      serializer: {
+        init: (input: Input) => Promise<InitResult>;
+        getHash: (input: Input, initResult: InitResult) => Promise<string>;
+      },
+      input: Input
+    ) => {
+      try {
+        let initResult = await serializer.init(input);
+        return await serializer.getHash(input, initResult);
+      } catch (error) {
+        if (
+          await failSyncForLimitError({
+            skillDestinationSyncId: data.skillDestinationSyncId,
+            error
+          })
+        ) {
+          return null;
+        }
+
+        throw error;
       }
+    };
 
-      throw error;
-    }
-  };
+    let getCurrentMarketplaceItem = (marketplaceId: string) =>
+      currentItemsByKey.get(`marketplace:${marketplaceId}`);
 
-  let getCurrentMarketplaceItem = (marketplaceId: string) =>
-    currentItemsByKey.get(`marketplace:${marketplaceId}`);
+    let getCurrentPluginItem = (pluginId: string) =>
+      currentItemsByKey.get(`plugin:${pluginId}`);
 
-  let getCurrentPluginItem = (pluginId: string) => currentItemsByKey.get(`plugin:${pluginId}`);
+    let getCurrentSkillItem = (d: { skillId: string; skillPluginId: string }) =>
+      currentItemsByKey.get(`skill:${d.skillId}:${d.skillPluginId}`);
 
-  let getCurrentSkillItem = (d: { skillId: string; skillPluginId: string }) =>
-    currentItemsByKey.get(`skill:${d.skillId}:${d.skillPluginId}`);
-
-  if (sync.destination.skillMarketplace) {
-    let marketplace = await db.skillMarketplace.findFirst({
-      where: { oid: sync.destination.skillMarketplace.oid, status: 'active' },
-      include: {
-        skillConfiguration: true,
-        plugins: {
-          where: {
-            status: 'active',
-            skillPlugin: {
-              status: 'active'
-            }
-          },
-          include: {
-            skillConfiguration: true,
-            skillPlugin: {
-              include: {
-                skillConfiguration: true,
-                skillPluginSkills: {
-                  where: {
-                    status: 'active',
-                    skill: {
-                      status: 'active'
+    if (sync.destination.skillMarketplace) {
+      let marketplace = await db.skillMarketplace.findFirst({
+        where: { oid: sync.destination.skillMarketplace.oid, status: 'active' },
+        include: {
+          skillConfiguration: true,
+          plugins: {
+            where: {
+              status: 'active',
+              skillPlugin: {
+                status: 'active'
+              }
+            },
+            include: {
+              skillConfiguration: true,
+              skillPlugin: {
+                include: {
+                  skillConfiguration: true,
+                  skillPluginSkills: {
+                    where: {
+                      status: 'active',
+                      skill: {
+                        status: 'active'
+                      }
+                    },
+                    include: {
+                      skill: true,
+                      skillConfiguration: true
                     }
-                  },
-                  include: {
-                    skill: true,
-                    skillConfiguration: true
                   }
                 }
               }
             }
           }
         }
-      }
-    });
-
-    if (marketplace) {
-      let marketplaceHash = await getSerializerHash(applyMarketplace, {
-        skillMarketplace: marketplace
       });
-      if (!marketplaceHash) return;
-      let currentMarketplaceItem = getCurrentMarketplaceItem(marketplace.id);
 
-      if (currentMarketplaceItem?.hash === marketplaceHash) {
-        taskManager.keepItem({ skillMarketplace: marketplace });
-      } else {
-        taskManager.addOrUpdateItem({ skillMarketplace: marketplace });
-      }
-
-      for (let marketplacePlugin of marketplace.plugins) {
-        let skillPlugin = {
-          ...marketplacePlugin.skillPlugin,
-          skills: marketplacePlugin.skillPlugin.skillPluginSkills
-        };
-        let skillMarketplacePlugin = {
-          ...marketplacePlugin,
-          plugin: skillPlugin
-        };
-
-        let pluginHash = await getSerializerHash(applyPlugin, {
-          skillPlugin,
-          skillMarketplace: marketplace,
-          skillMarketplacePlugin
+      if (marketplace) {
+        let marketplaceHash = await getSerializerHash(applyMarketplace, {
+          skillMarketplace: marketplace
         });
+        if (!marketplaceHash) return;
+        let currentMarketplaceItem = getCurrentMarketplaceItem(marketplace.id);
+
+        if (currentMarketplaceItem?.hash === marketplaceHash) {
+          taskManager.keepItem({ skillMarketplace: marketplace });
+        } else {
+          taskManager.addOrUpdateItem({ skillMarketplace: marketplace });
+        }
+
+        for (let marketplacePlugin of marketplace.plugins) {
+          let skillPlugin = {
+            ...marketplacePlugin.skillPlugin,
+            skills: marketplacePlugin.skillPlugin.skillPluginSkills
+          };
+          let skillMarketplacePlugin = {
+            ...marketplacePlugin,
+            plugin: skillPlugin
+          };
+
+          let pluginHash = await getSerializerHash(applyPlugin, {
+            skillPlugin,
+            skillMarketplace: marketplace,
+            skillMarketplacePlugin
+          });
+          if (!pluginHash) return;
+          let currentPluginItem = getCurrentPluginItem(skillPlugin.id);
+
+          if (currentPluginItem?.hash === pluginHash) {
+            taskManager.keepItem({ skillPlugin });
+          } else {
+            taskManager.addOrUpdateItem({ skillPlugin });
+          }
+
+          let withheldSkillIds = await getWithheldSkillIds({
+            projectOid: skillPlugin.projectOid,
+            instanceOid: skillPlugin.instanceOid,
+            skills: skillPlugin.skillPluginSkills,
+            configs: [
+              skillPlugin.skillConfiguration,
+              marketplacePlugin.skillConfiguration,
+              marketplace.skillConfiguration
+            ]
+          });
+
+          for (let skillPluginSkill of skillPlugin.skillPluginSkills) {
+            if (withheldSkillIds.has(skillPluginSkill.skill.id)) continue;
+
+            let skillHash = await getSerializerHash(applySkill, {
+              skill: skillPluginSkill.skill,
+              skillPlugin,
+              skillPluginSkill,
+              skillMarketplace: marketplace,
+              skillMarketplacePlugin
+            });
+            if (!skillHash) return;
+            let currentSkillItem = getCurrentSkillItem({
+              skillId: skillPluginSkill.skill.id,
+              skillPluginId: skillPlugin.id
+            });
+
+            if (currentSkillItem?.hash === skillHash) {
+              taskManager.keepItem({
+                skill: skillPluginSkill.skill,
+                skillPlugin
+              });
+            } else {
+              taskManager.addOrUpdateItem({
+                skill: skillPluginSkill.skill,
+                skillPlugin
+              });
+            }
+          }
+        }
+      } else {
+        let currentMarketplaceItem = currentItems.find(
+          item => item.skillMarketplace?.id === sync.destination.skillMarketplace?.id
+        );
+
+        if (currentMarketplaceItem?.skillMarketplace) {
+          taskManager.deleteItem({
+            skillMarketplace: currentMarketplaceItem.skillMarketplace
+          });
+        }
+      }
+    } else if (sync.destination.skillPlugin) {
+      let plugin = await db.skillPlugin.findFirst({
+        where: { oid: sync.destination.skillPlugin.oid, status: 'active' },
+        include: {
+          skillConfiguration: true,
+          skillPluginSkills: {
+            where: {
+              status: 'active',
+              skill: {
+                status: 'active'
+              }
+            },
+            include: {
+              skill: true,
+              skillConfiguration: true
+            }
+          }
+        }
+      });
+
+      if (plugin) {
+        let skillPlugin = {
+          ...plugin,
+          skills: plugin.skillPluginSkills
+        };
+
+        let pluginHash = await getSerializerHash(applyPlugin, { skillPlugin });
         if (!pluginHash) return;
         let currentPluginItem = getCurrentPluginItem(skillPlugin.id);
 
@@ -279,11 +377,7 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(async data => {
           projectOid: skillPlugin.projectOid,
           instanceOid: skillPlugin.instanceOid,
           skills: skillPlugin.skillPluginSkills,
-          configs: [
-            skillPlugin.skillConfiguration,
-            marketplacePlugin.skillConfiguration,
-            marketplace.skillConfiguration
-          ]
+          configs: [skillPlugin.skillConfiguration]
         });
 
         for (let skillPluginSkill of skillPlugin.skillPluginSkills) {
@@ -292,9 +386,7 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(async data => {
           let skillHash = await getSerializerHash(applySkill, {
             skill: skillPluginSkill.skill,
             skillPlugin,
-            skillPluginSkill,
-            skillMarketplace: marketplace,
-            skillMarketplacePlugin
+            skillPluginSkill
           });
           if (!skillHash) return;
           let currentSkillItem = getCurrentSkillItem({
@@ -315,120 +407,44 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(async data => {
           }
         }
       }
-    } else {
-      let currentMarketplaceItem = currentItems.find(
-        item => item.skillMarketplace?.id === sync.destination.skillMarketplace?.id
-      );
-
-      if (currentMarketplaceItem?.skillMarketplace) {
-        taskManager.deleteItem({ skillMarketplace: currentMarketplaceItem.skillMarketplace });
-      }
     }
-  } else if (sync.destination.skillPlugin) {
-    let plugin = await db.skillPlugin.findFirst({
-      where: { oid: sync.destination.skillPlugin.oid, status: 'active' },
-      include: {
-        skillConfiguration: true,
-        skillPluginSkills: {
-          where: {
-            status: 'active',
-            skill: {
-              status: 'active'
-            }
-          },
-          include: {
-            skill: true,
-            skillConfiguration: true
-          }
-        }
-      }
+
+    let tasks = taskManager.getTasks();
+
+    let names = await getSyncTaskNames(tasks);
+    let prMetadata = getSyncPrMetadata({
+      destination: sync.destination!,
+      tasks,
+      names,
+      existingItemKeys
     });
 
-    if (plugin) {
-      let skillPlugin = {
-        ...plugin,
-        skills: plugin.skillPluginSkills
-      };
+    await db.skillDestinationSync.update({
+      where: { oid: sync.oid },
+      data: prMetadata
+    });
 
-      let pluginHash = await getSerializerHash(applyPlugin, { skillPlugin });
-      if (!pluginHash) return;
-      let currentPluginItem = getCurrentPluginItem(skillPlugin.id);
-
-      if (currentPluginItem?.hash === pluginHash) {
-        taskManager.keepItem({ skillPlugin });
-      } else {
-        taskManager.addOrUpdateItem({ skillPlugin });
-      }
-
-      let withheldSkillIds = await getWithheldSkillIds({
-        projectOid: skillPlugin.projectOid,
-        instanceOid: skillPlugin.instanceOid,
-        skills: skillPlugin.skillPluginSkills,
-        configs: [skillPlugin.skillConfiguration]
+    if (tasks.length === 0) {
+      await syncReconcileQueue.add({
+        skillDestinationSyncId: data.skillDestinationSyncId,
+        contentVersion,
+        hasChanges: false,
+        skillRepositoryId: data.skillRepositoryId
       });
-
-      for (let skillPluginSkill of skillPlugin.skillPluginSkills) {
-        if (withheldSkillIds.has(skillPluginSkill.skill.id)) continue;
-
-        let skillHash = await getSerializerHash(applySkill, {
-          skill: skillPluginSkill.skill,
-          skillPlugin,
-          skillPluginSkill
-        });
-        if (!skillHash) return;
-        let currentSkillItem = getCurrentSkillItem({
-          skillId: skillPluginSkill.skill.id,
-          skillPluginId: skillPlugin.id
-        });
-
-        if (currentSkillItem?.hash === skillHash) {
-          taskManager.keepItem({
-            skill: skillPluginSkill.skill,
-            skillPlugin
-          });
-        } else {
-          taskManager.addOrUpdateItem({
-            skill: skillPluginSkill.skill,
-            skillPlugin
-          });
-        }
-      }
+      return;
     }
-  }
 
-  let tasks = taskManager.getTasks();
+    await appendSkillDestinationSyncLog(
+      data.skillDestinationSyncId,
+      `Prepared ${tasks.length} content ${tasks.length === 1 ? 'update' : 'updates'}.`
+    );
 
-  let names = await getSyncTaskNames(tasks);
-  let prMetadata = getSyncPrMetadata({
-    destination: sync.destination!,
-    tasks,
-    names,
-    existingItemKeys
-  });
-
-  await db.skillDestinationSync.update({
-    where: { oid: sync.oid },
-    data: prMetadata
-  });
-
-  if (tasks.length === 0) {
-    await syncReconcileQueue.add({
+    await syncProcessQueue.add({
       skillDestinationSyncId: data.skillDestinationSyncId,
+      tasks,
+      contentVersion,
       hasChanges: false,
       skillRepositoryId: data.skillRepositoryId
     });
-    return;
-  }
-
-  await appendSkillDestinationSyncLog(
-    data.skillDestinationSyncId,
-    `Prepared ${tasks.length} content ${tasks.length === 1 ? 'update' : 'updates'}.`
-  );
-
-  await syncProcessQueue.add({
-    skillDestinationSyncId: data.skillDestinationSyncId,
-    tasks,
-    hasChanges: false,
-    skillRepositoryId: data.skillRepositoryId
-  });
-});
+  })
+);

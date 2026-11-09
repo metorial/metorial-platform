@@ -22,6 +22,7 @@ vi.mock('../../../services/repositorySyncState', () => ({
 import {
   logRepositorySyncQueueError,
   markRepositorySyncFailed,
+  getRepositorySyncContentsRetryDelayMs,
   shouldRetryRepositorySyncContents
 } from './_lib';
 
@@ -198,6 +199,26 @@ describe('repository sync failure diagnostics', () => {
         error: permanentError
       })
     ).toBe(false);
+  });
+
+  it('retries a GitHub secondary rate limit with a long delay', () => {
+    let rateLimited = {
+      code: 9,
+      details:
+        'failed to upload to GitHub: POST https://api.github.com/repos/o/r/git/blobs failed (status 403): {"message":"You have exceeded a secondary rate limit."}'
+    };
+
+    expect(
+      shouldRetryRepositorySyncContents({
+        repositoryAccessMode: 'default_branch',
+        status: 'syncing_contents',
+        attemptCount: 4,
+        error: rateLimited
+      })
+    ).toBe(true);
+    expect(getRepositorySyncContentsRetryDelayMs({ attemptCount: 1, error: rateLimited })).toBe(
+      120_000
+    );
   });
 
   it('does not retry a file that is too large to export', () => {

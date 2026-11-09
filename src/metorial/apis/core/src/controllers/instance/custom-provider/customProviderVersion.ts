@@ -11,7 +11,7 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import {
   subspaceCustomProviderEnvPresenter,
   subspaceCustomProviderVersionPresenter
@@ -22,7 +22,7 @@ import {
   mapCustomProviderFrom
 } from './customProvider';
 
-let customProviderVersionGroup = instanceGroup.use(async ctx => {
+let customProviderVersionGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.customProviderVersionId) {
     throw new ServiceError(
       badRequestError({
@@ -47,7 +47,7 @@ export let customProviderVersionController = Controller.create(
       'Versions represent different releases of a custom provider. Each version can be deployed to environments.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('custom-provider-versions', 'customProviders.versions.list'), {
         name: 'List custom provider versions',
         description: 'Returns a paginated list of versions for a custom provider.'
@@ -174,7 +174,7 @@ export let customProviderVersionController = Controller.create(
         });
       }),
 
-    create: instanceGroup
+    create: integrationsGroup
       .post(instancePath('custom-provider-versions', 'customProviders.versions.create'), {
         name: 'Create custom provider version',
         description: 'Creates a new version for a custom provider.'

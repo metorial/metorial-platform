@@ -7,22 +7,6 @@ cd "$ROOT_DIR"
 
 FORCE_SETUP=${FORCE_SETUP:-false}
 
-IS_SETUP=0
-
-if [ -d ./public/vscode ]; then
-  IS_SETUP=1
-fi
-
-if [ "$IS_SETUP" -gt 0 ] && [ "$FORCE_SETUP" = false ]; then
-  echo "VS Code workspace is already set up. Use FORCE_SETUP=true to force re-setup."
-  exit 0
-fi
-
-echo "Setting up VS Code workspace..."
-
-mkdir -p ./public/extensions/memfs
-mkdir -p ./public/vscode
-
 OSS_NODE_MODULES_PATH=$(realpath ../../../../node_modules || echo "")
 ENTERPRISE_NODE_MODULES_PATH=$(realpath ../../../../../node_modules || echo "")
 ENTERPRISE_NODE_MODULES_PATH_2=$(realpath ../../../../../../node_modules || echo "")
@@ -36,6 +20,34 @@ fi
 if [ -d "$ENTERPRISE_NODE_MODULES_PATH_2" ]; then
   NODE_MODULES_PATH=$ENTERPRISE_NODE_MODULES_PATH_2
 fi
+
+STAMP_FILE=./public/vscode/.setup-stamp
+
+compute_stamp() {
+  {
+    cat ./setup.sh
+    for module in vscode-web vscode-textmate vscode-oniguruma; do
+      echo "$module $(cat "$NODE_MODULES_PATH/$module/package.json" 2>/dev/null | grep -m1 '"version"')"
+    done
+    find ./extensions/memfs -type f -not -path '*/node_modules/*' -not -path '*/dist/*' | LC_ALL=C sort | while read -r file; do
+      echo "$file"
+      cat "$file"
+    done
+  } | shasum -a 256 | cut -d' ' -f1
+}
+
+STAMP=$(compute_stamp)
+
+if [ -d ./public/vscode ] && [ "$FORCE_SETUP" = false ] && [ "$(cat "$STAMP_FILE" 2>/dev/null)" = "$STAMP" ]; then
+  echo "VS Code workspace is already set up. Use FORCE_SETUP=true to force re-setup."
+  exit 0
+fi
+
+echo "Setting up VS Code workspace..."
+
+rm -rf ./public/vscode
+mkdir -p ./public/extensions/memfs
+mkdir -p ./public/vscode
 
 echo "Copying VS Code web files from $NODE_MODULES_PATH/vscode-web/dist to ./public/vscode-web"
 
@@ -93,3 +105,5 @@ if [ -f "$MEMFS_SOURCE_DIR/package.nls.json" ]; then
 fi
 
 cd "$ROOT_DIR"
+
+echo "$STAMP" > "$STAMP_FILE"

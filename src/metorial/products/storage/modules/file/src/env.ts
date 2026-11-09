@@ -1,9 +1,10 @@
-import { createValidatedEnv } from '@lowerdeck/env';
+import { defineSettings } from '@metorial/settings';
+import { metorialRegion, objectStorageUrl } from '@metorial/shared-settings';
 import { v } from '@lowerdeck/validation';
 
-export let env = createValidatedEnv({
+export let env = defineSettings({
   service: {
-    METORIAL_REGION: v.optional(v.string()),
+    METORIAL_REGION: metorialRegion,
     DOWNLOAD_PUBLIC_URL: v.optional(v.string()),
     SIGNED_DOWNLOAD_URL_TOKEN_SECRET: v.string(),
     UPLOAD_HOST: v.optional(v.string()),
@@ -11,7 +12,7 @@ export let env = createValidatedEnv({
     FILE_ROUTER_SECRET: v.optional(v.string())
   },
   storage: {
-    OBJECT_STORAGE_URL: v.string(),
+    OBJECT_STORAGE_URL: objectStorageUrl,
     FILES_BUCKET_NAME: v.string()
   }
 });

@@ -7,6 +7,7 @@ import {
   type ITemplate
 } from '@metorial-platform-systems/relay-client';
 import { env } from './env';
+import { whenRegistered } from './whenRegistered';
 
 export let relay: ReturnType<typeof createRelayClient> = createRelayClient({
   endpoint: env.service.RELAY_URL
@@ -98,8 +99,8 @@ export let createTemplateSender = <Data>(
         template: i.data as any,
         idempotencyKey: i.idempotencyKey,
 
-        emailIdentityId: (await identity).id,
-        senderId: (await sender).id,
+        emailIdentityId: (await whenRegistered(Promise.resolve(identity))).id,
+        senderId: (await whenRegistered(Promise.resolve(sender))).id,
 
         content: {
           subject: rendered.subject,

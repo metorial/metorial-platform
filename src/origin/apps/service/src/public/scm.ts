@@ -1,3 +1,4 @@
+import { checkEdition } from '@metorial/editions';
 import { createHono, useValidatedQuery } from '@lowerdeck/hono';
 import { v } from '@lowerdeck/validation';
 import crypto from 'crypto';
@@ -88,36 +89,6 @@ export let scmController = createHono()
 
     return c.text('OK');
   })
-  .post('/origin/webhook-ingest/github-app', async c => {
-    let secret = env.gh.SCM_GITHUB_APP_WEBHOOK_SECRET;
-    if (!secret) return c.text('Not Found', 404);
-
-    let eventType = c.req.header('X-GitHub-Event');
-    let signature = c.req.header('X-Hub-signature-256');
-    let deliveryId = c.req.header('X-GitHub-Delivery');
-    if (!eventType || !signature || !deliveryId) return c.text('Missing params', 400);
-
-    let payload = await c.req.text();
-    let expected = `sha256=${crypto.createHmac('sha256', secret).update(payload).digest('hex')}`;
-    let receivedBuffer = Buffer.from(signature);
-    let expectedBuffer = Buffer.from(expected);
-    if (
-      receivedBuffer.length !== expectedBuffer.length ||
-      !crypto.timingSafeEqual(receivedBuffer, expectedBuffer)
-    ) {
-      return c.text('Invalid signature', 401);
-    }
-
-    if (eventType === 'installation') {
-      let event = JSON.parse(payload) as { action?: string; installation?: { id?: number } };
-      if (event.action === 'created' && event.installation?.id != null) {
-        await scmAuthService.handleGitHubAppInstallationCreated({
-          installationId: String(event.installation.id)
-        });
-      }
-    }
-    return c.text('OK');
-  })
   .post('/origin/webhook-ingest/gl/:webhookId', async c => {
     let webhookId = c.req.param('webhookId');
 
@@ -157,3 +128,40 @@ export let scmController = createHono()
     });
     return c.text('OK');
   });
+
+if (checkEdition('cloud')) {
+  scmController.post('/origin/webhook-ingest/github-app', async c => {
+    let secret = env.gh.SCM_GITHUB_APP_WEBHOOK_SECRET;
+    if (!secret) return c.text('Not Found', 404);
+
+    let eventType = c.req.header('X-GitHub-Event');
+    let signature = c.req.header('X-Hub-signature-256');
+    let deliveryId = c.req.header('X-GitHub-Delivery');
+    if (!eventType || !signature || !deliveryId) return c.text('Missing params', 400);
+
+    let payload = await c.req.text();
+    let expected = `sha256=${crypto.createHmac('sha256', secret).update(payload).digest('hex')}`;
+    let receivedBuffer = Buffer.from(signature);
+    let expectedBuffer = Buffer.from(expected);
+    if (
+      receivedBuffer.length !== expectedBuffer.length ||
+      !crypto.timingSafeEqual(receivedBuffer, expectedBuffer)
+    ) {
+      return c.text('Invalid signature', 401);
+    }
+
+    if (eventType === 'installation') {
+      let event = JSON.parse(payload) as { action?: string; installation?: { id?: number } };
+      if (event.action === 'created' && event.installation?.id != null) {
+        await scmAuthService.handleGitHubAppInstallationCreated({
+          installationId: String(event.installation.id)
+        });
+      }
+    }
+    return c.text('OK');
+  });
+}
+
+if (checkEdition('on-prem')) {
+  scmController.route('/', (await import('./scmAppWebhook')).scmAppWebhookController);
+}

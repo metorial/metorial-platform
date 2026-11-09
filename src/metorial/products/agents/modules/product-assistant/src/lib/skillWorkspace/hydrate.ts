@@ -87,12 +87,13 @@ let listAllStoreItems = async (d: SkillWorkspaceScope & { storeId: string }) => 
 
 let createFileLoader = (item: StoreItem, budget: WorkspaceLoadBudget) => async () => {
   let file = item.file!;
-  let release = budget.reserve(item.path, file.fileSize);
+  let fileSize = Number(file.fileSize);
+  let release = budget.reserve(item.path, fileSize);
 
   try {
     let stored = await getStoredFileContent({ file });
     let data = new Uint8Array(stored.data);
-    if (data.byteLength != file.fileSize) {
+    if (data.byteLength != fileSize) {
       release();
       budget.reserve(item.path, data.byteLength);
     }
@@ -131,7 +132,7 @@ export let loadSkillStoreEntries = async (
         itemId: item.id,
         documentId,
         title: item.document.title,
-        size: item.file?.fileSize,
+        size: item.file ? Number(item.file.fileSize) : undefined,
         load: createDocumentLoader(d, item, documentId, budget)
       };
     }
@@ -142,7 +143,7 @@ export let loadSkillStoreEntries = async (
       itemId: item.id,
       fileId: item.file?.id,
       mimeType: item.file?.fileType,
-      size: item.file?.fileSize,
+      size: item.file ? Number(item.file.fileSize) : undefined,
       load: item.file ? createFileLoader(item, budget) : async () => ''
     };
   });

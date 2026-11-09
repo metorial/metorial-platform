@@ -70,6 +70,27 @@ describe('sync identity consumer queue', () => {
     expect(mocks.consumerProfileUpdate).not.toHaveBeenCalled();
   });
 
+  it('does not restore the name of a profile deleted while the job was running', async () => {
+    mocks.consumerProfileFindUnique.mockResolvedValue({
+      id: 'cop_racing',
+      oid: 1n,
+      status: 'active',
+      instanceOid: 100n,
+      consumerOid: 200n
+    });
+    mocks.instanceConsumerFindUnique.mockResolvedValue({ id: 'inc_1', name: 'Original Name' });
+    mocks.consumerProfileUpdateMany.mockResolvedValue({ count: 0 });
+
+    await (reconcileConsumerActorQueueProcessor as any)({ profileId: 'cop_racing' });
+
+    expect(mocks.consumerProfileUpdateMany).toHaveBeenCalledWith({
+      where: { oid: 1n, status: 'active' },
+      data: { name: 'Original Name' }
+    });
+    expect(mocks.consumerProfileUpdate).not.toHaveBeenCalled();
+    expect(mocks.archiveProfileActors).toHaveBeenCalledWith({ consumerProfileId: 'cop_racing' });
+  });
+
   it('does not assign the same email to multiple profiles on one surface', async () => {
     mocks.instanceConsumerFindUnique.mockResolvedValue({
       id: 'instance_consumer_1',

@@ -8,7 +8,7 @@ import type {
   Project,
   ResourceActor
 } from '@metorial/db';
-import { db, ID, Prisma } from '@metorial/db';
+import { db, ID, retryOnUniqueViolation, Prisma } from '@metorial/db';
 import type { AnyAccessTagSelector, ResourceAuthorization } from '@metorial/module-access';
 import { Agent } from '../open-harness';
 import type { Model } from './model';
@@ -160,19 +160,21 @@ let buildImplementation = async (
     ).values()
   );
 
-  let _persisted = await db.productAssistantImplementation.upsert({
-    where: {
-      slug: d.slug
-    },
-    update: {
-      name: d.name
-    },
-    create: {
-      id: await ID.generateId('productAssistantImplementation'),
-      slug: d.slug,
-      name: d.name
-    }
-  });
+  let _persisted = await retryOnUniqueViolation(async () =>
+    db.productAssistantImplementation.upsert({
+      where: {
+        slug: d.slug
+      },
+      update: {
+        name: d.name
+      },
+      create: {
+        id: await ID.generateId('productAssistantImplementation'),
+        slug: d.slug,
+        name: d.name
+      }
+    })
+  );
 
   let persistedModels = await db.productAssistantModel.findMany({
     where: {

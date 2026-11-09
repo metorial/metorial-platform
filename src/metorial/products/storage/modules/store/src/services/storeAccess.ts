@@ -15,11 +15,16 @@ import {
   accessTagService,
   type AnyAccessTagSelector,
   assertResourceAuthorizationScope,
+  consumerSkillManageAccessRoles,
   consumerSkillReadRoles,
   consumerSkillWriteRoles,
   getStoreResourceAccessWhere,
+  getStoreResourceKindAccessWhere,
+  hasOrganizationMemberSkillAccess,
   isStoreResourceFlagEnabled,
+  type OrganizationMemberSkillAccessProject,
   type ResourceAuthorization,
+  skillStoreResourceKind,
   standaloneStoreResourceAccess,
   storeAccessGrantService
 } from '@metorial/module-access';
@@ -27,6 +32,7 @@ import {
   isParticipationOnlyActorRow,
   legacyStoreParticipantActorWhere
 } from '../lib/participantActorRows';
+import { skillStoreResource } from '../lib/storeResource';
 import { storeParticipantService } from './storeParticipant';
 
 export type StoreAccessInput = {
@@ -53,6 +59,7 @@ type BasePermissionsResult = {
 
 export type StorePermissionsResult = BasePermissionsResult & {
   storeId: string;
+  canManageAccess: boolean;
 };
 
 export type DocumentPermissionsResult = BasePermissionsResult & {
@@ -594,16 +601,37 @@ class StoreAccessServiceImpl {
   }
 
   private async getV2AccessibleStoreOids(d: {
+    project: OrganizationMemberSkillAccessProject;
+    authorization: ResourceAuthorization;
     storeOids: bigint[];
     accessTags?: AnyAccessTagSelector;
     requiredPermission: StoreParticipantPermissions;
   }) {
     if (!d.storeOids.length) return [];
 
+    let isWrite = d.requiredPermission === storeWritePermission;
     let accessWhere = await getStoreResourceAccessWhere({
       accessTags: d.accessTags,
-      level: d.requiredPermission === storeWritePermission ? 'write' : 'read'
+      level: isWrite ? 'write' : 'read'
     });
+    if (
+      isWrite &&
+      (await hasOrganizationMemberSkillAccess({
+        project: d.project,
+        authorization: d.authorization
+      }))
+    ) {
+      accessWhere = {
+        OR: [
+          accessWhere,
+          await getStoreResourceKindAccessWhere({
+            kind: skillStoreResourceKind,
+            accessTags: d.accessTags,
+            level: 'read'
+          })
+        ]
+      };
+    }
 
     let stores = await withTransaction(
       async db =>
@@ -721,7 +749,7 @@ class StoreAccessServiceImpl {
 
   async resolveAccessibleStoreOids(
     d: StoreAccessInput & {
-      project: { oid: bigint };
+      project: OrganizationMemberSkillAccessProject;
       instance: { oid: bigint };
       requiredPermission: StoreParticipantPermissions;
       storeOids: bigint[];
@@ -805,6 +833,8 @@ class StoreAccessServiceImpl {
             relevantStoreOids,
             accessibleStoreOids: actor
               ? await this.getV2AccessibleStoreOids({
+                  project: d.project,
+                  authorization: d.authorization,
                   storeOids: relevantStoreOids,
                   accessTags: this.getAccessTags(d),
                   requiredPermission: d.requiredPermission
@@ -893,6 +923,45 @@ class StoreAccessServiceImpl {
     } satisfies StoreAccessResult;
   }
 
+  private async canManageSkillStoreAccess(
+    d: { project: Project } & StoreAccessInput & { store: Pick<Store, 'oid'> }
+  ) {
+    if (d.authorization.type == 'privileged') return true;
+
+    let skill = await withTransaction(
+      async db =>
+        await db.skill.findFirst({ where: { storeOid: d.store.oid }, select: { oid: true } }),
+      { ifExists: true }
+    );
+    if (!skill) return false;
+
+    if (await isStoreResourceFlagEnabled({ project: d.project, flag: 'store-access-v2' })) {
+      return await skillStoreResource.hasAccess({
+        project: d.project,
+        store: d.store,
+        authorization: d.authorization,
+        level: 'manage'
+      });
+    }
+
+    let accessTagFilter = await accessTagService.getAccessTagFilter({
+      tags: d.authorization.accessTags,
+      roles: [...consumerSkillManageAccessRoles]
+    });
+    if (!accessTagFilter) return false;
+
+    let manageableSkill = await withTransaction(
+      async db =>
+        await db.skill.findFirst({
+          where: { oid: skill.oid, accessTagEntities: accessTagFilter },
+          select: { oid: true }
+        }),
+      { ifExists: true }
+    );
+
+    return !!manageableSkill;
+  }
+
   async getStorePermissions(
     d: { project: Project; instance: Instance } & StoreAccessInput & {
         store: Pick<Store, 'oid' | 'id' | 'isReadOnly'>;
@@ -903,6 +972,7 @@ class StoreAccessServiceImpl {
         storeId: d.store.id,
         actorId: (await this.getActor(d))?.id,
         hasFullAccess: false,
+        canManageAccess: false,
         permissions: [storeReadPermission],
         relevantStoreIds: [d.store.id],
         readableStoreIds: [d.store.id],
@@ -915,6 +985,7 @@ class StoreAccessServiceImpl {
         storeId: d.store.id,
         actorId: (await this.getActor(d))?.id,
         hasFullAccess: true,
+        canManageAccess: true,
         permissions: [storeReadPermission, storeWritePermission],
         relevantStoreIds: [d.store.id],
         readableStoreIds: [d.store.id],
@@ -957,6 +1028,7 @@ class StoreAccessServiceImpl {
       hasFullAccess:
         permissions.includes(storeReadPermission) &&
         permissions.includes(storeWritePermission),
+      canManageAccess: await this.canManageSkillStoreAccess(d),
       permissions,
       relevantStoreIds: [d.store.id],
       readableStoreIds,
@@ -1105,7 +1177,7 @@ class StoreAccessServiceImpl {
 
   async assertStoreAccessForFile(
     d: StoreAccessInput & {
-      project: { oid: bigint };
+      project: OrganizationMemberSkillAccessProject;
       instance: { oid: bigint };
       file: {
         id: string;
@@ -1148,7 +1220,7 @@ class StoreAccessServiceImpl {
 
   async assertStoreAccessForStoreItem(
     d: StoreAccessInput & {
-      project: { oid: bigint };
+      project: OrganizationMemberSkillAccessProject;
       instance: { oid: bigint };
       item: {
         id: string;

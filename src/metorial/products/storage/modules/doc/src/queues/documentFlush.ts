@@ -11,7 +11,7 @@ import {
 import { documentInclude } from '../services/document';
 import { queueDocumentCommentAnchorSync } from './documentCommentAnchorSync';
 import { documentVersionSyncManyQueue } from './documentVersionSync';
-import { enqueueDocumentLifecycle } from './lifecycle';
+
 let batchSize = 100;
 
 let ensureDocumentActive = (document: { file: { status: string } }) => {
@@ -127,11 +127,6 @@ export let flushDocumentDraft = async (d: {
       d.documentId,
       draft.revision
     );
-    if (result.didPersistChange) {
-      await storeVersionService.touchStoresLastEditedAtForDocument({
-        documentOid: result.document.oid
-      });
-    }
     if (result.didPersistAnnotations) {
       await queueDocumentCommentAnchorSync(result.document.id);
     }
@@ -145,11 +140,6 @@ export let flushDocumentDraft = async (d: {
         { id: result.createdVersionId }
       );
     }
-
-    await enqueueDocumentLifecycle({
-      documentId: result.document.id,
-      event: 'contents-changed'
-    });
 
     return result.document;
   });

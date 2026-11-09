@@ -5,13 +5,15 @@ import {
   type UsageDimensions,
   type UsageMetricKind
 } from './lib/types';
+import { USAGE_RETENTION_MS } from './constants';
 
-export let USAGE_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+export { USAGE_RETENTION_MS } from './constants';
 
 export interface UsageMetric {
   _id: string;
   ts: Date;
   source: 'live' | 'backfill';
+  messageRevision?: number;
 
   organizationId: string | null;
   instanceId: string;
@@ -36,6 +38,7 @@ export let UsageMetricSchema = new mongoose.Schema<UsageMetric>(
     _id: String,
     ts: Date,
     source: { type: String, enum: ['live', 'backfill'] },
+    messageRevision: Number,
 
     organizationId: { type: String, default: null },
     instanceId: String,

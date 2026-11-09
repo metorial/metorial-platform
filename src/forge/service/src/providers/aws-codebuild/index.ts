@@ -402,7 +402,16 @@ export class AwsCodeBuildAdapter extends ForgeBuildAdapter {
 
                           inner = [
                             `echo "Uploading artifact ${step.step.artifactToUploadName!} from ${step.step.artifactToUploadPath!} ..."`,
-                            `curl -X PUT ${this.shellEscape(uploadInfo.uploadUrl)} -H "Content-Type: application/octet-stream" --data-binary @${this.shellEscape(step.step.artifactToUploadPath!)} `,
+                            `curl -X PUT ${this.shellEscape(uploadInfo.uploadUrl)} -H "Content-Type: application/octet-stream" ${Object.entries(
+                              uploadInfo.uploadHeaders
+                            )
+                              .map(
+                                ([name, value]) =>
+                                  `-H ${this.shellEscape(`${name}: ${value}`)} `
+                              )
+                              .join(
+                                ''
+                              )}--data-binary @${this.shellEscape(step.step.artifactToUploadPath!)} `,
                             'echo "Upload complete."',
                             this.logSystem({
                               type: 'upload-artifact.register',

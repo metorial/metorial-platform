@@ -4,7 +4,7 @@ export type DashboardProjectsKeyProvidersImportOutput = {
   object: 'key_provider';
   id: string;
   name: string;
-  type: 'aws_kms' | 'local';
+  type: 'aws_kms' | 'gcp_kms' | 'azure_key_vault' | 'local';
   owner: 'tenant' | 'system';
   status: 'active' | 'inactive' | 'degraded';
   isMetorialManaged: boolean;
@@ -29,6 +29,7 @@ export let mapDashboardProjectsKeyProvidersImportOutput =
   );
 
 export type DashboardProjectsKeyProvidersImportBody = {
+  type?: 'aws_kms' | 'gcp_kms' | 'azure_key_vault' | undefined;
   keyInput: Record<string, any>;
 };
 

@@ -4,6 +4,11 @@ import { db } from '../../db';
 import { env } from '../../env';
 import { ID } from '../../id';
 import {
+  discardNebulaSecrets,
+  readWebhookSigningSecret,
+  stageWebhookSigningSecret
+} from '../../lib/scmCredentials';
+import {
   createProviderRepositoryWebhook,
   deleteProviderRepositoryWebhook,
   equalRepositoryWebhookEvents,
@@ -193,26 +198,50 @@ export let reconcileRepositoryWebhook = async (repoId: string) => {
         id: await ID.generateId('scmRepositoryWebhook'),
         signingSecret: generatePlainId(32)
       };
-      let state = await createAndConfirmWebhook(repo, localWebhook);
-      await db.scmRepositoryWebhook.create({
-        data: {
-          ...localWebhook,
-          repoOid: repo.oid,
-          externalId: state.externalId,
-          registeredEvents: state.registeredEvents,
-          type: 'push'
-        }
+      let stored = await stageWebhookSigningSecret({
+        tenantOid: repo.tenantOid,
+        webhookId: localWebhook.id,
+        signingSecret: localWebhook.signingSecret
       });
+
+      try {
+        let state = await createAndConfirmWebhook(repo, localWebhook);
+        await db.scmRepositoryWebhook.create({
+          data: {
+            id: localWebhook.id,
+            ...stored,
+            repoOid: repo.oid,
+            externalId: state.externalId,
+            registeredEvents: state.registeredEvents,
+            type: 'push'
+          }
+        });
+      } catch (error) {
+        await discardNebulaSecrets({
+          tenantOid: repo.tenantOid,
+          nebulaSecretIds: [stored.signingSecretNebulaSecretId]
+        });
+
+        throw error;
+      }
+
       await recordRepositoryWebhookReconciled(repo);
       return;
     }
 
+    let signingSecret = await readWebhookSigningSecret(
+      webhook,
+      repo.tenantOid,
+      'origin:webhook:reconcile'
+    );
+    let webhookReference = { ...webhook, signingSecret };
+
     let state;
     try {
-      state = await readProviderRepositoryWebhook(repo, webhook);
+      state = await readProviderRepositoryWebhook(repo, webhookReference);
     } catch (error) {
       if (getScmProviderErrorStatus(error) !== 404) throw error;
-      state = await createAndConfirmWebhook(repo, webhook);
+      state = await createAndConfirmWebhook(repo, webhookReference);
       await db.scmRepositoryWebhook.update({
         where: { oid: webhook.oid },
         data: {
@@ -234,7 +263,7 @@ export let reconcileRepositoryWebhook = async (repoId: string) => {
     if (!providerMatches) {
       let updated: boolean;
       try {
-        updated = await updateProviderRepositoryWebhook(repo, webhook);
+        updated = await updateProviderRepositoryWebhook(repo, webhookReference);
       } catch (error) {
         if (getScmProviderErrorStatus(error) !== 404) throw error;
         updated = false;
@@ -245,9 +274,9 @@ export let reconcileRepositoryWebhook = async (repoId: string) => {
         } catch (error) {
           if (getScmProviderErrorStatus(error) !== 404) throw error;
         }
-        state = await createAndConfirmWebhook(repo, webhook);
+        state = await createAndConfirmWebhook(repo, webhookReference);
       } else {
-        state = await readProviderRepositoryWebhook(repo, webhook);
+        state = await readProviderRepositoryWebhook(repo, webhookReference);
       }
 
       if (

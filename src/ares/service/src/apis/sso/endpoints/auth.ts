@@ -129,6 +129,10 @@ export let ssoAuthApp = createHono()
         );
       }
 
+      if (res.authorize_form) {
+        return c.html(res.authorize_form);
+      }
+
       if (!res.redirect_url) {
         throw new ServiceError(
           badRequestError({

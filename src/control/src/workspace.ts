@@ -8,7 +8,7 @@ import { detect } from './root';
 import { parse, workspaceMetadataSchema } from './schema';
 import type { LoadedManifest, ProjectRoot, ServicePorts, WorkspaceMetadata } from './types';
 
-let standardPorts = [32379, 32380, 32707, 34222, 35432, 36379];
+let standardPorts = [31025, 32379, 32380, 32707, 34222, 35432, 36379, 38025];
 
 export let validateBranch = (branch: string) => {
   if (
@@ -155,7 +155,7 @@ export let allocateServicePorts = async (project: ProjectRoot): Promise<ServiceP
     if (data) reserve(reserved, data);
   }
 
-  let values = await allocatePortValues(reserved, 6);
+  let values = await allocatePortValues(reserved, 8);
 
   return {
     postgres: values[0]!,
@@ -163,8 +163,28 @@ export let allocateServicePorts = async (project: ProjectRoot): Promise<ServiceP
     redis: values[2]!,
     nats: values[3]!,
     etcd_client: values[4]!,
-    etcd_peer: values[5]!
+    etcd_peer: values[5]!,
+    mail: values[6]!,
+    mail_ui: values[7]!
   };
+};
+
+let withMailPorts = async (
+  project: ProjectRoot,
+  ports: ServicePorts
+): Promise<ServicePorts> => {
+  if (ports.mail !== undefined && ports.mail_ui !== undefined) return ports;
+
+  let reserved = new Set(standardPorts);
+  for (let worktree of await listWorktrees(project.root)) {
+    let data = metadataIfPresent(worktree.path);
+    if (data) reserve(reserved, data);
+  }
+  for (let port of Object.values(ports)) reserved.add(port);
+
+  let [mail, mailUi] = await allocatePortValues(reserved, 2);
+
+  return { ...ports, mail, mail_ui: mailUi };
 };
 
 export let metadata = async (project: ProjectRoot): Promise<WorkspaceMetadata> => {
@@ -178,7 +198,9 @@ export let metadata = async (project: ProjectRoot): Promise<WorkspaceMetadata> =
     if (source) {
       updated.id = 'root';
       updated.runtime = 'host';
-      updated.service_ports ??= await allocateServicePorts(project);
+      updated.service_ports = updated.service_ports
+        ? await withMailPorts(project, updated.service_ports)
+        : await allocateServicePorts(project);
     }
 
     if (JSON.stringify(updated) !== JSON.stringify(data)) writeMetadata(project.root, updated);

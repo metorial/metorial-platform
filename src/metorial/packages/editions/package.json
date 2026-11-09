@@ -1,0 +1,35 @@
+{
+  "name": "@metorial/editions",
+  "version": "1.0.0",
+  "author": "Tobias Herber",
+  "license": "FSL-1.1",
+  "sideEffects": false,
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./transform": "./src/tooling/transform.ts",
+    "./esbuild": "./src/tooling/esbuild.ts",
+    "./vite": "./src/tooling/vite.ts",
+    "./build": "./src/tooling/build.ts",
+    "./verify": "./src/tooling/verify.ts",
+    "./egress": "./src/tooling/egress.ts",
+    "./policy": "./src/tooling/policy.ts",
+    "./workspace": "./src/tooling/workspace.ts"
+  },
+  "bin": {
+    "metorial-editions": "./src/tooling/cli.ts"
+  },
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check"
+  },
+  "dependencies": {
+    "typescript": "5.9.3",
+    "esbuild": "^0.28.2",
+    "@jridgewell/trace-mapping": "^0.3.31"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "^1.0.0",
+    "vitest": "^5.0.4"
+  }
+}

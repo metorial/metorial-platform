@@ -1,6 +1,10 @@
+import { assets } from './assets';
+
 export let backendSetupHtml = (d: {
   sessionId: string;
   installationSessionId?: string;
+  options?: { type: string; label: string; allowedDomains: string[] | null }[];
+  selectedType?: string;
 }) => `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -177,10 +181,10 @@ export let backendSetupHtml = (d: {
 </head>
 <body>
   <div class="container">
-    <img src="https://cdn.metorial.com/2025-06-13--14-59-55/logos/metorial/primary_logo/raw.svg" alt="Metorial" class="logo" />
+    <img src="${assets.logo}" alt="Metorial" class="logo" />
 
     <h1>Setup Custom Provider</h1>
-    <p class="subtitle">Configure your GitHub Enterprise, GitLab, or Bitbucket instance</p>
+    <p class="subtitle">${d.options ? 'Configure your source control application' : 'Configure your GitHub Enterprise, GitLab, or Bitbucket instance'}</p>
 
     <div class="info-box">
       <div class="info-box-title">OAuth Callback URL</div>
@@ -189,14 +193,21 @@ export let backendSetupHtml = (d: {
 
     <div id="error" class="error" style="display: none;"></div>
 
+    ${d.options ? `<p class="help-text">${d.options.some(option => option.allowedDomains !== null) ? 'Only the configured provider domains are allowed.' : ''}</p>` : ''}
     <form id="setupForm">
       <div class="form-group">
         <label for="type">Provider Type</label>
         <select id="type" name="type" required>
           <option value="">Select provider type...</option>
-          <option value="github_enterprise">GitHub Enterprise</option>
+          ${
+            d.options
+              ? d.options
+                  .map(option => `<option value="${option.type}">${option.label}</option>`)
+                  .join('')
+              : `          <option value="github_enterprise">GitHub Enterprise</option>
           <option value="gitlab_selfhosted">GitLab Self-Hosted</option>
-          <option value="bitbucket_data_center">Bitbucket Data Center</option>
+          <option value="bitbucket_data_center">Bitbucket Data Center</option>`
+          }
         </select>
       </div>
 
@@ -235,6 +246,7 @@ export let backendSetupHtml = (d: {
         <input type="password" id="clientSecret" name="clientSecret" required />
       </div>
 
+      ${d.options ? `<div class="form-group"><label for="appWebhookSecret">GitHub App Webhook Secret</label><input type="password" id="appWebhookSecret" name="appWebhookSecret" /><div class="help-text">After setup, use the backend-specific webhook URL shown on the provider page.</div></div>` : ''}
       <button type="submit">Setup Provider</button>
     </form>
 
@@ -252,21 +264,30 @@ export let backendSetupHtml = (d: {
     const errorDiv = document.getElementById('error');
     const callbackUrlDiv = document.getElementById('callbackUrl');
 
+    let options = ${JSON.stringify(d.options ?? []).replace('<', '\u003c')};
+    let hosted = { github: 'https://github.com', gitlab: 'https://gitlab.com', bitbucket: 'https://bitbucket.org' };
+
     typeSelect.addEventListener('change', (e) => {
-      const type = e.target.value;
-      if (type === 'github_enterprise') {
+      let type = e.target.value;
+      let baseUrl = document.getElementById('apiUrl');
+      let option = options.find(option => option.type === type);
+      if (options.length) {
+        baseUrl.value = hosted[type] || (option?.allowedDomains?.[0] ? 'https://' + option.allowedDomains[0] : '');
+        baseUrl.readOnly = Boolean(hosted[type]);
+      }
+      if (type === 'github_enterprise' || type === 'github') {
         githubFields.style.display = 'block';
         document.getElementById('appId').required = true;
         document.getElementById('appSlug').required = true;
         document.getElementById('appPrivateKey').required = true;
         callbackUrlDiv.textContent = window.location.origin + '/origin/oauth/github/callback';
-      } else if (type === 'gitlab_selfhosted') {
+      } else if (type === 'gitlab_selfhosted' || type === 'gitlab') {
         githubFields.style.display = 'none';
         document.getElementById('appId').required = false;
         document.getElementById('appSlug').required = false;
         document.getElementById('appPrivateKey').required = false;
         callbackUrlDiv.textContent = window.location.origin + '/origin/oauth/gitlab/callback';
-      } else if (type === 'bitbucket_data_center') {
+      } else if (type === 'bitbucket_data_center' || type === 'bitbucket') {
         githubFields.style.display = 'none';
         document.getElementById('appId').required = false;
         document.getElementById('appSlug').required = false;
@@ -274,6 +295,11 @@ export let backendSetupHtml = (d: {
         callbackUrlDiv.textContent = window.location.origin + '/origin/oauth/bitbucket/callback';
       }
     });
+
+    if (${JSON.stringify(d.selectedType ?? '')}) {
+      typeSelect.value = ${JSON.stringify(d.selectedType ?? '')};
+      typeSelect.dispatchEvent(new Event('change'));
+    }
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();

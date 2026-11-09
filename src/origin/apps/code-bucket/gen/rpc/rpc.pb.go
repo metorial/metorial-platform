@@ -366,15 +366,17 @@ func (x *CreateBucketFromContentsRequest) GetContents() []*FileContentsBase {
 }
 
 type CreateBucketFromGithubRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NewBucketId   string                 `protobuf:"bytes,1,opt,name=new_bucket_id,json=newBucketId,proto3" json:"new_bucket_id,omitempty"`
-	Owner         string                 `protobuf:"bytes,2,opt,name=owner,proto3" json:"owner,omitempty"`
-	Repo          string                 `protobuf:"bytes,3,opt,name=repo,proto3" json:"repo,omitempty"`
-	Path          string                 `protobuf:"bytes,4,opt,name=path,proto3" json:"path,omitempty"`
-	Ref           string                 `protobuf:"bytes,5,opt,name=ref,proto3" json:"ref,omitempty"`
-	Token         string                 `protobuf:"bytes,6,opt,name=token,proto3" json:"token,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	NewBucketId       string                 `protobuf:"bytes,1,opt,name=new_bucket_id,json=newBucketId,proto3" json:"new_bucket_id,omitempty"`
+	Owner             string                 `protobuf:"bytes,2,opt,name=owner,proto3" json:"owner,omitempty"`
+	Repo              string                 `protobuf:"bytes,3,opt,name=repo,proto3" json:"repo,omitempty"`
+	Path              string                 `protobuf:"bytes,4,opt,name=path,proto3" json:"path,omitempty"`
+	Ref               string                 `protobuf:"bytes,5,opt,name=ref,proto3" json:"ref,omitempty"`
+	Token             string                 `protobuf:"bytes,6,opt,name=token,proto3" json:"token,omitempty"`
+	GithubApiUrl      string                 `protobuf:"bytes,7,opt,name=github_api_url,json=githubApiUrl,proto3" json:"github_api_url,omitempty"`
+	GithubLfsEndpoint string                 `protobuf:"bytes,8,opt,name=github_lfs_endpoint,json=githubLfsEndpoint,proto3" json:"github_lfs_endpoint,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *CreateBucketFromGithubRequest) Reset() {
@@ -445,6 +447,20 @@ func (x *CreateBucketFromGithubRequest) GetRef() string {
 func (x *CreateBucketFromGithubRequest) GetToken() string {
 	if x != nil {
 		return x.Token
+	}
+	return ""
+}
+
+func (x *CreateBucketFromGithubRequest) GetGithubApiUrl() string {
+	if x != nil {
+		return x.GithubApiUrl
+	}
+	return ""
+}
+
+func (x *CreateBucketFromGithubRequest) GetGithubLfsEndpoint() string {
+	if x != nil {
+		return x.GithubLfsEndpoint
 	}
 	return ""
 }
@@ -1024,7 +1040,8 @@ type ExportBucketFilesAsZipToUploadRequest struct {
 	UploadUrl     string                 `protobuf:"bytes,3,opt,name=upload_url,json=uploadUrl,proto3" json:"upload_url,omitempty"`
 	UploadBucket  string                 `protobuf:"bytes,4,opt,name=upload_bucket,json=uploadBucket,proto3" json:"upload_bucket,omitempty"`
 	UploadKey     string                 `protobuf:"bytes,5,opt,name=upload_key,json=uploadKey,proto3" json:"upload_key,omitempty"`
-	ContentType   string                 `protobuf:"bytes,6,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"` // Optional, defaults to application/zip
+	ContentType   string                 `protobuf:"bytes,6,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"`                                                                                 // Optional, defaults to application/zip
+	UploadHeaders map[string]string      `protobuf:"bytes,7,rep,name=upload_headers,json=uploadHeaders,proto3" json:"upload_headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // Sent with upload_url requests, as returned by the signer
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1099,6 +1116,13 @@ func (x *ExportBucketFilesAsZipToUploadRequest) GetContentType() string {
 		return x.ContentType
 	}
 	return ""
+}
+
+func (x *ExportBucketFilesAsZipToUploadRequest) GetUploadHeaders() map[string]string {
+	if x != nil {
+		return x.UploadHeaders
+	}
+	return nil
 }
 
 type ExportBucketFilesAsZipToUploadResponse struct {
@@ -1810,7 +1834,9 @@ type ExportBucketToGithubRequest struct {
 	ExplicitDeletesOnly bool                   `protobuf:"varint,9,opt,name=explicit_deletes_only,json=explicitDeletesOnly,proto3" json:"explicit_deletes_only,omitempty"`
 	// Files at or above this size are routed through Git LFS.
 	// Zero or negative means use the service default.
-	LfsThresholdBytes int64 `protobuf:"varint,10,opt,name=lfs_threshold_bytes,json=lfsThresholdBytes,proto3" json:"lfs_threshold_bytes,omitempty"`
+	LfsThresholdBytes int64  `protobuf:"varint,10,opt,name=lfs_threshold_bytes,json=lfsThresholdBytes,proto3" json:"lfs_threshold_bytes,omitempty"`
+	GithubApiUrl      string `protobuf:"bytes,11,opt,name=github_api_url,json=githubApiUrl,proto3" json:"github_api_url,omitempty"`
+	GithubLfsEndpoint string `protobuf:"bytes,12,opt,name=github_lfs_endpoint,json=githubLfsEndpoint,proto3" json:"github_lfs_endpoint,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -1913,6 +1939,20 @@ func (x *ExportBucketToGithubRequest) GetLfsThresholdBytes() int64 {
 		return x.LfsThresholdBytes
 	}
 	return 0
+}
+
+func (x *ExportBucketToGithubRequest) GetGithubApiUrl() string {
+	if x != nil {
+		return x.GithubApiUrl
+	}
+	return ""
+}
+
+func (x *ExportBucketToGithubRequest) GetGithubLfsEndpoint() string {
+	if x != nil {
+		return x.GithubLfsEndpoint
+	}
+	return ""
 }
 
 type ExportBucketToGithubResponse struct {
@@ -2653,14 +2693,16 @@ const file_rpc_proto_rawDesc = "" +
 	"\acontent\x18\x02 \x01(\fR\acontent\"|\n" +
 	"\x1fCreateBucketFromContentsRequest\x12\"\n" +
 	"\rnew_bucket_id\x18\x01 \x01(\tR\vnewBucketId\x125\n" +
-	"\bcontents\x18\x02 \x03(\v2\x19.rpc.rpc.FileContentsBaseR\bcontents\"\xa9\x01\n" +
+	"\bcontents\x18\x02 \x03(\v2\x19.rpc.rpc.FileContentsBaseR\bcontents\"\xff\x01\n" +
 	"\x1dCreateBucketFromGithubRequest\x12\"\n" +
 	"\rnew_bucket_id\x18\x01 \x01(\tR\vnewBucketId\x12\x14\n" +
 	"\x05owner\x18\x02 \x01(\tR\x05owner\x12\x12\n" +
 	"\x04repo\x18\x03 \x01(\tR\x04repo\x12\x12\n" +
 	"\x04path\x18\x04 \x01(\tR\x04path\x12\x10\n" +
 	"\x03ref\x18\x05 \x01(\tR\x03ref\x12\x14\n" +
-	"\x05token\x18\x06 \x01(\tR\x05token\"\x16\n" +
+	"\x05token\x18\x06 \x01(\tR\x05token\x12$\n" +
+	"\x0egithub_api_url\x18\a \x01(\tR\fgithubApiUrl\x12.\n" +
+	"\x13github_lfs_endpoint\x18\b \x01(\tR\x11githubLfsEndpoint\"\x16\n" +
 	"\x14CreateBucketResponse\"\x84\x01\n" +
 	"\x15GetBucketTokenRequest\x12\x1b\n" +
 	"\tbucket_id\x18\x01 \x01(\tR\bbucketId\x12,\n" +
@@ -2691,7 +2733,7 @@ const file_rpc_proto_rawDesc = "" +
 	"\n" +
 	"expires_at\x18\x02 \x01(\x03R\texpiresAt\"4\n" +
 	"\x18GetBucketFilesAsZipChunk\x12\x18\n" +
-	"\acontent\x18\x01 \x01(\fR\acontent\"\xe2\x01\n" +
+	"\acontent\x18\x01 \x01(\fR\acontent\"\x8e\x03\n" +
 	"%ExportBucketFilesAsZipToUploadRequest\x12\x1b\n" +
 	"\tbucket_id\x18\x01 \x01(\tR\bbucketId\x12\x16\n" +
 	"\x06prefix\x18\x02 \x01(\tR\x06prefix\x12\x1d\n" +
@@ -2700,7 +2742,11 @@ const file_rpc_proto_rawDesc = "" +
 	"\rupload_bucket\x18\x04 \x01(\tR\fuploadBucket\x12\x1d\n" +
 	"\n" +
 	"upload_key\x18\x05 \x01(\tR\tuploadKey\x12!\n" +
-	"\fcontent_type\x18\x06 \x01(\tR\vcontentType\"|\n" +
+	"\fcontent_type\x18\x06 \x01(\tR\vcontentType\x12h\n" +
+	"\x0eupload_headers\x18\a \x03(\v2A.rpc.rpc.ExportBucketFilesAsZipToUploadRequest.UploadHeadersEntryR\ruploadHeaders\x1a@\n" +
+	"\x12UploadHeadersEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"|\n" +
 	"&ExportBucketFilesAsZipToUploadResponse\x12\x1b\n" +
 	"\tbyte_size\x18\x01 \x01(\x03R\bbyteSize\x12\x16\n" +
 	"\x06sha256\x18\x02 \x01(\tR\x06sha256\x12\x1d\n" +
@@ -2741,7 +2787,7 @@ const file_rpc_proto_rawDesc = "" +
 	"keep_paths\x18\x03 \x03(\tR\tkeepPaths\x12)\n" +
 	"\x10exclude_prefixes\x18\x04 \x03(\tR\x0fexcludePrefixes\">\n" +
 	"\x17PruneBucketPathResponse\x12#\n" +
-	"\rdeleted_paths\x18\x01 \x03(\tR\fdeletedPaths\"\xd4\x02\n" +
+	"\rdeleted_paths\x18\x01 \x03(\tR\fdeletedPaths\"\xaa\x03\n" +
 	"\x1bExportBucketToGithubRequest\x12\x1b\n" +
 	"\tbucket_id\x18\x01 \x01(\tR\bbucketId\x12\x14\n" +
 	"\x05owner\x18\x02 \x01(\tR\x05owner\x12\x12\n" +
@@ -2753,7 +2799,9 @@ const file_rpc_proto_rawDesc = "" +
 	"\fdelete_paths\x18\b \x03(\tR\vdeletePaths\x122\n" +
 	"\x15explicit_deletes_only\x18\t \x01(\bR\x13explicitDeletesOnly\x12.\n" +
 	"\x13lfs_threshold_bytes\x18\n" +
-	" \x01(\x03R\x11lfsThresholdBytes\"\x1e\n" +
+	" \x01(\x03R\x11lfsThresholdBytes\x12$\n" +
+	"\x0egithub_api_url\x18\v \x01(\tR\fgithubApiUrl\x12.\n" +
+	"\x13github_lfs_endpoint\x18\f \x01(\tR\x11githubLfsEndpoint\"\x1e\n" +
 	"\x1cExportBucketToGithubResponse\"\xc4\x01\n" +
 	"\x1dCreateBucketFromGitlabRequest\x12\"\n" +
 	"\rnew_bucket_id\x18\x01 \x01(\tR\vnewBucketId\x12\x1d\n" +
@@ -2854,7 +2902,7 @@ func file_rpc_proto_rawDescGZIP() []byte {
 	return file_rpc_proto_rawDescData
 }
 
-var file_rpc_proto_msgTypes = make([]protoimpl.MessageInfo, 45)
+var file_rpc_proto_msgTypes = make([]protoimpl.MessageInfo, 46)
 var file_rpc_proto_goTypes = []any{
 	(*FileInfo)(nil),                                   // 0: rpc.rpc.FileInfo
 	(*FileContent)(nil),                                // 1: rpc.rpc.FileContent
@@ -2901,6 +2949,7 @@ var file_rpc_proto_goTypes = []any{
 	(*ExportBucketToBitbucketDataCenterRequest)(nil),   // 42: rpc.rpc.ExportBucketToBitbucketDataCenterRequest
 	(*ExportBucketToBitbucketResponse)(nil),            // 43: rpc.rpc.ExportBucketToBitbucketResponse
 	nil,                                                // 44: rpc.rpc.CreateBucketFromZipRequest.HeadersEntry
+	nil,                                                // 45: rpc.rpc.ExportBucketFilesAsZipToUploadRequest.UploadHeadersEntry
 }
 var file_rpc_proto_depIdxs = []int32{
 	0,  // 0: rpc.rpc.FileContent.file_info:type_name -> rpc.rpc.FileInfo
@@ -2910,63 +2959,64 @@ var file_rpc_proto_depIdxs = []int32{
 	0,  // 4: rpc.rpc.GetBucketFilesResponse.files:type_name -> rpc.rpc.FileInfo
 	1,  // 5: rpc.rpc.GetBucketFilesWithContentResponse.files:type_name -> rpc.rpc.FileContent
 	1,  // 6: rpc.rpc.GetBucketFilesWithContentChunk.files:type_name -> rpc.rpc.FileContent
-	4,  // 7: rpc.rpc.SetBucketFilesRequest.files:type_name -> rpc.rpc.FileContentsBase
-	25, // 8: rpc.rpc.CopyBucketFilesRequest.files:type_name -> rpc.rpc.CopyBucketFileSource
-	2,  // 9: rpc.rpc.CodeBucket.CloneBucket:input_type -> rpc.rpc.CloneBucketRequest
-	5,  // 10: rpc.rpc.CodeBucket.CreateBucketFromContents:input_type -> rpc.rpc.CreateBucketFromContentsRequest
-	3,  // 11: rpc.rpc.CodeBucket.CreateBucketFromZip:input_type -> rpc.rpc.CreateBucketFromZipRequest
-	6,  // 12: rpc.rpc.CodeBucket.CreateBucketFromGithub:input_type -> rpc.rpc.CreateBucketFromGithubRequest
-	36, // 13: rpc.rpc.CodeBucket.CreateBucketFromGitlab:input_type -> rpc.rpc.CreateBucketFromGitlabRequest
-	39, // 14: rpc.rpc.CodeBucket.CreateBucketFromBitbucketCloud:input_type -> rpc.rpc.CreateBucketFromBitbucketCloudRequest
-	40, // 15: rpc.rpc.CodeBucket.CreateBucketFromBitbucketDataCenter:input_type -> rpc.rpc.CreateBucketFromBitbucketDataCenterRequest
-	8,  // 16: rpc.rpc.CodeBucket.GetBucketToken:input_type -> rpc.rpc.GetBucketTokenRequest
-	10, // 17: rpc.rpc.CodeBucket.GetBucketFile:input_type -> rpc.rpc.GetBucketFileRequest
-	12, // 18: rpc.rpc.CodeBucket.GetBucketFiles:input_type -> rpc.rpc.GetBucketFilesRequest
-	12, // 19: rpc.rpc.CodeBucket.GetBucketFilesWithContent:input_type -> rpc.rpc.GetBucketFilesRequest
-	12, // 20: rpc.rpc.CodeBucket.GetBucketFilesWithContentStream:input_type -> rpc.rpc.GetBucketFilesRequest
-	16, // 21: rpc.rpc.CodeBucket.GetBucketFilesAsZip:input_type -> rpc.rpc.GetBucketFilesAsZipRequest
-	16, // 22: rpc.rpc.CodeBucket.GetBucketFilesAsZipStream:input_type -> rpc.rpc.GetBucketFilesAsZipRequest
-	19, // 23: rpc.rpc.CodeBucket.ExportBucketFilesAsZipToUpload:input_type -> rpc.rpc.ExportBucketFilesAsZipToUploadRequest
-	21, // 24: rpc.rpc.CodeBucket.SetBucketFiles:input_type -> rpc.rpc.SetBucketFilesRequest
-	23, // 25: rpc.rpc.CodeBucket.SetBucketFile:input_type -> rpc.rpc.SetBucketFileRequest
-	26, // 26: rpc.rpc.CodeBucket.CopyBucketFiles:input_type -> rpc.rpc.CopyBucketFilesRequest
-	28, // 27: rpc.rpc.CodeBucket.DeleteBucketFile:input_type -> rpc.rpc.DeleteBucketFileRequest
-	30, // 28: rpc.rpc.CodeBucket.DeleteBucketPath:input_type -> rpc.rpc.DeleteBucketPathRequest
-	32, // 29: rpc.rpc.CodeBucket.PruneBucketPath:input_type -> rpc.rpc.PruneBucketPathRequest
-	34, // 30: rpc.rpc.CodeBucket.ExportBucketToGithub:input_type -> rpc.rpc.ExportBucketToGithubRequest
-	37, // 31: rpc.rpc.CodeBucket.ExportBucketToGitlab:input_type -> rpc.rpc.ExportBucketToGitlabRequest
-	41, // 32: rpc.rpc.CodeBucket.ExportBucketToBitbucketCloud:input_type -> rpc.rpc.ExportBucketToBitbucketCloudRequest
-	42, // 33: rpc.rpc.CodeBucket.ExportBucketToBitbucketDataCenter:input_type -> rpc.rpc.ExportBucketToBitbucketDataCenterRequest
-	7,  // 34: rpc.rpc.CodeBucket.CloneBucket:output_type -> rpc.rpc.CreateBucketResponse
-	7,  // 35: rpc.rpc.CodeBucket.CreateBucketFromContents:output_type -> rpc.rpc.CreateBucketResponse
-	7,  // 36: rpc.rpc.CodeBucket.CreateBucketFromZip:output_type -> rpc.rpc.CreateBucketResponse
-	7,  // 37: rpc.rpc.CodeBucket.CreateBucketFromGithub:output_type -> rpc.rpc.CreateBucketResponse
-	7,  // 38: rpc.rpc.CodeBucket.CreateBucketFromGitlab:output_type -> rpc.rpc.CreateBucketResponse
-	7,  // 39: rpc.rpc.CodeBucket.CreateBucketFromBitbucketCloud:output_type -> rpc.rpc.CreateBucketResponse
-	7,  // 40: rpc.rpc.CodeBucket.CreateBucketFromBitbucketDataCenter:output_type -> rpc.rpc.CreateBucketResponse
-	9,  // 41: rpc.rpc.CodeBucket.GetBucketToken:output_type -> rpc.rpc.GetBucketTokenResponse
-	11, // 42: rpc.rpc.CodeBucket.GetBucketFile:output_type -> rpc.rpc.GetBucketFileResponse
-	13, // 43: rpc.rpc.CodeBucket.GetBucketFiles:output_type -> rpc.rpc.GetBucketFilesResponse
-	14, // 44: rpc.rpc.CodeBucket.GetBucketFilesWithContent:output_type -> rpc.rpc.GetBucketFilesWithContentResponse
-	15, // 45: rpc.rpc.CodeBucket.GetBucketFilesWithContentStream:output_type -> rpc.rpc.GetBucketFilesWithContentChunk
-	17, // 46: rpc.rpc.CodeBucket.GetBucketFilesAsZip:output_type -> rpc.rpc.GetBucketFilesAsZipResponse
-	18, // 47: rpc.rpc.CodeBucket.GetBucketFilesAsZipStream:output_type -> rpc.rpc.GetBucketFilesAsZipChunk
-	20, // 48: rpc.rpc.CodeBucket.ExportBucketFilesAsZipToUpload:output_type -> rpc.rpc.ExportBucketFilesAsZipToUploadResponse
-	22, // 49: rpc.rpc.CodeBucket.SetBucketFiles:output_type -> rpc.rpc.SetBucketFilesResponse
-	24, // 50: rpc.rpc.CodeBucket.SetBucketFile:output_type -> rpc.rpc.SetBucketFileResponse
-	27, // 51: rpc.rpc.CodeBucket.CopyBucketFiles:output_type -> rpc.rpc.CopyBucketFilesResponse
-	29, // 52: rpc.rpc.CodeBucket.DeleteBucketFile:output_type -> rpc.rpc.DeleteBucketFileResponse
-	31, // 53: rpc.rpc.CodeBucket.DeleteBucketPath:output_type -> rpc.rpc.DeleteBucketPathResponse
-	33, // 54: rpc.rpc.CodeBucket.PruneBucketPath:output_type -> rpc.rpc.PruneBucketPathResponse
-	35, // 55: rpc.rpc.CodeBucket.ExportBucketToGithub:output_type -> rpc.rpc.ExportBucketToGithubResponse
-	38, // 56: rpc.rpc.CodeBucket.ExportBucketToGitlab:output_type -> rpc.rpc.ExportBucketToGitlabResponse
-	43, // 57: rpc.rpc.CodeBucket.ExportBucketToBitbucketCloud:output_type -> rpc.rpc.ExportBucketToBitbucketResponse
-	43, // 58: rpc.rpc.CodeBucket.ExportBucketToBitbucketDataCenter:output_type -> rpc.rpc.ExportBucketToBitbucketResponse
-	34, // [34:59] is the sub-list for method output_type
-	9,  // [9:34] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	45, // 7: rpc.rpc.ExportBucketFilesAsZipToUploadRequest.upload_headers:type_name -> rpc.rpc.ExportBucketFilesAsZipToUploadRequest.UploadHeadersEntry
+	4,  // 8: rpc.rpc.SetBucketFilesRequest.files:type_name -> rpc.rpc.FileContentsBase
+	25, // 9: rpc.rpc.CopyBucketFilesRequest.files:type_name -> rpc.rpc.CopyBucketFileSource
+	2,  // 10: rpc.rpc.CodeBucket.CloneBucket:input_type -> rpc.rpc.CloneBucketRequest
+	5,  // 11: rpc.rpc.CodeBucket.CreateBucketFromContents:input_type -> rpc.rpc.CreateBucketFromContentsRequest
+	3,  // 12: rpc.rpc.CodeBucket.CreateBucketFromZip:input_type -> rpc.rpc.CreateBucketFromZipRequest
+	6,  // 13: rpc.rpc.CodeBucket.CreateBucketFromGithub:input_type -> rpc.rpc.CreateBucketFromGithubRequest
+	36, // 14: rpc.rpc.CodeBucket.CreateBucketFromGitlab:input_type -> rpc.rpc.CreateBucketFromGitlabRequest
+	39, // 15: rpc.rpc.CodeBucket.CreateBucketFromBitbucketCloud:input_type -> rpc.rpc.CreateBucketFromBitbucketCloudRequest
+	40, // 16: rpc.rpc.CodeBucket.CreateBucketFromBitbucketDataCenter:input_type -> rpc.rpc.CreateBucketFromBitbucketDataCenterRequest
+	8,  // 17: rpc.rpc.CodeBucket.GetBucketToken:input_type -> rpc.rpc.GetBucketTokenRequest
+	10, // 18: rpc.rpc.CodeBucket.GetBucketFile:input_type -> rpc.rpc.GetBucketFileRequest
+	12, // 19: rpc.rpc.CodeBucket.GetBucketFiles:input_type -> rpc.rpc.GetBucketFilesRequest
+	12, // 20: rpc.rpc.CodeBucket.GetBucketFilesWithContent:input_type -> rpc.rpc.GetBucketFilesRequest
+	12, // 21: rpc.rpc.CodeBucket.GetBucketFilesWithContentStream:input_type -> rpc.rpc.GetBucketFilesRequest
+	16, // 22: rpc.rpc.CodeBucket.GetBucketFilesAsZip:input_type -> rpc.rpc.GetBucketFilesAsZipRequest
+	16, // 23: rpc.rpc.CodeBucket.GetBucketFilesAsZipStream:input_type -> rpc.rpc.GetBucketFilesAsZipRequest
+	19, // 24: rpc.rpc.CodeBucket.ExportBucketFilesAsZipToUpload:input_type -> rpc.rpc.ExportBucketFilesAsZipToUploadRequest
+	21, // 25: rpc.rpc.CodeBucket.SetBucketFiles:input_type -> rpc.rpc.SetBucketFilesRequest
+	23, // 26: rpc.rpc.CodeBucket.SetBucketFile:input_type -> rpc.rpc.SetBucketFileRequest
+	26, // 27: rpc.rpc.CodeBucket.CopyBucketFiles:input_type -> rpc.rpc.CopyBucketFilesRequest
+	28, // 28: rpc.rpc.CodeBucket.DeleteBucketFile:input_type -> rpc.rpc.DeleteBucketFileRequest
+	30, // 29: rpc.rpc.CodeBucket.DeleteBucketPath:input_type -> rpc.rpc.DeleteBucketPathRequest
+	32, // 30: rpc.rpc.CodeBucket.PruneBucketPath:input_type -> rpc.rpc.PruneBucketPathRequest
+	34, // 31: rpc.rpc.CodeBucket.ExportBucketToGithub:input_type -> rpc.rpc.ExportBucketToGithubRequest
+	37, // 32: rpc.rpc.CodeBucket.ExportBucketToGitlab:input_type -> rpc.rpc.ExportBucketToGitlabRequest
+	41, // 33: rpc.rpc.CodeBucket.ExportBucketToBitbucketCloud:input_type -> rpc.rpc.ExportBucketToBitbucketCloudRequest
+	42, // 34: rpc.rpc.CodeBucket.ExportBucketToBitbucketDataCenter:input_type -> rpc.rpc.ExportBucketToBitbucketDataCenterRequest
+	7,  // 35: rpc.rpc.CodeBucket.CloneBucket:output_type -> rpc.rpc.CreateBucketResponse
+	7,  // 36: rpc.rpc.CodeBucket.CreateBucketFromContents:output_type -> rpc.rpc.CreateBucketResponse
+	7,  // 37: rpc.rpc.CodeBucket.CreateBucketFromZip:output_type -> rpc.rpc.CreateBucketResponse
+	7,  // 38: rpc.rpc.CodeBucket.CreateBucketFromGithub:output_type -> rpc.rpc.CreateBucketResponse
+	7,  // 39: rpc.rpc.CodeBucket.CreateBucketFromGitlab:output_type -> rpc.rpc.CreateBucketResponse
+	7,  // 40: rpc.rpc.CodeBucket.CreateBucketFromBitbucketCloud:output_type -> rpc.rpc.CreateBucketResponse
+	7,  // 41: rpc.rpc.CodeBucket.CreateBucketFromBitbucketDataCenter:output_type -> rpc.rpc.CreateBucketResponse
+	9,  // 42: rpc.rpc.CodeBucket.GetBucketToken:output_type -> rpc.rpc.GetBucketTokenResponse
+	11, // 43: rpc.rpc.CodeBucket.GetBucketFile:output_type -> rpc.rpc.GetBucketFileResponse
+	13, // 44: rpc.rpc.CodeBucket.GetBucketFiles:output_type -> rpc.rpc.GetBucketFilesResponse
+	14, // 45: rpc.rpc.CodeBucket.GetBucketFilesWithContent:output_type -> rpc.rpc.GetBucketFilesWithContentResponse
+	15, // 46: rpc.rpc.CodeBucket.GetBucketFilesWithContentStream:output_type -> rpc.rpc.GetBucketFilesWithContentChunk
+	17, // 47: rpc.rpc.CodeBucket.GetBucketFilesAsZip:output_type -> rpc.rpc.GetBucketFilesAsZipResponse
+	18, // 48: rpc.rpc.CodeBucket.GetBucketFilesAsZipStream:output_type -> rpc.rpc.GetBucketFilesAsZipChunk
+	20, // 49: rpc.rpc.CodeBucket.ExportBucketFilesAsZipToUpload:output_type -> rpc.rpc.ExportBucketFilesAsZipToUploadResponse
+	22, // 50: rpc.rpc.CodeBucket.SetBucketFiles:output_type -> rpc.rpc.SetBucketFilesResponse
+	24, // 51: rpc.rpc.CodeBucket.SetBucketFile:output_type -> rpc.rpc.SetBucketFileResponse
+	27, // 52: rpc.rpc.CodeBucket.CopyBucketFiles:output_type -> rpc.rpc.CopyBucketFilesResponse
+	29, // 53: rpc.rpc.CodeBucket.DeleteBucketFile:output_type -> rpc.rpc.DeleteBucketFileResponse
+	31, // 54: rpc.rpc.CodeBucket.DeleteBucketPath:output_type -> rpc.rpc.DeleteBucketPathResponse
+	33, // 55: rpc.rpc.CodeBucket.PruneBucketPath:output_type -> rpc.rpc.PruneBucketPathResponse
+	35, // 56: rpc.rpc.CodeBucket.ExportBucketToGithub:output_type -> rpc.rpc.ExportBucketToGithubResponse
+	38, // 57: rpc.rpc.CodeBucket.ExportBucketToGitlab:output_type -> rpc.rpc.ExportBucketToGitlabResponse
+	43, // 58: rpc.rpc.CodeBucket.ExportBucketToBitbucketCloud:output_type -> rpc.rpc.ExportBucketToBitbucketResponse
+	43, // 59: rpc.rpc.CodeBucket.ExportBucketToBitbucketDataCenter:output_type -> rpc.rpc.ExportBucketToBitbucketResponse
+	35, // [35:60] is the sub-list for method output_type
+	10, // [10:35] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_rpc_proto_init() }
@@ -2980,7 +3030,7 @@ func file_rpc_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_rpc_proto_rawDesc), len(file_rpc_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   45,
+			NumMessages:   46,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

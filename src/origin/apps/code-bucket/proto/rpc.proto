@@ -76,6 +76,8 @@ message CreateBucketFromGithubRequest {
   string path = 4;
   string ref = 5;
   string token = 6;
+  string github_api_url = 7;
+  string github_lfs_endpoint = 8;
 }
 
 message CreateBucketResponse {}
@@ -138,6 +140,7 @@ message ExportBucketFilesAsZipToUploadRequest {
   string upload_bucket = 4;
   string upload_key = 5;
   string content_type = 6; // Optional, defaults to application/zip
+  map<string, string> upload_headers = 7; // Sent with upload_url requests, as returned by the signer
 }
 
 message ExportBucketFilesAsZipToUploadResponse {
@@ -217,6 +220,8 @@ message ExportBucketToGithubRequest {
   // Files at or above this size are routed through Git LFS.
   // Zero or negative means use the service default.
   int64 lfs_threshold_bytes = 10;
+  string github_api_url = 11;
+  string github_lfs_endpoint = 12;
 }
 
 message ExportBucketToGithubResponse {}

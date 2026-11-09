@@ -23,7 +23,7 @@ type LoaderLike = {
   mutators?: {
     [key: string]: (...args: any[]) => Promise<any>;
   };
-  refetch?: () => void;
+  refetch?: () => void | Promise<unknown>;
 };
 
 type RenderWithLoaderLoaders = {
@@ -81,15 +81,37 @@ let renderLoaderSpinner = (opts: RenderWithLoaderOptions, visible: boolean) =>
     children: renderLoadingContent(opts)
   });
 
-let renderLoaderError = (error: LoaderError, opts: RenderWithLoaderOptions) =>
-  opts.error
-    ? opts.error(error)
-    : React.createElement(Error, {
-        children:
-          ('data' in error ? error.data.message : error.message) ??
-          error.message ??
-          'An error occurred'
-      });
+type LoaderErrorProps = {
+  error: LoaderError;
+  retry?: () => Promise<unknown>;
+};
+
+export type LoaderErrorPresenter = (d: LoaderErrorProps) => React.ReactNode;
+
+let loaderErrorPresenter: LoaderErrorPresenter | null = null;
+
+/**
+ * Called while rendering, so it may use hooks. Return `undefined` for the default
+ * error. A per-call `opts.error` always takes precedence over the presenter.
+ */
+export let setLoaderErrorPresenter = (presenter: LoaderErrorPresenter | null) => {
+  loaderErrorPresenter = presenter;
+};
+
+let LoaderErrorView = ({ error, retry }: LoaderErrorProps) => {
+  let presented = loaderErrorPresenter?.({ error, retry });
+  if (presented !== undefined) return presented;
+
+  return React.createElement(Error, {
+    children:
+      ('data' in error ? error.data.message : error.message) ??
+      error.message ??
+      'An error occurred'
+  });
+};
+
+let renderLoaderError = (opts: RenderWithLoaderOptions, props: LoaderErrorProps) =>
+  opts.error ? opts.error(props.error) : React.createElement(LoaderErrorView, props);
 
 // Callers pass a new inline closure on every render. Mounting the closure itself as
 // a component would give React a new element type each time and remount the whole
@@ -125,12 +147,14 @@ let RenderWithLoaderInner = <Loaders extends RenderWithLoaderLoaders>({
   let parentGate = useContext(InitialLoaderGateContext);
   let boundary = useInitialLoadBoundaryState();
   let idRef = useRef(Symbol('renderWithLoader'));
-  let normalizedLoaders = Object.values(loaders).map(loader =>
+  let normalizedLoaders: Pick<LoaderLike, 'isLoading' | 'error' | 'refetch'>[] = Object.values(
+    loaders
+  ).map(loader =>
     typeof loader == 'boolean' ? { isLoading: loader, error: undefined } : loader
   );
 
-  let isLoading = Object.values(normalizedLoaders).some(loader => loader.isLoading);
-  let error = Object.values(normalizedLoaders).find(loader => loader.error != null)?.error;
+  let isLoading = normalizedLoaders.some(loader => loader.isLoading);
+  let error = normalizedLoaders.find(loader => loader.error != null)?.error;
   let hasError = !!error;
   let [phase, setPhase] = useState<InitialRevealPhase>(() =>
     isLoading ? 'localLoading' : 'revealed'
@@ -245,7 +269,16 @@ let RenderWithLoaderInner = <Loaders extends RenderWithLoaderLoaders>({
   useEffect(() => () => clearDiscoveryTimeout(), [clearDiscoveryTimeout]);
 
   if (error) {
-    return renderLoaderError(error, opts);
+    let refetchFailed = normalizedLoaders.flatMap(loader =>
+      loader.error != null && loader.refetch ? [loader.refetch] : []
+    );
+
+    return renderLoaderError(opts, {
+      error,
+      retry: refetchFailed.length
+        ? () => Promise.allSettled(refetchFailed.map(refetch => refetch()))
+        : undefined
+    });
   }
 
   let renderedLoaders = isShowingPreviousContent
@@ -365,7 +398,10 @@ export let renderWithPagination =
     }
 
     if (loader.error) {
-      return renderLoaderError(loader.error, opts);
+      return renderLoaderError(opts, {
+        error: loader.error,
+        retry: async () => loader.refetch()
+      });
     }
 
     let loaderWithCachedData = {

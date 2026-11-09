@@ -12,6 +12,9 @@ import * as docker from './docker';
 import * as cleanup from './cleanup';
 import * as e2e from './e2e';
 import { inventory } from './ci';
+import { generate as generateDockerfiles } from './dockerfile/generate';
+import { relativePath } from './packages';
+import * as daemon from './daemon/commands';
 import type { ProjectRoot } from './types';
 
 let commandOptions: Record<
@@ -20,7 +23,47 @@ let commandOptions: Record<
 > = {
   ci: {},
   'ci describe': { flags: ['json'], max: 0 },
-  dev: { flags: ['no-docker', 'no-prepare', 'stop-docker', 'dry-run'] },
+  dev: { flags: ['no-docker', 'no-prepare', 'stop-docker', 'dry-run', 'foreground'] },
+  up: {
+    flags: ['no-docker', 'no-prepare', 'no-proxy', 'detach', 'verbose', 'no-color'],
+    values: ['timeout']
+  },
+  down: { flags: ['keep-infra', 'all'], values: ['ws', 'stack'], max: 0 },
+  ls: { flags: ['json', 'no-color'], max: 0 },
+  status: { flags: ['json', 'failing', 'no-color'], values: ['ws', 'stack'], max: 0 },
+  restart: { flags: ['infra', 'verbose', 'no-color'], values: ['ws', 'stack', 'timeout'] },
+  logs: {
+    flags: ['follow', 'list', 'tui', 'errors', 'path', 'json', 'no-color'],
+    values: ['tail', 'ws', 'stack', 'grep', 'since']
+  },
+  tui: { values: ['ws', 'stack'] },
+  job: { flags: ['no-color'], values: ['ws', 'stack'], min: 1 },
+  open: { values: ['ws', 'stack'], max: 1 },
+  email: {},
+  'email list': { values: ['ws', 'stack', 'start', 'limit'], max: 0 },
+  'email open': { flags: ['html'], values: ['ws', 'stack'], min: 1, max: 1 },
+  sh: { values: ['ws', 'stack'], max: 1 },
+  stack: {},
+  'stack start': {
+    flags: ['detach', 'no-prepare', 'verbose', 'no-color'],
+    values: ['env', 'name'],
+    min: 1,
+    max: 1
+  },
+  'stack stop': { flags: ['volumes'], values: ['name'], max: 1 },
+  'stack restart': { flags: ['verbose', 'no-color'], values: ['name'], max: 1 },
+  'stack clean': { values: ['name'], max: 1 },
+  'stack rm': { values: ['name'], max: 1 },
+  'stack ls': { flags: ['json'], max: 0 },
+  'stack plan': { flags: ['json'], values: ['env', 'name'], min: 1, max: 1 },
+  'stack images': { flags: ['json'], min: 1, max: 1 },
+  daemon: {},
+  'daemon start': { max: 0 },
+  'daemon stop': { max: 0 },
+  'daemon restart': { max: 0 },
+  'daemon status': { max: 0 },
+  'daemon logs': { max: 0 },
+  'daemon run': { max: 0 },
   prepare: { flags: ['no-docker'] },
   db: {},
   'db generate': {},
@@ -32,6 +75,8 @@ let commandOptions: Record<
   cleanup: { flags: ['dry-run', 'docker'] },
   docker: {},
   'docker stop': {},
+  'docker reset': { flags: ['yes', 'dry-run'] },
+  'docker generate': { flags: ['check'], max: 0 },
   workspace: {},
   'workspace create': { flags: ['no-open'], min: 1, max: 1 },
   'workspace list': { max: 0 },
@@ -67,7 +112,7 @@ let parseArgumentsUnchecked = (args: string[]): Arguments => {
     help: false,
     version: false
   };
-  let nested = new Set(['ci', 'db', 'docker', 'workspace']);
+  let nested = new Set(['ci', 'db', 'docker', 'workspace', 'daemon', 'email', 'stack']);
 
   for (let index = 0; index < args.length; index++) {
     let argument = args[index]!;
@@ -191,9 +236,11 @@ let parseArgumentsUnchecked = (args: string[]): Arguments => {
 
 export class CliError extends Error {}
 
+let shortFlags: Record<string, string> = { '-f': '--follow', '-n': '--tail', '-w': '--ws' };
+
 export let parseArguments = (args: string[]): Arguments => {
   try {
-    return parseArgumentsUnchecked(args);
+    return parseArgumentsUnchecked(args.map(item => shortFlags[item] ?? item));
   } catch (error) {
     throw new CliError(error instanceof Error ? error.message : String(error));
   }
@@ -240,6 +287,16 @@ export let run = async (args = process.argv.slice(2), cwd = process.cwd()) => {
       console.log(JSON.stringify(inventory(project), null, 2));
       return;
     case 'dev':
+      if (!flags.has('foreground') && !flags.has('dry-run') && !process.env.CI) {
+        await daemon.attach({
+          root: start,
+          positional,
+          flags,
+          values: parsed.values
+        });
+        return;
+      }
+
       await dev.run(
         project,
         positional,
@@ -248,6 +305,29 @@ export let run = async (args = process.argv.slice(2), cwd = process.cwd()) => {
         flags.has('stop-docker'),
         flags.has('dry-run')
       );
+      return;
+    case 'up':
+    case 'down':
+    case 'ls':
+    case 'status':
+    case 'restart':
+    case 'logs':
+    case 'tui':
+    case 'job':
+    case 'open':
+    case 'email':
+    case 'sh':
+    case 'daemon':
+    case 'stack':
+      await daemon.dispatch(parsed.command, parsed.subcommand, {
+        root: start,
+        workspace:
+          parsed.values.ws ??
+          (parsed.values.stack ? `stack-${parsed.values.stack}` : undefined),
+        positional,
+        flags,
+        values: parsed.values
+      });
       return;
     case 'prepare':
       await dev.runPrepare(project, positional, flags.has('no-docker'));
@@ -319,8 +399,41 @@ export let run = async (args = process.argv.slice(2), cwd = process.cwd()) => {
       return;
     }
     case 'docker': {
+      if (parsed.subcommand === 'generate') {
+        let result = generateDockerfiles(project, { write: !flags.has('check') });
+
+        if (flags.has('check')) {
+          if (result.changed.length)
+            throw new Error(
+              `generated Dockerfiles are out of date: ${result.changed.map(path => relativePath(project.root, path)).join(', ')}\nrun \`control docker generate\``
+            );
+          console.log(`${result.files.length} generated Dockerfile(s) are up to date`);
+
+          return;
+        }
+
+        console.log(
+          `generated ${result.files.length} Dockerfile(s), ${result.changed.length} changed`
+        );
+
+        return;
+      }
+
       let { selected, env } = await dev.selection(project, positional, false);
-      await docker.stop(project.root, docker.composeProjects(project.root, selected), env);
+      let projects = docker.composeProjects(project.root, selected);
+
+      if (parsed.subcommand === 'reset') {
+        if (!flags.has('yes') && !flags.has('dry-run'))
+          throw new Error(
+            'docker reset deletes all data in the declared Compose volumes; pass --yes to confirm or --dry-run to preview'
+          );
+
+        await docker.reset(project.root, projects, env, flags.has('dry-run'));
+
+        return;
+      }
+
+      await docker.stop(project.root, projects, env);
 
       return;
     }

@@ -5,6 +5,8 @@ model Tenant {
   identifier String @unique
   name       String
 
+  nebulaTenantId String?
+
   createdAt DateTime @default(now())
 
   scmAccounts             ScmAccount[]

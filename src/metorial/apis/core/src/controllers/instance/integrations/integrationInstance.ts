@@ -11,7 +11,7 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { requireNonPublishableMachineAccess } from '../../../middleware/requireNonPublishableMachineAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import {
   integrationInstancePresenter,
   providerSessionPresenter,
@@ -28,7 +28,7 @@ let integrationInstanceProviderInputValidator = v.object({
   is_override_tool_filter: v.optional(v.boolean())
 });
 
-let integrationInstanceGroup = instanceGroup.use(async ctx => {
+let integrationInstanceGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.integrationInstanceId) {
     throw new ServiceError(
       badRequestError({
@@ -55,7 +55,7 @@ export let integrationInstanceController = Controller.create(
       'Integration instances materialize an integration for a specific actor, identity, or runtime configuration.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('integration-instances', 'integrations.instances.list'), {
         name: 'List integration instances',
         description: 'Returns a paginated list of integration instances.'
@@ -224,7 +224,7 @@ export let integrationInstanceController = Controller.create(
         return providerSessionPresenter.present(await hydrateResourceOwners({ session }));
       }),
 
-    create: instanceGroup
+    create: integrationsGroup
       .post(instancePath('integration-instances', 'integrations.instances.create'), {
         name: 'Create integration instance',
         description: 'Creates a new integration instance.'

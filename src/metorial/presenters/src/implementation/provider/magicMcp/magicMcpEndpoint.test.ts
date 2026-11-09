@@ -32,6 +32,9 @@ let magicMcpEndpoint = (enableSkillEditing: boolean) =>
     description: null,
     metadata: {},
     enableSkillEditing,
+    enableSkillResources: false,
+    skillSelectionType: 'all',
+    skillSelections: [],
     createdAt: new Date('2026-01-01T00:00:00Z'),
     updatedAt: new Date('2026-01-01T00:00:00Z')
   }) as any;
@@ -48,6 +51,58 @@ describe('magic MCP endpoint presentation', () => {
 
       expect(presented.enable_skill_editing).toBe(enableSkillEditing);
     }
+  });
+
+  it('presents skill resources and the skill selection', async () => {
+    let all = await v1MagicMcpEndpointPresenter
+      .present({ magicMcpEndpoint: magicMcpEndpoint(false), portal: null }, context)
+      .run();
+
+    expect(all.enable_skill_resources).toBe(false);
+    expect(all.skill_selection).toEqual({ type: 'all' });
+
+    let selected = await v1MagicMcpEndpointPresenter
+      .present(
+        {
+          magicMcpEndpoint: {
+            ...magicMcpEndpoint(false),
+            enableSkillResources: true,
+            skillSelectionType: 'selected',
+            skillSelections: [
+              { skill: { id: 'sk_1' }, skillGroup: null },
+              { skill: null, skillGroup: { id: 'skg_1' } }
+            ]
+          },
+          portal: null
+        },
+        context
+      )
+      .run();
+
+    expect(selected.enable_skill_resources).toBe(true);
+    expect(selected.skill_selection).toEqual({
+      type: 'selected',
+      skill_ids: ['sk_1'],
+      skill_group_ids: ['skg_1']
+    });
+  });
+
+  it('presents a selection whose targets were all removed as an empty selection', async () => {
+    let presented = await v1MagicMcpEndpointPresenter
+      .present(
+        {
+          magicMcpEndpoint: { ...magicMcpEndpoint(false), skillSelectionType: 'selected' },
+          portal: null
+        },
+        context
+      )
+      .run();
+
+    expect(presented.skill_selection).toEqual({
+      type: 'selected',
+      skill_ids: [],
+      skill_group_ids: []
+    });
   });
 
   it.each([

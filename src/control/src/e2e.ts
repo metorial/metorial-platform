@@ -1,3 +1,4 @@
+import { objectStorageDockerfile, objectStorageImage } from './images';
 import { rustHash, rustBytes, rustString, shortHash } from './hash';
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -23,9 +24,10 @@ export let infrastructureImages = [
   'postgres:17',
   'mongo:7',
   'redis:7.4-alpine',
-  'nats:2.11-alpine',
-  'ghcr.io/metorial/object-storage:latest'
+  'nats:2.11-alpine'
 ];
+
+export { objectStorageDockerfile, objectStorageImage };
 
 export let containerUrl = (url: string) =>
   url.replace(
@@ -59,7 +61,8 @@ export let renderCompose = (
   projectName: string,
   runnerImage: string,
   mounts: Mounts,
-  runDir: string
+  runDir: string,
+  ossRoot = ''
 ) => {
   let check = (test: string[], timeout = '5s') => ({
     test,
@@ -113,7 +116,10 @@ export let renderCompose = (
   };
   if (plan.objectStorage)
     services['object-storage'] = {
-      image: infrastructureImages[4],
+      image: plan.objectStorageImage ?? objectStorageImage,
+      ...(plan.mode === 'local'
+        ? { build: { context: ossRoot, dockerfile: objectStorageDockerfile } }
+        : {}),
       platform: 'linux/amd64',
       environment: {
         RUST_LOG: 'info',
@@ -124,6 +130,7 @@ export let renderCompose = (
         OBJECT_STORE__SERVER__PORT: '52010',
         OBJECT_STORE__BACKEND__TYPE: 'local',
         OBJECT_STORE__BACKEND__ROOT_PATH: '/app/data',
+        OBJECT_STORE__BACKEND__PUBLIC_URL: 'http://services:52010',
         OBJECT_STORE__BACKEND__REGION: 'us-east-1',
         OBJECT_STORE__BACKEND__PHYSICAL_BUCKET: 'e2e'
       },
@@ -304,14 +311,35 @@ export let waitForHealth = async (
         );
     }
 
-    if (Date.now() >= deadline)
-      throw new Error(
-        `e2e services did not become healthy within ${timeoutSeconds}s: ${remaining.map(item => `${item.service.name} (${item.check.url})`).join(', ')}`
+    if (Date.now() >= deadline) {
+      let logs = await Promise.all(
+        remaining.map(
+          async ({ service }) =>
+            `--- ${service.name} ---\n${uniqueTail(await compose.output(['logs', '--no-color', appServiceName(service.name)]).catch(() => ''), 150)}`
+        )
       );
+
+      throw new Error(
+        `e2e services did not become healthy within ${timeoutSeconds}s: ${remaining.map(item => `${item.service.name} (${item.check.url})`).join(', ')}\n${logs.join('\n')}`
+      );
+    }
     pending = remaining;
 
     await commands.delay(1000);
   }
+};
+
+let uniqueTail = (text: string, count: number) => {
+  let seen = new Set<string>();
+  let lines: string[] = [];
+
+  for (let line of text.split('\n')) {
+    if (!line.replace(/^[^|]*\|/, '').trim() || seen.has(line)) continue;
+    seen.add(line);
+    lines.push(line);
+  }
+
+  return lines.slice(-count).join('\n');
 };
 
 export let execute = async (compose: Compose, plan: Plan) => {
@@ -324,6 +352,9 @@ export let execute = async (compose: Compose, plan: Plan) => {
     'gateway'
   ];
   console.log(`Starting e2e infrastructure: ${infrastructure.join(', ')}`);
+
+  if (plan.mode === 'local' && plan.objectStorage)
+    await compose.run(['build', 'object-storage']);
 
   await compose.run(['up', '--detach', '--wait', '--wait-timeout', '180', ...infrastructure]);
 
@@ -434,7 +465,8 @@ export let run = async (project: ProjectRoot, options: Options) => {
       `control-e2e-${hash}-${process.pid}`,
       image,
       mounts,
-      directory
+      directory,
+      project.oss
     );
     let runtime = ciRuntime();
 
@@ -452,6 +484,13 @@ export let run = async (project: ProjectRoot, options: Options) => {
         .output(['logs', '--no-color', '--timestamps'])
         .catch(() => undefined);
       if (logs !== undefined) atomicWrite(join(directory, 'logs/compose.log'), logs);
+
+      for (let name of Object.keys(rendered.services)) {
+        let serviceLogs = await compose
+          .output(['logs', '--no-color', '--timestamps', name])
+          .catch(() => undefined);
+        if (serviceLogs) atomicWrite(join(directory, `logs/${name}.log`), serviceLogs);
+      }
 
       if (options.keep)
         console.log(

@@ -196,6 +196,7 @@ let baseOrg = { oid: 1n, id: 'org_1', slug: 'org-one', enforceTeamAccess: false 
 let baseUser = { oid: 10n, id: 'usr_1' } as any;
 let baseMember = {
   oid: 11n,
+  status: 'active',
   actorOid: 12n,
   role: 'admin',
   actor: { oid: 12n, organizationOid: 1n },

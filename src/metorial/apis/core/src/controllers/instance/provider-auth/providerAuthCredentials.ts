@@ -7,13 +7,13 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { providerAuthCredentialsPresenter } from '@metorial/presenters';
 
 let normalizePublicOriginParam = (origin: ('custom' | 'managed')[] | undefined) =>
   origin?.map(value => (value === 'custom' ? 'tenant_created' : 'managed_backing'));
 
-let providerAuthCredentialsGroup = instanceGroup.use(async ctx => {
+let providerAuthCredentialsGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.providerAuthCredentialsId) {
     throw new ServiceError(
       badRequestError({
@@ -42,7 +42,7 @@ export let providerAuthCredentialsController = Controller.create(
       'Auth credentials store your OAuth app registration (client ID, client secret, and scopes). These are the app-level credentials you get from a service like GitHub or Slack.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(
         instancePath('provider-auth-credentials', 'providerDeployments.authCredentials.list'),
         {
@@ -140,7 +140,7 @@ export let providerAuthCredentialsController = Controller.create(
         });
       }),
 
-    create: instanceGroup
+    create: integrationsGroup
       .post(
         instancePath(
           'provider-auth-credentials',

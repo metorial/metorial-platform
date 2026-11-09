@@ -1,7 +1,14 @@
+import { assertScmBackendAllowed } from './scmPolicy';
 import { delay } from '@lowerdeck/delay';
 import { badRequestError, ServiceError, unauthorizedError } from '@lowerdeck/error';
 import type { ScmBackend, ScmInstallation } from '../../prisma/generated/client';
 import { db } from '../db';
+import {
+  hasInstallationTokens,
+  readBackendSecret,
+  readInstallationTokens,
+  writeRefreshedInstallationTokens
+} from './scmCredentials';
 import { withScmProviderError, wrapScmProviderError } from './scmProviderError';
 import { usingScmTokenRefreshLock } from './scmTokenRefreshLock';
 
@@ -64,7 +71,9 @@ export class BitbucketClient {
   constructor(
     private backend: ScmBackend,
     private accessToken: string
-  ) {}
+  ) {
+    assertScmBackendAllowed(backend);
+  }
 
   private async request<T>(
     path: string,
@@ -75,6 +84,8 @@ export class BitbucketClient {
       headers?: Record<string, string>;
     }
   ): Promise<T> {
+    assertScmBackendAllowed(this.backend);
+
     let url = new URL(path, `${trimSlash(this.backend.apiUrl)}/`);
     for (let [key, value] of Object.entries(options?.query ?? {})) {
       if (value != null) url.searchParams.set(key, String(value));
@@ -852,6 +863,8 @@ export let getBitbucketOAuthUrl = (i: {
   redirectUri: string;
   state: string;
 }) => {
+  assertScmBackendAllowed(i.backend);
+
   let url = new URL(
     isDataCenter(i.backend)
       ? `${trimSlash(i.backend.webUrl)}/rest/oauth2/latest/authorize`
@@ -868,6 +881,8 @@ let exchangeBitbucketToken = async (i: {
   backend: ScmBackend;
   grant: { code: string; redirectUri: string } | { refreshToken: string };
 }): Promise<BitbucketCredentials> => {
+  assertScmBackendAllowed(i.backend);
+
   let tokenUrl = isDataCenter(i.backend)
     ? `${trimSlash(i.backend.webUrl)}/rest/oauth2/latest/token`
     : 'https://bitbucket.org/site/oauth2/access_token';
@@ -881,11 +896,17 @@ let exchangeBitbucketToken = async (i: {
     body.set('refresh_token', i.grant.refreshToken);
   }
 
+  let clientSecret = await readBackendSecret(
+    i.backend,
+    'clientSecret',
+    'origin:bitbucket:oauth'
+  );
+
   let response = await withScmProviderError('bitbucket', 'exchange the OAuth token', () =>
     fetch(tokenUrl, {
       method: 'POST',
       headers: {
-        Authorization: `Basic ${Buffer.from(`${i.backend.clientId}:${i.backend.clientSecret}`).toString('base64')}`,
+        Authorization: `Basic ${Buffer.from(`${i.backend.clientId}:${clientSecret}`).toString('base64')}`,
         'Content-Type': 'application/x-www-form-urlencoded'
       },
       body
@@ -926,19 +947,20 @@ export let exchangeBitbucketOAuthCode = (i: {
 let tokenNeedsRefresh = (expiresAt: Date | null) =>
   !expiresAt || expiresAt.getTime() <= Date.now() + 5 * 60 * 1000;
 
-let refreshInstallation = async (
-  installation: BitbucketInstallation
-): Promise<string> =>
+let refreshInstallation = async (installation: BitbucketInstallation): Promise<string> =>
   usingScmTokenRefreshLock('bitbucket', installation.oid, async () => {
+    assertScmBackendAllowed(installation.backend);
+
     let persisted = await db.scmInstallation.findUnique({
       where: { oid: installation.oid }
     });
     let current = persisted ? { ...installation, ...persisted } : installation;
+    let tokens = await readInstallationTokens(current, 'origin:bitbucket:refresh');
 
-    if (current.accessToken && !tokenNeedsRefresh(current.accessTokenExpiresAt)) {
-      return current.accessToken;
+    if (tokens.accessToken && !tokenNeedsRefresh(current.accessTokenExpiresAt)) {
+      return tokens.accessToken;
     }
-    if (!current.refreshToken) {
+    if (!tokens.refreshToken) {
       throw new ServiceError(
         unauthorizedError({
           message: 'Bitbucket authentication expired. Reconnect the integration.'
@@ -949,28 +971,30 @@ let refreshInstallation = async (
     try {
       let refreshed = await exchangeBitbucketToken({
         backend: current.backend,
-        grant: { refreshToken: current.refreshToken }
+        grant: { refreshToken: tokens.refreshToken }
       });
-      await db.scmInstallation.update({
-        where: { oid: current.oid },
-        data: {
-          accessToken: refreshed.accessToken,
-          refreshToken: refreshed.refreshToken,
-          accessTokenExpiresAt: refreshed.expiresAt
-        }
-      });
+
+      await writeRefreshedInstallationTokens(current, refreshed);
+
       return refreshed.accessToken;
     } catch (error) {
       let winner = await db.scmInstallation.findUnique({
         where: { oid: current.oid }
       });
+      let winnerTokens = winner
+        ? await readInstallationTokens(winner, 'origin:bitbucket:refresh-winner').catch(
+            () => null
+          )
+        : null;
+
       if (
-        winner?.accessToken &&
+        winner &&
+        winnerTokens?.accessToken &&
         !tokenNeedsRefresh(winner.accessTokenExpiresAt) &&
-        (winner.accessToken !== current.accessToken ||
-          winner.refreshToken !== current.refreshToken)
+        (winnerTokens.accessToken !== tokens.accessToken ||
+          winnerTokens.refreshToken !== tokens.refreshToken)
       ) {
-        return winner.accessToken;
+        return winnerTokens.accessToken;
       }
 
       throw error;
@@ -980,10 +1004,19 @@ let refreshInstallation = async (
 export let getBitbucketAccessTokenWithInstallation = async (
   installation: BitbucketInstallation
 ) => {
-  if (!installation.accessToken) {
+  assertScmBackendAllowed(installation.backend);
+
+  if (!hasInstallationTokens(installation)) {
     throw new ServiceError(badRequestError({ message: 'Access token not found' }));
   }
-  if (!tokenNeedsRefresh(installation.accessTokenExpiresAt)) return installation.accessToken;
+  if (!tokenNeedsRefresh(installation.accessTokenExpiresAt)) {
+    let tokens = await readInstallationTokens(installation, 'origin:bitbucket:api');
+    if (!tokens.accessToken) {
+      throw new ServiceError(badRequestError({ message: 'Access token not found' }));
+    }
+
+    return tokens.accessToken;
+  }
   let refresh = tokenRefreshes.get(installation.oid);
   if (!refresh) {
     refresh = refreshInstallation(installation);

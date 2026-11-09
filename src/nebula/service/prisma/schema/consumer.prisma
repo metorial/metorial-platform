@@ -13,7 +13,7 @@ model Consumer {
   oid BigInt @id
   id  String @unique
 
-  identifier String @unique
+  identifier String         @unique
   name       String
   status     ConsumerStatus
 

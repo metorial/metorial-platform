@@ -127,9 +127,11 @@ class ProjectService {
           autoAddOrganizationMembersToPortals: true,
           aiAnalysisEnabled: true,
           usageReviewsEnabled: true,
+          allowOrganizationMemberFullSkillAccess: true,
           allowApiAccessToConsumerOwnedResources: false,
           allowMemberAccessToConsumerOwnedResources: false,
           hidePublicRemoteProviders: true,
+          sessionlessMcpEnabled: true,
           organizationOid: d.organization.oid
         },
         include: {

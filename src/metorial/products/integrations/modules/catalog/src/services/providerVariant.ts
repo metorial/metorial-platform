@@ -8,16 +8,9 @@ import {
   resolveMetorialFacing
 } from '@metorial-subspace/module-tenant';
 import { getProviderTenantFilter } from './provider';
+import { providerVariantInclude } from './providerVariantInclude';
 
-let include = {
-  backend: true,
-  publisher: true,
-  slate: true,
-  currentVersion: { include: { specification: { omit: { value: true } } } },
-  provider: true
-};
-
-export let providerVariantInclude = include;
+export { providerVariantInclude };
 
 type ListProviderVariantsParams = {
   includeDeprecated?: boolean;
@@ -61,7 +54,7 @@ class providerVariantServiceImpl {
                 includeDeprecated: d.includeDeprecated
               })
             },
-            include
+            include: providerVariantInclude
           })
       )
     );
@@ -101,7 +94,7 @@ class providerVariantServiceImpl {
           }
         ]
       },
-      include
+      include: providerVariantInclude
     });
     if (!providerVariant) {
       throw new ServiceError(notFoundError('provider.variant', d.providerVariantId));

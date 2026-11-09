@@ -1,3 +1,4 @@
+import { branding } from '@metorial/branding';
 import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { fileLinkService, fileReferenceService } from '@metorial/module-file';
@@ -10,6 +11,7 @@ import type {
   StoreParticipantPermissions
 } from '@metorial/db';
 import { db } from '@metorial/db';
+import { domainSettings } from '@metorial/shared-settings';
 import {
   isSkillIconId,
   renderSkillIconDataUrl,
@@ -24,13 +26,10 @@ export type GetImageFieldsParams = {
   image: EntityImage | null;
 };
 
-let allowedHosts = [
-  'metorial.com',
-  'metorial.net',
-  'metorial-cdn.com',
-  'metorial-files.com',
-  'localhost'
-];
+let allowedHosts = (() => {
+  let domains = domainSettings();
+  return [...domains.owned, ...domains.assets, ...domains.dev];
+})();
 
 let imageMimeTypeToExtensionMap: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -152,9 +151,7 @@ class InternalImageServiceImpl {
       return renderSkillIconDataUrl(entity.image);
     }
 
-    return new URL(
-      `https://avatar-cdn.metorial.com/aimg_${entity.id.split('_').pop()}`
-    ).toString();
+    return new URL(branding.avatarUrl(`aimg_${entity.id.split('_').pop()}`)).toString();
   }
 
   async downloadImage(entity: GetImageFieldsParams) {

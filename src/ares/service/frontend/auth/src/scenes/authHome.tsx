@@ -1,6 +1,6 @@
 import { useInterval } from '@looped/hooks';
 import { delay } from '@lowerdeck/delay';
-import { Turnstile } from '@marsidev/react-turnstile';
+import { Turnstile } from '../components/turnstile';
 import { useForm, useMutation } from '@metorial-io/data-hooks';
 import {
   Avatar,

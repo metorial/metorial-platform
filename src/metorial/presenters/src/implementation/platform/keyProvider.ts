@@ -49,7 +49,7 @@ export let v1KeyProviderPresenter = Presenter.create(keyProviderType)
       object: v.literal('key_provider'),
       id: v.string(),
       name: v.string(),
-      type: v.enumOf(['aws_kms', 'local']),
+      type: v.enumOf(['aws_kms', 'gcp_kms', 'azure_key_vault', 'local']),
       owner: v.enumOf(['tenant', 'system']),
       status: v.enumOf(['active', 'inactive', 'degraded']),
       is_metorial_managed: v.boolean(),

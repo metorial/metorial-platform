@@ -1,3 +1,4 @@
+import { perEdition } from '@metorial/editions';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
@@ -85,17 +86,35 @@ export let scmProvidersController = Controller.create(
       .body(
         'default',
         v.object({
-          type: v.enumOf(['github_enterprise', 'gitlab_selfhosted', 'bitbucket_data_center'], {
-            description: 'Type of self-hosted SCM provider to configure'
-          })
+          type: v.enumOf(
+            perEdition({
+              cloud: [
+                'github_enterprise',
+                'gitlab_selfhosted',
+                'bitbucket_data_center'
+              ] as const,
+              'on-prem': [
+                'github',
+                'github_enterprise',
+                'gitlab',
+                'gitlab_selfhosted',
+                'bitbucket',
+                'bitbucket_data_center'
+              ] as const
+            }),
+            {
+              description: 'Type of self-hosted SCM provider to configure'
+            }
+          )
         })
       )
       .output(scmProviderSetupPresenter)
       .do(async ctx => {
-        let scmProviderSetup = await scmProviderSetupSessionService.createScmProviderSetupSession({
-          instance: ctx.instance,
-          type: ctx.body.type
-        });
+        let scmProviderSetup =
+          await scmProviderSetupSessionService.createScmProviderSetupSession({
+            instance: ctx.instance,
+            type: ctx.body.type
+          });
 
         return scmProviderSetupPresenter.present({
           scmProviderSetup

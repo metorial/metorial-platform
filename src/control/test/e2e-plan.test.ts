@@ -18,7 +18,7 @@ import {
   waitForHealth
 } from '../src/e2e';
 import { inventory } from '../src/ci';
-import { project, packageFixture, temporary } from './helpers';
+import { project, packageFixture, temporary, writeManifest } from './helpers';
 
 let options = (overrides: Partial<Options> = {}): Options => ({
   filters: [],
@@ -248,14 +248,14 @@ describe('CI descriptions', () => {
 
   test('rejects escaping CI Dockerfiles and duplicate images', () => {
     let value = fixture();
-    atomicWrite(
-      join(value.root, 'stack/control.toml'),
+    writeManifest(
+      join(value.root, 'stack'),
       "name='stack'\n[[ci.images]]\nname='stack'\ndockerfile='../../outside'"
     );
 
     expect(() => inventory(value)).toThrow();
-    atomicWrite(
-      join(value.root, 'stack/control.toml'),
+    writeManifest(
+      join(value.root, 'stack'),
       "name='stack'\n[[ci.images]]\nname='stack'\n[[ci.images]]\nname='stack'"
     );
     atomicWrite(join(value.root, 'stack/Dockerfile'), 'FROM scratch\n');

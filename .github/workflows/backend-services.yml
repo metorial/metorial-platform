@@ -6,9 +6,9 @@ on:
     branches: [dev]
   pull_request:
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+# concurrency:
+#   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+#   cancel-in-progress: true
 
 permissions:
   contents: read
@@ -90,6 +90,9 @@ jobs:
           - name: code-bucket
             image: ghcr.io/metorial/mte-code-bucket
             dockerfile: ./src/origin/apps/code-bucket/Dockerfile
+          - name: object-store
+            image: ghcr.io/metorial/mte-object-store
+            dockerfile: ./src/object-storage/Dockerfile
           - name: synthesis
             image: ghcr.io/metorial/synthesis
             dockerfile: ./src/synthesis/service/Dockerfile
@@ -160,6 +163,23 @@ jobs:
           prepared: ${{ steps.image.outputs.prepared }}
           dockerfile: ${{ matrix.service.dockerfile }}
 
+      - name: Plan shared tools cache
+        id: tools
+        if: steps.image.outputs.hit != 'true'
+        uses: ./.github/actions/tools-cache
+        with:
+          dockerfile: ${{ steps.image.outputs.dockerfile }}
+          repository: ghcr.io/metorial/buildcache-oss
+      - name: Build shared tools layers
+        if: steps.image.outputs.hit != 'true' && steps.tools.outputs.enabled == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ steps.image.outputs.dockerfile }}
+          target: tools
+          push: false
+          cache-from: type=registry,ref=${{ steps.tools.outputs.ref }}
+          cache-to: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && format('type=registry,ref={0},mode=max,ignore-error=true', steps.tools.outputs.ref) || '' }}
       - name: Cache Docker dependencies
         if: steps.image.outputs.hit != 'true' && steps.prune.outputs.pruned == 'true' && steps.prune.outputs.cache-hit != 'true'
         uses: docker/build-push-action@v6
@@ -189,18 +209,21 @@ jobs:
           platforms: linux/amd64
           push: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
           cache-to: ${{ steps.prune.outputs.pruned != 'true' && format('type=gha,mode=max,scope={0}-{1}-{2}', github.workflow, github.job, matrix.service.name) || '' }}
-          cache-from: ${{ steps.prune.outputs.pruned == 'true' && format('type=local,src={0}/layers', steps.prune.outputs.cache-path) || format('type=gha,scope={0}-{1}-{2}', github.workflow, github.job, matrix.service.name || 'image') }}
+          cache-from: |
+            ${{ steps.prune.outputs.pruned == 'true' && format('type=local,src={0}/layers', steps.prune.outputs.cache-path) || format('type=gha,scope={0}-{1}-{2}', github.workflow, github.job, matrix.service.name || 'image') }}
+            ${{ steps.tools.outputs.enabled == 'true' && format('type=registry,ref={0}', steps.tools.outputs.ref) || '' }}
           tags: |
             ${{ steps.meta.outputs.tags }}
             ${{ matrix.service.image }}:${{ steps.image.outputs.tag }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
             TURBO_API=http://127.0.0.1:8787
             TURBO_TEAM=metorial
           secrets: |
             turbo_token=${{ env.TURBO_TOKEN }}
             turbo_signature=${{ env.TURBO_REMOTE_CACHE_SIGNATURE_KEY }}
+            sentry_auth_token=${{ secrets.SENTRY_AUTH_TOKEN }}
+            sentry_auth_token=${{ secrets.SENTRY_AUTH_TOKEN }}
 
       - name: Publish reused image aliases
         if: steps.image.outputs.hit == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
@@ -240,10 +263,9 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GH_TOKEN || github.token }}
-      - uses: ./.github/actions/setup-test-workspace
-        id: tests
+      - uses: oven-sh/setup-bun@v2
         with:
-          tasks: ${{ matrix.service.tasks }}
+          bun-version: '1.4.2'
       - uses: ./.github/actions/setup-warp-cache
         with:
           cache-bun-downloads: 'false'
@@ -252,9 +274,16 @@ jobs:
           signature-key: ${{ secrets.TURBO_REMOTE_CACHE_SIGNATURE_KEY }}
           role-arn: ${{ vars.WARP_CACHE_ROLE_ARN }}
           bucket: ${{ vars.WARP_CACHE_BUCKET }}
+      - uses: ./.github/actions/setup-test-workspace
+        id: tests
+        with:
+          tasks: ${{ matrix.service.tasks }}
       - name: Restore test prerequisites
         working-directory: ${{ steps.tests.outputs.workspace }}
-        run: bunx turbo@2.11.7 run prisma:generate build --ui=stream --concurrency=2
+        run: |-
+          turbo=./node_modules/.bin/turbo
+          [ -x "$turbo" ] || turbo="bunx turbo@2.11.7"
+          $turbo run prisma:generate build --ui=stream --env-mode=loose --concurrency=2
       - uses: ./.github/actions/backend-e2e
         if: ${{ !matrix.service.control }}
         with:

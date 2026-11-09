@@ -618,7 +618,7 @@ export type KeyProviderEventKeyProvider = {
   object: 'nebula#key_provider';
   id: string;
   name: string;
-  type: 'aws_kms' | 'local';
+  type: 'aws_kms' | 'gcp_kms' | 'azure_key_vault' | 'local';
   owner: 'tenant' | 'system';
   status: 'active' | 'inactive' | 'degraded';
   isMetorialManaged: boolean;
@@ -914,6 +914,7 @@ export type AuditMagicMcpEndpoint = MagicMcpEndpoint & {
   consumerProfile: { id: string } | null;
   skillPlugin: { id: string } | null;
   servers: { magicMcpServer: { id: string; name: string | null } }[];
+  skillSelections: { skill: { id: string } | null; skillGroup: { id: string } | null }[];
 };
 
 export type AuditMagicMcpGroup = MagicMcpGroup & {
@@ -1056,8 +1057,8 @@ export interface FabricEvents {
   'organization.project.retention.updated:after': { organization: Organization; project: Project; previousProject: Project; auditScope: AuditScope; input: { logRetentionInDays?: number; enforceSessionExpiry?: boolean } };
   'organization.project.auth_config_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { allowAuthConfigExport?: boolean; allowAuthConfigImport?: boolean; onlyAllowOAuthAuthMethods?: boolean; consumerAuthClientRegistrationsPerHourLimit?: number; consumerAuthClientRegistrationsPerMinuteLimit?: number } };
   'organization.project.auth_config_configuration.updated:after': { organization: Organization; project: Project; previousProject: Project; auditScope: AuditScope; input: { allowAuthConfigExport?: boolean; allowAuthConfigImport?: boolean; onlyAllowOAuthAuthMethods?: boolean; consumerAuthClientRegistrationsPerHourLimit?: number; consumerAuthClientRegistrationsPerMinuteLimit?: number }; configuration: { allowAuthConfigExport: boolean; allowAuthConfigImport: boolean; onlyAllowOAuthAuthMethods: boolean }; previousConfiguration: { allowAuthConfigExport: boolean; allowAuthConfigImport: boolean; onlyAllowOAuthAuthMethods: boolean } };
-  'organization.project.workforce_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { autoAddOrganizationMembersToPortals?: boolean; allowConsumerSkillEditing?: boolean } };
-  'organization.project.workforce_configuration.updated:after': { organization: Organization; project: Project; previousProject: Project; auditScope: AuditScope; input: { autoAddOrganizationMembersToPortals?: boolean; allowConsumerSkillEditing?: boolean } };
+  'organization.project.workforce_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { autoAddOrganizationMembersToPortals?: boolean; allowConsumerSkillEditing?: boolean; allowOrganizationMemberFullSkillAccess?: boolean } };
+  'organization.project.workforce_configuration.updated:after': { organization: Organization; project: Project; previousProject: Project; auditScope: AuditScope; input: { autoAddOrganizationMembersToPortals?: boolean; allowConsumerSkillEditing?: boolean; allowOrganizationMemberFullSkillAccess?: boolean } };
   'organization.project.integration_naming_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { useIntegrationNames?: boolean } };
   'organization.project.integration_naming_configuration.updated:after': { organization: Organization; project: Project; auditScope: AuditScope; input: { useIntegrationNames?: boolean }; configuration: { useIntegrationNames: boolean }; previousConfiguration: { useIntegrationNames: boolean } };
   'organization.project.tool_calling_configuration.updated:before': { organization: Organization; project: Project; auditScope: AuditScope; input: { collectOperationDescriptionForToolCalls?: boolean, messageProcessingTimeoutMs?: number } };
@@ -1511,7 +1512,7 @@ export interface FabricEvents {
   'file.upload.completed:before': FileFabricOwner & { fileUpload: FileUpload };
   'file.upload.completed:after': FileFabricOwner & { fileUpload: FileUpload; file: File };
 
-  'file.created:before': FileFabricOwner;
+  'file.created:before': FileFabricOwner & { isTemplateBacking?: boolean };
   'file.created:after': FileFabricOwner & { file: AuditFile };
   'file.deleted:after': FileFabricOwner & { file: AuditFile };
 

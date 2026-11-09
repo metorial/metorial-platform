@@ -75,7 +75,8 @@ let createManager = () => ({
       }
     }
   })),
-  sendMcpMessageToProvider: vi.fn(async () => undefined)
+  sendMcpMessageToProvider: vi.fn(async () => undefined),
+  getRequestSkills: vi.fn(async () => null)
 });
 
 let createSender = (manager: ReturnType<typeof createManager>) => {

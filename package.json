@@ -21,7 +21,7 @@
   },
   "devDependencies": {
     "prettier": "^3.9.10",
-    "turbo": "2.11.9",
+    "turbo": "2.11.10",
     "typescript": "5.9.3"
   },
   "engines": {
@@ -60,6 +60,8 @@
     "src/nebula/*",
     "src/nebula/*/*",
     "src/nebula/*/*/*",
+    "src/object-storage",
+    "src/object-storage/clients/typescript",
     "src/origin/*",
     "src/origin/*/*",
     "src/origin/*/*/*",
@@ -88,7 +90,7 @@
   ],
   "dependencies": {
     "sade": "^1.8.1",
-    "ts-proto": "^2.18.0"
+    "ts-proto": "^2.18.3"
   },
   "overrides": {
     "react": "19.3.0",
@@ -159,7 +161,7 @@
     "@aws-sdk/client-dynamodb": "3.1150.0",
     "@aws-sdk/client-sso": "3.1150.0",
     "@aws-sdk/core": "3.978.3",
-    "@aws-sdk/credential-providers": "3.1150.0",
+    "@aws-sdk/credential-providers": "3.1156.0",
     "@aws-sdk/nested-clients": "3.997.48",
     "@aws-sdk/util-dynamodb": "3.996.9",
     "hono": "4.13.13",

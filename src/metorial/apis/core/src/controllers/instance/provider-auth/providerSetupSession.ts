@@ -20,7 +20,7 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import {
   providerSetupSessionEmailPresenter,
   providerSetupSessionPresenter
@@ -76,7 +76,7 @@ let canReadOrganizationMembers = async (d: {
   });
 };
 
-let providerSetupSessionGroup = instanceGroup.use(async ctx => {
+let providerSetupSessionGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.providerSetupSessionId) {
     throw new ServiceError(
       badRequestError({
@@ -102,7 +102,7 @@ export let providerSetupSessionController = Controller.create(
       "A setup session tracks an in-progress OAuth flow, storing state during the redirect. On success, it creates an auth config with the user's access token."
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('provider-setup-sessions', 'providerDeployments.setupSessions.list'), {
         name: 'List provider setup sessions',
         description: 'Returns a paginated list of provider setup sessions.'
@@ -219,7 +219,7 @@ export let providerSetupSessionController = Controller.create(
         );
       }),
 
-    create: instanceGroup
+    create: integrationsGroup
       .post(
         instancePath('provider-setup-sessions', 'providerDeployments.setupSessions.create'),
         {

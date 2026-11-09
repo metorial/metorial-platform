@@ -39,16 +39,19 @@ import {
 } from '@metorial/module-store';
 import { createHash } from 'node:crypto';
 import { posix as path } from 'node:path';
+import PQueue from 'p-queue';
 import {
   getSkillDocumentTitle,
   isSkillDocumentPath,
   upsertSkillDocument
 } from '../lib/skillDocument';
+import { renderSkillDocumentFrontmatter, skillDocumentPath } from '../lib/skillFrontmatter';
 import { withSkillStoreMutationLock } from '../lib/skillStoreLock';
 import { skillService, type SkillRecord } from './skill';
 
 let maxSkillFileContentBytes = 5 * 1024 * 1024;
 let maxSkillFileBatchOperations = 100;
+let snapshotHashConcurrency = 5;
 
 let textMimeTypes: Record<string, string> = {
   '.json': 'application/json',
@@ -96,6 +99,47 @@ export type SkillFileText = SkillFile & {
   content: string | null;
 };
 
+export type SkillSnapshotEntry = {
+  path: string;
+  mimeType: string;
+  size: number;
+};
+
+export type SkillSnapshotFile = SkillSnapshotEntry & {
+  sha256: string;
+  text: string | null;
+};
+
+export type SkillSnapshotFileContent = SkillSnapshotFile & {
+  bytes: Uint8Array;
+};
+
+type SkillSnapshotSource =
+  | { path: string; document: NonNullable<SkillFileItemRecord['document']>; file: null }
+  | { path: string; document: null; file: NonNullable<SkillFileItemRecord['file']> };
+
+export type SkillSnapshotOptions = {
+  includePath?: (path: string) => boolean;
+  limits?: { maxFiles: number; maxBytes: number };
+  skillName?: string;
+};
+
+type SkillSnapshotInput = {
+  project: Project;
+  instance: Instance;
+  skill: SkillRecord;
+  authorization: ResourceAuthorization;
+  options?: SkillSnapshotOptions;
+};
+
+export type SkillSnapshotLimit = 'file_count' | 'size';
+
+export type SkillSnapshotUsage = {
+  fileCount: number;
+  size: number;
+  exceededLimits: SkillSnapshotLimit[];
+};
+
 export type SkillFileChange =
   | {
       type: 'put';
@@ -132,7 +176,23 @@ type AppliedSkillFileChange = {
 
 let getTextByteSize = (content: string) => new TextEncoder().encode(content).length;
 
-let hashContent = (content: string) => createHash('sha256').update(content).digest('hex');
+let getStoredSnapshotBytes = (sources: SkillSnapshotSource[]) =>
+  sources.reduce(
+    (sum, source) =>
+      sum +
+      (source.document
+        ? getTextByteSize(source.document.content.content)
+        : Number(source.file.fileSize)),
+    0
+  );
+
+let getServedSnapshotBytes = (entries: SkillSnapshotEntry[]) =>
+  entries.reduce((sum, entry) => sum + entry.size, 0);
+
+let hashContent = (content: string | Uint8Array) =>
+  createHash('sha256').update(content).digest('hex');
+
+let documentMimeType = 'text/markdown';
 
 let decodeSkillFileText = (bytes: Uint8Array) => {
   if (bytes.includes(0)) return null;
@@ -772,6 +832,207 @@ class SkillFileServiceImpl {
     return { ...file, content: decodeSkillFileText(bytes) };
   }
 
+  private async snapshotDocument(d: {
+    skill: SkillRecord;
+    source: Extract<SkillSnapshotSource, { file: null }>;
+    skillName?: string;
+  }): Promise<SkillSnapshotFileContent> {
+    let content = await this.resolveDocumentContent({
+      document: d.source.document,
+      flushLiveEdits: false
+    });
+    let text =
+      d.source.path === skillDocumentPath
+        ? renderSkillDocumentFrontmatter(content, { skill: d.skill, name: d.skillName })
+        : content;
+    let bytes = new TextEncoder().encode(text);
+
+    return {
+      path: d.source.path,
+      mimeType: documentMimeType,
+      size: bytes.byteLength,
+      sha256: hashContent(bytes),
+      text,
+      bytes
+    };
+  }
+
+  private async snapshotSource(d: {
+    skill: SkillRecord;
+    source: SkillSnapshotSource;
+    skillName?: string;
+  }): Promise<SkillSnapshotFileContent> {
+    if (d.source.document) {
+      return await this.snapshotDocument({
+        skill: d.skill,
+        source: d.source,
+        skillName: d.skillName
+      });
+    }
+
+    let bytes = await fileService.downloadFileContent({ file: d.source.file });
+
+    return {
+      path: d.source.path,
+      mimeType: d.source.file.fileType,
+      size: bytes.byteLength,
+      sha256: hashContent(bytes),
+      text: decodeSkillFileText(bytes),
+      bytes
+    };
+  }
+
+  // Limits are checked from stored sizes before anything is hashed or downloaded.
+  private async loadSnapshotSources(d: { skill: SkillRecord; options: SkillSnapshotOptions }) {
+    let items = await db.storeItem.findMany({
+      where: {
+        storeOid: d.skill.store!.oid,
+        kind: { in: ['document', 'file'] }
+      },
+      include: skillFileItemInclude,
+      orderBy: { path: 'asc' }
+    });
+
+    let sources = items.flatMap((item): SkillSnapshotSource[] => {
+      if (d.options.includePath && !d.options.includePath(item.path)) return [];
+      if (item.document) return [{ path: item.path, document: item.document, file: null }];
+      if (item.file) return [{ path: item.path, document: null, file: item.file }];
+
+      return [];
+    });
+
+    let limits = d.options.limits;
+    if (!limits) return sources;
+    if (sources.length > limits.maxFiles) return null;
+    if (getStoredSnapshotBytes(sources) > limits.maxBytes) return null;
+
+    return sources;
+  }
+
+  private async mapSnapshotSources<T>(
+    sources: SkillSnapshotSource[],
+    toEntry: (source: SkillSnapshotSource) => Promise<T>
+  ) {
+    let queue = new PQueue({ concurrency: snapshotHashConcurrency });
+
+    return await Promise.all(sources.map(source => queue.add(() => toEntry(source))));
+  }
+
+  private async snapshotEntry(d: {
+    skill: SkillRecord;
+    source: SkillSnapshotSource;
+    skillName?: string;
+  }): Promise<SkillSnapshotEntry> {
+    if (d.source.document) {
+      let { path, mimeType, size } = await this.snapshotDocument({
+        skill: d.skill,
+        source: d.source,
+        skillName: d.skillName
+      });
+
+      return { path, mimeType, size };
+    }
+
+    return {
+      path: d.source.path,
+      mimeType: d.source.file.fileType,
+      size: Number(d.source.file.fileSize)
+    };
+  }
+
+  private async collectSnapshot<T extends SkillSnapshotEntry>(
+    d: SkillSnapshotInput,
+    toEntry: (source: SkillSnapshotSource, options: SkillSnapshotOptions) => Promise<T>
+  ): Promise<T[] | null> {
+    await this.assertReadAccess(d);
+
+    let options = d.options ?? {};
+    let sources = await this.loadSnapshotSources({ skill: d.skill, options });
+    if (!sources) return null;
+
+    let entries = await this.mapSnapshotSources(sources, source => toEntry(source, options));
+    if (options.limits && getServedSnapshotBytes(entries) > options.limits.maxBytes)
+      return null;
+
+    return entries;
+  }
+
+  async listSkillSnapshotFiles(d: SkillSnapshotInput): Promise<SkillSnapshotFile[] | null> {
+    return await this.collectSnapshot(d, async (source, options) => {
+      if (source.document) {
+        let { bytes: _bytes, ...file } = await this.snapshotDocument({
+          skill: d.skill,
+          source,
+          skillName: options.skillName
+        });
+
+        return file;
+      }
+
+      return {
+        path: source.path,
+        mimeType: source.file.fileType,
+        size: Number(source.file.fileSize),
+        sha256: await fileService.getContentSha256({ file: source.file }),
+        text: null
+      };
+    });
+  }
+
+  async listSkillSnapshotEntries(d: SkillSnapshotInput): Promise<SkillSnapshotEntry[] | null> {
+    return await this.collectSnapshot(d, (source, options) =>
+      this.snapshotEntry({ skill: d.skill, source, skillName: options.skillName })
+    );
+  }
+
+  // A snapshot is refused when it has too many files, or when either its stored or its served
+  // (SKILL.md rendered with frontmatter) size is over the limit, so `size` is the larger one.
+  async getSkillSnapshotUsage(
+    d: Omit<SkillSnapshotInput, 'options'> & {
+      options: SkillSnapshotOptions & { limits: NonNullable<SkillSnapshotOptions['limits']> };
+      defaultPermissions?: StoreParticipantPermissions[];
+      overridePermissions?: boolean;
+    }
+  ): Promise<SkillSnapshotUsage> {
+    await this.assertReadAccess(d);
+
+    let { limits, ...options } = d.options;
+    let sources = (await this.loadSnapshotSources({ skill: d.skill, options }))!;
+    let entries = await this.mapSnapshotSources(sources, source =>
+      this.snapshotEntry({ skill: d.skill, source, skillName: options.skillName })
+    );
+
+    let fileCount = sources.length;
+    let size = Math.max(getStoredSnapshotBytes(sources), getServedSnapshotBytes(entries));
+
+    return {
+      fileCount,
+      size,
+      exceededLimits: [
+        ...(fileCount > limits.maxFiles ? (['file_count'] as const) : []),
+        ...(size > limits.maxBytes ? (['size'] as const) : [])
+      ]
+    };
+  }
+
+  async readSkillSnapshotFile(
+    d: SkillSnapshotInput & { path: string }
+  ): Promise<SkillSnapshotFileContent | null> {
+    await this.assertReadAccess(d);
+
+    let options = d.options ?? {};
+    let sources = await this.loadSnapshotSources({ skill: d.skill, options });
+
+    let source = sources?.find(entry => entry.path === d.path);
+    if (!source) return null;
+
+    return await this.snapshotSource({
+      skill: d.skill,
+      source,
+      skillName: options.skillName
+    });
+  }
+
   async applySkillFileChange(
     d: ApplySkillFileChangesProps & { change: SkillFileChange }
   ): Promise<SkillFileChangeResult> {
@@ -825,6 +1086,7 @@ class SkillFileServiceImpl {
 
       return applied;
     });
+    await skillService.recordSkillEdit(d);
 
     return await Promise.all(
       appliedChanges.map(async ({ item, ...change }) => ({

@@ -1,9 +1,10 @@
-import { createValidatedEnv } from '@lowerdeck/env';
+import { defineSettings } from '@metorial/settings';
+import { serviceUrl } from '@metorial/shared-settings';
 import { v } from '@lowerdeck/validation';
 
-export let env = createValidatedEnv({
+export let env = defineSettings({
   service: {
-    VOYAGER_URL: v.string(),
+    VOYAGER_URL: serviceUrl('voyager'),
     VOYAGER_INDEX_PREFIX: v.optional(v.string())
   }
 });

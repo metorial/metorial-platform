@@ -1,4 +1,4 @@
-import { withTransaction } from '@metorial/db';
+import { Prisma, withTransaction } from '@metorial/db';
 import type { StashedAuditEvent } from './stash';
 
 let toOid = (value: bigint | string | number) => BigInt(value);
@@ -20,7 +20,21 @@ let toEventRow = (event: StashedAuditEvent) => ({
   recordedAt: event.recordedAt
 });
 
-export let ingestAuditEventsToPostgres = async (events: StashedAuditEvent[]) => {
+type PresentedEvent = { id: string; payload: unknown; previousAttributes?: unknown };
+
+let jsonValue = (value: unknown) =>
+  value === undefined || value === null
+    ? Prisma.DbNull
+    : JSON.parse(
+        JSON.stringify(value, (_key, nested) =>
+          typeof nested === 'bigint' ? String(nested) : nested
+        )
+      );
+
+export let ingestAuditEventsToPostgres = async (
+  events: StashedAuditEvent[],
+  presented?: PresentedEvent[]
+) => {
   if (events.length == 0) return;
 
   await withTransaction(async db => {
@@ -31,14 +45,21 @@ export let ingestAuditEventsToPostgres = async (events: StashedAuditEvent[]) => 
     });
     let alreadyIngestedIds = new Set(existingAuditLogs.map(auditLog => auditLog.id));
 
-    let auditLogs: ({ id: string } & ReturnType<typeof toEventRow>)[] = [];
+    let presentedById = new Map(presented?.map(event => [event.id, event]));
+    let auditLogs: Prisma.AuditLogCreateManyInput[] = [];
     for (let event of events) {
       if (alreadyIngestedIds.has(event.id)) continue;
       alreadyIngestedIds.add(event.id);
 
       auditLogs.push({
         id: event.id,
-        ...toEventRow(event)
+        ...toEventRow(event),
+        ...(presented
+          ? {
+              payload: jsonValue(presentedById.get(event.id)?.payload),
+              previousAttributes: jsonValue(presentedById.get(event.id)?.previousAttributes)
+            }
+          : {})
       });
     }
 

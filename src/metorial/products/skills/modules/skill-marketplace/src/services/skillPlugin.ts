@@ -540,19 +540,26 @@ class SkillPluginServiceImpl {
       });
     }
 
-    await db.skillPlugin.update({
-      where: {
-        id: d.skillPlugin.id
-      },
-      data: {
-        image: nextImage as any,
-        providerOverrides: d.input.providerOverrides as any,
-        name: d.input.name,
-        description: d.input.description,
-        longDescription: d.input.longDescription,
-        category: d.input.category,
-        skillConfigurationOid
-      }
+    await withTransaction(async db => {
+      await db.skillPlugin.update({
+        where: {
+          id: d.skillPlugin.id
+        },
+        data: {
+          image: nextImage as any,
+          providerOverrides: d.input.providerOverrides as any,
+          name: d.input.name,
+          description: d.input.description,
+          longDescription: d.input.longDescription,
+          category: d.input.category,
+          skillConfigurationOid
+        }
+      });
+
+      await enqueueSkillPluginLifecycle({
+        skillPluginId: d.skillPlugin.id,
+        event: 'updated'
+      });
     });
 
     if (
@@ -564,11 +571,6 @@ class SkillPluginServiceImpl {
         image: d.skillPlugin.image as EntityImage
       });
     }
-
-    await enqueueSkillPluginLifecycle({
-      skillPluginId: d.skillPlugin.id,
-      event: 'updated'
-    });
 
     let skillPlugin = await this.getSkillPluginRecord({
       project: d.project,

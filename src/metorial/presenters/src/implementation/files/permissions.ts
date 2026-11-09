@@ -40,6 +40,7 @@ export let v1StorePermissionsPresenter = Presenter.create(storePermissionsType)
     object: 'store.permissions',
     store_id: permissions.storeId,
     has_full_access: permissions.hasFullAccess,
+    can_manage_access: permissions.canManageAccess,
     permissions: permissions.permissions,
     relevant_store_ids: permissions.relevantStoreIds,
     readable_store_ids: permissions.readableStoreIds,
@@ -51,6 +52,10 @@ export let v1StorePermissionsPresenter = Presenter.create(storePermissionsType)
         description: "String representing the object's type"
       }),
       store_id: v.string(),
+      can_manage_access: v.boolean({
+        description:
+          'Whether the current actor can manage who has access to the skill backed by this store.'
+      }),
       ...permissionsBaseSchema
     })
   )

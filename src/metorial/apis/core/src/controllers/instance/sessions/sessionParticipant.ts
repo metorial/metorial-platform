@@ -15,7 +15,7 @@ import {
   getFineGrainedAllowedSessionIds,
   requireFineGrainedSessionFromResource
 } from '../../../middleware/checkFineGrainedSessionAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { sessionParticipantPresenter } from '@metorial/presenters';
 
 let normalizeParticipantTypes = (
@@ -37,7 +37,7 @@ let normalizeParticipantTypes = (
     return type;
   });
 
-let sessionParticipantGroup = instanceGroup
+let sessionParticipantGroup = integrationsGroup
   .use(async ctx => {
     if (!ctx.params.sessionParticipantId) {
       throw new ServiceError(
@@ -72,7 +72,7 @@ export let sessionParticipantController = Controller.create(
       'Session participants represent the clients and other entities that are connected to a session. This read-only resource tracks who is participating in a session.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('session-participants', 'sessions.participants.list'), {
         name: 'List session participants',
         description: 'Returns a paginated list of participants in a session.'

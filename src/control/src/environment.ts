@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import { atomicWrite, readJson, sortedEntries } from './files';
 import { discover, loadExternals, selectWithDependencies } from './manifest';
 import { configureManifests, metadata, metadataIfPresent } from './workspace';
@@ -13,7 +13,9 @@ export let defaultPorts = {
   redis: 36379,
   nats: 34222,
   etcd_client: 32379,
-  etcd_peer: 32380
+  etcd_peer: 32380,
+  mail: 31025,
+  mail_ui: 38025
 };
 
 export let portKey = (name: string) => `CONTROL_PORT_${name.toUpperCase()}`;
@@ -199,7 +201,7 @@ export let allForManifest = (loaded: LoadedManifest, root: Environment): Environ
 
     let templates: Environment = { HOSTNAME: hostname, PORT: port };
 
-    for (let name of ['redis', 'nats', 'etcd_client', 'etcd_peer'])
+    for (let name of ['redis', 'nats', 'etcd_client', 'etcd_peer', 'mail', 'mail_ui'])
       if (root[portKey(name)] !== undefined) templates[portKey(name)] = root[portKey(name)]!;
     templates[portKey(name)] = port;
 
@@ -240,7 +242,7 @@ export let writeDotenv = (path: string, values: Environment) =>
   );
 
 export let writeForManifest = (loaded: LoadedManifest, root: Environment) => {
-  let path = join(dirname(loaded.path), '.env');
+  let path = join(loaded.directory, '.env');
   writeDotenv(path, allForManifest(loaded, root));
 
   return path;

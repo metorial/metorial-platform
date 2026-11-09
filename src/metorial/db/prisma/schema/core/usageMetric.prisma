@@ -1,0 +1,32 @@
+model UsageMetric {
+  key String @id
+
+  ts             DateTime
+  organizationId String?
+  instanceId     String
+  kind           String
+
+  providerId        String?
+  deploymentId      String?
+  consumerId        String?
+  consumerProfileId String?
+  agentId           String?
+  magicMcpServerId  String?
+  integrationId     String?
+  toolKey           String?
+  errorType         String?
+
+  count         BigInt
+  errorCount    BigInt
+  durationMsSum BigInt
+  durationCount BigInt
+  durationMsMax BigInt
+
+  @@index([ts])
+  @@index([instanceId, kind, ts])
+  @@index([instanceId, kind, providerId, ts])
+  @@index([instanceId, kind, consumerId, ts])
+  @@index([instanceId, kind, consumerProfileId, ts])
+  @@index([instanceId, kind, magicMcpServerId, ts])
+  @@index([instanceId, kind, integrationId, ts])
+}

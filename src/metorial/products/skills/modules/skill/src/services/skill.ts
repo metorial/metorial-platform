@@ -8,14 +8,7 @@ import {
 } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import {
-  storeAccessService,
-  storeParticipantService,
-  storeReadPermission,
-  storeService,
-  storeVersionService,
-  storeWritePermission
-} from '@metorial/module-store';
+import type { AuditScope } from '@metorial/audit-scope';
 import type {
   EntityImage,
   Instance,
@@ -24,8 +17,8 @@ import type {
   ResourceActor,
   StoreParticipantPermissions
 } from '@metorial/db';
-import type { AuditScope } from '@metorial/audit-scope';
 import { db, withTransaction } from '@metorial/db';
+import { Fabric } from '@metorial/fabric';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -42,15 +35,23 @@ import {
   consumerSkillReadRoles,
   getStoreResourceKindAccessWhere,
   isStoreResourceFlagEnabled,
-  skillStoreResourceKind,
-  type ResourceAuthorization
+  type ResourceAuthorization,
+  skillStoreResourceKind
 } from '@metorial/module-access';
-import type { SkillTemplateRecord } from '@metorial/module-skill-templates';
-import { getProjectTenantIdentifier } from '@metorial/skills-common';
-import { Fabric } from '@metorial/fabric';
-import { internalImageService } from '@metorial/skills-images';
-import { isSkillIcon } from '@metorial/skill-icons';
 import { buildSearchFilter } from '@metorial/module-search';
+import type { SkillTemplateRecord } from '@metorial/module-skill-templates';
+import {
+  skillStoreResource,
+  storeAccessService,
+  storeParticipantService,
+  storeReadPermission,
+  storeService,
+  storeVersionService,
+  storeWritePermission
+} from '@metorial/module-store';
+import { isSkillIcon } from '@metorial/skill-icons';
+import { getProjectTenantIdentifier } from '@metorial/skills-common';
+import { internalImageService } from '@metorial/skills-images';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/skills-search';
 import { getSkillSlug } from '../lib/skillSlug';
 import { enqueueSkillLifecycle } from '../queues/lifecycle';
@@ -119,6 +120,25 @@ export let getConsumerSkillAccessWhere = async (d: {
       ]
     : [];
   return accessFilters.length ? { OR: accessFilters } : { oid: { in: [] } };
+};
+
+type ListSkillsInput = {
+  project: Project;
+  instance: Instance;
+  ids?: string[];
+  storeIds?: string[];
+  parentSkillIds?: string[];
+  parentSkillTemplateIds?: string[];
+  createdByActorIds?: string[];
+  createdAt?: DateFilter;
+  updatedAt?: DateFilter;
+  search?: string;
+  statuses?: Array<'active' | 'archived' | 'deleted'>;
+  skillGroupIds?: string[];
+  integrationIds?: string[];
+  providerIds?: string[];
+  allowDeleted?: boolean;
+  accessTags?: AnyAccessTagSelector;
 };
 
 class SkillServiceImpl {
@@ -369,24 +389,7 @@ class SkillServiceImpl {
     return skillVersion;
   }
 
-  async listSkills(d: {
-    project: Project;
-    instance: Instance;
-    ids?: string[];
-    storeIds?: string[];
-    parentSkillIds?: string[];
-    parentSkillTemplateIds?: string[];
-    createdByActorIds?: string[];
-    createdAt?: DateFilter;
-    updatedAt?: DateFilter;
-    search?: string;
-    statuses?: Array<'active' | 'archived' | 'deleted'>;
-    skillGroupIds?: string[];
-    integrationIds?: string[];
-    providerIds?: string[];
-    allowDeleted?: boolean;
-    accessTags?: AnyAccessTagSelector;
-  }) {
+  private async getListSkillsWhere(d: ListSkillsInput): Promise<Prisma.SkillWhereInput> {
     let skills = await resolveSkills(d, d.ids);
     let stores = await resolveStores(d, d.storeIds);
     let parentSkills = await resolveSkills(d, d.parentSkillIds);
@@ -443,27 +446,46 @@ class SkillServiceImpl {
       });
     }
 
+    return {
+      projectOid: d.project.oid,
+      instanceOid: d.instance.oid,
+      status: d.accessTags
+        ? 'active'
+        : d.statuses?.length
+          ? { in: d.statuses }
+          : d.allowDeleted
+            ? undefined
+            : 'active',
+      AND: andFilters
+    };
+  }
+
+  async listSkills(d: ListSkillsInput) {
+    let where = await this.getListSkillsWhere(d);
+
     return Paginator.create(({ prisma }) =>
       prisma(
         async opts =>
           await db.skill.findMany({
             ...opts,
-            where: {
-              projectOid: d.project.oid,
-              instanceOid: d.instance.oid,
-              status: d.accessTags
-                ? 'active'
-                : d.statuses?.length
-                  ? { in: d.statuses }
-                  : d.allowDeleted
-                    ? undefined
-                    : 'active',
-              AND: andFilters
-            },
+            where,
             select: { id: true }
           })
       )
     );
+  }
+
+  async listSkillRecords<S extends Prisma.SkillSelect>(
+    d: ListSkillsInput & { select: S; take: number }
+  ) {
+    let { select, take, ...input } = d;
+
+    return await db.skill.findMany({
+      where: await this.getListSkillsWhere(input),
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      take,
+      select
+    });
   }
 
   async getSkillById(d: {
@@ -509,6 +531,17 @@ class SkillServiceImpl {
       defaultPermissions: d.defaultPermissions,
       overridePermissions: d.overridePermissions,
       requiredPermission: storeWritePermission
+    });
+  }
+
+  async recordSkillEdit(d: { skill: SkillRecord; authorization: ResourceAuthorization }) {
+    let actor = d.authorization.resourceActor;
+    if (!actor || !d.skill.store) return;
+
+    await skillStoreResource.participants.record({
+      store: d.skill.store,
+      actor,
+      roles: ['editor']
     });
   }
 
@@ -626,21 +659,25 @@ class SkillServiceImpl {
       d.input.imageIcon !== undefined ||
       d.input.image !== undefined
     ) {
-      await db.skill.update({
-        where: {
-          id: d.skill.id
-        },
-        data: {
-          name: d.input.name,
-          description: d.input.description,
-          metadata: d.input.metadata as any,
-          clientName: d.input.clientName,
-          clientDescription: d.input.clientDescription,
-          clientMetadata: d.input.clientMetadata as any,
-          license: d.input.license,
-          compatibility: d.input.compatibility,
-          image: nextImage as any
-        }
+      await withTransaction(async db => {
+        await db.skill.update({
+          where: {
+            id: d.skill.id
+          },
+          data: {
+            name: d.input.name,
+            description: d.input.description,
+            metadata: d.input.metadata as any,
+            clientName: d.input.clientName,
+            clientDescription: d.input.clientDescription,
+            clientMetadata: d.input.clientMetadata as any,
+            license: d.input.license,
+            compatibility: d.input.compatibility,
+            image: nextImage as any
+          }
+        });
+
+        await enqueueSkillLifecycle({ skillId: d.skill.id, event: 'updated' });
       });
 
       if (
@@ -657,8 +694,6 @@ class SkillServiceImpl {
       }
     }
 
-    await enqueueSkillLifecycle({ skillId: d.skill.id, event: 'updated' });
-
     let updated = await this.getSkillRecord({
       project: d.project,
       instance: d.instance,
@@ -670,6 +705,7 @@ class SkillServiceImpl {
       skill: updated,
       previousSkill: d.skill
     });
+    await this.recordSkillEdit(d);
 
     return { ...updated, store } satisfies SkillRecord;
   }

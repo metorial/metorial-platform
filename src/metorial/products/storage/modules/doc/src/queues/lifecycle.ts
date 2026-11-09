@@ -1,4 +1,4 @@
-import { addAfterTransactionHook, db } from '@metorial/db';
+import { addAfterTransactionHook, withTransaction } from '@metorial/db';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
 
 type DocumentLifecycleEvent = 'created' | 'updated' | 'archived' | 'contents-changed';
@@ -24,6 +24,8 @@ export let enqueueDocumentLifecycle = async (d: {
   documentId: string;
   event: DocumentLifecycleEvent;
 }) => {
+  await markDocumentSkillDestinationsDirty(d);
+
   await addAfterTransactionHook(async () => {
     await documentLifecycleQueue.add(d, {
       id: getLifecycleJobId(d.documentId)
@@ -47,40 +49,42 @@ let propagateDocumentDirtyQueue = createQueue<{
   }
 });
 
-export let propagateDocumentDirtyQueueProcessor = propagateDocumentDirtyQueue.process(
-  async data => {
-    await db.skillDestination.updateMany({
-      where: {
-        OR: [
-          {
-            skillPlugin: {
-              skillPluginSkills: {
-                some: {
-                  skill: {
-                    store: {
-                      items: {
-                        some: {
-                          document: { id: data.documentId }
+let markDocumentSkillDestinationsDirty = async (data: { documentId: string }) =>
+  await withTransaction(
+    async db => {
+      await db.skillDestination.updateMany({
+        where: {
+          OR: [
+            {
+              skillPlugin: {
+                skillPluginSkills: {
+                  some: {
+                    skill: {
+                      store: {
+                        items: {
+                          some: {
+                            document: { id: data.documentId }
+                          }
                         }
                       }
                     }
                   }
                 }
               }
-            }
-          },
-          {
-            skillMarketplace: {
-              plugins: {
-                some: {
-                  skillPlugin: {
-                    skillPluginSkills: {
-                      some: {
-                        skill: {
-                          store: {
-                            items: {
-                              some: {
-                                document: { id: data.documentId }
+            },
+            {
+              skillMarketplace: {
+                plugins: {
+                  some: {
+                    skillPlugin: {
+                      skillPluginSkills: {
+                        some: {
+                          skill: {
+                            store: {
+                              items: {
+                                some: {
+                                  document: { id: data.documentId }
+                                }
                               }
                             }
                           }
@@ -91,15 +95,19 @@ export let propagateDocumentDirtyQueueProcessor = propagateDocumentDirtyQueue.pr
                 }
               }
             }
-          }
-        ]
-      },
-      data: {
-        isDirty: true,
-        lastTransientChangeAt: new Date()
-      }
-    });
-  }
+          ]
+        },
+        data: {
+          isDirty: true,
+          lastTransientChangeAt: new Date()
+        }
+      });
+    },
+    { ifExists: true }
+  );
+
+export let propagateDocumentDirtyQueueProcessor = propagateDocumentDirtyQueue.process(
+  markDocumentSkillDestinationsDirty
 );
 
 export let documentLifecycleProcessors = combineQueueProcessors([

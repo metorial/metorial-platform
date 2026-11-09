@@ -27,6 +27,20 @@ export let setAuthRequired = (required: boolean) => {
   authRequiredRef.current = required;
 };
 
+// Enterprise shells announce themselves before the app loads and register their auth hooks
+// on window when their auth module evaluates. Module order is not guaranteed, so anything
+// that reads those hooks has to wait for them instead of sampling once.
+export let awaitEnterpriseAuth = async () => {
+  if (typeof window === 'undefined' || !(window as any).metorialEnterpriseAuth) return;
+
+  while (
+    !(window as any).enterpriseUserPromise ||
+    !(window as any).enterpriseRedirectToAuthIfNotAuthenticated
+  ) {
+    await delay(10);
+  }
+};
+
 export let redirectToAuthIfNotAuthenticated = async <R>(fn: () => Promise<R>) => {
   if (typeof window === 'undefined') return new Promise(() => {}) as Promise<R>;
 
@@ -38,6 +52,8 @@ export let redirectToAuthIfNotAuthenticated = async <R>(fn: () => Promise<R>) =>
   if (isAuthRoute(window.location.href, config.auth)) {
     return new Promise(() => {}) as Promise<R>;
   }
+
+  await awaitEnterpriseAuth();
 
   if ((window as any).enterpriseRedirectToAuthIfNotAuthenticated) {
     return (window as any).enterpriseRedirectToAuthIfNotAuthenticated(fn) as Promise<R>;
@@ -88,6 +104,7 @@ export let fetchUserSpecial = () => {
 
   return redirectToAuthIfNotAuthenticated(async () => {
     await delay(1);
+    await awaitEnterpriseAuth();
 
     let enterpriseUserPromise = (window as any).enterpriseUserPromise;
     if (enterpriseUserPromise) {

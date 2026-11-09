@@ -5,7 +5,7 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { getOwnershipActor } from '../../../lib/ownershipActor';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { requireNonPublishableMachineAccess } from '../../../middleware/requireNonPublishableMachineAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { isDashboardGroup } from '../../../middleware/isDashboard';
 import {
   providerInvocationPresenter,
@@ -19,7 +19,7 @@ export let providerInvocationController = Controller.create(
       'Provider invocations expose normalized provider-side tracing for tool calls, OAuth flows, and auth config events across Shuttle and Slates.'
   },
   {
-    get: instanceGroup
+    get: integrationsGroup
       .get(
         instancePath('provider-invocations/:providerInvocationId', 'providerInvocations.get'),
         {
@@ -46,7 +46,7 @@ export let providerInvocationController = Controller.create(
         return providerInvocationPresenter.present({ providerInvocation: item });
       }),
 
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('provider-invocations', 'providerInvocations.list'), {
         name: 'List provider invocations',
         description:

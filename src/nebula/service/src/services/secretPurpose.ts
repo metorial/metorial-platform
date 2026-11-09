@@ -12,7 +12,12 @@ export let knownSecretPurposeIdentifiers = [
   'oauth_token',
   'slate_authentication_configuration',
   'slate_oauth_credentials',
-  'slate_oauth_setup'
+  'slate_oauth_setup',
+  'scm_installation_tokens',
+  'scm_backend_client_secret',
+  'scm_backend_app_private_key',
+  'scm_backend_app_webhook_secret',
+  'scm_webhook_signing_secret'
 ] as const;
 
 class SecretPurposeServiceImpl {

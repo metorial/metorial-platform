@@ -151,11 +151,13 @@ func (rs *RcpService) CloneBucket(ctx context.Context, req *rpc.CloneBucketReque
 
 func (rs *RcpService) CreateBucketFromGithub(ctx context.Context, req *rpc.CreateBucketFromGithubRequest) (*rpc.CreateBucketResponse, error) {
 	iter, err := github.DownloadRepo(ctx, github.DownloadOptions{
-		Owner: req.Owner,
-		Repo:  req.Repo,
-		Path:  req.Path,
-		Ref:   req.Ref,
-		Token: req.Token,
+		Owner:       req.Owner,
+		Repo:        req.Repo,
+		Path:        req.Path,
+		Ref:         req.Ref,
+		Token:       req.Token,
+		BaseURL:     req.GithubApiUrl,
+		LFSEndpoint: req.GithubLfsEndpoint,
 	})
 	if err != nil {
 		return nil, providerImportError("GitHub", err)
@@ -295,6 +297,7 @@ func (rs *RcpService) ExportBucketFilesAsZipToUpload(ctx context.Context, req *r
 
 	result, err := rs.fsm.ExportBucketFilesAsZipToUpload(ctx, req.BucketId, req.Prefix, fs.ZipUploadDestination{
 		URL:         req.UploadUrl,
+		Headers:     req.UploadHeaders,
 		Bucket:      req.UploadBucket,
 		Key:         req.UploadKey,
 		ContentType: req.ContentType,
@@ -401,6 +404,8 @@ func (rs *RcpService) ExportBucketToGithub(ctx context.Context, req *rpc.ExportB
 		Token:             req.Token,
 		DeletePaths:       req.DeletePaths,
 		LFSThresholdBytes: req.GetLfsThresholdBytes(),
+		BaseURL:           req.GithubApiUrl,
+		LFSEndpoint:       req.GithubLfsEndpoint,
 	}
 
 	if err := github.UploadToRepoIter(ctx, opts, func(yield func(github.FileToUpload) error) error {

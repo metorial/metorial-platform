@@ -7,10 +7,10 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { subspaceCustomProviderEnvironmentPresenter } from '@metorial/presenters';
 
-let customProviderEnvironmentGroup = instanceGroup.use(async ctx => {
+let customProviderEnvironmentGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.customProviderEnvironmentId) {
     throw new ServiceError(
       badRequestError({
@@ -37,7 +37,7 @@ export let customProviderEnvironmentController = Controller.create(
     hideInDocs: true
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('custom-provider-environments', 'customProviders.environments.list'), {
         name: 'List custom provider environments',
         description: 'Returns a paginated list of environments for a custom provider.'

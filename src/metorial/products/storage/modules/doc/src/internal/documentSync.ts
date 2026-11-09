@@ -197,6 +197,14 @@ class InternalDocumentSyncServiceImpl {
             include: documentInclude
           });
 
+          await storeVersionService.touchStoresLastEditedAtForDocument({
+            documentOid: syncedDocument.oid
+          });
+          await enqueueDocumentLifecycle({
+            documentId: syncedDocument.id,
+            event: 'contents-changed'
+          });
+
           return {
             document: syncedDocument,
             createdVersionId: nextVersion.id
@@ -206,19 +214,8 @@ class InternalDocumentSyncServiceImpl {
     );
 
     if (result?.createdVersionId) {
-      await storeVersionService.touchStoresLastEditedAtForDocument({
-        documentOid: result.document.oid
-      });
-
       await storeVersionService.markStoresDirtyForDocument({
         documentOid: result.document.oid
-      });
-    }
-
-    if (result) {
-      await enqueueDocumentLifecycle({
-        documentId: result.document.id,
-        event: 'contents-changed'
       });
     }
 

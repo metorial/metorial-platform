@@ -3,6 +3,7 @@ import {
   isModernMcpRequest,
   isSessionlessMcpEnabled,
   McpConnection,
+  type RequestScopedSkillsResolver,
   type RequestScopedToolsResolver
 } from '@metorial-subspace/module-connection';
 import { subspaceScopeService } from '@metorial-subspace/module-tenant';
@@ -16,6 +17,8 @@ import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import type { Context } from 'hono';
 import { type SSEStreamingApi, streamSSE } from 'hono/streaming';
 import z from 'zod';
+import { hostSettings } from './env';
+import { assertIntegrationRuntimeEnabled } from './integrationRuntime';
 import {
   assertOutpostConnectionAccess,
   getOutpostAuth,
@@ -68,14 +71,18 @@ let publicProxyUrl = (c: Context, originOverride?: string) => {
 
   let hostname = inputUrl.hostname;
 
+  let rewriteSuffix = hostSettings.publicHostRewriteSuffixes.find(suffix =>
+    hostname.endsWith(suffix)
+  );
+
   if (
-    hostname.endsWith('.metorial.com') &&
+    rewriteSuffix &&
     (hostname.startsWith('api-') ||
       hostname.startsWith('connect-') ||
       hostname.startsWith('mcp-'))
   ) {
     let identifier = hostname.split('.')[0]!.split('-')[0]!;
-    hostname = `${identifier}.metorial.com`;
+    hostname = `${identifier}${rewriteSuffix}`;
   }
 
   return process.env.NODE_ENV == 'production'
@@ -117,6 +124,7 @@ type HandleMcpRequestInput = {
   publicBaseUrl?: string;
   publicMcpAccess?: PublicMcpAccess;
   requestTools?: RequestScopedToolsResolver;
+  requestSkills?: RequestScopedSkillsResolver;
   onSubspaceSessionResolved?: (d: {
     subspaceSessionId: string;
     response: Response;
@@ -136,6 +144,8 @@ let handleMcpRequestInner = async (c: Context, d: HandleMcpRequestInput) => {
     projectOid: d.instance.projectOid,
     instanceOid: d.instance.oid
   });
+
+  await assertIntegrationRuntimeEnabled(d.instance);
 
   let { tenant, solution } = await subspaceScopeService.ensureForInstance(d.instance);
   let connectionToken =
@@ -205,6 +215,7 @@ let handleMcpRequestInner = async (c: Context, d: HandleMcpRequestInput) => {
     agentClient: d.agentClient ?? undefined,
     connectionPrivateMetadata: privateMetadata.data,
     requestTools: d.requestTools,
+    requestSkills: d.requestSkills,
     ingressPolicyCheck
   };
   let connectionInput = {

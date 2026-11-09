@@ -9,6 +9,7 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
+    "@metorial/branding": "workspace:*",
     "@metorial/skill-icons": "^1.0.0"
   },
   "devDependencies": {

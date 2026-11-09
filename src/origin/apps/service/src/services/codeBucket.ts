@@ -8,7 +8,7 @@ import { db } from '../db';
 import { getId } from '../id';
 import { getBitbucketAccessTokenWithInstallation } from '../lib/bitbucket';
 import { codeBucketClient } from '../lib/codeWorkspace';
-import { getInstallationAccessToken } from '../lib/githubApp';
+import { getInstallationAccessToken, getGitHubTransferEndpoints } from '../lib/githubApp';
 import { getGitLabAccessTokenWithInstallation } from '../lib/gitlab';
 import { normalizePath } from '../lib/normalizePath';
 import { getBitbucketCloneUrl } from '../queues/codeBucket/bitbucket';
@@ -30,7 +30,7 @@ let include = {
 class codeBucketServiceImpl {
   async getCodeBucketById(d: { tenant: Tenant; id: string }) {
     let codeBucket = await db.codeBucket.findFirst({
-      where: { OR: [{ id: d.id }] },
+      where: { id: d.id, tenantOid: d.tenant.oid },
       include
     });
     if (!codeBucket) throw new ServiceError(notFoundError('codeBucket'));
@@ -338,6 +338,11 @@ class codeBucketServiceImpl {
 
       await codeBucketClient.exportBucketToGithub({
         bucketId: d.codeBucket.id,
+        ...getGitHubTransferEndpoints(
+          repo.installation.backend,
+          repo.externalOwner,
+          repo.externalName
+        ),
         owner: repo.externalOwner,
         repo: repo.externalName,
         path: d.path,
@@ -482,10 +487,15 @@ class codeBucketServiceImpl {
   async getFile(d: { codeBucket: CodeBucket; path: string }) {
     await this.waitForCodeBucketReady({ codeBucketId: d.codeBucket.id });
 
-    let res = await codeBucketClient.getBucketFile({
-      bucketId: d.codeBucket.id,
-      path: d.path
-    });
+    let res = await codeBucketClient
+      .getBucketFile({
+        bucketId: d.codeBucket.id,
+        path: d.path
+      })
+      .catch((error: { code?: number }) => {
+        if (error?.code === 5) throw new ServiceError(notFoundError('file'));
+        throw error;
+      });
 
     if (!res.content || !res.content.fileInfo) {
       throw new ServiceError(notFoundError('file'));

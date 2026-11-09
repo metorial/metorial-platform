@@ -5,6 +5,7 @@ import { accessService } from '@metorial/module-access';
 import { consumerProfileService } from '@metorial/module-consumer-core';
 import { Path } from '@metorial/rest';
 import { apiGroup } from './apiGroup';
+import { hasFlags } from './hasFlags';
 
 let assertPathInstance = (
   pathInstanceId: string | undefined,
@@ -148,6 +149,8 @@ export let instanceGroup = apiGroup.use(async ctx => {
     })
   });
 });
+
+export let integrationsGroup = instanceGroup.use(hasFlags(['paid-integrations']));
 
 export let instancePath = (path: string, sdkPath: string) => [
   Path(`/${path}`, sdkPath),

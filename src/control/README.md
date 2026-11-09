@@ -36,12 +36,46 @@ bun run control test:unit @lowerdeck/hash
 bun run control test:e2e @metorial/module-user
 bun run control cleanup --dry-run
 bun run control docker stop
+bun run control docker reset --yes
 bun run control workspace create feature/my-change
 bun run control workspace list
 bun run control workspace remove feature/my-change
 bun run control workspace start
 bun run control workspace stop feature/my-change
 ```
+
+`docker stop` keeps data; `docker reset` removes the declared Compose services together
+with their volumes, so every database and the object store start empty on the next
+`control dev`. It refuses to run without `--yes`; `--dry-run` prints the Compose
+commands instead.
+
+### Daemon, TUI and web UI
+
+`control dev` no longer needs one terminal per workspace. Workspaces run inside one shared
+background daemon that is started on demand; the CLI is a thin client and `control dev`
+attaches the log TUI. Pass `--foreground` for the previous behavior (Turbo TUI in the
+current terminal).
+
+```sh
+bun run control up              # start the workspace in the daemon and return
+bun run control ls              # all workspaces known to the daemon
+bun run control status          # units of this workspace
+bun run control logs -f api     # plain log list; a TUI on a terminal unless piped
+bun run control tui             # log TUI
+bun run control restart api     # one unit (infra included); no argument restarts the workspace
+bun run control job db:push     # db:generate | db:push | db:migrate | prepare
+bun run control open mail       # dashboard, mail, any declared link, or the web UI
+bun run control sh api          # shell with the environment of a unit
+bun run control down            # stop the workspace and its infrastructure (--keep-infra to leave it running)
+bun run control daemon status   # start | stop | restart | status | logs
+```
+
+The web UI listens on `http://localhost:1000` (`CONTROL_UI_PORT` to change it). It lists the
+workspaces, links to the dashboard, mail and admin panels, restarts units or whole
+workspaces, runs database jobs and offers a terminal in the workspace environment.
+Manifests declare their links with `link = { label = "...", group = "app" | "admin" | "tool" }`
+on an endpoint. Daemon state lives in `~/.metorial-control-dev-service` (`CONTROL_HOME`);
+stopping the daemon stops the workspaces it runs. See `docs/daemon-plan.md`.
 
 Pass `--root PATH` to start project detection somewhere other than the current
 directory.
@@ -76,54 +110,51 @@ worktree creation/removal and rollback. The opt-in Docker test provisions all fi
 infrastructure services, creates Postgres and MongoDB databases, verifies repeat
 provisioning, and removes its isolated containers and volumes.
 
-## `control.toml`
+## `control/index.ts`
 
-Control recursively discovers manifests, excluding `.git`, `.control`,
-`node_modules`, and `target`. Unknown fields, invalid environment names,
-invalid database names, and missing local run dependencies are errors.
-Discovery and preparation order is lexical and therefore deterministic.
+Every package that Control manages has a `control/index.ts` next to its
+`package.json`. The file default-exports a project built with the
+`@metorial/control` DSL (`oss/src/metorial/packages/control`). Control discovers
+these files recursively, excluding `.git`, `.control`, `node_modules`, `target`
+and `out`, evaluates them in a subprocess, and validates the result strictly.
+Unknown fields, invalid environment names, invalid database names, and missing
+local run dependencies are errors. Discovery and preparation order is lexical and
+therefore deterministic.
 
-```toml
-name = "core-api"
-group = "backend"
-# Optional: "oss" or "enterprise"; omitted means both layouts.
-mode = "both"
+```ts
+import { dev, endpoint, fromEnv, inherit, postgres, project } from '@metorial/control';
 
-# Strings are literals. `true` inherits the key from root env.json or the
-# process environment when present.
-[dev]
-prepare = ["frontend:build"]
-run = ["bun --watch ./src/server.ts"]
-
-[[dev.expose]]
-# HTTP/WebSocket listener exposed through the workspace hostname proxy.
-port = 4310
-
-[dev.env]
-LOG_LEVEL = "debug"
-PUBLIC_URL = "http://{{HOSTNAME}}:4310"
-SECRET = true
-
-[dev.db.main]
-name = "metorial"
-engine = "postgres"
-env = "DATABASE_URL"
-
-[docker]
-compose = ["docker-compose.yml"]
-services = ["redis"]
-# Stop services on exit from `control dev`.
-stop = true
-
-[cleanup]
-# Relative to this manifest and confined to the detected project root.
-paths = ["dist", ".cache"]
+export default project({
+  name: 'core-api',
+  group: 'backend',
+  mode: 'both',
+  endpoints: {
+    api: endpoint(4310).health('/ping').listenEnv('API_PORT')
+  },
+  dev: dev({
+    prepare: ['frontend:build'],
+    run: ['bun --watch ./src/server.ts'],
+    env: {
+      LOG_LEVEL: 'debug',
+      PUBLIC_URL: 'http://{{HOSTNAME}}:4310',
+      SECRET: inherit()
+    },
+    databases: {
+      main: postgres({ package: 'core-api', name: 'metorial', env: 'DATABASE_URL' })
+    }
+  })
+});
 ```
+
+Shared env blocks, service ports and databases live in `@metorial/control/presets`.
+Inspect the compiled result with the manifest typecheck (`bun run typecheck` in
+`oss/src/control`), which type checks every `control/index.ts` in the repo.
+`control-external.toml` is still TOML.
 
 Workspace-wide Prisma generation and schema push are always run by Control via
 Turbo (`prisma:generate`, `prisma:push`) before package-local `prepare` scripts.
 The root `build` script is then run (also Turbo, with enterprise/OSS filters).
-Root `control.toml` files may still declare `mode` so they participate in
+Root `control/index.ts` files may still declare `mode` so they participate in
 selection; they no longer need a `prepare = ["build"]` entry.
 
 Package-local `prepare` entries are package.json script names (for example
@@ -146,25 +177,40 @@ Literal, inherited, and default environment values support the strict
 unclosed templates are errors. Dependency URLs can use
 `{{CONTROL_PORT_POSTGRES}}`, `{{CONTROL_PORT_MONGO}}`,
 `{{CONTROL_PORT_REDIS}}`, `{{CONTROL_PORT_NATS}}`,
-`{{CONTROL_PORT_ETCD_CLIENT}}`, and `{{CONTROL_PORT_ETCD_PEER}}`. Source
+`{{CONTROL_PORT_ETCD_CLIENT}}`, `{{CONTROL_PORT_ETCD_PEER}}`,
+`{{CONTROL_PORT_MAIL}}` (SMTP), and `{{CONTROL_PORT_MAIL_UI}}`. A `mail`
+resource starts Mailpit, which catches all outgoing email; its inbox is at
+`http://localhost:<CONTROL_PORT_MAIL_UI>` and, through the shared proxy, at
+`http://<workspace hostname>:8025` for every workspace. Source
 checkouts receive the standard development ports; host workspaces receive their
 persisted allocation. Native development defaults the hostname to `localhost`;
 source checkouts use `metorial-root.localhost`; branch workspaces use their
 branch-derived `metorial-<branch>.localhost` hostname. Host listeners use persisted
 private bind ports behind the shared hostname proxy.
 
+With the workspace running and its Mailpit link reachable, use
+`control email list` to find message IDs and `control email open <id>` to read a
+message in the terminal. HTML bodies are converted to Markdown with Turndown.
+Plain-text messages display their text body. Pass `--html` to print only the
+original HTML body. Both commands support `--ws <id>`. The list defaults to the
+latest 50 messages and accepts `--start <offset>` and `--limit <count>`.
+
 Package and group arguments select manifests. With no selectors all manifests
 are used. Each generated Turbo mirror receives its manifest's isolated
 environment.
 
 `control dev` starts Compose projects, waits for declared databases, creates
-databases idempotently, writes package-local `.env` files, then prepares the
-workspace in this order:
+databases idempotently, then prepares the workspace in this order:
 
 1. `turbo run prisma:generate` (all packages)
 2. `turbo run prisma:push` (all packages)
 3. `bun run build` (Turbo via the root build script, with workspace filters)
-4. package-local `control.toml` prepare scripts via `turbo run <script> --filter=<package>`
+4. package-local `control/index.ts` prepare scripts via `turbo run <script> --filter=<package>`
+
+Environment variables are passed to every process directly (Turbo runs with
+`--env-mode=loose`, and `dev` and `control:db:*` have `passThroughEnv` in
+`turbo.json`); no `.env` files are written. `control env` still writes them on
+request.
 
 It then generates an isolated `.control/dev` Turbo workspace with one mirror
 package per run command and invokes Turbo directly with explicit filters.
@@ -201,7 +247,7 @@ control test:unit '@metorial/api...'
 the host with streaming output and a concurrency of one. Each argument is
 forwarded unchanged as a native Turbo `--filter` expression. With no filters,
 Turbo runs every workspace package that declares a `test` script, including
-packages without a `control.toml`. The existing Turbo task graph still applies,
+packages without a `control/index.ts`. The existing Turbo task graph still applies,
 so dependency tests selected by `^test` also run.
 
 The `test` package script is the unit-test contract and must not invoke E2E
@@ -230,6 +276,7 @@ test package names (`*` wildcards); selecting a stack selects all its tests.
 [endpoints.api]
 port = 4310
 health = "/ping"            # or { path = "/ping", status = 200 }
+protocol = "h2c"             # optional: the proxy talks cleartext HTTP/2 (gRPC) to this endpoint
 env = [{ key = "API_PORT", value = "{{BIND_PORT}}" }]
 
 # For processes without a named HTTP endpoint.
@@ -257,7 +304,7 @@ AWS_ACCESS_KEY_ID = "e2e"
 Every dependency and SUT must declare at least one health check and, depending
 on the mode, `e2e.start` or `e2e.image`; the plan fails otherwise. All services
 share one network namespace with a gateway that forwards the standard
-`localhost` infrastructure ports, so `control.toml` URLs work unchanged and
+`localhost` infrastructure ports, so `control/index.ts` URLs work unchanged and
 endpoint ports must be unique across a run.
 
 Arguments after `--` reach every selected suite's Vitest run (file filters,
@@ -316,6 +363,79 @@ and routes through the shared hostname proxy, allowing concurrent workspaces.
 path, and workspace identity when metadata is present).
 `control workspace remove BRANCH` removes the matching worktree, including the
 paired OSS worktree in enterprise mode.
+
+## Stacks
+
+A stack is a named set of services that runs together in Docker Compose. Stacks are not
+hard coded: the root `control/index.ts` declares them with `stack()` and every service
+opts in with `stackMember()`, so a service can join several stacks.
+
+```ts
+// control/index.ts
+rootProject({ mode: 'enterprise', stacks: [stack({ id: 'cloud', label: 'Metorial Cloud' })] });
+
+// a service's control/index.ts
+project({
+  name: '@metorial/ares',
+  stacks: {
+    cloud: stackMember(),
+    'on-prem': stackMember({ production: { image: 'ghcr.io/metorial/ares' } })
+  }
+});
+```
+
+`stackMember()` accepts `env` for both environments, `development: { run, env }` to override
+the commands run in dev (or `false` to leave the service out of the dev stack), and
+`production: { image, dockerfile, workspace, args, command, env }` (or `false`) to choose
+the container. Without overrides the production container is built from the package's
+`ci.images` or `ci.dockerfiles` entry. Stack declarations in a checkout that does not
+define the stack are ignored, so the OSS submodule still works on its own.
+
+```bash
+control stack ls                               # stacks defined in this checkout
+control stack plan cloud --env prod            # units a run would start
+control stack images on-prem                   # images the production stack builds (--json)
+control stack start cloud --env dev            # all members in one container, run by bun
+control stack start cloud --env prod --name qa # one production container per member
+control stack restart cloud
+control stack stop cloud [--volumes]
+control stack clean cloud                      # stop it and delete its data, keep the run
+control stack rm cloud                         # forget a stopped run
+```
+
+Data survives `stop` and `restart`: infrastructure and any member that declares
+`volumes` (a map of volume name to container path) keep named Docker volumes.
+`stack clean` stops the run and deletes those volumes but keeps the run registered and its
+synced workspace, so the next start comes up empty and fast.
+
+`--name` defaults to the stack identifier and must be unique; the run is registered as
+`stack-<name>` and shows up in `control ls`, the daemon API and the web UI next to the
+workspaces. Address it with `--stack <name>` on `logs`, `status`, `restart`, `tui`, `open`
+and `sh`, for example `control logs --stack cloud ares --follow`.
+
+A development run starts the shared infrastructure the members declare, creates their
+databases, then starts one `app` container that syncs the checkout into a volume, installs,
+builds and supervises one bun process per member (`scripts/dev-tools/stack/runner.ts`).
+Source edits are re-synced every few seconds, so each service's own watcher reloads. A
+production run starts one container per member. Containers share the network namespace of
+a `gateway` container that forwards the fixed development ports to the infrastructure
+containers and carries the `metorial-stack-<name>.localhost` hostname, so environment
+values resolve the same way they do for a host workspace. The shared hostname proxy routes
+the endpoint ports to the stack.
+
+## Build cache
+
+The daemon starts the Warp Cache (`src/tooling/warp-cache`), a Turborepo remote-cache server, backed by `~/.metorial-control-dev-service/cache`, and exports `TURBO_API`, `TURBO_TEAM` and `TURBO_TOKEN` so every Turbo run that Control spawns uses it. The token is generated on each daemon start and the server stops with the daemon. Stack containers reach it at `host.docker.internal`. Set `CONTROL_CACHE=0` to disable it or `CONTROL_CACHE_PORT` (default 8787) to move it; if the port is taken the daemon logs a warning and continues without it. Server output goes to `cache.log` in the Control home.
+
+## Hot reload of definitions
+
+While a workspace is running, the daemon watches every `control/` directory and
+the `@metorial/control` sources. A change re-evaluates all definitions; a failed
+evaluation is logged and the running configuration is kept. Services whose
+command, working directory, environment or dependencies differ are restarted,
+new run commands are started, removed ones are stopped, and endpoint changes
+re-register the proxy routes. Infrastructure, database and prepare changes are
+reported and need a workspace restart.
 
 ## Workspace runtimes
 
@@ -389,7 +509,7 @@ container replacement does not require another download.
 Dependency and compiler caches, setup state, and the VS Code server are
 persistent, workspace-scoped Docker volumes. A private `node_modules` volume
 keeps Linux dependencies separate from the host's Darwin install. Generated
-`.env`, `.control`, Prisma, and frontend files remain in the worktree so the
+`.control`, Prisma, and frontend files remain in the worktree so the
 editor and container see the same output. The source checkout's `env.json` is
 mounted read-only when a worktree does not provide its own override.
 
@@ -424,3 +544,39 @@ services. `workspace stop` stops both the workspace container and dependencies
 without removing containers or volumes. `workspace start` or `workspace connect`
 resumes them. `workspace stop --volumes` explicitly removes the container,
 compiler/dependency/VS Code volumes, and dependency data.
+
+## Generated Dockerfiles
+
+Images are built from Dockerfiles that control generates from a `build` spec in a
+service's `control/index.ts` (`bunService(...)` from `@metorial/control`, set on a
+`ciImage` or a `dockerfile()` definition). The output is written beside the
+package as `Dockerfile` and committed; do not edit it by hand.
+
+```sh
+control docker generate          # write all Dockerfiles
+control docker generate --check  # fail if any are out of date (CI)
+```
+
+They are also regenerated on every `control dev` start and whenever a manifest
+changes while the daemon runs. Images run as the unprivileged `metorial` user
+under `tini`, and database migrations run at startup through `control-runtime`
+(`oss/src/control/runtime`) from the `migrations` listed in the spec
+(`migrations.core`, `ownMigration(...)`, ...).
+
+Further `bunService` options:
+
+- `buildEnv`: `ENV` set in the builder stage (for example `METORIAL_EDITION`).
+- `sources`: workspace paths copied into the builder next to the pruned workspace
+  (files the prune step does not include, such as shared tsconfigs or scripts).
+- `strip`: package names removed from `node_modules` after install.
+- `assets`: `from` is relative to the package; a leading `/` makes it relative to
+  the workspace root and then requires an explicit `to`.
+- `generateFirst`: run `prisma:generate` as its own Turbo run before the other tasks
+  (needed when a package's build is not ordered after generation by Turbo).
+- `runtime: 'source'`: the image keeps the builder stage and runs `start` from the
+  package directory instead of a bundled `dist`.
+- `release` bakes `METORIAL_RELEASE_CHANNEL` (build arg, default `dev`); `versioned`
+  also sets `METORIAL_VERSION` from the `METORIAL_BUILD_VERSION` build arg.
+
+Stack-only manifests (such as the on-prem services) are generated too.
+`control stack images <stack> --json` lists the images a production stack builds.

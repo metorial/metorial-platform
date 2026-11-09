@@ -409,6 +409,8 @@ describe('workforce audit listeners', () => {
         consumerProfile: null,
         skillPlugin: { id: 'spl_1' },
         enableSkillEditing: true,
+        enableSkillResources: false,
+        skillSelections: [],
         servers: [{ id: 'mgep_1' }]
       },
       auditScope
@@ -426,7 +428,41 @@ describe('workforce audit listeners', () => {
       consumerProfileId: null,
       skillPluginId: 'spl_1',
       enableSkillEditing: true,
+      enableSkillResources: false,
+      selectedSkillIds: [],
+      selectedSkillGroupIds: [],
       serverCount: 1
+    });
+  });
+
+  it('records the skills and skill groups an endpoint shares', async () => {
+    await recordMagicMcpEndpointCreated({
+      instance: {},
+      magicMcpEndpoint: {
+        id: 'mme_1',
+        status: 'active',
+        name: 'Acme',
+        description: null,
+        slug: 'acme-endpoint',
+        consumerProfile: null,
+        skillPlugin: null,
+        enableSkillEditing: false,
+        enableSkillResources: true,
+        skillSelections: [
+          { skill: { id: 'skl_1' }, skillGroup: null },
+          { skill: null, skillGroup: { id: 'skg_1' } }
+        ],
+        servers: []
+      },
+      auditScope
+    } as any);
+
+    let [, , , event] = recordEvent.mock.calls[0]!;
+    expect(event.payload).toMatchObject({
+      enableSkillEditing: false,
+      enableSkillResources: true,
+      selectedSkillIds: ['skl_1'],
+      selectedSkillGroupIds: ['skg_1']
     });
   });
 

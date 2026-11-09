@@ -84,7 +84,8 @@ class workflowArtifactServiceImpl {
     return {
       bucket,
       storageKey,
-      uploadUrl: url.url
+      uploadUrl: url.url,
+      uploadHeaders: url.headers
     };
   }
 

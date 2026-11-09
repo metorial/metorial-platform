@@ -16,7 +16,14 @@ export let NetworkListLayout = () => {
     <ContentLayout>
       <PageHeader title={title} description={description} />
 
-      <NetworkManagedPage>
+      <NetworkManagedPage
+        title={isFirewallsPage ? 'Firewalls' : undefined}
+        description={
+          isFirewallsPage
+            ? 'Control which destinations provider deployments can reach by applying firewall policies to your integration internet gateway.'
+            : undefined
+        }
+      >
         <PaginationSearchParamsProvider enabled={true}>
           <Outlet />
         </PaginationSearchParamsProvider>

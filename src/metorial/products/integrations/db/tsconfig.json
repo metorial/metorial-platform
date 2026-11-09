@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
   "extends": "@metorial-subspace/tsconfig/base.json",
-  "exclude": ["dist", "generated"],
+  "exclude": ["control","dist", "generated"],
   "compilerOptions": {
     "jsx": "react",
     "outDir": "dist"

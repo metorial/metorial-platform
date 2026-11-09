@@ -1,14 +1,27 @@
-import { dirname, join } from 'node:path';
-import { readJson, walk } from './files';
+import { join } from 'node:path';
 import * as environment from './environment';
 import * as manifest from './manifest';
 import * as workspace from './workspace';
 import * as docker from './docker';
+import { generate as generateDockerfiles } from './dockerfile/generate';
 import * as turbo from './turbo';
+import { databaseOwnerEnvironments, databasePackages, runDatabaseScripts } from './database';
 import * as commands from './process';
 import * as infrastructure from './infrastructure';
 import * as proxy from './proxy';
 import type { Environment, LoadedManifest, ProjectRoot } from './types';
+
+export let syncDockerfiles = (project: ProjectRoot, manifests: LoadedManifest[]) => {
+  try {
+    return generateDockerfiles(project, { write: true }, manifests).changed;
+  } catch (error) {
+    commands.say(
+      `could not generate Dockerfiles: ${error instanceof Error ? error.message : error}`
+    );
+
+    return [];
+  }
+};
 
 export let selection = async (
   project: ProjectRoot,
@@ -19,6 +32,7 @@ export let selection = async (
 
   let manifests = manifest.discover(project.root);
   await workspace.configureManifests(project, manifests);
+  if (initialize) syncDockerfiles(project, manifests);
 
   let externals = manifest.loadExternals(project.root, manifests);
   let selected = manifest.selectWithDependencies(
@@ -31,54 +45,7 @@ export let selection = async (
   return { manifests, selected, env: environment.rootEnvironment(project) };
 };
 
-export let databasePackages = (manifests: LoadedManifest[]) =>
-  [
-    ...new Set(
-      manifests.flatMap(({ manifest }) =>
-        [...Object.values(manifest.postgres), ...Object.values(manifest.mongo)].map(
-          db => db.package
-        )
-      )
-    )
-  ].sort();
-
-export let databaseOwnerEnvironments = (manifests: LoadedManifest[], root: Environment) => {
-  let values: Record<string, Environment> = {};
-  let packages = databasePackages(manifests);
-
-  for (let loaded of manifests) {
-    let resolved = environment.allForManifest(loaded, root);
-    let name = loaded.manifest.package?.name;
-    if (name && packages.includes(name)) Object.assign((values[name] ??= {}), resolved);
-
-    for (let [key, db] of [
-      ...Object.entries(loaded.manifest.postgres),
-      ...Object.entries(loaded.manifest.mongo)
-    ])
-      (values[db.package] ??= {})[key] = resolved[key]!;
-  }
-
-  return values;
-};
-
-export let writeDatabaseOwnerEnvironments = (
-  root: string,
-  manifests: LoadedManifest[],
-  env: Environment
-) => {
-  let paths = new Map<string, string>();
-
-  for (let path of walk(root, 'package.json')) {
-    let name = readJson<{ name?: string }>(path).name;
-    if (name && !paths.has(name)) paths.set(name, dirname(path));
-  }
-
-  for (let [name, values] of Object.entries(databaseOwnerEnvironments(manifests, env))) {
-    let directory = paths.get(name);
-    if (!directory) throw new Error(`unknown database package ${JSON.stringify(name)}`);
-    environment.writeDotenv(join(directory, '.env'), values);
-  }
-};
+export { databasePackages, databaseOwnerEnvironments };
 
 export let runTurboTask = async (
   root: string,
@@ -97,32 +64,34 @@ export let prepareSelected = async (
   env: Environment,
   skipCommands: boolean
 ) => {
-  for (let loaded of selected.filter(environment.hasValues))
-    environment.writeForManifest(loaded, env);
-
   if (skipCommands) return;
-  writeDatabaseOwnerEnvironments(project.root, selected, env);
 
   let packages = databasePackages(selected);
 
-  for (let [label, task] of [
-    ['Generating selected database clients', 'control:db:generate'],
-    ['Pushing selected database schemas', 'control:db:push']
-  ]) {
-    if (!packages.length) continue;
-    console.log(label);
-
-    await runTurboTask(project.root, env, task!, packages, 3);
+  if (packages.length) {
+    commands.say('Generating selected database clients');
+    await runDatabaseScripts(project, selected, env, 'generate', { cached: true });
   }
-  console.log('Building packages');
 
-  await commands.run('bun', ['run', 'build'], project.root, env);
+  let push = async () => {
+    if (!packages.length) return;
+    commands.say('Pushing selected database schemas');
+    await runDatabaseScripts(project, selected, env, 'push', { cached: true });
+  };
+  let build = async () => {
+    commands.say('Building packages');
+    await commands.run('bun', ['run', 'build'], project.root, env);
+  };
+
+  let results = await Promise.allSettled([push(), build()]);
+  let failed = results.find(result => result.status === 'rejected');
+  if (failed) throw (failed as PromiseRejectedResult).reason;
 
   for (let loaded of selected) {
     let filter = loaded.manifest.package?.name ?? loaded.path;
 
     for (let script of loaded.manifest.prepare) {
-      console.log(`Preparing [${filter}]: turbo run ${script}`);
+      commands.say(`Preparing [${filter}]: turbo run ${script}`);
 
       await runTurboTask(project.root, environment.allForManifest(loaded, env), script, [
         filter
@@ -137,13 +106,13 @@ export let runPrepare = async (
   noDocker: boolean
 ) => {
   let { selected, env } = await selection(project, selectors);
-  if (!selected.length) throw new Error('no control.toml manifests were selected');
+  if (!selected.length) throw new Error('no control manifests were selected');
 
   if (!noDocker) {
-    console.log('Starting development services');
+    commands.say('Starting development services');
 
     await docker.start(project.root, selected, env);
-    console.log('Development services ready');
+    commands.say('Development services ready');
   }
 
   await prepareSelected(project, selected, env, false);
@@ -152,31 +121,28 @@ export let runPrepare = async (
 export let runDatabaseTask = async (
   project: ProjectRoot,
   selectors: string[],
-  task: 'generate' | 'push'
+  task: 'generate' | 'push' | 'migrate'
 ) => {
   let { selected, env } = await selection(project, selectors);
-  if (!selected.length) throw new Error('no control.toml manifests were selected');
+  if (!selected.length) throw new Error('no control manifests were selected');
 
   if (task === 'push') {
-    console.log('Starting required development database services');
+    commands.say('Starting required development database services');
 
     await docker.start(project.root, selected, env, true);
   }
 
-  await prepareSelected(project, selected, env, true);
-  writeDatabaseOwnerEnvironments(project.root, selected, env);
-
   let packages = databasePackages(selected);
   if (!packages.length) {
-    console.log('No database packages selected');
+    commands.say('No database packages selected');
 
     return;
   }
-  console.log(
-    `${task === 'generate' ? 'Generating selected database clients' : 'Pushing selected database schemas'}: ${packages.join(', ')}`
+  commands.say(
+    `${{ generate: 'Generating selected database clients', push: 'Pushing selected database schemas', migrate: 'Migrating selected databases' }[task]}: ${packages.join(', ')}`
   );
 
-  await runTurboTask(project.root, env, `control:db:${task}`, packages, 3);
+  await runDatabaseScripts(project, selected, env, task, { cached: false });
 };
 
 export let cleanupCommands = async (selected: LoadedManifest[], env: Environment) => {
@@ -187,11 +153,11 @@ export let cleanupCommands = async (selected: LoadedManifest[], env: Environment
       try {
         await commands.shell(
           command,
-          dirname(loaded.path),
+          loaded.directory,
           environment.allForManifest(loaded, env)
         );
       } catch (error) {
-        console.error(`warning: cleanup command failed in ${dirname(loaded.path)}: ${error}`);
+        commands.warn(`warning: cleanup command failed in ${loaded.directory}: ${error}`);
         firstError ??= error;
       }
     }
@@ -209,49 +175,48 @@ export let run = async (
   dryRun: boolean
 ) => {
   let { manifests, selected, env } = await selection(project, selectors, !dryRun);
-  if (!selected.length)
-    throw new Error('no control.toml manifests or run commands were selected');
+  if (!selected.length) throw new Error('no control manifests or run commands were selected');
 
   if (dryRun) {
     let packages = turbo.plan(selected, project.root, env);
-    console.log(`root: ${project.root}`);
-    console.log(
+    commands.say(`root: ${project.root}`);
+    commands.say(
       `infrastructure: ${infrastructure.serviceNames(infrastructure.requirementsFromManifests(selected)).join(', ')}`
     );
 
     if (!noPrepare) {
       let packages = databasePackages(selected).join(', ');
-      console.log(`prepare: turbo run control:db:generate (${packages})`);
-      console.log(`prepare: turbo run control:db:push (${packages})`);
-      console.log('prepare: bun run build');
+      commands.say(`prepare: turbo run control:db:generate (${packages})`);
+      commands.say(`prepare: turbo run control:db:push (${packages})`);
+      commands.say('prepare: bun run build');
     }
 
     for (let loaded of selected) {
       let filter = loaded.manifest.package?.name ?? loaded.path;
 
       for (let script of loaded.manifest.prepare)
-        console.log(`prepare [${filter}]: turbo run ${script} --filter=${filter}`);
+        commands.say(`prepare [${filter}]: turbo run ${script} --filter=${filter}`);
 
       for (let [name, run] of Object.entries(loaded.manifest.run).sort(([a], [b]) =>
         a < b ? -1 : a > b ? 1 : 0
       ))
-        console.log(`dev [${dirname(loaded.path)}:${name}]: ${run.command}`);
+        commands.say(`dev [${loaded.directory}:${name}]: ${run.command}`);
     }
-    console.log(`would generate ${packages.length} Turbo mirror package(s)`);
+    commands.say(`would generate ${packages.length} Turbo mirror package(s)`);
 
     return;
   }
 
   let managed = !!process.env.CONTROL_WORKSPACE_ID?.trim();
-  if (managed && !noDocker) console.log('Using workspace-managed development services');
+  if (managed && !noDocker) commands.say('Using workspace-managed development services');
 
   let projects: docker.ComposeProject[] = [];
 
   try {
     if (!noDocker && !managed) {
-      console.log('Starting development services');
+      commands.say('Starting development services');
       projects = await docker.start(project.root, selected, env);
-      console.log('Development services ready');
+      commands.say('Development services ready');
     }
 
     await prepareSelected(project, selected, env, noPrepare);
@@ -261,17 +226,20 @@ export let run = async (
 
     let generated = join(project.root, '.control/dev/turbo');
     turbo.generate(generated, packages);
-    console.log(`Prepared ${packages.length} run command(s)`);
+    commands.say(`Prepared ${packages.length} run command(s)`);
 
     let data = await workspace.metadata(project);
     await proxy.ensure(project, data, proxy.publicPorts(manifests, project));
 
     let unregister = await proxy.register(project, data, selected);
+    if (proxy.publicPorts(selected, project).has(proxy.mailPort))
+      commands.say(`Mail inbox: http://${data.hostname}:${proxy.mailPort}`);
     let interactive = !!(process.stdin.isTTY && process.stdout.isTTY);
     let args = [
       'run',
       'dev',
       `--ui=${interactive ? 'tui' : 'stream'}`,
+      '--env-mode=loose',
       '--continue=always',
       `--concurrency=${packages.length + 1}`,
       ...turbo.filters(packages)

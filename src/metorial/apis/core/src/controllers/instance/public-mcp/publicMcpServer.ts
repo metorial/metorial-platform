@@ -21,12 +21,12 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { toolFiltersValidator } from '../sessions/_shared';
 
 let PUBLIC_MCP_FLAG = 'public-mcp-servers-enabled' as const;
 
-let publicMcpGroup = instanceGroup.use(hasFlags([PUBLIC_MCP_FLAG]));
+let publicMcpGroup = integrationsGroup.use(hasFlags([PUBLIC_MCP_FLAG]));
 
 let publicMcpServerGroup = publicMcpGroup.use(async ctx => {
   if (!ctx.params.publicMcpServerId) {

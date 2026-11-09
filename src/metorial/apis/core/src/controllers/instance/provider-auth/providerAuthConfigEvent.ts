@@ -6,11 +6,11 @@ import { Controller } from '@metorial/rest';
 import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { isDashboardGroup } from '../../../middleware/isDashboard';
 import { providerAuthConfigEventPresenter } from '@metorial/presenters';
 
-let providerAuthConfigEventGroup = instanceGroup.use(async ctx => {
+let providerAuthConfigEventGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.providerAuthConfigEventId) {
     throw new ServiceError(
       badRequestError({
@@ -35,7 +35,7 @@ export let providerAuthConfigEventController = Controller.create(
       'Provider auth config events describe OAuth setup progress, token refreshes, and provider-side authentication lifecycle changes.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('provider-auth-config-events', 'providerAuthConfigEvents.list'), {
         name: 'List provider auth config events',
         description:

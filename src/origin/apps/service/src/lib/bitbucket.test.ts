@@ -11,6 +11,7 @@ let mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('../db', () => ({ db: mocks.db }));
+vi.mock('../env', () => ({ delegateSecretsToNebula: false }));
 vi.mock('./scmTokenRefreshLock', () => ({
   usingScmTokenRefreshLock: mocks.usingTokenRefreshLock
 }));

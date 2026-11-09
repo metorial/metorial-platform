@@ -1,5 +1,20 @@
 import { LRUCache } from 'lru-cache';
 
+let isUniqueViolation = (e: any) => e?.code === 'P2002';
+
+export let retryOnUniqueViolation = async <T>(
+  fn: () => Promise<T>,
+  attempts = 3
+): Promise<T> => {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fn();
+    } catch (e) {
+      if (attempt >= attempts || !isUniqueViolation(e)) throw e;
+    }
+  }
+};
+
 export let createEnsureRecord = <
   UniqueKey extends {},
   UpsertCreate,
@@ -26,8 +41,7 @@ export let createEnsureRecord = <
 
   return async (
     getter: () =>
-      | Omit<UpsertCreate, keyof StaticCreate>
-      | Promise<Omit<UpsertCreate, keyof StaticCreate>>,
+      Omit<UpsertCreate, keyof StaticCreate> | Promise<Omit<UpsertCreate, keyof StaticCreate>>,
     opts2?: {
       ignoreForUpdate?: (keyof UpsertCreate)[];
     }
@@ -66,11 +80,13 @@ export let createEnsureRecord = <
     }
 
     // try {
-    let res = await type.upsert({
-      where,
-      create: value,
-      update
-    });
+    let res = await retryOnUniqueViolation(async () =>
+      type.upsert({
+        where,
+        create: value,
+        update
+      })
+    );
 
     if (cache) cache.set(cacheKey!, res);
 

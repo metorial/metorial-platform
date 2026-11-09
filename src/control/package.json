@@ -17,14 +17,19 @@
   "scripts": {
     "dev": "bun ./src/main.ts",
     "test": "bun test test && node --test test/control.test.mjs",
-    "typecheck": "tsc --project tsconfig.json",
-    "lint": "prettier --check src/**/*.ts test/**/*.ts bin-files/*.mjs package.json tsconfig.json && tsc --project tsconfig.json",
+    "typecheck": "tsc --project tsconfig.json && tsc --project tsconfig.manifests.json",
+    "lint": "prettier --check src/**/*.ts test/**/*.ts bin-files/*.mjs package.json tsconfig.json && bun run typecheck",
     "format": "prettier --write src/**/*.ts test/**/*.ts bin-files/*.mjs package.json tsconfig.json"
   },
   "devDependencies": {
     "@lowerdeck/validation": "workspace:2.0.0",
     "@types/bun": "latest",
+    "@types/turndown": "^5.0.6",
     "prettier": "^3.9.10",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@opentui/core": "^0.7.0",
+    "turndown": "^7.2.4"
   }
 }

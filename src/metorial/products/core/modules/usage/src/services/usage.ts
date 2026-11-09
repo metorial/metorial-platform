@@ -1,7 +1,7 @@
 import { badRequestError, createError, ServiceError } from '@lowerdeck/error';
 import { getSentry } from '@lowerdeck/sentry';
 import { Service } from '@lowerdeck/service';
-import { USAGE_RETENTION_MS } from '../models';
+import { USAGE_RETENTION_MS } from '../constants';
 import { bufferUsageEvent } from '../lib/buffer';
 import { isUsageEnabled, usageDbConnect } from '../lib/connection';
 import { resolveUsageInterval, type UsageInterval } from '../lib/interval';

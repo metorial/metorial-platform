@@ -7,7 +7,7 @@ import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { providerTemplatePresenter } from '@metorial/presenters';
 
 let providerTemplateCreateBodyValidator = v.object({
@@ -17,7 +17,7 @@ let providerTemplateCreateBodyValidator = v.object({
   integration_id: v.string()
 });
 
-let providerTemplateGroup = instanceGroup.use(async ctx => {
+let providerTemplateGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.providerTemplateId) {
     throw new ServiceError(
       badRequestError({
@@ -43,7 +43,7 @@ export let providerTemplateController = Controller.create(
       'Provider templates are reusable, consumer-facing wrappers around integrations.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('provider-templates', 'providerTemplates.list'), {
         name: 'List provider templates',
         description: 'Returns a paginated list of provider templates.'
@@ -112,7 +112,7 @@ export let providerTemplateController = Controller.create(
         });
       }),
 
-    create: instanceGroup
+    create: integrationsGroup
       .post(instancePath('provider-templates', 'providerTemplates.create'), {
         name: 'Create provider template',
         description: 'Creates a new provider template from an existing integration.'

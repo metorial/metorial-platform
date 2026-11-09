@@ -1,4 +1,4 @@
-import { createHono } from '@lowerdeck/hono';
+import { createHono, createStaticAssetResponse } from '@lowerdeck/hono';
 import path, { join } from 'path';
 import { env } from '../../../env';
 import { adminAppClientId } from '../../../lib/adminApp';
@@ -32,23 +32,22 @@ export let publicApp = app
     let key = c.req.param('key*');
 
     let targetPath = path.resolve(assetsDir, key);
-    if (!targetPath.startsWith(assetsDir)) return c.text('Forbidden', 403);
+    if (!targetPath.startsWith(`${assetsDir}${path.sep}`)) return c.text('Forbidden', 403);
 
     let bunFile = Bun.file(targetPath);
     if (!(await bunFile.exists())) return c.text('Not Found', 404);
 
-    return c.body(await bunFile.arrayBuffer(), {
-      headers: {
-        'Content-Type': bunFile.type || 'application/octet-stream',
-        'Cache-Control': 'public, max-age=31536000, immutable'
-      }
+    return createStaticAssetResponse(c.req.raw, targetPath, {
+      contentType: bunFile.type || 'application/octet-stream'
     });
   })
   .get('*', async c => {
+    c.header('Cache-Control', 'no-store');
+
     let preload = {
       adminAppClientId,
       authUrl: env.service.ARES_AUTH_URL,
-      adminUrl: env.service.ARES_ADMIN_URL
+      adminUrl: env.service.ARES_ADMIN_URL!
     };
 
     return c.html(

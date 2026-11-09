@@ -10,6 +10,18 @@ updates:
       default-days: 7
     open-pull-requests-limit: 10
     ignore:
+      # Bun's updater cannot change the root overrides for these workspace dependencies.
+      # Update their manifests and overrides together; keep security updates enabled.
+      - dependency-name: '@tiptap/*'
+        update-types:
+          - 'version-update:semver-major'
+          - 'version-update:semver-minor'
+          - 'version-update:semver-patch'
+      - dependency-name: 'protobufjs'
+        update-types:
+          - 'version-update:semver-major'
+          - 'version-update:semver-minor'
+          - 'version-update:semver-patch'
       # htmlparser2 >= 9 parses deeply nested untrusted HTML in superlinear time
       # (see the linear-time test in @metorial/module-web).
       - dependency-name: 'htmlparser2'

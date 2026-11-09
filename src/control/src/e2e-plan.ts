@@ -1,4 +1,5 @@
-import { join, dirname, resolve } from 'node:path';
+import { existsSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { readJson, sortedEntries, sortJson } from './files';
 import { discoverPackages, globMatch, relativePath, wildcard } from './packages';
 import * as manifest from './manifest';
@@ -31,6 +32,7 @@ export interface Plan extends RunnerPlan {
   postgres: Database[];
   mongo: Database[];
   objectStorage: boolean;
+  objectStorageImage?: string;
 }
 
 export let serializedPlan = (plan: Plan): RunnerPlan => {
@@ -38,6 +40,7 @@ export let serializedPlan = (plan: Plan): RunnerPlan => {
     postgres: _postgres,
     mongo: _mongo,
     objectStorage: _objectStorage,
+    objectStorageImage: _objectStorageImage,
     ...serialized
   } = plan;
 
@@ -94,6 +97,20 @@ export let readImages = (directory: string, manifests: LoadedManifest[]) => {
   return images;
 };
 
+export let readObjectStorageImage = (directory: string) => {
+  let path = join(directory, 'object-store.json');
+  if (!existsSync(path)) return undefined;
+
+  let artifact = readJson<{ name: string; image: string }>(path);
+  if (artifact.name !== 'object-store' || typeof artifact.image !== 'string')
+    throw new Error(`invalid tested image artifact ${path}`);
+
+  if (process.env.GITHUB_ACTIONS === 'true' && !isPinnedImage(artifact.image))
+    throw new Error(`${path}: image must be a digest-pinned ghcr.io/metorial reference`);
+
+  return artifact.image;
+};
+
 export let buildPlan = (
   project: ProjectRoot,
   manifests: LoadedManifest[],
@@ -118,7 +135,7 @@ export let buildPlan = (
 
       for (let pattern of loaded.manifest.e2e.tests) {
         let matched = packages.filter(item =>
-          globMatch(resolve(dirname(loaded.path), pattern), item.directory)
+          globMatch(resolve(loaded.directory, pattern), item.directory)
         );
         if (!matched.length)
           throw new Error(
@@ -229,7 +246,7 @@ export let buildPlan = (
 
     return {
       name,
-      directory: relativePath(project.root, dirname(loaded.path)),
+      directory: relativePath(project.root, loaded.directory),
       start: e2e.start,
       ...(images && e2e.image ? { image: images[e2e.image]! } : {}),
       env: {
@@ -240,6 +257,9 @@ export let buildPlan = (
       health
     };
   };
+  let objectStorage = suts.some(item =>
+    item.manifest.e2e.resources.some(resource => resource.type === 'object-storage')
+  );
   let dependencyServices = dependencies.map(loaded => service(loaded, 'dependency'));
   let sutServices = suts.map(loaded => service(loaded, 'system under test'));
   let endpoints = JSON.stringify(
@@ -275,7 +295,11 @@ export let buildPlan = (
       name: sutServices[index]!.name,
       tests: item.tests,
       services,
-      env: { ...sutServices[index]!.env, CONTROL_E2E_ENDPOINTS: endpoints }
+      env: {
+        ...sutServices[index]!.env,
+        CONTROL_E2E_ENDPOINTS: endpoints,
+        ...(mode === 'images' ? { CONTROL_E2E_BUILT: '1' } : {})
+      }
     };
   });
   let files: Record<string, Environment> = {};
@@ -357,9 +381,10 @@ export let buildPlan = (
     stacks: plannedStacks,
     postgres: databases('postgres'),
     mongo: databases('mongo'),
-    objectStorage: suts.some(item =>
-      item.manifest.e2e.resources.some(resource => resource.type === 'object-storage')
-    )
+    objectStorage,
+    ...(objectStorage && options.images !== undefined
+      ? { objectStorageImage: readObjectStorageImage(options.images) }
+      : {})
   };
 };
 

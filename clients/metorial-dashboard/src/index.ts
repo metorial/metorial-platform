@@ -17,3 +17,5 @@ export type ApiKeysCreateBody = DashboardOrganizationsApiKeysCreateBody;
 export type ApiKeysGetOutput = DashboardOrganizationsApiKeysGetOutput;
 export type ApiKeysUpdateBody = DashboardOrganizationsApiKeysUpdateBody;
 export type ApiKeysListQuery = DashboardOrganizationsApiKeysListQuery;
+
+export type { OnPremScmProviderType } from './onPremScm';

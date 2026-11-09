@@ -195,7 +195,8 @@ import { EnrichedConsumerSurface } from '@metorial/module-consumer-core';
 import {
   ConsumerActivityAgent,
   ConsumerActivitySessionConnection,
-  ConsumerProviderCatalogEntry
+  ConsumerProviderCatalogEntry,
+  SkillMcpAvailability
 } from '@metorial/module-consumer-entities';
 import { Flags } from '@metorial/module-flags';
 import type {
@@ -1513,10 +1514,24 @@ export let oauthAuthorizationType = PresentableType.create<{
   };
 }>()('oauth_authorization');
 
-export let consumerOAuthAuthorizationType = PresentableType.create<{
-  oauthAuthorization: OAuthAuthorization & {
-    oauthApplication: OAuthApplication;
+export type ConsumerOAuthAuthorizationView = {
+  id: string;
+  status: 'active' | 'revoked';
+  scopes: string[];
+  oauthApplication: {
+    id: string;
+    name: string;
+    description: string | null;
+    websiteUrl: string | null;
+    image: PrismaJson.EntityImage | null;
   };
+  lastUsedAt: Date | null;
+  revokedAt: Date | null;
+  createdAt: Date;
+};
+
+export let consumerOAuthAuthorizationType = PresentableType.create<{
+  oauthAuthorization: ConsumerOAuthAuthorizationView;
 }>()('consumer_oauth_authorization');
 
 export let oauthAuthorizationRequestType = PresentableType.create<{
@@ -1692,6 +1707,7 @@ export let storePermissionsType = PresentableType.create<{
   permissions: {
     storeId: string;
     hasFullAccess: boolean;
+    canManageAccess: boolean;
     permissions: ('content_read' | 'content_write')[];
     relevantStoreIds: string[];
     readableStoreIds: string[];
@@ -1841,6 +1857,11 @@ export let skillFileChangeType = PresentableType.create<{
 export let skillContentPreviewType = PresentableType.create<{
   skillContentPreview: SkillContentPreview;
 }>()('skillContentPreview');
+
+export let skillMcpAvailabilityType = PresentableType.create<{
+  skillMcpAvailability: SkillMcpAvailability;
+  skill: { id: string };
+}>()('skillMcpAvailability');
 
 export let skillConfigurationType = PresentableType.create<{
   skillConfiguration: SkillConfiguration;
@@ -2110,7 +2131,10 @@ export let skillParticipantType = PresentableType.create<{
         skill: Skill;
         resourceActor: ResourceActorPresentationRecord;
       })
-    | (StoreResourceParticipantPresentationRecord & { skill: Skill });
+    | (StoreResourceParticipantPresentationRecord & {
+        skill: Skill;
+        hasOrganizationMemberAccess?: boolean;
+      });
 }>()('skillParticipant');
 
 export let skillVersionType = PresentableType.create<{
@@ -2376,6 +2400,10 @@ export let magicMcpEndpointType = PresentableType.create<{
         ownerActor: MagicMcpServerOwnerActor;
       };
     })[];
+    skillSelections: {
+      skill: { id: string } | null;
+      skillGroup: { id: string } | null;
+    }[];
   };
   portal?: Portal | null;
 }>()('magic_mcp.endpoint');
@@ -2410,6 +2438,10 @@ export let magicMcpSessionType = PresentableType.create<{
               })[];
             };
           })[];
+          skillSelections: {
+            skill: { id: string } | null;
+            skillGroup: { id: string } | null;
+          }[];
         })
       | null;
     consumerIntegrationSessions: (ConsumerIntegrationSession & {

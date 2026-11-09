@@ -6,9 +6,10 @@ import {
   expectOk,
   rest,
   SESSION_COOKIE,
+  sessionCookieName,
   type RestClient
 } from './api';
-import { metorialEndpoints } from './env';
+import { isRemoteE2E, metorialEndpoints, remoteProvisioning } from './env';
 
 export interface BootstrappedUser {
   id: string;
@@ -47,17 +48,51 @@ export let readSessionCookie = (headers: Headers) => {
     let [pair = ''] = cookie.split(';');
     let separator = pair.indexOf('=');
     if (separator === -1) continue;
-    if (pair.slice(0, separator).trim() === SESSION_COOKIE) {
+    if (pair.slice(0, separator).trim() === sessionCookieName()) {
       return decodeURIComponent(pair.slice(separator + 1).trim());
     }
   }
   return null;
 };
 
+interface RemoteOrganization {
+  user: { id: string; name: string; email: string };
+  session: { cookie_name: string; token: string };
+  organization_id: string;
+  project_id: string;
+  instance_id: string;
+  keys: { management: string; instance_secret: string };
+}
+
+/**
+ * Remote stacks have no password signup and no in-process access, so a provisioning endpoint
+ * of the stack creates the user, a session, an organization, a project and both API keys.
+ */
+let provisionRemoteOrganization = async (name?: string): Promise<RemoteOrganization> => {
+  let { url, token } = remoteProvisioning();
+  let response = await fetch(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+    body: JSON.stringify(name ? { name } : {})
+  });
+  if (!response.ok) {
+    throw new Error(`Remote provisioning failed (${response.status}): ${await response.text()}`);
+  }
+
+  let body = (await response.json()) as RemoteOrganization;
+  process.env.METORIAL_E2E_SESSION_COOKIE = body.session.cookie_name;
+  return body;
+};
+
 /** Signs a fresh user up through the OSS auth API and returns its dashboard session. */
 export let bootstrapUser = async (
   input: { name?: string; email?: string; password?: string } = {}
 ): Promise<BootstrappedUser> => {
+  if (isRemoteE2E()) {
+    let { user, session } = await provisionRemoteOrganization();
+    return { ...user, password: '', session: session.token };
+  }
+
   let api = rest(metorialEndpoints().api);
   let name = input.name ?? uniqueId('E2E User');
   let email = input.email ?? `${uniqueId('user')}@e2e.metorial.test`;
@@ -66,7 +101,7 @@ export let bootstrapUser = async (
   let signup = await api.post('/_/auth/signup', { name, email, password });
   expectOk(signup);
   let session = readSessionCookie(signup.headers);
-  if (!session) throw new Error(`Signup did not set the ${SESSION_COOKIE} cookie`);
+  if (!session) throw new Error(`Signup did not set the ${sessionCookieName()} cookie`);
 
   let user = expectOk(await api.with({ session }).get('/user'));
   return { id: user.id, name, email, password, session };
@@ -99,6 +134,43 @@ let createManagementKey = async (ids: { organizationId: string; userId: string }
 export let bootstrapOrganization = async (
   input: { user?: BootstrappedUser; name?: string } = {}
 ): Promise<BootstrappedOrganization> => {
+  if (isRemoteE2E()) {
+    if (input.user) {
+      throw new Error(
+        'bootstrapOrganization({ user }) is not available when running against a remote stack.'
+      );
+    }
+
+    let remote = await provisionRemoteOrganization(input.name);
+    let api = metorialEndpoints().api;
+    let session = remote.session.token;
+
+    return {
+      ids: {
+        userId: remote.user.id,
+        organizationId: remote.organization_id,
+        projectId: remote.project_id,
+        instanceId: remote.instance_id
+      },
+      user: { ...remote.user, password: '', session },
+      session,
+      keys: { management: remote.keys.management, instanceSecret: remote.keys.instance_secret },
+      clients: {
+        rest: rest(api, { session, organizationId: remote.organization_id }),
+        management: rest(api, { apiKey: remote.keys.management }),
+        instance: rest(api, {
+          apiKey: remote.keys.instance_secret,
+          version: API_VERSIONS.magnetar
+        }),
+        dashboard: dashboardSdk({
+          session,
+          organizationId: remote.organization_id,
+          instanceId: remote.instance_id
+        })
+      }
+    };
+  }
+
   let api = metorialEndpoints().api;
   let user = input.user ?? (await bootstrapUser());
   let session = rest(api, { session: user.session });

@@ -1,9 +1,6 @@
 import { Service } from '@lowerdeck/service';
 import type { Tenant } from '@metorial-subspace/db';
-import {
-  type MetorialFacing,
-  resolveMetorialFacing
-} from '@metorial-subspace/module-tenant';
+import { type MetorialFacing, resolveMetorialFacing } from '@metorial-subspace/module-tenant';
 import {
   getTenantForOrigin,
   normalizeScmProviderSetupSession,
@@ -16,7 +13,13 @@ type GetScmProviderSetupSessionByIdParams = {
 };
 
 type CreateScmProviderSetupSessionParams = {
-  type: 'github_enterprise' | 'gitlab_selfhosted' | 'bitbucket_data_center';
+  type:
+    | 'github'
+    | 'github_enterprise'
+    | 'gitlab'
+    | 'gitlab_selfhosted'
+    | 'bitbucket'
+    | 'bitbucket_data_center';
 };
 
 class scmProviderSetupSessionServiceImpl {
@@ -44,9 +47,7 @@ class scmProviderSetupSessionServiceImpl {
     );
   }
 
-  async createScmProviderSetupSession(
-    d: MetorialFacing<CreateScmProviderSetupSessionParams>
-  ) {
+  async createScmProviderSetupSession(d: MetorialFacing<CreateScmProviderSetupSessionParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 

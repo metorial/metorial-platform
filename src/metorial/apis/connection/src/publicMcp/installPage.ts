@@ -1,3 +1,4 @@
+import { checkEdition } from '@metorial/editions';
 import { Context } from '@lowerdeck/hono';
 import { createHash } from 'node:crypto';
 import { html, raw } from 'hono/html';
@@ -7,6 +8,27 @@ import { publicMcpInstallStyles } from './installPageStyles';
 
 let scriptHash = createHash('sha256').update(publicMcpInstallScript).digest('base64');
 let styleHash = createHash('sha256').update(publicMcpInstallStyles).digest('base64');
+
+let hostedByFooter = checkEdition('cloud')
+  ? html`<footer>
+      Hosted by
+      <a href="https://metorial.com" target="_blank" rel="noopener noreferrer">Metorial</a>
+      ·
+      <a
+        href="https://metorial.com/legal/terms-of-service"
+        target="_blank"
+        rel="noopener noreferrer"
+        >Terms</a
+      >
+      ·
+      <a
+        href="https://metorial.com/legal/privacy-policy"
+        target="_blank"
+        rel="noopener noreferrer"
+        >Privacy</a
+      >
+    </footer>`
+  : html``;
 
 let renderDocument = (
   c: Context,
@@ -39,29 +61,7 @@ let renderDocument = (
               </svg>
               <span>Metorial</span>
             </div>
-            <main>
-              ${d.body}
-              <footer>
-                Hosted by
-                <a href="https://metorial.com" target="_blank" rel="noopener noreferrer"
-                  >Metorial</a
-                >
-                ·
-                <a
-                  href="https://metorial.com/legal/terms-of-service"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  >Terms</a
-                >
-                ·
-                <a
-                  href="https://metorial.com/legal/privacy-policy"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  >Privacy</a
-                >
-              </footer>
-            </main>
+            <main>${d.body} ${hostedByFooter}</main>
           </div>
           ${d.interactive ? raw('<script>' + publicMcpInstallScript + '</script>') : ''}
         </body>

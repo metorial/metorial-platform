@@ -1,7 +1,7 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
 export type ManagementInstanceSkillsParticipantsListOutput = {
-  items: {
+  items: ({
     object: 'skill.participant';
     id: string;
     skillId: string;
@@ -161,7 +161,7 @@ export type ManagementInstanceSkillsParticipantsListOutput = {
     lastActiveAt: Date | null;
     createdAt: Date;
     updatedAt: Date;
-  }[];
+  } & { hasOrganizationMemberAccess: boolean })[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
@@ -170,76 +170,93 @@ export let mapManagementInstanceSkillsParticipantsListOutput =
     [
       7,
       [
-        1,
+        3,
         [
-          'skill_id',
           [
-            'actor',
             0,
             [
               1,
               [
-                'image_url',
+                'skill_id',
                 [
-                  'organization_actor',
-                  1,
+                  'actor',
+                  0,
                   [
                     1,
                     [
-                      'organization_id',
                       'image_url',
                       [
-                        'teams',
-                        0,
-                        [2, [1, ['assignment_id', 'created_at', 'updated_at']]]
-                      ],
-                      'created_at',
-                      'updated_at'
-                    ]
-                  ]
-                ],
-                [
-                  'consumer',
-                  0,
-                  [1, ['image_url', 'user_id', 'created_at', 'updated_at']]
-                ],
-                [
-                  'consumer_profile',
-                  1,
-                  [
-                    3,
-                    [
-                      [
-                        0,
+                        'organization_actor',
+                        1,
                         [
                           1,
                           [
+                            'organization_id',
                             'image_url',
-                            'consumer_id',
-                            'user_id',
-                            'created_at',
-                            'updated_at',
                             [
-                              'groups',
+                              'teams',
                               0,
                               [
                                 2,
                                 [
                                   1,
+                                  ['assignment_id', 'created_at', 'updated_at']
+                                ]
+                              ]
+                            ],
+                            'created_at',
+                            'updated_at'
+                          ]
+                        ]
+                      ],
+                      [
+                        'consumer',
+                        0,
+                        [
+                          1,
+                          ['image_url', 'user_id', 'created_at', 'updated_at']
+                        ]
+                      ],
+                      [
+                        'consumer_profile',
+                        1,
+                        [
+                          3,
+                          [
+                            [
+                              0,
+                              [
+                                1,
+                                [
+                                  'image_url',
+                                  'consumer_id',
+                                  'user_id',
+                                  'created_at',
+                                  'updated_at',
                                   [
+                                    'groups',
+                                    0,
                                     [
-                                      'group',
-                                      0,
+                                      2,
                                       [
                                         1,
                                         [
-                                          'is_default',
-                                          'created_at',
-                                          'updated_at'
+                                          [
+                                            'group',
+                                            0,
+                                            [
+                                              1,
+                                              [
+                                                'is_default',
+                                                'created_at',
+                                                'updated_at'
+                                              ]
+                                            ]
+                                          ],
+                                          'assigned_via'
                                         ]
                                       ]
-                                    ],
-                                    'assigned_via'
+                                    ]
                                   ]
                                 ]
                               ]
@@ -249,98 +266,103 @@ export let mapManagementInstanceSkillsParticipantsListOutput =
                       ]
                     ]
                   ]
-                ]
-              ]
-            ]
-          ],
-          [
-            'surfaces',
-            0,
-            [
-              2,
-              [
-                1,
+                ],
                 [
+                  'surfaces',
+                  0,
                   [
-                    'actor',
-                    0,
+                    2,
                     [
                       1,
                       [
-                        'image_url',
                         [
-                          'organization_actor',
-                          1,
-                          [
-                            1,
-                            [
-                              'organization_id',
-                              'image_url',
-                              [
-                                'teams',
-                                0,
-                                [
-                                  2,
-                                  [
-                                    1,
-                                    [
-                                      'assignment_id',
-                                      'created_at',
-                                      'updated_at'
-                                    ]
-                                  ]
-                                ]
-                              ],
-                              'created_at',
-                              'updated_at'
-                            ]
-                          ]
-                        ],
-                        [
-                          'consumer',
+                          'actor',
                           0,
                           [
                             1,
-                            ['image_url', 'user_id', 'created_at', 'updated_at']
-                          ]
-                        ],
-                        [
-                          'consumer_profile',
-                          1,
-                          [
-                            3,
                             [
+                              'image_url',
                               [
-                                0,
+                                'organization_actor',
+                                1,
                                 [
                                   1,
                                   [
+                                    'organization_id',
                                     'image_url',
-                                    'consumer_id',
-                                    'user_id',
-                                    'created_at',
-                                    'updated_at',
                                     [
-                                      'groups',
+                                      'teams',
                                       0,
                                       [
                                         2,
                                         [
                                           1,
                                           [
+                                            'assignment_id',
+                                            'created_at',
+                                            'updated_at'
+                                          ]
+                                        ]
+                                      ]
+                                    ],
+                                    'created_at',
+                                    'updated_at'
+                                  ]
+                                ]
+                              ],
+                              [
+                                'consumer',
+                                0,
+                                [
+                                  1,
+                                  [
+                                    'image_url',
+                                    'user_id',
+                                    'created_at',
+                                    'updated_at'
+                                  ]
+                                ]
+                              ],
+                              [
+                                'consumer_profile',
+                                1,
+                                [
+                                  3,
+                                  [
+                                    [
+                                      0,
+                                      [
+                                        1,
+                                        [
+                                          'image_url',
+                                          'consumer_id',
+                                          'user_id',
+                                          'created_at',
+                                          'updated_at',
+                                          [
+                                            'groups',
+                                            0,
                                             [
-                                              'group',
-                                              0,
+                                              2,
                                               [
                                                 1,
                                                 [
-                                                  'is_default',
-                                                  'created_at',
-                                                  'updated_at'
+                                                  [
+                                                    'group',
+                                                    0,
+                                                    [
+                                                      1,
+                                                      [
+                                                        'is_default',
+                                                        'created_at',
+                                                        'updated_at'
+                                                      ]
+                                                    ]
+                                                  ],
+                                                  'assigned_via'
                                                 ]
                                               ]
-                                            ],
-                                            'assigned_via'
+                                            ]
                                           ]
                                         ]
                                       ]
@@ -350,19 +372,20 @@ export let mapManagementInstanceSkillsParticipantsListOutput =
                               ]
                             ]
                           ]
-                        ]
+                        ],
+                        'last_active_at',
+                        'created_at'
                       ]
                     ]
-                  ],
-                  'last_active_at',
-                  'created_at'
-                ]
+                  ]
+                ],
+                'last_active_at',
+                'created_at',
+                'updated_at',
+                'has_organization_member_access'
               ]
             ]
-          ],
-          'last_active_at',
-          'created_at',
-          'updated_at'
+          ]
         ]
       ]
     ],

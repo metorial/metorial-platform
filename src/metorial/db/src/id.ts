@@ -169,6 +169,7 @@ export let ID = createIdGenerator({
 
   magicMcpServer: idType.sorted('mgsr'),
   magicMcpEndpoint: idType.sorted('mgep'),
+  magicMcpEndpointSkillSelection: idType.sorted('mgsks'),
   magicMcpServerSubspaceSession: idType.sorted('mgss'),
   magicMcpSession: idType.sorted('mgsn'),
   magicMcpToken: idType.sorted('mgtk'),

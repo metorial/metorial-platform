@@ -1,3 +1,4 @@
+import { MetorialOnPremScmEndpoint } from './onPremScm';
 import { createFetchWithRetry } from '@metorial/fetch';
 import { MetorialEndpointManager, MetorialSDKError } from '@metorial/util-endpoint';
 import { MetorialAuthEndpoint } from './auth';
@@ -159,6 +160,7 @@ import {
   MetorialDashboardInstanceSkillsGroupsItemsEndpoint,
   MetorialDashboardInstanceSkillsImportsEndpoint,
   MetorialDashboardInstanceSkillsItemsEndpoint,
+  MetorialDashboardInstanceSkillsMcpAvailabilityEndpoint,
   MetorialDashboardInstanceSkillsMarketplacesEndpoint,
   MetorialDashboardInstanceSkillsMarketplacesPluginsEndpoint,
   MetorialDashboardInstanceSkillsMarketplacesRepositoriesEndpoint,
@@ -833,19 +835,26 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
 
         notifyUploadProgress(input.onProgress, 0, input.file.size);
 
+        let storageHeaders: Record<string, string> = {
+          ...(pending.upload.headers ?? {}),
+          ...(input.file.type ? { 'Content-Type': input.file.type } : {})
+        };
+        let uploadHeaders =
+          Object.keys(storageHeaders).length > 0 ? storageHeaders : undefined;
+
         let uploaded = input.onProgress
           ? await sendWithUploadProgress({
               url: pending.upload.url,
               method: pending.upload.method ?? 'PUT',
               body: input.file,
-              headers: input.file.type ? { 'Content-Type': input.file.type } : undefined,
+              headers: uploadHeaders,
               signal: input.signal,
               onProgress: input.onProgress
             })
           : await fetch(pending.upload.url, {
               method: pending.upload.method ?? 'PUT',
               body: input.file,
-              ...(input.file.type ? { headers: { 'Content-Type': input.file.type } } : {}),
+              ...(uploadHeaders ? { headers: uploadHeaders } : {}),
               cache: 'no-cache',
               mode: 'cors',
               signal: input.signal
@@ -932,6 +941,7 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     contentPreviews: new MetorialDashboardInstanceSkillsContentPreviewsEndpoint(manager),
     forkSyncs: new MetorialDashboardInstanceSkillsForkSyncsEndpoint(manager),
     items: new MetorialDashboardInstanceSkillsItemsEndpoint(manager),
+    mcpAvailability: new MetorialDashboardInstanceSkillsMcpAvailabilityEndpoint(manager),
     mergeRequests: Object.assign(
       new MetorialDashboardInstanceSkillsMergeRequestsEndpoint(manager),
       {
@@ -1267,6 +1277,7 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   }),
 
   scm: {
+    onPrem: new MetorialOnPremScmEndpoint(manager),
     installation: new MetorialDashboardInstanceScmInstallationEndpoint(manager),
     repos: new MetorialDashboardInstanceScmReposEndpoint(manager),
     accounts: new MetorialDashboardInstanceScmAccountsEndpoint(manager),

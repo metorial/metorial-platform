@@ -3,7 +3,13 @@ import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { atomicWrite, readJson, writeJson } from '../src/files';
 import { writeMetadata } from '../src/workspace';
-import { executable, packageFixture, temporary, workspaceData } from './helpers';
+import {
+  executable,
+  packageFixture,
+  temporary,
+  workspaceData,
+  writeManifest
+} from './helpers';
 
 let main = resolve(import.meta.dir, '../src/main.ts');
 
@@ -28,7 +34,7 @@ let fixture = async () => {
   mkdirSync(bin);
 
   let log = join(root, 'commands.jsonl');
-  let stub = `let fs=await import('node:fs');let args=process.argv.slice(2);fs.appendFileSync(process.env.CONTROL_TEST_LOG,JSON.stringify({program:process.argv[1].split('/').pop(),args,cwd:process.cwd(),value:process.env.VALUE})+'\\n');if(process.env.CONTROL_FAIL_TASK && args.includes(process.env.CONTROL_FAIL_TASK))process.exit(7);`;
+  let stub = `let fs=await import('node:fs');let args=process.argv.slice(2);fs.appendFileSync(process.env.CONTROL_TEST_LOG,JSON.stringify({program:process.argv[1].split('/').pop(),args,cwd:process.cwd(),value:process.env.VALUE,databaseUrl:process.env.DATABASE_URL})+'\\n');if(process.env.CONTROL_FAIL_TASK && args.includes(process.env.CONTROL_FAIL_TASK))process.exit(7);`;
 
   for (let name of ['bun', 'docker', 'code']) executable(bin, name, stub);
   mkdirSync(join(root, 'node_modules/.bin'), { recursive: true });
@@ -54,7 +60,13 @@ let fixture = async () => {
 
     return { stdout, stderr, code };
   };
-  let calls = (): { program: string; args: string[]; cwd: string; value?: string }[] =>
+  let calls = (): {
+    program: string;
+    args: string[];
+    cwd: string;
+    value?: string;
+    databaseUrl?: string;
+  }[] =>
     existsSync(log)
       ? readFileSync(log, 'utf8')
           .trim()
@@ -65,6 +77,54 @@ let fixture = async () => {
 
   return { root, run, calls };
 };
+
+test('docker reset refuses to delete data without confirmation and previews with --dry-run', async () => {
+  let value = await fixture();
+  packageFixture(
+    value.root,
+    'src/db',
+    'db',
+    "name='db'\n[docker]\ncompose=['docker-compose.yml']\nservices=['postgres']",
+    {}
+  );
+
+  let refused = await value.run(['docker', 'reset']);
+  expect(refused.code).toBe(1);
+  expect(refused.stderr).toContain('--yes');
+  expect(value.calls().filter(call => call.program === 'docker')).toHaveLength(0);
+
+  let preview = await value.run(['docker', 'reset', '--dry-run']);
+  expect(preview.code).toBe(0);
+  expect(preview.stdout).toContain('would run: docker compose');
+  expect(preview.stdout).toContain('down --volumes --remove-orphans');
+  expect(value.calls().filter(call => call.program === 'docker')).toHaveLength(0);
+});
+
+test('docker reset removes declared Compose services together with their volumes', async () => {
+  let value = await fixture();
+  packageFixture(
+    value.root,
+    'src/db',
+    'db',
+    "name='db'\n[docker]\ncompose=['docker-compose.yml']\nservices=['postgres']",
+    {}
+  );
+
+  let result = await value.run(['docker', 'reset', '--yes']);
+  expect(result.code, result.stderr).toBe(0);
+
+  let [call] = value.calls().filter(call => call.program === 'docker');
+  expect(call?.args).toEqual(
+    expect.arrayContaining([
+      '--file',
+      join(value.root, 'src/db/docker-compose.yml'),
+      'down',
+      '--volumes',
+      '--remove-orphans'
+    ])
+  );
+  expect(call?.args).not.toContain('stop');
+});
 
 test('prepare writes environments then runs root build and package preparation with isolated values', async () => {
   let value = await fixture();
@@ -78,11 +138,16 @@ test('prepare writes environments then runs root build and package preparation w
     ['run', 'build'],
     ['run', 'bundle']
   ]);
-  expect(calls[1]!.args).toEqual(['run', 'bundle', '--ui=stream', '--filter', 'api']);
+  expect(calls[1]!.args).toEqual([
+    'run',
+    'bundle',
+    '--ui=stream',
+    '--env-mode=loose',
+    '--filter',
+    'api'
+  ]);
   expect(calls[1]!.value).toBe('test $& value');
-  expect(readFileSync(join(value.root, 'src/api/.env'), 'utf8')).toContain(
-    "VALUE='test $& value'"
-  );
+  expect(existsSync(join(value.root, 'src/api/.env'))).toBe(false);
 });
 
 test('unit filters pass unchanged with no setup commands', async () => {
@@ -95,6 +160,7 @@ test('unit filters pass unchanged with no setup commands', async () => {
     'run',
     'test',
     '--ui=stream',
+    '--env-mode=loose',
     '--concurrency=1',
     '--filter',
     '@x/hash',
@@ -132,7 +198,7 @@ test('run lists scripts without Bun and forwards arguments from invoking subdire
 
 test('development generates Turbo workspace, unregisters proxy and executes cleanup', async () => {
   let value = await fixture();
-  let result = await value.run(['dev', '--no-docker', '--no-prepare']);
+  let result = await value.run(['dev', '--foreground', '--no-docker', '--no-prepare']);
 
   expect(result.code).toBe(0);
 
@@ -142,6 +208,7 @@ test('development generates Turbo workspace, unregisters proxy and executes clea
     'run',
     'dev',
     '--ui=stream',
+    '--env-mode=loose',
     '--continue=always',
     '--concurrency=2',
     '--filter',
@@ -154,7 +221,7 @@ test('development generates Turbo workspace, unregisters proxy and executes clea
 
 test('failed preparation does not start application processes', async () => {
   let value = await fixture();
-  let result = await value.run(['dev', '--no-docker'], value.root, {
+  let result = await value.run(['dev', '--foreground', '--no-docker'], value.root, {
     CONTROL_FAIL_TASK: 'bundle'
   });
 
@@ -163,30 +230,30 @@ test('failed preparation does not start application processes', async () => {
   expect(existsSync(join(value.root, '.control/dev/turbo'))).toBe(false);
 });
 
-test('database generation targets selected owners without starting Docker', async () => {
+test('database generation runs selected owners directly without starting Docker', async () => {
   let value = await fixture();
   packageFixture(value.root, 'src/db', 'db', undefined, {
+    'control:db:generate': 'prisma generate',
+    'control:db:push': 'true'
+  });
+  packageFixture(value.root, 'src/noop', 'noop', undefined, {
     'control:db:generate': 'true',
     'control:db:push': 'true'
   });
-  atomicWrite(
-    join(value.root, 'src/api/control.toml'),
-    "name='api'\n[dev.db.main]\nname='app'\nengine='postgres'\nenv='DATABASE_URL'\npackage='db'"
+  writeManifest(
+    join(value.root, 'src/api'),
+    "name='api'\n[dev.db.main]\nname='app'\nengine='postgres'\nenv='DATABASE_URL'\npackage='db'\n[dev.db.other]\nname='other'\nengine='postgres'\nenv='OTHER_URL'\npackage='noop'"
   );
 
   let result = await value.run(['db', 'generate', 'api']);
 
   expect(result.code).toBe(0);
   expect(value.calls()).toHaveLength(1);
-  expect(value.calls()[0]!.args).toEqual([
-    'run',
-    'control:db:generate',
-    '--ui=stream',
-    '--concurrency=3',
-    '--filter',
-    'db'
-  ]);
-  expect(readFileSync(join(value.root, 'src/db/.env'), 'utf8')).toContain('/app');
+  expect(value.calls()[0]!.program).toBe('bun');
+  expect(value.calls()[0]!.args).toEqual(['run', 'control:db:generate']);
+  expect(value.calls()[0]!.cwd).toEndWith('src/db');
+  expect(value.calls()[0]!.databaseUrl).toContain('/app');
+  expect(existsSync(join(value.root, 'src/db/.env'))).toBe(false);
 });
 
 test('workspace lifecycle forwards host stop and rejects Docker-only rebuild', async () => {
@@ -287,8 +354,8 @@ test('failed host initialization rolls back the worktree and newly created branc
 
 test('image E2E execution starts services in order, probes health, captures logs and cleans up on failure', async () => {
   let value = await fixture();
-  atomicWrite(
-    join(value.root, 'src/api/control.toml'),
+  writeManifest(
+    join(value.root, 'src/api'),
     "name='api'\n[endpoints.http]\nport=52001\nhealth='/ready'\n[e2e]\nimage='api'\ntests=['../tests']"
   );
   packageFixture(value.root, 'src/tests', 'api-tests', undefined, { 'test:e2e': 'true' });

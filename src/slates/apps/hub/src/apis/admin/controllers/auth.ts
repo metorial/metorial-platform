@@ -1,6 +1,6 @@
 import { v } from '@lowerdeck/validation';
 import { isDevOnlyEnabled } from '../../../lib/isDevOnly';
-import { adminAuthService } from '../../../services';
+import { adminAuthService } from '../../../services/adminAuth';
 import { app, authedApp } from './_app';
 
 let ADMIN_SESSION_COOKIE = 'slates_admin_session';

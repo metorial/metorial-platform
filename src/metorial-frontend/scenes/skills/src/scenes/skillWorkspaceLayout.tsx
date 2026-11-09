@@ -79,6 +79,7 @@ import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useOutlet } from 'react-router-dom';
 import styled from 'styled-components';
+import { SkillMcpLimitsBadge } from '../components/skillMcpLimitsBadge';
 import { SkillSharePopover, type SkillSharePanelContext } from '../components/skillSharePanel';
 import {
   PanelColumn,
@@ -1588,6 +1589,7 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
               }
             : null
         }
+        statusSlot={<SkillMcpLimitsBadge instanceId={p.instanceId} skillId={p.skill.id} />}
       />
 
       <ToolbarSlot $visible={toolbarVisible} aria-hidden={!toolbarVisible || undefined}>

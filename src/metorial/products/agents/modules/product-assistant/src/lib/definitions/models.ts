@@ -1,3 +1,5 @@
+import { getEdition } from '@metorial/editions';
+
 interface Models {
   [key: string]: {
     models: {
@@ -17,20 +19,37 @@ interface Models {
   };
 }
 
-let cached: { models: Promise<Models>; ts: number } | null = null;
+let cached: { models: Promise<Models>; expiresAt: number } | null = null;
 let timeout = 1000 * 60 * 15;
+let failureTimeout = 1000 * 60;
 
-export let getModels = async () => {
-  if (cached && Date.now() - cached.ts < timeout) {
+let fetchModels = async (): Promise<{ models: Models; ok: boolean }> => {
+  try {
+    let res = await fetch('https://models.dev/api.json');
+    if (!res.ok) return { models: {}, ok: false };
+    return { models: (await res.json()) as Models, ok: true };
+  } catch {
+    return { models: {}, ok: false };
+  }
+};
+
+export let getModels = async (): Promise<Models> => {
+  // Installs without outbound access must not reach out for pricing data.
+  if (getEdition() == 'on-prem') return {};
+
+  if (cached && Date.now() < cached.expiresAt) {
     return cached.models;
   }
 
-  cached = {
-    models: fetch('https://models.dev/api.json').then(res => res.json() as Promise<Models>),
-    ts: Date.now()
-  };
+  let entry = { models: Promise.resolve({} as Models), expiresAt: Date.now() + failureTimeout };
+  cached = entry;
 
-  return cached!.models;
+  entry.models = fetchModels().then(result => {
+    if (result.ok) entry.expiresAt = Date.now() + timeout;
+    return result.models;
+  });
+
+  return entry.models;
 };
 
 export let getModelInfo = async (provider: string, model: string) => {

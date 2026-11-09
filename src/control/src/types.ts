@@ -1,3 +1,4 @@
+import type { BuildSpec } from './dockerfile/types';
 export type RootKind = 'enterprise' | 'oss';
 
 export interface ProjectRoot {
@@ -27,8 +28,15 @@ export interface Dependency {
 export interface Endpoint {
   port: number;
   bind_port?: number;
+  protocol?: 'http' | 'h2c';
   env: { key: string; value: string }[];
   health?: string | { path: string; status?: number };
+  link?: {
+    label: string;
+    group?: 'app' | 'admin' | 'tool';
+    menu?: string;
+    path?: string;
+  };
 }
 
 export interface Database {
@@ -43,13 +51,50 @@ export interface Database {
   auth_source?: string;
 }
 
+export interface StackDefinition {
+  id: string;
+  label: string;
+  mode: 'both' | RootKind;
+  description?: string;
+  edition?: 'cloud' | 'on-prem';
+}
+
+export interface StackMember {
+  mode: 'both' | RootKind;
+  init: boolean;
+  volumes: Record<string, string>;
+  env: Record<string, EnvValue>;
+  development: {
+    disabled: boolean;
+    container: boolean;
+    run?: string[];
+    env: Record<string, EnvValue>;
+  };
+  production: {
+    disabled: boolean;
+    image?: string;
+    dockerfile?: string;
+    workspace?: string;
+    args: Record<string, string>;
+    command?: string;
+    target?: string;
+    env: Record<string, EnvValue>;
+  };
+}
+
 export interface Manifest {
+  stack_only: boolean;
+  stack_definitions: StackDefinition[];
+  stacks: Record<string, StackMember>;
   package?: { name: string; groups: string[] };
   mode: 'both' | RootKind;
   dependencies: Dependency[];
   endpoints: Record<string, Endpoint>;
   dependency_endpoints: Record<string, Record<string, { hostname: string; port: number }>>;
-  resources: { type: 'redis' | 'nats' | 'etcd'; env: { key: string; value: string }[] }[];
+  resources: {
+    type: 'redis' | 'nats' | 'etcd' | 'mail' | 'postgres';
+    env: { key: string; value: string }[];
+  }[];
   groups: Record<string, string[]>;
   env: Record<string, EnvValue>;
   expose: { port: number }[];
@@ -89,7 +134,9 @@ export interface Manifest {
       source?: string;
       platform: string;
       stagingOnly: boolean;
+      build?: BuildSpec;
     }[];
+    dockerfiles: { dockerfile?: string; workspace?: string; build: BuildSpec }[];
     suite?: {
       name: string;
       runner: string;
@@ -102,6 +149,7 @@ export interface Manifest {
 
 export interface LoadedManifest {
   path: string;
+  directory: string;
   manifest: Manifest;
 }
 
@@ -112,6 +160,8 @@ export interface ServicePorts {
   nats: number;
   etcd_client: number;
   etcd_peer: number;
+  mail?: number;
+  mail_ui?: number;
 }
 
 export interface WorkspaceMetadata {

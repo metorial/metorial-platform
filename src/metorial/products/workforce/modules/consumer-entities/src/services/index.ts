@@ -1,4 +1,3 @@
-export * from '../lib/skillEditingTools';
 export * from './consumerActivity';
 export * from './consumerActivityScope';
 export * from './consumerActor';
@@ -7,3 +6,4 @@ export * from './consumerProviderCatalog';
 export * from './consumerProviderDeployment';
 export * from './consumerProviderSetupSession';
 export * from './consumerSkill';
+export * from './skillMcpAvailability';

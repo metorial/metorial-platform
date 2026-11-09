@@ -13,10 +13,10 @@ import {
   getFineGrainedAllowedSessionIds,
   requireFineGrainedSessionFromResource
 } from '../../../middleware/checkFineGrainedSessionAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { subspaceSessionMessagePresenter } from '@metorial/presenters';
 
-let sessionMessageGroup = instanceGroup
+let sessionMessageGroup = integrationsGroup
   .use(async ctx => {
     if (!ctx.params.sessionMessageId) {
       throw new ServiceError(
@@ -51,7 +51,7 @@ export let sessionMessageController = Controller.create(
       'Session messages represent the MCP protocol messages exchanged during a session. This read-only resource provides visibility into the communication between clients and providers.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('session-messages', 'sessions.messages.list'), {
         name: 'List session messages',
         description: 'Returns a paginated list of messages for a session.'

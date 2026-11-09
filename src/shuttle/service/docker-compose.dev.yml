@@ -10,7 +10,6 @@ services:
       POSTGRES_DB: shuttle
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init-test-db.sh:/docker-entrypoint-initdb.d/init-test-db.sh
     ports:
       - '35432:5432'
     networks:
@@ -38,7 +37,10 @@ services:
 
   object-storage:
     profiles: ['infra']
-    image: ghcr.io/metorial/object-storage:latest
+    image: ghcr.io/metorial/mte-object-store:dev
+    build:
+      context: ../../..
+      dockerfile: src/object-storage/Dockerfile
     container_name: shuttle-object-storage
     restart: unless-stopped
     volumes:
@@ -48,6 +50,7 @@ services:
       OBJECT_STORE__SERVER__HOST: 0.0.0.0
       OBJECT_STORE__SERVER__PORT: 52010
       OBJECT_STORE__BACKEND__TYPE: ${OBJECT_STORAGE_BACKEND_TYPE:-local}
+      OBJECT_STORE__BACKEND__PUBLIC_URL: http://localhost:35010
       OBJECT_STORE__BACKEND__ROOT_PATH: ${OBJECT_STORAGE_BACKEND_ROOT_PATH:-/app/data}
       OBJECT_STORE__BACKEND__REGION: ${OBJECT_STORAGE_AWS_REGION:-us-east-1}
       OBJECT_STORE__BACKEND__PHYSICAL_BUCKET: ${OBJECT_STORAGE_AWS_S3_BUCKET:-shuttle-local}
@@ -73,6 +76,7 @@ services:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/forge
       REDIS_URL: redis://redis:6379/0
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      NODE_ENV: test
       DEFAULT_PROVIDER: aws.code-build
       OBJECT_STORAGE_URL: http://object-storage:52010
       LOG_BUCKET_NAME: logs
@@ -110,6 +114,7 @@ services:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/function-bay
       REDIS_URL: redis://redis:6379/0
       ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      NODE_ENV: test
       DEFAULT_PROVIDER: ${DEFAULT_PROVIDER:-aws.lambda}
       OBJECT_STORAGE_URL: http://object-storage:52010
       BUNDLE_BUCKET_NAME: bundles

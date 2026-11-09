@@ -47,6 +47,40 @@ export let userController = internalApp.controller({
       return await userService.getSyncSnapshot({ user });
     }),
 
+  createWithPassword: internalApp
+    .handler()
+    .input(
+      v.object({
+        appSlug: v.string(),
+        email: v.string({ modifiers: [v.email()] }),
+        firstName: v.string({ modifiers: [v.maxLength(100)] }),
+        lastName: v.string({ modifiers: [v.maxLength(100)] }),
+        password: v.string({ modifiers: [v.maxLength(256)] }),
+        replacePassword: v.optional(v.boolean()),
+        context: v.object({ ip: v.string(), ua: v.optional(v.nullable(v.string())) })
+      })
+    )
+    .do(async ({ input }) => {
+      let app = await adminService.getAppBySlug({ slug: input.appSlug });
+      let { user, created } = await userService.createUserWithPassword({
+        app,
+        email: input.email,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        password: input.password,
+        replacePassword: input.replacePassword ?? false,
+        context: { ip: input.context.ip, ua: input.context.ua ?? '' }
+      });
+
+      return {
+        created,
+        user: await authUserPresenter({
+          ...user,
+          userEmails: await userService.listUserEmails({ user })
+        })
+      };
+    }),
+
   applyProjection: internalApp
     .handler()
     .input(v.typedAny<any>('ares_user_projection'))

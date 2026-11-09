@@ -102,13 +102,13 @@ afterEach(async () => {
 describe('setup layout', () => {
   it('collapses the setup explanation when the passkey naming form appears', async () => {
     await render();
-    expect(container.textContent).toContain('Built into your device');
+    expect(container.textContent).toContain('Use biometric authentication');
     expect(container.textContent).toContain('Create Passkey');
     mutations.register!.data = { id: 'credential' };
     await render();
     expect(container.textContent).toContain('Setting up a passkey for user@example.com');
     expect(container.textContent).toContain('Name Your Passkey');
-    expect(container.textContent).not.toContain('Built into your device');
+    expect(container.textContent).not.toContain('Use biometric authentication');
     expect(container.textContent).not.toContain('Or use a security key');
     expect(container.textContent).not.toContain('Create Passkey');
     expect(container.textContent).not.toContain('Passkey created');

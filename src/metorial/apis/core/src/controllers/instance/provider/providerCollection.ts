@@ -5,10 +5,10 @@ import { providerListingCollectionService } from '@metorial-subspace/module-cata
 import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { providerCollectionPresenter } from '@metorial/presenters';
 
-let providerCollectionGroup = instanceGroup.use(async ctx => {
+let providerCollectionGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.providerCollectionId) {
     throw new ServiceError(
       badRequestError({
@@ -34,7 +34,7 @@ export let providerCollectionController = Controller.create(
     hideInDocs: true
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('provider-collections', 'providerCollections.list'), {
         name: 'List provider collections',
         description: 'Returns a paginated list of provider collections.'

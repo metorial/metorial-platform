@@ -1889,6 +1889,24 @@ class OAuthAuthorizationService {
     );
   }
 
+  async listAllConsumerOAuthAuthorizations(d: {
+    consumerProfile: ConsumerProfile;
+    statuses?: OAuthAuthorizationStatus[];
+  }) {
+    return await db.oAuthAuthorization.findMany({
+      where: {
+        consumerProfileOid: d.consumerProfile.oid,
+        status: d.statuses ? { in: d.statuses } : undefined,
+        oauthApplication: {
+          type: { in: ['user_facing', 'cli_auth'] }
+        }
+      },
+      include: authorizationInclude,
+      orderBy: { createdAt: 'desc' },
+      take: 500
+    });
+  }
+
   async getOAuthAuthorizationById(d: {
     organization: Organization;
     oauthAuthorizationId: string;

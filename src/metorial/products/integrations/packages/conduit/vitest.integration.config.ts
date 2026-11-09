@@ -13,6 +13,10 @@ export default defineConfig({
     // Chaos tests restart the shared containers, so files must not run in
     // parallel against each other.
     pool: 'forks',
-    fileParallelism: false
+    fileParallelism: false,
+    // Conduit logs from connection-close callbacks that fire while the worker is
+    // being torn down; forwarding those to the main process fails the run with
+    // an unhandled EnvironmentTeardownError even though every test passed.
+    silent: 'passed-only'
   }
 });

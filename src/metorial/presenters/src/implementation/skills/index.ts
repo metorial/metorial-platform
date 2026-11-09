@@ -4,6 +4,7 @@ export * from './skillAgent';
 export * from './skillConfiguration';
 export * from './skillExport';
 export * from './skillFile';
+export * from './skillMcpAvailability';
 export * from './skillForkSync';
 export * from './skillImport';
 export * from './skillMarketplace';

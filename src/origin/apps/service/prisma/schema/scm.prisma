@@ -190,6 +190,8 @@ model ScmInstallation {
   refreshToken         String?
   accessTokenExpiresAt DateTime?
 
+  tokensNebulaSecretId String?
+
   externalAccountId       String
   externalAccountLogin    String
   externalAccountName     String?
@@ -227,8 +229,10 @@ model ScmRepositoryWebhook {
   repo    ScmRepository @relation(fields: [repoOid], references: [oid], onDelete: Cascade)
 
   externalId       String
-  signingSecret    String
   registeredEvents ScmRepositoryWebhookEvent[] @default([])
+
+  signingSecret               String?
+  signingSecretNebulaSecretId String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt

@@ -105,17 +105,19 @@ describe('module-file pending uploads', () => {
     expect(await uploadCount(fixture)).toBe(before);
   });
 
-  it('fails cleanly without a pending upload when storage cannot sign upload URLs', async () => {
+  it('creates a pending upload with a signed upload URL', async () => {
     let fixture = await loadOrganizationFixture(org.ids);
-    let name = `${uniqueId('unsigned')}.bin`;
+    let name = `${uniqueId('signed')}.bin`;
 
-    let error = await expectServiceError(
-      createPendingUpload(fixture, { name }),
-      'bad_request'
-    );
-    expect(error.message).toMatch(/Signed upload URLs are not available/);
+    let { upload, uploadUrl } = await createPendingUpload(fixture, { name, size: 16 });
 
-    expect(await db.fileUpload.count({ where: { fileName: name } })).toBe(0);
+    expect(() => new URL(uploadUrl)).not.toThrow();
+    expect(upload.fileName).toBe(name);
+    expect(upload.fileSize).toBe(16);
+
+    let row = await db.fileUpload.findFirst({ where: { id: upload.id } });
+    expect(row?.instanceOid).toBe(fixture.instance.oid);
+    expect(row?.storeId).toBe(upload.storeId);
   });
 
   it('completes an uploaded object into an active file holding the exact bytes', async () => {

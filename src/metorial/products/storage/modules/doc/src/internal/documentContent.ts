@@ -7,7 +7,9 @@ import {
   areDocumentBodiesEqual,
   type DocumentBody
 } from '@metorial/docs-editor-schema';
+import { storeVersionService } from '@metorial/module-store';
 import { resolveDocumentDraftBody } from '../lib/documentBody';
+import { enqueueDocumentLifecycle } from '../queues/lifecycle';
 import { documentInclude } from '../services/document';
 import { internalDocumentContentStoreService } from './documentContentStore';
 import { type DocumentDraft } from './documentDraft';
@@ -487,6 +489,16 @@ class InternalDocumentContentServiceImpl {
           });
         }
       }
+
+      if (hasContentChange || hasTitleChange) {
+        await storeVersionService.touchStoresLastEditedAtForDocument({
+          documentOid: updatedDocument.oid
+        });
+      }
+      await enqueueDocumentLifecycle({
+        documentId: updatedDocument.id,
+        event: 'contents-changed'
+      });
 
       return {
         document: updatedDocument,

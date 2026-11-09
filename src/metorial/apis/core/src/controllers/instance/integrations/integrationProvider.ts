@@ -10,7 +10,7 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { requireNonPublishableMachineAccess } from '../../../middleware/requireNonPublishableMachineAccess';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { integrationProviderPresenter } from '@metorial/presenters';
 import { normalizeToolFilters, toolFiltersValidator } from '../sessions/_shared';
 
@@ -24,7 +24,7 @@ let callbacksInputValidator = v.object(
   { description: 'Provider callback state for this integration provider' }
 );
 
-let integrationProviderGroup = instanceGroup.use(async ctx => {
+let integrationProviderGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.integrationProviderId) {
     throw new ServiceError(
       badRequestError({
@@ -50,7 +50,7 @@ export let integrationProviderController = Controller.create(
       'Integration providers define the shared provider-level contract for a given integration.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('integration-providers', 'integrations.providers.list'), {
         name: 'List integration providers',
         description: 'Returns a paginated list of integration providers.'
@@ -127,7 +127,7 @@ export let integrationProviderController = Controller.create(
         integrationProviderPresenter.present({ integrationProvider: ctx.integrationProvider })
       ),
 
-    create: instanceGroup
+    create: integrationsGroup
       .post(instancePath('integration-providers', 'integrations.providers.create'), {
         name: 'Create integration provider',
         description: 'Creates a new integration provider.'

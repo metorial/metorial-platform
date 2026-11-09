@@ -181,13 +181,18 @@ let ensureRunning = async (project: ProjectRoot, rebuild: boolean) => {
   );
 
   let selected = selectWithDependencies(manifests, [], project.kind, externals);
-  if (!selected.length) throw new Error('no control.toml manifests were selected');
+  if (!selected.length) throw new Error('no control manifests were selected');
 
   let assets = join(project.root, '.control/workspace');
   writeCompose(
     join(assets, 'services.docker-compose.yml'),
     requirementsFromManifests(selected),
-    { project_name: servicesProject(data), network: 'workspace-services', restart: true }
+    {
+      project_name: servicesProject(data),
+      network: 'workspace-services',
+      mail_proxy_alias: proxy.mailProxyAlias(data),
+      restart: true
+    }
   );
 
   if (
@@ -287,6 +292,7 @@ let ensureRunning = async (project: ProjectRoot, rebuild: boolean) => {
       CONTROL_SERVICE_REDIS: 'redis-db:6379',
       CONTROL_SERVICE_NATS: 'nats-1:4222',
       CONTROL_SERVICE_ETCD: 'etcd:2379',
+      CONTROL_SERVICE_MAIL: 'mailpit:1025',
       CARGO_TARGET_DIR: '/control-cache/cargo-target',
       SHELL: '/bin/zsh'
     };

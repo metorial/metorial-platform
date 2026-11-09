@@ -2,7 +2,7 @@ import { useCurrentInstance, useSessionMessage } from '@metorial/state';
 import { Button } from '@metorial/ui';
 import { useInView } from 'framer-motion';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
-import { formatBytes } from '../../sandbox/lib/format';
+import { formatBytes } from '../../../lib/formatBytes';
 import { Entry } from '../../session/components/entry';
 import type { AggregatedMessages } from '../../session/hooks/useAggregatedMessages';
 import { getMessagePresentation } from '../presentations/getMessagePresentation';

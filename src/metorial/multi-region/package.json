@@ -8,12 +8,12 @@
     "test": "vitest run --passWithNoTests",
     "lint": "prettier src/**/*.ts --check",
     "prisma:generate": "./prisma-generate.sh",
-    "prisma:push": "sh -c 'set -a; . ./.env; set +a; bun prisma db push --accept-data-loss'",
+    "prisma:push": "bun prisma db push --accept-data-loss",
     "control:db:generate": "bun run prisma:generate",
     "control:db:push": "bun run prisma:push"
   },
   "dependencies": {
-    "@aws-sdk/rds-signer": "^3.1153.0",
+    "@aws-sdk/rds-signer": "^3.1158.0",
     "@lowerdeck/base62": "workspace:2.0.0",
     "@lowerdeck/delay": "workspace:2.0.0",
     "@lowerdeck/env": "workspace:2.0.0",
@@ -37,9 +37,10 @@
     "pg": "^8.23.1",
     "prisma": "^7.10.1",
     "prisma-json-types-generator": "^5.2.0",
-    "stripe": "^23.0.0",
+    "stripe": "^23.0.1",
     "typescript": "^5.9.3",
-    "@lowerdeck/queue": "workspace:2.0.0"
+    "@lowerdeck/queue": "workspace:2.0.0",
+    "@metorial/settings": "workspace:*"
   },
   "devDependencies": {
     "@metorial/tsconfig": "^1.0.0",

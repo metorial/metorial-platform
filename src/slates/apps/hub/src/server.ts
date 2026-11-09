@@ -1,3 +1,4 @@
+import { checkEdition } from '@metorial/editions';
 import { createRequire } from 'module';
 
 // Provide CommonJS `require` in ESM runtime for bundled deps.
@@ -9,6 +10,7 @@ async function main() {
   (await import('./metorialApiUrl')).checkMetorialApiUrl();
   await import('./instrument');
   await import('./endpoints');
+  if (checkEdition('cloud')) await import('./adminServer');
   await import('./worker');
 }
 

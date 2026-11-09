@@ -31,7 +31,19 @@ export let skillParticipantGroup = skillGroup.use(async ctx => {
       participantId: ctx.params.skillParticipantId
     });
 
-    return { skillParticipant: { ...participant, skill: ctx.skill } };
+    let organizationMemberParticipantOids =
+      await storeParticipantService.findOrganizationMemberParticipantOids({
+        project: ctx.project,
+        participants: [participant]
+      });
+
+    return {
+      skillParticipant: {
+        ...participant,
+        skill: ctx.skill,
+        hasOrganizationMemberAccess: organizationMemberParticipantOids.has(participant.oid)
+      }
+    };
   }
 
   let skillParticipant = await skillParticipantService.getSkillParticipantById({
@@ -76,10 +88,21 @@ export let skillParticipantController = Controller.create(
             store: ctx.skill.store
           });
           let list = await paginator.run(ctx.query);
+          let organizationMemberParticipantOids =
+            await storeParticipantService.findOrganizationMemberParticipantOids({
+              project: ctx.project,
+              participants: list.items
+            });
 
           return Paginator.present(list, participant =>
             skillParticipantPresenter.present({
-              skillParticipant: { ...participant, skill: ctx.skill }
+              skillParticipant: {
+                ...participant,
+                skill: ctx.skill,
+                hasOrganizationMemberAccess: organizationMemberParticipantOids.has(
+                  participant.oid
+                )
+              }
             })
           );
         }

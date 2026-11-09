@@ -69,3 +69,14 @@ export let toGoFolderName = (name: string): string => {
 export let toGoFileName = (name: string): string => {
   return Cases.toSnakeCase(name) + '.go';
 };
+
+/**
+ * Whether an optional, nullable input field documents that an explicit null
+ * means something different from omitting it. Such fields use
+ * nullable.Nullable so callers can send null.
+ */
+export let isExplicitNullInput = (t: {
+  optional?: boolean;
+  nullable?: boolean;
+  description?: string;
+}): boolean => !!t.optional && !!t.nullable && /\bnull\b/i.test(t.description ?? '');

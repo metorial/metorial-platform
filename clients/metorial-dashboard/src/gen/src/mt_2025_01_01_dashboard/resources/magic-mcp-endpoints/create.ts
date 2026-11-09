@@ -38,6 +38,10 @@ export type MagicMcpEndpointsCreateOutput = {
   description: string | null;
   metadata: Record<string, any>;
   enableSkillEditing: boolean;
+  enableSkillResources: boolean;
+  skillSelection:
+    | { type: 'all' }
+    | { type: 'selected'; skillIds: string[]; skillGroupIds: string[] };
   access: {
     source: 'explorer' | null;
     type: 'public' | 'owner_locked';
@@ -61,6 +65,8 @@ export let mapMagicMcpEndpointsCreateOutput =
     [
       ['servers', 0, [2, [3, [[0, [1, ['tool_filters']]]]]]],
       'enable_skill_editing',
+      'enable_skill_resources',
+      ['skill_selection', 1, [3, [[0, [1, ['skill_ids', 'skill_group_ids']]]]]],
       [
         'access',
         0,
@@ -95,6 +101,15 @@ export type MagicMcpEndpointsCreateBody = {
   consumerProfileId?: string | undefined;
   skillPluginId?: string | undefined;
   enableSkillEditing?: boolean | undefined;
+  enableSkillResources?: boolean | undefined;
+  skillSelection?:
+    | { type: 'all' }
+    | {
+        type: 'selected';
+        skillIds?: string[] | undefined;
+        skillGroupIds?: string[] | undefined;
+      }
+    | undefined;
   magicMcpServers?:
     | {
         magicMcpServerId: string;
@@ -128,5 +143,7 @@ export let mapMagicMcpEndpointsCreateBody =
     'consumer_profile_id',
     'skill_plugin_id',
     'enable_skill_editing',
+    'enable_skill_resources',
+    ['skill_selection', 1, [3, [[0, [1, ['skill_ids', 'skill_group_ids']]]]]],
     ['magic_mcp_servers', 1, [2, [1, ['magic_mcp_server_id', 'tool_filters']]]]
   ]);

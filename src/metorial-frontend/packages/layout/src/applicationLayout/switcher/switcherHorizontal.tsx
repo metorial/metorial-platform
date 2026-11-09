@@ -1,3 +1,4 @@
+import { checkEdition } from '@metorial/editions';
 import { Paths } from '@metorial/frontend-config';
 import {
   MetorialOrganization,
@@ -284,15 +285,17 @@ let PopoverInner = ({
                 .map(x => x.component)}
             </PopoverItems>
 
-            <PopoverSectionFooter>
-              <PopoverButton
-                onClick={() => {
-                  createOrganization();
-                }}
-              >
-                <TriggerEntity entity={{ name: 'Create Organization' }} height={30} />
-              </PopoverButton>
-            </PopoverSectionFooter>
+            {!checkEdition('on-prem') && (
+              <PopoverSectionFooter>
+                <PopoverButton
+                  onClick={() => {
+                    createOrganization();
+                  }}
+                >
+                  <TriggerEntity entity={{ name: 'Create Organization' }} height={30} />
+                </PopoverButton>
+              </PopoverSectionFooter>
+            )}
           </PopoverPart>
         ) : (
           <>
@@ -315,15 +318,17 @@ let PopoverInner = ({
                   .map(x => x.component)}
               </PopoverItems>
 
-              <PopoverSectionFooter>
-                <PopoverButton
-                  onClick={() => {
-                    createOrganization();
-                  }}
-                >
-                  <TriggerEntity entity={{ name: 'Create Organization' }} height={30} />
-                </PopoverButton>
-              </PopoverSectionFooter>
+              {!checkEdition('on-prem') && (
+                <PopoverSectionFooter>
+                  <PopoverButton
+                    onClick={() => {
+                      createOrganization();
+                    }}
+                  >
+                    <TriggerEntity entity={{ name: 'Create Organization' }} height={30} />
+                  </PopoverButton>
+                </PopoverSectionFooter>
+              )}
             </PopoverPart>
 
             <PopoverPart>

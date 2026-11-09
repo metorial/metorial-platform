@@ -1,6 +1,5 @@
 import { withTracingSuppressed } from '@lowerdeck/telemetry';
 import { RedisClient } from 'bun';
-import { adminApi } from './apis/admin';
 import { slatesHubApi } from './apis/internal';
 import { hubApp } from './apis/public';
 import { db } from './db';
@@ -16,11 +15,6 @@ Bun.serve({
   fetch: slatesHubApi,
   port: env.service.SLATES_HUB_INTERNAL_PORT ?? 52046,
   idleTimeout: 250
-});
-
-Bun.serve({
-  fetch: adminApi,
-  port: env.service.SLATES_HUB_ADMIN_PORT ?? 52047
 });
 
 console.log('Slates hub server is running');

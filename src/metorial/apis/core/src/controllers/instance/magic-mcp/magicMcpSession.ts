@@ -7,11 +7,11 @@ import { Controller } from '@metorial/rest';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 import { magicMcpSessionPresenter } from '@metorial/presenters';
 
-export let magicMcpSessionGroup = instanceGroup.use(async ctx => {
+export let magicMcpSessionGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.magicMcpSessionId) {
     throw new ServiceError(
       badRequestError({
@@ -38,7 +38,7 @@ export let magicMcpSessionController = Controller.create(
     hideInDocs: true
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(instancePath('magic-mcp-sessions', 'magicMcpSessions.list'), {
         name: 'List magic MCP sessions',
         description: 'Returns a paginated list of magic MCP sessions.'

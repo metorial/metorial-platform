@@ -11,6 +11,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 type roundTripFunc func(*http.Request) (*http.Response, error)
@@ -278,7 +279,7 @@ func TestGetFileInfoRetriesTransientTransportErrors(t *testing.T) {
 		}),
 	}
 
-	info, err := getFileInfoWithRetry(client, 42, "file.txt", "main", "token", "https://gitlab.test/api/v4", func(int) {})
+	info, err := getFileInfoWithRetry(client, 42, "file.txt", "main", "token", "https://gitlab.test/api/v4", func(time.Duration) {})
 	if err != nil {
 		t.Fatalf("get file info: %v", err)
 	}
@@ -287,5 +288,91 @@ func TestGetFileInfoRetriesTransientTransportErrors(t *testing.T) {
 	}
 	if !info.Exists || info.ContentSHA256 != "abc123" {
 		t.Fatalf("unexpected file info: %#v", info)
+	}
+}
+
+func TestGetFileInfoHonorsRetryAfterOnRateLimit(t *testing.T) {
+	attempts := 0
+	var waits []time.Duration
+	client := &http.Client{
+		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			attempts++
+			if attempts <= 2 {
+				header := make(http.Header)
+				header.Set("Retry-After", "7")
+				return &http.Response{
+					StatusCode: http.StatusTooManyRequests,
+					Body:       io.NopCloser(strings.NewReader("Rate limit exceeded")),
+					Header:     header,
+					Request:    req,
+				}, nil
+			}
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(strings.NewReader(`{"content_sha256":"abc123"}`)),
+				Header:     make(http.Header),
+				Request:    req,
+			}, nil
+		}),
+	}
+
+	info, err := getFileInfoWithRetry(client, 42, "file.txt", "main", "token", "https://gitlab.test/api/v4", func(d time.Duration) { waits = append(waits, d) })
+	if err != nil {
+		t.Fatalf("get file info: %v", err)
+	}
+	if !info.Exists || attempts != 3 {
+		t.Fatalf("unexpected result: %#v after %d attempts", info, attempts)
+	}
+	if len(waits) != 2 || waits[0] != 7*time.Second || waits[1] != 7*time.Second {
+		t.Fatalf("expected Retry-After waits, got %v", waits)
+	}
+}
+
+func TestDoGitlabRequestWithRetryGivesUpAfterMaxAttempts(t *testing.T) {
+	attempts := 0
+	client := &http.Client{
+		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			attempts++
+			return &http.Response{
+				StatusCode: http.StatusTooManyRequests,
+				Body:       io.NopCloser(strings.NewReader("Rate limit exceeded")),
+				Header:     make(http.Header),
+				Request:    req,
+			}, nil
+		}),
+	}
+
+	resp, err := doGitlabRequestWithRetry(client, func() (*http.Request, error) {
+		return http.NewRequest("GET", "https://gitlab.test/x", nil)
+	}, func(time.Duration) {})
+	if err != nil {
+		t.Fatalf("request: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusTooManyRequests || attempts != maxGitlabRequestAttempts {
+		t.Fatalf("expected %d attempts ending in 429, got %d attempts, status %d", maxGitlabRequestAttempts, attempts, resp.StatusCode)
+	}
+}
+
+func TestCreateCommitRetriesRateLimit(t *testing.T) {
+	attempts := 0
+	var bodies []string
+	client := &http.Client{
+		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
+			attempts++
+			b, _ := io.ReadAll(req.Body)
+			bodies = append(bodies, string(b))
+			status := http.StatusCreated
+			if attempts == 1 {
+				status = http.StatusTooManyRequests
+			}
+			return &http.Response{StatusCode: status, Body: io.NopCloser(strings.NewReader("")), Header: make(http.Header), Request: req}, nil
+		}),
+	}
+	if err := createCommit(client, 42, "main", "msg", "token", "https://gitlab.test/api/v4", []gitlabFileAction{{Action: "create", FilePath: "a.txt", Content: "eA=="}}); err != nil {
+		t.Fatalf("create commit: %v", err)
+	}
+	if attempts != 2 || bodies[0] != bodies[1] || bodies[0] == "" {
+		t.Fatalf("expected identical retried body, got %d attempts %q", attempts, bodies)
 	}
 }

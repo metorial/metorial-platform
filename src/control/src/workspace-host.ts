@@ -238,6 +238,9 @@ export let status = async (project: ProjectRoot) => {
     console.log(
       `${key}: localhost:${data.service_ports![key === 'etcd' ? 'etcd_client' : key]}`
     );
+  console.log(
+    `mail: localhost:${data.service_ports!.mail} (inbox http://localhost:${data.service_ports!.mail_ui})`
+  );
 
   let compose = composePath(project);
   if (!existsSync(compose)) {

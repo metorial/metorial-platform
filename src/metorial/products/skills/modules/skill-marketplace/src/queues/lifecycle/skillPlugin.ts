@@ -2,7 +2,11 @@ import { addAfterTransactionHook, db, withTransaction } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
 import { indexSkillMarketplaceQueue } from '../search/skillMarketplace';
 import { indexSkillPluginQueue } from '../search/skillPlugin';
-import { getLifecycleJobId, getPropagationJobOpts, type LifecycleEvent } from '@metorial/skills-common';
+import {
+  getLifecycleJobId,
+  getPropagationJobOpts,
+  type LifecycleEvent
+} from '@metorial/skills-common';
 
 let skillPluginLifecycleQueue = createQueue<{
   skillPluginId: string;
@@ -22,7 +26,12 @@ export let enqueueSkillPluginLifecycle = async (d: {
     async db => {
       await db.skillDestination.updateMany({
         where: {
-          skillPlugin: { id: d.skillPluginId }
+          OR: [
+            { skillPlugin: { id: d.skillPluginId } },
+            {
+              skillMarketplace: { plugins: { some: { skillPlugin: { id: d.skillPluginId } } } }
+            }
+          ]
         },
         data: {
           isDirty: true,

@@ -2,7 +2,11 @@ import { addAfterTransactionHook, db, withTransaction } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
 import { indexSkillMarketplaceQueue } from '../search/skillMarketplace';
 import { indexSkillPluginQueue } from '../search/skillPlugin';
-import { getLifecycleJobId, getPropagationJobOpts, type LifecycleEvent } from '@metorial/skills-common';
+import {
+  getLifecycleJobId,
+  getPropagationJobOpts,
+  type LifecycleEvent
+} from '@metorial/skills-common';
 
 let skillMarketplaceLifecycleQueue = createQueue<{
   skillMarketplaceId: string;

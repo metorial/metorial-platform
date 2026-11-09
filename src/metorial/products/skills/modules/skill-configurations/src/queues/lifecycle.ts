@@ -1,6 +1,10 @@
-import { addAfterTransactionHook, db } from '@metorial/db';
+import { addAfterTransactionHook, withTransaction } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
-import { getLifecycleJobId, getPropagationJobOpts, type LifecycleEvent } from '@metorial/skills-common';
+import {
+  getLifecycleJobId,
+  getPropagationJobOpts,
+  type LifecycleEvent
+} from '@metorial/skills-common';
 
 let skillConfigurationLifecycleQueue = createQueue<{
   skillConfigurationId: string;
@@ -16,6 +20,8 @@ export let enqueueSkillConfigurationLifecycle = async (d: {
   skillConfigurationId: string;
   event: LifecycleEvent;
 }) => {
+  await markSkillConfigurationDestinationsDirty(d);
+
   await addAfterTransactionHook(async () => {
     await skillConfigurationLifecycleQueue.add(d, {
       id: getLifecycleJobId('configuration', d.skillConfigurationId)
@@ -40,90 +46,96 @@ let propagateSkillConfigurationDirtyQueue = createQueue<{
   }
 });
 
-export let propagateSkillConfigurationDirtyQueueProcessor =
-  propagateSkillConfigurationDirtyQueue.process(async data => {
-    let skillConfiguration = await db.skillConfiguration.findUnique({
-      where: { id: data.skillConfigurationId }
-    });
-    if (!skillConfiguration) return;
+let markSkillConfigurationDestinationsDirty = async (data: { skillConfigurationId: string }) =>
+  await withTransaction(
+    async db => {
+      let skillConfiguration = await db.skillConfiguration.findUnique({
+        where: { id: data.skillConfigurationId }
+      });
+      if (!skillConfiguration) return;
 
-    let configurationFilter = skillConfiguration.isDefault
-      ? {
+      let configurationFilter = skillConfiguration.isDefault
+        ? {
+            OR: [
+              { skillConfigurationOid: null as bigint | null },
+              { skillConfiguration: { id: skillConfiguration.id } }
+            ]
+          }
+        : { skillConfiguration: { id: skillConfiguration.id } };
+
+      await db.skillDestination.updateMany({
+        where: {
           OR: [
-            { skillConfigurationOid: null as bigint | null },
-            { skillConfiguration: { id: skillConfiguration.id } }
-          ]
-        }
-      : { skillConfiguration: { id: skillConfiguration.id } };
-
-    await db.skillDestination.updateMany({
-      where: {
-        OR: [
-          {
-            skillPlugin: {
-              projectOid: skillConfiguration.projectOid,
-              instanceOid: skillConfiguration.instanceOid,
-              ...configurationFilter
-            }
-          },
-          {
-            skillMarketplace: {
-              projectOid: skillConfiguration.projectOid,
-              instanceOid: skillConfiguration.instanceOid,
-              ...configurationFilter
-            }
-          },
-          {
-            skillMarketplace: {
-              projectOid: skillConfiguration.projectOid,
-              instanceOid: skillConfiguration.instanceOid,
-              plugins: {
-                some: configurationFilter
+            {
+              skillPlugin: {
+                projectOid: skillConfiguration.projectOid,
+                instanceOid: skillConfiguration.instanceOid,
+                ...configurationFilter
               }
-            }
-          },
-          {
-            skillMarketplace: {
-              projectOid: skillConfiguration.projectOid,
-              instanceOid: skillConfiguration.instanceOid,
-              plugins: {
-                some: {
-                  skillPlugin: {
-                    ...configurationFilter
+            },
+            {
+              skillMarketplace: {
+                projectOid: skillConfiguration.projectOid,
+                instanceOid: skillConfiguration.instanceOid,
+                ...configurationFilter
+              }
+            },
+            {
+              skillMarketplace: {
+                projectOid: skillConfiguration.projectOid,
+                instanceOid: skillConfiguration.instanceOid,
+                plugins: {
+                  some: configurationFilter
+                }
+              }
+            },
+            {
+              skillMarketplace: {
+                projectOid: skillConfiguration.projectOid,
+                instanceOid: skillConfiguration.instanceOid,
+                plugins: {
+                  some: {
+                    skillPlugin: {
+                      ...configurationFilter
+                    }
                   }
                 }
               }
-            }
-          },
-          {
-            skillPlugin: {
-              projectOid: skillConfiguration.projectOid,
-              instanceOid: skillConfiguration.instanceOid,
-              skillPluginSkills: {
-                some: configurationFilter
+            },
+            {
+              skillPlugin: {
+                projectOid: skillConfiguration.projectOid,
+                instanceOid: skillConfiguration.instanceOid,
+                skillPluginSkills: {
+                  some: configurationFilter
+                }
               }
-            }
-          },
-          {
-            skillMarketplace: {
-              projectOid: skillConfiguration.projectOid,
-              instanceOid: skillConfiguration.instanceOid,
-              plugins: {
-                some: {
-                  skillPlugin: {
-                    skillPluginSkills: {
-                      some: configurationFilter
+            },
+            {
+              skillMarketplace: {
+                projectOid: skillConfiguration.projectOid,
+                instanceOid: skillConfiguration.instanceOid,
+                plugins: {
+                  some: {
+                    skillPlugin: {
+                      skillPluginSkills: {
+                        some: configurationFilter
+                      }
                     }
                   }
                 }
               }
             }
-          }
-        ]
-      },
-      data: {
-        isDirty: true,
-        lastTransientChangeAt: new Date()
-      }
-    });
-  });
+          ]
+        },
+        data: {
+          isDirty: true,
+          lastTransientChangeAt: new Date()
+        }
+      });
+    },
+    { ifExists: true }
+  );
+
+export let propagateSkillConfigurationDirtyQueueProcessor =
+  propagateSkillConfigurationDirtyQueue.process(markSkillConfigurationDestinationsDirty);

@@ -25,18 +25,15 @@ import type { ValidationType } from '../lib/types';
 //   }
 // });
 
-export let enumOf = <
-  const A extends string | number | boolean,
-  Rest extends (string | number | boolean)[]
->(
-  values: [A, ...Rest],
+export let enumOf = <const Values extends readonly (string | number | boolean)[]>(
+  values: Values,
   opts?: {
     name?: string;
     description?: string;
   }
-): ValidationType<A | Rest[number]> => ({
+): ValidationType<Values[number]> => ({
   type: 'enum',
-  examples: values,
+  examples: [...values],
   name: opts?.name,
   description: opts?.description,
   validate: value => {

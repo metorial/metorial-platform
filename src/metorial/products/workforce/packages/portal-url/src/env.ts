@@ -1,7 +1,7 @@
-import { createValidatedEnv } from '@lowerdeck/env';
+import { defineSettings } from '@metorial/settings';
 import { v } from '@lowerdeck/validation';
 
-export let env = createValidatedEnv({
+export let env = defineSettings({
   portal: {
     PORTAL_HOST_TEMPLATE: v.string(),
     PORTAL_REDIRECT_DOMAINS: v.string()

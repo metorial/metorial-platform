@@ -1,10 +1,7 @@
 import type { PaginatorInput } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { Tenant } from '@metorial-subspace/db';
-import {
-  type MetorialFacing,
-  resolveMetorialFacing
-} from '@metorial-subspace/module-tenant';
+import { type MetorialFacing, resolveMetorialFacing } from '@metorial-subspace/module-tenant';
 import {
   getTenantForOrigin,
   normalizeScmProvider,
@@ -20,6 +17,12 @@ type GetScmProviderByIdParams = {
 type ListScmProvidersParams = PaginatorInput;
 
 class scmProviderServiceImpl {
+  async getProviderOptions(d: MetorialFacing<{}>) {
+    let scope = await resolveMetorialFacing(d);
+    let tenant = await getTenantForOrigin(scope.tenant);
+    return await origin.scmBackend.options!({ tenantId: tenant.id });
+  }
+
   async getScmProviderById(d: MetorialFacing<GetScmProviderByIdParams>) {
     let { instance, organizationActor, ...rest } = d;
     let scope = await resolveMetorialFacing(d);

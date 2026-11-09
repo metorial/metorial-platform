@@ -2,7 +2,7 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { Instance, Prisma, Project } from '@metorial/db';
-import { db, ID } from '@metorial/db';
+import { db, ID, withTransaction } from '@metorial/db';
 import { forceSkillDestinationSync } from '../lib/destinationSync';
 import {
   type EnrichedSkillRepositoryRecord,
@@ -150,18 +150,21 @@ class SkillMarketplaceRepositoryServiceImpl {
       return enriched!;
     }
 
-    let repository = await db.skillMarketplaceRepository.create({
-      data: {
-        id: await ID.generateId('skillMarketplaceRepository'),
-        skillMarketplaceOid: marketplace.oid,
-        skillRepositoryOid: skillRepository.oid
-      },
-      include: skillMarketplaceRepositoryInclude
-    });
+    let repository = await withTransaction(async db => {
+      let repository = await db.skillMarketplaceRepository.create({
+        data: {
+          id: await ID.generateId('skillMarketplaceRepository'),
+          skillMarketplaceOid: marketplace.oid,
+          skillRepositoryOid: skillRepository.oid
+        },
+        include: skillMarketplaceRepositoryInclude
+      });
 
-    await forceSkillDestinationSync({
-      destination: { oid: marketplace.destinationOid! },
-      repository: { id: skillRepository.id }
+      await forceSkillDestinationSync({
+        destination: { oid: marketplace.destinationOid! }
+      });
+
+      return repository;
     });
 
     let [enriched] = await this.enrichRepositories({

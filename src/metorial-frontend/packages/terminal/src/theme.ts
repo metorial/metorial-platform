@@ -4,8 +4,6 @@ export let TERMINAL_FONT_NAME = 'JetBrains Mono';
 
 export let TERMINAL_FONT_FAMILY = `'${TERMINAL_FONT_NAME}', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace`;
 
-export let TERMINAL_FONT_STYLESHEET = 'https://fonts.metorial.com/jetbrains-mono.css';
-
 export let TERMINAL_FONT_SIZES = [11, 12, 13, 14, 16, 18];
 
 export let DEFAULT_TERMINAL_FONT_SIZE = 13;

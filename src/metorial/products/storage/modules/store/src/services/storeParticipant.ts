@@ -11,6 +11,10 @@ import {
   resolveStores
 } from '@metorial/list-utils';
 import {
+  isOrganizationMemberFullSkillAccessEnabled,
+  type OrganizationMemberSkillAccessProject
+} from '@metorial/module-access';
+import {
   exposedParticipantResourceActorWhere,
   resourceActorPresentationInclude
 } from '@metorial/module-resource-actor';
@@ -186,6 +190,93 @@ class StoreParticipantServiceImpl {
           })
       )
     );
+  }
+
+  async findOrganizationMemberParticipantOids(d: {
+    project: OrganizationMemberSkillAccessProject;
+    participants: StoreResourceParticipantRecord[];
+  }) {
+    let result = new Set<bigint>();
+    if (!d.participants.length) return result;
+    if (!(await isOrganizationMemberFullSkillAccessEnabled({ project: d.project }))) {
+      return result;
+    }
+
+    let actorsOf = (participant: StoreResourceParticipantRecord) => [
+      participant.primaryResourceActor,
+      ...participant.actors.map(row => row.resourceActor)
+    ];
+    let consumerOidsOf = (participant: StoreResourceParticipantRecord) =>
+      actorsOf(participant).flatMap(actor => [
+        ...(actor.consumerOid ? [actor.consumerOid] : []),
+        ...(actor.consumerProfile ? [actor.consumerProfile.consumerOid] : [])
+      ]);
+
+    let consumerOrganizationActors = await db.consumerOrganizationActor.findMany({
+      where: { consumerOid: { in: d.participants.flatMap(consumerOidsOf) } },
+      select: { consumerOid: true, organizationActorOid: true }
+    });
+    let organizationActorOidsByConsumer = new Map<bigint, bigint[]>();
+    for (let row of consumerOrganizationActors) {
+      organizationActorOidsByConsumer.set(row.consumerOid, [
+        ...(organizationActorOidsByConsumer.get(row.consumerOid) ?? []),
+        row.organizationActorOid
+      ]);
+    }
+
+    let linksOf = (participant: StoreResourceParticipantRecord) => {
+      let memberOids: bigint[] = [];
+      let organizationActorOids: bigint[] = [];
+
+      for (let actor of actorsOf(participant)) {
+        if (actor.organizationActorOid) organizationActorOids.push(actor.organizationActorOid);
+        if (actor.consumerProfile) {
+          organizationActorOids.push(actor.consumerProfile.organizationActorOid);
+          if (actor.consumerProfile.organizationMemberOid) {
+            memberOids.push(actor.consumerProfile.organizationMemberOid);
+          }
+        }
+        if (actor.consumer?.organizationActorOid) {
+          organizationActorOids.push(actor.consumer.organizationActorOid);
+        }
+        if (actor.consumer?.organizationMemberOid) {
+          memberOids.push(actor.consumer.organizationMemberOid);
+        }
+      }
+      for (let consumerOid of consumerOidsOf(participant)) {
+        organizationActorOids.push(
+          ...(organizationActorOidsByConsumer.get(consumerOid) ?? [])
+        );
+      }
+
+      return { memberOids, organizationActorOids };
+    };
+
+    let links = d.participants.map(participant => ({ participant, ...linksOf(participant) }));
+    let members = await db.organizationMember.findMany({
+      where: {
+        status: 'active',
+        organization: { projects: { some: { oid: d.project.oid } } },
+        OR: [
+          { oid: { in: links.flatMap(link => link.memberOids) } },
+          { actorOid: { in: links.flatMap(link => link.organizationActorOids) } }
+        ]
+      },
+      select: { oid: true, actorOid: true }
+    });
+    let activeMemberOids = new Set(members.map(member => member.oid));
+    let activeMemberActorOids = new Set(members.map(member => member.actorOid));
+
+    for (let link of links) {
+      if (
+        link.memberOids.some(oid => activeMemberOids.has(oid)) ||
+        link.organizationActorOids.some(oid => activeMemberActorOids.has(oid))
+      ) {
+        result.add(link.participant.oid);
+      }
+    }
+
+    return result;
   }
 
   async recordParticipationSafely(d: {

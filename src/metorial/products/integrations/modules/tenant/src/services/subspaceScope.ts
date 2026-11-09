@@ -24,6 +24,7 @@ import {
   getOrganizationActorInternalActorIdentifier,
   getProjectInternalTenantIdentifier
 } from '../lib/scopeIds';
+import { resolveSessionlessMcpEnabled } from '../lib/sessionlessMcp';
 import { actorService } from './actor';
 import { environmentService } from './environment';
 import { solutionService } from './solution';
@@ -542,6 +543,9 @@ class subspaceScopeServiceImpl {
         usageReviewsEnabled: loadedProject.subspaceTenantId
           ? undefined
           : loadedProject.usageReviewsEnabled,
+        sessionlessMcpEnabledOnCreate: resolveSessionlessMcpEnabled(
+          loadedProject.sessionlessMcpEnabled
+        ),
         resourceTenantId: resourceTenant.id,
         resourceTenantIdentifier: resourceTenant.identifier,
         projectOid: loadedProject.oid,

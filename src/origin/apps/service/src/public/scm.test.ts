@@ -106,7 +106,7 @@ describe('GitHub callback routing', () => {
     );
 
     expect(response.status).toBe(200);
-    expect(await response.text()).toContain('GitHub connected');
+    expect(await response.text()).toContain('GitHub Connected');
   });
 
   it('rejects unknown setup actions during query validation', async () => {

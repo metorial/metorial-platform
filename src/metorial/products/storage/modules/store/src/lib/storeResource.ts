@@ -3,7 +3,9 @@ import type { Instance, Project, StoreParticipantRole } from '@metorial/db';
 import { withTransaction } from '@metorial/db';
 import {
   type AnyAccessTagSelector,
+  getEffectiveSkillAccessLevel,
   getStoreResourceKindAccessWhere,
+  type OrganizationMemberSkillAccessProject,
   registerStoreResourceKind,
   type ResourceAuthorization,
   skillStoreResourceKind,
@@ -39,13 +41,18 @@ export let defineStoreResource = (kind: StoreResourceKind) => {
   }) => getStoreResourceKindAccessWhere({ kind, ...d });
 
   let hasAccess = async (d: {
+    project: OrganizationMemberSkillAccessProject;
     store: StoreRef;
     authorization: ResourceAuthorization;
     level: StoreResourceAccessLevel;
   }) => {
     if (d.authorization.type == 'privileged') return true;
 
-    let where = await accessWhere({ accessTags: d.authorization.accessTags, level: d.level });
+    let level =
+      kind.kind == skillStoreResourceKind.kind
+        ? await getEffectiveSkillAccessLevel(d)
+        : d.level;
+    let where = await accessWhere({ accessTags: d.authorization.accessTags, level });
     let store = await withTransaction(
       async db =>
         await db.store.findFirst({

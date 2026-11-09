@@ -4,30 +4,6 @@ export interface MetorialConfig {
 
   env: 'development' | 'production' | 'staging';
 
-  email: (
-    | {
-        type: 'ses';
-        aws?: {
-          accessKeyId: string;
-          secretAccessKey: string;
-          region: string;
-        };
-      }
-    | {
-        type: 'smtp';
-        host: string;
-        port: number;
-        secure: boolean;
-        auth: {
-          user: string;
-          pass: string;
-        };
-      }
-  ) & {
-    fromEmail: string;
-    fromName: string;
-  };
-
   urls: {
     getInviteUrl: (invite: {
       key: string;

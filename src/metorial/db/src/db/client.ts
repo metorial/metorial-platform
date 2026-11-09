@@ -12,6 +12,7 @@ import { readReplicas } from '@prisma/extension-read-replicas';
 import type { JSONSchema4, JSONSchema6, JSONSchema7 } from 'json-schema';
 import { PrismaClient } from '../../prisma/generated/client.js';
 import type * as ProductAssistant from '../types/product-assistant.js';
+
 export * from '../../prisma/generated/client.js';
 
 let workerIdBits = 12;
@@ -331,6 +332,8 @@ export type DB = typeof db;
 
 declare global {
   namespace PrismaJson {
+    type AuditPayload =
+      string | number | boolean | null | AuditPayload[] | { [key: string]: AuditPayload };
     type Record = { [key: string]: any };
     type OrganizationConfigValue = any;
 

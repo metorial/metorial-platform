@@ -11,11 +11,11 @@ import { dateFilterValidator } from '../../../lib/dateFilter';
 import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
-import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+import { integrationsGroup, instancePath } from '../../../middleware/instanceGroup';
 import { providerAuthExportPresenter } from '@metorial/presenters';
 import { getOwnershipActor } from '../../../lib/ownershipActor';
 
-let providerAuthExportGroup = instanceGroup.use(async ctx => {
+let providerAuthExportGroup = integrationsGroup.use(async ctx => {
   if (!ctx.params.providerAuthExportId) {
     throw new ServiceError(
       badRequestError({
@@ -40,7 +40,7 @@ export let providerAuthExportController = Controller.create(
       'An auth export lets you extract OAuth tokens or credentials from Metorial to use in other systems, avoiding duplicate authentication flows.'
   },
   {
-    list: instanceGroup
+    list: integrationsGroup
       .get(
         instancePath(
           'provider-auth-config-exports',
@@ -120,7 +120,7 @@ export let providerAuthExportController = Controller.create(
         );
       }),
 
-    create: instanceGroup
+    create: integrationsGroup
       .post(
         instancePath(
           'provider-auth-config-exports',

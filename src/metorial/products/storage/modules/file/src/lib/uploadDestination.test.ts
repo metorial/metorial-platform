@@ -8,12 +8,30 @@ describe('resolveUploadStreamDestination', () => {
     let destination = await resolveUploadStreamDestination({
       bucket: 'files',
       key: 'str_a',
-      presign: async () => 'https://example.com/signed'
+      presign: async () => ({ url: 'https://example.com/signed', headers: {} })
     });
 
     expect(destination).toEqual({
       type: 'signed_url',
-      url: 'https://example.com/signed'
+      url: 'https://example.com/signed',
+      headers: {}
+    });
+  });
+
+  it('keeps the headers the signed url requires', async () => {
+    let destination = await resolveUploadStreamDestination({
+      bucket: 'files',
+      key: 'str_a',
+      presign: async () => ({
+        url: 'https://example.com/signed',
+        headers: { 'x-ms-blob-type': 'BlockBlob' }
+      })
+    });
+
+    expect(destination).toEqual({
+      type: 'signed_url',
+      url: 'https://example.com/signed',
+      headers: { 'x-ms-blob-type': 'BlockBlob' }
     });
   });
 
