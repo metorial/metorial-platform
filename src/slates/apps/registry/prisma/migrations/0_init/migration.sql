@@ -1,3 +1,6 @@
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "public";
+
 -- CreateEnum
 CREATE TYPE "SubRegistryFilterType" AS ENUM ('scope', 'prefix', 'package');
 
@@ -24,6 +27,9 @@ CREATE TYPE "SlateStatus" AS ENUM ('active', 'deleted');
 
 -- CreateEnum
 CREATE TYPE "SlateAccess" AS ENUM ('public', 'private');
+
+-- CreateEnum
+CREATE TYPE "SlateVersionBackend" AS ENUM ('local_unbuilt', 'local_built', 'npm');
 
 -- CreateEnum
 CREATE TYPE "ChangeNotificationType" AS ENUM ('slate_version_created');
@@ -118,7 +124,9 @@ CREATE TABLE "UserToken" (
     "id" TEXT NOT NULL,
     "status" "TokenStatus" NOT NULL,
     "name" TEXT NOT NULL,
-    "secret" TEXT NOT NULL,
+    "secret" TEXT,
+    "secretHash" TEXT,
+    "secretRedacted" TEXT,
     "userOid" BIGINT NOT NULL,
     "tenantOid" BIGINT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -170,6 +178,7 @@ CREATE TABLE "Slate" (
     "tenantOid" BIGINT NOT NULL,
     "createdByUserOid" BIGINT NOT NULL,
     "currentVersionOid" BIGINT,
+    "builtOrUnbuiltCurrentVersionOid" BIGINT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -189,7 +198,9 @@ CREATE TABLE "SlateVersion" (
     "oid" BIGINT NOT NULL,
     "id" TEXT NOT NULL,
     "isCurrent" BOOLEAN NOT NULL,
+    "backend" "SlateVersionBackend" NOT NULL DEFAULT 'local_unbuilt',
     "version" TEXT NOT NULL,
+    "npmPackageName" TEXT,
     "slateJson" JSONB NOT NULL,
     "slateOid" BIGINT NOT NULL,
     "bundleArtifactOid" BIGINT NOT NULL,
@@ -322,6 +333,9 @@ CREATE UNIQUE INDEX "UserToken_id_key" ON "UserToken"("id");
 CREATE UNIQUE INDEX "UserToken_secret_key" ON "UserToken"("secret");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "UserToken_secretHash_key" ON "UserToken"("secretHash");
+
+-- CreateIndex
 CREATE INDEX "UserToken_expiresAt_idx" ON "UserToken"("expiresAt");
 
 -- CreateIndex
@@ -371,6 +385,9 @@ CREATE UNIQUE INDEX "SlateVersion_id_key" ON "SlateVersion"("id");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "SlateVersion_slateOid_version_key" ON "SlateVersion"("slateOid", "version");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SlateVersion_npmPackageName_version_key" ON "SlateVersion"("npmPackageName", "version");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "SlateDocument_id_key" ON "SlateDocument"("id");
@@ -448,6 +465,9 @@ ALTER TABLE "Slate" ADD CONSTRAINT "Slate_createdByUserOid_fkey" FOREIGN KEY ("c
 ALTER TABLE "Slate" ADD CONSTRAINT "Slate_currentVersionOid_fkey" FOREIGN KEY ("currentVersionOid") REFERENCES "SlateVersion"("oid") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "Slate" ADD CONSTRAINT "Slate_builtOrUnbuiltCurrentVersionOid_fkey" FOREIGN KEY ("builtOrUnbuiltCurrentVersionOid") REFERENCES "SlateVersion"("oid") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "SlateCategoryAssignment" ADD CONSTRAINT "SlateCategoryAssignment_slateOid_fkey" FOREIGN KEY ("slateOid") REFERENCES "Slate"("oid") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -476,3 +496,4 @@ ALTER TABLE "ChangeNotification" ADD CONSTRAINT "ChangeNotification_tenantOid_fk
 
 -- AddForeignKey
 ALTER TABLE "ChangeNotification" ADD CONSTRAINT "ChangeNotification_slateVersionOid_fkey" FOREIGN KEY ("slateVersionOid") REFERENCES "SlateVersion"("oid") ON DELETE SET NULL ON UPDATE CASCADE;
+

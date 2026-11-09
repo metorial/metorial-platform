@@ -190,6 +190,9 @@ CREATE UNIQUE INDEX "WorkflowRun_id_key" ON "WorkflowRun"("id");
 -- CreateIndex
 CREATE UNIQUE INDEX "WorkflowRunStep_id_key" ON "WorkflowRunStep"("id");
 
+-- CreateIndex
+CREATE INDEX "WorkflowRunStep_runOid_idx" ON "WorkflowRunStep"("runOid");
+
 -- AddForeignKey
 ALTER TABLE "Workflow" ADD CONSTRAINT "Workflow_tenantOid_fkey" FOREIGN KEY ("tenantOid") REFERENCES "Tenant"("oid") ON DELETE RESTRICT ON UPDATE CASCADE;
 

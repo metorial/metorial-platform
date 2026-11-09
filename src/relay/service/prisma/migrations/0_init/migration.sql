@@ -1,3 +1,6 @@
+-- CreateSchema
+CREATE SCHEMA IF NOT EXISTS "public";
+
 -- CreateEnum
 CREATE TYPE "EmailIdentityType" AS ENUM ('email');
 
@@ -38,6 +41,8 @@ CREATE TABLE "EmailIdentity" (
 CREATE TABLE "OutgoingEmail" (
     "oid" BIGINT NOT NULL,
     "id" TEXT NOT NULL,
+    "idempotencyKey" TEXT,
+    "queuedAt" TIMESTAMP(3),
     "numberOfDestinations" INTEGER NOT NULL,
     "numberOfDestinationsCompleted" INTEGER NOT NULL,
     "identityId" INTEGER NOT NULL,
@@ -69,6 +74,18 @@ CREATE TABLE "OutgoingEmailContent" (
 );
 
 -- CreateTable
+CREATE TABLE "OutgoingEmailAttachment" (
+    "id" BIGINT NOT NULL,
+    "filename" TEXT NOT NULL,
+    "contentType" TEXT NOT NULL,
+    "size" INTEGER NOT NULL,
+    "content" BYTEA NOT NULL,
+    "emailId" BIGINT NOT NULL,
+
+    CONSTRAINT "OutgoingEmailAttachment_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "OutgoingEmailSend" (
     "id" BIGINT NOT NULL,
     "status" "OutgoingEmailSendStatus" NOT NULL,
@@ -91,6 +108,18 @@ CREATE UNIQUE INDEX "EmailIdentity_id_key" ON "EmailIdentity"("id");
 -- CreateIndex
 CREATE UNIQUE INDEX "EmailIdentity_senderOid_slug_key" ON "EmailIdentity"("senderOid", "slug");
 
+-- CreateIndex
+CREATE UNIQUE INDEX "OutgoingEmail_id_key" ON "OutgoingEmail"("id");
+
+-- CreateIndex
+CREATE INDEX "OutgoingEmail_queuedAt_createdAt_idx" ON "OutgoingEmail"("queuedAt", "createdAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "OutgoingEmail_identityId_idempotencyKey_key" ON "OutgoingEmail"("identityId", "idempotencyKey");
+
+-- CreateIndex
+CREATE INDEX "OutgoingEmailAttachment_emailId_idx" ON "OutgoingEmailAttachment"("emailId");
+
 -- AddForeignKey
 ALTER TABLE "EmailIdentity" ADD CONSTRAINT "EmailIdentity_senderOid_fkey" FOREIGN KEY ("senderOid") REFERENCES "Sender"("oid") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -104,4 +133,8 @@ ALTER TABLE "OutgoingEmailDestination" ADD CONSTRAINT "OutgoingEmailDestination_
 ALTER TABLE "OutgoingEmailContent" ADD CONSTRAINT "OutgoingEmailContent_emailId_fkey" FOREIGN KEY ("emailId") REFERENCES "OutgoingEmail"("oid") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "OutgoingEmailAttachment" ADD CONSTRAINT "OutgoingEmailAttachment_emailId_fkey" FOREIGN KEY ("emailId") REFERENCES "OutgoingEmail"("oid") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "OutgoingEmailSend" ADD CONSTRAINT "OutgoingEmailSend_destinationId_fkey" FOREIGN KEY ("destinationId") REFERENCES "OutgoingEmailDestination"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+

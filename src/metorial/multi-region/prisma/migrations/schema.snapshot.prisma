@@ -1,0 +1,923 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated"
+}
+
+generator json {
+  provider = "prisma-json-types-generator"
+}
+
+model Cell {
+  oid        Int    @id @default(autoincrement())
+  identifier String @unique
+
+  lastSyncRangeStart DateTime?
+  lastSyncRangeEnd   DateTime?
+
+  endpointUrl String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  organizations                     Organization[]
+  portals                           Portal[]
+  publicMcpServers                  PublicMcpServer[]
+  skillPlugins                      SkillPlugin[]
+  consumerSurfaces                  ConsumerSurface[]
+  users                             User[]
+  oauthApplications                 OAuthApplication[]
+  oauthAuthorizationRequestsCreated OAuthAuthorizationRequest[] @relation("createdBy")
+  oauthAuthorizationRequestsClaimed OAuthAuthorizationRequest[] @relation("claimedBy")
+  oauthTokens                       OAuthToken[]
+  oauthJwks                         OAuthJwk[]
+  globalLeases                      GlobalLease[]
+  cellTokens                        CellToken[]
+  hyperplanes                       Hyperplane[]
+  workspaces                        Workspace[]
+  instances                         Instance[]
+  workspaceProfiles                 WorkspaceProfile[]
+  workspaceInvites                  WorkspaceInvite[]
+  workspaceGroups                   WorkspaceGroup[]
+  workspacePolicies                 WorkspacePolicy[]
+  workspaceGroupAssignments         WorkspaceGroupAssignment[]
+  workspacePolicyAssignments        WorkspacePolicyAssignment[]
+  cliSignupAttempts                 CliSignupAttempt[]
+}
+
+model CellToken {
+  oid Int    @id @default(autoincrement())
+  id  String @unique @default(uuid())
+
+  cellOid Int
+  cell    Cell @relation(fields: [cellOid], references: [oid])
+
+  token     String
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+}
+
+model Hyperplane {
+  oid        Int    @id @default(autoincrement())
+  identifier String @unique
+
+  cellOid Int?
+  cell    Cell? @relation(fields: [cellOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  tokens HyperplaneToken[]
+}
+
+model HyperplaneToken {
+  oid Int    @id @default(autoincrement())
+  id  String @unique @default(uuid())
+
+  hyperplaneOid Int
+  hyperplane    Hyperplane @relation(fields: [hyperplaneOid], references: [oid])
+
+  token     String
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+
+  @@index([hyperplaneOid, expiresAt])
+}
+
+model Horizon {
+  oid        Int    @id @default(autoincrement())
+  identifier String @unique
+
+  endpointUrl String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  tokens HorizonToken[]
+}
+
+model HorizonToken {
+  oid Int    @id @default(autoincrement())
+  id  String @unique @default(uuid())
+
+  horizonOid Int
+  horizon    Horizon @relation(fields: [horizonOid], references: [oid])
+
+  token     String
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+
+  @@index([horizonOid, expiresAt])
+}
+
+enum CliSignupBlockRuleType {
+  ip
+  cidr
+  country
+  asn
+}
+
+enum CliSignupAttemptOutcome {
+  created
+  rate_limited
+  blocked
+  disabled
+  failed
+}
+
+model CliSignupBlockRule {
+  oid Int    @id @default(autoincrement())
+  id  String @unique @default(uuid())
+
+  type  CliSignupBlockRuleType
+  value String
+
+  note             String?
+  createdByAdminId String?
+
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+
+  attempts CliSignupAttempt[]
+
+  @@unique([type, value])
+}
+
+model CliSignupSetting {
+  key String @id
+
+  signupDisabled   Boolean @default(false)
+  updatedByAdminId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model CliSignupIpWindow {
+  key String @id
+
+  count        Int
+  windowEndsAt DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model CliSignupAttempt {
+  oid Int    @id @default(autoincrement())
+  id  String @unique @default(uuid())
+
+  outcome CliSignupAttemptOutcome
+
+  ip      String
+  country String?
+  asn     String?
+
+  organizationId String?
+
+  blockRuleOid Int?
+  blockRule    CliSignupBlockRule? @relation(fields: [blockRuleOid], references: [oid], onDelete: SetNull)
+
+  cellOid Int?
+  cell    Cell? @relation(fields: [cellOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([ip, createdAt])
+  @@index([outcome, createdAt])
+}
+
+enum ConsumerSurfaceStatus {
+  active
+  archived
+  deleted
+}
+
+enum ConsumerSurfaceType {
+  portal
+  organization_members
+  cli
+}
+
+model ConsumerSurface {
+  id String @id
+
+  status ConsumerSurfaceStatus
+  type   ConsumerSurfaceType
+
+  name        String
+  description String?
+
+  ownerOid Int
+  owner    Cell @relation(fields: [ownerOid], references: [oid])
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  instanceId String
+
+  archivedAt DateTime?
+  deletedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+}
+
+enum AccountDomainStatus {
+  active
+  inactive
+}
+
+enum AccountDomainVerificationStatus {
+  unverified
+  verified_basic
+  verified_full
+}
+
+model AccountDomain {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  domain String @unique
+
+  status             AccountDomainStatus
+  verificationStatus AccountDomainVerificationStatus
+
+  accountId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([accountId, status, id])
+  @@index([status, domain])
+}
+
+enum InstanceType {
+  development
+  production
+}
+
+enum InstanceStatus {
+  active
+  deleted
+}
+
+model Instance {
+  id String @id
+
+  type   InstanceType
+  status InstanceStatus
+
+  slug String
+  name String
+
+  ownerOid Int
+  owner    Cell @relation(fields: [ownerOid], references: [oid])
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+}
+
+enum OAuthJwkStatus {
+  active
+  next
+  retired
+}
+
+model OAuthJwk {
+  id  String @id
+  kid String @unique
+
+  status OAuthJwkStatus
+
+  alg String
+  use String
+  kty String
+  crv String?
+
+  publicJwk  Json
+  privateJwk Json
+
+  activatesAt DateTime
+  expiresAt   DateTime
+  retiredAt   DateTime?
+
+  generatedByOid Int?
+  generatedBy    Cell? @relation(fields: [generatedByOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model GlobalLease {
+  name String @id
+
+  token     String?
+  expiresAt DateTime?
+
+  holderOid Int?
+  holder    Cell? @relation(fields: [holderOid], references: [oid], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+enum OAuthApplicationStatus {
+  active
+  archived
+}
+
+enum OAuthApplicationType {
+  user_facing
+  cli_auth
+  server_side
+}
+
+enum OAuthAuthorizationAccessLevel {
+  organization
+  global
+}
+
+enum OAuthApplicationSubjectType {
+  organization_member
+  consumer
+  consumer_or_organization_member
+}
+
+enum OAuthSubjectType {
+  organization_member
+  consumer
+}
+
+model OAuthApplication {
+  id String @unique
+
+  status      OAuthApplicationStatus
+  type        OAuthApplicationType
+  accessLevel OAuthAuthorizationAccessLevel
+  subjectType OAuthApplicationSubjectType   @default(organization_member)
+
+  name        String
+  description String?
+
+  websiteUrl        String?
+  privacyPolicyUrl  String?
+  termsOfServiceUrl String?
+  redirectUris      String[]
+
+  scopes                             String[]
+  allowClientSecretlessTokenExchange Boolean  @default(false)
+
+  clientId String @unique
+
+  /// [EntityImage]
+  image Json
+
+  ownerOid Int
+  owner    Cell @relation(fields: [ownerOid], references: [oid])
+
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  clientSecrets              OAuthApplicationClientSecret[]
+  oauthAuthorizationRequests OAuthAuthorizationRequest[]
+  oauthTokens                OAuthToken[]
+}
+
+model OAuthApplicationClientSecret {
+  id String @unique
+
+  secret String @unique
+
+  oauthApplicationId String
+  oauthApplication   OAuthApplication @relation(fields: [oauthApplicationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
+}
+
+enum OAuthAuthorizationRequestChallengeMethod {
+  none
+  s256
+}
+
+enum OAuthAuthorizationRequestStatus {
+  pending
+  accepted
+  denied
+}
+
+enum OAuthAuthorizationRequestType {
+  interactive
+  device_code
+}
+
+model OAuthAuthorizationRequest {
+  id String @unique
+
+  type        OAuthAuthorizationRequestType
+  status      OAuthAuthorizationRequestStatus
+  subjectType OAuthSubjectType                @default(organization_member)
+
+  urlToken String @unique
+
+  code       String   @unique
+  scopes     String[]
+  oidcScopes String[] @default([])
+
+  // Device code flow
+  deviceCode String? @unique
+  userCode   String? @unique
+
+  deniedAt   DateTime?
+  lastPollAt DateTime?
+  clientIp   String?
+
+  // Interactive flow 
+  state       String?
+  redirectUri String?
+  nonce       String?
+
+  codeChallengeMethod OAuthAuthorizationRequestChallengeMethod
+  codeChallenge       String?
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  oauthApplicationId String
+  oauthApplication   OAuthApplication @relation(fields: [oauthApplicationId], references: [id], onDelete: Cascade)
+
+  claimedByOid Int?
+  claimedBy    Cell? @relation(fields: [claimedByOid], references: [oid], onDelete: Cascade, name: "claimedBy")
+
+  createdByOid Int
+  createdBy    Cell @relation(fields: [createdByOid], references: [oid], onDelete: Cascade, name: "createdBy")
+
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+  acceptedAt DateTime?
+  consumedAt DateTime?
+}
+
+model OAuthToken {
+  id String @unique
+
+  accessToken  String  @unique
+  refreshToken String? @unique
+
+  oauthApplicationId String
+  oauthApplication   OAuthApplication @relation(fields: [oauthApplicationId], references: [id], onDelete: Cascade)
+
+  ownerOid Int
+  owner    Cell @relation(fields: [ownerOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+enum OrganizationType {
+  default
+  user
+}
+
+enum OrganizationStatus {
+  active
+  deleted
+}
+
+model Organization {
+  id String @id
+
+  type   OrganizationType
+  status OrganizationStatus
+
+  slug String @unique
+  name String
+
+  /// [EntityImage]
+  image Json
+
+  ownerOid Int
+  owner    Cell @relation(fields: [ownerOid], references: [oid])
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+
+  oauthApplications OAuthApplication[]
+  portals           Portal[]
+  skillPlugins      SkillPlugin[]
+  consumerSurfaces  ConsumerSurface[]
+}
+
+enum PortalStatus {
+  active
+  archived
+  deleted
+}
+
+model Portal {
+  id String @id
+
+  status PortalStatus
+
+  name        String
+  description String?
+  slug        String  @unique
+
+  ownerOid Int
+  owner    Cell @relation(fields: [ownerOid], references: [oid])
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  instanceId String
+
+  archivedAt DateTime?
+  deletedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+}
+
+model GlobalProfile {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  name String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  emails            GlobalProfileEmail[]
+  workspaceProfiles WorkspaceProfile[]
+  workspaceInvites  WorkspaceInvite[]
+}
+
+model GlobalProfileEmail {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  email String @unique
+
+  globalProfileOid BigInt
+  globalProfile    GlobalProfile @relation(fields: [globalProfileOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+enum PublicMcpServerStatus {
+  active
+  disabled
+
+  archived
+  deleted
+}
+
+model PublicMcpServer {
+  id String @id
+
+  status PublicMcpServerStatus
+
+  slug String @unique
+
+  ownerOid Int
+  owner    Cell @relation(fields: [ownerOid], references: [oid])
+
+  organizationId String
+  instanceId     String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([ownerOid])
+  @@index([organizationId])
+  @@index([updatedAt])
+}
+
+enum SkillPluginStatus {
+  active
+  archived
+  deleted
+}
+
+model SkillPlugin {
+  id String @id
+
+  status SkillPluginStatus
+
+  name String?
+  slug String?
+
+  ownerOid Int
+  owner    Cell @relation(fields: [ownerOid], references: [oid])
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  instanceId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@index([slug])
+  @@index([instanceId, status])
+}
+
+enum UserStatus {
+  active
+  deleted
+}
+
+enum UserType {
+  user
+}
+
+model User {
+  id String @id
+
+  status UserStatus
+  type   UserType
+
+  email     String  @unique
+  name      String
+  firstName String?
+  lastName  String?
+
+  /// [EntityImage]
+  image Json
+
+  lastEditByOid Int
+  lastEditBy    Cell @relation(fields: [lastEditByOid], references: [oid])
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+
+  oauthAuthorizationRequests OAuthAuthorizationRequest[]
+}
+
+enum WorkspaceType {
+  organization
+  portal
+  enterprise
+}
+
+enum WorkspaceStatus {
+  active
+  archived
+  deleted
+}
+
+model Workspace {
+  id String @id
+
+  type   WorkspaceType
+  status WorkspaceStatus
+
+  name String
+
+  accountId      String
+  portalId       String?
+  organizationId String?
+  enterpriseId   String?
+
+  ownerOid Int
+  owner    Cell @relation(fields: [ownerOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  profiles WorkspaceProfile[]
+  invites  WorkspaceInvite[]
+  groups   WorkspaceGroup[]
+  policies WorkspacePolicy[]
+}
+
+enum WorkspaceProfileStatus {
+  active
+  deleted
+}
+
+model WorkspaceProfile {
+  id String @id
+
+  status WorkspaceProfileStatus @default(active)
+
+  name  String
+  email String
+
+  accountId            String
+  userId               String?
+  organizationMemberId String?
+  consumerId           String?
+  consumerProfileId    String?
+  instanceConsumerId   String?
+  enterpriseMemberId   String?
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  globalProfileId String
+  globalProfile   GlobalProfile @relation(fields: [globalProfileId], references: [id], onDelete: Cascade)
+
+  ownerOid Int
+  owner    Cell @relation(fields: [ownerOid], references: [oid])
+
+  groupAssignments  WorkspaceGroupAssignment[]
+  policyAssignments WorkspacePolicyAssignment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+enum WorkspaceInviteStatus {
+  pending
+  accepted
+  rejected
+  deleted
+}
+
+model WorkspaceInvite {
+  id String @id
+
+  status WorkspaceInviteStatus @default(pending)
+
+  email String
+
+  accountId String
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  globalProfileId String
+  globalProfile   GlobalProfile @relation(fields: [globalProfileId], references: [id], onDelete: Cascade)
+
+  consumerInviteId     String? @unique
+  organizationInviteId String? @unique
+  enterpriseInviteId   String? @unique
+
+  ownerOid Int
+  owner    Cell @relation(fields: [ownerOid], references: [oid])
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  expiresAt DateTime
+
+  @@unique([workspaceId, globalProfileId])
+  @@index([accountId])
+  @@index([workspaceId])
+  @@index([globalProfileId])
+}
+
+enum WorkspaceGroupType {
+  organization_team
+  consumer_group
+}
+
+enum WorkspaceGroupStatus {
+  active
+  archived
+  deleted
+}
+
+enum WorkspacePolicyType {
+  organization_policy
+  enterprise_role
+}
+
+enum WorkspacePolicyStatus {
+  active
+  archived
+  deleted
+}
+
+enum WorkspaceAssignmentType {
+  everyone
+  admin
+  custom
+}
+
+model WorkspaceGroup {
+  id String @id
+
+  type   WorkspaceGroupType
+  status WorkspaceGroupStatus @default(active)
+
+  assignmentType WorkspaceAssignmentType
+
+  name        String
+  description String?
+
+  accountId String
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  ownerOid Int
+  owner    Cell @relation(fields: [ownerOid], references: [oid])
+
+  workspaceGroupAssignments WorkspaceGroupAssignment[]
+  policyAssignments         WorkspacePolicyAssignment[]
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+
+  @@index([accountId])
+  @@index([workspaceId])
+}
+
+model WorkspacePolicy {
+  id String @id
+
+  type   WorkspacePolicyType
+  status WorkspacePolicyStatus @default(active)
+
+  assignmentType WorkspaceAssignmentType
+
+  name        String
+  description String?
+
+  accountId String
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  ownerOid Int
+  owner    Cell @relation(fields: [ownerOid], references: [oid])
+
+  assignments WorkspacePolicyAssignment[]
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+
+  @@index([accountId])
+  @@index([workspaceId])
+}
+
+model WorkspaceGroupAssignment {
+  id String @id
+
+  accountId   String
+  workspaceId String
+
+  workspaceGroupId String
+  workspaceGroup   WorkspaceGroup @relation(fields: [workspaceGroupId], references: [id], onDelete: Cascade)
+
+  workspaceProfileId String
+  workspaceProfile   WorkspaceProfile @relation(fields: [workspaceProfileId], references: [id], onDelete: Cascade)
+
+  ownerOid Int
+  owner    Cell @relation(fields: [ownerOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([workspaceGroupId, workspaceProfileId])
+  @@index([accountId])
+  @@index([workspaceId])
+  @@index([workspaceGroupId])
+  @@index([workspaceProfileId])
+}
+
+model WorkspacePolicyAssignment {
+  id String @id
+
+  accountId   String
+  workspaceId String
+
+  workspacePolicyId String
+  workspacePolicy   WorkspacePolicy @relation(fields: [workspacePolicyId], references: [id], onDelete: Cascade)
+
+  workspaceGroupId String?
+  workspaceGroup   WorkspaceGroup? @relation(fields: [workspaceGroupId], references: [id], onDelete: Cascade)
+
+  workspaceProfileId String?
+  workspaceProfile   WorkspaceProfile? @relation(fields: [workspaceProfileId], references: [id], onDelete: Cascade)
+
+  ownerOid Int
+  owner    Cell @relation(fields: [ownerOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([workspacePolicyId, workspaceGroupId])
+  @@unique([workspacePolicyId, workspaceProfileId])
+  @@index([accountId])
+  @@index([workspaceId])
+  @@index([workspacePolicyId])
+  @@index([workspaceGroupId])
+  @@index([workspaceProfileId])
+}

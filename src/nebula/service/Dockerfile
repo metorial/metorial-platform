@@ -51,6 +51,7 @@ ENV NODE_ENV=production
 ENV TZ=UTC
 COPY --from=builder --link --chown=10001:10001 /app/src/nebula/service/dist ./dist
 COPY --from=builder --link --chown=10001:10001 /app/src/nebula/service/prisma/schema/ ./prisma/nebula/schema/
+COPY --from=builder --link --chown=10001:10001 /app/src/nebula/service/prisma/migrations/ ./prisma/nebula/migrations/
 COPY --link --chown=10001:10001 <<'EOF' ./.control/runtime.json
 {
   "databases": [
@@ -74,4 +75,4 @@ EXPOSE 52170
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
   CMD curl -fsS http://127.0.0.1:52170/ping && curl -fsS http://127.0.0.1:12121/ || exit 1
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["sh", "-c", "bun ./control/control-runtime.js migrate nebula && exec bun ./dist/index.js"]
+CMD ["sh","-c","stop=; trap 'stop=1' TERM INT HUP; bun ./control/control-runtime.js migrate nebula && [ -z \"$stop\" ] && exec bun ./dist/index.js"]

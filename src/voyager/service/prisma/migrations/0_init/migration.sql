@@ -6,7 +6,6 @@ CREATE TABLE "Tenant" (
     "oid" BIGINT NOT NULL,
     "id" TEXT NOT NULL,
     "identifier" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Tenant_pkey" PRIMARY KEY ("oid")
