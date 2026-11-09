@@ -1,5 +1,10 @@
 import { createHash } from 'node:crypto';
-import { createGzip } from 'node:zlib';
+import { createWriteStream } from 'node:fs';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { pipeline } from 'node:stream/promises';
+import { createGzip, type Gzip } from 'node:zlib';
 import {
   encodeManifestEntry,
   encodeManifestHeader,
@@ -14,12 +19,18 @@ import {
 import { compareManifestPaths } from './pathRules';
 import type { ManifestScope } from './scope';
 
-export type WrittenManifestFile = {
-  body: Buffer;
+type ManifestFileSummary = {
   sha256: string;
   entryCount: number;
   totalBytes: number;
   byteSize: number;
+};
+
+export type WrittenManifestFile = ManifestFileSummary & { body: Buffer };
+
+export type SpooledManifestFile = ManifestFileSummary & {
+  path: string;
+  dispose: () => Promise<void>;
 };
 
 let encoder = new TextEncoder();
@@ -66,22 +77,25 @@ let encodeLines = async function* (
   }
 };
 
+let collectGzip = (gzip: Gzip, chunks: Buffer[]) =>
+  new Promise<void>((resolve, reject) => {
+    gzip.on('data', chunk => chunks.push(chunk));
+    gzip.on('end', resolve);
+    gzip.on('error', reject);
+  });
+
 let encodeManifestFile = async (
   header: ManifestHeader,
-  entries: Iterable<ManifestEntry> | AsyncIterable<ManifestEntry>
-): Promise<WrittenManifestFile> => {
+  entries: Iterable<ManifestEntry> | AsyncIterable<ManifestEntry>,
+  consume: (gzip: Gzip) => Promise<void>
+): Promise<ManifestFileSummary> => {
   validateManifestHeader(header);
 
   let hash = createHash('sha256');
   let gzip = createGzip({ level: 9 });
-  let chunks: Buffer[] = [];
   let byteSize = 0;
 
-  gzip.on('data', chunk => chunks.push(chunk));
-  let finished = new Promise<void>((resolve, reject) => {
-    gzip.on('end', resolve);
-    gzip.on('error', reject);
-  });
+  let finished = consume(gzip);
   finished.catch(() => {});
 
   try {
@@ -112,12 +126,21 @@ let encodeManifestFile = async (
   await finished;
 
   return {
-    body: Buffer.concat(chunks),
     sha256: hash.digest('hex'),
     entryCount: header.entryCount,
     totalBytes: header.totalBytes,
     byteSize
   };
+};
+
+let encodeToBuffer = async (
+  header: ManifestHeader,
+  entries: Iterable<ManifestEntry> | AsyncIterable<ManifestEntry>
+): Promise<WrittenManifestFile> => {
+  let chunks: Buffer[] = [];
+  let summary = await encodeManifestFile(header, entries, gzip => collectGzip(gzip, chunks));
+
+  return { ...summary, body: Buffer.concat(chunks) };
 };
 
 // Buffers and sorts the entries, so the bytes depend only on the set of entries.
@@ -129,7 +152,7 @@ export let writeManifestFile = async (d: {
 }) => {
   let entries = [...d.entries].sort((a, b) => compareManifestPaths(a.path, b.path));
 
-  return await encodeManifestFile(
+  return await encodeToBuffer(
     {
       destinationId: d.destinationId,
       sourceBucket: d.sourceBucket,
@@ -141,23 +164,44 @@ export let writeManifestFile = async (d: {
   );
 };
 
-// For entries streamed in path byte order (e.g. `ORDER BY path COLLATE "C"`) whose count and
-// total size are known up front; fails instead of writing if the stream disagrees.
-export let writeSortedManifestFile = async (d: {
+type SortedManifestInput = {
   destinationId: string;
   sourceBucket: string;
   scope: ManifestScope;
   entryCount: number;
   totalBytes: number;
   entries: AsyncIterable<ManifestEntry> | Iterable<ManifestEntry>;
-}) =>
-  await encodeManifestFile(
-    {
-      destinationId: d.destinationId,
-      sourceBucket: d.sourceBucket,
-      scope: sortedScope(d.scope),
-      entryCount: d.entryCount,
-      totalBytes: d.totalBytes
-    },
-    d.entries
-  );
+};
+
+let getSortedManifestHeader = (d: SortedManifestInput): ManifestHeader => ({
+  destinationId: d.destinationId,
+  sourceBucket: d.sourceBucket,
+  scope: sortedScope(d.scope),
+  entryCount: d.entryCount,
+  totalBytes: d.totalBytes
+});
+
+// For entries streamed in path byte order (e.g. `ORDER BY path COLLATE "C"`) whose count and
+// total size are known up front; fails instead of writing if the stream disagrees.
+export let writeSortedManifestFile = async (d: SortedManifestInput) =>
+  await encodeToBuffer(getSortedManifestHeader(d), d.entries);
+
+// Like writeSortedManifestFile, but the compressed bytes go to a temporary file the caller
+// uploads and then disposes, so memory stays flat however large the manifest is.
+export let spoolSortedManifestFile = async (
+  d: SortedManifestInput
+): Promise<SpooledManifestFile> => {
+  let directory = await mkdtemp(join(tmpdir(), 'skill-manifest-'));
+  let path = join(directory, 'manifest.ndjson.gz');
+  let dispose = () => rm(directory, { recursive: true, force: true });
+
+  try {
+    let summary = await encodeManifestFile(getSortedManifestHeader(d), d.entries, gzip =>
+      pipeline(gzip, createWriteStream(path))
+    );
+    return { ...summary, path, dispose };
+  } catch (error) {
+    await dispose();
+    throw error;
+  }
+};

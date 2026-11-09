@@ -1,6 +1,7 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import type { AuditScope } from '@metorial/audit-scope';
 import type { Instance, Prisma, Project, SkillDestinationSyncStatus } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import {
@@ -9,7 +10,9 @@ import {
   resolveSkillMarketplaces,
   resolveSkillPlugins
 } from '@metorial/list-utils';
+import { Fabric } from '@metorial/fabric';
 import { getOriginTenant, origin } from '@metorial/skills-scm-utils';
+import { forceSkillDestinationSync } from '../lib/destinationSync';
 import { isRepositorySyncRetrying } from '../lib/repositorySyncStatus';
 
 export let skillSyncInclude = {
@@ -167,6 +170,36 @@ class SkillSyncServiceImpl {
 
   async getSkillSyncById(d: { project: Project; instance: Instance; skillSyncId: string }) {
     return await this.getSkillSyncRecord(d);
+  }
+
+  async forceSkillSync(d: {
+    project: Project;
+    instance: Instance;
+    skillSyncId: string;
+    allowMassDelete?: boolean;
+    auditScope: AuditScope;
+  }) {
+    let skillSync = await this.getSkillSyncRecord(d);
+    if (d.allowMassDelete && skillSync.destination.storageMode !== 'manifest') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Only manifest syncs can be forced past the deletion guard.'
+        })
+      );
+    }
+
+    let forced = await forceSkillDestinationSync({
+      destination: skillSync.destination,
+      trigger: 'manual',
+      allowMassDelete: d.allowMassDelete
+    });
+    await Fabric.fire('skill.destination.audit.sync_forced:after', {
+      auditScope: d.auditScope,
+      skillDestination: skillSync.destination,
+      skillDestinationSync: forced
+    });
+
+    return await this.getSkillSyncRecord({ ...d, skillSyncId: forced.id });
   }
 
   async getSkillSyncRepositoryChecks(d: {

@@ -3,10 +3,13 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { env } from '../env';
 import {
+  deleteCargoObjectIfUnreferenced,
   fileLinkService,
   filePurposeService,
   fileReferenceService,
-  fileService
+  fileService,
+  getCargoFilesBucketName,
+  isObjectMissingError
 } from '@metorial/module-file';
 import { assertResourceActorScope } from '@metorial/module-access';
 import { resourceActorPresentationInclude } from '@metorial/module-resource-actor';
@@ -17,14 +20,33 @@ import type {
   Project,
   ResourceActor,
   SkillDestination,
+  SkillDestinationManifest,
   SkillExportStatus,
   SkillExportTarget
 } from '@metorial/db';
 import { createSystemAuditScope } from '@metorial/audit-scope';
 import { db, ID, withTransaction } from '@metorial/db';
+import { getSkillDestinationCodeBucketId } from '@metorial/skills-scm-utils';
+import { getStorage } from '@metorial/module-file';
 import { createHash } from 'node:crypto';
 import { forceSkillDestinationSync } from '../lib/destinationSync';
-import { enqueueSkillExport } from '../queues/export';
+import {
+  buildSkillExportZipSpec,
+  findMissingSkillExportSources,
+  getObjectStorageErrorStatus,
+  getSkillExportArchiveKey,
+  getSkillExportZipJobId,
+  getSkillExportZipJobOutcome,
+  isSkillExportRecoveryJobId,
+  skillExportZipJobMaxAttempts,
+  skillExportZipJobPollDelayMs,
+  skillExportZipJobTimeoutMs,
+  skillExportZipJobWaitSeconds,
+  type SkillExportZipJob,
+  type SkillExportZipJobSpec
+} from '../lib/skillExportArchive';
+import { enqueueSkillExport, type SkillExportJobData } from '../queues/export';
+import { recoverMissingManifestSources } from '../queues/sync/manifest/recovery';
 import { managedSkillPluginService } from './managedSkillPlugin';
 
 let codeBucketClient = createCodeBucketClient({
@@ -129,6 +151,17 @@ type ResolvedExportTarget = {
   fileName: string;
 };
 
+type ManifestExportContext = {
+  project: Project;
+  instance: Instance;
+  skillExport: SkillExportRecord;
+  manifest: SkillDestinationManifest;
+  zipStartedAt: number;
+};
+
+let getExportFileName = (ref: SkillExportRecord['exportRef']) =>
+  `${(ref.skillMarketplace ?? ref.skillPlugin)?.slug ?? 'export'}.zip`;
+
 let getExportExpiresAt = () => new Date(Date.now() + exportExpiryMs);
 
 let getExportHash = (d: { target: SkillExportTarget; oid: bigint }) =>
@@ -144,12 +177,17 @@ let getExportHash = (d: { target: SkillExportTarget; oid: bigint }) =>
 
 let isReusableExportFile = (d: {
   ref: SkillExportRecord['exportRef'];
-  destination: Pick<SkillDestination, 'tag'>;
+  destination: Pick<SkillDestination, 'tag' | 'storageMode'>;
+  manifest?: Pick<SkillDestinationManifest, 'oid'>;
 }) => {
   let now = new Date();
+  let isSameContent =
+    d.destination.storageMode === 'manifest'
+      ? !!d.manifest && d.ref.fileManifestOid === d.manifest.oid
+      : d.ref.fileDestinationTag === d.destination.tag;
 
   return (
-    d.ref.fileDestinationTag === d.destination.tag &&
+    isSameContent &&
     !!d.ref.file &&
     !!d.ref.fileLink &&
     !!d.ref.fileReference &&
@@ -373,26 +411,15 @@ class SkillExportServiceImpl {
     });
   }
 
-  private async createExportArtifact(d: {
+  private async createExportFile(d: {
     project: Project;
     instance: Instance;
     skillExport: SkillExportRecord;
-    target: ResolvedExportTarget;
+    storeId: string;
+    fileName: string;
   }) {
     let purpose = await this.ensureExportFilePurpose();
     let expiresAt = getExportExpiresAt();
-
-    let { storeId, destination } = await fileService.createPendingUploadForStream();
-
-    await codeBucketClient.exportBucketFilesAsZipToUpload({
-      bucketId: d.target.destination.codeBucketId,
-      prefix: '',
-      uploadUrl: destination.type === 'signed_url' ? destination.url : '',
-      uploadHeaders: destination.type === 'signed_url' ? destination.headers : {},
-      uploadBucket: destination.type === 'internal' ? destination.bucket : '',
-      uploadKey: destination.type === 'internal' ? destination.key : '',
-      contentType: 'application/zip'
-    });
 
     let file = await fileService.completePendingUploadForStream({
       project: d.project,
@@ -404,10 +431,11 @@ class SkillExportServiceImpl {
         metadata: { skillExportId: d.skillExport.id }
       }),
       purpose: purpose.slug,
-      storeId,
+      storeId: d.storeId,
+      skipContentHashes: true,
       input: {
-        name: d.target.fileName,
-        title: d.target.fileName,
+        name: d.fileName,
+        title: d.fileName,
         mimeType: 'application/zip',
         expiresAt,
         authorization: { type: 'privileged' }
@@ -431,6 +459,33 @@ class SkillExportServiceImpl {
         entityType: 'skill_export_ref',
         entityId: d.skillExport.exportRef.hash
       }
+    });
+
+    return { file, fileLink, fileReference };
+  }
+
+  private async createExportArtifact(d: {
+    project: Project;
+    instance: Instance;
+    skillExport: SkillExportRecord;
+    target: ResolvedExportTarget;
+  }) {
+    let { storeId, destination } = await fileService.createPendingUploadForStream();
+
+    await codeBucketClient.exportBucketFilesAsZipToUpload({
+      bucketId: getSkillDestinationCodeBucketId(d.target.destination),
+      prefix: '',
+      uploadUrl: destination.type === 'signed_url' ? destination.url : '',
+      uploadHeaders: destination.type === 'signed_url' ? destination.headers : {},
+      uploadBucket: destination.type === 'internal' ? destination.bucket : '',
+      uploadKey: destination.type === 'internal' ? destination.key : '',
+      contentType: 'application/zip'
+    });
+
+    let { file, fileLink, fileReference } = await this.createExportFile({
+      ...d,
+      storeId,
+      fileName: d.target.fileName
     });
 
     return await withTransaction(async db => {
@@ -472,6 +527,467 @@ class SkillExportServiceImpl {
         status: 'failed',
         completedAt: new Date()
       }
+    });
+  }
+
+  private async findExportDestination(skillExport: SkillExportRecord) {
+    let destinationOid =
+      skillExport.exportRef.skillMarketplace?.destinationOid ??
+      skillExport.exportRef.skillPlugin?.destinationOid;
+    if (!destinationOid) return null;
+
+    return await db.skillDestination.findUnique({
+      where: {
+        oid: destinationOid
+      }
+    });
+  }
+
+  private async deleteUnreferencedExportArchive(skillExport: SkillExportRecord) {
+    if (!skillExport.zipJobId) return;
+
+    await deleteCargoObjectIfUnreferenced({
+      bucket: getCargoFilesBucketName(),
+      key: getSkillExportArchiveKey(skillExport.id)
+    }).catch(error => {
+      if (isObjectMissingError(error)) return;
+      console.warn(
+        `Could not delete the archive of failed skill export ${skillExport.id}`,
+        error
+      );
+    });
+  }
+
+  private async failManifestExport(d: { skillExport: SkillExportRecord; reason: string }) {
+    console.warn(`Skill export ${d.skillExport.id} failed: ${d.reason}`);
+
+    await this.failExport(d.skillExport.id);
+    await this.deleteUnreferencedExportArchive(d.skillExport);
+    return await db.skillExport.findUniqueOrThrow({
+      where: {
+        id: d.skillExport.id
+      },
+      include: skillExportInclude
+    });
+  }
+
+  private async processManifestExport(d: {
+    project: Project;
+    instance: Instance;
+    skillExport: SkillExportRecord;
+    destination: SkillDestination;
+    job: SkillExportJobData;
+  }) {
+    if (d.job.manifestId) {
+      return await this.pollManifestExportZipJob({
+        ...d,
+        manifestId: d.job.manifestId
+      });
+    }
+
+    let timeoutMs = d.skillExport.zipJobId
+      ? syncTimeoutMs + skillExportZipJobTimeoutMs
+      : syncTimeoutMs;
+    if (Date.now() - d.skillExport.createdAt.getTime() > timeoutMs) {
+      return await this.failManifestExport({
+        skillExport: d.skillExport,
+        reason: 'Timed out waiting for the destination content'
+      });
+    }
+
+    let manifest: SkillDestinationManifest | null = null;
+
+    if (d.job.skillDestinationSyncId) {
+      let sync = await db.skillDestinationSync.findFirst({
+        where: {
+          id: d.job.skillDestinationSyncId
+        },
+        include: {
+          manifest: true
+        }
+      });
+
+      if (sync?.manifest) {
+        manifest = sync.manifest;
+      } else if (sync?.status === 'pending' || sync?.status === 'processing') {
+        await enqueueSkillExport(
+          { skillExportId: d.skillExport.id, skillDestinationSyncId: sync.id },
+          { delay: 5000 }
+        );
+        return d.skillExport;
+      } else if (sync?.status === 'canceled') {
+        let newerSync = await db.skillDestinationSync.findFirst({
+          where: {
+            destinationOid: sync.destinationOid,
+            oid: { gt: sync.oid }
+          },
+          orderBy: { oid: 'desc' }
+        });
+        if (!newerSync) {
+          return await this.failManifestExport({
+            skillExport: d.skillExport,
+            reason: `Sync ${sync.id} was canceled`
+          });
+        }
+
+        await enqueueSkillExport(
+          { skillExportId: d.skillExport.id, skillDestinationSyncId: newerSync.id },
+          { delay: 5000 }
+        );
+        return d.skillExport;
+      } else {
+        return await this.failManifestExport({
+          skillExport: d.skillExport,
+          reason: sync
+            ? `Sync ${sync.id} ended as ${sync.status} without content`
+            : `Sync ${d.job.skillDestinationSyncId} not found`
+        });
+      }
+    }
+
+    await this.resolveTargetFromExport({
+      project: d.project,
+      instance: d.instance,
+      skillExport: d.skillExport
+    });
+
+    let destination = await db.skillDestination.findUniqueOrThrow({
+      where: {
+        oid: d.destination.oid
+      },
+      include: {
+        currentManifest: true
+      }
+    });
+
+    if (!manifest) {
+      if (destination.isDirty || !destination.currentManifest) {
+        let sync = await forceSkillDestinationSync({
+          destination
+        });
+
+        await enqueueSkillExport(
+          { skillExportId: d.skillExport.id, skillDestinationSyncId: sync.id },
+          { delay: 5000 }
+        );
+        return d.skillExport;
+      }
+
+      manifest = destination.currentManifest;
+    }
+
+    let skillExport = await this.getExportById({ ...d, skillExportId: d.skillExport.id });
+
+    if (
+      isReusableExportFile({
+        ref: skillExport.exportRef,
+        destination,
+        manifest
+      })
+    ) {
+      return await this.reuseExportRefFile({
+        skillExport,
+        ref: skillExport.exportRef
+      });
+    }
+
+    skillExport = await db.skillExport.update({
+      where: {
+        id: skillExport.id
+      },
+      data: {
+        zipJobId:
+          skillExport.zipJobId ?? getSkillExportZipJobId({ skillExportId: skillExport.id }),
+        zipJobAttempts: Math.max(skillExport.zipJobAttempts, 1)
+      },
+      include: skillExportInclude
+    });
+
+    return await this.submitManifestExportZipJob({
+      project: d.project,
+      instance: d.instance,
+      skillExport,
+      manifest,
+      zipStartedAt: Date.now()
+    });
+  }
+
+  private async pollManifestExportZipJob(d: {
+    project: Project;
+    instance: Instance;
+    skillExport: SkillExportRecord;
+    manifestId: string;
+    job: SkillExportJobData;
+  }) {
+    let manifest = await db.skillDestinationManifest.findUnique({
+      where: {
+        id: d.manifestId
+      }
+    });
+    if (!manifest || !d.skillExport.zipJobId) {
+      return await this.failManifestExport({
+        skillExport: d.skillExport,
+        reason: `Manifest ${d.manifestId} or the zip job is gone`
+      });
+    }
+
+    let context: ManifestExportContext = {
+      project: d.project,
+      instance: d.instance,
+      skillExport: d.skillExport,
+      manifest,
+      zipStartedAt: d.job.zipStartedAt ?? Date.now()
+    };
+
+    if (Date.now() - context.zipStartedAt > skillExportZipJobTimeoutMs) {
+      await getStorage()
+        .cancelZipJob(d.skillExport.zipJobId)
+        .catch(() => {});
+      return await this.failManifestExport({
+        skillExport: d.skillExport,
+        reason: 'Timed out waiting for the zip job'
+      });
+    }
+
+    let job: SkillExportZipJob;
+    try {
+      job = await getStorage().getZipJob(d.skillExport.zipJobId);
+    } catch (error) {
+      if (getObjectStorageErrorStatus(error) === 404) {
+        return await this.resubmitManifestExportZipJob(context);
+      }
+
+      return await this.handleZipJobRequestError(context, error);
+    }
+
+    return await this.applyManifestExportZipJob(context, job);
+  }
+
+  private async submitManifestExportZipJob(
+    d: ManifestExportContext,
+    opts: { isResubmission?: boolean } = {}
+  ): Promise<SkillExportRecord> {
+    let spec = await buildSkillExportZipSpec({
+      skillExportId: d.skillExport.id,
+      manifest: d.manifest
+    });
+
+    let job: SkillExportZipJob;
+    try {
+      job = await getStorage().createZipJob(d.skillExport.zipJobId!, spec, {
+        waitSeconds: skillExportZipJobWaitSeconds
+      });
+    } catch (error) {
+      return await this.handleZipJobRequestError(d, error);
+    }
+
+    return await this.applyManifestExportZipJob(d, job, { ...opts, spec });
+  }
+
+  private async resubmitManifestExportZipJob(
+    d: ManifestExportContext
+  ): Promise<SkillExportRecord> {
+    if (d.skillExport.zipJobAttempts >= skillExportZipJobMaxAttempts) {
+      return await this.failManifestExport({
+        skillExport: d.skillExport,
+        reason: `Zip job failed after ${d.skillExport.zipJobAttempts} attempts`
+      });
+    }
+
+    let skillExport = await db.skillExport.update({
+      where: {
+        id: d.skillExport.id
+      },
+      data: {
+        zipJobAttempts: { increment: 1 }
+      },
+      include: skillExportInclude
+    });
+
+    return await this.submitManifestExportZipJob(
+      { ...d, skillExport },
+      { isResubmission: true }
+    );
+  }
+
+  private async enqueueManifestExportZipJobPoll(d: ManifestExportContext) {
+    await enqueueSkillExport(
+      {
+        skillExportId: d.skillExport.id,
+        manifestId: d.manifest.id,
+        zipStartedAt: d.zipStartedAt
+      },
+      { delay: skillExportZipJobPollDelayMs }
+    );
+    return d.skillExport;
+  }
+
+  private async handleZipJobRequestError(d: ManifestExportContext, error: unknown) {
+    let status = getObjectStorageErrorStatus(error);
+    let isTransient =
+      status === undefined
+        ? (error as { isAxiosError?: boolean } | null)?.isAxiosError === true
+        : status === 429 || status >= 500;
+
+    if (isTransient) return await this.enqueueManifestExportZipJobPoll(d);
+
+    await this.failExport(d.skillExport.id);
+    await this.deleteUnreferencedExportArchive(d.skillExport);
+    throw error;
+  }
+
+  private async applyManifestExportZipJob(
+    d: ManifestExportContext,
+    job: SkillExportZipJob,
+    opts: { isResubmission?: boolean; spec?: SkillExportZipJobSpec } = {}
+  ): Promise<SkillExportRecord> {
+    let outcome = getSkillExportZipJobOutcome({
+      job,
+      attempts: d.skillExport.zipJobAttempts,
+      canRecover: !isSkillExportRecoveryJobId(d.skillExport.zipJobId!)
+    });
+
+    if (outcome.type === 'wait') return await this.enqueueManifestExportZipJobPoll(d);
+
+    if (outcome.type === 'completed') {
+      return await this.completeManifestExport({ ...d, result: outcome.result });
+    }
+
+    if (outcome.type === 'resubmit') {
+      if (opts.isResubmission) return await this.enqueueManifestExportZipJobPoll(d);
+      return await this.resubmitManifestExportZipJob(d);
+    }
+
+    if (outcome.type === 'recover') {
+      return await this.recoverManifestExportSources(d, {
+        message: job.error?.message ?? '',
+        spec: opts.spec
+      });
+    }
+
+    return await this.failManifestExport({
+      skillExport: d.skillExport,
+      reason: outcome.reason
+    });
+  }
+
+  private async recoverManifestExportSources(
+    d: ManifestExportContext,
+    failure: { message: string; spec?: SkillExportZipJobSpec }
+  ) {
+    let spec =
+      failure.spec ??
+      (await buildSkillExportZipSpec({
+        skillExportId: d.skillExport.id,
+        manifest: d.manifest
+      }));
+    let sourceKeys = findMissingSkillExportSources({ message: failure.message, spec });
+    let manifestSync = await db.skillDestinationSync.findFirst({
+      where: { manifestOid: d.manifest.oid },
+      orderBy: { oid: 'desc' },
+      select: { oid: true }
+    });
+
+    let recovery = await recoverMissingManifestSources({
+      destinationOid: d.manifest.destinationOid,
+      afterSyncOid: manifestSync?.oid,
+      keys: sourceKeys.length ? sourceKeys : undefined
+    });
+    if (recovery.status === 'limit_reached') {
+      return await this.failManifestExport({
+        skillExport: d.skillExport,
+        reason: `source_not_found after repeated rebuilds: ${failure.message}`
+      });
+    }
+    let { sync } = recovery;
+
+    await db.skillExport.update({
+      where: {
+        id: d.skillExport.id
+      },
+      data: {
+        zipJobId: getSkillExportZipJobId({
+          skillExportId: d.skillExport.id,
+          isRecoveryRetry: true
+        }),
+        zipJobAttempts: 0
+      }
+    });
+
+    await enqueueSkillExport(
+      { skillExportId: d.skillExport.id, skillDestinationSyncId: sync.id },
+      { delay: 5000 }
+    );
+    return d.skillExport;
+  }
+
+  private async completeManifestExport(
+    d: ManifestExportContext & { result: NonNullable<SkillExportZipJob['result']> }
+  ) {
+    let { file, fileLink, fileReference } = await this.createExportFile({
+      project: d.project,
+      instance: d.instance,
+      skillExport: d.skillExport,
+      storeId: getSkillExportArchiveKey(d.skillExport.id),
+      fileName: getExportFileName(d.skillExport.exportRef)
+    }).catch(async error => {
+      await this.failExport(d.skillExport.id);
+      await this.deleteUnreferencedExportArchive(d.skillExport);
+      throw error;
+    });
+
+    let renamedEntries = d.result.renamedEntries.map(entry => ({
+      path: entry.path,
+      archivePath: entry.archivePath
+    }));
+    if (renamedEntries.length) {
+      console.info(
+        JSON.stringify({
+          event: 'cargo_skill_export_renamed_entries',
+          level: 'info',
+          skillExportId: d.skillExport.id,
+          count: renamedEntries.length,
+          sample: renamedEntries.slice(0, 5)
+        })
+      );
+    }
+
+    await withTransaction(async db => {
+      let completed = await db.skillExport.updateMany({
+        where: {
+          id: d.skillExport.id,
+          status: 'pending'
+        },
+        data: {
+          status: 'completed',
+          fileOid: file.oid,
+          fileReferenceOid: fileReference.oid,
+          fileLinkOid: fileLink.oid,
+          renamedEntries: renamedEntries.length ? renamedEntries : undefined,
+          completedAt: new Date()
+        }
+      });
+      if (!completed.count) return;
+
+      await db.skillExportRef.update({
+        where: {
+          oid: d.skillExport.exportRefOid
+        },
+        data: {
+          fileOid: file.oid,
+          fileReferenceOid: fileReference.oid,
+          fileLinkOid: fileLink.oid,
+          fileDestinationTag: null,
+          fileManifestOid: d.manifest.oid
+        }
+      });
+    });
+
+    return await db.skillExport.findUniqueOrThrow({
+      where: {
+        id: d.skillExport.id
+      },
+      include: skillExportInclude
     });
   }
 
@@ -556,12 +1072,12 @@ class SkillExportServiceImpl {
     return await this.getExportById(d);
   }
 
-  async processSkillExport(d: {
-    project: Project;
-    instance: Instance;
-    skillExportId: string;
-    skillDestinationSyncId?: string;
-  }) {
+  async processSkillExport(
+    d: {
+      project: Project;
+      instance: Instance;
+    } & SkillExportJobData
+  ) {
     let skillExport = await this.getExportById(d);
     if (skillExport.status !== 'pending') return skillExport;
 
@@ -574,6 +1090,17 @@ class SkillExportServiceImpl {
         startedAt: new Date()
       }
     });
+
+    let exportDestination = await this.findExportDestination(skillExport);
+    if (exportDestination?.storageMode === 'manifest') {
+      return await this.processManifestExport({
+        project: d.project,
+        instance: d.instance,
+        skillExport,
+        destination: exportDestination,
+        job: d
+      });
+    }
 
     if (Date.now() - skillExport.createdAt.getTime() > syncTimeoutMs) {
       await this.failExport(skillExport.id);

@@ -25,16 +25,15 @@ import { skillConfigurationService } from '@metorial/module-skill-configurations
 import { consumerAccessService } from '@metorial/module-consumer-access';
 import { getProjectTenantIdentifier } from '@metorial/skills-common';
 import { internalImageService } from '@metorial/skills-images';
-import {
-  createSkillDestination,
-  getSkillDestinationEditorUrl
-} from '@metorial/skills-scm-utils';
+import { createSkillDestination } from '@metorial/skills-scm-utils';
 import { buildSearchFilter } from '@metorial/module-search';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/skills-search';
 import { forceSkillDestinationSync } from '../lib/destinationSync';
 import {
+  assertSkillMarketplaceDestinationSize,
   assertSkillMarketplacePluginLimit,
   CargoSkillLimitError,
+  generatedFilesPerSkillPlugin,
   toCargoSkillLimitServiceError
 } from '../lib/limits';
 import {
@@ -49,6 +48,7 @@ import {
   getSkillMarketplaceAccessWhere,
   type SkillMarketplaceAccessInput
 } from '../lib/skillMarketplaceAccess';
+import { getNewSkillDestinationStorageMode } from '../lib/storageMode';
 import {
   enqueueSkillMarketplacePluginLifecycle,
   enqueueSkillPluginLifecycle
@@ -380,6 +380,10 @@ class SkillPluginServiceImpl {
           skillMarketplaceOid: skillMarketplace.oid,
           additionalCount: 1
         });
+        await assertSkillMarketplaceDestinationSize({
+          skillMarketplaceOid: skillMarketplace.oid,
+          additionalFiles: generatedFilesPerSkillPlugin
+        });
       } catch (error) {
         if (error instanceof CargoSkillLimitError) {
           throw toCargoSkillLimitServiceError(error);
@@ -414,13 +418,15 @@ class SkillPluginServiceImpl {
       : undefined;
     let slug = await getAvailableSkillPluginSlug(d.input.slug ?? d.input.name);
 
+    let storageMode = await getNewSkillDestinationStorageMode({ instance: d.instance });
+
     return await withTransaction(async db => {
       await Fabric.fire('skill.plugin.created:before', {
         organization,
         instance: d.instance
       });
 
-      let destination = await createSkillDestination({ project: d.project });
+      let destination = await createSkillDestination({ project: d.project, storageMode });
       let skillPlugin = await db.skillPlugin.create({
         data: {
           id: await ID.generateId('skillPlugin'),
@@ -704,26 +710,14 @@ class SkillPluginServiceImpl {
     });
   }
 
-  async getSkillPluginEditorUrl(d: {
-    project: Project;
-    instance: Instance;
-    skillPlugin: SkillPluginRecord;
-    isReadOnly?: boolean;
-  }) {
-    return await getSkillDestinationEditorUrl({
-      project: d.project,
-      destination: d.skillPlugin.destination!,
-      isReadOnly: d.isReadOnly
-    });
-  }
-
   async forceSkillPluginSync(d: {
     project: Project;
     instance: Instance;
     skillPlugin: SkillPluginRecord;
   }) {
     await forceSkillDestinationSync({
-      destination: d.skillPlugin.destination!
+      destination: d.skillPlugin.destination!,
+      trigger: 'manual'
     });
 
     return await this.getSkillPluginRecord({

@@ -25,10 +25,7 @@ import { skillConfigurationService } from '@metorial/module-skill-configurations
 import { consumerAccessService } from '@metorial/module-consumer-access';
 import { getProjectTenantIdentifier } from '@metorial/skills-common';
 import { internalImageService } from '@metorial/skills-images';
-import {
-  createSkillDestination,
-  getSkillDestinationEditorUrl
-} from '@metorial/skills-scm-utils';
+import { createSkillDestination } from '@metorial/skills-scm-utils';
 import { buildSearchFilter } from '@metorial/module-search';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/skills-search';
 import { forceSkillDestinationSync } from '../lib/destinationSync';
@@ -37,6 +34,7 @@ import {
   type SkillMarketplaceAccessInput
 } from '../lib/skillMarketplaceAccess';
 import { getSkillMarketplaceUpdateFlags } from '../lib/skillMarketplaceUpdate';
+import { getNewSkillDestinationStorageMode } from '../lib/storageMode';
 import { enqueueSkillMarketplaceLifecycle } from '../queues/lifecycle';
 import { getSkillPluginFabricContext, skillPluginInclude } from './skillPlugin';
 
@@ -261,8 +259,10 @@ class SkillMarketplaceServiceImpl {
       instance: d.instance
     });
 
+    let storageMode = await getNewSkillDestinationStorageMode({ instance: d.instance });
+
     return await withTransaction(async db => {
-      let destination = await createSkillDestination({ project: d.project });
+      let destination = await createSkillDestination({ project: d.project, storageMode });
       let skillMarketplace = await db.skillMarketplace.create({
         data: {
           id: await ID.generateId('skillMarketplace'),
@@ -494,19 +494,6 @@ class SkillMarketplaceServiceImpl {
     });
   }
 
-  async getSkillMarketplaceEditorUrl(d: {
-    project: Project;
-    instance: Instance;
-    skillMarketplace: SkillMarketplaceRecord;
-    isReadOnly?: boolean;
-  }) {
-    return await getSkillDestinationEditorUrl({
-      project: d.project,
-      destination: d.skillMarketplace.destination!,
-      isReadOnly: d.isReadOnly
-    });
-  }
-
   async forceSkillMarketplaceSync(d: {
     project: Project;
     instance: Instance;
@@ -514,7 +501,8 @@ class SkillMarketplaceServiceImpl {
   }) {
     await forceSkillDestinationSync({
       destination: d.skillMarketplace.destination!,
-      incrementForceSyncCounterFor: d.skillMarketplace
+      incrementForceSyncCounterFor: d.skillMarketplace,
+      trigger: 'manual'
     });
 
     return await this.getSkillMarketplaceRecord({

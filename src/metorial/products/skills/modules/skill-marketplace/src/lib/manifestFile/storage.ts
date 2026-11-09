@@ -1,6 +1,11 @@
-import { getCargoFilesBucketName, getObjectStream, getStorage } from '@metorial/module-file';
+import {
+  getCargoFilesBucketName,
+  getObjectStream,
+  getStorage,
+  putObjectFile
+} from '@metorial/module-file';
 import { openManifestFile, readManifestFile } from './reader';
-import type { WrittenManifestFile } from './writer';
+import type { SpooledManifestFile, WrittenManifestFile } from './writer';
 
 export let manifestObjectKeyPrefix = 'skill-sync/manifests/';
 export let manifestContentType = 'application/gzip';
@@ -18,7 +23,7 @@ export let getManifestObjectKey = (d: { destinationId: string; sha256: string })
 // The key is content-addressed, so re-uploading the same manifest rewrites identical bytes.
 export let uploadManifestFile = async (d: {
   destinationId: string;
-  manifest: WrittenManifestFile;
+  manifest: WrittenManifestFile | SpooledManifestFile;
 }): Promise<ManifestObjectRef> => {
   let bucket = getCargoFilesBucketName();
   let key = getManifestObjectKey({
@@ -26,7 +31,16 @@ export let uploadManifestFile = async (d: {
     sha256: d.manifest.sha256
   });
 
-  await getStorage().putObject(bucket, key, d.manifest.body, manifestContentType);
+  if ('body' in d.manifest) {
+    await getStorage().putObject(bucket, key, d.manifest.body, manifestContentType);
+  } else {
+    await putObjectFile({
+      bucket,
+      key,
+      path: d.manifest.path,
+      contentType: manifestContentType
+    });
+  }
 
   return { bucket, key, sha256: d.manifest.sha256, entryCount: d.manifest.entryCount };
 };

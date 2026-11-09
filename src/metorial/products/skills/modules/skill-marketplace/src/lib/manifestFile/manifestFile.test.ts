@@ -1,4 +1,7 @@
 import { createHash } from 'node:crypto';
+import { existsSync } from 'node:fs';
+import { readdir, readFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { gunzipSync, gzipSync } from 'node:zlib';
 import { afterEach, describe, expect, it } from 'vitest';
 import { expectedDeletes } from './expectedDeletes';
@@ -11,7 +14,7 @@ import {
   type ManifestHeader
 } from './format';
 import { openManifestFile, readManifestFile } from './reader';
-import { writeManifestFile, writeSortedManifestFile } from './writer';
+import { spoolSortedManifestFile, writeManifestFile, writeSortedManifestFile } from './writer';
 
 let scope = {
   dirs: ['plugins'],
@@ -197,6 +200,51 @@ describe('writeManifestFile', () => {
       expect(
         (await readError(writeSorted(sorted, { entryCount: 3, totalBytes: 1 }))).message
       ).toContain('bytes');
+    });
+  });
+
+  describe('spoolSortedManifestFile', () => {
+    let sorted = [entry('a'), entry('b/c'), entry('d')];
+    let totalBytes = sorted.reduce((sum, e) => sum + e.size, 0);
+
+    let input = (items: ManifestEntry[], counts = { entryCount: 3, totalBytes }) => ({
+      destinationId: 'sdst_1',
+      sourceBucket: 'cargo-files',
+      scope,
+      ...counts,
+      entries: (async function* () {
+        yield* items;
+      })()
+    });
+
+    let spoolDirectories = async () =>
+      (await readdir(tmpdir())).filter(name => name.startsWith('skill-manifest-'));
+
+    it('writes the same bytes as the in-memory writer to a file it removes on dispose', async () => {
+      let spooled = await spoolSortedManifestFile(input(sorted));
+      let buffered = await writeSortedManifestFile(input(sorted));
+
+      expect(spooled).toMatchObject({
+        sha256: buffered.sha256,
+        entryCount: buffered.entryCount,
+        totalBytes: buffered.totalBytes,
+        byteSize: buffered.byteSize
+      });
+      expect((await readFile(spooled.path)).equals(buffered.body)).toBe(true);
+
+      await spooled.dispose();
+      expect(existsSync(spooled.path)).toBe(false);
+    });
+
+    it('leaves no temporary file behind when the entries are invalid', async () => {
+      let before = await spoolDirectories();
+
+      let error = await spoolSortedManifestFile(
+        input(sorted, { entryCount: 4, totalBytes })
+      ).catch(e => e);
+
+      expect(error).toBeInstanceOf(ManifestFileError);
+      expect(await spoolDirectories()).toEqual(before);
     });
   });
 });
