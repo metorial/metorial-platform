@@ -11,6 +11,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use crate::router::RouterOptions;
+use crate::service::DEFAULT_MAX_CONCURRENT_DIGESTS;
 use crate::zip::{ZipSettings, MAX_FETCH_CONCURRENCY, MAX_SMALL_ENTRY_BYTES};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -21,6 +22,23 @@ pub struct Config {
     pub uploads: UploadsConfig,
     #[serde(default)]
     pub zip: ZipConfig,
+    #[serde(default)]
+    pub digests: DigestsConfig,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct DigestsConfig {
+    /// Stored objects hashed at once by the digests route; further requests wait.
+    #[serde(default = "default_max_concurrent_digests")]
+    pub max_concurrent: usize,
+}
+
+impl Default for DigestsConfig {
+    fn default() -> Self {
+        Self {
+            max_concurrent: default_max_concurrent_digests(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -278,6 +296,10 @@ fn default_memory_budget_bytes() -> u64 {
     UploadSettings::default().memory_budget_bytes
 }
 
+fn default_max_concurrent_digests() -> usize {
+    DEFAULT_MAX_CONCURRENT_DIGESTS
+}
+
 fn default_zip_max_concurrent_jobs() -> usize {
     ZipSettings::default().max_concurrent_jobs
 }
@@ -356,6 +378,7 @@ impl Default for Config {
             },
             uploads: UploadsConfig::default(),
             zip: ZipConfig::default(),
+            digests: DigestsConfig::default(),
         }
     }
 }
@@ -559,6 +582,15 @@ mod tests {
         assert_eq!(config.uploads.min_part_size_bytes, 16 * 1024 * 1024);
         assert_eq!(config.uploads.memory_budget_bytes, 1024 * 1024 * 1024);
         assert_eq!(config.server.router_options(), RouterOptions::default());
+        assert_eq!(config.digests.max_concurrent, 16);
+    }
+
+    #[test]
+    fn reads_the_digest_concurrency_from_the_environment() {
+        let mut vars = BASE.to_vec();
+        vars.push(("OBJECT_STORE__DIGESTS__MAX_CONCURRENT", "4"));
+
+        assert_eq!(from_environment(&vars).digests.max_concurrent, 4);
     }
 
     #[test]

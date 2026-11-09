@@ -231,7 +231,7 @@ pub trait Backend: Send + Sync {
         let opts = PutOptions {
             content_type,
             metadata,
-            size_hint: None,
+            ..Default::default()
         };
         Ok(self.put_object_stream(key, stream, opts).await?.metadata)
     }
@@ -325,6 +325,7 @@ where
         content_type: source.metadata.content_type,
         metadata: source.metadata.custom_metadata,
         size_hint: Some(source.metadata.size),
+        exact_size: None,
     };
 
     Ok(backend

@@ -80,8 +80,8 @@ pub fn create_router_with_options(
     create_app_router(service, jobs, options)
 }
 
-/// Uploads and copies can legitimately run for hours, so they are exempt from the request
-/// timeout. An upload body that stops sending data is cut off after the idle timeout instead, as
+/// Uploads, copies and digests of large objects can legitimately run for hours, so they are
+/// exempt from the request timeout. An upload body that stops sending data is cut off after the idle timeout instead, as
 /// is one that keeps sending but falls below the minimum rate, which aborts the upload and
 /// releases its share of the upload memory budget.
 ///
@@ -125,6 +125,10 @@ pub fn create_app_router(
     let streaming = Router::new()
         .route("/buckets/:bucket/objects/*key", put(put_object))
         .route("/buckets/:bucket/copy-object/*key", post(copy_object))
+        .route(
+            "/buckets/:bucket/object-digests/*key",
+            get(get_object_digests),
+        )
         .layer(middleware::map_request(
             move |request: Request| async move { guard.apply(request) },
         ));

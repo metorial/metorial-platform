@@ -5,7 +5,7 @@ mod common;
 
 use common::*;
 use object_store_backends::{
-    Backend, BackendError, PutOptions, UploadLimits, UploadSettings, Uploader,
+    Backend, BackendError, ContentDigester, PutOptions, UploadLimits, UploadSettings, Uploader,
 };
 use std::collections::HashMap;
 use std::sync::atomic::Ordering;
@@ -66,7 +66,7 @@ async fn writes_small_objects_with_one_request() {
             .unwrap();
 
         assert_eq!(uploaded.metadata.size, size as u64);
-        assert_eq!(uploaded.sha256, sha256_hex(&data));
+        assert_eq!(uploaded.digests.sha256, sha256_hex(&data));
         assert_eq!(stored(&backend, "small"), data);
 
         let calls = backend.state.calls();
@@ -104,7 +104,7 @@ async fn reassembles_parts_in_order() {
         .unwrap();
 
     assert_eq!(uploaded.metadata.size, data.len() as u64);
-    assert_eq!(uploaded.sha256, sha256_hex(&data));
+    assert_eq!(uploaded.digests.sha256, sha256_hex(&data));
     assert_eq!(stored(&backend, "ordered"), data);
 
     let sizes = part_sizes(&backend);
@@ -112,6 +112,73 @@ async fn reassembles_parts_in_order() {
     assert_eq!(sizes[0], MIB + 1);
     assert!(sizes[1..sizes.len() - 1].iter().all(|size| *size == MIB));
     assert_eq!(sizes.iter().sum::<u64>(), data.len() as u64);
+}
+
+fn exactly(size: usize) -> PutOptions {
+    PutOptions {
+        exact_size: Some(size as u64),
+        ..Default::default()
+    }
+}
+
+fn reference_git_blob_sha1(data: &[u8]) -> String {
+    let mut digester = ContentDigester::new(Some(data.len() as u64));
+    digester.update(data).unwrap();
+    digester.finish().unwrap().git_blob_sha1.unwrap()
+}
+
+#[tokio::test]
+async fn digests_every_upload_path_in_one_pass() {
+    for size in [0, 4096, MIB as usize + 1, 10 * MIB as usize + 12_345] {
+        let backend = FakeBackend::new(test_settings());
+        let data = pattern(size, size as u64 + 9);
+
+        let uploaded = upload(&backend, "digested", &data, exactly(size))
+            .await
+            .unwrap();
+
+        assert_eq!(uploaded.digests.size, size as u64);
+        assert_eq!(uploaded.digests.sha256, sha256_hex(&data));
+        assert_eq!(uploaded.digests.crc32, crc32fast::hash(&data));
+        assert_eq!(
+            uploaded.digests.git_blob_sha1.as_deref(),
+            Some(reference_git_blob_sha1(&data).as_str()),
+            "size {}",
+            size
+        );
+
+        let unsized_upload = upload(&backend, "unsized", &data, PutOptions::default())
+            .await
+            .unwrap();
+        assert_eq!(unsized_upload.digests.git_blob_sha1, None);
+        assert_eq!(unsized_upload.digests.sha256, uploaded.digests.sha256);
+        assert_eq!(unsized_upload.digests.crc32, uploaded.digests.crc32);
+    }
+}
+
+#[tokio::test]
+async fn refuses_streams_of_another_size_without_writing_anything() {
+    for size in [4096, 10 * MIB as usize + 12_345] {
+        for exact_size in [size - 1, size + 1] {
+            let backend = FakeBackend::new(test_settings());
+            let data = pattern(size, 5);
+
+            let result = upload(&backend, "mismatch", &data, exactly(exact_size)).await;
+
+            assert!(
+                matches!(result, Err(BackendError::SizeMismatch(_))),
+                "{} bytes declared as {}",
+                size,
+                exact_size
+            );
+            assert!(backend.state.object("mismatch").is_none());
+
+            let calls = backend.state.calls();
+            assert_eq!(calls.single_puts, 0);
+            assert!(calls.completed_parts.is_empty());
+            assert_eq!(calls.aborts, calls.starts);
+        }
+    }
 }
 
 #[tokio::test]
@@ -140,6 +207,7 @@ async fn preserves_content_type_and_metadata() {
         content_type: Some("application/zip".to_string()),
         metadata: HashMap::from([("origin".to_string(), "test".to_string())]),
         size_hint: None,
+        exact_size: None,
     };
 
     let uploaded = upload(&backend, "typed", &data, opts).await.unwrap();
@@ -172,7 +240,12 @@ async fn uploads_correctly_whatever_the_hint_says() {
             .unwrap_or_else(|e| panic!("hint {:?}: {}", hint, e));
 
         assert_eq!(uploaded.metadata.size, size as u64, "hint {:?}", hint);
-        assert_eq!(uploaded.sha256, sha256_hex(&data), "hint {:?}", hint);
+        assert_eq!(
+            uploaded.digests.sha256,
+            sha256_hex(&data),
+            "hint {:?}",
+            hint
+        );
         assert_eq!(stored(&backend, "hinted"), data, "hint {:?}", hint);
         assert_eq!(backend.state.calls().size_hints, vec![hint]);
     }
@@ -661,6 +734,7 @@ async fn copies_through_a_stream_with_the_source_size_as_hint() {
         content_type: Some("text/plain".to_string()),
         metadata: HashMap::from([("a".to_string(), "b".to_string())]),
         size_hint: None,
+        exact_size: None,
     };
     upload(&backend, "source", &data, opts).await.unwrap();
 

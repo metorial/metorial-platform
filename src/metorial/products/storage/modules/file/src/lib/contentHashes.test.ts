@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 let mocks = vi.hoisted(() => ({
   findPendingContent: vi.fn(),
   updateFiles: vi.fn(),
-  getObjectStream: vi.fn()
+  getObjectDigests: vi.fn()
 }));
 
 vi.mock('@metorial/db', () => ({
@@ -15,7 +15,7 @@ vi.mock('@metorial/db', () => ({
 }));
 vi.mock('../storage', () => ({
   getCargoFilesBucketName: () => 'cargo-files',
-  getObjectStream: mocks.getObjectStream
+  getObjectDigests: mocks.getObjectDigests
 }));
 
 let { getFileContentHashes, hasValidContentHashes } = await import('./contentHashes');
@@ -23,15 +23,20 @@ let { getFileContentHashes, hasValidContentHashes } = await import('./contentHas
 let content = new TextEncoder().encode('hello\n');
 let expected = hashBytes(content);
 
-let objectStream = (bytes: Uint8Array, opts: { withContentLength?: boolean } = {}) => ({
-  stream: new ReadableStream<Uint8Array>({
-    start: controller => {
-      controller.enqueue(bytes);
-      controller.close();
+let objectDigests = (bytes: Uint8Array) => {
+  let hashes = hashBytes(bytes);
+
+  return {
+    key: 'store_1',
+    size: hashes.size,
+    digests: {
+      size: hashes.size,
+      sha256: hashes.sha256,
+      crc32: hashes.crc32,
+      git_blob_sha1: hashes.gitBlobSha
     }
-  }),
-  size: opts.withContentLength === false ? undefined : bytes.byteLength
-});
+  };
+};
 
 let unhashedFile = {
   oid: 1n,
@@ -56,7 +61,7 @@ describe('getFileContentHashes', () => {
     vi.clearAllMocks();
     mocks.findPendingContent.mockResolvedValue(null);
     mocks.updateFiles.mockResolvedValue({ count: 1 });
-    mocks.getObjectStream.mockImplementation(async () => objectStream(content));
+    mocks.getObjectDigests.mockImplementation(async () => objectDigests(content));
   });
 
   it('returns cached hashes without reading the object', async () => {
@@ -64,7 +69,7 @@ describe('getFileContentHashes', () => {
       ...expected,
       pendingContent: null
     });
-    expect(mocks.getObjectStream).not.toHaveBeenCalled();
+    expect(mocks.getObjectDigests).not.toHaveBeenCalled();
     expect(mocks.updateFiles).not.toHaveBeenCalled();
   });
 
@@ -76,13 +81,13 @@ describe('getFileContentHashes', () => {
     ).toBe(false);
   });
 
-  it('streams, hashes and persists guarded by storeId', async () => {
+  it('asks the object store for digests and persists them guarded by storeId', async () => {
     expect(await getFileContentHashes({ file: unhashedFile })).toEqual({
       ...expected,
       pendingContent: null
     });
 
-    expect(mocks.getObjectStream).toHaveBeenCalledWith('cargo-files', 'store_1');
+    expect(mocks.getObjectDigests).toHaveBeenCalledWith('cargo-files', 'store_1');
     expect(mocks.updateFiles).toHaveBeenCalledWith({
       where: { oid: 1n, storeId: 'store_1' },
       data: {
@@ -99,7 +104,7 @@ describe('getFileContentHashes', () => {
 
     await getFileContentHashes({ file: rewritten });
 
-    expect(mocks.getObjectStream).toHaveBeenCalledWith('cargo-files', 'store_2');
+    expect(mocks.getObjectDigests).toHaveBeenCalledWith('cargo-files', 'store_2');
     expect(mocks.updateFiles.mock.calls[0]![0].where).toEqual({ oid: 1n, storeId: 'store_2' });
   });
 
@@ -120,18 +125,15 @@ describe('getFileContentHashes', () => {
 
     expect(result).toMatchObject(hashBytes(pending));
     expect(result.pendingContent).toEqual(Buffer.from(pending));
-    expect(mocks.getObjectStream).not.toHaveBeenCalled();
+    expect(mocks.getObjectDigests).not.toHaveBeenCalled();
     expect(mocks.updateFiles).not.toHaveBeenCalled();
   });
 
-  it('retries with the real size when the object has no content length', async () => {
+  it('returns but does not cache digests of an object whose size differs from the file', async () => {
     let wrongSize = { ...unhashedFile, fileSize: 99 };
-    mocks.getObjectStream.mockImplementation(async () =>
-      objectStream(content, { withContentLength: false })
-    );
 
     expect(await getFileContentHashes({ file: wrongSize })).toMatchObject(expected);
-    expect(mocks.getObjectStream).toHaveBeenCalledTimes(2);
+    expect(mocks.getObjectDigests).toHaveBeenCalledTimes(1);
     expect(mocks.updateFiles).not.toHaveBeenCalled();
   });
 });

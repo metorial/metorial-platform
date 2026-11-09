@@ -43,7 +43,9 @@ async fn main() -> anyhow::Result<()> {
     );
     let archive_uploader = Arc::new(Uploader::new(config.archive_upload_settings()));
     let service = Arc::new(
-        ObjectStoreService::new(backend, metadata).with_archive_uploader(archive_uploader),
+        ObjectStoreService::new(backend, metadata)
+            .with_archive_uploader(archive_uploader)
+            .with_max_concurrent_digests(config.digests.max_concurrent),
     );
 
     let zip_settings = config.zip_settings();

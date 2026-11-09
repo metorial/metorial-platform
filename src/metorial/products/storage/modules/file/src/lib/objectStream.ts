@@ -1,5 +1,9 @@
 import { openAsBlob } from 'node:fs';
-import { ObjectStorageError, type ZipJob } from 'object-storage-client';
+import {
+  ObjectStorageError,
+  type DigestedObjectMetadata,
+  type ZipJob
+} from 'object-storage-client';
 
 export let objectStreamUrl = (d: { baseUrl: string; bucket: string; key: string }) =>
   `${d.baseUrl.replace(/\/$/, '')}/buckets/${d.bucket}/objects/${d.key}`;
@@ -64,6 +68,27 @@ export let writeObjectFile = async (d: {
     let message = await response.text().catch(() => response.statusText);
     throw new ObjectStorageError(response.status, message);
   }
+};
+
+// Sent without a Content-Length, so the object store can't compute the git blob id in the same
+// pass; the response's digests.git_blob_sha1 is null.
+export let writeObjectStream = async (d: {
+  baseUrl: string;
+  bucket: string;
+  key: string;
+  body: ReadableStream<Uint8Array>;
+  contentType?: string;
+  fetchImpl?: typeof fetch;
+}): Promise<DigestedObjectMetadata> => {
+  let response = await (d.fetchImpl ?? fetch)(objectStreamUrl(d), {
+    method: 'PUT',
+    body: d.body,
+    headers: d.contentType ? { 'content-type': d.contentType } : undefined,
+    duplex: 'half'
+  } as RequestInit);
+
+  if (!response.ok) throw await toObjectStorageError(response);
+  return (await response.json()) as DigestedObjectMetadata;
 };
 
 export let readObjectStream = async (d: {

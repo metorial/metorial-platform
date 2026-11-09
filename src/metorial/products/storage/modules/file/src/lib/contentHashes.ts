@@ -1,12 +1,7 @@
-import {
-  ContentSizeMismatchError,
-  hashBytes,
-  hashStream,
-  type ContentHashes
-} from '@lowerdeck/hash/content';
+import { hashBytes, type ContentHashes } from '@lowerdeck/hash/content';
 import type { File } from '@metorial/db';
 import { db } from '@metorial/db';
-import { getCargoFilesBucketName, getObjectStream } from '../storage';
+import { getCargoFilesBucketName, getObjectDigests } from '../storage';
 
 export type ContentHashFile = Pick<
   File,
@@ -42,18 +37,22 @@ export let getCachedContentHashes = (file: ContentHashFile): ContentHashes | nul
   };
 };
 
-export let hashObjectContent = async (d: { bucket: string; key: string; size: number }) => {
-  let read = async (size: number) => {
-    let object = await getObjectStream(d.bucket, d.key);
-    return await hashStream(object.stream, { size: object.size ?? size });
-  };
-
-  try {
-    return await read(d.size);
-  } catch (error) {
-    if (!(error instanceof ContentSizeMismatchError)) throw error;
-    return await read(error.actualSize);
+// The object store streams the object through its hashers, so the bytes never reach this process.
+export let hashObjectContent = async (d: {
+  bucket: string;
+  key: string;
+}): Promise<ContentHashes> => {
+  let { digests } = await getObjectDigests(d.bucket, d.key);
+  if (!digests.git_blob_sha1) {
+    throw new Error(`Object storage returned no git blob id for ${d.key}`);
   }
+
+  return {
+    sha256: digests.sha256,
+    gitBlobSha: digests.git_blob_sha1,
+    crc32: digests.crc32,
+    size: digests.size
+  };
 };
 
 // The cached size is File.fileSize, so a hash of differently sized bytes can't be cached.
@@ -108,8 +107,7 @@ export let getFileContentHashes = async (d: {
 
   let hashes = await hashObjectContent({
     bucket: getCargoFilesBucketName(),
-    key: d.file.storeId,
-    size: d.file.fileSize
+    key: d.file.storeId
   });
   await persistContentHashes({ file: d.file, hashes });
 

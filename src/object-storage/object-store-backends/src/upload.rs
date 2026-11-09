@@ -1,11 +1,11 @@
 use bytes::{Buf, Bytes};
 use futures::{Stream, StreamExt};
-use sha2::{Digest, Sha256};
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use tokio::sync::mpsc;
 
 use crate::backend::ByteStream;
+use crate::digest::{ContentDigester, ContentDigests};
 use crate::error::{BackendError, BackendResult};
 use crate::multipart::{KIB, MIB};
 use crate::uploader::Reservation;
@@ -20,22 +20,25 @@ const INITIAL_CAPACITY: usize = 64 * KIB as usize;
 /// arrives instead of being allocated at full size up front.
 ///
 /// A failing stream surfaces as `BackendError::Io` with the stream's own error, so callers can
-/// tell a broken input apart from a failing backend.
+/// tell a broken input apart from a failing backend. With an exact size, a stream that turns out
+/// longer or shorter fails with `BackendError::SizeMismatch` before its last part is handed out.
 pub struct ChunkedUpload {
     stream: ByteStream,
     pending: Bytes,
-    hasher: Sha256,
-    total: u64,
+    digester: ContentDigester,
     eof: bool,
 }
 
 impl ChunkedUpload {
     pub fn new(stream: ByteStream) -> Self {
+        Self::with_exact_size(stream, None)
+    }
+
+    pub fn with_exact_size(stream: ByteStream, exact_size: Option<u64>) -> Self {
         Self {
             stream,
             pending: Bytes::new(),
-            hasher: Sha256::new(),
-            total: 0,
+            digester: ContentDigester::new(exact_size),
             eof: false,
         }
     }
@@ -47,15 +50,15 @@ impl ChunkedUpload {
             match self.stream.next().await {
                 Some(Ok(chunk)) if chunk.is_empty() => {}
                 Some(Ok(chunk)) => {
-                    self.hasher.update(&chunk);
-                    self.total = self.total.checked_add(chunk.len() as u64).ok_or_else(|| {
-                        BackendError::TooLarge("stream exceeds 2^64 bytes".to_string())
-                    })?;
+                    self.digester.update(&chunk)?;
                     self.pending = chunk;
                     return Ok(true);
                 }
                 Some(Err(e)) => return Err(BackendError::Io(e)),
-                None => self.eof = true,
+                None => {
+                    self.digester.check_complete()?;
+                    self.eof = true;
+                }
             }
         }
 
@@ -132,11 +135,12 @@ impl ChunkedUpload {
     }
 
     pub fn total_size(&self) -> u64 {
-        self.total
+        self.digester.size()
     }
 
-    pub fn sha256(&self) -> String {
-        hex::encode(self.hasher.clone().finalize())
+    /// Digests of every byte read so far; of the whole stream once it is exhausted.
+    pub fn digests(&self) -> BackendResult<ContentDigests> {
+        self.digester.clone().finish()
     }
 }
 
@@ -258,8 +262,43 @@ mod tests {
         let mut whole = ChunkedUpload::new(stream_of(vec![b"aaaabbbb"]));
         whole.next_part(64).await.unwrap();
 
-        assert_eq!(chunked.sha256(), whole.sha256());
-        assert_eq!(chunked.sha256(), crate::backend::compute_etag(b"aaaabbbb"));
+        let chunked = chunked.digests().unwrap();
+        assert_eq!(chunked, whole.digests().unwrap());
+        assert_eq!(chunked.sha256, crate::backend::compute_etag(b"aaaabbbb"));
+        assert_eq!(chunked.git_blob_sha1, None);
+    }
+
+    #[tokio::test]
+    async fn computes_the_git_blob_id_with_an_exact_size() {
+        let mut upload = ChunkedUpload::with_exact_size(stream_of(vec![b"hello", b"\n"]), Some(6));
+        parts_of(&mut upload, 4).await;
+
+        assert_eq!(
+            upload.digests().unwrap().git_blob_sha1.as_deref(),
+            Some("ce013625030ba8dba906f756967f9e9ca394464a")
+        );
+    }
+
+    #[tokio::test]
+    async fn refuses_a_stream_longer_than_its_exact_size() {
+        let mut upload = ChunkedUpload::with_exact_size(stream_of(vec![b"aaaa", b"bbbb"]), Some(6));
+
+        assert_eq!(&upload.next_part(4).await.unwrap()[..], b"aaaa");
+        assert!(matches!(
+            upload.next_part(4).await,
+            Err(BackendError::SizeMismatch(_))
+        ));
+    }
+
+    #[tokio::test]
+    async fn refuses_a_stream_shorter_than_its_exact_size_once_it_ends() {
+        let mut upload = ChunkedUpload::with_exact_size(stream_of(vec![b"aaaa"]), Some(6));
+
+        assert_eq!(&upload.next_part(4).await.unwrap()[..], b"aaaa");
+        assert!(matches!(
+            upload.is_exhausted().await,
+            Err(BackendError::SizeMismatch(_))
+        ));
     }
 
     #[tokio::test]

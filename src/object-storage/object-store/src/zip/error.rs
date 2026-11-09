@@ -104,7 +104,9 @@ impl ZipJobError {
     pub fn from_backend(context: &str, error: BackendError) -> Self {
         let code = match &error {
             BackendError::NotFound(_) => ZipErrorCode::SourceNotFound,
-            BackendError::RangeNotSatisfiable { .. } => ZipErrorCode::SourceChanged,
+            BackendError::RangeNotSatisfiable { .. } | BackendError::SizeMismatch(_) => {
+                ZipErrorCode::SourceChanged
+            }
             BackendError::TooLarge(_) => ZipErrorCode::TooLarge,
             BackendError::InvalidPath(_) => ZipErrorCode::InvalidSpec,
             BackendError::Serialization(_)

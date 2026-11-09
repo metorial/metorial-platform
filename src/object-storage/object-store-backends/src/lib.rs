@@ -1,5 +1,6 @@
 pub mod azure;
 pub mod backend;
+pub mod digest;
 pub mod error;
 pub mod gcs;
 pub mod local;
@@ -12,6 +13,7 @@ pub use backend::{
     copy_through_stream, normalize_etag, Backend, ByteRange, ByteStream, ObjectData,
     ObjectMetadata, ObjectPage, ObjectRangeData, PublicUrlPurpose, SignedUrl, WritePrecondition,
 };
+pub use digest::{digest_stream, ContentDigester, ContentDigests};
 pub use error::{BackendError, BackendResult};
 pub use multipart::{MultipartUpload, PartReceipt, PutOptions, UploadLimits, UploadedObject};
 pub use upload::{ChannelByteStream, ChunkedUpload, SINGLE_REQUEST_THRESHOLD};

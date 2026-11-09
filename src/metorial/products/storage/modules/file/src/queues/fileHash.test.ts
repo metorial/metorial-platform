@@ -7,7 +7,8 @@ let mocks = vi.hoisted(() => ({
   findFiles: vi.fn(),
   updateFiles: vi.fn(),
   findPendingContent: vi.fn(),
-  getObjectStream: vi.fn(),
+  getObjectDigests: vi.fn(),
+  cron: undefined as undefined | { name: string; cron: string; handler: () => Promise<void> },
   queues: {} as Record<
     string,
     {
@@ -51,10 +52,16 @@ vi.mock('@metorial/queue', async () => {
     pacedDelay: (d: { baseMs: number; jitterMs: number }) => ({ delay: d.baseMs })
   };
 });
+vi.mock('@metorial/cron', () => ({
+  createCron: (opts: { name: string; cron: string }, handler: () => Promise<void>) => {
+    mocks.cron = { ...opts, handler };
+    return { name: opts.name };
+  }
+}));
 vi.mock('../storage', () => ({
   getCargoFilesBucketName: () => 'cargo-files',
   getStorage: () => ({}),
-  getObjectStream: mocks.getObjectStream
+  getObjectDigests: mocks.getObjectDigests
 }));
 
 let { getFileHashJobId } = await import('./fileHash');
@@ -78,14 +85,15 @@ let file = {
   contentCrc32: null as bigint | null
 };
 
-let objectStream = () => ({
-  stream: new ReadableStream<Uint8Array>({
-    start: controller => {
-      controller.enqueue(content);
-      controller.close();
-    }
-  }),
-  size: content.byteLength
+let objectDigests = () => ({
+  key: 'legacy_key',
+  size: content.byteLength,
+  digests: {
+    size: expected.size,
+    sha256: expected.sha256,
+    crc32: expected.crc32,
+    git_blob_sha1: expected.gitBlobSha
+  }
 });
 
 describe('cargo/storage/file/hash', () => {
@@ -93,15 +101,15 @@ describe('cargo/storage/file/hash', () => {
     vi.clearAllMocks();
     mocks.findPendingContent.mockResolvedValue(null);
     mocks.updateFiles.mockResolvedValue({ count: 1 });
-    mocks.getObjectStream.mockImplementation(async () => objectStream());
+    mocks.getObjectDigests.mockImplementation(async () => objectDigests());
   });
 
-  it('streams, hashes and persists the stored object guarded by storeId', async () => {
+  it('persists the object store digests of the stored object guarded by storeId', async () => {
     mocks.findFile.mockResolvedValue(file);
 
     await hashQueue().handler!({ fileId: file.id });
 
-    expect(mocks.getObjectStream).toHaveBeenCalledWith('cargo-files', 'legacy_key');
+    expect(mocks.getObjectDigests).toHaveBeenCalledWith('cargo-files', 'legacy_key');
     expect(mocks.updateFiles).toHaveBeenCalledWith({
       where: { oid: 1n, storeId: 'legacy_key' },
       data: {
@@ -131,7 +139,7 @@ describe('cargo/storage/file/hash', () => {
       await hashQueue().handler!({ fileId: file.id });
     }
 
-    expect(mocks.getObjectStream).not.toHaveBeenCalled();
+    expect(mocks.getObjectDigests).not.toHaveBeenCalled();
     expect(mocks.updateFiles).not.toHaveBeenCalled();
   });
 
@@ -155,17 +163,17 @@ describe('cargo/storage/file/hash', () => {
 
     await hashQueue().handler!({ fileId: file.id });
 
-    expect(mocks.getObjectStream).not.toHaveBeenCalled();
+    expect(mocks.getObjectDigests).not.toHaveBeenCalled();
     expect(mocks.updateFiles).not.toHaveBeenCalled();
   });
 
   it('gives up quietly on a missing object and retries other storage errors', async () => {
     mocks.findFile.mockResolvedValue(file);
 
-    mocks.getObjectStream.mockRejectedValueOnce(new ObjectStorageError(404, 'not found'));
+    mocks.getObjectDigests.mockRejectedValueOnce(new ObjectStorageError(404, 'not found'));
     await hashQueue().handler!({ fileId: file.id });
 
-    mocks.getObjectStream.mockRejectedValueOnce(new ObjectStorageError(503, 'unavailable'));
+    mocks.getObjectDigests.mockRejectedValueOnce(new ObjectStorageError(503, 'unavailable'));
     await expect(hashQueue().handler!({ fileId: file.id })).rejects.toMatchObject({
       statusCode: 503
     });
@@ -244,5 +252,18 @@ describe('cargo/storage/file/hash-backfill', () => {
 
     expect(hashQueue().addManyWithOps).not.toHaveBeenCalled();
     expect(backfillQueue().add).not.toHaveBeenCalled();
+  });
+});
+
+describe('cargo/storage/file/hash-backfill/cron', () => {
+  it('starts a backfill over every instance once a day', async () => {
+    expect(mocks.cron).toMatchObject({
+      name: 'cargo/storage/file/hash-backfill/cron',
+      cron: '17 3 * * *'
+    });
+
+    await mocks.cron!.handler();
+
+    expect(backfillQueue().add).toHaveBeenCalledWith({});
   });
 });

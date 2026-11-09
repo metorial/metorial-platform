@@ -53,6 +53,7 @@ import {
   hasValidContentHashes
 } from '../lib/contentHashes';
 import { requireInstanceScope } from '../lib/instanceScope';
+import { readByteStreamHead, writeStreamedFile } from '../lib/streamedFileWrite';
 import { canDeleteDisplacedFile } from '../lib/fileReplacement';
 import {
   getPendingFileContentFlushAfter,
@@ -819,17 +820,44 @@ class FileServiceImpl {
     }
   ) {
     let mimeType = d.input.mimeType ?? 'application/octet-stream';
-    let chunks: Uint8Array[] = [];
+    let { content, input, ...scope } = d;
+    let fileInput = {
+      id: input.id,
+      name: input.name,
+      mimeType,
+      title: input.title,
+      expiresAt: input.expiresAt,
+      authorization: input.authorization
+    };
 
-    for await (let chunk of d.content) chunks.push(chunk);
+    let head = await readByteStreamHead(content);
+    if (head.type == 'partial') {
+      return await writeStreamedFile({
+        head: head.head,
+        rest: head.rest,
+        contentType: mimeType,
+        create: async ({ storeId, size }) => {
+          let file = await this.createFile({
+            ...scope,
+            storeId,
+            internal: {
+              isReadOnly: true,
+              contentPersistence: { type: 'object' }
+            },
+            input: { ...fileInput, size }
+          });
+          await this.requestContentHashes({ file });
 
-    let bytes = new Uint8Array(await new Blob(chunks as any[]).arrayBuffer());
+          return file;
+        }
+      });
+    }
+
+    let bytes = head.content;
     let bufferContent = shouldBufferFileContent({
-      fileName: d.input.name,
+      fileName: input.name,
       size: bytes.byteLength
     });
-
-    let { content, input, ...scope } = d;
 
     return await writeContentAddressedFile({
       content: bytes,
@@ -849,15 +877,7 @@ class FileServiceImpl {
                 }
               : { type: 'object' }
           },
-          input: {
-            id: d.input.id,
-            name: d.input.name,
-            mimeType,
-            size: bytes.byteLength,
-            title: d.input.title,
-            expiresAt: d.input.expiresAt,
-            authorization: d.input.authorization
-          }
+          input: { ...fileInput, size: bytes.byteLength }
         })
     });
   }

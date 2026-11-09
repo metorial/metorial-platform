@@ -1052,7 +1052,7 @@ mod tests {
         let opts = PutOptions {
             content_type: Some("application/octet-stream".to_string()),
             metadata: HashMap::from([("k".to_string(), "v".to_string())]),
-            size_hint: None,
+            ..Default::default()
         };
 
         let uploaded = backend

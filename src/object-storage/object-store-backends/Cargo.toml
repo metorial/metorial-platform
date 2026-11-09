@@ -25,6 +25,8 @@ azure_identity = { workspace = true }
 azure_core = "0.20"
 
 sha2 = { workspace = true }
+sha1 = "0.10"
+crc32fast = "1.4"
 hex = { workspace = true }
 chrono = { workspace = true }
 futures = "0.3"

@@ -14,6 +14,7 @@ import {
   getStorage,
   uploadCargoFile
 } from '../src';
+import { streamedUploadHeadBytes } from '../src/lib/streamedFileWrite';
 import {
   createStore,
   createWritableFile,
@@ -227,6 +228,51 @@ describe('module-file content-addressed storage', () => {
       await expectStoredHashes(signed.id, signedContent);
       await expectStoredHashes(produced.id, streamContent);
     });
+  });
+
+  it('streams a byte stream too large to buffer to a unique key and hashes it in the background', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let size = streamedUploadHeadBytes + 3 * 1024 * 1024 + 17;
+    let content = new Uint8Array(size);
+    for (let i = 0; i < size; i++) content[i] = (i * 31 + 7) % 256;
+    content.set(uniqueBytes('large'));
+
+    let file = await fileService.createUploadedFileFromByteStream({
+      ...scopeOf(fixture),
+      auditScope: fixture.auditScope,
+      purpose: 'generic',
+      content: (async function* () {
+        for (let offset = 0; offset < size; offset += 1024 * 1024 + 3) {
+          yield content.subarray(offset, offset + 1024 * 1024 + 3);
+        }
+      })(),
+      input: {
+        name: `${uniqueId('large')}.bin`,
+        mimeType: 'application/x-large',
+        authorization: privileged
+      }
+    });
+
+    expect(file.storeId.startsWith('sha256/')).toBe(false);
+    expect(file.fileSize).toBe(size);
+    expect(file.fileType).toBe('application/x-large');
+    expect(
+      await db.filePendingContent.findUnique({ where: { fileOid: file.oid } })
+    ).toBeNull();
+
+    let hashes = hashBytes(content);
+    let stored = await getStorage().getObjectDigests(getCargoFilesBucketName(), file.storeId);
+    expect(stored.digests).toEqual({
+      size,
+      sha256: hashes.sha256,
+      crc32: hashes.crc32,
+      git_blob_sha1: hashes.gitBlobSha
+    });
+    expect(Buffer.from(await fileService.downloadFileContent({ file })).equals(content)).toBe(
+      true
+    );
+
+    await eventually(async () => await expectStoredHashes(file.id, content));
   });
 
   it('does not hash a produced archive whose caller opts out', async () => {

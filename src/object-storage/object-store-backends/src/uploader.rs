@@ -467,7 +467,7 @@ impl Uploader {
     {
         let limits = backend.upload_limits();
         let sizer = PartSizer::new(&limits, &self.settings, opts.size_hint);
-        let mut input = ChunkedUpload::new(stream);
+        let mut input = ChunkedUpload::with_exact_size(stream, opts.exact_size);
 
         let mut head_reservation = self.reservation(&sizer, sizer.head_size(), 0);
         let head = input
@@ -538,7 +538,7 @@ impl Uploader {
                 size: input.total_size(),
                 ..metadata
             },
-            sha256: input.sha256(),
+            digests: input.digests()?,
         })
     }
 

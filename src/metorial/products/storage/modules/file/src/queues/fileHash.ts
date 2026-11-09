@@ -1,3 +1,4 @@
+import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
 import { combineQueueProcessors, createQueue, pacedDelay } from '@metorial/queue';
 import { isObjectMissingError } from '../lib/cargoObjects';
@@ -85,7 +86,18 @@ export let fileHashBackfillProcessor = fileHashBackfillQueue.process(async data 
   }
 });
 
+export let fileHashBackfillCron = createCron(
+  {
+    name: 'cargo/storage/file/hash-backfill/cron',
+    cron: '17 3 * * *'
+  },
+  async () => {
+    await fileHashBackfillQueue.add({});
+  }
+);
+
 export let fileHashProcessors = combineQueueProcessors([
   fileHashProcessor,
-  fileHashBackfillProcessor
+  fileHashBackfillProcessor,
+  fileHashBackfillCron
 ]);

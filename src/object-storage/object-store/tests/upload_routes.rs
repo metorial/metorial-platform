@@ -3,13 +3,15 @@ use axum::body::Body;
 use axum::http::{Request, StatusCode};
 use axum::Router;
 use bytes::Bytes;
+use futures::StreamExt;
 use object_store::metadata::MetadataStore;
 use object_store::router::{create_router_with_options, RouterOptions};
 use object_store::service::ObjectStoreService;
 use object_store_backends::{
     local::LocalBackend, Backend, BackendError, BackendResult, ByteRange, ByteStream,
-    MultipartUpload, ObjectData, ObjectMetadata, ObjectPage, ObjectRangeData, PublicUrlPurpose,
-    PutOptions, SignedUrl, UploadLimits, UploadedObject, Uploader, WritePrecondition,
+    ContentDigester, MultipartUpload, ObjectData, ObjectMetadata, ObjectPage, ObjectRangeData,
+    PublicUrlPurpose, PutOptions, SignedUrl, UploadLimits, UploadedObject, Uploader,
+    WritePrecondition,
 };
 use serde_json::json;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -19,12 +21,13 @@ use tempfile::TempDir;
 use tower::ServiceExt;
 
 /// The local backend, recording the size hint of every streamed upload. It can also hold an
-/// upload before reading its body, or fail it as storage would.
+/// upload before reading its body, fail it as storage would, or serve reads slowly.
 struct RecordingBackend {
     inner: LocalBackend,
     size_hints: Mutex<Vec<Option<u64>>>,
     hold_uploads: Mutex<Duration>,
     fail_uploads: AtomicBool,
+    read_pause: Mutex<Duration>,
 }
 
 #[async_trait]
@@ -88,7 +91,20 @@ impl Backend for RecordingBackend {
     }
 
     async fn get_object(&self, key: &str) -> BackendResult<ObjectData> {
-        self.inner.get_object(key).await
+        let object = self.inner.get_object(key).await?;
+        let pause = *self.read_pause.lock().unwrap();
+        if pause.is_zero() {
+            return Ok(object);
+        }
+
+        let stream = object.stream.then(move |chunk| async move {
+            tokio::time::sleep(pause).await;
+            chunk
+        });
+        Ok(ObjectData {
+            metadata: object.metadata,
+            stream: Box::pin(stream),
+        })
     }
 
     async fn get_object_range(
@@ -149,6 +165,7 @@ async fn harness(options: RouterOptions) -> Harness {
         size_hints: Mutex::default(),
         hold_uploads: Mutex::default(),
         fail_uploads: AtomicBool::new(false),
+        read_pause: Mutex::default(),
     });
     backend.init().await.unwrap();
 
@@ -397,4 +414,152 @@ async fn reserves_little_memory_for_a_small_put() {
     assert_eq!(status, StatusCode::OK);
     let peak = harness.backend.uploader().peak_reserved_bytes();
     assert!(peak <= 4 * 1024, "reserved {} bytes", peak);
+}
+
+fn put_sized(key: &str, data: Vec<u8>) -> Request<Body> {
+    Request::builder()
+        .method("PUT")
+        .uri(format!("/buckets/bucket/objects/{}", key))
+        .header("content-length", data.len())
+        .body(Body::from(data))
+        .unwrap()
+}
+
+fn get_digests(bucket: &str, key: &str) -> Request<Body> {
+    Request::builder()
+        .uri(format!("/buckets/{}/object-digests/{}", bucket, key))
+        .body(Body::empty())
+        .unwrap()
+}
+
+fn reference_digests(data: &[u8], sized: bool) -> serde_json::Value {
+    let mut digester = ContentDigester::new(sized.then_some(data.len() as u64));
+    digester.update(data).unwrap();
+    serde_json::to_value(digester.finish().unwrap()).unwrap()
+}
+
+fn sample(len: usize) -> Vec<u8> {
+    (0..len).map(|i| (i * 7 % 253) as u8).collect()
+}
+
+#[tokio::test]
+async fn returns_every_digest_for_an_upload_with_a_length() {
+    let harness = harness(RouterOptions::default()).await;
+    let data = sample(3 * 1024 * 1024 + 11);
+
+    let (status, body) = send(&harness.app, put_sized("sized.bin", data.clone())).await;
+
+    assert_eq!(status, StatusCode::OK, "{}", String::from_utf8_lossy(&body));
+    let response: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(response["digests"], reference_digests(&data, true));
+    assert!(response["digests"]["git_blob_sha1"].is_string());
+    assert_eq!(response["size"], data.len());
+}
+
+#[tokio::test]
+async fn leaves_out_the_git_blob_id_for_an_upload_without_a_length() {
+    let harness = harness(RouterOptions::default()).await;
+
+    let (status, body) = send(
+        &harness.app,
+        put("streamed.bin", trickle(5, 1000, Duration::ZERO)),
+    )
+    .await;
+
+    assert_eq!(status, StatusCode::OK, "{}", String::from_utf8_lossy(&body));
+    let response: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    let data: Vec<u8> = (0..5u8).flat_map(|chunk| vec![chunk; 1000]).collect();
+    assert_eq!(response["digests"], reference_digests(&data, false));
+    assert!(response["digests"]["git_blob_sha1"].is_null());
+}
+
+#[tokio::test]
+async fn refuses_a_body_of_another_length_than_declared() {
+    let harness = harness(RouterOptions::default()).await;
+
+    for (key, declared) in [("short.bin", 10), ("long.bin", 2)] {
+        let request = Request::builder()
+            .method("PUT")
+            .uri(format!("/buckets/bucket/objects/{}", key))
+            .header("content-length", declared)
+            .body(Body::from(vec![1u8; 5]))
+            .unwrap();
+
+        let (status, body) = send(&harness.app, request).await;
+        assert_eq!(
+            status,
+            StatusCode::BAD_REQUEST,
+            "{}",
+            String::from_utf8_lossy(&body)
+        );
+
+        let (status, _) = send(&harness.app, get(key)).await;
+        assert_eq!(status, StatusCode::NOT_FOUND);
+    }
+}
+
+#[tokio::test]
+async fn digests_a_stored_object_without_its_length_known_at_upload() {
+    let harness = harness(RouterOptions::default()).await;
+    let data = sample(12 * 1024 * 1024 + 5);
+
+    let body = Body::from_stream(futures::stream::iter(
+        data.chunks(1024 * 1024)
+            .map(|chunk| Ok::<_, std::io::Error>(Bytes::copy_from_slice(chunk)))
+            .collect::<Vec<_>>(),
+    ));
+    let (status, _) = send(&harness.app, put("dir/large.bin", body)).await;
+    assert_eq!(status, StatusCode::OK);
+
+    let (status, body) = send(&harness.app, get_digests("bucket", "dir/large.bin")).await;
+
+    assert_eq!(status, StatusCode::OK, "{}", String::from_utf8_lossy(&body));
+    let response: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(response["digests"], reference_digests(&data, true));
+    assert_eq!(response["key"], "dir/large.bin");
+    assert_eq!(response["size"], data.len());
+    assert!(response["etag"].is_string());
+}
+
+#[tokio::test]
+async fn digests_an_empty_object() {
+    let harness = harness(RouterOptions::default()).await;
+    send(&harness.app, put_sized("empty.txt", Vec::new())).await;
+
+    let (status, body) = send(&harness.app, get_digests("bucket", "empty.txt")).await;
+
+    assert_eq!(status, StatusCode::OK);
+    let response: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(
+        response["digests"]["git_blob_sha1"],
+        "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    );
+}
+
+#[tokio::test]
+async fn answers_digests_of_missing_objects_and_buckets_with_not_found() {
+    let harness = harness(RouterOptions::default()).await;
+
+    let (status, _) = send(&harness.app, get_digests("bucket", "missing.bin")).await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+
+    let (status, _) = send(&harness.app, get_digests("nope", "missing.bin")).await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+
+    let (status, _) = send(&harness.app, get_digests("bucket", "../escape")).await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn digests_outlive_the_request_timeout() {
+    let harness = harness(SHORT).await;
+    let data = sample(64 * 1024);
+    send(&harness.app, put_sized("slow.bin", data.clone())).await;
+    *harness.backend.read_pause.lock().unwrap() = Duration::from_millis(60);
+
+    let (status, body) = send(&harness.app, get_digests("bucket", "slow.bin")).await;
+
+    assert_eq!(status, StatusCode::OK, "{}", String::from_utf8_lossy(&body));
+    let response: serde_json::Value = serde_json::from_slice(&body).unwrap();
+    assert_eq!(response["digests"], reference_digests(&data, true));
 }

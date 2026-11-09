@@ -84,6 +84,14 @@ const obj = await client.putObject(
   'application/json',
   { key: 'value' }
 );
+// obj.digests holds the size, sha256, crc32 and git_blob_sha1 of what was stored.
+// git_blob_sha1 is null when the body was sent without a Content-Length.
+```
+
+**Get Object Digests**
+```typescript
+// Hashes a stored object on the server without sending its content
+const { digests } = await client.getObjectDigests('bucket-name', 'object-key');
 ```
 
 **Get Object**

@@ -3,6 +3,7 @@ use bytes::Bytes;
 use std::collections::HashMap;
 
 use crate::backend::ObjectMetadata;
+use crate::digest::ContentDigests;
 use crate::error::BackendResult;
 
 pub const KIB: u64 = 1024;
@@ -49,14 +50,18 @@ pub struct PutOptions {
     /// Expected object size, e.g. a request's Content-Length or an upper-bound estimate. Only
     /// used to size parts; the actual stream length may differ in either direction.
     pub size_hint: Option<u64>,
+    /// The object's exact size, known before the upload starts. The upload fails without
+    /// writing anything when the stream holds a different number of bytes, and the git blob id
+    /// is only computed when this is set.
+    pub exact_size: Option<u64>,
 }
 
 #[derive(Debug, Clone)]
 pub struct UploadedObject {
     /// `size` is the number of bytes read from the stream; `etag` is the backend's.
     pub metadata: ObjectMetadata,
-    /// Hex SHA-256 of the full stream.
-    pub sha256: String,
+    /// Digests of the full stream.
+    pub digests: ContentDigests,
 }
 
 /// An upload started with `Backend::start_multipart`. The driver calls `upload_part` (possibly

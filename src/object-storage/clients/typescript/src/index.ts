@@ -40,6 +40,23 @@ export interface ObjectMetadata {
   metadata: Record<string, string>;
 }
 
+/**
+ * Digests of an object's content, computed by the object store while it streams the bytes.
+ * `git_blob_sha1` is the id git gives the content as a blob. It needs the length before the
+ * first byte, so an upload sent without a Content-Length leaves it null; `getObjectDigests`
+ * always computes it.
+ */
+export interface ContentDigests {
+  size: number;
+  sha256: string;
+  crc32: number;
+  git_blob_sha1: string | null;
+}
+
+export interface DigestedObjectMetadata extends ObjectMetadata {
+  digests: ContentDigests;
+}
+
 export interface ObjectData {
   metadata: ObjectMetadata;
   data: Buffer;
@@ -309,7 +326,7 @@ export class ObjectStorageClient {
     data: Buffer | Uint8Array | Blob | ReadableStream | string,
     contentType?: string,
     metadata?: Record<string, string>
-  ): Promise<ObjectMetadata> {
+  ): Promise<DigestedObjectMetadata> {
     try {
       const headers: Record<string, string> = {};
 
@@ -323,7 +340,7 @@ export class ObjectStorageClient {
         }
       }
 
-      const response = await this.client.put<ObjectMetadata>(
+      const response = await this.client.put<DigestedObjectMetadata>(
         `/buckets/${bucket}/objects/${key}`,
         data,
         { headers }
@@ -467,6 +484,18 @@ export class ObjectStorageClient {
     try {
       const response = await this.client.get<ObjectMetadata>(
         `/buckets/${bucket}/object-info/${key}`
+      );
+      return response.data;
+    } catch (error) {
+      this.handleError(error as AxiosError);
+    }
+  }
+
+  /** Hashes a stored object on the server, streaming it without holding it in memory. */
+  async getObjectDigests(bucket: string, key: string): Promise<DigestedObjectMetadata> {
+    try {
+      const response = await this.client.get<DigestedObjectMetadata>(
+        `/buckets/${bucket}/object-digests/${key}`
       );
       return response.data;
     } catch (error) {

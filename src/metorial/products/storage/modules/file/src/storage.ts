@@ -5,7 +5,12 @@ import {
   PublicUrlPurpose
 } from 'object-storage-client';
 import { env } from './env';
-import { createZipJobFromFile, readObjectStream, writeObjectFile } from './lib/objectStream';
+import {
+  createZipJobFromFile,
+  readObjectStream,
+  writeObjectFile,
+  writeObjectStream
+} from './lib/objectStream';
 
 let storageTimeoutMs = 1000 * 60 * 10;
 
@@ -16,6 +21,16 @@ export let getStorage = () => storage;
 
 export let getObjectStream = async (bucket: string, key: string) =>
   await readObjectStream({ baseUrl: env.storage.OBJECT_STORAGE_URL, bucket, key });
+
+export let getObjectDigests = async (bucket: string, key: string) =>
+  await getStorage().getObjectDigests(bucket, key);
+
+export let putObjectStream = async (d: {
+  bucket: string;
+  key: string;
+  body: ReadableStream<Uint8Array>;
+  contentType?: string;
+}) => await writeObjectStream({ baseUrl: env.storage.OBJECT_STORAGE_URL, ...d });
 
 export let putObjectFile = async (d: {
   bucket: string;

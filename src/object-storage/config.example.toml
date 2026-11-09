@@ -28,6 +28,11 @@ min_part_size_bytes = 16777216
 # unknown (about 4.4 TiB on S3 at the default)
 memory_budget_bytes = 1073741824
 
+[digests]
+# Stored objects hashed at once by GET /buckets/:bucket/object-digests/*key; further requests
+# wait for a slot. Can also be set as OBJECT_STORE__DIGESTS__MAX_CONCURRENT
+max_concurrent = 16
+
 [zip]
 # Every setting can also be set from the environment, e.g. OBJECT_STORE__ZIP__FETCH_CONCURRENCY
 # Archives built at once by this instance

@@ -6,6 +6,19 @@ import { ensureCargoObject, getContentAddressedKey, putCargoObject } from './car
 
 let rolledBackObjectCleanupDelayMs = 10 * 60 * 1000;
 
+// The caller's transaction can still roll back the File row and orphan the object. The delete
+// is guarded, so it only removes the object if no File references it by then.
+export let scheduleRolledBackObjectCleanup = async (storeId: string) => {
+  if (!isInTransaction()) return;
+
+  await cargoObjectDelete.queue
+    .add(
+      { bucket: getCargoFilesBucketName(), keys: [storeId] },
+      { delay: rolledBackObjectCleanupDelayMs }
+    )
+    .catch(() => {});
+};
+
 // `create` must write the File row through fileService.createFile, which takes the object's
 // advisory lock before the row. Once the lock is held no delete can run until the row commits, so
 // a delete that slipped in between the PUT and the lock is caught by the check afterwards.
@@ -30,17 +43,7 @@ export let writeContentAddressedFile = async <T>(d: {
   }
 
   await ensureCargoObject({ key: storeId, content: d.content });
-
-  // The caller's transaction can still roll back the File row and orphan the object. The delete
-  // is guarded, so it only removes the object if no File references it by then.
-  if (isInTransaction()) {
-    await cargoObjectDelete.queue
-      .add(
-        { bucket: getCargoFilesBucketName(), keys: [storeId] },
-        { delay: rolledBackObjectCleanupDelayMs }
-      )
-      .catch(() => {});
-  }
+  await scheduleRolledBackObjectCleanup(storeId);
 
   return result;
 };

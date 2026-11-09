@@ -25,6 +25,10 @@ pub enum BackendError {
     #[error("Object too large: {0}")]
     TooLarge(String),
 
+    /// Content that turned out longer or shorter than the size it was declared or known to have.
+    #[error("Size mismatch: {0}")]
+    SizeMismatch(String),
+
     #[error("Conflicting write: {0}")]
     Conflict(String),
 

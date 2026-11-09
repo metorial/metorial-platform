@@ -1,11 +1,12 @@
 use bytes::Bytes;
 use object_store_backends::error::BackendError;
 use object_store_backends::{
-    Backend, ByteRange, ByteStream, ObjectData, ObjectMetadata, ObjectPage, ObjectRangeData,
-    PublicUrlPurpose, PutOptions, SignedUrl, UploadedObject, Uploader,
+    digest_stream, Backend, ByteRange, ByteStream, ContentDigests, ObjectData, ObjectMetadata,
+    ObjectPage, ObjectRangeData, PublicUrlPurpose, PutOptions, SignedUrl, UploadedObject, Uploader,
 };
 use std::collections::HashMap;
 use std::sync::Arc;
+use tokio::sync::Semaphore;
 use tracing::{debug, info};
 
 use crate::error::{ServiceError, ServiceResult};
@@ -18,10 +19,19 @@ pub struct DeleteObjectResult {
     pub error: Option<String>,
 }
 
+pub const DEFAULT_MAX_CONCURRENT_DIGESTS: usize = 16;
+
+#[derive(Debug, Clone)]
+pub struct DigestedObject {
+    pub metadata: ObjectMetadata,
+    pub digests: ContentDigests,
+}
+
 pub struct ObjectStoreService {
     backend: Arc<dyn Backend>,
     metadata: Arc<MetadataStore>,
     archive_uploader: Option<Arc<Uploader>>,
+    digests: Arc<Semaphore>,
 }
 
 impl ObjectStoreService {
@@ -30,7 +40,14 @@ impl ObjectStoreService {
             backend,
             metadata,
             archive_uploader: None,
+            digests: Arc::new(Semaphore::new(DEFAULT_MAX_CONCURRENT_DIGESTS)),
         }
+    }
+
+    /// Objects hashed at once by `digest_object`; further requests wait for a slot.
+    pub fn with_max_concurrent_digests(mut self, max: usize) -> Self {
+        self.digests = Arc::new(Semaphore::new(max.max(1)));
+        self
     }
 
     /// Archives are written through `uploader` instead of the backend's own, so they draw on a
@@ -119,7 +136,7 @@ impl ObjectStoreService {
         let opts = PutOptions {
             content_type,
             metadata,
-            size_hint: None,
+            ..Default::default()
         };
 
         Ok(self
@@ -164,6 +181,45 @@ impl ObjectStoreService {
 
         debug!("Got object: {}/{}", bucket, key);
         Ok(obj_data)
+    }
+
+    /// Streams a stored object through the hashers without holding it. An object that is
+    /// replaced while it is read fails with a conflict instead of mixing two versions' digests.
+    pub async fn digest_object(&self, bucket: &str, key: &str) -> ServiceResult<DigestedObject> {
+        self.metadata.get_bucket(bucket).await?;
+
+        validate_object_key(key)?;
+
+        let full_key = format!("{}/{}", bucket, key);
+
+        let _permit = self
+            .digests
+            .acquire()
+            .await
+            .map_err(|_| ServiceError::Internal("digest slots are closed".to_string()))?;
+
+        let object = self.backend.get_object(&full_key).await?;
+        let digests = digest_stream(object.stream, Some(object.metadata.size))
+            .await
+            .map_err(|error| match error {
+                BackendError::SizeMismatch(mismatch) => BackendError::Conflict(format!(
+                    "{}/{} changed while it was read: {}",
+                    bucket, key, mismatch
+                )),
+                error => error,
+            })?;
+
+        debug!(
+            "Digested object: {}/{} ({} bytes)",
+            bucket, key, digests.size
+        );
+        Ok(DigestedObject {
+            metadata: ObjectMetadata {
+                key: key.to_string(),
+                ..object.metadata
+            },
+            digests,
+        })
     }
 
     pub async fn get_object_range(

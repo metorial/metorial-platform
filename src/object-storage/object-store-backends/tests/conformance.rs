@@ -13,8 +13,8 @@ use object_store_backends::{
     gcs::{GcsBackend, GcsOptions},
     local::LocalBackend,
     s3::{S3Backend, S3Options},
-    Backend, BackendError, ByteRange, ByteStream, PartSizer, PublicUrlPurpose, PutOptions,
-    UploadSettings, Uploader, WritePrecondition,
+    Backend, BackendError, ByteRange, ByteStream, ContentDigester, PartSizer, PublicUrlPurpose,
+    PutOptions, UploadSettings, Uploader, WritePrecondition,
 };
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
@@ -107,6 +107,8 @@ async fn run_suite(backend: Arc<dyn Backend>, capabilities: Capabilities) {
     completes_again_after_a_lost_response(&*backend, &root).await;
     eprintln!("step: failed uploads");
     leaves_nothing_behind_when_the_input_fails(&*backend, &root).await;
+    eprintln!("step: size mismatches");
+    refuses_streams_of_another_size(&*backend, &root).await;
     eprintln!("step: overwrites");
     overwrites_across_upload_paths(&*backend, &root).await;
     eprintln!("step: concurrent uploads");
@@ -525,13 +527,18 @@ async fn handles_large_uploads(backend: &dyn Backend, root: &str) {
 
 async fn put_and_verify(backend: &dyn Backend, key: &str, data: &[u8], opts: PutOptions) {
     let hint = opts.size_hint;
+    let mut reference = ContentDigester::new(opts.exact_size);
+    reference.update(data).unwrap();
+    let expected_digests = reference.finish().unwrap();
+
     let uploaded = backend
         .put_object_stream(key, chunks_of(data, 256 * KIB as usize + 17), opts)
         .await
         .unwrap_or_else(|e| panic!("{} bytes with hint {:?}: {}", data.len(), hint, e));
 
     assert_eq!(uploaded.metadata.size, data.len() as u64, "{}", key);
-    assert_eq!(uploaded.sha256, sha256_hex(data), "{}", key);
+    assert_eq!(uploaded.digests, expected_digests, "{}", key);
+    assert_eq!(uploaded.digests.sha256, sha256_hex(data), "{}", key);
 
     let head = backend.head_object(key).await.unwrap();
     assert_eq!(head.size, data.len() as u64, "{}", key);
@@ -603,6 +610,7 @@ async fn keeps_metadata_on_multipart_uploads(
             ("job".to_string(), "42".to_string()),
         ]),
         size_hint: Some(data.len() as u64),
+        exact_size: Some(data.len() as u64),
     };
 
     put_and_verify(backend, &key, &data, opts).await;
@@ -688,6 +696,40 @@ async fn leaves_nothing_behind_when_the_input_fails(backend: &dyn Backend, root:
 
         let object = backend.get_object(&kept).await.unwrap();
         assert_eq!(read_all(object.stream).await, b"original", "{}", name);
+    }
+}
+
+async fn refuses_streams_of_another_size(backend: &dyn Backend, root: &str) {
+    for (name, size) in [("small", 100 * KIB), ("large", 12 * MIB)] {
+        let data = pattern(size as usize, size + 1);
+
+        for (case, exact_size) in [("shorter", size + 1), ("longer", size - 1)] {
+            let key = format!("{}/mismatch/{}-{}", root, name, case);
+            let opts = PutOptions {
+                exact_size: Some(exact_size),
+                ..Default::default()
+            };
+
+            let result = backend
+                .put_object_stream(&key, chunks_of(&data, 64 * KIB as usize), opts)
+                .await;
+            assert!(
+                matches!(result, Err(BackendError::SizeMismatch(_))),
+                "{} {}: {:?}",
+                name,
+                case,
+                result.map(|uploaded| uploaded.metadata.size)
+            );
+            assert!(
+                matches!(
+                    backend.head_object(&key).await,
+                    Err(BackendError::NotFound(_))
+                ),
+                "{} {} upload left an object",
+                name,
+                case
+            );
+        }
     }
 }
 

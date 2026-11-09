@@ -118,6 +118,9 @@ impl IntoResponse for ServiceError {
             ServiceError::Backend(object_store_backends::BackendError::Conflict(_)) => {
                 (StatusCode::CONFLICT, self.to_string())
             }
+            ServiceError::Backend(object_store_backends::BackendError::SizeMismatch(_)) => {
+                (StatusCode::BAD_REQUEST, self.to_string())
+            }
             ServiceError::Backend(object_store_backends::BackendError::Io(ref error))
                 if RequestBodyError::is(error) =>
             {
@@ -167,6 +170,10 @@ mod tests {
         assert_eq!(
             status_of(BackendError::NotFound("a".to_string())),
             StatusCode::NOT_FOUND
+        );
+        assert_eq!(
+            status_of(BackendError::SizeMismatch("3 bytes, not 4".to_string())),
+            StatusCode::BAD_REQUEST
         );
         assert_eq!(
             status_of(BackendError::Provider("denied".to_string())),

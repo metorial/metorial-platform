@@ -204,6 +204,7 @@ async fn build(
         content_type: Some(content_type),
         metadata: HashMap::new(),
         size_hint: Some(planned.size_bound),
+        exact_size: None,
     };
     let upload =
         service
@@ -257,12 +258,12 @@ async fn build(
 
     info!(
         "Archive complete: {} bytes, sha256 {}",
-        uploaded.metadata.size, uploaded.sha256
+        uploaded.metadata.size, uploaded.digests.sha256
     );
 
     Ok(ArchiveResult {
         size: uploaded.metadata.size,
-        sha256: uploaded.sha256,
+        sha256: uploaded.digests.sha256,
         etag: uploaded.metadata.etag,
         renamed_entries: planned.renamed_entries,
     })

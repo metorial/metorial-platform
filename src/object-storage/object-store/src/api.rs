@@ -6,7 +6,7 @@ use axum::http::{HeaderMap, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
 use futures::StreamExt;
-use object_store_backends::{BackendError, ByteRange, ObjectMetadata, PutOptions};
+use object_store_backends::{BackendError, ByteRange, ContentDigests, ObjectMetadata, PutOptions};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -14,7 +14,7 @@ use std::time::Duration;
 
 use crate::error::{RequestBodyError, ServiceError, ServiceResult};
 use crate::metadata::Bucket;
-use crate::service::ObjectStoreService;
+use crate::service::{DigestedObject, ObjectStoreService};
 use crate::zip::{JobRequestError, ZipJob, ZipJobManager};
 
 pub type SharedService = Arc<ObjectStoreService>;
@@ -45,6 +45,24 @@ pub struct ObjectMetadataResponse {
     pub etag: String,
     pub last_modified: String,
     pub metadata: HashMap<String, String>,
+}
+
+/// An object's metadata with the digests of its content. `digests.git_blob_sha1` is null after
+/// an upload sent without a Content-Length; the digests route always computes it.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DigestedObjectResponse {
+    #[serde(flatten)]
+    pub metadata: ObjectMetadataResponse,
+    pub digests: ContentDigests,
+}
+
+impl From<DigestedObject> for DigestedObjectResponse {
+    fn from(object: DigestedObject) -> Self {
+        Self {
+            metadata: object.metadata.into(),
+            digests: object.digests,
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -181,7 +199,7 @@ pub async fn put_object(
     Path((bucket, key)): Path<(String, String)>,
     headers: HeaderMap,
     body: Body,
-) -> ServiceResult<Json<ObjectMetadataResponse>> {
+) -> ServiceResult<Json<DigestedObjectResponse>> {
     // Extract content type from headers
     let content_type = headers
         .get("content-type")
@@ -202,7 +220,8 @@ pub async fn put_object(
         }
     }
 
-    let size_hint = headers
+    // HTTP holds a body to its Content-Length, so it is the exact size, not just a hint.
+    let content_length = headers
         .get(CONTENT_LENGTH)
         .and_then(|v| v.to_str().ok())
         .and_then(|v| v.parse::<u64>().ok());
@@ -215,14 +234,26 @@ pub async fn put_object(
     let opts = PutOptions {
         content_type,
         metadata,
-        size_hint,
+        size_hint: content_length,
+        exact_size: content_length,
     };
 
     let uploaded = service
         .put_object_stream(&bucket, &key, stream, opts)
         .await?;
 
-    Ok(Json(uploaded.metadata.into()))
+    Ok(Json(DigestedObjectResponse {
+        metadata: uploaded.metadata.into(),
+        digests: uploaded.digests,
+    }))
+}
+
+pub async fn get_object_digests(
+    State(service): State<SharedService>,
+    Path((bucket, key)): Path<(String, String)>,
+) -> ServiceResult<Json<DigestedObjectResponse>> {
+    let object = service.digest_object(&bucket, &key).await?;
+    Ok(Json(object.into()))
 }
 
 fn object_headers(metadata: &ObjectMetadata) -> HeaderMap {
