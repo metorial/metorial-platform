@@ -255,6 +255,7 @@ export let getScmProviderErrorDetails = (error: unknown): ScmProviderErrorDetail
     method,
     endpoint: getSanitizedEndpoint(value) ?? sanitizeText(attached?.endpoint, 500),
     requestId:
+      getHeader(response?.headers, 'x-github-request-id') ??
       getHeader(response?.headers, 'x-request-id') ??
       getHeader(response?.headers, 'x-gitlab-meta') ??
       sanitizeText(attached?.requestId, 200),
