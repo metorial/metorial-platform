@@ -146,6 +146,46 @@ do {
 } while (token);
 ```
 
+### ZIP Jobs
+
+**Build an archive and wait for it**
+```typescript
+const spec = {
+  destination: { bucket: 'exports', key: 'export-42.zip' },
+  entries: [
+    { path: 'README.md', source: { bucket: 'files', key: 'abc123' } },
+    { path: 'photos/cat.jpg', source: { bucket: 'files', key: 'def456' }, compression: 'store' },
+  ],
+};
+
+// Re-submits after retryable failures (up to maxAttempts) and retries connection errors,
+// 429 and 502-504 along the way. Resolves with the ended job; throws ZipJobTimeoutError
+// after timeoutMs.
+const job = await client.waitForZipJob('export-42', spec, {
+  timeoutMs: 10 * 60 * 1000,
+  maxAttempts: 3,
+  onProgress: job => console.log(job.state, job.progress.bytesWritten),
+});
+
+if (job.state === 'completed') {
+  console.log(`${job.result!.size} bytes, sha256 ${job.result!.sha256}`);
+} else {
+  console.log(`${job.state}: ${job.error?.code} ${job.error?.message}`);
+}
+```
+
+**Drive the job yourself**
+```typescript
+// Creates the job, or joins it if it already exists with the same spec
+const job = await client.createZipJob('export-42', spec, { waitSeconds: 20 });
+
+// Waits up to 20 seconds for the job to end; the server may shorten the wait
+const current = await client.getZipJob('export-42', { waitSeconds: 20 });
+
+// Cancels an active job and returns it as it ended
+const canceled = await client.cancelZipJob('export-42');
+```
+
 ## Error Handling
 
 The client throws `ObjectStorageError` for API errors:
@@ -158,6 +198,17 @@ try {
 } catch (error) {
   if (error instanceof ObjectStorageError) {
     console.log(`Status: ${error.statusCode}, Message: ${error.message}`);
+    // Zip job errors also carry error.code (e.g. 'spec_conflict') and, for 429 and 503,
+    // error.retryAfterSeconds
   }
 }
 ```
+
+## Testing
+
+```bash
+bun test
+```
+
+The ZIP job tests build `object-store-service` with cargo and run it against a temporary local
+backend.

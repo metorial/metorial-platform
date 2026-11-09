@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Runs the backend conformance suite against SeaweedFS (S3), Azurite and fake-gcs-server in docker.
+# Runs the backend conformance suite, the zip pipeline emulator tests and the black-box zip e2e
+# suite (plus the TypeScript client tests) against SeaweedFS (S3),
+# Azurite and fake-gcs-server in docker.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -8,8 +10,20 @@ S3_PORT=${OBJECT_STORE_TEST_S3_PORT:-19100}
 AZURE_PORT=${OBJECT_STORE_TEST_AZURE_PORT:-19110}
 GCS_PORT=${OBJECT_STORE_TEST_GCS_PORT:-19120}
 
+S3_CONTAINER=os-test-s3-$S3_PORT
+AZURE_CONTAINER=os-test-azurite-$AZURE_PORT
+GCS_CONTAINER=os-test-gcs-$GCS_PORT
+CONTAINERS=("$S3_CONTAINER" "$AZURE_CONTAINER" "$GCS_CONTAINER")
+
+for container in "${CONTAINERS[@]}"; do
+  if [ -n "$(docker ps -q --filter "name=^${container}$")" ]; then
+    echo "$container is already running: another run is using these ports." >&2
+    echo "Set OBJECT_STORE_TEST_S3_PORT, _AZURE_PORT and _GCS_PORT to run in parallel." >&2
+    exit 1
+  fi
+done
+
 WORK_DIR=$(mktemp -d)
-CONTAINERS=(os-test-s3 os-test-azurite os-test-gcs)
 
 cleanup() {
   docker rm -f "${CONTAINERS[@]}" >/dev/null 2>&1 || true
@@ -22,14 +36,14 @@ cleanup_containers
 AZURE_ACCOUNT=devstoreaccount1
 AZURE_KEY='Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw=='
 
-docker run -d --name os-test-s3 -p "$S3_PORT:8333" \
+docker run -d --name "$S3_CONTAINER" -p "$S3_PORT:8333" \
   chrislusf/seaweedfs server -s3 -dir=/data >/dev/null
 
-docker run -d --name os-test-azurite -p "$AZURE_PORT:10000" \
+docker run -d --name "$AZURE_CONTAINER" -p "$AZURE_PORT:10000" \
   mcr.microsoft.com/azure-storage/azurite \
   azurite-blob --blobHost 0.0.0.0 --skipApiVersionCheck --loose >/dev/null
 
-docker run -d --name os-test-gcs -p "$GCS_PORT:4443" \
+docker run -d --name "$GCS_CONTAINER" -p "$GCS_PORT:4443" \
   fsouza/fake-gcs-server -scheme http -port 4443 \
   -public-host "127.0.0.1:$GCS_PORT" -external-url "http://127.0.0.1:$GCS_PORT" >/dev/null
 
@@ -99,3 +113,12 @@ export OBJECT_STORE_TEST_GCS_ENDPOINT="http://127.0.0.1:$GCS_PORT"
 export OBJECT_STORE_TEST_GCS_CREDENTIALS="$WORK_DIR/gcs-credentials.json"
 
 cargo test -p object-store-backends --test conformance -- --nocapture "$@"
+cargo test -p object-store --test zip_pipeline_emulators -- --nocapture "$@"
+
+# Black-box zip export e2e: real service processes over HTTP, on every backend.
+cargo test -p object-store --test e2e_zip -- --nocapture "$@"
+if command -v bun >/dev/null 2>&1; then
+  (cd clients/typescript && bun test)
+else
+  echo "bun is not installed; skipping the TypeScript client tests" >&2
+fi

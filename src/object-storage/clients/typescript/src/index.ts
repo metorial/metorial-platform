@@ -3,10 +3,25 @@ import axios, { AxiosError, AxiosInstance } from 'axios';
 export class ObjectStorageError extends Error {
   constructor(
     public statusCode: number,
-    public message: string
+    public message: string,
+    /** Machine-readable reason, e.g. `spec_conflict`, when the server sent one. */
+    public code?: string,
+    /** Seconds the server asked the caller to wait before retrying (`Retry-After`). */
+    public retryAfterSeconds?: number
   ) {
     super(`Object storage error (status ${statusCode}): ${message}`);
     this.name = 'ObjectStorageError';
+  }
+}
+
+export class ZipJobTimeoutError extends Error {
+  constructor(
+    public jobId: string,
+    /** The last state seen before giving up, if any request succeeded. */
+    public lastJob?: ZipJob
+  ) {
+    super(`Zip job ${jobId} did not finish in time`);
+    this.name = 'ZipJobTimeoutError';
   }
 }
 
@@ -82,8 +97,116 @@ export interface PublicURLResponse {
   expires_in: number;
 }
 
+export type ZipCompression = 'auto' | 'store' | 'deflate';
+
+export interface ZipEntrySpec {
+  /** Path inside the archive. Unsafe or colliding paths are renamed, see `renamedEntries`. */
+  path: string;
+  source: { bucket: string; key: string };
+  compression?: ZipCompression;
+  /** Expected source size; the job fails with `source_changed` if the object differs. */
+  size?: number;
+  /** Expected CRC-32 of the source; the job fails with `crc_mismatch` if the data differs. */
+  crc32?: number;
+}
+
+export interface ZipJobSpec {
+  destination: { bucket: string; key: string; contentType?: string };
+  entries: ZipEntrySpec[];
+  deflateLevel?: number;
+  maxArchiveBytes?: number;
+}
+
+export type ZipJobState = 'queued' | 'running' | 'completed' | 'failed' | 'canceled';
+
+export type ZipErrorCode =
+  | 'invalid_spec'
+  | 'source_not_found'
+  | 'source_changed'
+  | 'crc_mismatch'
+  | 'invalid_path'
+  | 'duplicate_path'
+  | 'too_large'
+  | 'backend_error'
+  | 'lease_expired'
+  | 'interrupted'
+  | 'internal'
+  | 'canceled';
+
+export interface ZipJobProgress {
+  entriesTotal: number;
+  entriesDone: number;
+  bytesRead: number;
+  bytesWritten: number;
+  bytesEstimate: number;
+}
+
+export interface ZipArchiveResult {
+  size: number;
+  sha256: string;
+  etag: string;
+  renamedEntries: { path: string; archivePath: string }[];
+}
+
+export interface ZipJobError {
+  code: ZipErrorCode;
+  message: string;
+  /** Whether submitting the same spec again may succeed. */
+  retryable: boolean;
+}
+
+export interface ZipJob {
+  id: string;
+  state: ZipJobState;
+  attempt: number;
+  specHash: string;
+  owner: string;
+  progress: ZipJobProgress;
+  result: ZipArchiveResult | null;
+  error: ZipJobError | null;
+  leaseExpiresAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+}
+
+export interface ZipJobRequestOptions {
+  /** Hold the request open until the job ends, for at most this long (the server may clamp it). */
+  waitSeconds?: number;
+}
+
+export interface WaitForZipJobOptions {
+  /** Overall limit, including retries. Defaults to 10 minutes. */
+  timeoutMs?: number;
+  /** Long-poll length of each request. Defaults to 20 seconds. */
+  waitSeconds?: number;
+  /** Attempts to run before giving up on retryable failures. Defaults to 3. */
+  maxAttempts?: number;
+  onProgress?: (job: ZipJob) => void;
+}
+
 const headerString = (value: unknown): string | undefined =>
   value === undefined || value === null ? undefined : String(value);
+
+const sleep = (ms: number): Promise<void> =>
+  new Promise(resolve => setTimeout(resolve, Math.max(0, ms)));
+
+const isActive = (job: ZipJob): boolean =>
+  job.state === 'queued' || job.state === 'running';
+
+const transientStatuses = new Set([429, 502, 503, 504]);
+
+/** How long to wait before retrying a request that failed without reaching a job, if at all. */
+const transientDelay = (error: unknown, failures: number): number | undefined => {
+  if (error instanceof ObjectStorageError) {
+    if (!transientStatuses.has(error.statusCode)) return undefined;
+    if (error.retryAfterSeconds !== undefined) return error.retryAfterSeconds * 1000;
+  } else if (!axios.isAxiosError(error) || error.response) {
+    return undefined;
+  }
+  return Math.min(500 * 2 ** failures, 5000);
+};
 
 export class ObjectStorageClient {
   private client: AxiosInstance;
@@ -103,9 +226,25 @@ export class ObjectStorageClient {
         : Buffer.isBuffer(data) || data instanceof ArrayBuffer
           ? Buffer.from(data as ArrayBuffer).toString('utf8')
           : JSON.stringify(data);
-      throw new ObjectStorageError(error.response.status, message);
+      const code =
+        data && typeof data === 'object' && typeof (data as any).code === 'string'
+          ? ((data as any).code as string)
+          : undefined;
+      const retryAfter = parseInt(String(error.response.headers?.['retry-after'] ?? ''), 10);
+      throw new ObjectStorageError(
+        error.response.status,
+        message,
+        code,
+        Number.isNaN(retryAfter) ? undefined : retryAfter
+      );
     }
     throw error;
+  }
+
+  private waitTimeout(waitSeconds?: number): number | undefined {
+    const timeout = this.client.defaults.timeout;
+    if (!waitSeconds || !timeout) return undefined;
+    return Math.max(timeout, waitSeconds * 1000 + 10000);
   }
 
   async ping(): Promise<void> {
@@ -453,6 +592,130 @@ export class ObjectStorageClient {
       return { ...response.data, headers: response.data.headers ?? {} };
     } catch (error) {
       this.handleError(error as AxiosError);
+    }
+  }
+
+  /**
+   * Starts building a ZIP archive, or joins the job if `jobId` already exists with the same spec.
+   * Re-submitting after a failure or cancel starts a new attempt; a different spec is a 409.
+   * Resolves with the job, which is still `queued` or `running` if it did not end within the wait.
+   */
+  async createZipJob(
+    jobId: string,
+    spec: ZipJobSpec,
+    options: ZipJobRequestOptions = {}
+  ): Promise<ZipJob> {
+    try {
+      const params: Record<string, number> = {};
+
+      if (options.waitSeconds !== undefined) {
+        params.wait = options.waitSeconds;
+      }
+
+      const response = await this.client.put<ZipJob>(
+        `/zip-jobs/${encodeURIComponent(jobId)}`,
+        spec,
+        { params, timeout: this.waitTimeout(options.waitSeconds) }
+      );
+      return response.data;
+    } catch (error) {
+      this.handleError(error as AxiosError);
+    }
+  }
+
+  async getZipJob(jobId: string, options: ZipJobRequestOptions = {}): Promise<ZipJob> {
+    try {
+      const params: Record<string, number> = {};
+
+      if (options.waitSeconds !== undefined) {
+        params.wait = options.waitSeconds;
+      }
+
+      const response = await this.client.get<ZipJob>(
+        `/zip-jobs/${encodeURIComponent(jobId)}`,
+        { params, timeout: this.waitTimeout(options.waitSeconds) }
+      );
+      return response.data;
+    } catch (error) {
+      this.handleError(error as AxiosError);
+    }
+  }
+
+  /** Cancels the job if it is still active. Resolves with the job as it ended. */
+  async cancelZipJob(jobId: string): Promise<ZipJob> {
+    try {
+      const response = await this.client.delete<ZipJob>(
+        `/zip-jobs/${encodeURIComponent(jobId)}`
+      );
+      return response.data;
+    } catch (error) {
+      this.handleError(error as AxiosError);
+    }
+  }
+
+  /**
+   * Submits the job and waits for it to end, re-submitting after retryable failures (up to
+   * `maxAttempts` attempts) and retrying requests that fail on the way (connection errors, 429,
+   * 502-504). Resolves with the ended job: `completed`, `canceled`, or `failed` with a
+   * non-retryable error or after the last attempt. Throws a `ZipJobTimeoutError` once
+   * `timeoutMs` has passed, and an `ObjectStorageError` if the request is refused (e.g. 400, 409).
+   */
+  async waitForZipJob(
+    jobId: string,
+    spec: ZipJobSpec,
+    options: WaitForZipJobOptions = {}
+  ): Promise<ZipJob> {
+    const deadline = Date.now() + (options.timeoutMs ?? 10 * 60 * 1000);
+    const waitSeconds = options.waitSeconds ?? 20;
+    const maxAttempts = options.maxAttempts ?? 3;
+
+    let submit = true;
+    let failedAttempts = 0;
+    let requestFailures = 0;
+    let lastJob: ZipJob | undefined;
+
+    for (;;) {
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) throw new ZipJobTimeoutError(jobId, lastJob);
+
+      const wait = Math.min(waitSeconds, remaining / 1000);
+      const started = Date.now();
+
+      let job: ZipJob;
+      try {
+        job = submit
+          ? await this.createZipJob(jobId, spec, { waitSeconds: wait })
+          : await this.getZipJob(jobId, { waitSeconds: wait });
+      } catch (error) {
+        if (!submit && error instanceof ObjectStorageError && error.statusCode === 404) {
+          submit = true;
+          continue;
+        }
+
+        const delay = transientDelay(error, requestFailures++);
+        if (delay === undefined) throw error;
+
+        await sleep(Math.min(delay, deadline - Date.now()));
+        continue;
+      }
+
+      requestFailures = 0;
+      submit = false;
+      lastJob = job;
+      options.onProgress?.(job);
+
+      if (isActive(job)) {
+        // A server that answers before the wait is over must not turn this into a busy loop.
+        await sleep(Math.min(started + 1000 - Date.now(), deadline - Date.now()));
+        continue;
+      }
+      if (job.state !== 'failed' || !job.error?.retryable) return job;
+
+      failedAttempts++;
+      if (failedAttempts >= maxAttempts) return job;
+
+      await sleep(Math.min(1000 * 2 ** (failedAttempts - 1), 30000, deadline - Date.now()));
+      submit = true;
     }
   }
 }
