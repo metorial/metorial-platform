@@ -1,4 +1,4 @@
-import { notFoundError } from '@lowerdeck/error';
+import { createError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { serialize } from '@lowerdeck/serialize';
 import { uniqueId } from '@metorial/e2e';
 import { db, type OrganizationFixture } from '@metorial/e2e/db';
@@ -15,13 +15,21 @@ import {
 import { documentService, flushDocumentDraft } from '@metorial/module-documents';
 import { skillService } from '@metorial/module-skill';
 import { skillConfigurationService } from '@metorial/module-skill-configurations';
-import { afterAll, beforeAll } from 'vitest';
+import { applyEnabledFlags, defaultFlags, setFlagProvider } from '@metorial/module-flags';
+import { afterAll, afterEach, beforeAll, beforeEach, onTestFinished, vi } from 'vitest';
 import {
   skillMarketplacePluginService,
   skillMarketplaceService,
   skillPluginService,
   skillPluginSkillService
 } from '../src';
+import { readStoredManifestFile } from '../src/lib/manifestFile/storage';
+import { syncFinishQueue } from '../src/queues/sync/finish';
+import {
+  syncPropagatePerformQueue,
+  syncPropagateWaitQueue
+} from '../src/queues/sync/propagate';
+import { syncStartQueue } from '../src/queues/sync/start';
 import type {
   EnrichedSkillMarketplace,
   EnrichedSkillPlugin,
@@ -39,6 +47,73 @@ type OriginCall = { name: string; payload: any; result?: any };
 
 export type FakeOrigin = ReturnType<typeof useFakeOrigin>;
 
+export type FakeOriginSyncStatus =
+  | 'pending'
+  | 'creating_branch'
+  | 'syncing_contents'
+  | 'creating_pr'
+  | 'waiting_for_ci'
+  | 'waiting_for_review'
+  | 'merging'
+  | 'merged'
+  | 'failed'
+  | 'cancelled'
+  | 'complete_unmerged'
+  | 'complete_direct_push'
+  | 'complete_no_changes';
+
+export type FakeOriginSyncErrorCode =
+  | 'deletion_guard_tripped'
+  | 'source_not_found'
+  | 'rate_limited'
+  | 'manifest_invalid'
+  | 'content_mismatch'
+  | 'tree_too_large'
+  | 'destination_too_large'
+  | 'file_too_large'
+  | 'lfs_quota_exceeded'
+  | 'path_conflict'
+  | 'provider_unavailable'
+  | 'lease_expired'
+  | 'no_progress';
+
+export type FakeOriginSyncEndReason =
+  'superseded' | 'pull_request_closed' | 'pull_request_deleted' | 'branch_deleted';
+
+// Mirrors Origin's sync presenter: waitingReason is only reported while syncing_contents and
+// waitingUntil falls back to nextPollAt. `omitWaitingFields` imitates an Origin that predates them.
+export type FakeManifestSyncState = {
+  status: FakeOriginSyncStatus;
+  errorCode?: FakeOriginSyncErrorCode | null;
+  errorMessage?: string | null;
+  errorDetails?: Record<string, unknown> | null;
+  nextPollAt?: Date | null;
+  waitingReason?: 'rate_limited' | 'provider_unavailable' | null;
+  waitingUntil?: Date | null;
+  omitWaitingFields?: boolean;
+  endReason?: FakeOriginSyncEndReason | null;
+  providerPrId?: string | null;
+  providerPrUrl?: string | null;
+  resultStats?: Record<string, number> | null;
+};
+
+export type FakeManifestSyncResponse =
+  FakeManifestSyncState | { rpcError: { status: number; code: string; message?: string } };
+
+export type FakeManifestSyncCall = {
+  name: 'scmRepository:syncManifest';
+  payload: {
+    tenantId: string;
+    scmRepositoryId: string;
+    requestKey: string;
+    sourceKey: string;
+    manifest: { bucket: string; key: string; sha256: string; entryCount: number };
+    previousManifest?: { bucket: string; key: string; sha256: string };
+    [key: string]: any;
+  };
+  result?: any;
+};
+
 let logoSvg =
   '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="16" height="16"/></svg>';
 
@@ -50,6 +125,97 @@ export let useFakeOrigin = () => {
   let repositories = new Map<string, Record<string, unknown>>();
   let servers: ReturnType<typeof Bun.serve>[] = [];
   let port = 0;
+
+  let syncs = new Map<string, Record<string, any>>();
+  let syncIdByRequestKey = new Map<string, string>();
+  let codeBucketsInUse = new Set<string>();
+  let queuedSyncManifestResponses: FakeManifestSyncResponse[] = [];
+  let mergedSyncManifestResponse = () => ({ status: 'merged' }) as const;
+  let defaultSyncManifestResponse: (payload: any) => FakeManifestSyncResponse =
+    mergedSyncManifestResponse;
+
+  let presentSync = (sync: Record<string, any>) => {
+    let { omitWaitingFields, ...presented } = structuredClone(sync);
+    if (omitWaitingFields) {
+      let { waitingReason: _reason, waitingUntil: _until, ...legacy } = presented;
+      return legacy;
+    }
+    if (presented.sourceType !== 'manifest') return presented;
+
+    let waitingReason =
+      presented.status === 'syncing_contents' ? (presented.waitingReason ?? null) : null;
+    return {
+      ...presented,
+      waitingReason,
+      waitingUntil: waitingReason
+        ? (presented.waitingUntil ?? presented.nextPollAt ?? null)
+        : null
+    };
+  };
+
+  let createManifestSync = (payload: FakeManifestSyncCall['payload']) => {
+    let existingId = syncIdByRequestKey.get(`${payload.tenantId}:${payload.requestKey}`);
+    if (existingId) return presentSync(syncs.get(existingId)!);
+
+    let response = queuedSyncManifestResponses.shift() ?? defaultSyncManifestResponse(payload);
+    if ('rpcError' in response) {
+      throw new ServiceError(
+        createError({
+          status: response.rpcError.status,
+          code: response.rpcError.code,
+          message: response.rpcError.message ?? response.rpcError.code
+        })
+      );
+    }
+
+    let id = uniqueId('osrs');
+    let now = new Date();
+    let isPullRequest = payload.repositoryAccessMode !== 'direct_push';
+    let sync = {
+      object: 'origin#repository_sync',
+      id,
+      status: response.status,
+      repositoryAccessMode: payload.repositoryAccessMode ?? 'pull_request',
+      branchName: payload.branchName ?? `metorial/${payload.sourceKey}`,
+      baseBranch: 'main',
+      title: payload.prName ?? 'Metorial sync',
+      description: payload.prDescription ?? null,
+      enableAutoMerge: payload.enableAutoMerge ?? true,
+      forceMergeOrPush: payload.forceMergeOrPush ?? false,
+      mergeBeforeChecksPass: payload.mergeBeforeChecksPass ?? false,
+      mergeAttemptStatus: null,
+      mergeAttemptRefusalReason: null,
+      providerPrId: response.providerPrId ?? (isPullRequest ? '1' : null),
+      providerPrUrl:
+        response.providerPrUrl ??
+        (isPullRequest ? `https://github.com/e2e/${payload.scmRepositoryId}/pull/1` : null),
+      providerMergeSha: null,
+      errorMessage: response.errorMessage ?? response.errorCode ?? null,
+      errorCode: response.errorCode ?? null,
+      errorDetails: response.errorDetails ?? null,
+      ciState: null,
+      statusSnapshot: null,
+      attemptCount: 0,
+      logs: [],
+      sourceType: 'manifest',
+      sourceKey: payload.sourceKey,
+      manifestSha256: payload.manifest.sha256,
+      resultStats: response.resultStats ?? null,
+      endReason: response.endReason ?? null,
+      lastPolledAt: null,
+      nextPollAt: response.nextPollAt ?? null,
+      waitingReason: response.waitingReason ?? null,
+      waitingUntil: response.waitingUntil ?? null,
+      omitWaitingFields: response.omitWaitingFields ?? false,
+      completedAt: null,
+      createdAt: now,
+      updatedAt: now
+    };
+
+    syncs.set(id, sync);
+    syncIdByRequestKey.set(`${payload.tenantId}:${payload.requestKey}`, id);
+    return presentSync(sync);
+  };
 
   let handlers: Record<string, (payload: any) => unknown> = {
     'tenant:upsert': payload => ({
@@ -65,17 +231,54 @@ export let useFakeOrigin = () => {
       purpose: payload.purpose,
       isReadOnly: payload.isReadOnly
     }),
-    'codeBucket:getEditorToken': payload => ({
-      url: `http://origin.e2e/editor/${payload.codeBucketId}?readOnly=${!!payload.isReadOnly}`,
-      expiresAt: new Date(Date.now() + 60 * 60 * 1000)
-    }),
+    'codeBucket:deletePath': () => ({ success: true }),
+    'codeBucket:delete': payload => {
+      if (codeBucketsInUse.has(payload.codeBucketId)) {
+        throw new ServiceError(
+          createError({
+            status: 409,
+            code: 'code_bucket_in_use',
+            message: 'This code bucket is still being exported to a repository.'
+          })
+        );
+      }
+      return {
+        object: 'origin#codeBucket',
+        id: payload.codeBucketId,
+        tenantId: payload.tenantId,
+        deletedAt: new Date()
+      };
+    },
     'scmRepository:getMany': payload => ({
       repositories: (payload.scmRepositoryIds as string[]).flatMap(id => {
         let repository = repositories.get(id);
         return repository ? [repository] : [];
       })
     }),
-    'scmRepositorySync:getMany': () => ({ syncs: [] }),
+    'scmRepository:syncManifest': payload => createManifestSync(payload),
+    'scmRepository:syncCodeBucket': payload => {
+      let id = uniqueId('osrs');
+      let sync = {
+        object: 'origin#repository_sync',
+        id,
+        status: 'merged',
+        sourceType: 'code_bucket',
+        branchName: payload.branchName ?? null,
+        providerPrUrl: null,
+        errorMessage: null,
+        statusSnapshot: null,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      syncs.set(id, sync);
+      return presentSync(sync);
+    },
+    'scmRepositorySync:getMany': payload => ({
+      syncs: ((payload.scmRepositorySyncIds ?? []) as string[]).flatMap(id => {
+        let sync = syncs.get(id);
+        return sync ? [presentSync(sync)] : [];
+      })
+    }),
     'changeNotification:poll': () => ({ items: [], nextCursor: null })
   };
 
@@ -99,9 +302,17 @@ export let useFakeOrigin = () => {
         };
       }
 
-      let result = handler(call.payload);
-      calls.push({ name: call.name, payload: call.payload, result });
-      return { id: call.id, status: 200, result };
+      try {
+        let result = handler(call.payload);
+        calls.push({ name: call.name, payload: call.payload, result });
+        return { id: call.id, status: 200, result };
+      } catch (error) {
+        if (!(error instanceof ServiceError)) throw error;
+
+        let result = error.toResponse();
+        calls.push({ name: call.name, payload: call.payload, result });
+        return { id: call.id, status: error.data.status, result };
+      }
     });
 
     return new Response(serialize.encode({ __typename: 'rpc.response', calls: results }), {
@@ -120,6 +331,12 @@ export let useFakeOrigin = () => {
     process.env.ORIGIN_URL = `http://127.0.0.1:${port}/metorial-origin`;
   });
 
+  afterEach(() => {
+    queuedSyncManifestResponses.length = 0;
+    defaultSyncManifestResponse = mergedSyncManifestResponse;
+    codeBucketsInUse.clear();
+  });
+
   afterAll(() => {
     for (let server of servers) server.stop(true);
   });
@@ -128,10 +345,51 @@ export let useFakeOrigin = () => {
     calls,
     logoUrl: () => `http://localhost:${port}/logo.svg`,
     callsTo: (name: string) => calls.filter(call => call.name === name),
-    bucketCreation: (codeBucketId: string) =>
+    bucketCreation: (codeBucketId: string | null) =>
       calls.find(
         call => call.name === 'codeBucket:create' && call.result?.id === codeBucketId
       ),
+
+    syncManifestCalls: () =>
+      calls.filter(
+        (call): call is FakeManifestSyncCall => call.name === 'scmRepository:syncManifest'
+      ),
+    // Applies to every new sync until changed; a function can pick a response per payload.
+    respondToSyncManifest: (
+      response: FakeManifestSyncResponse | ((payload: any) => FakeManifestSyncResponse)
+    ) => {
+      defaultSyncManifestResponse = typeof response == 'function' ? response : () => response;
+    },
+    // Consumed one per new sync (by request key) before the default applies.
+    queueSyncManifestResponses: (...responses: FakeManifestSyncResponse[]) => {
+      queuedSyncManifestResponses.push(...responses);
+    },
+    getSync: (syncId: string) => {
+      let sync = syncs.get(syncId);
+      return sync ? presentSync(sync) : undefined;
+    },
+    // Moves a stored sync on, e.g. waiting_for_review → cancelled with an endReason, so the
+    // next scmRepositorySync:getMany poll sees it.
+    updateSync: (syncId: string, patch: Partial<FakeManifestSyncState>) => {
+      let sync = syncs.get(syncId);
+      if (!sync) throw new Error(`Fake Origin has no sync ${syncId}`);
+
+      Object.assign(sync, patch, { updatedAt: new Date() });
+      if (patch.errorCode && patch.errorMessage === undefined)
+        sync.errorMessage = patch.errorCode;
+    },
+    // Origin refuses to delete a bucket while a non-terminal repository sync still exports it.
+    setCodeBucketInUse: (codeBucketId: string, inUse: boolean) => {
+      if (inUse) codeBucketsInUse.add(codeBucketId);
+      else codeBucketsInUse.delete(codeBucketId);
+    },
+    readManifest: async (call: FakeManifestSyncCall) =>
+      await readStoredManifestFile(call.payload.manifest),
+    readPreviousManifest: async (call: FakeManifestSyncCall) =>
+      call.payload.previousManifest
+        ? await readStoredManifestFile(call.payload.previousManifest)
+        : undefined,
+
     addRepository: (input: { owner?: string; name?: string } = {}) => {
       let id = uniqueId('osr');
       let owner = input.owner ?? 'e2e-owner';
@@ -538,4 +796,79 @@ export let runSerializer = async <Input, InitResult>(
     paths: () => [...files.keys()].sort(),
     json: (path: string) => JSON.parse(files.get(path)!)
   };
+};
+
+let stackFlags = () => applyEnabledFlags(defaultFlags, process.env.METORIAL_ENABLED_FLAGS);
+
+// The stack enables every flag, so suites asserting code-bucket destinations turn this off.
+// Only affects destinations created in-process; the stack worker keeps the stack flags.
+export let useSkillsManifestSyncFlag = (enabled: boolean) => {
+  let apply = () =>
+    setFlagProvider(async () => ({ ...stackFlags(), 'skills-manifest-sync': enabled }));
+
+  beforeAll(apply);
+  beforeEach(apply);
+  afterAll(() => setFlagProvider(async () => stackFlags()));
+};
+
+// The stack worker consumes the sync stage queues but cannot reach the fake Origin, and its
+// retries hold the destination sync lock for minutes. Tests that call the stage handlers
+// in-process hold these jobs instead so the worker never races them for that lock.
+export let holdSyncStageQueues = () => {
+  let jobs: { queue: 'start' | 'perform' | 'wait' | 'finish'; payload: any }[] = [];
+
+  let hold = (
+    queue: (typeof jobs)[number]['queue'],
+    target: { add: (...args: any[]) => any }
+  ) =>
+    vi.spyOn(target, 'add').mockImplementation(async (payload: any) => {
+      jobs.push({ queue, payload });
+      return {};
+    });
+
+  let spies = [
+    hold('start', syncStartQueue),
+    hold('perform', syncPropagatePerformQueue),
+    hold('wait', syncPropagateWaitQueue),
+    hold('finish', syncFinishQueue)
+  ];
+  onTestFinished(() => {
+    for (let spy of spies) spy.mockRestore();
+  });
+
+  return {
+    jobs: (queue: (typeof jobs)[number]['queue']) =>
+      jobs.filter(job => job.queue === queue).map(job => job.payload)
+  };
+};
+
+// The stack worker sends Origin calls to the stack's ORIGIN_URL, which nothing serves in e2e.
+// Forwarding that port to the fake Origin lets worker-driven syncs reach repositories too.
+export let useStackOriginProxy = (origin: FakeOrigin) => {
+  let stackUrl = new URL(process.env.ORIGIN_URL ?? 'http://localhost:52090/metorial-origin');
+  let servers: ReturnType<typeof Bun.serve>[] = [];
+
+  beforeAll(() => {
+    let target = new URL(origin.logoUrl());
+    let forward = async (request: Request) => {
+      let url = new URL(request.url);
+      return await fetch(`http://127.0.0.1:${target.port}${url.pathname}${url.search}`, {
+        method: request.method,
+        headers: request.headers,
+        body: ['GET', 'HEAD'].includes(request.method)
+          ? undefined
+          : await request.arrayBuffer()
+      });
+    };
+
+    let port = Number(stackUrl.port);
+    servers.push(Bun.serve({ port, hostname: '127.0.0.1', fetch: forward }));
+    try {
+      servers.push(Bun.serve({ port, hostname: '::1', fetch: forward }));
+    } catch {}
+  });
+
+  afterAll(() => {
+    for (let server of servers) server.stop(true);
+  });
 };
