@@ -1,10 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/joho/godotenv"
@@ -64,7 +66,7 @@ func main() {
 		fs.WithObjectStorageEndpoint(objectStorageEndpoint),
 		fs.WithObjectStorageBucket(objectStorageBucket),
 		fs.WithRedisURL(redisURL),
-	)
+	).WithManifestSourceBuckets(splitList(os.Getenv("ORIGIN_MANIFEST_SOURCE_BUCKETS")))
 
 	service.Start(httpAddress, rpcAddress, workspaceAddress)
 
@@ -94,4 +96,22 @@ func getEnvOrDefault(key, defaultValue string) string {
 		return defaultValue
 	}
 	return value
+}
+
+// splitList accepts a comma-separated list or a JSON array, like Origin's list settings.
+func splitList(value string) []string {
+	var items []string
+	if strings.HasPrefix(strings.TrimSpace(value), "[") {
+		if err := json.Unmarshal([]byte(value), &items); err != nil {
+			log.Fatalf("invalid list %q: %v", value, err)
+		}
+		return items
+	}
+
+	for _, item := range strings.Split(value, ",") {
+		if item = strings.TrimSpace(item); item != "" {
+			items = append(items, item)
+		}
+	}
+	return items
 }

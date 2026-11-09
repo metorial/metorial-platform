@@ -228,9 +228,27 @@ export interface ExportBucketToGithubRequest {
   lfsThresholdBytes: Long;
   githubApiUrl: string;
   githubLfsEndpoint: string;
+  /** When set, bucket_id, delete_paths and explicit_deletes_only are ignored. */
+  manifest: ManifestSource | undefined;
 }
 
-export interface ExportBucketToGithubResponse {}
+export interface ExportBucketToGithubResponse {
+  stats: ExportStats | undefined;
+  commitsCreated: number;
+  /** The slice deadline or write budget ended before all work was done. */
+  partial: boolean;
+  newRemoteState: RemoteStateCache | undefined;
+  retryAfterUnix: Long;
+  /**
+   * The branch head this call started from, the last commit it created (empty if none),
+   * and whether the head moved to a commit it didn't create while it ran.
+   */
+  startHeadSha: string;
+  lastCommitSha: string;
+  foreignCommits: boolean;
+  /** Content-creating requests charged against write_budget, failed attempts included. */
+  writeRequests: number;
+}
 
 export interface CreateBucketFromGitlabRequest {
   newBucketId: string;
@@ -251,9 +269,32 @@ export interface ExportBucketToGitlabRequest {
   commitMessage: string;
   deletePaths: string[];
   explicitDeletesOnly: boolean;
+  /**
+   * Files at or above this size are routed through Git LFS; zero or negative leaves LFS
+   * to the files over the transport's own file size cap.
+   */
+  lfsThresholdBytes: Long;
+  /** When set, bucket_id, delete_paths and explicit_deletes_only are ignored. */
+  manifest: ManifestSource | undefined;
 }
 
-export interface ExportBucketToGitlabResponse {}
+export interface ExportBucketToGitlabResponse {
+  stats: ExportStats | undefined;
+  commitsCreated: number;
+  /** The slice deadline or write budget ended before all work was done. */
+  partial: boolean;
+  newRemoteState: RemoteStateCache | undefined;
+  retryAfterUnix: Long;
+  /**
+   * The branch head this call started from, the last commit it created (empty if none),
+   * and whether the head moved to a commit it didn't create while it ran.
+   */
+  startHeadSha: string;
+  lastCommitSha: string;
+  foreignCommits: boolean;
+  /** Content-creating requests charged against write_budget, failed attempts included. */
+  writeRequests: number;
+}
 
 export interface CreateBucketFromBitbucketCloudRequest {
   newBucketId: string;
@@ -286,6 +327,13 @@ export interface ExportBucketToBitbucketCloudRequest {
   bitbucketWebUrl: string;
   deletePaths: string[];
   explicitDeletesOnly: boolean;
+  /**
+   * Files at or above this size are routed through Git LFS; zero or negative leaves LFS
+   * to the files over the transport's own file size cap.
+   */
+  lfsThresholdBytes: Long;
+  /** When set, bucket_id, delete_paths and explicit_deletes_only are ignored. */
+  manifest: ManifestSource | undefined;
 }
 
 export interface ExportBucketToBitbucketDataCenterRequest {
@@ -298,9 +346,87 @@ export interface ExportBucketToBitbucketDataCenterRequest {
   token: string;
   deletePaths: string[];
   explicitDeletesOnly: boolean;
+  /**
+   * Files at or above this size are routed through Git LFS; zero or negative leaves LFS
+   * to the files over the transport's own file size cap.
+   */
+  lfsThresholdBytes: Long;
+  /** When set, bucket_id, delete_paths and explicit_deletes_only are ignored. */
+  manifest: ManifestSource | undefined;
 }
 
-export interface ExportBucketToBitbucketResponse {}
+export interface ExportBucketToBitbucketResponse {
+  stats: ExportStats | undefined;
+  commitsCreated: number;
+  /** The slice deadline or write budget ended before all work was done. */
+  partial: boolean;
+  newRemoteState: RemoteStateCache | undefined;
+  retryAfterUnix: Long;
+  /**
+   * The branch head this call started from, the last commit it created (empty if none),
+   * and whether the head moved to a commit it didn't create while it ran.
+   */
+  startHeadSha: string;
+  lastCommitSha: string;
+  foreignCommits: boolean;
+  /** Content-creating requests charged against write_budget, failed attempts included. */
+  writeRequests: number;
+}
+
+export interface ManifestSource {
+  bucket: string;
+  key: string;
+  sha256: string;
+  previousBucket: string;
+  previousKey: string;
+  previousSha256: string;
+  maxUnexpectedDeletes: number;
+  maxUnexpectedDeleteRatio: number;
+  allowMassDelete: boolean;
+  /** Content-creating provider requests allowed in this invocation. Zero means no limit. */
+  writeBudget: number;
+  /** Wall-clock budget for this invocation. Zero means the service default. */
+  sliceSeconds: number;
+  remoteState: RemoteStateCache | undefined;
+  tuning: ExportTuning | undefined;
+  /**
+   * Prefix (in the code-bucket service's own bucket) for new remote-state listings,
+   * e.g. "remote-state/<repoId>/". Empty disables writing listings.
+   */
+  remoteStateKeyPrefix: string;
+}
+
+export interface RemoteStateCache {
+  commitSha: string;
+  treeSha: string;
+  listingBucket: string;
+  listingKey: string;
+  entryCount: number;
+}
+
+/** Zero values mean the service default. */
+export interface ExportTuning {
+  graphqlMaxFileBytes: Long;
+  restMaxBlobBytes: Long;
+  batchInitialBytes: Long;
+  batchMaxBytes: Long;
+}
+
+export interface ExportStats {
+  filesTotal: number;
+  filesUploaded: number;
+  filesSkipped: number;
+  blobsCreated: number;
+  blobsReused: number;
+  lfsUploaded: number;
+  bytesUploaded: Long;
+  deleted: number;
+  unexpectedDeletes: number;
+  githubRequests: number;
+  rateLimitWaitMs: Long;
+  commitsCreated: number;
+  batchSizeReductions: number;
+}
 
 function createBaseFileInfo(): FileInfo {
   return { path: '', size: Long.ZERO, contentType: '', modifiedAt: Long.ZERO };
@@ -3865,7 +3991,8 @@ function createBaseExportBucketToGithubRequest(): ExportBucketToGithubRequest {
     explicitDeletesOnly: false,
     lfsThresholdBytes: Long.ZERO,
     githubApiUrl: '',
-    githubLfsEndpoint: ''
+    githubLfsEndpoint: '',
+    manifest: undefined
   };
 }
 
@@ -3909,6 +4036,9 @@ export const ExportBucketToGithubRequest: MessageFns<ExportBucketToGithubRequest
     }
     if (message.githubLfsEndpoint !== '') {
       writer.uint32(98).string(message.githubLfsEndpoint);
+    }
+    if (message.manifest !== undefined) {
+      ManifestSource.encode(message.manifest, writer.uint32(162).fork()).join();
     }
     return writer;
   },
@@ -4022,6 +4152,14 @@ export const ExportBucketToGithubRequest: MessageFns<ExportBucketToGithubRequest
             message.githubLfsEndpoint = reader.string();
             continue;
           }
+          case 20: {
+            if (tag !== 162) {
+              break;
+            }
+
+            message.manifest = ManifestSource.decode(reader, reader.uint32());
+            continue;
+          }
         }
         if ((tag & 7) === 4 || tag === 0) {
           break;
@@ -4075,7 +4213,8 @@ export const ExportBucketToGithubRequest: MessageFns<ExportBucketToGithubRequest
         ? globalThis.String(object.githubLfsEndpoint)
         : isSet(object.github_lfs_endpoint)
           ? globalThis.String(object.github_lfs_endpoint)
-          : ''
+          : '',
+      manifest: isSet(object.manifest) ? ManifestSource.fromJSON(object.manifest) : undefined
     };
   },
 
@@ -4117,6 +4256,9 @@ export const ExportBucketToGithubRequest: MessageFns<ExportBucketToGithubRequest
     if (message.githubLfsEndpoint !== '') {
       obj.githubLfsEndpoint = message.githubLfsEndpoint;
     }
+    if (message.manifest !== undefined) {
+      obj.manifest = ManifestSource.toJSON(message.manifest);
+    }
     return obj;
   },
 
@@ -4140,19 +4282,60 @@ export const ExportBucketToGithubRequest: MessageFns<ExportBucketToGithubRequest
         : Long.ZERO;
     message.githubApiUrl = object.githubApiUrl ?? '';
     message.githubLfsEndpoint = object.githubLfsEndpoint ?? '';
+    message.manifest =
+      object.manifest !== undefined && object.manifest !== null
+        ? ManifestSource.fromPartial(object.manifest)
+        : undefined;
     return message;
   }
 };
 
 function createBaseExportBucketToGithubResponse(): ExportBucketToGithubResponse {
-  return {};
+  return {
+    stats: undefined,
+    commitsCreated: 0,
+    partial: false,
+    newRemoteState: undefined,
+    retryAfterUnix: Long.ZERO,
+    startHeadSha: '',
+    lastCommitSha: '',
+    foreignCommits: false,
+    writeRequests: 0
+  };
 }
 
 export const ExportBucketToGithubResponse: MessageFns<ExportBucketToGithubResponse> = {
   encode(
-    _: ExportBucketToGithubResponse,
+    message: ExportBucketToGithubResponse,
     writer: BinaryWriter = new BinaryWriter()
   ): BinaryWriter {
+    if (message.stats !== undefined) {
+      ExportStats.encode(message.stats, writer.uint32(82).fork()).join();
+    }
+    if (message.commitsCreated !== 0) {
+      writer.uint32(88).uint32(message.commitsCreated);
+    }
+    if (message.partial !== false) {
+      writer.uint32(96).bool(message.partial);
+    }
+    if (message.newRemoteState !== undefined) {
+      RemoteStateCache.encode(message.newRemoteState, writer.uint32(106).fork()).join();
+    }
+    if (!message.retryAfterUnix.equals(Long.ZERO)) {
+      writer.uint32(112).int64(message.retryAfterUnix.toString());
+    }
+    if (message.startHeadSha !== '') {
+      writer.uint32(122).string(message.startHeadSha);
+    }
+    if (message.lastCommitSha !== '') {
+      writer.uint32(130).string(message.lastCommitSha);
+    }
+    if (message.foreignCommits !== false) {
+      writer.uint32(136).bool(message.foreignCommits);
+    }
+    if (message.writeRequests !== 0) {
+      writer.uint32(144).uint32(message.writeRequests);
+    }
     return writer;
   },
 
@@ -4169,6 +4352,78 @@ export const ExportBucketToGithubResponse: MessageFns<ExportBucketToGithubRespon
       while (reader.pos < end) {
         const tag = reader.uint32();
         switch (tag >>> 3) {
+          case 10: {
+            if (tag !== 82) {
+              break;
+            }
+
+            message.stats = ExportStats.decode(reader, reader.uint32());
+            continue;
+          }
+          case 11: {
+            if (tag !== 88) {
+              break;
+            }
+
+            message.commitsCreated = reader.uint32();
+            continue;
+          }
+          case 12: {
+            if (tag !== 96) {
+              break;
+            }
+
+            message.partial = reader.bool();
+            continue;
+          }
+          case 13: {
+            if (tag !== 106) {
+              break;
+            }
+
+            message.newRemoteState = RemoteStateCache.decode(reader, reader.uint32());
+            continue;
+          }
+          case 14: {
+            if (tag !== 112) {
+              break;
+            }
+
+            message.retryAfterUnix = Long.fromString(reader.int64().toString());
+            continue;
+          }
+          case 15: {
+            if (tag !== 122) {
+              break;
+            }
+
+            message.startHeadSha = reader.string();
+            continue;
+          }
+          case 16: {
+            if (tag !== 130) {
+              break;
+            }
+
+            message.lastCommitSha = reader.string();
+            continue;
+          }
+          case 17: {
+            if (tag !== 136) {
+              break;
+            }
+
+            message.foreignCommits = reader.bool();
+            continue;
+          }
+          case 18: {
+            if (tag !== 144) {
+              break;
+            }
+
+            message.writeRequests = reader.uint32();
+            continue;
+          }
         }
         if ((tag & 7) === 4 || tag === 0) {
           break;
@@ -4181,20 +4436,105 @@ export const ExportBucketToGithubResponse: MessageFns<ExportBucketToGithubRespon
     }
   },
 
-  fromJSON(_: any): ExportBucketToGithubResponse {
-    return {};
+  fromJSON(object: any): ExportBucketToGithubResponse {
+    return {
+      stats: isSet(object.stats) ? ExportStats.fromJSON(object.stats) : undefined,
+      commitsCreated: isSet(object.commitsCreated)
+        ? globalThis.Number(object.commitsCreated)
+        : isSet(object.commits_created)
+          ? globalThis.Number(object.commits_created)
+          : 0,
+      partial: isSet(object.partial) ? globalThis.Boolean(object.partial) : false,
+      newRemoteState: isSet(object.newRemoteState)
+        ? RemoteStateCache.fromJSON(object.newRemoteState)
+        : isSet(object.new_remote_state)
+          ? RemoteStateCache.fromJSON(object.new_remote_state)
+          : undefined,
+      retryAfterUnix: isSet(object.retryAfterUnix)
+        ? Long.fromValue(object.retryAfterUnix)
+        : isSet(object.retry_after_unix)
+          ? Long.fromValue(object.retry_after_unix)
+          : Long.ZERO,
+      startHeadSha: isSet(object.startHeadSha)
+        ? globalThis.String(object.startHeadSha)
+        : isSet(object.start_head_sha)
+          ? globalThis.String(object.start_head_sha)
+          : '',
+      lastCommitSha: isSet(object.lastCommitSha)
+        ? globalThis.String(object.lastCommitSha)
+        : isSet(object.last_commit_sha)
+          ? globalThis.String(object.last_commit_sha)
+          : '',
+      foreignCommits: isSet(object.foreignCommits)
+        ? globalThis.Boolean(object.foreignCommits)
+        : isSet(object.foreign_commits)
+          ? globalThis.Boolean(object.foreign_commits)
+          : false,
+      writeRequests: isSet(object.writeRequests)
+        ? globalThis.Number(object.writeRequests)
+        : isSet(object.write_requests)
+          ? globalThis.Number(object.write_requests)
+          : 0
+    };
   },
 
-  toJSON(_: ExportBucketToGithubResponse): unknown {
+  toJSON(message: ExportBucketToGithubResponse): unknown {
     const obj: any = {};
+    if (message.stats !== undefined) {
+      obj.stats = ExportStats.toJSON(message.stats);
+    }
+    if (message.commitsCreated !== 0) {
+      obj.commitsCreated = Math.round(message.commitsCreated);
+    }
+    if (message.partial !== false) {
+      obj.partial = message.partial;
+    }
+    if (message.newRemoteState !== undefined) {
+      obj.newRemoteState = RemoteStateCache.toJSON(message.newRemoteState);
+    }
+    if (!message.retryAfterUnix.equals(Long.ZERO)) {
+      obj.retryAfterUnix = (message.retryAfterUnix || Long.ZERO).toString();
+    }
+    if (message.startHeadSha !== '') {
+      obj.startHeadSha = message.startHeadSha;
+    }
+    if (message.lastCommitSha !== '') {
+      obj.lastCommitSha = message.lastCommitSha;
+    }
+    if (message.foreignCommits !== false) {
+      obj.foreignCommits = message.foreignCommits;
+    }
+    if (message.writeRequests !== 0) {
+      obj.writeRequests = Math.round(message.writeRequests);
+    }
     return obj;
   },
 
   create(base?: DeepPartial<ExportBucketToGithubResponse>): ExportBucketToGithubResponse {
     return ExportBucketToGithubResponse.fromPartial(base ?? {});
   },
-  fromPartial(_: DeepPartial<ExportBucketToGithubResponse>): ExportBucketToGithubResponse {
+  fromPartial(
+    object: DeepPartial<ExportBucketToGithubResponse>
+  ): ExportBucketToGithubResponse {
     const message = createBaseExportBucketToGithubResponse();
+    message.stats =
+      object.stats !== undefined && object.stats !== null
+        ? ExportStats.fromPartial(object.stats)
+        : undefined;
+    message.commitsCreated = object.commitsCreated ?? 0;
+    message.partial = object.partial ?? false;
+    message.newRemoteState =
+      object.newRemoteState !== undefined && object.newRemoteState !== null
+        ? RemoteStateCache.fromPartial(object.newRemoteState)
+        : undefined;
+    message.retryAfterUnix =
+      object.retryAfterUnix !== undefined && object.retryAfterUnix !== null
+        ? Long.fromValue(object.retryAfterUnix)
+        : Long.ZERO;
+    message.startHeadSha = object.startHeadSha ?? '';
+    message.lastCommitSha = object.lastCommitSha ?? '';
+    message.foreignCommits = object.foreignCommits ?? false;
+    message.writeRequests = object.writeRequests ?? 0;
     return message;
   }
 };
@@ -4385,7 +4725,9 @@ function createBaseExportBucketToGitlabRequest(): ExportBucketToGitlabRequest {
     branch: '',
     commitMessage: '',
     deletePaths: [],
-    explicitDeletesOnly: false
+    explicitDeletesOnly: false,
+    lfsThresholdBytes: Long.ZERO,
+    manifest: undefined
   };
 }
 
@@ -4420,6 +4762,12 @@ export const ExportBucketToGitlabRequest: MessageFns<ExportBucketToGitlabRequest
     }
     if (message.explicitDeletesOnly !== false) {
       writer.uint32(72).bool(message.explicitDeletesOnly);
+    }
+    if (!message.lfsThresholdBytes.equals(Long.ZERO)) {
+      writer.uint32(80).int64(message.lfsThresholdBytes.toString());
+    }
+    if (message.manifest !== undefined) {
+      ManifestSource.encode(message.manifest, writer.uint32(162).fork()).join();
     }
     return writer;
   },
@@ -4509,6 +4857,22 @@ export const ExportBucketToGitlabRequest: MessageFns<ExportBucketToGitlabRequest
             message.explicitDeletesOnly = reader.bool();
             continue;
           }
+          case 10: {
+            if (tag !== 80) {
+              break;
+            }
+
+            message.lfsThresholdBytes = Long.fromString(reader.int64().toString());
+            continue;
+          }
+          case 20: {
+            if (tag !== 162) {
+              break;
+            }
+
+            message.manifest = ManifestSource.decode(reader, reader.uint32());
+            continue;
+          }
         }
         if ((tag & 7) === 4 || tag === 0) {
           break;
@@ -4555,7 +4919,13 @@ export const ExportBucketToGitlabRequest: MessageFns<ExportBucketToGitlabRequest
         ? globalThis.Boolean(object.explicitDeletesOnly)
         : isSet(object.explicit_deletes_only)
           ? globalThis.Boolean(object.explicit_deletes_only)
-          : false
+          : false,
+      lfsThresholdBytes: isSet(object.lfsThresholdBytes)
+        ? Long.fromValue(object.lfsThresholdBytes)
+        : isSet(object.lfs_threshold_bytes)
+          ? Long.fromValue(object.lfs_threshold_bytes)
+          : Long.ZERO,
+      manifest: isSet(object.manifest) ? ManifestSource.fromJSON(object.manifest) : undefined
     };
   },
 
@@ -4588,6 +4958,12 @@ export const ExportBucketToGitlabRequest: MessageFns<ExportBucketToGitlabRequest
     if (message.explicitDeletesOnly !== false) {
       obj.explicitDeletesOnly = message.explicitDeletesOnly;
     }
+    if (!message.lfsThresholdBytes.equals(Long.ZERO)) {
+      obj.lfsThresholdBytes = (message.lfsThresholdBytes || Long.ZERO).toString();
+    }
+    if (message.manifest !== undefined) {
+      obj.manifest = ManifestSource.toJSON(message.manifest);
+    }
     return obj;
   },
 
@@ -4608,19 +4984,64 @@ export const ExportBucketToGitlabRequest: MessageFns<ExportBucketToGitlabRequest
     message.commitMessage = object.commitMessage ?? '';
     message.deletePaths = object.deletePaths?.map(e => e) || [];
     message.explicitDeletesOnly = object.explicitDeletesOnly ?? false;
+    message.lfsThresholdBytes =
+      object.lfsThresholdBytes !== undefined && object.lfsThresholdBytes !== null
+        ? Long.fromValue(object.lfsThresholdBytes)
+        : Long.ZERO;
+    message.manifest =
+      object.manifest !== undefined && object.manifest !== null
+        ? ManifestSource.fromPartial(object.manifest)
+        : undefined;
     return message;
   }
 };
 
 function createBaseExportBucketToGitlabResponse(): ExportBucketToGitlabResponse {
-  return {};
+  return {
+    stats: undefined,
+    commitsCreated: 0,
+    partial: false,
+    newRemoteState: undefined,
+    retryAfterUnix: Long.ZERO,
+    startHeadSha: '',
+    lastCommitSha: '',
+    foreignCommits: false,
+    writeRequests: 0
+  };
 }
 
 export const ExportBucketToGitlabResponse: MessageFns<ExportBucketToGitlabResponse> = {
   encode(
-    _: ExportBucketToGitlabResponse,
+    message: ExportBucketToGitlabResponse,
     writer: BinaryWriter = new BinaryWriter()
   ): BinaryWriter {
+    if (message.stats !== undefined) {
+      ExportStats.encode(message.stats, writer.uint32(82).fork()).join();
+    }
+    if (message.commitsCreated !== 0) {
+      writer.uint32(88).uint32(message.commitsCreated);
+    }
+    if (message.partial !== false) {
+      writer.uint32(96).bool(message.partial);
+    }
+    if (message.newRemoteState !== undefined) {
+      RemoteStateCache.encode(message.newRemoteState, writer.uint32(106).fork()).join();
+    }
+    if (!message.retryAfterUnix.equals(Long.ZERO)) {
+      writer.uint32(112).int64(message.retryAfterUnix.toString());
+    }
+    if (message.startHeadSha !== '') {
+      writer.uint32(122).string(message.startHeadSha);
+    }
+    if (message.lastCommitSha !== '') {
+      writer.uint32(130).string(message.lastCommitSha);
+    }
+    if (message.foreignCommits !== false) {
+      writer.uint32(136).bool(message.foreignCommits);
+    }
+    if (message.writeRequests !== 0) {
+      writer.uint32(144).uint32(message.writeRequests);
+    }
     return writer;
   },
 
@@ -4637,6 +5058,78 @@ export const ExportBucketToGitlabResponse: MessageFns<ExportBucketToGitlabRespon
       while (reader.pos < end) {
         const tag = reader.uint32();
         switch (tag >>> 3) {
+          case 10: {
+            if (tag !== 82) {
+              break;
+            }
+
+            message.stats = ExportStats.decode(reader, reader.uint32());
+            continue;
+          }
+          case 11: {
+            if (tag !== 88) {
+              break;
+            }
+
+            message.commitsCreated = reader.uint32();
+            continue;
+          }
+          case 12: {
+            if (tag !== 96) {
+              break;
+            }
+
+            message.partial = reader.bool();
+            continue;
+          }
+          case 13: {
+            if (tag !== 106) {
+              break;
+            }
+
+            message.newRemoteState = RemoteStateCache.decode(reader, reader.uint32());
+            continue;
+          }
+          case 14: {
+            if (tag !== 112) {
+              break;
+            }
+
+            message.retryAfterUnix = Long.fromString(reader.int64().toString());
+            continue;
+          }
+          case 15: {
+            if (tag !== 122) {
+              break;
+            }
+
+            message.startHeadSha = reader.string();
+            continue;
+          }
+          case 16: {
+            if (tag !== 130) {
+              break;
+            }
+
+            message.lastCommitSha = reader.string();
+            continue;
+          }
+          case 17: {
+            if (tag !== 136) {
+              break;
+            }
+
+            message.foreignCommits = reader.bool();
+            continue;
+          }
+          case 18: {
+            if (tag !== 144) {
+              break;
+            }
+
+            message.writeRequests = reader.uint32();
+            continue;
+          }
         }
         if ((tag & 7) === 4 || tag === 0) {
           break;
@@ -4649,20 +5142,105 @@ export const ExportBucketToGitlabResponse: MessageFns<ExportBucketToGitlabRespon
     }
   },
 
-  fromJSON(_: any): ExportBucketToGitlabResponse {
-    return {};
+  fromJSON(object: any): ExportBucketToGitlabResponse {
+    return {
+      stats: isSet(object.stats) ? ExportStats.fromJSON(object.stats) : undefined,
+      commitsCreated: isSet(object.commitsCreated)
+        ? globalThis.Number(object.commitsCreated)
+        : isSet(object.commits_created)
+          ? globalThis.Number(object.commits_created)
+          : 0,
+      partial: isSet(object.partial) ? globalThis.Boolean(object.partial) : false,
+      newRemoteState: isSet(object.newRemoteState)
+        ? RemoteStateCache.fromJSON(object.newRemoteState)
+        : isSet(object.new_remote_state)
+          ? RemoteStateCache.fromJSON(object.new_remote_state)
+          : undefined,
+      retryAfterUnix: isSet(object.retryAfterUnix)
+        ? Long.fromValue(object.retryAfterUnix)
+        : isSet(object.retry_after_unix)
+          ? Long.fromValue(object.retry_after_unix)
+          : Long.ZERO,
+      startHeadSha: isSet(object.startHeadSha)
+        ? globalThis.String(object.startHeadSha)
+        : isSet(object.start_head_sha)
+          ? globalThis.String(object.start_head_sha)
+          : '',
+      lastCommitSha: isSet(object.lastCommitSha)
+        ? globalThis.String(object.lastCommitSha)
+        : isSet(object.last_commit_sha)
+          ? globalThis.String(object.last_commit_sha)
+          : '',
+      foreignCommits: isSet(object.foreignCommits)
+        ? globalThis.Boolean(object.foreignCommits)
+        : isSet(object.foreign_commits)
+          ? globalThis.Boolean(object.foreign_commits)
+          : false,
+      writeRequests: isSet(object.writeRequests)
+        ? globalThis.Number(object.writeRequests)
+        : isSet(object.write_requests)
+          ? globalThis.Number(object.write_requests)
+          : 0
+    };
   },
 
-  toJSON(_: ExportBucketToGitlabResponse): unknown {
+  toJSON(message: ExportBucketToGitlabResponse): unknown {
     const obj: any = {};
+    if (message.stats !== undefined) {
+      obj.stats = ExportStats.toJSON(message.stats);
+    }
+    if (message.commitsCreated !== 0) {
+      obj.commitsCreated = Math.round(message.commitsCreated);
+    }
+    if (message.partial !== false) {
+      obj.partial = message.partial;
+    }
+    if (message.newRemoteState !== undefined) {
+      obj.newRemoteState = RemoteStateCache.toJSON(message.newRemoteState);
+    }
+    if (!message.retryAfterUnix.equals(Long.ZERO)) {
+      obj.retryAfterUnix = (message.retryAfterUnix || Long.ZERO).toString();
+    }
+    if (message.startHeadSha !== '') {
+      obj.startHeadSha = message.startHeadSha;
+    }
+    if (message.lastCommitSha !== '') {
+      obj.lastCommitSha = message.lastCommitSha;
+    }
+    if (message.foreignCommits !== false) {
+      obj.foreignCommits = message.foreignCommits;
+    }
+    if (message.writeRequests !== 0) {
+      obj.writeRequests = Math.round(message.writeRequests);
+    }
     return obj;
   },
 
   create(base?: DeepPartial<ExportBucketToGitlabResponse>): ExportBucketToGitlabResponse {
     return ExportBucketToGitlabResponse.fromPartial(base ?? {});
   },
-  fromPartial(_: DeepPartial<ExportBucketToGitlabResponse>): ExportBucketToGitlabResponse {
+  fromPartial(
+    object: DeepPartial<ExportBucketToGitlabResponse>
+  ): ExportBucketToGitlabResponse {
     const message = createBaseExportBucketToGitlabResponse();
+    message.stats =
+      object.stats !== undefined && object.stats !== null
+        ? ExportStats.fromPartial(object.stats)
+        : undefined;
+    message.commitsCreated = object.commitsCreated ?? 0;
+    message.partial = object.partial ?? false;
+    message.newRemoteState =
+      object.newRemoteState !== undefined && object.newRemoteState !== null
+        ? RemoteStateCache.fromPartial(object.newRemoteState)
+        : undefined;
+    message.retryAfterUnix =
+      object.retryAfterUnix !== undefined && object.retryAfterUnix !== null
+        ? Long.fromValue(object.retryAfterUnix)
+        : Long.ZERO;
+    message.startHeadSha = object.startHeadSha ?? '';
+    message.lastCommitSha = object.lastCommitSha ?? '';
+    message.foreignCommits = object.foreignCommits ?? false;
+    message.writeRequests = object.writeRequests ?? 0;
     return message;
   }
 };
@@ -5039,7 +5617,9 @@ function createBaseExportBucketToBitbucketCloudRequest(): ExportBucketToBitbucke
     bitbucketApiUrl: '',
     bitbucketWebUrl: '',
     deletePaths: [],
-    explicitDeletesOnly: false
+    explicitDeletesOnly: false,
+    lfsThresholdBytes: Long.ZERO,
+    manifest: undefined
   };
 }
 
@@ -5081,6 +5661,12 @@ export const ExportBucketToBitbucketCloudRequest: MessageFns<ExportBucketToBitbu
       }
       if (message.explicitDeletesOnly !== false) {
         writer.uint32(88).bool(message.explicitDeletesOnly);
+      }
+      if (!message.lfsThresholdBytes.equals(Long.ZERO)) {
+        writer.uint32(96).int64(message.lfsThresholdBytes.toString());
+      }
+      if (message.manifest !== undefined) {
+        ManifestSource.encode(message.manifest, writer.uint32(162).fork()).join();
       }
       return writer;
     },
@@ -5189,6 +5775,22 @@ export const ExportBucketToBitbucketCloudRequest: MessageFns<ExportBucketToBitbu
               message.explicitDeletesOnly = reader.bool();
               continue;
             }
+            case 12: {
+              if (tag !== 96) {
+                break;
+              }
+
+              message.lfsThresholdBytes = Long.fromString(reader.int64().toString());
+              continue;
+            }
+            case 20: {
+              if (tag !== 162) {
+                break;
+              }
+
+              message.manifest = ManifestSource.decode(reader, reader.uint32());
+              continue;
+            }
           }
           if ((tag & 7) === 4 || tag === 0) {
             break;
@@ -5237,7 +5839,13 @@ export const ExportBucketToBitbucketCloudRequest: MessageFns<ExportBucketToBitbu
           ? globalThis.Boolean(object.explicitDeletesOnly)
           : isSet(object.explicit_deletes_only)
             ? globalThis.Boolean(object.explicit_deletes_only)
-            : false
+            : false,
+        lfsThresholdBytes: isSet(object.lfsThresholdBytes)
+          ? Long.fromValue(object.lfsThresholdBytes)
+          : isSet(object.lfs_threshold_bytes)
+            ? Long.fromValue(object.lfs_threshold_bytes)
+            : Long.ZERO,
+        manifest: isSet(object.manifest) ? ManifestSource.fromJSON(object.manifest) : undefined
       };
     },
 
@@ -5276,6 +5884,12 @@ export const ExportBucketToBitbucketCloudRequest: MessageFns<ExportBucketToBitbu
       if (message.explicitDeletesOnly !== false) {
         obj.explicitDeletesOnly = message.explicitDeletesOnly;
       }
+      if (!message.lfsThresholdBytes.equals(Long.ZERO)) {
+        obj.lfsThresholdBytes = (message.lfsThresholdBytes || Long.ZERO).toString();
+      }
+      if (message.manifest !== undefined) {
+        obj.manifest = ManifestSource.toJSON(message.manifest);
+      }
       return obj;
     },
 
@@ -5299,6 +5913,14 @@ export const ExportBucketToBitbucketCloudRequest: MessageFns<ExportBucketToBitbu
       message.bitbucketWebUrl = object.bitbucketWebUrl ?? '';
       message.deletePaths = object.deletePaths?.map(e => e) || [];
       message.explicitDeletesOnly = object.explicitDeletesOnly ?? false;
+      message.lfsThresholdBytes =
+        object.lfsThresholdBytes !== undefined && object.lfsThresholdBytes !== null
+          ? Long.fromValue(object.lfsThresholdBytes)
+          : Long.ZERO;
+      message.manifest =
+        object.manifest !== undefined && object.manifest !== null
+          ? ManifestSource.fromPartial(object.manifest)
+          : undefined;
       return message;
     }
   };
@@ -5313,7 +5935,9 @@ function createBaseExportBucketToBitbucketDataCenterRequest(): ExportBucketToBit
     username: '',
     token: '',
     deletePaths: [],
-    explicitDeletesOnly: false
+    explicitDeletesOnly: false,
+    lfsThresholdBytes: Long.ZERO,
+    manifest: undefined
   };
 }
 
@@ -5349,6 +5973,12 @@ export const ExportBucketToBitbucketDataCenterRequest: MessageFns<ExportBucketTo
       }
       if (message.explicitDeletesOnly !== false) {
         writer.uint32(72).bool(message.explicitDeletesOnly);
+      }
+      if (!message.lfsThresholdBytes.equals(Long.ZERO)) {
+        writer.uint32(80).int64(message.lfsThresholdBytes.toString());
+      }
+      if (message.manifest !== undefined) {
+        ManifestSource.encode(message.manifest, writer.uint32(162).fork()).join();
       }
       return writer;
     },
@@ -5441,6 +6071,22 @@ export const ExportBucketToBitbucketDataCenterRequest: MessageFns<ExportBucketTo
               message.explicitDeletesOnly = reader.bool();
               continue;
             }
+            case 10: {
+              if (tag !== 80) {
+                break;
+              }
+
+              message.lfsThresholdBytes = Long.fromString(reader.int64().toString());
+              continue;
+            }
+            case 20: {
+              if (tag !== 162) {
+                break;
+              }
+
+              message.manifest = ManifestSource.decode(reader, reader.uint32());
+              continue;
+            }
           }
           if ((tag & 7) === 4 || tag === 0) {
             break;
@@ -5483,7 +6129,13 @@ export const ExportBucketToBitbucketDataCenterRequest: MessageFns<ExportBucketTo
           ? globalThis.Boolean(object.explicitDeletesOnly)
           : isSet(object.explicit_deletes_only)
             ? globalThis.Boolean(object.explicit_deletes_only)
-            : false
+            : false,
+        lfsThresholdBytes: isSet(object.lfsThresholdBytes)
+          ? Long.fromValue(object.lfsThresholdBytes)
+          : isSet(object.lfs_threshold_bytes)
+            ? Long.fromValue(object.lfs_threshold_bytes)
+            : Long.ZERO,
+        manifest: isSet(object.manifest) ? ManifestSource.fromJSON(object.manifest) : undefined
       };
     },
 
@@ -5516,6 +6168,12 @@ export const ExportBucketToBitbucketDataCenterRequest: MessageFns<ExportBucketTo
       if (message.explicitDeletesOnly !== false) {
         obj.explicitDeletesOnly = message.explicitDeletesOnly;
       }
+      if (!message.lfsThresholdBytes.equals(Long.ZERO)) {
+        obj.lfsThresholdBytes = (message.lfsThresholdBytes || Long.ZERO).toString();
+      }
+      if (message.manifest !== undefined) {
+        obj.manifest = ManifestSource.toJSON(message.manifest);
+      }
       return obj;
     },
 
@@ -5537,19 +6195,64 @@ export const ExportBucketToBitbucketDataCenterRequest: MessageFns<ExportBucketTo
       message.token = object.token ?? '';
       message.deletePaths = object.deletePaths?.map(e => e) || [];
       message.explicitDeletesOnly = object.explicitDeletesOnly ?? false;
+      message.lfsThresholdBytes =
+        object.lfsThresholdBytes !== undefined && object.lfsThresholdBytes !== null
+          ? Long.fromValue(object.lfsThresholdBytes)
+          : Long.ZERO;
+      message.manifest =
+        object.manifest !== undefined && object.manifest !== null
+          ? ManifestSource.fromPartial(object.manifest)
+          : undefined;
       return message;
     }
   };
 
 function createBaseExportBucketToBitbucketResponse(): ExportBucketToBitbucketResponse {
-  return {};
+  return {
+    stats: undefined,
+    commitsCreated: 0,
+    partial: false,
+    newRemoteState: undefined,
+    retryAfterUnix: Long.ZERO,
+    startHeadSha: '',
+    lastCommitSha: '',
+    foreignCommits: false,
+    writeRequests: 0
+  };
 }
 
 export const ExportBucketToBitbucketResponse: MessageFns<ExportBucketToBitbucketResponse> = {
   encode(
-    _: ExportBucketToBitbucketResponse,
+    message: ExportBucketToBitbucketResponse,
     writer: BinaryWriter = new BinaryWriter()
   ): BinaryWriter {
+    if (message.stats !== undefined) {
+      ExportStats.encode(message.stats, writer.uint32(82).fork()).join();
+    }
+    if (message.commitsCreated !== 0) {
+      writer.uint32(88).uint32(message.commitsCreated);
+    }
+    if (message.partial !== false) {
+      writer.uint32(96).bool(message.partial);
+    }
+    if (message.newRemoteState !== undefined) {
+      RemoteStateCache.encode(message.newRemoteState, writer.uint32(106).fork()).join();
+    }
+    if (!message.retryAfterUnix.equals(Long.ZERO)) {
+      writer.uint32(112).int64(message.retryAfterUnix.toString());
+    }
+    if (message.startHeadSha !== '') {
+      writer.uint32(122).string(message.startHeadSha);
+    }
+    if (message.lastCommitSha !== '') {
+      writer.uint32(130).string(message.lastCommitSha);
+    }
+    if (message.foreignCommits !== false) {
+      writer.uint32(136).bool(message.foreignCommits);
+    }
+    if (message.writeRequests !== 0) {
+      writer.uint32(144).uint32(message.writeRequests);
+    }
     return writer;
   },
 
@@ -5566,6 +6269,78 @@ export const ExportBucketToBitbucketResponse: MessageFns<ExportBucketToBitbucket
       while (reader.pos < end) {
         const tag = reader.uint32();
         switch (tag >>> 3) {
+          case 10: {
+            if (tag !== 82) {
+              break;
+            }
+
+            message.stats = ExportStats.decode(reader, reader.uint32());
+            continue;
+          }
+          case 11: {
+            if (tag !== 88) {
+              break;
+            }
+
+            message.commitsCreated = reader.uint32();
+            continue;
+          }
+          case 12: {
+            if (tag !== 96) {
+              break;
+            }
+
+            message.partial = reader.bool();
+            continue;
+          }
+          case 13: {
+            if (tag !== 106) {
+              break;
+            }
+
+            message.newRemoteState = RemoteStateCache.decode(reader, reader.uint32());
+            continue;
+          }
+          case 14: {
+            if (tag !== 112) {
+              break;
+            }
+
+            message.retryAfterUnix = Long.fromString(reader.int64().toString());
+            continue;
+          }
+          case 15: {
+            if (tag !== 122) {
+              break;
+            }
+
+            message.startHeadSha = reader.string();
+            continue;
+          }
+          case 16: {
+            if (tag !== 130) {
+              break;
+            }
+
+            message.lastCommitSha = reader.string();
+            continue;
+          }
+          case 17: {
+            if (tag !== 136) {
+              break;
+            }
+
+            message.foreignCommits = reader.bool();
+            continue;
+          }
+          case 18: {
+            if (tag !== 144) {
+              break;
+            }
+
+            message.writeRequests = reader.uint32();
+            continue;
+          }
         }
         if ((tag & 7) === 4 || tag === 0) {
           break;
@@ -5578,12 +6353,77 @@ export const ExportBucketToBitbucketResponse: MessageFns<ExportBucketToBitbucket
     }
   },
 
-  fromJSON(_: any): ExportBucketToBitbucketResponse {
-    return {};
+  fromJSON(object: any): ExportBucketToBitbucketResponse {
+    return {
+      stats: isSet(object.stats) ? ExportStats.fromJSON(object.stats) : undefined,
+      commitsCreated: isSet(object.commitsCreated)
+        ? globalThis.Number(object.commitsCreated)
+        : isSet(object.commits_created)
+          ? globalThis.Number(object.commits_created)
+          : 0,
+      partial: isSet(object.partial) ? globalThis.Boolean(object.partial) : false,
+      newRemoteState: isSet(object.newRemoteState)
+        ? RemoteStateCache.fromJSON(object.newRemoteState)
+        : isSet(object.new_remote_state)
+          ? RemoteStateCache.fromJSON(object.new_remote_state)
+          : undefined,
+      retryAfterUnix: isSet(object.retryAfterUnix)
+        ? Long.fromValue(object.retryAfterUnix)
+        : isSet(object.retry_after_unix)
+          ? Long.fromValue(object.retry_after_unix)
+          : Long.ZERO,
+      startHeadSha: isSet(object.startHeadSha)
+        ? globalThis.String(object.startHeadSha)
+        : isSet(object.start_head_sha)
+          ? globalThis.String(object.start_head_sha)
+          : '',
+      lastCommitSha: isSet(object.lastCommitSha)
+        ? globalThis.String(object.lastCommitSha)
+        : isSet(object.last_commit_sha)
+          ? globalThis.String(object.last_commit_sha)
+          : '',
+      foreignCommits: isSet(object.foreignCommits)
+        ? globalThis.Boolean(object.foreignCommits)
+        : isSet(object.foreign_commits)
+          ? globalThis.Boolean(object.foreign_commits)
+          : false,
+      writeRequests: isSet(object.writeRequests)
+        ? globalThis.Number(object.writeRequests)
+        : isSet(object.write_requests)
+          ? globalThis.Number(object.write_requests)
+          : 0
+    };
   },
 
-  toJSON(_: ExportBucketToBitbucketResponse): unknown {
+  toJSON(message: ExportBucketToBitbucketResponse): unknown {
     const obj: any = {};
+    if (message.stats !== undefined) {
+      obj.stats = ExportStats.toJSON(message.stats);
+    }
+    if (message.commitsCreated !== 0) {
+      obj.commitsCreated = Math.round(message.commitsCreated);
+    }
+    if (message.partial !== false) {
+      obj.partial = message.partial;
+    }
+    if (message.newRemoteState !== undefined) {
+      obj.newRemoteState = RemoteStateCache.toJSON(message.newRemoteState);
+    }
+    if (!message.retryAfterUnix.equals(Long.ZERO)) {
+      obj.retryAfterUnix = (message.retryAfterUnix || Long.ZERO).toString();
+    }
+    if (message.startHeadSha !== '') {
+      obj.startHeadSha = message.startHeadSha;
+    }
+    if (message.lastCommitSha !== '') {
+      obj.lastCommitSha = message.lastCommitSha;
+    }
+    if (message.foreignCommits !== false) {
+      obj.foreignCommits = message.foreignCommits;
+    }
+    if (message.writeRequests !== 0) {
+      obj.writeRequests = Math.round(message.writeRequests);
+    }
     return obj;
   },
 
@@ -5593,9 +6433,997 @@ export const ExportBucketToBitbucketResponse: MessageFns<ExportBucketToBitbucket
     return ExportBucketToBitbucketResponse.fromPartial(base ?? {});
   },
   fromPartial(
-    _: DeepPartial<ExportBucketToBitbucketResponse>
+    object: DeepPartial<ExportBucketToBitbucketResponse>
   ): ExportBucketToBitbucketResponse {
     const message = createBaseExportBucketToBitbucketResponse();
+    message.stats =
+      object.stats !== undefined && object.stats !== null
+        ? ExportStats.fromPartial(object.stats)
+        : undefined;
+    message.commitsCreated = object.commitsCreated ?? 0;
+    message.partial = object.partial ?? false;
+    message.newRemoteState =
+      object.newRemoteState !== undefined && object.newRemoteState !== null
+        ? RemoteStateCache.fromPartial(object.newRemoteState)
+        : undefined;
+    message.retryAfterUnix =
+      object.retryAfterUnix !== undefined && object.retryAfterUnix !== null
+        ? Long.fromValue(object.retryAfterUnix)
+        : Long.ZERO;
+    message.startHeadSha = object.startHeadSha ?? '';
+    message.lastCommitSha = object.lastCommitSha ?? '';
+    message.foreignCommits = object.foreignCommits ?? false;
+    message.writeRequests = object.writeRequests ?? 0;
+    return message;
+  }
+};
+
+function createBaseManifestSource(): ManifestSource {
+  return {
+    bucket: '',
+    key: '',
+    sha256: '',
+    previousBucket: '',
+    previousKey: '',
+    previousSha256: '',
+    maxUnexpectedDeletes: 0,
+    maxUnexpectedDeleteRatio: 0,
+    allowMassDelete: false,
+    writeBudget: 0,
+    sliceSeconds: 0,
+    remoteState: undefined,
+    tuning: undefined,
+    remoteStateKeyPrefix: ''
+  };
+}
+
+export const ManifestSource: MessageFns<ManifestSource> = {
+  encode(message: ManifestSource, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.bucket !== '') {
+      writer.uint32(10).string(message.bucket);
+    }
+    if (message.key !== '') {
+      writer.uint32(18).string(message.key);
+    }
+    if (message.sha256 !== '') {
+      writer.uint32(26).string(message.sha256);
+    }
+    if (message.previousBucket !== '') {
+      writer.uint32(34).string(message.previousBucket);
+    }
+    if (message.previousKey !== '') {
+      writer.uint32(42).string(message.previousKey);
+    }
+    if (message.previousSha256 !== '') {
+      writer.uint32(50).string(message.previousSha256);
+    }
+    if (message.maxUnexpectedDeletes !== 0) {
+      writer.uint32(56).uint32(message.maxUnexpectedDeletes);
+    }
+    if (message.maxUnexpectedDeleteRatio !== 0) {
+      writer.uint32(65).double(message.maxUnexpectedDeleteRatio);
+    }
+    if (message.allowMassDelete !== false) {
+      writer.uint32(72).bool(message.allowMassDelete);
+    }
+    if (message.writeBudget !== 0) {
+      writer.uint32(80).uint32(message.writeBudget);
+    }
+    if (message.sliceSeconds !== 0) {
+      writer.uint32(88).uint32(message.sliceSeconds);
+    }
+    if (message.remoteState !== undefined) {
+      RemoteStateCache.encode(message.remoteState, writer.uint32(98).fork()).join();
+    }
+    if (message.tuning !== undefined) {
+      ExportTuning.encode(message.tuning, writer.uint32(106).fork()).join();
+    }
+    if (message.remoteStateKeyPrefix !== '') {
+      writer.uint32(114).string(message.remoteStateKeyPrefix);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ManifestSource {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const previousRecursionDepth = (reader as any).__tsProtoDecodeDepth ?? 0;
+    if (previousRecursionDepth >= 100) {
+      throw new globalThis.Error('protobuf decode recursion limit exceeded');
+    }
+    (reader as any).__tsProtoDecodeDepth = previousRecursionDepth + 1;
+    try {
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBaseManifestSource();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break;
+            }
+
+            message.bucket = reader.string();
+            continue;
+          }
+          case 2: {
+            if (tag !== 18) {
+              break;
+            }
+
+            message.key = reader.string();
+            continue;
+          }
+          case 3: {
+            if (tag !== 26) {
+              break;
+            }
+
+            message.sha256 = reader.string();
+            continue;
+          }
+          case 4: {
+            if (tag !== 34) {
+              break;
+            }
+
+            message.previousBucket = reader.string();
+            continue;
+          }
+          case 5: {
+            if (tag !== 42) {
+              break;
+            }
+
+            message.previousKey = reader.string();
+            continue;
+          }
+          case 6: {
+            if (tag !== 50) {
+              break;
+            }
+
+            message.previousSha256 = reader.string();
+            continue;
+          }
+          case 7: {
+            if (tag !== 56) {
+              break;
+            }
+
+            message.maxUnexpectedDeletes = reader.uint32();
+            continue;
+          }
+          case 8: {
+            if (tag !== 65) {
+              break;
+            }
+
+            message.maxUnexpectedDeleteRatio = reader.double();
+            continue;
+          }
+          case 9: {
+            if (tag !== 72) {
+              break;
+            }
+
+            message.allowMassDelete = reader.bool();
+            continue;
+          }
+          case 10: {
+            if (tag !== 80) {
+              break;
+            }
+
+            message.writeBudget = reader.uint32();
+            continue;
+          }
+          case 11: {
+            if (tag !== 88) {
+              break;
+            }
+
+            message.sliceSeconds = reader.uint32();
+            continue;
+          }
+          case 12: {
+            if (tag !== 98) {
+              break;
+            }
+
+            message.remoteState = RemoteStateCache.decode(reader, reader.uint32());
+            continue;
+          }
+          case 13: {
+            if (tag !== 106) {
+              break;
+            }
+
+            message.tuning = ExportTuning.decode(reader, reader.uint32());
+            continue;
+          }
+          case 14: {
+            if (tag !== 114) {
+              break;
+            }
+
+            message.remoteStateKeyPrefix = reader.string();
+            continue;
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    } finally {
+      (reader as any).__tsProtoDecodeDepth = previousRecursionDepth;
+    }
+  },
+
+  fromJSON(object: any): ManifestSource {
+    return {
+      bucket: isSet(object.bucket) ? globalThis.String(object.bucket) : '',
+      key: isSet(object.key) ? globalThis.String(object.key) : '',
+      sha256: isSet(object.sha256) ? globalThis.String(object.sha256) : '',
+      previousBucket: isSet(object.previousBucket)
+        ? globalThis.String(object.previousBucket)
+        : isSet(object.previous_bucket)
+          ? globalThis.String(object.previous_bucket)
+          : '',
+      previousKey: isSet(object.previousKey)
+        ? globalThis.String(object.previousKey)
+        : isSet(object.previous_key)
+          ? globalThis.String(object.previous_key)
+          : '',
+      previousSha256: isSet(object.previousSha256)
+        ? globalThis.String(object.previousSha256)
+        : isSet(object.previous_sha256)
+          ? globalThis.String(object.previous_sha256)
+          : '',
+      maxUnexpectedDeletes: isSet(object.maxUnexpectedDeletes)
+        ? globalThis.Number(object.maxUnexpectedDeletes)
+        : isSet(object.max_unexpected_deletes)
+          ? globalThis.Number(object.max_unexpected_deletes)
+          : 0,
+      maxUnexpectedDeleteRatio: isSet(object.maxUnexpectedDeleteRatio)
+        ? globalThis.Number(object.maxUnexpectedDeleteRatio)
+        : isSet(object.max_unexpected_delete_ratio)
+          ? globalThis.Number(object.max_unexpected_delete_ratio)
+          : 0,
+      allowMassDelete: isSet(object.allowMassDelete)
+        ? globalThis.Boolean(object.allowMassDelete)
+        : isSet(object.allow_mass_delete)
+          ? globalThis.Boolean(object.allow_mass_delete)
+          : false,
+      writeBudget: isSet(object.writeBudget)
+        ? globalThis.Number(object.writeBudget)
+        : isSet(object.write_budget)
+          ? globalThis.Number(object.write_budget)
+          : 0,
+      sliceSeconds: isSet(object.sliceSeconds)
+        ? globalThis.Number(object.sliceSeconds)
+        : isSet(object.slice_seconds)
+          ? globalThis.Number(object.slice_seconds)
+          : 0,
+      remoteState: isSet(object.remoteState)
+        ? RemoteStateCache.fromJSON(object.remoteState)
+        : isSet(object.remote_state)
+          ? RemoteStateCache.fromJSON(object.remote_state)
+          : undefined,
+      tuning: isSet(object.tuning) ? ExportTuning.fromJSON(object.tuning) : undefined,
+      remoteStateKeyPrefix: isSet(object.remoteStateKeyPrefix)
+        ? globalThis.String(object.remoteStateKeyPrefix)
+        : isSet(object.remote_state_key_prefix)
+          ? globalThis.String(object.remote_state_key_prefix)
+          : ''
+    };
+  },
+
+  toJSON(message: ManifestSource): unknown {
+    const obj: any = {};
+    if (message.bucket !== '') {
+      obj.bucket = message.bucket;
+    }
+    if (message.key !== '') {
+      obj.key = message.key;
+    }
+    if (message.sha256 !== '') {
+      obj.sha256 = message.sha256;
+    }
+    if (message.previousBucket !== '') {
+      obj.previousBucket = message.previousBucket;
+    }
+    if (message.previousKey !== '') {
+      obj.previousKey = message.previousKey;
+    }
+    if (message.previousSha256 !== '') {
+      obj.previousSha256 = message.previousSha256;
+    }
+    if (message.maxUnexpectedDeletes !== 0) {
+      obj.maxUnexpectedDeletes = Math.round(message.maxUnexpectedDeletes);
+    }
+    if (message.maxUnexpectedDeleteRatio !== 0) {
+      obj.maxUnexpectedDeleteRatio = floatToJson(message.maxUnexpectedDeleteRatio);
+    }
+    if (message.allowMassDelete !== false) {
+      obj.allowMassDelete = message.allowMassDelete;
+    }
+    if (message.writeBudget !== 0) {
+      obj.writeBudget = Math.round(message.writeBudget);
+    }
+    if (message.sliceSeconds !== 0) {
+      obj.sliceSeconds = Math.round(message.sliceSeconds);
+    }
+    if (message.remoteState !== undefined) {
+      obj.remoteState = RemoteStateCache.toJSON(message.remoteState);
+    }
+    if (message.tuning !== undefined) {
+      obj.tuning = ExportTuning.toJSON(message.tuning);
+    }
+    if (message.remoteStateKeyPrefix !== '') {
+      obj.remoteStateKeyPrefix = message.remoteStateKeyPrefix;
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<ManifestSource>): ManifestSource {
+    return ManifestSource.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<ManifestSource>): ManifestSource {
+    const message = createBaseManifestSource();
+    message.bucket = object.bucket ?? '';
+    message.key = object.key ?? '';
+    message.sha256 = object.sha256 ?? '';
+    message.previousBucket = object.previousBucket ?? '';
+    message.previousKey = object.previousKey ?? '';
+    message.previousSha256 = object.previousSha256 ?? '';
+    message.maxUnexpectedDeletes = object.maxUnexpectedDeletes ?? 0;
+    message.maxUnexpectedDeleteRatio = object.maxUnexpectedDeleteRatio ?? 0;
+    message.allowMassDelete = object.allowMassDelete ?? false;
+    message.writeBudget = object.writeBudget ?? 0;
+    message.sliceSeconds = object.sliceSeconds ?? 0;
+    message.remoteState =
+      object.remoteState !== undefined && object.remoteState !== null
+        ? RemoteStateCache.fromPartial(object.remoteState)
+        : undefined;
+    message.tuning =
+      object.tuning !== undefined && object.tuning !== null
+        ? ExportTuning.fromPartial(object.tuning)
+        : undefined;
+    message.remoteStateKeyPrefix = object.remoteStateKeyPrefix ?? '';
+    return message;
+  }
+};
+
+function createBaseRemoteStateCache(): RemoteStateCache {
+  return { commitSha: '', treeSha: '', listingBucket: '', listingKey: '', entryCount: 0 };
+}
+
+export const RemoteStateCache: MessageFns<RemoteStateCache> = {
+  encode(message: RemoteStateCache, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.commitSha !== '') {
+      writer.uint32(10).string(message.commitSha);
+    }
+    if (message.treeSha !== '') {
+      writer.uint32(18).string(message.treeSha);
+    }
+    if (message.listingBucket !== '') {
+      writer.uint32(26).string(message.listingBucket);
+    }
+    if (message.listingKey !== '') {
+      writer.uint32(34).string(message.listingKey);
+    }
+    if (message.entryCount !== 0) {
+      writer.uint32(40).uint32(message.entryCount);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): RemoteStateCache {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const previousRecursionDepth = (reader as any).__tsProtoDecodeDepth ?? 0;
+    if (previousRecursionDepth >= 100) {
+      throw new globalThis.Error('protobuf decode recursion limit exceeded');
+    }
+    (reader as any).__tsProtoDecodeDepth = previousRecursionDepth + 1;
+    try {
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBaseRemoteStateCache();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 10) {
+              break;
+            }
+
+            message.commitSha = reader.string();
+            continue;
+          }
+          case 2: {
+            if (tag !== 18) {
+              break;
+            }
+
+            message.treeSha = reader.string();
+            continue;
+          }
+          case 3: {
+            if (tag !== 26) {
+              break;
+            }
+
+            message.listingBucket = reader.string();
+            continue;
+          }
+          case 4: {
+            if (tag !== 34) {
+              break;
+            }
+
+            message.listingKey = reader.string();
+            continue;
+          }
+          case 5: {
+            if (tag !== 40) {
+              break;
+            }
+
+            message.entryCount = reader.uint32();
+            continue;
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    } finally {
+      (reader as any).__tsProtoDecodeDepth = previousRecursionDepth;
+    }
+  },
+
+  fromJSON(object: any): RemoteStateCache {
+    return {
+      commitSha: isSet(object.commitSha)
+        ? globalThis.String(object.commitSha)
+        : isSet(object.commit_sha)
+          ? globalThis.String(object.commit_sha)
+          : '',
+      treeSha: isSet(object.treeSha)
+        ? globalThis.String(object.treeSha)
+        : isSet(object.tree_sha)
+          ? globalThis.String(object.tree_sha)
+          : '',
+      listingBucket: isSet(object.listingBucket)
+        ? globalThis.String(object.listingBucket)
+        : isSet(object.listing_bucket)
+          ? globalThis.String(object.listing_bucket)
+          : '',
+      listingKey: isSet(object.listingKey)
+        ? globalThis.String(object.listingKey)
+        : isSet(object.listing_key)
+          ? globalThis.String(object.listing_key)
+          : '',
+      entryCount: isSet(object.entryCount)
+        ? globalThis.Number(object.entryCount)
+        : isSet(object.entry_count)
+          ? globalThis.Number(object.entry_count)
+          : 0
+    };
+  },
+
+  toJSON(message: RemoteStateCache): unknown {
+    const obj: any = {};
+    if (message.commitSha !== '') {
+      obj.commitSha = message.commitSha;
+    }
+    if (message.treeSha !== '') {
+      obj.treeSha = message.treeSha;
+    }
+    if (message.listingBucket !== '') {
+      obj.listingBucket = message.listingBucket;
+    }
+    if (message.listingKey !== '') {
+      obj.listingKey = message.listingKey;
+    }
+    if (message.entryCount !== 0) {
+      obj.entryCount = Math.round(message.entryCount);
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<RemoteStateCache>): RemoteStateCache {
+    return RemoteStateCache.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<RemoteStateCache>): RemoteStateCache {
+    const message = createBaseRemoteStateCache();
+    message.commitSha = object.commitSha ?? '';
+    message.treeSha = object.treeSha ?? '';
+    message.listingBucket = object.listingBucket ?? '';
+    message.listingKey = object.listingKey ?? '';
+    message.entryCount = object.entryCount ?? 0;
+    return message;
+  }
+};
+
+function createBaseExportTuning(): ExportTuning {
+  return {
+    graphqlMaxFileBytes: Long.UZERO,
+    restMaxBlobBytes: Long.UZERO,
+    batchInitialBytes: Long.UZERO,
+    batchMaxBytes: Long.UZERO
+  };
+}
+
+export const ExportTuning: MessageFns<ExportTuning> = {
+  encode(message: ExportTuning, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (!message.graphqlMaxFileBytes.equals(Long.UZERO)) {
+      writer.uint32(8).uint64(message.graphqlMaxFileBytes.toString());
+    }
+    if (!message.restMaxBlobBytes.equals(Long.UZERO)) {
+      writer.uint32(16).uint64(message.restMaxBlobBytes.toString());
+    }
+    if (!message.batchInitialBytes.equals(Long.UZERO)) {
+      writer.uint32(24).uint64(message.batchInitialBytes.toString());
+    }
+    if (!message.batchMaxBytes.equals(Long.UZERO)) {
+      writer.uint32(32).uint64(message.batchMaxBytes.toString());
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ExportTuning {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const previousRecursionDepth = (reader as any).__tsProtoDecodeDepth ?? 0;
+    if (previousRecursionDepth >= 100) {
+      throw new globalThis.Error('protobuf decode recursion limit exceeded');
+    }
+    (reader as any).__tsProtoDecodeDepth = previousRecursionDepth + 1;
+    try {
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBaseExportTuning();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 8) {
+              break;
+            }
+
+            message.graphqlMaxFileBytes = Long.fromString(reader.uint64().toString(), true);
+            continue;
+          }
+          case 2: {
+            if (tag !== 16) {
+              break;
+            }
+
+            message.restMaxBlobBytes = Long.fromString(reader.uint64().toString(), true);
+            continue;
+          }
+          case 3: {
+            if (tag !== 24) {
+              break;
+            }
+
+            message.batchInitialBytes = Long.fromString(reader.uint64().toString(), true);
+            continue;
+          }
+          case 4: {
+            if (tag !== 32) {
+              break;
+            }
+
+            message.batchMaxBytes = Long.fromString(reader.uint64().toString(), true);
+            continue;
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    } finally {
+      (reader as any).__tsProtoDecodeDepth = previousRecursionDepth;
+    }
+  },
+
+  fromJSON(object: any): ExportTuning {
+    return {
+      graphqlMaxFileBytes: isSet(object.graphqlMaxFileBytes)
+        ? Long.fromValue(object.graphqlMaxFileBytes)
+        : isSet(object.graphql_max_file_bytes)
+          ? Long.fromValue(object.graphql_max_file_bytes)
+          : Long.UZERO,
+      restMaxBlobBytes: isSet(object.restMaxBlobBytes)
+        ? Long.fromValue(object.restMaxBlobBytes)
+        : isSet(object.rest_max_blob_bytes)
+          ? Long.fromValue(object.rest_max_blob_bytes)
+          : Long.UZERO,
+      batchInitialBytes: isSet(object.batchInitialBytes)
+        ? Long.fromValue(object.batchInitialBytes)
+        : isSet(object.batch_initial_bytes)
+          ? Long.fromValue(object.batch_initial_bytes)
+          : Long.UZERO,
+      batchMaxBytes: isSet(object.batchMaxBytes)
+        ? Long.fromValue(object.batchMaxBytes)
+        : isSet(object.batch_max_bytes)
+          ? Long.fromValue(object.batch_max_bytes)
+          : Long.UZERO
+    };
+  },
+
+  toJSON(message: ExportTuning): unknown {
+    const obj: any = {};
+    if (!message.graphqlMaxFileBytes.equals(Long.UZERO)) {
+      obj.graphqlMaxFileBytes = (message.graphqlMaxFileBytes || Long.UZERO).toString();
+    }
+    if (!message.restMaxBlobBytes.equals(Long.UZERO)) {
+      obj.restMaxBlobBytes = (message.restMaxBlobBytes || Long.UZERO).toString();
+    }
+    if (!message.batchInitialBytes.equals(Long.UZERO)) {
+      obj.batchInitialBytes = (message.batchInitialBytes || Long.UZERO).toString();
+    }
+    if (!message.batchMaxBytes.equals(Long.UZERO)) {
+      obj.batchMaxBytes = (message.batchMaxBytes || Long.UZERO).toString();
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<ExportTuning>): ExportTuning {
+    return ExportTuning.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<ExportTuning>): ExportTuning {
+    const message = createBaseExportTuning();
+    message.graphqlMaxFileBytes =
+      object.graphqlMaxFileBytes !== undefined && object.graphqlMaxFileBytes !== null
+        ? Long.fromValue(object.graphqlMaxFileBytes)
+        : Long.UZERO;
+    message.restMaxBlobBytes =
+      object.restMaxBlobBytes !== undefined && object.restMaxBlobBytes !== null
+        ? Long.fromValue(object.restMaxBlobBytes)
+        : Long.UZERO;
+    message.batchInitialBytes =
+      object.batchInitialBytes !== undefined && object.batchInitialBytes !== null
+        ? Long.fromValue(object.batchInitialBytes)
+        : Long.UZERO;
+    message.batchMaxBytes =
+      object.batchMaxBytes !== undefined && object.batchMaxBytes !== null
+        ? Long.fromValue(object.batchMaxBytes)
+        : Long.UZERO;
+    return message;
+  }
+};
+
+function createBaseExportStats(): ExportStats {
+  return {
+    filesTotal: 0,
+    filesUploaded: 0,
+    filesSkipped: 0,
+    blobsCreated: 0,
+    blobsReused: 0,
+    lfsUploaded: 0,
+    bytesUploaded: Long.UZERO,
+    deleted: 0,
+    unexpectedDeletes: 0,
+    githubRequests: 0,
+    rateLimitWaitMs: Long.UZERO,
+    commitsCreated: 0,
+    batchSizeReductions: 0
+  };
+}
+
+export const ExportStats: MessageFns<ExportStats> = {
+  encode(message: ExportStats, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.filesTotal !== 0) {
+      writer.uint32(8).uint32(message.filesTotal);
+    }
+    if (message.filesUploaded !== 0) {
+      writer.uint32(16).uint32(message.filesUploaded);
+    }
+    if (message.filesSkipped !== 0) {
+      writer.uint32(24).uint32(message.filesSkipped);
+    }
+    if (message.blobsCreated !== 0) {
+      writer.uint32(32).uint32(message.blobsCreated);
+    }
+    if (message.blobsReused !== 0) {
+      writer.uint32(40).uint32(message.blobsReused);
+    }
+    if (message.lfsUploaded !== 0) {
+      writer.uint32(48).uint32(message.lfsUploaded);
+    }
+    if (!message.bytesUploaded.equals(Long.UZERO)) {
+      writer.uint32(56).uint64(message.bytesUploaded.toString());
+    }
+    if (message.deleted !== 0) {
+      writer.uint32(64).uint32(message.deleted);
+    }
+    if (message.unexpectedDeletes !== 0) {
+      writer.uint32(72).uint32(message.unexpectedDeletes);
+    }
+    if (message.githubRequests !== 0) {
+      writer.uint32(80).uint32(message.githubRequests);
+    }
+    if (!message.rateLimitWaitMs.equals(Long.UZERO)) {
+      writer.uint32(88).uint64(message.rateLimitWaitMs.toString());
+    }
+    if (message.commitsCreated !== 0) {
+      writer.uint32(96).uint32(message.commitsCreated);
+    }
+    if (message.batchSizeReductions !== 0) {
+      writer.uint32(104).uint32(message.batchSizeReductions);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): ExportStats {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    const previousRecursionDepth = (reader as any).__tsProtoDecodeDepth ?? 0;
+    if (previousRecursionDepth >= 100) {
+      throw new globalThis.Error('protobuf decode recursion limit exceeded');
+    }
+    (reader as any).__tsProtoDecodeDepth = previousRecursionDepth + 1;
+    try {
+      const end = length === undefined ? reader.len : reader.pos + length;
+      const message = createBaseExportStats();
+      while (reader.pos < end) {
+        const tag = reader.uint32();
+        switch (tag >>> 3) {
+          case 1: {
+            if (tag !== 8) {
+              break;
+            }
+
+            message.filesTotal = reader.uint32();
+            continue;
+          }
+          case 2: {
+            if (tag !== 16) {
+              break;
+            }
+
+            message.filesUploaded = reader.uint32();
+            continue;
+          }
+          case 3: {
+            if (tag !== 24) {
+              break;
+            }
+
+            message.filesSkipped = reader.uint32();
+            continue;
+          }
+          case 4: {
+            if (tag !== 32) {
+              break;
+            }
+
+            message.blobsCreated = reader.uint32();
+            continue;
+          }
+          case 5: {
+            if (tag !== 40) {
+              break;
+            }
+
+            message.blobsReused = reader.uint32();
+            continue;
+          }
+          case 6: {
+            if (tag !== 48) {
+              break;
+            }
+
+            message.lfsUploaded = reader.uint32();
+            continue;
+          }
+          case 7: {
+            if (tag !== 56) {
+              break;
+            }
+
+            message.bytesUploaded = Long.fromString(reader.uint64().toString(), true);
+            continue;
+          }
+          case 8: {
+            if (tag !== 64) {
+              break;
+            }
+
+            message.deleted = reader.uint32();
+            continue;
+          }
+          case 9: {
+            if (tag !== 72) {
+              break;
+            }
+
+            message.unexpectedDeletes = reader.uint32();
+            continue;
+          }
+          case 10: {
+            if (tag !== 80) {
+              break;
+            }
+
+            message.githubRequests = reader.uint32();
+            continue;
+          }
+          case 11: {
+            if (tag !== 88) {
+              break;
+            }
+
+            message.rateLimitWaitMs = Long.fromString(reader.uint64().toString(), true);
+            continue;
+          }
+          case 12: {
+            if (tag !== 96) {
+              break;
+            }
+
+            message.commitsCreated = reader.uint32();
+            continue;
+          }
+          case 13: {
+            if (tag !== 104) {
+              break;
+            }
+
+            message.batchSizeReductions = reader.uint32();
+            continue;
+          }
+        }
+        if ((tag & 7) === 4 || tag === 0) {
+          break;
+        }
+        reader.skip(tag & 7);
+      }
+      return message;
+    } finally {
+      (reader as any).__tsProtoDecodeDepth = previousRecursionDepth;
+    }
+  },
+
+  fromJSON(object: any): ExportStats {
+    return {
+      filesTotal: isSet(object.filesTotal)
+        ? globalThis.Number(object.filesTotal)
+        : isSet(object.files_total)
+          ? globalThis.Number(object.files_total)
+          : 0,
+      filesUploaded: isSet(object.filesUploaded)
+        ? globalThis.Number(object.filesUploaded)
+        : isSet(object.files_uploaded)
+          ? globalThis.Number(object.files_uploaded)
+          : 0,
+      filesSkipped: isSet(object.filesSkipped)
+        ? globalThis.Number(object.filesSkipped)
+        : isSet(object.files_skipped)
+          ? globalThis.Number(object.files_skipped)
+          : 0,
+      blobsCreated: isSet(object.blobsCreated)
+        ? globalThis.Number(object.blobsCreated)
+        : isSet(object.blobs_created)
+          ? globalThis.Number(object.blobs_created)
+          : 0,
+      blobsReused: isSet(object.blobsReused)
+        ? globalThis.Number(object.blobsReused)
+        : isSet(object.blobs_reused)
+          ? globalThis.Number(object.blobs_reused)
+          : 0,
+      lfsUploaded: isSet(object.lfsUploaded)
+        ? globalThis.Number(object.lfsUploaded)
+        : isSet(object.lfs_uploaded)
+          ? globalThis.Number(object.lfs_uploaded)
+          : 0,
+      bytesUploaded: isSet(object.bytesUploaded)
+        ? Long.fromValue(object.bytesUploaded)
+        : isSet(object.bytes_uploaded)
+          ? Long.fromValue(object.bytes_uploaded)
+          : Long.UZERO,
+      deleted: isSet(object.deleted) ? globalThis.Number(object.deleted) : 0,
+      unexpectedDeletes: isSet(object.unexpectedDeletes)
+        ? globalThis.Number(object.unexpectedDeletes)
+        : isSet(object.unexpected_deletes)
+          ? globalThis.Number(object.unexpected_deletes)
+          : 0,
+      githubRequests: isSet(object.githubRequests)
+        ? globalThis.Number(object.githubRequests)
+        : isSet(object.github_requests)
+          ? globalThis.Number(object.github_requests)
+          : 0,
+      rateLimitWaitMs: isSet(object.rateLimitWaitMs)
+        ? Long.fromValue(object.rateLimitWaitMs)
+        : isSet(object.rate_limit_wait_ms)
+          ? Long.fromValue(object.rate_limit_wait_ms)
+          : Long.UZERO,
+      commitsCreated: isSet(object.commitsCreated)
+        ? globalThis.Number(object.commitsCreated)
+        : isSet(object.commits_created)
+          ? globalThis.Number(object.commits_created)
+          : 0,
+      batchSizeReductions: isSet(object.batchSizeReductions)
+        ? globalThis.Number(object.batchSizeReductions)
+        : isSet(object.batch_size_reductions)
+          ? globalThis.Number(object.batch_size_reductions)
+          : 0
+    };
+  },
+
+  toJSON(message: ExportStats): unknown {
+    const obj: any = {};
+    if (message.filesTotal !== 0) {
+      obj.filesTotal = Math.round(message.filesTotal);
+    }
+    if (message.filesUploaded !== 0) {
+      obj.filesUploaded = Math.round(message.filesUploaded);
+    }
+    if (message.filesSkipped !== 0) {
+      obj.filesSkipped = Math.round(message.filesSkipped);
+    }
+    if (message.blobsCreated !== 0) {
+      obj.blobsCreated = Math.round(message.blobsCreated);
+    }
+    if (message.blobsReused !== 0) {
+      obj.blobsReused = Math.round(message.blobsReused);
+    }
+    if (message.lfsUploaded !== 0) {
+      obj.lfsUploaded = Math.round(message.lfsUploaded);
+    }
+    if (!message.bytesUploaded.equals(Long.UZERO)) {
+      obj.bytesUploaded = (message.bytesUploaded || Long.UZERO).toString();
+    }
+    if (message.deleted !== 0) {
+      obj.deleted = Math.round(message.deleted);
+    }
+    if (message.unexpectedDeletes !== 0) {
+      obj.unexpectedDeletes = Math.round(message.unexpectedDeletes);
+    }
+    if (message.githubRequests !== 0) {
+      obj.githubRequests = Math.round(message.githubRequests);
+    }
+    if (!message.rateLimitWaitMs.equals(Long.UZERO)) {
+      obj.rateLimitWaitMs = (message.rateLimitWaitMs || Long.UZERO).toString();
+    }
+    if (message.commitsCreated !== 0) {
+      obj.commitsCreated = Math.round(message.commitsCreated);
+    }
+    if (message.batchSizeReductions !== 0) {
+      obj.batchSizeReductions = Math.round(message.batchSizeReductions);
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<ExportStats>): ExportStats {
+    return ExportStats.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<ExportStats>): ExportStats {
+    const message = createBaseExportStats();
+    message.filesTotal = object.filesTotal ?? 0;
+    message.filesUploaded = object.filesUploaded ?? 0;
+    message.filesSkipped = object.filesSkipped ?? 0;
+    message.blobsCreated = object.blobsCreated ?? 0;
+    message.blobsReused = object.blobsReused ?? 0;
+    message.lfsUploaded = object.lfsUploaded ?? 0;
+    message.bytesUploaded =
+      object.bytesUploaded !== undefined && object.bytesUploaded !== null
+        ? Long.fromValue(object.bytesUploaded)
+        : Long.UZERO;
+    message.deleted = object.deleted ?? 0;
+    message.unexpectedDeletes = object.unexpectedDeletes ?? 0;
+    message.githubRequests = object.githubRequests ?? 0;
+    message.rateLimitWaitMs =
+      object.rateLimitWaitMs !== undefined && object.rateLimitWaitMs !== null
+        ? Long.fromValue(object.rateLimitWaitMs)
+        : Long.UZERO;
+    message.commitsCreated = object.commitsCreated ?? 0;
+    message.batchSizeReductions = object.batchSizeReductions ?? 0;
     return message;
   }
 };
@@ -6404,6 +8232,12 @@ function base64FromBytes(arr: Uint8Array): string {
     });
     return globalThis.btoa(bin.join(''));
   }
+}
+
+function floatToJson(value: number | null | undefined): number | string | null | undefined {
+  return typeof value === 'number' && !globalThis.Number.isFinite(value)
+    ? globalThis.String(value)
+    : value;
 }
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;

@@ -14,9 +14,10 @@ import (
 )
 
 type Service struct {
-	fsm             *fs.FileSystemManager
-	jwtSecret       []byte
-	workspaceServer *workspace.Server
+	fsm                   *fs.FileSystemManager
+	jwtSecret             []byte
+	workspaceServer       *workspace.Server
+	manifestSourceBuckets []string
 }
 
 func NewService(jwtSecret string, editorApiUrl string, opts ...fs.FileSystemManagerOption) *Service {
@@ -34,6 +35,13 @@ func NewService(jwtSecret string, editorApiUrl string, opts ...fs.FileSystemMana
 		jwtSecret:       []byte(jwtSecret),
 		workspaceServer: workspaceServer,
 	}
+}
+
+// WithManifestSourceBuckets sets the object-storage buckets manifests and their content
+// may be read from (ORIGIN_MANIFEST_SOURCE_BUCKETS). With none, manifest exports fail.
+func (s *Service) WithManifestSourceBuckets(buckets []string) *Service {
+	s.manifestSourceBuckets = buckets
+	return s
 }
 
 func (s *Service) Start(httpAddress, rpcAddress, workspaceAddress string) error {
