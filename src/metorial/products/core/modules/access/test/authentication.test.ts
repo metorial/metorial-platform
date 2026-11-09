@@ -610,6 +610,7 @@ describe('AuthenticationService', () => {
           loggedOutAt: null,
           consumerProfile: {
             organizationOid: 1n,
+            status: 'active',
             surface: {
               id: 'csf_1',
               status: 'active'
