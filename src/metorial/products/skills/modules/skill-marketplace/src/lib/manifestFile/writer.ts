@@ -186,6 +186,9 @@ let getSortedManifestHeader = (d: SortedManifestInput): ManifestHeader => ({
 export let writeSortedManifestFile = async (d: SortedManifestInput) =>
   await encodeToBuffer(getSortedManifestHeader(d), d.entries);
 
+// Above this many entries, manifest-sized payloads go through a temporary file instead of memory.
+export let spoolAboveManifestEntries = 10_000;
+
 // Like writeSortedManifestFile, but the compressed bytes go to a temporary file the caller
 // uploads and then disposes, so memory stays flat however large the manifest is.
 export let spoolSortedManifestFile = async (

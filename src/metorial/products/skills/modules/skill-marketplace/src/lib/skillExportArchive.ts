@@ -1,7 +1,18 @@
 import type { SkillDestinationManifest } from '@metorial/db';
-import { getCargoFilesBucketName, getStorage } from '@metorial/module-file';
+import {
+  createZipJobFromSpecFile,
+  getCargoFilesBucketName,
+  getStorage
+} from '@metorial/module-file';
+import { createWriteStream } from 'node:fs';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 import { env } from '../env';
 import { openStoredManifestFile } from './manifestFile/storage';
+import { spoolAboveManifestEntries } from './manifestFile/writer';
 
 export let skillExportZipJobWaitSeconds = 20;
 export let skillExportZipJobPollDelayMs = 10 * 1000;
@@ -42,40 +53,106 @@ export let isSkillExportRecoveryJobId = (jobId: string) => jobId.endsWith('-retr
 export let getSkillExportArchiveKey = (skillExportId: string) =>
   `skill-exports/${skillExportId}.zip`;
 
-// The object-storage client only accepts the spec as an object, so the entries are collected
-// in memory (~250 bytes each) rather than streamed into the request body.
-export let buildSkillExportZipSpec = async (d: {
-  skillExportId: string;
-  manifest: Pick<SkillDestinationManifest, 'objectKey' | 'sha256' | 'entryCount'>;
-}): Promise<SkillExportZipJobSpec> => {
-  let bucket = getCargoFilesBucketName();
-  let manifest = await openStoredManifestFile({
-    bucket,
-    key: d.manifest.objectKey,
-    sha256: d.manifest.sha256,
-    entryCount: d.manifest.entryCount
+type SkillExportManifestRef = Pick<
+  SkillDestinationManifest,
+  'objectKey' | 'sha256' | 'entryCount'
+>;
+
+export type PreparedSkillExportZipSpec =
+  { spec: SkillExportZipJobSpec } | { path: string; dispose: () => Promise<void> };
+
+let specChunkBytes = 64 * 1024;
+
+let openSkillExportManifest = async (manifest: SkillExportManifestRef) =>
+  await openStoredManifestFile({
+    bucket: getCargoFilesBucketName(),
+    key: manifest.objectKey,
+    sha256: manifest.sha256,
+    entryCount: manifest.entryCount
   });
 
-  let entries: SkillExportZipJobSpec['entries'] = [];
-  for await (let entry of manifest.entries) {
-    entries.push({
+async function* zipSpecEntries(manifest: SkillExportManifestRef) {
+  let bucket = getCargoFilesBucketName();
+  let opened = await openSkillExportManifest(manifest);
+
+  for await (let entry of opened.entries) {
+    let zipEntry: SkillExportZipJobSpec['entries'][number] = {
       path: entry.path,
       source: { bucket, key: entry.key },
       size: entry.size,
-      crc32: entry.crc32,
-      compression: 'auto'
-    });
+      crc32: entry.crc32
+    };
+    yield zipEntry;
+  }
+}
+
+async function* zipSpecJsonChunks(
+  header: Omit<SkillExportZipJobSpec, 'entries'>,
+  entries: AsyncIterable<SkillExportZipJobSpec['entries'][number]>
+) {
+  let chunk = `${JSON.stringify(header).slice(0, -1)},"entries":[`;
+  let separator = '';
+
+  for await (let entry of entries) {
+    chunk += separator + JSON.stringify(entry);
+    separator = ',';
+    if (chunk.length >= specChunkBytes) {
+      yield chunk;
+      chunk = '';
+    }
   }
 
-  return {
+  yield `${chunk}]}`;
+}
+
+// The object-storage client buffers the spec as one object (~230 bytes per entry), so large
+// specs are streamed from the manifest into a temporary file and sent from disk.
+export let prepareSkillExportZipSpec = async (d: {
+  skillExportId: string;
+  manifest: SkillExportManifestRef;
+}): Promise<PreparedSkillExportZipSpec> => {
+  let header: Omit<SkillExportZipJobSpec, 'entries'> = {
     destination: {
-      bucket,
+      bucket: getCargoFilesBucketName(),
       key: getSkillExportArchiveKey(d.skillExportId),
       contentType: 'application/zip'
     },
-    entries,
     maxArchiveBytes: env.skillSync.SKILL_EXPORT_MAX_ARCHIVE_BYTES
   };
+
+  if (d.manifest.entryCount <= spoolAboveManifestEntries) {
+    let entries: SkillExportZipJobSpec['entries'] = [];
+    for await (let entry of zipSpecEntries(d.manifest)) entries.push(entry);
+    return { spec: { ...header, entries } };
+  }
+
+  let directory = await mkdtemp(join(tmpdir(), 'skill-export-spec-'));
+  let path = join(directory, 'spec.json');
+  let dispose = () => rm(directory, { recursive: true, force: true });
+
+  try {
+    await pipeline(
+      Readable.from(zipSpecJsonChunks(header, zipSpecEntries(d.manifest))),
+      createWriteStream(path)
+    );
+    return { path, dispose };
+  } catch (error) {
+    await dispose();
+    throw error;
+  }
+};
+
+export let createSkillExportZipJob = async (
+  jobId: string,
+  prepared: PreparedSkillExportZipSpec,
+  options: { waitSeconds?: number } = {}
+): Promise<SkillExportZipJob> =>
+  'spec' in prepared
+    ? await getStorage().createZipJob(jobId, prepared.spec, options)
+    : await createZipJobFromSpecFile({ jobId, path: prepared.path, ...options });
+
+export let disposeSkillExportZipSpec = async (prepared: PreparedSkillExportZipSpec) => {
+  if ('dispose' in prepared) await prepared.dispose();
 };
 
 export let getSkillExportZipJobOutcome = (d: {
@@ -106,17 +183,29 @@ export let getSkillExportZipJobOutcome = (d: {
   return { type: 'fail', reason };
 };
 
+// Axios errors come from the storage client; TypeError (connection) and TimeoutError from the
+// native fetch that sends spooled specs.
+export let isZipJobConnectionError = (error: unknown) =>
+  (error as { isAxiosError?: boolean } | null)?.isAxiosError === true ||
+  error instanceof TypeError ||
+  (error instanceof Error && error.name === 'TimeoutError');
+
 export let getObjectStorageErrorStatus = (error: unknown) => {
   let status = (error as { statusCode?: unknown } | null)?.statusCode;
   return typeof status == 'number' ? status : undefined;
 };
 
 // The zip service names the missing object in its message but has no structured field for it.
-export let findMissingSkillExportSources = (d: {
+export let findMissingSkillExportSources = async (d: {
   message: string;
-  spec: Pick<SkillExportZipJobSpec, 'entries'>;
-}) => [
-  ...new Set(
-    d.spec.entries.map(entry => entry.source.key).filter(key => d.message.includes(key))
-  )
-];
+  manifest: SkillExportManifestRef;
+}) => {
+  let keys = new Set<string>();
+  let opened = await openSkillExportManifest(d.manifest);
+
+  for await (let entry of opened.entries) {
+    if (d.message.includes(entry.key)) keys.add(entry.key);
+  }
+
+  return [...keys];
+};

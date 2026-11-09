@@ -31,19 +31,21 @@ import { getStorage } from '@metorial/module-file';
 import { createHash } from 'node:crypto';
 import { forceSkillDestinationSync } from '../lib/destinationSync';
 import {
-  buildSkillExportZipSpec,
+  createSkillExportZipJob,
+  disposeSkillExportZipSpec,
   findMissingSkillExportSources,
   getObjectStorageErrorStatus,
   getSkillExportArchiveKey,
   getSkillExportZipJobId,
   getSkillExportZipJobOutcome,
   isSkillExportRecoveryJobId,
+  isZipJobConnectionError,
+  prepareSkillExportZipSpec,
   skillExportZipJobMaxAttempts,
   skillExportZipJobPollDelayMs,
   skillExportZipJobTimeoutMs,
   skillExportZipJobWaitSeconds,
-  type SkillExportZipJob,
-  type SkillExportZipJobSpec
+  type SkillExportZipJob
 } from '../lib/skillExportArchive';
 import { enqueueSkillExport, type SkillExportJobData } from '../queues/export';
 import { recoverMissingManifestSources } from '../queues/sync/manifest/recovery';
@@ -62,6 +64,10 @@ let exportFilePurpose = {
 
 let exportExpiryMs = 7 * 24 * 60 * 60 * 1000;
 let syncTimeoutMs = 30 * 60 * 1000;
+let syncWaitMs = 5000;
+let smallDestinationSyncWaitMs = 1000;
+let smallDestinationFastSyncWaits = 10;
+let smallDestinationMaxFiles = 1000;
 
 let fileInclude = {
   purpose: true,
@@ -558,6 +564,30 @@ class SkillExportServiceImpl {
     });
   }
 
+  private async enqueueSyncWait(d: {
+    skillExportId: string;
+    skillDestinationSyncId: string;
+    destinationOid: bigint;
+    syncWaits?: number;
+  }) {
+    let syncWaits = d.syncWaits ?? 0;
+    let isSmall =
+      syncWaits < smallDestinationFastSyncWaits &&
+      (await db.skillDestinationFile.count({
+        where: { destinationOid: d.destinationOid },
+        take: smallDestinationMaxFiles + 1
+      })) <= smallDestinationMaxFiles;
+
+    await enqueueSkillExport(
+      {
+        skillExportId: d.skillExportId,
+        skillDestinationSyncId: d.skillDestinationSyncId,
+        syncWaits: syncWaits + 1
+      },
+      { delay: isSmall ? smallDestinationSyncWaitMs : syncWaitMs }
+    );
+  }
+
   private async failManifestExport(d: { skillExport: SkillExportRecord; reason: string }) {
     console.warn(`Skill export ${d.skillExport.id} failed: ${d.reason}`);
 
@@ -610,10 +640,12 @@ class SkillExportServiceImpl {
       if (sync?.manifest) {
         manifest = sync.manifest;
       } else if (sync?.status === 'pending' || sync?.status === 'processing') {
-        await enqueueSkillExport(
-          { skillExportId: d.skillExport.id, skillDestinationSyncId: sync.id },
-          { delay: 5000 }
-        );
+        await this.enqueueSyncWait({
+          skillExportId: d.skillExport.id,
+          skillDestinationSyncId: sync.id,
+          destinationOid: d.destination.oid,
+          syncWaits: d.job.syncWaits
+        });
         return d.skillExport;
       } else if (sync?.status === 'canceled') {
         let newerSync = await db.skillDestinationSync.findFirst({
@@ -630,10 +662,12 @@ class SkillExportServiceImpl {
           });
         }
 
-        await enqueueSkillExport(
-          { skillExportId: d.skillExport.id, skillDestinationSyncId: newerSync.id },
-          { delay: 5000 }
-        );
+        await this.enqueueSyncWait({
+          skillExportId: d.skillExport.id,
+          skillDestinationSyncId: newerSync.id,
+          destinationOid: d.destination.oid,
+          syncWaits: d.job.syncWaits
+        });
         return d.skillExport;
       } else {
         return await this.failManifestExport({
@@ -666,10 +700,12 @@ class SkillExportServiceImpl {
           destination
         });
 
-        await enqueueSkillExport(
-          { skillExportId: d.skillExport.id, skillDestinationSyncId: sync.id },
-          { delay: 5000 }
-        );
+        await this.enqueueSyncWait({
+          skillExportId: d.skillExport.id,
+          skillDestinationSyncId: sync.id,
+          destinationOid: destination.oid,
+          syncWaits: d.job.syncWaits
+        });
         return d.skillExport;
       }
 
@@ -767,21 +803,23 @@ class SkillExportServiceImpl {
     d: ManifestExportContext,
     opts: { isResubmission?: boolean } = {}
   ): Promise<SkillExportRecord> {
-    let spec = await buildSkillExportZipSpec({
+    let spec = await prepareSkillExportZipSpec({
       skillExportId: d.skillExport.id,
       manifest: d.manifest
     });
 
     let job: SkillExportZipJob;
     try {
-      job = await getStorage().createZipJob(d.skillExport.zipJobId!, spec, {
+      job = await createSkillExportZipJob(d.skillExport.zipJobId!, spec, {
         waitSeconds: skillExportZipJobWaitSeconds
       });
     } catch (error) {
       return await this.handleZipJobRequestError(d, error);
+    } finally {
+      await disposeSkillExportZipSpec(spec);
     }
 
-    return await this.applyManifestExportZipJob(d, job, { ...opts, spec });
+    return await this.applyManifestExportZipJob(d, job, opts);
   }
 
   private async resubmitManifestExportZipJob(
@@ -825,9 +863,7 @@ class SkillExportServiceImpl {
   private async handleZipJobRequestError(d: ManifestExportContext, error: unknown) {
     let status = getObjectStorageErrorStatus(error);
     let isTransient =
-      status === undefined
-        ? (error as { isAxiosError?: boolean } | null)?.isAxiosError === true
-        : status === 429 || status >= 500;
+      status === undefined ? isZipJobConnectionError(error) : status === 429 || status >= 500;
 
     if (isTransient) return await this.enqueueManifestExportZipJobPoll(d);
 
@@ -839,7 +875,7 @@ class SkillExportServiceImpl {
   private async applyManifestExportZipJob(
     d: ManifestExportContext,
     job: SkillExportZipJob,
-    opts: { isResubmission?: boolean; spec?: SkillExportZipJobSpec } = {}
+    opts: { isResubmission?: boolean } = {}
   ): Promise<SkillExportRecord> {
     let outcome = getSkillExportZipJobOutcome({
       job,
@@ -860,8 +896,7 @@ class SkillExportServiceImpl {
 
     if (outcome.type === 'recover') {
       return await this.recoverManifestExportSources(d, {
-        message: job.error?.message ?? '',
-        spec: opts.spec
+        message: job.error?.message ?? ''
       });
     }
 
@@ -873,15 +908,12 @@ class SkillExportServiceImpl {
 
   private async recoverManifestExportSources(
     d: ManifestExportContext,
-    failure: { message: string; spec?: SkillExportZipJobSpec }
+    failure: { message: string }
   ) {
-    let spec =
-      failure.spec ??
-      (await buildSkillExportZipSpec({
-        skillExportId: d.skillExport.id,
-        manifest: d.manifest
-      }));
-    let sourceKeys = findMissingSkillExportSources({ message: failure.message, spec });
+    let sourceKeys = await findMissingSkillExportSources({
+      message: failure.message,
+      manifest: d.manifest
+    });
     let manifestSync = await db.skillDestinationSync.findFirst({
       where: { manifestOid: d.manifest.oid },
       orderBy: { oid: 'desc' },
@@ -914,10 +946,11 @@ class SkillExportServiceImpl {
       }
     });
 
-    await enqueueSkillExport(
-      { skillExportId: d.skillExport.id, skillDestinationSyncId: sync.id },
-      { delay: 5000 }
-    );
+    await this.enqueueSyncWait({
+      skillExportId: d.skillExport.id,
+      skillDestinationSyncId: sync.id,
+      destinationOid: d.manifest.destinationOid
+    });
     return d.skillExport;
   }
 
@@ -1115,7 +1148,12 @@ class SkillExportServiceImpl {
       });
 
       if (sync?.status === 'pending' || sync?.status === 'processing') {
-        await enqueueSkillExport(d, { delay: 5000 });
+        await this.enqueueSyncWait({
+          skillExportId: skillExport.id,
+          skillDestinationSyncId: sync.id,
+          destinationOid: sync.destinationOid,
+          syncWaits: d.syncWaits
+        });
         return skillExport;
       }
 
@@ -1143,13 +1181,12 @@ class SkillExportServiceImpl {
         destination
       });
 
-      await enqueueSkillExport(
-        {
-          skillExportId: skillExport.id,
-          skillDestinationSyncId: sync.id
-        },
-        { delay: 5000 }
-      );
+      await this.enqueueSyncWait({
+        skillExportId: skillExport.id,
+        skillDestinationSyncId: sync.id,
+        destinationOid: destination.oid,
+        syncWaits: d.syncWaits
+      });
       return skillExport;
     }
 

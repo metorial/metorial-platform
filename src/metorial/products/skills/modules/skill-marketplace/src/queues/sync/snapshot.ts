@@ -9,6 +9,7 @@ import {
 } from '../../lib/manifestFile/format';
 import { getManifestObjectKey, uploadManifestFile } from '../../lib/manifestFile/storage';
 import {
+  spoolAboveManifestEntries,
   spoolSortedManifestFile,
   writeSortedManifestFile
 } from '../../lib/manifestFile/writer';
@@ -22,7 +23,6 @@ import { syncPropagateStartQueue } from './propagate';
 
 let rowPageSize = 1000;
 let listedPathCount = 10;
-let spoolManifestAboveEntries = 10_000;
 
 type SnapshotRow = {
   path: string;
@@ -222,7 +222,7 @@ export let syncSnapshotQueueProcessor = syncSnapshotQueue.process(
         entries: readSkillDestinationSnapshotRows(destination.oid)
       };
       written =
-        entryCount > spoolManifestAboveEntries
+        entryCount > spoolAboveManifestEntries
           ? await spoolSortedManifestFile(input)
           : await writeSortedManifestFile(input);
     } catch (error) {

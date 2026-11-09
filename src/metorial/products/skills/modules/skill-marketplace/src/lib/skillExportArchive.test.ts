@@ -1,12 +1,19 @@
 import { createHash } from 'node:crypto';
+import { existsSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { getObjectStream } = vi.hoisted(() => ({ getObjectStream: vi.fn() }));
+let { getObjectStream, createZipJob, createZipJobFromSpecFile } = vi.hoisted(() => ({
+  getObjectStream: vi.fn(),
+  createZipJob: vi.fn(),
+  createZipJobFromSpecFile: vi.fn()
+}));
 
 vi.mock('@metorial/module-file', () => ({
   getCargoFilesBucketName: () => 'cargo-files',
   getObjectStream,
-  getStorage: vi.fn()
+  getStorage: () => ({ createZipJob }),
+  createZipJobFromSpecFile
 }));
 vi.mock('../env', () => ({
   env: { skillSync: { SKILL_EXPORT_MAX_ARCHIVE_BYTES: 20 * 1024 ** 3 } }
@@ -15,12 +22,15 @@ vi.mock('../env', () => ({
 import type { ManifestEntry } from './manifestFile/format';
 import { writeManifestFile } from './manifestFile/writer';
 import {
-  buildSkillExportZipSpec,
+  createSkillExportZipJob,
+  disposeSkillExportZipSpec,
   findMissingSkillExportSources,
   getSkillExportZipJobId,
   getSkillExportZipJobOutcome,
   isSkillExportRecoveryJobId,
-  type SkillExportZipJob
+  prepareSkillExportZipSpec,
+  type SkillExportZipJob,
+  type SkillExportZipJobSpec
 } from './skillExportArchive';
 
 let entry = (path: string, size: number, crc32: number): ManifestEntry => {
@@ -43,7 +53,7 @@ let storeManifest = async (entries: ManifestEntry[]) => {
     scope: { dirs: ['plugins'], files: ['.claude-plugin/marketplace.json'], globs: [] },
     entries
   });
-  getObjectStream.mockResolvedValue({ stream: written.body });
+  getObjectStream.mockImplementation(async () => ({ stream: written.body }));
 
   return {
     objectKey: `skill-sync/manifests/sdst_1/${written.sha256}.ndjson`,
@@ -78,70 +88,144 @@ let zipJob = (overrides: Partial<SkillExportZipJob>): SkillExportZipJob => ({
 let failedJob = (code: string, retryable: boolean, message = code) =>
   zipJob({ state: 'failed', error: { code: code as any, message, retryable } });
 
-describe('buildSkillExportZipSpec', () => {
+let largeManifestEntries = () =>
+  Array.from({ length: 10_001 }, (_, i) =>
+    entry(`plugins/p${String(i).padStart(5, '0')}/SKILL.md`, i, i)
+  );
+
+let destination = {
+  bucket: 'cargo-files',
+  key: 'skill-exports/ske_1.zip',
+  contentType: 'application/zip'
+};
+
+describe('prepareSkillExportZipSpec', () => {
   beforeEach(() => {
     vi.resetAllMocks();
   });
 
-  it('streams the manifest into entries with the size and crc32 passed through', async () => {
+  it('streams a small manifest into an in-memory spec', async () => {
     let manifest = await storeManifest([
       entry('plugins/acme/skills/qa/SKILL.md', 1834, 4_000_000_000),
       entry('.claude-plugin/marketplace.json', 0, 0),
       entry('plugins/acme/assets/logo.png', 2 * 1024 ** 3, 2_771_534_123)
     ]);
 
-    let spec = await buildSkillExportZipSpec({ skillExportId: 'ske_1', manifest });
+    let prepared = await prepareSkillExportZipSpec({ skillExportId: 'ske_1', manifest });
 
     expect(getObjectStream).toHaveBeenCalledWith('cargo-files', manifest.objectKey);
-    expect(spec.destination).toEqual({
-      bucket: 'cargo-files',
-      key: 'skill-exports/ske_1.zip',
-      contentType: 'application/zip'
-    });
-    expect(spec.maxArchiveBytes).toBe(20 * 1024 ** 3);
-    expect(spec.entries).toEqual([
-      {
-        path: '.claude-plugin/marketplace.json',
-        source: {
-          bucket: 'cargo-files',
-          key: entry('.claude-plugin/marketplace.json', 0, 0).key
-        },
-        size: 0,
-        crc32: 0,
-        compression: 'auto'
-      },
-      {
-        path: 'plugins/acme/assets/logo.png',
-        source: {
-          bucket: 'cargo-files',
-          key: entry('plugins/acme/assets/logo.png', 0, 0).key
-        },
-        size: 2 * 1024 ** 3,
-        crc32: 2_771_534_123,
-        compression: 'auto'
-      },
-      {
-        path: 'plugins/acme/skills/qa/SKILL.md',
-        source: {
-          bucket: 'cargo-files',
-          key: entry('plugins/acme/skills/qa/SKILL.md', 0, 0).key
-        },
-        size: 1834,
-        crc32: 4_000_000_000,
-        compression: 'auto'
+    expect(prepared).toEqual({
+      spec: {
+        destination,
+        maxArchiveBytes: 20 * 1024 ** 3,
+        entries: [
+          {
+            path: '.claude-plugin/marketplace.json',
+            source: {
+              bucket: 'cargo-files',
+              key: entry('.claude-plugin/marketplace.json', 0, 0).key
+            },
+            size: 0,
+            crc32: 0
+          },
+          {
+            path: 'plugins/acme/assets/logo.png',
+            source: {
+              bucket: 'cargo-files',
+              key: entry('plugins/acme/assets/logo.png', 0, 0).key
+            },
+            size: 2 * 1024 ** 3,
+            crc32: 2_771_534_123
+          },
+          {
+            path: 'plugins/acme/skills/qa/SKILL.md',
+            source: {
+              bucket: 'cargo-files',
+              key: entry('plugins/acme/skills/qa/SKILL.md', 0, 0).key
+            },
+            size: 1834,
+            crc32: 4_000_000_000
+          }
+        ]
       }
-    ]);
+    });
+  });
+
+  it('spools a large manifest into a JSON spec file', async () => {
+    let entries = largeManifestEntries();
+    let manifest = await storeManifest(entries);
+
+    let prepared = await prepareSkillExportZipSpec({ skillExportId: 'ske_1', manifest });
+    if (!('path' in prepared)) throw new Error('expected a spooled spec');
+
+    let spec: SkillExportZipJobSpec = JSON.parse(await readFile(prepared.path, 'utf8'));
+    expect(spec.destination).toEqual(destination);
+    expect(spec.maxArchiveBytes).toBe(20 * 1024 ** 3);
+    expect(spec.entries).toHaveLength(10_001);
+    expect(spec.entries[10_000]).toEqual({
+      path: entries[10_000]!.path,
+      source: { bucket: 'cargo-files', key: entries[10_000]!.key },
+      size: 10_000,
+      crc32: 10_000
+    });
+
+    await disposeSkillExportZipSpec(prepared);
+    expect(existsSync(prepared.path)).toBe(false);
   });
 
   it('refuses a manifest whose bytes do not match its sha256', async () => {
     let manifest = await storeManifest([entry('plugins/a/SKILL.md', 1, 1)]);
 
     await expect(
-      buildSkillExportZipSpec({
+      prepareSkillExportZipSpec({
         skillExportId: 'ske_1',
         manifest: { ...manifest, sha256: '0'.repeat(64) }
       })
     ).rejects.toMatchObject({ code: 'manifest_invalid' });
+  });
+
+  it('refuses a large manifest whose bytes do not match its sha256', async () => {
+    let manifest = await storeManifest(largeManifestEntries());
+
+    await expect(
+      prepareSkillExportZipSpec({
+        skillExportId: 'ske_1',
+        manifest: { ...manifest, sha256: '0'.repeat(64) }
+      })
+    ).rejects.toMatchObject({ code: 'manifest_invalid' });
+  });
+});
+
+describe('createSkillExportZipJob', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('sends an in-memory spec through the storage client', async () => {
+    let spec = { destination, entries: [] };
+    createZipJob.mockResolvedValue(zipJob({}));
+
+    await createSkillExportZipJob('skill-export-ske_1', { spec }, { waitSeconds: 20 });
+
+    expect(createZipJob).toHaveBeenCalledWith('skill-export-ske_1', spec, { waitSeconds: 20 });
+    expect(createZipJobFromSpecFile).not.toHaveBeenCalled();
+  });
+
+  it('sends a spooled spec from its file', async () => {
+    createZipJobFromSpecFile.mockResolvedValue(zipJob({}));
+
+    await createSkillExportZipJob(
+      'skill-export-ske_1',
+      { path: '/tmp/spec.json', dispose: async () => {} },
+      { waitSeconds: 20 }
+    );
+
+    expect(createZipJobFromSpecFile).toHaveBeenCalledWith({
+      jobId: 'skill-export-ske_1',
+      path: '/tmp/spec.json',
+      waitSeconds: 20
+    });
+    expect(createZipJob).not.toHaveBeenCalled();
   });
 });
 
@@ -245,20 +329,19 @@ describe('missing source recovery', () => {
     vi.resetAllMocks();
   });
 
-  it('finds the keys named in the zip error', () => {
-    let spec = {
-      entries: [
-        { path: 'a', source: { bucket: 'cargo-files', key: 'skill-sync/blobs/sha256/aa' } },
-        { path: 'b', source: { bucket: 'cargo-files', key: 'sha256/bb' } },
-        { path: 'c', source: { bucket: 'cargo-files', key: 'sha256/bb' } }
-      ]
-    };
+  it('finds the manifest keys named in the zip error', async () => {
+    let missing = entry('plugins/b/SKILL.md', 2, 2);
+    let manifest = await storeManifest([
+      entry('plugins/a/SKILL.md', 1, 1),
+      missing,
+      entry('plugins/c/SKILL.md', 3, 3)
+    ]);
 
     expect(
-      findMissingSkillExportSources({
-        message: 'sha256/bb was deleted while it was being archived',
-        spec
+      await findMissingSkillExportSources({
+        message: `${missing.key} was deleted while it was being archived`,
+        manifest
       })
-    ).toEqual(['sha256/bb']);
+    ).toEqual([missing.key]);
   });
 });

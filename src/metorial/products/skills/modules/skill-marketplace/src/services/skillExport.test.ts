@@ -11,6 +11,7 @@ let mocks = vi.hoisted(() => ({
     skillExportRef: { update: vi.fn() },
     skillDestination: { findUnique: vi.fn(), findUniqueOrThrow: vi.fn() },
     skillDestinationSync: { findFirst: vi.fn() },
+    skillDestinationFile: { count: vi.fn() },
     skillDestinationManifest: { findUnique: vi.fn() },
     skillMarketplace: { findFirst: vi.fn() }
   },
@@ -30,7 +31,9 @@ let mocks = vi.hoisted(() => ({
   filePurposeService: { upsertFilePurpose: vi.fn() },
   forceSkillDestinationSync: vi.fn(),
   enqueueSkillExport: vi.fn(),
-  buildSkillExportZipSpec: vi.fn(),
+  prepareSkillExportZipSpec: vi.fn(),
+  findMissingSkillExportSources: vi.fn(),
+  createZipJobFromSpecFile: vi.fn(),
   recoverMissingManifestSources: vi.fn(),
   deleteCargoObjectIfUnreferenced: vi.fn()
 }));
@@ -46,6 +49,7 @@ vi.mock('@metorial/module-file', () => ({
   fileReferenceService: mocks.fileReferenceService,
   filePurposeService: mocks.filePurposeService,
   getStorage: () => mocks.storage,
+  createZipJobFromSpecFile: mocks.createZipJobFromSpecFile,
   getCargoFilesBucketName: () => 'cargo-files',
   deleteCargoObjectIfUnreferenced: mocks.deleteCargoObjectIfUnreferenced,
   isObjectMissingError: (error: any) => error?.statusCode === 404
@@ -73,7 +77,8 @@ vi.mock('../queues/export', () => ({ enqueueSkillExport: mocks.enqueueSkillExpor
 vi.mock('./managedSkillPlugin', () => ({ managedSkillPluginService: {} }));
 vi.mock('../lib/skillExportArchive', async importOriginal => ({
   ...(await importOriginal<typeof import('../lib/skillExportArchive')>()),
-  buildSkillExportZipSpec: mocks.buildSkillExportZipSpec
+  prepareSkillExportZipSpec: mocks.prepareSkillExportZipSpec,
+  findMissingSkillExportSources: mocks.findMissingSkillExportSources
 }));
 vi.mock('../queues/sync/manifest/recovery', () => ({
   recoverMissingManifestSources: mocks.recoverMissingManifestSources
@@ -208,7 +213,11 @@ describe('processSkillExport', () => {
       destination: state.destination
     }));
 
-    mocks.buildSkillExportZipSpec.mockResolvedValue(spec);
+    mocks.prepareSkillExportZipSpec.mockResolvedValue({ spec });
+    mocks.findMissingSkillExportSources.mockImplementation(async ({ message }: any) =>
+      spec.entries.map(entry => entry.source.key).filter(key => message.includes(key))
+    );
+    db.skillDestinationFile.count.mockResolvedValue(5000);
     mocks.filePurposeService.upsertFilePurpose.mockResolvedValue({ slug: 'skill_export' });
     mocks.fileService.completePendingUploadForStream.mockResolvedValue({ oid: 40n });
     mocks.fileLinkService.createFileLink.mockResolvedValue({ oid: 41n });
@@ -255,7 +264,7 @@ describe('processSkillExport', () => {
 
       await run();
 
-      expect(mocks.buildSkillExportZipSpec).toHaveBeenCalledWith({
+      expect(mocks.prepareSkillExportZipSpec).toHaveBeenCalledWith({
         skillExportId: 'ske_1',
         manifest: expect.objectContaining({ oid: manifest.oid })
       });
@@ -302,7 +311,7 @@ describe('processSkillExport', () => {
         await run();
 
         expect(mocks.enqueueSkillExport).toHaveBeenCalledWith(
-          { skillExportId: 'ske_1', skillDestinationSyncId: 'skds_forced' },
+          { skillExportId: 'ske_1', skillDestinationSyncId: 'skds_forced', syncWaits: 1 },
           { delay: 5000 }
         );
       }
@@ -321,7 +330,7 @@ describe('processSkillExport', () => {
       await run({ skillDestinationSyncId: 'skds_1' });
 
       expect(mocks.enqueueSkillExport).toHaveBeenCalledWith(
-        { skillExportId: 'ske_1', skillDestinationSyncId: 'skds_1' },
+        { skillExportId: 'ske_1', skillDestinationSyncId: 'skds_1', syncWaits: 1 },
         { delay: 5000 }
       );
       expect(storage.createZipJob).not.toHaveBeenCalled();
@@ -336,7 +345,7 @@ describe('processSkillExport', () => {
 
       await run({ skillDestinationSyncId: 'skds_1' });
 
-      expect(mocks.buildSkillExportZipSpec).toHaveBeenCalledWith(
+      expect(mocks.prepareSkillExportZipSpec).toHaveBeenCalledWith(
         expect.objectContaining({ manifest: expect.objectContaining({ oid: 8n }) })
       );
       expect(state.skillExport.status).toBe('completed');
@@ -361,10 +370,104 @@ describe('processSkillExport', () => {
         orderBy: { oid: 'desc' }
       });
       expect(mocks.enqueueSkillExport).toHaveBeenCalledWith(
-        { skillExportId: 'ske_1', skillDestinationSyncId: 'skds_2' },
+        { skillExportId: 'ske_1', skillDestinationSyncId: 'skds_2', syncWaits: 1 },
         { delay: 5000 }
       );
       expect(state.skillExport.status).toBe('pending');
+    });
+
+    it('re-checks a small destination every second for the first ten waits', async () => {
+      db.skillDestinationFile.count.mockResolvedValue(1000);
+      db.skillDestinationSync.findFirst.mockResolvedValue({
+        id: 'skds_1',
+        oid: 1n,
+        status: 'processing',
+        manifest: null
+      });
+
+      await run({ skillDestinationSyncId: 'skds_1' });
+      await run({ skillDestinationSyncId: 'skds_1', syncWaits: 9 });
+      await run({ skillDestinationSyncId: 'skds_1', syncWaits: 10 });
+
+      expect(db.skillDestinationFile.count).toHaveBeenCalledWith({
+        where: { destinationOid: 1n },
+        take: 1001
+      });
+      expect(mocks.enqueueSkillExport.mock.calls).toEqual([
+        [
+          { skillExportId: 'ske_1', skillDestinationSyncId: 'skds_1', syncWaits: 1 },
+          { delay: 1000 }
+        ],
+        [
+          { skillExportId: 'ske_1', skillDestinationSyncId: 'skds_1', syncWaits: 10 },
+          { delay: 1000 }
+        ],
+        [
+          { skillExportId: 'ske_1', skillDestinationSyncId: 'skds_1', syncWaits: 11 },
+          { delay: 5000 }
+        ]
+      ]);
+    });
+
+    it('re-checks a destination with more than 1,000 files every five seconds', async () => {
+      db.skillDestinationFile.count.mockResolvedValue(1001);
+      db.skillDestinationSync.findFirst.mockResolvedValue({
+        id: 'skds_1',
+        oid: 1n,
+        status: 'pending',
+        manifest: null
+      });
+
+      await run({ skillDestinationSyncId: 'skds_1' });
+
+      expect(mocks.enqueueSkillExport).toHaveBeenCalledWith(
+        { skillExportId: 'ske_1', skillDestinationSyncId: 'skds_1', syncWaits: 1 },
+        { delay: 5000 }
+      );
+    });
+
+    it('sends a spooled spec from its file and disposes it after the request', async () => {
+      let dispose = vi.fn(async () => {});
+      mocks.prepareSkillExportZipSpec.mockResolvedValue({ path: '/tmp/spec.json', dispose });
+      mocks.createZipJobFromSpecFile.mockResolvedValue(completedJob());
+
+      await run();
+
+      expect(mocks.createZipJobFromSpecFile).toHaveBeenCalledWith({
+        jobId: 'skill-export-ske_1',
+        path: '/tmp/spec.json',
+        waitSeconds: 20
+      });
+      expect(storage.createZipJob).not.toHaveBeenCalled();
+      expect(dispose).toHaveBeenCalledTimes(1);
+      expect(state.skillExport.status).toBe('completed');
+    });
+
+    it('disposes a spooled spec when the request fails', async () => {
+      let dispose = vi.fn(async () => {});
+      mocks.prepareSkillExportZipSpec.mockResolvedValue({ path: '/tmp/spec.json', dispose });
+      mocks.createZipJobFromSpecFile.mockRejectedValue(
+        Object.assign(new Error('conflict'), { statusCode: 409 })
+      );
+
+      await expect(run()).rejects.toThrow('conflict');
+      expect(dispose).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps polling when the spooled spec request cannot reach the zip service', async () => {
+      mocks.prepareSkillExportZipSpec.mockResolvedValue({
+        path: '/tmp/spec.json',
+        dispose: async () => {}
+      });
+      mocks.createZipJobFromSpecFile.mockRejectedValue(new TypeError('fetch failed'));
+
+      await run();
+
+      expect(state.skillExport.status).toBe('pending');
+      expect(mocks.enqueueSkillExport).toHaveBeenCalledWith(
+        expect.objectContaining({ manifestId: 'skdm_1' }),
+        { delay: 10_000 }
+      );
     });
 
     it('fails when the sync ended without content', async () => {
@@ -529,6 +632,10 @@ describe('processSkillExport', () => {
         orderBy: { oid: 'desc' },
         select: { oid: true }
       });
+      expect(mocks.findMissingSkillExportSources).toHaveBeenCalledWith({
+        message: 'sha256/aa was deleted while it was being archived',
+        manifest: expect.objectContaining({ oid: manifest.oid })
+      });
       expect(mocks.recoverMissingManifestSources).toHaveBeenCalledWith({
         destinationOid: 1n,
         afterSyncOid: 6n,
@@ -540,7 +647,7 @@ describe('processSkillExport', () => {
         zipJobAttempts: 0
       });
       expect(mocks.enqueueSkillExport).toHaveBeenCalledWith(
-        { skillExportId: 'ske_1', skillDestinationSyncId: 'skds_recovery' },
+        { skillExportId: 'ske_1', skillDestinationSyncId: 'skds_recovery', syncWaits: 1 },
         { delay: 5000 }
       );
 
@@ -573,7 +680,7 @@ describe('processSkillExport', () => {
         expect.objectContaining({ keys: undefined })
       );
       expect(mocks.enqueueSkillExport).toHaveBeenCalledWith(
-        { skillExportId: 'ske_1', skillDestinationSyncId: 'skds_other' },
+        { skillExportId: 'ske_1', skillDestinationSyncId: 'skds_other', syncWaits: 1 },
         { delay: 5000 }
       );
       expect(state.skillExport.status).toBe('pending');

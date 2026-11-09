@@ -5,9 +5,11 @@ import {
   PublicUrlPurpose
 } from 'object-storage-client';
 import { env } from './env';
-import { readObjectStream, writeObjectFile } from './lib/objectStream';
+import { createZipJobFromFile, readObjectStream, writeObjectFile } from './lib/objectStream';
 
-export let storage = new ObjectStorageClient(env.storage.OBJECT_STORAGE_URL, 1000 * 60 * 10);
+let storageTimeoutMs = 1000 * 60 * 10;
+
+export let storage = new ObjectStorageClient(env.storage.OBJECT_STORAGE_URL, storageTimeoutMs);
 
 export let getCargoFilesBucketName = () => env.storage.FILES_BUCKET_NAME;
 export let getStorage = () => storage;
@@ -21,6 +23,17 @@ export let putObjectFile = async (d: {
   path: string;
   contentType?: string;
 }) => await writeObjectFile({ baseUrl: env.storage.OBJECT_STORAGE_URL, ...d });
+
+export let createZipJobFromSpecFile = async (d: {
+  jobId: string;
+  path: string;
+  waitSeconds?: number;
+}) =>
+  await createZipJobFromFile({
+    baseUrl: env.storage.OBJECT_STORAGE_URL,
+    timeoutMs: storageTimeoutMs,
+    ...d
+  });
 
 export let presignObjectDownload = async (d: { key: string; expiresInSecs: number }) => {
   try {

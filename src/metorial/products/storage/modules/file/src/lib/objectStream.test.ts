@@ -4,7 +4,12 @@ import { join } from 'node:path';
 import { ObjectStorageError } from 'object-storage-client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { objectStreamUrl, readObjectStream, writeObjectFile } from './objectStream';
+import {
+  createZipJobFromFile,
+  objectStreamUrl,
+  readObjectStream,
+  writeObjectFile
+} from './objectStream';
 
 let streamOf = (chunks: Uint8Array[], onPull?: () => void) => {
   let index = 0;
@@ -163,5 +168,95 @@ describe('writeObjectFile', () => {
 
     expect(error).toBeInstanceOf(ObjectStorageError);
     expect(error.statusCode).toBe(413);
+  });
+});
+
+describe('createZipJobFromFile', () => {
+  let directory: string;
+  let path: string;
+  let spec = '{"destination":{"bucket":"files","key":"a.zip"},"entries":[]}';
+
+  beforeEach(async () => {
+    directory = await mkdtemp(join(tmpdir(), 'zip-spec-test-'));
+    path = join(directory, 'spec.json');
+    await writeFile(path, spec);
+  });
+
+  afterEach(async () => {
+    await rm(directory, { recursive: true, force: true });
+  });
+
+  it('puts the spec file as JSON with the wait parameter and returns the job', async () => {
+    let request: { url: string; init: RequestInit } | undefined;
+
+    let job = await createZipJobFromFile({
+      baseUrl: 'http://storage/',
+      jobId: 'skill-export-ske_1',
+      path,
+      waitSeconds: 20,
+      timeoutMs: 600_000,
+      fetchImpl: async (input, init) => {
+        request = { url: String(input), init: init! };
+        return Response.json({ id: 'skill-export-ske_1', state: 'running' });
+      }
+    });
+
+    expect(job).toEqual({ id: 'skill-export-ske_1', state: 'running' });
+    expect(request!.url).toBe('http://storage/zip-jobs/skill-export-ske_1?wait=20');
+    expect(request!.init.method).toBe('PUT');
+    expect(request!.init.headers).toEqual({ 'content-type': 'application/json' });
+    expect(request!.init.signal).toBeInstanceOf(AbortSignal);
+    expect(request!.init.body).toBeInstanceOf(Blob);
+    expect(await (request!.init.body as Blob).text()).toBe(spec);
+  });
+
+  it('leaves out the wait parameter when none is given', async () => {
+    let url: string | undefined;
+
+    await createZipJobFromFile({
+      baseUrl: 'http://storage',
+      jobId: 'skill-export-ske_1',
+      path,
+      timeoutMs: 600_000,
+      fetchImpl: async input => {
+        url = String(input);
+        return Response.json({});
+      }
+    });
+
+    expect(url).toBe('http://storage/zip-jobs/skill-export-ske_1');
+  });
+
+  it('surfaces a refused spec as a storage error with its code and retry delay', async () => {
+    let error = await createZipJobFromFile({
+      baseUrl: 'http://storage',
+      jobId: 'skill-export-ske_1',
+      path,
+      timeoutMs: 600_000,
+      fetchImpl: async () =>
+        Response.json(
+          { code: 'spec_conflict', message: 'different spec' },
+          { status: 409, headers: { 'retry-after': '3' } }
+        )
+    }).catch(error => error);
+
+    expect(error).toBeInstanceOf(ObjectStorageError);
+    expect(error).toMatchObject({
+      statusCode: 409,
+      code: 'spec_conflict',
+      retryAfterSeconds: 3
+    });
+  });
+
+  it('surfaces a non-JSON error body without a code', async () => {
+    let error = await createZipJobFromFile({
+      baseUrl: 'http://storage',
+      jobId: 'skill-export-ske_1',
+      path,
+      timeoutMs: 600_000,
+      fetchImpl: async () => new Response('bad gateway', { status: 502 })
+    }).catch(error => error);
+
+    expect(error).toMatchObject({ statusCode: 502, message: 'bad gateway', code: undefined });
   });
 });
