@@ -670,6 +670,7 @@ export type DashboardInstanceSkillsListQuery = {
   skillGroupId?: string | string[] | undefined;
   integrationId?: string | string[] | undefined;
   providerId?: string | string[] | undefined;
+  ownedByMe?: boolean | undefined;
   createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
   updatedAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
@@ -686,6 +687,7 @@ export let mapDashboardInstanceSkillsListQuery =
             'skill_group_id',
             'integration_id',
             'provider_id',
+            'owned_by_me',
             ['created_at', 1, 5],
             ['updated_at', 1, 5]
           ]

@@ -1,9 +1,14 @@
-import { createMapper } from '@metorial/util-resource-mapper/compact';
+import {
+  createMapper,
+  mapObject
+} from '@metorial/util-resource-mapper/compact';
 
 export type DashboardInstanceSkillsContentPreviewsListOutput = {
   items: {
     object: 'skill.content_preview';
-    skillId: string;
+    type: 'skill' | 'skill_template';
+    skillId: string | null;
+    skillTemplateId: string | null;
     content: string | null;
   }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
@@ -11,14 +16,16 @@ export type DashboardInstanceSkillsContentPreviewsListOutput = {
 
 export let mapDashboardInstanceSkillsContentPreviewsListOutput =
   /* @__PURE__ */ createMapper<DashboardInstanceSkillsContentPreviewsListOutput>(
-    [7, [1, ['skill_id']]]
+    [7, [1, ['skill_id', 'skill_template_id']]]
   );
 
 export type DashboardInstanceSkillsContentPreviewsListQuery = {
-  id: string | string[];
+  skillId?: string | string[] | undefined;
+  skillTemplateId?: string | string[] | undefined;
 };
 
 export let mapDashboardInstanceSkillsContentPreviewsListQuery =
-  /* @__PURE__ */ createMapper<DashboardInstanceSkillsContentPreviewsListQuery>(
-    0
-  );
+  /* @__PURE__ */ mapObject<DashboardInstanceSkillsContentPreviewsListQuery>([
+    'skill_id',
+    'skill_template_id'
+  ]);

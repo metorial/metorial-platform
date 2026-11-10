@@ -12,7 +12,7 @@ import {
 
 /**
  * @name Skill Content Previews controller
- * @description Read the beginning of the SKILL.md of many skills at once.
+ * @description Read the beginning of the SKILL.md of many skills and skill templates at once.
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -39,7 +39,7 @@ export class MetorialSkillsContentPreviewsEndpoint {
 
   /**
    * @name List skill content previews
-   * @description Returns the beginning of the SKILL.md file of up to 50 skills in a single request.
+   * @description Returns the beginning of the SKILL.md file of up to 50 skills and skill templates in a single request.
    *
    * @param `query` - DashboardInstanceSkillsContentPreviewsListQuery
    * @param `opts` - { headers?: Record<string, string> }
