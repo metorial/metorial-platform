@@ -33,6 +33,13 @@ export type UsageAuthEventRow = {
   provider?: { id: string } | null;
 };
 
+export type UsageProtoGuardWarningRow = {
+  severity: string;
+  occurredAt: Date;
+  count: number;
+  provider?: { id: string } | null;
+};
+
 export type UsageAuthErrorRow = {
   type: string;
   createdAt: Date;
@@ -192,4 +199,16 @@ export let buildAuthErrorUsageEvent = (
   ts: error.createdAt,
   isError: true,
   dims: { providerId: error.provider?.id ?? null, errorType: error.type }
+});
+
+export let buildProtoGuardWarningUsageEvent = (
+  warning: UsageProtoGuardWarningRow,
+  ctx: UsageEventContext
+): UsageEvent => ({
+  ...base(ctx),
+  kind: 'protoguard_warning',
+  ts: warning.occurredAt,
+  count: warning.count,
+  isError: true,
+  dims: { providerId: warning.provider?.id ?? null, errorType: warning.severity }
 });

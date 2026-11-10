@@ -52,6 +52,7 @@
     "@metorial-subspace/module-identity": "^1.0.0",
     "@metorial-subspace/module-integration": "^1.0.0",
     "@metorial-subspace/module-monitor": "^1.0.0",
+    "@metorial-subspace/module-provider-issue": "^1.0.0",
     "@metorial-subspace/module-provider-internal": "^1.0.0",
     "@metorial-subspace/module-security-review": "^1.0.0",
     "@metorial-subspace/module-session": "^1.0.0",

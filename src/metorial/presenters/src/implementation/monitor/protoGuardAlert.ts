@@ -47,6 +47,7 @@ export let v1ProtoGuardAlertPresenter = Presenter.create(protoGuardAlertType)
     session_message_id: presentNullableId(alert.message),
     session_connection_id: presentNullableId(alert.connection),
     provider_run_id: presentNullableId(alert.providerRun),
+    issue_id: presentNullableId(alert.issue),
     filters: alert.instances.map(instance => ({
       object: 'protoguard.alert_filter' as const,
       id: instance.id,
@@ -76,6 +77,13 @@ export let v1ProtoGuardAlertPresenter = Presenter.create(protoGuardAlertType)
       session_message_id: v.nullable(v.string()),
       session_connection_id: v.nullable(v.string()),
       provider_run_id: v.nullable(v.string()),
+      issue_id: v.nullable(
+        v.string({
+          name: 'issue_id',
+          description: 'The provider issue this occurrence is aggregated into',
+          examples: ['pis_9kLmNpQrStUvWxYz']
+        })
+      ),
       filters: v.array(protoGuardAlertFilterSchema),
       occurrence_count: v.number({
         name: 'occurrence_count',

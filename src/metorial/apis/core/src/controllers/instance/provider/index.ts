@@ -3,6 +3,7 @@ export * from './providerAuthMethod';
 export * from './providerCategory';
 export * from './providerCollection';
 export * from './providerGroup';
+export * from './providerIssue';
 export * from './providerListing';
 export * from './providerPublisher';
 export * from './providerSecurityReview';

@@ -1057,6 +1057,7 @@ type RawAuthConfigError = SubspacePrisma.ProviderAuthConfigErrorGetPayload<{
     authCredentials: true;
     oauthSetup: true;
     provider: true;
+    issue: true;
   };
 }>;
 
@@ -2958,6 +2959,7 @@ export let protoGuardAlertType = PresentableType.create<{
       message: true;
       connection: true;
       providerRun: true;
+      issue: true;
       instances: {
         include: { filter: true };
       };
@@ -3420,6 +3422,7 @@ type RawSessionError = SubspacePrisma.SessionErrorGetPayload<{
     group: true;
     providerRun: true;
     connection: true;
+    issue: true;
   };
 }>;
 
@@ -3544,6 +3547,16 @@ export let sessionErrorType = PresentableType.create<{
 export let sessionErrorGroupType = PresentableType.create<{
   sessionErrorGroup: RawSessionErrorGroup;
 }>()('sessionErrorGroup');
+
+export let providerIssueType = PresentableType.create<{
+  providerIssue: SubspacePrisma.ProviderIssueGetPayload<{
+    include: {
+      provider: true;
+      protoGuardFilter: true;
+      occurrencePeriods: true;
+    };
+  }>;
+}>()('provider.issue');
 
 export let providerRunType = PresentableType.create<{
   providerRun: RawProviderRun;

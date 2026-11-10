@@ -97,6 +97,7 @@ model Provider {
   sessionTemplateProviders       SessionTemplateProvider[]
   sessionParticipants            SessionParticipant[]
   sessionErrorGroups             SessionErrorGroup[]
+  providerIssues                 ProviderIssue[]
   authConfigEvents               ProviderAuthConfigEvent[]
   authConfigErrors               ProviderAuthConfigError[]
   authConfigErrorGlobals         ProviderAuthConfigErrorGlobal[]

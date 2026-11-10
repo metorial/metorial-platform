@@ -129,6 +129,9 @@ model ProviderAuthConfigError {
   groupOid BigInt?
   group    ProviderAuthConfigErrorGlobal? @relation(fields: [groupOid], references: [oid])
 
+  issueOid BigInt?
+  issue    ProviderIssue? @relation(fields: [issueOid], references: [oid])
+
   authConfigEventOid BigInt?
   authConfigEvent    ProviderAuthConfigEvent? @relation(fields: [authConfigEventOid], references: [oid])
 
@@ -166,6 +169,7 @@ model ProviderAuthConfigError {
   @@index([createdAt])
   @@index([type])
   @@index([groupOid])
+  @@index([issueOid])
   @@index([authConfigEventOid])
   @@index([authConfigOid])
   @@index([authCredentialsOid])

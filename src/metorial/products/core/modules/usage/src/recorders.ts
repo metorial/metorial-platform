@@ -8,6 +8,7 @@ import {
   buildConnectionUsageEvent,
   buildConsumerUsageEvent,
   buildMessageUsageEvent,
+  buildProtoGuardWarningUsageEvent,
   buildSessionErrorUsageEvent,
   type UsageConnectionRow,
   type UsageMessageRow
@@ -206,6 +207,25 @@ export let recordProviderAuthErrorUsage = (error: {
     await usageService.record(
       buildAuthErrorUsageEvent(
         { ...error, provider: ctx.provider },
+        { instance: ctx.instance }
+      )
+    );
+  });
+
+export let recordProtoGuardWarningUsage = (warning: {
+  severity: string;
+  occurredAt: Date;
+  count: number;
+  instanceOid: bigint | null;
+  providerOid: bigint | null;
+}) =>
+  safely(async () => {
+    let ctx = await resolveProviderContext(warning);
+    if (!ctx) return;
+
+    await usageService.record(
+      buildProtoGuardWarningUsageEvent(
+        { ...warning, provider: ctx.provider },
         { instance: ctx.instance }
       )
     );

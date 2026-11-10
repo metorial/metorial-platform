@@ -97,6 +97,7 @@ model Instance {
   sessionConnections                         SessionConnection[]
   sessionErrors                              SessionError[]
   sessionErrorGroups                         SessionErrorGroup[]
+  providerIssues                             ProviderIssue[]
   sessionEvents                              SessionEvent[]
   sessionMessages                            SessionMessage[]
   sessionParticipants                        SessionParticipant[]

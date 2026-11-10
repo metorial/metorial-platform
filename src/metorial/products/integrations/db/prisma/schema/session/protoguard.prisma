@@ -82,6 +82,7 @@ model ProtoGuardFilter {
   alertInstances       ProtoGuardAlertInstance[]
   suppressions         ProtoGuardSuppression[]
   monitors             Monitor[]
+  providerIssues       ProviderIssue[]
 
   @@index([issueType])
   @@index([severity])
@@ -229,6 +230,9 @@ model ProtoGuardAlert {
   runOid BigInt        @unique
   run    ProtoGuardRun @relation(fields: [runOid], references: [oid], onDelete: Cascade)
 
+  issueOid BigInt?
+  issue    ProviderIssue? @relation(fields: [issueOid], references: [oid])
+
   messageOid BigInt
   message    SessionMessage @relation(fields: [messageOid], references: [oid], onDelete: Cascade)
 
@@ -264,6 +268,7 @@ model ProtoGuardAlert {
   @@index([createdAt])
   @@index([tenantOid, createdAt])
   @@index([tenantOid, dedupKey, lastSeenAt])
+  @@index([issueOid])
   @@index([sessionOid, createdAt])
   @@index([messageOid])
   @@index([projectOid])

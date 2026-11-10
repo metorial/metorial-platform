@@ -132,6 +132,7 @@ export let ID = createIdGenerator({
   sessionConnectionProviderSpecification: idType.sorted('sconps'),
   sessionError: idType.sorted('serr'),
   sessionErrorGroup: idType.sorted('serg'),
+  providerIssue: idType.sorted('pis'),
   sessionWarning: idType.sorted('swarn'),
   protoGuardFilter: idType.sorted('pgf'),
   protoGuardTenantSetting: idType.sorted('pgts'),

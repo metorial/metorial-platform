@@ -16,6 +16,7 @@ let mocks = vi.hoisted(() => ({
   getAllowedScope: vi.fn(),
   fire: vi.fn(),
   createFromProtoGuardAlert: vi.fn(),
+  recordProtoGuardAlert: vi.fn(),
   recordAudit: vi.fn(),
   applySessionPlane: vi.fn(),
   usingLock: vi.fn(),
@@ -52,6 +53,10 @@ vi.mock('../env', () => ({
 vi.mock('@metorial-subspace/module-monitor', () => ({
   getProtoGuardConfigForEvaluation: mocks.getConfig,
   alertInternalService: { createFromProtoGuardAlert: mocks.createFromProtoGuardAlert }
+}));
+
+vi.mock('@metorial-subspace/module-provider-issue', () => ({
+  providerIssueRecorderService: { recordProtoGuardAlert: mocks.recordProtoGuardAlert }
 }));
 
 vi.mock('./alertAudit', () => ({

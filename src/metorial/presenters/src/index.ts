@@ -263,6 +263,7 @@ import {
   v1ServiceAccountCredentialPresenter,
   v1ServiceAccountPresenter,
   v1SessionConnectionPresenter,
+  v1ProviderIssuePresenter,
   v1SessionErrorGroupPresenter,
   v1SessionErrorPresenter,
   v1SessionParticipantPresenter,
@@ -536,6 +537,7 @@ import {
   serviceAccountCredentialType,
   serviceAccountType,
   sessionConnectionType,
+  providerIssueType,
   sessionErrorGroupType,
   sessionErrorType,
   sessionEventType,
@@ -1943,6 +1945,11 @@ export let subspaceSessionErrorPresenter = declarePresenter(sessionErrorType, {
 export let subspaceSessionErrorGroupPresenter = declarePresenter(sessionErrorGroupType, {
   mt_2025_01_01_dashboard: v1SessionErrorGroupPresenter,
   mt_2026_01_01_magnetar: v1SessionErrorGroupPresenter
+});
+
+export let subspaceProviderIssuePresenter = declarePresenter(providerIssueType, {
+  mt_2025_01_01_dashboard: v1ProviderIssuePresenter,
+  mt_2026_01_01_magnetar: v1ProviderIssuePresenter
 });
 
 export let subspaceProviderRunPresenter = declarePresenter(providerRunType, {

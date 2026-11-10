@@ -15,6 +15,7 @@ import {
   protoGuardQueueProcessor,
   syncProtoGuardFilters
 } from '@metorial-subspace/module-protoguard';
+import { providerIssueQueueProcessor } from '@metorial-subspace/module-provider-issue';
 import { providerInternalSubspaceQueueProcessor } from '@metorial-subspace/module-provider-internal/src/queues';
 import { publicMcpSubspaceQueueProcessor } from '@metorial-subspace/module-public-mcp/src/queues';
 import { securityReviewSubspaceQueueProcessor } from '@metorial-subspace/module-security-review';
@@ -47,6 +48,7 @@ runQueueProcessors([
   chatSubspaceQueueProcessor,
   monitorSubspaceQueueProcessor,
   protoGuardQueueProcessor,
+  providerIssueQueueProcessor,
   agentSubspaceQueueProcessor,
   publicMcpSubspaceQueueProcessor,
   securityReviewSubspaceQueueProcessor

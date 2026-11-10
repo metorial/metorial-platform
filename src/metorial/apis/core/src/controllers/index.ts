@@ -144,6 +144,7 @@ import {
   providerSetupSessionController,
   providerSpecificationChangeNotificationController,
   providerSpecificationController,
+  providerIssueController,
   providerTemplateController,
   providerToolController,
   providerTriggerController,
@@ -268,6 +269,7 @@ let setControllerDocsMetadata = <
 );
 
 [
+  providerIssueController,
   monitorController,
   monitorAlertController,
   protoGuardAlertController,
@@ -568,6 +570,7 @@ export let magnetarController = Controller.create<any>(
     sessionParticipantController,
     sessionErrorController,
     sessionErrorGroupController,
+    providerIssueController,
     providerRunController,
     monitorController,
     monitorAlertController,
@@ -865,6 +868,7 @@ export let dashboardController = Controller.create<any>(
     sessionParticipantController,
     sessionErrorController,
     sessionErrorGroupController,
+    providerIssueController,
     providerRunController: providerRunController,
     monitorController,
     monitorAlertController,

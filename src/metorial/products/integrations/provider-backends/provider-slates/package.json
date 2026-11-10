@@ -28,6 +28,7 @@
     "@metorial-services/registry-client": "^1.0.0",
     "@metorial-platform-systems/slates-client": "workspace:*",
     "@metorial-subspace/db": "^1.0.0",
+    "@metorial-subspace/module-provider-issue": "^1.0.0",
     "@metorial-subspace/module-catalog": "^1.0.0",
     "@metorial-subspace/module-provider-internal": "^1.0.0",
     "@metorial-subspace/provider-utils": "^1.0.0",

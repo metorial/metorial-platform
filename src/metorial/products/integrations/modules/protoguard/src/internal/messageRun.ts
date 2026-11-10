@@ -12,6 +12,7 @@ import {
   alertInternalService,
   getProtoGuardConfigForEvaluation
 } from '@metorial-subspace/module-monitor';
+import { providerIssueRecorderService } from '@metorial-subspace/module-provider-issue';
 import { createHash } from 'node:crypto';
 import { env } from '../env';
 import {
@@ -161,8 +162,16 @@ class ProtoGuardMessageRunServiceImpl {
     let alert = await messageLock.usingLock(message.id, () =>
       this.storeRun({ job: d.job, message, config, filters, providerOid, findings })
     );
-    if (alert) {
+    if (alert?.isRepeat) {
+      await providerIssueRecorderService.recordProtoGuardAlert({
+        protoGuardAlertId: alert.alertId,
+        isRepeat: true
+      });
+    } else if (alert) {
       await alertInternalService.createFromProtoGuardAlert({
+        protoGuardAlertId: alert.alertId
+      });
+      await providerIssueRecorderService.recordProtoGuardAlert({
         protoGuardAlertId: alert.alertId
       });
 
@@ -406,7 +415,12 @@ class ProtoGuardMessageRunServiceImpl {
         data: { alertOid: d.run.alert.oid }
       });
 
-      return { alertId: d.run.alert.id, isNew: false, createdAt: d.run.alert.createdAt };
+      return {
+        alertId: d.run.alert.id,
+        isNew: false,
+        isRepeat: false,
+        createdAt: d.run.alert.createdAt
+      };
     }
 
     let dedupKey = createDedupKey({
@@ -431,7 +445,13 @@ class ProtoGuardMessageRunServiceImpl {
         where: { oid: duplicate.oid },
         data: { occurrenceCount: { increment: 1 }, lastSeenAt: now }
       });
-      return null;
+
+      return {
+        alertId: duplicate.id,
+        isNew: false,
+        isRepeat: true,
+        createdAt: duplicate.createdAt
+      };
     }
 
     let alert = await db.protoGuardAlert.create({
@@ -463,7 +483,7 @@ class ProtoGuardMessageRunServiceImpl {
       data: { alertOid: alert.oid }
     });
 
-    return { alertId: alert.id, isNew: true, createdAt: alert.createdAt };
+    return { alertId: alert.id, isNew: true, isRepeat: false, createdAt: alert.createdAt };
   }
 
   // Below full retention the projected finding has no sample, so the alert falls back to the
