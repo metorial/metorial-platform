@@ -6,7 +6,12 @@ export let v1SkillContentPreviewPresenter = Presenter.create(skillContentPreview
   .presenter(async ({ skillContentPreview }) => ({
     object: 'skill.content_preview' as const,
 
-    skill_id: skillContentPreview.skillId,
+    type: skillContentPreview.type,
+    skill_id: skillContentPreview.type == 'skill' ? skillContentPreview.skillId : null,
+    skill_template_id:
+      skillContentPreview.type == 'skill_template'
+        ? skillContentPreview.skillTemplateId
+        : null,
     content: skillContentPreview.content
   }))
   .schema(
@@ -14,13 +19,24 @@ export let v1SkillContentPreviewPresenter = Presenter.create(skillContentPreview
       object: v.literal('skill.content_preview', {
         description: "String representing the object's type"
       }),
-      skill_id: v.string({
-        description: 'The ID of the skill the preview belongs to.'
+      type: v.enumOf(['skill', 'skill_template'], {
+        description: 'Whether the preview belongs to a skill or a skill template.'
       }),
+      skill_id: v.nullable(
+        v.string({
+          description: 'The ID of the skill the preview belongs to, if `type` is `skill`.'
+        })
+      ),
+      skill_template_id: v.nullable(
+        v.string({
+          description:
+            'The ID of the skill template the preview belongs to, if `type` is `skill_template`.'
+        })
+      ),
       content: v.nullable(
         v.string({
           description:
-            "The beginning of the skill's SKILL.md file, or null if the skill has no SKILL.md or it is not readable by the caller."
+            'The beginning of the SKILL.md file, or null if there is no SKILL.md or it is not readable by the caller.'
         })
       )
     })

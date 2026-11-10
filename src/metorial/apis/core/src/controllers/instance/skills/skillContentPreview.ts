@@ -15,14 +15,15 @@ let readScopes = ['instance.skill:read'] as const;
 export let skillContentPreviewController = Controller.create(
   {
     name: 'Skill Content Previews',
-    description: 'Read the beginning of the SKILL.md of many skills at once.'
+    description:
+      'Read the beginning of the SKILL.md of many skills and skill templates at once.'
   },
   {
     list: instanceGroup
       .get(instancePath('skill-content-previews', 'skills.contentPreviews.list'), {
         name: 'List skill content previews',
         description:
-          'Returns the beginning of the SKILL.md file of up to 50 skills in a single request.'
+          'Returns the beginning of the SKILL.md file of up to 50 skills and skill templates in a single request.'
       })
       .use(hasFlags(['skills-enabled']))
       .use(isDashboardGroup())
@@ -31,16 +32,23 @@ export let skillContentPreviewController = Controller.create(
       .query(
         'default',
         v.object({
-          id: v.union([v.string(), v.array(v.string())], {
-            description:
-              'The IDs of the skills to preview. At most 50 can be requested at once.'
-          })
+          skill_id: v.optional(
+            v.union([v.string(), v.array(v.string())], {
+              description: 'The IDs of the skills to preview.'
+            })
+          ),
+          skill_template_id: v.optional(
+            v.union([v.string(), v.array(v.string())], {
+              description: 'The IDs of the skill templates to preview.'
+            })
+          )
         })
       )
       .do(async ctx => {
         let skillContentPreviews = await skillContentPreviewService.listSkillContentPreviews({
           ...(await getInstanceCargoAccess(ctx)),
-          skillIds: normalizeArrayParam(ctx.query.id) ?? []
+          skillIds: normalizeArrayParam(ctx.query.skill_id) ?? [],
+          skillTemplateIds: normalizeArrayParam(ctx.query.skill_template_id) ?? []
         });
 
         return Paginator.present(
