@@ -521,10 +521,11 @@ class ConsumerAccessPolicyServiceImpl {
 
     if (
       (d.permission == 'skill_write' || d.permission == 'skill_manage_access') &&
-      !('skill' in d.resource)
+      !('skill' in d.resource) &&
+      !('skillGroup' in d.resource)
     ) {
       throw new Error(
-        'Skill write and access-management permissions can only be attached to skills'
+        'Skill write and access-management permissions can only be attached to skills and skill groups'
       );
     }
   }
@@ -755,20 +756,22 @@ class ConsumerAccessPolicyServiceImpl {
     }
 
     if (resource.type == 'skill_group') {
-      await this.revokeAccess({
-        organization: d.organization,
-        permission: 'skill_read',
-        subject: {
-          consumerGroup: d.consumerAccess.consumerGroup
-        },
-        resource: {
-          skillGroup: resource.skillGroup
-        },
-        policyScope: {
-          type: 'consumer_access',
-          consumerAccessId: d.consumerAccess.id
-        }
-      });
+      for (let permission of ['skill_read', 'skill_write', 'skill_manage_access'] as const) {
+        await this.revokeAccess({
+          organization: d.organization,
+          permission,
+          subject: {
+            consumerGroup: d.consumerAccess.consumerGroup
+          },
+          resource: {
+            skillGroup: resource.skillGroup
+          },
+          policyScope: {
+            type: 'consumer_access',
+            consumerAccessId: d.consumerAccess.id
+          }
+        });
+      }
 
       return;
     }

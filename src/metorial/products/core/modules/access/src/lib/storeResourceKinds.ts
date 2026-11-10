@@ -28,21 +28,18 @@ export let skillStoreResourceKind: StoreResourceKind = {
   access: skillStoreResourceAccess,
   storeWhere: { skill: { isNot: null } },
   activeWhere: { skill: { is: { status: 'active' } } },
-  inheritedAccessWhere: ({ level, accessTagFilter }) =>
-    level == 'read'
-      ? {
-          skill: {
-            is: {
-              skillGroupItems: {
-                some: {
-                  status: 'active',
-                  skillGroup: { status: 'active', accessTagEntities: accessTagFilter }
-                }
-              }
-            }
+  inheritedAccessWhere: ({ accessTagFilter }) => ({
+    skill: {
+      is: {
+        skillGroupItems: {
+          some: {
+            status: 'active',
+            skillGroup: { status: 'active', accessTagEntities: accessTagFilter }
           }
         }
-      : undefined
+      }
+    }
+  })
 };
 
 let storeResourceKinds = new Map<string, StoreResourceKind>([

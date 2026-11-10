@@ -24,11 +24,9 @@ import {
   withTransaction
 } from '@metorial/db';
 import {
-  accessTagService,
   createResourceAuthorization,
   getStoreResourceKindAccessWhere,
   hasOrganizationMemberSkillAccess,
-  skillStoreResourceAccess,
   skillStoreResourceKind
 } from '@metorial/module-access';
 import { Fabric } from '@metorial/fabric';
@@ -174,12 +172,17 @@ class ConsumerSkillServiceImpl {
       return;
     }
 
-    let accessTagFilter = await accessTagService.getAccessTagFilter({
-      tags,
-      roles: skillStoreResourceAccess.policies.manage.roles
-    });
     let manageableSkill = await db.skill.findFirst({
-      where: { oid: d.skill.oid, store: { is: { accessTagEntities: accessTagFilter } } },
+      where: {
+        oid: d.skill.oid,
+        store: {
+          is: await getStoreResourceKindAccessWhere({
+            kind: skillStoreResourceKind,
+            accessTags: tags,
+            level: 'manage'
+          })
+        }
+      },
       select: {
         oid: true
       }

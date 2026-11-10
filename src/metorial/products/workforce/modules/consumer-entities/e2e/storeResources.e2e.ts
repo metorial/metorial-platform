@@ -24,6 +24,7 @@ import {
 } from '@metorial/module-consumer-core';
 import { resourceActorService } from '@metorial/module-resource-actor';
 import { skillAccessGrantService, skillService } from '@metorial/module-skill';
+import { skillGroupService } from '@metorial/module-skill-groups';
 import {
   storeAccessService,
   storeParticipantService,
@@ -35,9 +36,11 @@ import {
   addToGroups,
   consumerView,
   createGroup,
+  createMagicServer,
   createProfile,
   createSurface,
-  getEveryoneGroup
+  getEveryoneGroup,
+  grantMagicServer
 } from './_fixtures';
 
 type Profile = Awaited<ReturnType<typeof createProfile>>;
@@ -349,6 +352,119 @@ describe('consumer skill and store access', () => {
     });
     expect(await storeAccess(fixture, store.id, peer)).toEqual([]);
     expect(await storeAccess(fixture, store.id, creator)).toEqual(['read', 'write']);
+  });
+
+  it('grants group access to organization skills at the chosen level', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let surface = await createSurface(fixture);
+    let group = await createGroup(fixture, surface);
+    let member = await createProfile(fixture, surface);
+    let outsider = await createProfile(fixture, surface);
+    await addToGroups(fixture, member, [group.id]);
+    let skill = await organizationSkill(fixture);
+
+    let created = await consumerAccessService.createConsumerAccess({
+      organization: fixture.organization,
+      consumerSurface: surface,
+      consumerGroup: group,
+      auditScope: fixture.auditScope,
+      access: { type: 'skill', skill: await getSkill(fixture, skill.id), accessLevel: 'write' }
+    });
+    let setLevel = async (accessLevel: 'read' | 'write' | 'manage') =>
+      await consumerAccessService.updateConsumerAccess({
+        consumerAccess: await consumerAccessService.getConsumerAccessById({
+          consumerSurface: surface,
+          consumerAccessId: created.id
+        }),
+        auditScope: fixture.auditScope,
+        input: { accessLevel }
+      });
+
+    expect(created.accessLevel).toBe('write');
+    expect(await skillAccess(fixture, skill.id, member)).toEqual([
+      'skill_read',
+      'skill_write',
+      'store_read',
+      'store_write'
+    ]);
+
+    await setLevel('manage');
+    expect(await skillAccess(fixture, skill.id, member)).toEqual(fullAuthorAccess);
+    expect(await participantRoles(fixture, skill.id, member)).not.toContain('owner');
+
+    await setLevel('read');
+    expect(await skillAccess(fixture, skill.id, member)).toEqual(['skill_read', 'store_read']);
+    expect(
+      (await db.consumerAccess.findUniqueOrThrow({ where: { id: created.id } })).accessLevel
+    ).toBe('read');
+    expect(await skillAccess(fixture, skill.id, outsider)).toEqual([]);
+  });
+
+  it('only changes the access level of skill and skill group access', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let surface = await createSurface(fixture);
+    let group = await createGroup(fixture, surface);
+    let access = await grantMagicServer(
+      fixture,
+      surface,
+      group,
+      await createMagicServer(fixture)
+    );
+
+    await expectServiceError(
+      consumerAccessService.updateConsumerAccess({
+        consumerAccess: access,
+        auditScope: fixture.auditScope,
+        input: { accessLevel: 'write' }
+      }),
+      'bad_request'
+    );
+  });
+
+  it('passes skill group access levels down to the skills in the group', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let surface = await createSurface(fixture);
+    let group = await createGroup(fixture, surface);
+    let member = await createProfile(fixture, surface);
+    await addToGroups(fixture, member, [group.id]);
+    let skill = await organizationSkill(fixture);
+    let skillGroup = await skillGroupService.createSkillGroup({
+      ...scopeOf(fixture),
+      auditScope: fixture.auditScope,
+      input: { name: uniqueId('Level Group'), skillIds: [skill.id] }
+    });
+
+    await consumerAccessService.createConsumerAccess({
+      organization: fixture.organization,
+      consumerSurface: surface,
+      consumerGroup: group,
+      auditScope: fixture.auditScope,
+      access: { type: 'skill_group', skillGroup, accessLevel: 'write' }
+    });
+
+    expect(await skillAccess(fixture, skill.id, member)).toEqual([
+      'skill_read',
+      'skill_write',
+      'store_read',
+      'store_write'
+    ]);
+    expect(
+      await skillGroupService.getSkillGroupAccessLevel({
+        skillGroup,
+        accessTags: (await consumerView(member)).accessTags
+      })
+    ).toBe('write');
+
+    let grants = await skillAccessGrantService.listSkillAccessGrants({
+      project: fixture.project,
+      skill: await getSkill(fixture, skill.id),
+      authorization: createResourceAuthorization({ restricted: false })
+    });
+    expect(
+      grants
+        .filter(grant => grant.accessTag.oid == group.accessTagOid)
+        .map(grant => [grant.level, grant.inheritedFrom?.id])
+    ).toEqual([['write', skillGroup.id]]);
   });
 
   it('lists skill access grants only for consumers that can manage the skill', async () => {

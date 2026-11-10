@@ -18,6 +18,7 @@ export interface ISidebarItem {
   children?: {
     label: string;
     to: string;
+    onClick?: () => void;
     getProps?: (props: { pathname: string; to: string }) => { isActive: boolean };
   }[];
 }
@@ -371,7 +372,7 @@ let SidebarGroup = ({
                         style={{ overflow: 'hidden' }}
                       >
                         {item.children?.map((child, index) => (
-                          <Link to={child.to} key={index}>
+                          <Link to={child.to} key={index} onClick={child.onClick}>
                             <Item
                               activeBackground={child.isActive}
                               activeBar={child.isActive}

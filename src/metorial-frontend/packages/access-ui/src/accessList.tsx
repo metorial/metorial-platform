@@ -3,6 +3,7 @@ import {
   RiKeyLine,
   RiLockLine,
   RiMore2Line,
+  RiPencilLine,
   RiPlayLine,
   RiTeamLine,
   RiUserLine
@@ -11,7 +12,19 @@ import { Button, Menu, OptionToggle, Text, theme, type MenuItem } from '@metoria
 import React from 'react';
 import styled from 'styled-components';
 
-export type AccessLevel = 'use' | 'manage';
+export type AccessLevel = 'use' | 'edit' | 'manage';
+
+let levelIcons: Record<AccessLevel, React.ReactNode> = {
+  use: <RiPlayLine size={12} />,
+  edit: <RiPencilLine size={12} />,
+  manage: <RiKeyLine size={12} />
+};
+
+let levelLabels: Record<AccessLevel, string> = {
+  use: 'Can use',
+  edit: 'Can edit',
+  manage: 'Can manage'
+};
 
 let LevelRoot = styled.span<{ $manage: boolean }>`
   display: inline-flex;
@@ -31,8 +44,8 @@ let LevelRoot = styled.span<{ $manage: boolean }>`
 
 export let AccessLevelBadge = (p: { level: AccessLevel }) => (
   <LevelRoot $manage={p.level == 'manage'}>
-    {p.level == 'manage' ? <RiKeyLine size={12} /> : <RiPlayLine size={12} />}
-    {p.level == 'manage' ? 'Can manage' : 'Can use'}
+    {levelIcons[p.level]}
+    {levelLabels[p.level]}
   </LevelRoot>
 );
 

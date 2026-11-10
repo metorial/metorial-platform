@@ -8,11 +8,10 @@ import {
   usePortals,
   useSkillMarketplace
 } from '@metorial/state';
-import { Button, Menu, Spacer, Text } from '@metorial/ui';
-import { useMemo, useState } from 'react';
+import { Flex, Text } from '@metorial/ui';
+import { useMemo } from 'react';
 import { groupMarketplaceManagers, pluginsFromMarketplace } from './groupManagers';
-import { MarketplaceManagersTable } from './managersTable';
-import { showMarketplaceManagerPanel } from './panel';
+import { MarketplaceManagerShareList } from './shareList';
 import { MARKETPLACE_MANAGER_COPY } from './types';
 
 export { MarketplaceManagerScopeBadges, removeMarketplaceManager } from './shared';
@@ -21,6 +20,7 @@ let MarketplaceManagersForPortal = (props: {
   instanceId: string;
   portalId: string;
   skillMarketplaceId: string;
+  title: React.ReactNode;
 }) => {
   let marketplace = useSkillMarketplace(props.instanceId, props.skillMarketplaceId);
   let marketplacePlugins = useAllSkillMarketplacePlugins(
@@ -41,7 +41,9 @@ let MarketplaceManagersForPortal = (props: {
         }));
     }
 
-    return marketplace.data ? pluginsFromMarketplace(marketplace.data, { includeArchived: true }) : [];
+    return marketplace.data
+      ? pluginsFromMarketplace(marketplace.data, { includeArchived: true })
+      : [];
   }, [marketplace.data, marketplacePlugins.data]);
   let marketplaceAccess = useAllPortalConsumerAccess(props.instanceId, props.portalId, {
     type: 'skill_marketplace',
@@ -98,31 +100,23 @@ let MarketplaceManagersForPortal = (props: {
     profiles.refetch();
   };
 
-  let isLoading =
-    marketplace.isLoading ||
-    marketplacePlugins.isLoading ||
-    marketplaceAccess.isLoading ||
-    pluginAccess.isLoading ||
-    groups.isLoading ||
-    profiles.isLoading;
-  let error =
-    marketplace.error ||
-    marketplacePlugins.error ||
-    marketplaceAccess.error ||
-    pluginAccess.error ||
-    groups.error ||
-    profiles.error;
-
-  return (
-    <MarketplaceManagersTable
+  return renderWithLoader({
+    marketplace,
+    marketplacePlugins,
+    marketplaceAccess,
+    pluginAccess,
+    groups,
+    profiles
+  })(() => (
+    <MarketplaceManagerShareList
       instanceId={props.instanceId}
+      portalId={props.portalId}
+      skillMarketplaceId={props.skillMarketplaceId}
+      title={props.title}
       rows={rows}
-      isLoading={isLoading}
-      error={error}
       refetch={refetch}
-      emptyState="No Marketplace Managers yet."
     />
-  );
+  ));
 };
 
 export let MarketplaceManagersList = (props: {
@@ -131,72 +125,29 @@ export let MarketplaceManagersList = (props: {
   portalId?: string;
 }) => {
   let portals = usePortals(props.instanceId, { limit: 50 });
-  let [revision, setRevision] = useState(0);
   let portalItems = portals.data?.items ?? [];
   let activePortals = props.portalId
     ? portalItems.filter(portal => portal.id == props.portalId)
     : portalItems;
 
   return (
-    <PageHeaderSection
-      title="Marketplace Managers"
-      description={MARKETPLACE_MANAGER_COPY}
-      actions={
-        <Menu
-          items={[
-            {
-              id: 'group',
-              label: 'Group',
-              description: 'Grant management access to a group.'
-            },
-            {
-              id: 'account',
-              label: 'Account',
-              description: 'Grant a single person access.'
-            }
-          ]}
-          onItemClick={id => {
-            if (id != 'group' && id != 'account') return;
-            showMarketplaceManagerPanel({
-              instanceId: props.instanceId,
-              skillMarketplaceId: props.skillMarketplaceId,
-              portalId:
-                props.portalId ?? (portalItems.length == 1 ? portalItems[0]?.id : undefined),
-              subjectMode: id,
-              onSuccess: () => setRevision(value => value + 1)
-            });
-          }}
-        >
-          <Button size="2">Add Marketplace Manager</Button>
-        </Menu>
-      }
-    >
+    <PageHeaderSection title="Managers" description={MARKETPLACE_MANAGER_COPY}>
       {renderWithLoader({ portals })(() =>
         activePortals.length ? (
-          <>
+          <Flex direction="column" gap={20}>
             {activePortals.map(portal => (
-              <div key={portal.id}>
-                {activePortals.length > 1 ? (
-                  <>
-                    <Text size="2" weight="strong">
-                      {portal.name}
-                    </Text>
-                    <Spacer size={10} />
-                  </>
-                ) : null}
-                <MarketplaceManagersForPortal
-                  key={`${portal.id}:${revision}`}
-                  instanceId={props.instanceId}
-                  portalId={portal.id}
-                  skillMarketplaceId={props.skillMarketplaceId}
-                />
-                {activePortals.length > 1 ? <Spacer size={20} /> : null}
-              </div>
+              <MarketplaceManagersForPortal
+                key={portal.id}
+                instanceId={props.instanceId}
+                portalId={portal.id}
+                skillMarketplaceId={props.skillMarketplaceId}
+                title={portal.name}
+              />
             ))}
-          </>
+          </Flex>
         ) : (
           <Text size="2" color="gray600">
-            Create a portal before assigning Marketplace Managers.
+            Create a portal before assigning managers.
           </Text>
         )
       )}

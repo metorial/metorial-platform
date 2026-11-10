@@ -117,6 +117,12 @@ let SkillTemplateLayout = dynamicPage(() =>
 let SkillTemplatePage = dynamicPage(() =>
   import('./pages/(skills)/skill-template').then(c => c.SkillTemplatePage)
 );
+let SkillTemplateItemPage = dynamicPage(() =>
+  import('./pages/(skills)/skill-template/item').then(c => c.SkillTemplateItemPage)
+);
+let SkillTemplateProvidersPage = dynamicPage(() =>
+  import('./pages/(skills)/skill-template/providers').then(c => c.SkillTemplateProvidersPage)
+);
 let SkillTemplateSettingsPage = dynamicPage(() =>
   import('./pages/(skills)/skill-template/settings').then(c => c.SkillTemplateSettingsPage)
 );
@@ -1009,6 +1015,14 @@ export let productSkillsSlice = createSlice([
               {
                 path: '',
                 element: <SkillTemplatePage />
+              },
+              {
+                path: 'item/:itemId',
+                element: <SkillTemplateItemPage />
+              },
+              {
+                path: 'providers',
+                element: <SkillTemplateProvidersPage />
               },
               {
                 path: 'settings',

@@ -2,14 +2,17 @@ import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { AuditScope } from '@metorial/audit-scope';
-import type { Instance, Project } from '@metorial/db';
+import type { Instance, Project, SkillGroup } from '@metorial/db';
 import { db, ID, type Prisma, withTransaction } from '@metorial/db';
 import { Fabric, type AuditSkillGroup } from '@metorial/fabric';
 import { type DateFilter, normalizeDateFilter } from '@metorial/list-utils';
 import {
   accessTagService,
   type AnyAccessTagSelector,
-  consumerSkillReadRoles
+  consumerSkillReadRoles,
+  skillStoreResourceAccess,
+  storeResourceAccessLevels,
+  type StoreResourceAccessLevel
 } from '@metorial/module-access';
 import { getProjectTenantIdentifier } from '@metorial/skills-common';
 import { buildSearchFilter } from '@metorial/module-search';
@@ -51,6 +54,45 @@ let assertSkillGroupName = (name: string) => {
 };
 
 class SkillGroupServiceImpl {
+  async getSkillGroupAccessLevel(d: {
+    skillGroup: Pick<SkillGroup, 'oid'>;
+    accessTags: AnyAccessTagSelector;
+  }): Promise<StoreResourceAccessLevel | null> {
+    for (let level of [...storeResourceAccessLevels].reverse()) {
+      let accessTagFilter = await accessTagService.getAccessTagFilter({
+        tags: d.accessTags,
+        roles: skillStoreResourceAccess.policies[level].roles
+      });
+      if (!accessTagFilter) return null;
+
+      let group = await db.skillGroup.findFirst({
+        where: { oid: d.skillGroup.oid, status: 'active', accessTagEntities: accessTagFilter },
+        select: { oid: true }
+      });
+      if (group) return level;
+    }
+
+    return null;
+  }
+
+  async getHighestGrantedAccessLevel(d: {
+    skillGroup: Pick<SkillGroup, 'oid'>;
+  }): Promise<StoreResourceAccessLevel | null> {
+    let entities = await db.accessTagEntity.findMany({
+      where: { skillGroupOid: d.skillGroup.oid },
+      select: { accessTagPolicy: { select: { roles: true } } }
+    });
+    let roles = new Set(entities.flatMap(entity => entity.accessTagPolicy.roles));
+
+    return (
+      [...storeResourceAccessLevels]
+        .reverse()
+        .find(level =>
+          skillStoreResourceAccess.policies[level].roles.some(role => roles.has(role))
+        ) ?? null
+    );
+  }
+
   async getSkillGroupById(d: {
     project: Project;
     instance: Instance;

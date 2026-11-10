@@ -4,7 +4,7 @@ import { Paths } from '@metorial/frontend-config';
 import type { ISidebarGroup, ISidebarItem } from '@metorial/layout';
 import { SkillIconTile } from '@metorial/scene-skills';
 import { RiArrowRightSLine, RiFolderLine, RiFolderOpenLine } from '@remixicon/react';
-import { useRef } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   useCurrentInstance,
@@ -15,6 +15,14 @@ import {
 } from '@metorial/state';
 import { showSkillGroupFormModal } from '../groupModal';
 import { useForgetRecentSkill, useRecentSkillIds } from './recentSkills';
+import {
+  getSkillGroupIdFromPath,
+  getSkillIdFromPath,
+  getSkillOpenSource,
+  setSkillOpenSource,
+  useSkillOpenSource,
+  type SkillOpenSource
+} from './skillOpenSource';
 
 let sidebarIconSize = 20;
 let sidebarSkillsPageSize = 100;
@@ -65,6 +73,23 @@ export let useSkillsSidebarGroups = (opts: { enabled: boolean }): ISidebarGroup[
   let lastHighlightedRef = useRef(highlighted.data?.items ?? []);
   if (highlighted.data) lastHighlightedRef.current = highlighted.data.items;
 
+  let openSource = useSkillOpenSource();
+  let previousPathnameRef = useRef(location.pathname);
+
+  // Skills opened from anywhere but the sidebar count as opened from the group page they
+  // were opened on, so a skill clicked inside a group stays highlighted under that group.
+  useLayoutEffect(() => {
+    let previousPathname = previousPathnameRef.current;
+    previousPathnameRef.current = location.pathname;
+
+    let skillId = getSkillIdFromPath(location.pathname);
+    if (!skillId) return setSkillOpenSource(null);
+    if (getSkillOpenSource()?.skillId == skillId) return;
+
+    let groupId = getSkillGroupIdFromPath(previousPathname);
+    setSkillOpenSource(groupId ? { skillId, source: `group:${groupId}` } : null);
+  }, [location.pathname]);
+
   if (!opts.enabled) return [];
 
   let params = [organization.data, instance.data?.project, instance.data] as [
@@ -74,9 +99,45 @@ export let useSkillsSidebarGroups = (opts: { enabled: boolean }): ISidebarGroup[
   ];
 
   let skillsById = new Map(lastHighlightedRef.current.map(skill => [skill.id, skill]));
+  let favoriteSkills = favorites.items.flatMap(id => skillsById.get(id) ?? []);
+  let recentSkills = recentIds.flatMap(id => skillsById.get(id) ?? []);
+  let groups = skillGroups.data?.items ?? [];
+  let hasMoreGroups = !!skillGroups.data?.pagination.hasMoreAfter;
+
+  let getGroupSkills = (group: SkillGroup) =>
+    group.skills.filter(skill => skill.status == 'active');
+
+  let currentSkillId = getSkillIdFromPath(location.pathname);
+  let placements: SkillOpenSource[] = currentSkillId
+    ? [
+        ...(favoriteSkills.some(skill => skill.id == currentSkillId)
+          ? (['favorites'] as const)
+          : []),
+        ...(recentSkills.some(skill => skill.id == currentSkillId)
+          ? (['recent'] as const)
+          : []),
+        ...groups
+          .filter(group =>
+            getGroupSkills(group)
+              .slice(0, sidebarGroupSkillsLimit)
+              .some(skill => skill.id == currentSkillId)
+          )
+          .map(group => `group:${group.id}` as const)
+      ]
+    : [];
+  let activePlacement =
+    openSource &&
+    openSource.skillId == currentSkillId &&
+    placements.includes(openSource.source)
+      ? openSource.source
+      : placements[0];
+
+  let isPlacementActive = (placement: SkillOpenSource, pathname: string, to: string) =>
+    placement == activePlacement && isPathActive(pathname, to);
 
   let toSkillItem = (
     skill: (typeof lastHighlightedRef.current)[number],
+    placement: SkillOpenSource,
     extraMenu: ISidebarItem['menu'] = []
   ): ISidebarItem => {
     let to = Paths.instance.skill(...params, skill.id);
@@ -88,7 +149,8 @@ export let useSkillsSidebarGroups = (opts: { enabled: boolean }): ISidebarGroup[
       ),
       label: skill.name,
       to,
-      getProps: i => ({ isActive: isPathActive(i.pathname, i.to) }),
+      onClick: () => setSkillOpenSource({ skillId: skill.id, source: placement }),
+      getProps: i => ({ isActive: isPlacementActive(placement, i.pathname, i.to) }),
       menu: [
         isFavorite
           ? { label: 'Remove From Favorites', action: () => favorites.remove(skill.id) }
@@ -100,12 +162,12 @@ export let useSkillsSidebarGroups = (opts: { enabled: boolean }): ISidebarGroup[
 
   let toGroupItem = (group: SkillGroup): ISidebarItem => {
     let to = Paths.instance.skillGroup(...params, group.id);
-    let skills = group.skills
-      .filter(skill => skill.status == 'active')
-      .map(skill => ({ skill, to: Paths.instance.skill(...params, skill.id) }));
-    let isOpen =
-      isPathActive(location.pathname, to) ||
-      skills.some(entry => isPathActive(location.pathname, entry.to));
+    let placement = `group:${group.id}` as const;
+    let skills = getGroupSkills(group).map(skill => ({
+      skill,
+      to: Paths.instance.skill(...params, skill.id)
+    }));
+    let isOpen = isPathActive(location.pathname, to) || activePlacement == placement;
 
     return {
       icon: isOpen ? <RiFolderOpenLine /> : <RiFolderLine />,
@@ -116,8 +178,9 @@ export let useSkillsSidebarGroups = (opts: { enabled: boolean }): ISidebarGroup[
         ...skills.slice(0, sidebarGroupSkillsLimit).map(entry => ({
           label: entry.skill.name,
           to: entry.to,
+          onClick: () => setSkillOpenSource({ skillId: entry.skill.id, source: placement }),
           getProps: (i: { pathname: string; to: string }) => ({
-            isActive: isPathActive(i.pathname, i.to)
+            isActive: isPlacementActive(placement, i.pathname, i.to)
           })
         })),
         ...(skills.length > sidebarGroupSkillsLimit
@@ -127,24 +190,19 @@ export let useSkillsSidebarGroups = (opts: { enabled: boolean }): ISidebarGroup[
     };
   };
 
-  let favoriteSkills = favorites.items.flatMap(id => skillsById.get(id) ?? []);
-  let recentSkills = recentIds.flatMap(id => skillsById.get(id) ?? []);
-  let groups = skillGroups.data?.items ?? [];
-  let hasMoreGroups = !!skillGroups.data?.pagination.hasMoreAfter;
-
   return [
     {
       label: 'Favorites',
       collapsible: true,
       enabled: favoriteSkills.length > 0,
-      items: favoriteSkills.map(skill => toSkillItem(skill))
+      items: favoriteSkills.map(skill => toSkillItem(skill, 'favorites'))
     },
     {
       label: 'Recent',
       collapsible: true,
       enabled: recentSkills.length > 0,
       items: recentSkills.map(skill =>
-        toSkillItem(skill, [
+        toSkillItem(skill, 'recent', [
           { label: 'Remove From Recent', action: () => forgetRecent(skill.id) }
         ])
       )

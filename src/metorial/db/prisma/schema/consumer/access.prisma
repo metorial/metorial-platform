@@ -10,6 +10,7 @@ enum ConsumerAccessTargetType {
 
 enum ConsumerAccessLevel {
   read
+  write
   manage
 }
 

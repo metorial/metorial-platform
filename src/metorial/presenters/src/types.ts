@@ -2116,6 +2116,7 @@ export let skillAccessType = PresentableType.create<{
   skill: Skill;
   grants: {
     level: 'read' | 'write' | 'manage';
+    inheritedFrom: SkillGroup | null;
     accessTag: AccessTag & {
       consumerGroup: (ConsumerGroup & { personalOwner: ConsumerProfile | null }) | null;
       consumerProfile: ConsumerProfile | null;

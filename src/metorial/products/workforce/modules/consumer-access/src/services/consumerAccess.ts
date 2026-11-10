@@ -1,4 +1,9 @@
-import { notFoundError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
+import {
+  badRequestError,
+  notFoundError,
+  preconditionFailedError,
+  ServiceError
+} from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { createSystemAuditScope, type AuditScope } from '@metorial/audit-scope';
@@ -38,6 +43,16 @@ let include = {
   listing: true
 } as const;
 
+let skillAccessLevels = ['read', 'write', 'manage'] as const;
+
+let skillAccessPermissionByLevel = {
+  read: 'skill_read',
+  write: 'skill_write',
+  manage: 'skill_manage_access'
+} as const;
+
+type SkillAccessLevel = (typeof skillAccessLevels)[number];
+
 type ConsumerAccessCreateInput =
   | {
       type: 'provider_template';
@@ -50,6 +65,7 @@ type ConsumerAccessCreateInput =
   | {
       type: 'skill';
       skill: Skill;
+      accessLevel?: SkillAccessLevel;
     }
   | {
       type: 'skill_template';
@@ -58,6 +74,7 @@ type ConsumerAccessCreateInput =
   | {
       type: 'skill_group';
       skillGroup: SkillGroup;
+      accessLevel?: SkillAccessLevel;
     }
   | {
       type: 'skill_marketplace';
@@ -84,6 +101,35 @@ type ConsumerAccessWithRelations = ConsumerAccess & {
 };
 
 class ConsumerAccessServiceImpl {
+  private async setSkillAccessLevel(d: {
+    organization: Organization;
+    consumerGroup: Pick<ConsumerGroup, 'accessTagOid'>;
+    consumerAccess: Pick<ConsumerAccess, 'id'>;
+    resource: { skill: Pick<Skill, 'oid'> } | { skillGroup: Pick<SkillGroup, 'oid'> };
+    level: SkillAccessLevel;
+  }) {
+    let grantedLevels = skillAccessLevels.slice(0, skillAccessLevels.indexOf(d.level) + 1);
+
+    for (let level of skillAccessLevels) {
+      let grant = {
+        organization: d.organization,
+        permission: skillAccessPermissionByLevel[level],
+        subject: { consumerGroup: d.consumerGroup },
+        resource: d.resource,
+        policyScope: {
+          type: 'consumer_access' as const,
+          consumerAccessId: d.consumerAccess.id
+        }
+      };
+
+      if (grantedLevels.includes(level)) {
+        await consumerAccessPolicyService.grantAccess(grant);
+      } else {
+        await consumerAccessPolicyService.revokeAccess(grant);
+      }
+    }
+  }
+
   private getDefaultListingValues(
     access: ConsumerAccessCreateInput | ConsumerAccessWithRelations
   ): Pick<ConsumerAccessListing, 'name' | 'description' | 'readme'> {
@@ -838,7 +884,9 @@ class ConsumerAccessServiceImpl {
               ? d.access.accessLevel == 'manage'
                 ? 'manage'
                 : 'read'
-              : null,
+              : d.access.type == 'skill' || d.access.type == 'skill_group'
+                ? (d.access.accessLevel ?? 'read')
+                : null,
           surfaceOid: d.consumerSurface.oid,
           consumerGroupOid: d.consumerGroup.oid,
           providerTemplateOid:
@@ -857,7 +905,10 @@ class ConsumerAccessServiceImpl {
         update:
           d.access.type == 'skill_marketplace' && d.access.accessLevel == 'manage'
             ? { accessLevel: 'manage' }
-            : {},
+            : (d.access.type == 'skill' || d.access.type == 'skill_group') &&
+                d.access.accessLevel
+              ? { accessLevel: d.access.accessLevel }
+              : {},
         include
       });
 
@@ -894,19 +945,12 @@ class ConsumerAccessServiceImpl {
           });
         }
       } else if (d.access.type == 'skill') {
-        await consumerAccessPolicyService.grantAccess({
+        await this.setSkillAccessLevel({
           organization: d.organization,
-          permission: 'skill_read',
-          subject: {
-            consumerGroup: d.consumerGroup
-          },
-          resource: {
-            skill: d.access.skill
-          },
-          policyScope: {
-            type: 'consumer_access',
-            consumerAccessId: consumerAccess.id
-          }
+          consumerGroup: d.consumerGroup,
+          consumerAccess,
+          resource: { skill: d.access.skill },
+          level: consumerAccess.accessLevel ?? 'read'
         });
       } else if (d.access.type == 'skill_template') {
         await consumerAccessPolicyService.grantAccess({
@@ -924,19 +968,12 @@ class ConsumerAccessServiceImpl {
           }
         });
       } else if (d.access.type == 'skill_group') {
-        await consumerAccessPolicyService.grantAccess({
+        await this.setSkillAccessLevel({
           organization: d.organization,
-          permission: 'skill_read',
-          subject: {
-            consumerGroup: d.consumerGroup
-          },
-          resource: {
-            skillGroup: d.access.skillGroup
-          },
-          policyScope: {
-            type: 'consumer_access',
-            consumerAccessId: consumerAccess.id
-          }
+          consumerGroup: d.consumerGroup,
+          consumerAccess,
+          resource: { skillGroup: d.access.skillGroup },
+          level: consumerAccess.accessLevel ?? 'read'
         });
       } else if (d.access.type == 'skill_marketplace') {
         await consumerAccessPolicyService.grantAccess({
@@ -1029,9 +1066,44 @@ class ConsumerAccessServiceImpl {
       name?: string;
       description?: string | null;
       readme?: string | null;
+      accessLevel?: SkillAccessLevel;
     };
   }) {
+    let accessLevel = d.input.accessLevel;
+    if (
+      accessLevel &&
+      d.consumerAccess.type != 'skill' &&
+      d.consumerAccess.type != 'skill_group'
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'The access level can only be changed for skills and skill groups.'
+        })
+      );
+    }
+
     return await withTransaction(async db => {
+      if (accessLevel && accessLevel != d.consumerAccess.accessLevel) {
+        let organization = await db.organization.findUniqueOrThrow({
+          where: { oid: d.consumerAccess.surface.organizationOid }
+        });
+
+        await db.consumerAccess.update({
+          where: { oid: d.consumerAccess.oid },
+          data: { accessLevel }
+        });
+
+        await this.setSkillAccessLevel({
+          organization,
+          consumerGroup: d.consumerAccess.consumerGroup,
+          consumerAccess: d.consumerAccess,
+          resource: d.consumerAccess.skill
+            ? { skill: d.consumerAccess.skill }
+            : { skillGroup: d.consumerAccess.skillGroup! },
+          level: accessLevel
+        });
+      }
+
       await this.upsertSharedListing({
         consumerSurface: {
           oid: d.consumerAccess.surfaceOid
