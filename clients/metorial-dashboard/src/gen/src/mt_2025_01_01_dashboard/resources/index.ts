@@ -41,6 +41,7 @@ export * from './provider-collections';
 export * from './provider-deployments';
 export * from './provider-groups';
 export * from './provider-invocations';
+export * from './provider-issues';
 export * from './provider-listings';
 export * from './provider-runs';
 export * from './provider-specification-change-notifications';

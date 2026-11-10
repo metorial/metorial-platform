@@ -8,6 +8,7 @@ export type ManagementInstanceProtoGuardAlertsGetOutput = {
   sessionMessageId: string | null;
   sessionConnectionId: string | null;
   providerRunId: string | null;
+  issueId: string | null;
   filters: {
     object: 'protoguard.alert_filter';
     id: string;
@@ -57,6 +58,7 @@ export let mapManagementInstanceProtoGuardAlertsGetOutput =
       'session_message_id',
       'session_connection_id',
       'provider_run_id',
+      'issue_id',
       [
         'filters',
         0,

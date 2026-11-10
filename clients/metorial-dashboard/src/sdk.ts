@@ -104,6 +104,7 @@ import {
   MetorialDashboardInstanceProviderDeploymentsSetupSessionsEndpoint,
   MetorialDashboardInstanceProviderGroupsEndpoint,
   MetorialDashboardInstanceProviderInvocationsEndpoint,
+  MetorialDashboardInstanceProviderIssuesEndpoint,
   MetorialDashboardInstanceProviderListingsEndpoint,
   MetorialDashboardInstanceProviderRunsEndpoint,
   MetorialDashboardInstanceProvidersAuthMethodsEndpoint,
@@ -1208,6 +1209,7 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
     manager
   ),
   providerInvocations: new MetorialDashboardInstanceProviderInvocationsEndpoint(manager),
+  providerIssues: new MetorialDashboardInstanceProviderIssuesEndpoint(manager),
   sessionErrors: new MetorialDashboardInstanceSessionsErrorsEndpoint(manager),
   sessionErrorGroups: new MetorialDashboardInstanceSessionsErrorGroupsEndpoint(manager),
 

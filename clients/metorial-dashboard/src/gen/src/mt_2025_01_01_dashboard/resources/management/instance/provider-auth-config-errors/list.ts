@@ -16,6 +16,7 @@ export type ManagementInstanceProviderAuthConfigErrorsListOutput = {
     providerInvocationId: string | null;
     groupId: string | null;
     similarErrorCount: number;
+    issueId: string | null;
     createdAt: Date;
   }[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
@@ -36,6 +37,7 @@ export let mapManagementInstanceProviderAuthConfigErrorsListOutput =
           'provider_invocation_id',
           'group_id',
           'similar_error_count',
+          'issue_id',
           'created_at'
         ]
       ]
@@ -58,6 +60,7 @@ export type ManagementInstanceProviderAuthConfigErrorsListQuery = {
   providerId?: string | string[] | undefined;
   providerAuthConfigErrorGroupId?: string | string[] | undefined;
   providerInvocationId?: string | string[] | undefined;
+  issueId?: string | string[] | undefined;
   type?: string | string[] | undefined;
   createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
   search?: string | undefined;
@@ -80,6 +83,7 @@ export let mapManagementInstanceProviderAuthConfigErrorsListQuery =
               'provider_id',
               'provider_auth_config_error_group_id',
               'provider_invocation_id',
+              'issue_id',
               ['created_at', 1, 5]
             ]
           ]

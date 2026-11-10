@@ -9,6 +9,7 @@ export type ProtoGuardAlertsListOutput = {
     sessionMessageId: string | null;
     sessionConnectionId: string | null;
     providerRunId: string | null;
+    issueId: string | null;
     filters: {
       object: 'protoguard.alert_filter';
       id: string;
@@ -64,6 +65,7 @@ export let mapProtoGuardAlertsListOutput =
           'session_message_id',
           'session_connection_id',
           'provider_run_id',
+          'issue_id',
           [
             'filters',
             0,
@@ -105,6 +107,7 @@ export type ProtoGuardAlertsListQuery = {
   sessionMessageId?: string | string[] | undefined;
   sessionConnectionId?: string | string[] | undefined;
   providerRunId?: string | string[] | undefined;
+  issueId?: string | string[] | undefined;
   createdAt?: { gt?: Date | undefined; lt?: Date | undefined } | undefined;
 };
 
@@ -123,6 +126,7 @@ export let mapProtoGuardAlertsListQuery =
             'session_message_id',
             'session_connection_id',
             'provider_run_id',
+            'issue_id',
             ['created_at', 1, 5]
           ]
         ]
