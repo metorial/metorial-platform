@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { isPublicIp, safeFetch, SsrfBlockedError } from '.';
+import { assertUrlIpAllowed, isPublicIp, safeFetch, SsrfBlockedError } from '.';
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -138,6 +138,129 @@ describe('safeFetch', () => {
     expect(response.url).toBe('https://next.example.com/final');
   });
 
+  it('drops credential headers when a redirect changes origin', async () => {
+    stubLookup(() => '93.184.216.34');
+    let fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(null, {
+          status: 307,
+          headers: { location: 'https://other.example.com/next' }
+        })
+      )
+      .mockResolvedValueOnce(new Response('ok'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await safeFetch('https://example.com/start', {
+      headers: {
+        Authorization: 'Bearer secret',
+        Cookie: 'session=1',
+        'Proxy-Authorization': 'Basic abc',
+        'X-Api-Key': 'key',
+        Accept: 'image/*'
+      },
+      crossOriginRedirectStripHeaders: ['x-api-key']
+    });
+
+    let first = new Headers(fetchCall(fetchMock, 0).init.headers);
+    expect(first.get('authorization')).toBe('Bearer secret');
+    expect(first.get('x-api-key')).toBe('key');
+
+    let second = new Headers(fetchCall(fetchMock, 1).init.headers);
+    expect(second.get('authorization')).toBeNull();
+    expect(second.get('cookie')).toBeNull();
+    expect(second.get('proxy-authorization')).toBeNull();
+    expect(second.get('x-api-key')).toBeNull();
+    expect(second.get('accept')).toBe('image/*');
+    expect(second.get('host')).toBe('other.example.com');
+  });
+
+  it('keeps credential headers on a same-origin redirect', async () => {
+    stubLookup(() => '93.184.216.34');
+    let fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(null, { status: 302, headers: { location: '/next' } })
+      )
+      .mockResolvedValueOnce(new Response('ok'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await safeFetch('https://example.com/start', {
+      headers: { Authorization: 'Bearer secret' }
+    });
+
+    expect(new Headers(fetchCall(fetchMock, 1).init.headers).get('authorization')).toBe(
+      'Bearer secret'
+    );
+  });
+
+  it('treats a scheme change as a different origin', async () => {
+    stubLookup(() => '93.184.216.34');
+    let fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(null, { status: 302, headers: { location: 'http://example.com/next' } })
+      )
+      .mockResolvedValueOnce(new Response('ok'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await safeFetch('https://example.com/start', {
+      headers: { Authorization: 'Bearer secret' }
+    });
+
+    expect(new Headers(fetchCall(fetchMock, 1).init.headers).get('authorization')).toBeNull();
+  });
+
+  it('switches to GET without a body on 303, and on 301/302 after a POST', async () => {
+    stubLookup(() => '93.184.216.34');
+
+    for (let [status, method, expected] of [
+      [303, 'PUT', 'GET'],
+      [302, 'POST', 'GET'],
+      [301, 'POST', 'GET'],
+      [302, 'PUT', 'PUT']
+    ] as const) {
+      let fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(new Response(null, { status, headers: { location: '/next' } }))
+        .mockResolvedValueOnce(new Response('ok'));
+      vi.stubGlobal('fetch', fetchMock);
+
+      await safeFetch('https://example.com/start', {
+        method,
+        headers: { 'content-type': 'application/json' },
+        body: '{}'
+      });
+
+      let second = fetchCall(fetchMock, 1).init;
+      expect(second.method).toBe(expected);
+
+      if (expected == 'GET') {
+        expect(second.body).toBeUndefined();
+        expect(new Headers(second.headers).get('content-type')).toBeNull();
+      } else {
+        expect(second.body).toBe('{}');
+        expect(new Headers(second.headers).get('content-type')).toBe('application/json');
+      }
+    }
+  });
+
+  it('keeps the method and body on 307 and 308', async () => {
+    stubLookup(() => '93.184.216.34');
+
+    for (let status of [307, 308]) {
+      let fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(new Response(null, { status, headers: { location: '/next' } }))
+        .mockResolvedValueOnce(new Response('ok'));
+      vi.stubGlobal('fetch', fetchMock);
+
+      await safeFetch('https://example.com/start', { method: 'POST', body: '{}' });
+
+      expect(fetchCall(fetchMock, 1).init).toMatchObject({ method: 'POST', body: '{}' });
+    }
+  });
+
   it('blocks a redirect to an internal address', async () => {
     stubLookup(hostname =>
       hostname == 'internal.example.com' ? '127.0.0.1' : '93.184.216.34'
@@ -165,5 +288,27 @@ describe('safeFetch', () => {
 
     expect(lookup).not.toHaveBeenCalled();
     expect(fetchMock.mock.calls[0]![0]).toBe('http://localhost:8080/hook');
+  });
+});
+
+describe('assertUrlIpAllowed', () => {
+  it('rejects names that resolve to internal addresses and private IP literals', async () => {
+    stubLookup(() => '169.254.169.254');
+
+    await expect(assertUrlIpAllowed('https://example.com')).rejects.toBeInstanceOf(
+      SsrfBlockedError
+    );
+    await expect(assertUrlIpAllowed('http://10.0.0.1/')).rejects.toBeInstanceOf(
+      SsrfBlockedError
+    );
+  });
+
+  it('accepts public addresses and rejects unsupported schemes', async () => {
+    stubLookup(() => '93.184.216.34');
+
+    await expect(assertUrlIpAllowed('https://example.com')).resolves.toBeUndefined();
+    await expect(assertUrlIpAllowed('file:///etc/passwd')).rejects.toThrow(
+      'Unsupported protocol'
+    );
   });
 });

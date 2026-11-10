@@ -10,6 +10,7 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
+    "@metorial/consumer-auth": "^1.0.0",
     "@lowerdeck/env": "workspace:2.0.0",
     "@lowerdeck/error": "workspace:2.0.0",
     "@lowerdeck/lock": "workspace:2.0.0",

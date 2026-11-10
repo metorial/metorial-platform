@@ -147,14 +147,16 @@ class providerAuthMethodServiceImpl {
     );
   }
 
-  async getProviderAuthMethodById(d: MetorialFacing<GetProviderAuthMethodByIdParams>) {
-    let { instance, organizationActor, ...rest } = d;
+  async getProviderAuthMethodById(
+    d: MetorialFacing<GetProviderAuthMethodByIdParams> & { publicCatalogOnly?: boolean }
+  ) {
+    let { instance, organizationActor, publicCatalogOnly, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
     return this.getProviderAuthMethodByIdInternal({
       ...rest,
       tenant: scope.tenant,
-      environment: scope.environment
+      environment: publicCatalogOnly ? undefined : scope.environment
     });
   }
 

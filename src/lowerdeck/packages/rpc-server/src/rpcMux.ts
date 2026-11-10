@@ -8,6 +8,7 @@ import {
   validationError
 } from '@lowerdeck/error';
 import { createExecutionContext, provideExecutionContext } from '@lowerdeck/execution-context';
+import { extractTrustedClientIp } from '@lowerdeck/forwarded-for';
 import { generateCustomId } from '@lowerdeck/id';
 import { memo } from '@lowerdeck/memo';
 import { rpcSignatureHeader, verifyRpcSignature } from '@lowerdeck/rpc-signature';
@@ -24,7 +25,6 @@ import {
 import { v } from '@lowerdeck/validation';
 import * as Cookie from 'cookie';
 import type { ServiceRequest } from './controller';
-import { parseForwardedFor } from './extractIp';
 
 let verbose = process.env.NODE_ENV !== 'production';
 
@@ -304,11 +304,7 @@ export let rpcMux = (
           : sentryTraceHeaders) ?? undefined;
       let baggage = req.headers.get('baggage');
 
-      let ip = parseForwardedFor(
-        req.headers.get('cf-connecting-ip') ??
-          req.headers.get('x-forwarded-for') ??
-          req.headers.get('x-real-ip')
-      );
+      let ip = extractTrustedClientIp(req.headers);
 
       let headers = new Headers();
 

@@ -1,6 +1,6 @@
 import { badRequestError, createError, ServiceError } from '@lowerdeck/error';
 import { v } from '@lowerdeck/validation';
-import { checkEdition } from '@metorial/editions';
+import { checkEdition, perEdition } from '@metorial/editions';
 import { defineSettings, setting, SettingsValidationError } from '@metorial/settings';
 import type { ScmBackend, ScmBackendType } from '../../prisma/generated/client';
 
@@ -41,8 +41,16 @@ let policy = defineSettings('originScm', {
         'Exact provider hostnames; unset allows any domain and an empty list allows none'
     }),
     validator: v.optional(v.array(v.string()))
-  }
+  },
+  allowPrivateNetworks: setting(v.boolean(), {
+    env: 'ORIGIN_SCM_ALLOW_PRIVATE_NETWORKS',
+    default: perEdition({ cloud: false, 'on-prem': true }),
+    description:
+      'Allow connections to self-hosted SCM providers on private, loopback or link-local addresses'
+  })
 });
+
+export let scmAllowsPrivateNetworks = policy.allowPrivateNetworks;
 
 let providerLabels: Record<ScmBackendType, string> = {
   github: 'GitHub.com',

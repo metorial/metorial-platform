@@ -61,12 +61,13 @@ describe('api-core portal: consumer groups', () => {
       expected
     );
     expect(ids(lists.instance.body.items)).toContain(group.id);
+    expect(ids(lists.consumer.body.items)).not.toContain(group.id);
 
     await expectAuthMatrix(
       clients,
       (client, name) =>
         client.get(instancePathFor(org, name, groupsPath(portal.id, `/${group.id}`))),
-      expected
+      { ...expected, consumer: 404 }
     );
 
     expectError(
@@ -76,13 +77,13 @@ describe('api-core portal: consumer groups', () => {
     );
     expectError(
       await consumer.magnetar.patch(groupsPath(portal.id, `/${group.id}`), { name: 'Nope' }),
-      403,
-      'forbidden'
+      404,
+      'not_found'
     );
     expectError(
       await consumer.magnetar.delete(groupsPath(portal.id, `/${group.id}`)),
-      403,
-      'forbidden'
+      404,
+      'not_found'
     );
   });
 

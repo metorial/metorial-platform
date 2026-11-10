@@ -11,6 +11,7 @@ import { codeBucketClient } from '../lib/codeWorkspace';
 import { getInstallationAccessToken, getGitHubTransferEndpoints } from '../lib/githubApp';
 import { getGitLabAccessTokenWithInstallation } from '../lib/gitlab';
 import { normalizePath } from '../lib/normalizePath';
+import { assertScmUrlsReachable } from '../lib/scmFetch';
 import { getBitbucketCloneUrl } from '../queues/codeBucket/bitbucket';
 import { cloneBucketQueue } from '../queues/codeBucket/cloneBucket';
 import { copyFromToBucketQueue } from '../queues/codeBucket/copyFromToBucket';
@@ -339,11 +340,11 @@ class codeBucketServiceImpl {
 
       await codeBucketClient.exportBucketToGithub({
         bucketId: d.codeBucket.id,
-        ...getGitHubTransferEndpoints(
+        ...(await getGitHubTransferEndpoints(
           repo.installation.backend,
           repo.externalOwner,
           repo.externalName
-        ),
+        )),
         owner: repo.externalOwner,
         repo: repo.externalName,
         path: d.path,
@@ -359,6 +360,7 @@ class codeBucketServiceImpl {
 
     if (repo.provider === 'gitlab') {
       let token = await getGitLabAccessTokenWithInstallation(repo.installation);
+      await assertScmUrlsReachable(repo.installation.backend.apiUrl);
 
       await codeBucketClient.exportBucketToGitlab({
         bucketId: d.codeBucket.id,
@@ -378,9 +380,12 @@ class codeBucketServiceImpl {
     if (repo.provider === 'bitbucket') {
       let token = await getBitbucketAccessTokenWithInstallation(repo.installation);
       if (repo.installation.backend.type === 'bitbucket_data_center') {
+        let cloneUrl = getBitbucketCloneUrl(repo);
+        await assertScmUrlsReachable(cloneUrl);
+
         await codeBucketClient.exportBucketToBitbucketDataCenter({
           bucketId: d.codeBucket.id,
-          cloneUrl: getBitbucketCloneUrl(repo),
+          cloneUrl,
           path: d.path,
           username: '',
           token,

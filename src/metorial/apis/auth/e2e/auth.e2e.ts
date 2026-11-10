@@ -63,6 +63,34 @@ describe('api-auth', () => {
     expect(readSessionCookie(unknownUser.headers)).toBeNull();
   });
 
+  it('limits failed logins per account from one address', async () => {
+    let api = rest(metorialEndpoints().api).with({
+      headers: { 'x-forwarded-for': '203.0.113.10' }
+    });
+    let email = uniqueEmail('api-auth-limit');
+
+    for (let attempt = 0; attempt < 10; attempt++) {
+      expect((await api.post('/_/auth/login', { email, password: 'wrong' })).status).toBe(400);
+    }
+
+    expect((await api.post('/_/auth/login', { email, password: 'wrong' })).status).toBe(429);
+  });
+
+  it('limits failed logins per account across addresses', async () => {
+    let api = rest(metorialEndpoints().api);
+    let email = uniqueEmail('api-auth-spread');
+    let loginFrom = (address: number) =>
+      api
+        .with({ headers: { 'x-forwarded-for': `198.51.100.${address}` } })
+        .post('/_/auth/login', { email, password: 'wrong' });
+
+    for (let address = 1; address <= 50; address++) {
+      expect((await loginFrom(address)).status).toBe(400);
+    }
+
+    expect((await loginFrom(51)).status).toBe(429);
+  });
+
   it('validates signup input and rejects duplicate emails', async () => {
     let api = rest(metorialEndpoints().api);
     let email = uniqueEmail('api-auth-dup');

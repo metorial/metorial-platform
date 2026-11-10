@@ -92,7 +92,7 @@ describe('module-enclave ingress enforcement on MCP connections', () => {
       'ingress_network_policy_blocked'
     );
     expectError(
-      await initialize(org, session.id, '198.51.100.7, 203.0.113.5'),
+      await initialize(org, session.id, '203.0.113.5, 198.51.100.7'),
       403,
       'ingress_network_policy_blocked'
     );

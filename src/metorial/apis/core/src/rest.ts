@@ -1,4 +1,4 @@
-import { authenticate } from '@metorial/auth';
+import { authenticate, isDashboardOrigin } from '@metorial/auth';
 import { getConfig } from '@metorial/config';
 import { AuthInfo } from '@metorial/module-access';
 import { RateLimiter, RestServerBuilder } from '@metorial/rest';
@@ -10,7 +10,7 @@ export let restServer = new RestServerBuilder<AuthInfo, ApiVersion>()
     ({ auth, origin }) =>
       auth.type == 'fine_grained' ||
       auth.machineAccess?.type == 'instance_publishable' ||
-      auth.type == 'user'
+      (auth.type == 'user' && isDashboardOrigin(origin))
   )
   .rateLimiter(
     new RateLimiter(

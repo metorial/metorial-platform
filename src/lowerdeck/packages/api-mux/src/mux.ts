@@ -4,7 +4,11 @@ export let apiMux = (
   services: {
     domains?: string[];
     methods?: string[];
-    endpoint: { path: string | string[]; fetch: (req: any, server?: any) => Promise<any>; exact?: boolean };
+    endpoint: {
+      path: string | string[];
+      fetch: (req: any, server?: any) => Promise<any>;
+      exact?: boolean;
+    };
   }[],
   fallback?: (req: any, server: any) => Promise<any>
 ) => {
@@ -22,9 +26,7 @@ export let apiMux = (
 
   return (req: Request, server: any) => {
     let url = new URL(req.url);
-    let host =
-      (req.headers.get('x-host') ?? req.headers.get('host') ?? url.hostname).split(':')[0] ??
-      url.hostname;
+    let host = (req.headers.get('host') ?? url.hostname).split(':')[0] ?? url.hostname;
     url.host = host;
 
     if (url.pathname == '/ping') {

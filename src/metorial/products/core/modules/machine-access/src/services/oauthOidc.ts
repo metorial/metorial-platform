@@ -1,5 +1,6 @@
 import { Service } from '@lowerdeck/service';
 import { getConfig } from '@metorial/config';
+import { isUserEmailVerified } from '@metorial/module-organization/src/definitions/userEmailVerification';
 import { oauthJwkGlobalRepository } from '@metorial/multi-region';
 import type { JsonWebKeyInput } from 'node:crypto';
 import { createPrivateKey, sign } from 'node:crypto';
@@ -122,7 +123,7 @@ class OAuthOidcService {
     };
   }
 
-  buildUserInfoClaims(oauthAuthorization: OidcClaimsAuthorization) {
+  async buildUserInfoClaims(oauthAuthorization: OidcClaimsAuthorization) {
     let claims: Record<string, unknown> = {
       sub: getSubject(oauthAuthorization)
     };
@@ -141,7 +142,10 @@ class OAuthOidcService {
       oauthAuthorization.user?.email
     ) {
       claims.email = oauthAuthorization.user.email;
-      claims.email_verified = true;
+      claims.email_verified = await isUserEmailVerified({
+        userId: oauthAuthorization.user.id,
+        email: oauthAuthorization.user.email
+      });
     }
 
     return claims;
@@ -178,7 +182,7 @@ class OAuthOidcService {
       payload.nonce = d.oauthAuthorizationRequest.nonce;
     }
 
-    Object.assign(payload, this.buildUserInfoClaims(d.oauthToken.oauthAuthorization));
+    Object.assign(payload, await this.buildUserInfoClaims(d.oauthToken.oauthAuthorization));
 
     let encodedHeader = encodeBase64Url(JSON.stringify(header));
     let encodedPayload = encodeBase64Url(JSON.stringify(payload));

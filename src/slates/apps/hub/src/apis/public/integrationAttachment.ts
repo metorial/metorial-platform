@@ -232,7 +232,11 @@ export let integrationAttachmentApp = createHono().get(
 
       let upstream: Response;
       try {
-        upstream = await safeFetch(url.toString(), { headers, maxRedirects: MAX_REDIRECTS });
+        upstream = await safeFetch(url.toString(), {
+          headers,
+          maxRedirects: MAX_REDIRECTS,
+          crossOriginRedirectStripHeaders: Object.keys(headers)
+        });
       } catch (err) {
         let reason = err instanceof Error ? err.message : String(err);
         throw new ServiceError(

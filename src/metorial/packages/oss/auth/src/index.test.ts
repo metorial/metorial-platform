@@ -14,7 +14,7 @@ vi.mock('@lowerdeck/execution-context', () => ({
   updateExecutionContext: mocks.updateExecutionContext
 }));
 vi.mock('@lowerdeck/forwarded-for', () => ({
-  parseForwardedFor: vi.fn(() => '127.0.0.1')
+  extractTrustedClientIp: vi.fn(() => '127.0.0.1')
 }));
 vi.mock('@metorial/bearer', () => ({
   extractToken: mocks.extractToken

@@ -100,14 +100,16 @@ class providerVersionServiceImpl {
     );
   }
 
-  async getProviderVersionById(d: MetorialFacing<GetProviderVersionByIdParams>) {
-    let { instance, organizationActor, ...rest } = d;
+  async getProviderVersionById(
+    d: MetorialFacing<GetProviderVersionByIdParams> & { publicCatalogOnly?: boolean }
+  ) {
+    let { instance, organizationActor, publicCatalogOnly, ...rest } = d;
     let scope = await resolveMetorialFacing(d);
 
     return this.getProviderVersionByIdInternal({
       ...rest,
       tenant: scope.tenant,
-      environment: scope.environment
+      environment: publicCatalogOnly ? undefined : scope.environment
     });
   }
 

@@ -3,6 +3,7 @@ import { db } from '../../db';
 import { env } from '../../env';
 import { getBitbucketAccessTokenWithInstallation } from '../../lib/bitbucket';
 import { codeBucketClient } from '../../lib/codeWorkspace';
+import { assertScmUrlsReachable } from '../../lib/scmFetch';
 import { getBitbucketCloneUrl } from './bitbucket';
 import { runCodeBucketImport } from './importError';
 
@@ -37,9 +38,12 @@ export let importBitbucketQueueProcessor = importBitbucketQueue.process(async da
       let token = await getBitbucketAccessTokenWithInstallation(repo.installation);
 
       if (repo.installation.backend.type === 'bitbucket_data_center') {
+        let cloneUrl = getBitbucketCloneUrl(repo);
+        await assertScmUrlsReachable(cloneUrl);
+
         await codeBucketClient.createBucketFromBitbucketDataCenter({
           newBucketId: data.newBucketId,
-          cloneUrl: getBitbucketCloneUrl(repo),
+          cloneUrl,
           path: data.path,
           ref: data.ref,
           username: '',

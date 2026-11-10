@@ -36,6 +36,7 @@
     "@lowerdeck/cors": "workspace:2.0.0",
     "@lowerdeck/error": "workspace:2.0.0",
     "@lowerdeck/execution-context": "workspace:2.0.0",
+    "@lowerdeck/forwarded-for": "workspace:2.0.0",
     "@lowerdeck/id": "workspace:2.0.0",
     "@lowerdeck/memo": "workspace:2.0.0",
     "@lowerdeck/rpc-signature": "workspace:2.0.0",

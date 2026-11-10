@@ -32,13 +32,34 @@ describe('oauthUrls', () => {
   });
 
   describe('urlsMatch', () => {
-    it('matches protocol, hostname, port, and pathname', () => {
+    it('matches protocol, hostname, port, pathname, and query', () => {
+      expect(
+        urlsMatch(
+          'http://localhost:3000/oauth/callback?registered=1',
+          'http://localhost:3000/oauth/callback?registered=1'
+        )
+      ).toBe(true);
+    });
+
+    it('rejects query and fragment mismatches', () => {
       expect(
         urlsMatch(
           'http://localhost:3000/oauth/callback?registered=1',
           'http://localhost:3000/oauth/callback?requested=1'
         )
-      ).toBe(true);
+      ).toBe(false);
+      expect(
+        urlsMatch(
+          'http://localhost:3000/oauth/callback',
+          'http://localhost:3000/oauth/callback?next=https://example.com'
+        )
+      ).toBe(false);
+      expect(
+        urlsMatch(
+          'http://localhost:3000/oauth/callback',
+          'http://localhost:3000/oauth/callback#x'
+        )
+      ).toBe(false);
     });
 
     it('rejects protocol mismatches', () => {
