@@ -4,7 +4,7 @@ export type PortalsAccessListOutput = {
   items: {
     object: 'consumer.access';
     id: string;
-    accessLevel: 'read' | 'manage' | null;
+    accessLevel: 'read' | 'write' | 'manage' | null;
     name: string;
     description: string | null;
     readme: string | null;

@@ -6,7 +6,7 @@ import {
 export type DashboardInstancePortalsAccessUpdateOutput = {
   object: 'consumer.access';
   id: string;
-  accessLevel: 'read' | 'manage' | null;
+  accessLevel: 'read' | 'write' | 'manage' | null;
   name: string;
   description: string | null;
   readme: string | null;
@@ -139,6 +139,7 @@ export type DashboardInstancePortalsAccessUpdateBody = {
   name?: string | undefined;
   description?: string | null | undefined;
   readme?: string | null | undefined;
+  permission?: 'read' | 'write' | 'manage' | undefined;
 };
 
 export let mapDashboardInstancePortalsAccessUpdateBody =

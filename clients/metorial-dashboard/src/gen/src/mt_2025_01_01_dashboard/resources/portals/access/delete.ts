@@ -3,7 +3,7 @@ import { mapObject } from '@metorial/util-resource-mapper/compact';
 export type PortalsAccessDeleteOutput = {
   object: 'consumer.access';
   id: string;
-  accessLevel: 'read' | 'manage' | null;
+  accessLevel: 'read' | 'write' | 'manage' | null;
   name: string;
   description: string | null;
   readme: string | null;

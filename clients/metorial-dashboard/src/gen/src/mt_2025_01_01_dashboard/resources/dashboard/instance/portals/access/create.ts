@@ -3,7 +3,7 @@ import { mapObject } from '@metorial/util-resource-mapper/compact';
 export type DashboardInstancePortalsAccessCreateOutput = {
   object: 'consumer.access';
   id: string;
-  accessLevel: 'read' | 'manage' | null;
+  accessLevel: 'read' | 'write' | 'manage' | null;
   name: string;
   description: string | null;
   readme: string | null;
@@ -140,9 +140,17 @@ export type DashboardInstancePortalsAccessCreateBody = {
   access:
     | { type: 'provider_template'; providerTemplateId: string }
     | { type: 'magic_mcp_server'; magicMcpServerId: string }
-    | { type: 'skill'; skillId: string }
+    | {
+        type: 'skill';
+        skillId: string;
+        permission?: 'read' | 'write' | 'manage' | undefined;
+      }
     | { type: 'skill_template'; skillTemplateId: string }
-    | { type: 'skill_group'; skillGroupId: string }
+    | {
+        type: 'skill_group';
+        skillGroupId: string;
+        permission?: 'read' | 'write' | 'manage' | undefined;
+      }
     | {
         type: 'skill_marketplace';
         skillMarketplaceId: string;
