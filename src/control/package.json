@@ -29,7 +29,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@opentui/core": "^0.7.0",
+    "@opentui/core": "^0.8.2",
     "turndown": "^7.2.4"
   }
 }

@@ -36,7 +36,7 @@
     "@opentelemetry/instrumentation": "^0.300.0",
     "@opentelemetry/resources": "^3.0.0",
     "@opentelemetry/sdk-trace": "^3.0.0",
-    "@opentelemetry/semantic-conventions": "^1.43.0",
+    "@opentelemetry/semantic-conventions": "^1.44.0",
     "@prisma/instrumentation": "^7.10.1"
   },
   "devDependencies": {

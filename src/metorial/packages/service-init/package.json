@@ -10,7 +10,7 @@
     "lint": "prettier src/**/*.ts --check"
   },
   "dependencies": {
-    "@aws-sdk/rds-signer": "^3.1158.0",
+    "@aws-sdk/rds-signer": "^3.1161.0",
     "@metorial/editions": "workspace:*"
   },
   "devDependencies": {
