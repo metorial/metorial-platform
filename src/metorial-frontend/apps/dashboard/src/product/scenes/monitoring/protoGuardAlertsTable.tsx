@@ -10,6 +10,7 @@ type ProtoGuardAlert = DashboardInstanceProtoGuardAlertsListOutput['items'][numb
 
 type ProtoGuardAlertsTableProps = {
   filterId?: string;
+  issueId?: string;
 };
 
 let severityRank = ['critical', 'high', 'medium'];
@@ -34,6 +35,7 @@ let ProtoGuardAlertsList = createDataList<ProtoGuardAlertsTableProps>('protoguar
       withDefaults(undefined, {
         order: 'desc' as const,
         filterId: props.filterId,
+        issueId: props.issueId,
         ...filters
       })
     )

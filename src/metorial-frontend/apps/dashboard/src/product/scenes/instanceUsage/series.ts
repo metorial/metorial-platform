@@ -3,7 +3,7 @@ import { eventsErrorColor, eventsSuccessColor } from '@metorial/metrics-page';
 import type { DashboardInstancesUsageTimelineOutput } from '@metorial/state';
 import type { UsageKind } from './query';
 
-let errorUsageKinds: UsageKind[] = ['session_error', 'auth_error'];
+let errorUsageKinds: UsageKind[] = ['session_error', 'auth_error', 'protoguard_warning'];
 
 export let isErrorUsageKinds = (kinds: UsageKind[]) =>
   kinds.length > 0 && kinds.every(kind => errorUsageKinds.includes(kind));
