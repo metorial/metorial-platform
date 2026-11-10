@@ -80,6 +80,8 @@ async fn main() -> anyhow::Result<()> {
         shutdown.clone(),
     ));
 
+    let mut side_listeners = Vec::new();
+
     if service.public_signer().is_some() {
         let public_app = object_store::public_api::create_public_router(
             service.clone(),
@@ -94,12 +96,16 @@ async fn main() -> anyhow::Result<()> {
             config.public.base_url.as_deref().unwrap_or_default()
         );
 
-        tokio::spawn(async move {
-            if let Err(error) = axum::serve(public_listener, public_app).await {
+        let shutdown = shutdown.clone();
+        side_listeners.push(tokio::spawn(async move {
+            if let Err(error) = axum::serve(public_listener, public_app)
+                .with_graceful_shutdown(shutdown.cancelled_owned())
+                .await
+            {
                 tracing::error!("Public listener stopped: {}", error);
                 std::process::exit(1);
             }
-        });
+        }));
     }
 
     if config.server.health_port != 0 {
@@ -112,12 +118,16 @@ async fn main() -> anyhow::Result<()> {
         let health_addr = format!("{}:{}", config.server.host, config.server.health_port);
         let health_listener = tokio::net::TcpListener::bind(&health_addr).await?;
 
-        tokio::spawn(async move {
-            if let Err(error) = axum::serve(health_listener, health_app).await {
+        let shutdown = shutdown.clone();
+        side_listeners.push(tokio::spawn(async move {
+            if let Err(error) = axum::serve(health_listener, health_app)
+                .with_graceful_shutdown(shutdown.cancelled_owned())
+                .await
+            {
                 tracing::error!("Health listener stopped: {}", error);
                 std::process::exit(1);
             }
-        });
+        }));
     }
 
     let addr = format!("{}:{}", config.server.host, config.server.port);
@@ -133,6 +143,10 @@ async fn main() -> anyhow::Result<()> {
         shutdown,
     )
     .await?;
+
+    for listener in side_listeners {
+        let _ = listener.await;
+    }
 
     info!("Object storage service stopped");
     Ok(())
