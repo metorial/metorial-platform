@@ -5,6 +5,7 @@ import type {
   Instance,
   Prisma,
   Project,
+  StoreParticipant,
   StoreParticipantPermissions,
   StoreParticipantRole
 } from '@metorial/db';
@@ -49,7 +50,21 @@ export type StoreResourceParticipantRecord = Prisma.StoreParticipantGetPayload<{
   include: typeof storeResourceParticipantInclude;
 }>;
 
-let roleOrder: StoreParticipantRole[] = ['creator', 'editor', 'viewer', 'user', 'forker'];
+let roleOrder: StoreParticipantRole[] = [
+  'creator',
+  'owner',
+  'editor',
+  'viewer',
+  'user',
+  'forker'
+];
+
+export type StoreAccessRole = 'owner' | 'editor' | 'viewer';
+
+let accessRoles: StoreParticipantRole[] = ['owner', 'editor', 'viewer'];
+
+let isAccessRole = (role: StoreParticipantRole): role is StoreAccessRole =>
+  accessRoles.includes(role);
 
 let mergeRoles = (left: StoreParticipantRole[], right: StoreParticipantRole[]) =>
   [...new Set([...left, ...right])].sort(
@@ -332,6 +347,9 @@ class StoreParticipantServiceImpl {
         consumerOid,
         actorOid: actor.oid
       });
+      if (consumerOid) {
+        participant = await this.mergeLinkedMemberParticipants({ participant, consumerOid });
+      }
 
       let existingActorRow = await db.storeParticipantActor.findUnique({
         where: {
@@ -422,9 +440,9 @@ class StoreParticipantServiceImpl {
     let organizationActorOid = actor.organizationActorOid;
     if (!organizationActorOid) return null;
 
-    let consumer = await withTransaction(
-      async db =>
-        await db.consumer.findFirst({
+    return await withTransaction(
+      async db => {
+        let linkedConsumer = await db.consumer.findFirst({
           where: {
             OR: [
               { organizationActorOid },
@@ -434,11 +452,65 @@ class StoreParticipantServiceImpl {
           },
           orderBy: { oid: 'asc' },
           select: { oid: true }
-        }),
+        });
+        if (linkedConsumer) return linkedConsumer.oid;
+
+        let member = await db.organizationMember.findUnique({
+          where: { actorOid: organizationActorOid },
+          select: { oid: true, userOid: true, organizationOid: true }
+        });
+        if (!member) return null;
+
+        let memberConsumer = await db.consumer.findFirst({
+          where: {
+            organizationOid: member.organizationOid,
+            OR: [{ organizationMemberOid: member.oid }, { userOid: member.userOid }]
+          },
+          orderBy: { oid: 'asc' },
+          select: { oid: true }
+        });
+
+        return memberConsumer?.oid ?? null;
+      },
       { ifExists: true }
     );
+  }
 
-    return consumer?.oid ?? null;
+  // A member who participated before their consumer existed (or was linked to their user) has a
+  // participant without a consumer. Fold it in once the consumer side shows up.
+  private async mergeLinkedMemberParticipants(d: {
+    participant: StoreParticipant;
+    consumerOid: bigint;
+  }) {
+    return await withTransaction(async db => {
+      let linkedParticipants = await db.storeParticipant.findMany({
+        where: {
+          storeOid: d.participant.storeOid,
+          consumerOid: null,
+          oid: { not: d.participant.oid },
+          primaryResourceActor: {
+            organizationActor: {
+              member: {
+                OR: [
+                  { consumers: { some: { oid: d.consumerOid } } },
+                  { user: { consumers: { some: { oid: d.consumerOid } } } }
+                ]
+              }
+            }
+          }
+        },
+        select: { oid: true }
+      });
+      if (!linkedParticipants.length) return d.participant;
+
+      for (let linked of linkedParticipants) {
+        await this.mergeParticipant({ fromOid: linked.oid, intoOid: d.participant.oid });
+      }
+
+      return await db.storeParticipant.findUniqueOrThrow({
+        where: { oid: d.participant.oid }
+      });
+    });
   }
 
   private async ensureParticipant(d: {
@@ -510,10 +582,25 @@ class StoreParticipantServiceImpl {
     });
   }
 
+  async getActorAccessRole(d: { store: { oid: bigint }; actor: { oid: bigint } }) {
+    let row = await withTransaction(
+      async db =>
+        await db.storeParticipantActor.findUnique({
+          where: {
+            storeOid_resourceActorOid: { storeOid: d.store.oid, resourceActorOid: d.actor.oid }
+          },
+          select: { roles: true }
+        }),
+      { ifExists: true }
+    );
+
+    return row?.roles.find(isAccessRole) ?? null;
+  }
+
   async setAccessRoleSafely(d: {
     store: { oid: bigint };
     actor: { oid: bigint };
-    role: 'editor' | 'viewer' | null;
+    role: StoreAccessRole | null;
   }) {
     let run = async () => {
       try {
@@ -529,7 +616,7 @@ class StoreParticipantServiceImpl {
   async setAccessRole(d: {
     store: { oid: bigint };
     actor: { oid: bigint };
-    role: 'editor' | 'viewer' | null;
+    role: StoreAccessRole | null;
   }) {
     return await withTransaction(async db => {
       await this.lockStoreParticipants(d.store.oid);
@@ -546,7 +633,7 @@ class StoreParticipantServiceImpl {
       }
 
       let nextRoles = mergeRoles(
-        row.roles.filter(role => role != 'editor' && role != 'viewer'),
+        row.roles.filter(role => !isAccessRole(role)),
         d.role ? [d.role] : []
       );
       if (!sameRoles(row.roles, nextRoles)) {

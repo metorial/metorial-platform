@@ -283,6 +283,7 @@ enum StoreParticipantPermissions {
 
 enum StoreParticipantRole {
   creator
+  owner
   editor
   viewer
   user

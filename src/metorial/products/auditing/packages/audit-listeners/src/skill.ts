@@ -99,6 +99,15 @@ export let recordSkillArchived = async (event: FabricEvents['skill.audit.archive
   });
 };
 
+export let recordSkillShared = async (event: FabricEvents['skill.audit.shared:after']) => {
+  await recordAuditEventAfterCommit(async recordedAt => {
+    await auditTrackerService.recordEvent(event.auditScope, 'skill', 'share', {
+      payload: { ...skillPayload(event.skill), shares: event.shares },
+      recordedAt
+    });
+  });
+};
+
 export let recordSkillPluginCreated = async (
   event: FabricEvents['skill.plugin.audit.created:after']
 ) => {
@@ -170,6 +179,7 @@ export let recordSkillMarketplaceArchived = async (
 Fabric.listen('skill.audit.created:after', recordSkillCreated);
 Fabric.listen('skill.audit.updated:after', recordSkillUpdated);
 Fabric.listen('skill.audit.archived:after', recordSkillArchived);
+Fabric.listen('skill.audit.shared:after', recordSkillShared);
 
 Fabric.listen('skill.plugin.audit.created:after', recordSkillPluginCreated);
 Fabric.listen('skill.plugin.audit.updated:after', recordSkillPluginUpdated);

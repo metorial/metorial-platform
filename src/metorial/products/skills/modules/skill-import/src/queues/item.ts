@@ -139,7 +139,7 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
     });
 
     if (consumerProfileOid != null) {
-      await consumerSkillService.grantImportedSkillAccess({
+      await consumerSkillService.grantConsumerSkillOwnership({
         skill: createdSkill,
         consumerProfileOid
       });

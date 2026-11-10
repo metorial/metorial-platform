@@ -6,7 +6,14 @@ import {
   presentDocumentParticipantActor
 } from './documentParticipant';
 
-let storeParticipantRoles = ['creator', 'editor', 'viewer', 'user', 'forker'] as const;
+let storeParticipantRoles = [
+  'creator',
+  'owner',
+  'editor',
+  'viewer',
+  'user',
+  'forker'
+] as const;
 
 export let storeParticipantRolesSchema = v.array(v.enumOf([...storeParticipantRoles]));
 

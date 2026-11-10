@@ -811,6 +811,12 @@ export type AuditSkillSecurityReview = {
   risk: string | null;
 };
 
+export type AuditSkillShare = {
+  consumerProfileId: string;
+  permission: 'none' | 'read' | 'write' | 'owner';
+  previousPermission: 'none' | 'read' | 'write' | 'owner';
+};
+
 export type AuditSandboxMachine = {
   id: string;
   name: string | null;
@@ -1480,6 +1486,7 @@ export interface FabricEvents {
   'skill.audit.created:after': { auditScope: AuditScope; skill: Skill; parentSkillId: string | null; parentSkillTemplateId: string | null; cloneType: 'fork' | 'duplicate' | null };
   'skill.audit.updated:after': { auditScope: AuditScope; skill: Skill; previousSkill: Skill };
   'skill.audit.archived:after': { auditScope: AuditScope; skill: Skill };
+  'skill.audit.shared:after': { auditScope: AuditScope; skill: Skill; shares: AuditSkillShare[] };
 
   'skill.plugin.audit.created:after': { auditScope: AuditScope; skillPlugin: SkillPlugin };
   'skill.plugin.audit.updated:after': { auditScope: AuditScope; skillPlugin: SkillPlugin; previousSkillPlugin: SkillPlugin };

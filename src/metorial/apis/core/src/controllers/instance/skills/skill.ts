@@ -501,7 +501,10 @@ export let skillController = Controller.create(
         v.object({
           consumer_profile_ids: v.optional(v.array(v.string())),
           organization_member_ids: v.optional(v.array(v.string())),
-          permission: v.enumOf(['none', 'read', 'write'])
+          permission: v.enumOf(['none', 'read', 'write', 'owner'], {
+            description:
+              'Access to grant. Owners can always edit the skill and can add other owners; only admins can remove or downgrade an owner. Owners must be consumers.'
+          })
         })
       )
       .output(skillPresenter)

@@ -65,8 +65,8 @@ let storeWritePermission: StoreParticipantPermissions = 'content_write';
 let uniqueBigInts = (values: bigint[]) =>
   [...new Set(values.map(value => value.toString()))].map(BigInt);
 
-let storeAccessRoles: StoreParticipantRole[] = ['creator', 'editor', 'viewer'];
-let storeEditorRoles: StoreParticipantRole[] = ['creator', 'editor'];
+let storeAccessRoles: StoreParticipantRole[] = ['creator', 'owner', 'editor', 'viewer'];
+let storeEditorRoles: StoreParticipantRole[] = ['creator', 'owner', 'editor'];
 
 type GrantLevel = StoreResourceAccessLevel | 'none';
 

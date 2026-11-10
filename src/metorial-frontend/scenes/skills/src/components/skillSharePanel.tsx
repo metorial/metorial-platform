@@ -185,12 +185,24 @@ let EmptyState = styled.div`
   padding: 5px 15px 12px 15px;
 `;
 
+type InvitePermission = 'read' | 'write' | 'owner';
+
+type AccountPermission = 'none' | InvitePermission;
+
 let inviteAccessItems = [
   { id: 'read', label: 'Can view' },
   { id: 'write', label: 'Full access' }
 ];
 
+let ownerAccessItem = { id: 'owner', label: 'Owner' };
+
 let accountAccessItems = [{ id: 'none', label: 'No access' }, ...inviteAccessItems];
+
+let isInvitePermission = (value: string): value is InvitePermission =>
+  value == 'read' || value == 'write' || value == 'owner';
+
+let isAccountPermission = (value: string): value is AccountPermission =>
+  value == 'none' || isInvitePermission(value);
 
 let getSkillLabel = (skill: SkillSharePanelSkill) => skill.name || skill.id;
 
@@ -206,14 +218,17 @@ let getPortalItems = (
 let getSkillItems = (skills: SkillSharePanelSkill[]) =>
   skills.map(skill => ({ id: skill.id, label: getSkillLabel(skill) }));
 
-let getParticipantPermission = (roles: string[]): 'read' | 'write' =>
-  roles.some(role => role == 'creator' || role == 'editor') ? 'write' : 'read';
+let isParticipantOwner = (roles: string[]) => roles.includes('owner');
 
-let canParticipantWrite = (roles: string[]) =>
-  roles.some(role => role == 'creator' || role == 'editor');
+let getParticipantPermission = (roles: string[]): InvitePermission =>
+  isParticipantOwner(roles)
+    ? 'owner'
+    : roles.some(role => role == 'creator' || role == 'editor')
+      ? 'write'
+      : 'read';
 
 let hasParticipantAccess = (roles: string[]) =>
-  roles.some(role => role == 'editor' || role == 'viewer');
+  roles.some(role => role == 'owner' || role == 'editor' || role == 'viewer');
 
 let hasEditedSkill = (roles: string[]) =>
   roles.some(role => role == 'creator' || role == 'editor' || role == 'forker');
@@ -243,7 +258,7 @@ export let SkillSharePanelContent = (p: {
   let [search, setSearch] = useState('');
   let [isSearching, setIsSearching] = useState(false);
   let [selectedAccountKeys, setSelectedAccountKeys] = useState<Set<string>>(new Set());
-  let [permission, setPermission] = useState<'read' | 'write'>('read');
+  let [permission, setPermission] = useState<InvitePermission>('read');
   let [activeTab, setActiveTab] = useState<'accounts' | 'portal-groups'>('accounts');
   let [sharingGroupId, setSharingGroupId] = useState<string | null>(null);
   let [removingGroupId, setRemovingGroupId] = useState<string | null>(null);
@@ -261,7 +276,12 @@ export let SkillSharePanelContent = (p: {
     order: 'asc'
   });
   let accessibleParticipants = useMemo(
-    () => (participants.data?.items ?? []).filter(isListedParticipant),
+    () =>
+      (participants.data?.items ?? [])
+        .filter(isListedParticipant)
+        .sort(
+          (a, b) => Number(isParticipantOwner(b.roles)) - Number(isParticipantOwner(a.roles))
+        ),
     [participants.data?.items]
   );
   let consumerProfiles = usePortalConsumerProfiles(p.instanceId, activePortalId, {
@@ -336,10 +356,16 @@ export let SkillSharePanelContent = (p: {
     mode == 'portal' ? p.instanceId : null,
     portalSkill.data?.storeId
   );
+  let isCurrentConsumerOwner =
+    !!currentConsumerParticipant && isParticipantOwner(currentConsumerParticipant.roles);
   let canManageAccess =
     mode == 'dashboard' ||
     !!portalStorePermissions.data?.canManageAccess ||
-    (!!currentConsumerParticipant && canParticipantWrite(currentConsumerParticipant.roles));
+    isCurrentConsumerOwner;
+  let canAssignOwners = mode == 'dashboard' || isCurrentConsumerOwner;
+  let invitePermissionItems = canAssignOwners
+    ? [...inviteAccessItems, ownerAccessItem]
+    : inviteAccessItems;
 
   let skillAccess = useSkillAccess(p.instanceId, selectedSkillId, canManageAccess);
   let grantedPermissionByProfileId = useMemo(() => {
@@ -447,6 +473,10 @@ export let SkillSharePanelContent = (p: {
   };
 
   useEffect(() => {
+    if (!canAssignOwners) setPermission(current => (current == 'owner' ? 'read' : current));
+  }, [canAssignOwners]);
+
+  useEffect(() => {
     if (canManageAccess) return;
     setSearch('');
     setIsSearching(false);
@@ -494,7 +524,7 @@ export let SkillSharePanelContent = (p: {
 
   let updateAccountAccess = async (
     participant: NonNullable<typeof participants.data>['items'][number],
-    nextPermission: 'none' | 'read' | 'write'
+    nextPermission: AccountPermission
   ) => {
     if (!p.instanceId || !selectedSkillId) return;
 
@@ -725,9 +755,9 @@ export let SkillSharePanelContent = (p: {
                         hideLabel
                         size="2"
                         value={permission}
-                        items={inviteAccessItems}
+                        items={invitePermissionItems}
                         onChange={value => {
-                          if (value == 'read' || value == 'write') setPermission(value);
+                          if (isInvitePermission(value)) setPermission(value);
                         }}
                       />
                     </AccessSelectWrap>
@@ -737,7 +767,7 @@ export let SkillSharePanelContent = (p: {
                 <>
                   <RowList>
                     {accessibleParticipants.map(participant => {
-                      let isCreator = participant.roles.includes('creator');
+                      let isOwner = isParticipantOwner(participant.roles);
                       let consumerProfileId = participant.actor.consumer?.id
                         ? profileByConsumerId.get(participant.actor.consumer.id)?.id
                         : null;
@@ -747,12 +777,18 @@ export let SkillSharePanelContent = (p: {
                         participant.actor.consumer.id == p.context?.currentConsumerId;
                       let hasOrganizationMemberAccess =
                         participant.hasOrganizationMemberAccess;
-                      let participantPermission = hasOrganizationMemberAccess
-                        ? 'write'
-                        : consumerProfileId && skillAccess.data
-                          ? (grantedPermissionByProfileId.get(consumerProfileId) ?? 'none')
-                          : getParticipantPermission(participant.roles);
-                      let isConsumerOwner = isCreator && !isOrganizationMember;
+                      let participantPermission: AccountPermission =
+                        hasOrganizationMemberAccess
+                          ? 'write'
+                          : isOwner
+                            ? 'owner'
+                            : consumerProfileId && skillAccess.data
+                              ? (grantedPermissionByProfileId.get(consumerProfileId) ?? 'none')
+                              : getParticipantPermission(participant.roles);
+                      let participantAccessItems =
+                        isOwner || (canAssignOwners && !isOrganizationMember)
+                          ? [...accountAccessItems, ownerAccessItem]
+                          : accountAccessItems;
                       return (
                         <AccessRow key={participant.id}>
                           <Avatar
@@ -765,7 +801,7 @@ export let SkillSharePanelContent = (p: {
                           <PersonInfo>
                             <PersonName>
                               <Truncate>{participant.actor.name}</Truncate>
-                              {isCreator && <Pill>Owner</Pill>}
+                              {isOwner && <Pill>Owner</Pill>}
                             </PersonName>
                             <Muted>{participant.actor.email}</Muted>
                             {hasOrganizationMemberAccess && (
@@ -781,14 +817,14 @@ export let SkillSharePanelContent = (p: {
                                 hasOrganizationMemberAccess ||
                                 !canManageAccess ||
                                 !consumerProfileId ||
-                                isConsumerOwner ||
+                                (isOwner && mode != 'dashboard') ||
                                 isCurrentConsumer ||
                                 (mode == 'portal' && isOrganizationMember)
                               }
                               value={participantPermission}
-                              items={accountAccessItems}
+                              items={participantAccessItems}
                               onChange={value => {
-                                if (value == 'none' || value == 'read' || value == 'write') {
+                                if (isAccountPermission(value)) {
                                   updateAccountAccess(participant, value);
                                 }
                               }}

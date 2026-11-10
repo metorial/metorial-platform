@@ -29,7 +29,7 @@ import {
   storeParticipantService,
   storeService
 } from '@metorial/module-store';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { consumerSkillService } from '../src';
 import {
   addToGroups,
@@ -524,7 +524,7 @@ describe('consumer store participants', () => {
     expect(participants).toHaveLength(2);
 
     let shared = participants.find(item => item.consumerOid == authoringProfile.consumerOid);
-    expect(shared).toMatchObject({ roles: ['creator', 'editor', 'viewer', 'user'] });
+    expect(shared).toMatchObject({ roles: ['creator', 'owner', 'viewer', 'user'] });
     expect(shared!.actors.map(row => row.resourceActor.consumerProfileOid).sort()).toEqual(
       [authoringProfile.oid, secondProfile.oid].sort()
     );
@@ -576,6 +576,112 @@ describe('consumer store participants', () => {
         data: { organizationActorOid: previousOrganizationActorOid }
       });
     }
+  });
+});
+
+describe('store participants of members with a portal consumer', () => {
+  let org = useOrganization();
+  let linkedConsumerOids: bigint[] = [];
+
+  afterEach(async () => {
+    await db.consumer.updateMany({
+      where: { oid: { in: linkedConsumerOids } },
+      data: { userOid: null }
+    });
+    linkedConsumerOids = [];
+  });
+
+  let setup = async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let author = await createProfile(fixture, await authoringSurface(fixture));
+    let skill = await getSkill(
+      fixture,
+      (
+        await authorSkill(
+          fixture,
+          await db.consumerSurface.findUniqueOrThrow({ where: { oid: author.surfaceOid } }),
+          author
+        )
+      ).id
+    );
+    let memberActor = await resourceActorService.ensureOrganizationActor({
+      project: fixture.project,
+      organizationActorOid: fixture.actor.oid
+    });
+    let portalProfile = await createProfile(fixture, await createSurface(fixture), {
+      email: uniqueEmail('member-portal-consumer')
+    });
+
+    let use = async (actor: typeof memberActor) =>
+      await skillService.markSkillUse({ ...scopeOf(fixture), skill, actor });
+    let linkToUser = async () => {
+      linkedConsumerOids.push(portalProfile.consumerOid);
+      await db.consumer.update({
+        where: { oid: portalProfile.consumerOid },
+        data: { userOid: fixture.user!.oid }
+      });
+    };
+    let participantsOfUser = async () =>
+      (
+        await firstPage(
+          await storeParticipantService.listStoreResourceParticipants({
+            ...scopeOf(fixture),
+            store: { oid: skill.storeOid! }
+          })
+        )
+      ).filter(participant => participant.consumerOid != author.consumerOid);
+
+    return {
+      memberActor,
+      portalActor: await profileActor(fixture, portalProfile),
+      portalProfile,
+      use,
+      linkToUser,
+      participantsOfUser
+    };
+  };
+
+  it('records a member under the portal consumer of the same user', async () => {
+    let { memberActor, portalActor, portalProfile, use, linkToUser, participantsOfUser } =
+      await setup();
+
+    await linkToUser();
+    await use(memberActor);
+    await use(portalActor);
+
+    let participants = await participantsOfUser();
+    expect(participants).toHaveLength(1);
+    expect(participants[0]!.consumerOid).toBe(portalProfile.consumerOid);
+    expect(participants[0]!.actors.map(row => row.resourceActor.id).sort()).toEqual(
+      [memberActor.id, portalActor.id].sort()
+    );
+  });
+
+  it('folds an earlier member participant into the consumer once it is linked', async () => {
+    let { memberActor, portalActor, portalProfile, use, linkToUser, participantsOfUser } =
+      await setup();
+
+    await use(memberActor);
+    expect(await participantsOfUser()).toHaveLength(1);
+
+    await linkToUser();
+    await use(portalActor);
+
+    let participants = await participantsOfUser();
+    expect(participants).toHaveLength(1);
+    expect(participants[0]!.consumerOid).toBe(portalProfile.consumerOid);
+    expect(participants[0]!.actors.map(row => row.resourceActor.id).sort()).toEqual(
+      [memberActor.id, portalActor.id].sort()
+    );
+  });
+
+  it('keeps a portal consumer of another user apart from the member', async () => {
+    let { memberActor, portalActor, use, participantsOfUser } = await setup();
+
+    await use(memberActor);
+    await use(portalActor);
+
+    expect(await participantsOfUser()).toHaveLength(2);
   });
 });
 

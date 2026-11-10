@@ -7,5 +7,4 @@ export * from './skillAgent';
 export * from './skillContentPreview';
 export * from './skillFile';
 export * from './skillItem';
-export * from './skillParticipant';
 export * from './skillVersion';

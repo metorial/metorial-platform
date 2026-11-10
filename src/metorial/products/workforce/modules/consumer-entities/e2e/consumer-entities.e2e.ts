@@ -143,6 +143,6 @@ describe('module-consumer-entities', () => {
         resourceActor: { consumerProfileOid: consumerProfile.oid }
       }
     });
-    expect(participant?.roles).toEqual(expect.arrayContaining(['creator', 'editor']));
+    expect(participant?.roles).toEqual(['creator', 'owner']);
   });
 });

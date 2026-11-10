@@ -31,7 +31,7 @@ export let v1SkillParticipantPresenter = Presenter.create(skillParticipantType)
       }),
       id: v.string(),
       skill_id: v.string(),
-      roles: v.array(v.enumOf(['creator', 'editor', 'viewer', 'user', 'forker'])),
+      roles: v.array(v.enumOf(['creator', 'owner', 'editor', 'viewer', 'user', 'forker'])),
       actor: documentParticipantActorSchema,
       surfaces: v.nullable(v.array(storeParticipantSurfaceSchema)),
       last_active_at: v.nullable(v.date()),
