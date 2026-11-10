@@ -83,6 +83,15 @@ export let useSkillPlugins = (
   );
 };
 
+export let useSkillPluginsPage = (
+  instanceId: string | null | undefined,
+  query: Omit<DashboardInstanceSkillsPluginsListQuery, 'after' | 'before' | 'cursor'> | null,
+  after: string | undefined
+) =>
+  skillPluginsLoader.use(
+    instanceId && query !== null ? { instanceId, ...query, ...(after ? { after } : {}) } : null
+  );
+
 export let allSkillPluginsLoader = createLoader({
   name: 'allSkillPlugins',
   parents: [skillPluginsLoader],

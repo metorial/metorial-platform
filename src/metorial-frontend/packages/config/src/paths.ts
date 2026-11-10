@@ -750,6 +750,23 @@ let InstancePaths = Object.assign(
       );
     },
 
+    providerIssues: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      ...subPages: SubPages
+    ) => InstancePaths(organization, project, instance, 'provider-issues', ...subPages),
+    providerIssue: (
+      organization: EntityParam,
+      project: EntityParam,
+      instance: EntityParam,
+      id?: string,
+      ...subPages: SubPages
+    ) => {
+      if (!id) return '#';
+      return InstancePaths(organization, project, instance, 'provider-issue', id, ...subPages);
+    },
+
     providerErrors: (
       organization: EntityParam,
       project: EntityParam,

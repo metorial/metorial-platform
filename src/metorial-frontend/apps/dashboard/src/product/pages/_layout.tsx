@@ -130,8 +130,8 @@ export let ProjectPageLayout = () => {
                   getProps: i => ({ isActive: checkPath(i, { exact: true }) })
                 },
                 {
-                  label: 'Tool Errors',
-                  to: Paths.instance.providerErrors(...params),
+                  label: 'Issues',
+                  to: Paths.instance.providerIssues(...params),
                   getProps: i => ({ isActive: checkPath(i, { exact: true }) })
                 }
               ]

@@ -14,6 +14,7 @@ import { useForgetRecentSkill, useRecentSkillIds } from './recentSkills';
 
 let sidebarIconSize = 20;
 let sidebarSkillsPageSize = 100;
+let sidebarRecentSkillsLimit = 5;
 
 let LoadMoreSentinel = (p: { loadedCount: number; onVisible: () => void }) => {
   let ref = useRef<HTMLSpanElement>(null);
@@ -45,7 +46,9 @@ export let useSkillsSidebarGroups = (opts: { enabled: boolean }): ISidebarGroup[
     enabled: opts.enabled,
     instanceId: instanceId ?? undefined
   });
-  let recentIds = useRecentSkillIds(instanceId);
+  let recentIds = useRecentSkillIds(instanceId)
+    .filter(id => !pinned.has(id))
+    .slice(-sidebarRecentSkillsLimit);
   let forgetRecent = useForgetRecentSkill(instanceId);
 
   let highlightedIds = [...new Set([...pinned.items, ...recentIds])].slice(
@@ -64,6 +67,11 @@ export let useSkillsSidebarGroups = (opts: { enabled: boolean }): ISidebarGroup[
     limit: sidebarSkillsPageSize
   });
 
+  // A new pinned/recent id set starts a fresh query with no data; keep the last result
+  // until it resolves so the Pinned and Recent sections don't collapse in between.
+  let lastHighlightedRef = useRef(highlighted.data?.items ?? []);
+  if (highlighted.data) lastHighlightedRef.current = highlighted.data.items;
+
   if (!opts.enabled) return [];
 
   let params = [organization.data, instance.data?.project, instance.data] as [
@@ -72,7 +80,9 @@ export let useSkillsSidebarGroups = (opts: { enabled: boolean }): ISidebarGroup[
     EntityParam
   ];
 
-  let skillsById = new Map((highlighted.data?.items ?? []).map(skill => [skill.id, skill]));
+  let skillsById = new Map(
+    [...skills.items, ...lastHighlightedRef.current].map(skill => [skill.id, skill])
+  );
 
   let toItem = (
     skill: (typeof skills.items)[number],
@@ -100,9 +110,7 @@ export let useSkillsSidebarGroups = (opts: { enabled: boolean }): ISidebarGroup[
   };
 
   let pinnedSkills = pinned.items.flatMap(id => skillsById.get(id) ?? []);
-  let recentSkills = recentIds
-    .filter(id => !pinned.has(id))
-    .flatMap(id => skillsById.get(id) ?? []);
+  let recentSkills = recentIds.flatMap(id => skillsById.get(id) ?? []);
   let listedSkillIds = new Set([...pinnedSkills, ...recentSkills].map(skill => skill.id));
   let otherSkills = skills.items.filter(skill => !listedSkillIds.has(skill.id));
 

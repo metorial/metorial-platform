@@ -1,7 +1,7 @@
 import { useCallback, useSyncExternalStore } from 'react';
 
 let storageKey = 'metorial.skills.recent.v1';
-let maxRecentSkills = 5;
+let maxRecentSkills = 25;
 
 type RecentSkills = Record<string, string[]>;
 

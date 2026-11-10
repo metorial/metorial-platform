@@ -93,6 +93,15 @@ export let useSkills = (
   );
 };
 
+export let useSkillsPage = (
+  instanceId: string | null | undefined,
+  query: Omit<DashboardInstanceSkillsListQuery, 'after' | 'before' | 'cursor'> | null,
+  after: string | undefined
+) =>
+  skillsLoader.use(
+    instanceId && query !== null ? { instanceId, ...query, ...(after ? { after } : {}) } : null
+  );
+
 export let useInfiniteSkills = (
   instanceId: string | null | undefined,
   query?: Omit<DashboardInstanceSkillsListQuery, 'after' | 'before' | 'cursor'> | null

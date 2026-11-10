@@ -257,7 +257,7 @@ export let SkillMetadataSection = (p: {
       type="button"
       size="1"
       variant="outline"
-      loading={assistant.isBusy}
+      loading={isGenerating || isTyping}
       onClick={generate}
     >
       {hasDescription ? 'Regenerate' : 'Generate'}
@@ -276,7 +276,7 @@ export let SkillMetadataSection = (p: {
         </Callout>
       )}
 
-      {(p.open || isGenerating) && (
+      {(p.open || isGenerating || isTyping) && (
         <Panel>
           <Field>
             <FieldHeader>
@@ -296,7 +296,7 @@ export let SkillMetadataSection = (p: {
           <Field>
             <FieldHeader>
               <FieldLabel>Client description</FieldLabel>
-              {(hasDescription || isGenerating) && generateButton}
+              {(hasDescription || isGenerating || isTyping) && generateButton}
             </FieldHeader>
             <FieldTextarea
               ref={descriptionRef}

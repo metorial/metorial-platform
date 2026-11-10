@@ -47,8 +47,8 @@ export let ProviderSessionsListLayout = () => {
             to: Paths.instance.toolCalls(organization.data, project.data, instance.data)
           },
           {
-            label: 'Tool Errors',
-            to: Paths.instance.providerErrors(organization.data, project.data, instance.data)
+            label: 'Issues',
+            to: Paths.instance.providerIssues(organization.data, project.data, instance.data)
           }
         ]}
       />
