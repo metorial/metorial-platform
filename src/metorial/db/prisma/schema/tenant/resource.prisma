@@ -139,7 +139,7 @@ model ResourceActor {
   documentVersionEditors    DocumentVersionEditors[]
   storeParticipantActors    StoreParticipantActor[]
   primaryStoreParticipants  StoreParticipant[]         @relation("StoreParticipantPrimaryActor")
-  skillParticipants         SkillParticipant[]
+  skillParticipants         SkillParticipant[]         @ignore
   resolvedMergeRequestItems SkillMergeRequestItem[]    @relation("SkillMergeRequestItemResolver")
   skillMergeRequestComments SkillMergeRequestComment[]
   skillMergeRequestEvents   SkillMergeRequestEvent[]

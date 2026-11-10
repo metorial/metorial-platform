@@ -156,7 +156,8 @@ class InternalDocumentParticipantServiceImpl {
         if (creator) {
           storeActors.push({
             actor: creator,
-            mode: 'edit'
+            mode: 'edit',
+            storeParticipantOid: null
           });
         }
       }
@@ -166,25 +167,40 @@ class InternalDocumentParticipantServiceImpl {
         {
           actor: ResourceActor;
           mode: 'view' | 'edit';
+          storeParticipantOid: bigint | null;
         }
       >();
 
       for (let item of storeActors) {
         let existing = actorsById.get(item.actor.oid);
-        if (existing?.mode === 'edit') continue;
+        let storeParticipantOid = existing?.storeParticipantOid ?? item.storeParticipantOid;
 
         actorsById.set(item.actor.oid, {
           actor: item.actor,
-          mode: item.mode === 'edit' ? 'edit' : 'view'
+          mode: existing?.mode === 'edit' || item.mode === 'edit' ? 'edit' : 'view',
+          storeParticipantOid
         });
       }
 
       let materialized = [];
       for (let item of actorsById.values()) {
-        let participant = await this.upsertParticipant({
-          document: d.document,
-          actor: item.actor,
-          mode: item.mode
+        let participant = await client.documentParticipant.upsert({
+          where: {
+            documentOid_resourceActorOid: {
+              documentOid: d.document.oid,
+              resourceActorOid: item.actor.oid
+            }
+          },
+          create: {
+            id: await ID.generateId('documentParticipant'),
+            role: item.mode === 'edit' ? 'editor' : 'viewer',
+            documentOid: d.document.oid,
+            resourceActorOid: item.actor.oid,
+            storeParticipantOid: item.storeParticipantOid
+          },
+          update: {
+            role: item.mode === 'edit' ? 'editor' : undefined
+          }
         });
         materialized.push({ actor: item.actor, participant });
       }

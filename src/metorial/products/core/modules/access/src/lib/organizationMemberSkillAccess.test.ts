@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
-  isStoreResourceFlagEnabled: vi.fn(),
   findConsumerProfile: vi.fn(),
   findOrganizationMember: vi.fn(),
   findProject: vi.fn()
@@ -13,10 +12,6 @@ vi.mock('@metorial/db', () => ({
     consumerProfile: { findUnique: mocks.findConsumerProfile },
     organizationMember: { findFirst: mocks.findOrganizationMember }
   }
-}));
-
-vi.mock('./storeResourceFlags', () => ({
-  isStoreResourceFlagEnabled: mocks.isStoreResourceFlagEnabled
 }));
 
 import {
@@ -46,7 +41,6 @@ let linkedProfile = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.isStoreResourceFlagEnabled.mockResolvedValue(true);
   mocks.findConsumerProfile.mockResolvedValue(linkedProfile);
   mocks.findOrganizationMember.mockResolvedValue({ oid: 9n });
 });
@@ -86,15 +80,6 @@ describe('hasOrganizationMemberSkillAccess', () => {
     ]);
   });
 
-  it('never elevates while store-access-v2 is off', async () => {
-    mocks.isStoreResourceFlagEnabled.mockResolvedValue(false);
-
-    expect(await hasOrganizationMemberSkillAccess({ project, consumerProfileOid: 3n })).toBe(
-      false
-    );
-    expect(mocks.findConsumerProfile).not.toHaveBeenCalled();
-  });
-
   it('never elevates when the project setting is off', async () => {
     expect(
       await hasOrganizationMemberSkillAccess({
@@ -102,7 +87,6 @@ describe('hasOrganizationMemberSkillAccess', () => {
         consumerProfileOid: 3n
       })
     ).toBe(false);
-    expect(mocks.isStoreResourceFlagEnabled).not.toHaveBeenCalled();
     expect(mocks.findConsumerProfile).not.toHaveBeenCalled();
   });
 
@@ -163,7 +147,7 @@ describe('hasOrganizationMemberSkillAccess', () => {
         authorization: { type: 'privileged' }
       })
     ).toBe(false);
-    expect(mocks.isStoreResourceFlagEnabled).not.toHaveBeenCalled();
+    expect(mocks.findConsumerProfile).not.toHaveBeenCalled();
   });
 });
 
@@ -199,6 +183,6 @@ describe('getEffectiveSkillAccessLevel', () => {
         level: 'read'
       })
     ).toBe('read');
-    expect(mocks.isStoreResourceFlagEnabled).not.toHaveBeenCalled();
+    expect(mocks.findConsumerProfile).not.toHaveBeenCalled();
   });
 });

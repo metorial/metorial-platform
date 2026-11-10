@@ -6,11 +6,11 @@ let {
   createConsumerAccessMock,
   deleteConsumerAccessMock,
   grantAccessMock,
-  revokeSkillParticipantAccessMock,
+  revokeSkillShareAccessMock,
   ensureConsumerActorMock,
   ensureOrganizationActorMock,
   getSkillByIdMock,
-  setSkillParticipantAccessRoleMock,
+  setAccessRoleMock,
   getSkillTemplateByIdMock,
   createSkillMock,
   withTransactionMock
@@ -51,11 +51,11 @@ let {
   createConsumerAccessMock: vi.fn(),
   deleteConsumerAccessMock: vi.fn(),
   grantAccessMock: vi.fn(),
-  revokeSkillParticipantAccessMock: vi.fn(),
+  revokeSkillShareAccessMock: vi.fn(),
   ensureConsumerActorMock: vi.fn(),
   ensureOrganizationActorMock: vi.fn(),
   getSkillByIdMock: vi.fn(),
-  setSkillParticipantAccessRoleMock: vi.fn(),
+  setAccessRoleMock: vi.fn(),
   getSkillTemplateByIdMock: vi.fn(),
   createSkillMock: vi.fn(),
   withTransactionMock: vi.fn(
@@ -76,12 +76,15 @@ vi.mock('@metorial/module-skill', () => ({
     copyDelegatedTemplateResourcesToSkill: vi.fn(),
     hydrateSkill: vi.fn()
   },
-  skillParticipantService: {
-    setSkillParticipantAccessRole: setSkillParticipantAccessRoleMock
-  },
   skillService: {
     createSkill: createSkillMock,
     getSkillById: getSkillByIdMock
+  }
+}));
+
+vi.mock('@metorial/module-store', () => ({
+  storeParticipantService: {
+    setAccessRole: setAccessRoleMock
   }
 }));
 
@@ -93,7 +96,9 @@ vi.mock('@metorial/module-skill-templates', () => ({
 
 vi.mock('@metorial/module-access', () => ({
   consumerSkillWriteRoles: ['consumer#instance.skill:write'],
-  consumerSkillManageAccessRoles: ['consumer#instance.skill:manage_access'],
+  skillStoreResourceAccess: {
+    policies: { manage: { roles: ['consumer#instance.skill:manage_access'] } }
+  },
   createResourceAuthorization: ({ resourceActor, accessTags }: any) => ({
     type: 'restricted',
     resourceActor,
@@ -124,7 +129,7 @@ vi.mock('@metorial/module-consumer-access', () => ({
   },
   consumerAccessPolicyService: {
     grantAccess: grantAccessMock,
-    revokeSkillParticipantAccessForPersonalGroup: revokeSkillParticipantAccessMock
+    revokeSkillShareAccessForPersonalGroup: revokeSkillShareAccessMock
   }
 }));
 
@@ -135,6 +140,7 @@ let instance = { oid: 2n, id: 'ins_1' };
 let skill = {
   oid: 3n,
   id: 'skill_1',
+  storeOid: 40n,
   instanceOid: instance.oid,
   createdByResourceActorOid: null,
   createdByOrganizationActorOid: null
@@ -178,12 +184,9 @@ describe('consumer skill sharing', () => {
       ...skill,
       store: { oid: 40n, id: 'store_1' }
     });
-    setSkillParticipantAccessRoleMock.mockResolvedValue({
-      id: 'skp_1'
-    });
   });
 
-  it('shares consumer read access through a participant-scoped personal-group policy', async () => {
+  it('shares consumer read access through a share-scoped personal-group policy', async () => {
     db.consumerProfile.findMany.mockResolvedValue([targetProfile]);
     await consumerSkillService.shareSkill({
       organization: organization as any,
@@ -200,12 +203,14 @@ describe('consumer skill sharing', () => {
       expect.objectContaining({
         permission: 'skill_read',
         subject: { personalConsumerGroupForProfile: targetProfile },
-        policyScope: {
-          type: 'skill_participant',
-          skillParticipantId: 'skp_1'
-        }
+        policyScope: { type: 'skill_share' }
       })
     );
+    expect(setAccessRoleMock).toHaveBeenCalledWith({
+      store: { oid: 40n },
+      actor: { oid: 30n, id: 'resource_actor_consumer' },
+      role: 'viewer'
+    });
   });
 
   it('resolves actors before using a transaction-aware mutation per share target', async () => {
@@ -230,7 +235,7 @@ describe('consumer skill sharing', () => {
     expect(withTransactionMock).toHaveBeenCalledTimes(2);
     expect(transactionDb.consumerAccess.findMany).toHaveBeenCalledTimes(2);
     expect(db.consumerAccess.findMany).not.toHaveBeenCalled();
-    expect(setSkillParticipantAccessRoleMock).toHaveBeenCalledTimes(2);
+    expect(setAccessRoleMock).toHaveBeenCalledTimes(2);
     expect(ensureConsumerActorMock).toHaveBeenCalledTimes(2);
     expect(ensureConsumerActorMock.mock.invocationCallOrder[0]).toBeLessThan(
       withTransactionMock.mock.invocationCallOrder[0]!
@@ -247,7 +252,7 @@ describe('consumer skill sharing', () => {
     );
   });
 
-  it('grants direct consumer write access without creating a participant', async () => {
+  it('grants direct consumer write access and makes the consumer a store editor', async () => {
     db.consumerProfile.findMany.mockResolvedValue([targetProfile]);
 
     await consumerSkillService.shareSkill({
@@ -265,15 +270,15 @@ describe('consumer skill sharing', () => {
         permission: 'skill_write',
         subject: { personalConsumerGroupForProfile: targetProfile },
         resource: { skill },
-        policyScope: {
-          type: 'skill_participant',
-          skillParticipantId: 'skp_1'
-        }
+        policyScope: { type: 'skill_share' }
       })
+    );
+    expect(setAccessRoleMock).toHaveBeenCalledWith(
+      expect.objectContaining({ store: { oid: 40n }, role: 'editor' })
     );
   });
 
-  it('revokes legacy personal ConsumerAccess and participant-scoped policies', async () => {
+  it('revokes legacy personal ConsumerAccess and share-scoped policies', async () => {
     let access = { oid: 50n };
     db.consumerProfile.findMany.mockResolvedValue([targetProfile]);
     transactionDb.consumerAccess.findMany.mockResolvedValue([access]);
@@ -292,38 +297,15 @@ describe('consumer skill sharing', () => {
       organization,
       consumerAccess: access
     });
-    expect(revokeSkillParticipantAccessMock).toHaveBeenCalledWith({
+    expect(revokeSkillShareAccessMock).toHaveBeenCalledWith({
       organization,
       consumerProfile: targetProfile,
       skill
     });
-  });
-
-  it('revokes legacy personal access even when no participant exists', async () => {
-    let access = { oid: 50n };
-    db.consumerProfile.findMany.mockResolvedValue([targetProfile]);
-    transactionDb.consumerAccess.findMany.mockResolvedValue([access]);
-    setSkillParticipantAccessRoleMock.mockResolvedValue(undefined);
-
-    await consumerSkillService.shareSkill({
-      organization: organization as any,
-      instance: instance as any,
-      skill: skill as any,
-      permission: 'none',
-      targets: {
-        consumerProfileIds: [targetProfile.id]
-      }
-    });
-
-    expect(deleteConsumerAccessMock).toHaveBeenCalledWith({
-      organization,
-      consumerAccess: access
-    });
-    expect(revokeSkillParticipantAccessMock).toHaveBeenCalledWith({
-      organization,
-      consumerProfile: targetProfile,
-      skill
-    });
+    expect(setAccessRoleMock).toHaveBeenCalledWith(
+      expect.objectContaining({ store: { oid: 40n }, role: null })
+    );
+    expect(grantAccessMock).not.toHaveBeenCalled();
   });
 
   it('blocks consumer shares to profiles outside shared groups', async () => {
@@ -455,10 +437,7 @@ describe('consumer skill sharing', () => {
         permission: 'skill_write',
         subject: { personalConsumerGroupForProfile: importedProfile },
         resource: { skill },
-        policyScope: {
-          type: 'skill_participant',
-          skillParticipantId: 'skp_1'
-        }
+        policyScope: { type: 'skill_share' }
       })
     );
     expect(grantAccessMock).toHaveBeenCalledWith(
@@ -466,10 +445,7 @@ describe('consumer skill sharing', () => {
         permission: 'skill_manage_access',
         subject: { personalConsumerGroupForProfile: importedProfile },
         resource: { skill },
-        policyScope: {
-          type: 'skill_participant',
-          skillParticipantId: 'skp_1'
-        }
+        policyScope: { type: 'skill_share' }
       })
     );
   });

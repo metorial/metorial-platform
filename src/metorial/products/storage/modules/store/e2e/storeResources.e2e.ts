@@ -1,10 +1,4 @@
-import {
-  eventually,
-  expectServiceError,
-  firstPage,
-  uniqueId,
-  useOrganization
-} from '@metorial/e2e';
+import { expectServiceError, firstPage, uniqueId, useOrganization } from '@metorial/e2e';
 import { db, loadOrganizationFixture, type OrganizationFixture } from '@metorial/e2e/db';
 import type { ResourceActor, Store } from '@metorial/db';
 import {
@@ -22,13 +16,7 @@ import {
 } from '@metorial/module-access';
 import { resourceActorService } from '@metorial/module-resource-actor';
 import { describe, expect, it } from 'vitest';
-import {
-  defineStoreResource,
-  storeAccessService,
-  storeParticipantBackfillSingleQueue,
-  storeParticipantService,
-  storeService
-} from '../src';
+import { defineStoreResource, storeParticipantService, storeService } from '../src';
 import { consumerAuthorization, createStore, scopeOf } from './_fixtures';
 
 let createActor = async (fixture: OrganizationFixture) =>
@@ -52,18 +40,6 @@ let participantsOf = async (store: Pick<Store, 'oid'>) =>
     orderBy: { oid: 'asc' }
   });
 
-let legacyParticipantActorIds = async (fixture: OrganizationFixture, store: Store) =>
-  (
-    await firstPage(
-      await storeParticipantService.listStoreParticipants({
-        ...scopeOf(fixture),
-        storeIds: [store.id]
-      })
-    )
-  )
-    .map(participant => participant.resourceActor.id)
-    .sort();
-
 let canRead = async (
   fixture: OrganizationFixture,
   store: Store,
@@ -82,7 +58,7 @@ describe('module-store store participants', () => {
   let org = useOrganization();
   let otherOrg = useOrganization();
 
-  it('records one participant per actor next to the legacy permission row', async () => {
+  it('records one participant per actor', async () => {
     let fixture = await loadOrganizationFixture(org.ids);
     let creator = await createActor(fixture);
 
@@ -103,11 +79,9 @@ describe('module-store store participants', () => {
       storeParticipantOid: participant!.oid,
       roles: ['creator']
     });
-    expect(row!.permissions.sort()).toEqual(['content_read', 'content_write']);
-    expect(await legacyParticipantActorIds(fixture, store)).toEqual([creator.id]);
   });
 
-  it('keeps participation-only rows out of legacy participants and permissions', async () => {
+  it('does not grant access by recording participation', async () => {
     let fixture = await loadOrganizationFixture(org.ids);
     let store = await createStore(fixture);
     let viewer = await consumerAuthorization(fixture);
@@ -118,17 +92,6 @@ describe('module-store store participants', () => {
       roles: ['viewer']
     });
 
-    let row = await actorRow(store, viewer.actor);
-    expect(row!.id.startsWith('stpa_')).toBe(true);
-    expect(row!.permissions).toEqual([]);
-    expect(await legacyParticipantActorIds(fixture, store)).toEqual([]);
-    await expectServiceError(
-      storeParticipantService.getStoreParticipantById({
-        ...scopeOf(fixture),
-        storeParticipantId: row!.id
-      }),
-      'not_found'
-    );
     expect(await canRead(fixture, store, viewer.authorization)).toBe(false);
 
     let participants = await firstPage(
@@ -141,16 +104,11 @@ describe('module-store store participants', () => {
       viewer.actor.id
     ]);
     expect(participants[0]!.roles).toEqual(['viewer']);
-
-    await storeAccessService.ensureActorStorePermissions({
-      store,
-      actor: viewer.actor,
-      permissions: ['content_read']
-    });
-
-    let granted = await actorRow(store, viewer.actor);
-    expect(granted).toMatchObject({ id: row!.id, permissions: ['content_read'] });
-    expect(await legacyParticipantActorIds(fixture, store)).toEqual([viewer.actor.id]);
+    expect(
+      (await storeParticipantService.findParticipantPermissions({ store, participants })).get(
+        participants[0]!.oid
+      )
+    ).toEqual([]);
   });
 
   it('merges roles, keeps the earliest creation and never moves activity backwards', async () => {
@@ -242,8 +200,7 @@ describe('module-store store participants', () => {
         storeOid: store.oid,
         resourceActorOid: otherActor.oid,
         storeParticipantOid: participant!.oid,
-        roles: ['editor', 'creator'],
-        permissions: []
+        roles: ['editor', 'creator']
       }
     });
 
@@ -266,37 +223,6 @@ describe('module-store store participants', () => {
 
     await storeParticipantService.setAccessRole({ store, actor, role: 'viewer' });
     expect((await participantsOf(store))[0]!.roles).toEqual(['viewer']);
-  });
-
-  it('repairs participant roles that are missing from their participant rows', async () => {
-    let fixture = await loadOrganizationFixture(org.ids);
-    let store = await createStore(fixture);
-    let actor = await createActor(fixture);
-
-    await storeParticipantService.recordParticipation({
-      store,
-      actor,
-      roles: ['viewer', 'user']
-    });
-    let [participant] = await participantsOf(store);
-    await db.storeParticipant.update({
-      where: { oid: participant!.oid },
-      data: { roles: ['viewer'] }
-    });
-
-    expect(
-      await storeParticipantService.findParticipantsMissingActorRoles({ limit: 100_000 })
-    ).toContain(participant!.oid);
-
-    await storeParticipantService.syncParticipantRoles({
-      storeParticipantOid: participant!.oid
-    });
-
-    let [repaired] = await participantsOf(store);
-    expect(repaired!.roles).toEqual(['viewer', 'user']);
-    expect(
-      await storeParticipantService.findParticipantsMissingActorRoles({ limit: 100_000 })
-    ).not.toContain(participant!.oid);
   });
 
   it('returns deduplicated participants only for the requested store and tenant', async () => {
@@ -352,71 +278,6 @@ describe('module-store store participants', () => {
         })
       )
     ).toEqual([]);
-  });
-
-  it('backfills participants for legacy permission rows through the backfill queue', async () => {
-    let fixture = await loadOrganizationFixture(org.ids);
-    let creator = await createActor(fixture);
-    let reader = await createActor(fixture);
-    let store = await createStore(fixture, { actor: creator });
-    await storeAccessService.ensureActorStorePermissions({
-      store,
-      actor: reader,
-      permissions: ['content_read']
-    });
-
-    let lastActiveAt = new Date(Date.now() - 3_600_000);
-    await db.storeParticipantActor.updateMany({
-      where: { storeOid: store.oid },
-      data: { storeParticipantOid: null, lastActiveAt }
-    });
-    await db.storeParticipant.deleteMany({ where: { storeOid: store.oid } });
-
-    let legacyRows = await db.storeParticipantActor.findMany({
-      where: { storeOid: store.oid }
-    });
-    expect(legacyRows).toHaveLength(2);
-
-    for (let row of legacyRows) {
-      await storeParticipantBackfillSingleQueue.add({ storeParticipantActorId: row.id });
-    }
-
-    await eventually(async () => {
-      let rows = await db.storeParticipantActor.findMany({ where: { storeOid: store.oid } });
-      expect(rows.every(row => row.storeParticipantOid != null)).toBe(true);
-    });
-
-    let participants = await participantsOf(store);
-    expect(
-      participants.map(participant => participant.primaryResourceActorOid).sort()
-    ).toEqual([creator.oid, reader.oid].sort());
-    let creatorParticipant = participants.find(
-      participant => participant.primaryResourceActorOid == creator.oid
-    );
-    expect(creatorParticipant).toMatchObject({ roles: ['creator'], lastActiveAt });
-
-    for (let row of legacyRows) {
-      await storeParticipantService.recordParticipation({
-        store,
-        actor: { oid: row.resourceActorOid },
-        roles: row.roles,
-        activeAt: lastActiveAt,
-        createdAt: row.createdAt
-      });
-    }
-    let rerun = await participantsOf(store);
-    expect(rerun.map(participant => participant.oid)).toEqual(
-      participants.map(participant => participant.oid)
-    );
-    expect(
-      rerun.find(participant => participant.oid == creatorParticipant!.oid)
-    ).toMatchObject({
-      roles: ['creator'],
-      lastActiveAt
-    });
-    expect(await legacyParticipantActorIds(fixture, store)).toEqual(
-      [creator.id, reader.id].sort()
-    );
   });
 });
 

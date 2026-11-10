@@ -678,7 +678,7 @@ export let grantAccess = async (
   });
 
   if (d.skill) {
-    await storeAccessGrantService.syncLegacySkillGrants({ skillOid: d.skill.oid });
+    await storeAccessGrantService.syncSkillGrants({ skillOid: d.skill.oid });
   }
 
   return entity;

@@ -1,12 +1,9 @@
 import type { Instance, Prisma, Project } from '@metorial/db';
 import { badRequestError, ServiceError } from '@lowerdeck/error';
 import {
-  accessTagService,
   type ResourceAuthorization,
-  consumerSkillWriteRoles,
   getEffectiveSkillAccessLevel,
   getStoreResourceKindAccessWhere,
-  isStoreResourceFlagEnabled,
   skillStoreResourceKind
 } from '@metorial/module-access';
 
@@ -46,33 +43,20 @@ export let getSkillMetadataWriteAccessWhere = async (d: {
 }): Promise<Prisma.SkillWhereInput | undefined> => {
   if (d.authorization.type == 'privileged') return undefined;
 
-  if (await isStoreResourceFlagEnabled({ project: d.project, flag: 'store-access-v2' })) {
-    let storeAccessWhere = await getStoreResourceKindAccessWhere({
-      kind: skillStoreResourceKind,
-      accessTags: d.authorization.accessTags,
-      level: await getEffectiveSkillAccessLevel({
-        project: d.project,
-        authorization: d.authorization,
-        level: 'write'
-      })
-    });
-
-    return {
-      oid: d.skill.oid,
-      projectOid: d.project.oid,
-      instanceOid: d.instance.oid,
-      store: { is: storeAccessWhere }
-    };
-  }
-
-  let accessTagFilter = await accessTagService.getAccessTagFilter({
-    tags: d.authorization.accessTags,
-    roles: [...consumerSkillWriteRoles]
+  let storeAccessWhere = await getStoreResourceKindAccessWhere({
+    kind: skillStoreResourceKind,
+    accessTags: d.authorization.accessTags,
+    level: await getEffectiveSkillAccessLevel({
+      project: d.project,
+      authorization: d.authorization,
+      level: 'write'
+    })
   });
+
   return {
-    oid: accessTagFilter ? d.skill.oid : { in: [] },
+    oid: d.skill.oid,
     projectOid: d.project.oid,
     instanceOid: d.instance.oid,
-    accessTagEntities: accessTagFilter
+    store: { is: storeAccessWhere }
   };
 };

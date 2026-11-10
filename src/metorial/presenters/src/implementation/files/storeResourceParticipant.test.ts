@@ -14,7 +14,10 @@ vi.mock('../organization/organizationActor', async () => {
 });
 
 import { v1SkillAccessPresenter } from '../skills/skillAccess';
-import { v1SkillParticipantPresenter } from '../skills/skillParticipant';
+import {
+  dashboardSkillParticipantPresenter,
+  v1SkillParticipantPresenter
+} from '../skills/skillParticipant';
 import { v1DocumentParticipantPresenter } from './documentParticipant';
 import { v1StoreParticipantPresenter } from './storeParticipant';
 
@@ -37,9 +40,8 @@ let resourceActor = (name: string) => ({
 let store = { id: 'sto_1' };
 let skill = { id: 'skl_1' };
 
-let actorRow = (id: string, d: { permissions: string[]; roles: string[]; name: string }) => ({
+let actorRow = (id: string, d: { roles: string[]; name: string }) => ({
   id,
-  permissions: d.permissions,
   roles: d.roles,
   lastActiveAt: activeAt,
   createdAt,
@@ -55,54 +57,23 @@ let dedupedParticipant = {
   updatedAt,
   primaryResourceActor: resourceActor('Primary'),
   actors: [
-    actorRow('stp_row_1', {
-      permissions: ['content_read'],
-      roles: ['creator'],
-      name: 'Primary'
-    }),
-    actorRow('stpa_row_2', {
-      permissions: ['content_write'],
-      roles: ['viewer'],
-      name: 'Second surface'
-    })
+    actorRow('stp_row_1', { roles: ['creator'], name: 'Primary' }),
+    actorRow('stpa_row_2', { roles: ['viewer'], name: 'Second surface' })
   ]
 };
 
 describe('store participant presenters', () => {
-  it('presents a legacy store participant row with the deduplicated fields empty', async () => {
+  it('presents a deduplicated store participant with every surface it acted through', async () => {
     let presented = await v1StoreParticipantPresenter
       .present(
         {
           storeParticipant: {
-            id: 'stp_legacy',
-            store,
-            permissions: ['content_read'],
-            roles: ['viewer'],
-            lastActiveAt: null,
-            createdAt,
-            updatedAt,
-            resourceActor: resourceActor('Legacy')
+            ...dedupedParticipant,
+            permissions: ['content_read', 'content_write']
           } as any
         },
         context
       )
-      .run();
-
-    expect(presented).toMatchObject({
-      object: 'store.participant',
-      id: 'stp_legacy',
-      store_id: 'sto_1',
-      permissions: ['content_read'],
-      roles: ['viewer'],
-      actor: { type: 'resource_actor', name: 'Legacy' },
-      surfaces: null,
-      last_active_at: null
-    });
-  });
-
-  it('presents a deduplicated store participant with every surface it acted through', async () => {
-    let presented = await v1StoreParticipantPresenter
-      .present({ storeParticipant: dedupedParticipant as any }, context)
       .run();
 
     expect(presented).toMatchObject({
@@ -128,42 +99,43 @@ describe('store participant presenters', () => {
     ]);
   });
 
-  it('presents legacy and deduplicated skill participants with the same fields', async () => {
-    let legacy = await v1SkillParticipantPresenter
-      .present(
-        {
-          skillParticipant: {
-            id: 'skp_1',
-            skill,
-            roles: ['editor'],
-            createdAt,
-            updatedAt,
-            resourceActor: resourceActor('Legacy')
-          } as any
-        },
-        context
-      )
-      .run();
-    let deduped = await v1SkillParticipantPresenter
+  it('presents a skill participant with every surface it acted through', async () => {
+    let presented = await v1SkillParticipantPresenter
       .present({ skillParticipant: { ...dedupedParticipant, skill } as any }, context)
       .run();
 
-    expect(Object.keys(deduped).sort()).toEqual(Object.keys(legacy).sort());
-    expect(legacy).toMatchObject({
+    expect(presented).toMatchObject({
       object: 'skill.participant',
-      id: 'skp_1',
-      skill_id: 'skl_1',
-      roles: ['editor'],
-      surfaces: null,
-      last_active_at: null
-    });
-    expect(deduped).toMatchObject({
       id: 'stp_1',
       skill_id: 'skl_1',
       roles: ['creator', 'viewer'],
+      actor: { name: 'Primary' },
       last_active_at: activeAt
     });
-    expect(deduped.surfaces).toHaveLength(2);
+    expect(presented.surfaces).toHaveLength(2);
+  });
+
+  it('marks only participants with organization member access on the dashboard', async () => {
+    let [member, other] = await Promise.all(
+      [true, undefined].map(
+        async hasOrganizationMemberAccess =>
+          await dashboardSkillParticipantPresenter
+            .present(
+              {
+                skillParticipant: {
+                  ...dedupedParticipant,
+                  skill,
+                  hasOrganizationMemberAccess
+                } as any
+              },
+              context
+            )
+            .run()
+      )
+    );
+
+    expect(member).toMatchObject({ has_organization_member_access: true });
+    expect(other).toMatchObject({ has_organization_member_access: false });
   });
 
   it('shows the deduplicated actor of a document participant when it is linked', async () => {

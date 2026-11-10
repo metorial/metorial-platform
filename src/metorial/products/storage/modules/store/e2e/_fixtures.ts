@@ -1,4 +1,4 @@
-import { uniqueId } from '@metorial/e2e';
+import { uniqueEmail, uniqueId } from '@metorial/e2e';
 import { db, type OrganizationFixture } from '@metorial/e2e/db';
 import type { ResourceActor, Store, StoreAccess } from '@metorial/db';
 import { Fabric, type FabricEvents } from '@metorial/fabric';
@@ -10,9 +10,12 @@ import {
 } from '@metorial/module-access';
 import { documentService } from '@metorial/module-documents';
 import { filePurposeService, fileService } from '@metorial/module-file';
-import { applyEnabledFlags, defaultFlags, setFlagProvider } from '@metorial/module-flags';
+import {
+  consumerProfileService,
+  consumerSurfaceService
+} from '@metorial/module-consumer-core';
 import { resourceActorService } from '@metorial/module-resource-actor';
-import { afterEach, beforeEach, expect } from 'vitest';
+import { expect } from 'vitest';
 import { storeItemService, storeService, type StoreItemOperationInput } from '../src';
 
 export let privileged = createResourceAuthorization({ restricted: false });
@@ -160,20 +163,40 @@ export let consumerAuthorization = async (fixture: OrganizationFixture) => {
   return { actor, authorization };
 };
 
-let stackFlags = () => applyEnabledFlags(defaultFlags, process.env.METORIAL_ENABLED_FLAGS);
-
-export let useStoreResourceFlags = (enabled: boolean) => {
-  beforeEach(() => {
-    setFlagProvider(async () => ({
-      ...stackFlags(),
-      'store-participants-v2': enabled,
-      'store-access-v2': enabled
-    }));
+export let consumerProfileAuthorization = async (fixture: OrganizationFixture) => {
+  let surface = await consumerSurfaceService.createConsumerSurface({
+    organization: fixture.organization,
+    instance: fixture.instance,
+    context: fixture.context,
+    auditScope: fixture.auditScope,
+    type: 'portal',
+    input: { name: uniqueId('Store Surface'), sessionExpiryTimeInSeconds: 3600 }
   });
-
-  afterEach(() => {
-    setFlagProvider(async () => stackFlags());
+  let profile = await consumerProfileService.createConsumerProfile({
+    surface,
+    email: uniqueEmail('store-consumer'),
+    name: 'E2E Store Consumer',
+    auditScope: fixture.auditScope
   });
+  let actor = await resourceActorService.ensureConsumerProfileActor({
+    project: fixture.project,
+    consumerProfile: profile
+  });
+  let personalAccessTagOid = profile.personalConsumerGroup!.accessTagOid;
+
+  return {
+    actor,
+    profile,
+    personalAccessTagOid,
+    authorization: createResourceAuthorization({
+      restricted: true,
+      resourceActor: actor,
+      accessTags: [{ accessTagOid: personalAccessTagOid }],
+      project: fixture.project,
+      instance: fixture.instance,
+      consumerProfile: profile
+    })
+  };
 };
 
 export let captureFabric = <K extends keyof FabricEvents>(event: K) => {

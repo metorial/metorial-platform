@@ -28,8 +28,6 @@ export type Flags = {
   'public-mcp-servers-enabled': FlagValue;
   outposts: FlagValue;
 
-  'store-participants-v2': FlagValue;
-  'store-access-v2': FlagValue;
   'skills-manifest-sync': FlagValue;
 
   'paid-integrations': FlagValue;
@@ -91,8 +89,6 @@ export let defaultFlags: Flags = {
   'public-mcp-servers-enabled': false,
   outposts: false,
 
-  'store-participants-v2': false,
-  'store-access-v2': false,
   'skills-manifest-sync': false,
 
   'paid-integrations': true,

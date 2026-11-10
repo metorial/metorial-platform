@@ -446,10 +446,7 @@ describe('module-store stores', () => {
     );
 
     let participants = await firstPage(
-      await storeParticipantService.listStoreParticipants({
-        ...scopeOf(other),
-        storeIds: [store.id]
-      })
+      await storeParticipantService.listStoreResourceParticipants({ ...scopeOf(other), store })
     );
     expect(participants).toEqual([]);
   });

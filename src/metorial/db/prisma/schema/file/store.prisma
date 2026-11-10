@@ -323,7 +323,8 @@ model StoreParticipantActor {
   id  String @unique
 
   roles       StoreParticipantRole[]        @default([])
-  permissions StoreParticipantPermissions[]
+  /// No longer read or written. Store access is granted through access tags on the store.
+  permissions StoreParticipantPermissions[] @ignore
 
   storeOid BigInt
   store    Store  @relation(fields: [storeOid], references: [oid], onDelete: Cascade)

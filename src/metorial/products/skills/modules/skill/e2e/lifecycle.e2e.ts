@@ -49,7 +49,7 @@ describe('module-skill lifecycle', () => {
 
     let row = await db.skill.findUniqueOrThrow({
       where: { id: skill.id },
-      include: { store: true, skillParticipants: true }
+      include: { store: { include: { storeParticipantActors: true } } }
     });
     expect(row).toMatchObject({
       status: 'active',
@@ -76,7 +76,9 @@ describe('module-skill lifecycle', () => {
       access: 'private',
       instanceOid: fixture.instance.oid
     });
-    expect(row.skillParticipants.map(participant => participant.roles)).toEqual([['creator']]);
+    expect(row.store!.storeParticipantActors.map(participant => participant.roles)).toEqual([
+      ['creator']
+    ]);
 
     let events = created.events.filter(event => event.skill.id === skill.id);
     expect(events).toHaveLength(1);
