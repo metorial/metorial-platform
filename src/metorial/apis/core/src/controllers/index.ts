@@ -540,6 +540,7 @@ export let magnetarController = Controller.create<any>(
     eventManagementController,
     eventDeliveryManagementController,
     eventDeliveryAttemptManagementController,
+    auditLogManagementController,
 
     integrationInternetGatewayController,
     integrationEnclaveController,
