@@ -1,11 +1,8 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { isStoreResourceFlagEnabled } from '@metorial/module-access';
-import { skillParticipantService } from '@metorial/module-skill';
 import { storeParticipantService } from '@metorial/module-store';
 import { Controller } from '@metorial/rest';
-import { getInstanceCargoAccess } from '../../../lib/cargoAccess';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instancePath } from '../../../middleware/instanceGroup';
@@ -20,42 +17,30 @@ export let skillParticipantGroup = skillGroup.use(async ctx => {
     throw new Error('skillParticipantId is required');
   }
 
-  if (
-    ctx.skill.store &&
-    (await isStoreResourceFlagEnabled({ project: ctx.project, flag: 'store-participants-v2' }))
-  ) {
-    let participant = await storeParticipantService.getStoreResourceParticipantById({
-      project: ctx.project,
-      instance: ctx.instance,
-      store: ctx.skill.store,
-      participantId: ctx.params.skillParticipantId
-    });
-
-    let organizationMemberParticipantOids =
-      await storeParticipantService.findOrganizationMemberParticipantOids({
-        project: ctx.project,
-        participants: [participant]
-      });
-
-    return {
-      skillParticipant: {
-        ...participant,
-        skill: ctx.skill,
-        hasOrganizationMemberAccess: organizationMemberParticipantOids.has(participant.oid)
-      }
-    };
-  }
-
-  let skillParticipant = await skillParticipantService.getSkillParticipantById({
-    skillParticipantId: ctx.params.skillParticipantId,
-    ...(await getInstanceCargoAccess(ctx))
-  });
-
-  if (skillParticipant.skill.id !== ctx.skill.id) {
+  if (!ctx.skill.store) {
     throw new ServiceError(notFoundError('skill.participant', ctx.params.skillParticipantId));
   }
 
-  return { skillParticipant };
+  let participant = await storeParticipantService.getStoreResourceParticipantById({
+    project: ctx.project,
+    instance: ctx.instance,
+    store: ctx.skill.store,
+    participantId: ctx.params.skillParticipantId
+  });
+
+  let organizationMemberParticipantOids =
+    await storeParticipantService.findOrganizationMemberParticipantOids({
+      project: ctx.project,
+      participants: [participant]
+    });
+
+  return {
+    skillParticipant: {
+      ...participant,
+      skill: ctx.skill,
+      hasOrganizationMemberAccess: organizationMemberParticipantOids.has(participant.oid)
+    }
+  };
 });
 
 export let skillParticipantController = Controller.create(
@@ -75,46 +60,31 @@ export let skillParticipantController = Controller.create(
       .outputList(skillParticipantPresenter)
       .query('default', Paginator.validate(v.object({})))
       .do(async ctx => {
-        if (
-          ctx.skill.store &&
-          (await isStoreResourceFlagEnabled({
-            project: ctx.project,
-            flag: 'store-participants-v2'
-          }))
-        ) {
-          let paginator = await storeParticipantService.listStoreResourceParticipants({
-            project: ctx.project,
-            instance: ctx.instance,
-            store: ctx.skill.store
-          });
-          let list = await paginator.run(ctx.query);
-          let organizationMemberParticipantOids =
-            await storeParticipantService.findOrganizationMemberParticipantOids({
-              project: ctx.project,
-              participants: list.items
-            });
+        let store = ctx.skill.store;
+        if (!store) throw new ServiceError(notFoundError('skill.store', ctx.skill.id));
 
-          return Paginator.present(list, participant =>
-            skillParticipantPresenter.present({
-              skillParticipant: {
-                ...participant,
-                skill: ctx.skill,
-                hasOrganizationMemberAccess: organizationMemberParticipantOids.has(
-                  participant.oid
-                )
-              }
-            })
-          );
-        }
-
-        let paginator = await skillParticipantService.listSkillParticipants({
-          skillId: ctx.skill.id,
-          ...(await getInstanceCargoAccess(ctx))
+        let paginator = await storeParticipantService.listStoreResourceParticipants({
+          project: ctx.project,
+          instance: ctx.instance,
+          store
         });
         let list = await paginator.run(ctx.query);
+        let organizationMemberParticipantOids =
+          await storeParticipantService.findOrganizationMemberParticipantOids({
+            project: ctx.project,
+            participants: list.items
+          });
 
-        return Paginator.present(list, skillParticipant =>
-          skillParticipantPresenter.present({ skillParticipant })
+        return Paginator.present(list, participant =>
+          skillParticipantPresenter.present({
+            skillParticipant: {
+              ...participant,
+              skill: ctx.skill,
+              hasOrganizationMemberAccess: organizationMemberParticipantOids.has(
+                participant.oid
+              )
+            }
+          })
         );
       }),
 

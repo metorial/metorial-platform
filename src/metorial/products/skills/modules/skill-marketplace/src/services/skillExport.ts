@@ -41,6 +41,8 @@ import {
   isSkillExportRecoveryJobId,
   isZipJobConnectionError,
   prepareSkillExportZipSpec,
+  skillExportZipJobFastPollDelayMs,
+  skillExportZipJobFastPolls,
   skillExportZipJobMaxAttempts,
   skillExportZipJobPollDelayMs,
   skillExportZipJobTimeoutMs,
@@ -163,6 +165,7 @@ type ManifestExportContext = {
   skillExport: SkillExportRecord;
   manifest: SkillDestinationManifest;
   zipStartedAt: number;
+  zipPolls: number;
 };
 
 let getExportFileName = (ref: SkillExportRecord['exportRef']) =>
@@ -744,7 +747,8 @@ class SkillExportServiceImpl {
       instance: d.instance,
       skillExport,
       manifest,
-      zipStartedAt: Date.now()
+      zipStartedAt: Date.now(),
+      zipPolls: 0
     });
   }
 
@@ -772,7 +776,8 @@ class SkillExportServiceImpl {
       instance: d.instance,
       skillExport: d.skillExport,
       manifest,
-      zipStartedAt: d.job.zipStartedAt ?? Date.now()
+      zipStartedAt: d.job.zipStartedAt ?? Date.now(),
+      zipPolls: d.job.zipPolls ?? 0
     };
 
     if (Date.now() - context.zipStartedAt > skillExportZipJobTimeoutMs) {
@@ -853,9 +858,15 @@ class SkillExportServiceImpl {
       {
         skillExportId: d.skillExport.id,
         manifestId: d.manifest.id,
-        zipStartedAt: d.zipStartedAt
+        zipStartedAt: d.zipStartedAt,
+        zipPolls: d.zipPolls + 1
       },
-      { delay: skillExportZipJobPollDelayMs }
+      {
+        delay:
+          d.zipPolls < skillExportZipJobFastPolls
+            ? skillExportZipJobFastPollDelayMs
+            : skillExportZipJobPollDelayMs
+      }
     );
     return d.skillExport;
   }

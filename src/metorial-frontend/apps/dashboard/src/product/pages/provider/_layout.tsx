@@ -241,7 +241,7 @@ export let ProviderLayout = () => {
           providerData
             ? [
                 { label: 'ID', value: <ID id={providerData.id} /> },
-                { label: 'Slug', value: <ID id={providerData.slug} /> },
+                { label: 'Identifier', value: <ID id={providerData.slug} /> },
                 { label: 'Publisher', value: providerData.publisher.name },
                 { label: 'Created', value: <RenderDate date={providerData.createdAt} /> }
               ]

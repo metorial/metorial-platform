@@ -89,11 +89,16 @@ describe('generated Dockerfiles', () => {
       ]
     });
     mkdirSync(join(directory, 'prisma', 'schema'), { recursive: true });
+    mkdirSync(join(directory, 'prisma', 'migrations'), { recursive: true });
     generate(root, { write: true });
     let contents = readFileSync(join(directory, 'Dockerfile'), 'utf8');
 
+    expect(contents).toContain('./prisma/main/migrations/');
     expect(contents).toContain('"schema": "prisma/main/schema"');
-    expect(contents).toContain('migrate main && exec bun ./dist/index.js');
+    expect(contents).toContain(
+      'migrate main && [ -z \\"$stop\\" ] && exec bun ./dist/index.js'
+    );
+    expect(contents).toContain("trap 'stop=1' TERM INT HUP");
     expect(contents).toContain('AS control-runtime');
     expect(contents).toContain('AS prisma-cli');
   });

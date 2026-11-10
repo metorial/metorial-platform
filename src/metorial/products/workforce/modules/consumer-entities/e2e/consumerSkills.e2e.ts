@@ -78,13 +78,33 @@ describe('module-consumer-entities consumer skills', () => {
         where: {
           accessTagOid: profile.personalConsumerGroup!.accessTagOid,
           skill: { id: skillId },
-          accessTagPolicy: { systemIdentifier: { startsWith: 'skill_participant:' } }
+          accessTagPolicy: { systemIdentifier: { startsWith: 'skill_share:' } }
         },
         include: { accessTagPolicy: true }
       })
     )
       .map(entity => entity.accessTagPolicy.systemIdentifier!.split(':').at(-1))
       .sort();
+
+  let storeRoles = async (skillId: string, profile: Profile) =>
+    (
+      await db.storeParticipantActor.findFirst({
+        where: {
+          store: { skill: { id: skillId } },
+          resourceActor: { consumerProfileOid: profile.oid }
+        }
+      })
+    )?.roles ?? [];
+
+  let legacySkillParticipantCount = async (skillId: string) => {
+    let [row] = await db.$queryRaw<{ count: bigint }[]>`
+      SELECT count(*)::bigint AS count
+      FROM "SkillParticipant" participant
+      JOIN "Skill" skill ON skill.oid = participant."skillOid"
+      WHERE skill.id = ${skillId}
+    `;
+    return Number(row!.count);
+  };
 
   let share = async (
     fixture: OrganizationFixture,
@@ -141,15 +161,19 @@ describe('module-consumer-entities consumer skills', () => {
 
     await share(fixture, skill.id, 'read', { consumerProfileIds: [peer.id] }, sharer);
     expect(await grantedPolicies(skill.id, peer)).toEqual(['skill_read']);
+    expect(await storeRoles(skill.id, peer)).toEqual(['viewer']);
     expect(await canRead(fixture, skill.id, peer)).toBe(true);
     expect(await canManage(skill.id, peer)).toBe(false);
 
     await share(fixture, skill.id, 'write', { consumerProfileIds: [peer.id] }, sharer);
     expect(await grantedPolicies(skill.id, peer)).toEqual(['skill_read', 'skill_write']);
+    expect(await storeRoles(skill.id, peer)).toEqual(['editor']);
 
     await share(fixture, skill.id, 'none', { consumerProfileIds: [peer.id] }, sharer);
     expect(await grantedPolicies(skill.id, peer)).toEqual([]);
+    expect(await storeRoles(skill.id, peer)).toEqual([]);
     expect(await canRead(fixture, skill.id, peer)).toBe(false);
+    expect(await legacySkillParticipantCount(skill.id)).toBe(0);
 
     expect(await grantedPolicies(skill.id, author)).toEqual([
       'skill_manage_access',

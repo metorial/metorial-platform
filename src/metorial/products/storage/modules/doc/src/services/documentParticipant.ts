@@ -66,7 +66,6 @@ class DocumentParticipantServiceImpl {
     authorization: ResourceAuthorization;
     defaultPermissions?: StoreParticipantPermissions[];
     overridePermissions?: boolean;
-    dedupeByStoreParticipant?: boolean;
   }) {
     let participant = await db.documentParticipant.findFirst({
       where: {
@@ -80,9 +79,7 @@ class DocumentParticipantServiceImpl {
         id: d.documentParticipantId,
         resourceActor: exposedParticipantResourceActorWhere
       },
-      include: d.dedupeByStoreParticipant
-        ? dedupedDocumentParticipantInclude
-        : documentParticipantInclude
+      include: dedupedDocumentParticipantInclude
     });
 
     if (!participant) {
@@ -114,7 +111,6 @@ class DocumentParticipantServiceImpl {
     authorization: ResourceAuthorization;
     defaultPermissions?: StoreParticipantPermissions[];
     overridePermissions?: boolean;
-    dedupeByStoreParticipant?: boolean;
   }) {
     let document = await db.document.findFirst({
       where: {
@@ -162,19 +158,6 @@ class DocumentParticipantServiceImpl {
       lastEditedAt: d.lastEditedAt ? normalizeDateFilter(d.lastEditedAt) : undefined,
       lastViewedAt: d.lastViewedAt ? normalizeDateFilter(d.lastViewedAt) : undefined
     } satisfies Prisma.DocumentParticipantWhereInput;
-
-    if (!d.dedupeByStoreParticipant) {
-      return Paginator.create(({ prisma }) =>
-        prisma(
-          async opts =>
-            await db.documentParticipant.findMany({
-              ...opts,
-              where,
-              include: documentParticipantInclude
-            })
-        )
-      );
-    }
 
     let linkedWhere = {
       documentOid: document.oid,

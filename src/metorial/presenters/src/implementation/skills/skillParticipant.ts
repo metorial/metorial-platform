@@ -6,43 +6,24 @@ import {
   presentDocumentParticipantActor
 } from '../files/documentParticipant';
 import {
-  isStoreResourceParticipantRecord,
   presentStoreResourceParticipantSurfaces,
   storeParticipantSurfaceSchema,
   type StoreParticipantSurface
 } from '../files/storeResourceParticipant';
 
 export let v1SkillParticipantPresenter = Presenter.create(skillParticipantType)
-  .presenter(async ({ skillParticipant }, opts) => {
-    if (isStoreResourceParticipantRecord(skillParticipant)) {
-      return {
-        object: 'skill.participant' as const,
-        id: skillParticipant.id,
-        skill_id: skillParticipant.skill.id,
-        roles: skillParticipant.roles,
-        actor: await presentDocumentParticipantActor(
-          skillParticipant.primaryResourceActor,
-          opts
-        ),
-        surfaces: await presentStoreResourceParticipantSurfaces(skillParticipant, opts),
-        last_active_at: skillParticipant.lastActiveAt,
-        created_at: skillParticipant.createdAt,
-        updated_at: skillParticipant.updatedAt
-      };
-    }
-
-    return {
-      object: 'skill.participant' as const,
-      id: skillParticipant.id,
-      skill_id: skillParticipant.skill.id,
-      roles: skillParticipant.roles,
-      actor: await presentDocumentParticipantActor(skillParticipant.resourceActor, opts),
-      surfaces: null as StoreParticipantSurface[] | null,
-      last_active_at: null as Date | null,
-      created_at: skillParticipant.createdAt,
-      updated_at: skillParticipant.updatedAt
-    };
-  })
+  .presenter(async ({ skillParticipant }, opts) => ({
+    object: 'skill.participant' as const,
+    id: skillParticipant.id,
+    skill_id: skillParticipant.skill.id,
+    roles: skillParticipant.roles,
+    actor: await presentDocumentParticipantActor(skillParticipant.primaryResourceActor, opts),
+    surfaces: (await presentStoreResourceParticipantSurfaces(skillParticipant, opts)) as
+      StoreParticipantSurface[] | null,
+    last_active_at: skillParticipant.lastActiveAt,
+    created_at: skillParticipant.createdAt,
+    updated_at: skillParticipant.updatedAt
+  }))
   .schema(
     v.object({
       object: v.literal('skill.participant', {
@@ -67,9 +48,7 @@ export let dashboardSkillParticipantPresenter = Presenter.create(skillParticipan
 
     return {
       ...inner,
-      has_organization_member_access:
-        isStoreResourceParticipantRecord(skillParticipant) &&
-        !!skillParticipant.hasOrganizationMemberAccess
+      has_organization_member_access: !!skillParticipant.hasOrganizationMemberAccess
     };
   })
   .schema(

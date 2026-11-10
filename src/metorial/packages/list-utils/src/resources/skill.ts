@@ -90,16 +90,6 @@ export let resolveSkillVersions = createResolver(async ({ scope, ids }) =>
   })
 );
 
-export let resolveSkillParticipants = createResolver(async ({ scope, ids }) =>
-  db.skillParticipant.findMany({
-    where: {
-      id: { in: ids },
-      skill: scope
-    },
-    select: { oid: true }
-  })
-);
-
 export let resolveSkillMergeRequests = createResolver(async ({ scope, ids }) =>
   db.skillMergeRequest.findMany({
     where: {

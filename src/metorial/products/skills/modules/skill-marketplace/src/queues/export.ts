@@ -7,6 +7,7 @@ export type SkillExportJobData = {
   skillDestinationSyncId?: string;
   manifestId?: string;
   zipStartedAt?: number;
+  zipPolls?: number;
   syncWaits?: number;
 };
 
@@ -29,6 +30,7 @@ export let enqueueSkillExport = async (
       skillDestinationSyncId: d.skillDestinationSyncId,
       manifestId: d.manifestId,
       zipStartedAt: d.zipStartedAt,
+      zipPolls: d.zipPolls,
       syncWaits: d.syncWaits
     },
     opts
@@ -55,6 +57,7 @@ export let skillExportQueueProcessor = skillExportQueue.process(async data => {
     skillDestinationSyncId: data.skillDestinationSyncId,
     manifestId: data.manifestId,
     zipStartedAt: data.zipStartedAt,
+    zipPolls: data.zipPolls,
     syncWaits: data.syncWaits
   });
 });

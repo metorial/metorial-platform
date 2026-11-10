@@ -35,6 +35,27 @@ jobs:
         with:
           tasks: test --filter=./src/metorial/packages/* --filter=./src/metorial/products/** --filter=./src/lowerdeck/** --filter=@metorial/nebula --filter=@metorial/function-bay --filter=@metorial/shuttle --filter=@metorial/slates --filter=@metorial/relay
 
+  migrations:
+    name: Check Prisma migrations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.2'
+      - name: Check migrations match schemas
+        env:
+          BASE_BRANCH: ${{ github.event_name == 'pull_request' && github.base_ref || '' }}
+        run: |-
+          base=""
+          if [ -n "$BASE_BRANCH" ]; then
+            git fetch --no-tags origin "+refs/heads/$BASE_BRANCH:refs/remotes/origin/$BASE_BRANCH"
+            base="--base origin/$BASE_BRANCH"
+          fi
+          bun src/control/src/main.ts db check $base
+
   build:
     name: 'Build ${{ matrix.service.name }}'
     runs-on: ubuntu-latest

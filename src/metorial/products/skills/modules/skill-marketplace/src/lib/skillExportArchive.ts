@@ -16,6 +16,8 @@ import { spoolAboveManifestEntries } from './manifestFile/writer';
 
 export let skillExportZipJobWaitSeconds = 20;
 export let skillExportZipJobPollDelayMs = 10 * 1000;
+export let skillExportZipJobFastPollDelayMs = 5 * 1000;
+export let skillExportZipJobFastPolls = 10;
 export let skillExportZipJobTimeoutMs = 2 * 60 * 60 * 1000;
 export let skillExportZipJobMaxAttempts = 3;
 

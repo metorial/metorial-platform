@@ -1,7 +1,11 @@
-import { join } from 'node:path';
-import { Client } from 'pg';
+import { dirname, join, resolve } from 'node:path';
+import type { Client } from 'pg';
 import type { DatabaseConfig, RuntimeConfig } from './config';
 import { signWithIam } from './iam';
+import { schemaOf, withLock } from './lock';
+import { deploy, markApplied, push, type PrismaTarget } from './prisma';
+import { throwIfInterrupted, deferSignals } from './signals';
+import { detectState, listMigrations, type FailedMigration } from './state';
 import { describeSources, redactUrl, resolveDatabaseUrl } from './url';
 
 type Env = Record<string, string | undefined>;
@@ -13,27 +17,6 @@ export let resolveWithIam = async (db: DatabaseConfig, env: Env) => {
   }
 
   return db.iam ? signWithIam(url, db.iam, env) : url;
-};
-
-let push = async (db: DatabaseConfig, url: string, root: string) => {
-  let process_ = Bun.spawn(
-    [
-      ...(process.env.PRISMA_BIN
-        ? [process.env.PRISMA_BIN]
-        : [process.execPath, 'run', 'prisma']),
-      'db',
-      'push',
-      '--schema',
-      db.schema,
-      '--accept-data-loss',
-      '--url',
-      url
-    ],
-    { cwd: root, stdout: 'inherit', stderr: 'inherit', env: process.env }
-  );
-
-  let code = await process_.exited;
-  if (code !== 0) throw new Error(`prisma db push failed for ${db.name} (exit code ${code})`);
 };
 
 let renameColumns = async (
@@ -58,43 +41,64 @@ let renameColumns = async (
 
 let quote = (value: string) => `'${value.replaceAll("'", "''")}'`;
 
-let withLock = async <T>(
+let describeFailures = (db: DatabaseConfig, failed: FailedMigration[]) =>
+  [
+    `Migration history of ${db.name} contains failed migrations, refusing to continue:`,
+    ...failed.map(
+      ({ name, crashed }) =>
+        `  - ${name} (${crashed ? 'the process was interrupted while it ran' : 'the SQL failed, see _prisma_migrations.logs'})`
+    ),
+    'Part of a failed migration may be committed. Inspect the database, then fix it by hand and run `prisma migrate resolve --applied <name>` or `--rolled-back <name>`.'
+  ].join('\n');
+
+let baseline = async (
   db: DatabaseConfig,
-  url: string,
-  run: (client: Client) => Promise<T>
+  target: PrismaTarget,
+  client: Client,
+  names: string[]
 ) => {
-  let lockUrl = new URL(url);
-  let mode = lockUrl.searchParams.get('sslmode');
-  lockUrl.searchParams.delete('sslmode');
+  console.log(`${db.name} has tables but no migration history, baselining`);
 
-  let client = new Client({
-    connectionString: lockUrl.toString(),
-    ssl: mode === 'require' || mode === 'no-verify' ? { rejectUnauthorized: false } : undefined
-  });
-  await client.connect();
+  if (db.renames?.length) await renameColumns(client, db.renames);
+  await push(target);
 
-  try {
-    await client.query('SELECT pg_advisory_lock($1::bigint)', [db.lock]);
-
-    return await run(client);
-  } finally {
-    await client.end();
+  for (let name of names) {
+    await markApplied(target, name);
   }
+
+  console.log(`${db.name} baselined with ${names.length} migration(s)`);
 };
 
 export let migrateDatabase = async (db: DatabaseConfig, env: Env, root: string) => {
+  throwIfInterrupted();
+
   let url = await resolveWithIam(db, env);
   console.log(`Migrating ${db.name} using ${redactUrl(url)}`);
 
-  if (db.lock === undefined) {
-    await push(db, url, root);
-
-    return;
-  }
+  let schema = resolve(root, db.schema);
+  let target: PrismaTarget = {
+    name: db.name,
+    schema,
+    migrations: join(dirname(schema), 'migrations'),
+    url,
+    root
+  };
+  let names = listMigrations(target.migrations);
 
   await withLock(db, url, async client => {
-    if (db.renames?.length) await renameColumns(client, db.renames);
-    await push(db, url, root);
+    if (!names.length) {
+      if (db.renames?.length) await renameColumns(client, db.renames);
+      await push(target);
+
+      return;
+    }
+
+    let state = await detectState(client, schemaOf(url));
+
+    if (state.kind === 'failed') throw new Error(describeFailures(db, state.migrations));
+    if (state.kind === 'legacy') await baseline(db, target, client, names);
+
+    await deploy(target);
   });
 };
 
@@ -107,11 +111,15 @@ export let migrate = async (
   let unknown = names.filter(name => !config.databases.some(db => db.name === name));
   if (unknown.length) throw new Error(`Unknown database ${unknown.join(', ')}`);
 
+  deferSignals();
+
   for (let db of config.databases) {
     if (names.length && !names.includes(db.name)) continue;
 
     await migrateDatabase(db, env, root);
   }
+
+  throwIfInterrupted();
 };
 
 export let defaultRoot = () => process.env.CONTROL_APP_ROOT ?? process.cwd();

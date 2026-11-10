@@ -28,13 +28,10 @@ import {
   resolveStores
 } from '@metorial/list-utils';
 import {
-  accessTagService,
   type AnyAccessTagSelector,
   assertResourceActorScope,
   assertResourceAuthorizationScope,
-  consumerSkillReadRoles,
   getStoreResourceKindAccessWhere,
-  isStoreResourceFlagEnabled,
   type ResourceAuthorization,
   skillStoreResourceKind
 } from '@metorial/module-access';
@@ -57,7 +54,6 @@ import { getSkillSlug } from '../lib/skillSlug';
 import { enqueueSkillLifecycle } from '../queues/lifecycle';
 import { skillResourceService } from './resource';
 import { assertSkillRecordScope, getSkillMetadataWriteAccessWhere } from './skillAccess';
-import { skillParticipantService } from './skillParticipant';
 
 let skillInclude = {
   store: true,
@@ -78,48 +74,19 @@ export type SkillRecord = Prisma.SkillGetPayload<{
 }>;
 
 export let getConsumerSkillAccessWhere = async (d: {
-  project?: { oid: bigint };
   accessTags?: AnyAccessTagSelector;
 }): Promise<Prisma.SkillWhereInput | undefined> => {
   if (!d.accessTags) return undefined;
 
-  if (
-    d.project &&
-    (await isStoreResourceFlagEnabled({ project: d.project, flag: 'store-access-v2' }))
-  ) {
-    return {
-      store: {
-        is: await getStoreResourceKindAccessWhere({
-          kind: skillStoreResourceKind,
-          accessTags: d.accessTags,
-          level: 'read'
-        })
-      }
-    };
-  }
-
-  let accessTagFilter = await accessTagService.getAccessTagFilter({
-    tags: d.accessTags,
-    roles: [...consumerSkillReadRoles]
-  });
-
-  let accessFilters: Prisma.SkillWhereInput[] = accessTagFilter
-    ? [
-        { accessTagEntities: accessTagFilter },
-        {
-          skillGroupItems: {
-            some: {
-              status: 'active',
-              skillGroup: {
-                status: 'active',
-                accessTagEntities: accessTagFilter
-              }
-            }
-          }
-        }
-      ]
-    : [];
-  return accessFilters.length ? { OR: accessFilters } : { oid: { in: [] } };
+  return {
+    store: {
+      is: await getStoreResourceKindAccessWhere({
+        kind: skillStoreResourceKind,
+        accessTags: d.accessTags,
+        level: 'read'
+      })
+    }
+  };
 };
 
 type ListSkillsInput = {
@@ -321,20 +288,6 @@ class SkillServiceImpl {
       }
 
       if (actor) {
-        await skillParticipantService.ensureSkillParticipantRoles({
-          skill,
-          actor,
-          roles: ['creator']
-        });
-
-        if (d.parentSkill && d.parentSkillCloneType === 'fork') {
-          await skillParticipantService.ensureSkillParticipantRoles({
-            skill: d.parentSkill,
-            actor,
-            roles: ['forker']
-          });
-        }
-
         await storeParticipantService.recordParticipationSafely({
           store,
           actor,
@@ -776,32 +729,12 @@ class SkillServiceImpl {
       project: d.project,
       resourceActor: d.actor
     });
-    await storeAccessService.ensureActorStorePermissions({
-      store: d.skill.store!,
-      actor: d.actor,
-      permissions: d.actor.organizationActorOid
-        ? [storeReadPermission, storeWritePermission]
-        : [storeReadPermission]
-    });
-    await skillParticipantService.ensureSkillParticipantAccessRole({
-      skill: d.skill,
-      actor: d.actor,
-      permission: d.actor.organizationActorOid ? 'write' : 'read'
-    });
 
     await storeParticipantService.recordParticipationSafely({
       store: d.skill.store!,
       actor: d.actor,
       roles: d.actor.consumerProfileOid ? ['viewer', 'user'] : ['viewer']
     });
-
-    if (d.actor.consumerProfileOid) {
-      return await skillParticipantService.ensureSkillParticipantRoles({
-        skill: d.skill,
-        actor: d.actor,
-        roles: ['user']
-      });
-    }
   }
 }
 

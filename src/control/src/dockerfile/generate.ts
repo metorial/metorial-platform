@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
-import { relative, resolve } from 'node:path';
+import { dirname, relative, resolve } from 'node:path';
 import { atomicWrite } from '../files';
 import { discover } from '../manifest';
 import { discoverPackages } from '../packages';
@@ -50,13 +50,22 @@ export let renderDockerfile = (
         if (!existsSync(path)) throw new Error(`missing migration schema ${path}`);
 
         let directory = statSync(path).isDirectory();
+        let migrations = resolve(dirname(path), 'migrations');
 
         return [
           migration.name,
           {
             source: relative(workspace, path),
             target: `prisma/${migration.name}/${directory ? 'schema' : 'schema.prisma'}`,
-            directory
+            directory,
+            ...(existsSync(migrations)
+              ? {
+                  migrations: {
+                    source: relative(workspace, migrations),
+                    target: `prisma/${migration.name}/migrations`
+                  }
+                }
+              : {})
           }
         ] as const;
       })

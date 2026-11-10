@@ -466,7 +466,7 @@ describe('processSkillExport', () => {
       expect(state.skillExport.status).toBe('pending');
       expect(mocks.enqueueSkillExport).toHaveBeenCalledWith(
         expect.objectContaining({ manifestId: 'skdm_1' }),
-        { delay: 10_000 }
+        { delay: 5000 }
       );
     });
 
@@ -489,26 +489,31 @@ describe('processSkillExport', () => {
       await run();
 
       expect(mocks.enqueueSkillExport).toHaveBeenCalledWith(
-        { skillExportId: 'ske_1', manifestId: 'skdm_1', zipStartedAt: expect.any(Number) },
-        { delay: 10_000 }
+        {
+          skillExportId: 'ske_1',
+          manifestId: 'skdm_1',
+          zipStartedAt: expect.any(Number),
+          zipPolls: 1
+        },
+        { delay: 5000 }
       );
       let zipStartedAt = mocks.enqueueSkillExport.mock.calls[0]![0].zipStartedAt;
 
       storage.getZipJob.mockResolvedValue(zipJob({ state: 'queued' }));
       mocks.enqueueSkillExport.mockClear();
 
-      await run({ manifestId: 'skdm_1', zipStartedAt });
+      await run({ manifestId: 'skdm_1', zipStartedAt, zipPolls: 1 });
 
       expect(storage.getZipJob).toHaveBeenCalledWith('skill-export-ske_1');
       expect(storage.createZipJob).toHaveBeenCalledTimes(1);
       expect(mocks.enqueueSkillExport).toHaveBeenCalledWith(
-        { skillExportId: 'ske_1', manifestId: 'skdm_1', zipStartedAt },
-        { delay: 10_000 }
+        { skillExportId: 'ske_1', manifestId: 'skdm_1', zipStartedAt, zipPolls: 2 },
+        { delay: 5000 }
       );
 
       storage.getZipJob.mockResolvedValue(completedJob());
 
-      await run({ manifestId: 'skdm_1', zipStartedAt });
+      await run({ manifestId: 'skdm_1', zipStartedAt, zipPolls: 2 });
 
       expect(state.skillExport.status).toBe('completed');
       expect(db.skillExportRef.update).toHaveBeenCalledWith(
@@ -516,6 +521,20 @@ describe('processSkillExport', () => {
           data: expect.objectContaining({ fileManifestOid: manifest.oid })
         })
       );
+    });
+
+    it('slows zip job polling down after the first ten polls', async () => {
+      storage.getZipJob.mockResolvedValue(zipJob({ state: 'running' }));
+      Object.assign(state.skillExport, { zipJobId: 'skill-export-ske_1', zipJobAttempts: 1 });
+      let zipStartedAt = Date.now();
+
+      await run({ manifestId: 'skdm_1', zipStartedAt, zipPolls: 9 });
+      await run({ manifestId: 'skdm_1', zipStartedAt, zipPolls: 10 });
+
+      expect(mocks.enqueueSkillExport.mock.calls).toEqual([
+        [expect.objectContaining({ zipPolls: 10 }), { delay: 5000 }],
+        [expect.objectContaining({ zipPolls: 11 }), { delay: 10_000 }]
+      ]);
     });
 
     it('re-submits retryable failures with the same spec up to three attempts', async () => {
@@ -532,8 +551,8 @@ describe('processSkillExport', () => {
       });
       expect(state.skillExport).toMatchObject({ status: 'pending', zipJobAttempts: 2 });
       expect(mocks.enqueueSkillExport).toHaveBeenCalledWith(
-        { skillExportId: 'ske_1', ...poll },
-        { delay: 10_000 }
+        { skillExportId: 'ske_1', ...poll, zipPolls: 1 },
+        { delay: 5000 }
       );
 
       await run(poll);
@@ -578,7 +597,7 @@ describe('processSkillExport', () => {
       expect(state.skillExport.status).toBe('pending');
       expect(mocks.enqueueSkillExport).toHaveBeenCalledWith(
         expect.objectContaining({ manifestId: 'skdm_1' }),
-        { delay: 10_000 }
+        { delay: 5000 }
       );
     });
 

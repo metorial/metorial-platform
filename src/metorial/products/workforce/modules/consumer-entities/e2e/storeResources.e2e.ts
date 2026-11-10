@@ -23,19 +23,11 @@ import {
   consumerSurfaceService
 } from '@metorial/module-consumer-core';
 import { resourceActorService } from '@metorial/module-resource-actor';
+import { skillAccessGrantService, skillService } from '@metorial/module-skill';
 import {
-  skillAccessGrantService,
-  skillParticipantService,
-  skillService
-} from '@metorial/module-skill';
-import {
-  formatParityReport,
-  runStoreResourceParity,
   storeAccessService,
   storeParticipantService,
-  storeService,
-  type ParityQuery,
-  type ParityReport
+  storeService
 } from '@metorial/module-store';
 import { describe, expect, it } from 'vitest';
 import { consumerSkillService } from '../src';
@@ -45,8 +37,7 @@ import {
   createGroup,
   createProfile,
   createSurface,
-  getEveryoneGroup,
-  useStoreResourceFlags
+  getEveryoneGroup
 } from './_fixtures';
 
 type Profile = Awaited<ReturnType<typeof createProfile>>;
@@ -251,12 +242,8 @@ let fullAuthorAccess = [
   'store_write'
 ];
 
-describe.each([
-  ['legacy', false],
-  ['v2', true]
-])('consumer skill and store access (%s)', (_, enabled) => {
+describe('consumer skill and store access', () => {
   let org = useOrganization();
-  useStoreResourceFlags(enabled);
 
   it('follows consumer skill shares for the skill and its store', async () => {
     let fixture = await loadOrganizationFixture(org.ids);
@@ -395,6 +382,96 @@ describe.each([
     expect(await list(await restricted(fixture, author))).toEqual(expected);
     await expectServiceError(list(await restricted(fixture, peer)), 'forbidden');
   });
+
+  it('keeps access another source still grants after a share is revoked', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let surface = await authoringSurface(fixture);
+    let author = await createProfile(fixture, surface);
+    let peer = await createProfile(fixture, surface);
+    let group = await createGroup(fixture, surface);
+    await addToGroups(fixture, peer, [group.id]);
+    let skill = await authorSkill(fixture, surface, author);
+    let sharer = {
+      consumerProfile: author,
+      consumerGroups: [await getEveryoneGroup(surface)]
+    };
+
+    let access = await consumerAccessService.createConsumerAccess({
+      organization: fixture.organization,
+      consumerSurface: surface,
+      consumerGroup: group,
+      auditScope: fixture.auditScope,
+      access: { type: 'skill', skill: await getSkill(fixture, skill.id) }
+    });
+    expect(await skillAccess(fixture, skill.id, peer)).toEqual(['skill_read', 'store_read']);
+
+    await share(fixture, skill.id, 'write', peer, sharer);
+    expect(await skillAccess(fixture, skill.id, peer)).toEqual([
+      'skill_read',
+      'skill_write',
+      'store_read',
+      'store_write'
+    ]);
+
+    await share(fixture, skill.id, 'none', peer, sharer);
+    expect(await skillAccess(fixture, skill.id, peer)).toEqual(['skill_read', 'store_read']);
+
+    await consumerAccessService.deleteConsumerAccess({
+      organization: fixture.organization,
+      consumerAccess: await consumerAccessService.getConsumerAccessById({
+        consumerSurface: surface,
+        consumerAccessId: access.id
+      }),
+      auditScope: fixture.auditScope
+    });
+    expect(await skillAccess(fixture, skill.id, peer)).toEqual([]);
+    expect(await skillAccess(fixture, skill.id, author)).toEqual(fullAuthorAccess);
+  });
+
+  it('reports participant permissions from the share grants', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let surface = await authoringSurface(fixture);
+    let author = await createProfile(fixture, surface);
+    let peer = await createProfile(fixture, surface);
+    let skill = await getSkill(fixture, (await authorSkill(fixture, surface, author)).id);
+    let sharer = {
+      consumerProfile: author,
+      consumerGroups: [await getEveryoneGroup(surface)]
+    };
+
+    let permissionsOf = async (profile: Profile) => {
+      let actor = await profileActor(fixture, profile);
+      let participants = await firstPage(
+        await storeParticipantService.listStoreResourceParticipants({
+          ...scopeOf(fixture),
+          store: skill.store!
+        })
+      );
+      let participant = participants.find(item =>
+        item.actors.some(row => row.resourceActorOid == actor.oid)
+      );
+      if (!participant) return undefined;
+
+      return (
+        await storeParticipantService.findParticipantPermissions({
+          store: skill.store!,
+          participants: [participant]
+        })
+      ).get(participant.oid);
+    };
+
+    expect(await permissionsOf(author)).toEqual(['content_read', 'content_write']);
+    expect(await permissionsOf(peer)).toBeUndefined();
+
+    await share(fixture, skill.id, 'read', peer, sharer);
+    expect(await permissionsOf(peer)).toEqual(['content_read']);
+
+    await share(fixture, skill.id, 'write', peer, sharer);
+    expect(await permissionsOf(peer)).toEqual(['content_read', 'content_write']);
+
+    await share(fixture, skill.id, 'none', peer, sharer);
+    expect(await permissionsOf(peer)).toEqual([]);
+  });
 });
 
 describe('consumer store participants', () => {
@@ -456,14 +533,6 @@ describe('consumer store participants', () => {
     expect(other!.actors.map(row => row.resourceActor.consumerProfileOid)).toEqual([
       otherConsumer.oid
     ]);
-
-    let legacy = await firstPage(
-      await skillParticipantService.listSkillParticipants({
-        ...scopeOf(fixture),
-        skillId: skill.id
-      })
-    );
-    expect(legacy).toHaveLength(3);
   });
 
   it('folds the linked organization actor into the consumer participant', async () => {
@@ -510,13 +579,9 @@ describe('consumer store participants', () => {
   });
 });
 
-describe.each([
-  ['legacy', false],
-  ['v2', true]
-])('CLI organization member authorization (%s)', (_, enabled) => {
+describe('CLI organization member authorization', () => {
   let org = useOrganization();
   let member = useMember(org);
-  useStoreResourceFlags(enabled);
 
   let cliProfile = async (fixture: OrganizationFixture) => {
     let surface = await consumerSurfaceService.ensureInternalConsumerSurface({
@@ -547,14 +612,14 @@ describe.each([
       accessTags: (await consumerView(profile)).accessTags
     });
 
-  it(`${enabled ? 'privileges' : 'restricts'} CLI profiles of organization members`, async () => {
+  it('privileges CLI profiles of organization members', async () => {
     let fixture = await loadOrganizationFixture(org.ids);
     let profile = await cliProfile(fixture);
     expect(profile.organizationMemberOid).toBe(fixture.member.oid);
 
     let result = await resolve(fixture, profile);
-    expect(result.isCliMember).toBe(enabled);
-    expect(result.authorization.type).toBe(enabled ? 'privileged' : 'restricted');
+    expect(result.isCliMember).toBe(true);
+    expect(result.authorization.type).toBe('privileged');
   });
 
   it('restricts CLI profiles once the member left the organization', async () => {
@@ -610,13 +675,9 @@ let setFullSkillAccess = async (fixture: OrganizationFixture, enabled: boolean) 
 
 let readAccess = ['skill_read', 'store_read'];
 
-describe.each([
-  ['legacy', false],
-  ['v2', true]
-])('organization member consumers (%s)', (_, enabled) => {
+describe('organization member consumers', () => {
   let org = useOrganization();
   let leaver = useMember(org);
-  useStoreResourceFlags(enabled);
 
   let setup = async (fixture: OrganizationFixture) => {
     let surface = await authoringSurface(fixture);
@@ -638,13 +699,11 @@ describe.each([
     return { surface, author, sharer, skill, hiddenSkill, memberProfile, peer };
   };
 
-  it(`${enabled ? 'gives' : 'does not give'} linked members full access to skills they can see`, async () => {
+  it('gives linked members full access to skills they can see', async () => {
     let fixture = await loadOrganizationFixture(org.ids);
     let { skill, hiddenSkill, memberProfile, peer } = await setup(fixture);
 
-    expect(await skillAccess(fixture, skill.id, memberProfile)).toEqual(
-      enabled ? fullAuthorAccess : readAccess
-    );
+    expect(await skillAccess(fixture, skill.id, memberProfile)).toEqual(fullAuthorAccess);
     expect(await skillAccess(fixture, hiddenSkill.id, memberProfile)).toEqual([]);
     expect(await skillAccess(fixture, skill.id, peer)).toEqual(readAccess);
 
@@ -653,8 +712,8 @@ describe.each([
       store: await db.store.findUniqueOrThrow({ where: { oid: skill.storeOid! } }),
       authorization: await restricted(fixture, memberProfile)
     });
-    expect(permissions.canManageAccess).toBe(enabled);
-    expect(permissions.permissions.includes('content_write')).toBe(enabled);
+    expect(permissions.canManageAccess).toBe(true);
+    expect(permissions.permissions.includes('content_write')).toBe(true);
   });
 
   it('keeps linked members on their grants when the project setting is off', async () => {
@@ -687,20 +746,14 @@ describe.each([
     }
   });
 
-  it(`${enabled ? 'lets' : 'does not let'} linked members share skills they can see`, async () => {
+  it('lets linked members share skills they can see', async () => {
     let fixture = await loadOrganizationFixture(org.ids);
     let { surface, skill, memberProfile, peer } = await setup(fixture);
-    let shareAsMember = share(fixture, skill.id, 'write', peer, {
+    await share(fixture, skill.id, 'write', peer, {
       consumerProfile: memberProfile,
       consumerGroups: [await getEveryoneGroup(surface)]
     });
 
-    if (!enabled) {
-      await expectServiceError(shareAsMember, 'forbidden');
-      return;
-    }
-
-    await shareAsMember;
     expect(await skillAccess(fixture, skill.id, peer)).toEqual([
       'skill_read',
       'skill_write',
@@ -709,368 +762,48 @@ describe.each([
     ]);
   });
 
-  if (enabled) {
-    it('records linked members as editors and flags them as organization member participants', async () => {
-      let fixture = await loadOrganizationFixture(org.ids);
-      let { skill, memberProfile, peer } = await setup(fixture);
+  it('records linked members as editors and flags them as organization member participants', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let { skill, memberProfile, peer } = await setup(fixture);
 
-      await skillService.updateSkill({
+    await skillService.updateSkill({
+      ...scopeOf(fixture),
+      auditScope: fixture.auditScope,
+      skill: await getSkill(fixture, skill.id),
+      authorization: await restricted(fixture, memberProfile),
+      input: { description: 'Edited by an organization member' }
+    });
+    expect(await participantRoles(fixture, skill.id, memberProfile)).toContain('editor');
+
+    let participants = await firstPage(
+      await storeParticipantService.listStoreResourceParticipants({
         ...scopeOf(fixture),
-        auditScope: fixture.auditScope,
-        skill: await getSkill(fixture, skill.id),
-        authorization: await restricted(fixture, memberProfile),
-        input: { description: 'Edited by an organization member' }
-      });
-      expect(await participantRoles(fixture, skill.id, memberProfile)).toContain('editor');
+        store: { oid: skill.storeOid! }
+      })
+    );
+    let participantOf = async (profile: Profile) => {
+      let actor = await profileActor(fixture, profile);
+      return participants.find(participant =>
+        participant.actors.some(row => row.resourceActorOid == actor.oid)
+      )!;
+    };
+    let flagged = await storeParticipantService.findOrganizationMemberParticipantOids({
+      project: fixture.project,
+      participants
+    });
 
-      let participants = await firstPage(
-        await storeParticipantService.listStoreResourceParticipants({
-          ...scopeOf(fixture),
-          store: { oid: skill.storeOid! }
-        })
-      );
-      let participantOf = async (profile: Profile) => {
-        let actor = await profileActor(fixture, profile);
-        return participants.find(participant =>
-          participant.actors.some(row => row.resourceActorOid == actor.oid)
-        )!;
-      };
-      let flagged = await storeParticipantService.findOrganizationMemberParticipantOids({
+    expect(flagged.has((await participantOf(memberProfile)).oid)).toBe(true);
+    expect(flagged.has((await participantOf(peer)).oid)).toBe(false);
+
+    await setFullSkillAccess(fixture, false);
+    try {
+      let disabled = await storeParticipantService.findOrganizationMemberParticipantOids({
         project: fixture.project,
         participants
       });
-
-      expect(flagged.has((await participantOf(memberProfile)).oid)).toBe(true);
-      expect(flagged.has((await participantOf(peer)).oid)).toBe(false);
-
-      await setFullSkillAccess(fixture, false);
-      try {
-        let disabled = await storeParticipantService.findOrganizationMemberParticipantOids({
-          project: fixture.project,
-          participants
-        });
-        expect(disabled.size).toBe(0);
-      } finally {
-        await setFullSkillAccess(fixture, true);
-      }
-    });
-  }
-});
-
-let parityQuery: ParityQuery = async sql =>
-  (await db.$queryRawUnsafe(sql)) as Record<string, unknown>[];
-
-let parityOf = async (
-  fixture: OrganizationFixture,
-  checkIds?: string[]
-): Promise<ParityReport> =>
-  await runStoreResourceParity(parityQuery, { projectOid: fixture.project.oid, checkIds });
-
-let parityCheck = (report: ParityReport, id: string) =>
-  report.checks.find(check => check.id == id)!;
-
-describe.each([
-  ['legacy', false],
-  ['v2', true]
-])('store resource parity of service-written data (%s)', (_, enabled) => {
-  let org = useOrganization();
-  useStoreResourceFlags(enabled);
-
-  it('finds no differences between legacy and v2 data', async () => {
-    let fixture = await loadOrganizationFixture(org.ids);
-    let surface = await authoringSurface(fixture);
-    let author = await createProfile(fixture, surface);
-    let peer = await createProfile(fixture, surface);
-    let skill = await authorSkill(fixture, surface, author);
-    await share(fixture, skill.id, 'read', peer, {
-      consumerProfile: author,
-      consumerGroups: [await getEveryoneGroup(surface)]
-    });
-    await share(fixture, skill.id, 'write', peer, {
-      consumerProfile: author,
-      consumerGroups: [await getEveryoneGroup(surface)]
-    });
-
-    let store = await storeService.createStore({
-      ...scopeOf(fixture),
-      auditScope: fixture.auditScope,
-      input: { name: uniqueId('parity-store'), actor: await profileActor(fixture, author) }
-    });
-    await storeAccessService.ensureActorStorePermissions({
-      store,
-      actor: await profileActor(fixture, peer),
-      permissions: ['content_read']
-    });
-
-    let report = await parityOf(fixture);
-
-    expect(report.checks.filter(check => check.error)).toEqual([]);
-    expect(
-      report.checks.filter(check => check.violations > 0).map(check => check.samples)
-    ).toEqual([]);
-    expect(report.readiness['store-access-v2'].ready).toBe(true);
-    expect(report.readiness['store-participants-v2'].ready).toBe(true);
-
-    for (let id of [
-      'skill-grants-missing',
-      'skill-grants-stale',
-      'standalone-grants-missing',
-      'standalone-grants-stale',
-      'actor-rows-unlinked',
-      'participants-roles',
-      'skill-participants-missing',
-      'skill-participants-roles'
-    ]) {
-      expect(parityCheck(report, id).population, id).toBeGreaterThan(0);
+      expect(disabled.size).toBe(0);
+    } finally {
+      await setFullSkillAccess(fixture, true);
     }
-  });
-
-  it('formats a readable report', async () => {
-    let fixture = await loadOrganizationFixture(org.ids);
-    let report = await parityOf(fixture, ['skill-grants-missing', 'actor-rows-unlinked']);
-    let text = formatParityReport(report);
-
-    expect(text).toContain('== store-access-v2');
-    expect(text).toContain('skill-grants-missing');
-    expect(text).toContain('no differences, store-participants-v2 can be enabled');
-  });
-});
-
-describe('store resource parity detects drift', () => {
-  let org = useOrganization();
-  useStoreResourceFlags(true);
-
-  let scenario = async () => {
-    let fixture = await loadOrganizationFixture(org.ids);
-    let surface = await authoringSurface(fixture);
-    let author = await createProfile(fixture, surface);
-    let peer = await createProfile(fixture, surface);
-    let outsider = await createProfile(fixture, surface);
-    let skill = await authorSkill(fixture, surface, author);
-    await share(fixture, skill.id, 'read', peer, {
-      consumerProfile: author,
-      consumerGroups: [await getEveryoneGroup(surface)]
-    });
-
-    let authorActor = await profileActor(fixture, author);
-    let peerActor = await profileActor(fixture, peer);
-    let standalone = await storeService.createStore({
-      ...scopeOf(fixture),
-      auditScope: fixture.auditScope,
-      input: { name: uniqueId('parity-drift-store'), actor: authorActor }
-    });
-    await storeAccessService.ensureActorStorePermissions({
-      store: standalone,
-      actor: peerActor,
-      permissions: ['content_read']
-    });
-
-    let skillRecord = await db.skill.findUniqueOrThrow({ where: { id: skill.id } });
-    let storeOf = (oid: bigint) => ({
-      oid,
-      organizationOid: fixture.project.organizationOid
-    });
-
-    return {
-      fixture,
-      author,
-      peer,
-      outsider,
-      authorActor,
-      peerActor,
-      skillStoreOid: skillRecord.storeOid!,
-      standalone,
-      storeOf
-    };
-  };
-
-  let expectDrift = async (fixture: OrganizationFixture, checkId: string, detail?: RegExp) => {
-    let result = parityCheck(await parityOf(fixture, [checkId]), checkId);
-
-    expect(result.error).toBeUndefined();
-    expect(result.violations, checkId).toBeGreaterThan(0);
-    if (detail) expect(result.samples.map(sample => sample.detail).join('\n')).toMatch(detail);
-  };
-
-  it('detects a skill grant that is missing from the store', async () => {
-    let s = await scenario();
-    await db.accessTagEntity.deleteMany({
-      where: {
-        storeOid: s.skillStoreOid,
-        accessTagPolicy: { systemIdentifier: 'consumer_skill_read' }
-      }
-    });
-
-    await expectDrift(
-      s.fixture,
-      'skill-grants-missing',
-      /has skill read access but no store grant/
-    );
-  });
-
-  it('detects a store grant that no skill grant backs', async () => {
-    let s = await scenario();
-    await storeAccessGrantService.setAccessLevel({
-      store: s.storeOf(s.skillStoreOid),
-      access: skillStoreResourceAccess,
-      accessTagOids: [s.outsider.personalConsumerGroup!.accessTagOid],
-      level: 'write'
-    });
-
-    await expectDrift(
-      s.fixture,
-      'skill-grants-stale',
-      /has store write access without a skill grant/
-    );
-  });
-
-  it('detects a standalone store permission without a grant', async () => {
-    let s = await scenario();
-    await db.accessTagEntity.deleteMany({ where: { storeOid: s.standalone.oid } });
-
-    await expectDrift(
-      s.fixture,
-      'standalone-grants-missing',
-      /store read permission but no grant/
-    );
-  });
-
-  it('detects a standalone store grant without a permission', async () => {
-    let s = await scenario();
-    await storeAccessGrantService.setAccessLevel({
-      store: s.storeOf(s.standalone.oid),
-      access: standaloneStoreResourceAccess,
-      accessTagOids: [s.outsider.personalConsumerGroup!.accessTagOid],
-      level: 'write'
-    });
-
-    await expectDrift(s.fixture, 'standalone-grants-stale', /grant without a permission/);
-  });
-
-  it('detects a policy with the wrong roles', async () => {
-    let s = await scenario();
-    await db.accessTagPolicy.updateMany({
-      where: {
-        organizationOid: s.fixture.project.organizationOid,
-        systemIdentifier: 'consumer_store_manage_access'
-      },
-      data: { roles: [...consumerStoreWriteRoles] }
-    });
-
-    await expectDrift(s.fixture, 'policy-roles', /consumer_store_manage_access has roles/);
-  });
-
-  it('detects participant rows that were never linked', async () => {
-    let s = await scenario();
-    await db.storeParticipantActor.updateMany({
-      where: { storeOid: s.standalone.oid },
-      data: { storeParticipantOid: null }
-    });
-
-    await expectDrift(s.fixture, 'actor-rows-unlinked');
-  });
-
-  it('detects participant rows linked to a participant of another store', async () => {
-    let s = await scenario();
-    let foreign = await db.storeParticipant.findFirstOrThrow({
-      where: { storeOid: s.skillStoreOid }
-    });
-    await db.storeParticipantActor.updateMany({
-      where: { storeOid: s.standalone.oid, resourceActorOid: s.authorActor.oid },
-      data: { storeParticipantOid: foreign.oid }
-    });
-
-    await expectDrift(s.fixture, 'actor-rows-wrong-store');
-  });
-
-  it('detects a participant that lost its consumer', async () => {
-    let s = await scenario();
-    await db.storeParticipant.updateMany({
-      where: { storeOid: s.skillStoreOid, consumerOid: { not: null } },
-      data: { consumerOid: null }
-    });
-
-    await expectDrift(s.fixture, 'participants-consumer-conflict', /not tied to a consumer/);
-  });
-
-  it('detects participants that lost roles', async () => {
-    let s = await scenario();
-    await db.storeParticipant.updateMany({
-      where: { storeOid: s.skillStoreOid },
-      data: { roles: [] }
-    });
-
-    await expectDrift(s.fixture, 'participants-roles');
-    await expectDrift(s.fixture, 'skill-participants-roles');
-  });
-
-  it('detects participants without rows and skill participants without a store participant', async () => {
-    let s = await scenario();
-    await db.storeParticipantActor.deleteMany({ where: { storeOid: s.skillStoreOid } });
-
-    await expectDrift(s.fixture, 'participants-without-rows');
-    await expectDrift(s.fixture, 'skill-participants-missing');
-  });
-
-  it('detects document participants that are unlinked or linked to the wrong store', async () => {
-    let s = await scenario();
-    let document = await db.document.findFirstOrThrow({
-      where: { projectOid: s.fixture.project.oid, file: { storeItems: { some: {} } } }
-    });
-    let participant = await db.documentParticipant.create({
-      data: {
-        id: await ID.generateId('documentParticipant'),
-        role: 'viewer',
-        documentOid: document.oid,
-        resourceActorOid: s.peerActor.oid
-      }
-    });
-
-    await expectDrift(s.fixture, 'document-participants-unlinked');
-
-    let foreign = await db.storeParticipant.findFirstOrThrow({
-      where: { storeOid: s.standalone.oid }
-    });
-    await db.documentParticipant.update({
-      where: { oid: participant.oid },
-      data: { storeParticipantOid: foreign.oid }
-    });
-
-    await expectDrift(s.fixture, 'document-participants-link', /does not hold the document/);
-  });
-
-  it('scopes the report to one project and does not leak other projects', async () => {
-    let s = await scenario();
-    await db.accessTagEntity.deleteMany({
-      where: {
-        storeOid: s.skillStoreOid,
-        accessTagPolicy: { systemIdentifier: 'consumer_skill_read' }
-      }
-    });
-
-    let scoped = await parityOf(s.fixture, ['skill-grants-missing']);
-    let all = await runStoreResourceParity(parityQuery, {
-      checkIds: ['skill-grants-missing']
-    });
-
-    expect(
-      parityCheck(scoped, 'skill-grants-missing').byProject.map(item => item.projectOid)
-    ).toEqual([s.fixture.project.oid.toString()]);
-    expect(parityCheck(all, 'skill-grants-missing').violations).toBeGreaterThanOrEqual(
-      parityCheck(scoped, 'skill-grants-missing').violations
-    );
-    expect(scoped.readiness['store-access-v2'].ready).toBe(false);
-    expect(scoped.projects[s.fixture.project.oid.toString()]?.projectId).toBe(
-      s.fixture.project.id
-    );
-  });
-
-  it('rejects unknown checks and malformed project scopes', async () => {
-    await expect(runStoreResourceParity(parityQuery, { checkIds: ['nope'] })).rejects.toThrow(
-      /Unknown parity checks: nope/
-    );
-    await expect(
-      runStoreResourceParity(parityQuery, { projectOid: '1; DROP TABLE "Skill"' })
-    ).rejects.toThrow(/Invalid project oid/);
   });
 });

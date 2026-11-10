@@ -284,15 +284,6 @@ export let syncSnapshotQueueProcessor = syncSnapshotQueue.process(
               }
             });
 
-        await db.skillDestination.update({
-          where: { oid: destination.oid },
-          data: { currentManifestOid: manifest.oid }
-        });
-        await db.skillDestinationSync.update({
-          where: { oid: sync.oid },
-          data: { manifestOid: manifest.oid }
-        });
-
         return { manifest, created: !existing };
       });
 
@@ -308,6 +299,19 @@ export let syncSnapshotQueueProcessor = syncSnapshotQueue.process(
       if (!objectExists) {
         await uploadManifestFile({ destinationId: destination.id, manifest: written });
       }
+
+      // Exports and propagation read the manifest object as soon as it is referenced, so it must
+      // be uploaded first. The fresh `lastReferencedAt` keeps storage GC away until then.
+      await withTransaction(async db => {
+        await db.skillDestination.update({
+          where: { oid: destination.oid },
+          data: { currentManifestOid: manifest.oid }
+        });
+        await db.skillDestinationSync.update({
+          where: { oid: sync.oid },
+          data: { manifestOid: manifest.oid }
+        });
+      });
 
       let unchanged = destination.currentManifestOid === manifest.oid;
       await appendSkillDestinationSyncLog(

@@ -24,21 +24,37 @@ import {
 import {
   addFile,
   consumerAuthorization,
+  consumerProfileAuthorization,
   createStore,
   modifyItems,
   scopeOf,
-  storePaths,
-  useStoreResourceFlags
+  storePaths
 } from './_fixtures';
 
-let participantPermissions = async (store: Pick<Store, 'oid'>, actor: ResourceActor) =>
-  (
-    await db.storeParticipantActor.findUnique({
-      where: {
-        storeOid_resourceActorOid: { storeOid: store.oid, resourceActorOid: actor.oid }
-      }
-    })
-  )?.permissions.sort();
+let participantRow = async (store: Pick<Store, 'oid'>, actor: ResourceActor) =>
+  await db.storeParticipantActor.findUnique({
+    where: {
+      storeOid_resourceActorOid: { storeOid: store.oid, resourceActorOid: actor.oid }
+    }
+  });
+
+let participantPermissionsOf = async (
+  fixture: OrganizationFixture,
+  store: Store,
+  actor: ResourceActor
+) => {
+  let participants = await firstPage(
+    await storeParticipantService.listStoreResourceParticipants({ ...scopeOf(fixture), store })
+  );
+  let participant = participants.find(item => item.primaryResourceActorOid == actor.oid);
+  if (!participant) return undefined;
+
+  let permissions = await storeParticipantService.findParticipantPermissions({
+    store,
+    participants: [participant]
+  });
+  return permissions.get(participant.oid);
+};
 
 let readStore = (
   fixture: OrganizationFixture,
@@ -70,14 +86,10 @@ let listStoreIds = async (
     await firstPage(await storeService.listStores({ ...scopeOf(fixture), authorization, ids }))
   ).map(store => store.id);
 
-describe.each([
-  ['legacy', false],
-  ['v2', true]
-])('module-store access (%s)', (_, enabled) => {
+describe('module-store access', () => {
   let org = useOrganization();
   let member = useMember(org);
   let otherOrg = useOrganization();
-  useStoreResourceFlags(enabled);
 
   it('denies restricted consumers every operation on a private store', async () => {
     let fixture = await loadOrganizationFixture(org.ids);
@@ -164,7 +176,7 @@ describe.each([
     let row = await db.store.findUniqueOrThrow({ where: { id: store.id } });
     expect(row.access).toBe('private');
     expect(await storePaths(store.id)).toEqual(['/', '/secret.txt']);
-    expect(await participantPermissions(store, actor)).toBeUndefined();
+    expect(await participantRow(store, actor)).toBeNull();
   });
 
   it('lets consumers read but not write a public_read store', async () => {
@@ -209,7 +221,7 @@ describe.each([
       readableStoreIds: [store.id],
       writableStoreIds: []
     });
-    expect(await participantPermissions(store, actor)).toEqual([]);
+    expect(await participantRow(store, actor)).not.toBeNull();
   });
 
   it('lets consumers write a public_write store and attributes their edits', async () => {
@@ -240,7 +252,7 @@ describe.each([
       permissions: ['content_read', 'content_write'],
       writableStoreIds: [store.id]
     });
-    expect(await participantPermissions(store, actor)).toEqual([]);
+    expect(await participantRow(store, actor)).not.toBeNull();
   });
 
   it('rejects resource actors that belong to another project', async () => {
@@ -278,7 +290,7 @@ describe.each([
     expect(await db.store.count({ where: { name } })).toBe(0);
 
     expect(await storePaths(store.id)).toEqual(['/']);
-    expect(await participantPermissions(store, foreign.actor)).toBeUndefined();
+    expect(await participantRow(store, foreign.actor)).toBeNull();
   });
 
   it('attributes member edits to the member resource actor', async () => {
@@ -330,7 +342,7 @@ describe.each([
     let { actor, authorization } = await consumerAuthorization(fixture);
 
     await readStore(fixture, store, authorization);
-    expect(await participantPermissions(store, actor)).toEqual([]);
+    expect(await participantRow(store, actor)).not.toBeNull();
 
     let privateStore = await storeService.updateStore({
       ...scopeOf(fixture),
@@ -345,18 +357,17 @@ describe.each([
   });
 });
 
-describe('module-store legacy participant permissions', () => {
+describe('module-store consumer store grants', () => {
   let org = useOrganization();
   let otherOrg = useOrganization();
-  useStoreResourceFlags(false);
 
-  it('grants, widens and revokes access through explicit participants', async () => {
+  it('grants, widens and revokes access through the personal access tag', async () => {
     let fixture = await loadOrganizationFixture(org.ids);
     let other = await loadOrganizationFixture(otherOrg.ids);
     let store = await createStore(fixture);
-    let { actor, authorization } = await consumerAuthorization(fixture);
+    let { actor, authorization } = await consumerProfileAuthorization(fixture);
 
-    let readParticipant = await storeAccessService.ensureActorStorePermissions({
+    await storeAccessService.ensureActorStorePermissions({
       store,
       actor,
       permissions: ['content_read']
@@ -366,48 +377,56 @@ describe('module-store legacy participant permissions', () => {
       modifyItems(fixture, store, [{ type: 'add', path: 'dir' }], authorization),
       'forbidden'
     );
+    expect(await participantPermissionsOf(fixture, store, actor)).toEqual(['content_read']);
 
-    let widened = await storeAccessService.ensureActorStorePermissions({
+    await storeAccessService.ensureActorStorePermissions({
       store,
       actor,
       permissions: ['content_write']
     });
-    expect(widened?.id).toBe(readParticipant?.id);
-    expect(await participantPermissions(store, actor)).toEqual([
+    expect(await participantPermissionsOf(fixture, store, actor)).toEqual([
       'content_read',
       'content_write'
     ]);
     await modifyItems(fixture, store, [{ type: 'add', path: 'dir' }], authorization);
     expect(await storePaths(store.id)).toEqual(['/', '/dir/']);
 
+    await storeAccessService.ensureActorStorePermissions({
+      store,
+      actor,
+      permissions: ['content_read']
+    });
+    expect(await participantPermissionsOf(fixture, store, actor)).toEqual([
+      'content_read',
+      'content_write'
+    ]);
+
     let participants = await firstPage(
-      await storeParticipantService.listStoreParticipants({
+      await storeParticipantService.listStoreResourceParticipants({
         ...scopeOf(fixture),
-        storeIds: [store.id]
+        store
       })
     );
-    expect(participants.map(participant => participant.resourceActor.id)).toEqual([actor.id]);
-
-    let participant = await storeParticipantService.getStoreParticipantById({
+    expect(participants.map(participant => participant.primaryResourceActor.id)).toEqual([
+      actor.id
+    ]);
+    let participant = await storeParticipantService.getStoreResourceParticipantById({
       ...scopeOf(fixture),
-      storeParticipantId: readParticipant!.id
+      store,
+      participantId: participants[0]!.id
     });
     expect(participant).toMatchObject({
-      store: { id: store.id },
-      resourceActorOid: actor.oid
+      storeOid: store.oid,
+      primaryResourceActorOid: actor.oid
     });
-
     await expectServiceError(
-      storeParticipantService.getStoreParticipantById({
+      storeParticipantService.getStoreResourceParticipantById({
         ...scopeOf(other),
-        storeParticipantId: readParticipant!.id
+        store,
+        participantId: participants[0]!.id
       }),
       'not_found'
     );
-    let otherParticipants = await firstPage(
-      await storeParticipantService.listStoreParticipants({ ...scopeOf(other) })
-    );
-    expect(otherParticipants.map(item => item.id)).not.toContain(readParticipant!.id);
 
     await storeAccessService.ensureActorStorePermissions({
       store,
@@ -415,14 +434,20 @@ describe('module-store legacy participant permissions', () => {
       permissions: [],
       overridePermissions: true
     });
-    expect(await participantPermissions(store, actor)).toEqual([]);
+    expect(await participantPermissionsOf(fixture, store, actor)).toEqual([]);
     await expectServiceError(readStore(fixture, store, authorization), 'forbidden');
+    expect(await participantRow(store, actor)).not.toBeNull();
+    expect(
+      await db.storeParticipantActor.count({
+        where: { storeOid: store.oid, resourceActorOid: actor.oid }
+      })
+    ).toBe(1);
   });
 
-  it('gives the creating actor full access to its private store and nobody else', async () => {
+  it('gives the creating consumer full access to its private store and nobody else', async () => {
     let fixture = await loadOrganizationFixture(org.ids);
-    let creator = await consumerAuthorization(fixture);
-    let stranger = await consumerAuthorization(fixture);
+    let creator = await consumerProfileAuthorization(fixture);
+    let stranger = await consumerProfileAuthorization(fixture);
 
     let store = await createStore(fixture, { actor: creator.actor });
 
@@ -430,16 +455,18 @@ describe('module-store legacy participant permissions', () => {
       access: 'private',
       createdByResourceActorOid: creator.actor.oid
     });
-    expect(await participantPermissions(store, creator.actor)).toEqual([
+    expect(await participantPermissionsOf(fixture, store, creator.actor)).toEqual([
       'content_read',
       'content_write'
     ]);
+    expect((await participantRow(store, creator.actor))?.roles).toEqual(['creator']);
 
     await modifyItems(fixture, store, [{ type: 'add', path: 'mine' }], creator.authorization);
     expect((await readStore(fixture, store, creator.authorization)).id).toBe(store.id);
 
     await expectServiceError(readStore(fixture, store, stranger.authorization), 'forbidden');
     expect(await listStoreIds(fixture, stranger.authorization, [store.id])).toEqual([]);
+    expect(await participantPermissionsOf(fixture, store, stranger.actor)).toBeUndefined();
 
     let createdBy = await firstPage(
       await storeService.listStores({
@@ -449,5 +476,51 @@ describe('module-store legacy participant permissions', () => {
       })
     );
     expect(createdBy.map(item => item.id)).toEqual([store.id]);
+  });
+
+  it('applies default permissions once and keeps an existing grant', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let store = await createStore(fixture);
+    let { actor, authorization } = await consumerProfileAuthorization(fixture);
+
+    await storeAccessService.assertStoreAccessForStore({
+      ...scopeOf(fixture),
+      authorization,
+      store,
+      requiredPermission: 'content_read',
+      defaultPermissions: ['content_read']
+    });
+    expect(await participantPermissionsOf(fixture, store, actor)).toEqual(['content_read']);
+
+    await storeAccessService.ensureActorStorePermissions({
+      store,
+      actor,
+      permissions: ['content_read', 'content_write']
+    });
+    await storeAccessService.assertStoreAccessForStore({
+      ...scopeOf(fixture),
+      authorization,
+      store,
+      requiredPermission: 'content_write',
+      defaultPermissions: ['content_read']
+    });
+    expect(await participantPermissionsOf(fixture, store, actor)).toEqual([
+      'content_read',
+      'content_write'
+    ]);
+  });
+
+  it('reports organization actors as having full permissions', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let memberActor = await resourceActorService.ensureOrganizationActor({
+      project: fixture.project,
+      organizationActorOid: fixture.member.actor.oid
+    });
+    let store = await createStore(fixture, { actor: memberActor });
+
+    expect(await participantPermissionsOf(fixture, store, memberActor)).toEqual([
+      'content_read',
+      'content_write'
+    ]);
   });
 });

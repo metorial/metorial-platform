@@ -6,12 +6,7 @@ import {
   ServiceError
 } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import {
-  skillParticipantService,
-  skillResourceService,
-  skillService,
-  type SkillRecord
-} from '@metorial/module-skill';
+import { skillResourceService, skillService, type SkillRecord } from '@metorial/module-skill';
 import { skillTemplateService } from '@metorial/module-skill-templates';
 import type { AuditScope } from '@metorial/audit-scope';
 import {
@@ -30,15 +25,14 @@ import {
 } from '@metorial/db';
 import {
   accessTagService,
-  consumerSkillManageAccessRoles,
   createResourceAuthorization,
   getStoreResourceKindAccessWhere,
   hasOrganizationMemberSkillAccess,
-  isStoreResourceFlagEnabled,
   skillStoreResourceAccess,
   skillStoreResourceKind
 } from '@metorial/module-access';
 import { resourceActorService } from '@metorial/module-resource-actor';
+import { storeParticipantService } from '@metorial/module-store';
 import {
   consumerAccessPolicyService,
   consumerAccessService
@@ -155,34 +149,23 @@ class ConsumerSkillServiceImpl {
     consumerProfile: ConsumerProfile;
   }) {
     let tags = await this.getConsumerWriteAccessTags(d.consumerProfile);
-    let useStoreAccess =
-      d.skill.projectOid != null &&
-      (await isStoreResourceFlagEnabled({
-        project: { oid: d.skill.projectOid },
-        flag: 'store-access-v2'
-      }));
 
     if (
-      useStoreAccess &&
-      (await this.canManageSkillAsOrganizationMember({
+      await this.canManageSkillAsOrganizationMember({
         skill: d.skill,
         consumerProfile: d.consumerProfile,
         tags
-      }))
+      })
     ) {
       return;
     }
 
     let accessTagFilter = await accessTagService.getAccessTagFilter({
       tags,
-      roles: useStoreAccess
-        ? skillStoreResourceAccess.policies.manage.roles
-        : [...consumerSkillManageAccessRoles]
+      roles: skillStoreResourceAccess.policies.manage.roles
     });
     let manageableSkill = await db.skill.findFirst({
-      where: useStoreAccess
-        ? { oid: d.skill.oid, store: { is: { accessTagEntities: accessTagFilter } } }
-        : { oid: d.skill.oid, accessTagEntities: accessTagFilter },
+      where: { oid: d.skill.oid, store: { is: { accessTagEntities: accessTagFilter } } },
       select: {
         oid: true
       }
@@ -209,21 +192,27 @@ class ConsumerSkillServiceImpl {
       instance: d.instance,
       consumerProfile: d.consumerProfile
     });
-    let participant = await skillParticipantService.setSkillParticipantAccessRole({
-      skill: d.skill,
-      actor,
-      permission: d.permission
-    });
-    if (!participant) {
-      throw new ServiceError(notFoundError('skill.participant'));
-    }
+    await this.setSkillShareRole({ skill: d.skill, actor, permission: d.permission });
     await this.grantConsumerPersonalSkillAccess({
       organization: d.organization,
       consumerProfile: d.consumerProfile,
       skill: d.skill,
-      participant,
       permission: d.permission,
       grantManageAccess: d.grantManageAccess
+    });
+  }
+
+  private async setSkillShareRole(d: {
+    skill: Pick<Skill, 'storeOid'>;
+    actor: { oid: bigint };
+    permission: SkillSharePermission;
+  }) {
+    if (!d.skill.storeOid) return;
+
+    await storeParticipantService.setAccessRole({
+      store: { oid: d.skill.storeOid },
+      actor: d.actor,
+      role: d.permission == 'write' ? 'editor' : d.permission == 'read' ? 'viewer' : null
     });
   }
 
@@ -231,14 +220,10 @@ class ConsumerSkillServiceImpl {
     organization: Organization;
     consumerProfile: Pick<ConsumerProfile, 'personalConsumerGroupOid'>;
     skill: Pick<Skill, 'oid'>;
-    participant: { id: string };
     permission: Exclude<SkillSharePermission, 'none'>;
     grantManageAccess?: boolean;
   }) {
-    let policyScope = {
-      type: 'skill_participant' as const,
-      skillParticipantId: d.participant.id
-    };
+    let policyScope = { type: 'skill_share' as const };
     await consumerAccessPolicyService.grantAccess({
       organization: d.organization,
       permission: 'skill_read',
@@ -424,11 +409,7 @@ class ConsumerSkillServiceImpl {
     });
 
     await withTransaction(async database => {
-      let participant = await skillParticipantService.setSkillParticipantAccessRole({
-        skill: d.skill,
-        actor,
-        permission: d.permission
-      });
+      await this.setSkillShareRole({ skill: d.skill, actor, permission: d.permission });
       await this.deleteLegacyPersonalConsumerAccess({
         database,
         organization: d.organization,
@@ -436,18 +417,17 @@ class ConsumerSkillServiceImpl {
         skill: d.skill,
         auditScope: d.auditScope
       });
-      await consumerAccessPolicyService.revokeSkillParticipantAccessForPersonalGroup({
+      await consumerAccessPolicyService.revokeSkillShareAccessForPersonalGroup({
         organization: d.organization,
         consumerProfile: d.consumerProfile,
         skill: d.skill
       });
-      if (!participant || d.permission == 'none') return;
+      if (d.permission == 'none') return;
 
       await this.grantConsumerPersonalSkillAccess({
         organization: d.organization,
         consumerProfile: d.consumerProfile,
         skill: d.skill,
-        participant,
         permission: d.permission
       });
     });

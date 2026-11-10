@@ -171,7 +171,6 @@ import {
   SkillMergeRequestComment,
   SkillMergeRequestEvent,
   SkillMergeRequestItem,
-  SkillParticipant,
   SkillPlugin,
   SkillPluginRepository,
   SkillPluginSkill,
@@ -179,6 +178,7 @@ import {
   Store,
   StoreParticipant,
   StoreParticipantActor,
+  StoreParticipantPermissions,
   SandboxRegion,
   SystemEvent,
   Team,
@@ -1809,12 +1809,9 @@ export type StoreResourceParticipantPresentationRecord = StoreParticipant & {
 };
 
 export let storeParticipantType = PresentableType.create<{
-  storeParticipant:
-    | (StoreParticipantActor & {
-        store: Store;
-        resourceActor: ResourceActorPresentationRecord;
-      })
-    | StoreResourceParticipantPresentationRecord;
+  storeParticipant: StoreResourceParticipantPresentationRecord & {
+    permissions: StoreParticipantPermissions[];
+  };
 }>()('storeParticipant');
 
 export let skillAgentType = PresentableType.create<{
@@ -2127,15 +2124,10 @@ export let skillAccessType = PresentableType.create<{
 }>()('skillAccess');
 
 export let skillParticipantType = PresentableType.create<{
-  skillParticipant:
-    | (SkillParticipant & {
-        skill: Skill;
-        resourceActor: ResourceActorPresentationRecord;
-      })
-    | (StoreResourceParticipantPresentationRecord & {
-        skill: Skill;
-        hasOrganizationMemberAccess?: boolean;
-      });
+  skillParticipant: StoreResourceParticipantPresentationRecord & {
+    skill: Skill;
+    hasOrganizationMemberAccess?: boolean;
+  };
 }>()('skillParticipant');
 
 export let skillVersionType = PresentableType.create<{

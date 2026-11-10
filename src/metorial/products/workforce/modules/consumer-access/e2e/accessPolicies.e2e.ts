@@ -1,6 +1,6 @@
 import { useOrganization } from '@metorial/e2e';
 import { db, loadOrganizationFixture } from '@metorial/e2e/db';
-import { consumerMagicMcpReadRoles } from '@metorial/module-access';
+import { consumerMagicMcpReadRoles, consumerSkillWriteRoles } from '@metorial/module-access';
 import { describe, expect, it } from 'vitest';
 import { consumerAccessPolicyService } from '../src';
 import {
@@ -151,7 +151,7 @@ describe('module-consumer-access access policies', () => {
     expect(await canReadMagicServer(server, await accessTagsFor(otherProfile))).toBe(false);
   });
 
-  it('revokes only skill participant grants of a personal group', async () => {
+  it('revokes only skill share grants of a personal group, including legacy share policies', async () => {
     let fixture = await loadOrganizationFixture(org.ids);
     let surface = await createSurface(fixture);
     let profile = await createProfile(fixture, surface);
@@ -163,19 +163,40 @@ describe('module-consumer-access access policies', () => {
       resource: { skill }
     };
 
-    let participantPolicy = await consumerAccessPolicyService.grantAccess({
+    let sharePolicy = await consumerAccessPolicyService.grantAccess({
       ...base,
-      policyScope: { type: 'skill_participant', skillParticipantId: 'e2e-participant' }
+      policyScope: { type: 'skill_share' }
     });
-    expect(participantPolicy.systemIdentifier).toBe(
-      'skill_participant:e2e-participant:skill_read'
+    expect(sharePolicy.systemIdentifier).toBe('skill_share:skill_read');
+
+    let legacyPolicies = await Promise.all(
+      ['skill_participant', 'skill_participant_migration'].map(
+        async prefix =>
+          await db.accessTagPolicy.create({
+            data: {
+              id: `atp_${prefix}_${skill.id}`,
+              name: `Legacy ${prefix}`,
+              systemIdentifier: `${prefix}:skp_${skill.id}:skill_write`,
+              organizationOid: fixture.organization.oid,
+              roles: [...consumerSkillWriteRoles]
+            }
+          })
+      )
     );
+    await db.accessTagEntity.createMany({
+      data: legacyPolicies.map(policy => ({
+        accessTagOid: profile.personalConsumerGroup.accessTagOid,
+        accessTagPolicyOid: policy.oid,
+        skillOid: skill.oid
+      }))
+    });
+
     let accessPolicy = await consumerAccessPolicyService.grantAccess({
       ...base,
       policyScope: { type: 'consumer_access', consumerAccessId: 'e2e-access' }
     });
 
-    await consumerAccessPolicyService.revokeSkillParticipantAccessForPersonalGroup({
+    await consumerAccessPolicyService.revokeSkillShareAccessForPersonalGroup({
       organization: fixture.organization,
       consumerProfile: profile,
       skill
