@@ -15,6 +15,7 @@ export * from './files';
 export * from './identity';
 export * from './infrastructure';
 export * from './integration';
+export * from './lib/useMergedPaginator';
 export * from './monitoring';
 export * from './oauth';
 export * from './organization';
