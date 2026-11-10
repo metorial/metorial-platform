@@ -626,7 +626,7 @@ export let mapManagementInstanceSkillsShareOutput =
 export type ManagementInstanceSkillsShareBody = {
   consumerProfileIds?: string[] | undefined;
   organizationMemberIds?: string[] | undefined;
-  permission: 'none' | 'read' | 'write';
+  permission: 'none' | 'read' | 'write' | 'owner';
 };
 
 export let mapManagementInstanceSkillsShareBody =

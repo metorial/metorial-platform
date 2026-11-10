@@ -614,7 +614,7 @@ export let mapSkillsShareOutput = /* @__PURE__ */ mapObject<SkillsShareOutput>(
 export type SkillsShareBody = {
   consumerProfileIds?: string[] | undefined;
   organizationMemberIds?: string[] | undefined;
-  permission: 'none' | 'read' | 'write';
+  permission: 'none' | 'read' | 'write' | 'owner';
 };
 
 export let mapSkillsShareBody = /* @__PURE__ */ mapObject<SkillsShareBody>([

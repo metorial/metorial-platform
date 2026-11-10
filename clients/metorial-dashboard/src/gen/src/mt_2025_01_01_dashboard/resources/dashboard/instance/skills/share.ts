@@ -626,7 +626,7 @@ export let mapDashboardInstanceSkillsShareOutput =
 export type DashboardInstanceSkillsShareBody = {
   consumerProfileIds?: string[] | undefined;
   organizationMemberIds?: string[] | undefined;
-  permission: 'none' | 'read' | 'write';
+  permission: 'none' | 'read' | 'write' | 'owner';
 };
 
 export let mapDashboardInstanceSkillsShareBody =

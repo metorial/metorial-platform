@@ -6,7 +6,7 @@ export type DashboardInstanceStoresParticipantsListOutput = {
     id: string;
     storeId: string;
     permissions: ('content_read' | 'content_write')[];
-    roles: ('creator' | 'editor' | 'viewer' | 'user' | 'forker')[];
+    roles: ('creator' | 'owner' | 'editor' | 'viewer' | 'user' | 'forker')[];
     actor: {
       type: 'organization_actor' | 'consumer' | 'resource_actor';
       name: string;
@@ -82,7 +82,9 @@ export type DashboardInstanceStoresParticipantsListOutput = {
     surfaces:
       | {
           id: string;
-          roles: ('creator' | 'editor' | 'viewer' | 'user' | 'forker')[];
+          roles: (
+            'creator' | 'owner' | 'editor' | 'viewer' | 'user' | 'forker'
+          )[];
           actor: {
             type: 'organization_actor' | 'consumer' | 'resource_actor';
             name: string;
