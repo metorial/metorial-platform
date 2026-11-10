@@ -94,3 +94,17 @@ it('shows the filtered empty message when a search matches nothing', async () =>
 
   expect(container.textContent).toContain('Nothing yet');
 });
+
+it('hides pagination when there is only one page and the list opts in', async () => {
+  let createPagedList = (pageSize: number) =>
+    createDataList(`paged-list-${pageSize}`, { hidePaginationWhenUnavailable: true })
+      .items(() => ({ items: rows }), { pageSize })
+      .columns([col.name<Row>()])
+      .build();
+
+  let singlePage = await render(React.createElement(createPagedList(10), {}));
+  expect(singlePage.textContent).not.toContain('Next');
+
+  let multiplePages = await render(React.createElement(createPagedList(1), {}));
+  expect(multiplePages.textContent).toContain('Next');
+});

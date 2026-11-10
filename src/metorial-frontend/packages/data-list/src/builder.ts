@@ -43,12 +43,14 @@ export class DataList<
     name: string,
     opts?: {
       hasPagination?: boolean;
+      hidePaginationWhenUnavailable?: boolean;
       customizable?: boolean;
     }
   ) {
     this.opts = {
       name,
       hasPagination: opts?.hasPagination !== false,
+      hidePaginationWhenUnavailable: !!opts?.hidePaginationWhenUnavailable,
       customizable: opts?.customizable !== false,
       layoutObserver: this.layoutObserver,
       source: () => {
@@ -297,5 +299,9 @@ export class DataList<
 
 export let createDataList = <StateProps extends object = {}>(
   name: string,
-  opts?: { hasPagination?: boolean; customizable?: boolean }
+  opts?: {
+    hasPagination?: boolean;
+    hidePaginationWhenUnavailable?: boolean;
+    customizable?: boolean;
+  }
 ) => new DataList<StateProps>(name, opts);

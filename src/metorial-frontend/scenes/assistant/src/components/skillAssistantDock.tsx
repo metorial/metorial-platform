@@ -4,9 +4,9 @@ import {
   takeQueuedSkillAssistantPrompt,
   useSecurityReviewGenerationEnabled,
   useSkillAssistant,
+  useSkillAssistantWorkspace,
   useSkillSecurityReview,
   useSkillSecurityReviewsEnabled,
-  useSkillAssistantWorkspace,
   type SkillAssistantRequestContext
 } from '@metorial/state';
 import { floatingTokens, Menu, Text, theme, Tooltip } from '@metorial/ui';
@@ -462,7 +462,7 @@ export let SkillAssistantDock = () => {
             <PanelTitle>
               <RiSparkling2Line size={15} />
               <Text size="2" weight="medium">
-                {assistant.history.conversation.data?.title?.trim() || 'Skill assistant'}
+                {assistant.history.conversation.data?.title?.trim() || 'Metorial Assistant'}
               </Text>
             </PanelTitle>
             <PanelActions>

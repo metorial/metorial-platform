@@ -532,9 +532,15 @@ let InstancePaths = Object.assign(
     skillTemplates: (
       organization: EntityParam,
       project: EntityParam,
-      instance: EntityParam,
-      ...subPages: SubPages
-    ) => InstancePaths(organization, project, instance, 'skills', 'templates', ...subPages),
+      instance: EntityParam
+    ) => {
+      if (!organization || !project || !instance) return '#';
+      return `${InstancePaths(organization, project, instance, 'skills')}?view=templates`;
+    },
+    ownedSkills: (organization: EntityParam, project: EntityParam, instance: EntityParam) => {
+      if (!organization || !project || !instance) return '#';
+      return `${InstancePaths(organization, project, instance, 'skills')}?view=mine`;
+    },
     skillTemplate: (
       organization: EntityParam,
       project: EntityParam,

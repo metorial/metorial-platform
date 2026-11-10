@@ -6,9 +6,13 @@ import {
   type FilterStateTuple,
   getHighlightLabel,
   getListValue,
+  isExclusiveHighlight,
   type ListFilter,
+  preservesHighlightOrder,
   removeFilterState,
-  toggleListValue
+  setListValue,
+  toggleListValue,
+  upsertFilterState
 } from '../model/state';
 import type { PillSelections } from '../model/pillSelections';
 import { getFilterPayload, type TableFilterPayloadMap } from '../model/tableFilter';
@@ -142,12 +146,21 @@ let PopoverFooter = styled('footer')`
   color: ${theme.colors.gray600};
 `;
 
+let selectExclusive = (
+  prev: FilterStateTuple[0],
+  filter: ListFilter,
+  id: string | null
+): FilterStateTuple[0] =>
+  id
+    ? upsertFilterState(prev, setListValue(filter, [id]))
+    : removeFilterState(prev, filter.id);
+
 let HighlightPill = ({
   item,
   active,
   onClick
 }: {
-  item: OptionListItem;
+  item: Pick<OptionListItem, 'label' | 'count'>;
   active: boolean;
   onClick?: () => void;
 }) => (
@@ -197,6 +210,13 @@ let MorePopoverContent = ({
         onSearch={setSearch}
         searchPlaceholder={`Search ${getHighlightLabel(filter).toLowerCase()}...`}
         onToggle={(id, checked) => {
+          if (isExclusiveHighlight(filter)) {
+            pillSelections?.clear(filter.id);
+            if (checked) pillSelections?.mark(filter.id, id, true);
+            setFilterState(prev => selectExclusive(prev, filter, checked ? id : null));
+            return;
+          }
+
           pillSelections?.mark(filter.id, id, checked);
           setFilterState(prev => toggleListValue(prev, filter, id, checked));
         }}
@@ -236,13 +256,25 @@ export let FilterHighlightRow = ({
   let options = useListFilterOptions(filter, '', filters, selected);
   let [moreOpen, setMoreOpen] = useState(false);
 
+  let preserveOrder = preservesHighlightOrder(filter);
   let candidates = useMemo(() => {
+    if (preserveOrder) {
+      let itemIds = new Set(options.items.map(item => item.id));
+      return [
+        ...options.items,
+        ...options.pinnedItems.filter(item => !itemIds.has(item.id))
+      ].slice(0, PREVIEW_LIMIT);
+    }
+
     let pinnedIds = new Set(options.pinnedItems.map(item => item.id));
     return [
       ...options.pinnedItems,
       ...options.items.filter(item => !pinnedIds.has(item.id))
     ].slice(0, PREVIEW_LIMIT);
-  }, [options.items, options.pinnedItems]);
+  }, [options.items, options.pinnedItems, preserveOrder]);
+
+  let exclusive = isExclusiveHighlight(filter);
+  let hideLabel = typeof filter.highlight == 'object' && !!filter.highlight.hideLabel;
 
   let trackRef = useRef<HTMLDivElement>(null);
   let measureRef = useRef<HTMLDivElement>(null);
@@ -256,13 +288,14 @@ export let FilterHighlightRow = ({
     let compute = () => {
       let children = Array.from(measure.children) as HTMLElement[];
       let more = children.pop();
+      let allPill = exclusive ? children.shift() : undefined;
       let available = track.clientWidth;
       let moreWidth = (more?.offsetWidth ?? 0) + GAP;
-      let used = 0;
+      let used = allPill?.offsetWidth ?? 0;
       let count = 0;
 
       for (let [i, child] of children.entries()) {
-        let width = child.offsetWidth + (i > 0 ? GAP : 0);
+        let width = child.offsetWidth + (i > 0 || allPill ? GAP : 0);
         let isLast = i == children.length - 1;
         let reserve = isLast && filter.type == 'select' ? 0 : moreWidth;
         if (used + width + reserve > available) break;
@@ -277,22 +310,36 @@ export let FilterHighlightRow = ({
     let observer = new ResizeObserver(compute);
     observer.observe(track);
     return () => observer.disconnect();
-  }, [candidates, selected.join(','), filter.type]);
+  }, [candidates, selected.join(','), filter.type, exclusive]);
 
   let hiddenCount = candidates.length - visibleCount;
   let showMore = hiddenCount > 0 || filter.type == 'entity';
   let label = getHighlightLabel(filter);
   let toggle = (id: string) => {
+    if (exclusive) {
+      pillSelections?.clear(filter.id);
+      pillSelections?.mark(filter.id, id, true);
+      setFilterState(prev => selectExclusive(prev, filter, id));
+      return;
+    }
+
     pillSelections?.mark(filter.id, id, !selected.includes(id));
     setFilterState(prev => toggleListValue(prev, filter, id));
   };
+  let selectAll = () => {
+    pillSelections?.clear(filter.id);
+    setFilterState(prev => selectExclusive(prev, filter, null));
+  };
+
+  if (!candidates.length) return null;
 
   return (
     <Row role="group" aria-label={label}>
-      <RowLabel>{label}</RowLabel>
+      {!hideLabel && <RowLabel>{label}</RowLabel>}
 
       <Track ref={trackRef}>
         <Measure ref={measureRef} aria-hidden>
+          {exclusive && <HighlightPill item={{ label: 'All' }} active={!selected.length} />}
           {candidates.map(item => (
             <HighlightPill key={item.id} item={item} active={selected.includes(item.id)} />
           ))}
@@ -300,6 +347,14 @@ export let FilterHighlightRow = ({
             More <RiArrowDownSLine size={16} />
           </MoreButton>
         </Measure>
+
+        {exclusive && (
+          <HighlightPill
+            item={{ label: 'All' }}
+            active={!selected.length}
+            onClick={selectAll}
+          />
+        )}
 
         {candidates.slice(0, visibleCount).map(item => (
           <HighlightPill

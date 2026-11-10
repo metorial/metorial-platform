@@ -16,6 +16,7 @@ import type {
 export type DataListConfig = {
   name: string;
   hasPagination: boolean;
+  hidePaginationWhenUnavailable: boolean;
   customizable: boolean;
   layoutObserver: Observer<{ id: string; isSelected: boolean }[]>;
   source: DataListSource;

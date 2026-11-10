@@ -56,6 +56,7 @@ export { showIdentityDelegationRequestFormModal } from './product/scenes/identit
 export { showAddIdentityCredentialModal } from './product/scenes/identity/credentialModal';
 export {
   ConfigureSectionCard,
+  ProviderConnectionSetupForm,
   showConfigureIntegrationProviderPanelFlow,
   showCreateIntegrationProviderFirstFlow,
   type IntegrationProviderPanelSubmitInput

@@ -11,8 +11,6 @@ import {
   RiBriefcase4Line,
   RiChat3Line,
   RiChatVoiceAiLine,
-  RiFileCopyLine,
-  RiFolderLine,
   RiGlobalLine,
   RiGroupLine,
   RiHardDrive3Line,
@@ -29,10 +27,12 @@ import {
   RiStore2Line,
   RiCompassDiscoverLine,
   RiUploadCloud2Line,
+  RiUser3Line,
   RiWebhookLine
 } from '@remixicon/react';
 import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
+import { isOwnedSkillsView } from '../scenes/skills/overview/skillViews';
 import { useSkillsSidebarGroups } from '../scenes/skills/navigation/sidebarGroups';
 
 export let ProjectPageLayout = () => {
@@ -213,32 +213,30 @@ export let ProjectPageLayout = () => {
                 items: [
                   {
                     icon: <RiColorFilterAiLine />,
-                    label: 'Overview',
+                    label: 'All Skills',
                     to: Paths.instance.skills(...params),
                     getProps: (i: { pathname: string; to: string }) => ({
-                      isActive: checkPath(i, { exact: true })
+                      isActive:
+                        (checkPath(i, { exact: true }) && !isOwnedSkillsView()) ||
+                        i.pathname.includes('/skill-template/')
+                    })
+                  },
+                  {
+                    icon: <RiUser3Line />,
+                    label: 'Your Skills',
+                    to: Paths.instance.ownedSkills(...params),
+                    getProps: (i: { pathname: string; to: string }) => ({
+                      isActive:
+                        checkPath(
+                          { ...i, to: Paths.instance.skills(...params) },
+                          { exact: true }
+                        ) && isOwnedSkillsView()
                     })
                   },
                   {
                     icon: <RiStore2Line />,
                     label: 'Marketplaces',
                     to: Paths.instance.skillMarketplaces(...params),
-                    getProps: (i: { pathname: string; to: string }) => ({
-                      isActive: checkPath(i, { exact: true })
-                    })
-                  },
-                  {
-                    icon: <RiFileCopyLine />,
-                    label: 'Templates',
-                    to: Paths.instance.skillTemplates(...params),
-                    getProps: (i: { pathname: string; to: string }) => ({
-                      isActive: checkPath(i, { exact: true })
-                    })
-                  },
-                  {
-                    icon: <RiFolderLine />,
-                    label: 'Groups',
-                    to: Paths.instance.skillGroups(...params),
                     getProps: (i: { pathname: string; to: string }) => ({
                       isActive: checkPath(i, { exact: true })
                     })

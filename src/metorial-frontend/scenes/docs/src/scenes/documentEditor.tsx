@@ -1474,11 +1474,7 @@ let DocumentEditorLoaded = (p: {
     pendingSaveRef.current = null;
     autosaveHydratedRef.current = false;
     setEditorKey(k => k + 1);
-  }, [
-    p.document.content,
-    p.document.id,
-    p.document.title
-  ]);
+  }, [p.document.content, p.document.id, p.document.title]);
 
   useEffect(() => {
     setLastUpdatedAt(p.document.updatedAt);
@@ -1524,33 +1520,13 @@ let DocumentEditorLoaded = (p: {
   useEffect(() => {
     if (!hasUnsavedChanges) return;
 
-    let handleBeforeUnload = (e: BeforeUnloadEvent) => {
+    let handleBeforeUnload = () => {
       void flushSave();
-      e.preventDefault();
-      e.returnValue = '';
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [flushSave, hasUnsavedChanges]);
-
-  useEffect(() => {
-    if (!hasUnsavedChanges) return;
-
-    let handleReloadShortcut = (e: KeyboardEvent) => {
-      let isReloadShortcut =
-        e.key === 'F5' || ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'r');
-      if (!isReloadShortcut) return;
-
-      e.preventDefault();
-      e.stopPropagation();
-      showToast('Saving document before reload.');
-      void flushSave();
-    };
-
-    window.addEventListener('keydown', handleReloadShortcut, true);
-    return () => window.removeEventListener('keydown', handleReloadShortcut, true);
-  }, [flushSave, hasUnsavedChanges, showToast]);
 
   useBlocker(tx => {
     if (!hasUnsavedChanges) return false;

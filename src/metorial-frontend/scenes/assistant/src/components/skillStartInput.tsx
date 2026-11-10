@@ -1,24 +1,133 @@
-import { Text, theme } from '@metorial/ui';
-import { RiSparkling2Line } from '@remixicon/react';
-import { useState } from 'react';
+import { theme } from '@metorial/ui';
+import { RiArrowUpLine, RiSparkling2Line } from '@remixicon/react';
+import { motion } from 'framer-motion';
+import { useId, useRef, useState } from 'react';
+import TextareaAutosize from 'react-textarea-autosize';
+import { useMeasure } from 'react-use';
 import styled from 'styled-components';
-import { AssistantComposer } from './composer';
+import { AssistantSuggestions } from './suggestions';
 import type { AssistantSuggestion } from './types';
+
+let resizeTransition = { duration: 0.24, ease: [0.2, 0, 0, 1] } as const;
+let revealTransition = { duration: 0.18, delay: 0.06, ease: 'easeOut' } as const;
 
 let Root = styled.section`
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 6px;
   width: 100%;
-  max-width: 720px;
-  margin: 0 auto;
+  min-width: 0;
 `;
 
-let Heading = styled.div`
+let Card = styled.div<{ $expanded: boolean }>`
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  border: 1px solid ${p => (p.$expanded ? theme.colors.gray500 : theme.colors.gray400)};
+  border-radius: 12px;
+  background: ${theme.colors.background};
+  box-shadow: ${theme.shadows.small};
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+
+  &:hover {
+    border-color: ${theme.colors.gray500};
+  }
+`;
+
+let Body = styled(motion.div)`
+  overflow: hidden;
+  border-radius: 11px;
+`;
+
+let TopRow = styled.div<{ $expanded: boolean }>`
+  display: flex;
+  align-items: ${p => (p.$expanded ? 'flex-start' : 'center')};
+  gap: 10px;
+  padding: ${p => (p.$expanded ? '12px 12px 4px 14px' : '6px 6px 6px 14px')};
+  min-width: 0;
+  transition: padding 240ms cubic-bezier(0.2, 0, 0, 1);
+`;
+
+let SparkIcon = styled.span<{ $expanded: boolean }>`
+  display: flex;
+  flex: 0 0 auto;
+  padding-top: ${p => (p.$expanded ? '3px' : '0')};
+  color: ${theme.colors.gray700};
+  transition: padding 240ms cubic-bezier(0.2, 0, 0, 1);
+`;
+
+let Input = styled(TextareaAutosize)`
+  flex: 1 1 auto;
+  min-width: 0;
+  box-sizing: border-box;
+  resize: none;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: ${theme.colors.foreground};
+  font-size: 14px;
+  line-height: 22px;
+  padding: 4px 0;
+
+  &::placeholder {
+    color: ${theme.colors.gray600};
+  }
+`;
+
+let InlineSuggestions = styled(motion.div)`
+  display: flex;
+  flex: 0 0 auto;
+
+  @media (max-width: 1000px) {
+    display: none;
+  }
+`;
+
+let BottomRow = styled(motion.div)`
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: ${theme.colors.foreground};
+  gap: 10px;
+  padding: 4px 8px 8px 14px;
+  min-width: 0;
+`;
+
+let Grow = styled.span`
+  flex: 1 1 auto;
+`;
+
+let Hint = styled.span`
+  color: ${theme.colors.gray600};
+  font-size: 12px;
+  white-space: nowrap;
+
+  @media (max-width: 640px) {
+    display: none;
+  }
+`;
+
+let SendButton = styled(motion.button)`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 999px;
+  background: ${theme.colors.foreground};
+  color: ${theme.colors.background};
+  cursor: pointer;
+  transition: background 120ms ease;
+
+  &:disabled {
+    background: ${theme.colors.gray300};
+    color: ${theme.colors.gray600};
+    cursor: not-allowed;
+  }
 `;
 
 let ErrorText = styled.div`
@@ -27,15 +136,21 @@ let ErrorText = styled.div`
 `;
 
 export let SkillStartInput = (p: {
-  title: string;
   placeholder: string;
   suggestions?: AssistantSuggestion[];
   disabled?: boolean;
   onSubmit: (text: string) => Promise<void>;
 }) => {
+  let inputRef = useRef<HTMLTextAreaElement | null>(null);
+  let [bodyRef, { height: bodyHeight }] = useMeasure<HTMLDivElement>();
+  let sendButtonLayoutId = useId();
   let [value, setValue] = useState('');
+  let [isFocused, setIsFocused] = useState(false);
   let [isSubmitting, setIsSubmitting] = useState(false);
   let [error, setError] = useState<string | null>(null);
+
+  let isExpanded = isFocused || !!value.trim();
+  let canSubmit = !!value.trim() && !isSubmitting && !p.disabled;
 
   let submit = async () => {
     let text = value.trim();
@@ -52,27 +167,104 @@ export let SkillStartInput = (p: {
     }
   };
 
+  let selectSuggestion = (suggestion: AssistantSuggestion) => {
+    setValue(suggestion.prompt);
+    requestAnimationFrame(() => inputRef.current?.focus());
+  };
+
+  let suggestions = p.suggestions?.length ? (
+    <AssistantSuggestions
+      suggestions={p.suggestions}
+      disabled={p.disabled || isSubmitting}
+      onSelect={selectSuggestion}
+    />
+  ) : null;
+
+  let sendButton = (
+    <SendButton
+      layoutId={sendButtonLayoutId}
+      transition={resizeTransition}
+      type="button"
+      disabled={!canSubmit}
+      onClick={submit}
+      aria-label="Create Skill"
+      title="Create Skill"
+    >
+      <RiArrowUpLine size={16} />
+    </SendButton>
+  );
+
   return (
     <Root>
-      <Heading>
-        <RiSparkling2Line size={18} />
-        <Text size="4" weight="strong">
-          {p.title}
-        </Text>
-      </Heading>
+      <Card
+        $expanded={isExpanded}
+        onFocus={() => setIsFocused(true)}
+        onBlur={e => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setIsFocused(false);
+        }}
+      >
+        <Body
+          initial={false}
+          animate={{ height: bodyHeight || 'auto' }}
+          transition={resizeTransition}
+        >
+          <div ref={bodyRef}>
+            <TopRow $expanded={isExpanded}>
+              <SparkIcon $expanded={isExpanded}>
+                <RiSparkling2Line size={16} />
+              </SparkIcon>
 
-      <AssistantComposer
-        value={value}
-        onChange={setValue}
-        onSubmit={submit}
-        isSubmitting={isSubmitting}
-        disabled={p.disabled}
-        placeholder={p.placeholder}
-        minRows={4}
-        submitLabel="Create Skill"
-        suggestions={p.suggestions}
-        onSelectSuggestion={suggestion => setValue(suggestion.prompt)}
-      />
+              <Input
+                ref={inputRef}
+                value={value}
+                disabled={p.disabled || isSubmitting}
+                minRows={isExpanded ? 3 : 1}
+                maxRows={10}
+                placeholder={p.placeholder}
+                aria-label={p.placeholder}
+                onChange={event => setValue(event.currentTarget.value)}
+                onKeyDown={event => {
+                  if (event.key == 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
+                    if (canSubmit) submit();
+                  }
+                }}
+              />
+
+              {!isExpanded && (
+                <>
+                  {suggestions && (
+                    // Focusing a chip on mousedown would expand the card and unmount the chip
+                    // before its click fires.
+                    <InlineSuggestions
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={revealTransition}
+                      onMouseDown={e => e.preventDefault()}
+                    >
+                      {suggestions}
+                    </InlineSuggestions>
+                  )}
+                  {sendButton}
+                </>
+              )}
+            </TopRow>
+
+            {isExpanded && (
+              <BottomRow
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={revealTransition}
+              >
+                {suggestions}
+                <Grow />
+                <Hint>Enter to create · Shift + Enter for a new line</Hint>
+                {sendButton}
+              </BottomRow>
+            )}
+          </div>
+        </Body>
+      </Card>
 
       {error && <ErrorText>{error}</ErrorText>}
     </Root>

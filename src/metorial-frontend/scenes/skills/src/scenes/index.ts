@@ -1,6 +1,7 @@
 import { dynamicComponent } from '@metorial/dynamic-component';
 import type { SkillAgentsScene as _SkillAgentsScene } from './skillAgents';
 import type {
+  showSkillGroupSkillPicker as _showSkillGroupSkillPicker,
   SkillGroupsForSkillScene as _SkillGroupsForSkillScene,
   SkillGroupSkillsScene as _SkillGroupSkillsScene
 } from './skillGroups';
@@ -33,7 +34,7 @@ import type {
 export { showCreateSkillMergeRequestModal } from './skillMergeRequests';
 import type { SkillPluginSkillsScene as _SkillPluginSkillsScene } from './skillPluginSkills';
 import type {
-  SkillGroupSettingsScene as _SkillGroupSettingsScene,
+  SkillGroupSettingsForm as _SkillGroupSettingsForm,
   SkillSettingsScene as _SkillSettingsScene,
   SkillTemplateSettingsScene as _SkillTemplateSettingsScene
 } from './skillSettings';
@@ -97,9 +98,13 @@ export let SkillTemplateSettingsScene = dynamicComponent<
   Parameters<typeof _SkillTemplateSettingsScene>
 >(() => import('./skillSettings').then(m => m.SkillTemplateSettingsScene));
 
-export let SkillGroupSettingsScene = dynamicComponent<
-  Parameters<typeof _SkillGroupSettingsScene>
->(() => import('./skillSettings').then(m => m.SkillGroupSettingsScene));
+export let SkillGroupSettingsForm = dynamicComponent<
+  Parameters<typeof _SkillGroupSettingsForm>
+>(() => import('./skillSettings').then(m => m.SkillGroupSettingsForm));
+
+export let showSkillGroupSkillPicker = async (
+  ...args: Parameters<typeof _showSkillGroupSkillPicker>
+) => (await import('./skillGroups')).showSkillGroupSkillPicker(...args);
 
 export let SkillMarketplaceSettingsScene = dynamicComponent<
   Parameters<typeof _SkillMarketplaceSettingsScene>

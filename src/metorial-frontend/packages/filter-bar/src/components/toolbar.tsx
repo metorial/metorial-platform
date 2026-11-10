@@ -3,12 +3,13 @@ import React, { useMemo } from 'react';
 import { styled } from 'styled-components';
 import {
   type FilterStateTuple,
+  isExclusiveHighlight,
   isListFilter,
   type ListFilter,
   type SearchStateTuple
 } from '../model/state';
 import { usePillSelections } from '../model/pillSelections';
-import type { TableFilter } from '../model/tableFilter';
+import type { TableFilter, TableFilterState } from '../model/tableFilter';
 import { FilterHighlightRow } from './highlightRow';
 import { FilterSearchBar } from './searchBar';
 import type { FilterSuggestionGroup } from './suggestions';
@@ -67,12 +68,31 @@ export let FilterToolbar = ({
   shortcut?: boolean;
   style?: React.CSSProperties;
 }) => {
-  let hasBar = !!searchState || filters.length > 0;
   let pillSelections = usePillSelections(filterState[0]);
   let highlighted = useMemo(
     () => filters.filter((f): f is ListFilter => !!f.highlight && isListFilter(f)),
     [filters]
   );
+
+  let [state, setState] = filterState;
+  let barFilters = useMemo(() => filters.filter(f => !isExclusiveHighlight(f)), [filters]);
+  let barFilterState = useMemo((): FilterStateTuple => {
+    let exclusiveIds = new Set(filters.filter(f => isExclusiveHighlight(f)).map(f => f.id));
+    if (!exclusiveIds.size) return [state, setState];
+
+    let isExclusive = (s: TableFilterState) => exclusiveIds.has(s.id);
+    return [
+      state.filter(s => !isExclusive(s)),
+      action =>
+        setState(prev => {
+          let rest = prev.filter(s => !isExclusive(s));
+          let next = typeof action == 'function' ? action(rest) : action;
+          return [...prev.filter(isExclusive), ...next.filter(s => !isExclusive(s))];
+        })
+    ];
+  }, [filters, state, setState]);
+
+  let hasBar = !!searchState || barFilters.length > 0;
 
   return (
     <ControlSizeProvider value={size}>
@@ -80,8 +100,8 @@ export let FilterToolbar = ({
         <Row>
           {hasBar ? (
             <FilterSearchBar
-              filters={filters}
-              filterState={filterState}
+              filters={barFilters}
+              filterState={barFilterState}
               searchState={searchState}
               placeholder={placeholder}
               suggestions={suggestions}

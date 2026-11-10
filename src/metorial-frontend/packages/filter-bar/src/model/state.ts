@@ -66,6 +66,12 @@ export let getHighlightLabel = (filter: TableFilter<any>) =>
     ? filter.highlight.label
     : filter.label;
 
+export let isExclusiveHighlight = (filter: TableFilter<any>) =>
+  typeof filter.highlight == 'object' && !!filter.highlight.exclusive;
+
+export let preservesHighlightOrder = (filter: TableFilter<any>) =>
+  typeof filter.highlight == 'object' && !!filter.highlight.preserveOrder;
+
 export let sortFiltersForDisplay = (filters: TableFilter<any>[]) => [
   ...filters.filter(f => f.pinned),
   ...filters.filter(f => !f.pinned)

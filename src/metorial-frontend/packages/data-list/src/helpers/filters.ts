@@ -1,6 +1,7 @@
 import type {
   FilterPayload,
   TableFilter,
+  TableFilterHighlight,
   TableFilterSelectOption
 } from '@metorial/filter-bar';
 import type { DataListFilterDef } from '../types';
@@ -14,6 +15,7 @@ type FilterBase = {
   description?: `Filter by ${string}`;
   field?: string;
   pinned?: boolean;
+  highlight?: TableFilterHighlight;
 };
 
 let primaryField = (filter: TableFilter<any>) => String(filter.fields[0] ?? filter.id);
@@ -47,7 +49,8 @@ export let f = {
         description: opts.description ?? 'Filter by status',
         type: 'select',
         options,
-        pinned: opts.pinned
+        pinned: opts.pinned,
+        highlight: opts.highlight
       },
       payload => {
         let parsed = descriptor.parse(payload);
@@ -85,7 +88,8 @@ export let f = {
         description: opts.description ?? (`Filter by ${label.toLowerCase()}` as const),
         type: 'select',
         options: normalized,
-        pinned: opts.pinned
+        pinned: opts.pinned,
+        highlight: opts.highlight
       },
       payload => {
         let selected = getListFilterValue(payload)?.filter(v => values.includes(v));

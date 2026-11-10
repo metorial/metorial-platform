@@ -1,22 +1,44 @@
-import type { DashboardInstanceSkillsListOutput } from '@metorial/dashboard-sdk';
-import { SkillIconTile } from '@metorial/scene-skills';
+import { SkillIconTile, type SkillImageSelection } from '@metorial/scene-skills';
 import { Button, Menu, Text, theme } from '@metorial/ui';
-import { RiMore2Fill, RiPushpinFill } from '@remixicon/react';
+import { RiMore2Fill, RiStarFill } from '@remixicon/react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { shleemy } from 'shleemy';
 import { styled } from 'styled-components';
 import { SkillMarkdownPreview } from './skillMarkdownPreview';
 
-type Skill = DashboardInstanceSkillsListOutput['items'][number];
+export type SkillPreviewCardItem = {
+  name: string;
+  image?: SkillImageSelection | null;
+  imageUrl?: string | null;
+  updatedAt: Date;
+};
+
+let paperVisibleHeight = 142;
+let paperOverflow = 12;
 
 let Actions = styled.div`
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
   display: none;
-  flex: 0 0 auto;
+  border-radius: 6px;
+  background: ${theme.colors.background};
+  box-shadow: ${theme.shadows.small};
+
+  button svg {
+    width: 14px;
+    height: 14px;
+  }
 `;
 
-let PinnedIndicator = styled.span`
+let FavoriteIndicator = styled.span`
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
   display: flex;
-  flex: 0 0 auto;
   color: ${theme.colors.gray600};
 
   svg {
@@ -25,30 +47,58 @@ let PinnedIndicator = styled.span`
   }
 `;
 
-let Card = styled(Link)<{ $menuOpen: boolean }>`
+let Stage = styled.div`
   position: relative;
   display: flex;
-  flex-direction: column;
-  height: 280px;
+  align-items: flex-end;
+  justify-content: center;
+  height: 172px;
   overflow: hidden;
-  border: 1px solid ${theme.colors.gray400};
-  border-radius: 8px;
+  border: 1px solid ${theme.colors.gray300};
+  border-radius: 12px;
+  background: ${theme.colors.gray200};
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+`;
+
+let Paper = styled.div`
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: 78%;
+  height: ${paperVisibleHeight + paperOverflow}px;
+  margin-bottom: -${paperOverflow}px;
+  overflow: hidden;
+  border: 1px solid ${theme.colors.gray300};
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
   background: ${theme.colors.background};
   box-shadow: ${theme.shadows.small};
+  transition: transform 0.2s;
+`;
+
+let Card = styled(Link)<{ $menuOpen: boolean }>`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   color: inherit;
   text-decoration: none;
-  transition: all 0.2s;
 
-  &:hover,
-  &:focus-visible {
-    box-shadow: ${theme.shadows.medium};
+  &:hover ${Stage}, &:focus-visible ${Stage} {
+    border-color: ${theme.colors.gray400};
+    background: ${theme.colors.gray300};
+  }
+
+  &:hover ${Paper}, &:focus-visible ${Paper} {
+    transform: translateY(-3px);
   }
 
   &:hover ${Actions}, &:focus-within ${Actions} {
     display: flex;
   }
 
-  &:hover ${PinnedIndicator}, &:focus-within ${PinnedIndicator} {
+  &:hover ${FavoriteIndicator}, &:focus-within ${FavoriteIndicator} {
     display: none;
   }
 
@@ -56,52 +106,47 @@ let Card = styled(Link)<{ $menuOpen: boolean }>`
     p.$menuOpen &&
     `
     ${Actions} { display: flex; }
-    ${PinnedIndicator} { display: none; }
+    ${FavoriteIndicator} { display: none; }
   `}
 `;
 
-let Header = styled.header`
+let Meta = styled.div`
   display: flex;
-  align-items: center;
-  gap: 10px;
-  height: 52px;
-  padding: 0 10px 0 16px;
-  flex: 0 0 auto;
-  border-bottom: 1px solid ${theme.colors.gray300};
+  align-items: flex-start;
+  gap: 9px;
+  min-width: 0;
+  padding: 0 2px;
+`;
+
+let MetaText = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 `;
 
 let Name = styled.div`
-  flex: 1 1 auto;
-  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
 
 export let SkillPreviewCard = (p: {
-  skill: Skill;
+  item: SkillPreviewCardItem;
   content: string | null | undefined;
   href: string;
-  isPinned: boolean;
+  isFavorite?: boolean;
   menu: { label: string; onClick: () => void }[];
 }) => {
   let [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <Card to={p.href} $menuOpen={menuOpen}>
-      <Header>
-        <SkillIconTile image={p.skill.image} imageUrl={p.skill.imageUrl} size={22} />
-
-        <Name>
-          <Text size="2" weight="strong" as="span">
-            {p.skill.name}
-          </Text>
-        </Name>
-
-        {p.isPinned && (
-          <PinnedIndicator title="Pinned">
-            <RiPushpinFill />
-          </PinnedIndicator>
+      <Stage>
+        {p.isFavorite && (
+          <FavoriteIndicator title="Favorite">
+            <RiStarFill />
+          </FavoriteIndicator>
         )}
 
         <Actions
@@ -115,12 +160,36 @@ export let SkillPreviewCard = (p: {
             onItemClick={id => p.menu[Number(id)]?.onClick()}
             setIsOpen={setMenuOpen}
           >
-            <Button size="1" variant="ghost" iconLeft={<RiMore2Fill />} title="More" />
+            <Button
+              size="1"
+              variant="ghost"
+              icon={<RiMore2Fill />}
+              title="More"
+              aria-label="More"
+            />
           </Menu>
         </Actions>
-      </Header>
 
-      <SkillMarkdownPreview content={p.content} />
+        <Paper>
+          <SkillMarkdownPreview content={p.content} />
+        </Paper>
+      </Stage>
+
+      <Meta>
+        <SkillIconTile image={p.item.image} imageUrl={p.item.imageUrl} size={20} />
+
+        <MetaText>
+          <Name>
+            <Text size="2" weight="strong" as="span">
+              {p.item.name}
+            </Text>
+          </Name>
+
+          <Text size="1" color="gray600" as="span">
+            Edited {shleemy(p.item.updatedAt).forHumans}
+          </Text>
+        </MetaText>
+      </Meta>
     </Card>
   );
 };

@@ -8,11 +8,12 @@ import {
   defineAction,
   f,
   lifecycleStatus,
-  withDefaults
+  withDefaults,
+  type DataListLayoutRenderArgs
 } from '@metorial/data-list';
 import { EmptyState } from '@metorial/empty-state';
 import { Paths } from '@metorial/frontend-config';
-import { useCreateSkill, useSkillTemplates } from '@metorial/state';
+import { useCreateSkill, useSkillContentPreviews, useSkillTemplates } from '@metorial/state';
 import { Avatar, Text } from '@metorial/ui';
 import { ItemGrid } from '@metorial/ui-product';
 import { useNavigate } from 'react-router-dom';
@@ -20,6 +21,8 @@ import { styled } from 'styled-components';
 import { useInstanceContext } from '../../lib/dataList';
 import { entityFilters } from '../entityFilters';
 import { showSkillCloneFormModal } from './cloneModal';
+import { SkillPreviewCard } from './overview/skillPreviewCard';
+import { skillViewFilter } from './overview/skillViews';
 import { showSkillTemplateFormModal } from './templateModal';
 
 type SkillTemplate = DashboardInstanceSkillsTemplatesListOutput['items'][number];
@@ -79,6 +82,37 @@ export let SkillTemplateGridCard = (p: {
   />
 );
 
+let SkillTemplatesGridLayout = ({
+  items,
+  getItemProps
+}: DataListLayoutRenderArgs<SkillTemplate>) => {
+  let { instanceId } = useInstanceContext();
+  let previews = useSkillContentPreviews(instanceId, {
+    skillTemplateIds: items.map(skillTemplate => skillTemplate.id)
+  });
+
+  return (
+    <ItemGrid.Root width="220px">
+      {items.map(skillTemplate => {
+        let itemProps = getItemProps(skillTemplate);
+
+        return (
+          <li key={skillTemplate.id}>
+            <SkillPreviewCard
+              item={skillTemplate}
+              content={
+                previews.data ? previews.getTemplateContent(skillTemplate.id) : undefined
+              }
+              href={itemProps.href ?? ''}
+              menu={itemProps.menu.map(item => ({ label: item.label, onClick: item.onClick }))}
+            />
+          </li>
+        );
+      })}
+    </ItemGrid.Root>
+  );
+};
+
 export let SkillTemplatesEmptyState = (p: {
   getTemplatePath?: (skillTemplateId: string) => string;
 }) => {
@@ -118,12 +152,14 @@ export let SkillTemplatesList = createDataList<{
   instanceId?: string;
   getTemplatePath?: (skillTemplateId: string) => string;
   filters?: SkillTemplateFilters;
-}>('skill-templates')
+  withSkillViews?: boolean;
+}>('skill-templates', { hidePaginationWhenUnavailable: true })
   .context(useInstanceContext)
   .filters((props, ctx) => {
     let instanceId = props.instanceId ?? ctx.instanceId;
 
     return {
+      ...(props.withSkillViews ? { view: skillViewFilter() } : {}),
       status: f.status(lifecycleStatus, { only: ['active', 'archived'] }),
       owner: f.select('owner', 'Owner', skillTemplateOwners),
       providerId: f.entity(entityFilters.provider(instanceId)),
@@ -133,7 +169,7 @@ export let SkillTemplatesList = createDataList<{
     };
   })
   .search('Search templates…')
-  .paginated(({ props, ctx, filters, search }) =>
+  .paginated(({ props, ctx, filters: { view: _view, ...filters }, search }) =>
     useSkillTemplates(
       props.instanceId ?? ctx.instanceId,
       withDefaults(
@@ -160,24 +196,11 @@ export let SkillTemplatesList = createDataList<{
       ? props.getTemplatePath(row.id)
       : Paths.instance.skillTemplate(ctx.organization, ctx.project, ctx.instance, row.id)
   )
-  .item(skillTemplate => ({
-    title: skillTemplate.name,
-    description: (
-      <Description>{skillTemplate.description || 'No description provided yet.'}</Description>
-    ),
-    icon: (
-      <Avatar
-        entity={{
-          name: skillTemplate.name,
-          imageUrl: `https://avatar-cdn.metorial.com/${skillTemplate.id}`
-        }}
-        size={30}
-      />
-    ),
-    footer: <Text size="1">{skillTemplate.slug}</Text>,
-    height: 200
-  }))
   .layouts(['grid', 'table'], { default: 'grid' })
+  .layout('grid', {
+    label: 'Grid',
+    render: args => <SkillTemplatesGridLayout {...args} />
+  })
   .itemActions([
     defineAction<SkillTemplate, any, any>({
       id: 'clone',

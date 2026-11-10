@@ -267,6 +267,9 @@ export let DataListComponent = reactMemo(
       );
     }
 
+    let showPagination =
+      config.hasPagination &&
+      (!config.hidePaginationWhenUnavailable || state.hasMoreBefore || state.hasMoreAfter);
     let headerActions = props.headerActions ?? config.headerActions;
     let hasBar = !!config.search || filters.length > 0;
     let columnPicker =
@@ -376,18 +379,14 @@ export let DataListComponent = reactMemo(
                 </Footer>
               )}
 
-              {!isPreview && config.hasPagination && (
+              {!isPreview && showPagination && (
                 <Footer
                   style={{
                     padding: `10px ${sidePadding ? sidePadding + 5 : 0}px`,
                     borderTop: isGroup ? `1px solid ${theme.colors.gray300}` : 'none'
                   }}
                 >
-                  <Text size="1" color="gray700" weight="medium">
-                    Showing {state.items.length} item{state.items.length == 1 ? '' : 's'}
-                  </Text>
-
-                  <div style={{ display: 'flex', gap: 5 }}>
+                  <div style={{ display: 'flex', gap: 5, marginLeft: 'auto' }}>
                     <Button
                       size="1"
                       variant="outline"

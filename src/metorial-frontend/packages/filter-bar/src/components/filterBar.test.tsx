@@ -122,6 +122,51 @@ describe('FilterHighlightRow', () => {
     ]);
   });
 
+  it('keeps a single value for exclusive highlights and clears it through All', () => {
+    let viewFilter = {
+      ...statusFilter,
+      highlight: { exclusive: true }
+    } as ListFilter;
+    let { probe, Harness } = useStateProbe([]);
+    let container = render(
+      <Harness>
+        {tuple => <FilterHighlightRow filter={viewFilter} filterState={tuple} />}
+      </Harness>
+    );
+    let clickPill = (label: string) => {
+      let pill = Array.from(container.querySelectorAll('button[aria-pressed]')).find(
+        b => !b.closest('[aria-hidden]') && b.textContent?.startsWith(label)
+      );
+      act(() => (pill as HTMLButtonElement).click());
+    };
+
+    clickPill('Active');
+    clickPill('Archived');
+    expect(probe.current).toEqual([
+      expect.objectContaining({ id: 'status', value: ['archived'] })
+    ]);
+
+    clickPill('All');
+    expect(probe.current).toEqual([]);
+  });
+
+  it('moves selected pills to the start unless the highlight preserves the order', () => {
+    let archivedState: TableFilterState = { ...statusState, value: ['archived'] };
+    let getPillLabels = (filter: ListFilter) => {
+      let container = render(
+        <FilterHighlightRow filter={filter} filterState={[[archivedState], () => {}]} />
+      );
+      return Array.from(container.querySelectorAll('button[aria-pressed]'))
+        .filter(b => !b.closest('[aria-hidden]'))
+        .map(b => b.textContent?.replace(/\d+$/, ''));
+    };
+
+    expect(getPillLabels(statusFilter as ListFilter)).toEqual(['Archived', 'Active']);
+    expect(
+      getPillLabels({ ...statusFilter, highlight: { preserveOrder: true } } as ListFilter)
+    ).toEqual(['Active', 'Archived']);
+  });
+
   it('passes the other filter values to entity useOptions', () => {
     let useSearch = vi.fn(() => ({ items: [], isLoading: false }));
     let toolFilter = createEntityFilter({
@@ -226,6 +271,34 @@ describe('FilterSearchBar', () => {
     expect(
       Array.from(container.querySelectorAll('button[aria-pressed="true"]')).length
     ).toBeGreaterThan(0);
+  });
+
+  it('keeps exclusive highlights out of the bar and its clear actions', () => {
+    let viewFilter: TableFilter<any> = { ...statusFilter, highlight: { exclusive: true } };
+    let viewState = { ...statusState, value: ['archived'] };
+    let { probe, Harness } = useStateProbe([viewState, { ...statusState, id: 'other' }]);
+    let container = render(
+      <Harness>
+        {tuple => (
+          <FilterToolbar
+            filters={[viewFilter, { ...plainStatusFilter, id: 'other', fields: ['other'] }]}
+            filterState={tuple}
+            searchState={['', () => {}]}
+            shortcut={false}
+          />
+        )}
+      </Harness>
+    );
+
+    expect(container.querySelector('[aria-label="Filters (1 applied)"]')).not.toBeNull();
+
+    act(() =>
+      (
+        container.querySelector('[aria-label="Remove Status filter"]') as HTMLButtonElement
+      ).click()
+    );
+
+    expect(probe.current).toEqual([viewState]);
   });
 
   it('removes a token through its remove button', () => {

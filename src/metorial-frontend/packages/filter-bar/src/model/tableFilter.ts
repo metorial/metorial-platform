@@ -13,7 +13,14 @@ export type TableFilterSelectOption = {
   count?: number;
 };
 
-export type TableFilterHighlight = boolean | { label?: string };
+export type TableFilterHighlight =
+  | boolean
+  | {
+      label?: string;
+      hideLabel?: boolean;
+      exclusive?: boolean;
+      preserveOrder?: boolean;
+    };
 
 export type TableFilterEntityOptions = {
   items: TableFilterEntityOption[];

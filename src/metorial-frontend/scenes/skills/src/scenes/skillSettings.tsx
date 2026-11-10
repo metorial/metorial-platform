@@ -1,7 +1,7 @@
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { PageHeader } from '@metorial/layout';
 import { useSkill, useSkillGroup, useSkillTemplate } from '@metorial/state';
-import { Button, Input, Spacer, Text, confirm, theme } from '@metorial/ui';
+import { Button, Dialog, Input, Spacer, Text, confirm, theme } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
 import styled from 'styled-components';
 import { SkillImageUploader } from '../components/skillImageUploader';
@@ -108,163 +108,167 @@ export let SkillSettingsScene = (p: {
       description="Manage this skill's details and discovery metadata."
     >
       <PageStack>
-      {p.instanceId && !p.readOnly && (
+        {p.instanceId && !p.readOnly && (
+          <SettingsSection>
+            <SectionHeader>
+              <Text size="3" weight="strong">
+                Skill Image
+              </Text>
+              <Text size="2" color="gray700">
+                Upload the image shown for this skill in discovery flows.
+              </Text>
+            </SectionHeader>
+            <SkillImageUploader
+              instanceId={p.instanceId}
+              skill={skill.data}
+              updateSkill={imageUpdateMutator}
+            />
+            <imageUpdateMutator.RenderError />
+          </SettingsSection>
+        )}
+
         <SettingsSection>
           <SectionHeader>
             <Text size="3" weight="strong">
-              Skill Image
+              Discovery Settings
             </Text>
             <Text size="2" color="gray700">
-              Upload the image shown for this skill in discovery flows.
+              Manage the values exposed to clients and discovery flows for this skill.
             </Text>
           </SectionHeader>
-          <SkillImageUploader
-            instanceId={p.instanceId}
-            skill={skill.data}
-            updateSkill={imageUpdateMutator}
-          />
-          <imageUpdateMutator.RenderError />
+          <form onSubmit={discoveryForm.handleSubmit}>
+            <FormStack>
+              <Input
+                label="Client name"
+                disabled={p.readOnly}
+                {...discoveryForm.getFieldProps('clientName')}
+              />
+              <discoveryForm.RenderError field="clientName" />
+
+              <Input
+                as="textarea"
+                label="Client description"
+                minRows={4}
+                disabled={p.readOnly}
+                {...discoveryForm.getFieldProps('clientDescription')}
+              />
+              <discoveryForm.RenderError field="clientDescription" />
+
+              <Input
+                label="License"
+                disabled={p.readOnly}
+                {...discoveryForm.getFieldProps('license')}
+              />
+              <discoveryForm.RenderError field="license" />
+
+              <Input
+                label="Compatibility"
+                disabled={p.readOnly}
+                {...discoveryForm.getFieldProps('compatibility')}
+              />
+              <discoveryForm.RenderError field="compatibility" />
+
+              {!p.readOnly && (
+                <ActionsRow>
+                  <Button
+                    loading={discoveryUpdateMutator.isLoading}
+                    size="2"
+                    success={discoveryUpdateMutator.isSuccess}
+                    type="submit"
+                  >
+                    Save
+                  </Button>
+                </ActionsRow>
+              )}
+
+              <discoveryUpdateMutator.RenderError />
+            </FormStack>
+          </form>
         </SettingsSection>
-      )}
 
-      <SettingsSection>
-        <SectionHeader>
-          <Text size="3" weight="strong">
-            Discovery Settings
-          </Text>
-          <Text size="2" color="gray700">
-            Manage the values exposed to clients and discovery flows for this skill.
-          </Text>
-        </SectionHeader>
-        <form onSubmit={discoveryForm.handleSubmit}>
-          <FormStack>
-            <Input
-              label="Client name"
-              disabled={p.readOnly}
-              {...discoveryForm.getFieldProps('clientName')}
-            />
-            <discoveryForm.RenderError field="clientName" />
-
-            <Input
-              as="textarea"
-              label="Client description"
-              minRows={4}
-              disabled={p.readOnly}
-              {...discoveryForm.getFieldProps('clientDescription')}
-            />
-            <discoveryForm.RenderError field="clientDescription" />
-
-            <Input
-              label="License"
-              disabled={p.readOnly}
-              {...discoveryForm.getFieldProps('license')}
-            />
-            <discoveryForm.RenderError field="license" />
-
-            <Input
-              label="Compatibility"
-              disabled={p.readOnly}
-              {...discoveryForm.getFieldProps('compatibility')}
-            />
-            <discoveryForm.RenderError field="compatibility" />
-
-            {!p.readOnly && (
-              <ActionsRow>
-                <Button
-                  loading={discoveryUpdateMutator.isLoading}
-                  size="2"
-                  success={discoveryUpdateMutator.isSuccess}
-                  type="submit"
-                >
-                  Save
-                </Button>
-              </ActionsRow>
-            )}
-
-            <discoveryUpdateMutator.RenderError />
-          </FormStack>
-        </form>
-      </SettingsSection>
-
-      <SettingsSection>
-        <SectionHeader>
-          <Text size="3" weight="strong">
-            General Settings
-          </Text>
-          <Text size="2" color="gray700">
-            Manage the name and description of this skill. This information is used in
-            Metorial, but not passed to agents or clients.
-          </Text>
-        </SectionHeader>
-        <form onSubmit={generalForm.handleSubmit}>
-          <FormStack>
-            <Input label="Name" disabled={p.readOnly} {...generalForm.getFieldProps('name')} />
-            <generalForm.RenderError field="name" />
-
-            <Input
-              as="textarea"
-              label="Description"
-              minRows={4}
-              disabled={p.readOnly}
-              {...generalForm.getFieldProps('description')}
-            />
-            <generalForm.RenderError field="description" />
-
-            {!p.readOnly && (
-              <ActionsRow>
-                <Button
-                  loading={generalUpdateMutator.isLoading}
-                  size="2"
-                  success={generalUpdateMutator.isSuccess}
-                  type="submit"
-                >
-                  Save
-                </Button>
-              </ActionsRow>
-            )}
-
-            <generalUpdateMutator.RenderError />
-          </FormStack>
-        </form>
-      </SettingsSection>
-
-      {!p.readOnly && (
         <SettingsSection>
           <SectionHeader>
             <Text size="3" weight="strong">
-              Danger Zone
+              General Settings
             </Text>
             <Text size="2" color="gray700">
-              Delete this skill and remove its current configuration from the instance.
+              Manage the name and description of this skill. This information is used in
+              Metorial, but not passed to agents or clients.
             </Text>
           </SectionHeader>
-          <div>
-            <Button
-              color="red"
-              loading={deleteMutator.isLoading}
-              onClick={() =>
-                confirm({
-                  title: `Delete ${skill.data.name}?`,
-                  description: 'Are you sure you want to delete this skill?',
-                  confirmText: 'Delete',
-                  onConfirm: async () => {
-                    let [result] = await deleteMutator.mutate(undefined as never);
-                    if (result) {
-                      await p.onDeleteSuccess?.();
+          <form onSubmit={generalForm.handleSubmit}>
+            <FormStack>
+              <Input
+                label="Name"
+                disabled={p.readOnly}
+                {...generalForm.getFieldProps('name')}
+              />
+              <generalForm.RenderError field="name" />
+
+              <Input
+                as="textarea"
+                label="Description"
+                minRows={4}
+                disabled={p.readOnly}
+                {...generalForm.getFieldProps('description')}
+              />
+              <generalForm.RenderError field="description" />
+
+              {!p.readOnly && (
+                <ActionsRow>
+                  <Button
+                    loading={generalUpdateMutator.isLoading}
+                    size="2"
+                    success={generalUpdateMutator.isSuccess}
+                    type="submit"
+                  >
+                    Save
+                  </Button>
+                </ActionsRow>
+              )}
+
+              <generalUpdateMutator.RenderError />
+            </FormStack>
+          </form>
+        </SettingsSection>
+
+        {!p.readOnly && (
+          <SettingsSection>
+            <SectionHeader>
+              <Text size="3" weight="strong">
+                Danger Zone
+              </Text>
+              <Text size="2" color="gray700">
+                Delete this skill and remove its current configuration from the instance.
+              </Text>
+            </SectionHeader>
+            <div>
+              <Button
+                color="red"
+                loading={deleteMutator.isLoading}
+                onClick={() =>
+                  confirm({
+                    title: `Delete ${skill.data.name}?`,
+                    description: 'Are you sure you want to delete this skill?',
+                    confirmText: 'Delete',
+                    onConfirm: async () => {
+                      let [result] = await deleteMutator.mutate(undefined as never);
+                      if (result) {
+                        await p.onDeleteSuccess?.();
+                      }
                     }
-                  }
-                })
-              }
-              size="2"
-              success={deleteMutator.isSuccess}
-              type="button"
-            >
-              Delete Skill
-            </Button>
-          </div>
-          <deleteMutator.RenderError />
-        </SettingsSection>
-      )}
+                  })
+                }
+                size="2"
+                success={deleteMutator.isSuccess}
+                type="button"
+              >
+                Delete Skill
+              </Button>
+            </div>
+            <deleteMutator.RenderError />
+          </SettingsSection>
+        )}
       </PageStack>
     </SkillPanelPage>
   ));
@@ -382,14 +386,14 @@ export let SkillTemplateSettingsScene = (p: {
   });
 };
 
-export let SkillGroupSettingsScene = (p: {
+export let SkillGroupSettingsForm = (p: {
   instanceId: string | null | undefined;
   skillGroupId: string | null | undefined;
-  onDeleteSuccess?: () => void;
+  onSaved?: () => void;
+  onCancel?: () => void;
 }) => {
   let skillGroup = useSkillGroup(p.instanceId, p.skillGroupId);
   let updateMutator = skillGroup.updateMutator();
-  let deleteMutator = skillGroup.deleteMutator();
 
   let form = useForm({
     initialValues: {
@@ -398,10 +402,11 @@ export let SkillGroupSettingsScene = (p: {
     },
     updateInitialValues: true,
     onSubmit: async values => {
-      await updateMutator.mutate({
+      let [result] = await updateMutator.mutate({
         name: values.name.trim(),
         description: values.description.trim() || undefined
       });
+      if (result) p.onSaved?.();
     },
     schema: yup =>
       yup.object({
@@ -410,71 +415,35 @@ export let SkillGroupSettingsScene = (p: {
       })
   });
 
-  return renderWithLoader({ skillGroup })(({ skillGroup }) => (
-    <PageStack>
-      <Box
-        title="General Settings"
-        description="Manage the name and description for this skill group."
-      >
-        <form onSubmit={form.handleSubmit}>
-          <FormStack>
-            <Input label="Name" {...form.getFieldProps('name')} />
-            <form.RenderError field="name" />
+  return renderWithLoader({ skillGroup })(() => (
+    <form onSubmit={form.handleSubmit}>
+      <FormStack>
+        <Input label="Name" {...form.getFieldProps('name')} />
+        <form.RenderError field="name" />
 
-            <Input
-              as="textarea"
-              label="Description"
-              minRows={4}
-              {...form.getFieldProps('description')}
-            />
-            <form.RenderError field="description" />
+        <Input
+          as="textarea"
+          label="Description"
+          minRows={4}
+          {...form.getFieldProps('description')}
+        />
+        <form.RenderError field="description" />
+      </FormStack>
 
-            <ActionsRow>
-              <Button
-                loading={updateMutator.isLoading}
-                size="2"
-                success={updateMutator.isSuccess}
-                type="submit"
-              >
-                Save
-              </Button>
-            </ActionsRow>
+      <Spacer size={15} />
 
-            <updateMutator.RenderError />
-          </FormStack>
-        </form>
-      </Box>
-
-      <Box
-        title="Danger Zone"
-        description="Delete this skill group. The skills themselves will remain available."
-      >
-        <Button
-          color="red"
-          loading={deleteMutator.isLoading}
-          onClick={() =>
-            confirm({
-              title: `Delete ${skillGroup.data.name}?`,
-              description: 'Are you sure you want to delete this skill group?',
-              confirmText: 'Delete',
-              onConfirm: async () => {
-                let [result] = await deleteMutator.mutate(undefined as never);
-                if (result) {
-                  await p.onDeleteSuccess?.();
-                }
-              }
-            })
-          }
-          size="2"
-          success={deleteMutator.isSuccess}
-          type="button"
-        >
-          Delete Group
+      <Dialog.Actions>
+        {p.onCancel && (
+          <Button type="button" variant="soft" onClick={p.onCancel}>
+            Cancel
+          </Button>
+        )}
+        <Button type="submit" loading={updateMutator.isLoading}>
+          Save
         </Button>
+      </Dialog.Actions>
 
-        <Spacer size={10} />
-        <deleteMutator.RenderError />
-      </Box>
-    </PageStack>
+      <updateMutator.RenderError />
+    </form>
   ));
 };

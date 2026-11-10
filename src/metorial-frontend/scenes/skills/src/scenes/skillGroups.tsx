@@ -231,7 +231,7 @@ let SkillPickerPanel = (p: {
   );
 };
 
-let showSkillPickerPanel = (p: {
+export let showSkillGroupSkillPicker = (p: {
   instanceId: string;
   excludeSkillIds: string[];
   onSelect: (skill: Skill) => Promise<void> | void;
@@ -458,7 +458,7 @@ export let SkillGroupSkillsScene = (p: {
   let openPicker = () => {
     if (!p.instanceId || !p.skillGroupId) return;
 
-    showSkillPickerPanel({
+    showSkillGroupSkillPicker({
       instanceId: p.instanceId,
       excludeSkillIds: linkedSkillIds,
       showAccessLevel: p.showAccessLevel,
@@ -570,18 +570,18 @@ export let SkillGroupsForSkillScene = (p: {
         title="Groups"
         description="Manage the groups this skill belongs to."
         actions={
-            !p.readOnly ? (
-              <Button
-                size="2"
-                iconLeft={<RiSettings3Line />}
-                disabled={!p.instanceId || !p.skillId || !allSkillGroups.data}
-                onClick={openAccessPanel}
-                variant="outline"
-              >
-                Manage groups
-              </Button>
-            ) : null
-          }
+          !p.readOnly ? (
+            <Button
+              size="2"
+              iconLeft={<RiSettings3Line />}
+              disabled={!p.instanceId || !p.skillId || !allSkillGroups.data}
+              onClick={openAccessPanel}
+              variant="outline"
+            >
+              Manage groups
+            </Button>
+          ) : null
+        }
       >
         {skillGroups.data.items.length === 0 ? (
           <EmptyState>
