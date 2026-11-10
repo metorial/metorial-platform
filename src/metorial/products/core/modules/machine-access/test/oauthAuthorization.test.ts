@@ -47,9 +47,11 @@ let {
     },
     oAuthToken: {
       findUnique: vi.fn(),
+      findUniqueOrThrow: vi.fn(),
       findFirst: vi.fn(),
       create: vi.fn(),
-      update: vi.fn()
+      update: vi.fn(),
+      updateMany: vi.fn()
     },
     organizationMember: {
       findFirst: vi.fn()
@@ -531,6 +533,7 @@ describe('oauthAuthorizationService', () => {
       })
     );
     mockDb.oAuthToken.findFirst.mockResolvedValue(null);
+    mockDb.oAuthToken.updateMany.mockResolvedValue({ count: 1 });
     mockDb.oAuthToken.create.mockImplementation(async ({ data }: any) => ({
       oid: 600n,
       ...data,
@@ -837,32 +840,28 @@ describe('oauthAuthorizationService', () => {
     expect(result.oauthToken.refreshToken).toBeNull();
   });
 
-  it('rotates refresh tokens by updating the existing token row', async () => {
-    mockDb.oAuthToken.findFirst.mockResolvedValue({
-      oid: 601n,
-      refreshToken: 'metorial_or_old',
-      oauthAuthorization: {
-        oid: 300n,
-        oauthInstallationOid: 200n,
-        status: 'active',
-        oauthApplication: {
-          oid: 100n,
-          clientId: 'client-1',
-          status: 'active',
-          scopes: ['organization:read', 'organization:write']
-        },
-        oauthInstallation: {
-          oid: 200n,
-          status: 'active'
-        },
-        machineAccess: {
-          oid: 400n,
-          status: 'active'
-        }
-      }
-    });
+  let refreshableAuthorization = {
+    oid: 300n,
+    oauthInstallationOid: 200n,
+    status: 'active',
+    oauthApplication: {
+      oid: 100n,
+      clientId: 'client-1',
+      status: 'active',
+      scopes: ['organization:read', 'organization:write']
+    },
+    oauthInstallation: {
+      oid: 200n,
+      status: 'active'
+    },
+    machineAccess: {
+      oid: 400n,
+      status: 'active'
+    }
+  };
 
-    let result = await oauthAuthorizationService.exchangeOAuthToken({
+  let refreshTokens = () =>
+    oauthAuthorizationService.exchangeOAuthToken({
       context: baseContext,
       input: {
         grantType: 'refresh_token',
@@ -872,20 +871,52 @@ describe('oauthAuthorizationService', () => {
       }
     });
 
-    expect(mockDb.oAuthToken.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { oid: 601n },
-        data: expect.objectContaining({
-          accessToken: expect.stringContaining('metorial_oa_'),
-          refreshToken: expect.stringContaining('metorial_or_'),
-          accessTokenExpiresAt: expect.any(Date),
-          completelyExpiresAt: null,
-          oauthInstallationOid: 200n
-        })
+  it('rotates refresh tokens by updating the existing token row', async () => {
+    mockDb.oAuthToken.findFirst.mockResolvedValue({
+      oid: 601n,
+      refreshToken: 'metorial_or_old',
+      completelyExpiresAt: null,
+      oauthAuthorization: refreshableAuthorization
+    });
+    mockDb.oAuthToken.findUniqueOrThrow.mockImplementation(async ({ where }: any) => ({
+      oid: where.oid,
+      ...mockDb.oAuthToken.updateMany.mock.calls[0]![0].data,
+      oauthAuthorization: refreshableAuthorization
+    }));
+
+    let result = await refreshTokens();
+
+    expect(mockDb.oAuthToken.updateMany).toHaveBeenCalledWith({
+      where: {
+        oid: 601n,
+        refreshToken: 'metorial_or_old',
+        completelyExpiresAt: null
+      },
+      data: expect.objectContaining({
+        accessToken: expect.stringContaining('metorial_oa_'),
+        refreshToken: expect.stringContaining('metorial_or_'),
+        accessTokenExpiresAt: expect.any(Date),
+        completelyExpiresAt: null,
+        oauthInstallationOid: 200n
       })
-    );
+    });
     expect(mockDb.oAuthToken.create).not.toHaveBeenCalled();
     expect(result.oauthToken.accessToken).toContain('metorial_oa_');
+  });
+
+  it('rejects a refresh token that was rotated or revoked after it was read', async () => {
+    mockDb.oAuthToken.findFirst.mockResolvedValue({
+      oid: 601n,
+      refreshToken: 'metorial_or_old',
+      completelyExpiresAt: null,
+      oauthAuthorization: refreshableAuthorization
+    });
+    mockDb.oAuthToken.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(refreshTokens()).rejects.toMatchObject({
+      data: { oauth: { error: 'invalid_grant' } }
+    });
+    expect(mockDb.oAuthToken.findUniqueOrThrow).not.toHaveBeenCalled();
   });
 
   it('requires a client secret to refresh tokens of confidential clients', async () => {
@@ -895,7 +926,12 @@ describe('oauthAuthorizationService', () => {
       oauthAuthorization: {
         oid: 300n,
         status: 'active',
-        oauthApplication: { oid: 100n, clientId: 'client-1', status: 'active', ...oauthApplication }
+        oauthApplication: {
+          oid: 100n,
+          clientId: 'client-1',
+          status: 'active',
+          ...oauthApplication
+        }
       }
     });
     let refresh = () =>
@@ -914,7 +950,7 @@ describe('oauthAuthorizationService', () => {
     await expect(refresh()).rejects.toMatchObject({
       data: expect.objectContaining({ status: 401 })
     });
-    expect(mockDb.oAuthToken.update).not.toHaveBeenCalled();
+    expect(mockDb.oAuthToken.updateMany).not.toHaveBeenCalled();
   });
 
   it('exchanges server-side client credentials without issuing a refresh token', async () => {
@@ -1102,6 +1138,10 @@ describe('oauthAuthorizationService', () => {
         })
       })
     );
+    expect(mockDb.oAuthToken.updateMany).toHaveBeenCalledWith({
+      where: expect.objectContaining({ oauthAuthorizationOid: 300n }),
+      data: { accessTokenExpiresAt: expect.any(Date), completelyExpiresAt: expect.any(Date) }
+    });
   });
 
   it('blocks revoking internal authorizations through the public service', async () => {

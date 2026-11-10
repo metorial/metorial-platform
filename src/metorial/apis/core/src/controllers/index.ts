@@ -20,6 +20,7 @@ import {
 } from './_categories';
 import {
   consumerActivityController,
+  consumerDeviceController,
   consumerOAuthAuthorizationController,
   consumerProviderController,
   consumerSessionController
@@ -67,6 +68,7 @@ import {
   chatThreadController,
   chatWorkspaceController,
   consumerController,
+  consumerDeviceManagementController,
   consumerSurfaceController,
   customProviderCodeController,
   customProviderCommitController,
@@ -615,6 +617,7 @@ export let magnetarController = Controller.create<any>(
     consumerSessionController,
     consumerProviderController,
     consumerActivityController,
+    consumerDeviceController,
     consumerOAuthAuthorizationController,
 
     managementApiKeyController,
@@ -622,6 +625,7 @@ export let magnetarController = Controller.create<any>(
     dashboardAssistantController,
 
     consumerController,
+    consumerDeviceManagementController,
     consumerSurfaceController,
 
     portalController,
@@ -661,6 +665,7 @@ export let consumerApiController = Controller.create<any>(
     consumerSessionController,
     consumerProviderController,
     consumerActivityController,
+    consumerDeviceController,
     consumerOAuthAuthorizationController,
     dashboardAssistantController
   }
@@ -786,6 +791,7 @@ export let dashboardController = Controller.create<any>(
     skillSyncController,
 
     consumerController,
+    consumerDeviceManagementController,
     consumerSurfaceController,
     sessionController,
 

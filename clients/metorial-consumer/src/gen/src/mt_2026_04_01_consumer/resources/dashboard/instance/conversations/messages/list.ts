@@ -27,11 +27,7 @@ export type DashboardInstanceConversationsMessagesListOutput = {
       object: 'assistant.request';
       id: string;
       status:
-        | 'pending'
-        | 'waiting_for_user'
-        | 'completed'
-        | 'cancelled'
-        | 'failed';
+        'pending' | 'waiting_for_user' | 'completed' | 'cancelled' | 'failed';
       actor: {
         type: 'organization_actor' | 'consumer' | 'resource_actor';
         name: string;
