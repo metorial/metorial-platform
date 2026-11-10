@@ -3,6 +3,7 @@ import { createSystemAuditScope } from '@metorial/audit-scope';
 import { db } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { consumerSkillService } from '@metorial/module-consumer-entities';
+import { skillGroupItemService } from '@metorial/module-skill-groups';
 import { createQueue } from '@metorial/queue';
 import { materializeImportedSkill } from '../lib/materialize';
 import { skillImportFinishQueue } from './finish';
@@ -24,6 +25,7 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
       skillImport: {
         include: {
           creatorResourceActor: true,
+          skillGroup: true,
           project: true,
           instance: true
         }
@@ -98,15 +100,16 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
 
     let actor = item.skillImport.creatorResourceActor ?? undefined;
     let consumerProfileOid = actor?.consumerProfileOid ?? undefined;
+    let auditScope = createSystemAuditScope({
+      organization: { oid: item.skillImport.instance.organizationOid },
+      instance: item.skillImport.instance,
+      job: 'skill-import',
+      metadata: { skillImportId: item.skillImport.id }
+    });
     createdSkill = await materializeImportedSkill({
       project: item.skillImport.project,
       instance: item.skillImport.instance,
-      auditScope: createSystemAuditScope({
-        organization: { oid: item.skillImport.instance.organizationOid },
-        instance: item.skillImport.instance,
-        job: 'skill-import',
-        metadata: { skillImportId: item.skillImport.id }
-      }),
+      auditScope,
       codeBucketId: item.skillImport.codeBucketId,
       skillId: item.targetSkillId,
       rootPath: item.path,
@@ -142,6 +145,15 @@ export let skillImportItemQueueProcessor = skillImportItemQueue.process(async da
       await consumerSkillService.grantConsumerSkillOwnership({
         skill: createdSkill,
         consumerProfileOid
+      });
+    }
+
+    if (item.skillImport.skillGroup?.status === 'active') {
+      await skillGroupItemService.createSkillGroupItem({
+        project: item.skillImport.project,
+        instance: item.skillImport.instance,
+        auditScope,
+        input: { skillGroupId: item.skillImport.skillGroup.id, skillId: createdSkill.id }
       });
     }
 

@@ -36,6 +36,7 @@ model SkillGroup {
   consumerAccesses                ConsumerAccess[]                 @relation("ConsumerAccessSkillGroup")
   consumerAccessListings          ConsumerAccessListing[]
   magicMcpEndpointSkillSelections MagicMcpEndpointSkillSelection[]
+  skillImports                    SkillImport[]
 
   @@index([instanceOid, status])
 }

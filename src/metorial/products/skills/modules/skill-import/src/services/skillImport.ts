@@ -14,6 +14,7 @@ import type {
   Prisma,
   Project,
   ResourceActor,
+  SkillGroup,
   SkillImportStatus,
   StoreParticipantPermissions
 } from '@metorial/db';
@@ -76,6 +77,7 @@ class SkillImportServiceImpl {
     authorization?: ResourceAuthorization;
     defaultPermissions?: StoreParticipantPermissions[];
     overridePermissions?: boolean;
+    skillGroup?: Pick<SkillGroup, 'oid'>;
     input: CreateSkillImportInput;
   }) {
     assertResourceActorScope({
@@ -193,6 +195,7 @@ class SkillImportServiceImpl {
           sourceFileLinkOid: sourceFileLink?.oid,
           sourceFileReferenceOid: sourceFileReference?.oid,
           creatorResourceActorOid,
+          skillGroupOid: d.skillGroup?.oid,
           projectOid: d.project.oid,
           instanceOid: d.instance.oid
         },
