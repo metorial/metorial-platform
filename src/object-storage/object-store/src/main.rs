@@ -1,6 +1,9 @@
+use object_store::server::{run_maintenance, serve, shutdown_signal};
+use object_store::zip::ZipJobManager;
 use object_store::{Config, ObjectStoreService};
-use object_store_backends::Backend;
+use object_store_backends::{Backend, Uploader};
 use std::sync::Arc;
+use tokio_util::sync::CancellationToken;
 use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -33,26 +36,49 @@ async fn main() -> anyhow::Result<()> {
         config.backend
     );
 
-    let backend: Arc<dyn Backend> = config.backend.build().await?;
+    info!("Upload settings: {:?}", config.uploads);
+    let uploader = Arc::new(Uploader::new(config.uploads.settings()));
+    let backend: Arc<dyn Backend> = config.backend.clone().build(uploader).await?;
 
     backend.init().await?;
 
     let metadata = Arc::new(MetadataStore::new(backend.clone()).await?);
     let public_signer = config.public.signer()?.map(Arc::new);
+    info!(
+        "Archive upload memory budget: {} bytes",
+        config.zip.upload_memory_budget_bytes
+    );
+    let archive_uploader = Arc::new(Uploader::new(config.archive_upload_settings()));
     let service = Arc::new(
-        ObjectStoreService::new(backend, metadata.clone()).with_public_signer(public_signer),
+        ObjectStoreService::new(backend, metadata)
+            .with_public_signer(public_signer)
+            .with_archive_uploader(archive_uploader)
+            .with_max_concurrent_digests(config.digests.max_concurrent),
     );
 
-    let metadata_clone = metadata.clone();
-    tokio::spawn(async move {
-        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(60));
-        loop {
-            interval.tick().await;
-            if let Err(e) = metadata_clone.cleanup_expired_locks().await {
-                tracing::error!("Failed to cleanup expired locks: {}", e);
-            }
+    let zip_settings = config.zip_settings();
+    if zip_settings.max_wait.as_secs() < config.zip.max_wait_seconds {
+        info!(
+            "zip.max_wait_seconds lowered to {:?} to stay below the request timeout",
+            zip_settings.max_wait
+        );
+    }
+    let jobs = ZipJobManager::new(service.clone(), zip_settings);
+    info!("Zip job instance id: {}", jobs.instance_id());
+
+    let shutdown = CancellationToken::new();
+    tokio::spawn({
+        let shutdown = shutdown.clone();
+        async move {
+            shutdown_signal().await;
+            shutdown.cancel();
         }
     });
+    tokio::spawn(run_maintenance(
+        service.clone(),
+        jobs.clone(),
+        shutdown.clone(),
+    ));
 
     if service.public_signer().is_some() {
         let public_app = object_store::public_api::create_public_router(
@@ -94,14 +120,20 @@ async fn main() -> anyhow::Result<()> {
         });
     }
 
-    let app = object_store::router::create_router(service);
-
     let addr = format!("{}:{}", config.server.host, config.server.port);
     let listener = tokio::net::TcpListener::bind(&addr).await?;
 
     info!("Object storage service listening on {}", addr);
 
-    axum::serve(listener, app).await?;
+    serve(
+        listener,
+        service,
+        jobs,
+        config.server.router_options(),
+        shutdown,
+    )
+    .await?;
 
+    info!("Object storage service stopped");
     Ok(())
 }

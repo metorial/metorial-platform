@@ -1035,6 +1035,19 @@ class scmRepoServiceImpl {
         providerPrId: providerPrId || undefined,
         idempotencyKey: i.idempotencyKey
       });
+      let deletedBranchName =
+        i.eventType == 'push' && (event as any).deleted
+          ? branchName
+          : i.eventType == 'delete' && (event as any).ref_type == 'branch'
+            ? (event as any).ref
+            : undefined;
+      if (deletedBranchName) {
+        await accelerateRepositorySyncsForProviderEvent({
+          repoOid: webhook.repo.oid,
+          deletedBranchName,
+          idempotencyKey: `${i.idempotencyKey}:deleted`
+        });
+      }
 
       return;
     }
@@ -1157,6 +1170,13 @@ class scmRepoServiceImpl {
         providerPrId: providerPrId || undefined,
         idempotencyKey: i.idempotencyKey
       });
+      if (i.eventType == 'Push Hook' && branchName && /^0+$/.test(event.after ?? '')) {
+        await accelerateRepositorySyncsForProviderEvent({
+          repoOid: webhook.repo.oid,
+          deletedBranchName: branchName,
+          idempotencyKey: `${i.idempotencyKey}:deleted`
+        });
+      }
     }
   }
 
@@ -1208,12 +1228,22 @@ class scmRepoServiceImpl {
       commitMessage: string | null;
     }[] = [];
 
+    let deletedBranchNames: string[] = [];
+
     if (!isPush) changes = [];
     for (let change of changes) {
       let isBranch = isCloud
         ? change?.new?.type === 'branch'
         : change?.ref?.type === 'BRANCH' || change?.refId?.startsWith('refs/heads/');
       let isDeletion = isCloud ? change?.new == null : change?.type === 'DELETE';
+      let deletedBranchName = isCloud
+        ? change?.old?.type === 'branch'
+          ? change.old.name
+          : undefined
+        : (change?.ref?.displayId ?? change?.refId?.replace('refs/heads/', ''));
+      if (isDeletion && deletedBranchName && (isCloud || isBranch)) {
+        deletedBranchNames.push(deletedBranchName);
+      }
       if (!isBranch || isDeletion) continue;
 
       let branchName = isCloud
@@ -1292,6 +1322,13 @@ class scmRepoServiceImpl {
       providerPrId: providerPrId || undefined,
       idempotencyKey: i.idempotencyKey
     });
+    for (let deletedBranchName of deletedBranchNames) {
+      await accelerateRepositorySyncsForProviderEvent({
+        repoOid: webhook.repo.oid,
+        deletedBranchName,
+        idempotencyKey: `${i.idempotencyKey}:deleted:${deletedBranchName}`
+      });
+    }
   }
 
   async createPushForCurrentCommitOnDefaultBranch(i: {

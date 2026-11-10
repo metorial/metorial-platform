@@ -52,8 +52,11 @@ ENV NODE_ENV=production
 ENV TZ=UTC
 COPY --from=builder --link --chown=10001:10001 /app/src/metorial/products/integrations/apps/worker/dist ./dist
 COPY --from=builder --link --chown=10001:10001 /app/src/metorial/db/prisma/schema/ ./prisma/core/schema/
+COPY --from=builder --link --chown=10001:10001 /app/src/metorial/db/prisma/migrations/ ./prisma/core/migrations/
 COPY --from=builder --link --chown=10001:10001 /app/src/metorial/multi-region/prisma/schema/ ./prisma/global/schema/
+COPY --from=builder --link --chown=10001:10001 /app/src/metorial/multi-region/prisma/migrations/ ./prisma/global/migrations/
 COPY --from=builder --link --chown=10001:10001 /app/src/metorial/products/integrations/db/prisma/schema/ ./prisma/subspace/schema/
+COPY --from=builder --link --chown=10001:10001 /app/src/metorial/products/integrations/db/prisma/migrations/ ./prisma/subspace/migrations/
 COPY --link --chown=10001:10001 <<'EOF' ./.control/runtime.json
 {
   "databases": [
@@ -100,4 +103,4 @@ USER 10001:10001
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
   CMD curl -fsS http://127.0.0.1:12121/ || exit 1
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["sh", "-c", "bun ./control/control-runtime.js migrate core global subspace && exec bun ./dist/index.js"]
+CMD ["sh","-c","stop=; trap 'stop=1' TERM INT HUP; bun ./control/control-runtime.js migrate core global subspace && [ -z \"$stop\" ] && exec bun ./dist/index.js"]

@@ -33,19 +33,22 @@ export let migrations = {
     name: 'federation',
     package: '@metorial-enterprise/federation-data',
     env: 'FEDERATION_CORE_DATABASE_URL',
-    parts: 'FEDERATION_DB'
+    parts: 'FEDERATION_DB',
+    query: awsPostgresQuery
   },
   payment: {
     name: 'payment',
     package: '@metorial-enterprise/federation-payment',
     env: 'PAYMENT_DATABASE_URL',
-    parts: 'PAYMENT_DB'
+    parts: 'PAYMENT_DB',
+    query: awsPostgresQuery
   },
   hyperplane: {
     name: 'hyperplane',
     package: '@metorial/mte-hyperplane',
     env: 'HYPERPLANE_DATABASE_URL',
-    parts: 'HYPERPLANE_DB'
+    parts: 'HYPERPLANE_DB',
+    query: awsPostgresQuery
   },
   genesis: {
     name: 'genesis',

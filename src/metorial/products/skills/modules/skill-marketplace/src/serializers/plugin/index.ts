@@ -8,7 +8,16 @@ import { assertSkillPluginSkillLimit } from '../../lib/limits';
 import { createApplicator } from '../_lib/apply';
 import { claimVersion } from '../_lib/claimVersion';
 import { getMarketplaceForceSyncHashInput } from '../_lib/forceSync';
-import { getPluginPath, getPluginPruneScope } from '../_lib/paths';
+import {
+  getPluginAgentPath,
+  getPluginLogoPath,
+  getPluginPath,
+  getPluginPruneScope,
+  marketplaceManifestPaths,
+  pluginAgentsDir,
+  pluginManifestPaths,
+  pluginSkillsDir
+} from '../_lib/paths';
 
 export { getPluginPath };
 
@@ -153,14 +162,14 @@ export let applyPlugin = createApplicator(
         }
       };
       let mcpJson = json(mcpServers);
-      await context.setFile('mcp.json', mcpJson);
-      await context.setFile('.mcp.json', mcpJson);
+      await context.setFile(pluginManifestPaths.mcp, mcpJson);
+      await context.setFile(pluginManifestPaths.dotMcp, mcpJson);
 
       let downloadImage = await internalImageService.downloadImage({
         id: input.skillPlugin.id,
         image
       });
-      let logoIcon = `assets/logo.${downloadImage.extension}`;
+      let logoIcon = getPluginLogoPath(downloadImage.extension);
       await context.setFile(logoIcon, await downloadImage.fetch());
 
       let baseInfo = {
@@ -175,23 +184,23 @@ export let applyPlugin = createApplicator(
       };
 
       let claudePlugin = json(baseInfo);
-      await context.setFile('.claude-plugin/plugin.json', claudePlugin);
+      await context.setFile(pluginManifestPaths.claude, claudePlugin);
 
       let cursorPlugin = json(baseInfo);
-      await context.setFile('.cursor-plugin/plugin.json', cursorPlugin);
+      await context.setFile(pluginManifestPaths.cursor, cursorPlugin);
 
       let copilotPlugin = json({
         ...baseInfo,
-        skills: 'skills/',
-        agents: 'agents/',
-        mcpServers: '.mcp.json'
+        skills: `${pluginSkillsDir}/`,
+        agents: `${pluginAgentsDir}/`,
+        mcpServers: pluginManifestPaths.dotMcp
       });
-      await context.setFile('plugin.json', copilotPlugin);
+      await context.setFile(pluginManifestPaths.copilot, copilotPlugin);
 
       let codexPlugin = json({
         ...baseInfo,
-        skills: './skills/',
-        mcpServers: './.mcp.json',
+        skills: `./${pluginSkillsDir}/`,
+        mcpServers: `./${pluginManifestPaths.dotMcp}`,
         interface: {
           displayName: input.skillPlugin.name,
           shortDescription: input.skillPlugin.description,
@@ -203,7 +212,7 @@ export let applyPlugin = createApplicator(
           screenshots: []
         }
       });
-      await context.setFile('.codex-plugin/plugin.json', codexPlugin);
+      await context.setFile(pluginManifestPaths.codex, codexPlugin);
 
       if (!input.skillMarketplace) {
         let codexMarketplace = json({
@@ -226,7 +235,7 @@ export let applyPlugin = createApplicator(
             }
           ]
         });
-        await context.setFile('.agents/plugins/marketplace.json', codexMarketplace);
+        await context.setFile(marketplaceManifestPaths.codex, codexMarketplace);
 
         let cursorAndClaudeMarketplace = json({
           name: baseInfo.name,
@@ -247,13 +256,13 @@ export let applyPlugin = createApplicator(
             }
           ]
         });
-        await context.setFile('.cursor-plugin/marketplace.json', cursorAndClaudeMarketplace);
-        await context.setFile('.claude-plugin/marketplace.json', cursorAndClaudeMarketplace);
-        await context.setFile('.github/plugin/marketplace.json', cursorAndClaudeMarketplace);
+        await context.setFile(marketplaceManifestPaths.cursor, cursorAndClaudeMarketplace);
+        await context.setFile(marketplaceManifestPaths.claude, cursorAndClaudeMarketplace);
+        await context.setFile(marketplaceManifestPaths.github, cursorAndClaudeMarketplace);
       }
 
       for (let agent of agents) {
-        await context.setFile(`agents/${agent.slug}.md`, agent.document.content.content);
+        await context.setFile(getPluginAgentPath(agent.slug), agent.document.content.content);
       }
     }
   }

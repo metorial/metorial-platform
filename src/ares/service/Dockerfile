@@ -53,6 +53,7 @@ COPY --from=builder --link --chown=10001:10001 /app/src/ares/service/dist ./dist
 COPY --from=builder --link --chown=10001:10001 /app/src/ares/service/frontend/auth/dist ./frontend/auth/dist
 COPY --from=builder --link --chown=10001:10001 /app/src/ares/service/frontend/admin/dist ./frontend/admin/dist
 COPY --from=builder --link --chown=10001:10001 /app/src/ares/service/prisma/schema/ ./prisma/ares/schema/
+COPY --from=builder --link --chown=10001:10001 /app/src/ares/service/prisma/migrations/ ./prisma/ares/migrations/
 COPY --link --chown=10001:10001 <<'EOF' ./.control/runtime.json
 {
   "databases": [
@@ -73,4 +74,4 @@ EXPOSE 52120 52121 52122 52123 12121
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
   CMD curl -fsS http://127.0.0.1:52120/ping && curl -fsS http://127.0.0.1:12121/ || exit 1
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["sh", "-c", "bun ./control/control-runtime.js migrate ares && exec bun ./dist/index.js"]
+CMD ["sh","-c","stop=; trap 'stop=1' TERM INT HUP; bun ./control/control-runtime.js migrate ares && [ -z \"$stop\" ] && exec bun ./dist/index.js"]

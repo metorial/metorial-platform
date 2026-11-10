@@ -44,7 +44,8 @@ model CodeBucket {
   isSynced Boolean @default(false)
   syncRef  String?
 
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
 
   providerFor        CodeBucketTemplate[] @relation("ProviderBucket")
   scmRepositorySyncs ScmRepositorySync[]

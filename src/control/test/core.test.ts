@@ -267,6 +267,45 @@ describe('workspace and runtime state', () => {
     expect(await workspace.allocatePortValues(new Set(), 0)).toEqual([]);
   });
 
+  test.each([undefined, 30000])('migrates host worktrees with SMTP port %s', async mail => {
+    let source = temporary();
+    let root = join(source, 'feature');
+    await Bun.$`git init -q ${source}`.quiet();
+    await Bun.$`git -C ${source} -c user.name=Control -c user.email=control@example.com commit --allow-empty -qm fixture`.quiet();
+    await Bun.$`git -C ${source} worktree add -qb feature ${root}`.quiet();
+
+    let ports = { ...environment.defaultPorts, mail, mail_ui: undefined };
+    workspace.writeMetadata(
+      root,
+      workspaceData(source, { service_ports: ports, endpoint_ports: { api: { http: 30001 } } })
+    );
+
+    let value = project(root);
+    let data = await workspace.metadata(value);
+    let smtp = data.service_ports?.mail;
+    let mailUi = data.service_ports?.mail_ui;
+
+    if (mail === undefined) expect(smtp).toBeGreaterThanOrEqual(30000);
+    else expect(smtp).toBe(mail);
+    expect(mailUi).toBeGreaterThanOrEqual(30000);
+    expect(smtp).not.toBe(30001);
+    expect(mailUi).not.toBe(30001);
+    expect(mailUi).not.toBe(smtp);
+    expect(data.service_ports).toEqual({ ...ports, mail: smtp, mail_ui: mailUi });
+    expect(workspace.metadataIfPresent(root)).toEqual(data);
+    expect(await workspace.metadata(value)).toEqual(data);
+
+    let relay = load(
+      "name='relay'\n[[resources]]\ntype='mail'\nenv=[{key='SMTP_PORT',value='{{PORT}}'},{key='MAIL_UI_PORT',value='{{CONTROL_PORT_MAIL_UI}}'}]"
+    );
+    expect(
+      environment.allForManifest(relay, environment.rootEnvironment(value))
+    ).toMatchObject({
+      SMTP_PORT: String(smtp),
+      MAIL_UI_PORT: String(mailUi)
+    });
+  });
+
   test('host endpoint allocations preserve public ports and previous assignments', async () => {
     let root = temporary();
     await Bun.$`git init -q ${root}`.quiet();

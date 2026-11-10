@@ -13,9 +13,11 @@ import {
 import { consumerAccessService } from '@metorial/module-consumer-access';
 import { skillConfigurationService } from '@metorial/module-skill-configurations';
 import {
+  assertSkillMarketplaceDestinationSize,
   assertSkillMarketplacePluginLimit,
   assertSkillMarketplaceSkillLimit,
   CargoSkillLimitError,
+  getSkillPluginsContentSize,
   toCargoSkillLimitServiceError
 } from '../lib/limits';
 import {
@@ -247,6 +249,15 @@ class SkillMarketplacePluginServiceImpl {
             additionalCount: skillPlugin.skillPluginSkills.filter(
               skillPluginSkill => skillPluginSkill.skill.status === 'active'
             ).length
+          });
+
+          let pluginSize = await getSkillPluginsContentSize({
+            skillPluginOids: [skillPlugin.oid]
+          });
+          await assertSkillMarketplaceDestinationSize({
+            skillMarketplaceOid: d.skillMarketplace.oid,
+            additionalFiles: pluginSize.files,
+            additionalBytes: pluginSize.bytes
           });
         } catch (error) {
           if (error instanceof CargoSkillLimitError) {

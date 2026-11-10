@@ -22,11 +22,21 @@ use crate::backend::{
     normalize_etag, Backend, ByteRange, ByteStream, ObjectData, ObjectMetadata, ObjectPage,
     ObjectRangeData, PublicUrlPurpose, SignedUrl, WritePrecondition,
 };
-use crate::error::{BackendError, BackendResult};
-use crate::upload::{ChunkedUpload, MULTIPART_PART_SIZE, SINGLE_REQUEST_THRESHOLD};
+use crate::error::{is_transient_status, BackendError, BackendResult};
+use crate::multipart::{MultipartUpload, PartReceipt, PutOptions, UploadLimits, MIB};
+use crate::uploader::Uploader;
 
 const COPY_POLL_INTERVAL: Duration = Duration::from_millis(250);
 const COPY_POLL_ATTEMPTS: usize = 240;
+
+const AZURE_LIMITS: UploadLimits = UploadLimits {
+    min_part_size: 1,
+    max_part_size: 4000 * MIB,
+    max_parts: 50_000,
+    part_alignment: 1,
+    max_concurrency: u32::MAX,
+    max_object_size: 50_000 * 4000 * MIB,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AzureAuth {
@@ -95,6 +105,7 @@ pub struct AzureBackend {
     signing_client: ContainerClient,
     container_name: String,
     uses_account_key: bool,
+    uploader: Arc<Uploader>,
 }
 
 fn status_of(error: &azure_core::Error) -> Option<u16> {
@@ -112,8 +123,38 @@ fn is_precondition_failure(error: &azure_core::Error) -> bool {
     matches!(status_of(error), Some(409) | Some(412))
 }
 
+fn is_transient(error: &azure_core::Error) -> bool {
+    match error.kind() {
+        ErrorKind::HttpResponse { status, .. } => is_transient_status(u16::from(*status)),
+        ErrorKind::Io => true,
+        _ => false,
+    }
+}
+
+// Committing a block list (or writing the blob any other way) discards every uncommitted block
+// of that blob, including those staged by a concurrent upload to the same name.
+fn is_invalid_block_list(error: &azure_core::Error) -> bool {
+    matches!(
+        error.kind(),
+        ErrorKind::HttpResponse { error_code: Some(code), .. } if code == "InvalidBlockList"
+    )
+}
+
 fn provider_error(action: &str, key: &str, error: azure_core::Error) -> BackendError {
-    BackendError::Provider(format!("Failed to {} '{}': {}", action, key, error))
+    let message = format!("Failed to {} '{}': {}", action, key, error);
+    if is_transient(&error) {
+        BackendError::Retryable(message)
+    } else {
+        BackendError::Provider(message)
+    }
+}
+
+fn to_metadata(custom_metadata: &HashMap<String, String>) -> azure_core::request_options::Metadata {
+    let mut metadata = azure_core::request_options::Metadata::new();
+    for (k, v) in custom_metadata.iter() {
+        metadata.insert(k.clone(), v.clone());
+    }
+    metadata
 }
 
 fn to_io_error(error: azure_core::Error) -> std::io::Error {
@@ -187,7 +228,13 @@ impl AzureBackend {
             signing_client,
             container_name,
             uses_account_key,
+            uploader: Arc::default(),
         })
+    }
+
+    pub fn with_uploader(mut self, uploader: Arc<Uploader>) -> Self {
+        self.uploader = uploader;
+        self
     }
 
     fn credentials(options: &AzureOptions) -> BackendResult<StorageCredentials> {
@@ -275,7 +322,7 @@ impl AzureBackend {
         }))
     }
 
-    async fn put_single(
+    async fn put_block_blob(
         &self,
         key: &str,
         data: Bytes,
@@ -285,16 +332,11 @@ impl AzureBackend {
     ) -> BackendResult<ObjectMetadata> {
         let size = data.len() as u64;
 
-        let mut metadata = azure_core::request_options::Metadata::new();
-        for (k, v) in custom_metadata.iter() {
-            metadata.insert(k.clone(), v.clone());
-        }
-
         let mut request = self
             .client
             .blob_client(key)
             .put_block_blob(data)
-            .metadata(metadata);
+            .metadata(to_metadata(&custom_metadata));
 
         if let Some(ct) = content_type.as_ref() {
             request = request.content_type(ct.clone());
@@ -322,72 +364,6 @@ impl AzureBackend {
             Err(e) => {
                 warn!("Failed to upload blob to Azure: {}: {:?}", key, e);
                 Err(provider_error("upload blob", key, e))
-            }
-        }
-    }
-
-    async fn put_object_blocks(
-        &self,
-        key: &str,
-        mut upload: ChunkedUpload,
-        content_type: Option<String>,
-        custom_metadata: HashMap<String, String>,
-    ) -> BackendResult<ObjectMetadata> {
-        let blob_client = self.client.blob_client(key);
-        let mut block_list = BlockList::default();
-
-        loop {
-            let block = upload.next_part(MULTIPART_PART_SIZE).await?;
-            if block.is_empty() {
-                break;
-            }
-
-            let block_id = format!("{:08}", block_list.blocks.len());
-
-            blob_client
-                .put_block(block_id.clone(), block)
-                .await
-                .map_err(|e| {
-                    warn!("Failed to stage block {} of {}: {:?}", block_id, key, e);
-                    BackendError::Provider(format!(
-                        "Failed to stage block {} of '{}': {}",
-                        block_id, key, e
-                    ))
-                })?;
-
-            block_list
-                .blocks
-                .push(BlobBlockType::new_uncommitted(block_id));
-        }
-
-        let mut metadata = azure_core::request_options::Metadata::new();
-        for (k, v) in custom_metadata.iter() {
-            metadata.insert(k.clone(), v.clone());
-        }
-
-        let mut request = blob_client.put_block_list(block_list).metadata(metadata);
-
-        if let Some(ct) = content_type.as_ref() {
-            request = request.content_type(ct.clone());
-        }
-
-        match request.await {
-            Ok(response) => {
-                let size = upload.total_size();
-                debug!("Uploaded blob to Azure in blocks: {} ({} bytes)", key, size);
-
-                Ok(ObjectMetadata {
-                    key: key.to_string(),
-                    size,
-                    content_type,
-                    last_modified: to_utc(response.last_modified),
-                    etag: normalize_etag(&response.etag),
-                    custom_metadata,
-                })
-            }
-            Err(e) => {
-                warn!("Failed to commit blocks for Azure blob {}: {:?}", key, e);
-                Err(provider_error("commit blocks for blob", key, e))
             }
         }
     }
@@ -438,6 +414,102 @@ impl AzureBackend {
     }
 }
 
+/// Blocks are staged under ids unique to this upload, so concurrent uploads to the same blob
+/// can't overwrite each other's uncommitted blocks.
+struct AzureBlockUpload {
+    blob: BlobClient,
+    key: String,
+    upload_id: String,
+    content_type: Option<String>,
+    custom_metadata: HashMap<String, String>,
+}
+
+impl AzureBlockUpload {
+    // Every id in a block list must have the same length.
+    fn block_id(&self, number: u32) -> String {
+        format!("{}-{:010}", self.upload_id, number)
+    }
+}
+
+#[async_trait]
+impl MultipartUpload for AzureBlockUpload {
+    async fn upload_part(
+        &self,
+        number: u32,
+        offset: u64,
+        data: Bytes,
+    ) -> BackendResult<PartReceipt> {
+        let size = data.len() as u64;
+        let block_id = self.block_id(number);
+
+        self.blob.put_block(block_id, data).await.map_err(|e| {
+            warn!("Failed to stage block {} of {}: {:?}", number, self.key, e);
+            provider_error(&format!("stage block {} of", number), &self.key, e)
+        })?;
+
+        Ok(PartReceipt {
+            number,
+            offset,
+            size,
+            etag: None,
+        })
+    }
+
+    async fn complete(&self, parts: Vec<PartReceipt>) -> BackendResult<ObjectMetadata> {
+        let size = parts.iter().map(|part| part.size).sum();
+
+        let block_list = BlockList {
+            blocks: parts
+                .iter()
+                .map(|part| BlobBlockType::new_latest(self.block_id(part.number)))
+                .collect(),
+        };
+
+        let mut request = self
+            .blob
+            .put_block_list(block_list)
+            .metadata(to_metadata(&self.custom_metadata));
+
+        if let Some(ct) = self.content_type.as_ref() {
+            request = request.content_type(ct.clone());
+        }
+
+        let response = request.await.map_err(|e| {
+            warn!(
+                "Failed to commit blocks for Azure blob {}: {:?}",
+                self.key, e
+            );
+            if is_invalid_block_list(&e) {
+                return BackendError::Conflict(format!(
+                    "another write to '{}' committed first and discarded this upload's blocks",
+                    self.key
+                ));
+            }
+            provider_error("commit blocks for blob", &self.key, e)
+        })?;
+
+        debug!(
+            "Uploaded blob to Azure in {} blocks: {} ({} bytes)",
+            parts.len(),
+            self.key,
+            size
+        );
+
+        Ok(ObjectMetadata {
+            key: self.key.clone(),
+            size,
+            content_type: self.content_type.clone(),
+            last_modified: to_utc(response.last_modified),
+            etag: normalize_etag(&response.etag),
+            custom_metadata: self.custom_metadata.clone(),
+        })
+    }
+
+    // Uncommitted blocks are never visible; Azure discards them on the blob's next commit or
+    // after a week.
+    async fn abort(&self) {}
+}
+
 #[async_trait]
 impl Backend for AzureBackend {
     async fn init(&self) -> BackendResult<()> {
@@ -459,24 +531,42 @@ impl Backend for AzureBackend {
         }
     }
 
-    async fn put_object(
+    fn uploader(&self) -> &Uploader {
+        &self.uploader
+    }
+
+    fn upload_limits(&self) -> UploadLimits {
+        AZURE_LIMITS
+    }
+
+    async fn put_single(
         &self,
         key: &str,
-        stream: ByteStream,
-        content_type: Option<String>,
-        custom_metadata: HashMap<String, String>,
+        data: Bytes,
+        opts: &PutOptions,
     ) -> BackendResult<ObjectMetadata> {
-        let mut upload = ChunkedUpload::new(stream);
+        self.put_block_blob(
+            key,
+            data,
+            opts.content_type.clone(),
+            opts.metadata.clone(),
+            None,
+        )
+        .await
+    }
 
-        if !upload.fits_within(SINGLE_REQUEST_THRESHOLD).await? {
-            return self
-                .put_object_blocks(key, upload, content_type, custom_metadata)
-                .await;
-        }
-
-        let data = upload.take_buffered();
-        self.put_single(key, data, content_type, custom_metadata, None)
-            .await
+    async fn start_multipart(
+        &self,
+        key: &str,
+        opts: &PutOptions,
+    ) -> BackendResult<Arc<dyn MultipartUpload>> {
+        Ok(Arc::new(AzureBlockUpload {
+            blob: self.client.blob_client(key),
+            key: key.to_string(),
+            upload_id: uuid::Uuid::new_v4().simple().to_string(),
+            content_type: opts.content_type.clone(),
+            custom_metadata: opts.metadata.clone(),
+        }))
     }
 
     async fn put_object_if(
@@ -491,7 +581,7 @@ impl Backend for AzureBackend {
             WritePrecondition::IfMatch(etag) => IfMatchCondition::Match(format!("\"{}\"", etag)),
         };
 
-        self.put_single(key, data, content_type, HashMap::new(), Some(condition))
+        self.put_block_blob(key, data, content_type, HashMap::new(), Some(condition))
             .await
     }
 
@@ -696,10 +786,7 @@ impl Backend for AzureBackend {
             ))),
             Some(Err(e)) => {
                 warn!("Failed to list blobs from Azure: {:?}", e);
-                Err(BackendError::Provider(format!(
-                    "Failed to list blobs: {}",
-                    e
-                )))
+                Err(provider_error("list blobs in", &self.container_name, e))
             }
             None => Ok(ObjectPage::default()),
         }

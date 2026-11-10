@@ -15,10 +15,7 @@ import {
   normalizeRepositoryWebhookEvents
 } from './scmRepositoryWebhook';
 
-let repo = (
-  provider: 'github' | 'gitlab' | 'bitbucket',
-  backendType = provider
-) =>
+let repo = (provider: 'github' | 'gitlab' | 'bitbucket', backendType: string = provider) =>
   ({
     provider,
     installation: { backend: { type: backendType } }

@@ -1,17 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { db, propagate } = vi.hoisted(() => ({
+let { db, propagate, snapshot } = vi.hoisted(() => ({
   db: {
     skillDestinationSync: { findUnique: vi.fn() },
     skillDestinationItem: { findMany: vi.fn() },
-    skillDestinationFile: { findMany: vi.fn() }
+    skillDestinationFile: { findMany: vi.fn(), deleteMany: vi.fn() }
   },
-  propagate: vi.fn()
+  propagate: vi.fn(),
+  snapshot: vi.fn()
 }));
 
 vi.mock('@metorial/db', () => ({ db }));
-vi.mock('@metorial/queue', () => ({
-  createQueue: () => ({ process: (run: unknown) => run })
+vi.mock('@metorial/queue', async () => ({
+  createQueue: () => ({ process: (run: unknown) => run }),
+  deleteInChunks: (
+    await import('../../../../../../../../lowerdeck/packages/queue/src/lib/deleteInChunks')
+  ).deleteInChunks
 }));
 vi.mock('@metorial/code-bucket-service-generated', () => ({
   createCodeBucketClient: () => ({})
@@ -23,6 +27,7 @@ vi.mock('./_lib/bucket', () => ({ destinationBucketIsAvailable: async () => true
 vi.mock('./_lib/lock', () => ({ withDestinationSyncLock: (run: unknown) => run }));
 vi.mock('./_lib/logs', () => ({ appendSkillDestinationSyncLog: vi.fn() }));
 vi.mock('./propagate', () => ({ syncPropagateStartQueue: { add: propagate } }));
+vi.mock('./snapshot', () => ({ syncSnapshotQueue: { add: snapshot } }));
 
 import { syncReconcileQueueProcessor } from './reconcile';
 
@@ -37,7 +42,8 @@ describe('repository reconciliation', () => {
     db.skillDestinationSync.findUnique.mockResolvedValue({
       status: 'processing',
       contentVersion: 0,
-      destinationOid: 1n
+      destinationOid: 1n,
+      destination: { storageMode: 'code_bucket' }
     });
     db.skillDestinationItem.findMany.mockResolvedValue([]);
     db.skillDestinationFile.findMany.mockResolvedValue([]);
@@ -51,6 +57,7 @@ describe('repository reconciliation', () => {
       contentVersion: 0,
       skillRepositoryId: undefined
     });
+    expect(snapshot).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -71,5 +78,64 @@ describe('repository reconciliation', () => {
     await run({ skillDestinationSyncId: 'sync_1', hasChanges: false });
 
     expect(propagate).not.toHaveBeenCalled();
+  });
+});
+
+describe('manifest reconciliation', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    db.skillDestinationSync.findUnique.mockResolvedValue({
+      status: 'processing',
+      contentVersion: 3,
+      destinationOid: 1n,
+      destination: { storageMode: 'manifest' }
+    });
+    db.skillDestinationItem.findMany.mockResolvedValue([
+      { skillMarketplace: { id: 'mkt_1' }, skillPlugin: null, skill: null }
+    ]);
+  });
+
+  it('deletes rows of items that are gone and hands off to the snapshot stage', async () => {
+    db.skillDestinationFile.findMany
+      .mockResolvedValueOnce([{ oid: 10n }, { oid: 11n }])
+      .mockResolvedValueOnce([]);
+
+    await (run as any)({
+      skillDestinationSyncId: 'sync_1',
+      hasChanges: false,
+      contentVersion: 3
+    });
+
+    expect(db.skillDestinationFile.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          destinationOid: 1n,
+          OR: [{ itemKey: null }, { itemKey: { notIn: ['marketplace:mkt_1'] } }]
+        }
+      })
+    );
+    expect(db.skillDestinationFile.deleteMany).toHaveBeenCalledWith({
+      where: { oid: { in: [10n, 11n] } }
+    });
+    expect(snapshot).toHaveBeenCalledWith({
+      skillDestinationSyncId: 'sync_1',
+      contentVersion: 3,
+      hasChanges: true,
+      skillRepositoryId: undefined
+    });
+    expect(propagate).not.toHaveBeenCalled();
+  });
+
+  it('keeps hasChanges from the process stage when nothing is orphaned', async () => {
+    db.skillDestinationFile.findMany.mockResolvedValueOnce([]);
+
+    await (run as any)({
+      skillDestinationSyncId: 'sync_1',
+      hasChanges: true,
+      contentVersion: 3
+    });
+
+    expect(db.skillDestinationFile.deleteMany).not.toHaveBeenCalled();
+    expect(snapshot).toHaveBeenCalledWith(expect.objectContaining({ hasChanges: true }));
   });
 });

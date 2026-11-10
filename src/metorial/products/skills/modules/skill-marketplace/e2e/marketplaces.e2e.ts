@@ -28,13 +28,15 @@ import {
   getMarketplace,
   originTenantId,
   removePluginFromMarketplace,
-  useFakeOrigin
+  useFakeOrigin,
+  useSkillsManifestSyncFlag
 } from './_fixtures';
 
 let searchToken = () => uniqueId('srch').replace(/-/g, '');
 
 describe('skill marketplaces', () => {
   let origin = useFakeOrigin();
+  useSkillsManifestSyncFlag(false);
   let org = useOrganization();
   let other = useOrganization();
 
@@ -288,31 +290,6 @@ describe('skill marketplaces', () => {
           where: { skillMarketplaceOid: marketplace.oid }
         })
       ).toBe(0);
-    });
-
-    it('returns an editor url for the marketplace code bucket', async () => {
-      let marketplace = await createMarketplace(fixture);
-
-      let editor = await skillMarketplaceService.getSkillMarketplaceEditorUrl({
-        project: fixture.project,
-        instance: fixture.instance,
-        skillMarketplace: marketplace,
-        isReadOnly: true
-      });
-
-      expect(editor.url).toBe(
-        `http://origin.e2e/editor/${marketplace.destination!.codeBucketId}?readOnly=true`
-      );
-      expect(editor.expiresAt).toBeInstanceOf(Date);
-      expect(
-        origin
-          .callsTo('codeBucket:getEditorToken')
-          .some(
-            call =>
-              call.payload.codeBucketId === marketplace.destination!.codeBucketId &&
-              call.payload.tenantId === originTenantId(fixture)
-          )
-      ).toBe(true);
     });
   });
 

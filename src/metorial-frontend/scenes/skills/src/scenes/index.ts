@@ -1,10 +1,6 @@
 import { dynamicComponent } from '@metorial/dynamic-component';
 import type { SkillAgentsScene as _SkillAgentsScene } from './skillAgents';
 import type {
-  SkillMarketplaceEditorScene as _SkillMarketplaceEditorScene,
-  SkillPluginEditorScene as _SkillPluginEditorScene
-} from './skillEditor';
-import type {
   SkillGroupsForSkillScene as _SkillGroupsForSkillScene,
   SkillGroupSkillsScene as _SkillGroupSkillsScene
 } from './skillGroups';
@@ -59,14 +55,6 @@ export let SkillLinkProvidersScene = dynamicComponent<
 export let SkillAgentsScene = dynamicComponent<Parameters<typeof _SkillAgentsScene>>(() =>
   import('./skillAgents').then(m => m.SkillAgentsScene)
 );
-
-export let SkillMarketplaceEditorScene = dynamicComponent<
-  Parameters<typeof _SkillMarketplaceEditorScene>
->(() => import('./skillEditor').then(m => m.SkillMarketplaceEditorScene));
-
-export let SkillPluginEditorScene = dynamicComponent<
-  Parameters<typeof _SkillPluginEditorScene>
->(() => import('./skillEditor').then(m => m.SkillPluginEditorScene));
 
 export let SkillGroupSkillsScene = dynamicComponent<Parameters<typeof _SkillGroupSkillsScene>>(
   () => import('./skillGroups').then(m => m.SkillGroupSkillsScene)

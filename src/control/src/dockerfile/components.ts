@@ -202,6 +202,9 @@ let sourceRunner = (context: RenderContext): string[] => {
   ];
 };
 
+let migrationCommand = (names: string[], start: string) =>
+  `stop=; trap 'stop=1' TERM INT HUP; bun ./control/control-runtime.js migrate ${names.join(' ')} && [ -z "$stop" ] && exec ${start}`;
+
 export let runner = (context: RenderContext): string[] => {
   let { build, packageDirectory } = context;
   if (build.runtime === 'source') return sourceRunner(context);
@@ -232,12 +235,20 @@ export let runner = (context: RenderContext): string[] => {
 
   if (migrating) {
     lines.push(
-      ...build.migrations.map(migration => {
-        let { source, target, directory } = context.schemas[migration.name]!;
-        let slash = directory ? '/' : '';
+      ...build.migrations
+        .map(migration => {
+          let { source, target, directory, migrations } = context.schemas[migration.name]!;
+          let slash = directory ? '/' : '';
+          let schema = `COPY --from=builder --link ${owner} /app/${source}${slash} ./${target}${slash}`;
 
-        return `COPY --from=builder --link ${owner} /app/${source}${slash} ./${target}${slash}`;
-      }),
+          return migrations
+            ? [
+                schema,
+                `COPY --from=builder --link ${owner} /app/${migrations.source}/ ./${migrations.target}/`
+              ]
+            : [schema];
+        })
+        .flat(),
       `COPY --link ${owner} <<'EOF' ./.control/runtime.json`,
       ...runtimeConfig(context),
       'EOF',
@@ -259,7 +270,14 @@ export let runner = (context: RenderContext): string[] => {
   lines.push(
     'ENTRYPOINT ["/usr/bin/tini", "--"]',
     migrating
-      ? `CMD ["sh", "-c", "bun ./control/control-runtime.js migrate ${build.migrations.map(m => m.name).join(' ')} && exec ${start}"]`
+      ? `CMD ${JSON.stringify([
+          'sh',
+          '-c',
+          migrationCommand(
+            build.migrations.map(m => m.name),
+            start
+          )
+        ])}`
       : `CMD ${JSON.stringify(start.split(' '))}`
   );
 

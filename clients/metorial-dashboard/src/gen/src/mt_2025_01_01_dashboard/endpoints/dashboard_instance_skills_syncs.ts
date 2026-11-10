@@ -4,10 +4,14 @@ import {
 } from '@metorial/util-endpoint';
 
 import {
+  mapDashboardInstanceSkillsSyncsForceBody,
+  mapDashboardInstanceSkillsSyncsForceOutput,
   mapDashboardInstanceSkillsSyncsGetOutput,
   mapDashboardInstanceSkillsSyncsListOutput,
   mapDashboardInstanceSkillsSyncsListQuery,
   mapDashboardInstanceSkillsSyncsRepositoryChecksOutput,
+  type DashboardInstanceSkillsSyncsForceBody,
+  type DashboardInstanceSkillsSyncsForceOutput,
   type DashboardInstanceSkillsSyncsGetOutput,
   type DashboardInstanceSkillsSyncsListOutput,
   type DashboardInstanceSkillsSyncsListQuery,
@@ -128,6 +132,38 @@ export class MetorialDashboardInstanceSkillsSyncsEndpoint {
 
     return this._get(request).transform(
       mapDashboardInstanceSkillsSyncsRepositoryChecksOutput
+    );
+  }
+
+  /**
+   * @name Force skill sync
+   * @description Starts a new sync of the same marketplace or plugin and sends it to every linked repository, even if nothing changed.
+   *
+   * @param `instanceId` - string
+   * @param `skillSyncId` - string
+   * @param `body` - DashboardInstanceSkillsSyncsForceBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceSkillsSyncsForceOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  force(
+    instanceId: string,
+    skillSyncId: string,
+    body: DashboardInstanceSkillsSyncsForceBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceSkillsSyncsForceOutput> {
+    let path = `dashboard/instances/${instanceId}/skill-syncs/${skillSyncId}/force`;
+
+    let request = {
+      path,
+      body: mapDashboardInstanceSkillsSyncsForceBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardInstanceSkillsSyncsForceOutput
     );
   }
 }

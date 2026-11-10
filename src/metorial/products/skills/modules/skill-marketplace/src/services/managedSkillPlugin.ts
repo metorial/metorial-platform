@@ -13,8 +13,9 @@ import type {
 } from '@metorial/db';
 import { db, ID, withTransaction } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
-import { createSkillDestination } from '@metorial/skills-scm-utils';
+import { createSkillDestination, getOriginTenant, origin } from '@metorial/skills-scm-utils';
 import type { LifecycleEvent } from '@metorial/skills-common';
+import { getNewSkillDestinationStorageMode } from '../lib/storageMode';
 import { enqueueSkillPluginLifecycle } from '../queues/lifecycle/skillPlugin';
 import { enqueueSkillPluginSkillLifecycle } from '../queues/lifecycle/skillPluginSkill';
 import { getSkillPluginFabricContext, skillPluginInclude } from './skillPlugin';
@@ -150,16 +151,48 @@ class ManagedSkillPluginServiceImpl {
     }
   }
 
+  private async deleteAbandonedCodeBucket(d: { projectOid: bigint; codeBucketId: string }) {
+    try {
+      let tenant = await getOriginTenant({ oid: d.projectOid });
+      await origin.codeBucket.delete({ tenantId: tenant.id, codeBucketId: d.codeBucketId });
+    } catch (error) {
+      console.warn(
+        JSON.stringify({
+          event: 'cargo_skill_managed_plugin_code_bucket_cleanup_failed',
+          level: 'warn',
+          codeBucketId: d.codeBucketId,
+          error: error instanceof Error ? error.message : String(error)
+        })
+      );
+    }
+  }
+
   private async createManagedSkillPlugin(
     skill: SkillForManagedPlugin,
     values: ManagedSkillPluginValues
   ) {
     let destination = await createSkillDestination({
       project: { oid: skill.projectOid },
-      purpose: 'cargo.skill.managed-plugin'
+      purpose: 'cargo.skill.managed-plugin',
+      storageMode: await getNewSkillDestinationStorageMode({
+        instance: { oid: skill.instanceOid }
+      })
     });
 
-    let managedSkillPlugin = await withTransaction(async db => {
+    let result = await withTransaction(async db => {
+      // The skill lifecycle handler and in-process callers can provision the same skill at once.
+      await db.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`managed-skill-plugin:${skill.oid}`}, 0))`;
+
+      let existing = await db.managedSkillPlugin.findUnique({
+        where: { skillOid: skill.oid },
+        include: managedSkillPluginInclude
+      });
+      if (existing) {
+        await db.skillDestination.delete({ where: { oid: destination.oid } });
+
+        return { managedSkillPlugin: existing, created: false };
+      }
+
       let skillPlugin = await db.skillPlugin.create({
         data: {
           id: await ID.generateId('skillPlugin'),
@@ -212,8 +245,20 @@ class ManagedSkillPluginServiceImpl {
         throw new ServiceError(notFoundError('managed.skill.plugin', createdOrUpdated.id));
       }
 
-      return managedSkillPlugin;
+      return { managedSkillPlugin, created: true };
     });
+
+    let managedSkillPlugin = result.managedSkillPlugin;
+    if (!result.created) {
+      if (destination.codeBucketId) {
+        await this.deleteAbandonedCodeBucket({
+          projectOid: skill.projectOid,
+          codeBucketId: destination.codeBucketId
+        });
+      }
+
+      return managedSkillPlugin;
+    }
 
     await this.fireSkillPluginAfterEvent('created', managedSkillPlugin.skillPlugin, skill);
 

@@ -7,9 +7,9 @@ import {
   useCurrentOrganization,
   useCurrentProject
 } from '@metorial/state';
-import { RiChat3Line } from '@remixicon/react';
 import { RenderDate } from '@metorial/ui';
 import { ID } from '@metorial/ui-product';
+import { RiChat3Line } from '@remixicon/react';
 import { Outlet, useNavigate, useParams } from 'react-router-dom';
 import { useChatExplorerPath } from '../../../components/openChatExplorer';
 import { showChatInstanceCreateProviderPanelFlow } from '../../../scenes/chat/instanceConfigPanel';
@@ -91,7 +91,7 @@ export let ChatConnectionLayout = () => {
         chatConnection.data
           ? [
               { label: 'ID', value: <ID id={chatConnection.data.id} /> },
-              { label: 'Slug', value: <ID id={chatConnection.data.slug} /> },
+              { label: 'Identifier', value: <ID id={chatConnection.data.slug} /> },
               {
                 label: 'Provider',
                 value: chatConnection.data.providers[0]?.name ?? '-'

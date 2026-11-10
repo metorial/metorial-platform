@@ -129,7 +129,7 @@ pub async fn public_put(
     match api::put_object(State(service), Path((bucket, key)), upload_headers, body).await {
         Ok(Json(metadata)) => {
             let mut response = StatusCode::OK.into_response();
-            if let Ok(etag) = format!("\"{}\"", metadata.etag).parse() {
+            if let Ok(etag) = format!("\"{}\"", metadata.metadata.etag).parse() {
                 response.headers_mut().insert("etag", etag);
             }
             response

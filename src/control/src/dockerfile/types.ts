@@ -51,5 +51,13 @@ export interface RenderContext {
   packageDirectory: string;
   tooling: string;
   runtime: string;
-  schemas: Record<string, { source: string; target: string; directory: boolean }>;
+  schemas: Record<
+    string,
+    {
+      source: string;
+      target: string;
+      directory: boolean;
+      migrations?: { source: string; target: string };
+    }
+  >;
 }

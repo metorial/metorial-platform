@@ -14,16 +14,16 @@ fi
 rm -rf $OUT_DIR
 mkdir -p $OUT_DIR
 
-NPM_BIN=../../../../node_modules/.bin
-if [ ! -d "$NPM_BIN" ]; then
-  NPM_BIN=../../../node_modules/.bin
-fi
-if [ ! -d "$NPM_BIN" ]; then
-  NPM_BIN=../../../../../node_modules/.bin
-fi
+NPM_BIN=""
+for candidate in ../../../../node_modules/.bin ../../../node_modules/.bin ../../../../../node_modules/.bin; do
+  if [ -x "$candidate/protoc-gen-ts_proto" ]; then
+    NPM_BIN=$candidate
+    break
+  fi
+done
 
-if [ ! -d "$NPM_BIN" ]; then
-  echo "Error: Node.js binary directory '$NPM_BIN' does not exist."
+if [ -z "$NPM_BIN" ]; then
+  echo "Error: protoc-gen-ts_proto was not found in any node_modules/.bin directory."
   exit 1
 fi
 

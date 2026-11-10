@@ -1,13 +1,20 @@
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '../../../db';
 import { env } from '../../../env';
-import { getRepositorySyncStatusSnapshot } from '../../../lib/scmRepositorySyncProvider';
+import { getScmProviderErrorStatus } from '../../../lib/scmProviderError';
+import {
+  getRepositorySyncBranchShaOrNull,
+  getRepositorySyncDismissal,
+  getRepositorySyncStatusSnapshot
+} from '../../../lib/scmRepositorySyncProvider';
 import {
   classifyRepositorySyncSnapshot,
+  type RepositorySyncStatusSnapshot,
   transitionRepositorySyncState
 } from '../../../services/repositorySyncState';
 import {
   appendRepositorySyncLog,
+  endDismissedRepositorySync,
   getRepositorySyncErrorMessage,
   logRepositorySyncQueueError,
   logRepositorySyncQueueEvent
@@ -69,7 +76,39 @@ export let waitForCiRepositorySyncQueueProcessor = waitForCiRepositorySyncQueue.
         branchName: sync.branchName,
         providerPrId: sync.providerPrId
       });
-      let snapshot = await getRepositorySyncStatusSnapshot(sync);
+      let isManifest = sync.sourceType === 'manifest';
+      let snapshot: RepositorySyncStatusSnapshot;
+      try {
+        snapshot = await getRepositorySyncStatusSnapshot(sync);
+      } catch (e) {
+        let dismissal =
+          isManifest && getScmProviderErrorStatus(e) === 404
+            ? await getRepositorySyncDismissal(sync)
+            : null;
+        if (!dismissal) throw e;
+        await endDismissedRepositorySync(sync, dismissal, { lastPolledAt: new Date() });
+        return;
+      }
+      // GitHub closes a PR whose head branch was deleted; GitLab and Bitbucket (Cloud and Data
+      // Center) leave it open, so only those need the branch itself checked.
+      if (isManifest && snapshot.pullRequest.state !== 'merged') {
+        let dismissal =
+          snapshot.pullRequest.state === 'closed'
+            ? await getRepositorySyncDismissal(sync, { state: 'closed', conflicting: false })
+            : sync.repo.provider !== 'github' &&
+                !(await getRepositorySyncBranchShaOrNull(sync, sync.branchName))
+              ? 'branch_deleted'
+              : null;
+        if (dismissal) {
+          await endDismissedRepositorySync(sync, dismissal, {
+            statusSnapshot: snapshot,
+            ciState: snapshot.checks.state,
+            lastPolledAt: new Date(),
+            attemptCount: 0
+          });
+          return;
+        }
+      }
       let previousSnapshot = sync.statusSnapshot as {
         checks?: { state?: string };
         review?: { state?: string };

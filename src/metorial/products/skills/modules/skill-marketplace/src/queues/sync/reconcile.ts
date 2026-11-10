@@ -1,6 +1,7 @@
 import { createCodeBucketClient } from '@metorial/code-bucket-service-generated';
 import { db } from '@metorial/db';
-import { createQueue } from '@metorial/queue';
+import { createQueue, deleteInChunks } from '@metorial/queue';
+import { getSkillDestinationCodeBucketId } from '@metorial/skills-scm-utils';
 import PQueue from 'p-queue';
 import { env } from '../../env';
 import { recordDestinationFileDeletions } from './_lib/deletions';
@@ -9,6 +10,9 @@ import { destinationBucketIsAvailable } from './_lib/bucket';
 import { withDestinationSyncLock } from './_lib/lock';
 import { appendSkillDestinationSyncLog } from './_lib/logs';
 import { syncPropagateStartQueue } from './propagate';
+import { syncSnapshotQueue } from './snapshot';
+
+let orphanDeleteChunkSize = 500;
 
 let codeBucketClient = createCodeBucketClient({
   address: env.origin.CODE_BUCKET_SERVICE_URL
@@ -34,6 +38,48 @@ export let syncReconcileQueueProcessor = syncReconcileQueue.process(
     });
     if (!sync || sync.status !== 'processing' || sync.isAtRepoSyncStage) return;
     if ((data.contentVersion ?? 0) !== sync.contentVersion) return;
+
+    if (sync.destination.storageMode === 'manifest') {
+      let liveItems = await db.skillDestinationItem.findMany({
+        where: { destinationOid: sync.destinationOid },
+        include: { skill: true, skillPlugin: true, skillMarketplace: true }
+      });
+      let liveItemKeys = liveItems.map(getSyncItemKey);
+      let { deleted } = await deleteInChunks({
+        chunkSize: orphanDeleteChunkSize,
+        maxChunks: Number.MAX_SAFE_INTEGER,
+        selectKeys: async take =>
+          (
+            await db.skillDestinationFile.findMany({
+              where: {
+                destinationOid: sync.destinationOid,
+                OR: [{ itemKey: null }, { itemKey: { notIn: liveItemKeys } }]
+              },
+              select: { oid: true },
+              orderBy: { oid: 'asc' },
+              take
+            })
+          ).map(file => file.oid),
+        deleteKeys: async oids =>
+          await db.skillDestinationFile.deleteMany({ where: { oid: { in: oids } } })
+      });
+
+      if (deleted > 0) {
+        await appendSkillDestinationSyncLog(
+          data.skillDestinationSyncId,
+          `Removed ${deleted} file${deleted === 1 ? '' : 's'} that no longer belong to this destination.`
+        );
+      }
+
+      await syncSnapshotQueue.add({
+        skillDestinationSyncId: data.skillDestinationSyncId,
+        contentVersion: sync.contentVersion,
+        hasChanges: data.hasChanges || deleted > 0,
+        skillRepositoryId: data.skillRepositoryId
+      });
+      return;
+    }
+
     if (sync.contentVersion === 0 && !(await destinationBucketIsAvailable(sync))) return;
 
     let items = await db.skillDestinationItem.findMany({
@@ -58,7 +104,7 @@ export let syncReconcileQueueProcessor = syncReconcileQueue.process(
         orphanedPaths.map(
           orphanedPath => () =>
             codeBucketClient.deleteBucketFile({
-              bucketId: sync.destination.codeBucketId,
+              bucketId: getSkillDestinationCodeBucketId(sync.destination),
               path: orphanedPath
             })
         )

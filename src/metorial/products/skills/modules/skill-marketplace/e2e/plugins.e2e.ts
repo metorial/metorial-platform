@@ -15,11 +15,13 @@ import {
   getPlugin,
   getSkill,
   privileged,
-  useFakeOrigin
+  useFakeOrigin,
+  useSkillsManifestSyncFlag
 } from './_fixtures';
 
 describe('skill plugins', () => {
   let origin = useFakeOrigin();
+  useSkillsManifestSyncFlag(false);
   let org = useOrganization();
   let other = useOrganization();
 
@@ -321,6 +323,15 @@ describe('skill plugins', () => {
       });
       expect(again.id).toBe(firstLink.id);
       expect(again.clientName).toBe('Reviewer');
+
+      let secondAgain = await addSkillToPlugin(fixture, {
+        skillPluginId: plugin.id,
+        skillId: second.id
+      });
+      expect(secondAgain).toMatchObject({
+        id: secondLink.id,
+        pluginSkillSlug: secondLink.pluginSkillSlug
+      });
 
       await expectServiceError(
         addSkillToPlugin(fixture, {

@@ -91,6 +91,12 @@ let metadata = client.put_object(
 let obj = client.get_object("bucket-name", "object-key").await?;
 ```
 
+**Get Object Digests**
+```rust
+// Hashes a stored object on the server: size, sha256, crc32 and git_blob_sha1
+let digested = client.get_object_digests("bucket-name", "object-key").await?;
+```
+
 **Head Object**
 ```rust
 let metadata = client.head_object("bucket-name", "object-key").await?;

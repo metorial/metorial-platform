@@ -1,4 +1,4 @@
-import { PageHeaderSection } from '@metorial/layout';
+import { PageHeaderSection, type PageHeaderProps } from '@metorial/layout';
 import { useAllPortalConsumerAccess, useSkillMarketplaces } from '@metorial/state';
 import { Button } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
@@ -12,7 +12,7 @@ export let GroupMarketplaceManagersList = (props: {
   portalId: string;
   consumerGroupId: string;
   asBox?: boolean;
-  hideHeader?: boolean;
+  header?: Pick<PageHeaderProps, 'title' | 'description' | 'size'>;
 }) => {
   let marketplaces = useSkillMarketplaces(props.instanceId, {
     order: 'desc',
@@ -94,12 +94,11 @@ export let GroupMarketplaceManagersList = (props: {
     );
   }
 
-  if (props.hideHeader) return inner;
-
   return (
     <PageHeaderSection
       title="Managed Marketplaces"
       description="Access to update skills and plugins in these marketplaces."
+      {...props.header}
       actions={actions}
     >
       {inner}

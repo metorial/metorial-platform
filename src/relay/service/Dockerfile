@@ -51,6 +51,7 @@ ENV NODE_ENV=production
 ENV TZ=UTC
 COPY --from=builder --link --chown=10001:10001 /app/src/relay/service/dist ./dist
 COPY --from=builder --link --chown=10001:10001 /app/src/relay/service/prisma/schema.prisma ./prisma/relay/schema.prisma
+COPY --from=builder --link --chown=10001:10001 /app/src/relay/service/prisma/migrations/ ./prisma/relay/migrations/
 COPY --link --chown=10001:10001 <<'EOF' ./.control/runtime.json
 {
   "databases": [
@@ -71,4 +72,4 @@ EXPOSE 52110
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
   CMD curl -fsS http://127.0.0.1:52110/ping && curl -fsS http://127.0.0.1:12121/ || exit 1
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["sh", "-c", "bun ./control/control-runtime.js migrate relay && exec bun ./dist/index.js"]
+CMD ["sh","-c","stop=; trap 'stop=1' TERM INT HUP; bun ./control/control-runtime.js migrate relay && [ -z \"$stop\" ] && exec bun ./dist/index.js"]
