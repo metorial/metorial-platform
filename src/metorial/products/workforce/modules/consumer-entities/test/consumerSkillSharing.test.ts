@@ -15,6 +15,7 @@ let {
   fireMock,
   getSkillTemplateByIdMock,
   createSkillMock,
+  hasOrganizationMemberSkillAccessMock,
   withTransactionMock
 } = vi.hoisted(() => ({
   db: {
@@ -62,6 +63,7 @@ let {
   fireMock: vi.fn(),
   getSkillTemplateByIdMock: vi.fn(),
   createSkillMock: vi.fn(),
+  hasOrganizationMemberSkillAccessMock: vi.fn(),
   withTransactionMock: vi.fn(
     async (fn: (database: unknown) => unknown) => await fn(transactionDb)
   )
@@ -110,6 +112,7 @@ vi.mock('@metorial/module-access', () => ({
   skillStoreResourceAccess: {
     policies: { manage: { roles: ['consumer#instance.skill:manage_access'] } }
   },
+  hasOrganizationMemberSkillAccess: hasOrganizationMemberSkillAccessMock,
   createResourceAuthorization: ({ resourceActor, accessTags }: any) => ({
     type: 'restricted',
     resourceActor,
@@ -195,6 +198,7 @@ describe('consumer skill sharing', () => {
     db.accessTagEntity.findMany.mockResolvedValue([]);
     db.storeParticipantActor.findMany.mockResolvedValue([]);
     getActorAccessRoleMock.mockResolvedValue(null);
+    hasOrganizationMemberSkillAccessMock.mockResolvedValue(false);
     createConsumerAccessMock.mockResolvedValue({
       id: 'consumer_access_1',
       consumerGroup: personalConsumerGroup
@@ -375,6 +379,50 @@ describe('consumer skill sharing', () => {
         }
       })
     ).rejects.toThrow('privileged and cannot be changed');
+  });
+
+  describe('organization-member consumers', () => {
+    let share = (permission: 'read' | 'write' | 'owner' | 'none') =>
+      consumerSkillService.shareSkill({
+        organization: organization as any,
+        instance: instance as any,
+        auditScope: auditScope as any,
+        skill: skill as any,
+        permission,
+        targets: { consumerProfileIds: [targetProfile.id] }
+      });
+
+    beforeEach(() => {
+      db.consumerProfile.findMany.mockResolvedValue([targetProfile]);
+      hasOrganizationMemberSkillAccessMock.mockResolvedValue(true);
+    });
+
+    it('allows view-only grants that make a skill show up in their portal', async () => {
+      await share('read');
+      await share('none');
+
+      expect(grantAccessMock).toHaveBeenCalledWith(
+        expect.objectContaining({ permission: 'skill_read' })
+      );
+      expect(revokeSkillShareAccessMock).toHaveBeenCalled();
+    });
+
+    it('rejects raising their access above view', async () => {
+      await expect(share('write')).rejects.toThrow('can only be given view access');
+      await expect(share('owner')).rejects.toThrow('can only be given view access');
+
+      expect(grantAccessMock).not.toHaveBeenCalled();
+    });
+
+    it('does not restrict profiles whose organization-member access is off', async () => {
+      hasOrganizationMemberSkillAccessMock.mockResolvedValue(false);
+
+      await share('write');
+
+      expect(grantAccessMock).toHaveBeenCalledWith(
+        expect.objectContaining({ permission: 'skill_write' })
+      );
+    });
   });
 
   it('makes owners store owners with manage access and audits the change', async () => {

@@ -35,6 +35,7 @@ import {
   type ResourceAuthorization,
   skillStoreResourceKind
 } from '@metorial/module-access';
+import { resourceActorService } from '@metorial/module-resource-actor';
 import { buildSearchFilter } from '@metorial/module-search';
 import type { SkillTemplateRecord } from '@metorial/module-skill-templates';
 import {
@@ -97,6 +98,7 @@ type ListSkillsInput = {
   parentSkillIds?: string[];
   parentSkillTemplateIds?: string[];
   createdByActorIds?: string[];
+  ownedByActor?: Pick<ResourceActor, 'oid'>;
   createdAt?: DateFilter;
   updatedAt?: DateFilter;
   search?: string;
@@ -380,6 +382,29 @@ class SkillServiceImpl {
     }
     if (createdByActors) {
       andFilters.push({ createdByResourceActorOid: createdByActors.in });
+    }
+    if (d.ownedByActor) {
+      let ownerActorOids = await resourceActorService.listLinkedActorOids({
+        project: d.project,
+        actor: d.ownedByActor
+      });
+      andFilters.push({
+        OR: [
+          { createdByResourceActorOid: { in: ownerActorOids } },
+          {
+            store: {
+              is: {
+                storeParticipantActors: {
+                  some: {
+                    resourceActorOid: { in: ownerActorOids },
+                    roles: { hasSome: ['creator', 'owner'] }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      });
     }
     if (d.createdAt) andFilters.push({ createdAt: normalizeDateFilter(d.createdAt) });
     if (d.updatedAt) andFilters.push({ updatedAt: normalizeDateFilter(d.updatedAt) });

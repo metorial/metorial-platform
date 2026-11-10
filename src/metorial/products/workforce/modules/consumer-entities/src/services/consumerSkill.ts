@@ -606,6 +606,36 @@ class ConsumerSkillServiceImpl {
     return await skillResourceService.hydrateSkill(localSkill);
   }
 
+  // Organization members always have full access to skills; a view-only grant only controls
+  // whether the skill shows up in their portal.
+  private async assertOrganizationMemberTargetsGetViewOnly(d: {
+    instance: Instance;
+    permission: SkillSharePermission;
+    targetProfiles: Pick<ConsumerProfile, 'oid'>[];
+  }) {
+    if (d.permission == 'read' || d.permission == 'none') return;
+
+    let project = await db.project.findUniqueOrThrow({
+      where: { oid: d.instance.projectOid },
+      select: { oid: true, allowOrganizationMemberFullSkillAccess: true }
+    });
+
+    for (let targetProfile of d.targetProfiles) {
+      let hasMemberAccess = await hasOrganizationMemberSkillAccess({
+        project,
+        consumerProfileOid: targetProfile.oid
+      });
+      if (!hasMemberAccess) continue;
+
+      throw new ServiceError(
+        forbiddenError({
+          message:
+            'Organization members always have full access to skills. They can only be given view access, which makes the skill show up in their portal.'
+        })
+      );
+    }
+  }
+
   async shareSkill(d: {
     organization: Organization;
     instance: Instance;
@@ -686,6 +716,12 @@ class ConsumerSkillServiceImpl {
     if (targetProfiles.length !== consumerProfileIds.length) {
       throw new ServiceError(notFoundError('consumer.profile'));
     }
+
+    await this.assertOrganizationMemberTargetsGetViewOnly({
+      instance: d.instance,
+      permission: d.permission,
+      targetProfiles
+    });
 
     let shares = await Promise.all(
       targetProfiles.map(async consumerProfile => {

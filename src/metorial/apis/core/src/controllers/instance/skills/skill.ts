@@ -95,12 +95,26 @@ export let skillController = Controller.create(
             skill_group_id: v.optional(v.union([v.string(), v.array(v.string())])),
             integration_id: v.optional(v.union([v.string(), v.array(v.string())])),
             provider_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            owned_by_me: v.optional(
+              v.boolean({
+                description:
+                  'Only return skills the caller created or owns, including ones created through their other member or consumer identities'
+              })
+            ),
             created_at: dateFilterValidator('skill creation time'),
             updated_at: dateFilterValidator('skill last update time')
           })
         )
       )
       .do(async ctx => {
+        if (ctx.query.owned_by_me && !ctx.resourceActor) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'owned_by_me requires a member or consumer actor'
+            })
+          );
+        }
+
         let access = await getInstanceCargoAccess(ctx);
         let paginator = await skillService.listSkills({
           project: access.project,
@@ -112,6 +126,7 @@ export let skillController = Controller.create(
           skillGroupIds: normalizeArrayParam(ctx.query.skill_group_id),
           integrationIds: normalizeArrayParam(ctx.query.integration_id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
+          ownedByActor: ctx.query.owned_by_me ? ctx.resourceActor : undefined,
           createdAt: ctx.query.created_at,
           updatedAt: ctx.query.updated_at,
           accessTags: ctx.consumerProfile ? ctx.accessTags : undefined
