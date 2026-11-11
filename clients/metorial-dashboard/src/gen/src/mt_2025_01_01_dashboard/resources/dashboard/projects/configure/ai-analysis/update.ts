@@ -3,6 +3,8 @@ import { mapObject } from '@metorial/util-resource-mapper/compact';
 export type DashboardProjectsConfigureAiAnalysisUpdateOutput = {
   object: 'organization.project.ai_analysis_configuration';
   projectId: string;
+  assistantEnabled: boolean;
+  reducedSubprocessors: boolean;
   aiAnalysisEnabled: boolean;
   usageReviewsEnabled: boolean;
   skillReviewHoldPending: boolean;
@@ -13,6 +15,8 @@ export let mapDashboardProjectsConfigureAiAnalysisUpdateOutput =
   /* @__PURE__ */ mapObject<DashboardProjectsConfigureAiAnalysisUpdateOutput>(
     [
       'project_id',
+      'assistant_enabled',
+      'reduced_subprocessors',
       'ai_analysis_enabled',
       'usage_reviews_enabled',
       'skill_review_hold_pending',
@@ -22,6 +26,7 @@ export let mapDashboardProjectsConfigureAiAnalysisUpdateOutput =
   );
 
 export type DashboardProjectsConfigureAiAnalysisUpdateBody = {
+  assistantEnabled?: boolean | undefined;
   aiAnalysisEnabled?: boolean | undefined;
   usageReviewsEnabled?: boolean | undefined;
   skillReviewHoldPending?: boolean | undefined;
@@ -29,6 +34,7 @@ export type DashboardProjectsConfigureAiAnalysisUpdateBody = {
 
 export let mapDashboardProjectsConfigureAiAnalysisUpdateBody =
   /* @__PURE__ */ mapObject<DashboardProjectsConfigureAiAnalysisUpdateBody>([
+    'assistant_enabled',
     'ai_analysis_enabled',
     'usage_reviews_enabled',
     'skill_review_hold_pending'

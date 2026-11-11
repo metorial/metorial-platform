@@ -1,7 +1,4 @@
-import {
-  createMapper,
-  mapObject
-} from '@metorial/util-resource-mapper/compact';
+import { mapObject } from '@metorial/util-resource-mapper/compact';
 
 export type DashboardBootOutput = {
   object: 'metorial.boot';
@@ -105,6 +102,7 @@ export type DashboardBootOutput = {
     status: 'active' | 'deleted';
     slug: string;
     name: string;
+    assistantEnabled: boolean;
     organizationId: string;
     createdAt: Date;
     updatedAt: Date;
@@ -137,6 +135,7 @@ export type DashboardBootOutput = {
       status: 'active' | 'deleted';
       slug: string;
       name: string;
+      assistantEnabled: boolean;
       organizationId: string;
       createdAt: Date;
       updatedAt: Date;
@@ -206,6 +205,7 @@ export type DashboardBootOutput = {
           status: 'active' | 'deleted';
           slug: string;
           name: string;
+          assistantEnabled: boolean;
           organizationId: string;
           createdAt: Date;
           updatedAt: Date;
@@ -217,6 +217,7 @@ export type DashboardBootOutput = {
         status: 'active' | 'deleted';
         slug: string;
         name: string;
+        assistantEnabled: boolean;
         organizationId: string;
         createdAt: Date;
         updatedAt: Date;
@@ -380,6 +381,7 @@ export let mapDashboardBootOutput =
                 [
                   1,
                   [
+                    'assistant_enabled',
                     'organization_id',
                     'created_at',
                     'updated_at',
@@ -423,7 +425,15 @@ export let mapDashboardBootOutput =
                     [
                       'project',
                       0,
-                      [1, ['organization_id', 'created_at', 'updated_at']]
+                      [
+                        1,
+                        [
+                          'assistant_enabled',
+                          'organization_id',
+                          'created_at',
+                          'updated_at'
+                        ]
+                      ]
                     ],
                     [
                       'organization',
@@ -503,7 +513,12 @@ export let mapDashboardBootOutput =
                               0,
                               [
                                 1,
-                                ['organization_id', 'created_at', 'updated_at']
+                                [
+                                  'assistant_enabled',
+                                  'organization_id',
+                                  'created_at',
+                                  'updated_at'
+                                ]
                               ]
                             ]
                           ]
@@ -512,7 +527,15 @@ export let mapDashboardBootOutput =
                       [
                         'project',
                         0,
-                        [1, ['organization_id', 'created_at', 'updated_at']]
+                        [
+                          1,
+                          [
+                            'assistant_enabled',
+                            'organization_id',
+                            'created_at',
+                            'updated_at'
+                          ]
+                        ]
                       ],
                       [
                         'profile',
@@ -565,8 +588,3 @@ export let mapDashboardBootOutput =
     ],
     1
   );
-
-export type DashboardBootBody = {};
-
-export let mapDashboardBootBody =
-  /* @__PURE__ */ createMapper<DashboardBootBody>(0);

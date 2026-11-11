@@ -27,6 +27,7 @@ export type ManagementOrganizationTeamsCreateOutput = {
       status: 'active' | 'deleted';
       slug: string;
       name: string;
+      assistantEnabled: boolean;
       organizationId: string;
       createdAt: Date;
       updatedAt: Date;
@@ -53,7 +54,15 @@ export let mapManagementOrganizationTeamsCreateOutput =
               [
                 'project',
                 0,
-                [1, ['organization_id', 'created_at', 'updated_at']]
+                [
+                  1,
+                  [
+                    'assistant_enabled',
+                    'organization_id',
+                    'created_at',
+                    'updated_at'
+                  ]
+                ]
               ]
             ]
           ]
