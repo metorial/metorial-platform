@@ -122,6 +122,24 @@ describe('manifest propagation outcome', () => {
     ).toMatchObject({ waitingReason: 'provider_capacity', waitingUntil: nextPollAt });
   });
 
+  it.each(['creating_pr', 'waiting_for_ci', 'waiting_for_review', 'merging'])(
+    'exposes retries during %s without treating them as an outage',
+    status => {
+      expect(
+        resolve({
+          status,
+          errorCode: 'merge_not_ready',
+          errorMessage: 'safe message',
+          nextPollAt: now,
+          waitingReason: null
+        })
+      ).toMatchObject({ waitingReason: 'merge_not_ready', waitingUntil: now });
+      expect(
+        resolve({ status, errorMessage: 'legacy raw provider output', nextPollAt: now })
+      ).toMatchObject({ waitingReason: 'sync_retrying' });
+    }
+  );
+
   it('does not report waiting for a healthy in-flight sync', () => {
     expect(resolve({ status: 'syncing_contents', nextPollAt: now })).toEqual({
       type: 'active',
