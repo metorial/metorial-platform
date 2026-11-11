@@ -8,9 +8,8 @@ import { AnimateHeight, Button, Checkbox, theme } from '@metorial/ui';
 import React from 'react';
 import styled from 'styled-components';
 
-let Item = styled.div<{ $selected: boolean }>`
+let Item = styled.div`
   border-top: 1px solid ${theme.colors.gray300};
-  background: ${p => (p.$selected ? theme.colors.gray100 : theme.colors.background)};
 
   &:first-child {
     border-top: none;
@@ -22,11 +21,11 @@ let Head = styled.div<{ $clickable: boolean }>`
   align-items: center;
   gap: 12px;
   min-height: 56px;
-  padding: 8px 16px;
+  padding: 8px var(--access-inline, 16px);
   cursor: ${p => (p.$clickable ? 'pointer' : 'default')};
 
   &:hover {
-    background: ${p => (p.$clickable ? theme.colors.gray200 : 'transparent')};
+    background: ${p => (p.$clickable ? theme.colors.gray100 : 'transparent')};
   }
 `;
 
@@ -84,10 +83,10 @@ let Chevron = styled(RiArrowDownSLine)<{ $open: boolean }>`
 `;
 
 let Body = styled.div`
-  padding: 4px 16px 16px 54px;
+  padding: 4px var(--access-inline, 16px) 16px calc(var(--access-inline, 16px) + 38px);
 
   @media (max-width: 640px) {
-    padding-left: 16px;
+    padding-left: var(--access-inline, 16px);
   }
 `;
 
@@ -110,7 +109,7 @@ export let PickerRow = (p: {
   let subtitle = p.status && !p.open ? p.status : null;
 
   return (
-    <Item $selected={p.selected}>
+    <Item>
       <Head
         $clickable={!p.back}
         onClick={() => {
@@ -172,7 +171,7 @@ let SectionRoot = styled.div`
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 16px 6px;
+  padding: 10px var(--access-inline, 16px) 6px;
   font-size: 12px;
   font-weight: 500;
   color: ${theme.colors.gray700};
@@ -193,7 +192,7 @@ let NewRoot = styled.button`
   gap: 12px;
   width: 100%;
   min-height: 48px;
-  padding: 8px 16px;
+  padding: 8px var(--access-inline, 16px);
   border: none;
   border-bottom: 1px solid ${theme.colors.gray300};
   background: transparent;
@@ -203,7 +202,7 @@ let NewRoot = styled.button`
   text-align: left;
 
   &:hover {
-    background: ${theme.colors.gray200};
+    background: ${theme.colors.gray100};
     color: ${theme.colors.foreground};
   }
 `;
@@ -237,7 +236,7 @@ let NoteRoot = styled.div`
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 16px;
+  padding: 10px var(--access-inline, 16px);
   font-size: 12px;
   color: ${theme.colors.gray600};
   border-top: 1px solid ${theme.colors.gray300};
@@ -308,10 +307,16 @@ export let PickerOptionGroup = (p: {
 );
 
 let FooterRoot = styled.div`
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 0 0;
+  margin: auto -20px -15px;
+  padding: 12px 20px;
+  border-top: 1px solid ${theme.colors.gray400};
+  background: ${theme.colors.background};
 
   & > .status {
     flex: 1;

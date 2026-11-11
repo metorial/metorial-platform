@@ -1,5 +1,6 @@
 import {
   RiArrowDownSLine,
+  RiCheckLine,
   RiKeyLine,
   RiLockLine,
   RiMore2Line,
@@ -8,7 +9,16 @@ import {
   RiTeamLine,
   RiUserLine
 } from '@remixicon/react';
-import { Button, Menu, OptionToggle, Text, theme, type MenuItem } from '@metorial/ui';
+import {
+  Button,
+  getControlSize,
+  getFieldFontSize,
+  Menu,
+  OptionToggle,
+  Text,
+  theme,
+  type MenuItem
+} from '@metorial/ui';
 import React from 'react';
 import styled from 'styled-components';
 
@@ -26,27 +36,84 @@ let levelLabels: Record<AccessLevel, string> = {
   manage: 'Can manage'
 };
 
-let LevelRoot = styled.span<{ $manage: boolean }>`
+let LevelRoot = styled.span`
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  height: 22px;
-  padding: 0 8px;
-  border-radius: 6px;
-  font-size: 12px;
+  gap: 6px;
+  background: ${theme.colors.gray300};
+  color: ${theme.colors.foreground};
   font-weight: 500;
   white-space: nowrap;
-  background: ${p => (p.$manage ? theme.colors.foreground : theme.colors.gray200)};
-  color: ${p => (p.$manage ? theme.colors.background : theme.colors.gray800)};
-  box-shadow: inset 0 0 0 1px
-    ${p => (p.$manage ? theme.colors.foreground : theme.colors.gray400)};
+  flex-shrink: 0;
 `;
 
 export let AccessLevelBadge = (p: { level: AccessLevel }) => (
-  <LevelRoot $manage={p.level == 'manage'}>
+  <LevelRoot style={{ ...getControlSize('1'), fontSize: getFieldFontSize('1') }}>
     {levelIcons[p.level]}
     {levelLabels[p.level]}
   </LevelRoot>
+);
+
+let LevelButton = styled.button.attrs({ type: 'button' })`
+  display: flex;
+  background: ${theme.colors.gray300};
+  color: ${theme.colors.foreground};
+  outline: none;
+  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.3s ease;
+  border: none;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: pointer;
+
+  &:focus {
+    background: ${theme.colors.gray300};
+    outline: none;
+  }
+
+  &:focus-visible {
+    background: ${theme.colors.gray300};
+    outline: 1px solid ${theme.colors.gray600};
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+`;
+
+export type AccessLevelOption = { level: AccessLevel; description?: React.ReactNode };
+
+export let AccessLevelPicker = (p: {
+  level: AccessLevel;
+  options: AccessLevelOption[];
+  onChange: (level: AccessLevel) => void;
+  disabled?: boolean;
+}) => (
+  <Menu
+    items={p.options.map(option => ({
+      id: option.level,
+      label: levelLabels[option.level],
+      description: option.description,
+      icon: option.level == p.level ? <RiCheckLine /> : <span />
+    }))}
+    onItemClick={id => {
+      if (id != p.level) p.onChange(id as AccessLevel);
+    }}
+  >
+    <LevelButton
+      disabled={p.disabled}
+      aria-label={`Access level: ${levelLabels[p.level]}`}
+      style={{ ...getControlSize('1'), fontSize: getFieldFontSize('1') }}
+    >
+      {levelIcons[p.level]}
+      {levelLabels[p.level]}
+      <RiArrowDownSLine size={14} style={{ opacity: 0.5 }} />
+    </LevelButton>
+  </Menu>
 );
 
 let SourceRoot = styled.span<{ $direct: boolean }>`
@@ -103,16 +170,22 @@ let DetailRoot = styled.span`
 `;
 
 let DetailButton = styled(DetailRoot).attrs({ as: 'button', type: 'button' })`
+  justify-content: space-between;
+  background: ${theme.colors.gray300};
+  color: ${theme.colors.foreground};
+  outline: none;
+  transition: all 0.3s ease;
+  font-weight: 500;
   cursor: pointer;
-  box-shadow: inset 0 0 0 1px ${theme.colors.gray400};
 
-  &:hover {
-    background: ${theme.colors.gray200};
+  &:focus {
+    background: ${theme.colors.gray300};
+    outline: none;
   }
 
   &:focus-visible {
-    outline: 2px solid ${theme.colors.foreground};
-    outline-offset: 1px;
+    background: ${theme.colors.gray300};
+    outline: 1px solid ${theme.colors.gray600};
   }
 `;
 
@@ -123,10 +196,14 @@ export let AccessDetail = (p: {
   title?: string;
 }) =>
   p.onClick ? (
-    <DetailButton onClick={p.onClick} title={p.title}>
+    <DetailButton
+      onClick={p.onClick}
+      title={p.title}
+      style={{ ...getControlSize('1'), fontSize: getFieldFontSize('1') }}
+    >
       {p.icon}
       <span>{p.children}</span>
-      <RiArrowDownSLine size={14} />
+      <RiArrowDownSLine size={14} style={{ opacity: 0.5 }} />
     </DetailButton>
   ) : (
     <DetailRoot title={p.title}>
@@ -144,12 +221,12 @@ let RowRoot = styled.div<{ $inherited: boolean; $withSource: boolean }>`
   display: grid;
   grid-template-columns: ${p =>
     p.$withSource
-      ? 'minmax(0, 2fr) minmax(0, 1.4fr) minmax(0, 1fr) auto 32px'
-      : 'minmax(0, 2fr) minmax(0, 1.4fr) auto 32px'};
+      ? 'minmax(0, 2fr) minmax(0, 1.4fr) minmax(0, 1fr) 150px 32px'
+      : 'minmax(0, 2fr) minmax(0, 1.4fr) 150px 32px'};
   align-items: center;
   gap: 12px;
   min-height: 56px;
-  padding: 8px 16px;
+  padding: 8px var(--access-inline, 16px);
   border-top: 1px solid ${theme.colors.gray300};
   opacity: ${p => (p.$inherited ? 0.62 : 1)};
 
@@ -158,7 +235,7 @@ let RowRoot = styled.div<{ $inherited: boolean; $withSource: boolean }>`
   }
 
   @media (max-width: 720px) {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) 32px;
 
     & > :nth-child(2),
     & > :nth-child(3) {
@@ -185,7 +262,8 @@ export let AccessRow = (p: {
   lead: React.ReactNode;
   detail?: React.ReactNode;
   sources?: React.ReactNode;
-  level: AccessLevel;
+  level?: AccessLevel;
+  levelControl?: React.ReactNode;
   actions?: React.ReactNode;
   inherited?: { from: string };
 }) => (
@@ -193,9 +271,7 @@ export let AccessRow = (p: {
     {p.lead}
     <Cell>{p.detail}</Cell>
     {p.sources !== undefined ? <Cell>{p.sources}</Cell> : null}
-    <Cell>
-      <AccessLevelBadge level={p.level} />
-    </Cell>
+    <Cell>{p.levelControl ?? (p.level ? <AccessLevelBadge level={p.level} /> : null)}</Cell>
     <ActionCell>
       {p.inherited ? (
         <span title={`Inherited from ${p.inherited.from}`}>
@@ -262,14 +338,23 @@ export let AccessEntityCell = (p: {
 export let AccessToolbar = styled.div`
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: 10px;
-  padding: 12px 16px;
+  padding: var(--access-toolbar-top, 12px) var(--access-inline, 16px) 12px;
   border-bottom: 1px solid ${theme.colors.gray300};
 
   & > .grow {
-    flex: 1;
+    flex: 1 1 auto;
+    min-width: 0;
   }
+
+  @media (max-width: 720px) {
+    flex-wrap: wrap;
+  }
+`;
+
+export let AccessFlat = styled.div`
+  --access-inline: 0px;
+  --access-toolbar-top: 0px;
 `;
 
 export let AccessSection = styled.div`
@@ -283,7 +368,7 @@ let SeparatorRoot = styled.div`
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 16px;
+  padding: 8px var(--access-inline, 16px);
   font-size: 12px;
   font-weight: 500;
   color: ${theme.colors.gray700};
@@ -307,7 +392,7 @@ let MoreRoot = styled.button`
   align-items: center;
   gap: 6px;
   width: 100%;
-  padding: 10px 16px;
+  padding: 10px var(--access-inline, 16px);
   border: none;
   border-top: 1px solid ${theme.colors.gray300};
   background: transparent;
@@ -316,7 +401,6 @@ let MoreRoot = styled.button`
   cursor: pointer;
 
   &:hover:not(:disabled) {
-    background: ${theme.colors.gray200};
     color: ${theme.colors.foreground};
   }
 
