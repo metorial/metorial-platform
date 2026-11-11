@@ -1,96 +1,29 @@
 import { useForm } from '@metorial/data-hooks';
 import {
+  ResourcePicker,
+  showResourcePicker,
+  submitEach,
+  useResourcePicker
+} from '@metorial/access-ui';
+import {
   type Skill,
   type SkillGroup,
   type SkillMarketplace,
   type SkillPlugin,
+  skillGroupsLoader,
+  skillMarketplacesLoader,
+  skillPluginsLoader,
+  skillsLoader,
   useCreateSkillPlugin,
-  useSkillGroupsPage,
-  useSkillMarketplacesPage,
-  useSkillPluginsPage,
-  useSkillsPage,
   useUpdateSkillPlugin
 } from '@metorial/state';
-import {
-  Button,
-  Checkbox,
-  Dialog,
-  Input,
-  Panel,
-  Select,
-  Spinner,
-  Text,
-  showModal,
-  theme
-} from '@metorial/ui';
-import { useSearchFilter } from '@metorial/use-search-filter';
-import PQueue from 'p-queue';
+import { Button, Dialog, Input, Select, showModal } from '@metorial/ui';
 import { useMemo, useState } from 'react';
 import styled from 'styled-components';
+import { useEntityPickerSource } from '../../components/entityPickerSource';
 import type { MoveDestination } from './hierarchy';
-import { useFilledPages } from './useFilledPages';
 
-let pickerPageSize = 30;
-
-let pickerTargetCount = 25;
-
-let PickerStack = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-`;
-
-let PickerList = styled.div`
-  display: flex;
-  flex-direction: column;
-  border: 1px solid ${theme.colors.gray300};
-  border-radius: 10px;
-  overflow: hidden;
-`;
-
-let PickerRow = styled.div<{ $selected: boolean; $disabled: boolean }>`
-  height: 52px;
-  padding: 0 14px;
-  display: grid;
-  grid-template-columns: 20px 28px minmax(0, 1fr);
-  align-items: center;
-  gap: 12px;
-  cursor: ${({ $disabled }) => ($disabled ? 'default' : 'pointer')};
-  background: ${({ $selected }) => ($selected ? theme.colors.gray200 : theme.colors.background)};
-  transition: background 120ms ease;
-
-  & + & {
-    border-top: 1px solid ${theme.colors.gray300};
-  }
-
-  &:hover {
-    background: ${({ $selected }) => ($selected ? theme.colors.gray250 : theme.colors.gray100)};
-  }
-`;
-
-let PickerImage = styled.img`
-  width: 28px;
-  height: 28px;
-  border-radius: 22%;
-  object-fit: cover;
-  background: ${theme.colors.gray200};
-`;
-
-let PickerText = styled.div`
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-`;
-
-let EmptyPicker = styled.div`
-  padding: 28px 16px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  text-align: center;
-`;
+let addConcurrency = 10;
 
 let FormStack = styled.div`
   display: flex;
@@ -98,159 +31,13 @@ let FormStack = styled.div`
   gap: 12px;
 `;
 
-let addSelectedItems = async <T,>(items: T[], onSelect: (item: T) => Promise<boolean>) => {
-  let queue = new PQueue({ concurrency: 10 });
-  let results = await queue.addAll(items.map(item => () => onSelect(item)));
-
-  return results.every(Boolean);
-};
-
-let toggleIn = <T extends { id: string }>(current: T[], item: T, checked: boolean) =>
-  checked ? [...current, item] : current.filter(selected => selected.id !== item.id);
-
-type PickerItem = {
-  id: string;
-  name: string;
-  imageUrl?: string | null;
-};
-
-let PickerLoading = styled.div`
-  height: 180px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+let DestinationSelect = styled.div`
+  flex: 0 1 260px;
+  min-width: 180px;
 `;
 
-let PickerPager = styled.div`
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-`;
-
-let PickerRows = <T extends PickerItem>(p: {
-  pages: ReturnType<typeof useFilledPages<T>>;
-  selectedIds: Set<string>;
-  disabled: boolean;
-  emptyMessage: string;
-  onToggle: (item: T, checked: boolean) => void;
-}) => {
-  let { items, isLoading, error, hasNext, hasPrevious } = p.pages;
-
-  if (error) {
-    return (
-      <PickerList>
-        <EmptyPicker>
-          <Text size="2" color="gray600">
-            Failed to load results.
-          </Text>
-
-          <Button size="1" variant="outline" onClick={p.pages.refetch}>
-            Try Again
-          </Button>
-        </EmptyPicker>
-      </PickerList>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <PickerList>
-        <PickerLoading>
-          <Spinner size={20} />
-        </PickerLoading>
-      </PickerList>
-    );
-  }
-
-  if (!items.length) {
-    return (
-      <PickerList>
-        <EmptyPicker>
-          <Text size="2" color="gray600">
-            {p.emptyMessage}
-          </Text>
-        </EmptyPicker>
-      </PickerList>
-    );
-  }
-
-  return (
-    <PickerStack>
-      <PickerList>
-        {items.map(item => {
-          let selected = p.selectedIds.has(item.id);
-
-          return (
-            <PickerRow
-              key={item.id}
-              $selected={selected}
-              $disabled={p.disabled}
-              onClick={() => !p.disabled && p.onToggle(item, !selected)}
-            >
-              <span onClick={event => event.stopPropagation()}>
-                <Checkbox
-                  label={`Select ${item.name}`}
-                  hideLabel
-                  checked={selected}
-                  disabled={p.disabled}
-                  onCheckedChange={checked => p.onToggle(item, checked)}
-                />
-              </span>
-
-              {item.imageUrl ? (
-                <PickerImage src={item.imageUrl} alt="" loading="lazy" />
-              ) : (
-                <span />
-              )}
-
-              <PickerText>
-                <Text size="2" weight="strong" truncate>
-                  {item.name}
-                </Text>
-              </PickerText>
-            </PickerRow>
-          );
-        })}
-      </PickerList>
-
-      {(hasNext || hasPrevious) && (
-        <PickerPager>
-          <Button
-            size="2"
-            variant="outline"
-            disabled={!hasPrevious}
-            onClick={p.pages.previous}
-          >
-            Previous
-          </Button>
-          <Button size="2" variant="outline" disabled={!hasNext} onClick={p.pages.next}>
-            Next
-          </Button>
-        </PickerPager>
-      )}
-    </PickerStack>
-  );
-};
-
-let SkillPickerResults = (p: {
-  pages: ReturnType<typeof useFilledPages<Skill>>;
-  selectedIds: Set<string>;
-  search: string;
-  disabled: boolean;
-  onToggle: (skill: Skill, checked: boolean) => void;
-}) => (
-  <PickerRows
-    pages={p.pages}
-    selectedIds={p.selectedIds}
-    disabled={p.disabled}
-    emptyMessage={
-      p.search.trim()
-        ? 'No available skills match your search.'
-        : 'Every skill is already in this marketplace.'
-    }
-    onToggle={p.onToggle}
-  />
-);
+let countOf = (count: number, one: string, many: string) =>
+  count == 1 ? `1 ${one}` : `${count} ${many}`;
 
 export type AddSkillsDestinationOption = { id: string; label: string };
 
@@ -260,114 +47,72 @@ let AddSkillsPanel = (p: {
   destinations: AddSkillsDestinationOption[];
   initialDestination: string;
   close: () => void;
-  onAdd: (skills: Skill[], destination: MoveDestination) => Promise<boolean>;
+  onAdd: (skills: Skill[], destination: MoveDestination) => Promise<{ failed: string[] }>;
 }) => {
-  let { search, setSearch, searchQuery } = useSearchFilter(500, {
-    updateSearchParams: false
-  });
+  let picker = useResourcePicker<Skill>();
   let [destination, setDestination] = useState(p.initialDestination);
-  let [selectedSkills, setSelectedSkills] = useState<Skill[]>([]);
-  let [isAdding, setIsAdding] = useState(false);
   let linked = useMemo(
     () => new Set(p.linkedSkillIds[destination] ?? []),
     [p.linkedSkillIds, destination]
   );
-  let skillsQuery = {
-    order: 'asc' as const,
-    status: ['active' as const],
-    limit: pickerPageSize,
-    ...(searchQuery ? { search: searchQuery } : {})
-  };
-  let skillPages = useFilledPages<Skill>({
-    resetKey: `${p.instanceId}:${destination}:${searchQuery ?? ''}`,
-    target: pickerTargetCount,
-    usePage: after => useSkillsPage(p.instanceId, skillsQuery, after),
-    isAllowed: skill => !linked.has(skill.id)
+  let destinationLabel = p.destinations.find(option => option.id == destination)?.label;
+
+  let source = useEntityPickerSource({
+    loader: skillsLoader,
+    input: { instanceId: p.instanceId, status: ['active'], search: picker.query },
+    kind: 'skill',
+    subtitle: skill => skill.slug,
+    exclude: skill => linked.has(skill.id),
+    resetKey: destination
   });
-  let selectedIds = useMemo(
-    () => new Set(selectedSkills.map(skill => skill.id)),
-    [selectedSkills]
-  );
 
-  let submit = async () => {
-    setIsAdding(true);
+  let changeDestination = (value: string) => {
+    let nextLinked = new Set(p.linkedSkillIds[value] ?? []);
+    setDestination(value);
 
-    try {
-      let added = await p.onAdd(
-        selectedSkills,
-        destination === 'standalone'
-          ? { type: 'standalone' }
-          : { type: 'plugin', pluginId: destination }
-      );
-      if (added) p.close();
-    } finally {
-      setIsAdding(false);
+    for (let selection of picker.selected) {
+      if (nextLinked.has(selection.item.key)) picker.remove(selection.item.key);
     }
   };
 
   return (
-    <>
-      <Panel.Header
-        actions={
-          <Button
-            size="2"
-            loading={isAdding}
-            disabled={!selectedSkills.length}
-            onClick={submit}
-          >
-            {selectedSkills.length > 1 ? `Add ${selectedSkills.length} Skills` : 'Add Skill'}
-          </Button>
-        }
-      >
-        <Panel.Title>Add Skills</Panel.Title>
-        <Panel.Description>
-          Pick skills and choose whether they join a plugin or stand on their own.
-        </Panel.Description>
-      </Panel.Header>
-
-      <Panel.Content>
-        <PickerStack>
+    <ResourcePicker
+      picker={picker}
+      title="Add Skills"
+      description="Pick skills and choose whether they join a plugin or stand on their own."
+      placeholder="Search skills…"
+      toolbar={
+        <DestinationSelect>
           <Select
             label="Add To"
+            hideLabel
             value={destination}
-            onChange={value => {
-              let nextLinked = new Set(p.linkedSkillIds[value] ?? []);
-              setDestination(value);
-              setSelectedSkills(current => current.filter(skill => !nextLinked.has(skill.id)));
-            }}
-            disabled={isAdding}
+            onChange={changeDestination}
             items={p.destinations}
           />
-
-          <Input
-            label="Search skills"
-            hideLabel
-            placeholder="Search skills..."
-            value={search}
-            onInput={setSearch}
-          />
-
-          <SkillPickerResults
-            pages={skillPages}
-            selectedIds={selectedIds}
-            search={search}
-            disabled={isAdding}
-            onToggle={(skill, checked) =>
-              setSelectedSkills(current => toggleIn(current, skill, checked))
-            }
-          />
-        </PickerStack>
-      </Panel.Content>
-    </>
+        </DestinationSelect>
+      }
+      source={source}
+      empty={{ title: 'Every skill is already here.' }}
+      verb="Add"
+      success={count =>
+        `Added ${countOf(count, 'skill', 'skills')} to ${destinationLabel ?? 'the marketplace'}.`
+      }
+      onSubmit={selected =>
+        p.onAdd(
+          selected.map(selection => selection.value),
+          destination === 'standalone'
+            ? { type: 'standalone' }
+            : { type: 'plugin', pluginId: destination }
+        )
+      }
+      close={p.close}
+    />
   );
 };
 
 export let showAddSkillsPanel = (p: Omit<Parameters<typeof AddSkillsPanel>[0], 'close'>) =>
-  showModal(({ dialogProps, close }) => (
-    <Panel.Wrapper {...dialogProps} width={760}>
-      <AddSkillsPanel {...p} close={close} />
-    </Panel.Wrapper>
-  ));
+  showResourcePicker(close => <AddSkillsPanel {...p} close={close} />);
 
 let SkillGroupPickerPanel = (p: {
   instanceId: string;
@@ -376,118 +121,42 @@ let SkillGroupPickerPanel = (p: {
   onSelect: (skill: Skill) => Promise<boolean>;
   onDone?: () => Promise<void> | void;
 }) => {
-  let { search, setSearch, searchQuery } = useSearchFilter(500, {
-    updateSearchParams: false
-  });
-  let [selectedSkills, setSelectedSkills] = useState<Skill[]>([]);
-  let [isAdding, setIsAdding] = useState(false);
+  let picker = useResourcePicker<Skill>();
   let excluded = useMemo(() => new Set(p.excludeSkillIds), [p.excludeSkillIds]);
-  let skillsQuery = {
-    order: 'asc' as const,
-    status: ['active' as const],
-    limit: pickerPageSize,
-    ...(searchQuery ? { search: searchQuery } : {})
-  };
-  let skillPages = useFilledPages<Skill>({
-    resetKey: `${p.instanceId}:${searchQuery ?? ''}`,
-    target: pickerTargetCount,
-    usePage: after => useSkillsPage(p.instanceId, skillsQuery, after),
-    isAllowed: skill => !excluded.has(skill.id)
+
+  let source = useEntityPickerSource({
+    loader: skillsLoader,
+    input: { instanceId: p.instanceId, status: ['active'], search: picker.query },
+    kind: 'skill',
+    subtitle: skill => skill.slug,
+    exclude: skill => excluded.has(skill.id)
   });
-  let selectedIds = useMemo(
-    () => new Set(selectedSkills.map(skill => skill.id)),
-    [selectedSkills]
-  );
-
-  let submit = async () => {
-    setIsAdding(true);
-
-    try {
-      let added = await addSelectedItems(selectedSkills, p.onSelect);
-      await p.onDone?.();
-      if (added) p.close();
-    } finally {
-      setIsAdding(false);
-    }
-  };
 
   return (
-    <>
-      <Panel.Header
-        actions={
-          <Button
-            size="2"
-            loading={isAdding}
-            disabled={!selectedSkills.length}
-            onClick={submit}
-          >
-            {selectedSkills.length > 1 ? `Add ${selectedSkills.length} Skills` : 'Add Skill'}
-          </Button>
-        }
-      >
-        <Panel.Title>Add Skills</Panel.Title>
-        <Panel.Description>
-          Pick one or more skills to add to this group. Skills already in the group are hidden.
-        </Panel.Description>
-      </Panel.Header>
-
-      <Panel.Content>
-        <PickerStack>
-          <Input
-            label="Search skills"
-            hideLabel
-            placeholder="Search skills..."
-            value={search}
-            onInput={setSearch}
-          />
-
-          <PickerRows
-            pages={skillPages}
-            selectedIds={selectedIds}
-            disabled={isAdding}
-            emptyMessage={
-              search.trim()
-                ? 'No available skills match your search.'
-                : 'Every skill is already in this group.'
-            }
-            onToggle={(skill, checked) =>
-              setSelectedSkills(current => toggleIn(current, skill, checked))
-            }
-          />
-        </PickerStack>
-      </Panel.Content>
-    </>
+    <ResourcePicker
+      picker={picker}
+      title="Add Skills"
+      description="Pick one or more skills to add to this group."
+      placeholder="Search skills…"
+      source={source}
+      empty={{ title: 'Every skill is already in this group.' }}
+      verb="Add"
+      success={count => `Added ${countOf(count, 'skill', 'skills')} to the group.`}
+      onSubmit={async selected => {
+        let result = await submitEach(selected, selection => p.onSelect(selection.value), {
+          concurrency: addConcurrency
+        });
+        await p.onDone?.();
+        return result;
+      }}
+      close={p.close}
+    />
   );
 };
 
 export let showSkillGroupSkillsPanel = (
   p: Omit<Parameters<typeof SkillGroupPickerPanel>[0], 'close'>
-) =>
-  showModal(({ dialogProps, close }) => (
-    <Panel.Wrapper {...dialogProps} width={760}>
-      <SkillGroupPickerPanel {...p} close={close} />
-    </Panel.Wrapper>
-  ));
-
-let PluginPickerResults = (p: {
-  pages: ReturnType<typeof useFilledPages<SkillPlugin>>;
-  selectedIds: Set<string>;
-  search: string;
-  disabled: boolean;
-  onToggle: (plugin: SkillPlugin, checked: boolean) => void;
-}) => (
-  <PickerRows
-    pages={p.pages}
-    selectedIds={p.selectedIds}
-    disabled={p.disabled}
-    emptyMessage={
-      p.search.trim()
-        ? 'No available plugins match your search.'
-        : 'No additional plugins to add to this marketplace.'
-    }
-    onToggle={p.onToggle}
-  />
-);
+) => showResourcePicker(close => <SkillGroupPickerPanel {...p} close={close} />);
 
 let PluginPickerPanel = (p: {
   instanceId: string;
@@ -495,94 +164,39 @@ let PluginPickerPanel = (p: {
   close: () => void;
   onSelect: (plugin: SkillPlugin) => Promise<boolean>;
 }) => {
-  let { search, setSearch, searchQuery } = useSearchFilter(500, {
-    updateSearchParams: false
-  });
-  let [selectedPlugins, setSelectedPlugins] = useState<SkillPlugin[]>([]);
-  let [isAdding, setIsAdding] = useState(false);
+  let picker = useResourcePicker<SkillPlugin>();
   let excluded = useMemo(() => new Set(p.excludePluginIds), [p.excludePluginIds]);
-  let pluginsQuery = {
-    order: 'asc' as const,
-    status: ['active' as const],
-    limit: pickerPageSize,
-    ...(searchQuery ? { search: searchQuery } : {})
-  };
-  let pluginPages = useFilledPages<SkillPlugin>({
-    resetKey: `${p.instanceId}:${searchQuery ?? ''}`,
-    target: pickerTargetCount,
-    usePage: after => useSkillPluginsPage(p.instanceId, pluginsQuery, after),
-    isAllowed: plugin => !excluded.has(plugin.id)
+
+  let source = useEntityPickerSource({
+    loader: skillPluginsLoader,
+    input: { instanceId: p.instanceId, status: ['active'], search: picker.query },
+    kind: 'skill_plugin',
+    exclude: plugin => excluded.has(plugin.id)
   });
-  let selectedIds = useMemo(
-    () => new Set(selectedPlugins.map(plugin => plugin.id)),
-    [selectedPlugins]
-  );
-
-  let submit = async () => {
-    setIsAdding(true);
-
-    try {
-      if (await addSelectedItems(selectedPlugins, p.onSelect)) p.close();
-    } finally {
-      setIsAdding(false);
-    }
-  };
 
   return (
-    <>
-      <Panel.Header
-        actions={
-          <Button
-            size="2"
-            loading={isAdding}
-            disabled={!selectedPlugins.length}
-            onClick={submit}
-          >
-            {selectedPlugins.length > 1
-              ? `Import ${selectedPlugins.length} Plugins`
-              : 'Import Plugin'}
-          </Button>
-        }
-      >
-        <Panel.Title>Import Plugin</Panel.Title>
-        <Panel.Description>
-          Add existing plugins, with all of their skills, to this marketplace.
-        </Panel.Description>
-      </Panel.Header>
-
-      <Panel.Content>
-        <PickerStack>
-          <Input
-            label="Search plugins"
-            hideLabel
-            placeholder="Search plugins..."
-            value={search}
-            onInput={setSearch}
-          />
-
-          <PluginPickerResults
-            pages={pluginPages}
-            selectedIds={selectedIds}
-            search={search}
-            disabled={isAdding}
-            onToggle={(plugin, checked) =>
-              setSelectedPlugins(current => toggleIn(current, plugin, checked))
-            }
-          />
-        </PickerStack>
-      </Panel.Content>
-    </>
+    <ResourcePicker
+      picker={picker}
+      title="Import Plugin"
+      description="Add existing plugins, with all of their skills, to this marketplace."
+      placeholder="Search plugins…"
+      source={source}
+      empty={{ title: 'No additional plugins to add to this marketplace.' }}
+      verb="Import"
+      success={count => `Imported ${countOf(count, 'plugin', 'plugins')}.`}
+      onSubmit={selected =>
+        submitEach(selected, selection => p.onSelect(selection.value), {
+          concurrency: addConcurrency
+        })
+      }
+      close={p.close}
+    />
   );
 };
 
 export let showPluginPickerPanel = (
   p: Omit<Parameters<typeof PluginPickerPanel>[0], 'close'>
-) =>
-  showModal(({ dialogProps, close }) => (
-    <Panel.Wrapper {...dialogProps} width={760}>
-      <PluginPickerPanel {...p} close={close} />
-    </Panel.Wrapper>
-  ));
+) => showResourcePicker(close => <PluginPickerPanel {...p} close={close} />);
 
 let PublishSkillGroupPanel = (p: {
   instanceId: string;
@@ -590,88 +204,33 @@ let PublishSkillGroupPanel = (p: {
   close: () => void;
   onSelect: (skillGroup: SkillGroup) => Promise<boolean>;
 }) => {
-  let { search, setSearch, searchQuery } = useSearchFilter(500, {
-    updateSearchParams: false
-  });
-  let [selectedGroups, setSelectedGroups] = useState<SkillGroup[]>([]);
-  let [isAdding, setIsAdding] = useState(false);
+  let picker = useResourcePicker<SkillGroup>();
   let excluded = useMemo(() => new Set(p.excludeSkillGroupIds), [p.excludeSkillGroupIds]);
-  let groupsQuery = {
-    order: 'asc' as const,
-    status: ['active' as const],
-    limit: pickerPageSize,
-    ...(searchQuery ? { search: searchQuery } : {})
-  };
-  let groupPages = useFilledPages<SkillGroup>({
-    resetKey: `${p.instanceId}:${searchQuery ?? ''}`,
-    target: pickerTargetCount,
-    usePage: after => useSkillGroupsPage(p.instanceId, groupsQuery, after),
-    isAllowed: group => !excluded.has(group.id)
+
+  let source = useEntityPickerSource({
+    loader: skillGroupsLoader,
+    input: { instanceId: p.instanceId, status: ['active'], search: picker.query },
+    kind: 'skill_group',
+    exclude: group => excluded.has(group.id)
   });
-  let selectedIds = useMemo(
-    () => new Set(selectedGroups.map(group => group.id)),
-    [selectedGroups]
-  );
-
-  let submit = async () => {
-    setIsAdding(true);
-
-    try {
-      if (await addSelectedItems(selectedGroups, p.onSelect)) p.close();
-    } finally {
-      setIsAdding(false);
-    }
-  };
 
   return (
-    <>
-      <Panel.Header
-        actions={
-          <Button
-            size="2"
-            loading={isAdding}
-            disabled={!selectedGroups.length}
-            onClick={submit}
-          >
-            {selectedGroups.length > 1
-              ? `Publish ${selectedGroups.length} Skill Groups`
-              : 'Publish Skill Group'}
-          </Button>
-        }
-      >
-        <Panel.Title>Publish Skill Group</Panel.Title>
-        <Panel.Description>
-          Each group becomes a plugin in this marketplace. Its skills stay in sync with the
-          group and are managed there.
-        </Panel.Description>
-      </Panel.Header>
-
-      <Panel.Content>
-        <PickerStack>
-          <Input
-            label="Search skill groups"
-            hideLabel
-            placeholder="Search skill groups..."
-            value={search}
-            onInput={setSearch}
-          />
-
-          <PickerRows
-            pages={groupPages}
-            selectedIds={selectedIds}
-            disabled={isAdding}
-            emptyMessage={
-              search.trim()
-                ? 'No available skill groups match your search.'
-                : 'Every skill group is already published to this marketplace.'
-            }
-            onToggle={(group, checked) =>
-              setSelectedGroups(current => toggleIn(current, group, checked))
-            }
-          />
-        </PickerStack>
-      </Panel.Content>
-    </>
+    <ResourcePicker
+      picker={picker}
+      title="Publish Skill Group"
+      description="Each group becomes a plugin in this marketplace. Its skills stay in sync with the group and are managed there."
+      placeholder="Search skill groups…"
+      source={source}
+      empty={{ title: 'Every skill group is already published to this marketplace.' }}
+      verb="Publish"
+      success={count => `Published ${countOf(count, 'skill group', 'skill groups')}.`}
+      onSubmit={selected =>
+        submitEach(selected, selection => p.onSelect(selection.value), {
+          concurrency: addConcurrency
+        })
+      }
+      close={p.close}
+    />
   );
 };
 
@@ -682,111 +241,46 @@ let PublishToMarketplacePanel = (p: {
   close: () => void;
   onSelect: (skillMarketplace: SkillMarketplace) => Promise<boolean>;
 }) => {
-  let { search, setSearch, searchQuery } = useSearchFilter(500, {
-    updateSearchParams: false
-  });
-  let [selectedMarketplaces, setSelectedMarketplaces] = useState<SkillMarketplace[]>([]);
-  let [isAdding, setIsAdding] = useState(false);
+  let picker = useResourcePicker<SkillMarketplace>();
   let excluded = useMemo(
     () => new Set(p.excludeSkillMarketplaceIds),
     [p.excludeSkillMarketplaceIds]
   );
-  let marketplacesQuery = {
-    order: 'asc' as const,
-    status: ['active' as const],
-    limit: pickerPageSize,
-    ...(searchQuery ? { search: searchQuery } : {})
-  };
-  let marketplacePages = useFilledPages<SkillMarketplace>({
-    resetKey: `${p.instanceId}:${searchQuery ?? ''}`,
-    target: pickerTargetCount,
-    usePage: after => useSkillMarketplacesPage(p.instanceId, marketplacesQuery, after),
-    isAllowed: marketplace => !excluded.has(marketplace.id) && marketplace.canCreatePlugins
+
+  let source = useEntityPickerSource({
+    loader: skillMarketplacesLoader,
+    input: { instanceId: p.instanceId, status: ['active'], search: picker.query },
+    kind: 'skill_marketplace',
+    exclude: marketplace => excluded.has(marketplace.id) || !marketplace.canCreatePlugins
   });
-  let selectedIds = useMemo(
-    () => new Set(selectedMarketplaces.map(marketplace => marketplace.id)),
-    [selectedMarketplaces]
-  );
-
-  let submit = async () => {
-    setIsAdding(true);
-
-    try {
-      if (await addSelectedItems(selectedMarketplaces, p.onSelect)) p.close();
-    } finally {
-      setIsAdding(false);
-    }
-  };
 
   return (
-    <>
-      <Panel.Header
-        actions={
-          <Button
-            size="2"
-            loading={isAdding}
-            disabled={!selectedMarketplaces.length}
-            onClick={submit}
-          >
-            {selectedMarketplaces.length > 1
-              ? `Publish to ${selectedMarketplaces.length} Marketplaces`
-              : 'Publish to Marketplace'}
-          </Button>
-        }
-      >
-        <Panel.Title>Publish to Marketplace</Panel.Title>
-        <Panel.Description>
-          {p.skillGroupName} becomes a plugin in each selected marketplace. Its skills stay in
-          sync with this group.
-        </Panel.Description>
-      </Panel.Header>
-
-      <Panel.Content>
-        <PickerStack>
-          <Input
-            label="Search marketplaces"
-            hideLabel
-            placeholder="Search marketplaces..."
-            value={search}
-            onInput={setSearch}
-          />
-
-          <PickerRows
-            pages={marketplacePages}
-            selectedIds={selectedIds}
-            disabled={isAdding}
-            emptyMessage={
-              search.trim()
-                ? 'No available marketplaces match your search.'
-                : 'This group is already published to every marketplace you can edit.'
-            }
-            onToggle={(marketplace, checked) =>
-              setSelectedMarketplaces(current => toggleIn(current, marketplace, checked))
-            }
-          />
-        </PickerStack>
-      </Panel.Content>
-    </>
+    <ResourcePicker
+      picker={picker}
+      title="Publish to Marketplace"
+      description={`${p.skillGroupName} becomes a plugin in each selected marketplace. Its skills stay in sync with this group.`}
+      placeholder="Search marketplaces…"
+      source={source}
+      empty={{ title: 'This group is already published to every marketplace you can edit.' }}
+      verb="Publish"
+      success={count => `Published to ${countOf(count, 'marketplace', 'marketplaces')}.`}
+      onSubmit={selected =>
+        submitEach(selected, selection => p.onSelect(selection.value), {
+          concurrency: addConcurrency
+        })
+      }
+      close={p.close}
+    />
   );
 };
 
 export let showPublishToMarketplacePanel = (
   p: Omit<Parameters<typeof PublishToMarketplacePanel>[0], 'close'>
-) =>
-  showModal(({ dialogProps, close }) => (
-    <Panel.Wrapper {...dialogProps} width={760}>
-      <PublishToMarketplacePanel {...p} close={close} />
-    </Panel.Wrapper>
-  ));
+) => showResourcePicker(close => <PublishToMarketplacePanel {...p} close={close} />);
 
 export let showPublishSkillGroupPanel = (
   p: Omit<Parameters<typeof PublishSkillGroupPanel>[0], 'close'>
-) =>
-  showModal(({ dialogProps, close }) => (
-    <Panel.Wrapper {...dialogProps} width={760}>
-      <PublishSkillGroupPanel {...p} close={close} />
-    </Panel.Wrapper>
-  ));
+) => showResourcePicker(close => <PublishSkillGroupPanel {...p} close={close} />);
 
 let PluginForm = (p: {
   instanceId: string;

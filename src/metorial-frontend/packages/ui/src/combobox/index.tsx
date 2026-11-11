@@ -266,8 +266,7 @@ export type ComboboxGroupData<TData = unknown> = {
 };
 
 export type ComboboxData<TData = unknown> =
-  | ComboboxItemData<TData>[]
-  | ComboboxGroupData<TData>[];
+  ComboboxItemData<TData>[] | ComboboxGroupData<TData>[];
 
 export type ComboboxProviderArgs<TData = unknown> = {
   search: string;
@@ -306,6 +305,7 @@ type ComboboxPropsBase<TData> = {
   onChange?: (value: string | null, item: ComboboxItemData<TData> | null) => void;
   onSearchChange?: (value: string) => void;
   renderItem?: (item: ComboboxItemData<TData>) => React.ReactNode;
+  hideItemIndicator?: boolean;
 } & Omit<
   React.InputHTMLAttributes<HTMLInputElement>,
   'size' | 'value' | 'defaultValue' | 'onChange'
@@ -322,8 +322,7 @@ type ProviderComboboxProps<TData> = ComboboxPropsBase<TData> & {
 };
 
 export type ComboboxProps<TData = unknown> =
-  | StaticComboboxProps<TData>
-  | ProviderComboboxProps<TData>;
+  StaticComboboxProps<TData> | ProviderComboboxProps<TData>;
 
 let useDebouncedValue = <T,>(value: T, delay: number) => {
   let [debouncedValue, setDebouncedValue] = useState(() => value);
@@ -408,6 +407,7 @@ let ComboboxInner = <TData,>({
   onChange,
   onSearchChange,
   renderItem,
+  hideItemIndicator,
   ...inputProps
 }: ComboboxPropsBase<TData> &
   ComboboxProviderResult<TData> & {
@@ -602,11 +602,13 @@ let ComboboxInner = <TData,>({
                       <GroupLabel>{group.label}</GroupLabel>
                       {group.items.map(item => (
                         <Item key={item.id} value={item.id} disabled={item.disabled}>
-                          <ItemIndicatorSlot>
-                            <ItemIndicator>
-                              <RiCheckLine size={14} />
-                            </ItemIndicator>
-                          </ItemIndicatorSlot>
+                          {hideItemIndicator ? null : (
+                            <ItemIndicatorSlot>
+                              <ItemIndicator>
+                                <RiCheckLine size={14} />
+                              </ItemIndicator>
+                            </ItemIndicatorSlot>
+                          )}
                           <ItemContent>
                             {renderItem ? (
                               renderItem(item)
@@ -625,11 +627,13 @@ let ComboboxInner = <TData,>({
                   ) : (
                     group.items.map(item => (
                       <Item key={item.id} value={item.id} disabled={item.disabled}>
-                        <ItemIndicatorSlot>
-                          <ItemIndicator>
-                            <RiCheckLine size={14} />
-                          </ItemIndicator>
-                        </ItemIndicatorSlot>
+                        {hideItemIndicator ? null : (
+                          <ItemIndicatorSlot>
+                            <ItemIndicator>
+                              <RiCheckLine size={14} />
+                            </ItemIndicator>
+                          </ItemIndicatorSlot>
+                        )}
                         <ItemContent>
                           {renderItem ? (
                             renderItem(item)

@@ -1,15 +1,19 @@
+import { AnimateHeight, Button, Checkbox, theme } from '@metorial/ui';
 import {
   RiAddLine,
   RiArrowDownSLine,
   RiArrowLeftLine,
+  RiErrorWarningLine,
   RiInformationLine
 } from '@remixicon/react';
-import { AnimateHeight, Button, Checkbox, theme } from '@metorial/ui';
 import React from 'react';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 
-let Item = styled.div`
+export type PickerRowTone = 'done' | 'needs' | 'failed';
+
+let Item = styled.div<{ $failed: boolean }>`
   border-top: 1px solid ${theme.colors.gray300};
+  background: ${p => (p.$failed ? theme.colors.red200 : 'transparent')};
 
   &:first-child {
     border-top: none;
@@ -23,9 +27,15 @@ let Head = styled.div<{ $clickable: boolean }>`
   min-height: 56px;
   padding: 8px var(--access-inline, 16px);
   cursor: ${p => (p.$clickable ? 'pointer' : 'default')};
+  outline: none;
 
   &:hover {
     background: ${p => (p.$clickable ? theme.colors.gray100 : 'transparent')};
+  }
+
+  &:focus-visible {
+    background: ${theme.colors.gray100};
+    box-shadow: inset 2px 0 0 ${theme.colors.gray800};
   }
 `;
 
@@ -53,17 +63,19 @@ let Title = styled.span`
   white-space: nowrap;
 `;
 
-let Subtitle = styled.span<{ $tone: 'default' | 'done' | 'needs' }>`
+let toneColors: Record<PickerRowTone | 'default', string> = {
+  default: theme.colors.gray600,
+  done: theme.colors.foreground,
+  needs: theme.colors.orange900,
+  failed: theme.colors.red900
+};
+
+let Subtitle = styled.span<{ $tone: PickerRowTone | 'default' }>`
   display: flex;
   align-items: center;
   gap: 4px;
   font-size: 12px;
-  color: ${p =>
-    p.$tone == 'needs'
-      ? theme.colors.orange900
-      : p.$tone == 'done'
-        ? theme.colors.foreground
-        : theme.colors.gray600};
+  color: ${p => toneColors[p.$tone]};
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -72,6 +84,7 @@ let Subtitle = styled.span<{ $tone: 'default' | 'done' | 'needs' }>`
 let Right = styled.span`
   display: flex;
   align-items: center;
+  gap: 6px;
   flex-shrink: 0;
   font-size: 12px;
   color: ${theme.colors.gray600};
@@ -80,7 +93,16 @@ let Right = styled.span`
 let Chevron = styled(RiArrowDownSLine)<{ $open: boolean }>`
   transition: transform 160ms ease;
   transform: rotate(${p => (p.$open ? 180 : 0)}deg);
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;
+
+let toneIcons: Partial<Record<PickerRowTone, React.ReactNode>> = {
+  needs: <RiInformationLine size={12} />,
+  failed: <RiErrorWarningLine size={12} />
+};
 
 let Body = styled.div`
   padding: 4px var(--access-inline, 16px) 16px calc(var(--access-inline, 16px) + 38px);
@@ -96,26 +118,45 @@ export let PickerRow = (p: {
   icon: React.ReactNode;
   title: string;
   subtitle?: React.ReactNode;
-  status?: { tone: 'done' | 'needs'; text: React.ReactNode };
+  status?: { tone: PickerRowTone; text: React.ReactNode };
   right?: React.ReactNode;
   expandable?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   back?: { label: string; onBack: () => void };
+  rowKey?: string;
   children?: React.ReactNode;
 }) => {
   let canToggle = !!p.expandable && p.selected && !p.back;
   let showBody = !!p.expandable && p.selected && !!p.open;
-  let subtitle = p.status && !p.open ? p.status : null;
+  let subtitle = p.status && (!p.open || p.status.tone == 'failed') ? p.status : null;
+
+  let activate = () => {
+    if (p.back) return;
+    if (canToggle) p.onOpenChange?.(!p.open);
+    else p.onSelectedChange(!p.selected);
+  };
 
   return (
-    <Item>
+    <Item $failed={p.status?.tone == 'failed'}>
       <Head
         $clickable={!p.back}
-        onClick={() => {
-          if (p.back) return;
-          if (canToggle) p.onOpenChange?.(!p.open);
-          else p.onSelectedChange(!p.selected);
+        tabIndex={p.back ? -1 : 0}
+        aria-expanded={canToggle ? !!p.open : undefined}
+        data-picker-row={p.rowKey ?? p.title}
+        onClick={activate}
+        onKeyDown={e => {
+          if (e.target != e.currentTarget || e.metaKey || e.ctrlKey) return;
+
+          if (e.key == ' ') {
+            e.preventDefault();
+            if (!p.back) p.onSelectedChange(!p.selected);
+          }
+
+          if (e.key == 'Enter') {
+            e.preventDefault();
+            activate();
+          }
         }}
       >
         <Lead onClick={e => e.stopPropagation()}>
@@ -145,7 +186,7 @@ export let PickerRow = (p: {
           <Title>{p.title}</Title>
           {subtitle ? (
             <Subtitle $tone={subtitle.tone}>
-              {subtitle.tone == 'needs' ? <RiInformationLine size={12} /> : null}
+              {toneIcons[subtitle.tone] ?? null}
               {subtitle.text}
             </Subtitle>
           ) : p.subtitle ? (
@@ -153,12 +194,11 @@ export let PickerRow = (p: {
           ) : null}
         </Text>
 
-        {canToggle ? (
+        {p.back ? null : (
           <Right>
-            <Chevron size={16} $open={!!p.open} />
+            {p.right}
+            {canToggle ? <Chevron size={16} $open={!!p.open} /> : null}
           </Right>
-        ) : p.back ? null : (
-          <Right>{p.right}</Right>
         )}
       </Head>
 
@@ -311,14 +351,25 @@ let FooterRoot = styled.div`
   bottom: 0;
   z-index: 1;
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  gap: 10px;
   margin: auto -20px -15px;
   padding: 12px 20px;
   border-top: 1px solid ${theme.colors.gray400};
   background: ${theme.colors.background};
+`;
+
+let FooterRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
 
   & > .status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
     flex: 1;
     min-width: 0;
     font-size: 13px;
@@ -326,9 +377,66 @@ let FooterRoot = styled.div`
   }
 `;
 
-export let PickerFooter = (p: { status: React.ReactNode; children: React.ReactNode }) => (
+export let PickerFooter = (p: {
+  status?: React.ReactNode;
+  tray?: React.ReactNode;
+  children: React.ReactNode;
+}) => (
   <FooterRoot>
-    <span className="status">{p.status}</span>
-    {p.children}
+    {p.tray}
+
+    <FooterRow>
+      <span className="status">{p.status}</span>
+      {p.children}
+    </FooterRow>
   </FooterRoot>
+);
+
+let pulse = keyframes`
+  50% {
+    opacity: 0.5;
+  }
+`;
+
+let SkeletonRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px var(--access-inline, 16px);
+  border-top: 1px solid ${theme.colors.gray300};
+
+  &:first-child {
+    border-top: none;
+  }
+`;
+
+let SkeletonBlock = styled.span<{ $width: string; $height: number; $radius: number }>`
+  display: block;
+  flex-shrink: 0;
+  width: ${p => p.$width};
+  height: ${p => p.$height}px;
+  border-radius: ${p => p.$radius}px;
+  background: ${theme.colors.gray300};
+  animation: ${pulse} 1.4s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+`;
+
+let skeletonWidths = ['48%', '34%', '42%', '28%', '38%', '31%'];
+
+export let PickerSkeletonRows = (p: { count?: number }) => (
+  <div aria-busy="true" aria-label="Loading">
+    {skeletonWidths.slice(0, p.count ?? skeletonWidths.length).map((width, i) => (
+      <SkeletonRow key={i}>
+        <Lead>
+          <SkeletonBlock $width="16px" $height={16} $radius={4} />
+        </Lead>
+        <SkeletonBlock $width="32px" $height={32} $radius={8} />
+        <SkeletonBlock $width={width} $height={12} $radius={6} />
+      </SkeletonRow>
+    ))}
+  </div>
 );

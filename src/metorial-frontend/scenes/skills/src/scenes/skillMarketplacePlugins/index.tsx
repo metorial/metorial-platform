@@ -731,7 +731,8 @@ export let SkillMarketplacePluginsScene = (p: {
           }))
         );
         let addedIds = results.filter(result => result.added).map(result => result.skill.id);
-        if (!addedIds.length) return false;
+        let failed = results.filter(result => !result.added).map(result => result.skill.id);
+        if (!addedIds.length) return { failed };
 
         await refresh();
         p.onChange?.();
@@ -743,13 +744,8 @@ export let SkillMarketplacePluginsScene = (p: {
             false
           )
         );
-        if (addedIds.length > 1) {
-          toast.success(
-            `Added ${skillCount(addedIds.length)} to ${getDestinationName(destination)}.`
-          );
-        }
 
-        return addedIds.length === skills.length;
+        return { failed };
       }
     });
   };

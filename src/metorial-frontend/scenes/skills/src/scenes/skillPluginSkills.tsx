@@ -1,10 +1,17 @@
-import { renderWithLoader, renderWithPagination, useForm } from '@metorial/data-hooks';
+import {
+  ResourcePicker,
+  showResourcePicker,
+  submitEach,
+  useResourcePicker
+} from '@metorial/access-ui';
+import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import {
   type Skill,
   type SkillPluginSkill,
   useAllSkillPluginSkills,
   useCreateSkillPluginSkill,
   useDeleteSkillPluginSkill,
+  skillsLoader,
   useSkillPlugin,
   useSkills,
   useUpdateSkillPluginSkill
@@ -17,18 +24,17 @@ import {
   Dialog,
   Input,
   Menu,
-  Panel,
   Spacer,
   Text,
   confirm,
   showModal,
   theme
 } from '@metorial/ui';
-import { Box, ItemGrid, Table } from '@metorial/ui-product';
-import { useSearchFilter } from '@metorial/use-search-filter';
+import { Box, Table } from '@metorial/ui-product';
 import { RiAddLine, RiMore2Line } from '@remixicon/react';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import styled from 'styled-components';
+import { useEntityPickerSource } from '../components/entityPickerSource';
 
 let EmptyState = styled.div`
   line-height: 1.6;
@@ -54,20 +60,6 @@ let Actions = styled.div`
   align-items: center;
   justify-content: flex-end;
 `;
-
-let PickerStack = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-`;
-
-let PickerScroll = styled.div`
-  max-height: calc(100vh - 205px);
-  overflow: auto;
-  padding-right: 2px;
-`;
-
-let paginationOpts = { hidePaginationWhenUnavailable: true };
 
 let Slug = styled.div`
   background: ${theme.colors.gray300};
@@ -100,135 +92,46 @@ let ActionsRow = styled.div`
   justify-content: flex-end;
 `;
 
-let truncate = (value: string | null | undefined, length = 100) => {
-  if (!value) return undefined;
-  if (value.length <= length) return value;
-  return `${value.slice(0, length)}...`;
-};
-
-let SkillPickerResults = (p: {
-  skills: ReturnType<typeof useSkills>;
-  excludedSkillIds: Set<string>;
-  search: string;
-  selectedId: string | null;
-  onSelect: (skill: Skill) => void;
-}) =>
-  renderWithPagination(
-    p.skills,
-    paginationOpts
-  )(skills => {
-    let items = skills.data.items.filter(skill => !p.excludedSkillIds.has(skill.id));
-
-    if (items.length === 0) {
-      return (
-        <Text size="2" color="gray600">
-          {p.search.trim()
-            ? 'No skills match your search.'
-            : 'All active skills are already linked to this plugin.'}
-        </Text>
-      );
-    }
-
-    return (
-      <ItemGrid.Root width="270px">
-        {items.map(skill => (
-          <ItemGrid.Item
-            key={skill.id}
-            title={skill.name}
-            description={truncate(skill.description)}
-            height={200}
-            onClick={() => !p.selectedId && p.onSelect(skill)}
-            icon={
-              <Avatar
-                entity={{
-                  name: skill.name,
-                  imageUrl: `https://avatar-cdn.metorial.com/${skill.id}`
-                }}
-                size={30}
-              />
-            }
-            bottom={
-              <div style={{ display: 'flex' }}>
-                <Slug>{skill.slug}</Slug>
-              </div>
-            }
-          />
-        ))}
-      </ItemGrid.Root>
-    );
-  });
-
 let SkillPickerPanel = (p: {
   instanceId: string;
   excludeSkillIds: string[];
   close: () => void;
-  onSelect: (skill: Skill) => Promise<void> | void;
+  onSelect: (skill: Skill) => Promise<boolean>;
+  onDone: () => Promise<void> | void;
 }) => {
-  let { search, setSearch, searchQuery } = useSearchFilter(500, {
-    updateSearchParams: false
-  });
-  let [selectedId, setSelectedId] = useState<string | null>(null);
-  let excludedSkillIds = useMemo(() => new Set(p.excludeSkillIds), [p.excludeSkillIds]);
-  let skills = useSkills(p.instanceId, {
-    order: 'desc',
-    status: ['active'],
-    limit: 30,
-    ...(searchQuery ? { search: searchQuery } : {})
-  });
+  let picker = useResourcePicker<Skill>();
+  let excluded = useMemo(() => new Set(p.excludeSkillIds), [p.excludeSkillIds]);
 
-  let selectSkill = async (skill: Skill) => {
-    if (selectedId) return;
-    setSelectedId(skill.id);
-    await p.onSelect(skill);
-    p.close();
-  };
+  let source = useEntityPickerSource({
+    loader: skillsLoader,
+    input: { instanceId: p.instanceId, status: ['active'], search: picker.query },
+    kind: 'skill',
+    subtitle: skill => skill.slug,
+    exclude: skill => excluded.has(skill.id)
+  });
 
   return (
-    <>
-      <Panel.Header>
-        <div>
-          <Panel.Title>Add Skill</Panel.Title>
-          <Panel.Description>
-            Choose a skill to add to this plugin. Skills already in the plugin are hidden.
-          </Panel.Description>
-        </div>
-      </Panel.Header>
-
-      <Panel.Content>
-        <PickerStack>
-          <Input
-            label="Search skills"
-            hideLabel
-            placeholder="Search skills..."
-            value={search}
-            onInput={setSearch}
-          />
-
-          <PickerScroll>
-            <SkillPickerResults
-              skills={skills}
-              excludedSkillIds={excludedSkillIds}
-              search={search}
-              selectedId={selectedId}
-              onSelect={selectSkill}
-            />
-          </PickerScroll>
-        </PickerStack>
-      </Panel.Content>
-    </>
+    <ResourcePicker
+      picker={picker}
+      title="Add Skills"
+      description="Pick one or more skills to add to this plugin."
+      placeholder="Search skills…"
+      source={source}
+      empty={{ title: 'All active skills are already linked to this plugin.' }}
+      verb="Add"
+      success={count => (count == 1 ? 'Added 1 skill.' : `Added ${count} skills.`)}
+      onSubmit={async selected => {
+        let result = await submitEach(selected, selection => p.onSelect(selection.value));
+        await p.onDone();
+        return result;
+      }}
+      close={p.close}
+    />
   );
 };
 
-let showSkillPickerPanel = (p: {
-  instanceId: string;
-  excludeSkillIds: string[];
-  onSelect: (skill: Skill) => Promise<void> | void;
-}) =>
-  showModal(({ dialogProps, close }) => (
-    <Panel.Wrapper {...dialogProps} width={1050}>
-      <SkillPickerPanel {...p} close={close} />
-    </Panel.Wrapper>
-  ));
+let showSkillPickerPanel = (p: Omit<Parameters<typeof SkillPickerPanel>[0], 'close'>) =>
+  showResourcePicker(close => <SkillPickerPanel {...p} close={close} />);
 
 let showPluginSkillFormModal = (p: {
   instanceId: string;
@@ -439,10 +342,11 @@ export let SkillPluginSkillsScene = (p: {
           license: skill.license ?? undefined,
           compatibility: skill.compatibility ?? undefined
         });
-        if (created) {
-          await pluginSkills.refetch();
-          await plugin.refetch();
-        }
+        return !!created;
+      },
+      onDone: async () => {
+        await pluginSkills.refetch();
+        await plugin.refetch();
       }
     });
   };

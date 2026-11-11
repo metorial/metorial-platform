@@ -9,13 +9,13 @@ import {
 import { Box } from '@metorial/ui-product';
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { AccessList } from './accessList';
+import { AccessFlat, AccessList } from './accessList';
 
 let AddBar = styled.div`
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px var(--access-inline, 16px);
+  padding: var(--access-toolbar-top, 12px) var(--access-inline, 16px) 12px;
   border-bottom: 1px solid ${theme.colors.gray300};
 
   & > :first-child {
@@ -41,7 +41,8 @@ let Summary = styled.div`
 `;
 
 export let ShareList = <TData,>(p: {
-  title: React.ReactNode;
+  title?: React.ReactNode;
+  flat?: boolean;
   description?: React.ReactNode;
   rightActions?: React.ReactNode;
   addPlaceholder?: string;
@@ -55,8 +56,8 @@ export let ShareList = <TData,>(p: {
 }) => {
   let [resetKey, setResetKey] = useState(0);
 
-  return (
-    <Box noPadding title={p.title} description={p.description} rightActions={p.rightActions}>
+  let content = (
+    <>
       <AddBar>
         <div>
           <Combobox<TData>
@@ -69,6 +70,7 @@ export let ShareList = <TData,>(p: {
             value={null}
             provider={p.provider}
             renderItem={p.renderItem}
+            hideItemIndicator
             onChange={async (_, item) => {
               if (!item) return;
               setResetKey(k => k + 1);
@@ -88,6 +90,14 @@ export let ShareList = <TData,>(p: {
       ) : null}
 
       <AccessList>{p.children}</AccessList>
+    </>
+  );
+
+  if (p.flat) return <AccessFlat>{content}</AccessFlat>;
+
+  return (
+    <Box noPadding title={p.title} description={p.description} rightActions={p.rightActions}>
+      {content}
     </Box>
   );
 };
