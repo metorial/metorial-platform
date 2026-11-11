@@ -73,6 +73,7 @@ export type DashboardInstanceSkillsParticipantsListOutput = {
                     updatedAt: Date;
                   };
                   assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                  ssoGroupIds: string[];
                 }[]
               | null;
           })
@@ -151,6 +152,7 @@ export type DashboardInstanceSkillsParticipantsListOutput = {
                           updatedAt: Date;
                         };
                         assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                        ssoGroupIds: string[];
                       }[]
                     | null;
                 })
@@ -255,7 +257,8 @@ export let mapDashboardInstanceSkillsParticipantsListOutput =
                                               ]
                                             ]
                                           ],
-                                          'assigned_via'
+                                          'assigned_via',
+                                          'sso_group_ids'
                                         ]
                                       ]
                                     ]
@@ -361,7 +364,8 @@ export let mapDashboardInstanceSkillsParticipantsListOutput =
                                                       ]
                                                     ]
                                                   ],
-                                                  'assigned_via'
+                                                  'assigned_via',
+                                                  'sso_group_ids'
                                                 ]
                                               ]
                                             ]

@@ -76,6 +76,7 @@ export type ManagementInstanceDocumentsCloneOutput = {
                   updatedAt: Date;
                 };
                 assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                ssoGroupIds: string[];
               }[]
             | null;
         })
@@ -152,6 +153,7 @@ export type ManagementInstanceDocumentsCloneOutput = {
                   updatedAt: Date;
                 };
                 assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                ssoGroupIds: string[];
               }[]
             | null;
         })
@@ -227,7 +229,8 @@ export let mapManagementInstanceDocumentsCloneOutput =
                                     ['is_default', 'created_at', 'updated_at']
                                   ]
                                 ],
-                                'assigned_via'
+                                'assigned_via',
+                                'sso_group_ids'
                               ]
                             ]
                           ]
@@ -307,7 +310,8 @@ export let mapManagementInstanceDocumentsCloneOutput =
                                       ['is_default', 'created_at', 'updated_at']
                                     ]
                                   ],
-                                  'assigned_via'
+                                  'assigned_via',
+                                  'sso_group_ids'
                                 ]
                               ]
                             ]

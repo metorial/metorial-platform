@@ -95,6 +95,7 @@ export type ManagementInstanceConversationsMessagesListOutput = {
                       updatedAt: Date;
                     };
                     assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                    ssoGroupIds: string[];
                   }[]
                 | null;
             })
@@ -210,7 +211,8 @@ export let mapManagementInstanceConversationsMessagesListOutput =
                                               ]
                                             ]
                                           ],
-                                          'assigned_via'
+                                          'assigned_via',
+                                          'sso_group_ids'
                                         ]
                                       ]
                                     ]

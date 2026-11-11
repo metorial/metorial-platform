@@ -88,6 +88,7 @@ export type DashboardInstanceStoresItemsModifyOutput = {
                       updatedAt: Date;
                     };
                     assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                    ssoGroupIds: string[];
                   }[]
                 | null;
             })
@@ -172,6 +173,7 @@ export type DashboardInstanceStoresItemsModifyOutput = {
                       updatedAt: Date;
                     };
                     assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                    ssoGroupIds: string[];
                   }[]
                 | null;
             })
@@ -291,7 +293,8 @@ export let mapDashboardInstanceStoresItemsModifyOutput =
                                                   ]
                                                 ]
                                               ],
-                                              'assigned_via'
+                                              'assigned_via',
+                                              'sso_group_ids'
                                             ]
                                           ]
                                         ]
@@ -403,7 +406,8 @@ export let mapDashboardInstanceStoresItemsModifyOutput =
                                                   ]
                                                 ]
                                               ],
-                                              'assigned_via'
+                                              'assigned_via',
+                                              'sso_group_ids'
                                             ]
                                           ]
                                         ]

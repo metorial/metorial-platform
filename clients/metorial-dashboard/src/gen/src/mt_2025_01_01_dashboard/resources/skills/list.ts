@@ -93,6 +93,7 @@ export type SkillsListOutput = {
                       updatedAt: Date;
                     };
                     assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                    ssoGroupIds: string[];
                   }[]
                 | null;
             })
@@ -168,6 +169,7 @@ export type SkillsListOutput = {
                         updatedAt: Date;
                       };
                       assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                      ssoGroupIds: string[];
                     }[]
                   | null;
               })
@@ -240,6 +242,7 @@ export type SkillsListOutput = {
                         updatedAt: Date;
                       };
                       assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                      ssoGroupIds: string[];
                     }[]
                   | null;
               })
@@ -378,7 +381,8 @@ export let mapSkillsListOutput = /* @__PURE__ */ createMapper<SkillsListOutput>(
                                             ]
                                           ]
                                         ],
-                                        'assigned_via'
+                                        'assigned_via',
+                                        'sso_group_ids'
                                       ]
                                     ]
                                   ]
@@ -483,7 +487,8 @@ export let mapSkillsListOutput = /* @__PURE__ */ createMapper<SkillsListOutput>(
                                                   ]
                                                 ]
                                               ],
-                                              'assigned_via'
+                                              'assigned_via',
+                                              'sso_group_ids'
                                             ]
                                           ]
                                         ]
@@ -581,7 +586,8 @@ export let mapSkillsListOutput = /* @__PURE__ */ createMapper<SkillsListOutput>(
                                                   ]
                                                 ]
                                               ],
-                                              'assigned_via'
+                                              'assigned_via',
+                                              'sso_group_ids'
                                             ]
                                           ]
                                         ]

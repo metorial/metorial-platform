@@ -93,6 +93,7 @@ export type ManagementInstanceSkillsListOutput = {
                       updatedAt: Date;
                     };
                     assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                    ssoGroupIds: string[];
                   }[]
                 | null;
             })
@@ -168,6 +169,7 @@ export type ManagementInstanceSkillsListOutput = {
                         updatedAt: Date;
                       };
                       assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                      ssoGroupIds: string[];
                     }[]
                   | null;
               })
@@ -240,6 +242,7 @@ export type ManagementInstanceSkillsListOutput = {
                         updatedAt: Date;
                       };
                       assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                      ssoGroupIds: string[];
                     }[]
                   | null;
               })
@@ -385,7 +388,8 @@ export let mapManagementInstanceSkillsListOutput =
                                               ]
                                             ]
                                           ],
-                                          'assigned_via'
+                                          'assigned_via',
+                                          'sso_group_ids'
                                         ]
                                       ]
                                     ]
@@ -490,7 +494,8 @@ export let mapManagementInstanceSkillsListOutput =
                                                     ]
                                                   ]
                                                 ],
-                                                'assigned_via'
+                                                'assigned_via',
+                                                'sso_group_ids'
                                               ]
                                             ]
                                           ]
@@ -588,7 +593,8 @@ export let mapManagementInstanceSkillsListOutput =
                                                     ]
                                                   ]
                                                 ],
-                                                'assigned_via'
+                                                'assigned_via',
+                                                'sso_group_ids'
                                               ]
                                             ]
                                           ]

@@ -76,6 +76,7 @@ export type DashboardInstanceDocumentsCommentThreadsListOutput = {
                     updatedAt: Date;
                   };
                   assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                  ssoGroupIds: string[];
                 }[]
               | null;
           })
@@ -149,6 +150,7 @@ export type DashboardInstanceDocumentsCommentThreadsListOutput = {
                     updatedAt: Date;
                   };
                   assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                  ssoGroupIds: string[];
                 }[]
               | null;
           })
@@ -228,6 +230,7 @@ export type DashboardInstanceDocumentsCommentThreadsListOutput = {
                       updatedAt: Date;
                     };
                     assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                    ssoGroupIds: string[];
                   }[]
                 | null;
             })
@@ -319,7 +322,8 @@ export let mapDashboardInstanceDocumentsCommentThreadsListOutput =
                                         ]
                                       ]
                                     ],
-                                    'assigned_via'
+                                    'assigned_via',
+                                    'sso_group_ids'
                                   ]
                                 ]
                               ]
@@ -400,7 +404,8 @@ export let mapDashboardInstanceDocumentsCommentThreadsListOutput =
                                         ]
                                       ]
                                     ],
-                                    'assigned_via'
+                                    'assigned_via',
+                                    'sso_group_ids'
                                   ]
                                 ]
                               ]
@@ -504,7 +509,8 @@ export let mapDashboardInstanceDocumentsCommentThreadsListOutput =
                                                 ]
                                               ]
                                             ],
-                                            'assigned_via'
+                                            'assigned_via',
+                                            'sso_group_ids'
                                           ]
                                         ]
                                       ]

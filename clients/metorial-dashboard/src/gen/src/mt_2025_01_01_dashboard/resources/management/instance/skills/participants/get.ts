@@ -72,6 +72,7 @@ export type ManagementInstanceSkillsParticipantsGetOutput = {
                   updatedAt: Date;
                 };
                 assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                ssoGroupIds: string[];
               }[]
             | null;
         })
@@ -150,6 +151,7 @@ export type ManagementInstanceSkillsParticipantsGetOutput = {
                         updatedAt: Date;
                       };
                       assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                      ssoGroupIds: string[];
                     }[]
                   | null;
               })
@@ -244,7 +246,8 @@ export let mapManagementInstanceSkillsParticipantsGetOutput =
                                             ]
                                           ]
                                         ],
-                                        'assigned_via'
+                                        'assigned_via',
+                                        'sso_group_ids'
                                       ]
                                     ]
                                   ]
@@ -350,7 +353,8 @@ export let mapManagementInstanceSkillsParticipantsGetOutput =
                                                     ]
                                                   ]
                                                 ],
-                                                'assigned_via'
+                                                'assigned_via',
+                                                'sso_group_ids'
                                               ]
                                             ]
                                           ]

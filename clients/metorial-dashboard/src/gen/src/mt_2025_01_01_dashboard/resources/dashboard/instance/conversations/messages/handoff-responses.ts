@@ -94,6 +94,7 @@ export type DashboardInstanceConversationsMessagesHandoffResponsesOutput = {
                     updatedAt: Date;
                   };
                   assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                  ssoGroupIds: string[];
                 }[]
               | null;
           })
@@ -193,7 +194,8 @@ export let mapDashboardInstanceConversationsMessagesHandoffResponsesOutput =
                                           ]
                                         ]
                                       ],
-                                      'assigned_via'
+                                      'assigned_via',
+                                      'sso_group_ids'
                                     ]
                                   ]
                                 ]

@@ -92,6 +92,7 @@ export type SkillsForkOutput = {
                     updatedAt: Date;
                   };
                   assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                  ssoGroupIds: string[];
                 }[]
               | null;
           })
@@ -167,6 +168,7 @@ export type SkillsForkOutput = {
                       updatedAt: Date;
                     };
                     assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                    ssoGroupIds: string[];
                   }[]
                 | null;
             })
@@ -239,6 +241,7 @@ export type SkillsForkOutput = {
                       updatedAt: Date;
                     };
                     assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                    ssoGroupIds: string[];
                   }[]
                 | null;
             })
@@ -368,7 +371,8 @@ export let mapSkillsForkOutput = /* @__PURE__ */ mapObject<SkillsForkOutput>(
                                         ]
                                       ]
                                     ],
-                                    'assigned_via'
+                                    'assigned_via',
+                                    'sso_group_ids'
                                   ]
                                 ]
                               ]
@@ -464,7 +468,8 @@ export let mapSkillsForkOutput = /* @__PURE__ */ mapObject<SkillsForkOutput>(
                                               ]
                                             ]
                                           ],
-                                          'assigned_via'
+                                          'assigned_via',
+                                          'sso_group_ids'
                                         ]
                                       ]
                                     ]
@@ -553,7 +558,8 @@ export let mapSkillsForkOutput = /* @__PURE__ */ mapObject<SkillsForkOutput>(
                                               ]
                                             ]
                                           ],
-                                          'assigned_via'
+                                          'assigned_via',
+                                          'sso_group_ids'
                                         ]
                                       ]
                                     ]

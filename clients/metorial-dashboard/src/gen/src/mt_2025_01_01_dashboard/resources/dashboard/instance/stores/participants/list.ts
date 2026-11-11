@@ -74,6 +74,7 @@ export type DashboardInstanceStoresParticipantsListOutput = {
                     updatedAt: Date;
                   };
                   assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                  ssoGroupIds: string[];
                 }[]
               | null;
           })
@@ -152,6 +153,7 @@ export type DashboardInstanceStoresParticipantsListOutput = {
                           updatedAt: Date;
                         };
                         assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                        ssoGroupIds: string[];
                       }[]
                     | null;
                 })
@@ -242,7 +244,8 @@ export let mapDashboardInstanceStoresParticipantsListOutput =
                                         ]
                                       ]
                                     ],
-                                    'assigned_via'
+                                    'assigned_via',
+                                    'sso_group_ids'
                                   ]
                                 ]
                               ]
@@ -343,7 +346,8 @@ export let mapDashboardInstanceStoresParticipantsListOutput =
                                                 ]
                                               ]
                                             ],
-                                            'assigned_via'
+                                            'assigned_via',
+                                            'sso_group_ids'
                                           ]
                                         ]
                                       ]
