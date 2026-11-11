@@ -21,7 +21,11 @@ describe('module-consumer-core groups and membership', () => {
 
   let profileIds = async (
     surface: ConsumerSurface,
-    input: { consumerGroupId?: string; visibleToConsumerGroups?: ConsumerGroup[] }
+    input: {
+      consumerGroupId?: string;
+      source?: 'manual' | 'sso';
+      visibleToConsumerGroups?: ConsumerGroup[];
+    }
   ) =>
     (
       await firstPage(
@@ -307,6 +311,44 @@ describe('module-consumer-core groups and membership', () => {
       consumerProfile: profile
     });
     expect(afterArchive.map(group => group.id)).not.toContain(manual.id);
+  });
+
+  it('filters group members by how they were assigned', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let surface = await createConsumerSurface(fixture);
+    let group = await createConsumerGroup(fixture, surface, {
+      ssoGroupIds: ['sso-platform']
+    });
+    let synced = await consumerProfileService.ensureConsumerProfile({
+      surface,
+      email: uniqueEmail('synced'),
+      name: 'Synced Profile',
+      auditScope: fixture.auditScope,
+      ssoGroupIds: ['sso-platform']
+    });
+    let manual = await createConsumerProfile(fixture, surface);
+    let both = await consumerProfileService.ensureConsumerProfile({
+      surface,
+      email: uniqueEmail('both'),
+      name: 'Both Profile',
+      auditScope: fixture.auditScope,
+      ssoGroupIds: ['sso-platform']
+    });
+
+    for (let consumerProfile of [manual, both]) {
+      await consumerProfileService.assignToGroups({
+        consumerProfile,
+        groupIds: [group.id],
+        auditScope: fixture.auditScope
+      });
+    }
+
+    let ids = async (source?: 'manual' | 'sso') =>
+      (await profileIds(surface, { consumerGroupId: group.id, source })).sort();
+
+    expect(await ids()).toEqual([synced.id, manual.id, both.id].sort());
+    expect(await ids('sso')).toEqual([synced.id, both.id].sort());
+    expect(await ids('manual')).toEqual([manual.id]);
   });
 
   it('limits profile visibility to profiles that share a non-default group', async () => {
