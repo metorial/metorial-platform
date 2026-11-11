@@ -1,53 +1,72 @@
 import { renderWithLoader } from '@metorial/data-hooks';
-import { Paths } from '@metorial/frontend-config';
-import { SkillTemplateLinkProvidersScene, StoreFileViewerScene } from '@metorial/scene-skills';
-import {
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject,
-  useSkillTemplate
-} from '@metorial/state';
-import { Callout } from '@metorial/ui';
+import { DocumentEditorScene, DocumentSkeleton } from '@metorial/scene-docs';
+import { useSkillWorkspace } from '@metorial/scene-skills';
+import { useAllStoreItems, useCurrentInstance, useSkillTemplate } from '@metorial/state';
+import { Text } from '@metorial/ui';
 import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
 
-let PageStack = styled.div`
+let DocumentPage = styled.div`
+  height: 100%;
+  min-height: 0;
+`;
+
+let EmptyState = styled.div`
   display: flex;
-  flex-direction: column;
-  gap: 20px;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 32px;
 `;
 
 export let SkillTemplatePage = () => {
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
   let instance = useCurrentInstance();
   let { skillTemplateId } = useParams();
+  let workspace = useSkillWorkspace();
   let skillTemplate = useSkillTemplate(instance.data?.id, skillTemplateId);
+  let storeItems = useAllStoreItems(instance.data?.id, skillTemplate.data?.storeId, {
+    order: 'asc',
+    type: ['document']
+  });
 
-  return renderWithLoader({ skillTemplate })(({ skillTemplate }) => (
-    <PageStack>
-      {skillTemplate.data.owner === 'system' && (
-        <Callout color="gray">
-          This skill template is managed by Metorial. You cannot modify the files or linked
-          providers for this template.
-        </Callout>
+  return (
+    <DocumentPage>
+      {!skillTemplate.data || !storeItems.data ? (
+        skillTemplate.error || storeItems.error ? (
+          renderWithLoader({ skillTemplate, storeItems })(() => null)
+        ) : (
+          <DocumentSkeleton />
+        )
+      ) : (
+        renderWithLoader({ skillTemplate, storeItems })(({ storeItems }) => {
+          let document = storeItems.data.find(
+            item => item.path.replace(/^\/+/, '').toLowerCase() == 'skill.md'
+          )?.document;
+
+          if (!document) {
+            return (
+              <EmptyState>
+                <Text color="gray600">
+                  This template does not contain a SKILL.md document.
+                </Text>
+              </EmptyState>
+            );
+          }
+
+          return (
+            <DocumentEditorScene
+              instanceId={instance.data?.id}
+              documentId={document.id}
+              chrome={workspace ? 'external' : undefined}
+              titleAccessory={workspace?.skillDocumentTitleAccessory}
+              setRestrictHeight={enabled =>
+                (window as any).metorial_setRestrictHeight?.(enabled)
+              }
+              hideSharingControls
+            />
+          );
+        })
       )}
-
-      <StoreFileViewerScene
-        instanceId={instance.data?.id}
-        storeId={skillTemplate.data.storeId}
-        title="Template Files"
-        description="Manage the documents and files that are included with this skill template."
-        readOnly={skillTemplate.data.owner === 'system'}
-        getDocumentPath={documentId =>
-          Paths.instance(organization.data, project.data, instance.data, 'doc', documentId)
-        }
-      />
-      <SkillTemplateLinkProvidersScene
-        instanceId={instance.data?.id}
-        skillTemplateId={skillTemplateId}
-        readOnly={skillTemplate.data.owner === 'system'}
-      />
-    </PageStack>
-  ));
+    </DocumentPage>
+  );
 };
