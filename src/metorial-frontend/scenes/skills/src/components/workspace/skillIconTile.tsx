@@ -6,6 +6,7 @@ import {
 } from '@metorial/skill-icons';
 import { theme } from '@metorial/ui';
 import { RiFileTextLine } from '@remixicon/react';
+import type { ReactNode } from 'react';
 import styled from 'styled-components';
 
 export type SkillImageSelection = {
@@ -114,3 +115,18 @@ export let SkillIconTile = (p: {
     </Placeholder>
   );
 };
+
+export let hasSkillImage = (image: SkillImageSelection | null | undefined) =>
+  !!image && image.type != 'default';
+
+export let SkillGroupIcon = (p: {
+  image?: SkillImageSelection | null;
+  imageUrl?: string | null;
+  size: number;
+  fallback: ReactNode;
+}) =>
+  hasSkillImage(p.image) ? (
+    <SkillIconTile image={p.image} imageUrl={p.imageUrl} size={p.size} />
+  ) : (
+    <>{p.fallback}</>
+  );

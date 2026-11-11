@@ -9,7 +9,7 @@ import {
 } from '../files/documentParticipant';
 import { v1IntegrationPreviewPresenter, v1ProviderPreview } from '../provider';
 
-let presentSkillImage = (image: PrismaJson.EntityImage | null) => ({
+export let presentSkillImage = (image: PrismaJson.EntityImage | null) => ({
   object: 'skill.image' as const,
   type:
     image?.type == 'file' || image?.type == 'url' || image?.type == 'icon'
@@ -19,7 +19,7 @@ let presentSkillImage = (image: PrismaJson.EntityImage | null) => ({
   color: image?.type == 'icon' ? image.color : null
 });
 
-let skillImageSchema = v.object({
+export let skillImageSchema = v.object({
   object: v.literal('skill.image'),
   type: v.enumOf(['file', 'url', 'icon', 'default']),
   icon: v.nullable(v.string()),

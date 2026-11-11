@@ -1,6 +1,7 @@
 import { Popover } from '@base-ui/react/popover';
 import React from 'react';
 import { styled } from 'styled-components';
+import { useIsInDialog } from '../dialog/state';
 import { theme } from '../theme';
 import { floatingPopupSurface, floatingTokens } from './tokens';
 
@@ -20,6 +21,7 @@ export type FloatingPopoverProps = {
 let Positioner = styled(Popover.Positioner)`
   z-index: ${floatingTokens.zIndex};
   outline: none;
+  pointer-events: auto;
 `;
 
 let Popup = styled(Popover.Popup)<{ $width: string }>`
@@ -74,25 +76,32 @@ export let FloatingPopover = ({
   onOpenChange,
   title,
   description
-}: FloatingPopoverProps) => (
-  <Popover.Root open={open} onOpenChange={value => onOpenChange?.(value)}>
-    <Popover.Trigger render={trigger} />
+}: FloatingPopoverProps) => {
+  let isInDialog = useIsInDialog();
 
-    <Popover.Portal>
-      <Positioner side={side} align={align} sideOffset={sideOffset} collisionPadding={12}>
-        <Popup $width={typeof width == 'number' ? `${width}px` : width}>
-          {(title || description) && (
-            <Head>
-              {title && <Title>{title}</Title>}
-              {description && <Description>{description}</Description>}
-            </Head>
-          )}
+  return (
+    <Popover.Root open={open} onOpenChange={value => onOpenChange?.(value)}>
+      <Popover.Trigger render={trigger} />
 
-          {children}
-        </Popup>
-      </Positioner>
-    </Popover.Portal>
-  </Popover.Root>
-);
+      <Popover.Portal>
+        <Positioner side={side} align={align} sideOffset={sideOffset} collisionPadding={12}>
+          <Popup
+            $width={typeof width == 'number' ? `${width}px` : width}
+            data-metorial-menu-content={isInDialog ? '' : undefined}
+          >
+            {(title || description) && (
+              <Head>
+                {title && <Title>{title}</Title>}
+                {description && <Description>{description}</Description>}
+              </Head>
+            )}
+
+            {children}
+          </Popup>
+        </Positioner>
+      </Popover.Portal>
+    </Popover.Root>
+  );
+};
 
 export let FloatingPopoverClose = Popover.Close;

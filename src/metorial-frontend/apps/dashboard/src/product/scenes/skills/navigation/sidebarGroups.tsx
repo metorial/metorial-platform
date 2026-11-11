@@ -2,7 +2,7 @@ import type { DashboardInstanceSkillsGroupsListOutput } from '@metorial/dashboar
 import type { EntityParam } from '@metorial/frontend-config';
 import { Paths } from '@metorial/frontend-config';
 import type { ISidebarGroup, ISidebarItem } from '@metorial/layout';
-import { SkillIconTile } from '@metorial/scene-skills';
+import { SkillGroupIcon, SkillIconTile } from '@metorial/scene-skills';
 import { RiArrowRightSLine, RiFolderLine, RiFolderOpenLine } from '@remixicon/react';
 import { useLayoutEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -168,7 +168,14 @@ export let useSkillsSidebarGroups = (opts: { enabled: boolean }): ISidebarGroup[
     let isOpen = isPathActive(location.pathname, to) || activePlacement == placement;
 
     return {
-      icon: isOpen ? <RiFolderOpenLine /> : <RiFolderLine />,
+      icon: (
+        <SkillGroupIcon
+          image={group.image}
+          imageUrl={group.imageUrl}
+          size={sidebarIconSize}
+          fallback={isOpen ? <RiFolderOpenLine /> : <RiFolderLine />}
+        />
+      ),
       label: group.name,
       to,
       getProps: i => ({ isActive: isPathActive(i.pathname, i.to) }),

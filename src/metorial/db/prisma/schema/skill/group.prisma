@@ -19,6 +19,8 @@ model SkillGroup {
   name        String
   description String?
   metadata    Json?
+  /// [EntityImage]
+  image       Json?
 
   allowConsumerSkillAssignment Boolean @default(true)
 

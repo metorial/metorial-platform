@@ -1,8 +1,9 @@
+import { canonicalize } from '@lowerdeck/canonicalize';
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { AuditScope } from '@metorial/audit-scope';
-import type { Instance, Project, SkillGroup } from '@metorial/db';
+import type { EntityImage, Instance, Project, SkillGroup } from '@metorial/db';
 import { db, ID, type Prisma, withTransaction } from '@metorial/db';
 import { Fabric, type AuditSkillGroup } from '@metorial/fabric';
 import { type DateFilter, normalizeDateFilter } from '@metorial/list-utils';
@@ -14,6 +15,8 @@ import {
   storeResourceAccessLevels,
   type StoreResourceAccessLevel
 } from '@metorial/module-access';
+import { internalImageService } from '@metorial/skills-images';
+import { isSkillIcon } from '@metorial/skill-icons';
 import { getProjectTenantIdentifier } from '@metorial/skills-common';
 import { buildSearchFilter } from '@metorial/module-search';
 import { skillGroupPluginService } from '@metorial/module-skill-marketplace';
@@ -250,11 +253,46 @@ class SkillGroupServiceImpl {
       metadata?: Prisma.InputJsonValue | null;
       skillIds?: string[];
       allowConsumerSkillAssignment?: boolean;
+      imageFileId?: string | null;
+      imageIcon?: { icon: string; color: string } | null;
     };
   }) {
     if (d.input.name !== undefined) assertSkillGroupName(d.input.name);
 
+    if (d.input.imageIcon !== undefined && d.input.imageFileId !== undefined) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Provide either an image file or an icon, not both'
+        })
+      );
+    }
+
+    if (d.input.imageIcon && !isSkillIcon(d.input.imageIcon)) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Unknown skill icon or color'
+        })
+      );
+    }
+
     let group = await this.getSkillGroupById({ ...d, allowDeleted: true });
+
+    let nextImage: EntityImage | undefined;
+    if (d.input.imageIcon !== undefined) {
+      nextImage = d.input.imageIcon
+        ? { type: 'icon', icon: d.input.imageIcon.icon, color: d.input.imageIcon.color }
+        : { type: 'default' };
+    }
+
+    if (d.input.imageFileId !== undefined) {
+      nextImage = await internalImageService.resolveImageEntityImage({
+        project: d.project,
+        instance: d.instance,
+        entity: { id: group.id, type: 'skill_group' },
+        imageFileId: d.input.imageFileId,
+        clearedImage: { type: 'default' }
+      });
+    }
     let skills = d.input.skillIds
       ? await db.skill.findMany({
           where: {
@@ -269,14 +307,15 @@ class SkillGroupServiceImpl {
       await skillGroupPluginService.assertSkillGroupCanAddSkills({ skillGroup: group, skills });
     }
 
-    return await withTransaction(async db => {
+    let updated = await withTransaction(async db => {
       await db.skillGroup.update({
         where: { id: group.id },
         data: {
           name: d.input.name?.trim(),
           description: d.input.description,
           metadata: d.input.metadata as any,
-          allowConsumerSkillAssignment: d.input.allowConsumerSkillAssignment
+          allowConsumerSkillAssignment: d.input.allowConsumerSkillAssignment,
+          image: nextImage as any
         }
       });
       if (skills) {
@@ -317,6 +356,17 @@ class SkillGroupServiceImpl {
       await enqueueSkillGroupLifecycle({ skillGroupId: result.id, event: 'updated' });
       return result;
     });
+
+    if (nextImage !== undefined) {
+      await internalImageService.cleanupImageEntityImage({
+        image:
+          group.image && canonicalize(group.image) !== canonicalize(nextImage)
+            ? (group.image as EntityImage)
+            : undefined
+      });
+    }
+
+    return updated;
   }
 
   async archiveSkillGroup(d: {

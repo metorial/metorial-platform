@@ -234,18 +234,8 @@ export let IconPicker = (p: {
     void apply({ type: 'upload', file });
   };
 
-  return (
-    <FloatingPopover
-      trigger={p.trigger}
-      open={open}
-      onOpenChange={value => {
-        setOpen(value);
-        if (value) setColor(currentColor);
-      }}
-      side={p.side}
-      align={p.align ?? 'start'}
-      width={344}
-    >
+  let body = (
+    <>
       <Tabs>
         <Tab $active={tab == 'icons'} onClick={() => setTab('icons')} type="button">
           Icons
@@ -351,6 +341,22 @@ export let IconPicker = (p: {
           />
         </>
       )}
+    </>
+  );
+
+  return (
+    <FloatingPopover
+      trigger={p.trigger}
+      open={open}
+      onOpenChange={value => {
+        setOpen(value);
+        if (value) setColor(currentColor);
+      }}
+      side={p.side}
+      align={p.align ?? 'start'}
+      width={344}
+    >
+      {body}
     </FloatingPopover>
   );
 };

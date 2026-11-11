@@ -1,9 +1,12 @@
 import { renderWithLoader, useForm } from '@metorial/data-hooks';
 import { PageHeader } from '@metorial/layout';
-import { useSkill, useSkillGroup, useSkillTemplate } from '@metorial/state';
-import { Button, Dialog, Input, Spacer, Text, confirm, theme } from '@metorial/ui';
+import { useSkill, useSkillGroup, useSkillTemplate, useUploadFile } from '@metorial/state';
+import { Button, Dialog, Input, Spacer, Text, confirm, snackbar, theme } from '@metorial/ui';
 import { Box } from '@metorial/ui-product';
+import { RiFolderLine } from '@remixicon/react';
 import styled from 'styled-components';
+import { IconPicker, type SkillImageChange } from '../components/workspace/iconPicker';
+import { SkillGroupIcon } from '../components/workspace/skillIconTile';
 import { SkillImageUploader } from '../components/skillImageUploader';
 import { SkillPanelPage } from '../components/skillPanelPage';
 
@@ -31,6 +34,61 @@ let FormStack = styled.div`
   display: flex;
   flex-direction: column;
   gap: 14px;
+`;
+
+let IconTrigger = styled.button`
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 12px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover:not(:disabled) > :first-child,
+  &:focus-visible > :first-child {
+    box-shadow: 0 0 0 3px ${theme.colors.gray300};
+  }
+
+  > :first-child {
+    border-radius: 12px;
+    transition: box-shadow 0.15s ease;
+  }
+`;
+
+let IconPlaceholder = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: ${theme.colors.gray250};
+  color: ${theme.colors.gray800};
+
+  svg {
+    width: 24px;
+    height: 24px;
+  }
+`;
+
+let IconTriggerLabel = styled.span`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: ${theme.colors.foreground};
+  font-size: 14px;
+  font-weight: 500;
+
+  small {
+    color: ${theme.colors.gray650};
+    font-size: 12.5px;
+    font-weight: 400;
+  }
 `;
 
 let ActionsRow = styled.div`
@@ -395,6 +453,35 @@ export let SkillGroupSettingsForm = (p: {
 }) => {
   let skillGroup = useSkillGroup(p.instanceId, p.skillGroupId);
   let updateMutator = skillGroup.updateMutator();
+  let imageMutator = skillGroup.updateMutator();
+  let uploadFile = useUploadFile();
+
+  let changeImage = async (change: SkillImageChange) => {
+    if (!p.instanceId) return;
+
+    try {
+      if (change.type == 'icon') {
+        await imageMutator.mutate({ imageIcon: { icon: change.icon, color: change.color } });
+      }
+
+      if (change.type == 'remove') {
+        await imageMutator.mutate({ imageIcon: null });
+      }
+
+      if (change.type == 'upload') {
+        let [file, error] = await uploadFile.mutate({
+          instanceId: p.instanceId,
+          file: change.file,
+          purpose: 'skill_image'
+        });
+        if (!file || error) throw error ?? new Error('Upload failed');
+
+        await imageMutator.mutate({ imageFileId: file.id });
+      }
+    } catch {
+      snackbar.error('Could not update the group icon');
+    }
+  };
 
   let form = useForm({
     initialValues: {
@@ -419,6 +506,29 @@ export let SkillGroupSettingsForm = (p: {
   return renderWithLoader({ skillGroup })(() => (
     <form onSubmit={form.handleSubmit}>
       <FormStack>
+        <IconPicker
+          image={skillGroup.data?.image}
+          onChange={changeImage}
+          trigger={
+            <IconTrigger type="button" aria-label="Change icon">
+              <SkillGroupIcon
+                image={skillGroup.data?.image}
+                imageUrl={skillGroup.data?.imageUrl}
+                size={48}
+                fallback={
+                  <IconPlaceholder>
+                    <RiFolderLine />
+                  </IconPlaceholder>
+                }
+              />
+              <IconTriggerLabel>
+                <span>Group Icon</span>
+                <small>Click to change</small>
+              </IconTriggerLabel>
+            </IconTrigger>
+          }
+        />
+
         <Input label="Name" {...form.getFieldProps('name')} />
         <form.RenderError field="name" />
 
