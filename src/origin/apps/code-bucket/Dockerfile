@@ -48,16 +48,21 @@ COPY --from=workspace-builder /workspace/dist ./pkg/workspace/dist
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o code-bucket ./cmd/server
 
 # Stage 3: Final minimal image
-FROM alpine:latest
+FROM alpine:3.22
 
-RUN apk --no-cache add ca-certificates tzdata
+RUN apk --no-cache add ca-certificates tzdata \
+ && addgroup -S -g 10001 metorial \
+ && adduser -S -D -H -u 10001 -G metorial metorial
 
-WORKDIR /root/
+WORKDIR /app
 
 COPY --from=go-builder /app/code-bucket .
 
 EXPOSE 52091
 EXPOSE 52092
 EXPOSE 5050
+EXPOSE 12121
+
+USER 10001:10001
 
 CMD ["./code-bucket"]

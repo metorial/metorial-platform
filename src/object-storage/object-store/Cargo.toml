@@ -28,6 +28,7 @@ chrono = { workspace = true }
 mime_guess = { workspace = true }
 futures = "0.3"
 bytes = "1.5"
+hmac = "0.12"
 tokio-util = { version = "0.7", features = ["rt"] }
 sha2 = { workspace = true }
 hex = { workspace = true }
