@@ -162,7 +162,7 @@ export type DashboardInstanceSkillsParticipantsGetOutput = {
   lastActiveAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
-} & { hasOrganizationMemberAccess: boolean };
+} & { consumerId: string | null; hasOrganizationMemberAccess: boolean };
 
 export let mapDashboardInstanceSkillsParticipantsGetOutput =
   /* @__PURE__ */ createMapper<DashboardInstanceSkillsParticipantsGetOutput>(
@@ -373,6 +373,7 @@ export let mapDashboardInstanceSkillsParticipantsGetOutput =
               'last_active_at',
               'created_at',
               'updated_at',
+              'consumer_id',
               'has_organization_member_access'
             ]
           ]

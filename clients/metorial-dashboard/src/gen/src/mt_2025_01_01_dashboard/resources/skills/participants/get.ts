@@ -162,7 +162,7 @@ export type SkillsParticipantsGetOutput = {
   lastActiveAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
-} & { hasOrganizationMemberAccess: boolean };
+} & { consumerId: string | null; hasOrganizationMemberAccess: boolean };
 
 export let mapSkillsParticipantsGetOutput =
   /* @__PURE__ */ createMapper<SkillsParticipantsGetOutput>(
@@ -373,6 +373,7 @@ export let mapSkillsParticipantsGetOutput =
               'last_active_at',
               'created_at',
               'updated_at',
+              'consumer_id',
               'has_organization_member_access'
             ]
           ]

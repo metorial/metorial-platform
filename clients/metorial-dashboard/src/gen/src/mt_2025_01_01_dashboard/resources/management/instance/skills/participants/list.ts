@@ -163,7 +163,7 @@ export type ManagementInstanceSkillsParticipantsListOutput = {
     lastActiveAt: Date | null;
     createdAt: Date;
     updatedAt: Date;
-  } & { hasOrganizationMemberAccess: boolean })[];
+  } & { consumerId: string | null; hasOrganizationMemberAccess: boolean })[];
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
@@ -384,6 +384,7 @@ export let mapManagementInstanceSkillsParticipantsListOutput =
                 'last_active_at',
                 'created_at',
                 'updated_at',
+                'consumer_id',
                 'has_organization_member_access'
               ]
             ]
