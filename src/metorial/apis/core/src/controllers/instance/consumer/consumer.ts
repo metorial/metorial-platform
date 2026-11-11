@@ -1,6 +1,14 @@
 import { badRequestError, forbiddenError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
-import { v } from '@lowerdeck/validation';
+import { introspectType, v } from '@lowerdeck/validation';
+import type { AuditScope } from '@metorial/audit-scope';
+import type { Instance, OrganizationMember, User } from '@metorial/db';
+import { accessService } from '@metorial/module-access';
+import { consumerAccessService } from '@metorial/module-consumer-access';
+import { consumerActorService } from '@metorial/module-consumer-entities';
+import { oauthAuthorizationService } from '@metorial/module-machine-access';
+import { providerTemplateService } from '@metorial/module-magic';
+import { integrationService } from '@metorial-subspace/module-integration';
 import {
   consumerProfileService,
   consumerService,
@@ -16,6 +24,28 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
+
+let ensureMemberCliConsumer = async (d: {
+  instance: Instance;
+  member: OrganizationMember;
+  user: User;
+  auditScope: AuditScope;
+}) => {
+  let surface = await consumerSurfaceService.ensureInternalConsumerSurface({
+    instance: d.instance,
+    identifier: 'cli',
+    name: 'Metorial CLI',
+    type: 'cli'
+  });
+  return await consumerProfileService.ensureConsumerProfile({
+    surface,
+    email: d.user.email,
+    name: d.user.name,
+    member: d.member,
+    user: d.user,
+    auditScope: d.auditScope
+  });
+};
 
 let getAssignedConsumerGroupsByProfileId = async (d: {
   consumerProfiles: Awaited<
@@ -222,18 +252,10 @@ export let consumerController = Controller.create(
           );
         }
 
-        let consumerSurface = await consumerSurfaceService.ensureInternalConsumerSurface({
+        let consumerProfile = await ensureMemberCliConsumer({
           instance: ctx.instance,
-          identifier: ctx.body.surface_identifier,
-          name: 'Metorial CLI',
-          type: 'cli'
-        });
-
-        let consumerProfile = await consumerProfileService.ensureConsumerProfile({
-          surface: consumerSurface,
-          email: user.email,
-          name: user.name,
           member: ctx.member,
+          user,
           auditScope: ctx.auditScope
         });
 
@@ -251,6 +273,106 @@ export let consumerController = Controller.create(
           consumerProfile,
           assignedConsumerGroups
         });
+      }),
+
+    createMemberSession: instanceGroup
+      .post(instancePath('member-consumer-session', 'consumers.createMemberSession'), {
+        name: 'Create member consumer session',
+        description:
+          'Exchanges a CLI sign-in for a short-lived credential for the member’s own consumer profile.',
+        confidential: true,
+        hideInDocs: true
+      })
+      .use(checkAccess({ possibleScopes: ['instance.provider.session:read'] }))
+      .use(hasFlags(['paid-identity', 'paid-integrations', 'magic-mcp-enabled']))
+      .body('default', v.object({ integration_id: v.optional(v.string()) }))
+      .output({
+        introspect: () => ({
+          name: 'member_consumer_session',
+          object: introspectType(
+            v.object({
+              access_token: v.string(),
+              catalog_item_id: v.optional(v.string())
+            })
+          )
+        })
+      })
+      .do(async ctx => {
+        let source = ctx.auth.type === 'machine' ? ctx.auth.oauthToken : undefined;
+        let user = ctx.auth.type === 'machine' ? ctx.auth.user : undefined;
+        let member = ctx.member;
+        if (
+          source?.oauthAuthorization.oauthApplication.type !== 'cli_auth' ||
+          source.oauthAuthorization.subjectType !== 'organization_member' ||
+          !member ||
+          member.status !== 'active' ||
+          source.oauthAuthorization.organizationMemberOid !== member.oid ||
+          !user ||
+          user.type === 'system' ||
+          user.status !== 'active'
+        ) {
+          throw new ServiceError(
+            forbiddenError({
+              message: 'Sign in with metorial-admin as a member of a claimed organization.'
+            })
+          );
+        }
+
+        let integration;
+        if (ctx.body.integration_id) {
+          let possibleScopes = ['instance.provider.deployment:write' as const];
+          await accessService.checkAccess({ authInfo: ctx.auth, possibleScopes });
+          await accessService.checkTargetAccess({
+            authInfo: ctx.auth,
+            organization: ctx.organization,
+            member,
+            project: ctx.project,
+            instance: ctx.instance,
+            possibleScopes
+          });
+          integration = await integrationService.getIntegrationById({
+            instance: ctx.instance,
+            integrationId: ctx.body.integration_id
+          });
+        }
+
+        let consumerProfile = await ensureMemberCliConsumer({
+          instance: ctx.instance,
+          member,
+          user,
+          auditScope: ctx.auditScope
+        });
+        await consumerActorService.ensureDefaultConsumerActor({
+          instance: ctx.instance,
+          consumerProfile
+        });
+
+        let catalogItemId: string | undefined;
+        if (integration) {
+          let providerTemplate = await providerTemplateService.createProviderTemplate({
+            organization: ctx.organization,
+            instance: ctx.instance,
+            auditScope: ctx.auditScope,
+            input: { integrationId: integration.id, name: integration.name }
+          });
+          await consumerAccessService.createConsumerAccess({
+            organization: ctx.organization,
+            consumerSurface: consumerProfile.surface,
+            consumerGroup: consumerProfile.personalConsumerGroup,
+            auditScope: ctx.auditScope,
+            access: { type: 'provider_template', providerTemplate }
+          });
+          catalogItemId = providerTemplate.id;
+        }
+
+        let token = await oauthAuthorizationService.issueMemberCliConsumerToken({
+          source,
+          organization: ctx.organization,
+          consumerProfile,
+          user,
+          context: ctx.context
+        });
+        return { access_token: token.accessToken, catalog_item_id: catalogItemId };
       }),
 
     update: consumerGroup

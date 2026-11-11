@@ -11,6 +11,7 @@ import {
   integrationSetupSessionService
 } from '@metorial-subspace/module-integration';
 import { Context } from '@metorial/context';
+import { isMemberCliSurface } from '@metorial/consumer-auth';
 import {
   ConsumerProfile,
   ConsumerProviderSetupSessionType,
@@ -137,19 +138,25 @@ class ConsumerProviderSetupSessionServiceImpl {
       accessTags: d.accessTags
     });
 
-    let portal = await db.portal.findFirst({
-      where: {
-        instanceOid: d.instance.oid,
-        surfaceOid: d.consumerSurface.oid
-      },
-      select: {
-        oid: true,
-        slug: true
+    let redirectUrl: string | undefined;
+    if (!isMemberCliSurface(d.consumerSurface)) {
+      let portal = await db.portal.findFirst({
+        where: {
+          instanceOid: d.instance.oid,
+          surfaceOid: d.consumerSurface.oid
+        },
+        select: {
+          oid: true,
+          slug: true
+        }
+      });
+      if (!portal) {
+        throw new ServiceError(notFoundError('portal'));
       }
-    });
-
-    if (!portal) {
-      throw new ServiceError(notFoundError('portal'));
+      redirectUrl = await buildProviderSetupRedirectUrl({
+        portal,
+        requestOrigin: d.requestOrigin
+      });
     }
 
     if (!providerTemplate.subspaceIntegrationId) {
@@ -187,10 +194,7 @@ class ConsumerProviderSetupSessionServiceImpl {
         identityActorId: consumerIdentity.identityActorId,
         identityId: consumerIdentity.identityId,
         ownerActorId: consumerIdentity.identityActorId,
-        redirectUrl: await buildProviderSetupRedirectUrl({
-          portal,
-          requestOrigin: d.requestOrigin
-        }),
+        redirectUrl,
         configuration: {
           ui: {
             layout: 'light'
