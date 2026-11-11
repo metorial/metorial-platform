@@ -11,10 +11,12 @@ export {
   useSkillImportActions,
   validateSkillImportFile
 } from './skillImport';
+export type { SkillIntegrationOption } from './skillLinkProviders';
 import type {
   SkillLinkProvidersScene as _SkillLinkProvidersScene,
   SkillTemplateLinkProvidersScene as _SkillTemplateLinkProvidersScene
 } from './skillLinkProviders';
+import type { SkillGroupMarketplacesScene as _SkillGroupMarketplacesScene } from './skillGroupMarketplaces';
 import type { SkillMarketplacePluginsScene as _SkillMarketplacePluginsScene } from './skillMarketplacePlugins';
 import type {
   SkillMarketplaceSettingsScene as _SkillMarketplaceSettingsScene,
@@ -45,6 +47,9 @@ import type {
 import type { SkillWorkspaceLayout as _SkillWorkspaceLayout } from './skillWorkspaceLayout';
 import type { SkillTextFileEditorScene as _SkillTextFileEditorScene } from './skillTextFileEditor';
 import type { SkillItemScene as _SkillItemScene } from './skillItem';
+import type { SkillSecurityScene as _SkillSecurityScene } from './securityReview/skillSecurityScene';
+
+export * from './securityReview';
 
 export type {
   SkillWorkspaceFork,
@@ -69,6 +74,10 @@ export let SkillGroupSkillsScene = dynamicComponent<Parameters<typeof _SkillGrou
 export let SkillGroupsForSkillScene = dynamicComponent<
   Parameters<typeof _SkillGroupsForSkillScene>
 >(() => import('./skillGroups').then(m => m.SkillGroupsForSkillScene));
+
+export let SkillGroupMarketplacesScene = dynamicComponent<
+  Parameters<typeof _SkillGroupMarketplacesScene>
+>(() => import('./skillGroupMarketplaces').then(m => m.SkillGroupMarketplacesScene));
 
 export let SkillMarketplacePluginsScene = dynamicComponent<
   Parameters<typeof _SkillMarketplacePluginsScene>
@@ -132,4 +141,8 @@ export let SkillTextFileEditorScene = dynamicComponent<
 
 export let SkillItemScene = dynamicComponent<Parameters<typeof _SkillItemScene>>(() =>
   import('./skillItem').then(m => m.SkillItemScene)
+);
+
+export let SkillSecurityScene = dynamicComponent<Parameters<typeof _SkillSecurityScene>>(() =>
+  import('./securityReview/skillSecurityScene').then(m => m.SkillSecurityScene)
 );

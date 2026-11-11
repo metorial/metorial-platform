@@ -5,7 +5,9 @@ import {
   hasQueuedSkillAssistantPrompt,
   useSkillAssistantWorkspace,
   useAllProviderListings,
+  useIntegrations,
   useAllSkillItems,
+  useAllSkillTemplateItems,
   useAllStoreItems,
   useCreateDocument,
   useDocumentEditorChrome,
@@ -133,7 +135,17 @@ import {
   type SkillImageSelection
 } from '../components/workspace/skillIconTile';
 import { showSkillAgentFormModal } from './skillAgents';
-import { showSkillItemPickerPanel, type SkillItemPickerKind } from './skillLinkProviders';
+import {
+  addOptionListings,
+  getOptionAvatars,
+  IntegrationProviderAvatarStack,
+  showSkillItemPickerPanel,
+  showSkillTemplateItemPickerPanel,
+  type IntegrationAvatars,
+  type ProviderListingPreview,
+  type SkillIntegrationOption,
+  type SkillItemPickerKind
+} from './skillLinkProviders';
 import {
   forceFileTreeRefetch,
   SkillStoreFileTree,
@@ -148,7 +160,7 @@ export type SkillWorkspaceRoutes = {
   providers: string;
   agents: string;
   settings: string;
-  groups: string;
+  groups?: string;
   security?: string;
 };
 
@@ -173,6 +185,7 @@ export type SkillWorkspaceLayoutProps = {
     image?: SkillImageSelection | null;
   };
   routes: SkillWorkspaceRoutes;
+  template?: { templateId: string } | null;
   securityBadge?: ReactNode;
   security?: SkillWorkspaceSecurity | null;
   children?: ReactNode;
@@ -186,6 +199,7 @@ export type SkillWorkspaceLayoutProps = {
   shareContext?: SkillSharePanelContext | null;
   allowedProviderIds?: string[];
   allowedIntegrationIds?: string[];
+  integrationOptions?: SkillIntegrationOption[];
   allowProviders?: boolean;
   readOnly?: boolean;
   onDocumentReady?: () => void;
@@ -474,8 +488,8 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
 
   let setAssistantVisible = prefs.setAssistant;
   useEffect(() => {
-    if (hasQueuedSkillAssistantPrompt(p.skill.id)) setAssistantVisible(true);
-  }, [p.skill.id, setAssistantVisible]);
+    if (!p.template && hasQueuedSkillAssistantPrompt(p.skill.id)) setAssistantVisible(true);
+  }, [p.skill.id, p.template, setAssistantVisible]);
 
   let rootRef = useRef<HTMLDivElement>(null);
   let navLeftRef = useRef<HTMLDivElement>(null);
@@ -538,28 +552,36 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
     }
   };
 
-  let skillItems = useAllSkillItems(p.instanceId, p.skill.id, {
+  let isTemplate = !!p.template;
+  let skillInstanceId = isTemplate ? null : p.instanceId;
+  let skillItems = useAllSkillItems(skillInstanceId, p.skill.id, {
     order: 'asc',
     status: ['active']
   });
-  let skillAgents = useSkillAgents(p.instanceId, p.skill.id, { order: 'asc' });
-  let outgoingMergeRequests = useSkillMergeRequests(p.instanceId, {
+  let templateItems = useAllSkillTemplateItems(
+    isTemplate ? p.instanceId : null,
+    p.template?.templateId,
+    { order: 'asc' }
+  );
+  let linkedItemsLoader = isTemplate ? templateItems : skillItems;
+  let skillAgents = useSkillAgents(skillInstanceId, p.skill.id, { order: 'asc' });
+  let outgoingMergeRequests = useSkillMergeRequests(skillInstanceId, {
     sourceSkillId: p.skill.id,
     status: 'open',
     order: 'desc'
   });
-  let incomingMergeRequests = useSkillMergeRequests(p.instanceId, {
+  let incomingMergeRequests = useSkillMergeRequests(skillInstanceId, {
     targetSkillId: p.skill.id,
     status: 'open',
     order: 'desc'
   });
-  let recentOutgoingMergeRequests = useSkillMergeRequests(p.instanceId, {
+  let recentOutgoingMergeRequests = useSkillMergeRequests(skillInstanceId, {
     sourceSkillId: p.skill.id,
     status: ['merged', 'closed'],
     order: 'desc',
     limit: 5
   });
-  let recentIncomingMergeRequests = useSkillMergeRequests(p.instanceId, {
+  let recentIncomingMergeRequests = useSkillMergeRequests(skillInstanceId, {
     targetSkillId: p.skill.id,
     status: ['merged', 'closed'],
     order: 'desc',
@@ -575,14 +597,50 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
     if (storeHash != '0') storeItems.refetch();
   }, [storeHash]);
 
-  let linkedItems = skillItems.data ?? [];
+  let linkedItems = (linkedItemsLoader.data ?? []) as SkillItem[];
   let linkedProviderIds = linkedItems.flatMap(item =>
     item.type == 'provider' && item.provider ? [item.provider.id] : []
   );
   let linkedIntegrationIds = linkedItems.flatMap(item =>
     item.type == 'integration' && item.integration ? [item.integration.id] : []
   );
-  let providerListings = useAllProviderListings(p.instanceId, linkedProviderIds);
+  let linkedIntegrations = useIntegrations(
+    linkedIntegrationIds.length > 0 && !p.integrationOptions ? p.instanceId : null,
+    {
+      id: linkedIntegrationIds,
+      limit: Math.max(linkedIntegrationIds.length, 1),
+      status: ['active', 'archived']
+    }
+  );
+  let allListingProviderIds = useMemo(
+    () =>
+      [
+        ...new Set([
+          ...linkedProviderIds,
+          ...(linkedIntegrations.data?.items ?? []).flatMap(integration =>
+            (integration.providers ?? []).map(provider => provider.provider.id)
+          )
+        ])
+      ].sort(),
+    [linkedProviderIds.join(','), linkedIntegrations.data?.items]
+  );
+  let providerListings = useAllProviderListings(p.instanceId, allListingProviderIds);
+
+  let integrationAvatarLookup = new Map<string, IntegrationAvatars>();
+  for (let integration of linkedIntegrations.data?.items ?? []) {
+    integrationAvatarLookup.set(integration.id, integration);
+  }
+  for (let option of p.integrationOptions ?? []) {
+    integrationAvatarLookup.set(option.id, getOptionAvatars(option));
+  }
+
+  let providerListingLookup = new Map<string, ProviderListingPreview>();
+  for (let listing of providerListings.data ?? []) {
+    let preview = { name: listing.name ?? listing.provider.name, imageUrl: listing.imageUrl };
+    providerListingLookup.set(listing.id, preview);
+    providerListingLookup.set(listing.provider.id, preview);
+  }
+  addOptionListings(providerListingLookup, p.integrationOptions);
   let agents = skillAgents.data?.items ?? [];
 
   let dedupe = <T extends { id: string }>(items: T[]) =>
@@ -686,16 +744,23 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
   let addProvider = (kind: SkillItemPickerKind) => {
     if (!p.instanceId || p.readOnly) return;
 
-    showSkillItemPickerPanel({
+    let common = {
       kind,
       instanceId: p.instanceId,
-      skillId: p.skill.id,
       excludeProviderIds: linkedProviderIds,
       excludeIntegrationIds: linkedIntegrationIds,
       allowedProviderIds: p.allowedProviderIds,
       allowedIntegrationIds: p.allowedIntegrationIds,
-      onComplete: () => skillItems.refetch()
-    });
+      integrationOptions: p.integrationOptions,
+      onComplete: () => linkedItemsLoader.refetch()
+    };
+
+    if (p.template) {
+      showSkillTemplateItemPickerPanel({ ...common, skillTemplateId: p.template.templateId });
+      return;
+    }
+
+    showSkillItemPickerPanel({ ...common, skillId: p.skill.id });
   };
 
   let addAgent = () => {
@@ -711,15 +776,19 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
 
   let isLoaded = (loader: { data?: unknown; error?: unknown }) =>
     loader.data != null || loader.error != null;
-  let panelsReady = [
-    skillItems,
-    skillAgents,
-    outgoingMergeRequests,
-    incomingMergeRequests,
-    recentOutgoingMergeRequests,
-    recentIncomingMergeRequests,
-    storeItems
-  ].every(isLoaded);
+  let panelsReady = (
+    isTemplate
+      ? [templateItems, storeItems]
+      : [
+          skillItems,
+          skillAgents,
+          outgoingMergeRequests,
+          incomingMergeRequests,
+          recentOutgoingMergeRequests,
+          recentIncomingMergeRequests,
+          storeItems
+        ]
+  ).every(isLoaded);
 
   let documentReady = panelsReady && (!!chrome || !isDocumentRoute || isInitialGeneration);
   let onDocumentReady = p.onDocumentReady;
@@ -739,8 +808,12 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
     security: false
   };
 
+  let availablePanels = workspacePanelIds.filter(
+    id => !isTemplate || id == 'files' || id == 'providers'
+  );
+
   let isSectionVisible = (id: WorkspacePanelId): boolean => {
-    if (!panelsReady) return false;
+    if (!panelsReady || !availablePanels.includes(id)) return false;
     if (id == 'security' && !p.security) return false;
     let mode = prefs.preferences.modes[id];
     if (mode == 'on') return true;
@@ -920,6 +993,14 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
                 noTooltip
                 imageFit="contain"
               />
+            ) : item.type == 'integration' && item.integration ? (
+              <IntegrationProviderAvatarStack
+                integration={integrationAvatarLookup.get(item.integration.id)}
+                fallbackName={getLinkedItemName(item)}
+                providerListings={providerListingLookup}
+                size={20}
+                radius={5}
+              />
             ) : (
               <RowIcon>
                 <RiToolsLine />
@@ -932,7 +1013,11 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
         ))}
       </SectionList>
     ) : (
-      <SectionEmpty>Link providers this skill should use.</SectionEmpty>
+      <SectionEmpty>
+        {isTemplate
+          ? 'Link providers skills cloned from this template should use.'
+          : 'Link providers this skill should use.'}
+      </SectionEmpty>
     );
 
   let renderAgents = () =>
@@ -1021,7 +1106,7 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
   let visibleSections = order.filter(isSectionVisible).map(buildSection);
   let sidebarSections = order
     .filter(id => panelsReady && prefs.preferences.modes[id] != 'off')
-    .filter(id => id != 'security')
+    .filter(id => id != 'security' && availablePanels.includes(id))
     .map(buildSection);
 
   let reorderSections = useCallback(
@@ -1033,7 +1118,7 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
     [prefs.setOrder, prefs.preferences.order]
   );
 
-  let assistantVisible = prefs.preferences.assistant;
+  let assistantVisible = !isTemplate && prefs.preferences.assistant;
   let snackbarBottom = assistantVisible && p.assistantHeight ? p.assistantHeight + 8 : 24;
 
   useEffect(() => {
@@ -1143,7 +1228,11 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
             label: 'Document',
             onClick: () => void createUntitledDocument()
           },
-          { id: 'add-agent', icon: <RiRobot2Line />, label: 'Agent', onClick: addAgent },
+          ...(isTemplate
+            ? []
+            : [
+                { id: 'add-agent', icon: <RiRobot2Line />, label: 'Agent', onClick: addAgent }
+              ]),
           ...providerAddItems.map(item => ({ ...item, description: undefined }))
         ] satisfies FloatingMenuItem[])
       : []),
@@ -1225,6 +1314,8 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
       : [])
   ];
 
+  let duplicateLabel = isTemplate ? 'Clone as skill' : 'Duplicate skill';
+
   let forkItems: FloatingMenuItem[] = [
     ...(isFork
       ? ([
@@ -1273,7 +1364,7 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
           {
             id: 'duplicate',
             icon: <RiFileCopyLine />,
-            label: 'Duplicate skill',
+            label: duplicateLabel,
             onClick: p.onDuplicate
           }
         ]
@@ -1335,7 +1426,7 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
                 {
                   id: 'xs-duplicate',
                   icon: <RiFileCopyLine />,
-                  label: 'Duplicate skill',
+                  label: duplicateLabel,
                   onClick: p.onDuplicate
                 }
               ]
@@ -1360,12 +1451,16 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
       label: 'Settings',
       onClick: () => navigate(p.routes.settings)
     },
-    {
-      id: 'groups',
-      icon: <RiFolderLine />,
-      label: 'Groups',
-      onClick: () => navigate(p.routes.groups)
-    },
+    ...(p.routes.groups
+      ? [
+          {
+            id: 'groups',
+            icon: <RiFolderLine />,
+            label: 'Groups',
+            onClick: () => navigate(p.routes.groups!)
+          }
+        ]
+      : []),
     ...(p.routes.security
       ? [
           {
@@ -1387,7 +1482,7 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
       onChange: prefs.setPosition
     }),
     ...order
-      .filter(id => id != 'security' || !!p.security)
+      .filter(id => availablePanels.includes(id) && (id != 'security' || !!p.security))
       .map(id =>
         segmentedItem({
           id: `mode-${id}`,
@@ -1398,15 +1493,19 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
           onChange: mode => prefs.setMode(id, mode)
         })
       ),
-    { type: 'separator', id: 'assistant-sep' },
-    {
-      id: 'assistant',
-      icon: <RiSparkling2Line />,
-      label: 'Assistant',
-      checked: prefs.preferences.assistant,
-      closeOnClick: false,
-      onClick: () => prefs.setAssistant(!prefs.preferences.assistant)
-    }
+    ...(isTemplate
+      ? []
+      : ([
+          { type: 'separator', id: 'assistant-sep' },
+          {
+            id: 'assistant',
+            icon: <RiSparkling2Line />,
+            label: 'Assistant',
+            checked: prefs.preferences.assistant,
+            closeOnClick: false,
+            onClick: () => prefs.setAssistant(!prefs.preferences.assistant)
+          }
+        ] satisfies FloatingMenuItem[]))
   ];
 
   let share =
@@ -1473,7 +1572,9 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
     <>
       {[
         { route: p.routes.settings, icon: <RiSettings3Line />, label: 'Settings' },
-        { route: p.routes.groups, icon: <RiFolderLine />, label: 'Groups' },
+        ...(p.routes.groups
+          ? [{ route: p.routes.groups, icon: <RiFolderLine />, label: 'Groups' }]
+          : []),
         ...(p.routes.security
           ? [
               {
@@ -1589,7 +1690,11 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
               }
             : null
         }
-        statusSlot={<SkillMcpLimitsBadge instanceId={p.instanceId} skillId={p.skill.id} />}
+        statusSlot={
+          isTemplate ? null : (
+            <SkillMcpLimitsBadge instanceId={p.instanceId} skillId={p.skill.id} />
+          )
+        }
       />
 
       <ToolbarSlot $visible={toolbarVisible} aria-hidden={!toolbarVisible || undefined}>
@@ -1620,7 +1725,7 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
         share={share}
         onExport={p.onExport}
         exportLoading={p.exportLoading}
-        forkLabel={isFork ? 'Fork' : 'Duplicate'}
+        forkLabel={isFork ? 'Fork' : isTemplate ? 'Clone as skill' : 'Duplicate'}
         forkItems={forkItems}
         skillItems={skillMenuItems}
       />
@@ -1633,6 +1738,14 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
 
 export let SkillWorkspaceLayout = (p: SkillWorkspaceLayoutProps) => {
   let [assistantHeight, setAssistantHeight] = useState(0);
+
+  if (p.template) {
+    return (
+      <DocumentEditorChromeProvider>
+        <WorkspaceInner {...p} assistantHeight={0} />
+      </DocumentEditorChromeProvider>
+    );
+  }
 
   return (
     <DocumentEditorChromeProvider>

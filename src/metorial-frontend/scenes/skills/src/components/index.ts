@@ -5,3 +5,6 @@ export * from './skillSharePanel';
 export * from './surfaceCard';
 export * from './workspace/context';
 export * from './workspace/skillIconTile';
+export * from './overview/createSkillWithAgent';
+export * from './overview/skillMarkdownPreview';
+export * from './overview/skillPreviewCard';

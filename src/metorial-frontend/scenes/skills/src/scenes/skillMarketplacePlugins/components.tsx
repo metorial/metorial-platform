@@ -14,8 +14,10 @@ import {
   RiAddLine,
   RiArrowRightSLine,
   RiDraggable,
+  RiErrorWarningLine,
   RiFolderTransferLine,
   RiLockLine,
+  RiLoopLeftLine,
   RiMore2Line,
   RiStackLine
 } from '@remixicon/react';
@@ -153,6 +155,7 @@ let Row = styled.div<{
   $pending: boolean;
   $flash: boolean;
   $indent: boolean;
+  $inaccessible: boolean;
 }>`
   position: relative;
   height: ${rowHeight}px;
@@ -173,6 +176,17 @@ let Row = styled.div<{
     $flash &&
     css`
       animation: ${flashIn} 1.8s ease-out;
+    `}
+
+  ${({ $inaccessible }) =>
+    $inaccessible &&
+    css`
+      color: ${theme.colors.gray600};
+
+      img {
+        filter: grayscale(1);
+        opacity: 0.5;
+      }
     `}
 
   &:hover {
@@ -216,8 +230,17 @@ let rowMainStyles = css`
   }
 `;
 
-let RowMain = styled.div`
+let RowMain = styled.div<{ $inaccessible?: boolean }>`
   ${rowMainStyles}
+  gap: 6px;
+  cursor: ${({ $inaccessible }) => ($inaccessible ? 'default' : 'pointer')};
+
+  & > svg {
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+    color: ${theme.colors.gray600};
+  }
 `;
 
 let RowMainLink = styled(Link)`
@@ -251,8 +274,9 @@ export let SkillRow = (p: {
     data: { skillId: skill.skillId }
   });
   let name = skill.skill.name;
+  let inaccessible = !p.entry.canRead;
   let main = (
-    <Text size="2" weight="strong" truncate>
+    <Text size="2" weight="strong" color={inaccessible ? 'gray600' : undefined} truncate>
       {name}
     </Text>
   );
@@ -272,6 +296,7 @@ export let SkillRow = (p: {
         $pending={p.pending}
         $flash={p.flash}
         $indent={p.indent}
+        $inaccessible={inaccessible}
         data-skill-row
       >
         <HandleSlot>
@@ -306,7 +331,14 @@ export let SkillRow = (p: {
 
         <SkillImage src={skill.skill.imageUrl} size={28} />
 
-        {p.href ? (
+        {inaccessible ? (
+          <Tooltip content="You don't have access to this skill.">
+            <RowMain $inaccessible onPointerDown={onMainPointerDown}>
+              {main}
+              <RiLockLine aria-label="No access" />
+            </RowMain>
+          </Tooltip>
+        ) : p.href ? (
           <RowMainLink to={p.href} onPointerDown={onMainPointerDown} draggable={false}>
             {main}
           </RowMainLink>
@@ -456,6 +488,11 @@ let ReadOnlyBadge = styled.span`
   }
 `;
 
+let WarningBadge = styled(ReadOnlyBadge)`
+  color: ${theme.colors.orange900};
+  background: ${theme.colors.orange300};
+`;
+
 let DropHint = styled.span<{ $visible: boolean }>`
   position: absolute;
   right: 12px;
@@ -526,12 +563,14 @@ export let PluginGroup = (p: {
   dragActive: boolean;
   pending: boolean;
   canUpdate: boolean;
+  canEditSkills: boolean;
   menuItems: MenuItem[];
   onToggle: () => void;
   onAddSkills?: () => void;
   children: React.ReactNode;
 }) => {
   let { plugin, item } = p.view;
+  let skillGroup = plugin.source.type === 'skill_group' ? plugin.source : null;
   let target = useDropTarget(
     `plugin:${plugin.id}`,
     { type: 'plugin', pluginId: plugin.id },
@@ -554,12 +593,35 @@ export let PluginGroup = (p: {
               </Text>
               <HeaderMeta>
                 {plugin.category ? <span>{plugin.category}</span> : <span>Plugin</span>}
+                {skillGroup && (
+                  <Truncate as="span">
+                    <span>Synced from {skillGroup.skillGroup.name}</span>
+                  </Truncate>
+                )}
               </HeaderMeta>
             </HeaderTitle>
           </HeaderToggle>
 
           <RowActions $hidden={p.dragActive}>
             {p.pending && <Spinner size={14} />}
+
+            {skillGroup && skillGroup.unsyncedSkills.length > 0 && (
+              <Tooltip content={skillGroup.unsyncedSkills[0].message}>
+                <WarningBadge>
+                  <RiErrorWarningLine />
+                  {skillGroup.unsyncedSkills.length} not synced
+                </WarningBadge>
+              </Tooltip>
+            )}
+
+            {skillGroup && p.canUpdate && (
+              <Tooltip content="Skills are synced from the skill group. Add or remove them on the group.">
+                <ReadOnlyBadge>
+                  <RiLoopLeftLine />
+                  Skill Group
+                </ReadOnlyBadge>
+              </Tooltip>
+            )}
 
             {!p.canUpdate && (
               <Tooltip content="This plugin is managed elsewhere, so its skills can't be changed here.">
@@ -608,9 +670,11 @@ export let PluginGroup = (p: {
           ) : (
             <EmptyGroupRow>
               <Text size="2" color="gray600">
-                {p.canUpdate
-                  ? 'No skills yet. Drag skills here or add some.'
-                  : 'No skills yet.'}
+                {skillGroup
+                  ? 'The skill group has no skills yet.'
+                  : p.canEditSkills
+                    ? 'No skills yet. Drag skills here or add some.'
+                    : 'No skills yet.'}
               </Text>
             </EmptyGroupRow>
           )}

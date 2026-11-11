@@ -1,8 +1,12 @@
 import { useForm } from '@metorial/data-hooks';
 import {
   type Skill,
+  type SkillGroup,
+  type SkillMarketplace,
   type SkillPlugin,
   useCreateSkillPlugin,
+  useSkillGroupsPage,
+  useSkillMarketplacesPage,
   useSkillPluginsPage,
   useSkillsPage,
   useUpdateSkillPlugin
@@ -107,8 +111,6 @@ let toggleIn = <T extends { id: string }>(current: T[], item: T, checked: boolea
 type PickerItem = {
   id: string;
   name: string;
-  slug: string;
-  description?: string | null;
   imageUrl?: string | null;
 };
 
@@ -205,11 +207,6 @@ let PickerRows = <T extends PickerItem>(p: {
                 <Text size="2" weight="strong" truncate>
                   {item.name}
                 </Text>
-                {item.description && (
-                  <Text size="1" color="gray600" truncate>
-                    {item.description}
-                  </Text>
-                )}
               </PickerText>
             </PickerRow>
           );
@@ -365,6 +362,106 @@ export let showAddSkillsPanel = (p: Omit<Parameters<typeof AddSkillsPanel>[0], '
     </Panel.Wrapper>
   ));
 
+let SkillGroupPickerPanel = (p: {
+  instanceId: string;
+  excludeSkillIds: string[];
+  close: () => void;
+  onSelect: (skill: Skill) => Promise<boolean>;
+  onDone?: () => Promise<void> | void;
+}) => {
+  let { search, setSearch, searchQuery } = useSearchFilter(500, {
+    updateSearchParams: false
+  });
+  let [selectedSkills, setSelectedSkills] = useState<Skill[]>([]);
+  let [isAdding, setIsAdding] = useState(false);
+  let excluded = useMemo(() => new Set(p.excludeSkillIds), [p.excludeSkillIds]);
+  let skillsQuery = {
+    order: 'asc' as const,
+    status: ['active' as const],
+    limit: pickerPageSize,
+    ...(searchQuery ? { search: searchQuery } : {})
+  };
+  let skillPages = useFilledPages<Skill>({
+    resetKey: `${p.instanceId}:${searchQuery ?? ''}`,
+    target: pickerTargetCount,
+    usePage: after => useSkillsPage(p.instanceId, skillsQuery, after),
+    isAllowed: skill => !excluded.has(skill.id)
+  });
+  let selectedIds = useMemo(
+    () => new Set(selectedSkills.map(skill => skill.id)),
+    [selectedSkills]
+  );
+
+  let submit = async () => {
+    setIsAdding(true);
+
+    try {
+      let added = await addSelectedItems(selectedSkills, p.onSelect);
+      await p.onDone?.();
+      if (added) p.close();
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  return (
+    <>
+      <Panel.Header
+        actions={
+          <Button
+            size="2"
+            loading={isAdding}
+            disabled={!selectedSkills.length}
+            onClick={submit}
+          >
+            {selectedSkills.length > 1 ? `Add ${selectedSkills.length} Skills` : 'Add Skill'}
+          </Button>
+        }
+      >
+        <Panel.Title>Add Skills</Panel.Title>
+        <Panel.Description>
+          Pick one or more skills to add to this group. Skills already in the group are hidden.
+        </Panel.Description>
+      </Panel.Header>
+
+      <Panel.Content>
+        <PickerStack>
+          <Input
+            label="Search skills"
+            hideLabel
+            placeholder="Search skills..."
+            value={search}
+            onInput={setSearch}
+          />
+
+          <PickerRows
+            pages={skillPages}
+            selectedIds={selectedIds}
+            disabled={isAdding}
+            emptyMessage={
+              search.trim()
+                ? 'No available skills match your search.'
+                : 'Every skill is already in this group.'
+            }
+            onToggle={(skill, checked) =>
+              setSelectedSkills(current => toggleIn(current, skill, checked))
+            }
+          />
+        </PickerStack>
+      </Panel.Content>
+    </>
+  );
+};
+
+export let showSkillGroupSkillsPanel = (
+  p: Omit<Parameters<typeof SkillGroupPickerPanel>[0], 'close'>
+) =>
+  showModal(({ dialogProps, close }) => (
+    <Panel.Wrapper {...dialogProps} width={760}>
+      <SkillGroupPickerPanel {...p} close={close} />
+    </Panel.Wrapper>
+  ));
+
 let PluginPickerResults = (p: {
   pages: ReturnType<typeof useFilledPages<SkillPlugin>>;
   selectedIds: Set<string>;
@@ -477,6 +574,210 @@ export let showPluginPickerPanel = (
   showModal(({ dialogProps, close }) => (
     <Panel.Wrapper {...dialogProps} width={760}>
       <PluginPickerPanel {...p} close={close} />
+    </Panel.Wrapper>
+  ));
+
+let PublishSkillGroupPanel = (p: {
+  instanceId: string;
+  excludeSkillGroupIds: string[];
+  close: () => void;
+  onSelect: (skillGroup: SkillGroup) => Promise<boolean>;
+}) => {
+  let { search, setSearch, searchQuery } = useSearchFilter(500, {
+    updateSearchParams: false
+  });
+  let [selectedGroups, setSelectedGroups] = useState<SkillGroup[]>([]);
+  let [isAdding, setIsAdding] = useState(false);
+  let excluded = useMemo(() => new Set(p.excludeSkillGroupIds), [p.excludeSkillGroupIds]);
+  let groupsQuery = {
+    order: 'asc' as const,
+    status: ['active' as const],
+    limit: pickerPageSize,
+    ...(searchQuery ? { search: searchQuery } : {})
+  };
+  let groupPages = useFilledPages<SkillGroup>({
+    resetKey: `${p.instanceId}:${searchQuery ?? ''}`,
+    target: pickerTargetCount,
+    usePage: after => useSkillGroupsPage(p.instanceId, groupsQuery, after),
+    isAllowed: group => !excluded.has(group.id)
+  });
+  let selectedIds = useMemo(
+    () => new Set(selectedGroups.map(group => group.id)),
+    [selectedGroups]
+  );
+
+  let submit = async () => {
+    setIsAdding(true);
+
+    try {
+      if (await addSelectedItems(selectedGroups, p.onSelect)) p.close();
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  return (
+    <>
+      <Panel.Header
+        actions={
+          <Button
+            size="2"
+            loading={isAdding}
+            disabled={!selectedGroups.length}
+            onClick={submit}
+          >
+            {selectedGroups.length > 1
+              ? `Publish ${selectedGroups.length} Skill Groups`
+              : 'Publish Skill Group'}
+          </Button>
+        }
+      >
+        <Panel.Title>Publish Skill Group</Panel.Title>
+        <Panel.Description>
+          Each group becomes a plugin in this marketplace. Its skills stay in sync with the
+          group and are managed there.
+        </Panel.Description>
+      </Panel.Header>
+
+      <Panel.Content>
+        <PickerStack>
+          <Input
+            label="Search skill groups"
+            hideLabel
+            placeholder="Search skill groups..."
+            value={search}
+            onInput={setSearch}
+          />
+
+          <PickerRows
+            pages={groupPages}
+            selectedIds={selectedIds}
+            disabled={isAdding}
+            emptyMessage={
+              search.trim()
+                ? 'No available skill groups match your search.'
+                : 'Every skill group is already published to this marketplace.'
+            }
+            onToggle={(group, checked) =>
+              setSelectedGroups(current => toggleIn(current, group, checked))
+            }
+          />
+        </PickerStack>
+      </Panel.Content>
+    </>
+  );
+};
+
+let PublishToMarketplacePanel = (p: {
+  instanceId: string;
+  skillGroupName: string;
+  excludeSkillMarketplaceIds: string[];
+  close: () => void;
+  onSelect: (skillMarketplace: SkillMarketplace) => Promise<boolean>;
+}) => {
+  let { search, setSearch, searchQuery } = useSearchFilter(500, {
+    updateSearchParams: false
+  });
+  let [selectedMarketplaces, setSelectedMarketplaces] = useState<SkillMarketplace[]>([]);
+  let [isAdding, setIsAdding] = useState(false);
+  let excluded = useMemo(
+    () => new Set(p.excludeSkillMarketplaceIds),
+    [p.excludeSkillMarketplaceIds]
+  );
+  let marketplacesQuery = {
+    order: 'asc' as const,
+    status: ['active' as const],
+    limit: pickerPageSize,
+    ...(searchQuery ? { search: searchQuery } : {})
+  };
+  let marketplacePages = useFilledPages<SkillMarketplace>({
+    resetKey: `${p.instanceId}:${searchQuery ?? ''}`,
+    target: pickerTargetCount,
+    usePage: after => useSkillMarketplacesPage(p.instanceId, marketplacesQuery, after),
+    isAllowed: marketplace => !excluded.has(marketplace.id) && marketplace.canCreatePlugins
+  });
+  let selectedIds = useMemo(
+    () => new Set(selectedMarketplaces.map(marketplace => marketplace.id)),
+    [selectedMarketplaces]
+  );
+
+  let submit = async () => {
+    setIsAdding(true);
+
+    try {
+      if (await addSelectedItems(selectedMarketplaces, p.onSelect)) p.close();
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
+  return (
+    <>
+      <Panel.Header
+        actions={
+          <Button
+            size="2"
+            loading={isAdding}
+            disabled={!selectedMarketplaces.length}
+            onClick={submit}
+          >
+            {selectedMarketplaces.length > 1
+              ? `Publish to ${selectedMarketplaces.length} Marketplaces`
+              : 'Publish to Marketplace'}
+          </Button>
+        }
+      >
+        <Panel.Title>Publish to Marketplace</Panel.Title>
+        <Panel.Description>
+          {p.skillGroupName} becomes a plugin in each selected marketplace. Its skills stay in
+          sync with this group.
+        </Panel.Description>
+      </Panel.Header>
+
+      <Panel.Content>
+        <PickerStack>
+          <Input
+            label="Search marketplaces"
+            hideLabel
+            placeholder="Search marketplaces..."
+            value={search}
+            onInput={setSearch}
+          />
+
+          <PickerRows
+            pages={marketplacePages}
+            selectedIds={selectedIds}
+            disabled={isAdding}
+            emptyMessage={
+              search.trim()
+                ? 'No available marketplaces match your search.'
+                : 'This group is already published to every marketplace you can edit.'
+            }
+            onToggle={(marketplace, checked) =>
+              setSelectedMarketplaces(current => toggleIn(current, marketplace, checked))
+            }
+          />
+        </PickerStack>
+      </Panel.Content>
+    </>
+  );
+};
+
+export let showPublishToMarketplacePanel = (
+  p: Omit<Parameters<typeof PublishToMarketplacePanel>[0], 'close'>
+) =>
+  showModal(({ dialogProps, close }) => (
+    <Panel.Wrapper {...dialogProps} width={760}>
+      <PublishToMarketplacePanel {...p} close={close} />
+    </Panel.Wrapper>
+  ));
+
+export let showPublishSkillGroupPanel = (
+  p: Omit<Parameters<typeof PublishSkillGroupPanel>[0], 'close'>
+) =>
+  showModal(({ dialogProps, close }) => (
+    <Panel.Wrapper {...dialogProps} width={760}>
+      <PublishSkillGroupPanel {...p} close={close} />
     </Panel.Wrapper>
   ));
 

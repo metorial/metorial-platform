@@ -8,8 +8,8 @@ import styled from 'styled-components';
 import { AssistantSuggestions } from './suggestions';
 import type { AssistantSuggestion } from './types';
 
-let resizeTransition = { duration: 0.24, ease: [0.2, 0, 0, 1] } as const;
-let revealTransition = { duration: 0.18, delay: 0.06, ease: 'easeOut' } as const;
+let resizeTransition = { duration: 0.12, ease: [0.2, 0, 0, 1] } as const;
+let revealTransition = { duration: 0.09, delay: 0.03, ease: 'easeOut' } as const;
 
 let Root = styled.section`
   display: flex;
@@ -49,15 +49,15 @@ let TopRow = styled.div<{ $expanded: boolean }>`
   gap: 10px;
   padding: ${p => (p.$expanded ? '12px 12px 4px 14px' : '6px 6px 6px 14px')};
   min-width: 0;
-  transition: padding 240ms cubic-bezier(0.2, 0, 0, 1);
+  transition: padding 120ms cubic-bezier(0.2, 0, 0, 1);
 `;
 
 let SparkIcon = styled.span<{ $expanded: boolean }>`
   display: flex;
   flex: 0 0 auto;
-  padding-top: ${p => (p.$expanded ? '3px' : '0')};
+  padding-top: ${p => (p.$expanded ? '7px' : '0')};
   color: ${theme.colors.gray700};
-  transition: padding 240ms cubic-bezier(0.2, 0, 0, 1);
+  transition: padding 120ms cubic-bezier(0.2, 0, 0, 1);
 `;
 
 let Input = styled(TextareaAutosize)`

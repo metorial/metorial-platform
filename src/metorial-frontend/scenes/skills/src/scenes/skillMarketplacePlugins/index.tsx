@@ -25,6 +25,7 @@ import {
   useDeleteSkillMarketplacePlugin,
   useDeleteSkillPlugin,
   useDeleteSkillPluginSkill,
+  useDetachSkillPluginFromSkillGroup,
   useSkillMarketplace
 } from '@metorial/state';
 import { Button, Input, type MenuItem, Text, confirm, theme, toast } from '@metorial/ui';
@@ -48,7 +49,8 @@ import {
   type AddSkillsDestinationOption,
   showAddSkillsPanel,
   showPluginForm,
-  showPluginPickerPanel
+  showPluginPickerPanel,
+  showPublishSkillGroupPanel
 } from './dialogs';
 import {
   type MarketplaceFilter,
@@ -60,10 +62,12 @@ import {
   getMoveSkillInput,
   getPlugin,
   isCollapsedMarketplacePlugin,
+  isSkillGroupPlugin,
   marketplaceCanCreatePlugins,
   moveSkillOptimistically,
   moveSkillToStandaloneOptimistically,
   pluginCanDelete,
+  pluginCanEditSkills,
   pluginCanUpdate,
   removeMarketplacePluginsOptimistically,
   removeSkillOptimistically,
@@ -195,8 +199,10 @@ export let SkillMarketplacePluginsScene = (p: {
   instanceId: string | null | undefined;
   skillMarketplaceId: string | null | undefined;
   getSkillPath?: (skillId: string) => string;
+  getSkillGroupPath?: (skillGroupId: string) => string;
   showHeader?: boolean;
   showImportPlugin?: boolean;
+  showPublishSkillGroup?: boolean;
   onChange?: () => void;
 }) => {
   let navigate = useNavigate();
@@ -211,6 +217,7 @@ export let SkillMarketplacePluginsScene = (p: {
   let createPlugin = useCreateSkillPlugin();
   let addPluginSkill = useCreateSkillPluginSkill();
   let removePluginSkill = useDeleteSkillPluginSkill();
+  let detachPlugin = useDetachSkillPluginFromSkillGroup();
 
   let [optimistic, setOptimistic] = useState<SkillMarketplacePlugin[] | null>(null);
   let [pendingKeys, setPendingKeys] = useState<ReadonlySet<string>>(() => new Set());
@@ -245,7 +252,7 @@ export let SkillMarketplacePluginsScene = (p: {
   let searching = search.trim().length > 0;
   let writablePlugins = displayed.flatMap(item => {
     let plugin = getPlugin(item);
-    return plugin && pluginCanUpdate(plugin) && !isCollapsedMarketplacePlugin(item)
+    return plugin && pluginCanEditSkills(plugin) && !isCollapsedMarketplacePlugin(item)
       ? [plugin]
       : [];
   });
@@ -406,7 +413,7 @@ export let SkillMarketplacePluginsScene = (p: {
         let targetPlugin = target && getPlugin(target);
         if (
           !targetPlugin ||
-          !pluginCanUpdate(targetPlugin) ||
+          !pluginCanEditSkills(targetPlugin) ||
           targetPlugin.skills.some(skill => skill.skillId === skillId)
         ) {
           continue;
@@ -720,6 +727,51 @@ export let SkillMarketplacePluginsScene = (p: {
     });
   };
 
+  let openPublishSkillGroup = () => {
+    if (!p.instanceId || !p.skillMarketplaceId) return;
+
+    let instanceId = p.instanceId;
+    let skillMarketplaceId = p.skillMarketplaceId;
+    showPublishSkillGroupPanel({
+      instanceId,
+      excludeSkillGroupIds: displayed.flatMap(item =>
+        item.skillPlugin?.source.type === 'skill_group'
+          ? [item.skillPlugin.source.skillGroup.id]
+          : []
+      ),
+      onSelect: async skillGroup => {
+        let [plugin] = await createPlugin.mutate({
+          instanceId,
+          skillMarketplaceId,
+          skillGroupId: skillGroup.id
+        });
+        if (!plugin) return false;
+
+        await refresh();
+        p.onChange?.();
+        return true;
+      }
+    });
+  };
+
+  let confirmDetachPlugin = (plugin: SkillPlugin) => {
+    if (!p.instanceId || plugin.source.type !== 'skill_group') return;
+
+    let instanceId = p.instanceId;
+    confirm({
+      title: 'Detach from Skill Group',
+      description: `${plugin.name} keeps its current skills but stops syncing with ${plugin.source.skillGroup.name}. You can then edit its skills directly.`,
+      confirmText: 'Detach',
+      onConfirm: async () => {
+        let [detached] = await detachPlugin.mutate({ instanceId, skillPluginId: plugin.id });
+        if (!detached) return;
+
+        await refresh();
+        p.onChange?.();
+      }
+    });
+  };
+
   let getMoveMenuItems = (skillIds: string[], current?: SkillEntry): MenuItem[] => {
     let standaloneItem: MenuItem[] =
       canCreatePlugins && !current?.standalone
@@ -751,7 +803,7 @@ export let SkillMarketplacePluginsScene = (p: {
   };
 
   let getSkillMenuItems = (entry: SkillEntry): MenuItem[] => {
-    let skillPath = p.getSkillPath?.(entry.skill.skillId);
+    let skillPath = entry.canRead ? p.getSkillPath?.(entry.skill.skillId) : undefined;
     let moveItems = entry.canMove ? getMoveMenuItems([entry.skill.skillId], entry) : [];
     let canRemove = entry.standalone ? canCreatePlugins && entry.canMove : entry.canMove;
 
@@ -790,7 +842,20 @@ export let SkillMarketplacePluginsScene = (p: {
   let getPluginMenuItems = (item: SkillMarketplacePlugin): MenuItem[] => {
     let plugin = getPlugin(item)!;
     let canUpdate = pluginCanUpdate(plugin);
+    let skillGroupPath =
+      plugin.source.type === 'skill_group'
+        ? p.getSkillGroupPath?.(plugin.source.skillGroup.id)
+        : undefined;
     let items: MenuItem[] = [
+      ...(skillGroupPath
+        ? [
+            {
+              id: 'open-group',
+              label: 'Open Skill Group',
+              onClick: () => navigate(skillGroupPath!)
+            }
+          ]
+        : []),
       ...(canUpdate
         ? [
             {
@@ -800,7 +865,16 @@ export let SkillMarketplacePluginsScene = (p: {
             }
           ]
         : []),
-      ...(canUpdate && canCreatePlugins && plugin.skills.length > 0
+      ...(canUpdate && isSkillGroupPlugin(plugin)
+        ? [
+            {
+              id: 'detach',
+              label: 'Detach from Skill Group',
+              onClick: () => confirmDetachPlugin(plugin as SkillPlugin)
+            }
+          ]
+        : []),
+      ...(pluginCanEditSkills(plugin) && canCreatePlugins && plugin.skills.length > 0
         ? [
             {
               id: 'split',
@@ -833,7 +907,7 @@ export let SkillMarketplacePluginsScene = (p: {
 
     let target = displayed.find(item => item.skillPlugin?.id === destination.pluginId);
     let targetPlugin = target && getPlugin(target);
-    if (!targetPlugin || !pluginCanUpdate(targetPlugin)) return 'blocked';
+    if (!targetPlugin || !pluginCanEditSkills(targetPlugin)) return 'blocked';
 
     let movable = entries.some(
       entry =>
@@ -874,7 +948,7 @@ export let SkillMarketplacePluginsScene = (p: {
       <SkillRow
         key={skillId}
         entry={entry}
-        href={p.getSkillPath?.(skillId)}
+        href={entry.canRead ? p.getSkillPath?.(skillId) : undefined}
         selected={selected.has(skillId)}
         selectionActive={selectedIds.length > 0}
         pending={pendingKeys.has(skillId)}
@@ -902,6 +976,14 @@ export let SkillMarketplacePluginsScene = (p: {
         (!searching && (view.counts.standalone > 0 || canCreatePlugins)));
     let nothingVisible = !view.groups.length && !showStandalone;
     let canAddSkills = canCreatePlugins || writablePlugins.length > 0;
+    let newPluginMenu = [
+      ...(p.showImportPlugin === false
+        ? []
+        : [{ label: 'Import Existing Plugin', onClick: openImportPlugin }]),
+      ...(p.showPublishSkillGroup === false
+        ? []
+        : [{ label: 'Publish Skill Group', onClick: openPublishSkillGroup }])
+    ];
 
     let toolbar = (
       <Toolbar>
@@ -925,11 +1007,7 @@ export let SkillMarketplacePluginsScene = (p: {
                 variant="outline"
                 iconLeft={<RiPuzzle2Line />}
                 onClick={openNewPlugin}
-                menu={
-                  p.showImportPlugin === false
-                    ? undefined
-                    : [{ label: 'Import Existing Plugin', onClick: openImportPlugin }]
-                }
+                menu={newPluginMenu.length ? newPluginMenu : undefined}
               >
                 New Plugin
               </Button>
@@ -994,7 +1072,7 @@ export let SkillMarketplacePluginsScene = (p: {
       <LayoutGroup>
         <ListStack>
           {view.groups.map(group => {
-            let canUpdate = pluginCanUpdate(group.plugin);
+            let canEditSkills = pluginCanEditSkills(group.plugin);
 
             return (
               <PluginGroup
@@ -1004,14 +1082,15 @@ export let SkillMarketplacePluginsScene = (p: {
                 drop={getDropState({ type: 'plugin', pluginId: group.plugin.id })}
                 dragActive={Boolean(activeDrag)}
                 pending={pendingKeys.has(`plugin:${group.plugin.id}`)}
-                canUpdate={canUpdate}
+                canUpdate={pluginCanUpdate(group.plugin)}
+                canEditSkills={canEditSkills}
                 menuItems={getPluginMenuItems(group.item)}
                 onToggle={() =>
                   setCollapsed(current =>
                     toggleKey(current, group.plugin.id, !current.has(group.plugin.id))
                   )
                 }
-                onAddSkills={canUpdate ? () => openAddSkills(group.plugin.id) : undefined}
+                onAddSkills={canEditSkills ? () => openAddSkills(group.plugin.id) : undefined}
               >
                 {group.skills.map(skill => renderSkillRow(index.get(skill.skillId)!, true))}
               </PluginGroup>
@@ -1076,6 +1155,7 @@ export let SkillMarketplacePluginsScene = (p: {
           <addPluginSkill.RenderError />
           <removePluginSkill.RenderError />
           <deletePlugin.RenderError />
+          <detachPlugin.RenderError />
         </Errors>
       </MotionConfig>
     );

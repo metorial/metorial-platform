@@ -30,7 +30,8 @@ let normalizeSkillMarketplacesListQuery = (
   ...query,
   id: toArrayIfString(query.id),
   status: toArrayIfString(query.status),
-  skillConfigurationId: toArrayIfString(query.skillConfigurationId)
+  skillConfigurationId: toArrayIfString(query.skillConfigurationId),
+  skillGroupId: toArrayIfString(query.skillGroupId)
 });
 
 let normalizeSkillMarketplacePluginsListQuery = (
@@ -70,6 +71,18 @@ export let useSkillMarketplaces = (
     instanceId ? `${instanceId}:skillMarketplaces:${JSON.stringify(query ?? {})}` : null
   );
 };
+
+export let useSkillMarketplacesPage = (
+  instanceId: string | null | undefined,
+  query: Omit<
+    DashboardInstanceSkillsMarketplacesListQuery,
+    'after' | 'before' | 'cursor'
+  > | null,
+  after: string | undefined
+) =>
+  skillMarketplacesLoader.use(
+    instanceId && query !== null ? { instanceId, ...query, ...(after ? { after } : {}) } : null
+  );
 
 export let skillMarketplaceLoader = createLoader({
   name: 'skillMarketplace',

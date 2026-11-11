@@ -340,7 +340,7 @@ export function TitleStatusBar({
               </EditorInfo>
             </EditorRow>
           ))}
-          {!!attributionCounts?.length && (
+          {/* {!!attributionCounts?.length && (
             <>
               <PopoverDivider />
               <PopoverTitle>Blocks by primary editor</PopoverTitle>
@@ -362,7 +362,7 @@ export function TitleStatusBar({
                 </EditorRow>
               ))}
             </>
-          )}
+          )} */}
         </PopoverList>
       </Popover>
     </>

@@ -1,11 +1,10 @@
-import { useEditorOverlay, useOverlayPosition } from './overlays';
 import { useRef } from 'react';
-import { Avatar } from '../components/Avatar';
-import type { AttributionPerson } from './AttributionPopover';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
+import { Avatar } from '../components/Avatar';
 import type { Theme } from '../styles/theme';
 import { menuEnter, menuExit } from './animations';
+import type { AttributionPerson } from './AttributionPopover';
 import { LanguagePicker } from './extensions/LanguagePicker';
 import {
   IconLink,
@@ -15,6 +14,7 @@ import {
   IconRowMoveUp,
   IconTrash
 } from './icons';
+import { useEditorOverlay, useOverlayPosition } from './overlays';
 import { slashItems, type SlashItem } from './SlashMenu';
 import { usePresence } from './usePresence';
 
@@ -59,7 +59,6 @@ let SectionTitle = styled.div`
   padding: 0 2px 6px;
   font-size: 12px;
   font-weight: 600;
-  color: ${({ theme }) => theme.color.accent};
 `;
 
 let LanguageRow = styled.div`

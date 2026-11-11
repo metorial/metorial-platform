@@ -278,6 +278,7 @@ export let SkillTemplateSettingsScene = (p: {
   instanceId: string | null | undefined;
   skillTemplateId: string | null | undefined;
   onDeleteSuccess?: () => void;
+  readOnly?: boolean;
 }) => {
   let skillTemplate = useSkillTemplate(p.instanceId, p.skillTemplateId);
   let updateMutator = skillTemplate.updateMutator();
@@ -290,7 +291,7 @@ export let SkillTemplateSettingsScene = (p: {
     },
     updateInitialValues: true,
     onSubmit: async values => {
-      if (skillTemplate.data?.owner === 'system') return;
+      if (p.readOnly || skillTemplate.data?.owner === 'system') return;
 
       await updateMutator.mutate({
         name: values.name.trim(),
@@ -305,7 +306,7 @@ export let SkillTemplateSettingsScene = (p: {
   });
 
   return renderWithLoader({ skillTemplate })(({ skillTemplate }) => {
-    let isSystemTemplate = skillTemplate.data.owner === 'system';
+    let isSystemTemplate = p.readOnly || skillTemplate.data.owner === 'system';
 
     return (
       <PageStack>

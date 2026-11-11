@@ -1,6 +1,6 @@
 import {
+  useAllPortalConsumerAccess,
   useCreatePortalConsumerAccess,
-  useOrganizationMembers,
   usePortalConsumerAccess,
   usePortalConsumerGroups,
   usePortalConsumerProfiles,
@@ -12,11 +12,20 @@ import {
   useStorePermissions,
   useUser
 } from '@metorial/state';
-import { Avatar, Button, Input, Popover, Select, Switch, Text, theme } from '@metorial/ui';
+import {
+  Avatar,
+  Button,
+  Input,
+  Menu,
+  Popover,
+  Select,
+  Switch,
+  Text,
+  theme
+} from '@metorial/ui';
 import {
   RiArrowDownSLine,
   RiArrowLeftSLine,
-  RiBuilding2Line,
   RiCheckLine,
   RiGroupLine,
   RiLayoutTopLine
@@ -90,35 +99,6 @@ let PortalChip = styled.button`
   font-size: 12px;
   cursor: pointer;
   flex: 0 0 auto;
-
-  &:hover {
-    background: ${theme.colors.gray200};
-  }
-`;
-
-let PortalMenu = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin: 8px 16px 0 16px;
-  padding: 6px;
-  border: 1px solid ${theme.colors.gray300};
-  border-radius: 10px;
-`;
-
-let PortalMenuItem = styled.button<{ $current?: boolean }>`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 32px;
-  padding: 0 8px;
-  border: 0;
-  border-radius: 6px;
-  background: ${p => (p.$current ? theme.colors.gray200 : 'transparent')};
-  color: ${theme.colors.foreground};
-  font-size: 13px;
-  text-align: left;
-  cursor: pointer;
 
   &:hover {
     background: ${theme.colors.gray200};
@@ -310,6 +290,21 @@ let viewOnlyAccessItems = [
 
 let accountAccessItems = [{ id: 'none', label: 'Remove' }, ...inviteAccessItems];
 
+type GroupPermission = 'read' | 'manage';
+
+let groupLevelItems = [
+  { id: 'read', label: 'Can view' },
+  { id: 'manage', label: 'Can edit' }
+];
+
+let groupAccessItems = [{ id: 'none', label: 'Remove' }, ...groupLevelItems];
+
+let isGroupPermission = (value: string): value is GroupPermission =>
+  value == 'read' || value == 'manage';
+
+let groupPermissionOf = (permission: InvitePermission): GroupPermission =>
+  permission == 'read' ? 'read' : 'manage';
+
 let isInvitePermission = (value: string): value is InvitePermission =>
   value == 'read' || value == 'write' || value == 'owner';
 
@@ -359,7 +354,6 @@ export let SkillSharePanelContent = (p: {
   );
   let [selectedSkillId, setSelectedSkillId] = useState(skills[0]?.id ?? '');
   let [selectedPortalId, setSelectedPortalId] = useState(p.context?.portalId ?? '');
-  let [portalMenuOpen, setPortalMenuOpen] = useState(false);
   let [search, setSearch] = useState('');
   let [isSearching, setIsSearching] = useState(false);
   let [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
@@ -427,6 +421,7 @@ export let SkillSharePanelContent = (p: {
   let shareSkill = useShareSkill();
   let createPortalAccess = useCreatePortalConsumerAccess();
   let deletePortalAccess = portalAccess.deleteMutator();
+  let updatePortalAccess = portalAccess.updateMutator();
   useEffect(() => {
     if (skills.some(skill => skill.id == selectedSkillId)) return;
     setSelectedSkillId(skills[0]?.id ?? '');
@@ -480,10 +475,26 @@ export let SkillSharePanelContent = (p: {
     : inviteAccessItems;
 
   let skillAccess = useSkillAccess(p.instanceId, selectedSkillId, canManageAccess);
+  let inheritedSkillGroupIds = useMemo(
+    () => [
+      ...new Set(
+        (skillAccess.data?.grants ?? [])
+          .map(grant => grant.source.skillGroup?.id)
+          .filter((id): id is string => !!id)
+      )
+    ],
+    [skillAccess.data?.grants]
+  );
+  let inheritedPortalAccess = useAllPortalConsumerAccess(
+    canManagePortalGroups ? p.instanceId : null,
+    activePortalId,
+    inheritedSkillGroupIds.length ? { skillGroupId: inheritedSkillGroupIds } : null
+  );
   let grantedPermissionByProfileId = useMemo(() => {
     let map = new Map<string, 'read' | 'write'>();
     for (let grant of skillAccess.data?.grants ?? []) {
       let profileId = grant.subject.consumerProfileId;
+      if (grant.source.type != 'direct') continue;
       if (grant.subject.type != 'consumer_profile' || !profileId) continue;
       if (grant.level == 'read' && map.has(profileId)) continue;
       map.set(profileId, grant.level == 'read' ? 'read' : 'write');
@@ -507,12 +518,15 @@ export let SkillSharePanelContent = (p: {
     ? allGroupAccesses.find(access => access.consumerGroup.id == everyoneGroup.id)
     : undefined;
   let groupAccesses = allGroupAccesses.filter(access => !access.consumerGroup.isDefault);
+  let inheritedGroupAccesses = inheritedSkillGroupIds.length
+    ? (inheritedPortalAccess.data ?? []).filter(access => access.access.type == 'skill_group')
+    : [];
 
   let listedConsumerIds = useMemo(
     () =>
       new Set(
         accessibleParticipants
-          .map(participant => participant.actor.consumer?.id)
+          .flatMap(participant => [participant.actor.consumer?.id, participant.consumerId])
           .filter((id): id is string => !!id)
       ),
     [accessibleParticipants]
@@ -595,7 +609,7 @@ export let SkillSharePanelContent = (p: {
     await p.onShared?.();
   };
 
-  let addGroupAccess = async (consumerGroupId: string) => {
+  let addGroupAccess = async (consumerGroupId: string, level: GroupPermission) => {
     if (!p.instanceId || !selectedSkillId) return false;
 
     let [created] = await createPortalAccess.mutate({
@@ -605,22 +619,38 @@ export let SkillSharePanelContent = (p: {
       name: selectedSkill ? getSkillLabel(selectedSkill) : undefined,
       access: {
         type: 'skill',
-        skillId: selectedSkillId
+        skillId: selectedSkillId,
+        permission: level
       }
     });
 
     return !!created;
   };
 
+  let updateGroupAccess = async (consumerAccessId: string, level: GroupPermission) => {
+    let [updated] = await updatePortalAccess.mutate({ consumerAccessId, permission: level });
+    if (!updated) return;
+
+    await refetchAccess();
+  };
+
   let setEveryoneAccess = async (value: string) => {
     if (!everyoneGroup) return;
 
-    if (value == 'read' && !everyoneAccess) {
-      if (!(await addGroupAccess(everyoneGroup.id))) return;
-      await refetchAccess();
+    if (value == 'none') {
+      if (everyoneAccess) await removeGroupAccess(everyoneAccess.id);
+      return;
     }
 
-    if (value == 'none' && everyoneAccess) await removeGroupAccess(everyoneAccess.id);
+    if (!isGroupPermission(value)) return;
+
+    if (everyoneAccess) {
+      await updateGroupAccess(everyoneAccess.id, value);
+      return;
+    }
+
+    if (!(await addGroupAccess(everyoneGroup.id, value))) return;
+    await refetchAccess();
   };
 
   let shareWithSelected = async () => {
@@ -660,7 +690,7 @@ export let SkillSharePanelContent = (p: {
     }
 
     for (let consumerGroupId of consumerGroupIds) {
-      if (!(await addGroupAccess(consumerGroupId))) return;
+      if (!(await addGroupAccess(consumerGroupId, groupPermissionOf(permission)))) return;
     }
 
     stopInviteSearch();
@@ -743,68 +773,43 @@ export let SkillSharePanelContent = (p: {
   }
 
   let selectedCount = selectedKeys.size;
-  let selectedHasViewOnly = candidates.some(
-    candidate =>
-      selectedKeys.has(`${candidate.type}:${candidate.id}`) &&
-      (candidate.type == 'group' || candidate.isOrganizationMember)
+  let selectedCandidates = candidates.filter(candidate =>
+    selectedKeys.has(`${candidate.type}:${candidate.id}`)
   );
+  let selectedHasViewOnly = selectedCandidates.some(
+    candidate => candidate.type == 'consumer' && candidate.isOrganizationMember
+  );
+  let selectedHasGroup = selectedCandidates.some(candidate => candidate.type == 'group');
   let isSharing = shareSkill.isLoading || createPortalAccess.isLoading;
 
   return (
     <PanelStack>
       <PanelHeader>
         <PanelTitle>
-          <Text size="4" weight="strong">
-            Share skill
+          <Text size="2" weight="strong">
+            Share Skill
           </Text>
-          {skills.length > 1 ? (
-            <Select
-              label="Skill"
-              hideLabel
-              size="2"
-              value={selectedSkillId}
-              items={getSkillItems(skills)}
-              onChange={setSelectedSkillId}
-            />
-          ) : (
-            <Text size="1" color="gray600">
-              {selectedSkill ? getSkillLabel(selectedSkill) : ''}
-            </Text>
-          )}
         </PanelTitle>
 
         {showPortalChip && (
-          <PortalChip
-            type="button"
-            aria-label="Change portal"
-            onClick={() => setPortalMenuOpen(open => !open)}
+          <Menu
+            title="Share within portal"
+            label="Change portal"
+            items={portalItems.map(portal => ({
+              id: portal.id,
+              label: portal.name,
+              icon: portal.id == activePortalId ? <RiCheckLine size={14} /> : <span />
+            }))}
+            onItemClick={setSelectedPortalId}
           >
-            <RiLayoutTopLine size={14} />
-            <span>{activePortal?.name ?? 'Select a portal'}</span>
-            <RiArrowDownSLine size={14} />
-          </PortalChip>
+            <PortalChip type="button">
+              <RiLayoutTopLine size={14} />
+              <span>{activePortal?.name ?? 'Select a portal'}</span>
+              <RiArrowDownSLine size={14} />
+            </PortalChip>
+          </Menu>
         )}
       </PanelHeader>
-
-      {showPortalChip && portalMenuOpen && (
-        <PortalMenu>
-          <Muted style={{ padding: '4px 8px' }}>Share within portal</Muted>
-          {portalItems.map(portal => (
-            <PortalMenuItem
-              key={portal.id}
-              type="button"
-              $current={portal.id == activePortalId}
-              onClick={() => {
-                setSelectedPortalId(portal.id);
-                setPortalMenuOpen(false);
-              }}
-            >
-              <span>{portal.name}</span>
-              {portal.id == activePortalId && <RiCheckLine size={14} />}
-            </PortalMenuItem>
-          ))}
-        </PortalMenu>
-      )}
 
       {!hasShareTarget ? (
         <EmptyState>
@@ -887,7 +892,10 @@ export let SkillSharePanelContent = (p: {
                   <InvitePermissionLabel>
                     {selectedCount ? `${selectedCount} selected` : 'Pick people or groups'}
                     {selectedHasViewOnly && permission != 'read'
-                      ? ' · groups and organization members can only view'
+                      ? ' · organization members can only view'
+                      : ''}
+                    {selectedHasGroup && permission == 'owner'
+                      ? ' · groups can edit but not own'
                       : ''}
                   </InvitePermissionLabel>
                   <AccessSelectWrap>
@@ -956,7 +964,6 @@ export let SkillSharePanelContent = (p: {
                         <PersonInfo>
                           <PersonName>
                             <Truncate>{participant.actor.name}</Truncate>
-                            {isOwner && <Pill>Owner</Pill>}
                           </PersonName>
                           <Muted>{participant.actor.email}</Muted>
                         </PersonInfo>
@@ -1008,15 +1015,52 @@ export let SkillSharePanelContent = (p: {
                             label="Access"
                             hideLabel
                             size="2"
-                            value="read"
-                            disabled={removingGroupId == access.id}
-                            items={[
-                              { id: 'none', label: 'Remove' },
-                              { id: 'read', label: 'Can view' }
-                            ]}
+                            value={access.accessLevel ?? 'read'}
+                            disabled={
+                              removingGroupId == access.id || updatePortalAccess.isLoading
+                            }
+                            items={groupAccessItems}
                             onChange={value => {
                               if (value == 'none') removeGroupAccess(access.id);
+                              else if (isGroupPermission(value)) {
+                                updateGroupAccess(access.id, value);
+                              }
                             }}
+                          />
+                        </AccessSelectWrap>
+                      </AccessRow>
+                    ))}
+
+                  {canManagePortalGroups &&
+                    inheritedGroupAccesses.map(access => (
+                      <AccessRow key={access.id}>
+                        <Avatar
+                          entity={{
+                            name: access.consumerGroup.name,
+                            imageUrl: `https://avatar.metorial-cdn.com/${access.consumerGroup.id}`
+                          }}
+                          size={36}
+                        />
+                        <PersonInfo>
+                          <PersonName>
+                            <Truncate>{access.consumerGroup.name}</Truncate>
+                            <GroupPill>Group</GroupPill>
+                          </PersonName>
+                          <Muted>
+                            Through{' '}
+                            {access.access.type == 'skill_group'
+                              ? access.access.skillGroup.name
+                              : access.name}
+                          </Muted>
+                        </PersonInfo>
+                        <AccessSelectWrap>
+                          <Select
+                            label="Inherited access"
+                            hideLabel
+                            size="2"
+                            disabled
+                            value={access.accessLevel ?? 'read'}
+                            items={groupLevelItems}
                           />
                         </AccessSelectWrap>
                       </AccessRow>
@@ -1024,7 +1068,8 @@ export let SkillSharePanelContent = (p: {
 
                   {!participants.isLoading &&
                     accessibleParticipants.length == 0 &&
-                    groupAccesses.length == 0 && (
+                    groupAccesses.length == 0 &&
+                    inheritedGroupAccesses.length == 0 && (
                       <EmptyState>
                         <Text size="2" color="gray600">
                           Nobody has been added yet.
@@ -1053,34 +1098,16 @@ export let SkillSharePanelContent = (p: {
                     label="Access for everyone"
                     hideLabel
                     size="2"
-                    value={everyoneAccess ? 'read' : 'none'}
+                    value={everyoneAccess ? (everyoneAccess.accessLevel ?? 'read') : 'none'}
                     disabled={
                       createPortalAccess.isLoading ||
+                      updatePortalAccess.isLoading ||
                       (!!everyoneAccess && removingGroupId == everyoneAccess.id)
                     }
-                    items={[
-                      { id: 'read', label: 'Can view' },
-                      { id: 'none', label: 'No access' }
-                    ]}
+                    items={[...groupLevelItems, { id: 'none', label: 'No access' }]}
                     onChange={setEveryoneAccess}
                   />
                 </AccessSelectWrap>
-              </AccessRow>
-            </AccessSection>
-          )}
-
-          {mode == 'dashboard' && !isSearching && (
-            <AccessSection>
-              <AccessRow>
-                <IconAvatar $size={36}>
-                  <RiBuilding2Line size={18} />
-                </IconAvatar>
-                <PersonInfo>
-                  <PersonName>
-                    <Truncate>Organization members</Truncate>
-                  </PersonName>
-                  <Muted>Full access in the dashboard</Muted>
-                </PersonInfo>
               </AccessRow>
             </AccessSection>
           )}
@@ -1092,19 +1119,17 @@ export let SkillSharePanelContent = (p: {
                   {!ownProfile
                     ? `You haven't opened ${portalName} yet`
                     : ownGrantedDirectly
-                      ? `In your ${portalName}`
+                      ? `In your portal`
                       : ownGroupAccess
-                        ? `In your ${portalName}`
-                        : `Not in your ${portalName}`}
+                        ? `In your portal`
+                        : `Not in your portal`}
                 </SelfPortalTitle>
                 <Muted style={{ whiteSpace: 'normal' }}>
                   {!ownProfile
                     ? 'Open it once to be able to add skills to it. You can always open this skill here in the dashboard.'
                     : ownGrantedDirectly
-                      ? 'You can always open it here in the dashboard, and now in the portal too.'
-                      : ownGroupAccess
-                        ? `Through ${ownGroupAccess.consumerGroup.name}. You can always open it here in the dashboard too.`
-                        : 'You can always open it here in the dashboard. Add it to also see it in the portal.'}
+                      ? 'You can see the skill in the portal.'
+                      : 'You can see the skill here, but not in the portal.'}
                 </Muted>
               </SelfPortalText>
               <Switch
@@ -1121,6 +1146,7 @@ export let SkillSharePanelContent = (p: {
             <shareSkill.RenderError />
             <createPortalAccess.RenderError />
             <deletePortalAccess.RenderError />
+            <updatePortalAccess.RenderError />
           </div>
         </>
       )}

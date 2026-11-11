@@ -101,6 +101,54 @@ let truncate = (value: string | null | undefined, length = 100) => {
 };
 
 export type SkillItemPickerKind = 'provider' | 'integration';
+
+export type SkillIntegrationOption = {
+  id: string;
+  name: string;
+  slug?: string | null;
+  description?: string | null;
+  providers: {
+    id: string;
+    name?: string | null;
+    slug?: string | null;
+    imageUrl?: string | null;
+  }[];
+};
+
+export type IntegrationAvatars = {
+  providers?: {
+    id?: string | null;
+    provider: { id: string; name?: string | null; slug: string };
+  }[];
+};
+
+export type ProviderListingPreview = { name?: string | null; imageUrl?: string | null };
+
+export let getOptionAvatars = (option: SkillIntegrationOption): IntegrationAvatars => ({
+  providers: option.providers.map(provider => ({
+    id: provider.id,
+    provider: {
+      id: provider.id,
+      name: provider.name ?? provider.slug ?? provider.id,
+      slug: provider.slug ?? provider.id
+    }
+  }))
+});
+
+export let addOptionListings = (
+  lookup: Map<string, ProviderListingPreview>,
+  options: SkillIntegrationOption[] | undefined
+) => {
+  for (let option of options ?? []) {
+    for (let provider of option.providers) {
+      if (lookup.has(provider.id)) continue;
+      lookup.set(provider.id, {
+        name: provider.name ?? provider.slug,
+        imageUrl: provider.imageUrl
+      });
+    }
+  }
+};
 type LinkedProviderItem = SkillItem | SkillTemplateItem;
 
 let getSkillItemEntity = (
@@ -133,8 +181,8 @@ let getSkillItemEntity = (
   };
 };
 
-let IntegrationProviderAvatarStack = (p: {
-  integration: IntegrationPreview | null | undefined;
+export let IntegrationProviderAvatarStack = (p: {
+  integration: IntegrationAvatars | null | undefined;
   fallbackName: string;
   providerListings: Map<string, { name?: string | null; imageUrl?: string | null }>;
   size?: number;
@@ -179,7 +227,7 @@ let IntegrationProviderAvatarStack = (p: {
 let getSkillItemTableRow = (p: {
   item: LinkedProviderItem;
   providerListings: Map<string, { name?: string | null; imageUrl?: string | null }>;
-  integrationLookup: Map<string, IntegrationPreview>;
+  integrationLookup: Map<string, IntegrationAvatars>;
   isDeleting: boolean;
   onDelete?: (item: LinkedProviderItem) => void;
 }) => {
@@ -469,6 +517,87 @@ let IntegrationPicker = (p: {
   );
 };
 
+let OptionIntegrationPicker = (p: {
+  options: SkillIntegrationOption[];
+  excludeIntegrationIds: string[];
+  onSelect: (integrationId: string) => void;
+  selectedId: string | null;
+}) => {
+  let [search, setSearch] = useState('');
+  let query = search.trim().toLowerCase();
+  let items = useMemo(() => {
+    let excluded = new Set(p.excludeIntegrationIds);
+
+    return p.options.filter(
+      option =>
+        !excluded.has(option.id) &&
+        (!query ||
+          [option.name, option.slug, option.description].some(value =>
+            value?.toLowerCase().includes(query)
+          ))
+    );
+  }, [p.options, p.excludeIntegrationIds, query]);
+  let listingLookup = useMemo(() => {
+    let lookup = new Map<string, ProviderListingPreview>();
+    addOptionListings(lookup, p.options);
+    return lookup;
+  }, [p.options]);
+
+  return (
+    <PickerStack>
+      <Input
+        label="Search integrations"
+        hideLabel
+        placeholder="Search integrations..."
+        value={search}
+        onInput={setSearch}
+      />
+
+      <PickerScroll>
+        {p.options.length === 0 ? (
+          <Text size="2" color="gray600">
+            No integrations are available for this portal.
+          </Text>
+        ) : items.length === 0 ? (
+          <Text size="2" color="gray600">
+            {query
+              ? 'No integrations match your search.'
+              : 'All available integrations are already linked to this skill.'}
+          </Text>
+        ) : (
+          <ItemGrid.Root width="270px">
+            {items.map(option => (
+              <ItemGrid.Item
+                key={option.id}
+                title={option.name}
+                description={truncate(option.description)}
+                height={220}
+                onClick={() => {
+                  if (!p.selectedId) p.onSelect(option.id);
+                }}
+                icon={
+                  <IntegrationProviderAvatarStack
+                    integration={getOptionAvatars(option)}
+                    fallbackName={option.name}
+                    providerListings={listingLookup}
+                  />
+                }
+                bottom={
+                  option.slug ? (
+                    <CardCategories>
+                      <CardCategory>{option.slug}</CardCategory>
+                    </CardCategories>
+                  ) : undefined
+                }
+              />
+            ))}
+          </ItemGrid.Root>
+        )}
+      </PickerScroll>
+    </PickerStack>
+  );
+};
+
 let SkillItemPickerPanel = (p: {
   kind: SkillItemPickerKind;
   instanceId: string;
@@ -477,6 +606,7 @@ let SkillItemPickerPanel = (p: {
   excludeIntegrationIds: string[];
   allowedProviderIds?: string[];
   allowedIntegrationIds?: string[];
+  integrationOptions?: SkillIntegrationOption[];
   close: () => void;
   onComplete: () => Promise<void> | void;
 }) => {
@@ -535,6 +665,13 @@ let SkillItemPickerPanel = (p: {
             selectedId={selectedId}
             onSelect={handleSelect}
           />
+        ) : p.integrationOptions ? (
+          <OptionIntegrationPicker
+            options={p.integrationOptions}
+            excludeIntegrationIds={p.excludeIntegrationIds}
+            selectedId={selectedId}
+            onSelect={handleSelect}
+          />
         ) : (
           <IntegrationPicker
             instanceId={p.instanceId}
@@ -559,6 +696,7 @@ export let showSkillItemPickerPanel = (p: {
   excludeIntegrationIds: string[];
   allowedProviderIds?: string[];
   allowedIntegrationIds?: string[];
+  integrationOptions?: SkillIntegrationOption[];
   onComplete: () => Promise<void> | void;
 }) =>
   showModal(({ dialogProps, close }) => (
@@ -575,6 +713,7 @@ let SkillTemplateItemPickerPanel = (p: {
   excludeIntegrationIds: string[];
   allowedProviderIds?: string[];
   allowedIntegrationIds?: string[];
+  integrationOptions?: SkillIntegrationOption[];
   close: () => void;
   onComplete: () => Promise<void> | void;
 }) => {
@@ -633,6 +772,13 @@ let SkillTemplateItemPickerPanel = (p: {
             selectedId={selectedId}
             onSelect={handleSelect}
           />
+        ) : p.integrationOptions ? (
+          <OptionIntegrationPicker
+            options={p.integrationOptions}
+            excludeIntegrationIds={p.excludeIntegrationIds}
+            selectedId={selectedId}
+            onSelect={handleSelect}
+          />
         ) : (
           <IntegrationPicker
             instanceId={p.instanceId}
@@ -649,7 +795,7 @@ let SkillTemplateItemPickerPanel = (p: {
   );
 };
 
-let showSkillTemplateItemPickerPanel = (p: {
+export let showSkillTemplateItemPickerPanel = (p: {
   kind: SkillItemPickerKind;
   instanceId: string;
   skillTemplateId: string;
@@ -657,6 +803,7 @@ let showSkillTemplateItemPickerPanel = (p: {
   excludeIntegrationIds: string[];
   allowedProviderIds?: string[];
   allowedIntegrationIds?: string[];
+  integrationOptions?: SkillIntegrationOption[];
   onComplete: () => Promise<void> | void;
 }) =>
   showModal(({ dialogProps, close }) => (
@@ -714,6 +861,7 @@ export let SkillLinkProvidersScene = (p: {
   allowProviders?: boolean;
   allowedProviderIds?: string[];
   allowedIntegrationIds?: string[];
+  integrationOptions?: SkillIntegrationOption[];
 }) => {
   let skillItems = useAllSkillItems(p.instanceId, p.skillId, {
     order: 'asc',
@@ -746,7 +894,7 @@ export let SkillLinkProvidersScene = (p: {
     [skillItems.data]
   );
   let linkedIntegrations = useIntegrations(
-    linkedIntegrationIds.length > 0 ? p.instanceId : null,
+    linkedIntegrationIds.length > 0 && !p.integrationOptions ? p.instanceId : null,
     {
       id: linkedIntegrationIds,
       limit: Math.max(linkedIntegrationIds.length, 1),
@@ -782,6 +930,7 @@ export let SkillLinkProvidersScene = (p: {
       excludeIntegrationIds: linkedIntegrationIds,
       allowedProviderIds: p.allowedProviderIds,
       allowedIntegrationIds: p.allowedIntegrationIds,
+      integrationOptions: p.integrationOptions,
       onComplete: async () => {
         await skillItems.refetch();
       }
@@ -805,7 +954,7 @@ export let SkillLinkProvidersScene = (p: {
         string,
         { name?: string | null; imageUrl?: string | null }
       >();
-      let integrationLookup = new Map<string, IntegrationPreview>();
+      let integrationLookup = new Map<string, IntegrationAvatars>();
 
       for (let listing of providerListings.data) {
         providerListingLookup.set(listing.id, {
@@ -822,19 +971,24 @@ export let SkillLinkProvidersScene = (p: {
         integrationLookup.set(integration.id, integration);
       }
 
+      for (let option of p.integrationOptions ?? []) {
+        integrationLookup.set(option.id, getOptionAvatars(option));
+      }
+      addOptionListings(providerListingLookup, p.integrationOptions);
+
       return (
         <SkillPanelPage
           title="Providers"
           description="Link providers and integrations to be used with this skill."
           actions={
-              !p.readOnly ? (
-                <AddSkillItemMenu
-                  disabled={!p.instanceId || !p.skillId}
-                  allowProviders={p.allowProviders}
-                  onSelect={openPicker}
-                />
-              ) : null
-            }
+            !p.readOnly ? (
+              <AddSkillItemMenu
+                disabled={!p.instanceId || !p.skillId}
+                allowProviders={p.allowProviders}
+                onSelect={openPicker}
+              />
+            ) : null
+          }
         >
           {skillItems.data.length === 0 ? (
             <EmptyState>
@@ -871,6 +1025,7 @@ export let SkillTemplateLinkProvidersScene = (p: {
   readOnly?: boolean;
   allowedProviderIds?: string[];
   allowedIntegrationIds?: string[];
+  integrationOptions?: SkillIntegrationOption[];
 }) => {
   let skillTemplateItems = useAllSkillTemplateItems(p.instanceId, p.skillTemplateId, {
     order: 'asc'
@@ -902,7 +1057,7 @@ export let SkillTemplateLinkProvidersScene = (p: {
     [skillTemplateItems.data]
   );
   let linkedIntegrations = useIntegrations(
-    linkedIntegrationIds.length > 0 ? p.instanceId : null,
+    linkedIntegrationIds.length > 0 && !p.integrationOptions ? p.instanceId : null,
     {
       id: linkedIntegrationIds,
       limit: Math.max(linkedIntegrationIds.length, 1),
@@ -937,6 +1092,7 @@ export let SkillTemplateLinkProvidersScene = (p: {
       excludeIntegrationIds: linkedIntegrationIds,
       allowedProviderIds: p.allowedProviderIds,
       allowedIntegrationIds: p.allowedIntegrationIds,
+      integrationOptions: p.integrationOptions,
       onComplete: async () => {
         await skillTemplateItems.refetch();
       }
@@ -960,7 +1116,7 @@ export let SkillTemplateLinkProvidersScene = (p: {
         string,
         { name?: string | null; imageUrl?: string | null }
       >();
-      let integrationLookup = new Map<string, IntegrationPreview>();
+      let integrationLookup = new Map<string, IntegrationAvatars>();
 
       for (let listing of providerListings.data) {
         providerListingLookup.set(listing.id, {
@@ -976,6 +1132,11 @@ export let SkillTemplateLinkProvidersScene = (p: {
       for (let integration of linkedIntegrations.data?.items ?? []) {
         integrationLookup.set(integration.id, integration);
       }
+
+      for (let option of p.integrationOptions ?? []) {
+        integrationLookup.set(option.id, getOptionAvatars(option));
+      }
+      addOptionListings(providerListingLookup, p.integrationOptions);
 
       return (
         <Box

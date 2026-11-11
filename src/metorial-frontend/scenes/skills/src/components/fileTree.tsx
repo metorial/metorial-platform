@@ -194,7 +194,7 @@ let TreeIconWrap = styled.span<{ $kind: SkillFileTreeNode['kind'] }>`
   flex: 0 0 auto;
   color: ${p =>
     p.$kind == 'directory'
-      ? theme.colors.orange800
+      ? theme.colors.gray700
       : p.$kind == 'document'
         ? theme.colors.purple800
         : theme.colors.blue800};

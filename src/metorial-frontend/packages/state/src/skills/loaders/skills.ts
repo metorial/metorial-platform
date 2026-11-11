@@ -70,6 +70,11 @@ export let useCreateSkill = skillsLoader.createExternalMutator(
     withAuth(sdk => sdk.skills.create(i.instanceId, i))
 );
 
+export let useDeleteSkill = skillsLoader.createExternalMutator(
+  (i: { instanceId: string; skillId: string }) =>
+    withAuth(sdk => sdk.skills.delete(i.instanceId, i.skillId))
+);
+
 export let useForkSkill = skillsLoader.createExternalMutator(
   (i: DashboardInstanceSkillsForkBody & { instanceId: string; skillId: string }) =>
     withAuth(sdk => sdk.skills.fork(i.instanceId, i.skillId, i))

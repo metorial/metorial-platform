@@ -16,6 +16,7 @@
     "@metorial/code-editor-monaco": "workspace:*",
     "@metorial/data-hooks": "^1.0.0",
     "@metorial/dynamic-component": "^1.0.0",
+    "@metorial/empty-state": "^1.0.0",
     "@metorial/frontend-config": "^1.0.0",
     "@metorial/layout": "^1.0.0",
     "@metorial/markdown": "^1.0.0",
@@ -37,6 +38,7 @@
     "react": "19.3.0",
     "react-router-dom": "^7.18.5",
     "react-textarea-autosize": "^8.5.9",
+    "shleemy": "^1.2.2",
     "styled-components": "^6.6.0"
   },
   "devDependencies": {

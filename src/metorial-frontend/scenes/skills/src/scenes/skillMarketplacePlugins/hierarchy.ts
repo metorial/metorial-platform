@@ -2,9 +2,14 @@ import type { SkillMarketplacePlugin, SkillPlugin } from '@metorial/state';
 
 export type EmbeddedPluginSkill = SkillPlugin['skills'][number];
 
-export type MarketplaceSkillPlugin = NonNullable<SkillMarketplacePlugin['skillPlugin']> & {
+export type MarketplaceSkillPlugin = Omit<
+  NonNullable<SkillMarketplacePlugin['skillPlugin']>,
+  'skills'
+> & {
+  skills: EmbeddedPluginSkill[];
   canUpdate?: boolean;
   canDelete?: boolean;
+  canEditSkills?: boolean;
 };
 
 export type MarketplaceFilter = 'all' | 'plugins' | 'standalone';
@@ -17,6 +22,7 @@ export type SkillEntry = {
   plugin: MarketplaceSkillPlugin;
   standalone: boolean;
   canMove: boolean;
+  canRead: boolean;
 };
 
 export type PluginGroupView = {
@@ -36,6 +42,16 @@ export let marketplaceCanCreatePlugins = (marketplace: {
 export let pluginCanUpdate = (plugin: { status: string; canUpdate?: boolean }) =>
   plugin.canUpdate ?? plugin.status == 'active';
 
+export let isSkillGroupPlugin = (plugin: { source?: { type: string } }) =>
+  plugin.source?.type === 'skill_group';
+
+export let pluginCanEditSkills = (plugin: {
+  status: string;
+  canUpdate?: boolean;
+  canEditSkills?: boolean;
+  source?: { type: string };
+}) => plugin.canEditSkills ?? (pluginCanUpdate(plugin) && !isSkillGroupPlugin(plugin));
+
 export let pluginCanDelete = (plugin: { status: string; canDelete?: boolean }) =>
   plugin.canDelete === true;
 
@@ -44,7 +60,7 @@ export let getPlugin = (item: SkillMarketplacePlugin) =>
 
 export let isCollapsedMarketplacePlugin = (item: SkillMarketplacePlugin) => {
   let plugin = item.skillPlugin;
-  if (!plugin || plugin.skills.length !== 1) return false;
+  if (!plugin || plugin.skills.length !== 1 || isSkillGroupPlugin(plugin)) return false;
 
   let pluginNames = [plugin.name, item.identifier].map(normalizeName).filter(Boolean);
   let skill = plugin.skills[0].skill;
@@ -76,7 +92,7 @@ let withoutSkill = (
   skill: EmbeddedPluginSkill,
   removeEmptySource: boolean
 ) => {
-  let plugin = item.skillPlugin!;
+  let plugin = getPlugin(item)!;
   if (plugin.skills.length === 1 && removeEmptySource && isCollapsedMarketplacePlugin(item)) {
     return [];
   }
@@ -100,7 +116,7 @@ export let moveSkillOptimistically = (
   removeEmptySource = true
 ) =>
   items.flatMap(item => {
-    let plugin = item.skillPlugin;
+    let plugin = getPlugin(item);
     if (!plugin) return [item];
     if (plugin.id === sourcePluginId) return withoutSkill(item, skill, removeEmptySource);
 
@@ -131,16 +147,8 @@ export let removeSkillOptimistically = (
   pluginId: string,
   skill: EmbeddedPluginSkill
 ) =>
-  items.map(item =>
-    item.skillPlugin?.id === pluginId
-      ? {
-          ...item,
-          skillPlugin: {
-            ...item.skillPlugin,
-            skills: item.skillPlugin.skills.filter(current => current.id !== skill.id)
-          }
-        }
-      : item
+  items.flatMap(item =>
+    item.skillPlugin?.id === pluginId ? withoutSkill(item, skill, false) : [item]
   );
 
 export let removeMarketplacePluginsOptimistically = (
@@ -178,6 +186,7 @@ export let asOptimisticStandaloneMarketplacePlugin = (d: {
       description: d.skill.skill.description,
       imageUrl: d.skill.skill.imageUrl,
       category: null,
+      source: { type: 'manual' as const },
       skills: [d.skill]
     },
     skill: d.skill,
@@ -226,9 +235,16 @@ export let buildSkillIndex = (items: SkillMarketplacePlugin[]) => {
     if (!plugin) continue;
 
     let standalone = isCollapsedMarketplacePlugin(item);
-    let canMove = pluginCanUpdate(plugin) && !item.id.startsWith('optimistic');
+    let canMove = pluginCanEditSkills(plugin) && !item.id.startsWith('optimistic');
     for (let skill of plugin.skills) {
-      index.set(skill.skillId, { skill, item, plugin, standalone, canMove });
+      index.set(skill.skillId, {
+        skill,
+        item,
+        plugin,
+        standalone,
+        canMove,
+        canRead: skill.canRead !== false
+      });
     }
   }
 
@@ -272,7 +288,8 @@ export let buildMarketplaceView = (
         item,
         plugin,
         standalone: true,
-        canMove: pluginCanUpdate(plugin) && !item.id.startsWith('optimistic')
+        canMove: pluginCanEditSkills(plugin) && !item.id.startsWith('optimistic'),
+        canRead: skill.canRead !== false
       });
       continue;
     }
