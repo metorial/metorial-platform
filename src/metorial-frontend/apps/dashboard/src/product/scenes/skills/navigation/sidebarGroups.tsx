@@ -19,8 +19,9 @@ import {
   getSkillGroupIdFromPath,
   getSkillIdFromPath,
   getSkillOpenSource,
+  retainSkillOpenSource,
   setSkillOpenSource,
-  useSkillOpenSource,
+  useSkillOpenSources,
   type SkillOpenSource
 } from './skillOpenSource';
 
@@ -73,7 +74,7 @@ export let useSkillsSidebarGroups = (opts: { enabled: boolean }): ISidebarGroup[
   let lastHighlightedRef = useRef(highlighted.data?.items ?? []);
   if (highlighted.data) lastHighlightedRef.current = highlighted.data.items;
 
-  let openSource = useSkillOpenSource();
+  let openSources = useSkillOpenSources();
   let previousPathnameRef = useRef(location.pathname);
 
   // Skills opened from anywhere but the sidebar count as opened from the group page they
@@ -83,11 +84,11 @@ export let useSkillsSidebarGroups = (opts: { enabled: boolean }): ISidebarGroup[
     previousPathnameRef.current = location.pathname;
 
     let skillId = getSkillIdFromPath(location.pathname);
-    if (!skillId) return setSkillOpenSource(null);
-    if (getSkillOpenSource()?.skillId == skillId) return;
+    retainSkillOpenSource(skillId);
+    if (!skillId || getSkillOpenSource(skillId)) return;
 
     let groupId = getSkillGroupIdFromPath(previousPathname);
-    setSkillOpenSource(groupId ? { skillId, source: `group:${groupId}` } : null);
+    if (groupId) setSkillOpenSource(skillId, `group:${groupId}`);
   }, [location.pathname]);
 
   if (!opts.enabled) return [];
@@ -125,12 +126,9 @@ export let useSkillsSidebarGroups = (opts: { enabled: boolean }): ISidebarGroup[
           .map(group => `group:${group.id}` as const)
       ]
     : [];
+  let openSource = currentSkillId ? openSources[currentSkillId] : undefined;
   let activePlacement =
-    openSource &&
-    openSource.skillId == currentSkillId &&
-    placements.includes(openSource.source)
-      ? openSource.source
-      : placements[0];
+    openSource && placements.includes(openSource) ? openSource : placements[0];
 
   let isPlacementActive = (placement: SkillOpenSource, pathname: string, to: string) =>
     placement == activePlacement && isPathActive(pathname, to);
@@ -149,7 +147,7 @@ export let useSkillsSidebarGroups = (opts: { enabled: boolean }): ISidebarGroup[
       ),
       label: skill.name,
       to,
-      onClick: () => setSkillOpenSource({ skillId: skill.id, source: placement }),
+      onClick: () => setSkillOpenSource(skill.id, placement),
       getProps: i => ({ isActive: isPlacementActive(placement, i.pathname, i.to) }),
       menu: [
         isFavorite
@@ -178,7 +176,7 @@ export let useSkillsSidebarGroups = (opts: { enabled: boolean }): ISidebarGroup[
         ...skills.slice(0, sidebarGroupSkillsLimit).map(entry => ({
           label: entry.skill.name,
           to: entry.to,
-          onClick: () => setSkillOpenSource({ skillId: entry.skill.id, source: placement }),
+          onClick: () => setSkillOpenSource(entry.skill.id, placement),
           getProps: (i: { pathname: string; to: string }) => ({
             isActive: isPlacementActive(placement, i.pathname, i.to)
           })

@@ -16,7 +16,7 @@ import { IntegrationInstancesTable } from '../../../scenes/integrations/instance
 import { IntegrationAdminSetupCallouts } from '../../../scenes/integrations/adminSetupCallout';
 import { showIntegrationProviderPanelFlow } from '../../../scenes/integrations/providerPanelFlow';
 import { IntegrationProvidersManager } from '../../../scenes/integrations/providersManager';
-import { SecurityAssessmentCard } from '../../../scenes/securityReview';
+import { SecurityAssessmentCard } from '@metorial/scene-skills';
 
 let RecentInstancesBox = (p: { instanceId: string; integration: IntegrationPreview }) => {
   let organization = useCurrentOrganization();

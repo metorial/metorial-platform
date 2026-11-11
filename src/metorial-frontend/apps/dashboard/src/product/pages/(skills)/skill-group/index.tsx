@@ -52,8 +52,9 @@ let SkillGroupHeaderActions = (p: { instanceId: string; skillGroup: SkillGroup }
                 skillGroupId: p.skillGroup.id,
                 skillId: skill.id
               });
-              if (item) skillsLoader.refetchAll();
-            }
+              return !!item;
+            },
+            onDone: () => skillsLoader.refetchAll()
           })
         }
       >
@@ -107,6 +108,7 @@ export let SkillGroupPage = () => {
   let { skillGroupId } = useParams();
   let skillGroup = useSkillGroup(instance.data?.id, skillGroupId);
   let removeSkillFromGroup = useRemoveSkillFromSkillGroup();
+  let pathParams = useSkillPathParams();
 
   let instanceId = instance.data?.id;
   let getItemMenu: SkillsListItemMenu = useCallback(

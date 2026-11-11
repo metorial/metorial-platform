@@ -103,7 +103,18 @@ export type DataListItemAction<Item, Props = any, Ctx = any> = {
     description: (rows: Item[]) => string;
     confirmText?: string;
   };
-  useRun: (args: { props: Props; ctx: Ctx }) => (row: Item) => Promise<unknown> | unknown;
+  bulkInput?: (
+    rows: Item[],
+    args: { props: Props; ctx: Ctx }
+  ) => Promise<unknown | null> | unknown | null;
+  useOnComplete?: (args: {
+    props: Props;
+    ctx: Ctx;
+  }) => (result: { rows: Item[]; input: any; failures: number }) => void;
+  useRun: (args: {
+    props: Props;
+    ctx: Ctx;
+  }) => (row: Item, input?: any) => Promise<unknown> | unknown;
 };
 
 export type TableLayoutProps = {
@@ -148,6 +159,7 @@ export type DataListLayoutRenderArgs<Item extends { id: string }> = {
   items: Item[];
   getItemProps: (row: Item) => DataListItemProps;
   selectedIds: string[];
+  toggleSelected: (id: string, range?: boolean) => void;
   isLoading: boolean;
 };
 

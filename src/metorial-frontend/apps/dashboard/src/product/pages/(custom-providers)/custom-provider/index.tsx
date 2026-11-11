@@ -14,7 +14,7 @@ import { useParams } from 'react-router-dom';
 import { OpenExplorerBox } from '../../../components/openExplorer';
 import { getCustomProviderScmLink } from '../../../scenes/customProvider/utils';
 import { UsageOverviewTiles } from '../../../scenes/instanceUsage';
-import { SecurityAssessmentCard } from '../../../scenes/securityReview';
+import { SecurityAssessmentCard } from '@metorial/scene-skills';
 import { CustomProviderVersionsTable } from '../../../scenes/customProvider/versions';
 
 let RecentVersionsBox = (p: { customProvider: DashboardInstanceCustomProvidersGetOutput }) => {

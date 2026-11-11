@@ -5,6 +5,8 @@ import type {
 import {
   col,
   createDataList,
+  defineAction,
+  deleteAction,
   f,
   lifecycleStatus,
   withDefaults,
@@ -13,15 +15,19 @@ import {
 } from '@metorial/data-list';
 import { EmptyState } from '@metorial/empty-state';
 import { Paths } from '@metorial/frontend-config';
-import { SkillStartInput } from '@metorial/scene-assistant';
 import { showScmRepositoryPicker } from '@metorial/scene-scm';
-import { SkillIconTile, useSkillImportActions } from '@metorial/scene-skills';
 import {
-  queueSkillAssistantPrompt,
-  useCreateSkill,
+  CreateSkillWithAgent as SharedCreateSkillWithAgent,
+  SkillIconTile,
+  SkillPreviewCard,
+  useSkillImportActions
+} from '@metorial/scene-skills';
+import {
   useCurrentInstance,
   useCurrentOrganization,
+  useAddSkillToSkillGroupIfMissing,
   useCurrentProject,
+  useDeleteSkill,
   useInstancePinnedSkills,
   useSkillContentPreviews,
   useSkills
@@ -33,9 +39,9 @@ import { useNavigate } from 'react-router-dom';
 import { styled } from 'styled-components';
 import { useInstanceContext } from '../../../lib/dataList';
 import { entityFilters } from '../../entityFilters';
+import { showSkillGroupPickerModal } from '../groupPickerModal';
 import { showSkillFormModal } from '../modal';
 import { showSkillTemplateFormModal } from '../templateModal';
-import { SkillPreviewCard } from './skillPreviewCard';
 import { skillViewFilter, type SkillView } from './skillViews';
 
 let skillsPageSize = 48;
@@ -63,59 +69,14 @@ export let useSkillPathParams = () => {
   return [organization.data, project.data, instance.data] as const;
 };
 
-let skillStartSuggestions = [
-  {
-    id: 'review',
-    label: 'Code review',
-    prompt:
-      'A skill that reviews pull requests against our conventions: check naming, error handling and test coverage, and summarize findings by severity.'
-  },
-  {
-    id: 'support',
-    label: 'Support replies',
-    prompt:
-      'A skill that drafts customer support replies in a friendly, concise tone, using our product docs to answer and escalating billing questions.'
-  },
-  {
-    id: 'release',
-    label: 'Release notes',
-    prompt:
-      'A skill that turns a list of merged changes into release notes grouped by feature, fix and breaking change.'
-  }
-];
-
-let provisionalSkillName = (description: string) => {
-  let firstLine = description.split('\n')[0]!.trim();
-  return firstLine.length > 60 ? `${firstLine.slice(0, 57).trim()}...` : firstLine;
-};
-
 export let CreateSkillWithAgent = (p: { instanceId: string }) => {
-  let createSkill = useCreateSkill();
-  let navigate = useNavigate();
   let pathParams = useSkillPathParams();
 
   return (
-    <div style={{ marginBottom: 24 }}>
-      <SkillStartInput
-        placeholder="Describe a new skill and the agent will draft it…"
-        suggestions={skillStartSuggestions}
-        onSubmit={async description => {
-          let [skill, error] = await createSkill.mutate({
-            instanceId: p.instanceId,
-            name: provisionalSkillName(description)
-          });
-          if (error || !skill) {
-            throw new Error(error?.data.message ?? 'Unable to create the skill.');
-          }
-
-          queueSkillAssistantPrompt(
-            skill.id,
-            `${description}\n\nSet a fitting name and description for this skill, then write SKILL.md and any other files it needs.`
-          );
-          navigate(Paths.instance.skill(...pathParams, skill.id));
-        }}
-      />
-    </div>
+    <SharedCreateSkillWithAgent
+      instanceId={p.instanceId}
+      getSkillPath={skillId => Paths.instance.skill(...pathParams, skillId)}
+    />
   );
 };
 
@@ -216,7 +177,11 @@ export let SkillsEmptyState = () => {
   );
 };
 
-let SkillsGridLayout = ({ items, getItemProps }: DataListLayoutRenderArgs<Skill>) => {
+let SkillsGridLayout = ({
+  items,
+  getItemProps,
+  toggleSelected
+}: DataListLayoutRenderArgs<Skill>) => {
   let { instanceId } = useInstanceContext();
   let pathParams = useSkillPathParams();
   let getExtraMenu = useContext(SkillsListItemMenuContext);
@@ -238,6 +203,8 @@ let SkillsGridLayout = ({ items, getItemProps }: DataListLayoutRenderArgs<Skill>
               content={previews.data ? previews.getContent(skill.id) : undefined}
               href={Paths.instance.skill(...pathParams, skill.id)}
               isFavorite={isFavorite}
+              isSelected={getItemProps(skill).isSelected}
+              onToggleSelect={range => toggleSelected(skill.id, range)}
               menu={[
                 isFavorite
                   ? {
@@ -350,6 +317,53 @@ export let SkillsList = createDataList<{ skillGroupId?: string }>('skills', {
   .link((skill, _props, ctx) =>
     Paths.instance.skill(ctx.organization, ctx.project, ctx.instance, skill.id)
   )
+  .itemActions([
+    defineAction<Skill>({
+      id: 'add-to-group',
+      label: 'Add to Group',
+      row: false,
+      bulk: { batchSize: 5 },
+      bulkInput: (_rows, { ctx }) =>
+        new Promise<string | null>(resolve => {
+          if (!ctx.instanceId) return resolve(null);
+
+          showSkillGroupPickerModal({
+            instanceId: ctx.instanceId,
+            onSelect: groupId => resolve(groupId),
+            onCancel: () => resolve(null)
+          });
+        }),
+      useOnComplete: ({ ctx }) => {
+        let navigate = useNavigate();
+
+        return ({ input, failures, rows }) => {
+          if (failures >= rows.length) return;
+
+          navigate(
+            Paths.instance.skillGroup(ctx.organization, ctx.project, ctx.instance, input)
+          );
+        };
+      },
+      useRun: ({ ctx }) => {
+        let createItem = useAddSkillToSkillGroupIfMissing();
+
+        return async (skill, skillGroupId: string) => {
+          let [, error] = await createItem.mutate({
+            instanceId: ctx.instanceId!,
+            skillGroupId,
+            skillId: skill.id
+          });
+          if (error) throw error;
+        };
+      }
+    }),
+    deleteAction<Skill>({
+      noun: 'Skill',
+      name: skill => skill.name,
+      useMutate: () => useDeleteSkill(),
+      input: (skill, { ctx }) => ({ instanceId: ctx.instanceId!, skillId: skill.id })
+    })
+  ])
   .layouts(['grid', 'table'], { default: 'grid' })
   .layout('grid', {
     label: 'Grid',

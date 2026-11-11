@@ -11,7 +11,7 @@ import { IntegrationsGrid } from '../../scenes/integrations/grid';
 import { MagicMcpServersTable } from '../../scenes/magicMcp/serversGrid';
 import { showCreateIntegrationProviderFirstFlow } from '../../scenes/integrations/providerPanelFlow';
 import { showMagicMcpServerCreateFlow } from '../../scenes/providerDeployments/magicMcpForm';
-import { SecurityAssessmentCard } from '../../scenes/securityReview';
+import { SecurityAssessmentCard } from '@metorial/scene-skills';
 import { Skills } from './components/skills';
 
 export let ProviderOverviewPage = () => {

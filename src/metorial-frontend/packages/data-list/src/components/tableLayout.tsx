@@ -290,7 +290,7 @@ export let DataListTableLayout = ({
             );
           })}
 
-          {state.items.length == 0 && (
+          {state.items.length == 0 && !state.isLoading && (
             <TableRow sidePadding={sidePadding}>
               <TableCell
                 colSpan={

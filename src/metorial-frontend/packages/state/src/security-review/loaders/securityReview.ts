@@ -11,6 +11,7 @@ import {
 } from '../../lib/optimisticReassess';
 import { usePolling } from '../../lib/usePolling';
 import { useDashboardFlags } from '../../organization/loaders/flags';
+import { useSecurityReviewFlagsOverride } from '../flagsOverride';
 import { withAuth } from '../../user';
 
 let POLL_INTERVAL_MS = 3_000;
@@ -113,14 +114,16 @@ export let securityReviewLoader = createLoader({
 
 export let useSecurityReviewGenerationEnabled = () => {
   let flags = useDashboardFlags();
+  let override = useSecurityReviewFlagsOverride();
 
-  return flags.useFlag('paid-ai-reviews') === true;
+  return override ? override.canGenerate : flags.useFlag('paid-ai-reviews') === true;
 };
 
 export let useSecurityReviewsEnabled = () => {
   let flags = useDashboardFlags();
+  let override = useSecurityReviewFlagsOverride();
 
-  return !!flags.data?.flags['security-reviews-enabled'];
+  return override ? override.reviewsEnabled : !!flags.data?.flags['security-reviews-enabled'];
 };
 
 export let useSecurityReview = (

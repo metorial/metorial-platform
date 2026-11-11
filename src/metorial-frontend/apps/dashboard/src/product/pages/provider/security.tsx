@@ -19,7 +19,7 @@ import {
   getDisplayedRevision,
   getReviewRevisions,
   getSecurityReportContents,
-  isSecurityReviewNotFound,
+  isSecurityReviewUnavailable,
   SecurityAssessmentBody,
   SecurityReportAside,
   SecurityReportHeader,
@@ -32,7 +32,7 @@ import {
   SecurityReviewMeta,
   UsageReviewSection,
   type ExtraReportSection
-} from '../../scenes/securityReview';
+} from '@metorial/scene-skills';
 import { useProviderVersionContext } from './providerVersionContext';
 
 let REVISION_PARAM = 'revision';
@@ -109,7 +109,7 @@ export let ProviderSecurityPage = () => {
 
   if (
     !isEnabled ||
-    isSecurityReviewNotFound(review.error) ||
+    isSecurityReviewUnavailable(review.error) ||
     review.data?.status == 'disabled'
   ) {
     return (

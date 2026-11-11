@@ -22,7 +22,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { OpenExplorerButton } from '../../components/openExplorer';
 import { UseProviderButton } from '../../scenes/providers/useProviderButton';
-import { isSecurityReviewNotFound } from '../../scenes/securityReview';
+import { isSecurityReviewUnavailable } from '@metorial/scene-skills';
 import {
   ProviderVersionContext,
   type ProviderVersion,
@@ -129,7 +129,7 @@ export let ProviderLayout = () => {
     securityReviewsEnabled &&
     !!securityReview.data &&
     securityReview.data.status != 'disabled' &&
-    !isSecurityReviewNotFound(securityReview.error);
+    !isSecurityReviewUnavailable(securityReview.error);
 
   let listingData = useProviderListing(instance.data?.id, providerId);
   let listing: ProviderListing | undefined = listingData.data ?? undefined;

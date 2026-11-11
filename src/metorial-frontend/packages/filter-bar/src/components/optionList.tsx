@@ -126,7 +126,7 @@ export let OptionList = ({
   let total = rows.pinned.length + rows.rest.length;
   let dividerHeight = rows.pinned.length && rows.rest.length ? 9 : 0;
   let contentHeight = total * ROW_HEIGHT + dividerHeight;
-  let viewportHeight = Math.min(maxHeight, contentHeight + 6);
+  let viewportHeight = Math.min(maxHeight, contentHeight + (showSearch ? 6 : 12));
 
   useLayoutEffect(() => {
     if (viewportRef.current) viewportRef.current.scrollTop = 0;
@@ -142,9 +142,7 @@ export let OptionList = ({
   let visible: { item: OptionListItem; index: number }[] = [];
   for (let index = first; index < last; index++) {
     let item =
-      index < rows.pinned.length
-        ? rows.pinned[index]
-        : rows.rest[index - rows.pinned.length];
+      index < rows.pinned.length ? rows.pinned[index] : rows.rest[index - rows.pinned.length];
     if (item) visible.push({ item, index });
   }
 

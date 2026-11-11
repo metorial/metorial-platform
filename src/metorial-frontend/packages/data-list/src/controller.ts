@@ -6,7 +6,7 @@ import {
   type TableFilterState
 } from '@metorial/filter-bar';
 import { confirm, toast } from '@metorial/ui';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { DataListConfig } from './config';
 import { readFilterPayload } from './helpers/filters';
 import { useObserver } from './state';
@@ -173,6 +173,9 @@ export let useDataListController = (
   );
 
   let itemRuns = config.itemActions.map(action => action.useRun({ props, ctx }));
+  let itemCompletions = config.itemActions.map(action =>
+    action.useOnComplete?.({ props, ctx })
+  );
 
   let [initialLoading, setInitialLoading] = useState(true);
   useEffect(() => {
@@ -279,6 +282,12 @@ export let useDataListController = (
     let run = itemRuns[config.itemActions.indexOf(action)];
     if (!run || rows.length == 0) return;
 
+    let input: unknown;
+    if (action.bulkInput) {
+      input = await action.bulkInput(rows, { props, ctx });
+      if (input === null || input === undefined) return;
+    }
+
     let execute = async () => {
       let ids = rows.map(row => row.id);
       setRunning(ids, true);
@@ -290,7 +299,7 @@ export let useDataListController = (
         let batchSize = typeof action.bulk == 'object' ? (action.bulk.batchSize ?? 10) : 10;
 
         for (let batch of chunk(rows, batchSize)) {
-          let results = await Promise.allSettled(batch.map(row => run(row)));
+          let results = await Promise.allSettled(batch.map(row => run(row, input)));
           for (let result of results) {
             if (result.status == 'rejected') {
               failures++;
@@ -301,6 +310,8 @@ export let useDataListController = (
       } finally {
         setRunning(ids, false);
       }
+
+      itemCompletions[config.itemActions.indexOf(action)]?.({ rows, input, failures });
 
       if (failures > 0) {
         toast.error(
@@ -391,6 +402,28 @@ export let useDataListController = (
     isLoading: loadingIds.includes(row.id)
   });
 
+  let selectionAnchor = useRef<string | null>(null);
+
+  let toggleSelected = (id: string, range?: boolean) => {
+    let anchor = selectionAnchor.current;
+    selectionAnchor.current = id;
+
+    if (range && anchor) {
+      let from = state.items.findIndex(i => i.id == anchor);
+      let to = state.items.findIndex(i => i.id == id);
+
+      if (from != -1 && to != -1) {
+        let ids = state.items.slice(Math.min(from, to), Math.max(from, to) + 1).map(i => i.id);
+        setSelectedItems(current => [...new Set([...current, ...ids])]);
+        return;
+      }
+    }
+
+    setSelectedItems(current =>
+      current.includes(id) ? current.filter(i => i != id) : [...current, id]
+    );
+  };
+
   let handleRowClick = (e: React.MouseEvent, row: any) => {
     props.onItemClick?.(row);
 
@@ -453,6 +486,7 @@ export let useDataListController = (
 
     selectedItems,
     setSelectedItems,
+    toggleSelected,
     openRowPanel,
     runningBulkActionId,
     setRunningBulkActionId,

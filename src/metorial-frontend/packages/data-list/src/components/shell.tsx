@@ -149,6 +149,8 @@ let DataListBody = ({
   }
 
   if (controller.items.length == 0) {
+    if (controller.state.isLoading) return null;
+
     return (
       <CenteredMessage>
         <Text size="1" color="gray800" align="center">
@@ -167,6 +169,7 @@ let DataListBody = ({
         items: controller.items,
         getItemProps: controller.getItemProps,
         selectedIds: controller.selectedItems,
+        toggleSelected: controller.toggleSelected,
         isLoading: controller.state.isLoading
       })}
     </>
@@ -408,7 +411,7 @@ export let DataListComponent = reactMemo(
                 </Footer>
               )}
 
-              {isTable && (
+              {(
                 <ActionBarWrapper>
                   <AnimatePresence>
                     {selectedItems.length > 0 && bulkEntries.length > 0 && (

@@ -12,6 +12,7 @@ import { usePolling } from '../../lib/usePolling';
 import { skillVersionsLoader } from '../../skills/loaders/skills';
 import { useDashboardFlags } from '../../organization/loaders/flags';
 import { withAuth } from '../../user';
+import { useSecurityReviewFlagsOverride } from '../flagsOverride';
 import { useSecurityReviewGenerationEnabled } from './securityReview';
 
 let POLL_INTERVAL_MS = 3_000;
@@ -85,6 +86,9 @@ export let skillSecurityReviewLoader = createLoader({
 
 export let useSkillSecurityReviewsEnabled = () => {
   let flags = useDashboardFlags();
+  let override = useSecurityReviewFlagsOverride();
+
+  if (override) return override.skillsEnabled && override.reviewsEnabled;
 
   return (
     !!flags.data?.flags['skills-enabled'] && !!flags.data?.flags['security-reviews-enabled']

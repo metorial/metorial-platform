@@ -13,6 +13,7 @@ import {
 } from '@metorial/data-list';
 import { EmptyState } from '@metorial/empty-state';
 import { Paths } from '@metorial/frontend-config';
+import { SkillPreviewCard } from '@metorial/scene-skills';
 import { useCreateSkill, useSkillContentPreviews, useSkillTemplates } from '@metorial/state';
 import { Avatar, Text } from '@metorial/ui';
 import { ItemGrid } from '@metorial/ui-product';
@@ -21,7 +22,6 @@ import { styled } from 'styled-components';
 import { useInstanceContext } from '../../lib/dataList';
 import { entityFilters } from '../entityFilters';
 import { showSkillCloneFormModal } from './cloneModal';
-import { SkillPreviewCard } from './overview/skillPreviewCard';
 import { skillViewFilter } from './overview/skillViews';
 import { showSkillTemplateFormModal } from './templateModal';
 
