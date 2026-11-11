@@ -8,9 +8,9 @@ import { normalizeArrayParam } from '../../../lib/normalizeArrayParam';
 import { checkAccess } from '../../../middleware/checkAccess';
 import { hasFlags } from '../../../middleware/hasFlags';
 import { instanceGroup, instancePath } from '../../../middleware/instanceGroup';
-import { isDashboardGroup } from '../../../middleware/isDashboard';
+import { requireConsumerTokenForPublishableKey } from '../../../middleware/requireConsumerTokenForPublishableKey';
 
-let readScopes = ['instance.skill:read'] as const;
+let readScopes = ['instance.skill:read', 'consumer#instance.skill:read'] as const;
 
 export let skillContentPreviewController = Controller.create(
   {
@@ -26,8 +26,8 @@ export let skillContentPreviewController = Controller.create(
           'Returns the beginning of the SKILL.md file of up to 50 skills and skill templates in a single request.'
       })
       .use(hasFlags(['skills-enabled']))
-      .use(isDashboardGroup())
       .use(checkAccess({ possibleScopes: [...readScopes] }))
+      .use(requireConsumerTokenForPublishableKey())
       .outputList(skillContentPreviewPresenter)
       .query(
         'default',
@@ -47,6 +47,7 @@ export let skillContentPreviewController = Controller.create(
       .do(async ctx => {
         let skillContentPreviews = await skillContentPreviewService.listSkillContentPreviews({
           ...(await getInstanceCargoAccess(ctx)),
+          accessTags: ctx.consumerProfile ? ctx.accessTags : undefined,
           skillIds: normalizeArrayParam(ctx.query.skill_id) ?? [],
           skillTemplateIds: normalizeArrayParam(ctx.query.skill_template_id) ?? []
         });

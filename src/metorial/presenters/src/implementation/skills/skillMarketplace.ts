@@ -2,6 +2,7 @@ import { v } from '@lowerdeck/validation';
 import { getImageUrl } from '@metorial/db';
 import {
   getArchivableSkillPluginIds,
+  getReadablePluginSkillIds,
   getWritableSkillPluginIds,
   hasSkillMarketplaceWriteAccess
 } from '@metorial/module-skill-marketplace';
@@ -74,22 +75,27 @@ export let dashboardSkillMarketplacePresenter = Presenter.create(skillMarketplac
     let nestedPlugins = input.skillMarketplace.plugins.flatMap(plugin =>
       plugin.skillPlugin ? [plugin.skillPlugin] : []
     );
-    let [canCreatePlugins, writablePluginIds, archivablePluginIds] = await Promise.all([
-      input.skillMarketplace.status == 'active'
-        ? hasSkillMarketplaceWriteAccess({
-            skillMarketplace: input.skillMarketplace,
-            accessTags: input.accessTags
-          })
-        : false,
-      getWritableSkillPluginIds({
-        plugins: nestedPlugins,
-        accessTags: input.accessTags
-      }),
-      getArchivableSkillPluginIds({
-        plugins: nestedPlugins,
-        accessTags: input.accessTags
-      })
-    ]);
+    let [canCreatePlugins, writablePluginIds, archivablePluginIds, readableSkillIds] =
+      await Promise.all([
+        input.skillMarketplace.status == 'active'
+          ? hasSkillMarketplaceWriteAccess({
+              skillMarketplace: input.skillMarketplace,
+              accessTags: input.accessTags
+            })
+          : false,
+        getWritableSkillPluginIds({
+          plugins: nestedPlugins,
+          accessTags: input.accessTags
+        }),
+        getArchivableSkillPluginIds({
+          plugins: nestedPlugins,
+          accessTags: input.accessTags
+        }),
+        getReadablePluginSkillIds({
+          plugins: nestedPlugins,
+          accessTags: input.accessTags
+        })
+      ]);
 
     return {
       ...inner,
@@ -103,7 +109,10 @@ export let dashboardSkillMarketplacePresenter = Presenter.create(skillMarketplac
                 pluginAccess: skillMarketplacePlugin.skillPlugin
                   ? {
                       canUpdate: writablePluginIds.has(skillMarketplacePlugin.skillPlugin.id),
-                      canDelete: archivablePluginIds.has(skillMarketplacePlugin.skillPlugin.id)
+                      canDelete: archivablePluginIds.has(
+                        skillMarketplacePlugin.skillPlugin.id
+                      ),
+                      readableSkillIds
                     }
                   : undefined,
                 skillMarketplacePlugin: {

@@ -337,6 +337,12 @@ declare global {
     type Record = { [key: string]: any };
     type OrganizationConfigValue = any;
 
+    type SkillGroupPluginSyncIssues = {
+      skillId: string;
+      reason: 'limit_exceeded';
+      message: string;
+    }[];
+
     type NetworkingPolicyPortRange = { from: number; to: number };
     type NetworkingPolicyRule = {
       id: string;

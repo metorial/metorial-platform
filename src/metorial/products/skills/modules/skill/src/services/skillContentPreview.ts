@@ -8,12 +8,18 @@ import {
   type StoreParticipantPermissions,
   type StoreTemplateItemEncoding
 } from '@metorial/db';
-import type { ResourceAuthorization } from '@metorial/module-access';
+import {
+  accessTagService,
+  consumerSkillReadRoles,
+  type AnyAccessTagSelector,
+  type ResourceAuthorization
+} from '@metorial/module-access';
 import {
   skillRootDocumentPath,
   storeAccessService,
   storeReadPermission
 } from '@metorial/module-store';
+import { getConsumerSkillAccessWhere } from './skill';
 
 let maxPreviewCharacters = 6000;
 export let maxSkillContentPreviewIds = 50;
@@ -58,6 +64,7 @@ class SkillContentPreviewServiceImpl {
     authorization: ResourceAuthorization;
     defaultPermissions?: StoreParticipantPermissions[];
     overridePermissions?: boolean;
+    accessTags?: AnyAccessTagSelector;
     skillIds: string[];
     skillTemplateIds: string[];
   }): Promise<SkillContentPreview[]> {
@@ -72,6 +79,14 @@ class SkillContentPreviewServiceImpl {
 
     if (!requestedCount) return [];
 
+    let [skillAccessWhere, templateAccessTagFilter] = await Promise.all([
+      getConsumerSkillAccessWhere({ accessTags: d.accessTags }),
+      accessTagService.getAccessTagFilter({
+        tags: d.accessTags,
+        roles: [...consumerSkillReadRoles]
+      })
+    ]);
+
     let [skills, skillTemplates] = await Promise.all([
       d.skillIds.length
         ? db.skill.findMany({
@@ -79,8 +94,9 @@ class SkillContentPreviewServiceImpl {
               id: { in: d.skillIds },
               projectOid: d.project.oid,
               instanceOid: d.instance.oid,
-              status: { not: 'deleted' },
-              storeOid: { not: null }
+              status: d.accessTags ? 'active' : { not: 'deleted' },
+              storeOid: { not: null },
+              AND: skillAccessWhere ? [skillAccessWhere] : undefined
             },
             select: { id: true, storeOid: true }
           })
@@ -89,7 +105,8 @@ class SkillContentPreviewServiceImpl {
         ? db.skillTemplate.findMany({
             where: {
               id: { in: d.skillTemplateIds },
-              status: { not: 'deleted' },
+              status: d.accessTags ? 'active' : { not: 'deleted' },
+              accessTagEntities: templateAccessTagFilter,
               storeTemplate: {
                 is: {
                   OR: [

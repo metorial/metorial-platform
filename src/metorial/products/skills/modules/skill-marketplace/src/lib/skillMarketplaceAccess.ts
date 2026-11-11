@@ -150,6 +150,30 @@ export let getWritableSkillPluginIds = async (d: {
   return new Set(writable.map(plugin => plugin.id));
 };
 
+export let getReadablePluginSkillIds = async (d: {
+  plugins: { skillPluginSkills: { skill: { oid: bigint; id: string } }[] }[];
+  accessTags?: AnyAccessTagSelector;
+}) => {
+  let skills = d.plugins.flatMap(plugin =>
+    plugin.skillPluginSkills.map(skillPluginSkill => skillPluginSkill.skill)
+  );
+  if (!d.accessTags) return new Set(skills.map(skill => skill.id));
+  if (!skills.length) return new Set<string>();
+
+  let accessWhere = await getConsumerSkillAccessWhere(d);
+  if (!accessWhere) return new Set<string>();
+
+  let readable = await db.skill.findMany({
+    where: {
+      oid: { in: [...new Set(skills.map(skill => skill.oid))] },
+      AND: [accessWhere]
+    },
+    select: { id: true }
+  });
+
+  return new Set(readable.map(skill => skill.id));
+};
+
 export let getArchivableSkillPluginIds = async (d: {
   plugins: { oid: bigint; id: string }[];
   accessTags?: AnyAccessTagSelector;

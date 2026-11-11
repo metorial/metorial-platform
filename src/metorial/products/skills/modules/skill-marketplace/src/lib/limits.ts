@@ -388,3 +388,61 @@ export let assertSkillMarketplaceLimits = async (d: { skillMarketplaceOid: bigin
   await assertSkillMarketplaceSkillLimit(d);
   await assertSkillMarketplaceDestinationSize({ ...d, phase: 'sync' });
 };
+
+export let sumSkillStoreSizes = async (skills: { storeOid: bigint | null }[]) => {
+  let storeOids = skills.flatMap(skill => (skill.storeOid ? [skill.storeOid] : []));
+  let sizes = await getSkillStoreSizes(storeOids);
+
+  let files = 0;
+  let bytes = 0n;
+  for (let storeOid of storeOids) {
+    let size = sizes.get(storeOid);
+    files += size?.files ?? 0;
+    bytes += size?.bytes ?? 0n;
+  }
+
+  return { files, bytes };
+};
+
+export let assertSkillPluginCanAddSkills = async (d: {
+  skillPluginOid: bigint;
+  skills: { storeOid: bigint | null }[];
+}) => {
+  if (!d.skills.length) return;
+
+  await assertSkillPluginSkillLimit({
+    skillPluginOid: d.skillPluginOid,
+    additionalCount: d.skills.length
+  });
+
+  let marketplacePlugins = await db.skillMarketplacePlugin.findMany({
+    where: {
+      skillPluginOid: d.skillPluginOid,
+      status: 'active',
+      skillMarketplace: { status: 'active' }
+    },
+    select: { skillMarketplaceOid: true }
+  });
+  for (let marketplacePlugin of marketplacePlugins) {
+    await assertSkillMarketplaceSkillLimit({
+      skillMarketplaceOid: marketplacePlugin.skillMarketplaceOid,
+      additionalCount: d.skills.length
+    });
+  }
+
+  let { files: additionalFiles, bytes: additionalBytes } = await sumSkillStoreSizes(d.skills);
+  if (!additionalFiles && !additionalBytes) return;
+
+  await assertSkillPluginDestinationSize({
+    skillPluginOid: d.skillPluginOid,
+    additionalFiles,
+    additionalBytes
+  });
+  for (let marketplacePlugin of marketplacePlugins) {
+    await assertSkillMarketplaceDestinationSize({
+      skillMarketplaceOid: marketplacePlugin.skillMarketplaceOid,
+      additionalFiles,
+      additionalBytes
+    });
+  }
+};

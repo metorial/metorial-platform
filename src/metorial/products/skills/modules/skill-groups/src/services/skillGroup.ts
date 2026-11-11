@@ -16,6 +16,7 @@ import {
 } from '@metorial/module-access';
 import { getProjectTenantIdentifier } from '@metorial/skills-common';
 import { buildSearchFilter } from '@metorial/module-search';
+import { skillGroupPluginService } from '@metorial/module-skill-marketplace';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/skills-search';
 import { enqueueSkillGroupLifecycle } from '../queues/lifecycle';
 
@@ -264,6 +265,10 @@ class SkillGroupServiceImpl {
           }
         })
       : null;
+    if (skills) {
+      await skillGroupPluginService.assertSkillGroupCanAddSkills({ skillGroup: group, skills });
+    }
+
     return await withTransaction(async db => {
       await db.skillGroup.update({
         where: { id: group.id },

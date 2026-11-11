@@ -1488,8 +1488,8 @@ export interface FabricEvents {
   'skill.audit.archived:after': { auditScope: AuditScope; skill: Skill };
   'skill.audit.shared:after': { auditScope: AuditScope; skill: Skill; shares: AuditSkillShare[] };
 
-  'skill.plugin.audit.created:after': { auditScope: AuditScope; skillPlugin: SkillPlugin };
-  'skill.plugin.audit.updated:after': { auditScope: AuditScope; skillPlugin: SkillPlugin; previousSkillPlugin: SkillPlugin };
+  'skill.plugin.audit.created:after': { auditScope: AuditScope; skillPlugin: SkillPlugin; skillGroupId?: string | null };
+  'skill.plugin.audit.updated:after': { auditScope: AuditScope; skillPlugin: SkillPlugin; previousSkillPlugin: SkillPlugin; skillGroupId?: string | null; previousSkillGroupId?: string | null };
   'skill.plugin.audit.archived:after': { auditScope: AuditScope; skillPlugin: SkillPlugin };
 
   'skill.marketplace.audit.created:after': { auditScope: AuditScope; skillMarketplace: SkillMarketplace };

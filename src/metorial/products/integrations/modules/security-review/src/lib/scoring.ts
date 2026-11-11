@@ -27,7 +27,7 @@ let provenanceBase: Record<SecurityProvenanceClass, number> = {
   tenant_remote_third_party: 60,
   tenant_remote_unverifiable: 45,
   impersonation_suspected: 10,
-  tenant_authored: 80,
+  tenant_authored: 85,
   imported_public_repo: 75,
   imported_private_repo: 80,
   uploaded_archive: 70,
@@ -55,7 +55,7 @@ let skillTagTiers: Record<SecuritySkillCapabilityTag, KnownLevel> = {
   package_install: 'moderate',
   persistence: 'high',
   mcp_dependency: 'moderate',
-  subagents: 'moderate',
+  subagents: 'low',
   binary_payload: 'high',
   financial: 'critical'
 };
@@ -140,7 +140,7 @@ export let computeRisk = (d: {
   let exposure: KnownLevel = d.exposure == 'unknown' ? 'moderate' : d.exposure;
   let risk = maxLevel(d.postureRisk, exposure);
 
-  if (levelIndex(d.postureRisk) >= 1 && levelIndex(exposure) >= 1) risk = raise(risk);
+  if (levelIndex(d.postureRisk) >= 1 && levelIndex(exposure) >= 2) risk = raise(risk);
 
   return risk;
 };
@@ -191,10 +191,29 @@ let exposureLines: Record<SecurityLevel, string> = {
   critical: 'Broad, powerful permissions.'
 };
 
+let skillExposureLines: Record<SecurityLevel, string> = {
+  ...exposureLines,
+  low: 'No risky capabilities.'
+};
+
+let skillProvenanceClasses: SecurityProvenanceClass[] = [
+  'tenant_authored',
+  'imported_public_repo',
+  'imported_private_repo',
+  'uploaded_archive',
+  'forked'
+];
+
 export let headlineFor = (d: {
   band: SecurityBand;
   exposure: SecurityLevel;
-}): [string, string] => [trustLines[d.band], exposureLines[d.exposure]];
+  provenance?: SecurityProvenanceClass;
+}): [string, string] => [
+  trustLines[d.band],
+  (d.provenance && skillProvenanceClasses.includes(d.provenance)
+    ? skillExposureLines
+    : exposureLines)[d.exposure]
+];
 
 export let computeScores = (d: {
   provenance: SecurityProvenanceClass;
@@ -224,7 +243,7 @@ export let computeScores = (d: {
     risk,
     confidence: computeConfidence({ provenance: d.provenance, coverage: d.coverage }),
     trifecta,
-    headline: headlineFor({ band, exposure }),
+    headline: headlineFor({ band, exposure, provenance: d.provenance }),
     counts: {
       tools: { expected: d.coverage.toolsExpected ?? 0, reviewed: d.coverage.toolsReviewed },
       capabilities: {

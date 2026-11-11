@@ -1,5 +1,10 @@
 import type { Prisma } from '@metorial/db';
 import {
+  consumerSkillMarketplaceWriteRoles,
+  consumerSkillPluginWriteRoles
+} from '../definitions/accessRoles';
+import type { Scope } from '../definitions/scopeValues';
+import {
   assertDistinctStoreResourceAccessRoles,
   skillStoreResourceAccess,
   standaloneStoreResourceAccess,
@@ -20,26 +25,74 @@ export type StoreResourceKind = {
   inheritedAccessWhere?: (d: {
     level: StoreResourceAccessLevel;
     accessTagFilter: AccessTagEntityFilter;
-  }) => Prisma.StoreWhereInput | undefined;
+    accessTagFilterFor: (roles: readonly Scope[]) => Promise<AccessTagEntityFilter>;
+  }) => Promise<Prisma.StoreWhereInput | undefined> | Prisma.StoreWhereInput | undefined;
 };
+
+let activeMarketplaceMembershipWhere = (
+  skillMarketplace: Prisma.SkillMarketplaceWhereInput = {}
+): Prisma.SkillPluginWhereInput => ({
+  skillMarketplacePlugins: {
+    some: {
+      status: 'active',
+      skillMarketplace: { status: 'active', ...skillMarketplace }
+    }
+  }
+});
 
 export let skillStoreResourceKind: StoreResourceKind = {
   kind: 'skill',
   access: skillStoreResourceAccess,
   storeWhere: { skill: { isNot: null } },
   activeWhere: { skill: { is: { status: 'active' } } },
-  inheritedAccessWhere: ({ accessTagFilter }) => ({
-    skill: {
-      is: {
-        skillGroupItems: {
-          some: {
-            status: 'active',
-            skillGroup: { status: 'active', accessTagEntities: accessTagFilter }
-          }
+  inheritedAccessWhere: async ({ level, accessTagFilter, accessTagFilterFor }) => {
+    let skillGroupWhere: Prisma.SkillWhereInput = {
+      skillGroupItems: {
+        some: {
+          status: 'active',
+          skillGroup: { status: 'active', accessTagEntities: accessTagFilter }
         }
       }
-    }
-  })
+    };
+    if (level != 'read') return { skill: { is: skillGroupWhere } };
+
+    // Marketplace managers can read every skill in the marketplaces they manage, and
+    // plugin managers every skill in their plugins. Only the manage-level write roles count:
+    // read-level marketplace access also carries skill read roles on the marketplace.
+    let marketplaceManagerFilter = await accessTagFilterFor(
+      consumerSkillMarketplaceWriteRoles
+    );
+    let pluginManagerFilter = await accessTagFilterFor(consumerSkillPluginWriteRoles);
+
+    return {
+      skill: {
+        is: {
+          OR: [
+            skillGroupWhere,
+            {
+              skillPluginSkills: {
+                some: {
+                  status: 'active',
+                  skillPlugin: {
+                    status: 'active',
+                    OR: [
+                      activeMarketplaceMembershipWhere({
+                        accessTagEntities: marketplaceManagerFilter
+                      }),
+                      {
+                        accessTagEntities: pluginManagerFilter,
+                        ...activeMarketplaceMembershipWhere()
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    };
+  }
 };
 
 let storeResourceKinds = new Map<string, StoreResourceKind>([
@@ -77,7 +130,12 @@ let getKindAccessWhere = async (d: {
   });
   if (!accessTagFilter) return undefined;
 
-  let inherited = d.kind.inheritedAccessWhere?.({ level: d.level, accessTagFilter });
+  let inherited = await d.kind.inheritedAccessWhere?.({
+    level: d.level,
+    accessTagFilter,
+    accessTagFilterFor: async roles =>
+      (await accessTagService.getAccessTagFilter({ tags: d.accessTags, roles: [...roles] }))!
+  });
 
   return {
     OR: [{ accessTagEntities: accessTagFilter }, ...(inherited ? [inherited] : [])]

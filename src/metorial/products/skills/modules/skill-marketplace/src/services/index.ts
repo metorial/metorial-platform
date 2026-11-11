@@ -1,6 +1,7 @@
 export * from './managedSkillPlugin';
 export * from './skillDestinationStorage';
 export * from './skillExport';
+export * from './skillGroupPlugin';
 export * from './skillMarketplace';
 export * from './skillMarketplacePlugin';
 export * from './skillMarketplaceRepository';

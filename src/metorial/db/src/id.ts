@@ -281,6 +281,7 @@ export let ID = createIdGenerator({
   documentComment: idType.sorted('doccm_'),
   skillGroup: idType.sorted('skg'),
   skillGroupItem: idType.sorted('skgi'),
+  skillGroupPlugin: idType.sorted('skgp'),
   providerTemplate: idType.sorted('ptm'),
 
   portal: idType.sorted('ptl'),

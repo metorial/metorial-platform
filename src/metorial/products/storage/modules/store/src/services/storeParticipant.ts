@@ -30,6 +30,11 @@ import {
 
 export let storeResourceParticipantInclude = {
   store: true,
+  consumer: {
+    include: {
+      instanceConsumers: true
+    }
+  },
   primaryResourceActor: {
     include: resourceActorPresentationInclude
   },

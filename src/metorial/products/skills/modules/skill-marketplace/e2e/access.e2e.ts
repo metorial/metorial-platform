@@ -1,7 +1,17 @@
 import { expectServiceError, firstPage, useOrganization } from '@metorial/e2e';
 import { db, loadOrganizationFixture, type OrganizationFixture } from '@metorial/e2e/db';
+import {
+  getStoreResourceKindAccessWhere,
+  skillStoreResourceKind
+} from '@metorial/module-access';
+import { skillService } from '@metorial/module-skill';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { skillMarketplaceService, skillPluginService } from '../src';
+import {
+  getReadablePluginSkillIds,
+  skillMarketplaceService,
+  skillPluginService,
+  skillPluginSkillService
+} from '../src';
 import {
   addPluginToMarketplace,
   addSkillToPlugin,
@@ -363,6 +373,183 @@ describe('consumer access to marketplaces and plugins', () => {
           where: { skillPluginOid: target.oid, skillOid: privateSkill.oid }
         })
       ).toBe(0);
+    });
+  });
+
+  describe('skill reads through marketplace management', () => {
+    let canReadSkill = async (skillId: string, accessTags: AccessTags) => {
+      try {
+        await skillService.getSkillById({
+          project: fixture.project,
+          instance: fixture.instance,
+          skillId,
+          accessTags
+        });
+        return true;
+      } catch (error: any) {
+        if (error?.data?.code == 'not_found') return false;
+        throw error;
+      }
+    };
+
+    let readableSkillIds = async (accessTags: AccessTags, skills: { id: string }[]) => {
+      let readable: string[] = [];
+      for (let skill of skills) {
+        if (await canReadSkill(skill.id, accessTags)) readable.push(skill.id);
+      }
+      return readable;
+    };
+
+    let canWriteSkillStore = async (skill: { oid: bigint }, accessTags: AccessTags) =>
+      !!(await db.skill.findFirst({
+        where: {
+          oid: skill.oid,
+          store: {
+            is: await getStoreResourceKindAccessWhere({
+              kind: skillStoreResourceKind,
+              accessTags,
+              level: 'write'
+            })
+          }
+        }
+      }));
+
+    let catalog = async () => {
+      let marketplace = await createMarketplace(fixture);
+      let firstPlugin = await createPlugin(
+        fixture,
+        {},
+        { skillMarketplaceId: marketplace.id }
+      );
+      let secondPlugin = await createPlugin(
+        fixture,
+        {},
+        { skillMarketplaceId: marketplace.id }
+      );
+      let otherMarketplace = await createMarketplace(fixture);
+      let otherPlugin = await createPlugin(
+        fixture,
+        {},
+        { skillMarketplaceId: otherMarketplace.id }
+      );
+
+      let [firstSkill, secondSkill, otherSkill, unlistedSkill] = await Promise.all([
+        createSkill(fixture),
+        createSkill(fixture),
+        createSkill(fixture),
+        createSkill(fixture)
+      ]);
+      await addSkillToPlugin(fixture, {
+        skillPluginId: firstPlugin.id,
+        skillId: firstSkill.id
+      });
+      await addSkillToPlugin(fixture, {
+        skillPluginId: secondPlugin.id,
+        skillId: secondSkill.id
+      });
+      await addSkillToPlugin(fixture, {
+        skillPluginId: otherPlugin.id,
+        skillId: otherSkill.id
+      });
+
+      return {
+        marketplace,
+        firstPlugin,
+        secondPlugin,
+        skills: { firstSkill, secondSkill, otherSkill, unlistedSkill },
+        allSkills: [firstSkill, secondSkill, otherSkill, unlistedSkill]
+      };
+    };
+
+    let marketplaceManager = (marketplace: { oid: bigint }) =>
+      consumerFor([
+        { roles: marketplaceReadRoles, skillMarketplace: marketplace },
+        { roles: marketplaceWriteRoles, skillMarketplace: marketplace }
+      ]);
+
+    let pluginManager = async (marketplace: { oid: bigint }, plugin: { oid: bigint }) => {
+      let consumer = await consumerFor([
+        { roles: marketplaceReadRoles, skillMarketplace: marketplace }
+      ]);
+      await grantAccess(fixture, {
+        accessTag: consumer.accessTag,
+        roles: pluginWriteRoles,
+        skillPlugin: plugin
+      });
+      return consumer;
+    };
+
+    it('lets marketplace managers read every skill in the marketplace without writing them', async () => {
+      let { marketplace, skills, allSkills } = await catalog();
+      let manager = await marketplaceManager(marketplace);
+      let reader = await consumerFor([
+        { roles: marketplaceReadRoles, skillMarketplace: marketplace }
+      ]);
+
+      expect(await readableSkillIds(manager.accessTags, allSkills)).toEqual([
+        skills.firstSkill.id,
+        skills.secondSkill.id
+      ]);
+      expect(await readableSkillIds(reader.accessTags, allSkills)).toEqual([]);
+
+      expect(await canWriteSkillStore(skills.firstSkill, manager.accessTags)).toBe(false);
+    });
+
+    it('limits plugin managers to the skills of their own plugins', async () => {
+      let { marketplace, firstPlugin, skills, allSkills } = await catalog();
+      let manager = await pluginManager(marketplace, firstPlugin);
+
+      expect(await readableSkillIds(manager.accessTags, allSkills)).toEqual([
+        skills.firstSkill.id
+      ]);
+
+      let membership = (await getMarketplace(fixture, marketplace.id)).plugins.find(
+        plugin => plugin.skillPluginOid == firstPlugin.oid
+      )!;
+      await removePluginFromMarketplace(fixture, membership.id);
+
+      expect(await readableSkillIds(manager.accessTags, allSkills)).toEqual([]);
+    });
+
+    it('follows skills leaving the plugin and the marketplace being archived', async () => {
+      let { marketplace, firstPlugin, skills } = await catalog();
+      let manager = await marketplaceManager(marketplace);
+
+      let pluginSkill = (await getPlugin(fixture, firstPlugin.id)).skillPluginSkills.find(
+        link => link.skill.id == skills.firstSkill.id
+      )!;
+      await skillPluginSkillService.removeSkillPluginSkill({
+        project: fixture.project,
+        instance: fixture.instance,
+        skillPluginSkill: await skillPluginSkillService.getSkillPluginSkillById({
+          project: fixture.project,
+          instance: fixture.instance,
+          skillPluginSkillId: pluginSkill.id
+        })
+      });
+
+      expect(await canReadSkill(skills.firstSkill.id, manager.accessTags)).toBe(false);
+      expect(await canReadSkill(skills.secondSkill.id, manager.accessTags)).toBe(true);
+
+      await archiveMarketplace(fixture, marketplace.id);
+
+      expect(await canReadSkill(skills.secondSkill.id, manager.accessTags)).toBe(false);
+    });
+
+    it('marks only the readable plugin skills for the consumer', async () => {
+      let { marketplace, firstPlugin, secondPlugin, skills } = await catalog();
+      let manager = await pluginManager(marketplace, firstPlugin);
+      let plugins = [
+        await getPlugin(fixture, firstPlugin.id),
+        await getPlugin(fixture, secondPlugin.id)
+      ];
+
+      expect([
+        ...(await getReadablePluginSkillIds({ plugins, accessTags: manager.accessTags }))
+      ]).toEqual([skills.firstSkill.id]);
+      expect([...(await getReadablePluginSkillIds({ plugins }))].sort()).toEqual(
+        [skills.firstSkill.id, skills.secondSkill.id].sort()
+      );
     });
   });
 

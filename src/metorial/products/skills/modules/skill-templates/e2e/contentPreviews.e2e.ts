@@ -1,5 +1,7 @@
 import { rejectionOf, uniqueId, useOrganization } from '@metorial/e2e';
-import { loadOrganizationFixture } from '@metorial/e2e/db';
+import { db, loadOrganizationFixture } from '@metorial/e2e/db';
+import { ID } from '@metorial/db';
+import { accessTagService, consumerSkillReadRoles } from '@metorial/module-access';
 import { skillContentPreviewService } from '@metorial/module-skill';
 import { storeService } from '@metorial/module-store';
 import { describe, expect, it } from 'vitest';
@@ -66,5 +68,44 @@ describe('skill content previews', () => {
     );
 
     expect(error).toBeTruthy();
+  });
+
+  it('only previews skill templates shared with a consumer access tag', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let shared = await createTemplate(fixture, { items: templateItems('Shared body') });
+    let unshared = await createTemplate(fixture, { items: templateItems('Unshared body') });
+
+    let accessTag = await accessTagService.createAccessTag({ instance: fixture.instance });
+    let policy = await db.accessTagPolicy.create({
+      data: {
+        id: await ID.generateId('accessTagPolicy'),
+        name: uniqueId('policy'),
+        roles: [...consumerSkillReadRoles],
+        organizationOid: fixture.organization.oid
+      }
+    });
+    await db.accessTagEntity.create({
+      data: {
+        accessTagOid: accessTag.oid,
+        accessTagPolicyOid: policy.oid,
+        skillTemplateOid: shared.oid
+      }
+    });
+
+    let previews = await skillContentPreviewService.listSkillContentPreviews({
+      ...scopeOf(fixture),
+      authorization: privileged,
+      accessTags: [{ accessTagOid: accessTag.oid }],
+      skillIds: [],
+      skillTemplateIds: [shared.id, unshared.id]
+    });
+
+    expect(previews).toEqual([
+      {
+        type: 'skill_template',
+        skillTemplateId: shared.id,
+        content: '# Template\n\nShared body\n'
+      }
+    ]);
   });
 });

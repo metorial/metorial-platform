@@ -200,6 +200,44 @@ describe('module-skill access', () => {
     expect(updated.description).toBe('Applied');
   });
 
+  it('lets a consumer with write access edit the client name and description', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let { accessTag, accessTags } = await createConsumerAccessTag(fixture);
+    let writable = await createSkill(fixture);
+    let readable = await createSkill(fixture);
+    await grantAccess(fixture, { accessTag, roles: consumerSkillWriteRoles, skill: writable });
+    await grantAccess(fixture, { accessTag, roles: consumerSkillReadRoles, skill: readable });
+    let authorization = await consumerAuthorization(fixture, accessTags);
+
+    let updated = await skillService.updateSkill({
+      project: fixture.project,
+      instance: fixture.instance,
+      auditScope: fixture.auditScope,
+      skill: writable,
+      authorization,
+      input: { clientName: 'consumer-skill', clientDescription: 'Use this when testing.' }
+    });
+    expect(updated).toMatchObject({
+      clientName: 'consumer-skill',
+      clientDescription: 'Use this when testing.'
+    });
+
+    await expectServiceError(
+      skillService.updateSkill({
+        project: fixture.project,
+        instance: fixture.instance,
+        auditScope: fixture.auditScope,
+        skill: readable,
+        authorization,
+        input: { clientDescription: 'Should not apply' }
+      }),
+      'forbidden'
+    );
+
+    let unchanged = await db.skill.findUniqueOrThrow({ where: { id: readable.id } });
+    expect(unchanged.clientDescription).toBe(readable.clientDescription);
+  });
+
   it('lets any organization member edit a skill another member created', async () => {
     let fixture = await loadOrganizationFixture(org.ids);
     let memberScope = await memberFixture();

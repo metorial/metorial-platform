@@ -37,6 +37,7 @@ model SkillGroup {
   consumerAccessListings          ConsumerAccessListing[]
   magicMcpEndpointSkillSelections MagicMcpEndpointSkillSelection[]
   skillImports                    SkillImport[]
+  skillGroupPlugins               SkillGroupPlugin[]
 
   @@index([instanceOid, status])
 }

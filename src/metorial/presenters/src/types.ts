@@ -1948,6 +1948,16 @@ export let skillMarketplaceType = PresentableType.create<{
                   skill: true;
                 };
               };
+              skillGroupPlugin: {
+                include: {
+                  skillGroup: {
+                    select: {
+                      id: true;
+                      name: true;
+                    };
+                  };
+                };
+              };
             };
           };
         };
@@ -1987,6 +1997,16 @@ export let skillMarketplacePluginType = PresentableType.create<{
             skill: true;
           };
         };
+        skillGroupPlugin: {
+          include: {
+            skillGroup: {
+              select: {
+                id: true;
+                name: true;
+              };
+            };
+          };
+        };
       };
     }> | null;
   };
@@ -1994,6 +2014,7 @@ export let skillMarketplacePluginType = PresentableType.create<{
   pluginAccess?: {
     canUpdate?: boolean;
     canDelete?: boolean;
+    readableSkillIds?: Set<string>;
   };
 }>()('skillMarketplacePlugin');
 
@@ -2041,12 +2062,23 @@ export let skillPluginType = PresentableType.create<{
           skill: true;
         };
       };
+      skillGroupPlugin: {
+        include: {
+          skillGroup: {
+            select: {
+              id: true;
+              name: true;
+            };
+          };
+        };
+      };
     };
   }>;
   accessTags?: AnyAccessTagSelector;
   pluginAccess?: {
     canUpdate?: boolean;
     canDelete?: boolean;
+    readableSkillIds?: Set<string>;
   };
 }>()('skillPlugin');
 
@@ -2127,6 +2159,7 @@ export let skillAccessType = PresentableType.create<{
 export let skillParticipantType = PresentableType.create<{
   skillParticipant: StoreResourceParticipantPresentationRecord & {
     skill: Skill;
+    consumer?: (Consumer & { instanceConsumers: InstanceConsumer[] }) | null;
     hasOrganizationMemberAccess?: boolean;
   };
 }>()('skillParticipant');

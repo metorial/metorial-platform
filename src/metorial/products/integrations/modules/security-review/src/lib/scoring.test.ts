@@ -159,9 +159,9 @@ describe('risk', () => {
     expect(computeRisk({ postureRisk: 'low', exposure: 'low' })).toBe('low');
   });
 
-  it('raises one tier when both are at least moderate', () => {
+  it('raises one tier when posture is at least moderate and exposure is at least high', () => {
     expect(computeRisk({ postureRisk: 'moderate', exposure: 'high' })).toBe('critical');
-    expect(computeRisk({ postureRisk: 'moderate', exposure: 'moderate' })).toBe('high');
+    expect(computeRisk({ postureRisk: 'moderate', exposure: 'moderate' })).toBe('moderate');
   });
 
   it('rates first-party code by its posture, not by what its tools can do', () => {
@@ -258,5 +258,22 @@ describe('computeScores', () => {
     });
 
     expect(scores.counts.capabilities).toEqual({ read: 1, write: 1, destructive: 0 });
+  });
+});
+
+describe('skill scoring', () => {
+  it('rates a clean tenant-authored skill with subagents as low risk', () => {
+    let scores = computeScores({
+      provenance: 'tenant_authored',
+      tools: [],
+      behaviors: [{ tag: 'subagents' }],
+      findings: [],
+      coverage: fullCoverage
+    });
+
+    expect(scores.security).toBe(85);
+    expect(scores.exposure).toBe('low');
+    expect(scores.risk).toBe('low');
+    expect(scores.headline).toEqual(['Solid implementation.', 'No risky capabilities.']);
   });
 });

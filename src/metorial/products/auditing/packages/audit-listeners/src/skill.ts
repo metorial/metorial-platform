@@ -113,7 +113,7 @@ export let recordSkillPluginCreated = async (
 ) => {
   await recordAuditEventAfterCommit(async recordedAt => {
     await auditTrackerService.recordEvent(event.auditScope, 'skill_plugin', 'create', {
-      payload: skillPluginPayload(event.skillPlugin),
+      payload: { ...skillPluginPayload(event.skillPlugin), skillGroupId: event.skillGroupId ?? null },
       recordedAt
     });
   });
@@ -124,8 +124,17 @@ export let recordSkillPluginUpdated = async (
 ) => {
   await recordAuditEventAfterCommit(async recordedAt => {
     await auditTrackerService.recordEvent(event.auditScope, 'skill_plugin', 'update', {
-      payload: skillPluginPayload(event.skillPlugin),
-      previousPayload: skillPluginPayload(event.previousSkillPlugin),
+      payload:
+        event.skillGroupId !== undefined
+          ? { ...skillPluginPayload(event.skillPlugin), skillGroupId: event.skillGroupId }
+          : skillPluginPayload(event.skillPlugin),
+      previousPayload:
+        event.previousSkillGroupId !== undefined
+          ? {
+              ...skillPluginPayload(event.previousSkillPlugin),
+              skillGroupId: event.previousSkillGroupId
+            }
+          : skillPluginPayload(event.previousSkillPlugin),
       recordedAt
     });
   });

@@ -38,6 +38,7 @@ export let skillPluginAuditResource = resource({
     description: string | null;
     category: string | null;
     status: string;
+    skillGroupId?: string | null;
   }>('skill_plugin'),
   presenter: undefined,
   actions: {

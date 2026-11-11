@@ -3,7 +3,9 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import {
   getArchivableSkillPluginIds,
+  getReadablePluginSkillIds,
   getWritableSkillPluginIds,
+  skillGroupPluginService,
   skillPluginService
 } from '@metorial/module-skill-marketplace';
 import { Controller } from '@metorial/rest';
@@ -98,6 +100,10 @@ export let skillPluginController = Controller.create(
             category: v.optional(v.string()),
             search: v.optional(v.string()),
             skill_configuration_id: v.optional(v.union([v.string(), v.array(v.string())])),
+            skill_group_id: v.optional(v.union([v.string(), v.array(v.string())]), {
+              description:
+                'Only return plugins whose skills are synced from these skill groups.'
+            }),
             created_at: dateFilterValidator('skill plugin creation time'),
             updated_at: dateFilterValidator('skill plugin last update time')
           })
@@ -113,17 +119,22 @@ export let skillPluginController = Controller.create(
           category: ctx.query.category,
           search: ctx.query.search,
           skillConfigurationIds: normalizeArrayParam(ctx.query.skill_configuration_id),
+          skillGroupIds: normalizeArrayParam(ctx.query.skill_group_id),
           createdAt: ctx.query.created_at,
           updatedAt: ctx.query.updated_at
         });
         let list = await paginator.run(ctx.query);
         let accessInput = getSkillMarketplaceAccessInput(ctx);
-        let [writablePluginIds, archivablePluginIds] = await Promise.all([
+        let [writablePluginIds, archivablePluginIds, readableSkillIds] = await Promise.all([
           getWritableSkillPluginIds({
             plugins: list.items,
             ...accessInput
           }),
           getArchivableSkillPluginIds({
+            plugins: list.items,
+            ...accessInput
+          }),
+          getReadablePluginSkillIds({
             plugins: list.items,
             ...accessInput
           })
@@ -135,7 +146,8 @@ export let skillPluginController = Controller.create(
             ...accessInput,
             pluginAccess: {
               canUpdate: writablePluginIds.has(skillPlugin.id),
-              canDelete: archivablePluginIds.has(skillPlugin.id)
+              canDelete: archivablePluginIds.has(skillPlugin.id),
+              readableSkillIds
             }
           })
         );
@@ -169,8 +181,16 @@ export let skillPluginController = Controller.create(
         'default',
         v.object({
           ...skillPluginInput,
-          name: v.string(),
-          skill_marketplace_id: v.optional(v.string())
+          name: v.optional(v.string(), {
+            description:
+              'The plugin name. Required unless skill_group_id is set, in which case it defaults to the group name.'
+          }),
+          skill_marketplace_id: v.optional(v.string()),
+          skill_group_id: v.optional(v.string(), {
+            description:
+              "Creates the plugin from a skill group. The group's skills are synced into the plugin automatically and cannot be edited on the plugin directly. Name and description are copied from the group once and can be changed afterwards.",
+            examples: ['skg_0mbgjh8iMEI3ZMm2r2iP0P']
+          })
         })
       )
       .output(skillPluginPresenter)
@@ -190,6 +210,7 @@ export let skillPluginController = Controller.create(
           skillMarketplaceId: ctx.body.skill_marketplace_id,
           input: {
             name: ctx.body.name,
+            skillGroupId: ctx.body.skill_group_id,
             description: ctx.body.description,
             longDescription: ctx.body.long_description,
             category: ctx.body.category,
@@ -250,6 +271,34 @@ export let skillPluginController = Controller.create(
         let skillPlugin = await skillPluginService.archiveSkillPlugin({
           ...(await getSkillPluginAccess(ctx)),
           ...accessInput,
+          skillPlugin: ctx.skillPlugin
+        });
+
+        return skillPluginPresenter.present({
+          skillPlugin,
+          ...getSkillMarketplaceAccessInput(ctx)
+        });
+      }),
+
+    detachSkillGroup: skillPluginGroup
+      .post(
+        instancePath(
+          'skill-plugins/:skillPluginId/detach-skill-group',
+          'skills.plugins.detachSkillGroup'
+        ),
+        {
+          name: 'Detach skill plugin from skill group',
+          description:
+            'Stops syncing a plugin from its skill group. The plugin keeps its current skills, which can then be edited directly.'
+        }
+      )
+      .use(hasFlags(['skills-enabled']))
+      .use(checkAccess({ possibleScopes: [...writeScopes] }))
+      .body('default', v.object({}))
+      .output(skillPluginPresenter)
+      .do(async ctx => {
+        let skillPlugin = await skillGroupPluginService.detachSkillGroupPlugin({
+          ...(await getSkillPluginAccess(ctx)),
           skillPlugin: ctx.skillPlugin
         });
 

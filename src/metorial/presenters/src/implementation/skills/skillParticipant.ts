@@ -45,9 +45,13 @@ export let dashboardSkillParticipantPresenter = Presenter.create(skillParticipan
   .presenter(async (input, opts) => {
     let inner = await v1SkillParticipantPresenter.present(input, opts).run();
     let { skillParticipant } = input;
+    let instanceConsumer = skillParticipant.consumer?.instanceConsumers.find(
+      instanceConsumer => instanceConsumer.instanceOid === skillParticipant.skill.instanceOid
+    );
 
     return {
       ...inner,
+      consumer_id: instanceConsumer?.id ?? null,
       has_organization_member_access: !!skillParticipant.hasOrganizationMemberAccess
     };
   })
@@ -55,6 +59,12 @@ export let dashboardSkillParticipantPresenter = Presenter.create(skillParticipan
     v.intersection([
       v1SkillParticipantPresenter.schema,
       v.object({
+        consumer_id: v.nullable(
+          v.string({
+            description:
+              'The consumer this participant is in the skill instance, including organization members linked to a consumer through their user.'
+          })
+        ),
         has_organization_member_access: v.boolean({
           description:
             'Whether the participant has full access through an organization membership instead of its skill grants.'

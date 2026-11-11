@@ -1,5 +1,6 @@
 import { combineQueueProcessors } from '@metorial/queue';
 import { managedSkillPluginLifecycleQueueProcessor } from './managedSkillPlugin';
+import { skillGroupPluginQueueProcessor } from './skillGroupPlugin';
 import {
   propagateSkillMarketplaceDirtyQueueProcessor,
   skillMarketplaceLifecycleQueueProcessor
@@ -18,6 +19,7 @@ import {
 } from './skillPluginSkill';
 
 export * from './managedSkillPlugin';
+export { enqueueSkillGroupPluginSync } from './skillGroupPlugin';
 export * from './skillMarketplace';
 export * from './skillMarketplacePlugin';
 export * from './skillPlugin';
@@ -25,6 +27,7 @@ export * from './skillPluginSkill';
 
 export let lifecycleQueues = combineQueueProcessors([
   managedSkillPluginLifecycleQueueProcessor,
+  skillGroupPluginQueueProcessor,
   skillPluginLifecycleQueueProcessor,
   skillPluginSkillLifecycleQueueProcessor,
   skillMarketplaceLifecycleQueueProcessor,

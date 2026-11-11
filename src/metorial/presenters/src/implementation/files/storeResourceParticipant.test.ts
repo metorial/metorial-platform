@@ -138,6 +138,35 @@ describe('store participant presenters', () => {
     expect(other).toMatchObject({ has_organization_member_access: false });
   });
 
+  it("presents the participant's consumer in the skill instance on the dashboard", async () => {
+    let present = async (consumer: unknown) =>
+      await dashboardSkillParticipantPresenter
+        .present(
+          {
+            skillParticipant: {
+              ...dedupedParticipant,
+              skill: { ...skill, instanceOid: 2n },
+              consumer
+            } as any
+          },
+          context
+        )
+        .run();
+
+    let linked = await present({
+      instanceConsumers: [
+        { id: 'icn_other', instanceOid: 1n },
+        { id: 'icn_skill', instanceOid: 2n }
+      ]
+    });
+    let elsewhere = await present({ instanceConsumers: [{ id: 'icn_other', instanceOid: 1n }] });
+    let unlinked = await present(null);
+
+    expect(linked).toMatchObject({ consumer_id: 'icn_skill' });
+    expect(elsewhere).toMatchObject({ consumer_id: null });
+    expect(unlinked).toMatchObject({ consumer_id: null });
+  });
+
   it('shows the deduplicated actor of a document participant when it is linked', async () => {
     let documentParticipant = {
       id: 'dpt_1',
