@@ -34,6 +34,14 @@ export let SkillMarketplacePage = () => {
         getSkillPath={skillId =>
           Paths.instance.skill(organization.data, project.data, instance.data, skillId)
         }
+        getSkillGroupPath={skillGroupId =>
+          Paths.instance.skillGroup(
+            organization.data,
+            project.data,
+            instance.data,
+            skillGroupId
+          )
+        }
       />
     </DetailsOverviewLayout>
   );

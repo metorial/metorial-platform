@@ -13,6 +13,7 @@ import {
   Avatar,
   Badge,
   Button,
+  Callout,
   Dialog,
   Input,
   Menu,
@@ -112,7 +113,10 @@ let SkillPickerResults = (p: {
   selectedId: string | null;
   onSelect: (skill: Skill) => void;
 }) =>
-  renderWithPagination(p.skills, paginationOpts)(skills => {
+  renderWithPagination(
+    p.skills,
+    paginationOpts
+  )(skills => {
     let items = skills.data.items.filter(skill => !p.excludedSkillIds.has(skill.id));
 
     if (items.length === 0) {
@@ -318,6 +322,7 @@ let getSkillTableRow = (p: {
   pluginSkill: SkillPluginSkill;
   skill?: Skill;
   getSkillPath?: (skillId: string) => string;
+  canEdit: boolean;
   isDeleting: boolean;
   onEdit: () => void;
   onRemove: () => void;
@@ -355,33 +360,37 @@ let getSkillTableRow = (p: {
       <Text size="2" color={p.pluginSkill.clientName ? 'gray800' : 'gray500'}>
         {p.pluginSkill.clientName || 'Default'}
       </Text>,
-      <Actions onClick={e => e.stopPropagation()}>
-        <Menu
-          items={[
-            { id: 'edit', label: 'Edit' },
-            { id: 'remove', label: 'Remove' }
-          ]}
-          onItemClick={item => {
-            if (item === 'edit') p.onEdit();
-            if (item === 'remove') {
-              confirm({
-                title: `Remove ${title}?`,
-                description: 'Remove this skill from the plugin?',
-                confirmText: 'Remove',
-                onConfirm: p.onRemove
-              });
-            }
-          }}
-        >
-          <Button
-            size="1"
-            variant="outline"
-            iconRight={<RiMore2Line />}
-            loading={p.isDeleting}
-            title="Plugin skill options"
-          />
-        </Menu>
-      </Actions>
+      p.canEdit ? (
+        <Actions onClick={e => e.stopPropagation()}>
+          <Menu
+            items={[
+              { id: 'edit', label: 'Edit' },
+              { id: 'remove', label: 'Remove' }
+            ]}
+            onItemClick={item => {
+              if (item === 'edit') p.onEdit();
+              if (item === 'remove') {
+                confirm({
+                  title: `Remove ${title}?`,
+                  description: 'Remove this skill from the plugin?',
+                  confirmText: 'Remove',
+                  onConfirm: p.onRemove
+                });
+              }
+            }}
+          >
+            <Button
+              size="1"
+              variant="outline"
+              iconRight={<RiMore2Line />}
+              loading={p.isDeleting}
+              title="Plugin skill options"
+            />
+          </Menu>
+        </Actions>
+      ) : (
+        <span />
+      )
     ]
   };
 };
@@ -465,27 +474,49 @@ export let SkillPluginSkillsScene = (p: {
 
   return renderWithLoader({ pluginSkills })(({ pluginSkills }) => {
     let skillLookup = new Map((skills.data?.items ?? []).map(skill => [skill.id, skill]));
+    let canEditSkills = plugin.data?.canEditSkills ?? false;
+    let skillGroupSource =
+      plugin.data?.source.type === 'skill_group' ? plugin.data.source : null;
 
     return (
       <Box
         title="Skills"
-        description="Choose which skills are included in this plugin."
+        description={
+          skillGroupSource
+            ? `Skills are synced from the ${skillGroupSource.skillGroup.name} skill group.`
+            : 'Choose which skills are included in this plugin.'
+        }
         rightActions={
-          <Button
-            size="2"
-            iconLeft={<RiAddLine />}
-            disabled={!p.instanceId || !p.skillPluginId}
-            onClick={openPicker}
-            variant="outline"
-          >
-            Add Skill
-          </Button>
+          canEditSkills ? (
+            <Button
+              size="2"
+              iconLeft={<RiAddLine />}
+              disabled={!p.instanceId || !p.skillPluginId}
+              onClick={openPicker}
+              variant="outline"
+            >
+              Add Skill
+            </Button>
+          ) : undefined
         }
       >
+        {skillGroupSource && (
+          <>
+            <Callout color={skillGroupSource.unsyncedSkills.length ? 'orange' : 'gray'}>
+              {skillGroupSource.unsyncedSkills.length
+                ? `${skillGroupSource.unsyncedSkills.length} of the group's skills could not be synced: ${skillGroupSource.unsyncedSkills[0].message}`
+                : 'To add or remove skills, change the skill group. Its changes are synced to this plugin automatically.'}
+            </Callout>
+            <Spacer size={12} />
+          </>
+        )}
+
         {pluginSkills.data.length === 0 ? (
           <EmptyState>
             <Text color="gray600" size="2">
-              This plugin does not include any skills yet.
+              {skillGroupSource
+                ? 'The skill group has no skills yet.'
+                : 'This plugin does not include any skills yet.'}
             </Text>
           </EmptyState>
         ) : (
@@ -497,6 +528,7 @@ export let SkillPluginSkillsScene = (p: {
                   pluginSkill,
                   skill: skillLookup.get(pluginSkill.skillId),
                   getSkillPath: p.getSkillPath,
+                  canEdit: canEditSkills,
                   isDeleting: deletePluginSkill.isLoading,
                   onEdit: () => openEdit(pluginSkill),
                   onRemove: () => removeSkill(pluginSkill)

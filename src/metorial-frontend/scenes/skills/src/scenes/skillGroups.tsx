@@ -31,6 +31,7 @@ import { RiAddLine, RiMore2Line, RiSettings3Line } from '@remixicon/react';
 import { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { SkillPanelPage } from '../components/skillPanelPage';
+import { showSkillGroupSkillsPanel } from './skillMarketplacePlugins/dialogs';
 
 let EmptyState = styled.div`
   line-height: 1.6;
@@ -135,113 +136,7 @@ let truncate = (value: string | null | undefined, length = 100) => {
   return `${value.slice(0, length)}...`;
 };
 
-let SkillPickerPanel = (p: {
-  instanceId: string;
-  excludeSkillIds: string[];
-  close: () => void;
-  onSelect: (skill: Skill) => Promise<void> | void;
-  showAccessLevel?: boolean;
-}) => {
-  let [search, setSearch] = useState('');
-  let [selectedId, setSelectedId] = useState<string | null>(null);
-  let excludedSkillIds = useMemo(() => new Set(p.excludeSkillIds), [p.excludeSkillIds]);
-  let skills = useSkills(p.instanceId, {
-    order: 'desc',
-    status: ['active'],
-    limit: 30,
-    ...(search.trim() ? { search: search.trim() } : {})
-  });
-
-  let selectSkill = async (skill: Skill) => {
-    if (selectedId) return;
-    setSelectedId(skill.id);
-    await p.onSelect(skill);
-    p.close();
-  };
-
-  return (
-    <>
-      <Panel.Header>
-        <div>
-          <Panel.Title>Add Skill</Panel.Title>
-          <Panel.Description>
-            Choose a skill to add to this group. Skills already in the group are hidden.
-          </Panel.Description>
-        </div>
-      </Panel.Header>
-
-      <Panel.Content>
-        <PickerStack>
-          <Input
-            label="Search skills"
-            hideLabel
-            placeholder="Search skills..."
-            value={search}
-            onInput={setSearch}
-          />
-
-          {p.showAccessLevel && <SkillGroupAccessLevelDisplay />}
-
-          <PickerScroll>
-            {renderWithPagination(skills, { hidePaginationWhenUnavailable: true })(skills => {
-              let items = skills.data.items.filter(skill => !excludedSkillIds.has(skill.id));
-
-              if (items.length === 0) {
-                return (
-                  <Text size="2" color="gray600">
-                    {search.trim()
-                      ? 'No skills match your search.'
-                      : 'All available skills are already selected.'}
-                  </Text>
-                );
-              }
-
-              return (
-                <ItemGrid.Root width="270px">
-                  {items.map(skill => (
-                    <ItemGrid.Item
-                      key={skill.id}
-                      title={skill.name}
-                      description={truncate(skill.description)}
-                      height={200}
-                      onClick={() => selectSkill(skill)}
-                      icon={
-                        <Avatar
-                          entity={{
-                            name: skill.name,
-                            imageUrl: `https://avatar-cdn.metorial.com/${skill.id}`
-                          }}
-                          size={30}
-                        />
-                      }
-                      bottom={
-                        <div style={{ display: 'flex' }}>
-                          <Slug>{skill.slug}</Slug>
-                        </div>
-                      }
-                    />
-                  ))}
-                </ItemGrid.Root>
-              );
-            })}
-          </PickerScroll>
-        </PickerStack>
-      </Panel.Content>
-    </>
-  );
-};
-
-export let showSkillGroupSkillPicker = (p: {
-  instanceId: string;
-  excludeSkillIds: string[];
-  onSelect: (skill: Skill) => Promise<void> | void;
-  showAccessLevel?: boolean;
-}) =>
-  showModal(({ dialogProps, close }) => (
-    <Panel.Wrapper {...dialogProps} width={1050}>
-      <SkillPickerPanel {...p} close={close} />
-    </Panel.Wrapper>
-  ));
+export let showSkillGroupSkillPicker = showSkillGroupSkillsPanel;
 
 let SkillGroupAccessPanel = (p: {
   instanceId: string;
@@ -461,15 +356,15 @@ export let SkillGroupSkillsScene = (p: {
     showSkillGroupSkillPicker({
       instanceId: p.instanceId,
       excludeSkillIds: linkedSkillIds,
-      showAccessLevel: p.showAccessLevel,
       onSelect: async skill => {
-        await createSkillGroupItem.mutate({
+        let [item] = await createSkillGroupItem.mutate({
           instanceId: p.instanceId!,
           skillGroupId: p.skillGroupId!,
           skillId: skill.id
         });
-        await skillGroupItems.refetch();
-      }
+        return !!item;
+      },
+      onDone: () => skillGroupItems.refetch()
     });
   };
 

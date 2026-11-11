@@ -134,16 +134,18 @@ export let SkillMarketplacesGrid = (
     instanceId: string;
     getHref?: (marketplaceId: string) => string;
     hideCreate?: boolean;
+    layout?: 'table' | 'grid';
   } & SkillMarketplaceFilters
 ) => {
-  let { instanceId, getHref, hideCreate, ...filters } = p;
+  let { instanceId, getHref, hideCreate, layout, ...filters } = p;
 
   return (
     <SkillMarketplacesList
       instanceId={instanceId}
       getHref={getHref}
       filters={filters}
-      hideToolbar
+      listLayout={layout}
+      hideToolbar={layout != 'table'}
       emptyState={{
         initial: hideCreate
           ? 'No skill marketplaces yet.'
