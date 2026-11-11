@@ -12,6 +12,7 @@ import { resourceActorPresentationInclude } from '@metorial/module-resource-acto
 import { getAssistantDefinition } from '../lib/definitions/assistantDefinition';
 import { resolveAssistantConversationInput } from '../lib/definitions/conversationInput';
 import type { AssistantAccess } from '../lib/definitions/implementation';
+import { assertAiChatAllowed } from '../lib/reducedSubprocessors';
 import type { State } from '../types';
 import type { AvailableProductAssistant } from './assistant';
 import { productAssistantService } from './assistant';
@@ -197,6 +198,7 @@ class ProductAssistantConversationServiceImpl {
     };
   }) {
     this.ensureScope(d);
+    assertAiChatAllowed(d.project);
 
     let assistant = await productAssistantService.get({
       project: d.project,

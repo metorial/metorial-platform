@@ -54,6 +54,7 @@ let tenant = {
   collectErrors: true,
   disableCallbacks: false,
   reducedSubprocessors: false,
+  assistantEnabled: true,
   aiAnalysisEnabled: false,
   usageReviewsEnabled: false
 };
@@ -62,6 +63,8 @@ let project = {
   id: 'prj_1',
   oid: 1n,
   status: 'active',
+  assistantEnabled: true,
+  reducedSubprocessors: false,
   skillReviewHoldPending: false,
   consumerAuthClientRegistrationsPerHourLimit: 25,
   consumerAuthClientRegistrationsPerMinuteLimit: 10
@@ -250,6 +253,7 @@ describe('project integrations-backed configuration setters', () => {
     expect(mocks.projectUpdate).toHaveBeenCalledWith({
       where: { oid: 1n },
       data: {
+        assistantEnabled: true,
         aiAnalysisEnabled: true,
         usageReviewsEnabled: false,
         skillReviewHoldPending: undefined
@@ -259,11 +263,15 @@ describe('project integrations-backed configuration setters', () => {
       'organization.project.ai_analysis_configuration.updated:after',
       expect.objectContaining({
         configuration: {
+          assistantEnabled: true,
+          reducedSubprocessors: false,
           aiAnalysisEnabled: true,
           usageReviewsEnabled: false,
           skillReviewHoldPending: false
         },
         previousConfiguration: {
+          assistantEnabled: true,
+          reducedSubprocessors: false,
           aiAnalysisEnabled: false,
           usageReviewsEnabled: false,
           skillReviewHoldPending: false
@@ -271,10 +279,59 @@ describe('project integrations-backed configuration setters', () => {
       })
     );
     expect(result).toEqual({
+      assistantEnabled: true,
+      reducedSubprocessors: false,
       aiAnalysisEnabled: true,
       usageReviewsEnabled: false,
       skillReviewHoldPending: false
     });
+  });
+
+  it.each([true, false])(
+    'persists the assistant preference %s independently of AI analysis',
+    async assistantEnabled => {
+      let updatedTenant = { ...tenant, assistantEnabled };
+      mocks.upsertTenant.mockResolvedValue(updatedTenant);
+      mocks.projectUpdate.mockResolvedValue({ ...project, ...updatedTenant });
+
+      let result =
+        await projectAiAnalysisConfigurationService.updateProjectAiAnalysisConfiguration({
+          ...common,
+          input: { assistantEnabled }
+        });
+
+      expect(mocks.upsertTenant).toHaveBeenCalledWith({
+        input: expect.objectContaining({ assistantEnabled, aiAnalysisEnabled: false })
+      });
+      expect(mocks.projectUpdate).toHaveBeenCalledWith({
+        where: { oid: project.oid },
+        data: expect.objectContaining({ assistantEnabled })
+      });
+      expect(result.assistantEnabled).toBe(assistantEnabled);
+      expect(mocks.fire).toHaveBeenCalledWith(
+        'organization.project.ai_analysis_configuration.updated:after',
+        expect.objectContaining({
+          configuration: expect.objectContaining({ assistantEnabled }),
+          previousConfiguration: expect.objectContaining({ assistantEnabled: true })
+        })
+      );
+    }
+  );
+
+  it('returns the assistant preference and compliance restriction separately', async () => {
+    mocks.ensureForProject.mockResolvedValue({
+      tenant: { ...tenant, assistantEnabled: true, reducedSubprocessors: true }
+    });
+
+    let result =
+      await projectAiAnalysisConfigurationService.getProjectAiAnalysisConfiguration(common);
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        assistantEnabled: true,
+        reducedSubprocessors: true
+      })
+    );
   });
 
   it.each([

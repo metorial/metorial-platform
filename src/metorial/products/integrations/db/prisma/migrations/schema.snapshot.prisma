@@ -188,10 +188,10 @@ model AdapterIntegration {
   instanceProviders        AdapterIntegrationInstanceProvider[]
   instanceProviderSessions AdapterIntegrationInstanceProviderSession[]
 
-  chatConnection                  ChatConnection?
-  chatConnectionProviders         ChatConnectionProvider[]
-  chatInstances         ChatInstance[]
-  chatInstanceProviders ChatInstanceProvider[]
+  chatConnection          ChatConnection?
+  chatConnectionProviders ChatConnectionProvider[]
+  chatInstances           ChatInstance[]
+  chatInstanceProviders   ChatInstanceProvider[]
 
   @@index([createdAt])
   @@index([type])
@@ -243,8 +243,8 @@ model AdapterIntegrationProvider {
 
   instanceProviders AdapterIntegrationInstanceProvider[]
 
-  chatConnectionProviders         ChatConnectionProvider[]
-  chatInstanceProviders ChatInstanceProvider[]
+  chatConnectionProviders ChatConnectionProvider[]
+  chatInstanceProviders   ChatInstanceProvider[]
 
   @@unique([adapterIntegrationOid, integrationProviderOid])
   @@index([createdAt])
@@ -584,6 +584,7 @@ model ProviderAuthConfig {
   @@index([needsScopeSync])
   @@index([projectOid])
   @@index([instanceOid])
+  @@index([instanceOid, providerOid, status])
   @@index([ownerActorOid])
   @@index([ownerPublicMcpServerOid])
 }
@@ -929,6 +930,9 @@ model ProviderAuthConfigError {
   groupOid BigInt?
   group    ProviderAuthConfigErrorGlobal? @relation(fields: [groupOid], references: [oid])
 
+  issueOid BigInt?
+  issue    ProviderIssue? @relation(fields: [issueOid], references: [oid])
+
   authConfigEventOid BigInt?
   authConfigEvent    ProviderAuthConfigEvent? @relation(fields: [authConfigEventOid], references: [oid])
 
@@ -966,6 +970,7 @@ model ProviderAuthConfigError {
   @@index([createdAt])
   @@index([type])
   @@index([groupOid])
+  @@index([issueOid])
   @@index([authConfigEventOid])
   @@index([authConfigOid])
   @@index([authCredentialsOid])
@@ -1710,6 +1715,7 @@ model Slate {
 
   identifierInRegistry String?
   registryUrl          String?
+  slateIdOnRegistry    String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -1732,6 +1738,8 @@ model SlateVersion {
 
   version    String
   identifier String @unique
+
+  versionIdOnRegistry String?
 
   slateOid BigInt
   slate    Slate  @relation(fields: [slateOid], references: [oid])
@@ -1906,8 +1914,8 @@ model CallbackEvent {
 
   occurredAt DateTime
   readAt     DateTime?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @default(now()) @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
 
   slateTriggerEvent SlateTriggerEvent?
   chatEvents        ChatEvent[]
@@ -2103,8 +2111,8 @@ model ChatAuthor {
   updatedAt         DateTime  @default(now()) @updatedAt
   lastInteractionAt DateTime?
 
-  chatMessages ChatMessage[]
-  chatEvents   ChatEvent[]
+  chatMessages      ChatMessage[]
+  chatEvents        ChatEvent[]
   recipientChannels ChatChannel[]
 
   chatInstanceProviders ChatInstanceProvider[]
@@ -2186,10 +2194,10 @@ model ChatChannel {
   updatedAt         DateTime  @default(now()) @updatedAt
   lastInteractionAt DateTime?
 
-  threads      ChatThread[]
-  messages     ChatMessage[]
+  threads       ChatThread[]
+  messages      ChatMessage[]
   messageGroups ChatMessageGroup[]
-  chatEvents   ChatEvent[]
+  chatEvents    ChatEvent[]
 
   @@unique([chatOid, channelId])
 }
@@ -2274,9 +2282,9 @@ model Chat {
 
   workspace  ChatWorkspace?
   chatEvents ChatEvent[]
-  authors   ChatAuthor[]
-  channels  ChatChannel[]
-  threads   ChatThread[]
+  authors    ChatAuthor[]
+  channels   ChatChannel[]
+  threads    ChatThread[]
 
   @@index([chatConnectionOid, status])
   @@index([chatInstanceOid, status])
@@ -3130,6 +3138,7 @@ model CustomProviderVersion {
   customProviderCommits             CustomProviderCommit[]
   customProviderCommitsBefore       CustomProviderCommit[]             @relation("CustomProviderCommitToEnvVersionBefore")
   upcomingCustomProviders           UpcomingCustomProvider[]
+  securityReview                    SecurityReview?
 
   @@unique([customProviderOid, versionIndex])
   @@unique([customProviderOid, versionIdentifier])
@@ -5773,6 +5782,80 @@ model ProviderEnvironmentVersion {
   @@index([instanceOid])
 }
 
+enum ProviderIssueType {
+  provider_error
+  auth_error
+  protoguard_warning
+}
+
+enum ProviderIssueSeverity {
+  warning
+  error
+  critical
+}
+
+model ProviderIssue {
+  oid BigInt @id
+  id  String @unique
+
+  type     ProviderIssueType
+  subtype  String
+  severity ProviderIssueSeverity
+  hash     String
+
+  code    String
+  message String
+
+  occurrenceCount Int @default(0)
+
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  providerOid BigInt?
+  provider    Provider? @relation(fields: [providerOid], references: [oid])
+
+  protoGuardFilterOid BigInt?
+  protoGuardFilter    ProtoGuardFilter? @relation(fields: [protoGuardFilterOid], references: [oid])
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+
+  environmentOid BigInt
+  environment    Environment @relation(fields: [environmentOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid])
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  occurrencePeriods ProviderIssueOccurrencePeriod[]
+  sessionErrors     SessionError[]
+  authConfigErrors  ProviderAuthConfigError[]
+  protoGuardAlerts  ProtoGuardAlert[]
+
+  @@unique([tenantOid, environmentOid, type, hash])
+  @@index([instanceOid, lastSeenAt])
+  @@index([instanceOid, type, lastSeenAt])
+  @@index([providerOid])
+  @@index([protoGuardFilterOid])
+}
+
+model ProviderIssueOccurrencePeriod {
+  oid BigInt @id
+
+  startsAt DateTime
+  endsAt   DateTime
+
+  occurrenceCount Int @default(0)
+
+  issueOid BigInt
+  issue    ProviderIssue @relation(fields: [issueOid], references: [oid], onDelete: Cascade)
+
+  @@unique([issueOid, startsAt])
+}
+
 model ProviderEntry {
   oid BigInt @id
   id  String @unique
@@ -5872,6 +5955,7 @@ model Provider {
   sessionTemplateProviders       SessionTemplateProvider[]
   sessionParticipants            SessionParticipant[]
   sessionErrorGroups             SessionErrorGroup[]
+  providerIssues                 ProviderIssue[]
   authConfigEvents               ProviderAuthConfigEvent[]
   authConfigErrors               ProviderAuthConfigError[]
   authConfigErrorGlobals         ProviderAuthConfigErrorGlobal[]
@@ -5889,8 +5973,13 @@ model Provider {
   skillTemplateItems             SkillTemplateItem[]
   tenantOAuthCallbackUrls        TenantOAuthCallbackUrl[]
   firewallAssignments            IntegrationFirewallAssignment[]
+  protoGuardSuppressions         ProtoGuardSuppression[]
+  protoGuardToolScans            ProtoGuardToolScan[]
   monitors                       Monitor[]
   chats                          Chat[]
+  securityReviews                SecurityReview[]
+  providerToolUsageHourly        ProviderToolUsageHourly[]
+  providerProtoGuardHourly       ProviderProtoGuardHourly[]
 
   @@index([status])
   @@index([access])
@@ -5949,9 +6038,10 @@ model ProviderTool {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  currentInGlobal ProviderToolGlobal[] @relation("currentToolInstance")
-  sessionMessages SessionMessage[]
-  toolCalls       ToolCall[]
+  currentInGlobal     ProviderToolGlobal[] @relation("currentToolInstance")
+  sessionMessages     SessionMessage[]
+  toolCalls           ToolCall[]
+  protoGuardToolScans ProtoGuardToolScan[]
 
   @@unique([providerOid, specificationOid, hash])
   @@unique([specificationOid, key])
@@ -6074,6 +6164,7 @@ model ProviderSpecification {
   providerVersionSpecificationChangesTo                ProviderVersionSpecificationChange[]              @relation("SpecChangeTo")
   providerConfigs                                      ProviderConfig[]
   sessionConnectionProviderSpecifications              SessionConnectionProviderSpecification[]
+  securityReviewRevisions                              SecurityReviewRevision[]
 
   @@unique([providerOid, hash])
   @@index([createdAt])
@@ -6485,6 +6576,7 @@ model ProviderVersion {
   providerDeploymentConfigPairDiscoveries      ProviderDeploymentConfigPairDiscovery[]
   sessionConnectionProviderSpecifications      SessionConnectionProviderSpecification[]
   providerAdapters                             ProviderVersionAdapter[]
+  securityReviews                              SecurityReview[]
 
   @@index([createdAt])
   @@index([updatedAt])
@@ -7007,6 +7099,441 @@ model OriginSyncChangeNotificationCursor {
   createdAt DateTime @default(now())
 }
 
+enum SecurityReviewSubjectType {
+  slate_version
+  custom_provider_version
+  skill_version
+  provider_usage
+}
+
+enum SecurityReviewScope {
+  global
+  tenant
+}
+
+enum SecurityReviewStatus {
+  active
+  outdated
+  disabled
+  deleted
+}
+
+// Global (slate) reviews are mirrors of the multi-region store and have no tenant, so the
+// tenant/project columns are only populated for scope = tenant.
+model SecurityReview {
+  oid BigInt @id
+  id  String @unique
+
+  subjectType SecurityReviewSubjectType
+  scope       SecurityReviewScope
+  subjectKey  String                    @unique
+  globalId    String?                   @unique
+
+  status          SecurityReviewStatus
+  isAdminDisabled Boolean              @default(false)
+
+  lastCheckedAt DateTime?
+
+  skillId            String?
+  dismissedAt        DateTime?
+  dismissedByActorId String?
+
+  tenantOid BigInt?
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  providerOid BigInt?
+  provider    Provider? @relation(fields: [providerOid], references: [oid])
+
+  providerVersionOid BigInt?
+  providerVersion    ProviderVersion? @relation(fields: [providerVersionOid], references: [oid])
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
+  customProviderVersionOid BigInt?                @unique
+  customProviderVersion    CustomProviderVersion? @relation(fields: [customProviderVersionOid], references: [oid])
+
+  currentRevisionOid BigInt?                 @unique
+  currentRevision    SecurityReviewRevision? @relation("SecurityReviewCurrentRevision", fields: [currentRevisionOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  revisions  SecurityReviewRevision[]             @relation("SecurityReviewRevisions")
+  webDomains SecurityReviewWebDomainUsageReview[]
+
+  @@index([providerOid])
+  @@index([providerVersionOid])
+  @@index([instanceOid, providerOid])
+  @@index([skillId])
+  @@index([tenantOid])
+  @@index([status])
+  @@index([updatedAt])
+}
+
+enum SecurityReviewRevisionStatus {
+  queued
+  running
+  completed
+  completed_with_gaps
+  failed
+  blocked
+}
+
+enum SecurityReviewStage {
+  collecting
+  verifying
+  analyzing
+  writing
+}
+
+enum SecurityReviewMode {
+  ai
+  deterministic
+}
+
+enum SecurityReviewTrigger {
+  first_use
+  page_open
+  new_version
+  deployment
+  tools_discovered
+  census_changed
+  scheduled
+  prompt_update
+  reassess
+  admin
+  skill_import
+  usage_threshold
+  usage_changed
+}
+
+enum SecurityReviewBlockReason {
+  billing
+  ai_disabled
+  admin_disabled
+}
+
+enum SecurityReviewLevel {
+  unknown
+  low
+  moderate
+  high
+  critical
+}
+
+enum SecurityReviewConfidence {
+  low
+  medium
+  high
+}
+
+enum SecurityReviewThoroughness {
+  basic
+  standard
+  deep
+}
+
+enum SecurityReviewSource {
+  agent
+  admin
+}
+
+model SecurityReviewRevision {
+  oid BigInt @id
+  id  String @unique
+
+  number       Int
+  globalId     String? @unique
+  snapshotOfId String?
+
+  skillVersionId String?
+
+  status      SecurityReviewRevisionStatus
+  stage       SecurityReviewStage?
+  activity    String?
+  mode        SecurityReviewMode
+  trigger     SecurityReviewTrigger
+  blockReason SecurityReviewBlockReason?
+  failureCode String?
+
+  /// [SecurityReviewReport]
+  report Json?
+
+  /// [SecurityReviewScores]
+  scores Json?
+
+  /// [SecurityUsageReviewReport]
+  usageReport Json?
+
+  /// [SecurityUsageReviewScores]
+  usageScores Json?
+
+  securityScore   Int?
+  exposure        SecurityReviewLevel?
+  risk            SecurityReviewLevel?
+  confidence      SecurityReviewConfidence?
+  provenanceClass String?
+  awaitingTools   Boolean                   @default(false)
+
+  evidenceHash  String?
+  contentHash   String?
+  rulesVersion  String
+  promptVersion String
+  thoroughness  SecurityReviewThoroughness
+  source        SecurityReviewSource       @default(agent)
+
+  /// [SecurityReviewCensus]
+  census Json?
+
+  /// [SecurityReviewRunContext]
+  context Json?
+
+  workspaceKey String?
+
+  reviewOid BigInt
+  review    SecurityReview @relation("SecurityReviewRevisions", fields: [reviewOid], references: [oid], onDelete: Cascade)
+
+  specificationOid BigInt?
+  specification    ProviderSpecification? @relation(fields: [specificationOid], references: [oid])
+
+  baseRevisionOid BigInt?
+  baseRevision    SecurityReviewRevision?  @relation("SecurityUsageBaseRevision", fields: [baseRevisionOid], references: [oid], onDelete: SetNull)
+  usageRevisions  SecurityReviewRevision[] @relation("SecurityUsageBaseRevision")
+
+  heartbeatAt DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+
+  currentFor SecurityReview?         @relation("SecurityReviewCurrentRevision")
+  findings   SecurityReviewFinding[]
+  runs       SecurityReviewRun[]
+
+  @@unique([reviewOid, number])
+  @@index([status])
+  @@index([createdAt])
+  @@index([snapshotOfId])
+  @@index([contentHash])
+}
+
+enum SecurityFindingKind {
+  security
+  capability
+  positive
+}
+
+enum SecurityFindingSeverity {
+  info
+  low
+  medium
+  high
+  critical
+}
+
+enum SecurityFindingChange {
+  new
+  persisting
+  resolved
+}
+
+model SecurityReviewFinding {
+  oid BigInt @id
+  id  String @unique
+
+  key      String
+  kind     SecurityFindingKind
+  category String
+  severity SecurityFindingSeverity
+  change   SecurityFindingChange
+  origin   String
+
+  isLocked Boolean @default(false)
+
+  /// [SecurityReviewFindingValue]
+  value Json
+
+  revisionOid BigInt
+  revision    SecurityReviewRevision @relation(fields: [revisionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([revisionOid, key])
+  @@index([kind])
+  @@index([severity])
+}
+
+enum SecurityReviewRunStatus {
+  running
+  succeeded
+  failed
+  budget_exhausted
+}
+
+model SecurityReviewRun {
+  oid BigInt @id
+  id  String @unique
+
+  status SecurityReviewRunStatus
+  model  String
+  steps  Int                     @default(0)
+
+  inputTokens       Int    @default(0)
+  outputTokens      Int    @default(0)
+  cachedInputTokens Int    @default(0)
+  costMicros        BigInt @default(0)
+  maxCostMicros     BigInt
+
+  errorMessage String?
+  log          String?
+
+  isBillable Boolean   @default(false)
+  billedAt   DateTime?
+
+  revisionOid BigInt
+  revision    SecurityReviewRevision @relation(fields: [revisionOid], references: [oid], onDelete: Cascade)
+
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([revisionOid])
+}
+
+model SecurityReviewWebDomainUsage {
+  oid BigInt @id
+  id  String @unique
+
+  domain String @unique
+
+  attempts   Int @default(0)
+  dispatched Int @default(0)
+  succeeded  Int @default(0)
+  blocked    Int @default(0)
+  failed     Int @default(0)
+
+  lastOutcome   String
+  lastReason    String?
+  retriever     String
+  lastOperation String
+
+  reputation          String?
+  threatTypes         String[]
+  reputationCheckedAt DateTime?
+
+  firstSeenAt   DateTime  @default(now())
+  lastAttemptAt DateTime
+  lastUsedAt    DateTime?
+
+  reviews SecurityReviewWebDomainUsageReview[]
+
+  @@index([lastAttemptAt])
+  @@index([lastOutcome, lastAttemptAt])
+}
+
+model SecurityReviewWebDomainUsageReview {
+  oid BigInt @id
+  id  String @unique
+
+  domainUsageOid BigInt
+  domainUsage    SecurityReviewWebDomainUsage @relation(fields: [domainUsageOid], references: [oid], onDelete: Cascade)
+
+  reviewOid BigInt
+  review    SecurityReview @relation(fields: [reviewOid], references: [oid], onDelete: Cascade)
+
+  @@unique([domainUsageOid, reviewOid])
+  @@index([reviewOid])
+}
+
+enum SecurityFileKind {
+  text
+  image
+  pdf
+  audio
+  video
+  font
+  archive
+  executable
+  unknown_binary
+  empty
+}
+
+model SecurityReviewFileCheck {
+  oid BigInt @id
+  id  String @unique
+
+  fileId String @unique
+
+  kind         SecurityFileKind
+  detectedMime String?
+  extension    String?
+  isDisguised  Boolean          @default(false)
+  sizeBytes    BigInt
+
+  checkedAt DateTime @default(now())
+}
+
+model ProviderToolUsageHourly {
+  hour    DateTime
+  toolKey String
+
+  calls  Int
+  errors Int
+
+  updatedAt DateTime @default(now()) @updatedAt
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  @@id([instanceOid, providerOid, hour, toolKey])
+  @@index([tenantOid, hour])
+  @@index([instanceOid, providerOid, hour])
+}
+
+model ProviderProtoGuardHourly {
+  hour      DateTime
+  toolKey   String
+  filterKey String
+  direction String
+
+  issueType ProtoGuardIssueType
+  severity  ProtoGuardSeverity
+
+  matches    Int
+  alerts     Int
+  suppressed Int
+
+  updatedAt DateTime @default(now()) @updatedAt
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid], onDelete: Cascade)
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  @@id([instanceOid, providerOid, hour, toolKey, filterKey, direction])
+  @@index([tenantOid, hour])
+  @@index([instanceOid, providerOid, hour])
+}
+
 enum SessionConnectionStatus {
   active
   archived
@@ -7334,6 +7861,9 @@ model SessionError {
   groupOid BigInt?
   group    SessionErrorGroup? @relation(fields: [groupOid], references: [oid])
 
+  issueOid BigInt?
+  issue    ProviderIssue? @relation(fields: [issueOid], references: [oid])
+
   connectionOid BigInt?
   connection    SessionConnection? @relation(fields: [connectionOid], references: [oid])
 
@@ -7370,6 +7900,7 @@ model SessionError {
   @@index([instanceOid])
   @@index([connectionOid])
   @@index([providerRunOid])
+  @@index([issueOid])
   @@index([tenantOid, createdAt])
   @@index([sessionOid])
 }
@@ -7750,6 +8281,16 @@ enum ProtoGuardIssueType {
   unicode_smuggling
   encoded_payload
   typoglycemia
+  ascii_smuggling
+  exfil_channel
+  hidden_content
+  cross_tool_reference
+  addressed_to_agent
+  secret_in_arguments
+  tool_poisoning
+  tool_shadowing
+  tool_rug_pull
+  injection_followed_by_sink
 }
 
 enum ProtoGuardSeverity {
@@ -7757,6 +8298,36 @@ enum ProtoGuardSeverity {
   medium
   high
   critical
+}
+
+enum ProtoGuardRuleStage {
+  shadow
+  active
+  deprecated
+}
+
+enum ProtoGuardFindingDirection {
+  input
+  output
+  session
+}
+
+enum ProtoGuardFindingView {
+  raw
+  canonical
+  decoded
+}
+
+enum ProtoGuardRunCoverage {
+  full
+  sampled
+  partial
+  skipped
+}
+
+enum ProtoGuardSuppressionStatus {
+  active
+  archived
 }
 
 model ProtoGuardFilter {
@@ -7774,12 +8345,16 @@ model ProtoGuardFilter {
 
   alertConfidenceThreshold Float
 
+  stage ProtoGuardRuleStage @default(active)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
   tenantFilterSettings ProtoGuardTenantFilterSetting[]
   alertInstances       ProtoGuardAlertInstance[]
+  suppressions         ProtoGuardSuppression[]
   monitors             Monitor[]
+  providerIssues       ProviderIssue[]
 
   @@index([issueType])
   @@index([severity])
@@ -7790,7 +8365,12 @@ model ProtoGuardTenantSetting {
   oid BigInt @id
   id  String @unique
 
-  alertFilterCountThreshold Int
+  enabled Boolean @default(true)
+
+  alertFilterCountThreshold Int?
+  alertProbabilityThreshold Float?
+
+  contentHashKey String?
 
   tenantOid BigInt @unique
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
@@ -7831,6 +8411,7 @@ model ProtoGuardTenantFilterSetting {
 enum ProtoGuardRunStatus {
   completed
   failed
+  skipped
 }
 
 model ProtoGuardRun {
@@ -7845,6 +8426,19 @@ model ProtoGuardRun {
   triggeredFilterCount      Int
   matchedInstanceCount      Int
   alertFilterCountThreshold Int
+
+  rulesetVersion String?
+  retentionLevel SessionDataRetentionLevel?
+  probability    Float?
+
+  /// [ProtoGuardFamilyScores]
+  familyScores Json?
+
+  coverage     ProtoGuardRunCoverage?
+  skipReason   String?
+  scannedChars Int?
+  totalChars   Int?
+  durationMs   Int?
 
   error Json?
 
@@ -7878,7 +8472,8 @@ model ProtoGuardRun {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  alert ProtoGuardAlert?
+  alert    ProtoGuardAlert?
+  findings ProtoGuardAlertInstance[]
 
   @@index([createdAt])
   @@index([tenantOid, createdAt])
@@ -7899,8 +8494,16 @@ model ProtoGuardAlert {
 
   issueTypes Json
 
+  dedupKey        String?
+  occurrenceCount Int       @default(1)
+  firstSeenAt     DateTime?
+  lastSeenAt      DateTime?
+
   runOid BigInt        @unique
   run    ProtoGuardRun @relation(fields: [runOid], references: [oid], onDelete: Cascade)
+
+  issueOid BigInt?
+  issue    ProviderIssue? @relation(fields: [issueOid], references: [oid])
 
   messageOid BigInt
   message    SessionMessage @relation(fields: [messageOid], references: [oid], onDelete: Cascade)
@@ -7936,6 +8539,8 @@ model ProtoGuardAlert {
 
   @@index([createdAt])
   @@index([tenantOid, createdAt])
+  @@index([tenantOid, dedupKey, lastSeenAt])
+  @@index([issueOid])
   @@index([sessionOid, createdAt])
   @@index([messageOid])
   @@index([projectOid])
@@ -7951,20 +8556,30 @@ model ProtoGuardAlertInstance {
   issueType ProtoGuardIssueType
   severity  ProtoGuardSeverity
 
+  ruleKey   String?
+  stage     ProtoGuardRuleStage         @default(active)
+  direction ProtoGuardFindingDirection?
+  view      ProtoGuardFindingView?
+
   path           String
   startOffset    Int
   endOffset      Int
-  matchedText    String
-  sampleMarkdown String
+  matchedText    String?
+  sampleMarkdown String?
   description    String?
+  contentHmac    String?
 
   confidence          Float
   confidenceThreshold Float
+  isSuppressed        Boolean @default(false)
 
   metadata Json?
 
-  alertOid BigInt
-  alert    ProtoGuardAlert @relation(fields: [alertOid], references: [oid], onDelete: Cascade)
+  runOid BigInt?
+  run    ProtoGuardRun? @relation(fields: [runOid], references: [oid], onDelete: Cascade)
+
+  alertOid BigInt?
+  alert    ProtoGuardAlert? @relation(fields: [alertOid], references: [oid], onDelete: Cascade)
 
   filterOid BigInt
   filter    ProtoGuardFilter @relation(fields: [filterOid], references: [oid], onDelete: Restrict)
@@ -7974,6 +8589,68 @@ model ProtoGuardAlertInstance {
   @@index([filterOid, issueType])
   @@index([severity])
   @@index([alertOid])
+  @@index([runOid])
+}
+
+model ProtoGuardSuppression {
+  oid BigInt @id
+  id  String @unique
+
+  status ProtoGuardSuppressionStatus @default(active)
+  reason String?
+
+  toolKey     String?
+  contentHmac String?
+
+  expiresAt  DateTime?
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  filterOid BigInt
+  filter    ProtoGuardFilter @relation(fields: [filterOid], references: [oid], onDelete: Cascade)
+
+  providerOid BigInt?
+  provider    Provider? @relation(fields: [providerOid], references: [oid])
+
+  @@index([tenantOid, status])
+  @@index([projectOid])
+  @@index([filterOid])
+  @@index([providerOid])
+}
+
+model ProtoGuardToolScan {
+  oid BigInt @id
+  id  String @unique
+
+  rulesetVersion String
+  status         ProtoGuardRunStatus
+
+  probability Float
+  isFlagged   Boolean
+
+  /// [ProtoGuardToolFindings]
+  findings Json
+
+  previousToolHash String?
+
+  createdAt DateTime @default(now())
+
+  providerToolOid BigInt
+  providerTool    ProviderTool @relation(fields: [providerToolOid], references: [oid], onDelete: Cascade)
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid], onDelete: Cascade)
+
+  @@unique([providerToolOid, rulesetVersion])
+  @@index([providerOid, isFlagged])
+  @@index([createdAt])
 }
 
 enum SessionProviderStatus {
@@ -8129,6 +8806,7 @@ model ProviderRun {
   @@index([lastPingAt])
   @@index([projectOid])
   @@index([metorialInstanceOid])
+  @@index([metorialInstanceOid, providerOid, createdAt])
   @@index([connectionOid])
   @@index([tenantOid, createdAt])
   @@index([sessionOid])
@@ -9044,8 +9722,11 @@ model Instance {
   deletedAt DateTime?
   updatedAt DateTime  @default(now()) @updatedAt
 
-  consumers        InstanceConsumer[]
-  consumerProfiles ConsumerProfile[]
+  consumers                InstanceConsumer[]
+  consumerProfiles         ConsumerProfile[]
+  securityReviews          SecurityReview[]
+  providerToolUsageHourly  ProviderToolUsageHourly[]
+  providerProtoGuardHourly ProviderProtoGuardHourly[]
 
   agents                                     Agent[]
   agentClients                               AgentClient[]
@@ -9107,6 +9788,7 @@ model Instance {
   sessionConnections                         SessionConnection[]
   sessionErrors                              SessionError[]
   sessionErrorGroups                         SessionErrorGroup[]
+  providerIssues                             ProviderIssue[]
   sessionEvents                              SessionEvent[]
   sessionMessages                            SessionMessage[]
   sessionParticipants                        SessionParticipant[]
@@ -9189,6 +9871,9 @@ model Tenant {
   disableCallbacks         Boolean                   @default(false)
 
   reducedSubprocessors Boolean @default(false)
+  assistantEnabled     Boolean @default(true)
+  aiAnalysisEnabled    Boolean @default(false)
+  usageReviewsEnabled  Boolean @default(false)
 
   allowApiAccessToConsumerOwnedResources    Boolean @default(true)
   allowMemberAccessToConsumerOwnedResources Boolean @default(true)
@@ -9236,6 +9921,7 @@ model Tenant {
   sessionParticipants                        SessionParticipant[]
   providerRuns                               ProviderRun[]
   sessionErrorGroups                         SessionErrorGroup[]
+  providerIssues                             ProviderIssue[]
   toolCalls                                  ToolCall[]
   environmentProviders                       EnvironmentProvider[]
   environments                               Environment[]
@@ -9265,6 +9951,9 @@ model Tenant {
   chatEvents                                 ChatEvent[]
   webhookRegistrations                       WebhookRegistration[]
   providerUses                               ProviderUse[]
+  securityReviews                            SecurityReview[]
+  providerToolUsageHourly                    ProviderToolUsageHourly[]
+  providerProtoGuardHourly                   ProviderProtoGuardHourly[]
   identityActors                             IdentityActor[]
   agents                                     Agent[]
   identities                                 Identity[]
@@ -9294,6 +9983,7 @@ model Tenant {
   protoGuardFilterSettings                   ProtoGuardTenantFilterSetting[]
   protoGuardRuns                             ProtoGuardRun[]
   protoGuardAlerts                           ProtoGuardAlert[]
+  protoGuardSuppressions                     ProtoGuardSuppression[]
   monitors                                   Monitor[]
   monitorAlerts                              MonitorAlert[]
   projects                                   Project[]
@@ -9358,6 +10048,7 @@ model Environment {
   providerSpecificationChangeNotifications   ProviderSpecificationChangeNotification[]
   sessionConnections                         SessionConnection[]
   sessionErrorGroups                         SessionErrorGroup[]
+  providerIssues                             ProviderIssue[]
   sessionErrors                              SessionError[]
   sessionEvents                              SessionEvent[]
   sessionMessages                            SessionMessage[]
@@ -9645,6 +10336,9 @@ model Project {
   integrationSetupSessions                   IntegrationSetupSession[]
   managedProviderAuthCredentialsBackings     ManagedProviderAuthCredentialsBacking[]
   monitors                                   Monitor[]
+  securityReviews                            SecurityReview[]
+  providerToolUsageHourly                    ProviderToolUsageHourly[]
+  providerProtoGuardHourly                   ProviderProtoGuardHourly[]
   monitorAlerts                              MonitorAlert[]
   internetGateways                           IntegrationInternetGateway[]
   networkPolicies                            NetworkPolicy[]
@@ -9652,6 +10346,7 @@ model Project {
   protoGuardRuns                             ProtoGuardRun[]
   protoGuardFilterSettings                   ProtoGuardTenantFilterSetting[]
   protoGuardSettings                         ProtoGuardTenantSetting[]
+  protoGuardSuppressions                     ProtoGuardSuppression[]
   providerAuthConfigs                        ProviderAuthConfig[]
   providerAuthConfigErrorGlobals             ProviderAuthConfigErrorGlobal[]
   providerAuthConfigErrors                   ProviderAuthConfigError[]
@@ -9685,6 +10380,7 @@ model Project {
   sessionConnections                         SessionConnection[]
   sessionErrors                              SessionError[]
   sessionErrorGroups                         SessionErrorGroup[]
+  providerIssues                             ProviderIssue[]
   sessionEvents                              SessionEvent[]
   sessionMessages                            SessionMessage[]
   sessionParticipants                        SessionParticipant[]

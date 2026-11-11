@@ -27,6 +27,8 @@ class ProjectAiAnalysisConfigurationService {
     let tenant = await this.getSubspaceTenantForProject(d.project);
 
     return {
+      assistantEnabled: tenant.assistantEnabled,
+      reducedSubprocessors: tenant.reducedSubprocessors,
       aiAnalysisEnabled: tenant.aiAnalysisEnabled,
       usageReviewsEnabled: tenant.usageReviewsEnabled,
       skillReviewHoldPending: d.project.skillReviewHoldPending
@@ -38,6 +40,7 @@ class ProjectAiAnalysisConfigurationService {
     organization: Organization;
     auditScope: AuditScope;
     input: {
+      assistantEnabled?: boolean;
       aiAnalysisEnabled?: boolean;
       usageReviewsEnabled?: boolean;
       skillReviewHoldPending?: boolean;
@@ -60,6 +63,7 @@ class ProjectAiAnalysisConfigurationService {
         resourceTenantId: tenant.resourceTenantId!,
         resourceTenantIdentifier: tenant.resourceTenantIdentifier!,
         environments: [],
+        assistantEnabled: d.input.assistantEnabled ?? tenant.assistantEnabled,
         aiAnalysisEnabled,
         usageReviewsEnabled
       }
@@ -68,6 +72,7 @@ class ProjectAiAnalysisConfigurationService {
     let project = await db.project.update({
       where: { oid: d.project.oid },
       data: {
+        assistantEnabled: updatedTenant.assistantEnabled,
         aiAnalysisEnabled: updatedTenant.aiAnalysisEnabled,
         usageReviewsEnabled: updatedTenant.usageReviewsEnabled,
         skillReviewHoldPending: d.input.skillReviewHoldPending
@@ -79,11 +84,15 @@ class ProjectAiAnalysisConfigurationService {
       input: d.input,
       project,
       configuration: {
+        assistantEnabled: project.assistantEnabled,
+        reducedSubprocessors: project.reducedSubprocessors,
         aiAnalysisEnabled: project.aiAnalysisEnabled,
         usageReviewsEnabled: project.usageReviewsEnabled,
         skillReviewHoldPending: project.skillReviewHoldPending
       },
       previousConfiguration: {
+        assistantEnabled: tenant.assistantEnabled,
+        reducedSubprocessors: tenant.reducedSubprocessors,
         aiAnalysisEnabled: tenant.aiAnalysisEnabled,
         usageReviewsEnabled: tenant.usageReviewsEnabled,
         skillReviewHoldPending: d.project.skillReviewHoldPending
@@ -92,6 +101,8 @@ class ProjectAiAnalysisConfigurationService {
     });
 
     return {
+      assistantEnabled: project.assistantEnabled,
+      reducedSubprocessors: project.reducedSubprocessors,
       aiAnalysisEnabled: project.aiAnalysisEnabled,
       usageReviewsEnabled: project.usageReviewsEnabled,
       skillReviewHoldPending: project.skillReviewHoldPending

@@ -59,7 +59,8 @@ export let generateAssistantConversationTitleQueueProcessor =
         }
       });
       if (!conversation) throw new QueueRetryError();
-      if (conversation.project.reducedSubprocessors) return;
+      if (!conversation.project.assistantEnabled || conversation.project.reducedSubprocessors)
+        return;
       if (conversation.title?.trim()) return;
 
       let firstUserMessage = await db.productAssistantConversationItem.findFirst({

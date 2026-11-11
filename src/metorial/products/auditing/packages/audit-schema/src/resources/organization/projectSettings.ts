@@ -130,6 +130,8 @@ export let projectAiAnalysisConfigurationResource = resource({
   name: 'project_ai_analysis_configuration',
   payload: v.typedAny<{
     project: Project;
+    assistantEnabled: boolean;
+    reducedSubprocessors: boolean;
     aiAnalysisEnabled: boolean;
     usageReviewsEnabled: boolean;
     skillReviewHoldPending: boolean;

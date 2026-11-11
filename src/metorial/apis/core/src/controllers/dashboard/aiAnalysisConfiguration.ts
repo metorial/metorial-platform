@@ -13,7 +13,8 @@ import { organizationGroup } from '../../middleware/organizationGroup';
 export let dashboardAiAnalysisConfigurationController = Controller.create(
   {
     name: 'AI analysis configuration',
-    description: "Configure whether Metorial may analyze a project's custom providers with AI"
+    description:
+      'Configure Metorial Assistant access and AI-based security analysis for a project'
   },
   {
     get: organizationGroup
@@ -25,7 +26,7 @@ export let dashboardAiAnalysisConfigurationController = Controller.create(
         ),
         {
           name: 'Get project AI analysis configuration',
-          description: 'Get the AI-based analysis setting for a project'
+          description: 'Get Metorial Assistant and AI-based analysis settings for a project'
         }
       )
       .use(checkAccess({ possibleScopes: ['organization.project:read'] }))
@@ -66,13 +67,20 @@ export let dashboardAiAnalysisConfigurationController = Controller.create(
         ),
         {
           name: 'Update project AI analysis configuration',
-          description: 'Enable or disable AI-based analysis for a project'
+          description: 'Configure Metorial Assistant and AI-based analysis for a project'
         }
       )
       .use(checkAccess({ possibleScopes: ['organization.project:manage'] }))
       .body(
         'default',
         v.object({
+          assistant_enabled: v.optional(
+            v.boolean({
+              description:
+                'Whether users may use Metorial Assistant in this project. Reduced Subprocessors always disables assistant access.',
+              examples: [true]
+            })
+          ),
           ai_analysis_enabled: v.optional(
             v.boolean({
               description:
@@ -119,6 +127,7 @@ export let dashboardAiAnalysisConfigurationController = Controller.create(
             organization: ctx.organization,
             auditScope: ctx.auditScope,
             input: {
+              assistantEnabled: ctx.body.assistant_enabled,
               aiAnalysisEnabled: ctx.body.ai_analysis_enabled,
               usageReviewsEnabled: ctx.body.usage_reviews_enabled,
               skillReviewHoldPending: ctx.body.skill_review_hold_pending

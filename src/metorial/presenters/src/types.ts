@@ -1282,6 +1282,8 @@ export let projectReducedSubprocessorsConfigurationType = PresentableType.create
 
 export let projectAiAnalysisConfigurationType = PresentableType.create<{
   project: Project;
+  assistantEnabled: boolean;
+  reducedSubprocessors: boolean;
   aiAnalysisEnabled: boolean;
   usageReviewsEnabled: boolean;
   skillReviewHoldPending: boolean;

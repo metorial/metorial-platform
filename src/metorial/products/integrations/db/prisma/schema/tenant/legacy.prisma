@@ -52,6 +52,7 @@ model Tenant {
   disableCallbacks         Boolean                   @default(false)
 
   reducedSubprocessors Boolean @default(false)
+  assistantEnabled     Boolean @default(true)
   aiAnalysisEnabled    Boolean @default(false)
   usageReviewsEnabled  Boolean @default(false)
 

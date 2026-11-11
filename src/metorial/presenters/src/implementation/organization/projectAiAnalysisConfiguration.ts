@@ -6,10 +6,19 @@ export let v1ProjectAiAnalysisConfigurationPresenter = Presenter.create(
   projectAiAnalysisConfigurationType
 )
   .presenter(
-    async ({ project, aiAnalysisEnabled, usageReviewsEnabled, skillReviewHoldPending }) => ({
+    async ({
+      project,
+      assistantEnabled,
+      reducedSubprocessors,
+      aiAnalysisEnabled,
+      usageReviewsEnabled,
+      skillReviewHoldPending
+    }) => ({
       object: 'organization.project.ai_analysis_configuration' as const,
 
       project_id: project.id,
+      assistant_enabled: assistantEnabled,
+      reduced_subprocessors: reducedSubprocessors,
       ai_analysis_enabled: aiAnalysisEnabled,
       usage_reviews_enabled: usageReviewsEnabled,
       skill_review_hold_pending: skillReviewHoldPending,
@@ -22,6 +31,16 @@ export let v1ProjectAiAnalysisConfigurationPresenter = Presenter.create(
       project_id: v.string({
         description: 'The ID of the project this configuration belongs to',
         examples: ['prj_0mm97hpoosQAcleJQRtajt']
+      }),
+      assistant_enabled: v.boolean({
+        description:
+          'Whether Metorial Assistant is enabled for this project. Reduced Subprocessors overrides this preference.',
+        examples: [true]
+      }),
+      reduced_subprocessors: v.boolean({
+        description:
+          'Whether elevated compliance settings block Metorial Assistant for this project.',
+        examples: [false]
       }),
       ai_analysis_enabled: v.boolean({
         description:

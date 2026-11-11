@@ -163,6 +163,7 @@ let makeProject = (overrides: Record<string, unknown> = {}) =>
     name: 'Project',
     onlyAllowTrustedProviders: false,
     hidePublicRemoteProviders: false,
+    assistantEnabled: true,
     aiAnalysisEnabled: false,
     organizationOid: 1n,
     resourceTenantOid: 100n,
@@ -207,32 +208,33 @@ describe('Subspace scope provisioning', () => {
     }
   );
 
-  it('seeds AI analysis from the project only when its tenant is first linked', async () => {
-    await subspaceScopeService.ensureForProjectUncached(
-      makeProject({ aiAnalysisEnabled: true })
-    );
+  it.each(['aiAnalysisEnabled', 'assistantEnabled'] as const)(
+    'seeds %s from the project only when its tenant is first linked',
+    async field => {
+      await subspaceScopeService.ensureForProjectUncached(makeProject({ [field]: false }));
 
-    expect(mocks.tenantUpsert).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        input: expect.objectContaining({ aiAnalysisEnabled: true })
-      })
-    );
+      expect(mocks.tenantUpsert).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          input: expect.objectContaining({ [field]: false })
+        })
+      );
 
-    mocks.tenantFind.mockResolvedValue({ identifier: 'mte-pro-2' });
-    await subspaceScopeService.ensureForProjectUncached(
-      makeProject({
-        aiAnalysisEnabled: true,
-        internalTenantIdentifier: 'mte-pro-2',
-        subspaceTenantId: 'ktn_canonical'
-      })
-    );
+      mocks.tenantFind.mockResolvedValue({ identifier: 'mte-pro-2' });
+      await subspaceScopeService.ensureForProjectUncached(
+        makeProject({
+          [field]: true,
+          internalTenantIdentifier: 'mte-pro-2',
+          subspaceTenantId: 'ktn_canonical'
+        })
+      );
 
-    expect(mocks.tenantUpsert).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        input: expect.objectContaining({ aiAnalysisEnabled: undefined })
-      })
-    );
-  });
+      expect(mocks.tenantUpsert).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          input: expect.objectContaining({ [field]: undefined })
+        })
+      );
+    }
+  );
 
   it.each([
     { value: null, environment: 'development', expected: true },

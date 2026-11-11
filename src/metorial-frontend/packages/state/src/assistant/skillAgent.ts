@@ -26,6 +26,7 @@ import {
   skillLoader,
   skillsLoader
 } from '../skills/loaders/skills';
+import { useMetorialAssistantEnabled } from './availability';
 import { useConversationHistory } from './conversationHistory';
 import {
   useCancelConversationMessage,
@@ -35,7 +36,8 @@ import {
 
 export let skillsAssistantSlug = 'skills';
 
-export type SkillAssistantMode = 'block' | 'rewrite' | 'summarize' | 'document' | 'skill' | 'metadata';
+export type SkillAssistantMode =
+  'block' | 'rewrite' | 'summarize' | 'document' | 'skill' | 'metadata';
 
 export type SkillAssistantRequestContext = {
   mode: SkillAssistantMode;
@@ -84,7 +86,8 @@ let rememberOwnedRequest = (requestId: string) => {
   return next;
 };
 
-let queuedPromptStorageKey = (skillId: string) => `metorial:skill-agent:queued-prompt:${skillId}`;
+let queuedPromptStorageKey = (skillId: string) =>
+  `metorial:skill-agent:queued-prompt:${skillId}`;
 
 export let queueSkillAssistantPrompt = (skillId: string, text: string) => {
   try {
@@ -205,7 +208,8 @@ export let useSkillAssistant = (d: {
   let changeSignature = liveItems
     .map(item => {
       if (item.type == 'skill/changes') return `${item.id}:${item.changes.length}`;
-      if (item.type == 'files/write' || item.type == 'shell') return `${item.id}:${item.status}`;
+      if (item.type == 'files/write' || item.type == 'shell')
+        return `${item.id}:${item.status}`;
       if (item.type == 'tool') {
         return `${item.id}:${item.calls.map(call => `${call.id}${call.status}`).join(',')}`;
       }
@@ -445,6 +449,7 @@ export let SkillAssistantWorkspaceProvider = (p: {
   onDockHeightChange?: (height: number) => void;
   children: ReactNode;
 }) => {
+  let assistantEnabled = useMetorialAssistantEnabled();
   let [document, setDocument] = useState<SkillAssistantDocumentBinding | null>(null);
   let [initialGenerationSkillId, setInitialGenerationSkillId] = useState<string | null>(() =>
     p.skillId && hasQueuedSkillAssistantPrompt(p.skillId) ? p.skillId : null
@@ -479,7 +484,7 @@ export let SkillAssistantWorkspaceProvider = (p: {
 
   let value = useMemo<SkillAssistantWorkspace | null>(
     () =>
-      p.instanceId && p.skillId
+      assistantEnabled && p.instanceId && p.skillId
         ? {
             organizationId: p.organizationId,
             instanceId: p.instanceId,
@@ -493,6 +498,7 @@ export let SkillAssistantWorkspaceProvider = (p: {
           }
         : null,
     [
+      assistantEnabled,
       document,
       finishInitialGeneration,
       initialGenerationSkillId,

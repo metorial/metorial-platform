@@ -1,3 +1,4 @@
+import { useMetorialAssistantEnabled } from '@metorial/state';
 import { theme } from '@metorial/ui';
 import { RiArrowUpLine, RiSparkling2Line } from '@remixicon/react';
 import { motion } from 'framer-motion';
@@ -135,7 +136,7 @@ let ErrorText = styled.div`
   font-size: 13px;
 `;
 
-export let SkillStartInput = (p: {
+let SkillStartInputInner = (p: {
   placeholder: string;
   suggestions?: AssistantSuggestion[];
   disabled?: boolean;
@@ -269,4 +270,11 @@ export let SkillStartInput = (p: {
       {error && <ErrorText>{error}</ErrorText>}
     </Root>
   );
+};
+
+export let SkillStartInput = (p: Parameters<typeof SkillStartInputInner>[0]) => {
+  let enabled = useMetorialAssistantEnabled();
+  if (!enabled) return null;
+
+  return <SkillStartInputInner {...p} />;
 };

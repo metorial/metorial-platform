@@ -1,4 +1,5 @@
 import {
+  useMetorialAssistantEnabled,
   clearSkillAssistantReviewPending,
   hasSkillAssistantReviewPending,
   takeQueuedSkillAssistantPrompt,
@@ -236,7 +237,7 @@ let IconButton = styled.button<{ 'data-variant'?: 'primary' }>`
   }
 `;
 
-export let SkillAssistantDock = () => {
+let SkillAssistantDockInner = () => {
   let workspace = useSkillAssistantWorkspace();
   let skillId = workspace?.skillId;
   let document = workspace?.document ?? null;
@@ -559,4 +560,11 @@ export let SkillAssistantDock = () => {
       </ComposerCard>
     </DockRoot>
   );
+};
+
+export let SkillAssistantDock = () => {
+  let enabled = useMetorialAssistantEnabled();
+  if (!enabled) return null;
+
+  return <SkillAssistantDockInner />;
 };

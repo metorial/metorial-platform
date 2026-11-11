@@ -144,6 +144,27 @@ describe('tenantService.upsertTenant', () => {
     mocks.solutionFindMany.mockResolvedValue([]);
   });
 
+  it.each([undefined, true, false])(
+    'creates tenants with assistant preference %s',
+    async assistantEnabled => {
+      mocks.tenantFindUnique.mockResolvedValue(null);
+
+      await tenantService.upsertTenant({ input: { ...input, assistantEnabled } });
+
+      expect(mocks.tenantUpsert.mock.calls[0]![0].create.assistantEnabled).toBe(
+        assistantEnabled ?? true
+      );
+    }
+  );
+
+  it.each([true, false])('updates the assistant preference to %s', async assistantEnabled => {
+    await tenantService.upsertTenant({ input: { ...input, assistantEnabled } });
+
+    expect(mocks.tenantUpsert.mock.calls[0]![0].update.assistantEnabled).toBe(
+      assistantEnabled
+    );
+  });
+
   it.each([undefined, false, true])(
     'requires AI analysis to create a tenant with usage reviews (AI: %s)',
     async aiAnalysisEnabled => {

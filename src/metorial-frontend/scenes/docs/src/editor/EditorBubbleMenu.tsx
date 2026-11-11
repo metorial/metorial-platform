@@ -1,4 +1,5 @@
 import { mapLinkRange } from './linkRange';
+import { useMetorialAssistantEnabled } from '@metorial/state';
 import { useBubbleOverlay } from './useBubbleOverlay';
 import { preserveEditorSelection } from './overlays';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -219,6 +220,7 @@ function resolveLinkTargetRange(editor: Editor): SavedRange {
 }
 
 export function EditorBubbleMenu({ editor, linkPromptToken, readOnly, onComment }: Props) {
+  let assistantEnabled = useMetorialAssistantEnabled();
   let [mode, setMode] = useState<'menu' | 'link' | 'ai'>('menu');
   let [linkUrl, setLinkUrl] = useState('');
   let [linkError, setLinkError] = useState<string | null>(null);
@@ -412,7 +414,7 @@ export function EditorBubbleMenu({ editor, linkPromptToken, readOnly, onComment 
   if (!editor) return null;
 
   let hasExistingLink = !!editor.getAttributes('link').href;
-  let canAskAi = !readOnly && !!getDocsAgentApi(editor)?.canWrite;
+  let canAskAi = assistantEnabled && !readOnly && !!getDocsAgentApi(editor)?.canWrite;
   let startComment = () => {
     let { from, to } = editor.state.selection;
     onComment?.({ from, to });
@@ -434,9 +436,9 @@ export function EditorBubbleMenu({ editor, linkPromptToken, readOnly, onComment 
       <Floating ref={overlay.element} onMouseDown={preserveEditorSelection}>
         {readOnly ? (
           commentButton
-        ) : mode === 'ai' ? (
+        ) : mode === 'ai' && canAskAi ? (
           <AskAiPanel editor={editor} onClose={() => setMode('menu')} />
-        ) : mode === 'menu' ? (
+        ) : mode === 'menu' || mode === 'ai' ? (
           <>
             {canAskAi && (
               <>

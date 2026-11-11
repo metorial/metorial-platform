@@ -46,6 +46,7 @@ class tenantServiceImpl {
       collectErrors?: boolean;
       disableCallbacks?: boolean;
       reducedSubprocessors?: boolean;
+      assistantEnabled?: boolean;
       aiAnalysisEnabled?: boolean;
       usageReviewsEnabled?: boolean;
       allowApiAccessToConsumerOwnedResources?: boolean;
@@ -92,6 +93,7 @@ class tenantServiceImpl {
         collectErrors: d.input.collectErrors,
         disableCallbacks: d.input.disableCallbacks,
         reducedSubprocessors: d.input.reducedSubprocessors,
+        assistantEnabled: d.input.assistantEnabled,
         aiAnalysisEnabled: d.input.aiAnalysisEnabled,
         usageReviewsEnabled: aiAnalysisEnabled ? d.input.usageReviewsEnabled : false,
         allowApiAccessToConsumerOwnedResources: d.input.allowApiAccessToConsumerOwnedResources,
@@ -139,6 +141,7 @@ class tenantServiceImpl {
                 collectErrors: d.input.collectErrors ?? true,
                 disableCallbacks: d.input.disableCallbacks ?? false,
                 reducedSubprocessors: d.input.reducedSubprocessors ?? false,
+                assistantEnabled: d.input.assistantEnabled ?? true,
                 aiAnalysisEnabled: d.input.aiAnalysisEnabled ?? false,
                 usageReviewsEnabled:
                   (d.input.aiAnalysisEnabled ?? false) &&

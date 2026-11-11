@@ -1,4 +1,5 @@
 import {
+  useMetorialAssistantEnabled,
   skillLoader,
   useSkill,
   useSkillAssistant,
@@ -131,6 +132,7 @@ export let SkillMetadataSection = (p: {
 }) => {
   let skill = useSkill(p.instanceId, p.skillId);
   let updateMutator = skill.updateMutator();
+  let assistantEnabled = useMetorialAssistantEnabled();
   let workspace = useSkillAssistantWorkspace();
   let assistant = useSkillAssistant({
     organizationId: workspace?.organizationId,
@@ -159,7 +161,10 @@ export let SkillMetadataSection = (p: {
     for (let item of [...assistant.history.liveItems].reverse()) {
       if (item.type != 'tool' || item.tool.key != 'write_client_description') continue;
       let text = item.calls
-        .map(call => (call.input as { clientDescription?: unknown } | undefined)?.clientDescription)
+        .map(
+          call =>
+            (call.input as { clientDescription?: unknown } | undefined)?.clientDescription
+        )
         .filter((value): value is string => typeof value == 'string')
         .sort((a, b) => b.length - a.length)[0];
       if (text) return text;
@@ -252,17 +257,18 @@ export let SkillMetadataSection = (p: {
     } catch {}
   };
 
-  let generateButton = canEdit ? (
-    <Button
-      type="button"
-      size="1"
-      variant="outline"
-      loading={isGenerating || isTyping}
-      onClick={generate}
-    >
-      {hasDescription ? 'Regenerate' : 'Generate'}
-    </Button>
-  ) : null;
+  let generateButton =
+    canEdit && assistantEnabled ? (
+      <Button
+        type="button"
+        size="1"
+        variant="outline"
+        loading={isGenerating || isTyping}
+        onClick={generate}
+      >
+        {hasDescription ? 'Regenerate' : 'Generate'}
+      </Button>
+    ) : null;
 
   return (
     <>

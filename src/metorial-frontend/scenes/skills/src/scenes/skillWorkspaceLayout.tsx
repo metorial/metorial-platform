@@ -1,5 +1,6 @@
 import { SkillAssistantDock } from '@metorial/scene-assistant';
 import {
+  useMetorialAssistantEnabled,
   DocumentEditorChromeProvider,
   SkillAssistantWorkspaceProvider,
   hasQueuedSkillAssistantPrompt,
@@ -469,6 +470,7 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
   let chrome = useDocumentEditorChrome();
   let prefs = useWorkspacePreferences(p.skill.id);
 
+  let assistantEnabled = useMetorialAssistantEnabled();
   let assistantWorkspace = useSkillAssistantWorkspace();
   let isInitialGeneration = !!assistantWorkspace?.isInitialGeneration;
   let finishInitialGeneration = assistantWorkspace?.finishInitialGeneration;
@@ -1118,7 +1120,7 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
     [prefs.setOrder, prefs.preferences.order]
   );
 
-  let assistantVisible = !isTemplate && prefs.preferences.assistant;
+  let assistantVisible = assistantEnabled && !isTemplate && prefs.preferences.assistant;
   let snackbarBottom = assistantVisible && p.assistantHeight ? p.assistantHeight + 8 : 24;
 
   useEffect(() => {
@@ -1493,7 +1495,7 @@ let WorkspaceInner = (p: SkillWorkspaceLayoutProps & { assistantHeight: number }
           onChange: mode => prefs.setMode(id, mode)
         })
       ),
-    ...(isTemplate
+    ...(isTemplate || !assistantEnabled
       ? []
       : ([
           { type: 'separator', id: 'assistant-sep' },

@@ -1,4 +1,5 @@
 import type { AgentBlockStatus } from '@metorial/docs-editor-schema';
+import { useMetorialAssistantEnabled } from '@metorial/state';
 import { NodeViewContent, NodeViewWrapper, type ReactNodeViewProps } from '@tiptap/react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
@@ -164,6 +165,7 @@ let Content = styled(NodeViewContent)`
 `;
 
 export let AgentBlockView = ({ node, editor }: ReactNodeViewProps) => {
+  let assistantEnabled = useMetorialAssistantEnabled();
   let agent = useDocsAgent();
   let blockId = node.attrs.blockId as string | null;
   let status = node.attrs.status as AgentBlockStatus;
@@ -200,6 +202,14 @@ export let AgentBlockView = ({ node, editor }: ReactNodeViewProps) => {
   let isEmpty = node.textContent.trim().length == 0;
 
   let showComposer = status == 'idle' && canAct;
+
+  if (!assistantEnabled) {
+    return (
+      <NodeViewWrapper>
+        <NodeViewContent />
+      </NodeViewWrapper>
+    );
+  }
 
   return (
     <Wrap data-agent-block="true" data-status={status}>

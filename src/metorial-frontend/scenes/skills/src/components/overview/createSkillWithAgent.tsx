@@ -1,5 +1,9 @@
 import { SkillStartInput } from '@metorial/scene-assistant';
-import { queueSkillAssistantPrompt, useCreateSkill } from '@metorial/state';
+import {
+  useMetorialAssistantEnabled,
+  queueSkillAssistantPrompt,
+  useCreateSkill
+} from '@metorial/state';
 import { useNavigate } from 'react-router-dom';
 
 let skillStartSuggestions = [
@@ -33,6 +37,7 @@ export let CreateSkillWithAgent = (p: {
   getSkillPath: (skillId: string) => string;
   createSkill?: (input: { name: string }) => Promise<{ id: string }>;
 }) => {
+  let assistantEnabled = useMetorialAssistantEnabled();
   let createSkill = useCreateSkill();
   let navigate = useNavigate();
 
@@ -46,6 +51,8 @@ export let CreateSkillWithAgent = (p: {
 
     return skill;
   };
+
+  if (!assistantEnabled) return null;
 
   return (
     <div style={{ marginBottom: 24 }}>

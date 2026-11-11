@@ -6,7 +6,7 @@ import { getAssistantDefinition } from '../lib/definitions/assistantDefinition';
 import type { Agent } from '../lib/open-harness';
 import type { AgentRunUsage } from '../lib/run';
 import { AgentRun, getAgentRunExtensions } from '../lib/run';
-import { reducedSubprocessorsErrorMessage } from '../lib/reducedSubprocessors';
+import { assertAiChatAllowed } from '../lib/reducedSubprocessors';
 import { watchAssistantRunCancel } from '../lib/run/cancel';
 import { createAssistantRunDeltaPublisher } from '../lib/run/redisDeltas';
 import type { InputMessage, State } from '../types';
@@ -186,9 +186,7 @@ export let processAssistantRequestQueueProcessor = processAssistantRequestQueue.
     let cancelWatcher: Awaited<ReturnType<typeof watchAssistantRunCancel>> | null = null;
 
     try {
-      if (conversation.project.reducedSubprocessors) {
-        throw new Error(reducedSubprocessorsErrorMessage);
-      }
+      assertAiChatAllowed(conversation.project);
 
       let definition = await getAssistantDefinition(
         conversation.assistant.implementation.slug
