@@ -54,13 +54,15 @@ let tenant = {
   collectErrors: true,
   disableCallbacks: false,
   reducedSubprocessors: false,
-  aiAnalysisEnabled: false
+  aiAnalysisEnabled: false,
+  usageReviewsEnabled: false
 };
 
 let project = {
   id: 'prj_1',
   oid: 1n,
   status: 'active',
+  skillReviewHoldPending: false,
   consumerAuthClientRegistrationsPerHourLimit: 25,
   consumerAuthClientRegistrationsPerMinuteLimit: 10
 };
@@ -248,16 +250,131 @@ describe('project integrations-backed configuration setters', () => {
     expect(mocks.projectUpdate).toHaveBeenCalledWith({
       where: { oid: 1n },
       data: {
-        aiAnalysisEnabled: true
+        aiAnalysisEnabled: true,
+        usageReviewsEnabled: false,
+        skillReviewHoldPending: undefined
       }
     });
     expect(mocks.fire).toHaveBeenCalledWith(
       'organization.project.ai_analysis_configuration.updated:after',
       expect.objectContaining({
-        configuration: { aiAnalysisEnabled: true },
-        previousConfiguration: { aiAnalysisEnabled: false }
+        configuration: {
+          aiAnalysisEnabled: true,
+          usageReviewsEnabled: false,
+          skillReviewHoldPending: false
+        },
+        previousConfiguration: {
+          aiAnalysisEnabled: false,
+          usageReviewsEnabled: false,
+          skillReviewHoldPending: false
+        }
       })
     );
-    expect(result).toEqual({ aiAnalysisEnabled: true });
+    expect(result).toEqual({
+      aiAnalysisEnabled: true,
+      usageReviewsEnabled: false,
+      skillReviewHoldPending: false
+    });
+  });
+
+  it.each([
+    {
+      name: 'disabling AI analysis without specifying usage reviews',
+      currentAi: true,
+      currentUsage: true,
+      input: { aiAnalysisEnabled: false },
+      expectedAi: false,
+      expectedUsage: false
+    },
+    {
+      name: 'disabling AI analysis while requesting usage reviews',
+      currentAi: true,
+      currentUsage: true,
+      input: { aiAnalysisEnabled: false, usageReviewsEnabled: true },
+      expectedAi: false,
+      expectedUsage: false
+    },
+    {
+      name: 'requesting usage reviews while AI analysis is disabled',
+      currentAi: false,
+      currentUsage: false,
+      input: { usageReviewsEnabled: true },
+      expectedAi: false,
+      expectedUsage: false
+    },
+    {
+      name: 'updating an existing inconsistent configuration',
+      currentAi: false,
+      currentUsage: true,
+      input: { skillReviewHoldPending: true },
+      expectedAi: false,
+      expectedUsage: false
+    },
+    {
+      name: 'enabling AI analysis without re-enabling usage reviews',
+      currentAi: false,
+      currentUsage: false,
+      input: { aiAnalysisEnabled: true },
+      expectedAi: true,
+      expectedUsage: false
+    },
+    {
+      name: 'enabling both settings together',
+      currentAi: false,
+      currentUsage: false,
+      input: { aiAnalysisEnabled: true, usageReviewsEnabled: true },
+      expectedAi: true,
+      expectedUsage: true
+    },
+    {
+      name: 'disabling usage reviews independently',
+      currentAi: true,
+      currentUsage: true,
+      input: { usageReviewsEnabled: false },
+      expectedAi: true,
+      expectedUsage: false
+    }
+  ])('enforces the AI dependency when $name', async testCase => {
+    let currentTenant = {
+      ...tenant,
+      aiAnalysisEnabled: testCase.currentAi,
+      usageReviewsEnabled: testCase.currentUsage
+    };
+    mocks.ensureForProject.mockResolvedValue({ tenant: currentTenant });
+    mocks.upsertTenant.mockImplementation(async ({ input }) => ({
+      ...currentTenant,
+      ...input
+    }));
+    mocks.projectUpdate.mockImplementation(async ({ data }) => ({ ...project, ...data }));
+
+    let result =
+      await projectAiAnalysisConfigurationService.updateProjectAiAnalysisConfiguration({
+        ...common,
+        input: testCase.input
+      });
+
+    let expectedConfiguration = {
+      aiAnalysisEnabled: testCase.expectedAi,
+      usageReviewsEnabled: testCase.expectedUsage
+    };
+
+    expect(mocks.upsertTenant).toHaveBeenCalledWith({
+      input: expect.objectContaining(expectedConfiguration)
+    });
+    expect(mocks.projectUpdate).toHaveBeenCalledWith({
+      where: { oid: project.oid },
+      data: expect.objectContaining(expectedConfiguration)
+    });
+    expect(result).toEqual(expect.objectContaining(expectedConfiguration));
+    expect(mocks.fire).toHaveBeenCalledWith(
+      'organization.project.ai_analysis_configuration.updated:after',
+      expect.objectContaining({
+        configuration: expect.objectContaining(expectedConfiguration),
+        previousConfiguration: expect.objectContaining({
+          aiAnalysisEnabled: testCase.currentAi,
+          usageReviewsEnabled: testCase.currentUsage
+        })
+      })
+    );
   });
 });

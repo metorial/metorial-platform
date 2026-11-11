@@ -49,6 +49,10 @@ class ProjectAiAnalysisConfigurationService {
 
     let tenant = await this.getSubspaceTenantForProject(d.project);
 
+    let aiAnalysisEnabled = d.input.aiAnalysisEnabled ?? tenant.aiAnalysisEnabled;
+    let usageReviewsEnabled =
+      aiAnalysisEnabled && (d.input.usageReviewsEnabled ?? tenant.usageReviewsEnabled);
+
     let updatedTenant = await tenantService.upsertTenant({
       input: {
         name: tenant.name,
@@ -56,8 +60,8 @@ class ProjectAiAnalysisConfigurationService {
         resourceTenantId: tenant.resourceTenantId!,
         resourceTenantIdentifier: tenant.resourceTenantIdentifier!,
         environments: [],
-        aiAnalysisEnabled: d.input.aiAnalysisEnabled ?? tenant.aiAnalysisEnabled,
-        usageReviewsEnabled: d.input.usageReviewsEnabled ?? tenant.usageReviewsEnabled
+        aiAnalysisEnabled,
+        usageReviewsEnabled
       }
     });
 
