@@ -7,6 +7,13 @@ export type SkillsGroupsUpdateOutput = {
   name: string;
   description: string | null;
   metadata: Record<string, any> | null;
+  imageUrl: string;
+  image: {
+    object: 'skill.image';
+    type: 'file' | 'url' | 'icon' | 'default';
+    icon: string | null;
+    color: string | null;
+  };
   allowConsumerSkillAssignment: boolean;
   skills: {
     object: 'skill';
@@ -38,6 +45,7 @@ export type SkillsGroupsUpdateOutput = {
 export let mapSkillsGroupsUpdateOutput =
   /* @__PURE__ */ mapObject<SkillsGroupsUpdateOutput>(
     [
+      'image_url',
       'allow_consumer_skill_assignment',
       [
         'skills',
@@ -69,10 +77,14 @@ export type SkillsGroupsUpdateBody = {
   metadata?: Record<string, any> | null | undefined;
   skillIds?: string[] | undefined;
   allowConsumerSkillAssignment?: boolean | undefined;
+  imageFileId?: string | null | undefined;
+  imageIcon?: { icon: string; color: string } | null | undefined;
 };
 
 export let mapSkillsGroupsUpdateBody =
   /* @__PURE__ */ mapObject<SkillsGroupsUpdateBody>([
     'skill_ids',
-    'allow_consumer_skill_assignment'
+    'allow_consumer_skill_assignment',
+    'image_file_id',
+    'image_icon'
   ]);

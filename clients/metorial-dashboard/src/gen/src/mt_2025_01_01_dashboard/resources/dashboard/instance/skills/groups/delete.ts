@@ -7,6 +7,13 @@ export type DashboardInstanceSkillsGroupsDeleteOutput = {
   name: string;
   description: string | null;
   metadata: Record<string, any> | null;
+  imageUrl: string;
+  image: {
+    object: 'skill.image';
+    type: 'file' | 'url' | 'icon' | 'default';
+    icon: string | null;
+    color: string | null;
+  };
   allowConsumerSkillAssignment: boolean;
   skills: {
     object: 'skill';
@@ -38,6 +45,7 @@ export type DashboardInstanceSkillsGroupsDeleteOutput = {
 export let mapDashboardInstanceSkillsGroupsDeleteOutput =
   /* @__PURE__ */ mapObject<DashboardInstanceSkillsGroupsDeleteOutput>(
     [
+      'image_url',
       'allow_consumer_skill_assignment',
       [
         'skills',
