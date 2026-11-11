@@ -272,6 +272,18 @@ export type DashboardInstanceSkillsMarketplacesListOutput = {
               createdAt: Date;
               updatedAt: Date;
             } & { canRead: boolean })[];
+            source:
+              | { type: 'manual' }
+              | {
+                  type: 'skill_group';
+                  skillGroup: { id: string; name: string; canRead: boolean };
+                  unsyncedSkills: {
+                    skillId: string;
+                    reason: 'limit_exceeded';
+                    message: string;
+                  }[];
+                  lastSyncedAt: Date | null;
+                };
             canUpdate: boolean;
             canDelete: boolean;
             canEditSkills: boolean;
@@ -341,7 +353,11 @@ export let mapDashboardInstanceSkillsMarketplacesListOutput =
                                                   [
                                                     1,
                                                     [
-                                                      'skill_group',
+                                                      [
+                                                        'skill_group',
+                                                        1,
+                                                        [1, ['can_read']]
+                                                      ],
                                                       [
                                                         'unsynced_skills',
                                                         1,
