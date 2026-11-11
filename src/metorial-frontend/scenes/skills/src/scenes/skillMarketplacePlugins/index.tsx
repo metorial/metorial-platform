@@ -59,8 +59,10 @@ import {
   asOptimisticStandaloneMarketplacePlugin,
   buildMarketplaceView,
   buildSkillIndex,
+  type SkillFlash,
   getMoveSkillInput,
   getPlugin,
+  getReadableSkillGroupId,
   isCollapsedMarketplacePlugin,
   isSkillGroupPlugin,
   marketplaceCanCreatePlugins,
@@ -69,6 +71,7 @@ import {
   pluginCanDelete,
   pluginCanEditSkills,
   pluginCanUpdate,
+  pluginHasSkill,
   removeMarketplacePluginsOptimistically,
   removeSkillOptimistically,
   shouldDeleteSourcePluginAfterMove,
@@ -223,12 +226,10 @@ export let SkillMarketplacePluginsScene = (p: {
   let [pendingKeys, setPendingKeys] = useState<ReadonlySet<string>>(() => new Set());
   let [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
   let [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set());
-  let [flashIds, setFlashIds] = useState<ReadonlySet<string>>(() => new Set());
+  let [flashed, setFlashed] = useState<SkillFlash | null>(null);
   let [search, setSearch] = useState('');
   let [filter, setFilter] = useState<MarketplaceFilter>('all');
-  let [activeDrag, setActiveDrag] = useState<{ leadId: string; skillIds: string[] } | null>(
-    null
-  );
+  let [activeDrag, setActiveDrag] = useState<{ leadKey: string; keys: string[] } | null>(null);
   let activeOperationsRef = useRef(0);
   let queueRef = useRef<PQueue | null>(null);
   queueRef.current ??= new PQueue({ concurrency: 1 });
@@ -242,8 +243,8 @@ export let SkillMarketplacePluginsScene = (p: {
     () => buildMarketplaceView(displayed, { search, filter }),
     [displayed, search, filter]
   );
-  let selectedIds = useMemo(
-    () => [...selected].filter(id => index.get(id)?.canMove && !pendingKeys.has(id)),
+  let selectedKeys = useMemo(
+    () => [...selected].filter(key => index.get(key)?.canMove && !pendingKeys.has(key)),
     [selected, index, pendingKeys]
   );
   let canCreatePlugins = marketplace.data
@@ -258,23 +259,37 @@ export let SkillMarketplacePluginsScene = (p: {
   });
 
   useEffect(() => {
-    if (!selectedIds.length) return;
+    if (!selectedKeys.length) return;
 
     let onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setSelected(new Set());
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [selectedIds.length]);
+  }, [selectedKeys.length]);
 
   let refresh = async () => {
     await marketplacePlugins.refetch();
   };
 
-  let flash = (skillIds: string[]) => {
-    setFlashIds(new Set(skillIds));
-    setTimeout(() => setFlashIds(new Set()), flashDurationMs);
+  let flash = (next: SkillFlash) => {
+    setFlashed(next);
+    setTimeout(
+      () => setFlashed(current => (current === next ? null : current)),
+      flashDurationMs
+    );
   };
+
+  let isFlashing = (entry: SkillEntry) =>
+    Boolean(
+      flashed?.skillIds.includes(entry.skill.skillId) &&
+      (flashed.destination.type === 'standalone'
+        ? entry.standalone
+        : entry.plugin.id === flashed.destination.pluginId)
+    );
+
+  let canCleanUpSource = (entry: SkillEntry) =>
+    pluginCanDelete(entry.plugin) || canCreatePlugins;
 
   let runOperation = async (operation: {
     next: SkillMarketplacePlugin[];
@@ -313,11 +328,29 @@ export let SkillMarketplacePluginsScene = (p: {
         skillMarketplaceId: p.skillMarketplaceId,
         skillMarketplacePluginId: sourceItem.id
       });
+      return;
     }
+
+    toast.error(`${plugin.name} is now empty, but you can't remove it from this marketplace.`);
   };
 
-  let moveToPlugin = async (entry: SkillEntry, pluginId: string) => {
+  let removeFromSource = async (entry: SkillEntry) => {
     if (!p.instanceId) return false;
+
+    let [removed] = await removePluginSkill.mutate({
+      instanceId: p.instanceId,
+      skillPluginId: entry.plugin.id,
+      skillPluginSkillId: entry.skill.id
+    });
+    if (!removed) return false;
+
+    await cleanupEmptySourcePlugin(entry.item);
+    return true;
+  };
+
+  let moveToPlugin = async (entry: SkillEntry, pluginId: string, alreadyInTarget: boolean) => {
+    if (!p.instanceId) return false;
+    if (alreadyInTarget) return await removeFromSource(entry);
 
     let [created] = await addPluginSkill.mutate({
       instanceId: p.instanceId,
@@ -382,14 +415,14 @@ export let SkillMarketplacePluginsScene = (p: {
     return true;
   };
 
-  let planMoves = (skillIds: string[], destination: MoveDestination) => {
+  let planMoves = (entryKeys: string[], destination: MoveDestination) => {
     let next = displayed;
     let tasks: (() => Promise<boolean>)[] = [];
     let keys: string[] = [];
 
-    for (let skillId of skillIds) {
-      let entry = index.get(skillId);
-      if (!entry?.canMove || pendingKeys.has(skillId)) continue;
+    for (let key of entryKeys) {
+      let entry = index.get(key);
+      if (!entry?.canMove || pendingKeys.has(key)) continue;
 
       if (destination.type === 'standalone') {
         if (entry.standalone || !canCreatePlugins || !p.skillMarketplaceId) continue;
@@ -403,7 +436,7 @@ export let SkillMarketplacePluginsScene = (p: {
             skill: entry.skill,
             skillMarketplaceId: p.skillMarketplaceId
           }),
-          canCreatePlugins
+          canCleanUpSource(entry)
         );
         tasks.push(() => moveToStandalone(entry));
       } else {
@@ -411,25 +444,20 @@ export let SkillMarketplacePluginsScene = (p: {
 
         let target = next.find(item => item.skillPlugin?.id === destination.pluginId);
         let targetPlugin = target && getPlugin(target);
-        if (
-          !targetPlugin ||
-          !pluginCanEditSkills(targetPlugin) ||
-          targetPlugin.skills.some(skill => skill.skillId === skillId)
-        ) {
-          continue;
-        }
+        if (!targetPlugin || !pluginCanEditSkills(targetPlugin)) continue;
 
+        let alreadyInTarget = pluginHasSkill(targetPlugin, entry.skill.skillId);
         next = moveSkillOptimistically(
           next,
           entry.plugin.id,
           destination.pluginId,
           entry.skill,
-          canCreatePlugins
+          canCleanUpSource(entry)
         );
-        tasks.push(() => moveToPlugin(entry, destination.pluginId));
+        tasks.push(() => moveToPlugin(entry, destination.pluginId, alreadyInTarget));
       }
 
-      keys.push(skillId);
+      keys.push(key);
     }
 
     return { next, tasks, keys };
@@ -441,8 +469,8 @@ export let SkillMarketplacePluginsScene = (p: {
       : (writablePlugins.find(plugin => plugin.id === destination.pluginId)?.name ??
         'the plugin');
 
-  let moveSkills = async (skillIds: string[], destination: MoveDestination) => {
-    let plan = planMoves(skillIds, destination);
+  let moveSkills = async (entryKeys: string[], destination: MoveDestination) => {
+    let plan = planMoves(entryKeys, destination);
     if (!plan.tasks.length) return;
 
     setSelected(current => withKeys(current, plan.keys, false));
@@ -464,7 +492,7 @@ export let SkillMarketplacePluginsScene = (p: {
     let instanceId = p.instanceId;
     let skillMarketplaceId = p.skillMarketplaceId;
     let removable = entries.filter(entry =>
-      entry.standalone ? canCreatePlugins : entry.canMove
+      entry.standalone ? canCreatePlugins || pluginCanDelete(entry.plugin) : entry.canMove
     );
     if (!removable.length) return;
 
@@ -474,6 +502,14 @@ export let SkillMarketplacePluginsScene = (p: {
       if (entry.standalone) {
         next = removeMarketplacePluginsOptimistically(next, [entry.item.id]);
         tasks.push(async () => {
+          if (!canCreatePlugins) {
+            let [deleted] = await deletePlugin.mutate({
+              instanceId,
+              skillPluginId: entry.plugin.id
+            });
+            return Boolean(deleted);
+          }
+
           let [removed] = await removeMarketplacePlugin.mutate({
             instanceId,
             skillMarketplaceId,
@@ -494,7 +530,7 @@ export let SkillMarketplacePluginsScene = (p: {
       }
     }
 
-    let keys = removable.map(entry => entry.skill.skillId);
+    let keys = removable.map(entry => entry.skill.id);
     setSelected(current => withKeys(current, keys, false));
     void runOperation({ next, keys, tasks });
   };
@@ -504,15 +540,17 @@ export let SkillMarketplacePluginsScene = (p: {
       title: entry.standalone
         ? `Remove ${entry.skill.skill.name} from the marketplace?`
         : `Remove ${entry.skill.skill.name} from ${entry.plugin.name}?`,
-      description: entry.standalone
-        ? 'The skill stops being listed in this marketplace. The skill itself is not deleted.'
-        : 'The skill is removed from this plugin. The skill itself is not deleted.',
+      description: !entry.standalone
+        ? 'The skill is removed from this plugin. The skill itself is not deleted.'
+        : canCreatePlugins
+          ? 'The skill stops being listed in this marketplace. The skill itself is not deleted.'
+          : 'The skill stops being listed in this marketplace and any other marketplace that lists it. The skill itself is not deleted.',
       confirmText: 'Remove',
       onConfirm: () => removeEntries([entry])
     });
 
   let confirmRemoveSelected = () => {
-    let entries = selectedIds.flatMap(id => index.get(id) ?? []);
+    let entries = selectedKeys.flatMap(key => index.get(key) ?? []);
 
     confirm({
       title: `Remove ${skillCount(entries.length)}?`,
@@ -551,6 +589,36 @@ export let SkillMarketplacePluginsScene = (p: {
       }
     });
 
+  let confirmDeletePlugin = (item: SkillMarketplacePlugin) => {
+    let plugin = getPlugin(item);
+    if (!plugin) return;
+
+    confirm({
+      title: `Delete ${plugin.name}?`,
+      description:
+        'The plugin is deleted and removed from every marketplace that lists it. Its skills are not deleted.',
+      confirmText: 'Delete',
+      onConfirm: () => {
+        if (!p.instanceId) return;
+
+        let instanceId = p.instanceId;
+        void runOperation({
+          next: removeMarketplacePluginsOptimistically(displayed, [item.id]),
+          keys: [`plugin:${plugin.id}`],
+          tasks: [
+            async () => {
+              let [deleted] = await deletePlugin.mutate({
+                instanceId,
+                skillPluginId: plugin.id
+              });
+              return Boolean(deleted);
+            }
+          ]
+        });
+      }
+    });
+  };
+
   let confirmSplitPlugin = (item: SkillMarketplacePlugin) => {
     let plugin = getPlugin(item);
     if (!plugin) return;
@@ -565,7 +633,7 @@ export let SkillMarketplacePluginsScene = (p: {
         let instanceId = p.instanceId;
         let skillMarketplaceId = p.skillMarketplaceId;
         let plan = planMoves(
-          plugin.skills.map(skill => skill.skillId),
+          plugin.skills.map(skill => skill.id),
           { type: 'standalone' }
         );
         void runOperation({
@@ -640,7 +708,18 @@ export let SkillMarketplacePluginsScene = (p: {
 
     showAddSkillsPanel({
       instanceId: p.instanceId,
-      linkedSkillIds: [...index.keys()],
+      linkedSkillIds: Object.fromEntries([
+        [
+          'standalone',
+          displayed.flatMap(item =>
+            isCollapsedMarketplacePlugin(item) ? [getPlugin(item)!.skills[0].skillId] : []
+          )
+        ],
+        ...writablePlugins.map(plugin => [
+          plugin.id,
+          plugin.skills.map(skill => skill.skillId)
+        ])
+      ]),
       destinations,
       initialDestination: initialDestination ?? destinations[0].id,
       onAdd: async (skills, destination) => {
@@ -656,7 +735,7 @@ export let SkillMarketplacePluginsScene = (p: {
 
         await refresh();
         p.onChange?.();
-        flash(addedIds);
+        flash({ skillIds: addedIds, destination });
         setCollapsed(current =>
           toggleKey(
             current,
@@ -772,27 +851,23 @@ export let SkillMarketplacePluginsScene = (p: {
     });
   };
 
-  let getMoveMenuItems = (skillIds: string[], current?: SkillEntry): MenuItem[] => {
+  let getMoveMenuItems = (entryKeys: string[], current?: SkillEntry): MenuItem[] => {
     let standaloneItem: MenuItem[] =
       canCreatePlugins && !current?.standalone
         ? [
             {
               id: 'standalone',
               label: 'Standalone Skills',
-              onClick: () => void moveSkills(skillIds, { type: 'standalone' })
+              onClick: () => void moveSkills(entryKeys, { type: 'standalone' })
             }
           ]
         : [];
     let pluginItems: MenuItem[] = writablePlugins
-      .filter(
-        plugin =>
-          plugin.id !== current?.plugin.id &&
-          !(current && plugin.skills.some(skill => skill.skillId === current.skill.skillId))
-      )
+      .filter(plugin => plugin.id !== current?.plugin.id)
       .map(plugin => ({
         id: plugin.id,
         label: plugin.name,
-        onClick: () => void moveSkills(skillIds, { type: 'plugin', pluginId: plugin.id })
+        onClick: () => void moveSkills(entryKeys, { type: 'plugin', pluginId: plugin.id })
       }));
 
     return [
@@ -804,8 +879,10 @@ export let SkillMarketplacePluginsScene = (p: {
 
   let getSkillMenuItems = (entry: SkillEntry): MenuItem[] => {
     let skillPath = entry.canRead ? p.getSkillPath?.(entry.skill.skillId) : undefined;
-    let moveItems = entry.canMove ? getMoveMenuItems([entry.skill.skillId], entry) : [];
-    let canRemove = entry.standalone ? canCreatePlugins && entry.canMove : entry.canMove;
+    let moveItems = entry.canMove ? getMoveMenuItems([entry.skill.id], entry) : [];
+    let canRemove = entry.standalone
+      ? entry.canMove && (canCreatePlugins || pluginCanDelete(entry.plugin))
+      : entry.canMove;
 
     let items: MenuItem[] = [
       ...(skillPath
@@ -842,20 +919,7 @@ export let SkillMarketplacePluginsScene = (p: {
   let getPluginMenuItems = (item: SkillMarketplacePlugin): MenuItem[] => {
     let plugin = getPlugin(item)!;
     let canUpdate = pluginCanUpdate(plugin);
-    let skillGroupPath =
-      plugin.source.type === 'skill_group'
-        ? p.getSkillGroupPath?.(plugin.source.skillGroup.id)
-        : undefined;
     let items: MenuItem[] = [
-      ...(skillGroupPath
-        ? [
-            {
-              id: 'open-group',
-              label: 'Open Skill Group',
-              onClick: () => navigate(skillGroupPath!)
-            }
-          ]
-        : []),
       ...(canUpdate
         ? [
             {
@@ -885,12 +949,28 @@ export let SkillMarketplacePluginsScene = (p: {
         : [])
     ];
 
-    if (canCreatePlugins) {
-      items.push(...(items.length ? [{ type: 'separator' as const }] : []), {
-        id: 'remove',
-        label: 'Remove from Marketplace',
-        onClick: () => confirmRemovePlugin(item)
-      });
+    let removeItems: MenuItem[] = [
+      ...(canCreatePlugins
+        ? [
+            {
+              id: 'remove',
+              label: 'Remove from Marketplace',
+              onClick: () => confirmRemovePlugin(item)
+            }
+          ]
+        : []),
+      ...(pluginCanDelete(plugin)
+        ? [
+            {
+              id: 'delete',
+              label: 'Delete Plugin',
+              onClick: () => confirmDeletePlugin(item)
+            }
+          ]
+        : [])
+    ];
+    if (removeItems.length) {
+      items.push(...(items.length ? [{ type: 'separator' as const }] : []), ...removeItems);
     }
 
     return items;
@@ -899,7 +979,7 @@ export let SkillMarketplacePluginsScene = (p: {
   let getDropState = (destination: MoveDestination): DropState => {
     if (!activeDrag) return 'idle';
 
-    let entries = activeDrag.skillIds.flatMap(id => index.get(id) ?? []);
+    let entries = activeDrag.keys.flatMap(key => index.get(key) ?? []);
     if (destination.type === 'standalone') {
       if (!canCreatePlugins) return 'blocked';
       return entries.some(entry => !entry.standalone) ? 'available' : 'idle';
@@ -909,30 +989,27 @@ export let SkillMarketplacePluginsScene = (p: {
     let targetPlugin = target && getPlugin(target);
     if (!targetPlugin || !pluginCanEditSkills(targetPlugin)) return 'blocked';
 
-    let movable = entries.some(
-      entry =>
-        entry.plugin.id !== destination.pluginId &&
-        !targetPlugin.skills.some(skill => skill.skillId === entry.skill.skillId)
-    );
-    return movable ? 'available' : 'idle';
+    return entries.some(entry => entry.plugin.id !== destination.pluginId)
+      ? 'available'
+      : 'idle';
   };
 
   let onDragStart = (event: DragStartEvent) => {
-    let leadId = event.active.data.current?.skillId as string | undefined;
-    if (!leadId) return;
+    let leadKey = event.active.data.current?.entryKey as string | undefined;
+    if (!leadKey) return;
 
-    let skillIds = selected.has(leadId)
-      ? [leadId, ...selectedIds.filter(id => id !== leadId)]
-      : [leadId];
-    setActiveDrag({ leadId, skillIds });
+    let keys = selected.has(leadKey)
+      ? [leadKey, ...selectedKeys.filter(key => key !== leadKey)]
+      : [leadKey];
+    setActiveDrag({ leadKey, keys });
   };
 
   let onDragEnd = (event: DragEndEvent) => {
     let destination = event.over?.data.current?.destination as MoveDestination | undefined;
-    let skillIds = activeDrag?.skillIds ?? [];
+    let keys = activeDrag?.keys ?? [];
     setActiveDrag(null);
 
-    if (destination) void moveSkills(skillIds, destination);
+    if (destination) void moveSkills(keys, destination);
   };
 
   let sensors = useSensors(useSensor(SkillPointerSensor), useSensor(KeyboardSensor));
@@ -942,24 +1019,22 @@ export let SkillMarketplacePluginsScene = (p: {
   let allOpen = allKeys.every(key => !collapsed.has(key));
 
   let renderSkillRow = (entry: SkillEntry, indent: boolean) => {
-    let skillId = entry.skill.skillId;
+    let key = entry.skill.id;
 
     return (
       <SkillRow
-        key={skillId}
+        key={key}
         entry={entry}
-        href={entry.canRead ? p.getSkillPath?.(skillId) : undefined}
-        selected={selected.has(skillId)}
-        selectionActive={selectedIds.length > 0}
-        pending={pendingKeys.has(skillId)}
-        dimmed={Boolean(activeDrag?.skillIds.includes(skillId))}
-        flash={flashIds.has(skillId)}
+        href={entry.canRead ? p.getSkillPath?.(entry.skill.skillId) : undefined}
+        selected={selected.has(key)}
+        selectionActive={selectedKeys.length > 0}
+        pending={pendingKeys.has(key)}
+        dimmed={Boolean(activeDrag?.keys.includes(key))}
+        flash={isFlashing(entry)}
         indent={indent}
         dragDisabled={!entry.canMove}
         menuItems={getSkillMenuItems(entry)}
-        onSelectedChange={checked =>
-          setSelected(current => toggleKey(current, skillId, checked))
-        }
+        onSelectedChange={checked => setSelected(current => toggleKey(current, key, checked))}
       />
     );
   };
@@ -969,7 +1044,7 @@ export let SkillMarketplacePluginsScene = (p: {
     { loading: () => <ListSkeleton /> }
   )(() => {
     let totalItems = view.counts.plugins + view.counts.standalone;
-    let leadEntry = activeDrag ? index.get(activeDrag.leadId) : undefined;
+    let leadEntry = activeDrag ? index.get(activeDrag.leadKey) : undefined;
     let showStandalone =
       filter !== 'plugins' &&
       (view.standalone.length > 0 ||
@@ -1073,6 +1148,10 @@ export let SkillMarketplacePluginsScene = (p: {
         <ListStack>
           {view.groups.map(group => {
             let canEditSkills = pluginCanEditSkills(group.plugin);
+            let skillGroupId = getReadableSkillGroupId(group.plugin);
+            let skillGroupPath = skillGroupId
+              ? p.getSkillGroupPath?.(skillGroupId)
+              : undefined;
 
             return (
               <PluginGroup
@@ -1091,8 +1170,9 @@ export let SkillMarketplacePluginsScene = (p: {
                   )
                 }
                 onAddSkills={canEditSkills ? () => openAddSkills(group.plugin.id) : undefined}
+                onOpenSkillGroup={skillGroupPath ? () => navigate(skillGroupPath) : undefined}
               >
-                {group.skills.map(skill => renderSkillRow(index.get(skill.skillId)!, true))}
+                {group.skills.map(skill => renderSkillRow(index.get(skill.id)!, true))}
               </PluginGroup>
             );
           })}
@@ -1135,14 +1215,14 @@ export let SkillMarketplacePluginsScene = (p: {
 
           <DragOverlay dropAnimation={null}>
             {leadEntry && activeDrag && (
-              <DragPreview entry={leadEntry} count={activeDrag.skillIds.length} />
+              <DragPreview entry={leadEntry} count={activeDrag.keys.length} />
             )}
           </DragOverlay>
         </DndContext>
 
         <BulkBar
-          count={selectedIds.length}
-          moveItems={getMoveMenuItems(selectedIds)}
+          count={selectedKeys.length}
+          moveItems={getMoveMenuItems(selectedKeys)}
           canRemove
           onRemove={confirmRemoveSelected}
           onClear={() => setSelected(new Set())}

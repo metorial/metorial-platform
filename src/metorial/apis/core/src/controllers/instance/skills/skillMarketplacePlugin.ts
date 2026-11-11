@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import {
   getArchivableSkillPluginIds,
+  getReadablePluginSkillGroupIds,
   getReadablePluginSkillIds,
   getWritableSkillPluginIds,
   skillMarketplacePluginService
@@ -97,20 +98,25 @@ export let skillMarketplacePluginController = Controller.create(
         let nestedPlugins = list.items.flatMap(item =>
           item.skillPlugin ? [item.skillPlugin] : []
         );
-        let [writablePluginIds, archivablePluginIds, readableSkillIds] = await Promise.all([
-          getWritableSkillPluginIds({
-            plugins: nestedPlugins,
-            ...accessInput
-          }),
-          getArchivableSkillPluginIds({
-            plugins: nestedPlugins,
-            ...accessInput
-          }),
-          getReadablePluginSkillIds({
-            plugins: nestedPlugins,
-            ...accessInput
-          })
-        ]);
+        let [writablePluginIds, archivablePluginIds, readableSkillIds, readableSkillGroupIds] =
+          await Promise.all([
+            getWritableSkillPluginIds({
+              plugins: nestedPlugins,
+              ...accessInput
+            }),
+            getArchivableSkillPluginIds({
+              plugins: nestedPlugins,
+              ...accessInput
+            }),
+            getReadablePluginSkillIds({
+              plugins: nestedPlugins,
+              ...accessInput
+            }),
+            getReadablePluginSkillGroupIds({
+              plugins: nestedPlugins,
+              ...accessInput
+            })
+          ]);
 
         return Paginator.present(list, skillMarketplacePlugin =>
           skillMarketplacePluginPresenter.present({
@@ -120,7 +126,8 @@ export let skillMarketplacePluginController = Controller.create(
               ? {
                   canUpdate: writablePluginIds.has(skillMarketplacePlugin.skillPlugin.id),
                   canDelete: archivablePluginIds.has(skillMarketplacePlugin.skillPlugin.id),
-                  readableSkillIds
+                  readableSkillIds,
+                  readableSkillGroupIds
                 }
               : undefined
           })

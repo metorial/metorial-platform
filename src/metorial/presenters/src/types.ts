@@ -1952,6 +1952,7 @@ export let skillMarketplaceType = PresentableType.create<{
                 include: {
                   skillGroup: {
                     select: {
+                      oid: true;
                       id: true;
                       name: true;
                     };
@@ -2001,6 +2002,7 @@ export let skillMarketplacePluginType = PresentableType.create<{
           include: {
             skillGroup: {
               select: {
+                oid: true;
                 id: true;
                 name: true;
               };
@@ -2015,6 +2017,7 @@ export let skillMarketplacePluginType = PresentableType.create<{
     canUpdate?: boolean;
     canDelete?: boolean;
     readableSkillIds?: Set<string>;
+    readableSkillGroupIds?: Set<string>;
   };
 }>()('skillMarketplacePlugin');
 
@@ -2066,6 +2069,7 @@ export let skillPluginType = PresentableType.create<{
         include: {
           skillGroup: {
             select: {
+              oid: true;
               id: true;
               name: true;
             };
@@ -2079,6 +2083,7 @@ export let skillPluginType = PresentableType.create<{
     canUpdate?: boolean;
     canDelete?: boolean;
     readableSkillIds?: Set<string>;
+    readableSkillGroupIds?: Set<string>;
   };
 }>()('skillPlugin');
 

@@ -1,3 +1,4 @@
+import { ID } from '@metorial/db';
 import { expectServiceError, firstPage, useOrganization } from '@metorial/e2e';
 import { db, loadOrganizationFixture, type OrganizationFixture } from '@metorial/e2e/db';
 import {
@@ -7,7 +8,9 @@ import {
 import { skillService } from '@metorial/module-skill';
 import { beforeAll, describe, expect, it } from 'vitest';
 import {
+  getReadablePluginSkillGroupIds,
   getReadablePluginSkillIds,
+  skillMarketplacePluginService,
   skillMarketplaceService,
   skillPluginService,
   skillPluginSkillService
@@ -152,6 +155,47 @@ describe('consumer access to marketplaces and plugins', () => {
       expect((await getMarketplace(fixture, marketplace.id)).status).toBe('archived');
     });
 
+    it('only lists active marketplaces and memberships to consumers, whatever status they ask for', async () => {
+      let marketplace = await createMarketplace(fixture);
+      let archivedMarketplace = await createMarketplace(fixture);
+      await createPlugin(fixture, {}, { skillMarketplaceId: marketplace.id });
+      let reader = await consumerFor([
+        { roles: marketplaceReadRoles, skillMarketplace: marketplace },
+        { roles: marketplaceReadRoles, skillMarketplace: archivedMarketplace }
+      ]);
+      await removePluginFromMarketplace(
+        fixture,
+        (await getMarketplace(fixture, marketplace.id)).plugins[0]!.id
+      );
+      await archiveMarketplace(fixture, archivedMarketplace.id);
+
+      let marketplaceIds = (
+        await firstPage(
+          await skillMarketplaceService.listSkillMarketplaces({
+            project: fixture.project,
+            instance: fixture.instance,
+            ids: [marketplace.id, archivedMarketplace.id],
+            statuses: ['archived'],
+            accessTags: reader.accessTags
+          })
+        )
+      ).map(item => item.id);
+      let listMemberships = async (accessTags?: AccessTags) =>
+        await firstPage(
+          await skillMarketplacePluginService.listSkillMarketplacePlugins({
+            project: fixture.project,
+            instance: fixture.instance,
+            skillMarketplace: await getMarketplace(fixture, marketplace.id),
+            statuses: ['archived'],
+            accessTags
+          })
+        );
+
+      expect(marketplaceIds).toEqual([marketplace.id]);
+      expect(await listMemberships(reader.accessTags)).toEqual([]);
+      expect((await listMemberships()).map(item => item.status)).toEqual(['archived']);
+    });
+
     it('drops a plugin from the consumer view once it leaves the granted marketplace', async () => {
       let marketplace = await createMarketplace(fixture);
       let plugin = await createPlugin(fixture, {}, { skillMarketplaceId: marketplace.id });
@@ -168,16 +212,30 @@ describe('consumer access to marketplaces and plugins', () => {
   });
 
   describe('marketplace writes', () => {
-    it('lets marketplace writers add and remove plugins but not readers', async () => {
+    it('lets marketplace writers add plugins they can write and remove plugins, but not readers', async () => {
       let marketplace = await createMarketplace(fixture);
       let plugin = await createPlugin(fixture);
+      let unrelated = await createPlugin(fixture);
       let reader = await consumerFor([
         { roles: marketplaceReadRoles, skillMarketplace: marketplace }
       ]);
       let writer = await consumerFor([
         { roles: marketplaceWriteRoles, skillMarketplace: marketplace }
       ]);
+      await grantAccess(fixture, {
+        accessTag: writer.accessTag,
+        roles: pluginWriteRoles,
+        skillPlugin: plugin
+      });
 
+      await expectServiceError(
+        addPluginToMarketplace(fixture, {
+          skillMarketplaceId: marketplace.id,
+          skillPluginId: unrelated.id,
+          accessTags: writer.accessTags
+        }),
+        'forbidden'
+      );
       await expectServiceError(
         addPluginToMarketplace(fixture, {
           skillMarketplaceId: marketplace.id,
@@ -294,7 +352,7 @@ describe('consumer access to marketplaces and plugins', () => {
       );
     });
 
-    it('only lets consumers archive plugins whose every marketplace they can write', async () => {
+    it('lets consumers archive plugins they manage or whose every marketplace they can write', async () => {
       let writable = await createMarketplace(fixture);
       let foreignToConsumer = await createMarketplace(fixture);
       let shared = await createPlugin(fixture, {}, { skillMarketplaceId: writable.id });
@@ -318,17 +376,40 @@ describe('consumer access to marketplaces and plugins', () => {
         archivePlugin(fixture, shared.id, writer.accessTags),
         'forbidden'
       );
-      await expectServiceError(
-        archivePlugin(fixture, unlisted.id, writer.accessTags),
-        'forbidden'
-      );
-
       let archived = await archivePlugin(fixture, exclusive.id, writer.accessTags);
-      expect(archived.status).toBe('archived');
+      let archivedUnlisted = await archivePlugin(fixture, unlisted.id, writer.accessTags);
+      expect([archived.status, archivedUnlisted.status]).toEqual(['archived', 'archived']);
       expect((await getPlugin(fixture, shared.id)).status).toBe('active');
     });
 
-    it('limits consumer-attached skills to readable skills or the marketplace catalog', async () => {
+    it('lets plugin managers archive their plugin from every marketplace it is in', async () => {
+      let first = await createMarketplace(fixture);
+      let second = await createMarketplace(fixture);
+      let plugin = await createPlugin(fixture, {}, { skillMarketplaceId: first.id });
+      await addPluginToMarketplace(fixture, {
+        skillMarketplaceId: second.id,
+        skillPluginId: plugin.id
+      });
+      let manager = await consumerFor([
+        { roles: marketplaceReadRoles, skillMarketplace: first }
+      ]);
+      await grantAccess(fixture, {
+        accessTag: manager.accessTag,
+        roles: pluginWriteRoles,
+        skillPlugin: plugin
+      });
+
+      expect((await archivePlugin(fixture, plugin.id, manager.accessTags)).status).toBe(
+        'archived'
+      );
+      expect(
+        await db.skillMarketplacePlugin.count({
+          where: { skillPluginOid: plugin.oid, status: 'active' }
+        })
+      ).toBe(0);
+    });
+
+    it('limits consumer-attached skills to skills the consumer can read', async () => {
       let marketplace = await createMarketplace(fixture);
       let source = await createPlugin(fixture, {}, { skillMarketplaceId: marketplace.id });
       let target = await createPlugin(fixture, {}, { skillMarketplaceId: marketplace.id });
@@ -346,12 +427,28 @@ describe('consumer access to marketplaces and plugins', () => {
         roles: skillReadRoles,
         skill: readableSkill
       });
+      let targetManager = await consumerFor([
+        { roles: marketplaceReadRoles, skillMarketplace: marketplace }
+      ]);
+      await grantAccess(fixture, {
+        accessTag: targetManager.accessTag,
+        roles: pluginWriteRoles,
+        skillPlugin: target
+      });
 
       await expectServiceError(
         addSkillToPlugin(fixture, {
           skillPluginId: target.id,
           skillId: privateSkill.id,
           accessTags: writer.accessTags
+        }),
+        'forbidden'
+      );
+      await expectServiceError(
+        addSkillToPlugin(fixture, {
+          skillPluginId: target.id,
+          skillId: catalogSkill.id,
+          accessTags: targetManager.accessTags
         }),
         'forbidden'
       );
@@ -549,6 +646,39 @@ describe('consumer access to marketplaces and plugins', () => {
       ]).toEqual([skills.firstSkill.id]);
       expect([...(await getReadablePluginSkillIds({ plugins }))].sort()).toEqual(
         [skills.firstSkill.id, skills.secondSkill.id].sort()
+      );
+    });
+  });
+
+  describe('skill group links', () => {
+    it('only marks skill groups the consumer can read as readable', async () => {
+      let createGroup = async () =>
+        await db.skillGroup.create({
+          data: {
+            id: await ID.generateId('skillGroup'),
+            name: 'Linked group',
+            organizationOid: fixture.organization.oid,
+            instanceOid: fixture.instance.oid
+          }
+        });
+      let readable = await createGroup();
+      let hidden = await createGroup();
+      let consumer = await consumerFor();
+      await grantAccess(fixture, {
+        accessTag: consumer.accessTag,
+        roles: skillReadRoles,
+        skillGroup: readable
+      });
+
+      let plugins = [readable, hidden, null].map(skillGroup => ({
+        skillGroupPlugin: skillGroup ? { skillGroup } : null
+      }));
+
+      expect([
+        ...(await getReadablePluginSkillGroupIds({ plugins, accessTags: consumer.accessTags }))
+      ]).toEqual([readable.id]);
+      expect([...(await getReadablePluginSkillGroupIds({ plugins }))].sort()).toEqual(
+        [readable.id, hidden.id].sort()
       );
     });
   });

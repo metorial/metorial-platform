@@ -25,6 +25,8 @@ export type SkillEntry = {
   canRead: boolean;
 };
 
+export type SkillFlash = { skillIds: string[]; destination: MoveDestination };
+
 export type PluginGroupView = {
   item: SkillMarketplacePlugin;
   plugin: MarketplaceSkillPlugin;
@@ -54,6 +56,11 @@ export let pluginCanEditSkills = (plugin: {
 
 export let pluginCanDelete = (plugin: { status: string; canDelete?: boolean }) =>
   plugin.canDelete === true;
+
+export let getReadableSkillGroupId = (plugin: MarketplaceSkillPlugin) =>
+  plugin.source.type === 'skill_group' && plugin.source.skillGroup.canRead
+    ? plugin.source.skillGroup.id
+    : undefined;
 
 export let getPlugin = (item: SkillMarketplacePlugin) =>
   item.skillPlugin as MarketplaceSkillPlugin | null;
@@ -86,6 +93,9 @@ export let shouldDeleteSourcePluginAfterMove = (
   item: SkillMarketplacePlugin | undefined
 ): item is SkillMarketplacePlugin & { skillPlugin: SkillPlugin } =>
   Boolean(item && isCollapsedMarketplacePlugin(item));
+
+export let pluginHasSkill = (plugin: { skills: { skillId: string }[] }, skillId: string) =>
+  plugin.skills.some(skill => skill.skillId === skillId);
 
 let withoutSkill = (
   item: SkillMarketplacePlugin,
@@ -120,7 +130,7 @@ export let moveSkillOptimistically = (
     if (!plugin) return [item];
     if (plugin.id === sourcePluginId) return withoutSkill(item, skill, removeEmptySource);
 
-    if (plugin.id === destinationPluginId) {
+    if (plugin.id === destinationPluginId && !pluginHasSkill(plugin, skill.skillId)) {
       return [{ ...item, skillPlugin: { ...plugin, skills: [...plugin.skills, skill] } }];
     }
 
@@ -237,7 +247,7 @@ export let buildSkillIndex = (items: SkillMarketplacePlugin[]) => {
     let standalone = isCollapsedMarketplacePlugin(item);
     let canMove = pluginCanEditSkills(plugin) && !item.id.startsWith('optimistic');
     for (let skill of plugin.skills) {
-      index.set(skill.skillId, {
+      index.set(skill.id, {
         skill,
         item,
         plugin,

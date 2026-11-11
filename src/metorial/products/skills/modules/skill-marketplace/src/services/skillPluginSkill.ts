@@ -214,11 +214,7 @@ class SkillPluginSkillServiceImpl {
       skillId: d.input.skillId
     });
     if (d.accessTags) {
-      await assertConsumerCanAttachSkillToPlugin({
-        skill,
-        skillPlugin: d.skillPlugin,
-        accessTags: d.accessTags
-      });
+      await assertConsumerCanAttachSkillToPlugin({ skill, accessTags: d.accessTags });
     }
     let existingSkillPluginSkill = await db.skillPluginSkill.findFirst({
       where: {

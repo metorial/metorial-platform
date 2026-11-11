@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import {
   getArchivableSkillPluginIds,
+  getReadablePluginSkillGroupIds,
   getReadablePluginSkillIds,
   getWritableSkillPluginIds,
   skillGroupPluginService,
@@ -125,20 +126,25 @@ export let skillPluginController = Controller.create(
         });
         let list = await paginator.run(ctx.query);
         let accessInput = getSkillMarketplaceAccessInput(ctx);
-        let [writablePluginIds, archivablePluginIds, readableSkillIds] = await Promise.all([
-          getWritableSkillPluginIds({
-            plugins: list.items,
-            ...accessInput
-          }),
-          getArchivableSkillPluginIds({
-            plugins: list.items,
-            ...accessInput
-          }),
-          getReadablePluginSkillIds({
-            plugins: list.items,
-            ...accessInput
-          })
-        ]);
+        let [writablePluginIds, archivablePluginIds, readableSkillIds, readableSkillGroupIds] =
+          await Promise.all([
+            getWritableSkillPluginIds({
+              plugins: list.items,
+              ...accessInput
+            }),
+            getArchivableSkillPluginIds({
+              plugins: list.items,
+              ...accessInput
+            }),
+            getReadablePluginSkillIds({
+              plugins: list.items,
+              ...accessInput
+            }),
+            getReadablePluginSkillGroupIds({
+              plugins: list.items,
+              ...accessInput
+            })
+          ]);
 
         return Paginator.present(list, skillPlugin =>
           skillPluginPresenter.present({
@@ -147,7 +153,8 @@ export let skillPluginController = Controller.create(
             pluginAccess: {
               canUpdate: writablePluginIds.has(skillPlugin.id),
               canDelete: archivablePluginIds.has(skillPlugin.id),
-              readableSkillIds
+              readableSkillIds,
+              readableSkillGroupIds
             }
           })
         );

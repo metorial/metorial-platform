@@ -166,7 +166,8 @@ class SkillMarketplaceServiceImpl {
     let accessWhere = await getSkillMarketplaceAccessWhere(d);
     let skillMarketplaces = await resolveSkillMarketplaces(d, d.ids);
     let skillConfigurations = await resolveSkillConfigurations(d, d.skillConfigurationIds);
-    let statuses: SkillMarketplaceStatus[] = d.statuses?.length ? d.statuses : ['active'];
+    let statuses: SkillMarketplaceStatus[] =
+      d.statuses?.length && !d.accessTags ? d.statuses : ['active'];
     d.search = d.search?.trim();
     if (!d.search?.length) d.search = undefined;
 

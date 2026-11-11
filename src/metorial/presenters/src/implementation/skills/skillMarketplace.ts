@@ -2,6 +2,7 @@ import { v } from '@lowerdeck/validation';
 import { getImageUrl } from '@metorial/db';
 import {
   getArchivableSkillPluginIds,
+  getReadablePluginSkillGroupIds,
   getReadablePluginSkillIds,
   getWritableSkillPluginIds,
   hasSkillMarketplaceWriteAccess
@@ -75,27 +76,36 @@ export let dashboardSkillMarketplacePresenter = Presenter.create(skillMarketplac
     let nestedPlugins = input.skillMarketplace.plugins.flatMap(plugin =>
       plugin.skillPlugin ? [plugin.skillPlugin] : []
     );
-    let [canCreatePlugins, writablePluginIds, archivablePluginIds, readableSkillIds] =
-      await Promise.all([
-        input.skillMarketplace.status == 'active'
-          ? hasSkillMarketplaceWriteAccess({
-              skillMarketplace: input.skillMarketplace,
-              accessTags: input.accessTags
-            })
-          : false,
-        getWritableSkillPluginIds({
-          plugins: nestedPlugins,
-          accessTags: input.accessTags
-        }),
-        getArchivableSkillPluginIds({
-          plugins: nestedPlugins,
-          accessTags: input.accessTags
-        }),
-        getReadablePluginSkillIds({
-          plugins: nestedPlugins,
-          accessTags: input.accessTags
-        })
-      ]);
+    let [
+      canCreatePlugins,
+      writablePluginIds,
+      archivablePluginIds,
+      readableSkillIds,
+      readableSkillGroupIds
+    ] = await Promise.all([
+      input.skillMarketplace.status == 'active'
+        ? hasSkillMarketplaceWriteAccess({
+            skillMarketplace: input.skillMarketplace,
+            accessTags: input.accessTags
+          })
+        : false,
+      getWritableSkillPluginIds({
+        plugins: nestedPlugins,
+        accessTags: input.accessTags
+      }),
+      getArchivableSkillPluginIds({
+        plugins: nestedPlugins,
+        accessTags: input.accessTags
+      }),
+      getReadablePluginSkillIds({
+        plugins: nestedPlugins,
+        accessTags: input.accessTags
+      }),
+      getReadablePluginSkillGroupIds({
+        plugins: nestedPlugins,
+        accessTags: input.accessTags
+      })
+    ]);
 
     return {
       ...inner,
@@ -112,7 +122,8 @@ export let dashboardSkillMarketplacePresenter = Presenter.create(skillMarketplac
                       canDelete: archivablePluginIds.has(
                         skillMarketplacePlugin.skillPlugin.id
                       ),
-                      readableSkillIds
+                      readableSkillIds,
+                      readableSkillGroupIds
                     }
                   : undefined,
                 skillMarketplacePlugin: {

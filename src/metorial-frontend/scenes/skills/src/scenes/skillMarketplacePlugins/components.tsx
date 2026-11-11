@@ -269,9 +269,9 @@ export let SkillRow = (p: {
 }) => {
   let { skill } = p.entry;
   let drag = useDraggable({
-    id: `skill:${skill.skillId}`,
+    id: `skill:${skill.id}`,
     disabled: p.dragDisabled || p.pending,
-    data: { skillId: skill.skillId }
+    data: { entryKey: skill.id }
   });
   let name = skill.skill.name;
   let inaccessible = !p.entry.canRead;
@@ -286,7 +286,7 @@ export let SkillRow = (p: {
   return (
     <motion.div
       layout="position"
-      layoutId={`skill-row:${skill.skillId}`}
+      layoutId={`skill-row:${skill.id}`}
       transition={layoutTransition}
     >
       <Row
@@ -567,6 +567,7 @@ export let PluginGroup = (p: {
   menuItems: MenuItem[];
   onToggle: () => void;
   onAddSkills?: () => void;
+  onOpenSkillGroup?: () => void;
   children: React.ReactNode;
 }) => {
   let { plugin, item } = p.view;
@@ -591,14 +592,16 @@ export let PluginGroup = (p: {
               <Text size="2" weight="strong" truncate>
                 {plugin.name}
               </Text>
-              <HeaderMeta>
-                {plugin.category ? <span>{plugin.category}</span> : <span>Plugin</span>}
-                {skillGroup && (
-                  <Truncate as="span">
-                    <span>Synced from {skillGroup.skillGroup.name}</span>
-                  </Truncate>
-                )}
-              </HeaderMeta>
+              {(plugin.category || skillGroup) && (
+                <HeaderMeta>
+                  {plugin.category && <span>{plugin.category}</span>}
+                  {skillGroup && (
+                    <Truncate as="span">
+                      <span>Synced from {skillGroup.skillGroup.name}</span>
+                    </Truncate>
+                  )}
+                </HeaderMeta>
+              )}
             </HeaderTitle>
           </HeaderToggle>
 
@@ -614,13 +617,17 @@ export let PluginGroup = (p: {
               </Tooltip>
             )}
 
-            {skillGroup && p.canUpdate && (
-              <Tooltip content="Skills are synced from the skill group. Add or remove them on the group.">
-                <ReadOnlyBadge>
-                  <RiLoopLeftLine />
-                  Skill Group
-                </ReadOnlyBadge>
-              </Tooltip>
+            {p.onOpenSkillGroup && (
+              <Button
+                size="1"
+                variant="outline"
+                iconLeft={<RiLoopLeftLine />}
+                title="Skills are synced from this skill group. Add or remove them on the group."
+                disabled={p.pending}
+                onClick={p.onOpenSkillGroup}
+              >
+                Open Skill Group
+              </Button>
             )}
 
             {!p.canUpdate && (

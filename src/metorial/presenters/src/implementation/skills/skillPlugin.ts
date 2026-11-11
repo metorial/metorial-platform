@@ -1,6 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { getImageUrl } from '@metorial/db';
 import {
+  getReadablePluginSkillGroupIds,
   getReadablePluginSkillIds,
   hasSkillPluginArchiveAccess,
   hasSkillPluginWriteAccess
@@ -9,6 +10,49 @@ import { Presenter } from '@metorial/presenter';
 import { skillPluginType } from '../../types';
 import { skillDestinationSyncStatusPresenter } from './skillDestination';
 import { v1SkillPluginSkillPresenter } from './skillPluginSkill';
+
+let manualSourceSchema = v.object({
+  type: v.literal('manual', {
+    description: "The plugin's skills are added and removed directly on the plugin."
+  })
+});
+
+let skillGroupSourceType = v.literal('skill_group', {
+  description:
+    "The plugin's skills are synced from a skill group and cannot be edited on the plugin directly."
+});
+
+let skillGroupRefFields = {
+  id: v.string({ description: 'The ID of the skill group.' }),
+  name: v.string({ description: 'The name of the skill group.' })
+};
+
+let skillGroupRefDescription = "The skill group the plugin's skills are synced from.";
+
+let skillGroupSyncFields = {
+  unsynced_skills: v.array(
+    v.object({
+      skill_id: v.string({
+        description: 'The ID of the skill that was not synced.'
+      }),
+      reason: v.enumOf(['limit_exceeded'], {
+        description: 'Why the skill was not synced.'
+      }),
+      message: v.string({ description: 'A human-readable explanation.' })
+    }),
+    {
+      description:
+        'Group skills that are not in the plugin, for example because a plugin or marketplace limit was reached.'
+    }
+  ),
+  last_synced_at: v.nullable(
+    v.date({
+      description: 'When the plugin was last reconciled with the skill group.'
+    })
+  )
+};
+
+let sourceDescription = "Where the plugin's skills come from.";
 
 export let v1SkillPluginPresenter = Presenter.create(skillPluginType)
   .presenter(async ({ skillPlugin }, opts) => ({
@@ -61,46 +105,16 @@ export let v1SkillPluginPresenter = Presenter.create(skillPluginType)
       skill_configuration_id: v.nullable(v.string()),
       source: v.union(
         [
+          manualSourceSchema,
           v.object({
-            type: v.literal('manual', {
-              description: "The plugin's skills are added and removed directly on the plugin."
-            })
-          }),
-          v.object({
-            type: v.literal('skill_group', {
-              description:
-                "The plugin's skills are synced from a skill group and cannot be edited on the plugin directly."
+            type: skillGroupSourceType,
+            skill_group: v.object(skillGroupRefFields, {
+              description: skillGroupRefDescription
             }),
-            skill_group: v.object(
-              {
-                id: v.string({ description: 'The ID of the skill group.' }),
-                name: v.string({ description: 'The name of the skill group.' })
-              },
-              { description: "The skill group the plugin's skills are synced from." }
-            ),
-            unsynced_skills: v.array(
-              v.object({
-                skill_id: v.string({
-                  description: 'The ID of the skill that was not synced.'
-                }),
-                reason: v.enumOf(['limit_exceeded'], {
-                  description: 'Why the skill was not synced.'
-                }),
-                message: v.string({ description: 'A human-readable explanation.' })
-              }),
-              {
-                description:
-                  'Group skills that are not in the plugin, for example because a plugin or marketplace limit was reached.'
-              }
-            ),
-            last_synced_at: v.nullable(
-              v.date({
-                description: 'When the plugin was last reconciled with the skill group.'
-              })
-            )
+            ...skillGroupSyncFields
           })
         ],
-        { description: "Where the plugin's skills come from." }
+        { description: sourceDescription }
       ),
       skills: v.array(v1SkillPluginSkillPresenter.schema),
       created_at: v.date(),
@@ -133,9 +147,25 @@ export let dashboardSkillPluginPresenter = Presenter.create(skillPluginType)
         plugins: [input.skillPlugin],
         accessTags: input.accessTags
       }));
+    let readableSkillGroupIds =
+      input.pluginAccess?.readableSkillGroupIds ??
+      (await getReadablePluginSkillGroupIds({
+        plugins: [input.skillPlugin],
+        accessTags: input.accessTags
+      }));
 
     return {
       ...inner,
+      source:
+        inner.source.type === 'skill_group'
+          ? {
+              ...inner.source,
+              skill_group: {
+                ...inner.source.skill_group,
+                can_read: readableSkillGroupIds.has(inner.source.skill_group.id)
+              }
+            }
+          : inner.source,
       skills: inner.skills.map(skill => ({
         ...skill,
         can_read: readableSkillIds.has(skill.skill_id)
@@ -159,6 +189,25 @@ export let dashboardSkillPluginPresenter = Presenter.create(skillPluginType)
               })
             })
           ])
+        ),
+        source: v.union(
+          [
+            manualSourceSchema,
+            v.object({
+              type: skillGroupSourceType,
+              skill_group: v.object(
+                {
+                  ...skillGroupRefFields,
+                  can_read: v.boolean({
+                    description: 'Whether the caller can open the skill group.'
+                  })
+                },
+                { description: skillGroupRefDescription }
+              ),
+              ...skillGroupSyncFields
+            })
+          ],
+          { description: sourceDescription }
         ),
         can_update: v.boolean(),
         can_delete: v.boolean(),

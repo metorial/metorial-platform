@@ -256,7 +256,7 @@ export type AddSkillsDestinationOption = { id: string; label: string };
 
 let AddSkillsPanel = (p: {
   instanceId: string;
-  linkedSkillIds: string[];
+  linkedSkillIds: Record<string, string[]>;
   destinations: AddSkillsDestinationOption[];
   initialDestination: string;
   close: () => void;
@@ -268,7 +268,10 @@ let AddSkillsPanel = (p: {
   let [destination, setDestination] = useState(p.initialDestination);
   let [selectedSkills, setSelectedSkills] = useState<Skill[]>([]);
   let [isAdding, setIsAdding] = useState(false);
-  let linked = useMemo(() => new Set(p.linkedSkillIds), [p.linkedSkillIds]);
+  let linked = useMemo(
+    () => new Set(p.linkedSkillIds[destination] ?? []),
+    [p.linkedSkillIds, destination]
+  );
   let skillsQuery = {
     order: 'asc' as const,
     status: ['active' as const],
@@ -276,7 +279,7 @@ let AddSkillsPanel = (p: {
     ...(searchQuery ? { search: searchQuery } : {})
   };
   let skillPages = useFilledPages<Skill>({
-    resetKey: `${p.instanceId}:${searchQuery ?? ''}`,
+    resetKey: `${p.instanceId}:${destination}:${searchQuery ?? ''}`,
     target: pickerTargetCount,
     usePage: after => useSkillsPage(p.instanceId, skillsQuery, after),
     isAllowed: skill => !linked.has(skill.id)
@@ -327,7 +330,11 @@ let AddSkillsPanel = (p: {
           <Select
             label="Add To"
             value={destination}
-            onChange={setDestination}
+            onChange={value => {
+              let nextLinked = new Set(p.linkedSkillIds[value] ?? []);
+              setDestination(value);
+              setSelectedSkills(current => current.filter(skill => !nextLinked.has(skill.id)));
+            }}
             disabled={isAdding}
             items={p.destinations}
           />

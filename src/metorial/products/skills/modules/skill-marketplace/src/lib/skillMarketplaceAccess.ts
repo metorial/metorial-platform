@@ -174,6 +174,34 @@ export let getReadablePluginSkillIds = async (d: {
   return new Set(readable.map(skill => skill.id));
 };
 
+export let getReadablePluginSkillGroupIds = async (d: {
+  plugins: { skillGroupPlugin: { skillGroup: { oid: bigint; id: string } } | null }[];
+  accessTags?: AnyAccessTagSelector;
+}) => {
+  let skillGroups = d.plugins.flatMap(plugin =>
+    plugin.skillGroupPlugin ? [plugin.skillGroupPlugin.skillGroup] : []
+  );
+  if (!d.accessTags) return new Set(skillGroups.map(skillGroup => skillGroup.id));
+  if (!skillGroups.length) return new Set<string>();
+
+  let accessTagEntities = await accessTagService.getAccessTagFilter({
+    tags: d.accessTags,
+    roles: [...consumerSkillReadRoles]
+  });
+  if (!accessTagEntities) return new Set<string>();
+
+  let readable = await db.skillGroup.findMany({
+    where: {
+      oid: { in: [...new Set(skillGroups.map(skillGroup => skillGroup.oid))] },
+      status: 'active',
+      accessTagEntities
+    },
+    select: { id: true }
+  });
+
+  return new Set(readable.map(skillGroup => skillGroup.id));
+};
+
 export let getArchivableSkillPluginIds = async (d: {
   plugins: { oid: bigint; id: string }[];
   accessTags?: AnyAccessTagSelector;
@@ -181,8 +209,27 @@ export let getArchivableSkillPluginIds = async (d: {
   if (!d.accessTags) return new Set(d.plugins.map(plugin => plugin.id));
   if (!d.plugins.length) return new Set<string>();
 
+  let pluginWriteEntities = await accessTagService.getAccessTagFilter({
+    tags: d.accessTags,
+    roles: [...consumerSkillPluginWriteRoles]
+  });
+  let managedPlugins = pluginWriteEntities
+    ? await db.skillPlugin.findMany({
+        where: {
+          oid: { in: d.plugins.map(plugin => plugin.oid) },
+          accessTagEntities: pluginWriteEntities
+        },
+        select: { oid: true }
+      })
+    : [];
+  let managedPluginOids = new Set(managedPlugins.map(plugin => plugin.oid));
+
+  let archivable = new Set(
+    d.plugins.filter(plugin => managedPluginOids.has(plugin.oid)).map(plugin => plugin.id)
+  );
+
   let marketplaceWriteWhere = await getSkillMarketplaceWriteAccessWhere(d);
-  if (!marketplaceWriteWhere) return new Set<string>();
+  if (!marketplaceWriteWhere) return archivable;
 
   let memberships = await db.skillMarketplacePlugin.findMany({
     where: {
@@ -221,7 +268,6 @@ export let getArchivableSkillPluginIds = async (d: {
     membershipsByPlugin.set(membership.skillPluginOid, current);
   }
 
-  let archivable = new Set<string>();
   for (let plugin of d.plugins) {
     let pluginMemberships = membershipsByPlugin.get(plugin.oid) ?? [];
     if (!pluginMemberships.length) continue;
@@ -275,7 +321,6 @@ export let assertSkillPluginArchiveAccess = async (d: {
 
 export let assertConsumerCanAttachSkillToPlugin = async (d: {
   skill: { oid: bigint };
-  skillPlugin: { oid: bigint };
   accessTags: AnyAccessTagSelector;
 }) => {
   let skillAccessWhere = await getConsumerSkillAccessWhere(d);
@@ -290,39 +335,9 @@ export let assertConsumerCanAttachSkillToPlugin = async (d: {
     if (readableSkill) return;
   }
 
-  let marketplaceAccessWhere = await getSkillMarketplaceAccessWhere(d);
-  if (marketplaceAccessWhere) {
-    let catalogSkill = await db.skillPluginSkill.findFirst({
-      where: {
-        skillOid: d.skill.oid,
-        status: 'active',
-        skillPlugin: {
-          skillMarketplacePlugins: {
-            some: {
-              status: 'active',
-              skillMarketplace: {
-                status: 'active',
-                AND: [marketplaceAccessWhere],
-                plugins: {
-                  some: {
-                    status: 'active',
-                    skillPluginOid: d.skillPlugin.oid
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      select: { oid: true }
-    });
-    if (catalogSkill) return;
-  }
-
   throw new ServiceError(
     forbiddenError({
-      message:
-        'You can only add skills that are already in this marketplace catalog or that you can read.'
+      message: 'You can only add skills that you can read.'
     })
   );
 };

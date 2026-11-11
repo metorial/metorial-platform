@@ -96,6 +96,7 @@ export let skillPluginInclude = {
     include: {
       skillGroup: {
         select: {
+          oid: true,
           id: true,
           name: true,
           status: true
@@ -391,7 +392,8 @@ class SkillPluginServiceImpl {
     if (d.accessTags && d.input.skillGroupId) {
       throw new ServiceError(
         badRequestError({
-          message: 'Skill group plugins can only be created from the dashboard or with an API key.'
+          message:
+            'Skill group plugins can only be created from the dashboard or with an API key.'
         })
       );
     }
@@ -420,7 +422,9 @@ class SkillPluginServiceImpl {
     this.assertName(name);
 
     let description =
-      d.input.description !== undefined ? d.input.description : (skillGroup?.description ?? null);
+      d.input.description !== undefined
+        ? d.input.description
+        : (skillGroup?.description ?? null);
     let skillGroupSkills = skillGroup
       ? await getSkillGroupPluginTargetSkills({ skillGroupOid: skillGroup.oid })
       : [];
@@ -571,7 +575,9 @@ class SkillPluginServiceImpl {
             skillPluginOid: skillPlugin.oid
           }
         });
-        await reconcileSkillGroupPluginMembership({ skillGroupPluginOid: skillGroupPlugin.oid });
+        await reconcileSkillGroupPluginMembership({
+          skillGroupPluginOid: skillGroupPlugin.oid
+        });
 
         skillPlugin = await db.skillPlugin.findUniqueOrThrow({
           where: { oid: skillPlugin.oid },
