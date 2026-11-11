@@ -56,6 +56,13 @@ background daemon that is started on demand; the CLI is a thin client and `contr
 attaches the log TUI. Pass `--foreground` for the previous behavior (Turbo TUI in the
 current terminal).
 
+Before starting or restarting a service, control checks its local bind ports for TCP
+listeners using `lsof` (required on the host). It logs each conflicting process's name,
+PID and port, sends `SIGTERM`, then uses `SIGKILL` if the port remains occupied after
+three seconds. Startup waits for the ports to be released and fails if cleanup cannot
+complete. Other active commands managed by the workspace are preserved. Foreground
+mode performs the same cleanup before launching its services.
+
 ```sh
 bun run control up              # start the workspace in the daemon and return
 bun run control ls              # all workspaces known to the daemon

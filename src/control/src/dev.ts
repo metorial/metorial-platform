@@ -9,6 +9,7 @@ import { databaseOwnerEnvironments, databasePackages, runDatabaseScripts } from 
 import * as commands from './process';
 import * as infrastructure from './infrastructure';
 import * as proxy from './proxy';
+import { clearServicePorts } from './ports';
 import type { Environment, LoadedManifest, ProjectRoot } from './types';
 
 export let syncDockerfiles = (project: ProjectRoot, manifests: LoadedManifest[]) => {
@@ -249,6 +250,17 @@ export let run = async (
     let result: unknown;
 
     try {
+      await clearServicePorts(
+        selected
+          .filter(({ manifest }) => Object.keys(manifest.run).length)
+          .flatMap(({ manifest }) =>
+            Object.values(manifest.endpoints).map(
+              endpoint => endpoint.bind_port ?? endpoint.port
+            )
+          ),
+        project.root,
+        commands.say
+      );
       await commands.wait(
         commands.spawn(
           program,
