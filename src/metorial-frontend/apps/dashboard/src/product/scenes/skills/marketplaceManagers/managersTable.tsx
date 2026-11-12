@@ -74,7 +74,7 @@ let removeAction = (description: (row: MarketplaceManagerRow) => string) =>
 
 let managersFilters = () => ({
   kind: f.select('kind', 'Kind', [
-    { id: 'group', label: 'Group' },
+    { id: 'group', label: 'Access Group' },
     { id: 'account', label: 'Account' }
   ] as const)
 });
@@ -105,14 +105,14 @@ let marketplaceManagersPeopleTable = createDataList<MarketplaceManagersTableProp
   .items(useManagerRows, { searchFields: getSearchValues })
   .columns([
     col.name<MarketplaceManagerRow>({
-      description: row => row.description || (row.kind == 'account' ? 'Account' : 'Group')
+      description: row => row.description || (row.kind == 'account' ? 'Account' : 'Access Group')
     }),
     col.custom<MarketplaceManagerRow>({
       id: 'kind',
       header: 'Kind',
       render: row => (
         <Badge color="gray" size="2">
-          {row.kind == 'account' ? 'Account' : 'Group'}
+          {row.kind == 'account' ? 'Account' : 'Access Group'}
         </Badge>
       )
     }),

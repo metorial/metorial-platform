@@ -168,6 +168,9 @@ let IntegrationInstancesPage = dynamicPage(() =>
 let IntegrationUsagePage = dynamicPage(() =>
   import('./pages/(integrations)/integration/usage').then(c => c.IntegrationUsagePage)
 );
+let IntegrationAccessPage = dynamicPage(() =>
+  import('./pages/(integrations)/integration/access').then(c => c.IntegrationAccessPage)
+);
 let IntegrationSettingsPage = dynamicPage(() =>
   import('./pages/(integrations)/integration/settings').then(c => c.IntegrationSettingsPage)
 );
@@ -205,6 +208,9 @@ let MagicMcpServerOverviewPage = dynamicPage(() =>
 );
 let MagicMcpServerUsagePage = dynamicPage(() =>
   import('./pages/magic-mcp/server/usage').then(c => c.MagicMcpServerUsagePage)
+);
+let MagicMcpServerAccessPage = dynamicPage(() =>
+  import('./pages/magic-mcp/server/access').then(c => c.MagicMcpServerAccessPage)
 );
 let MagicMcpServerConfigPage = dynamicPage(() =>
   import('./pages/magic-mcp/server/config').then(c => c.MagicMcpServerConfigPage)
@@ -1151,6 +1157,10 @@ export let productIntegrationsSlice = createSlice([
                 )
               },
               {
+                path: 'access',
+                element: <IntegrationAccessPage />
+              },
+              {
                 path: 'settings',
                 element: <IntegrationSettingsPage />
               }
@@ -1244,6 +1254,10 @@ export let productIntegrationsSlice = createSlice([
                   {
                     path: 'usage',
                     element: <MagicMcpServerUsagePage />
+                  },
+                  {
+                    path: 'access',
+                    element: <MagicMcpServerAccessPage />
                   },
                   {
                     path: 'config',

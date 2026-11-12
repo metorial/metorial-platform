@@ -62,10 +62,10 @@ export let ShareList = <TData,>(p: {
         <div>
           <Combobox<TData>
             key={resetKey}
-            label="Add groups or people"
+            label="Add access groups or people"
             hideLabel
             size="2"
-            placeholder={p.addPlaceholder ?? 'Add groups or people…'}
+            placeholder={p.addPlaceholder ?? 'Add access groups or people…'}
             disabled={p.disabled}
             value={null}
             provider={p.provider}

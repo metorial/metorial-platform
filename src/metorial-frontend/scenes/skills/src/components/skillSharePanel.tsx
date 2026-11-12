@@ -558,7 +558,7 @@ export let SkillSharePanelContent = (p: {
         type: 'group',
         id: group.id,
         name: group.name,
-        description: group.description || 'Portal group',
+        description: group.description || 'Access Group',
         imageUrl: `https://avatar.metorial-cdn.com/${group.id}`
       });
     }
@@ -831,11 +831,11 @@ export let SkillSharePanelContent = (p: {
                   />
                 )}
                 <Input
-                  label="Add people or groups"
+                  label="Add people or access groups"
                   hideLabel
                   size="2"
                   style={{ flex: 1 }}
-                  placeholder={canManagePortalGroups ? 'Add people or groups' : 'Add people'}
+                  placeholder={canManagePortalGroups ? 'Add people or access groups' : 'Add people'}
                   value={search}
                   onFocus={() => setIsSearching(true)}
                   onInput={value => {
@@ -869,7 +869,7 @@ export let SkillSharePanelContent = (p: {
                         <PersonInfo>
                           <PersonName>
                             <Truncate>{candidate.name}</Truncate>
-                            {candidate.type == 'group' && <GroupPill>Group</GroupPill>}
+                            {candidate.type == 'group' && <GroupPill>Access Group</GroupPill>}
                           </PersonName>
                           <Muted>{candidate.description}</Muted>
                         </PersonInfo>
@@ -890,7 +890,7 @@ export let SkillSharePanelContent = (p: {
 
                 <InvitePermissionFooter>
                   <InvitePermissionLabel>
-                    {selectedCount ? `${selectedCount} selected` : 'Pick people or groups'}
+                    {selectedCount ? `${selectedCount} selected` : 'Pick people or access groups'}
                     {selectedHasViewOnly && permission != 'read'
                       ? ' · organization members can only view'
                       : ''}
@@ -1006,9 +1006,9 @@ export let SkillSharePanelContent = (p: {
                         <PersonInfo>
                           <PersonName>
                             <Truncate>{access.consumerGroup.name}</Truncate>
-                            <GroupPill>Group</GroupPill>
+                            <GroupPill>Access Group</GroupPill>
                           </PersonName>
-                          <Muted>{access.consumerGroup.description || 'Portal group'}</Muted>
+                          <Muted>{access.consumerGroup.description || 'Access Group'}</Muted>
                         </PersonInfo>
                         <AccessSelectWrap>
                           <Select
@@ -1044,7 +1044,7 @@ export let SkillSharePanelContent = (p: {
                         <PersonInfo>
                           <PersonName>
                             <Truncate>{access.consumerGroup.name}</Truncate>
-                            <GroupPill>Group</GroupPill>
+                            <GroupPill>Access Group</GroupPill>
                           </PersonName>
                           <Muted>
                             Through{' '}

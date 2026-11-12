@@ -86,7 +86,7 @@ let useManagerCandidates = (d: {
       ...(personItems.length ? [{ label: 'People', items: personItems }] : [])
     ],
     isLoading: groups.isLoading || people.isLoading,
-    empty: d.searchQuery ? 'No matching groups or people.' : 'Everyone is already a manager.'
+    empty: d.searchQuery ? 'No matching access groups or people.' : 'Everyone is already a manager.'
   };
 };
 
@@ -166,7 +166,7 @@ export let MarketplaceManagerShareList = (p: {
       <ShareList<ManagerCandidate>
         title={p.title}
         description={p.description}
-        addPlaceholder="Add groups or people as managers…"
+        addPlaceholder="Add access groups or people as managers…"
         disabled={createAccess.isLoading}
         provider={({ searchQuery }) =>
           useManagerCandidates({
@@ -225,7 +225,7 @@ export let MarketplaceManagerShareList = (p: {
                     />
                   }
                   title={row.name}
-                  subtitle={row.description ?? (row.kind == 'account' ? 'Person' : 'Group')}
+                  subtitle={row.description ?? (row.kind == 'account' ? 'Person' : 'Access Group')}
                 />
               }
               detail={
