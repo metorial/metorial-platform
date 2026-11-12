@@ -34,6 +34,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "openai/gpt-4o-mini-search": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenAI's GPT-4o mini Search Preview (Mar 2025), a tool-specific model trained for web search in Chat Completions, since shut down; a distinct checkpoint from GPT-4o mini and the index has no entry (only gpt-5-search-api), so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-4o-search": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenAI's GPT-4o Search Preview (Mar 2025), a tool-specific model trained for web search in Chat Completions, since shut down; a distinct checkpoint from GPT-4o and the index has no entry (only gpt-5-search-api), so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "poetools/claude-code": {
     "decision": "exclude",
     "category": "other",

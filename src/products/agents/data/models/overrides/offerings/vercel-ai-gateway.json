@@ -104,6 +104,27 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "openai/gpt-5.1-thinking": {
+    "decision": "link",
+    "model": "openai/gpt-5.1",
+    "reason": "GPT 5.1 Thinking is the reasoning-focused member of the GPT-5.1 family — a thinking-mode serving of the GPT-5.1 checkpoint (400K context, 1.25/10 per Vercel/OpenAI); still openai/gpt-5.1.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-5.1-thinking-fast": {
+    "decision": "link",
+    "model": "openai/gpt-5.1",
+    "reason": "GPT 5.1 Thinking (Fast) is the fast-mode serving of the same GPT-5.1 thinking checkpoint at double the token rate (per Vercel's listing); a fast serving is still openai/gpt-5.1.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6-luna-decisions": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "GPT-6 Luna Decisions is GPT-6 Luna served through OpenAI's Decisions API, returning typed probabilities instead of text (per Vercel/OpenAI docs); the catalog models decision-API variants as separate entries (cf. google/gemini-decision-1) and the index has no OpenAI decisions entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "prodia/flux-fast-schnell": {
     "decision": "link",
     "model": "black-forest-labs/flux-1-schnell",
@@ -111,10 +132,24 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "stealth/glyph-cluster": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Glyph Cluster is a stealth-preview reasoning model from a third-party provider that has chosen to remain anonymous, free during stealth (per Vercel's changelog); a real new model with no named lab and no index entry, so defer until it is revealed.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "xiaomi/mimo-v2.6-pro-ultraspeed": {
     "decision": "link",
     "model": "xiaomi/mimo-v2.6-pro",
     "reason": "MiMo V2.6 Pro UltraSpeed is Xiaomi's fast-serving tier of the same 1T MiMo-V2.6-Pro checkpoint (same quality, up to 20x output speed); still xiaomi/mimo-v2.6-pro at the 4.35/8.7 speed-tier price.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "zai/glm-5.3-flashx-legal": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Z.ai's GLM-Legal (GLM-5.3-FlashX-Legal), the legal-domain variant of GLM-5.3-FlashX (per Z.ai/OpenRouter listings, Nov 2026); the index has no GLM-Legal or GLM-5.3-FlashX entry, so defer.",
     "by": "agent",
     "at": "2026-11-12"
   }

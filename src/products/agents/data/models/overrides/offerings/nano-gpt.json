@@ -27,6 +27,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "GLM-4.6-Derestricted-v5": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "ArliAI's GLM-4.6-Derestricted-v5, a derestricted build of Z.ai's 355B GLM-4.6 with refusal behavior modified to reduce refusals (per ArliAI/muapi listings); a weight-edited derivative is not zhipu/glm-4.6 itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "Gemma-4-26B-A4B-MeroMero": {
     "decision": "exclude",
     "category": "fine-tune",
@@ -710,6 +717,27 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "openai/gpt-6-astra-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6-astra",
+    "reason": "OpenAI's GPT-6 Astra Pro is the same underlying model as GPT-6 Astra served with reasoning.mode set to pro (per OpenRouter's listing); a pro reasoning-mode serving is still openai/gpt-6-astra at the 10/50 pro rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6-luna-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6-luna",
+    "reason": "GPT-6 Luna Pro is the same underlying model as GPT-6 Luna with reasoning.mode set to pro (per OpenRouter's listing); a pro reasoning-mode serving is still openai/gpt-6-luna at the 0.1/0.5 pro rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6-sol-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6-sol",
+    "reason": "GPT-6 Sol Pro is the same underlying model as GPT-6 Sol with reasoning.mode set to pro (per OpenRouter's listing); a pro reasoning-mode serving is still openai/gpt-6-sol at the 2/10 pro rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "pqhaz/DeepSeek-V4.1-Flash-1017-heretic": {
     "decision": "exclude",
     "category": "fine-tune",
@@ -763,6 +791,62 @@
     "decision": "exclude",
     "category": "fine-tune",
     "reason": "xtools-at's uncensored Heretic build, listed on Hugging Face as a finetune of Jackrong/DeepSeek-V4-Pro-Qwen3.5-9B, itself a Qwen3.5 9B distill of DeepSeek V4 Pro; a derivative of a distill is not any catalog model, and the index has no entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "z-ai/GLM-4.6-turbo": {
+    "decision": "link",
+    "model": "zhipu/glm-4.6",
+    "reason": "NanoGPT's page: a fast variant of GLM 4.6 for general chat, coding and analysis with improved latency — same 204.8K context as GLM-4.6 with speed-tier pricing (0.55/2.2), like Z.ai's AirX speed tiers; still zhipu/glm-4.6.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "z-ai/GLM-4.6-turbo:thinking": {
+    "decision": "link",
+    "model": "zhipu/glm-4.6",
+    "reason": "The :thinking suffix is thinking-mode serving of GLM 4.6 Turbo, itself the fast tier of the GLM-4.6 checkpoint (same 204.8K context); a thinking/fast serving is still zhipu/glm-4.6.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "z-ai/glm-5.3-flash-apex": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Apex Flash 1 is Cantina Security and Yeta Labs' cybersecurity post-train of Z.ai's GLM-5.3-Flash (GRPO with rank-256 LoRA plus selective full-parameter training, per their release); a fine-tune is not zhipu/glm-5.3-flash itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "z-ai/glm-5.3-flash-apex-abliterated": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "An abliterated derivative of Cantina/Yeta's Apex Flash 1 — itself a GLM-5.3-Flash post-train — with refusal behavior modified in the weights (per Modeldex); a weight-edited derivative is not zhipu/glm-5.3-flash itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "z-ai/glm-5.3-flash-cybersecurity": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Listings describe a cybersecurity-tuned variant whose base model is GLM-5.3 Flash, attributed to Z.ai (Sep 2026); sources conflict on whether the weights differ from stock, and the index has no entry for it, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "z-ai/glm-5.3-flash-uncensored": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "dealignai's uncensored build of GLM-5.3-Flash with refusal behavior removed directly in the weights, vision input kept (per Heabsy/Infron listings); a weight-edited derivative is not zhipu/glm-5.3-flash itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "z-ai/glm-5.3-flashx-legal": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Z.ai's GLM-Legal (GLM-5.3-FlashX-Legal), the legal-domain mid/post-training variant of GLM-5.3-FlashX listed Nov 2, 2026 (per OpenRouter/i-scoop); the index has no GLM-Legal or FlashX entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "z-ai/glm-5.3-uncensored": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "dealignai/Arnict's GLM 5.3 Abliterated — the full 753B GLM-5.3 with refusal behavior removed directly in the weights (per Infron/Heabsy listings); a weight-edited derivative is not zhipu/glm-5.3 itself.",
     "by": "agent",
     "at": "2026-11-12"
   }

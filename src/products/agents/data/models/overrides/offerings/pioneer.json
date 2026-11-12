@@ -54,5 +54,19 @@
     "reason": "Fastino's GLiNER2-PII is a 300M multilingual PII detection and masking token-classification model (per its Hugging Face card); a privacy-filter classifier is a non-chat model no catalog entry matches.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "fastino/gliner2.5-base-v1": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Fastino's GLiNER2.5 Base is a 0.2B span-free information-extraction model doing NER, relation extraction and constrained classification (per Fastino's blog and Hugging Face); a task extraction model is non-chat, matching the GLiNER2 base decision.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "fastino/gliner2.5-multi-v1": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Fastino's GLiNER2.5 Multi is the 0.3B multilingual span-free extraction checkpoint built on mDeBERTa-v3-base (per Fastino's blog and its model card); an entity/relation extraction task model is non-chat, matching the GLiNER2 multi decision.",
+    "by": "agent",
+    "at": "2026-11-12"
   }
 }

@@ -27,6 +27,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "glm-4-32b-0414-128k": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Z.ai's GLM-4-32B-0414 open-weight checkpoint (Apr 2024, 128K context); the index's Zhipu GLM line starts at GLM-4.5 and has no GLM-4 32B or thudm entry, so defer rather than link the wrong generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "glm-4.5-airx": {
     "decision": "link",
     "model": "zhipu/glm-4.5-air",
@@ -92,6 +99,13 @@
     "decision": "link",
     "model": "meta/llama-3.3-70b-instruct",
     "reason": "LLM Gateway's Novita route for Meta's open-weight Llama 3.3 70B Instruct; the 0.135/0.4 rate is a discount off the model's 0.705 median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "zai/glm-4-32b-0414-128k": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "The same Z.ai GLM-4-32B-0414 checkpoint (Apr 2024) under LLM Gateway's namespaced id; the index has no GLM-4-generation entry (its Zhipu line starts at GLM-4.5), so defer rather than link the wrong generation.",
     "by": "agent",
     "at": "2026-11-12"
   },

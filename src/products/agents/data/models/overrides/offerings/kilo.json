@@ -90,6 +90,34 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "openai/gpt-3.5-turbo-16k": {
+    "decision": "link",
+    "model": "openai/gpt-3.5-turbo",
+    "reason": "The gpt-3.5-turbo-16k endpoint is the same GPT-3.5 Turbo model served with the 16K context window (the index entry already lists 16,385 tokens of context); still openai/gpt-3.5-turbo.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6-astra-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6-astra",
+    "reason": "OpenAI's GPT-6 Astra Pro is the same underlying model as GPT-6 Astra served with reasoning.mode set to pro (per OpenRouter's listing); a pro reasoning-mode serving is still openai/gpt-6-astra at the 10/50 pro rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6-luna-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6-luna",
+    "reason": "GPT-6 Luna Pro is the same underlying model as GPT-6 Luna with reasoning.mode set to pro (per OpenRouter's listing); a pro reasoning-mode serving is still openai/gpt-6-luna at the 0.1/0.5 pro rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6-sol-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6-sol",
+    "reason": "GPT-6 Sol Pro is the same underlying model as GPT-6 Sol with reasoning.mode set to pro (per OpenRouter's listing); a pro reasoning-mode serving is still openai/gpt-6-sol at the 2/10 pro rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "openrouter/bodybuilder": {
     "decision": "exclude",
     "category": "other",
@@ -104,10 +132,31 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "stealth/glyph-cluster": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Glyph Cluster is a stealth-preview reasoning model from a third-party provider that has chosen to remain anonymous, free during stealth (per Vercel's changelog); a real new model with no named lab and no index entry, so defer until it is revealed.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "xiaomi/mimo-v2.6-pro-ultraspeed": {
     "decision": "link",
     "model": "xiaomi/mimo-v2.6-pro",
     "reason": "MiMo-V2.6-Pro-UltraSpeed is Xiaomi's fast-serving tier of the same 1T MiMo-V2.6-Pro checkpoint (same quality, ~10x output speed); still xiaomi/mimo-v2.6-pro at the 4.35/8.7 speed-tier price.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "z-ai/glm-5.3-flashx-legal": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Z.ai's GLM-Legal (GLM-5.3-FlashX-Legal), the legal-domain variant of GLM-5.3-FlashX priced late Oct 2026 and listed on OpenRouter Nov 2 (per i-scoop); the index has no GLM-Legal or GLM-5.3-FlashX entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "z-ai/glm-5.3-prime": {
+    "decision": "link",
+    "model": "zhipu/glm-5.3",
+    "reason": "GLM-5.3-Prime is Z.ai's high-speed serving of the GLM-5.3 checkpoint: same capabilities with 1.5-2x output throughput via inference acceleration (per Z.ai listings); a fast serving is still zhipu/glm-5.3 at the 2.8/8.8 speed tier.",
     "by": "agent",
     "at": "2026-11-12"
   },

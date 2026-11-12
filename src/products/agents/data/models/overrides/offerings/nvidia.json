@@ -1,4 +1,11 @@
 {
+  "google/google-paligemma": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Google's PaliGemma, the open 3B vision-language task model (SigLIP + Gemma, May 2024) for captioning, VQA, detection and segmentation, served as a NVIDIA NIM; the index has no PaliGemma entry to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "nvidia/active-speaker-detection": {
     "decision": "exclude",
     "category": "non-chat",

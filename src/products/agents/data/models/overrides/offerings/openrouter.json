@@ -118,6 +118,48 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "openai/gpt-3.5-turbo-16k": {
+    "decision": "link",
+    "model": "openai/gpt-3.5-turbo",
+    "reason": "OpenRouter lists OpenAI's gpt-3.5-turbo-16k, the same GPT-3.5 Turbo model served with the 16K context window (the index entry already lists 16,385 tokens); still openai/gpt-3.5-turbo.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6-astra-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6-astra",
+    "reason": "OpenRouter's listing: GPT-6 Astra Pro is the same underlying model as GPT-6 Astra served with reasoning.mode set to pro; a pro reasoning-mode serving is still openai/gpt-6-astra at the 10/50 pro rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6-astra-pro:batch": {
+    "decision": "link",
+    "model": "openai/gpt-6-astra",
+    "reason": "The :batch suffix is batch pricing for GPT-6 Astra Pro, the pro reasoning-mode serving of the GPT-6 Astra checkpoint (per OpenRouter's listing); same model as openai/gpt-6-astra at discounted batch rates (5/25).",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6-luna-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6-luna",
+    "reason": "OpenRouter's listing: GPT-6 Luna Pro is the same underlying model as GPT-6 Luna served with reasoning.mode set to pro; a pro reasoning-mode serving is still openai/gpt-6-luna at the 0.1/0.5 pro rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6-luna-pro:batch": {
+    "decision": "link",
+    "model": "openai/gpt-6-luna",
+    "reason": "The :batch suffix is batch pricing for GPT-6 Luna Pro, the pro reasoning-mode serving of the GPT-6 Luna checkpoint (per OpenRouter's listing); same model as openai/gpt-6-luna at discounted batch rates (0.05/0.25).",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6-sol-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6-sol",
+    "reason": "OpenRouter's listing: GPT-6 Sol Pro is the same underlying model as GPT-6 Sol served with reasoning.mode set to pro; a pro reasoning-mode serving is still openai/gpt-6-sol at the 2/10 pro rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "openai/gpt-oss-120b:batch": {
     "decision": "link",
     "model": "openai/gpt-oss-120b",
@@ -176,6 +218,20 @@
     "decision": "link",
     "model": "zhipu/glm-5.3",
     "reason": "Z.ai's GLM-5.3 (zai-org/GLM-5.3 on Hugging Face, launched 2026-08-14, same base model as GLM-5.2 with post-training gains) matches zhipu/glm-5.3; OpenRouter's 0.0699/1.4 rate is a discount off the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "z-ai/glm-5.3-flashx-legal": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenRouter's listing: Z.ai's GLM-5.3-FlashX-Legal (GLM-Legal), the legal-domain mid/post-training variant of GLM-5.3-FlashX (canonicalSlug 20261102); the index has no GLM-Legal or FlashX entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "z-ai/glm-5.3-prime": {
+    "decision": "link",
+    "model": "zhipu/glm-5.3",
+    "reason": "OpenRouter's listing: GLM-5.3-Prime is the high-speed variant of GLM-5.3 inheriting its full capabilities via inference acceleration (canonicalSlug 20260921); a fast serving of the checkpoint is still zhipu/glm-5.3 at the 2.8/8.8 speed tier.",
     "by": "agent",
     "at": "2026-11-12"
   },
