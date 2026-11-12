@@ -12,6 +12,7 @@ import {
   getScmProviderErrorDetails,
   getScmProviderErrorStatus,
   isRetryableScmProviderError,
+  ScmMergeNotReadyError,
   wrapScmProviderError
 } from './scmProviderError';
 import type { RepositorySyncStatusSnapshot } from '../services/repositorySyncState';
@@ -63,11 +64,10 @@ let getGitLabMergeRequest = async (
   projectId: number,
   mergeRequestIid: number
 ): Promise<GitLabMergeRequestStatus> =>
-  (await gitlab.MergeRequests.show(projectId, mergeRequestIid, {
-    withMergeStatusRecheck: true
-  } as NonNullable<Parameters<GitLabClient['MergeRequests']['show']>[2]> & {
-    withMergeStatusRecheck: boolean;
-  })) as unknown as GitLabMergeRequestStatus;
+  (await gitlab.MergeRequests.show(
+    projectId,
+    mergeRequestIid
+  )) as unknown as GitLabMergeRequestStatus;
 
 let getBitbucketClient = async (repo: SyncWithRepo['repo']) =>
   createBitbucketClientWithInstallation(repo.installation);
@@ -1163,13 +1163,15 @@ export let createRepositorySyncPullRequest = async (
         baseBranch: sync.baseBranch,
         branchName: sync.branchName
       });
-      if (e.response?.status !== 409 && e.response?.status !== 400) throw e;
+      if (![409, 400].includes(getScmProviderErrorStatus(e) ?? 0)) throw e;
 
       let mergeRequests = await gitlab.MergeRequests.all({
         projectId: parseInt(sync.repo.externalId),
         sourceBranch: sync.branchName,
         targetBranch: sync.baseBranch,
-        state: 'opened'
+        state: 'opened',
+        perPage: 1,
+        maxPages: 1
       });
 
       let mr = mergeRequests[0];
@@ -1794,7 +1796,7 @@ export let getRepositorySyncStatusSnapshot = async (
     let projectId = parseInt(sync.repo.externalId);
     let [mergeRequest, pipelines] = await Promise.all([
       getGitLabMergeRequest(gitlab, projectId, parseInt(providerPrId)),
-      gitlab.Pipelines.all(projectId, { ref: sync.branchName, perPage: 1 })
+      gitlab.Pipelines.all(projectId, { ref: sync.branchName, perPage: 1, maxPages: 1 })
     ]);
     let pipeline = pipelines[0];
     let pipelineState = typeof pipeline?.status === 'string' ? pipeline.status : undefined;
@@ -2072,7 +2074,8 @@ export let getRepositorySyncCiState = async (
       [pipelines, mergeRequest] = await Promise.all([
         gitlab.Pipelines.all(parseInt(sync.repo.externalId), {
           ref: sync.branchName,
-          perPage: 1
+          perPage: 1,
+          maxPages: 1
         }),
         getGitLabMergeRequest(
           gitlab,
@@ -2275,10 +2278,33 @@ export let mergeRepositorySyncPullRequest = async (
           undefined
       };
     }
-    let sourceSha = mergeRequestBeforeMerge.sha ?? mergeRequestBeforeMerge.diff_refs?.head_sha;
-    if (!sourceSha) {
-      throw new Error('GitLab did not return the merge request source SHA');
+    let detailed =
+      mergeRequestBeforeMerge.detailed_merge_status ??
+      mergeRequestBeforeMerge.detailedMergeStatus;
+    if (
+      !detailed ||
+      [
+        'unchecked',
+        'checking',
+        'preparing',
+        'approvals_syncing',
+        'unknown',
+        'conflict',
+        'cannot_be_merged',
+        'need_rebase'
+      ].includes(detailed) ||
+      (detailed !== 'mergeable' &&
+        !sync.forceMergeOrPush &&
+        !(
+          sync.mergeBeforeChecksPass && ['ci_still_running', 'ci_must_pass'].includes(detailed)
+        ))
+    ) {
+      throw new ScmMergeNotReadyError();
     }
+
+    let sourceSha = mergeRequestBeforeMerge.sha ?? mergeRequestBeforeMerge.diff_refs?.head_sha;
+    if (!sourceSha) throw new ScmMergeNotReadyError('source_commit_pending');
+
     logGitLabSyncDebug('merging merge request', {
       syncId: sync.id,
       repoId: sync.repo.id,

@@ -1,10 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { Gitlab } from '@gitbeaker/rest';
+import { ScmMergeNotReadyError } from './scmProviderError';
 import { createBitbucketClientWithInstallation } from './bitbucket';
 import { createGitLabClientWithInstallation } from './gitlab';
 import { createGitHubInstallationClient } from './githubApp';
 import {
   closeRepositorySyncPullRequest,
   createRepositorySyncBranch,
+  createRepositorySyncPullRequest,
   getRepositorySyncCiState,
   getRepositorySyncStatusSnapshot,
   mergeRepositorySyncPullRequest,
@@ -76,10 +79,13 @@ describe('GitLab repository sync', () => {
         create: vi.fn()
       },
       MergeRequests: {
+        create: vi.fn(),
+        all: vi.fn(),
         edit: vi.fn(),
         merge: vi.fn(),
         show: vi.fn().mockResolvedValue({
           state: 'opened',
+          detailed_merge_status: 'mergeable',
           sha: 'source_sha'
         })
       },
@@ -370,7 +376,11 @@ describe('GitLab repository sync', () => {
   it('treats a 405 as success when GitLab already merged the merge request', async () => {
     gitlab.MergeRequests.merge.mockRejectedValue({ cause: { response: { statusCode: 405 } } });
     gitlab.MergeRequests.show
-      .mockResolvedValueOnce({ state: 'opened', sha: 'source_sha' })
+      .mockResolvedValueOnce({
+        state: 'opened',
+        detailed_merge_status: 'mergeable',
+        sha: 'source_sha'
+      })
       .mockResolvedValueOnce({
         state: 'merged',
         merge_commit_sha: 'merge_sha'
@@ -379,6 +389,97 @@ describe('GitLab repository sync', () => {
     await expect(mergeRepositorySyncPullRequest(createSync())).resolves.toEqual({
       mergeSha: 'merge_sha'
     });
+  });
+
+  it.each([
+    'checking',
+    'preparing',
+    'approvals_syncing',
+    'unchecked',
+    'unknown',
+    'not_approved',
+    'conflict'
+  ])(
+    'waits when fresh GitLab mergeability is %s without restarting the check',
+    async detailed => {
+      gitlab.MergeRequests.show.mockResolvedValue({
+        state: 'opened',
+        detailed_merge_status: detailed,
+        sha: 'source_sha'
+      });
+
+      await expect(mergeRepositorySyncPullRequest(createSync())).rejects.toBeInstanceOf(
+        ScmMergeNotReadyError
+      );
+      expect(gitlab.MergeRequests.merge).not.toHaveBeenCalled();
+      expect(gitlab.MergeRequests.show).toHaveBeenCalledWith(123, 42);
+    }
+  );
+
+  it('preserves early merge attempts when checks are still running', async () => {
+    gitlab.MergeRequests.show.mockResolvedValue({
+      state: 'opened',
+      detailed_merge_status: 'ci_still_running',
+      sha: 'source_sha'
+    });
+    gitlab.MergeRequests.merge.mockResolvedValue({ merge_commit_sha: 'merge_sha' });
+
+    await expect(
+      mergeRepositorySyncPullRequest(createSync({ mergeBeforeChecksPass: true }))
+    ).resolves.toEqual({ mergeSha: 'merge_sha' });
+  });
+
+  it('waits for the source commit to be available before merging', async () => {
+    gitlab.MergeRequests.show.mockResolvedValue({
+      state: 'opened',
+      detailed_merge_status: 'mergeable'
+    });
+
+    await expect(mergeRepositorySyncPullRequest(createSync())).rejects.toBeInstanceOf(
+      ScmMergeNotReadyError
+    );
+    expect(gitlab.MergeRequests.merge).not.toHaveBeenCalled();
+  });
+
+  it('recovers an existing merge request from a Gitbeaker conflict response', async () => {
+    gitlab.MergeRequests.create.mockRejectedValue({ cause: { response: { status: 409 } } });
+    gitlab.MergeRequests.all.mockResolvedValue([
+      { iid: 42, web_url: 'https://gitlab.example/mr/42' }
+    ]);
+
+    await expect(createRepositorySyncPullRequest(createSync())).resolves.toEqual({
+      providerPrId: '42',
+      providerPrUrl: 'https://gitlab.example/mr/42'
+    });
+    expect(gitlab.MergeRequests.all).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourceBranch: 'metorial/sync-marketplace-8',
+        perPage: 1,
+        maxPages: 1
+      })
+    );
+  });
+
+  it('only fetches the newest pipeline even when the SDK receives more pages', async () => {
+    let pipelines = new Gitlab({ host: 'https://gitlab.invalid', token: 'test' }).Pipelines;
+    let get = vi.fn().mockResolvedValue({
+      body: [{ id: 3, status: 'success' }],
+      status: 200,
+      headers: {
+        link: '<https://gitlab.invalid/api/v4/projects/123/pipelines?page=2&per_page=1>; rel="next"'
+      }
+    });
+    pipelines.requester.get = get;
+    gitlab.Pipelines = pipelines;
+    gitlab.MergeRequests.show.mockResolvedValue({
+      state: 'opened',
+      detailed_merge_status: 'mergeable'
+    });
+
+    await expect(getRepositorySyncStatusSnapshot(createSync())).resolves.toMatchObject({
+      checks: { state: 'success', total: 1 }
+    });
+    expect(get).toHaveBeenCalledOnce();
   });
 
   it('closes a superseded open GitLab merge request', async () => {

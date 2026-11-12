@@ -766,7 +766,7 @@ export let waitForSkillSyncPropagation = withDestinationSyncLock(
           : ('processing' as const);
       let providerUnavailable = isRepositorySyncRetrying(originSync);
       let nextErrorMessage = providerUnavailable
-        ? getRepositorySyncRetryMessage(propagation.repositoryAccessMode)
+        ? getRepositorySyncRetryMessage(propagation.repositoryAccessMode, originSync.errorCode)
         : null;
       if (propagation.status !== nextStatus || propagation.errorMessage !== nextErrorMessage) {
         let updated = await db.skillDestinationSyncRepositoryPropagation.updateMany({

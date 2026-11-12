@@ -78,6 +78,9 @@ export let getPropagationWaitingMessage = (
     let providerName = propagation.provider ? getProviderName(propagation) : 'provider';
     return `Waiting for ${providerName} rate limit, resumes at ${resumesAt}`;
   }
+  if (propagation.waitingReason === 'merge_not_ready') {
+    return `Waiting for ${getProviderName(propagation)} to prepare the merge, retrying at ${resumesAt}`;
+  }
   if (propagation.waitingReason === 'provider_unavailable') {
     return `${getProviderName(propagation)} is temporarily unavailable, retrying at ${resumesAt}`;
   }
@@ -145,6 +148,12 @@ export let getRepositoryActionMessage = (repositoryCheck: RepositoryActionMessag
     return `${providerName} blocked ${
       repositoryCheck.repositoryAccessMode === 'default_branch' ? 'the push' : 'the merge'
     }. Review repository rules.`;
+  }
+  if (repositoryCheck.blockers.includes('sync_retrying')) {
+    return (
+      repositoryCheck.errorMessage ??
+      'Repository sync is waiting to retry. The sync will continue automatically.'
+    );
   }
   if (repositoryCheck.repositoryAccessMode === 'default_branch') {
     if (repositoryCheck.errorMessage) return repositoryCheck.errorMessage;

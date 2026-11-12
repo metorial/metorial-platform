@@ -13,7 +13,10 @@ import {
 import { Fabric } from '@metorial/fabric';
 import { getOriginTenant, origin } from '@metorial/skills-scm-utils';
 import { forceSkillDestinationSync } from '../lib/destinationSync';
-import { isRepositorySyncRetrying } from '../lib/repositorySyncStatus';
+import {
+  getRepositorySyncRetryMessage,
+  isRepositorySyncRetrying
+} from '../lib/repositorySyncStatus';
 
 export let skillSyncInclude = {
   destination: {
@@ -270,7 +273,7 @@ class SkillSyncServiceImpl {
         | null
         | undefined;
       let isPullRequest = propagation.repositoryAccessMode === 'pull_request';
-      let providerUnavailable = Boolean(
+      let syncRetrying = Boolean(
         (originSync && isRepositorySyncRetrying(originSync)) ||
         (!originSync && (propagation.errorMessage || propagation.originSyncId))
       );
@@ -292,9 +295,8 @@ class SkillSyncServiceImpl {
         snapshot?.mergeability?.reason !== 'merge_permission_required'
           ? 'merge_blocked'
           : null,
-        providerUnavailable &&
-        ['processing', 'waiting_for_review'].includes(propagation.status)
-          ? 'provider_unavailable'
+        syncRetrying && ['processing', 'waiting_for_review'].includes(propagation.status)
+          ? 'sync_retrying'
           : null
       ].filter((blocker): blocker is string => blocker != null);
 
@@ -329,7 +331,12 @@ class SkillSyncServiceImpl {
         approvedReviewCount: isPullRequest ? (snapshot?.review?.approvals ?? null) : null,
         mergeability: isPullRequest ? (snapshot?.mergeability?.state ?? null) : null,
         lastCheckedAt: snapshot?.observedAt ? new Date(snapshot.observedAt) : null,
-        errorMessage: propagation.errorMessage ?? originSync?.errorMessage ?? null
+        errorMessage: syncRetrying
+          ? getRepositorySyncRetryMessage(
+              propagation.repositoryAccessMode,
+              originSync?.errorCode
+            )
+          : (propagation.errorMessage ?? originSync?.errorMessage ?? null)
       };
     });
   }
