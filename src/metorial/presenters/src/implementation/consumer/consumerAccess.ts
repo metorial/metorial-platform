@@ -147,7 +147,8 @@ export let v1ConsumerAccessPresenter = Presenter.create(consumerAccessType)
       ? {
           id: consumerAccess.listing.id,
           name: consumerAccess.listing.name,
-          description: consumerAccess.listing.description
+          description: consumerAccess.listing.description,
+          is_discoverable: consumerAccess.listing.isDiscoverable
         }
       : null,
 
@@ -213,7 +214,11 @@ export let v1ConsumerAccessPresenter = Presenter.create(consumerAccessType)
         v.object({
           id: v.string(),
           name: v.string(),
-          description: v.nullable(v.string())
+          description: v.nullable(v.string()),
+          is_discoverable: v.boolean({
+            description:
+              'Whether every consumer on the portal can find the listing in the catalog and request access.'
+          })
         })
       ),
       access: v.union([

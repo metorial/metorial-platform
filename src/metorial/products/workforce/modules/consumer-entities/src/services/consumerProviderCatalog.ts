@@ -430,7 +430,9 @@ class ConsumerProviderCatalogServiceImpl {
       );
     }
 
-    let filters: Prisma.ConsumerAccessListingWhereInput[] = [];
+    let filters: Prisma.ConsumerAccessListingWhereInput[] = [
+      this.getDiscoverabilityFilter(groupOids)
+    ];
 
     if (d.providerGroupIds?.length) {
       filters.push({
@@ -1183,6 +1185,7 @@ class ConsumerProviderCatalogServiceImpl {
           }
         ],
         AND: [
+          this.getDiscoverabilityFilter(groupOids),
           {
             OR: [
               {
@@ -1211,6 +1214,25 @@ class ConsumerProviderCatalogServiceImpl {
       },
       include: this.getCatalogInclude(groupOids)
     });
+  }
+
+  private getDiscoverabilityFilter(
+    groupOids: bigint[]
+  ): Prisma.ConsumerAccessListingWhereInput {
+    return {
+      OR: [
+        { isDiscoverable: true },
+        {
+          consumerAccesses: {
+            some: {
+              consumerGroupOid: {
+                in: groupOids
+              }
+            }
+          }
+        }
+      ]
+    };
   }
 
   private getCatalogInclude(groupOids: bigint[]) {

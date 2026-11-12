@@ -247,6 +247,7 @@ class ConsumerAccessListingServiceImpl {
     skillGroupIds?: string[];
     skillMarketplaceIds?: string[];
     types?: ConsumerAccessTargetType[];
+    hasAccess?: boolean;
     search?: string;
   }) {
     let hasGroupFilter = !!d.consumerSurfaceProviderGroupIds?.length;
@@ -439,6 +440,12 @@ class ConsumerAccessListingServiceImpl {
           });
         }
 
+        if (d.hasAccess !== undefined) {
+          filters.push({
+            consumerAccesses: d.hasAccess ? { some: {} } : { none: {} }
+          });
+        }
+
         if (search) {
           filters.push({
             OR: [
@@ -620,6 +627,7 @@ class ConsumerAccessListingServiceImpl {
       name?: string;
       description?: string | null;
       readme?: string | null;
+      isDiscoverable?: boolean;
       access: ConsumerAccessListingTargetInput;
     };
   }) {
@@ -687,12 +695,14 @@ class ConsumerAccessListingServiceImpl {
           target.type == 'skill_marketplace' ? target.skillMarketplace.oid : undefined,
         name: d.input.name ?? defaults.name,
         description: d.input.description ?? defaults.description,
-        readme: d.input.readme ?? defaults.readme
+        readme: d.input.readme ?? defaults.readme,
+        isDiscoverable: d.input.isDiscoverable
       },
       update: {
         name: d.input.name ?? defaults.name,
         description: d.input.description ?? defaults.description,
-        readme: d.input.readme ?? defaults.readme
+        readme: d.input.readme ?? defaults.readme,
+        isDiscoverable: d.input.isDiscoverable
       },
       include
     });
@@ -712,6 +722,7 @@ class ConsumerAccessListingServiceImpl {
       name?: string;
       description?: string | null;
       readme?: string | null;
+      isDiscoverable?: boolean;
     };
   }) {
     let consumerAccessListing = await db.consumerAccessListing.update({
@@ -719,7 +730,8 @@ class ConsumerAccessListingServiceImpl {
       data: {
         name: d.input.name,
         description: d.input.description,
-        readme: d.input.readme
+        readme: d.input.readme,
+        isDiscoverable: d.input.isDiscoverable
       },
       include
     });

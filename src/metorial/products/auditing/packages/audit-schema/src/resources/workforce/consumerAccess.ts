@@ -32,6 +32,7 @@ export let consumerAccessListingAuditResource = resource({
     name: string;
     description: string | null;
     readmeByteSize: number;
+    isDiscoverable: boolean;
     surfaceId: string;
     target: ConsumerAccessTargetSummary;
   }>('consumer_access_listing'),

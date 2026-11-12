@@ -383,6 +383,7 @@ export let consumerProviderController = Controller.create(
         let consumerAccessRequest =
           await consumerAccessRequestService.createConsumerAccessRequest({
             consumerProfile,
+            consumerGroups: ctx.consumerGroups,
             auditScope: ctx.auditScope,
             accessRequest:
               ctx.consumerProvider.type == 'provider_template'
