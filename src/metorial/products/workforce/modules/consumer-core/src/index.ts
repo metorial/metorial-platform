@@ -46,6 +46,7 @@ import {
 } from './queues/syncUserConsumer';
 
 export * from './services';
+export { isMemberCliSurface } from '@metorial/consumer-auth';
 export { syncUserToConsumers } from './queues/syncUserConsumer';
 
 export let consumerCoreQueueProcessor = combineQueueProcessors([

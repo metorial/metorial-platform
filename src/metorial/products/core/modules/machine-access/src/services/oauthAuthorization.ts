@@ -66,7 +66,7 @@ import { validateOAuthScopes } from '../lib/oauthScopeValidation';
 import { urlsMatch, validateRedirectUri } from '../lib/oauthUrls';
 import { splitOAuthAndOidcScopes } from '../lib/oidc';
 import { cliDeviceService } from './cliDevice';
-import { machineAccessInclude } from './machineAccessAuth';
+import { machineAccessInclude, type OAuthTokenWithAuthorization } from './machineAccessAuth';
 import { oauthApplicationService } from './oauthApplication';
 import {
   installationInclude,
@@ -1329,6 +1329,72 @@ class OAuthAuthorizationService {
         oauthApplication: oauthAuthorization.oauthApplication,
         ...this.getAuthorizationSubject(oauthAuthorization)
       };
+    });
+  }
+
+  async issueMemberCliConsumerToken(d: {
+    source: OAuthTokenWithAuthorization;
+    organization: Organization;
+    consumerProfile: ConsumerProfile;
+    user: User;
+    context: Context;
+  }) {
+    let source = d.source.oauthAuthorization;
+    ensureAuthorizationUsable(source);
+    if (
+      source.oauthApplication.type !== 'cli_auth' ||
+      source.subjectType !== 'organization_member' ||
+      source.organizationOid !== d.organization.oid ||
+      d.consumerProfile.organizationOid !== d.organization.oid ||
+      !source.organizationMemberOid ||
+      source.organizationMemberOid !== d.consumerProfile.organizationMemberOid ||
+      source.userOid !== d.user.oid ||
+      d.user.type === 'system' ||
+      d.user.status !== 'active'
+    ) {
+      throw new ServiceError(
+        forbiddenError({ message: 'A signed-in organization member is required' })
+      );
+    }
+
+    let lifetime = Math.min(
+      300,
+      differenceInSeconds(d.source.accessTokenExpiresAt, new Date())
+    );
+    if (lifetime <= 0) {
+      throw new ServiceError(
+        unauthorizedError({ message: 'The CLI access token has expired' })
+      );
+    }
+
+    let oauthApplication = await this.getCliAuthOAuthApplicationOrThrow();
+    return await withTransaction(async () => {
+      let oauthInstallation =
+        await oauthAuthorizationInstallationService.getOrCreateInstallation({
+          oauthApplication,
+          organization: d.organization
+        });
+      let oauthAuthorization =
+        await oauthAuthorizationInstallationService.getOrCreateConsumerAuthorization({
+          oauthApplication,
+          oauthInstallation,
+          organization: d.organization,
+          consumerProfile: d.consumerProfile,
+          user: d.user,
+          scopes: [
+            'consumer#instance.magic_mcp:read',
+            'consumer#instance.magic_mcp:connect',
+            'consumer#instance.provider_template:read'
+          ],
+          context: d.context
+        });
+
+      return await this.issueOAuthToken({
+        oauthAuthorization,
+        withRefreshToken: false,
+        accessTokenLifetimeSeconds: lifetime,
+        context: d.context
+      });
     });
   }
 

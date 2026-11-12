@@ -18,7 +18,9 @@ let mocks = vi.hoisted(() => ({
     },
     consumerGroup: {
       findMany: vi.fn()
-    }
+    },
+    consumerProfile: { findMany: vi.fn() },
+    organizationMember: { findFirst: vi.fn() }
   },
   consumerTokens: {
     verify: vi.fn()
@@ -1008,6 +1010,48 @@ describe('AuthenticationService', () => {
           context: mockContext
         })
       ).rejects.toThrow(ServiceError);
+    });
+
+    it('authenticates an internal CLI consumer only for its active organization member', async () => {
+      let { oauthToken } = mockConsumerOAuthToken(
+        createConsumerSession({
+          profile: {
+            organizationOid: 1n,
+            organizationMemberOid: 3n,
+            consumerOid: 4n,
+            consumer: { userOid: 5n }
+          },
+          surface: {
+            type: 'organization_members',
+            isInternal: true,
+            internalSurfaceUniqueIdentifier: 'cli',
+            portal: null
+          }
+        })
+      );
+      Object.assign(oauthToken.oauthAuthorization, {
+        oauthApplication: { type: 'cli_auth' },
+        user: { oid: 5n, type: 'user', status: 'active' }
+      });
+      mocks.db.organizationMember.findFirst.mockResolvedValueOnce({ oid: 3n });
+      mocks.db.consumerProfile.findMany.mockResolvedValue([]);
+
+      let authenticate = () =>
+        authenticationService.authenticate({
+          type: 'api_key',
+          apiKey: 'metorial_oa_consumer',
+          context: mockContext
+        });
+
+      await expect(authenticate()).resolves.toMatchObject({
+        restrictions: { consumer: { consumerProfile: { id: 'cop_1' } } }
+      });
+      expect(mocks.db.organizationMember.findFirst).toHaveBeenCalledWith({
+        where: { oid: 3n, organizationOid: 1n, userOid: 5n, status: 'active' },
+        select: { oid: true }
+      });
+      mocks.db.organizationMember.findFirst.mockResolvedValueOnce(null);
+      await expect(authenticate()).rejects.toThrow(ServiceError);
     });
 
     it('rejects sessions for a surface in another instance', async () => {

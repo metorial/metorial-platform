@@ -49,6 +49,13 @@ vi.mock('@metorial-subspace/module-integration', () => ({
   }
 }));
 
+vi.mock('@metorial/consumer-auth', () => ({
+  isMemberCliSurface: (surface: {
+    isInternal?: boolean;
+    internalSurfaceUniqueIdentifier?: string;
+  }) => surface.isInternal && surface.internalSurfaceUniqueIdentifier === 'cli'
+}));
+
 vi.mock('@metorial/portal-url', () => ({
   getPortalUrlForOrigin: vi.fn()
 }));
@@ -78,6 +85,34 @@ let startSetup = async (portalUrl: string, requestOrigin?: string) => {
 describe('consumer provider setup redirect', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('uses the hosted setup page without a portal redirect for the member CLI surface', async () => {
+    await consumerProviderSetupSessionService.startSetupSession({
+      instance: { oid: 1n } as any,
+      context: { ip: '127.0.0.1' },
+      accessTags: null as any,
+      consumerSurface: {
+        oid: 1n,
+        type: 'organization_members',
+        isInternal: true,
+        internalSurfaceUniqueIdentifier: 'cli'
+      } as any,
+      consumerProfile: { oid: 1n, consumerOid: 1n } as any,
+      providerTemplateId: 'prvtpl_1',
+      auditScope: {} as any,
+      input: {}
+    });
+
+    expect(getPortalUrlForOrigin).not.toHaveBeenCalled();
+    expect(integrationSetupSessionService.createIntegrationSetupSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        input: expect.objectContaining({
+          redirectUrl: undefined,
+          privateMetadata: expect.objectContaining({ consumerProfileOid: '1' })
+        })
+      })
+    );
   });
 
   it('appends the completion path to a portal-specific namespace host', async () => {
