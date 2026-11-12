@@ -2,10 +2,13 @@ import { spawn } from 'node:child_process';
 import { createWriteStream } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { createEventReader } from './agentEvents';
+import { formatDuration, type Log } from './log';
 
 let provider = 'cloudflare-workers-ai';
 let tools = 'read,grep,find,ls,edit,write';
 let maxOutputTokens = 32_768;
+let heartbeatMs = 30_000;
 
 export interface AgentCredentials {
   apiToken: string;
@@ -24,6 +27,8 @@ export interface AgentRun {
   credentials: AgentCredentials;
   timeoutMs: number;
   logFile: string;
+  log: Log;
+  label: string;
 }
 
 // pi gets no shell and an environment holding nothing but the Workers AI credentials, so text in
@@ -45,6 +50,8 @@ export let runAgent = async (run: AgentRun) => {
 
   let args = [
     '--print',
+    '--mode',
+    'json',
     '--offline',
     '--no-context-files',
     '--no-extensions',
@@ -70,10 +77,19 @@ export let runAgent = async (run: AgentRun) => {
     run.message
   ];
 
-  let log = createWriteStream(run.logFile, { flags: 'a' });
-  log.write(
+  let file = createWriteStream(run.logFile, { flags: 'a' });
+  let startedAt = Date.now();
+  let log: Log = message => run.log(`${run.label}: ${message}`);
+
+  file.write(
     `\n=== pi ${run.continueSession ? '(continue) ' : ''}${new Date().toISOString()}\n`
   );
+  log(run.continueSession ? 'continuing the session' : 'starting pi');
+
+  let reader = createEventReader({
+    log,
+    transcript: text => file.write(`\n--- ${text}\n`)
+  });
 
   let exitCode = await new Promise<number>(resolve => {
     let child = spawn(run.piBin, args, {
@@ -93,20 +109,47 @@ export let runAgent = async (run: AgentRun) => {
       }
     });
 
-    let timer = setTimeout(() => child.kill('SIGTERM'), run.timeoutMs);
-    child.stdout.pipe(log, { end: false });
-    child.stderr.pipe(log, { end: false });
+    let finished = false;
+    let timedOut = false;
+    let timer = setTimeout(() => {
+      timedOut = true;
+      log(`timed out after ${formatDuration(run.timeoutMs)}, stopping pi`);
+      child.kill('SIGTERM');
+    }, run.timeoutMs);
+    let heartbeat = setInterval(() => log(reader.heartbeat()), heartbeatMs);
+
+    let lines = (stream: NodeJS.ReadableStream) => {
+      let pending = '';
+      stream.setEncoding('utf8');
+      stream.on('data', (chunk: string) => {
+        pending += chunk;
+        let parts = pending.split('\n');
+        pending = parts.pop() ?? '';
+        for (let part of parts) reader.push(part);
+      });
+      stream.on('end', () => reader.push(pending));
+    };
+    lines(child.stdout);
+    lines(child.stderr);
+
+    let finish = (code: number) => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+      clearInterval(heartbeat);
+      resolve(timedOut && code === 0 ? -1 : code);
+    };
+
     child.on('error', err => {
-      log.write(`failed to start pi: ${err.message}\n`);
-      clearTimeout(timer);
-      resolve(-1);
+      log(`failed to start pi: ${err.message}`);
+      file.write(`failed to start pi: ${err.message}\n`);
+      finish(-1);
     });
-    child.on('close', code => {
-      clearTimeout(timer);
-      resolve(code ?? -1);
-    });
+    child.on('close', code => finish(code ?? -1));
   });
 
-  await new Promise(resolve => log.end(resolve));
-  return exitCode;
+  await new Promise(resolve => file.end(resolve));
+  log(`finished with exit code ${exitCode} after ${formatDuration(Date.now() - startedAt)}`);
+
+  return { exitCode, stats: reader.stats };
 };
