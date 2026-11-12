@@ -1,6 +1,6 @@
 name: 'Model Catalog'
 
-# Hourly: fetch every source once, let a pi agent on Workers AI decide the open catalog issues as
+# Every 15 minutes: fetch every source once, let a pi agent on Workers AI decide the open catalog issues as
 # override entries, merge those decisions as one PR, then generate the published catalog from the
 # merged overrides and the same source snapshots. With no open issues, no agent runs. The catalog is
 # served from models.metorial.com (a Worker with static assets) and only redeployed when its
@@ -12,7 +12,7 @@ name: 'Model Catalog'
 on:
   workflow_dispatch:
   schedule:
-    - cron: '17 * * * *'
+    - cron: '2,17,32,47 * * * *'
 
 concurrency:
   group: model-catalog
