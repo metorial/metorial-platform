@@ -48,6 +48,34 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "alibaba/wan-v2.6-r2v-flash": {
+    "decision": "link",
+    "model": "alibaba/wan2.6",
+    "reason": "Vercel's listing: Wan v2.6 Reference-to-Video Flash is the speed-optimized r2v serving of Alibaba Cloud's Wan 2.6 release (Dec 2025), which the index records as alibaba/wan2.6; a fast serving is still that model, at $0.05/s.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "alibaba/wan-v2.6-t2v": {
+    "decision": "link",
+    "model": "alibaba/wan2.6",
+    "reason": "Vercel's listing: Wan v2.6 Text-to-Video is the t2v serving of Alibaba Cloud's Wan 2.6 release (Dec 2025), which the index records as alibaba/wan2.6; the task-variant SKU serves the same generation's model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "alibaba/wan-v2.7-r2v": {
+    "decision": "link",
+    "model": "alibaba/wan2.7",
+    "reason": "Vercel's listing: Wan v2.7 Reference-to-Video is the r2v serving of Alibaba Cloud's Wan 2.7 release (Apr 2026), which the index records as alibaba/wan2.7; the task-variant SKU serves the same generation's model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "alibaba/wan-v2.7-t2v": {
+    "decision": "link",
+    "model": "alibaba/wan2.7",
+    "reason": "Vercel's listing: Wan v2.7 Text-to-Video is the t2v serving of Alibaba Cloud's Wan 2.7 release (Apr 2026), which the index records as alibaba/wan2.7; the task-variant SKU serves the same generation's model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "amazon/titan-embed-text-v2": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -514,6 +542,13 @@
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "Topaz Labs' Starlight Precise 2.6, its diffusion-based video upscaling and enhancement model (reconstructs 1080p/4K detail, per Topaz/Cloudflare listings); a real video model the index has no Topaz entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "topaz/wonder-3.5": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Topaz Labs' Wonder 3.5, its generative image enhancement and upscaling model released Aug 2026 (per Topaz/Oxen/Runware listings); a real image model the index has no Topaz entry for.",
     "by": "agent",
     "at": "2026-11-12"
   },

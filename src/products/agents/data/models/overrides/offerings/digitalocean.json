@@ -40,5 +40,12 @@
     "reason": "Stability AI's Stable Diffusion 3.5 Large text-to-image model (8B, released 2024-10-22, per Stability's release and listings); the index's stability line has only stable-diffusion-xl-base-1.0, so defer rather than link the wrong generation.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "wan2-2-t2v-a14b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Wan-AI's Wan2.2-T2V-A14B, the open-weight 14B-active MoE text-to-video checkpoint of the Wan 2.2 release (per its Hugging Face card and listings); the index's Wan line starts at wan2.6, so defer rather than link the wrong generation.",
+    "by": "agent",
+    "at": "2026-11-12"
   }
 }

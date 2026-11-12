@@ -22,5 +22,11 @@
     "reason": "TrustedRouter's Synth Code preset applies the same panel-plus-judge Synth orchestration to coding requests (per TrustedRouter's docs and model page); it picks models per request, so it is a router, not one fixed model.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "trustedrouter/zdr": {
+    "decision": "router",
+    "reason": "TrustedRouter's own page: ZDR (Zero Data Retention) is a routing pool whose single key picks among 12 models that clear the zero-retention privacy floor with automatic failover; a router, not one fixed model.",
+    "by": "agent",
+    "at": "2026-11-12"
   }
 }

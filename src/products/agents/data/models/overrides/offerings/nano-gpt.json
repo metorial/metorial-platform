@@ -223,6 +223,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "LatitudeGames/Wayfarer-Large-70B-Llama-3.3": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "LatitudeGames' Wayfarer-Large-70B-Llama-3.3 is a full fine-tune of meta-llama/Llama-3.3-70B-Instruct trained on text-adventure and roleplay data (per its Hugging Face card); a fine-tune is not the Llama base model and the index has no Wayfarer entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "MarinaraSpaghetti/NemoMix-Unleashed-12B": {
     "decision": "exclude",
     "category": "fine-tune",
@@ -1537,6 +1544,13 @@
     "decision": "link",
     "model": "xiaomi/mimo-v2.6-pro",
     "reason": "MiMo-V2.6-Pro-UltraSpeed is Xiaomi's fast-serving tier of the same 1T MiMo-V2.6-Pro checkpoint (same quality, ~10x output speed); still xiaomi/mimo-v2.6-pro at the 4.35/8.7 speed-tier price.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "xingchen-agi/xing4.0-29b-a4b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "XingChen-AGI's (China Telecom) Xing4.0-29B-A4B, an Apache-2.0 open-weight 29B-total/4B-active MoE for coding, reasoning and tool use with 256K context, released 2026-09-16 (per its Hugging Face card); a real new model the index has no entry for.",
     "by": "agent",
     "at": "2026-11-12"
   },
