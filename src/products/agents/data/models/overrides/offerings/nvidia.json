@@ -83,6 +83,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "nvidia/usdcode": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "NVIDIA's usdcode NIM, the LLM that answers OpenUSD knowledge queries and generates USD-Python code (per NVIDIA's own build.nvidia.com model card); the index's NVIDIA line has no usdcode entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nvidia/usdvalidate": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "NVIDIA's usdvalidate NIM, the OpenUSD validation model with open weights (released 2024-07-24 per listings); the index's NVIDIA line has no usdvalidate entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "qwen/qwen-image": {
     "decision": "defer",
     "until": "2026-12-12",

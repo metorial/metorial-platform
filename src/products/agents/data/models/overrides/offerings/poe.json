@@ -62,6 +62,27 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "google/veo-2": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Google DeepMind's Veo 2 text-to-video model (introduced Dec 2024, per Poe/DeepMind listings); the index's Veo line starts at the 3.1 previews, so defer rather than link the wrong generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "google/veo-3": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Google DeepMind's Veo 3 text-to-video model with native synchronized audio (released May 2025 per Google I/O coverage); the index's Veo line has only the 3.1 previews, no Veo 3 entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "google/veo-3-fast": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Google's Veo 3 Fast (veo-3.0-fast-generate-001), the speed-and-price-optimized Veo 3 tier (per Google's developer blog); the index's Veo line has only the 3.1 previews, no Veo 3 entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "ideogramai/ideogram": {
     "decision": "exclude",
     "category": "non-chat",
@@ -156,6 +177,13 @@
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "Runway's Gen-4 Turbo video model (Sept 2024, image-to-video, per Runway/Replicate listings); the index's Runway line has only Gen-4.5 and Aleph 2.0, no Gen-4 entry, so defer rather than link the wrong generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "topazlabs-co/topazlabs": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Poe's TopazLabs bot serves Topaz Labs' proprietary image-enhancement models (the Wonder/Starlight line per Runware's catalog); the index has no Topaz entry and the listing does not say which model, so defer rather than guess.",
     "by": "agent",
     "at": "2026-11-12"
   },

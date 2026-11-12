@@ -13,6 +13,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "fal-ai/stable-audio-25/text-to-audio": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Stability AI's Stable Audio 2.5 text-to-audio model served through fal.ai on DigitalOcean (per fal/Stability listings); the index's stability line has only stable-diffusion-xl-base-1.0, so defer until models.dev adds the audio model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "qwen3-tts-voicedesign": {
     "decision": "defer",
     "until": "2026-12-12",

@@ -13,6 +13,27 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "amazon/titan-embed-image-v1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Amazon Titan Multimodal Embeddings G1, the Bedrock model embedding text, images, or both into a shared space (per Amazon/OpenRouter listings, 1,024-dim vectors, 128-token text limit); the index's amazon line has only Nova models, no Titan embedding entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "amazon/titan-embed-text-v1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Amazon Titan Embeddings G1 - Text, the first-generation Bedrock text embedding model (8K context, 1,536-dim vectors, per Amazon/OpenRouter listings); the index's amazon line has only Nova models, no Titan embedding entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "amazon/titan-embed-text-v2": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Amazon Titan Text Embeddings V2, the second-generation Bedrock embedding model tuned for RAG (8K context, 1,024-dim vectors, per Amazon/Vercel listings); the index's amazon line has only Nova models, no Titan embedding entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "baai/bge-large-en-v1.5": {
     "decision": "link",
     "model": "baai/bge-large-en-v1.5",
@@ -31,6 +52,13 @@
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "Baidu's ERNIE-Light-DT-1.0 international endpoint (OpenRouter canonicalSlug snapshot 2026-11-10), built on open-source GLM models with Baidu Sparse Attention per the listing; the index has no entry for it.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "bytedance/ui-tars-1.5-7b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ByteDance Seed's UI-TARS-1.5-7B, the multimodal GUI-agent vision-language model (Hugging Face ByteDance-Seed/UI-TARS-1.5-7B, created 2025-04-16, per OpenRouter's listing); the index's bytedance line has no UI-TARS entry.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -171,6 +199,13 @@
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "Microsoft's Phi-4, the 14B small language model for complex reasoning (Hugging Face microsoft/phi-4, created 2024-12-11; OpenRouter lists the Phi-4 card); the index has only phi-4-mini and phi-4-multimodal-instruct, no Phi-4 entry, so defer rather than link the mini.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "mistralai/voxtral-mini-tts-3-0": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Mistral's Voxtral TTS 3 (voxtral-mini-tts-3-0), the text-to-speech model of the Voxtral 3 speech family released 2026-10-20 (per Mistral/OpenRouter listings); the index's voxtral-mini-tts-2603 is the earlier March generation, so defer.",
     "by": "agent",
     "at": "2026-11-12"
   },

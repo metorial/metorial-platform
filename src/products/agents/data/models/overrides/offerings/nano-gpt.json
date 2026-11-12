@@ -391,6 +391,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "TheDrummer/UnslopNemo-12B-v4.1": {
+    "decision": "link",
+    "model": "thedrummer/unslopnemo-12b",
+    "reason": "TheDrummer's UnslopNemo 12B v4.1 (Hugging Face repo created 2024-10-23); the index's thedrummer/unslopnemo-12b entry points to the same UnslopNemo-12B-v4.1 checkpoint, so it is the same model at NanoGPT's 0.493 flat rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "TheDrummer/artemis-31b-v1.2": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -1435,6 +1442,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "soob3123/Veiled-Calla-12B": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Hugging Face metadata lists soob3123/Veiled-Calla-12B as a fine-tune of google/gemma-3-12b-it (an immersive-roleplay model, Apr 2025); a fine-tune is not the Gemma base model and the index has no Veiled Calla entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "soob3123/amoral-gemma3-27B-v2": {
     "decision": "exclude",
     "category": "fine-tune",
@@ -1477,10 +1491,24 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "universal-summarizer": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "Kagi's Universal Summarizer, a summarization service that summarizes any URL or document using Kagi's own LLMs (per Kagi's docs and NanoGPT's listing); a product, not a distinct catalog model, like NanoGPT's Kagi FastGPT listing.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "unsloth/gemma-3-12b-it": {
     "decision": "link",
     "model": "google/gemma-3-12b-it",
     "reason": "unsloth/gemma-3-12b-it is Unsloth's mirror of Google's Gemma 3 12B IT instruction-tuned checkpoint (image-text-to-text, released 2025-03-12); same model as google/gemma-3-12b-it, and NanoGPT's flat 0.272 rate is above the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "venice-uncensored": {
+    "decision": "link",
+    "model": "cognitivecomputations/dolphin-mistral-24b-venice-edition",
+    "reason": "Venice Uncensored is the Dolphin Mistral 24B Venice Edition, dphn.ai's uncensored fine-tune of Mistral-Small-24B built with Venice.ai (per LLMIndex/Naga listings); matches cognitivecomputations/dolphin-mistral-24b-venice-edition's 128K context and text-only input, at a premium price.",
     "by": "agent",
     "at": "2026-11-12"
   },

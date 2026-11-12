@@ -27,6 +27,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "bytedance/ui-tars-1.5-7b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ByteDance Seed's UI-TARS-1.5-7B, the multimodal GUI-agent vision-language model (Hugging Face ByteDance-Seed/UI-TARS-1.5-7B, created 2025-04-16); the index's bytedance line has no UI-TARS entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "deepseek/deepseek-v3.1-terminus": {
     "decision": "defer",
     "until": "2026-12-12",

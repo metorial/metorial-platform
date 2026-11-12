@@ -82,5 +82,19 @@
     "reason": "Venice's own listing states GPT-6.1 Sol Ultrafast is OpenAI's GPT-6.1 Sol model; Ultrafast is a service tier (about 6x standard pricing) of the same checkpoint, so it is still openai/gpt-6.1-sol.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "venice-uncensored-1-2": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Venice Uncensored 1.2, the new 24B vision-capable checkpoint trained on Targon in collaboration with Dolphin AI (per Venice's own model page, Apache-2.0); distinct from the original Dolphin Mistral 24B Venice Edition and absent from the index, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "venice-uncensored-role-play": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Venice Role Play Uncensored, Venice's 24B roleplay model fine-tuned from dphnAI's 24B-3.2-RP-K2-final (per Venice's own page and dphn's Hugging Face weights); a distinct open-weights model the index has no entry for, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
   }
 }
