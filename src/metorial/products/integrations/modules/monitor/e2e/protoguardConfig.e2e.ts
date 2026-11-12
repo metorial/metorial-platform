@@ -280,7 +280,7 @@ describe('module-monitor protoguard config in evaluation', () => {
 
     let opened = await openSession(org, remote.providerId);
     let suppressed = await callTool(opened, 'read_notes');
-    let run = await waitForProtoGuardRun(suppressed.message.oid);
+    let run = await waitForProtoGuardRun(suppressed.message.oid, { triggered: true });
 
     expect(run).toMatchObject({
       status: 'completed',
@@ -316,8 +316,9 @@ describe('module-monitor protoguard config in evaluation', () => {
     let alerted = await eventually(
       async () => {
         let { message } = await callTool(opened, 'read_notes');
-        let run = await waitForProtoGuardRun(message.oid);
+        let run = await waitForProtoGuardRun(message.oid, { triggered: true });
         expect(run.alert).not.toBeNull();
+
         return run;
       },
       { timeoutMs: 90_000, intervalMs: 3_000 }

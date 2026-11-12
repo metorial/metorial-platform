@@ -397,9 +397,13 @@ export let execute = async (compose: Compose, plan: Plan) => {
       console.log(`Starting e2e ${label}: ${names.join(', ')}`);
 
       await compose.run(['up', '--detach', '--no-deps', ...names]);
-
-      await waitForHealth(compose, services, plan.healthTimeoutSeconds);
     }
+
+    await waitForHealth(
+      compose,
+      [...plan.dependencies, ...plan.suts],
+      plan.healthTimeoutSeconds
+    );
   }
 
   await compose.run(['run', '--rm', '--no-deps', '-T', 'runner']);

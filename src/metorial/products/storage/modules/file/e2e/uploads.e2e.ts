@@ -113,7 +113,7 @@ describe('module-file pending uploads', () => {
 
     expect(() => new URL(uploadUrl)).not.toThrow();
     expect(upload.fileName).toBe(name);
-    expect(upload.fileSize).toBe(16);
+    expect(upload.fileSize).toBe(16n);
 
     let row = await db.fileUpload.findFirst({ where: { id: upload.id } });
     expect(row?.instanceOid).toBe(fixture.instance.oid);

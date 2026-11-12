@@ -114,13 +114,24 @@ export let callTool = async (
   return { call, message };
 };
 
-export let waitForProtoGuardRun = (messageOid: bigint) =>
+export let waitForProtoGuardRun = (
+  messageOid: bigint,
+  expected: { alert?: boolean; triggered?: boolean } = {}
+) =>
   eventually(
-    () =>
-      subspaceDb.protoGuardRun.findUniqueOrThrow({
+    async () => {
+      let run = await subspaceDb.protoGuardRun.findUniqueOrThrow({
         where: { messageOid },
         include: { alert: { include: { instances: { include: { filter: true } } } } }
-      }),
+      });
+
+      expect(run.status).toBe('completed');
+      // The input scan can create the run before the output scan evaluates the tool response.
+      if (expected.triggered) expect(run.triggeredFilterCount).toBeGreaterThan(0);
+      if (expected.alert) expect(run.alert).not.toBeNull();
+
+      return run;
+    },
     { timeoutMs: 60_000, intervalMs: 500 }
   );
 

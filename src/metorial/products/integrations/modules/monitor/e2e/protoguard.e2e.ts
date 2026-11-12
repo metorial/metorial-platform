@@ -39,8 +39,7 @@ describe('module-monitor protoguard alerts', () => {
   let raiseProtoGuardAlert = async (toolName: string) => {
     let opened = await ensureSession();
     let { message } = await callTool(opened, toolName);
-    let run = await waitForProtoGuardRun(message.oid);
-    expect(run.alert).not.toBeNull();
+    let run = await waitForProtoGuardRun(message.oid, { alert: true });
 
     let scope = await scopeOf(org);
     let filterKeys = [...new Set(run.alert!.instances.map(instance => instance.filter.key))];
@@ -171,7 +170,7 @@ describe('module-monitor protoguard alerts', () => {
     let scope = await scopeOf(org);
 
     let { message } = await callTool(opened, 'read_notes');
-    let run = await waitForProtoGuardRun(message.oid);
+    let run = await waitForProtoGuardRun(message.oid, { triggered: true });
     expect(run).toMatchObject({ status: 'completed', alert: null });
     expect(run.triggeredFilterCount).toBeGreaterThan(0);
 

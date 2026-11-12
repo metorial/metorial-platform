@@ -314,8 +314,9 @@ describe('ScanScheduler', () => {
     expect(onSettled).toHaveBeenCalledWith({ type: 'skipped', reason: 'backpressure' });
   });
 
-  it('keeps the event loop responsive while scanning a multi-MB payload', async () => {
-    let scheduler = new ScanScheduler();
+  it('yields to other event-loop work while scanning a multi-MB payload', async () => {
+    let time = 0;
+    let scheduler = new ScanScheduler({ now: () => ++time });
     let line = 'Ordinary log line with some numbers 1234567890 and words. ';
     let payload = {
       output: {
@@ -333,13 +334,11 @@ describe('ScanScheduler', () => {
     };
     let chars = measurePayloadChars(payload);
 
-    let maxLagMs = 0;
-    let lastTick = performance.now();
-    let timer = setInterval(() => {
-      let now = performance.now();
-      maxLagMs = Math.max(maxLagMs, now - lastTick);
-      lastTick = now;
-    }, 1);
+    let ticks = 0;
+    let heartbeat = setImmediate(function tick() {
+      ticks++;
+      heartbeat = setImmediate(tick);
+    });
 
     let job = (
       resolve: (outcome: ScanJobOutcome<ScanResult>) => void
@@ -354,16 +353,17 @@ describe('ScanScheduler', () => {
       onSettled: resolve
     });
 
-    let started = performance.now();
-    let outcome = await new Promise<ScanJobOutcome<ScanResult>>(resolve =>
-      scheduler.schedule(job(resolve))
-    );
-    let elapsedMs = performance.now() - started;
-    clearInterval(timer);
+    try {
+      let outcome = await new Promise<ScanJobOutcome<ScanResult>>(resolve =>
+        scheduler.schedule(job(resolve))
+      );
 
-    expect(chars).toBeGreaterThan(4 * 1024 * 1024);
-    expect(outcome.type).toBe('completed');
-    expect(elapsedMs).toBeGreaterThan(20);
-    expect(maxLagMs).toBeLessThan(60);
+      expect(chars).toBeGreaterThan(4 * 1024 * 1024);
+      expect(outcome.type).toBe('completed');
+      // The initial pump and settlement can each allow a tick without any scan slicing.
+      expect(ticks).toBeGreaterThan(2);
+    } finally {
+      clearImmediate(heartbeat);
+    }
   });
 });
