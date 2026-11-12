@@ -15,22 +15,24 @@ let loadContentHashKey = async (tenantOid: bigint) => {
   });
   if (setting?.contentHashKey) return setting.contentHashKey;
 
-  let tenant = await db.tenant.findUniqueOrThrow({
-    where: { oid: tenantOid },
-    select: { projectOid: true }
-  });
   let key = randomBytes(CONTENT_HASH_KEY_BYTES).toString('base64url');
 
-  await db.protoGuardTenantSetting.upsert({
-    where: { tenantOid },
-    update: {},
-    create: {
-      ...getId('protoGuardTenantSetting'),
-      tenantOid,
-      projectOid: tenant.projectOid,
-      contentHashKey: key
-    }
-  });
+  if (!setting) {
+    let tenant = await db.tenant.findUniqueOrThrow({
+      where: { oid: tenantOid },
+      select: { projectOid: true }
+    });
+    await db.protoGuardTenantSetting.createMany({
+      data: {
+        ...getId('protoGuardTenantSetting'),
+        tenantOid,
+        projectOid: tenant.projectOid,
+        contentHashKey: key
+      },
+      skipDuplicates: true
+    });
+  }
+
   await db.protoGuardTenantSetting.updateMany({
     where: { tenantOid, contentHashKey: null },
     data: { contentHashKey: key }

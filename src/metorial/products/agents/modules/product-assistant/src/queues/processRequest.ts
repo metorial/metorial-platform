@@ -30,6 +30,7 @@ let isRecord = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value == 'object' && !Array.isArray(value);
 
 let errorMessage = (error: unknown) => {
+  if (error instanceof ServiceError) return error.data.message;
   if (error instanceof Error) return error.message;
   if (typeof error == 'string') return error;
   if (isRecord(error) && typeof error.message == 'string') return error.message;

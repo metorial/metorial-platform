@@ -7,7 +7,7 @@ let state = vi.hoisted(() => ({
 let mocks = vi.hoisted(() => ({
   findUnique: vi.fn(),
   findTenant: vi.fn(),
-  upsert: vi.fn(),
+  createMany: vi.fn(),
   updateMany: vi.fn()
 }));
 
@@ -25,13 +25,13 @@ vi.mock('@metorial-subspace/db', () => ({
         if (!setting) throw new Error('not found');
         return setting;
       },
-      upsert: async (args: any) => {
-        mocks.upsert(args);
-        let key = String(args.where.tenantOid);
+      createMany: async (args: any) => {
+        mocks.createMany(args);
+        let key = String(args.data.tenantOid);
         if (!state.settings.has(key)) {
           state.settings.set(key, {
-            contentHashKey: args.create.contentHashKey,
-            projectOid: args.create.projectOid
+            contentHashKey: args.data.contentHashKey,
+            projectOid: args.data.projectOid
           });
         }
       },
@@ -63,13 +63,10 @@ describe('getContentHashKey', () => {
     let key = await getContentHashKey({ tenantOid: BigInt(1) });
 
     expect(Buffer.from(key, 'base64url')).toHaveLength(32);
-    expect(mocks.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { tenantOid: BigInt(1) },
-        update: {},
-        create: expect.objectContaining({ tenantOid: BigInt(1), projectOid: BigInt(10) })
-      })
-    );
+    expect(mocks.createMany).toHaveBeenCalledWith({
+      data: expect.objectContaining({ tenantOid: BigInt(1), projectOid: BigInt(10) }),
+      skipDuplicates: true
+    });
     expect(state.settings.get('1')!.contentHashKey).toBe(key);
   });
 
@@ -82,7 +79,7 @@ describe('getContentHashKey', () => {
 
     expect(cached).toBe(first);
     expect(fresh).toBe(first);
-    expect(mocks.upsert).toHaveBeenCalledTimes(1);
+    expect(mocks.createMany).toHaveBeenCalledTimes(1);
   });
 
   it('serves repeated calls from the local cache', async () => {
@@ -128,7 +125,7 @@ describe('getContentHashKey', () => {
 
     expect(await (await load())({ tenantOid: BigInt(1) })).toBe('existing-key');
     expect(mocks.findTenant).not.toHaveBeenCalled();
-    expect(mocks.upsert).not.toHaveBeenCalled();
+    expect(mocks.createMany).not.toHaveBeenCalled();
     expect(mocks.updateMany).not.toHaveBeenCalled();
   });
 });
