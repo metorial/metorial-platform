@@ -1,0 +1,8 @@
+{
+  "tc-code-latest": {
+    "decision": "router",
+    "reason": "Tencent Coding Plan's tc-code-latest is listed as \"Auto\", a tier that picks the coding model per request rather than serving one fixed model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

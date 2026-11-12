@@ -1,0 +1,16 @@
+{
+  "deepseek/deepseek-v4.1-flash": {
+    "decision": "link",
+    "model": "deepseek/deepseek-v4.1-flash",
+    "reason": "Prime serves the same DeepSeek-V4.1-Flash checkpoint (552B CED MoE, 1M context, released 2026-09-10) that the catalog tracks as deepseek/deepseek-v4.1-flash; its 0.039/1.2 price is a discount off the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek/deepseek-v4.1-flash-1017": {
+    "decision": "link",
+    "model": "deepseek/deepseek-v4.1-flash-1017",
+    "reason": "Same October 17, 2026 snapshot of DeepSeek V4.1 Flash (deepseek-ai/DeepSeek-V4.1-Flash-1017, served by DeepSeek as deepseek-flash) as deepseek/deepseek-v4.1-flash-1017; Prime's 0.04368/0.7 price is a discount off the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

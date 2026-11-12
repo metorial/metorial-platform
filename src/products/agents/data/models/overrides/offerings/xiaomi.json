@@ -1,0 +1,9 @@
+{
+  "mimo-v2.6-pro-ultraspeed": {
+    "decision": "link",
+    "model": "xiaomi/mimo-v2.6-pro",
+    "reason": "MiMo-V2.6-Pro-UltraSpeed is built from the same 1T MiMo-V2.6-Pro checkpoint (matches quality at ~10-20x output speed per Xiaomi's release notes); the 4.35/8.7 price is the speed premium.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

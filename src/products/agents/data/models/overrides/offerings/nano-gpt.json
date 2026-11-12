@@ -1,0 +1,391 @@
+{
+  "EVA-UNIT-01/EVA-LLaMA-3.33-70B-v0.0": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "EVA-UNIT-01's EVA LLaMA 3.33 70B v0.0 is a roleplay/storywriting full-parameter fine-tune of Llama-3.3-70B-Instruct (per its Hugging Face card); a fine-tune is not the Llama base model and the index has no EVA entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "EVA-UNIT-01/EVA-LLaMA-3.33-70B-v0.1": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "EVA-UNIT-01's EVA-LLaMA-3.33-70B-v0.1 is a roleplay/storywriting full-parameter fine-tune of Llama-3.3-70B-Instruct on the Celeste 70B data mixture (per its Hugging Face card); a fine-tune is not the Llama base model and the index has no EVA entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "EVA-UNIT-01/EVA-Qwen2.5-32B-v0.2": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "EVA-UNIT-01's EVA-Qwen2.5-32B-v0.2 is a roleplay/storywriting full-parameter fine-tune of Qwen2.5-32B (Hugging Face metadata lists the base); a fine-tune is not the Qwen base model and the index has no EVA entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "EVA-UNIT-01/EVA-Qwen2.5-72B-v0.2": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "EVA-UNIT-01's EVA-Qwen2.5-72B-v0.2 is a roleplay/storywriting full-parameter fine-tune of Qwen2.5-72B (per its Hugging Face card); a fine-tune is not the Qwen base model and the index has no EVA entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "TheDrummer/Anubis-70B-v1": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "TheDrummer/BeaverAI's Anubis 70B v1 is a Llama 3.3 70B fine-tune for creative writing and roleplay (per its card and coverage); a fine-tune is not the Llama base model and the index has no Anubis entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "TheDrummer/Anubis-70B-v1.1": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Hugging Face metadata lists Anubis 70B v1.1 as a fine-tune of meta-llama/Llama-3.3-70B-Instruct (TheDrummer's roleplay finetune, Jun 2025); not the Llama base model and the index has no Anubis entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "TheDrummer/Artemis-v1.1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "TheDrummer's Artemis v1.1 (released 2026-09-06 per aggregator listings); the index tracks other TheDrummer models (Cydonia, Skyfall, UnslopNemo) but has no Artemis entry yet.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "TheDrummer/Cydonia-24B-v2": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "BeaverAI/TheDrummer's Cydonia 24B v2 is a fine-tune of Mistral's Small 2501 for roleplay (Feb 2025, per Featherless/HF); a fine-tune is not the Mistral base model and the index has no Cydonia v2 entry (only v4.1).",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "TheDrummer/Cydonia-24B-v4": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "TheDrummer's Cydonia 24B v4 (Jul 2025), a Mistral Small fine-tune in the same line as v4.1; a fine-tune is not the Mistral base model and the index has no Cydonia v4 entry (only v4.1).",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "TheDrummer/Cydonia-24B-v4.3": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Hugging Face metadata lists Cydonia 24B v4.3 as a fine-tune of mistralai/Mistral-Small-3.2-24B-Instruct-2506 (Nov 2025); a fine-tune is not the Mistral base model and the index has no v4.3 entry (only v4.1).",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "TheDrummer/artemis-31b-v1.2": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "TheDrummer's new (Sep 2026) Gemma 4 31B fine-tune for creative writing and roleplay; the index tracks other TheDrummer models but has no Artemis entry yet.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "abacusai/Dracarys-72B-Instruct": {
+    "decision": "link",
+    "model": "abacusai/dracarys-llama-3.1-70b-instruct",
+    "reason": "AbacusAI's Dracarys-72B-Instruct (Hugging Face repo created 2024-08-14) is the Llama 3.1 70B 'Dracarys recipe' coding fine-tune the index tracks as abacusai/dracarys-llama-3.1-70b-instruct, released the same day.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "abliteration-ai/abliterated-model": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "abliteration.ai's refusal-removed (abliterated) derivative of an open-weight base; abliteration edits the model's weights to remove refusal behavior, making it a fine-tune-style derivative the catalog does not model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "abliteration-ai/abliterated-model-large": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Abliteration.ai's own blog says it was built from Zhipu's GLM-5.2 and then abliterated and fine-tuned; a weight-edited derivative is not zhipu/glm-5.2 itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "abliteration-ai/abliterated-model-large-flash": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "A derivative of DeepSeek V4.1 Flash 1017 with refusal behavior removed at the weight level (per the partner-catalog listing); an abliterated fine-tune is not the base model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "abliteration-ai/abliterated-model-large-v2": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Abliteration.ai built it from Zhipu's GLM-5.3 and then abliterated and fine-tuned it; a weight-edited derivative is not zhipu/glm-5.3 itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "aion-labs/aion-3.5": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "AionLabs' own listing: Aion 3.5 is a multi-model roleplaying and storytelling system built on the GLM family, where several specialized models collaboratively generate each response. Not a single model, and the index has no Aion 3.5 entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "aion-labs/aion-3.5-mini": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "AionLabs' own listing: Aion 3.5 Mini is the smaller sibling using the same collaborative multi-model generation process built on the GLM family. Not a single catalog model, and the index has no Aion 3.5 entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "baidu/ernie-light-dt-1.0-intl": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Baidu's ERNIE-Light-DT-1.0 international endpoint (snapshot 2026-11-10), built on open-source GLM models with Baidu Sparse Attention; a real new model the index has no entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "celeris-1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Celeris Labs' debut model Celeris-1, a diffusion LLM announced 2026-07-27 (8K context, $2/$6, near-GPT-5 quality at much higher speed); a real new first-party model the index does not contain.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "claw-high": {
+    "decision": "router",
+    "reason": "NanoGPT's OpenClaw tier alias: the vendor points the tier at whichever model it picks (claw-low currently points to Gemini 3.1 Flash Lite, claw-medium to GLM 5.3) and can re-point it; a tier alias, not one fixed model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "claw-low": {
+    "decision": "router",
+    "reason": "NanoGPT's own page: claw-low 'currently points to Gemini 3.1 Flash Lite' — a tier alias the vendor re-points as models change, so it is a router, not one fixed model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "claw-medium": {
+    "decision": "router",
+    "reason": "NanoGPT's own page: an OpenClaw compatibility alias that 'currently points to GLM 5.3' with auto routing as the default; the vendor re-points it, so it is a router, not one fixed model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepcogito/cogito-v1-preview-qwen-32B": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Hugging Face metadata lists it as a fine-tune of Qwen/Qwen2.5-32B (DeepCogito's IDA-trained instruct tune, Mar 2025); a fine-tune is not the Qwen base model and the index has no Cogito entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek-ai/DeepSeek-V3.1-Terminus": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "DeepSeek-V3.1-Terminus (Hugging Face release 2025-09-22) is a separate checkpoint update from V3.1; the index has no terminus entry, so defer rather than link to deepseek/deepseek-v3.1.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek-ai/DeepSeek-V3.1-Terminus:thinking": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "The :thinking suffix is the thinking-mode serving of DeepSeek-V3.1-Terminus (2025-09-22), a separate checkpoint update from V3.1; the index has no terminus entry, so defer rather than link to deepseek/deepseek-v3.1.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek-ai/deepseek-v3.2-exp": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "DeepSeek-V3.2-Exp (Sep 2025, DeepSeek Sparse Attention) is a separate experimental checkpoint from the Dec 2025 V3.2 release; the index has no exp entry, so defer rather than link to deepseek/deepseek-v3.2.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek-ai/deepseek-v3.2-exp-thinking": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "The -thinking suffix is the thinking-mode serving of DeepSeek-V3.2-Exp (Sep 2025), itself a separate experimental checkpoint from the Dec 2025 V3.2 release; the index has no exp entry, so defer rather than link to deepseek/deepseek-v3.2.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek-chat-cheaper": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "NanoGPT's discounted FP8 'DeepSeek V3/Chat' serving (added Apr 2025). Sources conflict on which checkpoint it serves (original V3, the 0324 revision, or DeepSeek's moving deepseek-chat endpoint, which NanoGPT says it may route through), so it cannot be pinned.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek/deepseek-v4.1-flash": {
+    "decision": "link",
+    "model": "deepseek/deepseek-v4.1-flash",
+    "reason": "NanoGPT serves the same DeepSeek-V4.1-Flash checkpoint (552B MoE, 1M context, Sep 2025) as deepseek/deepseek-v4.1-flash; its 0.022/0.4 price is a steep discount off the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek/deepseek-v4.1-flash-0910-uncensored": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "dealignai's September 10 uncensored release of DeepSeek V4.1 Flash; NanoGPT's own page calls it a lower-refusal finetune of DeepSeek V4.1 Flash. A fine-tune is not deepseek/deepseek-v4.1-flash itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek/deepseek-v4.1-flash-0910-uncensored:thinking": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "The :thinking suffix is the thinking-mode serving of dealignai's September 10 uncensored release of DeepSeek V4.1 Flash, which NanoGPT's own page calls a lower-refusal finetune; a fine-tune is not deepseek/deepseek-v4.1-flash itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek/deepseek-v4.1-flash-1017-uncensored": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "dealignai's uncensored build of DeepSeek V4.1 Flash 1017 (published Oct 2026), with refusal behavior removed directly in the weights (per vendor listings); a weight-edited derivative is not deepseek/deepseek-v4.1-flash-1017 itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek/deepseek-v4.1-flash-1017-uncensored:thinking": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "The :thinking suffix is the thinking-mode serving of dealignai's uncensored build of DeepSeek V4.1 Flash 1017, which removes refusal behavior directly in the weights; a weight-edited derivative is not deepseek/deepseek-v4.1-flash-1017 itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek/deepseek-v4.1-flash-uncensored": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "dealignai's 'abliterated' build of DeepSeek V4.1 Flash with refusal behaviour removed directly in the weights (per vendor listings); a weight-edited derivative is not deepseek/deepseek-v4.1-flash itself, matching the 0910/1017 uncensored decisions.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek/deepseek-v4.1-flash-uncensored:thinking": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "The :thinking suffix is the thinking-mode serving of dealignai's abliterated build of DeepSeek V4.1 Flash, which removes refusal behaviour directly in the weights; a weight-edited derivative is not deepseek/deepseek-v4.1-flash itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek/deepseek-v4.1-flash:thinking": {
+    "decision": "link",
+    "model": "deepseek/deepseek-v4.1-flash",
+    "reason": "The :thinking suffix is a reasoning-mode serving of the same DeepSeek V4.1 Flash checkpoint; still deepseek/deepseek-v4.1-flash, at NanoGPT's discounted price.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "fastgpt": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "NanoGPT's 'Web Answer' fastgpt is Kagi's FastGPT, a search-engine answer service that runs queries through a full search engine and unspecified underlying LLMs; a product, not a distinct catalog model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "google/gemma-4-26b-a4b-it": {
+    "decision": "link",
+    "model": "google/gemma-4-26b-a4b-it",
+    "reason": "Exact model id: Google's Gemma 4 26B A4B IT open-weight MoE (google/gemma-4-26B-A4B-it on Hugging Face, 26B total/4B active, 256K context). NanoGPT's 0.01/0.031 price is a discount off the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "google/gemma-4-26b-a4b-it:thinking": {
+    "decision": "link",
+    "model": "google/gemma-4-26b-a4b-it",
+    "reason": "The :thinking suffix is the built-in thinking mode of the same Gemma 4 26B A4B IT checkpoint (per Google's model card); still google/gemma-4-26b-a4b-it at NanoGPT's discounted price.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "heabsy/cyberheabsy": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Heabsy's own cybersecurity model (Sep 2026), reasoning-enabled and fine-tuned on an undisclosed open-weight foundation; a real new first-party model, but the base is unnamed and the index has no Heabsy entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "huihui-ai/DeepSeek-R1-Distill-Llama-70B-abliterated": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "huihui-ai's refusal-removed (abliterated) derivative of DeepSeek-R1-Distill-Llama-70B; Hugging Face metadata lists it as a finetune of that base. A weight-edited derivative is not the base model, and the index has no entry for it.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "huihui-ai/DeepSeek-R1-Distill-Qwen-32B-abliterated": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "huihui-ai's uncensored abliterated variant of deepseek-ai/DeepSeek-R1-Distill-Qwen-32B, listed on Hugging Face as a finetune of that base; a weight-edited derivative is not deepseek/deepseek-r1-distill-qwen-32b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meta-llama/llama-3.3-70b-instruct": {
+    "decision": "link",
+    "model": "meta/llama-3.3-70b-instruct",
+    "reason": "Exact Hugging Face id of Meta's Llama 3.3 70B Instruct; NanoGPT's 0.05/0.23 rate is a steep discount off the open-weight model's 0.705 median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meta/muse-spark-1.2-contributor": {
+    "decision": "link",
+    "model": "meta/muse-spark-1.2",
+    "reason": "NanoGPT labels it 'Data Used for Training': the same Muse Spark 1.2 weights at the discounted 0.1/0.2 contributor rate in exchange for Meta training on prompts/outputs; still meta/muse-spark-1.2.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meta/muse-spark-1.3-contributor": {
+    "decision": "link",
+    "model": "meta/muse-spark-1.3",
+    "reason": "Muse Spark 1.3 Contributor is the same Muse Spark 1.3 weights under Meta's discounted contributor-mode pricing (0.1/0.2, in exchange for Meta training on request content); still meta/muse-spark-1.3.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "mistralai/devstral-small-2505": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Mistral/All Hands AI's Devstral Small 2505 (Hugging Face repo created 2025-05-12, fine-tuned from Mistral-Small-3.1); the index has only the later devstral-small-2507 and Small 2 checkpoints, so defer rather than link the wrong Devstral.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "moonshotai/kimi-k3": {
+    "decision": "link",
+    "model": "moonshot/kimi-k3",
+    "reason": "Kimi K3 (moonshotai/Kimi-K3 on Hugging Face, 2.8T MoE, 1M context, launched 2026-07-16) matches moonshot/kimi-k3; NanoGPT's 0.45/9.6 price is a discount off the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "pqhaz/DeepSeek-V4.1-Flash-1017-heretic": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "pqhaz's Heretic checkpoint applies a directional ablation of refusal behaviour to the weights of DeepSeek-V4.1-Flash-1017 (per its Hugging Face card); a weight-edited derivative is not deepseek/deepseek-v4.1-flash-1017 itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "pqhaz/DeepSeek-V4.1-Flash-1017-heretic:thinking": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "The :thinking suffix is the thinking-mode serving of pqhaz's Heretic checkpoint, which directionally ablates refusal behaviour in the weights of DeepSeek-V4.1-Flash-1017; a weight-edited derivative is not deepseek/deepseek-v4.1-flash-1017 itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "sicariussicariistuff/assistant-pepe-32b": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "SicariusSicariiStuff's Assistant Pepe 32B is a community fine-tune of Qwen3-32B for creative writing and roleplay; a fine-tune is not the Qwen base model, and the index has no entry for it or its creator.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "soob3123/amoral-gemma3-27B-v2": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Hugging Face metadata lists soob3123/amoral-gemma3-27B-v2 as a fine-tune of google/gemma-3-27b-it (a community 'amoral' variant, Apr 2025); a fine-tune is not the Gemma base model and the index has no entry for it.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "speakleash/bielik-11b-v3.0-instruct": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Speakleash/ACK Cyfronet's Bielik 11B v3.0 Instruct (Hugging Face, Apache 2.0, Nov 2025), an instruct tune of their own Bielik v3 base; a real chat model the index does not contain.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "unsloth/gemma-3-12b-it": {
+    "decision": "link",
+    "model": "google/gemma-3-12b-it",
+    "reason": "unsloth/gemma-3-12b-it is Unsloth's mirror of Google's Gemma 3 12B IT instruction-tuned checkpoint (image-text-to-text, released 2025-03-12); same model as google/gemma-3-12b-it, and NanoGPT's flat 0.272 rate is above the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "xiaomi/mimo-v2.6-pro-ultraspeed": {
+    "decision": "link",
+    "model": "xiaomi/mimo-v2.6-pro",
+    "reason": "MiMo-V2.6-Pro-UltraSpeed is Xiaomi's fast-serving tier of the same 1T MiMo-V2.6-Pro checkpoint (same quality, ~10x output speed); still xiaomi/mimo-v2.6-pro at the 4.35/8.7 speed-tier price.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "xtools-at/deepseek-v4-pro-qwen3.5-9b-uncensored-heretic": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "xtools-at's uncensored Heretic build, listed on Hugging Face as a finetune of Jackrong/DeepSeek-V4-Pro-Qwen3.5-9B, itself a Qwen3.5 9B distill of DeepSeek V4 Pro; a derivative of a distill is not any catalog model, and the index has no entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

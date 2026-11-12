@@ -1,0 +1,9 @@
+{
+  "deepseek-ai/deepseek-ocr/models/DeepSeek-OCR": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "The original DeepSeek-OCR (HF deepseek-ai/DeepSeek-OCR, Oct 2025, 3B vision-language OCR model, MIT); the index only has the later DeepSeek OCR 2 (Jan 2026), a separate checkpoint.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

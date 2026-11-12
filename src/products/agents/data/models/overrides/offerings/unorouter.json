@@ -1,0 +1,23 @@
+{
+  "claude-opus-4-8": {
+    "decision": "link",
+    "model": "anthropic/claude-opus-4.8",
+    "reason": "UnoRouter serves Anthropic's claude-opus-4-8 (1M context, released 2026-05-28), the same model as anthropic/claude-opus-4.8, at an aggregator discount off the $5/$25 list price.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemini-3.5-flash": {
+    "decision": "link",
+    "model": "google/gemini-3.5-flash",
+    "reason": "UnoRouter serves Google's Gemini 3.5 Flash (released 2026-05-19, announced at I/O 2026, 1M context), same as google/gemini-3.5-flash, at an aggregator discount off the $1.50 median input price.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gpt-5.5": {
+    "decision": "link",
+    "model": "openai/gpt-5.5",
+    "reason": "UnoRouter serves OpenAI's GPT-5.5 (released 2026-04-23, 1M context), same as openai/gpt-5.5, at a steep aggregator discount off the $5 median input price.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

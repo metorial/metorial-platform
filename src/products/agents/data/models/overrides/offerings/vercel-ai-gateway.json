@@ -1,0 +1,86 @@
+{
+  "alibaba/qwen3.8-27b": {
+    "decision": "link",
+    "model": "alibaba/qwen3.8-27b",
+    "reason": "Vercel AI Gateway lists Alibaba's Qwen3.8 27B open-weight dense vision-language model (Aug 2026, 262K context); its 0.06/2.2 rate differs from the model's median but it is the same checkpoint.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "callstack/apex": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Callstack's own coding LLM built on Gemma 4 for React Native/Next.js work (per their announcement); a real new first-party model not yet in the index.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek/deepseek-v4.1-flash-1017-ultrafast": {
+    "decision": "link",
+    "model": "deepseek/deepseek-v4.1-flash-1017",
+    "reason": "Vercel's changelog states Ultrafast serves the October 17, 2026 update of DeepSeek V4.1 Flash via Fireworks' accelerated endpoint; same checkpoint as deepseek/deepseek-v4.1-flash-1017, priced at a speed-tier premium (2.4/9.6).",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "elevenlabs/eleven-realtime-v1-max": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ElevenLabs' Eleven Realtime v1 Max, the larger speech-to-speech voice-agent model released 2026-10-20 (per ElevenLabs/Vercel listings); the index has ElevenLabs speech and transcription models but no Realtime entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "elevenlabs/eleven-realtime-v1-mini": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ElevenLabs' Eleven Realtime v1 Mini, the default speech-to-speech voice-agent model released 2026-10-20 (per ElevenLabs/Vercel listings); the index has ElevenLabs speech and transcription models but no Realtime entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "humansand/ampersand-v0.1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "humans&'s first model, post-trained from Z.ai's GLM 5.3 (744B) and released 2026-10-20; a real new model, but a post-train of GLM is not zhipu/glm-5.3 itself and the index has no humans& entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "liquid/d1-ultra": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Liquid AI's d1-ultra (released 2026-10-15), its most capable multimodal decision model; it is a larger sibling of liquid/d1 and the index has no d1-ultra entry, only liquid/d1.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meta/muse-spark-1.2-contributor": {
+    "decision": "link",
+    "model": "meta/muse-spark-1.2",
+    "reason": "Vercel's own docs: Contributor serves the same weights and 1M context as Muse Spark 1.2, only the data-use arrangement differs; still meta/muse-spark-1.2 at the 0.1/0.2 contributor rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meta/muse-spark-1.3-contributor": {
+    "decision": "link",
+    "model": "meta/muse-spark-1.3",
+    "reason": "Muse Spark 1.3 Contributor is the same Muse Spark 1.3 weights under Meta's discounted contributor-mode pricing (0.1/0.2, in exchange for Meta training on request content); still meta/muse-spark-1.3.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nace-ai/drex-max-finance": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Nace.AI's Drex Max Finance (released 2026-11-01 per Respan/Nace docs), the finance variant of the 27B multimodal Drex Max decision model; the index has only drex-v1.5 and drex-v2.0 from the separate Drex decision line.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nace-ai/drex-max-v1.1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Nace.AI's Drex Max v1.1 (served as drex-max, released 2026-10-28 per BenchLM), the frontier multimodal decision model; the index has only drex-v1.5/drex-v2.0, which are the separate Drex decision line, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "xiaomi/mimo-v2.6-pro-ultraspeed": {
+    "decision": "link",
+    "model": "xiaomi/mimo-v2.6-pro",
+    "reason": "MiMo V2.6 Pro UltraSpeed is Xiaomi's fast-serving tier of the same 1T MiMo-V2.6-Pro checkpoint (same quality, up to 20x output speed); still xiaomi/mimo-v2.6-pro at the 4.35/8.7 speed-tier price.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}
