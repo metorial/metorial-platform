@@ -1,4 +1,18 @@
 {
+  "alibaba/qwen3-max-thinking": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's Qwen3-Max-Thinking, the trillion-parameter reasoning flagship released as an early training checkpoint (per Alibaba's blog and Vercel's listing); the index's Qwen Max line has no Thinking entry, so defer rather than link qwen3-max.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "alibaba/qwen3-vl-instruct": {
+    "decision": "link",
+    "model": "alibaba/qwen3-vl-235b-a22b-instruct",
+    "reason": "Vercel's own model page for qwen3-vl-instruct is titled 'Qwen3 VL 235B A22B Instruct' — Alibaba's 235B MoE vision-language model at $0.20/$0.88 over 262K context; matches alibaba/qwen3-vl-235b-a22b-instruct.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "alibaba/qwen3.8-27b": {
     "decision": "link",
     "model": "alibaba/qwen3.8-27b",

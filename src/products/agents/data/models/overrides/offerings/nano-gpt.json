@@ -237,6 +237,41 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "Qwen3.5-27B-Blossom-V6.4-Derestricted": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page and llmpricing call Qwen3.5 27B Blossom V6.4 Derestricted a community creative finetune for reasoning, multimodal chat, expressive writing and roleplay; a fine-tune is not alibaba/qwen3.5-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Qwen3.5-27B-BlueStar-v3-Derestricted": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "The third-generation BlueStar finetune of Qwen3.5 27B for creative roleplay, narrative prose and multimodal workflows (per Infron/ArliAI listings); a fine-tune is not alibaba/qwen3.5-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled-Derestricted": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Jackrong's Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled transfers Claude Opus 4.6 reasoning into a Qwen3.5-27B student (per its Hugging Face card and coverage); a distill built on a model is neither alibaba/qwen3.5-27b nor any Claude model itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled-Derestricted-Lite": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "The Lite variant is a lighter-tuned community finetune of the Claude-4.6-Opus-Reasoning-Distilled build on Qwen3.5 27B (per llmpricing/NanoGPT); a fine-tune is not alibaba/qwen3.5-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Qwen3.5-27B-Queen-Derestricted": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "ArliAI's derestricted build of Qwen3.5-27B with refusal behavior modified to reduce refusals (per muapi's listing and ArliAI's Derestricted line); a weight-edited derivative is not alibaba/qwen3.5-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "ReadyArt/MS3.2-The-Omega-Directive-24B-Unslop-v2.0": {
     "decision": "exclude",
     "category": "fine-tune",
@@ -402,6 +437,13 @@
     "decision": "exclude",
     "category": "other",
     "reason": "AionLabs' own listing: Aion 3.5 Mini is the smaller sibling using the same collaborative multi-model generation process built on the GLM family. Not a single catalog model, and the index has no Aion 3.5 entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "aisingapore/qwen-sea-lion-v4-32b-it": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "AI Singapore's Qwen-SEA-LION-v4-32B-IT (Hugging Face, Oct 2025), a 32B Southeast-Asian model continued-pretrained and instruction-tuned from Qwen3-32B; the index has only the Gemma-SEA-LION v4 27B, so defer this separate base.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -847,6 +889,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "huihui-ai/Qwen2.5-32B-Instruct-abliterated": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "huihui-ai's Qwen2.5-32B-Instruct-abliterated is an uncensored abliteration of Qwen2.5-32B-Instruct (its Hugging Face card lists the finetune base); a weight-edited derivative is not the Qwen base model and the index has no Qwen2.5 32B entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "inception/mercury-2.5-preview": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -1201,6 +1250,48 @@
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "Alibaba's Qwen2.5-72B-Instruct (Hugging Face Qwen/Qwen2.5-72B-Instruct, Sep 2024); the index's Qwen2.5 line has the 7B instruct and Coder models and the 72B VL variant, but no 72B instruct entry, so defer rather than link a different model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3.5-omni-flash": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's Qwen3.5-Omni Flash, the lower-latency omni-modal model released 2026-03-30 (per LLM Reference/UpCube listings); the index's omni line has Qwen3-Omni Flash and Qwen3.8 Omni Flash but no 3.5 entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3.5-omni-plus": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's Qwen3.5-Omni Plus, the Plus-tier omni-modal model released 2026-03-30 (per CloudPrice and The Decoder's coverage); the index has no Qwen3.5-Omni entry, so defer rather than link qwen3.5-plus.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3.8-27b-antislop": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "AlexWortega's Qwen3.8-27B-antislop is a community fine-tune of Qwen3.8-27B using RL-XAR to produce less generic prose (per its Hugging Face card); a fine-tune is not alibaba/qwen3.8-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3.8-27b-cybersecurity": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "A cybersecurity/code-review fine-tune of Qwen3.8-27B, QLoRA-distilled from GLM-5.3 and Kimi K3 answers (per its Hugging Face card); a fine-tune is not alibaba/qwen3.8-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3.8-27b-darkidol": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "DarkIdol-Qwen3.8-27B is aifeifei798's roleplay fine-tune of Qwen3.8-27B for high-immersion RP and narrative simulation (per Featherless/ArliAI); a fine-tune is not alibaba/qwen3.8-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3.8-27b-fable": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page calls Qwen 3.8 27B Fable an open-weight multimodal creative finetune for storytelling and roleplay (a Fable-distilled Qwen3.8 build); a fine-tune is not alibaba/qwen3.8-27b itself.",
     "by": "agent",
     "at": "2026-11-12"
   },

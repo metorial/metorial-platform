@@ -6,6 +6,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "Qwen/Qwen3-Reranker-4B": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's Qwen3-Reranker-4B (Hugging Face Qwen/Qwen3-Reranker-4B, Jun 2025), the mid-size text reranker of the Qwen3 Embedding/Reranker series; the index has only the 0.6B and 8B rerankers, so defer rather than link a different size.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "intfloat/multilingual-e5-large-instruct": {
     "decision": "link",
     "model": "intfloat/multilingual-e5-large-instruct",

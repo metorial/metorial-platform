@@ -6,6 +6,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "Qwen/Qwen3-VL-Embedding-8B": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's Qwen3-VL-Embedding-8B (Hugging Face Qwen/Qwen3-VL-Embedding-8B, Jan 2026), the multimodal embedding model fine-tuned from Qwen3-VL-8B-Instruct; the index has only the text-only Qwen3 Embedding models, so defer rather than link the 8B text embedding.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "intfloat/e5-mistral-7b-instruct": {
     "decision": "exclude",
     "category": "non-chat",

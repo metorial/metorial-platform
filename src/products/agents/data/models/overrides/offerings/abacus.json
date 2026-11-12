@@ -1,4 +1,11 @@
 {
+  "Qwen/Qwen2.5-72B-Instruct": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's Qwen2.5-72B-Instruct (Hugging Face Qwen/Qwen2.5-72B-Instruct, Sep 2024); the index's Qwen2.5 line has the 7B instruct and Coder models and the 72B VL variant, but no 72B instruct entry, so defer rather than link a different model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "deepseek-ai/DeepSeek-V3.1-Terminus": {
     "decision": "defer",
     "until": "2026-12-12",

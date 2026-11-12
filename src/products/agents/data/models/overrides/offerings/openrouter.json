@@ -354,6 +354,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "qwen/qwen3-vl-30b-a3b-thinking": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenRouter's listing maps to Qwen/Qwen3-VL-30B-A3B-Thinking (Hugging Face, Sep 2025), the thinking variant of the 30B-A3B vision-language MoE; the index has the 30B-A3B base and Instruct but no Thinking entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3-vl-8b-instruct": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenRouter's listing maps to Qwen/Qwen3-VL-8B-Instruct (Hugging Face, Oct 2025), the dense 8B vision-language model; the index's Qwen3-VL line has no 8B entry, so defer rather than link qwen3-8b.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "recursive/flint-v1.0:free": {
     "decision": "link",
     "model": "recursive/flint",

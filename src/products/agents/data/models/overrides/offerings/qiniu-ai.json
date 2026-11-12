@@ -83,6 +83,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "qwen3-30b-a3b-thinking-2507": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's Qwen3-30B-A3B-Thinking-2507, the thinking-mode-only 30B MoE checkpoint (Hugging Face Qwen/Qwen3-30B-A3B-Thinking-2507, Jul 2025); the index has the Instruct-2507 variant but no Thinking entry, so defer rather than link the instruct checkpoint.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen3-vl-30b-a3b-thinking": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's Qwen3-VL-30B-A3B-Thinking, the thinking variant of the 30B-A3B vision-language MoE (Hugging Face Qwen/Qwen3-VL-30B-A3B-Thinking, Sep 2025); the index's Qwen3-VL line has the 30B-A3B base and Instruct but no Thinking entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "stepfun-ai/gelab-zero-4b-preview": {
     "decision": "exclude",
     "category": "fine-tune",
