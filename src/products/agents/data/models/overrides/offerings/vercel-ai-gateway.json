@@ -125,6 +125,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "openai/gpt-image-2.6-flare": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Vercel's listing: OpenAI's GPT Image 2.6 Flare, released 2026-11-04; a new image-model generation the index has no 2.6 entry for (only gpt-image-2.5-flare), so defer rather than link the 2.5 model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-image-2.6-sunburst": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Vercel's listing: OpenAI's GPT Image 2.6 Sunburst, released 2026-11-04 alongside GPT Image 2.6 Flare; a new image-model generation the index has no 2.6 entry for (only gpt-image-2.5-sunburst), so defer rather than link the 2.5 model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "prodia/flux-fast-schnell": {
     "decision": "link",
     "model": "black-forest-labs/flux-1-schnell",
@@ -132,10 +146,38 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "spacexai/grok-4.20-multi-agent-beta": {
+    "decision": "link",
+    "model": "xai/grok-4.20-multi-agent-0309",
+    "reason": "Vercel's own docs: the -beta id is the beta-lifecycle alias of grok-4.20-multi-agent, 'the same multi-agent focus under a beta lifecycle identifier'; still the Grok 4.20 Multi-Agent checkpoint, xai/grok-4.20-multi-agent-0309.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "spacexai/grok-4.20-non-reasoning-beta": {
+    "decision": "link",
+    "model": "xai/grok-4.20-0309",
+    "reason": "Vercel's own docs: Grok 4.20 Beta Non-Reasoning is the beta-lifecycle alias of Grok 4.20 Non-Reasoning, the non-reasoning model of the Mar 2026 Grok 4.20 generation; same checkpoint as xai/grok-4.20-0309 at the 1.25/2.5 rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "spacexai/grok-4.20-reasoning-beta": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Vercel's docs: Grok 4.20 Beta Reasoning is the beta alias of the Grok 4.20 reasoning model (visible chain-of-thought, released Mar 2026); the index has no Grok 4.20 reasoning entry (only the 0309 non-reasoning and multi-agent checkpoints), so defer rather than link the wrong variant.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "stealth/glyph-cluster": {
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "Glyph Cluster is a stealth-preview reasoning model from a third-party provider that has chosen to remain anonymous, free during stealth (per Vercel's changelog); a real new model with no named lab and no index entry, so defer until it is revealed.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "tencent/hy-mt2-lite": {
+    "decision": "link",
+    "model": "tencent/hy-mt2-1.8b",
+    "reason": "Vercel's listing: Hy-MT2-Lite is Tencent Hunyuan's lightweight 1.8B translation model with an 8K context window; matches the index's tencent/hy-mt2-1.8b exactly, including its 0.044/0.177 rate.",
     "by": "agent",
     "at": "2026-11-12"
   },

@@ -41,6 +41,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "grok-4": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "LLM Gateway's listing of xAI's Grok 4 (Jul 2025, 256K context) at 3/15; the index has no base Grok 4 entry (only the fast variants and later 4.x generations), so defer rather than link the wrong Grok.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "inference.net/deepseek-v4.1-flash-cyber": {
     "decision": "exclude",
     "category": "fine-tune",
@@ -99,6 +106,13 @@
     "decision": "link",
     "model": "meta/llama-3.3-70b-instruct",
     "reason": "LLM Gateway's Novita route for Meta's open-weight Llama 3.3 70B Instruct; the 0.135/0.4 rate is a discount off the model's 0.705 median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "xai/grok-4": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "The same xAI Grok 4 (Jul 2025, 256K context) under LLM Gateway's namespaced id; the index has no base Grok 4 entry (only the fast variants and later 4.x generations), so defer rather than link the wrong Grok.",
     "by": "agent",
     "at": "2026-11-12"
   },

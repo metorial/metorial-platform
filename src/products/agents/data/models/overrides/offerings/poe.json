@@ -54,5 +54,26 @@
     "reason": "A Poe Poetools bot: a Claude-powered coding tool wrapper on Poe's platform, not a distinct model; no published price, context, or model identity to link.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "xai/grok-3": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Poe's listing of xAI's Grok 3 (Feb 2025) at 3/15; the index has no Grok 3 entry (its xAI chat line starts at the 4.x generations), so defer rather than link the wrong Grok.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "xai/grok-3-mini": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Poe's listing of xAI's Grok 3 Mini, the lightweight thinking model (Apr 2025) at 0.3/0.5; the index has no Grok 3 entry, so defer rather than link the wrong Grok generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "xai/grok-4": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Poe's listing of xAI's Grok 4 (Jul 2025, 256K context) at 3/15; the index has no base Grok 4 entry (only the fast variants and later 4.x generations), so defer rather than link the wrong Grok.",
+    "by": "agent",
+    "at": "2026-11-12"
   }
 }

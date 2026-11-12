@@ -118,6 +118,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "openai/gpt-6.1-sol-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6.1-sol",
+    "reason": "GPT-6.1 Sol Pro is the same underlying model as GPT-6.1 Sol served with reasoning.mode set to pro (per OpenRouter's listing and coverage of all three gateways); a pro reasoning-mode serving is still openai/gpt-6.1-sol at the 2/10 pro rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6.1-terra-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6.1-terra",
+    "reason": "GPT-6.1 Terra Pro is the same underlying model as GPT-6.1 Terra served with reasoning.mode set to pro (per OpenRouter's listing and coverage of all three gateways); a pro reasoning-mode serving is still openai/gpt-6.1-terra at the 1/5 pro rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "openrouter/bodybuilder": {
     "decision": "exclude",
     "category": "other",
@@ -136,6 +150,13 @@
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "Glyph Cluster is a stealth-preview reasoning model from a third-party provider that has chosen to remain anonymous, free during stealth (per Vercel's changelog); a real new model with no named lab and no index entry, so defer until it is revealed.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "tencent/hunyuan-a13b-instruct": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Tencent's Hunyuan-A13B, the open-weight 80B-total/13B-active MoE (tencent/Hunyuan-A13B-Instruct on Hugging Face, June 2025); a real model the index has no Hunyuan A13B entry for, so defer rather than link another Hunyuan.",
     "by": "agent",
     "at": "2026-11-12"
   },
