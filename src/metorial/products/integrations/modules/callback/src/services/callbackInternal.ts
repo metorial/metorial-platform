@@ -562,8 +562,7 @@ class callbackInternalServiceImpl {
         continue;
       }
 
-      // The serving generation stays until its replacement is primary; without one, a
-      // replaced generation may be the only live registration.
+      // The serving generation stays until its replacement is primary; it may be the only live one.
       let serving = generations.obsolete.find(
         callbackInstance => callbackInstance.generationStatus === 'primary'
       );

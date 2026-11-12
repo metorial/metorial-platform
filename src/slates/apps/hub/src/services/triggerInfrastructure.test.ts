@@ -20,8 +20,7 @@ vi.mock('./secret', () => ({
 
 vi.mock('./tenant', () => ({ globalTenant: { oid: 99n, identifier: '__slates_global__' } }));
 
-// The selection logic under test is the real package; only the descriptor schema it reads
-// from the integration SDK is stood in for, since that build does not load in this runner.
+// Real selection package; only the SDK descriptor schema is stubbed (it does not load here).
 vi.mock('@slates/google-pubsub', async () => {
   let z = (await import('zod')).default;
   let googlePubSubInfrastructureSchema = z.object({

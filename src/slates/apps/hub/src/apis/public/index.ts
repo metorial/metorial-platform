@@ -99,8 +99,7 @@ let handleWebhookReceive = async (c: Context) => {
     );
   }
 
-  // Managed delivery reaches a group's registrations only through the authenticated push on
-  // a delivery config, and their integrations verify a request on the assumption that it did.
+  // Managed-delivery registrations are reached only through a delivery config's authenticated push.
   let isDeliveryConfig = triggerDeliveryService.isDeliveryConfig(registration);
   if (!isDeliveryConfig && triggerDeliveryService.servesRegistration(registration)) {
     throw new ServiceError(notFoundError('webhook_registration'));

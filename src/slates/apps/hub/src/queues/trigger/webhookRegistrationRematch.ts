@@ -20,9 +20,8 @@ export let triggerWebhookRegistrationRematchQueue = createQueue<{
   workerOpts: { concurrency: 1 }
 });
 
-// Registrations that failed while no delivery config matched are otherwise retried only
-// when their target is rediscovered after the cooldown. A config is found by trigger group
-// key, so the targets of every version of the group are included.
+// Otherwise registrations that failed for lack of a config retry only on rediscovery.
+// Configs match by group key, so targets of every group version are included.
 let retryFailedTargets = async (d: {
   slateOid: bigint;
   triggerGroupKey: string;
@@ -86,8 +85,7 @@ let retryFailedTargets = async (d: {
   return targets;
 };
 
-// Registrations delivering through a removed config are unregistered at the provider; those
-// still in use then register again and find another config or record that none is set up.
+// Registrations on a removed config are unregistered; those in use re-register or record the gap.
 let releaseConfigTargets = async (d: { configId: string; cursor: string | undefined }) => {
   let targets = await db.triggerWebhookTarget.findMany({
     where: {
@@ -102,8 +100,7 @@ let releaseConfigTargets = async (d: { configId: string; cursor: string | undefi
   });
   if (targets.length === 0) return targets;
 
-  // Unlocked; the status filter guards against a concurrent removal. Without the flag the
-  // unregister job leaves a target that is still in use registered as it is.
+  // Unlocked; the status filter guards concurrent removal. The flag makes unregister drop in-use targets.
   await db.triggerWebhookTarget.updateMany({
     where: {
       oid: { in: targets.map(target => target.oid) },

@@ -48,8 +48,7 @@ export let validateTriggerGroupSelections = (
   )
     reject('Trigger group selections exceed the size limit.');
 
-  // A selection for a group the current version no longer has (or that no longer accepts one)
-  // is ignored rather than failing every group of the registration after a provider release.
+  // Selections for groups that are gone or no longer take one are ignored, so a release fails nothing.
   let ignoredSelectionKeys: string[] = [];
   for (let [groupId, selection] of Object.entries(selections ?? {})) {
     if (groupId.length > maxKeyLength) reject('Trigger group selection keys are too long.');
@@ -67,8 +66,7 @@ export let validateTriggerGroupSelections = (
     let selection =
       selections && Object.hasOwn(selections, group.id) ? selections[group.id] : undefined;
 
-    // Leaving out a selection the group needs opts out of that group. A schema that cannot be
-    // compiled is a provider defect and still fails the registration below.
+    // Omitting a required selection opts out of the group; an uncompilable schema still fails below.
     if (
       selection === undefined &&
       jsonSchemaRejects({ schema: group.selectionSchema, data: {} })

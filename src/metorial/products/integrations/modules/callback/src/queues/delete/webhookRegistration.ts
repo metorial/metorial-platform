@@ -49,8 +49,8 @@ export let webhookRegistrationDeleteQueueProcessor = webhookRegistrationDeleteQu
       webhookRegistration
     });
 
-    // Archiving runs this right away so the backend registration stops working. The record
-    // itself stays archived until the nightly cleanup runs it again after the retention period.
+    // Archiving runs this at once to stop the backend registration; the nightly cleanup purges
+    // the record after retention.
     if (webhookRegistration.archivedAt && webhookRegistration.archivedAt >= getCutoffDate()) {
       return;
     }

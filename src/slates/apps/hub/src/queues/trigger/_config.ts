@@ -22,8 +22,7 @@ export let TRIGGER_WEBHOOK_RENEW_BATCH_SIZE = 500;
 
 export let TRIGGER_WEBHOOK_RENEW_RETRY_MS = 5 * 60 * 1000;
 
-// A saved provider result nobody adopted is rolled back at the provider for this long;
-// after that only the local record is dropped and the provider side is left to expire.
+// Unadopted provider results are rolled back for this long; later only the local record is dropped.
 export let TRIGGER_WEBHOOK_RENEW_ROLLBACK_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 // Targets stuck in a transitional status this long are re-queued for unregister by the sweep.
@@ -43,8 +42,7 @@ export let TRIGGER_EVENT_MAP_MAX_BACKOFF_MS = 5 * 60 * 1000;
 export let triggerEventMapBackoffMs = (attempt: number) =>
   Math.min(2 ** attempt * 1000, TRIGGER_EVENT_MAP_MAX_BACKOFF_MS);
 
-// A dispatch outbox row is enqueued when it is written, and again by each recovery scan. The
-// scanners leave it alone this long afterwards so they cannot race a job that is about to finish.
+// Scanners skip outbox rows this young so they cannot race the job enqueued on write.
 export let TRIGGER_DISPATCH_RECHECK_DELAY_MS = 60_000;
 
 export let TRIGGER_WEBHOOK_EXPANSION_MAX_ATTEMPTS = 12;
@@ -61,12 +59,10 @@ export let triggerWebhookExpansionBackoffMs = (attempt: number) =>
     TRIGGER_WEBHOOK_EXPANSION_MAX_BACKOFF_MS
   );
 
-// A pending expansion is dropped this long after it arrived, which bounds the backlog behind a
-// connection that keeps failing.
+// Bounds the backlog behind a failing connection: pending expansions older than this are dropped.
 export let TRIGGER_WEBHOOK_EXPANSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
-// The database stamps a new row's due time and workers compare it with their own clocks. A row
-// this close to due counts as due, so its immediate job is not skipped over a few ms of skew.
+// Due times come from the database clock; this tolerance absorbs worker clock skew.
 export let TRIGGER_WEBHOOK_EXPANSION_CLOCK_SKEW_MS = 5_000;
 
 // Expansion runs per inbound webhook delivery, not from a cron, so it is sized for latency.

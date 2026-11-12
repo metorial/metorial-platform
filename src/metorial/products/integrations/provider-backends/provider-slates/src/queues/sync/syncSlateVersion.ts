@@ -353,8 +353,7 @@ export let syncSlateVersionQueueProcessor = syncSlateVersionQueue.process(async 
     } satisfies PrismaJson.ProviderTypeAttributes
   };
 
-  // An older version that syncs late must not replace what the current version says about
-  // the provider (its capabilities, listing and docs), so it uses the provider as it is.
+  // A late-syncing older version must not overwrite the provider's capabilities, listing or docs.
   let provider =
     (version.isCurrent
       ? null

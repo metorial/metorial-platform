@@ -29,7 +29,6 @@ let include = {
   }
 };
 
-// A failed raw event keeps its payload until its last trigger settles, whichever way.
 let offloadSettledFailedRawEvent = async (rawEvent: { oid: bigint; id: string }) => {
   let pendingChildren = await db.triggerEvent.count({
     where: {
@@ -81,8 +80,7 @@ export let triggerMapQueueProcessor = triggerMapQueue.process(async data => {
 
   if (event.status === 'mapping_failed_final') return;
   if (event.status === 'mapped') {
-    // The dispatch row is removed once the event is delivered, so a map job retried after
-    // that must not deliver it again.
+    // The dispatch row goes once delivered, so a retried map job must not deliver again.
     let dispatch = await db.triggerEventDispatch.findUnique({
       where: { eventOid: event.oid },
       select: { eventOid: true }

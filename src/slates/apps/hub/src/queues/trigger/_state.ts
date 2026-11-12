@@ -65,8 +65,7 @@ export let commitTriggerInstance = async (
   write: (tx: Prisma.TransactionClient) => Promise<void>
 ) =>
   db.$transaction(async tx => {
-    // Hold the tenant row until commit so a concurrent callback-disable cannot
-    // cross the state/event acceptance boundary.
+    // Lock the tenant row until commit so a concurrent callback-disable cannot interleave.
     await tx.$queryRaw`SELECT "oid" FROM "Tenant" WHERE "oid" = ${instance.triggerRegistration.tenantOid} FOR SHARE`;
     await tx.$queryRaw`SELECT "oid" FROM "TriggerRegistration" WHERE "oid" = ${instance.triggerRegistrationOid} FOR SHARE`;
     let changed = await tx.triggerRegistrationInstance.updateMany({

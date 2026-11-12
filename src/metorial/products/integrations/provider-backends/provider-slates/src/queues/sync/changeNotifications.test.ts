@@ -66,8 +66,7 @@ describe('slate version sync scheduling', () => {
     });
   });
 
-  // A job that ran out of retries stays in the queue under its id. With a fixed id every
-  // later run was dropped as a duplicate, so new versions only arrived with the hourly sync.
+  // A failed job keeps its id, so a fixed id dropped every later run as a duplicate.
   it('schedules the change notification run without a fixed job id', async () => {
     await crons['sub/slt/cnhnotif/cron']!();
 

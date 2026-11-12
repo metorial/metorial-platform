@@ -45,7 +45,6 @@ let getSetupIssueFieldLabels = (schema: JSONSchema7 | null, path: string[]) => {
   return labels;
 };
 
-// Maps a failed setup request to a message per field and one message for the whole form.
 export let getWebhookSetupErrorMessages = (p: {
   schema: JSONSchema7 | null;
   error: { message?: string; errors?: unknown } | null | undefined;

@@ -85,8 +85,7 @@ export let triggerWebhookRegisterQueueProcessor = triggerWebhookRegisterQueue.pr
         data: { renewalOperationId: operationId, registrationUrlKey: urlKey }
       });
       if (!token) {
-        // The target belongs to whoever holds the claim, so only the error is recorded; the
-        // stale-target sweep queues the registration again.
+        // The claim holder owns the target, so only record the error; the stale-target sweep requeues.
         if (isLastAttempt)
           await createTriggerRegistrationInstanceError({
             triggerRegistrationInstanceOid: instance.oid,
@@ -100,8 +99,7 @@ export let triggerWebhookRegisterQueueProcessor = triggerWebhookRegisterQueue.pr
       let failureRecorded = false;
       let resultSaved = false;
 
-      // A failed call leaves no saved result to resume, so the next attempt must not reuse
-      // an identity the provider may already have seen.
+      // Nothing saved to resume, so the next attempt must not reuse an identity the provider saw.
       let recordFailure = async (d: {
         code: string;
         message: string;
@@ -304,9 +302,8 @@ export let triggerWebhookRegisterQueueProcessor = triggerWebhookRegisterQueue.pr
           await tx.triggerWebhookRenewalResult.delete({ where: { operationId } });
         });
       } catch (error) {
-        // The queue drops the job after this attempt, so an exception has to end in the
-        // same failed state as a rejected call. A saved provider result is left alone: the
-        // renewal cleanup queue resumes it or rolls it back.
+        // Last attempt: an exception must end failed like a rejected call; renewal cleanup handles
+        // any saved provider result.
         if (isLastAttempt && !failureRecorded && !resultSaved)
           await recordFailure({
             code: 'webhook_registration_failed',

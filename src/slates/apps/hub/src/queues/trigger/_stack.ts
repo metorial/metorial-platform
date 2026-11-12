@@ -20,7 +20,6 @@ type TriggerStackOptions = {
   minExpirationBuffer?: number;
 };
 
-// Resolves the version and credentials once so long-lived callers can reuse them.
 export let prepareTriggerInstanceStack = async (d: TriggerStackOptions) => {
   let registration = d.registration;
   let version = await getActiveSlateVersion({

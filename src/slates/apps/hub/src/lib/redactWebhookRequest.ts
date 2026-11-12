@@ -2,9 +2,7 @@ let credentialHeaders = ['authorization', 'proxy-authorization'];
 
 let REDACTED = '[REDACTED]';
 
-// The URL a request arrived on names a registration by its secret key. A request received
-// on, or handed on from, a registration other tenants share must not reveal that key, so
-// only a tenant's own registration keeps its URL.
+// Receive URLs carry a registration's secret key; only a tenant's own registration keeps its URL.
 let redactUrl = (url: string, registration: { owner: string; urlKey: string }) => {
   let origin = /^[a-z][a-z0-9+.-]*:\/\/[^/?#]*/i.exec(url)?.[0] ?? '';
   let urlKey = /^\/receive\/([^/?#]+)/.exec(url.slice(origin.length))?.[1];
@@ -13,9 +11,8 @@ let redactUrl = (url: string, registration: { owner: string; urlKey: string }) =
   return `${origin}/receive/${REDACTED}`;
 };
 
-// A push through shared delivery infrastructure carries a bearer token that is valid for
-// every tenant on that binding, so it must never leave the hub. Without a registration the
-// URL is kept, which is for operators only.
+// A shared-delivery bearer token is valid for every tenant on the binding, so it never leaves
+// the hub. Without a registration (operators only) the URL is kept.
 export let redactWebhookRequest = (
   request: PrismaJson.SlateWebhookEventRequest | null,
   registration?: { owner: string; urlKey: string }

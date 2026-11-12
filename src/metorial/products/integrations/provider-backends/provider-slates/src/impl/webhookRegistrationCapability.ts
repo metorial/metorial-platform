@@ -5,8 +5,8 @@ type WebhookRegistrationCapability = Extract<
   { status: 'enabled' }
 >['webhookRegistration'];
 
-// A manual group needs a registration before any event arrives. An automatic group with a
-// delivery config registers on its own and only needs one for the customer's own OAuth app.
+// Manual groups need a registration first; automatic groups with a delivery config need one
+// only for the customer's own OAuth app.
 export let toWebhookRegistrationCapability = (
   triggerGroups: Pick<SpecificationTriggerGroup, 'invocation'>[]
 ): WebhookRegistrationCapability => {

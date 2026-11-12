@@ -13,8 +13,7 @@ let Sentry = getSentry();
 
 let defaultRefreshBufferMs = 5 * 60 * 1000;
 
-// A failed refresh (revoked consent, a stored auth error) falls back to the stored
-// credentials so the provider's rejection reaches each job's existing failure handling.
+// A failed refresh falls back to stored credentials so the provider's rejection is handled normally.
 export let resolveTriggerAuth = async (d: {
   tenant: Tenant;
   slateInstance: SlateInstance;

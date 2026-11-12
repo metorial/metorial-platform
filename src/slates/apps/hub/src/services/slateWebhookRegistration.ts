@@ -433,9 +433,8 @@ class slateWebhookRegistrationServiceImpl {
     await this.releaseDeliveryConfig(d.registration);
   }
 
-  // Registrations that deliver through a removed config would look healthy while receiving
-  // nothing, so they are registered again without it. The second pass finds one that was
-  // still being registered with the config when it was removed.
+  // Registrations on a removed config would look healthy yet receive nothing, so re-register
+  // them; the second pass catches ones mid-registration.
   private async releaseDeliveryConfig(registration: DeletableWebhookRegistration) {
     if (!isTriggerDeliveryConfig(registration)) return;
     let job = { webhookRegistrationId: registration.id };

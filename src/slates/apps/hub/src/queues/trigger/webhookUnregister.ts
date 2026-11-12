@@ -210,8 +210,8 @@ export let triggerWebhookUnregisterQueueProcessor = triggerWebhookUnregisterQueu
               registeredByTriggerRegistrationOid: null,
               unregistrationStarted: false,
               renewalOperationId: null,
-              // A hook the provider still holds can only be replaced at its own URL, so the
-              // next registration reuses it.
+              // A hook still at the provider can only be replaced at its
+              // URL, so the next registration reuses it.
               registrationUrlKey: providerHookLeft
                 ? (webhookRegistration?.urlKey ?? null)
                 : null,

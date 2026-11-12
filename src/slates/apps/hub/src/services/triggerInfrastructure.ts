@@ -21,8 +21,7 @@ export let TRIGGER_DELIVERY_CONFIG_MISSING = 'trigger_delivery_config_missing';
 
 type GroupInvocation = { spec: { invocation: unknown } };
 
-// The registration a person set up for a trigger group with managed delivery. Its payload
-// describes the topic and push subscription, and its receive URL is where pushes arrive.
+// A managed-delivery setup: its payload names the topic and subscription, pushes hit its URL.
 export let isTriggerDeliveryConfig = (
   registration: Pick<SlateWebhookRegistration, 'type'> & { triggerGroup: GroupInvocation }
 ) =>
@@ -42,8 +41,7 @@ let decryptConfig = async (
   return secret.payload;
 };
 
-// Undefined when the trigger group needs no managed delivery. Nothing is provisioned here:
-// the descriptor is the one saved with the delivery config for the connection's OAuth app.
+// Undefined without managed delivery; otherwise the descriptor saved for the connection's OAuth app.
 export let getTriggerInfrastructure = async (d: {
   tenant: Tenant;
   slate: Pick<Slate, 'oid'>;
@@ -55,8 +53,7 @@ export let getTriggerInfrastructure = async (d: {
   let invocation = d.triggerGroup.spec.invocation;
   if (!requestsTriggerInfrastructure(invocation)) return undefined;
 
-  // Matched by key: a changed spec gives the trigger group a new row, and a config must
-  // outlive that. Deliveries are routed by config alone, so another tenant's is never read.
+  // Matched by key so a config outlives spec changes; another tenant's config is never read.
   let registrations = await db.slateWebhookRegistration.findMany({
     where: {
       type: 'manual',

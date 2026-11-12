@@ -49,8 +49,7 @@ export let validateJsonSchema = ({
   return valRes.data as any;
 };
 
-// True only when the schema compiles and turns the data down. A schema that cannot be compiled
-// says nothing about the data, so that case is left for validateJsonSchema to report.
+// True only when the schema compiles and rejects the data; compile errors are left to validateJsonSchema.
 export let jsonSchemaRejects = ({ schema, data }: { schema: any; data: unknown }) => {
   try {
     return !z.fromJSONSchema(schema).safeParse(data).success;

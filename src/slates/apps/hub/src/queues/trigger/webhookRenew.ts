@@ -84,9 +84,7 @@ export let triggerWebhookRenewQueueProcessor = triggerWebhookRenewQueue.process(
     });
     if (!token) return;
 
-    // A failed call leaves no saved result to resume, so the next attempt must not reuse
-    // an identity the provider may already have seen. The claim is released in `finally`,
-    // which also schedules that attempt.
+    // Nothing saved to resume, so the next attempt needs a fresh identity; `finally` schedules it.
     let recordFailure = async (instanceOid: bigint, message: string) => {
       await db.triggerWebhookTarget.updateMany({
         where: { oid: target.oid, renewalClaimToken: token },
@@ -127,8 +125,7 @@ export let triggerWebhookRenewQueueProcessor = triggerWebhookRenewQueue.process(
             Math.floor(Date.now() / TRIGGER_WEBHOOK_RENEW_RETRY_MS) %
               Math.max(candidates.length, 1)
           ];
-        // Rescheduling keeps touching the target, which would hide it from the stale-target
-        // sweep, so a target no active connection uses is handed to cleanup instead.
+        // Rescheduling would hide the target from the stale sweep, so an unused one goes to cleanup.
         if (!instance) {
           await scheduleOrphanedTargetCleanup({ targetOids: [target.oid] });
           return;
@@ -194,8 +191,7 @@ export let triggerWebhookRenewQueueProcessor = triggerWebhookRenewQueue.process(
           oldRegistrationIdentifier: webhookRegistration.registrationIdentifier ?? '',
           registrationIdentifier: result.data.webhookRegistrationIdentifier,
           payload: result.data.webhookRegistrationPayload,
-          // A result that names either date describes the new lease on its own; mixing in
-          // the old dates would schedule the next renewal from one that has already passed.
+          // A result naming either date describes the new lease alone; old dates would schedule from the past.
           lease:
             result.data.expiresAt === undefined && result.data.renewAfter === undefined
               ? {
@@ -262,8 +258,7 @@ export let triggerWebhookRenewQueueProcessor = triggerWebhookRenewQueue.process(
         });
       });
 
-      // The renewed payload carries the identities still in use, so nothing reads the
-      // payload it replaced. Best effort: the renewal itself already committed.
+      // The renewed payload holds the live identities, so the old one is unread; best effort after commit.
       if (renewed.secretOid !== webhookRegistration.secretOid) {
         try {
           await secretService.DANGEROUSLY_deleteSecret({
@@ -414,8 +409,7 @@ export let triggerWebhookRenewResultCleanupQueueProcessor =
           if (rollback.status === 'error') throw new QueueRetryError();
         });
 
-        // A registration being removed adopts the result that renewed it in place, so the
-        // removal uses the newest payload.
+        // A registration being removed adopts its in-place renewal so removal uses the newest payload.
         let adopting =
           target.status === 'deleting' &&
           target.webhookRegistration?.registrationIdentifier === result.registrationIdentifier

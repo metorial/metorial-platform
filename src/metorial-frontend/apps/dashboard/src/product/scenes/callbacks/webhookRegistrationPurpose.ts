@@ -3,7 +3,7 @@ export type WebhookRegistrationPurpose = 'webhook_receiver' | 'delivery_setup';
 type ProviderTypeTriggers =
   | {
       status: 'enabled';
-      // `purpose` stays optional until the dashboard SDK is regenerated with it.
+      // Older provider types have no `purpose`.
       webhookRegistration: { status: 'supported' | 'unsupported'; purpose?: string | null };
     }
   | { status: 'disabled' };

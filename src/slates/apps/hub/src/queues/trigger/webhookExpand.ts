@@ -97,8 +97,7 @@ let recordWebhookExpansionFailure = async (d: {
   let rowRetryAt = new Date(now + triggerWebhookExpansionBackoffMs(d.attempt));
   let instanceRetryAt = new Date(now + triggerWebhookExpansionBackoffMs(failureCount));
 
-  // Reported before the row is closed, so a crash in between cannot leave a closed row with
-  // nothing shown to the user. Reporting twice is harmless.
+  // Report before closing the row so a crash cannot hide the failure; reporting twice is harmless.
   if (exhausted) {
     await createTriggerRegistrationInstanceError({
       triggerRegistrationInstanceOid: d.instance.oid,
@@ -132,8 +131,7 @@ let recordWebhookExpansionFailure = async (d: {
     });
     if (!recorded.count) throw new QueueRetryError();
 
-    // The connection's backoff is the floor for every pending row, this one included, so the
-    // scanner does not pick them up while no call would be made anyway.
+    // The connection's backoff floors every pending row so scans skip them meanwhile.
     await tx.triggerWebhookExpansion.updateMany({
       where: {
         triggerRegistrationInstanceOid: d.instance.oid,
@@ -164,8 +162,7 @@ export let triggerWebhookExpandQueueProcessor = triggerWebhookExpandQueue.proces
     if (!isDue(inbox.nextAttemptAt) && !isExpired(inbox.createdAt)) return;
 
     await triggerInstanceLock.usingLock(inbox.triggerRegistrationInstance.id, async () => {
-      // A duplicate job may have waited for the first worker's lock, and a renewal may have
-      // replaced the saved registration payload meanwhile.
+      // A duplicate job may have waited on the lock while a renewal replaced the saved payload.
       let current = await db.triggerWebhookExpansion.findUnique({
         where: { oid: inbox.oid },
         include: {
@@ -175,9 +172,8 @@ export let triggerWebhookExpandQueueProcessor = triggerWebhookExpandQueue.proces
       });
       if (!current || current.completedAt) return;
 
-      // Checked ahead of the due and backoff gates: the backlog behind a connection that keeps
-      // failing has to drain while that connection is still backing off. The error is reported
-      // before the row is closed so a crash in between cannot hide the dropped events.
+      // Before the due and backoff gates so a failing connection's backlog still drains; reported
+      // before closing the row so a crash cannot hide the drop.
       if (isExpired(current.createdAt)) {
         await createTriggerRegistrationInstanceError({
           triggerRegistrationInstanceOid: current.triggerRegistrationInstanceOid,
@@ -192,8 +188,7 @@ export let triggerWebhookExpandQueueProcessor = triggerWebhookExpandQueue.proces
       }
       if (!isDue(current.nextAttemptAt)) return;
 
-      // The connection, not the row, decides when the provider is called again. A row that
-      // shows up meanwhile waits for it instead of being picked up by every scan.
+      // The connection, not the row, decides the next provider call; new rows wait for it.
       let instanceRetryAt = current.triggerRegistrationInstance.expansionRetryAt;
       if (instanceRetryAt && !isDue(instanceRetryAt)) {
         await db.triggerWebhookExpansion.updateMany({
@@ -207,8 +202,7 @@ export let triggerWebhookExpandQueueProcessor = triggerWebhookExpandQueue.proces
         return;
       }
 
-      // A row that failed before lets less-failed rows go first: they show whether the
-      // connection works, so one bad delivery cannot hold healthy ones in its own backoff.
+      // Less-failed rows go first so one bad delivery cannot hold healthy ones in its backoff.
       if (current.attemptCount > 0) {
         let lessFailed = await db.triggerWebhookExpansion.findFirst({
           where: {
@@ -286,9 +280,7 @@ export let triggerWebhookExpandQueueProcessor = triggerWebhookExpandQueue.proces
         let released: { id: string }[] = [];
         let failure: { code: string; message: string } | undefined;
 
-        // A lost claim or a fenced commit raises QueueRetryError and a database conflict is
-        // retried by the queue: neither is an attempt. A failed call, or anything else that
-        // breaks here, is one.
+        // Lost claims, fenced commits and database conflicts are queue retries, not attempts.
         try {
           let saved = await secretService.DANGEROUSLY_decryptSecret({
             secretOid: current.webhookRegistration.secretOid,
@@ -339,8 +331,7 @@ export let triggerWebhookExpandQueueProcessor = triggerWebhookExpandQueue.proces
 
               if (!recovering) return;
 
-              // The connection works again: end its backoff and let the rows that never got
-              // a turn go now instead of waiting for the next scan.
+              // The connection works again: end its backoff and run the waiting rows now.
               await tx.triggerRegistrationInstance.update({
                 where: { oid: instance.oid },
                 data: { expansionFailureCount: 0, expansionRetryAt: null }
@@ -390,8 +381,7 @@ export let triggerWebhookExpandQueueProcessor = triggerWebhookExpandQueue.proces
         await enqueueTriggerRawEventMapping(rawEvents);
         await enqueueTriggerWebhookExpansions(released);
 
-        // A recovered connection must not keep showing the old failure, and a later outage
-        // has to be reportable again. Best effort: the expansion itself already committed.
+        // Clear the old failure so a later outage is reported again; best effort after commit.
         try {
           await db.triggerRegistrationInstanceError.deleteMany({
             where: { triggerRegistrationInstanceOid: instance.oid, code: EXPANSION_FAILED }
@@ -406,8 +396,7 @@ export let triggerWebhookExpandQueueProcessor = triggerWebhookExpandQueue.proces
   }
 );
 
-// Call only after the transaction that wrote the inbox rows has committed. The job id matches
-// the expansion scanner's, which re-enqueues every pending row if this fails.
+// Call after the inbox rows commit; the scanner shares the job id and re-enqueues on failure.
 export let enqueueTriggerWebhookExpansions = async (expansions: { id: string }[]) => {
   if (!expansions.length) return;
 

@@ -32,8 +32,7 @@ export let triggerRawEventMappingQueueProcessor = triggerRawEventMappingQueue.pr
   }
 );
 
-// Call only after the transaction that wrote the raw events has committed. The job id matches
-// the dispatch scanner's, which re-enqueues from the outbox row if this fails.
+// Call after the raw events commit; the scanner shares the job id and re-enqueues on failure.
 export let enqueueTriggerRawEventMapping = async (rawEvents: { id: string }[]) => {
   if (!rawEvents.length) return;
 

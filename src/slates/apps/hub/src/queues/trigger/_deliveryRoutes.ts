@@ -13,10 +13,8 @@ let deliveryLock = createLock({
 
 let deliveryLockOptions = { acquisitionTimeoutMs: 30_000 };
 
-// A provider call can create the resource behind a shared routing key before its result is
-// saved, so `isDeliveryShared` cannot see it yet. A registration holds one shard of its
-// binding through the call and the saved result, so registrations still run in parallel;
-// removing a provider resource holds every shard, which waits those registrations out.
+// A call can create the resource behind a shared key before `isDeliveryShared` sees it. Each
+// registration holds one shard of its binding until saved; removal holds every shard.
 export let usingDeliveryRegistrationLock = <T>(
   d: { bindingId: string | undefined; targetOid: bigint },
   fn: () => Promise<T>
@@ -44,8 +42,7 @@ export let usingDeliveryRemovalLock = <T>(
 export let MISSING_ROUTING_KEYS_MESSAGE =
   'The provider did not say which deliveries belong to this webhook.';
 
-// Managed delivery routes each push by key, so a registration without keys would never
-// receive anything. Null means the provider result is unusable.
+// Pushes route by key, so a registration without keys gets nothing; null means unusable.
 export let requireRoutingKeys = (
   delivery: { bindingId: string } | undefined,
   routingKeys: string[] | undefined
@@ -76,9 +73,8 @@ export let replaceDeliveryRoutes = async (
   });
 };
 
-// The provider resource behind a routing key belongs to every registration holding the
-// key, including one whose provider call succeeded but is not committed yet. Removing it
-// for one of them would silence the others.
+// The resource behind a key belongs to every holder, even uncommitted ones;
+// removing it for one silences the rest.
 export let isDeliveryShared = async (d: {
   routes: { bindingId: string; routingKey: string }[];
   exceptWebhookRegistrationOid?: bigint;

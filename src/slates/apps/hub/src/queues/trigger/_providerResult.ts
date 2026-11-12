@@ -3,8 +3,7 @@ import { db } from '../../db';
 import { secretService } from '../../services/secret';
 import { webhookLeaseDates } from './_lease';
 
-// Saved before the fenced commit: retries adopt it, and a result nobody adopts is rolled
-// back by the renewal cleanup queue.
+// Saved before the fenced commit: retries adopt it, renewal cleanup rolls back the unadopted.
 export let saveWebhookProviderResult = async (d: {
   tenant: Tenant;
   operationId: string;

@@ -4,12 +4,10 @@ import { db } from '../../db';
 import { snowflake } from '../../id';
 import { triggerStateLeaseMs } from './_state';
 
-// Function Bay caps an invocation at 900 seconds; the rest absorbs clock differences
-// between workers and the time between this check and the call.
+// Function Bay caps invocations at 900 s; the margin absorbs clock skew and check-to-call delay.
 let TRIGGER_PROVIDER_CALL_BUDGET_MS = 20 * 60 * 1000;
 
-// Returns the claim token, or null when another worker holds an unexpired claim or the
-// target no longer matches `where`.
+// Null when another worker holds an unexpired claim or the target no longer matches `where`.
 export let claimWebhookTarget = async (d: {
   targetOid: bigint;
   where?: Prisma.TriggerWebhookTargetWhereInput;
@@ -49,8 +47,7 @@ export let fencedTargetWhere = (token: string) => ({
   renewalClaimUntil: { gt: new Date() }
 });
 
-// A later worker treats an expired claim as proof that no earlier provider call can still
-// change provider state, so a call may only start while the claim outlasts it.
+// An expired claim proves no earlier call is still running, so a call starts only if the claim outlasts it.
 export let assertClaimCoversProviderCall = async (targetOid: bigint, claimToken: string) => {
   let held = await db.triggerWebhookTarget.count({
     where: {

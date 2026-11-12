@@ -449,9 +449,7 @@ class webhookRegistrationServiceImpl {
             include: webhookRegistrationInclude
           });
 
-    // The backend registration is removed right away, off the request so a backend failure is
-    // retried instead of failing the delete. Deleting again queues it again, and the nightly
-    // cleanup stays as the safety net.
+    // Queued so a backend failure is retried instead of failing the delete; nightly cleanup backs it up.
     await webhookRegistrationDeleteQueue.add({
       webhookRegistrationId: webhookRegistration.id
     });

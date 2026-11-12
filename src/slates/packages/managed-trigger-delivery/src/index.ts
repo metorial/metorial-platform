@@ -6,8 +6,7 @@ import {
 } from '@slates/google-pubsub';
 import z from 'zod';
 
-// The push was authenticated but can never be routed; rejecting it would only make the
-// sender redeliver it until it expires.
+// Authenticated but unroutable; rejecting it would only cause redelivery until expiry.
 let unroutableFailures = new Set(['body_invalid', 'data_invalid', 'subscription_mismatch']);
 
 let capabilitySchema = z
@@ -24,14 +23,12 @@ export type TriggerInfrastructure = {
   };
 };
 
-// A saved delivery config: `id` names it, `payload` is what finishing its setup returned.
 export type TriggerDeliveryConfig = { id: string; payload: unknown };
 
 export type TriggerDelivery =
   { ok: true; routingKeys: string[] } | { ok: false; status: number };
 
-// Cheap and independent of any saved config, so trigger groups without managed delivery
-// never depend on one.
+// Independent of saved configs, so groups without managed delivery never need one.
 export let requestsTriggerInfrastructure = (invocation: unknown) =>
   !!invocation && typeof invocation === 'object' && 'googlePubSub' in invocation;
 
@@ -54,8 +51,7 @@ let parseConfig = (payload: unknown) => {
   return config.success ? config.data : undefined;
 };
 
-// The first config, in the order given, that was set up for the OAuth app the connection
-// uses. Undefined when the trigger group needs no managed delivery or no config matches.
+// The first config set up for the connection's OAuth app; undefined if none is needed or matches.
 export let selectTriggerDeliveryConfig = (d: {
   invocation: unknown;
   oauthClientId?: string;
@@ -74,8 +70,7 @@ export let selectTriggerDeliveryConfig = (d: {
   return undefined;
 };
 
-// Authenticates a push that arrived on a config's own endpoint and names the registrations
-// it addresses. Each registration still verifies the request against its own saved identity.
+// Authenticates a push on a config's endpoint and names its registrations; each verifies it again.
 export let authenticateTriggerDelivery = async (d: {
   invocation: unknown;
   payload: unknown;

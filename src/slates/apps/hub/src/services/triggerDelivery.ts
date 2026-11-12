@@ -17,8 +17,7 @@ let DELIVERY_CONCURRENCY = 10;
 type GroupRegistration = { triggerGroup: { spec: { invocation: unknown } } };
 
 class triggerDeliveryServiceImpl {
-  // A trigger group's spec never changes, so a registration of a group that asks for managed
-  // delivery either is a delivery config or receives requests from `receiveDelivery` only.
+  // A managed-delivery registration is either a delivery config or fed only by `receiveDelivery`.
   servesRegistration(registration: GroupRegistration) {
     return requestsTriggerInfrastructure(registration.triggerGroup.spec.invocation);
   }
@@ -27,9 +26,8 @@ class triggerDeliveryServiceImpl {
     return isTriggerDeliveryConfig(registration);
   }
 
-  // One delivery config serves every registration that was given its descriptor. The request
-  // is handed unchanged to each registration it addresses, which verifies it again on its
-  // own terms.
+  // One config serves every registration given its descriptor;
+  // each gets the request unchanged and verifies it again.
   async receiveDelivery(d: {
     registration: Pick<SlateWebhookRegistration, 'id' | 'owner' | 'secretOid' | 'tenantOid'> &
       GroupRegistration;
@@ -56,8 +54,7 @@ class triggerDeliveryServiceImpl {
     }
     if (!delivery.routingKeys.length) return { accepted: 0 };
 
-    // A failed hand-off rejects the whole delivery so the sender repeats it. Registrations
-    // that already accepted it see it twice and drop the repeat by its idempotency key.
+    // A failed hand-off rejects the delivery for a resend; earlier acceptors dedupe it by idempotency key.
     let accepted = 0;
     let cursor: bigint | undefined;
 
@@ -79,8 +76,7 @@ class triggerDeliveryServiceImpl {
         select: { webhookRegistrationOid: true }
       });
 
-      // The sender waits on this request, so a key many registrations share must not be
-      // handed off one registration at a time.
+      // The sender is waiting, so a widely shared key must not be handed off one at a time.
       for (let batch of chunk(routes, DELIVERY_CONCURRENCY)) {
         await Promise.all(
           batch.map(route =>

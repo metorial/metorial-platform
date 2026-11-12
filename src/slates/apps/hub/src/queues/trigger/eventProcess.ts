@@ -57,8 +57,7 @@ export let triggerEventProcessQueueProcessor = triggerEventProcessQueue.process(
     return;
   }
 
-  // The dispatch scanner re-enqueues an event for as long as its dispatch row exists, so a
-  // receiver that never accepts it would otherwise be called forever.
+  // The scanner re-enqueues while the dispatch row exists; otherwise a refusing receiver loops forever.
   if (Date.now() - event.createdAt.getTime() > TRIGGER_EVENT_DELIVER_MAX_AGE_MS) {
     await db.triggerEventDispatch.deleteMany({ where: { eventOid: event.oid } });
     return;
