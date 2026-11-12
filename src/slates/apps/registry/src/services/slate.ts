@@ -12,7 +12,8 @@ let include = {
   unbuiltCurrentVersion: true,
   builtOrUnbuiltCurrentVersion: true,
   createdByUser: { include: { scope: true } },
-  categories: { include: { category: true } }
+  categories: { include: { category: true } },
+  activation: { include: { pinnedVersion: true } }
 };
 
 let buildSlateIdWhere = (id: string): Prisma.SlateWhereInput => {

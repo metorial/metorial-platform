@@ -42,7 +42,15 @@ export default project({
     prepare: ['admin:build'],
     run: ['dev:start'],
     env: mergeEnv(baseDevEnv('oss'), {
-      PACKAGE_BUCKET_NAME: 'package-bucket'
+      PACKAGE_BUCKET_NAME: 'package-bucket',
+      SLATES_REGISTRY_MODE: 'mirror',
+      SLATES_SIGNATURE_VERIFICATION: 'disabled',
+      SLATES_UPSTREAM_REGISTRIES: JSON.stringify([
+        {
+          url: 'https://slates.metorial-enterprise.com',
+          subRegistryId: 'metorial-saas-staging'
+        }
+      ])
     }),
     databases: {
       main: postgres({

@@ -16,6 +16,7 @@ import { getStackError, getStackResultsOrThrow } from '../../lib/invocation/erro
 import type { InvocationError, InvocationResult } from '../../lib/invocation/types';
 import { isReservedActionId } from '../../lib/reservedActions';
 import { retryOnOidCollision } from '../../lib/retryOnOidCollision';
+import { followsRegistryCurrentVersion } from '../../registry';
 import {
   buildDiscoveredSpecificationHashes,
   dedupeDiscoveredItems,
@@ -896,7 +897,9 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
 
       if (
         version.willBeCurrent &&
-        (!slate.currentVersion || semver.gt(version.version, slate.currentVersion.version))
+        (!slate.currentVersion ||
+          semver.gt(version.version, slate.currentVersion.version) ||
+          (followsRegistryCurrentVersion() && !slate.currentVersion.willBeCurrent))
       ) {
         await db.$transaction(async db => {
           await db.slateVersion.updateMany({

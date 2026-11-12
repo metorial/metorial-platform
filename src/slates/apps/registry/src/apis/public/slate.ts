@@ -5,7 +5,7 @@ import type { MiddlewareHandler } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { z } from 'zod';
 import { paginatorSchema } from '../../lib/paginatorSchema';
-import { getPreferredCurrentSlateVersion } from '../../lib/slateVersion/current';
+import { getEffectiveCurrentSlateVersion } from '../../lib/slateVersion/current';
 import { useValidation } from '../../lib/validator';
 import { slatePresenter, slateVersionPresenter } from '../../presenters';
 import { slateService, slateVersionService } from '../../services';
@@ -24,6 +24,11 @@ let MAX_VERSION_LENGTH = 256;
 
 let supportsPrebuiltSchema = z.object({
   supports_prebuilt: z.coerce.boolean().optional()
+});
+
+// Mirrors behind restrictive egress can only reach the registry host, not object storage.
+let downloadSchema = supportsPrebuiltSchema.extend({
+  proxy: z.coerce.boolean().optional()
 });
 
 let payloadTooLargeError = createError({
@@ -238,10 +243,11 @@ export let slatesController = createHono()
       });
       let list = await paginator.run(query);
       let currentVersionId =
-        getPreferredCurrentSlateVersion({
+        getEffectiveCurrentSlateVersion({
           supportsBuilt: query.supports_prebuilt ?? false,
           unbuiltCurrentVersion: slate.unbuiltCurrentVersion,
-          builtOrUnbuiltCurrentVersion: slate.builtOrUnbuiltCurrentVersion
+          builtOrUnbuiltCurrentVersion: slate.builtOrUnbuiltCurrentVersion,
+          activation: slate.activation
         })?.id ?? null;
 
       return c.json(
@@ -276,10 +282,11 @@ export let slatesController = createHono()
       return c.json(
         await slateVersionPresenter(slateVersion, {
           currentVersionId:
-            getPreferredCurrentSlateVersion({
+            getEffectiveCurrentSlateVersion({
               supportsBuilt: query.supports_prebuilt ?? false,
               unbuiltCurrentVersion: slate.unbuiltCurrentVersion,
-              builtOrUnbuiltCurrentVersion: slate.builtOrUnbuiltCurrentVersion
+              builtOrUnbuiltCurrentVersion: slate.builtOrUnbuiltCurrentVersion,
+              activation: slate.activation
             })?.id ?? null
         })
       );
@@ -287,7 +294,7 @@ export let slatesController = createHono()
   )
   .get(
     ':scopeId/:slateId/versions/:versionId/download',
-    useValidation('query', supportsPrebuiltSchema),
+    useValidation('query', downloadSchema),
     async c => {
       let auth = await useAuth(c);
       let query = c.req.valid('query');
@@ -304,6 +311,17 @@ export let slatesController = createHono()
         id: c.req.param('versionId'),
         supportsPrebuilt: query.supports_prebuilt
       });
+
+      if (query.proxy) {
+        let object = await storage.getObjectStream(
+          slateVersion.bundleArtifact.bucket,
+          slateVersion.bundleArtifact.storageKey
+        );
+
+        return new Response(object.stream, {
+          headers: { 'Content-Type': 'application/zip' }
+        });
+      }
 
       let { url } = await storage.getPublicURL(
         slateVersion.bundleArtifact.bucket,

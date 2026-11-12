@@ -53,6 +53,7 @@ vi.mock('@metorial-subspace/module-tenant', () => ({
 }));
 
 vi.mock('@metorial-subspace/module-provider-internal', () => ({
+  checkProviderEnabled: vi.fn(),
   providerCombinationService: {
     getCombinationsInternal: mocks.getCombinationsInternal
   }

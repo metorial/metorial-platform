@@ -2,12 +2,13 @@ import type {
   Scope,
   Slate,
   SlateCategory,
+  SlateActivation,
   SlateCategoryAssignment,
   SlateVersion,
   Tenant,
   User
 } from '../../prisma/generated/client';
-import { getPreferredCurrentSlateVersion } from '../lib/slateVersion/current';
+import { getEffectiveCurrentSlateVersion } from '../lib/slateVersion/current';
 import { scopePresenter } from './scope';
 import { slateCategoryPresenter } from './slateCategory';
 import { userPresenter } from './user';
@@ -22,15 +23,17 @@ export let slatePresenter = (
     categories: (SlateCategoryAssignment & {
       category: SlateCategory;
     })[];
+    activation?: (SlateActivation & { pinnedVersion: SlateVersion | null }) | null;
   },
   o?: {
     supportsPrebuilt?: boolean;
   }
 ) => {
-  let currentVersion = getPreferredCurrentSlateVersion({
+  let currentVersion = getEffectiveCurrentSlateVersion({
     supportsBuilt: o?.supportsPrebuilt ?? false,
     unbuiltCurrentVersion: slate.unbuiltCurrentVersion,
-    builtOrUnbuiltCurrentVersion: slate.builtOrUnbuiltCurrentVersion
+    builtOrUnbuiltCurrentVersion: slate.builtOrUnbuiltCurrentVersion,
+    activation: slate.activation
   });
 
   return {
