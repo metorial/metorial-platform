@@ -216,6 +216,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "google/gemini-4-hydrogen": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Google's Gemini 4 Hydrogen, the speed-first member of the Gemini 4 family (per launch coverage, $1.50/$7.50, 1M context, announced 2026-11-12); the index has only Argon and Carbon, no Hydrogen entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "google/veo-3.1-fast-generate-001": {
     "decision": "link",
     "model": "google/veo-3.1-fast-generate-preview",
