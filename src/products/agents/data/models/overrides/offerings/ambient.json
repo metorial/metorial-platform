@@ -1,0 +1,9 @@
+{
+  "unsloth/qwen3.8-27b-gguf": {
+    "decision": "link",
+    "model": "alibaba/qwen3.8-27b",
+    "reason": "Ambient serves Unsloth's Q4 GGUF quantization of Qwen3.8-27B (unsloth/Qwen3.8-27B-GGUF is derived from Qwen/Qwen3.8-27B per its Hugging Face metadata); a quantized serving is still that model at Ambient's flat 0.001 rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

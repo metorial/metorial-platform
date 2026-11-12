@@ -1,0 +1,9 @@
+{
+  "echo": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "The Echo inference vendor's self-titled model; available sources only describe unrelated products named Echo (3D reconstruction, voice cloning, a writing model), so its identity and maker cannot be established and no catalog model matches.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

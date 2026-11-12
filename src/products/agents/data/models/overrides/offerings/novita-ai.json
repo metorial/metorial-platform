@@ -1,0 +1,16 @@
+{
+  "meta-llama/llama-3.3-70b-instruct": {
+    "decision": "link",
+    "model": "meta/llama-3.3-70b-instruct",
+    "reason": "Novita serves Meta's open-weight Llama 3.3 70B Instruct checkpoint (listed bf16/FP8 serverless); its 0.135/0.4 rate is below the model's 0.705 median but it is the same model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen-mt-plus": {
+    "decision": "link",
+    "model": "alibaba/qwen-mt-plus",
+    "reason": "Novita serves Alibaba's Qwen-MT-Plus machine-translation model (released 2025-07-24, 16K context matches); its 0.25/0.75 rate is the cheaper of the two routes listed for this model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

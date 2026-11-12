@@ -1,3 +1,5 @@
+import type { Log } from './log';
+
 export let searchProviders = ['linkup', 'exa', 'ceramic'] as const;
 
 export type SearchProvider = (typeof searchProviders)[number];
@@ -10,6 +12,7 @@ let requestTimeoutMs = 20_000;
 let retries = 1;
 let defaultMaxSearches = 400;
 let queryLimit = 1_000;
+let failureLogLimit = 10;
 
 // Cloudflare answers these when the token, gateway or credit balance is wrong; none of them
 // gets better by asking again, so searching stops for the rest of the run.
@@ -26,6 +29,7 @@ export interface WebSearchOptions {
   apiToken: string;
   provider: SearchProvider;
   maxSearches?: number;
+  log?: Log;
 }
 
 export interface WebSearch {
@@ -47,6 +51,13 @@ export let searchQuery = (vendorModelId: string, name: string | null | undefined
 export let createWebSearch = (opts: WebSearchOptions): WebSearch => {
   let maxSearches = opts.maxSearches ?? defaultMaxSearches;
   let cache = new Map<string, Promise<WebSearchResult[] | null>>();
+  let failuresLogged = 0;
+
+  let logFailure = (message: string) => {
+    if (failuresLogged++ < failureLogLimit) opts.log?.(`web search: ${message}`);
+    else if (failuresLogged === failureLogLimit + 1)
+      opts.log?.('web search: more failures, not logging them');
+  };
 
   let request = async (query: string) => {
     for (let attempt = 0; attempt <= retries; attempt++) {
@@ -91,9 +102,18 @@ export let createWebSearch = (opts: WebSearchOptions): WebSearch => {
           search.stats.stoppedBecause = `HTTP ${response.status}${
             body?.error?.code ? ` ${body.error.code}` : ''
           }`;
+          opts.log?.(`web search: stopping for this run, ${search.stats.stoppedBecause}`);
           return null;
         }
-      } catch {}
+
+        logFailure(
+          `HTTP ${response.status} (attempt ${attempt + 1}/${retries + 1}) for "${query}"`
+        );
+      } catch (err) {
+        logFailure(
+          `${(err as Error).name === 'TimeoutError' ? 'timed out' : (err as Error).message} (attempt ${attempt + 1}/${retries + 1}) for "${query}"`
+        );
+      }
     }
 
     return null;
@@ -107,6 +127,7 @@ export let createWebSearch = (opts: WebSearchOptions): WebSearch => {
 
     if (search.stats.searches >= maxSearches) {
       search.stats.stoppedBecause = `search limit of ${maxSearches} reached`;
+      opts.log?.(`web search: stopping for this run, ${search.stats.stoppedBecause}`);
       return null;
     }
 

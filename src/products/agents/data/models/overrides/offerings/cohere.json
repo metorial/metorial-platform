@@ -1,0 +1,9 @@
+{
+  "command-a-plus-05-2026": {
+    "decision": "link",
+    "model": "cohere/command-a-plus-05-2026",
+    "reason": "Exact first-party Cohere listing: name, 128K context and 2026-05-20 release date all match the catalog entry. The 2.5/10 first-party price sits above the median set by cheaper third-party providers.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "deepinfra/meta-llama/Llama-3.2-11B-Vision-Instruct": {
+    "decision": "link",
+    "model": "meta/llama-3.2-11b-vision-instruct",
+    "reason": "Eden AI routes to Deep Infra's serving of Meta's Llama 3.2 11B Vision Instruct; Deep Infra's own page lists 0.345/1M for this exact model, well above the model's 0.055 median but it is the same model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepinfra/meta-llama/Llama-3.3-70B-Instruct": {
+    "decision": "link",
+    "model": "meta/llama-3.3-70b-instruct",
+    "reason": "Eden AI routes to Deep Infra's serving of Meta's Llama 3.3 70B Instruct; its 0.1/0.32 rate is Deep Infra's discounted price for the open-weight model, below the model's 0.705 median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepinfra/meta-llama/Llama-Guard-3-8B": {
+    "decision": "link",
+    "model": "meta/llama-guard-3-8b",
+    "reason": "Eden AI routes to Deep Infra's serving of Meta's Llama-Guard-3-8B moderation model; Deep Infra's flat 0.055 rate is far below the model's 0.484 median but it is the same model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "greenference/gpt-oss-20b": {
+    "decision": "link",
+    "model": "openai/gpt-oss-20b",
+    "reason": "Eden AI routes to Greenference's EU-hosted serving of OpenAI's GPT OSS 20B open-weight checkpoint; same model as openai/gpt-oss-20b, at Greenference's discounted 0.009/0.045 rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "greenpt/qwen3-235b-a22b-instruct-2507": {
+    "decision": "link",
+    "model": "alibaba/qwen3-235b-a22b-instruct-2507",
+    "reason": "Eden AI's GreenPT-hosted route for Alibaba's Qwen3 235B-A22B Instruct 2507 open-weight checkpoint (250K context); the GreenPT sub-provider's 1.0/3.0 rate is a premium over the model's median, not a different model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

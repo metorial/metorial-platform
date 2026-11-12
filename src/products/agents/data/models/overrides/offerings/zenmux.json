@@ -1,0 +1,30 @@
+{
+  "baidu/ernie-5.0-thinking-preview": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Baidu's ERNIE 5.0 Thinking Preview (released 2025-11-13, natively omni-modal, per Artificial Analysis and coverage); the index has only ERNIE 4.5 models and no ERNIE 5.0 entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "bytedance/doubao-seed-code": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ByteDance's Doubao-Seed-Code, the first programming model in the Doubao family (released 2025-11-11 per Volcengine/36kr coverage); the index has only the later Seed 2.0 Code (2026-02-14), a different generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek/deepseek-v3.2-exp": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "DeepSeek-V3.2-Exp (Sep 2025, DeepSeek Sparse Attention, built on V3.1-Terminus) is a separate experimental checkpoint from the Dec 2025 V3.2 release; the index has no exp entry, so defer rather than link to deepseek/deepseek-v3.2.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "volcengine/doubao-seed-code": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Volcengine's Doubao-Seed-Code, ByteDance's first Doubao programming model (released 2025-11-11 per Volcengine/36kr coverage); the index has only the later Seed 2.0 Code (2026-02-14), a different generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

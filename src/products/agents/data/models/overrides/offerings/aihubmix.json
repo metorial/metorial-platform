@@ -1,0 +1,23 @@
+{
+  "coding-glm-5.1": {
+    "decision": "link",
+    "model": "zhipu/glm-5.1",
+    "reason": "coding-glm-5.1 is Z.ai's GLM-5.1 (200K context matches, attributed to Zhipu AI) sold through the GLM Coding Plan tier at heavily discounted rates; same model as zhipu/glm-5.1.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "mimo-v2.6-pro-ultraspeed": {
+    "decision": "link",
+    "model": "xiaomi/mimo-v2.6-pro",
+    "reason": "MiMo-V2.6-Pro-UltraSpeed is Xiaomi's fast-serving tier of the same 1T MiMo-V2.6-Pro checkpoint (same weights and quality, up to 20x output speed); still xiaomi/mimo-v2.6-pro at AIHubMix's 4.8/9.6 speed-tier rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen3.8-max-preview": {
+    "decision": "link",
+    "model": "alibaba/qwen3.8-max-preview",
+    "reason": "AIHubMix lists Alibaba's Qwen3.8-Max-Preview (previewed 2026-07-19, 2.4T-parameter MoE, 1M context), matching alibaba/qwen3.8-max-preview; its 0.338/1.014 rate is an aggregator discount off the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

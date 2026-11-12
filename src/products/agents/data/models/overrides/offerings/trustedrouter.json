@@ -1,0 +1,14 @@
+{
+  "trustedrouter/e2e": {
+    "decision": "router",
+    "reason": "TrustedRouter's own model page and Kilo's docs describe e2e as a routing pool that picks among models served over end-to-end-encrypted routes with automatic failover; a router, not one fixed model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "trustedrouter/fast": {
+    "decision": "router",
+    "reason": "TrustedRouter's fast alias routes each request to the fastest available route in its pool with automatic failover ('routing pool' on its own model page); a router, not one fixed model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

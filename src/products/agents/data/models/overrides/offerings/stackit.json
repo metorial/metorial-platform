@@ -1,0 +1,16 @@
+{
+  "Qwen/Qwen3-VL-235B-A22B-Instruct-FP8": {
+    "decision": "link",
+    "model": "alibaba/qwen3-vl-235b-a22b-instruct",
+    "reason": "STACKIT serves the FP8 release of Qwen3-VL-235B-A22B-Instruct (Qwen/Qwen3-VL-235B-A22B-Instruct-FP8 on Hugging Face, a fine-grained FP8 quantization of the same model); its 1.76/2.05 rate is STACKIT's EU-hosting premium.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "intfloat/e5-mistral-7b-instruct": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "intfloat/e5-mistral-7b-instruct is a 7.1B text-embedding model built on Mistral-7B (Hugging Face, feature-extraction); the index's intfloat entries are the small e5/multilingual-e5 models and none matches, so exclude as an unlisted embedding model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

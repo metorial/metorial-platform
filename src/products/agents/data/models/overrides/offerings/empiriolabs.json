@@ -1,0 +1,9 @@
+{
+  "mimo-v2-6-pro-ultraspeed": {
+    "decision": "link",
+    "model": "xiaomi/mimo-v2.6-pro",
+    "reason": "MiMo-V2.6-Pro-UltraSpeed is Xiaomi's high-speed serving tier built from the same 1T MiMo-V2.6-Pro checkpoint (same weights and quality, up to 20x output speed); still xiaomi/mimo-v2.6-pro, priced at the ~10x speed tier (4.35/8.7).",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

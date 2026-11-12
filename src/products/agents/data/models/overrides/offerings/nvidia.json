@@ -1,0 +1,44 @@
+{
+  "google/google-paligemma": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Google's PaliGemma, the open 3B vision-language task model (SigLIP + Gemma, May 2024) for captioning, VQA, detection and segmentation, served as a NVIDIA NIM; the index has no PaliGemma entry to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nvidia/active-speaker-detection": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "NVIDIA Maxine Active Speaker Detection NIM is a video computer-vision service that detects and identifies active speakers in a video stream; a perception model the catalog does not track.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nvidia/bevformer": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "NVIDIA's BEVFormer NIM is a bird's-eye-view 3D perception transformer for autonomous driving that fuses multi-frame camera video; a perception model with no catalog counterpart.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nvidia/cosmos-reason2-8b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "NVIDIA's Cosmos-Reason2-8B (HF nvidia/Cosmos-Reason2-8B, Dec 2025), a video-reasoning VLM post-trained from Qwen3-VL-8B-Instruct; a first-party NVIDIA model, but the index has no Cosmos entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nvidia/cosmos-transfer2_5-2b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "NVIDIA's Cosmos-Transfer2.5-2B world foundation model (HF nvidia/Cosmos-Transfer2.5-2B), a video-to-video generation model for Physical AI; the index has no Cosmos entry to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nvidia/magpie-tts-zeroshot": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "NVIDIA's Magpie TTS Zeroshot NIM (Riva), a zero-shot text-to-speech model that synthesizes speech from text plus a reference voice sample (per its model card); a speech model and the index's NVIDIA line has no TTS entry to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

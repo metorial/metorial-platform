@@ -1,0 +1,100 @@
+{
+  "deepseek/deepseek-math-v2": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "DeepSeek's DeepSeekMath-V2 (HF deepseek-ai/DeepSeek-Math-V2, Nov 2025), a self-verifying theorem-proving model; a real first-party DeepSeek checkpoint the index has no entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek/deepseek-v3.1-terminus": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "DeepSeek-V3.1-Terminus (released 2025-09-22) is a separate checkpoint update from V3.1; the index has no terminus entry, so defer rather than link to deepseek/deepseek-v3.1.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek/deepseek-v3.1-terminus-thinking": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Qiniu's thinking-mode serving of DeepSeek-V3.1-Terminus (2025-09-22), a separate checkpoint update from V3.1; the index has no terminus entry, so defer rather than link to deepseek/deepseek-v3.1.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek/deepseek-v3.2-exp": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "DeepSeek-V3.2-Exp (Sep 2025, DeepSeek Sparse Attention, built on V3.1-Terminus) is a separate experimental checkpoint from the Dec 2025 V3.2 release; the index has no exp entry, so defer rather than link to deepseek/deepseek-v3.2.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek/deepseek-v3.2-exp-thinking": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Qiniu's thinking-mode serving of DeepSeek-V3.2-Exp (Sep 2025, DSA), a separate experimental checkpoint from the Dec 2025 V3.2 release; the index has no exp entry, so defer rather than link to deepseek/deepseek-v3.2.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "doubao-1.5-pro-32k": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ByteDance's Doubao 1.5 Pro 32K (released 2025-01-22, retired Sep 2026, per reference listings); the index has no Doubao-1.5 entries, so defer rather than guess at a Seed-family match.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "doubao-1.5-thinking-pro": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ByteDance's Doubao 1.5 Thinking Pro (doubao-1-5-thinking-pro-250415, retired 2026-03-31 per ModelInfo); the index has no Doubao-1.5 entries, so defer rather than guess.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "doubao-1.5-vision-pro": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ByteDance's Doubao 1.5 Vision Pro multimodal variant (doubao-1.5-vision-pro-250328); the index has no Doubao-1.5 entries, so defer rather than guess.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "doubao-seed-1.6-thinking": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ByteDance's Doubao-Seed 1.6 Thinking, the deep-thinking SKU announced Jun 2025 alongside doubao-seed-1.6 and -flash, separate from the unified Seed 1.6; the index has only bytedance/seed-1-6 with no thinking entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "kling-v2-6": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Kuaishou's Kling 2.6 (Kling-V2 6), the video model with native synchronized audio-visual generation released autumn 2026; the index's Kling line has only video-o1 and the v3.0 pair, no 2.6 entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meituan/longcat-flash-chat": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Meituan's LongCat-Flash-Chat, the open-weight 560B-total/~27B-active MoE released Sept 2025 (per Meituan's announcement and coverage); the index's LongCat line starts at 2.0, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meituan/longcat-flash-lite": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Meituan's LongCat-Flash-Lite, the open-weight 68.5B-total MoE with 2.9-4.5B active parameters (Hugging Face meituan-longcat/LongCat-Flash-Lite, Feb 2026, 256K context); the index's LongCat line starts at 2.0, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "stepfun-ai/gelab-zero-4b-preview": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "StepFun's GELab-Zero-4B-preview is a 4B GUI-agent model fine-tuned from Qwen/Qwen3-VL-4B-Instruct (per Hugging Face metadata); a fine-tune is not the Qwen base model and the index has no GELab entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "z-ai/autoglm-phone-9b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Qiniu serves Z.ai's AutoGLM Phone 9B with a 12.8K context; the index only has the separate multilingual checkpoint (zhipu/autoglm-phone-9b-multilingual, 66K context), so the exact checkpoint cannot be confirmed.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

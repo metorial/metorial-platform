@@ -1,0 +1,9 @@
+{
+  "fal-ai/fast-sdxl": {
+    "decision": "link",
+    "model": "stability/stable-diffusion-xl-base-1.0",
+    "reason": "fal.ai's fast-sdxl endpoint serves Stable Diffusion XL (SDXL base 1.0) through its fast inference pipeline (per DigitalOcean's and fal's own listings); same image model as stability/stable-diffusion-xl-base-1.0.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}
