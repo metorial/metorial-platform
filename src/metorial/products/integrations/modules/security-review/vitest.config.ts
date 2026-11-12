@@ -5,7 +5,7 @@ export default defineConfig({
     include: ['src/**/*.test.ts'],
     server: {
       deps: {
-        inline: [/@lowerdeck\//]
+        inline: [/@lowerdeck\//, '@metorial/review-engine', '@metorial-services/scout-client']
       }
     }
   }

@@ -108,24 +108,14 @@ vi.mock('@metorial/module-skill-templates', () => ({
 }));
 
 vi.mock('@metorial/module-access', () => ({
-  consumerSkillWriteRoles: ['consumer#instance.skill:write'],
-  skillStoreResourceAccess: {
-    policies: { manage: { roles: ['consumer#instance.skill:manage_access'] } }
-  },
+  skillStoreResourceKind: { kind: 'skill' },
+  getStoreResourceKindAccessWhere: vi.fn(async () => ({})),
   hasOrganizationMemberSkillAccess: hasOrganizationMemberSkillAccessMock,
   createResourceAuthorization: ({ resourceActor, accessTags }: any) => ({
     type: 'restricted',
     resourceActor,
     accessTags
-  }),
-  accessTagService: {
-    getAccessTagFilter: vi.fn(async ({ tags, roles }) => ({
-      some: {
-        accessTagOid: { in: tags },
-        accessTagPolicy: { roles: { hasSome: roles } }
-      }
-    }))
-  }
+  })
 }));
 
 vi.mock('@metorial/module-resource-actor', () => ({
