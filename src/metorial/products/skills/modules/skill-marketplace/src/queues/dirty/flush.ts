@@ -1,6 +1,7 @@
 import { createCron } from '@metorial/cron';
 import { db, ID, withTransaction } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
+import { skillDestinationSyncEligibleWhere } from '../sync/_lib/eligibility';
 import { syncStartQueue } from '../sync/start';
 
 let pageSize = 500;
@@ -29,6 +30,7 @@ export let flushDirtySkillDestinationsManyQueueProcessor =
     let destinations = await db.skillDestination.findMany({
       where: {
         id: data.cursor ? { gt: data.cursor } : undefined,
+        AND: skillDestinationSyncEligibleWhere,
         OR: [{ shouldFlushAt: { lte: new Date() } }, { mustFlushAt: { lte: new Date() } }]
       },
       orderBy: { id: 'asc' },
@@ -71,6 +73,7 @@ export let flushDirtySkillDestinationsSingleQueueProcessor =
       let [destination] = await db.skillDestination.updateManyAndReturn({
         where: {
           id: data.destinationId,
+          AND: skillDestinationSyncEligibleWhere,
           OR: [
             {
               isDirty: false,

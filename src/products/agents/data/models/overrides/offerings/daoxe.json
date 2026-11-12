@@ -1,0 +1,9 @@
+{
+  "kimi-k2.5": {
+    "decision": "link",
+    "model": "moonshot/kimi-k2.5",
+    "reason": "DaoXE serves Moonshot's Kimi K2.5 (released 2026-01-27, 1T MoE with 32B active, 262K context), same as moonshot/kimi-k2.5, with DaoXE's 4/16 price far above the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

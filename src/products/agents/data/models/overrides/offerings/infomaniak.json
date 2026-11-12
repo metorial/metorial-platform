@@ -1,0 +1,9 @@
+{
+  "swiss-ai/Apertus-v1.5-70B": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Swiss AI's Apertus 1.5 70B (Hugging Face swiss-ai/Apertus-v1.5-70B, July 2026) is a new generation; the index only has Apertus 1.0 (70B/8B), so there is no matching checkpoint to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

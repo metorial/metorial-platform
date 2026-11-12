@@ -3,6 +3,7 @@ import type { OfferingDecision, OverrideFiles } from '../overrides';
 import type { BuildResult } from '../pipeline/build';
 import type { CatalogIssue } from '../pipeline/issues';
 import type { Model, Offering, SourceKind } from '../types';
+import { searchQuery, type WebSearch } from './webSearch';
 
 let candidateLimit = 8;
 let descriptionLimit = 600;
@@ -126,6 +127,7 @@ export let buildEvidence = async (opts: {
   batch: CatalogIssue[];
   overrides: OverrideFiles;
   fetchHuggingFace: boolean;
+  webSearch?: WebSearch | null;
 }) => {
   let { catalog, rawSources } = opts.result;
   let offeringsById = new Map(catalog.offerings.map(offering => [offering.id, offering]));
@@ -157,6 +159,8 @@ export let buildEvidence = async (opts: {
     let wanted = tokens(`${issue.vendorModelId} ${offering?.name ?? ''}`);
     let existing: OfferingDecision | null =
       opts.overrides.offerings[issue.vendorId]?.[issue.vendorModelId] ?? null;
+    let query = searchQuery(issue.vendorModelId, offering?.name);
+    let webResults = opts.webSearch ? await opts.webSearch(query) : null;
 
     return {
       key: issue.key,
@@ -185,6 +189,7 @@ export let buildEvidence = async (opts: {
       existingDecision: existing,
       listing,
       huggingFace: opts.fetchHuggingFace && repo ? await fetchHuggingFace(repo) : null,
+      webSearch: webResults ? { query, results: webResults } : null,
       candidates: modelTokens
         .map(entry => ({ model: entry.model, score: similarity(wanted, entry.tokens) }))
         .filter(entry => entry.score > 0)

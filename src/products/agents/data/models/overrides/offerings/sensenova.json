@@ -1,0 +1,9 @@
+{
+  "sensenova-6.8-flash-lite": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "SenseTime's SenseNova 6.8 Flash Lite, its lightweight multimodal agent model with 262K context, served free on the vendor's OpenAI-compatible API (per vendor and aggregator listings); the index has no SenseTime/SenseNova entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

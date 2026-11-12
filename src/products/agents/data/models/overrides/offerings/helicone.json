@@ -1,0 +1,107 @@
+{
+  "chatgpt-4o-latest": {
+    "decision": "link",
+    "model": "openai/gpt-4o",
+    "reason": "OpenAI's chatgpt-4o-latest is the continuously-updated ChatGPT build of GPT-4o — the same model with additional RLHF (per OpenAI); still openai/gpt-4o, and Helicone's 5/20 matches OpenAI's official rate for this endpoint.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek-r1-distill-llama-70b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "DeepSeek's official DeepSeek-R1-Distill-Llama-70B (Hugging Face, Jan 2025, a Llama-3.3-70B distill of R1); the index only has the Qwen-32B distill, so defer rather than link the wrong distill.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek-tng-r1t2-chimera": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "TNG's DeepSeek-TNG-R1T2-Chimera (671B, Jul 2025) is an Assembly-of-Experts merge assembled from DeepSeek R1, R1-0528 and V3-0324 (per its Hugging Face card); a merge is not any single parent model, and the index has no Chimera entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek-v3.1-terminus": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "DeepSeek-V3.1-Terminus (released 2025-09-22) is a separate checkpoint update from V3.1; the index has no terminus entry, so defer rather than link to deepseek/deepseek-v3.1.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "ernie-4.5-21b-a3b-thinking": {
+    "decision": "link",
+    "model": "baidu/ernie-4.5-21b-a3b",
+    "reason": "The -thinking suffix is Baidu's reasoning-mode serving of the same ERNIE 4.5 21B A3B checkpoint (21B MoE, 131K context, released 2025-06-30); still baidu/ernie-4.5-21b-a3b at the same 0.07/0.28 rate as the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma2-9b-it": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Google's Gemma 2 9B IT (google/gemma-2-9b-it, Jul 2024) is a real model; the index has only the Gemma 2 2B and 27B sizes, so defer rather than link the wrong size.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "grok-3": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "xAI's Grok 3 (flagship, released Feb 2025) at Helicone's 3/15 rate; the index has no Grok 3 entry (its xAI chat line starts at the 4.x generations), so defer rather than link the wrong Grok.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "grok-3-mini": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "xAI's Grok 3 Mini, the lightweight thinking model (Apr 2025) at 0.3/0.5; the index has no Grok 3 entry, so defer rather than link the wrong Grok generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "grok-4": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "xAI's Grok 4 (released 2025-07-09, 256K context) at 3/15; the index has no base Grok 4 entry (only the fast variants and later 4.x generations), so defer rather than link the wrong Grok.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "llama-3.3-70b-instruct": {
+    "decision": "link",
+    "model": "meta/llama-3.3-70b-instruct",
+    "reason": "The offering is Meta's Llama 3.3 70B Instruct exactly (Hugging Face meta-llama/Llama-3.3-70B-Instruct); Helicone's 0.13/0.39 rate is a discounted gateway price for the open-weight model, below its 0.705 median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "llama-guard-4": {
+    "decision": "link",
+    "model": "meta/llama-guard-4-12b",
+    "reason": "Helicone's listing of Meta's Llama Guard 4 12B, the safety classifier pruned from Llama 4 Scout (Hugging Face meta-llama/Llama-Guard-4-12B, Apr 2025); matches meta/llama-guard-4-12b at Helicone's 0.21/0.21 rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "mistral-nemo": {
+    "decision": "link",
+    "model": "mistral/mistral-nemo",
+    "reason": "The offering is Mistral Nemo, the 12B model built with NVIDIA (2024). Helicone's listed 20/40 rate is far above the model's 0.1 median and looks like bad gateway price data, but the model served is Mistral Nemo itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "o1-mini": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenAI's o1-mini, the cost-efficient reasoning model released 2024-09-12 (128K context, 1.10/4.40 per Helicone's listing and OpenAI's price page); the index has o1, o1-pro, o3-mini and o4-mini but no o1-mini entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen2.5-coder-7b-fast": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "A fast serving of Alibaba's Qwen2.5-Coder-7B code model (part of the Qwen2.5-Coder series per Qwen's blog); the index's Qwen2.5-Coder line has only the 0.5B and 32B entries, so defer rather than link a different size.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "sonar-reasoning": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Perplexity's Sonar Reasoning, the chain-of-thought reasoning search model released Jan 2025 at $1/$5 with a 127K context (per Perplexity/CloudPrice listings); the index has sonar-reasoning-pro but no sonar-reasoning entry, so defer rather than link the Pro model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

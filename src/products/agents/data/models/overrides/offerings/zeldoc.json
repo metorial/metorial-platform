@@ -1,0 +1,9 @@
+{
+  "zdev": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Zeldoc's ZDev, the proprietary EU-hosted coding model of its private LLM platform, optimized for code generation, reasoning and agentic tool use (per Zeldoc's own docs); the index has no Zeldoc entry, so defer until models.dev adds it.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

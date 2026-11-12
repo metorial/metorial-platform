@@ -1,0 +1,175 @@
+{
+  "bytedance/seed-2-0-code-preview-260328": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ByteDance's Seed 2.0 Code Preview (260328), a dated preview checkpoint of the Seed 2.0 Code line released 2026-03-28 (per ByteDance/Jahanzaib listings); the index has only the GA bytedance/seed-2.0-code, so defer rather than link the GA checkpoint.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "consensusprotocol/deepseek-v4.1-flash-uncensored": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "dealignai's DeepSeek V4.1 Flash 1017 Uncensored served through LLM Gateway's consensusprotocol route; refusal behavior is removed directly in the weights of the V4.1-Flash-1017 checkpoint, so it is a weight-edited derivative, not deepseek/deepseek-v4.1-flash-1017.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "custom": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "LLM Gateway's 'Custom Model' is a user-configured bring-your-own-model slot pointing at any external endpoint; a configuration placeholder, not a specific model the catalog can link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek-v4.1-flash-cyber": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Inference.net's DeepSeek V4.1 Flash 1017 Cyber, a refusal-removed variant of the Oct 2026 DeepSeek V4.1 Flash checkpoint served behind KYC-gated access (per Inference.net's own page); an abliterated derivative is not deepseek/deepseek-v4.1-flash-1017 itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek-v4.1-flash-uncensored": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "dealignai's DeepSeek V4.1 Flash 1017 Uncensored under LLM Gateway's HeimdaLLM route: refusal behavior removed directly in the weights of the V4.1-Flash-1017 checkpoint (per vendor listings); a weight-edited derivative is not deepseek/deepseek-v4.1-flash-1017 itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "glm-4-32b-0414-128k": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Z.ai's GLM-4-32B-0414 open-weight checkpoint (Apr 2024, 128K context); the index's Zhipu GLM line starts at GLM-4.5 and has no GLM-4 32B or thudm entry, so defer rather than link the wrong generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "glm-4.5-airx": {
+    "decision": "link",
+    "model": "zhipu/glm-4.5-air",
+    "reason": "GLM-4.5-AirX is Z.ai's accelerated serving tier of the GLM-4.5-Air checkpoint (same 128K-context Air model; Z.ai lists AirX at 1.1/4.5 as a speed tier), so it is still zhipu/glm-4.5-air.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "grok-4": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "LLM Gateway's listing of xAI's Grok 4 (Jul 2025, 256K context) at 3/15; the index has no base Grok 4 entry (only the fast variants and later 4.x generations), so defer rather than link the wrong Grok.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "hy-mt2-plus": {
+    "decision": "link",
+    "model": "tencent/hy-mt2-7b",
+    "reason": "Hy-MT2 Plus is Tencent Hunyuan's 7B translation model of the Hy-MT2 series (8K context, 33 languages, per Vercel/CloudPrice listings); matches tencent/hy-mt2-7b, including the 0.074/0.295 rate and 8192-token window.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "inference.net/deepseek-v4.1-flash-cyber": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "The same Inference.net DeepSeek V4.1 Flash 1017 Cyber under LLM Gateway's namespaced id: a refusal-removed variant of the Oct 2026 DeepSeek V4.1 Flash checkpoint, gated per-team by the provider; an abliterated derivative is not deepseek/deepseek-v4.1-flash-1017 itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "inference.net/llama-3.2-11b-instruct": {
+    "decision": "link",
+    "model": "meta/llama-3.2-11b-vision-instruct",
+    "reason": "Llama 3.2 11B Instruct is Meta's 11B Llama 3.2 release, which exists only as the vision-instruct checkpoint (Bedrock's 'Llama 3.2 11B Instruct' is the same multimodal 11B, Sept 2024); matches meta/llama-3.2-11b-vision-instruct, served via Inference.net.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "llama-3.2-11b-instruct": {
+    "decision": "link",
+    "model": "meta/llama-3.2-11b-vision-instruct",
+    "reason": "Meta's 11B Llama 3.2 exists only as the vision-instruct checkpoint (Bedrock's model card for the same id describes the 11B multimodal model, Sept 2024, 128K context); link meta/llama-3.2-11b-vision-instruct at LLM Gateway's 0.07/0.33 rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "llama-3.3-70b-instruct": {
+    "decision": "link",
+    "model": "meta/llama-3.3-70b-instruct",
+    "reason": "The offering is Meta's open-weight Llama 3.3 70B Instruct; LLM Gateway's 0.135/0.4 rate is a discounted gateway price, below the model's 0.705 median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meta-contributor/muse-spark-1.2-contributor": {
+    "decision": "link",
+    "model": "meta/muse-spark-1.2",
+    "reason": "Muse Spark 1.2 Contributor is the same Muse Spark 1.2 weights under Meta's discounted data-contribution terms (0.1/0.2); still meta/muse-spark-1.2.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meta-contributor/muse-spark-1.3-contributor": {
+    "decision": "link",
+    "model": "meta/muse-spark-1.3",
+    "reason": "Muse Spark 1.3 Contributor is the same Muse Spark 1.3 weights under Meta's discounted data-contribution terms (0.1/0.2); still meta/muse-spark-1.3.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "mistral-large-latest": {
+    "decision": "router",
+    "reason": "Mistral's rolling alias that always serves the newest Mistral Large release (currently Mistral Large 4, Oct 2026); the model it picks changes with each release, so it is a pointer, and the gateway's 4/12 rate matches the original 2024 Mistral Large and looks stale.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "mistral/mistral-large-latest": {
+    "decision": "router",
+    "reason": "The same rolling mistral-large-latest alias under LLM Gateway's namespaced id; it serves whichever Mistral Large is newest (currently Large 4) and changes with each release, so it is a pointer, not one fixed model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "muse-spark-1.2-contributor": {
+    "decision": "link",
+    "model": "meta/muse-spark-1.2",
+    "reason": "Muse Spark 1.2 Contributor is the same Muse Spark 1.2 weights under Meta's discounted data-contribution terms (0.1/0.2); still meta/muse-spark-1.2.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "muse-spark-1.3-contributor": {
+    "decision": "link",
+    "model": "meta/muse-spark-1.3",
+    "reason": "Muse Spark 1.3 Contributor is the same Muse Spark 1.3 weights under Meta's discounted contributor-mode pricing (0.1/0.2, in exchange for Meta training on request content); still meta/muse-spark-1.3.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "novita/llama-3.3-70b-instruct": {
+    "decision": "link",
+    "model": "meta/llama-3.3-70b-instruct",
+    "reason": "LLM Gateway's Novita route for Meta's open-weight Llama 3.3 70B Instruct; the 0.135/0.4 rate is a discount off the model's 0.705 median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "seed-2-0-code-preview-260328": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "The same ByteDance Seed 2.0 Code Preview (260328) under LLM Gateway's unnamespaced id — a dated preview checkpoint released 2026-03-28; the index has only the GA bytedance/seed-2.0-code, so defer rather than link the GA checkpoint.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "tencent/hy-mt2-plus": {
+    "decision": "link",
+    "model": "tencent/hy-mt2-7b",
+    "reason": "The same Tencent Hunyuan Hy-MT2 Plus under LLM Gateway's namespaced id: the 7B translation model of the Hy-MT2 series (8K context, per Vercel/CloudPrice listings); matches tencent/hy-mt2-7b, including the 0.074/0.295 rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "xai/grok-4": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "The same xAI Grok 4 (Jul 2025, 256K context) under LLM Gateway's namespaced id; the index has no base Grok 4 entry (only the fast variants and later 4.x generations), so defer rather than link the wrong Grok.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "zai/glm-4-32b-0414-128k": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "The same Z.ai GLM-4-32B-0414 checkpoint (Apr 2024) under LLM Gateway's namespaced id; the index has no GLM-4-generation entry (its Zhipu line starts at GLM-4.5), so defer rather than link the wrong generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "zai/glm-4.5-airx": {
+    "decision": "link",
+    "model": "zhipu/glm-4.5-air",
+    "reason": "GLM-4.5-AirX is Z.ai's faster serving variant of the GLM-4.5-Air MoE checkpoint, priced at Z.ai's 1.1/4.5 speed tier; same model as zhipu/glm-4.5-air.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}
