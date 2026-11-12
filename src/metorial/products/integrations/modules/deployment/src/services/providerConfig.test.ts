@@ -73,6 +73,7 @@ vi.mock('@metorial-subspace/list-utils', () => ({
 }));
 
 vi.mock('@metorial-subspace/module-provider-internal', () => ({
+  checkProviderEnabled: vi.fn(),
   checkProviderMatch: vi.fn(),
   normalizeToolFilters: vi.fn(() => ({ type: 'v1.allow_all' })),
   providerDeploymentConfigPairInternalService: { upsertDeploymentConfigPair: vi.fn() },
