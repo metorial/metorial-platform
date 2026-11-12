@@ -13,9 +13,11 @@ import {
 import { consumerAccessService } from '@metorial/module-consumer-access';
 import { skillConfigurationService } from '@metorial/module-skill-configurations';
 import {
+  assertSkillMarketplaceDestinationSize,
   assertSkillMarketplacePluginLimit,
   assertSkillMarketplaceSkillLimit,
   CargoSkillLimitError,
+  getSkillPluginsContentSize,
   toCargoSkillLimitServiceError
 } from '../lib/limits';
 import {
@@ -248,6 +250,15 @@ class SkillMarketplacePluginServiceImpl {
               skillPluginSkill => skillPluginSkill.skill.status === 'active'
             ).length
           });
+
+          let pluginSize = await getSkillPluginsContentSize({
+            skillPluginOids: [skillPlugin.oid]
+          });
+          await assertSkillMarketplaceDestinationSize({
+            skillMarketplaceOid: d.skillMarketplace.oid,
+            additionalFiles: pluginSize.files,
+            additionalBytes: pluginSize.bytes
+          });
         } catch (error) {
           if (error instanceof CargoSkillLimitError) {
             throw toCargoSkillLimitServiceError(error);
@@ -321,21 +332,25 @@ class SkillMarketplacePluginServiceImpl {
       skillMarketplaceId: d.skillMarketplacePlugin.skillMarketplace.id
     });
 
-    let skillMarketplacePlugin = await db.skillMarketplacePlugin.update({
-      where: {
-        id: d.skillMarketplacePlugin.id
-      },
-      data: {
-        status: 'archived',
-        pluginSlug,
-        skillConfigurationOid: null
-      },
-      include: skillMarketplacePluginInclude
-    });
+    let skillMarketplacePlugin = await withTransaction(async db => {
+      let skillMarketplacePlugin = await db.skillMarketplacePlugin.update({
+        where: {
+          id: d.skillMarketplacePlugin.id
+        },
+        data: {
+          status: 'archived',
+          pluginSlug,
+          skillConfigurationOid: null
+        },
+        include: skillMarketplacePluginInclude
+      });
 
-    await enqueueSkillMarketplacePluginLifecycle({
-      skillMarketplacePluginId: skillMarketplacePlugin.id,
-      event: 'archived'
+      await enqueueSkillMarketplacePluginLifecycle({
+        skillMarketplacePluginId: skillMarketplacePlugin.id,
+        event: 'archived'
+      });
+
+      return skillMarketplacePlugin;
     });
 
     await consumerAccessService.reconcileSkillPluginConsumerAccess({

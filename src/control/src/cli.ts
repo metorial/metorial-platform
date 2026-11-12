@@ -15,6 +15,7 @@ import { inventory } from './ci';
 import { generate as generateDockerfiles } from './dockerfile/generate';
 import { relativePath } from './packages';
 import * as daemon from './daemon/commands';
+import * as migrations from './migrations';
 import type { ProjectRoot } from './types';
 
 let commandOptions: Record<
@@ -56,6 +57,7 @@ let commandOptions: Record<
   'stack rm': { values: ['name'], max: 1 },
   'stack ls': { flags: ['json'], max: 0 },
   'stack plan': { flags: ['json'], values: ['env', 'name'], min: 1, max: 1 },
+  'stack images': { flags: ['json'], min: 1, max: 1 },
   daemon: {},
   'daemon start': { max: 0 },
   'daemon stop': { max: 0 },
@@ -67,6 +69,8 @@ let commandOptions: Record<
   db: {},
   'db generate': {},
   'db push': {},
+  'db check': { values: ['base'] },
+  'db migration': { min: 2, max: 3 },
   env: { flags: ['json'] },
   run: {},
   'test:unit': {},
@@ -332,6 +336,20 @@ export let run = async (args = process.argv.slice(2), cwd = process.cwd()) => {
       await dev.runPrepare(project, positional, flags.has('no-docker'));
       return;
     case 'db':
+      if (parsed.subcommand === 'check') {
+        migrations.runCheck(
+          project,
+          positional,
+          parsed.values.base ?? process.env.CONTROL_BASE_REF
+        );
+        return;
+      }
+
+      if (parsed.subcommand === 'migration') {
+        migrations.runMigration(project, start, positional);
+        return;
+      }
+
       await dev.runDatabaseTask(project, positional, parsed.subcommand as 'generate' | 'push');
       return;
     case 'env': {

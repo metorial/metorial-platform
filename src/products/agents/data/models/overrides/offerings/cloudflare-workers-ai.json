@@ -1,0 +1,8 @@
+{
+  "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b": {
+    "decision": "link",
+    "model": "deepseek/deepseek-r1-distill-qwen-32b",
+    "reason": "models.dev links the distill to the full DeepSeek R1",
+    "by": "human"
+  }
+}

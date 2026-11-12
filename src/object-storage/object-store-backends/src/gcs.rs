@@ -9,25 +9,47 @@ use google_cloud_storage::http::objects::delete::DeleteObjectRequest;
 use google_cloud_storage::http::objects::download::Range;
 use google_cloud_storage::http::objects::get::GetObjectRequest;
 use google_cloud_storage::http::objects::list::ListObjectsRequest;
-use google_cloud_storage::http::objects::patch::PatchObjectRequest;
-use google_cloud_storage::http::objects::upload::{Media, UploadObjectRequest, UploadType};
+use google_cloud_storage::http::objects::upload::{UploadObjectRequest, UploadType};
 use google_cloud_storage::http::objects::Object;
 use google_cloud_storage::http::Error as GcsError;
 use google_cloud_storage::sign::{SignBy, SignedURLMethod, SignedURLOptions, URLStyle};
+use reqwest::header::{HeaderMap, CONTENT_LENGTH, CONTENT_RANGE, RANGE};
 use std::collections::HashMap;
+use std::sync::Arc;
+use std::time::Duration;
 use tracing::{debug, info, warn};
 
 use crate::backend::{
     Backend, ByteRange, ByteStream, ObjectData, ObjectMetadata, ObjectPage, ObjectRangeData,
     PublicUrlPurpose, SignedUrl, WritePrecondition,
 };
-use crate::error::{BackendError, BackendResult};
-use crate::upload::{into_sync_stream, ChunkedUpload, SINGLE_REQUEST_THRESHOLD};
+use crate::error::{is_transient_status, BackendError, BackendResult};
+use crate::multipart::{MultipartUpload, PartReceipt, PutOptions, UploadLimits, KIB, TIB};
+use crate::uploader::Uploader;
+
+// A resumable session only persists whole multiples of 256 KiB from a chunk that doesn't finish
+// the upload, so every chunk but the last is aligned to it.
+const GCS_CHUNK_ALIGNMENT: u64 = 256 * KIB;
+
+const GCS_LIMITS: UploadLimits = UploadLimits {
+    min_part_size: GCS_CHUNK_ALIGNMENT,
+    max_part_size: 5 * TIB,
+    max_parts: u32::MAX,
+    part_alignment: GCS_CHUNK_ALIGNMENT,
+    max_concurrency: 1,
+    max_object_size: 5 * TIB,
+};
+
+const SESSION_CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
+const SESSION_REQUEST_TIMEOUT: Duration = Duration::from_secs(15 * 60);
+const MAX_CHUNK_ROUNDS: usize = 8;
 
 pub struct GcsBackend {
     client: Client,
     bucket_name: String,
     signing_style: SigningStyle,
+    sessions: reqwest::Client,
+    uploader: Arc<Uploader>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -101,6 +123,32 @@ fn status_of(error: &GcsError) -> Option<u16> {
 
 fn is_not_found(error: &GcsError) -> bool {
     status_of(error) == Some(404)
+}
+
+fn is_transient_http(error: &reqwest::Error) -> bool {
+    error.is_timeout()
+        || error.is_connect()
+        || error.is_request()
+        || error.is_body()
+        || error
+            .status()
+            .is_some_and(|status| is_transient_status(status.as_u16()))
+}
+
+fn is_transient(error: &GcsError) -> bool {
+    match error {
+        GcsError::Response(response) => is_transient_status(response.code),
+        GcsError::HttpClient(error) => is_transient_http(error),
+        _ => false,
+    }
+}
+
+fn gcs_error(message: String, error: &GcsError) -> BackendError {
+    if is_transient(error) {
+        BackendError::Retryable(message)
+    } else {
+        BackendError::Provider(message)
+    }
 }
 
 impl GcsBackend {
@@ -180,6 +228,14 @@ impl GcsBackend {
 
         let client = Client::new(config);
 
+        let sessions = reqwest::Client::builder()
+            .connect_timeout(SESSION_CONNECT_TIMEOUT)
+            .timeout(SESSION_REQUEST_TIMEOUT)
+            .build()
+            .map_err(|e| {
+                BackendError::Configuration(format!("Failed to create GCS upload client: {}", e))
+            })?;
+
         info!(
             "Initialized GCS backend with bucket: {} (endpoint: {:?}, public endpoint: {:?})",
             bucket_name, options.endpoint, options.public_endpoint
@@ -188,7 +244,14 @@ impl GcsBackend {
             client,
             bucket_name,
             signing_style,
+            sessions,
+            uploader: Arc::default(),
         })
+    }
+
+    pub fn with_uploader(mut self, uploader: Arc<Uploader>) -> Self {
+        self.uploader = uploader;
+        self
     }
 
     // The etag is the generation: it changes with every write and is what
@@ -228,7 +291,220 @@ impl GcsBackend {
 
     fn provider_error(action: &str, key: &str, error: GcsError) -> BackendError {
         warn!("Failed to {} GCS object: {}: {:?}", action, key, error);
-        BackendError::Provider(format!("Failed to {} object '{}': {}", action, key, error))
+        gcs_error(
+            format!("Failed to {} object '{}': {}", action, key, error),
+            &error,
+        )
+    }
+}
+
+enum SessionStatus {
+    Incomplete { persisted: u64 },
+    Finished(Box<Object>),
+}
+
+#[derive(Default)]
+struct SessionState {
+    persisted: u64,
+    /// A request failed in a way that leaves the persisted offset unknown.
+    stale: bool,
+    object: Option<Object>,
+}
+
+impl SessionState {
+    fn apply(&mut self, status: SessionStatus) {
+        match status {
+            SessionStatus::Incomplete { persisted } => self.persisted = persisted,
+            SessionStatus::Finished(object) => {
+                self.persisted = object.size.max(0) as u64;
+                self.object = Some(*object);
+            }
+        }
+    }
+}
+
+/// A resumable upload session. The session URI authorizes the upload by itself, so chunks go
+/// out through a plain HTTP client that exposes the persisted range on every response.
+struct GcsResumableUpload {
+    http: reqwest::Client,
+    session_url: String,
+    key: String,
+    content_type: Option<String>,
+    state: tokio::sync::Mutex<SessionState>,
+}
+
+// `Range: bytes=0-<last>` on a 308 response; absent while nothing is persisted.
+fn persisted_bytes(headers: &HeaderMap) -> u64 {
+    headers
+        .get(RANGE)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.trim().strip_prefix("bytes="))
+        .and_then(|value| value.split_once('-'))
+        .and_then(|(_, last)| last.trim().parse::<u64>().ok())
+        .map_or(0, |last| last + 1)
+}
+
+impl GcsResumableUpload {
+    fn session_error(&self, error: reqwest::Error) -> BackendError {
+        let message = format!(
+            "Failed to upload to GCS session of '{}': {}",
+            self.key, error
+        );
+        if is_transient_http(&error) {
+            BackendError::Retryable(message)
+        } else {
+            BackendError::Provider(message)
+        }
+    }
+
+    async fn send(&self, content_range: String, body: Bytes) -> BackendResult<SessionStatus> {
+        let response = self
+            .http
+            .put(&self.session_url)
+            .header(CONTENT_RANGE, content_range)
+            .header(CONTENT_LENGTH, body.len())
+            .body(body)
+            .send()
+            .await
+            .map_err(|e| self.session_error(e))?;
+
+        match response.status().as_u16() {
+            308 => Ok(SessionStatus::Incomplete {
+                persisted: persisted_bytes(response.headers()),
+            }),
+            200 | 201 => {
+                let object = response
+                    .json::<Object>()
+                    .await
+                    .map_err(|e| self.session_error(e))?;
+                Ok(SessionStatus::Finished(Box::new(object)))
+            }
+            status => {
+                let body = response.text().await.unwrap_or_default();
+                let message = format!(
+                    "GCS rejected upload of '{}' with {}: {}",
+                    self.key, status, body
+                );
+                if is_transient_status(status) {
+                    Err(BackendError::Retryable(message))
+                } else {
+                    Err(BackendError::Provider(message))
+                }
+            }
+        }
+    }
+}
+
+#[async_trait]
+impl MultipartUpload for GcsResumableUpload {
+    async fn upload_part(
+        &self,
+        number: u32,
+        offset: u64,
+        data: Bytes,
+    ) -> BackendResult<PartReceipt> {
+        let size = data.len() as u64;
+        let end = offset + size;
+        let receipt = PartReceipt {
+            number,
+            offset,
+            size,
+            etag: None,
+        };
+
+        // An unaligned part can only be the last one, so it carries the object size.
+        let total = if size.is_multiple_of(GCS_CHUNK_ALIGNMENT) {
+            "*".to_string()
+        } else {
+            end.to_string()
+        };
+
+        let mut state = self.state.lock().await;
+
+        if state.stale {
+            let status = self.send("bytes */*".to_string(), Bytes::new()).await?;
+            state.apply(status);
+            state.stale = false;
+        }
+
+        for _ in 0..MAX_CHUNK_ROUNDS {
+            if state.object.is_some() || state.persisted >= end {
+                return Ok(receipt);
+            }
+
+            if state.persisted < offset {
+                return Err(BackendError::Provider(format!(
+                    "GCS session of '{}' holds {} bytes, but part {} starts at {}",
+                    self.key, state.persisted, number, offset
+                )));
+            }
+
+            let start = state.persisted;
+            let body = data.slice((start - offset) as usize..);
+
+            state.stale = true;
+            let status = self
+                .send(format!("bytes {}-{}/{}", start, end - 1, total), body)
+                .await?;
+            state.apply(status);
+            state.stale = false;
+        }
+
+        Err(BackendError::Retryable(format!(
+            "GCS session of '{}' stopped accepting part {}",
+            self.key, number
+        )))
+    }
+
+    async fn complete(&self, parts: Vec<PartReceipt>) -> BackendResult<ObjectMetadata> {
+        let size: u64 = parts.iter().map(|part| part.size).sum();
+        let mut state = self.state.lock().await;
+
+        if state.object.is_none() {
+            let status = self.send(format!("bytes */{}", size), Bytes::new()).await?;
+            state.apply(status);
+        }
+
+        match &state.object {
+            Some(object) => {
+                debug!(
+                    "Uploaded object to GCS in {} chunks: {} ({} bytes)",
+                    parts.len(),
+                    self.key,
+                    size
+                );
+                Ok(GcsBackend::object_to_metadata(
+                    object.clone(),
+                    self.content_type.clone(),
+                ))
+            }
+            None => Err(BackendError::Provider(format!(
+                "GCS session of '{}' holds {} of {} bytes",
+                self.key, state.persisted, size
+            ))),
+        }
+    }
+
+    async fn abort(&self) {
+        match self
+            .http
+            .delete(&self.session_url)
+            .header(CONTENT_LENGTH, 0)
+            .send()
+            .await
+        {
+            Ok(response) if response.status().as_u16() == 499 || response.status().is_success() => {
+            }
+            Ok(response) => warn!(
+                "Failed to cancel GCS upload session of {}: {}",
+                self.key,
+                response.status()
+            ),
+            Err(e) => warn!(
+                "Failed to cancel GCS upload session of {}: {:?}",
+                self.key, e
+            ),
+        }
     }
 }
 
@@ -258,69 +534,62 @@ impl Backend for GcsBackend {
         }
     }
 
-    async fn put_object(
+    fn uploader(&self) -> &Uploader {
+        &self.uploader
+    }
+
+    fn upload_limits(&self) -> UploadLimits {
+        GCS_LIMITS
+    }
+
+    async fn put_single(
         &self,
         key: &str,
-        stream: ByteStream,
-        content_type: Option<String>,
-        custom_metadata: HashMap<String, String>,
+        data: Bytes,
+        opts: &PutOptions,
     ) -> BackendResult<ObjectMetadata> {
         let request = UploadObjectRequest {
             bucket: self.bucket_name.clone(),
             ..Default::default()
         };
 
-        let mut upload = ChunkedUpload::new(stream);
+        debug!("Uploading object to GCS: {} ({} bytes)", key, data.len());
+        let metadata = Self::upload_object_metadata(key, &opts.content_type, &opts.metadata);
 
-        let object = if upload.fits_within(SINGLE_REQUEST_THRESHOLD).await? {
-            let data = upload.take_buffered();
-            debug!("Uploading object to GCS: {} ({} bytes)", key, data.len());
-
-            let metadata = Self::upload_object_metadata(key, &content_type, &custom_metadata);
-
-            self.client
-                .upload_object(&request, data, &UploadType::Multipart(Box::new(metadata)))
-                .await
-                .map_err(|e| Self::provider_error("upload", key, e))?
-        } else {
-            debug!("Uploading object to GCS as a stream: {}", key);
-
-            let mut media = Media::new(key.to_string());
-            if let Some(content_type) = &content_type {
-                media.content_type = content_type.clone().into();
-            }
-
-            let object = self
-                .client
-                .upload_streamed_object(
-                    &request,
-                    into_sync_stream(upload.into_stream()),
-                    &UploadType::Simple(media),
-                )
-                .await
-                .map_err(|e| Self::provider_error("upload", key, e))?;
-
-            // A media upload cannot carry metadata, so it is attached afterwards.
-            if custom_metadata.is_empty() {
-                object
-            } else {
-                self.client
-                    .patch_object(&PatchObjectRequest {
-                        bucket: self.bucket_name.clone(),
-                        object: key.to_string(),
-                        metadata: Some(Object {
-                            metadata: Some(custom_metadata.clone()),
-                            ..Default::default()
-                        }),
-                        ..Default::default()
-                    })
-                    .await
-                    .map_err(|e| Self::provider_error("update metadata of", key, e))?
-            }
-        };
+        let object = self
+            .client
+            .upload_object(&request, data, &UploadType::Multipart(Box::new(metadata)))
+            .await
+            .map_err(|e| Self::provider_error("upload", key, e))?;
 
         debug!("Uploaded object to GCS: {} ({} bytes)", key, object.size);
-        Ok(Self::object_to_metadata(object, content_type))
+        Ok(Self::object_to_metadata(object, opts.content_type.clone()))
+    }
+
+    async fn start_multipart(
+        &self,
+        key: &str,
+        opts: &PutOptions,
+    ) -> BackendResult<Arc<dyn MultipartUpload>> {
+        let request = UploadObjectRequest {
+            bucket: self.bucket_name.clone(),
+            ..Default::default()
+        };
+        let metadata = Self::upload_object_metadata(key, &opts.content_type, &opts.metadata);
+
+        let session = self
+            .client
+            .prepare_resumable_upload(&request, &UploadType::Multipart(Box::new(metadata)))
+            .await
+            .map_err(|e| Self::provider_error("start upload of", key, e))?;
+
+        Ok(Arc::new(GcsResumableUpload {
+            http: self.sessions.clone(),
+            session_url: session.url().to_string(),
+            key: key.to_string(),
+            content_type: opts.content_type.clone(),
+            state: tokio::sync::Mutex::default(),
+        }))
     }
 
     async fn put_object_if(
@@ -508,10 +777,13 @@ impl Backend for GcsBackend {
                     "Failed to copy object in GCS: {} -> {}: {:?}",
                     source_key, dest_key, e
                 );
-                Err(BackendError::Provider(format!(
-                    "Failed to copy object '{}' to '{}': {}",
-                    source_key, dest_key, e
-                )))
+                Err(gcs_error(
+                    format!(
+                        "Failed to copy object '{}' to '{}': {}",
+                        source_key, dest_key, e
+                    ),
+                    &e,
+                ))
             }
         }
     }
@@ -566,10 +838,7 @@ impl Backend for GcsBackend {
             ))),
             Err(e) => {
                 warn!("Failed to list objects from GCS: {:?}", e);
-                Err(BackendError::Provider(format!(
-                    "Failed to list objects: {}",
-                    e
-                )))
+                Err(gcs_error(format!("Failed to list objects: {}", e), &e))
             }
         }
     }
@@ -658,6 +927,18 @@ mod tests {
             metadata.custom_metadata.get("k").map(String::as_str),
             Some("v")
         );
+    }
+
+    #[test]
+    fn reads_the_persisted_range() {
+        let mut headers = HeaderMap::new();
+        assert_eq!(persisted_bytes(&headers), 0);
+
+        headers.insert(RANGE, "bytes=0-262143".parse().unwrap());
+        assert_eq!(persisted_bytes(&headers), 262_144);
+
+        headers.insert(RANGE, "garbage".parse().unwrap());
+        assert_eq!(persisted_bytes(&headers), 0);
     }
 
     #[test]

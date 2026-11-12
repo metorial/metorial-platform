@@ -66,7 +66,7 @@ import { validateOAuthScopes } from '../lib/oauthScopeValidation';
 import { urlsMatch, validateRedirectUri } from '../lib/oauthUrls';
 import { splitOAuthAndOidcScopes } from '../lib/oidc';
 import { cliDeviceService } from './cliDevice';
-import { machineAccessInclude } from './machineAccessAuth';
+import { machineAccessInclude, type OAuthTokenWithAuthorization } from './machineAccessAuth';
 import { oauthApplicationService } from './oauthApplication';
 import {
   installationInclude,
@@ -1081,15 +1081,34 @@ class OAuthAuthorizationService {
 
       let tokenValues = createIssuedOAuthTokenValues(d);
 
-      let oauthToken = await db.oAuthToken.update({
+      // Conditional on the token being unchanged since it was read: a revoke rewrites
+      // completelyExpiresAt and a second refresh rewrites both, so neither is overwritten.
+      let refreshed = await db.oAuthToken.updateMany({
         where: {
-          oid: d.oauthToken.oid
+          oid: d.oauthToken.oid,
+          refreshToken: d.oauthToken.refreshToken,
+          completelyExpiresAt: d.oauthToken.completelyExpiresAt
         },
         data: {
           oauthInstallationOid: d.oauthToken.oauthAuthorization.oauthInstallationOid,
           lastRefreshedAt: new Date(),
           ...tokenValues
-        },
+        }
+      });
+      if (!refreshed.count) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Invalid refresh token',
+            oauth: {
+              error: 'invalid_grant',
+              errorMessage: 'Invalid refresh token'
+            }
+          })
+        );
+      }
+
+      let oauthToken = await db.oAuthToken.findUniqueOrThrow({
+        where: { oid: d.oauthToken.oid },
         include: tokenInclude
       });
 
@@ -1310,6 +1329,72 @@ class OAuthAuthorizationService {
         oauthApplication: oauthAuthorization.oauthApplication,
         ...this.getAuthorizationSubject(oauthAuthorization)
       };
+    });
+  }
+
+  async issueMemberCliConsumerToken(d: {
+    source: OAuthTokenWithAuthorization;
+    organization: Organization;
+    consumerProfile: ConsumerProfile;
+    user: User;
+    context: Context;
+  }) {
+    let source = d.source.oauthAuthorization;
+    ensureAuthorizationUsable(source);
+    if (
+      source.oauthApplication.type !== 'cli_auth' ||
+      source.subjectType !== 'organization_member' ||
+      source.organizationOid !== d.organization.oid ||
+      d.consumerProfile.organizationOid !== d.organization.oid ||
+      !source.organizationMemberOid ||
+      source.organizationMemberOid !== d.consumerProfile.organizationMemberOid ||
+      source.userOid !== d.user.oid ||
+      d.user.type === 'system' ||
+      d.user.status !== 'active'
+    ) {
+      throw new ServiceError(
+        forbiddenError({ message: 'A signed-in organization member is required' })
+      );
+    }
+
+    let lifetime = Math.min(
+      300,
+      differenceInSeconds(d.source.accessTokenExpiresAt, new Date())
+    );
+    if (lifetime <= 0) {
+      throw new ServiceError(
+        unauthorizedError({ message: 'The CLI access token has expired' })
+      );
+    }
+
+    let oauthApplication = await this.getCliAuthOAuthApplicationOrThrow();
+    return await withTransaction(async () => {
+      let oauthInstallation =
+        await oauthAuthorizationInstallationService.getOrCreateInstallation({
+          oauthApplication,
+          organization: d.organization
+        });
+      let oauthAuthorization =
+        await oauthAuthorizationInstallationService.getOrCreateConsumerAuthorization({
+          oauthApplication,
+          oauthInstallation,
+          organization: d.organization,
+          consumerProfile: d.consumerProfile,
+          user: d.user,
+          scopes: [
+            'consumer#instance.magic_mcp:read',
+            'consumer#instance.magic_mcp:connect',
+            'consumer#instance.provider_template:read'
+          ],
+          context: d.context
+        });
+
+      return await this.issueOAuthToken({
+        oauthAuthorization,
+        withRefreshToken: false,
+        accessTokenLifetimeSeconds: lifetime,
+        context: d.context
+      });
     });
   }
 
@@ -1810,6 +1895,15 @@ class OAuthAuthorizationService {
         include: authorizationInclude
       });
 
+      let now = new Date();
+      await db.oAuthToken.updateMany({
+        where: {
+          oauthAuthorizationOid: oauthAuthorization.oid,
+          OR: [{ completelyExpiresAt: null }, { completelyExpiresAt: { gt: now } }]
+        },
+        data: { accessTokenExpiresAt: now, completelyExpiresAt: now }
+      });
+
       await revokeOAuthConsumerSession({ oauthAuthorization });
 
       addAfterTransactionHook(() =>
@@ -1827,6 +1921,19 @@ class OAuthAuthorizationService {
 
       return oauthAuthorization;
     });
+  }
+
+  async revokeOAuthToken(d: { oauthToken: Pick<OAuthToken, 'oid'> }) {
+    let now = new Date();
+
+    return await withTransaction(
+      async db =>
+        await db.oAuthToken.update({
+          where: { oid: d.oauthToken.oid },
+          data: { refreshToken: null, accessTokenExpiresAt: now, completelyExpiresAt: now }
+        }),
+      { ifExists: true }
+    );
   }
 
   async revokeConsumerOAuthAuthorization(d: {

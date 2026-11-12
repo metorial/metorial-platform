@@ -19,9 +19,8 @@
     "infra:logs": "docker compose -p slates-hub -f ./docker-compose.dev.yml --profile infra logs -f",
     "infra:restart": "docker compose -p slates-hub -f ./docker-compose.dev.yml --profile infra restart",
     "db:generate": "bun prisma generate --schema prisma/schema",
-    "db:push:dev": "sh -c 'set -a; . ./.env; set +a; bun prisma db push --schema prisma/schema --accept-data-loss'",
-    "db:push:test": "sh -c 'set -a; . ./.env.test; set +a; bun prisma db push --schema prisma/schema'",
-    "db:push": "bun run db:push:dev && bun run db:push:test",
+    "db:push:dev": "bun prisma db push --schema prisma/schema --accept-data-loss",
+    "db:push": "bun run db:push:dev",
     "test": "bun run test:unit",
     "test:unit": "bunx vitest run --config vitest.unit.config.ts --passWithNoTests",
     "test:watch": "bunx vitest watch",
@@ -33,9 +32,10 @@
     "e2e:start": "bun ./src/server.ts",
     "control:db:generate": "bun run prisma:generate",
     "control:db:push": "bun run prisma:push",
-    "test:e2e": "bunx vitest run --config vitest.e2e.config.ts --configLoader runner"
+    "test:e2e": "metorial-e2e"
   },
   "devDependencies": {
+    "@metorial/e2e": "1.0.0",
     "@types/bun": "latest",
     "@types/lodash": "^4.17.27",
     "@types/react": "19.3.0",
@@ -50,9 +50,9 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@aws-sdk/client-cloudwatch-logs": "^3.1156.0",
-    "@aws-sdk/client-iam": "^3.1156.0",
-    "@aws-sdk/client-lambda": "^3.1156.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.1158.0",
+    "@aws-sdk/client-iam": "^3.1158.0",
+    "@aws-sdk/client-lambda": "^3.1158.0",
     "@hono/zod-validator": "^0.9.1",
     "@lowerdeck/api-key": "workspace:2.0.0",
     "@lowerdeck/api-mux": "workspace:2.0.0",
@@ -119,7 +119,7 @@
     "prisma-json-types-generator": "^5.2.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "react-router-dom": "^7.18.4",
+    "react-router-dom": "^7.18.5",
     "semver": "^7.8.5",
     "sonner": "^2.0.8",
     "styled-components": "^6.6.0",

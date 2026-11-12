@@ -6,9 +6,9 @@ on:
     branches: [dev]
   pull_request:
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+# concurrency:
+#   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+#   cancel-in-progress: true
 
 permissions:
   contents: read
@@ -34,6 +34,27 @@ jobs:
         id: changes
         with:
           tasks: test --filter=./src/metorial/packages/* --filter=./src/metorial/products/** --filter=./src/lowerdeck/** --filter=@metorial/nebula --filter=@metorial/function-bay --filter=@metorial/shuttle --filter=@metorial/slates --filter=@metorial/relay
+
+  migrations:
+    name: Check Prisma migrations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.2'
+      - name: Check migrations match schemas
+        env:
+          BASE_BRANCH: ${{ github.event_name == 'pull_request' && github.base_ref || '' }}
+        run: |-
+          base=""
+          if [ -n "$BASE_BRANCH" ]; then
+            git fetch --no-tags origin "+refs/heads/$BASE_BRANCH:refs/remotes/origin/$BASE_BRANCH"
+            base="--base origin/$BASE_BRANCH"
+          fi
+          bun src/control/src/main.ts db check $base
 
   build:
     name: 'Build ${{ matrix.service.name }}'
@@ -263,10 +284,9 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GH_TOKEN || github.token }}
-      - uses: ./.github/actions/setup-test-workspace
-        id: tests
+      - uses: oven-sh/setup-bun@v2
         with:
-          tasks: ${{ matrix.service.tasks }}
+          bun-version: '1.4.2'
       - uses: ./.github/actions/setup-warp-cache
         with:
           cache-bun-downloads: 'false'
@@ -275,9 +295,16 @@ jobs:
           signature-key: ${{ secrets.TURBO_REMOTE_CACHE_SIGNATURE_KEY }}
           role-arn: ${{ vars.WARP_CACHE_ROLE_ARN }}
           bucket: ${{ vars.WARP_CACHE_BUCKET }}
+      - uses: ./.github/actions/setup-test-workspace
+        id: tests
+        with:
+          tasks: ${{ matrix.service.tasks }}
       - name: Restore test prerequisites
         working-directory: ${{ steps.tests.outputs.workspace }}
-        run: bunx turbo@2.11.7 run prisma:generate build --ui=stream --concurrency=2
+        run: |-
+          turbo=./node_modules/.bin/turbo
+          [ -x "$turbo" ] || turbo="bunx turbo@2.11.7"
+          $turbo run prisma:generate build --ui=stream --env-mode=loose --concurrency=2
       - uses: ./.github/actions/backend-e2e
         if: ${{ !matrix.service.control }}
         with:

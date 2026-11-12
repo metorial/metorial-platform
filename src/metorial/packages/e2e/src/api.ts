@@ -8,6 +8,9 @@ import { metorialEndpoints } from './env';
 
 export let SESSION_COOKIE = 'metorial_oss_session_secret';
 
+/** Remote stacks are enterprise installs whose session cookie has another name. */
+export let sessionCookieName = () => process.env.METORIAL_E2E_SESSION_COOKIE ?? SESSION_COOKIE;
+
 export let API_VERSIONS = {
   dashboard: 'mt_2025_01_01_dashboard',
   magnetar: 'mt_2026_01_01_magnetar',
@@ -51,7 +54,7 @@ export let authHeaders = (auth: RestAuth = {}) => {
   let headers: Record<string, string> = {};
   if (auth.version) headers['metorial-version'] = auth.version;
   if (auth.apiKey) headers.authorization = `Bearer ${auth.apiKey}`;
-  if (auth.session) headers.cookie = `${SESSION_COOKIE}=${auth.session}`;
+  if (auth.session) headers.cookie = `${sessionCookieName()}=${auth.session}`;
   if (auth.organizationId) headers['metorial-organization-id'] = auth.organizationId;
   if (auth.consumerToken) {
     headers['metorial-consumer-session-client-secret'] = auth.consumerToken;
@@ -71,7 +74,10 @@ export let rest = (baseUrl: string, auth: RestAuth = {}) => {
     path: string,
     options: RestRequestOptions = {}
   ): Promise<RestResponse<T>> => {
-    let url = new URL(path, baseUrl);
+    let relativePath = path.replace(/^\/+/, '');
+    let url = new URL(
+      relativePath ? `${baseUrl.replace(/\/+$/, '')}/${relativePath}` : baseUrl
+    );
     for (let [key, value] of Object.entries(options.query ?? {})) {
       if (value !== undefined) url.searchParams.set(key, String(value));
     }

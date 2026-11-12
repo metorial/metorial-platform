@@ -2,6 +2,8 @@ import { Service } from '@lowerdeck/service';
 import type { Context } from '@metorial/context';
 import type { Instance, Prisma, Project, ResourceActor } from '@metorial/db';
 import { withTransaction } from '@metorial/db';
+import { storeVersionService } from '@metorial/module-store';
+import { enqueueDocumentLifecycle } from '../queues/lifecycle';
 import { documentInclude } from '../services/document';
 import { type DocumentDraft } from './documentDraft';
 import { internalDocumentParticipantService } from './documentParticipant';
@@ -437,6 +439,14 @@ class InternalDocumentContentServiceImpl {
           });
         }
       }
+
+      await storeVersionService.touchStoresLastEditedAtForDocument({
+        documentOid: updatedDocument.oid
+      });
+      await enqueueDocumentLifecycle({
+        documentId: updatedDocument.id,
+        event: 'contents-changed'
+      });
 
       return {
         document: updatedDocument,

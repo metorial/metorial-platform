@@ -1,4 +1,4 @@
-import type { BuildMigration, RenderContext } from './types';
+import type { BuildMigration, BuildSpec, RenderContext } from './types';
 
 export let bunVersion = '1.4.2';
 export let prismaVersion = '7.10.1';
@@ -63,7 +63,8 @@ export let dependencies = (context: RenderContext): string[] => [
 
 let turboRuns = (context: RenderContext) => {
   let { build } = context;
-  if (!build.include.length) return [`${build.tasks.join(' ')} --filter=${filterName(context)}`];
+  if (!build.include.length && !build.generateFirst)
+    return [`${build.tasks.join(' ')} --filter=${filterName(context)}`];
 
   let generate = build.tasks.filter(task => task === 'prisma:generate');
   let rest = build.tasks.filter(task => task !== 'prisma:generate');
@@ -73,6 +74,13 @@ let turboRuns = (context: RenderContext) => {
     ...(rest.length ? [`${rest.join(' ')} --filter=${filterName(context)}`] : [])
   ];
 };
+
+let stripModules = (names: string[]) =>
+  names.length
+    ? [
+        `RUN find /app/node_modules -type d \\( ${names.map(name => `-path '*/node_modules/${name}'`).join(' -o ')} \\) -prune -exec rm -rf {} +`
+      ]
+    : [];
 
 export let builder = (context: RenderContext): string[] => {
   let { build, packageDirectory } = context;
@@ -84,12 +92,21 @@ export let builder = (context: RenderContext): string[] => {
     'ARG TURBO_TEAM',
     'ENV TURBO_API=${TURBO_API}',
     'ENV TURBO_TEAM=${TURBO_TEAM}',
+    ...(build.release
+      ? [
+          'ARG METORIAL_RELEASE_CHANNEL=release',
+          'ENV METORIAL_RELEASE_CHANNEL=${METORIAL_RELEASE_CHANNEL}'
+        ]
+      : []),
     ...(build.heapMb ? [`ENV NODE_OPTIONS=--max_old_space_size=${build.heapMb}`] : []),
+    ...Object.entries(build.buildEnv).map(([key, value]) => `ENV ${key}=${value}`),
     'COPY --from=pruned /full/ ./',
+    ...build.sources.map(source => `COPY ${source} ./${source}`),
     ...turboRuns(context).map(
       run =>
         `RUN ${turboSecrets} sh ./${context.tooling}/warp-cache/run-turbo.sh ${run}${concurrency}`
     ),
+    ...stripModules(build.strip),
     ...(build.sentry
       ? [
           `RUN --mount=type=secret,id=sentry_auth_token,required=false sh -c 'if [ -s /run/secrets/sentry_auth_token ]; then export SENTRY_AUTH_TOKEN="$(cat /run/secrets/sentry_auth_token)"; fi; bun run --cwd ${packageDirectory} sentry:sourcemaps || true'`
@@ -98,10 +115,14 @@ export let builder = (context: RenderContext): string[] => {
   ];
 };
 
-export let productionDependencies = (): string[] => [
+export let productionDependencies = (context: RenderContext): string[] => [
   'FROM base AS production-dependencies',
+  ...(context.build.node
+    ? [`COPY --from=${nodeImage} /usr/local/bin/node /usr/local/bin/node`]
+    : []),
   'COPY --from=pruned /json/ ./',
-  `RUN ${bunCache} bun install --linker=hoisted --production`
+  `RUN ${bunCache} bun install --linker=hoisted --production`,
+  ...stripModules(context.build.strip)
 ];
 
 export let controlRuntime = (context: RenderContext): string[] => [
@@ -154,8 +175,40 @@ export let tools = (): string[] => {
   ];
 };
 
+let releaseLines = (build: BuildSpec) => [
+  ...(build.release
+    ? [
+        'ARG METORIAL_RELEASE_CHANNEL=release',
+        'ENV METORIAL_RELEASE_CHANNEL=${METORIAL_RELEASE_CHANNEL}'
+      ]
+    : []),
+  ...(build.versioned
+    ? ['ARG METORIAL_BUILD_VERSION', 'ENV METORIAL_VERSION=${METORIAL_BUILD_VERSION}']
+    : [])
+];
+
+let sourceRunner = (context: RenderContext): string[] => {
+  let { build, packageDirectory } = context;
+
+  return [
+    'FROM builder AS runner',
+    'ENV NODE_ENV=production',
+    'ENV TZ=UTC',
+    ...Object.entries(build.env).map(([key, value]) => `ENV ${key}=${value}`),
+    ...releaseLines(build),
+    `WORKDIR /app/${packageDirectory}`,
+    `USER ${user.id}:${user.id}`,
+    `CMD ${JSON.stringify(['bun', `./${build.start}`])}`
+  ];
+};
+
+let migrationCommand = (names: string[], start: string) =>
+  `stop=; trap 'stop=1' TERM INT HUP; bun ./control/control-runtime.js migrate ${names.join(' ')} && [ -z "$stop" ] && exec ${start}`;
+
 export let runner = (context: RenderContext): string[] => {
   let { build, packageDirectory } = context;
+  if (build.runtime === 'source') return sourceRunner(context);
+
   let owner = `--chown=${user.id}:${user.id}`;
   let migrating = build.migrations.length > 0;
 
@@ -163,7 +216,8 @@ export let runner = (context: RenderContext): string[] => {
     `FROM ${migrating ? 'tools' : 'runner-base'} AS runner`,
     'ENV NODE_ENV=production',
     'ENV TZ=UTC',
-    ...Object.entries(build.env).map(([key, value]) => `ENV ${key}=${value}`)
+    ...Object.entries(build.env).map(([key, value]) => `ENV ${key}=${value}`),
+    ...releaseLines(build)
   ];
 
   if (build.modules === 'production')
@@ -175,18 +229,26 @@ export let runner = (context: RenderContext): string[] => {
     `COPY --from=builder --link ${owner} /app/${packageDirectory}/dist ./dist`,
     ...build.assets.map(
       asset =>
-        `COPY --from=builder --link ${owner} /app/${packageDirectory}/${asset.from} ./${asset.to}`
+        `COPY --from=builder --link ${owner} /app/${asset.from.startsWith('/') ? asset.from.slice(1) : `${packageDirectory}/${asset.from}`} ./${asset.to}`
     )
   );
 
   if (migrating) {
     lines.push(
-      ...build.migrations.map(migration => {
-        let { source, target, directory } = context.schemas[migration.name]!;
-        let slash = directory ? '/' : '';
+      ...build.migrations
+        .map(migration => {
+          let { source, target, directory, migrations } = context.schemas[migration.name]!;
+          let slash = directory ? '/' : '';
+          let schema = `COPY --from=builder --link ${owner} /app/${source}${slash} ./${target}${slash}`;
 
-        return `COPY --from=builder --link ${owner} /app/${source}${slash} ./${target}${slash}`;
-      }),
+          return migrations
+            ? [
+                schema,
+                `COPY --from=builder --link ${owner} /app/${migrations.source}/ ./${migrations.target}/`
+              ]
+            : [schema];
+        })
+        .flat(),
       `COPY --link ${owner} <<'EOF' ./.control/runtime.json`,
       ...runtimeConfig(context),
       'EOF',
@@ -194,7 +256,7 @@ export let runner = (context: RenderContext): string[] => {
     );
   }
 
-  lines.push(`USER ${user.name}`);
+  lines.push(`USER ${user.id}:${user.id}`);
 
   if (build.ports.length) lines.push(`EXPOSE ${build.ports.join(' ')}`);
 
@@ -208,7 +270,14 @@ export let runner = (context: RenderContext): string[] => {
   lines.push(
     'ENTRYPOINT ["/usr/bin/tini", "--"]',
     migrating
-      ? `CMD ["sh", "-c", "bun ./control/control-runtime.js migrate ${build.migrations.map(m => m.name).join(' ')} && exec ${start}"]`
+      ? `CMD ${JSON.stringify([
+          'sh',
+          '-c',
+          migrationCommand(
+            build.migrations.map(m => m.name),
+            start
+          )
+        ])}`
       : `CMD ${JSON.stringify(start.split(' '))}`
   );
 

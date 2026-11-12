@@ -53,7 +53,7 @@ export let AppPage = () => {
         items={[
           { label: 'ID', value: app.data.id },
           { label: 'Client ID', value: app.data.clientId },
-          { label: 'Slug', value: app.data.slug ?? '-' },
+          { label: 'Identifier', value: app.data.slug ?? '-' },
           { label: 'Has Terms', value: app.data.hasTerms ? 'Yes' : 'No' },
           { label: 'Sessionless', value: app.data.isSessionless ? 'Yes' : 'No' },
           {
@@ -270,20 +270,20 @@ export let AppPage = () => {
           ''
         ]}
         data={ssoTenants.data.items.map((tenant: any) => ({
-            data: [
-              tenant.name,
-              tenant.status,
-              tenant.source,
-              tenant.enrollment,
-              tenant.account?.name ?? '-',
-              tenant.counts.connections,
-              new Date(tenant.createdAt).toLocaleDateString('de-at'),
-              <Button as="span" size="1">
-                View
-              </Button>
-            ],
-            href: `/apps/${appId}/sso/${tenant.id}`
-          }))}
+          data: [
+            tenant.name,
+            tenant.status,
+            tenant.source,
+            tenant.enrollment,
+            tenant.account?.name ?? '-',
+            tenant.counts.connections,
+            new Date(tenant.createdAt).toLocaleDateString('de-at'),
+            <Button as="span" size="1">
+              View
+            </Button>
+          ],
+          href: `/apps/${appId}/sso/${tenant.id}`
+        }))}
       />
 
       <div

@@ -38,7 +38,7 @@ describe('generated Dockerfiles', () => {
     expect(contents).toContain(
       'RUN bun ./src/tooling/docker-build/prune.ts prisma:generate server:build --filter=service'
     );
-    expect(contents).toContain('USER metorial');
+    expect(contents).toContain('USER 10001:10001');
     expect(contents).toContain('ENTRYPOINT ["/usr/bin/tini", "--"]');
     expect(contents).toContain('CMD ["bun","./dist/index.js"]');
     expect(contents).toContain('curl -fsS http://127.0.0.1:3000/ping');
@@ -89,11 +89,16 @@ describe('generated Dockerfiles', () => {
       ]
     });
     mkdirSync(join(directory, 'prisma', 'schema'), { recursive: true });
+    mkdirSync(join(directory, 'prisma', 'migrations'), { recursive: true });
     generate(root, { write: true });
     let contents = readFileSync(join(directory, 'Dockerfile'), 'utf8');
 
+    expect(contents).toContain('./prisma/main/migrations/');
     expect(contents).toContain('"schema": "prisma/main/schema"');
-    expect(contents).toContain('migrate main && exec bun ./dist/index.js');
+    expect(contents).toContain(
+      'migrate main && [ -z \\"$stop\\" ] && exec bun ./dist/index.js'
+    );
+    expect(contents).toContain("trap 'stop=1' TERM INT HUP");
     expect(contents).toContain('AS control-runtime');
     expect(contents).toContain('AS prisma-cli');
   });
@@ -114,5 +119,20 @@ describe('generated Dockerfiles', () => {
     expect(build.tasks).toEqual(['prisma:generate', 'server:build']);
     expect(build.start).toBe('dist/index.js');
     expect(build.modules).toBe('none');
+  });
+});
+
+describe('compiled release channels', () => {
+  test('provides the channel before build tasks and defaults to release', () => {
+    let { root, directory } = fixture({ release: true });
+    generate(root, { write: true });
+
+    let contents = readFileSync(join(directory, 'Dockerfile'), 'utf8');
+    let builder = contents.split('FROM dependencies AS builder')[1]!.split('FROM ')[0]!;
+
+    expect(builder).toContain('ARG METORIAL_RELEASE_CHANNEL=release');
+    expect(
+      builder.indexOf('ENV METORIAL_RELEASE_CHANNEL=${METORIAL_RELEASE_CHANNEL}')
+    ).toBeLessThan(builder.indexOf('run-turbo.sh'));
   });
 });

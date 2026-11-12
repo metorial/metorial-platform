@@ -8,6 +8,7 @@ import * as environment from '../environment';
 import * as proxy from '../proxy';
 import * as turbo from '../turbo';
 import * as workspace from '../workspace';
+import { clearServicePorts } from '../ports';
 import type { Environment, LoadedManifest, ProjectRoot, WorkspaceMetadata } from '../types';
 import { LogStore } from './logs';
 import * as reload from './reload';
@@ -21,17 +22,18 @@ import type {
   WorkspaceInfo
 } from './types';
 
+let maxBackoff = 30_000;
+let healthyAfter = 60_000;
+let maxJobs = 20;
+
 interface Unit extends UnitInfo {
   stopping: boolean;
   attempts: number;
   timer?: ReturnType<typeof setTimeout>;
   compose?: string;
   package?: turbo.TurboPackage;
+  launching?: Promise<void>;
 }
-
-let maxBackoff = 30_000;
-let healthyAfter = 60_000;
-let maxJobs = 20;
 
 export class WorkspaceRuntime {
   phase: Phase = 'idle';
@@ -52,6 +54,7 @@ export class WorkspaceRuntime {
   private infrastructure = '';
   private jobCounter = 0;
   private queue: Promise<unknown> = Promise.resolve();
+  private startup?: AbortController;
 
   constructor(
     readonly project: ProjectRoot,
@@ -75,7 +78,7 @@ export class WorkspaceRuntime {
       error: this.error,
       startedAt: this.startedAt,
       units: [...this.units.values()].map(
-        ({ stopping, attempts, timer, compose, package: pkg, ...unit }) => unit
+        ({ stopping, attempts, timer, compose, package: pkg, launching, ...unit }) => unit
       ),
       jobs: this.jobs,
       links: this.links
@@ -112,7 +115,17 @@ export class WorkspaceRuntime {
     if (!this.startable) throw new Error(`workspace ${this.id} is ${this.phase}`);
     this.lastStart = options;
 
-    return this.serialized(() => this.doStart(options));
+    let startup = new AbortController();
+    this.startup = startup;
+    this.set('preparing');
+
+    return this.serialized(async () => {
+      try {
+        await commands.cancellation.run(startup.signal, () => this.doStart(options));
+      } finally {
+        if (this.startup === startup) this.startup = undefined;
+      }
+    });
   }
 
   private async doStart(options: StartOptions) {
@@ -126,12 +139,14 @@ export class WorkspaceRuntime {
       );
       if (!selected.length) throw new Error('no control manifests were selected');
 
+      commands.checkInterrupted();
       this.selected = selected;
       this.env = env;
       let packages = turbo.plan(selected, this.project.root, env);
       if (!packages.length) throw new Error('selected manifests contain no run commands');
 
       this.data = await workspace.metadata(this.project);
+      commands.checkInterrupted();
       let ports = servicePorts(selected);
 
       for (let pkg of packages)
@@ -153,6 +168,7 @@ export class WorkspaceRuntime {
           docker.start(this.project.root, selected, env)
         );
 
+        commands.checkInterrupted();
         for (let [compose, services] of this.projects)
           for (let service of services)
             this.units.set(service, {
@@ -173,6 +189,7 @@ export class WorkspaceRuntime {
         dev.prepareSelected(this.project, selected, env, !!options.noPrepare)
       );
 
+      commands.checkInterrupted();
       if (!options.noProxy) {
         await this.within('control', () =>
           proxy.ensure(this.project, this.data, proxy.publicPorts(manifests, this.project))
@@ -180,8 +197,10 @@ export class WorkspaceRuntime {
         this.unregister = await proxy.register(this.project, this.data, selected);
       }
 
+      commands.checkInterrupted();
       this.set('starting');
       await this.startServices(packages);
+      commands.checkInterrupted();
       this.routes = reload.routeKey(selected);
       this.infrastructure = reload.infrastructureKey(selected);
       this.stopWatching?.();
@@ -196,9 +215,12 @@ export class WorkspaceRuntime {
     } catch (error) {
       this.stopWatching?.();
       this.stopWatching = undefined;
-      await this.killServices();
-      await this.unregister?.().catch(() => {});
+      await commands.cancellation.run(undefined, async () => {
+        await this.killServices();
+        await this.unregister?.().catch(() => {});
+      });
       this.unregister = undefined;
+      if (error instanceof commands.Interrupted) return;
       this.set('failed', error instanceof Error ? error.message : String(error));
       this.logs.system('control', `start failed: ${this.error}`);
     }
@@ -210,13 +232,15 @@ export class WorkspaceRuntime {
     let pending = [...packages];
 
     while (pending.length) {
+      commands.checkInterrupted();
       let ready = pending.filter(item =>
         item.dependencies.every(name => started.has(name) || !names.has(name))
       );
       if (!ready.length) ready = [...pending];
 
       for (let item of ready) {
-        this.spawnUnit(this.units.get(item.name)!);
+        let unit = this.units.get(item.name)!;
+        if (!unit.stopping && !this.children.has(item.name)) await this.launchUnit(unit);
         started.add(item.name);
       }
       pending = pending.filter(item => !started.has(item.name));
@@ -224,12 +248,58 @@ export class WorkspaceRuntime {
     }
   }
 
-  private spawnUnit(unit: Unit) {
-    let pkg = unit.package!;
-    let [program, args] = commands.shellInvocation(pkg.command);
+  private async launchUnit(unit: Unit) {
+    if (unit.launching) return unit.launching;
     unit.stopping = false;
     unit.state = 'starting';
     unit.exitCode = undefined;
+    unit.startedAt = undefined;
+    this.changed();
+
+    let launching = (async () => {
+      await clearServicePorts(
+        unit.ports,
+        unit.package!.cwd,
+        message => this.logs.system(unit.name, message),
+        () => [...this.children.values()].flatMap(child => (child.pid ? [child.pid] : []))
+      );
+      commands.checkInterrupted();
+      if (!unit.stopping) this.spawnUnit(unit);
+    })();
+    unit.launching = launching;
+
+    try {
+      await launching;
+    } catch (error) {
+      unit.state = unit.stopping ? 'stopped' : 'crashed';
+      this.logs.system(unit.name, `could not start service: ${error}`);
+      this.changed();
+
+      throw error;
+    } finally {
+      if (unit.launching === launching) unit.launching = undefined;
+    }
+  }
+
+  private scheduleRestart(unit: Unit) {
+    if (unit.stopping) return;
+    if (unit.startedAt && Date.now() - unit.startedAt > healthyAfter) unit.attempts = 0;
+    let wait = Math.min(maxBackoff, 1000 * 2 ** unit.attempts++);
+    unit.state = 'crashed';
+    unit.restarts++;
+    this.logs.system(unit.name, `restarting in ${Math.round(wait / 1000)}s`);
+
+    unit.timer = setTimeout(() => {
+      unit.timer = undefined;
+      if (!unit.stopping && ['running', 'starting'].includes(this.phase))
+        void this.launchUnit(unit).catch(() => this.scheduleRestart(unit));
+    }, wait);
+    this.changed();
+  }
+
+  private spawnUnit(unit: Unit) {
+    let pkg = unit.package!;
+    let [program, args] = commands.shellInvocation(pkg.command);
 
     let child = commands.spawn(program, args, pkg.cwd, pkg.environment, false, true);
     child.stdin?.end();
@@ -258,19 +328,8 @@ export class WorkspaceRuntime {
         unit.state = 'stopped';
         this.logs.system(unit.name, 'stopped');
       } else {
-        if (unit.startedAt && Date.now() - unit.startedAt > healthyAfter) unit.attempts = 0;
-        let wait = Math.min(maxBackoff, 1000 * 2 ** unit.attempts++);
-        unit.state = 'crashed';
-        unit.restarts++;
-        this.logs.system(
-          unit.name,
-          `exited with ${signal ?? `code ${code}`}; restarting in ${Math.round(wait / 1000)}s`
-        );
-        unit.timer = setTimeout(() => {
-          unit.timer = undefined;
-          if (!unit.stopping && ['running', 'starting'].includes(this.phase))
-            this.spawnUnit(unit);
-        }, wait);
+        this.logs.system(unit.name, `exited with ${signal ?? `code ${code}`}`);
+        this.scheduleRestart(unit);
       }
       this.changed();
     });
@@ -281,6 +340,7 @@ export class WorkspaceRuntime {
     unit.stopping = true;
     if (unit.timer) clearTimeout(unit.timer);
     unit.timer = undefined;
+    await unit.launching?.catch(() => {});
     let child = this.children.get(unit.name);
     if (!child) {
       unit.state = 'stopped';
@@ -288,7 +348,8 @@ export class WorkspaceRuntime {
       return;
     }
 
-    await commands.terminateTree(child);
+    if (this.startup || unit.state === 'starting') commands.signalTree(child, 'SIGKILL');
+    else await commands.terminateTree(child);
     for (let waited = 0; this.children.get(unit.name) === child && waited < 50; waited++)
       await commands.delay(100);
   }
@@ -303,6 +364,8 @@ export class WorkspaceRuntime {
 
   async stop(options: { keepInfra?: boolean } = {}) {
     if (['idle', 'stopped', 'stopping'].includes(this.phase)) return;
+    this.startup?.abort();
+    this.set('stopping');
 
     await this.serialized(async () => {
       this.set('stopping');
@@ -337,6 +400,32 @@ export class WorkspaceRuntime {
     let previous = this.lastStart;
     await this.stop({ keepInfra: !options.infra });
     await this.start(previous);
+  }
+
+  async clean() {
+    await this.stop();
+
+    await this.serialized(async () => {
+      this.set('stopping');
+
+      try {
+        let { selected, env } = await dev.selection(
+          this.project,
+          this.lastStart.selectors ?? [],
+          false
+        );
+        let projects = docker.composeProjects(this.project.root, selected);
+
+        await this.within('control', () =>
+          docker.reset(this.project.root, projects, env, false)
+        );
+        this.set('stopped');
+      } catch (error) {
+        this.set('failed', error instanceof Error ? error.message : String(error));
+
+        throw error;
+      }
+    });
   }
 
   async reloadDefinitions() {
@@ -435,7 +524,7 @@ export class WorkspaceRuntime {
         unit.state = 'restarting';
         this.changed();
         await this.stopUnit(unit);
-        this.spawnUnit(unit);
+        await this.launchUnit(unit).catch(() => this.scheduleRestart(unit));
       }
 
       for (let pkg of changes.added) {
@@ -450,7 +539,7 @@ export class WorkspaceRuntime {
           package: pkg
         };
         this.units.set(pkg.name, unit);
-        this.spawnUnit(unit);
+        await this.launchUnit(unit).catch(() => this.scheduleRestart(unit));
       }
 
       for (let unit of this.units.values())
@@ -473,10 +562,12 @@ export class WorkspaceRuntime {
   async restartUnit(name: string) {
     let unit = this.units.get(name);
     if (!unit) throw new Error(`unknown unit ${JSON.stringify(name)}`);
-    if (!['running', 'stopped', 'failed'].includes(this.phase))
+    if (
+      !['preparing', 'infra', 'starting', 'running', 'stopped', 'failed'].includes(this.phase)
+    )
       throw new Error(`workspace ${this.id} is ${this.phase}`);
 
-    await this.serialized(async () => {
+    let restart = async () => {
       this.logs.system(name, 'restart requested');
 
       if (unit.kind === 'service') {
@@ -484,7 +575,7 @@ export class WorkspaceRuntime {
         this.changed();
         await this.stopUnit(unit);
         unit.attempts = 0;
-        this.spawnUnit(unit);
+        await this.launchUnit(unit);
 
         return;
       }
@@ -502,7 +593,10 @@ export class WorkspaceRuntime {
       unit.restarts++;
       unit.state = 'healthy';
       this.changed();
-    });
+    };
+
+    if (this.startup && unit.kind === 'service') await restart();
+    else await this.serialized(restart);
   }
 
   async stopServiceUnit(name: string) {
@@ -516,7 +610,7 @@ export class WorkspaceRuntime {
     let unit = this.units.get(name);
     if (!unit || unit.kind !== 'service') throw new Error(`unknown service ${name}`);
     if (this.children.has(name)) throw new Error(`${name} is already running`);
-    this.spawnUnit(unit);
+    await this.launchUnit(unit);
   }
 
   runJob(kind: JobKind, selectors: string[] = []) {
@@ -577,7 +671,13 @@ export let servicePorts = (selected: LoadedManifest[]) => {
 
   for (let loaded of selected) {
     let packageName = loaded.manifest.package?.name ?? 'root';
-    let ports = Object.values(loaded.manifest.endpoints).map(endpoint => endpoint.port);
+    let ports = [
+      ...new Set(
+        Object.values(loaded.manifest.endpoints).map(
+          endpoint => endpoint.bind_port ?? endpoint.port
+        )
+      )
+    ];
 
     for (let run of Object.keys(loaded.manifest.run))
       result.set(turbo.turboPackageName(packageName, run), ports);
@@ -595,6 +695,7 @@ export let linksFor = (data: WorkspaceMetadata, selected: LoadedManifest[]): Lin
         links.push({
           label: endpoint.link.label,
           group: endpoint.link.group ?? 'app',
+          menu: endpoint.link.menu,
           url: `http://${data.hostname}:${endpoint.port}${endpoint.link.path ?? ''}`
         });
 

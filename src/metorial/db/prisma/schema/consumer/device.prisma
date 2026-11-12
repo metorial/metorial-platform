@@ -1,0 +1,110 @@
+enum ConsumerDeviceStatus {
+  active
+  signed_out
+  revoked
+}
+
+model ConsumerDevice {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status ConsumerDeviceStatus @default(active)
+
+  installationId String
+
+  name       String
+  os         String
+  arch       String
+  appVersion String
+
+  consumerProfileOid BigInt
+  consumerProfile    ConsumerProfile @relation(fields: [consumerProfileOid], references: [oid], onDelete: Cascade)
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  oauthTokenOid BigInt?     @unique
+  oauthToken    OAuthToken? @relation(fields: [oauthTokenOid], references: [oid], onDelete: SetNull)
+
+  lastSeenAt DateTime  @default(now())
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+
+  clients        ConsumerDeviceClient[]
+  magicMcpTokens MagicMcpToken[]
+
+  @@unique([consumerProfileOid, installationId])
+  @@index([instanceOid, consumerProfileOid])
+}
+
+model McpClientType {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  key String @unique
+
+  createdAt DateTime @default(now())
+
+  consumerDeviceClients ConsumerDeviceClient[]
+}
+
+model ConsumerDeviceClient {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  name           String
+  detected       Boolean
+  installable    Boolean
+  supportsSkills Boolean
+  reported       Boolean @default(true)
+
+  enabled Boolean @default(true)
+
+  consumerDeviceOid BigInt
+  consumerDevice    ConsumerDevice @relation(fields: [consumerDeviceOid], references: [oid], onDelete: Cascade)
+
+  mcpClientTypeOid BigInt
+  mcpClientType    McpClientType @relation(fields: [mcpClientTypeOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  excludedMagicMcpServers ConsumerDeviceClientExcludedMagicMcpServer[]
+  excludedSkills          ConsumerDeviceClientExcludedSkill[]
+
+  @@unique([consumerDeviceOid, mcpClientTypeOid])
+  @@index([mcpClientTypeOid])
+}
+
+model ConsumerDeviceClientExcludedMagicMcpServer {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  consumerDeviceClientOid BigInt
+  consumerDeviceClient    ConsumerDeviceClient @relation(fields: [consumerDeviceClientOid], references: [oid], onDelete: Cascade)
+
+  magicMcpServerOid BigInt
+  magicMcpServer    MagicMcpServer @relation(fields: [magicMcpServerOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([consumerDeviceClientOid, magicMcpServerOid])
+  @@index([magicMcpServerOid])
+}
+
+model ConsumerDeviceClientExcludedSkill {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  consumerDeviceClientOid BigInt
+  consumerDeviceClient    ConsumerDeviceClient @relation(fields: [consumerDeviceClientOid], references: [oid], onDelete: Cascade)
+
+  skillOid BigInt
+  skill    Skill  @relation(fields: [skillOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([consumerDeviceClientOid, skillOid])
+  @@index([skillOid])
+}

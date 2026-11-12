@@ -36,6 +36,13 @@ export interface BuildSpec {
   sentry: boolean;
   node: boolean;
   env: Record<string, string>;
+  buildEnv: Record<string, string>;
+  sources: string[];
+  strip: string[];
+  runtime: 'bundle' | 'source';
+  release: boolean;
+  versioned: boolean;
+  generateFirst: boolean;
 }
 
 export interface RenderContext {
@@ -44,5 +51,13 @@ export interface RenderContext {
   packageDirectory: string;
   tooling: string;
   runtime: string;
-  schemas: Record<string, { source: string; target: string; directory: boolean }>;
+  schemas: Record<
+    string,
+    {
+      source: string;
+      target: string;
+      directory: boolean;
+      migrations?: { source: string; target: string };
+    }
+  >;
 }

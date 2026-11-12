@@ -17,7 +17,12 @@ export interface RawEndpoint {
   env?: RawKeyValue[];
   health?: string | { path: string; status?: number };
   protocol?: 'http' | 'h2c';
-  link?: { label: string; group?: 'app' | 'admin' | 'tool'; path?: string };
+  link?: {
+    label: string;
+    group?: 'app' | 'admin' | 'tool';
+    menu?: string;
+    path?: string;
+  };
 }
 
 export interface RawDependency {
@@ -59,6 +64,13 @@ export interface RawBuild {
   sentry?: boolean;
   node?: boolean;
   env?: Record<string, string>;
+  buildEnv?: Record<string, string>;
+  sources?: string[];
+  strip?: string[];
+  runtime?: 'bundle' | 'source';
+  release?: boolean;
+  versioned?: boolean;
+  generateFirst?: boolean;
 }
 
 export interface RawCiImage {

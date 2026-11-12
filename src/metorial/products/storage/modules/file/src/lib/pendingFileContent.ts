@@ -34,7 +34,6 @@ export let getStoredFileContent = async (d: { file: { oid: bigint; storeId: stri
   let object = await getStorage().getObject(getCargoFilesBucketName(), d.file.storeId);
   return {
     data: object.data,
-    contentType: object.metadata.content_type,
     source: 'object' as const
   };
 };
@@ -57,7 +56,6 @@ export let getStoredFileContentStream = async (d: {
     return {
       body: data as Buffer | ReadableStream<Uint8Array>,
       size: data.byteLength as number | undefined,
-      contentType: undefined as string | undefined,
       source: 'database' as const
     };
   }
@@ -67,7 +65,6 @@ export let getStoredFileContentStream = async (d: {
   return {
     body: object.stream as Buffer | ReadableStream<Uint8Array>,
     size: object.size,
-    contentType: object.contentType,
     source: 'object' as const
   };
 };

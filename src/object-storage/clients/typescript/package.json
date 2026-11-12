@@ -7,12 +7,10 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "test": "bun test"
   },
   "license": "MIT",
-  "dependencies": {
-    "axios": "^1.6.0"
-  },
   "devDependencies": {
     "@types/node": "^25.9.9",
     "typescript": "5.9.3"

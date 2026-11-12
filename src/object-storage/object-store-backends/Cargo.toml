@@ -25,6 +25,8 @@ azure_identity = { workspace = true }
 azure_core = "0.20"
 
 sha2 = { workspace = true }
+sha1 = "0.10"
+crc32fast = "1.4"
 hex = { workspace = true }
 chrono = { workspace = true }
 futures = "0.3"
@@ -33,8 +35,9 @@ bytes = "1.5"
 tokio-util = { version = "0.7", features = ["io"] }
 http-body-util = "0.1"
 hyper = "1.0"
+uuid = { workspace = true }
+reqwest = { version = "0.12", default-features = false, features = ["default-tls", "json"] }
 
 [dev-dependencies]
 mockall = { workspace = true }
 tempfile = "3.8"
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }

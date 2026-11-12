@@ -311,14 +311,35 @@ export let waitForHealth = async (
         );
     }
 
-    if (Date.now() >= deadline)
-      throw new Error(
-        `e2e services did not become healthy within ${timeoutSeconds}s: ${remaining.map(item => `${item.service.name} (${item.check.url})`).join(', ')}`
+    if (Date.now() >= deadline) {
+      let logs = await Promise.all(
+        remaining.map(
+          async ({ service }) =>
+            `--- ${service.name} ---\n${uniqueTail(await compose.output(['logs', '--no-color', appServiceName(service.name)]).catch(() => ''), 150)}`
+        )
       );
+
+      throw new Error(
+        `e2e services did not become healthy within ${timeoutSeconds}s: ${remaining.map(item => `${item.service.name} (${item.check.url})`).join(', ')}\n${logs.join('\n')}`
+      );
+    }
     pending = remaining;
 
     await commands.delay(1000);
   }
+};
+
+let uniqueTail = (text: string, count: number) => {
+  let seen = new Set<string>();
+  let lines: string[] = [];
+
+  for (let line of text.split('\n')) {
+    if (!line.replace(/^[^|]*\|/, '').trim() || seen.has(line)) continue;
+    seen.add(line);
+    lines.push(line);
+  }
+
+  return lines.slice(-count).join('\n');
 };
 
 export let execute = async (compose: Compose, plan: Plan) => {
@@ -463,6 +484,13 @@ export let run = async (project: ProjectRoot, options: Options) => {
         .output(['logs', '--no-color', '--timestamps'])
         .catch(() => undefined);
       if (logs !== undefined) atomicWrite(join(directory, 'logs/compose.log'), logs);
+
+      for (let name of Object.keys(rendered.services)) {
+        let serviceLogs = await compose
+          .output(['logs', '--no-color', '--timestamps', name])
+          .catch(() => undefined);
+        if (serviceLogs) atomicWrite(join(directory, `logs/${name}.log`), serviceLogs);
+      }
 
       if (options.keep)
         console.log(

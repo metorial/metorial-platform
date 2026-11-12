@@ -1,5 +1,6 @@
 import { getConfig } from '@metorial/config';
 import { db, Portal } from '@metorial/db';
+import { checkEdition } from '@metorial/editions';
 import {
   namespaceService,
   type NamespacePropertyWithNamespace
@@ -31,6 +32,10 @@ export let getPortalUrls = (d: {
   portal: Pick<Portal, 'slug'>;
   namespaces: NamespacePropertyWithNamespace[];
 }) => {
+  if (checkEdition('on-prem')) {
+    return [{ type: 'default' as const, url: getPortalHost({ portal: d.portal }).host }];
+  }
+
   let urls: { type: 'default' | 'namespace'; url: string }[] = [];
   let seen = new Set<string>();
 

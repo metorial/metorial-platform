@@ -58,6 +58,8 @@ export let services = {
   horizonLedgerAdmin: service(52143),
   horizonLedgerPublic: service(52144),
   horizonPadd: service(52145),
+  horizonLicenseApi: service(52147),
+  horizonKeeperAdmin: service(52148),
   horizonCustomerFirehose: service(52146),
   synthesis: service(52160),
   nebula: service(52170)

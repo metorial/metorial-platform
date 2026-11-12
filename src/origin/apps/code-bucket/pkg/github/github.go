@@ -12,8 +12,11 @@ import (
 	"log"
 	"net/http"
 	"path"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/metorial/metorial/services/code-bucket/pkg/filelimit"
 	"github.com/metorial/metorial/services/code-bucket/pkg/gitlfs"
@@ -29,14 +32,99 @@ const (
 
 	maxGitattributesBytes int64 = 1 << 20
 
+	maxInlineContentBytes   = 1 << 20
+	maxTreeBatchEntries     = 500
+	maxTreeBatchInlineBytes = 10 << 20
+
 	apiTimeout      = 2 * time.Minute
 	transferTimeout = 30 * time.Minute
+)
+
+const (
+	maxRequestAttempts  = 8
+	maxRetryDelay       = 5 * time.Minute
+	minRateLimitBackoff = time.Minute
+	blobCreateInterval  = 800 * time.Millisecond
 )
 
 var (
 	apiClient      = &http.Client{Timeout: apiTimeout}
 	transferClient = &http.Client{Timeout: transferTimeout}
+
+	sleepFn = sleepContext
+
+	blobPaceMu   sync.Mutex
+	blobPaceNext time.Time
 )
+
+func sleepContext(ctx context.Context, d time.Duration) error {
+	t := time.NewTimer(d)
+	defer t.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-t.C:
+		return nil
+	}
+}
+
+func paceBlobCreation(ctx context.Context) error {
+	blobPaceMu.Lock()
+	now := time.Now()
+	wait := blobPaceNext.Sub(now)
+	if wait < 0 {
+		wait = 0
+		blobPaceNext = now.Add(blobCreateInterval)
+	} else {
+		blobPaceNext = blobPaceNext.Add(blobCreateInterval)
+	}
+	blobPaceMu.Unlock()
+
+	if wait == 0 {
+		return nil
+	}
+	return sleepFn(ctx, wait)
+}
+
+func isRateLimited(status int, body []byte) bool {
+	if status == http.StatusTooManyRequests {
+		return true
+	}
+	return status == http.StatusForbidden &&
+		strings.Contains(strings.ToLower(string(body)), "rate limit")
+}
+
+func isRetryableStatus(status int, body []byte) bool {
+	return status >= http.StatusInternalServerError || isRateLimited(status, body)
+}
+
+func retryDelay(resp *http.Response, body []byte, attempt int) time.Duration {
+	var delay time.Duration
+
+	if seconds, err := strconv.Atoi(resp.Header.Get("Retry-After")); err == nil && seconds > 0 {
+		delay = time.Duration(seconds) * time.Second
+	} else if resp.Header.Get("X-RateLimit-Remaining") == "0" {
+		if reset, err := strconv.ParseInt(resp.Header.Get("X-RateLimit-Reset"), 10, 64); err == nil {
+			delay = time.Until(time.Unix(reset, 0)) + time.Second
+		}
+	}
+
+	if delay <= 0 {
+		if isRateLimited(resp.StatusCode, body) {
+			delay = minRateLimitBackoff * time.Duration(attempt)
+		} else {
+			delay = time.Second * time.Duration(1<<(attempt-1))
+		}
+	}
+
+	if isRateLimited(resp.StatusCode, body) && delay < minRateLimitBackoff {
+		delay = minRateLimitBackoff
+	}
+	if delay > maxRetryDelay {
+		delay = maxRetryDelay
+	}
+	return delay
+}
 
 func DefaultLFSEndpoint(owner, repo string) string {
 	return fmt.Sprintf("https://github.com/%s/%s.git/info/lfs", owner, repo)
@@ -136,6 +224,7 @@ type githubCommitResponse struct {
 type githubTreeResponse struct {
 	Tree []struct {
 		Path string `json:"path"`
+		Mode string `json:"mode"`
 		Type string `json:"type"`
 		SHA  string `json:"sha"`
 		Size int64  `json:"size"`
@@ -159,10 +248,40 @@ type githubBlobResponse struct {
 }
 
 type githubTreeEntry struct {
-	Path string  `json:"path"`
-	Mode string  `json:"mode"`
-	Type string  `json:"type"`
-	SHA  *string `json:"sha"`
+	Path    string  `json:"path"`
+	Mode    string  `json:"mode"`
+	Type    string  `json:"type"`
+	SHA     *string `json:"sha"`
+	Content *string `json:"content,omitempty"`
+}
+
+func inlineEntry(path string, content []byte) githubTreeEntry {
+	text := string(content)
+	return githubTreeEntry{Path: path, Mode: "100644", Type: "blob", Content: &text}
+}
+
+func canInline(content []byte) bool {
+	return len(content) > 0 &&
+		len(content) <= maxInlineContentBytes &&
+		utf8.Valid(content) &&
+		bytes.IndexByte(content, 0) < 0
+}
+
+func (e githubTreeEntry) MarshalJSON() ([]byte, error) {
+	if e.Content != nil {
+		return json.Marshal(struct {
+			Path    string `json:"path"`
+			Mode    string `json:"mode"`
+			Type    string `json:"type"`
+			Content string `json:"content"`
+		}{e.Path, e.Mode, e.Type, *e.Content})
+	}
+	return json.Marshal(struct {
+		Path string  `json:"path"`
+		Mode string  `json:"mode"`
+		Type string  `json:"type"`
+		SHA  *string `json:"sha"`
+	}{e.Path, e.Mode, e.Type, e.SHA})
 }
 
 func blobEntry(path, sha string) githubTreeEntry {
@@ -246,13 +365,13 @@ func UploadToRepoIter(ctx context.Context, opts UploadOptions, iter FileIterator
 		return fmt.Errorf("failed to get base commit %s: %w", ref.Object.SHA, err)
 	}
 
-	baseTree, err := githubJSON[githubTreeResponse](ctx, "GET", fmt.Sprintf("%s/git/trees/%s?recursive=1", repoURL, baseCommit.Tree.SHA), opts.Token, nil)
+	baseTree, _, err := listTree(ctx, legacyTreeGetter(repoURL, opts.Token), baseCommit.Tree.SHA, nil)
 	if err != nil {
 		return fmt.Errorf("failed to get base tree %s: %w", baseCommit.Tree.SHA, err)
 	}
 
 	existingBlobShas := map[string]string{}
-	for _, entry := range baseTree.Tree {
+	for _, entry := range baseTree {
 		if entry.Type == "blob" {
 			existingBlobShas[entry.Path] = entry.SHA
 		}
@@ -262,6 +381,36 @@ func UploadToRepoIter(ctx context.Context, opts UploadOptions, iter FileIterator
 	lfsRef := "refs/heads/" + opts.Branch
 
 	treeEntries := make([]githubTreeEntry, 0)
+	currentTreeSHA := baseCommit.Tree.SHA
+	pendingInlineBytes := 0
+	flushedTrees := 0
+
+	flushTree := func() error {
+		if len(treeEntries) == 0 {
+			return nil
+		}
+
+		newTree, err := githubJSON[githubCreateTreeResponse](
+			ctx,
+			"POST",
+			fmt.Sprintf("%s/git/trees", repoURL),
+			opts.Token,
+			githubCreateTreeRequest{
+				BaseTree: currentTreeSHA,
+				Tree:     treeEntries,
+			},
+		)
+		if err != nil {
+			return fmt.Errorf("failed to create tree: %w", err)
+		}
+
+		currentTreeSHA = newTree.SHA
+		treeEntries = treeEntries[:0]
+		pendingInlineBytes = 0
+		flushedTrees++
+		return nil
+	}
+
 	lfsPaths := make([]string, 0)
 	var exportedAttributes []byte
 
@@ -357,12 +506,21 @@ func UploadToRepoIter(ctx context.Context, opts UploadOptions, iter FileIterator
 			)
 		}
 
-		blobSHA, err := createBlob(ctx, repoURL, opts.Token, content)
-		if err != nil {
-			return fmt.Errorf("failed to create blob for %s: %w", fullPath, err)
+		if canInline(content) {
+			treeEntries = append(treeEntries, inlineEntry(fullPath, content))
+			pendingInlineBytes += len(content)
+		} else {
+			blobSHA, err := createBlob(ctx, repoURL, opts.Token, content)
+			if err != nil {
+				return fmt.Errorf("failed to create blob for %s: %w", fullPath, err)
+			}
+
+			treeEntries = append(treeEntries, blobEntry(fullPath, blobSHA))
 		}
 
-		treeEntries = append(treeEntries, blobEntry(fullPath, blobSHA))
+		if len(treeEntries) >= maxTreeBatchEntries || pendingInlineBytes >= maxTreeBatchInlineBytes {
+			return flushTree()
+		}
 		return nil
 	}); err != nil {
 		return err
@@ -389,22 +547,12 @@ func UploadToRepoIter(ctx context.Context, opts UploadOptions, iter FileIterator
 		treeEntries = append(treeEntries, deleteEntry(fullPath))
 	}
 
-	if len(treeEntries) == 0 {
+	if len(treeEntries) == 0 && flushedTrees == 0 {
 		return nil
 	}
 
-	newTree, err := githubJSON[githubCreateTreeResponse](
-		ctx,
-		"POST",
-		fmt.Sprintf("%s/git/trees", repoURL),
-		opts.Token,
-		githubCreateTreeRequest{
-			BaseTree: baseCommit.Tree.SHA,
-			Tree:     treeEntries,
-		},
-	)
-	if err != nil {
-		return fmt.Errorf("failed to create tree: %w", err)
+	if err := flushTree(); err != nil {
+		return err
 	}
 
 	newCommit, err := githubJSON[githubCreateCommitResponse](
@@ -414,7 +562,7 @@ func UploadToRepoIter(ctx context.Context, opts UploadOptions, iter FileIterator
 		opts.Token,
 		githubCreateCommitRequest{
 			Message: opts.CommitMessage,
-			Tree:    newTree.SHA,
+			Tree:    currentTreeSHA,
 			Parents: []string{baseCommit.SHA},
 		},
 	)
@@ -440,6 +588,10 @@ func UploadToRepoIter(ctx context.Context, opts UploadOptions, iter FileIterator
 }
 
 func createBlob(ctx context.Context, repoURL, token string, content []byte) (string, error) {
+	if err := paceBlobCreation(ctx); err != nil {
+		return "", err
+	}
+
 	blob, err := githubJSON[githubCreateBlobResponse](
 		ctx,
 		"POST",
@@ -464,44 +616,68 @@ func gitBlobSHA(content []byte) string {
 }
 
 func githubJSON[T any](ctx context.Context, method, url, token string, body any) (*T, error) {
-	var reader io.Reader
+	var payload []byte
 	if body != nil {
 		b, err := json.Marshal(body)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal request: %w", err)
 		}
-		reader = bytes.NewBuffer(b)
+		payload = b
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, url, reader)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
-	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
+	for attempt := 1; ; attempt++ {
+		var reader io.Reader
+		if payload != nil {
+			reader = bytes.NewReader(payload)
+		}
 
-	resp, err := apiClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
+		req, err := http.NewRequestWithContext(ctx, method, url, reader)
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+		req.Header.Set("Accept", "application/vnd.github+json")
+		req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+		if payload != nil {
+			req.Header.Set("Content-Type", "application/json")
+		}
 
-	respBody, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("%s %s failed (status %d): %s", method, url, resp.StatusCode, string(respBody))
-	}
+		resp, err := apiClient.Do(req)
+		if err != nil {
+			if attempt >= maxRequestAttempts || ctx.Err() != nil {
+				return nil, err
+			}
+			if sleepErr := sleepFn(ctx, time.Second*time.Duration(1<<(attempt-1))); sleepErr != nil {
+				return nil, sleepErr
+			}
+			continue
+		}
 
-	var out T
-	if len(respBody) == 0 {
-		return &out, nil
-	}
-	if err := json.Unmarshal(respBody, &out); err != nil {
-		return nil, err
-	}
+		respBody, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
 
-	return &out, nil
+		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+			var out T
+			if len(respBody) == 0 {
+				return &out, nil
+			}
+			if err := json.Unmarshal(respBody, &out); err != nil {
+				return nil, err
+			}
+			return &out, nil
+		}
+
+		if !isRetryableStatus(resp.StatusCode, respBody) || attempt >= maxRequestAttempts {
+			return nil, fmt.Errorf("%s %s failed (status %d): %s", method, url, resp.StatusCode, string(respBody))
+		}
+
+		delay := retryDelay(resp, respBody, attempt)
+		log.Printf(
+			"[github export] retrying method=%s url=%s status=%d attempt=%d delay=%s",
+			method, url, resp.StatusCode, attempt, delay,
+		)
+		if err := sleepFn(ctx, delay); err != nil {
+			return nil, err
+		}
+	}
 }

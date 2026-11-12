@@ -7,15 +7,65 @@ import type {
   Tenant
 } from '../../prisma/generated/client';
 import { db } from '../db';
+import { scmRepositorySyncPresenterInclude } from '../presenters/scmRepositorySync';
 import { getId } from '../id';
 import { startRepositorySyncQueue } from '../queues/scm/repositorySync/start';
 import { mergeRepositorySyncQueue } from '../queues/scm/repositorySync/merge';
 import { waitForCiRepositorySyncQueue } from '../queues/scm/repositorySync/waitForCi';
-import { getRepositorySyncStatusSnapshot } from '../lib/scmRepositorySyncProvider';
+import {
+  getRepositorySyncDismissal,
+  getRepositorySyncStatusSnapshot
+} from '../lib/scmRepositorySyncProvider';
 import {
   classifyRepositorySyncSnapshot,
+  isTerminalRepositorySyncStatus,
   transitionRepositorySyncState
 } from './repositorySyncState';
+
+export type RepositorySyncManifestRef = {
+  bucket: string;
+  key: string;
+  sha256: string;
+};
+
+export type RepositorySyncSource =
+  | { type: 'code_bucket'; codeBucket: CodeBucket }
+  | {
+      type: 'manifest';
+      sourceKey: string;
+      manifest: RepositorySyncManifestRef & { entryCount: number };
+      previousManifest?: RepositorySyncManifestRef;
+    };
+
+let getSourceData = (source: RepositorySyncSource) => {
+  if (source.type === 'code_bucket') {
+    return {
+      sourceType: 'code_bucket' as const,
+      sourceKey: null,
+      codeBucketOid: source.codeBucket.oid,
+      manifestBucket: null,
+      manifestKey: null,
+      manifestSha256: null,
+      manifestEntryCount: null,
+      previousManifestBucket: null,
+      previousManifestKey: null,
+      previousManifestSha256: null
+    };
+  }
+
+  return {
+    sourceType: 'manifest' as const,
+    sourceKey: source.sourceKey,
+    codeBucketOid: null,
+    manifestBucket: source.manifest.bucket,
+    manifestKey: source.manifest.key,
+    manifestSha256: source.manifest.sha256,
+    manifestEntryCount: source.manifest.entryCount,
+    previousManifestBucket: source.previousManifest?.bucket ?? null,
+    previousManifestKey: source.previousManifest?.key ?? null,
+    previousManifestSha256: source.previousManifest?.sha256 ?? null
+  };
+};
 
 class scmRepositorySyncServiceImpl {
   async getScmRepositorySyncById(d: { tenant: Tenant; id: string }) {
@@ -23,7 +73,8 @@ class scmRepositorySyncServiceImpl {
       where: {
         id: d.id,
         tenantOid: d.tenant.oid
-      }
+      },
+      include: scmRepositorySyncPresenterInclude
     });
 
     if (!sync) throw new ServiceError(notFoundError('scmRepositorySync'));
@@ -37,14 +88,15 @@ class scmRepositorySyncServiceImpl {
       where: {
         tenantOid: d.tenant.oid,
         id: { in: d.ids }
-      }
+      },
+      include: scmRepositorySyncPresenterInclude
     });
   }
 
   async createScmRepositorySync(d: {
     tenant: Tenant;
     repo: ScmRepository;
-    codeBucket: CodeBucket;
+    source: RepositorySyncSource;
     repositoryAccessMode?: ScmRepositoryAccessMode;
     requestKey?: string;
     branchName?: string;
@@ -57,6 +109,8 @@ class scmRepositorySyncServiceImpl {
     deletePaths?: string[];
     explicitDeletesOnly?: boolean;
     gitLfsThresholdBytes?: number;
+    deletionGuard?: PrismaJson.RepositorySyncDeletionGuard;
+    allowMassDelete?: boolean;
   }) {
     let repositoryAccessMode = d.repositoryAccessMode ?? 'pull_request';
     let branchName =
@@ -86,29 +140,38 @@ class scmRepositorySyncServiceImpl {
       );
     }
 
-    if (d.repo.tenantOid !== d.tenant.oid || d.codeBucket.tenantOid !== d.tenant.oid) {
+    if (
+      d.repo.tenantOid !== d.tenant.oid ||
+      (d.source.type === 'code_bucket' && d.source.codeBucket.tenantOid !== d.tenant.oid)
+    ) {
       throw new ServiceError(
         badRequestError({ message: 'Repository and code bucket must belong to the tenant' })
       );
     }
 
+    let source = getSourceData(d.source);
+    let isManifest = source.sourceType === 'manifest';
+
     let data = {
       ...getId('scmRepositorySync'),
       tenantOid: d.tenant.oid,
       repoOid: d.repo.oid,
-      codeBucketOid: d.codeBucket.oid,
+      ...source,
       repositoryAccessMode,
       requestKey,
       branchName,
+      requestedBranchName: branchName,
       baseBranch,
       title,
       description,
       enableAutoMerge,
       forceMergeOrPush,
       mergeBeforeChecksPass,
-      deletePaths: d.deletePaths ?? [],
-      explicitDeletesOnly: d.explicitDeletesOnly ?? false,
-      gitLfsThresholdBytes: d.gitLfsThresholdBytes ?? null
+      deletePaths: isManifest ? [] : (d.deletePaths ?? []),
+      explicitDeletesOnly: isManifest ? false : (d.explicitDeletesOnly ?? false),
+      gitLfsThresholdBytes: d.gitLfsThresholdBytes ?? null,
+      deletionGuard: isManifest ? d.deletionGuard : undefined,
+      allowMassDelete: isManifest && (d.allowMassDelete ?? false)
     };
     let sync = requestKey
       ? await db.scmRepositorySync.upsert({
@@ -119,15 +182,29 @@ class scmRepositorySyncServiceImpl {
             }
           },
           create: data,
-          update: {}
+          update: {},
+          include: scmRepositorySyncPresenterInclude
         })
-      : await db.scmRepositorySync.create({ data });
+      : await db.scmRepositorySync.create({
+          data,
+          include: scmRepositorySyncPresenterInclude
+        });
 
     if (
       sync.repoOid !== d.repo.oid ||
-      sync.codeBucketOid !== d.codeBucket.oid ||
+      sync.sourceType !== source.sourceType ||
+      sync.sourceKey !== source.sourceKey ||
+      sync.codeBucketOid !== source.codeBucketOid ||
+      sync.manifestBucket !== source.manifestBucket ||
+      sync.manifestKey !== source.manifestKey ||
+      sync.manifestSha256 !== source.manifestSha256 ||
+      sync.previousManifestBucket !== source.previousManifestBucket ||
+      sync.previousManifestKey !== source.previousManifestKey ||
+      sync.previousManifestSha256 !== source.previousManifestSha256 ||
+      sync.allowMassDelete !== data.allowMassDelete ||
       sync.repositoryAccessMode !== repositoryAccessMode ||
-      (repositoryAccessMode === 'pull_request' && sync.branchName !== branchName) ||
+      (repositoryAccessMode === 'pull_request' &&
+        (sync.requestedBranchName ?? sync.branchName) !== branchName) ||
       sync.title !== title ||
       sync.description !== description ||
       sync.enableAutoMerge !== enableAutoMerge ||
@@ -150,6 +227,7 @@ class scmRepositorySyncServiceImpl {
     let sync = await db.scmRepositorySync.findFirst({
       where: { id: d.id, tenantOid: d.tenant.oid },
       include: {
+        ...scmRepositorySyncPresenterInclude,
         repo: {
           include: {
             installation: {
@@ -160,7 +238,10 @@ class scmRepositorySyncServiceImpl {
       }
     });
     if (!sync) throw new ServiceError(notFoundError('scmRepositorySync'));
+    if (isTerminalRepositorySyncStatus(sync.status)) return sync;
     if (!sync.providerPrId || !sync.providerPrUrl) return sync;
+    if (['creating_branch', 'syncing_contents', 'creating_pr'].includes(sync.status))
+      return sync;
 
     let snapshot = await getRepositorySyncStatusSnapshot(sync);
     let now = new Date();
@@ -169,6 +250,10 @@ class scmRepositorySyncServiceImpl {
       forceMergeOrPush: sync.forceMergeOrPush,
       mergeBeforeChecksPass: sync.mergeBeforeChecksPass
     });
+    let endReason =
+      status === 'cancelled' && sync.sourceType === 'manifest'
+        ? await getRepositorySyncDismissal(sync, { state: 'closed', conflicting: false })
+        : null;
 
     let completed = [
       'merged',
@@ -189,11 +274,14 @@ class scmRepositorySyncServiceImpl {
       nextPollAt: completed || status === 'merging' ? null : new Date(now.getTime() + 30_000),
       completedAt: completed ? (sync.completedAt ?? now) : null,
       errorMessage:
-        status === 'cancelled' ? 'Pull request was closed before it could be merged' : null
+        status === 'cancelled' ? 'Pull request was closed before it could be merged' : null,
+      ...(endReason && { endReason })
     });
-    if (!updated) {
-      return db.scmRepositorySync.findUniqueOrThrow({ where: { id: sync.id } });
-    }
+    let current = await db.scmRepositorySync.findUniqueOrThrow({
+      where: { id: sync.id },
+      include: scmRepositorySyncPresenterInclude
+    });
+    if (!updated) return current;
 
     if (status === 'merging' && sync.enableAutoMerge) {
       await mergeRepositorySyncQueue.add(
@@ -206,7 +294,7 @@ class scmRepositorySyncServiceImpl {
         { id: `${sync.id}:rpc-check:${now.getTime()}` }
       );
     }
-    return updated;
+    return current;
   }
 }
 

@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
-import { relative, resolve } from 'node:path';
+import { dirname, relative, resolve } from 'node:path';
 import { atomicWrite } from '../files';
 import { discover } from '../manifest';
 import { discoverPackages } from '../packages';
@@ -50,18 +50,37 @@ export let renderDockerfile = (
         if (!existsSync(path)) throw new Error(`missing migration schema ${path}`);
 
         let directory = statSync(path).isDirectory();
+        let migrations = resolve(dirname(path), 'migrations');
 
         return [
           migration.name,
           {
             source: relative(workspace, path),
             target: `prisma/${migration.name}/${directory ? 'schema' : 'schema.prisma'}`,
-            directory
+            directory,
+            ...(existsSync(migrations)
+              ? {
+                  migrations: {
+                    source: relative(workspace, migrations),
+                    target: `prisma/${migration.name}/migrations`
+                  }
+                }
+              : {})
           }
         ] as const;
       })
     )
   };
+
+  if (build.runtime === 'source')
+    return components.join([
+      components.header(),
+      components.base(context),
+      components.pruner(context),
+      components.dependencies(context),
+      components.builder(context),
+      components.runner(context)
+    ]);
 
   return components.join([
     components.header(),
@@ -69,7 +88,7 @@ export let renderDockerfile = (
     components.pruner(context),
     components.dependencies(context),
     components.builder(context),
-    ...(build.modules === 'production' ? [components.productionDependencies()] : []),
+    ...(build.modules === 'production' ? [components.productionDependencies(context)] : []),
     ...(build.migrations.length
       ? [components.controlRuntime(context), components.prismaCli()]
       : []),
@@ -82,7 +101,7 @@ export let renderDockerfile = (
 export let generate = (
   project: ProjectRoot,
   options: { write: boolean },
-  manifests: LoadedManifest[] = discover(project.root)
+  manifests: LoadedManifest[] = discover(project.root, { stackOnly: true })
 ): GenerateResult => {
   let packages = discoverPackages(project.root);
   let files: GeneratedDockerfile[] = [];

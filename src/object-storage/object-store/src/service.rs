@@ -1,15 +1,17 @@
 use bytes::Bytes;
 use object_store_backends::error::BackendError;
 use object_store_backends::{
-    Backend, ByteRange, ByteStream, ObjectData, ObjectMetadata, ObjectPage, ObjectRangeData,
-    PublicUrlPurpose, SignedUrl,
+    digest_stream, Backend, ByteRange, ByteStream, ContentDigests, ObjectData, ObjectMetadata,
+    ObjectPage, ObjectRangeData, PublicUrlPurpose, PutOptions, SignedUrl, UploadedObject, Uploader,
 };
 use std::collections::HashMap;
 use std::sync::Arc;
+use tokio::sync::Semaphore;
 use tracing::{debug, info};
 
 use crate::error::{ServiceError, ServiceResult};
 use crate::metadata::{Bucket, MetadataStore};
+use crate::public::PublicUrlSigner;
 
 #[derive(Debug, Clone)]
 pub struct DeleteObjectResult {
@@ -18,14 +20,59 @@ pub struct DeleteObjectResult {
     pub error: Option<String>,
 }
 
+pub const DEFAULT_MAX_CONCURRENT_DIGESTS: usize = 16;
+
+#[derive(Debug, Clone)]
+pub struct DigestedObject {
+    pub metadata: ObjectMetadata,
+    pub digests: ContentDigests,
+}
+
 pub struct ObjectStoreService {
     backend: Arc<dyn Backend>,
     metadata: Arc<MetadataStore>,
+    public_signer: Option<Arc<PublicUrlSigner>>,
+    archive_uploader: Option<Arc<Uploader>>,
+    digests: Arc<Semaphore>,
 }
 
 impl ObjectStoreService {
     pub fn new(backend: Arc<dyn Backend>, metadata: Arc<MetadataStore>) -> Self {
-        Self { backend, metadata }
+        Self {
+            backend,
+            metadata,
+            public_signer: None,
+            archive_uploader: None,
+            digests: Arc::new(Semaphore::new(DEFAULT_MAX_CONCURRENT_DIGESTS)),
+        }
+    }
+
+    pub fn with_public_signer(mut self, signer: Option<Arc<PublicUrlSigner>>) -> Self {
+        self.public_signer = signer;
+        self
+    }
+
+    pub fn public_signer(&self) -> Option<&Arc<PublicUrlSigner>> {
+        self.public_signer.as_ref()
+    }
+
+    /// Objects hashed at once by `digest_object`; further requests wait for a slot.
+    pub fn with_max_concurrent_digests(mut self, max: usize) -> Self {
+        self.digests = Arc::new(Semaphore::new(max.max(1)));
+        self
+    }
+
+    /// Archives are written through `uploader` instead of the backend's own, so they draw on a
+    /// memory budget of their own.
+    pub fn with_archive_uploader(mut self, uploader: Arc<Uploader>) -> Self {
+        self.archive_uploader = Some(uploader);
+        self
+    }
+
+    pub fn archive_uploader(&self) -> &Uploader {
+        self.archive_uploader
+            .as_deref()
+            .unwrap_or_else(|| self.backend.uploader())
     }
 
     pub async fn init(&self) -> ServiceResult<()> {
@@ -98,19 +145,41 @@ impl ObjectStoreService {
         content_type: Option<String>,
         metadata: HashMap<String, String>,
     ) -> ServiceResult<ObjectMetadata> {
+        let opts = PutOptions {
+            content_type,
+            metadata,
+            ..Default::default()
+        };
+
+        Ok(self
+            .put_object_stream(bucket, key, stream, opts)
+            .await?
+            .metadata)
+    }
+
+    pub async fn put_object_stream(
+        &self,
+        bucket: &str,
+        key: &str,
+        stream: ByteStream,
+        opts: PutOptions,
+    ) -> ServiceResult<UploadedObject> {
         self.metadata.get_bucket(bucket).await?;
 
         validate_object_key(key)?;
 
         let full_key = format!("{}/{}", bucket, key);
 
-        let obj_metadata = self
+        let uploaded = self
             .backend
-            .put_object(&full_key, stream, content_type, metadata)
+            .put_object_stream(&full_key, stream, opts)
             .await?;
 
-        debug!("Put object: {}/{}", bucket, key);
-        Ok(obj_metadata)
+        debug!(
+            "Put object: {}/{} ({} bytes)",
+            bucket, key, uploaded.metadata.size
+        );
+        Ok(uploaded)
     }
 
     pub async fn get_object(&self, bucket: &str, key: &str) -> ServiceResult<ObjectData> {
@@ -124,6 +193,45 @@ impl ObjectStoreService {
 
         debug!("Got object: {}/{}", bucket, key);
         Ok(obj_data)
+    }
+
+    /// Streams a stored object through the hashers without holding it. An object that is
+    /// replaced while it is read fails with a conflict instead of mixing two versions' digests.
+    pub async fn digest_object(&self, bucket: &str, key: &str) -> ServiceResult<DigestedObject> {
+        self.metadata.get_bucket(bucket).await?;
+
+        validate_object_key(key)?;
+
+        let full_key = format!("{}/{}", bucket, key);
+
+        let _permit = self
+            .digests
+            .acquire()
+            .await
+            .map_err(|_| ServiceError::Internal("digest slots are closed".to_string()))?;
+
+        let object = self.backend.get_object(&full_key).await?;
+        let digests = digest_stream(object.stream, Some(object.metadata.size))
+            .await
+            .map_err(|error| match error {
+                BackendError::SizeMismatch(mismatch) => BackendError::Conflict(format!(
+                    "{}/{} changed while it was read: {}",
+                    bucket, key, mismatch
+                )),
+                error => error,
+            })?;
+
+        debug!(
+            "Digested object: {}/{} ({} bytes)",
+            bucket, key, digests.size
+        );
+        Ok(DigestedObject {
+            metadata: ObjectMetadata {
+                key: key.to_string(),
+                ..object.metadata
+            },
+            digests,
+        })
     }
 
     pub async fn get_object_range(
@@ -314,6 +422,10 @@ impl ObjectStoreService {
         self.metadata.clone()
     }
 
+    pub fn backend(&self) -> &Arc<dyn Backend> {
+        &self.backend
+    }
+
     pub async fn copy_object(
         &self,
         source_bucket: &str,
@@ -345,6 +457,13 @@ impl ObjectStoreService {
         Ok(obj_metadata)
     }
 
+    pub fn effective_expiration(&self, expiration_secs: u64) -> u64 {
+        match self.public_signer {
+            Some(_) => crate::public::clamp_expiration(expiration_secs),
+            None => expiration_secs,
+        }
+    }
+
     pub async fn get_public_url(
         &self,
         bucket: &str,
@@ -355,6 +474,16 @@ impl ObjectStoreService {
         self.metadata.get_bucket(bucket).await?;
 
         validate_object_key(key)?;
+
+        if let Some(signer) = &self.public_signer {
+            return Ok(signer.sign(
+                bucket,
+                key,
+                purpose,
+                expiration_secs,
+                chrono::Utc::now().timestamp(),
+            ));
+        }
 
         let full_key = format!("{}/{}", bucket, key);
 
@@ -374,7 +503,7 @@ fn bucket_scoped_prefix(bucket: &str, prefix: Option<&str>) -> String {
     }
 }
 
-fn validate_deletable_object_key(key: &str) -> ServiceResult<()> {
+pub(crate) fn validate_deletable_object_key(key: &str) -> ServiceResult<()> {
     validate_object_key(key)?;
 
     if key == ".bucket" || key.ends_with("/.bucket") {
@@ -386,7 +515,7 @@ fn validate_deletable_object_key(key: &str) -> ServiceResult<()> {
     Ok(())
 }
 
-fn validate_object_key(key: &str) -> ServiceResult<()> {
+pub(crate) fn validate_object_key(key: &str) -> ServiceResult<()> {
     if key.is_empty() {
         return Err(ServiceError::InvalidObjectKey(
             "Key cannot be empty".to_string(),

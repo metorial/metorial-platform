@@ -8,7 +8,6 @@ export default defineConfig(({ mode }) => {
   const config = createVitestConfig({
     test: {
       pool: 'forks',
-      setupFiles: ['./src/test/setup.ts'],
       env: {
         ...env,
         NODE_ENV: 'test'
@@ -24,7 +23,6 @@ export default defineConfig(({ mode }) => {
           '**/*.config.ts',
           '**/prisma/**',
           'tests/**',
-          'src/test/**',
           'src/**/tests/**',
           'src/server.ts',
           'src/worker.ts',

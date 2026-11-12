@@ -12,7 +12,6 @@ export default defineConfig(({ mode }) => {
     test: {
       pool: 'forks',
       server: { deps: { inline: ['@slates/proto'] } },
-      setupFiles: ['./src/test/setup.ts'],
       env: {
         ...env,
         NODE_ENV: 'test'

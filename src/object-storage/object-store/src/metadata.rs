@@ -489,7 +489,7 @@ impl MetadataStore {
     }
 }
 
-fn is_valid_bucket_name(name: &str) -> bool {
+pub(crate) fn is_valid_bucket_name(name: &str) -> bool {
     if name.len() < 3 || name.len() > 63 {
         return false;
     }

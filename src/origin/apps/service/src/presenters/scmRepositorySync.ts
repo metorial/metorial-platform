@@ -52,7 +52,17 @@ let getMergeAttemptDetails = (sync: ScmRepositorySync) => {
   return { status, refusalReason };
 };
 
-export let scmRepositorySyncPresenter = (sync: ScmRepositorySync) => {
+export let scmRepositorySyncPresenterInclude = {
+  continuedFromSync: { select: { id: true } },
+  supersededBySync: { select: { id: true } }
+} as const;
+
+export type PresentableScmRepositorySync = ScmRepositorySync & {
+  continuedFromSync: { id: string } | null;
+  supersededBySync: { id: string } | null;
+};
+
+export let scmRepositorySyncPresenter = (sync: PresentableScmRepositorySync) => {
   let mergeAttempt = getMergeAttemptDetails(sync);
 
   return {
@@ -61,6 +71,10 @@ export let scmRepositorySyncPresenter = (sync: ScmRepositorySync) => {
     id: sync.id,
     status: sync.status,
     repositoryAccessMode: sync.repositoryAccessMode,
+
+    sourceType: sync.sourceType,
+    sourceKey: sync.sourceKey,
+    manifestSha256: sync.manifestSha256,
 
     branchName: sync.branchName,
     baseBranch: sync.baseBranch,
@@ -78,6 +92,15 @@ export let scmRepositorySyncPresenter = (sync: ScmRepositorySync) => {
     providerMergeSha: sync.providerMergeSha,
 
     errorMessage: sync.errorMessage,
+    errorCode: sync.errorCode,
+    errorDetails: sync.errorDetails,
+    endReason: sync.endReason,
+    continuedFromSyncId: sync.continuedFromSync?.id ?? null,
+    supersededBySyncId: sync.supersededBySync?.id ?? null,
+    waitingReason: sync.status === 'syncing_contents' ? sync.waitingReason : null,
+    waitingUntil:
+      sync.status === 'syncing_contents' && sync.waitingReason ? sync.nextPollAt : null,
+    resultStats: sync.resultStats,
     ciState: sync.ciState,
     statusSnapshot: sync.statusSnapshot as RepositorySyncStatusSnapshot | null,
     attemptCount: sync.attemptCount,

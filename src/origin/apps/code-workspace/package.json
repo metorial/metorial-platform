@@ -4,7 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "setup_vscode": "FORCE_SETUP=true ./setup.sh",
+    "setup_vscode": "./setup.sh",
+    "setup_vscode:force": "FORCE_SETUP=true ./setup.sh",
     "enterprise:dev": "./setup.sh && vite --port 3302 || true",
     "dev": "./setup.sh && vite --port 3302",
     "frontend:build": "./setup.sh && tsc && vite build",

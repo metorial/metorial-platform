@@ -27,6 +27,7 @@ export interface JobInfo {
 export interface LinkInfo {
   label: string;
   group: 'app' | 'admin' | 'tool';
+  menu?: string;
   url: string;
 }
 

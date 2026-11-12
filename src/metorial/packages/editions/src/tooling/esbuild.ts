@@ -1,3 +1,4 @@
+import { defaultReleaseChannel, type ReleaseChannel } from '../channel';
 import { readFile } from 'node:fs/promises';
 import type { Plugin } from 'esbuild';
 import type { Edition } from '../edition';
@@ -22,13 +23,20 @@ let loaderFor = (path: string) => {
   return 'ts' as const;
 };
 
-export let editionsEsbuildPlugin = (edition: Edition): Plugin => ({
+export let editionsEsbuildPlugin = (
+  edition: Edition,
+  channel: ReleaseChannel = defaultReleaseChannel
+): Plugin => ({
   name: 'metorial-editions',
 
   setup(build) {
     build.onLoad({ filter: sourceFilter }, async args => {
       let code = await readFile(args.path, 'utf8');
-      let transformed = transformEditionSource(code, { edition, fileName: args.path });
+      let transformed = transformEditionSource(code, {
+        edition,
+        channel,
+        fileName: args.path
+      });
       let contents = ensureEsmMarker(args.path, transformed ?? code);
 
       if (transformed == null && contents == code) return undefined;

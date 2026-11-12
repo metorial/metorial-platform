@@ -16,9 +16,12 @@
     "dev:start": "bun --watch ./src/server.ts",
     "e2e:start": "bun ./src/server.ts",
     "control:db:generate": "bun run prisma:generate",
-    "control:db:push": "bun run prisma:push"
+    "control:db:push": "bun run prisma:push",
+    "test:e2e": "metorial-e2e"
   },
   "devDependencies": {
+    "@lowerdeck/testing-tools": "workspace:2.0.0",
+    "@metorial/e2e": "1.0.0",
     "@types/bun": "latest",
     "@types/node": "^25.9.9",
     "@vercel/ncc": "^0.45.0",
@@ -30,9 +33,9 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@aws-sdk/client-cloudwatch-logs": "^3.1156.0",
-    "@aws-sdk/client-iam": "^3.1156.0",
-    "@aws-sdk/client-lambda": "^3.1156.0",
+    "@aws-sdk/client-cloudwatch-logs": "^3.1158.0",
+    "@aws-sdk/client-iam": "^3.1158.0",
+    "@aws-sdk/client-lambda": "^3.1158.0",
     "@bufbuild/protobuf": "^2.16.0",
     "@gitbeaker/rest": "^43.8.0",
     "@grpc/grpc-js": "^1.14.6",
@@ -65,8 +68,9 @@
     "@prisma/client": "^7.10.1",
     "@sentry/bun": "^11.9.0",
     "@sentry/cli": "^3.8.2",
-    "axios": "^1.20.0",
+    "axios": "^1.21.0",
     "date-fns": "^4.4.0",
+    "ioredis": "^6.0.0",
     "ipaddr.js": "^2.5.0",
     "jszip": "^3.10.2",
     "long": "^5.3.2",

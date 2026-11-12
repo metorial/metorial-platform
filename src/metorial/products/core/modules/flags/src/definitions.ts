@@ -26,10 +26,12 @@ export type Flags = {
   'networking-enabled': FlagValue;
   'sandbox-enabled': FlagValue;
   'public-mcp-servers-enabled': FlagValue;
+  'devices-enabled': FlagValue;
   outposts: FlagValue;
 
   'store-participants-v2': FlagValue;
   'store-access-v2': FlagValue;
+  'skills-manifest-sync': FlagValue;
 
   'paid-integrations': FlagValue;
   'paid-integration-runtime': FlagValue;
@@ -88,10 +90,12 @@ export let defaultFlags: Flags = {
   'networking-enabled': false,
   'sandbox-enabled': false,
   'public-mcp-servers-enabled': false,
+  'devices-enabled': false,
   outposts: false,
 
   'store-participants-v2': false,
   'store-access-v2': false,
+  'skills-manifest-sync': false,
 
   'paid-integrations': true,
   'paid-integration-runtime': true,

@@ -7,6 +7,70 @@
 # Use "0.0.0.0" to accept connections from any interface (required for Docker)
 host = "0.0.0.0"
 port = 8080
+# Requests other than object uploads and copies are cut off after this many seconds
+# request_timeout_secs = 60
+# Object uploads have no overall limit, but fail when the body sends nothing for this long
+# upload_idle_timeout_secs = 60
+# ...or when the body arrives slower than this on average (0 turns it off). Only time spent
+# waiting on the client counts, and every upload gets the grace period on top
+# upload_min_bytes_per_sec = 16384
+# upload_min_rate_grace_secs = 60
+
+[uploads]
+# Every setting can also be set from the environment, e.g. OBJECT_STORE__UPLOADS__PART_CONCURRENCY
+# Parts uploaded in parallel per object (GCS and local storage always upload one at a time)
+part_concurrency = 4
+# Smallest part after the first; raised to the backend's own minimum (5 MiB on S3)
+min_part_size_bytes = 16777216
+# Memory all concurrent client uploads and copies may hold in part buffers; uploads wait for
+# room beyond it. An eighth is kept for buffers that are still filling, and the rest caps the
+# part size, which caps the largest object a multipart upload can reach when its size is
+# unknown (about 4.4 TiB on S3 at the default)
+memory_budget_bytes = 1073741824
+
+[digests]
+# Stored objects hashed at once by GET /buckets/:bucket/object-digests/*key; further requests
+# wait for a slot. Can also be set as OBJECT_STORE__DIGESTS__MAX_CONCURRENT
+max_concurrent = 16
+
+[zip]
+# Every setting can also be set from the environment, e.g. OBJECT_STORE__ZIP__FETCH_CONCURRENCY
+# Archives built at once by this instance
+max_concurrent_jobs = 2
+# Jobs this instance accepts beyond those, waiting for a slot; more are refused with 429
+max_queued_jobs = 64
+# Sources fetched ahead of the one being written, per archive (at most 256)
+fetch_concurrency = 16
+# Entries up to this size are fetched and compressed whole; larger ones stream (at most 64 MiB).
+# Changing it can change which entries get compressed, and so the archive bytes
+small_entry_bytes = 1048576
+max_entries = 1000000
+# Largest zip job request body
+max_spec_bytes = 67108864
+# Request bodies read, parsed and validated at once (never less than max_spec_bytes). A parsed
+# spec takes about three times its body, so this caps that work at about four times as much heap.
+# Requests that find no room within 5 seconds are refused with 429
+max_parsing_spec_bytes = 67108864
+# Largest archive; a request may lower it but not raise it
+max_archive_bytes = 1099511627776
+# How long a request may wait for its archive before getting the job to poll.
+# Lowered to stay below request_timeout_secs
+max_wait_seconds = 30
+# Ended job records are deleted after this
+job_retention_hours = 168
+# The runner renews its lease this often (at most half of lease_seconds)
+heartbeat_seconds = 15
+lease_seconds = 60
+# A job whose lease ran out this long ago is recorded as failed (lease_expired)
+lease_skew_grace_seconds = 10
+# How long shutdown waits for running jobs to record that they were interrupted
+shutdown_grace_seconds = 10
+# Part buffer memory for writing archives, separate from [uploads] memory_budget_bytes so zip
+# jobs and client uploads never wait on each other; the other [uploads] settings apply as is
+upload_memory_budget_bytes = 268435456
+# Blocks of one large deflated entry compressed at once, each holding about 2 MiB (at most 256).
+# Defaults to the CPU count; blocks compress at most one per CPU across all archives either way
+# compression_parallelism = 8
 
 [backend]
 # Backend type: "local", "s3", "gcs", or "azure"
@@ -25,6 +89,7 @@ physical_bucket = "object-store-data"
 # endpoint = "http://localhost:9000"        # Optional; implies path-style addressing
 # public_endpoint = "https://s3.example.com" # Optional; host that signed URLs point at
 # force_path_style = true
+# create_bucket = true                      # Create the bucket on startup (self-hosted stores)
 
 # For GCS backend (Application Default Credentials unless credentials_file is set):
 # type = "gcs"
@@ -42,3 +107,17 @@ physical_bucket = "object-store-data"
 # auth = "default"                           # access_key | default | workload_identity | managed_identity
 # endpoint = "http://localhost:10000/devstoreaccount1"
 # public_endpoint = "https://myaccount.blob.example.com"
+
+# Public URLs (`/buckets/:bucket/public-url/*key`).
+# mode = "backend" (default): the backend signs them (presigned S3/GCS/Azure URLs, local public_url),
+#   so clients must be able to reach the backend.
+# mode = "proxy": this service signs them for its own public listener, which only serves signed
+#   GET/HEAD/PUT of single objects and streams to and from the backend. Put the public listener (not
+#   the management API on [server]) behind your reverse proxy at base_url.
+# [public]
+# mode = "proxy"
+# base_url = "https://metorial.example.com/object-storage"
+# signing_secret = "at-least-32-characters-of-random-secret"
+# host = "0.0.0.0"
+# port = 8081
+# request_timeout_secs = 3600

@@ -7,6 +7,7 @@ import {
   e2e,
   endpoint,
   mergeEnv,
+  objectStorage,
   postgres,
   project,
   redis,
@@ -51,9 +52,11 @@ export default project({
   e2e: e2e({
     start: ['e2e:start'],
     image: 'function-bay',
+    tests: ['.'],
     env: {
       OBJECT_STORAGE_URL: 'http://services:52010'
-    }
+    },
+    resources: [objectStorage()]
   }),
   ci: {
     images: [
@@ -91,6 +94,6 @@ export default project({
         canonical: 'ghcr.io/metorial/function-bay-observer'
       })
     ],
-    suite: ciSuite({ name: 'function-bay', runner: 'compose', profiles: ['infra', 'service'] })
+    suite: ciSuite({ name: 'function-bay', groups: 1 })
   }
 });

@@ -28,7 +28,12 @@ export let recoverRepositorySyncProcessor = createCron(
             status: {
               in: ['pending', 'creating_branch', 'syncing_contents', 'creating_pr', 'merging']
             },
-            updatedAt: { lte: stale }
+            updatedAt: { lte: stale },
+            NOT: {
+              sourceType: 'manifest',
+              status: 'syncing_contents',
+              nextPollAt: { gt: now }
+            }
           }
         ]
       },
@@ -57,18 +62,34 @@ export let recoverRepositorySyncProcessor = createCron(
 export let accelerateRepositorySyncsForProviderEvent = async (d: {
   repoOid: bigint;
   providerPrId?: string;
+  deletedBranchName?: string;
   idempotencyKey: string;
 }) => {
   let syncs = await db.scmRepositorySync.findMany({
-    where: {
-      repoOid: d.repoOid,
-      status: { in: ['waiting_for_ci', 'waiting_for_review', 'merging'] },
-      ...(d.providerPrId && { providerPrId: d.providerPrId })
-    },
+    where: d.deletedBranchName
+      ? {
+          repoOid: d.repoOid,
+          sourceType: 'manifest',
+          repositoryAccessMode: 'pull_request',
+          branchName: d.deletedBranchName,
+          status: {
+            in: ['syncing_contents', 'waiting_for_ci', 'waiting_for_review', 'merging']
+          }
+        }
+      : {
+          repoOid: d.repoOid,
+          status: { in: ['waiting_for_ci', 'waiting_for_review', 'merging'] },
+          ...(d.providerPrId && { providerPrId: d.providerPrId })
+        },
     select: { id: true, status: true }
   });
   for (let sync of syncs) {
-    if (sync.status === 'merging') {
+    if (sync.status === 'syncing_contents') {
+      await syncContentsRepositorySyncQueue.add(
+        { syncId: sync.id },
+        { id: `${sync.id}:webhook:${d.idempotencyKey}` }
+      );
+    } else if (sync.status === 'merging') {
       await mergeRepositorySyncQueue.add(
         { syncId: sync.id },
         { id: `${sync.id}:webhook:${d.idempotencyKey}` }

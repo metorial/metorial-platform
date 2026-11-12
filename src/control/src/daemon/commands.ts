@@ -12,12 +12,12 @@ import {
 import { openUrl } from './open';
 import { connect } from 'node:net';
 import { delay } from '../process';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import { existsSync } from 'node:fs';
 import { paths, uiPort } from './home';
 import { jobKinds, type JobKind, type UnitInfo, type WorkspaceInfo } from './types';
 import { logFileName, replayLines, type LogLine } from './logs';
-import { definitions, parseStackMode, planStack, stackRunId } from '../stack/plan';
+import { definitions, hostAlias, parseStackMode, planStack, stackRunId } from '../stack/plan';
 import { discover } from '../manifest';
 
 export interface DaemonArgs {
@@ -525,6 +525,43 @@ let stack = async (args: DaemonArgs, subcommand: string) => {
             unit.container ? `container ${unit.container.image}` : 'bun process',
             unit.ports.map(port => `:${port}`).join(' ')
           ])
+        ])
+      );
+
+      return;
+    }
+    case 'images': {
+      let project = detect(args.root);
+      let plan = planStack(
+        project,
+        discover(project.root, { stackOnly: true }),
+        stackIdentifier(args),
+        'production',
+        { name: args.values.name }
+      );
+      let images = [...plan.init, ...plan.units].flatMap(unit =>
+        unit.container?.build
+          ? [
+              {
+                name: hostAlias(unit.package),
+                package: unit.package,
+                image: unit.container.image,
+                context: relative(project.root, unit.container.build.context) || '.',
+                dockerfile: relative(project.root, unit.container.build.dockerfile),
+                target: unit.container.build.target ?? '',
+                args: unit.container.build.args ?? {}
+              }
+            ]
+          : []
+      );
+      images.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+
+      if (args.flags.has('json')) return console.log(JSON.stringify(images, null, 2));
+
+      console.log(
+        table([
+          ['IMAGE', 'PACKAGE', 'DOCKERFILE'],
+          ...images.map(item => [item.name, item.package, item.dockerfile])
         ])
       );
 

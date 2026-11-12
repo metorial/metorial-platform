@@ -6,6 +6,35 @@ import { acquireLock } from '../src/lock';
 import { atomicWrite } from '../src/files';
 import { temporary } from './helpers';
 
+test('cancellation interrupts waits and kills only the scoped process tree', async () => {
+  let root = temporary();
+  let controller = new AbortController();
+  let unrelated = commands.spawn(process.execPath, ['-e', 'setInterval(()=>{},1000)'], root);
+  let child = commands.cancellation.run(controller.signal, () =>
+    commands.spawn(process.execPath, ['-e', 'setInterval(()=>{},1000)'], root)
+  );
+  let result = commands.cancellation.run(controller.signal, () => commands.wait(child, 'bun'));
+  let waiting = commands.cancellation.run(controller.signal, () => commands.delay(60_000));
+  let resultCheck = result.catch(error => error);
+  let waitCheck = waiting.catch(error => error);
+
+  try {
+    controller.abort();
+    expect(await resultCheck).toBeInstanceOf(commands.Interrupted);
+    expect(await waitCheck).toBeInstanceOf(commands.Interrupted);
+
+    expect(child.signalCode).toBe('SIGKILL');
+    expect(unrelated.signalCode).toBeNull();
+    expect(() =>
+      commands.cancellation.run(controller.signal, () =>
+        commands.spawn(process.execPath, [], root)
+      )
+    ).toThrow(commands.Interrupted);
+  } finally {
+    commands.signalTree(unrelated, 'SIGKILL');
+  }
+});
+
 test('captured commands drain output, report stderr, and preserve environment', async () => {
   let root = temporary();
 

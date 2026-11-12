@@ -1,0 +1,22 @@
+{
+  "deepseek/deepseek-v3-0324": {
+    "from": ["deepseek/deepseek-chat-v3-0324"],
+    "reason": "models.dev has two lab files for the same DeepSeek V3 0324 checkpoint",
+    "by": "human"
+  },
+  "deepseek/deepseek-v3.1": {
+    "from": ["deepseek/deepseek-chat-v3.1"],
+    "reason": "models.dev has two lab files for the same DeepSeek V3.1 checkpoint",
+    "by": "human"
+  },
+  "mistral/ministral-3-3b-instruct-2512": {
+    "from": ["mistral/ministral-3b-2512"],
+    "reason": "Both are Ministral 3 3B, released 2025-12-02",
+    "by": "human"
+  },
+  "mistral/mistral-medium-3.5": {
+    "from": ["mistral/mistral-medium-2604"],
+    "reason": "mistral-medium-2604 is the dated API name of Mistral Medium 3.5",
+    "by": "human"
+  }
+}

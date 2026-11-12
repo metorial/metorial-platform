@@ -8,7 +8,7 @@
 
 import { Cases } from '../../case';
 import type { IntrospectedType } from '../../fetch';
-import { toGoIdentifier } from './utils';
+import { isExplicitNullInput, toGoIdentifier } from './utils';
 
 /**
  * Generates a complete Go type definition from an introspected type.
@@ -205,6 +205,9 @@ let generateStruct = (
       let goFieldName = toGoIdentifier(key);
       let nestedTypeName = getNestedTypeName(key, value, structName);
       let goType = processType(value, nestedTypeName);
+      if (isRoot && structName.endsWith('Body') && isExplicitNullInput(value)) {
+        goType = `*nullable.Nullable[${goType.replace(/^\*/, '')}]`;
+      }
       let tag = jsonTag(key, value);
 
       let comment = value.description

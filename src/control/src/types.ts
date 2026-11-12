@@ -31,7 +31,12 @@ export interface Endpoint {
   protocol?: 'http' | 'h2c';
   env: { key: string; value: string }[];
   health?: string | { path: string; status?: number };
-  link?: { label: string; group?: 'app' | 'admin' | 'tool'; path?: string };
+  link?: {
+    label: string;
+    group?: 'app' | 'admin' | 'tool';
+    menu?: string;
+    path?: string;
+  };
 }
 
 export interface Database {

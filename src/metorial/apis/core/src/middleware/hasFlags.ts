@@ -8,7 +8,7 @@ import {
 import { apiGroup } from './apiGroup';
 
 export let hasFlags = apiGroup.createMiddleware(
-  async (ctx, expectedFlags: BooleanFlagKey[]) => {
+  async (ctx, expectedFlags: BooleanFlagKey[] | ((ctx: object) => BooleanFlagKey[])) => {
     if (!('organization' in ctx)) {
       throw new ServiceError(
         forbiddenError({
@@ -22,7 +22,8 @@ export let hasFlags = apiGroup.createMiddleware(
       project: 'project' in ctx ? (ctx.project as any) : undefined
     });
 
-    let missingFlags = expectedFlags.filter(f => !isFlagEnabled(flags[f]));
+    let required = typeof expectedFlags === 'function' ? expectedFlags(ctx) : expectedFlags;
+    let missingFlags = required.filter(f => !isFlagEnabled(flags[f]));
 
     if (missingFlags.length) {
       let disabledReason = missingFlags

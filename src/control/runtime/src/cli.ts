@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import type { RuntimeConfig } from './config';
 import { defaultConfigPath, defaultRoot, migrate } from './migrate';
+import { MigrationInterrupted } from './signals';
 
 let [command, ...names] = process.argv.slice(2);
 let root = defaultRoot();
@@ -14,5 +15,5 @@ try {
   await migrate(config, names, process.env, root);
 } catch (error) {
   console.error(error instanceof Error ? error.message : error);
-  process.exit(1);
+  process.exit(error instanceof MigrationInterrupted ? error.exitCode : 1);
 }

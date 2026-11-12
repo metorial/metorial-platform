@@ -1,875 +1,3249 @@
 <!doctype html>
 <html lang="en">
+  <!--
+Bundled icons: Lucide / Feather
+ISC License
+
+Copyright (c) 2026 Lucide Icons and Contributors
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+---
+
+The following Lucide icons are derived from the Feather project:
+
+airplay, alert-circle, alert-octagon, alert-triangle, aperture, arrow-down-circle, arrow-down-left, arrow-down-right, arrow-down, arrow-left-circle, arrow-left, arrow-right-circle, arrow-right, arrow-up-circle, arrow-up-left, arrow-up-right, arrow-up, at-sign, calendar, cast, check, chevron-down, chevron-left, chevron-right, chevron-up, chevrons-down, chevrons-left, chevrons-right, chevrons-up, circle, clipboard, clock, code, columns, command, compass, corner-down-left, corner-down-right, corner-left-down, corner-left-up, corner-right-down, corner-right-up, corner-up-left, corner-up-right, crosshair, database, divide-circle, divide-square, dollar-sign, download, external-link, feather, frown, hash, headphones, help-circle, info, italic, key, layout, life-buoy, link-2, link, loader, lock, log-in, log-out, maximize, meh, minimize, minimize-2, minus-circle, minus-square, minus, monitor, moon, more-horizontal, more-vertical, move, music, navigation-2, navigation, octagon, pause-circle, percent, plus-circle, plus-square, plus, power, radio, rss, search, server, share, shopping-bag, sidebar, smartphone, smile, square, table-2, tablet, target, terminal, trash-2, trash, triangle, tv, type, upload, x-circle, x-octagon, x-square, x, zoom-in, zoom-out
+
+The MIT License (MIT) (for the icons listed above)
+
+Copyright (c) 2013-present Cole Bemis
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+-->
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Control</title>
+    <title>Control — Development Workbench</title>
     <link
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.css"
     />
     <style>
-      :root {
-        --bg: #f6f6f4;
-        --panel: #ffffff;
-        --line: #e3e3de;
-        --text: #1c1c1a;
-        --mute: #75756e;
-        --ok: #1f8a4c;
-        --warn: #b7791f;
-        --bad: #c0392b;
-        --info: #2b6cb0;
-        --term-bg: #121212;
-        --term-fg: #d6d6d0;
-        --hover: #efefea;
-        --sel: #e8e8e2;
+      #control-concept {
+        color-scheme: dark;
+        --c-bg: #101112;
+        --c-surface: #191b1d;
+        --c-sidebar: #141617;
+        --c-ink: #eceeed;
+        --c-muted: #9c9fa3;
+        --c-line: #303337;
+        --c-hover: #24272a;
+        --c-selected: #302d1d;
+        --c-accent: #f4d35e;
+        --c-accent-ink: #201c0d;
+        --c-green: #94bfa5;
+        --c-red: #ec9387;
+        --c-red-bg: #2c201f;
+        --c-amber: #f4d35e;
+        --c-console: #121415;
+        --c-row-pad: 13px;
+        display: grid;
+        grid-template-columns: 186px minmax(0, 1fr);
+        min-height: 810px;
+        background: var(--c-bg);
+        color: var(--c-ink);
+        font:
+          13px/1.5 -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          sans-serif;
+        border: 1px solid var(--c-line);
+        border-radius: 12px;
+        overflow: clip;
+        position: relative;
+        isolation: isolate;
       }
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --bg: #0f0f0e;
-          --panel: #171716;
-          --line: #2a2a27;
-          --text: #ecece8;
-          --mute: #8d8d85;
-          --ok: #4cc97e;
-          --warn: #e0a84a;
-          --bad: #ef6b5b;
-          --info: #6aa8ee;
-          --term-bg: #0a0a0a;
-          --hover: #1f1f1d;
-          --sel: #242421;
-        }
-      }
-      * {
+      #control-concept * {
         box-sizing: border-box;
       }
-      body {
+      #control-concept [hidden] {
+        display: none !important;
+      }
+      #control-concept h1,
+      #control-concept h2,
+      #control-concept h3,
+      #control-concept p {
         margin: 0;
-        background: var(--bg);
-        color: var(--text);
-        font:
-          13px/1.45 ui-sans-serif,
-          system-ui,
-          sans-serif;
-        height: 100vh;
-        display: grid;
-        grid-template-columns: 240px 1fr;
       }
-      .mono {
-        font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-      }
-      button {
+      #control-concept button,
+      #control-concept input,
+      #control-concept select {
         font: inherit;
         color: inherit;
-        background: var(--panel);
-        border: 1px solid var(--line);
-        border-radius: 6px;
-        padding: 5px 10px;
-        cursor: pointer;
       }
-      button:hover:not(:disabled) {
-        background: var(--hover);
+      #control-concept button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
       }
-      button:disabled {
+      #control-concept button:disabled {
         opacity: 0.45;
-        cursor: default;
       }
-      button.danger {
-        color: var(--bad);
+      #control-concept button:not(:disabled):hover {
+        filter: brightness(0.96);
       }
-      button.sm {
-        padding: 2px 8px;
-        font-size: 12px;
+      #control-concept button:focus-visible,
+      #control-concept input:focus-visible,
+      #control-concept select:focus-visible {
+        outline: 2px solid var(--c-accent);
+        outline-offset: 3px;
       }
-      aside {
-        border-right: 1px solid var(--line);
-        background: var(--panel);
+      #control-concept svg {
+        width: 15px;
+        height: 15px;
+        flex-shrink: 0;
+        stroke-width: 1.65;
+      }
+      #control-concept .c-mono,
+      #control-concept code,
+      #control-concept pre,
+      #control-concept kbd {
+        font-family: 'SFMono-Regular', Consolas, monospace;
+      }
+      #control-concept .c-spacer {
+        flex: 1;
+      }
+      #control-concept .c-sidebar {
         display: flex;
         flex-direction: column;
-        min-height: 0;
-        overflow: auto;
+        padding: 24px 12px 15px;
+        background: var(--c-sidebar);
+        border-right: 1px solid var(--c-line);
       }
-      aside h1 {
-        font-size: 13px;
-        margin: 0;
-        padding: 14px 16px;
+      #control-concept .c-brand {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 0 9px 26px;
+        font-size: 23px;
+        font-weight: 500;
+        letter-spacing: -1px;
+      }
+      #control-concept .c-mark {
+        display: grid;
+        place-items: center;
+        width: 25px;
+        height: 25px;
+        color: var(--c-accent-ink);
+        background: var(--c-accent);
+        border-radius: 7px;
+      }
+      #control-concept .c-edition {
+        margin-left: auto;
+        font-size: 11px;
+        letter-spacing: 1px;
+        border: 1px solid var(--c-line);
+        border-radius: 4px;
+        padding: 2px 4px;
+        color: var(--c-muted);
+      }
+      #control-concept .c-search {
+        width: 100%;
+        padding: 9px 7px;
+        border: 1px solid var(--c-line);
+        border-radius: 6px;
+        background: var(--c-surface);
+        color: var(--c-muted);
+        font-size: 11px;
+        justify-content: flex-start;
+        gap: 5px;
+        margin-bottom: 26px;
+      }
+      #control-concept kbd {
+        font-size: 11px;
+        color: var(--c-muted);
+      }
+      #control-concept .c-search kbd {
+        margin-left: auto;
+        white-space: nowrap;
+      }
+      #control-concept .c-side-label {
         display: flex;
         justify-content: space-between;
+        padding: 0 10px;
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 1.15px;
+        color: var(--c-muted);
+        margin-bottom: 9px;
       }
-      aside h1 small {
-        color: var(--mute);
-        font-weight: 400;
+      #control-concept .c-workspaces,
+      #control-concept .c-nav {
+        display: grid;
+        gap: 4px;
       }
-      .ws {
-        padding: 10px 16px;
-        border-top: 1px solid var(--line);
-        cursor: pointer;
+      #control-concept .c-workspace {
+        border: 0;
+        background: transparent;
+        text-align: left;
+        padding: 11px 9px;
+        border-radius: 6px;
+        justify-content: flex-start;
+        gap: 8px;
       }
-      .ws:hover {
-        background: var(--hover);
+      #control-concept .c-workspace[aria-current],
+      #control-concept .c-nav button[aria-current] {
+        background: var(--c-selected);
       }
-      .ws.active {
-        background: var(--sel);
+      #control-concept .c-workspace[aria-current] strong,
+      #control-concept .c-nav button[aria-current],
+      #control-concept .c-service-row[aria-pressed='true'] .c-service-name,
+      #control-concept .c-health .c-text-button {
+        color: var(--c-accent);
       }
-      .ws b {
+      #control-concept .c-workspace strong {
+        display: block;
+        font-weight: 500;
+        font-size: 12px;
+      }
+      #control-concept .c-workspace small {
+        display: block;
+        font-size: 11px;
+        color: var(--c-muted);
+        margin-top: 2px;
+      }
+      #control-concept .c-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        display: inline-block;
+        flex: 0 0 6px;
+        background: var(--c-muted);
+      }
+      #control-concept .c-good {
+        color: var(--c-green);
+      }
+      #control-concept .c-dot.c-good {
+        background: var(--c-green);
+      }
+      #control-concept .c-bad {
+        color: var(--c-red);
+      }
+      #control-concept .c-dot.c-bad {
+        background: var(--c-red);
+      }
+      #control-concept .c-dot.c-idle {
+        background: transparent;
+        border: 1px solid var(--c-muted);
+      }
+      #control-concept .c-count {
+        margin-left: auto;
+        font-size: 11px;
+        color: var(--c-red);
+      }
+      #control-concept .c-side-divider {
+        height: 1px;
+        background: var(--c-line);
+        margin: 22px 9px;
+      }
+      #control-concept .c-nav button {
+        background: transparent;
+        border: 0;
+        padding: 9px 10px;
+        text-align: left;
+        justify-content: flex-start;
+        font-size: 12px;
+        border-radius: 5px;
+      }
+      #control-concept .c-nav button span {
+        margin-left: auto;
+        color: var(--c-muted);
+        font-size: 11px;
+      }
+      #control-concept .c-sidebar-bottom {
+        margin-top: auto;
+        padding: 50px 10px 0;
+        display: grid;
+        gap: 6px;
+        color: var(--c-muted);
+        font-size: 11px;
+      }
+      #control-concept .c-daemon {
         display: flex;
         align-items: center;
         gap: 7px;
+        color: var(--c-ink);
+        font-size: 11px;
       }
-      .ws .sub {
-        color: var(--mute);
-        font-size: 12px;
-        display: block;
-        margin-left: 15px;
+      #control-concept .c-keyhelp {
+        padding: 17px 0 0;
+        background: none;
+        border: 0;
+        justify-content: flex-start;
+        color: var(--c-muted);
+        font-size: 11px;
       }
-      .side-foot {
-        margin-top: auto;
-        padding: 12px 16px;
-        border-top: 1px solid var(--line);
-        color: var(--mute);
-        font-size: 12px;
-      }
-      .dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: var(--mute);
-        display: inline-block;
-        flex: none;
-      }
-      .dot.running,
-      .dot.healthy {
-        background: var(--ok);
-      }
-      .dot.starting,
-      .dot.restarting,
-      .dot.infra,
-      .dot.preparing,
-      .dot.stopping {
-        background: var(--warn);
-        animation: pulse 1s infinite;
-      }
-      .dot.crashed,
-      .dot.failed {
-        background: var(--bad);
-      }
-      .dot.stopped,
-      .dot.idle {
-        background: transparent;
-        border: 1.5px solid var(--mute);
-      }
-      @keyframes pulse {
-        50% {
-          opacity: 0.3;
-        }
-      }
-      main {
-        display: flex;
-        flex-direction: column;
+      #control-concept .c-main {
         min-width: 0;
-        min-height: 0;
       }
-      header {
-        padding: 14px 20px;
-        border-bottom: 1px solid var(--line);
-        background: var(--panel);
+      #control-concept .c-topbar {
+        min-height: 56px;
         display: flex;
-        flex-wrap: wrap;
-        gap: 10px 14px;
         align-items: center;
+        gap: 12px;
+        padding: 0 26px;
+        border-bottom: 1px solid var(--c-line);
+        color: var(--c-muted);
+        font-size: 11px;
       }
-      header h2 {
-        margin: 0;
-        font-size: 16px;
+      #control-concept .c-topbar strong {
+        font-weight: 400;
+        color: var(--c-ink);
+      }
+      #control-concept .c-topbar svg {
+        width: 11px;
+      }
+      #control-concept .c-concept {
+        font-size: 11px;
+        letter-spacing: 1px;
+        padding-right: 40px;
+      }
+      #control-concept .c-content {
+        padding: 26px;
+      }
+      #control-concept .c-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 22px;
+      }
+      #control-concept .c-eyebrow {
+        color: var(--c-muted);
+        font-size: 11px;
+        letter-spacing: 1.3px;
+        font-weight: 500;
+      }
+      #control-concept h1 {
+        font-size: 30px;
+        font-weight: 500;
+        letter-spacing: -1.2px;
+        line-height: 1.3;
+        margin: 5px 0 8px;
+      }
+      #control-concept .c-meta {
+        display: flex;
+        gap: 11px;
+        align-items: center;
+        color: var(--c-muted);
+        font-size: 11px;
+        flex-wrap: wrap;
+      }
+      #control-concept .c-meta > span:first-child {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+      #control-concept .c-meta svg {
+        width: 12px;
+      }
+      #control-concept .c-meta-sep {
+        color: var(--c-line);
+      }
+      #control-concept .c-button {
+        border: 1px solid var(--c-line);
+        background: var(--c-surface);
+        border-radius: 6px;
+        padding: 8px 11px;
+        font-size: 11px;
+        white-space: nowrap;
+      }
+      #control-concept .c-button.c-primary {
+        background: var(--c-accent);
+        color: var(--c-accent-ink);
+        border-color: var(--c-accent);
+      }
+      #control-concept .c-button.c-small {
+        font-size: 11px;
+        padding: 6px 9px;
+      }
+      #control-concept .c-button.c-small svg {
+        width: 12px;
+        height: 12px;
+      }
+      #control-concept .c-health {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+        border: 1px solid var(--c-line);
+        border-radius: 7px;
+        background: var(--c-surface);
+        font-size: 11px;
+        flex-wrap: wrap;
+      }
+      #control-concept .c-health .c-health-title {
+        font-weight: 500;
+      }
+      #control-concept .c-health .c-health-note {
+        color: var(--c-muted);
+      }
+      #control-concept .c-text-button {
+        padding: 0;
+        border: 0;
+        background: none;
+        color: var(--c-ink);
+        font-size: 11px;
+        margin-left: auto;
+        white-space: nowrap;
+      }
+      #control-concept .c-shortcuts {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 15px 1px 25px;
+        flex-wrap: wrap;
+      }
+      #control-concept .c-caption {
+        font-size: 11px;
+        color: var(--c-muted);
+        letter-spacing: 1px;
+      }
+      #control-concept .c-link {
+        padding: 0;
+        background: none;
+        border: 0;
+        font-size: 11px;
+        gap: 5px;
+      }
+      #control-concept .c-link svg {
+        width: 12px;
+        height: 12px;
+        color: var(--c-muted);
+      }
+      #control-concept .c-link svg:last-child {
+        width: 10px;
+      }
+      #control-concept .c-section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 14px;
+        flex-wrap: wrap;
+      }
+      #control-concept .c-title-line {
         display: flex;
         align-items: center;
         gap: 8px;
       }
-      header .meta {
-        color: var(--mute);
+      #control-concept h2 {
+        font-size: 15px;
+        font-weight: 500;
+        letter-spacing: -0.3px;
       }
-      header .spacer {
-        flex: 1;
+      #control-concept h3 {
+        font-size: 11px;
+        font-weight: 500;
       }
-      header label {
-        color: var(--mute);
+      #control-concept .c-pill {
+        font-size: 11px;
+        background: var(--c-hover);
+        color: var(--c-muted);
+        padding: 2px 7px;
+        border-radius: 4px;
+      }
+      #control-concept .c-tools {
         display: flex;
-        gap: 4px;
+        gap: 8px;
+      }
+      #control-concept .c-filter {
+        display: flex;
         align-items: center;
+        gap: 7px;
+        width: 167px;
+        background: var(--c-surface);
+        border: 1px solid var(--c-line);
+        border-radius: 5px;
+        padding: 5px 8px;
+        color: var(--c-muted);
       }
-      .err {
-        color: var(--bad);
-        padding: 8px 20px;
-        border-bottom: 1px solid var(--line);
+      #control-concept .c-filter svg {
+        width: 12px;
       }
-      .links {
+      #control-concept .c-filter input {
+        width: 100%;
+        min-width: 0;
+        font-size: 11px;
+        background: transparent;
+        border: 0;
+      }
+      #control-concept input::placeholder {
+        color: var(--c-muted);
+      }
+      #control-concept .c-segments {
         display: flex;
+        gap: 16px;
+        margin-bottom: 13px;
         flex-wrap: wrap;
-        gap: 6px;
-        padding: 10px 20px;
-        border-bottom: 1px solid var(--line);
-        align-items: center;
-        min-height: 46px;
       }
-      .links .grp {
-        color: var(--mute);
+      #control-concept .c-segments button {
+        border: 0;
+        background: none;
+        color: var(--c-muted);
+        padding: 4px 0;
         font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        margin: 0 4px 0 10px;
-      }
-      .links .grp:first-child {
-        margin-left: 0;
-      }
-      .chip {
-        display: inline-flex;
+        border-bottom: 2px solid transparent;
+        border-radius: 0;
         gap: 6px;
-        padding: 3px 9px;
-        border: 1px solid var(--line);
-        border-radius: 999px;
-        background: var(--panel);
-        color: var(--text);
-        text-decoration: none;
       }
-      .chip:hover {
-        background: var(--hover);
+      #control-concept .c-segments button[aria-pressed='true'] {
+        color: var(--c-accent);
+        border-bottom-color: var(--c-accent);
       }
-      .body {
-        flex: 1;
+      #control-concept .c-segments span {
+        font-size: 11px;
+        background: var(--c-hover);
+        padding: 0 4px;
+        border-radius: 3px;
+      }
+      #control-concept .c-workbench {
         display: grid;
-        grid-template-columns: minmax(340px, 440px) 1fr;
-        min-height: 0;
+        grid-template-columns: minmax(0, 1.06fr) minmax(0, 1fr);
+        border: 1px solid var(--c-line);
+        border-radius: 8px;
+        overflow: clip;
+        background: var(--c-surface);
       }
-      .left {
-        border-right: 1px solid var(--line);
-        overflow: auto;
+      #control-concept .c-service-panel {
+        min-width: 0;
       }
-      .sec {
-        padding: 12px 20px 4px;
-        color: var(--mute);
+      #control-concept .c-table-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 70px 45px;
+        gap: 5px;
+        padding: 12px 15px;
         font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
+        letter-spacing: 0.7px;
+        color: var(--c-muted);
+        border-bottom: 1px solid var(--c-line);
+      }
+      #control-concept .c-table-head span:last-child {
+        text-align: right;
+      }
+      #control-concept .c-group-heading {
+        padding: 12px 15px 7px;
+        font-size: 11px;
+        letter-spacing: 1px;
+        color: var(--c-muted);
+      }
+      #control-concept .c-service-row {
+        width: 100%;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 70px 45px;
+        gap: 5px;
+        padding: var(--c-row-pad) 15px;
+        border: 0;
+        border-bottom: 1px solid var(--c-line);
+        background: transparent;
+        text-align: left;
+        border-radius: 0;
+        position: relative;
+      }
+      #control-concept .c-service-row[aria-pressed='true'] {
+        background: var(--c-selected);
+      }
+      #control-concept .c-service-row[aria-pressed='true']::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: var(--c-accent);
+      }
+      #control-concept .c-service-name {
+        font-size: 11px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+      #control-concept .c-service-name svg {
+        width: 13px;
+        height: 13px;
+        color: var(--c-muted);
+      }
+      #control-concept .c-state {
+        font-size: 11px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        white-space: nowrap;
+      }
+      #control-concept .c-port {
+        color: var(--c-muted);
+        font-size: 11px;
+        justify-self: end;
+        font-variant-numeric: tabular-nums;
+      }
+      #control-concept .c-table-footer {
+        padding: 14px;
+        color: var(--c-muted);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+      }
+      #control-concept .c-table-footer svg {
+        width: 12px;
+      }
+      #control-concept .c-empty {
+        padding: 30px 15px;
+        color: var(--c-muted);
+        font-size: 11px;
+      }
+      #control-concept .c-inspector {
+        min-width: 0;
+        border-left: 1px solid var(--c-line);
+        display: flex;
+        flex-direction: column;
+        background: var(--c-console);
+      }
+      #control-concept .c-inspector-head {
+        padding: 16px 15px 14px;
+        background: var(--c-surface);
+      }
+      #control-concept .c-inspector-head .c-eyebrow {
+        font-size: 11px;
+      }
+      #control-concept .c-inspector-title {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin: 9px 0 8px;
+      }
+      #control-concept .c-unit-icon {
+        width: 25px;
+        height: 25px;
+        border: 1px solid var(--c-line);
+        display: grid;
+        place-items: center;
+        border-radius: 5px;
+      }
+      #control-concept .c-inspector-title h2 {
+        font-size: 14px;
+        overflow-wrap: anywhere;
+      }
+      #control-concept .c-inspector-meta {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+        color: var(--c-muted);
+        font-size: 11px;
+        flex-wrap: wrap;
+      }
+      #control-concept .c-icon-button {
+        border: 0;
+        border-radius: 4px;
+        background: transparent;
+        padding: 4px;
+        color: var(--c-muted);
+      }
+      #control-concept .c-incident {
+        margin: 12px;
+        padding: 12px;
+        background: var(--c-red-bg);
+        border-radius: 5px;
+      }
+      #control-concept .c-incident-title {
+        color: var(--c-red);
+        display: flex;
+        gap: 7px;
+        align-items: center;
+        font-size: 11px;
+        font-weight: 500;
+      }
+      #control-concept .c-incident p {
+        font-size: 11px;
+        margin: 6px 0 12px;
+        color: var(--c-ink);
+      }
+      #control-concept .c-detail-tabs {
+        padding: 0 12px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        border-bottom: 1px solid var(--c-line);
+      }
+      #control-concept .c-detail-tabs > button[data-detail] {
+        font-size: 11px;
+        border: 0;
+        padding: 10px 0;
+        border-bottom: 2px solid transparent;
+        background: none;
+        border-radius: 0;
+        color: var(--c-muted);
+        gap: 5px;
+      }
+      #control-concept .c-detail-tabs > button[aria-pressed='true'] {
+        color: var(--c-accent);
+        border-bottom-color: var(--c-accent);
+      }
+      #control-concept .c-detail-tabs svg {
+        width: 12px;
+        height: 12px;
+      }
+      #control-concept .c-log-tools {
+        padding: 10px 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      #control-concept .c-log-tools label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex: 1;
+        min-width: 0;
+        color: var(--c-muted);
+      }
+      #control-concept .c-log-tools svg {
+        width: 11px;
+      }
+      #control-concept .c-log-tools input {
+        min-width: 0;
+        width: 100%;
+        border: 0;
+        background: none;
+        font-size: 11px;
+      }
+      #control-concept .c-log-tools select {
+        border: 0;
+        background: var(--c-console);
+        font-size: 11px;
+        color: var(--c-muted);
+        max-width: 80px;
+      }
+      #control-concept .c-logs {
+        flex: 1;
+        padding: 0 12px 15px;
+        min-height: 165px;
+      }
+      #control-concept .c-log-line {
+        display: grid;
+        grid-template-columns: 60px minmax(0, 1fr);
+        gap: 8px;
+        font:
+          11px/1.85 'SFMono-Regular',
+          Consolas,
+          monospace;
+        margin-bottom: 3px;
+      }
+      #control-concept .c-log-time {
+        color: var(--c-muted);
+        font-variant-numeric: tabular-nums;
+      }
+      #control-concept .c-log-message {
+        overflow-wrap: anywhere;
+      }
+      #control-concept .c-log-error {
+        color: var(--c-red);
+      }
+      #control-concept .c-log-system {
+        color: var(--c-muted);
+      }
+      #control-concept .c-stream-footer {
+        padding: 10px 12px;
+        border-top: 1px solid var(--c-line);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        color: var(--c-muted);
+      }
+      #control-concept #c-terminal {
+        flex: 1;
+        padding: 12px;
+        min-width: 0;
+      }
+      #control-concept .c-terminal-banner {
+        color: var(--c-muted);
+        font-size: 11px;
+        margin-bottom: 15px;
+      }
+      #control-concept #c-terminal pre {
+        font-size: 11px;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      #control-concept #c-terminal label {
+        display: flex;
+        gap: 7px;
+        align-items: center;
+      }
+      #control-concept #c-terminal input {
+        width: 100%;
+        min-width: 0;
+        background: none;
+        border: 0;
+        font-size: 11px;
+      }
+      #control-concept .c-bottom-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        gap: 22px;
+        margin-top: 23px;
+      }
+      #control-concept .c-bottom-grid .c-title-line > svg {
+        width: 13px;
+        height: 13px;
+        color: var(--c-muted);
+      }
+      #control-concept .c-task-panel p {
+        font-size: 11px;
+        margin: 7px 0 12px;
+        color: var(--c-muted);
+      }
+      #control-concept .c-task-actions {
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+      }
+      #control-concept .c-recent-panel {
+        padding-left: 22px;
+        border-left: 1px solid var(--c-line);
+      }
+      #control-concept .c-latest {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 15px;
+        font-size: 11px;
+      }
+      #control-concept .c-latest small {
+        display: block;
+        color: var(--c-muted);
+        font-size: 11px;
+        margin-top: 2px;
+      }
+      #control-concept .c-latest .c-duration {
+        margin-left: auto;
+        color: var(--c-muted);
+      }
+      #control-concept .c-page-footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+        padding-top: 30px;
+        font-size: 11px;
+        color: var(--c-muted);
+      }
+      #control-concept .c-footer-divider {
+        padding: 0 7px;
+      }
+      #control-concept .c-job-row,
+      #control-concept .c-endpoint-row {
+        padding: 18px 15px;
+        border-bottom: 1px solid var(--c-line);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      #control-concept .c-job-row strong,
+      #control-concept .c-endpoint-row strong {
+        font-size: 12px;
+        font-weight: 500;
+      }
+      #control-concept .c-job-row small,
+      #control-concept .c-endpoint-row small {
+        display: block;
+        color: var(--c-muted);
+        font-size: 11px;
+        overflow-wrap: anywhere;
+      }
+      #control-concept .c-job-row > span:last-child,
+      #control-concept .c-endpoint-row > button {
+        margin-left: auto;
+      }
+      #control-concept .c-job-list,
+      #control-concept .c-link-list {
+        background: var(--c-surface);
+        border: 1px solid var(--c-line);
+        border-radius: 7px;
+        overflow: clip;
+      }
+      #control-concept .c-toast {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: max-content;
+        max-width: 90%;
+        padding: 12px 16px;
+        border: 1px solid var(--c-line);
+        background: var(--c-ink);
+        color: var(--c-surface);
+        border-radius: 7px;
+        box-shadow: 0 8px 30px #0002;
+        z-index: 4;
+        font-size: 12px;
+      }
+      #control-concept dialog {
+        color: var(--c-ink);
+        background: var(--c-surface);
+        border: 1px solid var(--c-line);
+        border-radius: 12px;
+        padding: 0;
+        width: min(480px, 90%);
+        box-shadow: 0 20px 80px #0003;
+      }
+      #control-concept dialog::backdrop {
+        background: #0004;
+      }
+      #control-concept .c-dialog-top {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        padding: 18px;
       }
-      .sec .acts {
+      #control-concept .c-command-input {
+        width: calc(100% - 36px);
+        margin: 0 18px 12px;
+        background: var(--c-bg);
+        border: 1px solid var(--c-line);
+        border-radius: 6px;
+        padding: 10px;
+        font-size: 12px;
+      }
+      #control-concept .c-command-results {
+        padding: 0 8px 8px;
+      }
+      #control-concept .c-command-results button {
+        width: 100%;
+        text-align: left;
+        justify-content: flex-start;
+        padding: 11px;
+        border: 0;
+        border-radius: 5px;
+        background: none;
+        font-size: 12px;
+      }
+      #control-concept .c-command-results button:hover {
+        background: var(--c-hover);
+      }
+      #control-concept .c-command-footer {
         display: flex;
-        gap: 6px;
-        text-transform: none;
-        letter-spacing: 0;
+        justify-content: space-between;
+        padding: 12px 18px;
+        border-top: 1px solid var(--c-line);
+        color: var(--c-muted);
+        font-size: 11px;
       }
-      .row {
+      #control-concept .c-endpoint-body {
+        padding: 0 18px 22px;
         display: grid;
-        grid-template-columns: 14px 1fr auto auto;
-        gap: 10px;
-        align-items: center;
-        padding: 6px 20px;
-        cursor: pointer;
-        border-left: 2px solid transparent;
+        gap: 12px;
       }
-      .row:hover {
-        background: var(--hover);
-      }
-      .row.sel {
-        background: var(--sel);
-        border-left-color: var(--info);
-      }
-      .row .n {
-        font-weight: 500;
-      }
-      .row .d {
-        color: var(--mute);
+      #control-concept .c-endpoint-body code {
         font-size: 12px;
+        overflow-wrap: anywhere;
       }
-      .row .acts {
-        opacity: 0;
-        display: flex;
-        gap: 4px;
+      #control-concept .c-endpoint-body p {
+        font-size: 11px;
+        color: var(--c-muted);
       }
-      .row:hover .acts,
-      .row.sel .acts {
-        opacity: 1;
+      #control-concept[data-layout='Below services'] .c-workbench {
+        grid-template-columns: 1fr;
       }
-      .job {
-        padding: 5px 20px;
-        display: flex;
-        gap: 10px;
-        color: var(--mute);
+      #control-concept .c-expand-button {
+        border: 0;
+        background: none;
+        color: var(--c-accent);
+        font-size: 11px;
+        padding: 8px 0;
       }
-      .job .ok {
-        color: var(--ok);
-      }
-      .job .bad {
-        color: var(--bad);
-      }
-      .right {
-        display: flex;
-        flex-direction: column;
+      #control-concept #c-expanded-service {
+        max-width: 165px;
         min-width: 0;
-        min-height: 0;
+        background: var(--c-surface);
+        border: 1px solid var(--c-line);
+        border-radius: 5px;
+        padding: 6px;
+        font-size: 11px;
       }
-      .tabs {
-        display: flex;
-        gap: 2px;
-        padding: 8px 12px 0;
-        border-bottom: 1px solid var(--line);
-        background: var(--panel);
-        overflow-x: auto;
-      }
-      .tab {
-        padding: 6px 12px;
-        border-radius: 6px 6px 0 0;
-        color: var(--mute);
-        cursor: pointer;
-        white-space: nowrap;
-        border: 1px solid transparent;
-        border-bottom: none;
-      }
-      .tab.on {
-        color: #d6d6d0;
-        background: var(--term-bg);
-        border-color: var(--line);
-      }
-      .panes {
-        flex: 1;
-        position: relative;
-        background: var(--term-bg);
-        min-height: 0;
-      }
-      #logs,
-      #term {
-        position: absolute;
-        inset: 0;
-      }
-      #logs {
-        overflow: auto;
-        padding: 10px 14px;
-        font-size: 12px;
-        line-height: 1.55;
-        color: #d6d6d0;
-        white-space: pre-wrap;
-        word-break: break-all;
-      }
-      #term {
-        padding: 6px 10px;
+      #control-concept[data-expanded='true'] .c-heading,
+      #control-concept[data-expanded='true'] .c-health,
+      #control-concept[data-expanded='true'] .c-shortcuts,
+      #control-concept[data-expanded='true'] #c-services-view > .c-section-header,
+      #control-concept[data-expanded='true'] .c-segments,
+      #control-concept[data-expanded='true'] .c-service-panel,
+      #control-concept[data-expanded='true'] .c-bottom-grid {
         display: none;
       }
-      .logbar {
-        background: var(--term-bg);
-        border-top: 1px solid #2a2a27;
-        padding: 6px 12px;
-        display: flex;
-        gap: 12px;
-        color: #8d8d85;
-        align-items: center;
+      #control-concept[data-expanded='true'] .c-workbench {
+        grid-template-columns: minmax(0, 1fr);
       }
-      .logbar label {
-        display: flex;
-        gap: 4px;
-        align-items: center;
-        cursor: pointer;
+      #control-concept[data-expanded='true'] .c-inspector {
+        border: 0;
+        min-height: 680px;
       }
-      #logs .t {
-        color: #6f6f68;
+      #control-concept[data-expanded='true'] .c-logs {
+        padding: 8px 18px 24px;
+        min-height: 360px;
       }
-      #logs .u {
-        font-weight: 600;
+      #control-concept[data-expanded='true'] .c-log-line {
+        font-size: 12px;
+        grid-template-columns: 68px minmax(0, 1fr);
       }
-      #logs .sys {
-        color: #8d8d85;
-      }
-      #logs .er {
-        color: #ef6b5b;
-      }
-      .toast {
-        position: fixed;
-        right: 16px;
-        bottom: 16px;
-        background: var(--text);
-        color: var(--bg);
-        padding: 8px 14px;
-        border-radius: 8px;
-        opacity: 0;
-        transition: opacity 0.2s;
-        pointer-events: none;
-      }
-      .toast.on {
-        opacity: 1;
-      }
-      .empty {
-        padding: 40px;
-        color: var(--mute);
-      }
-      @media (max-width: 1100px) {
-        .body {
-          grid-template-columns: 1fr;
-          grid-template-rows: auto 1fr;
+      @media (max-width: 560px) {
+        #control-concept[data-expanded='true'] .c-inspector-title {
+          flex-wrap: wrap;
         }
-        .left {
-          border-right: none;
-          border-bottom: 1px solid var(--line);
-          max-height: 40vh;
+        #control-concept[data-expanded='true'] #c-expanded-service {
+          max-width: 125px;
         }
       }
-      @media (max-width: 900px) {
-        body {
+      #control-concept[data-layout='Below services'] .c-inspector {
+        border-left: 0;
+        border-top: 1px solid var(--c-line);
+      }
+      @media (max-width: 850px) {
+        #control-concept {
+          grid-template-columns: 158px minmax(0, 1fr);
+        }
+        #control-concept .c-content {
+          padding: 20px;
+        }
+        #control-concept .c-workbench {
           grid-template-columns: 1fr;
         }
-        aside {
+        #control-concept .c-inspector {
+          border-left: 0;
+          border-top: 1px solid var(--c-line);
+        }
+        #control-concept .c-concept {
+          padding-right: 0;
+        }
+        #control-concept .c-bottom-grid {
+          grid-template-columns: 1fr;
+        }
+        #control-concept .c-recent-panel {
+          border: 0;
+          padding: 0;
+        }
+        #control-concept .c-search kbd {
           display: none;
         }
-        .body {
-          grid-template-columns: 1fr;
+      }
+      @media (max-width: 560px) {
+        #control-concept {
+          display: block;
+          border-radius: 8px;
         }
-        .left {
-          border-right: none;
-          max-height: 45vh;
+        #control-concept .c-sidebar {
+          padding: 15px;
+          border-right: 0;
+          border-bottom: 1px solid var(--c-line);
+        }
+        #control-concept .c-brand {
+          padding: 0 0 14px;
+        }
+        #control-concept .c-search,
+        #control-concept .c-sidebar-bottom,
+        #control-concept .c-side-divider,
+        #control-concept .c-side-label {
+          display: none;
+        }
+        #control-concept .c-workspaces {
+          grid-template-columns: 1fr 1fr;
+        }
+        #control-concept .c-workspace {
+          padding: 9px;
+        }
+        #control-concept .c-workspace:last-child {
+          grid-column: 1 / -1;
+        }
+        #control-concept .c-nav {
+          display: flex;
+          flex-wrap: wrap;
+          margin-top: 10px;
+        }
+        #control-concept .c-nav button {
+          font-size: 11px;
+          gap: 5px;
+          padding: 8px;
+        }
+        #control-concept .c-topbar {
+          padding: 12px 18px;
+          min-height: 44px;
+          gap: 7px;
+        }
+        #control-concept .c-concept {
+          display: none;
+        }
+        #control-concept .c-content {
+          padding: 18px;
+        }
+        #control-concept .c-heading {
+          align-items: flex-start;
+          flex-wrap: wrap;
+        }
+        #control-concept h1 {
+          font-size: 27px;
+        }
+        #control-concept .c-tools {
+          width: 100%;
+          flex-wrap: wrap;
+        }
+        #control-concept .c-filter {
+          flex: 1;
+          min-width: 120px;
+        }
+        #control-concept .c-shortcuts {
+          gap: 13px;
+        }
+        #control-concept .c-health .c-text-button {
+          margin-left: 16px;
+        }
+        #control-concept .c-segments {
+          gap: 11px;
+        }
+        #control-concept .c-table-head,
+        #control-concept .c-service-row {
+          grid-template-columns: minmax(0, 1fr) 62px 35px;
+          padding-left: 11px;
+          padding-right: 11px;
+        }
+        #control-concept .c-service-name {
+          font-size: 11px;
+          gap: 5px;
+        }
+        #control-concept .c-state,
+        #control-concept .c-port {
+          font-size: 11px;
+        }
+      }
+      @media (pointer: coarse) {
+        #control-concept button,
+        #control-concept input,
+        #control-concept select {
+          min-height: 44px;
+        }
+        #control-concept input {
+          font-size: 16px !important;
+        }
+      }
+
+      html {
+        color-scheme: dark;
+      }
+      body {
+        margin: 0;
+        background: #101112;
+      }
+      button,
+      a,
+      select {
+        cursor: pointer;
+      }
+      button:disabled {
+        cursor: default;
+      }
+      #control-concept {
+        min-height: 100dvh;
+        border: 0;
+        border-radius: 0;
+      }
+      #control-concept .c-content {
+        max-width: 1700px;
+        margin: 0 auto;
+      }
+      #control-concept .c-concept {
+        padding-right: 0;
+      }
+      #control-concept .c-workspaces {
+        max-height: 45dvh;
+        overflow: auto;
+      }
+      #control-concept .c-workspace > span:nth-child(2) {
+        min-width: 0;
+      }
+      #control-concept .c-workspace strong,
+      #control-concept .c-workspace small {
+        overflow-wrap: anywhere;
+      }
+      #control-concept .c-workspace-actions {
+        display: grid;
+        gap: 8px;
+        justify-items: end;
+      }
+      #control-concept .c-workspace-actions > div {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      #control-concept .c-infra-label {
+        font-size: 11px;
+        color: var(--c-muted);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      #control-concept input[type='checkbox'] {
+        accent-color: var(--c-accent);
+      }
+      #control-concept .c-workspace-error {
+        color: var(--c-red);
+        background: var(--c-red-bg);
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        padding: 12px;
+        border-radius: 6px;
+      }
+      #control-concept .c-dot.c-warn {
+        background: var(--c-amber);
+      }
+      #control-concept .c-warn {
+        color: var(--c-amber);
+      }
+      #control-concept .c-muted {
+        color: var(--c-muted);
+      }
+      #control-concept .c-button,
+      #control-concept .c-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none;
+        color: inherit;
+      }
+      #control-concept .c-button:focus-visible,
+      #control-concept .c-link:focus-visible,
+      #control-concept #c-logs:focus-visible {
+        outline: 2px solid var(--c-accent);
+        outline-offset: 3px;
+      }
+      #control-concept [data-icon] {
+        display: inline-flex;
+        align-items: center;
+        flex-shrink: 0;
+      }
+      #control-concept .c-heading {
+        align-items: start;
+      }
+      #control-concept .c-inspector-title {
+        flex-wrap: wrap;
+      }
+      #control-concept .c-inspector-title h2 {
+        min-width: 0;
+        flex: 1;
+      }
+      #control-concept .c-inspector-meta {
+        gap: 10px;
+      }
+      #control-concept .c-stream-picker {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: var(--c-muted);
+        font-size: 11px;
+        margin-top: 12px;
+      }
+      #control-concept #c-expanded-service {
+        max-width: none;
+        width: 100%;
+        color: var(--c-ink);
+      }
+      #control-concept .c-service-panel {
+        max-height: 640px;
+        overflow: auto;
+      }
+      #control-concept .c-service-name {
+        overflow-wrap: anywhere;
+      }
+      #control-concept .c-state {
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
+      #control-concept .c-table-head,
+      #control-concept .c-service-row {
+        grid-template-columns: minmax(0, 1fr) 83px 58px;
+      }
+      #control-concept .c-port {
+        overflow-wrap: anywhere;
+        text-align: right;
+      }
+      #control-concept .c-inspector {
+        height: 640px;
+      }
+      #control-concept .c-logs {
+        min-height: 100px;
+        overflow: auto;
+        overflow-anchor: none;
+      }
+      #control-concept .c-log-line {
+        grid-template-columns: 60px minmax(0, 1fr);
+      }
+      #control-concept .c-log-message {
+        white-space: pre-wrap;
+        tab-size: 2;
+      }
+      #control-concept .c-log-unit {
+        color: var(--c-accent);
+        margin-right: 6px;
+      }
+      #control-concept #c-terminal {
+        flex: 1;
+        min-height: 160px;
+        padding: 10px;
+        overflow: hidden;
+      }
+      #control-concept .c-detail-tabs {
+        gap: 12px;
+      }
+      #control-concept .c-log-tools {
+        flex-wrap: wrap;
+      }
+      #control-concept .c-log-tools label {
+        min-width: 110px;
+      }
+      #control-concept .c-recent-panel .c-job-row {
+        padding: 0;
+        border: 0;
+        width: 100%;
+        align-items: start;
+      }
+      #control-concept .c-latest {
+        align-items: start;
+      }
+      #control-concept .c-job-row small {
+        max-width: 800px;
+      }
+      #control-concept .c-endpoint-row > div {
+        min-width: 0;
+      }
+      #control-concept .c-endpoint-row > a {
+        margin-left: auto;
+      }
+      #control-concept .c-toast {
+        position: fixed;
+        bottom: 20px;
+      }
+      #control-concept dialog {
+        max-height: min(700px, 85dvh);
+        overflow: auto;
+      }
+      #control-concept[data-expanded='true'] .c-inspector {
+        height: max(680px, calc(100dvh - 160px));
+        min-height: 0;
+      }
+      #control-concept[data-expanded='true'] .c-logs {
+        min-height: 150px;
+      }
+      #control-concept[data-expanded='true'] .c-log-line {
+        grid-template-columns: 68px minmax(0, 1fr);
+      }
+      #control-concept[data-expanded='true'] #c-expanded-service {
+        max-width: none;
+      }
+      @media (min-width: 1400px) {
+        #control-concept .c-workbench {
+          grid-template-columns: minmax(340px, 0.85fr) minmax(0, 1.4fr);
+        }
+      }
+      @media (max-width: 850px) {
+        #control-concept .c-workspace-actions {
+          justify-items: start;
+        }
+        #control-concept .c-heading {
+          flex-wrap: wrap;
+        }
+      }
+      @media (max-width: 560px) {
+        #control-concept .c-workspaces {
+          max-height: 240px;
+          overflow: auto;
+        }
+        #control-concept .c-sidebar-bottom {
+          display: grid;
+          padding-top: 12px;
+        }
+        #control-concept .c-sidebar-bottom .c-keyhelp {
+          display: none;
+        }
+        #control-concept .c-workspace:last-child {
+          grid-column: auto;
+        }
+        #control-concept .c-table-head,
+        #control-concept .c-service-row {
+          grid-template-columns: minmax(0, 1fr) 74px 48px;
+        }
+        #control-concept .c-job-row,
+        #control-concept .c-endpoint-row {
+          flex-wrap: wrap;
+        }
+        #control-concept .c-inspector {
+          height: 650px;
         }
       }
     </style>
   </head>
   <body>
-    <aside>
-      <h1>Control <small id="port"></small></h1>
-      <div id="wslist"></div>
-      <div class="side-foot" id="foot">daemon</div>
-    </aside>
-    <main id="main">
-      <div class="empty">
-        No workspaces registered yet. Run <code>control up</code> inside a checkout.
-      </div>
-    </main>
-    <div class="toast" id="toast"></div>
+    <div id="control-concept" aria-label="Control development workbench">
+      <aside class="c-sidebar">
+        <div class="c-brand">
+          <span class="c-mark"
+            ><svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="lucide lucide-terminal"
+              aria-hidden="true"
+            >
+              <path d="M12 19h8"></path>
+              <path d="m4 17 6-6-6-6"></path></svg></span
+          >control<span class="c-edition">DEV</span>
+        </div>
+        <button class="c-search" data-command>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-search"
+            aria-hidden="true"
+          >
+            <path d="m21 21-4.34-4.34"></path>
+            <circle cx="11" cy="11" r="8"></circle></svg
+          ><span>Find anything…</span><kbd>⌘ K</kbd>
+        </button>
+        <div class="c-side-label">WORKSPACES <span id="c-workspace-count">0</span></div>
+        <nav id="c-workspaces" class="c-workspaces" aria-label="Workspaces"></nav>
+        <div class="c-side-divider"></div>
+        <div class="c-side-label">THIS WORKSPACE</div>
+        <nav class="c-nav" id="c-nav" aria-label="Workspace views" hidden>
+          <button data-view="services" aria-current="page">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="lucide lucide-layers-2"
+              aria-hidden="true"
+            >
+              <path
+                d="M13 13.74a2 2 0 0 1-2 0L2.5 8.87a1 1 0 0 1 0-1.74L11 2.26a2 2 0 0 1 2 0l8.5 4.87a1 1 0 0 1 0 1.74z"
+              ></path>
+              <path
+                d="m20 14.285 1.5.845a1 1 0 0 1 0 1.74L13 21.74a2 2 0 0 1-2 0l-8.5-4.87a1 1 0 0 1 0-1.74l1.5-.845"
+              ></path></svg
+            >Services<span id="c-service-count"></span>
+          </button>
+          <button data-view="jobs">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="lucide lucide-list-checks"
+              aria-hidden="true"
+            >
+              <path d="M13 5h8"></path>
+              <path d="M13 12h8"></path>
+              <path d="M13 19h8"></path>
+              <path d="m3 17 2 2 4-4"></path>
+              <path d="m3 7 2 2 4-4"></path></svg
+            >Jobs<span id="c-jobs-count"></span>
+          </button>
+          <button data-view="links">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="lucide lucide-arrow-up-right"
+              aria-hidden="true"
+            >
+              <path d="M7 7h10v10"></path>
+              <path d="M7 17 17 7"></path></svg
+            >Workspace Links
+          </button>
+        </nav>
+        <div class="c-sidebar-bottom">
+          <span class="c-daemon"
+            ><span id="c-daemon-dot" class="c-dot c-warn"></span
+            ><span id="c-daemon-state">Connecting to daemon…</span></span
+          ><span class="c-mono" id="c-daemon-info"></span
+          ><button class="c-keyhelp" data-command>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="lucide lucide-command"
+              aria-hidden="true"
+            >
+              <path
+                d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3"
+              ></path></svg
+            >Commands & Shortcuts
+          </button>
+        </div>
+      </aside>
+      <main class="c-main">
+        <header class="c-topbar">
+          <span>Workspaces</span
+          ><svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-chevron-right"
+            aria-hidden="true"
+          >
+            <path d="m9 18 6-6-6-6"></path></svg
+          ><strong id="c-crumb">Select a workspace</strong><span class="c-spacer"></span
+          ><span class="c-concept" id="c-port">LOCAL DEVELOPMENT</span>
+        </header>
+        <div class="c-content c-empty" id="c-empty-workspace">
+          No workspace selected. Run <code>control up</code> inside a checkout, or select a
+          workspace in the sidebar.
+        </div>
+        <div class="c-content" id="c-workspace-content" hidden>
+          <div class="c-heading">
+            <div>
+              <div class="c-eyebrow" id="c-workspace-kind">LOCAL DEVELOPMENT</div>
+              <h1 id="c-title"></h1>
+              <div class="c-meta">
+                <span
+                  ><svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="lucide lucide-git-branch"
+                    aria-hidden="true"
+                  >
+                    <path d="M15 6a9 9 0 0 0-9 9V3"></path>
+                    <circle cx="18" cy="6" r="3"></circle>
+                    <circle cx="6" cy="18" r="3"></circle></svg
+                  ><span id="c-branch"></span></span
+                ><span class="c-meta-sep">/</span><span class="c-mono" id="c-host"></span>
+              </div>
+            </div>
+            <div class="c-workspace-actions">
+              <div>
+                <button class="c-button" id="c-start-workspace">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="lucide lucide-play"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"
+                    ></path></svg
+                  >Start Workspace</button
+                ><button class="c-button" id="c-restart-workspace">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="lucide lucide-rotate-cw"
+                    aria-hidden="true"
+                  >
+                    <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path>
+                    <path d="M21 3v5h-5"></path></svg
+                  >Restart</button
+                ><button class="c-button" id="c-stop-workspace">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="lucide lucide-square"
+                    aria-hidden="true"
+                  >
+                    <rect width="18" height="18" x="3" y="3" rx="2"></rect></svg
+                  >Stop
+                </button>
+                <button class="c-button" id="c-reset-data">Reset Data</button>
+                <button class="c-button" id="c-clear-license" hidden>Clear License</button>
+              </div>
+              <label class="c-infra-label"
+                ><input type="checkbox" id="c-infra" /> Include infrastructure</label
+              >
+            </div>
+          </div>
+          <div class="c-health" id="c-health" role="status"></div>
+          <pre class="c-workspace-error" id="c-workspace-error" hidden></pre>
+          <div class="c-shortcuts" id="c-shortcuts"></div>
+          <section id="c-services-view">
+            <div class="c-section-header">
+              <div class="c-title-line">
+                <h2>Services</h2>
+                <span class="c-pill" id="c-total"></span>
+              </div>
+              <div class="c-tools">
+                <label class="c-filter"
+                  ><svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="lucide lucide-search"
+                    aria-hidden="true"
+                  >
+                    <path d="m21 21-4.34-4.34"></path>
+                    <circle cx="11" cy="11" r="8"></circle></svg
+                  ><input
+                    id="c-filter"
+                    placeholder="Filter services…"
+                    aria-label="Filter services"
+                  /><kbd>/</kbd></label
+                ><button class="c-button c-small" id="c-restart-all">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="lucide lucide-rotate-cw"
+                    aria-hidden="true"
+                  >
+                    <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path>
+                    <path d="M21 3v5h-5"></path></svg
+                  >Restart All
+                </button>
+              </div>
+            </div>
+            <div class="c-segments" aria-label="Service filter">
+              <button data-filter="all" aria-pressed="true">
+                All Units <span id="c-all-count"></span></button
+              ><button data-filter="attention" aria-pressed="false">
+                Needs Attention <span id="c-attention-count"></span></button
+              ><button data-filter="infra" aria-pressed="false">
+                Infrastructure <span id="c-infra-count"></span>
+              </button>
+            </div>
+            <div class="c-workbench" id="c-workbench">
+              <div class="c-service-panel">
+                <div class="c-table-head">
+                  <span>SERVICE / UNIT</span><span>STATUS</span><span>PORT</span>
+                </div>
+                <div id="c-rows"></div>
+                <div class="c-table-footer">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="lucide lucide-mouse-pointer-2"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z"
+                    ></path></svg
+                  >Select a unit to inspect logs and actions.
+                </div>
+              </div>
+              <section class="c-inspector" aria-label="Selected service inspector">
+                <div class="c-inspector-head">
+                  <div class="c-eyebrow">INSPECTOR</div>
+                  <div class="c-inspector-title">
+                    <span class="c-unit-icon"
+                      ><svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        class="lucide lucide-box"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"
+                        ></path>
+                        <path d="m3.3 7 8.7 5 8.7-5"></path>
+                        <path d="M12 22V12"></path></svg
+                    ></span>
+                    <h2 id="c-selected-name">All Logs</h2>
+                    <button
+                      class="c-button c-small"
+                      id="c-all-logs"
+                      data-unit="*"
+                      aria-pressed="true"
+                    >
+                      All Logs
+                    </button>
+                    <span class="c-spacer"></span
+                    ><button class="c-button c-small" id="c-inspector-toggle" hidden>
+                      Stop</button
+                    ><button
+                      class="c-icon-button"
+                      id="c-inspector-restart"
+                      aria-label="Restart selected service"
+                      hidden
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        class="lucide lucide-rotate-cw"
+                        aria-hidden="true"
+                      >
+                        <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path>
+                        <path d="M21 3v5h-5"></path>
+                      </svg>
+                    </button>
+                  </div>
+                  <div id="c-selected-meta" class="c-inspector-meta"></div>
+                  <label class="c-stream-picker"
+                    ><span>Stream</span
+                    ><select id="c-expanded-service" aria-label="Service to inspect"></select
+                  ></label>
+                </div>
+                <div id="c-incident"></div>
+                <div class="c-detail-tabs" aria-label="Inspector view">
+                  <button data-detail="logs" aria-pressed="true">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="lucide lucide-text-align-start lucide-text lucide-align-left"
+                      aria-hidden="true"
+                    >
+                      <path d="M21 5H3"></path>
+                      <path d="M15 12H3"></path>
+                      <path d="M17 19H3"></path></svg
+                    >Logs</button
+                  ><button data-detail="term" aria-pressed="false">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="lucide lucide-terminal"
+                      aria-hidden="true"
+                    >
+                      <path d="M12 19h8"></path>
+                      <path d="m4 17 6-6-6-6"></path></svg
+                    >Terminal</button
+                  ><span class="c-spacer"></span
+                  ><button class="c-icon-button" id="c-pause" aria-label="Pause log following">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="lucide lucide-pause"
+                      aria-hidden="true"
+                    >
+                      <rect x="14" y="3" width="5" height="18" rx="1"></rect>
+                      <rect x="5" y="3" width="5" height="18" rx="1"></rect>
+                    </svg></button
+                  ><button
+                    class="c-expand-button"
+                    id="c-expand-logs"
+                    aria-expanded="false"
+                    aria-controls="c-workbench"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="lucide lucide-maximize-2"
+                      aria-hidden="true"
+                    >
+                      <path d="M15 3h6v6"></path>
+                      <path d="m21 3-7 7"></path>
+                      <path d="m3 21 7-7"></path>
+                      <path d="M9 21H3v-6"></path></svg
+                    ><span>Expand</span>
+                  </button>
+                </div>
+                <div id="c-log-tools" class="c-log-tools">
+                  <label
+                    ><svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="lucide lucide-search"
+                      aria-hidden="true"
+                    >
+                      <path d="m21 21-4.34-4.34"></path>
+                      <circle cx="11" cy="11" r="8"></circle></svg
+                    ><input
+                      id="c-log-search"
+                      placeholder="Search this stream…"
+                      aria-label="Search selected service logs" /></label
+                  ><select id="c-level" aria-label="Log stream">
+                    <option value="all">All Output</option>
+                    <option value="err">stderr</option>
+                    <option value="sys">System</option>
+                    <option value="out">stdout</option></select
+                  ><button class="c-icon-button" id="c-clear">Clear</button>
+                </div>
+                <div
+                  id="c-logs"
+                  class="c-logs"
+                  aria-label="Service log output"
+                  tabindex="0"
+                ></div>
+                <div id="c-terminal" aria-label="Workspace terminal" hidden></div>
+                <div class="c-stream-footer">
+                  <span class="c-dot c-warn" id="c-stream-dot"></span
+                  ><span id="c-stream-status" role="status">Connecting to stream…</span
+                  ><span class="c-spacer"></span><span id="c-log-count">0 lines</span>
+                </div>
+              </section>
+            </div>
+            <div class="c-bottom-grid">
+              <section class="c-task-panel" id="c-task-panel">
+                <div class="c-title-line">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="lucide lucide-database"
+                    aria-hidden="true"
+                  >
+                    <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                    <path d="M3 5V19A9 3 0 0 0 21 19V5"></path>
+                    <path d="M3 12A9 3 0 0 0 21 12"></path>
+                  </svg>
+                  <h3>Database & Preparation</h3>
+                </div>
+                <p>Run workspace tasks without leaving your flow.</p>
+                <div class="c-task-actions" id="c-task-actions"></div>
+              </section>
+              <section class="c-recent-panel">
+                <div class="c-title-line">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="lucide lucide-rotate-ccw-clock lucide-history"
+                    aria-hidden="true"
+                  >
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                    <path d="M3 3v5h5"></path>
+                    <path d="M12 7v5l4 2"></path>
+                  </svg>
+                  <h3>Latest Job</h3>
+                  <button class="c-text-button" data-view="jobs">
+                    View All
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="lucide lucide-arrow-right"
+                      aria-hidden="true"
+                    >
+                      <path d="M5 12h14"></path>
+                      <path d="m12 5 7 7-7 7"></path>
+                    </svg>
+                  </button>
+                </div>
+                <div class="c-latest" id="c-latest"></div>
+              </section>
+            </div>
+          </section>
+          <section id="c-jobs-view" hidden>
+            <div class="c-section-header">
+              <h2>Workspace Jobs</h2>
+              <button class="c-button" id="c-run-prepare" data-task="prepare">
+                Run Prepare
+              </button>
+            </div>
+            <div class="c-job-list" id="c-job-list"></div>
+          </section>
+          <section id="c-links-view" hidden>
+            <div class="c-section-header"><h2>Workspace Links</h2></div>
+            <div class="c-link-list" id="c-link-list"></div>
+          </section>
+          <footer class="c-page-footer">
+            <span>Control / Development Workbench</span
+            ><span
+              >⌘ K commands <span class="c-footer-divider">·</span> / filter
+              <span class="c-footer-divider">·</span> Esc restore</span
+            >
+          </footer>
+        </div>
+      </main>
+      <div class="c-toast" id="c-toast" role="status" hidden></div>
+      <dialog class="c-command-dialog" id="c-command-dialog" aria-labelledby="c-command-title">
+        <div class="c-dialog-top">
+          <h2 id="c-command-title">Command Menu</h2>
+          <button class="c-icon-button" data-close aria-label="Close command menu">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="lucide lucide-x"
+              aria-hidden="true"
+            >
+              <path d="M18 6 6 18"></path>
+              <path d="m6 6 12 12"></path>
+            </svg>
+          </button>
+        </div>
+        <input
+          class="c-command-input"
+          id="c-command-search"
+          placeholder="Search services, actions, and workspaces…"
+          aria-label="Search commands"
+        />
+        <div class="c-command-results" id="c-command-results"></div>
+        <div class="c-command-footer">↑ ↓ navigate · Enter run <kbd>esc</kbd></div>
+      </dialog>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.js"></script>
     <script>
-      let state = {
-        ws: {},
-        cur: localStorage.getItem('ws') || '',
-        sel: '*',
-        tab: 'logs',
-        infra: false
-      };
-      let $ = id => document.getElementById(id);
-      let esc = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
-      let toast = m => {
-        let t = $('toast');
-        t.textContent = m;
-        t.classList.add('on');
-        clearTimeout(toast.h);
-        toast.h = setTimeout(() => t.classList.remove('on'), 2200);
-      };
-      let call = async (path, method = 'POST', body) => {
-        let r = await fetch('/api' + path, {
-          method,
-          headers: { 'content-type': 'application/json' },
-          body: body ? JSON.stringify(body) : undefined
-        });
-        let d = await r.json().catch(() => ({}));
-        if (!r.ok) {
-          toast(d.error || 'request failed');
-          throw new Error(d.error);
-        }
-        return d;
-      };
-      let cur = () => state.ws[state.cur];
-      let base = () => `/workspaces/${encodeURIComponent(state.cur)}`;
-      let phaseDot = w =>
-        w.units.some(u => u.state === 'crashed') && w.phase === 'running'
-          ? 'crashed'
-          : w.phase;
-      let since = t => {
-        if (!t) return '–';
-        let s = Math.round((Date.now() - t) / 1000);
-        return s < 60
-          ? s + 's'
-          : s < 3600
-            ? Math.floor(s / 60) + 'm'
-            : Math.floor(s / 3600) + 'h ' + Math.floor((s % 3600) / 60) + 'm';
+      let iconMarkup = {
+        Terminal:
+          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-terminal" aria-hidden="true"><path d="M12 19h8"></path><path d="m4 17 6-6-6-6"></path></svg>',
+        Search:
+          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search" aria-hidden="true"><path d="m21 21-4.34-4.34"></path><circle cx="11" cy="11" r="8"></circle></svg>',
+        Layers2:
+          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-layers-2" aria-hidden="true"><path d="M13 13.74a2 2 0 0 1-2 0L2.5 8.87a1 1 0 0 1 0-1.74L11 2.26a2 2 0 0 1 2 0l8.5 4.87a1 1 0 0 1 0 1.74z"></path><path d="m20 14.285 1.5.845a1 1 0 0 1 0 1.74L13 21.74a2 2 0 0 1-2 0l-8.5-4.87a1 1 0 0 1 0-1.74l1.5-.845"></path></svg>',
+        ListChecks:
+          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-list-checks" aria-hidden="true"><path d="M13 5h8"></path><path d="M13 12h8"></path><path d="M13 19h8"></path><path d="m3 17 2 2 4-4"></path><path d="m3 7 2 2 4-4"></path></svg>',
+        ArrowUpRight:
+          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-up-right" aria-hidden="true"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></svg>',
+        Command:
+          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-command" aria-hidden="true"><path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3"></path></svg>',
+        ChevronRight:
+          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-right" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>',
+        GitBranch:
+          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-git-branch" aria-hidden="true"><path d="M15 6a9 9 0 0 0-9 9V3"></path><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle></svg>',
+        Square:
+          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-square" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"></rect></svg>',
+        Play: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play" aria-hidden="true"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"></path></svg>',
+        RotateCw:
+          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-rotate-cw" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path><path d="M21 3v5h-5"></path></svg>',
+        Box: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-box" aria-hidden="true"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg>',
+        Database:
+          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-database" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5V19A9 3 0 0 0 21 19V5"></path><path d="M3 12A9 3 0 0 0 21 12"></path></svg>',
+        AlignLeft:
+          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-text-align-start lucide-text lucide-align-left" aria-hidden="true"><path d="M21 5H3"></path><path d="M15 12H3"></path><path d="M17 19H3"></path></svg>',
+        Pause:
+          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pause" aria-hidden="true"><rect x="14" y="3" width="5" height="18" rx="1"></rect><rect x="5" y="3" width="5" height="18" rx="1"></rect></svg>',
+        Maximize2:
+          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-maximize-2" aria-hidden="true"><path d="M15 3h6v6"></path><path d="m21 3-7 7"></path><path d="m3 21 7-7"></path><path d="M9 21H3v-6"></path></svg>',
+        Minimize2:
+          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-minimize-2" aria-hidden="true"><path d="m14 10 7-7"></path><path d="M20 10h-6V4"></path><path d="m3 21 7-7"></path><path d="M4 14h6v6"></path></svg>',
+        CircleAlert:
+          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-alert lucide-alert-circle" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" x2="12" y1="8" y2="12"></line><line x1="12" x2="12.01" y1="16" y2="16"></line></svg>',
+        CircleCheck:
+          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check lucide-check-circle-2" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="m16 9-5.5 5.5L8 12"></path></svg>',
+        History:
+          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-rotate-ccw-clock lucide-history" aria-hidden="true"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M12 7v5l4 2"></path></svg>',
+        MousePointer2:
+          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mouse-pointer-2" aria-hidden="true"><path d="M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z"></path></svg>',
+        ArrowRight:
+          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right" aria-hidden="true"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>',
+        X: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>',
+        PanelTop:
+          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-panel-top" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M3 9h18"></path></svg>',
+        Shield:
+          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shield" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path></svg>',
+        Mail: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mail" aria-hidden="true"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"></path><rect x="2" y="4" width="20" height="16" rx="2"></rect></svg>',
+        ExternalLink:
+          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-external-link" aria-hidden="true"><path d="M15 3h6v6"></path><path d="M10 14 21 3"></path><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg>'
       };
 
-      // ---- ansi → html
-      let ansiColors = {
-        30: '#4a4a46',
-        31: '#ef6b5b',
-        32: '#4cc97e',
-        33: '#e0a84a',
-        34: '#6aa8ee',
-        35: '#c88be0',
-        36: '#56c6c6',
-        37: '#d6d6d0',
-        90: '#7d7d75',
-        91: '#ff8a7a',
-        92: '#7ee0a0',
-        93: '#f0c36a',
-        94: '#8fbaf5',
-        95: '#dca8ee',
-        96: '#7edede',
-        97: '#fff'
+      let maxLogLines = 3000;
+
+      let jobKinds = ['db:generate', 'db:push', 'db:migrate', 'prepare'];
+
+      let jobLabels = {
+        'db:generate': 'Generate',
+        'db:push': 'Push Schema',
+        'db:migrate': 'Migrate',
+        prepare: 'Prepare'
       };
+
+      let $ = id => document.getElementById(id);
+
+      let $$ = selector => [...document.querySelectorAll(selector)];
+
+      let icon = name => iconMarkup[name] || '';
+
+      let esc = value =>
+        String(value ?? '').replace(
+          /[&<>"']/g,
+          character =>
+            ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[
+              character
+            ]
+        );
+
+      let storedWorkspace = () => {
+        try {
+          return localStorage.getItem('ws') || '';
+        } catch {
+          return '';
+        }
+      };
+
+      let parseRoute = () => {
+        try {
+          let [, root, workspace, tab, unit] = location.pathname
+            .split('/')
+            .map(decodeURIComponent);
+          if (root !== 'w' || !workspace) return null;
+          let query = new URLSearchParams(location.search);
+
+          return {
+            workspace,
+            tab: tab === 'terminal' ? 'term' : 'logs',
+            selected: unit || '*',
+            expanded: query.get('expanded') === '1',
+            view: ['jobs', 'links'].includes(query.get('view'))
+              ? query.get('view')
+              : 'services'
+          };
+        } catch {
+          return null;
+        }
+      };
+
+      let route = parseRoute();
+
+      let state = {
+        workspaces: Object.create(null),
+        current: route?.workspace || storedWorkspace(),
+        selected: route?.selected || '*',
+        tab: route?.tab || 'logs',
+        expanded: route?.expanded || false,
+        view: route?.view || 'services',
+        filter: 'all',
+        infra: false,
+        following: true,
+        logConnected: false
+      };
+
+      let current = () => state.workspaces[state.current];
+
+      let selectedUnit = () => current()?.units.find(unit => unit.name === state.selected);
+
+      let base = () => `/workspaces/${encodeURIComponent(state.current)}`;
+
+      let healthy = unit => ['running', 'healthy'].includes(unit.state);
+
+      let busy = workspace =>
+        ['infra', 'preparing', 'starting', 'stopping'].includes(workspace.phase);
+
+      let clearLicenseUrl = workspace => {
+        if (workspace?.kind !== 'stack' || workspace.stack.identifier !== 'on-prem')
+          return null;
+        let app = workspace.links.find(link => link.label === 'Metorial');
+
+        return app ? new URL('/license/clear', app.url).href : null;
+      };
+
+      let statusColor = status =>
+        ['crashed', 'failed'].includes(status)
+          ? 'c-bad'
+          : ['running', 'healthy', 'done'].includes(status)
+            ? 'c-good'
+            : ['stopped', 'idle'].includes(status)
+              ? 'c-idle'
+              : 'c-warn';
+
+      let dot = status => `<span class="c-dot ${statusColor(status)}"></span>`;
+
+      let since = time => {
+        if (!time) return '—';
+        let seconds = Math.max(0, Math.floor((Date.now() - time) / 1000));
+
+        return seconds < 60
+          ? `${seconds}s`
+          : seconds < 3600
+            ? `${Math.floor(seconds / 60)}m`
+            : `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+      };
+
+      let syncUrl = () => {
+        if (!state.current) return;
+        let path = `/w/${encodeURIComponent(state.current)}`;
+        if (state.tab === 'term') path += '/terminal';
+        else if (state.selected !== '*') path += '/logs';
+        if (state.selected !== '*') path += `/${encodeURIComponent(state.selected)}`;
+        let query = new URLSearchParams();
+        if (state.expanded) query.set('expanded', '1');
+        if (state.view !== 'services') query.set('view', state.view);
+        if (query.size) path += `?${query}`;
+
+        if (path !== location.pathname + location.search) history.pushState(null, '', path);
+      };
+
+      let toastTimer;
+
+      let toast = message => {
+        $('c-toast').textContent = message;
+        $('c-toast').hidden = false;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+          $('c-toast').hidden = true;
+        }, 4000);
+      };
+
+      let request = async (path, payload = {}) => {
+        let response = await fetch(`/api${path}`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        let result = await response.json().catch(() => ({}));
+        if (!response.ok)
+          throw new Error(result.error || `Request failed (${response.status})`);
+
+        return result;
+      };
+
+      let pendingActions = new Set();
+
+      let resettingData = false;
+
+      let clearingLicense = false;
+
+      let perform = async (key, action, message) => {
+        if (pendingActions.has(key)) return;
+        pendingActions.add(key);
+        render();
+
+        try {
+          await action();
+          if (message) toast(message);
+        } catch (error) {
+          toast(error.message || 'Could not reach the daemon.');
+        } finally {
+          pendingActions.delete(key);
+          render();
+        }
+      };
+
+      let ansiColors = {
+        30: '#696c72',
+        31: '#ec9387',
+        32: '#94bfa5',
+        33: '#f4d35e',
+        34: '#93b4da',
+        35: '#c5a3da',
+        36: '#8dcaca',
+        37: '#eceeed',
+        90: '#9c9fa3',
+        91: '#f7ac9f',
+        92: '#b2d4b7',
+        93: '#ffe496',
+        94: '#b5cdec',
+        95: '#dfc2ed',
+        96: '#b4e2e2',
+        97: '#ffffff'
+      };
+
+      let plain = text => text.replace(/\u001b\[[0-9;?]*[A-Za-z]/g, '');
+
       let ansi = text => {
-        let out = '',
-          open = false;
+        let output = '';
+        let open = false;
         for (let part of esc(text).split(/(\u001b\[[0-9;]*m)/)) {
-          let m = part.match(/^\u001b\[([0-9;]*)m$/);
-          if (!m) {
-            out += part.replace(/\u001b\[[0-9;?]*[A-Za-ln-z]/g, '');
+          let match = part.match(/^\u001b\[([0-9;]*)m$/);
+          if (!match) {
+            output += plain(part);
             continue;
           }
           if (open) {
-            out += '</span>';
+            output += '</span>';
             open = false;
           }
-          let codes = m[1].split(';').map(Number),
-            style = '';
-          for (let c of codes) {
-            if (ansiColors[c]) style += 'color:' + ansiColors[c] + ';';
-            else if (c === 1) style += 'font-weight:600;';
-          }
-          if (style) {
-            out += `<span style="${style}">`;
+          let styles = match[1]
+            .split(';')
+            .map(Number)
+            .map(code =>
+              ansiColors[code]
+                ? `color:${ansiColors[code]}`
+                : code === 1
+                  ? 'font-weight:500'
+                  : ''
+            )
+            .filter(Boolean)
+            .join(';');
+          if (styles) {
+            output += `<span style="${styles}">`;
             open = true;
           }
         }
-        return out + (open ? '</span>' : '');
-      };
-      let hue = n => {
-        let h = 0;
-        for (let c of n) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-        return `hsl(${h % 360} 55% 62%)`;
+
+        return output + (open ? '</span>' : '');
       };
 
-      // ---- rendering
-      let renderSide = () => {
-        $('wslist').innerHTML = Object.values(state.ws)
-          .sort((a, b) => (a.id < b.id ? -1 : 1))
-          .map(w => {
-            let svc = w.units.filter(u => u.kind === 'service'),
-              up = svc.filter(u => u.state === 'running').length;
-            return `<div class="ws ${w.id === state.cur ? 'active' : ''}" data-ws="${w.id}"><b><i class="dot ${phaseDot(w)}"></i>${w.id}${w.kind === 'stack' ? ` <span class="d">stack · ${w.stack.mode === 'production' ? 'prod' : 'dev'}</span>` : ''}</b><span class="sub mono">${esc(w.branch)} · ${svc.length ? up + '/' + svc.length + ' services' : w.phase}</span></div>`;
-          })
-          .join('');
-        document
-          .querySelectorAll('.ws')
-          .forEach(el => (el.onclick = () => select(el.dataset.ws)));
-      };
+      let logSource;
 
-      let renderedFor;
-      let renderMain = () => {
-        let w = cur();
-        if (!w) return;
-        let running = !['idle', 'stopped', 'failed'].includes(w.phase);
-        let busy = ['infra', 'preparing', 'starting', 'stopping'].includes(w.phase);
-        let svc = w.units.filter(u => u.kind === 'service'),
-          infra = w.units.filter(u => u.kind === 'infra');
-        let row =
-          u => `<div class="row ${state.sel === u.name ? 'sel' : ''}" data-unit="${u.name}"><i class="dot ${u.state}"></i>
-      <div><span class="n">${u.name}</span> <span class="d mono">${u.ports.map(p => ':' + p).join(' ')}</span>${u.state === 'crashed' ? '<div class="d" style="color:var(--bad)">crashed · restarting with backoff</div>' : ''}</div>
-      <span class="d">${u.restarts ? '↻' + u.restarts : ''}</span>
-      <span class="acts"><button class="sm" data-act="restart" data-u="${u.name}" ${w.phase !== 'running' ? 'disabled' : ''}>Restart</button>${u.kind === 'service' ? `<button class="sm" data-act="${u.state === 'stopped' ? 'start' : 'stop'}" data-u="${u.name}" ${w.phase !== 'running' ? 'disabled' : ''}>${u.state === 'stopped' ? 'Start' : 'Stop'}</button>` : ''}</span></div>`;
-        let groups = { app: 'apps', admin: 'admin', tool: 'tools' };
-        let links = Object.entries(groups)
-          .map(([g, label]) => {
-            let items = w.links.filter(l => l.group === g);
-            return items.length
-              ? `<span class="grp">${label}</span>` +
-                  items
-                    .map(
-                      l =>
-                        `<a class="chip" target="_blank" href="${l.url}">${esc(l.label)}</a>`
-                    )
-                    .join('')
-              : '';
-          })
-          .join('');
-        let dbOff = w.phase !== 'running' ? 'disabled' : '';
-        let isStack = w.kind === 'stack';
+      let logKey = '';
 
-        let keep = renderedFor === state.cur ? document.querySelector('.right') : null;
-        renderedFor = state.cur;
-        $('main').innerHTML = `
-    <header>
-      <h2><i class="dot ${phaseDot(w)}"></i>${w.id}</h2>
-      <span class="meta mono">${isStack ? `stack ${esc(w.stack.identifier)} (${w.stack.mode}) · ` : ''}${esc(w.branch)} · ${w.hostname} · ${w.phase}${running ? ' · up ' + since(w.startedAt) : ''}</span>
-      <span class="spacer"></span>
-      <label title="Also stop/restart docker infrastructure"><input type="checkbox" id="infraBox" ${state.infra ? 'checked' : ''}>incl. infra</label>
-      <button id="bStart" ${running || busy ? 'disabled' : ''}>Start</button>
-      <button id="bRestart" ${w.phase === 'running' || w.phase === 'failed' ? '' : 'disabled'}>Restart ${isStack ? 'stack' : 'workspace'}</button>
-      <button id="bStop" class="danger" ${w.phase === 'running' ? '' : 'disabled'}>Stop</button>
-    </header>
-    ${w.error ? `<div class="err mono">${esc(w.error)}</div>` : ''}
-    <div class="links">${links || `<span style="color:var(--mute)">${w.phase === 'running' ? 'no links declared' : 'links appear once the ' + (w.kind === 'stack' ? 'stack' : 'workspace') + ' has started'}</span>`}</div>
-    <div class="body">
-      <section class="left">
-        <div class="sec">Services <span class="acts"><button class="sm" data-all="svc" ${dbOff}>Restart all</button></span></div>
-        ${svc.map(row).join('') || '<div class="job">none</div>'}
-        <div class="sec">Infrastructure <span class="acts"><button class="sm" data-all="infra" ${dbOff}>Restart all</button></span></div>
-        ${infra.map(row).join('') || '<div class="job">none</div>'}
-        ${isStack ? '' : `<div class="sec">Database &amp; tasks</div>
-        <div style="padding:6px 20px;display:flex;gap:6px;flex-wrap:wrap">
-          ${['db:generate', 'db:push', 'db:migrate', 'prepare'].map(k => `<button class="sm" data-job="${k}" ${dbOff}>${k.replace(':', ' ')}</button>`).join('')}
-        </div>
-        <div class="sec">Recent jobs</div>
-        ${w.jobs.map(j => `<div class="job mono"><span class="${j.state === 'done' ? 'ok' : j.state === 'failed' ? 'bad' : ''}">${j.state === 'done' ? '✓' : j.state === 'failed' ? '✖' : '…'}</span>${j.kind}<span style="margin-left:auto">${j.endedAt ? ((j.endedAt - j.startedAt) / 1000).toFixed(1) + 's' : 'running'}</span></div>`).join('') || '<div class="job">none</div>'}`}
-      </section>
-      <section class="right">
-        <div class="tabs" id="tabs"></div>
-        <div class="panes"><div id="logs" class="mono"></div><div id="term"></div></div>
-        <div class="logbar mono"><label><input type="checkbox" id="follow" checked>follow</label><button class="sm" id="clear">clear</button><span id="count"></span></div>
-      </section>
-    </div>`;
+      let logs = [];
 
-        $('infraBox').onchange = e => (state.infra = e.target.checked);
-        $('bStart').onclick = () =>
-          call(base() + '/start', 'POST', {}).then(() => toast('starting ' + w.id));
-        $('bRestart').onclick = () =>
-          call(base() + '/restart', 'POST', { infra: state.infra }).then(() =>
-            toast('restarting ' + w.id)
-          );
-        $('bStop').onclick = () =>
-          call(base() + '/stop', 'POST', { infra: state.infra }).then(() =>
-            toast('stopping ' + w.id)
-          );
-        document.querySelectorAll('[data-job]').forEach(
-          b =>
-            (b.onclick = e => {
-              e.stopPropagation();
-              call(base() + '/jobs', 'POST', { kind: b.dataset.job }).then(() => {
-                toast(b.dataset.job + ' started');
-                selectUnit('jobs');
-              });
-            })
+      let lastSequence = 0;
+
+      let logFrame = 0;
+
+      let renderedLogKey = '';
+
+      let renderedSequence = 0;
+
+      let logStatus = 'Connecting to stream…';
+
+      let renderLogStatus = () => {
+        $('c-stream-status').textContent = state.following
+          ? logStatus
+          : 'Following paused · still receiving';
+        $('c-stream-dot').className = `c-dot ${state.logConnected ? 'c-good' : 'c-warn'}`;
+        $('c-pause').innerHTML = icon(state.following ? 'Pause' : 'Play');
+        $('c-pause').setAttribute(
+          'aria-label',
+          state.following ? 'Pause log following' : 'Resume log following'
         );
-        document
-          .querySelectorAll('[data-all]')
-          .forEach(
-            b =>
-              (b.onclick = () =>
-                w.units
-                  .filter(u => u.kind === (b.dataset.all === 'svc' ? 'service' : 'infra'))
-                  .forEach((u, i) =>
-                    setTimeout(
-                      () => call(base() + `/units/${u.name}/restart`).catch(() => {}),
-                      i * 100
-                    )
-                  ))
-          );
-        document.querySelectorAll('[data-act]').forEach(
-          b =>
-            (b.onclick = e => {
-              e.stopPropagation();
-              call(base() + `/units/${encodeURIComponent(b.dataset.u)}/${b.dataset.act}`).then(
-                () => toast(b.dataset.act + ' ' + b.dataset.u)
-              );
-            })
+        $('c-pause').setAttribute('aria-pressed', String(!state.following));
+      };
+
+      let renderLogs = () => {
+        logFrame = 0;
+        let query = $('c-log-search').value.toLowerCase();
+        let stream = $('c-level').value;
+        let visible = logs.filter(
+          line =>
+            (stream === 'all' || line.stream === stream) &&
+            `${line.unit} ${plain(line.text)}`.toLowerCase().includes(query)
         );
-        document
-          .querySelectorAll('.row')
-          .forEach(r => (r.onclick = () => selectUnit(r.dataset.unit)));
-        if (keep) document.querySelector('.right').replaceWith(keep);
-        $('clear').onclick = () => {
-          $('logs').innerHTML = '';
-          $('count').textContent = '';
-        };
-        renderTabs();
-        if (state.tab === 'logs') showLogsPane();
-        else showTermPane();
-        attachLogs(!keep);
-        if (keep && term && state.tab === 'term') fit.fit();
+        let position = $('c-logs').scrollTop;
+        let viewKey = `${logKey}\0${query}\0${stream}`;
+        if (viewKey !== renderedLogKey || !visible.length) {
+          $('c-logs').replaceChildren();
+          renderedSequence = 0;
+          renderedLogKey = viewKey;
+        }
+
+        $('c-logs').querySelector('.c-empty')?.remove();
+        let oldest = visible[0]?.seq;
+        while (
+          $('c-logs').firstElementChild &&
+          Number($('c-logs').firstElementChild.dataset.sequence) < oldest
+        ) {
+          let first = $('c-logs').firstElementChild;
+          position = Math.max(0, position - first.getBoundingClientRect().height);
+          first.remove();
+        }
+        let fragment = document.createDocumentFragment();
+
+        for (let line of visible) {
+          if (line.seq <= renderedSequence) continue;
+          let row = document.createElement('div');
+          row.className = 'c-log-line';
+          row.dataset.sequence = line.seq;
+          row.innerHTML = `<span class="c-log-time">${new Date(line.ts).toTimeString().slice(0, 8)}</span><span class="c-log-message ${line.stream === 'err' ? 'c-log-error' : line.stream === 'sys' ? 'c-log-system' : ''}">${state.selected === '*' ? `<span class="c-log-unit">${esc(line.unit)}</span> ` : ''}${ansi(line.text)}</span>`;
+          fragment.append(row);
+          renderedSequence = line.seq;
+        }
+
+        if (!visible.length) {
+          let empty = document.createElement('div');
+          empty.className = 'c-empty';
+          empty.textContent = logs.length ? 'No matching log lines.' : 'Waiting for output…';
+          fragment.append(empty);
+        }
+        $('c-logs').append(fragment);
+        $('c-log-count').textContent =
+          `${visible.length}${visible.length !== logs.length ? ` / ${logs.length}` : ''} lines`;
+        $('c-logs').scrollTop = state.following ? $('c-logs').scrollHeight : position;
       };
 
-      let renderTabs = () => {
-        let w = cur();
-        if (!w) return;
-        let names = [
-          '*',
-          ...w.units.map(u => u.name),
-          ...(w.kind === 'stack'
-            ? ['runner', 'build', 'infra', 'control']
-            : ['jobs', 'prepare', 'infra', 'control'])
-        ];
-        $('tabs').innerHTML =
-          names
-            .map(
-              n =>
-                `<div class="tab ${state.tab === 'logs' && state.sel === n ? 'on' : ''}" data-tab="${n}">${n === '*' ? 'all logs' : n}</div>`
-            )
-            .join('') +
-          `<div class="tab ${state.tab === 'term' ? 'on' : ''}" data-tab="__term" style="margin-left:auto">⌨ terminal${state.sel !== '*' && w.units.find(u => u.name === state.sel && u.kind === 'service') ? ' · ' + state.sel : ''}</div>`;
-        document
-          .querySelectorAll('.tab')
-          .forEach(
-            t =>
-              (t.onclick = () =>
-                t.dataset.tab === '__term' ? openTerm() : selectUnit(t.dataset.tab))
-          );
-      };
+      let attachLogs = () => {
+        if (!current()) return;
+        let nextKey = `${state.current}\0${state.selected}`;
+        if (logKey === nextKey && logSource) return;
+        logSource?.close();
+        logKey = nextKey;
+        logs = [];
+        lastSequence = 0;
+        state.logConnected = false;
+        logStatus = 'Connecting to stream…';
 
-      // ---- logs
-      let es, lastW, lastSel;
-      let attachLogs = force => {
-        let w = cur();
-        if (!w || state.tab !== 'logs') return;
-        if (!force && lastW === state.cur && lastSel === state.sel) return;
-        lastW = state.cur;
-        lastSel = state.sel;
-        if (es) es.close();
-        let el = $('logs');
-        el.innerHTML = '';
-        let units = state.sel === '*' ? '' : state.sel;
-        es = new EventSource(
+        let units = state.selected === '*' ? '' : state.selected;
+        let source = new EventSource(
           `/api${base()}/logs?follow=1&tail=1000&units=${encodeURIComponent(units)}`
         );
-        let n = 0,
-          pending = [],
-          scheduled = false;
-        let flush = () => {
-          scheduled = false;
-          if (es !== source) return;
-          let fragment = document.createDocumentFragment();
-          for (let l of pending) {
-            let d = document.createElement('div');
-            d.innerHTML = `<span class="t">${new Date(l.ts).toTimeString().slice(0, 8)}</span> ${state.sel === '*' ? `<span class="u" style="color:${hue(l.unit)}">${esc(l.unit.padEnd(14))}</span> ` : ''}<span class="${l.stream === 'sys' ? 'sys' : l.stream === 'err' ? 'er' : ''}">${ansi(l.text)}</span>`;
-            fragment.appendChild(d);
-          }
-          n += pending.length;
-          pending = [];
-          el.appendChild(fragment);
-          while (n > 3000) {
-            el.firstChild.remove();
-            n--;
-          }
-          if ($('follow') && $('follow').checked) el.scrollTop = el.scrollHeight;
-          if ($('count')) $('count').textContent = n + ' lines';
+        logSource = source;
+        renderLogs();
+        renderLogStatus();
+        source.onopen = () => {
+          if (logSource !== source) return;
+          state.logConnected = true;
+          logStatus = 'Following stream';
+          renderLogStatus();
         };
-        let source = es;
-        es.onmessage = ev => {
-          pending.push(JSON.parse(ev.data));
-          if (!scheduled) {
-            scheduled = true;
-            requestAnimationFrame(flush);
-          }
+        source.onerror = () => {
+          if (logSource !== source) return;
+          state.logConnected = false;
+          logStatus = 'Stream disconnected · reconnecting…';
+          renderLogStatus();
         };
-      };
-      let showLogsPane = () => {
-        $('logs').style.display = 'block';
-        $('term').style.display = 'none';
-      };
-      let showTermPane = () => {
-        $('logs').style.display = 'none';
-        $('term').style.display = 'block';
+        source.onmessage = event => {
+          if (logSource !== source) return;
+          try {
+            let line = JSON.parse(event.data);
+            if (line.seq <= lastSequence) return;
+            lastSequence = line.seq;
+            logs.push(line);
+            if (logs.length > maxLogLines) logs.splice(0, logs.length - maxLogLines);
+            if (!logFrame) logFrame = requestAnimationFrame(renderLogs);
+          } catch {}
+        };
       };
 
-      // ---- terminal
-      let term, fit, sock;
-      let openTerm = () => {
-        let w = cur();
-        if (!w) return;
-        state.tab = 'term';
-        renderTabs();
-        showTermPane();
-        if (sock) sock.close();
-        if (term) term.dispose();
-        term = new Terminal({
+      let terminal;
+
+      let terminalFit;
+
+      let terminalSocket;
+
+      let terminalKey = '';
+
+      let terminalGeneration = 0;
+
+      let closeTerminal = () => {
+        terminalGeneration++;
+        terminalSocket?.close();
+        terminal?.dispose();
+        terminal = null;
+        terminalFit = null;
+        terminalSocket = null;
+        terminalKey = '';
+      };
+
+      let resizeTerminal = () => {
+        if (
+          state.tab === 'term' &&
+          terminalFit &&
+          $('c-terminal').getBoundingClientRect().width
+        )
+          terminalFit.fit();
+      };
+
+      let openTerminal = () => {
+        let workspace = current();
+        if (!workspace || state.tab !== 'term' || state.view !== 'services') return;
+        let unit = selectedUnit()?.kind === 'service' ? state.selected : '';
+        let key = `${workspace.id}\0${unit}`;
+        if (terminalKey === key && terminal) {
+          resizeTerminal();
+          return;
+        }
+        closeTerminal();
+        if (!globalThis.Terminal || !globalThis.FitAddon) {
+          $('c-terminal').textContent =
+            'Terminal could not load. Check your connection and reload.';
+          return;
+        }
+
+        terminalKey = key;
+        terminal = new Terminal({
           fontFamily: 'ui-monospace, Menlo, monospace',
           fontSize: 12,
           cursorBlink: true,
-          theme: { background: '#0a0a0a' }
+          theme: {
+            background: '#121415',
+            foreground: '#eceeed',
+            cursor: '#f4d35e',
+            selectionBackground: '#484128'
+          }
         });
-        fit = new FitAddon.FitAddon();
-        term.loadAddon(fit);
-        $('term').innerHTML = '';
-        term.open($('term'));
-        fit.fit();
-        let unit =
-          state.sel !== '*' && w.units.find(u => u.name === state.sel && u.kind === 'service')
-            ? state.sel
-            : '';
-        sock = new WebSocket(
-          `ws://${location.host}/ws/terminal?workspace=${encodeURIComponent(w.id)}&unit=${encodeURIComponent(unit)}`
+        terminalFit = new FitAddon.FitAddon();
+        terminal.loadAddon(terminalFit);
+        $('c-terminal').replaceChildren();
+        terminal.open($('c-terminal'));
+        resizeTerminal();
+
+        let instance = terminal;
+        let generation = terminalGeneration;
+        let socket = new WebSocket(
+          `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/ws/terminal?workspace=${encodeURIComponent(workspace.id)}&unit=${encodeURIComponent(unit)}`
         );
-        sock.binaryType = 'arraybuffer';
-        let send = o => sock.readyState === 1 && sock.send(JSON.stringify(o));
-        sock.onopen = () => send({ type: 'resize', cols: term.cols, rows: term.rows });
-        sock.onmessage = e =>
-          term.write(typeof e.data === 'string' ? e.data : new Uint8Array(e.data));
-        sock.onclose = () => term && term.write('\r\n[disconnected]\r\n');
-        term.onData(data => send({ type: 'input', data }));
-        term.onResize(({ cols, rows }) => send({ type: 'resize', cols, rows }));
-        term.focus();
+        terminalSocket = socket;
+        socket.binaryType = 'arraybuffer';
+        let send = message =>
+          socket.readyState === WebSocket.OPEN && socket.send(JSON.stringify(message));
+        socket.onopen = () =>
+          send({ type: 'resize', cols: instance.cols, rows: instance.rows });
+        socket.onmessage = event => {
+          if (generation === terminalGeneration)
+            instance.write(
+              typeof event.data === 'string' ? event.data : new Uint8Array(event.data)
+            );
+        };
+        socket.onclose = () => {
+          if (generation === terminalGeneration)
+            instance.write('\r\n[disconnected — reopen Terminal to reconnect]\r\n');
+        };
+        instance.onData(data => send({ type: 'input', data }));
+        instance.onResize(({ cols, rows }) => send({ type: 'resize', cols, rows }));
+        instance.focus();
       };
-      addEventListener('resize', () => fit && state.tab === 'term' && fit.fit());
 
-      let selectUnit = n => {
-        state.sel = n;
+      let streamNames = workspace => [
+        ...new Set([
+          '*',
+          ...workspace.units.map(unit => unit.name),
+          ...(workspace.kind === 'stack'
+            ? ['runner', 'build', 'infra', 'control']
+            : ['jobs', 'prepare', 'infra', 'control'])
+        ])
+      ];
+
+      let unitLabel = name => (name === '*' ? 'All Logs' : name);
+
+      let setView = view => {
+        state.view = view;
+        syncUrl();
+        render();
+      };
+
+      let selectUnit = name => {
+        if (state.selected !== name) {
+          closeTerminal();
+          $('c-log-search').value = '';
+          $('c-level').value = 'all';
+        }
+        state.selected = name;
         state.tab = 'logs';
-        renderTabs();
-        showLogsPane();
+        state.view = 'services';
+        syncUrl();
+        render();
+      };
+
+      let selectWorkspace = id => {
+        if (!state.workspaces[id]) return;
+        closeTerminal();
+        state.current = id;
+        state.selected = '*';
+        state.tab = 'logs';
+        state.view = 'services';
+        state.expanded = false;
+        state.filter = 'all';
+        $('c-filter').value = '';
+        $('c-log-search').value = '';
+        $('c-level').value = 'all';
+        try {
+          localStorage.setItem('ws', id);
+        } catch {}
+        syncUrl();
+        render();
+      };
+
+      let renderSidebar = () => {
+        let workspaces = Object.values(state.workspaces).sort((a, b) =>
+          a.id.localeCompare(b.id)
+        );
+        $('c-workspace-count').textContent = workspaces.length;
+        $('c-workspaces').innerHTML =
+          workspaces
+            .map(workspace => {
+              let attention = workspace.units.filter(unit => unit.state === 'crashed').length;
+              let status =
+                workspace.phase === 'running' && attention ? 'crashed' : workspace.phase;
+
+              return `<button class="c-workspace" data-workspace="${esc(workspace.id)}" ${workspace.id === state.current ? 'aria-current="page"' : ''}>${dot(status)}<span><strong>${esc(workspace.id)}</strong><small>${workspace.kind === 'stack' ? `Docker · ${esc(workspace.stack.mode)}` : esc(workspace.branch || 'local checkout')}</small></span>${attention ? `<span class="c-count">${attention}</span>` : ''}</button>`;
+            })
+            .join('') || '<p class="c-empty">No workspaces yet.</p>';
+      };
+
+      let renderRows = () => {
+        let workspace = current();
+        if (!workspace) return;
+        let query = $('c-filter').value.toLowerCase();
+        let visible = workspace.units.filter(
+          unit =>
+            unit.name.toLowerCase().includes(query) &&
+            (state.filter !== 'attention' || ['crashed', 'restarting'].includes(unit.state)) &&
+            (state.filter !== 'infra' || unit.kind === 'infra')
+        );
+        let markup = '';
+
+        for (let kind of ['service', 'infra']) {
+          let group = visible.filter(unit => unit.kind === kind);
+          if (!group.length) continue;
+          markup += `<div class="c-group-heading">${kind === 'service' ? 'APPLICATION SERVICES' : 'INFRASTRUCTURE'} · ${group.length}</div>`;
+          markup += group
+            .map(
+              unit =>
+                `<button class="c-service-row" data-unit="${esc(unit.name)}" aria-pressed="${state.selected === unit.name}" aria-label="Inspect ${esc(unit.name)}, ${esc(unit.state)}"><span class="c-service-name">${icon(kind === 'service' ? 'Box' : 'Database')}${esc(unit.name)}</span><span class="c-state ${statusColor(unit.state)}">${dot(unit.state)}${esc(unit.state)}</span><span class="c-port c-mono" title="${esc(unit.ports.map(port => `:${port}`).join(', '))}">${unit.ports.length ? `:${unit.ports[0]}${unit.ports.length > 1 ? ` +${unit.ports.length - 1}` : ''}` : '—'}</span></button>`
+            )
+            .join('');
+        }
+
+        $('c-rows').innerHTML = markup || '<div class="c-empty">No matching units.</div>';
+        $$('[data-filter]').forEach(button =>
+          button.setAttribute('aria-pressed', String(button.dataset.filter === state.filter))
+        );
+      };
+
+      let renderJobs = () => {
+        let workspace = current();
+        let jobs = workspace.jobs;
+        let jobMarkup = job => {
+          let duration = job.endedAt
+            ? `${((job.endedAt - job.startedAt) / 1000).toFixed(1)}s`
+            : since(job.startedAt);
+
+          return `<div class="c-job-row">${icon(job.state === 'done' ? 'CircleCheck' : job.state === 'failed' ? 'CircleAlert' : 'History')}<div><strong class="c-mono">${esc(job.kind)}</strong><small>${esc(job.state)} · ${since(job.startedAt)} ago${job.error ? `<br>${esc(job.error)}` : ''}</small></div><span class="c-spacer"></span><span class="c-mono">${duration}</span></div>`;
+        };
+
+        $('c-job-list').innerHTML =
+          jobs.map(jobMarkup).join('') ||
+          '<div class="c-empty">No jobs have run in this workspace.</div>';
+        $('c-latest').innerHTML = jobs[0]
+          ? jobMarkup(jobs[0])
+          : '<span class="c-muted">No recent jobs.</span>';
+        $('c-jobs-count').textContent = jobs.length;
+        $('c-task-panel').hidden = workspace.kind === 'stack';
+        $('c-run-prepare').hidden = workspace.kind === 'stack';
+        $('c-task-actions').innerHTML = jobKinds
+          .map(
+            kind =>
+              `<button class="c-button c-small" data-task="${kind}" ${workspace.phase !== 'running' || pendingActions.has('job') ? 'disabled' : ''}>${jobLabels[kind]}</button>`
+          )
+          .join('');
+      };
+
+      let safeLink = link => {
+        try {
+          let url = new URL(link.url);
+          return ['http:', 'https:'].includes(url.protocol) ? url.href : null;
+        } catch {
+          return null;
+        }
+      };
+
+      let renderLinks = () => {
+        let links = current().links;
+        let groups = { app: 'Applications', admin: 'Administration', tool: 'Developer tools' };
+        let markup = '';
+        let shortcuts = [];
+
+        for (let [group, label] of Object.entries(groups)) {
+          let items = links.filter(link => link.group === group && safeLink(link));
+          if (!items.length) continue;
+          markup += `<div class="c-group-heading">${label}</div>`;
+          markup += items
+            .map(
+              link =>
+                `<div class="c-endpoint-row">${icon('ArrowUpRight')}<div><strong>${esc(link.label)}</strong><small>${esc(link.menu ? `${link.menu} · ` : '')}${esc(link.url)}</small></div><a class="c-button c-small" href="${esc(safeLink(link))}" target="_blank" rel="noopener noreferrer">Open ${icon('ArrowUpRight')}</a></div>`
+            )
+            .join('');
+          shortcuts.push(...items.filter(link => !link.menu));
+        }
+
+        $('c-link-list').innerHTML =
+          markup || '<div class="c-empty">Links appear after the workspace has started.</div>';
+        $('c-shortcuts').innerHTML = `<span class="c-caption">OPEN</span>${shortcuts
+          .slice(0, 4)
+          .map(
+            link =>
+              `<a class="c-link" href="${esc(safeLink(link))}" target="_blank" rel="noopener noreferrer">${esc(link.label)}${icon('ArrowUpRight')}</a>`
+          )
+          .join(
+            ''
+          )}<button class="c-link" data-view="links">All Links ${icon('ChevronRight')}</button>`;
+      };
+
+      let renderInspector = () => {
+        let workspace = current();
+        let unit = selectedUnit();
+        $('c-selected-name').textContent = unitLabel(state.selected);
+        $('c-selected-meta').innerHTML = unit
+          ? `<span class="c-state ${statusColor(unit.state)}">${dot(unit.state)}${esc(unit.state)}</span><span class="c-mono">${unit.ports.map(port => `:${port}`).join(' ')}</span><span>${unit.restarts} restarts</span>${unit.pid ? `<span class="c-mono">pid ${unit.pid}</span>` : ''}`
+          : '<span>Workspace output</span>';
+        let options = streamNames(workspace)
+          .map(name => `<option value="${esc(name)}">${esc(unitLabel(name))}</option>`)
+          .join('');
+        if ($('c-expanded-service').innerHTML !== options)
+          $('c-expanded-service').innerHTML = options;
+
+        $('c-expanded-service').value = state.selected;
+        $('c-all-logs').setAttribute(
+          'aria-pressed',
+          String(state.selected === '*' && state.tab === 'logs')
+        );
+        $('c-inspector-restart').hidden = !unit;
+        $('c-inspector-toggle').hidden = unit?.kind !== 'service';
+
+        $('c-inspector-restart').disabled =
+          !['starting', 'running'].includes(workspace.phase) ||
+          pendingActions.has(`unit:${unit?.name}`);
+        $('c-inspector-toggle').disabled = $('c-inspector-restart').disabled;
+        $('c-inspector-toggle').textContent = unit?.state === 'stopped' ? 'Start' : 'Stop';
+
+        $('c-incident').innerHTML =
+          unit?.state === 'crashed'
+            ? `<div class="c-incident"><div class="c-incident-title">${icon('CircleAlert')}Process exited${unit.exitCode != null ? ` · code ${unit.exitCode}` : ''}</div><p>Inspect the output below for the cause. ${unit.restarts} restart attempts.</p><button class="c-button c-small c-primary" data-retry ${$('c-inspector-restart').disabled ? 'disabled' : ''}>${icon('RotateCw')}Retry Service</button></div>`
+            : '';
+
+        $('control-concept').dataset.expanded = String(
+          state.expanded && state.view === 'services'
+        );
+        $('c-expand-logs').setAttribute('aria-expanded', String(state.expanded));
+        $('c-expand-logs').innerHTML =
+          `${icon(state.expanded ? 'Minimize2' : 'Maximize2')}<span>${state.expanded ? 'Restore' : 'Expand'}</span>`;
+
+        $('c-logs').hidden = state.tab !== 'logs';
+        $('c-log-tools').hidden = state.tab !== 'logs';
+        $('c-terminal').hidden = state.tab !== 'term';
+        $('c-pause').hidden = state.tab !== 'logs';
+        $('c-clear').hidden = state.tab !== 'logs';
+
+        $$('[data-detail]').forEach(button =>
+          button.setAttribute('aria-pressed', String(button.dataset.detail === state.tab))
+        );
+        renderLogStatus();
+      };
+
+      let render = () => {
+        renderSidebar();
+        let workspace = current();
+        $('c-empty-workspace').hidden = !!workspace;
+        $('c-workspace-content').hidden = !workspace;
+        $('c-nav').hidden = !workspace;
+
+        $('c-crumb').textContent = workspace?.id || 'Select a workspace';
+        if (!workspace) return;
+        if (!streamNames(workspace).includes(state.selected)) {
+          state.selected = '*';
+          closeTerminal();
+          syncUrl();
+        }
+
+        let attention = workspace.units.filter(unit =>
+          ['crashed', 'restarting'].includes(unit.state)
+        ).length;
+        let running = workspace.units.filter(healthy).length;
+        let isRunning = workspace.phase === 'running';
+
+        $('c-title').textContent = workspace.id;
+        $('c-branch').textContent =
+          workspace.kind === 'stack'
+            ? `${workspace.stack.identifier} · ${workspace.stack.mode}`
+            : workspace.branch;
+        $('c-host').textContent = workspace.hostname;
+
+        $('c-workspace-kind').textContent =
+          workspace.kind === 'stack' ? 'DOCKER STACK' : 'LOCAL DEVELOPMENT';
+        $('c-health').innerHTML =
+          `${dot(isRunning && attention ? 'crashed' : workspace.phase)}<span class="c-health-title">${isRunning && attention ? `${attention} ${attention === 1 ? 'unit needs' : 'units need'} attention` : `Workspace ${esc(workspace.phase)}`}</span><span class="c-health-note">${running} of ${workspace.units.length} units running${isRunning ? ` · up ${since(workspace.startedAt)}` : ''}</span>${attention ? `<button class="c-text-button" data-investigate>Inspect Failure ${icon('ArrowRight')}</button>` : ''}`;
+
+        $('c-workspace-error').textContent = workspace.error || '';
+        $('c-workspace-error').hidden = !workspace.error;
+
+        $('c-start-workspace').hidden = !['idle', 'stopped', 'failed'].includes(
+          workspace.phase
+        );
+        $('c-stop-workspace').hidden = $('c-start-workspace').hidden === false;
+        $('c-stop-workspace').disabled =
+          workspace.phase === 'stopping' || pendingActions.has('workspace');
+
+        $('c-start-workspace').disabled = pendingActions.has('workspace');
+        $('c-restart-workspace').disabled =
+          !['infra', 'preparing', 'starting', 'running', 'failed'].includes(workspace.phase) ||
+          pendingActions.has('workspace');
+
+        $('c-reset-data').disabled = busy(workspace) || pendingActions.has('workspace');
+        $('c-reset-data').textContent =
+          pendingActions.has('workspace') && resettingData ? 'Resetting…' : 'Reset Data';
+
+        $('c-clear-license').hidden =
+          workspace.kind !== 'stack' || workspace.stack.identifier !== 'on-prem';
+        $('c-clear-license').disabled =
+          !isRunning || !clearLicenseUrl(workspace) || pendingActions.has('workspace');
+        $('c-clear-license').textContent = clearingLicense ? 'Clearing…' : 'Clear License';
+
+        $('c-restart-all').disabled = !isRunning || pendingActions.has('restart-all');
+        $('c-run-prepare').disabled = !isRunning || pendingActions.has('job');
+
+        $('c-all-count').textContent = workspace.units.length;
+        $('c-service-count').textContent = workspace.units.length;
+        $('c-total').textContent = `${workspace.units.length} units`;
+
+        $('c-attention-count').textContent = attention;
+        $('c-infra-count').textContent = workspace.units.filter(
+          unit => unit.kind === 'infra'
+        ).length;
+
+        for (let view of ['services', 'jobs', 'links'])
+          $(`c-${view}-view`).hidden = state.view !== view;
+        $$('#c-nav [data-view]').forEach(button => {
+          if (button.dataset.view === state.view) button.setAttribute('aria-current', 'page');
+          else button.removeAttribute('aria-current');
+        });
+        renderRows();
+        renderJobs();
+        renderLinks();
+
+        renderInspector();
         attachLogs();
-        document
-          .querySelectorAll('.row')
-          .forEach(r => r.classList.toggle('sel', r.dataset.unit === n));
-      };
-      let select = id => {
-        state.cur = id;
-        localStorage.setItem('ws', id);
-        state.sel = '*';
-        state.tab = 'logs';
-        renderSide();
-        renderMain();
+        requestAnimationFrame(() => {
+          openTerminal();
+          resizeTerminal();
+        });
       };
 
-      // ---- live state
-      let sig = w =>
-        JSON.stringify([
-          w.phase,
-          w.error,
-          w.units.map(u => [u.name, u.state, u.restarts]),
-          w.jobs.map(j => [j.id, j.state]),
-          w.links.length
-        ]);
-      let connect = () => {
-        let events = new EventSource('/api/events');
-        events.onmessage = ev => {
-          let w = JSON.parse(ev.data),
-            prev = state.ws[w.id];
-          state.ws[w.id] = w;
-          if (!state.cur || !state.ws[state.cur]) state.cur = w.id;
-          renderSide();
-          if (w.id === state.cur && (!prev || sig(prev) !== sig(w) || !$('bStart'))) {
-            if (state.tab === 'term') {
-              renderSideOnly(w);
-              return;
+      let actOnUnit = (name, action) => {
+        let workspace = current();
+        if (!workspace || !['starting', 'running'].includes(workspace.phase)) return;
+        let workspaceBase = base();
+
+        return perform(
+          `unit:${name}`,
+          () => request(`${workspaceBase}/units/${encodeURIComponent(name)}/${action}`),
+          `${action === 'restart' ? 'Restarted' : action === 'start' ? 'Started' : 'Stopped'} ${name}`
+        );
+      };
+
+      let runJob = kind => {
+        if (!current() || current().kind === 'stack' || current().phase !== 'running') return;
+        let workspaceBase = base();
+
+        return perform(
+          'job',
+          async () => {
+            await request(`${workspaceBase}/jobs`, { kind });
+            if (base() === workspaceBase) selectUnit('jobs');
+          },
+          `${kind} started`
+        );
+      };
+
+      let restartAll = () => {
+        let workspace = current();
+        if (workspace?.phase !== 'running') return;
+        let workspaceBase = base();
+        let units = workspace.units.filter(unit =>
+          state.filter === 'infra' ? unit.kind === 'infra' : unit.kind === 'service'
+        );
+
+        return perform(
+          'restart-all',
+          async () => {
+            let failures = [];
+            for (let unit of units) {
+              try {
+                await request(
+                  `${workspaceBase}/units/${encodeURIComponent(unit.name)}/restart`
+                );
+              } catch (error) {
+                failures.push(`${unit.name}: ${error.message}`);
+              }
             }
-            let top = document.querySelector('.left')?.scrollTop;
-            renderMain();
-            if (top) document.querySelector('.left').scrollTop = top;
+            if (failures.length) throw new Error(failures.join('; '));
+          },
+          `Restarted ${units.length} ${state.filter === 'infra' ? 'infrastructure units' : 'services'}`
+        );
+      };
+
+      let commandActions = () => [
+        ...Object.values(state.workspaces).map(workspace => ({
+          label: `Switch to ${workspace.id}`,
+          icon: 'Layers2',
+          action: () => selectWorkspace(workspace.id)
+        })),
+        ...(current()
+          ? [
+              ...streamNames(current()).map(name => ({
+                label: `Inspect ${unitLabel(name)}`,
+                icon: 'Box',
+                action: () => selectUnit(name)
+              })),
+              {
+                label: 'View workspace jobs',
+                icon: 'ListChecks',
+                action: () => setView('jobs')
+              },
+              {
+                label: 'View workspace links',
+                icon: 'ArrowUpRight',
+                action: () => setView('links')
+              },
+              {
+                label: state.expanded ? 'Restore split view' : 'Expand selected logs',
+                icon: 'Maximize2',
+                action: () => {
+                  state.view = 'services';
+                  state.expanded = !state.expanded;
+                  syncUrl();
+                  render();
+                }
+              },
+              ...(selectedUnit() && current().phase === 'running'
+                ? [
+                    {
+                      label: 'Restart selected service',
+                      icon: 'RotateCw',
+                      action: () => actOnUnit(state.selected, 'restart')
+                    }
+                  ]
+                : []),
+              ...(current().kind !== 'stack' && current().phase === 'running'
+                ? jobKinds.map(kind => ({
+                    label: `Run ${kind}`,
+                    icon: 'Database',
+                    action: () => runJob(kind)
+                  }))
+                : [])
+            ]
+          : [])
+      ];
+
+      let renderCommands = () => {
+        let query = $('c-command-search').value.toLowerCase();
+        let actions = commandActions()
+          .filter(item => item.label.toLowerCase().includes(query))
+          .slice(0, 12);
+        $('c-command-results').replaceChildren();
+
+        for (let item of actions) {
+          let button = document.createElement('button');
+          button.innerHTML = `${icon(item.icon)}${esc(item.label)}`;
+          button.onclick = () => {
+            $('c-command-dialog').close();
+            item.action();
+          };
+          $('c-command-results').append(button);
+        }
+        if (!actions.length) $('c-command-results').textContent = 'No matching commands.';
+      };
+
+      let openCommands = () => {
+        $('c-command-search').value = '';
+        renderCommands();
+        if (!$('c-command-dialog').open) $('c-command-dialog').showModal();
+        $('c-command-search').focus();
+      };
+
+      let toggleExpanded = () => {
+        state.expanded = !state.expanded;
+        syncUrl();
+        renderInspector();
+        requestAnimationFrame(() => {
+          resizeTerminal();
+          if (state.following) $('c-logs').scrollTop = $('c-logs').scrollHeight;
+        });
+      };
+
+      $('control-concept').addEventListener('click', event => {
+        let button = event.target.closest('button');
+        if (!button || button.disabled) return;
+        if (button.hasAttribute('data-unit')) selectUnit(button.dataset.unit);
+        if (button.hasAttribute('data-workspace')) selectWorkspace(button.dataset.workspace);
+        if (button.hasAttribute('data-view')) setView(button.dataset.view);
+        if (button.hasAttribute('data-filter')) {
+          state.filter = button.dataset.filter;
+          renderRows();
+        }
+        if (button.hasAttribute('data-task')) runJob(button.dataset.task);
+        if (button.hasAttribute('data-command')) openCommands();
+        if (button.hasAttribute('data-close')) button.closest('dialog').close();
+        if (button.hasAttribute('data-retry')) actOnUnit(state.selected, 'restart');
+        if (button.hasAttribute('data-investigate'))
+          selectUnit(
+            current().units.find(unit => ['crashed', 'restarting'].includes(unit.state)).name
+          );
+        if (button.hasAttribute('data-detail')) {
+          state.tab = button.dataset.detail;
+          if (state.tab === 'term' && terminalSocket?.readyState === WebSocket.CLOSED)
+            closeTerminal();
+          syncUrl();
+          renderInspector();
+          openTerminal();
+        }
+      });
+
+      $('c-filter').oninput = renderRows;
+      $('c-log-search').oninput = renderLogs;
+      $('c-level').onchange = renderLogs;
+      $('c-expanded-service').onchange = event => selectUnit(event.target.value);
+      $('c-expand-logs').onclick = toggleExpanded;
+      $('c-inspector-restart').onclick = () => actOnUnit(state.selected, 'restart');
+      $('c-inspector-toggle').onclick = () =>
+        actOnUnit(state.selected, selectedUnit()?.state === 'stopped' ? 'start' : 'stop');
+      $('c-restart-all').onclick = restartAll;
+      $('c-infra').onchange = event => {
+        state.infra = event.target.checked;
+      };
+
+      $('c-clear-license').onclick = async () => {
+        let workspace = current();
+        let url = clearLicenseUrl(workspace);
+        if (!url || workspace.phase !== 'running' || pendingActions.has('workspace')) return;
+        let workspaceBase = base();
+
+        if (
+          !window.confirm(
+            `Clear the license for stack "${workspace.id}"?\n\nThe license and initial setup state will be cleared. You will need to activate a license and complete setup again.`
+          )
+        )
+          return;
+
+        clearingLicense = true;
+
+        try {
+          await perform('workspace', async () => {
+            try {
+              await request(`${workspaceBase}/license/clear`, { confirmed: true });
+              toast(`Cleared the license for ${workspace.id}.`);
+            } catch (error) {
+              toast(error.message || 'Could not clear the license.');
+              if (
+                window.confirm(
+                  `Could not confirm that the license was cleared.\n\n${error.message || 'Could not reach the daemon.'}\n\nOpen the clear license link to retry in a new tab?`
+                )
+              )
+                window.open(url, '_blank', 'noopener,noreferrer');
+            }
+          });
+        } finally {
+          clearingLicense = false;
+          render();
+        }
+      };
+
+      $('c-reset-data').onclick = async () => {
+        let workspace = current();
+        if (!workspace || busy(workspace) || pendingActions.has('workspace')) return;
+        let workspaceBase = base();
+        let target = workspace.kind === 'stack' ? 'stack' : 'workspace';
+        let scope =
+          workspace.kind === 'stack'
+            ? 'All databases, object storage, and other persistent service data in this stack will be permanently deleted. The synced workspace will be kept.'
+            : 'All data in the declared Docker Compose volumes, including databases and object storage, will be permanently deleted. Other workspaces sharing these volumes will also be affected.';
+
+        if (
+          !window.confirm(
+            `Reset data for ${target} "${workspace.id}"?\n\n${scope}\n\nThe ${target} will be stopped. Start it again to recreate empty data stores. This cannot be undone.`
+          )
+        )
+          return;
+
+        resettingData = true;
+
+        try {
+          await perform(
+            'workspace',
+            async () => {
+              let result = await request(`${workspaceBase}/reset`, { confirmed: true });
+              state.workspaces[result.id] = result;
+            },
+            `Reset data for ${workspace.id}. Start it again when ready.`
+          );
+        } finally {
+          resettingData = false;
+          render();
+        }
+      };
+
+      for (let action of ['start', 'stop', 'restart']) {
+        $(`c-${action}-workspace`).onclick = () => {
+          if (!current()) return;
+          let workspaceBase = base();
+          let id = current().id;
+          let payload = { infra: state.infra };
+          perform(
+            'workspace',
+            () => request(`${workspaceBase}/${action}`, payload),
+            `${action === 'start' ? 'Starting' : action === 'stop' ? 'Stopping' : 'Restarting'} ${id}`
+          );
+        };
+      }
+
+      $('c-pause').onclick = () => {
+        state.following = !state.following;
+        renderLogStatus();
+        if (state.following) $('c-logs').scrollTop = $('c-logs').scrollHeight;
+      };
+      $('c-clear').onclick = () => {
+        logs = [];
+        renderLogs();
+      };
+      $('c-command-search').oninput = renderCommands;
+      $('c-command-search').onkeydown = event => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          $('c-command-results').querySelector('button')?.click();
+        }
+        if (event.key === 'ArrowDown') {
+          event.preventDefault();
+          $('c-command-results').querySelector('button')?.focus();
+        }
+      };
+      $('c-command-results').onkeydown = event => {
+        if (!['ArrowDown', 'ArrowUp'].includes(event.key)) return;
+        event.preventDefault();
+        let buttons = [...$('c-command-results').querySelectorAll('button')];
+        let index = buttons.indexOf(document.activeElement);
+        buttons[
+          (index + (event.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length
+        ]?.focus();
+      };
+
+      addEventListener('keydown', event => {
+        let editing = event.target.closest(
+          'input, select, textarea, .xterm, [contenteditable="true"]'
+        );
+        if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+          event.preventDefault();
+          openCommands();
+        }
+        if (event.key === 'Escape' && state.expanded && !$('c-command-dialog').open) {
+          state.expanded = false;
+          syncUrl();
+          renderInspector();
+          $('c-expand-logs').focus();
+          requestAnimationFrame(resizeTerminal);
+        }
+        if (event.key === '/' && !editing && !$('c-command-dialog').open && current()) {
+          event.preventDefault();
+          setView('services');
+          if (state.expanded) {
+            state.tab = 'logs';
+            syncUrl();
+            renderInspector();
+            $('c-log-search').focus();
+          } else $('c-filter').focus();
+        }
+      });
+      addEventListener('resize', resizeTerminal);
+      new ResizeObserver(resizeTerminal).observe($('c-terminal'));
+
+      addEventListener('popstate', () => {
+        let next = parseRoute();
+        closeTerminal();
+        state.current = next?.workspace || Object.keys(state.workspaces)[0] || '';
+        state.selected = next?.selected || '*';
+        state.tab = next?.tab || 'logs';
+        state.expanded = next?.expanded || false;
+        state.view = next?.view || 'services';
+        render();
+      });
+
+      let connect = () => {
+        let source = new EventSource('/api/events');
+        source.onopen = () => {
+          $('c-daemon-state').textContent = 'Daemon connected';
+          $('c-daemon-dot').className = 'c-dot c-good';
+        };
+        source.onerror = () => {
+          $('c-daemon-state').textContent = 'Daemon reconnecting…';
+          $('c-daemon-dot').className = 'c-dot c-warn';
+        };
+        source.onmessage = event => {
+          try {
+            let workspace = JSON.parse(event.data);
+            state.workspaces[workspace.id] = workspace;
+            if (!state.current) state.current = workspace.id;
+            render();
+          } catch (error) {
+            console.error('Could not update workspace', error);
           }
         };
-        events.onerror = () => {
-          $('foot').textContent = 'daemon unreachable — retrying…';
-        };
       };
-      let renderSideOnly = w => {
-        renderSide();
-      };
+
       fetch('/api/ping')
-        .then(r => r.json())
-        .then(p => {
-          $('port').textContent = ':' + p.port;
-          $('foot').innerHTML =
-            `daemon <span class="mono">pid ${p.pid}</span><br>up ${since(p.startedAt)}`;
-        });
-      connect();
+        .then(response => response.json())
+        .then(ping => {
+          $('c-daemon-info').textContent = `localhost:${ping.port} · pid ${ping.pid}`;
+          $('c-port').textContent = `LOCALHOST :${ping.port}`;
+        })
+        .catch(() => {});
+      fetch('/api/workspaces')
+        .then(response => response.json())
+        .then(workspaces => {
+          for (let workspace of workspaces) state.workspaces[workspace.id] = workspace;
+          if (!current() && !route) state.current = workspaces[0]?.id || '';
+          render();
+        })
+        .catch(() => {})
+        .finally(connect);
+      render();
       setInterval(() => {
-        let w = cur();
-        if (w && w.phase === 'running' && state.tab !== 'term')
-          document.querySelector('header .meta') &&
-            (document.querySelector('header .meta').textContent =
-              `${w.branch} · ${w.hostname} · ${w.phase} · up ${since(w.startedAt)}`);
+        if (current()) render();
       }, 15000);
     </script>
   </body>

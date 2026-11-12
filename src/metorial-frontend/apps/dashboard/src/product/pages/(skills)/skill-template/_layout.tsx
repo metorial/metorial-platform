@@ -95,7 +95,7 @@ export let SkillTemplateLayout = () => {
                 label: 'Status',
                 value: <Badge color="gray">{skillTemplate.data.status}</Badge>
               },
-              { label: 'Slug', value: skillTemplate.data.slug },
+              { label: 'Identifier', value: skillTemplate.data.slug },
               { label: 'Owner', value: skillTemplate.data.owner },
               { label: 'Created', value: <RenderDate date={skillTemplate.data.createdAt} /> }
             ]

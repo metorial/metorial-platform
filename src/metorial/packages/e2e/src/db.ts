@@ -3,7 +3,7 @@ import { db as subspaceDb } from '@metorial-subspace/db';
 import { createOrganizationActorAuditScope } from '@metorial/audit-scope';
 import { db } from '@metorial/db';
 import { testContext } from './context';
-import { assertE2EEnvironment } from './env';
+import { assertE2EEnvironment, assertLocalStack } from './env';
 
 export { db, subspaceDb };
 
@@ -16,6 +16,7 @@ export let loadOrganizationFixture = async (ids: {
   instanceId?: string;
   userId?: string;
 }) => {
+  assertLocalStack('loadOrganizationFixture');
   let organization = await db.organization.findUniqueOrThrow({
     where: { id: ids.organizationId }
   });

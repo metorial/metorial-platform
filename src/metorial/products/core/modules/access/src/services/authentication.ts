@@ -191,7 +191,13 @@ class AuthenticationService {
 
     let consumerRes = await authenticateWithOAuthConsumerSession({
       session: oauthAuthorization.consumerSession,
-      instance
+      instance,
+      memberCliUserOid:
+        oauthAuthorization.oauthApplication?.type === 'cli_auth' &&
+        oauthAuthorization.user?.type === 'user' &&
+        oauthAuthorization.user.status === 'active'
+          ? oauthAuthorization.user?.oid
+          : undefined
     });
 
     let expectedConsumerProfileOid =

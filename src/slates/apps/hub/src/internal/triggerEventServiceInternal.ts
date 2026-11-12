@@ -15,7 +15,7 @@ class triggerEventServiceInternalImpl {
     triggerId: string;
     source: TriggerRawEventSource;
   }) {
-    return retryOnOidCollision(() =>
+    return retryOnOidCollision(async () =>
       db.triggerEvent.upsert({
         where: {
           rawEventOid_triggerId: { rawEventOid: d.rawEventOid, triggerId: d.triggerId }

@@ -56,6 +56,13 @@ background daemon that is started on demand; the CLI is a thin client and `contr
 attaches the log TUI. Pass `--foreground` for the previous behavior (Turbo TUI in the
 current terminal).
 
+Before starting or restarting a service, control checks its local bind ports for TCP
+listeners using `lsof` (required on the host). It logs each conflicting process's name,
+PID and port, sends `SIGTERM`, then uses `SIGKILL` if the port remains occupied after
+three seconds. Startup waits for the ports to be released and fails if cleanup cannot
+complete. Other active commands managed by the workspace are preserved. Foreground
+mode performs the same cleanup before launching its services.
+
 ```sh
 bun run control up              # start the workspace in the daemon and return
 bun run control ls              # all workspaces known to the daemon
@@ -394,6 +401,7 @@ define the stack are ignored, so the OSS submodule still works on its own.
 ```bash
 control stack ls                               # stacks defined in this checkout
 control stack plan cloud --env prod            # units a run would start
+control stack images on-prem                   # images the production stack builds (--json)
 control stack start cloud --env dev            # all members in one container, run by bun
 control stack start cloud --env prod --name qa # one production container per member
 control stack restart cloud
@@ -561,3 +569,21 @@ changes while the daemon runs. Images run as the unprivileged `metorial` user
 under `tini`, and database migrations run at startup through `control-runtime`
 (`oss/src/control/runtime`) from the `migrations` listed in the spec
 (`migrations.core`, `ownMigration(...)`, ...).
+
+Further `bunService` options:
+
+- `buildEnv`: `ENV` set in the builder stage (for example `METORIAL_EDITION`).
+- `sources`: workspace paths copied into the builder next to the pruned workspace
+  (files the prune step does not include, such as shared tsconfigs or scripts).
+- `strip`: package names removed from `node_modules` after install.
+- `assets`: `from` is relative to the package; a leading `/` makes it relative to
+  the workspace root and then requires an explicit `to`.
+- `generateFirst`: run `prisma:generate` as its own Turbo run before the other tasks
+  (needed when a package's build is not ordered after generation by Turbo).
+- `runtime: 'source'`: the image keeps the builder stage and runs `start` from the
+  package directory instead of a bundled `dist`.
+- `release` bakes `METORIAL_RELEASE_CHANNEL` (build arg, default `dev`); `versioned`
+  also sets `METORIAL_VERSION` from the `METORIAL_BUILD_VERSION` build arg.
+
+Stack-only manifests (such as the on-prem services) are generated too.
+`control stack images <stack> --json` lists the images a production stack builds.

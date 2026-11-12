@@ -1,4 +1,4 @@
-import { checkEdition } from '@metorial/editions';
+import { checkEdition, isBuilt } from '@metorial/editions';
 import { createCachedFunction } from '@lowerdeck/cache';
 import { forbiddenError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
@@ -257,27 +257,31 @@ class SessionService {
   }
 
   async upsertDevAdminSession(d: { session: AuthDeviceUserSession & { user: User } }) {
-    if (checkEdition('on-prem')) throw new Error('Admin access is unavailable');
+    if (!isBuilt()) {
+      if (checkEdition('on-prem')) throw new Error('Admin access is unavailable');
 
-    if (process.env.NODE_ENV != 'development') {
-      throw new Error('NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO');
+      if (process.env.NODE_ENV != 'development') {
+        throw new Error('Development admin access requires development mode');
+      }
+
+      let existingAdmin = await db.admin.findUnique({
+        where: { email: d.session.user.email }
+      });
+      if (existingAdmin) return existingAdmin;
+
+      return await db.admin.upsert({
+        where: { email: d.session.user.email },
+        create: {
+          email: d.session.user.email,
+          name: d.session.user.name,
+          ...getId('admin'),
+          password: ''
+        },
+        update: {}
+      });
     }
 
-    let existingAdmin = await db.admin.findUnique({
-      where: { email: d.session.user.email }
-    });
-    if (existingAdmin) return existingAdmin;
-
-    return await db.admin.upsert({
-      where: { email: d.session.user.email },
-      create: {
-        email: d.session.user.email,
-        name: d.session.user.name,
-        ...getId('admin'),
-        password: ''
-      },
-      update: {}
-    });
+    throw new Error('Development admin access is unavailable in builds');
   }
 }
 

@@ -1379,6 +1379,25 @@ let TrustPaths = Object.assign(
   }
 );
 
+let LicensesPaths = Object.assign(
+  (...subPages: SubPages) => getNexusUrl('licenses', () => joinPaths(...subPages)),
+  {
+    licenses: (organizationId: string | null | undefined, ...subPages: SubPages) => {
+      if (!organizationId) return '#';
+      return LicensesPaths(organizationId, 'licenses', ...subPages);
+    },
+    license: (
+      organizationId: string | null | undefined,
+      licenseId: string | null | undefined
+    ) => {
+      if (!licenseId) return '#';
+      return LicensesPaths.licenses(organizationId, licenseId);
+    },
+    exchange: (organizationId?: string | null) =>
+      organizationId ? LicensesPaths(organizationId, 'exchange') : LicensesPaths('exchange')
+  }
+);
+
 let DocumentsPaths = Object.assign(
   (...subPages: SubPages) => getNexusUrl('documents', () => joinPaths(...subPages)),
   {
@@ -2255,6 +2274,7 @@ export let Paths = {
   account: AccountPaths,
   documents: DocumentsPaths,
   trust: TrustPaths,
+  licenses: LicensesPaths,
   support: SupportPaths,
   enterprise: EnterprisePaths,
   organization: OrganizationPaths,

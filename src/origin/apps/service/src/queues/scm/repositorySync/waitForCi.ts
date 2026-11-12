@@ -1,14 +1,22 @@
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '../../../db';
 import { env } from '../../../env';
-import { getRepositorySyncStatusSnapshot } from '../../../lib/scmRepositorySyncProvider';
+import { getScmProviderErrorStatus } from '../../../lib/scmProviderError';
+import {
+  getRepositorySyncBranchShaOrNull,
+  getRepositorySyncDismissal,
+  getRepositorySyncStatusSnapshot
+} from '../../../lib/scmRepositorySyncProvider';
 import {
   classifyRepositorySyncSnapshot,
+  type RepositorySyncStatusSnapshot,
   transitionRepositorySyncState
 } from '../../../services/repositorySyncState';
 import {
   appendRepositorySyncLog,
-  getRepositorySyncErrorMessage,
+  endDismissedRepositorySync,
+  getRepositorySyncRetry,
+  recordRepositorySyncRetry,
   logRepositorySyncQueueError,
   logRepositorySyncQueueEvent
 } from './_lib';
@@ -69,7 +77,45 @@ export let waitForCiRepositorySyncQueueProcessor = waitForCiRepositorySyncQueue.
         branchName: sync.branchName,
         providerPrId: sync.providerPrId
       });
-      let snapshot = await getRepositorySyncStatusSnapshot(sync);
+      let isManifest = sync.sourceType === 'manifest';
+      let snapshot: RepositorySyncStatusSnapshot;
+      try {
+        snapshot = await getRepositorySyncStatusSnapshot(sync);
+      } catch (e) {
+        let dismissal =
+          isManifest && getScmProviderErrorStatus(e) === 404
+            ? await getRepositorySyncDismissal(sync)
+            : null;
+        if (!dismissal) throw e;
+        await endDismissedRepositorySync(sync, dismissal, { lastPolledAt: new Date() });
+        return;
+      }
+      if (
+        sync.errorMessage &&
+        (sync.errorCode !== 'merge_not_ready' || snapshot.mergeability.state === 'mergeable')
+      ) {
+        await appendRepositorySyncLog(sync.id, 'Repository sync resumed.');
+      }
+      // GitHub closes a PR whose head branch was deleted; GitLab and Bitbucket (Cloud and Data
+      // Center) leave it open, so only those need the branch itself checked.
+      if (isManifest && snapshot.pullRequest.state !== 'merged') {
+        let dismissal =
+          snapshot.pullRequest.state === 'closed'
+            ? await getRepositorySyncDismissal(sync, { state: 'closed', conflicting: false })
+            : sync.repo.provider !== 'github' &&
+                !(await getRepositorySyncBranchShaOrNull(sync, sync.branchName))
+              ? 'branch_deleted'
+              : null;
+        if (dismissal) {
+          await endDismissedRepositorySync(sync, dismissal, {
+            statusSnapshot: snapshot,
+            ciState: snapshot.checks.state,
+            lastPolledAt: new Date(),
+            attemptCount: 0
+          });
+          return;
+        }
+      }
       let previousSnapshot = sync.statusSnapshot as {
         checks?: { state?: string };
         review?: { state?: string };
@@ -96,9 +142,12 @@ export let waitForCiRepositorySyncQueueProcessor = waitForCiRepositorySyncQueue.
           lastPolledAt: now,
           attemptCount: 0,
           nextPollAt: null,
-          completedAt: now
+          completedAt: now,
+          errorMessage: null,
+          errorCode: null
         });
         if (!updated) return;
+        await appendRepositorySyncLog(sync.id, 'Repository update completed.');
         return;
       }
 
@@ -127,9 +176,19 @@ export let waitForCiRepositorySyncQueueProcessor = waitForCiRepositorySyncQueue.
           ciState,
           lastPolledAt: now,
           nextPollAt,
+          errorCode: null,
           errorMessage: null
         });
         if (!updated) return;
+        if (
+          snapshot.mergeability.state === 'checking' &&
+          previousSnapshot?.mergeability?.state !== 'checking'
+        ) {
+          await appendRepositorySyncLog(
+            sync.id,
+            'Waiting for the repository to prepare the merge.'
+          );
+        }
 
         await waitForCiRepositorySyncQueue.add(
           { syncId: data.syncId, index: index + 1 },
@@ -151,6 +210,7 @@ export let waitForCiRepositorySyncQueueProcessor = waitForCiRepositorySyncQueue.
           lastPolledAt: now,
           nextPollAt: new Date(now.getTime() + delay),
           completedAt: null,
+          errorCode: null,
           errorMessage: null
         });
         if (!updated) return;
@@ -184,6 +244,7 @@ export let waitForCiRepositorySyncQueueProcessor = waitForCiRepositorySyncQueue.
           ciState,
           lastPolledAt: now,
           nextPollAt: new Date(now.getTime() + delay),
+          errorCode: null,
           errorMessage: null
         });
         if (!updated) return;
@@ -215,6 +276,7 @@ export let waitForCiRepositorySyncQueueProcessor = waitForCiRepositorySyncQueue.
           lastPolledAt: now,
           nextPollAt: new Date(now.getTime() + delay),
           completedAt: null,
+          errorCode: null,
           errorMessage: null
         });
         if (!updated) return;
@@ -249,6 +311,7 @@ export let waitForCiRepositorySyncQueueProcessor = waitForCiRepositorySyncQueue.
         ciState,
         lastPolledAt: now,
         nextPollAt: null,
+        errorCode: null,
         errorMessage: null
       });
       if (!updated) return;
@@ -282,15 +345,27 @@ export let waitForCiRepositorySyncQueueProcessor = waitForCiRepositorySyncQueue.
       logRepositorySyncQueueError('waitForCi', 'failed while processing queue item', e, {
         syncId: data.syncId
       });
-      let current = await db.scmRepositorySync.findUnique({ where: { id: data.syncId } });
+      let current = await db.scmRepositorySync.findUnique({
+        where: { id: data.syncId },
+        include: { repo: true }
+      });
       if (current && ['waiting_for_ci', 'waiting_for_review'].includes(current.status)) {
+        let retry = getRepositorySyncRetry(e, 'waitForCi');
         let delay = Math.min(60_000 * 2 ** Math.min(current.attemptCount, 10), 15 * 60_000);
         let updated = await transitionRepositorySyncState(data.syncId, current.status, {
           attemptCount: { increment: 1 },
-          errorMessage: getRepositorySyncErrorMessage(e),
+          errorMessage: retry.message,
+          errorCode: retry.code,
           nextPollAt: new Date(Date.now() + delay)
         });
         if (!updated) return;
+        await recordRepositorySyncRetry({
+          sync: current,
+          stage: 'waitForCi',
+          error: e,
+          delayMs: delay,
+          retry
+        });
         await waitForCiRepositorySyncQueue.add(
           { syncId: data.syncId, index: data.index },
           { delay, id: `${data.syncId}:retry:${current.attemptCount + 1}` }

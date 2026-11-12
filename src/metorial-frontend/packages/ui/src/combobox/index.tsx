@@ -265,8 +265,7 @@ export type ComboboxGroupData<TData = unknown> = {
 };
 
 export type ComboboxData<TData = unknown> =
-  | ComboboxItemData<TData>[]
-  | ComboboxGroupData<TData>[];
+  ComboboxItemData<TData>[] | ComboboxGroupData<TData>[];
 
 export type ComboboxProviderArgs<TData = unknown> = {
   search: string;
@@ -321,8 +320,7 @@ type ProviderComboboxProps<TData> = ComboboxPropsBase<TData> & {
 };
 
 export type ComboboxProps<TData = unknown> =
-  | StaticComboboxProps<TData>
-  | ProviderComboboxProps<TData>;
+  StaticComboboxProps<TData> | ProviderComboboxProps<TData>;
 
 let useDebouncedValue = <T,>(value: T, delay: number) => {
   let [debouncedValue, setDebouncedValue] = useState(() => value);
@@ -420,6 +418,7 @@ let ComboboxInner = <TData,>({
   let normalizedValue = value ?? null;
   let normalizedGroups = useMemo(() => normalizeGroups(items), [items]);
   let flatItems = useMemo(() => flattenGroups(normalizedGroups), [normalizedGroups]);
+  let itemValues = useMemo(() => flatItems.map(item => item.id), [flatItems]);
   let [labelCache, setLabelCache] = useState<Record<string, string>>(() =>
     createLabelCache(flatItems)
   );
@@ -538,8 +537,8 @@ let ComboboxInner = <TData,>({
             setSearch(selectedLabel);
           }
         }}
-        items={flatItems}
-        filteredItems={flatItems}
+        items={itemValues}
+        filteredItems={itemValues}
         autoHighlight
         disabled={disabled}
         readOnly={readOnly}

@@ -17,5 +17,6 @@ export let codeBucketPresenter = (
 
   repository: codeBucket.repository ? repositoryPresenter(codeBucket.repository) : undefined,
 
-  createdAt: codeBucket.createdAt
+  createdAt: codeBucket.createdAt,
+  deletedAt: codeBucket.deletedAt
 });

@@ -979,7 +979,7 @@ export let discoverSlateQueueProcessor = discoverSlateQueue.process(async data =
       }
 
       try {
-        await retryOnOidCollision(() =>
+        await retryOnOidCollision(async () =>
           db.changeNotification.create({
             data: {
               ...getId('changeNotification'),

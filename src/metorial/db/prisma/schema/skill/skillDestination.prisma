@@ -1,9 +1,24 @@
+enum SkillDestinationStorageMode {
+  code_bucket
+  manifest
+}
+
+enum SkillDestinationFileSourceKind {
+  file
+  blob
+}
+
 model SkillDestination {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  codeBucketId String
-  tag          Int    @default(0)
+  codeBucketId String?
+  tag          Int     @default(0)
+
+  storageMode          SkillDestinationStorageMode @default(code_bucket)
+  storageModeChangedAt DateTime?
+
+  syncRecoveryVersion Int @default(0)
 
   isDirty                Boolean   @default(false)
   lastTransientChangeAt  DateTime?
@@ -14,13 +29,18 @@ model SkillDestination {
   createdAt  DateTime  @default(now())
   lastUsedAt DateTime?
 
+  currentManifestOid BigInt?
+  currentManifest    SkillDestinationManifest? @relation("SkillDestinationCurrentManifest", fields: [currentManifestOid], references: [oid], onDelete: SetNull)
+
   syncs                        SkillDestinationSync[]
   skillMarketplace             SkillMarketplace?
   skillPlugin                  SkillPlugin?
   skillDestinationItems        SkillDestinationItem[]
   skillDestinationFiles        SkillDestinationFile[]
   skillDestinationDeletedFiles SkillDestinationDeletedFile[]
+  manifests                    SkillDestinationManifest[]    @relation("SkillDestinationManifests")
 
+  @@index([syncRecoveryVersion])
   @@index([isDirty])
   @@index([shouldFlushAt])
   @@index([mustFlushAt])
@@ -33,9 +53,19 @@ model SkillDestinationFile {
   destination    SkillDestination @relation(fields: [destinationOid], references: [oid], onDelete: Cascade)
 
   path      String
+  pathBytes Bytes?
   signature String
 
   itemKey String?
+
+  gitBlobSha String?
+  sha256     String?
+  byteSize   BigInt?
+  crc32      BigInt?
+
+  sourceKind    SkillDestinationFileSourceKind?
+  sourceKey     String?
+  sourceFileOid BigInt?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -43,6 +73,51 @@ model SkillDestinationFile {
   @@unique([destinationOid, path])
   @@index([destinationOid])
   @@index([destinationOid, itemKey])
+  @@index([destinationOid, pathBytes])
+  @@index([sourceKey])
+}
+
+model SkillDestinationManifest {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  sha256        String
+  objectKey     String
+  formatVersion Int
+
+  entryCount Int
+  totalBytes BigInt
+
+  destinationOid BigInt
+  destination    SkillDestination @relation("SkillDestinationManifests", fields: [destinationOid], references: [oid], onDelete: Cascade)
+
+  createdAt        DateTime @default(now())
+  lastReferencedAt DateTime @default(now())
+
+  currentForDestinations SkillDestination[]                          @relation("SkillDestinationCurrentManifest")
+  syncs                  SkillDestinationSync[]
+  propagations           SkillDestinationSyncRepositoryPropagation[] @relation("PropagationManifest")
+  lastPropagatedRepos    SkillRepository[]
+  exportRefs             SkillExportRef[]
+
+  @@unique([destinationOid, sha256])
+  @@index([lastReferencedAt])
+  @@index([objectKey])
+}
+
+model SkillSyncBlob {
+  oid BigInt @id @default(autoincrement())
+
+  key        String @unique
+  sha256     String @unique
+  gitBlobSha String
+  crc32      BigInt
+  byteSize   BigInt
+
+  createdAt        DateTime @default(now())
+  lastReferencedAt DateTime @default(now())
+
+  @@index([lastReferencedAt])
 }
 
 model SkillDestinationDeletedFile {
@@ -96,17 +171,36 @@ enum SkillDestinationSyncRepositoryPropagationStatus {
   canceled
 }
 
+enum SkillDestinationSyncTrigger {
+  automatic
+  manual
+  repair
+  drift_check
+  recovery
+  migration
+}
+
 model SkillDestinationSync {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
   status            SkillDestinationSyncStatus
-  isAtRepoSyncStage Boolean                    @default(false)
+  trigger           SkillDestinationSyncTrigger @default(automatic)
+  isAtRepoSyncStage Boolean                     @default(false)
+
+  contentVersion Int @default(0)
+
+  storageMode     SkillDestinationStorageMode @default(code_bucket)
+  allowMassDelete Boolean                     @default(false)
 
   destinationOid BigInt
   destination    SkillDestination @relation(fields: [destinationOid], references: [oid], onDelete: Cascade)
 
+  manifestOid BigInt?
+  manifest    SkillDestinationManifest? @relation(fields: [manifestOid], references: [oid], onDelete: SetNull)
+
   createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
   startedAt   DateTime?
   completedAt DateTime?
 
@@ -120,6 +214,8 @@ model SkillDestinationSync {
   repositoryPropagations SkillDestinationSyncRepositoryPropagation[]
 
   @@index([destinationOid, status])
+  @@index([status, createdAt])
+  @@index([status, updatedAt])
   @@index([createdAt])
 }
 
@@ -138,8 +234,24 @@ model SkillDestinationSyncRepositoryPropagation {
   prDescription String?
   commitMessage String?
   errorMessage  String?
+  errorCode     String?
+  endReason     String?
+
+  /// [SkillSyncPropagationErrorDetails]
+  errorDetails Json?
+
+  waitingUntil  DateTime?
+  waitingReason String?
 
   deletionsUpTo DateTime?
+
+  previousManifestSha256 String?
+
+  /// [SkillSyncResultStats]
+  resultStats Json?
+
+  manifestOid BigInt?
+  manifest    SkillDestinationManifest? @relation("PropagationManifest", fields: [manifestOid], references: [oid], onDelete: SetNull)
 
   skillDestinationSyncOid BigInt
   skillDestinationSync    SkillDestinationSync @relation(fields: [skillDestinationSyncOid], references: [oid], onDelete: Cascade)
@@ -155,6 +267,7 @@ model SkillDestinationSyncRepositoryPropagation {
   @@unique([skillDestinationSyncOid, skillRepositoryOid])
   @@index([status])
   @@index([originSyncId])
+  @@index([skillRepositoryOid])
 }
 
 model SkillOriginChangeNotificationCursor {

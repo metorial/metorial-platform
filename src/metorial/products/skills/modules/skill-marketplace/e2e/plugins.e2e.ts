@@ -1,4 +1,10 @@
-import { eventually, expectServiceError, firstPage, useOrganization } from '@metorial/e2e';
+import {
+  eventually,
+  expectServiceError,
+  firstPage,
+  uniqueId,
+  useOrganization
+} from '@metorial/e2e';
 import { db, loadOrganizationFixture, type OrganizationFixture } from '@metorial/e2e/db';
 import { skillService } from '@metorial/module-skill';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -15,11 +21,13 @@ import {
   getPlugin,
   getSkill,
   privileged,
-  useFakeOrigin
+  useFakeOrigin,
+  useSkillsManifestSyncFlag
 } from './_fixtures';
 
 describe('skill plugins', () => {
   let origin = useFakeOrigin();
+  useSkillsManifestSyncFlag(false);
   let org = useOrganization();
   let other = useOrganization();
 
@@ -141,6 +149,46 @@ describe('skill plugins', () => {
       ]);
       expect(await listPlugins(fixture, { skillMarketplaceIds: [marketplace.id] })).toEqual(
         expect.arrayContaining([first.id, second.id])
+      );
+    });
+
+    it('creates plugins with the same slug concurrently across organizations', async () => {
+      let slug = uniqueId('concurrent-plugin').toLowerCase();
+      let plugins = await Promise.all(
+        [fixture, otherFixture, fixture, otherFixture].map(target =>
+          createPlugin(target, { name: 'Concurrent Plugin', slug })
+        )
+      );
+
+      expect(new Set(plugins.map(plugin => plugin.slug)).size).toBe(plugins.length);
+      expect(new Set(plugins.map(plugin => plugin.destinationOid)).size).toBe(plugins.length);
+      expect(
+        await db.skillPlugin.count({ where: { id: { in: plugins.map(plugin => plugin.id) } } })
+      ).toBe(plugins.length);
+    });
+
+    it('creates plugins with the same marketplace slug concurrently', async () => {
+      let marketplace = await createMarketplace(fixture);
+      let slug = uniqueId('concurrent-membership').toLowerCase();
+      let plugins = await Promise.all(
+        Array.from({ length: 4 }, () =>
+          createPlugin(
+            fixture,
+            { name: 'Concurrent Marketplace Plugin', slug },
+            { skillMarketplaceId: marketplace.id }
+          )
+        )
+      );
+
+      let memberships = await db.skillMarketplacePlugin.findMany({
+        where: { skillMarketplaceOid: marketplace.oid }
+      });
+      expect(memberships).toHaveLength(plugins.length);
+      expect(new Set(memberships.map(membership => membership.pluginSlug)).size).toBe(
+        plugins.length
+      );
+      expect(memberships.map(membership => membership.skillPluginOid)).toEqual(
+        expect.arrayContaining(plugins.map(plugin => plugin.oid))
       );
     });
 
@@ -321,6 +369,15 @@ describe('skill plugins', () => {
       });
       expect(again.id).toBe(firstLink.id);
       expect(again.clientName).toBe('Reviewer');
+
+      let secondAgain = await addSkillToPlugin(fixture, {
+        skillPluginId: plugin.id,
+        skillId: second.id
+      });
+      expect(secondAgain).toMatchObject({
+        id: secondLink.id,
+        pluginSkillSlug: secondLink.pluginSkillSlug
+      });
 
       await expectServiceError(
         addSkillToPlugin(fixture, {

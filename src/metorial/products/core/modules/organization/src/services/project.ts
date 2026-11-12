@@ -129,6 +129,7 @@ class ProjectService {
           allowApiAccessToConsumerOwnedResources: false,
           allowMemberAccessToConsumerOwnedResources: false,
           hidePublicRemoteProviders: true,
+          sessionlessMcpEnabled: true,
           organizationOid: d.organization.oid
         },
         include: {

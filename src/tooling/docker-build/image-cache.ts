@@ -13,7 +13,7 @@ import {
 
 let [command, dockerfileArgument, destination, canonical = '', buildArguments = '{}'] =
   process.argv.slice(2);
-let fingerprintPolicy = 3;
+let fingerprintPolicy = 4;
 let pruneLockTimeoutMs = 300_000;
 let outputFile = process.env.GITHUB_OUTPUT;
 let startedAt = Date.now();

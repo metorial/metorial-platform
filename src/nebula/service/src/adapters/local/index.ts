@@ -1,3 +1,4 @@
+import { checkEdition } from '@metorial/editions';
 import type { KeyProvider } from '../../../prisma/generated/client';
 import { env } from '../../env';
 import { decryptAes256Gcm, deriveSha256Key, encryptAes256Gcm } from '../../lib/crypto';
@@ -10,7 +11,7 @@ import { KeyProviderAdapter } from '../_lib/adapter';
 import { KeyProviderAdapterError } from '../_lib/errors';
 
 let assertLocalAllowed = () => {
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.NODE_ENV === 'production' && !checkEdition('on-prem')) {
     throw new KeyProviderAdapterError(
       'local_provider_in_production',
       'Local provider cannot be used in production'

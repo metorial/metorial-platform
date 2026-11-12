@@ -5,7 +5,11 @@ import { assertSkillMarketplaceLimits } from '../../lib/limits';
 import { createApplicator } from '../_lib/apply';
 import { claimVersion } from '../_lib/claimVersion';
 import { getMarketplaceForceSyncHashInput } from '../_lib/forceSync';
-import { getMarketplacePruneScope } from '../_lib/paths';
+import {
+  getMarketplacePruneScope,
+  marketplaceManifestPaths,
+  marketplacePluginsDir
+} from '../_lib/paths';
 
 let json = (data: any) => JSON.stringify(data, null, 2);
 
@@ -120,7 +124,7 @@ export let applyMarketplace = createApplicator(
           category: p.skillPlugin.category ?? 'Productivity',
           source: {
             source: 'local',
-            path: `./plugins/${p.pluginSlug}`
+            path: `./${marketplacePluginsDir}/${p.pluginSlug}`
           },
           policy: {
             installation: 'AVAILABLE',
@@ -128,7 +132,7 @@ export let applyMarketplace = createApplicator(
           }
         }))
       });
-      await context.setFile('.agents/plugins/marketplace.json', codexMarketplace);
+      await context.setFile(marketplaceManifestPaths.codex, codexMarketplace);
 
       let claudeMarketplace = json({
         name: input.skillMarketplace.slug,
@@ -141,15 +145,15 @@ export let applyMarketplace = createApplicator(
         },
         plugins: plugins.map(p => ({
           name: p.pluginSlug,
-          source: `./plugins/${p.pluginSlug}`,
+          source: `./${marketplacePluginsDir}/${p.pluginSlug}`,
           description:
             p.skillPlugin.description ??
             p.skillPlugin.skillPluginSkills[0]?.skill.description ??
             ''
         }))
       });
-      await context.setFile('.claude-plugin/marketplace.json', claudeMarketplace);
-      await context.setFile('.github/plugin/marketplace.json', claudeMarketplace);
+      await context.setFile(marketplaceManifestPaths.claude, claudeMarketplace);
+      await context.setFile(marketplaceManifestPaths.github, claudeMarketplace);
 
       let cursorMarketplace = json({
         name: input.skillMarketplace.slug,
@@ -169,7 +173,7 @@ export let applyMarketplace = createApplicator(
             ''
         }))
       });
-      await context.setFile('.cursor-plugin/marketplace.json', cursorMarketplace);
+      await context.setFile(marketplaceManifestPaths.cursor, cursorMarketplace);
     }
   }
 );

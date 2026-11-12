@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
-import { affected, controlTasks, suites } from './changes';
+import { affected, controlSuites, controlTasks } from './changes';
 
-let controlSuites = {
+let controlSuiteFixtures = {
   oss: {
     name: 'metorial',
     package: '@metorial/app-api',
@@ -53,20 +53,20 @@ test('source, shared dependency, deleted files and imported configuration select
 });
 
 test('E2E suites include every application container dependency', () => {
-  expect(suites.find(suite => suite.name === 'shuttle')!.services).toContain(
+  expect(controlSuites.find(suite => suite.name === 'shuttle')!.services).toContain(
     '@metorial/forge'
   );
-  expect(suites.find(suite => suite.name === 'slates-hub')!.services).toEqual([
-    '@metorial/forge',
-    '@metorial/function-bay',
-    '@metorial/nebula',
-    '@metorial/signal',
-    '@metorial/slates',
-    '@metorial/slates-registry'
-  ]);
-  expect(suites.find(suite => suite.name === 'function-bay')!.services).toContain(
-    '@metorial/forge'
-  );
+  expect(
+    controlSuites.find(suite => suite.name === 'function-bay')!.services
+  ).toContain('@metorial/forge');
+});
+
+test('Shuttle and Function Bay control suites include Forge as a stack dependency', () => {
+  for (let name of ['shuttle', 'function-bay']) {
+    expect(controlSuites.find(suite => suite.name === name)).toMatchObject({
+      stackPackages: expect.arrayContaining(['@metorial/forge'])
+    });
+  }
 });
 
 test('control suites select stack test packages and prune them for CI', async () => {
@@ -80,17 +80,17 @@ test('control suites select stack test packages and prune them for CI', async ()
     ['@metorial/db', { directory: 'src/metorial/db', e2e: false }],
     ['@metorial/module-x', { directory: 'src/metorial/products/core/modules/x', e2e: false }]
   ]);
-  expect(controlTestPackages(controlSuites.oss, packages)).toEqual([
+  expect(controlTestPackages(controlSuiteFixtures.oss, packages)).toEqual([
     '@metorial/api-core',
     '@metorial/module-user'
   ]);
-  expect(controlTasks(controlSuites.oss)).toBe(
+  expect(controlTasks(controlSuiteFixtures.oss)).toBe(
     'prisma:generate test:e2e --filter=./src/metorial/products/*/modules/* --filter=./src/metorial/apis/*'
   );
-  expect(controlTasks(controlSuites.enterprise)).toBe(
+  expect(controlTasks(controlSuiteFixtures.enterprise)).toBe(
     'prisma:generate test:e2e --filter=./src/metorial/modules/* --filter=./src/metorial/apis/* --filter=@metorial-enterprise/fabric'
   );
-  expect(controlSuites.enterprise.package).toBe('@metorial/mte-core-api');
+  expect(controlSuiteFixtures.enterprise.package).toBe('@metorial/mte-core-api');
 });
 
 test('control suites run as duration-balanced matrix groups with per-package shards', async () => {
@@ -109,7 +109,7 @@ test('control suites run as duration-balanced matrix groups with per-package sha
   let durations: Record<string, number> = { '@metorial/api-core': 600 };
   for (let index = 0; index < 8; index++) durations[`@metorial/module-m${index}`] = 50;
 
-  let matrix = controlMatrix(controlSuites.oss, packages, durations);
+  let matrix = controlMatrix(controlSuiteFixtures.oss, packages, durations);
 
   expect(matrix.map(entry => entry.name)).toEqual([
     'metorial 1/4',
@@ -123,7 +123,7 @@ test('control suites run as duration-balanced matrix groups with per-package sha
       control: true,
       package: '@metorial/app-api',
       workspace: '.',
-      tasks: controlTasks(controlSuites.oss)
+      tasks: controlTasks(controlSuiteFixtures.oss)
     });
     expect(entry.args).toMatch(
       /^@metorial\/[\w-]+( @metorial\/[\w-]+)*( -- --package-shard=.+)?$/
@@ -138,7 +138,7 @@ test('control suites run as duration-balanced matrix groups with per-package sha
   ]);
 
   let single = new Map([...packages].slice(0, 1));
-  expect(controlMatrix(controlSuites.oss, single, {})).toEqual([
+  expect(controlMatrix(controlSuiteFixtures.oss, single, {})).toEqual([
     expect.objectContaining({ name: 'metorial', key: 'metorial', args: '@metorial/api-core' })
   ]);
 });

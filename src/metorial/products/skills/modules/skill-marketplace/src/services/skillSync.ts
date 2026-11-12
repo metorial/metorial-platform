@@ -1,6 +1,7 @@
-import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
+import type { AuditScope } from '@metorial/audit-scope';
 import type { Instance, Prisma, Project, SkillDestinationSyncStatus } from '@metorial/db';
 import { db, withTransaction } from '@metorial/db';
 import {
@@ -9,8 +10,13 @@ import {
   resolveSkillMarketplaces,
   resolveSkillPlugins
 } from '@metorial/list-utils';
+import { Fabric } from '@metorial/fabric';
 import { getOriginTenant, origin } from '@metorial/skills-scm-utils';
-import { isRepositorySyncRetrying } from '../lib/repositorySyncStatus';
+import { forceSkillDestinationSync } from '../lib/destinationSync';
+import {
+  getRepositorySyncRetryMessage,
+  isRepositorySyncRetrying
+} from '../lib/repositorySyncStatus';
 
 export let skillSyncInclude = {
   destination: {
@@ -169,6 +175,36 @@ class SkillSyncServiceImpl {
     return await this.getSkillSyncRecord(d);
   }
 
+  async forceSkillSync(d: {
+    project: Project;
+    instance: Instance;
+    skillSyncId: string;
+    allowMassDelete?: boolean;
+    auditScope: AuditScope;
+  }) {
+    let skillSync = await this.getSkillSyncRecord(d);
+    if (d.allowMassDelete && skillSync.destination.storageMode !== 'manifest') {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Only manifest syncs can be forced past the deletion guard.'
+        })
+      );
+    }
+
+    let forced = await forceSkillDestinationSync({
+      destination: skillSync.destination,
+      trigger: 'manual',
+      allowMassDelete: d.allowMassDelete
+    });
+    await Fabric.fire('skill.destination.audit.sync_forced:after', {
+      auditScope: d.auditScope,
+      skillDestination: skillSync.destination,
+      skillDestinationSync: forced
+    });
+
+    return await this.getSkillSyncRecord({ ...d, skillSyncId: forced.id });
+  }
+
   async getSkillSyncRepositoryChecks(d: {
     project: Project;
     instance: Instance;
@@ -237,7 +273,7 @@ class SkillSyncServiceImpl {
         | null
         | undefined;
       let isPullRequest = propagation.repositoryAccessMode === 'pull_request';
-      let providerUnavailable = Boolean(
+      let syncRetrying = Boolean(
         (originSync && isRepositorySyncRetrying(originSync)) ||
         (!originSync && (propagation.errorMessage || propagation.originSyncId))
       );
@@ -259,9 +295,8 @@ class SkillSyncServiceImpl {
         snapshot?.mergeability?.reason !== 'merge_permission_required'
           ? 'merge_blocked'
           : null,
-        providerUnavailable &&
-        ['processing', 'waiting_for_review'].includes(propagation.status)
-          ? 'provider_unavailable'
+        syncRetrying && ['processing', 'waiting_for_review'].includes(propagation.status)
+          ? 'sync_retrying'
           : null
       ].filter((blocker): blocker is string => blocker != null);
 
@@ -296,7 +331,12 @@ class SkillSyncServiceImpl {
         approvedReviewCount: isPullRequest ? (snapshot?.review?.approvals ?? null) : null,
         mergeability: isPullRequest ? (snapshot?.mergeability?.state ?? null) : null,
         lastCheckedAt: snapshot?.observedAt ? new Date(snapshot.observedAt) : null,
-        errorMessage: propagation.errorMessage ?? originSync?.errorMessage ?? null
+        errorMessage: syncRetrying
+          ? getRepositorySyncRetryMessage(
+              propagation.repositoryAccessMode,
+              originSync?.errorCode
+            )
+          : (propagation.errorMessage ?? originSync?.errorMessage ?? null)
       };
     });
   }

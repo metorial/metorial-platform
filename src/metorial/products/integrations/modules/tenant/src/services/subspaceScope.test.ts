@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
   tenantFind: vi.fn(),
@@ -187,6 +187,10 @@ describe('Subspace scope provisioning', () => {
     });
   });
 
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it.each([false, true])(
     'uses the project policy %s when provisioning its tenant',
     async value => {
@@ -197,6 +201,28 @@ describe('Subspace scope provisioning', () => {
       expect(mocks.tenantUpsert).toHaveBeenCalledWith(
         expect.objectContaining({
           input: expect.objectContaining({ hidePublicRemoteProviders: value })
+        })
+      );
+    }
+  );
+
+  it.each([
+    { value: null, environment: 'development', expected: true },
+    { value: null, environment: 'production', expected: false },
+    { value: true, environment: 'production', expected: true },
+    { value: false, environment: 'development', expected: false }
+  ])(
+    'resolves the project sessionless MCP setting $value in $environment on tenant creation',
+    async ({ value, environment, expected }) => {
+      vi.stubEnv('METORIAL_ENV', environment);
+
+      await subspaceScopeService.ensureForProjectUncached(
+        makeProject({ sessionlessMcpEnabled: value })
+      );
+
+      expect(mocks.tenantUpsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          input: expect.objectContaining({ sessionlessMcpEnabledOnCreate: expected })
         })
       );
     }

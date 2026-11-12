@@ -5,9 +5,11 @@ import * as workspace from './workspace';
 import * as docker from './docker';
 import { generate as generateDockerfiles } from './dockerfile/generate';
 import * as turbo from './turbo';
+import { databaseOwnerEnvironments, databasePackages, runDatabaseScripts } from './database';
 import * as commands from './process';
 import * as infrastructure from './infrastructure';
 import * as proxy from './proxy';
+import { clearServicePorts } from './ports';
 import type { Environment, LoadedManifest, ProjectRoot } from './types';
 
 export let syncDockerfiles = (project: ProjectRoot, manifests: LoadedManifest[]) => {
@@ -44,56 +46,7 @@ export let selection = async (
   return { manifests, selected, env: environment.rootEnvironment(project) };
 };
 
-export let databasePackages = (manifests: LoadedManifest[]) =>
-  [
-    ...new Set(
-      manifests.flatMap(({ manifest }) =>
-        [...Object.values(manifest.postgres), ...Object.values(manifest.mongo)].map(
-          db => db.package
-        )
-      )
-    )
-  ].sort();
-
-export let databaseOwnerEnvironments = (manifests: LoadedManifest[], root: Environment) => {
-  let values: Record<string, Environment> = {};
-  let packages = databasePackages(manifests);
-
-  for (let loaded of manifests) {
-    let resolved = environment.allForManifest(loaded, root);
-    let name = loaded.manifest.package?.name;
-    if (name && packages.includes(name)) Object.assign((values[name] ??= {}), resolved);
-
-    for (let [key, db] of [
-      ...Object.entries(loaded.manifest.postgres),
-      ...Object.entries(loaded.manifest.mongo)
-    ])
-      (values[db.package] ??= {})[key] = resolved[key]!;
-  }
-
-  return values;
-};
-
-export let runDatabaseTurbo = async (
-  root: string,
-  manifests: LoadedManifest[],
-  env: Environment,
-  task: string
-) => {
-  let owners = databaseOwnerEnvironments(manifests, env);
-  let groups = new Map<string, { env: Environment; packages: string[] }>();
-
-  for (let name of databasePackages(manifests)) {
-    let merged = { ...env, ...owners[name] };
-    let key = JSON.stringify(Object.entries(merged).sort(([a], [b]) => (a < b ? -1 : 1)));
-    let group = groups.get(key) ?? { env: merged, packages: [] };
-    group.packages.push(name);
-    groups.set(key, group);
-  }
-
-  for (let group of groups.values())
-    await runTurboTask(root, group.env, task, group.packages, 3);
-};
+export { databasePackages, databaseOwnerEnvironments };
 
 export let runTurboTask = async (
   root: string,
@@ -116,18 +69,24 @@ export let prepareSelected = async (
 
   let packages = databasePackages(selected);
 
-  for (let [label, task] of [
-    ['Generating selected database clients', 'control:db:generate'],
-    ['Pushing selected database schemas', 'control:db:push']
-  ]) {
-    if (!packages.length) continue;
-    commands.say(label);
-
-    await runDatabaseTurbo(project.root, selected, env, task!);
+  if (packages.length) {
+    commands.say('Generating selected database clients');
+    await runDatabaseScripts(project, selected, env, 'generate', { cached: true });
   }
-  commands.say('Building packages');
 
-  await commands.run('bun', ['run', 'build'], project.root, env);
+  let push = async () => {
+    if (!packages.length) return;
+    commands.say('Pushing selected database schemas');
+    await runDatabaseScripts(project, selected, env, 'push', { cached: true });
+  };
+  let build = async () => {
+    commands.say('Building packages');
+    await commands.run('bun', ['run', 'build'], project.root, env);
+  };
+
+  let results = await Promise.allSettled([push(), build()]);
+  let failed = results.find(result => result.status === 'rejected');
+  if (failed) throw (failed as PromiseRejectedResult).reason;
 
   for (let loaded of selected) {
     let filter = loaded.manifest.package?.name ?? loaded.path;
@@ -174,8 +133,6 @@ export let runDatabaseTask = async (
     await docker.start(project.root, selected, env, true);
   }
 
-  await prepareSelected(project, selected, env, true);
-
   let packages = databasePackages(selected);
   if (!packages.length) {
     commands.say('No database packages selected');
@@ -186,7 +143,7 @@ export let runDatabaseTask = async (
     `${{ generate: 'Generating selected database clients', push: 'Pushing selected database schemas', migrate: 'Migrating selected databases' }[task]}: ${packages.join(', ')}`
   );
 
-  await runDatabaseTurbo(project.root, selected, env, `control:db:${task}`);
+  await runDatabaseScripts(project, selected, env, task, { cached: false });
 };
 
 export let cleanupCommands = async (selected: LoadedManifest[], env: Environment) => {
@@ -293,6 +250,17 @@ export let run = async (
     let result: unknown;
 
     try {
+      await clearServicePorts(
+        selected
+          .filter(({ manifest }) => Object.keys(manifest.run).length)
+          .flatMap(({ manifest }) =>
+            Object.values(manifest.endpoints).map(
+              endpoint => endpoint.bind_port ?? endpoint.port
+            )
+          ),
+        project.root,
+        commands.say
+      );
       await commands.wait(
         commands.spawn(
           program,

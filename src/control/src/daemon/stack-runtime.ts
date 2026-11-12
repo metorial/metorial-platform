@@ -53,6 +53,8 @@ interface ComposeContainer {
 }
 
 let pollInterval = 2_000;
+let runnerTimeout = 15_000;
+let runnerFailureLimit = 5;
 let prepareTimeout = 30 * 60_000;
 let containerTimeout = 3 * 60_000;
 
@@ -68,7 +70,9 @@ export class StackRuntime implements Runtime {
   private infra: string[] = [];
   private runnerUrl?: string;
   private runner?: RunnerState;
+  private runnerFailures = 0;
   private containers: ComposeContainer[] = [];
+  private stoppedUnits = new Set<string>();
   private links: LinkInfo[] = [];
   private unregister?: () => Promise<void>;
   private follower?: ChildProcess;
@@ -76,6 +80,7 @@ export class StackRuntime implements Runtime {
   private polling = false;
   private lastStart: StartOptions = {};
   private queue: Promise<unknown> = Promise.resolve();
+  private startup?: AbortController;
 
   constructor(
     readonly project: ProjectRoot,
@@ -186,7 +191,17 @@ export class StackRuntime implements Runtime {
     if (!this.startable) throw new Error(`stack ${this.id} is ${this.phase}`);
     this.lastStart = options;
 
-    return this.serialized(() => this.doStart(options));
+    let startup = new AbortController();
+    this.startup = startup;
+    this.set('preparing');
+
+    return this.serialized(async () => {
+      try {
+        await commands.cancellation.run(startup.signal, () => this.doStart(options));
+      } finally {
+        if (this.startup === startup) this.startup = undefined;
+      }
+    });
   }
 
   private directory() {
@@ -197,6 +212,7 @@ export class StackRuntime implements Runtime {
     this.startedAt = Date.now();
     this.runner = undefined;
     this.containers = [];
+    this.stoppedUnits.clear();
 
     try {
       this.set('preparing');
@@ -240,6 +256,7 @@ export class StackRuntime implements Runtime {
       let image = await this.within('control', () =>
         ensureRunnerImage(this.project.root, assets)
       );
+      commands.checkInterrupted();
       let rendered = renderStackCompose(plan, {
         runnerImage: image,
         planDirectory: directory,
@@ -290,6 +307,7 @@ export class StackRuntime implements Runtime {
           this.compose!.run(['run', '--rm', '-T', '--no-deps', unit.name])
         );
 
+      commands.checkInterrupted();
       this.follow();
       this.set('starting');
       let services = [
@@ -300,11 +318,17 @@ export class StackRuntime implements Runtime {
         this.compose!.run(['up', '--detach', '--no-deps', ...services])
       );
 
+      for (let unit of containerUnits(plan))
+        if (this.stoppedUnits.has(unit.name))
+          await this.compose.run(['stop', '--timeout', '0', unit.name]);
+
       this.runnerUrl = processUnits(plan).length ? await this.runnerAddress() : undefined;
       this.startPolling();
       await this.waitReady(plan);
+      commands.checkInterrupted();
       this.set('running');
     } catch (error) {
+      if (error instanceof commands.Interrupted) return;
       let message = error instanceof Error ? error.message : String(error);
       this.logs.system('control', `start failed: ${message}`);
       await this.teardown(false).catch(() => {});
@@ -375,19 +399,8 @@ export class StackRuntime implements Runtime {
   }
 
   private route(line: string, stream: 'out' | 'err') {
-    let match = line.match(/^(\S+?)\s+\| (.*)$/);
-    if (!match) return;
-
-    let [, service, text] = match as unknown as [string, string, string];
-    let prefix = service === 'app' ? text.match(/^\[([^\]]+)\] (.*)$/) : undefined;
-    if (prefix)
-      return void this.logs.append(
-        prefix[1] === 'stack' ? 'runner' : prefix[1]!,
-        prefix[2]! + '\n',
-        stream
-      );
-
-    this.logs.append(service === 'app' ? 'runner' : service, text + '\n', stream);
+    let routed = routeComposeLine(line);
+    if (routed) this.logs.append(routed.unit, routed.text + '\n', stream);
   }
 
   private startPolling() {
@@ -415,10 +428,15 @@ export class StackRuntime implements Runtime {
     if (this.runnerUrl) {
       try {
         this.runner = (await fetch(`${this.runnerUrl}/state`, {
-          signal: AbortSignal.timeout(2000)
+          signal: AbortSignal.any([
+            AbortSignal.timeout(runnerTimeout),
+            ...(this.startup ? [this.startup.signal] : [])
+          ])
         }).then(response => response.json())) as RunnerState;
+        this.runnerFailures = 0;
       } catch {
-        this.runner = undefined;
+        this.runnerFailures++;
+        if (this.runnerFailures >= runnerFailureLimit) this.runner = undefined;
       }
     }
 
@@ -435,14 +453,19 @@ export class StackRuntime implements Runtime {
       await this.refresh();
 
       let failed = this.units().find(
-        unit => unit.state === 'crashed' && unit.kind === 'service'
+        unit =>
+          unit.state === 'crashed' &&
+          unit.kind === 'service' &&
+          !this.stoppedUnits.has(unit.name)
       );
       if (this.runner?.phase === 'failed')
         throw new Error(this.runner.failure ?? 'the dev runner failed');
       if (failed && !this.runner) throw new Error(`${failed.name} exited`);
 
-      let containers = containerUnits(plan).every(unit =>
-        ['healthy', 'running'].includes(this.containerState(unit.name) ?? '')
+      let containers = containerUnits(plan).every(
+        unit =>
+          this.stoppedUnits.has(unit.name) ||
+          ['healthy', 'running'].includes(this.containerState(unit.name) ?? '')
       );
       let processes = !processUnits(plan).length || this.runner?.phase === 'ready';
       if (containers && processes) return;
@@ -451,7 +474,7 @@ export class StackRuntime implements Runtime {
     }
   }
 
-  private async teardown(removeVolumes: boolean) {
+  private async teardown(removeVolumes: boolean, force = false) {
     if (this.poller) clearInterval(this.poller);
     this.poller = undefined;
 
@@ -464,7 +487,7 @@ export class StackRuntime implements Runtime {
           'down',
           '--remove-orphans',
           '--timeout',
-          '10',
+          force ? '0' : '10',
           ...(removeVolumes ? ['--volumes'] : [])
         ])
       ).catch(() => {});
@@ -478,10 +501,13 @@ export class StackRuntime implements Runtime {
 
   async stop(options: { keepInfra?: boolean; volumes?: boolean } = {}) {
     if (['idle', 'stopped', 'stopping'].includes(this.phase)) return;
+    let force = !!this.startup;
+    this.startup?.abort();
+    this.set('stopping');
 
     await this.serialized(async () => {
       this.set('stopping');
-      await this.teardown(!!options.volumes);
+      await this.teardown(!!options.volumes, force);
       this.startedAt = undefined;
       this.set('stopped');
       if (options.volumes) rmSync(this.directory(), { recursive: true, force: true });
@@ -531,6 +557,8 @@ export class StackRuntime implements Runtime {
     let unit = this.find(name);
     let process = this.plan?.units.find(item => item.name === name)?.process;
 
+    if (process && !this.runnerUrl) throw new Error(`the dev runner is not available yet`);
+
     if (process && this.runnerUrl) {
       this.logs.system(name, `${action} requested`);
       let response = await fetch(
@@ -542,14 +570,18 @@ export class StackRuntime implements Runtime {
       if (!response.ok) throw new Error(`runner refused to ${action} ${name}`);
     } else {
       this.logs.system(unit.name, `${action} requested`);
-      await this.within(name, () => this.compose!.run([action, name]));
+      let timeout = action !== 'start' && this.phase === 'starting' ? ['--timeout', '0'] : [];
+      await this.within(name, () => this.compose!.run([action, ...timeout, name]));
     }
+
+    if (action === 'stop') this.stoppedUnits.add(name);
+    else this.stoppedUnits.delete(name);
 
     await this.refresh();
   }
 
   async restartUnit(name: string) {
-    if (!['running', 'failed'].includes(this.phase))
+    if (!['starting', 'running', 'failed'].includes(this.phase))
       throw new Error(`stack ${this.id} is ${this.phase}`);
     await this.control(name, 'restart');
   }
@@ -574,6 +606,20 @@ export class StackRuntime implements Runtime {
     if (!['idle', 'stopped', 'failed'].includes(this.phase)) await this.stop();
   }
 }
+
+export let routeComposeLine = (line: string): { unit: string; text: string } | undefined => {
+  let match = line.match(/^(\S+?)\s+\| (.*)$/);
+  if (!match) return;
+
+  let [, container, text] = match as unknown as [string, string, string];
+  let service = container.replace(/-\d+$/, '');
+  if (service !== 'app') return { unit: service, text };
+
+  let prefix = text.match(/^\[([^\]]+)\] (.*)$/);
+  if (!prefix) return { unit: 'runner', text };
+
+  return { unit: prefix[1] === 'stack' ? 'runner' : prefix[1]!, text: prefix[2]! };
+};
 
 let runnerUnitState = (status: RunnerState['units'][number]['status']): UnitState => {
   switch (status) {

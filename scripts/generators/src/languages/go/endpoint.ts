@@ -9,7 +9,7 @@
 
 import { Cases } from '../../case';
 import type { Controller, Endpoint, IntrospectedType } from '../../fetch';
-import { toGoIdentifier, toGoFolderName } from './utils';
+import { isExplicitNullInput, toGoIdentifier, toGoFolderName } from './utils';
 
 let GO_MODULE_PATH = 'github.com/metorial/metorial-go/v1';
 
@@ -150,6 +150,9 @@ export let createController = async (i: {
   let imports: string[] = [];
   imports.push(`\t"${GO_MODULE_PATH}/internal/endpoint"`);
   imports.push(`\t"${GO_MODULE_PATH}/resources/${resourcePkgPath}"`);
+  if (paramStructs.some(p => p.includes('nullable.Nullable['))) {
+    imports.push(`\t"${GO_MODULE_PATH}/nullable"`);
+  }
   imports.sort();
 
   let importsBlock = `import (\n${imports.join('\n')}\n)`;
@@ -239,7 +242,7 @@ let createEndpointMethod = (i: {
     bodyStructName = `${i.endpointStructName}${methodName}Body`;
     queryStructName = `${i.endpointStructName}${methodName}Params`;
 
-    let bodyStructFields = generateStructFields(bodyProps);
+    let bodyStructFields = generateStructFields(bodyProps, true);
     let queryStructFields = generateStructFields(queryProps);
 
     paramStruct =
@@ -252,7 +255,7 @@ let createEndpointMethod = (i: {
     funcParams.push(`params *${queryStructName}`);
   } else if (hasBody) {
     bodyStructName = `${i.endpointStructName}${methodName}Body`;
-    let bodyStructFields = generateStructFields(bodyProps);
+    let bodyStructFields = generateStructFields(bodyProps, true);
 
     paramStruct =
       `// ${bodyStructName} contains the request body for ${methodName}.\n` +
@@ -336,13 +339,17 @@ let createEndpointMethod = (i: {
  * Generates Go struct field lines for a set of properties.
  */
 let generateStructFields = (
-  properties: Record<string, IntrospectedType>
+  properties: Record<string, IntrospectedType>,
+  isBody: boolean = false
 ): { code: string } => {
   let lines: string[] = [];
 
   for (let [key, value] of Object.entries(properties)) {
     let goFieldName = toGoIdentifier(key);
     let goType = mapTypeToGo(value);
+    if (isBody && isExplicitNullInput(value)) {
+      goType = `*nullable.Nullable[${goType.replace(/^\*/, '')}]`;
+    }
 
     let isOptional = value.optional || value.nullable;
     let tag: string;

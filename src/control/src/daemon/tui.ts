@@ -251,7 +251,6 @@ export let runTui = async (initial: string, units: string[] = []) => {
     try {
       for await (let info of stream<WorkspaceInfo>('/events', events.signal)) {
         workspaces.set(info.id, info);
-        if (!workspaces.has(current)) current = info.id;
         draw();
       }
     } catch {}

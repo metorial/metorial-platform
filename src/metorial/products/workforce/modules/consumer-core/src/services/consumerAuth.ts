@@ -1,8 +1,9 @@
-import { forbiddenError, ServiceError } from '@lowerdeck/error';
+import { forbiddenError, ServiceError, unauthorizedError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import type { AuditScope } from '@metorial/audit-scope';
 import {
   authenticateWithConsumerSessionToken,
+  authenticateWithOAuthConsumerSession,
   consumerSessionInclude,
   type ConsumerTokenSession,
   getConsumerAccessContextForSession as getConsumerAccessContextForSessionFromToken,
@@ -12,7 +13,10 @@ import {
 import { Context } from '@metorial/context';
 import { ConsumerProfile, ConsumerSession, ConsumerSurface, db, ID, User } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
-import { oauthAuthorizationService } from '@metorial/module-machine-access';
+import {
+  machineAccessAuthService,
+  oauthAuthorizationService
+} from '@metorial/module-machine-access';
 import { addDays } from 'date-fns';
 import { isConsumerInviteExpired } from '../lib/consumerInviteExpiry';
 import {
@@ -285,6 +289,50 @@ class ConsumerAuthServiceImpl {
       context: d.context,
       authSessionId: d.authSessionId
     });
+
+    return session;
+  }
+
+  async authenticateWithCliOAuthToken(d: { token: string; context: Context }) {
+    let auth = await machineAccessAuthService.authenticateWithMachineAccessToken({
+      token: d.token,
+      context: d.context
+    });
+
+    let oauthAuthorization =
+      auth.type == 'oauth_token' ? auth.oauthToken.oauthAuthorization : null;
+    let instance = oauthAuthorization?.machineAccess.instance;
+
+    if (
+      !oauthAuthorization ||
+      !instance ||
+      oauthAuthorization.subjectType != 'consumer' ||
+      oauthAuthorization.oauthApplication.type != 'cli_auth' ||
+      oauthAuthorization.machineAccess.type != 'instance_consumer'
+    ) {
+      throw new ServiceError(
+        unauthorizedError({
+          message: 'A consumer sign-in token is required.'
+        })
+      );
+    }
+
+    let { session, consumerProfile } = await authenticateWithOAuthConsumerSession({
+      session: oauthAuthorization.consumerSession,
+      instance
+    });
+
+    if (
+      !oauthAuthorization.consumerProfileOid ||
+      consumerProfile.oid != oauthAuthorization.consumerProfileOid ||
+      consumerProfile.consumer.isServiceAccount
+    ) {
+      throw new ServiceError(
+        unauthorizedError({
+          message: 'The consumer session for this OAuth token is no longer valid.'
+        })
+      );
+    }
 
     return session;
   }

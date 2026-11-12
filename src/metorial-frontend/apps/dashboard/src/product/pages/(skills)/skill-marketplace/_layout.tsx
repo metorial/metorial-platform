@@ -118,7 +118,7 @@ export let SkillMarketplaceLayout = () => {
                 label: 'Status',
                 value: <Badge color="gray">{marketplace.data.status}</Badge>
               },
-              { label: 'Slug', value: marketplace.data.slug },
+              { label: 'Identifier', value: marketplace.data.slug },
               { label: 'Created', value: <RenderDate date={marketplace.data.createdAt} /> }
             ]
           : []

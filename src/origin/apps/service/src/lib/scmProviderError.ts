@@ -12,6 +12,7 @@ import {
   unauthorizedError
 } from '@lowerdeck/error';
 import { getSentry } from '@lowerdeck/sentry';
+import { type ExportErrorCode, parseExportError } from './exportError';
 
 let Sentry = getSentry();
 
@@ -52,8 +53,7 @@ let getHeader = (headers: any, name: string) => {
  */
 let grpcRpcPrefix = /^\/rpc\.[^\s:]+\s+[A-Z][A-Z0-9_]*:\s*/;
 
-export let stripGrpcRpcPrefix = (message: string) =>
-  message.replace(grpcRpcPrefix, '').trim();
+export let stripGrpcRpcPrefix = (message: string) => message.replace(grpcRpcPrefix, '').trim();
 
 export let toPublicProviderErrorMessage = (message: string) => {
   let stripped = stripGrpcRpcPrefix(message);
@@ -133,9 +133,11 @@ let getSanitizedEndpoint = (error: any) => {
 export type ScmProviderErrorDetails = {
   status?: number;
   description?: string;
+  exportErrorCode?: ExportErrorCode;
   method?: string;
   endpoint?: string;
   requestId?: string;
+  mergeReadiness?: 'mergeability_pending' | 'source_commit_pending';
   classification:
     | 'protected_branch'
     | 'missing_branch'
@@ -143,6 +145,7 @@ export type ScmProviderErrorDetails = {
     | 'authentication_failed'
     | 'resource_not_found'
     | 'conflict'
+    | 'merge_not_ready'
     | 'rate_limited'
     | 'timeout'
     | 'invalid_request'
@@ -150,6 +153,15 @@ export type ScmProviderErrorDetails = {
     | 'upstream_failure'
     | 'network_failure';
 };
+
+export class ScmMergeNotReadyError extends Error {
+  constructor(
+    public reason: 'mergeability_pending' | 'source_commit_pending' = 'mergeability_pending'
+  ) {
+    super('Waiting for the repository to prepare the merge.');
+    this.name = 'ScmMergeNotReadyError';
+  }
+}
 
 let fileTooLargeMarker = 'file exceeds the per-file size limit';
 
@@ -187,6 +199,7 @@ let classifyScmProviderError = (
   if (normalized.includes('branch not found') || normalized.includes('reference not found')) {
     return 'missing_branch' as const;
   }
+  if (normalized.includes('rate limit')) return 'rate_limited' as const;
   if (status === 401) return 'authentication_failed' as const;
   if (status === 403) return 'permission_denied' as const;
   if (status === 404) return 'resource_not_found' as const;
@@ -214,7 +227,29 @@ let classifyScmProviderError = (
   return 'network_failure' as const;
 };
 
+let classifyExportError = (
+  code: ExportErrorCode
+): ScmProviderErrorDetails['classification'] => {
+  if (code === 'rate_limited') return 'rate_limited';
+  if (code === 'file_too_large') return 'file_too_large';
+  if (code === 'branch_missing') return 'missing_branch';
+  if (code === 'source_not_found') return 'resource_not_found';
+  return 'invalid_request';
+};
+
 export let getScmProviderErrorDetails = (error: unknown): ScmProviderErrorDetails => {
+  let exportError = parseExportError(error);
+  if (exportError) {
+    return {
+      description: sanitizeText(exportError.message),
+      exportErrorCode: exportError.code,
+      classification: classifyExportError(exportError.code)
+    };
+  }
+
+  if (error instanceof ScmMergeNotReadyError)
+    return { classification: 'merge_not_ready', mergeReadiness: error.reason };
+
   let value = error as any;
   let attached = value?.scmProviderDiagnostic;
   let request = getRequest(value);
@@ -234,6 +269,7 @@ export let getScmProviderErrorDetails = (error: unknown): ScmProviderErrorDetail
     method,
     endpoint: getSanitizedEndpoint(value) ?? sanitizeText(attached?.endpoint, 500),
     requestId:
+      getHeader(response?.headers, 'x-github-request-id') ??
       getHeader(response?.headers, 'x-request-id') ??
       getHeader(response?.headers, 'x-gitlab-meta') ??
       sanitizeText(attached?.requestId, 200),

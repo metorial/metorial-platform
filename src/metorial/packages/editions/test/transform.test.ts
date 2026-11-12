@@ -63,6 +63,15 @@ describe('transformEditionSource', () => {
     expect(transform(code, 'cloud')!).toContain(`let edition = "cloud";`);
   });
 
+  it('folds isBuilt to true so guarded code is removed from bundles', () => {
+    let code = `
+      import { isBuilt } from '@metorial/editions';
+      if (!isBuilt()) { await import('./devOnly'); }
+    `;
+
+    expect(transform(code, 'on-prem')!).toContain('if (!true)');
+  });
+
   it('replaces satisfied assertEdition and keeps failing ones', () => {
     let code = `
       import { assertEdition } from '@metorial/editions';
@@ -97,5 +106,51 @@ describe('transformEditionSource', () => {
         'on-prem'
       )
     ).toThrow('no value');
+  });
+});
+
+describe('release channel transform', () => {
+  let code = `
+    import { checkReleaseChannel as check, getReleaseChannel } from '@metorial/editions';
+    let allowed = check('dev');
+    let channel = getReleaseChannel();
+  `;
+
+  it.each(['dev', 'release'] as const)('folds the %s channel', channel => {
+    let result = transformEditionSource(code, {
+      edition: 'on-prem',
+      channel,
+      fileName: 'file.ts'
+    });
+
+    expect(result).toContain(`let allowed = ${channel == 'dev'};`);
+    expect(result).toContain(`let channel = "${channel}";`);
+  });
+
+  it.each([
+    'checkReleaseChannel(name)',
+    "checkReleaseChannel('invalid')",
+    'checkReleaseChannel()'
+  ])('rejects an unbuildable guard: %s', expression => {
+    expect(() =>
+      transform(
+        `import { checkReleaseChannel } from '@metorial/editions'; ${expression}`,
+        'on-prem'
+      )
+    ).toThrow();
+  });
+});
+
+describe('Vite release channels', () => {
+  it('uses the same literal transform and compiled channel definition', async () => {
+    let { editionsVitePlugin } = await import('../src/tooling/vite');
+    let plugin = editionsVitePlugin('on-prem', 'release');
+    let transformed = plugin.transform(
+      `import { checkReleaseChannel } from '@metorial/editions'; if (checkReleaseChannel('dev')) devOnly();`,
+      '/app.ts?query'
+    );
+
+    expect(transformed?.code).toContain('if (false)');
+    expect(plugin.config().define.__METORIAL_RELEASE_CHANNEL__).toBe('"release"');
   });
 });

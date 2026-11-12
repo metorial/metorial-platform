@@ -3,7 +3,7 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { isE2EEnvironment } from './env';
+import { isE2EEnvironment, isRemoteE2E } from './env';
 import { resolvePackageShardArgs } from './shard';
 
 let resolveBin = (pkg: string, bin: string) =>
@@ -116,9 +116,9 @@ let typecheck = async () => {
 };
 
 let runSuites = async () => {
-  if (!isE2EEnvironment()) {
+  if (!isE2EEnvironment() && !isRemoteE2E()) {
     console.error(
-      'metorial-e2e only runs inside `bun run control test:e2e` (CONTROL_E2E=1 is not set).'
+      'metorial-e2e only runs inside `bun run control test:e2e` (CONTROL_E2E=1 is not set) or against a remote stack (METORIAL_E2E_REMOTE_URL).'
     );
     return 1;
   }

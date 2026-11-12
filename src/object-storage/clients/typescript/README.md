@@ -55,6 +55,10 @@ With custom timeout:
 const client = new ObjectStorageClient('http://localhost:8080', 60000);
 ```
 
+The client uses the runtime's `fetch` (pass `{ fetch }` as the third argument to replace it). The
+timeout bounds each request until its response is complete; `getObjectStream` stops the clock
+once the headers arrive.
+
 ### Bucket Operations
 
 **Create Bucket**
@@ -84,6 +88,23 @@ const obj = await client.putObject(
   'application/json',
   { key: 'value' }
 );
+// obj.digests holds the size, sha256, crc32 and git_blob_sha1 of what was stored.
+// git_blob_sha1 is null when the body was sent without a Content-Length.
+```
+
+**Put Object Without Buffering**
+```typescript
+// A file-backed Blob is read from disk as it is sent, with its Content-Length
+await client.putObject('bucket-name', 'object-key', await fs.openAsBlob(path), 'application/zip');
+
+// A ReadableStream is sent as it is produced (no Content-Length, so git_blob_sha1 is null)
+await client.putObject('bucket-name', 'object-key', readableStream);
+```
+
+**Get Object Digests**
+```typescript
+// Hashes a stored object on the server without sending its content
+const { digests } = await client.getObjectDigests('bucket-name', 'object-key');
 ```
 
 **Get Object**
@@ -91,6 +112,12 @@ const obj = await client.putObject(
 const objData = await client.getObject('bucket-name', 'object-key');
 // objData.data contains the object buffer
 // objData.metadata contains metadata
+```
+
+**Stream an Object**
+```typescript
+// Resolves once the headers arrive; nothing is buffered
+const { metadata, stream } = await client.getObjectStream('bucket-name', 'object-key');
 ```
 
 **Get Part of an Object**
@@ -146,6 +173,48 @@ do {
 } while (token);
 ```
 
+### ZIP Jobs
+
+**Build an archive and wait for it**
+```typescript
+const spec = {
+  destination: { bucket: 'exports', key: 'export-42.zip' },
+  entries: [
+    { path: 'README.md', source: { bucket: 'files', key: 'abc123' } },
+    { path: 'photos/cat.jpg', source: { bucket: 'files', key: 'def456' }, compression: 'store' },
+  ],
+};
+
+// Re-submits after retryable failures (up to maxAttempts) and retries connection errors,
+// 429 and 502-504 along the way. Resolves with the ended job; throws ZipJobTimeoutError
+// after timeoutMs.
+const job = await client.waitForZipJob('export-42', spec, {
+  timeoutMs: 10 * 60 * 1000,
+  maxAttempts: 3,
+  onProgress: job => console.log(job.state, job.progress.bytesWritten),
+});
+
+// A large spec can be sent as a Blob of its JSON instead, e.g. await fs.openAsBlob(specPath)
+
+if (job.state === 'completed') {
+  console.log(`${job.result!.size} bytes, sha256 ${job.result!.sha256}`);
+} else {
+  console.log(`${job.state}: ${job.error?.code} ${job.error?.message}`);
+}
+```
+
+**Drive the job yourself**
+```typescript
+// Creates the job, or joins it if it already exists with the same spec
+const job = await client.createZipJob('export-42', spec, { waitSeconds: 20 });
+
+// Waits up to 20 seconds for the job to end; the server may shorten the wait
+const current = await client.getZipJob('export-42', { waitSeconds: 20 });
+
+// Cancels an active job and returns it as it ended
+const canceled = await client.cancelZipJob('export-42');
+```
+
 ## Error Handling
 
 The client throws `ObjectStorageError` for API errors:
@@ -158,6 +227,17 @@ try {
 } catch (error) {
   if (error instanceof ObjectStorageError) {
     console.log(`Status: ${error.statusCode}, Message: ${error.message}`);
+    // Zip job errors also carry error.code (e.g. 'spec_conflict') and, for 429 and 503,
+    // error.retryAfterSeconds
   }
 }
 ```
+
+## Testing
+
+```bash
+bun test
+```
+
+The ZIP job tests build `object-store-service` with cargo and run it against a temporary local
+backend.

@@ -2,7 +2,7 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { Instance, Prisma, Project } from '@metorial/db';
-import { db, ID } from '@metorial/db';
+import { db, ID, withTransaction } from '@metorial/db';
 import { forceSkillDestinationSync } from '../lib/destinationSync';
 import {
   type EnrichedSkillRepositoryRecord,
@@ -150,17 +150,22 @@ class SkillPluginRepositoryServiceImpl {
       return enriched!;
     }
 
-    let repository = await db.skillPluginRepository.create({
-      data: {
-        id: await ID.generateId('skillPluginRepository'),
-        skillPluginOid: plugin.oid,
-        skillRepositoryOid: skillRepository.oid
-      },
-      include: skillPluginRepositoryInclude
-    });
+    let repository = await withTransaction(async db => {
+      let repository = await db.skillPluginRepository.create({
+        data: {
+          id: await ID.generateId('skillPluginRepository'),
+          skillPluginOid: plugin.oid,
+          skillRepositoryOid: skillRepository.oid
+        },
+        include: skillPluginRepositoryInclude
+      });
 
-    await forceSkillDestinationSync({
-      destination: { oid: plugin.destinationOid! }
+      await forceSkillDestinationSync({
+        destination: { oid: plugin.destinationOid! },
+        trigger: 'manual'
+      });
+
+      return repository;
     });
 
     let [enriched] = await this.enrichRepositories({

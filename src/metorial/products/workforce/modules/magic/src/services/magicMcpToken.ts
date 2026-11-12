@@ -11,6 +11,7 @@ import { UnifiedApiKey } from '@metorial/api-keys';
 import { Fabric } from '@metorial/fabric';
 import { getConfig } from '@metorial/config';
 import {
+  addAfterTransactionHook,
   db,
   ID,
   Instance,
@@ -19,8 +20,10 @@ import {
   MagicMcpServer,
   MagicMcpToken,
   MagicMcpTokenStatus,
+  OAuthToken,
   OrganizationActor,
-  Prisma
+  Prisma,
+  withTransaction
 } from '@metorial/db';
 import {
   assertCanUseCoreOwnedResources,
@@ -146,6 +149,7 @@ class MagicMcpTokenImpl {
       magicMcpEndpoint?: MagicMcpEndpoint;
       skillPlugin?: { oid: bigint } | null;
     };
+    signedInOAuthToken?: Pick<OAuthToken, 'oid'>;
     organizationActor?: OrganizationActor;
   }) {
     if (d.input.magicMcpServer && d.input.magicMcpEndpoint) {
@@ -183,6 +187,12 @@ class MagicMcpTokenImpl {
       instance: d.instance
     });
 
+    let consumerDevice = d.signedInOAuthToken
+      ? await db.consumerDevice.findUnique({
+          where: { oauthTokenOid: d.signedInOAuthToken.oid }
+        })
+      : null;
+
     let magicMcpToken = await db.magicMcpToken.create({
       data: {
         id: await ID.generateId('magicMcpToken'),
@@ -194,6 +204,7 @@ class MagicMcpTokenImpl {
         magicMcpServerOid: d.input.magicMcpServer?.oid,
         magicMcpEndpointOid: d.input.magicMcpEndpoint?.oid,
         skillPluginOid: d.input.skillPlugin?.oid,
+        consumerDeviceOid: consumerDevice?.status == 'active' ? consumerDevice.oid : undefined,
         name: d.input.name,
         description: d.input.description,
         metadata: d.input.metadata ?? {},
@@ -297,18 +308,37 @@ class MagicMcpTokenImpl {
       );
     }
 
-    let magicMcpToken = await db.magicMcpToken.update({
-      where: { id: d.token.id },
-      data: { status: 'deleted', deletedAt: new Date() },
-      include
-    });
+    return await withTransaction(async db => {
+      let magicMcpToken = await db.magicMcpToken.update({
+        where: { id: d.token.id },
+        data: { status: 'deleted', deletedAt: new Date() },
+        include
+      });
 
-    await Fabric.fire('magic_mcp.token.deleted:after', {
-      magicMcpToken,
-      auditScope: d.auditScope
-    });
+      addAfterTransactionHook(() =>
+        Fabric.fire('magic_mcp.token.deleted:after', {
+          magicMcpToken,
+          auditScope: d.auditScope
+        })
+      );
 
-    return magicMcpToken;
+      return magicMcpToken;
+    });
+  }
+
+  async deleteConsumerDeviceTokens(d: {
+    consumerDevice: { oid: bigint };
+    auditScope: AuditScope;
+  }) {
+    await withTransaction(async db => {
+      let tokens = await db.magicMcpToken.findMany({
+        where: { consumerDeviceOid: d.consumerDevice.oid, status: 'active' }
+      });
+
+      for (let token of tokens) {
+        await this.deleteMagicMcpToken({ token, auditScope: d.auditScope });
+      }
+    });
   }
 
   async updateMagicMcpToken(d: {

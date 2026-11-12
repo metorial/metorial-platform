@@ -2,6 +2,7 @@ import { createCodeBucketClient } from '@metorial/code-bucket-service-generated'
 import { db, withTransaction } from '@metorial/db';
 import { fileService } from '@metorial/module-file';
 import { createQueue } from '@metorial/queue';
+import { getSkillDestinationCodeBucketId } from '@metorial/skills-scm-utils';
 import path from 'path';
 import { env } from '../../env';
 import { BatchProcessor } from '../../lib/batchProcessor';
@@ -18,33 +19,30 @@ import {
   forgetDestinationFileDeletions,
   recordDestinationFileDeletions
 } from './_lib/deletions';
-import { getSyncTaskItemKey, getSyncTaskItemWhere } from './_lib/item';
+import { getSyncItemKey, getSyncTaskItemKey, getSyncTaskItemWhere } from './_lib/item';
+import { destinationBucketIsAvailable } from './_lib/bucket';
+import { withDestinationSyncLock } from './_lib/lock';
 import { appendSkillDestinationSyncLog } from './_lib/logs';
+import { reportSkillSyncIssue } from './_lib/report';
 import {
   DestinationManifest,
+  normalizeBucketPath,
   signatureForBytes,
   signatureForStoredFile
 } from './_lib/manifest';
+import { getSkillDestinationFilePathBytes } from './_lib/manifestRows';
+import { processManifestSyncTask } from './_lib/manifestTask';
 import { type SyncTask } from './_lib/task';
 import { syncReconcileQueue } from './reconcile';
+
+let manifestTasksPerJob = 25;
+let manifestJobBudgetMs = 20_000;
+let largeFileHashRetryMs = 30_000;
+let maxLargeFileHashWaits = 240;
 
 let codeBucketClient = createCodeBucketClient({
   address: env.origin.CODE_BUCKET_SERVICE_URL
 });
-
-let normalizeBucketPath = (inPath: string) => {
-  if (!inPath) return '/';
-
-  let segments = inPath.split('/').filter(segment => segment && segment !== '.');
-  let normalized: string[] = [];
-
-  for (let segment of segments) {
-    if (segment === '..') normalized.pop();
-    else normalized.push(segment);
-  }
-
-  return `/${normalized.join('/')}`;
-};
 
 let maxInlineBatchBytes = 8 * 1024 * 1024;
 
@@ -73,9 +71,11 @@ let failSyncForLimitError = async (d: { skillDestinationSyncId: string; error: u
 
 export let syncProcessQueue = createQueue<{
   skillDestinationSyncId: string;
+  contentVersion?: number;
   tasks: SyncTask[];
   hasChanges?: boolean;
   skillRepositoryId?: string;
+  hashWaits?: number;
 }>({
   name: 'cargo/skill/sync/process',
   workerOpts: {
@@ -83,529 +83,673 @@ export let syncProcessQueue = createQueue<{
   }
 });
 
-export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
-  let sync = await db.skillDestinationSync.findUnique({
-    where: { id: data.skillDestinationSyncId },
-    include: {
-      destination: {
-        include: {
-          skillMarketplace: true,
-          skillPlugin: true
-        }
-      }
-    }
-  });
-  if (!sync || sync.status !== 'processing') return;
-
-  let task = data.tasks[0];
-  if (!task) {
-    await syncReconcileQueue.add({
-      skillDestinationSyncId: data.skillDestinationSyncId,
-      hasChanges: data.hasChanges,
-      skillRepositoryId: data.skillRepositoryId
-    });
-    return;
-  }
-
-  let item = await db.skillDestinationItem.findFirst({
-    where: {
-      destinationOid: sync.destinationOid,
-      ...getSyncTaskItemWhere(task)
-    }
-  });
-
-  let itemKey = getSyncTaskItemKey(task);
-
-  let basePathRef = { current: '' };
-  let hashRef = { current: null as string | null };
-  let pruneScopeRef = { current: null as PruneScope | null };
-
-  let manifest = new DestinationManifest(
-    await db.skillDestinationFile.findMany({
-      where: { destinationOid: sync.destinationOid },
-      select: { path: true, signature: true, itemKey: true }
-    }),
-    itemKey
-  );
-  let skippedPathCount = 0;
-
-  let getRecordedItemPaths = async () => {
-    let files = await db.skillDestinationFile.findMany({
-      where: { destinationOid: sync.destinationOid, itemKey },
-      select: { path: true }
-    });
-
-    return files.map(file => file.path);
-  };
-
-  let deleteBucketPaths = async (paths: string[]) => {
-    let normalized = [...new Set(paths.map(normalizeBucketPath))].filter(
-      candidate => candidate !== '/'
-    );
-    if (normalized.length === 0) return [];
-
-    for (let candidate of normalized) {
-      await codeBucketClient.deleteBucketFile({
-        bucketId: sync.destination.codeBucketId,
-        path: candidate
-      });
-    }
-
-    return await recordDestinationFileDeletions({
-      destinationOid: sync.destinationOid,
-      paths: normalized
-    });
-  };
-
-  let deleteBucketPath = async (prefix: string | undefined) => {
-    let normalized = normalizeBucketPath(prefix ?? '');
-
-    if (normalized === '/') {
-      return await deleteBucketPaths(await getRecordedItemPaths());
-    }
-
-    let { deletedPaths } = await codeBucketClient.deleteBucketPath({
-      bucketId: sync.destination.codeBucketId,
-      path: normalized
-    });
-
-    let recorded = await db.skillDestinationFile.findMany({
-      where: {
-        destinationOid: sync.destinationOid,
-        OR: [{ path: normalized }, { path: { startsWith: `${normalized}/` } }]
-      },
-      select: { path: true }
-    });
-
-    return await recordDestinationFileDeletions({
-      destinationOid: sync.destinationOid,
-      paths: [...deletedPaths, ...recorded.map(file => file.path)]
-    });
-  };
-
-  let deleteItemContent = async (prefix: string | undefined) => {
-    let recordedPaths = await getRecordedItemPaths();
-
-    let removedPaths = await deleteBucketPath(prefix);
-    let leftover = recordedPaths.filter(candidate => !removedPaths.includes(candidate));
-
-    return [...removedPaths, ...(await deleteBucketPaths(leftover))];
-  };
-
-  let pruneStaleFiles = async (): Promise<string[]> => {
-    let scope = pruneScopeRef.current;
-    if (!scope) return [];
-
-    let keepPaths = manifest.keepPaths();
-
-    if (keepPaths.length === 0) return [];
-
-    let { deletedPaths } = await codeBucketClient.pruneBucketPath({
-      bucketId: sync.destination.codeBucketId,
-      prefix: normalizeBucketPath(scope.prefix),
-      keepPaths,
-      excludePrefixes: scope.excludePrefixes.map(exclude =>
-        normalizeBucketPath(path.join(scope.prefix, exclude))
-      )
-    });
-
-    if (deletedPaths.length === 0) return [];
-
-    let listed = deletedPaths.slice(0, 10).join(', ');
-    let remaining = deletedPaths.length - 10;
-
-    await appendSkillDestinationSyncLog(
-      data.skillDestinationSyncId,
-      `Removed ${deletedPaths.length} file${
-        deletedPaths.length === 1 ? '' : 's'
-      } that are no longer part of the sync: ${listed}${
-        remaining > 0 ? ` and ${remaining} more` : ''
-      }.`
-    );
-
-    return deletedPaths;
-  };
-
-  let fileProcessor = new BatchProcessor<{
-    path: string;
-    content: string | Buffer | ArrayBuffer;
-  }>(
-    async files => {
-      await codeBucketClient.setBucketFiles({
-        bucketId: sync.destination.codeBucketId,
-        files: files.map(file => ({
-          path: normalizeBucketPath(file.path),
-          content: contentToBytes(file.content)
-        }))
-      });
-    },
-    5,
-    {
-      maxBytes: maxInlineBatchBytes,
-      getBytes: file => contentToBytes(file.content).byteLength
-    }
-  );
-
-  let copyProcessor = new BatchProcessor<{
-    path: string;
-    sourceBucket: string;
-    sourceKey: string;
-  }>(async files => {
-    await codeBucketClient.copyBucketFiles({
-      bucketId: sync.destination.codeBucketId,
-      files: files.map(file => ({
-        path: normalizeBucketPath(file.path),
-        sourceBucket: file.sourceBucket,
-        sourceKey: file.sourceKey
-      }))
-    });
-  }, 25);
-
-  let flushWrites = async () => {
-    await fileProcessor.flush();
-    await copyProcessor.flush();
-  };
-
-  let resolvePath = (inPath: string) =>
-    normalizeBucketPath(basePathRef.current ? path.join(basePathRef.current, inPath) : inPath);
-
-  let context: SerializerContext = {
-    async setFile(inPath: string, content: string | Buffer | ArrayBuffer) {
-      let resultPath = resolvePath(inPath);
-      let bytes = contentToBytes(content);
-
-      let { shouldWrite } = manifest.register(resultPath, signatureForBytes(bytes));
-      if (!shouldWrite) {
-        skippedPathCount++;
-        return;
-      }
-
-      await fileProcessor.put({ path: resultPath, content: bytes });
-    },
-
-    async setFileFromStorage(inPath: string, file: StorageBackedFile) {
-      let resultPath = resolvePath(inPath);
-
-      let { shouldWrite } = manifest.register(resultPath, signatureForStoredFile(file.oid));
-      if (!shouldWrite) {
-        skippedPathCount++;
-        return;
-      }
-
-      let source = await fileService.resolveFileContentSource({ file });
-
-      if (source.type === 'inline') {
-        await fileProcessor.put({ path: resultPath, content: source.content });
-        return;
-      }
-
-      await copyProcessor.put({
-        path: resultPath,
-        sourceBucket: source.bucket,
-        sourceKey: source.key
-      });
-    },
-
-    async deletePath(inPath: string) {
-      await flushWrites();
-      let resultPath = resolvePath(inPath);
-      manifest.forgetPrefix(resultPath);
-      await deleteBucketPath(resultPath);
-    },
-
-    setBasePath(path: string | undefined) {
-      basePathRef.current = path ?? '';
-    }
-  };
-
-  let applySerializer = async <Input, InitResult>(
-    serializer: {
-      init: (input: Input) => Promise<InitResult>;
-      getHash: (input: Input, initResult: InitResult) => Promise<string>;
-      getPruneScope?: (input: Input) => PruneScope;
-      apply: (
-        input: Input,
-        context: SerializerContext,
-        initResult: InitResult
-      ) => Promise<void>;
-    },
-    input: Input
-  ) => {
-    let initResult: InitResult;
-    let hash: string;
-
-    pruneScopeRef.current = serializer.getPruneScope?.(input) ?? null;
-
-    try {
-      initResult = await serializer.init(input);
-      hash = await serializer.getHash(input, initResult);
-      hashRef.current = hash;
-    } catch (error) {
-      if (
-        await failSyncForLimitError({
-          skillDestinationSyncId: data.skillDestinationSyncId,
-          error
-        })
-      ) {
-        return false;
-      }
-
-      throw error;
-    }
-
-    if (item?.hash === hash) return 'skipped' as const;
-
-    try {
-      await serializer.apply(input, context, initResult);
-      return 'applied' as const;
-    } catch (error) {
-      if (
-        await failSyncForLimitError({
-          skillDestinationSyncId: data.skillDestinationSyncId,
-          error
-        })
-      ) {
-        return false;
-      }
-
-      throw error;
-    }
-  };
-  let taskChanged = false;
-
-  let loadSkillPlugin = async (skillPluginId: string) => {
-    let skillPlugin = await db.skillPlugin.findUnique({
-      where: { id: skillPluginId },
+export let syncProcessQueueProcessor = syncProcessQueue.process(
+  withDestinationSyncLock(async data => {
+    let sync = await db.skillDestinationSync.findUnique({
+      where: { id: data.skillDestinationSyncId },
       include: {
-        skillConfiguration: true,
-        skillPluginSkills: {
+        destination: {
           include: {
-            skill: true,
-            skillConfiguration: true
+            skillMarketplace: true,
+            skillPlugin: true
           }
         }
       }
     });
-    if (!skillPlugin) throw new Error(`Skill plugin not found: ${skillPluginId}`);
+    if (!sync || sync.status !== 'processing' || sync.isAtRepoSyncStage) return;
+    if ((data.contentVersion ?? 0) !== sync.contentVersion) return;
 
-    return {
-      ...skillPlugin,
-      skills: skillPlugin.skillPluginSkills
-    };
-  };
+    if (sync.destination.storageMode === 'manifest') {
+      let startedAt = Date.now();
+      let tasks = [...data.tasks];
+      let hasChanges = data.hasChanges ?? false;
+      let processedCount = 0;
 
-  let loadMarketplace = async (skillMarketplaceId: string) => {
-    let marketplace = await db.skillMarketplace.findUnique({
-      where: { id: skillMarketplaceId },
-      include: {
-        skillConfiguration: true
-      }
-    });
-    if (!marketplace) throw new Error(`Skill marketplace not found: ${skillMarketplaceId}`);
-    return marketplace;
-  };
+      let items = await db.skillDestinationItem.findMany({
+        where: { destinationOid: sync.destinationOid },
+        include: { skill: true, skillPlugin: true, skillMarketplace: true }
+      });
+      let liveItemKeys = new Set(items.map(getSyncItemKey));
 
-  let getDestinationMarketplace = async () => {
-    if (!sync.destination.skillMarketplace) return undefined;
-    return await loadMarketplace(sync.destination.skillMarketplace.id);
-  };
-
-  let getMarketplacePlugin = async (d: {
-    skillMarketplaceOid?: bigint;
-    skillPlugin: Awaited<ReturnType<typeof loadSkillPlugin>>;
-  }) => {
-    if (!d.skillMarketplaceOid) return undefined;
-
-    let marketplacePlugin = await db.skillMarketplacePlugin.findFirst({
-      where: {
-        skillMarketplaceOid: d.skillMarketplaceOid,
-        skillPluginOid: d.skillPlugin.oid
-      },
-      include: {
-        skillConfiguration: true
-      }
-    });
-    if (!marketplacePlugin) return undefined;
-
-    return {
-      ...marketplacePlugin,
-      plugin: d.skillPlugin
-    };
-  };
-
-  let persistManifest = async (prunedPaths: string[]) => {
-    let entries = manifest.entries();
-
-    let abandonedPaths = manifest
-      .abandonedPaths()
-      .filter(candidate => !prunedPaths.includes(candidate));
-
-    await deleteBucketPaths(abandonedPaths);
-
-    let removedPaths = manifest.removedPaths(prunedPaths);
-
-    await withTransaction(async db => {
-      for (let entry of entries) {
-        await db.skillDestinationFile.upsert({
-          where: {
-            destinationOid_path: {
-              destinationOid: sync.destinationOid,
-              path: entry.path
-            }
-          },
-          create: {
-            destinationOid: sync.destinationOid,
-            path: entry.path,
-            signature: entry.signature,
-            itemKey
-          },
-          update: { signature: entry.signature, itemKey }
+      let handOff = async (d: { tasks: SyncTask[]; delay?: number; hashWaits?: number }) => {
+        let versionedSync = await db.skillDestinationSync.update({
+          where: { oid: sync.oid },
+          data: { contentVersion: { increment: 1 } }
         });
+        let payload = {
+          skillDestinationSyncId: data.skillDestinationSyncId,
+          contentVersion: versionedSync.contentVersion,
+          hasChanges,
+          skillRepositoryId: data.skillRepositoryId
+        };
+
+        if (d.tasks.length) {
+          await syncProcessQueue.add(
+            { ...payload, tasks: d.tasks, hashWaits: d.hashWaits },
+            d.delay ? { delay: d.delay } : undefined
+          );
+        } else {
+          await syncReconcileQueue.add(payload);
+        }
+      };
+
+      while (
+        tasks.length &&
+        processedCount < manifestTasksPerJob &&
+        Date.now() - startedAt < manifestJobBudgetMs
+      ) {
+        let outcome;
+        try {
+          outcome = await processManifestSyncTask({
+            skillDestinationSyncId: data.skillDestinationSyncId,
+            destination: sync.destination,
+            task: tasks[0]!,
+            liveItemKeys
+          });
+        } catch (error) {
+          if (
+            await failSyncForLimitError({
+              skillDestinationSyncId: data.skillDestinationSyncId,
+              error
+            })
+          )
+            return;
+          throw error;
+        }
+
+        if (outcome.type === 'deferred') {
+          let hashWaits = (data.hashWaits ?? 0) + 1;
+          if (hashWaits > maxLargeFileHashWaits) {
+            let message = `Timed out waiting for ${outcome.fileCount} large file${outcome.fileCount === 1 ? '' : 's'} to be hashed.`;
+            await failSyncForLimitError({
+              skillDestinationSyncId: data.skillDestinationSyncId,
+              error: new CargoSkillLimitError(message)
+            });
+            reportSkillSyncIssue({
+              issue: 'content_failed',
+              errorCode: 'large_file_hash_timeout',
+              message,
+              skillDestinationSyncId: data.skillDestinationSyncId,
+              extra: { fileCount: outcome.fileCount, hashWaits }
+            });
+            return;
+          }
+
+          if (!data.hashWaits) {
+            await appendSkillDestinationSyncLog(
+              data.skillDestinationSyncId,
+              `Waiting for ${outcome.fileCount} large file${outcome.fileCount === 1 ? '' : 's'} to be hashed.`
+            );
+          }
+
+          await handOff({ tasks, delay: largeFileHashRetryMs, hashWaits });
+          return;
+        }
+
+        hasChanges ||= outcome.type === 'changed';
+        tasks.shift();
+        processedCount++;
       }
-    });
 
-    await recordDestinationFileDeletions({
-      destinationOid: sync.destinationOid,
-      paths: removedPaths
-    });
-
-    await forgetDestinationFileDeletions({
-      destinationOid: sync.destinationOid,
-      paths: entries.map(entry => entry.path)
-    });
-
-    if (skippedPathCount > 0) {
-      await appendSkillDestinationSyncLog(
-        data.skillDestinationSyncId,
-        `Reused ${skippedPathCount} unchanged file${skippedPathCount === 1 ? '' : 's'}.`
-      );
+      await handOff({ tasks });
+      return;
     }
-  };
 
-  let setDestinationItemHash = async (d: {
-    hash: string;
-    skillMarketplaceOid?: bigint;
-    skillPluginOid?: bigint;
-    skillOid?: bigint;
-  }) => {
-    if (item) {
-      await db.skillDestinationItem.update({
-        where: { oid: item.oid },
-        data: { hash: d.hash }
+    if (sync.contentVersion === 0 && !(await destinationBucketIsAvailable(sync))) return;
+
+    let task = data.tasks[0];
+    if (!task) {
+      await syncReconcileQueue.add({
+        skillDestinationSyncId: data.skillDestinationSyncId,
+        contentVersion: sync.contentVersion,
+        hasChanges: data.hasChanges,
+        skillRepositoryId: data.skillRepositoryId
       });
       return;
     }
 
-    await db.skillDestinationItem.create({
-      data: {
+    let item = await db.skillDestinationItem.findFirst({
+      where: {
         destinationOid: sync.destinationOid,
-        skillMarketplaceOid: d.skillMarketplaceOid,
-        skillPluginOid: d.skillPluginOid,
-        skillOid: d.skillOid,
-        hash: d.hash
+        ...getSyncTaskItemWhere(task)
       }
     });
-  };
 
-  if (task?.type === 'skill') {
-    let skillPlugin = await loadSkillPlugin(task.skillPluginId);
-    let skillPluginSkill = skillPlugin.skills.find(s => s.skill.id === task.skillId);
-    if (!skillPluginSkill) {
-      throw new Error(`Skill ${task.skillId} not found in plugin ${task.skillPluginId}`);
-    }
+    let itemKey = getSyncTaskItemKey(task);
 
-    let skillMarketplace = await getDestinationMarketplace();
-    let skillMarketplacePlugin = await getMarketplacePlugin({
-      skillMarketplaceOid: skillMarketplace?.oid,
-      skillPlugin
-    });
+    let basePathRef = { current: '' };
+    let hashRef = { current: null as string | null };
+    let pruneScopeRef = { current: null as PruneScope | null };
 
-    if (task.action === 'delete') {
+    let manifest = new DestinationManifest(
+      await db.skillDestinationFile.findMany({
+        where: { destinationOid: sync.destinationOid },
+        select: { path: true, signature: true, itemKey: true }
+      }),
+      itemKey
+    );
+    let skippedPathCount = 0;
+
+    let getRecordedItemPaths = async () => {
+      let files = await db.skillDestinationFile.findMany({
+        where: { destinationOid: sync.destinationOid, itemKey },
+        select: { path: true }
+      });
+
+      return [...new Set(files.map(file => normalizeBucketPath(file.path)))];
+    };
+
+    let deleteBucketPaths = async (paths: string[]) => {
+      let normalized = [...new Set(paths.map(normalizeBucketPath))].filter(
+        candidate => candidate !== '/'
+      );
+      if (normalized.length === 0) return [];
+
+      for (let candidate of normalized) {
+        await codeBucketClient.deleteBucketFile({
+          bucketId: getSkillDestinationCodeBucketId(sync.destination),
+          path: candidate
+        });
+      }
+
+      return await recordDestinationFileDeletions({
+        destinationOid: sync.destinationOid,
+        paths: normalized
+      });
+    };
+
+    let deleteBucketPath = async (prefix: string | undefined) => {
+      let normalized = normalizeBucketPath(prefix ?? '');
+
+      if (normalized === '/') {
+        return await deleteBucketPaths(await getRecordedItemPaths());
+      }
+
+      let { deletedPaths } = await codeBucketClient.deleteBucketPath({
+        bucketId: getSkillDestinationCodeBucketId(sync.destination),
+        path: normalized
+      });
+
+      let unslashed = normalized.slice(1);
+      let recorded = await db.skillDestinationFile.findMany({
+        where: {
+          destinationOid: sync.destinationOid,
+          OR: [
+            { path: normalized },
+            { path: { startsWith: `${normalized}/` } },
+            { path: unslashed },
+            { path: { startsWith: `${unslashed}/` } }
+          ]
+        },
+        select: { path: true }
+      });
+
+      return await recordDestinationFileDeletions({
+        destinationOid: sync.destinationOid,
+        paths: [
+          ...new Set(
+            [...deletedPaths, ...recorded.map(file => file.path)].map(normalizeBucketPath)
+          )
+        ]
+      });
+    };
+
+    let deleteItemContent = async (prefix: string | undefined) => {
+      let recordedPaths = await getRecordedItemPaths();
+
+      let removedPaths = await deleteBucketPath(prefix);
+      let leftover = recordedPaths.filter(candidate => !removedPaths.includes(candidate));
+
+      return [...removedPaths, ...(await deleteBucketPaths(leftover))];
+    };
+
+    let pruneStaleFiles = async (): Promise<string[]> => {
+      let scope = pruneScopeRef.current;
+      if (!scope) return [];
+
+      let keepPaths = manifest.keepPaths();
+
+      if (keepPaths.length === 0) return [];
+
+      let { deletedPaths } = await codeBucketClient.pruneBucketPath({
+        bucketId: getSkillDestinationCodeBucketId(sync.destination),
+        prefix: normalizeBucketPath(scope.prefix),
+        keepPaths,
+        excludePrefixes: scope.excludePrefixes.map(exclude =>
+          normalizeBucketPath(path.join(scope.prefix, exclude))
+        )
+      });
+
+      if (deletedPaths.length === 0) return [];
+
+      let listed = deletedPaths.slice(0, 10).join(', ');
+      let remaining = deletedPaths.length - 10;
+
       await appendSkillDestinationSyncLog(
         data.skillDestinationSyncId,
-        `Removing skill ${skillPluginSkill.skill.name ?? 'Untitled skill'}.`
+        `Removed ${deletedPaths.length} file${
+          deletedPaths.length === 1 ? '' : 's'
+        } that are no longer part of the sync: ${listed}${
+          remaining > 0 ? ` and ${remaining} more` : ''
+        }.`
       );
-      await deleteItemContent(
-        getSkillPath({
+
+      return deletedPaths;
+    };
+
+    let fileProcessor = new BatchProcessor<{
+      path: string;
+      content: string | Buffer | ArrayBuffer;
+    }>(
+      async files => {
+        await codeBucketClient.setBucketFiles({
+          bucketId: getSkillDestinationCodeBucketId(sync.destination),
+          files: files.map(file => ({
+            path: normalizeBucketPath(file.path),
+            content: contentToBytes(file.content)
+          }))
+        });
+      },
+      5,
+      {
+        maxBytes: maxInlineBatchBytes,
+        getBytes: file => contentToBytes(file.content).byteLength
+      }
+    );
+
+    let copyProcessor = new BatchProcessor<{
+      path: string;
+      sourceBucket: string;
+      sourceKey: string;
+    }>(async files => {
+      await codeBucketClient.copyBucketFiles({
+        bucketId: getSkillDestinationCodeBucketId(sync.destination),
+        files: files.map(file => ({
+          path: normalizeBucketPath(file.path),
+          sourceBucket: file.sourceBucket,
+          sourceKey: file.sourceKey
+        }))
+      });
+    }, 25);
+
+    let flushWrites = async () => {
+      await fileProcessor.flush();
+      await copyProcessor.flush();
+    };
+
+    let resolvePath = (inPath: string) =>
+      normalizeBucketPath(
+        basePathRef.current ? path.join(basePathRef.current, inPath) : inPath
+      );
+
+    let context: SerializerContext = {
+      async setFile(inPath: string, content: string | Buffer | ArrayBuffer) {
+        let resultPath = resolvePath(inPath);
+        let bytes = contentToBytes(content);
+
+        let { shouldWrite } = manifest.register(resultPath, signatureForBytes(bytes));
+        if (!shouldWrite) {
+          skippedPathCount++;
+          return;
+        }
+
+        await fileProcessor.put({ path: resultPath, content: bytes });
+      },
+
+      async setFileFromStorage(inPath: string, file: StorageBackedFile) {
+        let resultPath = resolvePath(inPath);
+
+        let { shouldWrite } = manifest.register(resultPath, signatureForStoredFile(file.oid));
+        if (!shouldWrite) {
+          skippedPathCount++;
+          return;
+        }
+
+        let source = await fileService.resolveFileContentSource({ file });
+
+        if (source.type === 'inline') {
+          await fileProcessor.put({ path: resultPath, content: source.content });
+          return;
+        }
+
+        await copyProcessor.put({
+          path: resultPath,
+          sourceBucket: source.bucket,
+          sourceKey: source.key
+        });
+      },
+
+      async deletePath(inPath: string) {
+        await flushWrites();
+        let resultPath = resolvePath(inPath);
+        manifest.forgetPrefix(resultPath);
+        await deleteBucketPath(resultPath);
+      },
+
+      setBasePath(path: string | undefined) {
+        basePathRef.current = path ?? '';
+      }
+    };
+
+    let applySerializer = async <Input, InitResult>(
+      serializer: {
+        init: (input: Input) => Promise<InitResult>;
+        getHash: (input: Input, initResult: InitResult) => Promise<string>;
+        getPruneScope?: (input: Input) => PruneScope;
+        apply: (
+          input: Input,
+          context: SerializerContext,
+          initResult: InitResult
+        ) => Promise<void>;
+      },
+      input: Input
+    ) => {
+      let initResult: InitResult;
+      let hash: string;
+
+      pruneScopeRef.current = serializer.getPruneScope?.(input) ?? null;
+
+      try {
+        initResult = await serializer.init(input);
+        hash = await serializer.getHash(input, initResult);
+        hashRef.current = hash;
+      } catch (error) {
+        if (
+          await failSyncForLimitError({
+            skillDestinationSyncId: data.skillDestinationSyncId,
+            error
+          })
+        ) {
+          return false;
+        }
+
+        throw error;
+      }
+
+      if (item?.hash === hash) return 'skipped' as const;
+
+      try {
+        await serializer.apply(input, context, initResult);
+        return 'applied' as const;
+      } catch (error) {
+        if (
+          await failSyncForLimitError({
+            skillDestinationSyncId: data.skillDestinationSyncId,
+            error
+          })
+        ) {
+          return false;
+        }
+
+        throw error;
+      }
+    };
+    let taskChanged = false;
+
+    let loadSkillPlugin = async (skillPluginId: string) => {
+      let skillPlugin = await db.skillPlugin.findUnique({
+        where: { id: skillPluginId },
+        include: {
+          skillConfiguration: true,
+          skillPluginSkills: {
+            include: {
+              skill: true,
+              skillConfiguration: true
+            }
+          }
+        }
+      });
+      if (!skillPlugin) throw new Error(`Skill plugin not found: ${skillPluginId}`);
+
+      return {
+        ...skillPlugin,
+        skills: skillPlugin.skillPluginSkills
+      };
+    };
+
+    let loadMarketplace = async (skillMarketplaceId: string) => {
+      let marketplace = await db.skillMarketplace.findUnique({
+        where: { id: skillMarketplaceId },
+        include: {
+          skillConfiguration: true
+        }
+      });
+      if (!marketplace) throw new Error(`Skill marketplace not found: ${skillMarketplaceId}`);
+      return marketplace;
+    };
+
+    let getDestinationMarketplace = async () => {
+      if (!sync.destination.skillMarketplace) return undefined;
+      return await loadMarketplace(sync.destination.skillMarketplace.id);
+    };
+
+    let getMarketplacePlugin = async (d: {
+      skillMarketplaceOid?: bigint;
+      skillPlugin: Awaited<ReturnType<typeof loadSkillPlugin>>;
+    }) => {
+      if (!d.skillMarketplaceOid) return undefined;
+
+      let marketplacePlugin = await db.skillMarketplacePlugin.findFirst({
+        where: {
+          skillMarketplaceOid: d.skillMarketplaceOid,
+          skillPluginOid: d.skillPlugin.oid
+        },
+        include: {
+          skillConfiguration: true
+        }
+      });
+      if (!marketplacePlugin) return undefined;
+
+      return {
+        ...marketplacePlugin,
+        plugin: d.skillPlugin
+      };
+    };
+
+    let persistManifest = async (prunedPaths: string[]) => {
+      let entries = manifest.entries();
+
+      let abandonedPaths = manifest
+        .abandonedPaths()
+        .filter(candidate => !prunedPaths.includes(candidate));
+
+      await deleteBucketPaths(abandonedPaths);
+
+      let removedPaths = manifest.removedPaths(prunedPaths);
+
+      await withTransaction(async db => {
+        await db.skillDestinationFile.deleteMany({
+          where: {
+            destinationOid: sync.destinationOid,
+            path: { in: entries.map(entry => entry.path.slice(1)) }
+          }
+        });
+
+        for (let entry of entries) {
+          let pathBytes = getSkillDestinationFilePathBytes(entry.path);
+
+          await db.skillDestinationFile.upsert({
+            where: {
+              destinationOid_path: {
+                destinationOid: sync.destinationOid,
+                path: entry.path
+              }
+            },
+            create: {
+              destinationOid: sync.destinationOid,
+              path: entry.path,
+              pathBytes,
+              signature: entry.signature,
+              itemKey
+            },
+            update: { pathBytes, signature: entry.signature, itemKey }
+          });
+        }
+      });
+
+      await recordDestinationFileDeletions({
+        destinationOid: sync.destinationOid,
+        paths: removedPaths
+      });
+
+      await forgetDestinationFileDeletions({
+        destinationOid: sync.destinationOid,
+        paths: entries.map(entry => entry.path)
+      });
+
+      if (skippedPathCount > 0) {
+        await appendSkillDestinationSyncLog(
+          data.skillDestinationSyncId,
+          `Reused ${skippedPathCount} unchanged file${skippedPathCount === 1 ? '' : 's'}.`
+        );
+      }
+    };
+
+    let setDestinationItemHash = async (d: {
+      hash: string;
+      skillMarketplaceOid?: bigint;
+      skillPluginOid?: bigint;
+      skillOid?: bigint;
+    }) => {
+      if (item) {
+        await db.skillDestinationItem.update({
+          where: { oid: item.oid },
+          data: { hash: d.hash }
+        });
+        return;
+      }
+
+      await db.skillDestinationItem.create({
+        data: {
+          destinationOid: sync.destinationOid,
+          skillMarketplaceOid: d.skillMarketplaceOid,
+          skillPluginOid: d.skillPluginOid,
+          skillOid: d.skillOid,
+          hash: d.hash
+        }
+      });
+    };
+
+    if (task?.type === 'skill') {
+      let skillPlugin = await loadSkillPlugin(task.skillPluginId);
+      let skillPluginSkill = skillPlugin.skills.find(s => s.skill.id === task.skillId);
+      if (!skillPluginSkill) {
+        throw new Error(`Skill ${task.skillId} not found in plugin ${task.skillPluginId}`);
+      }
+
+      let skillMarketplace = await getDestinationMarketplace();
+      let skillMarketplacePlugin = await getMarketplacePlugin({
+        skillMarketplaceOid: skillMarketplace?.oid,
+        skillPlugin
+      });
+
+      if (task.action === 'delete') {
+        await appendSkillDestinationSyncLog(
+          data.skillDestinationSyncId,
+          `Removing skill ${skillPluginSkill.skill.name ?? 'Untitled skill'}.`
+        );
+        await deleteItemContent(
+          getSkillPath({
+            skill: skillPluginSkill.skill,
+            skillPlugin,
+            skillPluginSkill,
+            skillMarketplace,
+            skillMarketplacePlugin
+          })
+        );
+        await db.skillDestinationItem.deleteMany({
+          where: {
+            destinationOid: sync.destinationOid,
+            skillOid: skillPluginSkill.skill.oid,
+            skillPluginOid: skillPlugin.oid
+          }
+        });
+        taskChanged = true;
+      } else {
+        await appendSkillDestinationSyncLog(
+          data.skillDestinationSyncId,
+          `Updating skill ${skillPluginSkill.skill.name ?? 'Untitled skill'}.`
+        );
+        let applied = await applySerializer(applySkill, {
           skill: skillPluginSkill.skill,
           skillPlugin,
           skillPluginSkill,
           skillMarketplace,
           skillMarketplacePlugin
-        })
-      );
-      await db.skillDestinationItem.deleteMany({
-        where: {
-          destinationOid: sync.destinationOid,
-          skillOid: skillPluginSkill.skill.oid,
-          skillPluginOid: skillPlugin.oid
-        }
-      });
-      taskChanged = true;
-    } else {
-      await appendSkillDestinationSyncLog(
-        data.skillDestinationSyncId,
-        `Updating skill ${skillPluginSkill.skill.name ?? 'Untitled skill'}.`
-      );
-      let applied = await applySerializer(applySkill, {
-        skill: skillPluginSkill.skill,
-        skillPlugin,
-        skillPluginSkill,
-        skillMarketplace,
-        skillMarketplacePlugin
-      });
-      if (!applied) return;
-      taskChanged = applied === 'applied';
-      await flushWrites();
-
-      if (applied === 'applied') await persistManifest(await pruneStaleFiles());
-
-      if (hashRef.current) {
-        await setDestinationItemHash({
-          hash: hashRef.current,
-          skillMarketplaceOid: skillMarketplace?.oid,
-          skillPluginOid: skillPlugin.oid,
-          skillOid: skillPluginSkill.skill.oid
         });
-      }
-    }
-  } else if (task?.type === 'plugin') {
-    let skillPlugin = await loadSkillPlugin(task.skillPluginId);
-    let skillMarketplace = await getDestinationMarketplace();
-    let skillMarketplacePlugin = await getMarketplacePlugin({
-      skillMarketplaceOid: skillMarketplace?.oid,
-      skillPlugin
-    });
+        if (!applied) return;
+        taskChanged = applied === 'applied';
+        await flushWrites();
 
-    if (task.action === 'delete') {
-      await appendSkillDestinationSyncLog(
-        data.skillDestinationSyncId,
-        `Removing plugin ${skillPlugin.name}.`
-      );
-      await deleteItemContent(
-        getPluginPath({
+        if (applied === 'applied') await persistManifest(await pruneStaleFiles());
+
+        if (hashRef.current) {
+          await setDestinationItemHash({
+            hash: hashRef.current,
+            skillMarketplaceOid: skillMarketplace?.oid,
+            skillPluginOid: skillPlugin.oid,
+            skillOid: skillPluginSkill.skill.oid
+          });
+        }
+      }
+    } else if (task?.type === 'plugin') {
+      let skillPlugin = await loadSkillPlugin(task.skillPluginId);
+      let skillMarketplace = await getDestinationMarketplace();
+      let skillMarketplacePlugin = await getMarketplacePlugin({
+        skillMarketplaceOid: skillMarketplace?.oid,
+        skillPlugin
+      });
+
+      if (task.action === 'delete') {
+        await appendSkillDestinationSyncLog(
+          data.skillDestinationSyncId,
+          `Removing plugin ${skillPlugin.name}.`
+        );
+        await deleteItemContent(
+          getPluginPath({
+            skillPlugin,
+            skillMarketplace,
+            skillMarketplacePlugin
+          })
+        );
+        await db.skillDestinationItem.deleteMany({
+          where: {
+            destinationOid: sync.destinationOid,
+            skillPluginOid: skillPlugin.oid
+          }
+        });
+        taskChanged = true;
+      } else {
+        await appendSkillDestinationSyncLog(
+          data.skillDestinationSyncId,
+          `Updating plugin ${skillPlugin.name}.`
+        );
+        let applied = await applySerializer(applyPlugin, {
           skillPlugin,
           skillMarketplace,
           skillMarketplacePlugin
-        })
-      );
-      await db.skillDestinationItem.deleteMany({
-        where: {
-          destinationOid: sync.destinationOid,
-          skillPluginOid: skillPlugin.oid
+        });
+        if (!applied) return;
+        taskChanged = applied === 'applied';
+        await flushWrites();
+
+        if (applied === 'applied') await persistManifest(await pruneStaleFiles());
+
+        if (hashRef.current) {
+          await setDestinationItemHash({
+            hash: hashRef.current,
+            skillMarketplaceOid: skillMarketplace?.oid,
+            skillPluginOid: skillPlugin.oid
+          });
         }
-      });
-      taskChanged = true;
-    } else {
+      }
+    } else if (task?.type === 'marketplace') {
+      let skillMarketplace = await loadMarketplace(task.skillMarketplaceId);
       await appendSkillDestinationSyncLog(
         data.skillDestinationSyncId,
-        `Updating plugin ${skillPlugin.name}.`
+        `Updating marketplace ${skillMarketplace.name}.`
       );
-      let applied = await applySerializer(applyPlugin, {
-        skillPlugin,
-        skillMarketplace,
-        skillMarketplacePlugin
-      });
+      let applied = await applySerializer(applyMarketplace, { skillMarketplace });
       if (!applied) return;
       taskChanged = applied === 'applied';
       await flushWrites();
@@ -615,47 +759,34 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(async data => {
       if (hashRef.current) {
         await setDestinationItemHash({
           hash: hashRef.current,
-          skillMarketplaceOid: skillMarketplace?.oid,
-          skillPluginOid: skillPlugin.oid
+          skillMarketplaceOid: skillMarketplace.oid
         });
       }
     }
-  } else if (task?.type === 'marketplace') {
-    let skillMarketplace = await loadMarketplace(task.skillMarketplaceId);
-    await appendSkillDestinationSyncLog(
-      data.skillDestinationSyncId,
-      `Updating marketplace ${skillMarketplace.name}.`
-    );
-    let applied = await applySerializer(applyMarketplace, { skillMarketplace });
-    if (!applied) return;
-    taskChanged = applied === 'applied';
-    await flushWrites();
 
-    if (applied === 'applied') await persistManifest(await pruneStaleFiles());
+    let versionedSync = await db.skillDestinationSync.update({
+      where: { oid: sync.oid },
+      data: { contentVersion: { increment: 1 } }
+    });
+    let contentVersion = versionedSync.contentVersion;
+    let tasks = data.tasks.slice(1);
 
-    if (hashRef.current) {
-      await setDestinationItemHash({
-        hash: hashRef.current,
-        skillMarketplaceOid: skillMarketplace.oid
+    if (tasks.length > 0) {
+      await syncProcessQueue.add({
+        skillDestinationSyncId: data.skillDestinationSyncId,
+        tasks,
+        contentVersion,
+        hasChanges: data.hasChanges || taskChanged,
+        skillRepositoryId: data.skillRepositoryId
       });
+      return;
     }
-  }
 
-  let tasks = data.tasks.slice(1);
-
-  if (tasks.length > 0) {
-    await syncProcessQueue.add({
+    await syncReconcileQueue.add({
       skillDestinationSyncId: data.skillDestinationSyncId,
-      tasks,
+      contentVersion,
       hasChanges: data.hasChanges || taskChanged,
       skillRepositoryId: data.skillRepositoryId
     });
-    return;
-  }
-
-  await syncReconcileQueue.add({
-    skillDestinationSyncId: data.skillDestinationSyncId,
-    hasChanges: data.hasChanges || taskChanged,
-    skillRepositoryId: data.skillRepositoryId
-  });
-});
+  })
+);

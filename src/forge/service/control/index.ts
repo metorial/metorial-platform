@@ -7,6 +7,7 @@ import {
   e2e,
   endpoint,
   mergeEnv,
+  objectStorage,
   postgres,
   project,
   redis,
@@ -43,9 +44,11 @@ export default project({
   e2e: e2e({
     start: ['e2e:start'],
     image: 'forge',
+    tests: ['.'],
     env: {
       OBJECT_STORAGE_URL: 'http://services:52010'
-    }
+    },
+    resources: [objectStorage()]
   }),
   ci: {
     images: [
@@ -70,6 +73,6 @@ export default project({
         })
       })
     ],
-    suite: ciSuite({ name: 'forge', runner: 'compose', profiles: ['infra', 'service'] })
+    suite: ciSuite({ name: 'forge', groups: 1 })
   }
 });

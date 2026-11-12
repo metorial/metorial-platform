@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+import { resolveReleaseChannel } from '../channel';
 import { parseArgs } from 'node:util';
 import { isEdition, type Edition } from '../edition';
 import { buildEdition } from './build';
@@ -8,7 +9,7 @@ import { verifyPackageGraph, verifySourceMaps, type Violation } from './verify';
 import { readWorkspace } from './workspace';
 
 let usage = `Usage:
-  metorial-editions build <entry> --edition <edition> --outdir <dir> [--external a,b] [--minify] [--splitting]
+  metorial-editions build <entry> --edition <edition> (--outdir <dir> | --outfile <file>) [--channel dev|release] [--external a,b] [--minify] [--splitting]
   metorial-editions verify --edition <edition> --entry <package|dir> [--entry ...]
                            [--sourcemaps <dir|file.map> ...] [--deny-package <name> ...]
                            [--egress <dir|file> ...] [--policy <policy.json>] [--root <dir>]`;
@@ -30,6 +31,8 @@ let runBuild = async (args: string[]) => {
     options: {
       edition: { type: 'string' },
       outdir: { type: 'string' },
+      channel: { type: 'string' },
+      outfile: { type: 'string' },
       external: { type: 'string' },
       minify: { type: 'boolean' },
       splitting: { type: 'boolean' }
@@ -37,12 +40,14 @@ let runBuild = async (args: string[]) => {
   });
 
   let [entry] = positionals;
-  if (!entry || !values.outdir) return fail(usage);
+  if (!entry || Boolean(values.outdir) === Boolean(values.outfile)) return fail(usage);
 
   let outputs = await buildEdition({
     entry,
     edition: readEdition(values.edition),
     outdir: values.outdir,
+    channel: resolveReleaseChannel(values.channel ?? process.env.METORIAL_RELEASE_CHANNEL),
+    outfile: values.outfile,
     external: values.external?.split(',').filter(Boolean),
     minify: values.minify,
     splitting: values.splitting

@@ -50,6 +50,7 @@ runs:
         bun "$CONTROL_DIRECTORY/src/main.ts" "${args[@]}" test:e2e \
           --images "$RUNNER_TEMP/test-images" \
           --workspace "$(cd "$TEST_WORKSPACE" && pwd)" \
+          --concurrency 1 \
           "${test_args[@]}"
     - name: Upload e2e logs
       if: always()

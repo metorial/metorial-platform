@@ -23,9 +23,11 @@ let pollSkillExport = async (d: {
 }) => {
   let startedAt = Date.now();
   let timeoutMs = 10 * 60 * 1000;
+  let fastIntervalMs = 1000;
+  let fastPolls = 15;
   let intervalMs = 5000;
 
-  while (Date.now() - startedAt < timeoutMs) {
+  for (let polls = 1; Date.now() - startedAt < timeoutMs; polls++) {
     let skillExport = await d.get(d.skillExportId);
 
     if (skillExport.status === 'completed') {
@@ -35,7 +37,7 @@ let pollSkillExport = async (d: {
 
     if (skillExport.status === 'failed') throw new Error('Export failed');
 
-    await delay(intervalMs);
+    await delay(polls < fastPolls ? fastIntervalMs : intervalMs);
   }
 
   throw new Error('Export timed out');

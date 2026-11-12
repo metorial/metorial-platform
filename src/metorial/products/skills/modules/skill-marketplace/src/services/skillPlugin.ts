@@ -1,5 +1,5 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, conflictError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type {
@@ -25,16 +25,15 @@ import { skillConfigurationService } from '@metorial/module-skill-configurations
 import { consumerAccessService } from '@metorial/module-consumer-access';
 import { getProjectTenantIdentifier } from '@metorial/skills-common';
 import { internalImageService } from '@metorial/skills-images';
-import {
-  createSkillDestination,
-  getSkillDestinationEditorUrl
-} from '@metorial/skills-scm-utils';
+import { createSkillDestination } from '@metorial/skills-scm-utils';
 import { buildSearchFilter } from '@metorial/module-search';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/skills-search';
 import { forceSkillDestinationSync } from '../lib/destinationSync';
 import {
+  assertSkillMarketplaceDestinationSize,
   assertSkillMarketplacePluginLimit,
   CargoSkillLimitError,
+  generatedFilesPerSkillPlugin,
   toCargoSkillLimitServiceError
 } from '../lib/limits';
 import {
@@ -49,10 +48,13 @@ import {
   getSkillMarketplaceAccessWhere,
   type SkillMarketplaceAccessInput
 } from '../lib/skillMarketplaceAccess';
+import { getNewSkillDestinationStorageMode } from '../lib/storageMode';
 import {
   enqueueSkillMarketplacePluginLifecycle,
   enqueueSkillPluginLifecycle
 } from '../queues/lifecycle';
+
+let slugAllocationAttempts = 10;
 
 let skillInclude = {
   store: true,
@@ -380,6 +382,10 @@ class SkillPluginServiceImpl {
           skillMarketplaceOid: skillMarketplace.oid,
           additionalCount: 1
         });
+        await assertSkillMarketplaceDestinationSize({
+          skillMarketplaceOid: skillMarketplace.oid,
+          additionalFiles: generatedFilesPerSkillPlugin
+        });
       } catch (error) {
         if (error instanceof CargoSkillLimitError) {
           throw toCargoSkillLimitServiceError(error);
@@ -406,13 +412,7 @@ class SkillPluginServiceImpl {
       organizationOid: d.instance.organizationOid,
       instance: d.instance
     });
-    let marketplacePluginSlug = skillMarketplace
-      ? await getMarketplacePluginSlug(
-          { input: d.input.slug ?? d.input.name },
-          { skillMarketplaceId: skillMarketplace.id }
-        )
-      : undefined;
-    let slug = await getAvailableSkillPluginSlug(d.input.slug ?? d.input.name);
+    let storageMode = await getNewSkillDestinationStorageMode({ instance: d.instance });
 
     return await withTransaction(async db => {
       await Fabric.fire('skill.plugin.created:before', {
@@ -420,26 +420,48 @@ class SkillPluginServiceImpl {
         instance: d.instance
       });
 
-      let destination = await createSkillDestination({ project: d.project });
-      let skillPlugin = await db.skillPlugin.create({
-        data: {
-          id: await ID.generateId('skillPlugin'),
-          status: 'active',
-          isManaged: false,
-          providerOverrides: d.input.providerOverrides as any,
-          name: d.input.name,
-          description: d.input.description,
-          longDescription: d.input.longDescription,
-          category: d.input.category,
-          slug,
-          projectOid: d.project.oid,
-          instanceOid: d.instance.oid,
-          organizationOid: d.project.organizationOid,
-          skillConfigurationOid,
-          destinationOid: destination.oid
-        },
-        include: skillPluginInclude
-      });
+      let destination = await createSkillDestination({ project: d.project, storageMode });
+      let skillPluginId = await ID.generateId('skillPlugin');
+      let skillPlugin: SkillPluginRecord | undefined;
+
+      for (let attempt = 0; attempt < slugAllocationAttempts; attempt++) {
+        let slug = await getAvailableSkillPluginSlug(d.input.slug ?? d.input.name);
+        // ON CONFLICT keeps the transaction usable when another create wins this slug.
+        let created = await db.skillPlugin.createMany({
+          skipDuplicates: true,
+          data: {
+            id: skillPluginId,
+            status: 'active',
+            isManaged: false,
+            providerOverrides: d.input.providerOverrides as any,
+            name: d.input.name,
+            description: d.input.description,
+            longDescription: d.input.longDescription,
+            category: d.input.category,
+            slug,
+            projectOid: d.project.oid,
+            instanceOid: d.instance.oid,
+            organizationOid: d.project.organizationOid,
+            skillConfigurationOid,
+            destinationOid: destination.oid
+          }
+        });
+        if (!created.count) continue;
+
+        skillPlugin = await db.skillPlugin.findUniqueOrThrow({
+          where: { id: skillPluginId },
+          include: skillPluginInclude
+        });
+        break;
+      }
+
+      if (!skillPlugin) {
+        throw new ServiceError(
+          conflictError({
+            message: 'Unable to allocate a skill plugin slug. Please try again.'
+          })
+        );
+      }
 
       if (d.input.imageFileId !== undefined) {
         let image = await internalImageService.resolveImageEntityImage({
@@ -474,17 +496,40 @@ class SkillPluginServiceImpl {
       await enqueueSkillPluginLifecycle({ skillPluginId: skillPlugin.id, event: 'created' });
 
       if (skillMarketplace) {
-        let skillMarketplacePlugin = await db.skillMarketplacePlugin.create({
-          data: {
-            id: await ID.generateId('skillMarketplacePlugin'),
-            status: 'active',
-            pluginSlug: marketplacePluginSlug!,
-            skillMarketplaceOid: skillMarketplace.oid,
-            skillPluginOid: skillPlugin.oid
-          }
-        });
+        let skillMarketplacePluginId = await ID.generateId('skillMarketplacePlugin');
+        let created = false;
+
+        for (let attempt = 0; attempt < slugAllocationAttempts; attempt++) {
+          let pluginSlug = await getMarketplacePluginSlug(
+            { input: d.input.slug ?? d.input.name },
+            { skillMarketplaceId: skillMarketplace.id }
+          );
+          let result = await db.skillMarketplacePlugin.createMany({
+            skipDuplicates: true,
+            data: {
+              id: skillMarketplacePluginId,
+              status: 'active',
+              pluginSlug,
+              skillMarketplaceOid: skillMarketplace.oid,
+              skillPluginOid: skillPlugin.oid
+            }
+          });
+          if (!result.count) continue;
+
+          created = true;
+          break;
+        }
+
+        if (!created) {
+          throw new ServiceError(
+            conflictError({
+              message: 'Unable to allocate a marketplace plugin slug. Please try again.'
+            })
+          );
+        }
+
         await enqueueSkillMarketplacePluginLifecycle({
-          skillMarketplacePluginId: skillMarketplacePlugin.id,
+          skillMarketplacePluginId,
           event: 'created'
         });
       }
@@ -540,19 +585,26 @@ class SkillPluginServiceImpl {
       });
     }
 
-    await db.skillPlugin.update({
-      where: {
-        id: d.skillPlugin.id
-      },
-      data: {
-        image: nextImage as any,
-        providerOverrides: d.input.providerOverrides as any,
-        name: d.input.name,
-        description: d.input.description,
-        longDescription: d.input.longDescription,
-        category: d.input.category,
-        skillConfigurationOid
-      }
+    await withTransaction(async db => {
+      await db.skillPlugin.update({
+        where: {
+          id: d.skillPlugin.id
+        },
+        data: {
+          image: nextImage as any,
+          providerOverrides: d.input.providerOverrides as any,
+          name: d.input.name,
+          description: d.input.description,
+          longDescription: d.input.longDescription,
+          category: d.input.category,
+          skillConfigurationOid
+        }
+      });
+
+      await enqueueSkillPluginLifecycle({
+        skillPluginId: d.skillPlugin.id,
+        event: 'updated'
+      });
     });
 
     if (
@@ -564,11 +616,6 @@ class SkillPluginServiceImpl {
         image: d.skillPlugin.image as EntityImage
       });
     }
-
-    await enqueueSkillPluginLifecycle({
-      skillPluginId: d.skillPlugin.id,
-      event: 'updated'
-    });
 
     let skillPlugin = await this.getSkillPluginRecord({
       project: d.project,
@@ -702,26 +749,14 @@ class SkillPluginServiceImpl {
     });
   }
 
-  async getSkillPluginEditorUrl(d: {
-    project: Project;
-    instance: Instance;
-    skillPlugin: SkillPluginRecord;
-    isReadOnly?: boolean;
-  }) {
-    return await getSkillDestinationEditorUrl({
-      project: d.project,
-      destination: d.skillPlugin.destination!,
-      isReadOnly: d.isReadOnly
-    });
-  }
-
   async forceSkillPluginSync(d: {
     project: Project;
     instance: Instance;
     skillPlugin: SkillPluginRecord;
   }) {
     await forceSkillDestinationSync({
-      destination: d.skillPlugin.destination!
+      destination: d.skillPlugin.destination!,
+      trigger: 'manual'
     });
 
     return await this.getSkillPluginRecord({

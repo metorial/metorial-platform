@@ -3,9 +3,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 let mocks = vi.hoisted(() => ({
   updateMany: vi.fn(),
   findUnique: vi.fn(),
-  updateState: vi.fn()
+  updateState: vi.fn(),
+  captureException: vi.fn(),
+  captureMessage: vi.fn()
 }));
 
+vi.mock('@lowerdeck/sentry', () => ({
+  getSentry: () => ({
+    captureException: mocks.captureException,
+    captureMessage: mocks.captureMessage
+  })
+}));
 vi.mock('../../../db', () => ({
   db: {
     scmRepositorySync: {
@@ -20,10 +28,105 @@ vi.mock('../../../services/repositorySyncState', () => ({
 }));
 
 import {
+  getRepositorySyncFailureLevel,
+  getRepositorySyncRetry,
+  recordRepositorySyncRetry,
   logRepositorySyncQueueError,
   markRepositorySyncFailed,
+  getRepositorySyncContentsRetryDelayMs,
+  reportRepositorySyncFailure,
   shouldRetryRepositorySyncContents
 } from './_lib';
+
+describe('repository sync failure reporting', () => {
+  let sync = {
+    id: 'sync_report',
+    status: 'syncing_contents' as const,
+    sourceType: 'manifest' as const,
+    sourceKey: 'skd_123',
+    requestKey: 'skdp_123',
+    repositoryAccessMode: 'pull_request' as const
+  };
+
+  beforeEach(() => {
+    mocks.captureException.mockReset();
+    mocks.captureMessage.mockReset();
+    mocks.updateState.mockReset();
+    mocks.updateState.mockResolvedValue({});
+    mocks.findUnique.mockReset();
+    mocks.findUnique.mockResolvedValue(sync);
+  });
+
+  it.each([
+    ['protected_branch', null],
+    ['permission_denied', null],
+    ['deletion_guard_tripped', null],
+    ['destination_too_large', null],
+    ['rate_limited', 'warning'],
+    ['no_progress', 'warning'],
+    ['manifest_invalid', 'error'],
+    ['source_not_found', 'error'],
+    ['network_failure', 'error'],
+    ['something_new', 'error']
+  ])('reports %s at level %s', (errorCode, level) => {
+    expect(getRepositorySyncFailureLevel(errorCode)).toBe(level);
+  });
+
+  it('captures unexpected failures with grouping tags and the original error', async () => {
+    let error = new TypeError("Cannot read properties of undefined (reading 'sha')");
+
+    await markRepositorySyncFailed(sync.id, error);
+
+    expect(mocks.captureException).toHaveBeenCalledWith(
+      error,
+      expect.objectContaining({
+        level: 'error',
+        fingerprint: ['repository-sync', 'network_failure'],
+        tags: expect.objectContaining({
+          area: 'repository_sync',
+          'repository_sync.error_code': 'network_failure',
+          'repository_sync.stage': 'syncing_contents',
+          'repository_sync.source_type': 'manifest'
+        }),
+        extra: expect.objectContaining({ syncId: sync.id, requestKey: 'skdp_123' })
+      })
+    );
+  });
+
+  it('does not report failures the repository owner has to fix', async () => {
+    await markRepositorySyncFailed(
+      sync.id,
+      Object.assign(new Error('Protected branch update rejected'), { status: 403 })
+    );
+
+    expect(mocks.captureException).not.toHaveBeenCalled();
+    expect(mocks.captureMessage).not.toHaveBeenCalled();
+  });
+
+  it('does not report when another worker already ended the sync', async () => {
+    mocks.updateState.mockResolvedValue(null);
+
+    await markRepositorySyncFailed(sync.id, new TypeError('boom'));
+
+    expect(mocks.captureException).not.toHaveBeenCalled();
+  });
+
+  it('reports failures without an error object as messages', () => {
+    reportRepositorySyncFailure({
+      sync,
+      errorCode: 'sync_lifetime_exceeded',
+      errorMessage: 'The repository update took too long.'
+    });
+
+    expect(mocks.captureMessage).toHaveBeenCalledWith(
+      'Repository sync failed (sync_lifetime_exceeded): The repository update took too long.',
+      expect.objectContaining({
+        level: 'warning',
+        fingerprint: ['repository-sync', 'sync_lifetime_exceeded']
+      })
+    );
+  });
+});
 
 describe('repository sync failure diagnostics', () => {
   beforeEach(() => {
@@ -200,6 +303,26 @@ describe('repository sync failure diagnostics', () => {
     ).toBe(false);
   });
 
+  it('retries a GitHub secondary rate limit with a long delay', () => {
+    let rateLimited = {
+      code: 9,
+      details:
+        'failed to upload to GitHub: POST https://api.github.com/repos/o/r/git/blobs failed (status 403): {"message":"You have exceeded a secondary rate limit."}'
+    };
+
+    expect(
+      shouldRetryRepositorySyncContents({
+        repositoryAccessMode: 'default_branch',
+        status: 'syncing_contents',
+        attemptCount: 4,
+        error: rateLimited
+      })
+    ).toBe(true);
+    expect(
+      getRepositorySyncContentsRetryDelayMs({ attemptCount: 1, error: rateLimited })
+    ).toBe(120_000);
+  });
+
   it('does not retry a file that is too large to export', () => {
     let oversized = {
       code: 9,
@@ -258,5 +381,115 @@ describe('repository sync failure diagnostics', () => {
         error: { status: 409, description: 'branch changed' }
       })
     ).toBe(false);
+  });
+});
+
+describe('repository sync retry reporting', () => {
+  let sync = {
+    id: 'sync_retry',
+    status: 'waiting_for_ci',
+    sourceType: 'manifest',
+    repositoryAccessMode: 'pull_request',
+    attemptCount: 0,
+    errorMessage: null,
+    logs: [],
+    statusSnapshot: null,
+    repo: { provider: 'gitlab' }
+  } as any;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.updateMany.mockResolvedValue({ count: 1 });
+  });
+
+  it.each([405, 409, 422])('describes merge response %s as a readiness retry', status => {
+    expect(getRepositorySyncRetry({ cause: { response: { status } } }, 'merge')).toEqual({
+      code: 'merge_not_ready',
+      message: "The repository isn't ready to merge yet. The sync will retry automatically."
+    });
+  });
+
+  it('keeps provider payloads, tokens, and internal errors out of sync logs and retry reports', async () => {
+    let error = Object.assign(new Error('internal stack details secret-body'), {
+      cause: {
+        description: 'secret-body',
+        request: {
+          method: 'GET',
+          url: 'https://gitlab.com/api/v4/projects/123/pipelines?access_token=secret-token'
+        },
+        response: {
+          status: 429,
+          body: 'secret-body',
+          headers: { 'x-request-id': 'request-123' }
+        }
+      }
+    });
+    let retry = getRepositorySyncRetry(error, 'waitForCi');
+
+    await recordRepositorySyncRetry({
+      sync,
+      stage: 'waitForCi',
+      error,
+      delayMs: 60_000,
+      retry
+    });
+
+    expect(mocks.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: {
+          logs: {
+            push: [
+              expect.any(Number),
+              'The repository is limiting requests. The sync will retry automatically.'
+            ]
+          }
+        }
+      })
+    );
+    expect(mocks.captureMessage).toHaveBeenCalledWith(
+      'Repository sync is retrying',
+      expect.objectContaining({
+        fingerprint: ['repository-sync-retry', 'gitlab', 'waitForCi', 'rate_limited'],
+        extra: expect.objectContaining({
+          syncId: sync.id,
+          providerDiagnostic: expect.objectContaining({
+            status: 429,
+            requestId: 'request-123'
+          })
+        })
+      })
+    );
+    let output = JSON.stringify([
+      mocks.updateMany.mock.calls,
+      mocks.captureMessage.mock.calls
+    ]);
+    expect(output).not.toContain('secret-body');
+    expect(output).not.toContain('secret-token');
+    expect(output).not.toContain('internal stack');
+    expect(mocks.captureException).not.toHaveBeenCalled();
+  });
+
+  it('does not repeat log entries or reports on every retry', async () => {
+    let error = { status: 500 };
+    let retry = getRepositorySyncRetry(error, 'waitForCi');
+    await recordRepositorySyncRetry({
+      sync: { ...sync, attemptCount: 1, errorMessage: retry.message },
+      stage: 'waitForCi',
+      error,
+      delayMs: 120_000,
+      retry
+    });
+
+    expect(mocks.updateMany).not.toHaveBeenCalled();
+    expect(mocks.captureMessage).not.toHaveBeenCalled();
+
+    await recordRepositorySyncRetry({
+      sync: { ...sync, attemptCount: 3, errorMessage: retry.message },
+      stage: 'waitForCi',
+      error,
+      delayMs: 480_000,
+      retry
+    });
+    expect(mocks.captureMessage).toHaveBeenCalledOnce();
   });
 });

@@ -21,6 +21,7 @@
     "@lowerdeck/delay": "workspace:2.0.0",
     "@lowerdeck/env": "workspace:2.0.0",
     "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/hash": "workspace:2.0.0",
     "@lowerdeck/id": "workspace:2.0.0",
     "@lowerdeck/pagination": "workspace:2.0.0",
     "@lowerdeck/service": "workspace:2.0.0",

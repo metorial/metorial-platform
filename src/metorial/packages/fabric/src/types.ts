@@ -42,6 +42,8 @@ import {
   ConsumerAccess,
   ConsumerAccessListing,
   ConsumerAccessRequest,
+  ConsumerDevice,
+  ConsumerDeviceClient,
   ConsumerGroup,
   ConsumerInvite,
   ConsumerProfile,
@@ -61,6 +63,7 @@ import {
   MagicMcpGroup,
   MagicMcpServer,
   MagicMcpToken,
+  McpClientType,
   OAuthApplication,
   OAuthApplicationClientSecret,
   OAuthApplicationSubjectType,
@@ -90,6 +93,8 @@ import {
   ServiceAccount,
   ServiceAccountCredential,
   Skill,
+  SkillDestination,
+  SkillDestinationSync,
   SkillGroup,
   SkillMarketplace,
   SkillPlugin,
@@ -832,6 +837,15 @@ export type AuditConsumerSession = ConsumerSession & {
   consumerProfile: AuditConsumerProfile;
 };
 
+export type AuditConsumerDevice = ConsumerDevice & {
+  consumerProfile: ConsumerProfile;
+  clients: (ConsumerDeviceClient & {
+    mcpClientType: McpClientType;
+    excludedMagicMcpServers: { magicMcpServer: Pick<MagicMcpServer, 'id'> }[];
+    excludedSkills: { skill: Pick<Skill, 'id'> }[];
+  })[];
+};
+
 export type AuditPortal = Portal & {
   surface: { id: string };
 };
@@ -1318,6 +1332,9 @@ export interface FabricEvents {
 
   'consumer.session.created:after': { consumerSession: AuditConsumerSession; auditScope: AuditScope };
   'consumer.session.revoked:after': { consumerSession: AuditConsumerSession; auditScope: AuditScope };
+  'consumer.device.enrolled:after': { consumerDevice: AuditConsumerDevice; auditScope: AuditScope };
+  'consumer.device.updated:after': { consumerDevice: AuditConsumerDevice; previousConsumerDevice: AuditConsumerDevice; auditScope: AuditScope };
+  'consumer.device.ended:after': { consumerDevice: AuditConsumerDevice; previousConsumerDevice: AuditConsumerDevice; auditScope: AuditScope };
 
   'consumer.surface.created:after': { organization: Organization; instance: Instance; consumerSurface: ConsumerSurface; auditScope: AuditScope };
   'consumer.surface.updated:after': { consumerSurface: ConsumerSurface; previousConsumerSurface: ConsumerSurface; auditScope: AuditScope };
@@ -1438,6 +1455,10 @@ export interface FabricEvents {
   'skill.marketplace.audit.created:after': { auditScope: AuditScope; skillMarketplace: SkillMarketplace };
   'skill.marketplace.audit.updated:after': { auditScope: AuditScope; skillMarketplace: SkillMarketplace; previousSkillMarketplace: SkillMarketplace };
   'skill.marketplace.audit.archived:after': { auditScope: AuditScope; skillMarketplace: SkillMarketplace };
+
+  'skill.destination.audit.sync_forced:after': { auditScope: AuditScope; skillDestination: SkillDestination; skillDestinationSync: SkillDestinationSync };
+  'skill.destination.audit.storage_migrated:after': { auditScope: AuditScope; skillDestination: SkillDestination; requestedBy: 'cron' | 'ops' };
+  'skill.destination.audit.storage_demoted:after': { auditScope: AuditScope; skillDestination: SkillDestination; previousCodeBucketId: string | null };
 
   'skill.group.audit.created:after': { auditScope: AuditScope; skillGroup: AuditSkillGroup };
   'skill.group.audit.updated:after': { auditScope: AuditScope; skillGroup: AuditSkillGroup; previousSkillGroup: AuditSkillGroup };

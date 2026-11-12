@@ -221,7 +221,7 @@ if (import.meta.main) {
   let unitGlobal =
     global ||
     paths.includes(
-      enterprise ? '.github/workflows/deploy-backend.yml' : '.github/workflows/test.yml'
+      enterprise ? '.github/workflows/metorial-enterprise.yml' : '.github/workflows/test.yml'
     );
   let e2eGlobal =
     global ||
@@ -234,7 +234,7 @@ if (import.meta.main) {
         path === `${prefix}.dockerignore` ||
         path ===
           (enterprise
-            ? '.github/workflows/deploy-backend.yml'
+            ? '.github/workflows/metorial-enterprise.yml'
             : '.github/workflows/backend-services.yml')
     );
   let tasks = process.env.TEST_TASKS!.split(/\s+/);

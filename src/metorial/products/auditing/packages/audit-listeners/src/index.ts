@@ -5,6 +5,7 @@ export * from './auditLogRetention';
 export * from './auditLogStream';
 export * from './consumer';
 export * from './consumerAccess';
+export * from './consumerDevice';
 export * from './consumerProvider';
 export * from './eventDelivery';
 export * from './eventDestination';

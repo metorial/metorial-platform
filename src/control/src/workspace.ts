@@ -169,22 +169,29 @@ export let allocateServicePorts = async (project: ProjectRoot): Promise<ServiceP
   };
 };
 
-let withMailPorts = async (
+let ensureServicePorts = async (
   project: ProjectRoot,
-  ports: ServicePorts
+  data: WorkspaceMetadata
 ): Promise<ServicePorts> => {
-  if (ports.mail !== undefined && ports.mail_ui !== undefined) return ports;
+  let ports = data.service_ports;
+  if (!ports) return allocateServicePorts(project);
+
+  let mailPorts: ('mail' | 'mail_ui')[] = ['mail', 'mail_ui'];
+  let missing = mailPorts.filter(key => ports[key] === undefined);
+  if (!missing.length) return ports;
 
   let reserved = new Set(standardPorts);
+  reserve(reserved, data);
   for (let worktree of await listWorktrees(project.root)) {
     let data = metadataIfPresent(worktree.path);
     if (data) reserve(reserved, data);
   }
-  for (let port of Object.values(ports)) reserved.add(port);
 
-  let [mail, mailUi] = await allocatePortValues(reserved, 2);
+  let values = await allocatePortValues(reserved, missing.length);
+  let updated = { ...ports };
+  for (let [index, key] of missing.entries()) updated[key] = values[index]!;
 
-  return { ...ports, mail, mail_ui: mailUi };
+  return updated;
 };
 
 export let metadata = async (project: ProjectRoot): Promise<WorkspaceMetadata> => {
@@ -198,10 +205,10 @@ export let metadata = async (project: ProjectRoot): Promise<WorkspaceMetadata> =
     if (source) {
       updated.id = 'root';
       updated.runtime = 'host';
-      updated.service_ports = updated.service_ports
-        ? await withMailPorts(project, updated.service_ports)
-        : await allocateServicePorts(project);
     }
+
+    if (updated.runtime === 'host')
+      updated.service_ports = await ensureServicePorts(project, updated);
 
     if (JSON.stringify(updated) !== JSON.stringify(data)) writeMetadata(project.root, updated);
 

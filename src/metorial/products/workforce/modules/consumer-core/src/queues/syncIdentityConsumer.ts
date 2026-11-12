@@ -80,12 +80,18 @@ export let reconcileConsumerActorQueueProcessor = reconcileConsumerActorQueue.pr
       return;
     }
 
-    await db.consumerProfile.update({
-      where: { oid: profile.oid },
+    let renamed = await db.consumerProfile.updateMany({
+      where: { oid: profile.oid, status: 'active' },
       data: {
         name: instanceConsumer.name
       }
     });
+
+    if (renamed.count == 0) {
+      await archiveDeletedConsumerProfileActorsQueue.add({ consumerProfileId: profile.id });
+      await syncInstanceConsumerActorsQueue.add({ instanceConsumerId: instanceConsumer.id });
+      return;
+    }
 
     await consumerActorService.reconcileConsumerProfileActors({
       instance: profile.instance,

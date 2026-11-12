@@ -1,4 +1,6 @@
 import { v } from '@lowerdeck/validation';
+import { env } from '../env';
+import { assertManifestSyncAllowed } from '../lib/manifestSyncPolicy';
 import { scmRepositoryPushPresenter, scmRepositorySyncPresenter } from '../presenters';
 import { repositoryPresenter } from '../presenters/repository';
 import {
@@ -14,6 +16,21 @@ import {
 } from '../services';
 import { app } from './_app';
 import { tenantApp } from './tenant';
+
+let MANIFEST_KEY_PREFIX = 'skill-sync/manifests/';
+let MAX_MANIFEST_ENTRIES = 250_000;
+let DEFAULT_DELETION_GUARD = { maxUnexpectedDeletes: 250, maxUnexpectedDeleteRatio: 0.1 };
+
+let syncKey = v.string({ modifiers: [v.minLength(1), v.maxLength(200)] });
+let sha256Hex = v.string({
+  modifiers: [v.regex(/^[0-9a-f]{64}$/, { message: 'Must be 64 lowercase hex characters' })]
+});
+let manifestKey = v.string({
+  modifiers: [
+    v.startsWith(MANIFEST_KEY_PREFIX, { message: `Must start with ${MANIFEST_KEY_PREFIX}` }),
+    v.maxLength(1024)
+  ]
+});
 
 export let scmRepositoryApp = tenantApp.use(async ctx => {
   let scmRepositoryId = ctx.body.scmRepositoryId;
@@ -203,9 +220,7 @@ export let scmRepositoryController = app.controller({
         mergeBeforeChecksPass: v.optional(v.boolean()),
         deletePaths: v.optional(v.array(v.string())),
         explicitDeletesOnly: v.optional(v.boolean()),
-        gitLfsThresholdBytes: v.optional(
-          v.number({ modifiers: [v.positive(), v.integer()] })
-        )
+        gitLfsThresholdBytes: v.optional(v.number({ modifiers: [v.positive(), v.integer()] }))
       })
     )
     .do(async ctx => {
@@ -217,7 +232,7 @@ export let scmRepositoryController = app.controller({
       let sync = await scmRepositorySyncService.createScmRepositorySync({
         tenant: ctx.tenant,
         repo: ctx.scmRepository,
-        codeBucket,
+        source: { type: 'code_bucket', codeBucket },
         repositoryAccessMode: ctx.input.repositoryAccessMode,
         requestKey: ctx.input.requestKey,
         branchName: ctx.input.branchName,
@@ -230,6 +245,83 @@ export let scmRepositoryController = app.controller({
         deletePaths: ctx.input.deletePaths,
         explicitDeletesOnly: ctx.input.explicitDeletesOnly,
         gitLfsThresholdBytes: ctx.input.gitLfsThresholdBytes
+      });
+
+      return scmRepositorySyncPresenter(sync);
+    }),
+
+  syncManifest: scmRepositoryApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        scmRepositoryId: v.string(),
+        requestKey: syncKey,
+        sourceKey: syncKey,
+        manifest: v.object({
+          bucket: v.string({ modifiers: [v.minLength(1)] }),
+          key: manifestKey,
+          sha256: sha256Hex,
+          entryCount: v.number({
+            modifiers: [v.integer(), v.minValue(0), v.maxValue(MAX_MANIFEST_ENTRIES)]
+          })
+        }),
+        previousManifest: v.optional(
+          v.object({
+            bucket: v.string({ modifiers: [v.minLength(1)] }),
+            key: manifestKey,
+            sha256: sha256Hex
+          })
+        ),
+        deletionGuard: v.optional(
+          v.object({
+            maxUnexpectedDeletes: v.number({
+              modifiers: [v.integer(), v.minValue(0), v.maxValue(100_000)]
+            }),
+            maxUnexpectedDeleteRatio: v.number({ modifiers: [v.minValue(0), v.maxValue(1)] })
+          })
+        ),
+        allowMassDelete: v.optional(v.boolean()),
+        repositoryAccessMode: v.enumOf(['pull_request', 'default_branch']),
+        branchName: v.optional(v.string()),
+        prName: v.optional(v.string()),
+        prDescription: v.optional(v.string()),
+        commitMessage: v.optional(v.string()),
+        enableAutoMerge: v.optional(v.boolean()),
+        forceMergeOrPush: v.optional(v.boolean()),
+        mergeBeforeChecksPass: v.optional(v.boolean()),
+        gitLfsThresholdBytes: v.optional(v.number({ modifiers: [v.positive(), v.integer()] }))
+      })
+    )
+    .do(async ctx => {
+      assertManifestSyncAllowed(
+        env.manifestSync,
+        [ctx.input.manifest.bucket, ctx.input.previousManifest?.bucket].filter(
+          (bucket): bucket is string => !!bucket
+        )
+      );
+
+      let sync = await scmRepositorySyncService.createScmRepositorySync({
+        tenant: ctx.tenant,
+        repo: ctx.scmRepository,
+        source: {
+          type: 'manifest',
+          sourceKey: ctx.input.sourceKey,
+          manifest: ctx.input.manifest,
+          previousManifest: ctx.input.previousManifest
+        },
+        repositoryAccessMode: ctx.input.repositoryAccessMode,
+        requestKey: ctx.input.requestKey,
+        branchName: ctx.input.branchName,
+        prName: ctx.input.prName,
+        prDescription: ctx.input.prDescription,
+        commitMessage: ctx.input.commitMessage,
+        enableAutoMerge: ctx.input.enableAutoMerge,
+        forceMergeOrPush: ctx.input.forceMergeOrPush,
+        mergeBeforeChecksPass: ctx.input.mergeBeforeChecksPass,
+        gitLfsThresholdBytes: ctx.input.gitLfsThresholdBytes,
+        deletionGuard: ctx.input.deletionGuard ?? DEFAULT_DELETION_GUARD,
+        allowMassDelete: ctx.input.allowMassDelete
       });
 
       return scmRepositorySyncPresenter(sync);
@@ -248,9 +340,7 @@ export let scmRepositoryController = app.controller({
         enableAutoMerge: v.optional(v.boolean()),
         forceMergeOrPush: v.optional(v.boolean()),
         mergeBeforeChecksPass: v.optional(v.boolean()),
-        gitLfsThresholdBytes: v.optional(
-          v.number({ modifiers: [v.positive(), v.integer()] })
-        )
+        gitLfsThresholdBytes: v.optional(v.number({ modifiers: [v.positive(), v.integer()] }))
       })
     )
     .do(async ctx => {
@@ -262,7 +352,7 @@ export let scmRepositoryController = app.controller({
       let sync = await scmRepositorySyncService.createScmRepositorySync({
         tenant: ctx.tenant,
         repo: ctx.scmRepository,
-        codeBucket,
+        source: { type: 'code_bucket', codeBucket },
         repositoryAccessMode: 'pull_request',
         branchName: ctx.input.branchName,
         prName: ctx.input.prName,
