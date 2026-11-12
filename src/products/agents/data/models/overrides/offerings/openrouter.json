@@ -13,6 +13,27 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "amazon/titan-embed-image-v1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Amazon Titan Multimodal Embeddings G1, the Bedrock model embedding text, images, or both into a shared space (per Amazon/OpenRouter listings, 1,024-dim vectors, 128-token text limit); the index's amazon line has only Nova models, no Titan embedding entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "amazon/titan-embed-text-v1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Amazon Titan Embeddings G1 - Text, the first-generation Bedrock text embedding model (8K context, 1,536-dim vectors, per Amazon/OpenRouter listings); the index's amazon line has only Nova models, no Titan embedding entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "amazon/titan-embed-text-v2": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Amazon Titan Text Embeddings V2, the second-generation Bedrock embedding model tuned for RAG (8K context, 1,024-dim vectors, per Amazon/Vercel listings); the index's amazon line has only Nova models, no Titan embedding entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "baai/bge-large-en-v1.5": {
     "decision": "link",
     "model": "baai/bge-large-en-v1.5",
@@ -31,6 +52,13 @@
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "Baidu's ERNIE-Light-DT-1.0 international endpoint (OpenRouter canonicalSlug snapshot 2026-11-10), built on open-source GLM models with Baidu Sparse Attention per the listing; the index has no entry for it.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "bytedance/ui-tars-1.5-7b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ByteDance Seed's UI-TARS-1.5-7B, the multimodal GUI-agent vision-language model (Hugging Face ByteDance-Seed/UI-TARS-1.5-7B, created 2025-04-16, per OpenRouter's listing); the index's bytedance line has no UI-TARS entry.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -139,6 +167,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "meta/muse-ember": {
+    "decision": "link",
+    "model": "meta/muse-ember-1.0",
+    "reason": "OpenRouter lists Meta's Muse Ember (canonical slug meta/muse-ember-20261109), Meta's smallest model for agent execution released 2026-11-09; matches the index entry meta/muse-ember-1.0 exactly (1M context, 0.10/0.50 list price).",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "meta/muse-spark-1.2-contributor": {
     "decision": "link",
     "model": "meta/muse-spark-1.2",
@@ -153,6 +188,41 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "meta/muse-wonder": {
+    "decision": "link",
+    "model": "meta/muse-wonder-1.0",
+    "reason": "OpenRouter lists Meta's Muse Wonder (canonical slug meta/muse-wonder-20261012), the frontier agentic model released 2026-10-12; matches meta/muse-wonder-1.0 (1M context, 4/20 list price). Muse Wonder Full is a separate index entry, meta/muse-wonder-full.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "microsoft/phi-4": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Microsoft's Phi-4, the 14B small language model for complex reasoning (Hugging Face microsoft/phi-4, created 2024-12-11; OpenRouter lists the Phi-4 card); the index has only phi-4-mini and phi-4-multimodal-instruct, no Phi-4 entry, so defer rather than link the mini.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "mistralai/voxtral-mini-tts-3-0": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Mistral's Voxtral TTS 3 (voxtral-mini-tts-3-0), the text-to-speech model of the Voxtral 3 speech family released 2026-10-20 (per Mistral/OpenRouter listings); the index's voxtral-mini-tts-2603 is the earlier March generation, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "moondream/moondream3-preview": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Moondream's Moondream 3 Preview, the 9B-total/2B-active MoE vision-language model (Hugging Face moondream/moondream3-preview, per Moondream's blog); a real first-party model the index has no Moondream entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "moondream/moondream3.1-9b-a2b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Moondream's Moondream 3.1 9B A2B, successor to Moondream 3 Preview (Hugging Face moondream/moondream3.1-9B-A2B, 9B/2B MoE vision-language model, 32K context); a real first-party model the index has no Moondream entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "moonshotai/kimi-k3": {
     "decision": "link",
     "model": "moonshot/kimi-k3",
@@ -164,6 +234,40 @@
     "decision": "link",
     "model": "moonshot/kimi-k3.1-pro",
     "reason": "OpenRouter lists Moonshot's Kimi K3.1 Pro (moonshotai/Kimi-K3.1-Pro on Hugging Face, post-trained successor to K3, released 2026-10-23), matching moonshot/kimi-k3.1-pro; its 0.2375/8.4085 rate is a discount off the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nex-agi/nex-n2.5-mini": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Nex AGI's Nex-N2.5-Mini, the entry tier of the Nex-N2.5 family released 2026-09-08 (Hugging Face nex-agi/Nex-N2.5-mini, 35B MoE with ~3B active, 262K context); the index has only nex-agi/nex-n2-pro, so defer this newer generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nex-agi/nex-n2.5-pro": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Nex AGI's Nex-N2.5-Pro, released 2026-09-08 (Hugging Face nex-agi/Nex-N2.5-Pro), a post-trained successor generation to Nex-N2-Pro; the index has only nex-agi/nex-n2-pro, so defer rather than link the older model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nex-agi/nex-n2.6": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Nex AGI's Nex-N2.6, the agentic model post-trained on GLM-5.3-Flash (~321B, released 2026-11-10 per the Hugging Face card and OpenRouter's listing); the index has no Nex-N2.5/N2.6 entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nvidia/nemotron-3.5-rerank-8b:free": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "NVIDIA's Nemotron 3.5 Rerank 8B, the rerank companion of the Nemotron 3.5 family released Oct 2026 (free tier on OpenRouter); the index has the Nemotron 3.5 embed models but no rerank entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nvidia/switchyard": {
+    "decision": "router",
+    "reason": "NVIDIA's Switchyard is an open-source model-routing system that switches between multiple models to optimize the cost of requests (per OpenRouter's own listing and NVIDIA's docs); it picks a model per request, not one fixed model.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -277,6 +381,48 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "particle-ai/particle-1": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "OpenRouter lists Particle-1 (canonical slug particle-ai/particle-1-20261027), Particle AI's rank-64 LoRA post-train of DeepSeek V4.1 Flash for token-efficient agentic coding; a fine-tune is not deepseek/deepseek-v4.1-flash itself and the index has no Particle AI entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "perplexity/sonar-pro-search": {
+    "decision": "link",
+    "model": "perplexity/sonar-pro",
+    "reason": "OpenRouter's exclusive Sonar Pro Search SKU serves Sonar Pro in its new Pro Search mode — the listings describe it as Sonar Pro's search mode with Sonar Pro's exact $3/$15 pricing and 200K context; a search-mode serving is still perplexity/sonar-pro.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "prism-ml/ternary-bonsai-2-27b": {
+    "decision": "link",
+    "model": "alibaba/qwen3.8-27b",
+    "reason": "PrismML's Ternary Bonsai 2 27B (Hugging Face prism-ml/Ternary-Bonsai-2-27B-gguf) is a ternary quantization of Qwen3.8-27B per its metadata; a quantized serving is still alibaba/qwen3.8-27b, at OpenRouter's 0.075/0.5 rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen-2.5-72b-instruct": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenRouter lists Qwen2.5 72B Instruct (Hugging Face Qwen/Qwen2.5-72B-Instruct, created 2024-09-16); the index's Qwen2.5 line has the 7B instruct and Coder models and the 72B VL variant, but no 72B instruct entry, so defer rather than link a different model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3-vl-30b-a3b-thinking": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenRouter's listing maps to Qwen/Qwen3-VL-30B-A3B-Thinking (Hugging Face, Sep 2025), the thinking variant of the 30B-A3B vision-language MoE; the index has the 30B-A3B base and Instruct but no Thinking entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3-vl-8b-instruct": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenRouter's listing maps to Qwen/Qwen3-VL-8B-Instruct (Hugging Face, Oct 2025), the dense 8B vision-language model; the index's Qwen3-VL line has no 8B entry, so defer rather than link qwen3-8b.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "recursive/flint-v1.0:free": {
     "decision": "link",
     "model": "recursive/flint",
@@ -284,10 +430,38 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "ricursiveai/ripple-65b-preview": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenRouter lists Ripple 65B Preview (canonical slug ricursiveai/ripple-65b-preview-20261104), Ricursive Intelligence's dense 65B open-weight agentic-coding model released 2026-11-04; the index has no Ricursive entry yet.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "scaledown/extract": {
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "OpenRouter's listing: ScaleDown's Extract, a description-driven entity-extraction model (canonicalSlug snapshot 2026-09-28); a real model the index has no ScaleDown entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "scaledown/summarize": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ScaleDown's Summarize, a task-specific abstractive summarization model over 1M context (per OpenRouter/ScaleDown listings, snapshot 2026-09-28); a real new model the index has no ScaleDown entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "sourceful/riverflow-v2.6-pro": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Sourceful's Riverflow 2.6 Pro, the flagship of the Riverflow 2.6 image-generation line listed late Oct 2026 (per OpenRouter listings); the index's Riverflow line stops at 2.5, so defer rather than link the wrong generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "speechify/simba-3.5": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Speechify's Simba 3.5, its in-house text-to-speech model released 2026-10-21 covering 48 languages in one model (per Speechify's announcement); a speech model with no catalog match — the index has no Speechify entry.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -302,6 +476,27 @@
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "OpenRouter's listing: Tencent's Hunyuan-A13B, a 13B-active/80B-total open-weight MoE (tencent/Hunyuan-A13B-Instruct on Hugging Face); a real model the index has no Hunyuan A13B entry for, so defer rather than link another Hunyuan.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "unbiased/pareto-26.10": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenRouter lists Pareto 26.10 with canonical slug unbiased/pareto-26.10-20261015 — the GA release declared out of preview on 2026-10-15 with a 1M context and $0.80/$3.20 pricing; a newer composite checkpoint than the index's unbiased/pareto (2026-09-17, 262K), so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "unbiased/pareto-26.10-preview": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenRouter lists Pareto 26.10 Preview with canonical slug unbiased/pareto-26.10-preview-20260929 (shipped 2026-10-01 per Unbiased's blog); the index has only the Sep 17, 2026 Pareto entry and no 26.10 preview checkpoint, so defer rather than link the older release.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "unbiased/pareto-26.9": {
+    "decision": "link",
+    "model": "unbiased/pareto",
+    "reason": "OpenRouter's listing for Pareto 26.9 carries canonical slug unbiased/pareto-26.9-20260917, matching the index's unbiased/pareto released 2026-09-17 with 262,144-token context; the 262K window and $2.50/$7.50 list price match the September release, so link.",
     "by": "agent",
     "at": "2026-11-12"
   },

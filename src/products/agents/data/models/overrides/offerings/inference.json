@@ -5,5 +5,19 @@
     "reason": "Inference.net lists a generic 'Google Gemma 3' without a size; the open family spans 1B/4B/12B/27B and nothing in the listing identifies which checkpoint is served, so it cannot be pinned.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "osmosis/osmosis-structure-0.6b": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Osmosis AI's Osmosis-Structure-0.6B is a specialized structured-output SLM built on Qwen3-0.6B (per its Hugging Face card and Featherless); a fine-tune of the Qwen base is not a catalog model, and the index has no Osmosis entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen-2.5-7b-vision-instruct": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Inference.net's 'Qwen 2.5 7B Vision Instruct' is the 7B member of Alibaba's Qwen2.5-VL vision-language line (listings point at Qwen2.5-VL-7B-Instruct); the index has only the 72B VL instruct entry and no 7B VL entry, so defer rather than link the text-only 7B.",
+    "by": "agent",
+    "at": "2026-11-12"
   }
 }

@@ -26,5 +26,12 @@
     "reason": "Mistral's Ministral-3-3B-Reasoning-2512, the reasoning post-train of the Ministral 3 3B family (per its Hugging Face card) — a separate checkpoint from the Instruct variant; the index has no Reasoning-2512 entry, so defer rather than link the instruct model.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "qwen/qwenLM/models/Qwen3-30B-A3B-Thinking-2507": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's Qwen3-30B-A3B-Thinking-2507 (Hugging Face Qwen/Qwen3-30B-A3B-Thinking-2507, Jul 2025), the thinking-only checkpoint of the 30B-A3B MoE; the index has the Instruct-2507 variant but no Thinking-2507 entry, so defer rather than link the instruct checkpoint.",
+    "by": "agent",
+    "at": "2026-11-12"
   }
 }

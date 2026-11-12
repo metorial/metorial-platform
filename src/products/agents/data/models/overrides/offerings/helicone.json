@@ -82,5 +82,26 @@
     "reason": "The offering is Mistral Nemo, the 12B model built with NVIDIA (2024). Helicone's listed 20/40 rate is far above the model's 0.1 median and looks like bad gateway price data, but the model served is Mistral Nemo itself.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "o1-mini": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenAI's o1-mini, the cost-efficient reasoning model released 2024-09-12 (128K context, 1.10/4.40 per Helicone's listing and OpenAI's price page); the index has o1, o1-pro, o3-mini and o4-mini but no o1-mini entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen2.5-coder-7b-fast": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "A fast serving of Alibaba's Qwen2.5-Coder-7B code model (part of the Qwen2.5-Coder series per Qwen's blog); the index's Qwen2.5-Coder line has only the 0.5B and 32B entries, so defer rather than link a different size.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "sonar-reasoning": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Perplexity's Sonar Reasoning, the chain-of-thought reasoning search model released Jan 2025 at $1/$5 with a 127K context (per Perplexity/CloudPrice listings); the index has sonar-reasoning-pro but no sonar-reasoning entry, so defer rather than link the Pro model.",
+    "by": "agent",
+    "at": "2026-11-12"
   }
 }

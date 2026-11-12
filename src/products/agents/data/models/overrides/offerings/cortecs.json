@@ -5,5 +5,19 @@
     "reason": "Mistral 7B Instruct v0.2 (Dec 2023, 32K context), the earlier checkpoint of Mistral's 7B Instruct line; the index has only v0.3, so defer rather than link the wrong version.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "qwen3guard-gen-0.6b": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Alibaba's Qwen3Guard-Gen-0.6B, a 600M generative safety-moderation classifier built on Qwen3-0.6B giving safe/controversial/unsafe verdicts (per Qwen's release and OpenModelMap); a moderation model the index has no Qwen3Guard entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen3guard-gen-8b": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Alibaba's Qwen3Guard-Gen-8B, an 8B generative safety-moderation model fine-tuned from Qwen3-8B for tri-class safety classification (per its Hugging Face card and vLLM recipes); a moderation model the index has no Qwen3Guard entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
   }
 }

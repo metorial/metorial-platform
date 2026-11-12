@@ -62,10 +62,38 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "muse-wonder": {
+    "decision": "link",
+    "model": "meta/muse-wonder-1.0",
+    "reason": "Venice's Muse Wonder listing is Meta's frontier agentic model released 2026-10-12 (not Wonder Full); matches meta/muse-wonder-1.0. Venice's 5/25 rate is a private-inference markup over the model's 4 median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "olafangensan-glm-4.7-flash-heretic": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Olafangensan's GLM-4.7-Flash-Heretic is an abliterated build of Zhipu's GLM-4.7-Flash with the refusal direction removed from the weights (per the vendor listings); a weight-edited derivative is not zhipu/glm-4.7-flash itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "openai-gpt-61-sol-ultrafast": {
     "decision": "link",
     "model": "openai/gpt-6.1-sol",
     "reason": "Venice's own listing states GPT-6.1 Sol Ultrafast is OpenAI's GPT-6.1 Sol model; Ultrafast is a service tier (about 6x standard pricing) of the same checkpoint, so it is still openai/gpt-6.1-sol.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "venice-uncensored-1-2": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Venice Uncensored 1.2, the new 24B vision-capable checkpoint trained on Targon in collaboration with Dolphin AI (per Venice's own model page, Apache-2.0); distinct from the original Dolphin Mistral 24B Venice Edition and absent from the index, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "venice-uncensored-role-play": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Venice Role Play Uncensored, Venice's 24B roleplay model fine-tuned from dphnAI's 24B-3.2-RP-K2-final (per Venice's own page and dphn's Hugging Face weights); a distinct open-weights model the index has no entry for, so defer.",
     "by": "agent",
     "at": "2026-11-12"
   }

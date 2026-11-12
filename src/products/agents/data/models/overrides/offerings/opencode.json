@@ -82,5 +82,40 @@
     "reason": "Muse Spark 1.3 Contributor is the same Muse Spark 1.3 weights under Meta's discounted contributor-mode pricing (0.1/0.2, in exchange for Meta training on request content); still meta/muse-spark-1.3.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "pulse-alpha-free": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "OpenCode's Pulse Alpha Free is a stealth model served under a codename, free for a limited time; no lab has claimed it since it appeared on 2026-11-02 (per ArtificialWatch coverage), so like Big Pickle/Cat Jam there is no model identity to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "ring-2.6-1t-free": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenCode's free tier of inclusionAI's Ring-2.6-1T, the 1T-parameter/63B-active thinking model released May 2026 (also offered free via OpenRouter); the index's inclusionai line has no Ring entry, so defer the free serving with the model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "space-bunny": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Space Bunny Alpha, a branded but anonymous multimodal reasoning preview launched on OpenCode 2026-09-23 (1M context; tokenizer tests reportedly point to MiniMax but no lab has claimed it); a real new model with no index entry, so defer until it is identified.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "space-bunny-free": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenCode's free tier of Space Bunny Alpha, the anonymous multimodal reasoning preview launched 2026-09-23; the maker is unconfirmed and the index has no entry, so defer the free serving with it.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "x-preview-f-free": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "OpenCode's Ox Alpha Free is a stealth model served under a codename, free since Aug 2026 with an undisclosed maker, architecture and benchmarks (per LLM Pricing and community coverage); like Big Pickle/Cat Jam Free, there is no model identity to link.",
+    "by": "agent",
+    "at": "2026-11-12"
   }
 }

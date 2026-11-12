@@ -1,4 +1,11 @@
 {
+  "Doctor-Shotgun/MS3.2-24B-Magnum-Diamond": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Doctor-Shotgun's MS3.2-24B-Magnum-Diamond is a roleplay fine-tune of Mistral-Small-3.2-24B-Instruct-2506 with an rsLoRA adapter (per the Hugging Face card and Featherless); a fine-tune is not mistral/mistral-small-3.2-24b-instruct itself and the index has no Magnum Diamond entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "EVA-UNIT-01/EVA-LLaMA-3.33-70B-v0.0": {
     "decision": "exclude",
     "category": "fine-tune",
@@ -216,10 +223,66 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "LatitudeGames/Wayfarer-Large-70B-Llama-3.3": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "LatitudeGames' Wayfarer-Large-70B-Llama-3.3 is a full fine-tune of meta-llama/Llama-3.3-70B-Instruct trained on text-adventure and roleplay data (per its Hugging Face card); a fine-tune is not the Llama base model and the index has no Wayfarer entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "MarinaraSpaghetti/NemoMix-Unleashed-12B": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "MarinaraSpaghetti's NemoMix-Unleashed-12B is a community merge of models built on Mistral-Nemo-Base-2407 (per Featherless and its Hugging Face card); a merge is not any single base model and the index has no NemoMix entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "NeverSleep/Lumimaid-v0.2-70B": {
     "decision": "exclude",
     "category": "fine-tune",
     "reason": "NeverSleep's Lumimaid v0.2 70B is a roleplay fine-tune of Llama 3.1 70B Instruct with a refined dataset vs v0.1 (per OpenRouter and Featherless); a fine-tune is not meta/llama-3.1-70b-instruct itself and the index has no Lumimaid entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Qwen3.5-27B-Blossom-V6.4-Derestricted": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page and llmpricing call Qwen3.5 27B Blossom V6.4 Derestricted a community creative finetune for reasoning, multimodal chat, expressive writing and roleplay; a fine-tune is not alibaba/qwen3.5-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Qwen3.5-27B-BlueStar-v3-Derestricted": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "The third-generation BlueStar finetune of Qwen3.5 27B for creative roleplay, narrative prose and multimodal workflows (per Infron/ArliAI listings); a fine-tune is not alibaba/qwen3.5-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled-Derestricted": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Jackrong's Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled transfers Claude Opus 4.6 reasoning into a Qwen3.5-27B student (per its Hugging Face card and coverage); a distill built on a model is neither alibaba/qwen3.5-27b nor any Claude model itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Qwen3.5-27B-Claude-4.6-Opus-Reasoning-Distilled-Derestricted-Lite": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "The Lite variant is a lighter-tuned community finetune of the Claude-4.6-Opus-Reasoning-Distilled build on Qwen3.5 27B (per llmpricing/NanoGPT); a fine-tune is not alibaba/qwen3.5-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Qwen3.5-27B-Queen-Derestricted": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "ArliAI's derestricted build of Qwen3.5-27B with refusal behavior modified to reduce refusals (per muapi's listing and ArliAI's Derestricted line); a weight-edited derivative is not alibaba/qwen3.5-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "ReadyArt/MS3.2-The-Omega-Directive-24B-Unslop-v2.0": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "ReadyArt's The-Omega-Directive-24B-Unslop-v2.0 is a QLoRA roleplay fine-tune of Mistral-Small-3.2-24B-Instruct-2506-Text-Only (per its Hugging Face card); a fine-tune is not mistral/mistral-small-3.2-24b-instruct itself and the index has no Omega Directive entry.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -328,10 +391,31 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "TheDrummer/Rocinante-12B-v1.1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "TheDrummer's Rocinante 12B v1.1 (BeaverAI), a 12B creative-writing and storytelling model (Hugging Face, Aug 2024); the index has other TheDrummer models but no Rocinante entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "TheDrummer/UnslopNemo-12B-v4.1": {
+    "decision": "link",
+    "model": "thedrummer/unslopnemo-12b",
+    "reason": "TheDrummer's UnslopNemo 12B v4.1 (Hugging Face repo created 2024-10-23); the index's thedrummer/unslopnemo-12b entry points to the same UnslopNemo-12B-v4.1 checkpoint, so it is the same model at NanoGPT's 0.493 flat rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "TheDrummer/artemis-31b-v1.2": {
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "TheDrummer's new (Sep 2026) Gemma 4 31B fine-tune for creative writing and roleplay; the index tracks other TheDrummer models but has no Artemis entry yet.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "VongolaChouko/Starcannon-Unleashed-12B-v1.0": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "VongolaChouko's Starcannon-Unleashed-12B-v1.0, a roleplay merge of MarinaraSpaghetti/NemoMix-Unleashed-12B and nothingiisreal/MN-12B-Starcannon-v3 (Hugging Face metadata lists both merge bases); a merge is not any single base model and the index has no entry.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -381,6 +465,13 @@
     "decision": "exclude",
     "category": "other",
     "reason": "AionLabs' own listing: Aion 3.5 Mini is the smaller sibling using the same collaborative multi-model generation process built on the GLM family. Not a single catalog model, and the index has no Aion 3.5 entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "aisingapore/qwen-sea-lion-v4-32b-it": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "AI Singapore's Qwen-SEA-LION-v4-32B-IT (Hugging Face, Oct 2025), a 32B Southeast-Asian model continued-pretrained and instruction-tuned from Qwen3-32B; the index has only the Gemma-SEA-LION v4 27B, so defer this separate base.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -539,6 +630,13 @@
     "decision": "exclude",
     "category": "other",
     "reason": "NanoGPT's 'Web Answer' fastgpt is Kagi's FastGPT, a search-engine answer service that runs queries through a full search engine and unspecified underlying LLMs; a product, not a distinct catalog model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "featherless-ai/Qwerky-72B": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Featherless' Qwerky 72B (QRWKV-72B), an open 72B RWKV6-Qwen2 hybrid-architecture chat model (Hugging Face, Mar 2025); a real chat model the index has no Qwerky entry for.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -773,6 +871,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "heabsy/qwen3.8-27b-uncensored-fast": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Heabsy's NVFP4 build with refusal removal based on huihui-ai's Huihui-Qwen3.8-27B-abliterated (per Heabsy/Modeldex listings); Hugging Face metadata lists it as a finetune of Qwen/Qwen3.8-27B, so it is not alibaba/qwen3.8-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "hermes-high": {
     "decision": "router",
     "reason": "One of NanoGPT's Hermes compatibility tiers (same 0.6/1.1 rate and 1M context as hermes-low/medium); the vendor's own pages say the hermes tiers 'currently point to GLM 5.3' and are re-pointed as models change, so it is a tier alias, not one fixed model.",
@@ -823,6 +928,13 @@
     "decision": "exclude",
     "category": "fine-tune",
     "reason": "huihui-ai's Llama-3.3-70B-Instruct-abliterated is an abliterated (refusal-removed) weight-edited derivative of meta-llama/Llama-3.3-70B-Instruct (Hugging Face metadata lists the finetune base); a weight-edited derivative is not meta/llama-3.3-70b-instruct itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "huihui-ai/Qwen2.5-32B-Instruct-abliterated": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "huihui-ai's Qwen2.5-32B-Instruct-abliterated is an uncensored abliteration of Qwen2.5-32B-Instruct (its Hugging Face card lists the finetune base); a weight-edited derivative is not the Qwen base model and the index has no Qwen2.5 32B entry.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -917,6 +1029,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "meta/muse-ember": {
+    "decision": "link",
+    "model": "meta/muse-ember-1.0",
+    "reason": "Meta's Muse Ember, the smallest Muse model for agent execution released 2026-11-09 (per Meta's announcement and coverage) at 0.10/0.50 with 1M context; matches the index entry meta/muse-ember-1.0, released the same day.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "meta/muse-spark-1.2-contributor": {
     "decision": "link",
     "model": "meta/muse-spark-1.2",
@@ -928,6 +1047,13 @@
     "decision": "link",
     "model": "meta/muse-spark-1.3",
     "reason": "Muse Spark 1.3 Contributor is the same Muse Spark 1.3 weights under Meta's discounted contributor-mode pricing (0.1/0.2, in exchange for Meta training on request content); still meta/muse-spark-1.3.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meta/muse-wonder": {
+    "decision": "link",
+    "model": "meta/muse-wonder-1.0",
+    "reason": "Meta's Muse Wonder (not Wonder Full), the frontier agentic model released 2026-10-12, 1M context at 4/20 per the listing; matches meta/muse-wonder-1.0 (Muse Wonder Full is a separate index entry, meta/muse-wonder-full).",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -966,6 +1092,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "mlabonne/NeuralDaredevil-8B-abliterated": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "mlabonne's NeuralDaredevil-8B-abliterated is a DPO fine-tune of Daredevil-8B-abliterated on orpo-dpo-mix-40k (per its Hugging Face card), itself a Llama 3 8B derivative; a fine-tune is not the Llama base and the index has no NeuralDaredevil entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "moondream/moondream3-preview": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -973,10 +1106,45 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "moondream/moondream3.1-9b-a2b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Moondream's Moondream 3.1 9B A2B, successor to Moondream 3 Preview (Hugging Face moondream/moondream3.1-9B-A2B, 9B/2B MoE vision-language model, 32K context); a real first-party model the index has no Moondream entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "moonshotai/kimi-k3": {
     "decision": "link",
     "model": "moonshot/kimi-k3",
     "reason": "Kimi K3 (moonshotai/Kimi-K3 on Hugging Face, 2.8T MoE, 1M context, launched 2026-07-16) matches moonshot/kimi-k3; NanoGPT's 0.45/9.6 price is a discount off the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nano-gpt-help": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "NanoGPT's own help assistant, which answers questions about models, the API and pricing on the vendor's support page; a support chatbot run by the vendor, not a distinct model the catalog can link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nex-agi/nex-n2.5-mini": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Nex AGI's Nex-N2.5-Mini, the entry tier of the Nex-N2.5 family released 2026-09-08 (Hugging Face nex-agi/Nex-N2.5-mini, 35B MoE with ~3B active, 262K context); the index has only nex-agi/nex-n2-pro, so defer this newer generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nex-agi/nex-n2.5-pro": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Nex AGI's Nex-N2.5-Pro, released 2026-09-08 (Hugging Face nex-agi/Nex-N2.5-Pro), a post-trained successor generation to Nex-N2-Pro; the index has only nex-agi/nex-n2-pro, so defer rather than link the older model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nex-agi/nex-n2.6": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Nex AGI's Nex-N2.6, the agentic model post-trained on GLM-5.3-Flash (~321B, released 2026-11-10 per the Hugging Face card); the index has no Nex-N2.5/N2.6 entry, so defer.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -1022,6 +1190,90 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "orca/orcacyber-flash-1.0": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "OrcaCyber Flash 1.0 is an abliterated build of DeepSeek's V4.1 Flash 1017 open-weight checkpoint with refusal behavior removed in the weights (per OrcaRouter's release and FlashLabs coverage); a weight-edited derivative is not deepseek/deepseek-v4.1-flash-1017 itself and the index has no OrcaCyber entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "orca/orcacyber-flash-1.0:thinking": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "The :thinking suffix is thinking-mode serving of OrcaCyber Flash 1.0, an abliterated build of DeepSeek V4.1 Flash 1017 with refusal behavior removed in the weights; a thinking mode of a weight-edited derivative is still not deepseek/deepseek-v4.1-flash-1017 itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "orca/orcacyber-glm-5.3-flash": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "OrcaCyber GLM 5.3 Flash is Z.ai's GLM-5.3-Flash checkpoint with refusal behavior relaxed via abliteration for security research (per FlashLabs/PR Times coverage of the Nov 2026 release); a weight-edited derivative is not zhipu/glm-5.3-flash itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "orca/orcacyber-k3.1-pro": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "OrcaCyber K3.1 Pro is Moonshot's Kimi K3.1 Pro with refusal behavior removed (OrcaRouter's page: based on Moonshot AI Kimi K3.1 Pro with refusal behavior removed); a weight-edited derivative is not moonshot/kimi-k3.1-pro itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "orca/orcacyber-mimo-flash": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "OrcaCyber MiMo V2.6 Flash is Xiaomi's MiMo V2.6 Flash abliterated by OrcaRouter to remove the refusal direction without retraining (per FlashLabs/Newswire coverage); a weight-edited derivative is not xiaomi/mimo-v2.6-flash itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "orca/orcacyber-minimax-m3.1-flash": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "OrcaCyber MiniMax M3.1 Flash is an abliterated/uncensored variant of MiniMax M3.1 Flash (OrcaRouter's page and Modeldex describe an abliterated variant built for security research); a weight-edited derivative is not minimax/minimax-m3.1-flash itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "orca/orcacyber-qwen3.8-flash-next": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "OrcaCyber Qwen3.8 Flash Next is Alibaba's Qwen3.8 Flash Next with the refusal response direction removed (per Newswire coverage of the Oct 2026 release); a weight-edited derivative is not alibaba/qwen3.8-flash-next itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "orca/orcacyber-zero-1.5": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OrcaRouter's OrcaCyber Zero 1.5, its post-trained frontier cybersecurity model and successor to Zero 1.0 (released Oct 2026, 1M context, hosted API only, per MarkTechPost and coverage); a real first-party model the index has no OrcaCyber entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "ornith-ai/ornith-1.5-122b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Ornith AI's Ornith-1.5-122B, the 122B open-weight MoE coding/agent model (Hugging Face ornith-ai/Ornith-1.5-122B, MIT, created 2026-10-16); the index's Ornith line has the 1.0 sizes and the 1.5 35B A3B but no 122B entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "pamanseau/OpenReasoning-Nemotron-32B": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NVIDIA's OpenReasoning-Nemotron-32B is a derivative of Qwen2.5-32B-Instruct fine-tuned on the OpenReasoning dataset (per its Hugging Face card); a fine-tune is not the Qwen base model and the index has no OpenReasoning entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "particle-ai/particle-1": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Particle AI's Particle-1 is a rank-64 LoRA post-train of DeepSeek V4.1 Flash (~1.25% of parameters) for token-efficient agentic coding, released 2026-10-28 (per ARMES and launch coverage); a fine-tune of DeepSeek V4.1 Flash is not that model itself and the index has no Particle AI entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "pokee-isaac": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Pokee AI's Pokee-Isaac 28B, the proprietary 28B agentic model with a 10M-token context window released Aug 2026 (per coverage); a real first-party model the index has no Pokee entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "pqhaz/DeepSeek-V4.1-Flash-1017-heretic": {
     "decision": "exclude",
     "category": "fine-tune",
@@ -1033,6 +1285,153 @@
     "decision": "exclude",
     "category": "fine-tune",
     "reason": "The :thinking suffix is the thinking-mode serving of pqhaz's Heretic checkpoint, which directionally ablates refusal behaviour in the weights of DeepSeek-V4.1-Flash-1017; a weight-edited derivative is not deepseek/deepseek-v4.1-flash-1017 itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "prism-ml/ternary-bonsai-2-27b": {
+    "decision": "link",
+    "model": "alibaba/qwen3.8-27b",
+    "reason": "PrismML's Ternary Bonsai 2 27B is Qwen3.8-27B with ternary-compressed weights — its Hugging Face metadata lists it as quantized from Qwen/Qwen3.8-27B, retaining 98.2% of the base's benchmark average; a quantized serving is still alibaba/qwen3.8-27b.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen-2.5-72b-instruct": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's Qwen2.5-72B-Instruct (Hugging Face Qwen/Qwen2.5-72B-Instruct, Sep 2024); the index's Qwen2.5 line has the 7B instruct and Coder models and the 72B VL variant, but no 72B instruct entry, so defer rather than link a different model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3.5-omni-flash": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's Qwen3.5-Omni Flash, the lower-latency omni-modal model released 2026-03-30 (per LLM Reference/UpCube listings); the index's omni line has Qwen3-Omni Flash and Qwen3.8 Omni Flash but no 3.5 entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3.5-omni-plus": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's Qwen3.5-Omni Plus, the Plus-tier omni-modal model released 2026-03-30 (per CloudPrice and The Decoder's coverage); the index has no Qwen3.5-Omni entry, so defer rather than link qwen3.5-plus.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3.8-27b-antislop": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "AlexWortega's Qwen3.8-27B-antislop is a community fine-tune of Qwen3.8-27B using RL-XAR to produce less generic prose (per its Hugging Face card); a fine-tune is not alibaba/qwen3.8-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3.8-27b-cybersecurity": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "A cybersecurity/code-review fine-tune of Qwen3.8-27B, QLoRA-distilled from GLM-5.3 and Kimi K3 answers (per its Hugging Face card); a fine-tune is not alibaba/qwen3.8-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3.8-27b-darkidol": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "DarkIdol-Qwen3.8-27B is aifeifei798's roleplay fine-tune of Qwen3.8-27B for high-immersion RP and narrative simulation (per Featherless/ArliAI); a fine-tune is not alibaba/qwen3.8-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3.8-27b-fable": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page calls Qwen 3.8 27B Fable an open-weight multimodal creative finetune for storytelling and roleplay (a Fable-distilled Qwen3.8 build); a fine-tune is not alibaba/qwen3.8-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3.8-27b-fimi": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "nlpguy's Qwen3.8-27B-Fimi series is a mergekit merge built on Qwen3.5-27B / Qwen3.8-27B weights for roleplay (per its Hugging Face cards); a merge is not alibaba/qwen3.8-27b itself and the index has no Fimi entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3.8-27b-hemmingway": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Hemmingway-1 (Altworld), a 27B writing model fine-tuned from Qwen3.8-27B for everyday messages and emails, released Sep 2026 (per its Hugging Face card and coverage); a fine-tune is not alibaba/qwen3.8-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3.8-27b-kimiko": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "nlpguy's Qwen3.8-27B-Kimiko is a karcher merge of Qwen3.8-27B-Fimi-4, beyoru/Kiwen1.1-27B and Qwen/Qwen3.8-27B (per its Hugging Face card); a merge is not alibaba/qwen3.8-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3.8-27b-kiwen": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Qwen 3.8 27B Kiwen is a creative finetune served by Aoru in NVFP4 (per ToolScout and NanoGPT's own family pages, the same tier as Antislop/DarkIdol/Fimi); a fine-tune is not alibaba/qwen3.8-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3.8-27b-novelist": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "One of NanoGPT's Qwen 3.8 27B creative variants at the 0.10/0.60 finetune price tier shared by Antislop, DarkIdol, Fimi and the other Aoru-served fine-tunes (per Jahanzaib/NanoGPT listings); a creative fine-tune is not alibaba/qwen3.8-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3.8-27b-queen": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "aifeifei798's Qwen3.8-Queen-27B, an alignment-relaxed creative-specialized variant built on the Qwen3.8 27B architecture (per its Hugging Face card); a fine-tune is not alibaba/qwen3.8-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3.8-27b-swift": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Swift-Qwen3.8-27B (ukisai/cyankiwi) fine-tunes Qwen3.8-27B to penalize overthinking tokens and adds a transfer component from ThinkingCap-Qwen3.6-27B (per its Hugging Face card); a fine-tune is not alibaba/qwen3.8-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3.8-27b-synthia": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page calls Qwen 3.8 27B Synthia a text-only roleplay finetune served by Aoru in NVFP4; a fine-tune is not alibaba/qwen3.8-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3.8-27b-uncensored": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Qwen 3.8 27B Uncensored is huihui-ai's abliteration of Qwen3.8-27B with the refusal direction removed in layers 18-51 (per Heabsy/Wiro listings); a weight-edited derivative is not alibaba/qwen3.8-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3.8-27b-uncensored:thinking": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "The :thinking suffix is thinking-mode serving of huihui-ai's abliterated Qwen3.8-27B (per NanoGPT's own page); a thinking mode of a weight-edited derivative is still not alibaba/qwen3.8-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "ricursiveai/ripple-65b-preview": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Ricursive Intelligence's Ripple-65B Preview, a dense 65B open-weight reasoning and agentic-coding model released 2026-11-04 (per its Hugging Face card and coverage); the index has no Ricursive entry yet.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "shisa-ai/shisa-v2-llama3.3-70b": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Shisa.AI's Shisa V2 Llama 3.3 70B, a bilingual Japanese-English chat model post-trained from Meta's Llama-3.3-70B-Instruct (Hugging Face metadata lists the finetune base); a fine-tune is not meta/llama-3.3-70b-instruct itself and the index has no Shisa entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "shisa-ai/shisa-v2.1-llama3.3-70b": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Shisa.AI's Shisa-v2.1-llama3.3-70b, a bilingual Japanese-English chat model fine-tuned from Meta's Llama-3.3-70B-Instruct (per its Hugging Face card); a fine-tune is not the Llama base model and the index has no Shisa entry.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -1050,6 +1449,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "soob3123/Veiled-Calla-12B": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Hugging Face metadata lists soob3123/Veiled-Calla-12B as a fine-tune of google/gemma-3-12b-it (an immersive-roleplay model, Apr 2025); a fine-tune is not the Gemma base model and the index has no Veiled Calla entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "soob3123/amoral-gemma3-27B-v2": {
     "decision": "exclude",
     "category": "fine-tune",
@@ -1064,10 +1470,52 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "synth-2.5-flash": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "LucidityAI's Synth 2.5 Flash Preview, the low-cost role-play and storytelling tier of the Synth 2.5 family (per NanoGPT's listing and the LucidityAI Hugging Face collection); a real new model the index has no LucidityAI entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "synth-2.5-pro": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "LucidityAI's Synth 2.5 Pro Preview, a 26B model built on the Gemma 4 26B A4B architecture and fine-tuned for creative generation (per its Hugging Face card); a real new model the index has no LucidityAI entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "unbiased/pareto-26.10": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Unbiased AI's Pareto 26.10, the stable GA Pareto release declared out of preview on 2026-10-15 with a 1M context (per Unbiased's blog); a newer composite release than the index's unbiased/pareto (2026-09-17, 262K context), so defer until models.dev adds the 26.10 checkpoint.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "unbiased/pareto-26.9": {
+    "decision": "link",
+    "model": "unbiased/pareto",
+    "reason": "Unbiased AI's Pareto 26.9, the pinned September 2026 release of the composite Pareto line (262K context, $2.50/$7.50 list); matches the index's unbiased/pareto released 2026-09-17 with 262,144-token context, and OpenRouter's canonical slug unbiased/pareto-26.9-20260917 confirms the same release.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "universal-summarizer": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "Kagi's Universal Summarizer, a summarization service that summarizes any URL or document using Kagi's own LLMs (per Kagi's docs and NanoGPT's listing); a product, not a distinct catalog model, like NanoGPT's Kagi FastGPT listing.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "unsloth/gemma-3-12b-it": {
     "decision": "link",
     "model": "google/gemma-3-12b-it",
     "reason": "unsloth/gemma-3-12b-it is Unsloth's mirror of Google's Gemma 3 12B IT instruction-tuned checkpoint (image-text-to-text, released 2025-03-12); same model as google/gemma-3-12b-it, and NanoGPT's flat 0.272 rate is above the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "venice-uncensored": {
+    "decision": "link",
+    "model": "cognitivecomputations/dolphin-mistral-24b-venice-edition",
+    "reason": "Venice Uncensored is the Dolphin Mistral 24B Venice Edition, dphn.ai's uncensored fine-tune of Mistral-Small-24B built with Venice.ai (per LLMIndex/Naga listings); matches cognitivecomputations/dolphin-mistral-24b-venice-edition's 128K context and text-only input, at a premium price.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -1096,6 +1544,13 @@
     "decision": "link",
     "model": "xiaomi/mimo-v2.6-pro",
     "reason": "MiMo-V2.6-Pro-UltraSpeed is Xiaomi's fast-serving tier of the same 1T MiMo-V2.6-Pro checkpoint (same quality, ~10x output speed); still xiaomi/mimo-v2.6-pro at the 4.35/8.7 speed-tier price.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "xingchen-agi/xing4.0-29b-a4b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "XingChen-AGI's (China Telecom) Xing4.0-29B-A4B, an Apache-2.0 open-weight 29B-total/4B-active MoE for coding, reasoning and tool use with 256K context, released 2026-09-16 (per its Hugging Face card); a real new model the index has no entry for.",
     "by": "agent",
     "at": "2026-11-12"
   },

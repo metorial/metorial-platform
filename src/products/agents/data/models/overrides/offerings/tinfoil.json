@@ -1,0 +1,9 @@
+{
+  "nomic-embed-text": {
+    "decision": "link",
+    "model": "nomic/nomic-embed-text-v1.5",
+    "reason": "Tinfoil's listing is Nomic Embed Text v1.5, the open-weight 8192-context embedding model with Matryoshka representation learning (per the offering name and Nomic's card); matches nomic/nomic-embed-text-v1.5. Tinfoil's 0.016 rate is a private-inference markup over the 0.008 median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

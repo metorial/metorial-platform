@@ -1,8 +1,50 @@
 {
+  "PaddlePaddle/PaddleOCR-VL-1.5": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "PaddleOCR-VL-1.5, the next-generation 0.9B multi-task OCR VLM released 2026-01-29 (Hugging Face PaddlePaddle/PaddleOCR-VL-1.5); a separate generation from the index's baidu/paddleocr-vl (Oct 2025), so defer rather than link the older model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "Pro/deepseek-ai/DeepSeek-V3.1-Terminus": {
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "SiliconFlow's Pro-tier serving of DeepSeek-V3.1-Terminus (2025-09-22), a separate checkpoint update from V3.1; the index has no terminus entry, so defer rather than link to deepseek/deepseek-v3.1.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Qwen/Qwen2.5-72B-Instruct": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's Qwen2.5-72B-Instruct (Hugging Face Qwen/Qwen2.5-72B-Instruct, Sep 2024); the index's Qwen2.5 line has the 7B instruct and Coder models and the 72B VL variant, but no 72B instruct entry, so defer rather than link a different model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Qwen/Qwen3-VL-30B-A3B-Thinking": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's Qwen3-VL-30B-A3B-Thinking (Hugging Face Qwen/Qwen3-VL-30B-A3B-Thinking, Sep 2025), the thinking variant of the 30B-A3B vision-language MoE; the index has the 30B-A3B base and its Instruct variant but no Thinking entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Qwen/Qwen3-VL-32B-Instruct": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's Qwen3-VL-32B-Instruct (Hugging Face Qwen/Qwen3-VL-32B-Instruct, Oct 2025), the dense 32B vision-language model; the index's Qwen3-VL line has 30B-A3B and 235B sizes but no 32B entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Qwen/Qwen3-VL-32B-Thinking": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's Qwen3-VL-32B-Thinking (Hugging Face Qwen/Qwen3-VL-32B-Thinking, Oct 2025), the thinking variant of the dense 32B vision-language model; the index has no Qwen3-VL 32B entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Qwen/Qwen3-VL-8B-Instruct": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's Qwen3-VL-8B-Instruct (Hugging Face Qwen/Qwen3-VL-8B-Instruct, Oct 2025), the dense 8B vision-language model; the index's Qwen3-VL line has no 8B entry, so defer rather than link qwen3-8b.",
     "by": "agent",
     "at": "2026-11-12"
   },

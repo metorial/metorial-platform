@@ -40,5 +40,19 @@
     "reason": "inclusionAI's Ling 3.0 Tiny, the 7.9B-total/1.3B-active MoE small member of the Ling 3.0 family (Hugging Face inclusionAI/Ling-3.0-tiny, Aug 2026); a separate model from Ling 3.0 Flash and absent from the index, so defer.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "nemotron-lightning-3.5-30b-a3b": {
+    "decision": "link",
+    "model": "nvidia/nemotron-3.5",
+    "reason": "NVIDIA's Nemotron 3.5 Lightning 30B A3B, the 30B MoE with 3B active and 262K context (per build.nvidia.com and the Hugging Face cards); matches the index entry nvidia/nemotron-3.5 'Nemotron 3.5 Lightning 30B A3B'. Requesty's 0.05/0.2 is a discount off the model's 0.06 median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "ring-2.6-1t": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "inclusionAI's Ring-2.6-1T, the 1T-parameter (63B active) thinking model for agentic workflows with adjustable high/xhigh reasoning effort (per Ant/inclusionAI docs, Hugging Face May 2026); the index's inclusionai line has Ling flash models only, no Ring entry.",
+    "by": "agent",
+    "at": "2026-11-12"
   }
 }

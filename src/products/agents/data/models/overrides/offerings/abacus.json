@@ -1,4 +1,11 @@
 {
+  "Qwen/Qwen2.5-72B-Instruct": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's Qwen2.5-72B-Instruct (Hugging Face Qwen/Qwen2.5-72B-Instruct, Sep 2024); the index's Qwen2.5 line has the 7B instruct and Coder models and the 72B VL variant, but no 72B instruct entry, so defer rather than link a different model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "deepseek-ai/DeepSeek-V3.1-Terminus": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -24,6 +31,12 @@
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "Abacus serves Meta's Llama 3.1 405B Instruct, with 'Turbo' a serving tier of the same checkpoint (128K context, 3.5/3.5); the index has no Llama 3.1 405B entry at all (only 8B/70B and later generations), so defer rather than link the wrong Llama.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "route-llm": {
+    "decision": "router",
+    "reason": "Abacus.AI's RouteLLM: a single OpenAI-compatible endpoint where RouteLLM reads each prompt and picks the model from the 150+ model catalog that answers it best (per Abacus's FAQ); a router, not one fixed model.",
     "by": "agent",
     "at": "2026-11-12"
   }

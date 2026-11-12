@@ -1,4 +1,11 @@
 {
+  "bytedance/seed-2-0-code-preview-260328": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ByteDance's Seed 2.0 Code Preview (260328), a dated preview checkpoint of the Seed 2.0 Code line released 2026-03-28 (per ByteDance/Jahanzaib listings); the index has only the GA bytedance/seed-2.0-code, so defer rather than link the GA checkpoint.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "consensusprotocol/deepseek-v4.1-flash-uncensored": {
     "decision": "exclude",
     "category": "fine-tune",
@@ -127,6 +134,13 @@
     "decision": "link",
     "model": "meta/llama-3.3-70b-instruct",
     "reason": "LLM Gateway's Novita route for Meta's open-weight Llama 3.3 70B Instruct; the 0.135/0.4 rate is a discount off the model's 0.705 median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "seed-2-0-code-preview-260328": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "The same ByteDance Seed 2.0 Code Preview (260328) under LLM Gateway's unnamespaced id — a dated preview checkpoint released 2026-03-28; the index has only the GA bytedance/seed-2.0-code, so defer rather than link the GA checkpoint.",
     "by": "agent",
     "at": "2026-11-12"
   },
