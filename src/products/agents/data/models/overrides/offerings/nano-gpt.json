@@ -62,6 +62,125 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "Gemma-4-31B-Claude-4.6-Opus-Reasoning-Distilled": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "TeichAI's Gemma 4 31B fine-tune distilled from Claude Opus 4.6 reasoning traces, built on unsloth/gemma-4-31B-it (per its Hugging Face card); a distill built on a model is neither google/gemma-4-31b-it nor any Claude model itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-Cognitive-Unshackled": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "aifeifei798's Gemma-4-31B-Cognitive-Unshackled removes Gemma 4 31B's refusal behavior via Surgical Orthogonalization in the weights (per its Hugging Face card); a weight-edited derivative is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-Dark-Gemistry": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Nimbz's Gemma-4-Dark-Gemistry-31B is a Gemma 4-based merge integrating multiple community fine-tunes for roleplay (per Featherless/HF); a merge is not google/gemma-4-31b-it itself and the index has no Dark Gemistry entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-DarkIdol": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "aifeifei798's DarkIdol-Gemma-4-31B-it is a Gemma-4 instruction-tuned derivative engineered to bypass refusal templates (per Featherless/HF); a fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-Fabled": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page: Fabled is an ArliAI-hosted Gemma 4 31B finetune for mythic narrative writing, adventure scenes and multimodal roleplay; a fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-GarnetV2": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "ConicCat's Gemma4-GarnetV2-31B is a Gemma 4-based community fine-tune for prose, roleplay and longform writing (per Featherless/HF); a fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-Gembrain-X-Core": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Nimbz's Gemma-4-Gembrain-X-Core-31B is a Gemma 4-based community merge model for creative writing, roleplay and reasoning (per Featherless/HF); a merge is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-Gembrain-uncensored-heretic": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "llmfan46's Gemma-4-Gembrain-31B-it-uncensored-heretic decensors the community Gembrain build with the Heretic method (per its Hugging Face card); a weight-edited derivative is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-Isometry-RP": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "maldv's Gemma-4-31B-Isometry-RP is an isometric, activation-weighted merge of google/gemma-4-31B-it (per its Hugging Face card); a merge is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-K1-v5": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "ArliAI's Gemma 4 31B K1 v5, recommended by ArliAI for distillation use; a community distill/fine-tune served on the Gemma 4 31B base, not google/gemma-4-31b-it itself, and the index has no K1 entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-MeroMero": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "zerofata's G4-MeroMero-31B is a finetune of Gemma 4 31B designed for creative tasks (per its Hugging Face card); a fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-MeroMero-v2": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "zerofata's G4-MeroMero-v2-31B is a finetune of Gemma 4 31B for narrative roleplay (per its Hugging Face card); a fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-MeroMero-v2:thinking": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "The :thinking suffix is thinking-mode serving of zerofata's G4-MeroMero-v2-31B, itself a finetune of Gemma 4 31B (per its Hugging Face card); a fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-Novelist": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page: Gemma 4 31B Novelist is an ArliAI-hosted community creative finetune for storytelling and roleplay; a fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-Queen": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "aifeifei798's Gemma-4-Queen-31B-it is a community instruction-tuned Gemma-4 derivative for logical reasoning (per Featherless/HF); a fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-SDFT-Heretic-RP": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Ilya626's gemma-4-31B-it-SDFT-Heretic-RP is an RP fine-tune of the uncensored Heretic SDFT line on Gemma 4 31B (per its Hugging Face card); a fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-StyleTune": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Gryphe's Gemma-4-31B-StyleTune fine-tunes Gemma 4 31B's lm_head output projection to change writing style (per its Hugging Face card); a fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "TEE/gemma-4-26b-a4b-uncensored": {
     "decision": "exclude",
     "category": "fine-tune",
@@ -297,6 +416,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "elorian/glimpse": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Elorian's Glimpse, the startup's first visual-thinking model, released 2026-10-16 as a research preview (per Elorian's announcement and coverage); a real new first-party model the index has no entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "fastgpt": {
     "decision": "exclude",
     "category": "other",
@@ -444,6 +570,62 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "gemma-4-31b-it-darkidol": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page: DarkIdol is an ArliAI-hosted Gemma 4 31B finetune for dramatic tone, expressive dialogue and multimodal roleplay; a fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-31b-it-fabled": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page: Fabled is an ArliAI-hosted Gemma 4 31B finetune for mythic narrative writing, adventure scenes and multimodal roleplay; a fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-31b-it-garnet": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page: Garnet is an ArliAI-hosted Gemma 4 31B 'Garnet V2' finetune for polished prose, character consistency and multimodal roleplay; a fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-31b-it-gembrain": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "ArliAI's Gemma-4-31B-Gembrain, the Nimbz community Gemma 4 31B build (its decensored variant's HF card cites Nimbz/Gemma-4-Gembrain-31B as the original); a community fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-31b-it-gemsicle": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Blazed-Forge's Gemma-4-Gemsicle-31B is an experimental merge built on google/gemma-4-31b-it for creative prose (per its Hugging Face card); a merge is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-31b-it-isometry": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page: Isometry is a community Gemma 4 31B finetune (maldv's Isometry line) for expressive writing and roleplay; a fine-tune/merge is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-31b-it-novelist": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page: Novelist is a multimodal Gemma 4 31B creative finetune for long-form storytelling and roleplay; a fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-31b-it-scarlet": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Modeldex's NanoGPT listing: Scarlet is a multimodal Gemma 4 31B creative finetune for expressive dialogue, long-form storytelling and roleplay; a fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "google/gemma-4-26b-a4b-it": {
     "decision": "link",
     "model": "google/gemma-4-26b-a4b-it",
@@ -462,6 +644,13 @@
     "decision": "link",
     "model": "google/gemma-4-26b-a4b-it",
     "reason": "The :thinking suffix is the built-in thinking mode of the same Gemma 4 26B A4B IT checkpoint (per Google's model card); still google/gemma-4-26b-a4b-it at NanoGPT's discounted price.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "google/gemma4-31b-splituntied": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page: Blazed-Forge's Split-Untied is a text-only Gemma 4 31B community finetune with an untied BF16 output head; a fine-tune is not google/gemma-4-31b-it itself.",
     "by": "agent",
     "at": "2026-11-12"
   },

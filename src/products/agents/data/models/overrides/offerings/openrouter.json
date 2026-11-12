@@ -76,6 +76,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "elorian/glimpse": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenRouter lists Elorian's Glimpse (canonical slug elorian/glimpse-20261016), the startup's first visual-thinking model released 2026-10-16 as a research preview; a real new first-party model the index has no entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "inclusionai/ling-3.1-flash": {
     "decision": "link",
     "model": "inclusionai/ling-3.1-flash",

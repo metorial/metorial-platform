@@ -34,6 +34,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "gemma2-9b-it": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Google's Gemma 2 9B IT (google/gemma-2-9b-it, Jul 2024) is a real model; the index has only the Gemma 2 2B and 27B sizes, so defer rather than link the wrong size.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "llama-3.3-70b-instruct": {
     "decision": "link",
     "model": "meta/llama-3.3-70b-instruct",

@@ -48,6 +48,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "gemma-4-uncensored": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Venice's Gemma 4 Uncensored is a community-style derivative of Google's Gemma 4 26B A4B Instruct with the internal refusal direction dampened in activation space (per VeniceStats); a weight-edited derivative is not google/gemma-4-26b-a4b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "openai-gpt-61-sol-ultrafast": {
     "decision": "link",
     "model": "openai/gpt-6.1-sol",
