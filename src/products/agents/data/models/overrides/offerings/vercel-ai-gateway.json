@@ -69,6 +69,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "elevenlabs/music-v2": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ElevenLabs' Music v2, the second-generation studio-grade music generation model (released late May 2026 per ElevenLabs and coverage); the index has ElevenLabs speech and transcription models but no Music entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "elevenlabs/music-v2.5": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ElevenLabs' Music v2.5, the new default ElevenMusic generation model released 2026-09-11 with richer arrangements (per ElevenLabs' announcement); the index has ElevenLabs speech and transcription models but no Music entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "elorian/glimpse": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -164,6 +178,13 @@
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "Liquid AI's LFM2.5-24B-A2B (Hugging Face LiquidAI/LFM2.5-24B-A2B, released 2026-10-13; 24B MoE with 2.45B active, 131K context), a new LFM2.5 generation distinct from LFM2-24B-A2B; the index has no LFM2.5 chat entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meta/muse-ember": {
+    "decision": "link",
+    "model": "meta/muse-ember-1.0",
+    "reason": "Meta's Muse Ember, the smallest Muse model for agent execution released 2026-11-09 at 0.10/0.50 with 1M context (per Meta's announcement and coverage); matches the index entry meta/muse-ember-1.0, released the same day.",
     "by": "agent",
     "at": "2026-11-12"
   },

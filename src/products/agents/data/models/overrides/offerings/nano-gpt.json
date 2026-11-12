@@ -1,4 +1,11 @@
 {
+  "Doctor-Shotgun/MS3.2-24B-Magnum-Diamond": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Doctor-Shotgun's MS3.2-24B-Magnum-Diamond is a roleplay fine-tune of Mistral-Small-3.2-24B-Instruct-2506 with an rsLoRA adapter (per the Hugging Face card and Featherless); a fine-tune is not mistral/mistral-small-3.2-24b-instruct itself and the index has no Magnum Diamond entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "EVA-UNIT-01/EVA-LLaMA-3.33-70B-v0.0": {
     "decision": "exclude",
     "category": "fine-tune",
@@ -216,10 +223,24 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "MarinaraSpaghetti/NemoMix-Unleashed-12B": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "MarinaraSpaghetti's NemoMix-Unleashed-12B is a community merge of models built on Mistral-Nemo-Base-2407 (per Featherless and its Hugging Face card); a merge is not any single base model and the index has no NemoMix entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "NeverSleep/Lumimaid-v0.2-70B": {
     "decision": "exclude",
     "category": "fine-tune",
     "reason": "NeverSleep's Lumimaid v0.2 70B is a roleplay fine-tune of Llama 3.1 70B Instruct with a refined dataset vs v0.1 (per OpenRouter and Featherless); a fine-tune is not meta/llama-3.1-70b-instruct itself and the index has no Lumimaid entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "ReadyArt/MS3.2-The-Omega-Directive-24B-Unslop-v2.0": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "ReadyArt's The-Omega-Directive-24B-Unslop-v2.0 is a QLoRA roleplay fine-tune of Mistral-Small-3.2-24B-Instruct-2506-Text-Only (per its Hugging Face card); a fine-tune is not mistral/mistral-small-3.2-24b-instruct itself and the index has no Omega Directive entry.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -917,6 +938,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "meta/muse-ember": {
+    "decision": "link",
+    "model": "meta/muse-ember-1.0",
+    "reason": "Meta's Muse Ember, the smallest Muse model for agent execution released 2026-11-09 (per Meta's announcement and coverage) at 0.10/0.50 with 1M context; matches the index entry meta/muse-ember-1.0, released the same day.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "meta/muse-spark-1.2-contributor": {
     "decision": "link",
     "model": "meta/muse-spark-1.2",
@@ -928,6 +956,13 @@
     "decision": "link",
     "model": "meta/muse-spark-1.3",
     "reason": "Muse Spark 1.3 Contributor is the same Muse Spark 1.3 weights under Meta's discounted contributor-mode pricing (0.1/0.2, in exchange for Meta training on request content); still meta/muse-spark-1.3.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meta/muse-wonder": {
+    "decision": "link",
+    "model": "meta/muse-wonder-1.0",
+    "reason": "Meta's Muse Wonder (not Wonder Full), the frontier agentic model released 2026-10-12, 1M context at 4/20 per the listing; matches meta/muse-wonder-1.0 (Muse Wonder Full is a separate index entry, meta/muse-wonder-full).",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -966,6 +1001,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "mlabonne/NeuralDaredevil-8B-abliterated": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "mlabonne's NeuralDaredevil-8B-abliterated is a DPO fine-tune of Daredevil-8B-abliterated on orpo-dpo-mix-40k (per its Hugging Face card), itself a Llama 3 8B derivative; a fine-tune is not the Llama base and the index has no NeuralDaredevil entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "moondream/moondream3-preview": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -973,10 +1015,45 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "moondream/moondream3.1-9b-a2b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Moondream's Moondream 3.1 9B A2B, successor to Moondream 3 Preview (Hugging Face moondream/moondream3.1-9B-A2B, 9B/2B MoE vision-language model, 32K context); a real first-party model the index has no Moondream entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "moonshotai/kimi-k3": {
     "decision": "link",
     "model": "moonshot/kimi-k3",
     "reason": "Kimi K3 (moonshotai/Kimi-K3 on Hugging Face, 2.8T MoE, 1M context, launched 2026-07-16) matches moonshot/kimi-k3; NanoGPT's 0.45/9.6 price is a discount off the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nano-gpt-help": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "NanoGPT's own help assistant, which answers questions about models, the API and pricing on the vendor's support page; a support chatbot run by the vendor, not a distinct model the catalog can link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nex-agi/nex-n2.5-mini": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Nex AGI's Nex-N2.5-Mini, the entry tier of the Nex-N2.5 family released 2026-09-08 (Hugging Face nex-agi/Nex-N2.5-mini, 35B MoE with ~3B active, 262K context); the index has only nex-agi/nex-n2-pro, so defer this newer generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nex-agi/nex-n2.5-pro": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Nex AGI's Nex-N2.5-Pro, released 2026-09-08 (Hugging Face nex-agi/Nex-N2.5-Pro), a post-trained successor generation to Nex-N2-Pro; the index has only nex-agi/nex-n2-pro, so defer rather than link the older model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nex-agi/nex-n2.6": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Nex AGI's Nex-N2.6, the agentic model post-trained on GLM-5.3-Flash (~321B, released 2026-11-10 per the Hugging Face card); the index has no Nex-N2.5/N2.6 entry, so defer.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -1019,6 +1096,13 @@
     "decision": "link",
     "model": "openai/gpt-6.1-terra",
     "reason": "GPT-6.1 Terra Pro is the same underlying model as GPT-6.1 Terra served with reasoning.mode set to pro (per OpenRouter's listing and aggregator coverage); a pro reasoning-mode serving is still openai/gpt-6.1-terra at the 1/5 pro rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "pamanseau/OpenReasoning-Nemotron-32B": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NVIDIA's OpenReasoning-Nemotron-32B is a derivative of Qwen2.5-32B-Instruct fine-tuned on the OpenReasoning dataset (per its Hugging Face card); a fine-tune is not the Qwen base model and the index has no OpenReasoning entry.",
     "by": "agent",
     "at": "2026-11-12"
   },

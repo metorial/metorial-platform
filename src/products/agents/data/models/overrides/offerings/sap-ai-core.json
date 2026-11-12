@@ -5,5 +5,12 @@
     "reason": "SAP AI Core's alias for Amazon Titan Text Embeddings (amazon.titan-embed-text on Bedrock); an embedding model, and the index has no Titan embedding entry to link.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "nvidia--llama-3.2-nv-embedqa-1b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "SAP lists NVIDIA's Llama-3.2-NV-EmbedQA-1B NeMo Retriever embedding model (8K context per NIM docs); the id carries no v1/v2 suffix and the index's nearest entry is nvidia/llama-nemotron-embed-1b-v2, so defer rather than guess the checkpoint.",
+    "by": "agent",
+    "at": "2026-11-12"
   }
 }

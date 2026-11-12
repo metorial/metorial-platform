@@ -1,0 +1,30 @@
+{
+  "neosmith.intelligent-basic": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "NeoSmith Basic (neosmith.intelligent-basic), the Standard tier of NeoSmith's first-party model line at 1.17/4.37 (per neosmith.ai's pricing page); a real in-house model the index has no NeoSmith entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "neosmith.intelligent-maestro": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "NeoSmith Maestro (neosmith.intelligent-maestro), the Elite tier of NeoSmith's first-party model line at 2.40/12.00 (per neosmith.ai's pricing page); a real in-house model the index has no NeoSmith entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "neosmith.intelligent-pro": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "NeoSmith Pro (neosmith.intelligent-pro), the Pro tier and CLI default of NeoSmith's first-party model line at 1.81/8.39 (per neosmith.ai's docs and pricing page); a real in-house model the index has no NeoSmith entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "neosmith.neolite": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "NeoSmith NeoLite (neosmith.neolite), the Lite tier of NeoSmith's first-party model line at 0.60/2.40 (per neosmith.ai's pricing page); a real in-house model the index has no NeoSmith entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

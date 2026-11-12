@@ -139,6 +139,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "meta/muse-ember": {
+    "decision": "link",
+    "model": "meta/muse-ember-1.0",
+    "reason": "OpenRouter lists Meta's Muse Ember (canonical slug meta/muse-ember-20261109), Meta's smallest model for agent execution released 2026-11-09; matches the index entry meta/muse-ember-1.0 exactly (1M context, 0.10/0.50 list price).",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "meta/muse-spark-1.2-contributor": {
     "decision": "link",
     "model": "meta/muse-spark-1.2",
@@ -153,6 +160,27 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "meta/muse-wonder": {
+    "decision": "link",
+    "model": "meta/muse-wonder-1.0",
+    "reason": "OpenRouter lists Meta's Muse Wonder (canonical slug meta/muse-wonder-20261012), the frontier agentic model released 2026-10-12; matches meta/muse-wonder-1.0 (1M context, 4/20 list price). Muse Wonder Full is a separate index entry, meta/muse-wonder-full.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "moondream/moondream3-preview": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Moondream's Moondream 3 Preview, the 9B-total/2B-active MoE vision-language model (Hugging Face moondream/moondream3-preview, per Moondream's blog); a real first-party model the index has no Moondream entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "moondream/moondream3.1-9b-a2b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Moondream's Moondream 3.1 9B A2B, successor to Moondream 3 Preview (Hugging Face moondream/moondream3.1-9B-A2B, 9B/2B MoE vision-language model, 32K context); a real first-party model the index has no Moondream entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "moonshotai/kimi-k3": {
     "decision": "link",
     "model": "moonshot/kimi-k3",
@@ -164,6 +192,34 @@
     "decision": "link",
     "model": "moonshot/kimi-k3.1-pro",
     "reason": "OpenRouter lists Moonshot's Kimi K3.1 Pro (moonshotai/Kimi-K3.1-Pro on Hugging Face, post-trained successor to K3, released 2026-10-23), matching moonshot/kimi-k3.1-pro; its 0.2375/8.4085 rate is a discount off the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nex-agi/nex-n2.5-mini": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Nex AGI's Nex-N2.5-Mini, the entry tier of the Nex-N2.5 family released 2026-09-08 (Hugging Face nex-agi/Nex-N2.5-mini, 35B MoE with ~3B active, 262K context); the index has only nex-agi/nex-n2-pro, so defer this newer generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nex-agi/nex-n2.5-pro": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Nex AGI's Nex-N2.5-Pro, released 2026-09-08 (Hugging Face nex-agi/Nex-N2.5-Pro), a post-trained successor generation to Nex-N2-Pro; the index has only nex-agi/nex-n2-pro, so defer rather than link the older model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nex-agi/nex-n2.6": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Nex AGI's Nex-N2.6, the agentic model post-trained on GLM-5.3-Flash (~321B, released 2026-11-10 per the Hugging Face card and OpenRouter's listing); the index has no Nex-N2.5/N2.6 entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nvidia/nemotron-3.5-rerank-8b:free": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "NVIDIA's Nemotron 3.5 Rerank 8B, the rerank companion of the Nemotron 3.5 family released Oct 2026 (free tier on OpenRouter); the index has the Nemotron 3.5 embed models but no rerank entry, so defer.",
     "by": "agent",
     "at": "2026-11-12"
   },

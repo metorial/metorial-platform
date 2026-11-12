@@ -62,6 +62,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "muse-wonder": {
+    "decision": "link",
+    "model": "meta/muse-wonder-1.0",
+    "reason": "Venice's Muse Wonder listing is Meta's frontier agentic model released 2026-10-12 (not Wonder Full); matches meta/muse-wonder-1.0. Venice's 5/25 rate is a private-inference markup over the model's 4 median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "olafangensan-glm-4.7-flash-heretic": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Olafangensan's GLM-4.7-Flash-Heretic is an abliterated build of Zhipu's GLM-4.7-Flash with the refusal direction removed from the weights (per the vendor listings); a weight-edited derivative is not zhipu/glm-4.7-flash itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "openai-gpt-61-sol-ultrafast": {
     "decision": "link",
     "model": "openai/gpt-6.1-sol",

@@ -82,5 +82,12 @@
     "reason": "The offering is Mistral Nemo, the 12B model built with NVIDIA (2024). Helicone's listed 20/40 rate is far above the model's 0.1 median and looks like bad gateway price data, but the model served is Mistral Nemo itself.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "o1-mini": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenAI's o1-mini, the cost-efficient reasoning model released 2024-09-12 (128K context, 1.10/4.40 per Helicone's listing and OpenAI's price page); the index has o1, o1-pro, o3-mini and o4-mini but no o1-mini entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
   }
 }
