@@ -1,0 +1,9 @@
+{
+  "lucidnova-rf1-100b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "LucidQuery's LucidNova RF1 100B, the company's first hybrid diffusion-reasoning/autoregressive model (per LucidQuery's About page and spec listings, 120K context); a real first-party model with no index entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

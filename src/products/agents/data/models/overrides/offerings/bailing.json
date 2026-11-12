@@ -1,0 +1,9 @@
+{
+  "Ling-1T": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Ant Group inclusionAI's Ling-1T, the open trillion-parameter MoE flagship (~50B active, 128K context, released Oct 2025 per Ant's announcement); the index's Ling line starts at 3.0, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

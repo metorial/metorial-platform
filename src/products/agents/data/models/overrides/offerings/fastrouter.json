@@ -1,4 +1,11 @@
 {
+  "leonardo-ai/lucid-realism": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Leonardo's Lucid Realism, the photorealism-specialized sibling of Lucid Origin in Leonardo's own Lucid image-model family (per Leonardo.Ai's model guide); the index has only leonardo/lucid-origin, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "x-ai/grok-4": {
     "decision": "defer",
     "until": "2026-12-12",

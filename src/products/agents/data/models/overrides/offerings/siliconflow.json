@@ -34,6 +34,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "inclusionAI/Ling-flash-2.0": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "inclusionAI's Ling-flash-2.0, the 100B-total/6.1B-active MoE of the Ling 2.0 series (Hugging Face inclusionAI/Ling-flash-2.0, MIT, Sept 2025); the index's Ling line starts at 3.0, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "tencent/Hunyuan-A13B-Instruct": {
     "decision": "defer",
     "until": "2026-12-12",

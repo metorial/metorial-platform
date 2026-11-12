@@ -62,6 +62,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "inference.net/llama-3.2-11b-instruct": {
+    "decision": "link",
+    "model": "meta/llama-3.2-11b-vision-instruct",
+    "reason": "Llama 3.2 11B Instruct is Meta's 11B Llama 3.2 release, which exists only as the vision-instruct checkpoint (Bedrock's 'Llama 3.2 11B Instruct' is the same multimodal 11B, Sept 2024); matches meta/llama-3.2-11b-vision-instruct, served via Inference.net.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "llama-3.2-11b-instruct": {
+    "decision": "link",
+    "model": "meta/llama-3.2-11b-vision-instruct",
+    "reason": "Meta's 11B Llama 3.2 exists only as the vision-instruct checkpoint (Bedrock's model card for the same id describes the 11B multimodal model, Sept 2024, 128K context); link meta/llama-3.2-11b-vision-instruct at LLM Gateway's 0.07/0.33 rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "llama-3.3-70b-instruct": {
     "decision": "link",
     "model": "meta/llama-3.3-70b-instruct",

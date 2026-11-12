@@ -69,6 +69,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "llama-guard-4": {
+    "decision": "link",
+    "model": "meta/llama-guard-4-12b",
+    "reason": "Helicone's listing of Meta's Llama Guard 4 12B, the safety classifier pruned from Llama 4 Scout (Hugging Face meta-llama/Llama-Guard-4-12B, Apr 2025); matches meta/llama-guard-4-12b at Helicone's 0.21/0.21 rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "mistral-nemo": {
     "decision": "link",
     "model": "mistral/mistral-nemo",

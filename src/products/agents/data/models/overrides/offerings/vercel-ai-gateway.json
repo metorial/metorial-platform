@@ -41,6 +41,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "convaiinnovations/laya": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Convai Innovations' Laya, an open 421M-parameter ModernBERT-based non-autoregressive decision model for email triage/phishing/routing (Hugging Face card, text-classification pipeline, Sept 2026); the index has no Laya entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "deepseek/deepseek-v4.1-flash-1017-ultrafast": {
     "decision": "link",
     "model": "deepseek/deepseek-v4.1-flash-1017",
@@ -143,6 +150,13 @@
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "Liquid AI's d1-ultra (released 2026-10-15), its most capable multimodal decision model; it is a larger sibling of liquid/d1 and the index has no d1-ultra entry, only liquid/d1.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "liquid/lfm2.5-24b-a2b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Liquid AI's LFM2.5-24B-A2B (Hugging Face LiquidAI/LFM2.5-24B-A2B, released 2026-10-13; 24B MoE with 2.45B active, 131K context), a new LFM2.5 generation distinct from LFM2-24B-A2B; the index has no LFM2.5 chat entry, so defer.",
     "by": "agent",
     "at": "2026-11-12"
   },

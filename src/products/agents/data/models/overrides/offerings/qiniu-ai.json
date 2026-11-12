@@ -69,6 +69,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "meituan/longcat-flash-chat": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Meituan's LongCat-Flash-Chat, the open-weight 560B-total/~27B-active MoE released Sept 2025 (per Meituan's announcement and coverage); the index's LongCat line starts at 2.0, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meituan/longcat-flash-lite": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Meituan's LongCat-Flash-Lite, the open-weight 68.5B-total MoE with 2.9-4.5B active parameters (Hugging Face meituan-longcat/LongCat-Flash-Lite, Feb 2026, 256K context); the index's LongCat line starts at 2.0, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "stepfun-ai/gelab-zero-4b-preview": {
     "decision": "exclude",
     "category": "fine-tune",
