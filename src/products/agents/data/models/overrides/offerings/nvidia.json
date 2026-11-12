@@ -41,6 +41,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "nvidia/rerank-qa-mistral-4b": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "NVIDIA's Retrieval QA Mistral 4B reranking model, which scores how relevant a document is to a query for retrieval pipelines (per its NIM model card); a reranker the index has no matching entry for (Llama Nemotron Rerank VL is a different model).",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nvidia/riva-translate-4b-instruct-v1.1": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Riva Translate 4B Instruct v1.1, NVIDIA's 12-language translation model fine-tuned from Mistral-NeMo-12B-Base (per its Hugging Face metadata); a task-specific fine-tune is not mistral/mistral-nemo itself and the index has no Riva entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "qwen/qwen-image": {
     "decision": "defer",
     "until": "2026-12-12",

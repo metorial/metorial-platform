@@ -384,6 +384,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "TheDrummer/Rocinante-12B-v1.1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "TheDrummer's Rocinante 12B v1.1 (BeaverAI), a 12B creative-writing and storytelling model (Hugging Face, Aug 2024); the index has other TheDrummer models but no Rocinante entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "TheDrummer/artemis-31b-v1.2": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -602,6 +609,13 @@
     "decision": "exclude",
     "category": "other",
     "reason": "NanoGPT's 'Web Answer' fastgpt is Kagi's FastGPT, a search-engine answer service that runs queries through a full search engine and unspecified underlying LLMs; a product, not a distinct catalog model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "featherless-ai/Qwerky-72B": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Featherless' Qwerky 72B (QRWKV-72B), an open 72B RWKV6-Qwen2 hybrid-architecture chat model (Hugging Face, Mar 2025); a real chat model the index has no Qwerky entry for.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -833,6 +847,13 @@
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "Heabsy's own cybersecurity model (Sep 2026), reasoning-enabled and fine-tuned on an undisclosed open-weight foundation; a real new first-party model, but the base is unnamed and the index has no Heabsy entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "heabsy/qwen3.8-27b-uncensored-fast": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Heabsy's NVFP4 build with refusal removal based on huihui-ai's Huihui-Qwen3.8-27B-abliterated (per Heabsy/Modeldex listings); Hugging Face metadata lists it as a finetune of Qwen/Qwen3.8-27B, so it is not alibaba/qwen3.8-27b itself.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -1292,6 +1313,83 @@
     "decision": "exclude",
     "category": "fine-tune",
     "reason": "NanoGPT's own page calls Qwen 3.8 27B Fable an open-weight multimodal creative finetune for storytelling and roleplay (a Fable-distilled Qwen3.8 build); a fine-tune is not alibaba/qwen3.8-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3.8-27b-fimi": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "nlpguy's Qwen3.8-27B-Fimi series is a mergekit merge built on Qwen3.5-27B / Qwen3.8-27B weights for roleplay (per its Hugging Face cards); a merge is not alibaba/qwen3.8-27b itself and the index has no Fimi entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3.8-27b-hemmingway": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Hemmingway-1 (Altworld), a 27B writing model fine-tuned from Qwen3.8-27B for everyday messages and emails, released Sep 2026 (per its Hugging Face card and coverage); a fine-tune is not alibaba/qwen3.8-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3.8-27b-kimiko": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "nlpguy's Qwen3.8-27B-Kimiko is a karcher merge of Qwen3.8-27B-Fimi-4, beyoru/Kiwen1.1-27B and Qwen/Qwen3.8-27B (per its Hugging Face card); a merge is not alibaba/qwen3.8-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3.8-27b-kiwen": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Qwen 3.8 27B Kiwen is a creative finetune served by Aoru in NVFP4 (per ToolScout and NanoGPT's own family pages, the same tier as Antislop/DarkIdol/Fimi); a fine-tune is not alibaba/qwen3.8-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3.8-27b-novelist": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "One of NanoGPT's Qwen 3.8 27B creative variants at the 0.10/0.60 finetune price tier shared by Antislop, DarkIdol, Fimi and the other Aoru-served fine-tunes (per Jahanzaib/NanoGPT listings); a creative fine-tune is not alibaba/qwen3.8-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3.8-27b-queen": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "aifeifei798's Qwen3.8-Queen-27B, an alignment-relaxed creative-specialized variant built on the Qwen3.8 27B architecture (per its Hugging Face card); a fine-tune is not alibaba/qwen3.8-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3.8-27b-swift": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Swift-Qwen3.8-27B (ukisai/cyankiwi) fine-tunes Qwen3.8-27B to penalize overthinking tokens and adds a transfer component from ThinkingCap-Qwen3.6-27B (per its Hugging Face card); a fine-tune is not alibaba/qwen3.8-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3.8-27b-synthia": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page calls Qwen 3.8 27B Synthia a text-only roleplay finetune served by Aoru in NVFP4; a fine-tune is not alibaba/qwen3.8-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3.8-27b-uncensored": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Qwen 3.8 27B Uncensored is huihui-ai's abliteration of Qwen3.8-27B with the refusal direction removed in layers 18-51 (per Heabsy/Wiro listings); a weight-edited derivative is not alibaba/qwen3.8-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3.8-27b-uncensored:thinking": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "The :thinking suffix is thinking-mode serving of huihui-ai's abliterated Qwen3.8-27B (per NanoGPT's own page); a thinking mode of a weight-edited derivative is still not alibaba/qwen3.8-27b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "ricursiveai/ripple-65b-preview": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Ricursive Intelligence's Ripple-65B Preview, a dense 65B open-weight reasoning and agentic-coding model released 2026-11-04 (per its Hugging Face card and coverage); the index has no Ricursive entry yet.",
     "by": "agent",
     "at": "2026-11-12"
   },

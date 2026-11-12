@@ -13,6 +13,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "evroc/roc": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "evroc's roc, a multimodal reasoning model on the European sovereign cloud's Think platform taking text, image and video input (per evroc and models.dev listings); no maker or checkpoint identity is published and the index has no entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "intfloat/multilingual-e5-large-instruct": {
     "decision": "link",
     "model": "intfloat/multilingual-e5-large-instruct",

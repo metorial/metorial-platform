@@ -33,5 +33,11 @@
     "reason": "Abacus serves Meta's Llama 3.1 405B Instruct, with 'Turbo' a serving tier of the same checkpoint (128K context, 3.5/3.5); the index has no Llama 3.1 405B entry at all (only 8B/70B and later generations), so defer rather than link the wrong Llama.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "route-llm": {
+    "decision": "router",
+    "reason": "Abacus.AI's RouteLLM: a single OpenAI-compatible endpoint where RouteLLM reads each prompt and picks the model from the 150+ model catalog that answers it best (per Abacus's FAQ); a router, not one fixed model.",
+    "by": "agent",
+    "at": "2026-11-12"
   }
 }

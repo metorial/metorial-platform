@@ -55,6 +55,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "cohere/rerank-v5-fast": {
+    "decision": "link",
+    "model": "cohere/rerank-v5.0-fast",
+    "reason": "Cohere's Rerank 5 Fast, the speed-optimized reranking model of the Rerank 5 line (per Cohere/AWS listings, 33K context); matches the index's cohere/rerank-v5.0-fast released 2026-10-21, at the $0.02/M search rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "cohere/rerank-v5-pro": {
+    "decision": "link",
+    "model": "cohere/rerank-v5.0-pro",
+    "reason": "Cohere's Rerank 5 Pro, the high-quality multilingual reranking model of the Rerank 5 line (per Cohere/Azure listings, 33K context); matches the index's cohere/rerank-v5.0-pro released 2026-10-21, at the $0.05/M search rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "convaiinnovations/laya": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -297,6 +311,34 @@
     "decision": "link",
     "model": "black-forest-labs/flux-1-schnell",
     "reason": "Vercel's listing describes Flux Schnell as Prodia's speed-focused image model built on BFL's FLUX.1 Schnell architecture — Prodia's fast serving of the FLUX.1 [schnell] checkpoint, matching black-forest-labs/flux-1-schnell.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "recraft/recraft-v2": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Recraft's V2, its first model trained from scratch (20B image model, per Vercel's own page and CloudPrice); the index's Recraft line starts at V3, so defer rather than link a later generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "scaledown/scaledown-classify-1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ScaleDown's Classify-1, a structured-decision classification model served through OpenRouter's Decisions API (per ScaleDown/OpenRouter listings); a real new model the index has no ScaleDown entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "scaledown/scaledown-extract-1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ScaleDown's Extract-1, a task-specific model extracting structured data via a custom JSON schema over 1M context (per Vercel's listing); a real new model the index has no ScaleDown entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "scaledown/scaledown-summarize-1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ScaleDown's Summarize-1, a task-specific abstractive-summarization model for long documents and transcripts (per Vercel's listing); a real new model the index has no ScaleDown entry for.",
     "by": "agent",
     "at": "2026-11-12"
   },

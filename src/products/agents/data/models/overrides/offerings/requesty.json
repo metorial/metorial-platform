@@ -47,5 +47,12 @@
     "reason": "NVIDIA's Nemotron 3.5 Lightning 30B A3B, the 30B MoE with 3B active and 262K context (per build.nvidia.com and the Hugging Face cards); matches the index entry nvidia/nemotron-3.5 'Nemotron 3.5 Lightning 30B A3B'. Requesty's 0.05/0.2 is a discount off the model's 0.06 median.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "ring-2.6-1t": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "inclusionAI's Ring-2.6-1T, the 1T-parameter (63B active) thinking model for agentic workflows with adjustable high/xhigh reasoning effort (per Ant/inclusionAI docs, Hugging Face May 2026); the index's inclusionai line has Ling flash models only, no Ring entry.",
+    "by": "agent",
+    "at": "2026-11-12"
   }
 }

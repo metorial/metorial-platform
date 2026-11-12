@@ -89,5 +89,12 @@
     "reason": "OpenCode's Pulse Alpha Free is a stealth model served under a codename, free for a limited time; no lab has claimed it since it appeared on 2026-11-02 (per ArtificialWatch coverage), so like Big Pickle/Cat Jam there is no model identity to link.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "ring-2.6-1t-free": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenCode's free tier of inclusionAI's Ring-2.6-1T, the 1T-parameter/63B-active thinking model released May 2026 (also offered free via OpenRouter); the index's inclusionai line has no Ring entry, so defer the free serving with the model.",
+    "by": "agent",
+    "at": "2026-11-12"
   }
 }

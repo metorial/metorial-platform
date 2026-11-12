@@ -90,6 +90,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "lumalabs/ray2": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Luma Labs' Ray2, the text/image-to-video generation model released Jan 2025 (per Luma's own page); the index has no Luma or Ray entry at all, so there is no catalog model to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "openai/chatgpt-4o-latest": {
     "decision": "link",
     "model": "openai/gpt-4o",
@@ -122,6 +129,19 @@
     "decision": "exclude",
     "category": "other",
     "reason": "A Poe Poetools bot: a Claude-powered coding tool wrapper on Poe's platform, not a distinct model; no published price, context, or model identity to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "runwayml/runway": {
+    "decision": "router",
+    "reason": "Poe's generic Runway bot: requests go to Runway's platform, which serves its current video models (Gen-4.5/GWM per Runway's site); the name fixes no checkpoint, so it picks the model per request.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "runwayml/runway-gen-4-turbo": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Runway's Gen-4 Turbo video model (Sept 2024, image-to-video, per Runway/Replicate listings); the index's Runway line has only Gen-4.5 and Aleph 2.0, no Gen-4 entry, so defer rather than link the wrong generation.",
     "by": "agent",
     "at": "2026-11-12"
   },

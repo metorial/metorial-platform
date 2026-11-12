@@ -375,10 +375,24 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "ricursiveai/ripple-65b-preview": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenRouter lists Ripple 65B Preview (canonical slug ricursiveai/ripple-65b-preview-20261104), Ricursive Intelligence's dense 65B open-weight agentic-coding model released 2026-11-04; the index has no Ricursive entry yet.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "scaledown/extract": {
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "OpenRouter's listing: ScaleDown's Extract, a description-driven entity-extraction model (canonicalSlug snapshot 2026-09-28); a real model the index has no ScaleDown entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "sourceful/riverflow-v2.6-pro": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Sourceful's Riverflow 2.6 Pro, the flagship of the Riverflow 2.6 image-generation line listed late Oct 2026 (per OpenRouter listings); the index's Riverflow line stops at 2.5, so defer rather than link the wrong generation.",
     "by": "agent",
     "at": "2026-11-12"
   },

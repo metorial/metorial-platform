@@ -12,5 +12,12 @@
     "reason": "Alibaba's Qwen3-TTS-VoiceDesign, the voice-design variant of Qwen3-TTS that synthesizes speech from a natural-language voice description (per its DeepInfra model card); the index has no Qwen3-TTS entry, so defer.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "reflection-beam": {
+    "decision": "link",
+    "model": "reflection/beam-1.0-501b-a23b",
+    "reason": "Beam is Reflection AI's first open-weight model, Beam-1.0-501B-A23B: a 501B-total / ~23B-active MoE for coding, reasoning and agentic workloads with a 1M context, released Oct 2026 (per Reflection's blog and its Hugging Face card); matches reflection/beam-1.0-501b-a23b.",
+    "by": "agent",
+    "at": "2026-11-12"
   }
 }

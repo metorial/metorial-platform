@@ -20,6 +20,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "inclusionai/ring-2.6-1t": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "inclusionAI's Ring-2.6-1T (Hugging Face inclusionAI/Ring-2.6-1T, created 2026-05-14), the 1T-parameter/63B-active thinking model for agentic workflows; the index's inclusionai line has Ling flash models only, no Ring entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "volcengine/doubao-seed-code": {
     "decision": "defer",
     "until": "2026-12-12",
