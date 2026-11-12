@@ -82,5 +82,12 @@
     "reason": "Muse Spark 1.3 Contributor is the same Muse Spark 1.3 weights under Meta's discounted contributor-mode pricing (0.1/0.2, in exchange for Meta training on request content); still meta/muse-spark-1.3.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "pulse-alpha-free": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "OpenCode's Pulse Alpha Free is a stealth model served under a codename, free for a limited time; no lab has claimed it since it appeared on 2026-11-02 (per ArtificialWatch coverage), so like Big Pickle/Cat Jam there is no model identity to link.",
+    "by": "agent",
+    "at": "2026-11-12"
   }
 }

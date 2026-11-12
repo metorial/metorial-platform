@@ -1,4 +1,11 @@
 {
+  "PaddlePaddle/PaddleOCR-VL-1.5": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "PaddleOCR-VL-1.5, the next-generation 0.9B multi-task OCR VLM released 2026-01-29 (Hugging Face PaddlePaddle/PaddleOCR-VL-1.5); a separate generation from the index's baidu/paddleocr-vl (Oct 2025), so defer rather than link the older model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "Pro/deepseek-ai/DeepSeek-V3.1-Terminus": {
     "decision": "defer",
     "until": "2026-12-12",

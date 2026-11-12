@@ -265,6 +265,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "parallel/parallel-decisions-fast": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Parallel's Decisions Fast, its web-grounded decision model that reads content passed as state, researches the live web and returns typed answers (per OpenRouter's listing); a real first-party decision model the index has no Parallel entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "particle/particle-1": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Particle AI's Particle-1 is a rank-64 LoRA post-train of DeepSeek V4.1 Flash for token-efficient agentic coding (per launch coverage and Vertical Tabs); a fine-tune of DeepSeek V4.1 Flash is not that model itself and the index has no Particle AI entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "prodia/flux-fast-schnell": {
     "decision": "link",
     "model": "black-forest-labs/flux-1-schnell",
@@ -318,6 +332,13 @@
     "decision": "link",
     "model": "tencent/hy-mt2-30b-a3b",
     "reason": "Vercel's listing: Hy-MT2-Pro is Tencent Cloud Hunyuan's flagship translation model with 30B-A3B parameters and an 8K context window; matches the index's tencent/hy-mt2-30b-a3b.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "topaz/proteus": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Topaz Labs' Proteus, its detail-preserving video upscaling and enhancement model in the Topaz Video AI suite (per Vercel's listing and Topaz docs); a real video model the index has no Topaz entry for.",
     "by": "agent",
     "at": "2026-11-12"
   },

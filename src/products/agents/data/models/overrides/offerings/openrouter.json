@@ -167,6 +167,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "microsoft/phi-4": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Microsoft's Phi-4, the 14B small language model for complex reasoning (Hugging Face microsoft/phi-4, created 2024-12-11; OpenRouter lists the Phi-4 card); the index has only phi-4-mini and phi-4-multimodal-instruct, no Phi-4 entry, so defer rather than link the mini.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "moondream/moondream3-preview": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -333,6 +340,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "particle-ai/particle-1": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "OpenRouter lists Particle-1 (canonical slug particle-ai/particle-1-20261027), Particle AI's rank-64 LoRA post-train of DeepSeek V4.1 Flash for token-efficient agentic coding; a fine-tune is not deepseek/deepseek-v4.1-flash itself and the index has no Particle AI entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen-2.5-72b-instruct": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenRouter lists Qwen2.5 72B Instruct (Hugging Face Qwen/Qwen2.5-72B-Instruct, created 2024-09-16); the index's Qwen2.5 line has the 7B instruct and Coder models and the 72B VL variant, but no 72B instruct entry, so defer rather than link a different model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "recursive/flint-v1.0:free": {
     "decision": "link",
     "model": "recursive/flint",
@@ -358,6 +379,27 @@
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "OpenRouter's listing: Tencent's Hunyuan-A13B, a 13B-active/80B-total open-weight MoE (tencent/Hunyuan-A13B-Instruct on Hugging Face); a real model the index has no Hunyuan A13B entry for, so defer rather than link another Hunyuan.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "unbiased/pareto-26.10": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenRouter lists Pareto 26.10 with canonical slug unbiased/pareto-26.10-20261015 — the GA release declared out of preview on 2026-10-15 with a 1M context and $0.80/$3.20 pricing; a newer composite checkpoint than the index's unbiased/pareto (2026-09-17, 262K), so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "unbiased/pareto-26.10-preview": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenRouter lists Pareto 26.10 Preview with canonical slug unbiased/pareto-26.10-preview-20260929 (shipped 2026-10-01 per Unbiased's blog); the index has only the Sep 17, 2026 Pareto entry and no 26.10 preview checkpoint, so defer rather than link the older release.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "unbiased/pareto-26.9": {
+    "decision": "link",
+    "model": "unbiased/pareto",
+    "reason": "OpenRouter's listing for Pareto 26.9 carries canonical slug unbiased/pareto-26.9-20260917, matching the index's unbiased/pareto released 2026-09-17 with 262,144-token context; the 262K window and $2.50/$7.50 list price match the September release, so link.",
     "by": "agent",
     "at": "2026-11-12"
   },

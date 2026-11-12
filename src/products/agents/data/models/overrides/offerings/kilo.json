@@ -139,6 +139,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "microsoft/phi-4": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Microsoft's Phi-4, the 14B reasoning-focused small language model (Hugging Face microsoft/phi-4, created 2024-12-11, 16K context); the index has only phi-4-mini and phi-4-multimodal-instruct, no Phi-4 entry, so defer rather than link the mini.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "moondream/moondream3-preview": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -230,6 +237,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "particle-ai/particle-1": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Particle AI's Particle-1 is a rank-64 LoRA post-train of DeepSeek V4.1 Flash (~1.25% of parameters) for token-efficient agentic coding, released 2026-10-28 (per ARMES and launch coverage); a fine-tune of DeepSeek V4.1 Flash is not that model itself and the index has no Particle AI entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen-2.5-72b-instruct": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's Qwen2.5-72B-Instruct (Hugging Face Qwen/Qwen2.5-72B-Instruct, Sep 2024, 32K context); the index's Qwen2.5 line has the 7B instruct and Coder models and the 72B VL variant, but no 72B instruct entry, so defer rather than link a different model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "scaledown/extract": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -248,6 +269,27 @@
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "Tencent's Hunyuan-A13B, the open-weight 80B-total/13B-active MoE (tencent/Hunyuan-A13B-Instruct on Hugging Face, June 2025); a real model the index has no Hunyuan A13B entry for, so defer rather than link another Hunyuan.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "unbiased/pareto-26.10": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Unbiased AI's Pareto 26.10, the GA release declared out of preview on 2026-10-15 with a 1M context and $0.80/$3.20 pricing (per Unbiased's blog and coverage); a newer composite release than the index's unbiased/pareto (2026-09-17, 262K context), so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "unbiased/pareto-26.10-preview": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Preview of Unbiased AI's Pareto 26.10 (shipped 2026-10-01, 1M context, per Unbiased's blog); the index has only the Sep 17, 2026 Pareto entry and no 26.10 preview checkpoint, so defer rather than link the older release.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "unbiased/pareto-26.9": {
+    "decision": "link",
+    "model": "unbiased/pareto",
+    "reason": "Unbiased AI's Pareto 26.9, the pinned September 2026 release of the composite Pareto line (262K context, $2.50/$7.50 list); matches the index's unbiased/pareto released 2026-09-17 with 262,144-token context, and OpenRouter's canonical slug unbiased/pareto-26.9-20260917 confirms the same release.",
     "by": "agent",
     "at": "2026-11-12"
   },

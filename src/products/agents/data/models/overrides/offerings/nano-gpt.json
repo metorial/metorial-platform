@@ -1099,10 +1099,87 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "orca/orcacyber-flash-1.0": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "OrcaCyber Flash 1.0 is an abliterated build of DeepSeek's V4.1 Flash 1017 open-weight checkpoint with refusal behavior removed in the weights (per OrcaRouter's release and FlashLabs coverage); a weight-edited derivative is not deepseek/deepseek-v4.1-flash-1017 itself and the index has no OrcaCyber entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "orca/orcacyber-flash-1.0:thinking": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "The :thinking suffix is thinking-mode serving of OrcaCyber Flash 1.0, an abliterated build of DeepSeek V4.1 Flash 1017 with refusal behavior removed in the weights; a thinking mode of a weight-edited derivative is still not deepseek/deepseek-v4.1-flash-1017 itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "orca/orcacyber-glm-5.3-flash": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "OrcaCyber GLM 5.3 Flash is Z.ai's GLM-5.3-Flash checkpoint with refusal behavior relaxed via abliteration for security research (per FlashLabs/PR Times coverage of the Nov 2026 release); a weight-edited derivative is not zhipu/glm-5.3-flash itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "orca/orcacyber-k3.1-pro": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "OrcaCyber K3.1 Pro is Moonshot's Kimi K3.1 Pro with refusal behavior removed (OrcaRouter's page: based on Moonshot AI Kimi K3.1 Pro with refusal behavior removed); a weight-edited derivative is not moonshot/kimi-k3.1-pro itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "orca/orcacyber-mimo-flash": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "OrcaCyber MiMo V2.6 Flash is Xiaomi's MiMo V2.6 Flash abliterated by OrcaRouter to remove the refusal direction without retraining (per FlashLabs/Newswire coverage); a weight-edited derivative is not xiaomi/mimo-v2.6-flash itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "orca/orcacyber-minimax-m3.1-flash": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "OrcaCyber MiniMax M3.1 Flash is an abliterated/uncensored variant of MiniMax M3.1 Flash (OrcaRouter's page and Modeldex describe an abliterated variant built for security research); a weight-edited derivative is not minimax/minimax-m3.1-flash itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "orca/orcacyber-qwen3.8-flash-next": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "OrcaCyber Qwen3.8 Flash Next is Alibaba's Qwen3.8 Flash Next with the refusal response direction removed (per Newswire coverage of the Oct 2026 release); a weight-edited derivative is not alibaba/qwen3.8-flash-next itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "orca/orcacyber-zero-1.5": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OrcaRouter's OrcaCyber Zero 1.5, its post-trained frontier cybersecurity model and successor to Zero 1.0 (released Oct 2026, 1M context, hosted API only, per MarkTechPost and coverage); a real first-party model the index has no OrcaCyber entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "ornith-ai/ornith-1.5-122b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Ornith AI's Ornith-1.5-122B, the 122B open-weight MoE coding/agent model (Hugging Face ornith-ai/Ornith-1.5-122B, MIT, created 2026-10-16); the index's Ornith line has the 1.0 sizes and the 1.5 35B A3B but no 122B entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "pamanseau/OpenReasoning-Nemotron-32B": {
     "decision": "exclude",
     "category": "fine-tune",
     "reason": "NVIDIA's OpenReasoning-Nemotron-32B is a derivative of Qwen2.5-32B-Instruct fine-tuned on the OpenReasoning dataset (per its Hugging Face card); a fine-tune is not the Qwen base model and the index has no OpenReasoning entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "particle-ai/particle-1": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Particle AI's Particle-1 is a rank-64 LoRA post-train of DeepSeek V4.1 Flash (~1.25% of parameters) for token-efficient agentic coding, released 2026-10-28 (per ARMES and launch coverage); a fine-tune of DeepSeek V4.1 Flash is not that model itself and the index has no Particle AI entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "pokee-isaac": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Pokee AI's Pokee-Isaac 28B, the proprietary 28B agentic model with a 10M-token context window released Aug 2026 (per coverage); a real first-party model the index has no Pokee entry for.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -1117,6 +1194,13 @@
     "decision": "exclude",
     "category": "fine-tune",
     "reason": "The :thinking suffix is the thinking-mode serving of pqhaz's Heretic checkpoint, which directionally ablates refusal behaviour in the weights of DeepSeek-V4.1-Flash-1017; a weight-edited derivative is not deepseek/deepseek-v4.1-flash-1017 itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen-2.5-72b-instruct": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's Qwen2.5-72B-Instruct (Hugging Face Qwen/Qwen2.5-72B-Instruct, Sep 2024); the index's Qwen2.5 line has the 7B instruct and Coder models and the 72B VL variant, but no 72B instruct entry, so defer rather than link a different model.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -1145,6 +1229,20 @@
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "Speakleash/ACK Cyfronet's Bielik 11B v3.0 Instruct (Hugging Face, Apache 2.0, Nov 2025), an instruct tune of their own Bielik v3 base; a real chat model the index does not contain.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "unbiased/pareto-26.10": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Unbiased AI's Pareto 26.10, the stable GA Pareto release declared out of preview on 2026-10-15 with a 1M context (per Unbiased's blog); a newer composite release than the index's unbiased/pareto (2026-09-17, 262K context), so defer until models.dev adds the 26.10 checkpoint.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "unbiased/pareto-26.9": {
+    "decision": "link",
+    "model": "unbiased/pareto",
+    "reason": "Unbiased AI's Pareto 26.9, the pinned September 2026 release of the composite Pareto line (262K context, $2.50/$7.50 list); matches the index's unbiased/pareto released 2026-09-17 with 262,144-token context, and OpenRouter's canonical slug unbiased/pareto-26.9-20260917 confirms the same release.",
     "by": "agent",
     "at": "2026-11-12"
   },
