@@ -6,6 +6,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "baseten/joey-1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Baseten's joey-1, a 2B open-weights decision model from its in-house Base Labs released 2026-10-29 (per Baseten's announcement and coverage); the index has only elephant-1 and mammoth-1 from the decision family, so defer until models.dev adds it.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "bfl/flux-pro-1.0-fill": {
     "decision": "exclude",
     "category": "non-chat",
@@ -66,6 +73,69 @@
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "humans&'s first model, post-trained from Z.ai's GLM 5.3 (744B) and released 2026-10-20; a real new model, but a post-train of GLM is not zhipu/glm-5.3 itself and the index has no humans& entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "interfaze/interfaze-beta": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "Interfaze Beta is a hybrid product merging specialized DNN/CNN models for OCR, parsing and classification behind a controller that forwards distilled context to a user-selected LLM (per Interfaze's listing and its arXiv paper); a controller stack, not a single model the catalog can link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "klingai/kling-v2.5-turbo-i2v": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Kuaishou's Kling 2.5 Turbo image-to-video model, the fast tier of the Sept 2025 Kling 2.5 release (1080p, first/last-frame anchoring); the index's Kling line has only video-o1 and the v3.0 pair, no 2.5 Turbo entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "klingai/kling-v2.5-turbo-t2v": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Kuaishou's Kling 2.5 Turbo text-to-video model, the fast tier of the Sept 2025 Kling 2.5 release; the index's Kling line has only video-o1 and the v3.0 pair, no 2.5 Turbo entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "klingai/kling-v2.6-i2v": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Kuaishou's Kling 2.6 image-to-video model with native synchronized audio (released autumn 2026); the index's Kling line has only video-o1 and the v3.0 pair, no 2.6 entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "klingai/kling-v2.6-motion-control": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Kuaishou's Kling 2.6 Motion Control, the motion-transfer mode of the Kling 2.6 video model with native audio (Nov 2026); the index's Kling line has only video-o1 and the v3.0 pair, no 2.6 entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "klingai/kling-v2.6-t2v": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Kuaishou's Kling 2.6 text-to-video model with native synchronized audio and multi-shot storytelling (released autumn 2026); the index's Kling line has only video-o1 and the v3.0 pair, no 2.6 entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "klingai/kling-v3.0-i2v": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Kling 3.0 image-to-video on the gateway at $0.17/s; the index splits Kling 3.0 into Pro and Standard entries and the gateway SKU names no tier, so defer rather than guess which checkpoint serving it is.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "klingai/kling-v3.0-motion-control": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Kling 3.0 Motion Control on the gateway at $0.13/s; the index splits Kling 3.0 into Pro and Standard entries and the gateway SKU names no tier, so defer rather than guess which checkpoint serving it is.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "klingai/kling-v3.0-t2v": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Kling 3.0 text-to-video on the gateway at $0.17/s; the index splits Kling 3.0 into Pro and Standard entries and the gateway SKU names no tier, so defer rather than guess which checkpoint serving it is.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -178,6 +248,20 @@
     "decision": "link",
     "model": "tencent/hy-mt2-1.8b",
     "reason": "Vercel's listing: Hy-MT2-Lite is Tencent Hunyuan's lightweight 1.8B translation model with an 8K context window; matches the index's tencent/hy-mt2-1.8b exactly, including its 0.044/0.177 rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "tencent/hy-mt2-plus": {
+    "decision": "link",
+    "model": "tencent/hy-mt2-7b",
+    "reason": "Vercel's listing: Hy-MT2-Plus is Tencent Cloud Hunyuan's 7B translation model with an 8K context window; matches the index's tencent/hy-mt2-7b, including the 0.074/0.295 rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "tencent/hy-mt2-pro": {
+    "decision": "link",
+    "model": "tencent/hy-mt2-30b-a3b",
+    "reason": "Vercel's listing: Hy-MT2-Pro is Tencent Cloud Hunyuan's flagship translation model with 30B-A3B parameters and an 8K context window; matches the index's tencent/hy-mt2-30b-a3b.",
     "by": "agent",
     "at": "2026-11-12"
   },

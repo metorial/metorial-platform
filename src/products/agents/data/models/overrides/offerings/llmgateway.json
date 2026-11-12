@@ -48,6 +48,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "hy-mt2-plus": {
+    "decision": "link",
+    "model": "tencent/hy-mt2-7b",
+    "reason": "Hy-MT2 Plus is Tencent Hunyuan's 7B translation model of the Hy-MT2 series (8K context, 33 languages, per Vercel/CloudPrice listings); matches tencent/hy-mt2-7b, including the 0.074/0.295 rate and 8192-token window.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "inference.net/deepseek-v4.1-flash-cyber": {
     "decision": "exclude",
     "category": "fine-tune",
@@ -106,6 +113,13 @@
     "decision": "link",
     "model": "meta/llama-3.3-70b-instruct",
     "reason": "LLM Gateway's Novita route for Meta's open-weight Llama 3.3 70B Instruct; the 0.135/0.4 rate is a discount off the model's 0.705 median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "tencent/hy-mt2-plus": {
+    "decision": "link",
+    "model": "tencent/hy-mt2-7b",
+    "reason": "The same Tencent Hunyuan Hy-MT2 Plus under LLM Gateway's namespaced id: the 7B translation model of the Hy-MT2 series (8K context, per Vercel/CloudPrice listings); matches tencent/hy-mt2-7b, including the 0.074/0.295 rate.",
     "by": "agent",
     "at": "2026-11-12"
   },

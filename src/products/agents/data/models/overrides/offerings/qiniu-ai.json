@@ -62,6 +62,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "kling-v2-6": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Kuaishou's Kling 2.6 (Kling-V2 6), the video model with native synchronized audio-visual generation released autumn 2026; the index's Kling line has only video-o1 and the v3.0 pair, no 2.6 entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "stepfun-ai/gelab-zero-4b-preview": {
     "decision": "exclude",
     "category": "fine-tune",

@@ -188,6 +188,55 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "LLM360/K2-Think": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "LLM360/MBZUAI's K2-Think is a 32B general reasoning model fine-tuned from Qwen2.5-32B (per its Hugging Face card) — despite the name it is not Moonshot's Kimi K2 — and the index has no LLM360 entry, so there is no model to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Sao10K/L3-8B-Stheno-v3.2": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Sao10K's Stheno v3.2, a Llama 3 8B roleplay/creative-writing fine-tune; the index has Sao10K's Lunaris and Euryale models but no Stheno entry, and a fine-tune is not its Llama base model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Sao10K/L3.1-70B-Hanami-x1": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Sao10K's Hanami x1, an experimental fine-tune built over Euryale v2.2 (per LLMIndex and its Hugging Face card); a derivative is not sao10k/l3.1-euryale-70b itself and the index has no Hanami entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Steelskull/L3.3-Cu-Mai-R1-70b": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Steelskull's Cu Mai R1 70B, an SCE merge of TheSkullery's Hydroblated-R1 base with EVA-LLaMA and Euryale components (per its Hugging Face card); a community merge is not its base model and the index has no Steelskull entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Steelskull/L3.3-Electra-R1-70b": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Steelskull's Electra R1 70B, built on a custom DeepSeek R1 distill base (TheSkullery Hydroblated-R1) with SCE-merged components (per its Hugging Face card); a community merge/distill not in the index.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Steelskull/L3.3-MS-Nevoria-70b": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Steelskull's Nevoria 70B, an SCE merge of EVA-LLaMA 3.33, Euryale v2.3 and Negative LLAMA (per its Hugging Face card); a community merge is none of its components and the index has no Steelskull entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Steelskull/L3.3-Nevoria-R1-70b": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Steelskull's Nevoria R1 70B, an SCE merge of EVA-LLaMA, Euryale v2.3, Negative LLAMA and a DeepSeek R1 distill (per its Hugging Face card); a community merge is none of its components and the index has no Steelskull entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "TEE/gemma-4-26b-a4b-uncensored": {
     "decision": "exclude",
     "category": "fine-tune",
@@ -746,6 +795,13 @@
     "decision": "link",
     "model": "moonshot/kimi-k3",
     "reason": "Kimi K3 (moonshotai/Kimi-K3 on Hugging Face, 2.8T MoE, 1M context, launched 2026-07-16) matches moonshot/kimi-k3; NanoGPT's 0.45/9.6 price is a discount off the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nothingiisreal/L3.1-70B-Celeste-V0.1-BF16": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "nothingiisreal's Celeste v0.1, a Llama 3.1 70B roleplay/writing fine-tune (per its Hugging Face card); a fine-tune is not meta/llama-3.1-70b-instruct itself and the index has no Celeste entry.",
     "by": "agent",
     "at": "2026-11-12"
   },

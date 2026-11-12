@@ -1,0 +1,9 @@
+{
+  "kat-coder-pro": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Kwaipilot's KAT-Coder-Pro V1, Kuaishou's Kwaipilot agentic coding model (73.4% SWE-Bench Verified, 256K context, per Vercel/Kwaipilot listings); the index has no Kwaipilot/KAT entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

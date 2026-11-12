@@ -34,6 +34,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "iceman-contributor-free": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "OpenCode's Iceman Contributor Free is a stealth model served under a codename, free for a limited time; the maker is undisclosed and third-party fingerprinting is inconclusive, so like Big Pickle/Cat Jam there is no model identity to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "iceman-free": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "OpenCode's Iceman Free is a stealth model served under a codename (added Nov 2026, free for a limited time); the maker is undisclosed and third-party fingerprinting is inconclusive, so there is no model identity to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "muse-spark-1.2-contributor": {
     "decision": "link",
     "model": "meta/muse-spark-1.2",

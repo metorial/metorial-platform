@@ -1,4 +1,11 @@
 {
+  "KBLab/kb-whisper-large": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "KBLab's KB-Whisper Large, the National Library of Sweden's Swedish ASR model fine-tuned from OpenAI Whisper large-v3 (per its Hugging Face card); a fine-tune is not openai/whisper-large-v3 itself and the index has no KB-Whisper entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "intfloat/multilingual-e5-large-instruct": {
     "decision": "link",
     "model": "intfloat/multilingual-e5-large-instruct",

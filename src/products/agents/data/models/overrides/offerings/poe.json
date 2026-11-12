@@ -20,6 +20,69 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "google/imagen-3": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Google DeepMind's Imagen 3 text-to-image model (announced May 2024); the index's Google image models are the Gemini/Nano Banana lines with no Imagen entry, so there is no catalog model to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "google/imagen-3-fast": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Imagen 3 Fast, the speed-and-cost tier of Google DeepMind's Imagen 3 text-to-image model; the index has no Imagen entry, so there is no catalog model to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "google/imagen-4": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Imagen 4, Google DeepMind's fourth-generation text-to-image model unveiled at Google I/O in May 2025; the index has no Imagen entry, so there is no catalog model to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "google/imagen-4-fast": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Imagen 4 Fast, the speed-optimized tier of Google's Imagen 4 text-to-image model; the index has no Imagen entry, so there is no catalog model to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "google/imagen-4-ultra": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Imagen 4 Ultra, the highest-fidelity tier of Google's Imagen 4 text-to-image model; the index has no Imagen entry, so there is no catalog model to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "ideogramai/ideogram": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Ideogram's first-generation text-to-image model; the index has no Ideogram entry at all, so there is no catalog model to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "ideogramai/ideogram-v2": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Ideogram v2 (Aug 2024), Ideogram AI's text-to-image model with inpainting and in-image text rendering; the index has no Ideogram entry, so there is no catalog model to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "ideogramai/ideogram-v2a": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Ideogram v2a, the faster and cheaper variant of Ideogram v2 optimized for speed with minimal quality loss; the index has no Ideogram entry, so there is no catalog model to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "ideogramai/ideogram-v2a-turbo": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Ideogram v2a Turbo, the turbo speed tier of Ideogram's v2a text-to-image model; the index has no Ideogram entry, so there is no catalog model to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "openai/chatgpt-4o-latest": {
     "decision": "link",
     "model": "openai/gpt-4o",
