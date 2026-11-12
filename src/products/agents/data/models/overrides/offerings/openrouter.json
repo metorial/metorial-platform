@@ -395,6 +395,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "particle-ai/particle-1:free": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Free-tier serving of Particle-1 (canonical slug particle-ai/particle-1-20261027), Particle AI's LoRA post-train of DeepSeek V4.1 Flash for agentic coding; a fine-tune is not deepseek/deepseek-v4.1-flash itself and the index has no Particle AI entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "perplexity/sonar-pro-search": {
     "decision": "link",
     "model": "perplexity/sonar-pro",
