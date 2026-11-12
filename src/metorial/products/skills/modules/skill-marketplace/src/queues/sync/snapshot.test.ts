@@ -171,7 +171,7 @@ let destination = (overrides: Record<string, unknown> = {}) => ({
   storageMode: 'manifest',
   currentManifestOid: null,
   currentManifest: null,
-  skillMarketplace: { id: 'mkt_1' },
+  skillMarketplace: { id: 'mkt_1', status: 'active' },
   skillPlugin: null,
   ...overrides
 });
@@ -418,6 +418,22 @@ describe('sync snapshot', () => {
     });
     expect(finish).toHaveBeenCalledWith({ skillDestinationSyncId: 'sync_1' });
     expect(state.manifests).toEqual([]);
+  });
+
+  it('cancels an archived marketplace with a leftover item before building a manifest', async () => {
+    state.items = [{ oid: 1n, skillMarketplace: { id: 'mkt_1' } }];
+    state.sync.destination = destination({
+      skillMarketplace: { id: 'mkt_1', status: 'archived' }
+    });
+
+    await start();
+
+    expect(db.skillDestinationSync.update).toHaveBeenCalledExactlyOnceWith({
+      where: { oid: 7n },
+      data: { status: 'canceled', completedAt: expect.any(Date) }
+    });
+    expect(report).not.toHaveBeenCalled();
+    expect(propagate).not.toHaveBeenCalled();
   });
 
   it.each([

@@ -47,7 +47,12 @@ let sync = {
   status: 'pending',
   isAtRepoSyncStage: false,
   destinationOid: 10n,
-  destination: { tag: 2, storageMode: 'code_bucket' }
+  destination: {
+    tag: 2,
+    storageMode: 'code_bucket',
+    skillMarketplace: { status: 'active' },
+    skillPlugin: null
+  }
 };
 
 describe('sync start', () => {
@@ -110,7 +115,7 @@ describe('sync start', () => {
   it('starts a manifest destination without waiting on the code bucket and records its mode', async () => {
     db.skillDestinationSync.findUnique.mockResolvedValue({
       ...sync,
-      destination: { tag: 2, storageMode: 'manifest' }
+      destination: { ...sync.destination, storageMode: 'manifest' }
     });
     available.mockResolvedValue(false);
 
@@ -122,6 +127,25 @@ describe('sync start', () => {
       data: { status: 'processing', startedAt: expect.any(Date), storageMode: 'manifest' }
     });
     expect(collect).toHaveBeenCalledOnce();
+  });
+
+  it('cancels a queued manifest sync if its marketplace was archived', async () => {
+    db.skillDestinationSync.findUnique.mockResolvedValue({
+      ...sync,
+      destination: {
+        ...sync.destination,
+        storageMode: 'manifest',
+        skillMarketplace: { status: 'archived' }
+      }
+    });
+
+    await run({ skillDestinationSyncId: sync.id });
+
+    expect(db.skillDestinationSync.update).toHaveBeenCalledExactlyOnceWith({
+      where: { oid: sync.oid },
+      data: { status: 'canceled', completedAt: expect.any(Date) }
+    });
+    expect(collect).not.toHaveBeenCalled();
   });
 
   it('restores pending status if dispatch fails so the dispatcher can recover it', async () => {
