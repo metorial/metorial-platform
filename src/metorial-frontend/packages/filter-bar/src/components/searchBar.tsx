@@ -612,10 +612,7 @@ export let FilterSearchBar = ({
             spellCheck={false}
             onChange={e => onChange(e.target.value)}
             onKeyDown={onKeyDown}
-            onFocus={() => {
-              setFocused(true);
-              setOpen(true);
-            }}
+            onFocus={() => setFocused(true)}
             onClick={() => setOpen(true)}
             onBlur={() => {
               setFocused(false);
