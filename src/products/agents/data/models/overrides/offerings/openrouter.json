@@ -97,6 +97,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "kt/midm-k-3.0-pro": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenRouter's listing: KT's Mi:dm K 3.0 Pro, the 120B MoE reasoning model (12B active, hybrid Mamba/MoE/attention) released Oct 29/Nov 5 2026; the index has no KT/Mi:dm entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "liquid/lfm-2.5-2.6b": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -281,6 +288,13 @@
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "OpenRouter's listing: ScaleDown's Extract, a description-driven entity-extraction model (canonicalSlug snapshot 2026-09-28); a real model the index has no ScaleDown entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "tbc/mischief-1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "The Biological Computing Co.'s mischief 1, the neuron-derived image-to-video model built on Wan 2.2, released 2026-10-30 (per TBC's press release and coverage); a real new first-party model the index has no TBC entry for, so defer rather than link the Wan base.",
     "by": "agent",
     "at": "2026-11-12"
   },

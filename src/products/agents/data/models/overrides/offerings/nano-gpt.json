@@ -48,6 +48,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "GalrionSoftworks/MN-LooseCannon-12B-v1": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "GalrionSoftworks' MN-LooseCannon-12B-v1 is a ties-based merge of the Starcannon v3 and Lyra v1 Mistral Nemo builds (per Hugging Face metadata and Featherless); a merge is not any single base model and the index has no LooseCannon entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "Gemma-4-26B-A4B-MeroMero": {
     "decision": "exclude",
     "category": "fine-tune",
@@ -209,6 +216,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "NeverSleep/Lumimaid-v0.2-70B": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NeverSleep's Lumimaid v0.2 70B is a roleplay fine-tune of Llama 3.1 70B Instruct with a refined dataset vs v0.1 (per OpenRouter and Featherless); a fine-tune is not meta/llama-3.1-70b-instruct itself and the index has no Lumimaid entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "Salesforce/Llama-xLAM-2-70b-fc-r": {
     "decision": "exclude",
     "category": "fine-tune",
@@ -307,6 +321,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "TheDrummer/Magidonia-24B-v4.3": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Hugging Face metadata lists Magidonia 24B v4.3 as a fine-tune of mistralai/Magistral-Small-2509 (TheDrummer's creative/roleplay tune, Nov 2025); a fine-tune is not the Magistral base model and the index has no Magidonia entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "TheDrummer/artemis-31b-v1.2": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -360,6 +381,13 @@
     "decision": "exclude",
     "category": "other",
     "reason": "AionLabs' own listing: Aion 3.5 Mini is the smaller sibling using the same collaborative multi-model generation process built on the GLM family. Not a single catalog model, and the index has no Aion 3.5 entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "anthracite-org/magnum-v2-72b": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Hugging Face metadata lists Magnum v2 72B as a fine-tune of Qwen/Qwen2-72B-Instruct (Anthropic's Claude-prose roleplay tune, Aug 2024); a fine-tune is not the Qwen base model and the index has no Magnum v2 entry (only v4).",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -497,6 +525,13 @@
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "Elorian's Glimpse, the startup's first visual-thinking model, released 2026-10-16 as a research preview (per Elorian's announcement and coverage); a real new first-party model the index has no entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "failspy/Meta-Llama-3-70B-Instruct-abliterated-v3.5": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "failspy's Meta-Llama-3-70B-Instruct-abliterated-v3.5 removes Llama 3 70B Instruct's refusal behavior via orthogonalization in the weights (per its Hugging Face card); a weight-edited derivative is not the Llama base model and the index has no entry.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -791,6 +826,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "inception/mercury-2.5-preview": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Inception's Mercury 2.5 Preview (released 2026-09-01) is a separate preview checkpoint from the GA Mercury 2.5 (2026-09-08); the index has only inception/mercury-2.5, so defer rather than link the GA model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "inclusionai/ling-3.0-tiny": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -802,6 +844,13 @@
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "NanoGPT's thinking-mode serving of inclusionAI's Ling 3.0 Tiny (7.9B-total/1.3B-active MoE, Hugging Face inclusionAI/Ling-3.0-tiny, Aug 2026); a mode of a model the index lacks, so defer with it.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "inflatebot/MN-12B-Mag-Mell-R1": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "inflatebot's Mag Mell R1 ('R1' = Revision 1, predating DeepSeek R1) is a multi-stage merge of Mistral Nemo builds including Sunrose and magnum-v2.5-12b-kto (per Hugging Face metadata); a merge is not any single base and the index has no Mag Mell entry.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -833,6 +882,34 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "meganova-ai/manta-flash-1.0": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "MegaNova AI's own Manta Flash 1.0, its efficient low-latency text tier (per MegaNova's console and docs); a real first-party model the index has no Manta entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meganova-ai/manta-mini-1.0": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "MegaNova AI's own Manta Mini 1.0, the lightweight speed/cost tier of its Manta line (per MegaNova's console and docs); a real first-party model the index has no Manta entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meganova-ai/manta-pro-1.0": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "MegaNova AI's own Manta Pro 1.0 flagship for deep reasoning, long-form generation and RAG (per MegaNova's console and docs); a real first-party model the index has no Manta entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "mercury-coder-small": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Inception's Mercury Coder Small Beta, the compact low-latency coding diffusion LLM from the original Mercury Coder line (early 2025, per Vercel/CloudPrice listings); the index has only the later Mercury 2/2.5/3 line, no Mercury Coder entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "meta-llama/llama-3.3-70b-instruct": {
     "decision": "link",
     "model": "meta/llama-3.3-70b-instruct",
@@ -854,10 +931,45 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "minimax/minimax-01": {
+    "decision": "link",
+    "model": "minimax/minimax-text-01",
+    "reason": "NanoGPT's 'MiniMax 01' serves MiniMax-Text-01, the text member of the MiniMax-01 series (456B MoE released 2025-01-15): text/PDF-only input and the 1,000,192-token window match the Text-01 checkpoint; the index entry is minimax/minimax-text-01.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "minimax/minimax-m2.7-turbo": {
+    "decision": "link",
+    "model": "minimax/minimax-m2.7",
+    "reason": "MiniMax M2.7 Turbo is a speed-optimized serving of the MiniMax-M2.7 checkpoint (DeepInfra: 'a speed-optimized endpoint for MiniMax-M2.7', same 2026-03-18 release); a fast serving is still minimax/minimax-m2.7.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "mistral-code-agent-latest": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Mistral's Mistral Code Agent alias (listed Aug 30, 2026 with 262K context by Eden AI/LLMSCAPE); the index has no Mistral Code entry and the -latest alias's current target is not documented, so defer rather than guess.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "mistral-code-latest": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Mistral's Mistral Code alias (listed Aug 30, 2026 by Eden AI at 0.3/0.9 with 256K context); the index has no Mistral Code entry and the -latest alias's current target is not documented, so defer rather than guess.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "mistralai/devstral-small-2505": {
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "Mistral/All Hands AI's Devstral Small 2505 (Hugging Face repo created 2025-05-12, fine-tuned from Mistral-Small-3.1); the index has only the later devstral-small-2507 and Small 2 checkpoints, so defer rather than link the wrong Devstral.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "moondream/moondream3-preview": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Moondream's Moondream 3 Preview, the 9B-total/2B-active MoE vision-language model released Sep 2025 (per Moondream's blog and the Hugging Face card); a real first-party model the index has no Moondream entry for.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -956,6 +1068,27 @@
     "decision": "link",
     "model": "google/gemma-3-12b-it",
     "reason": "unsloth/gemma-3-12b-it is Unsloth's mirror of Google's Gemma 3 12B IT instruction-tuned checkpoint (image-text-to-text, released 2025-03-12); same model as google/gemma-3-12b-it, and NanoGPT's flat 0.272 rate is above the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "xiaomi/mimo-v2.6-flash-abliterated": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "An abliterated derivative of Xiaomi's MiMo-V2.6-Flash with the refusal direction removed via the Heretic method (per Heabsy and vendor listings); a weight-edited derivative is not xiaomi/mimo-v2.6-flash itself and the index has no entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "xiaomi/mimo-v2.6-flash-uncensored": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "dealignai's lower-refusal MiMo-V2.6-Flash fine-tune with refusal behavior removed at the weight level — NanoGPT's own page calls it 'a lower-refusal MiMo V2.6 Flash finetune'; a weight-edited derivative is not xiaomi/mimo-v2.6-flash itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "xiaomi/mimo-v2.6-flash-uncensored:thinking": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "The :thinking suffix is thinking-mode serving of dealignai's lower-refusal MiMo-V2.6-Flash fine-tune (refusals removed in the weights per NanoGPT's own page); a thinking mode of a fine-tune is still not xiaomi/mimo-v2.6-flash itself.",
     "by": "agent",
     "at": "2026-11-12"
   },

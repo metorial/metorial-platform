@@ -27,6 +27,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "metis": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "GreenPT's Metis, its EU-hosted decision model that returns a calibrated probability for each answer option in one pass (released Oct 2026, per GreenPT's blog and coverage); the index has no GreenPT entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "qwen3-235b-a22b-instruct-2507": {
     "decision": "link",
     "model": "alibaba/qwen3-235b-a22b-instruct-2507",

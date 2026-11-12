@@ -55,6 +55,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "google/lyria": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Poe's listing of Google DeepMind's Lyria text-to-music model; the index has only the Lyria 3.x/RealTime checkpoints and the listing does not say which generation Poe serves, so defer rather than guess.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "ideogramai/ideogram": {
     "decision": "exclude",
     "category": "non-chat",

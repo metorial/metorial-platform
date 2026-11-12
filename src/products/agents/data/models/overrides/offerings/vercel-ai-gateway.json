@@ -83,6 +83,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "inception/mercury-coder-small": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Vercel lists Inception's Mercury Coder Small Beta, the compact diffusion coding model from the original Mercury Coder line (early 2025, per Vercel/CloudPrice listings); the index has only the later Mercury 2/2.5/3 line, no Mercury Coder entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "interfaze/interfaze-beta": {
     "decision": "exclude",
     "category": "other",
@@ -171,6 +178,20 @@
     "decision": "link",
     "model": "meta/muse-spark-1.3",
     "reason": "Muse Spark 1.3 Contributor is the same Muse Spark 1.3 weights under Meta's discounted contributor-mode pricing (0.1/0.2, in exchange for Meta training on request content); still meta/muse-spark-1.3.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "microsoft/mai-transcribe-2-streaming": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Microsoft AI's MAI-Transcribe-2-Streaming, its first streaming speech-to-text model, released 2026-10-01 — a separate checkpoint from the Sep 2026 batch MAI-Transcribe-2; the index has no streaming entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "microsoft/microsoft-decision-1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Microsoft-Decision-1, Microsoft AI's decision-scoring model post-trained from Qwen3.5-9B and released Oct 2026 in Foundry (per Microsoft's announcement); the index has no entry (only Google's Gemini Decision 1), so defer.",
     "by": "agent",
     "at": "2026-11-12"
   },

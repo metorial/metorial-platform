@@ -1,8 +1,29 @@
 {
+  "clarifai/main/models/mm-poly-8b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Clarifai's own MM Poly 8B multimodal model for analyzing text, images, documents and rich media (per its listing); the index has no Clarifai first-party entry and the underlying model is not identified, so defer rather than guess.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "deepseek-ai/deepseek-ocr/models/DeepSeek-OCR": {
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "The original DeepSeek-OCR (HF deepseek-ai/DeepSeek-OCR, Oct 2025, 3B vision-language OCR model, MIT); the index only has the later DeepSeek OCR 2 (Jan 2026), a separate checkpoint.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "mistralai/completion/models/Ministral-3-14B-Reasoning-2512": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Mistral's Ministral-3-14B-Reasoning-2512, the reasoning post-train of the Ministral 3 14B family (per its Hugging Face card) — a separate checkpoint from the Instruct variant; the index has no Reasoning-2512 entry, so defer rather than link the instruct model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "mistralai/completion/models/Ministral-3-3B-Reasoning-2512": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Mistral's Ministral-3-3B-Reasoning-2512, the reasoning post-train of the Ministral 3 3B family (per its Hugging Face card) — a separate checkpoint from the Instruct variant; the index has no Reasoning-2512 entry, so defer rather than link the instruct model.",
     "by": "agent",
     "at": "2026-11-12"
   }

@@ -55,6 +55,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "minimax-m3-preview": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Venice's MiniMax M3 Preview, the preview build of MiniMax's M-series flagship (512K context per VeniceStats) — a separate checkpoint from the GA minimax-m3 (Jun 2026, 1M context); the index has no m3-preview entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "openai-gpt-61-sol-ultrafast": {
     "decision": "link",
     "model": "openai/gpt-6.1-sol",

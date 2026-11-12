@@ -19,5 +19,12 @@
     "reason": "Moonshot's kimi-k2-turbo-preview, a preview checkpoint listed since Aug 2025 that aggregators variously describe as a fast serving of Kimi K2 or of the long-thinking K2; with no exact index entry and conflicting release dates, defer rather than link kimi-k2 or kimi-k2-thinking-turbo.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Abacus serves Meta's Llama 3.1 405B Instruct, with 'Turbo' a serving tier of the same checkpoint (128K context, 3.5/3.5); the index has no Llama 3.1 405B entry at all (only 8B/70B and later generations), so defer rather than link the wrong Llama.",
+    "by": "agent",
+    "at": "2026-11-12"
   }
 }
