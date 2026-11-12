@@ -8,8 +8,9 @@ look wrong. Your job is to record one decision per issue you are given.
 
 - The issue batch file named in the task: a JSON array. Each issue has a `key`, a `kind`, a
   `problem`, the `file` to edit, the offering as the vendor lists it, and evidence: the vendor's
-  listing text, Hugging Face metadata when the name is a Hugging Face repo, the model it is
-  currently linked to, and `candidates`, the catalog models whose names look closest.
+  listing text, Hugging Face metadata when the name is a Hugging Face repo, `webSearch` (the top
+  results of a web search for the name: title, url, snippet; absent when search was unavailable),
+  the model it is currently linked to, and `candidates`, the catalog models whose names look closest.
 - The model index named in the task: one catalog model per line (id, name, lab, kind, status,
   release date). Search it with `grep` before deciding; the candidates are only a hint.
 - `overrides/README.md`: the exact file format. Read it first.
@@ -36,6 +37,11 @@ the existing entries untouched. Edit nothing else; any other change is discarded
   Defer rather than guess. A wrong link is worse than an unlinked offering.
 
 Model ids must come from the model index, character for character. Never construct one.
+
+Web search results are hints, often from aggregator sites that get details wrong. Use them to learn
+what a new name is (who made it, whether it is a fine-tune, a distill or a revision of another
+model, its release date), and trust a lab's own page or a Hugging Face card over an aggregator. A
+search result never justifies a `link` on its own; the target must also be in the model index.
 
 Write a short, factual `reason` for each decision: the evidence you used. Do not set `by` or `at`.
 
