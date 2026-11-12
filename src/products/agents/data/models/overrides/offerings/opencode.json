@@ -27,6 +27,48 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "fledge-alpha-free": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "OpenCode Zen's Fledge Alpha Free is a stealth free-tier preview codename: the maker is undisclosed and third-party research can only speculate it routes to hidden models; like Big Pickle/Cat Jam Free, there is no model identity to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "iceman-contributor-free": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "OpenCode's Iceman Contributor Free is a stealth model served under a codename, free for a limited time; the maker is undisclosed and third-party fingerprinting is inconclusive, so like Big Pickle/Cat Jam there is no model identity to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "iceman-free": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "OpenCode's Iceman Free is a stealth model served under a codename (added Nov 2026, free for a limited time); the maker is undisclosed and third-party fingerprinting is inconclusive, so there is no model identity to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "ling-2.6-flash-free": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenCode's free tier of inclusionAI's Ling-2.6-flash, the instant (instruct) model with 104B total and 7.4B active parameters (announced Apr 2026); the index's Ling line starts at 3.0, so defer the free serving with the model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "ling-3.0-tiny-free": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenCode's free tier of inclusionAI's Ling 3.0 Tiny (7.9B-total/1.3B-active MoE, Aug 2026; Vercel/OpenCode listings confirm it is the same model's free window); the index has no Ling Tiny entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "ll-alpha-free": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "OpenCode's LL Alpha Free is a stealth-model free tier whose underlying model is undisclosed (listed under the Stealth provider on OpenCode Zen, per Defapi/Models.sulat listings); like Big Pickle and the other OpenCode stealth codenames, there is no model identity to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "muse-spark-1.2-contributor": {
     "decision": "link",
     "model": "meta/muse-spark-1.2",

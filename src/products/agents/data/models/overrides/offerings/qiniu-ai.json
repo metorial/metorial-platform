@@ -62,6 +62,34 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "kling-v2-6": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Kuaishou's Kling 2.6 (Kling-V2 6), the video model with native synchronized audio-visual generation released autumn 2026; the index's Kling line has only video-o1 and the v3.0 pair, no 2.6 entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meituan/longcat-flash-chat": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Meituan's LongCat-Flash-Chat, the open-weight 560B-total/~27B-active MoE released Sept 2025 (per Meituan's announcement and coverage); the index's LongCat line starts at 2.0, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meituan/longcat-flash-lite": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Meituan's LongCat-Flash-Lite, the open-weight 68.5B-total MoE with 2.9-4.5B active parameters (Hugging Face meituan-longcat/LongCat-Flash-Lite, Feb 2026, 256K context); the index's LongCat line starts at 2.0, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "stepfun-ai/gelab-zero-4b-preview": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "StepFun's GELab-Zero-4B-preview is a 4B GUI-agent model fine-tuned from Qwen/Qwen3-VL-4B-Instruct (per Hugging Face metadata); a fine-tune is not the Qwen base model and the index has no GELab entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "z-ai/autoglm-phone-9b": {
     "decision": "defer",
     "until": "2026-12-12",

@@ -1,0 +1,9 @@
+{
+  "google/gemma-3": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Inference.net lists a generic 'Google Gemma 3' without a size; the open family spans 1B/4B/12B/27B and nothing in the listing identifies which checkpoint is served, so it cannot be pinned.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

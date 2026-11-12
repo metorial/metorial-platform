@@ -33,5 +33,19 @@
     "reason": "SiliconFlow serves Google's Gemma 4 31B IT checkpoint (google/gemma-4-31B-it on Hugging Face, Apache 2.0); same model as google/gemma-4-31b-it, at SiliconFlow's higher 0.75/1 price.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "inclusionAI/Ling-flash-2.0": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "inclusionAI's Ling-flash-2.0, the 100B-total/6.1B-active MoE of the Ling 2.0 series (Hugging Face inclusionAI/Ling-flash-2.0, MIT, Sept 2025); the index's Ling line starts at 3.0, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "tencent/Hunyuan-A13B-Instruct": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "SiliconFlow serves Tencent's Hunyuan-A13B-Instruct, the open-weight 80B-total/13B-active MoE (Hugging Face, June 2025); the index has no Hunyuan A13B entry, so defer rather than link another Hunyuan model.",
+    "by": "agent",
+    "at": "2026-11-12"
   }
 }

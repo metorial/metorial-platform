@@ -76,10 +76,66 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "elorian/glimpse": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenRouter lists Elorian's Glimpse (canonical slug elorian/glimpse-20261016), the startup's first visual-thinking model released 2026-10-16 as a research preview; a real new first-party model the index has no entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "inclusionai/ling-3.0-tiny": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "inclusionAI's Ling 3.0 Tiny, the 7.9B-total/1.3B-active MoE small member of the Ling 3.0 family (OpenRouter lists Hugging Face inclusionAI/Ling-3.0-tiny, Aug 2026); a separate model from Ling 3.0 Flash and absent from the index, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "inclusionai/ling-3.1-flash": {
     "decision": "link",
     "model": "inclusionai/ling-3.1-flash",
     "reason": "OpenRouter lists inclusionAI's Ling 3.1 Flash (Hugging Face inclusionAI/Ling-3.1-flash, 560B MoE with 25B active, hybrid reasoning), matching inclusionai/ling-3.1-flash; its 0.045/0.135 rate is a discount off the model's 0.3 median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "kt/midm-k-3.0-pro": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenRouter's listing: KT's Mi:dm K 3.0 Pro, the 120B MoE reasoning model (12B active, hybrid Mamba/MoE/attention) released Oct 29/Nov 5 2026; the index has no KT/Mi:dm entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "liquid/lfm-2.5-2.6b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenRouter's listing (Hugging Face LiquidAI/LFM2.5-2.6B) of Liquid AI's compact reasoning model (Aug 2026, 128K context); the index has no LFM2.5 chat entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "liquid/lfm-2.5-2.6b:free": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenRouter's free tier of Liquid AI's LFM2.5-2.6B, the same Hugging Face checkpoint LiquidAI/LFM2.5-2.6B (Aug 2026); the index has no LFM2.5 chat entry, so defer the free serving with it.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "liquid/lfm-2.5-24b-a2b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Liquid AI's LFM2.5-24B-A2B, the 24B MoE reasoning model with 2.45B active parameters (OpenRouter lists Hugging Face LiquidAI/LFM2.5-24B-A2B, released 2026-10-13); a new LFM2.5 generation distinct from LFM2-24B-A2B and absent from the index, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "liquid/lfm-3-1.7b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Liquid AI's LFM3-1.7B, the text model of the third-generation LFM3 family (OpenRouter lists Hugging Face LiquidAI/LFM3-1.7B, 1.73B parameters, 256K context, announced 2026-10-27); the index has no LFM3 entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "liquid/lfm-3-1.7b:free": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenRouter's free tier of Liquid AI's LFM3-1.7B, the same Hugging Face checkpoint LiquidAI/LFM3-1.7B (announced 2026-10-27); the index has no LFM3 entry, so defer the free serving with it.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -111,6 +167,90 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "openai/gpt-3.5-turbo-16k": {
+    "decision": "link",
+    "model": "openai/gpt-3.5-turbo",
+    "reason": "OpenRouter lists OpenAI's gpt-3.5-turbo-16k, the same GPT-3.5 Turbo model served with the 16K context window (the index entry already lists 16,385 tokens); still openai/gpt-3.5-turbo.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6-astra-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6-astra",
+    "reason": "OpenRouter's listing: GPT-6 Astra Pro is the same underlying model as GPT-6 Astra served with reasoning.mode set to pro; a pro reasoning-mode serving is still openai/gpt-6-astra at the 10/50 pro rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6-astra-pro:batch": {
+    "decision": "link",
+    "model": "openai/gpt-6-astra",
+    "reason": "The :batch suffix is batch pricing for GPT-6 Astra Pro, the pro reasoning-mode serving of the GPT-6 Astra checkpoint (per OpenRouter's listing); same model as openai/gpt-6-astra at discounted batch rates (5/25).",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6-luna-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6-luna",
+    "reason": "OpenRouter's listing: GPT-6 Luna Pro is the same underlying model as GPT-6 Luna served with reasoning.mode set to pro; a pro reasoning-mode serving is still openai/gpt-6-luna at the 0.1/0.5 pro rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6-luna-pro:batch": {
+    "decision": "link",
+    "model": "openai/gpt-6-luna",
+    "reason": "The :batch suffix is batch pricing for GPT-6 Luna Pro, the pro reasoning-mode serving of the GPT-6 Luna checkpoint (per OpenRouter's listing); same model as openai/gpt-6-luna at discounted batch rates (0.05/0.25).",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6-sol-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6-sol",
+    "reason": "OpenRouter's listing: GPT-6 Sol Pro is the same underlying model as GPT-6 Sol served with reasoning.mode set to pro; a pro reasoning-mode serving is still openai/gpt-6-sol at the 2/10 pro rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6.1-sol-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6.1-sol",
+    "reason": "OpenRouter's listing: GPT-6.1 Sol Pro is the same underlying model as GPT-6.1 Sol served with reasoning.mode set to pro; a pro reasoning-mode serving is still openai/gpt-6.1-sol at the 2/10 pro rate (canonicalSlug gpt-6.1-sol-pro-20260929).",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6.1-sol-pro:batch": {
+    "decision": "link",
+    "model": "openai/gpt-6.1-sol",
+    "reason": "The :batch suffix is OpenRouter's half-price batch tier of GPT-6.1 Sol Pro, the same GPT-6.1 Sol checkpoint served with reasoning.mode set to pro; still openai/gpt-6.1-sol at the 1/5 batch rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6.1-terra-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6.1-terra",
+    "reason": "OpenRouter's listing: GPT-6.1 Terra Pro is the same underlying model as GPT-6.1 Terra served with reasoning.mode set to pro; a pro reasoning-mode serving is still openai/gpt-6.1-terra at the 1/5 pro rate (canonicalSlug gpt-6.1-terra-pro-20261026).",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6.1-terra-pro:batch": {
+    "decision": "link",
+    "model": "openai/gpt-6.1-terra",
+    "reason": "The :batch suffix is OpenRouter's half-price batch tier of GPT-6.1 Terra Pro, the same GPT-6.1 Terra checkpoint served with reasoning.mode set to pro; still openai/gpt-6.1-terra at the 0.5/2.5 batch rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-image-2.6-flare": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenAI's GPT Image 2.6 Flare, released 2026-11-04 (per its dated OpenRouter slug and aggregator listings); a new generation the index has no 2.6 entry for (only gpt-image-2.5-flare), so defer rather than link the 2.5 model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-image-2.6-sunburst": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenAI's GPT Image 2.6 Sunburst, released 2026-11-04 alongside GPT Image 2.6 Flare; a new generation the index has no 2.6 entry for (only gpt-image-2.5-sunburst), so defer rather than link the 2.5 model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "openai/gpt-oss-120b:batch": {
     "decision": "link",
     "model": "openai/gpt-oss-120b",
@@ -137,10 +277,31 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "recursive/flint-v1.0:free": {
+    "decision": "link",
+    "model": "recursive/flint",
+    "reason": "The :free suffix is OpenRouter's free tier of Recursive's Flint, the open-weight MoE for coding agents (Hugging Face RecursiveSI/flint, ~2.5B active of 40B, released 2026-10-21); same checkpoint as recursive/flint, free with rate limits.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "scaledown/extract": {
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "OpenRouter's listing: ScaleDown's Extract, a description-driven entity-extraction model (canonicalSlug snapshot 2026-09-28); a real model the index has no ScaleDown entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "tbc/mischief-1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "The Biological Computing Co.'s mischief 1, the neuron-derived image-to-video model built on Wan 2.2, released 2026-10-30 (per TBC's press release and coverage); a real new first-party model the index has no TBC entry for, so defer rather than link the Wan base.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "tencent/hunyuan-a13b-instruct": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenRouter's listing: Tencent's Hunyuan-A13B, a 13B-active/80B-total open-weight MoE (tencent/Hunyuan-A13B-Instruct on Hugging Face); a real model the index has no Hunyuan A13B entry for, so defer rather than link another Hunyuan.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -162,6 +323,20 @@
     "decision": "link",
     "model": "zhipu/glm-5.3",
     "reason": "Z.ai's GLM-5.3 (zai-org/GLM-5.3 on Hugging Face, launched 2026-08-14, same base model as GLM-5.2 with post-training gains) matches zhipu/glm-5.3; OpenRouter's 0.0699/1.4 rate is a discount off the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "z-ai/glm-5.3-flashx-legal": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenRouter's listing: Z.ai's GLM-5.3-FlashX-Legal (GLM-Legal), the legal-domain mid/post-training variant of GLM-5.3-FlashX (canonicalSlug 20261102); the index has no GLM-Legal or FlashX entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "z-ai/glm-5.3-prime": {
+    "decision": "link",
+    "model": "zhipu/glm-5.3",
+    "reason": "OpenRouter's listing: GLM-5.3-Prime is the high-speed variant of GLM-5.3 inheriting its full capabilities via inference acceleration (canonicalSlug 20260921); a fast serving of the checkpoint is still zhipu/glm-5.3 at the 2.8/8.8 speed tier.",
     "by": "agent",
     "at": "2026-11-12"
   },

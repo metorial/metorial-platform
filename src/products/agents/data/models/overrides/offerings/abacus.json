@@ -5,5 +5,26 @@
     "reason": "DeepSeek-V3.1-Terminus (Hugging Face release 2025-09-22) is a separate checkpoint update from V3.1 that fixes language-mixing and agent issues (per DeepSeek's release notes); the index has no terminus entry, so defer rather than link to deepseek/deepseek-v3.1.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "grok-4-0709": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "grok-4-0709 is xAI's API id for Grok 4 (released 2025-07-09, 256K context, per xAI docs and coverage); the index has no base Grok 4 entry (only the fast variants and later 4.x generations), so defer rather than link the wrong Grok.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "kimi-k2-turbo-preview": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Moonshot's kimi-k2-turbo-preview, a preview checkpoint listed since Aug 2025 that aggregators variously describe as a fast serving of Kimi K2 or of the long-thinking K2; with no exact index entry and conflicting release dates, defer rather than link kimi-k2 or kimi-k2-thinking-turbo.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Abacus serves Meta's Llama 3.1 405B Instruct, with 'Turbo' a serving tier of the same checkpoint (128K context, 3.5/3.5); the index has no Llama 3.1 405B entry at all (only 8B/70B and later generations), so defer rather than link the wrong Llama.",
+    "by": "agent",
+    "at": "2026-11-12"
   }
 }

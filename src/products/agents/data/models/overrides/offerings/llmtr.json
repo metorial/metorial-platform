@@ -6,6 +6,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "magibu-11b-v8": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Magibu AI Research's Magibu 11B v0.8, a Turkish-focused multimodal model (Hugging Face magibu/magibu-11b-v0.8, linked from LLMTR's own listing); a real model the index has no Magibu entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "medgemma-4b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Google's MedGemma 4B, the healthcare multimodal model built on Gemma 3 under the Health AI Developer Foundations program (May 2025, per the Hugging Face model card); the index has no MedGemma entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "meta/muse-spark-1.2-contributor": {
     "decision": "link",
     "model": "meta/muse-spark-1.2",

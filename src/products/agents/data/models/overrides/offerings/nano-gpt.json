@@ -27,6 +27,258 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "Envoid/Llama-3.05-NT-Storybreaker-Ministral-70B": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Envoid's Llama-3.05-NT-Storybreaker-Ministral-70B is an experimental reverse-distillation merging Ministral roleplay behaviors into a 70B Llama variant (per Featherless listing; Hugging Face, cc-by-nc-4.0); a merge is not any single base model, so exclude.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Envoid/Llama-3.05-Nemotron-Tenyxchat-Storybreaker-70B": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Envoid's Llama-3.05-Nemotron-Tenyxchat-Storybreaker-70B is a community roleplay fine-tune/merge built on a Llama 3.x Nemotron base (Hugging Face, cc-by-nc-4.0); a fine-tune is not the Llama base model and the index has no Storybreaker entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "GLM-4.6-Derestricted-v5": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "ArliAI's GLM-4.6-Derestricted-v5, a derestricted build of Z.ai's 355B GLM-4.6 with refusal behavior modified to reduce refusals (per ArliAI/muapi listings); a weight-edited derivative is not zhipu/glm-4.6 itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "GalrionSoftworks/MN-LooseCannon-12B-v1": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "GalrionSoftworks' MN-LooseCannon-12B-v1 is a ties-based merge of the Starcannon v3 and Lyra v1 Mistral Nemo builds (per Hugging Face metadata and Featherless); a merge is not any single base model and the index has no LooseCannon entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-26B-A4B-MeroMero": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "zerofata's G4-MeroMero-26B-A4B is a community NVFP4 fine-tune/merge of google/gemma-4-26B-A4B-it for roleplay (per its Hugging Face repos); a fine-tune is not google/gemma-4-26b-a4b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-26B-A4B-MeroMero:thinking": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "The :thinking suffix is thinking-mode serving of zerofata's G4-MeroMero-26B-A4B, a community fine-tune/merge of google/gemma-4-26B-A4B-it; a fine-tune is not google/gemma-4-26b-a4b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-Agares-v1": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "DarkArtsForge's Agares-31B-v1 is a merge of community Gemma 4 31B fine-tunes (per its Hugging Face card); a merge is not google/gemma-4-31b-it itself and the index has no Agares entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-Animus-V14.1": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page calls Gemma 4 31B Animus V14.1 a community creative finetune for reasoning, multimodal chat and roleplay; a fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-AssGuard": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Ateron's Gemma-4-AssGuard-31B is a multi-phase mergekit build on the Gemma 4 architecture (per its Hugging Face card); a merge is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-Claude-4.6-Opus-Reasoning-Distilled": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "TeichAI's Gemma 4 31B fine-tune distilled from Claude Opus 4.6 reasoning traces, built on unsloth/gemma-4-31B-it (per its Hugging Face card); a distill built on a model is neither google/gemma-4-31b-it nor any Claude model itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-Cognitive-Unshackled": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "aifeifei798's Gemma-4-31B-Cognitive-Unshackled removes Gemma 4 31B's refusal behavior via Surgical Orthogonalization in the weights (per its Hugging Face card); a weight-edited derivative is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-Dark-Gemistry": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Nimbz's Gemma-4-Dark-Gemistry-31B is a Gemma 4-based merge integrating multiple community fine-tunes for roleplay (per Featherless/HF); a merge is not google/gemma-4-31b-it itself and the index has no Dark Gemistry entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-DarkIdol": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "aifeifei798's DarkIdol-Gemma-4-31B-it is a Gemma-4 instruction-tuned derivative engineered to bypass refusal templates (per Featherless/HF); a fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-Fabled": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page: Fabled is an ArliAI-hosted Gemma 4 31B finetune for mythic narrative writing, adventure scenes and multimodal roleplay; a fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-GarnetV2": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "ConicCat's Gemma4-GarnetV2-31B is a Gemma 4-based community fine-tune for prose, roleplay and longform writing (per Featherless/HF); a fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-Gembrain-X-Core": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Nimbz's Gemma-4-Gembrain-X-Core-31B is a Gemma 4-based community merge model for creative writing, roleplay and reasoning (per Featherless/HF); a merge is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-Gembrain-uncensored-heretic": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "llmfan46's Gemma-4-Gembrain-31B-it-uncensored-heretic decensors the community Gembrain build with the Heretic method (per its Hugging Face card); a weight-edited derivative is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-Isometry-RP": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "maldv's Gemma-4-31B-Isometry-RP is an isometric, activation-weighted merge of google/gemma-4-31B-it (per its Hugging Face card); a merge is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-K1-v5": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "ArliAI's Gemma 4 31B K1 v5, recommended by ArliAI for distillation use; a community distill/fine-tune served on the Gemma 4 31B base, not google/gemma-4-31b-it itself, and the index has no K1 entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-MeroMero": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "zerofata's G4-MeroMero-31B is a finetune of Gemma 4 31B designed for creative tasks (per its Hugging Face card); a fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-MeroMero-v2": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "zerofata's G4-MeroMero-v2-31B is a finetune of Gemma 4 31B for narrative roleplay (per its Hugging Face card); a fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-MeroMero-v2:thinking": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "The :thinking suffix is thinking-mode serving of zerofata's G4-MeroMero-v2-31B, itself a finetune of Gemma 4 31B (per its Hugging Face card); a fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-Novelist": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page: Gemma 4 31B Novelist is an ArliAI-hosted community creative finetune for storytelling and roleplay; a fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-Queen": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "aifeifei798's Gemma-4-Queen-31B-it is a community instruction-tuned Gemma-4 derivative for logical reasoning (per Featherless/HF); a fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-SDFT-Heretic-RP": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Ilya626's gemma-4-31B-it-SDFT-Heretic-RP is an RP fine-tune of the uncensored Heretic SDFT line on Gemma 4 31B (per its Hugging Face card); a fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-StyleTune": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Gryphe's Gemma-4-31B-StyleTune fine-tunes Gemma 4 31B's lm_head output projection to change writing style (per its Hugging Face card); a fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "LLM360/K2-Think": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "LLM360/MBZUAI's K2-Think is a 32B general reasoning model fine-tuned from Qwen2.5-32B (per its Hugging Face card) — despite the name it is not Moonshot's Kimi K2 — and the index has no LLM360 entry, so there is no model to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "NeverSleep/Lumimaid-v0.2-70B": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NeverSleep's Lumimaid v0.2 70B is a roleplay fine-tune of Llama 3.1 70B Instruct with a refined dataset vs v0.1 (per OpenRouter and Featherless); a fine-tune is not meta/llama-3.1-70b-instruct itself and the index has no Lumimaid entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Salesforce/Llama-xLAM-2-70b-fc-r": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Salesforce's Llama-xLAM-2-70b-fc-r is a Large Action Model fine-tuned from a Llama 70B base for multi-turn function calling (Hugging Face, cc-by-nc-4.0, Mar 2025); a fine-tune is not the Llama base model and the index has no xLAM entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Sao10K/L3-8B-Stheno-v3.2": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Sao10K's Stheno v3.2, a Llama 3 8B roleplay/creative-writing fine-tune; the index has Sao10K's Lunaris and Euryale models but no Stheno entry, and a fine-tune is not its Llama base model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Sao10K/L3.1-70B-Hanami-x1": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Sao10K's Hanami x1, an experimental fine-tune built over Euryale v2.2 (per LLMIndex and its Hugging Face card); a derivative is not sao10k/l3.1-euryale-70b itself and the index has no Hanami entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Steelskull/L3.3-Cu-Mai-R1-70b": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Steelskull's Cu Mai R1 70B, an SCE merge of TheSkullery's Hydroblated-R1 base with EVA-LLaMA and Euryale components (per its Hugging Face card); a community merge is not its base model and the index has no Steelskull entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Steelskull/L3.3-Electra-R1-70b": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Steelskull's Electra R1 70B, built on a custom DeepSeek R1 distill base (TheSkullery Hydroblated-R1) with SCE-merged components (per its Hugging Face card); a community merge/distill not in the index.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Steelskull/L3.3-MS-Nevoria-70b": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Steelskull's Nevoria 70B, an SCE merge of EVA-LLaMA 3.33, Euryale v2.3 and Negative LLAMA (per its Hugging Face card); a community merge is none of its components and the index has no Steelskull entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Steelskull/L3.3-Nevoria-R1-70b": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Steelskull's Nevoria R1 70B, an SCE merge of EVA-LLaMA, Euryale v2.3, Negative LLAMA and a DeepSeek R1 distill (per its Hugging Face card); a community merge is none of its components and the index has no Steelskull entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "TEE/gemma-4-26b-a4b-uncensored": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "The 'Uncensored (Heretic)' build removes refusal behavior directly in the weights of google/gemma-4-26B-A4B-it via directional ablation (per vendor listings), served in a TEE; a weight-edited derivative is not the base model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "TheDrummer/Anubis-70B-v1": {
     "decision": "exclude",
     "category": "fine-tune",
@@ -66,6 +318,13 @@
     "decision": "exclude",
     "category": "fine-tune",
     "reason": "Hugging Face metadata lists Cydonia 24B v4.3 as a fine-tune of mistralai/Mistral-Small-3.2-24B-Instruct-2506 (Nov 2025); a fine-tune is not the Mistral base model and the index has no v4.3 entry (only v4.1).",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "TheDrummer/Magidonia-24B-v4.3": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Hugging Face metadata lists Magidonia 24B v4.3 as a fine-tune of mistralai/Magistral-Small-2509 (TheDrummer's creative/roleplay tune, Nov 2025); a fine-tune is not the Magistral base model and the index has no Magidonia entry.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -122,6 +381,13 @@
     "decision": "exclude",
     "category": "other",
     "reason": "AionLabs' own listing: Aion 3.5 Mini is the smaller sibling using the same collaborative multi-model generation process built on the GLM family. Not a single catalog model, and the index has no Aion 3.5 entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "anthracite-org/magnum-v2-72b": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Hugging Face metadata lists Magnum v2 72B as a fine-tune of Qwen/Qwen2-72B-Instruct (Anthropic's Claude-prose roleplay tune, Aug 2024); a fine-tune is not the Qwen base model and the index has no Magnum v2 entry (only v4).",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -255,10 +521,220 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "elorian/glimpse": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Elorian's Glimpse, the startup's first visual-thinking model, released 2026-10-16 as a research preview (per Elorian's announcement and coverage); a real new first-party model the index has no entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "failspy/Meta-Llama-3-70B-Instruct-abliterated-v3.5": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "failspy's Meta-Llama-3-70B-Instruct-abliterated-v3.5 removes Llama 3 70B Instruct's refusal behavior via orthogonalization in the weights (per its Hugging Face card); a weight-edited derivative is not the Llama base model and the index has no entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "fastgpt": {
     "decision": "exclude",
     "category": "other",
     "reason": "NanoGPT's 'Web Answer' fastgpt is Kagi's FastGPT, a search-engine answer service that runs queries through a full search engine and unspecified underlying LLMs; a product, not a distinct catalog model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemini-2.0-pro-exp-02-05": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Google's Gemini 2.0 Pro Experimental checkpoint (released 2025-02-05); the index has no Gemini 2.0 Pro entry — only 2.0 Flash and the 2.5 Pro line — so defer rather than guess.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemini-2.0-pro-reasoner": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "NanoGPT's 'Gemini 2.0 Pro Reasoner' alias; no such Google model id is documented and the index has no Gemini 2.0 Pro entry, so the checkpoint it serves cannot be pinned.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemini-2.5-flash-nothinking": {
+    "decision": "link",
+    "model": "google/gemini-2.5-flash",
+    "reason": "The -nothinking alias is the non-reasoning serving of the same Gemini 2.5 Flash checkpoint (same 1M context, and 0.3/2.5 matches the model's rates); still google/gemini-2.5-flash.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemini-2.5-flash-preview-04-17": {
+    "decision": "link",
+    "model": "google/gemini-2.5-flash-preview-05-20",
+    "reason": "Google's Vertex release notes: effective June 19, 2025 the gemini-2.5-flash-preview-04-17 endpoint serves the 2.5 Flash version released 05-20; that checkpoint is google/gemini-2.5-flash-preview-05-20.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemini-2.5-flash-preview-04-17:thinking": {
+    "decision": "link",
+    "model": "google/gemini-2.5-flash-preview-05-20",
+    "reason": "The :thinking suffix is thinking-mode serving of the 04-17 preview endpoint, which per Google's release notes serves the 05-20 2.5 Flash version; still google/gemini-2.5-flash-preview-05-20.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemini-2.5-flash-preview-09-2025": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Google's Sept 25, 2025 preview of the next 2.5 Flash — a separate checkpoint the index has no entry for (it has only the Flash-Lite 09-2025 preview and GA 2.5 Flash); defer rather than guess.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemini-2.5-flash-preview-09-2025-thinking": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Thinking-mode serving of Google's Sept 25, 2025 preview of the next 2.5 Flash, a separate checkpoint the index has no entry for; defer rather than link to the GA 2.5 Flash.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemini-2.5-pro-exp-03-25": {
+    "decision": "link",
+    "model": "google/gemini-2.5-pro-preview",
+    "reason": "Google's Vertex release notes: the gemini-2.5-pro-exp-03-25 endpoint now serves the 2.5 Pro version released 06-05; that checkpoint is google/gemini-2.5-pro-preview (Gemini 2.5 Pro Preview 06-05).",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemini-exp-1206": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Google's gemini-exp-1206 experimental checkpoint (Dec 2024); Google staff confirmed it is not a Gemini 2.0 release and the index has no entry for it, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-12b-it-semancer": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "UnstableLlama's Semancer-12B is a fine-tune of Google's Gemma 4 12B on a hand-crafted occult-philosophy dataset (per its Hugging Face card); a fine-tune is not google/gemma-4-12b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-12b-it-starry-ocean": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Vortex5's G4-Starry-Ocean-12B is a merge of gemma-4-12B-it with the Semancer-12B and Station-Keeper fine-tunes (per its Hugging Face card); a merge is not google/gemma-4-12b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-12b-it-station-keeper": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "A community Gemma 4 12B creative fine-tune served under the StationKeeper name (Sep 2026), a sibling of the Semancer/Starry Ocean builds and a merge component in Vortex5's Starry Ocean; a derivative, not google/gemma-4-12b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-26b-a4b-it-chimerax": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page: Chimera X is a Gemma 4 26B A4B fine-tune for creative writing, expressive dialogue and roleplay; a fine-tune is not google/gemma-4-26b-a4b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-26b-a4b-it-chimeraxheretic": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page: Chimera X Heretic is a Gemma 4 26B A4B fine-tune for creative writing, expressive dialogue and roleplay; a fine-tune is not google/gemma-4-26b-a4b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-26b-a4b-it-darksoul": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page: Dark Soul is a Gemma 4 26B A4B fine-tune for creative writing, expressive dialogue and roleplay; a fine-tune is not google/gemma-4-26b-a4b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-26b-a4b-it-luminous": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Vortex5's Luminous-Mirror-26B-A4B is a merge of the Claude-Opus-Distill, For-Her-Darkside and fiction builds with google/gemma-4-26B-A4B-it (per its HF card); a merge is not the base model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-26b-a4b-it-moonlight": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page: Moonlight Dusk is a Gemma 4 26B A4B fine-tune for creative writing, expressive dialogue and roleplay; a fine-tune is not google/gemma-4-26b-a4b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-26b-a4b-it-musica": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page: Musica is a Gemma 4 26B A4B fine-tune for creative writing, expressive dialogue and roleplay; a fine-tune is not google/gemma-4-26b-a4b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-26b-a4b-it-opusdistill": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "TeichAI's gemma-4-26B-A4B-it-Claude-Opus-Distill is a Claude Opus 4.6 reasoning distill of google/gemma-4-26B-A4B-it (per its Hugging Face card); a distill is not the base model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-26b-a4b-it-shadowsiren": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Vortex5's Shadow-Siren-26B-A4B is a multi-stage merge of community Gemma 4 26B A4B fine-tunes (per its Hugging Face card); a merge is not google/gemma-4-26b-a4b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-31b-it-darkidol": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page: DarkIdol is an ArliAI-hosted Gemma 4 31B finetune for dramatic tone, expressive dialogue and multimodal roleplay; a fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-31b-it-fabled": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page: Fabled is an ArliAI-hosted Gemma 4 31B finetune for mythic narrative writing, adventure scenes and multimodal roleplay; a fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-31b-it-garnet": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page: Garnet is an ArliAI-hosted Gemma 4 31B 'Garnet V2' finetune for polished prose, character consistency and multimodal roleplay; a fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-31b-it-gembrain": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "ArliAI's Gemma-4-31B-Gembrain, the Nimbz community Gemma 4 31B build (its decensored variant's HF card cites Nimbz/Gemma-4-Gembrain-31B as the original); a community fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-31b-it-gemsicle": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Blazed-Forge's Gemma-4-Gemsicle-31B is an experimental merge built on google/gemma-4-31b-it for creative prose (per its Hugging Face card); a merge is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-31b-it-isometry": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page: Isometry is a community Gemma 4 31B finetune (maldv's Isometry line) for expressive writing and roleplay; a fine-tune/merge is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-31b-it-novelist": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page: Novelist is a multimodal Gemma 4 31B creative finetune for long-form storytelling and roleplay; a fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-31b-it-scarlet": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Modeldex's NanoGPT listing: Scarlet is a multimodal Gemma 4 31B creative finetune for expressive dialogue, long-form storytelling and roleplay; a fine-tune is not google/gemma-4-31b-it itself.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -269,6 +745,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "google/gemma-4-26b-a4b-it-cybersecurity": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Vendor listings describe the Cybersecurity variant as based on the 'uncensored' (Heretic-abliterated) Gemma 4 26B A4B build with added provider moderation; a derivative fine-tune is not google/gemma-4-26b-a4b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "google/gemma-4-26b-a4b-it:thinking": {
     "decision": "link",
     "model": "google/gemma-4-26b-a4b-it",
@@ -276,10 +759,49 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "google/gemma4-31b-splituntied": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page: Blazed-Forge's Split-Untied is a text-only Gemma 4 31B community finetune with an untied BF16 output head; a fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "heabsy/cyberheabsy": {
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "Heabsy's own cybersecurity model (Sep 2026), reasoning-enabled and fine-tuned on an undisclosed open-weight foundation; a real new first-party model, but the base is unnamed and the index has no Heabsy entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "hermes-high": {
+    "decision": "router",
+    "reason": "One of NanoGPT's Hermes compatibility tiers (same 0.6/1.1 rate and 1M context as hermes-low/medium); the vendor's own pages say the hermes tiers 'currently point to GLM 5.3' and are re-pointed as models change, so it is a tier alias, not one fixed model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "hermes-low": {
+    "decision": "router",
+    "reason": "NanoGPT's own page: hermes-low 'currently points to GLM 5.3' and is a Hermes compatibility alias the vendor re-points as models change; a tier alias the vendor controls, not one fixed model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "hermes-medium": {
+    "decision": "router",
+    "reason": "NanoGPT's own page: hermes-medium 'currently points to GLM 5.3' and is a Hermes compatibility alias the vendor re-points as models change; a tier alias the vendor controls, not one fixed model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "holo3-35b-a3b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "H Company's Holo3-35B-A3B, the open-weight GUI-agent VLM released Mar 2026, a fine-tune of Qwen3.5-35B-A3B (per H Company/GIGAZINE coverage); a real first-party model the index has no H Company entry for, so defer rather than link the Qwen base.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "holo3-35b-a3b:thinking": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "The :thinking suffix is thinking-mode serving of H Company's Holo3-35B-A3B GUI-agent VLM; the index has no Holo3 or H Company entry, so defer rather than link the Qwen base.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -294,6 +816,97 @@
     "decision": "exclude",
     "category": "fine-tune",
     "reason": "huihui-ai's uncensored abliterated variant of deepseek-ai/DeepSeek-R1-Distill-Qwen-32B, listed on Hugging Face as a finetune of that base; a weight-edited derivative is not deepseek/deepseek-r1-distill-qwen-32b itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "huihui-ai/Llama-3.3-70B-Instruct-abliterated": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "huihui-ai's Llama-3.3-70B-Instruct-abliterated is an abliterated (refusal-removed) weight-edited derivative of meta-llama/Llama-3.3-70B-Instruct (Hugging Face metadata lists the finetune base); a weight-edited derivative is not meta/llama-3.3-70b-instruct itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "inception/mercury-2.5-preview": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Inception's Mercury 2.5 Preview (released 2026-09-01) is a separate preview checkpoint from the GA Mercury 2.5 (2026-09-08); the index has only inception/mercury-2.5, so defer rather than link the GA model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "inclusionai/ling-3.0-tiny": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "inclusionAI's Ling 3.0 Tiny, the 7.9B-total/1.3B-active MoE small member of the Ling 3.0 family (Hugging Face inclusionAI/Ling-3.0-tiny, Aug 2026); a separate model from Ling 3.0 Flash and absent from the index, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "inclusionai/ling-3.0-tiny:thinking": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "NanoGPT's thinking-mode serving of inclusionAI's Ling 3.0 Tiny (7.9B-total/1.3B-active MoE, Hugging Face inclusionAI/Ling-3.0-tiny, Aug 2026); a mode of a model the index lacks, so defer with it.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "inflatebot/MN-12B-Mag-Mell-R1": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "inflatebot's Mag Mell R1 ('R1' = Revision 1, predating DeepSeek R1) is a multi-stage merge of Mistral Nemo builds including Sunrose and magnum-v2.5-12b-kto (per Hugging Face metadata); a merge is not any single base and the index has no Mag Mell entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "lightonai/LightOnOCR-2-1B": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "LightOn's LightOnOCR-2-1B end-to-end OCR model (Hugging Face lightonai/LightOnOCR-2-1B, image-text-to-text, Jan 2026); the index has only LightOnOCR-3 0.8B, a later separate generation, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "liquid/lfm-2.5-2.6b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Liquid AI's LFM2.5-2.6B on-device agentic model (Hugging Face LiquidAI/LFM2.5-2.6B, Aug 2026, ~2.69B parameters, 128K context, per Liquid's blog); the index has no LFM2.5 chat entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "liquid/lfm-2.5-24b-a2b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Liquid AI's LFM2.5-24B-A2B, the 24B MoE reasoning model with 2.45B active parameters (Hugging Face LiquidAI/LFM2.5-24B-A2B, released 2026-10-13); a new LFM2.5 generation distinct from LFM2-24B-A2B and absent from the index, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "liquid/lfm-3-1.7b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Liquid AI's LFM3-1.7B, the text model of the third-generation LFM3 family (Hugging Face LiquidAI/LFM3-1.7B, 1.73B parameters, 256K context, announced 2026-10-27); the index has no LFM3 entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meganova-ai/manta-flash-1.0": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "MegaNova AI's own Manta Flash 1.0, its efficient low-latency text tier (per MegaNova's console and docs); a real first-party model the index has no Manta entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meganova-ai/manta-mini-1.0": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "MegaNova AI's own Manta Mini 1.0, the lightweight speed/cost tier of its Manta line (per MegaNova's console and docs); a real first-party model the index has no Manta entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meganova-ai/manta-pro-1.0": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "MegaNova AI's own Manta Pro 1.0 flagship for deep reasoning, long-form generation and RAG (per MegaNova's console and docs); a real first-party model the index has no Manta entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "mercury-coder-small": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Inception's Mercury Coder Small Beta, the compact low-latency coding diffusion LLM from the original Mercury Coder line (early 2025, per Vercel/CloudPrice listings); the index has only the later Mercury 2/2.5/3 line, no Mercury Coder entry, so defer.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -318,6 +931,34 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "minimax/minimax-01": {
+    "decision": "link",
+    "model": "minimax/minimax-text-01",
+    "reason": "NanoGPT's 'MiniMax 01' serves MiniMax-Text-01, the text member of the MiniMax-01 series (456B MoE released 2025-01-15): text/PDF-only input and the 1,000,192-token window match the Text-01 checkpoint; the index entry is minimax/minimax-text-01.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "minimax/minimax-m2.7-turbo": {
+    "decision": "link",
+    "model": "minimax/minimax-m2.7",
+    "reason": "MiniMax M2.7 Turbo is a speed-optimized serving of the MiniMax-M2.7 checkpoint (DeepInfra: 'a speed-optimized endpoint for MiniMax-M2.7', same 2026-03-18 release); a fast serving is still minimax/minimax-m2.7.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "mistral-code-agent-latest": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Mistral's Mistral Code Agent alias (listed Aug 30, 2026 with 262K context by Eden AI/LLMSCAPE); the index has no Mistral Code entry and the -latest alias's current target is not documented, so defer rather than guess.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "mistral-code-latest": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Mistral's Mistral Code alias (listed Aug 30, 2026 by Eden AI at 0.3/0.9 with 256K context); the index has no Mistral Code entry and the -latest alias's current target is not documented, so defer rather than guess.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "mistralai/devstral-small-2505": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -325,10 +966,59 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "moondream/moondream3-preview": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Moondream's Moondream 3 Preview, the 9B-total/2B-active MoE vision-language model released Sep 2025 (per Moondream's blog and the Hugging Face card); a real first-party model the index has no Moondream entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "moonshotai/kimi-k3": {
     "decision": "link",
     "model": "moonshot/kimi-k3",
     "reason": "Kimi K3 (moonshotai/Kimi-K3 on Hugging Face, 2.8T MoE, 1M context, launched 2026-07-16) matches moonshot/kimi-k3; NanoGPT's 0.45/9.6 price is a discount off the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nothingiisreal/L3.1-70B-Celeste-V0.1-BF16": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "nothingiisreal's Celeste v0.1, a Llama 3.1 70B roleplay/writing fine-tune (per its Hugging Face card); a fine-tune is not meta/llama-3.1-70b-instruct itself and the index has no Celeste entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6-astra-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6-astra",
+    "reason": "OpenAI's GPT-6 Astra Pro is the same underlying model as GPT-6 Astra served with reasoning.mode set to pro (per OpenRouter's listing); a pro reasoning-mode serving is still openai/gpt-6-astra at the 10/50 pro rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6-luna-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6-luna",
+    "reason": "GPT-6 Luna Pro is the same underlying model as GPT-6 Luna with reasoning.mode set to pro (per OpenRouter's listing); a pro reasoning-mode serving is still openai/gpt-6-luna at the 0.1/0.5 pro rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6-sol-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6-sol",
+    "reason": "GPT-6 Sol Pro is the same underlying model as GPT-6 Sol with reasoning.mode set to pro (per OpenRouter's listing); a pro reasoning-mode serving is still openai/gpt-6-sol at the 2/10 pro rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6.1-sol-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6.1-sol",
+    "reason": "GPT-6.1 Sol Pro is the same underlying model as GPT-6.1 Sol served with reasoning.mode set to pro (per OpenRouter's listing and aggregator coverage); a pro reasoning-mode serving is still openai/gpt-6.1-sol at the 2/10 pro rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6.1-terra-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6.1-terra",
+    "reason": "GPT-6.1 Terra Pro is the same underlying model as GPT-6.1 Terra served with reasoning.mode set to pro (per OpenRouter's listing and aggregator coverage); a pro reasoning-mode serving is still openai/gpt-6.1-terra at the 1/5 pro rate.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -353,6 +1043,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "soob3123/GrayLine-Qwen3-8B": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Hugging Face metadata lists soob3123/GrayLine-Qwen3-8B as a fine-tune of Qwen/Qwen3-8B (a community 'uncensored' variant, May 2025); a fine-tune is not the Qwen base model and the index has no GrayLine entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "soob3123/amoral-gemma3-27B-v2": {
     "decision": "exclude",
     "category": "fine-tune",
@@ -374,6 +1071,27 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "xiaomi/mimo-v2.6-flash-abliterated": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "An abliterated derivative of Xiaomi's MiMo-V2.6-Flash with the refusal direction removed via the Heretic method (per Heabsy and vendor listings); a weight-edited derivative is not xiaomi/mimo-v2.6-flash itself and the index has no entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "xiaomi/mimo-v2.6-flash-uncensored": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "dealignai's lower-refusal MiMo-V2.6-Flash fine-tune with refusal behavior removed at the weight level — NanoGPT's own page calls it 'a lower-refusal MiMo V2.6 Flash finetune'; a weight-edited derivative is not xiaomi/mimo-v2.6-flash itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "xiaomi/mimo-v2.6-flash-uncensored:thinking": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "The :thinking suffix is thinking-mode serving of dealignai's lower-refusal MiMo-V2.6-Flash fine-tune (refusals removed in the weights per NanoGPT's own page); a thinking mode of a fine-tune is still not xiaomi/mimo-v2.6-flash itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "xiaomi/mimo-v2.6-pro-ultraspeed": {
     "decision": "link",
     "model": "xiaomi/mimo-v2.6-pro",
@@ -385,6 +1103,62 @@
     "decision": "exclude",
     "category": "fine-tune",
     "reason": "xtools-at's uncensored Heretic build, listed on Hugging Face as a finetune of Jackrong/DeepSeek-V4-Pro-Qwen3.5-9B, itself a Qwen3.5 9B distill of DeepSeek V4 Pro; a derivative of a distill is not any catalog model, and the index has no entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "z-ai/GLM-4.6-turbo": {
+    "decision": "link",
+    "model": "zhipu/glm-4.6",
+    "reason": "NanoGPT's page: a fast variant of GLM 4.6 for general chat, coding and analysis with improved latency — same 204.8K context as GLM-4.6 with speed-tier pricing (0.55/2.2), like Z.ai's AirX speed tiers; still zhipu/glm-4.6.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "z-ai/GLM-4.6-turbo:thinking": {
+    "decision": "link",
+    "model": "zhipu/glm-4.6",
+    "reason": "The :thinking suffix is thinking-mode serving of GLM 4.6 Turbo, itself the fast tier of the GLM-4.6 checkpoint (same 204.8K context); a thinking/fast serving is still zhipu/glm-4.6.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "z-ai/glm-5.3-flash-apex": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Apex Flash 1 is Cantina Security and Yeta Labs' cybersecurity post-train of Z.ai's GLM-5.3-Flash (GRPO with rank-256 LoRA plus selective full-parameter training, per their release); a fine-tune is not zhipu/glm-5.3-flash itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "z-ai/glm-5.3-flash-apex-abliterated": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "An abliterated derivative of Cantina/Yeta's Apex Flash 1 — itself a GLM-5.3-Flash post-train — with refusal behavior modified in the weights (per Modeldex); a weight-edited derivative is not zhipu/glm-5.3-flash itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "z-ai/glm-5.3-flash-cybersecurity": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Listings describe a cybersecurity-tuned variant whose base model is GLM-5.3 Flash, attributed to Z.ai (Sep 2026); sources conflict on whether the weights differ from stock, and the index has no entry for it, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "z-ai/glm-5.3-flash-uncensored": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "dealignai's uncensored build of GLM-5.3-Flash with refusal behavior removed directly in the weights, vision input kept (per Heabsy/Infron listings); a weight-edited derivative is not zhipu/glm-5.3-flash itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "z-ai/glm-5.3-flashx-legal": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Z.ai's GLM-Legal (GLM-5.3-FlashX-Legal), the legal-domain mid/post-training variant of GLM-5.3-FlashX listed Nov 2, 2026 (per OpenRouter/i-scoop); the index has no GLM-Legal or FlashX entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "z-ai/glm-5.3-uncensored": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "dealignai/Arnict's GLM 5.3 Abliterated — the full 753B GLM-5.3 with refusal behavior removed directly in the weights (per Infron/Heabsy listings); a weight-edited derivative is not zhipu/glm-5.3 itself.",
     "by": "agent",
     "at": "2026-11-12"
   }

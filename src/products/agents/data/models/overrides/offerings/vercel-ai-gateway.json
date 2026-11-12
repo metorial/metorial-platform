@@ -6,10 +6,45 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "baseten/joey-1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Baseten's joey-1, a 2B open-weights decision model from its in-house Base Labs released 2026-10-29 (per Baseten's announcement and coverage); the index has only elephant-1 and mammoth-1 from the decision family, so defer until models.dev adds it.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "bfl/flux-pro-1.0-fill": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "BFL's FLUX.1 Fill [pro] inpainting model; the index has no Fill entry — its BFL image models are the open-weight dev/schnell, the Kontext line and FLUX 2/3 — so there is no catalog model to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "bfl/flux-pro-1.1": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "BFL's FLUX1.1 [pro] text-to-image model (Nov 2024); the index has no FLUX 1.1 pro entry — only the open-weight FLUX.1 dev/schnell and the FLUX 2/3 lines — so there is no catalog model to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "bfl/flux-pro-1.1-ultra": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "FLUX1.1 [pro] Ultra is the high-resolution tier of BFL's FLUX1.1 [pro]; the index has no FLUX 1.1 pro entry to link, so this image model is not catalogued.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "callstack/apex": {
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "Callstack's own coding LLM built on Gemma 4 for React Native/Next.js work (per their announcement); a real new first-party model not yet in the index.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "convaiinnovations/laya": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Convai Innovations' Laya, an open 421M-parameter ModernBERT-based non-autoregressive decision model for email triage/phishing/routing (Hugging Face card, text-classification pipeline, Sept 2026); the index has no Laya entry, so defer.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -34,6 +69,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "elorian/glimpse": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Elorian's Glimpse, the startup's first visual-thinking model, released 2026-10-16 as a research preview (per Elorian's announcement and coverage); a real new first-party model the index has no entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "humansand/ampersand-v0.1": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -41,10 +83,87 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "inception/mercury-coder-small": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Vercel lists Inception's Mercury Coder Small Beta, the compact diffusion coding model from the original Mercury Coder line (early 2025, per Vercel/CloudPrice listings); the index has only the later Mercury 2/2.5/3 line, no Mercury Coder entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "interfaze/interfaze-beta": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "Interfaze Beta is a hybrid product merging specialized DNN/CNN models for OCR, parsing and classification behind a controller that forwards distilled context to a user-selected LLM (per Interfaze's listing and its arXiv paper); a controller stack, not a single model the catalog can link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "klingai/kling-v2.5-turbo-i2v": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Kuaishou's Kling 2.5 Turbo image-to-video model, the fast tier of the Sept 2025 Kling 2.5 release (1080p, first/last-frame anchoring); the index's Kling line has only video-o1 and the v3.0 pair, no 2.5 Turbo entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "klingai/kling-v2.5-turbo-t2v": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Kuaishou's Kling 2.5 Turbo text-to-video model, the fast tier of the Sept 2025 Kling 2.5 release; the index's Kling line has only video-o1 and the v3.0 pair, no 2.5 Turbo entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "klingai/kling-v2.6-i2v": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Kuaishou's Kling 2.6 image-to-video model with native synchronized audio (released autumn 2026); the index's Kling line has only video-o1 and the v3.0 pair, no 2.6 entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "klingai/kling-v2.6-motion-control": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Kuaishou's Kling 2.6 Motion Control, the motion-transfer mode of the Kling 2.6 video model with native audio (Nov 2026); the index's Kling line has only video-o1 and the v3.0 pair, no 2.6 entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "klingai/kling-v2.6-t2v": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Kuaishou's Kling 2.6 text-to-video model with native synchronized audio and multi-shot storytelling (released autumn 2026); the index's Kling line has only video-o1 and the v3.0 pair, no 2.6 entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "klingai/kling-v3.0-i2v": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Kling 3.0 image-to-video on the gateway at $0.17/s; the index splits Kling 3.0 into Pro and Standard entries and the gateway SKU names no tier, so defer rather than guess which checkpoint serving it is.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "klingai/kling-v3.0-motion-control": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Kling 3.0 Motion Control on the gateway at $0.13/s; the index splits Kling 3.0 into Pro and Standard entries and the gateway SKU names no tier, so defer rather than guess which checkpoint serving it is.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "klingai/kling-v3.0-t2v": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Kling 3.0 text-to-video on the gateway at $0.17/s; the index splits Kling 3.0 into Pro and Standard entries and the gateway SKU names no tier, so defer rather than guess which checkpoint serving it is.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "liquid/d1-ultra": {
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "Liquid AI's d1-ultra (released 2026-10-15), its most capable multimodal decision model; it is a larger sibling of liquid/d1 and the index has no d1-ultra entry, only liquid/d1.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "liquid/lfm2.5-24b-a2b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Liquid AI's LFM2.5-24B-A2B (Hugging Face LiquidAI/LFM2.5-24B-A2B, released 2026-10-13; 24B MoE with 2.45B active, 131K context), a new LFM2.5 generation distinct from LFM2-24B-A2B; the index has no LFM2.5 chat entry, so defer.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -62,6 +181,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "microsoft/mai-transcribe-2-streaming": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Microsoft AI's MAI-Transcribe-2-Streaming, its first streaming speech-to-text model, released 2026-10-01 — a separate checkpoint from the Sep 2026 batch MAI-Transcribe-2; the index has no streaming entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "microsoft/microsoft-decision-1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Microsoft-Decision-1, Microsoft AI's decision-scoring model post-trained from Qwen3.5-9B and released Oct 2026 in Foundry (per Microsoft's announcement); the index has no entry (only Google's Gemini Decision 1), so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "nace-ai/drex-max-finance": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -76,10 +209,108 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "openai/gpt-5.1-thinking": {
+    "decision": "link",
+    "model": "openai/gpt-5.1",
+    "reason": "GPT 5.1 Thinking is the reasoning-focused member of the GPT-5.1 family — a thinking-mode serving of the GPT-5.1 checkpoint (400K context, 1.25/10 per Vercel/OpenAI); still openai/gpt-5.1.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-5.1-thinking-fast": {
+    "decision": "link",
+    "model": "openai/gpt-5.1",
+    "reason": "GPT 5.1 Thinking (Fast) is the fast-mode serving of the same GPT-5.1 thinking checkpoint at double the token rate (per Vercel's listing); a fast serving is still openai/gpt-5.1.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6-luna-decisions": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "GPT-6 Luna Decisions is GPT-6 Luna served through OpenAI's Decisions API, returning typed probabilities instead of text (per Vercel/OpenAI docs); the catalog models decision-API variants as separate entries (cf. google/gemini-decision-1) and the index has no OpenAI decisions entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-image-2.6-flare": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Vercel's listing: OpenAI's GPT Image 2.6 Flare, released 2026-11-04; a new image-model generation the index has no 2.6 entry for (only gpt-image-2.5-flare), so defer rather than link the 2.5 model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-image-2.6-sunburst": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Vercel's listing: OpenAI's GPT Image 2.6 Sunburst, released 2026-11-04 alongside GPT Image 2.6 Flare; a new image-model generation the index has no 2.6 entry for (only gpt-image-2.5-sunburst), so defer rather than link the 2.5 model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "prodia/flux-fast-schnell": {
+    "decision": "link",
+    "model": "black-forest-labs/flux-1-schnell",
+    "reason": "Vercel's listing describes Flux Schnell as Prodia's speed-focused image model built on BFL's FLUX.1 Schnell architecture — Prodia's fast serving of the FLUX.1 [schnell] checkpoint, matching black-forest-labs/flux-1-schnell.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "spacexai/grok-4.20-multi-agent-beta": {
+    "decision": "link",
+    "model": "xai/grok-4.20-multi-agent-0309",
+    "reason": "Vercel's own docs: the -beta id is the beta-lifecycle alias of grok-4.20-multi-agent, 'the same multi-agent focus under a beta lifecycle identifier'; still the Grok 4.20 Multi-Agent checkpoint, xai/grok-4.20-multi-agent-0309.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "spacexai/grok-4.20-non-reasoning-beta": {
+    "decision": "link",
+    "model": "xai/grok-4.20-0309",
+    "reason": "Vercel's own docs: Grok 4.20 Beta Non-Reasoning is the beta-lifecycle alias of Grok 4.20 Non-Reasoning, the non-reasoning model of the Mar 2026 Grok 4.20 generation; same checkpoint as xai/grok-4.20-0309 at the 1.25/2.5 rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "spacexai/grok-4.20-reasoning-beta": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Vercel's docs: Grok 4.20 Beta Reasoning is the beta alias of the Grok 4.20 reasoning model (visible chain-of-thought, released Mar 2026); the index has no Grok 4.20 reasoning entry (only the 0309 non-reasoning and multi-agent checkpoints), so defer rather than link the wrong variant.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "stealth/glyph-cluster": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Glyph Cluster is a stealth-preview reasoning model from a third-party provider that has chosen to remain anonymous, free during stealth (per Vercel's changelog); a real new model with no named lab and no index entry, so defer until it is revealed.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "tencent/hy-mt2-lite": {
+    "decision": "link",
+    "model": "tencent/hy-mt2-1.8b",
+    "reason": "Vercel's listing: Hy-MT2-Lite is Tencent Hunyuan's lightweight 1.8B translation model with an 8K context window; matches the index's tencent/hy-mt2-1.8b exactly, including its 0.044/0.177 rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "tencent/hy-mt2-plus": {
+    "decision": "link",
+    "model": "tencent/hy-mt2-7b",
+    "reason": "Vercel's listing: Hy-MT2-Plus is Tencent Cloud Hunyuan's 7B translation model with an 8K context window; matches the index's tencent/hy-mt2-7b, including the 0.074/0.295 rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "tencent/hy-mt2-pro": {
+    "decision": "link",
+    "model": "tencent/hy-mt2-30b-a3b",
+    "reason": "Vercel's listing: Hy-MT2-Pro is Tencent Cloud Hunyuan's flagship translation model with 30B-A3B parameters and an 8K context window; matches the index's tencent/hy-mt2-30b-a3b.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "xiaomi/mimo-v2.6-pro-ultraspeed": {
     "decision": "link",
     "model": "xiaomi/mimo-v2.6-pro",
     "reason": "MiMo V2.6 Pro UltraSpeed is Xiaomi's fast-serving tier of the same 1T MiMo-V2.6-Pro checkpoint (same quality, up to 20x output speed); still xiaomi/mimo-v2.6-pro at the 4.35/8.7 speed-tier price.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "zai/glm-5.3-flashx-legal": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Z.ai's GLM-Legal (GLM-5.3-FlashX-Legal), the legal-domain variant of GLM-5.3-FlashX (per Z.ai/OpenRouter listings, Nov 2026); the index has no GLM-Legal or GLM-5.3-FlashX entry, so defer.",
     "by": "agent",
     "at": "2026-11-12"
   }

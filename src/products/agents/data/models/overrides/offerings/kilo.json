@@ -48,10 +48,59 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "elorian/glimpse": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Elorian's Glimpse, the startup's first visual-thinking model, released 2026-10-16 as a research preview (per Elorian's announcement and coverage); a real new first-party model the index has no entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "google/gemma-4-26b-a4b-it": {
     "decision": "link",
     "model": "google/gemma-4-26b-a4b-it",
     "reason": "Exact model id: Google's Gemma 4 26B A4B IT open-weight MoE (google/gemma-4-26B-A4B-it on Hugging Face, 26B total/4B active). Kilo's 0.015/0.045 price is a gateway discount off the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "inclusionai/ling-3.0-tiny": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "inclusionAI's Ling 3.0 Tiny, the 7.9B-total/1.3B-active MoE small member of the Ling 3.0 family (Hugging Face inclusionAI/Ling-3.0-tiny, Aug 2026); a separate model from Ling 3.0 Flash and absent from the index, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "kt/midm-k-3.0-pro": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "KT's Mi:dm K 3.0 Pro, the 120B MoE reasoning model with 12B active parameters, released Oct 29/Nov 5 2026 (per OpenRouter's listing); the index has no KT/Mi:dm entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "liquid/lfm-2.5-2.6b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Liquid AI's LFM2.5-2.6B, the on-device agentic model (Hugging Face LiquidAI/LFM2.5-2.6B, Aug 2026, 128K context, per Liquid's blog; Kilo lists it as retiring Nov 13); the index has no LFM2.5 chat entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "liquid/lfm-2.5-24b-a2b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Liquid AI's LFM2.5-24B-A2B, the 24B MoE reasoning model with 2.45B active parameters (Hugging Face LiquidAI/LFM2.5-24B-A2B, released 2026-10-13); a new LFM2.5 generation distinct from LFM2-24B-A2B and absent from the index, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "liquid/lfm-3-1.7b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Liquid AI's LFM3-1.7B, the text model of the third-generation LFM3 family (Hugging Face LiquidAI/LFM3-1.7B, 1.73B parameters, 256K context, announced 2026-10-27); the index has no LFM3 entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "liquid/lfm-3-1.7b:free": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Kilo's free tier of Liquid AI's LFM3-1.7B (Hugging Face LiquidAI/LFM3-1.7B, 1.73B parameters, 256K context, announced 2026-10-27); the index has no LFM3 entry, so defer the free serving with it.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -76,10 +125,59 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "moondream/moondream3-preview": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Moondream's Moondream 3 Preview, the 9B-total/2B-active MoE vision-language model released Sep 2025 (per Moondream's blog and the Hugging Face card); a real first-party model the index has no Moondream entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "moonshotai/kimi-k3.1-pro": {
     "decision": "link",
     "model": "moonshot/kimi-k3.1-pro",
     "reason": "Kimi K3.1 Pro (moonshotai/Kimi-K3.1-Pro on Hugging Face, post-trained successor to Kimi K3, released 2026-10-23, 1M context) matches moonshot/kimi-k3.1-pro; Kilo's 0.2375/8.4085 rate is a discount off the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-3.5-turbo-16k": {
+    "decision": "link",
+    "model": "openai/gpt-3.5-turbo",
+    "reason": "The gpt-3.5-turbo-16k endpoint is the same GPT-3.5 Turbo model served with the 16K context window (the index entry already lists 16,385 tokens of context); still openai/gpt-3.5-turbo.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6-astra-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6-astra",
+    "reason": "OpenAI's GPT-6 Astra Pro is the same underlying model as GPT-6 Astra served with reasoning.mode set to pro (per OpenRouter's listing); a pro reasoning-mode serving is still openai/gpt-6-astra at the 10/50 pro rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6-luna-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6-luna",
+    "reason": "GPT-6 Luna Pro is the same underlying model as GPT-6 Luna with reasoning.mode set to pro (per OpenRouter's listing); a pro reasoning-mode serving is still openai/gpt-6-luna at the 0.1/0.5 pro rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6-sol-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6-sol",
+    "reason": "GPT-6 Sol Pro is the same underlying model as GPT-6 Sol with reasoning.mode set to pro (per OpenRouter's listing); a pro reasoning-mode serving is still openai/gpt-6-sol at the 2/10 pro rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6.1-sol-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6.1-sol",
+    "reason": "GPT-6.1 Sol Pro is the same underlying model as GPT-6.1 Sol served with reasoning.mode set to pro (per OpenRouter's listing and coverage of all three gateways); a pro reasoning-mode serving is still openai/gpt-6.1-sol at the 2/10 pro rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6.1-terra-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6.1-terra",
+    "reason": "GPT-6.1 Terra Pro is the same underlying model as GPT-6.1 Terra served with reasoning.mode set to pro (per OpenRouter's listing and coverage of all three gateways); a pro reasoning-mode serving is still openai/gpt-6.1-terra at the 1/5 pro rate.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -97,10 +195,38 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "stealth/glyph-cluster": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Glyph Cluster is a stealth-preview reasoning model from a third-party provider that has chosen to remain anonymous, free during stealth (per Vercel's changelog); a real new model with no named lab and no index entry, so defer until it is revealed.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "tencent/hunyuan-a13b-instruct": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Tencent's Hunyuan-A13B, the open-weight 80B-total/13B-active MoE (tencent/Hunyuan-A13B-Instruct on Hugging Face, June 2025); a real model the index has no Hunyuan A13B entry for, so defer rather than link another Hunyuan.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "xiaomi/mimo-v2.6-pro-ultraspeed": {
     "decision": "link",
     "model": "xiaomi/mimo-v2.6-pro",
     "reason": "MiMo-V2.6-Pro-UltraSpeed is Xiaomi's fast-serving tier of the same 1T MiMo-V2.6-Pro checkpoint (same quality, ~10x output speed); still xiaomi/mimo-v2.6-pro at the 4.35/8.7 speed-tier price.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "z-ai/glm-5.3-flashx-legal": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Z.ai's GLM-Legal (GLM-5.3-FlashX-Legal), the legal-domain variant of GLM-5.3-FlashX priced late Oct 2026 and listed on OpenRouter Nov 2 (per i-scoop); the index has no GLM-Legal or GLM-5.3-FlashX entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "z-ai/glm-5.3-prime": {
+    "decision": "link",
+    "model": "zhipu/glm-5.3",
+    "reason": "GLM-5.3-Prime is Z.ai's high-speed serving of the GLM-5.3 checkpoint: same capabilities with 1.5-2x output throughput via inference acceleration (per Z.ai listings); a fast serving is still zhipu/glm-5.3 at the 2.8/8.8 speed tier.",
     "by": "agent",
     "at": "2026-11-12"
   },

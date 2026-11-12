@@ -1,0 +1,9 @@
+{
+  "mistral-7b-instruct-v0.2": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Mistral 7B Instruct v0.2 (Dec 2023, 32K context), the earlier checkpoint of Mistral's 7B Instruct line; the index has only v0.3, so defer rather than link the wrong version.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}
