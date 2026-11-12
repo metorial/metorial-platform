@@ -1,0 +1,23 @@
+{
+  "deepseek-ai/DeepSeek-V3.2-Exp": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "DeepSeek-V3.2-Exp (Sep 2025, DeepSeek Sparse Attention, built on V3.1-Terminus) is a separate experimental checkpoint from the Dec 2025 V3.2 release; the index has no exp entry, so defer rather than link to deepseek/deepseek-v3.2.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meta-llama/Llama-3.3-70B-Instruct": {
+    "decision": "link",
+    "model": "meta/llama-3.3-70b-instruct",
+    "reason": "Exact Hugging Face id of Meta's Llama 3.3 70B Instruct; Meganova's 0.1/0.3 rate is a discounted price for the open-weight model, below its 0.705 median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "mistralai/Mistral-Nemo-Instruct-2407": {
+    "decision": "link",
+    "model": "mistral/mistral-nemo",
+    "reason": "Mistral-Nemo-Instruct-2407 is the instruction-tuned Mistral Nemo checkpoint (Hugging Face base model mistralai/Mistral-Nemo-Base-2407), i.e. mistral/mistral-nemo; Meganova's 0.02/0.04 rate is a discount off the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

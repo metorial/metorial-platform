@@ -1,0 +1,105 @@
+{
+  "consensusprotocol/deepseek-v4.1-flash-uncensored": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "dealignai's DeepSeek V4.1 Flash 1017 Uncensored served through LLM Gateway's consensusprotocol route; refusal behavior is removed directly in the weights of the V4.1-Flash-1017 checkpoint, so it is a weight-edited derivative, not deepseek/deepseek-v4.1-flash-1017.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "custom": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "LLM Gateway's 'Custom Model' is a user-configured bring-your-own-model slot pointing at any external endpoint; a configuration placeholder, not a specific model the catalog can link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek-v4.1-flash-cyber": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Inference.net's DeepSeek V4.1 Flash 1017 Cyber, a refusal-removed variant of the Oct 2026 DeepSeek V4.1 Flash checkpoint served behind KYC-gated access (per Inference.net's own page); an abliterated derivative is not deepseek/deepseek-v4.1-flash-1017 itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek-v4.1-flash-uncensored": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "dealignai's DeepSeek V4.1 Flash 1017 Uncensored under LLM Gateway's HeimdaLLM route: refusal behavior removed directly in the weights of the V4.1-Flash-1017 checkpoint (per vendor listings); a weight-edited derivative is not deepseek/deepseek-v4.1-flash-1017 itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "glm-4.5-airx": {
+    "decision": "link",
+    "model": "zhipu/glm-4.5-air",
+    "reason": "GLM-4.5-AirX is Z.ai's accelerated serving tier of the GLM-4.5-Air checkpoint (same 128K-context Air model; Z.ai lists AirX at 1.1/4.5 as a speed tier), so it is still zhipu/glm-4.5-air.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "inference.net/deepseek-v4.1-flash-cyber": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "The same Inference.net DeepSeek V4.1 Flash 1017 Cyber under LLM Gateway's namespaced id: a refusal-removed variant of the Oct 2026 DeepSeek V4.1 Flash checkpoint, gated per-team by the provider; an abliterated derivative is not deepseek/deepseek-v4.1-flash-1017 itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "llama-3.3-70b-instruct": {
+    "decision": "link",
+    "model": "meta/llama-3.3-70b-instruct",
+    "reason": "The offering is Meta's open-weight Llama 3.3 70B Instruct; LLM Gateway's 0.135/0.4 rate is a discounted gateway price, below the model's 0.705 median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meta-contributor/muse-spark-1.2-contributor": {
+    "decision": "link",
+    "model": "meta/muse-spark-1.2",
+    "reason": "Muse Spark 1.2 Contributor is the same Muse Spark 1.2 weights under Meta's discounted data-contribution terms (0.1/0.2); still meta/muse-spark-1.2.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meta-contributor/muse-spark-1.3-contributor": {
+    "decision": "link",
+    "model": "meta/muse-spark-1.3",
+    "reason": "Muse Spark 1.3 Contributor is the same Muse Spark 1.3 weights under Meta's discounted data-contribution terms (0.1/0.2); still meta/muse-spark-1.3.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "mistral-large-latest": {
+    "decision": "router",
+    "reason": "Mistral's rolling alias that always serves the newest Mistral Large release (currently Mistral Large 4, Oct 2026); the model it picks changes with each release, so it is a pointer, and the gateway's 4/12 rate matches the original 2024 Mistral Large and looks stale.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "mistral/mistral-large-latest": {
+    "decision": "router",
+    "reason": "The same rolling mistral-large-latest alias under LLM Gateway's namespaced id; it serves whichever Mistral Large is newest (currently Large 4) and changes with each release, so it is a pointer, not one fixed model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "muse-spark-1.2-contributor": {
+    "decision": "link",
+    "model": "meta/muse-spark-1.2",
+    "reason": "Muse Spark 1.2 Contributor is the same Muse Spark 1.2 weights under Meta's discounted data-contribution terms (0.1/0.2); still meta/muse-spark-1.2.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "muse-spark-1.3-contributor": {
+    "decision": "link",
+    "model": "meta/muse-spark-1.3",
+    "reason": "Muse Spark 1.3 Contributor is the same Muse Spark 1.3 weights under Meta's discounted contributor-mode pricing (0.1/0.2, in exchange for Meta training on request content); still meta/muse-spark-1.3.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "novita/llama-3.3-70b-instruct": {
+    "decision": "link",
+    "model": "meta/llama-3.3-70b-instruct",
+    "reason": "LLM Gateway's Novita route for Meta's open-weight Llama 3.3 70B Instruct; the 0.135/0.4 rate is a discount off the model's 0.705 median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "zai/glm-4.5-airx": {
+    "decision": "link",
+    "model": "zhipu/glm-4.5-air",
+    "reason": "GLM-4.5-AirX is Z.ai's faster serving variant of the GLM-4.5-Air MoE checkpoint, priced at Z.ai's 1.1/4.5 speed tier; same model as zhipu/glm-4.5-air.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

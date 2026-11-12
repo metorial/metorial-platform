@@ -1,0 +1,9 @@
+{
+  "Qwen/Qwen3.8-27B": {
+    "decision": "link",
+    "model": "alibaba/qwen3.8-27b",
+    "reason": "NEAR AI Cloud serves Qwen/Qwen3.8-27B (exact Hugging Face id, Apache 2.0 dense vision-language model, 262K context); its 0.04/1.35 rate is the vendor's own pricing for that checkpoint.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

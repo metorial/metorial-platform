@@ -1,0 +1,9 @@
+{
+  "deepseek-ai/DeepSeek-V3.1-Terminus": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "DeepSeek-V3.1-Terminus (Hugging Face release 2025-09-22) is a separate checkpoint update from V3.1 that fixes language-mixing and agent issues (per DeepSeek's release notes); the index has no terminus entry, so defer rather than link to deepseek/deepseek-v3.1.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

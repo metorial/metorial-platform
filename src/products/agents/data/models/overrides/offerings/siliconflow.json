@@ -1,0 +1,37 @@
+{
+  "Pro/deepseek-ai/DeepSeek-V3.1-Terminus": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "SiliconFlow's Pro-tier serving of DeepSeek-V3.1-Terminus (2025-09-22), a separate checkpoint update from V3.1; the index has no terminus entry, so defer rather than link to deepseek/deepseek-v3.1.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek-ai/DeepSeek-OCR": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "The original DeepSeek-OCR (HF deepseek-ai/DeepSeek-OCR, Oct 2025, 3B vision-language OCR model, MIT); the index only has the later DeepSeek OCR 2 (Jan 2026), a separate checkpoint, so defer the v1.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek-ai/DeepSeek-V3.1-Terminus": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "DeepSeek-V3.1-Terminus (released 2025-09-22) is a separate checkpoint update from V3.1; the index has no terminus entry, so defer rather than link to deepseek/deepseek-v3.1.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek-ai/DeepSeek-V3.2-Exp": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "DeepSeek-V3.2-Exp (Sep 2025, DeepSeek Sparse Attention, built on V3.1-Terminus) is a separate experimental checkpoint from the Dec 2025 V3.2 release; the index has no exp entry, so defer rather than link to deepseek/deepseek-v3.2.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "google/gemma-4-31B-it": {
+    "decision": "link",
+    "model": "google/gemma-4-31b-it",
+    "reason": "SiliconFlow serves Google's Gemma 4 31B IT checkpoint (google/gemma-4-31B-it on Hugging Face, Apache 2.0); same model as google/gemma-4-31b-it, at SiliconFlow's higher 0.75/1 price.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

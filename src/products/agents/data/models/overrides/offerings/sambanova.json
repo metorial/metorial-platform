@@ -1,0 +1,16 @@
+{
+  "DeepSeek-V3.1": {
+    "decision": "link",
+    "model": "deepseek/deepseek-v3.1",
+    "reason": "SambaNova serves the open DeepSeek-V3.1 checkpoint (hybrid reasoning model, Aug 2025); its 3/4.5 pricing is a hardware premium over the model's median across providers.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "DeepSeek-V3.2": {
+    "decision": "link",
+    "model": "deepseek/deepseek-v3.2",
+    "reason": "SambaNova serves the open DeepSeek-V3.2 checkpoint (MIT, Dec 2025); its 3/4.5 pricing is a hardware premium over the model's median across providers.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

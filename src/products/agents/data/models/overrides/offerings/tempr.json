@@ -1,0 +1,9 @@
+{
+  "xiaomi-mimo/mimo-v2.6-pro-ultraspeed": {
+    "decision": "link",
+    "model": "xiaomi/mimo-v2.6-pro",
+    "reason": "Tempr serves Xiaomi's MiMo-V2.6-Pro-UltraSpeed, the fast-serving tier of the same 1T MiMo-V2.6-Pro checkpoint (same quality, ~10-20x output speed); still xiaomi/mimo-v2.6-pro at the 4.35/8.7 speed-tier price.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

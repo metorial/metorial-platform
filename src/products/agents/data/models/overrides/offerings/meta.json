@@ -1,0 +1,16 @@
+{
+  "muse-spark-1.2-contributor": {
+    "decision": "link",
+    "model": "meta/muse-spark-1.2",
+    "reason": "Contributor is Meta's discounted data-terms pricing tier of the same Muse Spark 1.2 model, not a different model; writeups describe the full model at ~95% lower cost in exchange for training-data rights.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "muse-spark-1.3-contributor": {
+    "decision": "link",
+    "model": "meta/muse-spark-1.3",
+    "reason": "Muse Spark 1.3 Contributor is a pricing and data-terms tier, not a reduced model: vendor material confirms it serves the full Muse Spark 1.3 at roughly 8% of standard cost in exchange for using prompts as training data.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

@@ -1,0 +1,131 @@
+{
+  "aion-labs/aion-3.5": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "AionLabs' own listing: Aion 3.5 is a multi-model roleplaying and storytelling system built on the GLM family, where several specialized models collaboratively generate each response. Not a single model, and the index has no Aion 3.5 entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "aion-labs/aion-3.5-mini": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "AionLabs' own listing: Aion 3.5 Mini is the smaller sibling using the same collaborative multi-model generation process built on the GLM family. Not a single catalog model, and the index has no Aion 3.5 entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "baidu/ernie-5.5-flash-preview:free": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Baidu's ERNIE 5.5 Flash Preview (released 2026-11-11, 280B MoE with 14B active, 1M context, free on OpenRouter); a real new model the index has no ERNIE 5.5 entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "baidu/ernie-light-dt-1.0-intl": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Baidu's ERNIE-Light-DT-1.0 international endpoint (snapshot 2026-11-10), built on open-source GLM models with Baidu Sparse Attention; a real new model the index has no entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek/deepseek-v3.1-terminus": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "DeepSeek-V3.1-Terminus (released 2025-09-22) is a separate checkpoint update from V3.1; the index has no terminus entry, so defer rather than link to deepseek/deepseek-v3.1.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek/deepseek-v3.2-exp": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "DeepSeek-V3.2-Exp (Sep 2025, DeepSeek Sparse Attention, built on V3.1-Terminus) is a separate experimental checkpoint from the Dec 2025 V3.2 release; the index has no exp entry, so defer rather than link to deepseek/deepseek-v3.2.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "dots-studio/dots-3-note-preview:free": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Dots Studio's dots3-note Preview (released 2026-08-14, 280B MoE with 16B active, 512K context, Apache-2.0, per Kilo/OpenRouter listings), Xiaohongshu's first public dots3 model; the index has no Dots Studio entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "google/gemma-4-26b-a4b-it": {
+    "decision": "link",
+    "model": "google/gemma-4-26b-a4b-it",
+    "reason": "Exact model id: Google's Gemma 4 26B A4B IT open-weight MoE (google/gemma-4-26B-A4B-it on Hugging Face, 26B total/4B active). Kilo's 0.015/0.045 price is a gateway discount off the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meta-llama/llama-3.3-70b-instruct": {
+    "decision": "link",
+    "model": "meta/llama-3.3-70b-instruct",
+    "reason": "Exact Hugging Face id of Meta's Llama 3.3 70B Instruct; Kilo's 0.1/0.32 gateway rate is a discount off the open-weight model's 0.705 median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meta/muse-spark-1.2-contributor": {
+    "decision": "link",
+    "model": "meta/muse-spark-1.2",
+    "reason": "Kilo lists Meta's contributor tier of Muse Spark 1.2: same weights, discounted 0.1/0.2 pricing in exchange for training-data rights; still meta/muse-spark-1.2.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meta/muse-spark-1.3-contributor": {
+    "decision": "link",
+    "model": "meta/muse-spark-1.3",
+    "reason": "Kilo lists Meta's contributor tier of Muse Spark 1.3: same weights, discounted 0.1/0.2 pricing in exchange for training-data rights; still meta/muse-spark-1.3.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "moonshotai/kimi-k3.1-pro": {
+    "decision": "link",
+    "model": "moonshot/kimi-k3.1-pro",
+    "reason": "Kimi K3.1 Pro (moonshotai/Kimi-K3.1-Pro on Hugging Face, post-trained successor to Kimi K3, released 2026-10-23, 1M context) matches moonshot/kimi-k3.1-pro; Kilo's 0.2375/8.4085 rate is a discount off the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openrouter/bodybuilder": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "OpenRouter's Body Builder (beta) converts natural-language requests into structured OpenRouter API request objects; a request-building tool, not a model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "scaledown/extract": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ScaleDown's Extract, a description-driven entity-extraction model (OpenRouter snapshot 2026-09-28); a real model the index has no ScaleDown entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "xiaomi/mimo-v2.6-pro-ultraspeed": {
+    "decision": "link",
+    "model": "xiaomi/mimo-v2.6-pro",
+    "reason": "MiMo-V2.6-Pro-UltraSpeed is Xiaomi's fast-serving tier of the same 1T MiMo-V2.6-Pro checkpoint (same quality, ~10x output speed); still xiaomi/mimo-v2.6-pro at the 4.35/8.7 speed-tier price.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "~deepseek/deepseek-flash-latest": {
+    "decision": "router",
+    "reason": "OpenRouter pointer (mirrored by Kilo) that always redirects to the latest model in the DeepSeek Flash family; the model served changes as DeepSeek ships releases, so it is a router, not one fixed model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "~deepseek/deepseek-pro-latest": {
+    "decision": "router",
+    "reason": "OpenRouter pointer (mirrored by Kilo) that always redirects to the latest model in the DeepSeek Pro family; the model served changes as DeepSeek ships releases, so it is a router, not one fixed model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "~moonshotai/kimi-latest": {
+    "decision": "router",
+    "reason": "OpenRouter pointer that always redirects to the latest model in the Kimi family; the model served changes as Moonshot ships releases, so it is a router, not one fixed model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "~z-ai/glm-latest": {
+    "decision": "router",
+    "reason": "OpenRouter pointer that always redirects to the latest GLM model from Z.ai; the model served changes as Z.ai ships releases, so it is a router, not one fixed model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

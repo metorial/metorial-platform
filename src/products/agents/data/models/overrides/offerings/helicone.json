@@ -1,0 +1,51 @@
+{
+  "chatgpt-4o-latest": {
+    "decision": "link",
+    "model": "openai/gpt-4o",
+    "reason": "OpenAI's chatgpt-4o-latest is the continuously-updated ChatGPT build of GPT-4o — the same model with additional RLHF (per OpenAI); still openai/gpt-4o, and Helicone's 5/20 matches OpenAI's official rate for this endpoint.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek-r1-distill-llama-70b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "DeepSeek's official DeepSeek-R1-Distill-Llama-70B (Hugging Face, Jan 2025, a Llama-3.3-70B distill of R1); the index only has the Qwen-32B distill, so defer rather than link the wrong distill.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek-tng-r1t2-chimera": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "TNG's DeepSeek-TNG-R1T2-Chimera (671B, Jul 2025) is an Assembly-of-Experts merge assembled from DeepSeek R1, R1-0528 and V3-0324 (per its Hugging Face card); a merge is not any single parent model, and the index has no Chimera entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek-v3.1-terminus": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "DeepSeek-V3.1-Terminus (released 2025-09-22) is a separate checkpoint update from V3.1; the index has no terminus entry, so defer rather than link to deepseek/deepseek-v3.1.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "ernie-4.5-21b-a3b-thinking": {
+    "decision": "link",
+    "model": "baidu/ernie-4.5-21b-a3b",
+    "reason": "The -thinking suffix is Baidu's reasoning-mode serving of the same ERNIE 4.5 21B A3B checkpoint (21B MoE, 131K context, released 2025-06-30); still baidu/ernie-4.5-21b-a3b at the same 0.07/0.28 rate as the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "llama-3.3-70b-instruct": {
+    "decision": "link",
+    "model": "meta/llama-3.3-70b-instruct",
+    "reason": "The offering is Meta's Llama 3.3 70B Instruct exactly (Hugging Face meta-llama/Llama-3.3-70B-Instruct); Helicone's 0.13/0.39 rate is a discounted gateway price for the open-weight model, below its 0.705 median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "mistral-nemo": {
+    "decision": "link",
+    "model": "mistral/mistral-nemo",
+    "reason": "The offering is Mistral Nemo, the 12B model built with NVIDIA (2024). Helicone's listed 20/40 rate is far above the model's 0.1 median and looks like bad gateway price data, but the model served is Mistral Nemo itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "abliteration-abliterated-model-large-flash": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Abliteration AI's derivative of DeepSeek V4.1 Flash with refusal behavior removed at the weight level (per the provider's documentation and catalog listing); an abliterated fine-tune is not the base model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "abliteration-abliterated-model-large-v2": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Abliteration AI built it from Zhipu's GLM-5.3 and then further abliterated and fine-tuned it; a weight-edited derivative is not zhipu/glm-5.3 itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "aion-labs-aion-3-5": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "Venice serves AionLabs' Aion 3.5, which AionLabs describes as a multi-model collaborative roleplay/storytelling system built on the GLM family; not a single model, and the index has no Aion 3.5 entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "aion-labs-aion-3-5-mini": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "Venice serves AionLabs' Aion 3.5 Mini, the smaller sibling of the same multi-model collaborative roleplay system built on the GLM family; not a single model, and the index has no Aion 3.5 entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek-v4-1-flash-1017-ultrafast": {
+    "decision": "link",
+    "model": "deepseek/deepseek-v4.1-flash-1017",
+    "reason": "Ultrafast is Fireworks' accelerated serving of the same October 17, 2026 DeepSeek V4.1 Flash checkpoint (per Vercel/Fireworks release notes); the 3/12 price buys roughly 1000 tokens/s throughput.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek-v4-1-flash-1017-uncensored": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "dealignai's DeepSeek V4.1 Flash 1017 Uncensored: the Oct 2026 V4.1-Flash checkpoint with refusal behavior removed directly in the weights (per vendor listings and VeniceStats); a weight-edited derivative is not deepseek/deepseek-v4.1-flash-1017 itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek-v4-1-flash-uncensored": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "dealignai's DeepSeek V4.1 Flash Uncensored, an abliterated build of DeepSeek's V4.1-Flash base with refusals removed in the weights (per VeniceStats and vendor listings); a weight-edited derivative is not the DeepSeek base model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai-gpt-61-sol-ultrafast": {
+    "decision": "link",
+    "model": "openai/gpt-6.1-sol",
+    "reason": "Venice's own listing states GPT-6.1 Sol Ultrafast is OpenAI's GPT-6.1 Sol model; Ultrafast is a service tier (about 6x standard pricing) of the same checkpoint, so it is still openai/gpt-6.1-sol.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}
