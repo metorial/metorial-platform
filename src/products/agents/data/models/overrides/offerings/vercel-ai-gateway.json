@@ -48,6 +48,27 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "bytedance/seedance-v1.0-pro": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ByteDance's Seedance 1.0 Pro, the Pro-tier video generation model of the Seedance 1.0 release (1080p clips up to 12s, per Vercel's own page); the index's Seedance line starts at 1.5 Pro, so defer rather than link the wrong generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "bytedance/seedance-v1.0-pro-fast": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Vercel's own docs: Seedance 1.0 Pro Fast delivers Seedance 1.0 Pro-quality 1080p video at ~3x throughput and 72% lower cost; a fast serving of Seedance 1.0 Pro, which itself has no index entry, so defer rather than link a later generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "bytedance/seedream-4.0": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ByteDance's Seedream 4.0 image model (released Aug/Sep 2025; up to 4K output and multi-reference editing, per ByteDance/Leap listings); the index's Seedream line starts at 4.5, so defer rather than link the wrong generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "callstack/apex": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -108,6 +129,20 @@
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "ElevenLabs' Music v2.5, the new default ElevenMusic generation model released 2026-09-11 with richer arrangements (per ElevenLabs' announcement); the index has ElevenLabs speech and transcription models but no Music entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "elevenlabs/scribe-v2-realtime": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ElevenLabs' Scribe v2 Realtime, the ultra-low-latency streaming speech-to-text model launched alongside Scribe v2 in Nov 2025 (~150ms latency, per ElevenLabs and coverage); the index has elevenlabs/scribe-v2 but no Realtime entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "elevenlabs/sound-effects-v2": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "ElevenLabs' Sound Effects v2, its text-to-sound-effects generation model (foley/ambiences, clips up to 22-30s, released Sep 2025 per listings); an audio-generation model with no catalog match — the index's ElevenLabs entries are speech and transcription models.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -395,6 +430,13 @@
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "Topaz Labs' Proteus, its detail-preserving video upscaling and enhancement model in the Topaz Video AI suite (per Vercel's listing and Topaz docs); a real video model the index has no Topaz entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "topaz/starlight-precise-2.6": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Topaz Labs' Starlight Precise 2.6, its diffusion-based video upscaling and enhancement model (reconstructs 1080p/4K detail, per Topaz/Cloudflare listings); a real video model the index has no Topaz entry for.",
     "by": "agent",
     "at": "2026-11-12"
   },

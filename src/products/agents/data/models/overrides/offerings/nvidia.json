@@ -55,6 +55,34 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "nvidia/sparsedrive": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "SparseDrive is an end-to-end autonomous-driving model doing motion prediction and planning from multi-view video (NVIDIA's NIM card deploys the SparseDrive paper and notes the model is not NVIDIA's); an AV perception/planning model with no catalog counterpart.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nvidia/streampetr": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "StreamPETr is an autonomous-driving 3D object detection model that propagates sparse object queries across frames (per its NVIDIA NIM model card); an AV perception model with no catalog counterpart, like the BEVFormer NIM.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nvidia/studiovoice": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "NVIDIA's StudioVoice, a speech-enhancement model that restores noisy or reverberant recordings to studio quality (audio-in/audio-out, per its NIM listings); a speech model the index's NVIDIA line has no entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nvidia/synthetic-video-detector": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "NVIDIA's Synthetic Video Detector, a Maxine microservice that classifies video as real or AI-generated (up to 92% accuracy on uncompressed video per NVIDIA); a detection model, not a generative catalog model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "qwen/qwen-image": {
     "decision": "defer",
     "until": "2026-12-12",

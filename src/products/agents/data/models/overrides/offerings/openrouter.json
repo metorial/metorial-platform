@@ -230,6 +230,12 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "nvidia/switchyard": {
+    "decision": "router",
+    "reason": "NVIDIA's Switchyard is an open-source model-routing system that switches between multiple models to optimize the cost of requests (per OpenRouter's own listing and NVIDIA's docs); it picks a model per request, not one fixed model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "openai/gpt-3.5-turbo-16k": {
     "decision": "link",
     "model": "openai/gpt-3.5-turbo",
@@ -347,6 +353,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "perplexity/sonar-pro-search": {
+    "decision": "link",
+    "model": "perplexity/sonar-pro",
+    "reason": "OpenRouter's exclusive Sonar Pro Search SKU serves Sonar Pro in its new Pro Search mode — the listings describe it as Sonar Pro's search mode with Sonar Pro's exact $3/$15 pricing and 200K context; a search-mode serving is still perplexity/sonar-pro.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "prism-ml/ternary-bonsai-2-27b": {
+    "decision": "link",
+    "model": "alibaba/qwen3.8-27b",
+    "reason": "PrismML's Ternary Bonsai 2 27B (Hugging Face prism-ml/Ternary-Bonsai-2-27B-gguf) is a ternary quantization of Qwen3.8-27B per its metadata; a quantized serving is still alibaba/qwen3.8-27b, at OpenRouter's 0.075/0.5 rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "qwen/qwen-2.5-72b-instruct": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -389,10 +409,24 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "scaledown/summarize": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ScaleDown's Summarize, a task-specific abstractive summarization model over 1M context (per OpenRouter/ScaleDown listings, snapshot 2026-09-28); a real new model the index has no ScaleDown entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "sourceful/riverflow-v2.6-pro": {
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "Sourceful's Riverflow 2.6 Pro, the flagship of the Riverflow 2.6 image-generation line listed late Oct 2026 (per OpenRouter listings); the index's Riverflow line stops at 2.5, so defer rather than link the wrong generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "speechify/simba-3.5": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Speechify's Simba 3.5, its in-house text-to-speech model released 2026-10-21 covering 48 languages in one model (per Speechify's announcement); a speech model with no catalog match — the index has no Speechify entry.",
     "by": "agent",
     "at": "2026-11-12"
   },

@@ -1,4 +1,11 @@
 {
+  "ambient/small": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "Ambient's provider-specific Small tier; models.dev marks it Provider-specific and no listing identifies the underlying checkpoint (its Large tier maps to GLM-5.2), so there is no model identity to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "unsloth/qwen3.8-27b-gguf": {
     "decision": "link",
     "model": "alibaba/qwen3.8-27b",

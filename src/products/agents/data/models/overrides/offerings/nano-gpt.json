@@ -398,6 +398,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "VongolaChouko/Starcannon-Unleashed-12B-v1.0": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "VongolaChouko's Starcannon-Unleashed-12B-v1.0, a roleplay merge of MarinaraSpaghetti/NemoMix-Unleashed-12B and nothingiisreal/MN-12B-Starcannon-v3 (Hugging Face metadata lists both merge bases); a merge is not any single base model and the index has no entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "abacusai/Dracarys-72B-Instruct": {
     "decision": "link",
     "model": "abacusai/dracarys-llama-3.1-70b-instruct",
@@ -1267,6 +1274,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "prism-ml/ternary-bonsai-2-27b": {
+    "decision": "link",
+    "model": "alibaba/qwen3.8-27b",
+    "reason": "PrismML's Ternary Bonsai 2 27B is Qwen3.8-27B with ternary-compressed weights — its Hugging Face metadata lists it as quantized from Qwen/Qwen3.8-27B, retaining 98.2% of the base's benchmark average; a quantized serving is still alibaba/qwen3.8-27b.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "qwen/qwen-2.5-72b-instruct": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -1393,6 +1407,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "shisa-ai/shisa-v2-llama3.3-70b": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Shisa.AI's Shisa V2 Llama 3.3 70B, a bilingual Japanese-English chat model post-trained from Meta's Llama-3.3-70B-Instruct (Hugging Face metadata lists the finetune base); a fine-tune is not meta/llama-3.3-70b-instruct itself and the index has no Shisa entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "shisa-ai/shisa-v2.1-llama3.3-70b": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Shisa.AI's Shisa-v2.1-llama3.3-70b, a bilingual Japanese-English chat model fine-tuned from Meta's Llama-3.3-70B-Instruct (per its Hugging Face card); a fine-tune is not the Llama base model and the index has no Shisa entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "sicariussicariistuff/assistant-pepe-32b": {
     "decision": "exclude",
     "category": "fine-tune",
@@ -1418,6 +1446,20 @@
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "Speakleash/ACK Cyfronet's Bielik 11B v3.0 Instruct (Hugging Face, Apache 2.0, Nov 2025), an instruct tune of their own Bielik v3 base; a real chat model the index does not contain.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "synth-2.5-flash": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "LucidityAI's Synth 2.5 Flash Preview, the low-cost role-play and storytelling tier of the Synth 2.5 family (per NanoGPT's listing and the LucidityAI Hugging Face collection); a real new model the index has no LucidityAI entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "synth-2.5-pro": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "LucidityAI's Synth 2.5 Pro Preview, a 26B model built on the Gemma 4 26B A4B architecture and fine-tuned for creative generation (per its Hugging Face card); a real new model the index has no LucidityAI entry for.",
     "by": "agent",
     "at": "2026-11-12"
   },

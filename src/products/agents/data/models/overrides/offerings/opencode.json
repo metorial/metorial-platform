@@ -96,5 +96,19 @@
     "reason": "OpenCode's free tier of inclusionAI's Ring-2.6-1T, the 1T-parameter/63B-active thinking model released May 2026 (also offered free via OpenRouter); the index's inclusionai line has no Ring entry, so defer the free serving with the model.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "space-bunny": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Space Bunny Alpha, a branded but anonymous multimodal reasoning preview launched on OpenCode 2026-09-23 (1M context; tokenizer tests reportedly point to MiniMax but no lab has claimed it); a real new model with no index entry, so defer until it is identified.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "space-bunny-free": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenCode's free tier of Space Bunny Alpha, the anonymous multimodal reasoning preview launched 2026-09-23; the maker is unconfirmed and the index has no entry, so defer the free serving with it.",
+    "by": "agent",
+    "at": "2026-11-12"
   }
 }

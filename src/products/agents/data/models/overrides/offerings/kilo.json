@@ -244,6 +244,27 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "perplexity/sonar-pro-search": {
+    "decision": "link",
+    "model": "perplexity/sonar-pro",
+    "reason": "Perplexity's Sonar Pro Search is Sonar Pro served in its new Pro Search (agentic search) mode — listings describe it as Sonar Pro's search mode with Sonar Pro's exact $3/$15 pricing and 200K context; a search-mode serving is still perplexity/sonar-pro.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "prism-ml/ternary-bonsai-2-27b": {
+    "decision": "link",
+    "model": "alibaba/qwen3.8-27b",
+    "reason": "PrismML's Ternary Bonsai 2 27B is Qwen3.8-27B with ternary-compressed weights — its Hugging Face metadata lists it as quantized from Qwen/Qwen3.8-27B (98.2% of the base's benchmark average retained); a quantized serving is still alibaba/qwen3.8-27b.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "prism-ml/ternary-bonsai-2-9b": {
+    "decision": "link",
+    "model": "alibaba/qwen3.5-9b",
+    "reason": "PrismML's Ternary Bonsai 2 9B is Qwen3.5-9B with ternary weights packed into 2 bits (derived from Qwen3.5-9B per its card and listings); a quantized serving is still alibaba/qwen3.5-9b, at Kilo's 0.08/0.13 rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "qwen/qwen-2.5-72b-instruct": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -276,6 +297,13 @@
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "ScaleDown's Extract, a description-driven entity-extraction model (OpenRouter snapshot 2026-09-28); a real model the index has no ScaleDown entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "scaledown/summarize": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ScaleDown's Summarize, a task-specific abstractive summarization model over 1M context (per Kilo/OpenRouter listings); a real new model the index has no ScaleDown entry for.",
     "by": "agent",
     "at": "2026-11-12"
   },

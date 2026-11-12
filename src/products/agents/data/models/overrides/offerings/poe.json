@@ -125,6 +125,20 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "openai/sora-2": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenAI's Sora 2, the video generation model released Sept 2025 with synchronized audio (per OpenAI's announcement and coverage); the index has no Sora entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/sora-2-pro": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OpenAI's Sora 2 Pro, the higher-quality Pro tier of the Sora 2 video model (Sept 2025, up to 1024p per listings); the index has no Sora entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "poetools/claude-code": {
     "decision": "exclude",
     "category": "other",
@@ -142,6 +156,13 @@
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "Runway's Gen-4 Turbo video model (Sept 2024, image-to-video, per Runway/Replicate listings); the index's Runway line has only Gen-4.5 and Aleph 2.0, no Gen-4 entry, so defer rather than link the wrong generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "trytako/tako": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Trytako's Tako, a tool-capable chat model served on Poe (per Poe/EDNA listings); the vendor discloses no lineage or underlying checkpoint and the index has no Tako entry, so defer rather than guess.",
     "by": "agent",
     "at": "2026-11-12"
   },
