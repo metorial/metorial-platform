@@ -8,6 +8,15 @@ let MAX_PAGE_CHARS = 200_000;
 let FETCH_TIMEOUT_MS = 15_000;
 let MAX_RESPONSE_BYTES = 1024 * 1024;
 
+// Scout's bundled declarations lag behind the service and the workspace RPC client.
+type ScoutRequestOptions = NonNullable<
+  Parameters<ReturnType<typeof createScoutClient>['crawl']['search']>[1]
+> & {
+  signal: AbortSignal;
+  retry: false;
+  captureErrors: false;
+};
+
 export type WebSearchResult = {
   title: string;
   url: string;
@@ -170,12 +179,21 @@ export let createWebAccess = (d: {
         let signal = requestSignal(options?.signal);
         signal.throwIfAborted();
 
+        let input: Parameters<typeof scout.crawl.search>[0] & { securityReview: true } = {
+          query: screened,
+          country: undefined,
+          type: 'web',
+          securityReview: true
+        };
+        let requestOptions: ScoutRequestOptions = {
+          signal,
+          retry: false,
+          captureErrors: false
+        };
+
         event.dispatched = true;
         event.usedAt = new Date();
-        let results = await scout.crawl.search(
-          { query: screened, country: undefined, type: 'web', securityReview: true },
-          { signal, retry: false, captureErrors: false }
-        );
+        let results = await scout.crawl.search(input, requestOptions);
         event.outcome = 'succeeded';
 
         return results.flatMap(result => {
@@ -223,15 +241,23 @@ export let createWebAccess = (d: {
         event.usedAt = new Date();
 
         if (scout) {
-          let page = await scout.crawl.extract(
-            { url: checked.url.href, securityReview: true },
-            { signal, retry: false, captureErrors: false }
-          );
+          let input: Parameters<typeof scout.crawl.extract>[0] & { securityReview: true } = {
+            url: checked.url.href,
+            securityReview: true
+          };
+          let requestOptions: ScoutRequestOptions = {
+            signal,
+            retry: false,
+            captureErrors: false
+          };
+
+          let page = await scout.crawl.extract(input, requestOptions);
           signal.throwIfAborted();
           if (!page.markdown) throw new WebAccessError('fetch_failed');
 
           // Firecrawl reports the final URL after retrieval; this does not police its internal redirects.
-          let final = await checkUrl(page.url ?? checked.url.href, signal);
+          let pageUrl = 'url' in page && typeof page.url == 'string' ? page.url : undefined;
+          let final = await checkUrl(pageUrl ?? checked.url.href, signal);
           event.outcome = 'succeeded';
           return { url: final.url.href, markdown: page.markdown.slice(0, MAX_PAGE_CHARS) };
         }

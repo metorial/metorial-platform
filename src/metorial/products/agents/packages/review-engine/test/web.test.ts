@@ -116,6 +116,15 @@ describe('guarded review web access', () => {
     expect(events[0]).toMatchObject({ dispatched: false, reputation: { verdict: 'unsafe' } });
   });
 
+  it('uses the requested URL when Scout does not return a final URL', async () => {
+    mocks.extract.mockResolvedValue({ markdown: 'Public documentation' });
+
+    await expect(web().fetch('https://docs.vendor.com/guide')).resolves.toEqual({
+      url: 'https://docs.vendor.com/guide',
+      markdown: 'Public documentation'
+    });
+  });
+
   it.each(['missing', 'failure', 'malformed'])(
     'stops fetches when reputation is %s',
     async mode => {
@@ -207,7 +216,19 @@ describe('guarded review web access', () => {
     expect(mocks.search).not.toHaveBeenCalled();
 
     await access.search('Vendor MCP documentation');
-    expect(mocks.search).toHaveBeenCalledOnce();
+    expect(mocks.search).toHaveBeenCalledExactlyOnceWith(
+      {
+        query: 'Vendor MCP documentation',
+        country: undefined,
+        type: 'web',
+        securityReview: true
+      },
+      expect.objectContaining({
+        retry: false,
+        captureErrors: false,
+        signal: expect.any(AbortSignal)
+      })
+    );
     expect(events.map(event => event.domain)).toEqual([
       'api.firecrawl.dev',
       'api.firecrawl.dev'

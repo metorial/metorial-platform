@@ -110,7 +110,7 @@ export class SkillCommitter {
       instance: this.scope.instance,
       auditScope: this.scope.auditScope,
       purpose: await this.getGenericPurposeId(),
-      file: new Blob([content], { type: mimeType }),
+      file: new Blob([new Uint8Array(content)], { type: mimeType }),
       fileName: path.basename(filePath),
       title: path.basename(filePath),
       mimeType,
