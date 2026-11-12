@@ -179,7 +179,7 @@ class slatePackServiceImpl {
             })
           : await this.recordMissingEntry({ packImportOid: packImport.oid, entry });
 
-        counts[outcome.status]++;
+        if (outcome.status !== 'omitted') counts[outcome.status]++;
         if ((index + 1) % progressEvery === 0) await saveCounts();
       }
 

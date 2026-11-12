@@ -34,7 +34,7 @@ export type MirrorImportCatalog = {
   logoUrl?: string | null;
 };
 
-type ImportOutcome = { status: MirrorResultStatus; message?: string };
+type ImportOutcome = { status: MirrorResultStatus | 'omitted'; message?: string };
 
 let errorMessage = (error: unknown) => {
   if (error instanceof ServiceError) return error.data.message;
@@ -59,6 +59,7 @@ class mirrorImportServiceImpl {
       status: 'rejected',
       message: errorMessage(error)
     }));
+    if (outcome.status === 'omitted') return outcome;
 
     await db.mirrorResult.create({
       data: {
@@ -87,13 +88,23 @@ class mirrorImportServiceImpl {
     if (!parsed) return { status: 'rejected', message: 'Invalid slate identifier.' };
 
     let entries = await readZipEntries(d.bundle);
-    let slatePackage = normalizeSlatePackage({
-      entries,
-      identifier: {
-        scopeIdentifier: parsed.scopeIdentifier,
-        slateIdentifier: parsed.slateIdentifier
-      }
-    });
+
+    // Old uploads predate manifest validation and can never be installed, so they are
+    // dropped silently instead of showing up as sync problems.
+    let slatePackage;
+    try {
+      slatePackage = normalizeSlatePackage({
+        entries,
+        identifier: {
+          scopeIdentifier: parsed.scopeIdentifier,
+          slateIdentifier: parsed.slateIdentifier
+        }
+      });
+    } catch (error) {
+      if (error instanceof ServiceError) return { status: 'omitted' };
+      throw error;
+    }
+
     if (slatePackage.manifest.version !== d.version) {
       return {
         status: 'rejected',
