@@ -34,6 +34,7 @@ export let services = {
   explorer: service(6050),
   objectStorage: service(52010),
   functionBay: service(52030),
+  slatesRegistryInternal: service(52041),
   slatesHubPublic: service(52045),
   slatesHub: service(52046),
   signal: service(52050),

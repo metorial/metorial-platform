@@ -24,7 +24,10 @@ import {
   mergeResourceOwners,
   type OwnershipAccessor
 } from '@metorial-subspace/module-tenant';
-import { providerCombinationService } from '@metorial-subspace/module-provider-internal';
+import {
+  checkProviderEnabled,
+  providerCombinationService
+} from '@metorial-subspace/module-provider-internal';
 import { sessionProviderCreatedQueue } from '../queues/lifecycle/sessionProvider';
 import {
   enqueueSessionTemplateProviderCreated,
@@ -110,12 +113,15 @@ let assertProvidersUsable = async (
   resolved: {
     templates: Map<string, SessionProviderTemplateInput>;
     providers: {
+      provider: { id: string; isDisabled: boolean };
       config: ProviderConfig;
       authConfig?: ProviderAuthConfig | null;
       template: SessionProviderTemplateInput | null;
     }[];
   }
 ) => {
+  for (let provider of resolved.providers) checkProviderEnabled(provider.provider);
+
   await assertCanUseOwnedResources(accessor, [...resolved.templates.values()], {
     resource: 'session template'
   });
