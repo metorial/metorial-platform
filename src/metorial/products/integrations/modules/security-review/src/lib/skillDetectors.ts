@@ -9,6 +9,7 @@ import type {
 } from '@metorial-subspace/db';
 import type { LedgerFact } from '@metorial/review-engine';
 import { scanSecrets } from './detectors';
+import { groupByKind } from './groupByKind';
 
 let EVIDENCE_PREFIX = '/evidence/skill/';
 let MAX_REFS_PER_FINDING = 5;
@@ -601,7 +602,7 @@ export let scanSkill = (d: SkillScanInput): SkillScanResult => {
   let secrets = scanSecrets(
     Object.fromEntries(d.texts.map(file => [file.path, file.content]))
   );
-  for (let [kind, hits] of Map.groupBy(secrets, hit => hit.kind)) {
+  for (let [kind, hits] of groupByKind(secrets)) {
     let hitList: Hit[] = hits.map(hit => ({
       path: hit.path,
       line: hit.line,
@@ -850,7 +851,7 @@ export let scanSkill = (d: SkillScanInput): SkillScanResult => {
     }
   }
 
-  let kinds = [...Map.groupBy(d.inventory, entry => entry.kind)]
+  let kinds = [...groupByKind(d.inventory)]
     .map(([kind, entries]) => `${kind}: ${entries.length}`)
     .join(', ');
   facts.push({

@@ -173,7 +173,6 @@ export let SecurityReportAside = ({
 }) => {
   let scores = revision.scores;
   let coverage = getCoverage(revision);
-  let triggerReason = isSkillRevision(revision) ? null : revision.triggerReason;
 
   return (
     <Aside>
@@ -243,7 +242,9 @@ export let SecurityReportAside = ({
                       {versionId && versionLabels[versionId]
                         ? `Version ${versionLabels[versionId]} · `
                         : ''}
-                      {triggerLabels[item.trigger]}
+                      {isSkillRevision(item)
+                        ? triggerLabels[item.trigger]
+                        : `Revision ${item.number}`}
                     </Text>
                   </HistoryText>
                   <HistoryScore>{item.scores?.securityScore ?? '—'}</HistoryScore>

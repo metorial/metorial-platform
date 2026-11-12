@@ -46,8 +46,6 @@ import {
 
 let KEY_TOOL_COUNT = 8;
 
-type Implementation = NonNullable<SecurityReviewRevision['report']['implementation']>;
-
 let Section = styled.section`
   margin-top: 36px;
   scroll-margin-top: 80px;
@@ -307,7 +305,7 @@ export let ImplementationSection = ({
   number: string;
   revision: AnySecurityReviewRevision;
 }) => {
-  let implementation: Implementation | null = revision.report.implementation;
+  let implementation = revision.report.implementation;
   if (!implementation) return null;
 
   let points = [

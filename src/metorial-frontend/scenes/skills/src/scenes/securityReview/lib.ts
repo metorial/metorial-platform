@@ -174,7 +174,7 @@ export let findingKindLabels: Record<Finding['kind'], string> = {
   positive: 'Positive'
 };
 
-export let triggerLabels: Record<AnySecurityReviewRevision['trigger'], string> = {
+export let triggerLabels: Record<SkillSecurityReviewRevision['trigger'], string> = {
   first_use: 'First use',
   page_open: 'Initial assessment',
   new_version: 'New version',

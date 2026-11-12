@@ -4,7 +4,7 @@ import React from 'react';
 import { styled } from 'styled-components';
 
 export type EvidenceRef =
-  | { type: 'file'; path: string; lines: number[] | null; excerpt: string | null }
+  | { type: 'file'; path: string; lines: number[] | null; excerpt?: string | null }
   | { type: 'url'; url: string }
   | { type: 'tool'; toolKey: string }
   | { type: 'note'; label: string; detail: string | null };

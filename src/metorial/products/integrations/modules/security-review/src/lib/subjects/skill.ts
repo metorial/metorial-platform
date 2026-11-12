@@ -11,6 +11,7 @@ import { metorialDb } from '@metorial-subspace/module-tenant';
 import { readFileHead } from '@metorial/module-file';
 import type { LedgerFact } from '@metorial/review-engine';
 import type { CollectedEvidence } from '../evidence';
+import { groupByKind } from '../groupByKind';
 import {
   AGENT_TEXT_MAX_BYTES,
   classifyByExtensionOnly,
@@ -528,10 +529,7 @@ export let collectSkillEvidence = async (d: {
       fileCount: inventory.length,
       analyzedFileCount: texts.length,
       kinds: Object.fromEntries(
-        [...Map.groupBy(inventory, entry => entry.kind)].map(([kind, entries]) => [
-          kind,
-          entries.length
-        ])
+        [...groupByKind(inventory)].map(([kind, entries]) => [kind, entries.length])
       )
     }
   };

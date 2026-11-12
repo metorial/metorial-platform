@@ -10,6 +10,7 @@ import type {
 import type { LedgerFact } from '@metorial/review-engine';
 import { parseLockfiles, queryAdvisories, scanSecrets } from '../detectors';
 import type { CollectedEvidence, SubjectKind } from '../evidence';
+import { groupByKind } from '../groupByKind';
 import { origin } from '../origin';
 import { censusFindings, computeSpecCensus } from './census';
 import { scanToolDefinitions } from './protoguard';
@@ -120,7 +121,7 @@ let codeEvidence = async (d: {
     limitations.push(`${code.skipped} large or binary files were not reviewed.`);
 
   let secrets = scanSecrets(codeFiles);
-  let secretsByKind = Map.groupBy(secrets, hit => hit.kind);
+  let secretsByKind = groupByKind(secrets);
 
   for (let [kind, hits] of secretsByKind) {
     let factId = `secret-${slugify(kind)}`;
