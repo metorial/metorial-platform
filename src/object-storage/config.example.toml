@@ -89,6 +89,7 @@ physical_bucket = "object-store-data"
 # endpoint = "http://localhost:9000"        # Optional; implies path-style addressing
 # public_endpoint = "https://s3.example.com" # Optional; host that signed URLs point at
 # force_path_style = true
+# create_bucket = true                      # Create the bucket on startup (self-hosted stores)
 
 # For GCS backend (Application Default Credentials unless credentials_file is set):
 # type = "gcs"
@@ -106,3 +107,17 @@ physical_bucket = "object-store-data"
 # auth = "default"                           # access_key | default | workload_identity | managed_identity
 # endpoint = "http://localhost:10000/devstoreaccount1"
 # public_endpoint = "https://myaccount.blob.example.com"
+
+# Public URLs (`/buckets/:bucket/public-url/*key`).
+# mode = "backend" (default): the backend signs them (presigned S3/GCS/Azure URLs, local public_url),
+#   so clients must be able to reach the backend.
+# mode = "proxy": this service signs them for its own public listener, which only serves signed
+#   GET/HEAD/PUT of single objects and streams to and from the backend. Put the public listener (not
+#   the management API on [server]) behind your reverse proxy at base_url.
+# [public]
+# mode = "proxy"
+# base_url = "https://metorial.example.com/object-storage"
+# signing_secret = "at-least-32-characters-of-random-secret"
+# host = "0.0.0.0"
+# port = 8081
+# request_timeout_secs = 3600

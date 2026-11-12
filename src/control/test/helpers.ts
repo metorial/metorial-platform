@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { atomicWrite, canonical, writeJson } from '../src/files';
 import { defaultPorts } from '../src/environment';
+import * as commands from '../src/process';
 import type { ProjectRoot, WorkspaceMetadata } from '../src/types';
 
 let directories: string[] = [];
@@ -82,4 +83,44 @@ export let executable = (directory: string, name: string, source: string) => {
     : (() => {
         throw new Error(`could not make ${path} executable`);
       })();
+};
+
+export let listenerFixture = async (cwd: string, ignoreTerm = false) => {
+  let child = commands.spawn(
+    process.execPath,
+    [
+      '-e',
+      `let net = require('node:net');
+      ${ignoreTerm ? "process.on('SIGTERM', () => {});" : ''}
+      let server = net.createServer();
+      server.listen(0, '127.0.0.1', () => console.log(server.address().port));`
+    ],
+    cwd,
+    {},
+    false,
+    true
+  );
+  child.stdin?.end();
+
+  let port = await new Promise<number>((resolve, reject) => {
+    let output = '';
+    let timer = setTimeout(() => reject(new Error('listener did not start')), 5000);
+    child.once('error', reject);
+    child.once('close', () => {
+      clearTimeout(timer);
+      reject(new Error('listener exited before starting'));
+    });
+    child.stdout?.on('data', chunk => {
+      output += chunk.toString();
+      if (!output.includes('\n')) return;
+      clearTimeout(timer);
+      resolve(Number(output.trim()));
+    });
+  }).catch(error => {
+    commands.signalTree(child, 'SIGKILL');
+
+    throw error;
+  });
+
+  return { child, port };
 };

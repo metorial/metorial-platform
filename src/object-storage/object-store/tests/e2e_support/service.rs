@@ -81,11 +81,13 @@ impl<'a> ServiceBuilder<'a> {
             .unwrap();
         let port = free_port();
 
+        let mut server = BTreeMap::from([("health_port".to_string(), "0".to_string())]);
+        if let Some(overrides) = self.settings.get("server") {
+            server.extend(overrides.clone());
+        }
         let mut config = format!("[server]\nhost = \"127.0.0.1\"\nport = {port}\n");
-        if let Some(server) = self.settings.get("server") {
-            for (key, value) in server {
-                config.push_str(&format!("{key} = {value}\n"));
-            }
+        for (key, value) in &server {
+            config.push_str(&format!("{key} = {value}\n"));
         }
         config.push_str("\n[backend]\n");
         config.push_str(&self.storage.kind.backend_toml(&self.storage.data_dir()));

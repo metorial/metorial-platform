@@ -2485,6 +2485,7 @@ dependencies = [
  "flate2",
  "futures",
  "hex",
+ "hmac 0.12.1",
  "mime_guess",
  "mockall",
  "object-store-backends",

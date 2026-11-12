@@ -19,10 +19,16 @@ async fn main() -> anyhow::Result<()> {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
+    // A configuration that does not parse must stop the service: falling back to the defaults would
+    // silently store data on the container's local disk.
+    let configured_by_env = std::env::vars().any(|(key, _)| key.starts_with("OBJECT_STORE__"));
     let config = if let Ok(config_path) = std::env::var("CONFIG_PATH") {
         Config::from_file(&config_path)?
+    } else if configured_by_env {
+        Config::from_env()
+            .map_err(|error| anyhow::anyhow!("Invalid OBJECT_STORE__* configuration: {error}"))?
     } else {
-        Config::from_env().unwrap_or_else(|_| Config::default())
+        Config::default()
     };
 
     info!(
@@ -37,6 +43,7 @@ async fn main() -> anyhow::Result<()> {
     backend.init().await?;
 
     let metadata = Arc::new(MetadataStore::new(backend.clone()).await?);
+    let public_signer = config.public.signer()?.map(Arc::new);
     info!(
         "Archive upload memory budget: {} bytes",
         config.zip.upload_memory_budget_bytes
@@ -44,6 +51,7 @@ async fn main() -> anyhow::Result<()> {
     let archive_uploader = Arc::new(Uploader::new(config.archive_upload_settings()));
     let service = Arc::new(
         ObjectStoreService::new(backend, metadata)
+            .with_public_signer(public_signer)
             .with_archive_uploader(archive_uploader)
             .with_max_concurrent_digests(config.digests.max_concurrent),
     );
@@ -72,6 +80,56 @@ async fn main() -> anyhow::Result<()> {
         shutdown.clone(),
     ));
 
+    let mut side_listeners = Vec::new();
+
+    if service.public_signer().is_some() {
+        let public_app = object_store::public_api::create_public_router(
+            service.clone(),
+            std::time::Duration::from_secs(config.public.request_timeout_secs),
+        );
+        let public_addr = format!("{}:{}", config.public.host, config.public.port);
+        let public_listener = tokio::net::TcpListener::bind(&public_addr).await?;
+
+        info!(
+            "Public object URLs are served on {} for {}",
+            public_addr,
+            config.public.base_url.as_deref().unwrap_or_default()
+        );
+
+        let shutdown = shutdown.clone();
+        side_listeners.push(tokio::spawn(async move {
+            if let Err(error) = axum::serve(public_listener, public_app)
+                .with_graceful_shutdown(shutdown.cancelled_owned())
+                .await
+            {
+                tracing::error!("Public listener stopped: {}", error);
+                std::process::exit(1);
+            }
+        }));
+    }
+
+    if config.server.health_port != 0 {
+        let health_app = axum::Router::new()
+            .route("/", axum::routing::get(object_store::api::health_check))
+            .route(
+                "/health",
+                axum::routing::get(object_store::api::health_check),
+            );
+        let health_addr = format!("{}:{}", config.server.host, config.server.health_port);
+        let health_listener = tokio::net::TcpListener::bind(&health_addr).await?;
+
+        let shutdown = shutdown.clone();
+        side_listeners.push(tokio::spawn(async move {
+            if let Err(error) = axum::serve(health_listener, health_app)
+                .with_graceful_shutdown(shutdown.cancelled_owned())
+                .await
+            {
+                tracing::error!("Health listener stopped: {}", error);
+                std::process::exit(1);
+            }
+        }));
+    }
+
     let addr = format!("{}:{}", config.server.host, config.server.port);
     let listener = tokio::net::TcpListener::bind(&addr).await?;
 
@@ -85,6 +143,10 @@ async fn main() -> anyhow::Result<()> {
         shutdown,
     )
     .await?;
+
+    for listener in side_listeners {
+        let _ = listener.await;
+    }
 
     info!("Object storage service stopped");
     Ok(())

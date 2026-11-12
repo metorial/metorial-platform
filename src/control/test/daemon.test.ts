@@ -1,13 +1,21 @@
 import { describe, expect, spyOn, test } from 'bun:test';
 import { join } from 'node:path';
+import { createServer } from 'node:net';
 import * as docker from '../src/docker';
 import * as dev from '../src/dev';
 import * as commands from '../src/process';
+import * as ports from '../src/ports';
 import { LogStore, replayLines } from '../src/daemon/logs';
 import { WorkspaceRuntime } from '../src/daemon/runtime';
 import { delay } from '../src/process';
 import { writeMetadata } from '../src/workspace';
-import { checkout, packageFixture, workspaceData, writeManifest } from './helpers';
+import {
+  checkout,
+  listenerFixture,
+  packageFixture,
+  workspaceData,
+  writeManifest
+} from './helpers';
 
 let until = async (check: () => boolean, label: string, timeout = 8000) => {
   let deadline = Date.now() + timeout;
@@ -293,5 +301,167 @@ describe('WorkspaceRuntime', () => {
     expect(runtime.phase).toBe('failed');
     expect(runtime.error).toContain('no control manifests');
     expect(runtime.startable).toBe(true);
+  });
+
+  test('clears the allocated bind port before starts and restarts without killing sibling services', async () => {
+    let project = checkout();
+    await commands.output('git', ['init'], project.root);
+    let orphan = await listenerFixture(project.root);
+
+    let publicServer = createServer();
+    await new Promise<void>(resolve => publicServer.listen(0, '127.0.0.1', resolve));
+    let publicPort = (publicServer.address() as { port: number }).port;
+
+    let source = `require('node:net').createServer().listen(Number(process.env.PORT), '127.0.0.1', () => console.log('listening'))`;
+    let command = `${process.execPath} -e ${JSON.stringify(source)}`;
+    packageFixture(
+      project.root,
+      'api',
+      'api',
+      [
+        "name='api'",
+        '[endpoints.http]',
+        `port=${publicPort}`,
+        "env=[{key='PORT',value='{{BIND_PORT}}'}]",
+        '[run.dev]',
+        `command=${JSON.stringify(command)}`,
+        '[run.worker]',
+        "command='echo worker-up; exec sleep 300'",
+        "depends_on=['dev']"
+      ].join('\n')
+    );
+
+    let data = workspaceData(project.root, {
+      source_root: join(project.root, 'elsewhere'),
+      endpoint_ports: { api: { http: orphan.port } }
+    });
+    writeMetadata(project.root, data);
+
+    let logs = new LogStore();
+    let runtime = new WorkspaceRuntime(project, data, logs, () => {});
+    let unit = (name: string) => runtime.info().units.find(item => item.name === name)!;
+
+    try {
+      await runtime.start({ noDocker: true, noPrepare: true, noProxy: true });
+      if (runtime.phase !== 'running') throw new Error(runtime.error);
+      await until(
+        () => logs.query({ units: ['api'] }).some(line => line.text === 'listening'),
+        'api listener'
+      );
+
+      expect(runtime.phase).toBe('running');
+      expect(unit('api').ports).toEqual([orphan.port]);
+      expect(
+        logs
+          .query({ units: ['api'] })
+          .some(
+            line =>
+              line.text.includes(`pid ${orphan.child.pid}`) && line.text.includes('SIGTERM')
+          )
+      ).toBe(true);
+      expect(publicServer.listening).toBe(true);
+
+      let pid = unit('api').pid;
+      await runtime.restartUnit('api-worker');
+
+      expect(unit('api').pid).toBe(pid);
+      expect(await ports.listeningProcesses([orphan.port], project.root)).toHaveLength(1);
+
+      await runtime.stopServiceUnit('api');
+      let replacement = await listenerFixture(project.root);
+      data.endpoint_ports.api!.http = replacement.port;
+      writeMetadata(project.root, data);
+      await runtime.reloadDefinitions();
+
+      try {
+        await runtime.startServiceUnit('api');
+        await until(
+          () =>
+            logs.query({ units: ['api'] }).filter(line => line.text === 'listening').length >=
+            2,
+          'restarted listener'
+        );
+
+        expect(
+          logs
+            .query()
+            .some(
+              line =>
+                line.text.includes(`pid ${replacement.child.pid}`) &&
+                line.text.includes('SIGTERM')
+            )
+        ).toBe(true);
+        expect(publicServer.listening).toBe(true);
+      } finally {
+        commands.signalTree(replacement.child, 'SIGKILL');
+      }
+    } finally {
+      await runtime.stop();
+      commands.signalTree(orphan.child, 'SIGKILL');
+      await new Promise<void>(resolve => publicServer.close(() => resolve()));
+    }
+  }, 20_000);
+
+  test('stopping during the port check prevents a delayed service launch', async () => {
+    let { runtime } = await build();
+    await runtime.start({ noDocker: true, noPrepare: true, noProxy: true });
+    await runtime.stopServiceUnit('api');
+
+    let checking = false;
+    let release!: () => void;
+    let check = spyOn(ports, 'clearServicePorts').mockImplementation(async () => {
+      checking = true;
+      await new Promise<void>(resolve => (release = resolve));
+    });
+
+    try {
+      let starting = runtime.startServiceUnit('api');
+      await until(() => checking, 'port check');
+      let stopping = runtime.stopServiceUnit('api');
+      release();
+      await Promise.all([starting, stopping]);
+
+      expect(runtime.info().units.find(unit => unit.name === 'api')).toMatchObject({
+        state: 'stopped',
+        pid: undefined
+      });
+    } finally {
+      check.mockRestore();
+      await runtime.stop();
+    }
+  });
+
+  test('retries a failed port check during a definition reload', async () => {
+    let { runtime, project, logs } = await build();
+    await runtime.start({ noDocker: true, noPrepare: true, noProxy: true });
+    let check = spyOn(ports, 'clearServicePorts').mockRejectedValueOnce(
+      new Error('could not inspect service port')
+    );
+
+    try {
+      writeManifest(
+        join(project.root, 'api'),
+        "name='api'\n[run.dev]\ncommand='echo reloaded; exec sleep 300'"
+      );
+      await runtime.reloadDefinitions();
+
+      expect(runtime.phase).toBe('running');
+      expect(runtime.info().units.find(unit => unit.name === 'api')!.state).toBe('crashed');
+      expect(
+        logs
+          .query({ units: ['api'] })
+          .some(line => line.text.includes('could not inspect service port'))
+      ).toBe(true);
+
+      check.mockRestore();
+      await until(
+        () => logs.query({ units: ['api'] }).some(line => line.text === 'reloaded'),
+        'retry after port check failure'
+      );
+      expect(runtime.info().units.find(unit => unit.name === 'api')!.state).toBe('running');
+    } finally {
+      check.mockRestore();
+      await runtime.stop();
+    }
   });
 });
