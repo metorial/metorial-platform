@@ -1,0 +1,9 @@
+{
+  "intfloat/multilingual-e5-large-instruct": {
+    "decision": "link",
+    "model": "intfloat/multilingual-e5-large-instruct",
+    "reason": "Exact id: the multilingual-e5-large-instruct embedding model (Hugging Face, MIT license, Feb 2024, 512-token window); evroc's 0.114/1M hosted rate is a premium over the model's 0.01 median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

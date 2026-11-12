@@ -1,0 +1,9 @@
+{
+  "muse-spark-1.3-contributor": {
+    "decision": "link",
+    "model": "meta/muse-spark-1.3",
+    "reason": "Muse Spark 1.3 Contributor is the same Muse Spark 1.3 model under Meta's discounted data-contribution terms (0.1/0.2 vs the standard tier's 1.25 median); still meta/muse-spark-1.3.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

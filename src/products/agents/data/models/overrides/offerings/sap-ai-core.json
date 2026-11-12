@@ -1,0 +1,9 @@
+{
+  "amazon--titan-embed-text": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "SAP AI Core's alias for Amazon Titan Text Embeddings (amazon.titan-embed-text on Bedrock); an embedding model, and the index has no Titan embedding entry to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

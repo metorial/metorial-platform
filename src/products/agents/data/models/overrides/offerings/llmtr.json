@@ -1,0 +1,30 @@
+{
+  "gemma-4": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "The vendor name 'Gemma 4' does not say which of the five Gemma 4 sizes (E2B/E4B/12B/26B-A4B/31B) is served; its 131K context narrows it to E2B or E4B but I cannot tell which, so I defer rather than guess.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meta/muse-spark-1.2-contributor": {
+    "decision": "link",
+    "model": "meta/muse-spark-1.2",
+    "reason": "Muse Spark 1.2 Contributor is the same Muse Spark 1.2 weights under Meta's discounted data-contribution terms (0.1/0.2); still meta/muse-spark-1.2.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "muse-glimmer-30b-tr": {
+    "decision": "link",
+    "model": "meta/muse-glimmer-30b",
+    "reason": "Aggregator listings describe this as Meta's open-weight Muse Glimmer 30B itself; the (TR) suffix marks LLMTR's Turkish-market serving tier, and its 2/5 rate is a premium over the model's 0.3 median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen3-6-35b": {
+    "decision": "link",
+    "model": "alibaba/qwen3.6-35b-a3b",
+    "reason": "LLMTR's listing is named Qwen3.6 35B-A3B, Alibaba's open-weight 35B MoE (3B active, text/image/video input); the id matches alibaba/qwen3.6-35b-a3b, and the 5/10 rate is LLMTR's markup.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

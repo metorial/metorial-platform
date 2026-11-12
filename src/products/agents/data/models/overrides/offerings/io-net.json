@@ -1,0 +1,9 @@
+{
+  "mistralai/Devstral-Small-2505": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Mistral/All Hands AI's Devstral Small 2505 (Hugging Face repo created 2025-05-12, fine-tuned from Mistral-Small-3.1); the index has only the later devstral-small-2507 and Small 2 checkpoints, so defer rather than link the wrong Devstral.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

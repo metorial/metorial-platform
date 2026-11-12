@@ -1,0 +1,23 @@
+{
+  "abliterated-model": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "abliteration.ai's refusal-removed (abliterated) derivative of an open-weight base; abliteration edits the model's weights to remove refusal behavior, making it a fine-tune-style derivative the catalog does not model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "abliterated-model-large": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Abliteration.ai's own blog says it was built from Zhipu's GLM-5.2 and then abliterated and fine-tuned; a weight-edited derivative is not zhipu/glm-5.2 itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "abliterated-model-large-v2": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Abliteration.ai built it from Zhipu's GLM-5.3 and then abliterated and fine-tuned it (per the vendor's documentation and multiple listings); a weight-edited derivative is not zhipu/glm-5.3 itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "gemma4": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "The name 'gemma4' does not identify which Gemma 4 size is served; its 262K context fits the 12B, 26B-A4B or 31B variants and I cannot tell which, so I defer rather than guess.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen3-235b-a22b-instruct-2507": {
+    "decision": "link",
+    "model": "alibaba/qwen3-235b-a22b-instruct-2507",
+    "reason": "GreenPT serves Alibaba's Qwen3 235B-A22B Instruct 2507 open-weight checkpoint (262K context matches); its 1.026/3.078 rate is GreenPT's own pricing, a premium over the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

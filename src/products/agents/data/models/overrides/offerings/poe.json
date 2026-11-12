@@ -1,0 +1,37 @@
+{
+  "anthropic/claude-sonnet-3.5-june": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "The June 2024 first release of Claude 3.5 Sonnet; the index's anthropic/claude-3.5-sonnet is the October 2024 'v2' revision — a different checkpoint, and the index has no entry for the June version.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "elevenlabs/elevenlabs-music": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ElevenLabs Music (v1 2025, v2 2026), ElevenLabs' text-to-music generation model (per ElevenLabs' docs); the index has ElevenLabs speech and transcription models but no music entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/chatgpt-4o-latest": {
+    "decision": "link",
+    "model": "openai/gpt-4o",
+    "reason": "OpenAI's chatgpt-4o-latest is the continuously-updated ChatGPT build of GPT-4o — the same model with additional RLHF (per OpenAI); still openai/gpt-4o, at Poe's 4.5/14 gateway rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/dall-e-3": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "OpenAI's DALL-E 3 text-to-image model; the index's only OpenAI image models are the gpt-image line, with no DALL-E entry to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "poetools/claude-code": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "A Poe Poetools bot: a Claude-powered coding tool wrapper on Poe's platform, not a distinct model; no published price, context, or model identity to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}
