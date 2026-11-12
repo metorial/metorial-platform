@@ -1,8 +1,10 @@
 import { createHono } from '@lowerdeck/hono';
 import { changeNotificationsController } from './changeNotification';
+import { signingKeyService } from '../../services';
 import { infoController } from './info';
 import { scopesController } from './scope';
 import { slatesController } from './slate';
+import { slatePacksController } from './slatePack';
 import { usersController } from './user';
 import { workspacesController } from './workspace';
 
@@ -23,9 +25,13 @@ export let registryApp = createHono()
   })
   .options('*', c => c.text(''))
   .get('/ping', c => c.text('OK'))
+  .get('/.well-known/slates-keyring.json', async c =>
+    c.json({ object: 'slates.keyring', keys: await signingKeyService.getKeyring() })
+  )
   .route('/info', infoController)
   .route('/scopes', scopesController)
   .route('/users', usersController)
   .route('/workspaces', workspacesController)
   .route('/slates', slatesController)
+  .route('/slate-packs', slatePacksController)
   .route('/change-notifications', changeNotificationsController);

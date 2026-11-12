@@ -1,4 +1,5 @@
 export * from './changeNotification';
+export * from './mirror';
 export * from './readerToken';
 export * from './scope';
 export * from './slate';
