@@ -1,16 +1,21 @@
+import { conflictError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let webhookRegistrationCreate = vi.fn();
 let webhookRegistrationUpdate = vi.fn();
 let webhookRegistrationFindFirst = vi.fn();
+let webhookRegistrationFindMany = vi.fn();
 let providerFindFirst = vi.fn();
 let deleteQueueAdd = vi.fn();
+let getProviderAuthCredentialsByIdInternal = vi.fn();
+let getManyProviderAuthCredentialsByIdsInternal = vi.fn();
 
 let backendCallbacks = {
   createWebhookRegistration: vi.fn(),
   finishWebhookRegistrationSetup: vi.fn(),
   updateWebhookRegistration: vi.fn(),
   deleteWebhookRegistration: vi.fn(),
+  listDeliverySetupsServingAuthCredentials: vi.fn(),
   listWebhookEvents: vi.fn(),
   getWebhookEvent: vi.fn()
 };
@@ -20,7 +25,8 @@ vi.mock('@metorial-subspace/db', () => ({
     webhookRegistration: {
       create: webhookRegistrationCreate,
       update: webhookRegistrationUpdate,
-      findFirst: webhookRegistrationFindFirst
+      findFirst: webhookRegistrationFindFirst,
+      findMany: webhookRegistrationFindMany
     },
     provider: {
       findFirst: providerFindFirst
@@ -51,6 +57,13 @@ vi.mock('@metorial-subspace/list-utils', () => ({
   normalizeStatusForList: () => ({ noParent: {} }),
   resolveProviders: async (_selector: unknown, ids?: string[] | null) =>
     ids ? { oids: [BigInt(7)], in: { in: [BigInt(7)] } } : undefined
+}));
+
+vi.mock('@metorial-subspace/module-auth', () => ({
+  providerAuthCredentialsService: {
+    getProviderAuthCredentialsByIdInternal,
+    getManyProviderAuthCredentialsByIdsInternal
+  }
 }));
 
 vi.mock('@metorial-subspace/provider', () => ({
@@ -84,6 +97,15 @@ let activeProvider = (
   name: 'GitHub',
   type: { attributes: triggerAttributes(webhookRegistrationStatus, purpose) },
   defaultVariant: { oid: BigInt(8), id: 'prv_1', backendOid: BigInt(9) }
+});
+
+let ownCredentials = (overrides: Record<string, unknown> = {}) => ({
+  oid: BigInt(40),
+  id: 'par_1',
+  providerOid: BigInt(7),
+  origin: 'tenant_created',
+  status: 'active',
+  ...overrides
 });
 
 let registration = (overrides: Record<string, unknown> = {}) => ({
@@ -171,22 +193,273 @@ describe('webhookRegistrationService', () => {
     );
   });
 
-  it('creates a registration for a provider that only needs a delivery setup', async () => {
-    providerFindFirst.mockResolvedValue(activeProvider('supported', 'delivery_setup'));
+  it('creates a webhook receiver without credentials', async () => {
+    providerFindFirst.mockResolvedValue(activeProvider('supported'));
 
     let { webhookRegistrationService } = await import('./webhookRegistration');
 
     await webhookRegistrationService.createWebhookRegistration({
       instance,
       provider: { id: 'pro_1' },
+      input: { name: 'Production Webhook' }
+    });
+
+    expect(webhookRegistrationCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          purpose: 'webhook_receiver',
+          authCredentialsOid: undefined
+        })
+      })
+    );
+    expect(backendCallbacks.createWebhookRegistration).toHaveBeenCalledWith(
+      expect.objectContaining({ authCredentials: null })
+    );
+    expect(getProviderAuthCredentialsByIdInternal).not.toHaveBeenCalled();
+  });
+
+  it('rejects credentials for a webhook receiver', async () => {
+    providerFindFirst.mockResolvedValue(activeProvider('supported'));
+
+    let { webhookRegistrationService } = await import('./webhookRegistration');
+
+    await expect(
+      webhookRegistrationService.createWebhookRegistration({
+        instance,
+        provider: { id: 'pro_1' },
+        authCredentials: { id: 'par_1' },
+        input: { name: 'Production Webhook' }
+      })
+    ).rejects.toMatchObject({
+      data: { code: 'auth_credentials_not_applicable', status: 400 }
+    });
+
+    expect(webhookRegistrationCreate).not.toHaveBeenCalled();
+  });
+
+  it('creates a delivery setup for the OAuth credentials it names', async () => {
+    providerFindFirst.mockResolvedValue(activeProvider('supported', 'delivery_setup'));
+    getProviderAuthCredentialsByIdInternal.mockResolvedValue(ownCredentials());
+
+    let { webhookRegistrationService } = await import('./webhookRegistration');
+
+    await webhookRegistrationService.createWebhookRegistration({
+      instance,
+      provider: { id: 'pro_1' },
+      authCredentials: { id: 'par_1' },
       input: { name: 'Gmail Delivery Setup' }
     });
 
-    expect(backendCallbacks.createWebhookRegistration).toHaveBeenCalledTimes(1);
+    expect(getProviderAuthCredentialsByIdInternal).toHaveBeenCalledWith({
+      tenant: expect.objectContaining({ oid: BigInt(1) }),
+      environment: expect.objectContaining({ oid: BigInt(2) }),
+      providerAuthCredentialsId: 'par_1'
+    });
     expect(webhookRegistrationCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ status: 'awaiting_setup', providerOid: BigInt(7) })
+        data: expect.objectContaining({
+          status: 'awaiting_setup',
+          purpose: 'delivery_setup',
+          providerOid: BigInt(7),
+          authCredentialsOid: BigInt(40)
+        })
       })
+    );
+    expect(backendCallbacks.createWebhookRegistration).toHaveBeenCalledWith(
+      expect.objectContaining({ authCredentials: ownCredentials() })
+    );
+  });
+
+  it('requires credentials for a delivery setup', async () => {
+    providerFindFirst.mockResolvedValue(activeProvider('supported', 'delivery_setup'));
+
+    let { webhookRegistrationService } = await import('./webhookRegistration');
+
+    await expect(
+      webhookRegistrationService.createWebhookRegistration({
+        instance,
+        provider: { id: 'pro_1' },
+        input: { name: 'Gmail Delivery Setup' }
+      })
+    ).rejects.toMatchObject({ data: { code: 'auth_credentials_required', status: 400 } });
+
+    expect(webhookRegistrationCreate).not.toHaveBeenCalled();
+  });
+
+  it('reports unknown credentials as not found', async () => {
+    providerFindFirst.mockResolvedValue(activeProvider('supported', 'delivery_setup'));
+    getProviderAuthCredentialsByIdInternal.mockRejectedValue(
+      new ServiceError(notFoundError('provider.auth_credentials', 'par_missing'))
+    );
+
+    let { webhookRegistrationService } = await import('./webhookRegistration');
+
+    await expect(
+      webhookRegistrationService.createWebhookRegistration({
+        instance,
+        provider: { id: 'pro_1' },
+        authCredentials: { id: 'par_missing' },
+        input: { name: 'Gmail Delivery Setup' }
+      })
+    ).rejects.toMatchObject({ data: { code: 'not_found', status: 404 } });
+
+    expect(webhookRegistrationCreate).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['auth_credentials_provider_mismatch', { providerOid: BigInt(99) }],
+    ['auth_credentials_managed', { origin: 'managed_backing' }],
+    ['auth_credentials_inactive', { status: 'archived' }]
+  ])('rejects credentials with %s', async (code, overrides) => {
+    providerFindFirst.mockResolvedValue(activeProvider('supported', 'delivery_setup'));
+    getProviderAuthCredentialsByIdInternal.mockResolvedValue(ownCredentials(overrides));
+
+    let { webhookRegistrationService } = await import('./webhookRegistration');
+
+    await expect(
+      webhookRegistrationService.createWebhookRegistration({
+        instance,
+        provider: { id: 'pro_1' },
+        authCredentials: { id: 'par_1' },
+        input: { name: 'Gmail Delivery Setup' }
+      })
+    ).rejects.toMatchObject({ data: { code, status: 400 } });
+
+    expect(webhookRegistrationCreate).not.toHaveBeenCalled();
+  });
+
+  it('abandons the row and reports the conflict when the OAuth app already has a setup', async () => {
+    providerFindFirst.mockResolvedValue(activeProvider('supported', 'delivery_setup'));
+    getProviderAuthCredentialsByIdInternal.mockResolvedValue(ownCredentials());
+    backendCallbacks.createWebhookRegistration.mockRejectedValue(
+      new ServiceError(conflictError({ code: 'delivery_setup_already_exists' }))
+    );
+
+    let { webhookRegistrationService } = await import('./webhookRegistration');
+
+    await expect(
+      webhookRegistrationService.createWebhookRegistration({
+        instance,
+        provider: { id: 'pro_1' },
+        authCredentials: { id: 'par_1' },
+        input: { name: 'Gmail Delivery Setup' }
+      })
+    ).rejects.toMatchObject({ data: { code: 'delivery_setup_already_exists', status: 409 } });
+
+    expect(webhookRegistrationUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { oid: BigInt(100) }, data: { status: 'deleted' } })
+    );
+  });
+
+  it('lists a setup created for another credentials record of the same OAuth app', async () => {
+    let sameApp = ownCredentials({ oid: BigInt(41), id: 'par_2', backendOid: BigInt(9) });
+    getManyProviderAuthCredentialsByIdsInternal.mockResolvedValue([sameApp]);
+    backendCallbacks.listDeliverySetupsServingAuthCredentials.mockResolvedValue({
+      webhookRegistrationOids: [BigInt(100)]
+    });
+    webhookRegistrationFindMany.mockResolvedValue([]);
+
+    let { webhookRegistrationService } = await import('./webhookRegistration');
+
+    let paginator = await webhookRegistrationService.listWebhookRegistrations({
+      instance,
+      providerIds: ['pro_1'],
+      authCredentialsIds: ['par_2']
+    });
+    await paginator.run({});
+
+    expect(getManyProviderAuthCredentialsByIdsInternal).toHaveBeenCalledWith({
+      tenant: expect.objectContaining({ oid: BigInt(1) }),
+      environment: expect.objectContaining({ oid: BigInt(2) }),
+      ids: ['par_2']
+    });
+    expect(backendCallbacks.listDeliverySetupsServingAuthCredentials).toHaveBeenCalledWith({
+      tenant: expect.objectContaining({ oid: BigInt(1) }),
+      authCredentials: [sameApp]
+    });
+    expect(webhookRegistrationFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          tenantOid: BigInt(1),
+          environmentOid: BigInt(2),
+          AND: expect.arrayContaining([{ oid: { in: [BigInt(100)] } }])
+        })
+      })
+    );
+  });
+
+  it('asks each backend about its own credentials', async () => {
+    let slatesCredentials = ownCredentials({ backendOid: BigInt(9) });
+    let otherCredentials = ownCredentials({
+      oid: BigInt(42),
+      id: 'par_3',
+      providerOid: BigInt(17),
+      backendOid: BigInt(19)
+    });
+    getManyProviderAuthCredentialsByIdsInternal.mockResolvedValue([
+      slatesCredentials,
+      otherCredentials
+    ]);
+    backendCallbacks.listDeliverySetupsServingAuthCredentials
+      .mockResolvedValueOnce({ webhookRegistrationOids: [BigInt(100)] })
+      .mockResolvedValueOnce({ webhookRegistrationOids: [BigInt(101)] });
+    webhookRegistrationFindMany.mockResolvedValue([]);
+
+    let { webhookRegistrationService } = await import('./webhookRegistration');
+
+    let paginator = await webhookRegistrationService.listWebhookRegistrations({
+      instance,
+      authCredentialsIds: ['par_1', 'par_3']
+    });
+    await paginator.run({});
+
+    expect(
+      backendCallbacks.listDeliverySetupsServingAuthCredentials.mock.calls.map(
+        ([call]: any) => call.authCredentials
+      )
+    ).toEqual([[slatesCredentials], [otherCredentials]]);
+    expect(webhookRegistrationFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([{ oid: { in: [BigInt(100), BigInt(101)] } }])
+        })
+      })
+    );
+  });
+
+  it('matches nothing for credentials that do not resolve', async () => {
+    getManyProviderAuthCredentialsByIdsInternal.mockResolvedValue([]);
+    webhookRegistrationFindMany.mockResolvedValue([]);
+
+    let { webhookRegistrationService } = await import('./webhookRegistration');
+
+    let paginator = await webhookRegistrationService.listWebhookRegistrations({
+      instance,
+      authCredentialsIds: ['par_unknown']
+    });
+    await paginator.run({});
+
+    expect(backendCallbacks.listDeliverySetupsServingAuthCredentials).not.toHaveBeenCalled();
+    expect(webhookRegistrationFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([{ oid: { in: [] } }])
+        })
+      })
+    );
+  });
+
+  it('applies no credentials filter when none is given', async () => {
+    webhookRegistrationFindMany.mockResolvedValue([]);
+
+    let { webhookRegistrationService } = await import('./webhookRegistration');
+
+    let paginator = await webhookRegistrationService.listWebhookRegistrations({ instance });
+    await paginator.run({});
+
+    expect(getManyProviderAuthCredentialsByIdsInternal).not.toHaveBeenCalled();
+    expect(webhookRegistrationFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ AND: [] }) })
     );
   });
 

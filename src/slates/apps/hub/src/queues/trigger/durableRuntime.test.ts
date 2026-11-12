@@ -53,6 +53,7 @@ let secrets = {
 };
 let mappingQueue = { addManyWithOps: vi.fn() };
 let instanceError = vi.fn();
+let selectDeliveryConfig = vi.fn(async (_selection: unknown): Promise<any> => undefined);
 let instance: any;
 let schedule: any;
 let inbox: any;
@@ -88,8 +89,8 @@ vi.mock('./_webhookTargetLock', () => ({
   webhookTargetLock: { usingLock: (_id: string, fn: () => unknown) => fn() }
 }));
 vi.mock('../../db', () => ({ db }));
-vi.mock('../../services/triggerInfrastructure', () => ({
-  getTriggerInfrastructure: vi.fn(async () => undefined)
+vi.mock('../../internal/triggerDeliveryConfigServiceInternal', () => ({
+  triggerDeliveryConfigServiceInternal: { selectDeliveryConfig }
 }));
 vi.mock('./_instanceError', () => ({ createTriggerRegistrationInstanceError: instanceError }));
 vi.mock('../../env', () => ({ env: { service: { REDIS_URL: 'redis://unused' } } }));
@@ -1429,11 +1430,10 @@ describe('renewal fencing and recovery', () => {
 
   it('replaces the delivery routes of a renewed managed-delivery registration', async () => {
     await import('./webhookRenew');
-    let { getTriggerInfrastructure } = await import('../../services/triggerInfrastructure');
-    vi.mocked(getTriggerInfrastructure).mockResolvedValue({
+    selectDeliveryConfig.mockResolvedValue({
       bindingId: 'binding',
-      infrastructure: { opaque: true }
-    } as any);
+      deliveryConfig: { opaque: true }
+    });
     db.triggerRegistrationInstance.findMany.mockResolvedValue([instance]);
     invocation.renewWebhook.mockResolvedValue(
       success({
@@ -1447,7 +1447,7 @@ describe('renewal fencing and recovery', () => {
     );
     await run('shub/trg/whk/renew/1', { targetId: 'target' });
     expect(invocation.renewWebhook).toHaveBeenCalledWith(
-      expect.objectContaining({ infrastructure: { opaque: true } })
+      expect.objectContaining({ deliveryConfig: { opaque: true } })
     );
     expect(db.triggerDeliveryRoute.deleteMany).toHaveBeenCalledWith({
       where: { webhookRegistrationOid: 6n }

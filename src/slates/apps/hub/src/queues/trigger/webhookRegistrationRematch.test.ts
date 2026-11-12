@@ -36,10 +36,8 @@ vi.mock('../../db', () => ({
 
 vi.mock('../../env', () => ({ env: { service: { REDIS_URL: 'redis://unused' } } }));
 
-vi.mock('../../services/triggerInfrastructure', () => ({
-  TRIGGER_DELIVERY_CONFIG_MISSING: 'trigger_delivery_config_missing',
-  isTriggerDeliveryConfig: (registration: any) =>
-    registration.type === 'manual' && !!registration.triggerGroup.spec.invocation.googlePubSub
+vi.mock('../../internal/triggerDeliveryConfigServiceInternal', () => ({
+  TRIGGER_DELIVERY_CONFIG_MISSING: 'trigger_delivery_config_missing'
 }));
 
 vi.mock('./setup', () => ({
@@ -58,22 +56,13 @@ await import('./webhookRegistrationRematch');
 
 let config = (change: Record<string, unknown> = {}) => ({
   id: 'whr_config',
-  type: 'manual',
+  type: 'delivery_config',
   status: 'active',
   owner: 'tenant',
   tenantOid: 1n,
   slateOid: 7n,
   triggerGroupOid: 5n,
-  triggerGroup: {
-    key: 'mail',
-    spec: {
-      invocation: {
-        type: 'webhook',
-        googlePubSub: { product: 'gmail' },
-        registration: { mode: 'auto', config: { userConfigSchema: {}, fullConfigSchema: {} } }
-      }
-    }
-  },
+  triggerGroup: { key: 'mail' },
   ...change
 });
 
@@ -193,6 +182,26 @@ describe('retry after a delivery config is set up', () => {
     });
   });
 
+  it('reads only what it needs to tell a delivery config apart', async () => {
+    mocks.findRegistration.mockResolvedValue(config());
+
+    await run();
+
+    expect(mocks.findRegistration).toHaveBeenCalledWith({
+      where: { id: 'whr_config' },
+      select: {
+        id: true,
+        type: true,
+        status: true,
+        owner: true,
+        tenantOid: true,
+        slateOid: true,
+        triggerGroupOid: true,
+        triggerGroup: { select: { key: true } }
+      }
+    });
+  });
+
   it('does nothing for a config that is not finished', async () => {
     mocks.findRegistration.mockResolvedValue(config({ status: 'awaiting_setup' }));
 
@@ -248,13 +257,7 @@ describe('removing a delivery config', () => {
 
 describe('manual webhook registrations', () => {
   let manual = (change: Record<string, unknown> = {}) =>
-    config({
-      triggerGroup: {
-        key: 'events',
-        spec: { invocation: { type: 'webhook', registration: { mode: 'manual' } } }
-      },
-      ...change
-    });
+    config({ type: 'manual', triggerGroup: { key: 'events' }, ...change });
 
   it('still rematches the instances that had no webhook', async () => {
     mocks.findRegistration.mockResolvedValue(manual());
@@ -282,5 +285,15 @@ describe('manual webhook registrations', () => {
     await run();
 
     expect(mocks.findInstances.mock.calls[0]![0].where.triggerRegistration).toBeUndefined();
+  });
+
+  it('never releases delivery routes for a removed manual registration', async () => {
+    mocks.findRegistration.mockResolvedValue(manual({ status: 'deleted' }));
+
+    await run();
+
+    expect(mocks.updateTargets).not.toHaveBeenCalled();
+    expect(mocks.unregister).not.toHaveBeenCalled();
+    expect(mocks.findInstances).toHaveBeenCalled();
   });
 });

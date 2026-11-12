@@ -40,6 +40,7 @@ export let slateWebhookRegistrationPresenter = (
   authRouting: registration.authRouting,
   authMethodIds: registration.authMethods.map(m => m.authMethod.id),
   slateOAuthCredentialsIds: registration.oauthCredentials.map(c => c.oauthCredentials.id),
+  oauthClientId: registration.oauthClientId,
 
   createdAt: registration.createdAt,
   updatedAt: registration.updatedAt

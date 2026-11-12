@@ -184,7 +184,7 @@ export interface SpecificationTriggerGroup {
           | {
               mode: 'auto';
               // Delivery config a person completes once per OAuth app.
-              config?: {
+              deliveryConfig?: {
                 userConfigSchema: Record<string, any>;
                 fullConfigSchema: Record<string, any>;
               };

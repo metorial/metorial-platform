@@ -29,8 +29,10 @@ export let webhookRegistrationAuditResource = resource({
     name: string;
     description: string | null;
     metadata: unknown;
+    purpose: string;
     isSetupComplete: boolean;
     provider: SubspaceProviderSummary;
+    authCredentialsId: string | null;
     archivedAt: Date | null;
   }>('webhook_registration'),
   presenter: undefined,

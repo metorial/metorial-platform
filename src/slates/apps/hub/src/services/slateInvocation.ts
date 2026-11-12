@@ -1,6 +1,5 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import type { SlatesTriggerGroupInfrastructure } from '@slates/proto';
 import type { SlateInvocation } from '../../prisma/generated/client';
 import { db } from '../db';
 import { SlateInvocationStack } from '../lib/invocation/stack';
@@ -366,6 +365,19 @@ class slateInvocationServiceImpl {
     });
   }
 
+  async authenticateWebhookDelivery(d: {
+    stack: SlateInvocationStack;
+    triggerGroupId: string;
+    url: string;
+    method: string;
+    headers: Record<string, string>;
+    body: { encoding: 'base64'; content: string } | null;
+    deliveryConfig: unknown;
+  }) {
+    let { stack, ...params } = d;
+    return await stack.invoke('slates/trigger_group.webhook.delivery_authenticate', params);
+  }
+
   async expandWebhook(d: {
     stack: SlateInvocationStack;
     triggerGroupId: string;
@@ -389,7 +401,7 @@ class slateInvocationServiceImpl {
     webhookTargetPayload: any;
     operationId: string;
     selection?: Record<string, any>;
-    infrastructure?: SlatesTriggerGroupInfrastructure;
+    deliveryConfig?: unknown;
   }) {
     let { stack, ...params } = d;
     return await stack.invoke('slates/trigger_group.webhook.renew', params);
@@ -466,7 +478,7 @@ class slateInvocationServiceImpl {
     webhookUrl: string;
     operationId?: string;
     selection?: Record<string, any>;
-    infrastructure?: SlatesTriggerGroupInfrastructure;
+    deliveryConfig?: unknown;
   }) {
     return await d.stack.invoke('slates/trigger_group.webhook.register', {
       triggerGroupId: d.triggerGroupId,
@@ -475,7 +487,7 @@ class slateInvocationServiceImpl {
       webhookUrl: d.webhookUrl,
       selection: d.selection,
       operationId: d.operationId,
-      infrastructure: d.infrastructure
+      deliveryConfig: d.deliveryConfig
     });
   }
 

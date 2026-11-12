@@ -55,7 +55,9 @@ export let WebhookRegistrationLayout = () => {
       ]}
       tabs={[
         { label: 'Overview', to: registrationPath() },
-        { label: 'Events', to: registrationPath('events') },
+        ...(registration.data?.purpose === 'delivery_setup'
+          ? []
+          : [{ label: 'Events', to: registrationPath('events') }]),
         { label: 'Settings', to: registrationPath('settings') }
       ]}
       actions={

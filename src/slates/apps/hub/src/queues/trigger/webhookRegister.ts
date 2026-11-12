@@ -3,10 +3,10 @@ import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db } from '../../db';
 import { env } from '../../env';
 import { getId, snowflake } from '../../id';
+import { triggerDeliveryConfigServiceInternal } from '../../internal/triggerDeliveryConfigServiceInternal';
 import { getWebhookUrl } from '../../lib/webhookUrl';
 import { slateInvocationService } from '../../services/slateInvocation';
 import { generateWebhookRegistrationUrlKey } from '../../services/slateWebhookRegistration';
-import { getTriggerInfrastructure } from '../../services/triggerInfrastructure';
 import { TRIGGER_WEBHOOK_REGISTER_MAX_ATTEMPTS } from './_config';
 import {
   MISSING_ROUTING_KEYS_MESSAGE,
@@ -156,22 +156,24 @@ export let triggerWebhookRegisterQueueProcessor = triggerWebhookRegisterQueue.pr
           where: { operationId }
         });
         if (!pending) {
-          let delivery = await getTriggerInfrastructure({
-            tenant: registration.tenant,
-            slate: registration.slate,
-            triggerGroup: target.triggerGroup,
-            oauthClientId: registration.authConfig?.oauthCredentials?.clientId
-          }).catch(async error => {
-            await recordFailure({
-              code: isServiceError(error)
-                ? error.data.code
-                : 'trigger_infrastructure_setup_failed',
-              message: isServiceError(error)
-                ? error.data.message
-                : 'The delivery setup for this connection could not be loaded.'
+          let delivery = await triggerDeliveryConfigServiceInternal
+            .selectDeliveryConfig({
+              tenant: registration.tenant,
+              slate: registration.slate,
+              triggerGroup: target.triggerGroup,
+              oauthClientId: registration.authConfig?.oauthCredentials?.clientId
+            })
+            .catch(async error => {
+              await recordFailure({
+                code: isServiceError(error)
+                  ? error.data.code
+                  : 'trigger_delivery_config_unavailable',
+                message: isServiceError(error)
+                  ? error.data.message
+                  : 'The delivery setup for this connection could not be loaded.'
+              });
+              throw error;
             });
-            throw error;
-          });
 
           let stack = await createTriggerInstanceStack({
             registration,
@@ -191,7 +193,7 @@ export let triggerWebhookRegisterQueueProcessor = triggerWebhookRegisterQueue.pr
                 webhookUrl: getWebhookUrl({ urlKey }),
                 operationId,
                 selection: instance.selection ?? undefined,
-                infrastructure: delivery?.infrastructure
+                deliveryConfig: delivery?.deliveryConfig
               });
               if (result.status === 'error') {
                 await recordFailedAttempt({

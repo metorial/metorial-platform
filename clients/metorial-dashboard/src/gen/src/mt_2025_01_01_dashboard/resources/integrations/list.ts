@@ -92,6 +92,7 @@ export type IntegrationsListOutput = {
           }[];
           createdAt: Date;
           updatedAt: Date;
+          authCredentialsId: string | null;
           authCredentialsIsManaged: boolean;
           sync: {
             object: 'callback.sync';
@@ -258,6 +259,7 @@ export let mapIntegrationsListOutput =
                               ],
                               'created_at',
                               'updated_at',
+                              'auth_credentials_id',
                               'auth_credentials_is_managed',
                               ['sync', 0, [1, ['synced_at']]]
                             ]

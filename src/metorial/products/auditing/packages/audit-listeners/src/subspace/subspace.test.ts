@@ -18,7 +18,7 @@ import {
   recordProviderAuthCredentialsCreated,
   recordProviderAuthExportCreated
 } from './auth';
-import { recordCallbackUpdated } from './callback';
+import { recordCallbackUpdated, recordWebhookRegistrationCreated } from './callback';
 import { recordCustomProviderUpdated } from './customProvider';
 import { recordProviderConfigUpdated, recordProviderDeploymentCreated } from './deployment';
 import { recordAgentCreated, recordIdentityDelegationCreated } from './identity';
@@ -278,6 +278,30 @@ describe('subspace audit listeners', () => {
       triggerGroupSelectionsChanged: false,
       changedTriggerGroupKeys: []
     });
+  });
+
+  it('records what a delivery setup is for', async () => {
+    await recordWebhookRegistrationCreated(
+      event({
+        webhookRegistration: {
+          id: 'whr_1',
+          status: 'awaiting_setup',
+          name: 'Gmail Delivery Setup',
+          description: null,
+          metadata: null,
+          purpose: 'delivery_setup',
+          isSetupComplete: false,
+          provider,
+          authCredentialsId: 'par_1',
+          archivedAt: null
+        }
+      })
+    );
+
+    let [, resource, action, { payload }] = callOf();
+    expect(resource).toBe('webhook_registration');
+    expect(action).toBe('create');
+    expect(payload).toMatchObject({ purpose: 'delivery_setup', authCredentialsId: 'par_1' });
   });
 
   it('records a firewall policy attach as a diff of its policy list', async () => {

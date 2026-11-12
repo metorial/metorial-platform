@@ -1,10 +1,7 @@
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '../../db';
 import { env } from '../../env';
-import {
-  isTriggerDeliveryConfig,
-  TRIGGER_DELIVERY_CONFIG_MISSING
-} from '../../services/triggerInfrastructure';
+import { TRIGGER_DELIVERY_CONFIG_MISSING } from '../../internal/triggerDeliveryConfigServiceInternal';
 import { triggerRegistrationInstanceSetupQueue } from './setup';
 import { triggerWebhookRegisterQueue } from './webhookRegister';
 import { triggerWebhookUnregisterQueue } from './webhookUnregister';
@@ -131,7 +128,7 @@ export let triggerWebhookRegistrationRematchQueueProcessor =
         tenantOid: true,
         slateOid: true,
         triggerGroupOid: true,
-        triggerGroup: { select: { key: true, spec: true } }
+        triggerGroup: { select: { key: true } }
       }
     });
     if (!registration) return;
@@ -150,7 +147,7 @@ export let triggerWebhookRegistrationRematchQueueProcessor =
       });
     };
 
-    if (isTriggerDeliveryConfig(registration)) {
+    if (registration.type === 'delivery_config') {
       if (registration.status === 'deleted') {
         await continueAfter(
           await releaseConfigTargets({ configId: registration.id, cursor: data.cursor })

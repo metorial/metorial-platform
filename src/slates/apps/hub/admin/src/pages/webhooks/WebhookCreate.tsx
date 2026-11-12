@@ -1,4 +1,13 @@
-import { Button, Flex, Input, MultiSelect, Select, Spacer, Text, Title } from '@metorial-io/ui';
+import {
+  Button,
+  Flex,
+  Input,
+  MultiSelect,
+  Select,
+  Spacer,
+  Text,
+  Title
+} from '@metorial-io/ui';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BackLink } from '../../components/BackLink.js';
@@ -31,6 +40,7 @@ export let WebhookCreate = () => {
   let [description, setDescription] = useState('');
   let [metadataText, setMetadataText] = useState('');
   let [userConfigText, setUserConfigText] = useState('{}');
+  let [oauthClientId, setOAuthClientId] = useState('');
   let [authRouting, setAuthRouting] = useState<'any' | 'restricted_method'>('any');
   let [authMethodIds, setAuthMethodIds] = useState<string[]>([]);
   let [error, setError] = useState<string | null>(null);
@@ -82,6 +92,7 @@ export let WebhookCreate = () => {
         description: description.trim() || undefined,
         metadata: Object.keys(metadata).length ? metadata : undefined,
         userConfig,
+        oauthClientId: oauthClientId.trim() || undefined,
         authRouting: authMethodItems.length ? authRouting : undefined,
         authMethodIds: authMethodIds.length ? authMethodIds : undefined
       });
@@ -186,6 +197,14 @@ export let WebhookCreate = () => {
             onInput={setUserConfigText}
           />
 
+          <Input
+            label="OAuth client ID"
+            description="Required when the provider receives webhooks through a delivery setup; leave empty otherwise."
+            value={oauthClientId}
+            onInput={setOAuthClientId}
+            placeholder="Optional"
+          />
+
           {error && (
             <Text size="2" color="red600">
               {error}
@@ -193,7 +212,12 @@ export let WebhookCreate = () => {
           )}
 
           <Flex>
-            <Button color="blue" loading={isSubmitting} disabled={isSubmitting} onClick={submit}>
+            <Button
+              color="blue"
+              loading={isSubmitting}
+              disabled={isSubmitting}
+              onClick={submit}
+            >
               Create webhook
             </Button>
           </Flex>

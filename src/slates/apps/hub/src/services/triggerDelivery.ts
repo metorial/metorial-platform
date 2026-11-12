@@ -1,58 +1,48 @@
 import { createError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
 import { chunk } from 'lodash';
-import type { SlateWebhookRegistration } from '../../prisma/generated/client';
+import type {
+  Slate,
+  SlateTriggerGroup,
+  SlateWebhookRegistration
+} from '../../prisma/generated/client';
 import { db } from '../db';
+import { triggerDeliveryConfigServiceInternal } from '../internal/triggerDeliveryConfigServiceInternal';
 import { acceptWebhookRequest } from '../lib/ingestWebhookRequest';
-import {
-  authenticateTriggerDeliveryConfigPush,
-  isTriggerDeliveryConfig,
-  requestsTriggerInfrastructure
-} from './triggerInfrastructure';
+import { getActiveSlateVersion } from '../lib/slateVersion';
+import { getTriggerDeliveryConfigSpec } from '../lib/triggerDeliveryConfig';
+import { slateInvocationService } from './slateInvocation';
+import { globalTenant } from './tenant';
 
 let DELIVERY_PAGE_SIZE = 500;
 
 let DELIVERY_CONCURRENCY = 10;
 
-type GroupRegistration = { triggerGroup: { spec: { invocation: unknown } } };
+let deliveryUnavailableError = createError({
+  status: 503,
+  code: 'trigger_delivery_unavailable',
+  message: 'This delivery could not be checked right now. Send it again later.'
+});
+
+type DeliveryConfigRegistration = Pick<
+  SlateWebhookRegistration,
+  'id' | 'owner' | 'secretOid' | 'tenantOid'
+> & { slate: Slate; triggerGroup: Pick<SlateTriggerGroup, 'key'> };
 
 class triggerDeliveryServiceImpl {
-  // A managed-delivery registration is either a delivery config or fed only by `receiveDelivery`.
-  servesRegistration(registration: GroupRegistration) {
-    return requestsTriggerInfrastructure(registration.triggerGroup.spec.invocation);
+  // Its webhooks arrive only through the delivery config of its group, never on its own URL.
+  servesRegistration(registration: { triggerGroup: Pick<SlateTriggerGroup, 'spec'> }) {
+    return !!getTriggerDeliveryConfigSpec(registration.triggerGroup);
   }
 
-  isDeliveryConfig(registration: Pick<SlateWebhookRegistration, 'type'> & GroupRegistration) {
-    return isTriggerDeliveryConfig(registration);
-  }
-
-  // One config serves every registration given its descriptor;
+  // One config serves every registration given its routing keys;
   // each gets the request unchanged and verifies it again.
   async receiveDelivery(d: {
-    registration: Pick<SlateWebhookRegistration, 'id' | 'owner' | 'secretOid' | 'tenantOid'> &
-      GroupRegistration;
+    registration: DeliveryConfigRegistration;
     request: PrismaJson.SlateWebhookEventRequest;
   }) {
-    let authorization = d.request.headers.authorization;
-
-    let delivery = await authenticateTriggerDeliveryConfigPush({
-      registration: d.registration,
-      request: new Request(d.request.url, {
-        method: d.request.method,
-        headers: authorization ? { authorization } : {},
-        body: d.request.body ? Buffer.from(d.request.body.content, 'base64') : undefined
-      })
-    });
-    if (!delivery.ok) {
-      throw new ServiceError(
-        createError({
-          status: delivery.status,
-          code: 'trigger_delivery_rejected',
-          message: 'This delivery could not be accepted.'
-        })
-      );
-    }
-    if (!delivery.routingKeys.length) return { accepted: 0 };
+    let routingKeys = await this.authenticateDelivery(d);
+    if (!routingKeys.length) return { accepted: 0 };
 
     // A failed hand-off rejects the delivery for a resend; earlier acceptors dedupe it by idempotency key.
     let accepted = 0;
@@ -62,7 +52,7 @@ class triggerDeliveryServiceImpl {
       let routes = await db.triggerDeliveryRoute.findMany({
         where: {
           bindingId: d.registration.id,
-          routingKey: { in: delivery.routingKeys },
+          routingKey: { in: routingKeys },
           webhookRegistrationOid: cursor ? { gt: cursor } : undefined,
           webhookRegistration: {
             status: 'active',
@@ -94,6 +84,56 @@ class triggerDeliveryServiceImpl {
     }
 
     return { accepted };
+  }
+
+  // When the integration cannot be asked, the push is refused rather than acknowledged, so the
+  // sender sends it again.
+  private async authenticateDelivery(d: {
+    registration: DeliveryConfigRegistration;
+    request: PrismaJson.SlateWebhookEventRequest;
+  }) {
+    let tenant =
+      d.registration.owner === 'global'
+        ? globalTenant
+        : await db.tenant.findUniqueOrThrow({ where: { oid: d.registration.tenantOid! } });
+    let deliveryConfig = await triggerDeliveryConfigServiceInternal.decryptDeliveryConfig({
+      registration: d.registration,
+      tenant
+    });
+
+    let result;
+    try {
+      result = await slateInvocationService.authenticateWebhookDelivery({
+        stack: await slateInvocationService.createInvocation({
+          participants: [],
+          slateVersion: await getActiveSlateVersion({ slate: d.registration.slate }),
+          tenant
+        }),
+        triggerGroupId: d.registration.triggerGroup.key,
+        url: d.request.url,
+        method: d.request.method,
+        headers: d.request.headers,
+        body: d.request.body,
+        deliveryConfig
+      });
+    } catch (error) {
+      console.error(`TRIGGER.delivery.authenticate.failed cfg:${d.registration.id}`, error);
+      throw new ServiceError(deliveryUnavailableError);
+    }
+    if (result.status === 'error') throw new ServiceError(deliveryUnavailableError);
+
+    let rejected = result.data.rejected;
+    if (rejected) {
+      throw new ServiceError(
+        createError({
+          status: rejected.status,
+          code: 'trigger_delivery_rejected',
+          message: 'This delivery could not be accepted.'
+        })
+      );
+    }
+
+    return result.data.routingKeys;
   }
 }
 

@@ -6,7 +6,10 @@ import {
   type Environment,
   getId,
   type Prisma,
+  type Provider,
+  type ProviderAuthCredentials,
   type Tenant,
+  type WebhookRegistrationPurpose,
   type WebhookRegistrationStatus
 } from '@metorial-subspace/db';
 import {
@@ -16,6 +19,7 @@ import {
   normalizeStatusForList,
   resolveProviders
 } from '@metorial-subspace/list-utils';
+import { providerAuthCredentialsService } from '@metorial-subspace/module-auth';
 import {
   getMetorialSolution,
   type MetorialFacing,
@@ -33,6 +37,7 @@ import { webhookRegistrationDeleteQueue } from '../queues/delete/webhookRegistra
 export type ListWebhookRegistrationsParams = {
   ids?: string[];
   providerIds?: string[];
+  authCredentialsIds?: string[];
   search?: string;
   status?: WebhookRegistrationStatus[];
   allowDeleted?: boolean;
@@ -47,6 +52,7 @@ export type GetWebhookRegistrationByIdParams = {
 
 export type CreateWebhookRegistrationParams = {
   provider: { id: string };
+  authCredentials?: { id: string };
   input: {
     name: string;
     description?: string;
@@ -80,11 +86,13 @@ export let toAuditWebhookRegistration = (
   name: webhookRegistration.name,
   description: webhookRegistration.description,
   metadata: webhookRegistration.metadata,
+  purpose: webhookRegistration.purpose,
   isSetupComplete: webhookRegistration.status !== 'awaiting_setup',
   provider: {
     id: webhookRegistration.provider.id,
     name: webhookRegistration.provider.name
   },
+  authCredentialsId: webhookRegistration.authCredentials?.id ?? null,
   archivedAt: webhookRegistration.archivedAt
 });
 
@@ -109,6 +117,13 @@ class webhookRegistrationServiceImpl {
       d.providerIds
     );
     let search = d.search?.trim();
+    let servingOids = d.authCredentialsIds
+      ? await this.getDeliverySetupOidsServingAuthCredentials({
+          tenant: d.tenant,
+          environment: d.environment,
+          authCredentialsIds: d.authCredentialsIds
+        })
+      : undefined;
 
     return Paginator.create<WebhookRegistrationWithRelations>(({ prisma }) =>
       prisma(async opts =>
@@ -123,6 +138,7 @@ class webhookRegistrationServiceImpl {
               d.ids ? { id: { in: d.ids } } : undefined!,
               search ? { id: search } : undefined!,
               providers ? { providerOid: providers.in } : undefined!,
+              servingOids ? { oid: { in: servingOids } } : undefined!,
               d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined!,
               d.updatedAt ? { updatedAt: normalizeDateFilter(d.updatedAt) } : undefined!
             ].filter(Boolean) as Prisma.WebhookRegistrationWhereInput[]
@@ -131,6 +147,42 @@ class webhookRegistrationServiceImpl {
         })
       )
     );
+  }
+
+  // Whether two credentials records are the same OAuth app is only known to the backend.
+  private async getDeliverySetupOidsServingAuthCredentials(d: {
+    tenant: Tenant;
+    environment: Environment;
+    authCredentialsIds: string[];
+  }) {
+    let authCredentials =
+      await providerAuthCredentialsService.getManyProviderAuthCredentialsByIdsInternal({
+        tenant: d.tenant,
+        environment: d.environment,
+        ids: d.authCredentialsIds
+      });
+
+    let byBackend = new Map<bigint, ProviderAuthCredentials[]>();
+    for (let credentials of authCredentials) {
+      let group = byBackend.get(credentials.backendOid) ?? [];
+      group.push(credentials);
+      byBackend.set(credentials.backendOid, group);
+    }
+
+    let oids = await Promise.all(
+      Array.from(byBackend.values()).map(async group => {
+        let backend = await getBackend({ entity: group[0]! });
+        if (!backend.callbacks) return [];
+
+        let res = await backend.callbacks.listDeliverySetupsServingAuthCredentials({
+          tenant: d.tenant,
+          authCredentials: group
+        });
+        return res.webhookRegistrationOids;
+      })
+    );
+
+    return oids.flat();
   }
 
   async getWebhookRegistrationById(d: MetorialFacing<GetWebhookRegistrationByIdParams>) {
@@ -210,7 +262,81 @@ class webhookRegistrationServiceImpl {
       );
     }
 
-    return { provider, providerVariant };
+    let purpose: WebhookRegistrationPurpose =
+      attributes.triggers.webhookRegistration.purpose ?? 'webhook_receiver';
+
+    return { provider, providerVariant, purpose };
+  }
+
+  private async resolveAuthCredentialsForRegistration(d: {
+    tenant: Tenant;
+    environment: Environment;
+    provider: Provider;
+    purpose: WebhookRegistrationPurpose;
+    authCredentials?: { id: string };
+  }) {
+    if (d.purpose === 'webhook_receiver') {
+      if (d.authCredentials) {
+        throw new ServiceError(
+          badRequestError({
+            code: 'auth_credentials_not_applicable',
+            message:
+              'This provider takes a webhook receiver, which is not tied to OAuth credentials. Leave out `auth_credentials_id`.'
+          })
+        );
+      }
+
+      return null;
+    }
+
+    if (!d.authCredentials) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'auth_credentials_required',
+          message:
+            'A delivery setup is created for your own OAuth app. Pass the `auth_credentials_id` of the OAuth credentials your connection uses.'
+        })
+      );
+    }
+
+    let authCredentials =
+      await providerAuthCredentialsService.getProviderAuthCredentialsByIdInternal({
+        tenant: d.tenant,
+        environment: d.environment,
+        providerAuthCredentialsId: d.authCredentials.id
+      });
+
+    if (authCredentials.providerOid !== d.provider.oid) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'auth_credentials_provider_mismatch',
+          message:
+            'These OAuth credentials belong to another provider. Use the OAuth credentials of the provider you are setting up delivery for.'
+        })
+      );
+    }
+
+    if (authCredentials.origin !== 'tenant_created') {
+      throw new ServiceError(
+        badRequestError({
+          code: 'auth_credentials_managed',
+          message:
+            'These OAuth credentials are managed by Metorial, which already delivers their events. A delivery setup is only needed for your own OAuth app.'
+        })
+      );
+    }
+
+    if (authCredentials.status !== 'active') {
+      throw new ServiceError(
+        badRequestError({
+          code: 'auth_credentials_inactive',
+          message:
+            'These OAuth credentials are archived. Use the active OAuth credentials of your own OAuth app.'
+        })
+      );
+    }
+
+    return authCredentials;
   }
 
   async createWebhookRegistration(d: MetorialFacing<CreateWebhookRegistrationParams>) {
@@ -239,16 +365,24 @@ class webhookRegistrationServiceImpl {
   ) {
     let solution = await getMetorialSolution();
 
-    let { provider, providerVariant } = await this.resolveProviderForRegistration({
+    let { provider, providerVariant, purpose } = await this.resolveProviderForRegistration({
       tenant: d.tenant,
       environment: d.environment,
       provider: d.provider
+    });
+    let authCredentials = await this.resolveAuthCredentialsForRegistration({
+      tenant: d.tenant,
+      environment: d.environment,
+      provider,
+      purpose,
+      authCredentials: d.authCredentials
     });
 
     let created = await db.webhookRegistration.create({
       data: {
         ...getId('webhookRegistration'),
         status: 'awaiting_setup',
+        purpose,
 
         name: d.input.name,
         description: d.input.description,
@@ -256,6 +390,7 @@ class webhookRegistrationServiceImpl {
 
         providerOid: provider.oid,
         providerVariantOid: providerVariant.oid,
+        authCredentialsOid: authCredentials?.oid,
 
         tenantOid: d.tenant.oid,
         projectOid: d.tenant.projectOid!,
@@ -286,6 +421,7 @@ class webhookRegistrationServiceImpl {
         tenant: d.tenant,
         provider,
         providerVariant,
+        authCredentials,
         webhookRegistration: created
       });
     } catch (error) {

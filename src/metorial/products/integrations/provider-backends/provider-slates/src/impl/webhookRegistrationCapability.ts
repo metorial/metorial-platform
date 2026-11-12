@@ -19,7 +19,9 @@ export let toWebhookRegistrationCapability = (
   }
 
   if (
-    registrations.some(registration => registration.mode === 'auto' && registration.config)
+    registrations.some(
+      registration => registration.mode === 'auto' && registration.deliveryConfig
+    )
   ) {
     return { status: 'supported', purpose: 'delivery_setup' };
   }

@@ -56,7 +56,7 @@ import {
 } from './shared';
 import {
   WEBHOOK_REGISTRATION_COPY,
-  type WebhookRegistrationPurpose
+  type WebhookRegistrationTarget
 } from './webhookRegistrationPurpose';
 import {
   getWebhookSetupErrorMessages,
@@ -66,13 +66,13 @@ import {
 let showCreateWebhookRegistrationModal = (p: {
   instanceId: string;
   provider?: { id: string; name: string };
-  purpose?: WebhookRegistrationPurpose;
+  target: WebhookRegistrationTarget;
   onCreate: (created: { id: string }) => void;
 }) =>
   showModal(({ dialogProps, close }) => {
     let [providerId, setProviderId] = useState(p.provider?.id ?? '');
     let createRegistration = useCreateWebhookRegistration();
-    let copy = WEBHOOK_REGISTRATION_COPY[p.purpose ?? 'webhook_receiver'];
+    let copy = WEBHOOK_REGISTRATION_COPY[p.target.purpose];
 
     let form = useForm({
       initialValues: {
@@ -85,6 +85,8 @@ let showCreateWebhookRegistrationModal = (p: {
         let [created] = await createRegistration.mutate({
           instanceId: p.instanceId,
           providerId,
+          authCredentialsId:
+            p.target.purpose === 'delivery_setup' ? p.target.authCredentialsId : undefined,
           name: values.name.trim(),
           description: values.description.trim() || undefined
         });
@@ -362,7 +364,7 @@ let showWebhookRegistrationSetupPanel = (p: {
             <>
               <Spacer size={20} />
               <Callout color="green">
-                <span>Setup is complete — this receiver is live.</span>
+                <span>{WEBHOOK_REGISTRATION_COPY[p.registration.purpose].setupComplete}</span>
               </Callout>
               <Spacer size={18} />
               <Dialog.Actions>
@@ -526,8 +528,7 @@ let webhookRegistrationsTable = new DashboardTable<
 
       confirm({
         title: `Delete ${registration.name}?`,
-        description:
-          'Metorial tears down the receiver on the provider and stops accepting webhooks at this URL. This cannot be undone.',
+        description: WEBHOOK_REGISTRATION_COPY[registration.purpose].deleteDescription,
         confirmText: 'Delete',
         onConfirm: async () => {
           await state.deleteRegistration.mutate({
@@ -577,12 +578,12 @@ export let WebhookRegistrationsTable = ({ instanceId }: { instanceId: string }) 
 export let CreateWebhookRegistrationButton = ({
   instanceId,
   provider,
-  purpose,
+  target,
   onCreate
 }: {
   instanceId: string;
   provider?: { id: string; name: string };
-  purpose?: WebhookRegistrationPurpose;
+  target: WebhookRegistrationTarget;
   onCreate?: (created: { id: string }) => void;
 }) => (
   <Button
@@ -591,12 +592,12 @@ export let CreateWebhookRegistrationButton = ({
       showCreateWebhookRegistrationModal({
         instanceId,
         provider,
-        purpose,
+        target,
         onCreate: created => onCreate?.(created)
       })
     }
   >
-    {WEBHOOK_REGISTRATION_COPY[purpose ?? 'webhook_receiver'].createButton}
+    {WEBHOOK_REGISTRATION_COPY[target.purpose].createButton}
   </Button>
 );
 

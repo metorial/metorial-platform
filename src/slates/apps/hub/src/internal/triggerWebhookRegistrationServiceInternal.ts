@@ -27,6 +27,7 @@ class triggerWebhookRegistrationServiceInternalImpl {
     owner?: 'tenant' | 'global';
     status: SlateWebhookRegistrationStatus;
     urlKey: string;
+    oauthClientId?: string | null;
     name: string;
     description?: string;
     metadata?: Record<string, any>;
@@ -55,6 +56,7 @@ class triggerWebhookRegistrationServiceInternalImpl {
         owner: d.owner ?? 'tenant',
         status: d.status,
         urlKey: d.urlKey,
+        oauthClientId: d.oauthClientId,
 
         name: d.name,
         description: d.description,

@@ -46,6 +46,7 @@ let invocation = {
 };
 let createRegistration = vi.fn();
 let instanceError = vi.fn();
+let selectDeliveryConfig = vi.fn(async (_selection: unknown): Promise<any> => undefined);
 let nextSnowflake = vi.fn();
 vi.mock('@lowerdeck/queue', () => ({
   createQueue: ({ name }: { name: string }) => {
@@ -84,8 +85,8 @@ vi.mock('./_webhookTargetLock', () => ({
   webhookTargetLock: { usingLock: (_id: string, fn: () => unknown) => fn() }
 }));
 vi.mock('../../db', () => ({ db }));
-vi.mock('../../services/triggerInfrastructure', () => ({
-  getTriggerInfrastructure: vi.fn(async () => undefined)
+vi.mock('../../internal/triggerDeliveryConfigServiceInternal', () => ({
+  triggerDeliveryConfigServiceInternal: { selectDeliveryConfig }
 }));
 vi.mock('../../env', () => ({ env: { service: { REDIS_URL: 'redis://unused' } } }));
 vi.mock('../../id', () => ({
@@ -1102,12 +1103,11 @@ describe('durable provider lifecycle claims', () => {
     expect(invocation.registerWebhook).not.toHaveBeenCalled();
   });
 
-  it('resumes a saved provider result without touching infrastructure or its operation identity', async () => {
+  it('resumes a saved provider result without selecting a delivery config again or changing its operation identity', async () => {
     target.status = 'creating';
     target.registrationUrlKey = 'saved-key';
     target.renewalOperationId = 'saved-operation';
-    let { getTriggerInfrastructure } = await import('../../services/triggerInfrastructure');
-    vi.mocked(getTriggerInfrastructure).mockRejectedValue(new Error('unavailable'));
+    selectDeliveryConfig.mockRejectedValue(new Error('unavailable'));
     db.triggerWebhookRenewalResult.findUnique.mockResolvedValue({
       operationId: 'saved-operation',
       secretOid: 8n,
@@ -1120,7 +1120,7 @@ describe('durable provider lifecycle claims', () => {
       routingKeys: ['mailbox-a']
     });
     await run('whk/register', { triggerWebhookTargetId: target.id }, 1);
-    expect(getTriggerInfrastructure).not.toHaveBeenCalled();
+    expect(selectDeliveryConfig).not.toHaveBeenCalled();
     expect(invocation.registerWebhook).not.toHaveBeenCalled();
     expect(db.triggerDeliveryRoute.createMany).toHaveBeenCalledWith({
       data: [
@@ -1136,9 +1136,8 @@ describe('durable provider lifecycle claims', () => {
   it('looks up the delivery config for the tenant, integration, trigger group and OAuth app', async () => {
     target.status = 'creating';
     registration.authConfig.oauthCredentials = { clientId: 'client-id' };
-    let { getTriggerInfrastructure } = await import('../../services/triggerInfrastructure');
     await run('whk/register', { triggerWebhookTargetId: target.id });
-    expect(getTriggerInfrastructure).toHaveBeenCalledWith({
+    expect(selectDeliveryConfig).toHaveBeenCalledWith({
       tenant: registration.tenant,
       slate: registration.slate,
       triggerGroup: target.triggerGroup,
@@ -1149,8 +1148,7 @@ describe('durable provider lifecycle claims', () => {
   it('records a missing delivery config under its own code and message', async () => {
     target.status = 'creating';
     let { badRequestError, ServiceError } = await import('@lowerdeck/error');
-    let { getTriggerInfrastructure } = await import('../../services/triggerInfrastructure');
-    vi.mocked(getTriggerInfrastructure).mockRejectedValue(
+    selectDeliveryConfig.mockRejectedValue(
       new ServiceError(
         badRequestError({
           code: 'trigger_delivery_config_missing',
@@ -1174,12 +1172,11 @@ describe('durable provider lifecycle claims', () => {
 });
 
 describe('shared delivery routes', () => {
-  let delivery = { bindingId: 'binding', infrastructure: { opaque: true } };
+  let delivery = { bindingId: 'binding', deliveryConfig: { opaque: true } };
 
   it('stores the routing keys of a managed-delivery registration with the registration', async () => {
     target.status = 'creating';
-    let { getTriggerInfrastructure } = await import('../../services/triggerInfrastructure');
-    vi.mocked(getTriggerInfrastructure).mockResolvedValue(delivery as any);
+    selectDeliveryConfig.mockResolvedValue(delivery);
     invocation.registerWebhook.mockResolvedValue({
       status: 'success',
       invocation: { oid: 9n },
@@ -1191,7 +1188,7 @@ describe('shared delivery routes', () => {
     });
     await run('whk/register', { triggerWebhookTargetId: target.id });
     expect(invocation.registerWebhook).toHaveBeenCalledWith(
-      expect.objectContaining({ infrastructure: delivery.infrastructure })
+      expect.objectContaining({ deliveryConfig: delivery.deliveryConfig })
     );
     expect(db.triggerDeliveryRoute.createMany).toHaveBeenCalledWith({
       data: [
@@ -1203,8 +1200,7 @@ describe('shared delivery routes', () => {
 
   it('fails a managed-delivery registration that names no routing key', async () => {
     target.status = 'creating';
-    let { getTriggerInfrastructure } = await import('../../services/triggerInfrastructure');
-    vi.mocked(getTriggerInfrastructure).mockResolvedValue(delivery as any);
+    selectDeliveryConfig.mockResolvedValue(delivery);
     await run('whk/register', { triggerWebhookTargetId: target.id }, 4);
     expect(db.slateWebhookRegistration.create).not.toHaveBeenCalled();
     expect(db.triggerWebhookTargetRegistrationAttempt.create).toHaveBeenCalledWith(
@@ -1266,8 +1262,7 @@ describe('shared delivery routes', () => {
 
   it('holds a binding shard from the provider call until the result is saved', async () => {
     target.status = 'creating';
-    let { getTriggerInfrastructure } = await import('../../services/triggerInfrastructure');
-    vi.mocked(getTriggerInfrastructure).mockResolvedValue(delivery as any);
+    selectDeliveryConfig.mockResolvedValue(delivery);
     let heldDuringCall: unknown[] = [];
     let heldDuringSave: unknown[] = [];
     invocation.registerWebhook.mockImplementation(async () => {
@@ -1366,8 +1361,7 @@ it('removes the provider hook of a target whose delivery config was removed and 
     { bindingId: 'whr_config', routingKey: 'mailbox-a' }
   ]);
   let { badRequestError, ServiceError } = await import('@lowerdeck/error');
-  let { getTriggerInfrastructure } = await import('../../services/triggerInfrastructure');
-  vi.mocked(getTriggerInfrastructure).mockRejectedValue(
+  selectDeliveryConfig.mockRejectedValue(
     new ServiceError(
       badRequestError({
         code: 'trigger_delivery_config_missing',
@@ -1401,18 +1395,15 @@ it('removes the provider hook of a target whose delivery config was removed and 
   expect(invocation.registerWebhook).not.toHaveBeenCalled();
 });
 
-it('records infrastructure setup failures without inventing a provider invocation', async () => {
+it('records a delivery config that cannot be loaded without inventing a provider invocation', async () => {
   target.status = 'creating';
-  let { getTriggerInfrastructure } = await import('../../services/triggerInfrastructure');
-  vi.mocked(getTriggerInfrastructure).mockRejectedValueOnce(
-    new Error('configuration unavailable')
-  );
+  selectDeliveryConfig.mockRejectedValueOnce(new Error('configuration unavailable'));
   await expect(
     run('whk/register', { triggerWebhookTargetId: target.id }, 4)
   ).rejects.toThrow();
   expect(instanceError).toHaveBeenCalledWith(
     expect.objectContaining({
-      code: 'trigger_infrastructure_setup_failed',
+      code: 'trigger_delivery_config_unavailable',
       triggerRegistrationInstanceOid: instance.oid
     })
   );

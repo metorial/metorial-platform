@@ -18,6 +18,7 @@ export let CallbackInstancesPage = () => {
       <CallbackDeliverySetupCallout
         instanceId={instance.data.id}
         providerId={callback.data.provider.id}
+        authCredentialsId={callback.data.authCredentialsId}
         authCredentialsIsManaged={callback.data.authCredentialsIsManaged}
       />
 

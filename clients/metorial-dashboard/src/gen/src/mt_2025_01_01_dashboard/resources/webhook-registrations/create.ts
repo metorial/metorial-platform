@@ -4,6 +4,7 @@ export type WebhookRegistrationsCreateOutput = {
   object: 'webhook_registration';
   id: string;
   status: 'awaiting_setup' | 'active' | 'archived' | 'deleted';
+  purpose: 'webhook_receiver' | 'delivery_setup';
   name: string;
   description: string | null;
   metadata: Record<string, any> | null;
@@ -23,22 +24,33 @@ export type WebhookRegistrationsCreateOutput = {
     createdAt: Date;
     updatedAt: Date;
   };
+  authCredentialsId: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
 
 export let mapWebhookRegistrationsCreateOutput =
   /* @__PURE__ */ mapObject<WebhookRegistrationsCreateOutput>(
-    ['receive_url', ['provider', 0, 8], 'created_at', 'updated_at'],
+    [
+      'receive_url',
+      ['provider', 0, 8],
+      'auth_credentials_id',
+      'created_at',
+      'updated_at'
+    ],
     1
   );
 
 export type WebhookRegistrationsCreateBody = {
   providerId: string;
+  authCredentialsId?: string | undefined;
   name: string;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
 };
 
 export let mapWebhookRegistrationsCreateBody =
-  /* @__PURE__ */ mapObject<WebhookRegistrationsCreateBody>(['provider_id']);
+  /* @__PURE__ */ mapObject<WebhookRegistrationsCreateBody>([
+    'provider_id',
+    'auth_credentials_id'
+  ]);

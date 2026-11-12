@@ -105,7 +105,6 @@
     "@remixicon/react": "^4.9.0",
     "@sentry/bun": "^11.9.0",
     "@sentry/cli": "^3.8.2",
-    "@slates/managed-trigger-delivery": "workspace:*",
     "@slates/proto": "^1.0.0-rc.29",
     "@types/semver": "^7.8.0",
     "@types/unzipper": "^0.10.11",

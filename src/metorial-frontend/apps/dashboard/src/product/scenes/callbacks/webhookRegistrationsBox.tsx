@@ -11,11 +11,10 @@ import { Badge, Button, Callout, Flex, Spacer, Text } from '@metorial/ui';
 import { Box, Table } from '@metorial/ui-product';
 import { truncateReceiverUrl } from './shared';
 import {
-  getConnectionWebhookRegistrationPurpose,
+  getConnectionWebhookRegistrationTarget,
   getDeliverySetupState,
-  getWebhookRegistrationPurpose,
   WEBHOOK_REGISTRATION_COPY,
-  type WebhookRegistrationPurpose
+  type WebhookRegistrationTarget
 } from './webhookRegistrationPurpose';
 import {
   CreateWebhookRegistrationButton,
@@ -25,20 +24,22 @@ import {
 export let ProviderWebhookRegistrationsBox = ({
   instanceId,
   provider,
-  purpose = 'webhook_receiver'
+  target
 }: {
   instanceId: string;
   provider: { id: string; name: string };
-  purpose?: WebhookRegistrationPurpose;
+  target: WebhookRegistrationTarget;
 }) => {
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
   let instance = useCurrentInstance();
   let registrations = useWebhookRegistrations(instanceId, {
     order: 'desc',
-    providerId: provider.id
+    providerId: provider.id,
+    authCredentialsId:
+      target.purpose === 'delivery_setup' ? target.authCredentialsId : undefined
   });
-  let copy = WEBHOOK_REGISTRATION_COPY[purpose];
+  let copy = WEBHOOK_REGISTRATION_COPY[target.purpose];
 
   let onCreate = () => void registrations.refetch();
 
@@ -52,7 +53,7 @@ export let ProviderWebhookRegistrationsBox = ({
             <CreateWebhookRegistrationButton
               instanceId={instanceId}
               provider={provider}
-              purpose={purpose}
+              target={target}
               onCreate={onCreate}
             />
           ) : undefined
@@ -88,13 +89,21 @@ export let ProviderWebhookRegistrationsBox = ({
                   <span>{registration.name}</span>
 
                   {registration.status === 'awaiting_setup' && (
-                    <Badge color="orange" size="2">
+                    <Badge
+                      color="orange"
+                      size="2"
+                      style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
+                    >
                       Awaiting Setup
                     </Badge>
                   )}
 
                   {registration.status === 'active' && copy.activeBadge && (
-                    <Badge color="blue" size="2">
+                    <Badge
+                      color="blue"
+                      size="2"
+                      style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
+                    >
                       {copy.activeBadge}
                     </Badge>
                   )}
@@ -120,24 +129,15 @@ export let ProviderWebhookRegistrationsBox = ({
   );
 };
 
-// A registration only carries a preview of its provider, so its wording needs the provider.
-export let useWebhookRegistrationCopy = (
-  instanceId: string | null | undefined,
-  providerId: string | null | undefined
-) => {
-  let provider = useProvider(instanceId, providerId);
-  let purpose = getWebhookRegistrationPurpose(provider.data?.type.triggers);
-
-  return { provider, copy: WEBHOOK_REGISTRATION_COPY[purpose ?? 'webhook_receiver'] };
-};
-
 export let CallbackWebhookRegistrationsBox = ({
   instanceId,
   providerId,
+  authCredentialsId,
   authCredentialsIsManaged
 }: {
   instanceId: string;
   providerId: string;
+  authCredentialsId: string | null;
   authCredentialsIsManaged: boolean;
 }) => {
   let provider = useProvider(instanceId, authCredentialsIsManaged ? null : providerId);
@@ -145,18 +145,19 @@ export let CallbackWebhookRegistrationsBox = ({
   if (authCredentialsIsManaged) return null;
 
   return renderWithLoader({ provider })(({ provider }) => {
-    let purpose = getConnectionWebhookRegistrationPurpose({
+    let target = getConnectionWebhookRegistrationTarget({
       triggers: provider.data.type.triggers,
+      authCredentialsId,
       authCredentialsIsManaged
     });
 
-    if (!purpose) return null;
+    if (!target) return null;
 
     return (
       <ProviderWebhookRegistrationsBox
         instanceId={instanceId}
         provider={{ id: providerId, name: provider.data.name }}
-        purpose={purpose}
+        target={target}
       />
     );
   });
@@ -165,30 +166,33 @@ export let CallbackWebhookRegistrationsBox = ({
 export let CallbackDeliverySetupCallout = ({
   instanceId,
   providerId,
+  authCredentialsId,
   authCredentialsIsManaged
 }: {
   instanceId: string;
   providerId: string;
+  authCredentialsId: string | null;
   authCredentialsIsManaged: boolean;
 }) => {
   let provider = useProvider(instanceId, authCredentialsIsManaged ? null : providerId);
-  let needsDeliverySetup =
-    getConnectionWebhookRegistrationPurpose({
-      triggers: provider.data?.type.triggers,
-      authCredentialsIsManaged
-    }) === 'delivery_setup';
-  let registrations = useWebhookRegistrations(needsDeliverySetup ? instanceId : null, {
+  let target = getConnectionWebhookRegistrationTarget({
+    triggers: provider.data?.type.triggers,
+    authCredentialsId,
+    authCredentialsIsManaged
+  });
+  let deliverySetup = target?.purpose === 'delivery_setup' ? target : null;
+  let registrations = useWebhookRegistrations(deliverySetup ? instanceId : null, {
     order: 'desc',
-    providerId
+    providerId,
+    authCredentialsId: deliverySetup?.authCredentialsId
   });
 
-  if (!needsDeliverySetup || !provider.data || !registrations.data) return null;
+  if (!deliverySetup || !provider.data || !registrations.data) return null;
 
-  if (getDeliverySetupState(registrations.data.items) === 'complete') return null;
+  let state = getDeliverySetupState(registrations.data.items);
+  if (state.status === 'complete') return null;
 
-  let pending = registrations.data.items.find(
-    registration => registration.status === 'awaiting_setup'
-  );
+  let pending = state.pending;
   let onChange = () => void registrations.refetch();
 
   return (
@@ -196,8 +200,8 @@ export let CallbackDeliverySetupCallout = ({
       <Callout color="orange">
         <Flex align="center" justify="space-between" gap={12}>
           <span>
-            <strong>Delivery is not set up.</strong> This connection uses your own Google OAuth
-            app. Finish the delivery setup to receive events.
+            <strong>Delivery is not set up.</strong> This connection uses your own OAuth app.
+            Finish the delivery setup to receive events.
           </span>
 
           {pending ? (
@@ -217,7 +221,7 @@ export let CallbackDeliverySetupCallout = ({
             <CreateWebhookRegistrationButton
               instanceId={instanceId}
               provider={{ id: providerId, name: provider.data.name }}
-              purpose="delivery_setup"
+              target={deliverySetup}
               onCreate={onChange}
             />
           )}

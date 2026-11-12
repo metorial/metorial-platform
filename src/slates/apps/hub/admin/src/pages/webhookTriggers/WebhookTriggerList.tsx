@@ -91,6 +91,12 @@ export let WebhookTriggerList = () => {
         >
           Automated
         </FilterButton>
+        <FilterButton
+          $active={typeFilter === 'delivery_config'}
+          onClick={() => setTypeFilter('delivery_config')}
+        >
+          Delivery Config
+        </FilterButton>
         <FilterButton $active={ownerFilter === 'all'} onClick={() => setOwnerFilter('all')}>
           All Owners
         </FilterButton>
@@ -154,7 +160,9 @@ export let WebhookTriggerList = () => {
                   </Flex>,
                   <Badge color="gray">{trigger.type}</Badge>,
                   <Badge color="gray">{trigger.owner}</Badge>,
-                  <Badge color={statusColors[trigger.status] || 'gray'}>{trigger.status}</Badge>
+                  <Badge color={statusColors[trigger.status] || 'gray'}>
+                    {trigger.status}
+                  </Badge>
                 ]
               }))}
             />

@@ -1,5 +1,8 @@
 export type WebhookRegistrationPurpose = 'webhook_receiver' | 'delivery_setup';
 
+export type WebhookRegistrationTarget =
+  { purpose: 'webhook_receiver' } | { purpose: 'delivery_setup'; authCredentialsId: string };
+
 type ProviderTypeTriggers =
   | {
       status: 'enabled';
@@ -20,24 +23,43 @@ export let getWebhookRegistrationPurpose = (
 };
 
 // Managed credentials are already set up, so their connections never show a registration.
-export let getConnectionWebhookRegistrationPurpose = (d: {
+export let getConnectionWebhookRegistrationTarget = (d: {
   triggers: ProviderTypeTriggers | null | undefined;
+  authCredentialsId: string | null;
   authCredentialsIsManaged: boolean;
-}) => (d.authCredentialsIsManaged ? null : getWebhookRegistrationPurpose(d.triggers));
+}): WebhookRegistrationTarget | null => {
+  if (d.authCredentialsIsManaged) return null;
+
+  let purpose = getWebhookRegistrationPurpose(d.triggers);
+  if (purpose === 'webhook_receiver') return { purpose };
+  if (purpose === 'delivery_setup' && d.authCredentialsId) {
+    return { purpose, authCredentialsId: d.authCredentialsId };
+  }
+
+  return null;
+};
 
 // A delivery setup only applies to some connections, so the provider panel must not ask for one.
 export let providerNeedsWebhookReceiver = (
   triggers: ProviderTypeTriggers | null | undefined
 ) => getWebhookRegistrationPurpose(triggers) === 'webhook_receiver';
 
-export let getDeliverySetupState = (registrations: { status: string }[]) => {
-  if (registrations.some(registration => registration.status === 'active')) return 'complete';
-  if (registrations.some(registration => registration.status === 'awaiting_setup')) {
-    return 'pending';
+// The server lists only the setups that serve the connection's OAuth app.
+export let getDeliverySetupState = <Registration extends { status: string }>(
+  registrations: Registration[]
+) => {
+  let pending =
+    registrations.find(registration => registration.status === 'awaiting_setup') ?? null;
+
+  if (registrations.some(registration => registration.status === 'active')) {
+    return { status: 'complete' as const, pending: null };
   }
 
-  return 'missing';
+  return { status: pending ? ('pending' as const) : ('missing' as const), pending };
 };
+
+export let DELIVERY_SETUP_EVENTS_NOTE =
+  'Events received through this delivery setup appear on the callbacks of the connections that use this OAuth app.';
 
 export let WEBHOOK_REGISTRATION_COPY: Record<
   WebhookRegistrationPurpose,
@@ -59,7 +81,7 @@ export let WEBHOOK_REGISTRATION_COPY: Record<
     urlDescription: string;
     urlMissing: string;
     setupIncomplete: string;
-    eventsEmpty: string;
+    setupComplete: string;
 
     settingsTitle: string;
     settingsDescription: string;
@@ -90,7 +112,7 @@ export let WEBHOOK_REGISTRATION_COPY: Record<
     urlMissing: 'This receiver does not have a URL yet. Complete setup to provision one.',
     setupIncomplete:
       'Finish the provider instructions to start receiving webhooks at this URL.',
-    eventsEmpty: 'No inbound webhooks have been received on this receiver yet.',
+    setupComplete: 'Setup is complete — this receiver is live.',
 
     settingsTitle: 'Receiver Settings',
     settingsDescription: 'Modify the saved details for this webhook receiver.',
@@ -104,26 +126,26 @@ export let WEBHOOK_REGISTRATION_COPY: Record<
     createTitle: (providerName: string) => `Set Up ${providerName} Delivery`,
     createName: (providerName: string) => `${providerName} Delivery Setup`,
     createIntro:
-      'Metorial will create a push endpoint, then guide you through connecting it to your own Google OAuth app.',
+      'Metorial will create a push endpoint, then guide you through connecting it to your own OAuth app.',
     createSubmit: 'Start Setup',
 
     boxTitle: 'Delivery Setup',
     boxDescription: () =>
-      'This connection uses your own Google OAuth app, so event delivery needs a one-time setup.',
+      'This connection uses your own OAuth app, so event delivery needs a one-time setup.',
     emptyTitle: 'Delivery Is Not Set Up',
     emptyText: (providerName: string) =>
-      `Create a push endpoint, connect it to your own Google OAuth app, then enter the values Metorial asks for. ${providerName} events arrive once the delivery setup is finished.`,
+      `Create a push endpoint, connect it to your own OAuth app, then enter the values Metorial asks for. ${providerName} events arrive once the delivery setup is finished.`,
     tableHeaders: ['Delivery Setup', 'Push Endpoint'],
     activeBadge: 'Set Up',
 
     urlTitle: 'Push Endpoint',
-    urlDescription:
-      'Use this URL as the push endpoint and audience of your Pub/Sub subscription.',
+    urlDescription: 'Use this URL wherever the setup steps ask for the push endpoint.',
     urlMissing:
       'This delivery setup does not have a push endpoint yet. Complete setup to provision one.',
     setupIncomplete:
-      'Finish the setup steps to receive events for connections that use this Google OAuth app.',
-    eventsEmpty: 'No deliveries have been received at this push endpoint yet.',
+      'Finish the setup steps to receive events for connections that use this OAuth app.',
+    setupComplete:
+      'Setup is complete — events now arrive for connections that use this OAuth app.',
 
     settingsTitle: 'Delivery Setup',
     settingsDescription: 'Modify the saved details for this delivery setup.',
@@ -131,6 +153,6 @@ export let WEBHOOK_REGISTRATION_COPY: Record<
     deleteDescription:
       'Metorial stops accepting deliveries at this push endpoint. This cannot be undone.',
     deleteConfirm: () =>
-      'Events stop being delivered in real time for connections that use this Google OAuth app until a new setup is saved.'
+      'Events stop being delivered in real time for connections that use this OAuth app until a new setup is saved.'
   }
 };

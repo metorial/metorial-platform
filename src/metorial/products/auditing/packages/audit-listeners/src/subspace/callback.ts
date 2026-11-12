@@ -48,11 +48,13 @@ let webhookRegistrationPayload = (webhookRegistration: AuditSubspaceWebhookRegis
   name: webhookRegistration.name,
   description: webhookRegistration.description,
   metadata: webhookRegistration.metadata,
+  purpose: webhookRegistration.purpose,
   isSetupComplete: webhookRegistration.isSetupComplete,
   provider: {
     id: webhookRegistration.provider.id,
     name: webhookRegistration.provider.name
   },
+  authCredentialsId: webhookRegistration.authCredentialsId,
   archivedAt: webhookRegistration.archivedAt
 });
 

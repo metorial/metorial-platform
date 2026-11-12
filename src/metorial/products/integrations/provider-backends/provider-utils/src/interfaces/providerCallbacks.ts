@@ -4,6 +4,7 @@ import type {
   CallbackInstance,
   Provider,
   ProviderAuthConfigVersion,
+  ProviderAuthCredentials,
   ProviderConfigVersion,
   ProviderVariant,
   Tenant,
@@ -41,6 +42,10 @@ export abstract class IProviderCallbacks extends IProviderFunctionality {
   abstract deleteWebhookRegistration(
     data: WebhookRegistrationDeleteParam
   ): Promise<WebhookRegistrationDeleteRes>;
+
+  abstract listDeliverySetupsServingAuthCredentials(
+    data: DeliverySetupServingAuthCredentialsListParam
+  ): Promise<DeliverySetupServingAuthCredentialsListRes>;
 
   abstract listWebhookEvents(data: WebhookEventListParam): Promise<WebhookEventListRes>;
 
@@ -104,6 +109,7 @@ export interface WebhookRegistrationCreateParam {
   tenant: Tenant;
   provider: Provider;
   providerVariant: ProviderVariant;
+  authCredentials: ProviderAuthCredentials | null;
   webhookRegistration: WebhookRegistration;
 }
 
@@ -140,6 +146,15 @@ export interface WebhookRegistrationDeleteParam {
 }
 
 export interface WebhookRegistrationDeleteRes {}
+
+export interface DeliverySetupServingAuthCredentialsListParam {
+  tenant: Tenant;
+  authCredentials: ProviderAuthCredentials[];
+}
+
+export interface DeliverySetupServingAuthCredentialsListRes {
+  webhookRegistrationOids: bigint[];
+}
 
 export interface WebhookEventListParam {
   tenant: Tenant;

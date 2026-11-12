@@ -1,6 +1,7 @@
 enum SlateWebhookRegistrationType {
   automated
   manual
+  delivery_config
 }
 
 enum SlateWebhookRegistrationOwner {
@@ -55,6 +56,8 @@ model SlateWebhookRegistration {
 
   authRouting SlateWebhookRegistrationAuthRouting @default(any)
 
+  oauthClientId String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
@@ -69,6 +72,7 @@ model SlateWebhookRegistration {
   triggerRoutingMatcherEvaluations TriggerRoutingMatcherEvaluation[]
 
   @@index([tenantOid, createdAt])
+  @@index([slateOid, oauthClientId])
 }
 
 model SlateWebhookRegistrationAuthMethod {

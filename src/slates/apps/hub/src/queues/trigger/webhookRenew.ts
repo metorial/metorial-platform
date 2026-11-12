@@ -5,10 +5,10 @@ import { getSentry } from '@lowerdeck/sentry';
 import { db } from '../../db';
 import { env } from '../../env';
 import { snowflake } from '../../id';
+import { triggerDeliveryConfigServiceInternal } from '../../internal/triggerDeliveryConfigServiceInternal';
 import { getWebhookUrl } from '../../lib/webhookUrl';
 import { secretService } from '../../services/secret';
 import { slateInvocationService } from '../../services/slateInvocation';
-import { getTriggerInfrastructure } from '../../services/triggerInfrastructure';
 import {
   TRIGGER_WEBHOOK_RENEW_BATCH_SIZE,
   TRIGGER_WEBHOOK_RENEW_RETRY_MS,
@@ -143,9 +143,11 @@ export let triggerWebhookRenewQueueProcessor = triggerWebhookRenewQueue.process(
           note: `trigger-webhook-renew:${target.id}`
         });
 
-        let delivery: Awaited<ReturnType<typeof getTriggerInfrastructure>>;
+        let delivery: Awaited<
+          ReturnType<typeof triggerDeliveryConfigServiceInternal.selectDeliveryConfig>
+        >;
         try {
-          delivery = await getTriggerInfrastructure({
+          delivery = await triggerDeliveryConfigServiceInternal.selectDeliveryConfig({
             tenant: target.tenant,
             slate: instance.triggerRegistration.slate,
             triggerGroup: target.triggerGroup,
@@ -168,7 +170,7 @@ export let triggerWebhookRenewQueueProcessor = triggerWebhookRenewQueue.process(
           webhookTargetPayload: target.webhookTargetPayload,
           operationId,
           selection: instance.selection ?? undefined,
-          infrastructure: delivery?.infrastructure
+          deliveryConfig: delivery?.deliveryConfig
         });
         if (result.status === 'error') {
           await recordFailure(instance.oid, result.error.message);

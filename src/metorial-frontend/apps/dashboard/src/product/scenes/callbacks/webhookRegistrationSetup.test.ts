@@ -9,18 +9,16 @@ import {
 let schema: JSONSchema7 = {
   type: 'object',
   properties: {
-    topicName: { type: 'string', title: 'Topic name' },
-    oauthClientId: { type: 'string', title: 'OAuth client ID' },
     subscriptionName: { type: 'string', title: 'Subscription name' },
-    pushServiceAccountEmail: { type: 'string', title: 'Push service account' }
+    pushServiceAccountEmail: { type: 'string', title: 'Push service account' },
+    topicName: { type: 'string', title: 'Topic name' }
   },
-  required: ['oauthClientId', 'topicName', 'subscriptionName', 'pushServiceAccountEmail']
+  required: ['topicName', 'subscriptionName', 'pushServiceAccountEmail']
 };
 
 describe('setup schema field order', () => {
   it('orders the fields the way `required` lists them', () => {
     expect(Object.keys(orderJsonSchemaPropertiesByRequired(schema).properties!)).toEqual([
-      'oauthClientId',
       'topicName',
       'subscriptionName',
       'pushServiceAccountEmail'
@@ -55,7 +53,7 @@ describe('setup schema field order', () => {
   it('does not change the schema it was given', () => {
     orderJsonSchemaPropertiesByRequired(schema);
 
-    expect(Object.keys(schema.properties!)[0]).toBe('topicName');
+    expect(Object.keys(schema.properties!)[0]).toBe('subscriptionName');
   });
 });
 
@@ -104,7 +102,7 @@ describe('setup error messages', () => {
           { code: 'too_small', path: ['topicName'], message: 'Too small' },
           {
             code: 'invalid_type',
-            path: ['oauthClientId'],
+            path: ['subscriptionName'],
             message: 'Invalid input: expected string, received undefined'
           }
         ]
@@ -113,10 +111,10 @@ describe('setup error messages', () => {
 
     expect(res.fieldErrors).toEqual({
       'Topic name': 'Topic name is not in the expected format.',
-      'OAuth client ID': 'OAuth client ID is not valid.'
+      'Subscription name': 'Subscription name is not valid.'
     });
     expect(res.message).toBe(
-      'Invalid webhook setup configuration. Check Topic name, OAuth client ID.'
+      'Invalid webhook setup configuration. Check Topic name, Subscription name.'
     );
   });
 

@@ -160,6 +160,7 @@ export let ChatConnectionOverviewPage = () => {
             <ProviderWebhookRegistrationsBox
               instanceId={instance.data!.id}
               provider={{ id: provider.provider.id, name: provider.provider.name }}
+              target={{ purpose: 'webhook_receiver' }}
             />
           ) : null}
 

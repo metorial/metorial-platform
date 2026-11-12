@@ -1,4 +1,9 @@
-import { badRequestError, isServiceError, ServiceError } from '@lowerdeck/error';
+import {
+  badRequestError,
+  conflictError,
+  isServiceError,
+  ServiceError
+} from '@lowerdeck/error';
 import { db, snowflake, type Provider, type Tenant } from '@metorial-subspace/db';
 import {
   IProviderCallbacks,
@@ -16,6 +21,8 @@ import {
   type CallbackUpdateRes,
   type CallbackWebhookEventGetManyParam,
   type CallbackWebhookEventGetManyRes,
+  type DeliverySetupServingAuthCredentialsListParam,
+  type DeliverySetupServingAuthCredentialsListRes,
   type ProviderWebhookEvent,
   type WebhookEventGetParam,
   type WebhookEventListParam,
@@ -30,6 +37,9 @@ import {
   type WebhookRegistrationUpdateRes
 } from '@metorial-subspace/provider-utils';
 import { getTenantForSlates, slates } from '../client';
+
+// The hub accepts at most this many credentials per lookup.
+let HUB_OAUTH_CREDENTIALS_PAGE_SIZE = 100;
 
 type SlateWebhookEventRecord =
   | Awaited<ReturnType<typeof slates.slateWebhookEvent.get>>
@@ -313,16 +323,53 @@ export class ProviderCallbacks extends IProviderCallbacks {
       where: { oid: data.providerVariant.slateOid }
     });
 
+    if (data.authCredentials && !data.authCredentials.slateCredentialsOid) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'auth_credentials_backend_mismatch',
+          message:
+            'These OAuth credentials cannot be used to set up delivery for this provider.'
+        })
+      );
+    }
+
+    let deliveryConfigOAuthCredentials = data.authCredentials?.slateCredentialsOid
+      ? await db.slateOAuthCredentials.findUniqueOrThrow({
+          where: {
+            oid: data.authCredentials.slateCredentialsOid,
+            tenantOid: data.tenant.oid,
+            slateOid: slate.oid
+          }
+        })
+      : null;
+
     let tenant = await getTenantForSlates(data.tenant);
 
-    let res = await slates.slateWebhookRegistration.create({
-      tenantId: tenant.id,
-      slateId: slate.id,
+    let res: Awaited<ReturnType<typeof slates.slateWebhookRegistration.create>>;
+    try {
+      res = await slates.slateWebhookRegistration.create({
+        tenantId: tenant.id,
+        slateId: slate.id,
 
-      name: data.webhookRegistration.name,
-      description: data.webhookRegistration.description ?? undefined,
-      metadata: (data.webhookRegistration.metadata as Record<string, any>) ?? undefined
-    });
+        name: data.webhookRegistration.name,
+        description: data.webhookRegistration.description ?? undefined,
+        metadata: (data.webhookRegistration.metadata as Record<string, any>) ?? undefined,
+
+        deliveryConfigOAuthCredentialsId: deliveryConfigOAuthCredentials?.id
+      });
+    } catch (error) {
+      if (isServiceError(error) && error.data.code === 'delivery_config_already_exists') {
+        throw new ServiceError(
+          conflictError({
+            code: 'delivery_setup_already_exists',
+            message:
+              'A delivery setup already exists for this OAuth app. Finish or delete it before creating another one.'
+          })
+        );
+      }
+
+      throw error;
+    }
 
     await db.slateWebhookRegistration.create({
       data: {
@@ -476,6 +523,54 @@ export class ProviderCallbacks extends IProviderCallbacks {
     }
 
     return {};
+  }
+
+  override async listDeliverySetupsServingAuthCredentials(
+    data: DeliverySetupServingAuthCredentialsListParam
+  ): Promise<DeliverySetupServingAuthCredentialsListRes> {
+    let slateCredentialsOids = data.authCredentials.flatMap(c =>
+      c.slateCredentialsOid ? [c.slateCredentialsOid] : []
+    );
+    if (!slateCredentialsOids.length) return { webhookRegistrationOids: [] };
+
+    let slateCredentials = await db.slateOAuthCredentials.findMany({
+      where: { oid: { in: slateCredentialsOids }, tenantOid: data.tenant.oid },
+      select: { id: true }
+    });
+    if (!slateCredentials.length) return { webhookRegistrationOids: [] };
+
+    let tenant = await getTenantForSlates(data.tenant);
+
+    let slateCredentialsIds = slateCredentials.map(c => c.id);
+    let hubRegistrationIds: string[] = [];
+
+    for (
+      let offset = 0;
+      offset < slateCredentialsIds.length;
+      offset += HUB_OAUTH_CREDENTIALS_PAGE_SIZE
+    ) {
+      let hubRegistrations =
+        await slates.slateWebhookRegistration.getDeliveryConfigsServingOAuthCredentials({
+          tenantId: tenant.id,
+          slateOAuthCredentialsIds: slateCredentialsIds.slice(
+            offset,
+            offset + HUB_OAUTH_CREDENTIALS_PAGE_SIZE
+          )
+        });
+
+      hubRegistrationIds.push(...hubRegistrations.map(r => r.id));
+    }
+
+    let mirrors = await db.slateWebhookRegistration.findMany({
+      where: {
+        id: { in: hubRegistrationIds },
+        tenantOid: data.tenant.oid,
+        webhookRegistrationOid: { not: null }
+      },
+      select: { webhookRegistrationOid: true }
+    });
+
+    return { webhookRegistrationOids: mirrors.map(m => m.webhookRegistrationOid!) };
   }
 
   override async getManyEvents(

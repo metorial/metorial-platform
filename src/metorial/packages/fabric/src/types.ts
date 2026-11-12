@@ -248,8 +248,10 @@ export type AuditSubspaceWebhookRegistration = {
   name: string;
   description: string | null;
   metadata: unknown;
+  purpose: string;
   isSetupComplete: boolean;
   provider: { id: string; name: string };
+  authCredentialsId: string | null;
   archivedAt: Date | null;
 };
 

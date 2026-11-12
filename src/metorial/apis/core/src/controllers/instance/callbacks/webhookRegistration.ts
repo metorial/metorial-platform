@@ -49,6 +49,10 @@ export let webhookRegistrationController = Controller.create(
             provider_id: v.optional(stringOrArray(), {
               description: 'Filter by provider ID(s)'
             }),
+            auth_credentials_id: v.optional(stringOrArray(), {
+              description:
+                'Filter to the delivery setups that serve the given OAuth credentials ID(s). A delivery setup serves every OAuth credentials record of the same OAuth app, not only the one it was created for.'
+            }),
             status: v.optional(
               v.union([
                 webhookRegistrationStatusValidator,
@@ -70,6 +74,7 @@ export let webhookRegistrationController = Controller.create(
           allowDeleted: false,
           ids: normalizeArrayParam(ctx.query.id),
           providerIds: normalizeArrayParam(ctx.query.provider_id),
+          authCredentialsIds: normalizeArrayParam(ctx.query.auth_credentials_id),
           status: normalizeArrayParam(ctx.query.status),
           search: ctx.query.search,
           createdAt: ctx.query.created_at,
@@ -105,7 +110,7 @@ export let webhookRegistrationController = Controller.create(
       .post(instancePath('webhook-registrations', 'webhookRegistrations.create'), {
         name: 'Create webhook registration',
         description:
-          'Creates a webhook registration for a provider. Only providers whose type reports `triggers.webhook_registration.status` as `supported` can receive one. When `triggers.webhook_registration.purpose` is `delivery_setup`, triggers register automatically and the registration is the one-time delivery setup for connections that use your own OAuth app. The registration starts out awaiting setup.'
+          'Creates a webhook registration for a provider. Only providers whose type reports `triggers.webhook_registration.status` as `supported` can receive one. When `triggers.webhook_registration.purpose` is `delivery_setup`, triggers register automatically and the registration is the one-time delivery setup for the connections that use the OAuth app named by `auth_credentials_id`. The registration starts out awaiting setup.'
       })
       .use(checkAccess({ possibleScopes: ['instance.callback:write'] }))
       .use(hasFlags(['callbacks-enabled']))
@@ -116,6 +121,13 @@ export let webhookRegistrationController = Controller.create(
             description: 'Provider to register the webhook receiver on',
             examples: ['pro_5gHjKlMnPqRsTuVw']
           }),
+          auth_credentials_id: v.optional(
+            v.string({
+              description:
+                'OAuth credentials of your own OAuth app that a delivery setup is for. Required when the provider type reports `triggers.webhook_registration.purpose` as `delivery_setup`, not accepted otherwise.',
+              examples: ['par_2bCdEfGhJkLmNpQr']
+            })
+          ),
           name: v.string({
             description: 'Display name for the webhook registration',
             examples: ['Production GitHub Webhook']
@@ -140,6 +152,9 @@ export let webhookRegistrationController = Controller.create(
         let webhookRegistration = await webhookRegistrationService.createWebhookRegistration({
           instance: ctx.instance,
           provider: { id: ctx.body.provider_id },
+          authCredentials: ctx.body.auth_credentials_id
+            ? { id: ctx.body.auth_credentials_id }
+            : undefined,
           input: {
             name: ctx.body.name,
             description: ctx.body.description,

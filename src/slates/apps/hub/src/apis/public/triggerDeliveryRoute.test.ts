@@ -15,19 +15,13 @@ vi.mock('../../services/slateWebhookRegistration', () => ({
   slateWebhookRegistrationService: { getWebhookRegistrationByUrlKey: mocks.getRegistration }
 }));
 
-vi.mock('../../services/triggerDelivery', () => {
-  let servesRegistration = (registration: any) =>
-    !!registration.triggerGroup.spec.invocation.googlePubSub;
-
-  return {
-    triggerDeliveryService: {
-      receiveDelivery: mocks.receiveDelivery,
-      servesRegistration,
-      isDeliveryConfig: (registration: any) =>
-        registration.type === 'manual' && servesRegistration(registration)
-    }
-  };
-});
+vi.mock('../../services/triggerDelivery', () => ({
+  triggerDeliveryService: {
+    receiveDelivery: mocks.receiveDelivery,
+    servesRegistration: (registration: any) =>
+      !!registration.triggerGroup.spec.invocation.registration.deliveryConfig
+  }
+}));
 
 vi.mock('../../lib/ingestWebhookRequest', async () => {
   let { createError } = await import('@lowerdeck/error');
@@ -53,15 +47,21 @@ vi.mock('./liveInvocation', async () => ({
 
 let { hubApp } = await import('./index');
 
-let managed = { type: 'webhook', googlePubSub: { product: 'gmail' } };
+let shared = {
+  type: 'webhook',
+  registration: {
+    mode: 'auto',
+    deliveryConfig: { userConfigSchema: {}, fullConfigSchema: {} }
+  }
+};
 
 let registration = (change: Record<string, unknown> = {}) => ({
   oid: 1n,
   id: 'whr_config',
-  type: 'manual',
+  type: 'delivery_config',
   owner: 'global',
   status: 'active',
-  triggerGroup: { spec: { invocation: managed } },
+  triggerGroup: { spec: { invocation: shared } },
   ...change
 });
 
@@ -113,18 +113,18 @@ describe('delivery config endpoint', () => {
     expect(mocks.ingest).not.toHaveBeenCalled();
   });
 
-  it('answers a rejected push with the rejection status so the sender retries', async () => {
+  it.each([
+    [401, 'trigger_delivery_rejected'],
+    [503, 'trigger_delivery_unavailable']
+  ])('answers a push the delivery service refuses with %s', async (status, code) => {
     mocks.receiveDelivery.mockRejectedValue(
-      new ServiceError(
-        createError({
-          status: 401,
-          code: 'trigger_delivery_rejected',
-          message: 'This delivery could not be accepted.'
-        })
-      )
+      new ServiceError(createError({ status, code, message: 'Refused.' }))
     );
 
-    expect((await push('{}')).status).toBe(401);
+    let res = await push('{}');
+
+    expect(res.status).toBe(status);
+    await expect(res.json()).resolves.toMatchObject({ code });
     expect(mocks.ingest).not.toHaveBeenCalled();
   });
 
@@ -156,7 +156,7 @@ describe('delivery config endpoint', () => {
 
 describe('direct webhook endpoint', () => {
   it.each(['/receive/key', '/receive/key/suffix'])(
-    'refuses %s for an automated registration that managed delivery serves',
+    'refuses %s for an automated registration that a delivery config serves',
     async path => {
       mocks.getRegistration.mockResolvedValue(registration({ type: 'automated' }));
 
@@ -168,12 +168,17 @@ describe('direct webhook endpoint', () => {
     }
   );
 
-  it.each(['manual', 'automated'])(
+  it.each([
+    ['manual', { mode: 'manual', userConfigSchema: {}, fullConfigSchema: {} }],
+    ['automated', { mode: 'auto' }]
+  ])(
     'still accepts a %s registration that receives its webhooks directly',
-    async type => {
+    async (type, webhookRegistration) => {
       let direct = registration({
         type,
-        triggerGroup: { spec: { invocation: { type: 'webhook' } } }
+        triggerGroup: {
+          spec: { invocation: { type: 'webhook', registration: webhookRegistration } }
+        }
       });
       mocks.getRegistration.mockResolvedValue(direct);
       mocks.ingest.mockResolvedValue({ discarded: true, eventId: 'event' });

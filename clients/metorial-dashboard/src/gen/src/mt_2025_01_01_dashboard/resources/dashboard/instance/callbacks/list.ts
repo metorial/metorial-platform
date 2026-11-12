@@ -30,6 +30,7 @@ export type DashboardInstanceCallbacksListOutput = {
     }[];
     createdAt: Date;
     updatedAt: Date;
+    authCredentialsId: string | null;
     authCredentialsIsManaged: boolean;
     sync: {
       object: 'callback.sync';
@@ -59,6 +60,7 @@ export let mapDashboardInstanceCallbacksListOutput =
           ['trigger_groups', 1, [2, [1, ['selection_schema']]]],
           'created_at',
           'updated_at',
+          'auth_credentials_id',
           'auth_credentials_is_managed',
           ['sync', 0, [1, ['synced_at']]]
         ]
