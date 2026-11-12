@@ -1,0 +1,16 @@
+{
+  "deepseek-ai/DeepSeek-V3.1": {
+    "decision": "link",
+    "model": "deepseek/deepseek-v3.1",
+    "reason": "Hugging Face card deepseek-ai/DeepSeek-V3.1 is the same 2025-08-21 hybrid-reasoning checkpoint the catalog lists as deepseek/deepseek-v3.1. Thinking Machines resells it at a premium with a 32K serving window.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "zai-org/GLM-5.3-Flash:peft:262144": {
+    "decision": "link",
+    "model": "zhipu/glm-5.3-flash",
+    "reason": "Serves Z.ai's GLM-5.3-Flash checkpoint (zai-org/GLM-5.3-Flash); the :peft:262144 suffix is a serving configuration (adapter-ready, 256K context), not a different model. The 0.84/2.11 price is the vendor's premium.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

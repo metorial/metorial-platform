@@ -1,4 +1,6 @@
+import { describeStats, type AgentStats } from './agentEvents';
 import type { DecisionReview } from './decisions';
+import { formatDuration } from './log';
 
 let listLimit = 200;
 
@@ -10,11 +12,13 @@ export interface IterationLog {
   solved?: number;
   review?: DecisionReview;
   restored?: string[];
+  seconds?: number;
+  agent?: AgentStats;
 }
 
 let cell = (value: string) => value.replace(/\|/g, '\\|').replace(/\n/g, ' ');
 
-let decisionLabel = (decision: DecisionReview['accepted'][number]['decision']) => {
+export let decisionLabel = (decision: DecisionReview['accepted'][number]['decision']) => {
   if (decision.decision === 'link') return `link → \`${decision.model}\``;
   if (decision.decision === 'exclude') return `exclude (${decision.category})`;
   if (decision.decision === 'defer') return `defer until ${decision.until}`;
@@ -64,11 +68,11 @@ export let renderSummary = (input: {
           ''
         ]
       : []),
-    '| Batch | Issues | pi exit | Outcome | Solved |',
-    '| ---: | ---: | ---: | --- | ---: |',
+    '| Batch | Issues | pi exit | Outcome | Solved | Time | Agent |',
+    '| ---: | ---: | ---: | --- | ---: | ---: | --- |',
     ...input.iterations.map(
       entry =>
-        `| ${entry.iteration} | ${entry.batch} | ${entry.exitCode} | ${cell(entry.outcome)} | ${entry.solved ?? 0} |`
+        `| ${entry.iteration} | ${entry.batch} | ${entry.exitCode} | ${cell(entry.outcome)} | ${entry.solved ?? 0} | ${entry.seconds === undefined ? '' : formatDuration(entry.seconds * 1000)} | ${entry.agent ? describeStats(entry.agent) : ''} |`
     ),
     ''
   ];

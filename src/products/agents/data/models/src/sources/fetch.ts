@@ -93,7 +93,7 @@ let loadPinned = async <T>(
   return { meta, data: parsed.data, raw, issues: parsed.issues };
 };
 
-// A secondary source failing must not stop the hourly build: fall back to the snapshot the
+// A secondary source failing must not stop a scheduled build: fall back to the snapshot the
 // previous run stored, and record which state each source was in.
 export let loadSource = async <T>(opts: LoadSourceOptions<T>): Promise<SourceResult<T>> => {
   if (opts.pinned) return loadPinned(opts, opts.pinned);

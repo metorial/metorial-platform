@@ -14,6 +14,7 @@ import {
   writeSortedManifestFile
 } from '../../lib/manifestFile/writer';
 import { isObjectMissingError, lockSkillSyncObjects } from './_lib/blobStore';
+import { cancelInactiveManifestSync } from './_lib/eligibility';
 import { getSyncItemKey } from './_lib/item';
 import { withDestinationSyncLock } from './_lib/lock';
 import { appendSkillDestinationSyncLog } from './_lib/logs';
@@ -141,6 +142,7 @@ export let syncSnapshotQueueProcessor = syncSnapshotQueue.process(
     if (!sync || sync.status !== 'processing' || sync.isAtRepoSyncStage) return;
     if ((data.contentVersion ?? 0) !== sync.contentVersion) return;
     if (sync.destination.storageMode !== 'manifest') return;
+    if (await cancelInactiveManifestSync(sync)) return;
 
     let { destination } = sync;
     let fail = (errorCode: string, message: string) =>

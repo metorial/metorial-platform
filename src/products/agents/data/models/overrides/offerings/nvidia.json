@@ -1,0 +1,114 @@
+{
+  "google/google-paligemma": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "Google's PaliGemma, the open 3B vision-language task model (SigLIP + Gemma, May 2024) for captioning, VQA, detection and segmentation, served as a NVIDIA NIM; the index has no PaliGemma entry to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nvidia/active-speaker-detection": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "NVIDIA Maxine Active Speaker Detection NIM is a video computer-vision service that detects and identifies active speakers in a video stream; a perception model the catalog does not track.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nvidia/bevformer": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "NVIDIA's BEVFormer NIM is a bird's-eye-view 3D perception transformer for autonomous driving that fuses multi-frame camera video; a perception model with no catalog counterpart.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nvidia/cosmos-reason2-8b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "NVIDIA's Cosmos-Reason2-8B (HF nvidia/Cosmos-Reason2-8B, Dec 2025), a video-reasoning VLM post-trained from Qwen3-VL-8B-Instruct; a first-party NVIDIA model, but the index has no Cosmos entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nvidia/cosmos-transfer2_5-2b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "NVIDIA's Cosmos-Transfer2.5-2B world foundation model (HF nvidia/Cosmos-Transfer2.5-2B), a video-to-video generation model for Physical AI; the index has no Cosmos entry to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nvidia/magpie-tts-zeroshot": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "NVIDIA's Magpie TTS Zeroshot NIM (Riva), a zero-shot text-to-speech model that synthesizes speech from text plus a reference voice sample (per its model card); a speech model and the index's NVIDIA line has no TTS entry to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nvidia/rerank-qa-mistral-4b": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "NVIDIA's Retrieval QA Mistral 4B reranking model, which scores how relevant a document is to a query for retrieval pipelines (per its NIM model card); a reranker the index has no matching entry for (Llama Nemotron Rerank VL is a different model).",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nvidia/riva-translate-4b-instruct-v1.1": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Riva Translate 4B Instruct v1.1, NVIDIA's 12-language translation model fine-tuned from Mistral-NeMo-12B-Base (per its Hugging Face metadata); a task-specific fine-tune is not mistral/mistral-nemo itself and the index has no Riva entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nvidia/sparsedrive": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "SparseDrive is an end-to-end autonomous-driving model doing motion prediction and planning from multi-view video (NVIDIA's NIM card deploys the SparseDrive paper and notes the model is not NVIDIA's); an AV perception/planning model with no catalog counterpart.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nvidia/streampetr": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "StreamPETr is an autonomous-driving 3D object detection model that propagates sparse object queries across frames (per its NVIDIA NIM model card); an AV perception model with no catalog counterpart, like the BEVFormer NIM.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nvidia/studiovoice": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "NVIDIA's StudioVoice, a speech-enhancement model that restores noisy or reverberant recordings to studio quality (audio-in/audio-out, per its NIM listings); a speech model the index's NVIDIA line has no entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nvidia/synthetic-video-detector": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "NVIDIA's Synthetic Video Detector, a Maxine microservice that classifies video as real or AI-generated (up to 92% accuracy on uncompressed video per NVIDIA); a detection model, not a generative catalog model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nvidia/usdcode": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "NVIDIA's usdcode NIM, the LLM that answers OpenUSD knowledge queries and generates USD-Python code (per NVIDIA's own build.nvidia.com model card); the index's NVIDIA line has no usdcode entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nvidia/usdvalidate": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "NVIDIA's usdvalidate NIM, the OpenUSD validation model with open weights (released 2024-07-24 per listings); the index's NVIDIA line has no usdvalidate entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen-image": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's original Qwen-Image (Hugging Face Qwen/Qwen-Image, Aug 2025), the 20B MMDiT text-to-image model; the index's Qwen-Image line starts at 2.0 (Mar 2026), so defer rather than link a later generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen-image-edit": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's Qwen-Image-Edit (Hugging Face Qwen/Qwen-Image-Edit, Aug 2025), the 20B image-editing model of the Qwen-Image family; the index has no Qwen-Image-Edit entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

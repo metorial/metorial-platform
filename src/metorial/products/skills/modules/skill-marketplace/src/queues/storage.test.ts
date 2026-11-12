@@ -15,7 +15,7 @@ let {
     skillDestination: {
       findUnique: vi.fn(),
       findMany: vi.fn(),
-      update: vi.fn(),
+      updateManyAndReturn: vi.fn(),
       updateMany: vi.fn()
     },
     skillDestinationSync: { findFirst: vi.fn() },
@@ -87,6 +87,7 @@ let destination = (overrides: Record<string, unknown> = {}) => ({
   storageModeChangedAt: null,
   codeBucketId: 'bucket_1',
   skillMarketplace: {
+    status: 'active',
     organizationOid: 100n,
     instanceOid: 200n,
     projectOid: 300n,
@@ -112,7 +113,9 @@ beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(now);
   db.skillDestination.findUnique.mockResolvedValue(destination());
-  db.skillDestination.update.mockResolvedValue({ ...destination(), storageMode: 'manifest' });
+  db.skillDestination.updateManyAndReturn.mockResolvedValue([
+    { ...destination(), storageMode: 'manifest' }
+  ]);
   db.skillDestinationSync.findFirst.mockImplementation(async (args: { where: object }) =>
     'status' in args.where ? null : { id: 'sync_latest', status: 'completed' }
   );
@@ -138,11 +141,10 @@ describe('migration preconditions', () => {
   it('migrates a quiet destination: sets manifest mode, clears item hashes and forces a sync', async () => {
     expect(await migrate()).toEqual({ status: 'migrated' });
 
-    expect(db.skillDestination.update).toHaveBeenCalledWith({
-      where: { oid: 5n },
-      data: { storageMode: 'manifest', storageModeChangedAt: now }
-    });
-    expect(db.skillDestination.update.mock.calls[0]![0].data).not.toHaveProperty(
+    expect(db.skillDestination.updateManyAndReturn).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { storageMode: 'manifest', storageModeChangedAt: now } })
+    );
+    expect(db.skillDestination.updateManyAndReturn.mock.calls[0]![0].data).not.toHaveProperty(
       'codeBucketId'
     );
     expect(db.skillDestinationItem.updateMany).toHaveBeenCalledWith({
@@ -164,6 +166,18 @@ describe('migration preconditions', () => {
     );
   });
 
+  it('blocks direct migration of an archived marketplace', async () => {
+    db.skillDestination.findUnique.mockResolvedValue(
+      destination({
+        skillMarketplace: { ...destination().skillMarketplace, status: 'archived' }
+      })
+    );
+
+    expect(await migrate('ops')).toEqual({ status: 'blocked', reason: 'inactive_owner' });
+    expect(db.skillDestination.updateManyAndReturn).not.toHaveBeenCalled();
+    expect(forceSkillDestinationSync).not.toHaveBeenCalled();
+  });
+
   it('blocks while a sync is active', async () => {
     db.skillDestinationSync.findFirst.mockResolvedValue({
       id: 'sync_active',
@@ -171,7 +185,7 @@ describe('migration preconditions', () => {
     });
 
     expect(await migrate()).toEqual({ status: 'blocked', reason: 'sync_active' });
-    expect(db.skillDestination.update).not.toHaveBeenCalled();
+    expect(db.skillDestination.updateManyAndReturn).not.toHaveBeenCalled();
   });
 
   it('blocks when the latest sync did not complete', async () => {
@@ -189,7 +203,7 @@ describe('migration preconditions', () => {
     db.skillDestinationDeletedFile.findFirst.mockResolvedValue({ createdAt: now });
 
     expect(await migrate()).toEqual({ status: 'blocked', reason: 'deletes_owed' });
-    expect(db.skillDestination.update).not.toHaveBeenCalled();
+    expect(db.skillDestination.updateManyAndReturn).not.toHaveBeenCalled();
   });
 
   it('blocks a repository that never applied deletes', async () => {
@@ -291,7 +305,14 @@ describe('migration fan-out', () => {
 
     expect(db.skillDestination.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { storageMode: 'code_bucket', storageModeChangedAt: null, id: undefined }
+        where: expect.objectContaining({
+          storageMode: 'code_bucket',
+          storageModeChangedAt: null,
+          OR: [
+            { skillMarketplace: { status: 'active' } },
+            { skillPlugin: { status: 'active' } }
+          ]
+        })
       })
     );
     expect(isFlagEnabledForInstance).toHaveBeenCalledTimes(2);
@@ -301,7 +322,7 @@ describe('migration fan-out', () => {
     ]);
   });
 
-  it('enqueues every destination of an organization when ops triggers it', async () => {
+  it('enqueues active destinations of an organization when ops triggers it', async () => {
     db.skillDestination.findMany.mockResolvedValue([
       { id: 'd1', skillMarketplace: { instanceOid: 1n }, skillPlugin: null }
     ]);
@@ -312,7 +333,11 @@ describe('migration fan-out', () => {
       expect.objectContaining({
         where: expect.objectContaining({
           storageMode: 'code_bucket',
-          storageModeChangedAt: null
+          storageModeChangedAt: null,
+          OR: [
+            { skillMarketplace: { status: 'active', organizationOid: 100n } },
+            { skillPlugin: { status: 'active', organizationOid: 100n } }
+          ]
         })
       })
     );

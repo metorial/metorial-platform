@@ -2,6 +2,7 @@ import { createCron } from '@metorial/cron';
 import { db, withTransaction, type Prisma } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
 import { addMinutes } from 'date-fns';
+import { skillDestinationSyncEligibleWhere } from '../sync/_lib/eligibility';
 
 let pageSize = 500;
 
@@ -38,6 +39,7 @@ export let collectDirtySkillDestinationsManyQueueProcessor =
     let destinations = await db.skillDestination.findMany({
       where: {
         id: data.cursor ? { gt: data.cursor } : undefined,
+        AND: skillDestinationSyncEligibleWhere,
         OR: [{ isDirty: true }, unreconciledDestinationWhere]
       },
       orderBy: { id: 'asc' },
@@ -80,6 +82,7 @@ export let collectDirtySkillDestinationsSingleQueueProcessor =
       let [destination] = await db.skillDestination.updateManyAndReturn({
         where: {
           id: data.destinationId,
+          AND: skillDestinationSyncEligibleWhere,
           OR: [{ isDirty: true }, unreconciledDestinationWhere]
         },
         data: {

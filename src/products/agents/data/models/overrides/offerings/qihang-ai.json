@@ -1,0 +1,51 @@
+{
+  "claude-haiku-4-5-20251001": {
+    "decision": "link",
+    "model": "anthropic/claude-haiku-4.5",
+    "reason": "Exact Anthropic snapshot claude-haiku-4-5-20251001 (the pinned Haiku 4.5 release, 200K context). QiHang resells it at a steep discount off Anthropic's $1/$5 list price.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "claude-opus-4-5-20251101": {
+    "decision": "link",
+    "model": "anthropic/claude-opus-4.5",
+    "reason": "Exact Anthropic snapshot claude-opus-4-5-20251101 (the single Opus 4.5 release, 200K context). QiHang resells it at a steep discount off Anthropic's $5/$25 list price.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "claude-sonnet-4-5-20250929": {
+    "decision": "link",
+    "model": "anthropic/claude-sonnet-4.5",
+    "reason": "Exact Anthropic snapshot claude-sonnet-4-5-20250929 (the pinned Sonnet 4.5 release, 200K context). QiHang resells it at a steep discount off Anthropic's $3/$15 list price.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemini-3-flash-preview": {
+    "decision": "link",
+    "model": "google/gemini-3-flash-preview",
+    "reason": "QiHang serves Google's Gemini 3 Flash Preview (released 2025-12-17, 1M context, multimodal), same as google/gemini-3-flash-preview, at a steep discount off the $0.50 median input price.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gpt-5-mini": {
+    "decision": "link",
+    "model": "openai/gpt-5-mini",
+    "reason": "QiHang serves OpenAI's GPT-5 mini (released 2025-08-07, 400K context), same as openai/gpt-5-mini, at a steep discount off the $0.25 median input price.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gpt-5.2": {
+    "decision": "link",
+    "model": "openai/gpt-5.2",
+    "reason": "QiHang serves OpenAI's GPT-5.2 (released 2025-12-11, 400K context), same as openai/gpt-5.2, at a steep discount off the $1.75 median input price.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gpt-5.2-codex": {
+    "decision": "link",
+    "model": "openai/gpt-5.2-codex",
+    "reason": "QiHang serves OpenAI's GPT-5.2-Codex agentic coding model (released 2025-12-18, 400K context), same as openai/gpt-5.2-codex, at a steep discount off the $1.75 median input price.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

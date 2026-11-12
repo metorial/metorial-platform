@@ -1,0 +1,51 @@
+{
+  "fal-ai/fast-sdxl": {
+    "decision": "link",
+    "model": "stability/stable-diffusion-xl-base-1.0",
+    "reason": "fal.ai's fast-sdxl endpoint serves Stable Diffusion XL (SDXL base 1.0) through its fast inference pipeline (per DigitalOcean's and fal's own listings); same image model as stability/stable-diffusion-xl-base-1.0.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "fal-ai/flux/schnell": {
+    "decision": "link",
+    "model": "black-forest-labs/flux-1-schnell",
+    "reason": "fal.ai's flux/schnell endpoint serves FLUX.1 [schnell], Black Forest Labs' 12B open-weight flow transformer for fast 1-4 step text-to-image (per fal's own model page and DigitalOcean's listing); matches black-forest-labs/flux-1-schnell.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "fal-ai/stable-audio-25/text-to-audio": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Stability AI's Stable Audio 2.5 text-to-audio model served through fal.ai on DigitalOcean (per fal/Stability listings); the index's stability line has only stable-diffusion-xl-base-1.0, so defer until models.dev adds the audio model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen3-tts-voicedesign": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's Qwen3-TTS-VoiceDesign, the voice-design variant of Qwen3-TTS that synthesizes speech from a natural-language voice description (per its DeepInfra model card); the index has no Qwen3-TTS entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "reflection-beam": {
+    "decision": "link",
+    "model": "reflection/beam-1.0-501b-a23b",
+    "reason": "Beam is Reflection AI's first open-weight model, Beam-1.0-501B-A23B: a 501B-total / ~23B-active MoE for coding, reasoning and agentic workloads with a 1M context, released Oct 2026 (per Reflection's blog and its Hugging Face card); matches reflection/beam-1.0-501b-a23b.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "stable-diffusion-3.5-large": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Stability AI's Stable Diffusion 3.5 Large text-to-image model (8B, released 2024-10-22, per Stability's release and listings); the index's stability line has only stable-diffusion-xl-base-1.0, so defer rather than link the wrong generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "wan2-2-t2v-a14b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Wan-AI's Wan2.2-T2V-A14B, the open-weight 14B-active MoE text-to-video checkpoint of the Wan 2.2 release (per its Hugging Face card and listings); the index's Wan line starts at wan2.6, so defer rather than link the wrong generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

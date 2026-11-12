@@ -1,0 +1,9 @@
+{
+  "xpersona-frieren-coder": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Xpersona's Frieren 1, listed under the vendor's own prefix with a 1M context at $1.5/$6; available listings do not identify the developer or base model behind the codename, so defer rather than guess.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}
