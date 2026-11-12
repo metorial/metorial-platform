@@ -6381,6 +6381,20 @@
       "name": "@metorial-outpost/tsconfig",
       "version": "0.1.0",
     },
+    "src/products/agents/data/models": {
+      "name": "@metorial/model-catalog",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/validation": "^2.0.0",
+        "smol-toml": "^1.4.2",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "@types/bun": "latest",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
     "src/relay/clients/relay": {
       "name": "@metorial-platform-systems/relay-client",
       "version": "1.0.0",
@@ -8324,6 +8338,8 @@
     "@metorial/metrics-page": ["@metorial/metrics-page@workspace:src/metorial-frontend/packages/metrics-page"],
 
     "@metorial/microfrontend": ["@metorial/microfrontend@workspace:src/metorial-frontend/packages/microfrontend"],
+
+    "@metorial/model-catalog": ["@metorial/model-catalog@workspace:src/products/agents/data/models"],
 
     "@metorial/module-access": ["@metorial/module-access@workspace:src/metorial/products/core/modules/access"],
 
