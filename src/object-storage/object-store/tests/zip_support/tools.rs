@@ -161,7 +161,7 @@ pub fn check_zip_crate(archive: &Path, expected: &[Expected]) {
 
     for (index, expected) in expected.iter().enumerate() {
         let mut file = zip.by_index(index).unwrap();
-        assert_eq!(file.name(), expected.path);
+        assert_eq!(file.name().unwrap(), expected.path);
         let (size, crc32) = hash_reader(&mut file);
         assert_eq!(size, expected.size);
         assert_eq!(crc32, expected.crc32);
