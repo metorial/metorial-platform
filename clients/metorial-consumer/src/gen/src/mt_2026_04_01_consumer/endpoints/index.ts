@@ -2,6 +2,8 @@ export * from './assistants';
 export * from './consumer_agents';
 export * from './consumer_consumer-internal_oauth_authorizations';
 export * from './consumer_consumer-internal_oauth_clients';
+export * from './consumer_devices';
+export * from './consumer_devices_clients';
 export * from './consumer_identity-credentials';
 export * from './consumer_oauth_authorizations';
 export * from './consumer_profile';

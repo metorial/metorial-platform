@@ -80,7 +80,7 @@ model Skill {
   deletedAt  DateTime?
 
   accessTagEntities               AccessTagEntity[]
-  consumerAccesses                ConsumerAccess[]                 @relation("ConsumerAccessSkill")
+  consumerAccesses                ConsumerAccess[]                    @relation("ConsumerAccessSkill")
   consumerAccessListings          ConsumerAccessListing[]
   consumerSkills                  ConsumerSkill[]
   skillGroupItems                 SkillGroupItem[]
@@ -92,11 +92,12 @@ model Skill {
   skillDestinationItems           SkillDestinationItem[]
   managedSkillPlugins             ManagedSkillPlugin[]
   skillExportRefs                 SkillExportRef[]
-  sourceMergeRequests             SkillMergeRequest[]              @relation("SkillMergeRequestSource")
-  targetMergeRequests             SkillMergeRequest[]              @relation("SkillMergeRequestTarget")
-  forkSyncs                       SkillForkSync[]                  @relation("SkillForkSyncFork")
-  upstreamForkSyncs               SkillForkSync[]                  @relation("SkillForkSyncUpstream")
+  sourceMergeRequests             SkillMergeRequest[]                 @relation("SkillMergeRequestSource")
+  targetMergeRequests             SkillMergeRequest[]                 @relation("SkillMergeRequestTarget")
+  forkSyncs                       SkillForkSync[]                     @relation("SkillForkSyncFork")
+  upstreamForkSyncs               SkillForkSync[]                     @relation("SkillForkSyncUpstream")
   skillImportItems                SkillImportItem[]
+  consumerDeviceClientExclusions  ConsumerDeviceClientExcludedSkill[]
 
   @@index([instanceOid, status])
   @@index([instanceOid, storeId])

@@ -10,6 +10,7 @@ import { db } from '@metorial/db';
 import { getCargoFilesBucketName } from '@metorial/module-file';
 import { getOriginTenant, origin } from '@metorial/skills-scm-utils';
 import { env } from '../../../env';
+import { getRepositorySyncRetryMessage } from '../../../lib/repositorySyncStatus';
 import { appendSkillDestinationSyncLog } from '../_lib/logs';
 import { reportSkillSyncIssue } from '../_lib/report';
 import {
@@ -666,8 +667,16 @@ export let reconcileManifestPropagation = async (d: {
           ? 'Waiting for the provider rate limit'
           : outcome.waitingReason === 'provider_unavailable'
             ? 'The provider is temporarily unavailable'
-            : 'Waiting to retry'
+            : getRepositorySyncRetryMessage(
+                propagation.repositoryAccessMode,
+                outcome.waitingReason
+              ).replace(/\.$/, '')
       }; resumes at ${outcome.waitingUntil.toISOString()}.`
+    );
+  } else if (propagation.waitingUntil && !outcome.waitingUntil) {
+    await appendSkillDestinationSyncLog(
+      d.skillDestinationSyncId,
+      `${d.repositoryName}: Repository sync resumed.`
     );
   } else if (
     outcome.status === 'waiting_for_review' &&

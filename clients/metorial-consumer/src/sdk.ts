@@ -5,6 +5,8 @@ import {
   MetorialConsumerAgentsEndpoint,
   MetorialConsumerConsumerInternalOauthAuthorizationsEndpoint,
   MetorialConsumerConsumerInternalOauthClientsEndpoint,
+  MetorialConsumerDevicesClientsEndpoint,
+  MetorialConsumerDevicesEndpoint,
   MetorialConsumerIdentityCredentialsEndpoint,
   MetorialConsumerOauthAuthorizationsEndpoint,
   MetorialConsumerProfileEndpoint,
@@ -55,6 +57,9 @@ export let createMetorialConsumerSDK = sdkBuilder.build(
   sessionConnections: new MetorialConsumerSessionConnectionsEndpoint(manager),
   toolCalls: new MetorialConsumerToolCallsEndpoint(manager),
   identityCredentials: new MetorialConsumerIdentityCredentialsEndpoint(manager),
+  devices: Object.assign(new MetorialConsumerDevicesEndpoint(manager), {
+    clients: new MetorialConsumerDevicesClientsEndpoint(manager)
+  }),
   oauthAuthorizations: new MetorialConsumerOauthAuthorizationsEndpoint(manager),
   providers: Object.assign(new MetorialProvidersEndpoint(manager), {
     versions: new MetorialProvidersVersionsEndpoint(manager),

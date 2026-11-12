@@ -1,18 +1,22 @@
 import { generatePlainId } from '@lowerdeck/id';
 import { slugify } from '@lowerdeck/slugify';
-import { db } from '@metorial/db';
+import { withTransaction } from '@metorial/db';
 
 export let getSkillPluginSlug = (input: string) =>
   slugify(input.replaceAll('_', '-')) || generatePlainId(8).toLowerCase();
 
-let isSkillPluginSlugAvailable = async (slug: string) => {
-  let [localPlugin, cellPlugin] = await Promise.all([
-    db.skillPlugin.findFirst({ where: { slug }, select: { id: true } }),
-    db.cellSkillPlugin.findFirst({ where: { slug }, select: { id: true } })
-  ]);
+let isSkillPluginSlugAvailable = async (slug: string) =>
+  await withTransaction(
+    async db => {
+      let [localPlugin, cellPlugin] = await Promise.all([
+        db.skillPlugin.findFirst({ where: { slug }, select: { id: true } }),
+        db.cellSkillPlugin.findFirst({ where: { slug }, select: { id: true } })
+      ]);
 
-  return !localPlugin && !cellPlugin;
-};
+      return !localPlugin && !cellPlugin;
+    },
+    { ifExists: true }
+  );
 
 export let getAvailableSkillPluginSlug = async (input: string) => {
   let baseSlug = getSkillPluginSlug(input);
@@ -30,14 +34,18 @@ let isMarketplacePluginSlugAvailable = async (
   slug: string,
   d: { skillMarketplaceId: string }
 ) =>
-  !(await db.skillMarketplacePlugin.findFirst({
-    where: {
-      skillMarketplace: {
-        id: d.skillMarketplaceId
-      },
-      pluginSlug: slug
-    }
-  }));
+  await withTransaction(
+    async db =>
+      !(await db.skillMarketplacePlugin.findFirst({
+        where: {
+          skillMarketplace: {
+            id: d.skillMarketplaceId
+          },
+          pluginSlug: slug
+        }
+      })),
+    { ifExists: true }
+  );
 
 export let getMarketplacePluginSlug = async (
   d: { input: string; current?: string },

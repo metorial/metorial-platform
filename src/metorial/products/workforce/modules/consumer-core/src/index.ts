@@ -1,6 +1,10 @@
+import './listeners/oauthAuthorization';
 import { OrganizationMember } from '@metorial/db';
 import { combineQueueProcessors } from '@metorial/queue';
-import { consumerCreatedQueueProcessor, consumerUpdatedQueueProcessor } from './queues/lifecycle/consumer';
+import {
+  consumerCreatedQueueProcessor,
+  consumerUpdatedQueueProcessor
+} from './queues/lifecycle/consumer';
 import {
   consumerGroupArchivedQueueProcessor,
   consumerGroupCreatedQueueProcessor,
@@ -42,6 +46,7 @@ import {
 } from './queues/syncUserConsumer';
 
 export * from './services';
+export { isMemberCliSurface } from '@metorial/consumer-auth';
 export { syncUserToConsumers } from './queues/syncUserConsumer';
 
 export let consumerCoreQueueProcessor = combineQueueProcessors([

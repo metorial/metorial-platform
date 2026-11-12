@@ -137,6 +137,7 @@ export type ScmProviderErrorDetails = {
   method?: string;
   endpoint?: string;
   requestId?: string;
+  mergeReadiness?: 'mergeability_pending' | 'source_commit_pending';
   classification:
     | 'protected_branch'
     | 'missing_branch'
@@ -144,6 +145,7 @@ export type ScmProviderErrorDetails = {
     | 'authentication_failed'
     | 'resource_not_found'
     | 'conflict'
+    | 'merge_not_ready'
     | 'rate_limited'
     | 'timeout'
     | 'invalid_request'
@@ -151,6 +153,15 @@ export type ScmProviderErrorDetails = {
     | 'upstream_failure'
     | 'network_failure';
 };
+
+export class ScmMergeNotReadyError extends Error {
+  constructor(
+    public reason: 'mergeability_pending' | 'source_commit_pending' = 'mergeability_pending'
+  ) {
+    super('Waiting for the repository to prepare the merge.');
+    this.name = 'ScmMergeNotReadyError';
+  }
+}
 
 let fileTooLargeMarker = 'file exceeds the per-file size limit';
 
@@ -235,6 +246,9 @@ export let getScmProviderErrorDetails = (error: unknown): ScmProviderErrorDetail
       classification: classifyExportError(exportError.code)
     };
   }
+
+  if (error instanceof ScmMergeNotReadyError)
+    return { classification: 'merge_not_ready', mergeReadiness: error.reason };
 
   let value = error as any;
   let attached = value?.scmProviderDiagnostic;

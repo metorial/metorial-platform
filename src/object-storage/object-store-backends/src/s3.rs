@@ -8,6 +8,7 @@ use aws_sdk_s3::presigning::PresigningConfig;
 use aws_sdk_s3::primitives::ByteStream as AwsByteStream;
 use aws_sdk_s3::types::{CompletedMultipartUpload, CompletedPart};
 use aws_sdk_s3::Client;
+use aws_smithy_types::error::display::DisplayErrorContext;
 use chrono::{DateTime, Utc};
 use futures::StreamExt;
 use std::collections::HashMap;
@@ -48,6 +49,7 @@ const TRANSIENT_ERROR_CODES: &[&str] = &[
 ];
 
 pub struct S3Backend {
+    create_bucket: bool,
     client: Client,
     signing_client: Client,
     bucket_name: String,
@@ -104,6 +106,9 @@ pub struct S3Options {
     pub public_endpoint: Option<String>,
     /// Defaults to true when `endpoint` is set and false otherwise.
     pub force_path_style: Option<bool>,
+    /// Create the bucket on startup when it does not exist (self-hosted stores such as SeaweedFS or
+    /// MinIO, where the bucket is part of the deployment).
+    pub create_bucket: bool,
 }
 
 impl S3Backend {
@@ -116,6 +121,7 @@ impl S3Backend {
             signing_client: client.clone(),
             client,
             bucket_name,
+            create_bucket: false,
             uploader: Arc::default(),
         })
     }
@@ -168,6 +174,7 @@ impl S3Backend {
             client,
             signing_client,
             bucket_name,
+            create_bucket: options.create_bucket,
             uploader: Arc::default(),
         })
     }
@@ -375,6 +382,33 @@ impl Backend for S3Backend {
         {
             Ok(_) => {
                 info!("S3 bucket {} is accessible", self.bucket_name);
+                Ok(())
+            }
+            Err(e)
+                if self.create_bucket && e.as_service_error().is_some_and(|e| e.is_not_found()) =>
+            {
+                match self
+                    .client
+                    .create_bucket()
+                    .bucket(&self.bucket_name)
+                    .send()
+                    .await
+                {
+                    Ok(_) => info!("Created S3 bucket {}", self.bucket_name),
+                    Err(e)
+                        if e.as_service_error()
+                            .is_some_and(|e| e.is_bucket_already_owned_by_you()) =>
+                    {
+                        info!("S3 bucket {} was created concurrently", self.bucket_name);
+                    }
+                    Err(e) => {
+                        return Err(BackendError::Configuration(format!(
+                            "Cannot create S3 bucket '{}': {}",
+                            self.bucket_name,
+                            DisplayErrorContext(&e)
+                        )));
+                    }
+                }
                 Ok(())
             }
             Err(e) => {

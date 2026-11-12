@@ -1,3 +1,4 @@
+import { checkEdition } from '@metorial/editions';
 import { defineSettings } from '@metorial/settings';
 import { objectStorageUrl, redisUrl } from '@metorial/shared-settings';
 import { v } from '@lowerdeck/validation';
@@ -43,6 +44,11 @@ export let env = defineSettings({
   }
 });
 
-if (env.provider.DEFAULT_PROVIDER === 'local' && process.env.NODE_ENV === 'production') {
+// On-prem installations run the local provider in production unless the operator connects a cloud one.
+if (
+  env.provider.DEFAULT_PROVIDER === 'local' &&
+  process.env.NODE_ENV === 'production' &&
+  !checkEdition('on-prem')
+) {
   throw new Error('Local provider cannot be used in production');
 }

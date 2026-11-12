@@ -257,7 +257,12 @@ export let getConsumerAccessContextForConsumerProfile = async (d: {
     let allProfiles = await db.consumerProfile.findMany({
       where: {
         instanceOid: d.profile.instanceOid,
-        consumerOid: d.profile.consumerOid
+        consumerOid: d.profile.consumerOid,
+        status: 'active',
+        surface: {
+          status: 'active',
+          OR: [{ type: { not: 'portal' } }, { portal: { status: 'active' } }]
+        }
       },
       include: consumerSessionInclude.consumerProfile.include
     });
@@ -412,9 +417,17 @@ export let authenticateWithConsumerToken = async (d: {
   };
 };
 
+export let isMemberCliSurface = (
+  surface: Pick<ConsumerSurface, 'type' | 'isInternal' | 'internalSurfaceUniqueIdentifier'>
+) =>
+  surface.isInternal &&
+  surface.internalSurfaceUniqueIdentifier === 'cli' &&
+  (surface.type === 'cli' || surface.type === 'organization_members');
+
 export let authenticateWithOAuthConsumerSession = async (d: {
   session: ConsumerSessionWithProfile | null | undefined;
   instance: Pick<Instance, 'oid'>;
+  memberCliUserOid?: bigint;
 }) => {
   let session = d.session;
   let surface = session?.consumerProfile.surface;
@@ -426,7 +439,7 @@ export let authenticateWithOAuthConsumerSession = async (d: {
     session.expiresAt < new Date() ||
     session.consumerProfile.status != 'active' ||
     surface.status != 'active' ||
-    surface.type != 'portal' ||
+    (surface.type != 'portal' && !(d.memberCliUserOid && isMemberCliSurface(surface))) ||
     surface.instanceOid != d.instance.oid ||
     (surface.portal && surface.portal.status != 'active')
   ) {
@@ -435,6 +448,28 @@ export let authenticateWithOAuthConsumerSession = async (d: {
         message: 'The consumer session for this OAuth token is no longer valid.'
       })
     );
+  }
+
+  if (surface.type !== 'portal') {
+    let profile = session.consumerProfile;
+    let member = profile.organizationMemberOid
+      ? await db.organizationMember.findFirst({
+          where: {
+            oid: profile.organizationMemberOid,
+            organizationOid: profile.organizationOid,
+            userOid: d.memberCliUserOid,
+            status: 'active'
+          },
+          select: { oid: true }
+        })
+      : null;
+    if (!member || profile.consumer.userOid !== d.memberCliUserOid) {
+      throw new ServiceError(
+        unauthorizedError({
+          message: 'The CLI consumer is no longer an active organization member.'
+        })
+      );
+    }
   }
 
   await db.consumerSession.update({

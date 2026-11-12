@@ -30,6 +30,7 @@ export type Flags = {
   'sandbox-enabled': FlagValue;
   'security-reviews-enabled': FlagValue;
   'public-mcp-servers-enabled': FlagValue;
+  'devices-enabled': FlagValue;
   outposts: FlagValue;
 
   'skills-manifest-sync': FlagValue;
@@ -96,6 +97,7 @@ export let defaultFlags: Flags = {
   'sandbox-enabled': false,
   'security-reviews-enabled': false,
   'public-mcp-servers-enabled': false,
+  'devices-enabled': false,
   outposts: false,
 
   'skills-manifest-sync': false,

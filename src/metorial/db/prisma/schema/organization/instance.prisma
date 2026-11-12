@@ -119,6 +119,7 @@ model Instance {
   consumerSurfaces                     ConsumerSurface[]
   consumerProviderSetupSessionBindings ConsumerProviderSetupSessionBinding[]
   consumers                            ConsumerProfile[]
+  consumerDevices                      ConsumerDevice[]
   portals                              Portal[]
   providerTemplates                    ProviderTemplate[]
   skills                               Skill[]

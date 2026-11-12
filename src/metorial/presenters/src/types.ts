@@ -99,6 +99,8 @@ import {
   ConsumerAuthClient,
   ConsumerAuthClientSurface,
   ConsumerAuthTestAuthorization,
+  ConsumerDevice,
+  ConsumerDeviceClient,
   ConsumerGroup,
   ConsumerIntegration,
   ConsumerIntegrationEndpoint,
@@ -131,6 +133,7 @@ import {
   MagicMcpServerAlias,
   MagicMcpSession,
   MagicMcpToken,
+  McpClientType,
   Namespace,
   NamespaceCompartment,
   NamespaceProperty,
@@ -2659,6 +2662,17 @@ export let consumerProfileType = PresentableType.create<{
 export let consumerSessionType = PresentableType.create<{
   consumerSession: ConsumerSession;
 }>()('consumer.session');
+
+export let consumerDeviceType = PresentableType.create<{
+  consumerDevice: ConsumerDevice & {
+    clients: (ConsumerDeviceClient & {
+      mcpClientType: McpClientType;
+      excludedMagicMcpServers: { magicMcpServer: Pick<MagicMcpServer, 'id'> }[];
+      excludedSkills: { skill: Pick<Skill, 'id'> }[];
+    })[];
+    consumerProfile: ConsumerProfile;
+  };
+}>()('consumer.device');
 
 export let consumerProviderType = PresentableType.create<{
   consumerProvider: ConsumerProviderCatalogEntry;

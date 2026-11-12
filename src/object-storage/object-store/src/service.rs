@@ -11,6 +11,7 @@ use tracing::{debug, info};
 
 use crate::error::{ServiceError, ServiceResult};
 use crate::metadata::{Bucket, MetadataStore};
+use crate::public::PublicUrlSigner;
 
 #[derive(Debug, Clone)]
 pub struct DeleteObjectResult {
@@ -30,6 +31,7 @@ pub struct DigestedObject {
 pub struct ObjectStoreService {
     backend: Arc<dyn Backend>,
     metadata: Arc<MetadataStore>,
+    public_signer: Option<Arc<PublicUrlSigner>>,
     archive_uploader: Option<Arc<Uploader>>,
     digests: Arc<Semaphore>,
 }
@@ -39,9 +41,19 @@ impl ObjectStoreService {
         Self {
             backend,
             metadata,
+            public_signer: None,
             archive_uploader: None,
             digests: Arc::new(Semaphore::new(DEFAULT_MAX_CONCURRENT_DIGESTS)),
         }
+    }
+
+    pub fn with_public_signer(mut self, signer: Option<Arc<PublicUrlSigner>>) -> Self {
+        self.public_signer = signer;
+        self
+    }
+
+    pub fn public_signer(&self) -> Option<&Arc<PublicUrlSigner>> {
+        self.public_signer.as_ref()
     }
 
     /// Objects hashed at once by `digest_object`; further requests wait for a slot.
@@ -445,6 +457,13 @@ impl ObjectStoreService {
         Ok(obj_metadata)
     }
 
+    pub fn effective_expiration(&self, expiration_secs: u64) -> u64 {
+        match self.public_signer {
+            Some(_) => crate::public::clamp_expiration(expiration_secs),
+            None => expiration_secs,
+        }
+    }
+
     pub async fn get_public_url(
         &self,
         bucket: &str,
@@ -455,6 +474,16 @@ impl ObjectStoreService {
         self.metadata.get_bucket(bucket).await?;
 
         validate_object_key(key)?;
+
+        if let Some(signer) = &self.public_signer {
+            return Ok(signer.sign(
+                bucket,
+                key,
+                purpose,
+                expiration_secs,
+                chrono::Utc::now().timestamp(),
+            ));
+        }
 
         let full_key = format!("{}/{}", bucket, key);
 

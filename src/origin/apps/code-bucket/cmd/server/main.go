@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -68,6 +69,9 @@ func main() {
 		fs.WithRedisURL(redisURL),
 	).WithManifestSourceBuckets(splitList(os.Getenv("ORIGIN_MANIFEST_SOURCE_BUCKETS")))
 
+	healthAddress := getEnvOrDefault("CODE_BUCKET_HEALTH_ADDRESS", ":12121")
+	go serveHealth(healthAddress)
+
 	service.Start(httpAddress, rpcAddress, workspaceAddress)
 
 	// Wait for interrupt signal
@@ -79,6 +83,19 @@ func main() {
 	log.Println("Received interrupt signal, shutting down...")
 	if err := service.Stop(); err != nil {
 		log.Printf("Error during shutdown: %v", err)
+	}
+}
+
+func serveHealth(address string) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	})
+
+	log.Printf("Health server starting on %s\n", address)
+	if err := http.ListenAndServe(address, mux); err != nil {
+		log.Fatalf("Health server failed: %v", err)
 	}
 }
 

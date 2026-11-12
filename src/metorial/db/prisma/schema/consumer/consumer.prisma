@@ -153,6 +153,7 @@ model ConsumerProfile {
   workspaceProfile               WorkspaceProfile?
   oauthAuthorizations            OAuthAuthorization[]
   oauthAuthorizationFlows        OAuthAuthorizationFlow[]
+  devices                        ConsumerDevice[]
   serviceAccount                 ServiceAccount?
 
   @@unique([surfaceOid, aresUserId])

@@ -86,7 +86,7 @@ fn read_archive(bytes: &[u8]) -> Vec<(String, Vec<u8>)> {
             let mut file = archive.by_index(index).unwrap();
             let mut data = Vec::new();
             file.read_to_end(&mut data).unwrap();
-            (file.name().to_string(), data)
+            (file.name().unwrap().into_owned(), data)
         })
         .collect()
 }

@@ -128,7 +128,21 @@ let notWaiting = { waitingUntil: null, waitingReason: null };
 export let getOriginWaitingState = (
   originSync: ManifestOriginSync
 ): { waitingUntil: Date | null; waitingReason: string | null } => {
-  if (originSync.status !== 'syncing_contents') return notWaiting;
+  if (originSync.status !== 'syncing_contents') {
+    if (
+      ['creating_pr', 'waiting_for_ci', 'waiting_for_review', 'merging'].includes(
+        originSync.status
+      ) &&
+      originSync.errorMessage &&
+      originSync.nextPollAt
+    ) {
+      return {
+        waitingUntil: new Date(originSync.nextPollAt),
+        waitingReason: originSync.errorCode ?? 'sync_retrying'
+      };
+    }
+    return notWaiting;
+  }
 
   if (originSync.waitingReason !== undefined) {
     let until = originSync.waitingUntil ?? originSync.nextPollAt;

@@ -166,6 +166,9 @@ export let consumerScopes = [
   'consumer#instance.operations:read' as const,
   'consumer#instance.identity:read' as const,
 
+  'consumer#instance.device:read' as const,
+  'consumer#instance.device:write' as const,
+
   'consumer#instance.provider_template:read' as const,
 
   'consumer#instance.oauth_session:read' as const,

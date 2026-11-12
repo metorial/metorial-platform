@@ -14,11 +14,13 @@ import {
   toPublicProviderErrorMessage
 } from '../../../lib/scmProviderError';
 import {
+  type RepositorySyncStatusSnapshot,
   isTerminalRepositorySyncStatus,
   transitionRepositorySyncState
 } from '../../../services/repositorySyncState';
 
 export let MANIFEST_SYNC_LIFETIME_MS = 48 * 60 * 60_000;
+let PERSISTENT_RETRY_ATTEMPT = 3;
 let MANIFEST_MAX_RETRY_DELAY_MS = 60 * 60_000;
 let MANIFEST_RETRY_JITTER_MS = 30_000;
 let MANIFEST_MAX_UNPRODUCTIVE_RATE_LIMITED = 6;
@@ -53,6 +55,103 @@ let degradedRepositorySyncFailures = [
 let Sentry = getSentry();
 
 export type RepositorySyncLogEntry = [number, string];
+
+export let getRepositorySyncRetry = (
+  error: unknown,
+  stage: 'merge' | 'waitForCi' | 'createPr'
+) => {
+  let details = getScmProviderErrorDetails(error);
+  let code =
+    stage === 'merge' && [405, 409, 422].includes(details.status ?? 0)
+      ? 'merge_not_ready'
+      : details.classification;
+  let message =
+    code === 'merge_not_ready'
+      ? "The repository isn't ready to merge yet. The sync will retry automatically."
+      : code === 'rate_limited'
+        ? 'The repository is limiting requests. The sync will retry automatically.'
+        : code === 'authentication_failed'
+          ? 'The repository connection needs attention. Reconnect it if the sync does not resume.'
+          : code === 'permission_denied' || code === 'protected_branch'
+            ? 'Repository access is blocking the sync. Check connection permissions and branch rules.'
+            : stage === 'waitForCi'
+              ? "We couldn't check the repository status. The sync will retry automatically."
+              : stage === 'createPr'
+                ? "We couldn't prepare the repository update. The sync will retry automatically."
+                : "We couldn't merge the repository update. The sync will retry automatically.";
+
+  return { code, message };
+};
+
+export let recordRepositorySyncRetry = async (d: {
+  sync: Pick<
+    ScmRepositorySync,
+    | 'id'
+    | 'sourceType'
+    | 'repositoryAccessMode'
+    | 'attemptCount'
+    | 'errorMessage'
+    | 'logs'
+    | 'statusSnapshot'
+  > & { repo?: { provider: string } };
+  stage: 'merge' | 'waitForCi' | 'createPr';
+  error: unknown;
+  delayMs: number;
+  retry: { code: string; message: string };
+}) => {
+  let alreadyLogged =
+    Array.isArray(d.sync.logs) &&
+    d.sync.logs.some(log => Array.isArray(log) && log[1] === d.retry.message);
+  if (d.sync.errorMessage !== d.retry.message && !alreadyLogged) {
+    await appendRepositorySyncLog(d.sync.id, d.retry.message);
+  }
+
+  // Report the start and persistence of a retry episode, rather than every poll.
+  if (![0, PERSISTENT_RETRY_ATTEMPT].includes(d.sync.attemptCount)) return;
+
+  let details = getScmProviderErrorDetails(d.error);
+  let snapshot = d.sync.statusSnapshot as RepositorySyncStatusSnapshot | null;
+  Sentry.captureMessage('Repository sync is retrying', {
+    level:
+      d.sync.attemptCount >= PERSISTENT_RETRY_ATTEMPT && d.retry.code !== 'merge_not_ready'
+        ? 'error'
+        : 'warning',
+    fingerprint: [
+      'repository-sync-retry',
+      d.sync.repo?.provider ?? 'unknown',
+      d.stage,
+      d.retry.code
+    ],
+    tags: {
+      area: 'repository_sync',
+      'repository_sync.stage': d.stage,
+      'repository_sync.error_code': d.retry.code,
+      'repository_sync.provider': d.sync.repo?.provider ?? 'unknown',
+      'repository_sync.source_type': d.sync.sourceType,
+      'repository_sync.access_mode': d.sync.repositoryAccessMode
+    },
+    extra: {
+      syncId: d.sync.id,
+      attemptCount: d.sync.attemptCount + 1,
+      retryInMs: d.delayMs,
+      providerDiagnostic: {
+        status: details.status,
+        classification: details.classification,
+        mergeReadiness: details.mergeReadiness,
+        method: details.method,
+        endpoint: details.endpoint,
+        requestId: details.requestId
+      },
+      observedStatus: snapshot
+        ? {
+            checks: snapshot.checks.state,
+            review: snapshot.review.state,
+            mergeability: snapshot.mergeability.state
+          }
+        : null
+    }
+  });
+};
 
 export let getRepositorySyncFailureLevel = (errorCode: string) =>
   expectedRepositorySyncFailures.includes(errorCode)

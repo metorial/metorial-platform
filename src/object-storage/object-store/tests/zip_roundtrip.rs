@@ -19,7 +19,7 @@ fn assert_reads_back(bytes: &[u8], entries: &[TestEntry]) {
 
     for (index, expected) in entries.iter().enumerate() {
         let mut file = archive.by_index(index).unwrap();
-        assert_eq!(file.name(), expected.path);
+        assert_eq!(file.name().unwrap(), expected.path);
         assert_eq!(
             file.compression(),
             match expected.method {

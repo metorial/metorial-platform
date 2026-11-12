@@ -83,6 +83,7 @@ import {
   v1ConsumerActivityAgentPresenter,
   v1ConsumerActivitySessionConnectionPresenter,
   v1ConsumerAndProfilePresenter,
+  v1ConsumerDevicePresenter,
   v1ConsumerGroupPresenter,
   v1ConsumerInvitePresenter,
   v1ConsumerOAuthAuthorizationPresenter,
@@ -357,6 +358,7 @@ import {
   consumerActivityAgentType,
   consumerActivitySessionConnectionType,
   consumerAndProfileType,
+  consumerDeviceType,
   consumerGroupType,
   consumerInviteType,
   consumerOAuthAuthorizationType,
@@ -1439,6 +1441,12 @@ export let consumerSessionPresenter = declarePresenter(consumerSessionType, {
   mt_2025_01_01_dashboard: v1ConsumerSessionPresenter,
   mt_2026_01_01_magnetar: v1ConsumerSessionPresenter,
   mt_2026_04_01_consumer: v1ConsumerSessionPresenter
+});
+
+export let consumerDevicePresenter = declarePresenter(consumerDeviceType, {
+  mt_2025_01_01_dashboard: v1ConsumerDevicePresenter,
+  mt_2026_01_01_magnetar: v1ConsumerDevicePresenter,
+  mt_2026_04_01_consumer: v1ConsumerDevicePresenter
 });
 
 export let consumerOAuthAuthorizationPresenter = declarePresenter(

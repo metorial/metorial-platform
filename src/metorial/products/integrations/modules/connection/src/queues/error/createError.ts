@@ -3,6 +3,7 @@ import { Hash } from '@lowerdeck/hash';
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db, getId, snowflake } from '@metorial-subspace/db';
 import { providerIssueRecorderService } from '@metorial-subspace/module-provider-issue';
+import { withUniqueConstraintRecovery } from '@metorial/db';
 import { endOfDay, startOfDay } from 'date-fns';
 import { env } from '../../env';
 
@@ -43,60 +44,75 @@ export let createErrorQueueProcessor = createErrorQueue.process(async data => {
     });
   }
 
-  let group = await db.sessionErrorGroup.findUnique({
-    where: {
-      type_hash_tenantOid: {
-        type: error.type,
-        hash,
-        tenantOid: error.session.tenantOid
-      }
+  let groupWhere = {
+    type_hash_tenantOid: {
+      type: error.type,
+      hash,
+      tenantOid: error.session.tenantOid
     }
+  };
+
+  let group = await db.sessionErrorGroup.findUnique({
+    where: groupWhere
   });
 
   if (!group) {
-    group = await db.sessionErrorGroup.upsert({
-      where: {
-        type_hash_tenantOid: {
-          type: error.type,
-          hash,
-          tenantOid: error.session.tenantOid
-        }
-      },
-      create: {
-        ...getId('sessionErrorGroup'),
-        type: error.type,
-        hash,
-        code: error.code,
-        message: error.message,
-        tenantOid: error.session.tenantOid,
-        projectOid: error.session.projectOid,
-        environmentOid: error.session.environmentOid,
-        instanceOid: error.session.instanceOid,
-        providerOid: error.providerRun?.providerOid,
-        firstOccurrenceOid: error.oid
-      },
-      update: {}
-    });
+    group = await withUniqueConstraintRecovery(
+      () =>
+        db.sessionErrorGroup.upsert({
+          where: groupWhere,
+          create: {
+            ...getId('sessionErrorGroup'),
+            type: error.type,
+            hash,
+            code: error.code,
+            message: error.message,
+            tenantOid: error.session.tenantOid,
+            projectOid: error.session.projectOid,
+            environmentOid: error.session.environmentOid,
+            instanceOid: error.session.instanceOid,
+            providerOid: error.providerRun?.providerOid,
+            firstOccurrenceOid: error.oid
+          },
+          update: {}
+        }),
+      () => db.sessionErrorGroup.findUnique({ where: groupWhere })
+    );
   }
 
   let dayStart = startOfDay(new Date());
-
-  await db.sessionErrorGroupOccurrencePeriod.upsert({
-    where: {
-      groupOid_startsAt: {
-        groupOid: group.oid,
-        startsAt: dayStart
-      }
-    },
-    update: { occurrenceCount: { increment: 1 } },
-    create: {
-      oid: snowflake.nextId(),
+  let periodWhere = {
+    groupOid_startsAt: {
       groupOid: group.oid,
-      startsAt: dayStart,
-      endsAt: endOfDay(dayStart),
-      occurrenceCount: 1
+      startsAt: dayStart
     }
-  });
+  };
+
+  await withUniqueConstraintRecovery(
+    () =>
+      db.sessionErrorGroupOccurrencePeriod.upsert({
+        where: periodWhere,
+        update: { occurrenceCount: { increment: 1 } },
+        create: {
+          oid: snowflake.nextId(),
+          groupOid: group.oid,
+          startsAt: dayStart,
+          endsAt: endOfDay(dayStart),
+          occurrenceCount: 1
+        }
+      }),
+    async () => {
+      try {
+        return await db.sessionErrorGroupOccurrencePeriod.update({
+          where: periodWhere,
+          data: { occurrenceCount: { increment: 1 } }
+        });
+      } catch (error) {
+        if (error instanceof Error && 'code' in error && error.code === 'P2025') return null;
+        throw error;
+      }
+    }
+  );
 
   await db.sessionErrorGroup.updateMany({
     where: { oid: group.oid },

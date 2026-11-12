@@ -327,6 +327,11 @@ let scopeResourceMetadata: Record<string, { name: string; description: string }>
     description:
       'These endpoints expose consumer-scoped runtime clients, connections, and tool calls.'
   },
+  'consumer#instance.device': {
+    name: 'Consumer Devices',
+    description:
+      'These endpoints enroll Metorial Desktop devices and manage what each AI tool on them receives.'
+  },
   'consumer#instance.identity': {
     name: 'Consumer Identity',
     description: 'These endpoints expose consumer-scoped identity credentials.'

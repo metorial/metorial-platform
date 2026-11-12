@@ -20,6 +20,18 @@ describe('repository sync status', () => {
     );
   });
 
+  it('describes readiness and throttling without claiming an outage', () => {
+    expect(getRepositorySyncRetryMessage('pull_request', 'merge_not_ready')).toContain(
+      "isn't ready to merge yet"
+    );
+    expect(getRepositorySyncRetryMessage('pull_request', 'rate_limited')).toContain(
+      'limiting requests'
+    );
+    expect(getRepositorySyncRetryMessage('pull_request', 'unknown')).not.toContain(
+      'unavailable'
+    );
+  });
+
   it('uses mode-specific canonical retry messages', () => {
     expect(getRepositorySyncRetryMessage('default_branch')).toBe(
       `We couldn't update the default branch. We'll retry automatically.`

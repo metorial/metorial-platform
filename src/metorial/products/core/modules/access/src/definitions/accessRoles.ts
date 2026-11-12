@@ -36,6 +36,8 @@ export let consumerMagicMcpConnectRoles = ['consumer#instance.magic_mcp:connect'
 export let consumerMagicMcpWriteRoles = ['consumer#instance.magic_mcp:write'] as const;
 export let consumerOperationsReadRoles = ['consumer#instance.operations:read'] as const;
 export let consumerIdentityReadRoles = ['consumer#instance.identity:read'] as const;
+export let consumerDeviceReadRoles = ['consumer#instance.device:read'] as const;
+export let consumerDeviceWriteRoles = ['consumer#instance.device:write'] as const;
 export let consumerProviderTemplateReadRoles = [
   'consumer#instance.provider_template:read'
 ] as const;

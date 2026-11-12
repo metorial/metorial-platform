@@ -422,6 +422,7 @@ let ComboboxInner = <TData,>({
   let normalizedValue = value ?? null;
   let normalizedGroups = useMemo(() => normalizeGroups(items), [items]);
   let flatItems = useMemo(() => flattenGroups(normalizedGroups), [normalizedGroups]);
+  let itemValues = useMemo(() => flatItems.map(item => item.id), [flatItems]);
   let [labelCache, setLabelCache] = useState<Record<string, string>>(() =>
     createLabelCache(flatItems)
   );
@@ -540,8 +541,8 @@ let ComboboxInner = <TData,>({
             setSearch(selectedLabel);
           }
         }}
-        items={flatItems}
-        filteredItems={flatItems}
+        items={itemValues}
+        filteredItems={itemValues}
         autoHighlight
         disabled={disabled}
         readOnly={readOnly}
