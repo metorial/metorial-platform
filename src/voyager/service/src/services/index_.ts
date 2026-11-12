@@ -25,7 +25,7 @@ class indexServiceImpl {
       source: Source;
     };
   }) {
-    return await db.index.upsert({
+    let index = await db.index.upsert({
       where: {
         sourceOid_identifier: {
           sourceOid: d.input.source.oid,
@@ -39,9 +39,12 @@ class indexServiceImpl {
         name: d.input.name,
         identifier: d.input.identifier,
         sourceOid: d.input.source.oid
-      },
-      include
+      }
     });
+
+    let source = await db.source.findUniqueOrThrow({ where: { oid: index.sourceOid } });
+
+    return { ...index, source };
   }
 
   async getIndexById(d: { id: string; source: Source }) {
