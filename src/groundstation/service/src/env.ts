@@ -1,8 +1,8 @@
 import { v } from '@lowerdeck/validation';
-import { defineSettings } from '@metorial/settings';
+import { defineSettings, setting } from '@metorial/settings';
 import { redisUrl } from '@metorial/shared-settings';
 
-export let env = defineSettings({
+let serviceSettings = defineSettings({
   service: {
     REDIS_URL: redisUrl,
     DATABASE_URL: v.string(),
@@ -11,3 +11,26 @@ export let env = defineSettings({
     GROUNDSTATION_INGEST_PORT: v.optional(v.number())
   }
 });
+
+let recordSettings = defineSettings('records', {
+  hashSecret: setting(v.string(), {
+    env: 'GROUNDSTATION_HASH_SECRET',
+    audience: 'deployment',
+    secret: true,
+    description: 'Root secret for the per-tenant keys that hash content and derive record ids.'
+  }),
+
+  sink: setting(v.optional(v.enumOf(['noop', 'memory', 'ndjson'])), {
+    env: 'GROUNDSTATION_SINK',
+    audience: 'deployment',
+    description: 'Where normalized records go. Defaults to noop until storage exists.'
+  }),
+
+  sinkFile: setting(v.optional(v.string()), {
+    env: 'GROUNDSTATION_SINK_FILE',
+    audience: 'deployment',
+    description: 'Target file of the ndjson sink.'
+  })
+});
+
+export let env = { ...serviceSettings, records: recordSettings };

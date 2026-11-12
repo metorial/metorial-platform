@@ -1,4 +1,5 @@
 import type { ContentPolicy, IngestTokenLimits } from '@metorial/groundstation-spec';
+import { normalizeClient } from '../records/clients';
 import { channelNotAllowedError, clientNotAllowedError } from './errors';
 
 export type IngestPrincipal = {
@@ -22,8 +23,15 @@ export type IngestPrincipal = {
 let allows = (allowed: string[], value: string) =>
   allowed.length == 0 || allowed.includes(value);
 
-export let isClientAllowed = (principal: IngestPrincipal, client: string) =>
-  allows(principal.allowedClients, client);
+export let isClientAllowed = (principal: IngestPrincipal, client: string) => {
+  let slug = normalizeClient(client);
+  if (!slug) return false;
+
+  return allows(
+    principal.allowedClients.map(allowed => normalizeClient(allowed) ?? allowed),
+    slug
+  );
+};
 
 export let isChannelAllowed = (principal: IngestPrincipal, channel: string) =>
   allows(principal.allowedChannels, channel);

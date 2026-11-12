@@ -12,7 +12,8 @@ export let bulkRejectionCodes = [
   'unsupported_version',
   'parse_error',
   'too_large',
-  'too_old'
+  'too_old',
+  'not_allowed'
 ] as const;
 
 export type BulkRejectionCode = (typeof bulkRejectionCodes)[number];

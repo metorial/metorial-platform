@@ -75,6 +75,9 @@ describe('ingestFetch', () => {
 
     expect(response.status).toBe(200);
     expect(body.object).toBe('groundstation#bulk_dialects');
-    expect(body.items).toEqual([]);
+    expect(body.items).toEqual([
+      { client: 'claude-code', channel: 'hook', dialect: 'claude-code.hooks.v1' },
+      { client: 'codex', channel: 'hook', dialect: 'codex.hooks.v1' }
+    ]);
   });
 });

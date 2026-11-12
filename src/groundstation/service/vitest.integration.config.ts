@@ -9,6 +9,7 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     env: {
       NODE_ENV: 'test',
+      GROUNDSTATION_HASH_SECRET: 'unit-test-hash-secret',
       DATABASE_URL:
         process.env.DATABASE_URL ??
         'postgresql://postgres:postgres@localhost:35432/groundstation-test',

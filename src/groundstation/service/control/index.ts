@@ -25,7 +25,9 @@ export default project({
   },
   resources: [redis({ REDIS_URL: 'redis://{{HOSTNAME}}:{{PORT}}/0' })],
   dev: dev({
-    env: mergeEnv(baseDevEnv('oss')),
+    env: mergeEnv(baseDevEnv('oss'), {
+      GROUNDSTATION_HASH_SECRET: 'dev-groundstation-hash-secret'
+    }),
     databases: {
       main: postgres({
         package: '@metorial/groundstation',
@@ -37,7 +39,11 @@ export default project({
   e2e: e2e({
     start: ['e2e:start'],
     image: 'groundstation',
-    tests: ['.']
+    tests: ['.'],
+    env: {
+      GROUNDSTATION_HASH_SECRET: 'e2e-groundstation-hash-secret',
+      GROUNDSTATION_SINK: 'memory'
+    }
   }),
   ci: {
     images: [

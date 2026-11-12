@@ -5,7 +5,7 @@ import {
   groundstation,
   ingest,
   rpcErrorCode,
-  stubStatus
+  acceptedStatus
 } from './support';
 
 let unknownToken = `metorial_agit_${'B'.repeat(21)}_${'C'.repeat(43)}`;
@@ -17,8 +17,8 @@ describe('ingest authentication', () => {
     let bearer = await ingest('/v1/logs', { credential: secret });
     let apiKey = await ingest('/v1/logs', { headers: { 'x-api-key': secret } });
 
-    expect(bearer.status).toBe(stubStatus);
-    expect(apiKey.status).toBe(stubStatus);
+    expect(bearer.status).toBe(acceptedStatus);
+    expect(apiKey.status).toBe(acceptedStatus);
   });
 
   it('requires a token on every token route', async () => {
@@ -68,14 +68,14 @@ describe('ingest authentication', () => {
     let unknown = await ingest('/v1/logs', { credential: unknownToken });
 
     expect(await wrongSecret.json()).toEqual(await unknown.json());
-    expect((await ingest('/v1/logs', { credential: secret })).status).toBe(stubStatus);
+    expect((await ingest('/v1/logs', { credential: secret })).status).toBe(acceptedStatus);
   });
 
   it('stops accepting a token right after it is revoked, even when cached', async () => {
     let { tenant, token, secret } = await createToken();
 
-    expect((await ingest('/v1/logs', { credential: secret })).status).toBe(stubStatus);
-    expect((await ingest('/v1/logs', { credential: secret })).status).toBe(stubStatus);
+    expect((await ingest('/v1/logs', { credential: secret })).status).toBe(acceptedStatus);
+    expect((await ingest('/v1/logs', { credential: secret })).status).toBe(acceptedStatus);
 
     await groundstation().ingestToken.revoke({
       tenantId: tenant.id,
@@ -102,13 +102,15 @@ describe('ingest authentication', () => {
     });
 
     expect((await ingest('/v1/logs', { credential: first.secret })).status).toBe(401);
-    expect((await ingest('/v1/logs', { credential: second.secret })).status).toBe(stubStatus);
+    expect((await ingest('/v1/logs', { credential: second.secret })).status).toBe(
+      acceptedStatus
+    );
   });
 
   it('stops accepting a token once it expires', async () => {
     let { secret } = await createToken({ expiresAt: new Date(Date.now() + 2000) });
 
-    expect((await ingest('/v1/logs', { credential: secret })).status).toBe(stubStatus);
+    expect((await ingest('/v1/logs', { credential: secret })).status).toBe(acceptedStatus);
 
     await expect
       .poll(async () => (await ingest('/v1/logs', { credential: secret })).status, {
@@ -122,7 +124,7 @@ describe('ingest authentication', () => {
     let { tenant, token, secret } = await createToken();
 
     expect((await ingest('/v1/ingest/hooks/claude-code', { credential: secret })).status).toBe(
-      stubStatus
+      acceptedStatus
     );
 
     await groundstation().ingestToken.update({
@@ -145,7 +147,7 @@ describe('ingest authentication', () => {
 
     expect(denied.status).toBe(403);
     expect(await errorCode(denied)).toBe('client_not_allowed');
-    expect(allowed.status).toBe(stubStatus);
+    expect(allowed.status).toBe(acceptedStatus);
   });
 
   it('enforces allowed channels', async () => {
@@ -158,7 +160,7 @@ describe('ingest authentication', () => {
     expect(traces.status).toBe(403);
     expect(await errorCode(traces)).toBe('channel_not_allowed');
     expect(hooks.status).toBe(403);
-    expect(logs.status).toBe(stubStatus);
+    expect(logs.status).toBe(acceptedStatus);
   });
 
   it('checks credentials before the body is read', async () => {
@@ -177,8 +179,12 @@ describe('ingest authentication', () => {
 
     await groundstation().tenant.upsert({ ref: first.tenant.ref, skewBoundSeconds: 120 });
 
-    expect((await ingest('/v1/logs', { credential: first.secret })).status).toBe(stubStatus);
-    expect((await ingest('/v1/logs', { credential: second.secret })).status).toBe(stubStatus);
+    expect((await ingest('/v1/logs', { credential: first.secret })).status).toBe(
+      acceptedStatus
+    );
+    expect((await ingest('/v1/logs', { credential: second.secret })).status).toBe(
+      acceptedStatus
+    );
 
     let code = await rpcErrorCode(
       groundstation().ingestToken.get({

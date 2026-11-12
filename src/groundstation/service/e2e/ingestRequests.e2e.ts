@@ -1,10 +1,17 @@
 import { gzipSync, zstdCompressSync } from 'node:zlib';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { createToken, errorCode, ingest, stubStatus } from './support';
+import { createToken, errorCode, ingest, acceptedStatus } from './support';
 
 let maxBodyBytes = 4 * 1024 * 1024;
 
 let json = '{"resourceLogs":[]}';
+
+let bulkHeader = JSON.stringify({
+  batch_id: 'batch-1',
+  mode: 'live',
+  sent_at: '2026-06-15T12:00:00Z',
+  agent: { name: 'agent', version: '1', install_id: 'install-1' }
+});
 
 describe('ingest request handling', () => {
   let secret: string;
@@ -28,9 +35,9 @@ describe('ingest request handling', () => {
       body: zstdCompressSync(json)
     });
 
-    expect(identity.status).toBe(stubStatus);
-    expect(gzip.status).toBe(stubStatus);
-    expect(zstd.status).toBe(stubStatus);
+    expect(identity.status).toBe(acceptedStatus);
+    expect(gzip.status).toBe(acceptedStatus);
+    expect(zstd.status).toBe(acceptedStatus);
   });
 
   it('accepts protobuf and json media types on OTLP routes', async () => {
@@ -42,10 +49,11 @@ describe('ingest request handling', () => {
     ]) {
       let response = await ingest('/v1/logs', {
         credential: secret,
-        headers: { 'content-type': contentType }
+        headers: { 'content-type': contentType },
+        body: contentType.includes('protobuf') ? new Uint8Array() : json
       });
 
-      expect(response.status, contentType).toBe(stubStatus);
+      expect(response.status, contentType).toBe(acceptedStatus);
     }
   });
 
@@ -72,11 +80,11 @@ describe('ingest request handling', () => {
     let ndjson = await ingest('/v1/bulk', {
       credential: secret,
       headers: { 'content-type': 'application/x-ndjson' },
-      body: '{"a":1}\n'
+      body: bulkHeader + '\n'
     });
     let wrong = await ingest('/v1/bulk', { credential: secret });
 
-    expect(ndjson.status).toBe(stubStatus);
+    expect(ndjson.status).toBe(acceptedStatus);
     expect(wrong.status).toBe(415);
   });
 
@@ -104,9 +112,9 @@ describe('ingest request handling', () => {
   it('accepts a body just under the size limit', async () => {
     let response = await ingest('/v1/logs', {
       credential: secret,
-      body: new Uint8Array(maxBodyBytes - 1024)
+      body: JSON.stringify({ resourceLogs: [], padding: 'a'.repeat(maxBodyBytes - 1024) })
     });
 
-    expect(response.status).toBe(stubStatus);
+    expect(response.status).toBe(acceptedStatus);
   });
 });

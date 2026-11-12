@@ -5,7 +5,7 @@ import type { GroundstationClient } from '../src/controllers';
 
 export let packageName = '@metorial/groundstation';
 
-export let stubStatus = 501;
+export let acceptedStatus = 200;
 
 export let apiUrl = () => e2eEndpoint(packageName, 'api');
 export let ingestUrl = () => e2eEndpoint(packageName, 'ingest');
@@ -22,8 +22,11 @@ export let createTenant = async (
   input: { skewBoundSeconds?: number; backfillMaxAgeDays?: number | null } = {}
 ) => groundstation().tenant.upsert({ ref: uniqueId('org'), ...input });
 
-export let createToken = async (input: TokenInput = {}) => {
-  let tenant = await createTenant();
+export let createToken = async (
+  input: TokenInput = {},
+  tenantInput: Parameters<typeof createTenant>[0] = {}
+) => {
+  let tenant = await createTenant(tenantInput);
 
   let token = await groundstation().ingestToken.create({
     tenantId: tenant.id,
@@ -52,6 +55,11 @@ export let ingest = (
     },
     body: options.method == 'GET' ? undefined : (options.body ?? '{}')
   });
+
+export let storedRecords = async (tenantId: string, lane?: 'live' | 'backfill') =>
+  (await groundstation().records.list({ tenantId, lane })).items;
+
+export let setSinkBusy = (busy: boolean) => groundstation().records.setBusy({ busy });
 
 export let errorCode = async (response: Response) =>
   ((await response.json()) as { code: string }).code;

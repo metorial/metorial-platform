@@ -289,8 +289,8 @@ describe('authenticated ingest routes', () => {
   it('lets a valid token through to the handler', async () => {
     let { secret } = await createToken();
 
-    expect((await ingest('/v1/logs', secret)).status).toBe(501);
-    expect((await ingest('/v1/logs', undefined, { 'x-api-key': secret })).status).toBe(501);
+    expect((await ingest('/v1/logs', secret)).status).toBe(200);
+    expect((await ingest('/v1/logs', undefined, { 'x-api-key': secret })).status).toBe(200);
   });
 
   it('answers 401 with a challenge for bad credentials', async () => {
@@ -325,7 +325,7 @@ describe('authenticated ingest routes', () => {
 
     expect(denied.status).toBe(403);
     expect(body.code).toBe('client_not_allowed');
-    expect((await ingest('/v1/ingest/hooks/codex', secret)).status).toBe(501);
+    expect((await ingest('/v1/ingest/hooks/codex', secret)).status).toBe(200);
   });
 
   it('enforces allowed channels', async () => {
@@ -336,7 +336,7 @@ describe('authenticated ingest routes', () => {
 
     expect(denied.status).toBe(403);
     expect(body.code).toBe('channel_not_allowed');
-    expect((await ingest('/v1/logs', secret)).status).toBe(501);
+    expect((await ingest('/v1/logs', secret)).status).toBe(200);
     expect((await ingest('/v1/ingest/hooks/codex', secret)).status).toBe(403);
   });
 });
