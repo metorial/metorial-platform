@@ -6,6 +6,7 @@ export type PortalsListingsCreateOutput = {
   name: string;
   description: string | null;
   readme: string | null;
+  isDiscoverable: boolean;
   access:
     | {
         type: 'provider_template';
@@ -91,6 +92,7 @@ export type PortalsListingsCreateOutput = {
 export let mapPortalsListingsCreateOutput =
   /* @__PURE__ */ mapObject<PortalsListingsCreateOutput>(
     [
+      'is_discoverable',
       [
         'access',
         0,
@@ -128,6 +130,7 @@ export type PortalsListingsCreateBody = {
   name?: string | undefined;
   description?: string | null | undefined;
   readme?: string | null | undefined;
+  isDiscoverable?: boolean | undefined;
   access:
     | { type: 'provider_template'; providerTemplateId: string }
     | { type: 'magic_mcp_server'; magicMcpServerId: string }
@@ -139,6 +142,7 @@ export type PortalsListingsCreateBody = {
 
 export let mapPortalsListingsCreateBody =
   /* @__PURE__ */ mapObject<PortalsListingsCreateBody>([
+    'is_discoverable',
     [
       'access',
       0,

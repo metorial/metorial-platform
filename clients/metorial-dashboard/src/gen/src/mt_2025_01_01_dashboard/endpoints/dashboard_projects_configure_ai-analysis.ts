@@ -14,7 +14,7 @@ import {
 
 /**
  * @name AI analysis configuration controller
- * @description Configure whether Metorial may analyze a project's custom providers with AI
+ * @description Configure Metorial Assistant access and AI-based security analysis for a project
  *
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
@@ -41,7 +41,7 @@ export class MetorialDashboardProjectsConfigureAiAnalysisEndpoint {
 
   /**
    * @name Get project AI analysis configuration
-   * @description Get the AI-based analysis setting for a project
+   * @description Get Metorial Assistant and AI-based analysis settings for a project
    *
    * @param `organizationId` - string
    * @param `projectId` - string
@@ -70,7 +70,7 @@ export class MetorialDashboardProjectsConfigureAiAnalysisEndpoint {
 
   /**
    * @name Update project AI analysis configuration
-   * @description Enable or disable AI-based analysis for a project
+   * @description Configure Metorial Assistant and AI-based analysis for a project
    *
    * @param `organizationId` - string
    * @param `projectId` - string

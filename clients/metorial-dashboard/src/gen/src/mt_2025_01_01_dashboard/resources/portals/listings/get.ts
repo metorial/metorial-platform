@@ -6,6 +6,7 @@ export type PortalsListingsGetOutput = {
   name: string;
   description: string | null;
   readme: string | null;
+  isDiscoverable: boolean;
   access:
     | {
         type: 'provider_template';
@@ -91,6 +92,7 @@ export type PortalsListingsGetOutput = {
 export let mapPortalsListingsGetOutput =
   /* @__PURE__ */ mapObject<PortalsListingsGetOutput>(
     [
+      'is_discoverable',
       [
         'access',
         0,

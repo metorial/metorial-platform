@@ -10,7 +10,12 @@ export type DashboardInstancePortalsAccessUpdateOutput = {
   name: string;
   description: string | null;
   readme: string | null;
-  listing: { id: string; name: string; description: string | null } | null;
+  listing: {
+    id: string;
+    name: string;
+    description: string | null;
+    isDiscoverable: boolean;
+  } | null;
   access:
     | {
         type: 'provider_template';
@@ -101,6 +106,7 @@ export let mapDashboardInstancePortalsAccessUpdateOutput =
   /* @__PURE__ */ mapObject<DashboardInstancePortalsAccessUpdateOutput>(
     [
       'access_level',
+      ['listing', 0, [1, ['is_discoverable']]],
       [
         'access',
         0,

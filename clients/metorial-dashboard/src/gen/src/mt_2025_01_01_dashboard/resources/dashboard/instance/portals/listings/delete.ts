@@ -6,6 +6,7 @@ export type DashboardInstancePortalsListingsDeleteOutput = {
   name: string;
   description: string | null;
   readme: string | null;
+  isDiscoverable: boolean;
   access:
     | {
         type: 'provider_template';
@@ -91,6 +92,7 @@ export type DashboardInstancePortalsListingsDeleteOutput = {
 export let mapDashboardInstancePortalsListingsDeleteOutput =
   /* @__PURE__ */ mapObject<DashboardInstancePortalsListingsDeleteOutput>(
     [
+      'is_discoverable',
       [
         'access',
         0,
