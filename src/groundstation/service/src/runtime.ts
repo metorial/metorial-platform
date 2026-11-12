@@ -1,8 +1,11 @@
 import { createTenantKeyDeriver, type TenantKeyDeriver } from './crypto/keys';
 import { env } from './env';
 import { createMemorySink, type MemorySink } from './sink/memory';
+import { createMongoSink } from './sink/mongo';
 import { createNdjsonSink } from './sink/ndjson';
 import { createNoopSink } from './sink/noop';
+import { getStore } from './store/connection';
+import { createContentCipher } from './store/contentCipher';
 import type { RecordSink } from './sink/types';
 
 export type IngestRuntime = {
@@ -25,6 +28,17 @@ let createSinkFromEnv = (): { sink: RecordSink; memorySink?: MemorySink } => {
     if (!file) throw new Error('GROUNDSTATION_SINK_FILE is required for the ndjson sink.');
 
     return { sink: createNdjsonSink(file) };
+  }
+
+  if (kind == 'mongo') {
+    let secret = env.records.contentSecret;
+    if (!secret) {
+      throw new Error('GROUNDSTATION_CONTENT_SECRET is required for the mongo sink.');
+    }
+
+    return {
+      sink: createMongoSink({ store: getStore(), cipher: createContentCipher(secret) })
+    };
   }
 
   return { sink: createNoopSink() };

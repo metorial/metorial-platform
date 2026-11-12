@@ -29,7 +29,10 @@ export let unitPrincipal = (
     ref: 'org_unit',
     skewBoundSeconds: overrides.skewBoundSeconds ?? 300,
     backfillMaxAgeDays: 30,
-    hashKeyVersion: 1
+    hashKeyVersion: 1,
+    recordRetentionDays: 90,
+    contentRetentionDays: 30,
+    contentKeyVersion: 1
   }
 });
 

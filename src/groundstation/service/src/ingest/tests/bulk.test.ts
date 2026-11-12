@@ -400,16 +400,23 @@ describe('bulk handler', () => {
       expect(result.rejections).toEqual([{ i: 0, code: 'too_old' }]);
     });
 
-    it('applies no age limit when the tenant has none', async () => {
-      let pipeline = createPipeline({ tenant: { backfillMaxAgeDays: null } });
+    it('falls back to the record retention when the tenant sets no age limit', async () => {
+      let pipeline = createPipeline({
+        tenant: { backfillMaxAgeDays: null, recordRetentionDays: 60 }
+      });
 
       let result = await sendOk(
         pipeline,
         header({ mode: 'backfill' }),
-        item({ observed_at: '2001-01-01T00:00:00Z' })
+        item({ observed_at: isoMinus(60, -1000) }),
+        item({
+          observed_at: isoMinus(60, 1000),
+          source: { kind: 'transcript', ref: 'ok', seq: 1 }
+        })
       );
 
       expect(result.accepted).toBe(1);
+      expect(result.rejections).toEqual([{ i: 0, code: 'too_old' }]);
     });
 
     it('does not apply the age limit to live batches', async () => {

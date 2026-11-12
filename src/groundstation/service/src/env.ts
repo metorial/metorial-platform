@@ -20,10 +20,25 @@ let recordSettings = defineSettings('records', {
     description: 'Root secret for the per-tenant keys that hash content and derive record ids.'
   }),
 
-  sink: setting(v.optional(v.enumOf(['noop', 'memory', 'ndjson'])), {
+  sink: setting(v.optional(v.enumOf(['noop', 'memory', 'ndjson', 'mongo'])), {
     env: 'GROUNDSTATION_SINK',
     audience: 'deployment',
-    description: 'Where normalized records go. Defaults to noop until storage exists.'
+    description:
+      'Where normalized records go: mongo stores them; the others are for development.'
+  }),
+
+  mongoUrl: setting(v.optional(v.string()), {
+    env: 'GROUNDSTATION_MONGO_URL',
+    audience: 'deployment',
+    secret: true,
+    description: 'MongoDB (DocumentDB in production) database that stores normalized records.'
+  }),
+
+  contentSecret: setting(v.optional(v.string()), {
+    env: 'GROUNDSTATION_CONTENT_SECRET',
+    audience: 'deployment',
+    secret: true,
+    description: 'Root secret for the per-tenant keys that encrypt stored content text.'
   }),
 
   sinkFile: setting(v.optional(v.string()), {

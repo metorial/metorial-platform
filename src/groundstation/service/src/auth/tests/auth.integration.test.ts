@@ -196,7 +196,10 @@ describe('ingest credential verification', () => {
         ref: tenant.ref,
         skewBoundSeconds: 86400,
         backfillMaxAgeDays: null,
-        hashKeyVersion: 1
+        hashKeyVersion: 1,
+        recordRetentionDays: 90,
+        contentRetentionDays: 30,
+        contentKeyVersion: 1
       }
     });
   });

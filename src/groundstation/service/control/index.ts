@@ -5,6 +5,7 @@ import {
   e2e,
   endpoint,
   mergeEnv,
+  mongodb,
   postgres,
   project,
   redis,
@@ -26,13 +27,20 @@ export default project({
   resources: [redis({ REDIS_URL: 'redis://{{HOSTNAME}}:{{PORT}}/0' })],
   dev: dev({
     env: mergeEnv(baseDevEnv('oss'), {
-      GROUNDSTATION_HASH_SECRET: 'dev-groundstation-hash-secret'
+      GROUNDSTATION_HASH_SECRET: 'dev-groundstation-hash-secret',
+      GROUNDSTATION_CONTENT_SECRET: 'dev-groundstation-content-secret',
+      GROUNDSTATION_SINK: 'mongo'
     }),
     databases: {
       main: postgres({
         package: '@metorial/groundstation',
         name: 'groundstation',
         env: 'DATABASE_URL'
+      }),
+      records: mongodb({
+        package: '@metorial/groundstation',
+        name: 'groundstation-records',
+        env: 'GROUNDSTATION_MONGO_URL'
       })
     }
   }),

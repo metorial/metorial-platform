@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { NormalizedRecord } from '@metorial/groundstation-spec';
 import { expectServiceError } from '../../test/helpers';
 import { createNdjsonSink } from '../ndjson';
+import { defaultStoragePolicy } from '../types';
 
 let directory: string;
 
@@ -27,7 +28,12 @@ describe('createNdjsonSink', () => {
     let path = join(directory, 'out.ndjson');
     let sink = createNdjsonSink(path);
 
-    await sink.write({ lane: 'live', tenantId: 't', records: [record('a'), record('b')] });
+    await sink.write({
+      lane: 'live',
+      tenantId: 't',
+      storage: defaultStoragePolicy,
+      records: [record('a'), record('b')]
+    });
     await sink.close?.();
 
     let text = await readFile(path, 'utf8');
@@ -43,6 +49,7 @@ describe('createNdjsonSink', () => {
     await sink.write({
       lane: 'live',
       tenantId: 't',
+      storage: defaultStoragePolicy,
       records: [record('a', { text: 'line1\nline2 end' })]
     });
     await sink.close?.();
@@ -57,7 +64,12 @@ describe('createNdjsonSink', () => {
     let path = join(directory, 'a', 'b', 'out.ndjson');
     let sink = createNdjsonSink(path);
 
-    await sink.write({ lane: 'live', tenantId: 't', records: [record('a')] });
+    await sink.write({
+      lane: 'live',
+      tenantId: 't',
+      storage: defaultStoragePolicy,
+      records: [record('a')]
+    });
     await sink.close?.();
 
     expect(await lines(path)).toHaveLength(1);
@@ -67,11 +79,21 @@ describe('createNdjsonSink', () => {
     let path = join(directory, 'out.ndjson');
 
     let first = createNdjsonSink(path);
-    await first.write({ lane: 'live', tenantId: 't', records: [record('a')] });
+    await first.write({
+      lane: 'live',
+      tenantId: 't',
+      storage: defaultStoragePolicy,
+      records: [record('a')]
+    });
     await first.close?.();
 
     let second = createNdjsonSink(path);
-    await second.write({ lane: 'live', tenantId: 't', records: [record('b')] });
+    await second.write({
+      lane: 'live',
+      tenantId: 't',
+      storage: defaultStoragePolicy,
+      records: [record('b')]
+    });
     await second.close?.();
 
     expect((await lines(path)).map(line => JSON.parse(line).id)).toEqual(['a', 'b']);
@@ -81,7 +103,12 @@ describe('createNdjsonSink', () => {
     let path = join(directory, 'out.ndjson');
     let sink = createNdjsonSink(path);
 
-    await sink.write({ lane: 'live', tenantId: 't', records: [] });
+    await sink.write({
+      lane: 'live',
+      tenantId: 't',
+      storage: defaultStoragePolicy,
+      records: []
+    });
     await sink.close?.();
 
     await expect(readFile(path, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
@@ -97,6 +124,7 @@ describe('createNdjsonSink', () => {
       sink.write({
         lane: 'live',
         tenantId: 't',
+        storage: defaultStoragePolicy,
         records: Array.from({ length: 5 }, (_, r) => record(`w${w}r${r}`, { pad: big }))
       })
     );
@@ -120,6 +148,7 @@ describe('createNdjsonSink', () => {
         sink.write({
           lane: 'live',
           tenantId: 't',
+          storage: defaultStoragePolicy,
           records: [record(`${w}-0`), record(`${w}-1`), record(`${w}-2`)]
         })
       )
@@ -138,12 +167,14 @@ describe('createNdjsonSink', () => {
     let first = sink.write({
       lane: 'live',
       tenantId: 't',
+      storage: defaultStoragePolicy,
       records: [record('a', { pad: 'x'.repeat(300) })]
     });
 
     let second = sink.write({
       lane: 'live',
       tenantId: 't',
+      storage: defaultStoragePolicy,
       records: [record('b', { pad: 'x'.repeat(300) })]
     });
 
@@ -161,6 +192,7 @@ describe('createNdjsonSink', () => {
     let payload = () => ({
       lane: 'live' as const,
       tenantId: 't',
+      storage: defaultStoragePolicy,
       records: [record('x', { pad: 'x'.repeat(300) })]
     });
 
@@ -175,7 +207,12 @@ describe('createNdjsonSink', () => {
     let sink = createNdjsonSink(join(directory, 'out.ndjson'), { maxPendingBytes: 10 });
 
     await expectServiceError(
-      sink.write({ lane: 'live', tenantId: 't', records: [record('a')] }),
+      sink.write({
+        lane: 'live',
+        tenantId: 't',
+        storage: defaultStoragePolicy,
+        records: [record('a')]
+      }),
       'sink_busy'
     );
   });
@@ -184,12 +221,24 @@ describe('createNdjsonSink', () => {
     let blocker = join(directory, 'file');
     let sink = createNdjsonSink(join(blocker, 'nested', 'out.ndjson'));
 
-    await sink.write({ lane: 'live', tenantId: 't', records: [record('a')] }).catch(() => {});
+    await sink
+      .write({
+        lane: 'live',
+        tenantId: 't',
+        storage: defaultStoragePolicy,
+        records: [record('a')]
+      })
+      .catch(() => {});
 
     let path = join(directory, 'out.ndjson');
     let healthy = createNdjsonSink(path);
 
-    await healthy.write({ lane: 'live', tenantId: 't', records: [record('b')] });
+    await healthy.write({
+      lane: 'live',
+      tenantId: 't',
+      storage: defaultStoragePolicy,
+      records: [record('b')]
+    });
     await healthy.close?.();
 
     expect(await lines(path)).toHaveLength(1);
@@ -203,10 +252,20 @@ describe('createNdjsonSink', () => {
     circular['self'] = circular;
 
     await expect(
-      sink.write({ lane: 'live', tenantId: 't', records: [record('bad', circular)] })
+      sink.write({
+        lane: 'live',
+        tenantId: 't',
+        storage: defaultStoragePolicy,
+        records: [record('bad', circular)]
+      })
     ).rejects.toThrow();
 
-    await sink.write({ lane: 'live', tenantId: 't', records: [record('good')] });
+    await sink.write({
+      lane: 'live',
+      tenantId: 't',
+      storage: defaultStoragePolicy,
+      records: [record('good')]
+    });
     await sink.close?.();
 
     expect((await lines(path)).map(line => JSON.parse(line).id)).toEqual(['good']);

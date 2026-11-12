@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { NormalizedRecord } from '@metorial/groundstation-spec';
 import { expectServiceError } from '../../test/helpers';
 import { createMemorySink } from '../memory';
-import type { RecordBatch } from '../types';
+import { type RecordBatch, defaultStoragePolicy } from '../types';
 
 let record = (id: string) => ({ id }) as NormalizedRecord;
 
@@ -14,6 +14,7 @@ let batch = (
 ): RecordBatch => ({
   lane,
   tenantId,
+  storage: defaultStoragePolicy,
   records: ids.map(record)
 });
 

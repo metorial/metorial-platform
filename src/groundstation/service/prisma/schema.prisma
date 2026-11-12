@@ -21,6 +21,10 @@ model Tenant {
   backfillMaxAgeDays Int?
   hashKeyVersion     Int  @default(1)
 
+  recordRetentionDays  Int @default(90)
+  contentRetentionDays Int @default(30)
+  contentKeyVersion    Int @default(1)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

@@ -26,6 +26,9 @@ export let testPrincipal = (
     skewBoundSeconds: 300,
     backfillMaxAgeDays: 30,
     hashKeyVersion: 1,
+    recordRetentionDays: 90,
+    contentRetentionDays: 30,
+    contentKeyVersion: 1,
     ...overrides.tenant
   }
 });

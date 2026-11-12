@@ -77,6 +77,11 @@ export let createCollector = (
       await runtime.sink.write({
         lane: options.lane,
         tenantId: principal.tenant.id,
+        storage: {
+          recordRetentionDays: principal.tenant.recordRetentionDays,
+          contentRetentionDays: principal.tenant.contentRetentionDays,
+          contentKeyVersion: principal.tenant.contentKeyVersion
+        },
         records: batch
       });
 

@@ -25,6 +25,9 @@ export type CachedIngestToken = {
     skewBoundSeconds: number;
     backfillMaxAgeDays: number | null;
     hashKeyVersion: number;
+    recordRetentionDays: number;
+    contentRetentionDays: number;
+    contentKeyVersion: number;
   };
 };
 
@@ -69,7 +72,10 @@ export let getCachedIngestToken = createCachedFunction<
         ref: ingestToken.tenant.ref,
         skewBoundSeconds: ingestToken.tenant.skewBoundSeconds,
         backfillMaxAgeDays: ingestToken.tenant.backfillMaxAgeDays,
-        hashKeyVersion: ingestToken.tenant.hashKeyVersion
+        hashKeyVersion: ingestToken.tenant.hashKeyVersion,
+        recordRetentionDays: ingestToken.tenant.recordRetentionDays,
+        contentRetentionDays: ingestToken.tenant.contentRetentionDays,
+        contentKeyVersion: ingestToken.tenant.contentKeyVersion
       }
     };
   }

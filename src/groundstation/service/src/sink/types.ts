@@ -10,9 +10,22 @@ export let sinkBusyError = createError({
   hint: 'Retry the whole request after the Retry-After delay.'
 });
 
+export type StoragePolicy = {
+  recordRetentionDays: number;
+  contentRetentionDays: number;
+  contentKeyVersion: number;
+};
+
+export let defaultStoragePolicy: StoragePolicy = {
+  recordRetentionDays: 90,
+  contentRetentionDays: 30,
+  contentKeyVersion: 1
+};
+
 export type RecordBatch = {
   lane: RecordLane;
   tenantId: string;
+  storage: StoragePolicy;
   records: NormalizedRecord[];
 };
 

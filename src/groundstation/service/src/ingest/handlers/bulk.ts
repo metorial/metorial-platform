@@ -96,10 +96,8 @@ export let bulkIngestHandler: IngestHandler = async request => {
   let lane = header.mode == 'backfill' ? ('backfill' as const) : ('live' as const);
   let now = runtime.clock().getTime();
 
-  let oldestAllowed =
-    lane == 'backfill' && principal.tenant.backfillMaxAgeDays !== null
-      ? now - principal.tenant.backfillMaxAgeDays * millisPerDay
-      : null;
+  let maxAgeDays = principal.tenant.backfillMaxAgeDays ?? principal.tenant.recordRetentionDays;
+  let oldestAllowed = lane == 'backfill' ? now - maxAgeDays * millisPerDay : null;
 
   let latestAllowed = now + principal.tenant.skewBoundSeconds * 1000;
 

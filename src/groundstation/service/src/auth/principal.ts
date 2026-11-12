@@ -17,6 +17,9 @@ export type IngestPrincipal = {
     skewBoundSeconds: number;
     backfillMaxAgeDays: number | null;
     hashKeyVersion: number;
+    recordRetentionDays: number;
+    contentRetentionDays: number;
+    contentKeyVersion: number;
   };
 };
 

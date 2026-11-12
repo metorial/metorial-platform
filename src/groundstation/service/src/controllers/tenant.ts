@@ -22,7 +22,9 @@ export let tenantController = app.controller({
         skewBoundSeconds: v.optional(v.number({ modifiers: [v.positive(), v.integer()] })),
         backfillMaxAgeDays: v.optional(
           v.nullable(v.number({ modifiers: [v.positive(), v.integer()] }))
-        )
+        ),
+        recordRetentionDays: v.optional(v.number({ modifiers: [v.positive(), v.integer()] })),
+        contentRetentionDays: v.optional(v.number({ modifiers: [v.positive(), v.integer()] }))
       })
     )
     .do(async ctx => {
@@ -30,11 +32,26 @@ export let tenantController = app.controller({
         input: {
           ref: ctx.input.ref,
           skewBoundSeconds: ctx.input.skewBoundSeconds,
-          backfillMaxAgeDays: ctx.input.backfillMaxAgeDays
+          backfillMaxAgeDays: ctx.input.backfillMaxAgeDays,
+          recordRetentionDays: ctx.input.recordRetentionDays,
+          contentRetentionDays: ctx.input.contentRetentionDays
         }
       });
 
       return tenantPresenter(tenant);
+    }),
+
+  eraseRecords: tenantApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string()
+      })
+    )
+    .do(async ctx => {
+      await tenantService.eraseRecords({ tenant: ctx.tenant });
+
+      return { tenantId: ctx.tenant.id, erasing: true };
     }),
 
   get: tenantApp

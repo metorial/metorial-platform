@@ -10,6 +10,9 @@ export let tenantPresenter = (tenant: Tenant) => ({
   backfillMaxAgeDays: tenant.backfillMaxAgeDays,
   hashKeyVersion: tenant.hashKeyVersion,
 
+  recordRetentionDays: tenant.recordRetentionDays,
+  contentRetentionDays: tenant.contentRetentionDays,
+
   createdAt: tenant.createdAt,
   updatedAt: tenant.updatedAt
 });
