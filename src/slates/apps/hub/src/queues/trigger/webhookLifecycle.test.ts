@@ -10,6 +10,8 @@ let db = Object.fromEntries(
     'triggerRegistrationWebhook',
     'triggerWebhookTarget',
     'triggerWebhookTargetRegistrationAttempt',
+    'triggerWebhookRenewalResult',
+    'triggerDeliveryRoute',
     'slateWebhookRegistration'
   ].map(table => [
     table,
@@ -21,9 +23,11 @@ let db = Object.fromEntries(
         'findFirstOrThrow',
         'findMany',
         'create',
+        'createMany',
         'update',
         'updateMany',
         'deleteMany',
+        'delete',
         'count',
         'upsert'
       ].map(method => [method, vi.fn()])
@@ -42,6 +46,7 @@ let invocation = {
 };
 let createRegistration = vi.fn();
 let instanceError = vi.fn();
+let nextSnowflake = vi.fn();
 vi.mock('@lowerdeck/queue', () => ({
   createQueue: ({ name }: { name: string }) => {
     let queue = {
@@ -61,14 +66,31 @@ vi.mock('@lowerdeck/queue', () => ({
 vi.mock('@lowerdeck/cron', () => ({
   createCron: (_options: any, handler: any) => ({ handler })
 }));
+let locks = vi.hoisted(() => ({ held: [] as (string | string[])[], taken: [] as any[] }));
+vi.mock('@lowerdeck/lock', () => ({
+  createLock: ({ name }: { name: string }) => ({
+    usingLock: async (key: string | string[], fn: () => unknown) => {
+      locks.taken.push({ name, key });
+      locks.held.push(key);
+      try {
+        return await fn();
+      } finally {
+        locks.held.splice(locks.held.indexOf(key), 1);
+      }
+    }
+  })
+}));
 vi.mock('./_webhookTargetLock', () => ({
   webhookTargetLock: { usingLock: (_id: string, fn: () => unknown) => fn() }
 }));
 vi.mock('../../db', () => ({ db }));
+vi.mock('../../services/triggerInfrastructure', () => ({
+  getTriggerInfrastructure: vi.fn(async () => undefined)
+}));
 vi.mock('../../env', () => ({ env: { service: { REDIS_URL: 'redis://unused' } } }));
 vi.mock('../../id', () => ({
   getId: () => ({ id: 'generated', oid: 9n }),
-  snowflake: { nextId: () => 10n }
+  snowflake: { nextId: () => nextSnowflake() }
 }));
 vi.mock('../../lib/slateVersion', () => ({
   getActiveSlateVersion: vi.fn(async () => ({ id: 'version' }))
@@ -76,8 +98,30 @@ vi.mock('../../lib/slateVersion', () => ({
 vi.mock('../../lib/webhookUrl', () => ({
   getWebhookUrl: () => 'https://example.invalid/hook'
 }));
+vi.mock('./_triggerAuth', async () => {
+  let { secretService } = await import('../../services/secret');
+  return {
+    resolveTriggerAuth: async (d: any) => {
+      if (!d.authConfig) return null;
+      let decrypted = await secretService.DANGEROUSLY_decryptSecret({
+        secretOid: d.authConfig.secretOid,
+        purpose: 'slate_authentication_configuration',
+        tenant: d.tenant,
+        note: d.note
+      });
+      return {
+        authenticationMethodId: d.authConfig.authMethod.key,
+        data: decrypted.output ?? decrypted.input ?? {}
+      };
+    }
+  };
+});
 vi.mock('../../services/secret', () => ({
-  secretService: { DANGEROUSLY_decryptSecret: decrypt }
+  secretService: {
+    DANGEROUSLY_decryptSecret: decrypt,
+    createSecret: vi.fn(async () => ({ oid: 8n })),
+    DANGEROUSLY_deleteSecret: vi.fn()
+  }
 }));
 vi.mock('../../services/slateInvocation', () => ({ slateInvocationService: invocation }));
 vi.mock('../../services/slateWebhookRegistration', () => ({
@@ -100,6 +144,12 @@ beforeEach(async () => {
   vi.resetAllMocks();
   vi.resetModules();
   queues.clear();
+  nextSnowflake.mockReturnValue(10n);
+  locks.held.length = 0;
+  locks.taken.length = 0;
+  db.$queryRaw = vi.fn();
+  db.triggerWebhookRenewalResult.upsert.mockImplementation(async ({ create }: any) => create);
+  db.slateWebhookRegistration.create.mockResolvedValue({ oid: 7n, secretOid: 8n });
   db.$transaction.mockImplementation(async (operations: any) =>
     typeof operations === 'function' ? operations(db) : Promise.all(operations)
   );
@@ -133,7 +183,11 @@ beforeEach(async () => {
     tenantOid: 1n,
     tenant: { oid: 1n },
     triggerGroupOid: 5n,
-    triggerGroup: { key: 'events', slate: {} },
+    triggerGroup: {
+      key: 'events',
+      slate: {},
+      spec: { invocation: { type: 'webhook', registration: { mode: 'auto' } } }
+    },
     name: 'target',
     description: null,
     metadata: {},
@@ -156,6 +210,13 @@ beforeEach(async () => {
   db.triggerRegistration.findUnique.mockResolvedValue(registration);
   db.triggerRegistration.findFirst.mockResolvedValue(registration);
   db.triggerRegistration.findMany.mockResolvedValue([{ id: registration.id }]);
+  db.triggerWebhookTarget.updateMany.mockImplementation(async ({ data }: any) => {
+    Object.assign(target, data);
+    return { count: 1 };
+  });
+  db.triggerWebhookTarget.count.mockResolvedValue(1);
+  db.triggerDeliveryRoute.findMany.mockResolvedValue([]);
+  db.triggerDeliveryRoute.count.mockResolvedValue(0);
   db.triggerWebhookTarget.findUnique.mockResolvedValue(target);
   db.triggerWebhookTarget.findUniqueOrThrow.mockResolvedValue(target);
   db.triggerWebhookTarget.findFirstOrThrow.mockResolvedValue(target);
@@ -181,7 +242,7 @@ beforeEach(async () => {
     invocation: { oid: 9n },
     data: { webhookRegistrationPayload: { hook: 42 }, webhookRegistrationIdentifier: '42' }
   });
-  createRegistration.mockResolvedValue({ oid: 7n });
+  createRegistration.mockResolvedValue({ oid: 7n, secretOid: 8n });
   await import('./webhookRediscover');
   await import('./webhookUnregister');
   await import('./webhookTargetSweep');
@@ -247,8 +308,8 @@ describe('automatic webhook lifecycle', () => {
         webhookRegistrationPayload: { hook: 42 }
       })
     );
-    expect(db.triggerWebhookTarget.update).toHaveBeenCalledWith({
-      where: { oid: target.oid },
+    expect(db.triggerWebhookTarget.updateMany).toHaveBeenCalledWith({
+      where: expect.objectContaining({ oid: target.oid }),
       data: expect.objectContaining({ status: 'deleted' })
     });
     expect(db.triggerRegistration.findFirst).toHaveBeenCalledWith(
@@ -272,7 +333,7 @@ describe('automatic webhook lifecycle', () => {
     expect(db.triggerRegistration.findFirst.mock.calls[0][0].where.id).toBe('connection');
     await run('whk/unregister', data, 1);
     expect(db.triggerRegistration.findFirst.mock.calls[1][0].where.id).toBe('last-writer');
-    expect(db.triggerWebhookTarget.update).toHaveBeenCalledWith(
+    expect(db.triggerWebhookTarget.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: 'deleted' }) })
     );
   });
@@ -282,7 +343,7 @@ describe('automatic webhook lifecycle', () => {
       triggerRegistrationId: 'last-reader'
     });
     expect(db.triggerRegistration.findFirst.mock.calls[0][0].where.id).toBe('connection');
-    expect(db.triggerWebhookTarget.update).toHaveBeenCalledWith(
+    expect(db.triggerWebhookTarget.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: 'deleted' }) })
     );
   });
@@ -298,7 +359,7 @@ describe('automatic webhook lifecycle', () => {
     expect(db.triggerWebhookTargetRegistrationAttempt.create).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: 'failed' }) })
     );
-    expect(db.triggerWebhookTarget.update).toHaveBeenCalledWith(
+    expect(db.triggerWebhookTarget.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ data: { status: 'deleting', unregistrationStarted: true } })
     );
     expect(db.slateWebhookRegistration.update).not.toHaveBeenCalled();
@@ -307,7 +368,7 @@ describe('automatic webhook lifecycle', () => {
     db.triggerRegistrationWebhook.findMany.mockResolvedValue([activeLink]);
     await run('whk/unregister', { triggerWebhookTargetId: target.id });
     expect(invocation.unregisterWebhook).not.toHaveBeenCalled();
-    expect(db.triggerWebhookTarget.update).toHaveBeenCalledWith(
+    expect(db.triggerWebhookTarget.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ data: { status: 'active' } })
     );
   });
@@ -355,7 +416,7 @@ describe('automatic webhook lifecycle', () => {
   it('records which connection created the hook on the target', async () => {
     target.status = 'creating';
     await run('whk/register', { triggerWebhookTargetId: target.id });
-    expect(db.triggerWebhookTarget.update).toHaveBeenCalledWith(
+    expect(db.triggerWebhookTarget.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           status: 'active',
@@ -487,23 +548,43 @@ describe('automatic webhook lifecycle', () => {
 });
 
 describe('unregister terminal state', () => {
-  it('deletes the target locally on the last attempt when the provider keeps failing', async () => {
+  it('removes the target locally on the last attempt when provider cleanup keeps failing', async () => {
     invocation.unregisterWebhook.mockResolvedValue({
       status: 'error',
       invocation: { oid: 9n },
       error: { code: 'permission', message: 'Access denied' }
     });
+    target.webhookRegistration.urlKey = 'registered-key';
     await run('whk/unregister', { triggerWebhookTargetId: target.id }, 9);
     expect(db.triggerWebhookTargetRegistrationAttempt.create).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: 'failed' }) })
     );
-    expect(db.triggerWebhookTarget.update).toHaveBeenCalledWith({
-      where: { oid: target.oid },
-      data: expect.objectContaining({ status: 'deleted' })
-    });
+    // The hook is still at the provider, so its URL is kept for the next registration and
+    // the deleted record gives it up.
+    expect(db.triggerWebhookTarget.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: 'deleted',
+          registrationUrlKey: 'registered-key'
+        })
+      })
+    );
     expect(db.slateWebhookRegistration.update).toHaveBeenCalledWith({
       where: { oid: 7n },
-      data: expect.objectContaining({ status: 'deleted' })
+      data: { status: 'deleted', urlKey: 'url-key' }
+    });
+  });
+  it('releases the receive URL when the provider hook was removed', async () => {
+    target.webhookRegistration.urlKey = 'registered-key';
+    await run('whk/unregister', { triggerWebhookTargetId: target.id });
+    expect(db.triggerWebhookTarget.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: 'deleted', registrationUrlKey: null })
+      })
+    );
+    expect(db.slateWebhookRegistration.update).toHaveBeenCalledWith({
+      where: { oid: 7n },
+      data: { status: 'deleted' }
     });
   });
   it('falls back to any connection of the trigger group when the creator is unknown', async () => {
@@ -520,16 +601,22 @@ describe('unregister terminal state', () => {
       })
     );
     expect(invocation.unregisterWebhook).toHaveBeenCalled();
-    expect(db.triggerWebhookTarget.update).toHaveBeenCalledWith(
+    expect(db.triggerWebhookTarget.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: 'deleted' }) })
     );
   });
   it('deletes the target locally on the last attempt when no cleanup credentials exist', async () => {
     db.triggerRegistration.findFirst.mockResolvedValue(null);
+    target.webhookRegistration.urlKey = 'registered-key';
     await run('whk/unregister', { triggerWebhookTargetId: target.id }, 9);
     expect(invocation.unregisterWebhook).not.toHaveBeenCalled();
-    expect(db.triggerWebhookTarget.update).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ status: 'deleted' }) })
+    expect(db.triggerWebhookTarget.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: 'deleted',
+          registrationUrlKey: 'registered-key'
+        })
+      })
     );
   });
 });
@@ -627,8 +714,8 @@ describe('shared targets with mixed webhook permissions', () => {
       { triggerWebhookTargetId: target.id, triggerRegistrationInstanceId: 'reader' },
       4
     );
-    expect(db.triggerWebhookTarget.update).toHaveBeenCalledWith(
-      expect.objectContaining({ data: { status: 'failed' } })
+    expect(db.triggerWebhookTarget.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { renewalOperationId: null, status: 'failed' } })
     );
     target.status = 'failed';
     target.webhooks = [
@@ -651,14 +738,14 @@ describe('shared targets with mixed webhook permissions', () => {
             where: {
               triggerRegistrationInstance: {
                 id: 'writer',
-                triggerRegistration: { status: 'active' }
+                triggerRegistration: { status: 'active', tenant: { disableCallbacks: false } }
               }
             }
           })
         })
       })
     );
-    expect(db.triggerWebhookTarget.update).toHaveBeenLastCalledWith(
+    expect(db.triggerWebhookTarget.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ registeredByTriggerRegistrationOid: 12n })
       })
@@ -695,7 +782,7 @@ describe('shared targets with mixed webhook permissions', () => {
       db.triggerWebhookTarget.findUnique.mock.calls[1][0].include.webhooks.where
         .triggerRegistrationInstance.id
     ).toBeUndefined();
-    expect(db.triggerWebhookTarget.update).toHaveBeenCalledWith(
+    expect(db.triggerWebhookTarget.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ registeredByTriggerRegistrationOid: registration.oid })
       })
@@ -795,7 +882,7 @@ describe('cleanup recovery', () => {
         })
       })
     );
-    expect(db.triggerWebhookTarget.update).toHaveBeenLastCalledWith(
+    expect(db.triggerWebhookTarget.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: 'deleted' }) })
     );
   });
@@ -909,4 +996,432 @@ describe('complete discovery pruning', () => {
     await finishPruning();
     expect(links).toHaveLength(1);
   });
+});
+
+describe('durable provider lifecycle claims', () => {
+  it('does not invoke provider cleanup while a registration or renewal can still finish', async () => {
+    db.triggerWebhookTarget.updateMany.mockResolvedValue({ count: 0 });
+    await expect(
+      run('whk/unregister', { triggerWebhookTargetId: target.id })
+    ).rejects.toThrow();
+    expect(invocation.unregisterWebhook).not.toHaveBeenCalled();
+  });
+
+  it('does not start a provider call the claim cannot outlast', async () => {
+    target.status = 'creating';
+    db.triggerWebhookTarget.count.mockResolvedValue(0);
+    await expect(run('whk/register', { triggerWebhookTargetId: target.id })).rejects.toThrow();
+    expect(invocation.registerWebhook).not.toHaveBeenCalled();
+    expect(
+      db.triggerWebhookTarget.count.mock.calls[0][0].where.renewalClaimUntil.gt.getTime()
+    ).toBeGreaterThan(Date.now() + 15 * 60 * 1000);
+  });
+
+  it('retries a failed registration under a new operation identity', async () => {
+    target.status = 'creating';
+    target.renewalOperationId = null;
+    for (let id of [1n, 2n, 3n, 4n]) nextSnowflake.mockReturnValueOnce(id);
+    invocation.registerWebhook.mockResolvedValueOnce({
+      status: 'error',
+      invocation: { oid: 9n },
+      error: { code: 'unavailable', message: 'Service unavailable' }
+    });
+    await expect(run('whk/register', { triggerWebhookTargetId: target.id })).rejects.toThrow();
+    expect(invocation.registerWebhook.mock.calls[0][0].operationId).toBe('register:1');
+    expect(target.renewalOperationId).toBeNull();
+    expect(target.status).toBe('creating');
+    expect(instanceError).not.toHaveBeenCalled();
+
+    await run('whk/register', { triggerWebhookTargetId: target.id }, 1);
+    expect(invocation.registerWebhook.mock.calls[1][0].operationId).toBe('register:3');
+    expect(db.slateWebhookRegistration.create).toHaveBeenCalled();
+  });
+
+  it('ends in the failed state when the last attempt throws before a result is saved', async () => {
+    target.status = 'creating';
+    invocation.createInvocationWithState.mockRejectedValue(new Error('stack unavailable'));
+
+    await expect(
+      run('whk/register', { triggerWebhookTargetId: target.id }, 3)
+    ).rejects.toThrow('stack unavailable');
+    expect(target.status).toBe('creating');
+    expect(instanceError).not.toHaveBeenCalled();
+
+    await expect(
+      run('whk/register', { triggerWebhookTargetId: target.id }, 4)
+    ).rejects.toThrow('stack unavailable');
+    expect(target.status).toBe('failed');
+    expect(target.renewalOperationId).toBeNull();
+    expect(instanceError).toHaveBeenCalledTimes(1);
+    expect(instanceError).toHaveBeenCalledWith({
+      triggerRegistrationInstanceOid: instance.oid,
+      triggerWebhookTargetOid: target.oid,
+      registrationAttemptOid: undefined,
+      code: 'webhook_registration_failed',
+      message: expect.stringContaining('after 5 attempts')
+    });
+    expect(instanceError.mock.calls[0]![0].message).not.toContain('stack unavailable');
+    expect(invocation.registerWebhook).not.toHaveBeenCalled();
+  });
+
+  it('leaves a saved provider result to the cleanup queue when the last attempt cannot commit', async () => {
+    target.status = 'creating';
+    target.renewalOperationId = null;
+    db.$transaction.mockRejectedValue(new Error('database unavailable'));
+
+    await expect(
+      run('whk/register', { triggerWebhookTargetId: target.id }, 4)
+    ).rejects.toThrow('database unavailable');
+
+    expect(db.triggerWebhookRenewalResult.upsert).toHaveBeenCalled();
+    expect(target.status).toBe('creating');
+    expect(target.renewalOperationId).toBe('register:10');
+    expect(instanceError).not.toHaveBeenCalled();
+  });
+
+  it('reports a last attempt that could not start while an earlier one holds the target', async () => {
+    target.status = 'creating';
+    db.triggerWebhookTarget.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(
+      run('whk/register', { triggerWebhookTargetId: target.id }, 3)
+    ).rejects.toThrow();
+    expect(instanceError).not.toHaveBeenCalled();
+
+    await expect(
+      run('whk/register', { triggerWebhookTargetId: target.id }, 4)
+    ).rejects.toThrow();
+    expect(instanceError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        triggerRegistrationInstanceOid: instance.oid,
+        triggerWebhookTargetOid: target.oid,
+        code: 'webhook_registration_failed'
+      })
+    );
+    expect(target.status).toBe('creating');
+    expect(invocation.registerWebhook).not.toHaveBeenCalled();
+  });
+
+  it('resumes a saved provider result without touching infrastructure or its operation identity', async () => {
+    target.status = 'creating';
+    target.registrationUrlKey = 'saved-key';
+    target.renewalOperationId = 'saved-operation';
+    let { getTriggerInfrastructure } = await import('../../services/triggerInfrastructure');
+    vi.mocked(getTriggerInfrastructure).mockRejectedValue(new Error('unavailable'));
+    db.triggerWebhookRenewalResult.findUnique.mockResolvedValue({
+      operationId: 'saved-operation',
+      secretOid: 8n,
+      invocationOid: 9n,
+      registrationIdentifier: 'saved-hook',
+      nextRenewalAt: null,
+      expiresAt: null,
+      renewAfter: null,
+      deliveryBindingId: 'binding',
+      routingKeys: ['mailbox-a']
+    });
+    await run('whk/register', { triggerWebhookTargetId: target.id }, 1);
+    expect(getTriggerInfrastructure).not.toHaveBeenCalled();
+    expect(invocation.registerWebhook).not.toHaveBeenCalled();
+    expect(db.triggerDeliveryRoute.createMany).toHaveBeenCalledWith({
+      data: [
+        { oid: 10n, bindingId: 'binding', routingKey: 'mailbox-a', webhookRegistrationOid: 7n }
+      ],
+      skipDuplicates: true
+    });
+    expect(db.triggerWebhookRenewalResult.delete).toHaveBeenCalledWith({
+      where: { operationId: 'saved-operation' }
+    });
+  });
+
+  it('looks up the delivery config for the tenant, integration, trigger group and OAuth app', async () => {
+    target.status = 'creating';
+    registration.authConfig.oauthCredentials = { clientId: 'client-id' };
+    let { getTriggerInfrastructure } = await import('../../services/triggerInfrastructure');
+    await run('whk/register', { triggerWebhookTargetId: target.id });
+    expect(getTriggerInfrastructure).toHaveBeenCalledWith({
+      tenant: registration.tenant,
+      slate: registration.slate,
+      triggerGroup: target.triggerGroup,
+      oauthClientId: 'client-id'
+    });
+  });
+
+  it('records a missing delivery config under its own code and message', async () => {
+    target.status = 'creating';
+    let { badRequestError, ServiceError } = await import('@lowerdeck/error');
+    let { getTriggerInfrastructure } = await import('../../services/triggerInfrastructure');
+    vi.mocked(getTriggerInfrastructure).mockRejectedValue(
+      new ServiceError(
+        badRequestError({
+          code: 'trigger_delivery_config_missing',
+          message: 'Delivery is not set up.'
+        })
+      )
+    );
+    await expect(
+      run('whk/register', { triggerWebhookTargetId: target.id }, 4)
+    ).rejects.toThrow();
+    expect(instanceError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'trigger_delivery_config_missing',
+        message: 'Delivery is not set up.',
+        triggerRegistrationInstanceOid: instance.oid
+      })
+    );
+    expect(target.status).toBe('failed');
+    expect(invocation.registerWebhook).not.toHaveBeenCalled();
+  });
+});
+
+describe('shared delivery routes', () => {
+  let delivery = { bindingId: 'binding', infrastructure: { opaque: true } };
+
+  it('stores the routing keys of a managed-delivery registration with the registration', async () => {
+    target.status = 'creating';
+    let { getTriggerInfrastructure } = await import('../../services/triggerInfrastructure');
+    vi.mocked(getTriggerInfrastructure).mockResolvedValue(delivery as any);
+    invocation.registerWebhook.mockResolvedValue({
+      status: 'success',
+      invocation: { oid: 9n },
+      data: {
+        webhookRegistrationPayload: { hook: 42 },
+        webhookRegistrationIdentifier: '42',
+        routingKeys: ['mailbox-a']
+      }
+    });
+    await run('whk/register', { triggerWebhookTargetId: target.id });
+    expect(invocation.registerWebhook).toHaveBeenCalledWith(
+      expect.objectContaining({ infrastructure: delivery.infrastructure })
+    );
+    expect(db.triggerDeliveryRoute.createMany).toHaveBeenCalledWith({
+      data: [
+        { oid: 10n, bindingId: 'binding', routingKey: 'mailbox-a', webhookRegistrationOid: 7n }
+      ],
+      skipDuplicates: true
+    });
+  });
+
+  it('fails a managed-delivery registration that names no routing key', async () => {
+    target.status = 'creating';
+    let { getTriggerInfrastructure } = await import('../../services/triggerInfrastructure');
+    vi.mocked(getTriggerInfrastructure).mockResolvedValue(delivery as any);
+    await run('whk/register', { triggerWebhookTargetId: target.id }, 4);
+    expect(db.slateWebhookRegistration.create).not.toHaveBeenCalled();
+    expect(db.triggerWebhookTargetRegistrationAttempt.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ errorCode: 'webhook_routing_keys_missing' })
+      })
+    );
+    expect(instanceError).toHaveBeenCalledWith(
+      expect.objectContaining({ code: 'webhook_registration_failed' })
+    );
+  });
+
+  it('leaves the provider resource in place while another registration receives the same key', async () => {
+    db.triggerDeliveryRoute.findMany.mockResolvedValue([
+      { bindingId: 'binding', routingKey: 'mailbox-a' }
+    ]);
+    db.triggerDeliveryRoute.count.mockResolvedValue(1);
+    await run('whk/unregister', { triggerWebhookTargetId: target.id });
+    expect(invocation.unregisterWebhook).not.toHaveBeenCalled();
+    expect(db.triggerDeliveryRoute.count.mock.calls[0][0].where).toEqual({
+      OR: [{ bindingId: 'binding', routingKey: 'mailbox-a' }],
+      webhookRegistrationOid: { not: 7n },
+      webhookRegistration: { status: 'active', triggerWebhookTarget: { status: 'active' } }
+    });
+    expect(db.triggerDeliveryRoute.deleteMany).toHaveBeenCalledWith({
+      where: { webhookRegistrationOid: 7n }
+    });
+    expect(db.triggerWebhookTarget.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: 'deleted' }) })
+    );
+  });
+
+  it('leaves the provider resource in place for a registration that is not committed yet', async () => {
+    db.triggerDeliveryRoute.findMany.mockResolvedValue([
+      { bindingId: 'binding', routingKey: 'mailbox-a' }
+    ]);
+    db.triggerWebhookRenewalResult.count.mockImplementation(async ({ where }: any) =>
+      where.OR ? 1 : 0
+    );
+    await run('whk/unregister', { triggerWebhookTargetId: target.id });
+    expect(invocation.unregisterWebhook).not.toHaveBeenCalled();
+    expect(db.triggerWebhookRenewalResult.count.mock.calls[0][0].where).toEqual({
+      OR: [{ deliveryBindingId: 'binding', routingKeys: { has: 'mailbox-a' } }],
+      targetOid: { not: target.oid },
+      operationId: undefined
+    });
+  });
+
+  it('removes the provider resource when the last registration for a key is removed', async () => {
+    db.triggerDeliveryRoute.findMany.mockResolvedValue([
+      { bindingId: 'binding', routingKey: 'mailbox-a' }
+    ]);
+    await run('whk/unregister', { triggerWebhookTargetId: target.id });
+    expect(invocation.unregisterWebhook).toHaveBeenCalled();
+    expect(db.triggerDeliveryRoute.deleteMany).toHaveBeenCalledWith({
+      where: { webhookRegistrationOid: 7n }
+    });
+  });
+
+  it('holds a binding shard from the provider call until the result is saved', async () => {
+    target.status = 'creating';
+    let { getTriggerInfrastructure } = await import('../../services/triggerInfrastructure');
+    vi.mocked(getTriggerInfrastructure).mockResolvedValue(delivery as any);
+    let heldDuringCall: unknown[] = [];
+    let heldDuringSave: unknown[] = [];
+    invocation.registerWebhook.mockImplementation(async () => {
+      heldDuringCall = [...locks.held];
+      return {
+        status: 'success',
+        invocation: { oid: 9n },
+        data: {
+          webhookRegistrationPayload: { hook: 42 },
+          webhookRegistrationIdentifier: '42',
+          routingKeys: ['mailbox-a']
+        }
+      };
+    });
+    db.triggerWebhookRenewalResult.upsert.mockImplementation(async ({ create }: any) => {
+      heldDuringSave = [...locks.held];
+      return create;
+    });
+
+    await run('whk/register', { triggerWebhookTargetId: target.id });
+
+    expect(heldDuringCall).toEqual([`binding:${target.oid % 8n}`]);
+    expect(heldDuringSave).toEqual(heldDuringCall);
+    expect(locks.held).toEqual([]);
+    expect(db.slateWebhookRegistration.create).toHaveBeenCalled();
+  });
+
+  it('takes no delivery lock for a registration without managed delivery', async () => {
+    target.status = 'creating';
+    await run('whk/register', { triggerWebhookTargetId: target.id });
+    expect(invocation.registerWebhook).toHaveBeenCalled();
+    expect(locks.taken).toEqual([]);
+  });
+
+  it('holds every binding shard from the shared check through the provider removal', async () => {
+    db.triggerDeliveryRoute.findMany.mockResolvedValue([
+      { bindingId: 'binding', routingKey: 'mailbox-a' }
+    ]);
+    let heldDuringCheck: unknown[] = [];
+    let heldDuringRemoval: unknown[] = [];
+    db.triggerDeliveryRoute.count.mockImplementation(async () => {
+      heldDuringCheck = [...locks.held];
+      return 0;
+    });
+    invocation.unregisterWebhook.mockImplementation(async () => {
+      heldDuringRemoval = [...locks.held];
+      return { status: 'success', invocation: { oid: 9n } };
+    });
+
+    await run('whk/unregister', { triggerWebhookTargetId: target.id });
+
+    let allShards = Array.from({ length: 8 }, (_, shard) => `binding:${shard}`);
+    expect(heldDuringCheck).toEqual([allShards]);
+    expect(heldDuringRemoval).toEqual([allShards]);
+    expect(locks.held).toEqual([]);
+  });
+});
+
+describe('persisted registration results', () => {
+  it('resumes a persisted initial registration result without repeating the provider call', async () => {
+    target.status = 'creating';
+    target.registrationUrlKey = 'saved-key';
+    target.renewalOperationId = 'saved-operation';
+    db.triggerWebhookRenewalResult.findUnique.mockResolvedValue({
+      operationId: 'saved-operation',
+      secretOid: 8n,
+      invocationOid: 9n,
+      registrationIdentifier: 'saved-hook',
+      nextRenewalAt: null,
+      expiresAt: null,
+      renewAfter: null
+    });
+    await run('whk/register', { triggerWebhookTargetId: target.id });
+    expect(invocation.registerWebhook).not.toHaveBeenCalled();
+    expect(db.slateWebhookRegistration.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          urlKey: 'saved-key',
+          secretOid: 8n,
+          registrationIdentifier: 'saved-hook'
+        })
+      })
+    );
+    expect(db.triggerWebhookRenewalResult.delete).toHaveBeenCalledWith({
+      where: { operationId: 'saved-operation' }
+    });
+  });
+});
+
+it('removes the provider hook of a target whose delivery config was removed and records why it cannot register again', async () => {
+  // The state the config removal leaves a target in that connections still use.
+  target.status = 'deleting';
+  target.unregistrationStarted = true;
+  db.triggerRegistrationWebhook.findMany.mockResolvedValue([activeLink]);
+  db.triggerDeliveryRoute.findMany.mockResolvedValue([
+    { bindingId: 'whr_config', routingKey: 'mailbox-a' }
+  ]);
+  let { badRequestError, ServiceError } = await import('@lowerdeck/error');
+  let { getTriggerInfrastructure } = await import('../../services/triggerInfrastructure');
+  vi.mocked(getTriggerInfrastructure).mockRejectedValue(
+    new ServiceError(
+      badRequestError({
+        code: 'trigger_delivery_config_missing',
+        message: 'Delivery is not set up.'
+      })
+    )
+  );
+
+  await run('whk/unregister', { triggerWebhookTargetId: target.id });
+
+  expect(invocation.unregisterWebhook).toHaveBeenCalledTimes(1);
+  expect(db.triggerDeliveryRoute.deleteMany).toHaveBeenCalledWith({
+    where: { webhookRegistrationOid: 7n }
+  });
+  expect(db.slateWebhookRegistration.update).toHaveBeenCalledWith({
+    where: { oid: 7n },
+    data: { status: 'deleted' }
+  });
+  expect(target.status).toBe('creating');
+  let jobs = queues.get('shub/trg/whk/register/1').addManyWithOps.mock.calls[0]![0];
+  expect(jobs).toHaveLength(1);
+
+  await expect(run('whk/register', jobs[0].data, 4)).rejects.toThrow();
+  expect(target.status).toBe('failed');
+  expect(instanceError).toHaveBeenCalledWith(
+    expect.objectContaining({
+      code: 'trigger_delivery_config_missing',
+      message: 'Delivery is not set up.'
+    })
+  );
+  expect(invocation.registerWebhook).not.toHaveBeenCalled();
+});
+
+it('records infrastructure setup failures without inventing a provider invocation', async () => {
+  target.status = 'creating';
+  let { getTriggerInfrastructure } = await import('../../services/triggerInfrastructure');
+  vi.mocked(getTriggerInfrastructure).mockRejectedValueOnce(
+    new Error('configuration unavailable')
+  );
+  await expect(
+    run('whk/register', { triggerWebhookTargetId: target.id }, 4)
+  ).rejects.toThrow();
+  expect(instanceError).toHaveBeenCalledWith(
+    expect.objectContaining({
+      code: 'trigger_infrastructure_setup_failed',
+      triggerRegistrationInstanceOid: instance.oid
+    })
+  );
+  expect(db.triggerWebhookTarget.updateMany).toHaveBeenCalledWith(
+    expect.objectContaining({
+      where: expect.objectContaining({ renewalClaimToken: expect.any(String) }),
+      data: { renewalOperationId: null, status: 'failed' }
+    })
+  );
+  expect(invocation.registerWebhook).not.toHaveBeenCalled();
+  expect(db.triggerWebhookTargetRegistrationAttempt.create).not.toHaveBeenCalled();
 });

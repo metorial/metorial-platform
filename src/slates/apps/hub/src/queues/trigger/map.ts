@@ -1,14 +1,16 @@
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '../../db';
 import { env } from '../../env';
-import { triggerEventServiceInternal } from '../../internal';
-import { getActiveSlateVersion } from '../../lib/slateVersion';
-import { secretService, slateInvocationService } from '../../services';
+import { triggerEventServiceInternal } from '../../internal/triggerEventServiceInternal';
+import { slateInvocationService } from '../../services/slateInvocation';
 import { TRIGGER_EVENT_MAP_MAX_ATTEMPTS, triggerEventMapBackoffMs } from './_config';
-import { decrementPendingTriggerMapCount, markRawEventProcessingFailed } from './_rawEvent';
+import { createTriggerInstanceStack } from './_stack';
 import { triggerRawEventCleanupQueue } from './cleanup';
 import { triggerEventProcessQueue } from './eventProcess';
-import { triggerEventPayloadOffloadQueue } from './payloadOffload';
+import {
+  triggerEventPayloadOffloadQueue,
+  triggerRawEventPayloadOffloadQueue
+} from './payloadOffload';
 
 let include = {
   triggerRegistrationInstance: {
@@ -25,6 +27,28 @@ let include = {
       }
     }
   }
+};
+
+// A failed raw event keeps its payload until its last trigger settles, whichever way.
+let offloadSettledFailedRawEvent = async (rawEvent: { oid: bigint; id: string }) => {
+  let pendingChildren = await db.triggerEvent.count({
+    where: {
+      rawEventOid: rawEvent.oid,
+      status: { in: ['pending', 'mapping_failed'] }
+    }
+  });
+  if (pendingChildren > 0) return;
+
+  await triggerRawEventPayloadOffloadQueue.add({ rawEventId: rawEvent.id });
+};
+
+let markRawEventProcessingFailed = async (d: { rawEventOid: bigint }) => {
+  let updated = await db.triggerRawEvent.update({
+    where: { oid: d.rawEventOid },
+    data: { processingStatus: 'failed' }
+  });
+
+  await offloadSettledFailedRawEvent(updated);
 };
 
 export let triggerMapQueue = createQueue<{
@@ -55,7 +79,25 @@ export let triggerMapQueueProcessor = triggerMapQueue.process(async data => {
     source: rawEvent.source
   });
 
-  if (registration.status === 'deleted') {
+  if (event.status === 'mapping_failed_final') return;
+  if (event.status === 'mapped') {
+    // The dispatch row is removed once the event is delivered, so a map job retried after
+    // that must not deliver it again.
+    let dispatch = await db.triggerEventDispatch.findUnique({
+      where: { eventOid: event.oid },
+      select: { eventOid: true }
+    });
+
+    // Same job id as the mapped-event dispatch scanner, so the two cannot deliver twice.
+    if (dispatch) await triggerEventProcessQueue.add({ eventId: event.id }, { id: event.id });
+    await triggerEventPayloadOffloadQueue.add({ triggerEventId: event.id });
+    if (rawEvent.processingStatus === 'failed') await offloadSettledFailedRawEvent(rawEvent);
+    if (rawEvent.pendingTriggerMapCount === 0)
+      await triggerRawEventCleanupQueue.add({ rawEventId: rawEvent.id });
+    return;
+  }
+
+  if (registration.status === 'deleted' || registration.tenant.disableCallbacks) {
     await triggerEventServiceInternal.resolveFinalFailure({
       eventOid: event.oid,
       attempt: data.attempt,
@@ -66,32 +108,10 @@ export let triggerMapQueueProcessor = triggerMapQueue.process(async data => {
     return;
   }
 
-  let version = await getActiveSlateVersion({
-    slate: registration.slate,
-    instance: registration.instance
-  });
-
-  let auth: { authenticationMethodId: string; data: Record<string, any> } | null = null;
-  if (registration.authConfig) {
-    let decrypted = await secretService.DANGEROUSLY_decryptSecret({
-      secretOid: registration.authConfig.secretOid,
-      purpose: 'slate_authentication_configuration',
-      tenant: registration.tenant,
-      note: `trigger-map:${rawEvent.id}:${data.triggerId}`
-    });
-    auth = {
-      authenticationMethodId: registration.authConfig.authMethod.key,
-      data: decrypted.output ?? decrypted.input ?? {}
-    };
-  }
-
-  let stack = await slateInvocationService.createInvocationWithState({
-    participants: [],
-    slateVersion: version,
-    tenant: registration.tenant,
-    session: { id: instance.id, state: {} },
-    config: registration.instanceConfig.value ?? {},
-    auth
+  let stack = await createTriggerInstanceStack({
+    registration,
+    sessionId: instance.id,
+    note: `trigger-map:${rawEvent.id}:${data.triggerId}`
   });
 
   if (rawEvent.payload === null) {
@@ -155,7 +175,8 @@ export let triggerMapQueueProcessor = triggerMapQueue.process(async data => {
     status: 'succeeded'
   });
 
-  await triggerEventServiceInternal.resolveMapped({
+  let resolved = await triggerEventServiceInternal.resolveMapped({
+    rawEventOid: rawEvent.oid,
     eventOid: event.oid,
     attempt: data.attempt,
     payload: result.data.output,
@@ -164,10 +185,12 @@ export let triggerMapQueueProcessor = triggerMapQueue.process(async data => {
   });
   await triggerEventPayloadOffloadQueue.add({ triggerEventId: event.id });
 
-  await triggerEventProcessQueue.add({ eventId: event.id });
+  await triggerEventProcessQueue.add({ eventId: event.id }, { id: event.id });
 
-  let updatedRawEvent = await decrementPendingTriggerMapCount({ rawEventOid: rawEvent.oid });
-  if (updatedRawEvent.pendingTriggerMapCount === 0) {
+  if (resolved.rawEvent?.processingStatus === 'failed')
+    await offloadSettledFailedRawEvent(resolved.rawEvent);
+
+  if (resolved.rawEvent?.pendingTriggerMapCount === 0) {
     await triggerRawEventCleanupQueue.add({ rawEventId: rawEvent.id });
   }
 });

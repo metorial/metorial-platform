@@ -15,6 +15,7 @@ import { canonicalizeAdapterCapabilities } from '../../adapterCapabilities';
 import { backend } from '../../backend';
 import { slates } from '../../client';
 import { env } from '../../env';
+import { toWebhookRegistrationCapability } from '../../impl/webhookRegistrationCapability';
 
 export let syncSlateVersionQueue = createQueue<{
   slateId: string;
@@ -313,9 +314,6 @@ export let syncSlateVersionQueueProcessor = syncSlateVersionQueue.process(async 
   let hasAuthConfig = !!(spec && spec.authMethods.length > 0);
   let hasOAuth = spec?.authMethods.some(am => am.type === 'oauth');
   let hasTriggers = !!spec?.triggers.length;
-  let hasManualWebhookTriggerGroup = !!spec?.triggerGroups.some(
-    g => g.invocation.type === 'webhook' && g.invocation.registration.mode === 'manual'
-  );
   let docs = buildProviderListingDocs(spec);
 
   let type = {
@@ -328,9 +326,7 @@ export let syncSlateVersionQueueProcessor = syncSlateVersionQueue.process(async 
       triggers: hasTriggers
         ? {
             status: 'enabled',
-            webhookRegistration: {
-              status: hasManualWebhookTriggerGroup ? 'supported' : 'unsupported'
-            }
+            webhookRegistration: toWebhookRegistrationCapability(spec?.triggerGroups ?? [])
           }
         : { status: 'disabled' },
 
@@ -357,39 +353,45 @@ export let syncSlateVersionQueueProcessor = syncSlateVersionQueue.process(async 
     } satisfies PrismaJson.ProviderTypeAttributes
   };
 
-  let provider = await providerInternalService.upsertProvider({
-    owner: null,
-    publisher,
-    source: {
-      type: 'slates',
-      slate: slateRecord,
-      backend
-    },
-    info: await (async () => {
-      let regIdentifier = registryRecord.fullIdentifier as string;
-      let slug = slugify(`${regIdentifier}-${generateCode(5)}`);
-      let globalIdentifier = slugify(
-        `${regIdentifier}-${(await Hash.sha256(JSON.stringify(['slate', regIdentifier, registry.url]))).slice(0, 6)}`
-      );
-      let prettySlug = generatePrettySlug(regIdentifier);
-      let aliases = [slug, globalIdentifier, prettySlug, regIdentifier];
+  // An older version that syncs late must not replace what the current version says about
+  // the provider (its capabilities, listing and docs), so it uses the provider as it is.
+  let provider =
+    (version.isCurrent
+      ? null
+      : await providerInternalService.findSlateProvider({ slate: slateRecord })) ??
+    (await providerInternalService.upsertProvider({
+      owner: null,
+      publisher,
+      source: {
+        type: 'slates',
+        slate: slateRecord,
+        backend
+      },
+      info: await (async () => {
+        let regIdentifier = registryRecord.fullIdentifier as string;
+        let slug = slugify(`${regIdentifier}-${generateCode(5)}`);
+        let globalIdentifier = slugify(
+          `${regIdentifier}-${(await Hash.sha256(JSON.stringify(['slate', regIdentifier, registry.url]))).slice(0, 6)}`
+        );
+        let prettySlug = generatePrettySlug(regIdentifier);
+        let aliases = [slug, globalIdentifier, prettySlug, regIdentifier];
 
-      return {
-        name: Cases.toTitleCase(slate.name),
-        description: slate.description ?? undefined,
-        slug,
-        prettySlug,
-        aliases,
-        image: registryRecord.logoUrl ? { type: 'url', url: registryRecord.logoUrl } : null,
-        skills: registryRecord.skills,
-        readme: readme,
-        docs,
-        categories: registryRecord.categories?.map((c: any) => c.identifier) ?? [],
-        globalIdentifier
-      };
-    })(),
-    type
-  });
+        return {
+          name: Cases.toTitleCase(slate.name),
+          description: slate.description ?? undefined,
+          slug,
+          prettySlug,
+          aliases,
+          image: registryRecord.logoUrl ? { type: 'url', url: registryRecord.logoUrl } : null,
+          skills: registryRecord.skills,
+          readme: readme,
+          docs,
+          categories: registryRecord.categories?.map((c: any) => c.identifier) ?? [],
+          globalIdentifier
+        };
+      })(),
+      type
+    }));
   if (!provider?.defaultVariant) {
     throw new Error(`No default variant after upserting provider for slate ${slate.id}`);
   }

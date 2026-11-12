@@ -4,6 +4,7 @@ let webhookRegistrationCreate = vi.fn();
 let webhookRegistrationUpdate = vi.fn();
 let webhookRegistrationFindFirst = vi.fn();
 let providerFindFirst = vi.fn();
+let deleteQueueAdd = vi.fn();
 
 let backendCallbacks = {
   createWebhookRegistration: vi.fn(),
@@ -60,18 +61,28 @@ vi.mock('@metorial/fabric', () => ({
   Fabric: { fire: vi.fn() }
 }));
 
-let triggerAttributes = (webhookRegistrationStatus: 'supported' | 'unsupported') => ({
+vi.mock('../queues/delete/webhookRegistration', () => ({
+  webhookRegistrationDeleteQueue: { add: deleteQueueAdd }
+}));
+
+let triggerAttributes = (
+  webhookRegistrationStatus: 'supported' | 'unsupported',
+  purpose?: 'delivery_setup'
+) => ({
   triggers: {
     status: 'enabled',
-    webhookRegistration: { status: webhookRegistrationStatus }
+    webhookRegistration: { status: webhookRegistrationStatus, ...(purpose ? { purpose } : {}) }
   }
 });
 
-let activeProvider = (webhookRegistrationStatus: 'supported' | 'unsupported') => ({
+let activeProvider = (
+  webhookRegistrationStatus: 'supported' | 'unsupported',
+  purpose?: 'delivery_setup'
+) => ({
   oid: BigInt(7),
   id: 'pro_1',
   name: 'GitHub',
-  type: { attributes: triggerAttributes(webhookRegistrationStatus) },
+  type: { attributes: triggerAttributes(webhookRegistrationStatus, purpose) },
   defaultVariant: { oid: BigInt(8), id: 'prv_1', backendOid: BigInt(9) }
 });
 
@@ -156,6 +167,25 @@ describe('webhookRegistrationService', () => {
           receiveUrl: 'https://triggers.metorial.com/w/abc',
           setup: { document: 'Paste the URL into GitHub.' }
         }
+      })
+    );
+  });
+
+  it('creates a registration for a provider that only needs a delivery setup', async () => {
+    providerFindFirst.mockResolvedValue(activeProvider('supported', 'delivery_setup'));
+
+    let { webhookRegistrationService } = await import('./webhookRegistration');
+
+    await webhookRegistrationService.createWebhookRegistration({
+      instance,
+      provider: { id: 'pro_1' },
+      input: { name: 'Gmail Delivery Setup' }
+    });
+
+    expect(backendCallbacks.createWebhookRegistration).toHaveBeenCalledTimes(1);
+    expect(webhookRegistrationCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: 'awaiting_setup', providerOid: BigInt(7) })
       })
     );
   });
@@ -272,6 +302,33 @@ describe('webhookRegistrationService', () => {
     });
 
     expect(webhookRegistrationUpdate).not.toHaveBeenCalled();
+  });
+
+  it('removes the backend registration through the delete queue when archiving', async () => {
+    let { webhookRegistrationService } = await import('./webhookRegistration');
+
+    let archived = await webhookRegistrationService.archiveWebhookRegistration({
+      instance,
+      webhookRegistration: registration({ status: 'active' }) as any
+    });
+
+    expect(archived.status).toBe('archived');
+    expect(deleteQueueAdd).toHaveBeenCalledTimes(1);
+    expect(deleteQueueAdd).toHaveBeenCalledWith({ webhookRegistrationId: 'whr_1' });
+    // The backend is only called from the queue, so its failure cannot fail the delete.
+    expect(backendCallbacks.deleteWebhookRegistration).not.toHaveBeenCalled();
+  });
+
+  it('queues the backend removal again when an archived one is deleted again', async () => {
+    let { webhookRegistrationService } = await import('./webhookRegistration');
+
+    await webhookRegistrationService.archiveWebhookRegistration({
+      instance,
+      webhookRegistration: registration({ status: 'archived' }) as any
+    });
+
+    expect(webhookRegistrationUpdate).not.toHaveBeenCalled();
+    expect(deleteQueueAdd).toHaveBeenCalledWith({ webhookRegistrationId: 'whr_1' });
   });
 
   it('scopes gets to the tenant, solution and environment', async () => {

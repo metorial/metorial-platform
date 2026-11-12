@@ -12,6 +12,8 @@ export let callbackAuditResource = resource({
     integrationId: string;
     integrationProviderId: string;
     provider: SubspaceProviderSummary;
+    triggerGroupSelectionsChanged?: boolean;
+    changedTriggerGroupKeys?: string[];
   }>('callback'),
   presenter: undefined,
   actions: {

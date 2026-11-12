@@ -5,7 +5,7 @@ import {
   type CallbackStatus,
   db,
   type Environment,
-  type Prisma,
+  Prisma,
   type Tenant
 } from '@metorial-subspace/db';
 import {
@@ -28,6 +28,13 @@ import {
 import { getBackend } from '@metorial-subspace/provider';
 import { type AuditSubspaceCallback, Fabric } from '@metorial/fabric';
 import { callbackInclude, type CallbackWithRelations } from '../lib/callbackIncludes';
+import {
+  changedTriggerGroupKeys,
+  sameTriggerGroupSelections
+} from '../lib/callbackInstanceGeneration';
+import { assertSelectionsMatchTriggerGroups } from '../lib/selectionSchema';
+import { parseTriggerGroupSelections } from '../lib/triggerGroupSelections';
+import { callbackInstanceReconcileManyQueue } from '../queues/reconcile/callbackInstance';
 import { indexCallbackQueue } from '../queues/search/callback';
 
 export type ListCallbacksParams = {
@@ -53,6 +60,7 @@ export type UpdateCallbackParams = {
     name?: string;
     description?: string | null;
     metadata?: Record<string, any> | null;
+    triggerGroupSelections?: PrismaJson.TriggerGroupSelections | null;
   };
 };
 
@@ -180,7 +188,11 @@ class callbackServiceImpl {
     await Fabric.fire('provider.callback.updated:after', {
       ...eventBase,
       callback: toAuditCallback(callback),
-      previousCallback: toAuditCallback(d.callback)
+      previousCallback: toAuditCallback(d.callback),
+      changedTriggerGroupKeys: changedTriggerGroupKeys(
+        d.callback.triggerGroupSelections,
+        callback.triggerGroupSelections
+      )
     });
 
     return callback;
@@ -195,6 +207,32 @@ class callbackServiceImpl {
           code: 'callback_not_active',
           message: 'Only an active callback can be updated.'
         })
+      );
+    }
+
+    let selectionsChanged = false;
+    let triggerGroupSelections: PrismaJson.TriggerGroupSelections | null = null;
+    if (d.input.triggerGroupSelections !== undefined) {
+      if (d.callback.ownership === 'managed') {
+        throw new ServiceError(
+          badRequestError({
+            code: 'callback_managed',
+            message: 'Trigger group selections cannot be changed on a managed callback.'
+          })
+        );
+      }
+      triggerGroupSelections =
+        parseTriggerGroupSelections(d.input.triggerGroupSelections) ?? null;
+      if (triggerGroupSelections) {
+        assertSelectionsMatchTriggerGroups(
+          triggerGroupSelections,
+          d.callback.callbackInstances,
+          d.callback.triggerGroupSelections
+        );
+      }
+      selectionsChanged = !sameTriggerGroupSelections(
+        d.callback.triggerGroupSelections,
+        triggerGroupSelections
       );
     }
 
@@ -216,11 +254,20 @@ class callbackServiceImpl {
       data: {
         name: d.input.name,
         description: d.input.description,
-        metadata: d.input.metadata
+        metadata: d.input.metadata,
+        ...(selectionsChanged
+          ? { triggerGroupSelections: triggerGroupSelections ?? Prisma.DbNull }
+          : {})
       },
       include: callbackInclude
     });
 
+    // Also when unchanged, so repeating a save recovers a reconcile that was never enqueued.
+    if (d.input.triggerGroupSelections !== undefined) {
+      await callbackInstanceReconcileManyQueue.add({
+        integrationProviderId: callback.integrationProvider.id
+      });
+    }
     await indexCallbackQueue.add({ callbackId: callback.id });
 
     return callback;

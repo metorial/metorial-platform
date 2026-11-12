@@ -33,6 +33,8 @@ class triggerWebhookRegistrationServiceInternalImpl {
     webhookRegistrationPayload: any;
     webhookRegistrationIdentifier?: string;
     triggerRegistrationId?: string;
+    expiresAt?: Date | null;
+    renewAfter?: Date | null;
     authRouting: SlateWebhookRegistrationAuthRouting;
     authMethods?: { oid: bigint }[];
     oauthCredentials?: { oid: bigint }[];
@@ -63,6 +65,8 @@ class triggerWebhookRegistrationServiceInternalImpl {
         triggerGroupOid: d.triggerGroup.oid,
         secretOid: secret.oid,
         registrationIdentifier: d.webhookRegistrationIdentifier,
+        expiresAt: d.expiresAt,
+        renewAfter: d.renewAfter,
 
         authRouting: d.authRouting,
         authMethods: d.authMethods?.length

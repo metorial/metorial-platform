@@ -2,7 +2,8 @@ import {
   archivedCleanupFindArgs,
   archivedCleanupWhere,
   archivedCleanupWorkerOpts,
-  createArchivedCleanupScan
+  createArchivedCleanupScan,
+  getCutoffDate
 } from '@metorial-subspace/archived-cleanup';
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '@metorial-subspace/db';
@@ -47,6 +48,12 @@ export let webhookRegistrationDeleteQueueProcessor = webhookRegistrationDeleteQu
       tenant: webhookRegistration.tenant,
       webhookRegistration
     });
+
+    // Archiving runs this right away so the backend registration stops working. The record
+    // itself stays archived until the nightly cleanup runs it again after the retention period.
+    if (webhookRegistration.archivedAt && webhookRegistration.archivedAt >= getCutoffDate()) {
+      return;
+    }
 
     await db.webhookRegistration.update({
       where: { oid: webhookRegistration.oid },

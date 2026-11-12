@@ -1,6 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { Presenter } from '@metorial/presenter';
 import { callbackEventType } from '../../../types';
+import { redactHeaders } from './redactHeaders';
 
 export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
   .presenter(async ({ callbackEvent, details }) => ({
@@ -44,7 +45,7 @@ export let v1CallbackEventPresenter = Presenter.create(callbackEventType)
                       object: 'callback_event.details.webhook.request' as const,
                       method: details.webhook.request.method,
                       url: details.webhook.request.url,
-                      headers: details.webhook.request.headers,
+                      headers: redactHeaders(details.webhook.request.headers),
                       body: details.webhook.request.body
                     }
                   : null,

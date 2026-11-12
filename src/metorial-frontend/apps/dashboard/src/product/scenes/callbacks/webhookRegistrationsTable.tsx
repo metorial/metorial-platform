@@ -51,21 +51,32 @@ import { entityFilters } from '../entityFilters';
 import { ProviderSelectionStep } from '../providerCreationPanel';
 import {
   getWebhookRegistrationStatusColor,
+  isWebhookRegistrationRemoved,
   WEBHOOK_REGISTRATION_STATUS_LABELS
 } from './shared';
+import {
+  WEBHOOK_REGISTRATION_COPY,
+  type WebhookRegistrationPurpose
+} from './webhookRegistrationPurpose';
+import {
+  getWebhookSetupErrorMessages,
+  orderJsonSchemaPropertiesByRequired
+} from './webhookRegistrationSetup';
 
 let showCreateWebhookRegistrationModal = (p: {
   instanceId: string;
   provider?: { id: string; name: string };
+  purpose?: WebhookRegistrationPurpose;
   onCreate: (created: { id: string }) => void;
 }) =>
   showModal(({ dialogProps, close }) => {
     let [providerId, setProviderId] = useState(p.provider?.id ?? '');
     let createRegistration = useCreateWebhookRegistration();
+    let copy = WEBHOOK_REGISTRATION_COPY[p.purpose ?? 'webhook_receiver'];
 
     let form = useForm({
       initialValues: {
-        name: p.provider ? `${p.provider.name} Webhook Receiver` : '',
+        name: p.provider ? copy.createName(p.provider.name) : '',
         description: ''
       },
       onSubmit: async values => {
@@ -100,19 +111,14 @@ let showCreateWebhookRegistrationModal = (p: {
       <Panel.Wrapper {...dialogProps} width={900}>
         <Panel.Header>
           <Panel.Title>
-            {p.provider
-              ? `Set Up ${p.provider.name} Webhook Receiver`
-              : 'Create Webhook Receiver'}
+            {p.provider ? copy.createTitle(p.provider.name) : 'Create Webhook Receiver'}
           </Panel.Title>
         </Panel.Header>
 
         <Panel.Content>
           {providerId ? (
             <form onSubmit={form.handleSubmit}>
-              <Callout color="gray">
-                Metorial will create a secure receive URL, then guide you through adding it to
-                the provider and saving any required verification values.
-              </Callout>
+              <Callout color="gray">{copy.createIntro}</Callout>
 
               <Spacer size={16} />
 
@@ -151,7 +157,7 @@ let showCreateWebhookRegistrationModal = (p: {
                   loading={createRegistration.isLoading}
                   success={createRegistration.isSuccess}
                 >
-                  Create Webhook Receiver
+                  {copy.createSubmit}
                 </Button>
               </Dialog.Actions>
 
@@ -177,18 +183,18 @@ let getWebhookSetupSchemaFieldErrors = (p: {
   let fieldErrors: Record<string, string> = {};
 
   for (let field of getEmptyRequiredFieldLabels({ schema: p.schema, value: p.value })) {
-    fieldErrors[field] = `\`${field}\` is required before continuing.`;
+    fieldErrors[field] = `${field} is required before continuing.`;
   }
 
   for (let field of getEmptyRequiredJsonStringFieldLabels({
     schema: p.schema,
     value: p.value
   })) {
-    fieldErrors[field] = `\`${field}\` is required before continuing.`;
+    fieldErrors[field] = `${field} is required before continuing.`;
   }
 
   for (let field of getInvalidJsonStringFieldLabels({ schema: p.schema, value: p.value })) {
-    fieldErrors[field] = `\`${field}\` must contain valid JSON before continuing.`;
+    fieldErrors[field] = `${field} must contain valid JSON before continuing.`;
   }
 
   return fieldErrors;
@@ -204,7 +210,11 @@ let showWebhookRegistrationSetupPanel = (p: {
     let isPending = p.registration.setup.status === 'pending';
 
     let hasSchema = hasJsonSchemaProperties(p.registration.setup.schema);
-    let schemaObj = getJsonSchemaObject(p.registration.setup.schema);
+    let schemaObj = useMemo(
+      () =>
+        orderJsonSchemaPropertiesByRequired(getJsonSchemaObject(p.registration.setup.schema)),
+      [p.registration.setup.schema]
+    );
 
     let [configValue, setConfigValue] = useState<Record<string, unknown>>(() =>
       getJsonSchemaDefaultObject(p.registration.setup.schema)
@@ -217,6 +227,15 @@ let showWebhookRegistrationSetupPanel = (p: {
       hasSchema && attemptedSubmit
         ? getWebhookSetupSchemaFieldErrors({ schema: schemaObj, value: configValue })
         : {};
+
+    // A server error is about the submitted values, so it goes away once they are edited.
+    let setupError = getWebhookSetupErrorMessages({
+      schema: schemaObj,
+      error:
+        !hasSchema || setupRegistration.input?.userConfig === configValue
+          ? setupRegistration.error
+          : null
+    });
 
     let submit = async () => {
       let userConfig: Record<string, any>;
@@ -286,7 +305,7 @@ let showWebhookRegistrationSetupPanel = (p: {
                     schema={schemaObj}
                     value={configValue}
                     onChange={setConfigValue}
-                    fieldErrors={schemaFieldErrors}
+                    fieldErrors={{ ...setupError.fieldErrors, ...schemaFieldErrors }}
                     variant="raw"
                   />
                 </>
@@ -311,6 +330,13 @@ let showWebhookRegistrationSetupPanel = (p: {
                 </>
               ) : null}
 
+              {setupError.message ? (
+                <>
+                  <Spacer size={12} />
+                  <Callout color="red">{setupError.message}</Callout>
+                </>
+              ) : null}
+
               <Spacer size={18} />
 
               <Dialog.Actions>
@@ -331,8 +357,6 @@ let showWebhookRegistrationSetupPanel = (p: {
                   Complete Setup
                 </Button>
               </Dialog.Actions>
-
-              <setupRegistration.RenderError />
             </>
           ) : (
             <>
@@ -454,13 +478,13 @@ let webhookRegistrationsTable = new DashboardTable<
       isDefault: true,
       header: 'Receive URL',
       render: registration =>
-        registration.receiveUrl ? (
+        registration.receiveUrl && !isWebhookRegistrationRemoved(registration) ? (
           <Text size="2" style={{ fontFamily: 'jetbrains mono, monospace' }}>
             {registration.receiveUrl}
           </Text>
         ) : (
           <Text size="2" color="gray600">
-            Not provisioned
+            {isWebhookRegistrationRemoved(registration) ? 'Removed' : 'Not provisioned'}
           </Text>
         )
     },
@@ -520,13 +544,15 @@ let webhookRegistrationsTable = new DashboardTable<
       id: 'setup',
       label: 'View Setup',
       icon: <RiSettings3Line />,
-      action: 'setup'
+      action: 'setup',
+      hidden: isWebhookRegistrationRemoved
     },
     {
       id: 'delete',
       label: 'Delete',
       icon: <RiDeleteBinLine />,
-      action: 'delete'
+      action: 'delete',
+      hidden: isWebhookRegistrationRemoved
     }
   ])
   .build();
@@ -544,17 +570,19 @@ export let WebhookRegistrationsTable = ({ instanceId }: { instanceId: string }) 
     project,
     tableFilters,
     emptyState:
-      'No webhook receivers yet. Create one to get a Metorial URL you can point a provider at.'
+      'No webhook registrations yet. A callback shows the setup when its provider needs one.'
   });
 };
 
 export let CreateWebhookRegistrationButton = ({
   instanceId,
   provider,
+  purpose,
   onCreate
 }: {
   instanceId: string;
   provider?: { id: string; name: string };
+  purpose?: WebhookRegistrationPurpose;
   onCreate?: (created: { id: string }) => void;
 }) => (
   <Button
@@ -563,11 +591,12 @@ export let CreateWebhookRegistrationButton = ({
       showCreateWebhookRegistrationModal({
         instanceId,
         provider,
+        purpose,
         onCreate: created => onCreate?.(created)
       })
     }
   >
-    Create Webhook Receiver
+    {WEBHOOK_REGISTRATION_COPY[purpose ?? 'webhook_receiver'].createButton}
   </Button>
 );
 

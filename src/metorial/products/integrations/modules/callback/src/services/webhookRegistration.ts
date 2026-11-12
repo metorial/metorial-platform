@@ -28,6 +28,7 @@ import {
   webhookRegistrationInclude,
   type WebhookRegistrationWithRelations
 } from '../lib/webhookRegistrationIncludes';
+import { webhookRegistrationDeleteQueue } from '../queues/delete/webhookRegistration';
 
 export type ListWebhookRegistrationsParams = {
   ids?: string[];
@@ -194,7 +195,7 @@ class webhookRegistrationServiceImpl {
           code: 'webhook_registration_not_supported',
           message: 'This provider does not support registering webhook receivers.',
           description:
-            'Only providers that expose a manually registered webhook trigger group can receive webhook registrations.'
+            'Only providers with a manually registered webhook trigger group, or an automatically registered one that needs a delivery setup, can receive webhook registrations.'
         })
       );
     }
@@ -436,16 +437,26 @@ class webhookRegistrationServiceImpl {
   async archiveWebhookRegistrationInternal(
     d: { tenant: Tenant; environment: Environment } & ArchiveWebhookRegistrationParams
   ) {
-    if (d.webhookRegistration.status === 'archived') return d.webhookRegistration;
+    let webhookRegistration =
+      d.webhookRegistration.status === 'archived'
+        ? d.webhookRegistration
+        : await db.webhookRegistration.update({
+            where: { oid: d.webhookRegistration.oid },
+            data: {
+              status: 'archived',
+              archivedAt: new Date()
+            },
+            include: webhookRegistrationInclude
+          });
 
-    return await db.webhookRegistration.update({
-      where: { oid: d.webhookRegistration.oid },
-      data: {
-        status: 'archived',
-        archivedAt: new Date()
-      },
-      include: webhookRegistrationInclude
+    // The backend registration is removed right away, off the request so a backend failure is
+    // retried instead of failing the delete. Deleting again queues it again, and the nightly
+    // cleanup stays as the safety net.
+    await webhookRegistrationDeleteQueue.add({
+      webhookRegistrationId: webhookRegistration.id
     });
+
+    return webhookRegistration;
   }
 
   async getCallbacksBackend(webhookRegistration: WebhookRegistrationWithRelations) {

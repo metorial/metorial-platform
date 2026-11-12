@@ -1,7 +1,5 @@
 export let TRIGGER_POLL_SEARCH_BATCH_SIZE = 1000;
 
-export let TRIGGER_POLL_CLAIM_DURATION_MINUTES = 30;
-
 export let TRIGGER_POLL_MIN_INTERVAL_SECONDS = 15 * 60;
 
 export let TRIGGER_POLL_MAX_FAILURE_BACKOFF_SECONDS = 5 * 60;
@@ -20,6 +18,14 @@ export let TRIGGER_WEBHOOK_UNREGISTER_MAX_ATTEMPTS = 10;
 
 export let TRIGGER_WEBHOOK_FAILED_RETRY_COOLDOWN_MS = 6 * 60 * 60 * 1000;
 
+export let TRIGGER_WEBHOOK_RENEW_BATCH_SIZE = 500;
+
+export let TRIGGER_WEBHOOK_RENEW_RETRY_MS = 5 * 60 * 1000;
+
+// A saved provider result nobody adopted is rolled back at the provider for this long;
+// after that only the local record is dropped and the provider side is left to expire.
+export let TRIGGER_WEBHOOK_RENEW_ROLLBACK_WINDOW_MS = 24 * 60 * 60 * 1000;
+
 // Targets stuck in a transitional status this long are re-queued for unregister by the sweep.
 export let TRIGGER_WEBHOOK_TARGET_STALE_AFTER_MS = 60 * 60 * 1000;
 
@@ -29,10 +35,42 @@ export let TRIGGER_EVENT_MAP_MAX_ATTEMPTS = 25;
 
 export let TRIGGER_EVENT_DELIVER_MAX_ATTEMPTS = 25;
 
+// The dispatch scanner re-enqueues a delivery until it succeeds; past this age it is dropped.
+export let TRIGGER_EVENT_DELIVER_MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000;
+
 export let TRIGGER_EVENT_MAP_MAX_BACKOFF_MS = 5 * 60 * 1000;
 
 export let triggerEventMapBackoffMs = (attempt: number) =>
   Math.min(2 ** attempt * 1000, TRIGGER_EVENT_MAP_MAX_BACKOFF_MS);
+
+// A dispatch outbox row is enqueued when it is written, and again by each recovery scan. The
+// scanners leave it alone this long afterwards so they cannot race a job that is about to finish.
+export let TRIGGER_DISPATCH_RECHECK_DELAY_MS = 60_000;
+
+export let TRIGGER_WEBHOOK_EXPANSION_MAX_ATTEMPTS = 12;
+
+export let TRIGGER_WEBHOOK_EXPANSION_BATCH_SIZE = 500;
+
+let TRIGGER_WEBHOOK_EXPANSION_BASE_BACKOFF_MS = 60_000;
+
+let TRIGGER_WEBHOOK_EXPANSION_MAX_BACKOFF_MS = 60 * 60 * 1000;
+
+export let triggerWebhookExpansionBackoffMs = (attempt: number) =>
+  Math.min(
+    2 ** (attempt - 1) * TRIGGER_WEBHOOK_EXPANSION_BASE_BACKOFF_MS,
+    TRIGGER_WEBHOOK_EXPANSION_MAX_BACKOFF_MS
+  );
+
+// A pending expansion is dropped this long after it arrived, which bounds the backlog behind a
+// connection that keeps failing.
+export let TRIGGER_WEBHOOK_EXPANSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+// The database stamps a new row's due time and workers compare it with their own clocks. A row
+// this close to due counts as due, so its immediate job is not skipped over a few ms of skew.
+export let TRIGGER_WEBHOOK_EXPANSION_CLOCK_SKEW_MS = 5_000;
+
+// Expansion runs per inbound webhook delivery, not from a cron, so it is sized for latency.
+export let triggerWebhookExpandWorkerOpts = { concurrency: 20 };
 
 export let TRIGGER_RAW_EVENT_FAILED_RETENTION_DAYS = 5;
 

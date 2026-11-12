@@ -13,7 +13,9 @@ export let syncChangeNotificationsCron = createCron(
     cron: '* * * * *'
   },
   async () => {
-    await syncChangeNotificationsQueue.add({}, { id: backend.id });
+    // Not a fixed job id: a failed job keeps its id, so every later run would be dropped as a
+    // duplicate and new slate versions would only arrive with the hourly full sync.
+    await syncChangeNotificationsQueue.add({}, { deduplication: { id: backend.id } });
   }
 );
 

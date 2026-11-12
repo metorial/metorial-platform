@@ -181,7 +181,14 @@ export interface SpecificationTriggerGroup {
     | {
         type: 'webhook';
         registration:
-          | { mode: 'auto' }
+          | {
+              mode: 'auto';
+              // Delivery config a person completes once per OAuth app.
+              config?: {
+                userConfigSchema: Record<string, any>;
+                fullConfigSchema: Record<string, any>;
+              };
+            }
           | {
               mode: 'manual';
               userConfigSchema: Record<string, any>;

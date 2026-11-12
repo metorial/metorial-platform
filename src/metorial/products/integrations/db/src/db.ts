@@ -294,7 +294,11 @@ declare global {
       triggers:
         | {
             status: 'enabled';
-            webhookRegistration: { status: 'supported' | 'unsupported' };
+            webhookRegistration: {
+              status: 'supported' | 'unsupported';
+              // Absent means `webhook_receiver`, so existing provider types keep their identifier.
+              purpose?: 'webhook_receiver' | 'delivery_setup';
+            };
           }
         | { status: 'disabled' };
 
@@ -322,6 +326,16 @@ declare global {
           }
         | { status: 'disabled'; read?: undefined };
     };
+
+    type TriggerGroupSelections = globalThis.Record<string, globalThis.Record<string, any>>;
+
+    type SelectableTriggerGroups = {
+      key: string;
+      name: string;
+      description: string | null;
+      selectionSchema: globalThis.Record<string, any>;
+      status: 'active' | 'selection_required';
+    }[];
 
     type WebhookRegistrationSetup = {
       document: string;

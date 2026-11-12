@@ -23,6 +23,7 @@ import { secretService } from './secret';
 import { slateService } from './slate';
 import { slateInvocationService } from './slateInvocation';
 import { globalTenant } from './tenant';
+import { isTriggerDeliveryConfig } from './triggerInfrastructure';
 
 let include = {
   slate: true,
@@ -52,11 +53,31 @@ export let generateWebhookRegistrationUrlKey = (
   owner: SlateWebhookRegistrationOwner = 'tenant'
 ) => `${generateCustomId(owner === 'global' ? 'whk_global_' : 'whk_', 35)}_${getRegion()}`;
 
-let getManualWebhookRegistrationSpec = (triggerGroup: SlateTriggerGroup) => {
-  let invocation = triggerGroup.spec.invocation;
-  if (invocation.type !== 'webhook' || invocation.registration.mode !== 'manual') return null;
-  return invocation.registration;
+type ManualWebhookRegistrationSpec = {
+  userConfigSchema: Record<string, any>;
+  fullConfigSchema: Record<string, any>;
 };
+
+// What a person fills in: a manual webhook, or the delivery config of an automatic group.
+let getManualWebhookRegistrationSpec = (
+  triggerGroup: SlateTriggerGroup
+): ManualWebhookRegistrationSpec | null => {
+  let invocation = triggerGroup.spec.invocation;
+  if (invocation.type !== 'webhook') return null;
+  if (invocation.registration.mode === 'manual') return invocation.registration;
+
+  // The installed protocol types may predate `config`.
+  let config = (invocation.registration as { config?: Partial<ManualWebhookRegistrationSpec> })
+    .config;
+  return config?.userConfigSchema && config.fullConfigSchema
+    ? { userConfigSchema: config.userConfigSchema, fullConfigSchema: config.fullConfigSchema }
+    : null;
+};
+
+type DeletableWebhookRegistration = Pick<
+  SlateWebhookRegistration,
+  'oid' | 'id' | 'type' | 'tenantOid'
+> & { triggerGroup: SlateTriggerGroup };
 
 class slateWebhookRegistrationServiceImpl {
   async getWebhookRegistrationById(d: {
@@ -235,6 +256,7 @@ class slateWebhookRegistrationServiceImpl {
 
     // When a TriggerRegistrationInstance was created before a suitable webhook existed, it will have
     // errored - we now patch it up by re-matching it to the newly created webhook registration.
+    // For a delivery config, registrations that failed for lack of one are tried again.
     await triggerWebhookRegistrationRematchQueue.add({
       webhookRegistrationId: registration.id
     });
@@ -364,11 +386,12 @@ class slateWebhookRegistrationServiceImpl {
     });
   }
 
-  async deleteGlobalWebhookRegistration(d: { registration: { oid: bigint } }) {
+  async deleteGlobalWebhookRegistration(d: { registration: DeletableWebhookRegistration }) {
     await db.slateWebhookRegistration.update({
       where: { oid: d.registration.oid },
       data: { status: 'deleted' }
     });
+    await this.releaseDeliveryConfig(d.registration);
   }
 
   async updateWebhookRegistration(d: {
@@ -397,7 +420,7 @@ class slateWebhookRegistrationServiceImpl {
 
   async deleteWebhookRegistration(d: {
     tenant: Tenant;
-    registration: { oid: bigint; tenantOid: bigint | null };
+    registration: DeletableWebhookRegistration;
   }) {
     if (d.registration.tenantOid !== d.tenant.oid) {
       throw new ServiceError(notFoundError('webhook_registration'));
@@ -407,6 +430,17 @@ class slateWebhookRegistrationServiceImpl {
       where: { oid: d.registration.oid },
       data: { status: 'deleted' }
     });
+    await this.releaseDeliveryConfig(d.registration);
+  }
+
+  // Registrations that deliver through a removed config would look healthy while receiving
+  // nothing, so they are registered again without it. The second pass finds one that was
+  // still being registered with the config when it was removed.
+  private async releaseDeliveryConfig(registration: DeletableWebhookRegistration) {
+    if (!isTriggerDeliveryConfig(registration)) return;
+    let job = { webhookRegistrationId: registration.id };
+    await triggerWebhookRegistrationRematchQueue.add(job);
+    await triggerWebhookRegistrationRematchQueue.add(job, { delay: 5 * 60 * 1000 });
   }
 
   async getWebhookRegistrationForAdmin(d: { id: string }) {
@@ -634,9 +668,17 @@ class slateWebhookRegistrationServiceImpl {
       );
     }
 
+    // A pasted value often carries whitespace that a schema pattern would reject.
+    let trimmed = Object.fromEntries(
+      Object.entries(d.userConfig).map(([key, value]) => [
+        key,
+        typeof value === 'string' ? value.trim() : value
+      ])
+    );
+
     let userConfig = validateJsonSchema({
       schema: registrationSpec.userConfigSchema,
-      data: d.userConfig,
+      data: trimmed,
       entity: 'webhook_registration.user_config',
       message: 'Invalid webhook setup configuration.'
     });

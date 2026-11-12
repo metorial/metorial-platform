@@ -56,6 +56,7 @@ import {
 import { FlatCreateSection } from '../providerCreationPanel/flatCreateLayout';
 import { ProviderSetupSections } from '../sessionTemplates/addProviderPanelFlow';
 import { IntegrationProviderCallbacksSection } from '../callbacks/providerCallbacksSection';
+import { providerNeedsWebhookReceiver } from '../callbacks/webhookRegistrationPurpose';
 
 type ToolFilterFormValues = {
   toolSelection: ToolSelection;
@@ -1199,10 +1200,7 @@ let IntegrationProviderSetupStep = (p: {
           instanceId={instance.data!.id}
           providerVersionId={visibility.provider.data?.currentVersion?.id}
           providerName={visibility.providerName}
-          webhookRegistrationSupported={
-            providerTriggers?.status === 'enabled' &&
-            providerTriggers.webhookRegistration.status === 'supported'
-          }
+          webhookRegistrationSupported={providerNeedsWebhookReceiver(providerTriggers)}
           callback={existingCallback}
           value={form.values.callbacksStatus}
           onChange={value => form.setFieldValue('callbacksStatus', value)}

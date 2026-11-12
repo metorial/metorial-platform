@@ -15,9 +15,11 @@ import { useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   getIncomingWebhookStatusColor,
-  getIncomingWebhookStatusLabel
+  getIncomingWebhookStatusLabel,
+  isWebhookRegistrationRemoved
 } from '../../../scenes/callbacks/shared';
 import { ChatProviderAvatar, useChatProviderListings } from '../../../scenes/chat/shared';
+import { useWebhookRegistrationCopy } from '../../../scenes/callbacks/webhookRegistrationsBox';
 import { showWebhookRegistrationSetup } from '../../../scenes/callbacks/webhookRegistrationsTable';
 
 let openedWebhookRegistrationSetups = new Map<string, true>();
@@ -65,7 +67,12 @@ export let WebhookRegistrationOverviewPage = () => {
     order: 'desc'
   });
 
-  return renderWithLoader({ registration, incomingWebhooks })(
+  let { provider, copy } = useWebhookRegistrationCopy(
+    instance.data?.id,
+    registration.data?.provider.id
+  );
+
+  return renderWithLoader({ registration, incomingWebhooks, provider })(
     ({ registration, incomingWebhooks }) => {
       let eventsPath = Paths.instance.webhookRegistration(
         organization.data,
@@ -74,22 +81,24 @@ export let WebhookRegistrationOverviewPage = () => {
         registration.data.id,
         'events'
       );
-      let isPendingSetup = registration.data.setup.status === 'pending';
+      let isRemoved = isWebhookRegistrationRemoved(registration.data);
+      let isPendingSetup = !isRemoved && registration.data.setup.status === 'pending';
 
       return (
         <DetailsOverviewLayout>
-          <WebhookRegistrationSetupOnOpen
-            instanceId={instance.data!.id}
-            registration={registration.data}
-            onComplete={() => void registration.refetch()}
-          />
+          {isRemoved ? null : (
+            <WebhookRegistrationSetupOnOpen
+              instanceId={instance.data!.id}
+              registration={registration.data}
+              onComplete={() => void registration.refetch()}
+            />
+          )}
 
           {isPendingSetup ? (
             <>
               <Callout color="orange">
                 <span>
-                  <strong>Setup is not complete.</strong> Finish the provider instructions to
-                  start receiving webhooks at this URL.
+                  <strong>Setup is not complete.</strong> {copy.setupIncomplete}
                 </span>
               </Callout>
               <Spacer height={20} />
@@ -115,50 +124,54 @@ export let WebhookRegistrationOverviewPage = () => {
 
           <Spacer height={20} />
 
-          <Box
-            title="Receive URL"
-            description="Paste this URL into the provider's webhook settings."
-            rightActions={
-              isPendingSetup && registration.data.receiveUrl ? (
-                <Button
-                  size="2"
-                  onClick={() =>
-                    showWebhookRegistrationSetup({
-                      instanceId: instance.data!.id,
-                      registration: registration.data,
-                      onComplete: () => void registration.refetch()
-                    })
-                  }
-                >
-                  Complete Setup
-                </Button>
-              ) : undefined
-            }
-          >
-            {registration.data.receiveUrl ? (
-              <ID id={registration.data.receiveUrl} />
-            ) : (
-              <Flex align="center" justify="space-between" gap={12}>
-                <Text size="2" color="gray600">
-                  This receiver does not have a URL yet. Complete setup to provision one.
-                </Text>
-                <Button
-                  size="2"
-                  onClick={() =>
-                    showWebhookRegistrationSetup({
-                      instanceId: instance.data!.id,
-                      registration: registration.data,
-                      onComplete: () => void registration.refetch()
-                    })
-                  }
-                >
-                  Complete Setup
-                </Button>
-              </Flex>
-            )}
-          </Box>
+          {isRemoved ? null : (
+            <>
+              <Box
+                title={copy.urlTitle}
+                description={copy.urlDescription}
+                rightActions={
+                  isPendingSetup && registration.data.receiveUrl ? (
+                    <Button
+                      size="2"
+                      onClick={() =>
+                        showWebhookRegistrationSetup({
+                          instanceId: instance.data!.id,
+                          registration: registration.data,
+                          onComplete: () => void registration.refetch()
+                        })
+                      }
+                    >
+                      Complete Setup
+                    </Button>
+                  ) : undefined
+                }
+              >
+                {registration.data.receiveUrl ? (
+                  <ID id={registration.data.receiveUrl} />
+                ) : (
+                  <Flex align="center" justify="space-between" gap={12}>
+                    <Text size="2" color="gray600">
+                      {copy.urlMissing}
+                    </Text>
+                    <Button
+                      size="2"
+                      onClick={() =>
+                        showWebhookRegistrationSetup({
+                          instanceId: instance.data!.id,
+                          registration: registration.data,
+                          onComplete: () => void registration.refetch()
+                        })
+                      }
+                    >
+                      Complete Setup
+                    </Button>
+                  </Flex>
+                )}
+              </Box>
 
-          <Spacer height={20} />
+              <Spacer height={20} />
+            </>
+          )}
 
           <Box
             title="Recent Events"
@@ -194,7 +207,7 @@ export let WebhookRegistrationOverviewPage = () => {
               />
             ) : (
               <Text size="2" color="gray600">
-                No inbound webhooks have been received on this receiver yet.
+                {copy.eventsEmpty}
               </Text>
             )}
           </Box>

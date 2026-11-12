@@ -26,9 +26,15 @@ export let recordCallbackUpdated = async (
   let scope = getSubspaceAuditScope(event);
   if (!scope) return;
 
+  let changedTriggerGroupKeys = event.changedTriggerGroupKeys ?? [];
+
   await recordSubspaceAuditEvent(() =>
     auditTrackerService.recordEvent(scope, 'callback', 'update', {
-      payload: callbackPayload(event.callback),
+      payload: {
+        ...callbackPayload(event.callback),
+        triggerGroupSelectionsChanged: changedTriggerGroupKeys.length > 0,
+        changedTriggerGroupKeys
+      },
       previousPayload: callbackPayload(event.previousCallback)
     })
   );

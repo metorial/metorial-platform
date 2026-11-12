@@ -50,17 +50,22 @@ model SlateWebhookRegistration {
 
   registrationIdentifier String?
 
+  expiresAt  DateTime?
+  renewAfter DateTime?
+
   authRouting SlateWebhookRegistrationAuthRouting @default(any)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  webhookEvents               SlateWebhookEvent[]
-  authMethods                 SlateWebhookRegistrationAuthMethod[]
-  oauthCredentials            SlateWebhookRegistrationOAuthCredentials[]
-  triggerWebhookTarget        TriggerWebhookTarget?
-  triggerRegistrationWebhooks TriggerRegistrationWebhook[]
-  triggerRoutingDrops         TriggerRoutingDrop[]
+  expansionInbox                   TriggerWebhookExpansion[]
+  deliveryRoutes                   TriggerDeliveryRoute[]
+  webhookEvents                    SlateWebhookEvent[]
+  authMethods                      SlateWebhookRegistrationAuthMethod[]
+  oauthCredentials                 SlateWebhookRegistrationOAuthCredentials[]
+  triggerWebhookTarget             TriggerWebhookTarget?
+  triggerRegistrationWebhooks      TriggerRegistrationWebhook[]
+  triggerRoutingDrops              TriggerRoutingDrop[]
   triggerRoutingMatcherEvaluations TriggerRoutingMatcherEvaluation[]
 
   @@index([tenantOid, createdAt])

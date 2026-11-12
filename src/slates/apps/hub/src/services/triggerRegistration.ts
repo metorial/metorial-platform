@@ -1,10 +1,27 @@
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import {
+  badRequestError,
+  isServiceError,
+  notFoundError,
+  ServiceError
+} from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Tenant, TriggerRegistration } from '../../prisma/generated/client';
+import type { SlatesTriggerGroup } from '@slates/proto';
+import {
+  Prisma,
+  type Slate,
+  type SlateInstance,
+  type SlateTriggerGroup,
+  type Tenant,
+  type TriggerRegistration
+} from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId } from '../id';
 import { getActiveSlateVersion } from '../lib/slateVersion';
+import {
+  describeSelectableTriggerGroups,
+  validateTriggerGroupSelections
+} from '../lib/triggerGroupSelection';
 import { triggerRegistrationCleanupQueue } from '../queues/trigger/registrationCleanup';
 import { triggerRegistrationInstanceSetupQueue } from '../queues/trigger/setup';
 import { slateService } from './slate';
@@ -16,6 +33,32 @@ let include = {
   authConfig: { include: { authMethod: true } },
   instances: { include: { triggerGroup: true, schedule: true } }
 };
+
+let listActiveTriggerGroups = async (d: { slate: Slate; instance: SlateInstance }) => {
+  let version = await getActiveSlateVersion(d);
+  if (!version.specificationOid) {
+    throw new ServiceError(
+      badRequestError({ message: 'Provider version has no specification set.' })
+    );
+  }
+
+  return db.slateTriggerGroup.findMany({
+    where: {
+      slateOid: d.slate.oid,
+      slateSpecifications: { some: { specificationOid: version.specificationOid } }
+    }
+  });
+};
+
+let describeGroups = (groups: SlateTriggerGroup[], selectionRequiredKeys: Set<string>) =>
+  describeSelectableTriggerGroups(
+    groups.map(group => ({
+      key: group.key,
+      name: group.name,
+      spec: group.spec as SlatesTriggerGroup
+    })),
+    selectionRequiredKeys
+  );
 
 class triggerRegistrationServiceImpl {
   async getTriggerRegistrationById(d: { tenant: Tenant; id: string }) {
@@ -64,6 +107,7 @@ class triggerRegistrationServiceImpl {
     input: {
       slateInstanceId: string;
       authConfigId?: string;
+      triggerGroupSelections?: Record<string, Record<string, any>>;
     };
   }) {
     let slateInstance = await db.slateInstance.findFirst({
@@ -108,22 +152,17 @@ class triggerRegistrationServiceImpl {
       );
     }
 
-    let version = await getActiveSlateVersion({
+    let triggerGroups = await listActiveTriggerGroups({
       slate: slateInstance.slate,
       instance: slateInstance
     });
-    if (!version.specificationOid) {
-      throw new ServiceError(
-        badRequestError({ message: 'Provider version has no specification set.' })
-      );
-    }
 
-    let triggerGroups = await db.slateTriggerGroup.findMany({
-      where: {
-        slateOid: slateInstance.slateOid,
-        slateSpecifications: { some: { specificationOid: version.specificationOid } }
-      }
-    });
+    let { selections, skippedGroupIds, ignoredSelectionKeys } = validateTriggerGroupSelections(
+      triggerGroups.map(group => ({ ...group.spec, id: group.key })),
+      d.input.triggerGroupSelections
+    );
+    let activeTriggerGroups = triggerGroups.filter(group => !skippedGroupIds.has(group.key));
+    let selectableTriggerGroups = describeGroups(triggerGroups, skippedGroupIds);
 
     let registrationOid = await db.$transaction(async db => {
       let registration = await db.triggerRegistration.create({
@@ -137,12 +176,13 @@ class triggerRegistrationServiceImpl {
         }
       });
 
-      if (triggerGroups.length > 0) {
+      if (activeTriggerGroups.length > 0) {
         await db.triggerRegistrationInstance.createMany({
-          data: triggerGroups.map(triggerGroup => ({
+          data: activeTriggerGroups.map(triggerGroup => ({
             ...getId('triggerRegistrationInstance'),
             triggerRegistrationOid: registration.oid,
-            triggerGroupOid: triggerGroup.oid
+            triggerGroupOid: triggerGroup.oid,
+            selection: selections.get(triggerGroup.key) ?? Prisma.DbNull
           }))
         });
       }
@@ -163,10 +203,32 @@ class triggerRegistrationServiceImpl {
       );
     }
 
-    return db.triggerRegistration.findUniqueOrThrow({
+    let registration = await db.triggerRegistration.findUniqueOrThrow({
       where: { oid: registrationOid },
       include
     });
+
+    return { ...registration, selectableTriggerGroups, ignoredSelectionKeys };
+  }
+
+  async listSelectableTriggerGroups(d: {
+    registration: TriggerRegistration & {
+      slate: Slate;
+      instance: SlateInstance;
+      instances: { triggerGroupOid: bigint }[];
+    };
+  }) {
+    // Reading a registration must not fail because its provider has no deployable version.
+    let triggerGroups = await listActiveTriggerGroups(d.registration).catch(error => {
+      if (isServiceError(error)) return [];
+      throw error;
+    });
+    let registered = new Set(d.registration.instances.map(i => i.triggerGroupOid));
+
+    return describeGroups(
+      triggerGroups,
+      new Set(triggerGroups.filter(g => !registered.has(g.oid)).map(g => g.key))
+    );
   }
 
   async deleteTriggerRegistration(d: { tenant: Tenant; registration: TriggerRegistration }) {

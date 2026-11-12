@@ -81,6 +81,15 @@ export type ManagementInstanceIntegrationsListOutput = {
             createdAt: Date;
             updatedAt: Date;
           };
+          triggerGroupSelections: Record<string, Record<string, any>> | null;
+          triggerGroups: {
+            object: 'callback.trigger_group';
+            key: string;
+            name: string;
+            description: string | null;
+            selectionSchema: Record<string, any>;
+            status: 'active' | 'selection_required';
+          }[];
           createdAt: Date;
           updatedAt: Date;
           authCredentialsIsManaged: boolean;
@@ -241,6 +250,12 @@ export let mapManagementInstanceIntegrationsListOutput =
                               'integration_id',
                               'integration_provider_id',
                               ['provider', 0, 8],
+                              'trigger_group_selections',
+                              [
+                                'trigger_groups',
+                                1,
+                                [2, [1, ['selection_schema']]]
+                              ],
                               'created_at',
                               'updated_at',
                               'auth_credentials_is_managed',

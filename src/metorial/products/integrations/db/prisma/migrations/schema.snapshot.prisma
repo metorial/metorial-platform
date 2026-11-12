@@ -1804,6 +1804,9 @@ model Callback {
   lastSyncErrorMessage String?
   lastSyncedAt         DateTime?
 
+  /// [TriggerGroupSelections]
+  triggerGroupSelections Json?
+
   name        String
   description String?
   metadata    Json?
@@ -1955,6 +1958,12 @@ model CallbackInstance {
   lastSyncErrorCode    String?
   lastSyncErrorMessage String?
   lastSyncedAt         DateTime?
+
+  /// [TriggerGroupSelections]
+  triggerGroupSelections Json?
+
+  /// [SelectableTriggerGroups]
+  selectableTriggerGroups Json?
 
   callbackOid BigInt
   callback    Callback @relation(fields: [callbackOid], references: [oid], onDelete: Cascade)

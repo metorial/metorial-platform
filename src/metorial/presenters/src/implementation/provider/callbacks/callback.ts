@@ -78,6 +78,70 @@ export let callbackSyncPresenter = Object.assign(
   }
 );
 
+let presentTriggerGroups = (
+  instances: { selectableTriggerGroups: PrismaJson.SelectableTriggerGroups | null }[]
+) => {
+  let groups = new Map<string, PrismaJson.SelectableTriggerGroups[number]>();
+  for (let instance of instances) {
+    for (let group of instance.selectableTriggerGroups ?? []) {
+      let existing = groups.get(group.key);
+      if (!existing || group.status === 'selection_required') groups.set(group.key, group);
+    }
+  }
+
+  return [...groups.values()].map(group => ({
+    object: 'callback.trigger_group' as const,
+    key: group.key,
+    name: group.name,
+    description: group.description,
+    selection_schema: group.selectionSchema,
+    status: group.status
+  }));
+};
+
+let triggerGroupSchema = v.object(
+  {
+    object: v.literal('callback.trigger_group', {
+      description: "String representing the object's type"
+    }),
+
+    key: v.string({
+      name: 'key',
+      description: 'Trigger group key to use in `trigger_group_selections`',
+      examples: ['folder_events']
+    }),
+
+    name: v.string({
+      name: 'name',
+      description: 'Display name of the trigger group',
+      examples: ['Folder events']
+    }),
+
+    description: v.nullable(
+      v.string({
+        name: 'description',
+        description: 'What the trigger group delivers',
+        examples: ['Files added to or changed in the selected folders.']
+      })
+    ),
+
+    selection_schema: v.record(v.any(), {
+      name: 'selection_schema',
+      description: 'JSON Schema the selection for this trigger group must match'
+    }),
+
+    status: v.enumOf(['active', 'selection_required'], {
+      name: 'status',
+      description:
+        '`selection_required` when the trigger group needs a selection before it delivers events.'
+    })
+  },
+  {
+    name: 'trigger_group',
+    description: 'A trigger group that accepts a selection'
+  }
+);
+
 export let v1CallbackPresenter = Presenter.create(callbackType)
   .presenter(async ({ callback }) => ({
     object: 'callback' as const,
@@ -93,6 +157,9 @@ export let v1CallbackPresenter = Presenter.create(callbackType)
     integration_provider_id: callback.integrationProvider.id,
 
     provider: v1ProviderPreview(callback.provider),
+
+    trigger_group_selections: callback.triggerGroupSelections ?? null,
+    trigger_groups: presentTriggerGroups(callback.callbackInstances),
 
     created_at: callback.createdAt,
     updated_at: callback.updatedAt
@@ -150,6 +217,21 @@ export let v1CallbackPresenter = Presenter.create(callbackType)
       }),
 
       provider: v1ProviderPreview.schema,
+
+      trigger_group_selections: v.nullable(
+        v.record(v.record(v.any()), {
+          name: 'trigger_group_selections',
+          description:
+            'Selections for trigger groups that need to know what to watch, keyed by trigger group key',
+          examples: [{ folder_events: { folderIds: ['1aUJQPFyahp8AYkJVk5YbEvn6ZGeufGbu'] } }]
+        })
+      ),
+
+      trigger_groups: v.array(triggerGroupSchema, {
+        name: 'trigger_groups',
+        description:
+          'Trigger groups that accept a selection, with their schema and whether one is still required'
+      }),
 
       created_at: v.date({
         name: 'created_at',

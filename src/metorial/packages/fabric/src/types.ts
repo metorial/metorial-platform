@@ -1643,7 +1643,7 @@ export interface FabricEvents {
   'provider.public_mcp_grant.used:after': { tenantId: string; instanceOid: bigint; publicMcpServerOid: bigint; grantId: string; hourBucket: Date };
 
   'provider.callback.updated:before': ProviderEventBase;
-  'provider.callback.updated:after': ProviderEventBase & { callback: AuditSubspaceCallback; previousCallback: AuditSubspaceCallback };
+  'provider.callback.updated:after': ProviderEventBase & { callback: AuditSubspaceCallback; previousCallback: AuditSubspaceCallback; changedTriggerGroupKeys?: string[] };
   'provider.webhook_registration.created:before': ProviderEventBase;
   'provider.webhook_registration.created:after': ProviderEventBase & { webhookRegistration: AuditSubspaceWebhookRegistration };
   'provider.webhook_registration.setup_completed:before': ProviderEventBase;

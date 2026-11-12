@@ -1,41 +1,30 @@
+import { isServiceError } from '@lowerdeck/error';
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db } from '../../db';
 import { env } from '../../env';
-import { getId } from '../../id';
-import { triggerWebhookRegistrationServiceInternal } from '../../internal/triggerWebhookRegistrationServiceInternal';
-import { getActiveSlateVersion } from '../../lib/slateVersion';
+import { getId, snowflake } from '../../id';
 import { getWebhookUrl } from '../../lib/webhookUrl';
-import { secretService } from '../../services/secret';
 import { slateInvocationService } from '../../services/slateInvocation';
 import { generateWebhookRegistrationUrlKey } from '../../services/slateWebhookRegistration';
+import { getTriggerInfrastructure } from '../../services/triggerInfrastructure';
 import { TRIGGER_WEBHOOK_REGISTER_MAX_ATTEMPTS } from './_config';
-import { webhookTargetLock } from './_webhookTargetLock';
+import {
+  MISSING_ROUTING_KEYS_MESSAGE,
+  replaceDeliveryRoutes,
+  requireRoutingKeys,
+  usingDeliveryRegistrationLock
+} from './_deliveryRoutes';
 import { createTriggerRegistrationInstanceError } from './_instanceError';
-
-let include = {
-  triggerGroup: true,
-  webhooks: {
-    take: 1,
-    where: {
-      triggerRegistrationInstance: { triggerRegistration: { status: 'active' as const } }
-    },
-    include: {
-      triggerRegistrationInstance: {
-        include: {
-          triggerRegistration: {
-            include: {
-              tenant: true,
-              slate: true,
-              instance: true,
-              instanceConfig: true,
-              authConfig: { include: { authMethod: true } }
-            }
-          }
-        }
-      }
-    }
-  }
-};
+import { saveWebhookProviderResult } from './_providerResult';
+import { createTriggerInstanceStack } from './_stack';
+import { triggerStateInstanceInclude } from './_state';
+import {
+  assertClaimCoversProviderCall,
+  claimWebhookTarget,
+  fencedTargetWhere,
+  releaseWebhookTarget
+} from './_targetClaim';
+import { webhookTargetLock } from './_webhookTargetLock';
 
 export let triggerWebhookRegisterQueue = createQueue<{
   triggerWebhookTargetId: string;
@@ -50,18 +39,24 @@ export let triggerWebhookRegisterQueue = createQueue<{
 export let triggerWebhookRegisterQueueProcessor = triggerWebhookRegisterQueue.process(
   async (data, job) =>
     webhookTargetLock.usingLock(data.triggerWebhookTargetId, async () => {
-      let findTarget = (triggerRegistrationInstanceId?: string) =>
+      let findTarget = (instanceId?: string) =>
         db.triggerWebhookTarget.findUnique({
           where: { id: data.triggerWebhookTargetId },
           include: {
-            ...include,
+            triggerGroup: true,
             webhooks: {
-              ...include.webhooks,
+              take: 1,
               where: {
                 triggerRegistrationInstance: {
-                  id: triggerRegistrationInstanceId,
-                  triggerRegistration: { status: 'active' }
+                  id: instanceId,
+                  triggerRegistration: {
+                    status: 'active',
+                    tenant: { disableCallbacks: false }
+                  }
                 }
+              },
+              include: {
+                triggerRegistrationInstance: { include: triggerStateInstanceInclude }
               }
             }
           }
@@ -69,124 +64,259 @@ export let triggerWebhookRegisterQueueProcessor = triggerWebhookRegisterQueue.pr
 
       let target = await findTarget(data.triggerRegistrationInstanceId);
       if (!target || !['creating', 'failed'].includes(target.status)) return;
-
-      // Requested connection may be gone; fall back to any active one.
-      if (target.webhooks.length === 0 && data.triggerRegistrationInstanceId) {
+      if (target.webhooks.length === 0 && data.triggerRegistrationInstanceId)
         target = await findTarget();
-      }
-      let link = target?.webhooks[0];
-      if (!target || !link) return;
-      let registration = link.triggerRegistrationInstance.triggerRegistration;
 
-      let version = await getActiveSlateVersion({
-        slate: registration.slate,
-        instance: registration.instance
+      let instance = target?.webhooks[0]?.triggerRegistrationInstance;
+      if (!target || !instance) return;
+
+      let registration = instance.triggerRegistration;
+      let isLastAttempt = job.attemptsMade + 1 >= TRIGGER_WEBHOOK_REGISTER_MAX_ATTEMPTS;
+      let operationId = target.renewalOperationId ?? `register:${snowflake.nextId()}`;
+      let urlKey = target.registrationUrlKey ?? generateWebhookRegistrationUrlKey('tenant');
+
+      let token = await claimWebhookTarget({
+        targetOid: target.oid,
+        where: {
+          status: { in: ['creating', 'failed'] },
+          renewalOperationId: target.renewalOperationId,
+          tenant: { disableCallbacks: false }
+        },
+        data: { renewalOperationId: operationId, registrationUrlKey: urlKey }
       });
+      if (!token) {
+        // The target belongs to whoever holds the claim, so only the error is recorded; the
+        // stale-target sweep queues the registration again.
+        if (isLastAttempt)
+          await createTriggerRegistrationInstanceError({
+            triggerRegistrationInstanceOid: instance.oid,
+            triggerWebhookTargetOid: target.oid,
+            code: 'webhook_registration_failed',
+            message: `We couldn't set up the webhook for "${target.name}" because an earlier attempt has not finished. It will be tried again automatically.`
+          });
+        throw new QueueRetryError();
+      }
 
-      let auth: { authenticationMethodId: string; data: Record<string, any> } | null = null;
-      if (registration.authConfig) {
-        let decrypted = await secretService.DANGEROUSLY_decryptSecret({
-          secretOid: registration.authConfig.secretOid,
-          purpose: 'slate_authentication_configuration',
-          tenant: registration.tenant,
-          note: `trigger-webhook-register:${target.id}`
+      let failureRecorded = false;
+      let resultSaved = false;
+
+      // A failed call leaves no saved result to resume, so the next attempt must not reuse
+      // an identity the provider may already have seen.
+      let recordFailure = async (d: {
+        code: string;
+        message: string;
+        registrationAttemptOid?: bigint;
+      }) => {
+        failureRecorded = true;
+        let released = await db.triggerWebhookTarget.updateMany({
+          where: {
+            oid: target.oid,
+            renewalClaimToken: token,
+            status: { in: ['creating', 'failed'] }
+          },
+          data: isLastAttempt
+            ? { renewalOperationId: null, status: 'failed' }
+            : { renewalOperationId: null }
         });
-        auth = {
-          authenticationMethodId: registration.authConfig.authMethod.key,
-          data: decrypted.output ?? decrypted.input ?? {}
-        };
-      }
+        if (!released.count || !isLastAttempt) return;
 
-      let stack = await slateInvocationService.createInvocationWithState({
-        participants: [],
-        slateVersion: version,
-        tenant: registration.tenant,
-        session: { id: target.id, state: {} },
-        config: registration.instanceConfig.value ?? {},
-        auth
-      });
+        await createTriggerRegistrationInstanceError({
+          triggerRegistrationInstanceOid: instance.oid,
+          triggerWebhookTargetOid: target.oid,
+          registrationAttemptOid: d.registrationAttemptOid,
+          code: d.code,
+          message: d.message
+        });
+      };
 
-      let urlKey = generateWebhookRegistrationUrlKey('tenant');
-      let webhookUrl = getWebhookUrl({ urlKey });
+      let recordFailedAttempt = async (d: {
+        invocationOid: bigint;
+        errorCode: string;
+        errorMessage: string;
+      }) => {
+        let attempt = await db.triggerWebhookTargetRegistrationAttempt.create({
+          data: {
+            ...getId('triggerWebhookTargetRegistrationAttempt'),
+            status: 'failed',
+            triggerWebhookTargetOid: target.oid,
+            invocationOid: d.invocationOid,
+            errorCode: d.errorCode,
+            errorMessage: d.errorMessage
+          }
+        });
 
-      let result = await slateInvocationService.registerWebhook({
-        stack,
-        triggerGroupId: target.triggerGroup.key,
-        webhookTargetIdentifier: target.targetIdentifier,
-        webhookTargetPayload: target.webhookTargetPayload,
-        webhookUrl
-      });
+        await recordFailure({
+          registrationAttemptOid: attempt.oid,
+          code: 'webhook_registration_failed',
+          message: `We couldn't set up the webhook for "${target.name}" after ${TRIGGER_WEBHOOK_REGISTER_MAX_ATTEMPTS} attempts: ${d.errorMessage}`
+        });
+        if (!isLastAttempt) throw new QueueRetryError();
+      };
 
-      if (result.status === 'success') {
-        let webhookRegistration =
-          await triggerWebhookRegistrationServiceInternal.createWebhookRegistration({
+      try {
+        let pending = await db.triggerWebhookRenewalResult.findUnique({
+          where: { operationId }
+        });
+        if (!pending) {
+          let delivery = await getTriggerInfrastructure({
             tenant: registration.tenant,
             slate: registration.slate,
             triggerGroup: target.triggerGroup,
-            type: 'automated',
-            owner: 'tenant',
-            status: 'active',
-            urlKey,
-            name: target.name,
-            description: target.description ?? undefined,
-            metadata: target.metadata as Record<string, any>,
-            webhookRegistrationPayload: result.data.webhookRegistrationPayload,
-            webhookRegistrationIdentifier: result.data.webhookRegistrationIdentifier,
-            authRouting: 'any'
+            oauthClientId: registration.authConfig?.oauthCredentials?.clientId
+          }).catch(async error => {
+            await recordFailure({
+              code: isServiceError(error)
+                ? error.data.code
+                : 'trigger_infrastructure_setup_failed',
+              message: isServiceError(error)
+                ? error.data.message
+                : 'The delivery setup for this connection could not be loaded.'
+            });
+            throw error;
           });
 
-        await db.$transaction([
-          db.triggerWebhookTarget.update({
-            where: { oid: target.oid },
+          let stack = await createTriggerInstanceStack({
+            registration,
+            sessionId: instance.id,
+            note: `trigger-webhook-register:${target.id}`
+          });
+
+          pending = await usingDeliveryRegistrationLock(
+            { bindingId: delivery?.bindingId, targetOid: target.oid },
+            async () => {
+              await assertClaimCoversProviderCall(target.oid, token);
+              let result = await slateInvocationService.registerWebhook({
+                stack,
+                triggerGroupId: target.triggerGroup.key,
+                webhookTargetIdentifier: target.targetIdentifier,
+                webhookTargetPayload: target.webhookTargetPayload,
+                webhookUrl: getWebhookUrl({ urlKey }),
+                operationId,
+                selection: instance.selection ?? undefined,
+                infrastructure: delivery?.infrastructure
+              });
+              if (result.status === 'error') {
+                await recordFailedAttempt({
+                  invocationOid: result.invocation.oid,
+                  errorCode: result.error.code,
+                  errorMessage: result.error.message
+                });
+                return null;
+              }
+
+              let routingKeys = requireRoutingKeys(delivery, result.data.routingKeys);
+              if (!routingKeys) {
+                await recordFailedAttempt({
+                  invocationOid: result.invocation.oid,
+                  errorCode: 'webhook_routing_keys_missing',
+                  errorMessage: MISSING_ROUTING_KEYS_MESSAGE
+                });
+                return null;
+              }
+
+              return saveWebhookProviderResult({
+                tenant: registration.tenant,
+                operationId,
+                targetOid: target.oid,
+                instanceOid: instance.oid,
+                invocationOid: result.invocation.oid,
+                oldRegistrationIdentifier: '',
+                registrationIdentifier: result.data.webhookRegistrationIdentifier,
+                payload: result.data.webhookRegistrationPayload,
+                lease: result.data,
+                delivery: delivery && { bindingId: delivery.bindingId, routingKeys }
+              });
+            }
+          );
+          if (!pending) return;
+        }
+
+        let saved = pending;
+        resultSaved = true;
+
+        await db.$transaction(async tx => {
+          await tx.$queryRaw`SELECT "oid" FROM "Tenant" WHERE "oid" = ${target.tenantOid} FOR SHARE`;
+          let updated = await tx.triggerWebhookTarget.updateMany({
+            where: {
+              ...fencedTargetWhere(token),
+              oid: target.oid,
+              status: { in: ['creating', 'failed'] },
+              renewalOperationId: operationId,
+              tenant: { disableCallbacks: false },
+              webhooks: {
+                some: {
+                  triggerRegistrationInstance: { triggerRegistration: { status: 'active' } }
+                }
+              }
+            },
             data: {
               status: 'active',
-              webhookRegistrationOid: webhookRegistration.oid,
-              registeredByTriggerRegistrationOid: registration.oid
+              registeredByTriggerRegistrationOid: registration.oid,
+              renewalNextAttemptAt: saved.nextRenewalAt,
+              renewalOperationId: null
             }
-          }),
-          db.triggerWebhookTargetRegistrationAttempt.create({
+          });
+          if (!updated.count) throw new QueueRetryError();
+
+          let webhookRegistration = await tx.slateWebhookRegistration.create({
+            data: {
+              ...getId('slateWebhookRegistration'),
+              type: 'automated',
+              owner: 'tenant',
+              status: 'active',
+              urlKey,
+              name: target.name,
+              description: target.description,
+              metadata: target.metadata,
+              tenantOid: registration.tenantOid,
+              slateOid: registration.slateOid,
+              triggerGroupOid: target.triggerGroupOid,
+              secretOid: saved.secretOid,
+              registrationIdentifier: saved.registrationIdentifier,
+              expiresAt: saved.expiresAt,
+              renewAfter: saved.renewAfter,
+              authRouting: 'any'
+            }
+          });
+          await tx.triggerWebhookTarget.update({
+            where: { oid: target.oid },
+            data: { webhookRegistrationOid: webhookRegistration.oid }
+          });
+
+          await replaceDeliveryRoutes(tx, {
+            webhookRegistrationOid: webhookRegistration.oid,
+            bindingId: saved.deliveryBindingId,
+            routingKeys: saved.routingKeys
+          });
+
+          await tx.triggerWebhookTargetRegistrationAttempt.create({
             data: {
               ...getId('triggerWebhookTargetRegistrationAttempt'),
               status: 'succeeded',
               triggerWebhookTargetOid: target.oid,
-              invocationOid: result.invocation.oid
+              invocationOid: saved.invocationOid
             }
-          }),
-          db.triggerRegistrationWebhook.updateMany({
+          });
+          await tx.triggerRegistrationWebhook.updateMany({
             where: { triggerWebhookTargetOid: target.oid },
             data: { webhookRegistrationOid: webhookRegistration.oid }
-          })
-        ]);
-
-        return;
+          });
+          await tx.triggerWebhookRenewalResult.delete({ where: { operationId } });
+        });
+      } catch (error) {
+        // The queue drops the job after this attempt, so an exception has to end in the
+        // same failed state as a rejected call. A saved provider result is left alone: the
+        // renewal cleanup queue resumes it or rolls it back.
+        if (isLastAttempt && !failureRecorded && !resultSaved)
+          await recordFailure({
+            code: 'webhook_registration_failed',
+            message: `We couldn't set up the webhook for "${target.name}" after ${TRIGGER_WEBHOOK_REGISTER_MAX_ATTEMPTS} attempts: ${
+              isServiceError(error) ? error.data.message : 'an internal error occurred.'
+            }`
+          });
+        throw error;
+      } finally {
+        await releaseWebhookTarget(target.oid, token);
       }
-
-      let attempt = await db.triggerWebhookTargetRegistrationAttempt.create({
-        data: {
-          ...getId('triggerWebhookTargetRegistrationAttempt'),
-          status: 'failed',
-          triggerWebhookTargetOid: target.oid,
-          invocationOid: result.invocation.oid,
-          errorCode: result.error.code,
-          errorMessage: result.error.message
-        }
-      });
-
-      if (job.attemptsMade + 1 < TRIGGER_WEBHOOK_REGISTER_MAX_ATTEMPTS)
-        throw new QueueRetryError();
-
-      await db.triggerWebhookTarget.update({
-        where: { oid: target.oid },
-        data: { status: 'failed' }
-      });
-
-      // Only the connection whose credentials were used is at fault.
-      await createTriggerRegistrationInstanceError({
-        triggerRegistrationInstanceOid: link.triggerRegistrationInstance.oid,
-        triggerWebhookTargetOid: target.oid,
-        registrationAttemptOid: attempt.oid,
-        code: 'webhook_registration_failed',
-        message: `We couldn't set up the webhook for "${target.name}" after ${TRIGGER_WEBHOOK_REGISTER_MAX_ATTEMPTS} attempts: ${result.error.message}`
-      });
     })
 );

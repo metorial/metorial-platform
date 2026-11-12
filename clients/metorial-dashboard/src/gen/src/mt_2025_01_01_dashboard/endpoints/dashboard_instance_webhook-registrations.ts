@@ -116,7 +116,7 @@ export class MetorialDashboardInstanceWebhookRegistrationsEndpoint {
 
   /**
    * @name Create webhook registration
-   * @description Creates a webhook registration for a provider. Only providers whose type reports `triggers.webhook_registration.status` as `supported` can receive one. The registration starts out awaiting setup.
+   * @description Creates a webhook registration for a provider. Only providers whose type reports `triggers.webhook_registration.status` as `supported` can receive one. When `triggers.webhook_registration.purpose` is `delivery_setup`, triggers register automatically and the registration is the one-time delivery setup for connections that use your own OAuth app. The registration starts out awaiting setup.
    *
    * @param `instanceId` - string
    * @param `body` - DashboardInstanceWebhookRegistrationsCreateBody

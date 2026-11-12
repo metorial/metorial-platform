@@ -1,4 +1,4 @@
-import { isServiceError } from '@lowerdeck/error';
+import { badRequestError, isServiceError, ServiceError } from '@lowerdeck/error';
 import { db, snowflake, type Provider, type Tenant } from '@metorial-subspace/db';
 import {
   IProviderCallbacks,
@@ -176,27 +176,76 @@ export class ProviderCallbacks extends IProviderCallbacks {
   override async createCallbackInstance(
     data: CallbackInstanceCreateParam
   ): Promise<CallbackInstanceCreateRes> {
+    if (
+      data.callback.tenantOid !== data.tenant.oid ||
+      data.callbackInstance.tenantOid !== data.tenant.oid ||
+      data.callbackInstance.callbackOid !== data.callback.oid ||
+      data.callbackInstance.providerConfigVersionOid !== data.configVersion.oid ||
+      data.callbackInstance.providerAuthConfigVersionOid !==
+        (data.authConfigVersion?.oid ?? null)
+    ) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'callback_instance_scope_mismatch',
+          message:
+            'Callback instance configuration does not belong to this callback and tenant.'
+        })
+      );
+    }
+
     // Retried after a partial failure: the slates-side instance already exists.
     let mirror = await db.slateCallbackInstance.findUnique({
-      where: { callbackInstanceOid: data.callbackInstance.oid }
+      where: { callbackInstanceOid: data.callbackInstance.oid, tenantOid: data.tenant.oid },
+      include: { slateCallback: true }
     });
-    if (mirror) return {};
+    if (mirror) {
+      let tenant = await getTenantForSlates(data.tenant);
+      let existing = (await slates.callbackInstance.get({
+        tenantId: tenant.id,
+        callbackId: mirror.slateCallback.id,
+        callbackInstanceId: mirror.id
+      })) as { selectableTriggerGroups?: PrismaJson.SelectableTriggerGroups };
+
+      return { selectableTriggerGroups: existing.selectableTriggerGroups };
+    }
 
     let slateCallback = await db.slateCallback.findUniqueOrThrow({
-      where: { callbackOid: data.callback.oid }
+      where: { callbackOid: data.callback.oid, tenantOid: data.tenant.oid }
     });
 
     if (!data.configVersion.slateInstanceOid) {
-      throw new Error('Provider config version does not have a slate instance');
+      throw new ServiceError(
+        badRequestError({
+          code: 'callback_config_backend_mismatch',
+          message: 'Provider configuration cannot be used with this callback backend.'
+        })
+      );
     }
 
     let slateInstance = await db.slateInstance.findUniqueOrThrow({
-      where: { oid: data.configVersion.slateInstanceOid }
+      where: {
+        oid: data.configVersion.slateInstanceOid,
+        tenantOid: data.tenant.oid,
+        slateOid: slateCallback.slateOid
+      }
     });
 
+    if (data.authConfigVersion && !data.authConfigVersion.slateAuthConfigOid) {
+      throw new ServiceError(
+        badRequestError({
+          code: 'callback_auth_backend_mismatch',
+          message: 'Provider authentication cannot be used with this callback backend.'
+        })
+      );
+    }
+
     let slateAuthConfig = data.authConfigVersion?.slateAuthConfigOid
-      ? await db.slateAuthConfig.findUnique({
-          where: { oid: data.authConfigVersion.slateAuthConfigOid }
+      ? await db.slateAuthConfig.findUniqueOrThrow({
+          where: {
+            oid: data.authConfigVersion.slateAuthConfigOid,
+            tenantOid: data.tenant.oid,
+            slateOid: slateCallback.slateOid
+          }
         })
       : null;
 
@@ -206,7 +255,8 @@ export class ProviderCallbacks extends IProviderCallbacks {
       tenantId: tenant.id,
       callbackId: slateCallback.id,
       slateInstanceId: slateInstance.id,
-      authConfigId: slateAuthConfig?.id
+      authConfigId: slateAuthConfig?.id,
+      triggerGroupSelections: data.callbackInstance.triggerGroupSelections ?? undefined
     });
 
     await db.slateCallbackInstance.create({
@@ -225,7 +275,7 @@ export class ProviderCallbacks extends IProviderCallbacks {
       }
     });
 
-    return {};
+    return { selectableTriggerGroups: res.selectableTriggerGroups };
   }
 
   override async deleteCallbackInstance(
@@ -373,8 +423,7 @@ export class ProviderCallbacks extends IProviderCallbacks {
       webhookRegistrationIds: slatesRegistrationIds,
       slateIds,
       statuses: data.statuses as
-        | ('pending' | 'failed_retrying' | 'failed_final' | 'succeeded')[]
-        | undefined,
+        ('pending' | 'failed_retrying' | 'failed_final' | 'succeeded')[] | undefined,
 
       limit: data.input.limit,
       after: data.input.after,
@@ -416,10 +465,15 @@ export class ProviderCallbacks extends IProviderCallbacks {
 
     let tenant = await getTenantForSlates(data.tenant);
 
-    await slates.slateWebhookRegistration.delete({
-      tenantId: tenant.id,
-      webhookRegistrationId: slateWebhookRegistration.id
-    });
+    // Runs once when the registration is archived and again from the nightly cleanup.
+    try {
+      await slates.slateWebhookRegistration.delete({
+        tenantId: tenant.id,
+        webhookRegistrationId: slateWebhookRegistration.id
+      });
+    } catch (error) {
+      if (!isServiceError(error) || error.data.code !== 'not_found') throw error;
+    }
 
     return {};
   }

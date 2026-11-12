@@ -88,7 +88,9 @@ export interface CallbackInstanceCreateParam {
   authConfigVersion: ProviderAuthConfigVersion | null;
 }
 
-export interface CallbackInstanceCreateRes {}
+export interface CallbackInstanceCreateRes {
+  selectableTriggerGroups?: PrismaJson.SelectableTriggerGroups;
+}
 
 export interface CallbackInstanceDeleteParam {
   tenant: Tenant;

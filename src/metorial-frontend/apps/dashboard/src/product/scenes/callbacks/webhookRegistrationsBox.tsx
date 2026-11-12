@@ -7,17 +7,29 @@ import {
   useProvider,
   useWebhookRegistrations
 } from '@metorial/state';
-import { Badge, Callout, Spacer, Text } from '@metorial/ui';
+import { Badge, Button, Callout, Flex, Spacer, Text } from '@metorial/ui';
 import { Box, Table } from '@metorial/ui-product';
 import { truncateReceiverUrl } from './shared';
-import { CreateWebhookRegistrationButton } from './webhookRegistrationsTable';
+import {
+  getConnectionWebhookRegistrationPurpose,
+  getDeliverySetupState,
+  getWebhookRegistrationPurpose,
+  WEBHOOK_REGISTRATION_COPY,
+  type WebhookRegistrationPurpose
+} from './webhookRegistrationPurpose';
+import {
+  CreateWebhookRegistrationButton,
+  showWebhookRegistrationSetup
+} from './webhookRegistrationsTable';
 
 export let ProviderWebhookRegistrationsBox = ({
   instanceId,
-  provider
+  provider,
+  purpose = 'webhook_receiver'
 }: {
   instanceId: string;
   provider: { id: string; name: string };
+  purpose?: WebhookRegistrationPurpose;
 }) => {
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
@@ -26,19 +38,21 @@ export let ProviderWebhookRegistrationsBox = ({
     order: 'desc',
     providerId: provider.id
   });
+  let copy = WEBHOOK_REGISTRATION_COPY[purpose];
 
   let onCreate = () => void registrations.refetch();
 
   return (
     <>
       <Box
-        title="Inbound Event Setup"
-        description={`Tool calls to ${provider.name} work without this, but inbound events require a webhook receiver registered with the provider.`}
+        title={copy.boxTitle}
+        description={copy.boxDescription(provider.name)}
         rightActions={
           registrations.data && !registrations.data.items.length ? (
             <CreateWebhookRegistrationButton
               instanceId={instanceId}
               provider={provider}
+              purpose={purpose}
               onCreate={onCreate}
             />
           ) : undefined
@@ -51,21 +65,17 @@ export let ProviderWebhookRegistrationsBox = ({
               <Callout color="orange">
                 <div>
                   <Text size="2" weight="strong">
-                    Action Required to Receive Events
+                    {copy.emptyTitle}
                   </Text>
                   <Spacer size={4} />
-                  <Text size="2">
-                    Create a receiver, add its secure URL in {provider.name}, then enter any
-                    verification values requested by the provider. Metorial will guide you
-                    through each step.
-                  </Text>
+                  <Text size="2">{copy.emptyText(provider.name)}</Text>
                 </div>
               </Callout>
             </>
           )
         })(registrations => (
           <Table
-            headers={['Receiver', 'Receive URL']}
+            headers={copy.tableHeaders}
             data={registrations.data.items.map(registration => ({
               href: Paths.instance.webhookRegistration(
                 organization.data,
@@ -80,6 +90,12 @@ export let ProviderWebhookRegistrationsBox = ({
                   {registration.status === 'awaiting_setup' && (
                     <Badge color="orange" size="2">
                       Awaiting Setup
+                    </Badge>
+                  )}
+
+                  {registration.status === 'active' && copy.activeBadge && (
+                    <Badge color="blue" size="2">
+                      {copy.activeBadge}
                     </Badge>
                   )}
                 </div>,
@@ -104,27 +120,111 @@ export let ProviderWebhookRegistrationsBox = ({
   );
 };
 
+// A registration only carries a preview of its provider, so its wording needs the provider.
+export let useWebhookRegistrationCopy = (
+  instanceId: string | null | undefined,
+  providerId: string | null | undefined
+) => {
+  let provider = useProvider(instanceId, providerId);
+  let purpose = getWebhookRegistrationPurpose(provider.data?.type.triggers);
+
+  return { provider, copy: WEBHOOK_REGISTRATION_COPY[purpose ?? 'webhook_receiver'] };
+};
+
 export let CallbackWebhookRegistrationsBox = ({
   instanceId,
-  providerId
+  providerId,
+  authCredentialsIsManaged
 }: {
   instanceId: string;
   providerId: string;
+  authCredentialsIsManaged: boolean;
 }) => {
-  let provider = useProvider(instanceId, providerId);
+  let provider = useProvider(instanceId, authCredentialsIsManaged ? null : providerId);
+
+  if (authCredentialsIsManaged) return null;
 
   return renderWithLoader({ provider })(({ provider }) => {
-    let needsManualRegistration =
-      provider.data.type.triggers.status === 'enabled' &&
-      provider.data.type.triggers.webhookRegistration.status === 'supported';
+    let purpose = getConnectionWebhookRegistrationPurpose({
+      triggers: provider.data.type.triggers,
+      authCredentialsIsManaged
+    });
 
-    if (!needsManualRegistration) return null;
+    if (!purpose) return null;
 
     return (
       <ProviderWebhookRegistrationsBox
         instanceId={instanceId}
         provider={{ id: providerId, name: provider.data.name }}
+        purpose={purpose}
       />
     );
   });
+};
+
+export let CallbackDeliverySetupCallout = ({
+  instanceId,
+  providerId,
+  authCredentialsIsManaged
+}: {
+  instanceId: string;
+  providerId: string;
+  authCredentialsIsManaged: boolean;
+}) => {
+  let provider = useProvider(instanceId, authCredentialsIsManaged ? null : providerId);
+  let needsDeliverySetup =
+    getConnectionWebhookRegistrationPurpose({
+      triggers: provider.data?.type.triggers,
+      authCredentialsIsManaged
+    }) === 'delivery_setup';
+  let registrations = useWebhookRegistrations(needsDeliverySetup ? instanceId : null, {
+    order: 'desc',
+    providerId
+  });
+
+  if (!needsDeliverySetup || !provider.data || !registrations.data) return null;
+
+  if (getDeliverySetupState(registrations.data.items) === 'complete') return null;
+
+  let pending = registrations.data.items.find(
+    registration => registration.status === 'awaiting_setup'
+  );
+  let onChange = () => void registrations.refetch();
+
+  return (
+    <>
+      <Callout color="orange">
+        <Flex align="center" justify="space-between" gap={12}>
+          <span>
+            <strong>Delivery is not set up.</strong> This connection uses your own Google OAuth
+            app. Finish the delivery setup to receive events.
+          </span>
+
+          {pending ? (
+            <Button
+              size="2"
+              onClick={() =>
+                showWebhookRegistrationSetup({
+                  instanceId,
+                  registration: pending,
+                  onComplete: onChange
+                })
+              }
+            >
+              Finish Setup
+            </Button>
+          ) : (
+            <CreateWebhookRegistrationButton
+              instanceId={instanceId}
+              provider={{ id: providerId, name: provider.data.name }}
+              purpose="delivery_setup"
+              onCreate={onChange}
+            />
+          )}
+        </Flex>
+      </Callout>
+
+      <Spacer height={20} />
+    </>
+  );
 };

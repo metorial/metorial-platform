@@ -18,6 +18,7 @@ import {
   recordProviderAuthCredentialsCreated,
   recordProviderAuthExportCreated
 } from './auth';
+import { recordCallbackUpdated } from './callback';
 import { recordCustomProviderUpdated } from './customProvider';
 import { recordProviderConfigUpdated, recordProviderDeploymentCreated } from './deployment';
 import { recordAgentCreated, recordIdentityDelegationCreated } from './identity';
@@ -243,6 +244,40 @@ describe('subspace audit listeners', () => {
     expect(payload.isMagicMcpBacking).toBe(true);
     expect(payload.name).toBe('GitHub Renamed');
     expect(previousPayload.name).toBe('GitHub');
+  });
+
+  it('records which trigger group selections a callback update changed', async () => {
+    let callback = {
+      id: 'cbk_1',
+      status: 'active',
+      name: 'Drive',
+      description: null,
+      integration: { id: 'int_1' },
+      integrationProvider: { id: 'inp_1' },
+      provider
+    };
+
+    await recordCallbackUpdated(
+      event({
+        callback,
+        previousCallback: callback,
+        changedTriggerGroupKeys: ['folder_events']
+      })
+    );
+    await recordCallbackUpdated(event({ callback, previousCallback: callback }));
+
+    let [, resource, action, { payload, previousPayload }] = callOf();
+    expect(resource).toBe('callback');
+    expect(action).toBe('update');
+    expect(payload).toMatchObject({
+      triggerGroupSelectionsChanged: true,
+      changedTriggerGroupKeys: ['folder_events']
+    });
+    expect(previousPayload).not.toHaveProperty('changedTriggerGroupKeys');
+    expect(callOf(1)[3].payload).toMatchObject({
+      triggerGroupSelectionsChanged: false,
+      changedTriggerGroupKeys: []
+    });
   });
 
   it('records a firewall policy attach as a diff of its policy list', async () => {
