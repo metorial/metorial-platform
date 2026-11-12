@@ -1,12 +1,7 @@
-import { db, getId } from '@metorial-subspace/db';
+import { ensureProviderBackend } from '@metorial-subspace/provider-utils';
 
-export let backend = await db.backend.upsert({
-  where: { type: 'shuttle' },
-  create: {
-    ...getId('backend'),
-    name: 'Slates',
-    type: 'shuttle',
-    identifier: 'shuttle'
-  },
-  update: {}
+export let backend = await ensureProviderBackend({
+  name: 'Slates',
+  type: 'shuttle',
+  identifier: 'shuttle'
 });
