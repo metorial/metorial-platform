@@ -1,9 +1,9 @@
 import { Popover } from '@base-ui/react/popover';
-import React from 'react';
+import React, { useState } from 'react';
 import { styled } from 'styled-components';
-import { useIsInDialog } from '../dialog/state';
+import { useIsInDialog, useZindex } from '../dialog/state';
 import { theme } from '../theme';
-import { floatingPopupSurface, floatingTokens } from './tokens';
+import { floatingPopupSurface } from './tokens';
 
 export type FloatingPopoverProps = {
   trigger: React.ReactElement<Record<string, unknown>>;
@@ -19,7 +19,6 @@ export type FloatingPopoverProps = {
 };
 
 let Positioner = styled(Popover.Positioner)`
-  z-index: ${floatingTokens.zIndex};
   outline: none;
   pointer-events: auto;
 `;
@@ -78,13 +77,27 @@ export let FloatingPopover = ({
   description
 }: FloatingPopoverProps) => {
   let isInDialog = useIsInDialog();
+  let [internalOpen, setInternalOpen] = useState(false);
+  let zIndex = useZindex(open ?? internalOpen);
 
   return (
-    <Popover.Root open={open} onOpenChange={value => onOpenChange?.(value)}>
+    <Popover.Root
+      open={open}
+      onOpenChange={value => {
+        setInternalOpen(value);
+        onOpenChange?.(value);
+      }}
+    >
       <Popover.Trigger render={trigger} />
 
       <Popover.Portal>
-        <Positioner side={side} align={align} sideOffset={sideOffset} collisionPadding={12}>
+        <Positioner
+          side={side}
+          align={align}
+          sideOffset={sideOffset}
+          collisionPadding={12}
+          style={{ zIndex }}
+        >
           <Popup
             $width={typeof width == 'number' ? `${width}px` : width}
             data-metorial-menu-content={isInDialog ? '' : undefined}

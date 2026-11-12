@@ -5,8 +5,7 @@ export let floatingTokens = {
   border: theme.colors.gray350,
   shadow: '0 1px 2px rgba(0, 0, 0, 0.03), 0 4px 14px rgba(0, 0, 0, 0.05)',
   popShadow: '0 4px 14px rgba(0, 0, 0, 0.05)',
-  ease: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
-  zIndex: 9000
+  ease: 'cubic-bezier(0.2, 0.8, 0.2, 1)'
 };
 
 export let floatingSurface = css`

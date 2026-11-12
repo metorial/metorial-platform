@@ -289,25 +289,20 @@ let SidebarGroup = ({
     return () => clearTimeout(to);
   }, []);
 
-  useLocation(); // Force re-render on location change
+  let { pathname } = useLocation();
 
   let items = _items
     .filter(i => i.enabled !== false)
     .map(({ getProps, ...item }) => {
       let children =
         item.children?.map(child => {
-          let isActive = child.getProps?.({
-            pathname: window.location.pathname,
-            to: child.to
-          }).isActive;
+          let isActive = child.getProps?.({ pathname, to: child.to }).isActive;
           return { ...child, isActive };
         }) ?? [];
 
       let childrenActive = children?.some(child => child.isActive);
 
-      let isActive =
-        getProps?.({ pathname: window.location.pathname, to: item.to ?? '' }).isActive ||
-        childrenActive;
+      let isActive = getProps?.({ pathname, to: item.to ?? '' }).isActive || childrenActive;
 
       return { ...item, isActive, children, childrenActive };
     });

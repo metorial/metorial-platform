@@ -34,6 +34,7 @@ import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { isOwnedSkillsView } from '../scenes/skills/overview/skillViews';
 import { useSkillsSidebarGroups } from '../scenes/skills/navigation/sidebarGroups';
+import { useSkillMarketplacesNav } from '../scenes/skills/navigation/useSkillMarketplacesNav';
 
 export let ProjectPageLayout = () => {
   let instance = useCurrentInstance();
@@ -71,6 +72,8 @@ export let ProjectPageLayout = () => {
   let publicMcpEnabled = !!dashboardFlags.data?.flags['public-mcp-servers-enabled'];
 
   let skillsSidebarGroups = useSkillsSidebarGroups({ enabled: skillsEnabled });
+  let skillMarketplaces = useSkillMarketplacesNav({ enabled: skillsEnabled });
+  let defaultSkillMarketplace = skillMarketplaces[0];
 
   return (
     <AppLayout
@@ -236,10 +239,31 @@ export let ProjectPageLayout = () => {
                   {
                     icon: <RiStore2Line />,
                     label: 'Marketplaces',
-                    to: Paths.instance.skillMarketplaces(...params),
+                    to: defaultSkillMarketplace
+                      ? Paths.instance.skillMarketplace(...params, defaultSkillMarketplace.id)
+                      : Paths.instance.skillMarketplaces(...params),
                     getProps: (i: { pathname: string; to: string }) => ({
-                      isActive: checkPath(i, { exact: true })
-                    })
+                      isActive:
+                        i.pathname.includes('/skill-marketplace/') ||
+                        i.pathname.endsWith('/skills/marketplaces')
+                    }),
+                    children:
+                      skillMarketplaces.length > 1
+                        ? skillMarketplaces.map(marketplace => {
+                            let to = Paths.instance.skillMarketplace(
+                              ...params,
+                              marketplace.id
+                            );
+
+                            return {
+                              label: marketplace.name,
+                              to,
+                              getProps: (i: { pathname: string; to: string }) => ({
+                                isActive: checkPath(i)
+                              })
+                            };
+                          })
+                        : undefined
                   }
                 ]
               }

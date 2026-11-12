@@ -83,10 +83,6 @@ export let SkillMarketplaceLayout = () => {
       icon={<RiStore2Line />}
       breadcrumbs={[
         {
-          label: 'Skill Marketplaces',
-          to: Paths.instance.skillMarketplaces(organization.data, project.data, instance.data)
-        },
-        {
           label: marketplace.data?.name,
           to: Paths.instance.skillMarketplace(...marketplacePathParams)
         }

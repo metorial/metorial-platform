@@ -1,9 +1,10 @@
 import { Menu } from '@base-ui/react/menu';
 import { RiArrowRightSLine, RiCheckLine } from '@remixicon/react';
-import React from 'react';
+import React, { useState } from 'react';
+import { useZindex } from '../dialog/state';
 import { styled } from 'styled-components';
 import { theme } from '../theme';
-import { floatingPopupSurface, floatingTokens } from './tokens';
+import { floatingPopupSurface } from './tokens';
 
 export type FloatingMenuItem =
   | {
@@ -45,7 +46,6 @@ export type FloatingMenuProps = {
 };
 
 let Positioner = styled(Menu.Positioner)`
-  z-index: ${floatingTokens.zIndex};
   outline: none;
 `;
 
@@ -197,7 +197,11 @@ export let FloatingMenuRowLabel = styled.span`
   min-width: 0;
 `;
 
-let renderItems = (items: FloatingMenuItem[], minWidth: number): React.ReactNode =>
+let renderItems = (
+  items: FloatingMenuItem[],
+  minWidth: number,
+  zIndex: number
+): React.ReactNode =>
   items.map((item, index) => {
     let key = item.id ?? `item-${index}`;
 
@@ -220,8 +224,15 @@ let renderItems = (items: FloatingMenuItem[], minWidth: number): React.ReactNode
           </SubmenuTrigger>
 
           <Menu.Portal>
-            <Positioner side="right" align="start" sideOffset={6}>
-              <Popup $minWidth={minWidth}>{renderItems(item.items, minWidth)}</Popup>
+            <Positioner
+              side="right"
+              align="start"
+              sideOffset={6}
+              style={{ zIndex: zIndex + 1 }}
+            >
+              <Popup $minWidth={minWidth}>
+                {renderItems(item.items, minWidth, zIndex + 1)}
+              </Popup>
             </Positioner>
           </Menu.Portal>
         </Menu.SubmenuRoot>
@@ -264,17 +275,34 @@ export let FloatingMenu = ({
   open,
   onOpenChange,
   header
-}: FloatingMenuProps) => (
-  <Menu.Root open={open} onOpenChange={value => onOpenChange?.(value)}>
-    <Menu.Trigger render={trigger} />
+}: FloatingMenuProps) => {
+  let [internalOpen, setInternalOpen] = useState(false);
+  let zIndex = useZindex(open ?? internalOpen);
 
-    <Menu.Portal>
-      <Positioner side={side} align={align} sideOffset={sideOffset} collisionPadding={12}>
-        <Popup $minWidth={minWidth}>
-          {header}
-          {renderItems(items, minWidth)}
-        </Popup>
-      </Positioner>
-    </Menu.Portal>
-  </Menu.Root>
-);
+  return (
+    <Menu.Root
+      open={open}
+      onOpenChange={value => {
+        setInternalOpen(value);
+        onOpenChange?.(value);
+      }}
+    >
+      <Menu.Trigger render={trigger} />
+
+      <Menu.Portal>
+        <Positioner
+          side={side}
+          align={align}
+          sideOffset={sideOffset}
+          collisionPadding={12}
+          style={{ zIndex }}
+        >
+          <Popup $minWidth={minWidth}>
+            {header}
+            {renderItems(items, minWidth, zIndex)}
+          </Popup>
+        </Positioner>
+      </Menu.Portal>
+    </Menu.Root>
+  );
+};
