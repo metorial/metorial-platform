@@ -1,5 +1,5 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, conflictError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type {
@@ -53,6 +53,8 @@ import {
   enqueueSkillMarketplacePluginLifecycle,
   enqueueSkillPluginLifecycle
 } from '../queues/lifecycle';
+
+let slugAllocationAttempts = 10;
 
 let skillInclude = {
   store: true,
@@ -410,14 +412,6 @@ class SkillPluginServiceImpl {
       organizationOid: d.instance.organizationOid,
       instance: d.instance
     });
-    let marketplacePluginSlug = skillMarketplace
-      ? await getMarketplacePluginSlug(
-          { input: d.input.slug ?? d.input.name },
-          { skillMarketplaceId: skillMarketplace.id }
-        )
-      : undefined;
-    let slug = await getAvailableSkillPluginSlug(d.input.slug ?? d.input.name);
-
     let storageMode = await getNewSkillDestinationStorageMode({ instance: d.instance });
 
     return await withTransaction(async db => {
@@ -427,25 +421,47 @@ class SkillPluginServiceImpl {
       });
 
       let destination = await createSkillDestination({ project: d.project, storageMode });
-      let skillPlugin = await db.skillPlugin.create({
-        data: {
-          id: await ID.generateId('skillPlugin'),
-          status: 'active',
-          isManaged: false,
-          providerOverrides: d.input.providerOverrides as any,
-          name: d.input.name,
-          description: d.input.description,
-          longDescription: d.input.longDescription,
-          category: d.input.category,
-          slug,
-          projectOid: d.project.oid,
-          instanceOid: d.instance.oid,
-          organizationOid: d.project.organizationOid,
-          skillConfigurationOid,
-          destinationOid: destination.oid
-        },
-        include: skillPluginInclude
-      });
+      let skillPluginId = await ID.generateId('skillPlugin');
+      let skillPlugin: SkillPluginRecord | undefined;
+
+      for (let attempt = 0; attempt < slugAllocationAttempts; attempt++) {
+        let slug = await getAvailableSkillPluginSlug(d.input.slug ?? d.input.name);
+        // ON CONFLICT keeps the transaction usable when another create wins this slug.
+        let created = await db.skillPlugin.createMany({
+          skipDuplicates: true,
+          data: {
+            id: skillPluginId,
+            status: 'active',
+            isManaged: false,
+            providerOverrides: d.input.providerOverrides as any,
+            name: d.input.name,
+            description: d.input.description,
+            longDescription: d.input.longDescription,
+            category: d.input.category,
+            slug,
+            projectOid: d.project.oid,
+            instanceOid: d.instance.oid,
+            organizationOid: d.project.organizationOid,
+            skillConfigurationOid,
+            destinationOid: destination.oid
+          }
+        });
+        if (!created.count) continue;
+
+        skillPlugin = await db.skillPlugin.findUniqueOrThrow({
+          where: { id: skillPluginId },
+          include: skillPluginInclude
+        });
+        break;
+      }
+
+      if (!skillPlugin) {
+        throw new ServiceError(
+          conflictError({
+            message: 'Unable to allocate a skill plugin slug. Please try again.'
+          })
+        );
+      }
 
       if (d.input.imageFileId !== undefined) {
         let image = await internalImageService.resolveImageEntityImage({
@@ -480,17 +496,40 @@ class SkillPluginServiceImpl {
       await enqueueSkillPluginLifecycle({ skillPluginId: skillPlugin.id, event: 'created' });
 
       if (skillMarketplace) {
-        let skillMarketplacePlugin = await db.skillMarketplacePlugin.create({
-          data: {
-            id: await ID.generateId('skillMarketplacePlugin'),
-            status: 'active',
-            pluginSlug: marketplacePluginSlug!,
-            skillMarketplaceOid: skillMarketplace.oid,
-            skillPluginOid: skillPlugin.oid
-          }
-        });
+        let skillMarketplacePluginId = await ID.generateId('skillMarketplacePlugin');
+        let created = false;
+
+        for (let attempt = 0; attempt < slugAllocationAttempts; attempt++) {
+          let pluginSlug = await getMarketplacePluginSlug(
+            { input: d.input.slug ?? d.input.name },
+            { skillMarketplaceId: skillMarketplace.id }
+          );
+          let result = await db.skillMarketplacePlugin.createMany({
+            skipDuplicates: true,
+            data: {
+              id: skillMarketplacePluginId,
+              status: 'active',
+              pluginSlug,
+              skillMarketplaceOid: skillMarketplace.oid,
+              skillPluginOid: skillPlugin.oid
+            }
+          });
+          if (!result.count) continue;
+
+          created = true;
+          break;
+        }
+
+        if (!created) {
+          throw new ServiceError(
+            conflictError({
+              message: 'Unable to allocate a marketplace plugin slug. Please try again.'
+            })
+          );
+        }
+
         await enqueueSkillMarketplacePluginLifecycle({
-          skillMarketplacePluginId: skillMarketplacePlugin.id,
+          skillMarketplacePluginId,
           event: 'created'
         });
       }
