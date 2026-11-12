@@ -137,6 +137,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "recursive/flint-v1.0:free": {
+    "decision": "link",
+    "model": "recursive/flint",
+    "reason": "The :free suffix is OpenRouter's free tier of Recursive's Flint, the open-weight MoE for coding agents (Hugging Face RecursiveSI/flint, ~2.5B active of 40B, released 2026-10-21); same checkpoint as recursive/flint, free with rate limits.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "scaledown/extract": {
     "decision": "defer",
     "until": "2026-12-12",

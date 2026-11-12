@@ -6,6 +6,27 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "bfl/flux-pro-1.0-fill": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "BFL's FLUX.1 Fill [pro] inpainting model; the index has no Fill entry — its BFL image models are the open-weight dev/schnell, the Kontext line and FLUX 2/3 — so there is no catalog model to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "bfl/flux-pro-1.1": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "BFL's FLUX1.1 [pro] text-to-image model (Nov 2024); the index has no FLUX 1.1 pro entry — only the open-weight FLUX.1 dev/schnell and the FLUX 2/3 lines — so there is no catalog model to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "bfl/flux-pro-1.1-ultra": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "FLUX1.1 [pro] Ultra is the high-resolution tier of BFL's FLUX1.1 [pro]; the index has no FLUX 1.1 pro entry to link, so this image model is not catalogued.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "callstack/apex": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -73,6 +94,13 @@
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "Nace.AI's Drex Max v1.1 (served as drex-max, released 2026-10-28 per BenchLM), the frontier multimodal decision model; the index has only drex-v1.5/drex-v2.0, which are the separate Drex decision line, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "prodia/flux-fast-schnell": {
+    "decision": "link",
+    "model": "black-forest-labs/flux-1-schnell",
+    "reason": "Vercel's listing describes Flux Schnell as Prodia's speed-focused image model built on BFL's FLUX.1 Schnell architecture — Prodia's fast serving of the FLUX.1 [schnell] checkpoint, matching black-forest-labs/flux-1-schnell.",
     "by": "agent",
     "at": "2026-11-12"
   },

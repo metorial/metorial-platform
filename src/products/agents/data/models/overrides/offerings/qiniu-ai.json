@@ -62,6 +62,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "stepfun-ai/gelab-zero-4b-preview": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "StepFun's GELab-Zero-4B-preview is a 4B GUI-agent model fine-tuned from Qwen/Qwen3-VL-4B-Instruct (per Hugging Face metadata); a fine-tune is not the Qwen base model and the index has no GELab entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "z-ai/autoglm-phone-9b": {
     "decision": "defer",
     "until": "2026-12-12",

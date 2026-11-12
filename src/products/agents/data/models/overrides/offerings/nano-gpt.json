@@ -27,6 +27,48 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "Gemma-4-26B-A4B-MeroMero": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "zerofata's G4-MeroMero-26B-A4B is a community NVFP4 fine-tune/merge of google/gemma-4-26B-A4B-it for roleplay (per its Hugging Face repos); a fine-tune is not google/gemma-4-26b-a4b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-26B-A4B-MeroMero:thinking": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "The :thinking suffix is thinking-mode serving of zerofata's G4-MeroMero-26B-A4B, a community fine-tune/merge of google/gemma-4-26B-A4B-it; a fine-tune is not google/gemma-4-26b-a4b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-Agares-v1": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "DarkArtsForge's Agares-31B-v1 is a merge of community Gemma 4 31B fine-tunes (per its Hugging Face card); a merge is not google/gemma-4-31b-it itself and the index has no Agares entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-Animus-V14.1": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page calls Gemma 4 31B Animus V14.1 a community creative finetune for reasoning, multimodal chat and roleplay; a fine-tune is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Gemma-4-31B-AssGuard": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Ateron's Gemma-4-AssGuard-31B is a multi-phase mergekit build on the Gemma 4 architecture (per its Hugging Face card); a merge is not google/gemma-4-31b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "TEE/gemma-4-26b-a4b-uncensored": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "The 'Uncensored (Heretic)' build removes refusal behavior directly in the weights of google/gemma-4-26B-A4B-it via directional ablation (per vendor listings), served in a TEE; a weight-edited derivative is not the base model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "TheDrummer/Anubis-70B-v1": {
     "decision": "exclude",
     "category": "fine-tune",
@@ -262,10 +304,157 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "gemini-2.0-pro-exp-02-05": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Google's Gemini 2.0 Pro Experimental checkpoint (released 2025-02-05); the index has no Gemini 2.0 Pro entry — only 2.0 Flash and the 2.5 Pro line — so defer rather than guess.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemini-2.0-pro-reasoner": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "NanoGPT's 'Gemini 2.0 Pro Reasoner' alias; no such Google model id is documented and the index has no Gemini 2.0 Pro entry, so the checkpoint it serves cannot be pinned.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemini-2.5-flash-nothinking": {
+    "decision": "link",
+    "model": "google/gemini-2.5-flash",
+    "reason": "The -nothinking alias is the non-reasoning serving of the same Gemini 2.5 Flash checkpoint (same 1M context, and 0.3/2.5 matches the model's rates); still google/gemini-2.5-flash.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemini-2.5-flash-preview-04-17": {
+    "decision": "link",
+    "model": "google/gemini-2.5-flash-preview-05-20",
+    "reason": "Google's Vertex release notes: effective June 19, 2025 the gemini-2.5-flash-preview-04-17 endpoint serves the 2.5 Flash version released 05-20; that checkpoint is google/gemini-2.5-flash-preview-05-20.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemini-2.5-flash-preview-04-17:thinking": {
+    "decision": "link",
+    "model": "google/gemini-2.5-flash-preview-05-20",
+    "reason": "The :thinking suffix is thinking-mode serving of the 04-17 preview endpoint, which per Google's release notes serves the 05-20 2.5 Flash version; still google/gemini-2.5-flash-preview-05-20.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemini-2.5-flash-preview-09-2025": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Google's Sept 25, 2025 preview of the next 2.5 Flash — a separate checkpoint the index has no entry for (it has only the Flash-Lite 09-2025 preview and GA 2.5 Flash); defer rather than guess.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemini-2.5-flash-preview-09-2025-thinking": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Thinking-mode serving of Google's Sept 25, 2025 preview of the next 2.5 Flash, a separate checkpoint the index has no entry for; defer rather than link to the GA 2.5 Flash.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemini-2.5-pro-exp-03-25": {
+    "decision": "link",
+    "model": "google/gemini-2.5-pro-preview",
+    "reason": "Google's Vertex release notes: the gemini-2.5-pro-exp-03-25 endpoint now serves the 2.5 Pro version released 06-05; that checkpoint is google/gemini-2.5-pro-preview (Gemini 2.5 Pro Preview 06-05).",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemini-exp-1206": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Google's gemini-exp-1206 experimental checkpoint (Dec 2024); Google staff confirmed it is not a Gemini 2.0 release and the index has no entry for it, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-12b-it-semancer": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "UnstableLlama's Semancer-12B is a fine-tune of Google's Gemma 4 12B on a hand-crafted occult-philosophy dataset (per its Hugging Face card); a fine-tune is not google/gemma-4-12b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-12b-it-starry-ocean": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Vortex5's G4-Starry-Ocean-12B is a merge of gemma-4-12B-it with the Semancer-12B and Station-Keeper fine-tunes (per its Hugging Face card); a merge is not google/gemma-4-12b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-12b-it-station-keeper": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "A community Gemma 4 12B creative fine-tune served under the StationKeeper name (Sep 2026), a sibling of the Semancer/Starry Ocean builds and a merge component in Vortex5's Starry Ocean; a derivative, not google/gemma-4-12b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-26b-a4b-it-chimerax": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page: Chimera X is a Gemma 4 26B A4B fine-tune for creative writing, expressive dialogue and roleplay; a fine-tune is not google/gemma-4-26b-a4b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-26b-a4b-it-chimeraxheretic": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page: Chimera X Heretic is a Gemma 4 26B A4B fine-tune for creative writing, expressive dialogue and roleplay; a fine-tune is not google/gemma-4-26b-a4b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-26b-a4b-it-darksoul": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page: Dark Soul is a Gemma 4 26B A4B fine-tune for creative writing, expressive dialogue and roleplay; a fine-tune is not google/gemma-4-26b-a4b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-26b-a4b-it-luminous": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Vortex5's Luminous-Mirror-26B-A4B is a merge of the Claude-Opus-Distill, For-Her-Darkside and fiction builds with google/gemma-4-26B-A4B-it (per its HF card); a merge is not the base model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-26b-a4b-it-moonlight": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page: Moonlight Dusk is a Gemma 4 26B A4B fine-tune for creative writing, expressive dialogue and roleplay; a fine-tune is not google/gemma-4-26b-a4b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-26b-a4b-it-musica": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "NanoGPT's own page: Musica is a Gemma 4 26B A4B fine-tune for creative writing, expressive dialogue and roleplay; a fine-tune is not google/gemma-4-26b-a4b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-26b-a4b-it-opusdistill": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "TeichAI's gemma-4-26B-A4B-it-Claude-Opus-Distill is a Claude Opus 4.6 reasoning distill of google/gemma-4-26B-A4B-it (per its Hugging Face card); a distill is not the base model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "gemma-4-26b-a4b-it-shadowsiren": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Vortex5's Shadow-Siren-26B-A4B is a multi-stage merge of community Gemma 4 26B A4B fine-tunes (per its Hugging Face card); a merge is not google/gemma-4-26b-a4b-it itself.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "google/gemma-4-26b-a4b-it": {
     "decision": "link",
     "model": "google/gemma-4-26b-a4b-it",
     "reason": "Exact model id: Google's Gemma 4 26B A4B IT open-weight MoE (google/gemma-4-26B-A4B-it on Hugging Face, 26B total/4B active, 256K context). NanoGPT's 0.01/0.031 price is a discount off the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "google/gemma-4-26b-a4b-it-cybersecurity": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Vendor listings describe the Cybersecurity variant as based on the 'uncensored' (Heretic-abliterated) Gemma 4 26B A4B build with added provider moderation; a derivative fine-tune is not google/gemma-4-26b-a4b-it itself.",
     "by": "agent",
     "at": "2026-11-12"
   },

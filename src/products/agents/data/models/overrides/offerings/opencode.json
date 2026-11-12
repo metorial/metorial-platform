@@ -27,6 +27,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "fledge-alpha-free": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "OpenCode Zen's Fledge Alpha Free is a stealth free-tier preview codename: the maker is undisclosed and third-party research can only speculate it routes to hidden models; like Big Pickle/Cat Jam Free, there is no model identity to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "muse-spark-1.2-contributor": {
     "decision": "link",
     "model": "meta/muse-spark-1.2",

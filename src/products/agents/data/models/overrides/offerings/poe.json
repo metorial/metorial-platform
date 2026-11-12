@@ -13,6 +13,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "google/gemini-deep-research": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Poe's Gemini Deep Research alias; Google has shipped the agent as several checkpoints (the 12-2025 preview and the 04-2026 deep-research previews) and the listing does not say which one Poe serves, so defer rather than guess.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "openai/chatgpt-4o-latest": {
     "decision": "link",
     "model": "openai/gpt-4o",

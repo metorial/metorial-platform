@@ -1,0 +1,22 @@
+{
+  "orcarouter/free": {
+    "decision": "router",
+    "reason": "OrcaRouter's own docs: orcarouter/free routes each request by difficulty across the workspace's free models, so it picks a model per request; a router, not one fixed model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "orcarouter/fusion-flash": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OrcaRouter's own Fusion Flash, part of its free Fusion line; the vendor does not disclose which checkpoint Fusion Flash serves and the index has no OrcaRouter Fusion entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "orcarouter/fusion-mini": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "OrcaRouter's own Fusion Mini (multimodal, 1M context), part of its free Fusion line; the vendor does not disclose the underlying checkpoint and the index has no OrcaRouter Fusion entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}
