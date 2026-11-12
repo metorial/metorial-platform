@@ -18,7 +18,11 @@ let { db, auditLogService, markAresUserChanged, userEvents } = vi.hoisted(() => 
     $queryRaw: vi.fn(),
     userTermsAgreement: { upsert: vi.fn() },
     accountDomain: { findUnique: vi.fn() },
-    emailDomain: { upsert: vi.fn() }
+    emailDomain: {
+      findUnique: vi.fn(),
+      createManyAndReturn: vi.fn(),
+      findUniqueOrThrow: vi.fn()
+    }
   },
   auditLogService: { log: vi.fn() },
   markAresUserChanged: vi.fn(),
@@ -84,7 +88,7 @@ describe('userService.resolveOrCreateUser', () => {
     db.user.create.mockResolvedValue({ ...existingUser, id: 'usr_new' });
     db.accountDomain.findUnique.mockResolvedValue(null);
     db.userEmail.findFirst.mockResolvedValue(null);
-    db.emailDomain.upsert.mockResolvedValue({ oid: 3n });
+    db.emailDomain.findUnique.mockResolvedValue({ oid: 3n });
     db.userEmail.create.mockResolvedValue({ oid: 4n });
     db.userTermsAgreement.upsert.mockResolvedValue({ oid: 5n });
   });
@@ -199,7 +203,7 @@ describe('userService.createUser', () => {
 
     db.accountDomain.findUnique.mockResolvedValue(null);
     db.userEmail.findFirst.mockResolvedValue(null);
-    db.emailDomain.upsert.mockResolvedValue({ oid: 3n });
+    db.emailDomain.findUnique.mockResolvedValue({ oid: 3n });
     db.userEmail.create.mockResolvedValue({ oid: 4n });
     db.userTermsAgreement.upsert.mockResolvedValue({ oid: 5n });
   });
@@ -231,6 +235,23 @@ describe('userService.createUser', () => {
     );
   });
 
+  it('reuses the email domain created by a concurrent signup', async () => {
+    db.user.create.mockResolvedValue({ ...existingUser, id: 'usr_new' });
+    db.emailDomain.findUnique.mockResolvedValueOnce(null);
+    db.emailDomain.createManyAndReturn.mockResolvedValueOnce([]);
+    db.emailDomain.findUniqueOrThrow.mockResolvedValueOnce({ oid: 6n });
+
+    await userService.createUser(input);
+
+    expect(db.emailDomain.createManyAndReturn).toHaveBeenCalledWith({
+      data: expect.objectContaining({ domain: 'a.herber.space', appOid: app.oid }),
+      skipDuplicates: true
+    });
+    expect(db.userEmail.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ domainOid: 6n })
+    });
+  });
+
   it('reports a duplicate email as a 409', async () => {
     db.user.create.mockRejectedValue(uniqueConstraintError());
 
@@ -251,7 +272,7 @@ describe('userService.setEmails', () => {
 
     db.userEmail.findMany.mockResolvedValue([]);
     db.userEmail.findFirst.mockResolvedValue(null);
-    db.emailDomain.upsert.mockResolvedValue({ oid: 3n });
+    db.emailDomain.findUnique.mockResolvedValue({ oid: 3n });
     db.userEmail.create.mockImplementation(async ({ data }) => ({ ...data, oid: 4n }));
   });
 
@@ -320,7 +341,7 @@ describe('userService.createEmail', () => {
     vi.resetAllMocks();
 
     db.userEmail.findFirst.mockResolvedValue(null);
-    db.emailDomain.upsert.mockResolvedValue({ oid: 3n });
+    db.emailDomain.findUnique.mockResolvedValue({ oid: 3n });
   });
 
   it('locks the user before checking email ownership', async () => {
@@ -381,7 +402,7 @@ describe('SSO sync snapshot repair', () => {
         : storedUser
     );
     db.userEmail.findMany.mockImplementation(async () => storedEmails);
-    db.emailDomain.upsert.mockResolvedValue({ oid: 3n });
+    db.emailDomain.findUnique.mockResolvedValue({ oid: 3n });
     db.userEmail.create.mockImplementation(async ({ data }) => {
       let email = { ...data, domain: { domain: 'a.herber.space' }, id: 'ume_1' };
       storedEmails.push(email);
