@@ -9,6 +9,12 @@ import { runAgent, type AgentCredentials } from './agent';
 import { reviewDecisions, type DecisionReview } from './decisions';
 import { buildEvidence, modelIndex } from './evidence';
 import { renderSummary, type IterationLog } from './summary';
+import {
+  createWebSearch,
+  searchProviders,
+  type SearchProvider,
+  type WebSearch
+} from './webSearch';
 import { dirtyPaths, repoRoot, restoreOutside, scrubSecrets } from './workspace';
 
 let defaultWorkDir = '.reconcile';
@@ -18,6 +24,8 @@ let defaultThinking = 'high';
 let defaultBatchSize = 40;
 let defaultMaxIterations = 8;
 let defaultBudgetMinutes = 30;
+let defaultSearchProvider: SearchProvider = 'linkup';
+let defaultMaxSearches = 400;
 let maxFixRounds = 2;
 let agentTimeoutMs = 12 * 60_000;
 
@@ -33,9 +41,15 @@ let { values } = parseArgs({
     'max-iterations': { type: 'string', default: String(defaultMaxIterations) },
     'budget-minutes': { type: 'string', default: String(defaultBudgetMinutes) },
     pi: { type: 'string', default: process.env.PI_BIN ?? 'pi' },
-    'no-hugging-face': { type: 'boolean', default: false }
+    'no-hugging-face': { type: 'boolean', default: false },
+    'no-web-search': { type: 'boolean', default: false },
+    'search-provider': { type: 'string', default: defaultSearchProvider },
+    'max-searches': { type: 'string', default: String(defaultMaxSearches) }
   }
 });
+
+if (!searchProviders.includes(values['search-provider'] as SearchProvider))
+  throw new Error(`--search-provider must be one of ${searchProviders.join(', ')}`);
 
 let packageDir = path.resolve(import.meta.dirname, '..', '..');
 let workDir = path.resolve(values.work!);
@@ -54,6 +68,15 @@ let credentials: AgentCredentials | null =
         apiToken: process.env.CLOUDFLARE_AI_API_TOKEN,
         accountId: process.env.CLOUDFLARE_ACCOUNT_ID
       }
+    : null;
+
+let webSearch: WebSearch | null =
+  credentials && !values['no-web-search']
+    ? createWebSearch({
+        ...credentials,
+        provider: values['search-provider'] as SearchProvider,
+        maxSearches: Number(values['max-searches'])
+      })
     : null;
 
 let secrets = [
@@ -134,7 +157,8 @@ for (let iteration = 1; iteration <= maxIterations; iteration++) {
         result,
         batch,
         overrides: before,
-        fetchHuggingFace: !values['no-hugging-face']
+        fetchHuggingFace: !values['no-hugging-face'],
+        webSearch
       }),
       null,
       2
@@ -266,7 +290,8 @@ let summary = renderSummary({
   initialIssues,
   remainingIssues: result.issues.length,
   stopReason,
-  changed
+  changed,
+  search: webSearch ? { provider: values['search-provider']!, ...webSearch.stats } : null
 });
 
 await writeFile(path.join(workDir, 'summary.md'), summary);

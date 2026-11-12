@@ -33,6 +33,12 @@ export let renderSummary = (input: {
   remainingIssues: number;
   stopReason: string;
   changed: boolean;
+  search: {
+    provider: string;
+    searches: number;
+    failures: number;
+    stoppedBecause: string | null;
+  } | null;
 }) => {
   let accepted = input.iterations.flatMap(entry => entry.review?.accepted ?? []);
   let rejected = input.iterations.flatMap(entry => entry.review?.rejected ?? []);
@@ -50,6 +56,14 @@ export let renderSummary = (input: {
       ? 'Every decision passed review and a rebuild with no validation errors.'
       : '_No override changes._',
     '',
+    ...(input.search
+      ? [
+          `Web search (${input.search.provider}): ${input.search.searches} searches, ${input.search.failures} failed${
+            input.search.stoppedBecause ? `, stopped: ${input.search.stoppedBecause}` : ''
+          }.`,
+          ''
+        ]
+      : []),
     '| Batch | Issues | pi exit | Outcome | Solved |',
     '| ---: | ---: | ---: | --- | ---: |',
     ...input.iterations.map(
