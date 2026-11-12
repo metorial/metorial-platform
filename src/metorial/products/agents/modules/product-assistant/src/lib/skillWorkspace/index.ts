@@ -1,10 +1,10 @@
 import type { AuditScope } from '@metorial/audit-scope';
 import { internalDocumentCollaborationService } from '@metorial/module-documents';
 import type { Tool } from 'ai';
-import { InMemoryFs, MountableFs } from 'just-bash';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import type { DocumentEditOperation, SkillWorkspaceChange } from '../../types';
 import { createSandbox } from '../sandbox';
+import { InMemoryFs, MountableFs } from '../sandbox/bash';
 import { SkillCommitter } from './committer';
 import { ActiveDocumentView } from './documentView';
 import {

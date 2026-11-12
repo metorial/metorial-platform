@@ -7,8 +7,8 @@ import type {
   MkdirOptions,
   RmOptions
 } from 'just-bash';
-import { InMemoryFs } from 'just-bash';
 import { posix as path } from 'node:path';
+import { InMemoryFs } from '../sandbox/bash';
 import {
   assertSkillFileAllowed,
   assertSkillFileCreatable,

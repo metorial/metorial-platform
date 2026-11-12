@@ -62,7 +62,6 @@ export let sendMessage = async (
     parentMessageId?: string;
     modelId?: string;
     actor?: ResourceActor;
-    allowAllActors?: boolean;
   } = {}
 ) =>
   await productAssistantRequestService.createAssistantRequest({
@@ -73,8 +72,7 @@ export let sendMessage = async (
     input: {
       message: { parts: [{ type: 'text', text }] },
       parentMessageId: input.parentMessageId,
-      modelId: input.modelId,
-      allowAllActors: input.allowAllActors
+      modelId: input.modelId
     }
   });
 
