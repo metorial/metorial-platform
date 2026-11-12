@@ -111,6 +111,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "google/gemini-4-hydrogen": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Google's Gemini 4 Hydrogen, the speed-first member of the Gemini 4 family (per OpenRouter listing and launch coverage, canonical slug google/gemini-4-hydrogen-20261112, announced 2026-11-12); the index has only Argon and Carbon, no Hydrogen entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "inclusionai/ling-3.0-tiny": {
     "decision": "defer",
     "until": "2026-12-12",
