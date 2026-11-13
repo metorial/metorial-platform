@@ -1,1 +1,0 @@
-export let ATTRIBUTION_VERSION = 1;

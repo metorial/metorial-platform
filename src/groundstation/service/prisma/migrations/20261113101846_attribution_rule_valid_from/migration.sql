@@ -1,2 +1,0 @@
--- AlterTable
-ALTER TABLE "AttributionRule" ADD COLUMN     "validFrom" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
