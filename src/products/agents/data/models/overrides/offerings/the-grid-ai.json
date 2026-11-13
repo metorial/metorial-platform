@@ -1,0 +1,77 @@
+{
+  "agent-max": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "The Grid AI's Agent Max is an agentic workforce platform product (role-based digital team members per its own listing), not a specific model; nothing ties the name to one catalog model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "agent-prime": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "The Grid AI's Agent Prime is described as a development-focused agent system in its SageOx ecosystem, not an identifiable model; nothing ties the name to one catalog model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "agent-standard": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "The Grid AI's Agent Standard is a beta-stage assistant for programmatic agent workflows; no source documents its architecture or model lineage, and nothing ties it to one catalog model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "bytedance-pro-latest": {
+    "decision": "router",
+    "reason": "The Grid AI's '-latest' pointer to the newest ByteDance Pro model; the underlying release changes as ByteDance ships (Seed 2.0 Pro, then Seed 2.1 Pro), so the vendor picks the model rather than serving one fixed checkpoint.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "code-max": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "The Grid AI coding-tier offering; like its Agent tiers, no source documents an underlying model or lineage, and nothing ties the name to one catalog model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "code-prime": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "The Grid AI coding-tier offering; aggregator listings carry no model documentation and the search results refer to unrelated uses of the name, so nothing ties it to one catalog model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "code-standard": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "The Grid AI coding-tier offering; no official provider documentation, model card, or release note was located, and nothing ties the name to one catalog model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek-pro-latest": {
+    "decision": "router",
+    "reason": "The Grid AI's '-latest' pointer mirrors OpenRouter's rolling DeepSeek Pro alias, which 'always redirects to the latest model in the DeepSeek Pro family'; the underlying checkpoint changes as DeepSeek ships releases, so the vendor picks the model rather than serving one fixed checkpoint.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "text-max": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "The Grid AI's text-tier offering; like its Code and Agent tiers, aggregator listings carry no model documentation, release note, or lineage tying the name to one catalog model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "text-prime": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "The Grid AI's text-tier offering; no official provider documentation, model card, or release note was located, and nothing ties the name to one catalog model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "text-standard": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "The Grid AI's text-tier offering; like its Code and Agent tiers, no source documents an underlying model or lineage, and nothing ties the name to one catalog model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

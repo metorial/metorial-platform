@@ -113,7 +113,7 @@ pub fn check_with_zip_crate(path: &Path, expected: &[Expected]) {
 
     for (index, expected) in expected.iter().enumerate() {
         let mut entry = zip.by_index(index).unwrap();
-        assert_eq!(entry.name(), expected.path, "entry {index}");
+        assert_eq!(entry.name().unwrap(), expected.path, "entry {index}");
         assert_eq!(entry.size(), expected.size, "{}", expected.path);
         assert_eq!(entry.crc32(), expected.crc32, "{}", expected.path);
         if let Some(method) = expected.method {

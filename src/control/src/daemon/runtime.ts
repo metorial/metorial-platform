@@ -8,6 +8,7 @@ import * as environment from '../environment';
 import * as proxy from '../proxy';
 import * as turbo from '../turbo';
 import * as workspace from '../workspace';
+import { clearServicePorts } from '../ports';
 import type { Environment, LoadedManifest, ProjectRoot, WorkspaceMetadata } from '../types';
 import { LogStore } from './logs';
 import * as reload from './reload';
@@ -21,17 +22,18 @@ import type {
   WorkspaceInfo
 } from './types';
 
+let maxBackoff = 30_000;
+let healthyAfter = 60_000;
+let maxJobs = 20;
+
 interface Unit extends UnitInfo {
   stopping: boolean;
   attempts: number;
   timer?: ReturnType<typeof setTimeout>;
   compose?: string;
   package?: turbo.TurboPackage;
+  launching?: Promise<void>;
 }
-
-let maxBackoff = 30_000;
-let healthyAfter = 60_000;
-let maxJobs = 20;
 
 export class WorkspaceRuntime {
   phase: Phase = 'idle';
@@ -76,7 +78,7 @@ export class WorkspaceRuntime {
       error: this.error,
       startedAt: this.startedAt,
       units: [...this.units.values()].map(
-        ({ stopping, attempts, timer, compose, package: pkg, ...unit }) => unit
+        ({ stopping, attempts, timer, compose, package: pkg, launching, ...unit }) => unit
       ),
       jobs: this.jobs,
       links: this.links
@@ -238,7 +240,7 @@ export class WorkspaceRuntime {
 
       for (let item of ready) {
         let unit = this.units.get(item.name)!;
-        if (!unit.stopping && !this.children.has(item.name)) this.spawnUnit(unit);
+        if (!unit.stopping && !this.children.has(item.name)) await this.launchUnit(unit);
         started.add(item.name);
       }
       pending = pending.filter(item => !started.has(item.name));
@@ -246,12 +248,58 @@ export class WorkspaceRuntime {
     }
   }
 
-  private spawnUnit(unit: Unit) {
-    let pkg = unit.package!;
-    let [program, args] = commands.shellInvocation(pkg.command);
+  private async launchUnit(unit: Unit) {
+    if (unit.launching) return unit.launching;
     unit.stopping = false;
     unit.state = 'starting';
     unit.exitCode = undefined;
+    unit.startedAt = undefined;
+    this.changed();
+
+    let launching = (async () => {
+      await clearServicePorts(
+        unit.ports,
+        unit.package!.cwd,
+        message => this.logs.system(unit.name, message),
+        () => [...this.children.values()].flatMap(child => (child.pid ? [child.pid] : []))
+      );
+      commands.checkInterrupted();
+      if (!unit.stopping) this.spawnUnit(unit);
+    })();
+    unit.launching = launching;
+
+    try {
+      await launching;
+    } catch (error) {
+      unit.state = unit.stopping ? 'stopped' : 'crashed';
+      this.logs.system(unit.name, `could not start service: ${error}`);
+      this.changed();
+
+      throw error;
+    } finally {
+      if (unit.launching === launching) unit.launching = undefined;
+    }
+  }
+
+  private scheduleRestart(unit: Unit) {
+    if (unit.stopping) return;
+    if (unit.startedAt && Date.now() - unit.startedAt > healthyAfter) unit.attempts = 0;
+    let wait = Math.min(maxBackoff, 1000 * 2 ** unit.attempts++);
+    unit.state = 'crashed';
+    unit.restarts++;
+    this.logs.system(unit.name, `restarting in ${Math.round(wait / 1000)}s`);
+
+    unit.timer = setTimeout(() => {
+      unit.timer = undefined;
+      if (!unit.stopping && ['running', 'starting'].includes(this.phase))
+        void this.launchUnit(unit).catch(() => this.scheduleRestart(unit));
+    }, wait);
+    this.changed();
+  }
+
+  private spawnUnit(unit: Unit) {
+    let pkg = unit.package!;
+    let [program, args] = commands.shellInvocation(pkg.command);
 
     let child = commands.spawn(program, args, pkg.cwd, pkg.environment, false, true);
     child.stdin?.end();
@@ -280,19 +328,8 @@ export class WorkspaceRuntime {
         unit.state = 'stopped';
         this.logs.system(unit.name, 'stopped');
       } else {
-        if (unit.startedAt && Date.now() - unit.startedAt > healthyAfter) unit.attempts = 0;
-        let wait = Math.min(maxBackoff, 1000 * 2 ** unit.attempts++);
-        unit.state = 'crashed';
-        unit.restarts++;
-        this.logs.system(
-          unit.name,
-          `exited with ${signal ?? `code ${code}`}; restarting in ${Math.round(wait / 1000)}s`
-        );
-        unit.timer = setTimeout(() => {
-          unit.timer = undefined;
-          if (!unit.stopping && ['running', 'starting'].includes(this.phase))
-            this.spawnUnit(unit);
-        }, wait);
+        this.logs.system(unit.name, `exited with ${signal ?? `code ${code}`}`);
+        this.scheduleRestart(unit);
       }
       this.changed();
     });
@@ -303,6 +340,7 @@ export class WorkspaceRuntime {
     unit.stopping = true;
     if (unit.timer) clearTimeout(unit.timer);
     unit.timer = undefined;
+    await unit.launching?.catch(() => {});
     let child = this.children.get(unit.name);
     if (!child) {
       unit.state = 'stopped';
@@ -486,7 +524,7 @@ export class WorkspaceRuntime {
         unit.state = 'restarting';
         this.changed();
         await this.stopUnit(unit);
-        this.spawnUnit(unit);
+        await this.launchUnit(unit).catch(() => this.scheduleRestart(unit));
       }
 
       for (let pkg of changes.added) {
@@ -501,7 +539,7 @@ export class WorkspaceRuntime {
           package: pkg
         };
         this.units.set(pkg.name, unit);
-        this.spawnUnit(unit);
+        await this.launchUnit(unit).catch(() => this.scheduleRestart(unit));
       }
 
       for (let unit of this.units.values())
@@ -537,7 +575,7 @@ export class WorkspaceRuntime {
         this.changed();
         await this.stopUnit(unit);
         unit.attempts = 0;
-        this.spawnUnit(unit);
+        await this.launchUnit(unit);
 
         return;
       }
@@ -572,7 +610,7 @@ export class WorkspaceRuntime {
     let unit = this.units.get(name);
     if (!unit || unit.kind !== 'service') throw new Error(`unknown service ${name}`);
     if (this.children.has(name)) throw new Error(`${name} is already running`);
-    this.spawnUnit(unit);
+    await this.launchUnit(unit);
   }
 
   runJob(kind: JobKind, selectors: string[] = []) {
@@ -633,7 +671,13 @@ export let servicePorts = (selected: LoadedManifest[]) => {
 
   for (let loaded of selected) {
     let packageName = loaded.manifest.package?.name ?? 'root';
-    let ports = Object.values(loaded.manifest.endpoints).map(endpoint => endpoint.port);
+    let ports = [
+      ...new Set(
+        Object.values(loaded.manifest.endpoints).map(
+          endpoint => endpoint.bind_port ?? endpoint.port
+        )
+      )
+    ];
 
     for (let run of Object.keys(loaded.manifest.run))
       result.set(turbo.turboPackageName(packageName, run), ports);

@@ -8,6 +8,10 @@ import { createQueue, hourlyPacedDelay } from '@metorial/queue';
 import { getOriginTenant, origin } from '@metorial/skills-scm-utils';
 import { env } from '../env';
 import { forceSkillDestinationSync } from '../lib/destinationSync';
+import {
+  activeSkillDestinationOwnerWhere,
+  hasActiveSkillDestinationOwner
+} from './sync/_lib/eligibility';
 import { withDestinationSyncLock } from './sync/_lib/lock';
 import { convertSkillDestinationRowsToManifestPaths } from './sync/_lib/rowPaths';
 
@@ -20,6 +24,7 @@ let activeSyncStatuses = ['pending', 'processing', 'waiting_for_review'] as cons
 
 export type SkillDestinationMigrationBlocker =
   | 'not_code_bucket'
+  | 'inactive_owner'
   | 'demoted'
   | 'sync_active'
   | 'latest_sync_not_completed'
@@ -109,6 +114,7 @@ export let getSkillDestinationMigrationBlocker = async (
   destination: LoadedDestination
 ): Promise<SkillDestinationMigrationBlocker | null> => {
   if (destination.storageMode !== 'code_bucket') return 'not_code_bucket';
+  if (!hasActiveSkillDestinationOwner(destination)) return 'inactive_owner';
 
   let activeSync = await db.skillDestinationSync.findFirst({
     where: { destinationOid: destination.oid, status: { in: [...activeSyncStatuses] } },
@@ -178,10 +184,12 @@ export let migrateSkillDestinationToManifest = async (d: {
 
     let owner = getOwner(current);
     let migrated = await withTransaction(async db => {
-      let migrated = await db.skillDestination.update({
-        where: { oid: current.oid },
+      let [migrated] = await db.skillDestination.updateManyAndReturn({
+        where: { oid: current.oid, ...activeSkillDestinationOwnerWhere },
         data: { storageMode: 'manifest', storageModeChangedAt: new Date() }
       });
+      if (!migrated) return null;
+
       await db.skillDestinationItem.updateMany({
         where: { destinationOid: current.oid },
         data: { hash: '' }
@@ -191,6 +199,7 @@ export let migrateSkillDestinationToManifest = async (d: {
 
       return migrated;
     });
+    if (!migrated) return { status: 'blocked', reason: 'inactive_owner' };
 
     if (owner) {
       await Fabric.fire('skill.destination.audit.storage_migrated:after', {
@@ -250,14 +259,10 @@ export let skillDestinationMigrateStorageManyQueueProcessor =
         storageMode: 'code_bucket',
         storageModeChangedAt: null,
         id: data.cursor ? { gt: data.cursor } : undefined,
-        ...(organizationOid
-          ? {
-              OR: [
-                { skillMarketplace: { organizationOid } },
-                { skillPlugin: { organizationOid } }
-              ]
-            }
-          : {})
+        OR: [
+          { skillMarketplace: { status: 'active', organizationOid } },
+          { skillPlugin: { status: 'active', organizationOid } }
+        ]
       },
       orderBy: { id: 'asc' },
       take: pageSize,

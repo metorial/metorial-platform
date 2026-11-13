@@ -176,3 +176,75 @@ describe('document version allocation', () => {
     expect(enqueueDocumentVersionSeal).not.toHaveBeenCalled();
   });
 });
+
+describe('releasing an expired version without cutting a successor', () => {
+  let hours = (count: number) => count * 60 * 60 * 1000;
+  let now = new Date('2026-01-01T12:00:00.000Z');
+
+  let expiredDocument = (currentVersionAgeMs: number) =>
+    ({
+      draftVersionExpiresAt: new Date(now.getTime() - 1000),
+      currentVersion: { createdAt: new Date(now.getTime() - currentVersionAgeMs) }
+    }) as Parameters<
+      typeof internalDocumentVersioningService.canReleaseExpiredVersionWithoutCut
+    >[0]['document'];
+
+  let canRelease = (d: {
+    currentVersionAgeMs: number;
+    hasEditsSincePreviousVersion: boolean;
+    isPinnedByStoreVersion: boolean;
+  }) =>
+    internalDocumentVersioningService.canReleaseExpiredVersionWithoutCut({
+      document: expiredDocument(d.currentVersionAgeMs),
+      hasEditsSincePreviousVersion: d.hasEditsSincePreviousVersion,
+      isPinnedByStoreVersion: d.isPinnedByStoreVersion,
+      now
+    });
+
+  it('always cuts a successor for a version that carries edits', () => {
+    expect(
+      canRelease({
+        currentVersionAgeMs: hours(1),
+        hasEditsSincePreviousVersion: true,
+        isPinnedByStoreVersion: false
+      })
+    ).toBe(false);
+    expect(
+      canRelease({
+        currentVersionAgeMs: hours(5),
+        hasEditsSincePreviousVersion: true,
+        isPinnedByStoreVersion: true
+      })
+    ).toBe(false);
+  });
+
+  it('releases an unedited version that no store version pins', () => {
+    expect(
+      canRelease({
+        currentVersionAgeMs: hours(1),
+        hasEditsSincePreviousVersion: false,
+        isPinnedByStoreVersion: false
+      })
+    ).toBe(true);
+  });
+
+  it('keeps cutting a pinned unedited version that would reopen for writes', () => {
+    expect(
+      canRelease({
+        currentVersionAgeMs: hours(1),
+        hasEditsSincePreviousVersion: false,
+        isPinnedByStoreVersion: true
+      })
+    ).toBe(false);
+  });
+
+  it('releases a pinned unedited version whose window already closed', () => {
+    expect(
+      canRelease({
+        currentVersionAgeMs: hours(3),
+        hasEditsSincePreviousVersion: false,
+        isPinnedByStoreVersion: true
+      })
+    ).toBe(true);
+  });
+});

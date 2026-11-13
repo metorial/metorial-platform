@@ -1,0 +1,231 @@
+name: 'Model Catalog'
+
+# Every 15 minutes: fetch every source once, let a pi agent on Workers AI decide the open catalog issues as
+# override entries, merge those decisions as one PR, then generate the published catalog from the
+# merged overrides and the same source snapshots. With no open issues, no agent runs. The catalog is
+# served from models.metorial.com (a Worker with static assets) and only redeployed when its
+# content differs from what the site serves now.
+# GH_TOKEN is metorial-bot's token. The reconcile process uses it to push the overrides branch after
+# every batch (a cancelled run keeps its work and the next run resumes the branch); the pi agent it
+# spawns runs with an allowlisted environment and never sees it.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '2,17,32,47 * * * *'
+
+concurrency:
+  group: model-catalog
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  PACKAGE_DIR: src/products/agents/data/models
+  PREVIOUS_DIR: ${{ github.workspace }}/model-catalog-previous
+  WORK_DIR: ${{ github.workspace }}/model-catalog-work
+  PI_VERSION: '1.5.2'
+  WRANGLER_VERSION: '4.160.1'
+  SITE_URL: https://models.metorial.com
+  BRANCH: model-catalog/overrides
+  # Scheduled runs are always on the default branch; their event payload has no repository.
+  IS_DEFAULT_BRANCH: ${{ github.event_name == 'schedule' || github.ref_name == github.event.repository.default_branch }}
+
+jobs:
+  generate:
+    name: Generate model catalog
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # Bun validates the workspace graph even for a filtered install.
+      - name: Checkout Outpost workspace
+        run: git submodule update --init --depth 1 -- src/outpost
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.2'
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: bun install --filter '@metorial/model-catalog'
+
+      - name: Run unit tests
+        working-directory: ${{ env.PACKAGE_DIR }}
+        run: bun run test
+
+      # The previous run's catalog carries IDs, first-seen times and name/pointer history forward,
+      # and its source snapshots are the fallback when a live source is down.
+      - name: Restore previous catalog
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.PREVIOUS_DIR }}
+          key: model-catalog-${{ github.run_id }}
+          restore-keys: model-catalog-
+
+      # pi's grep tool shells out to ripgrep, and the agent runs offline so it can't fetch it.
+      - name: Install pi and ripgrep
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends ripgrep
+          npm install -g --ignore-scripts --no-audit --no-fund "@earendil-works/pi-coding-agent@$PI_VERSION"
+
+      - name: Reconcile overrides
+        id: reconcile
+        continue-on-error: true
+        working-directory: ${{ env.PACKAGE_DIR }}
+        env:
+          CLOUDFLARE_AI_API_TOKEN: ${{ secrets.CLOUDFLARE_AI_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          args=(--work "$WORK_DIR" --cache-dir .cache)
+          if [ -f "$PREVIOUS_DIR/catalog.json" ]; then args+=(--previous "$PREVIOUS_DIR"); fi
+          if [ "$IS_DEFAULT_BRANCH" = 'true' ]; then
+            args+=(--branch "$BRANCH")
+            export GIT_CONFIG_COUNT=1
+            export GIT_CONFIG_KEY_0="url.https://x-access-token:${GH_TOKEN}@github.com/.insteadOf"
+            export GIT_CONFIG_VALUE_0='https://github.com/'
+          fi
+          bun run reconcile "${args[@]}"
+
+      - name: Test reconciled overrides
+        id: verify
+        if: steps.reconcile.outcome == 'success' && steps.reconcile.outputs.changed == 'true'
+        continue-on-error: true
+        working-directory: ${{ env.PACKAGE_DIR }}
+        run: bun run test
+
+      - name: Merge override pull request
+        id: merge
+        if: steps.verify.outcome == 'success' && env.IS_DEFAULT_BRANCH == 'true'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GIT_CONFIG_COUNT: '1'
+          GIT_CONFIG_KEY_0: url.https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/.insteadOf
+          GIT_CONFIG_VALUE_0: https://github.com/
+          TITLE: 'Model catalog: reconcile overrides'
+        run: |
+          base="$(gh repo view --json defaultBranchRef --jq .defaultBranchRef.name)"
+          git config user.name 'metorial-bot'
+          git config user.email 'hey@metorial.com'
+
+          # Reconcile has already committed and pushed each batch; this only covers changes it
+          # could not commit itself and makes sure origin has the final state.
+          git checkout -B "$BRANCH"
+          git add -A -- "$PACKAGE_DIR/overrides"
+          if ! git diff --cached --quiet; then
+            git commit -q -m "$TITLE" -m "From ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          fi
+          git push -q --force origin "HEAD:refs/heads/$BRANCH"
+
+          head -c 60000 "$WORK_DIR/summary.md" > "$RUNNER_TEMP/pr-body.md"
+          url="$(gh pr list --base "$base" --head "$BRANCH" --state open --json url --jq '.[0].url // empty')"
+          if [ -z "$url" ]; then
+            url="$(gh pr create --base "$base" --head "$BRANCH" --title "$TITLE" --body-file "$RUNNER_TEMP/pr-body.md")"
+          fi
+          gh pr merge "$url" --squash
+          git push -q origin --delete "$BRANCH" || true
+
+      # Decisions that fail the tests must not be resumed by the next run and fail again.
+      - name: Drop failed overrides branch
+        if: steps.verify.outcome == 'failure' && env.IS_DEFAULT_BRANCH == 'true'
+        continue-on-error: true
+        env:
+          GIT_CONFIG_COUNT: '1'
+          GIT_CONFIG_KEY_0: url.https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/.insteadOf
+          GIT_CONFIG_VALUE_0: https://github.com/
+        run: git push -q origin --delete "$BRANCH" || true
+
+      # The published catalog must match what is on the default branch, so decisions that didn't
+      # merge are dropped before generating. Reconcile leaves the checkout on the overrides branch.
+      - name: Discard unmerged overrides
+        if: steps.merge.outcome != 'success'
+        run: |
+          git checkout -qf "$GITHUB_SHA"
+          git clean -fdq -- "$PACKAGE_DIR/overrides"
+
+      - name: Generate catalog
+        working-directory: ${{ env.PACKAGE_DIR }}
+        run: |
+          args=(--out out --cache-dir .cache)
+          if [ -f "$PREVIOUS_DIR/catalog.json" ]; then args+=(--previous "$PREVIOUS_DIR"); fi
+          if [ -f "$WORK_DIR/pinned/catalog.json" ]; then
+            args+=(--sources "$WORK_DIR/pinned" --models-dev .cache/models.dev)
+          fi
+          bun run generate "${args[@]}"
+
+      - name: Build site
+        id: site
+        continue-on-error: true
+        working-directory: ${{ env.PACKAGE_DIR }}
+        run: bun run site --out out --site site --live-url "$SITE_URL"
+
+      - name: Deploy site
+        id: deploy
+        if: steps.site.outcome == 'success' && steps.site.outputs.changed == 'true' && env.IS_DEFAULT_BRANCH == 'true'
+        continue-on-error: true
+        working-directory: ${{ env.PACKAGE_DIR }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_AI_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes "wrangler@$WRANGLER_VERSION" deploy
+
+      - name: Publish report
+        if: always()
+        working-directory: ${{ env.PACKAGE_DIR }}
+        run: |
+          if [ -f "$WORK_DIR/summary.md" ]; then cat "$WORK_DIR/summary.md" >> "$GITHUB_STEP_SUMMARY"; fi
+          if [ -f out/report.md ]; then cat out/report.md >> "$GITHUB_STEP_SUMMARY"; fi
+
+      - name: Upload catalog
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-catalog-${{ github.run_id }}
+          path: ${{ env.PACKAGE_DIR }}/out
+          if-no-files-found: ignore
+          retention-days: 7
+
+      # Batches, agent logs and pi sessions, scrubbed of credentials by the reconcile step.
+      - name: Upload reconcile logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: model-catalog-reconcile-${{ github.run_id }}
+          path: |
+            ${{ env.WORK_DIR }}
+            !${{ env.WORK_DIR }}/pinned
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Keep catalog for the next run
+        run: |
+          rm -rf "$PREVIOUS_DIR"
+          mkdir -p "$PREVIOUS_DIR"
+          cp "$PACKAGE_DIR/out/catalog.json" "$PREVIOUS_DIR/"
+          cp -r "$PACKAGE_DIR/out/sources" "$PREVIOUS_DIR/"
+
+      - name: Save catalog for the next run
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.PREVIOUS_DIR }}
+          key: model-catalog-${{ github.run_id }}
+
+      - name: Fail on reconcile errors
+        if: steps.reconcile.outcome == 'failure' || steps.verify.outcome == 'failure' || steps.merge.outcome == 'failure' || steps.site.outcome == 'failure' || steps.deploy.outcome == 'failure'
+        run: |
+          echo "::error::reconcile=${{ steps.reconcile.outcome }} verify=${{ steps.verify.outcome }} merge=${{ steps.merge.outcome }} site=${{ steps.site.outcome }} deploy=${{ steps.deploy.outcome }}; the catalog was still generated from the default branch's overrides"
+          exit 1

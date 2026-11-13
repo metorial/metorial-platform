@@ -1,5 +1,6 @@
 import { db, withTransaction } from '@metorial/db';
 import { createQueue, QueueRetryError } from '@metorial/queue';
+import { cancelInactiveManifestSync } from './_lib/eligibility';
 import { withDestinationSyncLock } from './_lib/lock';
 import { destinationBucketIsAvailable } from './_lib/bucket';
 import { appendSkillDestinationSyncLog } from './_lib/logs';
@@ -42,6 +43,7 @@ export let syncStartQueueProcessor = syncStartQueue.process(
     }
 
     if (sync.status === 'waiting_for_review') return;
+    if (await cancelInactiveManifestSync(sync)) return;
 
     let newerSync = await db.skillDestinationSync.findFirst({
       where: {

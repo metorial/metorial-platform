@@ -1,8 +1,14 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import type { Instance, Prisma, Project } from '@metorial/db';
-import { db, ID } from '@metorial/db';
+import type { Instance, Prisma, Project, SkillRepository } from '@metorial/db';
+import { db, ID, withTransaction } from '@metorial/db';
 import { getOriginTenant, origin } from '@metorial/skills-scm-utils';
+import {
+  findConflictingSkillRepository,
+  getProviderIdentityUpdate,
+  getProviderRepositoryIdentity,
+  repositoryLinkedElsewhereMessage
+} from '../lib/repositoryIdentity';
 
 export let skillRepositoryInclude = {
   marketplaceRepository: {
@@ -134,15 +140,19 @@ class SkillRepositoryServiceImpl {
     instance: Instance;
     repoId: string;
   }) {
-    await this.getOriginRepository(d);
+    let originRepository = await this.getOriginRepository(d);
+    let identity = getProviderRepositoryIdentity(originRepository);
 
-    let existing = await db.skillRepository.findUnique({
-      where: { repoId: d.repoId },
-      include: skillRepositoryInclude
-    });
+    return await withTransaction(async db => {
+      let existing = await db.skillRepository.findUnique({
+        where: { repoId: d.repoId },
+        include: skillRepositoryInclude
+      });
 
-    if (existing) {
-      if (existing.projectOid !== d.project.oid || existing.instanceOid !== d.instance.oid) {
+      if (
+        existing &&
+        (existing.projectOid !== d.project.oid || existing.instanceOid !== d.instance.oid)
+      ) {
         throw new ServiceError(
           badRequestError({
             message: 'Repository is already linked in another instance'
@@ -150,19 +160,72 @@ class SkillRepositoryServiceImpl {
         );
       }
 
-      return existing;
-    }
+      let skillRepository =
+        existing ??
+        (await db.skillRepository.create({
+          data: {
+            id: await ID.generateId('skillRepository'),
+            repoId: d.repoId,
+            projectOid: d.project.oid,
+            instanceOid: d.instance.oid,
 
-    return await db.skillRepository.create({
-      data: {
-        id: await ID.generateId('skillRepository'),
-        repoId: d.repoId,
-        projectOid: d.project.oid,
-        instanceOid: d.instance.oid,
+            providerRepositoryKey: identity.key,
+            providerRepositoryPath: identity.path,
+            providerIdentityRefreshedAt: new Date(),
 
-        deletionsAppliedAt: new Date()
-      },
-      include: skillRepositoryInclude
+            deletionsAppliedAt: new Date()
+          },
+          include: skillRepositoryInclude
+        }));
+
+      let identityUpdate = getProviderIdentityUpdate({
+        skillRepository,
+        identity,
+        now: new Date()
+      });
+      if (identityUpdate) {
+        skillRepository = await db.skillRepository.update({
+          where: { oid: skillRepository.oid },
+          data: identityUpdate,
+          include: skillRepositoryInclude
+        });
+      }
+
+      await this.assertProviderRepositoryAvailable({ skillRepository });
+
+      return skillRepository;
+    });
+  }
+
+  // Must run in the transaction that creates the link: the advisory locks serialize concurrent
+  // links of the same provider repository until that transaction commits.
+  async assertProviderRepositoryAvailable(d: {
+    skillRepository: Pick<
+      SkillRepository,
+      'oid' | 'providerRepositoryKey' | 'providerRepositoryPath'
+    >;
+  }) {
+    let identity = {
+      key: d.skillRepository.providerRepositoryKey,
+      path: d.skillRepository.providerRepositoryPath
+    };
+    let lockKeys = [identity.key, identity.path]
+      .filter((value): value is string => !!value)
+      .map(value => `skill-repository-provider:${value}`)
+      .sort();
+
+    await withTransaction(async db => {
+      for (let lockKey of lockKeys) {
+        await db.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`;
+      }
+
+      let owner = await findConflictingSkillRepository({
+        skillRepositoryOid: d.skillRepository.oid,
+        identity
+      });
+      if (owner) {
+        throw new ServiceError(badRequestError({ message: repositoryLinkedElsewhereMessage }));
+      }
     });
   }
 

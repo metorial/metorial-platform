@@ -1,6 +1,8 @@
 import { apiMux } from '@lowerdeck/api-mux';
 import { createServer, type InferClient, rpcMux } from '@lowerdeck/rpc-server';
 import { app } from './_app';
+import { mirrorController } from './mirror';
+import { handleSlatePackUpload, SLATE_PACK_UPLOAD_PATH } from './packUpload';
 import { readerTokenController } from './readerTokens';
 import { subRegistryController } from './subRegistry';
 import { tenantController } from './tenant';
@@ -12,11 +14,16 @@ export let rootController = app.controller({
   user: userController,
   workspace: workspaceController,
   readerToken: readerTokenController,
-  subRegistry: subRegistryController
+  subRegistry: subRegistryController,
+  mirror: mirrorController
 });
 
 export let slatesRegistryRPC = createServer({})(rootController);
 export let slatesRegistryApi = apiMux([
+  {
+    methods: ['POST'],
+    endpoint: { path: SLATE_PACK_UPLOAD_PATH, exact: true, fetch: handleSlatePackUpload }
+  },
   { endpoint: rpcMux({ path: '/slates-registry' }, [slatesRegistryRPC]) }
 ]);
 

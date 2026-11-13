@@ -1,0 +1,9 @@
+{
+  "mimo-v2.6-pro-ultraspeed": {
+    "decision": "link",
+    "model": "xiaomi/mimo-v2.6-pro",
+    "reason": "MiMo-V2.6-Pro-UltraSpeed is the fast-serving tier of the same 1T MiMo-V2.6-Pro checkpoint; still xiaomi/mimo-v2.6-pro. above.dev's 5.08/10.15 rate is a markup on Xiaomi's 4.35/8.7 speed-tier price.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

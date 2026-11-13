@@ -91,7 +91,7 @@ fn assert_contents(archive: &[u8], expected: &[(String, Vec<u8>)]) {
 
     for (index, (name, data)) in expected.iter().enumerate() {
         let mut file = zip.by_index(index).unwrap();
-        assert_eq!(file.name(), name);
+        assert_eq!(file.name().unwrap(), name.as_str());
         let mut read = Vec::new();
         file.read_to_end(&mut read).unwrap();
         assert!(read == *data, "{name}: content differs");

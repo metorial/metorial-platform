@@ -151,6 +151,8 @@ class SkillMarketplaceRepositoryServiceImpl {
     }
 
     let repository = await withTransaction(async db => {
+      await skillRepositoryService.assertProviderRepositoryAvailable({ skillRepository });
+
       let repository = await db.skillMarketplaceRepository.create({
         data: {
           id: await ID.generateId('skillMarketplaceRepository'),

@@ -25,6 +25,9 @@ vi.mock('@lowerdeck/service', () => ({
   }
 }));
 
+vi.mock('@metorial/lock', () => ({
+  createLock: () => ({ usingLock: (_key: string, run: () => unknown) => run() })
+}));
 vi.mock('@metorial/context', () => ({ Context: {} }));
 vi.mock('@metorial/fabric', () => ({ Fabric: { fire: mocks.fabricFire } }));
 vi.mock('@metorial/module-magic', () => ({
@@ -186,7 +189,7 @@ describe('consumerProviderDeploymentService.reconnectProvider', () => {
 });
 
 describe('consumerProviderDeploymentService.deployProvider self-healing', () => {
-  let deploy = () =>
+  let deploy = (reuseExisting = false) =>
     consumerProviderDeploymentService.deployProvider({
       organization: { oid: 1n } as any,
       performedBy: { oid: 2n } as any,
@@ -196,6 +199,7 @@ describe('consumerProviderDeploymentService.deployProvider self-healing', () => 
       accessTags: {} as any,
       auditScope,
       providerTemplateId: 'ptb_1',
+      reuseExisting,
       input: { integrationSetupSessionId: 'iss_1' }
     });
 
@@ -213,6 +217,23 @@ describe('consumerProviderDeploymentService.deployProvider self-healing', () => 
       subspaceIntegrationInstanceId: 'iin_new'
     });
     mocks.createMagicMcpServer.mockResolvedValue({ ...existingServer, id: 'mms_new' });
+  });
+
+  it('returns the existing personal server when finishing the same setup again', async () => {
+    let deployed = { ...existingServer, subspaceIntegrationInstanceId: 'iin_new' };
+    vi.mocked(db.magicMcpServer.findFirst).mockResolvedValueOnce(deployed as any);
+
+    expect(await deploy(true)).toBe(deployed);
+    expect(mocks.getCompletedSetupSession).toHaveBeenCalledWith(
+      expect.objectContaining({ consumerProfile, integrationSetupSessionId: 'iss_1' })
+    );
+    expect(db.magicMcpServer.findFirst).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        subspaceIntegrationInstanceId: 'iin_new',
+        consumerIntegrations: { some: { consumerProfileOid: consumerProfile.oid } }
+      })
+    });
+    expect(mocks.createMagicMcpServer).not.toHaveBeenCalled();
   });
 
   it('relinks an owned server whose integration instance was removed', async () => {

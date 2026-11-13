@@ -6,6 +6,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { parseSkillDocumentFrontmatter } from '@metorial/module-skill/frontmatter';
 import { skillPluginService } from '../src';
 import { applyMarketplace } from '../src/serializers/marketplace';
+import { getLegacyMarketplaceVersionHash } from '../src/serializers/marketplace/render';
 import { applyPlugin } from '../src/serializers/plugin';
 import { applySkill } from '../src/serializers/skill';
 import {
@@ -574,6 +575,68 @@ describe('export serializers', () => {
       });
       expect(stored.version).toBe('0.0.1');
       expect(stored.versionHash).toBe(output.hash);
+    });
+
+    it('only bumps the version when the rendered marketplace changes', async () => {
+      let marketplace = await createMarketplace(fixture, { description: 'Versioned catalog' });
+      await createPlugin(
+        fixture,
+        { name: 'Versioned', description: 'Versioned plugin' },
+        { skillMarketplaceId: marketplace.id }
+      );
+      let render = async () =>
+        await runSerializer(applyMarketplace, {
+          skillMarketplace: (await loadMarketplaceSerializerInput(marketplace.id))
+            .skillMarketplace
+        });
+      let getStored = () =>
+        db.skillMarketplace.findUniqueOrThrow({ where: { oid: marketplace.oid } });
+
+      let first = await render();
+      expect(first.json('.claude-plugin/marketplace.json').metadata.version).toBe('0.0.1');
+
+      let again = await render();
+      expect(again.hash).toBe(first.hash);
+      expect(again.files).toEqual(first.files);
+      expect((await getStored()).version).toBe('0.0.1');
+
+      let plugins = await db.skillMarketplacePlugin.findMany({
+        where: {
+          skillMarketplaceOid: marketplace.oid,
+          status: 'active',
+          skillPlugin: { status: 'active' }
+        },
+        include: {
+          skillPlugin: { include: { skillPluginSkills: { include: { skill: true } } } }
+        },
+        orderBy: { id: 'asc' }
+      });
+      await db.skillMarketplace.update({
+        where: { oid: marketplace.oid },
+        data: {
+          versionHash: await getLegacyMarketplaceVersionHash({
+            skillMarketplace: await getStored(),
+            ownerName: fixture.organization.name,
+            plugins
+          })
+        }
+      });
+
+      let adopted = await render();
+      expect(adopted.files).toEqual(first.files);
+      expect(await getStored()).toMatchObject({ version: '0.0.1', versionHash: first.hash });
+
+      await db.skillMarketplace.update({
+        where: { oid: marketplace.oid },
+        data: { description: 'Renamed catalog' }
+      });
+
+      let changed = await render();
+      expect(changed.hash).not.toBe(first.hash);
+      expect(changed.json('.claude-plugin/marketplace.json').metadata).toEqual({
+        description: 'Renamed catalog',
+        version: '0.0.2'
+      });
     });
   });
 });

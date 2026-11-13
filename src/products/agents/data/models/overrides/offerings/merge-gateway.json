@@ -1,0 +1,9 @@
+{
+  "bytedance/dola-seed-2.0-code-preview": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ByteDance's Seed 2.0 Code preview behind the dated 260328 snapshot (Mar 28 2026, per the BytePlus listing); previews and dated revisions are separate checkpoints and the index has no preview entry, only bytedance/seed-2.0-code.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

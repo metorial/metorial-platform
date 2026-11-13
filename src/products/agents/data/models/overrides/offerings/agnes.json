@@ -1,0 +1,30 @@
+{
+  "agnes-2.0-flash": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Sapiens AI's Agnes 2.0 Flash chat model (the tier superseded by Agnes 2.5 Flash in July 2026); a real first-party model, but the index has no Agnes/Sapiens AI entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "agnes-2.5-flash": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Sapiens AI (Agnes AI) released Agnes 2.5 Flash on 2026-07-13 as an upgrade of 2.0 Flash, aimed at coding and agent workflows; a real first-party model not in the index.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "agnes-2.5-pro-alpha": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Agnes AI's reasoning model built from scratch, not a fine-tune of an open base (per AlphaSignal), 1M context, Apache 2.0 weights on Hugging Face; a real new model the index lacks.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "agnes-3.0-flash": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Agnes AI's Agnes 3.0 Flash (Sep 2026; open preview checkpoint Agnes-AI/Agnes-3.0-Flash on Hugging Face); a real new model the index does not contain.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

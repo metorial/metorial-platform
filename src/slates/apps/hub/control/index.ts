@@ -77,6 +77,7 @@ export default project({
         INVOCATIONS_BUCKET_NAME: 'dev-invocations',
         SLATES_HUB_INSTANCE_IDENTIFIER: 'dev-slates-hub',
         SUPPORTS_PREBUILT_SLATES: 'true',
+        SLATES_SUB_REGISTRY_ID: 'local-hub',
         SLATE_DEPLOYMENT_NPM_REGISTRY_URL: inherit(),
         SLATES_WEBHOOK_TRIGGER_HOST: inherit(),
         NEBULA_CONSUMER_IDENTIFIER: 'dev-slates-hub',

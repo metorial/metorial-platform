@@ -2,6 +2,7 @@ import { withRepositorySyncWriteLock } from '../../../lib/repositorySyncWriteLoc
 import { createQueue } from '@lowerdeck/queue';
 import { db } from '../../../db';
 import { env } from '../../../env';
+import { isRetryableScmProviderError } from '../../../lib/scmProviderError';
 import {
   closeRepositorySyncPullRequest,
   createRepositorySyncPullRequest,
@@ -11,11 +12,17 @@ import { transitionRepositorySyncState } from '../../../services/repositorySyncS
 import { getSyncSourceScope } from '../../../services/repositorySyncSupersession';
 import {
   appendRepositorySyncLog,
+  getRepositorySyncRetry,
+  recordRepositorySyncRetry,
   logRepositorySyncQueueError,
   logRepositorySyncQueueEvent,
   markRepositorySyncFailed
 } from './_lib';
 import { waitForCiRepositorySyncQueue } from './waitForCi';
+
+let retryBaseDelayMs = 60_000;
+let retryMaxDelayMs = 15 * 60_000;
+let retryMaxExponent = 10;
 
 export let createPrRepositorySyncQueue = createQueue<{ syncId: string }>({
   name: 'ori/rep-sync/pr',
@@ -88,6 +95,14 @@ export let createPrRepositorySyncQueueProcessor = createPrRepositorySyncQueue.pr
             syncId: data.syncId,
             expectedStatus: 'creating_pr'
           }
+        );
+        return;
+      }
+
+      if (sync.nextPollAt && sync.nextPollAt.getTime() > Date.now()) {
+        await createPrRepositorySyncQueue.add(
+          { syncId: sync.id },
+          { delay: sync.nextPollAt.getTime() - Date.now() }
         );
         return;
       }
@@ -169,6 +184,8 @@ export let createPrRepositorySyncQueueProcessor = createPrRepositorySyncQueue.pr
         pr = await createRepositorySyncPullRequest(sync);
         if (isManifest) await closeReplacedPullRequests(sync, pr);
       }
+      if (sync.errorMessage)
+        await appendRepositorySyncLog(sync.id, 'Repository sync resumed.');
       await appendRepositorySyncLog(sync.id, 'Pull request is ready.');
       logRepositorySyncQueueEvent('createPr', 'provider pull request is ready', {
         syncId: sync.id,
@@ -181,7 +198,11 @@ export let createPrRepositorySyncQueueProcessor = createPrRepositorySyncQueue.pr
         let updated = await transitionRepositorySyncState(sync.id, 'creating_pr', {
           status: 'waiting_for_review',
           providerPrId: pr.providerPrId,
-          providerPrUrl: pr.providerPrUrl
+          providerPrUrl: pr.providerPrUrl,
+          nextPollAt: null,
+          attemptCount: 0,
+          errorMessage: null,
+          errorCode: null
         });
         if (!updated) return;
         await appendRepositorySyncLog(
@@ -198,7 +219,11 @@ export let createPrRepositorySyncQueueProcessor = createPrRepositorySyncQueue.pr
       let updated = await transitionRepositorySyncState(sync.id, 'creating_pr', {
         status: 'waiting_for_ci',
         providerPrId: pr.providerPrId,
-        providerPrUrl: pr.providerPrUrl
+        providerPrUrl: pr.providerPrUrl,
+        nextPollAt: null,
+        attemptCount: 0,
+        errorMessage: null,
+        errorCode: null
       });
       if (!updated) return;
       await appendRepositorySyncLog(sync.id, 'Waiting for checks to pass.');
@@ -215,6 +240,37 @@ export let createPrRepositorySyncQueueProcessor = createPrRepositorySyncQueue.pr
       logRepositorySyncQueueError('createPr', 'failed while processing queue item', e, {
         syncId: data.syncId
       });
+      let current = await db.scmRepositorySync.findUnique({
+        where: { id: data.syncId },
+        include: { repo: true }
+      });
+      if (current?.status === 'creating_pr' && isRetryableScmProviderError(e)) {
+        let retry = getRepositorySyncRetry(e, 'createPr');
+        let delay = Math.min(
+          retryBaseDelayMs * 2 ** Math.min(current.attemptCount, retryMaxExponent),
+          retryMaxDelayMs
+        );
+        let updated = await transitionRepositorySyncState(current.id, 'creating_pr', {
+          errorMessage: retry.message,
+          errorCode: retry.code,
+          attemptCount: { increment: 1 },
+          nextPollAt: new Date(Date.now() + delay)
+        });
+        if (!updated) return;
+
+        await recordRepositorySyncRetry({
+          sync: current,
+          stage: 'createPr',
+          error: e,
+          delayMs: delay,
+          retry
+        });
+        await createPrRepositorySyncQueue.add(
+          { syncId: current.id },
+          { delay, id: `${current.id}:pr-retry:${current.attemptCount + 1}` }
+        );
+        return;
+      }
       await markRepositorySyncFailed(data.syncId, e);
     }
   })

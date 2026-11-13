@@ -1,0 +1,29 @@
+{
+  "@cf/baai/bge-base-en-v1.5": {
+    "decision": "link",
+    "model": "baai/bge-base-en-v1.5",
+    "reason": "Exact match: Cloudflare serves the BAAI/bge-base-en-v1.5 embedding model (512-token window). Its Workers AI price ($0.0666/1M) is simply higher than the model's median across providers.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "@cf/cloudflare/clairic": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Cloudflare's Clairic, its first 'System One' extraction model (preview announced 2026-10-19, open-weights release planned); a decision-style model the index has no entry for (only Clef and Clef Flash).",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "@cf/cloudflare/clef-omni": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Cloudflare's Clef Omni (HF Cloudflare/clef-omni, Oct 2026), a multimodal decision model fine-tuned from Qwen3-Omni-30B-A3B-Instruct; the index has clef and clef-flash but no clef-omni entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b": {
+    "decision": "link",
+    "model": "deepseek/deepseek-r1-distill-qwen-32b",
+    "reason": "models.dev links the distill to the full DeepSeek R1",
+    "by": "human"
+  }
+}

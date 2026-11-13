@@ -781,6 +781,32 @@ describe('reconciling Origin state', () => {
     );
   });
 
+  it('logs merge-readiness retries without copying provider responses', async () => {
+    let nextPollAt = new Date(now.getTime() + minute);
+
+    await reconcile({
+      status: 'waiting_for_ci',
+      errorCode: 'merge_not_ready',
+      errorMessage: 'raw provider response',
+      nextPollAt
+    });
+
+    expect(appendLog).toHaveBeenCalledWith(
+      'sync_1',
+      `acme/skills: The repository isn't ready to merge yet. The sync will retry automatically; resumes at ${nextPollAt.toISOString()}.`
+    );
+    expect(JSON.stringify(appendLog.mock.calls)).not.toContain('raw provider response');
+  });
+
+  it('logs recovery when a repository retry ends', async () => {
+    await reconcile(
+      { status: 'waiting_for_ci', errorMessage: null, nextPollAt: now },
+      { waitingReason: 'merge_not_ready', waitingUntil: now }
+    );
+
+    expect(appendLog).toHaveBeenCalledWith('sync_1', 'acme/skills: Repository sync resumed.');
+  });
+
   it("uses Origin's waiting reason and time when it reports them", async () => {
     let waitingUntil = new Date(now.getTime() + 3 * minute);
 

@@ -29,6 +29,8 @@ vi.mock('../../../services/repositorySyncState', () => ({
 
 import {
   getRepositorySyncFailureLevel,
+  getRepositorySyncRetry,
+  recordRepositorySyncRetry,
   logRepositorySyncQueueError,
   markRepositorySyncFailed,
   getRepositorySyncContentsRetryDelayMs,
@@ -379,5 +381,115 @@ describe('repository sync failure diagnostics', () => {
         error: { status: 409, description: 'branch changed' }
       })
     ).toBe(false);
+  });
+});
+
+describe('repository sync retry reporting', () => {
+  let sync = {
+    id: 'sync_retry',
+    status: 'waiting_for_ci',
+    sourceType: 'manifest',
+    repositoryAccessMode: 'pull_request',
+    attemptCount: 0,
+    errorMessage: null,
+    logs: [],
+    statusSnapshot: null,
+    repo: { provider: 'gitlab' }
+  } as any;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.updateMany.mockResolvedValue({ count: 1 });
+  });
+
+  it.each([405, 409, 422])('describes merge response %s as a readiness retry', status => {
+    expect(getRepositorySyncRetry({ cause: { response: { status } } }, 'merge')).toEqual({
+      code: 'merge_not_ready',
+      message: "The repository isn't ready to merge yet. The sync will retry automatically."
+    });
+  });
+
+  it('keeps provider payloads, tokens, and internal errors out of sync logs and retry reports', async () => {
+    let error = Object.assign(new Error('internal stack details secret-body'), {
+      cause: {
+        description: 'secret-body',
+        request: {
+          method: 'GET',
+          url: 'https://gitlab.com/api/v4/projects/123/pipelines?access_token=secret-token'
+        },
+        response: {
+          status: 429,
+          body: 'secret-body',
+          headers: { 'x-request-id': 'request-123' }
+        }
+      }
+    });
+    let retry = getRepositorySyncRetry(error, 'waitForCi');
+
+    await recordRepositorySyncRetry({
+      sync,
+      stage: 'waitForCi',
+      error,
+      delayMs: 60_000,
+      retry
+    });
+
+    expect(mocks.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: {
+          logs: {
+            push: [
+              expect.any(Number),
+              'The repository is limiting requests. The sync will retry automatically.'
+            ]
+          }
+        }
+      })
+    );
+    expect(mocks.captureMessage).toHaveBeenCalledWith(
+      'Repository sync is retrying',
+      expect.objectContaining({
+        fingerprint: ['repository-sync-retry', 'gitlab', 'waitForCi', 'rate_limited'],
+        extra: expect.objectContaining({
+          syncId: sync.id,
+          providerDiagnostic: expect.objectContaining({
+            status: 429,
+            requestId: 'request-123'
+          })
+        })
+      })
+    );
+    let output = JSON.stringify([
+      mocks.updateMany.mock.calls,
+      mocks.captureMessage.mock.calls
+    ]);
+    expect(output).not.toContain('secret-body');
+    expect(output).not.toContain('secret-token');
+    expect(output).not.toContain('internal stack');
+    expect(mocks.captureException).not.toHaveBeenCalled();
+  });
+
+  it('does not repeat log entries or reports on every retry', async () => {
+    let error = { status: 500 };
+    let retry = getRepositorySyncRetry(error, 'waitForCi');
+    await recordRepositorySyncRetry({
+      sync: { ...sync, attemptCount: 1, errorMessage: retry.message },
+      stage: 'waitForCi',
+      error,
+      delayMs: 120_000,
+      retry
+    });
+
+    expect(mocks.updateMany).not.toHaveBeenCalled();
+    expect(mocks.captureMessage).not.toHaveBeenCalled();
+
+    await recordRepositorySyncRetry({
+      sync: { ...sync, attemptCount: 3, errorMessage: retry.message },
+      stage: 'waitForCi',
+      error,
+      delayMs: 480_000,
+      retry
+    });
+    expect(mocks.captureMessage).toHaveBeenCalledOnce();
   });
 });

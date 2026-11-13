@@ -1,13 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-let { db, propagate, snapshot } = vi.hoisted(() => ({
+let { db, propagate, snapshot, unchangedSync, deletions } = vi.hoisted(() => ({
   db: {
     skillDestinationSync: { findUnique: vi.fn() },
     skillDestinationItem: { findMany: vi.fn() },
     skillDestinationFile: { findMany: vi.fn(), deleteMany: vi.fn() }
   },
   propagate: vi.fn(),
-  snapshot: vi.fn()
+  snapshot: vi.fn(),
+  unchangedSync: {
+    canSkipUnchangedSync: vi.fn(),
+    areCodeBucketRepositoriesCurrent: vi.fn(),
+    finishUnchangedSync: vi.fn(),
+    incrementDestinationContentRevision: vi.fn()
+  },
+  deletions: { recordDestinationFileDeletions: vi.fn() }
 }));
 
 vi.mock('@metorial/db', () => ({ db }));
@@ -18,8 +25,13 @@ vi.mock('@metorial/queue', async () => ({
   ).deleteInChunks
 }));
 vi.mock('@metorial/code-bucket-service-generated', () => ({
-  createCodeBucketClient: () => ({})
+  createCodeBucketClient: () => ({ deleteBucketFile: vi.fn() })
 }));
+vi.mock('@metorial/skills-scm-utils', () => ({
+  getSkillDestinationCodeBucketId: () => 'bucket_1'
+}));
+vi.mock('./_lib/unchangedSync', () => unchangedSync);
+vi.mock('./_lib/deletions', () => deletions);
 vi.mock('../../env', () => ({
   env: { origin: { CODE_BUCKET_SERVICE_URL: 'http://unused' } }
 }));
@@ -38,8 +50,9 @@ let run = syncReconcileQueueProcessor as unknown as (data: {
 
 describe('repository reconciliation', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     db.skillDestinationSync.findUnique.mockResolvedValue({
+      oid: 7n,
       status: 'processing',
       contentVersion: 0,
       destinationOid: 1n,
@@ -49,15 +62,64 @@ describe('repository reconciliation', () => {
     db.skillDestinationFile.findMany.mockResolvedValue([]);
   });
 
-  it('propagates unchanged content for repository initialization, policy updates, and retried writes', async () => {
+  it('propagates unchanged content when a repository has not received the current revision', async () => {
+    unchangedSync.canSkipUnchangedSync.mockReturnValue(true);
+    unchangedSync.areCodeBucketRepositoriesCurrent.mockResolvedValue(false);
+
     await run({ skillDestinationSyncId: 'sync_1', hasChanges: false });
 
+    expect(unchangedSync.areCodeBucketRepositoriesCurrent).toHaveBeenCalledWith(1n);
     expect(propagate).toHaveBeenCalledWith({
       skillDestinationSyncId: 'sync_1',
       contentVersion: 0,
       skillRepositoryId: undefined
     });
+    expect(unchangedSync.finishUnchangedSync).not.toHaveBeenCalled();
     expect(snapshot).not.toHaveBeenCalled();
+  });
+
+  it('finishes an unchanged sync without repository updates when every repository is current', async () => {
+    unchangedSync.canSkipUnchangedSync.mockReturnValue(true);
+    unchangedSync.areCodeBucketRepositoriesCurrent.mockResolvedValue(true);
+
+    await run({ skillDestinationSyncId: 'sync_1', hasChanges: false });
+
+    expect(unchangedSync.finishUnchangedSync).toHaveBeenCalledWith({
+      syncOid: 7n,
+      skillDestinationSyncId: 'sync_1'
+    });
+    expect(propagate).not.toHaveBeenCalled();
+  });
+
+  it('propagates syncs that may not be skipped without checking repositories', async () => {
+    unchangedSync.canSkipUnchangedSync.mockReturnValue(false);
+
+    await run({ skillDestinationSyncId: 'sync_1', hasChanges: true });
+
+    expect(unchangedSync.canSkipUnchangedSync).toHaveBeenCalledWith(
+      expect.objectContaining({ hasChanges: true })
+    );
+    expect(unchangedSync.areCodeBucketRepositoriesCurrent).not.toHaveBeenCalled();
+    expect(propagate).toHaveBeenCalledOnce();
+  });
+
+  it('bumps the content revision and propagates when orphaned files are removed', async () => {
+    unchangedSync.canSkipUnchangedSync.mockImplementation(d => !d.hasChanges);
+    db.skillDestinationFile.findMany.mockResolvedValue([
+      { path: 'old.md', itemKey: 'skill:gone' }
+    ]);
+
+    await run({ skillDestinationSyncId: 'sync_1', hasChanges: false });
+
+    expect(deletions.recordDestinationFileDeletions).toHaveBeenCalledWith({
+      destinationOid: 1n,
+      paths: ['old.md']
+    });
+    expect(unchangedSync.incrementDestinationContentRevision).toHaveBeenCalledWith(1n);
+    expect(unchangedSync.canSkipUnchangedSync).toHaveBeenCalledWith(
+      expect.objectContaining({ hasChanges: true })
+    );
+    expect(propagate).toHaveBeenCalledOnce();
   });
 
   it.each([

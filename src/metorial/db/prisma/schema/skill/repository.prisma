@@ -5,6 +5,10 @@ model SkillRepository {
   repoId      String @unique
   syncCounter Int    @default(0)
 
+  providerRepositoryKey       String?
+  providerRepositoryPath      String?
+  providerIdentityRefreshedAt DateTime?
+
   resourceTenantOid BigInt?
   resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
 
@@ -45,4 +49,7 @@ model SkillRepository {
   @@index([instanceOid])
   @@index([nextRepairAt])
   @@index([lastDriftCheckAt])
+  @@index([providerRepositoryKey])
+  @@index([providerRepositoryPath])
+  @@index([providerIdentityRefreshedAt, id])
 }

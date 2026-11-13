@@ -24,6 +24,7 @@ export default project({
     env: mergeEnv({
       RUST_LOG: 'info',
       OBJECT_STORE__SERVER__HOST: '0.0.0.0',
+      OBJECT_STORE__SERVER__HEALTH_PORT: '0',
       OBJECT_STORE__BACKEND__TYPE: 'local',
       OBJECT_STORE__BACKEND__ROOT_PATH: './.data',
       OBJECT_STORE__BACKEND__PUBLIC_URL: services.objectStorage.url()

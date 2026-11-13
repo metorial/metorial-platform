@@ -32,6 +32,12 @@ declare global {
       timeout?: number;
     }
 
+    type SigningPublicKey = {
+      kty: 'OKP';
+      crv: 'Ed25519';
+      x: string;
+    };
+
     type FilterExpression = {
       type: 'prefix' | 'scope' | 'slate';
       value: string;

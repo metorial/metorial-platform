@@ -2,6 +2,7 @@ import type { AuditScope } from '@metorial/audit-scope';
 import { Fabric } from '@metorial/fabric';
 import { preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
+import { createLock } from '@metorial/lock';
 import { Context } from '@metorial/context';
 import {
   ConsumerProfile,
@@ -172,18 +173,35 @@ let getConsumerOwnerForProfile = async (d: {
   };
 };
 
+let memberDeployLock = createLock({ name: 'consumer-provider/member-deploy' });
+
+type ConsumerProviderDeployRequest = {
+  organization: Organization;
+  performedBy: OrganizationActor;
+  instance: Instance;
+  context: Context;
+  consumerProfile: ConsumerProfile;
+  accessTags: AnyAccessTagSelector;
+  auditScope: AuditScope;
+  providerTemplateId: string;
+  reuseExisting?: boolean;
+  input: ConsumerProviderDeployInput;
+};
+
 class ConsumerProviderDeploymentServiceImpl {
-  async deployProvider(d: {
-    organization: Organization;
-    performedBy: OrganizationActor;
-    instance: Instance;
-    context: Context;
-    consumerProfile: ConsumerProfile;
-    accessTags: AnyAccessTagSelector;
-    auditScope: AuditScope;
-    providerTemplateId: string;
-    input: ConsumerProviderDeployInput;
-  }) {
+  async deployProvider(d: ConsumerProviderDeployRequest): Promise<MagicMcpServer> {
+    if (d.reuseExisting) {
+      return await memberDeployLock.usingLock(
+        `${d.consumerProfile.oid}:${d.providerTemplateId}`,
+        () => this.deployProviderInternal(d)
+      );
+    }
+    return await this.deployProviderInternal(d);
+  }
+
+  private async deployProviderInternal(
+    d: ConsumerProviderDeployRequest
+  ): Promise<MagicMcpServer> {
     let providerContext = await loadTemplateContextForDeployment({
       instance: d.instance,
       accessTags: d.accessTags,
@@ -191,6 +209,29 @@ class ConsumerProviderDeploymentServiceImpl {
     });
 
     assertProviderCanBeDeployed(providerContext);
+
+    let loadSetup = () =>
+      consumerProviderSetupSessionService.getCompletedSetupSession({
+        instance: d.instance,
+        consumerProfile: d.consumerProfile,
+        providerTemplate: providerContext.providerTemplate,
+        integrationSetupSessionId: d.input.integrationSetupSessionId
+      });
+    let setupSession = d.reuseExisting ? await loadSetup() : undefined;
+    if (setupSession) {
+      assertActiveSetupSessionInstance(setupSession);
+      let existing = await db.magicMcpServer.findFirst({
+        where: {
+          instanceOid: d.instance.oid,
+          status: 'active',
+          source: 'consumer_provider_template',
+          providerTemplateId: providerContext.providerTemplate.id,
+          subspaceIntegrationInstanceId: setupSession.integrationInstance.id,
+          consumerIntegrations: { some: { consumerProfileOid: d.consumerProfile.oid } }
+        }
+      });
+      if (existing) return existing;
+    }
 
     let serverNeedingReconnect = await this.findOwnedServerNeedingReconnect({
       instance: d.instance,
@@ -213,13 +254,7 @@ class ConsumerProviderDeploymentServiceImpl {
     let rollbackState: ConsumerProviderDeployRollbackState = {};
 
     try {
-      let setupSession = await consumerProviderSetupSessionService.getCompletedSetupSession({
-        instance: d.instance,
-        consumerProfile: d.consumerProfile,
-        providerTemplate: providerContext.providerTemplate,
-        integrationSetupSessionId: d.input.integrationSetupSessionId
-      });
-
+      setupSession ??= await loadSetup();
       assertActiveSetupSessionInstance(setupSession);
 
       let consumerOwner = await getConsumerOwnerForProfile({

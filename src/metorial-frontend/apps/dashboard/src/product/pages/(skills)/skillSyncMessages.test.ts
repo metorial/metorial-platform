@@ -27,6 +27,21 @@ let check = (
 });
 
 describe('skill sync repository messages', () => {
+  it('describes scheduled retries without reporting an outage', () => {
+    expect(
+      getRepositoryActionMessage(
+        check({
+          blockers: ['sync_retrying'],
+          errorMessage:
+            "The repository isn't ready to merge yet. The sync will retry automatically."
+        })
+      )
+    ).toContain("isn't ready to merge yet");
+    expect(getRepositoryActionMessage(check({ blockers: ['sync_retrying'] }))).toBe(
+      'Repository sync is waiting to retry. The sync will continue automatically.'
+    );
+  });
+
   it('keeps failed-check and review guidance concise', () => {
     expect(getRepositoryActionMessage(check({ blockers: ['checks_failed'] }))).toBe(
       'Checks failed. Fix or rerun them to continue.'

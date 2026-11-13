@@ -40,6 +40,7 @@ import {
 import type { ProviderCapabilityFilter } from '@metorial-subspace/module-catalog';
 import { getProviderCapabilityFilter } from '@metorial-subspace/module-catalog';
 import {
+  checkProviderEnabled,
   checkProviderMatch,
   normalizeToolFilters,
   providerDeploymentInternalService
@@ -393,6 +394,7 @@ class providerDeploymentServiceImpl {
 
   async createProviderDeploymentInternal(d: CreateProviderDeploymentParams) {
     checkDeletedRelation(d.provider, { allowEphemeral: d.input.isEphemeral });
+    checkProviderEnabled(d.provider);
 
     if (d.input.config.type === 'vault') {
       checkTenant(d, d.input.config.vault);

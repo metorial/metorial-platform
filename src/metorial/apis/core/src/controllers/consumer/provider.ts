@@ -27,9 +27,26 @@ import {
   portalOAuthClientPresenter
 } from '@metorial/presenters';
 import { Controller } from '@metorial/rest';
+import { isMemberCliSurface } from '@metorial/module-consumer-core';
 import { normalizeArrayParam } from '../../lib/normalizeArrayParam';
 import { consumerGroup, consumerPath } from '../../middleware/consumerGroup';
 import { hasFlags } from '../../middleware/hasFlags';
+
+let isMemberCli = (ctx: object) =>
+  'consumerSurface' in ctx &&
+  !!ctx.consumerSurface &&
+  isMemberCliSurface(ctx.consumerSurface as Parameters<typeof isMemberCliSurface>[0]);
+
+let hasConsumerCatalog = hasFlags(ctx =>
+  isMemberCli(ctx)
+    ? ['paid-identity', 'paid-integrations']
+    : ['paid-portals', 'portals-access']
+);
+let hasConsumerDeployment = hasFlags(ctx =>
+  isMemberCli(ctx)
+    ? ['paid-identity', 'paid-integrations', 'magic-mcp-enabled']
+    : ['paid-portals', 'portals-access', 'magic-mcp-enabled']
+);
 
 let consumerProviderItemGroup = consumerGroup.use(async ctx => {
   if (!ctx.params.catalogItemId) {
@@ -337,7 +354,7 @@ export let consumerProviderController = Controller.create(
         description:
           'Returns one portal catalog item with any available setup capability data.'
       })
-      .use(hasFlags(['paid-portals', 'portals-access']))
+      .use(hasConsumerCatalog)
       .output(consumerProviderPresenter)
       .do(async ctx => {
         let tenant = await db.tenant.findFirstOrThrow({
@@ -410,7 +427,7 @@ export let consumerProviderController = Controller.create(
         name: 'Start consumer provider setup',
         description: 'Starts an integration setup flow for a portal provider template.'
       })
-      .use(hasFlags(['paid-portals', 'portals-access']))
+      .use(hasConsumerCatalog)
       .body(
         'default',
         v.object({
@@ -453,7 +470,7 @@ export let consumerProviderController = Controller.create(
             'Reads the status of an integration setup flow for a portal provider template.'
         }
       )
-      .use(hasFlags(['paid-portals', 'portals-access']))
+      .use(hasConsumerCatalog)
       .output(integrationSetupSessionPresenter)
       .do(async ctx => {
         let consumerProvider = requireProviderTemplate(ctx.consumerProvider);
@@ -476,7 +493,7 @@ export let consumerProviderController = Controller.create(
         name: 'Deploy consumer provider',
         description: 'Creates an owned Magic MCP server from a portal provider template.'
       })
-      .use(hasFlags(['paid-portals', 'portals-access', 'magic-mcp-enabled']))
+      .use(hasConsumerDeployment)
       .body(
         'default',
         v.object({
@@ -498,6 +515,7 @@ export let consumerProviderController = Controller.create(
           consumerProfile: ctx.consumerProfile,
           accessTags: ctx.accessTags!,
           providerTemplateId: consumerProvider.providerTemplate.id,
+          reuseExisting: isMemberCli(ctx),
           input: {
             name: ctx.body.name,
             description: ctx.body.description,

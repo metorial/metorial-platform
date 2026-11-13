@@ -1,0 +1,8 @@
+{
+  "standardcompute": {
+    "decision": "router",
+    "reason": "Standard Compute's namesake endpoint routes each request to a cost-efficient model it picks behind one OpenAI-compatible API (per Standard Compute's own docs); a router, not one fixed model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

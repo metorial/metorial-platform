@@ -12,17 +12,18 @@ vi.mock('@lowerdeck/id', () => ({
 }));
 
 vi.mock('@metorial/db', () => ({
-  db: {
-    skillMarketplacePlugin: {
-      findFirst
-    },
-    skillPlugin: {
-      findFirst: pluginFindFirst
-    },
-    cellSkillPlugin: {
-      findFirst: cellPluginFindFirst
-    }
-  }
+  withTransaction: async (run: (db: unknown) => unknown) =>
+    run({
+      skillMarketplacePlugin: {
+        findFirst
+      },
+      skillPlugin: {
+        findFirst: pluginFindFirst
+      },
+      cellSkillPlugin: {
+        findFirst: cellPluginFindFirst
+      }
+    })
 }));
 
 import {

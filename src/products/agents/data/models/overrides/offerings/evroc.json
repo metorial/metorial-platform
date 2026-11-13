@@ -1,0 +1,30 @@
+{
+  "KBLab/kb-whisper-large": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "KBLab's KB-Whisper Large, the National Library of Sweden's Swedish ASR model fine-tuned from OpenAI Whisper large-v3 (per its Hugging Face card); a fine-tune is not openai/whisper-large-v3 itself and the index has no KB-Whisper entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "Qwen/Qwen3-Reranker-4B": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's Qwen3-Reranker-4B (Hugging Face Qwen/Qwen3-Reranker-4B, Jun 2025), the mid-size text reranker of the Qwen3 Embedding/Reranker series; the index has only the 0.6B and 8B rerankers, so defer rather than link a different size.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "evroc/roc": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "evroc's roc, a multimodal reasoning model on the European sovereign cloud's Think platform taking text, image and video input (per evroc and models.dev listings); no maker or checkpoint identity is published and the index has no entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "intfloat/multilingual-e5-large-instruct": {
+    "decision": "link",
+    "model": "intfloat/multilingual-e5-large-instruct",
+    "reason": "Exact id: the multilingual-e5-large-instruct embedding model (Hugging Face, MIT license, Feb 2024, 512-token window); evroc's 0.114/1M hosted rate is a premium over the model's 0.01 median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

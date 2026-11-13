@@ -516,7 +516,7 @@ pub async fn get_public_url(
     Ok(Json(PublicUrlResponse {
         url: url.url,
         headers: url.headers,
-        expires_in: expiration_secs,
+        expires_in: service.effective_expiration(expiration_secs),
     }))
 }
 

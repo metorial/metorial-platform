@@ -1,0 +1,32 @@
+{
+  "name": "@metorial/model-catalog",
+  "version": "1.0.0",
+  "author": "Tobias Herber",
+  "license": "FSL-1.1",
+  "type": "module",
+  "main": "src/index.ts",
+  "files": [
+    "src/**",
+    "overrides/**",
+    "package.json"
+  ],
+  "scripts": {
+    "generate": "bun src/cli.ts",
+    "reconcile": "bun src/reconcile/cli.ts",
+    "site": "bun src/publish/cli.ts",
+    "test": "vitest run --passWithNoTests",
+    "test:real-data": "MODEL_CATALOG_REAL_DATA=1 vitest run test/realData.test.ts",
+    "lint": "prettier src/**/*.ts test/**/*.ts --check",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lowerdeck/validation": "^2.0.0",
+    "smol-toml": "^1.4.2"
+  },
+  "devDependencies": {
+    "@metorial/tsconfig": "^1.0.0",
+    "@types/bun": "latest",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.4"
+  }
+}

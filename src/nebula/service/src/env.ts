@@ -1,3 +1,4 @@
+import { checkEdition } from '@metorial/editions';
 import { defineSettings } from '@metorial/settings';
 import { redisUrl } from '@metorial/shared-settings';
 import { v } from '@lowerdeck/validation';
@@ -108,7 +109,12 @@ if (env.consumerAuth.CONSUMER_INSTANCE_TOKEN_SECRET.length < 32) {
   throw new Error('CONSUMER_INSTANCE_TOKEN_SECRET must be at least 32 characters');
 }
 
-if (env.provider.DEFAULT_PROVIDER === 'local' && process.env.NODE_ENV === 'production') {
+// On-prem installations run the local provider in production unless the operator connects a cloud one.
+if (
+  env.provider.DEFAULT_PROVIDER === 'local' &&
+  process.env.NODE_ENV === 'production' &&
+  !checkEdition('on-prem')
+) {
   throw new Error('Local provider cannot be used in production');
 }
 

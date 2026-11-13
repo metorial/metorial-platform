@@ -21,7 +21,8 @@ import {
 import {
   appendRepositorySyncLog,
   endDismissedRepositorySync,
-  getRepositorySyncErrorMessage,
+  getRepositorySyncRetry,
+  recordRepositorySyncRetry,
   logRepositorySyncQueueError,
   logRepositorySyncQueueEvent
 } from './_lib';
@@ -107,6 +108,9 @@ export let mergeRepositorySyncQueueProcessor = mergeRepositorySyncQueue.process(
       }
 
       let snapshot = await getRepositorySyncStatusSnapshot(sync);
+      if (sync.errorMessage) {
+        await appendRepositorySyncLog(sync.id, 'Repository sync resumed.');
+      }
       if (snapshot.pullRequest.state === 'merged') {
         await transitionRepositorySyncState(sync.id, 'merging', {
           status: 'merged',
@@ -114,6 +118,8 @@ export let mergeRepositorySyncQueueProcessor = mergeRepositorySyncQueue.process(
           providerMergeSha: snapshot.pullRequest.mergeSha ?? sync.providerMergeSha,
           completedAt: new Date(),
           attemptCount: 0,
+          errorMessage: null,
+          errorCode: null,
           nextPollAt: null
         });
         return;
@@ -149,6 +155,8 @@ export let mergeRepositorySyncQueueProcessor = mergeRepositorySyncQueue.process(
           statusSnapshot: snapshot,
           lastPolledAt: new Date(),
           attemptCount: 0,
+          errorMessage: null,
+          errorCode: null,
           nextPollAt: new Date(Date.now() + delay)
         });
         if (!updated) return;
@@ -165,6 +173,8 @@ export let mergeRepositorySyncQueueProcessor = mergeRepositorySyncQueue.process(
         let delay = 30_000;
         let updated = await transitionRepositorySyncState(sync.id, 'merging', {
           status: 'waiting_for_ci',
+          errorMessage: null,
+          errorCode: null,
           statusSnapshot: snapshot,
           lastPolledAt: new Date(),
           nextPollAt: new Date(Date.now() + delay)
@@ -204,6 +214,8 @@ export let mergeRepositorySyncQueueProcessor = mergeRepositorySyncQueue.process(
         providerMergeSha: merge.mergeSha,
         completedAt: new Date(),
         attemptCount: 0,
+        errorMessage: null,
+        errorCode: null,
         nextPollAt: null
       });
       if (!updated) return;
@@ -216,7 +228,10 @@ export let mergeRepositorySyncQueueProcessor = mergeRepositorySyncQueue.process(
       logRepositorySyncQueueError('merge', 'failed while processing queue item', e, {
         syncId: data.syncId
       });
-      let current = await db.scmRepositorySync.findUnique({ where: { id: data.syncId } });
+      let current = await db.scmRepositorySync.findUnique({
+        where: { id: data.syncId },
+        include: { repo: true }
+      });
       if (current?.status === 'merging') {
         let previousSnapshot = current.statusSnapshot as RepositorySyncStatusSnapshot | null;
         let providerError = getScmProviderErrorDetails(e);
@@ -237,6 +252,16 @@ export let mergeRepositorySyncQueueProcessor = mergeRepositorySyncQueue.process(
           permissionRefused ||
           ([405, 409, 422].includes(getScmProviderErrorStatus(e) ?? 0) &&
             providerReportedBlocker);
+        let retry = getRepositorySyncRetry(e, 'merge');
+        if (mergeBlocked) {
+          retry = {
+            code: mergePermissionRequired ? 'permission_denied' : 'protected_branch',
+            message: mergePermissionRequired
+              ? 'The connected GitLab user does not have permission to merge.'
+              : 'Repository rules are blocking the merge.'
+          };
+        }
+
         let delay = mergeBlocked
           ? 60_000
           : Math.min(20_000 * 2 ** Math.min(current.attemptCount, 10), 15 * 60_000);
@@ -276,23 +301,20 @@ export let mergeRepositorySyncQueueProcessor = mergeRepositorySyncQueue.process(
         let updated = await transitionRepositorySyncState(data.syncId, 'merging', {
           status: mergeBlocked ? 'waiting_for_review' : 'waiting_for_ci',
           ...(statusSnapshot ? { statusSnapshot } : {}),
-          errorMessage: mergeBlocked ? null : getRepositorySyncErrorMessage(e),
+          errorMessage: mergeBlocked ? null : retry.message,
+          errorCode: mergeBlocked ? null : retry.code,
           mergeAttemptSnapshotHashes: mergeBlocked ? undefined : [],
           nextPollAt: new Date(Date.now() + delay),
           attemptCount: { increment: 1 }
         });
         if (!updated) return;
-        let retryMessage = mergeBlocked
-          ? mergePermissionRequired
-            ? 'The connected GitLab user does not have permission to merge.'
-            : 'Repository rules are blocking the merge.'
-          : 'Automatic merge was unavailable; retrying.';
-        let alreadyLogged = Array.isArray(current.logs)
-          ? current.logs.some(log => Array.isArray(log) && log[1] === retryMessage)
-          : false;
-        if (!alreadyLogged) {
-          await appendRepositorySyncLog(data.syncId, retryMessage);
-        }
+        await recordRepositorySyncRetry({
+          sync: current,
+          stage: 'merge',
+          error: e,
+          delayMs: delay,
+          retry
+        });
         let { waitForCiRepositorySyncQueue } = await import('./waitForCi');
         await waitForCiRepositorySyncQueue.add(
           { syncId: data.syncId },

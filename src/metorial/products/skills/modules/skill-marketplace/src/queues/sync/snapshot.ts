@@ -14,11 +14,17 @@ import {
   writeSortedManifestFile
 } from '../../lib/manifestFile/writer';
 import { isObjectMissingError, lockSkillSyncObjects } from './_lib/blobStore';
+import { cancelInactiveManifestSync } from './_lib/eligibility';
 import { getSyncItemKey } from './_lib/item';
 import { withDestinationSyncLock } from './_lib/lock';
 import { appendSkillDestinationSyncLog } from './_lib/logs';
 import { reportSkillSyncIssue } from './_lib/report';
 import { getSkillDestinationKind, getSkillDestinationManifestScope } from './_lib/scope';
+import {
+  areManifestRepositoriesCurrent,
+  canSkipUnchangedSync,
+  finishUnchangedSync
+} from './_lib/unchangedSync';
 import { syncFinishQueue } from './finish';
 import { syncPropagateStartQueue } from './propagate';
 
@@ -141,6 +147,7 @@ export let syncSnapshotQueueProcessor = syncSnapshotQueue.process(
     if (!sync || sync.status !== 'processing' || sync.isAtRepoSyncStage) return;
     if ((data.contentVersion ?? 0) !== sync.contentVersion) return;
     if (sync.destination.storageMode !== 'manifest') return;
+    if (await cancelInactiveManifestSync(sync)) return;
 
     let { destination } = sync;
     let fail = (errorCode: string, message: string) =>
@@ -314,6 +321,25 @@ export let syncSnapshotQueueProcessor = syncSnapshotQueue.process(
       });
 
       let unchanged = destination.currentManifestOid === manifest.oid;
+      if (
+        canSkipUnchangedSync({
+          sync,
+          hasChanges: !unchanged,
+          skillRepositoryId: data.skillRepositoryId
+        }) &&
+        (await areManifestRepositoriesCurrent({
+          destinationOid: destination.oid,
+          trigger: sync.trigger,
+          manifestSha256: manifest.sha256
+        }))
+      ) {
+        await finishUnchangedSync({
+          syncOid: sync.oid,
+          skillDestinationSyncId: data.skillDestinationSyncId
+        });
+        return;
+      }
+
       await appendSkillDestinationSyncLog(
         data.skillDestinationSyncId,
         unchanged

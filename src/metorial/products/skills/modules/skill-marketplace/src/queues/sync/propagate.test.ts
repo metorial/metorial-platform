@@ -30,6 +30,10 @@ let { performManifestPropagation, reconcileManifestPropagation } = vi.hoisted(()
   reconcileManifestPropagation: vi.fn()
 }));
 
+let { ensureSkillRepositoryOwnsProviderRepository } = vi.hoisted(() => ({
+  ensureSkillRepositoryOwnsProviderRepository: vi.fn()
+}));
+
 vi.mock('@metorial/db', () => ({
   db,
   ID: { generateId: async () => 'propagation' },
@@ -58,12 +62,32 @@ vi.mock('./manifest/propagate', () => ({
   getManifestErrorCodeForRejection: (error: { data?: { code?: string } }) =>
     error.data?.code ?? 'request_rejected'
 }));
+vi.mock('../../lib/repositoryIdentity', async importOriginal => ({
+  ...(await importOriginal<typeof import('../../lib/repositoryIdentity')>()),
+  ensureSkillRepositoryOwnsProviderRepository
+}));
 
+import { repositoryLinkedElsewhereMessage } from '../../lib/repositoryIdentity';
+import { appendSkillDestinationSyncLog } from './_lib/logs';
 import {
   syncPropagateStartQueueProcessor,
   syncPropagatePerformQueueProcessor,
   syncPropagateWaitQueueProcessor
 } from './propagate';
+
+let originRepository = {
+  id: 'repo_1',
+  provider: 'github',
+  identifier: 'github.com/acme/skills',
+  externalId: '1',
+  externalOwner: 'acme',
+  externalName: 'skills'
+};
+
+let conflict = {
+  ok: false,
+  owner: { id: 'srep_owner', oid: 9n, linkedAt: new Date('2026-01-01') }
+};
 
 let run = syncPropagateStartQueueProcessor as unknown as (data: {
   skillDestinationSyncId: string;
@@ -288,6 +312,85 @@ describe('repository dispatch failures', () => {
       })
     );
     expect(db.skillDestinationSync.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('sends the update once the repository owns its provider repository', async () => {
+    getRepositories.mockResolvedValue({ repositories: [originRepository] });
+    ensureSkillRepositoryOwnsProviderRepository.mockResolvedValueOnce({ ok: true });
+    syncCodeBucket.mockResolvedValue({ id: 'origin_sync' });
+
+    await performRun({
+      skillDestinationSyncId: 'sync_1',
+      pendingPropagationIds: ['propagation_1'],
+      processedPropagationIds: []
+    });
+
+    expect(ensureSkillRepositoryOwnsProviderRepository).toHaveBeenCalledWith({
+      skillRepository: { project: {}, repoId: 'repo_1' },
+      originRepository
+    });
+    expect(getRepositories).toHaveBeenCalledTimes(1);
+    expect(syncCodeBucket).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails an update to a repository another link owns without writing to it', async () => {
+    getRepositories.mockResolvedValue({ repositories: [originRepository] });
+    ensureSkillRepositoryOwnsProviderRepository.mockResolvedValueOnce(conflict);
+    db.skillDestinationSyncRepositoryPropagation.updateMany.mockResolvedValueOnce({
+      count: 1
+    });
+
+    await performRun({
+      skillDestinationSyncId: 'sync_1',
+      pendingPropagationIds: ['propagation_1'],
+      processedPropagationIds: []
+    });
+
+    expect(syncCodeBucket).not.toHaveBeenCalled();
+    expect(db.skillDestinationSyncRepositoryPropagation.update).not.toHaveBeenCalled();
+    expect(db.skillDestinationSyncRepositoryPropagation.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: 'failed',
+          errorCode: 'repository_linked_elsewhere',
+          errorMessage: repositoryLinkedElsewhereMessage
+        })
+      })
+    );
+    expect(db.skillRepository.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { nextRepairAt: null } })
+    );
+    expect(appendSkillDestinationSyncLog).toHaveBeenCalledWith(
+      'sync_1',
+      `acme/skills: ${repositoryLinkedElsewhereMessage}`
+    );
+    expect(JSON.stringify(vi.mocked(appendSkillDestinationSyncLog).mock.calls)).not.toContain(
+      'srep_owner'
+    );
+    expect(perform).toHaveBeenCalledWith({
+      skillDestinationSyncId: 'sync_1',
+      pendingPropagationIds: ['propagation_1']
+    });
+  });
+
+  it('does not re-check repositories whose update was already sent', async () => {
+    db.skillDestinationSyncRepositoryPropagation.findFirst.mockResolvedValue({
+      id: 'propagation_1',
+      status: 'processing',
+      originSyncId: 'origin_1',
+      startedAt: new Date(),
+      repositoryAccessMode: 'default_branch',
+      skillRepository: { project: {}, repoId: 'repo_1' }
+    });
+
+    await performRun({
+      skillDestinationSyncId: 'sync_1',
+      pendingPropagationIds: ['propagation_1'],
+      processedPropagationIds: []
+    });
+
+    expect(getRepositories).not.toHaveBeenCalled();
+    expect(ensureSkillRepositoryOwnsProviderRepository).not.toHaveBeenCalled();
   });
 });
 
@@ -514,6 +617,45 @@ describe('manifest propagation wiring', () => {
     expect(db.skillDestinationSyncRepositoryPropagation.updateMany).toHaveBeenCalledWith({
       where: { id: 'propagation_1' },
       data: expect.objectContaining({ status: 'failed', errorCode: 'manifest_invalid' })
+    });
+  });
+
+  it('fails an unsent manifest update to a repository another link owns', async () => {
+    db.skillDestinationSyncRepositoryPropagation.findFirst.mockResolvedValue({
+      id: 'propagation_1',
+      oid: 3n,
+      status: 'pending',
+      originSyncId: null,
+      startedAt: new Date(),
+      repositoryAccessMode: 'pull_request',
+      skillRepositoryOid: 1n,
+      skillRepository: { project: {}, repoId: 'repo_1' }
+    });
+    getRepositories.mockResolvedValue({ repositories: [originRepository] });
+    ensureSkillRepositoryOwnsProviderRepository.mockResolvedValueOnce(conflict);
+    db.skillDestinationSyncRepositoryPropagation.updateMany.mockResolvedValueOnce({
+      count: 1
+    });
+    performManifestPropagation.mockResolvedValue('done');
+
+    await performRun({
+      skillDestinationSyncId: 'sync_1',
+      pendingPropagationIds: ['propagation_1'],
+      processedPropagationIds: []
+    });
+
+    expect(db.skillDestinationSyncRepositoryPropagation.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { oid: 3n, status: { in: ['pending', 'processing', 'waiting_for_review'] } },
+        data: expect.objectContaining({ errorCode: 'repository_linked_elsewhere' })
+      })
+    );
+    expect(performManifestPropagation).toHaveBeenCalledWith(
+      expect.objectContaining({ propagation: expect.objectContaining({ status: 'failed' }) })
+    );
+    expect(perform).toHaveBeenCalledWith({
+      skillDestinationSyncId: 'sync_1',
+      pendingPropagationIds: ['propagation_1']
     });
   });
 

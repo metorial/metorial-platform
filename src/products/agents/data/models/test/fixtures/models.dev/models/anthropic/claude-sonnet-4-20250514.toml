@@ -1,0 +1,18 @@
+name = "Claude Sonnet 4"
+release_date = "2025-05-14"
+last_updated = "2025-05-14"
+open_weights = false
+
+[modalities]
+input = ["text", "image"]
+output = ["text"]
+
+[limit]
+context = 200000
+output = 64000
+
+[cost.text.input]
+price = 3
+
+[cost.text.output]
+price = 15

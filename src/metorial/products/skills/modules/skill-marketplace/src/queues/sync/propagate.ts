@@ -8,6 +8,11 @@ import {
   origin
 } from '@metorial/skills-scm-utils';
 import {
+  ensureSkillRepositoryOwnsProviderRepository,
+  repositoryLinkedElsewhereErrorCode,
+  repositoryLinkedElsewhereMessage
+} from '../../lib/repositoryIdentity';
+import {
   getRepositorySyncRetryMessage,
   isRepositorySyncRetrying
 } from '../../lib/repositorySyncStatus';
@@ -237,6 +242,7 @@ export let startSkillSyncPropagation = withDestinationSyncLock(
             repositoryAccessMode,
             forceMergeOrPush,
             mergeBeforeChecksPass,
+            contentRevision: sync.destination.contentRevision,
 
             ...(isManifestSync
               ? {
@@ -372,6 +378,67 @@ export let performSkillSyncPropagation = withDestinationSyncLock(
         }
       }
 
+      let isUnsent =
+        !['completed', 'canceled', 'failed'].includes(propagation.status) &&
+        !propagation.originSyncId;
+      let originTenant = isUnsent
+        ? await getOriginTenant(propagation.skillRepository.project)
+        : null;
+      let originRepository = originTenant
+        ? (
+            await origin.scmRepository.getMany({
+              tenantId: originTenant.id,
+              scmRepositoryIds: [propagation.skillRepository.repoId]
+            })
+          ).repositories[0]
+        : undefined;
+      let repositoryName = formatRepositoryName(originRepository);
+
+      let ownership = originRepository
+        ? await ensureSkillRepositoryOwnsProviderRepository({
+            skillRepository: propagation.skillRepository,
+            originRepository
+          })
+        : null;
+      if (ownership && !ownership.ok) {
+        let updated = await db.skillDestinationSyncRepositoryPropagation.updateMany({
+          where: {
+            oid: propagation.oid,
+            status: { in: ['pending', 'processing', 'waiting_for_review'] }
+          },
+          data: {
+            status: 'failed',
+            errorCode: repositoryLinkedElsewhereErrorCode,
+            errorMessage: repositoryLinkedElsewhereMessage,
+            waitingReason: null,
+            waitingUntil: null,
+            completedAt: new Date()
+          }
+        });
+        await db.skillRepository.update({
+          where: { oid: propagation.skillRepositoryOid },
+          data: { nextRepairAt: null }
+        });
+        propagation.status = 'failed';
+
+        if (updated.count > 0) {
+          await appendSkillDestinationSyncLog(
+            data.skillDestinationSyncId,
+            `${repositoryName}: ${repositoryLinkedElsewhereMessage}`
+          );
+          reportSkillSyncIssue({
+            issue: 'propagation_rejected',
+            errorCode: repositoryLinkedElsewhereErrorCode,
+            level: 'warning',
+            message: repositoryLinkedElsewhereMessage,
+            skillDestinationSyncId: data.skillDestinationSyncId,
+            propagationId: propagation.id,
+            skillRepositoryId: propagation.skillRepository.id,
+            extra: { ownerSkillRepositoryId: ownership.owner.id }
+          });
+        }
+      }
+
       if (sync.storageMode === 'manifest') {
         let manifestPropagation = propagation;
         let result = await performManifestPropagation({
@@ -379,14 +446,6 @@ export let performSkillSyncPropagation = withDestinationSyncLock(
           sync,
           propagation: manifestPropagation,
           getRepositoryName: async () => {
-            let originTenant = await getOriginTenant(
-              manifestPropagation.skillRepository.project
-            );
-            let originRepositories = await origin.scmRepository.getMany({
-              tenantId: originTenant.id,
-              scmRepositoryIds: [manifestPropagation.skillRepository.repoId]
-            });
-            let repositoryName = formatRepositoryName(originRepositories.repositories[0]);
             if (manifestPropagation.status === 'pending') {
               await appendSkillDestinationSyncLog(
                 data.skillDestinationSyncId,
@@ -404,8 +463,8 @@ export let performSkillSyncPropagation = withDestinationSyncLock(
           return;
         }
       } else if (
-        !['completed', 'canceled', 'failed'].includes(propagation.status) &&
-        !propagation.originSyncId
+        originTenant &&
+        !['completed', 'canceled', 'failed'].includes(propagation.status)
       ) {
         let normalizedBranchName =
           propagation.repositoryAccessMode === 'pull_request'
@@ -427,13 +486,6 @@ export let performSkillSyncPropagation = withDestinationSyncLock(
             }
           });
         }
-
-        let originTenant = await getOriginTenant(propagation.skillRepository.project);
-        let originRepositories = await origin.scmRepository.getMany({
-          tenantId: originTenant.id,
-          scmRepositoryIds: [propagation.skillRepository.repoId]
-        });
-        let repositoryName = formatRepositoryName(originRepositories.repositories[0]);
 
         await appendSkillDestinationSyncLog(
           data.skillDestinationSyncId,
@@ -766,7 +818,7 @@ export let waitForSkillSyncPropagation = withDestinationSyncLock(
           : ('processing' as const);
       let providerUnavailable = isRepositorySyncRetrying(originSync);
       let nextErrorMessage = providerUnavailable
-        ? getRepositorySyncRetryMessage(propagation.repositoryAccessMode)
+        ? getRepositorySyncRetryMessage(propagation.repositoryAccessMode, originSync.errorCode)
         : null;
       if (propagation.status !== nextStatus || propagation.errorMessage !== nextErrorMessage) {
         let updated = await db.skillDestinationSyncRepositoryPropagation.updateMany({

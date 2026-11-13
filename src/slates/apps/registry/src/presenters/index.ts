@@ -1,4 +1,5 @@
 export * from './changeNotification';
+export * from './mirror';
 export * from './readerToken';
 export * from './scope';
 export * from './slate';
@@ -10,3 +11,4 @@ export * from './tenant';
 export * from './user';
 export * from './userToken';
 export * from './workspace';
+export * from './slatePack';
