@@ -3,7 +3,7 @@ import type { Portal } from '@metorial/db';
 import { db, loadOrganizationFixture, type OrganizationFixture } from '@metorial/e2e/db';
 import { describe, expect, it } from 'vitest';
 import { consumerServiceAccountService } from '../src';
-import { createPortalSurface } from './_fixtures';
+import { createConsumerProfile, createPortalSurface } from './_fixtures';
 
 describe('module-consumer-core service accounts', () => {
   let org = useOrganization();
@@ -23,10 +23,12 @@ describe('module-consumer-core service accounts', () => {
       input: { name: uniqueId('Consumer SA'), scopes: input.scopes ?? scopes }
     });
 
-  let profilesOnSurface = async (surfaceOid: bigint) =>
-    (await db.consumerProfile.findMany({ where: { surfaceOid } })).map(
-      profile => profile.status
-    );
+  let serviceAccountProfilesOnSurface = async (surfaceOid: bigint) =>
+    (
+      await db.consumerProfile.findMany({
+        where: { surfaceOid, consumer: { isServiceAccount: true } }
+      })
+    ).map(profile => profile.status);
 
   it('creates a consumer service account backed by a service-account profile on the portal', async () => {
     let fixture = await loadOrganizationFixture(org.ids);
@@ -86,13 +88,14 @@ describe('module-consumer-core service accounts', () => {
         create(fixture, await db.portal.findUniqueOrThrow({ where: { oid: portal.oid } })),
         'bad_request'
       );
-      expect(await profilesOnSurface(surface.oid)).toEqual([]);
+      expect(await serviceAccountProfilesOnSurface(surface.oid)).toEqual([]);
     }
   });
 
   it('removes the service-account profile again when the scopes are invalid', async () => {
     let fixture = await loadOrganizationFixture(org.ids);
     let { surface, portal } = await createPortalSurface(fixture);
+    let existingProfile = await createConsumerProfile(fixture, surface);
 
     for (let invalidScopes of [['organization:read'], ['consumer#organization:fly']]) {
       await expectServiceError(
@@ -101,8 +104,11 @@ describe('module-consumer-core service accounts', () => {
       );
     }
 
-    expect(await profilesOnSurface(surface.oid)).toEqual(['deleted', 'deleted']);
+    expect(await serviceAccountProfilesOnSurface(surface.oid)).toEqual(['deleted', 'deleted']);
     expect(await db.serviceAccount.count({ where: { portalOid: portal.oid } })).toBe(0);
+    expect(
+      await db.consumerProfile.findUniqueOrThrow({ where: { oid: existingProfile.oid } })
+    ).toMatchObject({ status: 'active' });
   });
 
   it('archives a consumer service account and deletes its profile', async () => {
