@@ -1,29 +1,57 @@
-import type { ContentPolicy, IngestTokenLimits } from '@metorial/groundstation-spec';
+import type {
+  ContentPolicy,
+  CredentialKind,
+  IngestChannel,
+  IngestTokenLimits
+} from '@metorial/groundstation-spec';
 import { normalizeClient } from '../records/clients';
+import type { IngestTag, InstanceSettings, OrganizationSettings } from '../types';
 import { channelNotAllowedError, clientNotAllowedError } from './errors';
 
+export type IngestDeviceBinding = 'bound' | 'ephemeral' | 'vendor';
+
 export type IngestPrincipal = {
-  tokenId: string;
-  principalRef: string | null;
+  credential: { kind: CredentialKind; id: string; family?: string };
 
   contentPolicy: ContentPolicy;
   limits: IngestTokenLimits;
   allowedClients: string[];
-  allowedChannels: string[];
+  allowedChannels: IngestChannel[];
 
-  tenant: {
+  tags: IngestTag[];
+
+  binding: {
+    userId?: string;
+    deviceId?: string;
+    deviceMode: IngestDeviceBinding;
+    agentId?: string;
+  };
+
+  organization: {
+    id: string;
+    ref: string;
+    hashKeyVersion: number;
+    contentKeyVersion: number;
+    settings: OrganizationSettings;
+  };
+
+  project: { id: string; ref: string };
+
+  instance: {
     id: string;
     ref: string;
     skewBoundSeconds: number;
     backfillMaxAgeDays: number | null;
-    hashKeyVersion: number;
     recordRetentionDays: number;
     contentRetentionDays: number;
-    contentKeyVersion: number;
+    usageRetentionDays: number;
+    settings: InstanceSettings;
   };
+
+  newUserLimitPerDay?: number;
 };
 
-let allows = (allowed: string[], value: string) =>
+let allows = (allowed: readonly string[], value: string) =>
   allowed.length == 0 || allowed.includes(value);
 
 export let isClientAllowed = (principal: IngestPrincipal, client: string) => {

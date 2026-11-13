@@ -1,3 +1,4 @@
+export * from './buildPrincipal';
 export * from './errors';
 export * from './principal';
 export * from './tokenCache';

@@ -1,25 +1,33 @@
 import { ServiceError } from '@lowerdeck/error';
+import type { CredentialKind } from '@metorial/groundstation-spec';
 import { db } from '../db';
 import { invalidCredentialError, missingCredentialError } from './errors';
 import type { IngestPrincipal } from './principal';
-import { getCachedIngestToken } from './tokenCache';
-import { hashIngestTokenSecret, parseIngestToken, secretHashesMatch } from './tokenSecret';
+import { getCachedIngestCredential } from './tokenCache';
+import {
+  hashIngestTokenSecret,
+  parseIngestCredential,
+  secretHashesMatch
+} from './tokenSecret';
 
 let lastUsedWriteIntervalMs = 60_000;
 
 let lastUsedWrites = new Map<string, number>();
 
-let touchLastUsed = (tokenId: string) => {
+let touchLastUsed = (kind: CredentialKind, id: string) => {
   let now = Date.now();
-  let previous = lastUsedWrites.get(tokenId);
+  let key = `${kind}:${id}`;
+  let previous = lastUsedWrites.get(key);
 
   if (previous !== undefined && now - previous < lastUsedWriteIntervalMs) return;
 
-  lastUsedWrites.set(tokenId, now);
+  lastUsedWrites.set(key, now);
 
-  db.ingestToken
-    .update({ where: { id: tokenId }, data: { lastUsedAt: new Date(now) } })
-    .catch(error => console.error('Failed to record ingest token usage', error));
+  let update = { where: { id }, data: { lastUsedAt: new Date(now) } };
+  let write =
+    kind == 'source' ? db.ingestSource.update(update) : db.ingestToken.update(update);
+
+  write.catch(error => console.error('Failed to record ingest credential usage', error));
 };
 
 export let verifyIngestCredential = async (
@@ -27,10 +35,10 @@ export let verifyIngestCredential = async (
 ): Promise<IngestPrincipal> => {
   if (!credential) throw new ServiceError(missingCredentialError());
 
-  let parsed = parseIngestToken(credential);
+  let parsed = parseIngestCredential(credential);
   if (!parsed) throw new ServiceError(invalidCredentialError());
 
-  let cached = await getCachedIngestToken({ prefix: parsed.prefix });
+  let cached = await getCachedIngestCredential({ kind: parsed.kind, prefix: parsed.prefix });
   if (!cached) throw new ServiceError(invalidCredentialError());
 
   let secretHash = await hashIngestTokenSecret(parsed.secret);
@@ -43,17 +51,7 @@ export let verifyIngestCredential = async (
     throw new ServiceError(invalidCredentialError());
   }
 
-  touchLastUsed(cached.id);
+  touchLastUsed(cached.kind, cached.id);
 
-  return {
-    tokenId: cached.id,
-    principalRef: cached.principalRef,
-
-    contentPolicy: cached.contentPolicy,
-    limits: cached.limits,
-    allowedClients: cached.allowedClients,
-    allowedChannels: cached.allowedChannels,
-
-    tenant: cached.tenant
-  };
+  return cached.principal;
 };

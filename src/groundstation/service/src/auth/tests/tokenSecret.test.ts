@@ -1,17 +1,25 @@
 import { describe, expect, it } from 'vitest';
 import {
+  generateIngestSourceSecret,
   generateIngestToken,
   hashIngestTokenSecret,
-  parseIngestToken,
+  parseIngestCredential,
   secretHashesMatch
 } from '../tokenSecret';
 
-describe('ingest token secrets', () => {
+describe('ingest credential secrets', () => {
   it('generates tokens that parse back into prefix and secret', () => {
     let { prefix, secret, token } = generateIngestToken();
 
     expect(token.startsWith('metorial_agit_')).toBe(true);
-    expect(parseIngestToken(token)).toEqual({ prefix, secret });
+    expect(parseIngestCredential(token)).toEqual({ kind: 'token', prefix, secret });
+  });
+
+  it('generates source secrets that parse back as sources', () => {
+    let { prefix, secret, token } = generateIngestSourceSecret();
+
+    expect(token.startsWith('metorial_agis_')).toBe(true);
+    expect(parseIngestCredential(token)).toEqual({ kind: 'source', prefix, secret });
   });
 
   it('generates prefixes with at least 16 characters', () => {
@@ -29,12 +37,15 @@ describe('ingest token secrets', () => {
   it('rejects malformed credentials', () => {
     let { token } = generateIngestToken();
 
-    expect(parseIngestToken('')).toBeNull();
-    expect(parseIngestToken('Bearer x')).toBeNull();
-    expect(parseIngestToken(token.replace('metorial_agit_', 'sk_'))).toBeNull();
-    expect(parseIngestToken(`${token}!`)).toBeNull();
-    expect(parseIngestToken(token.slice(0, -40))).toBeNull();
-    expect(parseIngestToken('metorial_agit_abc_def')).toBeNull();
+    expect(parseIngestCredential('')).toBeNull();
+    expect(parseIngestCredential('Bearer x')).toBeNull();
+    expect(parseIngestCredential(token.replace('metorial_agit_', 'sk_'))).toBeNull();
+    expect(
+      parseIngestCredential(token.replace('metorial_agit_', 'metorial_agix_'))
+    ).toBeNull();
+    expect(parseIngestCredential(`${token}!`)).toBeNull();
+    expect(parseIngestCredential(token.slice(0, -40))).toBeNull();
+    expect(parseIngestCredential('metorial_agit_abc_def')).toBeNull();
   });
 
   it('hashes deterministically and compares in constant time', async () => {

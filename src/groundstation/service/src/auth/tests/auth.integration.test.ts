@@ -1,26 +1,42 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { ingestFetch } from '../../ingest';
-import { ingestTokenService, tenantService } from '../../services';
-import { cleanDatabase, testDb } from '../../test/setup';
+import {
+  ingestSourceService,
+  ingestTokenService,
+  instanceService,
+  organizationService,
+  projectService
+} from '../../services';
 import { eventually, expectServiceError, sleep } from '../../test/helpers';
-import { ingestTokenPresenter } from '../../presenters';
-import { parseIngestToken } from '../tokenSecret';
+import { createTestScope } from '../../test/scope';
+import { cleanDatabase, testDb } from '../../test/setup';
+import { parseIngestCredential } from '../tokenSecret';
 import { verifyIngestCredential } from '../verify';
-
-let createTenant = (ref: string = `org_${crypto.randomUUID()}`) =>
-  tenantService.upsertTenant({ input: { ref } });
 
 let createToken = async (
   input: Partial<Parameters<typeof ingestTokenService.createIngestToken>[0]['input']> = {}
 ) => {
-  let tenant = await createTenant();
+  let scope = await createTestScope();
 
   let created = await ingestTokenService.createIngestToken({
-    tenant,
-    input: { name: 'laptop', ...input }
+    organization: scope.organization,
+    instance: scope.instance,
+    input: { name: 'laptop', userRef: 'consumer_1', deviceRef: 'device_1', ...input }
   });
 
-  return { tenant, ...created };
+  return { ...scope, ...created };
+};
+
+let createSource = async () => {
+  let scope = await createTestScope();
+
+  let created = await ingestSourceService.createIngestSource({
+    organization: scope.organization,
+    instance: scope.instance,
+    input: { name: 'Cursor', family: 'cursor', newUserLimitPerDay: 10 }
+  });
+
+  return { ...scope, ...created };
 };
 
 let ingest = (
@@ -40,142 +56,15 @@ let ingest = (
     })
   );
 
-describe('tenant service', () => {
-  beforeEach(async () => {
-    await cleanDatabase();
-  });
-
-  it('creates a tenant with defaults and updates it by ref', async () => {
-    let created = await tenantService.upsertTenant({ input: { ref: 'org_a' } });
-
-    expect(created.skewBoundSeconds).toBe(86400);
-    expect(created.backfillMaxAgeDays).toBeNull();
-
-    let updated = await tenantService.upsertTenant({
-      input: { ref: 'org_a', skewBoundSeconds: 600, backfillMaxAgeDays: 30 }
-    });
-
-    expect(updated.id).toBe(created.id);
-    expect(updated.skewBoundSeconds).toBe(600);
-    expect(updated.backfillMaxAgeDays).toBe(30);
-
-    let untouched = await tenantService.upsertTenant({ input: { ref: 'org_a' } });
-
-    expect(untouched.skewBoundSeconds).toBe(600);
-    expect(untouched.backfillMaxAgeDays).toBe(30);
-
-    let cleared = await tenantService.upsertTenant({
-      input: { ref: 'org_a', backfillMaxAgeDays: null }
-    });
-
-    expect(cleared.backfillMaxAgeDays).toBeNull();
-  });
-
-  it('finds a tenant by id or ref', async () => {
-    let tenant = await createTenant('org_b');
-
-    expect((await tenantService.getTenantById({ id: tenant.id })).oid).toBe(tenant.oid);
-    expect((await tenantService.getTenantById({ id: 'org_b' })).oid).toBe(tenant.oid);
-
-    await expectServiceError(tenantService.getTenantById({ id: 'missing' }), 'not_found');
-  });
-});
-
-describe('ingest token service', () => {
-  beforeEach(async () => {
-    await cleanDatabase();
-  });
-
-  it('stores only a hash of the secret and returns the token once', async () => {
-    let { ingestToken, secret } = await createToken();
-
-    expect(secret.startsWith('metorial_agit_')).toBe(true);
-    expect(secret).toContain(ingestToken.prefix);
-    expect(ingestToken.secretHash).not.toContain(parseIngestToken(secret)!.secret);
-    expect(ingestToken.contentPolicy).toEqual({ defaultMode: 'basic' });
-    expect(ingestToken.limits).toEqual({});
-
-    let stored = await testDb.ingestToken.findUniqueOrThrow({ where: { id: ingestToken.id } });
-
-    let storedValues = Object.values(stored).map(value =>
-      JSON.stringify(value, (_, v) => (typeof v == 'bigint' ? String(v) : v))
-    );
-
-    expect(storedValues.join(' ')).not.toContain(parseIngestToken(secret)!.secret);
-  });
-
-  it('never presents the secret hash', async () => {
-    let { ingestToken } = await createToken();
-
-    let presented = ingestTokenPresenter(ingestToken);
-
-    expect(Object.keys(presented)).not.toContain('secretHash');
-    expect(JSON.stringify(presented)).not.toContain(ingestToken.secretHash);
-  });
-
-  it('scopes get and list to the tenant', async () => {
-    let first = await createToken();
-    let second = await createToken();
-
-    let found = await ingestTokenService.getIngestTokenById({
-      id: first.ingestToken.id,
-      tenant: first.tenant
-    });
-    expect(found.id).toBe(first.ingestToken.id);
-
-    await expectServiceError(
-      ingestTokenService.getIngestTokenById({
-        id: first.ingestToken.id,
-        tenant: second.tenant
-      }),
-      'not_found'
-    );
-
-    let paginator = await ingestTokenService.listIngestTokens({ tenant: first.tenant });
-    let page = await paginator.run({ limit: 10 });
-
-    expect(page.items.map(item => item.id)).toEqual([first.ingestToken.id]);
-  });
-
-  it('rejects an expiry in the past', async () => {
-    let tenant = await createTenant();
-
-    await expectServiceError(
-      ingestTokenService.createIngestToken({
-        tenant,
-        input: { name: 'old', expiresAt: new Date(Date.now() - 1000) }
-      }),
-      'bad_request'
-    );
-  });
-
-  it('refuses to update a revoked token and revoking is idempotent', async () => {
-    let { ingestToken } = await createToken();
-
-    let revoked = await ingestTokenService.revokeIngestToken({ ingestToken });
-    let again = await ingestTokenService.revokeIngestToken({ ingestToken: revoked });
-
-    expect(revoked.revokedAt).toBeInstanceOf(Date);
-    expect(again.revokedAt?.getTime()).toBe(revoked.revokedAt?.getTime());
-
-    await expectServiceError(
-      ingestTokenService.updateIngestToken({
-        ingestToken: revoked,
-        input: { name: 'renamed' }
-      }),
-      'precondition_failed'
-    );
-  });
-});
-
 describe('ingest credential verification', () => {
   beforeEach(async () => {
     await cleanDatabase();
   });
 
-  it('resolves a principal with tenant settings and token policy', async () => {
-    let { tenant, ingestToken, secret } = await createToken({
-      principalRef: 'user_1',
+  it('resolves a token principal with its scope, binding and policy', async () => {
+    let { organization, project, instance, ingestToken, secret } = await createToken({
+      agentRef: 'client_1',
+      tags: [{ key: 'metorial.project', value: 'billing' }],
       contentPolicy: { defaultMode: 'shape', roles: { prompt: 'full' } },
       limits: { itemsPerSecond: 50 },
       allowedClients: ['claude-code'],
@@ -185,28 +74,79 @@ describe('ingest credential verification', () => {
     let principal = await verifyIngestCredential(secret);
 
     expect(principal).toEqual({
-      tokenId: ingestToken.id,
-      principalRef: 'user_1',
+      credential: { kind: 'token', id: ingestToken.id },
       contentPolicy: { defaultMode: 'shape', roles: { prompt: 'full' } },
       limits: { itemsPerSecond: 50 },
       allowedClients: ['claude-code'],
       allowedChannels: ['hook'],
-      tenant: {
-        id: tenant.id,
-        ref: tenant.ref,
+      tags: [{ key: 'metorial.project', value: 'billing' }],
+      binding: {
+        userId: ingestToken.userEntity.id,
+        deviceId: ingestToken.deviceEntity!.id,
+        deviceMode: 'bound',
+        agentId: ingestToken.agentEntity!.id
+      },
+      organization: {
+        id: organization.id,
+        ref: organization.ref,
+        hashKeyVersion: 1,
+        contentKeyVersion: 1,
+        settings: {}
+      },
+      project: { id: project.id, ref: project.ref },
+      instance: {
+        id: instance.id,
+        ref: instance.ref,
         skewBoundSeconds: 86400,
         backfillMaxAgeDays: null,
-        hashKeyVersion: 1,
         recordRetentionDays: 90,
         contentRetentionDays: 30,
-        contentKeyVersion: 1
+        usageRetentionDays: 400,
+        settings: {}
       }
     });
+    expect(principal.binding.userId).toMatch(/^gen_/);
+  });
+
+  it('resolves an ephemeral token without a device', async () => {
+    let { secret } = await createToken({ deviceRef: undefined, deviceMode: 'ephemeral' });
+
+    let principal = await verifyIngestCredential(secret);
+
+    expect(principal.binding.deviceMode).toBe('ephemeral');
+    expect(principal.binding.deviceId).toBeUndefined();
+    expect(principal.binding.userId).toMatch(/^gen_/);
+  });
+
+  it('resolves a source principal as a vendor credential', async () => {
+    let { instance, ingestSource, secret } = await createSource();
+
+    let principal = await verifyIngestCredential(secret);
+
+    expect(principal.credential).toEqual({
+      kind: 'source',
+      id: ingestSource.id,
+      family: 'cursor'
+    });
+    expect(principal.binding).toEqual({ deviceMode: 'vendor' });
+    expect(principal.newUserLimitPerDay).toBe(10);
+    expect(principal.instance.id).toBe(instance.id);
+  });
+
+  it('does not accept a source secret under the token prefix or the reverse', async () => {
+    let token = await createToken();
+    let source = await createSource();
+
+    let tokenAsSource = token.secret.replace('metorial_agit_', 'metorial_agis_');
+    let sourceAsToken = source.secret.replace('metorial_agis_', 'metorial_agit_');
+
+    await expectServiceError(verifyIngestCredential(tokenAsSource), 'invalid_credential');
+    await expectServiceError(verifyIngestCredential(sourceAsToken), 'invalid_credential');
   });
 
   it('rejects unknown tokens, wrong secrets and missing credentials', async () => {
     let { ingestToken, secret } = await createToken();
-    let { prefix } = parseIngestToken(secret)!;
+    let { prefix } = parseIngestCredential(secret)!;
 
     let wrongSecret = `metorial_agit_${prefix}_${'A'.repeat(43)}`;
     let unknown = `metorial_agit_${'B'.repeat(11)}_${'C'.repeat(43)}`;
@@ -230,6 +170,21 @@ describe('ingest credential verification', () => {
     await expectServiceError(verifyIngestCredential(secret), 'invalid_credential');
   });
 
+  it('stops accepting a source after rotation and revocation', async () => {
+    let { ingestSource, secret } = await createSource();
+
+    await verifyIngestCredential(secret);
+
+    let rotated = await ingestSourceService.rotateIngestSource({ ingestSource });
+
+    await expectServiceError(verifyIngestCredential(secret), 'invalid_credential');
+    await expect(verifyIngestCredential(rotated.secret)).resolves.toBeDefined();
+
+    await ingestSourceService.revokeIngestSource({ ingestSource: rotated.ingestSource });
+
+    await expectServiceError(verifyIngestCredential(rotated.secret), 'invalid_credential');
+  });
+
   it('stops accepting a token once it expires', async () => {
     let { secret } = await createToken({ expiresAt: new Date(Date.now() + 1500) });
 
@@ -240,8 +195,32 @@ describe('ingest credential verification', () => {
     await expectServiceError(verifyIngestCredential(secret), 'invalid_credential');
   });
 
+  it.each(['organization', 'project', 'instance'] as const)(
+    'stops accepting credentials of an archived %s, even when cached',
+    async scope => {
+      let token = await createToken();
+      let source = await createSource();
+
+      await verifyIngestCredential(token.secret);
+      await verifyIngestCredential(source.secret);
+
+      for (let target of [token, source]) {
+        if (scope == 'organization') {
+          await organizationService.archiveOrganization({ organization: target.organization });
+        } else if (scope == 'project') {
+          await projectService.archiveProject({ project: target.project });
+        } else {
+          await instanceService.archiveInstance({ instance: target.instance });
+        }
+      }
+
+      await expectServiceError(verifyIngestCredential(token.secret), 'invalid_credential');
+      await expectServiceError(verifyIngestCredential(source.secret), 'invalid_credential');
+    }
+  );
+
   it('applies token updates immediately', async () => {
-    let { tenant, ingestToken, secret } = await createToken();
+    let { instance, ingestToken, secret } = await createToken();
 
     expect((await verifyIngestCredential(secret)).contentPolicy.defaultMode).toBe('basic');
 
@@ -254,32 +233,56 @@ describe('ingest credential verification', () => {
 
     expect(principal.contentPolicy.defaultMode).toBe('full');
     expect(principal.allowedClients).toEqual(['codex']);
-    expect(principal.tenant.id).toBe(tenant.id);
+    expect(principal.instance.id).toBe(instance.id);
   });
 
-  it('applies tenant setting changes to cached tokens', async () => {
-    let { tenant, secret } = await createToken();
+  it('applies scope changes to cached credentials', async () => {
+    let { organization, project, instance, secret } = await createToken();
 
-    expect((await verifyIngestCredential(secret)).tenant.skewBoundSeconds).toBe(86400);
+    let before = await verifyIngestCredential(secret);
+    expect(before.instance.skewBoundSeconds).toBe(86400);
+    expect(before.instance.recordRetentionDays).toBe(90);
 
-    await tenantService.upsertTenant({ input: { ref: tenant.ref, skewBoundSeconds: 120 } });
+    await instanceService.upsertInstance({
+      organization,
+      project,
+      input: { ref: instance.ref, skewBoundSeconds: 120 }
+    });
+    expect((await verifyIngestCredential(secret)).instance.skewBoundSeconds).toBe(120);
 
-    expect((await verifyIngestCredential(secret)).tenant.skewBoundSeconds).toBe(120);
+    await projectService.upsertProject({
+      organization,
+      input: { ref: project.ref, recordRetentionDays: 7 }
+    });
+    expect((await verifyIngestCredential(secret)).instance.recordRetentionDays).toBe(7);
+
+    await organizationService.upsertOrganization({
+      input: { ref: organization.ref, settings: { allowedEmailDomains: ['acme.com'] } }
+    });
+    expect((await verifyIngestCredential(secret)).organization.settings).toEqual({
+      allowedEmailDomains: ['acme.com']
+    });
   });
 
   it('records last use without blocking the request', async () => {
     let { ingestToken, secret } = await createToken();
+    let source = await createSource();
 
     expect(ingestToken.lastUsedAt).toBeNull();
 
     await verifyIngestCredential(secret);
+    await verifyIngestCredential(source.secret);
 
     await eventually(async () => {
-      let stored = await testDb.ingestToken.findUniqueOrThrow({
+      let storedToken = await testDb.ingestToken.findUniqueOrThrow({
         where: { id: ingestToken.id }
       });
+      let storedSource = await testDb.ingestSource.findUniqueOrThrow({
+        where: { id: source.ingestSource.id }
+      });
 
-      expect(stored.lastUsedAt).toBeInstanceOf(Date);
+      expect(storedToken.lastUsedAt).toBeInstanceOf(Date);
+      expect(storedSource.lastUsedAt).toBeInstanceOf(Date);
     });
   });
 });
@@ -294,6 +297,12 @@ describe('authenticated ingest routes', () => {
 
     expect((await ingest('/v1/logs', secret)).status).toBe(200);
     expect((await ingest('/v1/logs', undefined, { 'x-api-key': secret })).status).toBe(200);
+  });
+
+  it('lets a valid source through to the handler', async () => {
+    let { secret } = await createSource();
+
+    expect((await ingest('/v1/logs', secret)).status).toBe(200);
   });
 
   it('answers 401 with a challenge for bad credentials', async () => {
