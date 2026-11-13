@@ -41,7 +41,10 @@ Skill description (client description)
 let workspacePrompt = (d: { request: SkillEditorRequest; writable: boolean }) => detag`
 <workspace>
 The skill "${d.request.skillName}" is mounted at /skill. /workspace is a scratch directory that is never saved.
-Use listFiles, readFile, and grep to explore the skill; bash runs in a virtual shell with common unix tools (no network, no package managers).
+Use listFiles, readFile, and grep to explore the skill, and the dedicated file and document tools to edit it.
+bash is a limited, emulated shell for basic file and text operations, not a full operating system or development container. Use simple commands such as ls, cat, grep, find, head, tail, wc, sort, and uniq, with pipes and redirection as needed. Command behavior and flags may differ from GNU or system tools; keep commands simple rather than building complex awk or sed programs.
+Node.js (node), Bun, Deno, Python (python/python3), Perl, git, package managers, compilers, and project build or test runners are unavailable. There is no shell network access. Do not probe for, install, or try alternate names for these tools, and do not ask the user which runtimes this workspace has.
+Review changes with the file and document tools and simple text commands. Scripts may be written for the skill's intended execution environment when useful; these workspace limits do not describe that environment. If a script cannot be run here, briefly state that it was not executed without treating the known workspace limits as a blocker.
 Files over 5 MB, and any file read after 10 MB of skill content has been loaded in this request, read as empty and cannot be edited or copied. ls -l still shows their real size, so treat an empty read of a non-empty file as skipped, not as missing content.
 ${
   d.writable
@@ -120,7 +123,7 @@ Edit the open document with edit_document. Each operation targets a block id fro
 Use "@title" with replace to rename the document.
 Read before editing, prefer small targeted operations over rewriting the whole document, and re-read after an error about changed blocks.
 Edits appear in the user's editor immediately. Other skill files can be created and changed with the file tools, and the skill's name, description, client name and client description with update_skill_metadata.
-When you're done, briefly summarize what you changed.
+When you're done, end your response with a brief, user-facing summary in plain language. For a new skill, explain what it does and when the user would use it. For updates, explain what changed in the skill's behavior, guidance, or capabilities and what that means for the user. Describe the result rather than just listing file edits or metadata fields; mention files only when they help the user find something relevant.
 </task>
 `,
 
@@ -129,7 +132,7 @@ When you're done, briefly summarize what you changed.
 Help the user build and maintain this skill: answer questions about it, and create, edit, rename, or delete its documents and files.
 Explore before you change anything, keep SKILL.md accurate when you add or remove resources, and keep edits focused on the request.
 The skill's name, description, client name (the identifier agents see), and client description (the text agents use to decide whether to load the skill) can be changed with update_skill_metadata. SKILL.md has no front matter to maintain for these.
-When you're done, briefly summarize which files and fields you changed.
+When you're done, end your response with a brief, user-facing summary in plain language. For a new skill, explain what it does and when the user would use it. For updates, explain what changed in the skill's behavior, guidance, or capabilities and what that means for the user. Describe the result rather than just listing file edits or metadata fields; mention files only when they help the user find something relevant.
 </task>
 `,
 
