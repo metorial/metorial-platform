@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { readFile } from 'node:fs/promises';
 import {
   canonicalize,
   collectSourceFiles,
@@ -38,3 +39,28 @@ export let resolveOrg = (alias: string) =>
   })[alias] ?? null;
 
 export let noOverrides = { merges: [], offerings: [], models: [], families: [] };
+
+export let readPricingFixture = async (kind: string): Promise<unknown> => {
+  let json = [
+    'cerebras',
+    'deepinfra',
+    'novita',
+    'huggingface',
+    'llmgateway',
+    'venice',
+    'mistral'
+  ].includes(kind);
+  let raw = await readFile(
+    path.join(
+      import.meta.dirname,
+      '..',
+      'src',
+      'sources',
+      kind,
+      'fixtures',
+      `response.${json ? 'json' : 'md'}`
+    ),
+    'utf8'
+  );
+  return json ? JSON.parse(raw) : raw;
+};

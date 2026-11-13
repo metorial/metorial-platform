@@ -29,7 +29,29 @@ export interface Catalog {
   agents: Agent[];
 }
 
-export type SourceKind = 'models.dev' | 'openrouter' | 'ai-gateway' | 'litellm' | 'ai-sdk';
+export type SourceKind =
+  | 'models.dev'
+  | 'openrouter'
+  | 'ai-gateway'
+  | 'litellm'
+  | 'ai-sdk'
+  | 'openai'
+  | 'anthropic'
+  | 'cerebras'
+  | 'deepinfra'
+  | 'novita'
+  | 'huggingface'
+  | 'llmgateway'
+  | 'venice'
+  | 'together'
+  | 'xai'
+  | 'zai'
+  | 'fireworks'
+  | 'groq'
+  | 'perplexity'
+  | 'mistral'
+  | 'deepseek'
+  | 'google-ai-studio';
 
 export interface CatalogSource {
   kind: SourceKind;
@@ -281,6 +303,13 @@ export interface Pricing {
   contextTiers: ContextTier[];
   units: UnitPrice[];
   webSearchPer1k: number | null;
+  conditions?: {
+    label: string;
+    description: string;
+    modality: 'text' | 'image' | 'audio' | 'video';
+    rates: TokenRates;
+  }[];
+  validUntil?: string;
 }
 
 export interface TokenRates {

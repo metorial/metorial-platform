@@ -83,6 +83,7 @@ export let createEventReader = (opts: {
   log: Log;
   transcript: (text: string) => void;
   now?: () => number;
+  onAnswer?: (text: string) => void;
 }) => {
   let now = opts.now ?? Date.now;
   let stats = emptyStats();
@@ -138,6 +139,13 @@ export let createEventReader = (opts: {
       );
 
       let blocks: any[] = Array.isArray(message.content) ? message.content : [];
+      if (message.stopReason !== 'toolUse' && !failed)
+        opts.onAnswer?.(
+          blocks
+            .filter(block => block.type === 'text')
+            .map(block => block.text)
+            .join('\n')
+        );
       for (let block of blocks) {
         if (block.type === 'thinking')
           opts.transcript(`thinking\n${block.thinking ?? block.text ?? ''}`);

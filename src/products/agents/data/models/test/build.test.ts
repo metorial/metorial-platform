@@ -12,7 +12,8 @@ import {
   type Catalog
 } from '../src';
 import { buildSite } from '../src/publish/site';
-import { fixturePath, noOverrides, now } from './helpers';
+import { fixturePath, noOverrides, now, readPricingFixture } from './helpers';
+import { pricingSources } from '../src/sources/providers';
 
 let snapshots = {
   openrouter: {
@@ -66,6 +67,11 @@ beforeAll(async () => {
   for (let [kind, raw] of Object.entries(snapshots))
     await writeFile(path.join(previousDir, 'sources', `${kind}.json`), JSON.stringify(raw));
 
+  for (let { kind } of pricingSources) {
+    let raw = await readPricingFixture(kind);
+    await writeFile(path.join(previousDir, 'sources', `${kind}.json`), JSON.stringify(raw));
+  }
+
   result = await buildCatalog({
     modelsDevPath: fixturePath,
     previousDir,
@@ -86,12 +92,28 @@ describe('buildCatalog', () => {
       ['openrouter', 'fallback'],
       ['ai-gateway', 'fallback'],
       ['litellm', 'fallback'],
-      ['ai-sdk', 'fallback']
+      ['ai-sdk', 'fallback'],
+      ...pricingSources.map(source => [source.kind, 'fallback'])
     ]);
   });
 
   it('produces a valid catalog', () => {
     expect(result.validation.errors).toEqual([]);
+  });
+
+  it('applies official prices to direct offerings and preserves reseller prices', () => {
+    expect(offering('anthropic:claude-opus-4-5-20251101')?.pricing?.text).toMatchObject({
+      input: 5,
+      output: 25,
+      cacheRead: 0.5,
+      cacheWrite: [
+        { ttl: '5m', price: 6.25 },
+        { ttl: '1h', price: 10 }
+      ]
+    });
+    expect(offering('anthropic:claude-opus-4-5-20251101')?.sources).toContain('anthropic');
+    expect(offering('openrouter:anthropic/claude-opus-4.5')?.pricing?.text?.input).toBe(4);
+    expect(result.merges.find(merge => merge.source === 'anthropic')?.delisted).toEqual([]);
   });
 
   it('lets a vendor listing update prices, add offerings and delist the rest', () => {
@@ -183,7 +205,9 @@ describe('emitCatalog', () => {
       'agents/claude-code.json',
       'unresolved.json',
       'report.md',
-      'sources/openrouter.json'
+      'sources/openrouter.json',
+      'sources/openai.json',
+      'sources/anthropic.json'
     ])
       expect(existsSync(path.join(outDir, file)), file).toBe(true);
   });
