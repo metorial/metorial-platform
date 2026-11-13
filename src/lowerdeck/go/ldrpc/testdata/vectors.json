@@ -1,0 +1,104 @@
+{
+  "serialize": [
+    {
+      "name": "object with annotations",
+      "encoded": "{\"$$TYPES$$\":{\"__mode\":\"object\",\"values\":{\"d\":[\"Date\"],\"n.e\":[\"Date\"],\"n.u\":[\"undefined\"],\"arr.0\":[\"Date\"],\"b\":[\"bigint\"]},\"v\":1},\"a\":1,\"d\":\"1970-01-01T00:00:00.000Z\",\"n\":{\"e\":\"1970-01-01T00:00:00.001Z\",\"u\":null},\"arr\":[\"1970-01-01T00:00:00.002Z\",1],\"b\":\"10\"}",
+      "plain": "{\"a\":1,\"arr\":[\"1970-01-01T00:00:00.002Z\",1],\"b\":10,\"d\":\"1970-01-01T00:00:00.000Z\",\"n\":{\"e\":\"1970-01-01T00:00:00.001Z\"}}"
+    },
+    {
+      "name": "top-level array",
+      "encoded": "{\"$$TYPES$$\":{\"__mode\":\"object\",\"values\":{\"items.1\":[\"Date\"]},\"v\":1},\"items\":[1,\"1970-01-01T00:00:00.000Z\"],\"$$MODE$$\":\"array_envelope\"}",
+      "plain": "[1,\"1970-01-01T00:00:00.000Z\"]"
+    },
+    {
+      "name": "top-level string",
+      "encoded": "{\"$$TYPES$$\":{\"__mode\":\"value\"},\"data\":\"hi\"}",
+      "plain": "\"hi\""
+    },
+    {
+      "name": "top-level number",
+      "encoded": "{\"$$TYPES$$\":{\"__mode\":\"value\"},\"data\":5}",
+      "plain": "5"
+    },
+    {
+      "name": "top-level date",
+      "encoded": "{\"$$TYPES$$\":{\"__mode\":\"value\",\"values\":[\"Date\"],\"v\":1},\"data\":\"1970-01-01T00:00:00.000Z\"}",
+      "plain": "\"1970-01-01T00:00:00.000Z\""
+    },
+    {
+      "name": "top-level null",
+      "encoded": "{\"$$TYPES$$\":{\"__mode\":\"object\"}}",
+      "plain": "{}"
+    },
+    {
+      "name": "top-level undefined",
+      "encoded": "{\"$$TYPES$$\":{\"__mode\":\"object\",\"values\":[\"undefined\"],\"v\":1}}",
+      "plain": "null"
+    },
+    {
+      "name": "empty object",
+      "encoded": "{\"$$TYPES$$\":{\"__mode\":\"object\"}}",
+      "plain": "{}"
+    },
+    {
+      "name": "map with dates",
+      "encoded": "{\"$$TYPES$$\":{\"__mode\":\"object\",\"values\":{\"m\":[\"map\",{\"0.1\":[\"Date\"]}]},\"v\":1},\"m\":[[\"a\",\"1970-01-01T00:00:00.000Z\"]]}",
+      "plain": "{\"m\":{\"a\":\"1970-01-01T00:00:00.000Z\"}}"
+    },
+    {
+      "name": "set with dates",
+      "encoded": "{\"$$TYPES$$\":{\"__mode\":\"object\",\"values\":{\"s\":[\"set\",{\"0\":[\"Date\"]}]},\"v\":1},\"s\":[\"1970-01-01T00:00:00.000Z\"]}",
+      "plain": "{\"s\":[\"1970-01-01T00:00:00.000Z\"]}"
+    },
+    {
+      "name": "escaped keys",
+      "encoded": "{\"$$TYPES$$\":{\"__mode\":\"object\",\"values\":{\"a\\\\.b\":[\"Date\"],\"x\\\\\\\\y.1\\\\.2\":[\"bigint\"]},\"v\":1},\"a.b\":\"1970-01-01T00:00:00.000Z\",\"x\\\\y\":{\"1.2\":\"10\"}}",
+      "plain": "{\"a.b\":\"1970-01-01T00:00:00.000Z\",\"x\\\\y\":{\"1.2\":10}}"
+    },
+    {
+      "name": "batch envelope",
+      "encoded": "{\"$$TYPES$$\":{\"__mode\":\"object\",\"values\":{\"calls.0.payload.at\":[\"Date\"]},\"v\":1},\"calls\":[{\"id\":\"call_1\",\"name\":\"bucket:get\",\"payload\":{\"at\":\"1970-01-01T00:00:00.000Z\"}}]}",
+      "plain": "{\"calls\":[{\"id\":\"call_1\",\"name\":\"bucket:get\",\"payload\":{\"at\":\"1970-01-01T00:00:00.000Z\"}}]}"
+    }
+  ],
+  "hmac": {
+    "token": "shared-secret",
+    "timestamp": 1700000000000,
+    "method": "POST",
+    "url": "https://svc.internal/rpc/bucket.get?region=eu&x=1",
+    "body": "{\"$$TYPES$$\":{\"__mode\":\"object\"},\"bucketId\":\"bkt_1\"}",
+    "header": "t=1700000000000,v1=467b7bd147c5508393b64d29a040c99f14a0437c3a13382a231816cf37d40a23"
+  },
+  "ed25519": {
+    "privateJwk": {
+      "alg": "Ed25519",
+      "crv": "Ed25519",
+      "d": "mYH-EwNUfD5lN400FFnLCVDyifwlZEmrWE6L4bOmVg0",
+      "ext": true,
+      "key_ops": [
+        "sign"
+      ],
+      "kty": "OKP",
+      "x": "dWlgt8FWjhxhxfnycoDYqI4f0apVONphrDear05NQ3w"
+    },
+    "publicJwk": {
+      "alg": "Ed25519",
+      "crv": "Ed25519",
+      "ext": true,
+      "key_ops": [
+        "verify"
+      ],
+      "kty": "OKP",
+      "x": "dWlgt8FWjhxhxfnycoDYqI4f0apVONphrDear05NQ3w"
+    },
+    "keyId": "svc-a.key-1",
+    "audience": "code-bucket",
+    "timestamp": 1700000000000,
+    "nonce": "abcdefghijklmnopqrstuvwxyzABCDEF",
+    "method": "POST",
+    "url": "https://svc.internal/rpc?a=1&b=%3C2%3E",
+    "authorization": "Bearer token-1",
+    "body": "{\"$$TYPES$$\":{\"__mode\":\"object\"},\"bucketId\":\"bkt_1\"}",
+    "header": "version=ed25519-v1,alg=ed25519,kid=svc-a.key-1,aud=code-bucket,t=1700000000000,nonce=abcdefghijklmnopqrstuvwxyzABCDEF,sig=bTYr3EYd4ntqAKlxTQes8z54zLm7fb3ZtEybDU53Y8Z25uZcG6PgNJaPeU35EOD6BD09kr0aFViBp9HLZQrUCg"
+  }
+}
