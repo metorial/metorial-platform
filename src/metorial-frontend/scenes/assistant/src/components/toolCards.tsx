@@ -17,7 +17,6 @@ import rehypeKatex from 'rehype-katex';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import styled from 'styled-components';
-import { TextShimmer } from './textShimmer';
 import { BashToolCard } from './tools/bashTool';
 import { EditToolCard } from './tools/editTool';
 import { McpToolCard } from './tools/mcpTool';
@@ -27,7 +26,6 @@ import {
   getStatusLabel,
   ToolContentStack,
   ToolDetail,
-  ToolDisclosureCard,
   ToolHeader,
   ToolHeaderMain,
   ToolPathTag,
@@ -37,6 +35,13 @@ import {
 } from './tools/shared';
 import { WebToolCard } from './tools/webTool';
 import type { AssistantTranscriptMessageMeta } from './types';
+
+let ReasoningCard = styled(ToolSurfaceCard)`
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: ${theme.colors.foreground};
+`;
 
 let Row = styled.div<{ 'data-align'?: 'start' | 'end' }>`
   display: flex;
@@ -529,43 +534,6 @@ let MessageCard = (p: {
   );
 };
 
-let getReasoningPreview = (text?: string | null) => {
-  let preview = text?.replace(/\s+/g, ' ').trim();
-  if (!preview) return null;
-  return `${preview.slice(0, 250)}...`;
-};
-
-let ReasoningCard = (p: { item: Extract<AssistantLiveStateItem, { type: 'reasoning' }> }) => {
-  let preview = getReasoningPreview(p.item.text);
-  let hasContent = p.item.status == 'running' || !!preview;
-
-  return (
-    <ToolDisclosureCard
-      summary={p.item.status == 'running' ? 'Thinking' : 'Thought'}
-      secondaryText={preview}
-      status={p.item.status}
-      defaultOpen={p.item.status == 'running'}
-      autoCollapseOnComplete={true}
-    >
-      {hasContent ? (
-        p.item.status == 'running' ? (
-          <TextShimmer>{p.item.text || 'Thinking...'}</TextShimmer>
-        ) : (
-          <MarkdownWrapper>
-            <ReactMarkdown
-              remarkPlugins={markdownRemarkPlugins}
-              rehypePlugins={markdownRehypePlugins}
-              components={markdownComponents}
-            >
-              {p.item.text}
-            </ReactMarkdown>
-          </MarkdownWrapper>
-        )
-      ) : undefined}
-    </ToolDisclosureCard>
-  );
-};
-
 let CompactionCard = (p: {
   item: Extract<AssistantLiveStateItem, { type: 'compaction' }>;
 }) => {
@@ -620,7 +588,7 @@ export let AssistantStateItemCard = (p: {
   }
 
   if (p.item.type == 'reasoning') {
-    return <ReasoningCard item={p.item} />;
+    return <ReasoningCard>Thinking</ReasoningCard>;
   }
 
   if (p.item.type == 'files/write') {
