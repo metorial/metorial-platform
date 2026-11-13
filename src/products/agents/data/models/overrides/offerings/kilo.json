@@ -34,6 +34,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "callstack/apex": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Callstack's Apex, its own agentic coding LLM specialized for React Native and Next.js work, adapted from Gemma 4 (per Callstack's newsletter and GitHub repo), 262K context; a real new first-party model the index has no Callstack entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "deepseek/deepseek-v3.1-terminus": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -45,6 +52,13 @@
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "DeepSeek-V3.2-Exp (Sep 2025, DeepSeek Sparse Attention, built on V3.1-Terminus) is a separate experimental checkpoint from the Dec 2025 V3.2 release; the index has no exp entry, so defer rather than link to deepseek/deepseek-v3.2.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek/deepseek-v4.1-flash-1017-ultrafast": {
+    "decision": "link",
+    "model": "deepseek/deepseek-v4.1-flash-1017",
+    "reason": "Per Vercel/Fireworks, Ultrafast serves the Oct 17 update of DeepSeek V4.1 Flash on Fireworks' accelerated serverless endpoint (~1000 tok/s); an accelerated serving of the same 1017 checkpoint. The $2.4/$9.6 price pays for the speed tier, hence the outlier vs the $0.3 median.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -69,10 +83,31 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "humansand/ampersand-v0.1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "humans&'s first model, Ampersand v0.1 (released 2026-10-20), a group-collaboration model post-trained from Z.ai's GLM 5.3 with long-horizon multi-party RL — a derivative of GLM 5.3, not that model; the index has no humans& entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "inception/mercury-coder-small": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Inception's Mercury Coder Small Beta, the compact diffusion coding model from the original Mercury Coder line (Kilo lists it as retiring Nov 15); the index's Inception entries start at Mercury 2 and include no Mercury Coder entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "inclusionai/ling-3.0-tiny": {
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "inclusionAI's Ling 3.0 Tiny, the 7.9B-total/1.3B-active MoE small member of the Ling 3.0 family (Hugging Face inclusionAI/Ling-3.0-tiny, Aug 2026); a separate model from Ling 3.0 Flash and absent from the index, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "interfaze/interfaze-beta": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "Interfaze Beta is a controller stack over specialized DNN/CNN perception models (OCR, layout, ASR, classification) that forwards distilled context to a user-selected LLM for the final answer (per the lab's paper); a task-specific multi-model system, not a single catalog model.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -108,6 +143,13 @@
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "Kilo's free tier of Liquid AI's LFM3-1.7B (Hugging Face LiquidAI/LFM3-1.7B, 1.73B parameters, 256K context, announced 2026-10-27); the index has no LFM3 entry, so defer the free serving with it.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "liquid/lfm2.5-24b-a2b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Liquid AI's LFM2.5-24B-A2B, the 24B MoE with 2.45B active params (Hugging Face LiquidAI/LFM2.5-24B-A2B, released 2026-10-13); a new generation distinct from the index's LFM2-24B-A2B. Same model as the already-deferred liquid/lfm-2.5-24b-a2b id.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -244,10 +286,31 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "paperinstruments/ultramarine-1-flash": {
+    "decision": "defer",
+    "until": "2026-12-13",
+    "reason": "Paper Instruments' Ultramarine 1 Flash (Hugging Face paperinstruments/Ultramarine-1-Flash, released 2026-10-14), GLM-5.3 Flash post-trained with non-verifiable RL for knowledge work; a fine-tune derivative, not zhipu/glm-5.3-flash, and the index has no Paper Instruments entry.",
+    "by": "agent",
+    "at": "2026-11-13"
+  },
   "particle-ai/particle-1": {
     "decision": "exclude",
     "category": "fine-tune",
     "reason": "Particle AI's Particle-1 is a rank-64 LoRA post-train of DeepSeek V4.1 Flash (~1.25% of parameters) for token-efficient agentic coding, released 2026-10-28 (per ARMES and launch coverage); a fine-tune of DeepSeek V4.1 Flash is not that model itself and the index has no Particle AI entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "particle-ai/particle-1:free": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Free-tier serving of Particle-1, Particle AI's rank-64 LoRA post-train of DeepSeek V4.1 Flash for token-efficient agentic coding (per Vercel/ModelsLab listings) — the same model already excluded under particle-ai/particle-1 on this and other gateways; a fine-tune of DeepSeek V4.1 Flash is not that model and the index has no Particle AI entry.",
+    "by": "agent",
+    "at": "2026-11-13"
+  },
+  "particle/particle-1": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Particle AI's Particle-1, a rank-64 LoRA post-train of DeepSeek V4.1 Flash for token-efficient coding — the same model already excluded under the particle-ai/particle-1 id; a fine-tune of DeepSeek V4.1 Flash is not that model and the index has no Particle AI entry.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -279,6 +342,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "qwen/qwen3-max-thinking": {
+    "decision": "link",
+    "model": "alibaba/qwen3-max",
+    "reason": "Qwen3-Max-Thinking is the thinking-mode serving of Alibaba's Qwen3 Max flagship (Sept 2025, 262K context matching alibaba/qwen3-max); a thinking serving is still the same model, and the index has no separate thinking entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
   "qwen/qwen3-vl-30b-a3b-thinking": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -304,6 +374,20 @@
     "decision": "defer",
     "until": "2026-12-12",
     "reason": "ScaleDown's Extract, a description-driven entity-extraction model (OpenRouter snapshot 2026-09-28); a real model the index has no ScaleDown entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "scaledown/scaledown-extract-1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ScaleDown's Extract-1, a description-driven structured-extraction model over 1M context (Vercel catalog shows it released 2026-10-20); a real task-specific model the index has no ScaleDown entry for — same family as the deferred scaledown/extract.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "scaledown/scaledown-summarize-1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ScaleDown's Summarize-1, a task-specific abstractive summarization model over 1M context (Vercel catalog shows it released 2026-10-20); a real model the index has no ScaleDown entry for — same family as the deferred scaledown/summarize.",
     "by": "agent",
     "at": "2026-11-12"
   },
@@ -346,6 +430,13 @@
     "decision": "link",
     "model": "unbiased/pareto",
     "reason": "Unbiased AI's Pareto 26.9, the pinned September 2026 release of the composite Pareto line (262K context, $2.50/$7.50 list); matches the index's unbiased/pareto released 2026-09-17 with 262,144-token context, and OpenRouter's canonical slug unbiased/pareto-26.9-20260917 confirms the same release.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "x-ai/grok-4.20-reasoning-beta": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Grok 4.20 Beta Reasoning (released 2026-03-11) is the beta-tagged reasoning variant of SpaceXAI's Grok 4.20; the index has only the Non-Reasoning (0309) and Multi-Agent (0309) variants and no reasoning entry, so defer rather than link a different variant.",
     "by": "agent",
     "at": "2026-11-12"
   },

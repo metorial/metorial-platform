@@ -440,6 +440,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "paperinstruments/ultramarine-1-flash": {
+    "decision": "defer",
+    "until": "2026-12-13",
+    "reason": "Paper Instruments' Ultramarine 1 Flash (2026-10-14) is a large-scale RL post-train of GLM-5.3-Flash, a distinct model rather than a serving of it (per its HF card and launch coverage); the index has no Paper Instruments entry, so defer rather than link zhipu/glm-5.3-flash.",
+    "by": "agent",
+    "at": "2026-11-13"
+  },
   "parallel/parallel-decisions-fast": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -453,6 +460,20 @@
     "reason": "Particle AI's Particle-1 is a rank-64 LoRA post-train of DeepSeek V4.1 Flash for token-efficient agentic coding (per launch coverage and Vertical Tabs); a fine-tune of DeepSeek V4.1 Flash is not that model itself and the index has no Particle AI entry.",
     "by": "agent",
     "at": "2026-11-12"
+  },
+  "perplexity/pplx-decider-flash-v1.3": {
+    "decision": "defer",
+    "until": "2026-12-13",
+    "reason": "Perplexity released pplx-decider-flash-v1.3, the smaller sibling of Decider v1.3, on 2026-11-12 (per its announcement and OpenRouter); the index only has pplx-decider-flash-v1.2, so defer rather than link the previous version.",
+    "by": "agent",
+    "at": "2026-11-13"
+  },
+  "perplexity/pplx-decider-v1.3": {
+    "decision": "defer",
+    "until": "2026-12-13",
+    "reason": "Perplexity released pplx-decider-v1.3, the 27B successor to Decider v1.2 adding locate, on 2026-11-12 (per its announcement and OpenRouter); the index only has pplx-decider-v1.2, so defer rather than link the previous version.",
+    "by": "agent",
+    "at": "2026-11-13"
   },
   "prodia/flux-fast-schnell": {
     "decision": "link",
