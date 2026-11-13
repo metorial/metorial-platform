@@ -38,11 +38,11 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@azure/identity": "^4.14.0",
+    "@azure/identity": "^4.14.1",
     "@azure/keyvault-keys": "^4.10.2",
     "@google-cloud/kms": "^6.3.0",
-    "@aws-sdk/client-kms": "^3.1158.0",
-    "@aws-sdk/credential-providers": "^3.1158.0",
+    "@aws-sdk/client-kms": "^3.1163.0",
+    "@aws-sdk/credential-providers": "^3.1164.0",
     "@lowerdeck/api-mux": "workspace:2.0.0",
     "@lowerdeck/cache": "workspace:2.0.0",
     "@lowerdeck/canonicalize": "workspace:2.0.0",
@@ -67,7 +67,7 @@
     "@prisma/adapter-pg": "^7.10.1",
     "@prisma/client": "^7.10.1",
     "@prisma/extension-read-replicas": "^0.5.0",
-    "@sentry/bun": "^11.9.0",
+    "@sentry/bun": "^11.11.0",
     "@sentry/cli": "^3.8.2",
     "date-fns": "^4.4.0",
     "prisma": "^7.10.1"

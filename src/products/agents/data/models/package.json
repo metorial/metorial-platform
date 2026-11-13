@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "@lowerdeck/validation": "^2.0.0",
-    "node-html-parser": "^7.0.1",
+    "node-html-parser": "^9.0.7",
     "smol-toml": "^1.4.2"
   },
   "devDependencies": {
