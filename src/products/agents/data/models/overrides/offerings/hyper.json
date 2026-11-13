@@ -1,4 +1,11 @@
 {
+  "deepseek-v4.1-flash-1017-basic": {
+    "decision": "link",
+    "model": "deepseek/deepseek-v4.1-flash-1017",
+    "reason": "Basic is Charm Hyper's basic serving tier of the same Oct 17, 2026 snapshot of DeepSeek V4.1 Flash (deepseek-ai/DeepSeek-V4.1-Flash-1017, 1M context, text+image input); a serving tier of the checkpoint is still deepseek/deepseek-v4.1-flash-1017, at its 0.2/0.6 tier rate.",
+    "by": "agent",
+    "at": "2026-11-13"
+  },
   "prism": {
     "decision": "router",
     "reason": "Charm Hyper's Prism is its routing model for coding agents, sending each request to a model picked from its top-tier roster; Prism Core is documented as the same routing product without the top-tier roster (There's An AI For That), so Prism picks a model per request.",

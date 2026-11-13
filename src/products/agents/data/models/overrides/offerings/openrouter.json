@@ -55,6 +55,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "bytedance-seed/seedream-5-5": {
+    "decision": "defer",
+    "until": "2026-12-13",
+    "reason": "ByteDance Seed's Seedream 5.5, its next-generation image creation/editing model released 2026-11-09 (per Unite.AI coverage and aggregator listings); a new generation beyond the index's seedream-5.0-pro (2026-07-08), with no 5.5 entry, so defer rather than link the 5.0 model.",
+    "by": "agent",
+    "at": "2026-11-13"
+  },
   "bytedance/ui-tars-1.5-7b": {
     "decision": "defer",
     "until": "2026-12-12",
@@ -392,6 +399,13 @@
     "decision": "exclude",
     "category": "fine-tune",
     "reason": "OpenRouter lists Particle-1 (canonical slug particle-ai/particle-1-20261027), Particle AI's rank-64 LoRA post-train of DeepSeek V4.1 Flash for token-efficient agentic coding; a fine-tune is not deepseek/deepseek-v4.1-flash itself and the index has no Particle AI entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "particle-ai/particle-1:free": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Free-tier serving of Particle-1 (canonical slug particle-ai/particle-1-20261027), Particle AI's LoRA post-train of DeepSeek V4.1 Flash for agentic coding; a fine-tune is not deepseek/deepseek-v4.1-flash itself and the index has no Particle AI entry.",
     "by": "agent",
     "at": "2026-11-12"
   },

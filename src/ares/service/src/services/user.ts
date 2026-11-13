@@ -32,6 +32,24 @@ export class EmailInUseError extends ServiceError<ReturnType<typeof conflictErro
 let isUniqueConstraintError = (e: any) => e?.code === 'P2002';
 
 class UserServiceImpl {
+  private async ensureEmailDomain(d: { appOid: bigint; domain: string }) {
+    return withTransaction(
+      async db => {
+        let where = { domain: d.domain };
+        let existing = await db.emailDomain.findUnique({ where });
+        if (existing) return existing;
+
+        let [created] = await db.emailDomain.createManyAndReturn({
+          data: { ...getId('emailDomain'), ...d },
+          skipDuplicates: true
+        });
+
+        return created ?? db.emailDomain.findUniqueOrThrow({ where });
+      },
+      { ifExists: true }
+    );
+  }
+
   private async ensureSsoPrimaryEmail(d: { user: User }) {
     if (d.user.signupMethod !== 'sso' || d.user.status !== 'active' || d.user.type !== 'user')
       return;
@@ -54,10 +72,9 @@ class UserServiceImpl {
       });
       if (existingEmail) throw new EmailInUseError();
 
-      let domain = await tdb.emailDomain.upsert({
-        where: { domain: parsed.domain },
-        create: { ...getId('emailDomain'), appOid: user.appOid, domain: parsed.domain },
-        update: {}
+      let domain = await this.ensureEmailDomain({
+        appOid: user.appOid,
+        domain: parsed.domain
       });
 
       await tdb.userEmail.create({
@@ -639,17 +656,9 @@ class UserServiceImpl {
 
       let parsedEmail = parseEmail(d.email);
 
-      // Ensure email domain exists
-      let domain = await tdb.emailDomain.upsert({
-        where: {
-          domain: parsedEmail.domain
-        },
-        create: {
-          ...getId('emailDomain'),
-          domain: parsedEmail.domain,
-          appOid: d.app.oid
-        },
-        update: {}
+      let domain = await this.ensureEmailDomain({
+        appOid: d.app.oid,
+        domain: parsedEmail.domain
       });
 
       let email = await tdb.userEmail.create({
@@ -1004,14 +1013,9 @@ class UserServiceImpl {
           results.push(updated);
         } else {
           // Create new email
-          let domain = await tdb.emailDomain.upsert({
-            where: { domain: parsed.domain },
-            create: {
-              ...getId('emailDomain'),
-              domain: parsed.domain,
-              appOid: d.user.appOid
-            },
-            update: {}
+          let domain = await this.ensureEmailDomain({
+            appOid: d.user.appOid,
+            domain: parsed.domain
           });
 
           let created = await tdb.userEmail.create({

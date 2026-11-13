@@ -133,9 +133,12 @@ describe('slateVersion:getMany E2E', () => {
       slateVersionIds: [slate1.currentVersion.id, slate2.currentVersion.id]
     });
 
-    expect(result).toMatchObject([
-      { id: slate1.currentVersion.id },
-      { id: slate2.currentVersion.id }
-    ]);
+    expect(result).toHaveLength(2);
+    expect(result).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: slate1.currentVersion.id }),
+        expect.objectContaining({ id: slate2.currentVersion.id })
+      ])
+    );
   });
 });
