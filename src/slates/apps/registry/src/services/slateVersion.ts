@@ -26,6 +26,7 @@ import { getPrebuiltEntrypointProblem } from '../lib/slatePackage/entrypoint';
 import { normalizeSlatePackage, parseSlateFullIdentifier } from '../lib/slatePackage/manifest';
 import { getSlateVersionPromotion } from '../lib/slateVersion/promotion';
 import { storage } from '../storage';
+import { signingKeyService } from './signingKey';
 
 let include = {
   slate: {
@@ -37,7 +38,8 @@ let include = {
   },
   bundleArtifact: true,
   createdByUser: { include: { scope: true } },
-  slateDocuments: true
+  slateDocuments: true,
+  signatures: { orderBy: { createdAt: 'asc' as const } }
 };
 
 let getSlateVersionVisibilityWhere = (supportsPrebuilt?: boolean) =>
@@ -67,12 +69,18 @@ type SlateAccessInput = {
   defaultAccess?: SlateAccess;
 };
 
+export type SlateVersionOriginInput =
+  | { type: 'upload' }
+  | { type: 'upstream'; upstreamOid: bigint }
+  | { type: 'pack'; packImportOid: bigint };
+
 type NormalizedSlateVersionInput = {
   user: User;
   input: SlateAccessInput & {
     backend: SlateVersionBackend;
     bundleBuffer: Buffer;
     slatePackage: ReturnType<typeof normalizeSlatePackage>;
+    origin?: SlateVersionOriginInput;
   };
 };
 
@@ -159,7 +167,7 @@ class slateVersionServiceImpl {
     let slateJson = d.input.slatePackage.manifest;
 
     try {
-      return await packageLock.usingLock(
+      let version = await packageLock.usingLock(
         slateJson.name,
         () => this.publishNormalizedSlateVersionLocked(d),
         {
@@ -171,6 +179,10 @@ class slateVersionServiceImpl {
           retryDelay: PUBLISH_LOCK_RETRY_DELAY_MS
         }
       );
+
+      await signingKeyService.trySignSlateVersion({ version });
+
+      return version;
     } catch (error) {
       if (error instanceof LockAcquisitionError && error.isContention) {
         throw concurrentPublishError(slateJson.name);
@@ -186,6 +198,7 @@ class slateVersionServiceImpl {
   private async publishNormalizedSlateVersionLocked(d: NormalizedSlateVersionInput) {
     let slateJson = d.input.slatePackage.manifest;
     let publicAccessPermitted = env.access.PUBLIC_ACCESS_PERMITTED !== false;
+    let origin = d.input.origin ?? { type: 'upload' as const };
 
     let scope = await this.getPublishableScope({
       user: d.user,
@@ -391,7 +404,10 @@ class slateVersionServiceImpl {
             createdByUserOid: d.user.oid,
             isCurrent: shouldMarkCurrent,
             backend: d.input.backend,
-            slateJson
+            slateJson,
+            origin: origin.type,
+            originUpstreamOid: origin.type === 'upstream' ? origin.upstreamOid : undefined,
+            originPackImportOid: origin.type === 'pack' ? origin.packImportOid : undefined
           }
         });
 

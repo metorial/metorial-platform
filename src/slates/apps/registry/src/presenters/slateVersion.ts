@@ -1,11 +1,14 @@
 import type {
+  Artifact,
   Scope,
   Slate,
   SlateDocument,
   SlateVersion,
+  SlateVersionSignature,
   Tenant,
   User
 } from '../../prisma/generated/client';
+import { contentChecksumAlgorithm } from '../lib/signature';
 import { userPresenter } from './user';
 
 export let slateVersionPresenter = (
@@ -15,6 +18,8 @@ export let slateVersionPresenter = (
     };
     createdByUser: User & { scope: Scope };
     slateDocuments: SlateDocument[];
+    bundleArtifact?: Artifact;
+    signatures?: SlateVersionSignature[];
   },
   o?: {
     currentVersionId?: string | null;
@@ -35,6 +40,14 @@ export let slateVersionPresenter = (
   slateId: slateVersion.slate.id,
 
   manifest: slateVersion.slateJson,
+
+  contentChecksum: slateVersion.bundleArtifact?.checksum || null,
+  contentChecksumAlgorithm,
+
+  signatures: (slateVersion.signatures ?? []).map(signature => ({
+    kid: signature.kid,
+    signature: signature.signature
+  })),
 
   documents: slateVersion.slateDocuments.map(doc => ({
     object: 'slate.document',

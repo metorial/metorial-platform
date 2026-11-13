@@ -8,6 +8,7 @@ export interface VersionState {
 export let claimVersion = async (d: {
   initial: VersionState;
   hash: string;
+  legacyHashes?: string[];
   compareAndSet: (d: {
     expectedVersionHash: string | null;
     versionHash: string;
@@ -17,7 +18,14 @@ export let claimVersion = async (d: {
 }): Promise<VersionState> => {
   if (d.initial.versionHash === d.hash) return d.initial;
 
-  let version = semver.inc(d.initial.version ?? '0.0.0', 'patch')!;
+  // A version claimed under an older hash scheme for the same content keeps its number.
+  let adoptsLegacyHash =
+    !!d.initial.version &&
+    !!d.initial.versionHash &&
+    !!d.legacyHashes?.includes(d.initial.versionHash);
+  let version = adoptsLegacyHash
+    ? d.initial.version!
+    : semver.inc(d.initial.version ?? '0.0.0', 'patch')!;
 
   let claimed = await d.compareAndSet({
     expectedVersionHash: d.initial.versionHash,

@@ -299,9 +299,15 @@ describe('existing destinations across the manifest migration', () => {
             )
           ).toBe(true);
 
-          let [propagation, ...others] = await syncPropagations(sync.oid);
-          expect(others).toEqual([]);
+          expect(await syncPropagations(sync.oid)).toEqual([]);
+          let destination = await loadDestination(target.destinationOid);
+          let propagation = await db.skillDestinationSyncRepositoryPropagation.findFirst({
+            where: { skillRepositoryOid: target.repository.skillRepositoryOid },
+            orderBy: { oid: 'desc' },
+            include: { skillRepository: true }
+          });
           expect(propagation).toMatchObject({
+            contentRevision: destination.contentRevision,
             status: 'completed',
             manifestOid: null,
             skillRepositoryOid: target.repository.skillRepositoryOid

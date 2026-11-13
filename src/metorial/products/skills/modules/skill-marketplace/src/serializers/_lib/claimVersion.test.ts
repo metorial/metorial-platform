@@ -71,6 +71,35 @@ describe('claimVersion', () => {
     expect(store.casCalls).toBe(0);
   });
 
+  it('keeps the version when the stored hash is a legacy hash for the same content', async () => {
+    let store = createStore({ version: '0.0.13', versionHash: 'legacy' });
+
+    let result = await claimVersion({
+      initial: { ...store.state },
+      hash: 'output',
+      legacyHashes: ['legacy'],
+      compareAndSet: store.compareAndSet,
+      reload: store.reload
+    });
+
+    expect(result).toEqual({ version: '0.0.13', versionHash: 'output' });
+    expect(store.state).toEqual(result);
+  });
+
+  it('bumps the version when the stored hash matches no legacy hash', async () => {
+    let store = createStore({ version: '0.0.13', versionHash: 'older' });
+
+    let result = await claimVersion({
+      initial: { ...store.state },
+      hash: 'output',
+      legacyHashes: ['legacy'],
+      compareAndSet: store.compareAndSet,
+      reload: store.reload
+    });
+
+    expect(result).toEqual({ version: '0.0.14', versionHash: 'output' });
+  });
+
   it('adopts the concurrent version when a racing sync wrote the same hash', async () => {
     let store = createStore({ version: '1.0.0', versionHash: 'a' });
     store.overwrite({ version: '1.0.1', versionHash: 'b' });

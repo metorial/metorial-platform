@@ -1,0 +1,488 @@
+{
+  "aion-labs/aion-3.5": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "AionLabs' own listing: Aion 3.5 is a multi-model roleplaying and storytelling system built on the GLM family, where several specialized models collaboratively generate each response. Not a single model, and the index has no Aion 3.5 entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "aion-labs/aion-3.5-mini": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "AionLabs' own listing: Aion 3.5 Mini is the smaller sibling using the same collaborative multi-model generation process built on the GLM family. Not a single catalog model, and the index has no Aion 3.5 entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "baidu/ernie-5.5-flash-preview:free": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Baidu's ERNIE 5.5 Flash Preview (released 2026-11-11, 280B MoE with 14B active, 1M context, free on OpenRouter); a real new model the index has no ERNIE 5.5 entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "baidu/ernie-light-dt-1.0-intl": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Baidu's ERNIE-Light-DT-1.0 international endpoint (snapshot 2026-11-10), built on open-source GLM models with Baidu Sparse Attention; a real new model the index has no entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "bytedance/ui-tars-1.5-7b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ByteDance Seed's UI-TARS-1.5-7B, the multimodal GUI-agent vision-language model (Hugging Face ByteDance-Seed/UI-TARS-1.5-7B, created 2025-04-16); the index's bytedance line has no UI-TARS entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "callstack/apex": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Callstack's Apex, its own agentic coding LLM specialized for React Native and Next.js work, adapted from Gemma 4 (per Callstack's newsletter and GitHub repo), 262K context; a real new first-party model the index has no Callstack entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek/deepseek-v3.1-terminus": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "DeepSeek-V3.1-Terminus (released 2025-09-22) is a separate checkpoint update from V3.1; the index has no terminus entry, so defer rather than link to deepseek/deepseek-v3.1.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek/deepseek-v3.2-exp": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "DeepSeek-V3.2-Exp (Sep 2025, DeepSeek Sparse Attention, built on V3.1-Terminus) is a separate experimental checkpoint from the Dec 2025 V3.2 release; the index has no exp entry, so defer rather than link to deepseek/deepseek-v3.2.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek/deepseek-v4.1-flash-1017-ultrafast": {
+    "decision": "link",
+    "model": "deepseek/deepseek-v4.1-flash-1017",
+    "reason": "Per Vercel/Fireworks, Ultrafast serves the Oct 17 update of DeepSeek V4.1 Flash on Fireworks' accelerated serverless endpoint (~1000 tok/s); an accelerated serving of the same 1017 checkpoint. The $2.4/$9.6 price pays for the speed tier, hence the outlier vs the $0.3 median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "dots-studio/dots-3-note-preview:free": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Dots Studio's dots3-note Preview (released 2026-08-14, 280B MoE with 16B active, 512K context, Apache-2.0, per Kilo/OpenRouter listings), Xiaohongshu's first public dots3 model; the index has no Dots Studio entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "elorian/glimpse": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Elorian's Glimpse, the startup's first visual-thinking model, released 2026-10-16 as a research preview (per Elorian's announcement and coverage); a real new first-party model the index has no entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "google/gemma-4-26b-a4b-it": {
+    "decision": "link",
+    "model": "google/gemma-4-26b-a4b-it",
+    "reason": "Exact model id: Google's Gemma 4 26B A4B IT open-weight MoE (google/gemma-4-26B-A4B-it on Hugging Face, 26B total/4B active). Kilo's 0.015/0.045 price is a gateway discount off the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "humansand/ampersand-v0.1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "humans&'s first model, Ampersand v0.1 (released 2026-10-20), a group-collaboration model post-trained from Z.ai's GLM 5.3 with long-horizon multi-party RL — a derivative of GLM 5.3, not that model; the index has no humans& entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "inception/mercury-coder-small": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Inception's Mercury Coder Small Beta, the compact diffusion coding model from the original Mercury Coder line (Kilo lists it as retiring Nov 15); the index's Inception entries start at Mercury 2 and include no Mercury Coder entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "inclusionai/ling-3.0-tiny": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "inclusionAI's Ling 3.0 Tiny, the 7.9B-total/1.3B-active MoE small member of the Ling 3.0 family (Hugging Face inclusionAI/Ling-3.0-tiny, Aug 2026); a separate model from Ling 3.0 Flash and absent from the index, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "interfaze/interfaze-beta": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "Interfaze Beta is a controller stack over specialized DNN/CNN perception models (OCR, layout, ASR, classification) that forwards distilled context to a user-selected LLM for the final answer (per the lab's paper); a task-specific multi-model system, not a single catalog model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "kt/midm-k-3.0-pro": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "KT's Mi:dm K 3.0 Pro, the 120B MoE reasoning model with 12B active parameters, released Oct 29/Nov 5 2026 (per OpenRouter's listing); the index has no KT/Mi:dm entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "liquid/lfm-2.5-2.6b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Liquid AI's LFM2.5-2.6B, the on-device agentic model (Hugging Face LiquidAI/LFM2.5-2.6B, Aug 2026, 128K context, per Liquid's blog; Kilo lists it as retiring Nov 13); the index has no LFM2.5 chat entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "liquid/lfm-2.5-24b-a2b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Liquid AI's LFM2.5-24B-A2B, the 24B MoE reasoning model with 2.45B active parameters (Hugging Face LiquidAI/LFM2.5-24B-A2B, released 2026-10-13); a new LFM2.5 generation distinct from LFM2-24B-A2B and absent from the index, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "liquid/lfm-3-1.7b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Liquid AI's LFM3-1.7B, the text model of the third-generation LFM3 family (Hugging Face LiquidAI/LFM3-1.7B, 1.73B parameters, 256K context, announced 2026-10-27); the index has no LFM3 entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "liquid/lfm-3-1.7b:free": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Kilo's free tier of Liquid AI's LFM3-1.7B (Hugging Face LiquidAI/LFM3-1.7B, 1.73B parameters, 256K context, announced 2026-10-27); the index has no LFM3 entry, so defer the free serving with it.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "liquid/lfm2.5-24b-a2b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Liquid AI's LFM2.5-24B-A2B, the 24B MoE with 2.45B active params (Hugging Face LiquidAI/LFM2.5-24B-A2B, released 2026-10-13); a new generation distinct from the index's LFM2-24B-A2B. Same model as the already-deferred liquid/lfm-2.5-24b-a2b id.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meta-llama/llama-3.3-70b-instruct": {
+    "decision": "link",
+    "model": "meta/llama-3.3-70b-instruct",
+    "reason": "Exact Hugging Face id of Meta's Llama 3.3 70B Instruct; Kilo's 0.1/0.32 gateway rate is a discount off the open-weight model's 0.705 median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meta/muse-ember": {
+    "decision": "link",
+    "model": "meta/muse-ember-1.0",
+    "reason": "Meta's Muse Ember, the smallest Muse model for agent execution released 2026-11-09 (per Meta's announcement and coverage) at 0.10/0.50 with 1M context; matches the index entry meta/muse-ember-1.0, released the same day.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meta/muse-spark-1.2-contributor": {
+    "decision": "link",
+    "model": "meta/muse-spark-1.2",
+    "reason": "Kilo lists Meta's contributor tier of Muse Spark 1.2: same weights, discounted 0.1/0.2 pricing in exchange for training-data rights; still meta/muse-spark-1.2.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meta/muse-spark-1.3-contributor": {
+    "decision": "link",
+    "model": "meta/muse-spark-1.3",
+    "reason": "Kilo lists Meta's contributor tier of Muse Spark 1.3: same weights, discounted 0.1/0.2 pricing in exchange for training-data rights; still meta/muse-spark-1.3.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meta/muse-wonder": {
+    "decision": "link",
+    "model": "meta/muse-wonder-1.0",
+    "reason": "Meta's Muse Wonder (not Wonder Full), the frontier agentic model released 2026-10-12, 1M context at 4/20 per the listing; matches meta/muse-wonder-1.0 (Muse Wonder Full is a separate index entry, meta/muse-wonder-full).",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "microsoft/phi-4": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Microsoft's Phi-4, the 14B reasoning-focused small language model (Hugging Face microsoft/phi-4, created 2024-12-11, 16K context); the index has only phi-4-mini and phi-4-multimodal-instruct, no Phi-4 entry, so defer rather than link the mini.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "moondream/moondream3-preview": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Moondream's Moondream 3 Preview, the 9B-total/2B-active MoE vision-language model released Sep 2025 (per Moondream's blog and the Hugging Face card); a real first-party model the index has no Moondream entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "moondream/moondream3.1-9b-a2b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Moondream's Moondream 3.1 9B A2B, successor to Moondream 3 Preview (Hugging Face moondream/moondream3.1-9B-A2B, 9B/2B MoE vision-language model, 32K context); a real first-party model the index has no Moondream entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "moonshotai/kimi-k3.1-pro": {
+    "decision": "link",
+    "model": "moonshot/kimi-k3.1-pro",
+    "reason": "Kimi K3.1 Pro (moonshotai/Kimi-K3.1-Pro on Hugging Face, post-trained successor to Kimi K3, released 2026-10-23, 1M context) matches moonshot/kimi-k3.1-pro; Kilo's 0.2375/8.4085 rate is a discount off the model's median.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nex-agi/nex-n2.5-mini": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Nex AGI's Nex-N2.5-Mini, the entry tier of the Nex-N2.5 family released 2026-09-08 (Hugging Face nex-agi/Nex-N2.5-mini, 35B MoE with ~3B active, 262K context); the index has only nex-agi/nex-n2-pro, so defer this newer generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nex-agi/nex-n2.5-pro": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Nex AGI's Nex-N2.5-Pro, released 2026-09-08 (Hugging Face nex-agi/Nex-N2.5-Pro), a post-trained successor generation to Nex-N2-Pro; the index has only nex-agi/nex-n2-pro, so defer rather than link the older model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nex-agi/nex-n2.6": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Nex AGI's Nex-N2.6, the agentic model post-trained on GLM-5.3-Flash (~321B, released 2026-11-10 per the Hugging Face card); the index has no Nex-N2.5/N2.6 entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-3.5-turbo-16k": {
+    "decision": "link",
+    "model": "openai/gpt-3.5-turbo",
+    "reason": "The gpt-3.5-turbo-16k endpoint is the same GPT-3.5 Turbo model served with the 16K context window (the index entry already lists 16,385 tokens of context); still openai/gpt-3.5-turbo.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6-astra-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6-astra",
+    "reason": "OpenAI's GPT-6 Astra Pro is the same underlying model as GPT-6 Astra served with reasoning.mode set to pro (per OpenRouter's listing); a pro reasoning-mode serving is still openai/gpt-6-astra at the 10/50 pro rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6-luna-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6-luna",
+    "reason": "GPT-6 Luna Pro is the same underlying model as GPT-6 Luna with reasoning.mode set to pro (per OpenRouter's listing); a pro reasoning-mode serving is still openai/gpt-6-luna at the 0.1/0.5 pro rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6-sol-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6-sol",
+    "reason": "GPT-6 Sol Pro is the same underlying model as GPT-6 Sol with reasoning.mode set to pro (per OpenRouter's listing); a pro reasoning-mode serving is still openai/gpt-6-sol at the 2/10 pro rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6.1-sol-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6.1-sol",
+    "reason": "GPT-6.1 Sol Pro is the same underlying model as GPT-6.1 Sol served with reasoning.mode set to pro (per OpenRouter's listing and coverage of all three gateways); a pro reasoning-mode serving is still openai/gpt-6.1-sol at the 2/10 pro rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6.1-terra-pro": {
+    "decision": "link",
+    "model": "openai/gpt-6.1-terra",
+    "reason": "GPT-6.1 Terra Pro is the same underlying model as GPT-6.1 Terra served with reasoning.mode set to pro (per OpenRouter's listing and coverage of all three gateways); a pro reasoning-mode serving is still openai/gpt-6.1-terra at the 1/5 pro rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openrouter/bodybuilder": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "OpenRouter's Body Builder (beta) converts natural-language requests into structured OpenRouter API request objects; a request-building tool, not a model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "paperinstruments/ultramarine-1-flash": {
+    "decision": "defer",
+    "until": "2026-12-13",
+    "reason": "Paper Instruments' Ultramarine 1 Flash (Hugging Face paperinstruments/Ultramarine-1-Flash, released 2026-10-14), GLM-5.3 Flash post-trained with non-verifiable RL for knowledge work; a fine-tune derivative, not zhipu/glm-5.3-flash, and the index has no Paper Instruments entry.",
+    "by": "agent",
+    "at": "2026-11-13"
+  },
+  "particle-ai/particle-1": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Particle AI's Particle-1 is a rank-64 LoRA post-train of DeepSeek V4.1 Flash (~1.25% of parameters) for token-efficient agentic coding, released 2026-10-28 (per ARMES and launch coverage); a fine-tune of DeepSeek V4.1 Flash is not that model itself and the index has no Particle AI entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "particle-ai/particle-1:free": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Free-tier serving of Particle-1, Particle AI's rank-64 LoRA post-train of DeepSeek V4.1 Flash for token-efficient agentic coding (per Vercel/ModelsLab listings) — the same model already excluded under particle-ai/particle-1 on this and other gateways; a fine-tune of DeepSeek V4.1 Flash is not that model and the index has no Particle AI entry.",
+    "by": "agent",
+    "at": "2026-11-13"
+  },
+  "particle/particle-1": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Particle AI's Particle-1, a rank-64 LoRA post-train of DeepSeek V4.1 Flash for token-efficient coding — the same model already excluded under the particle-ai/particle-1 id; a fine-tune of DeepSeek V4.1 Flash is not that model and the index has no Particle AI entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "perplexity/sonar-pro-search": {
+    "decision": "link",
+    "model": "perplexity/sonar-pro",
+    "reason": "Perplexity's Sonar Pro Search is Sonar Pro served in its new Pro Search (agentic search) mode — listings describe it as Sonar Pro's search mode with Sonar Pro's exact $3/$15 pricing and 200K context; a search-mode serving is still perplexity/sonar-pro.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "prism-ml/ternary-bonsai-2-27b": {
+    "decision": "link",
+    "model": "alibaba/qwen3.8-27b",
+    "reason": "PrismML's Ternary Bonsai 2 27B is Qwen3.8-27B with ternary-compressed weights — its Hugging Face metadata lists it as quantized from Qwen/Qwen3.8-27B (98.2% of the base's benchmark average retained); a quantized serving is still alibaba/qwen3.8-27b.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "prism-ml/ternary-bonsai-2-9b": {
+    "decision": "link",
+    "model": "alibaba/qwen3.5-9b",
+    "reason": "PrismML's Ternary Bonsai 2 9B is Qwen3.5-9B with ternary weights packed into 2 bits (derived from Qwen3.5-9B per its card and listings); a quantized serving is still alibaba/qwen3.5-9b, at Kilo's 0.08/0.13 rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen-2.5-72b-instruct": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's Qwen2.5-72B-Instruct (Hugging Face Qwen/Qwen2.5-72B-Instruct, Sep 2024, 32K context); the index's Qwen2.5 line has the 7B instruct and Coder models and the 72B VL variant, but no 72B instruct entry, so defer rather than link a different model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3-max-thinking": {
+    "decision": "link",
+    "model": "alibaba/qwen3-max",
+    "reason": "Qwen3-Max-Thinking is the thinking-mode serving of Alibaba's Qwen3 Max flagship (Sept 2025, 262K context matching alibaba/qwen3-max); a thinking serving is still the same model, and the index has no separate thinking entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3-vl-30b-a3b-thinking": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's Qwen3-VL-30B-A3B-Thinking (Hugging Face Qwen/Qwen3-VL-30B-A3B-Thinking, Sep 2025), the thinking variant of the 30B-A3B vision-language MoE; the index has the 30B-A3B base and Instruct but no Thinking entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "qwen/qwen3-vl-8b-instruct": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's Qwen3-VL-8B-Instruct (Hugging Face Qwen/Qwen3-VL-8B-Instruct, Oct 2025), the dense 8B vision-language model; the index's Qwen3-VL line has no 8B entry, so defer rather than link qwen3-8b.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "ricursiveai/ripple-65b-preview": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Ricursive Intelligence's Ripple-65B Preview, a dense 65B open-weight reasoning and agentic-coding model released 2026-11-04 (per its Hugging Face card and coverage); the index has no Ricursive entry yet.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "scaledown/extract": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ScaleDown's Extract, a description-driven entity-extraction model (OpenRouter snapshot 2026-09-28); a real model the index has no ScaleDown entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "scaledown/scaledown-extract-1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ScaleDown's Extract-1, a description-driven structured-extraction model over 1M context (Vercel catalog shows it released 2026-10-20); a real task-specific model the index has no ScaleDown entry for — same family as the deferred scaledown/extract.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "scaledown/scaledown-summarize-1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ScaleDown's Summarize-1, a task-specific abstractive summarization model over 1M context (Vercel catalog shows it released 2026-10-20); a real model the index has no ScaleDown entry for — same family as the deferred scaledown/summarize.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "scaledown/summarize": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ScaleDown's Summarize, a task-specific abstractive summarization model over 1M context (per Kilo/OpenRouter listings); a real new model the index has no ScaleDown entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "stealth/glyph-cluster": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Glyph Cluster is a stealth-preview reasoning model from a third-party provider that has chosen to remain anonymous, free during stealth (per Vercel's changelog); a real new model with no named lab and no index entry, so defer until it is revealed.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "tencent/hunyuan-a13b-instruct": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Tencent's Hunyuan-A13B, the open-weight 80B-total/13B-active MoE (tencent/Hunyuan-A13B-Instruct on Hugging Face, June 2025); a real model the index has no Hunyuan A13B entry for, so defer rather than link another Hunyuan.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "unbiased/pareto-26.10": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Unbiased AI's Pareto 26.10, the GA release declared out of preview on 2026-10-15 with a 1M context and $0.80/$3.20 pricing (per Unbiased's blog and coverage); a newer composite release than the index's unbiased/pareto (2026-09-17, 262K context), so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "unbiased/pareto-26.10-preview": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Preview of Unbiased AI's Pareto 26.10 (shipped 2026-10-01, 1M context, per Unbiased's blog); the index has only the Sep 17, 2026 Pareto entry and no 26.10 preview checkpoint, so defer rather than link the older release.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "unbiased/pareto-26.9": {
+    "decision": "link",
+    "model": "unbiased/pareto",
+    "reason": "Unbiased AI's Pareto 26.9, the pinned September 2026 release of the composite Pareto line (262K context, $2.50/$7.50 list); matches the index's unbiased/pareto released 2026-09-17 with 262,144-token context, and OpenRouter's canonical slug unbiased/pareto-26.9-20260917 confirms the same release.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "x-ai/grok-4.20-reasoning-beta": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Grok 4.20 Beta Reasoning (released 2026-03-11) is the beta-tagged reasoning variant of SpaceXAI's Grok 4.20; the index has only the Non-Reasoning (0309) and Multi-Agent (0309) variants and no reasoning entry, so defer rather than link a different variant.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "xiaomi/mimo-v2.6-pro-ultraspeed": {
+    "decision": "link",
+    "model": "xiaomi/mimo-v2.6-pro",
+    "reason": "MiMo-V2.6-Pro-UltraSpeed is Xiaomi's fast-serving tier of the same 1T MiMo-V2.6-Pro checkpoint (same quality, ~10x output speed); still xiaomi/mimo-v2.6-pro at the 4.35/8.7 speed-tier price.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "z-ai/glm-5.3-flashx-legal": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Z.ai's GLM-Legal (GLM-5.3-FlashX-Legal), the legal-domain variant of GLM-5.3-FlashX priced late Oct 2026 and listed on OpenRouter Nov 2 (per i-scoop); the index has no GLM-Legal or GLM-5.3-FlashX entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "z-ai/glm-5.3-prime": {
+    "decision": "link",
+    "model": "zhipu/glm-5.3",
+    "reason": "GLM-5.3-Prime is Z.ai's high-speed serving of the GLM-5.3 checkpoint: same capabilities with 1.5-2x output throughput via inference acceleration (per Z.ai listings); a fast serving is still zhipu/glm-5.3 at the 2.8/8.8 speed tier.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "~deepseek/deepseek-flash-latest": {
+    "decision": "router",
+    "reason": "OpenRouter pointer (mirrored by Kilo) that always redirects to the latest model in the DeepSeek Flash family; the model served changes as DeepSeek ships releases, so it is a router, not one fixed model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "~deepseek/deepseek-pro-latest": {
+    "decision": "router",
+    "reason": "OpenRouter pointer (mirrored by Kilo) that always redirects to the latest model in the DeepSeek Pro family; the model served changes as DeepSeek ships releases, so it is a router, not one fixed model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "~moonshotai/kimi-latest": {
+    "decision": "router",
+    "reason": "OpenRouter pointer that always redirects to the latest model in the Kimi family; the model served changes as Moonshot ships releases, so it is a router, not one fixed model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "~z-ai/glm-latest": {
+    "decision": "router",
+    "reason": "OpenRouter pointer that always redirects to the latest GLM model from Z.ai; the model served changes as Z.ai ships releases, so it is a router, not one fixed model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

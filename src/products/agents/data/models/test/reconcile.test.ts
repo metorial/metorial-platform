@@ -14,6 +14,7 @@ import {
 import type { CatalogIssue } from '../src/pipeline/issues';
 import { reviewDecisions } from '../src/reconcile/decisions';
 import { huggingFaceRepo } from '../src/reconcile/evidence';
+import { createWebSearch, searchQuery } from '../src/reconcile/webSearch';
 import { fixturePath, now } from './helpers';
 
 let newModelKey = 'openrouter/acme/brand-new-9';
@@ -239,5 +240,93 @@ describe('huggingFaceRepo', () => {
     );
     expect(huggingFaceRepo('gpt-4o', null)).toBeNull();
     expect(huggingFaceRepo('x', 'org/listed')).toBe('org/listed');
+  });
+});
+
+describe('web search', () => {
+  let stubFetch = (respond: (call: number) => Response) => {
+    let original = globalThis.fetch;
+    let calls: { url: string; body: any }[] = [];
+
+    globalThis.fetch = (async (url: string, init: { body: string }) => {
+      calls.push({ url, body: JSON.parse(init.body) });
+      return respond(calls.length);
+    }) as unknown as typeof fetch;
+
+    return { calls, restore: () => (globalThis.fetch = original) };
+  };
+
+  let options = { accountId: 'acct', apiToken: 'token', provider: 'linkup' as const };
+
+  it('builds a query from the vendor id and name', () => {
+    expect(searchQuery('@cf/acme/brand-new-9', 'Brand New 9')).toBe(
+      'acme/brand-new-9 Brand New 9 AI model'
+    );
+    expect(searchQuery('gpt-x', 'GPT-X')).toBe('gpt-x AI model');
+    expect(searchQuery('x', null)).toBe('x AI model');
+  });
+
+  it('returns trimmed results and answers repeated queries from memory', async () => {
+    let stub = stubFetch(() =>
+      Response.json({
+        items: [
+          { url: 'https://a.example', title: 'A', description: `${'word '.repeat(300)}` },
+          { title: 'no url' }
+        ]
+      })
+    );
+
+    try {
+      let search = createWebSearch(options);
+      let first = await search('q');
+      let second = await search('q');
+
+      expect(first).toEqual(second);
+      expect(first).toHaveLength(1);
+      expect(first![0]!.snippet.length).toBeLessThanOrEqual(501);
+      expect(stub.calls).toHaveLength(1);
+      expect(stub.calls[0]!.body).toMatchObject({
+        query: 'q',
+        provider: 'linkup',
+        options: { gateway: { id: 'default' } }
+      });
+      expect(search.stats.searches).toBe(1);
+    } finally {
+      stub.restore();
+    }
+  });
+
+  it('stops for the run after a billing or auth error', async () => {
+    let stub = stubFetch(() =>
+      Response.json({ error: { code: 'web_search_payment_required' } }, { status: 402 })
+    );
+
+    try {
+      let search = createWebSearch(options);
+
+      expect(await search('a')).toBeNull();
+      expect(await search('b')).toBeNull();
+      expect(stub.calls).toHaveLength(1);
+      expect(search.stats.stoppedBecause).toBe('HTTP 402 web_search_payment_required');
+    } finally {
+      stub.restore();
+    }
+  });
+
+  it('retries a server error once and stops at the search limit', async () => {
+    let stub = stubFetch(call =>
+      call === 1 ? new Response('boom', { status: 502 }) : Response.json({ items: [] })
+    );
+
+    try {
+      let search = createWebSearch({ ...options, maxSearches: 1 });
+
+      expect(await search('a')).toEqual([]);
+      expect(stub.calls).toHaveLength(2);
+      expect(await search('b')).toBeNull();
+      expect(search.stats.stoppedBecause).toBe('search limit of 1 reached');
+    } finally {
+      stub.restore();
+    }
   });
 });

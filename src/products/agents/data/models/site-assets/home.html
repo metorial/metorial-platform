@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Metorial Model Catalog</title>
+    <style>
+      body {
+        font:
+          16px/1.5 system-ui,
+          sans-serif;
+        max-width: 40rem;
+        margin: 3rem auto;
+        padding: 0 1rem;
+        color: #111;
+      }
+      code {
+        background: #f2f2f2;
+        padding: 0.1rem 0.3rem;
+        border-radius: 4px;
+      }
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #111;
+          color: #eee;
+        }
+        code {
+          background: #222;
+        }
+        a {
+          color: #8ab4ff;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Metorial Model Catalog</h1>
+    <p>
+      Every model, family, lab and vendor offering we track, regenerated hourly from public
+      sources. Static JSON, open to any origin.
+    </p>
+    <ul>
+      <li><a href="/catalog.json.gz">catalog.json.gz</a>: the whole catalog, gzipped</li>
+      <li><a href="/models.json">models.json</a>: models, releases and pointers</li>
+      <li><a href="/families.json">families.json</a></li>
+      <li><a href="/organizations.json">organizations.json</a></li>
+      <li><a href="/vendors.json">vendors.json</a>: vendors and endpoints</li>
+      <li>
+        <a href="/offerings.json">offerings.json</a>: what each vendor sells, with pricing
+      </li>
+      <li>
+        <a href="/names.json">names.json</a>: every vendor model name and what it resolves to
+      </li>
+      <li>
+        <a href="/agents.json">agents.json</a>: coding agents, their makers and the vendors
+        they use
+      </li>
+    </ul>
+    <p>
+      One file per entity: <code>/models/&lt;id&gt;.json</code>,
+      <code>/families/&lt;id&gt;.json</code>, <code>/vendors/&lt;id&gt;.json</code>,
+      <code>/agents/&lt;id&gt;.json</code> and <code>/organizations/&lt;id&gt;.json</code>. Ids
+      can contain a slash, for example <code>/models/anthropic/claude-opus-4.json</code>.
+    </p>
+  </body>
+</html>

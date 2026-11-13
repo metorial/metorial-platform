@@ -16,6 +16,7 @@ import {
   linkFamilies,
   type CanonicalCatalog
 } from './canonicalize';
+import { buildAgents } from './agents';
 import { applyContinuity, type CatalogDiff } from './continuity';
 import { buildNames } from './names';
 import { buildModelsDevOfferings } from './offerings';
@@ -169,6 +170,7 @@ export let buildCatalog = async (opts: BuildOptions): Promise<BuildResult> => {
 
   let orgs = buildOrganizations(snapshot);
   let vendors = buildVendors(snapshot, orgs);
+  let agents = buildAgents({ orgs, vendors: vendors.vendors });
   let files = collectSourceFiles(snapshot, orgs, vendors);
   let canonical = canonicalize(files, orgs, patches.merges);
 
@@ -245,7 +247,8 @@ export let buildCatalog = async (opts: BuildOptions): Promise<BuildResult> => {
     vendors: [...vendors.vendors.values()],
     endpoints: [...vendors.endpoints.values()],
     offerings: [...offerings.values()],
-    names: [...names.values()]
+    names: [...names.values()],
+    agents: agents.agents
   };
 
   let { catalog, diff } = applyContinuity(current, previous, now);
@@ -269,7 +272,11 @@ export let buildCatalog = async (opts: BuildOptions): Promise<BuildResult> => {
         .filter(source => source.raw !== null)
         .map(source => [source.meta.kind, source.raw])
     ),
-    sourceIssues: [...snapshot.issues, ...secondary.flatMap(source => source.issues)],
+    sourceIssues: [
+      ...snapshot.issues,
+      ...secondary.flatMap(source => source.issues),
+      ...agents.issues
+    ],
     staleOverrides: offeringOverrides.stale,
     modelsDevSha: snapshot.sha
   };
@@ -288,6 +295,7 @@ let sortCatalog = (catalog: Catalog): Catalog => {
     vendors: byId(catalog.vendors),
     endpoints: byId(catalog.endpoints),
     offerings: byId(catalog.offerings),
-    names: byId(catalog.names)
+    names: byId(catalog.names),
+    agents: byId(catalog.agents)
   };
 };

@@ -1,0 +1,646 @@
+{
+  "alibaba/qwen3-max-thinking": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba's Qwen3-Max-Thinking, the trillion-parameter reasoning flagship released as an early training checkpoint (per Alibaba's blog and Vercel's listing); the index's Qwen Max line has no Thinking entry, so defer rather than link qwen3-max.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "alibaba/qwen3-vl-instruct": {
+    "decision": "link",
+    "model": "alibaba/qwen3-vl-235b-a22b-instruct",
+    "reason": "Vercel's own model page for qwen3-vl-instruct is titled 'Qwen3 VL 235B A22B Instruct' — Alibaba's 235B MoE vision-language model at $0.20/$0.88 over 262K context; matches alibaba/qwen3-vl-235b-a22b-instruct.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "alibaba/qwen3.8-27b": {
+    "decision": "link",
+    "model": "alibaba/qwen3.8-27b",
+    "reason": "Vercel AI Gateway lists Alibaba's Qwen3.8 27B open-weight dense vision-language model (Aug 2026, 262K context); its 0.06/2.2 rate differs from the model's median but it is the same checkpoint.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "alibaba/wan-v2.5-t2v-preview": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Alibaba Cloud's Wan 2.5 text-to-video preview, the initial public release of the Wan 2.5 architecture (per Vercel/AIML listings); the index's Wan line starts at wan2.6, so defer rather than link the wrong generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "alibaba/wan-v2.6-i2v": {
+    "decision": "link",
+    "model": "alibaba/wan2.6",
+    "reason": "Vercel's listing: Wan v2.6 Image-to-Video is the i2v serving of Alibaba Cloud's Wan 2.6 release (Dec 2025), which the index records as alibaba/wan2.6; the task-variant SKU serves the same generation's model at $0.10/s.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "alibaba/wan-v2.6-i2v-flash": {
+    "decision": "link",
+    "model": "alibaba/wan2.6",
+    "reason": "Vercel's listing: Wan v2.6 Image-to-Video Flash is the speed-optimized serving of the same Wan 2.6 i2v model (per Vercel/CloudPrice listings); a fast serving is still alibaba/wan2.6, at $0.05/s.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "alibaba/wan-v2.6-r2v": {
+    "decision": "link",
+    "model": "alibaba/wan2.6",
+    "reason": "Vercel's listing: Wan v2.6 Reference-to-Video is the r2v serving of Alibaba Cloud's Wan 2.6 release (Dec 2025), which the index records as alibaba/wan2.6; the task-variant SKU serves the same generation's model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "alibaba/wan-v2.6-r2v-flash": {
+    "decision": "link",
+    "model": "alibaba/wan2.6",
+    "reason": "Vercel's listing: Wan v2.6 Reference-to-Video Flash is the speed-optimized r2v serving of Alibaba Cloud's Wan 2.6 release (Dec 2025), which the index records as alibaba/wan2.6; a fast serving is still that model, at $0.05/s.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "alibaba/wan-v2.6-t2v": {
+    "decision": "link",
+    "model": "alibaba/wan2.6",
+    "reason": "Vercel's listing: Wan v2.6 Text-to-Video is the t2v serving of Alibaba Cloud's Wan 2.6 release (Dec 2025), which the index records as alibaba/wan2.6; the task-variant SKU serves the same generation's model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "alibaba/wan-v2.7-r2v": {
+    "decision": "link",
+    "model": "alibaba/wan2.7",
+    "reason": "Vercel's listing: Wan v2.7 Reference-to-Video is the r2v serving of Alibaba Cloud's Wan 2.7 release (Apr 2026), which the index records as alibaba/wan2.7; the task-variant SKU serves the same generation's model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "alibaba/wan-v2.7-t2v": {
+    "decision": "link",
+    "model": "alibaba/wan2.7",
+    "reason": "Vercel's listing: Wan v2.7 Text-to-Video is the t2v serving of Alibaba Cloud's Wan 2.7 release (Apr 2026), which the index records as alibaba/wan2.7; the task-variant SKU serves the same generation's model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "amazon/titan-embed-text-v2": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Amazon Titan Text Embeddings V2, the second-generation Bedrock embedding model tuned for RAG (8K context, 1,024-dim vectors, per Vercel/Amazon listings); the index's amazon line has only Nova models, no Titan embedding entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "baseten/joey-1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Baseten's joey-1, a 2B open-weights decision model from its in-house Base Labs released 2026-10-29 (per Baseten's announcement and coverage); the index has only elephant-1 and mammoth-1 from the decision family, so defer until models.dev adds it.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "bfl/flux-pro-1.0-fill": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "BFL's FLUX.1 Fill [pro] inpainting model; the index has no Fill entry — its BFL image models are the open-weight dev/schnell, the Kontext line and FLUX 2/3 — so there is no catalog model to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "bfl/flux-pro-1.1": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "BFL's FLUX1.1 [pro] text-to-image model (Nov 2024); the index has no FLUX 1.1 pro entry — only the open-weight FLUX.1 dev/schnell and the FLUX 2/3 lines — so there is no catalog model to link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "bfl/flux-pro-1.1-ultra": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "FLUX1.1 [pro] Ultra is the high-resolution tier of BFL's FLUX1.1 [pro]; the index has no FLUX 1.1 pro entry to link, so this image model is not catalogued.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "bytedance/seedance-v1.0-pro": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ByteDance's Seedance 1.0 Pro, the Pro-tier video generation model of the Seedance 1.0 release (1080p clips up to 12s, per Vercel's own page); the index's Seedance line starts at 1.5 Pro, so defer rather than link the wrong generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "bytedance/seedance-v1.0-pro-fast": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Vercel's own docs: Seedance 1.0 Pro Fast delivers Seedance 1.0 Pro-quality 1080p video at ~3x throughput and 72% lower cost; a fast serving of Seedance 1.0 Pro, which itself has no index entry, so defer rather than link a later generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "bytedance/seedream-4.0": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ByteDance's Seedream 4.0 image model (released Aug/Sep 2025; up to 4K output and multi-reference editing, per ByteDance/Leap listings); the index's Seedream line starts at 4.5, so defer rather than link the wrong generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "callstack/apex": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Callstack's own coding LLM built on Gemma 4 for React Native/Next.js work (per their announcement); a real new first-party model not yet in the index.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "cohere/rerank-v5-fast": {
+    "decision": "link",
+    "model": "cohere/rerank-v5.0-fast",
+    "reason": "Cohere's Rerank 5 Fast, the speed-optimized reranking model of the Rerank 5 line (per Cohere/AWS listings, 33K context); matches the index's cohere/rerank-v5.0-fast released 2026-10-21, at the $0.02/M search rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "cohere/rerank-v5-pro": {
+    "decision": "link",
+    "model": "cohere/rerank-v5.0-pro",
+    "reason": "Cohere's Rerank 5 Pro, the high-quality multilingual reranking model of the Rerank 5 line (per Cohere/Azure listings, 33K context); matches the index's cohere/rerank-v5.0-pro released 2026-10-21, at the $0.05/M search rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "convaiinnovations/laya": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Convai Innovations' Laya, an open 421M-parameter ModernBERT-based non-autoregressive decision model for email triage/phishing/routing (Hugging Face card, text-classification pipeline, Sept 2026); the index has no Laya entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "deepseek/deepseek-v4.1-flash-1017-ultrafast": {
+    "decision": "link",
+    "model": "deepseek/deepseek-v4.1-flash-1017",
+    "reason": "Vercel's changelog states Ultrafast serves the October 17, 2026 update of DeepSeek V4.1 Flash via Fireworks' accelerated endpoint; same checkpoint as deepseek/deepseek-v4.1-flash-1017, priced at a speed-tier premium (2.4/9.6).",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "elevenlabs/eleven-realtime-v1-max": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ElevenLabs' Eleven Realtime v1 Max, the larger speech-to-speech voice-agent model released 2026-10-20 (per ElevenLabs/Vercel listings); the index has ElevenLabs speech and transcription models but no Realtime entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "elevenlabs/eleven-realtime-v1-mini": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ElevenLabs' Eleven Realtime v1 Mini, the default speech-to-speech voice-agent model released 2026-10-20 (per ElevenLabs/Vercel listings); the index has ElevenLabs speech and transcription models but no Realtime entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "elevenlabs/music-v2": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ElevenLabs' Music v2, the second-generation studio-grade music generation model (released late May 2026 per ElevenLabs and coverage); the index has ElevenLabs speech and transcription models but no Music entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "elevenlabs/music-v2.5": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ElevenLabs' Music v2.5, the new default ElevenMusic generation model released 2026-09-11 with richer arrangements (per ElevenLabs' announcement); the index has ElevenLabs speech and transcription models but no Music entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "elevenlabs/scribe-v2-realtime": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ElevenLabs' Scribe v2 Realtime, the ultra-low-latency streaming speech-to-text model launched alongside Scribe v2 in Nov 2025 (~150ms latency, per ElevenLabs and coverage); the index has elevenlabs/scribe-v2 but no Realtime entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "elevenlabs/sound-effects-v2": {
+    "decision": "exclude",
+    "category": "non-chat",
+    "reason": "ElevenLabs' Sound Effects v2, its text-to-sound-effects generation model (foley/ambiences, clips up to 22-30s, released Sep 2025 per listings); an audio-generation model with no catalog match — the index's ElevenLabs entries are speech and transcription models.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "elorian/glimpse": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Elorian's Glimpse, the startup's first visual-thinking model, released 2026-10-16 as a research preview (per Elorian's announcement and coverage); a real new first-party model the index has no entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "google/gemini-4-hydrogen": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Google's Gemini 4 Hydrogen, the speed-first member of the Gemini 4 family (per launch coverage, $1.50/$7.50, 1M context, announced 2026-11-12); the index has only Argon and Carbon, no Hydrogen entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "google/veo-3.1-fast-generate-001": {
+    "decision": "link",
+    "model": "google/veo-3.1-fast-generate-preview",
+    "reason": "Vercel's own page: the GA '-001' release of Veo 3.1 Fast, 'the speed-optimized Veo 3.1 model'; the index records that model as the Veo 3.1 Fast generation (google/veo-3.1-fast-generate-preview, Oct 2025), so the GA serving is the same model at $0.10/s.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "google/veo-3.1-generate-001": {
+    "decision": "link",
+    "model": "google/veo-3.1-generate-preview",
+    "reason": "Vercel's own page: the GA '-001' release of Veo 3.1, Google's flagship video model of the Veo 3.1 generation; the index records that generation as google/veo-3.1-generate-preview (Oct 2025), so the GA serving is the same model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "google/veo-3.1-lite-generate-001": {
+    "decision": "link",
+    "model": "google/veo-3.1-lite-generate-preview",
+    "reason": "Vercel's own page: the GA '-001' release of Veo 3.1 Lite, 'the cost-optimized tier of the Veo 3.1 family'; the index records that tier as google/veo-3.1-lite-generate-preview, so the GA serving is the same model at $0.05/s.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "humansand/ampersand-v0.1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "humans&'s first model, post-trained from Z.ai's GLM 5.3 (744B) and released 2026-10-20; a real new model, but a post-train of GLM is not zhipu/glm-5.3 itself and the index has no humans& entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "inception/mercury-coder-small": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Vercel lists Inception's Mercury Coder Small Beta, the compact diffusion coding model from the original Mercury Coder line (early 2025, per Vercel/CloudPrice listings); the index has only the later Mercury 2/2.5/3 line, no Mercury Coder entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "interfaze/interfaze-beta": {
+    "decision": "exclude",
+    "category": "other",
+    "reason": "Interfaze Beta is a hybrid product merging specialized DNN/CNN models for OCR, parsing and classification behind a controller that forwards distilled context to a user-selected LLM (per Interfaze's listing and its arXiv paper); a controller stack, not a single model the catalog can link.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "klingai/kling-v2.5-turbo-i2v": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Kuaishou's Kling 2.5 Turbo image-to-video model, the fast tier of the Sept 2025 Kling 2.5 release (1080p, first/last-frame anchoring); the index's Kling line has only video-o1 and the v3.0 pair, no 2.5 Turbo entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "klingai/kling-v2.5-turbo-t2v": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Kuaishou's Kling 2.5 Turbo text-to-video model, the fast tier of the Sept 2025 Kling 2.5 release; the index's Kling line has only video-o1 and the v3.0 pair, no 2.5 Turbo entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "klingai/kling-v2.6-i2v": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Kuaishou's Kling 2.6 image-to-video model with native synchronized audio (released autumn 2026); the index's Kling line has only video-o1 and the v3.0 pair, no 2.6 entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "klingai/kling-v2.6-motion-control": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Kuaishou's Kling 2.6 Motion Control, the motion-transfer mode of the Kling 2.6 video model with native audio (Nov 2026); the index's Kling line has only video-o1 and the v3.0 pair, no 2.6 entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "klingai/kling-v2.6-t2v": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Kuaishou's Kling 2.6 text-to-video model with native synchronized audio and multi-shot storytelling (released autumn 2026); the index's Kling line has only video-o1 and the v3.0 pair, no 2.6 entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "klingai/kling-v3.0-i2v": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Kling 3.0 image-to-video on the gateway at $0.17/s; the index splits Kling 3.0 into Pro and Standard entries and the gateway SKU names no tier, so defer rather than guess which checkpoint serving it is.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "klingai/kling-v3.0-motion-control": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Kling 3.0 Motion Control on the gateway at $0.13/s; the index splits Kling 3.0 into Pro and Standard entries and the gateway SKU names no tier, so defer rather than guess which checkpoint serving it is.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "klingai/kling-v3.0-t2v": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Kling 3.0 text-to-video on the gateway at $0.17/s; the index splits Kling 3.0 into Pro and Standard entries and the gateway SKU names no tier, so defer rather than guess which checkpoint serving it is.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "liquid/d1-ultra": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Liquid AI's d1-ultra (released 2026-10-15), its most capable multimodal decision model; it is a larger sibling of liquid/d1 and the index has no d1-ultra entry, only liquid/d1.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "liquid/lfm2.5-24b-a2b": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Liquid AI's LFM2.5-24B-A2B (Hugging Face LiquidAI/LFM2.5-24B-A2B, released 2026-10-13; 24B MoE with 2.45B active, 131K context), a new LFM2.5 generation distinct from LFM2-24B-A2B; the index has no LFM2.5 chat entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meta/muse-ember": {
+    "decision": "link",
+    "model": "meta/muse-ember-1.0",
+    "reason": "Meta's Muse Ember, the smallest Muse model for agent execution released 2026-11-09 at 0.10/0.50 with 1M context (per Meta's announcement and coverage); matches the index entry meta/muse-ember-1.0, released the same day.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meta/muse-spark-1.2-contributor": {
+    "decision": "link",
+    "model": "meta/muse-spark-1.2",
+    "reason": "Vercel's own docs: Contributor serves the same weights and 1M context as Muse Spark 1.2, only the data-use arrangement differs; still meta/muse-spark-1.2 at the 0.1/0.2 contributor rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "meta/muse-spark-1.3-contributor": {
+    "decision": "link",
+    "model": "meta/muse-spark-1.3",
+    "reason": "Muse Spark 1.3 Contributor is the same Muse Spark 1.3 weights under Meta's discounted contributor-mode pricing (0.1/0.2, in exchange for Meta training on request content); still meta/muse-spark-1.3.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "microsoft/mai-transcribe-2-streaming": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Microsoft AI's MAI-Transcribe-2-Streaming, its first streaming speech-to-text model, released 2026-10-01 — a separate checkpoint from the Sep 2026 batch MAI-Transcribe-2; the index has no streaming entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "microsoft/microsoft-decision-1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Microsoft-Decision-1, Microsoft AI's decision-scoring model post-trained from Qwen3.5-9B and released Oct 2026 in Foundry (per Microsoft's announcement); the index has no entry (only Google's Gemini Decision 1), so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "mistral/voxtral-mini-transcribe-3": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Mistral's Voxtral Mini Transcribe 3, the 4B speech-to-text model of the Voxtral 3 family released 2026-10-20 in public preview (per Mistral/Vercel listings); the index's voxtral-mini-2602 is the earlier Transcribe 2 generation, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "mistral/voxtral-mini-tts-3": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Mistral's Voxtral TTS 3, the text-to-speech model of the Voxtral 3 family released 2026-10-20 (per Mistral/Vercel listings); the index's voxtral-mini-tts-2603 is the earlier March generation, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "mistral/voxtral-small-transcribe-3": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Mistral's Voxtral Small Transcribe 3, the flagship speech-to-text model of the Voxtral 3 family released Oct 2026 (per Mistral/Vercel listings); the index's Voxtral Small entries are the Jul 2025 chat models, with no Transcribe 3 entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nace-ai/drex-max-finance": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Nace.AI's Drex Max Finance (released 2026-11-01 per Respan/Nace docs), the finance variant of the 27B multimodal Drex Max decision model; the index has only drex-v1.5 and drex-v2.0 from the separate Drex decision line.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "nace-ai/drex-max-v1.1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Nace.AI's Drex Max v1.1 (served as drex-max, released 2026-10-28 per BenchLM), the frontier multimodal decision model; the index has only drex-v1.5/drex-v2.0, which are the separate Drex decision line, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-5.1-thinking": {
+    "decision": "link",
+    "model": "openai/gpt-5.1",
+    "reason": "GPT 5.1 Thinking is the reasoning-focused member of the GPT-5.1 family — a thinking-mode serving of the GPT-5.1 checkpoint (400K context, 1.25/10 per Vercel/OpenAI); still openai/gpt-5.1.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-5.1-thinking-fast": {
+    "decision": "link",
+    "model": "openai/gpt-5.1",
+    "reason": "GPT 5.1 Thinking (Fast) is the fast-mode serving of the same GPT-5.1 thinking checkpoint at double the token rate (per Vercel's listing); a fast serving is still openai/gpt-5.1.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-6-luna-decisions": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "GPT-6 Luna Decisions is GPT-6 Luna served through OpenAI's Decisions API, returning typed probabilities instead of text (per Vercel/OpenAI docs); the catalog models decision-API variants as separate entries (cf. google/gemini-decision-1) and the index has no OpenAI decisions entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-image-2.6-flare": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Vercel's listing: OpenAI's GPT Image 2.6 Flare, released 2026-11-04; a new image-model generation the index has no 2.6 entry for (only gpt-image-2.5-flare), so defer rather than link the 2.5 model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "openai/gpt-image-2.6-sunburst": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Vercel's listing: OpenAI's GPT Image 2.6 Sunburst, released 2026-11-04 alongside GPT Image 2.6 Flare; a new image-model generation the index has no 2.6 entry for (only gpt-image-2.5-sunburst), so defer rather than link the 2.5 model.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "paperinstruments/ultramarine-1-flash": {
+    "decision": "defer",
+    "until": "2026-12-13",
+    "reason": "Paper Instruments' Ultramarine 1 Flash (2026-10-14) is a large-scale RL post-train of GLM-5.3-Flash, a distinct model rather than a serving of it (per its HF card and launch coverage); the index has no Paper Instruments entry, so defer rather than link zhipu/glm-5.3-flash.",
+    "by": "agent",
+    "at": "2026-11-13"
+  },
+  "parallel/parallel-decisions-fast": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Parallel's Decisions Fast, its web-grounded decision model that reads content passed as state, researches the live web and returns typed answers (per OpenRouter's listing); a real first-party decision model the index has no Parallel entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "particle/particle-1": {
+    "decision": "exclude",
+    "category": "fine-tune",
+    "reason": "Particle AI's Particle-1 is a rank-64 LoRA post-train of DeepSeek V4.1 Flash for token-efficient agentic coding (per launch coverage and Vertical Tabs); a fine-tune of DeepSeek V4.1 Flash is not that model itself and the index has no Particle AI entry.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "perplexity/pplx-decider-flash-v1.3": {
+    "decision": "defer",
+    "until": "2026-12-13",
+    "reason": "Perplexity released pplx-decider-flash-v1.3, the smaller sibling of Decider v1.3, on 2026-11-12 (per its announcement and OpenRouter); the index only has pplx-decider-flash-v1.2, so defer rather than link the previous version.",
+    "by": "agent",
+    "at": "2026-11-13"
+  },
+  "perplexity/pplx-decider-v1.3": {
+    "decision": "defer",
+    "until": "2026-12-13",
+    "reason": "Perplexity released pplx-decider-v1.3, the 27B successor to Decider v1.2 adding locate, on 2026-11-12 (per its announcement and OpenRouter); the index only has pplx-decider-v1.2, so defer rather than link the previous version.",
+    "by": "agent",
+    "at": "2026-11-13"
+  },
+  "prodia/flux-fast-schnell": {
+    "decision": "link",
+    "model": "black-forest-labs/flux-1-schnell",
+    "reason": "Vercel's listing describes Flux Schnell as Prodia's speed-focused image model built on BFL's FLUX.1 Schnell architecture — Prodia's fast serving of the FLUX.1 [schnell] checkpoint, matching black-forest-labs/flux-1-schnell.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "recraft/recraft-v2": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Recraft's V2, its first model trained from scratch (20B image model, per Vercel's own page and CloudPrice); the index's Recraft line starts at V3, so defer rather than link a later generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "scaledown/scaledown-classify-1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ScaleDown's Classify-1, a structured-decision classification model served through OpenRouter's Decisions API (per ScaleDown/OpenRouter listings); a real new model the index has no ScaleDown entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "scaledown/scaledown-extract-1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ScaleDown's Extract-1, a task-specific model extracting structured data via a custom JSON schema over 1M context (per Vercel's listing); a real new model the index has no ScaleDown entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "scaledown/scaledown-summarize-1": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "ScaleDown's Summarize-1, a task-specific abstractive-summarization model for long documents and transcripts (per Vercel's listing); a real new model the index has no ScaleDown entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "spacexai/grok-4.20-multi-agent-beta": {
+    "decision": "link",
+    "model": "xai/grok-4.20-multi-agent-0309",
+    "reason": "Vercel's own docs: the -beta id is the beta-lifecycle alias of grok-4.20-multi-agent, 'the same multi-agent focus under a beta lifecycle identifier'; still the Grok 4.20 Multi-Agent checkpoint, xai/grok-4.20-multi-agent-0309.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "spacexai/grok-4.20-non-reasoning-beta": {
+    "decision": "link",
+    "model": "xai/grok-4.20-0309",
+    "reason": "Vercel's own docs: Grok 4.20 Beta Non-Reasoning is the beta-lifecycle alias of Grok 4.20 Non-Reasoning, the non-reasoning model of the Mar 2026 Grok 4.20 generation; same checkpoint as xai/grok-4.20-0309 at the 1.25/2.5 rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "spacexai/grok-4.20-reasoning-beta": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Vercel's docs: Grok 4.20 Beta Reasoning is the beta alias of the Grok 4.20 reasoning model (visible chain-of-thought, released Mar 2026); the index has no Grok 4.20 reasoning entry (only the 0309 non-reasoning and multi-agent checkpoints), so defer rather than link the wrong variant.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "stealth/glyph-cluster": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Glyph Cluster is a stealth-preview reasoning model from a third-party provider that has chosen to remain anonymous, free during stealth (per Vercel's changelog); a real new model with no named lab and no index entry, so defer until it is revealed.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "tencent/hy-mt2-lite": {
+    "decision": "link",
+    "model": "tencent/hy-mt2-1.8b",
+    "reason": "Vercel's listing: Hy-MT2-Lite is Tencent Hunyuan's lightweight 1.8B translation model with an 8K context window; matches the index's tencent/hy-mt2-1.8b exactly, including its 0.044/0.177 rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "tencent/hy-mt2-plus": {
+    "decision": "link",
+    "model": "tencent/hy-mt2-7b",
+    "reason": "Vercel's listing: Hy-MT2-Plus is Tencent Cloud Hunyuan's 7B translation model with an 8K context window; matches the index's tencent/hy-mt2-7b, including the 0.074/0.295 rate.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "tencent/hy-mt2-pro": {
+    "decision": "link",
+    "model": "tencent/hy-mt2-30b-a3b",
+    "reason": "Vercel's listing: Hy-MT2-Pro is Tencent Cloud Hunyuan's flagship translation model with 30B-A3B parameters and an 8K context window; matches the index's tencent/hy-mt2-30b-a3b.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "topaz/proteus": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Topaz Labs' Proteus, its detail-preserving video upscaling and enhancement model in the Topaz Video AI suite (per Vercel's listing and Topaz docs); a real video model the index has no Topaz entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "topaz/starlight-precise-2.6": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Topaz Labs' Starlight Precise 2.6, its diffusion-based video upscaling and enhancement model (reconstructs 1080p/4K detail, per Topaz/Cloudflare listings); a real video model the index has no Topaz entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "topaz/wonder-3.5": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Topaz Labs' Wonder 3.5, its generative image enhancement and upscaling model released Aug 2026 (per Topaz/Oxen/Runware listings); a real image model the index has no Topaz entry for.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "voyage/voyage-3-large": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Voyage AI's voyage-3-large, the general-purpose embedding model released Jan 2025 (per Voyage's own blog); the index's voyage line has only the voyage-4/multimodal-3.5 generation, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "voyage/voyage-3.5": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Voyage AI's voyage-3.5, the general-purpose embedding model released 2025-05-20 (per Voyage's own blog); the index's voyage line has only the voyage-4 generation, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "voyage/voyage-3.5-lite": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Voyage AI's voyage-3.5-lite, the cost-efficient embedding model released 2025-05-20 and distilled from voyage-3-large (per Voyage's own blog); the index's voyage line has only the voyage-4 generation, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "voyage/voyage-code-2": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Voyage AI's voyage-code-2, the code-specialized embedding model released Jan 2024 (per Vercel/Voyage listings); the index's voyage-code line starts at voyage-code-4, so defer rather than link the wrong generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "voyage/voyage-code-3": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Voyage AI's voyage-code-3, the code-specialized embedding model released 2024-12-04 (per Voyage's own blog); the index's voyage-code line starts at voyage-code-4, so defer rather than link the wrong generation.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "voyage/voyage-finance-2": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Voyage AI's voyage-finance-2, the finance-domain embedding model released 2024-06-03 (per Voyage's own blog); the index's voyage line has no finance entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "voyage/voyage-law-2": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Voyage AI's voyage-law-2, the legal-domain embedding model released 2024-04-15 (per Voyage's own blog); the index's voyage line has no law entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "xiaomi/mimo-v2.6-pro-ultraspeed": {
+    "decision": "link",
+    "model": "xiaomi/mimo-v2.6-pro",
+    "reason": "MiMo V2.6 Pro UltraSpeed is Xiaomi's fast-serving tier of the same 1T MiMo-V2.6-Pro checkpoint (same quality, up to 20x output speed); still xiaomi/mimo-v2.6-pro at the 4.35/8.7 speed-tier price.",
+    "by": "agent",
+    "at": "2026-11-12"
+  },
+  "zai/glm-5.3-flashx-legal": {
+    "decision": "defer",
+    "until": "2026-12-12",
+    "reason": "Z.ai's GLM-Legal (GLM-5.3-FlashX-Legal), the legal-domain variant of GLM-5.3-FlashX (per Z.ai/OpenRouter listings, Nov 2026); the index has no GLM-Legal or GLM-5.3-FlashX entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-12"
+  }
+}

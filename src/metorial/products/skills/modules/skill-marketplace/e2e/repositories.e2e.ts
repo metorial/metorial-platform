@@ -1,7 +1,16 @@
-import { expectServiceError, firstPage, useOrganization } from '@metorial/e2e';
+import { ID } from '@metorial/db';
+import { expectServiceError, firstPage, uniqueId, useOrganization } from '@metorial/e2e';
 import { db, loadOrganizationFixture, type OrganizationFixture } from '@metorial/e2e/db';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { skillMarketplaceRepositoryService, skillPluginRepositoryService } from '../src';
+import {
+  skillMarketplaceRepositoryService,
+  skillPluginRepositoryService,
+  skillRepositoryService
+} from '../src';
+import {
+  ensureSkillRepositoryOwnsProviderRepository,
+  repositoryLinkedElsewhereMessage
+} from '../src/lib/repositoryIdentity';
 import {
   archiveMarketplace,
   archivePlugin,
@@ -72,7 +81,8 @@ describe('skill repositories', () => {
   describe('marketplace repositories', () => {
     it('links an Origin repository, forces a repository sync and stays idempotent', async () => {
       let marketplace = await createMarketplace(fixture);
-      let repoId = origin.addRepository({ owner: 'acme', name: 'skills' });
+      let name = uniqueId('skills');
+      let repoId = origin.addRepository({ owner: 'acme', name });
 
       let link = await linkMarketplace(fixture, marketplace.id, repoId);
       expect(link.skillRepository).toMatchObject({
@@ -83,7 +93,7 @@ describe('skill repositories', () => {
           object: 'origin#repository',
           id: repoId,
           externalOwner: 'acme',
-          externalName: 'skills',
+          externalName: name,
           defaultBranch: 'main'
         }
       });
@@ -109,7 +119,7 @@ describe('skill repositories', () => {
         skillMarketplaceRepositoryId: link.id
       });
       expect(fetched.skillRepository.originRepository?.externalUrl).toBe(
-        'https://github.com/acme/skills'
+        `https://github.com/acme/${name}`
       );
     });
 
@@ -253,6 +263,190 @@ describe('skill repositories', () => {
           where: { skillMarketplaceOid: foreignMarketplace.oid }
         })
       ).toBe(0);
+    });
+  });
+
+  describe('provider repository ownership', () => {
+    let createProviderRepository = () => {
+      let owner = uniqueId('owner');
+      let name = uniqueId('skills');
+      let externalId = uniqueId('gh');
+
+      return {
+        key: `github:github.com:${externalId}`,
+        path: `github:github.com/${owner}/${name}`.toLowerCase(),
+        connect: (input: { externalId?: string } = {}) =>
+          origin.addRepository({ owner, name, externalId: input.externalId ?? externalId })
+      };
+    };
+
+    let seedLegacyMarketplaceLink = async (
+      target: OrganizationFixture,
+      skillMarketplace: { oid: bigint },
+      repoId: string
+    ) => {
+      let skillRepository = await db.skillRepository.create({
+        data: {
+          id: await ID.generateId('skillRepository'),
+          repoId,
+          projectOid: target.project.oid,
+          instanceOid: target.instance.oid
+        }
+      });
+      await db.skillMarketplaceRepository.create({
+        data: {
+          id: await ID.generateId('skillMarketplaceRepository'),
+          skillMarketplaceOid: skillMarketplace.oid,
+          skillRepositoryOid: skillRepository.oid
+        }
+      });
+
+      return skillRepository;
+    };
+
+    let checkOwnership = async (
+      target: OrganizationFixture,
+      skillRepository: { oid: bigint; repoId: string }
+    ) =>
+      await ensureSkillRepositoryOwnsProviderRepository({
+        skillRepository: await db.skillRepository.findUniqueOrThrow({
+          where: { oid: skillRepository.oid }
+        }),
+        originRepository: await skillRepositoryService.getOriginRepository({
+          project: target.project,
+          instance: target.instance,
+          repoId: skillRepository.repoId
+        })
+      });
+
+    it('refuses a repository linked in another organization until the first link is removed', async () => {
+      let provider = createProviderRepository();
+      let marketplace = await createMarketplace(fixture);
+      let foreignMarketplace = await createMarketplace(otherFixture);
+      let repoId = provider.connect();
+      let foreignRepoId = provider.connect();
+
+      let link = await linkMarketplace(fixture, marketplace.id, repoId);
+      expect(
+        await db.skillRepository.findUniqueOrThrow({
+          where: { oid: link.skillRepository.oid }
+        })
+      ).toMatchObject({
+        providerRepositoryKey: provider.key,
+        providerRepositoryPath: provider.path,
+        providerIdentityRefreshedAt: expect.any(Date)
+      });
+
+      let error = await expectServiceError(
+        linkMarketplace(otherFixture, foreignMarketplace.id, foreignRepoId),
+        'bad_request'
+      );
+      expect(error.message).toBe(repositoryLinkedElsewhereMessage);
+      for (let id of [
+        fixture.organization.id,
+        fixture.project.id,
+        fixture.instance.id,
+        marketplace.id,
+        link.skillRepository.id,
+        repoId
+      ]) {
+        expect(error.message).not.toContain(id);
+      }
+      expect(await db.skillRepository.count({ where: { repoId: foreignRepoId } })).toBe(0);
+      expect(
+        await db.skillMarketplaceRepository.count({
+          where: { skillMarketplaceOid: foreignMarketplace.oid }
+        })
+      ).toBe(0);
+
+      let again = await linkMarketplace(fixture, marketplace.id, repoId);
+      expect(again.id).toBe(link.id);
+      expect(await listMarketplaceLinks(fixture, marketplace.id)).toEqual([link.id]);
+
+      await skillMarketplaceRepositoryService.deleteSkillMarketplaceRepository({
+        project: fixture.project,
+        instance: fixture.instance,
+        skillMarketplaceId: marketplace.id,
+        skillMarketplaceRepositoryId: link.id
+      });
+
+      let foreignLink = await linkMarketplace(
+        otherFixture,
+        foreignMarketplace.id,
+        foreignRepoId
+      );
+      expect(foreignLink.skillMarketplaceOid).toBe(foreignMarketplace.oid);
+      expect(foreignLink.skillRepository.providerRepositoryKey).toBe(provider.key);
+    });
+
+    it('treats a recreated repository with the same name as the same repository', async () => {
+      let provider = createProviderRepository();
+      let marketplace = await createMarketplace(fixture);
+      let plugin = await createPlugin(fixture);
+      await linkMarketplace(fixture, marketplace.id, provider.connect());
+      let recreatedRepoId = provider.connect({ externalId: uniqueId('gh') });
+
+      await expectServiceError(linkPlugin(fixture, plugin.id, recreatedRepoId), 'bad_request');
+
+      await archiveMarketplace(fixture, marketplace.id);
+
+      let link = await linkPlugin(fixture, plugin.id, recreatedRepoId);
+      expect(link.skillPluginOid).toBe(plugin.oid);
+    });
+
+    it('lets only one of two concurrent links claim a repository', async () => {
+      let provider = createProviderRepository();
+      let marketplace = await createMarketplace(fixture);
+      let foreignMarketplace = await createMarketplace(otherFixture);
+
+      let results = await Promise.allSettled([
+        linkMarketplace(fixture, marketplace.id, provider.connect()),
+        linkMarketplace(otherFixture, foreignMarketplace.id, provider.connect())
+      ]);
+
+      expect(results.filter(result => result.status === 'fulfilled')).toHaveLength(1);
+      expect(
+        results.flatMap(result =>
+          result.status === 'rejected' ? [(result.reason as any).data?.code] : []
+        )
+      ).toEqual(['bad_request']);
+      expect(
+        await db.skillMarketplaceRepository.count({
+          where: { skillMarketplaceOid: { in: [marketplace.oid, foreignMarketplace.oid] } }
+        })
+      ).toBe(1);
+    });
+
+    it('keeps the earliest of two links made before the check existed', async () => {
+      let provider = createProviderRepository();
+      let marketplace = await createMarketplace(fixture);
+      let foreignMarketplace = await createMarketplace(otherFixture);
+      let first = await seedLegacyMarketplaceLink(fixture, marketplace, provider.connect());
+      let second = await seedLegacyMarketplaceLink(
+        otherFixture,
+        foreignMarketplace,
+        provider.connect()
+      );
+
+      expect(await checkOwnership(fixture, first)).toEqual({ ok: true });
+      expect(await checkOwnership(otherFixture, second)).toMatchObject({
+        ok: false,
+        owner: { id: first.id }
+      });
+      expect(await checkOwnership(fixture, first)).toEqual({ ok: true });
+      expect(
+        await db.skillRepository.findMany({
+          where: { oid: { in: [first.oid, second.oid] } },
+          select: { providerRepositoryKey: true, providerRepositoryPath: true }
+        })
+      ).toEqual([
+        { providerRepositoryKey: provider.key, providerRepositoryPath: provider.path },
+        { providerRepositoryKey: provider.key, providerRepositoryPath: provider.path }
+      ]);
+
+      await archiveMarketplace(fixture, marketplace.id);
+
+      expect(await checkOwnership(otherFixture, second)).toEqual({ ok: true });
     });
   });
 

@@ -49,6 +49,7 @@ let resolveAuth = async (ctx: Context) => {
     subRegistryId:
       ctx.req.header('Metorial-Sub-Registry-Id') ??
       ctx.req.header('Slates-Sub-Registry-Id') ??
+      ctx.req.query('sub_registry_id') ??
       undefined
   });
 

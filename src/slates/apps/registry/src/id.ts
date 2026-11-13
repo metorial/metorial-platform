@@ -17,7 +17,19 @@ export let ID = createIdGenerator({
   subRegistryFilter: idType.sorted('srsf'),
   slateCategory: idType.sorted('srct'),
   adminUser: idType.sorted('srau'),
-  adminSession: idType.sorted('sras')
+  adminSession: idType.sorted('sras'),
+  registrySigningKey: idType.sorted('srsk'),
+  slateVersionSignature: idType.sorted('srsg'),
+  trustedSigningKey: idType.sorted('srtk'),
+  mirrorSettings: idType.sorted('srms'),
+  mirrorUpstream: idType.sorted('srmu'),
+  slatePackImport: idType.sorted('srpi'),
+  mirrorResult: idType.sorted('srmr'),
+  slateActivation: idType.sorted('srsa'),
+  slatePackImportBatch: idType.sorted('srpb'),
+  mirrorPackChannel: idType.sorted('srmc'),
+  slatePackChannel: idType.sorted('srpc'),
+  slatePackRelease: idType.sorted('srpr')
 });
 
 let workerIdBits = 12;

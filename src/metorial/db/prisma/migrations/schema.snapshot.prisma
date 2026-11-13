@@ -7861,6 +7861,10 @@ model SkillRepository {
   repoId      String @unique
   syncCounter Int    @default(0)
 
+  providerRepositoryKey       String?
+  providerRepositoryPath      String?
+  providerIdentityRefreshedAt DateTime?
+
   resourceTenantOid BigInt?
   resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)
 
@@ -7901,6 +7905,9 @@ model SkillRepository {
   @@index([instanceOid])
   @@index([nextRepairAt])
   @@index([lastDriftCheckAt])
+  @@index([providerRepositoryKey])
+  @@index([providerRepositoryPath])
+  @@index([providerIdentityRefreshedAt, id])
 }
 
 enum SkillStatus {
@@ -8052,8 +8059,9 @@ model SkillDestination {
   oid BigInt @id @default(autoincrement())
   id  String @unique
 
-  codeBucketId String?
-  tag          Int     @default(0)
+  codeBucketId    String?
+  tag             Int     @default(0)
+  contentRevision Int     @default(0)
 
   storageMode          SkillDestinationStorageMode @default(code_bucket)
   storageModeChangedAt DateTime?
@@ -8283,7 +8291,8 @@ model SkillDestinationSyncRepositoryPropagation {
   waitingUntil  DateTime?
   waitingReason String?
 
-  deletionsUpTo DateTime?
+  deletionsUpTo   DateTime?
+  contentRevision Int?
 
   previousManifestSha256 String?
 

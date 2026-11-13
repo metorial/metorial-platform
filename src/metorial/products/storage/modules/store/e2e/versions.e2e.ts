@@ -1,6 +1,10 @@
 import { expectServiceError, firstPage, useOrganization } from '@metorial/e2e';
-import { db, loadOrganizationFixture } from '@metorial/e2e/db';
-import { documentService, flushDocumentDraft } from '@metorial/module-documents';
+import { db, loadOrganizationFixture, type OrganizationFixture } from '@metorial/e2e/db';
+import {
+  documentService,
+  flushDocumentDraft,
+  flushExpiredDraftVersion
+} from '@metorial/module-documents';
 import { describe, expect, it } from 'vitest';
 import { storeVersionService } from '../src';
 import {
@@ -15,6 +19,24 @@ import {
 } from './_fixtures';
 
 let sortedPaths = (items: { path: string }[]) => items.map(item => item.path).sort();
+
+let editDocumentContent = async (
+  fixture: OrganizationFixture,
+  documentId: string,
+  content: string
+) => {
+  let document = await documentService.getDocumentById({
+    ...scopeOf(fixture),
+    authorization: privileged,
+    documentId
+  });
+  await documentService.updateDocument({
+    ...scopeOf(fixture),
+    document,
+    input: { content, authorization: privileged }
+  });
+  await flushDocumentDraft({ documentId, force: true });
+};
 
 describe('module-store versions', () => {
   let org = useOrganization();
@@ -154,6 +176,95 @@ describe('module-store versions', () => {
     expect(reread.items.find(item => item.path === '/doc.md')?.documentVersionId).toBe(
       snapshotItem.documentVersionId
     );
+  });
+
+  it('does not cut another snapshot or reseal documents when nothing changed', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let store = await createStore(fixture);
+    let document = await createDocument(fixture, {
+      content: '# Steady\n\nsteady body',
+      store: { id: store.id, path: 'doc.md' }
+    });
+
+    let first = await storeVersionService.createStoreVersionSnapshotNow({ storeId: store.id });
+    let sealed = await db.document.findUniqueOrThrow({ where: { id: document.id } });
+    expect(sealed.draftVersionExpiresAt).not.toBeNull();
+
+    let flushed = await flushExpiredDraftVersion({
+      documentId: document.id,
+      expectedDraftVersionExpiresAt: sealed.draftVersionExpiresAt!
+    });
+    expect(flushed?.createdVersionId).toBeTruthy();
+    let { dirtyAt } = await db.store.findUniqueOrThrow({ where: { id: store.id } });
+    expect(dirtyAt).not.toBeNull();
+
+    let scheduled = await storeVersionService.createStoreVersionSnapshot({
+      storeId: store.id,
+      expectedDirtyAt: dirtyAt!
+    });
+    expect(scheduled).toMatchObject({
+      didClearDirtyAt: true,
+      alreadyExisted: true,
+      version: { id: first.version.id, versionNumber: 1 }
+    });
+
+    let requested = await storeVersionService.createStoreVersionSnapshotNow({
+      storeId: store.id
+    });
+    expect(requested).toMatchObject({
+      alreadyExisted: true,
+      version: { id: first.version.id }
+    });
+
+    let row = await db.document.findUniqueOrThrow({ where: { id: document.id } });
+    expect(row).toMatchObject({ draftVersionExpiresAt: null, maxVersionNumber: 2 });
+    expect(await db.documentVersion.count({ where: { documentOid: row.oid } })).toBe(2);
+    expect(await db.storeVersion.count({ where: { storeOid: store.oid } })).toBe(1);
+    expect((await db.store.findUniqueOrThrow({ where: { id: store.id } })).dirtyAt).toBeNull();
+  });
+
+  it('cuts a new snapshot once a document is really edited and keeps both pinned', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let store = await createStore(fixture);
+    let document = await createDocument(fixture, {
+      content: '# Original\n\noriginal body',
+      store: { id: store.id, path: 'doc.md' }
+    });
+
+    let first = await storeVersionService.createStoreVersionSnapshotNow({ storeId: store.id });
+    let sealed = await db.document.findUniqueOrThrow({ where: { id: document.id } });
+    await flushExpiredDraftVersion({
+      documentId: document.id,
+      expectedDraftVersionExpiresAt: sealed.draftVersionExpiresAt!
+    });
+    await editDocumentContent(fixture, document.id, '# Edited\n\nedited body');
+
+    let second = await storeVersionService.createStoreVersionSnapshotNow({
+      storeId: store.id
+    });
+    expect(second).toMatchObject({ alreadyExisted: false, version: { versionNumber: 2 } });
+
+    let row = await db.document.findUniqueOrThrow({ where: { id: document.id } });
+    let secondItem = second.version.items.find(item => item.path === '/doc.md')!;
+    expect(secondItem.documentVersionId).not.toBe(
+      first.version.items.find(item => item.path === '/doc.md')!.documentVersionId
+    );
+    expect(row.draftVersionExpiresAt!.getTime()).toBeLessThanOrEqual(Date.now());
+
+    await editDocumentContent(fixture, document.id, '# Later\n\nlater body');
+
+    let pinnedContent = async (version: typeof first.version) => {
+      let documentItem = version.items.find(item => item.path === '/doc.md')!;
+      let pinned = await db.documentVersion.findUniqueOrThrow({
+        where: { id: documentItem.documentVersionId },
+        include: { content: true }
+      });
+
+      return pinned.content.content;
+    };
+    expect(await pinnedContent(first.version)).toBe('# Original\n\noriginal body');
+    expect(await pinnedContent(second.version)).toBe('# Edited\n\nedited body');
+    expect(await db.storeVersion.count({ where: { storeOid: store.oid } })).toBe(2);
   });
 
   it('creates a scheduled snapshot only for the dirtyAt it was queued with', async () => {

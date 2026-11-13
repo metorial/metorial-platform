@@ -8,7 +8,7 @@ Keep snapshots outside source control because they can contain private endpoint 
 
 TypeScript uses `@metorial/util-resource-mapper/compact` from runtime version 3.2.0 or newer.
 Build that package before building clients. Python and Go mapper formats remain unchanged.
-Run generator regressions with `bun test src/languages/typescript/*.test.ts`.
+Run generator regressions with `bun run test`.
 
 ## Mapper patterns
 

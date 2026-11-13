@@ -42,12 +42,16 @@ model SubRegistry {
   identifier String @unique
   name       String
 
+  onlyActivated Boolean @default(false)
+
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid])
 
   createdAt DateTime            @default(now())
   updatedAt DateTime            @default(now()) @updatedAt
   filters   SubRegistryFilter[]
+
+  slatePackChannel SlatePackChannel?
 }
 
 enum SubRegistryFilterType {
@@ -240,6 +244,12 @@ enum SlateVersionBackend {
   npm
 }
 
+enum SlateVersionOrigin {
+  upload
+  upstream
+  pack
+}
+
 model Slate {
   oid    BigInt      @id
   id     String      @unique
@@ -276,6 +286,7 @@ model Slate {
   slateVersions       SlateVersion[]
   changeNotifications ChangeNotification[]
   categories          SlateCategoryAssignment[]
+  activation          SlateActivation?
 
   @@index([fullIdentifier])
   @@index([access])
@@ -299,8 +310,15 @@ model SlateVersion {
 
   isCurrent Boolean
   backend   SlateVersionBackend @default(local_unbuilt)
+  origin    SlateVersionOrigin  @default(upload)
 
-  version String
+  originUpstreamOid BigInt?
+  originUpstream    MirrorUpstream? @relation(fields: [originUpstreamOid], references: [oid])
+
+  originPackImportOid BigInt?
+  originPackImport    SlatePackImport? @relation(fields: [originPackImportOid], references: [oid])
+
+  version        String
   npmPackageName String?
 
   /// [SlateJson]
@@ -318,9 +336,11 @@ model SlateVersion {
   createdAt DateTime @default(now())
 
   slateDocuments                SlateDocument[]
-  unbuiltCurrentInSlates        Slate[]              @relation("unbuiltCurrentVersion")
-  builtOrUnbuiltCurrentInSlates Slate[]              @relation("builtOrUnbuiltCurrentVersion")
+  unbuiltCurrentInSlates        Slate[]                 @relation("unbuiltCurrentVersion")
+  builtOrUnbuiltCurrentInSlates Slate[]                 @relation("builtOrUnbuiltCurrentVersion")
   changeNotifications           ChangeNotification[]
+  signatures                    SlateVersionSignature[]
+  pinnedInActivations           SlateActivation[]
 
   @@unique([slateOid, version])
   @@unique([npmPackageName, version])
@@ -389,6 +409,7 @@ model AdminSession {
 
 enum ChangeNotificationType {
   slate_version_created
+  slate_activated
 }
 
 model ChangeNotification {
@@ -416,4 +437,301 @@ model ChangeNotification {
   createdAt DateTime @default(now())
 
   @@index([type])
+}
+
+enum RegistrySigningKeyStatus {
+  active
+  revoked
+}
+
+model RegistrySigningKey {
+  oid    BigInt                   @id
+  id     String                   @unique
+  status RegistrySigningKeyStatus
+
+  kid    String @unique
+  period String @unique
+
+  /// [SigningPublicKey]
+  publicKey           Json
+  encryptedPrivateKey String
+
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
+}
+
+model SlateVersionSignature {
+  oid BigInt @id
+  id  String @unique
+
+  kid       String
+  signature String
+
+  slateVersionOid BigInt
+  slateVersion    SlateVersion @relation(fields: [slateVersionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([slateVersionOid, kid])
+  @@index([kid])
+}
+
+enum TrustedSigningKeySource {
+  license
+}
+
+model TrustedSigningKey {
+  oid BigInt @id
+  id  String @unique
+
+  kid    String                  @unique
+  source TrustedSigningKeySource
+
+  /// [SigningPublicKey]
+  publicKey Json
+
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+}
+
+model MirrorSettings {
+  oid BigInt @id
+  id  String @unique
+
+  licenseOperational Boolean   @default(false)
+  configuredAt       DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+enum MirrorUpstreamSource {
+  license
+  manual
+  static
+}
+
+enum MirrorUpstreamStatus {
+  active
+  paused
+  archived
+}
+
+model MirrorUpstream {
+  oid    BigInt               @id
+  id     String               @unique
+  source MirrorUpstreamSource
+  status MirrorUpstreamStatus
+
+  identifier String @unique
+
+  name          String
+  url           String
+  subRegistryId String?
+
+  changeNotificationCursor String?
+  lastSyncedAt             DateTime?
+  lastSyncError            String?
+  lastSyncErrorAt          DateTime?
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  archivedAt DateTime?
+
+  slateVersions SlateVersion[]
+  results       MirrorResult[]
+}
+
+enum SlatePackImportStatus {
+  pending
+  processing
+  completed
+  failed
+}
+
+enum SlatePackKind {
+  incremental
+  full
+}
+
+enum SlatePackImportBatchStatus {
+  uploading
+  processing
+  completed
+}
+
+model SlatePackImportBatch {
+  oid    BigInt                     @id
+  id     String                     @unique
+  status SlatePackImportBatchStatus
+
+  expectedFileCount Int
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+  completedAt DateTime?
+
+  imports SlatePackImport[]
+
+  @@index([status, createdAt])
+}
+
+model SlatePackImport {
+  oid    BigInt                @id
+  id     String                @unique
+  status SlatePackImportStatus
+
+  fileName   String
+  size       BigInt
+  bucket     String
+  storageKey String
+
+  batchOid BigInt?
+  batch    SlatePackImportBatch? @relation(fields: [batchOid], references: [oid], onDelete: Cascade)
+
+  kind                 SlatePackKind?
+  channelUrl           String?
+  channelSubRegistryId String?
+  sequence             Int?
+  fullSyncId           String?
+  part                 Int?
+  partCount            Int?
+  coversSequence       Int?
+  manifestVerified     Boolean        @default(false)
+
+  importedCount Int @default(0)
+  skippedCount  Int @default(0)
+  conflictCount Int @default(0)
+  rejectedCount Int @default(0)
+
+  error String?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+  completedAt DateTime?
+
+  slateVersions SlateVersion[]
+  results       MirrorResult[]
+
+  @@index([batchOid])
+  @@index([channelUrl, channelSubRegistryId, kind])
+}
+
+model MirrorPackChannel {
+  oid BigInt @id
+  id  String @unique
+
+  channelUrl    String
+  subRegistryId String
+
+  watermark Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([channelUrl, subRegistryId])
+}
+
+enum SlatePackReleaseStatus {
+  ready
+  pruned
+}
+
+model SlatePackChannel {
+  oid BigInt @id
+  id  String @unique
+
+  subRegistryOid BigInt      @unique
+  subRegistry    SubRegistry @relation(fields: [subRegistryOid], references: [oid], onDelete: Cascade)
+
+  feedCursorOid     BigInt?
+  lastSequence      Int       @default(0)
+  lastFullSyncAt    DateTime?
+  lastIncrementalAt DateTime?
+  lastBuildError    String?
+  lastBuildErrorAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  releases SlatePackRelease[]
+}
+
+model SlatePackRelease {
+  oid    BigInt                 @id
+  id     String                 @unique
+  status SlatePackReleaseStatus @default(ready)
+  kind   SlatePackKind
+
+  channelOid BigInt
+  channel    SlatePackChannel @relation(fields: [channelOid], references: [oid], onDelete: Cascade)
+
+  sequence       Int?
+  fullSyncId     String?
+  part           Int?
+  partCount      Int?
+  coversSequence Int?
+
+  fileName   String
+  entryCount Int
+  size       BigInt
+  sha256     String
+  bucket     String
+  storageKey String
+
+  createdAt DateTime  @default(now())
+  prunedAt  DateTime?
+
+  @@unique([channelOid, sequence])
+  @@unique([channelOid, fullSyncId, part])
+  @@index([channelOid, kind, status])
+}
+
+enum MirrorResultStatus {
+  imported
+  skipped
+  conflict
+  rejected
+}
+
+model MirrorResult {
+  oid    BigInt             @id
+  id     String             @unique
+  status MirrorResultStatus
+
+  slateIdentifier String
+  version         String
+  message         String?
+
+  upstreamOid BigInt?
+  upstream    MirrorUpstream? @relation(fields: [upstreamOid], references: [oid], onDelete: Cascade)
+
+  packImportOid BigInt?
+  packImport    SlatePackImport? @relation(fields: [packImportOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([upstreamOid, createdAt])
+  @@index([packImportOid])
+  @@index([status, createdAt])
+}
+
+enum SlateActivationMode {
+  latest
+  pinned
+}
+
+model SlateActivation {
+  oid  BigInt              @id
+  id   String              @unique
+  mode SlateActivationMode
+
+  slateOid BigInt @unique
+  slate    Slate  @relation(fields: [slateOid], references: [oid], onDelete: Cascade)
+
+  pinnedVersionOid BigInt?
+  pinnedVersion    SlateVersion? @relation(fields: [pinnedVersionOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }

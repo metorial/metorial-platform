@@ -55,6 +55,7 @@ let catalog = (parts: Partial<Catalog>): Catalog => ({
   endpoints: [],
   offerings: [],
   names: [],
+  agents: [],
   ...parts
 });
 

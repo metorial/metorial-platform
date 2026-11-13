@@ -10,13 +10,21 @@ export type SubRegistryWithFilters = SubRegistry & {
   tenant: Tenant;
 };
 
+// Directly uploaded slates (local development) stay visible; mirrored ones need activation.
+let activatedSlateClause: Prisma.SlateWhereInput = {
+  OR: [{ activation: { isNot: null } }, { slateVersions: { some: { origin: 'upload' } } }]
+};
+
 export let buildSlateFilterClause = (
   subRegistry: SubRegistryWithFilters | null | undefined,
   tenantOid?: bigint
 ): Prisma.SlateWhereInput => {
-  let baseAccessClause: Prisma.SlateWhereInput = tenantOid
+  let tenantAccessClause: Prisma.SlateWhereInput = tenantOid
     ? { OR: [{ tenantOid }, { access: 'public' }] }
     : { access: 'public' };
+  let baseAccessClause: Prisma.SlateWhereInput = subRegistry?.onlyActivated
+    ? { AND: [tenantAccessClause, activatedSlateClause] }
+    : tenantAccessClause;
   if (!subRegistry || subRegistry.filters.length === 0) return baseAccessClause;
 
   let filterConditions: Prisma.SlateWhereInput[] = [];
@@ -52,9 +60,12 @@ export let buildChangeNotificationFilterClause = (
   subRegistry: SubRegistryWithFilters | null | undefined,
   tenantOid?: bigint
 ): Prisma.ChangeNotificationWhereInput => {
-  let baseAccessClause: Prisma.ChangeNotificationWhereInput = tenantOid
+  let tenantAccessClause: Prisma.ChangeNotificationWhereInput = tenantOid
     ? { OR: [{ tenantOid }, { slate: { access: 'public' } }] }
     : { slate: { access: 'public' } };
+  let baseAccessClause: Prisma.ChangeNotificationWhereInput = subRegistry?.onlyActivated
+    ? { AND: [tenantAccessClause, { slate: activatedSlateClause }] }
+    : tenantAccessClause;
 
   if (!subRegistry || subRegistry.filters.length === 0) return baseAccessClause;
 

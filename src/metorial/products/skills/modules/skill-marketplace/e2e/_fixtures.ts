@@ -390,17 +390,19 @@ export let useFakeOrigin = () => {
         ? await readStoredManifestFile(call.payload.previousManifest)
         : undefined,
 
-    addRepository: (input: { owner?: string; name?: string } = {}) => {
+    // Each call is a separate Origin record; pass the same owner, name or externalId to model
+    // one provider repository connected by several tenants.
+    addRepository: (input: { owner?: string; name?: string; externalId?: string } = {}) => {
       let id = uniqueId('osr');
       let owner = input.owner ?? 'e2e-owner';
       let name = input.name ?? uniqueId('repo');
       repositories.set(id, {
         object: 'origin#repository',
         id,
-        identifier: `github/${owner}/${name}`,
+        identifier: `github.com/${owner}/${name}`,
         name,
         provider: 'github',
-        externalId: uniqueId('gh'),
+        externalId: input.externalId ?? uniqueId('gh'),
         externalOwner: owner,
         externalName: name,
         externalUrl: `https://github.com/${owner}/${name}`,

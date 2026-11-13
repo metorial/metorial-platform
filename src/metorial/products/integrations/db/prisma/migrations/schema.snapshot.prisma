@@ -5811,6 +5811,9 @@ model Provider {
   status       ProviderStatus
   isDeprecated Boolean        @default(false)
 
+  isDisabled Boolean   @default(false)
+  disabledAt DateTime?
+
   hasEnvironments Boolean @default(false)
 
   identifier       String  @unique
@@ -5895,6 +5898,7 @@ model Provider {
   @@index([status])
   @@index([access])
   @@index([isDeprecated])
+  @@index([isDisabled])
 }
 
 model ProviderToolGlobal {

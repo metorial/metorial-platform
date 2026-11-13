@@ -153,17 +153,18 @@ class OrganizationMemberService {
                 include
               });
 
+          // Finish local policy writes before listeners mirror the member into other databases.
+          await accessPolicyAssignmentService.syncMemberDefaultPolicies({
+            organization: d.organization,
+            member
+          });
+
           await Fabric.fire('organization.member.created:after', {
             organization: d.organization,
             user: d.user,
             actor,
             member,
             auditScope: d.auditScope
-          });
-
-          await accessPolicyAssignmentService.syncMemberDefaultPolicies({
-            organization: d.organization,
-            member
           });
 
           await addAfterTransactionHook(() => syncOrgMemberToConsumer(member));

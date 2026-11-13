@@ -9,7 +9,7 @@ export let assistant = async (d: {
 }) => {
   let implementation = await d.implementation;
 
-  let _persisted = await db.productAssistant.upsert({
+  let persisted = await db.productAssistant.upsert({
     where: {
       slug: d.slug
     },
@@ -25,14 +25,11 @@ export let assistant = async (d: {
       name: d.name,
       slug: d.slug,
       systemIdentifier: d.systemIdentifier
-    },
-    include: {
-      implementation: true
     }
   });
 
   return {
-    _persisted,
+    _persisted: { ...persisted, implementation: implementation._persisted },
     ...d,
     implementation
   };
