@@ -1,5 +1,6 @@
 import { portalSsoAccessAuditResource } from './portalSsoAccess';
 import { resourceSet } from '../../_lib/resource';
+import { agentTelemetryIngestTokenAuditResource } from './agentTelemetryIngestToken';
 import {
   consumerAuditResource,
   consumerProfileAuditResource,
@@ -41,6 +42,7 @@ export let workforceResources = resourceSet({
   consumer_surface: consumerSurfaceAuditResource,
   consumer_session: consumerSessionAuditResource,
   consumer_device: consumerDeviceAuditResource,
+  agent_telemetry_ingest_token: agentTelemetryIngestTokenAuditResource,
   consumer_access: consumerAccessAuditResource,
   consumer_access_listing: consumerAccessListingAuditResource,
   consumer_access_request: consumerAccessRequestAuditResource,
