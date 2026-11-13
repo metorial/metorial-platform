@@ -4,45 +4,21 @@ import type {
   RecordLane
 } from '@metorial/groundstation-spec';
 import type { IngestPrincipal } from '../auth/principal';
-import { createTenantKeyDeriver } from '../crypto/keys';
+import { createOrganizationKeyDeriver } from '../crypto/keys';
 import { buildRecord, type BuildContext } from '../records/builder';
 import type { RecordDraft } from '../records/draft';
 import type { Mapped } from '../dialects/types';
+import { principalFixture, type PrincipalOverrides } from './principal';
 
 export let buildNow = new Date('2026-06-15T12:00:00.000Z');
 
-export let unitPrincipal = (
-  overrides: {
-    contentPolicy?: ContentPolicy;
-    skewBoundSeconds?: number;
-    principalRef?: string | null;
-  } = {}
-): IngestPrincipal => ({
-  tokenId: 'itk_unit',
-  principalRef: overrides.principalRef === undefined ? 'user_1' : overrides.principalRef,
-  contentPolicy: overrides.contentPolicy ?? { defaultMode: 'basic' },
-  limits: {},
-  allowedClients: [],
-  allowedChannels: [],
-  tenant: {
-    id: 'gst_unit',
-    ref: 'org_unit',
-    skewBoundSeconds: overrides.skewBoundSeconds ?? 300,
-    backfillMaxAgeDays: 30,
-    hashKeyVersion: 1,
-    recordRetentionDays: 90,
-    contentRetentionDays: 30,
-    contentKeyVersion: 1
-  }
-});
+export let unitPrincipal = (overrides: PrincipalOverrides = {}): IngestPrincipal =>
+  principalFixture({ suffix: 'unit' }, overrides);
 
-let keys = createTenantKeyDeriver('unit-test-secret');
+let keys = createOrganizationKeyDeriver('unit-test-secret');
 
-export let unitTenantKey = (principal: IngestPrincipal = unitPrincipal()) =>
-  keys.forTenant({
-    id: principal.tenant.id,
-    hashKeyVersion: principal.tenant.hashKeyVersion
-  });
+export let unitOrganizationKey = (principal: IngestPrincipal = unitPrincipal()) =>
+  keys.forOrganization(principal.organization);
 
 export let unitContext = (
   overrides: Partial<BuildContext> & { principal?: IngestPrincipal } = {}
@@ -51,7 +27,7 @@ export let unitContext = (
 
   return {
     principal,
-    tenantKey: unitTenantKey(principal),
+    organizationKey: unitOrganizationKey(principal),
     requestId: 'req_unit',
     route: 'hook',
     observedAt: buildNow,

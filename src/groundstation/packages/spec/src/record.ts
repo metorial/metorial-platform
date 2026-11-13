@@ -35,6 +35,7 @@ export let eventTypes = [
   'auth.event',
   'client.error',
   'user.feedback',
+  'session.context',
   'unmapped'
 ] as const;
 
@@ -94,6 +95,59 @@ export type RecordQuality = {
 
 export type ExtraValue = string | number | boolean;
 
+export let credentialKinds = ['token', 'source'] as const;
+
+export type CredentialKind = (typeof credentialKinds)[number];
+
+export let sessionOrigins = ['native', 'linked', 'inferred'] as const;
+
+export type SessionOrigin = (typeof sessionOrigins)[number];
+
+export let contextTagOrigins = ['source', 'repo', 'environment'] as const;
+
+export type ContextTagOrigin = (typeof contextTagOrigins)[number];
+
+export let sessionContextSources = [
+  'hook',
+  'otel',
+  'probe',
+  'plugin',
+  'transcript',
+  'vendor',
+  'credential'
+] as const;
+
+export type SessionContextSource = (typeof sessionContextSources)[number];
+
+export type SessionContextTag = { k: string; v: string; origin: ContextTagOrigin };
+
+export type SessionContextRepo = {
+  provider: string;
+  owner: string;
+  name: string;
+  url?: string;
+};
+
+export type SessionContextData = {
+  source: SessionContextSource;
+  workspace?: { root_hash: string; label?: string };
+  repo?: SessionContextRepo;
+  branch?: string;
+  head?: string;
+  tags?: SessionContextTag[];
+  ticket_refs?: string[];
+};
+
+export type RecordAttribution = {
+  user_id?: string;
+  device_id?: string;
+  agent_id?: string;
+  client_user_id?: string;
+  client_installation_id?: string;
+  repo_id?: string;
+  workspace_id?: string;
+};
+
 export type NormalizedRecord = {
   spec: typeof recordSpecVersion;
   id: string;
@@ -105,15 +159,19 @@ export type NormalizedRecord = {
   observed_at: string;
 
   ingest: {
-    tenant_id: string;
+    organization_id: string;
+    project_id: string;
+    instance_id: string;
+    credential_kind: CredentialKind;
     credential_id: string;
     route: Exclude<IngestRouteKind, 'otlp_grpc'>;
     request_id: string;
     backfill: boolean;
     batch_id?: string;
-    principal: { ref: string } | null;
     agent?: { name: string; version: string; install_id: string };
   };
+
+  attribution?: RecordAttribution;
 
   source: {
     adapter: string;
@@ -143,8 +201,12 @@ export type NormalizedRecord = {
   ctx: {
     session_id?: string;
     session_key?: string;
+    session_origin?: SessionOrigin;
+    parent_session_key?: string;
+    continues_session_key?: string;
     turn_id?: string;
     request_id?: string;
+    generation_id?: string;
     tool_call_id?: string;
     agent?: { id?: string; parent_id?: string };
     trace?: { trace_id?: string; span_id?: string; parent_span_id?: string };

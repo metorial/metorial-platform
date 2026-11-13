@@ -11,24 +11,104 @@ generator json {
   provider = "prisma-json-types-generator"
 }
 
-model Tenant {
+model Organization {
   oid BigInt @id
   id  String @unique
 
-  ref String @unique
+  ref  String  @unique
+  name String?
 
-  skewBoundSeconds   Int  @default(86400)
-  backfillMaxAgeDays Int?
-  hashKeyVersion     Int  @default(1)
+  hashKeyVersion    Int @default(1)
+  contentKeyVersion Int @default(1)
+
+  /// [OrganizationSettings]
+  settings Json @default("{}")
+
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  projects           Project[]
+  instances          Instance[]
+  ingestTokens       IngestToken[]
+  ingestSources      IngestSource[]
+  entityKinds        EntityKind[]
+  entities           Entity[]
+  entityIdentifiers  EntityIdentifier[]
+  entityLinks        EntityLink[]
+  pendingMemberships PendingMembership[]
+  attributionRules   AttributionRule[]
+  classifierLabels   ClassifierLabel[]
+  mergeSuggestions   MergeSuggestion[]
+  rebuildRuns        RebuildRun[]
+}
+
+model Project {
+  oid BigInt @id
+  id  String @unique
+
+  ref  String  @unique
+  name String?
 
   recordRetentionDays  Int @default(90)
   contentRetentionDays Int @default(30)
-  contentKeyVersion    Int @default(1)
+  usageRetentionDays   Int @default(400)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
-  ingestTokens IngestToken[]
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  instances        Instance[]
+  scopedEntities   Entity[]
+  attributionRules AttributionRule[]
+  rebuildRuns      RebuildRun[]
+
+  @@index([organizationOid])
+}
+
+model Instance {
+  oid BigInt @id
+  id  String @unique
+
+  ref  String  @unique
+  name String?
+
+  skewBoundSeconds   Int  @default(86400)
+  backfillMaxAgeDays Int?
+
+  recordRetentionDays  Int @default(90)
+  contentRetentionDays Int @default(30)
+  usageRetentionDays   Int @default(400)
+
+  /// [InstanceSettings]
+  settings Json @default("{}")
+
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid])
+
+  ingestTokens     IngestToken[]
+  ingestSources    IngestSource[]
+  scopedEntities   Entity[]
+  attributionRules AttributionRule[]
+  rebuildRuns      RebuildRun[]
+
+  @@index([organizationOid])
+  @@index([projectOid])
+}
+
+enum IngestDeviceMode {
+  bound
+  ephemeral
 }
 
 model IngestToken {
@@ -38,8 +118,7 @@ model IngestToken {
   prefix     String @unique
   secretHash String
 
-  name         String
-  principalRef String?
+  name String
 
   /// [ContentPolicy]
   contentPolicy Json
@@ -50,14 +129,361 @@ model IngestToken {
   allowedClients  String[]
   allowedChannels String[]
 
+  userRef    String
+  deviceRef  String?
+  deviceMode IngestDeviceMode @default(bound)
+  agentRef   String?
+
+  /// [IngestTags]
+  tags Json @default("[]")
+
   lastUsedAt DateTime?
   expiresAt  DateTime?
   revokedAt  DateTime?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 
-  tenantOid BigInt
-  tenant    Tenant @relation(fields: [tenantOid], references: [oid])
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
 
-  @@index([tenantOid])
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  userEntityOid BigInt
+  userEntity    Entity @relation("IngestTokenUser", fields: [userEntityOid], references: [oid])
+
+  deviceEntityOid BigInt?
+  deviceEntity    Entity? @relation("IngestTokenDevice", fields: [deviceEntityOid], references: [oid])
+
+  agentEntityOid BigInt?
+  agentEntity    Entity? @relation("IngestTokenAgent", fields: [agentEntityOid], references: [oid])
+
+  @@index([organizationOid])
+  @@index([instanceOid])
+}
+
+model IngestSource {
+  oid BigInt @id
+  id  String @unique
+
+  prefix     String @unique
+  secretHash String
+
+  name   String
+  family String
+
+  /// [ContentPolicy]
+  contentPolicy Json
+
+  /// [IngestTokenLimits]
+  limits Json
+
+  allowedChannels String[]
+
+  newUserLimitPerDay Int @default(50)
+
+  /// [IngestTags]
+  tags Json @default("[]")
+
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid])
+
+  @@index([organizationOid])
+  @@index([instanceOid])
+}
+
+enum EntityCardinality {
+  single
+  multi
+}
+
+model EntityKind {
+  oid BigInt @id
+  id  String @unique
+
+  key  String
+  name String
+
+  cardinality EntityCardinality @default(single)
+
+  /// [EntityKindAttributes]
+  attributes Json @default("{}")
+
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  @@unique([organizationOid, key])
+}
+
+enum EntityStatus {
+  managed
+  discovered
+  merged
+  archived
+}
+
+model Entity {
+  oid BigInt @id
+  id  String @unique
+
+  kind   String
+  status EntityStatus
+
+  source String?
+  ref    String?
+  slug   String?
+
+  name String?
+
+  /// [EntityAttributes]
+  attributes Json @default("{}")
+
+  needsReview Boolean @default(false)
+
+  mergedIntoOid BigInt?
+
+  firstSeenAt DateTime?
+  lastSeenAt  DateTime?
+  archivedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  scopeProjectOid BigInt?
+  scopeProject    Project? @relation(fields: [scopeProjectOid], references: [oid])
+
+  scopeInstanceOid BigInt?
+  scopeInstance    Instance? @relation(fields: [scopeInstanceOid], references: [oid])
+
+  identifiers           EntityIdentifier[]
+  outgoingLinks         EntityLink[]        @relation("EntityLinkFrom")
+  incomingLinks         EntityLink[]        @relation("EntityLinkTo")
+  userTokens            IngestToken[]       @relation("IngestTokenUser")
+  deviceTokens          IngestToken[]       @relation("IngestTokenDevice")
+  agentTokens           IngestToken[]       @relation("IngestTokenAgent")
+  pendingMemberships    PendingMembership[]
+  attributionRules      AttributionRule[]
+  classifierLabels      ClassifierLabel[]
+  discoveredSuggestions MergeSuggestion[]   @relation("MergeSuggestionDiscovered")
+  managedSuggestions    MergeSuggestion[]   @relation("MergeSuggestionManaged")
+
+  @@unique([organizationOid, kind, source, ref])
+  @@unique([organizationOid, kind, slug])
+  @@index([organizationOid, kind, status, lastSeenAt])
+  @@index([mergedIntoOid])
+}
+
+model EntityIdentifier {
+  oid BigInt @id
+  id  String @unique
+
+  kind  String
+  type  String
+  value String
+
+  createdAt DateTime @default(now())
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  entityOid BigInt
+  entity    Entity @relation(fields: [entityOid], references: [oid])
+
+  @@unique([organizationOid, kind, type, value])
+  @@index([entityOid])
+}
+
+model EntityLink {
+  oid BigInt @id
+  id  String @unique
+
+  type   String
+  origin String
+
+  weight Float?
+
+  validFrom DateTime
+  validTo   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  fromOid BigInt
+  from    Entity @relation("EntityLinkFrom", fields: [fromOid], references: [oid])
+
+  toOid BigInt
+  to    Entity @relation("EntityLinkTo", fields: [toOid], references: [oid])
+
+  @@index([organizationOid, type])
+  @@index([fromOid, type, validFrom])
+  @@index([toOid, type, validFrom])
+}
+
+model PendingMembership {
+  oid BigInt @id
+  id  String @unique
+
+  email  String
+  type   String
+  weight Float?
+
+  validFrom DateTime
+  createdAt DateTime @default(now())
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  targetEntityOid BigInt
+  targetEntity    Entity @relation(fields: [targetEntityOid], references: [oid])
+
+  @@unique([organizationOid, email, targetEntityOid, type])
+}
+
+enum AttributionRuleEffect {
+  assign
+  exclude
+}
+
+model AttributionRule {
+  oid BigInt @id
+  id  String @unique
+
+  name String
+
+  effect   AttributionRuleEffect @default(assign)
+  priority Int                   @default(0)
+  enabled  Boolean               @default(true)
+
+  /// [AttributionRuleMatch]
+  match Json
+
+  validFrom  DateTime  @default(now())
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  targetEntityOid BigInt
+  targetEntity    Entity @relation(fields: [targetEntityOid], references: [oid])
+
+  scopeProjectOid BigInt?
+  scopeProject    Project? @relation(fields: [scopeProjectOid], references: [oid])
+
+  scopeInstanceOid BigInt?
+  scopeInstance    Instance? @relation(fields: [scopeInstanceOid], references: [oid])
+
+  @@index([organizationOid, enabled])
+}
+
+model ClassifierLabel {
+  oid BigInt @id
+  id  String @unique
+
+  kind       String
+  sessionKey String
+
+  /// [ClassifierFeatures]
+  features Json
+
+  createdAt DateTime @default(now())
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  entityOid BigInt
+  entity    Entity @relation(fields: [entityOid], references: [oid])
+
+  @@unique([organizationOid, kind, sessionKey])
+  @@index([organizationOid, kind, createdAt])
+}
+
+enum MergeSuggestionStatus {
+  open
+  accepted
+  dismissed
+}
+
+model MergeSuggestion {
+  oid BigInt @id
+  id  String @unique
+
+  score   Float
+  reasons String[]
+
+  status MergeSuggestionStatus @default(open)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  discoveredEntityOid BigInt
+  discoveredEntity    Entity @relation("MergeSuggestionDiscovered", fields: [discoveredEntityOid], references: [oid])
+
+  managedEntityOid BigInt
+  managedEntity    Entity @relation("MergeSuggestionManaged", fields: [managedEntityOid], references: [oid])
+
+  @@unique([discoveredEntityOid, managedEntityOid])
+  @@index([organizationOid, status])
+}
+
+enum RebuildRunStatus {
+  queued
+  running
+  completed
+  failed
+  cancelled
+}
+
+model RebuildRun {
+  oid BigInt @id
+  id  String @unique
+
+  layers String[]
+  reason String
+
+  rangeFrom DateTime
+  rangeTo   DateTime
+
+  status RebuildRunStatus @default(queued)
+  cursor String?
+  error  String?
+
+  processed Int  @default(0)
+  total     Int?
+
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
+  @@index([organizationOid, createdAt])
+  @@index([status])
 }

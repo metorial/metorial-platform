@@ -3,21 +3,29 @@ import { v } from '@lowerdeck/validation';
 import {
   contentPolicySchema,
   ingestChannels,
+  ingestDeviceModes,
+  ingestTagsSchema,
   ingestTokenLimitsSchema
 } from '@metorial/groundstation-spec';
 import { ingestTokenPresenter } from '../presenters';
-import { ingestTokenService } from '../services';
-import { tenantApp } from './tenant';
+import { ingestTokenService, instanceService } from '../services';
+import { app, instanceApp, organizationApp } from './_app';
 
-export let ingestTokenController = tenantApp.controller({
-  create: tenantApp
+export let ingestTokenController = app.controller({
+  create: instanceApp
     .handler()
     .input(
       v.object({
-        tenantId: v.string(),
+        organizationId: v.string(),
+        instanceId: v.string(),
 
         name: v.string(),
-        principalRef: v.optional(v.string()),
+
+        userRef: v.string(),
+        deviceRef: v.optional(v.string()),
+        deviceMode: v.optional(v.enumOf(ingestDeviceModes)),
+        agentRef: v.optional(v.string()),
+        tags: v.optional(ingestTagsSchema),
 
         contentPolicy: v.optional(contentPolicySchema),
         limits: v.optional(ingestTokenLimitsSchema),
@@ -29,10 +37,15 @@ export let ingestTokenController = tenantApp.controller({
     )
     .do(async ctx => {
       let { ingestToken, secret } = await ingestTokenService.createIngestToken({
-        tenant: ctx.tenant,
+        organization: ctx.organization,
+        instance: ctx.instance,
         input: {
           name: ctx.input.name,
-          principalRef: ctx.input.principalRef,
+          userRef: ctx.input.userRef,
+          deviceRef: ctx.input.deviceRef,
+          deviceMode: ctx.input.deviceMode,
+          agentRef: ctx.input.agentRef,
+          tags: ctx.input.tags,
           contentPolicy: ctx.input.contentPolicy,
           limits: ctx.input.limits,
           allowedClients: ctx.input.allowedClients,
@@ -44,45 +57,56 @@ export let ingestTokenController = tenantApp.controller({
       return { ...ingestTokenPresenter(ingestToken), secret };
     }),
 
-  get: tenantApp
+  get: organizationApp
     .handler()
     .input(
       v.object({
-        tenantId: v.string(),
+        organizationId: v.string(),
         ingestTokenId: v.string()
       })
     )
     .do(async ctx => {
       let ingestToken = await ingestTokenService.getIngestTokenById({
-        id: ctx.input.ingestTokenId,
-        tenant: ctx.tenant
+        organization: ctx.organization,
+        ingestTokenId: ctx.input.ingestTokenId
       });
 
       return ingestTokenPresenter(ingestToken);
     }),
 
-  list: tenantApp
+  list: organizationApp
     .handler()
     .input(
       Paginator.validate(
         v.object({
-          tenantId: v.string()
+          organizationId: v.string(),
+          instanceId: v.optional(v.string())
         })
       )
     )
     .do(async ctx => {
-      let paginator = await ingestTokenService.listIngestTokens({ tenant: ctx.tenant });
+      let instance = ctx.input.instanceId
+        ? await instanceService.getInstanceById({
+            organization: ctx.organization,
+            instanceId: ctx.input.instanceId,
+            includeArchived: true
+          })
+        : undefined;
 
+      let paginator = await ingestTokenService.listIngestTokens({
+        organization: ctx.organization,
+        instance
+      });
       let list = await paginator.run(ctx.input);
 
-      return Paginator.presentLight(list, i => ingestTokenPresenter(i));
+      return Paginator.presentLight(list, ingestToken => ingestTokenPresenter(ingestToken));
     }),
 
-  update: tenantApp
+  update: organizationApp
     .handler()
     .input(
       v.object({
-        tenantId: v.string(),
+        organizationId: v.string(),
         ingestTokenId: v.string(),
 
         name: v.optional(v.string()),
@@ -97,11 +121,11 @@ export let ingestTokenController = tenantApp.controller({
     )
     .do(async ctx => {
       let ingestToken = await ingestTokenService.getIngestTokenById({
-        id: ctx.input.ingestTokenId,
-        tenant: ctx.tenant
+        organization: ctx.organization,
+        ingestTokenId: ctx.input.ingestTokenId
       });
 
-      ingestToken = await ingestTokenService.updateIngestToken({
+      let updated = await ingestTokenService.updateIngestToken({
         ingestToken,
         input: {
           name: ctx.input.name,
@@ -113,25 +137,25 @@ export let ingestTokenController = tenantApp.controller({
         }
       });
 
-      return ingestTokenPresenter(ingestToken);
+      return ingestTokenPresenter(updated);
     }),
 
-  revoke: tenantApp
+  revoke: organizationApp
     .handler()
     .input(
       v.object({
-        tenantId: v.string(),
+        organizationId: v.string(),
         ingestTokenId: v.string()
       })
     )
     .do(async ctx => {
       let ingestToken = await ingestTokenService.getIngestTokenById({
-        id: ctx.input.ingestTokenId,
-        tenant: ctx.tenant
+        organization: ctx.organization,
+        ingestTokenId: ctx.input.ingestTokenId
       });
 
-      ingestToken = await ingestTokenService.revokeIngestToken({ ingestToken });
+      let revoked = await ingestTokenService.revokeIngestToken({ ingestToken });
 
-      return ingestTokenPresenter(ingestToken);
+      return ingestTokenPresenter(revoked);
     })
 });

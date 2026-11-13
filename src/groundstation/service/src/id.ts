@@ -2,8 +2,20 @@ import { createIdGenerator, idType } from '@lowerdeck/id';
 import { Snowflake } from '@lowerdeck/snowflake';
 
 export let ID = createIdGenerator({
-  tenant: idType.sorted('gtn_'),
-  ingestToken: idType.sorted('git_')
+  organization: idType.sorted('gor_'),
+  project: idType.sorted('gpr_'),
+  instance: idType.sorted('gin_'),
+  ingestToken: idType.sorted('git_'),
+  ingestSource: idType.sorted('gis_'),
+  entityKind: idType.sorted('gek_'),
+  entity: idType.sorted('gen_'),
+  entityIdentifier: idType.sorted('gei_'),
+  entityLink: idType.sorted('gel_'),
+  pendingMembership: idType.sorted('gpm_'),
+  attributionRule: idType.sorted('gru_'),
+  classifierLabel: idType.sorted('gcl_'),
+  mergeSuggestion: idType.sorted('gms_'),
+  rebuildRun: idType.sorted('grb_')
 });
 
 let workerIdBits = 12;

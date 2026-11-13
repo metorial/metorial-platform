@@ -1,5 +1,6 @@
-import { createTenantKeyDeriver, type TenantKeyDeriver } from './crypto/keys';
+import { createOrganizationKeyDeriver, type OrganizationKeyDeriver } from './crypto/keys';
 import { env } from './env';
+import { createDefaultStages, type PipelineStage } from './pipeline';
 import { createMemorySink, type MemorySink } from './sink/memory';
 import { createMongoSink } from './sink/mongo';
 import { createNdjsonSink } from './sink/ndjson';
@@ -10,8 +11,9 @@ import type { RecordSink } from './sink/types';
 
 export type IngestRuntime = {
   sink: RecordSink;
-  keys: TenantKeyDeriver;
+  keys: OrganizationKeyDeriver;
   clock: () => Date;
+  stages: PipelineStage[];
   memorySink?: MemorySink;
 };
 
@@ -52,8 +54,9 @@ export let createRuntime = (overrides: Partial<IngestRuntime> = {}): IngestRunti
   return {
     sink: overrides.sink ?? fromEnv!.sink,
     memorySink: overrides.memorySink ?? fromEnv?.memorySink,
-    keys: overrides.keys ?? createTenantKeyDeriver(env.records.hashSecret),
-    clock: overrides.clock ?? (() => new Date())
+    keys: overrides.keys ?? createOrganizationKeyDeriver(env.records.hashSecret),
+    clock: overrides.clock ?? (() => new Date()),
+    stages: overrides.stages ?? (overrides.sink ? [] : createDefaultStages())
   };
 };
 

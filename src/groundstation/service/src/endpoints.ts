@@ -30,7 +30,7 @@ if (process.env.NODE_ENV === 'production') {
     fetch: async _ =>
       withTracingSuppressed(async () => {
         try {
-          await db.tenant.count();
+          await db.organization.count();
 
           await redis.ping();
 

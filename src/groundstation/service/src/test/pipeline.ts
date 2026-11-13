@@ -1,37 +1,16 @@
 import { gzipSync } from 'node:zlib';
 import type { ContentPolicy, NormalizedRecord } from '@metorial/groundstation-spec';
 import type { IngestPrincipal } from '../auth/principal';
-import { createTenantKeyDeriver } from '../crypto/keys';
+import { createOrganizationKeyDeriver } from '../crypto/keys';
 import { createIngestFetch } from '../ingest';
 import { createRuntime, setRuntime } from '../runtime';
 import { createMemorySink } from '../sink/memory';
+import { principalFixture, type PrincipalOverrides } from './principal';
 
 export let fixedNow = new Date('2026-06-15T12:00:00.000Z');
 
-export let testPrincipal = (
-  overrides: Partial<Omit<IngestPrincipal, 'tenant'>> & {
-    tenant?: Partial<IngestPrincipal['tenant']>;
-  } = {}
-): IngestPrincipal => ({
-  tokenId: 'itk_test',
-  principalRef: 'user_1',
-  contentPolicy: { defaultMode: 'basic' },
-  limits: {},
-  allowedClients: [],
-  allowedChannels: [],
-  ...overrides,
-  tenant: {
-    id: 'gst_tenant_1',
-    ref: 'org_1',
-    skewBoundSeconds: 300,
-    backfillMaxAgeDays: 30,
-    hashKeyVersion: 1,
-    recordRetentionDays: 90,
-    contentRetentionDays: 30,
-    contentKeyVersion: 1,
-    ...overrides.tenant
-  }
-});
+export let testPrincipal = (overrides: PrincipalOverrides = {}): IngestPrincipal =>
+  principalFixture({ suffix: 'test' }, overrides);
 
 export type SendOptions = {
   method?: string;
@@ -50,8 +29,9 @@ export let createPipeline = (
   let runtime = createRuntime({
     sink,
     memorySink: sink,
-    keys: createTenantKeyDeriver('test-hash-secret'),
-    clock: () => fixedNow
+    keys: createOrganizationKeyDeriver('test-hash-secret'),
+    clock: () => fixedNow,
+    stages: []
   });
 
   setRuntime(runtime);

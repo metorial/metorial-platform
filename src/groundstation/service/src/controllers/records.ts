@@ -24,14 +24,16 @@ export let recordsController = app.controller({
     .handler()
     .input(
       v.object({
-        tenantId: v.string(),
+        organizationId: v.optional(v.string()),
+        instanceId: v.optional(v.string()),
         lane: v.optional(v.enumOf(['live', 'backfill'])),
         limit: v.optional(v.number({ modifiers: [v.positive(), v.integer()] }))
       })
     )
     .do(async ctx => {
       let items = memorySink().list({
-        tenantId: ctx.input.tenantId,
+        organizationId: ctx.input.organizationId,
+        instanceId: ctx.input.instanceId,
         lane: ctx.input.lane,
         limit: Math.min(ctx.input.limit ?? maxListLimit, maxListLimit)
       });

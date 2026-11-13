@@ -536,6 +536,7 @@
         "@lowerdeck/api-mux": "workspace:2.0.0",
         "@lowerdeck/base62": "workspace:2.0.0",
         "@lowerdeck/cache": "workspace:2.0.0",
+        "@lowerdeck/cron": "workspace:2.0.0",
         "@lowerdeck/error": "workspace:2.0.0",
         "@lowerdeck/hash": "workspace:2.0.0",
         "@lowerdeck/id": "workspace:2.0.0",
@@ -549,6 +550,7 @@
         "@lowerdeck/telemetry": "workspace:2.0.0",
         "@lowerdeck/validation": "workspace:2.0.0",
         "@metorial/groundstation-spec": "workspace:*",
+        "@metorial/model-catalog": "workspace:*",
         "@metorial/settings": "workspace:*",
         "@metorial/shared-settings": "workspace:*",
         "@prisma/adapter-pg": "^7.10.1",
@@ -556,6 +558,7 @@
         "@prisma/extension-read-replicas": "^0.5.0",
         "@sentry/bun": "^11.9.0",
         "@sentry/cli": "^3.8.2",
+        "ioredis": "^6.0.0",
         "mongoose": "^9.11.4",
         "prisma": "^7.10.1",
         "prisma-json-types-generator": "^5.2.0",
@@ -2435,6 +2438,7 @@
         "@metorial/db": "^1.0.0",
         "@metorial/editions": "workspace:*",
         "@metorial/module-access": "^1.0.0",
+        "@metorial/module-agent-telemetry": "^1.0.0",
         "@metorial/module-audit-log": "workspace:*",
         "@metorial/module-audit-log-stream": "workspace:*",
         "@metorial/module-community": "^1.0.0",
@@ -5470,6 +5474,27 @@
         "typescript": "^5",
       },
     },
+    "src/metorial/products/workforce/modules/agent-telemetry": {
+      "name": "@metorial/module-agent-telemetry",
+      "version": "1.0.0",
+      "dependencies": {
+        "@lowerdeck/error": "workspace:2.0.0",
+        "@lowerdeck/service": "workspace:2.0.0",
+        "@lowerdeck/validation": "workspace:2.0.0",
+        "@metorial-platform-systems/groundstation-client": "workspace:*",
+        "@metorial/audit-scope": "workspace:*",
+        "@metorial/cron": "^1.0.0",
+        "@metorial/db": "^1.0.0",
+        "@metorial/fabric": "^1.0.0",
+        "@metorial/queue": "^1.0.0",
+        "@metorial/settings": "workspace:*",
+      },
+      "devDependencies": {
+        "@metorial/tsconfig": "^1.0.0",
+        "typescript": "5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
     "src/metorial/products/workforce/modules/consumer-access": {
       "name": "@metorial/module-consumer-access",
       "version": "1.0.0",
@@ -5759,6 +5784,7 @@
         "@metorial/editions": "workspace:*",
         "@metorial/logging": "1.0.0",
         "@metorial/module-access": "1.0.0",
+        "@metorial/module-agent-telemetry": "1.0.0",
         "@metorial/module-audit-log": "1.0.0",
         "@metorial/module-audit-log-stream": "1.0.0",
         "@metorial/module-audit-tracker": "1.0.0",
@@ -8417,6 +8443,8 @@
     "@metorial/model-catalog": ["@metorial/model-catalog@workspace:src/products/agents/data/models"],
 
     "@metorial/module-access": ["@metorial/module-access@workspace:src/metorial/products/core/modules/access"],
+
+    "@metorial/module-agent-telemetry": ["@metorial/module-agent-telemetry@workspace:src/metorial/products/workforce/modules/agent-telemetry"],
 
     "@metorial/module-audit-log": ["@metorial/module-audit-log@workspace:src/metorial/products/auditing/modules/audit-log"],
 

@@ -1,34 +1,36 @@
 import { createHash, createHmac } from 'node:crypto';
 
-let tenantKeyCacheSize = 1024;
+let organizationKeyCacheSize = 1024;
 
 let truncatedBytes = 16;
 
-export type TenantKey = { tenantId: string; version: number; key: Buffer };
+export type OrganizationKey = { organizationId: string; version: number; key: Buffer };
 
-export type TenantKeyDeriver = {
-  forTenant: (tenant: { id: string; hashKeyVersion: number }) => TenantKey;
+export type OrganizationKeyDeriver = {
+  forOrganization: (organization: { id: string; hashKeyVersion: number }) => OrganizationKey;
 };
 
-export let createTenantKeyDeriver = (secret: string): TenantKeyDeriver => {
-  let cache = new Map<string, TenantKey>();
+export let createOrganizationKeyDeriver = (secret: string): OrganizationKeyDeriver => {
+  let cache = new Map<string, OrganizationKey>();
 
   return {
-    forTenant: tenant => {
-      let cacheKey = `${tenant.hashKeyVersion}\0${tenant.id}`;
+    forOrganization: organization => {
+      let cacheKey = `${organization.hashKeyVersion}\0${organization.id}`;
       let cached = cache.get(cacheKey);
 
       if (cached) return cached;
 
-      let derived: TenantKey = {
-        tenantId: tenant.id,
-        version: tenant.hashKeyVersion,
+      let derived: OrganizationKey = {
+        organizationId: organization.id,
+        version: organization.hashKeyVersion,
         key: createHmac('sha256', secret)
-          .update(`groundstation/tenant-key/v${tenant.hashKeyVersion}/${tenant.id}`)
+          .update(
+            `groundstation/organization-key/v${organization.hashKeyVersion}/${organization.id}`
+          )
           .digest()
       };
 
-      if (cache.size >= tenantKeyCacheSize) {
+      if (cache.size >= organizationKeyCacheSize) {
         let oldest = cache.keys().next().value;
         if (oldest !== undefined) cache.delete(oldest);
       }
@@ -41,11 +43,11 @@ export let createTenantKeyDeriver = (secret: string): TenantKeyDeriver => {
 };
 
 export let hmac128 = (
-  tenantKey: TenantKey,
+  organizationKey: OrganizationKey,
   purpose: string,
   ...parts: (string | Uint8Array)[]
 ) => {
-  let hmac = createHmac('sha256', tenantKey.key);
+  let hmac = createHmac('sha256', organizationKey.key);
 
   hmac.update(purpose);
 
@@ -60,11 +62,22 @@ export let hmac128 = (
 export let sha256Hex = (input: string | Uint8Array) =>
   createHash('sha256').update(input).digest('hex');
 
-export let recordId = (tenantKey: TenantKey, adapterNs: string, identity: string) =>
-  hmac128(tenantKey, 'record', adapterNs, identity);
+export let recordId = (
+  organizationKey: OrganizationKey,
+  instanceId: string,
+  adapterNs: string,
+  identity: string
+) => hmac128(organizationKey, 'record', instanceId, adapterNs, identity);
 
-export let sessionKey = (tenantKey: TenantKey, family: string, sessionId: string) =>
-  hmac128(tenantKey, 'session', family, sessionId);
+export let sessionKey = (
+  organizationKey: OrganizationKey,
+  instanceId: string,
+  family: string,
+  sessionId: string
+) => hmac128(organizationKey, 'session', instanceId, family, sessionId);
 
-export let contentHash = (tenantKey: TenantKey, role: string, text: string | Uint8Array) =>
-  hmac128(tenantKey, `content/${role}`, text);
+export let contentHash = (
+  organizationKey: OrganizationKey,
+  role: string,
+  text: string | Uint8Array
+) => hmac128(organizationKey, `content/${role}`, text);
