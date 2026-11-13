@@ -62,16 +62,14 @@ import {
   DEVICE_REQUEST_TTL_MINUTES,
   INTERACTIVE_REQUEST_TTL_MINUTES
 } from '../lib/oauthAuthorizationTokens';
+import { installationInclude } from '../lib/oauthInstallationInclude';
 import { validateOAuthScopes } from '../lib/oauthScopeValidation';
 import { urlsMatch, validateRedirectUri } from '../lib/oauthUrls';
 import { splitOAuthAndOidcScopes } from '../lib/oidc';
 import { cliDeviceService } from './cliDevice';
 import { machineAccessInclude, type OAuthTokenWithAuthorization } from './machineAccessAuth';
 import { oauthApplicationService } from './oauthApplication';
-import {
-  installationInclude,
-  oauthAuthorizationInstallationService
-} from './oauthAuthorizationInstallation';
+import { oauthAuthorizationInstallationService } from './oauthAuthorizationInstallation';
 
 class OAuthAuthorizationService {
   private assertRefreshTokenNotRateLimited(oauthToken: OAuthToken) {

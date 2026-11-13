@@ -26,14 +26,12 @@ import { generateCustomId } from '@metorial/id';
 import { organizationActorService } from '@metorial/module-organization/src/services/organizationActor';
 import { addHours } from 'date-fns';
 import { ensureScopesAllowed } from '../lib/oauthAuthorizationGuards';
+import { installationInclude } from '../lib/oauthInstallationInclude';
 import { validateOAuthScopes } from '../lib/oauthScopeValidation';
 import { machineAccessService } from './machineAccess';
 import { machineAccessInclude } from './machineAccessAuth';
 import { authorizationInclude, oauthAuthorizationService } from './oauthAuthorization';
-import {
-  installationInclude,
-  oauthAuthorizationInstallationService
-} from './oauthAuthorizationInstallation';
+import { oauthAuthorizationInstallationService } from './oauthAuthorizationInstallation';
 
 let INTERNAL_TOKEN_REFRESH_BEFORE_HOURS = 1;
 
