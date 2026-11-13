@@ -68,8 +68,11 @@ class tenantServiceImpl {
         where: { identifier: d.input.identifier }
       });
 
+      let reducedSubprocessors =
+        d.input.reducedSubprocessors ?? existingTenant?.reducedSubprocessors ?? false;
       let aiAnalysisEnabled =
-        d.input.aiAnalysisEnabled ?? existingTenant?.aiAnalysisEnabled ?? false;
+        !reducedSubprocessors &&
+        (d.input.aiAnalysisEnabled ?? existingTenant?.aiAnalysisEnabled ?? false);
 
       let tenantUpdate = {
         name: d.input.name,
@@ -94,7 +97,7 @@ class tenantServiceImpl {
         disableCallbacks: d.input.disableCallbacks,
         reducedSubprocessors: d.input.reducedSubprocessors,
         assistantEnabled: d.input.assistantEnabled,
-        aiAnalysisEnabled: d.input.aiAnalysisEnabled,
+        aiAnalysisEnabled: reducedSubprocessors ? false : d.input.aiAnalysisEnabled,
         usageReviewsEnabled: aiAnalysisEnabled ? d.input.usageReviewsEnabled : false,
         allowApiAccessToConsumerOwnedResources: d.input.allowApiAccessToConsumerOwnedResources,
         allowMemberAccessToConsumerOwnedResources:
@@ -142,10 +145,9 @@ class tenantServiceImpl {
                 disableCallbacks: d.input.disableCallbacks ?? false,
                 reducedSubprocessors: d.input.reducedSubprocessors ?? false,
                 assistantEnabled: d.input.assistantEnabled ?? true,
-                aiAnalysisEnabled: d.input.aiAnalysisEnabled ?? false,
+                aiAnalysisEnabled,
                 usageReviewsEnabled:
-                  (d.input.aiAnalysisEnabled ?? false) &&
-                  (d.input.usageReviewsEnabled ?? false),
+                  aiAnalysisEnabled && (d.input.usageReviewsEnabled ?? false),
                 allowApiAccessToConsumerOwnedResources:
                   d.input.allowApiAccessToConsumerOwnedResources,
                 allowMemberAccessToConsumerOwnedResources:

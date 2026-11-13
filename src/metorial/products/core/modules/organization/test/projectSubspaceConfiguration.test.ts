@@ -226,7 +226,9 @@ describe('project integrations-backed configuration setters', () => {
     expect(mocks.projectUpdate).toHaveBeenCalledWith({
       where: { oid: 1n },
       data: {
-        reducedSubprocessors: true
+        reducedSubprocessors: true,
+        aiAnalysisEnabled: false,
+        usageReviewsEnabled: false
       }
     });
   });
@@ -333,6 +335,66 @@ describe('project integrations-backed configuration setters', () => {
       })
     );
   });
+
+  it('returns AI settings as disabled for existing reduced-subprocessor projects', async () => {
+    mocks.ensureForProject.mockResolvedValue({
+      tenant: {
+        ...tenant,
+        reducedSubprocessors: true,
+        aiAnalysisEnabled: true,
+        usageReviewsEnabled: true
+      }
+    });
+
+    let result =
+      await projectAiAnalysisConfigurationService.getProjectAiAnalysisConfiguration(common);
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        reducedSubprocessors: true,
+        aiAnalysisEnabled: false,
+        usageReviewsEnabled: false
+      })
+    );
+  });
+
+  it.each([{}, { aiAnalysisEnabled: true, usageReviewsEnabled: true }])(
+    'forces AI settings off when updating a reduced-subprocessor project with %j',
+    async input => {
+      let currentTenant = {
+        ...tenant,
+        reducedSubprocessors: true,
+        aiAnalysisEnabled: true,
+        usageReviewsEnabled: true
+      };
+      mocks.ensureForProject.mockResolvedValue({ tenant: currentTenant });
+      mocks.upsertTenant.mockImplementation(async ({ input }) => ({
+        ...currentTenant,
+        ...input
+      }));
+      mocks.projectUpdate.mockImplementation(async ({ data }) => ({
+        ...project,
+        reducedSubprocessors: true,
+        ...data
+      }));
+
+      let result =
+        await projectAiAnalysisConfigurationService.updateProjectAiAnalysisConfiguration({
+          ...common,
+          input
+        });
+
+      let expectedSettings = { aiAnalysisEnabled: false, usageReviewsEnabled: false };
+      expect(mocks.upsertTenant).toHaveBeenCalledWith({
+        input: expect.objectContaining(expectedSettings)
+      });
+      expect(mocks.projectUpdate).toHaveBeenCalledWith({
+        where: { oid: project.oid },
+        data: expect.objectContaining(expectedSettings)
+      });
+      expect(result).toEqual(expect.objectContaining(expectedSettings));
+    }
+  );
 
   it.each([
     {

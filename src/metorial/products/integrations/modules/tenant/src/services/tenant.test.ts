@@ -205,6 +205,82 @@ describe('tenantService.upsertTenant', () => {
     }
   );
 
+  it('forces AI settings off when creating a reduced-subprocessor tenant', async () => {
+    mocks.tenantFindUnique.mockResolvedValue(null);
+
+    await tenantService.upsertTenant({
+      input: {
+        ...input,
+        reducedSubprocessors: true,
+        aiAnalysisEnabled: true,
+        usageReviewsEnabled: true
+      }
+    });
+
+    expect(mocks.tenantUpsert.mock.calls[0]![0].create).toEqual(
+      expect.objectContaining({
+        reducedSubprocessors: true,
+        aiAnalysisEnabled: false,
+        usageReviewsEnabled: false
+      })
+    );
+  });
+
+  it.each([
+    { currentReduced: false, reducedSubprocessors: true },
+    { currentReduced: true, reducedSubprocessors: undefined },
+    { currentReduced: true, reducedSubprocessors: true }
+  ])(
+    'forces AI settings off on update with restriction $currentReduced → $reducedSubprocessors',
+    async ({ currentReduced, reducedSubprocessors }) => {
+      mocks.tenantFindUnique.mockResolvedValue({
+        ...tenant,
+        reducedSubprocessors: currentReduced,
+        aiAnalysisEnabled: true,
+        usageReviewsEnabled: true
+      });
+
+      for (let aiAnalysisEnabled of [undefined, true]) {
+        await tenantService.upsertTenant({
+          input: {
+            ...input,
+            reducedSubprocessors,
+            aiAnalysisEnabled,
+            usageReviewsEnabled: true
+          }
+        });
+      }
+
+      for (let [write] of mocks.tenantUpsert.mock.calls) {
+        expect(write.update).toEqual(
+          expect.objectContaining({ aiAnalysisEnabled: false, usageReviewsEnabled: false })
+        );
+      }
+      expect(mocks.tenantUpsert).toHaveBeenCalledTimes(2);
+    }
+  );
+
+  it('allows AI settings to be explicitly enabled when leaving reduced-subprocessor mode', async () => {
+    mocks.tenantFindUnique.mockResolvedValue({ ...tenant, reducedSubprocessors: true });
+
+    await tenantService.upsertTenant({
+      input: {
+        ...input,
+        reducedSubprocessors: false,
+        aiAnalysisEnabled: true,
+        usageReviewsEnabled: true
+      }
+    });
+
+    expect(mocks.tenantUpsert.mock.calls[0]![0].update).toEqual(
+      expect.objectContaining({
+        reducedSubprocessors: false,
+        aiAnalysisEnabled: true,
+        usageReviewsEnabled: true
+      })
+    );
+  });
+
   it.each([undefined, true, false])(
     'sets the creation policy to %s without updating it',
     async value => {

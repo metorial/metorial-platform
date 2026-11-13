@@ -29,8 +29,9 @@ class ProjectAiAnalysisConfigurationService {
     return {
       assistantEnabled: tenant.assistantEnabled,
       reducedSubprocessors: tenant.reducedSubprocessors,
-      aiAnalysisEnabled: tenant.aiAnalysisEnabled,
-      usageReviewsEnabled: tenant.usageReviewsEnabled,
+      aiAnalysisEnabled: tenant.aiAnalysisEnabled && !tenant.reducedSubprocessors,
+      usageReviewsEnabled:
+        tenant.usageReviewsEnabled && tenant.aiAnalysisEnabled && !tenant.reducedSubprocessors,
       skillReviewHoldPending: d.project.skillReviewHoldPending
     };
   }
@@ -52,7 +53,8 @@ class ProjectAiAnalysisConfigurationService {
 
     let tenant = await this.getSubspaceTenantForProject(d.project);
 
-    let aiAnalysisEnabled = d.input.aiAnalysisEnabled ?? tenant.aiAnalysisEnabled;
+    let aiAnalysisEnabled =
+      !tenant.reducedSubprocessors && (d.input.aiAnalysisEnabled ?? tenant.aiAnalysisEnabled);
     let usageReviewsEnabled =
       aiAnalysisEnabled && (d.input.usageReviewsEnabled ?? tenant.usageReviewsEnabled);
 
