@@ -1,5 +1,6 @@
 import type { NormalizedRecord } from '@metorial/groundstation-spec';
-import type { OtlpDecoded, OtlpGroup } from '../otlp/model';
+import type { OtlpAttributes, OtlpDecoded, OtlpGroup } from '../otlp/model';
+import { readOtlpContext, withOtlpContext } from './context';
 import { claudeCodeOtlp } from './otlp/claudeCode';
 import { groupContext } from './otlp/common';
 import { codexOtlp } from './otlp/codex';
@@ -48,6 +49,9 @@ export let mapOtlpGroup = <T>(signal: OtlpSignal, group: OtlpGroup<T>): MappedGr
   let suppressed = 0;
   let failed = 0;
 
+  let resourceContext =
+    dialect == quarantineOtlp ? null : readOtlpContext(group.resource.attributes);
+
   for (let item of group.items) {
     if (!map) {
       suppressed++;
@@ -56,6 +60,13 @@ export let mapOtlpGroup = <T>(signal: OtlpSignal, group: OtlpGroup<T>): MappedGr
 
     try {
       let result = map(context, item);
+      if (resourceContext) {
+        result = withOtlpContext(
+          result,
+          (item as { attributes?: OtlpAttributes }).attributes ?? {},
+          resourceContext
+        );
+      }
 
       if (result.length == 0) suppressed++;
       else for (let entry of result) mapped.push(entry);

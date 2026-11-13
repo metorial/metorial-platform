@@ -20,6 +20,7 @@ export type IngestRequest = {
   // Already decompressed and size-capped; reading it can fail with a ServiceError.
   body: ReadableStream<Uint8Array> | null;
   raw: Request;
+  remoteAddress?: string;
 };
 
 export type AuthenticatedIngestRequest = IngestRequest & {

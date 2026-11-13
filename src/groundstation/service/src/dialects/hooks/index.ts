@@ -1,4 +1,5 @@
-import { readFields } from '../fields';
+import { withHookContext } from '../context';
+import { readFields, withCoerced } from '../fields';
 import type { HookDialect, Mapped } from '../types';
 import { nativeLabel } from '../values';
 import { createCompatibleHookDialect } from './compatible';
@@ -30,8 +31,9 @@ export let createGenericHooks = (client: string): HookDialect => ({
       'unknown';
 
     let sessionId = fields.str('session_id', 'sessionId', 'conversation_id', 'conversationId');
+    let email = fields.str('user_email', 'userEmail');
 
-    return [
+    let mapped: Mapped[] = [
       {
         source: { adapter: 'generic', dialect: genericHooksId, channel: 'hook' },
         draft: {
@@ -41,12 +43,23 @@ export let createGenericHooks = (client: string): HookDialect => ({
           signalName: event,
           occurredAt: context.occurredAt ?? null,
           client: { family: client },
-          ctx: { sessionId },
+          ...(email ? { actor: { user: { email }, identity_source: 'client_claim' } } : {}),
+          ctx: {
+            sessionId,
+            parentSessionId: fields.str(
+              'parent_conversation_id',
+              'parentConversationId',
+              'parentID'
+            ),
+            generationId: fields.str('generation_id', 'generationId')
+          },
           data: { native_name: event },
           coerced: fields.coerced
         }
       }
     ];
+
+    return withCoerced(withHookContext(mapped, fields, event), fields);
   }
 });
 

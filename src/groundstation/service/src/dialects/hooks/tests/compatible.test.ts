@@ -6,7 +6,9 @@ import { claudeHookPayloads, hookTime, sentinel } from './fixtures';
 let context = { identityHint: 'hint-1', occurredAt: hookTime };
 
 let mapOne = (payload: Record<string, unknown>, dialect = claudeCodeHooks) => {
-  let mapped = dialect.map(context, payload);
+  let mapped = dialect
+    .map(context, payload)
+    .filter(entry => entry.draft.type != 'session.context');
 
   expect(mapped).toHaveLength(1);
 

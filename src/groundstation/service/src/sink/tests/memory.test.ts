@@ -9,40 +9,57 @@ let record = (id: string) => ({ id }) as NormalizedRecord;
 
 let batch = (
   ids: string[],
-  tenantId = 't1',
+  scope: { organizationId: string; instanceId: string } = {
+    organizationId: 'gor_1',
+    instanceId: 'gin_1'
+  },
   lane: RecordBatch['lane'] = 'live'
 ): RecordBatch => ({
   lane,
-  tenantId,
+  ...scope,
+  projectId: 'gpr_1',
   storage: defaultStoragePolicy,
   records: ids.map(record)
 });
 
+let org1 = { organizationId: 'gor_1', instanceId: 'gin_1' };
+let org1Other = { organizationId: 'gor_1', instanceId: 'gin_2' };
+let org2 = { organizationId: 'gor_2', instanceId: 'gin_3' };
+
 describe('createMemorySink', () => {
-  it('stores records in write order with their tenant and lane', async () => {
+  it('stores records in write order with their scope and lane', async () => {
     let sink = createMemorySink();
 
-    await sink.write(batch(['a', 'b'], 't1', 'live'));
-    await sink.write(batch(['c'], 't2', 'backfill'));
+    await sink.write(batch(['a', 'b'], org1, 'live'));
+    await sink.write(batch(['c'], org2, 'backfill'));
 
     expect(sink.size()).toBe(3);
     expect(sink.list().map(item => item.record.id)).toEqual(['a', 'b', 'c']);
-    expect(sink.list()[2]).toMatchObject({ tenantId: 't2', lane: 'backfill' });
+    expect(sink.list()[2]).toMatchObject({
+      organizationId: 'gor_2',
+      projectId: 'gpr_1',
+      instanceId: 'gin_3',
+      lane: 'backfill'
+    });
   });
 
-  it('filters by tenant and lane', async () => {
+  it('filters by organization, instance and lane', async () => {
     let sink = createMemorySink();
 
-    await sink.write(batch(['a'], 't1', 'live'));
-    await sink.write(batch(['b'], 't2', 'live'));
-    await sink.write(batch(['c'], 't1', 'backfill'));
+    await sink.write(batch(['a'], org1, 'live'));
+    await sink.write(batch(['b'], org2, 'live'));
+    await sink.write(batch(['c'], org1, 'backfill'));
+    await sink.write(batch(['d'], org1Other, 'live'));
 
-    expect(sink.list({ tenantId: 't1' }).map(i => i.record.id)).toEqual(['a', 'c']);
-    expect(sink.list({ lane: 'live' }).map(i => i.record.id)).toEqual(['a', 'b']);
-    expect(sink.list({ tenantId: 't1', lane: 'backfill' }).map(i => i.record.id)).toEqual([
-      'c'
-    ]);
-    expect(sink.list({ tenantId: 'none' })).toEqual([]);
+    let ids = (filter: Parameters<typeof sink.list>[0]) =>
+      sink.list(filter).map(item => item.record.id);
+
+    expect(ids({ organizationId: 'gor_1' })).toEqual(['a', 'c', 'd']);
+    expect(ids({ instanceId: 'gin_2' })).toEqual(['d']);
+    expect(ids({ organizationId: 'gor_1', instanceId: 'gin_1' })).toEqual(['a', 'c']);
+    expect(ids({ lane: 'live' })).toEqual(['a', 'b', 'd']);
+    expect(ids({ organizationId: 'gor_1', lane: 'backfill' })).toEqual(['c']);
+    expect(ids({ organizationId: 'none' })).toEqual([]);
   });
 
   it('limits to the most recent matches', async () => {
@@ -70,6 +87,28 @@ describe('createMemorySink', () => {
     await sink.write(batch(['a', 'b', 'c', 'd']));
 
     expect(sink.list().map(i => i.record.id)).toEqual(['c', 'd']);
+  });
+
+  it('erases one organization, project or instance', async () => {
+    let sink = createMemorySink();
+
+    await sink.write(batch(['a'], org1));
+    await sink.write(batch(['b'], org1Other));
+    await sink.write(batch(['c'], org2));
+    await sink.write({ ...batch(['d'], org1), projectId: 'gpr_2' });
+
+    let ids = () => sink.list().map(item => item.record.id);
+
+    expect(sink.erase({ organizationId: 'gor_1', instanceId: 'gin_2' })).toBe(1);
+    expect(ids()).toEqual(['a', 'c', 'd']);
+
+    expect(sink.erase({ organizationId: 'gor_1', projectId: 'gpr_1' })).toBe(1);
+    expect(ids()).toEqual(['c', 'd']);
+
+    expect(sink.erase({ organizationId: 'gor_1' })).toBe(1);
+    expect(ids()).toEqual(['c']);
+
+    expect(sink.erase({ organizationId: 'gor_1' })).toBe(0);
   });
 
   it('clears', async () => {

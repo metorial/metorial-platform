@@ -5,42 +5,42 @@ let ivBytes = 12;
 let tagBytes = 16;
 let algorithm = 'aes-256-gcm' as const;
 
-export type ContentKey = { tenantId: string; version: number; key: Buffer };
+export type ContentKey = { organizationId: string; version: number; key: Buffer };
 
 export type EncryptedText = { iv: Buffer; ciphertext: Buffer };
 
 export type ContentCipher = {
-  forTenant: (tenant: { id: string; contentKeyVersion: number }) => ContentKey;
+  forOrganization: (organization: { id: string; contentKeyVersion: number }) => ContentKey;
   encrypt: (key: ContentKey, text: string, aad: string) => EncryptedText;
   decrypt: (key: ContentKey, encrypted: EncryptedText, aad: string) => string;
 };
 
 export let contentAad = (d: {
-  tenantId: string;
+  organizationId: string;
   recordId: string;
   index: number;
   role: string;
-}) => `${d.tenantId}\0${d.recordId}\0${d.index}\0${d.role}`;
+}) => `${d.organizationId}\0${d.recordId}\0${d.index}\0${d.role}`;
 
 export let createContentCipher = (secret: string): ContentCipher => {
   let cache = new Map<string, ContentKey>();
 
   return {
-    forTenant: tenant => {
-      let cacheKey = `${tenant.contentKeyVersion}\0${tenant.id}`;
+    forOrganization: organization => {
+      let cacheKey = `${organization.contentKeyVersion}\0${organization.id}`;
       let cached = cache.get(cacheKey);
 
       if (cached) return cached;
 
       let derived: ContentKey = {
-        tenantId: tenant.id,
-        version: tenant.contentKeyVersion,
+        organizationId: organization.id,
+        version: organization.contentKeyVersion,
         key: Buffer.from(
           hkdfSync(
             'sha256',
             secret,
             'groundstation/content-key',
-            `v${tenant.contentKeyVersion}/${tenant.id}`,
+            `v${organization.contentKeyVersion}/${organization.id}`,
             32
           )
         )

@@ -32,8 +32,11 @@ export type RecordDraft = {
 
   ctx?: {
     sessionId?: string;
+    parentSessionId?: string;
+    previousSessionId?: string;
     turnId?: string;
     requestId?: string;
+    generationId?: string;
     toolCallId?: string;
     agent?: { id?: string; parentId?: string };
     trace?: { traceId?: string; spanId?: string; parentSpanId?: string };

@@ -2,9 +2,11 @@ import type {
   ContentMode,
   ContentRole,
   ContentState,
+  CredentialKind,
   ExtraValue,
   IngestChannel,
-  RecordRole
+  RecordRole,
+  SessionOrigin
 } from '@metorial/groundstation-spec';
 import mongoose from 'mongoose';
 
@@ -24,9 +26,21 @@ export type StoredContentEntry = {
 
 export type StoredExtra = { k: string; v: ExtraValue };
 
+export type StoredAttribution = {
+  userId?: string;
+  deviceId?: string;
+  agentId?: string;
+  clientUserId?: string;
+  clientInstallationId?: string;
+  repoId?: string;
+  workspaceId?: string;
+};
+
 export type RecordDocument = {
   _id: string;
-  tenantId: string;
+  organizationId: string;
+  projectId: string;
+  instanceId: string;
   spec: string;
   type: string;
 
@@ -36,12 +50,12 @@ export type RecordDocument = {
   expiresAt: Date;
 
   ingest: {
+    credentialKind: CredentialKind;
     credentialId: string;
     route: string;
     requestId: string;
     backfill: boolean;
     batchId?: string;
-    principalRef?: string;
     agent?: { name: string; version: string; installId: string };
   };
 
@@ -70,11 +84,17 @@ export type RecordDocument = {
     identitySource: 'client_claim' | 'credential' | 'resource_attribute';
   };
 
+  attribution?: StoredAttribution;
+
   ctx: {
     sessionId?: string;
     sessionKey?: string;
+    sessionOrigin?: SessionOrigin;
+    parentSessionKey?: string;
+    continuesSessionKey?: string;
     turnId?: string;
     requestId?: string;
+    generationId?: string;
     toolCallId?: string;
     agent?: { id?: string; parentId?: string };
     trace?: { traceId?: string; spanId?: string; parentSpanId?: string };
@@ -97,7 +117,9 @@ export type RecordDocument = {
 
 export type ContentTextDocument = {
   _id: string;
-  tenantId: string;
+  organizationId: string;
+  projectId: string;
+  instanceId: string;
   recordId: string;
   index: number;
   role: ContentRole;
@@ -116,7 +138,9 @@ let Mixed = mongoose.Schema.Types.Mixed;
 
 let recordSchemaDefinition = {
   _id: String,
-  tenantId: String,
+  organizationId: String,
+  projectId: String,
+  instanceId: String,
   spec: String,
   type: String,
 
@@ -129,6 +153,7 @@ let recordSchemaDefinition = {
   source: Mixed,
   client: Mixed,
   actor: Mixed,
+  attribution: Mixed,
   ctx: Mixed,
   workspace: Mixed,
 
@@ -144,14 +169,19 @@ export let EventSchema = new mongoose.Schema<RecordDocument>(
 );
 
 EventSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-EventSchema.index({ tenantId: 1, occurredAt: -1 });
+EventSchema.index({ organizationId: 1, occurredAt: -1 });
+EventSchema.index({ organizationId: 1, instanceId: 1, occurredAt: -1 });
 EventSchema.index(
-  { tenantId: 1, 'ctx.sessionKey': 1, occurredAt: 1 },
+  { organizationId: 1, 'ctx.sessionKey': 1, occurredAt: 1 },
   { partialFilterExpression: { 'ctx.sessionKey': { $exists: true } } }
 );
 EventSchema.index(
-  { tenantId: 1, 'source.factKey': 1 },
+  { organizationId: 1, 'source.factKey': 1 },
   { partialFilterExpression: { 'source.factKey': { $exists: true } } }
+);
+EventSchema.index(
+  { organizationId: 1, 'attribution.userId': 1, occurredAt: -1 },
+  { partialFilterExpression: { 'attribution.userId': { $exists: true } } }
 );
 
 export let MeasurementSchema = new mongoose.Schema<RecordDocument>(
@@ -160,12 +190,19 @@ export let MeasurementSchema = new mongoose.Schema<RecordDocument>(
 );
 
 MeasurementSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-MeasurementSchema.index({ tenantId: 1, type: 1, occurredAt: -1 });
+MeasurementSchema.index({ organizationId: 1, type: 1, occurredAt: -1 });
+MeasurementSchema.index({ organizationId: 1, instanceId: 1, occurredAt: -1 });
+MeasurementSchema.index(
+  { organizationId: 1, 'attribution.userId': 1, occurredAt: -1 },
+  { partialFilterExpression: { 'attribution.userId': { $exists: true } } }
+);
 
 export let ContentTextSchema = new mongoose.Schema<ContentTextDocument>(
   {
     _id: String,
-    tenantId: String,
+    organizationId: String,
+    projectId: String,
+    instanceId: String,
     recordId: String,
     index: Number,
     role: String,
@@ -181,7 +218,8 @@ export let ContentTextSchema = new mongoose.Schema<ContentTextDocument>(
 );
 
 ContentTextSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-ContentTextSchema.index({ tenantId: 1, expiresAt: 1 });
+ContentTextSchema.index({ organizationId: 1, expiresAt: 1 });
+ContentTextSchema.index({ organizationId: 1, instanceId: 1 });
 
 export let collectionNames = {
   events: 'events',

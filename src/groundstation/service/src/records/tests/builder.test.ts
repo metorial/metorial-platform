@@ -6,7 +6,7 @@ import {
   buildDraft,
   unitContext,
   unitPrincipal,
-  unitTenantKey
+  unitOrganizationKey
 } from '../../test/build';
 import { buildRecord, isPlausibleTime, safeLabel } from '../builder';
 import type { RecordDraft } from '../draft';
@@ -95,24 +95,26 @@ describe('buildRecord shape', () => {
       { batchId: 'batch_1', agent: { name: 'cli', version: '1', install_id: 'inst' } }
     );
 
-    let key = unitTenantKey();
+    let key = unitOrganizationKey();
 
     expect(record).toMatchObject({
       spec: recordSpecVersion,
-      id: recordId(key, 'test/hook', 'id-1'),
+      id: recordId(key, 'gin_unit', 'test/hook', 'id-1'),
       kind: 'event',
       type: 'tool.call',
       occurred_at: '2026-06-15T11:59:00.000Z',
       duration_ms: 13,
       observed_at: buildNow.toISOString(),
       ingest: {
-        tenant_id: 'gst_unit',
-        credential_id: 'itk_unit',
+        organization_id: 'gor_unit',
+        project_id: 'gpr_unit',
+        instance_id: 'gin_unit',
+        credential_kind: 'token',
+        credential_id: 'git_unit',
         route: 'hook',
         request_id: 'req_unit',
         backfill: false,
         batch_id: 'batch_1',
-        principal: { ref: 'user_1' },
         agent: { name: 'cli', version: '1', install_id: 'inst' }
       },
       source: {
@@ -129,7 +131,7 @@ describe('buildRecord shape', () => {
       workspace: { os: 'darwin' },
       ctx: {
         session_id: 's1',
-        session_key: sessionKey(key, 'claude-code', 's1'),
+        session_key: sessionKey(key, 'gin_unit', 'claude-code', 's1'),
         turn_id: 't1',
         request_id: 'r1',
         tool_call_id: 'c1',
@@ -177,10 +179,25 @@ describe('buildRecord shape', () => {
     expect(Object.values(record.client)).not.toContain(undefined);
   });
 
-  it('records a null principal when the token has none', () => {
-    let record = buildDraft(draft(), { principal: unitPrincipal({ principalRef: null }) });
+  it('fills the scope and credential from a source principal', () => {
+    let principal = unitPrincipal({
+      credential: { kind: 'source', id: 'gis_cursor', family: 'cursor' },
+      binding: { userId: undefined, deviceId: undefined, deviceMode: 'vendor' },
+      organization: { id: 'gor_other' },
+      project: { id: 'gpr_other' },
+      instance: { id: 'gin_other' }
+    });
 
-    expect(record.ingest.principal).toBeNull();
+    let record = buildDraft(draft(), { principal });
+
+    expect(record.ingest).toMatchObject({
+      organization_id: 'gor_other',
+      project_id: 'gpr_other',
+      instance_id: 'gin_other',
+      credential_kind: 'source',
+      credential_id: 'gis_cursor'
+    });
+    expect(record).not.toHaveProperty('attribution');
   });
 
   it('marks backfill-lane records', () => {
@@ -278,7 +295,7 @@ describe('buildRecord time rules', () => {
     expect(record.quality.warnings).toEqual(['time_unknown']);
   });
 
-  it('flags clock skew beyond the tenant bound in either direction', () => {
+  it('flags clock skew beyond the instance bound in either direction', () => {
     let past = new Date(buildNow.getTime() - 301_000);
     let future = new Date(buildNow.getTime() + 301_000);
 
@@ -293,7 +310,7 @@ describe('buildRecord time rules', () => {
   });
 
   it('respects a custom skew bound', () => {
-    let principal = unitPrincipal({ skewBoundSeconds: 10 });
+    let principal = unitPrincipal({ instance: { skewBoundSeconds: 10 } });
     let occurredAt = new Date(buildNow.getTime() - 11_000);
 
     expect(buildDraft(draft({ occurredAt }), { principal }).quality.warnings).toEqual([
@@ -364,11 +381,27 @@ describe('buildRecord identity', () => {
     expect(a.id).toBe(b.id);
   });
 
-  it('isolates tenants', () => {
-    let other = unitPrincipal();
-    other.tenant.id = 'gst_other';
+  it('isolates organizations', () => {
+    let other = unitPrincipal({ organization: { id: 'gor_other' } });
 
     expect(buildDraft(draft(), { principal: other }).id).not.toBe(buildDraft(draft()).id);
+  });
+
+  it('isolates instances of one organization', () => {
+    let other = unitPrincipal({ instance: { id: 'gin_other' } });
+    let withSession = draft({ ctx: { sessionId: 's' } });
+
+    let a = buildDraft(withSession);
+    let b = buildDraft(withSession, { principal: other });
+
+    expect(b.id).not.toBe(a.id);
+    expect(b.ctx.session_key).not.toBe(a.ctx.session_key);
+  });
+
+  it('keeps ids stable across credentials of one instance', () => {
+    let other = unitPrincipal({ credential: { kind: 'token', id: 'git_other' } });
+
+    expect(buildDraft(draft(), { principal: other }).id).toBe(buildDraft(draft()).id);
   });
 
   it('hashes the session id with the client family', () => {
@@ -483,7 +516,7 @@ describe('buildRecord content and extras', () => {
     expect(record.content).toHaveLength(2);
     expect(record.content[0]).toMatchObject({ role: 'prompt', mode: 'full', text: 'hello' });
     expect(record.content[0]?.hash?.value).toBe(
-      contentHash(unitTenantKey(principal), 'prompt', 'hello')
+      contentHash(unitOrganizationKey(principal), 'prompt', 'hello')
     );
     expect(record.content[1]).toMatchObject({ role: 'tool_output', state: 'length_only' });
   });

@@ -1,19 +1,19 @@
 import type { NormalizedRecord } from '@metorial/groundstation-spec';
 import mongoose from 'mongoose';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import type { Tenant } from '../../../prisma/generated/client';
 import type { IngestPrincipal } from '../../auth/principal';
-import { createTenantKeyDeriver } from '../../crypto/keys';
+import { createOrganizationKeyDeriver } from '../../crypto/keys';
 import { createIngestFetch } from '../../ingest';
-import { eraseTenantRecordsProcessor } from '../../queues/eraseRecords';
+import { eraseRecordsProcessor } from '../../queues/eraseRecords';
 import type { RecordDraft } from '../../records/draft';
 import { createRuntime, setRuntime } from '../../runtime';
-import { tenantService } from '../../services/tenant';
+import { instanceService, organizationService, projectService } from '../../services';
 import { createMongoSink, type MongoWriteStats } from '../../sink/mongo';
 import { defaultStoragePolicy, type RecordBatch } from '../../sink/types';
 import { buildDraft, unitPrincipal } from '../../test/build';
 import { eventually, expectServiceError } from '../../test/helpers';
 import { testPrincipal } from '../../test/pipeline';
+import { createTestScope } from '../../test/scope';
 import { createStore, getStore } from '../connection';
 import { contentAad, createContentCipher } from '../contentCipher';
 import { writeDocuments } from '../writer';
@@ -24,13 +24,23 @@ let millisPerDay = 86_400_000;
 let store = getStore();
 let cipher = createContentCipher('integration-content-secret');
 
-let principalFor = (tenantId: string): IngestPrincipal => {
-  let principal = unitPrincipal({ contentPolicy: { defaultMode: 'full' } });
+type Scope = { organizationId: string; projectId: string; instanceId: string };
 
-  return { ...principal, tenant: { ...principal.tenant, id: tenantId } };
+let defaultScope: Scope = {
+  organizationId: 'gor_store_a',
+  projectId: 'gpr_store_a',
+  instanceId: 'gin_store_a'
 };
 
-let record = (overrides: Partial<RecordDraft> = {}, tenantId = 'gst_store_a') =>
+let principalFor = (scope: Scope): IngestPrincipal =>
+  unitPrincipal({
+    contentPolicy: { defaultMode: 'full' },
+    organization: { id: scope.organizationId },
+    project: { id: scope.projectId },
+    instance: { id: scope.instanceId }
+  });
+
+let record = (overrides: Partial<RecordDraft> = {}, scope: Scope = defaultScope) =>
   buildDraft(
     {
       kind: 'event',
@@ -40,7 +50,7 @@ let record = (overrides: Partial<RecordDraft> = {}, tenantId = 'gst_store_a') =>
       content: [{ role: 'prompt', value: `fix ${sentinel}` }],
       ...overrides
     },
-    { principal: principalFor(tenantId), observedAt: new Date() }
+    { principal: principalFor(scope), observedAt: new Date() }
   );
 
 let batch = (
@@ -48,7 +58,9 @@ let batch = (
   overrides: Partial<RecordBatch> = {}
 ): RecordBatch => ({
   lane: 'live',
-  tenantId: records[0]?.ingest.tenant_id ?? 'gst_store_a',
+  organizationId: records[0]?.ingest.organization_id ?? defaultScope.organizationId,
+  projectId: records[0]?.ingest.project_id ?? defaultScope.projectId,
+  instanceId: records[0]?.ingest.instance_id ?? defaultScope.instanceId,
   storage: defaultStoragePolicy,
   records,
   ...overrides
@@ -64,7 +76,11 @@ let mongoSink = () => {
 let hookPipeline = (contentMode: 'basic' | 'full') => {
   let { sink, stats } = mongoSink();
 
-  let runtime = createRuntime({ sink, keys: createTenantKeyDeriver('test-hash-secret') });
+  let runtime = createRuntime({
+    sink,
+    keys: createOrganizationKeyDeriver('test-hash-secret'),
+    stages: []
+  });
   let principal = testPrincipal({ contentPolicy: { defaultMode: contentMode } });
   let fetch = createIngestFetch(async () => principal);
 
@@ -99,17 +115,46 @@ let allDocuments = async () => {
   ];
 };
 
-let countFor = async (tenantId: string) => {
+let countFor = async (instanceId: string) => {
   let collections = store.collections();
 
-  let counts = await Promise.all([
-    collections.events.countDocuments({ tenantId }),
-    collections.measurements.countDocuments({ tenantId }),
-    collections.contentTexts.countDocuments({ tenantId })
-  ]);
+  let counts = await Promise.all(
+    Object.values(collections).map(collection =>
+      (collection as typeof collections.events).countDocuments({ instanceId })
+    )
+  );
 
   return counts.reduce((sum, count) => sum + count, 0);
 };
+
+let insertDerived = async (scope: Scope) => {
+  let collections = store.collections();
+  let _id = `${scope.instanceId}:${crypto.randomUUID()}`;
+
+  await collections.sessions.insertOne({ _id, ...scope } as never);
+  await collections.sessionLinks.insertOne({ _id, instanceId: scope.instanceId } as never);
+  await collections.usageSlices.insertOne({ _id, ...scope } as never);
+  await collections.sourceHealth.insertOne({
+    _id,
+    organizationId: scope.organizationId,
+    instanceId: scope.instanceId
+  } as never);
+};
+
+let writeScope = async (scope: Scope) => {
+  let { sink } = mongoSink();
+
+  await sink.write(
+    batch([record({}, scope), record({ identity: `${scope.instanceId}-2` }, scope)])
+  );
+  await insertDerived(scope);
+};
+
+let scopeIds = (scope: Awaited<ReturnType<typeof createTestScope>>): Scope => ({
+  organizationId: scope.organization.id,
+  projectId: scope.project.id,
+  instanceId: scope.instance.id
+});
 
 beforeAll(async () => {
   await store.ready();
@@ -118,11 +163,11 @@ beforeAll(async () => {
 beforeEach(async () => {
   let collections = store.collections();
 
-  await Promise.all([
-    collections.events.deleteMany({}),
-    collections.measurements.deleteMany({}),
-    collections.contentTexts.deleteMany({})
-  ]);
+  await Promise.all(
+    Object.values(collections).map(collection =>
+      (collection as typeof collections.events).deleteMany({})
+    )
+  );
 });
 
 afterAll(async () => {
@@ -146,12 +191,21 @@ describe('record store', () => {
 
     expect(events).toContainEqual(
       expect.objectContaining({
-        key: { tenantId: 1, 'ctx.sessionKey': 1, occurredAt: 1 },
+        key: { organizationId: 1, 'ctx.sessionKey': 1, occurredAt: 1 },
         partialFilterExpression: { 'ctx.sessionKey': { $exists: true } }
       })
     );
     expect(events).toContainEqual(
-      expect.objectContaining({ key: { tenantId: 1, 'source.factKey': 1 } })
+      expect.objectContaining({ key: { organizationId: 1, 'source.factKey': 1 } })
+    );
+    expect(events).toContainEqual(
+      expect.objectContaining({ key: { organizationId: 1, instanceId: 1, occurredAt: -1 } })
+    );
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        key: { organizationId: 1, 'attribution.userId': 1, occurredAt: -1 },
+        partialFilterExpression: { 'attribution.userId': { $exists: true } }
+      })
     );
   });
 
@@ -166,7 +220,10 @@ describe('record store', () => {
     let [text] = await collections.contentTexts.find({}).toArray();
 
     expect(event).toMatchObject({
-      tenantId: pipeline.principal.tenant.id,
+      organizationId: pipeline.principal.organization.id,
+      projectId: pipeline.principal.project.id,
+      instanceId: pipeline.principal.instance.id,
+      ingest: { credentialKind: 'token', credentialId: pipeline.principal.credential.id },
       type: 'prompt.submitted',
       source: { adapter: 'claude-code', signalName: 'UserPromptSubmit' },
       ctx: { sessionId: 'session-1', sessionKey: expect.stringMatching(/^[0-9a-f]{32}$/) },
@@ -177,14 +234,19 @@ describe('record store', () => {
 
     expect(text).toMatchObject({
       _id: `${event!._id}:0`,
+      organizationId: pipeline.principal.organization.id,
+      instanceId: pipeline.principal.instance.id,
       recordId: event!._id,
       keyVersion: 1
     });
     expect(text!.expiresAt.getTime() - text!.occurredAt.getTime()).toBe(30 * millisPerDay);
 
-    let key = cipher.forTenant({ id: pipeline.principal.tenant.id, contentKeyVersion: 1 });
+    let key = cipher.forOrganization({
+      id: pipeline.principal.organization.id,
+      contentKeyVersion: 1
+    });
     let aad = contentAad({
-      tenantId: pipeline.principal.tenant.id,
+      organizationId: pipeline.principal.organization.id,
       recordId: event!._id,
       index: 0,
       role: 'prompt'
@@ -242,7 +304,7 @@ describe('record store', () => {
           window: { start: start.toISOString(), end: end.toISOString() }
         }
       },
-      { principal: principalFor('gst_store_a'), observedAt: new Date() },
+      { principal: principalFor(defaultScope), observedAt: new Date() },
       { adapter: 'a', dialect: 'd', channel: 'otlp.metrics' }
     );
 
@@ -281,16 +343,18 @@ describe('record store', () => {
         .drop()
         .catch(() => {});
       await db.createCollection('writer_validation', {
-        validator: { $jsonSchema: { required: ['tenantId'] } }
+        validator: { $jsonSchema: { required: ['organizationId'] } }
       });
 
-      let collection = db.collection<{ _id: string; tenantId?: string }>('writer_validation');
-      await collection.insertOne({ _id: 'a', tenantId: 't' });
+      let collection = db.collection<{ _id: string; organizationId?: string }>(
+        'writer_validation'
+      );
+      await collection.insertOne({ _id: 'a', organizationId: 't' });
 
       let result = await writeDocuments(collection, [
-        { _id: 'a', tenantId: 't' },
+        { _id: 'a', organizationId: 't' },
         { _id: 'b' },
-        { _id: 'c', tenantId: 't' }
+        { _id: 'c', organizationId: 't' }
       ]);
 
       expect(result).toEqual({
@@ -314,23 +378,76 @@ describe('record store', () => {
     await unreachable.close();
   }, 20_000);
 
-  it('erases every record of one tenant', async () => {
-    let { sink } = mongoSink();
+  it('erases every record, session and slice of one organization', async () => {
+    let first = await createTestScope();
+    let sibling = await createTestScope({ organizationRef: first.organization.ref });
+    let other = await createTestScope();
 
-    await sink.write(
-      batch([record({}, 'gst_store_a'), record({ identity: 'x' }, 'gst_store_a')])
-    );
-    await sink.write(batch([record({}, 'gst_store_b')]));
+    await writeScope(scopeIds(first));
+    await writeScope(scopeIds(sibling));
+    await writeScope(scopeIds(other));
 
-    expect(await countFor('gst_store_a')).toBe(4);
+    expect(await countFor(first.instance.id)).toBe(8);
 
-    let worker = await eraseTenantRecordsProcessor.start();
+    let worker = await eraseRecordsProcessor.start();
 
     try {
-      await tenantService.eraseRecords({ tenant: { id: 'gst_store_a' } as Tenant });
+      await organizationService.eraseOrganization({ organization: first.organization });
 
-      await eventually(async () => expect(await countFor('gst_store_a')).toBe(0), 10_000);
-      expect(await countFor('gst_store_b')).toBe(2);
+      await eventually(async () => {
+        expect(await countFor(first.instance.id)).toBe(0);
+        expect(await countFor(sibling.instance.id)).toBe(0);
+      }, 10_000);
+      expect(await countFor(other.instance.id)).toBe(8);
+    } finally {
+      await worker?.close();
+    }
+  }, 20_000);
+
+  it('erases one project and keeps the other projects of the organization', async () => {
+    let first = await createTestScope();
+    let sibling = await createTestScope({ organizationRef: first.organization.ref });
+
+    await writeScope(scopeIds(first));
+    await writeScope(scopeIds(sibling));
+
+    let worker = await eraseRecordsProcessor.start();
+
+    try {
+      await projectService.eraseProject({
+        organization: first.organization,
+        project: first.project
+      });
+
+      await eventually(async () => expect(await countFor(first.instance.id)).toBe(0), 10_000);
+      expect(await countFor(sibling.instance.id)).toBe(8);
+    } finally {
+      await worker?.close();
+    }
+  }, 20_000);
+
+  it('erases one instance and keeps its siblings in the project', async () => {
+    let first = await createTestScope();
+    let sibling = await instanceService.upsertInstance({
+      organization: first.organization,
+      project: first.project,
+      input: { ref: `inst_${crypto.randomUUID()}` }
+    });
+    let siblingScope = { ...scopeIds(first), instanceId: sibling.id };
+
+    await writeScope(scopeIds(first));
+    await writeScope(siblingScope);
+
+    let worker = await eraseRecordsProcessor.start();
+
+    try {
+      await instanceService.eraseInstance({
+        organization: first.organization,
+        instance: first.instance
+      });
+
+      await eventually(async () => expect(await countFor(first.instance.id)).toBe(0), 10_000);
+      expect(await countFor(sibling.id)).toBe(8);
     } finally {
       await worker?.close();
     }

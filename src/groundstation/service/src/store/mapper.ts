@@ -159,11 +159,13 @@ export let toRecordDocument = (
 
   let content = toContent(record, occurredAt, textExpiresAt, textExpiresAt > d.now);
 
-  let { ingest, source, client, actor, ctx, workspace, quality } = record;
+  let { ingest, source, client, actor, attribution, ctx, workspace, quality } = record;
 
   let document: RecordDocument = {
     _id: record.id,
-    tenantId: ingest.tenant_id,
+    organizationId: ingest.organization_id,
+    projectId: ingest.project_id,
+    instanceId: ingest.instance_id,
     spec: record.spec,
     type: record.type,
 
@@ -173,12 +175,12 @@ export let toRecordDocument = (
     expiresAt,
 
     ingest: {
+      credentialKind: ingest.credential_kind,
       credentialId: ingest.credential_id,
       route: ingest.route,
       requestId: ingest.request_id,
       backfill: ingest.backfill,
       batchId: ingest.batch_id,
-      principalRef: ingest.principal?.ref,
       agent: ingest.agent
         ? {
             name: ingest.agent.name,
@@ -215,11 +217,27 @@ export let toRecordDocument = (
         }
       : undefined,
 
+    attribution: attribution
+      ? {
+          userId: attribution.user_id,
+          deviceId: attribution.device_id,
+          agentId: attribution.agent_id,
+          clientUserId: attribution.client_user_id,
+          clientInstallationId: attribution.client_installation_id,
+          repoId: attribution.repo_id,
+          workspaceId: attribution.workspace_id
+        }
+      : undefined,
+
     ctx: {
       sessionId: ctx.session_id,
       sessionKey: ctx.session_key,
+      sessionOrigin: ctx.session_origin,
+      parentSessionKey: ctx.parent_session_key,
+      continuesSessionKey: ctx.continues_session_key,
       turnId: ctx.turn_id,
       requestId: ctx.request_id,
+      generationId: ctx.generation_id,
       toolCallId: ctx.tool_call_id,
       agent: ctx.agent ? { id: ctx.agent.id, parentId: ctx.agent.parent_id } : undefined,
       trace: ctx.trace
@@ -275,18 +293,24 @@ export let toDocuments = (
 
 export let toContentTextDocuments = (
   texts: PendingText[],
-  d: { tenantId: string; storage: StoragePolicy; cipher: ContentCipher }
+  d: {
+    organizationId: string;
+    projectId: string;
+    instanceId: string;
+    storage: StoragePolicy;
+    cipher: ContentCipher;
+  }
 ): ContentTextDocument[] => {
   if (!texts.length) return [];
 
-  let key = d.cipher.forTenant({
-    id: d.tenantId,
+  let key = d.cipher.forOrganization({
+    id: d.organizationId,
     contentKeyVersion: d.storage.contentKeyVersion
   });
 
   return texts.map(text => {
     let aad = contentAad({
-      tenantId: d.tenantId,
+      organizationId: d.organizationId,
       recordId: text.recordId,
       index: text.index,
       role: text.role
@@ -296,7 +320,9 @@ export let toContentTextDocuments = (
 
     return {
       _id: `${text.recordId}:${text.index}`,
-      tenantId: d.tenantId,
+      organizationId: d.organizationId,
+      projectId: d.projectId,
+      instanceId: d.instanceId,
       recordId: text.recordId,
       index: text.index,
       role: text.role,

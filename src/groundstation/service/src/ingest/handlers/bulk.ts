@@ -96,10 +96,11 @@ export let bulkIngestHandler: IngestHandler = async request => {
   let lane = header.mode == 'backfill' ? ('backfill' as const) : ('live' as const);
   let now = runtime.clock().getTime();
 
-  let maxAgeDays = principal.tenant.backfillMaxAgeDays ?? principal.tenant.recordRetentionDays;
+  let maxAgeDays =
+    principal.instance.backfillMaxAgeDays ?? principal.instance.recordRetentionDays;
   let oldestAllowed = lane == 'backfill' ? now - maxAgeDays * millisPerDay : null;
 
-  let latestAllowed = now + principal.tenant.skewBoundSeconds * 1000;
+  let latestAllowed = now + principal.instance.skewBoundSeconds * 1000;
 
   let collector = createCollector(request, {
     route: 'bulk',

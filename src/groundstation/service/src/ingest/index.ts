@@ -11,9 +11,11 @@ let authenticateHeaders = { 'WWW-Authenticate': 'Bearer realm="groundstation"' }
 
 export type Authenticate = (credential: string | undefined) => Promise<IngestPrincipal>;
 
+type SocketInfo = { requestIP: (request: Request) => { address: string } | null };
+
 export let createIngestFetch =
   (authenticate: Authenticate) =>
-  async (request: Request): Promise<Response> => {
+  async (request: Request, server?: SocketInfo): Promise<Response> => {
     try {
       let match = matchRoute(request.method, new URL(request.url).pathname);
 
@@ -52,7 +54,11 @@ export let createIngestFetch =
       });
       if (denied) return errorResponse(denied);
 
-      return await definition.handler({ ...ingestRequest, principal });
+      return await definition.handler({
+        ...ingestRequest,
+        principal,
+        remoteAddress: server?.requestIP(request)?.address
+      });
     } catch (error) {
       return caughtErrorResponse(error);
     }

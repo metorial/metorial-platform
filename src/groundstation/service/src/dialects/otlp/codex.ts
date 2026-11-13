@@ -233,6 +233,7 @@ let logDraft = (
     ...(actor ? { actor } : {}),
     ctx: {
       sessionId: sessionIdOf(fields),
+      parentSessionId: fields.str('parent.conversation.id'),
       turnId: fields.str('turn.id', 'turn_id'),
       toolCallId: fields.str('call_id'),
       ...(trace ? { trace } : {})
@@ -710,6 +711,7 @@ let mapSpan: OtlpDialect['mapSpan'] = (context, span) => {
     ...(actor ? { actor } : {}),
     ctx: {
       sessionId: sessionIdOf(fields),
+      parentSessionId: fields.str('parent.conversation.id'),
       turnId: fields.str('turn.id'),
       toolCallId: fields.str('tool.call_id'),
       trace: traceOf({

@@ -152,7 +152,8 @@ describe('bulk handler', () => {
       });
       expect(record!.ingest).toMatchObject({
         route: 'bulk',
-        tenant_id: 'gst_tenant_1',
+        organization_id: 'gor_test',
+        instance_id: 'gin_test',
         batch_id: 'batch-1',
         agent: { name: 'metorial-agent', version: '1.2.3', install_id: 'install-1' }
       });
@@ -400,9 +401,9 @@ describe('bulk handler', () => {
       expect(result.rejections).toEqual([{ i: 0, code: 'too_old' }]);
     });
 
-    it('falls back to the record retention when the tenant sets no age limit', async () => {
+    it('falls back to the record retention when the instance sets no age limit', async () => {
       let pipeline = createPipeline({
-        tenant: { backfillMaxAgeDays: null, recordRetentionDays: 60 }
+        instance: { backfillMaxAgeDays: null, recordRetentionDays: 60 }
       });
 
       let result = await sendOk(
@@ -594,12 +595,12 @@ describe('bulk handler', () => {
       expect(pipeline.records()).toHaveLength(1);
     });
 
-    it('keeps tenants apart', async () => {
-      let first = createPipeline({ tenant: { id: 'gst_a' } });
+    it('keeps organizations apart', async () => {
+      let first = createPipeline({ organization: { id: 'gor_a' } });
       await sendOk(first, header(), item());
       let firstId = first.records()[0]!.id;
 
-      let second = createPipeline({ tenant: { id: 'gst_b' } });
+      let second = createPipeline({ organization: { id: 'gor_b' } });
       await sendOk(second, header(), item());
 
       expect(second.records()[0]!.id).not.toBe(firstId);

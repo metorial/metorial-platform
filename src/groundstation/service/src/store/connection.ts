@@ -9,6 +9,17 @@ import {
   type ContentTextDocument,
   type RecordDocument
 } from './models';
+import {
+  derivedCollectionNames,
+  SessionLinkSchema,
+  SessionSchema,
+  SourceHealthSchema,
+  UsageSliceSchema,
+  type SessionDocument,
+  type SessionLinkDocument,
+  type SourceHealthDocument,
+  type UsageSliceDocument
+} from './derivedModels';
 
 let serverSelectionTimeoutMs = 5000;
 let poolHeadroom = 4;
@@ -17,12 +28,20 @@ export type StoreCollections = {
   events: mongoose.mongo.Collection<RecordDocument>;
   measurements: mongoose.mongo.Collection<RecordDocument>;
   contentTexts: mongoose.mongo.Collection<ContentTextDocument>;
+  sessions: mongoose.mongo.Collection<SessionDocument>;
+  sessionLinks: mongoose.mongo.Collection<SessionLinkDocument>;
+  usageSlices: mongoose.mongo.Collection<UsageSliceDocument>;
+  sourceHealth: mongoose.mongo.Collection<SourceHealthDocument>;
 };
 
 export type Store = {
   events: mongoose.Model<RecordDocument>;
   measurements: mongoose.Model<RecordDocument>;
   contentTexts: mongoose.Model<ContentTextDocument>;
+  sessions: mongoose.Model<SessionDocument>;
+  sessionLinks: mongoose.Model<SessionLinkDocument>;
+  usageSlices: mongoose.Model<UsageSliceDocument>;
+  sourceHealth: mongoose.Model<SourceHealthDocument>;
 
   collections: () => StoreCollections;
 
@@ -44,6 +63,26 @@ export let createStore = (url: string): Store => {
     ContentTextSchema,
     collectionNames.contentTexts
   );
+  let sessions = connection.model<SessionDocument>(
+    'Session',
+    SessionSchema,
+    derivedCollectionNames.sessions
+  );
+  let sessionLinks = connection.model<SessionLinkDocument>(
+    'SessionLink',
+    SessionLinkSchema,
+    derivedCollectionNames.sessionLinks
+  );
+  let usageSlices = connection.model<UsageSliceDocument>(
+    'UsageSlice',
+    UsageSliceSchema,
+    derivedCollectionNames.usageSlices
+  );
+  let sourceHealth = connection.model<SourceHealthDocument>(
+    'SourceHealth',
+    SourceHealthSchema,
+    derivedCollectionNames.sourceHealth
+  );
 
   let opening: Promise<void> | null = null;
 
@@ -62,7 +101,11 @@ export let createStore = (url: string): Store => {
     await Promise.all([
       events.createIndexes(),
       measurements.createIndexes(),
-      contentTexts.createIndexes()
+      contentTexts.createIndexes(),
+      sessions.createIndexes(),
+      sessionLinks.createIndexes(),
+      usageSlices.createIndexes(),
+      sourceHealth.createIndexes()
     ]);
   };
 
@@ -70,6 +113,10 @@ export let createStore = (url: string): Store => {
     events,
     measurements,
     contentTexts,
+    sessions,
+    sessionLinks,
+    usageSlices,
+    sourceHealth,
 
     collections: () => {
       let db = connection.db;
@@ -78,7 +125,11 @@ export let createStore = (url: string): Store => {
       return {
         events: db.collection<RecordDocument>(collectionNames.events),
         measurements: db.collection<RecordDocument>(collectionNames.measurements),
-        contentTexts: db.collection<ContentTextDocument>(collectionNames.contentTexts)
+        contentTexts: db.collection<ContentTextDocument>(collectionNames.contentTexts),
+        sessions: db.collection<SessionDocument>(derivedCollectionNames.sessions),
+        sessionLinks: db.collection<SessionLinkDocument>(derivedCollectionNames.sessionLinks),
+        usageSlices: db.collection<UsageSliceDocument>(derivedCollectionNames.usageSlices),
+        sourceHealth: db.collection<SourceHealthDocument>(derivedCollectionNames.sourceHealth)
       };
     },
 

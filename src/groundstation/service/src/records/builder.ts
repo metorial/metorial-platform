@@ -5,7 +5,8 @@ import {
   type RecordLane
 } from '@metorial/groundstation-spec';
 import { buildContentEntry } from '../content/engine';
-import { recordId, sessionKey, type TenantKey } from '../crypto/keys';
+import { finishSessionContext, sessionContextType } from '../context/record';
+import { recordId, sessionKey, type OrganizationKey } from '../crypto/keys';
 import type { IngestPrincipal } from '../auth/principal';
 import type { RecordDraft, RecordSource } from './draft';
 import { sanitizeExtras } from './extras';
@@ -17,7 +18,7 @@ let maxPlausibleTime = Date.UTC(2100, 0, 1);
 
 export type BuildContext = {
   principal: IngestPrincipal;
-  tenantKey: TenantKey;
+  organizationKey: OrganizationKey;
 
   requestId: string;
   route: NormalizedRecord['ingest']['route'];
@@ -70,7 +71,7 @@ export let buildRecord = (
   source: RecordSource,
   draft: RecordDraft
 ): NormalizedRecord => {
-  let { principal, tenantKey } = context;
+  let { principal, organizationKey } = context;
 
   let coerced = [...(draft.coerced ?? [])];
   let derived = [...(draft.derived ?? [])];
@@ -107,7 +108,7 @@ export let buildRecord = (
     timeSource != 'observed' &&
     context.lane != 'backfill' &&
     Math.abs(occurredAt.getTime() - context.observedAt.getTime()) >
-      principal.tenant.skewBoundSeconds * 1000
+      principal.instance.skewBoundSeconds * 1000
   ) {
     warnings.push('clock_skew');
   }
@@ -115,20 +116,35 @@ export let buildRecord = (
   let content: ContentEntry[] = [];
 
   for (let input of draft.content ?? []) {
-    let entry = buildContentEntry({ policy: principal.contentPolicy, tenantKey }, input);
+    let entry = buildContentEntry({ policy: principal.contentPolicy, organizationKey }, input);
     if (entry) content.push(entry);
   }
 
   let { extras, dropped: droppedExtras } = sanitizeExtras(draft.client.family, draft.extras);
   dropped.push(...droppedExtras);
 
+  let keyOf = (id: string | undefined) =>
+    id
+      ? sessionKey(organizationKey, principal.instance.id, draft.client.family, id)
+      : undefined;
+
   let sessionId = clampId(draft.ctx?.sessionId, 'ctx.session_id', warnings);
+  let parentSessionId = clampId(draft.ctx?.parentSessionId, 'ctx.parent_session_id', warnings);
+  let previousSessionId = clampId(
+    draft.ctx?.previousSessionId,
+    'ctx.previous_session_id',
+    warnings
+  );
 
   let ctx: NormalizedRecord['ctx'] = compact({
     session_id: sessionId,
-    session_key: sessionId ? sessionKey(tenantKey, draft.client.family, sessionId) : undefined,
+    session_key: keyOf(sessionId),
+    parent_session_key: parentSessionId != sessionId ? keyOf(parentSessionId) : undefined,
+    continues_session_key:
+      previousSessionId != sessionId ? keyOf(previousSessionId) : undefined,
     turn_id: clampId(draft.ctx?.turnId, 'ctx.turn_id', warnings),
     request_id: clampId(draft.ctx?.requestId, 'ctx.request_id', warnings),
+    generation_id: clampId(draft.ctx?.generationId, 'ctx.generation_id', warnings),
     tool_call_id: clampId(draft.ctx?.toolCallId, 'ctx.tool_call_id', warnings),
 
     agent: draft.ctx?.agent
@@ -152,9 +168,29 @@ export let buildRecord = (
     factKey = ctx.session_key ? factKey.replace('{session_key}', ctx.session_key) : null;
   }
 
+  let data = draft.data ?? {};
+
+  if (draft.type == sessionContextType) {
+    let context = finishSessionContext({
+      organizationKey,
+      rootScope: principal.binding.deviceId ?? principal.credential.id,
+      sessionKey: ctx.session_key,
+      content: draft.content,
+      data
+    });
+
+    data = context.data;
+    factKey = context.factKey;
+  }
+
   return {
     spec: recordSpecVersion,
-    id: recordId(tenantKey, `${source.adapter}/${source.channel}`, draft.identity),
+    id: recordId(
+      organizationKey,
+      principal.instance.id,
+      `${source.adapter}/${source.channel}`,
+      draft.identity
+    ),
     kind: draft.kind,
     type: draft.type,
 
@@ -165,13 +201,15 @@ export let buildRecord = (
     observed_at: context.observedAt.toISOString(),
 
     ingest: compact({
-      tenant_id: principal.tenant.id,
-      credential_id: principal.tokenId,
+      organization_id: principal.organization.id,
+      project_id: principal.project.id,
+      instance_id: principal.instance.id,
+      credential_kind: principal.credential.kind,
+      credential_id: principal.credential.id,
       route: context.route,
       request_id: context.requestId,
       backfill: context.lane == 'backfill',
       batch_id: context.batchId,
-      principal: principal.principalRef ? { ref: principal.principalRef } : null,
       agent: context.agent
     }),
 
@@ -190,7 +228,7 @@ export let buildRecord = (
     ctx,
     ...(draft.workspace ? { workspace: compact({ ...draft.workspace }) } : {}),
 
-    data: draft.data ?? {},
+    data,
     content,
     extras,
 

@@ -24,7 +24,9 @@ export let defaultStoragePolicy: StoragePolicy = {
 
 export type RecordBatch = {
   lane: RecordLane;
-  tenantId: string;
+  organizationId: string;
+  projectId: string;
+  instanceId: string;
   storage: StoragePolicy;
   records: NormalizedRecord[];
 };

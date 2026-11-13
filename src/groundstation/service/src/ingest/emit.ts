@@ -1,5 +1,6 @@
 import type { NormalizedRecord, RecordLane } from '@metorial/groundstation-spec';
 import type { Mapped } from '../dialects/types';
+import { runAfterWrite, runBeforeWrite } from '../pipeline';
 import { buildRecord } from '../records/builder';
 import { getRuntime } from '../runtime';
 import type { AuthenticatedIngestRequest } from './request';
@@ -25,10 +26,7 @@ export let createCollector = (
   let runtime = getRuntime();
   let { principal } = request;
 
-  let tenantKey = runtime.keys.forTenant({
-    id: principal.tenant.id,
-    hashKeyVersion: principal.tenant.hashKeyVersion
-  });
+  let organizationKey = runtime.keys.forOrganization(principal.organization);
 
   let observedAt = runtime.clock();
   let records = new Map<string, NormalizedRecord>();
@@ -42,7 +40,7 @@ export let createCollector = (
           buildRecord(
             {
               principal,
-              tenantKey,
+              organizationKey,
               requestId: request.requestId,
               route: options.route,
               observedAt,
@@ -73,17 +71,24 @@ export let createCollector = (
       if (records.size == 0) return 0;
 
       let batch = [...records.values()];
+      let context = { request, lane: options.lane, observedAt };
+
+      await runBeforeWrite(runtime.stages, context, batch);
 
       await runtime.sink.write({
         lane: options.lane,
-        tenantId: principal.tenant.id,
+        organizationId: principal.organization.id,
+        projectId: principal.project.id,
+        instanceId: principal.instance.id,
         storage: {
-          recordRetentionDays: principal.tenant.recordRetentionDays,
-          contentRetentionDays: principal.tenant.contentRetentionDays,
-          contentKeyVersion: principal.tenant.contentKeyVersion
+          recordRetentionDays: principal.instance.recordRetentionDays,
+          contentRetentionDays: principal.instance.contentRetentionDays,
+          contentKeyVersion: principal.organization.contentKeyVersion
         },
         records: batch
       });
+
+      await runAfterWrite(runtime.stages, context, batch);
 
       return batch.length;
     }

@@ -134,7 +134,8 @@ describe('claudeCodeOtlp shared log fields', () => {
         terminal: 'iTerm.app'
       },
       actor: {
-        user: { id: 'u-1', email: 'dev@example.com' },
+        install_id: 'u-1',
+        user: { email: 'dev@example.com' },
         identity_source: 'client_claim'
       },
       ctx: {

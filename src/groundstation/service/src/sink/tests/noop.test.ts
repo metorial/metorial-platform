@@ -7,7 +7,14 @@ describe('createNoopSink', () => {
     let sink = createNoopSink();
 
     await expect(
-      sink.write({ lane: 'live', tenantId: 't', storage: defaultStoragePolicy, records: [] })
+      sink.write({
+        lane: 'live',
+        organizationId: 'gor_1',
+        projectId: 'gpr_1',
+        instanceId: 'gin_1',
+        storage: defaultStoragePolicy,
+        records: []
+      })
     ).resolves.toBeUndefined();
   });
 

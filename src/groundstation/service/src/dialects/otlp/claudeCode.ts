@@ -17,7 +17,6 @@ import {
   type Decision
 } from '../values';
 import {
-  actorOf,
   clientVersionOf,
   otlpSource,
   safeNativeName,
@@ -41,6 +40,34 @@ let sessionFacts = (fields: FieldReader) => ({
   sessionId: fields.str('session.id'),
   turnId: fields.str('prompt.id')
 });
+
+// Claude Code's user.id is an anonymous per-install id; the account is user.account_uuid.
+let actorFrom = (
+  fields: FieldReader,
+  resource: FieldReader
+): RecordDraft['actor'] | undefined => {
+  let pick = (key: string) => fields.str(key) ?? resource.str(key);
+
+  let installId = pick('user.id');
+  let account = pick('user.account_uuid');
+  let email = pick('user.email');
+  let org = pick('organization.id');
+
+  if (!installId && !account && !email && !org) return undefined;
+
+  let claimed = ['user.id', 'user.account_uuid', 'user.email', 'organization.id'].some(key =>
+    fields.str(key)
+  );
+
+  return {
+    ...(installId ? { install_id: installId } : {}),
+    ...(account || email
+      ? { user: { ...(account ? { id: account } : {}), ...(email ? { email } : {}) } }
+      : {}),
+    ...(org ? { org_claim: org } : {}),
+    identity_source: claimed ? 'client_claim' : 'resource_attribute'
+  };
+};
 
 let surfaceOf = (context: OtlpGroupContext, fields: FieldReader) =>
   surfaceFromLabel(fields.str('app.entrypoint', 'entrypoint')) ??
@@ -157,7 +184,7 @@ let logDraft = (
 ): RecordDraft => {
   let { context, log, name, fields } = state;
 
-  let actor = actorOf(fields, context.resourceFields);
+  let actor = actorFrom(fields, context.resourceFields);
   let trace = traceOf({ traceId: log.traceId, spanId: log.spanId });
 
   let identityKey = fields.str('request_id', 'tool_use_id') ?? '';
@@ -716,7 +743,7 @@ let mapSpan: OtlpDialect['mapSpan'] = (context, span) => {
   let fields = readFields(span.attributes, 'span.');
   let name = stripPrefix(span.name, eventPrefix);
 
-  let actor = actorOf(fields, context.resourceFields);
+  let actor = actorFrom(fields, context.resourceFields);
   let duration = spanDuration(span, fields);
   let agentId = fields.str('agent_id');
   let parentAgentId = fields.str('parent_agent_id');

@@ -30,7 +30,9 @@ describe('createNdjsonSink', () => {
 
     await sink.write({
       lane: 'live',
-      tenantId: 't',
+      organizationId: 'gor_1',
+      projectId: 'gpr_1',
+      instanceId: 'gin_1',
       storage: defaultStoragePolicy,
       records: [record('a'), record('b')]
     });
@@ -48,7 +50,9 @@ describe('createNdjsonSink', () => {
 
     await sink.write({
       lane: 'live',
-      tenantId: 't',
+      organizationId: 'gor_1',
+      projectId: 'gpr_1',
+      instanceId: 'gin_1',
       storage: defaultStoragePolicy,
       records: [record('a', { text: 'line1\nline2 end' })]
     });
@@ -66,7 +70,9 @@ describe('createNdjsonSink', () => {
 
     await sink.write({
       lane: 'live',
-      tenantId: 't',
+      organizationId: 'gor_1',
+      projectId: 'gpr_1',
+      instanceId: 'gin_1',
       storage: defaultStoragePolicy,
       records: [record('a')]
     });
@@ -81,7 +87,9 @@ describe('createNdjsonSink', () => {
     let first = createNdjsonSink(path);
     await first.write({
       lane: 'live',
-      tenantId: 't',
+      organizationId: 'gor_1',
+      projectId: 'gpr_1',
+      instanceId: 'gin_1',
       storage: defaultStoragePolicy,
       records: [record('a')]
     });
@@ -90,7 +98,9 @@ describe('createNdjsonSink', () => {
     let second = createNdjsonSink(path);
     await second.write({
       lane: 'live',
-      tenantId: 't',
+      organizationId: 'gor_1',
+      projectId: 'gpr_1',
+      instanceId: 'gin_1',
       storage: defaultStoragePolicy,
       records: [record('b')]
     });
@@ -105,7 +115,9 @@ describe('createNdjsonSink', () => {
 
     await sink.write({
       lane: 'live',
-      tenantId: 't',
+      organizationId: 'gor_1',
+      projectId: 'gpr_1',
+      instanceId: 'gin_1',
       storage: defaultStoragePolicy,
       records: []
     });
@@ -123,7 +135,9 @@ describe('createNdjsonSink', () => {
     let writes = Array.from({ length: 40 }, (_, w) =>
       sink.write({
         lane: 'live',
-        tenantId: 't',
+        organizationId: 'gor_1',
+        projectId: 'gpr_1',
+        instanceId: 'gin_1',
         storage: defaultStoragePolicy,
         records: Array.from({ length: 5 }, (_, r) => record(`w${w}r${r}`, { pad: big }))
       })
@@ -147,7 +161,9 @@ describe('createNdjsonSink', () => {
       [0, 1, 2, 3, 4].map(w =>
         sink.write({
           lane: 'live',
-          tenantId: 't',
+          organizationId: 'gor_1',
+          projectId: 'gpr_1',
+          instanceId: 'gin_1',
           storage: defaultStoragePolicy,
           records: [record(`${w}-0`), record(`${w}-1`), record(`${w}-2`)]
         })
@@ -166,14 +182,18 @@ describe('createNdjsonSink', () => {
 
     let first = sink.write({
       lane: 'live',
-      tenantId: 't',
+      organizationId: 'gor_1',
+      projectId: 'gpr_1',
+      instanceId: 'gin_1',
       storage: defaultStoragePolicy,
       records: [record('a', { pad: 'x'.repeat(300) })]
     });
 
     let second = sink.write({
       lane: 'live',
-      tenantId: 't',
+      organizationId: 'gor_1',
+      projectId: 'gpr_1',
+      instanceId: 'gin_1',
       storage: defaultStoragePolicy,
       records: [record('b', { pad: 'x'.repeat(300) })]
     });
@@ -191,7 +211,9 @@ describe('createNdjsonSink', () => {
 
     let payload = () => ({
       lane: 'live' as const,
-      tenantId: 't',
+      organizationId: 'gor_1',
+      projectId: 'gpr_1',
+      instanceId: 'gin_1',
       storage: defaultStoragePolicy,
       records: [record('x', { pad: 'x'.repeat(300) })]
     });
@@ -209,7 +231,9 @@ describe('createNdjsonSink', () => {
     await expectServiceError(
       sink.write({
         lane: 'live',
-        tenantId: 't',
+        organizationId: 'gor_1',
+        projectId: 'gpr_1',
+        instanceId: 'gin_1',
         storage: defaultStoragePolicy,
         records: [record('a')]
       }),
@@ -224,7 +248,9 @@ describe('createNdjsonSink', () => {
     await sink
       .write({
         lane: 'live',
-        tenantId: 't',
+        organizationId: 'gor_1',
+        projectId: 'gpr_1',
+        instanceId: 'gin_1',
         storage: defaultStoragePolicy,
         records: [record('a')]
       })
@@ -235,7 +261,9 @@ describe('createNdjsonSink', () => {
 
     await healthy.write({
       lane: 'live',
-      tenantId: 't',
+      organizationId: 'gor_1',
+      projectId: 'gpr_1',
+      instanceId: 'gin_1',
       storage: defaultStoragePolicy,
       records: [record('b')]
     });
@@ -254,7 +282,9 @@ describe('createNdjsonSink', () => {
     await expect(
       sink.write({
         lane: 'live',
-        tenantId: 't',
+        organizationId: 'gor_1',
+        projectId: 'gpr_1',
+        instanceId: 'gin_1',
         storage: defaultStoragePolicy,
         records: [record('bad', circular)]
       })
@@ -262,7 +292,9 @@ describe('createNdjsonSink', () => {
 
     await sink.write({
       lane: 'live',
-      tenantId: 't',
+      organizationId: 'gor_1',
+      projectId: 'gpr_1',
+      instanceId: 'gin_1',
       storage: defaultStoragePolicy,
       records: [record('good')]
     });

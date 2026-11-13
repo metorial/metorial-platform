@@ -12,7 +12,8 @@ let textDocumentOverheadBytes = 256;
 let maxReportedRejections = 20;
 
 export type MongoWriteStats = {
-  tenantId: string;
+  organizationId: string;
+  instanceId: string;
   lane: RecordBatch['lane'];
   expired: number;
   events: WriteResult;
@@ -35,14 +36,20 @@ let reportRejections = (stats: MongoWriteStats) => {
   let listed = rejections.slice(0, maxReportedRejections);
 
   console.warn('Groundstation store rejected documents', {
-    tenantId: stats.tenantId,
+    organizationId: stats.organizationId,
+    instanceId: stats.instanceId,
     count: rejections.length,
     rejections: listed
   });
 
   getSentry().captureMessage('Groundstation store rejected documents', {
     level: 'warning',
-    extra: { tenantId: stats.tenantId, count: rejections.length, rejections: listed }
+    extra: {
+      organizationId: stats.organizationId,
+      instanceId: stats.instanceId,
+      count: rejections.length,
+      rejections: listed
+    }
   });
 };
 
@@ -74,7 +81,9 @@ export let createMongoSink = (d: {
         let mapped = toDocuments(batch.records, { storage: batch.storage, now: clock() });
 
         let texts = toContentTextDocuments(mapped.texts, {
-          tenantId: batch.tenantId,
+          organizationId: batch.organizationId,
+          projectId: batch.projectId,
+          instanceId: batch.instanceId,
           storage: batch.storage,
           cipher: d.cipher
         });
@@ -91,7 +100,8 @@ export let createMongoSink = (d: {
         ]);
 
         onWrite({
-          tenantId: batch.tenantId,
+          organizationId: batch.organizationId,
+          instanceId: batch.instanceId,
           lane: batch.lane,
           expired: mapped.expired,
           events,

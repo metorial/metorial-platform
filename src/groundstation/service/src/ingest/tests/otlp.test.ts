@@ -314,12 +314,12 @@ describe('otlp handler', () => {
       expect(first!.id).toBe(second!.id);
     });
 
-    it('keeps tenants apart', async () => {
-      let first = createPipeline({ tenant: { id: 'gst_a' } });
+    it('keeps organizations apart', async () => {
+      let first = createPipeline({ organization: { id: 'gor_a' } });
       await post(first, '/v1/logs', logsBody([promptLog()]));
       let firstId = first.records()[0]!.id;
 
-      let second = createPipeline({ tenant: { id: 'gst_b' } });
+      let second = createPipeline({ organization: { id: 'gor_b' } });
       await post(second, '/v1/logs', logsBody([promptLog()]));
 
       expect(second.records()[0]!.id).not.toBe(firstId);

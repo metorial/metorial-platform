@@ -170,11 +170,13 @@ describe('hook handler', () => {
       let [record] = pipeline.records();
 
       expect(record!.ingest).toMatchObject({
-        tenant_id: 'gst_tenant_1',
-        credential_id: 'itk_test',
+        organization_id: 'gor_test',
+        project_id: 'gpr_test',
+        instance_id: 'gin_test',
+        credential_kind: 'token',
+        credential_id: 'git_test',
         route: 'hook',
-        backfill: false,
-        principal: { ref: 'user_1' }
+        backfill: false
       });
       expect(record!.ingest.request_id).toMatch(/^[0-9a-f-]{36}$/);
     });
@@ -186,7 +188,9 @@ describe('hook handler', () => {
 
       expect(pipeline.sink.list()[0]).toMatchObject({
         lane: 'live',
-        tenantId: 'gst_tenant_1'
+        organizationId: 'gor_test',
+        projectId: 'gpr_test',
+        instanceId: 'gin_test'
       });
     });
 
@@ -264,23 +268,37 @@ describe('hook handler', () => {
       expect(first!.id).toBe(second!.id);
     });
 
-    it('keeps ids apart between tenants', async () => {
-      let first = createPipeline({ tenant: { id: 'gst_a' } });
+    it('keeps ids apart between organizations', async () => {
+      let first = createPipeline({ organization: { id: 'gor_a' } });
       await first.send(hookPath('claude-code'), { body: JSON.stringify(promptHook()) });
       let firstId = first.records()[0]!.id;
 
-      let second = createPipeline({ tenant: { id: 'gst_b' } });
+      let second = createPipeline({ organization: { id: 'gor_b' } });
       await second.send(hookPath('claude-code'), { body: JSON.stringify(promptHook()) });
 
       expect(second.records()[0]!.id).not.toBe(firstId);
     });
 
+    it('keeps ids and session keys apart between instances', async () => {
+      let first = createPipeline({ instance: { id: 'gin_a' } });
+      await first.send(hookPath('claude-code'), { body: JSON.stringify(promptHook()) });
+      let firstRecord = first.records()[0]!;
+
+      let second = createPipeline({ instance: { id: 'gin_b' } });
+      await second.send(hookPath('claude-code'), { body: JSON.stringify(promptHook()) });
+      let secondRecord = second.records()[0]!;
+
+      expect(secondRecord.id).not.toBe(firstRecord.id);
+      expect(secondRecord.ctx.session_key).not.toBe(firstRecord.ctx.session_key);
+      expect(secondRecord.ingest.instance_id).toBe('gin_b');
+    });
+
     it('keeps ids apart between hash key versions', async () => {
-      let first = createPipeline({ tenant: { hashKeyVersion: 1 } });
+      let first = createPipeline({ organization: { hashKeyVersion: 1 } });
       await first.send(hookPath('claude-code'), { body: JSON.stringify(promptHook()) });
       let firstId = first.records()[0]!.id;
 
-      let second = createPipeline({ tenant: { hashKeyVersion: 2 } });
+      let second = createPipeline({ organization: { hashKeyVersion: 2 } });
       await second.send(hookPath('claude-code'), { body: JSON.stringify(promptHook()) });
 
       expect(second.records()[0]!.id).not.toBe(firstId);

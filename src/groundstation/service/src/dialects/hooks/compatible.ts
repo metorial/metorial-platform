@@ -1,5 +1,6 @@
 import type { ContentInput } from '../../content/engine';
 import type { RecordDraft } from '../../records/draft';
+import { withHookContext } from '../context';
 import { readFields, withCoerced, type FieldReader } from '../fields';
 import { classifyTool, parseMcpToolName, type ToolRef } from '../tools';
 import type { HookContext, HookDialect, Mapped } from '../types';
@@ -120,7 +121,13 @@ let baseDraft = (
     client: { family: state.options.client },
     ctx: {
       sessionId,
+      previousSessionId: fields.str(
+        'previous_session_id',
+        'previousSessionId',
+        'forked_from_id'
+      ),
       turnId,
+      generationId: fields.str('generation_id', 'generationId'),
       toolCallId: fields.str('tool_use_id', 'toolUseId', 'call_id'),
       ...(agentId ? { agent: { id: agentId } } : {})
     },
@@ -420,12 +427,11 @@ export let createCompatibleHookDialect = (options: CompatibleHookOptions): HookD
 
     let state: HookState = { fields, event, context, options };
 
-    return withCoerced(
-      mapEvent(state).map(draft => ({
-        source: { adapter: options.adapter, dialect: options.id, channel: 'hook' },
-        draft
-      })),
-      fields
-    );
+    let mapped: Mapped[] = mapEvent(state).map(draft => ({
+      source: { adapter: options.adapter, dialect: options.id, channel: 'hook' },
+      draft
+    }));
+
+    return withCoerced(withHookContext(mapped, fields, event), fields);
   }
 });

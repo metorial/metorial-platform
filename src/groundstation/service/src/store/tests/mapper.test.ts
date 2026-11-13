@@ -126,14 +126,17 @@ describe('toRecordDocument', () => {
     expect(texts).toEqual([]);
     expect(document).toMatchObject({
       _id: record.id,
-      tenantId: 'gst_unit',
+      organizationId: 'gor_unit',
+      projectId: 'gpr_unit',
+      instanceId: 'gin_unit',
       spec: record.spec,
       type: 'prompt.submitted',
       occurredAt: new Date(record.occurred_at),
       observedAt: new Date(record.observed_at),
       expiresAt: daysAfter(new Date(record.occurred_at), 90),
       ingest: {
-        credentialId: record.ingest.credential_id,
+        credentialKind: 'token',
+        credentialId: 'git_unit',
         route: 'hook',
         requestId: 'req_unit'
       },
@@ -157,6 +160,30 @@ describe('toRecordDocument', () => {
     expect((document.data.cost as { amount: unknown }).amount).toBeInstanceOf(
       mongoose.Types.Decimal128
     );
+  });
+
+  it('maps attribution and the session origin', () => {
+    let record = event();
+    record.attribution = {
+      user_id: 'gen_user',
+      device_id: 'gen_device',
+      client_installation_id: 'gen_install'
+    };
+    record.ctx.session_origin = 'linked';
+
+    let { document } = map(record)!;
+
+    expect(document.attribution).toEqual({
+      userId: 'gen_user',
+      deviceId: 'gen_device',
+      clientInstallationId: 'gen_install'
+    });
+    expect(JSON.parse(JSON.stringify(document.attribution))).toEqual(document.attribution);
+    expect(document.ctx.sessionOrigin).toBe('linked');
+  });
+
+  it('omits attribution when the record has none', () => {
+    expect(map(event())!.document.attribution).toBeUndefined();
   });
 
   it('omits empty extras and empty quality lists', () => {
@@ -281,20 +308,22 @@ describe('toDocuments', () => {
 });
 
 describe('toContentTextDocuments', () => {
-  it('encrypts each text under the tenant key bound to its position', () => {
+  let scope = { organizationId: 'gor_unit', projectId: 'gpr_unit', instanceId: 'gin_unit' };
+
+  it('encrypts each text under the organization key bound to its position', () => {
     let cipher = createContentCipher('unit-content-secret');
     let record = withText();
     let { texts } = map(record)!;
 
     let [document] = toContentTextDocuments(texts, {
-      tenantId: 'gst_unit',
+      ...scope,
       storage: { ...defaultStoragePolicy, contentKeyVersion: 3 },
       cipher
     });
 
     expect(document).toMatchObject({
       _id: `${record.id}:0`,
-      tenantId: 'gst_unit',
+      ...scope,
       recordId: record.id,
       index: 0,
       role: 'prompt',
@@ -304,9 +333,9 @@ describe('toContentTextDocuments', () => {
     });
     expect(Buffer.from(document!.ciphertext.buffer).toString('utf8')).not.toContain(sentinel);
 
-    let key = cipher.forTenant({ id: 'gst_unit', contentKeyVersion: 3 });
+    let key = cipher.forOrganization({ id: 'gor_unit', contentKeyVersion: 3 });
     let aad = contentAad({
-      tenantId: 'gst_unit',
+      organizationId: 'gor_unit',
       recordId: record.id,
       index: 0,
       role: 'prompt'
@@ -327,7 +356,7 @@ describe('toContentTextDocuments', () => {
   it('returns nothing for no texts', () => {
     expect(
       toContentTextDocuments([], {
-        tenantId: 'gst_unit',
+        ...scope,
         storage: defaultStoragePolicy,
         cipher: createContentCipher('s')
       })
