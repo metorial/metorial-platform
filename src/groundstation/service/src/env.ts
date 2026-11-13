@@ -59,12 +59,29 @@ let ingestSettings = defineSettings('ingest', {
   })
 });
 
-let catalogSettings = defineSettings('catalog', {
-  url: setting(v.optional(v.string()), {
-    env: 'GROUNDSTATION_MODEL_CATALOG_URL',
+let knowledgeSettings = defineSettings('knowledge', {
+  url: setting(v.string(), {
+    env: 'GROUNDSTATION_MODEL_KNOWLEDGE_URL',
     audience: 'deployment',
+    default: 'https://models.metorial.com',
     description:
-      'URL or file path of the published @metorial/model-catalog catalog.json; without it sessions carry no canonical model ids or computed cost.'
+      'Base URL of the published model knowledge (fingerprint.json and catalog.json.gz), or a file:// directory with the same layout.'
+  }),
+
+  pollMinutes: setting(v.number({ modifiers: [v.integer()] }), {
+    env: 'GROUNDSTATION_MODEL_KNOWLEDGE_POLL_MINUTES',
+    audience: 'deployment',
+    default: 2,
+    description:
+      'How often the fingerprint is checked for a new publish. 0 disables syncing; sessions then carry no canonical model ids or computed cost until a snapshot is imported.'
+  }),
+
+  guardrails: setting(v.enumOf(['strict', 'off']), {
+    env: 'GROUNDSTATION_MODEL_KNOWLEDGE_GUARDRAILS',
+    audience: 'deployment',
+    default: 'strict',
+    description:
+      'Whether snapshots that look like a bad publish (mass price changes, dropped models, reset history) are rejected.'
   })
 });
 
@@ -88,6 +105,6 @@ export let env = {
   ...serviceSettings,
   records: recordSettings,
   ingest: ingestSettings,
-  catalog: catalogSettings,
+  knowledge: knowledgeSettings,
   classification: classificationSettings
 };

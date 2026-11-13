@@ -3,6 +3,7 @@ import { archiveEphemeralDevicesProcessor } from './archiveEphemeralDevices';
 import { eraseEntitiesProcessor } from './eraseEntities';
 import { eraseRecordsProcessor } from './eraseRecords';
 import { eraseUserProcessor } from './eraseUser';
+import { knowledgeSyncProcessor } from './knowledgeSync';
 import { mergeSuggestionsProcessor } from './mergeSuggestions';
 import { reattributeProcessor } from './reattribute';
 import { rebuildProcessor } from './rebuild';
@@ -35,5 +36,6 @@ export let groundstationQueues = combineQueueProcessors([
   sessionReconcileProcessor,
   sessionlessSlicesProcessor,
   rebuildProcessor,
-  eraseUserProcessor
+  eraseUserProcessor,
+  knowledgeSyncProcessor
 ]);

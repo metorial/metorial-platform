@@ -98,10 +98,10 @@ describe('isSessionlessUsage', () => {
 });
 
 describe('sessionlessBaseSlices', () => {
-  it('sums token, request and cost aggregates per actor and model', () => {
+  it('sums token, request and cost aggregates per actor and model', async () => {
     let model = { model: 'claude-sonnet-4-5-20250929', provider: 'anthropic' };
 
-    let slices = sessionlessBaseSlices({
+    let slices = await sessionlessBaseSlices({
       bucket: day,
       catalog,
       records: [

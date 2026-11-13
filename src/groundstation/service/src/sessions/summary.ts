@@ -1,4 +1,9 @@
-import { computeRequestCost, type CatalogIndex, type RequestTokens } from '../catalog';
+import {
+  computeRequestCost,
+  type CatalogIndex,
+  type RequestTokens,
+  type ResolvedModel
+} from '../catalog';
 import type { BaseSlice } from '../facts/write';
 import type {
   ReportedCost,
@@ -455,16 +460,25 @@ export let aggregateSession = async (d: {
     if (entry.requestId) modelByCorrelation.set(`request:${entry.requestId}`, entry);
   }
 
-  let resolved = new Map<string, ReturnType<CatalogIndex['resolveModel']>>();
+  let resolver = d.catalog
+    ? await d.catalog.prepare(
+        usage.flatMap(entry =>
+          entry.modelRaw
+            ? [{ raw: entry.modelRaw, provider: entry.provider, family: d.family }]
+            : []
+        )
+      )
+    : null;
+  let resolved = new Map<string, ResolvedModel>();
 
   let resolve = (raw: string | undefined, provider: string | undefined, at: Date) => {
-    if (!raw || !d.catalog) return {};
+    if (!raw || !resolver) return {};
 
     let key = `${raw}\0${provider ?? ''}\0${at.toISOString().slice(0, 13)}`;
     let cached = resolved.get(key);
     if (cached) return cached;
 
-    let result = d.catalog.resolveModel({ raw, provider, family: d.family, at });
+    let result = resolver.resolveModel({ raw, provider, family: d.family, at });
     resolved.set(key, result);
 
     return result;

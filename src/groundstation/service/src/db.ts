@@ -43,13 +43,14 @@ let transactionStorage = new AsyncLocalStorage<TransactionDB>();
 
 export let withTransaction = async <T>(
   cb: (tdb: TransactionDB) => Promise<T>,
-  opts?: { ifExists?: boolean }
+  opts?: { ifExists?: boolean; timeoutMs?: number }
 ): Promise<T> => {
   let active = transactionStorage.getStore();
   if (active || opts?.ifExists) return await cb(active ?? db);
 
   return await db.$transaction(
-    async tdb => await transactionStorage.run(tdb, async () => await cb(tdb))
+    async tdb => await transactionStorage.run(tdb, async () => await cb(tdb)),
+    opts?.timeoutMs ? { timeout: opts.timeoutMs } : undefined
   );
 };
 

@@ -1,5 +1,5 @@
 import { resolveSessionAttribution } from '../attribution/resolve';
-import { getCatalog } from '../catalog';
+import { getKnowledge } from '../knowledge/cache';
 import { maybeClassifySession } from '../classification/trigger';
 import { writeSessionFacts } from '../facts/write';
 import { queueSessionSettle } from '../queues/sessionSettle';
@@ -32,7 +32,7 @@ export let computeSessionAggregate = async (
       sessionKey: session._id
     }),
     family: session.client.family,
-    catalog: await getCatalog(),
+    catalog: await getKnowledge(),
     correlationsSince
   });
 

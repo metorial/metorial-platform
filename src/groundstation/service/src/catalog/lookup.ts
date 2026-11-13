@@ -5,6 +5,7 @@ import type {
   Name,
   NameTarget,
   Offering,
+  Pointer,
   TargetPeriod
 } from '@metorial/model-catalog/src/types';
 
@@ -33,19 +34,33 @@ let lifecycleRank: Record<string, number> = {
   retired: 3
 };
 
+export type ModelRequest = { raw: string; provider?: string; family?: string };
+
 export type ResolvedModel = { modelId?: string; offering?: Offering };
 
 export type ModelInfo = { familyId?: string; status: LifecycleStatus; isLatest: boolean };
 
+export type ModelResolver = {
+  resolveModel: (d: ModelRequest & { at: Date }) => ResolvedModel;
+};
+
+// `prepare` loads everything the given requests can resolve to, so the returned resolver answers
+// synchronously. Requests that weren't prepared resolve to nothing.
 export type CatalogIndex = {
+  version: string;
   generatedAt: string;
-  resolveModel: (d: {
-    raw: string;
-    provider?: string;
-    family?: string;
-    at: Date;
-  }) => ResolvedModel;
   modelInfo: (modelId: string) => ModelInfo | undefined;
+  prepare: (requests: ModelRequest[]) => Promise<ModelResolver>;
+};
+
+export type ResolutionSource = {
+  namesByRaw: (raw: string) => Name[];
+  namesByKey: (key: string) => Name[];
+  pointer: (pointerId: string) => Pointer | undefined;
+  labOf: (modelId: string) => string | undefined;
+  pricedOfferingsByVendorModel: (vendorId: string, vendorModelId: string) => Offering[];
+  pricedOfferingsByModel: (modelId: string) => Offering[];
+  firstPartyVendor: (labId: string) => string | undefined;
 };
 
 type Timed = { target: NameTarget; history: TargetPeriod[] };
@@ -66,13 +81,6 @@ export let targetAt = (entry: Timed, at: Date): NameTarget => {
   return entry.target;
 };
 
-let push = <K, V>(map: Map<K, V[]>, key: K, value: V) => {
-  let list = map.get(key);
-
-  if (list) list.push(value);
-  else map.set(key, [value]);
-};
-
 export let vendorFor = (d: { provider?: string; family?: string }) => {
   if (d.provider) {
     let provider = d.provider.startsWith('other:') ? d.provider.slice(6) : d.provider;
@@ -82,6 +90,8 @@ export let vendorFor = (d: { provider?: string; family?: string }) => {
 
   return d.family ? familyVendors[d.family] : undefined;
 };
+
+export let isPriced = (offering: Offering) => !!offering.pricing?.text;
 
 let isDefaultVariant = (offering: Offering) =>
   !offering.variant.serving &&
@@ -105,55 +115,71 @@ let compareRanks = (a: number[], b: number[]) => {
   return 0;
 };
 
-// Mirrors `createNameLookup` from @metorial/model-catalog (exact namespaced id, then the raw string
-// under any namespace, then the normalized key, as long as all matches agree), but evaluates every
-// name and pointer at the request time instead of their current target.
-export let createCatalogIndex = (catalog: Catalog): CatalogIndex => {
-  let namesById = new Map(catalog.names.map(name => [name.id, name]));
-  let namesByRaw = new Map<string, Name[]>();
-  let namesByKey = new Map<string, Name[]>();
+let bestOffering = (offerings: Offering[], releaseId?: string) =>
+  [...offerings].sort(
+    (a, b) =>
+      compareRanks(offeringRank(a, releaseId), offeringRank(b, releaseId)) ||
+      (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
+  )[0];
 
-  for (let name of catalog.names) {
-    if (name.target.kind == 'unresolved') continue;
+let allTargets = (entry: Timed) => [
+  entry.target,
+  ...entry.history.map(period => period.target)
+];
 
-    push(namesByRaw, name.raw, name);
-    push(namesByKey, name.key, name);
-  }
+// Every model a set of names can resolve to at any time, following pointers through their whole
+// history. Used to prefetch offerings before resolving.
+export let reachableModels = (
+  names: Iterable<Timed>,
+  pointer: (pointerId: string) => Pointer | undefined
+) => {
+  let models = new Set<string>();
+  let visited = new Set<string>();
+  let pending = [...names].flatMap(allTargets).map(target => ({ target, depth: 0 }));
 
-  let pointers = new Map(catalog.pointers.map(pointer => [pointer.id, pointer]));
-  let models = new Map(catalog.models.map(model => [model.id, model]));
-  let families = new Map((catalog.families ?? []).map(family => [family.id, family]));
+  // Breadth-first, so each pointer is visited at its shortest depth.
+  for (let index = 0; index < pending.length; index++) {
+    let { target, depth } = pending[index]!;
 
-  let offeringsByVendorModel = new Map<string, Offering>();
-  let offeringsByModel = new Map<string, Offering[]>();
+    if (target.kind == 'model' || target.kind == 'release') models.add(target.modelId);
+    if (
+      target.kind != 'pointer' ||
+      depth >= maxPointerDepth ||
+      visited.has(target.pointerId)
+    ) {
+      continue;
+    }
 
-  for (let offering of catalog.offerings) {
-    if (!offering.pricing?.text) continue;
+    visited.add(target.pointerId);
 
-    offeringsByVendorModel.set(`${offering.vendorId}:${offering.vendorModelId}`, offering);
-    if (offering.modelId) push(offeringsByModel, offering.modelId, offering);
-  }
-
-  let firstPartyVendors = new Map<string, string>();
-
-  for (let vendor of catalog.vendors) {
-    if (vendor.kind == 'first-party' && !firstPartyVendors.has(vendor.organizationId)) {
-      firstPartyVendors.set(vendor.organizationId, vendor.id);
+    let found = pointer(target.pointerId);
+    if (found) {
+      pending.push(...allTargets(found).map(next => ({ target: next, depth: depth + 1 })));
     }
   }
 
-  let agreed = (names: Name[] | undefined, at: Date): NameTarget | null => {
-    if (!names?.length) return null;
+  return models;
+};
 
-    let targets = names.map(name => targetAt(name, at));
+// Mirrors `createNameLookup` from @metorial/model-catalog (exact namespaced id, then the raw string
+// under any namespace, then the normalized key, as long as all matches agree), but evaluates every
+// name and pointer at the request time instead of their current target.
+export let createResolver = (source: ResolutionSource): ModelResolver => {
+  let agreed = (names: Name[], at: Date): NameTarget | null => {
+    let resolved = names.filter(name => name.target.kind != 'unresolved');
+    if (!resolved.length) return null;
+
+    let targets = resolved.map(name => targetAt(name, at));
     let distinct = new Set(targets.map(target => JSON.stringify(target)));
 
     return distinct.size == 1 ? targets[0]! : null;
   };
 
   let lookupName = (raw: string, namespace: string | undefined, at: Date) => {
+    let byRaw = source.namesByRaw(raw);
+
     if (namespace) {
-      let exact = namesById.get(`${namespace}:${raw}`);
+      let exact = byRaw.find(name => name.namespace == namespace);
 
       if (exact) {
         let target = targetAt(exact, at);
@@ -161,7 +187,7 @@ export let createCatalogIndex = (catalog: Catalog): CatalogIndex => {
       }
     }
 
-    return agreed(namesByRaw.get(raw), at) ?? agreed(namesByKey.get(normalizeKey(raw)), at);
+    return agreed(byRaw, at) ?? agreed(source.namesByKey(normalizeKey(raw)), at);
   };
 
   let resolveTarget = (target: NameTarget | null, at: Date) => {
@@ -172,7 +198,7 @@ export let createCatalogIndex = (catalog: Catalog): CatalogIndex => {
       current && current.kind == 'pointer' && depth < maxPointerDepth;
       depth++
     ) {
-      let pointer = pointers.get(current.pointerId);
+      let pointer = source.pointer(current.pointerId);
       current = pointer ? targetAt(pointer, at) : null;
     }
 
@@ -186,44 +212,29 @@ export let createCatalogIndex = (catalog: Catalog): CatalogIndex => {
   };
 
   let pickOffering = (d: { modelId: string; releaseId?: string; vendorId?: string }) => {
-    let pool = offeringsByModel.get(d.modelId) ?? [];
-    let labId = models.get(d.modelId)?.labId;
-    let firstParty = labId ? firstPartyVendors.get(labId) : undefined;
+    let pool = source.pricedOfferingsByModel(d.modelId);
+    let labId = source.labOf(d.modelId);
+    let firstParty = labId ? source.firstPartyVendor(labId) : undefined;
 
     for (let vendorId of [d.vendorId, firstParty]) {
       if (!vendorId) continue;
 
       let candidates = pool.filter(offering => offering.vendorId == vendorId);
-      if (!candidates.length) continue;
-
-      return candidates.sort((a, b) =>
-        compareRanks(offeringRank(a, d.releaseId), offeringRank(b, d.releaseId))
-      )[0];
+      if (candidates.length) return bestOffering(candidates, d.releaseId);
     }
 
     return undefined;
   };
 
   return {
-    generatedAt: catalog.generatedAt,
-
-    modelInfo: modelId => {
-      let model = models.get(modelId);
-      if (!model) return undefined;
-
-      let family = model.familyId ? families.get(model.familyId) : undefined;
-
-      return {
-        ...(model.familyId ? { familyId: model.familyId } : {}),
-        status: model.status,
-        isLatest: family?.latestModelId == modelId
-      };
-    },
-
     resolveModel: d => {
       let vendorId = vendorFor(d);
 
-      let exact = vendorId ? offeringsByVendorModel.get(`${vendorId}:${d.raw}`) : undefined;
+      let exact = vendorId
+        ? bestOffering(
+            source.pricedOfferingsByVendorModel(vendorId, d.raw).filter(item => item.modelId)
+          )
+        : undefined;
       if (exact?.modelId) return { modelId: exact.modelId, offering: exact };
 
       let resolved = resolveTarget(
@@ -237,5 +248,89 @@ export let createCatalogIndex = (catalog: Catalog): CatalogIndex => {
         offering: pickOffering({ ...resolved, vendorId })
       };
     }
+  };
+};
+
+let push = <K, V>(map: Map<K, V[]>, key: K, value: V) => {
+  let list = map.get(key);
+
+  if (list) list.push(value);
+  else map.set(key, [value]);
+};
+
+export let firstPartyVendors = (
+  vendors: { id: string; organizationId: string; kind: string }[]
+) => {
+  let result = new Map<string, string>();
+
+  for (let vendor of [...vendors].sort((a, b) => (a.id < b.id ? -1 : 1))) {
+    if (vendor.kind == 'first-party' && !result.has(vendor.organizationId)) {
+      result.set(vendor.organizationId, vendor.id);
+    }
+  }
+
+  return result;
+};
+
+export let modelInfoFrom = (d: {
+  model: { familyId: string | null; status: LifecycleStatus } | undefined;
+  latestModelId: (familyId: string) => string | null | undefined;
+  modelId: string;
+}): ModelInfo | undefined => {
+  if (!d.model) return undefined;
+
+  return {
+    ...(d.model.familyId ? { familyId: d.model.familyId } : {}),
+    status: d.model.status,
+    isLatest: !!d.model.familyId && d.latestModelId(d.model.familyId) == d.modelId
+  };
+};
+
+export let createCatalogIndex = (catalog: Catalog): CatalogIndex & ModelResolver => {
+  let namesByRaw = new Map<string, Name[]>();
+  let namesByKey = new Map<string, Name[]>();
+
+  for (let name of catalog.names) {
+    push(namesByRaw, name.raw, name);
+    push(namesByKey, name.key, name);
+  }
+
+  let pointers = new Map(catalog.pointers.map(pointer => [pointer.id, pointer]));
+  let models = new Map(catalog.models.map(model => [model.id, model]));
+  let families = new Map((catalog.families ?? []).map(family => [family.id, family]));
+  let firstParty = firstPartyVendors(catalog.vendors);
+
+  let offeringsByVendorModel = new Map<string, Offering[]>();
+  let offeringsByModel = new Map<string, Offering[]>();
+
+  for (let offering of catalog.offerings) {
+    if (!isPriced(offering)) continue;
+
+    push(offeringsByVendorModel, `${offering.vendorId}\0${offering.vendorModelId}`, offering);
+    if (offering.modelId) push(offeringsByModel, offering.modelId, offering);
+  }
+
+  let resolver = createResolver({
+    namesByRaw: raw => namesByRaw.get(raw) ?? [],
+    namesByKey: key => namesByKey.get(key) ?? [],
+    pointer: pointerId => pointers.get(pointerId),
+    labOf: modelId => models.get(modelId)?.labId,
+    pricedOfferingsByVendorModel: (vendorId, vendorModelId) =>
+      offeringsByVendorModel.get(`${vendorId}\0${vendorModelId}`) ?? [],
+    pricedOfferingsByModel: modelId => offeringsByModel.get(modelId) ?? [],
+    firstPartyVendor: labId => firstParty.get(labId)
+  });
+
+  return {
+    version: catalog.generatedAt,
+    generatedAt: catalog.generatedAt,
+    modelInfo: modelId =>
+      modelInfoFrom({
+        model: models.get(modelId),
+        latestModelId: familyId => families.get(familyId)?.latestModelId,
+        modelId
+      }),
+    prepare: async () => resolver,
+    resolveModel: resolver.resolveModel
   };
 };

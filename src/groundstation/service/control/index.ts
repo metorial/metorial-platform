@@ -50,7 +50,8 @@ export default project({
     tests: ['.'],
     env: {
       GROUNDSTATION_HASH_SECRET: 'e2e-groundstation-hash-secret',
-      GROUNDSTATION_SINK: 'memory'
+      GROUNDSTATION_SINK: 'memory',
+      GROUNDSTATION_MODEL_KNOWLEDGE_POLL_MINUTES: '0'
     }
   }),
   ci: {

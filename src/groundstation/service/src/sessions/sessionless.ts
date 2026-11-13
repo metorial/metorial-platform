@@ -1,7 +1,8 @@
 import type { NormalizedRecord, RecordKind } from '@metorial/groundstation-spec';
-import { computeRequestCost, getCatalog, type CatalogIndex } from '../catalog';
+import { computeRequestCost, type CatalogIndex } from '../catalog';
 import { sessionlessKey } from '../facts/slices';
 import { writeSessionFacts, type BaseSlice } from '../facts/write';
+import { getKnowledge } from '../knowledge/cache';
 import { getRuntime } from '../runtime';
 import { defaultStoragePolicy } from '../sink/types';
 import { getStore } from '../store/connection';
@@ -99,14 +100,31 @@ type SliceTotals = {
   computed?: Amount;
 };
 
-export let sessionlessBaseSlices = (d: {
+let modelOf = (document: SessionlessRecord) => {
+  let data = document.data ?? {};
+  let dims = record(data.dims) ?? {};
+
+  return {
+    modelRaw: text(dims.model) ?? text(record(data.model)?.id),
+    provider: text(dims.provider) ?? text(record(data.model)?.provider)
+  };
+};
+
+export let sessionlessBaseSlices = async (d: {
   records: Iterable<SessionlessRecord>;
   bucket: Date;
   catalog: CatalogIndex | null;
-}): BaseSlice[] => {
+}): Promise<BaseSlice[]> => {
+  let records = [...d.records];
   let slices = new Map<string, SliceTotals>();
 
-  for (let document of d.records) {
+  let requests = records.flatMap(document => {
+    let { modelRaw, provider } = modelOf(document);
+    return modelRaw ? [{ raw: modelRaw, provider, family: document.client.family }] : [];
+  });
+  let resolver = d.catalog ? await d.catalog.prepare(requests) : null;
+
+  for (let document of records) {
     if (!aggregateUsageFamilies.has(document.client.family)) continue;
     if (!countedRoles.has(document.source.role)) continue;
 
@@ -123,10 +141,9 @@ export let sessionlessBaseSlices = (d: {
     }
 
     let dims = record(data.dims) ?? {};
-    let modelRaw = text(dims.model) ?? text(record(data.model)?.id);
-    let provider = text(dims.provider) ?? text(record(data.model)?.provider);
+    let { modelRaw, provider } = modelOf(document);
     let modelId = modelRaw
-      ? d.catalog?.resolveModel({
+      ? resolver?.resolveModel({
           raw: modelRaw,
           provider,
           family: document.client.family,
@@ -212,7 +229,7 @@ export let sessionlessBaseSlices = (d: {
 
   for (let totals of slices.values()) {
     let offering = totals.slice.modelId
-      ? d.catalog?.resolveModel({
+      ? resolver?.resolveModel({
           raw: totals.slice.modelRaw ?? totals.slice.modelId,
           provider: totals.slice.provider,
           family: totals.slice.client?.family,
@@ -308,10 +325,10 @@ export let settleSessionless = async (d: {
   bucket: Date;
 }) => {
   let records = await loadSessionlessRecords(d);
-  let slices = sessionlessBaseSlices({
+  let slices = await sessionlessBaseSlices({
     records,
     bucket: d.bucket,
-    catalog: await getCatalog()
+    catalog: await getKnowledge()
   });
 
   await writeSessionFacts({ sessionKey: sessionlessKey(d.instanceId, d.bucket), slices });
