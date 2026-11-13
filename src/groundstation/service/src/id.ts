@@ -15,7 +15,12 @@ export let ID = createIdGenerator({
   attributionRule: idType.sorted('gru_'),
   classifierLabel: idType.sorted('gcl_'),
   mergeSuggestion: idType.sorted('gms_'),
-  rebuildRun: idType.sorted('grb_')
+  rebuildRun: idType.sorted('grb_'),
+  knowledgeSource: idType.sorted('gku_'),
+  knowledgeSnapshot: idType.sorted('gks_'),
+  knowledgeChange: idType.sorted('gkc_'),
+  knowledgePricePeriod: idType.sorted('gpp_'),
+  priceOverride: idType.sorted('gpo_')
 });
 
 let workerIdBits = 12;

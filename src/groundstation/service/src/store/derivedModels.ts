@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import type { VendorSource } from '../knowledge/types';
 import type { TagOrigin } from '../types';
 
 export let derivedCollectionNames = {
@@ -77,10 +78,17 @@ export type SessionClassification = {
 export type SessionModelSummary = {
   modelId?: string;
   rawIds: string[];
+  vendorId?: string;
+  vendorSource?: VendorSource;
+  offeringId?: string;
+  pricePeriodIds?: string[];
+  priceAssumed?: true;
+  overrideId?: string;
   requests: number;
   tokens: Tokens;
   costReported: ReportedCost[];
   costComputedUsd?: Decimal;
+  costContractUsd?: Decimal;
 };
 
 export type SessionSummary = {
@@ -98,6 +106,7 @@ export type SessionSummary = {
   tokens: Tokens;
   costReported: ReportedCost[];
   costComputedUsd?: Decimal;
+  costContractUsd?: Decimal;
   costUsd?: Decimal;
   lines: { added: number; removed: number };
   commits: number;
@@ -212,6 +221,8 @@ export type UsageSliceDocument = {
   modelId?: string;
   modelRaw?: string;
   provider?: string;
+  vendorId?: string;
+  vendorSource?: VendorSource;
 
   sessionsStarted: 0 | 1;
   turns: number;
@@ -221,6 +232,7 @@ export type UsageSliceDocument = {
   tokens: Tokens;
   costReported: ReportedCost[];
   costComputedUsd?: Decimal;
+  costContractUsd?: Decimal;
   costUsd?: Decimal;
   lines: { added: number; removed: number };
 
@@ -295,6 +307,8 @@ export let UsageSliceSchema = new mongoose.Schema<UsageSliceDocument>(
 UsageSliceSchema.index({ organizationId: 1, bucket: 1 });
 UsageSliceSchema.index({ organizationId: 1, dimIds: 1, bucket: 1 });
 UsageSliceSchema.index({ organizationId: 1, modelId: 1, bucket: 1 });
+UsageSliceSchema.index({ organizationId: 1, modelRaw: 1, bucket: 1 });
+UsageSliceSchema.index({ organizationId: 1, vendorId: 1, bucket: 1 });
 UsageSliceSchema.index({ organizationId: 1, sessionKey: 1 });
 UsageSliceSchema.index(
   { organizationId: 1, sessionlessKey: 1 },

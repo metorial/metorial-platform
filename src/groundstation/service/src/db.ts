@@ -6,6 +6,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { readReplicas } from '@prisma/extension-read-replicas';
 import { AsyncLocalStorage } from 'async_hooks';
 import { PrismaClient } from '../prisma/generated/client';
+import type * as Knowledge from './knowledge/types';
 import type * as Json from './types';
 
 let mainAdapter = new PrismaPg({
@@ -63,5 +64,20 @@ declare global {
     type EntityAttributes = Json.EntityAttributes;
     type AttributionRuleMatch = Json.AttributionRuleMatch;
     type ClassifierFeatures = Json.ClassifierFeatures;
+    type RebuildFilter = Knowledge.RebuildFilter;
+    type KnowledgeSnapshotCounts = Knowledge.KnowledgeSnapshotCounts;
+    type KnowledgeSnapshotAnomalies = Knowledge.KnowledgeSnapshotAnomaly[];
+    type KnowledgeOrganizationData = Knowledge.KnowledgeOrganizationData;
+    type KnowledgeFamilyData = Knowledge.KnowledgeFamilyData;
+    type KnowledgeModelData = Knowledge.KnowledgeModelData;
+    type KnowledgeReleaseData = Knowledge.KnowledgeReleaseData;
+    type KnowledgePointerData = Knowledge.KnowledgePointerData;
+    type KnowledgeVendorData = Knowledge.KnowledgeVendorData;
+    type KnowledgeEndpointData = Knowledge.KnowledgeEndpointData;
+    type KnowledgeOfferingData = Knowledge.KnowledgeOfferingData;
+    type KnowledgeNameData = Knowledge.KnowledgeNameData;
+    type KnowledgeAgentData = Knowledge.KnowledgeAgentData;
+    type KnowledgeEntityData = Knowledge.KnowledgeEntityData;
+    type KnowledgePricing = Knowledge.KnowledgePricing;
   }
 }
