@@ -1,0 +1,31 @@
+{
+  "name": "@mtsrc/agent-tracking-module-erasure",
+  "version": "1.0.0",
+  "private": true,
+  "author": "Tobias Herber",
+  "license": "FSL-1.1",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@lowerdeck/error": "workspace:2.0.0",
+    "@lowerdeck/queue": "workspace:2.0.0",
+    "@lowerdeck/service": "workspace:2.0.0",
+    "@metorial/settings": "workspace:*",
+    "@metorial/shared-settings": "workspace:*",
+    "@mtsrc/agent-tracking-db": "workspace:*",
+    "@mtsrc/agent-tracking-module-entities": "workspace:*",
+    "@mtsrc/agent-tracking-module-ingest-access": "workspace:*",
+    "@mtsrc/agent-tracking-module-records": "workspace:*",
+    "@mtsrc/agent-tracking-module-usage": "workspace:*",
+    "@mtsrc/agent-tracking-store": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.4"
+  }
+}

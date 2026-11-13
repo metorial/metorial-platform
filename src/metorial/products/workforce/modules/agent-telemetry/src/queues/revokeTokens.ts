@@ -1,7 +1,7 @@
 import { db } from '@metorial/db';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
-import { getGroundstation } from '../internal/groundstation';
-import { revokeAgentTelemetryIngestToken } from '../internal/ingestToken';
+import { getGroundstation } from '../lib/client';
+import { revokeAgentTelemetryIngestToken } from '../lib/ingestToken';
 
 export let revokeDeviceIngestTokensQueue = createQueue<{ consumerDeviceId: string }>({
   name: 'agent-telemetry/token/revoke-device',

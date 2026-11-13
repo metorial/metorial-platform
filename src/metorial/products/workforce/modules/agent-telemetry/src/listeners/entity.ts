@@ -1,6 +1,6 @@
 import { addAfterTransactionHook } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
-import { isAgentTelemetryEnabled } from '../internal/groundstation';
+import { isAgentTelemetryEnabled } from '../lib/client';
 import { revokeDeviceIngestTokensQueue } from '../queues/revokeTokens';
 import { syncEntityQueue, type EntitySyncTarget } from '../queues/syncEntity';
 

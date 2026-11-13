@@ -1,0 +1,11 @@
+export { createMemorySink, type MemorySink } from './lib/memory';
+export { createMongoSink, type MongoWriteStats } from './lib/mongo';
+export { createNdjsonSink } from './lib/ndjson';
+export { createNoopSink } from './lib/noop';
+export { setConfiguredSink as setRecordSink } from './lib/sink';
+export { toRecordDocument } from './lib/mapper';
+export { eraseCollections, eraseFilter, type EraseScope } from './queues/eraseRecords';
+export { recordErasureService } from './services/recordErasure';
+export { recordReadbackService } from './services/recordReadback';
+export { recordWriteService } from './services/recordWrite';
+export { recordsQueueProcessor } from './queues';

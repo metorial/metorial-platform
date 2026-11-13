@@ -190,8 +190,8 @@
       "dependsOn": ["^build", "@metorial/shuttle#prisma:generate"],
       "outputs": ["dist/**"]
     },
-    "@metorial-platform-systems/groundstation-client#build": {
-      "dependsOn": ["^build", "@metorial/groundstation#prisma:generate"],
+    "@metorial-platform-systems/agent-tracking-client#build": {
+      "dependsOn": ["^build", "@mtsrc/agent-tracking-db#prisma:generate"],
       "outputs": ["dist/**"]
     },
     "@metorial-platform-systems/signal-client#build": {

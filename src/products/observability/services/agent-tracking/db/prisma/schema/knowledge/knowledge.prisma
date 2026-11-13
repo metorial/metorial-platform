@@ -1,0 +1,383 @@
+model KnowledgeSource {
+  oid BigInt @id
+  id  String @unique
+
+  url String @unique
+
+  etag            String?
+  lastFingerprint String?
+  lastError       String?
+
+  lastCheckedAt DateTime?
+  lastChangedAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  snapshots KnowledgeSnapshot[]
+}
+
+enum KnowledgeSnapshotStatus {
+  current
+  superseded
+  rejected
+}
+
+model KnowledgeSnapshot {
+  oid BigInt @id
+  id  String @unique
+
+  fingerprint   String
+  schemaVersion Int
+
+  status         KnowledgeSnapshotStatus
+  rejectedReason String?
+
+  /// [KnowledgeSnapshotCounts]
+  counts Json
+
+  /// [KnowledgeSnapshotAnomalies]
+  anomalies Json @default("[]")
+
+  archive Bytes?
+
+  generatedAt DateTime
+  acceptedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  sourceOid BigInt
+  source    KnowledgeSource @relation(fields: [sourceOid], references: [oid])
+
+  changes      KnowledgeChange[]
+  pricePeriods KnowledgePricePeriod[]
+
+  @@unique([sourceOid, fingerprint])
+  @@index([status, generatedAt])
+}
+
+model KnowledgeOrganization {
+  oid BigInt @id
+  id  String @unique
+
+  name   String
+  roles  String[]
+  status String
+
+  /// [KnowledgeOrganizationData]
+  data        Json
+  contentHash String
+
+  removedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model KnowledgeFamily {
+  oid BigInt @id
+  id  String @unique
+
+  name          String
+  labId         String
+  kind          String
+  status        String
+  latestModelId String?
+
+  /// [KnowledgeFamilyData]
+  data        Json
+  contentHash String
+
+  removedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([labId])
+}
+
+model KnowledgeModel {
+  oid BigInt @id
+  id  String @unique
+
+  name     String
+  labId    String
+  familyId String?
+  kind     String
+  status   String
+
+  releaseDate      DateTime? @db.Date
+  openWeights      Boolean
+  contextTokens    Int?
+  capabilities     String[]
+  inputModalities  String[]
+  outputModalities String[]
+
+  /// [KnowledgeModelData]
+  data        Json
+  contentHash String
+
+  removedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([labId])
+  @@index([familyId])
+  @@index([kind, status])
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "KnowledgeModel_name_trgm_idx")
+  @@index([id(ops: raw("gin_trgm_ops"))], type: Gin, map: "KnowledgeModel_id_trgm_idx")
+}
+
+model KnowledgeRelease {
+  oid BigInt @id
+  id  String @unique
+
+  modelId String
+  date    DateTime @db.Date
+  status  String
+
+  /// [KnowledgeReleaseData]
+  data        Json
+  contentHash String
+
+  removedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([modelId])
+}
+
+model KnowledgePointer {
+  oid BigInt @id
+  id  String @unique
+
+  labId    String
+  familyId String?
+
+  /// [KnowledgePointerData]
+  data        Json
+  contentHash String
+
+  removedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([labId])
+}
+
+model KnowledgeVendor {
+  oid BigInt @id
+  id  String @unique
+
+  name           String
+  organizationId String
+  kind           String
+  status         String
+
+  /// [KnowledgeVendorData]
+  data        Json
+  contentHash String
+
+  removedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([organizationId])
+  @@index([kind])
+}
+
+model KnowledgeEndpoint {
+  oid BigInt @id
+  id  String @unique
+
+  name        String
+  vendorId    String
+  plan        String
+  region      String?
+  baseUrlHost String?
+  status      String
+
+  /// [KnowledgeEndpointData]
+  data        Json
+  contentHash String
+
+  removedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([vendorId])
+  @@index([baseUrlHost])
+}
+
+model KnowledgeOffering {
+  oid BigInt @id
+  id  String @unique
+
+  vendorId      String
+  vendorModelId String
+  variantKey    String
+
+  name   String
+  kind   String
+  status String
+  free   Boolean
+
+  modelId   String?
+  releaseId String?
+  pointerId String?
+
+  pricingHash String?
+
+  /// [KnowledgeOfferingData]
+  data        Json
+  contentHash String
+
+  removedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  pricePeriods    KnowledgePricePeriod[] @relation("OfferingPricePeriods")
+  openPricePeriod KnowledgePricePeriod?  @relation("OfferingOpenPricePeriod")
+
+  @@index([vendorId, vendorModelId])
+  @@index([modelId])
+}
+
+model KnowledgeName {
+  oid BigInt @id
+  id  String @unique
+
+  namespace     String
+  raw           String
+  key           String
+  status        String
+  targetModelId String?
+
+  /// [KnowledgeNameData]
+  data        Json
+  contentHash String
+
+  removedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([raw])
+  @@index([key])
+  @@index([targetModelId])
+}
+
+model KnowledgeAgent {
+  oid BigInt @id
+  id  String @unique
+
+  name       String
+  makerId    String
+  status     String
+  openSource Boolean
+  surfaces   String[]
+
+  aliasKeys       String[]
+  defaultVendorId String?
+  vendorIds       String[]
+
+  /// [KnowledgeAgentData]
+  data        Json
+  contentHash String
+
+  removedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([makerId])
+}
+
+enum KnowledgeEntity {
+  organization
+  family
+  model
+  release
+  pointer
+  vendor
+  endpoint
+  offering
+  name
+  agent
+}
+
+enum KnowledgeChangeType {
+  added
+  changed
+  removed
+}
+
+model KnowledgeChange {
+  oid BigInt @id
+  id  String @unique
+
+  entity   KnowledgeEntity
+  entityId String
+  change   KnowledgeChangeType
+
+  /// [KnowledgeEntityData]
+  before Json?
+
+  /// [KnowledgeEntityData]
+  after Json?
+
+  createdAt DateTime @default(now())
+
+  snapshotOid BigInt
+  snapshot    KnowledgeSnapshot @relation(fields: [snapshotOid], references: [oid])
+
+  @@index([entity, entityId, createdAt])
+  @@index([snapshotOid])
+  @@index([createdAt])
+}
+
+enum KnowledgePriceOrigin {
+  bootstrap
+  observed
+  correction
+}
+
+enum KnowledgePriceCloseReason {
+  changed
+  corrected
+}
+
+model KnowledgePricePeriod {
+  oid BigInt @id
+  id  String @unique
+
+  vendorId String
+  modelId  String?
+
+  /// [KnowledgePricing]
+  pricing     Json
+  pricingHash String
+
+  origin      KnowledgePriceOrigin
+  closeReason KnowledgePriceCloseReason?
+
+  correctionReason String?
+  correctedBy      String?
+
+  validFrom   DateTime
+  validTo     DateTime?
+  confirmedAt DateTime
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  offeringOid BigInt
+  offering    KnowledgeOffering @relation("OfferingPricePeriods", fields: [offeringOid], references: [oid])
+
+  // Set to offeringOid while the period is open and cleared when it closes. Postgres allows many
+  // NULLs in a unique column, so this enforces one open period per offering, which Prisma can't
+  // express as a partial unique index.
+  openOfferingOid BigInt?            @unique
+  openOffering    KnowledgeOffering? @relation("OfferingOpenPricePeriod", fields: [openOfferingOid], references: [oid])
+
+  openedBySnapshotOid BigInt?
+  openedBySnapshot    KnowledgeSnapshot? @relation(fields: [openedBySnapshotOid], references: [oid])
+
+  @@index([offeringOid, validFrom])
+  @@index([modelId, validFrom])
+  @@index([vendorId, validFrom])
+}

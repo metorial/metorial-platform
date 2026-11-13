@@ -19,7 +19,7 @@ vi.mock('@metorial/db', () => ({
   addAfterTransactionHook: async (hook: () => unknown) => await hook()
 }));
 
-vi.mock('../src/internal/groundstation', () => ({
+vi.mock('../src/lib/client', () => ({
   isAgentTelemetryEnabled: () => mocks.enabled.value
 }));
 

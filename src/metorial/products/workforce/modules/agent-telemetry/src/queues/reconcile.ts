@@ -1,11 +1,7 @@
 import { createCron } from '@metorial/cron';
 import { db } from '@metorial/db';
 import { combineQueueProcessors, createQueue, dailyPacedDelay } from '@metorial/queue';
-import {
-  getGroundstation,
-  ignoreNotFound,
-  isAgentTelemetryEnabled
-} from '../internal/groundstation';
+import { getGroundstation, ignoreNotFound, isAgentTelemetryEnabled } from '../lib/client';
 import { archivableStatuses, syncedEntitySources } from '../lib/mapping';
 import { syncScopeQueue } from './syncScope';
 

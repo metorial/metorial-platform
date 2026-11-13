@@ -1,0 +1,98 @@
+model Organization {
+  oid BigInt @id
+  id  String @unique
+
+  ref  String  @unique
+  name String?
+
+  hashKeyVersion    Int @default(1)
+  contentKeyVersion Int @default(1)
+
+  /// [OrganizationSettings]
+  settings Json @default("{}")
+
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  projects            Project[]
+  instances           Instance[]
+  ingestTokens        IngestToken[]
+  ingestSources       IngestSource[]
+  entityKinds         EntityKind[]
+  entities            Entity[]
+  entityIdentifiers   EntityIdentifier[]
+  entityLinks         EntityLink[]
+  pendingMemberships  PendingMembership[]
+  attributionRules    AttributionRule[]
+  classifierLabels    ClassifierLabel[]
+  mergeSuggestions    MergeSuggestion[]
+  rebuildRuns         RebuildRun[]
+  priceOverrides      PriceOverride[]
+  billingDeclarations BillingDeclaration[]
+}
+
+model Project {
+  oid BigInt @id
+  id  String @unique
+
+  ref  String  @unique
+  name String?
+
+  recordRetentionDays  Int @default(90)
+  contentRetentionDays Int @default(30)
+  usageRetentionDays   Int @default(400)
+
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  instances           Instance[]
+  scopedEntities      Entity[]
+  attributionRules    AttributionRule[]
+  rebuildRuns         RebuildRun[]
+  priceOverrides      PriceOverride[]
+  billingDeclarations BillingDeclaration[]
+
+  @@index([organizationOid])
+}
+
+model Instance {
+  oid BigInt @id
+  id  String @unique
+
+  ref  String  @unique
+  name String?
+
+  skewBoundSeconds   Int  @default(86400)
+  backfillMaxAgeDays Int?
+
+  recordRetentionDays  Int @default(90)
+  contentRetentionDays Int @default(30)
+  usageRetentionDays   Int @default(400)
+
+  /// [InstanceSettings]
+  settings Json @default("{}")
+
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  projectOid BigInt
+  project    Project @relation(fields: [projectOid], references: [oid])
+
+  ingestTokens     IngestToken[]
+  ingestSources    IngestSource[]
+  scopedEntities   Entity[]
+  attributionRules AttributionRule[]
+  rebuildRuns      RebuildRun[]
+
+  @@index([organizationOid])
+  @@index([projectOid])
+}

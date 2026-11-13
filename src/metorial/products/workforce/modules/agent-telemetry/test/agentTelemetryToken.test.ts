@@ -45,7 +45,7 @@ vi.mock('../src/env', () => ({
   agentTelemetrySettings: mocks.settings
 }));
 
-vi.mock('../src/internal/groundstation', () => ({
+vi.mock('../src/lib/client', () => ({
   isAgentTelemetryEnabled: () => mocks.enabled.value,
   getGroundstation: () => (mocks.enabled.value ? mocks.groundstation : null),
   ignoreNotFound: (promise: Promise<unknown>) => promise

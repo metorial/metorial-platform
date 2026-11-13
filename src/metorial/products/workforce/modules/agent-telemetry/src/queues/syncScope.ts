@@ -1,11 +1,11 @@
 import { db } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
-import { getGroundstation, ignoreNotFound } from '../internal/groundstation';
+import { getGroundstation, ignoreNotFound } from '../lib/client';
 import {
   upsertInstanceScope,
   upsertOrganizationScope,
   upsertProjectScope
-} from '../internal/scope';
+} from '../lib/scope';
 
 export type ScopeSyncTarget = { type: 'organization' | 'project' | 'instance'; id: string };
 

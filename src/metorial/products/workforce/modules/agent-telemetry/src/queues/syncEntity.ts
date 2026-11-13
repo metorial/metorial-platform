@@ -1,7 +1,7 @@
 import { db } from '@metorial/db';
 import { createQueue } from '@metorial/queue';
-import { getGroundstation, ignoreNotFound } from '../internal/groundstation';
-import { upsertOrganizationScope } from '../internal/scope';
+import { getGroundstation, ignoreNotFound } from '../lib/client';
+import { upsertOrganizationScope } from '../lib/scope';
 import {
   clientAgentEntityInput,
   consumerEntityInput,

@@ -64,6 +64,6 @@ export let services = {
   horizonCustomerFirehose: service(52146),
   synthesis: service(52160),
   nebula: service(52170),
-  groundstation: service(52180),
-  groundstationIngest: service(52181)
+  agentTracking: service(52180),
+  agentTrackingIngest: service(52181)
 };

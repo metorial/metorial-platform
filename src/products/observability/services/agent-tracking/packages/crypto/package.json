@@ -1,0 +1,20 @@
+{
+  "name": "@mtsrc/agent-tracking-crypto",
+  "version": "1.0.0",
+  "private": true,
+  "author": "Tobias Herber",
+  "license": "FSL-1.1",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "vitest run --passWithNoTests",
+    "lint": "prettier src/**/*.ts --check",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@mtsrc/agent-tracking-testing": "workspace:*",
+    "@types/bun": "latest",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.4"
+  }
+}

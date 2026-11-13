@@ -1,6 +1,6 @@
 import { addAfterTransactionHook } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
-import { isAgentTelemetryEnabled } from '../internal/groundstation';
+import { isAgentTelemetryEnabled } from '../lib/client';
 import { syncScopeQueue, type ScopeSyncTarget } from '../queues/syncScope';
 
 // Some of these events fire inside the writing transaction; the job must read the committed row.

@@ -1,0 +1,21 @@
+model ClassifierLabel {
+  oid BigInt @id
+  id  String @unique
+
+  kind       String
+  sessionKey String
+
+  /// [ClassifierFeatures]
+  features Json
+
+  createdAt DateTime @default(now())
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  entityOid BigInt
+  entity    Entity @relation(fields: [entityOid], references: [oid])
+
+  @@unique([organizationOid, kind, sessionKey])
+  @@index([organizationOid, kind, createdAt])
+}

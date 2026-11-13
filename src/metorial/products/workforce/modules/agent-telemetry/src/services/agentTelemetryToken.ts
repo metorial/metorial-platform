@@ -13,9 +13,9 @@ import {
 } from '@metorial/db';
 import { Fabric } from '@metorial/fabric';
 import { agentTelemetrySettings } from '../env';
-import { getGroundstation, isAgentTelemetryEnabled } from '../internal/groundstation';
-import { revokeAgentTelemetryIngestToken } from '../internal/ingestToken';
-import { upsertInstanceScope } from '../internal/scope';
+import { getGroundstation, isAgentTelemetryEnabled } from '../lib/client';
+import { revokeAgentTelemetryIngestToken } from '../lib/ingestToken';
+import { upsertInstanceScope } from '../lib/scope';
 import { revokeIngestTokenQueue } from '../queues/revokeTokens';
 import { syncEntityQueue } from '../queues/syncEntity';
 

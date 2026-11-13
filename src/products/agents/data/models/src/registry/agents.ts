@@ -18,7 +18,7 @@ export interface AgentSeed {
 }
 
 // Aliases are the ids telemetry and client integrations use for the agent (OTel `service.name`
-// values, Groundstation client families, CLI binary names). Every maker needs an organization seed.
+// values, agent-tracking client families, CLI binary names). Every maker needs an organization seed.
 export let agentSeeds: AgentSeed[] = [
   {
     id: 'claude-code',

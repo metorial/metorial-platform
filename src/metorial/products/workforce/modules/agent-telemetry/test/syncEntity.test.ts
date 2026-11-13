@@ -24,7 +24,7 @@ vi.mock('@metorial/db', () => ({
   }
 }));
 
-vi.mock('../src/internal/groundstation', () => ({
+vi.mock('../src/lib/client', () => ({
   getGroundstation: () => (mocks.enabled.value ? mocks.groundstation : null),
   ignoreNotFound: (promise: Promise<unknown>) => promise
 }));

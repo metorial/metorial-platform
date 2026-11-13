@@ -1,0 +1,44 @@
+enum RebuildRunStatus {
+  queued
+  running
+  completed
+  failed
+  cancelled
+}
+
+model RebuildRun {
+  oid BigInt @id
+  id  String @unique
+
+  layers String[]
+  reason String
+
+  /// [RebuildFilter]
+  filter Json?
+
+  rangeFrom DateTime
+  rangeTo   DateTime
+
+  status RebuildRunStatus @default(queued)
+  cursor String?
+  error  String?
+
+  processed Int  @default(0)
+  total     Int?
+
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
+  @@index([organizationOid, createdAt])
+  @@index([status])
+}

@@ -1,0 +1,94 @@
+enum PriceOverrideTarget {
+  all
+  lab
+  family
+  model
+  offering
+  vendor
+  agent
+}
+
+enum PriceOverrideKind {
+  multiplier
+  rates
+  included
+}
+
+model PriceOverride {
+  oid BigInt @id
+  id  String @unique
+
+  name   String
+  reason String?
+
+  target   PriceOverrideTarget
+  targetId String?
+  vendorId String?
+
+  billingModes BillingMode[] @default([])
+
+  kind       PriceOverrideKind
+  multiplier Decimal?          @db.Decimal(12, 6)
+
+  /// [KnowledgePricing]
+  rates Json?
+
+  priority  Int     @default(0)
+  createdBy String?
+
+  validFrom  DateTime
+  validTo    DateTime?
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  @@index([organizationOid, archivedAt])
+  @@index([projectOid])
+}
+
+enum BillingMode {
+  included
+  overage
+  api
+  unknown
+}
+
+model BillingDeclaration {
+  oid BigInt @id
+  id  String @unique
+
+  name   String
+  reason String?
+
+  mode BillingMode
+  plan String?
+
+  agentId String?
+
+  createdBy String?
+
+  validFrom  DateTime
+  validTo    DateTime?
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  organizationOid BigInt
+  organization    Organization @relation(fields: [organizationOid], references: [oid])
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  userOid BigInt?
+  user    Entity? @relation(fields: [userOid], references: [oid], onDelete: Cascade)
+
+  @@index([organizationOid, archivedAt])
+  @@index([projectOid])
+  @@index([userOid])
+}
