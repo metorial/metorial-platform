@@ -8,6 +8,11 @@ import {
   resolveStoreVersions,
   type DateFilter
 } from '@metorial/list-utils';
+import {
+  getUneditedPreviousDocumentVersion,
+  isSameStoreVersionItemSet,
+  resolveSnapshotDocumentVersionOid
+} from '../lib/storeVersionSnapshot';
 import { storeAccessService, storeReadPermission, type StoreAccessInput } from './storeAccess';
 
 let currentStoreVersionItemInclude = {
@@ -24,6 +29,38 @@ let currentStoreVersionItemInclude = {
         select: {
           oid: true,
           id: true
+        }
+      }
+    }
+  }
+} satisfies Prisma.StoreItemInclude;
+
+let snapshotStoreItemInclude = {
+  document: {
+    select: {
+      oid: true,
+      title: true,
+      contentOid: true,
+      content: {
+        select: {
+          content: true
+        }
+      },
+      currentVersion: {
+        select: {
+          oid: true,
+          contentOid: true,
+          previousVersion: {
+            select: {
+              oid: true,
+              contentOid: true,
+              content: {
+                select: {
+                  content: true
+                }
+              }
+            }
+          }
         }
       }
     }
@@ -306,6 +343,129 @@ class StoreVersionServiceImpl {
     );
   }
 
+  private async writeStoreVersionSnapshot(d: {
+    storeOid: bigint;
+    sourceDirtyAt: Date;
+    snapshotStartedAt: Date;
+  }) {
+    return await withTransaction(async db => {
+      let currentItems = await db.storeItem.findMany({
+        where: {
+          storeOid: d.storeOid
+        },
+        include: snapshotStoreItemInclude,
+        orderBy: [
+          {
+            path: 'asc'
+          },
+          {
+            id: 'asc'
+          }
+        ]
+      });
+
+      let latestVersion = await db.storeVersion.findFirst({
+        where: {
+          storeOid: d.storeOid
+        },
+        orderBy: {
+          versionNumber: 'desc'
+        },
+        include: storeVersionInclude
+      });
+
+      let nextItems = currentItems.map(item => ({
+        kind: item.kind,
+        path: item.path,
+        fileOid: item.fileOid ?? null,
+        documentOid: item.documentOid,
+        documentTitle: item.document?.title ?? null,
+        documentVersionOid: item.document
+          ? resolveSnapshotDocumentVersionOid(item.document)
+          : null
+      }));
+
+      if (latestVersion && isSameStoreVersionItemSet(nextItems, latestVersion.items)) {
+        await this.ensureSkillVersionForStoreVersion(db, {
+          storeOid: d.storeOid,
+          storeVersionOid: latestVersion.oid,
+          versionNumber: latestVersion.versionNumber
+        });
+
+        return { version: latestVersion, isUnchanged: true };
+      }
+
+      // A store version is an immutable snapshot boundary. Document writes normally coalesce
+      // into the active version for a few hours, so seal the active versions this snapshot pins.
+      // The next write will then create a new document version instead of mutating content
+      // referenced by this store version.
+      let pinnedActiveDocumentOids = currentItems.flatMap(item =>
+        item.document?.currentVersion && !getUneditedPreviousDocumentVersion(item.document)
+          ? [item.document.oid]
+          : []
+      );
+
+      if (pinnedActiveDocumentOids.length > 0) {
+        await db.document.updateMany({
+          where: {
+            oid: {
+              in: pinnedActiveDocumentOids
+            },
+            OR: [
+              {
+                draftVersionExpiresAt: null
+              },
+              {
+                draftVersionExpiresAt: {
+                  gt: d.snapshotStartedAt
+                }
+              }
+            ]
+          },
+          data: {
+            draftVersionExpiresAt: d.snapshotStartedAt
+          }
+        });
+      }
+
+      let version = await db.storeVersion.create({
+        data: {
+          id: await ID.generateId('storeVersion'),
+          storeOid: d.storeOid,
+          versionNumber: (latestVersion?.versionNumber ?? 0) + 1,
+          sourceDirtyAt: d.sourceDirtyAt
+        }
+      });
+
+      await this.ensureSkillVersionForStoreVersion(db, {
+        storeOid: d.storeOid,
+        storeVersionOid: version.oid,
+        versionNumber: version.versionNumber
+      });
+
+      if (nextItems.length > 0) {
+        await db.storeVersionItem.createMany({
+          data: await Promise.all(
+            nextItems.map(async item => ({
+              ...item,
+              id: await ID.generateId('storeVersionItem'),
+              storeVersionOid: version.oid
+            }))
+          )
+        });
+      }
+
+      let createdVersion = await db.storeVersion.findUniqueOrThrow({
+        where: {
+          id: version.id
+        },
+        include: storeVersionInclude
+      });
+
+      return { version: createdVersion, isUnchanged: false };
+    });
+  }
+
   async createStoreVersionSnapshot(d: { storeId: string; expectedDirtyAt: Date }) {
     let snapshotStartedAt = new Date();
 
@@ -350,77 +510,11 @@ class StoreVersionServiceImpl {
         };
       }
 
-      await db.document.updateMany({
-        where: {
-          storeItems: {
-            some: {
-              storeOid: store.oid
-            }
-          }
-        },
-        data: {
-          draftVersionExpiresAt: snapshotStartedAt
-        }
-      });
-
-      let currentItems = await db.storeItem.findMany({
-        where: {
-          storeOid: store.oid
-        },
-        include: currentStoreVersionItemInclude,
-        orderBy: [
-          {
-            path: 'asc'
-          },
-          {
-            id: 'asc'
-          }
-        ]
-      });
-
-      let latestVersion = await db.storeVersion.findFirst({
-        where: {
-          storeOid: store.oid
-        },
-        orderBy: {
-          versionNumber: 'desc'
-        },
-        select: {
-          versionNumber: true
-        }
-      });
-
-      let version = await db.storeVersion.create({
-        data: {
-          id: await ID.generateId('storeVersion'),
-          storeOid: store.oid,
-          versionNumber: (latestVersion?.versionNumber ?? 0) + 1,
-          sourceDirtyAt: store.dirtyAt
-        }
-      });
-
-      await this.ensureSkillVersionForStoreVersion(db, {
+      let snapshot = await this.writeStoreVersionSnapshot({
         storeOid: store.oid,
-        storeVersionOid: version.oid,
-        versionNumber: version.versionNumber
+        sourceDirtyAt: store.dirtyAt,
+        snapshotStartedAt
       });
-
-      if (currentItems.length > 0) {
-        await db.storeVersionItem.createMany({
-          data: await Promise.all(
-            currentItems.map(async item => ({
-              id: await ID.generateId('storeVersionItem'),
-              storeVersionOid: version.oid,
-              kind: item.kind,
-              path: item.path,
-              fileOid: item.fileOid ?? null,
-              documentOid: item.documentOid,
-              documentTitle: item.document?.title ?? null,
-              documentVersionOid: item.document?.currentVersion?.oid ?? null
-            }))
-          )
-        });
-      }
 
       let shouldKeepDirty = await this.hasStoreLiveChangesSince({
         storeOid: store.oid,
@@ -443,17 +537,10 @@ class StoreVersionServiceImpl {
         didClearDirtyAt = cleared.count > 0;
       }
 
-      let createdVersion = await db.storeVersion.findUnique({
-        where: {
-          id: version.id
-        },
-        include: storeVersionInclude
-      });
-
       return {
-        version: toResolvedStoreVersion(createdVersion!),
+        version: toResolvedStoreVersion(snapshot.version),
         didClearDirtyAt,
-        alreadyExisted: false
+        alreadyExisted: snapshot.isUnchanged
       };
     });
   }
@@ -479,82 +566,11 @@ class StoreVersionServiceImpl {
 
       if (!store) throw new ServiceError(notFoundError('store', d.storeId));
 
-      // A store version is an immutable snapshot boundary. Document writes normally coalesce
-      // into an active version for a few hours, so seal those active versions before recording
-      // their OIDs. The next write will then create a new document version instead of mutating
-      // content referenced by this store version.
-      await db.document.updateMany({
-        where: {
-          storeItems: {
-            some: {
-              storeOid: store.oid
-            }
-          }
-        },
-        data: {
-          draftVersionExpiresAt: snapshotStartedAt
-        }
-      });
-
-      let currentItems = await db.storeItem.findMany({
-        where: {
-          storeOid: store.oid
-        },
-        include: currentStoreVersionItemInclude,
-        orderBy: [
-          {
-            path: 'asc'
-          },
-          {
-            id: 'asc'
-          }
-        ]
-      });
-
-      let latestVersion = await db.storeVersion.findFirst({
-        where: {
-          storeOid: store.oid
-        },
-        orderBy: {
-          versionNumber: 'desc'
-        },
-        select: {
-          versionNumber: true
-        }
-      });
-
-      let sourceDirtyAt = snapshotStartedAt;
-      let version = await db.storeVersion.create({
-        data: {
-          id: await ID.generateId('storeVersion'),
-          storeOid: store.oid,
-          versionNumber: (latestVersion?.versionNumber ?? 0) + 1,
-          sourceDirtyAt
-        }
-      });
-
-      await this.ensureSkillVersionForStoreVersion(db, {
+      let snapshot = await this.writeStoreVersionSnapshot({
         storeOid: store.oid,
-        storeVersionOid: version.oid,
-        versionNumber: version.versionNumber
+        sourceDirtyAt: snapshotStartedAt,
+        snapshotStartedAt
       });
-
-      if (currentItems.length > 0) {
-        await db.storeVersionItem.createMany({
-          data: await Promise.all(
-            currentItems.map(async item => ({
-              id: await ID.generateId('storeVersionItem'),
-              storeVersionOid: version.oid,
-              kind: item.kind,
-              path: item.path,
-              fileOid: item.fileOid ?? null,
-              documentOid: item.documentOid,
-              documentTitle: item.document?.title ?? null,
-              documentVersionOid: item.document?.currentVersion?.oid ?? null
-            }))
-          )
-        });
-      }
 
       let shouldKeepDirty = await this.hasStoreLiveChangesSince({
         storeOid: store.oid,
@@ -573,17 +589,10 @@ class StoreVersionServiceImpl {
         });
       }
 
-      let createdVersion = await db.storeVersion.findUnique({
-        where: {
-          id: version.id
-        },
-        include: storeVersionInclude
-      });
-
       return {
-        version: toResolvedStoreVersion(createdVersion!),
+        version: toResolvedStoreVersion(snapshot.version),
         didClearDirtyAt: !!store.dirtyAt && !shouldKeepDirty,
-        alreadyExisted: false
+        alreadyExisted: snapshot.isUnchanged
       };
     });
   }
