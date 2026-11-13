@@ -1,17 +1,13 @@
-import { canonicalize } from '@lowerdeck/canonicalize';
-import { Hash } from '@lowerdeck/hash';
 import { db } from '@metorial/db';
 import { assertSkillMarketplaceLimits } from '../../lib/limits';
 import { createApplicator } from '../_lib/apply';
 import { claimVersion } from '../_lib/claimVersion';
-import { getMarketplaceForceSyncHashInput } from '../_lib/forceSync';
+import { getMarketplacePruneScope } from '../_lib/paths';
 import {
-  getMarketplacePruneScope,
-  marketplaceManifestPaths,
-  marketplacePluginsDir
-} from '../_lib/paths';
-
-let json = (data: any) => JSON.stringify(data, null, 2);
+  getLegacyMarketplaceVersionHash,
+  getMarketplaceVersionHash,
+  renderMarketplaceFiles
+} from './render';
 
 export let applyMarketplace = createApplicator(
   'marketplace',
@@ -55,30 +51,17 @@ export let applyMarketplace = createApplicator(
         }
       }
     });
-    let hash = await Hash.sha256(
-      canonicalize({
-        serializerVersion: 3,
-        ...getMarketplaceForceSyncHashInput(input.skillMarketplace),
-        marketplace: {
-          slug: input.skillMarketplace.slug,
-          name: input.skillMarketplace.name,
-          ownerName: project.organization.name
-        },
-        plugins: plugins.map(plugin => ({
-          slug: plugin.pluginSlug,
-          category: plugin.skillPlugin.category ?? 'Productivity',
-          description:
-            plugin.skillPlugin.description ??
-            plugin.skillPlugin.skillPluginSkills[0]?.skill.description ??
-            ''
-        }))
-      })
-    );
+    let hashInput = {
+      skillMarketplace: input.skillMarketplace,
+      ownerName: project.organization.name,
+      plugins
+    };
 
     return {
       plugins,
       project,
-      hash
+      hash: await getMarketplaceVersionHash(hashInput),
+      legacyHash: await getLegacyMarketplaceVersionHash(hashInput)
     };
   },
   {
@@ -86,10 +69,11 @@ export let applyMarketplace = createApplicator(
 
     getHash: async (_input, { hash }) => hash,
 
-    apply: async (input, context, { plugins, project, hash }) => {
+    apply: async (input, context, { plugins, project, hash, legacyHash }) => {
       let claimed = await claimVersion({
         initial: input.skillMarketplace,
         hash,
+        legacyHashes: [legacyHash],
         compareAndSet: async d => {
           let updated = await db.skillMarketplace.updateMany({
             where: {
@@ -114,66 +98,13 @@ export let applyMarketplace = createApplicator(
       input.skillMarketplace.version = claimed.version;
       input.skillMarketplace.versionHash = claimed.versionHash;
 
-      let codexMarketplace = json({
-        name: input.skillMarketplace.slug,
-        interface: {
-          displayName: input.skillMarketplace.name
-        },
-        plugins: plugins.map(p => ({
-          name: p.pluginSlug,
-          category: p.skillPlugin.category ?? 'Productivity',
-          source: {
-            source: 'local',
-            path: `./${marketplacePluginsDir}/${p.pluginSlug}`
-          },
-          policy: {
-            installation: 'AVAILABLE',
-            authentication: 'ON_INSTALL'
-          }
-        }))
+      let files = renderMarketplaceFiles({
+        skillMarketplace: input.skillMarketplace,
+        ownerName: project.organization.name,
+        version: input.skillMarketplace.version,
+        plugins
       });
-      await context.setFile(marketplaceManifestPaths.codex, codexMarketplace);
-
-      let claudeMarketplace = json({
-        name: input.skillMarketplace.slug,
-        owner: {
-          name: project.organization.name
-        },
-        metadata: {
-          description: input.skillMarketplace.description ?? '',
-          version: input.skillMarketplace.version
-        },
-        plugins: plugins.map(p => ({
-          name: p.pluginSlug,
-          source: `./${marketplacePluginsDir}/${p.pluginSlug}`,
-          description:
-            p.skillPlugin.description ??
-            p.skillPlugin.skillPluginSkills[0]?.skill.description ??
-            ''
-        }))
-      });
-      await context.setFile(marketplaceManifestPaths.claude, claudeMarketplace);
-      await context.setFile(marketplaceManifestPaths.github, claudeMarketplace);
-
-      let cursorMarketplace = json({
-        name: input.skillMarketplace.slug,
-        owner: {
-          name: project.organization.name
-        },
-        metadata: {
-          description: input.skillMarketplace.description ?? '',
-          version: input.skillMarketplace.version
-        },
-        plugins: plugins.map(p => ({
-          name: p.pluginSlug,
-          source: p.pluginSlug,
-          description:
-            p.skillPlugin.description ??
-            p.skillPlugin.skillPluginSkills[0]?.skill.description ??
-            ''
-        }))
-      });
-      await context.setFile(marketplaceManifestPaths.cursor, cursorMarketplace);
+      for (let file of files) await context.setFile(file.path, file.content);
     }
   }
 );
