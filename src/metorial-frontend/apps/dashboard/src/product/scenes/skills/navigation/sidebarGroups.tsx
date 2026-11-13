@@ -215,6 +215,7 @@ export let useSkillsSidebarGroups = (opts: { enabled: boolean }): ISidebarGroup[
     {
       label: 'Groups',
       collapsible: true,
+      enabled: groups.length > 0,
       onCreate: instanceId
         ? () =>
             showSkillGroupFormModal({
