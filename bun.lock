@@ -1092,6 +1092,21 @@
         "vitest": "^5.0.4",
       },
     },
+    "src/lowerdeck/packages/rpc-spec": {
+      "name": "@lowerdeck/rpc-spec",
+      "version": "2.0.0",
+      "bin": {
+        "rpc-spec": "./src/cli.ts",
+      },
+      "dependencies": {
+        "@lowerdeck/validation": "workspace:2.0.0",
+      },
+      "devDependencies": {
+        "@lowerdeck/tsconfig": "workspace:2.0.0",
+        "typescript": "^5.9.3",
+        "vitest": "^5.0.4",
+      },
+    },
     "src/lowerdeck/packages/sentry": {
       "name": "@lowerdeck/sentry",
       "version": "2.0.0",
@@ -7989,6 +8004,8 @@
     "@lowerdeck/rpc-server": ["@lowerdeck/rpc-server@workspace:src/lowerdeck/packages/rpc-server"],
 
     "@lowerdeck/rpc-signature": ["@lowerdeck/rpc-signature@workspace:src/lowerdeck/packages/rpc-signature"],
+
+    "@lowerdeck/rpc-spec": ["@lowerdeck/rpc-spec@workspace:src/lowerdeck/packages/rpc-spec"],
 
     "@lowerdeck/sentry": ["@lowerdeck/sentry@workspace:src/lowerdeck/packages/sentry"],
 
