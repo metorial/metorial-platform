@@ -112,7 +112,11 @@ let getSerializedExecutionContext = (
   });
 };
 
-let sanitizeJobId = (jobId?: string) => jobId?.replace(/:/g, '_');
+let sanitizeJobId = (jobId?: string) => {
+  if (jobId && /^-?\d+$/.test(jobId)) return `job_${jobId}`;
+
+  return jobId?.replace(/:/g, '_');
+};
 
 // Matched by shape so the queue does not depend on @lowerdeck/lock.
 let isLockContentionError = (error: unknown) => {

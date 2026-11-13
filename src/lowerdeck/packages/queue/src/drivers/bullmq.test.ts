@@ -8,6 +8,7 @@ type FakeScope = {
 let mocks = vi.hoisted(() => ({
   queueConstructed: vi.fn(),
   queueAdd: vi.fn(),
+  queueAddBulk: vi.fn(),
   workerConstructed: vi.fn(),
   workerWaitUntilReady: vi.fn(),
   workerRun: vi.fn(),
@@ -81,7 +82,7 @@ vi.mock('bullmq', () => ({
     }
 
     add = mocks.queueAdd;
-    addBulk = vi.fn();
+    addBulk = mocks.queueAddBulk;
   },
   QueueEvents: class QueueEvents {},
   Worker: class Worker {
@@ -136,6 +137,46 @@ describe('createBullMqQueue', () => {
     expect(mocks.queueConstructed).not.toHaveBeenCalled();
     await queue.add({ value: true });
     expect(mocks.queueConstructed).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    ['123', 'job_123'],
+    ['0', 'job_0'],
+    ['-123', 'job_-123'],
+    ['00123', 'job_00123'],
+    ['123456789012345678901234567890', 'job_123456789012345678901234567890'],
+    ['job_123', 'job_123'],
+    ['document:123:repair', 'document_123_repair'],
+    ['123:456', '123_456'],
+    ['12.3', '12.3'],
+    ['', ''],
+    [undefined, undefined]
+  ])('sanitizes job ID %j for single and bulk publishing', async (id, expectedId) => {
+    let queue = createBullMqQueue<{ value: boolean }>({
+      name: 'sanitized-job-ids',
+      redisUrl: 'redis://localhost:6379'
+    });
+    let payload = { value: true };
+
+    await queue.add(payload, { id });
+
+    expect(mocks.queueAdd).toHaveBeenCalledExactlyOnceWith(
+      'j',
+      expect.anything(),
+      expect.objectContaining({ jobId: expectedId })
+    );
+
+    await queue.addMany([payload], { id });
+    await queue.addManyWithOps([{ data: payload, opts: { id } }]);
+
+    expect(mocks.queueAddBulk).toHaveBeenCalledTimes(2);
+    for (let [jobs] of mocks.queueAddBulk.mock.calls) {
+      expect(jobs).toEqual([
+        expect.objectContaining({
+          opts: expect.objectContaining({ jobId: expectedId })
+        })
+      ]);
+    }
   });
 
   it('waits for the worker connection before reporting the processor as started', async () => {
