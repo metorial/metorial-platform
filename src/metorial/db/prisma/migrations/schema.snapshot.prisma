@@ -630,6 +630,45 @@ model WorkspaceGroupAssignment {
   @@unique([workspaceGroupOid, workspaceProfileOid])
 }
 
+enum AgentTelemetryIngestTokenStatus {
+  active
+  revoked
+}
+
+enum AgentTelemetryIngestTokenDeviceMode {
+  bound
+  ephemeral
+}
+
+model AgentTelemetryIngestToken {
+  oid BigInt @id @default(autoincrement())
+  id  String @unique
+
+  status     AgentTelemetryIngestTokenStatus     @default(active)
+  deviceMode AgentTelemetryIngestTokenDeviceMode
+
+  groundstationIngestTokenId String @unique
+
+  name String
+
+  instanceOid BigInt
+  instance    Instance @relation(fields: [instanceOid], references: [oid], onDelete: Cascade)
+
+  consumerOid BigInt
+  consumer    Consumer @relation(fields: [consumerOid], references: [oid], onDelete: Cascade)
+
+  consumerDeviceOid BigInt?
+  consumerDevice    ConsumerDevice? @relation(fields: [consumerDeviceOid], references: [oid], onDelete: SetNull)
+
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+
+  @@index([consumerDeviceOid, status])
+  @@index([consumerOid, status])
+  @@index([instanceOid])
+}
+
 model AuditLog {
   oid BigInt @id @default(autoincrement())
   id  String @unique
@@ -1245,6 +1284,7 @@ model Consumer {
   resourceActors             ResourceActor[]
   consumerOrganizationActors ConsumerOrganizationActor[]
   storeParticipants          StoreParticipant[]
+  agentTelemetryIngestTokens AgentTelemetryIngestToken[]
 
   @@unique([email, organizationOid])
 }
@@ -1701,8 +1741,9 @@ model ConsumerDevice {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @default(now()) @updatedAt
 
-  clients        ConsumerDeviceClient[]
-  magicMcpTokens MagicMcpToken[]
+  clients                    ConsumerDeviceClient[]
+  magicMcpTokens             MagicMcpToken[]
+  agentTelemetryIngestTokens AgentTelemetryIngestToken[]
 
   @@unique([consumerProfileOid, installationId])
   @@index([instanceOid, consumerProfileOid])
@@ -4807,6 +4848,8 @@ model Instance {
   eventDestinationListeners EventDestinationListener[]
   systemEvents              SystemEvent[]
   eventDeliveryIntents      EventDeliveryIntent[]
+
+  agentTelemetryIngestTokens AgentTelemetryIngestToken[]
 
   @@index([previousSlugs])
   @@index([oldSlug])

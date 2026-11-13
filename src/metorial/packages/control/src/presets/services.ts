@@ -62,5 +62,7 @@ export let services = {
   horizonKeeperAdmin: service(52148),
   horizonCustomerFirehose: service(52146),
   synthesis: service(52160),
-  nebula: service(52170)
+  nebula: service(52170),
+  groundstation: service(52180),
+  groundstationIngest: service(52181)
 };

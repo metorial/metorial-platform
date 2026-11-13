@@ -85,6 +85,7 @@ import {
   AccessTag,
   AccessTagEntity,
   AccessTagPolicy,
+  AgentTelemetryIngestToken,
   ApiKey,
   ApiKeySecret,
   ApiKeyType,
@@ -2604,6 +2605,14 @@ export let consumerDeviceType = PresentableType.create<{
     consumerProfile: ConsumerProfile;
   };
 }>()('consumer.device');
+
+export let consumerDeviceTelemetryTokenType = PresentableType.create<{
+  consumerDevice: Pick<ConsumerDevice, 'id'>;
+  ingestToken: AgentTelemetryIngestToken;
+  secret: string;
+  ingestUrl: string;
+  expiresAt: Date | null;
+}>()('consumer.device.telemetry_token');
 
 export let consumerProviderType = PresentableType.create<{
   consumerProvider: ConsumerProviderCatalogEntry;

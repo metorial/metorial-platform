@@ -31,8 +31,9 @@ model ConsumerDevice {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @default(now()) @updatedAt
 
-  clients        ConsumerDeviceClient[]
-  magicMcpTokens MagicMcpToken[]
+  clients                    ConsumerDeviceClient[]
+  magicMcpTokens             MagicMcpToken[]
+  agentTelemetryIngestTokens AgentTelemetryIngestToken[]
 
   @@unique([consumerProfileOid, installationId])
   @@index([instanceOid, consumerProfileOid])

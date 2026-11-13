@@ -183,6 +183,8 @@ model Instance {
   systemEvents              SystemEvent[]
   eventDeliveryIntents      EventDeliveryIntent[]
 
+  agentTelemetryIngestTokens AgentTelemetryIngestToken[]
+
   @@index([previousSlugs])
   @@index([oldSlug])
   @@index([slug])

@@ -36,6 +36,7 @@ import {
   AccessPolicyProject,
   AccessPolicyRole,
   AccessRole,
+  AgentTelemetryIngestToken,
   ApiKey,
   AuditLogStream,
   Consumer,
@@ -846,6 +847,11 @@ export type AuditConsumerDevice = ConsumerDevice & {
   })[];
 };
 
+export type AuditAgentTelemetryIngestToken = AgentTelemetryIngestToken & {
+  consumer: Pick<Consumer, 'id'>;
+  consumerDevice: Pick<ConsumerDevice, 'id'> | null;
+};
+
 export type AuditPortal = Portal & {
   surface: { id: string };
 };
@@ -1335,6 +1341,8 @@ export interface FabricEvents {
   'consumer.device.enrolled:after': { consumerDevice: AuditConsumerDevice; auditScope: AuditScope };
   'consumer.device.updated:after': { consumerDevice: AuditConsumerDevice; previousConsumerDevice: AuditConsumerDevice; auditScope: AuditScope };
   'consumer.device.ended:after': { consumerDevice: AuditConsumerDevice; previousConsumerDevice: AuditConsumerDevice; auditScope: AuditScope };
+
+  'agent_telemetry.ingest_token.created:after': { ingestToken: AuditAgentTelemetryIngestToken; replacedIngestTokenIds: string[]; auditScope: AuditScope };
 
   'consumer.surface.created:after': { organization: Organization; instance: Instance; consumerSurface: ConsumerSurface; auditScope: AuditScope };
   'consumer.surface.updated:after': { consumerSurface: ConsumerSurface; previousConsumerSurface: ConsumerSurface; auditScope: AuditScope };
