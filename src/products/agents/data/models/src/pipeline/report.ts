@@ -41,7 +41,8 @@ let countsTable = (catalog: Catalog) => [
       ['vendors', catalog.vendors],
       ['endpoints', catalog.endpoints],
       ['offerings', catalog.offerings],
-      ['names', catalog.names]
+      ['names', catalog.names],
+      ['agents', catalog.agents]
     ] as const
   ).map(
     ([label, items]) =>

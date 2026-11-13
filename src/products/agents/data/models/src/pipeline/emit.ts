@@ -14,6 +14,7 @@ let generatedEntries = [
   'vendors.json',
   'offerings.json',
   'names.json',
+  'agents.json',
   'unresolved.json',
   'issues.json',
   'report.md',
@@ -21,6 +22,7 @@ let generatedEntries = [
   'families',
   'models',
   'vendors',
+  'agents',
   'logos',
   'sources'
 ];
@@ -100,6 +102,21 @@ let writeEntityFiles = async (dir: string, catalog: Catalog) => {
       })
     );
 
+  let organizationsById = new Map(catalog.organizations.map(org => [org.id, org]));
+  let vendorsById = new Map(catalog.vendors.map(vendor => [vendor.id, vendor]));
+
+  for (let agent of catalog.agents)
+    writes.push(
+      writeJson(path.join(dir, 'agents', `${agent.id}.json`), {
+        ...agent,
+        maker: organizationsById.get(agent.makerId) ?? null,
+        vendors: agent.vendors.map(link => ({
+          ...link,
+          vendor: vendorsById.get(link.vendorId) ?? null
+        }))
+      })
+    );
+
   await Promise.all(writes);
 };
 
@@ -125,6 +142,7 @@ export let emitCatalog = async (dir: string, result: BuildResult) => {
   });
   await writeJson(path.join(dir, 'offerings.json'), catalog.offerings, true);
   await writeJson(path.join(dir, 'names.json'), catalog.names, true);
+  await writeJson(path.join(dir, 'agents.json'), catalog.agents);
   await writeJson(path.join(dir, 'unresolved.json'), unresolvedSummary(catalog));
   await writeJson(path.join(dir, 'issues.json'), result.issues);
 

@@ -12,10 +12,12 @@ let publishedEntries = [
   'vendors.json',
   'offerings.json',
   'names.json',
+  'agents.json',
   'organizations',
   'families',
   'models',
   'vendors',
+  'agents',
   'logos'
 ];
 

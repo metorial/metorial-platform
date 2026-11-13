@@ -1,7 +1,9 @@
 import { normalizeKey } from './normalize/parseName';
-import type { Catalog, Name, NameTarget } from './types';
+import { normalizeAgentKey } from './pipeline/agents';
+import type { Agent, Catalog, Name, NameTarget } from './types';
 
 export * from './types';
+export { normalizeAgentKey } from './pipeline/agents';
 export { buildCatalog, type BuildOptions, type BuildResult } from './pipeline/build';
 export { emitCatalog } from './pipeline/emit';
 export { collectIssues, type CatalogIssue, type IssueKind } from './pipeline/issues';
@@ -42,4 +44,16 @@ export let createNameLookup = (catalog: Pick<Catalog, 'names'>) => {
 
     return agreed(byRaw.get(raw)) ?? agreed(byKey.get(normalizeKey(raw)));
   };
+};
+
+// Maps a client id as telemetry reports it (`claude_code`, `codex_cli_rs`, `other:goose`) to its
+// agent, by id or alias, ignoring case and `_`/`-`/`.` differences.
+export let createAgentLookup = (catalog: Pick<Catalog, 'agents'>) => {
+  let byKey = new Map<string, Agent>();
+
+  for (let agent of catalog.agents)
+    for (let key of [agent.id, ...agent.aliases].map(normalizeAgentKey))
+      if (!byKey.has(key)) byKey.set(key, agent);
+
+  return (clientId: string): Agent | null => byKey.get(normalizeAgentKey(clientId)) ?? null;
 };

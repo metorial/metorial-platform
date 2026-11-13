@@ -7,9 +7,11 @@ import {
   buildCatalog,
   createNameLookup,
   emitCatalog,
+  type Agent,
   type BuildResult,
   type Catalog
 } from '../src';
+import { buildSite } from '../src/publish/site';
 import { fixturePath, noOverrides, now } from './helpers';
 
 let snapshots = {
@@ -155,7 +157,12 @@ describe('buildCatalog', () => {
   });
 
   it('sorts every entity list by id', () => {
-    for (let list of [result.catalog.models, result.catalog.offerings, result.catalog.names]) {
+    for (let list of [
+      result.catalog.models,
+      result.catalog.offerings,
+      result.catalog.names,
+      result.catalog.agents
+    ]) {
       let ids = list.map(item => item.id);
       expect(ids).toEqual([...ids].sort());
     }
@@ -172,11 +179,47 @@ describe('emitCatalog', () => {
       'vendors/openrouter.json',
       'organizations/anthropic.json',
       'names.json',
+      'agents.json',
+      'agents/claude-code.json',
       'unresolved.json',
       'report.md',
       'sources/openrouter.json'
     ])
       expect(existsSync(path.join(outDir, file)), file).toBe(true);
+  });
+
+  it('writes agents with their maker and vendors expanded', async () => {
+    let agents: Agent[] = JSON.parse(await readFile(path.join(outDir, 'agents.json'), 'utf8'));
+    let claudeCode = JSON.parse(
+      await readFile(path.join(outDir, 'agents', 'claude-code.json'), 'utf8')
+    );
+
+    expect(agents.map(agent => agent.id)).toEqual(
+      result.catalog.agents.map(agent => agent.id)
+    );
+    expect(emitted.agents).toEqual(result.catalog.agents);
+    expect(claudeCode).toMatchObject({
+      id: 'claude-code',
+      maker: { id: 'anthropic', roles: expect.arrayContaining(['agent-maker', 'lab']) },
+      vendors: [
+        { vendorId: 'anthropic', role: 'default', vendor: { id: 'anthropic' } },
+        { vendorId: 'aws-bedrock', role: 'supported', vendor: { id: 'aws-bedrock' } }
+      ]
+    });
+  });
+
+  it('publishes agents on the site', async () => {
+    let siteDir = path.join(path.dirname(outDir), 'site');
+    await mkdir(path.join(outDir, 'logos'), { recursive: true });
+    await buildSite({
+      outDir,
+      siteDir,
+      assetsDir: path.join(import.meta.dirname, '..', 'site-assets'),
+      now
+    });
+
+    expect(existsSync(path.join(siteDir, 'agents.json'))).toBe(true);
+    expect(existsSync(path.join(siteDir, 'agents', 'codex.json'))).toBe(true);
   });
 
   it('carries ids and first-seen times into the next build', async () => {
