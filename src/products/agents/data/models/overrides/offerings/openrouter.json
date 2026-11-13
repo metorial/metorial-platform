@@ -146,6 +146,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "inclusionai/ling-3.2-flash:free": {
+    "decision": "defer",
+    "until": "2026-12-13",
+    "reason": "inclusionAI's Ling 3.2 Flash, the 560B/25B-active native multimodal MoE launched ~2026-11-05 (Hugging Face inclusionAI/Ling-3.2-flash, 1M context); the free tier is a promo serving of that model. The index has only Ling 3.0/3.1 Flash, no 3.2 entry, so defer.",
+    "by": "agent",
+    "at": "2026-11-13"
+  },
   "kt/midm-k-3.0-pro": {
     "decision": "defer",
     "until": "2026-12-12",
