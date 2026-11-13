@@ -14,6 +14,7 @@
     "generate": "bun src/cli.ts",
     "reconcile": "bun src/reconcile/cli.ts",
     "site": "bun src/publish/cli.ts",
+    "restore-previous": "bun src/publish/previousCli.ts",
     "test": "vitest run --passWithNoTests",
     "test:real-data": "MODEL_CATALOG_REAL_DATA=1 vitest run test/realData.test.ts",
     "lint": "prettier src/**/*.ts test/**/*.ts --check",

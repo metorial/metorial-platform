@@ -38,7 +38,9 @@ export let createValidator =
         if (!handlerRes.success) return handlerRes;
 
         let modifierErrors =
-          !opts?.modifiers || !opts?.modifiers.length ? [] : modify(opts?.modifiers, value);
+          !opts?.modifiers || !opts?.modifiers.length
+            ? []
+            : modify(opts?.modifiers, handlerRes.value);
         if (modifierErrors.length) return error(modifierErrors);
 
         return success(

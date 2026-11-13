@@ -43,10 +43,50 @@ let pricesOf = (pricing: Pricing | null) => {
   return values;
 };
 
+export let findPriceOutliers = (catalog: Catalog) => {
+  let textInputByModel = new Map<string, number[]>();
+
+  for (let offering of catalog.offerings) {
+    let input = offering.pricing?.text?.input;
+    if (offering.status === 'retired' || !offering.modelId || !input || offering.variant.free)
+      continue;
+
+    let list = textInputByModel.get(offering.modelId) ?? [];
+    list.push(input);
+    textInputByModel.set(offering.modelId, list);
+  }
+
+  let outliers: PriceOutlier[] = [];
+
+  for (let offering of catalog.offerings) {
+    let input = offering.pricing?.text?.input;
+    let samples = offering.modelId ? textInputByModel.get(offering.modelId) : undefined;
+    // An override means someone already looked at this link and kept it despite the price.
+    if (
+      !input ||
+      !samples ||
+      samples.length < outlierMinOfferings ||
+      offering.status === 'retired' ||
+      offering.resolution.method === 'override'
+    )
+      continue;
+
+    let mid = median(samples)!;
+    if (input > mid * outlierFactor || input < mid / outlierFactor)
+      outliers.push({
+        offeringId: offering.id,
+        modelId: offering.modelId!,
+        input,
+        median: mid
+      });
+  }
+
+  return outliers;
+};
+
 export let validateCatalog = (catalog: Catalog): ValidationResult => {
   let errors: string[] = [];
   let warnings: string[] = [];
-  let priceOutliers: PriceOutlier[] = [];
 
   let ids = <T extends { id: string }>(label: string, items: T[]) => {
     let set = new Set<string>();
@@ -114,7 +154,6 @@ export let validateCatalog = (catalog: Catalog): ValidationResult => {
   }
 
   let vendorKinds = new Map(catalog.vendors.map(vendor => [vendor.id, vendor.kind]));
-  let textInputByModel = new Map<string, number[]>();
 
   for (let offering of catalog.offerings) {
     let owner = `offering ${offering.id}`;
@@ -139,13 +178,6 @@ export let validateCatalog = (catalog: Catalog): ValidationResult => {
       vendorKinds.get(offering.vendorId) === 'first-party'
     )
       warnings.push(`first-party ${owner} is unresolved`);
-
-    let input = offering.pricing?.text?.input;
-    if (offering.modelId && input && !offering.variant.free) {
-      let list = textInputByModel.get(offering.modelId) ?? [];
-      list.push(input);
-      textInputByModel.set(offering.modelId, list);
-    }
   }
 
   for (let name of catalog.names) checkTarget(`name ${name.id}`, name.target);
@@ -173,32 +205,11 @@ export let validateCatalog = (catalog: Catalog): ValidationResult => {
     }
   }
 
-  for (let offering of catalog.offerings) {
-    let input = offering.pricing?.text?.input;
-    let samples = offering.modelId ? textInputByModel.get(offering.modelId) : undefined;
-    // An override means someone already looked at this link and kept it despite the price.
-    if (
-      !input ||
-      !samples ||
-      samples.length < outlierMinOfferings ||
-      offering.status === 'retired' ||
-      offering.resolution.method === 'override'
-    )
-      continue;
-
-    let mid = median(samples)!;
-    if (input > mid * outlierFactor || input < mid / outlierFactor) {
-      priceOutliers.push({
-        offeringId: offering.id,
-        modelId: offering.modelId!,
-        input,
-        median: mid
-      });
-      warnings.push(
-        `offering ${offering.id} input price ${input} is far from the ${offering.modelId} median ${mid}`
-      );
-    }
-  }
+  let priceOutliers = findPriceOutliers(catalog);
+  for (let outlier of priceOutliers)
+    warnings.push(
+      `offering ${outlier.offeringId} input price ${outlier.input} is far from the ${outlier.modelId} median ${outlier.median}`
+    );
 
   return { errors, warnings, priceOutliers };
 };

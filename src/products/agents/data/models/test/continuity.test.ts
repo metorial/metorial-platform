@@ -132,4 +132,52 @@ describe('applyContinuity', () => {
     expect(result.names.find(item => item.id === 'v:gone')?.status).toBe('gone');
     expect(result.names.find(item => item.id === 'v:a')?.firstSeenAt).toBe(t0);
   });
+
+  it('counts live and repriced offerings for the deploy gate', () => {
+    let unpriced = { ...offering('v:unpriced', 1), pricing: null } as Offering;
+    let retired = { ...offering('v:retired', 1), status: 'retired' } as Offering;
+    let previous = catalog({
+      offerings: [
+        offering('v:same', 1),
+        offering('v:repriced', 1),
+        offering('v:dropped', 1),
+        unpriced,
+        retired
+      ]
+    });
+
+    let current = catalog({
+      offerings: [
+        offering('v:same', 1),
+        offering('v:repriced', 2),
+        offering('v:unpriced', 3),
+        offering('v:retired', 2)
+      ]
+    });
+
+    let { diff } = applyContinuity(current, previous, t1);
+
+    expect(diff.priceChanges.map(change => change.offeringId)).toEqual([
+      'v:repriced',
+      'v:unpriced',
+      'v:retired'
+    ]);
+    expect(diff).toMatchObject({
+      previousLiveOfferings: 4,
+      previousPricedOfferings: 3,
+      repricedOfferings: 1,
+      liveOfferings: 4
+    });
+  });
+
+  it('counts live offerings without a previous catalog', () => {
+    let { diff } = applyContinuity(catalog({ offerings: [offering('v:a', 1)] }), null, t0);
+
+    expect(diff).toMatchObject({
+      liveOfferings: 1,
+      previousLiveOfferings: 0,
+      previousPricedOfferings: 0,
+      repricedOfferings: 0
+    });
+  });
 });

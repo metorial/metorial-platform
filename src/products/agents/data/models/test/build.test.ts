@@ -11,6 +11,7 @@ import {
   type BuildResult,
   type Catalog
 } from '../src';
+import { evaluateDeployGate } from '../src/pipeline/gate';
 import { buildSite } from '../src/publish/site';
 import { fixturePath, noOverrides, now } from './helpers';
 
@@ -237,5 +238,26 @@ describe('emitCatalog', () => {
     expect(
       next.catalog.offerings.find(item => item.id === 'anthropic:claude-opus-4-1')?.firstSeenAt
     ).toBe(now);
+    expect(next.newPriceOutliers).toEqual([]);
+    expect(evaluateDeployGate(next, { allowUnsafe: false })).toMatchObject({
+      passed: true,
+      deploy: true
+    });
+  });
+
+  it('puts the deploy gate in the report', async () => {
+    let gatedDir = path.join(path.dirname(outDir), 'gated');
+    await emitCatalog(gatedDir, result, evaluateDeployGate(result, { allowUnsafe: true }));
+
+    let report = await readFile(path.join(gatedDir, 'report.md'), 'utf8');
+
+    expect(report).toContain('## Deploy gate');
+    expect(report).toContain('`allow-unsafe` is set; the catalog may deploy');
+    expect(report).toContain(
+      '| Previous catalog | missing | not in the Actions cache or on the live site | required | fail (overridden by allow-unsafe) |'
+    );
+    expect(report).toContain(
+      '| Priced offerings with changed text rates | n/a | nothing to compare with | at most 10.0% | pass |'
+    );
   });
 });

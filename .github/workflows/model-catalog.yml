@@ -4,13 +4,20 @@ name: 'Model Catalog'
 # override entries, merge those decisions as one PR, then generate the published catalog from the
 # merged overrides and the same source snapshots. With no open issues, no agent runs. The catalog is
 # served from models.metorial.com (a Worker with static assets) and only redeployed when its
-# content differs from what the site serves now.
+# content differs from what the site serves now and it passes the deploy gate (a previous catalog
+# exists, and prices, live offerings and price outliers didn't move too much). A failed gate fails
+# the run without deploying; dispatch with allow-unsafe to deploy anyway.
 # GH_TOKEN is metorial-bot's token. The reconcile process uses it to push the overrides branch after
 # every batch (a cancelled run keeps its work and the next run resumes the branch); the pi agent it
 # spawns runs with an allowlisted environment and never sees it.
 
 on:
   workflow_dispatch:
+    inputs:
+      allow-unsafe:
+        description: 'Deploy even when the deploy gate fails (no previous catalog, mass price change, offering drop or many new price outliers)'
+        type: boolean
+        default: false
   schedule:
     - cron: '2,17,32,47 * * * *'
 
@@ -73,6 +80,12 @@ jobs:
           path: ${{ env.PREVIOUS_DIR }}
           key: model-catalog-${{ github.run_id }}
           restore-keys: model-catalog-
+
+      # On a cache miss the deployed catalog is the previous one (without source snapshots). If the
+      # site is unreachable too, the run has no previous catalog and the deploy gate stops it.
+      - name: Restore previous catalog from the live site
+        working-directory: ${{ env.PACKAGE_DIR }}
+        run: bun run restore-previous --previous "$PREVIOUS_DIR" --live-url "$SITE_URL"
 
       # pi's grep tool shells out to ripgrep, and the agent runs offline so it can't fetch it.
       - name: Install pi and ripgrep
@@ -157,14 +170,20 @@ jobs:
           git checkout -qf "$GITHUB_SHA"
           git clean -fdq -- "$PACKAGE_DIR/overrides"
 
+      # Sets the `deploy` output from the deploy gate; a failed gate doesn't fail this step so the
+      # report, artifacts and the final failure step still run.
       - name: Generate catalog
+        id: generate
         working-directory: ${{ env.PACKAGE_DIR }}
+        env:
+          ALLOW_UNSAFE: ${{ inputs.allow-unsafe == true }}
         run: |
           args=(--out out --cache-dir .cache)
           if [ -f "$PREVIOUS_DIR/catalog.json" ]; then args+=(--previous "$PREVIOUS_DIR"); fi
           if [ -f "$WORK_DIR/pinned/catalog.json" ]; then
             args+=(--sources "$WORK_DIR/pinned" --models-dev .cache/models.dev)
           fi
+          if [ "$ALLOW_UNSAFE" = 'true' ]; then args+=(--allow-unsafe); fi
           bun run generate "${args[@]}"
 
       - name: Build site
@@ -175,7 +194,7 @@ jobs:
 
       - name: Deploy site
         id: deploy
-        if: steps.site.outcome == 'success' && steps.site.outputs.changed == 'true' && env.IS_DEFAULT_BRANCH == 'true'
+        if: steps.generate.outputs.deploy == 'true' && steps.site.outcome == 'success' && steps.site.outputs.changed == 'true' && env.IS_DEFAULT_BRANCH == 'true'
         continue-on-error: true
         working-directory: ${{ env.PACKAGE_DIR }}
         env:
@@ -211,7 +230,10 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+      # A catalog that failed the gate must not become the next run's previous catalog, or the next
+      # run would compare against it, pass, and deploy it.
       - name: Keep catalog for the next run
+        if: steps.generate.outputs.deploy == 'true'
         run: |
           rm -rf "$PREVIOUS_DIR"
           mkdir -p "$PREVIOUS_DIR"
@@ -219,6 +241,7 @@ jobs:
           cp -r "$PACKAGE_DIR/out/sources" "$PREVIOUS_DIR/"
 
       - name: Save catalog for the next run
+        if: steps.generate.outputs.deploy == 'true'
         uses: actions/cache/save@v4
         with:
           path: ${{ env.PREVIOUS_DIR }}
@@ -228,4 +251,10 @@ jobs:
         if: steps.reconcile.outcome == 'failure' || steps.verify.outcome == 'failure' || steps.merge.outcome == 'failure' || steps.site.outcome == 'failure' || steps.deploy.outcome == 'failure'
         run: |
           echo "::error::reconcile=${{ steps.reconcile.outcome }} verify=${{ steps.verify.outcome }} merge=${{ steps.merge.outcome }} site=${{ steps.site.outcome }} deploy=${{ steps.deploy.outcome }}; the catalog was still generated from the default branch's overrides"
+          exit 1
+
+      - name: Fail on deploy gate
+        if: ${{ !cancelled() && steps.generate.outputs.deploy == 'false' }}
+        run: |
+          echo "::error title=Deploy gate::The catalog was not deployed or kept for the next run because the deploy gate failed; see the Deploy gate section of the run summary. Re-run the workflow on the default branch with allow-unsafe once the changes are confirmed."
           exit 1

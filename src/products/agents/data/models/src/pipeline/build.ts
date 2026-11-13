@@ -30,7 +30,12 @@ import {
   openRouterDraft,
   type SecondaryMergeStats
 } from './secondary';
-import { validateCatalog, type ValidationResult } from './validate';
+import {
+  findPriceOutliers,
+  validateCatalog,
+  type PriceOutlier,
+  type ValidationResult
+} from './validate';
 import { buildVendors } from './vendors';
 
 export interface BuildOptions {
@@ -46,6 +51,7 @@ export interface BuildResult {
   catalog: Catalog;
   diff: CatalogDiff;
   validation: ValidationResult;
+  newPriceOutliers: PriceOutlier[];
   issues: CatalogIssue[];
   merges: SecondaryMergeStats[];
   resolutionCounts: Record<ResolutionMethod, number>;
@@ -139,6 +145,14 @@ let assignOfferingCounts = (catalog: CanonicalCatalog, offerings: Iterable<Offer
     let model = catalog.models.get(offering.modelId);
     if (model) model.offeringCount++;
   }
+};
+
+// Without a previous catalog nothing can be called new, so the gate reports that case on its own.
+let newOutliers = (outliers: PriceOutlier[], previous: Catalog | null) => {
+  if (!previous) return [];
+
+  let known = new Set(findPriceOutliers(previous).map(outlier => outlier.offeringId));
+  return outliers.filter(outlier => !known.has(outlier.offeringId));
 };
 
 let modelsDevSource = (snapshot: ModelsDevSnapshot, now: string): CatalogSource => ({
@@ -259,6 +273,7 @@ export let buildCatalog = async (opts: BuildOptions): Promise<BuildResult> => {
     catalog: sorted,
     diff,
     validation,
+    newPriceOutliers: newOutliers(validation.priceOutliers, previous),
     issues: collectIssues({
       catalog: sorted,
       validation,

@@ -10,6 +10,10 @@ export interface CatalogDiff {
   priceChanges: { offeringId: string; before: TokenRates | null; after: TokenRates | null }[];
   retargetedNames: { nameId: string; from: NameTarget; to: NameTarget }[];
   retargetedPointers: { pointerId: string; from: NameTarget; to: NameTarget }[];
+  liveOfferings: number;
+  previousLiveOfferings: number;
+  previousPricedOfferings: number;
+  repricedOfferings: number;
 }
 
 let sameTarget = (a: NameTarget, b: NameTarget) => JSON.stringify(a) === JSON.stringify(b);
@@ -42,6 +46,12 @@ let advanceHistory = (
 
 let unresolved = (offering: Offering) => offering.resolution.method === 'unresolved';
 
+let isLive = (offering: Offering) => offering.status !== 'retired';
+
+let hasTextRates = (offering: Offering) =>
+  (offering.pricing?.text?.input ?? null) !== null ||
+  (offering.pricing?.text?.output ?? null) !== null;
+
 let ratesChanged = (a: TokenRates | null | undefined, b: TokenRates | null | undefined) =>
   (a?.input ?? null) !== (b?.input ?? null) || (a?.output ?? null) !== (b?.output ?? null);
 
@@ -57,7 +67,11 @@ export let applyContinuity = (current: Catalog, previous: Catalog | null, now: s
     newlyUnresolved: [],
     priceChanges: [],
     retargetedNames: [],
-    retargetedPointers: []
+    retargetedPointers: [],
+    liveOfferings: current.offerings.filter(isLive).length,
+    previousLiveOfferings: 0,
+    previousPricedOfferings: 0,
+    repricedOfferings: 0
   };
 
   if (!previous) {
@@ -111,6 +125,10 @@ export let applyContinuity = (current: Catalog, previous: Catalog | null, now: s
     );
   }
 
+  let previousLive = previous.offerings.filter(isLive);
+  diff.previousLiveOfferings = previousLive.length;
+  diff.previousPricedOfferings = previousLive.filter(hasTextRates).length;
+
   let previousOfferings = byId(previous.offerings);
   for (let offering of current.offerings) {
     let before = previousOfferings.get(offering.id);
@@ -118,12 +136,14 @@ export let applyContinuity = (current: Catalog, previous: Catalog | null, now: s
     if (!before) diff.newOfferings.push(offering.id);
     else {
       offering.firstSeenAt = before.firstSeenAt;
-      if (ratesChanged(before.pricing?.text, offering.pricing?.text))
+      if (ratesChanged(before.pricing?.text, offering.pricing?.text)) {
         diff.priceChanges.push({
           offeringId: offering.id,
           before: before.pricing?.text ?? null,
           after: offering.pricing?.text ?? null
         });
+        if (isLive(before) && hasTextRates(before)) diff.repricedOfferings++;
+      }
     }
 
     if (unresolved(offering) && (!before || !unresolved(before)))
