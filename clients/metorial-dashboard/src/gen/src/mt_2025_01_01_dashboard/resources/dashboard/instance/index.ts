@@ -5,7 +5,6 @@ export * from './callback-instances';
 export * from './callbacks';
 export * from './chat';
 export * from './chats';
-export * from './consumer-devices';
 export * from './consumer-surfaces';
 export * from './consumers';
 export * from './conversations';

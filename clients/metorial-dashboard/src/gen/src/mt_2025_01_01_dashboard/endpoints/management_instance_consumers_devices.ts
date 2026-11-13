@@ -4,14 +4,14 @@ import {
 } from '@metorial/util-endpoint';
 
 import {
-  mapDashboardInstanceConsumerDevicesGetOutput,
-  mapDashboardInstanceConsumerDevicesListOutput,
-  mapDashboardInstanceConsumerDevicesListQuery,
-  mapDashboardInstanceConsumerDevicesRevokeOutput,
-  type DashboardInstanceConsumerDevicesGetOutput,
-  type DashboardInstanceConsumerDevicesListOutput,
-  type DashboardInstanceConsumerDevicesListQuery,
-  type DashboardInstanceConsumerDevicesRevokeOutput
+  mapDashboardInstanceConsumersDevicesGetOutput,
+  mapDashboardInstanceConsumersDevicesListOutput,
+  mapDashboardInstanceConsumersDevicesListQuery,
+  mapDashboardInstanceConsumersDevicesRevokeOutput,
+  type DashboardInstanceConsumersDevicesGetOutput,
+  type DashboardInstanceConsumersDevicesListOutput,
+  type DashboardInstanceConsumersDevicesListQuery,
+  type DashboardInstanceConsumersDevicesRevokeOutput
 } from '../resources';
 
 /**
@@ -21,7 +21,7 @@ import {
  * @see https://metorial.com/api
  * @see https://metorial.com/docs
  */
-export class MetorialManagementInstanceConsumerDevicesEndpoint {
+export class MetorialManagementInstanceConsumersDevicesEndpoint {
   constructor(private readonly _manager: MetorialEndpointManager<any>) {}
 
   // thin proxies so method bodies stay unchanged
@@ -46,30 +46,30 @@ export class MetorialManagementInstanceConsumerDevicesEndpoint {
    * @description Returns the Metorial Desktop devices enrolled by consumers of an instance.
    *
    * @param `instanceId` - string
-   * @param `query` - DashboardInstanceConsumerDevicesListQuery
+   * @param `query` - DashboardInstanceConsumersDevicesListQuery
    * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardInstanceConsumerDevicesListOutput
+   * @returns DashboardInstanceConsumersDevicesListOutput
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
   list(
     instanceId: string,
-    query?: DashboardInstanceConsumerDevicesListQuery,
+    query?: DashboardInstanceConsumersDevicesListQuery,
     opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardInstanceConsumerDevicesListOutput> {
+  ): Promise<DashboardInstanceConsumersDevicesListOutput> {
     let path = `instances/${instanceId}/consumer-devices`;
 
     let request = {
       path,
 
       query: query
-        ? mapDashboardInstanceConsumerDevicesListQuery.transformTo(query)
+        ? mapDashboardInstanceConsumersDevicesListQuery.transformTo(query)
         : undefined,
       ...(opts?.headers ? { headers: opts.headers } : {})
     } as any;
 
     return this._get(request).transform(
-      mapDashboardInstanceConsumerDevicesListOutput
+      mapDashboardInstanceConsumersDevicesListOutput
     );
   }
 
@@ -80,7 +80,7 @@ export class MetorialManagementInstanceConsumerDevicesEndpoint {
    * @param `instanceId` - string
    * @param `consumerDeviceId` - string
    * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardInstanceConsumerDevicesGetOutput
+   * @returns DashboardInstanceConsumersDevicesGetOutput
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
@@ -88,7 +88,7 @@ export class MetorialManagementInstanceConsumerDevicesEndpoint {
     instanceId: string,
     consumerDeviceId: string,
     opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardInstanceConsumerDevicesGetOutput> {
+  ): Promise<DashboardInstanceConsumersDevicesGetOutput> {
     let path = `instances/${instanceId}/consumer-devices/${consumerDeviceId}`;
 
     let request = {
@@ -98,7 +98,7 @@ export class MetorialManagementInstanceConsumerDevicesEndpoint {
     } as any;
 
     return this._get(request).transform(
-      mapDashboardInstanceConsumerDevicesGetOutput
+      mapDashboardInstanceConsumersDevicesGetOutput
     );
   }
 
@@ -109,7 +109,7 @@ export class MetorialManagementInstanceConsumerDevicesEndpoint {
    * @param `instanceId` - string
    * @param `consumerDeviceId` - string
    * @param `opts` - { headers?: Record<string, string> }
-   * @returns DashboardInstanceConsumerDevicesRevokeOutput
+   * @returns DashboardInstanceConsumersDevicesRevokeOutput
    * @see https://metorial.com/api
    * @see https://metorial.com/docs
    */
@@ -117,7 +117,7 @@ export class MetorialManagementInstanceConsumerDevicesEndpoint {
     instanceId: string,
     consumerDeviceId: string,
     opts?: { headers?: Record<string, string> }
-  ): Promise<DashboardInstanceConsumerDevicesRevokeOutput> {
+  ): Promise<DashboardInstanceConsumersDevicesRevokeOutput> {
     let path = `instances/${instanceId}/consumer-devices/${consumerDeviceId}/revoke`;
 
     let request = {
@@ -127,7 +127,7 @@ export class MetorialManagementInstanceConsumerDevicesEndpoint {
     } as any;
 
     return this._post(request).transform(
-      mapDashboardInstanceConsumerDevicesRevokeOutput
+      mapDashboardInstanceConsumersDevicesRevokeOutput
     );
   }
 }

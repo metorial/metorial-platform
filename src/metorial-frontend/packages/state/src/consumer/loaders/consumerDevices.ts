@@ -1,4 +1,4 @@
-import { DashboardInstanceConsumerDevicesListQuery } from '@metorial/dashboard-sdk';
+import { DashboardInstanceConsumersDevicesListQuery } from '@metorial/dashboard-sdk';
 import { createLoader } from '@metorial/data-hooks';
 import { usePaginator } from '../../lib/usePaginator';
 import { withAuth } from '../../user';
@@ -6,17 +6,17 @@ import { withAuth } from '../../user';
 export let consumerDevicesLoader = createLoader({
   name: 'consumerDevices',
   parents: [],
-  fetch: (i: { instanceId: string } & DashboardInstanceConsumerDevicesListQuery) =>
-    withAuth(sdk => sdk.consumerDevices.list(i.instanceId, i)),
+  fetch: (i: { instanceId: string } & DashboardInstanceConsumersDevicesListQuery) =>
+    withAuth(sdk => sdk.consumers.devices.list(i.instanceId, i)),
   mutators: {
     revoke: ({ consumerDeviceId }: { consumerDeviceId: string }, { input: { instanceId } }) =>
-      withAuth(sdk => sdk.consumerDevices.revoke(instanceId, consumerDeviceId))
+      withAuth(sdk => sdk.consumers.devices.revoke(instanceId, consumerDeviceId))
   }
 });
 
 export let useConsumerDevices = (
   instanceId: string | null | undefined,
-  query?: DashboardInstanceConsumerDevicesListQuery
+  query?: DashboardInstanceConsumersDevicesListQuery
 ) => {
   let devices = usePaginator(
     pagination =>
