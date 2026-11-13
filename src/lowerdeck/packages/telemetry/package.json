@@ -30,13 +30,13 @@
   "dependencies": {
     "@lowerdeck/execution-context": "workspace:2.0.0",
     "@opentelemetry/api": "^1.10.0",
-    "@opentelemetry/context-async-hooks": "^3.0.0",
-    "@opentelemetry/core": "^3.0.0",
-    "@opentelemetry/exporter-trace-otlp-http": "^0.300.0",
-    "@opentelemetry/instrumentation": "^0.300.0",
+    "@opentelemetry/context-async-hooks": "^3.1.0",
+    "@opentelemetry/core": "^3.1.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.301.0",
+    "@opentelemetry/instrumentation": "^0.301.0",
     "@opentelemetry/resources": "^3.0.0",
     "@opentelemetry/sdk-trace": "^3.0.0",
-    "@opentelemetry/semantic-conventions": "^1.43.0",
+    "@opentelemetry/semantic-conventions": "^1.44.0",
     "@prisma/instrumentation": "^7.10.1"
   },
   "devDependencies": {

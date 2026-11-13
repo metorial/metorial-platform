@@ -39,6 +39,6 @@
     "@lowerdeck/random-number": "workspace:2.0.0",
     "ioredis": "^6.0.0",
     "p-queue": "^10.0.0",
-    "redis": "^6.3.0"
+    "redis": "^6.3.1"
   }
 }
