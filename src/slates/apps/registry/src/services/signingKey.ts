@@ -4,6 +4,7 @@ import { getEncryption } from '../encryption';
 import { getId } from '../id';
 import {
   generateSigningKeyPair,
+  signSlatePackManifest,
   signSlateVersion,
   type SigningPrivateKey
 } from '../lib/signature';
@@ -125,6 +126,22 @@ class signingKeyServiceImpl {
 
     let result = await db.slateVersionSignature.createMany({ data, skipDuplicates: true });
     return { signed: result.count };
+  }
+
+  async signSlatePackManifest(d: { manifest: Uint8Array }) {
+    if (!isSigningEnabled()) return [];
+
+    let keys = await this.listActiveSigningKeys();
+    let signatures: { kid: string; signature: string }[] = [];
+
+    for (let key of keys) {
+      let privateKey = await this.getPrivateKey(key);
+      let signature = await signSlatePackManifest({ privateKey, manifest: d.manifest });
+
+      signatures.push({ kid: key.kid, signature });
+    }
+
+    return signatures;
   }
 
   async trySignSlateVersion(d: { version: SignableSlateVersion }) {

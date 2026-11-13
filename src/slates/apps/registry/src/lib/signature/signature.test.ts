@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'bun:test';
 import {
+  findValidSlatePackManifestSignature,
   findValidSlateVersionSignature,
   generateSigningKeyPair,
   getSigningKeyId,
   parseSigningPublicKey,
+  signSlatePackManifest,
   signSlateVersion,
   verifySlateVersionSignature
 } from './index';
@@ -85,5 +87,73 @@ describe('slate version signatures', () => {
     expect(parseSigningPublicKey({ kty: 'EC', crv: 'P-256', x: 'a'.repeat(43) })).toBe(null);
     expect(parseSigningPublicKey({ kty: 'OKP', crv: 'Ed25519', x: 'short' })).toBe(null);
     expect(parseSigningPublicKey(null)).toBe(null);
+  });
+});
+
+describe('slate pack manifest signatures', () => {
+  let manifest = new TextEncoder().encode('{"format":"metorial-slatepack","formatVersion":2}');
+
+  it('accepts a signature from any trusted co-signer', async () => {
+    let first = await generateSigningKeyPair();
+    let second = await generateSigningKeyPair();
+    let signatures = [
+      {
+        kid: first.kid,
+        signature: await signSlatePackManifest({ privateKey: first.privateKey, manifest })
+      },
+      {
+        kid: second.kid,
+        signature: await signSlatePackManifest({ privateKey: second.privateKey, manifest })
+      }
+    ];
+
+    expect(
+      await findValidSlatePackManifestSignature({
+        manifest,
+        signatures,
+        trustedKeys: new Map([[second.kid, second.publicKey]])
+      })
+    ).toBe(second.kid);
+  });
+
+  it('rejects changed manifest bytes and untrusted keys', async () => {
+    let pair = await generateSigningKeyPair();
+    let signatures = [
+      {
+        kid: pair.kid,
+        signature: await signSlatePackManifest({ privateKey: pair.privateKey, manifest })
+      }
+    ];
+    let changed = new TextEncoder().encode(
+      '{"format":"metorial-slatepack","formatVersion":2} '
+    );
+
+    expect(
+      await findValidSlatePackManifestSignature({
+        manifest: changed,
+        signatures,
+        trustedKeys: new Map([[pair.kid, pair.publicKey]])
+      })
+    ).toBeNull();
+    expect(
+      await findValidSlatePackManifestSignature({
+        manifest,
+        signatures,
+        trustedKeys: new Map()
+      })
+    ).toBeNull();
+  });
+
+  it('does not accept a slate version signature as a manifest signature', async () => {
+    let pair = await generateSigningKeyPair();
+    let signature = await signSlateVersion({ privateKey: pair.privateKey, statement });
+
+    expect(
+      await findValidSlatePackManifestSignature({
+        manifest,
+        signatures: [{ kid: pair.kid, signature }],
+        trustedKeys: new Map([[pair.kid, pair.publicKey]])
+      })
+    ).toBeNull();
   });
 });

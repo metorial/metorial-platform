@@ -1,7 +1,7 @@
 import { badRequestError, isServiceError, ServiceError } from '@lowerdeck/error';
 import { slatePackImportPresenter } from '../../presenters';
 import { processSlatePackQueue } from '../../queues/mirror/packs';
-import { slatePackService } from '../../services';
+import { slatePackBatchService, slatePackService } from '../../services';
 import { isMirrorMode } from '../../mode';
 
 export let SLATE_PACK_UPLOAD_PATH = '/slates-registry-packs/upload';
@@ -24,13 +24,22 @@ export let handleSlatePackUpload = async (req: Request) => {
       throw new ServiceError(badRequestError({ message: 'The upload has no body.' }));
     }
 
-    let fileName = new URL(req.url).searchParams.get('file_name') ?? 'upload.slatepack';
-    let packImport = await slatePackService.createImport({ fileName, body: req.body });
+    let params = new URL(req.url).searchParams;
+    let fileName = params.get('file_name') ?? 'upload.slatepack';
+    let batchId = params.get('batch_id');
 
-    await processSlatePackQueue.add(
-      { packImportId: packImport.id },
-      { deduplication: { id: packImport.id } }
-    );
+    let batch = batchId
+      ? await slatePackBatchService.getUploadingBatch({ id: batchId })
+      : undefined;
+    let packImport = await slatePackService.createImport({ fileName, body: req.body, batch });
+
+    // Batched files are queued together, in file name order, once the batch is completed.
+    if (!batch) {
+      await processSlatePackQueue.add(
+        { packImportId: packImport.id },
+        { deduplication: { id: packImport.id } }
+      );
+    }
 
     return json(200, slatePackImportPresenter(packImport));
   } catch (error) {

@@ -25,7 +25,11 @@ export let ID = createIdGenerator({
   mirrorUpstream: idType.sorted('srmu'),
   slatePackImport: idType.sorted('srpi'),
   mirrorResult: idType.sorted('srmr'),
-  slateActivation: idType.sorted('srsa')
+  slateActivation: idType.sorted('srsa'),
+  slatePackImportBatch: idType.sorted('srpb'),
+  mirrorPackChannel: idType.sorted('srmc'),
+  slatePackChannel: idType.sorted('srpc'),
+  slatePackRelease: idType.sorted('srpr')
 });
 
 let workerIdBits = 12;

@@ -10,20 +10,31 @@ import type { Tenant } from '../../prisma/generated/client';
 import { db } from '../db';
 import { env } from '../env';
 import { getId } from '../id';
-import { contentChecksumAlgorithm } from '../lib/signature';
+import {
+  contentChecksumAlgorithm,
+  findValidSlatePackManifestSignature
+} from '../lib/signature';
 import {
   getSlatePackEntryPath,
   parseSlatePackManifest,
+  parseSlatePackSignatures,
+  serializeSlatePackSignatures,
   SLATE_PACK_FORMAT,
   SLATE_PACK_FORMAT_VERSION,
   SLATE_PACK_MANIFEST_PATH,
   SLATE_PACK_MAX_ENTRIES,
+  SLATE_PACK_SIGNATURE_PATH,
+  type SlatePackDelivery,
   type SlatePackManifest
 } from '../lib/slatePack/format';
 import { getEffectiveCurrentSlateVersion } from '../lib/slateVersion/current';
 import { buildSlateFilterClause, type SubRegistryWithFilters } from '../lib/subRegistryFilter';
 import { storage } from '../storage';
+import { isSignatureVerificationRequired } from '../mode';
+import { mirrorService } from './mirror';
 import { mirrorImportService } from './mirrorImport';
+import { normalizePackChannelUrl, slatePackBatchService } from './slatePackBatch';
+import { signingKeyService } from './signingKey';
 
 let GB = 1024 * 1024 * 1024;
 
@@ -32,6 +43,8 @@ let defaultMaxPackBytes = 8 * GB;
 let maxManifestBytes = 64 * 1024 * 1024;
 
 let maxEntryBytes = 256 * 1024 * 1024;
+
+let maxSignatureBytes = 1024 * 1024;
 
 let maxFileNameLength = 255;
 
@@ -78,11 +91,33 @@ let readBounded = async (file: unzipper.File, maxBytes: number) => {
   return Buffer.concat(chunks);
 };
 
+export type PackSelection = {
+  slate: {
+    fullIdentifier: string;
+    name: string;
+    description: string | null;
+    logoUrl: string | null;
+  };
+  version: {
+    version: string;
+    bundleArtifact: { checksum: string; bucket: string; storageKey: string };
+    signatures: { kid: string; signature: string }[];
+  };
+};
+
+type PackBundle = { path: string; bucket: string; storageKey: string };
+
+let encoder = new TextEncoder();
+
 let sanitizeFileName = (fileName: string) =>
   fileName.replace(/[^\w.\- ]+/g, '_').slice(0, maxFileNameLength) || 'upload.slatepack';
 
 class slatePackServiceImpl {
-  async createImport(d: { fileName: string; body: ReadableStream<Uint8Array> }) {
+  async createImport(d: {
+    fileName: string;
+    body: ReadableStream<Uint8Array>;
+    batch?: { oid: bigint };
+  }) {
     let ids = getId('slatePackImport');
     let bucket = env.storage.PACKAGE_BUCKET_NAME;
     let storageKey = `slate-packs/${ids.id}.slatepack`;
@@ -104,14 +139,23 @@ class slatePackServiceImpl {
         fileName: sanitizeFileName(d.fileName),
         size: BigInt(limited.getSize()),
         bucket,
-        storageKey
+        storageKey,
+        batchOid: d.batch?.oid
       }
     });
   }
 
-  async listImports() {
+  async listImports(d: { batchId?: string } = {}) {
+    let batch = d.batchId ? await slatePackBatchService.getBatch({ id: d.batchId }) : null;
+
     return Paginator.create(({ prisma }) =>
-      prisma(async opts => await db.slatePackImport.findMany({ ...opts }))
+      prisma(
+        async opts =>
+          await db.slatePackImport.findMany({
+            ...opts,
+            where: batch ? { batchOid: batch.oid } : {}
+          })
+      )
     );
   }
 
@@ -160,9 +204,17 @@ class slatePackServiceImpl {
       let manifestFile = files.get(SLATE_PACK_MANIFEST_PATH);
       if (!manifestFile) throw new Error(`The slate pack has no ${SLATE_PACK_MANIFEST_PATH}.`);
 
-      let manifest = parseSlatePackManifest(
-        (await readBounded(manifestFile, maxManifestBytes)).toString('utf-8')
-      );
+      let manifestBytes = await readBounded(manifestFile, maxManifestBytes);
+      let manifest = parseSlatePackManifest(manifestBytes.toString('utf-8'));
+
+      if (manifest.delivery) {
+        await this.recordDelivery({
+          packImport,
+          delivery: manifest.delivery,
+          manifestBytes,
+          signatureFile: files.get(SLATE_PACK_SIGNATURE_PATH)
+        });
+      }
 
       for (let [index, entry] of manifest.entries.entries()) {
         let file = files.get(entry.path);
@@ -194,6 +246,49 @@ class slatePackServiceImpl {
       await rm(directory, { recursive: true, force: true }).catch(() => {});
       await storage.deleteObject(packImport.bucket, packImport.storageKey).catch(() => {});
     }
+
+    await slatePackBatchService.afterImport({ packImportId: packImport.id });
+  }
+
+  // A pack only counts towards the channel watermark if its manifest, and with it the
+  // sequence number, carries a signature from a trusted key.
+  private async recordDelivery(d: {
+    packImport: { oid: bigint };
+    delivery: SlatePackDelivery;
+    manifestBytes: Buffer;
+    signatureFile: unzipper.File | undefined;
+  }) {
+    let channelUrl = normalizePackChannelUrl(d.delivery.channel.url);
+    if (!channelUrl) return;
+
+    let signatures = d.signatureFile
+      ? await readBounded(d.signatureFile, maxSignatureBytes)
+          .then(content => parseSlatePackSignatures(content.toString('utf-8')))
+          .catch(() => [])
+      : [];
+
+    let manifestVerified = isSignatureVerificationRequired()
+      ? !!(await findValidSlatePackManifestSignature({
+          manifest: d.manifestBytes,
+          signatures,
+          trustedKeys: await mirrorService.getTrustedKeys()
+        }))
+      : true;
+
+    await db.slatePackImport.update({
+      where: { oid: d.packImport.oid },
+      data: {
+        kind: d.delivery.kind,
+        channelUrl,
+        channelSubRegistryId: d.delivery.channel.subRegistryId,
+        sequence: d.delivery.kind === 'incremental' ? d.delivery.sequence : null,
+        fullSyncId: d.delivery.kind === 'full' ? d.delivery.fullSyncId : null,
+        part: d.delivery.kind === 'full' ? d.delivery.part : null,
+        partCount: d.delivery.kind === 'full' ? d.delivery.partCount : null,
+        coversSequence: d.delivery.kind === 'full' ? d.delivery.coversSequence : null,
+        manifestVerified
+      }
+    });
   }
 
   private async recordMissingEntry(d: {
@@ -216,6 +311,39 @@ class slatePackServiceImpl {
 
   async exportPack(d: {
     tenant?: Tenant;
+    subRegistry?: SubRegistryWithFilters | null;
+    versions: 'current' | 'all';
+    slateIds?: string[];
+  }) {
+    let selected = await this.selectVersions(d);
+
+    if (selected.length > SLATE_PACK_MAX_ENTRIES) {
+      throw new ServiceError(
+        badRequestError({
+          message: `The export would contain more than ${SLATE_PACK_MAX_ENTRIES} versions.`,
+          hint: 'Select specific slates or export only current versions.'
+        })
+      );
+    }
+
+    let contents = this.buildPackContents({
+      selected,
+      source: {
+        url: env.url.SERVICE_PUBLIC_URL,
+        subRegistryId: d.subRegistry?.identifier ?? null
+      },
+      delivery: null
+    });
+
+    return {
+      entryCount: contents.manifest.entries.length,
+      checksumAlgorithm: contentChecksumAlgorithm,
+      stream: await this.streamSignedPack(contents)
+    };
+  }
+
+  async selectVersions(d: {
+    tenant?: Pick<Tenant, 'oid'>;
     subRegistry?: SubRegistryWithFilters | null;
     versions: 'current' | 'all';
     slateIds?: string[];
@@ -245,7 +373,7 @@ class slatePackServiceImpl {
       orderBy: { fullIdentifier: 'asc' }
     });
 
-    let selected = slates.flatMap(slate => {
+    return slates.flatMap(slate => {
       if (d.versions === 'all')
         return slate.slateVersions.map(version => ({ slate, version }));
 
@@ -259,25 +387,20 @@ class slatePackServiceImpl {
 
       return version ? [{ slate, version }] : [];
     });
+  }
 
-    if (selected.length > SLATE_PACK_MAX_ENTRIES) {
-      throw new ServiceError(
-        badRequestError({
-          message: `The export would contain more than ${SLATE_PACK_MAX_ENTRIES} versions.`,
-          hint: 'Select specific slates or export only current versions.'
-        })
-      );
-    }
-
+  buildPackContents(d: {
+    selected: PackSelection[];
+    source: SlatePackManifest['source'];
+    delivery: SlatePackDelivery | null;
+  }) {
     let manifest: SlatePackManifest = {
       format: SLATE_PACK_FORMAT,
       formatVersion: SLATE_PACK_FORMAT_VERSION,
       createdAt: new Date().toISOString(),
-      source: {
-        url: env.url.SERVICE_PUBLIC_URL,
-        subRegistryId: d.subRegistry?.identifier ?? null
-      },
-      entries: selected.map(({ slate, version }) => ({
+      source: d.source,
+      delivery: d.delivery,
+      entries: d.selected.map(({ slate, version }) => ({
         identifier: slate.fullIdentifier,
         version: version.version,
         path: getSlatePackEntryPath({
@@ -293,24 +416,36 @@ class slatePackServiceImpl {
       }))
     };
 
-    return {
-      entryCount: manifest.entries.length,
-      checksumAlgorithm: contentChecksumAlgorithm,
-      stream: this.streamPack({
-        manifest,
-        bundles: selected.map(({ version }, index) => ({
-          path: manifest.entries[index]!.path,
-          bucket: version.bundleArtifact.bucket,
-          storageKey: version.bundleArtifact.storageKey
-        }))
-      })
-    };
+    let bundles: PackBundle[] = d.selected.map(({ version }, index) => ({
+      path: manifest.entries[index]!.path,
+      bucket: version.bundleArtifact.bucket,
+      storageKey: version.bundleArtifact.storageKey
+    }));
+
+    return { manifest, bundles };
   }
 
-  private streamPack(d: {
-    manifest: SlatePackManifest;
-    bundles: { path: string; bucket: string; storageKey: string }[];
-  }) {
+  async streamSignedPack(d: { manifest: SlatePackManifest; bundles: PackBundle[] }) {
+    let manifestBytes = encoder.encode(JSON.stringify(d.manifest, null, 2));
+    let signatures = await signingKeyService.signSlatePackManifest({ manifest: manifestBytes });
+
+    return this.streamPack({
+      files: [
+        { path: SLATE_PACK_MANIFEST_PATH, content: manifestBytes },
+        ...(signatures.length
+          ? [
+              {
+                path: SLATE_PACK_SIGNATURE_PATH,
+                content: encoder.encode(serializeSlatePackSignatures(signatures))
+              }
+            ]
+          : [])
+      ],
+      bundles: d.bundles
+    });
+  }
+
+  private streamPack(d: { files: { path: string; content: Uint8Array }[]; bundles: PackBundle[] }) {
     let resumePull: (() => void) | null = null;
 
     return new ReadableStream<Uint8Array>(
@@ -330,12 +465,11 @@ class slatePackServiceImpl {
           };
 
           (async () => {
-            let manifestFile = new ZipPassThrough(SLATE_PACK_MANIFEST_PATH);
-            zip.add(manifestFile);
-            manifestFile.push(
-              new TextEncoder().encode(JSON.stringify(d.manifest, null, 2)),
-              true
-            );
+            for (let file of d.files) {
+              let entry = new ZipPassThrough(file.path);
+              zip.add(entry);
+              entry.push(file.content, true);
+            }
 
             for (let bundle of d.bundles) {
               let file = new ZipPassThrough(bundle.path);

@@ -5,8 +5,10 @@ import type {
   Slate,
   SlateActivation,
   SlatePackImport,
+  SlatePackImportBatch,
   SlateVersion
 } from '../../prisma/generated/client';
+import type { SlatePackBatchIssue } from '../services/slatePackBatch';
 import { getEffectiveCurrentSlateVersion } from '../lib/slateVersion/current';
 
 let buildOf = (version: Pick<SlateVersion, 'backend'>) =>
@@ -41,6 +43,22 @@ export let slatePackImportPresenter = (packImport: SlatePackImport) => ({
   fileName: packImport.fileName,
   size: Number(packImport.size),
 
+  delivery: packImport.kind
+    ? {
+        kind: packImport.kind,
+        channel: {
+          url: packImport.channelUrl,
+          subRegistryId: packImport.channelSubRegistryId
+        },
+        sequence: packImport.sequence,
+        fullSyncId: packImport.fullSyncId,
+        part: packImport.part,
+        partCount: packImport.partCount,
+        coversSequence: packImport.coversSequence,
+        manifestVerified: packImport.manifestVerified
+      }
+    : null,
+
   importedCount: packImport.importedCount,
   skippedCount: packImport.skippedCount,
   conflictCount: packImport.conflictCount,
@@ -51,6 +69,37 @@ export let slatePackImportPresenter = (packImport: SlatePackImport) => ({
   createdAt: packImport.createdAt,
   completedAt: packImport.completedAt
 });
+
+export let slatePackImportBatchPresenter = (
+  batch: SlatePackImportBatch & { imports: SlatePackImport[] },
+  o: { issues: SlatePackBatchIssue[] }
+) => {
+  let sum = (key: 'importedCount' | 'skippedCount' | 'conflictCount' | 'rejectedCount') =>
+    batch.imports.reduce((total, packImport) => total + packImport[key], 0);
+
+  return {
+    object: 'slates_registry.mirror.pack_import_batch',
+
+    id: batch.id,
+    status: batch.status,
+
+    expectedFileCount: batch.expectedFileCount,
+    fileCount: batch.imports.length,
+    size: batch.imports.reduce((total, packImport) => total + Number(packImport.size), 0),
+
+    importedCount: sum('importedCount'),
+    skippedCount: sum('skippedCount'),
+    conflictCount: sum('conflictCount'),
+    rejectedCount: sum('rejectedCount'),
+    failedFileCount: batch.imports.filter(packImport => packImport.status === 'failed').length,
+
+    imports: batch.imports.map(slatePackImportPresenter),
+    issues: o.issues,
+
+    createdAt: batch.createdAt,
+    completedAt: batch.completedAt
+  };
+};
 
 export let mirrorResultPresenter = (
   result: MirrorResult & {

@@ -5,18 +5,33 @@ import {
   catalogSlateVersionPresenter,
   mirrorResultPresenter,
   mirrorUpstreamPresenter,
+  slatePackImportBatchPresenter,
   slatePackImportPresenter
 } from '../../presenters';
-import { activationService, mirrorService, slatePackService } from '../../services';
+import { processSlatePackQueue } from '../../queues/mirror/packs';
+import {
+  activationService,
+  mirrorService,
+  slatePackBatchService,
+  slatePackService
+} from '../../services';
 import { app } from './_app';
 
 let resultStatuses = ['imported', 'skipped', 'conflict', 'rejected'] as const;
+
+let presentBatch = async (batch: Parameters<typeof slatePackImportBatchPresenter>[0]) =>
+  slatePackImportBatchPresenter(batch, {
+    issues: await slatePackBatchService.getBatchIssues({ batch })
+  });
 
 export let mirrorController = app.controller({
   getStatus: app
     .handler()
     .input(v.object({}))
-    .do(async () => mirrorService.getStatus()),
+    .do(async () => ({
+      ...(await mirrorService.getStatus()),
+      packSync: await slatePackBatchService.getPackSyncStatus()
+    })),
 
   configure: app
     .handler()
@@ -110,6 +125,7 @@ export let mirrorController = app.controller({
         v.object({
           upstreamId: v.optional(v.string()),
           packImportId: v.optional(v.string()),
+          packImportBatchId: v.optional(v.string()),
           status: v.optional(v.array(v.enumOf([...resultStatuses])))
         })
       )
@@ -123,9 +139,9 @@ export let mirrorController = app.controller({
 
   listPackImports: app
     .handler()
-    .input(Paginator.validate(v.object({})))
+    .input(Paginator.validate(v.object({ batchId: v.optional(v.string()) })))
     .do(async ctx => {
-      let paginator = await slatePackService.listImports();
+      let paginator = await slatePackService.listImports(ctx.input);
       let list = await paginator.run(ctx.input);
 
       return Paginator.presentLight(list, slatePackImportPresenter);
@@ -138,6 +154,49 @@ export let mirrorController = app.controller({
       slatePackImportPresenter(
         await slatePackService.getImport({ id: ctx.input.packImportId })
       )
+    ),
+
+  createPackImportBatch: app
+    .handler()
+    .input(v.object({ fileCount: v.number() }))
+    .do(async ctx => {
+      let batch = await slatePackBatchService.createBatch(ctx.input);
+      return presentBatch({ ...batch, imports: [] });
+    }),
+
+  completePackImportBatch: app
+    .handler()
+    .input(v.object({ batchId: v.string() }))
+    .do(async ctx => {
+      let { batch, imports } = await slatePackBatchService.completeBatch({
+        id: ctx.input.batchId
+      });
+
+      for (let packImport of imports) {
+        await processSlatePackQueue.add(
+          { packImportId: packImport.id },
+          { deduplication: { id: packImport.id } }
+        );
+      }
+
+      return presentBatch(batch);
+    }),
+
+  listPackImportBatches: app
+    .handler()
+    .input(Paginator.validate(v.object({})))
+    .do(async ctx => {
+      let paginator = await slatePackBatchService.listBatches();
+      let list = await paginator.run(ctx.input);
+
+      return Paginator.presentLight(list, presentBatch);
+    }),
+
+  getPackImportBatch: app
+    .handler()
+    .input(v.object({ batchId: v.string() }))
+    .do(async ctx =>
+      presentBatch(await slatePackBatchService.getBatch({ id: ctx.input.batchId }))
     ),
 
   listCatalog: app
