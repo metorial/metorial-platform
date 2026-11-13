@@ -5,8 +5,8 @@ import {
   errorCode,
   groundstation,
   ingest,
-  setSinkBusy,
-  storedRecords
+  instanceRecords,
+  setSinkBusy
 } from './support';
 
 let sentinel = 'SENTINEL-e2e-hook-5d2c';
@@ -23,7 +23,7 @@ let promptHook = (overrides: Record<string, unknown> = {}) =>
 
 describe('hook ingest', () => {
   it('stores a normalized record for a hook', async () => {
-    let { tenant, secret, token } = await createToken({ principalRef: 'user_hook' });
+    let { organization, project, instance, secret, token } = await createToken();
 
     let response = await ingest('/v1/ingest/hooks/claude-code', {
       credential: secret,
@@ -33,7 +33,7 @@ describe('hook ingest', () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({});
 
-    let items = await storedRecords(tenant.id);
+    let items = await instanceRecords(instance);
     let record = items[0]!.record;
 
     expect(items).toHaveLength(1);
@@ -41,19 +41,22 @@ describe('hook ingest', () => {
     expect(record.type).toBe('prompt.submitted');
     expect(record.client.family).toBe('claude-code');
     expect(record.ingest).toMatchObject({
-      tenant_id: tenant.id,
+      organization_id: organization.id,
+      project_id: project.id,
+      instance_id: instance.id,
+      credential_kind: 'token',
       credential_id: token.id,
-      route: 'hook',
-      principal: { ref: 'user_hook' }
+      route: 'hook'
     });
+    expect(record.ingest).not.toHaveProperty('principal');
   });
 
   it('never stores prompt text or environment fields with the default policy', async () => {
-    let { tenant, secret } = await createToken();
+    let { instance, secret } = await createToken();
 
     await ingest('/v1/ingest/hooks/claude-code', { credential: secret, body: promptHook() });
 
-    let serialized = JSON.stringify(await storedRecords(tenant.id));
+    let serialized = JSON.stringify(await instanceRecords(instance));
 
     expect(serialized).not.toContain(sentinel);
     expect(serialized).not.toContain('secret-project');
@@ -61,11 +64,11 @@ describe('hook ingest', () => {
   });
 
   it('applies the content policy of the token', async () => {
-    let { tenant, secret } = await createToken({ contentPolicy: { defaultMode: 'full' } });
+    let { instance, secret } = await createToken({ contentPolicy: { defaultMode: 'full' } });
 
     await ingest('/v1/ingest/hooks/claude-code', { credential: secret, body: promptHook() });
 
-    let [item] = await storedRecords(tenant.id);
+    let [item] = await instanceRecords(instance);
 
     expect(item!.record.content.some(entry => entry.text?.includes(sentinel))).toBe(true);
     expect(JSON.stringify({ ...item!.record, content: [] })).not.toContain(sentinel);
@@ -73,7 +76,7 @@ describe('hook ingest', () => {
   });
 
   it('picks up an updated content policy without waiting for the cache', async () => {
-    let { tenant, token, secret } = await createToken();
+    let { organization, instance, token, secret } = await createToken();
 
     await ingest('/v1/ingest/hooks/claude-code', {
       credential: secret,
@@ -82,7 +85,7 @@ describe('hook ingest', () => {
     });
 
     await groundstation().ingestToken.update({
-      tenantId: tenant.id,
+      organizationId: organization.id,
       ingestTokenId: token.id,
       contentPolicy: { defaultMode: 'full' }
     });
@@ -93,14 +96,14 @@ describe('hook ingest', () => {
       headers: { 'x-metorial-event-id': 'after' }
     });
 
-    let [before, after] = await storedRecords(tenant.id);
+    let [before, after] = await instanceRecords(instance);
 
     expect(before!.record.content.some(entry => entry.text !== undefined)).toBe(false);
     expect(after!.record.content.some(entry => entry.text?.includes(sentinel))).toBe(true);
   });
 
   it('is idempotent for a retried event', async () => {
-    let { tenant, secret } = await createToken();
+    let { instance, secret } = await createToken();
 
     for (let i = 0; i < 2; i++) {
       await ingest('/v1/ingest/hooks/codex', {
@@ -110,14 +113,14 @@ describe('hook ingest', () => {
       });
     }
 
-    let items = await storedRecords(tenant.id);
+    let items = await instanceRecords(instance);
 
     expect(items).toHaveLength(2);
     expect(items[0]!.record.id).toBe(items[1]!.record.id);
   });
 
   it('accepts gzip and zstd bodies', async () => {
-    let { tenant, secret } = await createToken();
+    let { instance, secret } = await createToken();
 
     let gzip = await ingest('/v1/ingest/hooks/claude-code', {
       credential: secret,
@@ -133,11 +136,11 @@ describe('hook ingest', () => {
 
     expect(gzip.status).toBe(200);
     expect(zstd.status).toBe(200);
-    expect(await storedRecords(tenant.id)).toHaveLength(2);
+    expect(await instanceRecords(instance)).toHaveLength(2);
   });
 
   it('rejects invalid payloads and stores nothing', async () => {
-    let { tenant, secret } = await createToken();
+    let { instance, secret } = await createToken();
 
     for (let body of ['', '[]', 'nope', '"text"']) {
       let response = await ingest('/v1/ingest/hooks/claude-code', {
@@ -149,7 +152,7 @@ describe('hook ingest', () => {
       expect(await errorCode(response), body).toBe('invalid_payload');
     }
 
-    expect(await storedRecords(tenant.id)).toHaveLength(0);
+    expect(await instanceRecords(instance)).toHaveLength(0);
   });
 
   it('rejects invalid clients', async () => {
@@ -162,7 +165,7 @@ describe('hook ingest', () => {
   });
 
   it('handles unknown clients with the generic dialect', async () => {
-    let { tenant, secret } = await createToken();
+    let { instance, secret } = await createToken();
 
     let response = await ingest('/v1/ingest/hooks/my-agent', {
       credential: secret,
@@ -170,13 +173,13 @@ describe('hook ingest', () => {
     });
 
     expect(response.status).toBe(200);
-    expect((await storedRecords(tenant.id))[0]!.record.source.dialect).toBe(
+    expect((await instanceRecords(instance))[0]!.record.source.dialect).toBe(
       'generic.hooks.v1'
     );
   });
 
   it('enforces the allowed clients of the token', async () => {
-    let { tenant, secret } = await createToken({ allowedClients: ['codex'] });
+    let { instance, secret } = await createToken({ allowedClients: ['codex'] });
 
     let denied = await ingest('/v1/ingest/hooks/claude-code', {
       credential: secret,
@@ -185,11 +188,11 @@ describe('hook ingest', () => {
 
     expect(denied.status).toBe(403);
     expect(await errorCode(denied)).toBe('client_not_allowed');
-    expect(await storedRecords(tenant.id)).toHaveLength(0);
+    expect(await instanceRecords(instance)).toHaveLength(0);
   });
 
   it('answers 503 with Retry-After while the sink is busy and recovers', async () => {
-    let { tenant, secret } = await createToken();
+    let { instance, secret } = await createToken();
 
     await setSinkBusy(true);
 
@@ -202,7 +205,7 @@ describe('hook ingest', () => {
       expect(busy.status).toBe(503);
       expect(busy.headers.get('retry-after')).toBe('5');
       expect(await errorCode(busy)).toBe('sink_busy');
-      expect(await storedRecords(tenant.id)).toHaveLength(0);
+      expect(await instanceRecords(instance)).toHaveLength(0);
     } finally {
       await setSinkBusy(false);
     }
@@ -213,10 +216,10 @@ describe('hook ingest', () => {
     });
 
     expect(retry.status).toBe(200);
-    expect(await storedRecords(tenant.id)).toHaveLength(1);
+    expect(await instanceRecords(instance)).toHaveLength(1);
   });
 
-  it('keeps records of different tenants apart', async () => {
+  it('keeps records of different instances apart', async () => {
     let first = await createToken();
     let second = await createToken();
 
@@ -233,12 +236,12 @@ describe('hook ingest', () => {
       body: promptHook()
     });
 
-    let firstItems = await storedRecords(first.tenant.id);
-    let secondItems = await storedRecords(second.tenant.id);
+    let firstItems = await instanceRecords(first.instance);
+    let secondItems = await instanceRecords(second.instance);
 
     expect(firstItems).toHaveLength(2);
     expect(secondItems).toHaveLength(1);
-    expect(secondItems[0]!.record.ingest.tenant_id).toBe(second.tenant.id);
+    expect(secondItems[0]!.record.ingest.instance_id).toBe(second.instance.id);
     expect(secondItems[0]!.record.id).not.toBe(firstItems[0]!.record.id);
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createToken, errorCode, ingest, setSinkBusy, storedRecords } from './support';
+import { createToken, errorCode, ingest, instanceRecords, setSinkBusy } from './support';
 
 let nowNanos = () => String(BigInt(Date.now()) * 1_000_000n);
 
@@ -97,7 +97,7 @@ let send = (
 
 describe('otlp ingest', () => {
   it('stores log records and mirrors the JSON content type', async () => {
-    let { tenant, secret } = await createToken();
+    let { instance, secret } = await createToken();
 
     let response = await send('/v1/logs', secret, claudeLogs());
 
@@ -105,7 +105,7 @@ describe('otlp ingest', () => {
     expect(response.headers.get('content-type')).toContain('application/json');
     expect(await response.json()).toEqual({});
 
-    let [stored] = await storedRecords(tenant.id);
+    let [stored] = await instanceRecords(instance);
 
     expect(stored!.record.source.channel).toBe('otlp.logs');
     expect(stored!.record.ingest.route).toBe('otlp_http');
@@ -113,17 +113,17 @@ describe('otlp ingest', () => {
   });
 
   it('never stores prompt content with the default policy', async () => {
-    let { tenant, secret } = await createToken();
+    let { instance, secret } = await createToken();
 
     await send('/v1/logs', secret, claudeLogs());
 
-    expect(JSON.stringify(await storedRecords(tenant.id))).not.toContain(
+    expect(JSON.stringify(await instanceRecords(instance))).not.toContain(
       'SENTINEL-e2e-otlp-91ab'
     );
   });
 
   it('stores metrics and traces', async () => {
-    let { tenant, secret } = await createToken();
+    let { instance, secret } = await createToken();
 
     let metrics = await send('/v1/metrics', secret, claudeMetrics());
     let traces = await send('/v1/traces', secret, spans());
@@ -131,42 +131,42 @@ describe('otlp ingest', () => {
     expect(metrics.status).toBe(200);
     expect(traces.status).toBe(200);
 
-    let items = await storedRecords(tenant.id);
+    let items = await instanceRecords(instance);
 
     expect(items.length).toBeGreaterThanOrEqual(2);
     expect(items.some(entry => entry.record.kind == 'measurement')).toBe(true);
   });
 
   it('is idempotent for a resent export', async () => {
-    let { tenant, secret } = await createToken();
+    let { instance, secret } = await createToken();
     let body = claudeLogs();
 
     await send('/v1/logs', secret, body);
     await send('/v1/logs', secret, body);
 
-    let ids = new Set((await storedRecords(tenant.id)).map(entry => entry.record.id));
+    let ids = new Set((await instanceRecords(instance)).map(entry => entry.record.id));
 
     expect(ids.size).toBe(1);
   });
 
   it('infers the signal on /v1/otlp', async () => {
-    let { tenant, secret } = await createToken();
+    let { instance, secret } = await createToken();
 
     let response = await send('/v1/otlp', secret, claudeLogs());
 
     expect(response.status).toBe(200);
-    expect(await storedRecords(tenant.id)).toHaveLength(1);
+    expect(await instanceRecords(instance)).toHaveLength(1);
   });
 
   it('rejects ambiguous and empty exports on /v1/otlp', async () => {
-    let { tenant, secret } = await createToken();
+    let { instance, secret } = await createToken();
 
     let ambiguous = await send('/v1/otlp', secret, { ...claudeLogs(), ...spans() });
     let empty = await send('/v1/otlp', secret, {});
 
     expect(ambiguous.status).toBe(400);
     expect(empty.status).toBe(400);
-    expect(await storedRecords(tenant.id)).toHaveLength(0);
+    expect(await instanceRecords(instance)).toHaveLength(0);
   });
 
   it('answers an empty protobuf export with an empty protobuf response', async () => {
@@ -192,13 +192,13 @@ describe('otlp ingest', () => {
   });
 
   it('enforces the allowed clients of the token', async () => {
-    let { tenant, secret } = await createToken({ allowedClients: ['codex'] });
+    let { instance, secret } = await createToken({ allowedClients: ['codex'] });
 
     let response = await send('/v1/logs', secret, claudeLogs());
 
     expect(response.status).toBe(403);
     expect(await errorCode(response)).toBe('client_not_allowed');
-    expect(await storedRecords(tenant.id)).toHaveLength(0);
+    expect(await instanceRecords(instance)).toHaveLength(0);
   });
 
   it('enforces the allowed channels of the token', async () => {
@@ -210,7 +210,7 @@ describe('otlp ingest', () => {
   });
 
   it('reports partial success for allowed and disallowed clients in one export', async () => {
-    let { tenant, secret } = await createToken({ allowedClients: ['claude-code'] });
+    let { instance, secret } = await createToken({ allowedClients: ['claude-code'] });
 
     let mixed = claudeLogs();
 
@@ -235,11 +235,11 @@ describe('otlp ingest', () => {
 
     expect(response.status).toBe(200);
     expect(body.partialSuccess?.rejectedLogRecords).toBe('1');
-    expect(await storedRecords(tenant.id)).toHaveLength(1);
+    expect(await instanceRecords(instance)).toHaveLength(1);
   });
 
   it('answers 503 and stores nothing while the sink is busy', async () => {
-    let { tenant, secret } = await createToken();
+    let { instance, secret } = await createToken();
 
     await setSinkBusy(true);
 
@@ -252,16 +252,16 @@ describe('otlp ingest', () => {
       await setSinkBusy(false);
     }
 
-    expect(await storedRecords(tenant.id)).toHaveLength(0);
+    expect(await instanceRecords(instance)).toHaveLength(0);
   });
 
-  it('keeps records of different tenants apart', async () => {
+  it('keeps records of different instances apart', async () => {
     let first = await createToken();
     let second = await createToken();
 
     await send('/v1/logs', first.secret, claudeLogs());
 
-    expect(await storedRecords(first.tenant.id)).toHaveLength(1);
-    expect(await storedRecords(second.tenant.id)).toHaveLength(0);
+    expect(await instanceRecords(first.instance)).toHaveLength(1);
+    expect(await instanceRecords(second.instance)).toHaveLength(0);
   });
 });

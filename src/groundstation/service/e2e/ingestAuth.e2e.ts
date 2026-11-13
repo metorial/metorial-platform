@@ -72,13 +72,13 @@ describe('ingest authentication', () => {
   });
 
   it('stops accepting a token right after it is revoked, even when cached', async () => {
-    let { tenant, token, secret } = await createToken();
+    let { organization, token, secret } = await createToken();
 
     expect((await ingest('/v1/logs', { credential: secret })).status).toBe(acceptedStatus);
     expect((await ingest('/v1/logs', { credential: secret })).status).toBe(acceptedStatus);
 
     await groundstation().ingestToken.revoke({
-      tenantId: tenant.id,
+      organizationId: organization.id,
       ingestTokenId: token.id
     });
 
@@ -88,16 +88,12 @@ describe('ingest authentication', () => {
     expect(await errorCode(response)).toBe('invalid_credential');
   });
 
-  it('does not let one revoked token affect another of the same tenant', async () => {
+  it('does not let one revoked token affect another of the same instance', async () => {
     let first = await createToken();
-
-    let second = await groundstation().ingestToken.create({
-      tenantId: first.tenant.id,
-      name: 'second'
-    });
+    let second = await createToken({}, first);
 
     await groundstation().ingestToken.revoke({
-      tenantId: first.tenant.id,
+      organizationId: first.organization.id,
       ingestTokenId: first.token.id
     });
 
@@ -121,14 +117,14 @@ describe('ingest authentication', () => {
   });
 
   it('applies token updates to cached tokens immediately', async () => {
-    let { tenant, token, secret } = await createToken();
+    let { organization, token, secret } = await createToken();
 
     expect((await ingest('/v1/ingest/hooks/claude-code', { credential: secret })).status).toBe(
       acceptedStatus
     );
 
     await groundstation().ingestToken.update({
-      tenantId: tenant.id,
+      organizationId: organization.id,
       ingestTokenId: token.id,
       allowedClients: ['codex']
     });
@@ -173,11 +169,16 @@ describe('ingest authentication', () => {
     expect(response.status).toBe(401);
   });
 
-  it('keeps tokens of different tenants apart', async () => {
+  it('keeps tokens of different organizations apart', async () => {
     let first = await createToken();
     let second = await createToken();
 
-    await groundstation().tenant.upsert({ ref: first.tenant.ref, skewBoundSeconds: 120 });
+    await groundstation().instance.upsert({
+      organizationId: first.organization.id,
+      projectId: first.project.id,
+      ref: first.instance.ref,
+      skewBoundSeconds: 120
+    });
 
     expect((await ingest('/v1/logs', { credential: first.secret })).status).toBe(
       acceptedStatus
@@ -188,7 +189,7 @@ describe('ingest authentication', () => {
 
     let code = await rpcErrorCode(
       groundstation().ingestToken.get({
-        tenantId: second.tenant.id,
+        organizationId: second.organization.id,
         ingestTokenId: first.token.id
       })
     );

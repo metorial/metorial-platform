@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { createToken, errorCode, ingest, setSinkBusy, storedRecords } from './support';
+import {
+  createScope,
+  createToken,
+  errorCode,
+  ingest,
+  instanceRecords,
+  setSinkBusy
+} from './support';
 
 let header = (overrides: Record<string, unknown> = {}) => ({
   batch_id: 'batch-1',
@@ -33,7 +40,7 @@ let daysAgo = (days: number) => new Date(Date.now() - days * 86_400_000).toISOSt
 
 describe('bulk ingest', () => {
   it('stores accepted items and reports counts', async () => {
-    let { tenant, secret } = await createToken();
+    let { instance, secret } = await createToken();
 
     let response = await bulk(secret, ndjson(header(), item(1), item(2), item(3)));
 
@@ -45,7 +52,7 @@ describe('bulk ingest', () => {
       rejections: []
     });
 
-    let items = await storedRecords(tenant.id, 'live');
+    let items = await instanceRecords(instance, 'live');
 
     expect(items).toHaveLength(3);
     expect(items.every(entry => entry.record.ingest.route == 'bulk')).toBe(true);
@@ -53,7 +60,7 @@ describe('bulk ingest', () => {
   });
 
   it('routes backfill batches to the backfill lane with event time from the item', async () => {
-    let { tenant, secret } = await createToken();
+    let { instance, secret } = await createToken();
     let observedAt = daysAgo(2);
 
     let response = await bulk(
@@ -62,18 +69,18 @@ describe('bulk ingest', () => {
     );
 
     expect(response.status).toBe(200);
-    expect(await storedRecords(tenant.id, 'live')).toHaveLength(0);
+    expect(await instanceRecords(instance, 'live')).toHaveLength(0);
 
-    let [stored] = await storedRecords(tenant.id, 'backfill');
+    let [stored] = await instanceRecords(instance, 'backfill');
 
     expect(stored!.record.ingest.backfill).toBe(true);
     expect(new Date(stored!.record.occurred_at).toISOString()).toBe(observedAt);
   });
 
   it('rejects backfill items without observed_at, from the future, or too old', async () => {
-    let { tenant, secret } = await createToken(
+    let { instance, secret } = await createToken(
       {},
-      { backfillMaxAgeDays: 30, skewBoundSeconds: 300 }
+      await createScope({ instance: { backfillMaxAgeDays: 30, skewBoundSeconds: 300 } })
     );
 
     let { observed_at: _removed, ...withoutTime } = item(1);
@@ -102,11 +109,11 @@ describe('bulk ingest', () => {
       [1, 'parse_error'],
       [2, 'too_old']
     ]);
-    expect(await storedRecords(tenant.id, 'backfill')).toHaveLength(1);
+    expect(await instanceRecords(instance, 'backfill')).toHaveLength(1);
   });
 
   it('reports item-level rejections with their line index', async () => {
-    let { tenant, secret } = await createToken({ allowedClients: ['claude-code'] });
+    let { instance, secret } = await createToken({ allowedClients: ['claude-code'] });
 
     let response = await bulk(
       secret,
@@ -135,24 +142,24 @@ describe('bulk ingest', () => {
     expect(codes[2]).toBe('not_allowed');
     expect(codes[3]).toBe('unknown_dialect');
     expect(codes[4]).toBe('unknown_client');
-    expect(await storedRecords(tenant.id)).toHaveLength(2);
+    expect(await instanceRecords(instance)).toHaveLength(2);
   });
 
   it('is idempotent when a batch is resent', async () => {
-    let { tenant, secret } = await createToken();
+    let { instance, secret } = await createToken();
     let body = ndjson(header(), item(1), item(2));
 
     await bulk(secret, body);
     await bulk(secret, body);
 
-    let items = await storedRecords(tenant.id);
+    let items = await instanceRecords(instance);
     let ids = new Set(items.map(entry => entry.record.id));
 
     expect(ids.size).toBe(2);
   });
 
   it('rejects an invalid header and stores nothing', async () => {
-    let { tenant, secret } = await createToken();
+    let { instance, secret } = await createToken();
 
     for (let body of [
       '',
@@ -168,11 +175,11 @@ describe('bulk ingest', () => {
       expect(await errorCode(response), body).toBe('invalid_batch_header');
     }
 
-    expect(await storedRecords(tenant.id)).toHaveLength(0);
+    expect(await instanceRecords(instance)).toHaveLength(0);
   });
 
   it('answers 503 and stores nothing when the sink is busy', async () => {
-    let { tenant, secret } = await createToken();
+    let { instance, secret } = await createToken();
 
     await setSinkBusy(true);
 
@@ -185,12 +192,12 @@ describe('bulk ingest', () => {
       await setSinkBusy(false);
     }
 
-    expect(await storedRecords(tenant.id)).toHaveLength(0);
+    expect(await instanceRecords(instance)).toHaveLength(0);
 
     let retry = await bulk(secret, ndjson(header(), item(1), item(2)));
 
     expect(retry.status).toBe(200);
-    expect(await storedRecords(tenant.id)).toHaveLength(2);
+    expect(await instanceRecords(instance)).toHaveLength(2);
   });
 
   it('rejects unauthenticated requests', async () => {
@@ -215,14 +222,14 @@ describe('bulk ingest', () => {
     );
   });
 
-  it('keeps batches of different tenants apart', async () => {
+  it('keeps batches of different instances apart', async () => {
     let first = await createToken();
     let second = await createToken();
 
     await bulk(first.secret, ndjson(header(), item(1), item(2)));
     await bulk(second.secret, ndjson(header(), item(1)));
 
-    expect(await storedRecords(first.tenant.id)).toHaveLength(2);
-    expect(await storedRecords(second.tenant.id)).toHaveLength(1);
+    expect(await instanceRecords(first.instance)).toHaveLength(2);
+    expect(await instanceRecords(second.instance)).toHaveLength(1);
   });
 });
