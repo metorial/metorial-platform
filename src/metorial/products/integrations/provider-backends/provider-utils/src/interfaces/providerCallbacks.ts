@@ -4,6 +4,7 @@ import type {
   CallbackInstance,
   Provider,
   ProviderAuthConfigVersion,
+  ProviderAuthCredentials,
   ProviderConfigVersion,
   ProviderVariant,
   Tenant,
@@ -99,6 +100,7 @@ export interface CallbackInstanceDeleteParam {
 export interface CallbackInstanceDeleteRes {}
 
 export interface WebhookRegistrationCreateParam {
+  providerAuthCredentials?: ProviderAuthCredentials | null;
   tenant: Tenant;
   provider: Provider;
   providerVariant: ProviderVariant;

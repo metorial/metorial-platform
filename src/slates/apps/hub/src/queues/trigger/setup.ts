@@ -223,5 +223,13 @@ export let triggerRegistrationInstanceSetupQueueProcessor =
       } catch (err: any) {
         if (err.code !== 'P2002') throw err;
       }
+
+      await db.triggerRegistrationWebhook.deleteMany({
+        where: {
+          triggerRegistrationInstanceOid: instance.oid,
+          triggerWebhookTargetOid: null,
+          webhookRegistrationOid: { not: match.oid }
+        }
+      });
     }
   });

@@ -44,6 +44,7 @@ export let CallbackOverviewPage = () => {
           <CallbackWebhookRegistrationsBox
             instanceId={instance.data.id}
             providerId={callback.data.provider.id}
+            providerAuthCredentialsId={callback.data.authCredentialsId ?? undefined}
           />
         ) : null}
 

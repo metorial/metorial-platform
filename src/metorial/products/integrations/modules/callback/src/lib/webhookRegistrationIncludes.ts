@@ -2,7 +2,8 @@ import type { Prisma } from '@metorial-subspace/db';
 
 export let webhookRegistrationInclude = {
   provider: { include: { type: true } },
-  providerVariant: true
+  providerVariant: true,
+  providerAuthCredentials: { select: { id: true } }
 } as const;
 
 export type WebhookRegistrationWithRelations = Prisma.WebhookRegistrationGetPayload<{

@@ -23,18 +23,26 @@ export type DashboardInstanceWebhookRegistrationsCreateOutput = {
     createdAt: Date;
     updatedAt: Date;
   };
+  providerAuthCredentialsId: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
 
 export let mapDashboardInstanceWebhookRegistrationsCreateOutput =
   /* @__PURE__ */ mapObject<DashboardInstanceWebhookRegistrationsCreateOutput>(
-    ['receive_url', ['provider', 0, 8], 'created_at', 'updated_at'],
+    [
+      'receive_url',
+      ['provider', 0, 8],
+      'provider_auth_credentials_id',
+      'created_at',
+      'updated_at'
+    ],
     1
   );
 
 export type DashboardInstanceWebhookRegistrationsCreateBody = {
   providerId: string;
+  providerAuthCredentialsId?: string | undefined;
   name: string;
   description?: string | undefined;
   metadata?: Record<string, any> | undefined;
@@ -42,5 +50,6 @@ export type DashboardInstanceWebhookRegistrationsCreateBody = {
 
 export let mapDashboardInstanceWebhookRegistrationsCreateBody =
   /* @__PURE__ */ mapObject<DashboardInstanceWebhookRegistrationsCreateBody>([
-    'provider_id'
+    'provider_id',
+    'provider_auth_credentials_id'
   ]);
