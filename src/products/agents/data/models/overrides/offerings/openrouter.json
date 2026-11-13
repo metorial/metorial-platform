@@ -97,6 +97,13 @@
     "by": "agent",
     "at": "2026-11-12"
   },
+  "deepseek/deepseek-v4.1-flash-1017": {
+    "decision": "link",
+    "model": "deepseek/deepseek-v4.1-flash-1017",
+    "reason": "Correct link: this is the Oct 17 2026 snapshot (deepseek-ai/DeepSeek-V4.1-Flash-1017). Input price 0.038 is far below the 0.3 median because OpenRouter passes through DeepSeek's own deepseek-flash API rates; other providers charge more.",
+    "by": "agent",
+    "at": "2026-11-13"
+  },
   "deepseek/deepseek-v4.1-flash-1017:batch": {
     "decision": "link",
     "model": "deepseek/deepseek-v4.1-flash-1017",
