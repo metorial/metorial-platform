@@ -202,6 +202,17 @@ class InternalDocumentParticipantServiceImpl {
             role: item.mode === 'edit' ? 'editor' : undefined
           }
         });
+
+        if (!participant.storeParticipantOid && item.storeParticipantOid) {
+          let linked = await client.documentParticipant.updateMany({
+            where: { oid: participant.oid, storeParticipantOid: null },
+            data: { storeParticipantOid: item.storeParticipantOid }
+          });
+          if (linked.count) {
+            participant = { ...participant, storeParticipantOid: item.storeParticipantOid };
+          }
+        }
+
         materialized.push({ actor: item.actor, participant });
       }
 
