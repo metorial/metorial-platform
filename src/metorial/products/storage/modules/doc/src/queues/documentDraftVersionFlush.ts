@@ -1,4 +1,7 @@
-import { storeVersionService } from '@metorial/module-store';
+import {
+  getUneditedPreviousDocumentVersion,
+  storeVersionService
+} from '@metorial/module-store';
 import { createCron } from '@metorial/cron';
 import { db, withTransaction } from '@metorial/db';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
@@ -92,6 +95,16 @@ export let flushExpiredDraftVersion = async (d: {
         },
         include: {
           ...documentInclude,
+          currentVersion: {
+            include: {
+              content: true,
+              previousVersion: {
+                include: {
+                  content: true
+                }
+              }
+            }
+          },
           project: true,
           instance: true
         }
@@ -105,6 +118,41 @@ export let flushExpiredDraftVersion = async (d: {
         return null;
       }
       if (draftVersionExpiresAt.getTime() > now.getTime()) return null;
+
+      let hasEditsSincePreviousVersion = !getUneditedPreviousDocumentVersion(document);
+      let storeVersionPin = await db.storeVersionItem.findFirst({
+        where: {
+          documentVersionOid: document.currentVersion.oid
+        },
+        select: {
+          oid: true
+        }
+      });
+
+      if (
+        internalDocumentVersioningService.canReleaseExpiredVersionWithoutCut({
+          document,
+          hasEditsSincePreviousVersion,
+          isPinnedByStoreVersion: !!storeVersionPin,
+          now
+        })
+      ) {
+        let releasedDocument = await db.document.update({
+          where: {
+            id: document.id
+          },
+          data: {
+            draftVersionExpiresAt: null
+          },
+          include: documentInclude
+        });
+
+        return {
+          document: releasedDocument,
+          createdVersionId: null,
+          hasEditsSincePreviousVersion
+        };
+      }
 
       let retiredContent = await db.documentContent.create({
         data: {
@@ -143,12 +191,13 @@ export let flushExpiredDraftVersion = async (d: {
 
       return {
         document: updatedDocument,
-        createdVersionId: nextVersion.id
+        createdVersionId: nextVersion.id,
+        hasEditsSincePreviousVersion
       };
     });
   });
 
-  if (result?.createdVersionId) {
+  if (result?.createdVersionId && result.hasEditsSincePreviousVersion) {
     await storeVersionService.markStoresDirtyForDocument({
       documentOid: result.document.oid
     });
@@ -156,9 +205,6 @@ export let flushExpiredDraftVersion = async (d: {
       { parentDocumentVersionId: result.createdVersionId },
       { id: result.createdVersionId }
     );
-  }
-
-  if (result) {
     await enqueueDocumentLifecycle({
       documentId: result.document.id,
       event: 'contents-changed'

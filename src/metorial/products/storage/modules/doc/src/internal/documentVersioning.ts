@@ -27,6 +27,24 @@ class InternalDocumentVersioningServiceImpl {
     );
   }
 
+  // Releasing clears draftVersionExpiresAt instead of cutting a successor, so later writes fall
+  // back to the createdAt window. A version pinned by a store version may only be released once
+  // that window alone forces the next write into a new version.
+  canReleaseExpiredVersionWithoutCut(d: {
+    document: DocumentRecord;
+    hasEditsSincePreviousVersion: boolean;
+    isPinnedByStoreVersion: boolean;
+    now?: Date;
+  }) {
+    if (d.hasEditsSincePreviousVersion) return false;
+    if (!d.isPinnedByStoreVersion) return true;
+
+    return this.shouldCreateNewVersionForWrite(
+      { ...d.document, draftVersionExpiresAt: null },
+      d.now
+    );
+  }
+
   async createVersion(d: {
     project: { oid: bigint };
     instance: { oid: bigint };

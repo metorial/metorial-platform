@@ -1,5 +1,6 @@
 import { eventually, firstPage, useMember, useOrganization } from '@metorial/e2e';
 import { db, loadOrganizationFixture, type OrganizationFixture } from '@metorial/e2e/db';
+import { ID } from '@metorial/db';
 import { describe, expect, it } from 'vitest';
 import {
   cleanupDocumentVersion,
@@ -14,6 +15,7 @@ import {
   captureFabric,
   cloneDocument,
   createDocument,
+  createStore,
   editAndFlush,
   editDocument,
   ensureOrganizationResourceActor,
@@ -33,6 +35,21 @@ let createTwoVersions = async (fixture: OrganizationFixture) => {
   let [first, second] = await listVersions(document);
 
   return { document: current, first: first!, second: second! };
+};
+
+let createUneditedSuccessor = async (fixture: OrganizationFixture) => {
+  let store = await createStore(fixture);
+  let document = await createDocument(fixture, { content: 'steady', store });
+  let flushed = await flushExpiredDraftVersion({
+    documentId: document.id,
+    expectedDraftVersionExpiresAt: await expireVersionWindow(document)
+  });
+  let successor = await db.documentVersion.findUniqueOrThrow({
+    where: { id: flushed!.createdVersionId! }
+  });
+  await db.store.update({ where: { id: store.id }, data: { dirtyAt: null } });
+
+  return { store, document, successor };
 };
 
 describe('module-documents versions', () => {
@@ -237,6 +254,93 @@ describe('module-documents versions', () => {
     expect(first!.contentOid).not.toBe(row.contentOid);
     expect(first!.content.content).toBe('steady');
     expect(second!.content.content).toBe('steady');
+  });
+
+  it('releases an expired successor that was never edited instead of cutting a duplicate', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let { store, document, successor } = await createUneditedSuccessor(fixture);
+
+    let released = await flushExpiredDraftVersion({
+      documentId: document.id,
+      expectedDraftVersionExpiresAt: await expireVersionWindow(document)
+    });
+    expect(released).toMatchObject({ createdVersionId: null });
+
+    let row = await db.document.findUniqueOrThrow({ where: { id: document.id } });
+    expect(row).toMatchObject({
+      draftVersionExpiresAt: null,
+      maxVersionNumber: 2,
+      currentVersionOid: successor.oid,
+      contentOid: successor.contentOid
+    });
+    let versions = await listVersions(document);
+    expect(versions.map(version => version.id)).toEqual([versions[0]!.id, successor.id]);
+    expect(versions[1]!.contentOid).toBe(row.contentOid);
+    expect(versions.map(version => version.content.content)).toEqual(['steady', 'steady']);
+    expect((await db.store.findUniqueOrThrow({ where: { id: store.id } })).dirtyAt).toBeNull();
+  });
+
+  it('still cuts a version and dirties its stores once the successor is edited', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let { store, document, successor } = await createUneditedSuccessor(fixture);
+
+    await editAndFlush(fixture, document, { content: 'edited' });
+    expect(await listVersions(document)).toHaveLength(2);
+
+    let result = await flushExpiredDraftVersion({
+      documentId: document.id,
+      expectedDraftVersionExpiresAt: await expireVersionWindow(document)
+    });
+    expect(result?.createdVersionId).toBeTruthy();
+
+    let row = await db.document.findUniqueOrThrow({ where: { id: document.id } });
+    let [, edited, third] = await listVersions(document);
+    expect(edited!.id).toBe(successor.id);
+    expect(edited!.content.content).toBe('edited');
+    expect(edited!.contentOid).not.toBe(row.contentOid);
+    expect(third).toMatchObject({ id: result!.createdVersionId, contentOid: row.contentOid });
+    expect(
+      (await db.store.findUniqueOrThrow({ where: { id: store.id } })).dirtyAt
+    ).not.toBeNull();
+  });
+
+  it('keeps an unedited successor immutable when a store version pins it inside its window', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let { store, document, successor } = await createUneditedSuccessor(fixture);
+    let storeVersion = await db.storeVersion.create({
+      data: {
+        id: await ID.generateId('storeVersion'),
+        storeOid: store.oid,
+        versionNumber: 1,
+        sourceDirtyAt: new Date()
+      }
+    });
+    await db.storeVersionItem.create({
+      data: {
+        id: await ID.generateId('storeVersionItem'),
+        storeVersionOid: storeVersion.oid,
+        kind: 'document',
+        path: '/pinned.md',
+        documentOid: document.oid,
+        documentVersionOid: successor.oid
+      }
+    });
+
+    let result = await flushExpiredDraftVersion({
+      documentId: document.id,
+      expectedDraftVersionExpiresAt: await expireVersionWindow(document)
+    });
+    expect(result?.createdVersionId).toBeTruthy();
+
+    let row = await db.document.findUniqueOrThrow({ where: { id: document.id } });
+    let pinned = await db.documentVersion.findUniqueOrThrow({
+      where: { oid: successor.oid },
+      include: { content: true }
+    });
+    expect(pinned.contentOid).not.toBe(row.contentOid);
+    expect(pinned.content.content).toBe('steady');
+    expect(row.currentVersionOid).not.toBe(successor.oid);
+    expect((await db.store.findUniqueOrThrow({ where: { id: store.id } })).dirtyAt).toBeNull();
   });
 
   it('does not cut a version from the window cron while a draft is pending', async () => {
