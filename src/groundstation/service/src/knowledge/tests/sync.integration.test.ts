@@ -11,7 +11,7 @@ import {
   pollKnowledge,
   syncKnowledge
 } from '../ingest';
-import { knowledgeVersionKey } from '../version';
+import { knowledgeVersionKey, knowledgeVersionOf } from '../version';
 import {
   knowledgeCatalog,
   offering,
@@ -86,7 +86,11 @@ describe('model knowledge sync', () => {
     expect(period!.validFrom.toISOString()).toBe('2026-10-01T00:00:00.000Z');
     expect(period!.openOfferingOid).toBe(period!.offeringOid);
 
-    expect(await getSessionRedis().get(knowledgeVersionKey)).toBe(result.snapshotId);
+    expect(await getSessionRedis().get(knowledgeVersionKey)).toBe(
+      knowledgeVersionOf(
+        await testDb.knowledgeSnapshot.findUniqueOrThrow({ where: { id: result.snapshotId } })
+      )
+    );
   });
 
   it('polls with the ETag and only reports a new fingerprint', async () => {
@@ -269,6 +273,7 @@ describe('model knowledge sync', () => {
     let index = await getKnowledge();
     expect(index?.version).toBe(first.snapshotId);
     expect(index?.modelInfo('claude-sonnet-4-5')).toEqual({
+      labId: 'anthropic',
       familyId: 'claude-sonnet',
       status: 'active',
       isLatest: true
@@ -287,7 +292,7 @@ describe('model knowledge sync', () => {
     });
     expect(
       resolver.resolveModel({ raw: 'gpt-5', provider: 'openai', at: new Date() })
-    ).toEqual({});
+    ).toEqual({ vendorId: 'openai', vendorSource: 'reported' });
 
     server.publish(
       knowledgeCatalog({ generatedAt: '2026-11-02T00:00:00.000Z', sonnetInput: 2.5 }),
@@ -295,9 +300,6 @@ describe('model knowledge sync', () => {
     );
     let second = await sync();
 
-    expect((await getKnowledge())?.version).toBe(first.snapshotId);
-
-    expireKnowledgeCheck();
     let next = await getKnowledge();
     expect(next?.version).toBe(second.snapshotId);
 
@@ -315,7 +317,11 @@ describe('model knowledge sync', () => {
     expireKnowledgeCheck();
 
     expect((await getKnowledge())?.version).toBe(first.snapshotId);
-    expect(await getSessionRedis().get(knowledgeVersionKey)).toBe(first.snapshotId);
+    expect(await getSessionRedis().get(knowledgeVersionKey)).toBe(
+      knowledgeVersionOf(
+        await testDb.knowledgeSnapshot.findUniqueOrThrow({ where: { id: first.snapshotId } })
+      )
+    );
   });
 
   it('settles sessions against the synced snapshot', async () => {

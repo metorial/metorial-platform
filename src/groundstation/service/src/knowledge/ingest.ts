@@ -1,9 +1,13 @@
+import { createHash } from 'node:crypto';
+import { badRequestError, preconditionFailedError, ServiceError } from '@lowerdeck/error';
 import { getSentry } from '@lowerdeck/sentry';
 import type { Catalog } from '@metorial/model-catalog/src/types';
 import type { KnowledgeSnapshot, KnowledgeSource } from '../../prisma/generated/client';
 import { db, withTransaction } from '../db';
 import { env } from '../env';
 import { getId, snowflake } from '../id';
+import { queueKnowledgeImpact } from '../queues/knowledgeImpact';
+import { expireKnowledgeCheck } from './cache';
 import {
   collectAnomalies,
   evaluateGuardrails,
@@ -19,10 +23,11 @@ import type { KnowledgeSnapshotCounts } from './types';
 import { currentSnapshot, publishKnowledgeVersion } from './version';
 
 let ingestTimeoutMs = 5 * 60 * 1000;
-let ingestLockKey = 730_122_501;
+export let ingestLockKey = 730_122_501;
 let changeChunkSize = 1000;
 let periodChunkSize = 1000;
 let archivesKept = 20;
+let importSourceUrl = 'import://snapshots';
 
 // Bun collects lazily; without explicit collections between ingest stages the parsed catalog's
 // garbage piles up and a first ingest peaks near 700 MB instead of under 400 MB.
@@ -351,6 +356,7 @@ let applyCatalog = async (d: {
         offerings: offerings.rows.values(),
         offeringOids,
         addedIds: new Set(offerings.added.map(row => row.id)),
+        storedOfferings: stored.offering,
         openPeriods: await loadOpenPeriods(),
         generatedAt,
         bootstrap
@@ -384,8 +390,10 @@ let finish = async (d: { outcome: ApplyOutcome; fingerprint: string; url: string
     return { status: 'unchanged', snapshotId: outcome.snapshot.id } as const;
   }
 
-  await publishKnowledgeVersion(outcome.snapshot.id);
+  await publishKnowledgeVersion(outcome.snapshot);
+  expireKnowledgeCheck();
   await pruneArchives();
+  await queueKnowledgeImpact({ type: 'snapshot', snapshotId: outcome.snapshot.id });
 
   return {
     status: 'applied',
@@ -451,6 +459,17 @@ export let syncKnowledge = async (
   }
 };
 
+let ensureNotOlderThanCurrent = async (generatedAt: Date) => {
+  let current = await currentSnapshot();
+  if (current && current.generatedAt > generatedAt) {
+    throw new ServiceError(
+      preconditionFailedError({
+        message: 'A newer model knowledge snapshot is already current.'
+      })
+    );
+  }
+};
+
 export let acceptKnowledgeSnapshot = async (d: {
   snapshotId: string;
 }): Promise<IngestResult> => {
@@ -463,10 +482,7 @@ export let acceptKnowledgeSnapshot = async (d: {
   }
   if (!snapshot.archive) throw new Error('The rejected snapshot no longer has its archive.');
 
-  let current = await currentSnapshot();
-  if (current && current.generatedAt > snapshot.generatedAt) {
-    throw new Error('A newer snapshot is already current.');
-  }
+  await ensureNotOlderThanCurrent(snapshot.generatedAt);
 
   let archive = Buffer.from(snapshot.archive);
   let outcome = await applyCatalog({
@@ -482,4 +498,30 @@ export let acceptKnowledgeSnapshot = async (d: {
     fingerprint: snapshot.fingerprint,
     url: snapshot.source.url
   });
+};
+
+export let importKnowledgeSnapshot = async (d: {
+  archive: Buffer;
+  guardrails?: boolean;
+}): Promise<IngestResult> => {
+  let catalog = await parseArchive(d.archive).catch(() => {
+    throw new ServiceError(
+      badRequestError({ message: 'The archive is not a gzipped model knowledge catalog.' })
+    );
+  });
+
+  await ensureNotOlderThanCurrent(new Date(catalog.generatedAt));
+
+  let source = await ensureKnowledgeSource(importSourceUrl);
+  let fingerprint = `import-${createHash('sha256').update(d.archive).digest('base64url')}`;
+
+  let outcome = await applyCatalog({
+    source,
+    fingerprint,
+    archive: d.archive,
+    catalog,
+    guardrails: d.guardrails ?? env.knowledge.guardrails == 'strict'
+  });
+
+  return await finish({ outcome, fingerprint, url: importSourceUrl });
 };

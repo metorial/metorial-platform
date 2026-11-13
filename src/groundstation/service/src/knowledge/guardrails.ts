@@ -238,7 +238,7 @@ export let evaluateGuardrails = (d: {
     };
   }
 
-  let storedPriced = countStored(d.stored.offering, row => !row.removed && !!row.pricingHash);
+  let storedPriced = countStored(d.stored.offering, row => !row.removed && !!row.priced);
   let incomingPriced = 0;
   let priceChanges = 0;
 

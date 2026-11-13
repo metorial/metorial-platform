@@ -58,6 +58,7 @@ type Case = {
   added?: string[];
   bootstrap?: boolean;
   oids?: Map<string, bigint>;
+  stored?: Pricing | null;
   expected: PricePlan;
 };
 
@@ -171,6 +172,36 @@ let cases: Case[] = [
     open: openPeriod({ pricing: priceA }),
     oids: new Map(),
     expected: empty
+  },
+  {
+    name: 'an unchanged upstream price keeps a corrected period',
+    rows: [row('o', { pricing: priceA })],
+    open: openPeriod({ pricing: priceB, confirmedAt: at(-1) }),
+    stored: priceA,
+    expected: empty
+  },
+  {
+    name: 'an unchanged upstream price keeps a price a correction ended',
+    rows: [row('o', { pricing: priceA })],
+    stored: priceA,
+    expected: empty
+  },
+  {
+    name: 'a changed upstream price replaces a corrected period',
+    rows: [row('o', { pricing: priceA })],
+    open: openPeriod({ pricing: priceB }),
+    stored: pricing(3),
+    expected: {
+      ...empty,
+      close: [{ oid: 100n, validTo: at(0) }],
+      open: [opened(priceA, 'observed', at(0))]
+    }
+  },
+  {
+    name: 'a changed upstream price reopens a price a correction ended',
+    rows: [row('o', { pricing: priceA })],
+    stored: pricing(3),
+    expected: { ...empty, open: [opened(priceA, 'observed', at(0))] }
   }
 ];
 
@@ -180,6 +211,10 @@ describe('planPriceChanges', () => {
       offerings: testCase.rows,
       offeringOids: testCase.oids ?? new Map([['o', 1n]]),
       addedIds: new Set(testCase.added ?? []),
+      storedOfferings:
+        testCase.stored === undefined
+          ? undefined
+          : new Map([['o', { pricingHash: pricingHashOf(testCase.stored) }]]),
       openPeriods: new Map(testCase.open ? [[testCase.open.offeringOid, testCase.open]] : []),
       generatedAt: at(0),
       bootstrap: testCase.bootstrap ?? false

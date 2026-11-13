@@ -35,11 +35,14 @@ let parseTime = (value: unknown) => {
 };
 
 // 08 §6: only a different non-null price ends a period. A null price, a retired offering or one
-// missing from the catalog keeps the last price in effect.
+// missing from the catalog keeps the last price in effect. A correction (§6 "Corrections") stays
+// in effect until upstream publishes a price different from the one it published before, which
+// the stored offering's `pricingHash` holds.
 export let planPriceChanges = (d: {
   offerings: Iterable<KnowledgeRow>;
   offeringOids: Map<string, bigint>;
   addedIds: Set<string>;
+  storedOfferings?: Map<string, { pricingHash?: string | null }>;
   openPeriods: Map<bigint, OpenPricePeriod>;
   generatedAt: Date;
   bootstrap: boolean;
@@ -55,7 +58,12 @@ export let planPriceChanges = (d: {
     let offeringOid = d.offeringOids.get(row.id);
     if (offeringOid === undefined) continue;
 
+    let upstreamUnchanged =
+      !d.bootstrap && d.storedOfferings?.get(row.id)?.pricingHash == pricingHash;
     let open = d.openPeriods.get(offeringOid);
+
+    if (!open && upstreamUnchanged) continue;
+
     let period = {
       offeringOid,
       vendorId: offering.vendorId,
@@ -76,7 +84,7 @@ export let planPriceChanges = (d: {
       continue;
     }
 
-    if (open.pricingHash == pricingHash) {
+    if (open.pricingHash == pricingHash || upstreamUnchanged) {
       if (generatedAt - open.confirmedAt.getTime() >= confirmIntervalMs)
         plan.confirm.push(open.oid);
       continue;

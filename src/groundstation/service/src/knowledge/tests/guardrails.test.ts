@@ -234,7 +234,7 @@ describe('evaluateGuardrails', () => {
     );
   });
 
-  it.fails('accepts an unchanged republish after offerings lost their pricing', () => {
+  it('accepts an unchanged republish after offerings lost their pricing', () => {
     let stored = storeCatalog(catalog({ offerings: offerings(10) }));
     let unpriced = catalog({
       offerings: offerings(10).map((item, index) =>
@@ -244,6 +244,19 @@ describe('evaluateGuardrails', () => {
     let afterManualAccept = storeCatalog(unpriced, stored);
 
     expect(evaluate(unpriced, afterManualAccept)).toEqual({ accepted: true });
+  });
+
+  it('counts a later firstSeenAt once, not again after the snapshot was accepted', () => {
+    let stored = storeCatalog(catalog({ offerings: offerings(10, { firstSeenAt: earlier }) }));
+    let moved = catalog({ offerings: offerings(10, { firstSeenAt: later }) });
+
+    expect(rejection(evaluate(moved, stored))).toMatch(
+      /10 offerings report a later firstSeenAt/
+    );
+
+    let afterManualAccept = storeCatalog(moved, stored);
+
+    expect(evaluate(moved, afterManualAccept)).toEqual({ accepted: true });
   });
 });
 

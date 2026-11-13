@@ -8,8 +8,10 @@ export type StoredRow = {
   contentHash: string;
   removed: boolean;
   pricingHash?: string | null;
+  priced?: boolean;
   vendorModelKey?: string | null;
   firstSeenAt?: string | null;
+  reportedFirstSeenAt?: string | null;
   historyFrom?: string | null;
 };
 
@@ -70,6 +72,8 @@ let withoutVolatile = (item: Record<string, unknown>) => {
   return rest;
 };
 
+// The stored firstSeenAt never moves later. What upstream reported is kept next to it, so a later
+// value counts as a regression once, not again on every snapshot after it was accepted.
 let clampFirstSeen = (
   data: Record<string, unknown>,
   stored: StoredRow | undefined,
@@ -79,8 +83,10 @@ let clampFirstSeen = (
   let known = stored?.firstSeenAt ? Date.parse(stored.firstSeenAt) : NaN;
   if (Number.isNaN(incoming) || Number.isNaN(known) || incoming <= known) return data;
 
-  clamped.push(data.id as string);
-  return { ...data, firstSeenAt: stored!.firstSeenAt };
+  let reported = stored?.reportedFirstSeenAt ? Date.parse(stored.reportedFirstSeenAt) : known;
+  if (incoming > reported) clamped.push(data.id as string);
+
+  return { ...data, firstSeenAt: stored!.firstSeenAt, reportedFirstSeenAt: data.firstSeenAt };
 };
 
 export let buildEntityRows = (d: {

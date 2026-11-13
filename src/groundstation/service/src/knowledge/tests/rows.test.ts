@@ -189,10 +189,14 @@ describe('buildEntityRows', () => {
     );
     let diff = diffFor(result, 'offering');
 
-    expect(diff.rows.get('kept')!.data.firstSeenAt).toBe(earlier);
+    expect(diff.rows.get('kept')!.data).toMatchObject({
+      firstSeenAt: earlier,
+      reportedFirstSeenAt: later
+    });
     expect(diff.rows.get('moved')!.data.firstSeenAt).toBe(earlier);
+    expect(diff.rows.get('moved')!.data).not.toHaveProperty('reportedFirstSeenAt');
     expect(result.regressions.firstSeenClamped.offering).toEqual(['kept']);
-    expect(ids(diff.changed)).toEqual(['moved']);
+    expect(ids(diff.changed)).toEqual(['kept', 'moved']);
   });
 
   it('never moves a name firstSeenAt later', () => {

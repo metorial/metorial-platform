@@ -7,10 +7,8 @@ let archiveOf = (value: unknown) => gzipSync(Buffer.from(JSON.stringify(value)))
 
 describe('parseArchive', () => {
   it('returns the catalog with unknown fields intact', async () => {
-    let source = {
-      ...catalog({ offerings: [{ ...offering('o'), upcomingField: { nested: true } }] }),
-      futureSection: [1, 2]
-    };
+    let upcoming = { ...offering('o'), upcomingField: { nested: true } };
+    let source = { ...catalog({ offerings: [upcoming] }), futureSection: [1, 2] };
 
     let parsed = await parseArchive(archiveOf(source));
 

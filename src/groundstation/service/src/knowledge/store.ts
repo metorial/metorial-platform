@@ -23,12 +23,17 @@ type StoredQueryRow = {
   vendorId?: string | null;
   modelId?: string | null;
   firstSeenAt?: string | null;
+  reportedFirstSeenAt?: string | null;
+  priced?: boolean;
   historyFrom?: string | null;
 };
 
+let firstSeenColumns = `data->>'firstSeenAt' AS "firstSeenAt", data->>'reportedFirstSeenAt' AS "reportedFirstSeenAt"`;
+
 let storedExtras: Partial<Record<TableSpec['entity'], string>> = {
-  offering: `, "pricingHash", "vendorId", "modelId", data->>'firstSeenAt' AS "firstSeenAt"`,
-  name: `, data->>'firstSeenAt' AS "firstSeenAt",
+  offering: `, "pricingHash", "vendorId", "modelId", ${firstSeenColumns},
+    jsonb_typeof(data->'pricing') = 'object' AS priced`,
+  name: `, ${firstSeenColumns},
     (SELECT min(period->>'from') FROM jsonb_array_elements(data->'history') period) AS "historyFrom"`
 };
 
@@ -54,11 +59,17 @@ export let loadStoredState = async (): Promise<StoredState> =>
               ? {
                   pricingHash: row.pricingHash ?? null,
                   vendorModelKey: vendorModelKey(row.vendorId, row.modelId),
-                  firstSeenAt: row.firstSeenAt ?? null
+                  priced: !!row.priced,
+                  firstSeenAt: row.firstSeenAt ?? null,
+                  reportedFirstSeenAt: row.reportedFirstSeenAt ?? null
                 }
               : {}),
             ...(spec.entity == 'name'
-              ? { firstSeenAt: row.firstSeenAt ?? null, historyFrom: row.historyFrom ?? null }
+              ? {
+                  firstSeenAt: row.firstSeenAt ?? null,
+                  reportedFirstSeenAt: row.reportedFirstSeenAt ?? null,
+                  historyFrom: row.historyFrom ?? null
+                }
               : {})
           });
         }

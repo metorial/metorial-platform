@@ -201,7 +201,12 @@ export let storeCatalog = (applied: Catalog, previous: StoredState = emptyStored
     }
 
     for (let row of diff.rows.values()) {
-      let data = row.data as { firstSeenAt?: string; history?: TargetPeriod[] };
+      let data = row.data as {
+        firstSeenAt?: string;
+        reportedFirstSeenAt?: string;
+        pricing?: unknown;
+        history?: TargetPeriod[];
+      };
       let stored: StoredRow = {
         oid: before.get(row.id)?.oid ?? nextOid(),
         contentHash: row.contentHash,
@@ -211,11 +216,14 @@ export let storeCatalog = (applied: Catalog, previous: StoredState = emptyStored
       if (entity == 'offering') {
         stored.pricingHash = row.columns.pricingHash as string | null;
         stored.vendorModelKey = vendorModelKey(row.columns.vendorId, row.columns.modelId);
+        stored.priced = !!data.pricing;
         stored.firstSeenAt = data.firstSeenAt ?? null;
+        stored.reportedFirstSeenAt = data.reportedFirstSeenAt ?? null;
       }
 
       if (entity == 'name') {
         stored.firstSeenAt = data.firstSeenAt ?? null;
+        stored.reportedFirstSeenAt = data.reportedFirstSeenAt ?? null;
         stored.historyFrom = historyFromOf(data.history);
       }
 

@@ -59,10 +59,13 @@ export type KnowledgeEntityData =
 
 export type VendorSource = 'reported' | 'endpoint' | 'offering' | 'agent' | 'first-party';
 
+// A slice matches when it matches any listed value. `modelRaws` matches the raw whatever it
+// resolved to, so a slice still matches after its rebuild resolved it.
 export type RebuildFilter = {
   modelIds?: string[];
   modelRaws?: string[];
   vendorIds?: string[];
+  clientFamilies?: string[];
 };
 
 export type {

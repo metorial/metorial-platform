@@ -3,22 +3,37 @@ import type {
   LifecycleStatus,
   Name,
   Offering,
-  Pointer
+  Pointer,
+  Pricing
 } from '@metorial/model-catalog/src/types';
 import { LRUCache } from 'lru-cache';
 import type { KnowledgeSnapshot } from '../../prisma/generated/client';
 import {
+  agentInfoOf,
   createResolver,
-  firstPartyVendors,
-  isPriced,
+  createVendorDirectory,
+  endpointInfosOf,
   modelInfoFrom,
   reachableModels,
-  vendorFor,
+  vendorHint,
   type CatalogIndex,
-  type ModelRequest
-} from '../catalog/lookup';
+  type CatalogOffering,
+  type ModelRequest,
+  type VendorDirectory
+} from '../catalog';
 import { db } from '../db';
-import { currentSnapshot, publishKnowledgeVersion, readPublishedVersion } from './version';
+import {
+  pricePeriodTimeline,
+  type PricePeriod,
+  type PricePeriodCloseReason,
+  type PricePeriodOrigin
+} from './periods';
+import {
+  currentSnapshot,
+  knowledgeVersionOf,
+  publishKnowledgeVersion,
+  readPublishedVersion
+} from './version';
 
 let versionCheckMs = 15_000;
 let fallbackCheckMs = 60_000;
@@ -32,11 +47,24 @@ export type KnowledgeCore = {
   models: Map<string, CoreModel>;
   latestModels: Map<string, string | null>;
   pointers: Map<string, Pointer>;
-  firstPartyVendors: Map<string, string>;
+  vendors: VendorDirectory;
+};
+
+type OfferingRow = { oid: string; removed: boolean; data: Offering };
+
+type PeriodRow = {
+  offeringOid: string;
+  id: string;
+  pricing: Pricing;
+  origin: PricePeriodOrigin;
+  closeReason: PricePeriodCloseReason | null;
+  validFrom: Date;
+  validTo: Date | null;
+  confirmedAt: Date;
 };
 
 export let loadKnowledgeCore = async (): Promise<KnowledgeCore> => {
-  let [models, families, pointers, vendors] = await Promise.all([
+  let [models, families, pointers, vendors, endpoints, agents] = await Promise.all([
     db.knowledgeModel.findMany({
       where: { removedAt: null },
       select: { id: true, labId: true, familyId: true, status: true }
@@ -49,7 +77,9 @@ export let loadKnowledgeCore = async (): Promise<KnowledgeCore> => {
     db.knowledgeVendor.findMany({
       where: { removedAt: null },
       select: { id: true, organizationId: true, kind: true }
-    })
+    }),
+    db.knowledgeEndpoint.findMany({ where: { removedAt: null }, select: { data: true } }),
+    db.knowledgeAgent.findMany({ where: { removedAt: null }, select: { data: true } })
   ]);
 
   return {
@@ -65,7 +95,11 @@ export let loadKnowledgeCore = async (): Promise<KnowledgeCore> => {
     ),
     latestModels: new Map(families.map(family => [family.id, family.latestModelId])),
     pointers: new Map(pointers.map(pointer => [pointer.data.id, pointer.data])),
-    firstPartyVendors: firstPartyVendors(vendors)
+    vendors: createVendorDirectory({
+      vendors,
+      endpoints: endpointInfosOf({ endpoints: endpoints.map(endpoint => endpoint.data) }),
+      agents: agents.map(agent => agentInfoOf(agent.data))
+    })
   };
 };
 
@@ -85,16 +119,17 @@ let slimOffering = (offering: Offering): Offering =>
 
 // Each array is chunked in parallel positions (the vendor/model pair arrays stay aligned), so
 // one huge prepare can't build an unbounded statement.
-let queryChunked = async <T extends { id: string }>(
+let queryChunked = async <R>(
   lists: string[][],
-  query: (chunks: string[][]) => Promise<{ data: T }[]>
+  query: (chunks: string[][]) => Promise<R[]>,
+  keyOf: (row: R) => string
 ) => {
   let longest = Math.max(...lists.map(list => list.length));
-  let rows = new Map<string, { data: T }>();
+  let rows = new Map<string, R>();
 
   for (let start = 0; start < longest; start += lookupChunkSize) {
     let chunk = await query(lists.map(list => list.slice(start, start + lookupChunkSize)));
-    for (let row of chunk) rows.set(row.data.id, row);
+    for (let row of chunk) rows.set(keyOf(row), row);
   }
 
   return [...rows.values()];
@@ -105,26 +140,55 @@ let vendorModelCacheKey = (vendorId: string, vendorModelId: string) =>
 
 let modelCacheKey = (modelId: string) => `m\0${modelId}`;
 
+let loadPeriods = async (offeringOids: string[]) => {
+  let byOffering = new Map<string, PricePeriod[]>();
+  if (!offeringOids.length) return byOffering;
+
+  let rows = await queryChunked(
+    [offeringOids],
+    ([oids]) =>
+      db.$queryRawUnsafe<PeriodRow[]>(
+        `SELECT "offeringOid"::text AS "offeringOid", id, pricing, origin, "closeReason",
+                "validFrom", "validTo", "confirmedAt"
+           FROM "KnowledgePricePeriod" WHERE "offeringOid" = ANY($1::bigint[])`,
+        oids
+      ),
+    row => row.id
+  );
+
+  for (let { offeringOid, ...period } of rows) {
+    let list = byOffering.get(offeringOid);
+
+    if (list) list.push(period);
+    else byOffering.set(offeringOid, [period]);
+  }
+
+  return byOffering;
+};
+
 export let createKnowledgeIndex = (d: {
   snapshot: Pick<KnowledgeSnapshot, 'id' | 'generatedAt'>;
   core: KnowledgeCore;
 }): CatalogIndex => {
   let names = new LRUCache<string, Name[]>({ max: nameCacheSize });
-  let offerings = new LRUCache<string, Offering[]>({ max: offeringCacheSize });
+  let offerings = new LRUCache<string, CatalogOffering[]>({ max: offeringCacheSize });
 
   let loadNames = async (raws: string[], keys: string[]) => {
     let missingRaws = raws.filter(raw => !names.has(`r\0${raw}`));
     let missingKeys = keys.filter(key => !names.has(`k\0${key}`));
     if (!missingRaws.length && !missingKeys.length) return;
 
-    let rows = await queryChunked<Name>([missingRaws, missingKeys], ([raws, keys]) =>
-      db.$queryRawUnsafe<{ data: Name }[]>(
-        `SELECT data FROM "KnowledgeName" WHERE "removedAt" IS NULL AND raw = ANY($1::text[])
+    let rows = await queryChunked(
+      [missingRaws, missingKeys],
+      ([raws, keys]) =>
+        db.$queryRawUnsafe<{ data: Name }[]>(
+          `SELECT data FROM "KnowledgeName" WHERE "removedAt" IS NULL AND raw = ANY($1::text[])
            UNION ALL
            SELECT data FROM "KnowledgeName" WHERE "removedAt" IS NULL AND key = ANY($2::text[])`,
-        raws,
-        keys
-      )
+          raws,
+          keys
+        ),
+      row => row.data.id
     );
 
     let byRaw = new Map(missingRaws.map(raw => [raw, [] as Name[]]));
@@ -139,6 +203,7 @@ export let createKnowledgeIndex = (d: {
     for (let [key, list] of byKey) names.set(`k\0${key}`, list);
   };
 
+  // Removed offerings are loaded too: their open periods keep pricing late usage (08 §6.1).
   let loadOfferings = async (modelIds: string[], vendorModels: [string, string][]) => {
     let missingModels = modelIds.filter(modelId => !offerings.has(modelCacheKey(modelId)));
     let missingPairs = vendorModels.filter(
@@ -147,40 +212,48 @@ export let createKnowledgeIndex = (d: {
     );
     if (!missingModels.length && !missingPairs.length) return;
 
-    let rows = await queryChunked<Offering>(
+    let rows = await queryChunked(
       [
         missingModels,
         missingPairs.map(([vendorId]) => vendorId),
         missingPairs.map(([, vendorModelId]) => vendorModelId)
       ],
       ([modelIds, vendorIds, vendorModelIds]) =>
-        db.$queryRawUnsafe<{ data: Offering }[]>(
-          `SELECT data FROM "KnowledgeOffering" WHERE "removedAt" IS NULL AND "modelId" = ANY($1::text[])
+        db.$queryRawUnsafe<OfferingRow[]>(
+          `SELECT oid::text AS oid, "removedAt" IS NOT NULL AS removed, data
+             FROM "KnowledgeOffering" WHERE "modelId" = ANY($1::text[])
            UNION ALL
-           SELECT data FROM "KnowledgeOffering" WHERE "removedAt" IS NULL
-             AND ("vendorId", "vendorModelId") IN (SELECT * FROM unnest($2::text[], $3::text[]))`,
+           SELECT oid::text AS oid, "removedAt" IS NOT NULL AS removed, data
+             FROM "KnowledgeOffering"
+            WHERE ("vendorId", "vendorModelId") IN (SELECT * FROM unnest($2::text[], $3::text[]))`,
           modelIds,
           vendorIds,
           vendorModelIds
-        )
+        ),
+      row => row.data.id
     );
 
-    let byModel = new Map(missingModels.map(modelId => [modelId, [] as Offering[]]));
+    let periods = await loadPeriods(rows.map(row => row.oid));
+
+    let byModel = new Map(missingModels.map(modelId => [modelId, [] as CatalogOffering[]]));
     let byPair = new Map(
       missingPairs.map(([vendorId, vendorModelId]) => [
         vendorModelCacheKey(vendorId, vendorModelId),
-        [] as Offering[]
+        [] as CatalogOffering[]
       ])
     );
 
-    for (let { data } of rows) {
-      if (!isPriced(data)) continue;
+    for (let row of rows) {
+      let entry: CatalogOffering = {
+        offering: slimOffering(row.data),
+        periods: pricePeriodTimeline(periods.get(row.oid) ?? []),
+        ...(row.removed ? { removed: true } : {})
+      };
 
-      let offering = slimOffering(data);
-      if (offering.modelId) byModel.get(offering.modelId)?.push(offering);
+      if (entry.offering.modelId) byModel.get(entry.offering.modelId)?.push(entry);
       byPair
-        .get(vendorModelCacheKey(offering.vendorId, offering.vendorModelId))
-        ?.push(offering);
+        .get(vendorModelCacheKey(entry.offering.vendorId, entry.offering.vendorModelId))
+        ?.push(entry);
     }
 
     for (let [modelId, list] of byModel) offerings.set(modelCacheKey(modelId), list);
@@ -190,6 +263,7 @@ export let createKnowledgeIndex = (d: {
   return {
     version: d.snapshot.id,
     generatedAt: d.snapshot.generatedAt.toISOString(),
+    vendors: d.core.vendors,
 
     modelInfo: modelId =>
       modelInfoFrom({
@@ -204,9 +278,10 @@ export let createKnowledgeIndex = (d: {
       let pairs = new Map<string, [string, string]>();
 
       for (let request of requests) {
-        let vendorId = vendorFor(request);
-        if (vendorId)
+        let vendorId = vendorHint(d.core.vendors, request);
+        if (vendorId) {
           pairs.set(vendorModelCacheKey(vendorId, request.raw), [vendorId, request.raw]);
+        }
       }
 
       await loadNames(raws, keys);
@@ -225,7 +300,7 @@ export let createKnowledgeIndex = (d: {
 
       await loadOfferings(modelIds, [...pairs.values()]);
 
-      let scopedOfferings = new Map<string, Offering[]>();
+      let scopedOfferings = new Map<string, CatalogOffering[]>();
       for (let modelId of modelIds) {
         scopedOfferings.set(
           modelCacheKey(modelId),
@@ -239,10 +314,10 @@ export let createKnowledgeIndex = (d: {
         namesByKey: key => scopedNamesByKey.get(key) ?? [],
         pointer: pointerId => d.core.pointers.get(pointerId),
         labOf: modelId => d.core.models.get(modelId)?.labId,
-        pricedOfferingsByVendorModel: (vendorId, vendorModelId) =>
+        offeringsByVendorModel: (vendorId, vendorModelId) =>
           scopedOfferings.get(vendorModelCacheKey(vendorId, vendorModelId)) ?? [],
-        pricedOfferingsByModel: modelId => scopedOfferings.get(modelCacheKey(modelId)) ?? [],
-        firstPartyVendor: labId => d.core.firstPartyVendors.get(labId)
+        offeringsByModel: modelId => scopedOfferings.get(modelCacheKey(modelId)) ?? [],
+        vendors: d.core.vendors
       });
     }
   };
@@ -268,11 +343,12 @@ let refresh = async () => {
       return;
     }
 
-    if (published && !published.version) await publishKnowledgeVersion(snapshot.id);
-    if (snapshot.id == state?.version) return;
+    let version = knowledgeVersionOf(snapshot);
+    if (published && !published.version) await publishKnowledgeVersion(snapshot);
+    if (version == state?.version) return;
 
     state = {
-      version: snapshot.id,
+      version,
       index: createKnowledgeIndex({ snapshot, core: await loadKnowledgeCore() })
     };
   } catch (error) {

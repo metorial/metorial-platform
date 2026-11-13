@@ -43,15 +43,23 @@ let summaryPresenter = (summary: SessionSummary) => ({
   models: summary.models.map(model => ({
     modelId: model.modelId ?? null,
     rawIds: model.rawIds,
+    vendorId: model.vendorId ?? null,
+    vendorSource: model.vendorSource ?? null,
+    offeringId: model.offeringId ?? null,
+    pricePeriodIds: model.pricePeriodIds ?? [],
+    priceAssumed: !!model.priceAssumed,
+    overrideId: model.overrideId ?? null,
     requests: model.requests,
     tokens: tokensPresenter(model.tokens),
     costReported: costsPresenter(model.costReported),
-    costComputedUsd: decimalString(model.costComputedUsd) ?? null
+    costComputedUsd: decimalString(model.costComputedUsd) ?? null,
+    costContractUsd: decimalString(model.costContractUsd) ?? null
   })),
 
   tokens: tokensPresenter(summary.tokens),
   costReported: costsPresenter(summary.costReported),
   costComputedUsd: decimalString(summary.costComputedUsd) ?? null,
+  costContractUsd: decimalString(summary.costContractUsd) ?? null,
   costUsd: decimalString(summary.costUsd) ?? null,
 
   lines: { added: summary.lines.added, removed: summary.lines.removed },

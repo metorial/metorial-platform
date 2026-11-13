@@ -17,11 +17,11 @@ export let textPricing = (input: number, output = input * 5): Pricing => ({
   webSearchPer1k: null
 });
 
-let organization = (id: string, roles: string[]) => ({
+export let organization = (id: string, roles: string[], aliases: string[] = []) => ({
   id,
   name: id,
   roles,
-  aliases: [],
+  aliases,
   description: null,
   website: null,
   logo: null,
@@ -29,7 +29,7 @@ let organization = (id: string, roles: string[]) => ({
   status: 'active'
 });
 
-let model = (id: string, labId: string, familyId: string | null) => ({
+export let model = (id: string, labId: string, familyId: string | null) => ({
   id,
   labId,
   familyId,
@@ -63,7 +63,40 @@ let model = (id: string, labId: string, familyId: string | null) => ({
   origin: 'lab-file'
 });
 
-let vendor = (id: string, organizationId: string, kind: string) => ({
+export let family = (d: { id: string; labId: string; modelIds: string[] }) => ({
+  id: d.id,
+  labId: d.labId,
+  name: d.id,
+  line: null,
+  kind: 'chat',
+  modelIds: d.modelIds,
+  latestModelId: d.modelIds[0] ?? null,
+  status: 'active'
+});
+
+export let agent = (d: {
+  id: string;
+  makerId: string;
+  aliases?: string[];
+  vendorId?: string;
+}) => ({
+  id: d.id,
+  name: d.id,
+  makerId: d.makerId,
+  description: null,
+  website: null,
+  docs: null,
+  repository: null,
+  openSource: false,
+  license: null,
+  surfaces: ['cli'],
+  aliases: d.aliases ?? [],
+  vendors: d.vendorId ? [{ vendorId: d.vendorId, role: 'default' }] : [],
+  derivedFrom: null,
+  status: 'active'
+});
+
+export let vendor = (id: string, organizationId: string, kind: string) => ({
   id,
   organizationId,
   name: id,
@@ -104,7 +137,7 @@ export let offering = (d: {
   lastSeenAt: '2026-11-01T00:00:00.000Z'
 });
 
-let name = (namespace: string, raw: string, target: NameTarget) => ({
+export let name = (namespace: string, raw: string, target: NameTarget) => ({
   id: `${namespace}:${raw}`,
   namespace,
   raw,
@@ -128,6 +161,12 @@ export let knowledgeCatalog = (
     gptPricing?: Pricing | null;
     fillerInput?: number;
     extraOfferings?: ReturnType<typeof offering>[];
+    extraOrganizations?: ReturnType<typeof organization>[];
+    extraFamilies?: ReturnType<typeof family>[];
+    extraModels?: ReturnType<typeof model>[];
+    extraVendors?: ReturnType<typeof vendor>[];
+    extraNames?: ReturnType<typeof name>[];
+    extraAgents?: ReturnType<typeof agent>[];
   } = {}
 ) =>
   ({
@@ -137,7 +176,8 @@ export let knowledgeCatalog = (
     organizations: [
       organization('anthropic', ['lab', 'vendor', 'agent-maker']),
       organization('openai', ['lab', 'vendor']),
-      organization('amazon', ['vendor'])
+      organization('amazon', ['vendor']),
+      ...(d.extraOrganizations ?? [])
     ],
     families: [
       {
@@ -149,19 +189,22 @@ export let knowledgeCatalog = (
         modelIds: ['claude-sonnet-4-5'],
         latestModelId: 'claude-sonnet-4-5',
         status: 'active'
-      }
+      },
+      ...(d.extraFamilies ?? [])
     ],
     models: [
       model('claude-sonnet-4-5', 'anthropic', 'claude-sonnet'),
       model('gpt-5', 'openai', null),
-      ...fillerModelIds.map(id => model(id, 'openai', null))
+      ...fillerModelIds.map(id => model(id, 'openai', null)),
+      ...(d.extraModels ?? [])
     ],
     releases: [],
     pointers: [],
     vendors: [
       vendor('anthropic', 'anthropic', 'first-party'),
       vendor('openai', 'openai', 'first-party'),
-      vendor('aws-bedrock', 'amazon', 'cloud')
+      vendor('aws-bedrock', 'amazon', 'cloud'),
+      ...(d.extraVendors ?? [])
     ],
     endpoints: [
       {
@@ -206,7 +249,8 @@ export let knowledgeCatalog = (
         modelId: 'claude-sonnet-4-5'
       }),
       name('vendor:openai', 'gpt-5', { kind: 'model', modelId: 'gpt-5' }),
-      name('display', 'Claude Sonnet 4.5', { kind: 'model', modelId: 'claude-sonnet-4-5' })
+      name('display', 'Claude Sonnet 4.5', { kind: 'model', modelId: 'claude-sonnet-4-5' }),
+      ...(d.extraNames ?? [])
     ],
     agents: [
       {
@@ -224,7 +268,8 @@ export let knowledgeCatalog = (
         vendors: [{ vendorId: 'anthropic', role: 'default' }],
         derivedFrom: null,
         status: 'active'
-      }
+      },
+      ...(d.extraAgents ?? [])
     ]
   }) as unknown as Catalog;
 

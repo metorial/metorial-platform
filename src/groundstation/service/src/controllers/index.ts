@@ -9,7 +9,9 @@ import { userController } from './user';
 import { ingestSourceController } from './ingestSource';
 import { ingestTokenController } from './ingestToken';
 import { instanceController } from './instance';
+import { knowledgeController } from './knowledge';
 import { organizationController } from './organization';
+import { pricingController } from './pricing';
 import { projectController } from './project';
 import { recordsController } from './records';
 import { coverageController } from './coverage';
@@ -34,7 +36,9 @@ export let rootController = app.controller({
   session: sessionController,
   usage: usageController,
   coverage: coverageController,
-  rebuild: rebuildController
+  rebuild: rebuildController,
+  knowledge: knowledgeController,
+  pricing: pricingController
 });
 
 export let GroundstationRPC = createServer({})(rootController);
