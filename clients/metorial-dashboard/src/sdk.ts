@@ -23,7 +23,7 @@ import {
   MetorialDashboardInstanceChatsMessagesReactionsEndpoint,
   MetorialDashboardInstanceChatsThreadsEndpoint,
   MetorialDashboardInstanceChatWorkspacesEndpoint,
-  MetorialDashboardInstanceConsumerDevicesEndpoint,
+  MetorialDashboardInstanceConsumersDevicesEndpoint,
   MetorialDashboardInstanceConsumersEndpoint,
   MetorialDashboardInstanceConsumersProfilesEndpoint,
   MetorialDashboardInstanceConsumerSurfacesEndpoint,
@@ -1016,10 +1016,10 @@ export let createMetorialDashboardSDK = sdkBuilder.build(
   }),
 
   consumers: Object.assign(new MetorialDashboardInstanceConsumersEndpoint(manager), {
-    profiles: new MetorialDashboardInstanceConsumersProfilesEndpoint(manager)
+    profiles: new MetorialDashboardInstanceConsumersProfilesEndpoint(manager),
+    devices: new MetorialDashboardInstanceConsumersDevicesEndpoint(manager)
   }),
   consumerSurfaces: new MetorialDashboardInstanceConsumerSurfacesEndpoint(manager),
-  consumerDevices: new MetorialDashboardInstanceConsumerDevicesEndpoint(manager),
 
   accessPolicies: new MetorialDashboardOrganizationsAccessPoliciesEndpoint(manager),
   accessRoles: new MetorialDashboardOrganizationsAccessRolesEndpoint(manager),

@@ -1,6 +1,6 @@
 import { mapObject } from '@metorial/util-resource-mapper/compact';
 
-export type ManagementInstanceConsumerDevicesRevokeOutput = {
+export type ConsumersDevicesGetOutput = {
   object: 'consumer.device';
   id: string;
   status: 'active' | 'signed_out' | 'revoked';
@@ -26,8 +26,8 @@ export type ManagementInstanceConsumerDevicesRevokeOutput = {
   updatedAt: Date;
 };
 
-export let mapManagementInstanceConsumerDevicesRevokeOutput =
-  /* @__PURE__ */ mapObject<ManagementInstanceConsumerDevicesRevokeOutput>(
+export let mapConsumersDevicesGetOutput =
+  /* @__PURE__ */ mapObject<ConsumersDevicesGetOutput>(
     [
       'consumer_profile_id',
       'app_version',

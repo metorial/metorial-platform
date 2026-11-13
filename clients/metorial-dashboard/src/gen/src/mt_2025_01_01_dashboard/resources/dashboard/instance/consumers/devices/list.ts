@@ -1,6 +1,6 @@
 import { createMapper } from '@metorial/util-resource-mapper/compact';
 
-export type ManagementInstanceConsumerDevicesListOutput = {
+export type DashboardInstanceConsumersDevicesListOutput = {
   items: {
     object: 'consumer.device';
     id: string;
@@ -29,8 +29,8 @@ export type ManagementInstanceConsumerDevicesListOutput = {
   pagination: { hasMoreBefore: boolean; hasMoreAfter: boolean };
 };
 
-export let mapManagementInstanceConsumerDevicesListOutput =
-  /* @__PURE__ */ createMapper<ManagementInstanceConsumerDevicesListOutput>(
+export let mapDashboardInstanceConsumersDevicesListOutput =
+  /* @__PURE__ */ createMapper<DashboardInstanceConsumersDevicesListOutput>(
     [
       7,
       [
@@ -63,7 +63,7 @@ export let mapManagementInstanceConsumerDevicesListOutput =
     1
   );
 
-export type ManagementInstanceConsumerDevicesListQuery = {
+export type DashboardInstanceConsumersDevicesListQuery = {
   limit?: number | undefined;
   after?: string | undefined;
   before?: string | undefined;
@@ -80,8 +80,8 @@ export type ManagementInstanceConsumerDevicesListQuery = {
     | undefined;
 };
 
-export let mapManagementInstanceConsumerDevicesListQuery =
-  /* @__PURE__ */ createMapper<ManagementInstanceConsumerDevicesListQuery>([
+export let mapDashboardInstanceConsumersDevicesListQuery =
+  /* @__PURE__ */ createMapper<DashboardInstanceConsumersDevicesListQuery>([
     3,
     [[0, [1, ['consumer_profile_id', 'consumer_id']]]]
   ]);
