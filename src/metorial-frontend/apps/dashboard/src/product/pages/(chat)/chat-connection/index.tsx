@@ -17,7 +17,7 @@ import { Box, ID, Table } from '@metorial/ui-product';
 import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { EventDeliveryBox } from '../../../scenes/callbacks/listenersBox';
-import { ProviderWebhookRegistrationsBox } from '../../../scenes/callbacks/webhookRegistrationsBox';
+import { CallbackWebhookRegistrationsBox } from '../../../scenes/callbacks/webhookRegistrationsBox';
 import { showChatInstanceCreateProviderPanelFlow } from '../../../scenes/chat/instanceConfigPanel';
 import { ChatProviderAvatar, useChatProviderListings } from '../../../scenes/chat/shared';
 
@@ -155,12 +155,12 @@ export let ChatConnectionOverviewPage = () => {
             </>
           ) : null}
 
-          {provider?.manualWebhookTriggerGroups.length &&
-          !provider.authCredentialsIsManaged ? (
-            <ProviderWebhookRegistrationsBox
+          {provider ? (
+            <CallbackWebhookRegistrationsBox
               instanceId={instance.data!.id}
-              provider={{ id: provider.provider.id, name: provider.provider.name }}
-              target={{ purpose: 'webhook_receiver' }}
+              providerId={provider.provider.id}
+              authCredentialsId={provider.authCredentialsId}
+              authCredentialsIsManaged={provider.authCredentialsIsManaged}
             />
           ) : null}
 
