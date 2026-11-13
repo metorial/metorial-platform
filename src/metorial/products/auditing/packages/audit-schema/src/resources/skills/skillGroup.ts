@@ -57,3 +57,18 @@ export let skillMergeRequestAuditResource = resource({
     rollback: true
   }
 });
+
+export let skillSecurityReviewAuditResource = resource({
+  name: 'skill_security_review',
+  payload: v.typedAny<{
+    id: string;
+    skillId: string;
+    securityScore: number | null;
+    risk: string | null;
+  }>('skill_security_review'),
+  presenter: undefined,
+  actions: {
+    dismiss: true,
+    restore: true
+  }
+});

@@ -1,7 +1,9 @@
 import { renderWithLoader } from '@metorial/data-hooks';
+import { col, createDataList } from '@metorial/data-list';
 import { DetailsOverviewLayout } from '@metorial/details-layout';
 import { Paths } from '@metorial/frontend-config';
 import {
+  IncomingWebhookPreview,
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
@@ -9,21 +11,35 @@ import {
   useWebhookRegistration,
   WebhookRegistrationPreview
 } from '@metorial/state';
-import { Badge, Button, Callout, Entity, Flex, RenderDate, Spacer, Text } from '@metorial/ui';
-import { Box, ID, Table } from '@metorial/ui-product';
+import { Button, Callout, Entity, Flex, Spacer, Text } from '@metorial/ui';
+import { Box, ID } from '@metorial/ui-product';
 import { useEffect } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import {
-  getIncomingWebhookStatusColor,
-  getIncomingWebhookStatusLabel,
-  isWebhookRegistrationRemoved
-} from '../../../scenes/callbacks/shared';
-import { ChatProviderAvatar, useChatProviderListings } from '../../../scenes/chat/shared';
+import { useParams } from 'react-router-dom';
+import { useInstanceContext } from '../../../lib/dataList';
+import { incomingWebhookStatus } from '../../../scenes/callbacks/incomingWebhooksTable';
+import { isWebhookRegistrationRemoved } from '../../../scenes/callbacks/shared';
 import {
   DELIVERY_SETUP_EVENTS_NOTE,
   WEBHOOK_REGISTRATION_COPY
 } from '../../../scenes/callbacks/webhookRegistrationPurpose';
 import { showWebhookRegistrationSetup } from '../../../scenes/callbacks/webhookRegistrationsTable';
+import { ChatProviderAvatar, useChatProviderListings } from '../../../scenes/chat/shared';
+
+let RecentIncomingWebhooksList = createDataList<{ webhooks: IncomingWebhookPreview[] }>(
+  'webhook-registration-recent-events',
+  { customizable: false }
+)
+  .context(useInstanceContext)
+  .items(({ props }) => ({ items: props.webhooks }))
+  .columns([
+    col.status(incomingWebhookStatus),
+    col.date('receivedAt', { id: 'receivedAt', header: 'Received', isDefault: true }),
+    col.id({ isDefault: true })
+  ])
+  .link((row, _props, ctx) =>
+    Paths.instance.incomingWebhook(ctx.organization, ctx.project, ctx.instance, row.id)
+  )
+  .build();
 
 let openedWebhookRegistrationSetups = new Map<string, true>();
 
@@ -79,37 +95,13 @@ let RecentIncomingWebhooksBox = ({
   );
 
   return renderWithLoader({ incomingWebhooks })(({ incomingWebhooks }) => (
-    <Box
-      title="Recent Events"
-      description="The latest inbound webhooks received."
-      rightActions={
-        incomingWebhooks.data.items.length ? (
-          <Link to={eventsPath}>
-            <Button size="2" as="span" variant="outline">
-              View All Events
-            </Button>
-          </Link>
-        ) : undefined
-      }
-    >
+    <Box title="Recent Events" description="The latest inbound webhooks received.">
       {incomingWebhooks.data.items.length ? (
-        <Table
-          headers={['Status', 'Received', 'ID']}
-          data={incomingWebhooks.data.items.slice(0, 10).map(webhook => ({
-            href: Paths.instance.incomingWebhook(
-              organization.data,
-              project.data,
-              instance.data,
-              webhook.id
-            ),
-            data: [
-              <Badge key="status" color={getIncomingWebhookStatusColor(webhook.status)}>
-                {getIncomingWebhookStatusLabel(webhook.status)}
-              </Badge>,
-              <RenderDate key="received" date={webhook.receivedAt} />,
-              <ID key="id" id={webhook.id} />
-            ]
-          }))}
+        <RecentIncomingWebhooksList
+          listVariant="preview"
+          listLimit={10}
+          viewAllHref={eventsPath}
+          webhooks={incomingWebhooks.data.items}
         />
       ) : (
         <Text size="2" color="gray600">

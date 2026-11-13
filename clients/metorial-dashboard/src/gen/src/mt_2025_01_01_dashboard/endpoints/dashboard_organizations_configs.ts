@@ -6,10 +6,14 @@ import {
 import {
   mapDashboardOrganizationsConfigsGetOutput,
   mapDashboardOrganizationsConfigsListOutput,
+  mapDashboardOrganizationsConfigsPatchBody,
+  mapDashboardOrganizationsConfigsPatchOutput,
   mapDashboardOrganizationsConfigsSetBody,
   mapDashboardOrganizationsConfigsSetOutput,
   type DashboardOrganizationsConfigsGetOutput,
   type DashboardOrganizationsConfigsListOutput,
+  type DashboardOrganizationsConfigsPatchBody,
+  type DashboardOrganizationsConfigsPatchOutput,
   type DashboardOrganizationsConfigsSetBody,
   type DashboardOrganizationsConfigsSetOutput
 } from '../resources';
@@ -126,6 +130,38 @@ export class MetorialDashboardOrganizationsConfigsEndpoint {
 
     return this._put(request).transform(
       mapDashboardOrganizationsConfigsSetOutput
+    );
+  }
+
+  /**
+   * @name Patch organization config
+   * @description Apply path-based operations to a config by config ID, config type ID, or type identifier
+   *
+   * @param `organizationId` - string
+   * @param `selector` - string
+   * @param `body` - DashboardOrganizationsConfigsPatchBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardOrganizationsConfigsPatchOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  patch(
+    organizationId: string,
+    selector: string,
+    body: DashboardOrganizationsConfigsPatchBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardOrganizationsConfigsPatchOutput> {
+    let path = `dashboard/organizations/${organizationId}/configs/${selector}`;
+
+    let request = {
+      path,
+      body: mapDashboardOrganizationsConfigsPatchBody.transformTo(body),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._patch(request).transform(
+      mapDashboardOrganizationsConfigsPatchOutput
     );
   }
 }

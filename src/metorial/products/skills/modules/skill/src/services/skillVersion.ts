@@ -3,6 +3,7 @@ import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import type { Instance, Prisma, Project } from '@metorial/db';
 import { db } from '@metorial/db';
+import { storeVersionService } from '@metorial/module-store';
 import {
   type DateFilter,
   normalizeDateFilter,
@@ -202,6 +203,22 @@ class SkillVersionServiceImpl {
     if (!version) throw new ServiceError(notFoundError('skill.version', d.skillVersionId));
 
     return toSkillVersionSnapshot(version);
+  }
+
+  // Versions are normally sealed a while after the last edit. A caller that needs the skill as
+  // it is right now, a security review for example, seals one immediately when edits are pending.
+  async ensureCurrentSkillVersion(d: { skill: SkillRecord }) {
+    let store = d.skill.store;
+    if (!store) return;
+
+    let [versionCount, current] = await Promise.all([
+      db.skillVersion.count({ where: { skillOid: d.skill.oid } }),
+      db.store.findUnique({ where: { id: store.id }, select: { dirtyAt: true } })
+    ]);
+
+    if (versionCount > 0 && !current?.dirtyAt) return;
+
+    await storeVersionService.createStoreVersionSnapshotNow({ storeId: store.id });
   }
 }
 

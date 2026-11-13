@@ -1,6 +1,7 @@
 import { canonicalize } from '@lowerdeck/canonicalize';
 import { conflictError, notFoundError, ServiceError, validationError } from '@lowerdeck/error';
 import { Hash } from '@lowerdeck/hash';
+import { applyPatch, type JsonValue, PatchError, type PatchOperation } from '@lowerdeck/patch';
 import { Service } from '@lowerdeck/service';
 import type { AuditScope } from '@metorial/audit-scope';
 import {
@@ -17,6 +18,8 @@ import {
   getOrganizationConfigDeclarations,
   OrganizationConfigDeclaration
 } from '../definitions/config';
+
+let maxPatchOperations = 50;
 
 export type MaterializedOrganizationConfig = OrganizationConfig & {
   type: OrganizationConfigType;
@@ -109,16 +112,9 @@ class OrganizationConfigService {
   private async resolve(d: { selector: string; user: User; organization: Organization }) {
     return withTransaction(async db => {
       let declarations = getOrganizationConfigDeclarations();
-      let types = await Promise.all(
+      let targets = await Promise.all(
         declarations.map(async declaration => ({
           declaration,
-          type: await this.syncType(declaration)
-        }))
-      );
-      let targets = await Promise.all(
-        types.map(async ({ declaration, type }) => ({
-          declaration,
-          type,
           target: await this.getTarget({
             declaration,
             user: d.user,
@@ -144,9 +140,15 @@ class OrganizationConfigService {
         if (declaration) return { declaration, config: existing };
       }
 
-      let resolved = targets.find(
-        target => target.type.id === d.selector || target.declaration.identifier === d.selector
+      let types = await Promise.all(
+        targets.map(async ({ declaration }) => await this.syncType(declaration))
       );
+      let resolved = targets
+        .map((target, index) => ({ ...target, type: types[index]! }))
+        .find(
+          target =>
+            target.type.id === d.selector || target.declaration.identifier === d.selector
+        );
       if (!resolved) {
         throw new ServiceError(notFoundError('organization_config', d.selector));
       }
@@ -205,14 +207,92 @@ class OrganizationConfigService {
     auditScope: AuditScope;
     value: unknown;
   }) {
+    return withTransaction(async () => {
+      let resolved = await this.resolve(d);
+
+      return await this.write({
+        ...d,
+        declaration: resolved.declaration,
+        config: resolved.config,
+        entity: 'value'
+      });
+    });
+  }
+
+  async patchOrganizationConfig(d: {
+    selector: string;
+    user: User;
+    organization: Organization;
+    auditScope: AuditScope;
+    operations: PatchOperation[];
+  }) {
+    if (d.operations.length > maxPatchOperations) {
+      throw new ServiceError(
+        validationError({
+          entity: 'operations',
+          errors: [
+            {
+              code: 'too_many_operations',
+              message: `A patch can contain at most ${maxPatchOperations} operations`
+            }
+          ]
+        })
+      );
+    }
+
     return withTransaction(async db => {
       let resolved = await this.resolve(d);
-      let validation = resolved.declaration.schema.validate(d.value);
+
+      // Row lock so concurrent patches apply one after another to the latest value
+      let rows = await db.$queryRaw<{ value: JsonValue }[]>`
+        SELECT "value" FROM "OrganizationConfig" WHERE "oid" = ${resolved.config.oid} FOR UPDATE
+      `;
+      let locked = rows[0];
+      if (!locked) throw new ServiceError(notFoundError('organization_config', d.selector));
+
+      let config = { ...resolved.config, value: locked.value };
+
+      return await this.write({
+        ...d,
+        declaration: resolved.declaration,
+        config,
+        value: this.applyOperations(locked.value, d.operations),
+        entity: 'operations'
+      });
+    });
+  }
+
+  private applyOperations(value: JsonValue, operations: PatchOperation[]) {
+    try {
+      return applyPatch(value, operations);
+    } catch (error) {
+      if (!(error instanceof PatchError)) throw error;
+
+      throw new ServiceError(
+        validationError({
+          entity: 'operations',
+          errors: [{ code: 'invalid_patch', message: error.message }]
+        })
+      );
+    }
+  }
+
+  private async write(d: {
+    declaration: OrganizationConfigDeclaration;
+    config: MaterializedOrganizationConfig;
+    value: unknown;
+    entity: 'value' | 'operations';
+    user: User;
+    organization: Organization;
+    auditScope: AuditScope;
+  }) {
+    return withTransaction(async db => {
+      let validation = d.declaration.schema.validate(d.value);
 
       if (!validation.success) {
         throw new ServiceError(
           validationError({
-            entity: 'value',
+            entity: d.entity,
             errors: validation.errors
           })
         );
@@ -221,13 +301,13 @@ class OrganizationConfigService {
       await Fabric.fire('organization.config.updated:before', {
         organization: d.organization,
         user: d.user,
-        config: resolved.config,
+        config: d.config,
         input: { value: validation.value },
         auditScope: d.auditScope
       });
 
       let config = await db.organizationConfig.update({
-        where: { oid: resolved.config.oid },
+        where: { oid: d.config.oid },
         data: { value: validation.value },
         include: { type: true, user: true, organization: true }
       });
@@ -237,7 +317,7 @@ class OrganizationConfigService {
         user: d.user,
         config,
         input: { value: validation.value },
-        previousConfig: resolved.config,
+        previousConfig: d.config,
         auditScope: d.auditScope
       });
 

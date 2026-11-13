@@ -182,7 +182,7 @@ let getStoredSnapshotBytes = (sources: SkillSnapshotSource[]) =>
       sum +
       (source.document
         ? getTextByteSize(source.document.content.content)
-        : source.file.fileSize),
+        : Number(source.file.fileSize)),
     0
   );
 
@@ -334,7 +334,7 @@ class SkillFileServiceImpl {
       file: {
         ...base,
         kind: 'file',
-        size: d.item.file?.fileSize ?? 0,
+        size: Number(d.item.file?.fileSize ?? 0),
         etag: d.item.file?.id ?? d.item.id,
         documentId: null,
         fileId: d.item.file?.id ?? null
@@ -936,7 +936,7 @@ class SkillFileServiceImpl {
     return {
       path: d.source.path,
       mimeType: d.source.file.fileType,
-      size: d.source.file.fileSize
+      size: Number(d.source.file.fileSize)
     };
   }
 
@@ -972,7 +972,7 @@ class SkillFileServiceImpl {
       return {
         path: source.path,
         mimeType: source.file.fileType,
-        size: source.file.fileSize,
+        size: Number(source.file.fileSize),
         sha256: await fileService.getContentSha256({ file: source.file }),
         text: null
       };

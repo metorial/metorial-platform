@@ -50,9 +50,10 @@ model ProviderTool {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  currentInGlobal ProviderToolGlobal[] @relation("currentToolInstance")
-  sessionMessages SessionMessage[]
-  toolCalls       ToolCall[]
+  currentInGlobal     ProviderToolGlobal[] @relation("currentToolInstance")
+  sessionMessages     SessionMessage[]
+  toolCalls           ToolCall[]
+  protoGuardToolScans ProtoGuardToolScan[]
 
   @@unique([providerOid, specificationOid, hash])
   @@unique([specificationOid, key])
@@ -175,6 +176,7 @@ model ProviderSpecification {
   providerVersionSpecificationChangesTo                ProviderVersionSpecificationChange[]              @relation("SpecChangeTo")
   providerConfigs                                      ProviderConfig[]
   sessionConnectionProviderSpecifications              SessionConnectionProviderSpecification[]
+  securityReviewRevisions                              SecurityReviewRevision[]
 
   @@unique([providerOid, hash])
   @@index([createdAt])

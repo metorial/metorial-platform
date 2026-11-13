@@ -66,14 +66,10 @@ export let ProviderAuthEventLayout = () => {
     <ExtraHeaderLayout
       header={
         <Link
-          to={Paths.instance.providerAuthEvents(
-            organization.data,
-            project.data,
-            instance.data
-          )}
+          to={Paths.instance.providerIssues(organization.data, project.data, instance.data)}
         >
           <Button size="2" variant="outline" iconLeft={<RiArrowLeftSLine />}>
-            Back to all auth events
+            Back to all issues
           </Button>
         </Link>
       }
@@ -82,12 +78,8 @@ export let ProviderAuthEventLayout = () => {
         title={event.data?.type ?? `Auth event ${providerAuthEventId?.slice(0, 8)}...`}
         breadcrumbs={[
           {
-            label: 'Auth Events',
-            to: Paths.instance.providerAuthEvents(
-              organization.data,
-              project.data,
-              instance.data
-            )
+            label: 'Issues',
+            to: Paths.instance.providerIssues(organization.data, project.data, instance.data)
           },
           {
             label: event.data?.type ?? 'Auth Event',

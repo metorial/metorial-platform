@@ -363,7 +363,9 @@ describe('api-core skill marketplaces and plugins', () => {
       let foreign = await seed(otherOrg);
 
       await expectResponses([
-        invalid('create without a name', () => api.post('/skill-plugins', {})),
+        badRequest('create without a name or skill group', () =>
+          api.post('/skill-plugins', {})
+        ),
         invalid('create with a numeric category', () =>
           api.post('/skill-plugins', { name: 'x', category: 1 })
         ),

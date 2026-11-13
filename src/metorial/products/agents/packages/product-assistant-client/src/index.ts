@@ -15,6 +15,10 @@ export {
 } from './delta';
 
 export type {
+  DocumentEditOperation,
+  DocumentEditOperationKind,
+  DocumentEditReview,
+  SkillWorkspaceChange,
   FileExploreOperation,
   FileWriteChange,
   InputMessage,

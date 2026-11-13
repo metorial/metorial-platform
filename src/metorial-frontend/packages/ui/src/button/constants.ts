@@ -9,6 +9,7 @@ import {
   getColorKey,
   getForegroundColor
 } from '../theme/colors';
+import { ControlSize, controlSizes } from '../controlSize/scale';
 import { linearGradient } from '../theme/gradient';
 import { createTheme, createThemeToken } from '../theme/tokens';
 
@@ -520,49 +521,9 @@ let physicalButtonHoverByVariant: Record<ButtonVariant, boolean> = {
   ghost: false
 };
 
-let sizes = {
-  '1': {
-    gap: '6px',
-    height: '26px',
-    padding: '0 8px',
-    borderRadius: '6px',
-    fontSize: '12px'
-  },
+let sizes = controlSizes;
 
-  '2': {
-    gap: '8px',
-    height: '30px',
-    padding: '0 10px',
-    borderRadius: '8px',
-    fontSize: '14px'
-  },
-
-  '3': {
-    gap: '10px',
-    height: '36px',
-    padding: '0 12px',
-    borderRadius: '10px',
-    fontSize: '16px'
-  },
-
-  '4': {
-    gap: '12px',
-    height: '42px',
-    padding: '0 14px',
-    borderRadius: '12px',
-    fontSize: '18px'
-  },
-
-  '5': {
-    gap: '14px',
-    height: '48px',
-    padding: '0 16px',
-    borderRadius: '14px',
-    fontSize: '20px'
-  }
-};
-
-export type ButtonSize = keyof typeof sizes;
+export type ButtonSize = ControlSize;
 
 export type ButtonStyleProps = {
   color?: ButtonColor;

@@ -1,4 +1,5 @@
 import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
+import { col, createDataList } from '@metorial/data-list';
 import {
   useCreatePortalConsumerAccessQuiet,
   useDeletePortalConsumerAccess,
@@ -21,7 +22,6 @@ import {
   Text,
   toast
 } from '@metorial/ui';
-import { Table } from '@metorial/ui-product';
 import { useSearchFilter } from '@metorial/use-search-filter';
 import { useEffect, useMemo, useState } from 'react';
 import PQueue from 'p-queue';
@@ -39,6 +39,39 @@ import {
 } from './types';
 
 let paginationOpts = { hidePaginationWhenUnavailable: true };
+
+type PluginOption = { id: string; name: string };
+
+let PluginSelectionList = createDataList<{
+  plugins: PluginOption[];
+  selectedPluginIds: string[];
+  onTogglePlugin: (pluginId: string) => void;
+}>('marketplace-manager-plugins', { customizable: false })
+  .items(({ props }) => ({ items: props.plugins }))
+  .columns([
+    col.custom<
+      PluginOption,
+      { selectedPluginIds: string[]; onTogglePlugin: (id: string) => void }
+    >({
+      id: 'plugin',
+      header: 'Plugin',
+      render: (plugin, props) => (
+        <Flex gap={8}>
+          <div style={{ width: 24 }} onClick={event => event.stopPropagation()}>
+            <Checkbox
+              checked={props.selectedPluginIds.includes(plugin.id)}
+              onCheckedChange={() => props.onTogglePlugin(plugin.id)}
+              label={plugin.name}
+              hideLabel
+            />
+          </div>
+          <Text size="2">{plugin.name}</Text>
+        </Flex>
+      )
+    })
+  ])
+  .clickable((plugin, props) => props.onTogglePlugin(plugin.id))
+  .build();
 
 let runAccessJobs = async (jobs: (() => Promise<boolean>)[]) => {
   if (!jobs.length) return true;
@@ -354,24 +387,11 @@ let MarketplaceManagerAccessStep = (p: {
       p.pluginsLoading ? (
         <CenteredSpinner />
       ) : p.plugins.length ? (
-        <Table
-          headers={['Plugin']}
-          data={p.plugins.map(plugin => ({
-            data: [
-              <Flex gap={8}>
-                <div style={{ width: 24 }} onClick={event => event.stopPropagation()}>
-                  <Checkbox
-                    checked={p.selectedPluginIds.includes(plugin.id)}
-                    onCheckedChange={() => p.onTogglePlugin(plugin.id)}
-                    label={plugin.name}
-                    hideLabel
-                  />
-                </div>
-                <Text size="2">{plugin.name}</Text>
-              </Flex>
-            ],
-            onClick: () => p.onTogglePlugin(plugin.id)
-          }))}
+        <PluginSelectionList
+          plugins={p.plugins}
+          selectedPluginIds={p.selectedPluginIds}
+          onTogglePlugin={p.onTogglePlugin}
+          listVariant="embedded"
         />
       ) : (
         <Text size="2" color="gray600">

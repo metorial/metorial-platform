@@ -1,8 +1,9 @@
 import type { DashboardInstanceProviderListingsListQuery } from '@metorial/dashboard-sdk';
 import { PillStepper } from '@metorial/explainer';
-import { Input, Panel, showModal } from '@metorial/ui';
-import { useSearchFilter } from '@metorial/use-search-filter';
+import type { TableFilterState } from '@metorial/table';
+import { Panel, showModal } from '@metorial/ui';
 import { type ReactNode, useMemo, useState } from 'react';
+import { ProviderListingFilters, useProviderListingFilters } from '../providers/filters';
 import { ProvidersWithDeploymentsSearch } from '../providers/search';
 
 type ProviderCreationPanelStep = {
@@ -62,25 +63,30 @@ export let ProviderSelectionStep = (p: {
   creatingProviderId?: string;
   selectionDisabled?: boolean;
 }) => {
-  let { search, setSearch, searchQuery } = useSearchFilter(500, { updateSearchParams: false });
+  let [search, setSearch] = useState('');
+  let [filterState, setFilterState] = useState<TableFilterState[]>([]);
+  let { filters, providerListingsFilter: selectedFilter } = useProviderListingFilters({
+    search,
+    filterState
+  });
   let providerListingsFilter = useMemo(
     (): DashboardInstanceProviderListingsListQuery => ({
       ...p.providerListingsFilter,
-      ...(searchQuery ? { search: searchQuery } : {})
+      ...selectedFilter
     }),
-    [p.providerListingsFilter, searchQuery]
+    [p.providerListingsFilter, selectedFilter]
   );
 
   return (
     <>
       <div style={{ marginBottom: 12 }}>
-        <Input
-          label="Search"
-          hideLabel
-          size="2"
-          placeholder="Search providers..."
-          value={search}
-          onInput={setSearch}
+        <ProviderListingFilters
+          searchState={[search, setSearch]}
+          filterState={[filterState, setFilterState]}
+          filters={filters}
+          onProviderSelect={listing => {
+            if (listing.provider) p.onSelect(listing.provider.id);
+          }}
         />
       </div>
 

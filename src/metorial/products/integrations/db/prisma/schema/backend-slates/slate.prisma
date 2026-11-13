@@ -6,6 +6,7 @@ model Slate {
 
   identifierInRegistry String?
   registryUrl          String?
+  slateIdOnRegistry    String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
@@ -28,6 +29,8 @@ model SlateVersion {
 
   version    String
   identifier String @unique
+
+  versionIdOnRegistry String?
 
   slateOid BigInt
   slate    Slate  @relation(fields: [slateOid], references: [oid])

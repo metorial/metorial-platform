@@ -8,6 +8,12 @@ export type SkillsUpdateOutput = {
   name: string;
   description: string | null;
   imageUrl: string;
+  image: {
+    object: 'skill.image';
+    type: 'file' | 'url' | 'icon' | 'default';
+    icon: string | null;
+    color: string | null;
+  };
   clientName: string;
   clientDescription: string | null;
   clientMetadata: Record<string, any> | null;
@@ -86,6 +92,7 @@ export type SkillsUpdateOutput = {
                     updatedAt: Date;
                   };
                   assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                  ssoGroupIds: string[];
                 }[]
               | null;
           })
@@ -161,6 +168,7 @@ export type SkillsUpdateOutput = {
                       updatedAt: Date;
                     };
                     assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                    ssoGroupIds: string[];
                   }[]
                 | null;
             })
@@ -233,6 +241,7 @@ export type SkillsUpdateOutput = {
                       updatedAt: Date;
                     };
                     assignedVia: 'default' | 'manual' | 'sso' | 'user';
+                    ssoGroupIds: string[];
                   }[]
                 | null;
             })
@@ -366,7 +375,8 @@ export let mapSkillsUpdateOutput =
                                           ]
                                         ]
                                       ],
-                                      'assigned_via'
+                                      'assigned_via',
+                                      'sso_group_ids'
                                     ]
                                   ]
                                 ]
@@ -466,7 +476,8 @@ export let mapSkillsUpdateOutput =
                                                 ]
                                               ]
                                             ],
-                                            'assigned_via'
+                                            'assigned_via',
+                                            'sso_group_ids'
                                           ]
                                         ]
                                       ]
@@ -559,7 +570,8 @@ export let mapSkillsUpdateOutput =
                                                 ]
                                               ]
                                             ],
-                                            'assigned_via'
+                                            'assigned_via',
+                                            'sso_group_ids'
                                           ]
                                         ]
                                       ]
@@ -627,11 +639,13 @@ export type SkillsUpdateBody = {
   clientMetadata?: Record<string, any> | null | undefined;
   metadata?: Record<string, any> | null | undefined;
   imageFileId?: string | null | undefined;
+  imageIcon?: { icon: string; color: string } | null | undefined;
 };
 
 export let mapSkillsUpdateBody = /* @__PURE__ */ mapObject<SkillsUpdateBody>([
   'client_name',
   'client_description',
   'client_metadata',
-  'image_file_id'
+  'image_file_id',
+  'image_icon'
 ]);

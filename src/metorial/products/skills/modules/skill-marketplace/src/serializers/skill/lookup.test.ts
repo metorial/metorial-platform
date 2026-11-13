@@ -72,6 +72,8 @@ vi.mock('@metorial/db', () => ({ db }));
 vi.mock('@metorial/fabric', () => ({ Fabric: { fire } }));
 vi.mock('@metorial/module-store', () => ({ refreshStoreByteSize }));
 vi.mock('@metorial/module-file', () => ({ fileService: {} }));
+vi.mock('../../lib/securityReviewPolicy', () => ({ getWithheldSkillIds: async () => new Set<string>() }));
+vi.mock('@metorial/skills-images', () => ({ internalImageService: {} }));
 vi.mock('@metorial/module-flags', () => ({ flagService: {} }));
 
 import {

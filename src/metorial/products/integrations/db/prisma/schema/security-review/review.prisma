@@ -1,0 +1,376 @@
+enum SecurityReviewSubjectType {
+  slate_version
+  custom_provider_version
+  skill_version
+  provider_usage
+}
+
+enum SecurityReviewScope {
+  global
+  tenant
+}
+
+enum SecurityReviewStatus {
+  active
+  outdated
+  disabled
+  deleted
+}
+
+// Global (slate) reviews are mirrors of the multi-region store and have no tenant, so the
+// tenant/project columns are only populated for scope = tenant.
+model SecurityReview {
+  oid BigInt @id
+  id  String @unique
+
+  subjectType SecurityReviewSubjectType
+  scope       SecurityReviewScope
+  subjectKey  String                    @unique
+  globalId    String?                   @unique
+
+  status          SecurityReviewStatus
+  isAdminDisabled Boolean              @default(false)
+
+  lastCheckedAt DateTime?
+
+  skillId            String?
+  dismissedAt        DateTime?
+  dismissedByActorId String?
+
+  tenantOid BigInt?
+  tenant    Tenant? @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  providerOid BigInt?
+  provider    Provider? @relation(fields: [providerOid], references: [oid])
+
+  providerVersionOid BigInt?
+  providerVersion    ProviderVersion? @relation(fields: [providerVersionOid], references: [oid])
+
+  instanceOid BigInt?
+  instance    Instance? @relation(fields: [instanceOid], references: [oid])
+
+  customProviderVersionOid BigInt?                @unique
+  customProviderVersion    CustomProviderVersion? @relation(fields: [customProviderVersionOid], references: [oid])
+
+  currentRevisionOid BigInt?                 @unique
+  currentRevision    SecurityReviewRevision? @relation("SecurityReviewCurrentRevision", fields: [currentRevisionOid], references: [oid])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  revisions  SecurityReviewRevision[]             @relation("SecurityReviewRevisions")
+  webDomains SecurityReviewWebDomainUsageReview[]
+
+  @@index([providerOid])
+  @@index([providerVersionOid])
+  @@index([instanceOid, providerOid])
+  @@index([skillId])
+  @@index([tenantOid])
+  @@index([status])
+  @@index([updatedAt])
+}
+
+enum SecurityReviewRevisionStatus {
+  queued
+  running
+  completed
+  completed_with_gaps
+  failed
+  blocked
+}
+
+enum SecurityReviewStage {
+  collecting
+  verifying
+  analyzing
+  writing
+}
+
+enum SecurityReviewMode {
+  ai
+  deterministic
+}
+
+enum SecurityReviewTrigger {
+  first_use
+  page_open
+  new_version
+  deployment
+  tools_discovered
+  census_changed
+  scheduled
+  prompt_update
+  reassess
+  admin
+  skill_import
+  usage_threshold
+  usage_changed
+}
+
+enum SecurityReviewBlockReason {
+  billing
+  ai_disabled
+  admin_disabled
+}
+
+enum SecurityReviewLevel {
+  unknown
+  low
+  moderate
+  high
+  critical
+}
+
+enum SecurityReviewConfidence {
+  low
+  medium
+  high
+}
+
+enum SecurityReviewThoroughness {
+  basic
+  standard
+  deep
+}
+
+enum SecurityReviewSource {
+  agent
+  admin
+}
+
+model SecurityReviewRevision {
+  oid BigInt @id
+  id  String @unique
+
+  number       Int
+  globalId     String? @unique
+  snapshotOfId String?
+
+  skillVersionId String?
+
+  status      SecurityReviewRevisionStatus
+  stage       SecurityReviewStage?
+  activity    String?
+  mode        SecurityReviewMode
+  trigger     SecurityReviewTrigger
+  blockReason SecurityReviewBlockReason?
+  failureCode String?
+
+  /// [SecurityReviewReport]
+  report Json?
+
+  /// [SecurityReviewScores]
+  scores Json?
+
+  /// [SecurityUsageReviewReport]
+  usageReport Json?
+
+  /// [SecurityUsageReviewScores]
+  usageScores Json?
+
+  securityScore   Int?
+  exposure        SecurityReviewLevel?
+  risk            SecurityReviewLevel?
+  confidence      SecurityReviewConfidence?
+  provenanceClass String?
+  awaitingTools   Boolean                   @default(false)
+
+  evidenceHash  String?
+  contentHash   String?
+  rulesVersion  String
+  promptVersion String
+  thoroughness  SecurityReviewThoroughness
+  source        SecurityReviewSource       @default(agent)
+
+  /// [SecurityReviewCensus]
+  census Json?
+
+  /// [SecurityReviewRunContext]
+  context Json?
+
+  workspaceKey String?
+
+  reviewOid BigInt
+  review    SecurityReview @relation("SecurityReviewRevisions", fields: [reviewOid], references: [oid], onDelete: Cascade)
+
+  specificationOid BigInt?
+  specification    ProviderSpecification? @relation(fields: [specificationOid], references: [oid])
+
+  baseRevisionOid BigInt?
+  baseRevision    SecurityReviewRevision?  @relation("SecurityUsageBaseRevision", fields: [baseRevisionOid], references: [oid], onDelete: SetNull)
+  usageRevisions  SecurityReviewRevision[] @relation("SecurityUsageBaseRevision")
+
+  heartbeatAt DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+
+  currentFor SecurityReview?         @relation("SecurityReviewCurrentRevision")
+  findings   SecurityReviewFinding[]
+  runs       SecurityReviewRun[]
+
+  @@unique([reviewOid, number])
+  @@index([status])
+  @@index([createdAt])
+  @@index([snapshotOfId])
+  @@index([contentHash])
+}
+
+enum SecurityFindingKind {
+  security
+  capability
+  positive
+}
+
+enum SecurityFindingSeverity {
+  info
+  low
+  medium
+  high
+  critical
+}
+
+enum SecurityFindingChange {
+  new
+  persisting
+  resolved
+}
+
+model SecurityReviewFinding {
+  oid BigInt @id
+  id  String @unique
+
+  key      String
+  kind     SecurityFindingKind
+  category String
+  severity SecurityFindingSeverity
+  change   SecurityFindingChange
+  origin   String
+
+  isLocked Boolean @default(false)
+
+  /// [SecurityReviewFindingValue]
+  value Json
+
+  revisionOid BigInt
+  revision    SecurityReviewRevision @relation(fields: [revisionOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([revisionOid, key])
+  @@index([kind])
+  @@index([severity])
+}
+
+enum SecurityReviewRunStatus {
+  running
+  succeeded
+  failed
+  budget_exhausted
+}
+
+model SecurityReviewRun {
+  oid BigInt @id
+  id  String @unique
+
+  status SecurityReviewRunStatus
+  model  String
+  steps  Int                     @default(0)
+
+  inputTokens       Int    @default(0)
+  outputTokens      Int    @default(0)
+  cachedInputTokens Int    @default(0)
+  costMicros        BigInt @default(0)
+  maxCostMicros     BigInt
+
+  errorMessage String?
+  log          String?
+
+  isBillable Boolean   @default(false)
+  billedAt   DateTime?
+
+  revisionOid BigInt
+  revision    SecurityReviewRevision @relation(fields: [revisionOid], references: [oid], onDelete: Cascade)
+
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@index([revisionOid])
+}
+
+model SecurityReviewWebDomainUsage {
+  oid BigInt @id
+  id  String @unique
+
+  domain String @unique
+
+  attempts   Int @default(0)
+  dispatched Int @default(0)
+  succeeded  Int @default(0)
+  blocked    Int @default(0)
+  failed     Int @default(0)
+
+  lastOutcome   String
+  lastReason    String?
+  retriever     String
+  lastOperation String
+
+  reputation          String?
+  threatTypes         String[]
+  reputationCheckedAt DateTime?
+
+  firstSeenAt   DateTime  @default(now())
+  lastAttemptAt DateTime
+  lastUsedAt    DateTime?
+
+  reviews SecurityReviewWebDomainUsageReview[]
+
+  @@index([lastAttemptAt])
+  @@index([lastOutcome, lastAttemptAt])
+}
+
+model SecurityReviewWebDomainUsageReview {
+  oid BigInt @id
+  id  String @unique
+
+  domainUsageOid BigInt
+  domainUsage    SecurityReviewWebDomainUsage @relation(fields: [domainUsageOid], references: [oid], onDelete: Cascade)
+
+  reviewOid BigInt
+  review    SecurityReview @relation(fields: [reviewOid], references: [oid], onDelete: Cascade)
+
+  @@unique([domainUsageOid, reviewOid])
+  @@index([reviewOid])
+}
+
+enum SecurityFileKind {
+  text
+  image
+  pdf
+  audio
+  video
+  font
+  archive
+  executable
+  unknown_binary
+  empty
+}
+
+model SecurityReviewFileCheck {
+  oid BigInt @id
+  id  String @unique
+
+  fileId String @unique
+
+  kind         SecurityFileKind
+  detectedMime String?
+  extension    String?
+  isDisguised  Boolean          @default(false)
+  sizeBytes    BigInt
+
+  checkedAt DateTime @default(now())
+}

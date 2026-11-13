@@ -113,8 +113,8 @@ describe('ManifestApplyContext', () => {
 
   it('defers large files without hashes instead of hashing them inline', async () => {
     let context = createContext();
-    let large = file({ fileSize: 65 * mib });
-    let largeHashed = file({ oid: 2n, fileSize: 65 * mib, contentSha256: 'x'.repeat(64) });
+    let large = file({ fileSize: BigInt(65 * mib) });
+    let largeHashed = file({ oid: 2n, fileSize: BigInt(65 * mib), contentSha256: 'x'.repeat(64) });
 
     await context.setFileFromStorage('large.bin', large);
     await context.setFileFromStorage('large-hashed.bin', largeHashed);
@@ -128,7 +128,7 @@ describe('ManifestApplyContext', () => {
 
   it('reports files over the per-file cap without reading them', async () => {
     let context = createContext();
-    let huge = file({ fileSize: 1025 * mib, contentSha256: 'x'.repeat(64) });
+    let huge = file({ fileSize: BigInt(1025 * mib), contentSha256: 'x'.repeat(64) });
 
     await context.setFileFromStorage('huge.bin', huge);
 

@@ -30,7 +30,8 @@ let normalizeSkillPluginsListQuery = (
   id: toArrayIfString(query.id),
   skillMarketplaceId: toArrayIfString(query.skillMarketplaceId),
   status: toArrayIfString(query.status),
-  skillConfigurationId: toArrayIfString(query.skillConfigurationId)
+  skillConfigurationId: toArrayIfString(query.skillConfigurationId),
+  skillGroupId: toArrayIfString(query.skillGroupId)
 });
 
 let normalizeSkillPluginSkillsListQuery = (
@@ -65,6 +66,11 @@ export let useUpdateSkillPlugin = skillPluginsLoader.createExternalMutator(
   ) => withAuth(sdk => sdk.skillPlugins.update(i.instanceId, i.skillPluginId, i))
 );
 
+export let useDetachSkillPluginFromSkillGroup = skillPluginsLoader.createExternalMutator(
+  (i: { instanceId: string; skillPluginId: string }) =>
+    withAuth(sdk => sdk.skillPlugins.detachSkillGroup(i.instanceId, i.skillPluginId, {}))
+);
+
 export let useDeleteSkillPlugin = skillPluginsLoader.createExternalMutator(
   (i: { instanceId: string; skillPluginId: string }) =>
     withAuth(sdk => sdk.skillPlugins.archive(i.instanceId, i.skillPluginId))
@@ -82,6 +88,15 @@ export let useSkillPlugins = (
     instanceId ? `${instanceId}:skillPlugins:${JSON.stringify(query ?? {})}` : null
   );
 };
+
+export let useSkillPluginsPage = (
+  instanceId: string | null | undefined,
+  query: Omit<DashboardInstanceSkillsPluginsListQuery, 'after' | 'before' | 'cursor'> | null,
+  after: string | undefined
+) =>
+  skillPluginsLoader.use(
+    instanceId && query !== null ? { instanceId, ...query, ...(after ? { after } : {}) } : null
+  );
 
 export let allSkillPluginsLoader = createLoader({
   name: 'allSkillPlugins',

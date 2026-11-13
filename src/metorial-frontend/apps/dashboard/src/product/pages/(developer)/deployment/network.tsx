@@ -1,20 +1,43 @@
-import { EmptyText, Stack } from '../../(network)/_common';
+import { EmptyText, FirewallBindingsTable, Stack } from '../../(network)/_common';
 import { ProviderDeploymentTabSection } from '../../../scenes/providerDeployments/tabSection';
 import { showApplyFirewallPanel } from '../../(network)/_applyFirewallPanel';
 import { useNetworkManagementAccess } from '../../(network)/_gate';
+import { col, createDataList } from '@metorial/data-list';
 import { renderWithLoader } from '@metorial/data-hooks';
+import type { DashboardInstanceIntegrationEnclavesListOutput } from '@metorial/dashboard-sdk';
 import {
   useCurrentInstance,
-  useDeleteIntegrationFirewallAssignment,
   useIntegrationEnclaves,
   useIntegrationFirewallAssignments,
   useNetworkLogs,
   useProviderDeployment
 } from '@metorial/state';
-import { Button, Menu, RenderDate, Text } from '@metorial/ui';
+import { Button, RenderDate, Text } from '@metorial/ui';
 import { Box, Table } from '@metorial/ui-product';
-import { RiMore2Line } from '@remixicon/react';
 import { useParams } from 'react-router-dom';
+
+type Enclave = DashboardInstanceIntegrationEnclavesListOutput['items'][number];
+
+let DeploymentEnclavesList = createDataList<{ enclaves: Enclave[] }>(
+  'deployment-network-enclaves',
+  { customizable: false }
+)
+  .items(({ props }) => ({ items: props.enclaves }))
+  .columns([
+    col.name<Enclave>({ description: false }),
+    col.text<Enclave>({
+      id: 'environment',
+      header: 'Environment',
+      get: enclave => enclave.enclaveEnvironment.name
+    }),
+    col.date<Enclave>('lastUsedAt', {
+      id: 'lastUsedAt',
+      header: 'Last Used',
+      isDefault: true
+    }),
+    col.createdAt<Enclave>()
+  ])
+  .build();
 
 export let ConfigurationsDeploymentNetworkPage = () => {
   let instance = useCurrentInstance();
@@ -33,7 +56,6 @@ export let ConfigurationsDeploymentNetworkPage = () => {
     direction: 'egress',
     intervalMinutes: 60
   });
-  let deleteBinding = useDeleteIntegrationFirewallAssignment();
   let { canWrite } = useNetworkManagementAccess();
 
   return renderWithLoader({ deployment, enclaves, firewallBindings, networkLogs })(
@@ -44,23 +66,11 @@ export let ConfigurationsDeploymentNetworkPage = () => {
             title="Enclaves"
             description="Enclaves are secure compute environments that your providers run in. Apply firewalls to them to control network traffic."
           >
-            {enclaves.data.items.length > 0 ? (
-              <Table
-                headers={['Name', 'Environment', 'Last Used', 'Created']}
-                data={enclaves.data.items.map(enclave => ({
-                  data: [
-                    <Text size="2" weight="strong">
-                      {enclave.name}
-                    </Text>,
-                    <Text size="2">{enclave.enclaveEnvironment.name}</Text>,
-                    enclave.lastUsedAt ? <RenderDate date={enclave.lastUsedAt} /> : '-',
-                    <RenderDate date={enclave.createdAt} />
-                  ]
-                }))}
-              />
-            ) : (
-              <EmptyText>No enclaves found for this deployment.</EmptyText>
-            )}
+            <DeploymentEnclavesList
+              enclaves={enclaves.data.items}
+              listVariant="embedded"
+              emptyState="No enclaves found for this deployment."
+            />
           </Box>
 
           <>
@@ -94,50 +104,13 @@ export let ConfigurationsDeploymentNetworkPage = () => {
                     ) : undefined
                   }
                 >
-                  {enclaveBindings.length > 0 ? (
-                    <Table
-                      headers={['Firewall', 'Created', '']}
-                      data={enclaveBindings.map(binding => ({
-                        data: [
-                          <Text size="2" weight="strong">
-                            {binding.firewall.name}
-                          </Text>,
-                          <RenderDate date={binding.createdAt} />,
-                          canWrite ? (
-                            <div
-                              style={{
-                                display: 'flex',
-                                justifyContent: 'flex-end',
-                                width: '100%'
-                              }}
-                            >
-                              <Menu
-                                items={[{ id: 'remove', label: 'Remove' }]}
-                                onItemClick={async item => {
-                                  if (item !== 'remove') return;
-
-                                  await deleteBinding.mutate({
-                                    instanceId: instance.data!.id,
-                                    integrationFirewallAssignmentId: binding.id
-                                  });
-                                  firewallBindings.refetch();
-                                }}
-                              >
-                                <Button
-                                  size="1"
-                                  variant="outline"
-                                  iconLeft={<RiMore2Line />}
-                                  title="Firewall actions"
-                                />
-                              </Menu>
-                            </div>
-                          ) : null
-                        ]
-                      }))}
-                    />
-                  ) : (
-                    <EmptyText>No firewalls are applied to this enclave.</EmptyText>
-                  )}
+                  <FirewallBindingsTable
+                    bindings={enclaveBindings}
+                    instanceId={instance.data!.id}
+                    canWrite={canWrite}
+                    onChange={() => firewallBindings.refetch()}
+                    emptyState="No firewalls are applied to this enclave."
+                  />
                 </Box>
               );
             })}

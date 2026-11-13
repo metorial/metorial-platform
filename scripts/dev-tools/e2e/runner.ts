@@ -385,13 +385,16 @@ let main = async (planPath: string) => {
         dependencyProcesses = plan.dependencies.flatMap(service =>
           startService(service, path.join(workspace, service.directory), logs)
         );
-        await waitHealthy(plan.dependencies, dependencyProcesses, timeoutMs);
       }
       log(`Starting systems under test: ${plan.suts.map(service => service.name).join(', ')}`);
       sutProcesses = plan.suts.flatMap(service =>
         startService(service, path.join(workspace, service.directory), logs)
       );
-      await waitHealthy(plan.suts, [...dependencyProcesses, ...sutProcesses], timeoutMs);
+      await waitHealthy(
+        [...plan.dependencies, ...plan.suts],
+        [...dependencyProcesses, ...sutProcesses],
+        timeoutMs
+      );
     } else {
       await waitHealthy([...plan.dependencies, ...plan.suts], [], timeoutMs);
     }

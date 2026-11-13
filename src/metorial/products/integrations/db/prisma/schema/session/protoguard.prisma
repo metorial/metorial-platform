@@ -9,6 +9,16 @@ enum ProtoGuardIssueType {
   unicode_smuggling
   encoded_payload
   typoglycemia
+  ascii_smuggling
+  exfil_channel
+  hidden_content
+  cross_tool_reference
+  addressed_to_agent
+  secret_in_arguments
+  tool_poisoning
+  tool_shadowing
+  tool_rug_pull
+  injection_followed_by_sink
 }
 
 enum ProtoGuardSeverity {
@@ -16,6 +26,36 @@ enum ProtoGuardSeverity {
   medium
   high
   critical
+}
+
+enum ProtoGuardRuleStage {
+  shadow
+  active
+  deprecated
+}
+
+enum ProtoGuardFindingDirection {
+  input
+  output
+  session
+}
+
+enum ProtoGuardFindingView {
+  raw
+  canonical
+  decoded
+}
+
+enum ProtoGuardRunCoverage {
+  full
+  sampled
+  partial
+  skipped
+}
+
+enum ProtoGuardSuppressionStatus {
+  active
+  archived
 }
 
 model ProtoGuardFilter {
@@ -33,12 +73,16 @@ model ProtoGuardFilter {
 
   alertConfidenceThreshold Float
 
+  stage ProtoGuardRuleStage @default(active)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
   tenantFilterSettings ProtoGuardTenantFilterSetting[]
   alertInstances       ProtoGuardAlertInstance[]
+  suppressions         ProtoGuardSuppression[]
   monitors             Monitor[]
+  providerIssues       ProviderIssue[]
 
   @@index([issueType])
   @@index([severity])
@@ -49,7 +93,12 @@ model ProtoGuardTenantSetting {
   oid BigInt @id
   id  String @unique
 
-  alertFilterCountThreshold Int
+  enabled Boolean @default(true)
+
+  alertFilterCountThreshold Int?
+  alertProbabilityThreshold Float?
+
+  contentHashKey String?
 
   tenantOid BigInt @unique
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
@@ -90,6 +139,7 @@ model ProtoGuardTenantFilterSetting {
 enum ProtoGuardRunStatus {
   completed
   failed
+  skipped
 }
 
 model ProtoGuardRun {
@@ -104,6 +154,19 @@ model ProtoGuardRun {
   triggeredFilterCount      Int
   matchedInstanceCount      Int
   alertFilterCountThreshold Int
+
+  rulesetVersion String?
+  retentionLevel SessionDataRetentionLevel?
+  probability    Float?
+
+  /// [ProtoGuardFamilyScores]
+  familyScores Json?
+
+  coverage     ProtoGuardRunCoverage?
+  skipReason   String?
+  scannedChars Int?
+  totalChars   Int?
+  durationMs   Int?
 
   error Json?
 
@@ -137,7 +200,8 @@ model ProtoGuardRun {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  alert ProtoGuardAlert?
+  alert    ProtoGuardAlert?
+  findings ProtoGuardAlertInstance[]
 
   @@index([createdAt])
   @@index([tenantOid, createdAt])
@@ -158,8 +222,16 @@ model ProtoGuardAlert {
 
   issueTypes Json
 
+  dedupKey        String?
+  occurrenceCount Int       @default(1)
+  firstSeenAt     DateTime?
+  lastSeenAt      DateTime?
+
   runOid BigInt        @unique
   run    ProtoGuardRun @relation(fields: [runOid], references: [oid], onDelete: Cascade)
+
+  issueOid BigInt?
+  issue    ProviderIssue? @relation(fields: [issueOid], references: [oid])
 
   messageOid BigInt
   message    SessionMessage @relation(fields: [messageOid], references: [oid], onDelete: Cascade)
@@ -195,6 +267,8 @@ model ProtoGuardAlert {
 
   @@index([createdAt])
   @@index([tenantOid, createdAt])
+  @@index([tenantOid, dedupKey, lastSeenAt])
+  @@index([issueOid])
   @@index([sessionOid, createdAt])
   @@index([messageOid])
   @@index([projectOid])
@@ -210,20 +284,30 @@ model ProtoGuardAlertInstance {
   issueType ProtoGuardIssueType
   severity  ProtoGuardSeverity
 
+  ruleKey   String?
+  stage     ProtoGuardRuleStage         @default(active)
+  direction ProtoGuardFindingDirection?
+  view      ProtoGuardFindingView?
+
   path           String
   startOffset    Int
   endOffset      Int
-  matchedText    String
-  sampleMarkdown String
+  matchedText    String?
+  sampleMarkdown String?
   description    String?
+  contentHmac    String?
 
   confidence          Float
   confidenceThreshold Float
+  isSuppressed        Boolean @default(false)
 
   metadata Json?
 
-  alertOid BigInt
-  alert    ProtoGuardAlert @relation(fields: [alertOid], references: [oid], onDelete: Cascade)
+  runOid BigInt?
+  run    ProtoGuardRun? @relation(fields: [runOid], references: [oid], onDelete: Cascade)
+
+  alertOid BigInt?
+  alert    ProtoGuardAlert? @relation(fields: [alertOid], references: [oid], onDelete: Cascade)
 
   filterOid BigInt
   filter    ProtoGuardFilter @relation(fields: [filterOid], references: [oid], onDelete: Restrict)
@@ -233,4 +317,66 @@ model ProtoGuardAlertInstance {
   @@index([filterOid, issueType])
   @@index([severity])
   @@index([alertOid])
+  @@index([runOid])
+}
+
+model ProtoGuardSuppression {
+  oid BigInt @id
+  id  String @unique
+
+  status ProtoGuardSuppressionStatus @default(active)
+  reason String?
+
+  toolKey     String?
+  contentHmac String?
+
+  expiresAt  DateTime?
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+
+  tenantOid BigInt
+  tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  projectOid BigInt?
+  project    Project? @relation(fields: [projectOid], references: [oid])
+
+  filterOid BigInt
+  filter    ProtoGuardFilter @relation(fields: [filterOid], references: [oid], onDelete: Cascade)
+
+  providerOid BigInt?
+  provider    Provider? @relation(fields: [providerOid], references: [oid])
+
+  @@index([tenantOid, status])
+  @@index([projectOid])
+  @@index([filterOid])
+  @@index([providerOid])
+}
+
+model ProtoGuardToolScan {
+  oid BigInt @id
+  id  String @unique
+
+  rulesetVersion String
+  status         ProtoGuardRunStatus
+
+  probability Float
+  isFlagged   Boolean
+
+  /// [ProtoGuardToolFindings]
+  findings Json
+
+  previousToolHash String?
+
+  createdAt DateTime @default(now())
+
+  providerToolOid BigInt
+  providerTool    ProviderTool @relation(fields: [providerToolOid], references: [oid], onDelete: Cascade)
+
+  providerOid BigInt
+  provider    Provider @relation(fields: [providerOid], references: [oid], onDelete: Cascade)
+
+  @@unique([providerToolOid, rulesetVersion])
+  @@index([providerOid, isFlagged])
+  @@index([createdAt])
 }

@@ -11,6 +11,7 @@ import { assistantMessagePresenter } from '@metorial/presenters';
 import {
   assistantConversationGroup,
   assistantMessageGroup,
+  getAssistantAccess,
   getAssistantScope
 } from './context';
 
@@ -90,13 +91,20 @@ export let assistantMessageHandlers = {
           parts: v.array(assistantMessagePartSchema)
         }),
         parent_message_id: v.optional(v.string()),
-        model_id: v.optional(v.string())
+        model_id: v.optional(v.string()),
+        context: v.optional(
+          v.record(v.any(), {
+            description:
+              'Assistant-specific request context, such as the editing mode, the frozen selection, or the target block. Validated by the assistant implementation.'
+          })
+        )
       })
     )
     .output(assistantMessagePresenter)
     .do(async ctx => {
       let { item } = await productAssistantRequestService.createAssistantRequest({
         ...getAssistantScope(ctx),
+        access: await getAssistantAccess(ctx),
         conversation: ctx.assistantConversation,
         input: {
           message: {
@@ -116,7 +124,8 @@ export let assistantMessageHandlers = {
             )
           },
           parentMessageId: ctx.body.parent_message_id,
-          modelId: ctx.body.model_id
+          modelId: ctx.body.model_id,
+          context: ctx.body.context
         }
       });
 
@@ -194,6 +203,42 @@ export let assistantMessageHandlers = {
             toolCallId: response.tool_call_id,
             output: response.output
           }))
+        }
+      });
+
+      return assistantMessagePresenter.present({
+        assistantConversationItem: item
+      });
+    }),
+
+  cancelMessage: assistantMessageGroup
+    .post(
+      instancePath(
+        'conversations/:assistantConversationId/messages/:assistantMessageId/cancel',
+        'conversations.messages.cancel'
+      ),
+      {
+        name: 'Cancel assistant message',
+        description:
+          'Stop the assistant request that belongs to a message. Work the assistant already finished is kept.'
+      }
+    )
+    .use(
+      checkAccess({
+        possibleScopes: [
+          'instance.assistant.conversation:write',
+          'consumer#instance.assistant.conversation:write'
+        ]
+      })
+    )
+    .use(requireConsumerTokenForPublishableKey())
+    .output(assistantMessagePresenter)
+    .do(async ctx => {
+      let item = await productAssistantRequestService.cancelAssistantRequest({
+        ...getAssistantScope(ctx),
+        conversation: ctx.assistantConversation,
+        input: {
+          messageId: ctx.assistantConversationItem.message.id
         }
       });
 

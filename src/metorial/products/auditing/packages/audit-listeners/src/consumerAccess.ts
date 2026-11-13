@@ -39,6 +39,7 @@ let consumerAccessListingPayload = (
   name: consumerAccessListing.name,
   description: consumerAccessListing.description,
   readmeByteSize: readmeByteSize(consumerAccessListing.readme),
+  isDiscoverable: consumerAccessListing.isDiscoverable,
   surfaceId: consumerAccessListing.surface.id,
   target: consumerAccessListingTargetPayload(consumerAccessListing)
 });

@@ -254,7 +254,7 @@ describe('module-file content-addressed storage', () => {
     });
 
     expect(file.storeId.startsWith('sha256/')).toBe(false);
-    expect(file.fileSize).toBe(size);
+    expect(file.fileSize).toBe(BigInt(size));
     expect(file.fileType).toBe('application/x-large');
     expect(
       await db.filePendingContent.findUnique({ where: { fileOid: file.oid } })

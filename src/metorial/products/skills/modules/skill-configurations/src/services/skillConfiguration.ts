@@ -6,7 +6,13 @@ import {
 } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Instance, Prisma, Project, TransactionDB } from '@metorial/db';
+import type {
+  Instance,
+  Prisma,
+  Project,
+  SkillSecurityReviewPolicy,
+  TransactionDB
+} from '@metorial/db';
 import { db, ID, withTransaction } from '@metorial/db';
 import {
   type DateFilter,
@@ -25,6 +31,7 @@ type SkillConfigurationInput = {
   allowScripts?: boolean;
   allowedFileExtensions?: string[] | null;
   allowNonStandardDirectories?: boolean;
+  securityReviewPolicy?: SkillSecurityReviewPolicy;
 };
 
 class SkillConfigurationServiceImpl {
@@ -62,7 +69,8 @@ class SkillConfigurationServiceImpl {
     return {
       allowScripts: input.allowScripts,
       allowedFileExtensions,
-      allowNonStandardDirectories: input.allowNonStandardDirectories
+      allowNonStandardDirectories: input.allowNonStandardDirectories,
+      securityReviewPolicy: input.securityReviewPolicy
     };
   }
 
@@ -70,7 +78,8 @@ class SkillConfigurationServiceImpl {
     return (
       input.allowScripts !== undefined ||
       input.allowedFileExtensions !== undefined ||
-      input.allowNonStandardDirectories !== undefined
+      input.allowNonStandardDirectories !== undefined ||
+      input.securityReviewPolicy !== undefined
     );
   }
 
@@ -119,7 +128,8 @@ class SkillConfigurationServiceImpl {
         isInternal: d.input.isInternal ?? false,
         allowScripts: data.allowScripts ?? true,
         allowedFileExtensions: data.allowedFileExtensions ?? [],
-        allowNonStandardDirectories: data.allowNonStandardDirectories ?? true
+        allowNonStandardDirectories: data.allowNonStandardDirectories ?? true,
+        securityReviewPolicy: data.securityReviewPolicy ?? 'off'
       },
       include: skillConfigurationInclude
     });

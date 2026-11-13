@@ -102,7 +102,7 @@ let documentItem = (path: string, content: string) => ({
   path,
   kind: 'document',
   updatedAt: new Date('2026-01-01'),
-  file: { id: 'fil_doc', fileSize: 1 },
+  file: { id: 'fil_doc', fileSize: 1n },
   document: { id: `doc_${path}`, content: { content } }
 });
 
@@ -111,7 +111,7 @@ let fileItem = (path: string, fileId: string) => ({
   path,
   kind: 'file',
   updatedAt: new Date('2026-01-01'),
-  file: { id: fileId, fileSize: 42, storeId: 'blob' },
+  file: { id: fileId, fileSize: 42n, storeId: 'blob' },
   document: null
 });
 

@@ -69,7 +69,7 @@ describe('module-documents documents', () => {
       fileType: 'text/markdown',
       fileName: title,
       title,
-      fileSize: byteSize(content),
+      fileSize: BigInt(byteSize(content)),
       storeId: `document_${document.id}`
     });
 
@@ -155,7 +155,7 @@ describe('module-documents documents', () => {
     expect(row.file).toMatchObject({
       fileName: 'Edited',
       title: 'Edited',
-      fileSize: byteSize('# Edited\n\nSecond edit')
+      fileSize: BigInt(byteSize('# Edited\n\nSecond edit'))
     });
     expect(row.draftVersionExpiresAt!.getTime()).toBeGreaterThan(flushedAt + hours(2.9));
     expect(row.draftVersionExpiresAt!.getTime()).toBeLessThan(Date.now() + hours(3.1));
@@ -185,7 +185,7 @@ describe('module-documents documents', () => {
     expect(flushed.content.content).toBe(edited);
 
     let file = await db.file.findUniqueOrThrow({ where: { oid: document.fileOid } });
-    expect(file.fileSize).toBe(byteSize(edited));
+    expect(file.fileSize).toBe(BigInt(byteSize(edited)));
   });
 
   it('rejects updates without fields and blank titles on create', async () => {

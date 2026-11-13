@@ -174,7 +174,7 @@ describe('module-documents collaboration', () => {
       update: yjsUpdate({ paragraphs: ['Late edit from the old generation'] }),
       generation: 0
     });
-    expect(stale).toEqual({ stale: true, update: null, generation: 1 });
+    expect(stale).toMatchObject({ stale: true, rejected: false, update: null, generation: 1 });
     expect(await internalDocumentCollaborationService.getStateUpdate(document.id)).toBeNull();
 
     let staleInit = await internalDocumentCollaborationService.initializeState({

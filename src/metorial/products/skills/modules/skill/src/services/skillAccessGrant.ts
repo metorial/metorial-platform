@@ -1,55 +1,71 @@
 import { forbiddenError, ServiceError } from '@lowerdeck/error';
 import { Service } from '@lowerdeck/service';
-import type { Project } from '@metorial/db';
+import type { Project, SkillGroup } from '@metorial/db';
 import { withTransaction } from '@metorial/db';
 import {
-  accessTagService,
-  consumerSkillManageAccessRoles,
-  isStoreResourceFlagEnabled,
   type ResourceAuthorization,
-  storeAccessGrantService
+  skillStoreResourceAccess,
+  storeResourceAccessLevels,
+  type StoreResourceAccessLevel
 } from '@metorial/module-access';
 import { skillStoreResource } from '@metorial/module-store';
 import type { SkillRecord } from './skill';
 
+let getHighestLevel = (roles: string[]) =>
+  [...storeResourceAccessLevels]
+    .reverse()
+    .find(level =>
+      skillStoreResourceAccess.policies[level].roles.some(role => roles.includes(role))
+    );
+
 class SkillAccessGrantServiceImpl {
-  private async assertCanManageAccess(d: {
-    project: Project;
-    skill: SkillRecord;
-    authorization: ResourceAuthorization;
-    useStoreAccess: boolean;
-  }) {
-    if (d.authorization.type == 'privileged') return;
+  private async listInheritedGrants(d: { skill: SkillRecord }) {
+    return await withTransaction(
+      async db => {
+        let items = await db.skillGroupItem.findMany({
+          where: { skillOid: d.skill.oid, status: 'active', skillGroup: { status: 'active' } },
+          include: { skillGroup: true }
+        });
+        if (!items.length) return [];
 
-    if (d.useStoreAccess && d.skill.store) {
-      return await skillStoreResource.assertAccess({
-        project: d.project,
-        store: d.skill.store,
-        authorization: d.authorization,
-        level: 'manage'
-      });
-    }
+        let entities = await db.accessTagEntity.findMany({
+          where: { skillGroupOid: { in: items.map(item => item.skillGroupOid) } },
+          select: {
+            accessTagOid: true,
+            skillGroupOid: true,
+            accessTagPolicy: { select: { roles: true } }
+          }
+        });
 
-    let accessTagFilter = await accessTagService.getAccessTagFilter({
-      tags: d.authorization.accessTags,
-      roles: [...consumerSkillManageAccessRoles]
-    });
-    let manageableSkill =
-      accessTagFilter &&
-      (await withTransaction(
-        async db =>
-          await db.skill.findFirst({
-            where: { oid: d.skill.oid, accessTagEntities: accessTagFilter },
-            select: { oid: true }
-          }),
-        { ifExists: true }
-      ));
+        let grants = new Map<
+          string,
+          { accessTagOid: bigint; skillGroup: SkillGroup; roles: string[] }
+        >();
+        for (let entity of entities) {
+          let skillGroup = items.find(
+            item => item.skillGroupOid == entity.skillGroupOid
+          )?.skillGroup;
+          if (!skillGroup) continue;
 
-    if (!manageableSkill) {
-      throw new ServiceError(
-        forbiddenError({ message: 'You do not have permission to view access to this skill.' })
-      );
-    }
+          let key = `${skillGroup.oid}:${entity.accessTagOid}`;
+          let grant = grants.get(key) ?? {
+            accessTagOid: entity.accessTagOid,
+            skillGroup,
+            roles: []
+          };
+          grant.roles.push(...entity.accessTagPolicy.roles);
+          grants.set(key, grant);
+        }
+
+        return [...grants.values()].flatMap(grant => {
+          let level = getHighestLevel(grant.roles);
+          return level
+            ? [{ accessTagOid: grant.accessTagOid, level, skillGroup: grant.skillGroup }]
+            : [];
+        });
+      },
+      { ifExists: true }
+    );
   }
 
   async listSkillAccessGrants(d: {
@@ -57,21 +73,37 @@ class SkillAccessGrantServiceImpl {
     skill: SkillRecord;
     authorization: ResourceAuthorization;
   }) {
-    let useStoreAccess =
-      !!d.skill.store &&
-      (await isStoreResourceFlagEnabled({ project: d.project, flag: 'store-access-v2' }));
+    let store = d.skill.store;
+    if (!store) {
+      if (d.authorization.type == 'privileged') return [];
+      throw new ServiceError(
+        forbiddenError({ message: 'You do not have permission to view access to this skill.' })
+      );
+    }
 
-    await this.assertCanManageAccess({ ...d, useStoreAccess });
+    await skillStoreResource.assertAccess({
+      project: d.project,
+      store,
+      authorization: d.authorization,
+      level: 'manage'
+    });
 
-    let grants =
-      useStoreAccess && d.skill.store
-        ? await skillStoreResource.listGrants({ store: d.skill.store })
-        : await storeAccessGrantService.listLegacySkillGrants({ skillOid: d.skill.oid });
+    let grants: {
+      accessTagOid: bigint;
+      level: StoreResourceAccessLevel;
+      skillGroup: SkillGroup | null;
+    }[] = [
+      ...(await skillStoreResource.listGrants({ store })).map(grant => ({
+        ...grant,
+        skillGroup: null
+      })),
+      ...(await this.listInheritedGrants({ skill: d.skill }))
+    ];
 
     let accessTags = await withTransaction(
       async db =>
         await db.accessTag.findMany({
-          where: { oid: { in: grants.map(grant => grant.accessTagOid) } },
+          where: { oid: { in: [...new Set(grants.map(grant => grant.accessTagOid))] } },
           include: {
             consumerGroup: { include: { personalOwner: true } },
             consumerProfile: true
@@ -83,7 +115,9 @@ class SkillAccessGrantServiceImpl {
 
     return grants.flatMap(grant => {
       let accessTag = accessTagsByOid.get(grant.accessTagOid);
-      return accessTag ? [{ level: grant.level, accessTag }] : [];
+      return accessTag
+        ? [{ level: grant.level, accessTag, inheritedFrom: grant.skillGroup }]
+        : [];
     });
   }
 }

@@ -22,6 +22,9 @@ export type Theme = {
     codeBg: string;
     selection: string;
     shadow: string;
+    commentHighlight: string;
+    commentHighlightBorder: string;
+    commentHighlightActive: string;
     callout: {
       info: { bg: string; border: string; text: string };
       warning: { bg: string; border: string; text: string };
@@ -78,6 +81,9 @@ export let lightTheme: Theme = {
     codeBg: 'rgba(135, 131, 120, 0.15)',
     selection: 'rgba(35, 131, 226, 0.28)',
     shadow: 'rgba(15, 15, 15, 0.10)',
+    commentHighlight: 'rgba(255, 212, 0, 0.18)',
+    commentHighlightBorder: 'rgba(230, 180, 0, 0.55)',
+    commentHighlightActive: 'rgba(255, 212, 0, 0.42)',
     callout: {
       info: {
         bg: 'rgba(35, 131, 226, 0.08)',

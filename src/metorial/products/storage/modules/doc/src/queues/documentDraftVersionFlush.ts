@@ -5,10 +5,15 @@ import {
 import { createCron } from '@metorial/cron';
 import { db, withTransaction } from '@metorial/db';
 import { combineQueueProcessors, createQueue } from '@metorial/queue';
-import { internalDocumentDraftService, internalDocumentVersioningService } from '../internal';
+import {
+  internalDocumentContentStoreService,
+  internalDocumentDraftService,
+  internalDocumentVersioningService
+} from '../internal';
 import { documentInclude } from '../services/document';
 import { documentVersionSyncManyQueue } from './documentVersionSync';
 import { enqueueDocumentLifecycle } from './lifecycle';
+
 let batchSize = 100;
 
 export let documentDraftVersionFlushManyQueue = createQueue<{
@@ -154,11 +159,9 @@ export let flushExpiredDraftVersion = async (d: {
         };
       }
 
-      let retiredContent = await db.documentContent.create({
-        data: {
-          content: document.content.content
-        }
-      });
+      let retiredContent = await internalDocumentContentStoreService.copyContent(
+        document.content
+      );
 
       await db.documentVersion.update({
         where: {

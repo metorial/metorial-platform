@@ -289,6 +289,23 @@
       "env": ["METORIAL_ENV"],
       "outputs": ["dist/**", "!dist/admin/**"]
     },
+    "@metorial/module-organization#test": {
+      "dependsOn": [
+        "^build",
+        "prisma:generate",
+        "^prisma:generate",
+        "test:inputs",
+        "@metorial/module-access#test:inputs"
+      ],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/tsconfig*.json",
+        "$TURBO_ROOT$/.prettierrc",
+        "$TURBO_ROOT$/src/metorial-frontend/packages/state/src/config/generated/organizationConfigs.ts"
+      ],
+      "outputs": [],
+      "env": ["CI", "NODE_ENV", "TEST_CACHE_RUNTIME"]
+    },
     "test:inputs": {
       "dependsOn": ["^test:inputs"],
       "inputs": [

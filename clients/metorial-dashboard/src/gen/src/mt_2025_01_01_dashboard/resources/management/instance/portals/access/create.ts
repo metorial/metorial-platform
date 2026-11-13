@@ -3,11 +3,16 @@ import { mapObject } from '@metorial/util-resource-mapper/compact';
 export type ManagementInstancePortalsAccessCreateOutput = {
   object: 'consumer.access';
   id: string;
-  accessLevel: 'read' | 'manage' | null;
+  accessLevel: 'read' | 'write' | 'manage' | null;
   name: string;
   description: string | null;
   readme: string | null;
-  listing: { id: string; name: string; description: string | null } | null;
+  listing: {
+    id: string;
+    name: string;
+    description: string | null;
+    isDiscoverable: boolean;
+  } | null;
   access:
     | {
         type: 'provider_template';
@@ -98,6 +103,7 @@ export let mapManagementInstancePortalsAccessCreateOutput =
   /* @__PURE__ */ mapObject<ManagementInstancePortalsAccessCreateOutput>(
     [
       'access_level',
+      ['listing', 0, [1, ['is_discoverable']]],
       [
         'access',
         0,
@@ -140,9 +146,17 @@ export type ManagementInstancePortalsAccessCreateBody = {
   access:
     | { type: 'provider_template'; providerTemplateId: string }
     | { type: 'magic_mcp_server'; magicMcpServerId: string }
-    | { type: 'skill'; skillId: string }
+    | {
+        type: 'skill';
+        skillId: string;
+        permission?: 'read' | 'write' | 'manage' | undefined;
+      }
     | { type: 'skill_template'; skillTemplateId: string }
-    | { type: 'skill_group'; skillGroupId: string }
+    | {
+        type: 'skill_group';
+        skillGroupId: string;
+        permission?: 'read' | 'write' | 'manage' | undefined;
+      }
     | {
         type: 'skill_marketplace';
         skillMarketplaceId: string;

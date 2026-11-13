@@ -3,6 +3,7 @@ import {
   Fabric,
   type AuditSkillGroup,
   type AuditSkillMergeRequest,
+  type AuditSkillSecurityReview,
   type AuditSkillTemplate,
   type FabricEvents
 } from '@metorial/fabric';
@@ -98,12 +99,21 @@ export let recordSkillArchived = async (event: FabricEvents['skill.audit.archive
   });
 };
 
+export let recordSkillShared = async (event: FabricEvents['skill.audit.shared:after']) => {
+  await recordAuditEventAfterCommit(async recordedAt => {
+    await auditTrackerService.recordEvent(event.auditScope, 'skill', 'share', {
+      payload: { ...skillPayload(event.skill), shares: event.shares },
+      recordedAt
+    });
+  });
+};
+
 export let recordSkillPluginCreated = async (
   event: FabricEvents['skill.plugin.audit.created:after']
 ) => {
   await recordAuditEventAfterCommit(async recordedAt => {
     await auditTrackerService.recordEvent(event.auditScope, 'skill_plugin', 'create', {
-      payload: skillPluginPayload(event.skillPlugin),
+      payload: { ...skillPluginPayload(event.skillPlugin), skillGroupId: event.skillGroupId ?? null },
       recordedAt
     });
   });
@@ -114,8 +124,17 @@ export let recordSkillPluginUpdated = async (
 ) => {
   await recordAuditEventAfterCommit(async recordedAt => {
     await auditTrackerService.recordEvent(event.auditScope, 'skill_plugin', 'update', {
-      payload: skillPluginPayload(event.skillPlugin),
-      previousPayload: skillPluginPayload(event.previousSkillPlugin),
+      payload:
+        event.skillGroupId !== undefined
+          ? { ...skillPluginPayload(event.skillPlugin), skillGroupId: event.skillGroupId }
+          : skillPluginPayload(event.skillPlugin),
+      previousPayload:
+        event.previousSkillGroupId !== undefined
+          ? {
+              ...skillPluginPayload(event.previousSkillPlugin),
+              skillGroupId: event.previousSkillGroupId
+            }
+          : skillPluginPayload(event.previousSkillPlugin),
       recordedAt
     });
   });
@@ -169,6 +188,7 @@ export let recordSkillMarketplaceArchived = async (
 Fabric.listen('skill.audit.created:after', recordSkillCreated);
 Fabric.listen('skill.audit.updated:after', recordSkillUpdated);
 Fabric.listen('skill.audit.archived:after', recordSkillArchived);
+Fabric.listen('skill.audit.shared:after', recordSkillShared);
 
 Fabric.listen('skill.plugin.audit.created:after', recordSkillPluginCreated);
 Fabric.listen('skill.plugin.audit.updated:after', recordSkillPluginUpdated);
@@ -355,10 +375,37 @@ let recordSkillMergeRequest =
     });
   };
 
+let recordSkillSecurityReview =
+  (action: 'dismiss' | 'restore') =>
+  async (event: {
+    auditScope: FabricEvents['skill.security_review.audit.dismissed:after']['auditScope'];
+    securityReview: AuditSkillSecurityReview;
+  }) => {
+    await recordAuditEventAfterCommit(async recordedAt => {
+      await auditTrackerService.recordEvent(
+        event.auditScope,
+        'skill_security_review',
+        action,
+        {
+          payload: {
+            id: event.securityReview.id,
+            skillId: event.securityReview.skillId,
+            securityScore: event.securityReview.securityScore,
+            risk: event.securityReview.risk
+          },
+          recordedAt
+        }
+      );
+    });
+  };
+
 export let recordSkillMergeRequestCreated = recordSkillMergeRequest('create');
 export let recordSkillMergeRequestMerged = recordSkillMergeRequest('merge');
 export let recordSkillMergeRequestClosed = recordSkillMergeRequest('close');
 export let recordSkillMergeRequestRolledBack = recordSkillMergeRequest('rollback');
+
+export let recordSkillSecurityReviewDismissed = recordSkillSecurityReview('dismiss');
+export let recordSkillSecurityReviewRestored = recordSkillSecurityReview('restore');
 
 Fabric.listen('skill.group.audit.created:after', recordSkillGroupCreated);
 Fabric.listen('skill.group.audit.updated:after', recordSkillGroupUpdated);
@@ -377,3 +424,9 @@ Fabric.listen(
   'skill.merge_request.audit.rolled_back:after',
   recordSkillMergeRequestRolledBack
 );
+
+Fabric.listen(
+  'skill.security_review.audit.dismissed:after',
+  recordSkillSecurityReviewDismissed
+);
+Fabric.listen('skill.security_review.audit.restored:after', recordSkillSecurityReviewRestored);

@@ -344,7 +344,11 @@ export class Session {
         for await (const event of this.agent.run(effectiveMessages, input, {
           signal: options?.signal
         })) {
-          if (event.type === 'text.delta' || event.type === 'tool.start') {
+          if (
+            event.type === 'text.delta' ||
+            event.type === 'tool.start' ||
+            event.type === 'tool.input.delta'
+          ) {
             hasYieldedContent = true;
           }
 

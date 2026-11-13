@@ -4,7 +4,7 @@ import { RiArrowDownSLine } from '@remixicon/react';
 import React, { useId } from 'react';
 import { useMeasure } from 'react-use';
 import { keyframes, styled } from 'styled-components';
-import { ButtonSize, getButtonSize } from '../button/constants';
+import { ControlSize, getControlSize, getFieldFontSize, useControlSize } from '../controlSize';
 import { Checkbox } from '../checkbox';
 import { Error } from '../error';
 import { InputDescription, InputLabel } from '../input';
@@ -86,7 +86,7 @@ let TriggerValues = styled('div')`
 `;
 
 export let MultiSelect = ({
-  size = '3',
+  size: sizeProp,
   disabled,
   value,
   onChange,
@@ -97,7 +97,7 @@ export let MultiSelect = ({
   error,
   items
 }: {
-  size?: ButtonSize;
+  size?: ControlSize;
   value?: string[];
   onChange?: (value: string[]) => void;
   label?: string;
@@ -113,7 +113,8 @@ export let MultiSelect = ({
   }[];
 }) => {
   let id = useId();
-  let sizeStyles = getButtonSize(size);
+  let size = useControlSize(sizeProp);
+  let sizeStyles = getControlSize(size);
   let [ref, { width }] = useMeasure();
 
   return (
@@ -136,7 +137,7 @@ export let MultiSelect = ({
           aria-label={label}
           style={{
             ...sizeStyles,
-            fontSize: 14
+            fontSize: getFieldFontSize(size)
           }}
           ref={ref as any}
         >

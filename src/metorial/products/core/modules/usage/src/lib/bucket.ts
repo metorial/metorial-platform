@@ -98,8 +98,10 @@ export let accumulateUsageEvent = (
     buckets.set(key, bucket);
   }
 
-  bucket.counters.count += 1;
-  if (event.isError) bucket.counters.errorCount += 1;
+  let count = event.count ?? 1;
+
+  bucket.counters.count += count;
+  if (event.isError) bucket.counters.errorCount += count;
 
   if (event.durationMs !== undefined && event.durationMs !== null && event.durationMs >= 0) {
     let duration = Math.round(event.durationMs);

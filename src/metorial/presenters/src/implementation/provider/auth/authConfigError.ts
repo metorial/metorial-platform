@@ -16,7 +16,7 @@ export let v1ProviderAuthConfigErrorPresenter = Presenter.create(providerAuthCon
 
         let refreshedError = await db.providerAuthConfigError.findUniqueOrThrow({
           where: { oid: authConfigError.oid },
-          include: { group: true }
+          include: { group: true, issue: true }
         });
 
         authConfigError = Object.assign(authConfigError, refreshedError);
@@ -48,6 +48,7 @@ export let v1ProviderAuthConfigErrorPresenter = Presenter.create(providerAuthCon
 
       group_id: authConfigError.group?.id ?? null,
       similar_error_count: authConfigError.group?.occurrenceCount ?? 0,
+      issue_id: authConfigError.issue?.id ?? null,
 
       created_at: authConfigError.createdAt
     };
@@ -124,6 +125,13 @@ export let v1ProviderAuthConfigErrorPresenter = Presenter.create(providerAuthCon
         description: 'Count of similar grouped errors',
         examples: [3]
       }),
+      issue_id: v.nullable(
+        v.string({
+          name: 'issue_id',
+          description: 'The provider issue this occurrence is aggregated into',
+          examples: ['pis_9kLmNpQrStUvWxYz']
+        })
+      ),
       created_at: v.date({
         name: 'created_at',
         description: 'Timestamp when created'

@@ -4,6 +4,8 @@ let mocks = vi.hoisted(() => ({
   db: {
     organization: { findUnique: vi.fn() },
     skillMarketplace: { findFirst: vi.fn() },
+    skillGroup: { findFirst: vi.fn() },
+    skillGroupPlugin: { create: vi.fn() },
     skillPlugin: { createMany: vi.fn(), findUniqueOrThrow: vi.fn() },
     skillMarketplacePlugin: { createMany: vi.fn() }
   },
@@ -12,6 +14,8 @@ let mocks = vi.hoisted(() => ({
   createDestination: vi.fn(),
   getPluginSlug: vi.fn(),
   getMembershipSlug: vi.fn(),
+  getGroupSkills: vi.fn(),
+  reconcileGroupMembership: vi.fn(),
   enqueuePlugin: vi.fn(),
   enqueueMembership: vi.fn()
 }));
@@ -34,9 +38,17 @@ vi.mock('@metorial/skills-scm-utils', () => ({
 }));
 vi.mock('../lib/destinationSync', () => ({}));
 vi.mock('../lib/limits', () => ({
+  CargoSkillLimitError: class extends Error {},
   assertSkillMarketplacePluginLimit: vi.fn(),
+  assertSkillMarketplaceSkillLimit: vi.fn(),
+  maxSkillPluginSkills: 100,
+  sumSkillStoreSizes: async () => ({ files: 0, bytes: 0n }),
   assertSkillMarketplaceDestinationSize: vi.fn(),
   generatedFilesPerSkillPlugin: 1
+}));
+vi.mock('../lib/skillGroupPluginMembership', () => ({
+  getSkillGroupPluginTargetSkills: mocks.getGroupSkills,
+  reconcileSkillGroupPluginMembership: mocks.reconcileGroupMembership
 }));
 vi.mock('../lib/skillMarketplaceAccess', () => ({
   assertSkillMarketplaceWriteAccess: vi.fn()
@@ -67,6 +79,8 @@ beforeEach(() => {
   mocks.generateId.mockImplementation(async (type: string) => `${type}_1`);
   mocks.db.organization.findUnique.mockResolvedValue({ oid: 2n });
   mocks.createDestination.mockResolvedValue({ oid: 4n });
+  mocks.getGroupSkills.mockResolvedValue([]);
+  mocks.db.skillGroupPlugin.create.mockResolvedValue({ oid: 7n });
   mocks.getPluginSlug.mockResolvedValue('docs-helper');
   mocks.getMembershipSlug.mockResolvedValue('docs-helper');
   mocks.db.skillPlugin.createMany.mockResolvedValue({ count: 1 });
@@ -126,6 +140,51 @@ describe('skill plugin create slug collisions', () => {
       skillMarketplacePluginId: 'skillMarketplacePlugin_1',
       event: 'created'
     });
+  });
+
+  it('preserves group metadata when retrying plugin and marketplace slugs', async () => {
+    mocks.db.skillGroup.findFirst.mockResolvedValue({
+      id: 'group_1',
+      oid: 8n,
+      name: 'Group Helper',
+      description: 'Skills from the group'
+    });
+    mocks.db.skillMarketplace.findFirst.mockResolvedValue({ id: 'marketplace_1', oid: 6n });
+    mocks.getPluginSlug
+      .mockResolvedValueOnce('group-helper')
+      .mockResolvedValueOnce('group-helper-2');
+    mocks.db.skillPlugin.createMany.mockResolvedValueOnce({ count: 0 });
+    mocks.db.skillMarketplacePlugin.createMany.mockResolvedValueOnce({ count: 0 });
+
+    await skillPluginService.createSkillPlugin({
+      ...input,
+      skillMarketplaceId: 'marketplace_1',
+      input: { skillGroupId: 'group_1' }
+    });
+
+    expect(mocks.getPluginSlug.mock.calls).toEqual([['Group Helper'], ['Group Helper']]);
+    expect(mocks.db.skillPlugin.createMany.mock.calls.map(([args]) => args.data)).toEqual([
+      expect.objectContaining({
+        name: 'Group Helper',
+        description: 'Skills from the group',
+        slug: 'group-helper'
+      }),
+      expect.objectContaining({
+        name: 'Group Helper',
+        description: 'Skills from the group',
+        slug: 'group-helper-2'
+      })
+    ]);
+    expect(mocks.getMembershipSlug.mock.calls).toEqual([
+      [{ input: 'Group Helper' }, { skillMarketplaceId: 'marketplace_1' }],
+      [{ input: 'Group Helper' }, { skillMarketplaceId: 'marketplace_1' }]
+    ]);
+    expect(mocks.reconcileGroupMembership).toHaveBeenCalledExactlyOnceWith({
+      skillGroupPluginOid: 7n
+    });
+    expect(mocks.createDestination).toHaveBeenCalledTimes(1);
+    expect(mocks.enqueuePlugin).toHaveBeenCalledTimes(1);
+    expect(mocks.enqueueMembership).toHaveBeenCalledTimes(1);
   });
 
   it('bounds contention retries and does not emit successful plugin events', async () => {

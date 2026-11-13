@@ -6,6 +6,7 @@ enum SkillParticipantRole {
   forker
 }
 
+/// No longer read or written. Skill participants are store participants of the skill's store.
 model SkillParticipant {
   oid BigInt @id @default(autoincrement())
   id  String @unique
@@ -23,4 +24,5 @@ model SkillParticipant {
 
   @@unique([skillOid, resourceActorOid])
   @@index([resourceActorOid])
+  @@ignore
 }

@@ -1,4 +1,5 @@
 import { branding } from '@metorial/branding';
+import { renderSkillIconDataUrl } from '@metorial/skill-icons';
 
 export type EntityImage =
   | {
@@ -10,6 +11,7 @@ export type EntityImage =
       url?: string;
     }
   | { type: 'url'; url: string }
+  | { type: 'icon'; icon: string; color: string }
   | { type: 'default' };
 
 type EntityImageOuter = EntityImage;
@@ -55,7 +57,15 @@ export let setGetImageFieldsImpl = (newImpl: typeof getImageFieldsDefaultImpl) =
   impl.current = newImpl;
 };
 
-export let getImageFields = (entity: GetImageFieldsParams) => {
+export let getImageFields = async (entity: GetImageFieldsParams) => {
+  if (entity.image?.type == 'icon') {
+    try {
+      return { imageUrl: renderSkillIconDataUrl(entity.image) };
+    } catch {
+      return impl.current({ ...entity, image: { type: 'default' } });
+    }
+  }
+
   return impl.current(entity);
 };
 

@@ -28,6 +28,7 @@ describe('module-consumer-access access requests', () => {
   ) =>
     await consumerAccessRequestService.createConsumerAccessRequest({
       consumerProfile,
+      consumerGroups: [consumerProfile.personalConsumerGroup],
       accessRequest: { type: 'magic_mcp_server', magicMcpServer },
       auditScope: fixture.auditScope,
       input

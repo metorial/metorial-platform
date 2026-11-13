@@ -2,6 +2,8 @@ import { v } from '@lowerdeck/validation';
 import { getImageUrl } from '@metorial/db';
 import {
   getArchivableSkillPluginIds,
+  getReadablePluginSkillGroupIds,
+  getReadablePluginSkillIds,
   getWritableSkillPluginIds,
   hasSkillMarketplaceWriteAccess
 } from '@metorial/module-skill-marketplace';
@@ -74,7 +76,13 @@ export let dashboardSkillMarketplacePresenter = Presenter.create(skillMarketplac
     let nestedPlugins = input.skillMarketplace.plugins.flatMap(plugin =>
       plugin.skillPlugin ? [plugin.skillPlugin] : []
     );
-    let [canCreatePlugins, writablePluginIds, archivablePluginIds] = await Promise.all([
+    let [
+      canCreatePlugins,
+      writablePluginIds,
+      archivablePluginIds,
+      readableSkillIds,
+      readableSkillGroupIds
+    ] = await Promise.all([
       input.skillMarketplace.status == 'active'
         ? hasSkillMarketplaceWriteAccess({
             skillMarketplace: input.skillMarketplace,
@@ -86,6 +94,14 @@ export let dashboardSkillMarketplacePresenter = Presenter.create(skillMarketplac
         accessTags: input.accessTags
       }),
       getArchivableSkillPluginIds({
+        plugins: nestedPlugins,
+        accessTags: input.accessTags
+      }),
+      getReadablePluginSkillIds({
+        plugins: nestedPlugins,
+        accessTags: input.accessTags
+      }),
+      getReadablePluginSkillGroupIds({
         plugins: nestedPlugins,
         accessTags: input.accessTags
       })
@@ -103,7 +119,11 @@ export let dashboardSkillMarketplacePresenter = Presenter.create(skillMarketplac
                 pluginAccess: skillMarketplacePlugin.skillPlugin
                   ? {
                       canUpdate: writablePluginIds.has(skillMarketplacePlugin.skillPlugin.id),
-                      canDelete: archivablePluginIds.has(skillMarketplacePlugin.skillPlugin.id)
+                      canDelete: archivablePluginIds.has(
+                        skillMarketplacePlugin.skillPlugin.id
+                      ),
+                      readableSkillIds,
+                      readableSkillGroupIds
                     }
                   : undefined,
                 skillMarketplacePlugin: {

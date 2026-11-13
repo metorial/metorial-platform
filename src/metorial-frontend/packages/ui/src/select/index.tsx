@@ -3,12 +3,13 @@ import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { RiArrowDownSLine, RiArrowUpSLine, RiCheckLine } from '@remixicon/react';
 import React, { useEffect, useId, useMemo, useState } from 'react';
 import { keyframes, styled } from 'styled-components';
-import { ButtonSize, getButtonSize } from '../button/constants';
+import { ControlSize, getControlSize, getFieldFontSize, useControlSize } from '../controlSize';
 import { markSelectPointerDismiss, useZindex } from '../dialog/state';
 import { Error } from '../error';
 import { InputDescription, InputLabel } from '../input';
 import { theme } from '../theme';
 import { OverlayOpenProvider, useSuppressTooltipWhileOpen } from '../tooltip/state';
+import { surface } from '../controlSize/scale';
 
 let fadeIn = keyframes`
   from {
@@ -64,7 +65,7 @@ let Content = styled(RadixSelect.Content)`
   border: 1px solid ${theme.colors.gray400};
   font-size: 14px;
   font-weight: 500;
-  border-radius: 10px;
+  border-radius: ${surface.borderRadius};
   gap: 5px;
 
   &[data-state='open'] {
@@ -85,11 +86,10 @@ let Item = styled(RadixSelect.Item)`
   align-items: center;
   gap: 5px;
   padding: 5px 10px 5px 5px;
-  border-radius: 6;
   outline: none;
   cursor: pointer;
-  height: 30px;
-  border-radius: 5px;
+  height: ${surface.itemHeight};
+  border-radius: ${surface.itemBorderRadius};
 
   &:hover {
     background: ${theme.colors.gray300};
@@ -120,7 +120,7 @@ let Indicator = styled(RadixSelect.ItemIndicator)`
 `;
 
 export let Select = ({
-  size = '3',
+  size: sizeProp,
   disabled,
   value,
   onChange,
@@ -131,7 +131,7 @@ export let Select = ({
   error,
   items
 }: {
-  size?: ButtonSize;
+  size?: ControlSize;
   value?: string;
   onChange?: (value: string) => void;
   label?: string;
@@ -152,7 +152,8 @@ export let Select = ({
   )[];
 }) => {
   let id = useId();
-  let sizeStyles = getButtonSize(size);
+  let size = useControlSize(sizeProp);
+  let sizeStyles = getControlSize(size);
   let normalizedValue = value === '' ? undefined : value;
 
   let [isOpen, setIsOpen] = useState(false);
@@ -209,7 +210,7 @@ export let Select = ({
           aria-label={label}
           style={{
             ...sizeStyles,
-            fontSize: 14
+            fontSize: getFieldFontSize(size)
           }}
         >
           <RadixSelect.Value placeholder={placeholder} />

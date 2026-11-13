@@ -7,6 +7,8 @@ import {
   mapDashboardInstanceSkillsPluginsArchiveOutput,
   mapDashboardInstanceSkillsPluginsCreateBody,
   mapDashboardInstanceSkillsPluginsCreateOutput,
+  mapDashboardInstanceSkillsPluginsDetachSkillGroupBody,
+  mapDashboardInstanceSkillsPluginsDetachSkillGroupOutput,
   mapDashboardInstanceSkillsPluginsGetOutput,
   mapDashboardInstanceSkillsPluginsListOutput,
   mapDashboardInstanceSkillsPluginsListQuery,
@@ -17,6 +19,8 @@ import {
   type DashboardInstanceSkillsPluginsArchiveOutput,
   type DashboardInstanceSkillsPluginsCreateBody,
   type DashboardInstanceSkillsPluginsCreateOutput,
+  type DashboardInstanceSkillsPluginsDetachSkillGroupBody,
+  type DashboardInstanceSkillsPluginsDetachSkillGroupOutput,
   type DashboardInstanceSkillsPluginsGetOutput,
   type DashboardInstanceSkillsPluginsListOutput,
   type DashboardInstanceSkillsPluginsListQuery,
@@ -202,6 +206,40 @@ export class MetorialDashboardInstanceSkillsPluginsEndpoint {
 
     return this._delete(request).transform(
       mapDashboardInstanceSkillsPluginsArchiveOutput
+    );
+  }
+
+  /**
+   * @name Detach skill plugin from skill group
+   * @description Stops syncing a plugin from its skill group. The plugin keeps its current skills, which can then be edited directly.
+   *
+   * @param `instanceId` - string
+   * @param `skillPluginId` - string
+   * @param `body` - DashboardInstanceSkillsPluginsDetachSkillGroupBody
+   * @param `opts` - { headers?: Record<string, string> }
+   * @returns DashboardInstanceSkillsPluginsDetachSkillGroupOutput
+   * @see https://metorial.com/api
+   * @see https://metorial.com/docs
+   */
+  detachSkillGroup(
+    instanceId: string,
+    skillPluginId: string,
+    body: DashboardInstanceSkillsPluginsDetachSkillGroupBody,
+    opts?: { headers?: Record<string, string> }
+  ): Promise<DashboardInstanceSkillsPluginsDetachSkillGroupOutput> {
+    let path = `dashboard/instances/${instanceId}/skill-plugins/${skillPluginId}/detach-skill-group`;
+
+    let request = {
+      path,
+      body: mapDashboardInstanceSkillsPluginsDetachSkillGroupBody.transformTo(
+        body
+      ),
+
+      ...(opts?.headers ? { headers: opts.headers } : {})
+    } as any;
+
+    return this._post(request).transform(
+      mapDashboardInstanceSkillsPluginsDetachSkillGroupOutput
     );
   }
 

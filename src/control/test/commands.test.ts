@@ -352,11 +352,18 @@ test('failed host initialization rolls back the worktree and newly created branc
   expect(branch.exitCode).not.toBe(0);
 });
 
-test('image E2E execution starts services in order, probes health, captures logs and cleans up on failure', async () => {
+test('image E2E execution starts dependencies and systems before probing health and cleans up on failure', async () => {
   let value = await fixture();
   writeManifest(
     join(value.root, 'src/api'),
-    "name='api'\n[endpoints.http]\nport=52001\nhealth='/ready'\n[e2e]\nimage='api'\ntests=['../tests']"
+    "name='api'\ndependencies=['worker']\n[endpoints.http]\nport=52001\nhealth='/ready'\n[e2e]\nimage='api'\ntests=['../tests']\nhealth_timeout=1"
+  );
+  packageFixture(
+    value.root,
+    'src/worker',
+    'worker',
+    "name='worker'\n[endpoints.http]\nport=52002\nhealth='/ready'\n[e2e]\nstart=['e2e:start']\nimage='worker'",
+    { 'e2e:start': 'true' }
   );
   packageFixture(value.root, 'src/tests', 'api-tests', undefined, { 'test:e2e': 'true' });
   atomicWrite(join(value.root, 'scripts/dev-tools/e2e/runner.ts'), '');
@@ -367,24 +374,35 @@ test('image E2E execution starts services in order, probes health, captures logs
     name: 'api',
     image: 'ghcr.io/metorial/api@sha256:' + 'a'.repeat(64)
   });
+  writeJson(join(images, 'worker.json'), {
+    name: 'worker',
+    image: 'ghcr.io/metorial/worker@sha256:' + 'b'.repeat(64)
+  });
   executable(
     join(value.root, 'fake-bin'),
     'docker',
     `
-    import {appendFileSync} from 'node:fs';
+    import {appendFileSync,readFileSync} from 'node:fs';
     let args=process.argv.slice(2);
     appendFileSync(process.env.CONTROL_TEST_LOG,JSON.stringify({program:'docker',args,cwd:process.cwd()})+'\\n');
-    if(args.includes('curl')) console.log('200');
+    if(args.includes('curl')) {
+      let calls=readFileSync(process.env.CONTROL_TEST_LOG,'utf8').trim().split('\\n').map(line=>JSON.parse(line));
+      console.log(calls.some(call=>call.args.includes('up')&&call.args.includes('app-api'))?'200':'503');
+    }
     if(args.includes('logs')) console.log('captured service output');
     if(args.includes('runner')) process.exit(8);
   `
   );
-  let result = await value.run(['test:e2e', '--images', images]);
+  let result = await value.run(['test:e2e', '--images', images], value.root, {
+    TMPDIR: value.root
+  });
   expect(result.code).toBe(1);
   let calls = value.calls().filter(call => call.program === 'docker');
   let up = calls.filter(call => call.args.includes('up'));
+  expect(up.length, result.stderr).toBe(3);
   expect(up[0]!.args).toContain('gateway');
-  expect(up[1]!.args).toContain('app-api');
+  expect(up[1]!.args).toContain('app-worker');
+  expect(up[2]!.args).toContain('app-api');
   expect(calls.some(call => call.args.includes('curl'))).toBe(true);
   expect(calls.at(-1)!.args.slice(-5)).toEqual([
     'down',

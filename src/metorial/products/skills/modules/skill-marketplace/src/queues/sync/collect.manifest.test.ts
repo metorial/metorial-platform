@@ -31,6 +31,7 @@ vi.mock('@metorial/module-flags', () => ({ flagService: {} }));
 vi.mock('../../serializers/marketplace', () => ({ applyMarketplace: marketplace }));
 vi.mock('../../serializers/plugin', () => ({ applyPlugin: plugin }));
 vi.mock('../../serializers/skill', () => skill);
+vi.mock('../../lib/securityReviewPolicy', () => ({ getWithheldSkillIds: async () => new Set<string>() }));
 vi.mock('./_lib/bucket', () => ({ destinationBucketIsAvailable: available }));
 vi.mock('./_lib/lock', () => ({ withDestinationSyncLock: (run: unknown) => run }));
 vi.mock('./_lib/logs', () => ({ appendSkillDestinationSyncLog: log }));

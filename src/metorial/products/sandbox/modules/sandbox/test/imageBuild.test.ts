@@ -630,7 +630,7 @@ describe('sandboxImageBuildService', () => {
     oid: 90n,
     id: 'file_1',
     status: 'active',
-    fileSize: 1024,
+    fileSize: 1024n,
     purpose: { slug: 'sandbox_image_build_context' }
   };
 
@@ -787,7 +787,7 @@ describe('sandboxImageBuildService', () => {
     for (let bad of [
       { ...file, purpose: { slug: 'generic' } },
       { ...file, status: 'deleted' },
-      { ...file, fileSize: 50 * 1024 * 1024 + 1 }
+      { ...file, fileSize: BigInt(50 * 1024 * 1024 + 1) }
     ]) {
       await expect(
         sandboxImageBuildService.create({

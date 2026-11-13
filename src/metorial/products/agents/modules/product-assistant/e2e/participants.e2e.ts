@@ -1,6 +1,6 @@
 import { expectServiceError, firstPage, uniqueId, useOrganization } from '@metorial/e2e';
 import { db } from '@metorial/e2e/db';
-import type { ProductAssistantConversation, ResourceActor } from '@metorial/db';
+import { ID, type ProductAssistantConversation, type ResourceActor } from '@metorial/db';
 import { describe, expect, it } from 'vitest';
 import {
   productAssistantConversationParticipantService,
@@ -31,7 +31,7 @@ describe('module-product-assistant: participants', () => {
       })
     ).map(participant => participant.resourceActorOid);
 
-  let scopeOf = (fixture: AssistantFixture, actor?: ResourceActor) => ({
+  let scopeOf = (fixture: AssistantFixture, actor: ResourceActor) => ({
     project: fixture.project,
     instance: fixture.instance,
     actor
@@ -94,103 +94,75 @@ describe('module-product-assistant: participants', () => {
     expect(row.title).toBe(title);
   });
 
-  it(
-    'adds an actor as a participant when it posts with allowAllActors',
-    async () => {
-      let fixture = await loadAssistantFixture(org.ids);
-      let outsider = await createOutsider(fixture);
-      let conversation = await createConversation(fixture);
+  it('does not grant access to a participant who does not own the conversation', async () => {
+    let fixture = await loadAssistantFixture(org.ids);
+    let outsider = await createOutsider(fixture);
+    let conversation = await createConversation(fixture);
 
-      let joined = await sendAndSettle(fixture, conversation, uniqueId('joined'), {
-        actor: outsider,
-        allowAllActors: true
-      });
-      expect(joined.request).toMatchObject({
-        status: 'completed',
+    await db.productAssistantConversationParticipant.create({
+      data: {
+        id: await ID.generateId('productAssistantConversationParticipant'),
+        conversationOid: conversation.oid,
         resourceActorOid: outsider.oid
-      });
-      expect(await participantOids(conversation)).toEqual([
-        fixture.resourceActor.oid,
-        outsider.oid
-      ]);
+      }
+    });
 
-      expect(
-        await productAssistantConversationParticipantService.hasConversationAccess({
-          ...scopeOf(fixture, outsider),
-          conversation
-        })
-      ).toBe(true);
-
-      let fetched = await productAssistantConversationService.getAssistantConversationById({
+    expect(
+      await productAssistantConversationParticipantService.hasConversationAccess({
+        ...scopeOf(fixture, outsider),
+        conversation
+      })
+    ).toBe(false);
+    await expectServiceError(
+      productAssistantConversationService.getAssistantConversationById({
         ...scopeOf(fixture, outsider),
         conversationId: conversation.id
-      });
-      expect(
-        fetched.assistantConversationParticipants.map(
-          participant => participant.resourceActorOid
-        )
-      ).toEqual(expect.arrayContaining([fixture.resourceActor.oid, outsider.oid]));
+      }),
+      'not_found'
+    );
+    await expectServiceError(
+      sendMessage(fixture, conversation, uniqueId('intrusion'), { actor: outsider }),
+      'not_found'
+    );
 
-      let listed = await firstPage(
-        await productAssistantConversationService.listAssistantConversations(
-          scopeOf(fixture, outsider)
-        )
-      );
-      expect(listed.map(item => item.id)).toEqual([conversation.id]);
+    expect(await conversationItems(conversation)).toHaveLength(1);
+  });
 
-      let messages = await firstPage(
-        await productAssistantMessageService.listAssistantMessages({
-          ...scopeOf(fixture, outsider),
-          conversation
-        })
-      );
-      expect(messages.map(item => item.message.type)).toEqual(['root', 'user', 'assistant']);
-
-      let again = await sendAndSettle(fixture, conversation, uniqueId('again'), {
-        actor: outsider
-      });
-      expect(again.request.status).toBe('completed');
-      expect(await participantOids(conversation)).toEqual([
-        fixture.resourceActor.oid,
-        outsider.oid
-      ]);
-    },
-    runTestTimeoutMs
-  );
-
-  it('gives actor-less callers access to every conversation of the instance', async () => {
+  it('scopes conversation and message access to the owning actor', async () => {
     let fixture = await loadAssistantFixture(org.ids);
     let outsider = await createOutsider(fixture);
     let mine = await createConversation(fixture);
     let theirs = await createConversation(fixture, { actor: outsider });
-    let scope = scopeOf(fixture);
-
-    let listed = await firstPage(
-      await productAssistantConversationService.listAssistantConversations(scope)
-    );
-    expect(listed.map(item => item.id)).toEqual(expect.arrayContaining([mine.id, theirs.id]));
-
-    let fetched = await productAssistantConversationService.getAssistantConversationById({
-      ...scope,
-      conversationId: theirs.id
-    });
-    expect(fetched.createdByResourceActorOid).toBe(outsider.oid);
-
-    let messages = await firstPage(
-      await productAssistantMessageService.listAssistantMessages({
-        ...scope,
-        conversation: theirs
-      })
-    );
-    expect(messages.map(item => item.message.id)).toEqual([theirs.rootMessage.id]);
+    let scope = scopeOf(fixture, fixture.resourceActor);
 
     let ownList = await firstPage(
-      await productAssistantConversationService.listAssistantConversations(
-        scopeOf(fixture, fixture.resourceActor)
-      )
+      await productAssistantConversationService.listAssistantConversations(scope)
     );
     expect(ownList.map(item => item.id)).toContain(mine.id);
     expect(ownList.map(item => item.id)).not.toContain(theirs.id);
+
+    let otherList = await firstPage(
+      await productAssistantConversationService.listAssistantConversations(
+        scopeOf(fixture, outsider)
+      )
+    );
+    expect(otherList.map(item => item.id)).toContain(theirs.id);
+    expect(otherList.map(item => item.id)).not.toContain(mine.id);
+
+    await expectServiceError(
+      productAssistantConversationService.getAssistantConversationById({
+        ...scope,
+        conversationId: theirs.id
+      }),
+      'not_found'
+    );
+    await expectServiceError(
+      productAssistantMessageService.listAssistantMessages({
+        ...scope,
+        conversation: theirs
+      }),
+      'not_found'
+    );
   });
 
   it('does not let another tenant join or post into a conversation', async () => {
@@ -198,12 +170,10 @@ describe('module-product-assistant: participants', () => {
     let otherFixture = await loadAssistantFixture(otherOrg.ids);
     let conversation = await createConversation(fixture);
 
-    for (let allowAllActors of [false, true]) {
-      await expectServiceError(
-        sendMessage(otherFixture, conversation, uniqueId('cross-tenant'), { allowAllActors }),
-        'not_found'
-      );
-    }
+    await expectServiceError(
+      sendMessage(otherFixture, conversation, uniqueId('cross-tenant')),
+      'not_found'
+    );
 
     expect(await participantOids(conversation)).toEqual([fixture.resourceActor.oid]);
     expect(await conversationItems(conversation)).toHaveLength(1);

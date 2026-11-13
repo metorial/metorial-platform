@@ -2,38 +2,24 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let {
   db,
-  getAccessTagFilterMock,
-  isStoreResourceFlagEnabledMock,
   getStoreResourceAccessWhereMock,
-  setAccessLevelMock,
-  recordParticipationMock,
+  getStoreResourceKindAccessWhereMock,
   hasOrganizationMemberSkillAccessMock,
-  getStoreResourceKindAccessWhereMock
+  listAccessTagGrantsMock,
+  setAccessLevelMock,
+  recordParticipationMock
 } = vi.hoisted(() => ({
   db: {
-    store: {
-      findMany: vi.fn()
-    },
-    storeParticipantActor: {
-      findMany: vi.fn(),
-      update: vi.fn(),
-      upsert: vi.fn(),
-      create: vi.fn()
-    },
-    skill: {
-      findMany: vi.fn()
-    },
-    consumerProfile: {
-      findUnique: vi.fn()
-    }
+    store: { findMany: vi.fn() },
+    storeParticipantActor: { findMany: vi.fn() },
+    consumerProfile: { findUnique: vi.fn() }
   },
-  getAccessTagFilterMock: vi.fn(),
-  isStoreResourceFlagEnabledMock: vi.fn(),
   getStoreResourceAccessWhereMock: vi.fn(),
-  setAccessLevelMock: vi.fn(),
-  recordParticipationMock: vi.fn(),
+  getStoreResourceKindAccessWhereMock: vi.fn(),
   hasOrganizationMemberSkillAccessMock: vi.fn(async () => false),
-  getStoreResourceKindAccessWhereMock: vi.fn()
+  listAccessTagGrantsMock: vi.fn(),
+  setAccessLevelMock: vi.fn(),
+  recordParticipationMock: vi.fn()
 }));
 
 vi.mock('../lib/storeResource', () => ({
@@ -45,28 +31,20 @@ vi.mock('./storeParticipant', () => ({
 }));
 
 vi.mock('@metorial/db', () => ({
-  withTransaction: vi.fn(async (fn: any) => await fn(db)),
-  ID: {
-    generateId: vi.fn(async () => 'storeParticipant_generated')
-  }
+  withTransaction: vi.fn(async (fn: any) => await fn(db))
 }));
 
 vi.mock('@metorial/module-access', () => ({
-  consumerSkillManageAccessRoles: ['consumer#instance.skill:manage_access'],
-  consumerSkillReadRoles: ['consumer#instance.skill:read'],
-  consumerSkillWriteRoles: ['consumer#instance.skill:write'],
   skillStoreResourceKind: { kind: 'skill' },
   standaloneStoreResourceAccess: { kind: 'store' },
+  storeResourceAccessLevels: ['read', 'write', 'manage'],
   hasOrganizationMemberSkillAccess: hasOrganizationMemberSkillAccessMock,
   getStoreResourceKindAccessWhere: getStoreResourceKindAccessWhereMock,
-  assertResourceAuthorizationScope: vi.fn(),
-  isStoreResourceFlagEnabled: isStoreResourceFlagEnabledMock,
   getStoreResourceAccessWhere: getStoreResourceAccessWhereMock,
+  assertResourceAuthorizationScope: vi.fn(),
   storeAccessGrantService: {
+    listAccessTagGrants: listAccessTagGrantsMock,
     setAccessLevel: setAccessLevelMock
-  },
-  accessTagService: {
-    getAccessTagFilter: getAccessTagFilterMock
   }
 }));
 
@@ -76,461 +54,267 @@ let scope: any = {
   project: { oid: 6n, id: 'prj_1' },
   instance: { oid: 7n, id: 'ins_1' }
 };
-let actor: any = { oid: 3n, id: 'rac_1' };
-let store = { oid: 4n, id: 'store_1', access: 'private' };
 let accessTags = [{ accessTagOid: 5n }];
-let authorization: any = {
+let organizationActor: any = { oid: 3n, id: 'rac_org', organizationActorOid: 9n };
+let consumerActor: any = { oid: 30n, id: 'rac_consumer', consumerProfileOid: 31n };
+let consumerAuthorization: any = {
   type: 'restricted',
-  resourceActor: actor,
+  resourceActor: consumerActor,
   accessTags
 };
-let accessTagFilter = {
-  some: {
-    accessTagOid: { in: [5n] },
-    accessTagPolicy: {
-      roles: {
-        hasSome: ['consumer#instance.skill:read']
-      }
+
+type StoreRow = { oid: bigint; access: string; skill: { oid: bigint } | null };
+
+let standaloneStore: StoreRow = { oid: 4n, access: 'private', skill: null };
+let skillStore: StoreRow = { oid: 8n, access: 'private', skill: { oid: 80n } };
+
+let mockStores = (d: { stores: StoreRow[]; accessible?: bigint[] }) => {
+  db.store.findMany.mockImplementation(async ({ where }: any) => {
+    let requested: bigint[] = where.oid.in;
+    let rows = d.stores.filter(store => requested.includes(store.oid));
+
+    if (where.AND) {
+      return rows
+        .filter(store => (d.accessible ?? []).includes(store.oid))
+        .map(store => ({ oid: store.oid }));
     }
-  }
+    if (where.skill)
+      return rows.filter(store => !store.skill).map(store => ({ oid: store.oid }));
+    return rows;
+  });
 };
 
-describe('native consumer skill store access', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    isStoreResourceFlagEnabledMock.mockResolvedValue(false);
-    getAccessTagFilterMock.mockImplementation(async ({ roles }) => ({
-      ...accessTagFilter,
-      some: {
-        ...accessTagFilter.some,
-        accessTagPolicy: {
-          roles: {
-            hasSome: roles
-          }
-        }
-      }
-    }));
-    db.store.findMany.mockResolvedValue([store]);
-    db.storeParticipantActor.findMany.mockResolvedValue([]);
-    db.skill.findMany
-      .mockResolvedValueOnce([{ storeOid: store.oid }])
-      .mockResolvedValueOnce([{ storeOid: store.oid }]);
+let resolve = (d: { storeOids: bigint[]; requiredPermission?: any } & Record<string, any>) =>
+  storeAccessService.resolveAccessibleStoreOids({
+    ...scope,
+    authorization: consumerAuthorization,
+    requiredPermission: storeReadPermission,
+    ...d
   });
 
-  it('allows reads inherited from an active skill group', async () => {
-    let result = await storeAccessService.resolveAccessibleStoreOids({
-      ...scope,
-      authorization,
-      requiredPermission: storeReadPermission,
-      storeOids: [store.oid]
-    });
-
-    expect(result.accessibleStoreOids).toEqual([store.oid]);
-    let accessibleSkillQuery = db.skill.findMany.mock.calls[1]![0];
-    expect(accessibleSkillQuery.where).toEqual(
-      expect.objectContaining({
-        projectOid: scope.project.oid,
-        instanceOid: scope.instance.oid,
-        status: 'active',
-        OR: expect.arrayContaining([
-          {
-            skillGroupItems: {
-              some: {
-                status: 'active',
-                skillGroup: {
-                  status: 'active',
-                  accessTagEntities: accessTagFilter
-                }
-              }
-            }
-          }
-        ])
-      })
-    );
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockStores({ stores: [standaloneStore, skillStore] });
+  db.storeParticipantActor.findMany.mockResolvedValue([]);
+  db.consumerProfile.findUnique.mockResolvedValue({
+    organizationOid: 40n,
+    personalConsumerGroup: { accessTagOid: 41n }
   });
-
-  it('updates observational participant permissions without policy cleanup', async () => {
-    let participant = {
-      id: 'stp_1',
-      storeOid: store.oid,
-      resourceActorOid: actor.oid,
-      permissions: [storeReadPermission]
-    };
-    db.storeParticipantActor.findMany.mockResolvedValue([participant]);
-    db.storeParticipantActor.update.mockResolvedValue({
-      ...participant,
-      permissions: []
-    });
-
-    await storeAccessService.ensureActorStorePermissions({
-      store,
-      actor,
-      permissions: [],
-      overridePermissions: true
-    });
-
-    expect(db.storeParticipantActor.update).toHaveBeenCalled();
-  });
-
-  it('does not turn a skill-group read grant into write access', async () => {
-    await storeAccessService.resolveAccessibleStoreOids({
-      ...scope,
-      authorization,
-      requiredPermission: storeWritePermission,
-      storeOids: [store.oid]
-    });
-
-    let accessibleSkillQuery = db.skill.findMany.mock.calls[1]![0];
-    expect(accessibleSkillQuery.where.OR).toEqual([
-      {
-        accessTagEntities: {
-          ...accessTagFilter,
-          some: {
-            ...accessTagFilter.some,
-            accessTagPolicy: {
-              roles: {
-                hasSome: ['consumer#instance.skill:write']
-              }
-            }
-          }
-        }
-      }
-    ]);
-  });
-
-  it('ignores stale consumer participants after an access-tag grant is revoked', async () => {
-    db.storeParticipantActor.findMany.mockResolvedValue([
-      {
-        storeOid: store.oid,
-        resourceActorOid: actor.oid,
-        permissions: [storeReadPermission]
-      }
-    ]);
-    db.skill.findMany
-      .mockReset()
-      .mockResolvedValueOnce([{ storeOid: store.oid }])
-      .mockResolvedValueOnce([]);
-
-    let result = await storeAccessService.resolveAccessibleStoreOids({
-      ...scope,
-      authorization,
-      requiredPermission: storeReadPermission,
-      storeOids: [store.oid]
-    });
-
-    expect(result.accessibleStoreOids).toEqual([]);
-  });
-
-  it('retains participant access for non-skill stores', async () => {
-    db.storeParticipantActor.findMany.mockResolvedValue([
-      {
-        storeOid: store.oid,
-        resourceActorOid: actor.oid,
-        permissions: [storeReadPermission]
-      }
-    ]);
-    db.skill.findMany.mockReset().mockResolvedValue([]);
-
-    let result = await storeAccessService.resolveAccessibleStoreOids({
-      ...scope,
-      authorization,
-      requiredPermission: storeReadPermission,
-      storeOids: [store.oid]
-    });
-
-    expect(result.accessibleStoreOids).toEqual([store.oid]);
-  });
-
-  it('does not grant public-read access to skill stores without a skill grant', async () => {
-    db.store.findMany.mockResolvedValue([{ ...store, access: 'public_read' }]);
-    db.skill.findMany
-      .mockReset()
-      .mockResolvedValueOnce([{ storeOid: store.oid }])
-      .mockResolvedValueOnce([]);
-
-    let result = await storeAccessService.resolveAccessibleStoreOids({
-      ...scope,
-      authorization,
-      requiredPermission: storeReadPermission,
-      storeOids: [store.oid]
-    });
-
-    expect(result.accessibleStoreOids).toEqual([]);
-    expect(db.storeParticipantActor.update).not.toHaveBeenCalled();
-  });
-
-  it('grants public-read access to non-skill stores', async () => {
-    db.store.findMany.mockResolvedValue([{ ...store, access: 'public_read' }]);
-    db.storeParticipantActor.findMany.mockResolvedValue([
-      {
-        id: 'stp_1',
-        storeOid: store.oid,
-        resourceActorOid: actor.oid,
-        permissions: []
-      }
-    ]);
-    db.storeParticipantActor.update.mockImplementation(async ({ data }) => ({
-      id: 'stp_1',
-      storeOid: store.oid,
-      resourceActorOid: actor.oid,
-      permissions: data.permissions
-    }));
-    db.skill.findMany.mockReset().mockResolvedValue([]);
-
-    let result = await storeAccessService.resolveAccessibleStoreOids({
-      ...scope,
-      authorization,
-      requiredPermission: storeReadPermission,
-      storeOids: [store.oid]
-    });
-
-    expect(result.accessibleStoreOids).toEqual([store.oid]);
-  });
-
-  it('allows privileged actors to write private stores', async () => {
-    let result = await storeAccessService.assertStoreAccessForStore({
-      ...scope,
-      authorization: {
-        type: 'privileged',
-        resourceActor: actor
-      },
-      requiredPermission: storeWritePermission,
-      store
-    });
-
-    expect(result.accessibleStoreOids).toEqual([store.oid]);
-  });
-
-  it('does not recognize creator columns as skill access', async () => {
-    authorization = {
-      ...authorization,
-      resourceActor: {
-        ...actor,
-        consumerOid: 20n
-      }
-    };
-
-    await storeAccessService.resolveAccessibleStoreOids({
-      ...scope,
-      authorization,
-      requiredPermission: storeWritePermission,
-      storeOids: [store.oid]
-    });
-
-    let accessibleSkillQuery = db.skill.findMany.mock.calls[1]![0];
-    expect(accessibleSkillQuery.where.OR).not.toContainEqual({
-      createdByResourceActorOid: actor.oid
-    });
-    expect(accessibleSkillQuery.where.OR).not.toContainEqual({
-      createdByConsumerOid: 20n
-    });
-  });
+  listAccessTagGrantsMock.mockResolvedValue([]);
+  getStoreResourceAccessWhereMock.mockResolvedValue({ marker: 'store-access-where' });
 });
 
-describe('store access dual mode', () => {
-  let consumerActor: any = { oid: 30n, id: 'rac_consumer', consumerProfileOid: 31n };
-  let consumerAuthorization: any = {
-    type: 'restricted',
-    resourceActor: consumerActor,
-    accessTags
-  };
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    isStoreResourceFlagEnabledMock.mockResolvedValue(false);
-    getAccessTagFilterMock.mockResolvedValue(accessTagFilter);
-    getStoreResourceAccessWhereMock.mockResolvedValue({ marker: 'v2-access-where' });
-    db.store.findMany.mockResolvedValue([store]);
-    db.storeParticipantActor.findMany.mockResolvedValue([]);
-    db.skill.findMany.mockResolvedValue([]);
-    db.consumerProfile.findUnique.mockResolvedValue({
-      organizationOid: 40n,
-      personalConsumerGroup: { accessTagOid: 41n }
-    });
-    db.storeParticipantActor.upsert.mockImplementation(async ({ create }) => ({
-      ...create,
-      oid: 50n
-    }));
-    db.storeParticipantActor.create.mockImplementation(async ({ data }) => ({
-      ...data,
-      oid: 51n
-    }));
-    db.storeParticipantActor.update.mockImplementation(async ({ where, data }) => ({
-      id: where.id,
-      storeOid: store.oid,
-      resourceActorOid: consumerActor.oid,
-      permissions: data.permissions
-    }));
-  });
-
-  it('keeps the legacy computation when store-access-v2 is off', async () => {
-    db.storeParticipantActor.findMany.mockResolvedValue([
-      {
-        id: 'stp_legacy',
-        storeOid: store.oid,
-        resourceActorOid: consumerActor.oid,
-        permissions: [storeReadPermission]
-      }
-    ]);
-
-    let result = await storeAccessService.resolveAccessibleStoreOids({
-      ...scope,
-      authorization: consumerAuthorization,
-      requiredPermission: storeReadPermission,
-      storeOids: [store.oid]
-    });
-
-    expect(result.accessibleStoreOids).toEqual([store.oid]);
-    expect(getStoreResourceAccessWhereMock).not.toHaveBeenCalled();
-  });
-
-  it('resolves access through store grants when store-access-v2 is on', async () => {
-    isStoreResourceFlagEnabledMock.mockResolvedValue(true);
-    db.storeParticipantActor.findMany.mockResolvedValue([
-      {
-        id: 'stp_legacy',
-        storeOid: store.oid,
-        resourceActorOid: consumerActor.oid,
-        permissions: [storeReadPermission]
-      }
-    ]);
-    db.store.findMany.mockReset();
-    db.store.findMany.mockResolvedValueOnce([store]).mockResolvedValueOnce([]);
-
-    let result = await storeAccessService.resolveAccessibleStoreOids({
-      ...scope,
-      authorization: consumerAuthorization,
+describe('store access resolution', () => {
+  it('gives privileged actors every relevant store without writing grants', async () => {
+    let result = await resolve({
+      authorization: { type: 'privileged', resourceActor: organizationActor },
       requiredPermission: storeWritePermission,
-      storeOids: [store.oid]
+      storeOids: [standaloneStore.oid, skillStore.oid],
+      defaultPermissions: [storeReadPermission]
     });
 
-    expect(result.accessibleStoreOids).toEqual([]);
+    expect(result.accessibleStoreOids).toEqual([standaloneStore.oid, skillStore.oid]);
+    expect(setAccessLevelMock).not.toHaveBeenCalled();
+    expect(recordParticipationMock).not.toHaveBeenCalled();
+  });
+
+  it('resolves restricted access only through store grants', async () => {
+    mockStores({ stores: [standaloneStore, skillStore], accessible: [skillStore.oid] });
+
+    let result = await resolve({
+      requiredPermission: storeWritePermission,
+      storeOids: [standaloneStore.oid, skillStore.oid]
+    });
+
+    expect(result.relevantStoreOids).toEqual([standaloneStore.oid, skillStore.oid]);
+    expect(result.accessibleStoreOids).toEqual([skillStore.oid]);
     expect(getStoreResourceAccessWhereMock).toHaveBeenCalledWith({
       accessTags,
       level: 'write'
     });
-    expect(db.store.findMany.mock.calls[1]![0].where).toEqual({
-      oid: { in: [store.oid] },
-      AND: [{ marker: 'v2-access-where' }]
+    expect(db.store.findMany).toHaveBeenCalledWith({
+      where: {
+        oid: { in: [standaloneStore.oid, skillStore.oid] },
+        AND: [{ marker: 'store-access-where' }]
+      },
+      select: { oid: true }
     });
-    expect(db.storeParticipantActor.findMany).toHaveBeenCalled();
+    expect(db.storeParticipantActor.findMany).not.toHaveBeenCalled();
+    expect(setAccessLevelMock).not.toHaveBeenCalled();
   });
 
   it('lets consumers with organization member access write skill stores they can read', async () => {
-    isStoreResourceFlagEnabledMock.mockResolvedValue(true);
     hasOrganizationMemberSkillAccessMock.mockResolvedValueOnce(true);
     getStoreResourceKindAccessWhereMock.mockResolvedValueOnce({ marker: 'skill-read-where' });
-    db.storeParticipantActor.findMany.mockResolvedValue([]);
-    db.store.findMany.mockReset();
-    db.store.findMany.mockResolvedValueOnce([store]).mockResolvedValueOnce([store]);
+    mockStores({ stores: [skillStore], accessible: [skillStore.oid] });
 
-    let result = await storeAccessService.resolveAccessibleStoreOids({
-      ...scope,
-      authorization: consumerAuthorization,
+    let result = await resolve({
       requiredPermission: storeWritePermission,
-      storeOids: [store.oid]
+      storeOids: [skillStore.oid]
     });
 
-    expect(result.accessibleStoreOids).toEqual([store.oid]);
-    expect(hasOrganizationMemberSkillAccessMock).toHaveBeenCalledWith({
-      project: scope.project,
-      authorization: consumerAuthorization
-    });
+    expect(result.accessibleStoreOids).toEqual([skillStore.oid]);
     expect(getStoreResourceKindAccessWhereMock).toHaveBeenCalledWith({
       kind: { kind: 'skill' },
       accessTags,
       level: 'read'
     });
-    expect(db.store.findMany.mock.calls[1]![0].where).toEqual({
-      oid: { in: [store.oid] },
-      AND: [{ OR: [{ marker: 'v2-access-where' }, { marker: 'skill-read-where' }] }]
+    expect(db.store.findMany).toHaveBeenCalledWith({
+      where: {
+        oid: { in: [skillStore.oid] },
+        AND: [{ OR: [{ marker: 'store-access-where' }, { marker: 'skill-read-where' }] }]
+      },
+      select: { oid: true }
     });
   });
 
-  it('fills a participation-only row with default permissions', async () => {
-    db.storeParticipantActor.findMany.mockResolvedValue([
-      {
-        id: 'stpa_1',
-        storeOid: store.oid,
-        resourceActorOid: consumerActor.oid,
-        permissions: []
-      }
-    ]);
-
-    await storeAccessService.resolveAccessibleStoreOids({
-      ...scope,
-      authorization: consumerAuthorization,
-      requiredPermission: storeReadPermission,
-      storeOids: [store.oid],
-      defaultPermissions: [storeReadPermission]
+  it('returns nothing for restricted access without an actor', async () => {
+    let result = await resolve({
+      authorization: { type: 'restricted', accessTags },
+      storeOids: [standaloneStore.oid]
     });
 
-    expect(db.storeParticipantActor.update).toHaveBeenCalledWith({
-      where: { id: 'stpa_1' },
-      data: { permissions: [storeReadPermission] }
-    });
+    expect(result.accessibleStoreOids).toEqual([]);
+    expect(getStoreResourceAccessWhereMock).not.toHaveBeenCalled();
   });
 
-  it('leaves an existing legacy row alone when only defaults are given', async () => {
-    db.storeParticipantActor.findMany.mockResolvedValue([
-      {
-        id: 'stp_1',
-        storeOid: store.oid,
-        resourceActorOid: consumerActor.oid,
-        permissions: []
-      }
-    ]);
+  it('records participation on readable public stores but not on public skill stores', async () => {
+    let publicStore = { ...standaloneStore, access: 'public_read' };
+    let publicSkillStore = { ...skillStore, access: 'public_read' };
+    mockStores({ stores: [publicStore, publicSkillStore], accessible: [publicStore.oid] });
 
-    await storeAccessService.resolveAccessibleStoreOids({
-      ...scope,
-      authorization: consumerAuthorization,
-      requiredPermission: storeReadPermission,
-      storeOids: [store.oid],
-      defaultPermissions: [storeReadPermission]
+    let result = await resolve({ storeOids: [publicStore.oid, publicSkillStore.oid] });
+
+    expect(result.accessibleStoreOids).toEqual([publicStore.oid]);
+    expect(recordParticipationMock).toHaveBeenCalledTimes(1);
+    expect(recordParticipationMock).toHaveBeenCalledWith({
+      store: { oid: publicStore.oid },
+      actor: consumerActor
     });
-
-    expect(db.storeParticipantActor.update).not.toHaveBeenCalled();
     expect(setAccessLevelMock).not.toHaveBeenCalled();
   });
 
-  it('mirrors changed consumer permissions on standalone stores to the personal tag', async () => {
+  it('does not record participation on a public-read store for a write check', async () => {
+    mockStores({ stores: [{ ...standaloneStore, access: 'public_read' }] });
+
+    await resolve({
+      requiredPermission: storeWritePermission,
+      storeOids: [standaloneStore.oid]
+    });
+
+    expect(recordParticipationMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('store access defaults', () => {
+  it('grants default permissions on the personal tag when the consumer has no grant', async () => {
+    await resolve({
+      storeOids: [standaloneStore.oid],
+      defaultPermissions: [storeReadPermission]
+    });
+
+    expect(listAccessTagGrantsMock).toHaveBeenCalledWith({
+      storeOids: [standaloneStore.oid],
+      organizationOid: 40n,
+      access: { kind: 'store' },
+      accessTagOids: [41n]
+    });
+    expect(setAccessLevelMock).toHaveBeenCalledWith({
+      store: { oid: standaloneStore.oid, organizationOid: 40n },
+      access: { kind: 'store' },
+      accessTagOids: [41n],
+      level: 'read'
+    });
+    expect(recordParticipationMock).toHaveBeenCalledWith({
+      store: { oid: standaloneStore.oid },
+      actor: consumerActor
+    });
+  });
+
+  it('keeps an existing grant when only defaults are given', async () => {
+    listAccessTagGrantsMock.mockResolvedValue([
+      { storeOid: standaloneStore.oid, accessTagOid: 41n, level: 'write' }
+    ]);
+
+    await resolve({
+      storeOids: [standaloneStore.oid],
+      defaultPermissions: [storeReadPermission]
+    });
+
+    expect(setAccessLevelMock).not.toHaveBeenCalled();
+  });
+
+  it('replaces an existing grant when permissions are overridden', async () => {
+    listAccessTagGrantsMock.mockResolvedValue([
+      { storeOid: standaloneStore.oid, accessTagOid: 41n, level: 'write' }
+    ]);
+
+    await resolve({
+      storeOids: [standaloneStore.oid],
+      defaultPermissions: [storeReadPermission],
+      overridePermissions: true
+    });
+
+    expect(setAccessLevelMock).toHaveBeenCalledWith(
+      expect.objectContaining({ level: 'read' })
+    );
+  });
+
+  it('removes the grant when permissions are overridden with none', async () => {
+    listAccessTagGrantsMock.mockResolvedValue([
+      { storeOid: standaloneStore.oid, accessTagOid: 41n, level: 'read' }
+    ]);
+
+    await resolve({ storeOids: [standaloneStore.oid], overridePermissions: true });
+
+    expect(setAccessLevelMock).toHaveBeenCalledWith(
+      expect.objectContaining({ level: 'none' })
+    );
+  });
+
+  it('never writes grants for skill stores', async () => {
+    await resolve({
+      storeOids: [skillStore.oid],
+      defaultPermissions: [storeReadPermission],
+      overridePermissions: true
+    });
+
+    expect(db.store.findMany).toHaveBeenCalledWith({
+      where: { oid: { in: [skillStore.oid] }, skill: { is: null } },
+      select: { oid: true }
+    });
+    expect(listAccessTagGrantsMock).not.toHaveBeenCalled();
+    expect(setAccessLevelMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('ensureActorStorePermissions', () => {
+  it('raises a consumer grant to write', async () => {
+    listAccessTagGrantsMock.mockResolvedValue([
+      { storeOid: standaloneStore.oid, accessTagOid: 41n, level: 'read' }
+    ]);
+
     await storeAccessService.ensureActorStorePermissions({
-      store,
+      store: standaloneStore,
       actor: consumerActor,
       permissions: [storeReadPermission, storeWritePermission]
     });
 
     expect(setAccessLevelMock).toHaveBeenCalledWith({
-      store: { oid: store.oid, organizationOid: 40n },
+      store: { oid: standaloneStore.oid, organizationOid: 40n },
       access: { kind: 'store' },
       accessTagOids: [41n],
       level: 'write'
     });
   });
 
-  it('does not mirror skill stores or unchanged rows', async () => {
-    db.store.findMany.mockResolvedValue([]);
-
-    await storeAccessService.ensureActorStorePermissions({
-      store,
-      actor: consumerActor,
-      permissions: [storeReadPermission]
-    });
-
-    expect(setAccessLevelMock).not.toHaveBeenCalled();
-
-    db.store.findMany.mockResolvedValue([store]);
-    db.storeParticipantActor.findMany.mockResolvedValue([
-      {
-        id: 'stp_1',
-        storeOid: store.oid,
-        resourceActorOid: consumerActor.oid,
-        permissions: [storeReadPermission]
-      }
+  it('does not lower a consumer grant without an override', async () => {
+    listAccessTagGrantsMock.mockResolvedValue([
+      { storeOid: standaloneStore.oid, accessTagOid: 41n, level: 'write' }
     ]);
 
     await storeAccessService.ensureActorStorePermissions({
-      store,
+      store: standaloneStore,
       actor: consumerActor,
       permissions: [storeReadPermission]
     });
@@ -538,86 +322,38 @@ describe('store access dual mode', () => {
     expect(setAccessLevelMock).not.toHaveBeenCalled();
   });
 
-  it('links a newly created permission row to a store participant', async () => {
+  it('does not write grants for organization actors', async () => {
     await storeAccessService.ensureActorStorePermissions({
-      store,
-      actor: consumerActor,
-      permissions: [storeReadPermission]
-    });
-
-    expect(recordParticipationMock).toHaveBeenCalledTimes(1);
-    expect(recordParticipationMock).toHaveBeenCalledWith({
-      store: { oid: store.oid },
-      actor: consumerActor
-    });
-  });
-
-  it('links a permission row that exists without a store participant', async () => {
-    db.storeParticipantActor.findMany.mockResolvedValue([
-      {
-        id: 'stp_1',
-        storeOid: store.oid,
-        resourceActorOid: consumerActor.oid,
-        storeParticipantOid: null,
-        permissions: [storeReadPermission]
-      }
-    ]);
-
-    await storeAccessService.ensureActorStorePermissions({
-      store,
-      actor: consumerActor,
-      permissions: [storeReadPermission]
-    });
-
-    expect(recordParticipationMock).toHaveBeenCalledTimes(1);
-  });
-
-  it('does not link rows that already have a store participant', async () => {
-    db.storeParticipantActor.findMany.mockResolvedValue([
-      {
-        id: 'stp_1',
-        storeOid: store.oid,
-        resourceActorOid: consumerActor.oid,
-        storeParticipantOid: 60n,
-        permissions: [storeReadPermission]
-      }
-    ]);
-    db.storeParticipantActor.update.mockImplementation(async ({ where, data }) => ({
-      id: where.id,
-      storeOid: store.oid,
-      resourceActorOid: consumerActor.oid,
-      storeParticipantOid: 60n,
-      permissions: data.permissions
-    }));
-
-    await storeAccessService.ensureActorStorePermissions({
-      store,
-      actor: consumerActor,
-      permissions: [storeReadPermission, storeWritePermission]
-    });
-
-    expect(recordParticipationMock).not.toHaveBeenCalled();
-  });
-
-  it('links rows created when permissions are overridden', async () => {
-    await storeAccessService.ensureActorStorePermissions({
-      store,
-      actor: consumerActor,
-      permissions: [storeReadPermission],
-      overridePermissions: true
-    });
-
-    expect(recordParticipationMock).toHaveBeenCalledTimes(1);
-  });
-
-  it('does not mirror organization actors', async () => {
-    await storeAccessService.ensureActorStorePermissions({
-      store,
-      actor,
+      store: standaloneStore,
+      actor: organizationActor,
       permissions: [storeReadPermission]
     });
 
     expect(db.consumerProfile.findUnique).not.toHaveBeenCalled();
     expect(setAccessLevelMock).not.toHaveBeenCalled();
+    expect(recordParticipationMock).toHaveBeenCalledWith({
+      store: { oid: standaloneStore.oid },
+      actor: organizationActor
+    });
+  });
+
+  it('does not record participation again for a linked participant', async () => {
+    db.storeParticipantActor.findMany.mockResolvedValue([{ storeOid: standaloneStore.oid }]);
+
+    await storeAccessService.ensureActorStorePermissions({
+      store: standaloneStore,
+      actor: consumerActor,
+      permissions: [storeReadPermission]
+    });
+
+    expect(db.storeParticipantActor.findMany).toHaveBeenCalledWith({
+      where: {
+        storeOid: { in: [standaloneStore.oid] },
+        resourceActorOid: consumerActor.oid,
+        storeParticipantOid: { not: null }
+      },
+      select: { storeOid: true }
+    });
+    expect(recordParticipationMock).not.toHaveBeenCalled();
   });
 });

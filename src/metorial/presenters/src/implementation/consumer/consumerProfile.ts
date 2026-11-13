@@ -57,7 +57,11 @@ export let v1ConsumerProfilePresenter = Presenter.create(consumerProfileType)
               group: await v1ConsumerGroupPresenter
                 .present({ consumerGroup: group }, opts)
                 .run(),
-              assigned_via: group.assignedVia
+              assigned_via: group.assignedVia,
+              sso_group_ids:
+                group.assignedVia == 'sso'
+                  ? group.ssoGroupIds.filter(id => consumerProfile.ssoGroupIds.includes(id))
+                  : []
             }))
           )
         : null
@@ -72,7 +76,11 @@ export let v1ConsumerProfilePresenter = Presenter.create(consumerProfileType)
             v.object({
               object: v.literal('consumer.profile.group_assignment'),
               group: v1ConsumerGroupPresenter.schema,
-              assigned_via: v.enumOf(['default', 'manual', 'sso', 'user'])
+              assigned_via: v.enumOf(['default', 'manual', 'sso', 'user']),
+              sso_group_ids: v.array(v.string(), {
+                description:
+                  'Identity provider group ids that placed this profile in the group. Empty unless assigned via SSO.'
+              })
             })
           )
         )

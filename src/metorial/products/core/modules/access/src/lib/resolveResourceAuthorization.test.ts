@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 let mocks = vi.hoisted(() => ({
-  isStoreResourceFlagEnabled: vi.fn(),
   findConsumerProfile: vi.fn(),
   findOrganizationMember: vi.fn()
 }));
@@ -11,10 +10,6 @@ vi.mock('@metorial/db', () => ({
     consumerProfile: { findUnique: mocks.findConsumerProfile },
     organizationMember: { findFirst: mocks.findOrganizationMember }
   }
-}));
-
-vi.mock('./storeResourceFlags', () => ({
-  isStoreResourceFlagEnabled: mocks.isStoreResourceFlagEnabled
 }));
 
 import { resolveResourceAuthorization } from './resolveResourceAuthorization';
@@ -55,7 +50,6 @@ let resolveConsumer = () =>
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.isStoreResourceFlagEnabled.mockResolvedValue(true);
   mocks.findConsumerProfile.mockResolvedValue(cliProfile());
   mocks.findOrganizationMember.mockResolvedValue({ oid: 9n });
 });
@@ -76,26 +70,10 @@ describe('resolveResourceAuthorization', () => {
       isCliMember: false,
       authorization: { type: 'privileged', resourceActor }
     });
-    expect(mocks.isStoreResourceFlagEnabled).not.toHaveBeenCalled();
-  });
-
-  it('restricts CLI organization members while store-access-v2 is off', async () => {
-    mocks.isStoreResourceFlagEnabled.mockResolvedValue(false);
-
-    let result = await resolveConsumer();
-
-    expect(result).toMatchObject({
-      isCliMember: false,
-      authorization: { type: 'restricted', resourceActor, accessTags }
-    });
-    expect(mocks.isStoreResourceFlagEnabled).toHaveBeenCalledWith({
-      project,
-      flag: 'store-access-v2'
-    });
     expect(mocks.findConsumerProfile).not.toHaveBeenCalled();
   });
 
-  it('makes active CLI organization members privileged when store-access-v2 is on', async () => {
+  it('makes active CLI organization members privileged', async () => {
     let result = await resolveConsumer();
 
     expect(result).toMatchObject({

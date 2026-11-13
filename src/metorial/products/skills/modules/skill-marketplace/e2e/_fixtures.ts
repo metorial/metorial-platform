@@ -658,6 +658,7 @@ export let grantAccess = async (
     skill?: { oid: bigint };
     skillMarketplace?: { oid: bigint };
     skillPlugin?: { oid: bigint };
+    skillGroup?: { oid: bigint };
   }
 ) => {
   let policy = await db.accessTagPolicy.create({
@@ -675,12 +676,13 @@ export let grantAccess = async (
       accessTagPolicyOid: policy.oid,
       skillOid: d.skill?.oid,
       skillMarketplaceOid: d.skillMarketplace?.oid,
-      skillPluginOid: d.skillPlugin?.oid
+      skillPluginOid: d.skillPlugin?.oid,
+      skillGroupOid: d.skillGroup?.oid
     }
   });
 
   if (d.skill) {
-    await storeAccessGrantService.syncLegacySkillGrants({ skillOid: d.skill.oid });
+    await storeAccessGrantService.syncSkillGrants({ skillOid: d.skill.oid });
   }
 
   return entity;

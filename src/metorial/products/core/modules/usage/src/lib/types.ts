@@ -7,6 +7,7 @@ export let usageMetricKinds = [
   'session_error',
   'auth_event',
   'auth_error',
+  'protoguard_warning',
   'consumer'
 ] as const;
 
@@ -35,6 +36,7 @@ export type UsageEvent = {
   dims?: UsageDimensions;
   isError?: boolean;
   durationMs?: number | null;
+  count?: number;
   ts?: Date;
 };
 

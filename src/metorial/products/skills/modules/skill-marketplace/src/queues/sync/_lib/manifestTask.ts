@@ -161,7 +161,7 @@ let applyManifestItem = async <Input, InitResult>(d: {
   let oversized = applied.oversizedFiles[0];
   if (oversized) {
     throw new CargoSkillLimitError(
-      `File ${oversized.path} is ${formatBytes(oversized.file.fileSize)}; synced files cannot exceed ${formatBytes(manifestFormatLimits.maxFileBytes)}.`
+      `File ${oversized.path} is ${formatBytes(Number(oversized.file.fileSize))}; synced files cannot exceed ${formatBytes(manifestFormatLimits.maxFileBytes)}.`
     );
   }
 

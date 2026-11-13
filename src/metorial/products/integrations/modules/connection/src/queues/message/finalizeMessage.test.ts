@@ -12,7 +12,6 @@ let mocks = vi.hoisted(() => {
       sessionProvider: { updateMany: vi.fn() },
       session: { updateMany: vi.fn() }
     },
-    protoGuardMessageQueue: { add: vi.fn() },
     fabricFire: vi.fn(),
     createQueue: vi.fn(() => ({
       process: (handler: any) => {
@@ -38,7 +37,6 @@ vi.mock('@metorial-subspace/db', () => ({
 }));
 vi.mock('@metorial/fabric', () => ({ Fabric: { fire: mocks.fabricFire } }));
 vi.mock('../../env', () => ({ env: { service: { REDIS_URL: 'redis://localhost:6379' } } }));
-vi.mock('./protoGuard', () => ({ protoGuardMessageQueue: mocks.protoGuardMessageQueue }));
 
 import './finalizeMessage';
 
@@ -77,7 +75,6 @@ describe('finalizeMessage usage accounting', () => {
     mocks.db.session.updateMany.mockResolvedValue(undefined);
     mocks.db.sessionMessage.updateMany.mockResolvedValue({ count: 1 });
     mocks.fabricFire.mockResolvedValue(undefined);
-    mocks.protoGuardMessageQueue.add.mockResolvedValue(undefined);
     // No mirror row: the audit entry resolves no scope and is skipped, which keeps these
     // usage-accounting cases focused on accounting.
     mocks.db.instance.findUnique.mockResolvedValue(null);
@@ -135,61 +132,6 @@ describe('finalizeMessage usage accounting', () => {
     await run(message());
 
     expect(mocks.fabricFire).not.toHaveBeenCalled();
-  });
-
-  it('runs ProtoGuard only at full', async () => {
-    mocks.db.sessionMessage.findUnique.mockResolvedValue(message({ retentionLevel: 'full' }));
-    await run(message());
-    expect(mocks.protoGuardMessageQueue.add).toHaveBeenCalledWith(
-      { messageId: 'msg_1' },
-      { id: 'msg_1' }
-    );
-
-    for (let level of ['intent_only', 'none']) {
-      vi.clearAllMocks();
-      mocks.fabricFire.mockResolvedValue(undefined);
-      mocks.db.sessionMessage.updateMany.mockResolvedValue({ count: 1 });
-      mocks.db.sessionMessage.findUnique.mockResolvedValue(
-        message({ retentionLevel: level, output: null })
-      );
-
-      await run(message());
-      expect(mocks.protoGuardMessageQueue.add).not.toHaveBeenCalled();
-    }
-  });
-
-  it('stores list and control messages but skips ProtoGuard for them', async () => {
-    for (let method of ['tools/list', 'initialize', 'ping', 'notifications/initialized']) {
-      vi.clearAllMocks();
-      mocks.fabricFire.mockResolvedValue(undefined);
-      mocks.db.sessionMessage.updateMany.mockResolvedValue({ count: 1 });
-      mocks.db.sessionMessage.findUnique.mockResolvedValue(
-        message({ methodOrToolKey: method })
-      );
-
-      await run(message());
-      expect(mocks.protoGuardMessageQueue.add).not.toHaveBeenCalled();
-    }
-
-    vi.clearAllMocks();
-    mocks.fabricFire.mockResolvedValue(undefined);
-    mocks.db.sessionMessage.updateMany.mockResolvedValue({ count: 1 });
-    mocks.db.sessionMessage.findUnique.mockResolvedValue(
-      message({ methodOrToolKey: 'resources/read' })
-    );
-
-    await run(message());
-    expect(mocks.protoGuardMessageQueue.add).toHaveBeenCalled();
-  });
-
-  it('still runs ProtoGuard for a tool that shares a control method name', async () => {
-    mocks.db.sessionMessage.findUnique.mockResolvedValue(
-      message({ methodOrToolKey: 'ping', toolCall: { id: 'tcl_1', tool: { key: 'ping' } } })
-    );
-
-    await run(message());
-
-    expect(mocks.protoGuardMessageQueue.add).toHaveBeenCalled();
   });
 
   it('does nothing when another run already finalized the message', async () => {

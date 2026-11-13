@@ -7,6 +7,7 @@ import {
   dashboardApiKeyPresenter,
   dashboardAuditLogStreamPresenter,
   dashboardConfigPresenter,
+  dashboardDocumentPresenter,
   dashboardProviderAuthConfigPresenter,
   dashboardPublicMcpServerClientPresenter,
   dashboardPublicMcpServerGrantPresenter,
@@ -101,6 +102,8 @@ import {
   // Custom Provider presenters
   v1CustomProviderPresenter,
   v1CustomProviderVersionPresenter,
+  v1DocumentCommentPresenter,
+  v1DocumentCommentThreadPresenter,
   v1DocumentEditTokenPresenter,
   v1DocumentParticipantPresenter,
   v1DocumentPermissionsPresenter,
@@ -176,6 +179,7 @@ import {
   v1PortalOAuthClientPresenter,
   v1PortalPresenter,
   v1ProfilePresenter,
+  v1ProjectAiAnalysisConfigurationPresenter,
   v1ProjectAuthConfigConfigurationPresenter,
   v1ProjectBrandPresenter,
   v1ProjectDataRetentionConfigurationPresenter,
@@ -190,6 +194,7 @@ import {
   v1ProjectWorkforceConfigurationPresenter,
   v1ProtoGuardAlertPresenter,
   v1ProtoGuardConfigPresenter,
+  v1ProtoGuardSuppressionPresenter,
   v1ProviderAuthConfigErrorGroupPresenter,
   v1ProviderAuthConfigErrorPresenter,
   v1ProviderAuthConfigEventPresenter,
@@ -222,6 +227,8 @@ import {
   v1ProviderToolsPresenter,
   v1ProviderTriggerPresenter,
   v1ProviderTypePresenter,
+  v1ProviderSecurityReviewPresenter,
+  v1ProviderSecurityReviewRevisionPresenter,
   v1ProviderVersionPresenter,
   v1PublisherPresenter,
   v1ResourceCountsPresenter,
@@ -257,6 +264,7 @@ import {
   v1ServiceAccountCredentialPresenter,
   v1ServiceAccountPresenter,
   v1SessionConnectionPresenter,
+  v1ProviderIssuePresenter,
   v1SessionErrorGroupPresenter,
   v1SessionErrorPresenter,
   v1SessionParticipantPresenter,
@@ -267,6 +275,7 @@ import {
   v1SetupSessionEmailPresenter,
   v1SetupSessionPresenter,
   v1SkillAgentPresenter,
+  v1SkillContentPreviewPresenter,
   v1SkillFileChangePresenter,
   v1SkillFileContentPresenter,
   v1SkillFilePresenter,
@@ -291,6 +300,8 @@ import {
   v1SkillPluginPresenter,
   v1SkillPluginRepositoryPresenter,
   v1SkillPluginSkillPresenter,
+  v1SkillSecurityReviewPresenter,
+  v1SkillSecurityReviewRevisionPresenter,
   v1SkillPresenter,
   v1SkillSyncPresenter,
   v1SkillSyncRepositoryChecksPresenter,
@@ -367,6 +378,8 @@ import {
   customProviderType,
   customProviderVersionType,
   deploymentPreviewType,
+  documentCommentThreadType,
+  documentCommentType,
   documentEditTokenType,
   documentParticipantType,
   documentPermissionsType,
@@ -439,6 +452,7 @@ import {
   portalOAuthClientType,
   portalType,
   profileType,
+  projectAiAnalysisConfigurationType,
   projectAuthConfigConfigurationType,
   projectBrandType,
   projectDataRetentionConfigurationType,
@@ -453,6 +467,7 @@ import {
   projectType,
   protoGuardAlertType,
   protoGuardConfigType,
+  protoGuardSuppressionType,
   providerAuthConfigErrorGroupType,
   providerAuthConfigErrorType,
   providerAuthConfigEventType,
@@ -485,6 +500,8 @@ import {
   providerToolType,
   providerToolsType,
   providerTriggerType,
+  providerSecurityReviewRevisionType,
+  providerSecurityReviewType,
   providerType,
   providerTypeType,
   providerVersionType,
@@ -522,6 +539,7 @@ import {
   serviceAccountCredentialType,
   serviceAccountType,
   sessionConnectionType,
+  providerIssueType,
   sessionErrorGroupType,
   sessionErrorType,
   sessionEventType,
@@ -535,6 +553,7 @@ import {
   skillFileChangeType,
   skillFileContentType,
   skillFileType,
+  skillContentPreviewType,
   skillMcpAvailabilityType,
   skillConfigurationType,
   skillExportType,
@@ -555,6 +574,8 @@ import {
   skillParticipantType,
   skillPluginRepositoryType,
   skillPluginSkillType,
+  skillSecurityReviewRevisionType,
+  skillSecurityReviewType,
   skillPluginType,
   skillSyncRepositoryChecksType,
   skillSyncType,
@@ -902,6 +923,14 @@ export let projectReducedSubprocessorsConfigurationPresenter = declarePresenter(
   }
 );
 
+export let projectAiAnalysisConfigurationPresenter = declarePresenter(
+  projectAiAnalysisConfigurationType,
+  {
+    mt_2025_01_01_dashboard: v1ProjectAiAnalysisConfigurationPresenter,
+    mt_2026_01_01_magnetar: v1ProjectAiAnalysisConfigurationPresenter
+  }
+);
+
 export let projectIntegrationNamingConfigurationPresenter = declarePresenter(
   projectIntegrationNamingConfigurationType,
   {
@@ -958,7 +987,7 @@ export let fileLinkPresenter = declarePresenter(fileLinkType, {
 });
 
 export let documentPresenter = declarePresenter(documentType, {
-  mt_2025_01_01_dashboard: v1DocumentPresenter,
+  mt_2025_01_01_dashboard: dashboardDocumentPresenter,
   mt_2026_01_01_magnetar: v1DocumentPresenter
 });
 
@@ -980,6 +1009,16 @@ export let documentVersionPresenter = declarePresenter(documentVersionType, {
 export let documentParticipantPresenter = declarePresenter(documentParticipantType, {
   mt_2025_01_01_dashboard: v1DocumentParticipantPresenter,
   mt_2026_01_01_magnetar: v1DocumentParticipantPresenter
+});
+
+export let documentCommentThreadPresenter = declarePresenter(documentCommentThreadType, {
+  mt_2025_01_01_dashboard: v1DocumentCommentThreadPresenter,
+  mt_2026_01_01_magnetar: v1DocumentCommentThreadPresenter
+});
+
+export let documentCommentPresenter = declarePresenter(documentCommentType, {
+  mt_2025_01_01_dashboard: v1DocumentCommentPresenter,
+  mt_2026_01_01_magnetar: v1DocumentCommentPresenter
 });
 
 export let storePresenter = declarePresenter(storeType, {
@@ -1025,6 +1064,11 @@ export let skillFileContentPresenter = declarePresenter(skillFileContentType, {
 export let skillFileChangePresenter = declarePresenter(skillFileChangeType, {
   mt_2025_01_01_dashboard: v1SkillFileChangePresenter,
   mt_2026_01_01_magnetar: v1SkillFileChangePresenter
+});
+
+export let skillContentPreviewPresenter = declarePresenter(skillContentPreviewType, {
+  mt_2025_01_01_dashboard: v1SkillContentPreviewPresenter,
+  mt_2026_01_01_magnetar: v1SkillContentPreviewPresenter
 });
 
 export let skillMcpAvailabilityPresenter = declarePresenter(skillMcpAvailabilityType, {
@@ -1084,6 +1128,19 @@ export let skillPluginSkillPresenter = declarePresenter(skillPluginSkillType, {
   mt_2025_01_01_dashboard: v1SkillPluginSkillPresenter,
   mt_2026_01_01_magnetar: v1SkillPluginSkillPresenter
 });
+
+export let skillSecurityReviewPresenter = declarePresenter(skillSecurityReviewType, {
+  mt_2025_01_01_dashboard: v1SkillSecurityReviewPresenter,
+  mt_2026_01_01_magnetar: v1SkillSecurityReviewPresenter
+});
+
+export let skillSecurityReviewRevisionPresenter = declarePresenter(
+  skillSecurityReviewRevisionType,
+  {
+    mt_2025_01_01_dashboard: v1SkillSecurityReviewRevisionPresenter,
+    mt_2026_01_01_magnetar: v1SkillSecurityReviewRevisionPresenter
+  }
+);
 
 export let skillSyncPresenter = declarePresenter(skillSyncType, {
   mt_2025_01_01_dashboard: v1SkillSyncPresenter,
@@ -1502,6 +1559,19 @@ export let providerVersionPresenter = declarePresenter(providerVersionType, {
   mt_2026_04_01_consumer: v1ProviderVersionPresenter
 });
 
+export let providerSecurityReviewPresenter = declarePresenter(providerSecurityReviewType, {
+  mt_2025_01_01_dashboard: v1ProviderSecurityReviewPresenter,
+  mt_2026_01_01_magnetar: v1ProviderSecurityReviewPresenter
+});
+
+export let providerSecurityReviewRevisionPresenter = declarePresenter(
+  providerSecurityReviewRevisionType,
+  {
+    mt_2025_01_01_dashboard: v1ProviderSecurityReviewRevisionPresenter,
+    mt_2026_01_01_magnetar: v1ProviderSecurityReviewRevisionPresenter
+  }
+);
+
 export let providerPresenter = declarePresenter(providerType, {
   mt_2025_01_01_dashboard: dashboardProviderPresenter,
   mt_2026_01_01_magnetar: v1ProviderPresenter,
@@ -1622,6 +1692,11 @@ export let protoGuardAlertPresenter = declarePresenter(protoGuardAlertType, {
 export let protoGuardConfigPresenter = declarePresenter(protoGuardConfigType, {
   mt_2025_01_01_dashboard: v1ProtoGuardConfigPresenter,
   mt_2026_01_01_magnetar: v1ProtoGuardConfigPresenter
+});
+
+export let protoGuardSuppressionPresenter = declarePresenter(protoGuardSuppressionType, {
+  mt_2025_01_01_dashboard: v1ProtoGuardSuppressionPresenter,
+  mt_2026_01_01_magnetar: v1ProtoGuardSuppressionPresenter
 });
 
 export let providerDeploymentPresenter = declarePresenter(providerDeploymentType, {
@@ -1878,6 +1953,11 @@ export let subspaceSessionErrorPresenter = declarePresenter(sessionErrorType, {
 export let subspaceSessionErrorGroupPresenter = declarePresenter(sessionErrorGroupType, {
   mt_2025_01_01_dashboard: v1SessionErrorGroupPresenter,
   mt_2026_01_01_magnetar: v1SessionErrorGroupPresenter
+});
+
+export let subspaceProviderIssuePresenter = declarePresenter(providerIssueType, {
+  mt_2025_01_01_dashboard: v1ProviderIssuePresenter,
+  mt_2026_01_01_magnetar: v1ProviderIssuePresenter
 });
 
 export let subspaceProviderRunPresenter = declarePresenter(providerRunType, {

@@ -156,6 +156,7 @@ class SkillMarketplaceServiceImpl {
       instance: Instance;
       ids?: string[];
       skillConfigurationIds?: string[];
+      skillGroupIds?: string[];
       statuses?: SkillMarketplaceStatusFilter[];
       search?: string;
       createdAt?: DateFilter;
@@ -165,7 +166,8 @@ class SkillMarketplaceServiceImpl {
     let accessWhere = await getSkillMarketplaceAccessWhere(d);
     let skillMarketplaces = await resolveSkillMarketplaces(d, d.ids);
     let skillConfigurations = await resolveSkillConfigurations(d, d.skillConfigurationIds);
-    let statuses: SkillMarketplaceStatus[] = d.statuses?.length ? d.statuses : ['active'];
+    let statuses: SkillMarketplaceStatus[] =
+      d.statuses?.length && !d.accessTags ? d.statuses : ['active'];
     d.search = d.search?.trim();
     if (!d.search?.length) d.search = undefined;
 
@@ -186,6 +188,21 @@ class SkillMarketplaceServiceImpl {
     let filters: Prisma.SkillMarketplaceWhereInput[] = [
       skillMarketplaces ? { oid: skillMarketplaces.in } : undefined,
       skillConfigurations ? { skillConfigurationOid: skillConfigurations.in } : undefined,
+      d.skillGroupIds
+        ? {
+            plugins: {
+              some: {
+                status: 'active',
+                skillPlugin: {
+                  status: 'active',
+                  skillGroupPlugin: {
+                    skillGroup: { id: { in: d.skillGroupIds }, instanceOid: d.instance.oid }
+                  }
+                }
+              }
+            }
+          }
+        : undefined,
       { status: { in: statuses } },
       search,
       d.createdAt ? { createdAt: normalizeDateFilter(d.createdAt) } : undefined,

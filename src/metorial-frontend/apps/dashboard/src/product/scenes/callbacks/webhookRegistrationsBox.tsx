@@ -1,14 +1,10 @@
-import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
+import { renderWithLoader } from '@metorial/data-hooks';
+import { col, createDataList, EmptyValue, StatusBadge } from '@metorial/data-list';
 import { Paths } from '@metorial/frontend-config';
-import {
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject,
-  useProvider,
-  useWebhookRegistrations
-} from '@metorial/state';
+import { useProvider, useWebhookRegistrations } from '@metorial/state';
 import { Badge, Button, Callout, Flex, Spacer, Text } from '@metorial/ui';
-import { Box, Table } from '@metorial/ui-product';
+import { Box } from '@metorial/ui-product';
+import { useInstanceContext } from '../../lib/dataList';
 import { truncateReceiverUrl } from './shared';
 import {
   getConnectionWebhookRegistrationTarget,
@@ -18,8 +14,69 @@ import {
 } from './webhookRegistrationPurpose';
 import {
   CreateWebhookRegistrationButton,
-  showWebhookRegistrationSetup
+  showWebhookRegistrationSetup,
+  webhookRegistrationStatus
 } from './webhookRegistrationsTable';
+
+let createProviderWebhookRegistrationsList = (purpose: WebhookRegistrationTarget['purpose']) =>
+  createDataList<{
+    instanceId: string;
+    providerId: string;
+    target: WebhookRegistrationTarget;
+  }>(`provider-${purpose}-registrations`, { customizable: false })
+    .context(useInstanceContext)
+    .paginated(({ props }) =>
+      useWebhookRegistrations(props.instanceId, {
+        order: 'desc',
+        providerId: props.providerId,
+        authCredentialsId:
+          props.target.purpose === 'delivery_setup'
+            ? props.target.authCredentialsId
+            : undefined
+      })
+    )
+    .columns([
+      col.custom({
+        id: 'receiver',
+        header: WEBHOOK_REGISTRATION_COPY[purpose].tableHeaders[0],
+        render: row => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Text size="2">{row.name}</Text>
+
+            {row.status === 'awaiting_setup' && (
+              <StatusBadge status={row.status} descriptor={webhookRegistrationStatus} />
+            )}
+
+            {row.status === 'active' && WEBHOOK_REGISTRATION_COPY[purpose].activeBadge && (
+              <Badge color="blue" size="2" style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
+                {WEBHOOK_REGISTRATION_COPY[purpose].activeBadge}
+              </Badge>
+            )}
+          </div>
+        )
+      }),
+      col.custom({
+        id: 'receiveUrl',
+        header: WEBHOOK_REGISTRATION_COPY[purpose].tableHeaders[1],
+        render: row =>
+          row.receiveUrl ? (
+            <Text size="2" style={{ fontFamily: 'jetbrains mono, monospace' }}>
+              {truncateReceiverUrl(row.receiveUrl)}
+            </Text>
+          ) : (
+            <EmptyValue>Not provisioned</EmptyValue>
+          )
+      })
+    ])
+    .link((row, _props, ctx) =>
+      Paths.instance.webhookRegistration(ctx.organization, ctx.project, ctx.instance, row.id)
+    )
+    .build();
+
+let providerWebhookRegistrationsLists = {
+  webhook_receiver: createProviderWebhookRegistrationsList('webhook_receiver'),
+  delivery_setup: createProviderWebhookRegistrationsList('delivery_setup')
+};
 
 export let ProviderWebhookRegistrationsBox = ({
   instanceId,
@@ -30,9 +87,6 @@ export let ProviderWebhookRegistrationsBox = ({
   provider: { id: string; name: string };
   target: WebhookRegistrationTarget;
 }) => {
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-  let instance = useCurrentInstance();
   let registrations = useWebhookRegistrations(instanceId, {
     order: 'desc',
     providerId: provider.id,
@@ -40,6 +94,7 @@ export let ProviderWebhookRegistrationsBox = ({
       target.purpose === 'delivery_setup' ? target.authCredentialsId : undefined
   });
   let copy = WEBHOOK_REGISTRATION_COPY[target.purpose];
+  let RegistrationsList = providerWebhookRegistrationsLists[target.purpose];
 
   let onCreate = () => void registrations.refetch();
 
@@ -59,10 +114,13 @@ export let ProviderWebhookRegistrationsBox = ({
           ) : undefined
         }
       >
-        {renderWithPagination(registrations, {
-          hidePaginationWhenUnavailable: true,
-          emptyState: (
-            <>
+        <RegistrationsList
+          listVariant="embedded"
+          instanceId={instanceId}
+          providerId={provider.id}
+          target={target}
+          emptyState={{
+            initial: () => (
               <Callout color="orange">
                 <div>
                   <Text size="2" weight="strong">
@@ -72,56 +130,9 @@ export let ProviderWebhookRegistrationsBox = ({
                   <Text size="2">{copy.emptyText(provider.name)}</Text>
                 </div>
               </Callout>
-            </>
-          )
-        })(registrations => (
-          <Table
-            headers={copy.tableHeaders}
-            data={registrations.data.items.map(registration => ({
-              href: Paths.instance.webhookRegistration(
-                organization.data,
-                project.data,
-                instance.data,
-                registration.id
-              ),
-              data: [
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span>{registration.name}</span>
-
-                  {registration.status === 'awaiting_setup' && (
-                    <Badge
-                      color="orange"
-                      size="2"
-                      style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
-                    >
-                      Awaiting Setup
-                    </Badge>
-                  )}
-
-                  {registration.status === 'active' && copy.activeBadge && (
-                    <Badge
-                      color="blue"
-                      size="2"
-                      style={{ flexShrink: 0, whiteSpace: 'nowrap' }}
-                    >
-                      {copy.activeBadge}
-                    </Badge>
-                  )}
-                </div>,
-
-                registration.receiveUrl ? (
-                  <Text size="2" style={{ fontFamily: 'jetbrains mono, monospace' }}>
-                    {truncateReceiverUrl(registration.receiveUrl)}
-                  </Text>
-                ) : (
-                  <Text size="2" color="gray600">
-                    Not provisioned
-                  </Text>
-                )
-              ]
-            }))}
-          />
-        ))}
+            )
+          }}
+        />
       </Box>
 
       <Spacer height={20} />

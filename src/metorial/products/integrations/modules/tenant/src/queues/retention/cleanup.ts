@@ -1,12 +1,13 @@
 import { createObjectDeleteQueue } from '@lowerdeck/queue';
 import { createRetentionRunner, retentionPhaseBatch } from '@lowerdeck/retention-runner';
 import { sessionMessageBucketRecord, storage } from '@metorial-subspace/connection-utils';
-import { db } from '@metorial-subspace/db';
+import { db, Prisma } from '@metorial-subspace/db';
 import { getConnectionRetentionWhere } from '@metorial-subspace/list-utils';
 import { env } from '../../env';
 import {
   getRetentionCutoffDate,
   RETENTION_BATCH_SIZE,
+  USAGE_ROLLUP_MAX_RETENTION_DAYS,
   retentionCleanupPhaseWorkerOpts,
   retentionCleanupWorkerOpts
 } from './_config';
@@ -482,6 +483,30 @@ let cleanupProviderDeploymentConfigPairDiscoveries = async (d: {
   });
 };
 
+let cleanupUsageRollups = async (d: {
+  table: 'ProviderToolUsageHourly' | 'ProviderProtoGuardHourly';
+  tenantOid: bigint;
+  cutoffDate: Date;
+}) => {
+  let rollupCutoff = new Date(
+    Math.max(
+      d.cutoffDate.getTime(),
+      Date.now() - USAGE_ROLLUP_MAX_RETENTION_DAYS * 24 * 60 * 60 * 1000
+    )
+  );
+
+  let deleted = await db.$executeRaw`
+    DELETE FROM ${Prisma.raw(`"${d.table}"`)}
+    WHERE ctid IN (
+      SELECT ctid FROM ${Prisma.raw(`"${d.table}"`)}
+      WHERE "tenantOid" = ${d.tenantOid} AND "hour" < ${rollupCutoff}
+      LIMIT ${RETENTION_BATCH_SIZE}
+    )
+  `;
+
+  return { deleted, hasMore: deleted === RETENTION_BATCH_SIZE };
+};
+
 interface TenantLogRetentionTenant {
   tenantOid: bigint;
   cutoffDate: Date;
@@ -531,7 +556,11 @@ let tenantLogRetentionRunner = createRetentionRunner<TenantLogRetentionTenant>({
     providerAuthConfigEvents: d => cleanupProviderAuthConfigEvents(d),
     providerSetupSessionEvents: d => cleanupProviderSetupSessionEvents(d),
     providerDeploymentConfigPairDiscoveries: d =>
-      cleanupProviderDeploymentConfigPairDiscoveries(d)
+      cleanupProviderDeploymentConfigPairDiscoveries(d),
+    providerToolUsageRollups: d =>
+      cleanupUsageRollups({ ...d, table: 'ProviderToolUsageHourly' }),
+    providerProtoGuardRollups: d =>
+      cleanupUsageRollups({ ...d, table: 'ProviderProtoGuardHourly' })
   }
 });
 

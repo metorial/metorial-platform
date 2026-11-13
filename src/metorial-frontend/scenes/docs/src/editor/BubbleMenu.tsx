@@ -18,11 +18,13 @@ export function BubbleMenu(props: Props) {
     let disposed = false;
     element.style.visibility = 'hidden';
     element.style.position = 'absolute';
+    element.style.zIndex = '1000';
     let plugin = new Plugin({
       key: typeof pluginKey === 'string' ? new PluginKey(pluginKey) : pluginKey,
       view: view => {
         let viewMenu = new BubbleMenuView({
           ...props,
+          appendTo: document.body,
           element,
           view,
           updateDelay: 0,

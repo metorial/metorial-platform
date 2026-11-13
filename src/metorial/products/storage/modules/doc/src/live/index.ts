@@ -7,14 +7,17 @@ import {
 import { createHono } from '@lowerdeck/hono';
 import { generatePlainId } from '@lowerdeck/id';
 import type { Context } from '@metorial/context';
-import { db, type StoreParticipantPermissions } from '@metorial/db';
+import { db, getImageUrl, type StoreParticipantPermissions } from '@metorial/db';
 import type { ResourceAuthorization } from '@metorial/module-access';
+import { resourceActorPresentationInclude } from '@metorial/module-resource-actor';
 import { upgradeWebSocket, websocket } from 'hono/bun';
 import type { WSContext } from 'hono/ws';
 import { internalDocumentCollaborationService } from '../internal/documentCollaboration';
+import { findLiveAnnotationViolations } from '../internal/documentLiveAnnotationGuard';
 import { internalDocumentSyncService } from '../internal/documentSync';
 import { queueDocumentCollaborationFlush } from '../queues/documentCollaborationFlush';
 import { documentService } from '../services/document';
+import { documentLiveStateService } from '../services/documentLiveState';
 import {
   canSendDocumentLiveMessage,
   hasSameDocumentLiveIdentity,
@@ -291,7 +294,7 @@ let presentFile = (
   documentId: file.document?.id,
   storeId: file.effectiveStoreId ?? file.storeId,
   fileName: file.fileName,
-  fileSize: file.fileSize,
+  fileSize: Number(file.fileSize),
   fileType: file.fileType,
   title: opts?.resolvedTitle ?? file.title ?? file.fileName,
   isReadOnly: file.isReadOnly,
@@ -339,7 +342,39 @@ let presentDocument = (document: any) => {
   };
 };
 
-let presentDocumentParticipant = (participant: any) => ({
+let presentParticipantActor = async (actor: any) => {
+  let organizationActor = actor.organizationActor
+    ? {
+        id: actor.organizationActor.id,
+        name: actor.organizationActor.name,
+        email: actor.organizationActor.email,
+        imageUrl: await getImageUrl(actor.organizationActor)
+      }
+    : null;
+
+  let instanceConsumer = actor.consumer?.instanceConsumers?.find(
+    (i: any) => i.instanceOid === actor.consumerProfile?.instanceOid
+  );
+  let consumer = instanceConsumer
+    ? {
+        id: instanceConsumer.id,
+        name: instanceConsumer.name,
+        email: instanceConsumer.email,
+        imageUrl: await getImageUrl(instanceConsumer)
+      }
+    : null;
+
+  return {
+    ...presentActor(actor),
+    name: organizationActor?.name ?? consumer?.name ?? actor.name,
+    imageUrl: organizationActor?.imageUrl ?? consumer?.imageUrl ?? null,
+    email: organizationActor?.email ?? consumer?.email ?? null,
+    organizationActor,
+    consumer
+  };
+};
+
+let presentDocumentParticipant = async (participant: any) => ({
   object: 'cargo#documentParticipant',
   id: participant.id,
   documentId: participant.document.id,
@@ -347,7 +382,7 @@ let presentDocumentParticipant = (participant: any) => ({
   editCount: participant.editCount,
   lastEditedAt: participant.lastEditedAt,
   lastViewedAt: participant.lastViewedAt,
-  actor: presentActor(participant.resourceActor),
+  actor: await presentParticipantActor(participant.resourceActor),
   createdAt: participant.createdAt
 });
 
@@ -389,7 +424,7 @@ let buildCollaborationResetPayload = async (
           update: state.stateUpdate,
           generation: state.generation
         })
-      : internalDocumentCollaborationService.getSnapshot(documentId)
+      : documentLiveStateService.ensureLiveState(documentId)
   ]);
 
   return {
@@ -405,41 +440,40 @@ let sendCollaborationReset = async (ws: WSContext<any>, documentId: string) => {
 
 let broadcastParticipantList = async (documentId: string) => {
   let actorIds = await getActiveActorIds(documentId);
-  let payload =
+  let records =
     actorIds.length === 0
       ? []
-      : (
-          await db.documentParticipant.findMany({
-            where: {
-              document: {
-                id: documentId
-              },
-              resourceActor: {
-                id: {
-                  in: actorIds
-                }
-              }
+      : await db.documentParticipant.findMany({
+          where: {
+            document: {
+              id: documentId
             },
-            include: {
-              document: true,
-              resourceActor: true
-            },
-            orderBy: [
-              {
-                role: 'asc'
-              },
-              {
-                createdAt: 'asc'
+            resourceActor: {
+              id: {
+                in: actorIds
               }
-            ]
-          })
-        )
-          .map(presentDocumentParticipant)
-          .sort(
-            (left, right) =>
-              left.actor.name.localeCompare(right.actor.name) ||
-              left.id.localeCompare(right.id)
-          );
+            }
+          },
+          include: {
+            document: true,
+            resourceActor: {
+              include: resourceActorPresentationInclude
+            }
+          },
+          orderBy: [
+            {
+              role: 'asc'
+            },
+            {
+              createdAt: 'asc'
+            }
+          ]
+        });
+
+  let payload = (await Promise.all(records.map(presentDocumentParticipant))).sort(
+    (left, right) =>
+      left.actor.name.localeCompare(right.actor.name) || left.id.localeCompare(right.id)
+  );
 
   let serialized = JSON.stringify(payload);
   if (lastParticipantPayloadByDocumentId.get(documentId) === serialized) {
@@ -629,11 +663,11 @@ export let createDocumentLiveApi = (options: DocumentLiveApiOptions) =>
             await persistLiveSession(session);
             scheduleSessionExpiry(session, ws);
 
-            let collaboration =
-              await internalDocumentCollaborationService.getSnapshot(documentId);
+            let collaboration = await documentLiveStateService.ensureLiveState(documentId);
             send(ws, 'document_snapshot', buildDocumentPayload(scopedDocument.document));
             send(ws, 'collaboration_snapshot', {
               sessionId,
+              actorId,
               document: buildDocumentPayload(scopedDocument.document),
               stateUpdate: collaboration.update,
               generation: collaboration.generation,
@@ -749,9 +783,25 @@ export let createDocumentLiveApi = (options: DocumentLiveApiOptions) =>
                   actorId: session.actorId,
                   actorContext: session.context,
                   generation:
-                    typeof parsed.data.generation === 'number' ? parsed.data.generation : 0
+                    typeof parsed.data.generation === 'number' ? parsed.data.generation : 0,
+                  validate: async ({ previous, next }) => {
+                    let violations = await findLiveAnnotationViolations({
+                      document: scopedDocument.document,
+                      actorId: session.actorId,
+                      previous,
+                      next
+                    });
+                    if (violations.length > 0) {
+                      console.warn('Rejected live document update with forged annotations', {
+                        documentId: session.documentId,
+                        sessionId,
+                        violations
+                      });
+                    }
+                    return violations.length === 0;
+                  }
                 });
-                if (merged.stale) {
+                if (merged.stale || merged.rejected) {
                   let ws = socketsBySessionId.get(sessionId);
                   if (ws) await sendCollaborationReset(ws, session.documentId);
                   return;

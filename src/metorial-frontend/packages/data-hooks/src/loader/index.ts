@@ -246,8 +246,8 @@ export let createLoader = <
     return getInstanceFromCurrent(current);
   });
 
-  let refetchAll = () => {
-    if (document.hasFocus()) {
+  let refetchAll = (refetchOpts?: { ignoreFocus?: boolean }) => {
+    if (refetchOpts?.ignoreFocus === true || document.hasFocus()) {
       for (let state of states.values()) {
         // Only refetch mounted loader instances; otherwise mutations can fan out
         // into stale cached variants from previously visited screens.

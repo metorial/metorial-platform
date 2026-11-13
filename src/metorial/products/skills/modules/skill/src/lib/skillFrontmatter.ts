@@ -62,7 +62,7 @@ export let getSkillAgentName = (skill: Pick<Skill, 'name' | 'clientName'>) =>
 
 export let renderSkillDocumentFrontmatter = (
   content: string,
-  d: { skill: SkillFrontmatterSource; name?: string }
+  d: { skill: SkillFrontmatterSource; name?: string; iconPath?: string | null }
 ) => {
   let {
     frontmatter: givenFrontmatter,
@@ -82,7 +82,8 @@ export let renderSkillDocumentFrontmatter = (
     compatibility: d.skill.compatibility || givenFrontmatter.compatibility || undefined,
     metadata: {
       ...(isRecord(d.skill.clientMetadata) ? d.skill.clientMetadata : {}),
-      ...(isRecord(givenFrontmatter.metadata) ? givenFrontmatter.metadata : {})
+      ...(isRecord(givenFrontmatter.metadata) ? givenFrontmatter.metadata : {}),
+      ...(d.iconPath ? { icon: d.iconPath } : {})
     }
   });
 

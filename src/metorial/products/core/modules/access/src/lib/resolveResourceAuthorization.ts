@@ -5,7 +5,6 @@ import {
   findLinkedOrganizationMember,
   getConsumerProfileOrganizationLink
 } from './organizationMemberSkillAccess';
-import { isStoreResourceFlagEnabled } from './storeResourceFlags';
 
 let cliSurfaceIdentifier = 'cli';
 
@@ -13,10 +12,6 @@ let isCliOrganizationMember = async (d: {
   project: Pick<Project, 'oid'>;
   consumerProfile: Pick<ConsumerProfile, 'oid'>;
 }) => {
-  if (!(await isStoreResourceFlagEnabled({ project: d.project, flag: 'store-access-v2' }))) {
-    return false;
-  }
-
   let profile = await getConsumerProfileOrganizationLink({
     consumerProfileOid: d.consumerProfile.oid
   });

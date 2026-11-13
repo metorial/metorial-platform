@@ -1,7 +1,12 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
-import type { Instance, ProductAssistantConversation, Project, ResourceActor } from '@metorial/db';
+import type {
+  Instance,
+  ProductAssistantConversation,
+  Project,
+  ResourceActor
+} from '@metorial/db';
 import { db, Prisma } from '@metorial/db';
 import { resourceActorPresentationInclude } from '@metorial/module-resource-actor';
 import { productAssistantConversationParticipantService } from './participant';
@@ -49,10 +54,10 @@ class ProductAssistantMessageServiceImpl {
   private async ensureScope(d: {
     project: Project;
     instance: Instance;
-    actor?: ResourceActor | null;
+    actor: ResourceActor;
     conversation: ProductAssistantConversation;
   }) {
-    await productAssistantConversationParticipantService.assertConversationAccess({
+    productAssistantConversationParticipantService.assertConversationAccess({
       project: d.project,
       instance: d.instance,
       conversation: d.conversation,
@@ -63,7 +68,7 @@ class ProductAssistantMessageServiceImpl {
   private conversationItemWhere(d: {
     project: Project;
     instance: Instance;
-    actor?: ResourceActor | null;
+    actor: ResourceActor;
     conversation: ProductAssistantConversation;
     messageId?: string;
   }) {
@@ -72,7 +77,7 @@ class ProductAssistantMessageServiceImpl {
         oid: d.conversation.oid,
         projectOid: d.project.oid,
         instanceOid: d.instance.oid,
-        ...productAssistantConversationParticipantService.participantAccessWhere({
+        ...productAssistantConversationParticipantService.ownerAccessWhere({
           actor: d.actor
         })
       },
@@ -85,7 +90,7 @@ class ProductAssistantMessageServiceImpl {
   async getAssistantMessageById(d: {
     project: Project;
     instance: Instance;
-    actor?: ResourceActor | null;
+    actor: ResourceActor;
     conversation: ProductAssistantConversation;
     messageId: string;
   }) {
@@ -103,7 +108,7 @@ class ProductAssistantMessageServiceImpl {
   async listAssistantMessages(d: {
     project: Project;
     instance: Instance;
-    actor?: ResourceActor | null;
+    actor: ResourceActor;
     conversation: ProductAssistantConversation;
   }) {
     await this.ensureScope(d);

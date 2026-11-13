@@ -4,6 +4,7 @@ import {
   retryOnUniqueViolation,
   type ProductAssistantModel as PersistedModel
 } from '@metorial/db';
+import type { ReviewModel } from '@metorial/review-engine';
 import type { LanguageModel } from 'ai';
 import { createE2EModel, isE2EModelEnabled } from './e2eModel';
 import { getModelInfo } from './models';
@@ -18,6 +19,7 @@ export interface Model {
   contextWindow: number;
   inputCostPerMillionTokens: number;
   outputCostPerMillionTokens: number;
+  routed?: ReviewModel;
 }
 
 export let model = async (d: {
@@ -25,6 +27,7 @@ export let model = async (d: {
   name: string;
   model: LanguageModel;
   provider: Promise<Provider>;
+  routed?: ReviewModel;
 }) => {
   let provider = await d.provider;
   let info = await getModelInfo(provider.slug, d.slug);
@@ -32,9 +35,9 @@ export let model = async (d: {
   let inner = {
     slug: d.slug,
     name: d.name,
-    contextWindow: info?.limit?.context ?? 50_000,
-    inputCostPerMillionTokens: info?.cost?.input ?? 0,
-    outputCostPerMillionTokens: info?.cost?.output ?? 0
+    contextWindow: d.routed?.contextWindow ?? info?.limit?.context ?? 50_000,
+    inputCostPerMillionTokens: d.routed?.pricing.inputPerMillion ?? info?.cost?.input ?? 0,
+    outputCostPerMillionTokens: d.routed?.pricing.outputPerMillion ?? info?.cost?.output ?? 0
   };
 
   let _persisted = await retryOnUniqueViolation(async () =>
@@ -58,6 +61,7 @@ export let model = async (d: {
     info,
     model: languageModel,
     provider,
+    routed: isE2EModelEnabled() ? undefined : d.routed,
     ...inner
   };
 };

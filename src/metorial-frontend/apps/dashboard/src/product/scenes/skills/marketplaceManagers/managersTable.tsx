@@ -1,13 +1,7 @@
+import { col, createDataList, defineAction, f } from '@metorial/data-list';
 import { useDeletePortalConsumerAccess } from '@metorial/state';
-import { Table } from '@metorial/table';
-import {
-  getEnumListFilterValue,
-  type TableStateProvider,
-  type TableStateProviderResult
-} from '@metorial/table';
-import { Badge, Flex, Text, confirm } from '@metorial/ui';
-import { RiDeleteBinLine, RiEditLine } from '@remixicon/react';
-import { useMemo } from 'react';
+import { Badge } from '@metorial/ui';
+import { RiEditLine } from '@remixicon/react';
 import { showMarketplaceManagerPanel } from './panel';
 import { MarketplaceManagerScopeBadges, removeMarketplaceManager } from './shared';
 import type { MarketplaceManagerRow } from './types';
@@ -21,250 +15,166 @@ export type MarketplaceManagersTableProps = {
   isLoading: boolean;
   error?: unknown;
   refetch: () => void;
-  emptyState: string;
 };
 
-type MarketplaceManagersTableState = TableStateProviderResult<MarketplaceManagerRow> & {
-  refetch: () => void;
-};
-
-let matchesSearch = (row: MarketplaceManagerRow, search?: string) => {
-  if (!search) return true;
-
-  let pluginNames =
-    row.scope.type == 'plugins' ? row.scope.plugins.map(plugin => plugin.name).join(' ') : '';
-  let hay = [
-    row.name,
-    row.description ?? '',
-    row.kind,
-    row.scope.type == 'entire' ? 'entire marketplace' : pluginNames
-  ]
-    .join(' ')
-    .toLowerCase();
-
-  return hay.includes(search.trim().toLowerCase());
-};
-
-let useMarketplaceManagersTableState: TableStateProvider<
-  MarketplaceManagersTableProps,
-  MarketplaceManagerRow,
-  MarketplaceManagersTableState
-> = (props, opts) => {
-  let items = useMemo(() => {
-    let kinds = getEnumListFilterValue(opts.filter.kind, ['group', 'account']);
-
-    return props.rows.filter(row => {
-      if (kinds?.length && !kinds.includes(row.kind)) return false;
-      return matchesSearch(row, opts.search);
-    });
-  }, [opts.filter.kind, opts.search, props.rows]);
-
-  return {
-    isLoading: props.isLoading,
-    error: (props.error as MarketplaceManagersTableState['error']) ?? null,
-    items,
-    hasMoreAfter: false,
-    hasMoreBefore: false,
-    loadNext: () => {},
-    loadPrevious: () => {},
-    refetch: props.refetch
-  };
-};
-
-let useMarketplaceManagersTableHookState = (
-  state: MarketplaceManagersTableState,
-  props: MarketplaceManagersTableProps
-) => {
-  let deleteAccess = useDeletePortalConsumerAccess();
-
-  return {
-    instanceId: props.instanceId,
-    variant: props.variant,
-    refetch: state.refetch,
-    deleteAccess
-  };
-};
-
-type MarketplaceManagersHookState = ReturnType<typeof useMarketplaceManagersTableHookState>;
-
-let marketplaceManagerActions = {
-  edit: async (rows: MarketplaceManagerRow[], hookState: MarketplaceManagersHookState) => {
-    let row = rows[0];
-    if (!row) return;
-
-    showMarketplaceManagerPanel({
-      instanceId: hookState.instanceId,
-      skillMarketplaceId: row.skillMarketplaceId,
-      portalId: row.portalId,
-      consumerGroupId: row.consumerGroupId,
-      edit: row,
-      onSuccess: hookState.refetch
-    });
-  },
-  remove: async (rows: MarketplaceManagerRow[], hookState: MarketplaceManagersHookState) => {
-    let row = rows[0];
-    if (!row) return;
-
-    confirm({
-      title: 'Remove Marketplace Manager',
-      description:
-        hookState.variant == 'marketplaces'
-          ? `Remove this group as a Marketplace Manager of ${row.name}?`
-          : `Remove ${row.name} as a Marketplace Manager? They will no longer be able to manage this marketplace.`,
-      confirmText: 'Remove',
-      onConfirm: async () => {
-        let removed = await removeMarketplaceManager({
-          instanceId: hookState.instanceId,
-          portalId: row.portalId,
-          row,
-          deleteAccess: hookState.deleteAccess
-        });
-        if (removed) hookState.refetch();
-      }
-    });
-  }
-};
-
-let marketplaceManagerRowActions = [
-  {
-    id: 'edit',
-    label: 'Edit',
-    icon: <RiEditLine />,
-    action: 'edit' as const
-  },
-  {
-    id: 'remove',
-    label: 'Remove',
-    icon: <RiDeleteBinLine />,
-    action: 'remove' as const
-  }
+let getSearchValues = (row: MarketplaceManagerRow) => [
+  row.name,
+  row.description,
+  row.kind,
+  row.scope.type == 'entire'
+    ? 'entire marketplace'
+    : row.scope.plugins.map(plugin => plugin.name).join(' ')
 ];
 
-let marketplaceManagersPeopleTable = new Table<
-  MarketplaceManagersTableProps,
-  MarketplaceManagerRow
->('marketplace-managers', { hasPagination: false })
-  .state(useMarketplaceManagersTableState)
-  .hookState(useMarketplaceManagersTableHookState)
-  .columns([
-    {
-      id: 'name',
-      isDefault: true,
-      header: 'Name',
-      render: row => (
-        <Flex gap={2} direction="column">
-          <Text size="2" weight="strong">
-            {row.name}
-          </Text>
-          <Text size="1" color="gray600">
-            {row.description || (row.kind == 'account' ? 'Account' : 'Group')}
-          </Text>
-        </Flex>
-      )
+let openEditPanel = (row: MarketplaceManagerRow, props: MarketplaceManagersTableProps) =>
+  showMarketplaceManagerPanel({
+    instanceId: props.instanceId,
+    skillMarketplaceId: row.skillMarketplaceId,
+    portalId: row.portalId,
+    consumerGroupId: row.consumerGroupId,
+    edit: row,
+    onSuccess: props.refetch
+  });
+
+let editAction = defineAction<MarketplaceManagerRow, MarketplaceManagersTableProps>({
+  id: 'edit',
+  label: 'Edit',
+  icon: <RiEditLine />,
+  useRun:
+    ({ props }) =>
+    row =>
+      openEditPanel(row, props)
+});
+
+let removeAction = (description: (row: MarketplaceManagerRow) => string) =>
+  defineAction<MarketplaceManagerRow, MarketplaceManagersTableProps>({
+    id: 'remove',
+    label: 'Remove',
+    destructive: true,
+    confirm: {
+      title: 'Remove Marketplace Manager',
+      confirmText: 'Remove',
+      description: rows => description(rows[0]!)
     },
-    {
+    useRun: ({ props }) => {
+      let deleteAccess = useDeletePortalConsumerAccess();
+
+      return async row => {
+        let removed = await removeMarketplaceManager({
+          instanceId: props.instanceId,
+          portalId: row.portalId,
+          row,
+          deleteAccess
+        });
+
+        if (removed) props.refetch();
+      };
+    }
+  });
+
+let managersFilters = () => ({
+  kind: f.select('kind', 'Kind', [
+    { id: 'group', label: 'Access Group' },
+    { id: 'account', label: 'Account' }
+  ] as const)
+});
+
+let useManagerRows = ({
+  props,
+  filters
+}: {
+  props: MarketplaceManagersTableProps;
+  filters: { kind?: ('group' | 'account')[] };
+}) => ({
+  items: props.rows.filter(row => !filters.kind?.length || filters.kind.includes(row.kind)),
+  isLoading: props.isLoading,
+  error: (props.error as any) ?? null
+});
+
+let accessColumn = col.custom<MarketplaceManagerRow>({
+  id: 'access',
+  header: 'Access',
+  render: row => <MarketplaceManagerScopeBadges row={row} />
+});
+
+let marketplaceManagersPeopleTable = createDataList<MarketplaceManagersTableProps>(
+  'marketplace-managers'
+)
+  .filters(managersFilters)
+  .search('Search managers…')
+  .items(useManagerRows, { searchFields: getSearchValues })
+  .columns([
+    col.name<MarketplaceManagerRow>({
+      description: row => row.description || (row.kind == 'account' ? 'Account' : 'Access Group')
+    }),
+    col.custom<MarketplaceManagerRow>({
       id: 'kind',
-      isDefault: true,
       header: 'Kind',
       render: row => (
         <Badge color="gray" size="2">
-          {row.kind == 'account' ? 'Account' : 'Group'}
+          {row.kind == 'account' ? 'Account' : 'Access Group'}
         </Badge>
       )
-    },
-    {
-      id: 'access',
-      isDefault: true,
-      header: 'Access',
-      render: row => <MarketplaceManagerScopeBadges row={row} />
-    }
+    }),
+    accessColumn
   ])
-  .filters([
-    {
-      id: 'kind',
-      fields: ['kind'],
-      label: 'Kind',
-      description: 'Filter by kind',
-      type: 'select',
-      options: [
-        { id: 'group', label: 'Group' },
-        { id: 'account', label: 'Account' }
-      ]
-    }
+  .clickable(openEditPanel)
+  .itemActions([
+    editAction,
+    removeAction(
+      row =>
+        `Remove ${row.name} as a Marketplace Manager? They will no longer be able to manage this marketplace.`
+    )
   ])
-  .search('Search managers…')
-  .actions(marketplaceManagerActions)
-  .rowActions(marketplaceManagerRowActions)
-  .clickable((row, props) => {
-    showMarketplaceManagerPanel({
-      instanceId: props.instanceId,
-      skillMarketplaceId: row.skillMarketplaceId,
-      portalId: row.portalId,
-      consumerGroupId: row.consumerGroupId,
-      edit: row,
-      onSuccess: props.refetch
-    });
-  })
   .build();
 
-let groupMarketplaceManagersTable = new Table<
-  MarketplaceManagersTableProps,
-  MarketplaceManagerRow
->('group-marketplace-managers', { hasPagination: false })
-  .state(useMarketplaceManagersTableState)
-  .hookState(useMarketplaceManagersTableHookState)
-  .columns([
-    {
-      id: 'marketplace',
-      isDefault: true,
-      header: 'Marketplace',
-      render: row => (
-        <Flex gap={2} direction="column">
-          <Text size="2" weight="strong">
-            {row.name}
-          </Text>
-          {row.description ? (
-            <Text size="2" color="gray600">
-              {row.description}
-            </Text>
-          ) : null}
-        </Flex>
-      )
-    },
-    {
-      id: 'access',
-      isDefault: true,
-      header: 'Access',
-      render: row => <MarketplaceManagerScopeBadges row={row} />
-    }
-  ])
+let groupMarketplaceManagersTable = createDataList<MarketplaceManagersTableProps>(
+  'group-marketplace-managers'
+)
+  .items(
+    ({ props }) => ({
+      items: props.rows,
+      isLoading: props.isLoading,
+      error: (props.error as any) ?? null
+    }),
+    { searchFields: getSearchValues }
+  )
   .search('Search marketplaces…')
-  .actions(marketplaceManagerActions)
-  .rowActions(marketplaceManagerRowActions)
-  .clickable((row, props) => {
-    showMarketplaceManagerPanel({
-      instanceId: props.instanceId,
-      skillMarketplaceId: row.skillMarketplaceId,
-      portalId: row.portalId,
-      consumerGroupId: row.consumerGroupId,
-      edit: row,
-      onSuccess: props.refetch
-    });
-  })
+  .columns([
+    col.name<MarketplaceManagerRow>({ id: 'marketplace', header: 'Marketplace' }),
+    accessColumn
+  ])
+  .clickable(openEditPanel)
+  .itemActions([
+    editAction,
+    removeAction(row => `Remove this group as a Marketplace Manager of ${row.name}?`)
+  ])
   .build();
 
-export let MarketplaceManagersTable = (
-  props: Omit<MarketplaceManagersTableProps, 'variant'>
-) =>
+export let MarketplaceManagersTable = (props: {
+  instanceId: string;
+  rows: MarketplaceManagerRow[];
+  isLoading: boolean;
+  error?: unknown;
+  refetch: () => void;
+  emptyState: string;
+}) =>
   marketplaceManagersPeopleTable({
     ...props,
-    variant: 'people'
+    variant: 'people',
+    listVariant: 'embedded'
   });
 
-export let GroupMarketplaceManagersTable = (
-  props: Omit<MarketplaceManagersTableProps, 'variant'>
-) =>
+export let GroupMarketplaceManagersTable = (props: {
+  instanceId: string;
+  rows: MarketplaceManagerRow[];
+  isLoading: boolean;
+  error?: unknown;
+  refetch: () => void;
+  emptyState: string;
+}) =>
   groupMarketplaceManagersTable({
     ...props,
-    variant: 'marketplaces'
+    variant: 'marketplaces',
+    listVariant: 'embedded'
   });

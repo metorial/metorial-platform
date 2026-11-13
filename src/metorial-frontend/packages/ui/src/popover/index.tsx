@@ -8,6 +8,7 @@ import {
 } from '../dialog/state';
 import { theme } from '../theme';
 import { OverlayOpenProvider, useSuppressTooltipWhileOpen } from '../tooltip/state';
+import { surface } from '../controlSize/scale';
 
 let fadeInTop = keyframes`
   from {
@@ -112,7 +113,7 @@ let Wrapper = styled(RadixPopover.Content)`
   cursor: pointer;
   background: rgba(245, 245, 245, 0.7);
   backdrop-filter: blur(10px);
-  border-radius: 10px;
+  border-radius: ${surface.borderRadius};
   min-width: 200px;
   will-change: transform, opacity;
   outline: none;

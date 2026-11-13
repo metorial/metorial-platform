@@ -137,12 +137,12 @@ describe('module-consumer-entities', () => {
     expect(skill.name).toBe(name);
     expect(skill.status).toBe('active');
 
-    let participant = await db.skillParticipant.findFirst({
+    let participant = await db.storeParticipantActor.findFirst({
       where: {
-        skill: { id: skill.id },
+        store: { skill: { id: skill.id } },
         resourceActor: { consumerProfileOid: consumerProfile.oid }
       }
     });
-    expect(participant).not.toBeNull();
+    expect(participant?.roles).toEqual(['creator', 'owner']);
   });
 });

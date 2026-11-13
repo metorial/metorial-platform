@@ -10,4 +10,5 @@ export * from './providerTrigger';
 export * from './providerType';
 export * from './providerVersion';
 export * from './publisher';
+export * from './securityReview';
 export * from './specification';

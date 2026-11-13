@@ -1,7 +1,7 @@
 import { delay } from '@lowerdeck/delay';
 import { Service } from '@lowerdeck/service';
 import { generateCustomId } from '@metorial/id';
-import { oauthJwkGlobalRepository } from '@metorial/multi-region';
+import { leaseGlobalRepository, oauthJwkGlobalRepository } from '@metorial/multi-region';
 import { addDays } from 'date-fns';
 
 let OAUTH_JWK_LOCK_NAME = 'machine_access.oauth_jwk.rotate';
@@ -106,7 +106,7 @@ class OAuthJwkService {
     }
 
     let lockToken = generateCustomId('oauth_jwk_lock', 24);
-    let acquired = await oauthJwkGlobalRepository.tryAcquireLease({
+    let acquired = await leaseGlobalRepository.tryAcquireLease({
       name: OAUTH_JWK_LOCK_NAME,
       token: lockToken,
       ttlMs: OAUTH_JWK_LOCK_TTL_MS
@@ -197,7 +197,7 @@ class OAuthJwkService {
         nextKid: next?.kid ?? null
       };
     } finally {
-      await oauthJwkGlobalRepository.releaseLease({
+      await leaseGlobalRepository.releaseLease({
         name: OAUTH_JWK_LOCK_NAME,
         token: lockToken
       });

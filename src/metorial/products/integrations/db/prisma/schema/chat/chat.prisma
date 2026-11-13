@@ -34,9 +34,9 @@ model Chat {
 
   workspace  ChatWorkspace?
   chatEvents ChatEvent[]
-  authors   ChatAuthor[]
-  channels  ChatChannel[]
-  threads   ChatThread[]
+  authors    ChatAuthor[]
+  channels   ChatChannel[]
+  threads    ChatThread[]
 
   @@index([chatConnectionOid, status])
   @@index([chatInstanceOid, status])

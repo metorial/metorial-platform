@@ -1,3 +1,9 @@
+enum SkillSecurityReviewPolicy {
+  off
+  warn
+  block
+}
+
 model SkillConfiguration {
   oid BigInt @id @default(autoincrement())
   id  String @unique
@@ -8,6 +14,8 @@ model SkillConfiguration {
   allowScripts                Boolean  @default(true)
   allowedFileExtensions       String[] @default([])
   allowNonStandardDirectories Boolean  @default(true)
+
+  securityReviewPolicy SkillSecurityReviewPolicy @default(off)
 
   resourceTenantOid BigInt?
   resourceTenant    ResourceTenant? @relation(fields: [resourceTenantOid], references: [oid], onDelete: Cascade)

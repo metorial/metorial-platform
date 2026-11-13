@@ -246,7 +246,7 @@ class FileUploadServiceImpl {
           purposeOid: purpose.oid,
           storeId,
           fileName,
-          fileSize: d.input.size,
+          fileSize: BigInt(d.input.size),
           fileType,
           title: d.input.title,
           attachStoreId: d.input.store?.id,
@@ -311,7 +311,12 @@ class FileUploadServiceImpl {
 
     let object = await this.headUploadedObject(upload);
 
-    if (!doesUploadedObjectMatch({ declaredSize: upload.fileSize, actualSize: object.size })) {
+    if (
+      !doesUploadedObjectMatch({
+        declaredSize: Number(upload.fileSize),
+        actualSize: object.size
+      })
+    ) {
       await this.discardUploadedObject(upload);
 
       throw new ServiceError(
@@ -322,7 +327,7 @@ class FileUploadServiceImpl {
     }
 
     let fabricOwner = {
-      ...fileFabricOwnerFromScope(scope, upload.fileSize),
+      ...fileFabricOwnerFromScope(scope, Number(upload.fileSize)),
       auditScope: d.auditScope
     };
 
@@ -373,7 +378,7 @@ class FileUploadServiceImpl {
         input: {
           name: upload.fileName,
           mimeType: upload.fileType,
-          size: upload.fileSize,
+          size: Number(upload.fileSize),
           title: upload.title ?? undefined,
           authorization,
           defaultPermissions,

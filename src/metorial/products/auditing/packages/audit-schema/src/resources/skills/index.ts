@@ -8,6 +8,7 @@ import {
 import {
   skillGroupAuditResource,
   skillMergeRequestAuditResource,
+  skillSecurityReviewAuditResource,
   skillTemplateAuditResource
 } from './skillGroup';
 
@@ -18,5 +19,6 @@ export let skillResources = resourceSet({
   skill_group: skillGroupAuditResource,
   skill_template: skillTemplateAuditResource,
   skill_merge_request: skillMergeRequestAuditResource,
+  skill_security_review: skillSecurityReviewAuditResource,
   skill_destination: skillDestinationAuditResource
 });

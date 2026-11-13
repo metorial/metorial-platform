@@ -3,6 +3,7 @@ import {
   type TableFilter,
   type TableFilterEntityOption,
   type TableFilterEntityOptions,
+  type TableFilterHighlight,
   type TableFilterPayloadMap
 } from '@metorial/ui-product';
 import { useMemo } from 'react';
@@ -12,6 +13,7 @@ export type EntityFilterOptions = {
   fields?: string[];
   label?: string;
   pinned?: boolean;
+  highlight?: TableFilterHighlight;
 };
 
 export type EntityListQuery = {
@@ -140,6 +142,7 @@ export let defineEntityFilter =
       fields: opts.fields,
       label: opts.label ?? def.label,
       pinned: opts.pinned,
+      highlight: opts.highlight,
       remoteSearch: def.mode == 'search',
       searchPlaceholder:
         def.mode == 'search' ? `Search ${def.noun}...` : `Filter ${def.noun}...`,

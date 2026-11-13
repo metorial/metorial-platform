@@ -7,6 +7,9 @@ export type DisabledFlag = {
 
 export type FlagValue = boolean | DisabledFlag;
 
+export let aiReviewThoroughnessLevels = ['basic', 'standard', 'deep'] as const;
+export type AiReviewThoroughness = (typeof aiReviewThoroughnessLevels)[number];
+
 export type Flags = {
   'test-flag': FlagValue;
 
@@ -25,12 +28,11 @@ export type Flags = {
   'key-providers-azure-key-vault-enabled': FlagValue;
   'networking-enabled': FlagValue;
   'sandbox-enabled': FlagValue;
+  'security-reviews-enabled': FlagValue;
   'public-mcp-servers-enabled': FlagValue;
   'devices-enabled': FlagValue;
   outposts: FlagValue;
 
-  'store-participants-v2': FlagValue;
-  'store-access-v2': FlagValue;
   'skills-manifest-sync': FlagValue;
 
   'paid-integrations': FlagValue;
@@ -54,6 +56,10 @@ export type Flags = {
   'paid-network-ip-access': FlagValue;
   'paid-sandboxes': FlagValue;
   'paid-advanced-org-management': FlagValue;
+  'paid-ai-reviews': FlagValue;
+  'paid-protoguard': FlagValue;
+
+  'ai-review-thoroughness': AiReviewThoroughness;
 
   'sandbox-builder-memory-mib': number;
   'sandbox-max-memory-gib': number;
@@ -61,7 +67,7 @@ export type Flags = {
 };
 
 export type BooleanFlagKey = {
-  [K in keyof Flags]: Flags[K] extends number ? never : K;
+  [K in keyof Flags]: Flags[K] extends FlagValue ? K : never;
 }[keyof Flags];
 
 export let disabledFlag = (reason: string): DisabledFlag => ({ enabled: false, reason });
@@ -89,12 +95,11 @@ export let defaultFlags: Flags = {
   'key-providers-azure-key-vault-enabled': false,
   'networking-enabled': false,
   'sandbox-enabled': false,
+  'security-reviews-enabled': false,
   'public-mcp-servers-enabled': false,
   'devices-enabled': false,
   outposts: false,
 
-  'store-participants-v2': false,
-  'store-access-v2': false,
   'skills-manifest-sync': false,
 
   'paid-integrations': true,
@@ -118,6 +123,10 @@ export let defaultFlags: Flags = {
   'paid-network-ip-access': true,
   'paid-sandboxes': true,
   'paid-advanced-org-management': true,
+  'paid-ai-reviews': true,
+  'paid-protoguard': true,
+
+  'ai-review-thoroughness': 'standard',
 
   'sandbox-builder-memory-mib': 8192,
   'sandbox-max-memory-gib': 32,
@@ -142,7 +151,7 @@ export let applyEnabledFlags = (flags: Flags, enabled: string | undefined): Flag
 
   let result: Record<string, unknown> = { ...flags };
   for (let [name, value] of Object.entries(flags)) {
-    if (typeof value === 'number') continue;
+    if (typeof value === 'number' || typeof value === 'string') continue;
     if (names.has('*') || names.has(name)) result[name] = true;
   }
   return result as Flags;

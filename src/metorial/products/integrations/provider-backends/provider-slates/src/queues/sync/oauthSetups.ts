@@ -4,6 +4,7 @@ import { createLock } from '@lowerdeck/lock';
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { slugify } from '@lowerdeck/slugify';
 import { db, getId, type SessionDataRetentionLevel } from '@metorial-subspace/db';
+import { providerIssueRecorderService } from '@metorial-subspace/module-provider-issue';
 import { providerOAuthSetupInternalService } from '@metorial-subspace/module-auth';
 import {
   recordProviderAuthErrorUsage,
@@ -264,6 +265,8 @@ let createErrorForEvent = async (d: {
     where: { oid: error.oid },
     data: { isProcessing: false, groupOid: group.oid }
   });
+
+  await providerIssueRecorderService.recordAuthConfigError({ authConfigErrorId: error.id });
 };
 
 let backfillSetupLinks = async (d: { providerOAuthSetup: SyncedProviderOAuthSetup }) => {

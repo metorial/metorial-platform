@@ -1,4 +1,4 @@
-import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
+import { renderWithLoader } from '@metorial/data-hooks';
 import { DetailsOverviewLayout } from '@metorial/details-layout';
 import { Paths } from '@metorial/frontend-config';
 import {
@@ -6,84 +6,39 @@ import {
   useCurrentInstance,
   useCurrentOrganization,
   useCurrentProject,
-  useIntegration,
-  useIntegrationInstances
+  useIntegration
 } from '@metorial/state';
-import { Button, RenderDate, Spacer, Text } from '@metorial/ui';
-import { Box, Table } from '@metorial/ui-product';
-import { Link, useParams } from 'react-router-dom';
+import { Button, Spacer } from '@metorial/ui';
+import { Box } from '@metorial/ui-product';
+import { useParams } from 'react-router-dom';
 import { UsageOverviewTiles } from '../../../scenes/instanceUsage';
+import { IntegrationInstancesTable } from '../../../scenes/integrations/instancesTable';
 import { IntegrationAdminSetupCallouts } from '../../../scenes/integrations/adminSetupCallout';
 import { showIntegrationProviderPanelFlow } from '../../../scenes/integrations/providerPanelFlow';
 import { IntegrationProvidersManager } from '../../../scenes/integrations/providersManager';
-
-let getInstanceStatusColor = (status: string) => {
-  if (status === 'active') return 'green';
-  if (status === 'draft') return 'blue';
-  if (status === 'archived') return 'orange';
-  return 'gray';
-};
+import { SecurityAssessmentCard } from '@metorial/scene-skills';
 
 let RecentInstancesBox = (p: { instanceId: string; integration: IntegrationPreview }) => {
   let organization = useCurrentOrganization();
   let project = useCurrentProject();
   let instance = useCurrentInstance();
-  let instances = useIntegrationInstances(p.instanceId, {
-    ownership: 'all',
-    integrationId: p.integration.id,
-    order: 'desc',
-    status: ['active'],
-    limit: 5
-  });
 
   return (
-    <Box
-      title="Instances"
-      description="Recently created instances of this integration."
-      rightActions={
-        <Link
-          to={Paths.instance.integration(
-            organization.data,
-            project.data,
-            instance.data,
-            p.integration.id,
-            'instances'
-          )}
-        >
-          <Button as="span" size="1" variant="outline">
-            View All
-          </Button>
-        </Link>
-      }
-    >
-      {renderWithPagination(instances, { hidePaginationWhenUnavailable: true })(instances => (
-        <>
-          <Table
-            headers={['Name', 'Providers', 'Created']}
-            data={instances.data.items.map(item => ({
-              href: Paths.instance.integrationInstance(
-                organization.data,
-                project.data,
-                instance.data,
-                item.id
-              ),
-              data: [
-                <Text size="2" weight="strong">
-                  {item.name}
-                </Text>,
-                <Text size="2">{item.providers?.length ?? 0} providers</Text>,
-                <RenderDate date={item.createdAt} />
-              ]
-            }))}
-          />
-
-          {instances.data.items.length === 0 ? (
-            <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-              No instances have been created for this integration yet.
-            </Text>
-          ) : null}
-        </>
-      ))}
+    <Box title="Instances" description="Recently created instances of this integration.">
+      <IntegrationInstancesTable
+        instanceId={p.instanceId}
+        integration={p.integration}
+        listVariant="preview"
+        listLayout="table"
+        listLimit={5}
+        viewAllHref={Paths.instance.integration(
+          organization.data,
+          project.data,
+          instance.data,
+          p.integration.id,
+          'instances'
+        )}
+      />
     </Box>
   );
 };
@@ -95,6 +50,14 @@ export let IntegrationOverviewPage = () => {
 
   return renderWithLoader({ integration })(({ integration }) => {
     let onComplete = () => integration.refetch();
+
+    let activeProviders = (integration.data.providers ?? []).filter(
+      provider => provider.status == 'active'
+    );
+    let providerIds = [...new Set(activeProviders.map(provider => provider.providerId))];
+    let providerNames = Object.fromEntries(
+      activeProviders.map(provider => [provider.providerId, provider.name])
+    );
 
     return (
       <DetailsOverviewLayout>
@@ -118,6 +81,27 @@ export let IntegrationOverviewPage = () => {
         />
 
         <Spacer height={20} />
+
+        {providerIds.map(providerId => (
+          <SecurityAssessmentCard
+            key={providerId}
+            instanceId={instance.data?.id}
+            providerId={providerId}
+            title={
+              providerIds.length > 1
+                ? `Security Assessment · ${providerNames[providerId] ?? 'Provider'}`
+                : 'Security Assessment'
+            }
+            reportHref={Paths.instance.provider(
+              instance.data?.organization,
+              instance.data?.project,
+              instance.data,
+              providerId,
+              'security'
+            )}
+            spacing={20}
+          />
+        ))}
 
         <Box
           title="Providers"

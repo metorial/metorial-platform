@@ -2,7 +2,7 @@ import { NumberField } from '@base-ui/react/number-field';
 import { RiAddLine, RiSubtractLine } from '@remixicon/react';
 import React from 'react';
 import { css, styled } from 'styled-components';
-import { ButtonSize, getButtonSize } from '../button/constants';
+import { ControlSize, getControlSize, getFieldFontSize, useControlSize } from '../controlSize';
 import { inputFieldStyles, inputSurfaceStyles } from '../input';
 import { theme } from '../theme';
 
@@ -19,7 +19,7 @@ export type NumberInputFieldProps = {
   largeStep?: number;
   stepper?: boolean;
   format?: Intl.NumberFormatOptions;
-  size?: ButtonSize;
+  size?: ControlSize;
   placeholder?: string;
   name?: string;
   disabled?: boolean;
@@ -124,7 +124,7 @@ export let NumberInputField = ({
   largeStep,
   stepper,
   format,
-  size = '3',
+  size: sizeProp,
   placeholder,
   name,
   disabled,
@@ -132,7 +132,8 @@ export let NumberInputField = ({
   required,
   autoFocus
 }: NumberInputFieldProps) => {
-  let sizeStyles = getButtonSize(size);
+  let size = useControlSize(sizeProp);
+  let sizeStyles = getControlSize(size);
   let horizontalPadding = sizeStyles.padding.split(' ')[1];
   let stepButtonRadius = `calc(${sizeStyles.borderRadius} - 4px)`;
 
@@ -166,7 +167,7 @@ export let NumberInputField = ({
           style={{
             padding: sizeStyles.padding,
             paddingRight: unit || stepper ? 0 : undefined,
-            fontSize: '14px'
+            fontSize: getFieldFontSize(size)
           }}
         />
 

@@ -1,41 +1,51 @@
-import { renderWithLoader } from '@metorial/data-hooks';
-import { Spacer } from '@metorial/ui';
-import { useState } from 'react';
-import { useFilterQuery, TableFilterState } from '@metorial/table';
-import { useCurrentInstance } from '@metorial/state';
-import { IntegrationsGrid } from '../../../scenes/integrations/grid';
+import { EmptyState } from '@metorial/empty-state';
+import { Paths } from '@metorial/frontend-config';
 import {
-  IntegrationFilters,
-  useIntegrationFilters
-} from '../../../scenes/integrations/filters';
+  useCurrentInstance,
+  useCurrentOrganization,
+  useCurrentProject
+} from '@metorial/state';
+import { useNavigate } from 'react-router-dom';
+import { IntegrationsGrid } from '../../../scenes/integrations/grid';
+import { showCreateIntegrationProviderFirstFlow } from '../../../scenes/integrations/providerPanelFlow';
 
 export let IntegrationsPage = () => {
+  let organization = useCurrentOrganization();
+  let project = useCurrentProject();
   let instance = useCurrentInstance();
-  let [search, setSearch] = useState('');
-  let [filterState, setFilterState] = useState<TableFilterState[]>([]);
-  let { filters, searchDebounced, integrationsFilter } = useIntegrationFilters({
-    search,
-    filterState
-  });
+  let navigate = useNavigate();
 
-  useFilterQuery({
-    filters,
-    filterState: [filterState, setFilterState],
-    searchState: [search, setSearch],
-    debouncedSearch: searchDebounced
-  });
+  return (
+    <IntegrationsGrid
+      emptyState={{
+        initial: () => (
+          <EmptyState
+            extra="Integrations"
+            title="Create your first integration"
+            description="Integrations define reusable provider contracts that can be configured once and materialized into integration instances."
+            action={{
+              label: 'Create Integration',
+              onClick: () => {
+                if (!instance.data) return;
 
-  return renderWithLoader({ instance })(({ instance }) => (
-    <>
-      <IntegrationFilters
-        searchState={[search, setSearch]}
-        filterState={[filterState, setFilterState]}
-        filters={filters}
-      />
-
-      <Spacer size={15} />
-
-      <IntegrationsGrid instanceId={instance.data.id} {...integrationsFilter} />
-    </>
-  ));
+                showCreateIntegrationProviderFirstFlow({
+                  onCreate: integration =>
+                    navigate(
+                      Paths.instance.integration(
+                        organization.data,
+                        project.data,
+                        instance.data,
+                        integration.id
+                      )
+                    )
+                });
+              }
+            }}
+          />
+        ),
+        filtered: 'No integrations match the current filters.',
+        search: 'No integrations found.'
+      }}
+    />
+  );
 };

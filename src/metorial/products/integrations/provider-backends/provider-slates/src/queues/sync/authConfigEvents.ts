@@ -3,6 +3,7 @@ import { createLock } from '@lowerdeck/lock';
 import { Hash } from '@lowerdeck/hash';
 import { createQueue, QueueRetryError } from '@lowerdeck/queue';
 import { db, getId } from '@metorial-subspace/db';
+import { providerIssueRecorderService } from '@metorial-subspace/module-provider-issue';
 import {
   recordProviderAuthErrorUsage,
   recordProviderAuthEventUsage
@@ -275,4 +276,6 @@ export let syncAuthConfigEventQueueProcessor = syncAuthConfigEventQueue.process(
       groupOid: group.oid
     }
   });
+
+  await providerIssueRecorderService.recordAuthConfigError({ authConfigErrorId: error.id });
 });

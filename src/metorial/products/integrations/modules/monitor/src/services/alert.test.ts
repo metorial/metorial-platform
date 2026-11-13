@@ -42,6 +42,7 @@ vi.mock('@metorial-subspace/module-tenant', () => ({
 }));
 
 vi.mock('./_shared', () => ({
+  VISIBLE_INSTANCE_WHERE: { stage: 'active', isSuppressed: false },
   normalizeDateFilter: (filter: unknown) => filter,
   resolveMonitorOids: vi.fn(async () => undefined),
   resolveProtoGuardAlertOids: vi.fn(async () => undefined),

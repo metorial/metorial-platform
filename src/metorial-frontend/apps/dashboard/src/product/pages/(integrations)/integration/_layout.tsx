@@ -28,6 +28,7 @@ import { useState } from 'react';
 import { Outlet, useNavigate, useParams } from 'react-router-dom';
 import { generatePlaceholderInstanceName } from '../../../lib/instanceName';
 import { DeletedRecordCallout } from '../../../scenes/deletedRecordCallout';
+import { ResourceSharePopover } from '../../../scenes/portalShare';
 
 let showIntegrationSetupSessionModal = (p: {
   instanceId: string;
@@ -142,6 +143,9 @@ export let IntegrationLayout = () => {
     integration.data?.id ?? integrationId
   ] as const;
 
+  let portalSharing =
+    !!flags.data?.flags['portals-access'] && !!flags.data?.flags['paid-portals'];
+
   let hasCallbacks =
     flags.data?.flags['callbacks-enabled'] &&
     integration.data?.providers?.some(provider => provider.callbacks.status === 'enabled');
@@ -164,9 +168,34 @@ export let IntegrationLayout = () => {
         ...(hasCallbacks
           ? [{ label: 'Callbacks', to: Paths.instance.integration(...params, 'callbacks') }]
           : []),
+        ...(portalSharing
+          ? [{ label: 'Access', to: Paths.instance.integration(...params, 'access') }]
+          : []),
         { label: 'Settings', to: Paths.instance.integration(...params, 'settings') }
       ]}
       actions={[
+        ...(portalSharing && integration.data
+          ? [
+              {
+                type: 'custom' as const,
+                render: () => (
+                  <ResourceSharePopover
+                    instanceId={instance.data?.id}
+                    resource={
+                      integration.data
+                        ? {
+                            type: 'integration',
+                            id: integration.data.id,
+                            name: integration.data.name,
+                            description: integration.data.description
+                          }
+                        : null
+                    }
+                  />
+                )
+              }
+            ]
+          : []),
         {
           label: 'Create Instance',
           disabled: !instance.data || !integration.data || createInstance.isLoading,

@@ -14,12 +14,18 @@ export let skillAuditResource = resource({
     parentSkillId?: string | null;
     parentSkillTemplateId?: string | null;
     cloneType?: 'fork' | 'duplicate' | null;
+    shares?: {
+      consumerProfileId: string;
+      permission: 'none' | 'read' | 'write' | 'owner';
+      previousPermission: 'none' | 'read' | 'write' | 'owner';
+    }[];
   }>('skill'),
   presenter: undefined,
   actions: {
     create: true,
     update: true,
-    archive: true
+    archive: true,
+    share: true
   }
 });
 
@@ -32,6 +38,7 @@ export let skillPluginAuditResource = resource({
     description: string | null;
     category: string | null;
     status: string;
+    skillGroupId?: string | null;
   }>('skill_plugin'),
   presenter: undefined,
   actions: {

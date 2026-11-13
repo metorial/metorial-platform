@@ -64,6 +64,9 @@ model SkillImport {
   creatorResourceActorOid BigInt?
   creatorResourceActor    ResourceActor? @relation("SkillImportCreator", fields: [creatorResourceActorOid], references: [oid], onDelete: SetNull)
 
+  skillGroupOid BigInt?
+  skillGroup    SkillGroup? @relation(fields: [skillGroupOid], references: [oid], onDelete: SetNull)
+
   createdAt   DateTime  @default(now())
   startedAt   DateTime?
   completedAt DateTime?

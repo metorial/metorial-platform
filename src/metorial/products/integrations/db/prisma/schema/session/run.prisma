@@ -64,6 +64,7 @@ model ProviderRun {
   @@index([lastPingAt])
   @@index([projectOid])
   @@index([metorialInstanceOid])
+  @@index([metorialInstanceOid, providerOid, createdAt])
   @@index([connectionOid])
   @@index([tenantOid, createdAt])
   @@index([sessionOid])

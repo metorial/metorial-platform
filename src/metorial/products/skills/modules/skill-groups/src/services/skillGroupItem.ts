@@ -12,6 +12,7 @@ import {
   consumerSkillReadRoles
 } from '@metorial/module-access';
 import { getConsumerSkillAccessWhere, skillService } from '@metorial/module-skill';
+import { skillGroupPluginService } from '@metorial/module-skill-marketplace';
 import { enqueueSkillGroupLifecycle } from '../queues/lifecycle';
 import { skillGroupService } from './skillGroup';
 
@@ -141,6 +142,11 @@ class SkillGroupItemServiceImpl {
         })
       );
     }
+
+    await skillGroupPluginService.assertSkillGroupCanAddSkills({
+      skillGroup: group,
+      skills: [skill]
+    });
 
     return await withTransaction(async db => {
       let item = existing

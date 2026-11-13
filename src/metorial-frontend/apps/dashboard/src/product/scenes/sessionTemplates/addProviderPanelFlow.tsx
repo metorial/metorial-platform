@@ -1518,6 +1518,10 @@ let PickProviderStep = (p: {
         searchState={[search, setSearch]}
         filterState={[filterState, setFilterState]}
         filters={filters}
+        onProviderSelect={listing => {
+          if (!listing.provider) return;
+          p.onSelect(listing.provider.id, listing.name, listing.description);
+        }}
       />
 
       <ProvidersWithDeploymentsSearch

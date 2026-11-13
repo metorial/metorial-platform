@@ -28,16 +28,14 @@ import {
   resolveStores
 } from '@metorial/list-utils';
 import {
-  accessTagService,
   type AnyAccessTagSelector,
   assertResourceActorScope,
   assertResourceAuthorizationScope,
-  consumerSkillReadRoles,
   getStoreResourceKindAccessWhere,
-  isStoreResourceFlagEnabled,
   type ResourceAuthorization,
   skillStoreResourceKind
 } from '@metorial/module-access';
+import { resourceActorService } from '@metorial/module-resource-actor';
 import { buildSearchFilter } from '@metorial/module-search';
 import type { SkillTemplateRecord } from '@metorial/module-skill-templates';
 import {
@@ -49,6 +47,7 @@ import {
   storeVersionService,
   storeWritePermission
 } from '@metorial/module-store';
+import { isSkillIcon } from '@metorial/skill-icons';
 import { getProjectTenantIdentifier } from '@metorial/skills-common';
 import { internalImageService } from '@metorial/skills-images';
 import { voyager, voyagerIndex, voyagerSource } from '@metorial/skills-search';
@@ -56,7 +55,6 @@ import { getSkillSlug } from '../lib/skillSlug';
 import { enqueueSkillLifecycle } from '../queues/lifecycle';
 import { skillResourceService } from './resource';
 import { assertSkillRecordScope, getSkillMetadataWriteAccessWhere } from './skillAccess';
-import { skillParticipantService } from './skillParticipant';
 
 let skillInclude = {
   store: true,
@@ -77,48 +75,19 @@ export type SkillRecord = Prisma.SkillGetPayload<{
 }>;
 
 export let getConsumerSkillAccessWhere = async (d: {
-  project?: { oid: bigint };
   accessTags?: AnyAccessTagSelector;
 }): Promise<Prisma.SkillWhereInput | undefined> => {
   if (!d.accessTags) return undefined;
 
-  if (
-    d.project &&
-    (await isStoreResourceFlagEnabled({ project: d.project, flag: 'store-access-v2' }))
-  ) {
-    return {
-      store: {
-        is: await getStoreResourceKindAccessWhere({
-          kind: skillStoreResourceKind,
-          accessTags: d.accessTags,
-          level: 'read'
-        })
-      }
-    };
-  }
-
-  let accessTagFilter = await accessTagService.getAccessTagFilter({
-    tags: d.accessTags,
-    roles: [...consumerSkillReadRoles]
-  });
-
-  let accessFilters: Prisma.SkillWhereInput[] = accessTagFilter
-    ? [
-        { accessTagEntities: accessTagFilter },
-        {
-          skillGroupItems: {
-            some: {
-              status: 'active',
-              skillGroup: {
-                status: 'active',
-                accessTagEntities: accessTagFilter
-              }
-            }
-          }
-        }
-      ]
-    : [];
-  return accessFilters.length ? { OR: accessFilters } : { oid: { in: [] } };
+  return {
+    store: {
+      is: await getStoreResourceKindAccessWhere({
+        kind: skillStoreResourceKind,
+        accessTags: d.accessTags,
+        level: 'read'
+      })
+    }
+  };
 };
 
 type ListSkillsInput = {
@@ -129,6 +98,7 @@ type ListSkillsInput = {
   parentSkillIds?: string[];
   parentSkillTemplateIds?: string[];
   createdByActorIds?: string[];
+  ownedByActor?: Pick<ResourceActor, 'oid'>;
   createdAt?: DateFilter;
   updatedAt?: DateFilter;
   search?: string;
@@ -320,20 +290,6 @@ class SkillServiceImpl {
       }
 
       if (actor) {
-        await skillParticipantService.ensureSkillParticipantRoles({
-          skill,
-          actor,
-          roles: ['creator']
-        });
-
-        if (d.parentSkill && d.parentSkillCloneType === 'fork') {
-          await skillParticipantService.ensureSkillParticipantRoles({
-            skill: d.parentSkill,
-            actor,
-            roles: ['forker']
-          });
-        }
-
         await storeParticipantService.recordParticipationSafely({
           store,
           actor,
@@ -426,6 +382,29 @@ class SkillServiceImpl {
     }
     if (createdByActors) {
       andFilters.push({ createdByResourceActorOid: createdByActors.in });
+    }
+    if (d.ownedByActor) {
+      let ownerActorOids = await resourceActorService.listLinkedActorOids({
+        project: d.project,
+        actor: d.ownedByActor
+      });
+      andFilters.push({
+        OR: [
+          { createdByResourceActorOid: { in: ownerActorOids } },
+          {
+            store: {
+              is: {
+                storeParticipantActors: {
+                  some: {
+                    resourceActorOid: { in: ownerActorOids },
+                    roles: { hasSome: ['creator', 'owner'] }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      });
     }
     if (d.createdAt) andFilters.push({ createdAt: normalizeDateFilter(d.createdAt) });
     if (d.updatedAt) andFilters.push({ updatedAt: normalizeDateFilter(d.updatedAt) });
@@ -562,6 +541,7 @@ class SkillServiceImpl {
       license?: string | null;
       compatibility?: string | null;
       imageFileId?: string | null;
+      imageIcon?: { icon: string; color: string } | null;
       image?: EntityImage | null;
     };
   }) {
@@ -575,6 +555,7 @@ class SkillServiceImpl {
       d.input.license === undefined &&
       d.input.compatibility === undefined &&
       d.input.imageFileId === undefined &&
+      d.input.imageIcon === undefined &&
       d.input.image === undefined
     ) {
       throw new ServiceError(
@@ -594,7 +575,29 @@ class SkillServiceImpl {
       );
     }
 
+    if (d.input.imageIcon !== undefined && d.input.imageFileId !== undefined) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Provide either an image file or an icon, not both'
+        })
+      );
+    }
+
+    if (d.input.imageIcon && !isSkillIcon(d.input.imageIcon)) {
+      throw new ServiceError(
+        badRequestError({
+          message: 'Unknown skill icon or color'
+        })
+      );
+    }
+
     let nextImage = d.input.image;
+    if (d.input.imageIcon !== undefined) {
+      nextImage = d.input.imageIcon
+        ? { type: 'icon', icon: d.input.imageIcon.icon, color: d.input.imageIcon.color }
+        : { type: 'default' };
+    }
+
     if (d.input.imageFileId !== undefined) {
       nextImage = await internalImageService.resolveImageEntityImage({
         project: d.project,
@@ -631,6 +634,7 @@ class SkillServiceImpl {
       d.input.license !== undefined ||
       d.input.compatibility !== undefined ||
       d.input.imageFileId !== undefined ||
+      d.input.imageIcon !== undefined ||
       d.input.image !== undefined
     ) {
       await withTransaction(async db => {
@@ -654,7 +658,11 @@ class SkillServiceImpl {
         await enqueueSkillLifecycle({ skillId: d.skill.id, event: 'updated' });
       });
 
-      if (d.input.imageFileId !== undefined || d.input.image !== undefined) {
+      if (
+        d.input.imageFileId !== undefined ||
+        d.input.imageIcon !== undefined ||
+        d.input.image !== undefined
+      ) {
         await internalImageService.cleanupImageEntityImage({
           image:
             d.skill.image && canonicalize(d.skill.image) !== canonicalize(nextImage)
@@ -746,32 +754,12 @@ class SkillServiceImpl {
       project: d.project,
       resourceActor: d.actor
     });
-    await storeAccessService.ensureActorStorePermissions({
-      store: d.skill.store!,
-      actor: d.actor,
-      permissions: d.actor.organizationActorOid
-        ? [storeReadPermission, storeWritePermission]
-        : [storeReadPermission]
-    });
-    await skillParticipantService.ensureSkillParticipantAccessRole({
-      skill: d.skill,
-      actor: d.actor,
-      permission: d.actor.organizationActorOid ? 'write' : 'read'
-    });
 
     await storeParticipantService.recordParticipationSafely({
       store: d.skill.store!,
       actor: d.actor,
       roles: d.actor.consumerProfileOid ? ['viewer', 'user'] : ['viewer']
     });
-
-    if (d.actor.consumerProfileOid) {
-      return await skillParticipantService.ensureSkillParticipantRoles({
-        skill: d.skill,
-        actor: d.actor,
-        roles: ['user']
-      });
-    }
   }
 }
 

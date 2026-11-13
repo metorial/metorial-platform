@@ -96,7 +96,15 @@ vi.mock('./subspaceScope', () => ({
 
 import { tenantService } from './tenant';
 
-let tenant = { oid: 20n, id: 'ktn_20', identifier: 'mte-pro-2', projectOid: null };
+let tenant = {
+  oid: 20n,
+  id: 'ktn_20',
+  identifier: 'mte-pro-2',
+  projectOid: null,
+  aiAnalysisEnabled: false,
+  usageReviewsEnabled: false
+};
+
 let environment = {
   oid: 30n,
   id: 'ken_30',
@@ -135,6 +143,67 @@ describe('tenantService.upsertTenant', () => {
     mocks.environmentUpdateMany.mockResolvedValue({ count: 1 });
     mocks.solutionFindMany.mockResolvedValue([]);
   });
+
+  it.each([undefined, true, false])(
+    'creates tenants with assistant preference %s',
+    async assistantEnabled => {
+      mocks.tenantFindUnique.mockResolvedValue(null);
+
+      await tenantService.upsertTenant({ input: { ...input, assistantEnabled } });
+
+      expect(mocks.tenantUpsert.mock.calls[0]![0].create.assistantEnabled).toBe(
+        assistantEnabled ?? true
+      );
+    }
+  );
+
+  it.each([true, false])('updates the assistant preference to %s', async assistantEnabled => {
+    await tenantService.upsertTenant({ input: { ...input, assistantEnabled } });
+
+    expect(mocks.tenantUpsert.mock.calls[0]![0].update.assistantEnabled).toBe(
+      assistantEnabled
+    );
+  });
+
+  it.each([undefined, false, true])(
+    'requires AI analysis to create a tenant with usage reviews (AI: %s)',
+    async aiAnalysisEnabled => {
+      mocks.tenantFindUnique.mockResolvedValue(null);
+
+      await tenantService.upsertTenant({
+        input: { ...input, aiAnalysisEnabled, usageReviewsEnabled: true }
+      });
+
+      let write = mocks.tenantUpsert.mock.calls[0]![0];
+      expect(write.create.usageReviewsEnabled).toBe(aiAnalysisEnabled === true);
+    }
+  );
+
+  it.each([
+    [true, false, undefined, false],
+    [true, false, true, false],
+    [false, undefined, true, false],
+    [false, undefined, undefined, false],
+    [false, true, true, true],
+    [true, undefined, undefined, undefined],
+    [true, undefined, false, false]
+  ])(
+    'normalizes usage reviews on update (current AI: %s, requested AI: %s, usage: %s)',
+    async (currentAi, aiAnalysisEnabled, usageReviewsEnabled, expectedUsage) => {
+      mocks.tenantFindUnique.mockResolvedValue({
+        ...tenant,
+        aiAnalysisEnabled: currentAi,
+        usageReviewsEnabled: true
+      });
+
+      await tenantService.upsertTenant({
+        input: { ...input, aiAnalysisEnabled, usageReviewsEnabled }
+      });
+
+      let write = mocks.tenantUpsert.mock.calls[0]![0];
+      expect(write.update.usageReviewsEnabled).toBe(expectedUsage);
+    }
+  );
 
   it.each([undefined, true, false])(
     'sets the creation policy to %s without updating it',

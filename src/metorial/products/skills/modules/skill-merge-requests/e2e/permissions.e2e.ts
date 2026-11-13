@@ -86,7 +86,7 @@ let setAccess = async (
     where: { skillOid: skill.oid, accessTagOid: consumer.accessTagOid }
   });
   if (access === 'none') {
-    await storeAccessGrantService.syncLegacySkillGrants({ skillOid: skill.oid });
+    await storeAccessGrantService.syncSkillGrants({ skillOid: skill.oid });
     return;
   }
 
@@ -108,7 +108,7 @@ let setAccess = async (
       skillOid: skill.oid
     }
   });
-  await storeAccessGrantService.syncLegacySkillGrants({ skillOid: skill.oid });
+  await storeAccessGrantService.syncSkillGrants({ skillOid: skill.oid });
 };
 
 let visibleIds = async (

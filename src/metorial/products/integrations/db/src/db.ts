@@ -9,6 +9,15 @@ import type {
   CustomProviderConfig,
   CustomProviderFrom,
   CustomProviderFromUpdate,
+  ProtoGuardFamilyScore,
+  ProtoGuardToolFinding,
+  SecurityReport,
+  SecurityReviewComputedScores,
+  SecurityReviewFindingPayload,
+  SecurityReviewRevisionContext,
+  SecuritySpecCensus,
+  SecurityUsageReport,
+  SecurityUsageComputedScores,
   Specification,
   SpecificationAuthMethod,
   SpecificationFeatures,
@@ -27,6 +36,7 @@ export type EntityImage =
       url?: string;
     }
   | { type: 'url'; url: string }
+  | { type: 'icon'; icon: string; color: string }
   | { type: 'default' };
 
 type EntityImageOuter = EntityImage;
@@ -226,6 +236,24 @@ declare global {
       };
       ui?: ProviderSetupSessionUi;
     };
+
+    type ProtoGuardFamilyScores = ProtoGuardFamilyScore[];
+
+    type ProtoGuardToolFindings = ProtoGuardToolFinding[];
+
+    type SecurityReviewReport = SecurityReport;
+
+    type SecurityReviewScores = SecurityReviewComputedScores;
+
+    type SecurityUsageReviewReport = SecurityUsageReport;
+
+    type SecurityUsageReviewScores = SecurityUsageComputedScores;
+
+    type SecurityReviewCensus = SecuritySpecCensus;
+
+    type SecurityReviewFindingValue = SecurityReviewFindingPayload;
+
+    type SecurityReviewRunContext = SecurityReviewRevisionContext;
 
     type SessionConnectionMcpData = {
       capabilities?: InitializeRequest['params']['capabilities'];

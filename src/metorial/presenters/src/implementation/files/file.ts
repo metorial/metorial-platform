@@ -15,7 +15,7 @@ export let v1FilePresenter = Presenter.create(fileType)
     status: file.status,
 
     file_name: file.fileName,
-    file_size: file.fileSize,
+    file_size: Number(file.fileSize),
     file_type: file.fileType,
 
     title: file.title,

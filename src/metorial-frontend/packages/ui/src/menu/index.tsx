@@ -10,6 +10,7 @@ import {
   MENU_VIEWPORT_PADDING,
   useConstrainedMenuHeight
 } from './useConstrainedMenuHeight';
+import { surface } from '../controlSize/scale';
 
 let fadeInBottom = keyframes`
   from { opacity: 0; transform: translateY(-10px) scale(0.99); }
@@ -70,7 +71,7 @@ let contentStyles = css<{
     $lightMode ? theme.colors.background : theme.colors.foreground};
   border: 1px solid
     ${({ $lightMode }) => ($lightMode ? theme.colors.gray400 : theme.colors.foreground)};
-  border-radius: 10px;
+  border-radius: ${surface.borderRadius};
   min-width: 200px;
   min-height: 0;
   width: ${({ $matchTriggerWidth }) =>
@@ -158,7 +159,7 @@ let itemStyles = css<{
   text-align: left;
   gap: 5px;
   padding: 7px 13px;
-  border-radius: 6px;
+  border-radius: ${surface.itemBorderRadius};
   outline: none;
   border: none;
   background: transparent;
@@ -269,7 +270,7 @@ let Title = styled(RadixMenu.Label)<{ $lightMode?: boolean }>`
   font-weight: 600;
   color: ${({ $lightMode }) => ($lightMode ? theme.colors.gray800 : theme.colors.gray100)};
   padding: 7px 13px;
-  border-radius: 6px;
+  border-radius: ${surface.itemBorderRadius};
   background: transparent;
   transition: all 0.3s ease;
   display: flex;

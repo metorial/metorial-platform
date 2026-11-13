@@ -24,6 +24,7 @@ import {
   recordSkillCreated,
   recordSkillMarketplaceUpdated,
   recordSkillPluginCreated,
+  recordSkillShared,
   recordSkillUpdated
 } from './skill';
 
@@ -90,6 +91,23 @@ describe('skill audit listeners', () => {
     let [, resource, action, data] = recordEvent.mock.calls[0]!;
     expect([resource, action]).toEqual(['skill', 'archive']);
     expect(data.payload.status).toBe('archived');
+  });
+
+  it('records skill shares with the previous permission and without metadata', async () => {
+    let shares = [
+      {
+        consumerProfileId: 'cpr_1',
+        permission: 'owner' as const,
+        previousPermission: 'write' as const
+      }
+    ];
+
+    await recordSkillShared({ auditScope, skill, shares });
+
+    let [, resource, action, data] = recordEvent.mock.calls[0]!;
+    expect([resource, action]).toEqual(['skill', 'share']);
+    expect(data.payload).toMatchObject({ id: 'skl_1', shares });
+    expect(data.payload).not.toHaveProperty('metadata');
   });
 
   it('records skill plugin creation', async () => {

@@ -30,14 +30,24 @@ let ContentInner = styled('div')`
   width: 100%;
 `;
 
+let Action = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  margin-left: 20px;
+`;
+
 export let Callout = ({
   children,
   color,
   size,
   variant,
-  style
+  style,
+  action
 }: {
   children: React.ReactNode;
+  action?: React.ReactNode;
   style?: React.CSSProperties;
 } & CalloutStyleProps) => {
   let { icon, ...styles } = getCalloutStyles({ color, size, variant });
@@ -55,6 +65,7 @@ export let Callout = ({
       <Content>
         <ContentInner>{children}</ContentInner>
       </Content>
+      {action && <Action>{action}</Action>}
     </Wrapper>
   );
 };

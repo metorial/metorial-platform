@@ -1,197 +1,198 @@
-import { PaginationSearchParamsProvider, renderWithPagination } from '@metorial/data-hooks';
+import { col, createDataList, defineAction, f } from '@metorial/data-list';
+import { PaginationSearchParamsProvider } from '@metorial/data-hooks';
 import { EmptyState } from '@metorial/empty-state';
+import { Paths } from '@metorial/frontend-config';
 import { ContentLayout, PageHeader } from '@metorial/layout';
 import {
   type DashboardInstanceSandboxImagesListOutput,
+  sandboxMachinesLoader,
   useDeleteSandboxImageFromList,
   useSandboxImages
 } from '@metorial/state';
-import {
-  type TableFilter,
-  type TableFilterState,
-  TableFilters,
-  getEnumListFilterValue,
-  getFilterPayload,
-  useFilterQuery
-} from '@metorial/table';
-import { Badge, Button, Input, Text } from '@metorial/ui';
-import { ItemGrid } from '@metorial/ui-product';
-import { useDebounced } from '@metorial/use-debounced';
-import { memo, useCallback, useState } from 'react';
+import { Badge, Button, Flex, Text, confirm } from '@metorial/ui';
 import { useNavigate } from 'react-router-dom';
+import { useInstanceContext } from '../../../lib/dataList';
 import { showSandboxCreateMachinePanel } from '../../../scenes/sandbox/createMachinePanel';
 import { showSandboxImageBuildPanel } from '../../../scenes/sandbox/imageBuildPanel';
-import {
-  ImageStack,
-  imageVersionLabel,
-  useConfirmSandboxImageDeletion,
-  useSandboxImagePaths
-} from '../../../scenes/sandbox/images/common';
+import { ImageStack, imageVersionLabel } from '../../../scenes/sandbox/images/common';
 import { SandboxImageLogo } from '../../../scenes/sandbox/shared/imageLogo';
+import { SandboxImageStatusBadge } from '../../../scenes/sandbox/shared/statusBadges';
 import { SandboxManagedPage, useSandboxAccess } from '../_gate';
 
 type Image = DashboardInstanceSandboxImagesListOutput['items'][number];
-let ownerValues = ['own', 'global'] as const;
 
-let filters: TableFilter<any>[] = [
-  {
-    id: 'owner',
-    fields: ['owner'],
-    label: 'Owner',
-    description: 'Filter by owner',
-    type: 'select',
-    options: [
-      { id: 'own', label: 'Your Images' },
-      { id: 'global', label: 'Metorial' }
-    ]
+let ownerOptions = [
+  { id: 'own', label: 'Your Images' },
+  { id: 'global', label: 'Metorial' }
+] as const;
+
+let imageTitle = (image: Image) => image.name || image.identifier || 'Untitled image';
+
+let imageVersion = (image: Image) =>
+  image.owner === 'own' && image.latestVersionId
+    ? imageVersionLabel({
+        id: image.latestVersionId,
+        versionNumber: image.latestVersionNumber
+      })
+    : undefined;
+
+let countMachines = async (instanceId: string, imageId: string) => {
+  let count = 0;
+  let after: string | undefined;
+
+  while (true) {
+    let page = await sandboxMachinesLoader.fetchAndReturn(
+      { instanceId, imageId, limit: 100, after },
+      { force: true }
+    );
+
+    count += page.items.length;
+    if (!page.pagination.hasMoreAfter || !page.items.length) break;
+    after = page.items.at(-1)!.id;
   }
-];
 
-let ImageCard = memo(({ image }: { image: Image }) => {
-  let paths = useSandboxImagePaths();
-  let navigate = useNavigate();
-  let remove = useDeleteSandboxImageFromList();
-  let deletion = useConfirmSandboxImageDeletion({
-    instanceId: paths.instanceId,
-    imageId: image.id,
-    onDelete: () => remove.mutate({ instanceId: paths.instanceId!, imageId: image.id })
-  });
-  return (
-    <div>
-      <ItemGrid.Item
-        variant="v2"
-        loading={remove.isLoading || deletion.isLoading}
-        icon={<SandboxImageLogo image={image} size={40} />}
-        title={image.name || image.identifier || 'Untitled image'}
-        entity={image}
-        href={paths.image(image.id)}
-        bottom={
-          <>
-            {image.owner === 'own' && image.latestVersionId && (
-              <Badge color="gray" size="2">
-                {imageVersionLabel({
-                  id: image.latestVersionId,
-                  versionNumber: image.latestVersionNumber
-                })}
-              </Badge>
-            )}
-            {image.owner === 'global' && (
-              <Badge color="gray" size="2">
-                Managed by Metorial
-              </Badge>
-            )}
-          </>
-        }
-        menu={[
-          ...(image.latestVersionId
-            ? [
-                {
-                  label: 'Create Machine',
-                  onClick: () => showSandboxCreateMachinePanel({ imageId: image.id })
-                }
-              ]
-            : []),
-          ...(image.owner === 'own'
-            ? [
-                {
-                  label: 'Rename',
-                  onClick: () => navigate(paths.image(image.id, 'settings'))
-                },
-                {
-                  label: 'Delete Image',
-                  onClick: () => {
-                    void deletion.mutate();
-                  }
-                }
-              ]
-            : [])
-        ]}
-      />
-      <deletion.RenderError />
-      <remove.RenderError />
-    </div>
-  );
-});
+  return count;
+};
 
-let ImagesContent = () => {
-  let [search, setSearch] = useState('');
-  let [filterState, setFilterState] = useState<TableFilterState[]>([]);
-  let debounced = useDebounced(search, 500);
-  useFilterQuery({
-    filters,
-    filterState: [filterState, setFilterState],
-    searchState: [search, setSearch],
-    debouncedSearch: debounced
-  });
-  let owner = getEnumListFilterValue(getFilterPayload(filterState).owner, ownerValues);
-  let filtered = !!search.trim() || !!debounced.trim() || !!owner?.length;
-  let paths = useSandboxImagePaths();
-  let images = useSandboxImages(
-    paths.instanceId,
-    {
-      owner,
-      search: debounced.trim() || undefined,
-      status: ['pending', 'active'],
-      limit: 24,
-      order: 'desc'
-    },
-    { pollInterval: 10_000 }
-  );
+let ImagesTable = createDataList('sandbox-images')
+  .context(useInstanceContext)
+  .filters(() => ({
+    owner: f.select('owner', 'Owner', ownerOptions)
+  }))
+  .search('Search images…')
+  .paginated(({ ctx, filters, search, limit }) =>
+    useSandboxImages(
+      ctx.instanceId,
+      {
+        owner: filters.owner,
+        search,
+        status: ['pending', 'active'],
+        limit: limit ?? 24,
+        order: 'desc'
+      },
+      { pollInterval: 10_000 }
+    )
+  )
+  .columns([
+    col.custom<Image>({
+      id: 'name',
+      header: 'Name',
+      render: image => (
+        <Flex gap={8} align="center">
+          <SandboxImageLogo image={image} />
+          <Text size="2" weight="strong">
+            {imageTitle(image)}
+          </Text>
+        </Flex>
+      )
+    }),
+    col.text<Image>({
+      id: 'owner',
+      header: 'Owner',
+      get: image => (image.owner === 'own' ? 'Your Images' : 'Managed by Metorial')
+    }),
+    col.text<Image>({ id: 'version', header: 'Latest Version', get: imageVersion }),
+    col.custom<Image>({
+      id: 'status',
+      header: 'Status',
+      isDefault: false,
+      render: image => <SandboxImageStatusBadge status={image.status} />
+    }),
+    col.createdAt<Image>(),
+    col.id<Image>()
+  ])
+  .link((image, _props, ctx) =>
+    Paths.instance.sandboxImage(ctx.organization, ctx.project, ctx.instance, image.id)
+  )
+  .item(image => ({
+    title: imageTitle(image),
+    icon: <SandboxImageLogo image={image} size={40} />,
+    footer: (
+      <>
+        {imageVersion(image) && (
+          <Badge color="gray" size="2">
+            {imageVersion(image)}
+          </Badge>
+        )}
+        {image.owner === 'global' && (
+          <Badge color="gray" size="2">
+            Managed by Metorial
+          </Badge>
+        )}
+      </>
+    ),
+    height: 200
+  }))
+  .layouts(['grid', 'table'], { default: 'grid' })
+  .itemActions([
+    defineAction<Image>({
+      id: 'create-machine',
+      label: 'Create Machine',
+      hidden: image => !image.latestVersionId,
+      useRun: () => image => showSandboxCreateMachinePanel({ imageId: image.id })
+    }),
+    defineAction<Image>({
+      id: 'rename',
+      label: 'Rename',
+      hidden: image => image.owner !== 'own',
+      useRun: ({ ctx }) => {
+        let navigate = useNavigate();
 
-  let renderImages = useCallback(
-    (images: { data: DashboardInstanceSandboxImagesListOutput }) => {
-      if (!images.data.items.length && !filtered) {
-        return (
+        return image =>
+          navigate(
+            Paths.instance.sandboxImage(
+              ctx.organization,
+              ctx.project,
+              ctx.instance,
+              image.id,
+              'settings'
+            )
+          );
+      }
+    }),
+    defineAction<Image>({
+      id: 'delete',
+      label: 'Delete Image',
+      destructive: true,
+      hidden: image => image.owner !== 'own',
+      useRun: ({ ctx }) => {
+        let remove = useDeleteSandboxImageFromList();
+
+        return async image => {
+          if (!ctx.instanceId) return;
+
+          let count = await countMachines(ctx.instanceId, image.id);
+
+          confirm({
+            title: 'Delete Image',
+            description: `Running builds are cancelled. ${count} machines use this image.`,
+            confirmText: 'Delete Image',
+            onConfirm: () => {
+              void remove.mutate({ instanceId: ctx.instanceId!, imageId: image.id });
+            }
+          });
+        };
+      }
+    })
+  ])
+  .build();
+
+let ImagesContent = () => (
+  <ImageStack>
+    <ImagesTable
+      emptyState={{
+        initial: () => (
           <EmptyState
             title="No Images Yet"
             description="Build an image from a Dockerfile."
             action={{ label: 'Create Image', onClick: () => showSandboxImageBuildPanel({}) }}
           />
-        );
-      }
-
-      return images.data.items.length ? (
-        <ItemGrid.Root columns={3} responsive>
-          {images.data.items.map(image => (
-            <ImageCard key={image.id} image={image} />
-          ))}
-        </ItemGrid.Root>
-      ) : (
-        <Text size="2" color="gray600">
-          No images matched your search or filters.
-        </Text>
-      );
-    },
-    [filtered]
-  );
-  let content = renderWithPagination(images)(renderImages);
-
-  return (
-    <ImageStack>
-      {(filtered || !!images.data?.items.length) && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ flex: 1 }}>
-            <Input
-              size="2"
-              label="Search Images"
-              hideLabel
-              placeholder="Search images..."
-              value={search}
-              onInput={setSearch}
-            />
-          </div>
-          <TableFilters
-            filters={filters}
-            filterState={[filterState, setFilterState]}
-            fullWidth={false}
-            defaultFilterId="owner"
-          />
-        </div>
-      )}
-      {content}
-    </ImageStack>
-  );
-};
+        ),
+        filtered: 'No images matched your search or filters.'
+      }}
+    />
+  </ImageStack>
+);
 
 export let SandboxImagesPage = () => {
   let access = useSandboxAccess();

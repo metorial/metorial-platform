@@ -9,6 +9,7 @@ import {
 } from '../../lib/limits';
 import { applyMarketplace } from '../../serializers/marketplace';
 import { applyPlugin } from '../../serializers/plugin';
+import { getWithheldSkillIds } from '../../lib/securityReviewPolicy';
 import {
   applySkill,
   getSkillInitLookupSize,
@@ -362,7 +363,20 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(
             taskManager.addOrUpdateItem({ skillPlugin });
           }
 
+          let withheldSkillIds = await getWithheldSkillIds({
+            projectOid: skillPlugin.projectOid,
+            instanceOid: skillPlugin.instanceOid,
+            skills: skillPlugin.skillPluginSkills,
+            configs: [
+              skillPlugin.skillConfiguration,
+              marketplacePlugin.skillConfiguration,
+              marketplace.skillConfiguration
+            ]
+          });
+
           for (let skillPluginSkill of skillPlugin.skillPluginSkills) {
+            if (withheldSkillIds.has(skillPluginSkill.skill.id)) continue;
+
             let skillHash = await getSkillHash({
               skill: skillPluginSkill.skill,
               skillPlugin,
@@ -444,7 +458,16 @@ export let syncCollectQueueProcessor = syncCollectQueue.process(
           taskManager.addOrUpdateItem({ skillPlugin });
         }
 
+        let withheldSkillIds = await getWithheldSkillIds({
+          projectOid: skillPlugin.projectOid,
+          instanceOid: skillPlugin.instanceOid,
+          skills: skillPlugin.skillPluginSkills,
+          configs: [skillPlugin.skillConfiguration]
+        });
+
         for (let skillPluginSkill of skillPlugin.skillPluginSkills) {
+          if (withheldSkillIds.has(skillPluginSkill.skill.id)) continue;
+
           let skillHash = await getSkillHash({
             skill: skillPluginSkill.skill,
             skillPlugin,

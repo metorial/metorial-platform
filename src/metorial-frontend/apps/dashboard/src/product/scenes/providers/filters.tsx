@@ -1,31 +1,30 @@
-import type { DashboardInstanceProviderListingsListQuery } from '@metorial/dashboard-sdk';
-import { providerCategoriesLoader, useCurrentInstance } from '@metorial/state';
-import { Input } from '@metorial/ui';
-import { type Dispatch, type SetStateAction, useMemo } from 'react';
-import styled from 'styled-components';
+import type {
+  DashboardInstanceProviderListingsListOutput,
+  DashboardInstanceProviderListingsListQuery
+} from '@metorial/dashboard-sdk';
+import { f } from '@metorial/data-list';
+import { Paths } from '@metorial/frontend-config';
 import {
-  TableFilters,
-  TableFilter,
+  providerCategoriesLoader,
+  providerListingsLoader,
+  useCurrentInstance
+} from '@metorial/state';
+import {
+  FilterToolbar,
   TableFilterState,
-  getFilterPayload,
   getEnumListFilterValue,
-  getListFilterValue
+  getFilterPayload,
+  getListFilterValue,
+  type FilterSuggestionGroup,
+  type TableFilter
 } from '@metorial/table';
+import { Avatar } from '@metorial/ui';
 import { useDebounced } from '@metorial/use-debounced';
+import React, { type Dispatch, type SetStateAction, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { defineEntityFilter, useEntityList } from '../entityFilters';
 
-let Toolbar = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  flex-wrap: nowrap;
-`;
-
-let SearchWrapper = styled.div`
-  flex: 1 1 auto;
-  min-width: 220px;
-`;
+type ProviderListing = DashboardInstanceProviderListingsListOutput['items'][number];
 
 let providerCategoryFilter = (instanceId: string | undefined) =>
   defineEntityFilter({
@@ -49,7 +48,14 @@ let providerCategoryFilter = (instanceId: string | undefined) =>
         return { items, isLoading: categories.isLoading };
       }, [categories, idsKey]);
     }
-  })();
+  })({ highlight: { label: 'Categories' } });
+
+export let providerListingFilterDefs = (instanceId: string | undefined) => ({
+  providerCategoryId: f.entity(providerCategoryFilter(instanceId)),
+  isVerified: f.select('isVerified', 'Verified', [{ id: 'true', label: 'Verified only' }], {
+    description: 'Filter by verified status'
+  })
+});
 
 export let useProviderListingFilters = (p: {
   search: string;
@@ -61,17 +67,7 @@ export let useProviderListingFilters = (p: {
   let searchDebounced = useDebounced(p.search, 500);
 
   let filters: TableFilter<any>[] = useMemo(
-    () => [
-      providerCategoryFilter(instanceId),
-      {
-        id: 'isVerified',
-        fields: ['isVerified'],
-        label: 'Verified',
-        description: 'Filter by verified status',
-        type: 'select',
-        options: [{ id: 'true', label: 'Verified only' }]
-      }
-    ],
+    () => Object.values(providerListingFilterDefs(instanceId)).map(def => def.filter),
     [instanceId]
   );
 
@@ -99,35 +95,73 @@ export let useProviderListingFilters = (p: {
   };
 };
 
+let useProviderSuggestions = (
+  instanceId: string | undefined,
+  search: string,
+  onSelect: (listing: ProviderListing) => void
+): FilterSuggestionGroup[] => {
+  let query = useDebounced(search.trim(), 250);
+  let listings = providerListingsLoader.use(
+    instanceId && query ? { instanceId, search: query, limit: 5 } : null
+  );
+
+  if (!query) return [];
+
+  return [
+    {
+      id: 'providers',
+      label: 'Providers',
+      isLoading: listings.isLoading,
+      items: (listings.data?.items ?? []).map(listing => ({
+        id: listing.id,
+        label: listing.name,
+        description: listing.categories?.[0]?.name,
+        icon: (
+          <Avatar
+            entity={{ name: listing.name, photoUrl: listing.imageUrl }}
+            size={22}
+            radius={5}
+            imageFit="contain"
+          />
+        ),
+        onSelect: () => onSelect(listing)
+      }))
+    }
+  ];
+};
+
 export let ProviderListingFilters = (p: {
   searchState: [string, Dispatch<SetStateAction<string>>];
   filterState: [TableFilterState[], Dispatch<SetStateAction<TableFilterState[]>>];
   filters: TableFilter<any>[];
+  onProviderSelect?: (listing: ProviderListing) => void;
+  end?: React.ReactNode;
 }) => {
-  let [search, setSearch] = p.searchState;
-  let [filterState, setFilterState] = p.filterState;
+  let instance = useCurrentInstance();
+  let navigate = useNavigate();
+
+  let suggestions = useProviderSuggestions(instance.data?.id, p.searchState[0], listing => {
+    if (p.onProviderSelect) return p.onProviderSelect(listing);
+    if (!listing.provider?.slug) return;
+
+    navigate(
+      Paths.instance.provider(
+        instance.data?.organization,
+        instance.data?.project,
+        instance.data,
+        listing.provider.slug
+      )
+    );
+  });
 
   return (
-    <Toolbar>
-      <SearchWrapper>
-        <Input
-          label="Search"
-          hideLabel
-          size="2"
-          placeholder="Search providers..."
-          value={search}
-          onInput={setSearch}
-        />
-      </SearchWrapper>
-
-      <TableFilters
-        filters={p.filters}
-        filterState={[filterState, setFilterState]}
-        fullWidth={false}
-        wrap={false}
-        defaultFilterId="providerCategoryId"
-        resetCurrentFilterOnOpen
-      />
-    </Toolbar>
+    <FilterToolbar
+      searchState={p.searchState}
+      filterState={p.filterState}
+      filters={p.filters}
+      placeholder="Search providers or filter…"
+      suggestions={suggestions}
+      end={p.end}
+    />
   );
 };

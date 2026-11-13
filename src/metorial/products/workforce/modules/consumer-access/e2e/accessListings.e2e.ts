@@ -107,6 +107,114 @@ describe('module-consumer-access access listings', () => {
     expect(await list({ magicMcpServerIds: [uniqueId('mms')] })).toEqual([]);
   });
 
+  it('persists discoverability and keeps it when grants change', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let surface = await createSurface(fixture);
+    let group = await createGroup(fixture, surface);
+    let server = await createMagicServer(fixture);
+    let defaultServer = await createMagicServer(fixture);
+
+    let defaultListing = await consumerAccessListingService.create({
+      consumerSurface: surface,
+      auditScope: fixture.auditScope,
+      input: { access: { type: 'magic_mcp_server', magicMcpServerId: defaultServer.id } }
+    });
+    expect(defaultListing.isDiscoverable).toBe(true);
+
+    let listing = await consumerAccessListingService.create({
+      consumerSurface: surface,
+      auditScope: fixture.auditScope,
+      input: {
+        isDiscoverable: false,
+        access: { type: 'magic_mcp_server', magicMcpServerId: server.id }
+      }
+    });
+    expect(listing.isDiscoverable).toBe(false);
+
+    let access = await consumerAccessService.createConsumerAccess({
+      organization: fixture.organization,
+      consumerSurface: surface,
+      consumerGroup: group,
+      auditScope: fixture.auditScope,
+      access: { type: 'magic_mcp_server', magicMcpServer: server }
+    });
+    expect(access.listing?.id).toBe(listing.id);
+    expect(
+      (await db.consumerAccessListing.findUniqueOrThrow({ where: { id: listing.id } }))
+        .isDiscoverable
+    ).toBe(false);
+
+    let shown = await consumerAccessListingService.update({
+      consumerAccessListing: listing,
+      auditScope: fixture.auditScope,
+      input: { isDiscoverable: true }
+    });
+    expect(shown.isDiscoverable).toBe(true);
+
+    let renamed = await consumerAccessListingService.update({
+      consumerAccessListing: shown,
+      auditScope: fixture.auditScope,
+      input: { description: 'Renamed by e2e' }
+    });
+    expect(renamed).toMatchObject({ description: 'Renamed by e2e', isDiscoverable: true });
+
+    await consumerAccessListingService.update({
+      consumerAccessListing: renamed,
+      auditScope: fixture.auditScope,
+      input: { isDiscoverable: false }
+    });
+    expect(
+      (await db.consumerAccessListing.findUniqueOrThrow({ where: { id: listing.id } }))
+        .isDiscoverable
+    ).toBe(false);
+  });
+
+  it('filters listings by whether they have consumer access', async () => {
+    let fixture = await loadOrganizationFixture(org.ids);
+    let surface = await createSurface(fixture);
+    let group = await createGroup(fixture, surface);
+    let grantedServer = await createMagicServer(fixture);
+    let listedServer = await createMagicServer(fixture);
+
+    let access = await consumerAccessService.createConsumerAccess({
+      organization: fixture.organization,
+      consumerSurface: surface,
+      consumerGroup: group,
+      auditScope: fixture.auditScope,
+      access: { type: 'magic_mcp_server', magicMcpServer: grantedServer }
+    });
+    let listedOnly = await consumerAccessListingService.create({
+      consumerSurface: surface,
+      auditScope: fixture.auditScope,
+      input: { access: { type: 'magic_mcp_server', magicMcpServerId: listedServer.id } }
+    });
+
+    let list = async (hasAccess?: boolean) =>
+      (
+        await firstPage(
+          await consumerAccessListingService.list({ consumerSurface: surface, hasAccess })
+        )
+      )
+        .map(item => item.id)
+        .sort();
+
+    expect(await list()).toEqual([access.listing!.id, listedOnly.id].sort());
+    expect(await list(true)).toEqual([access.listing!.id]);
+    expect(await list(false)).toEqual([listedOnly.id]);
+
+    await consumerAccessService.deleteConsumerAccess({
+      organization: fixture.organization,
+      consumerAccess: await consumerAccessService.getConsumerAccessById({
+        consumerSurface: surface,
+        consumerAccessId: access.id
+      }),
+      auditScope: fixture.auditScope
+    });
+
+    expect(await list(true)).toEqual([]);
+    expect(await list(false)).toEqual([access.listing!.id, listedOnly.id].sort());
+  });
+
   it('rejects unknown, archived and foreign targets', async () => {
     let fixture = await loadOrganizationFixture(org.ids);
     let other = await loadOrganizationFixture(otherOrg.ids);

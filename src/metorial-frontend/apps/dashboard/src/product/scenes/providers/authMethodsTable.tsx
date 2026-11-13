@@ -1,43 +1,63 @@
-import { renderWithPagination } from '@metorial/data-hooks';
+import { col, createDataList, defineAction } from '@metorial/data-list';
 import { useProviderAuthMethods } from '@metorial/state';
-import { Text, theme } from '@metorial/ui';
-import { Table } from '@metorial/ui-product';
+import { Badge } from '@metorial/ui';
+import { RiEyeLine } from '@remixicon/react';
+import {
+  getProviderAuthMethodTypeColor,
+  getProviderAuthMethodTypeLabel,
+  showProviderAuthMethodDetailsModal,
+  type ProviderAuthMethod
+} from './authMethodDetails';
 
-export let ProviderAuthMethodsTable = ({
-  instanceId,
-  providerVersionId
-}: {
+let viewDetails = defineAction<ProviderAuthMethod>({
+  id: 'view-details',
+  label: 'View Details',
+  icon: <RiEyeLine />,
+  useRun: () => async row => showProviderAuthMethodDetailsModal(row)
+});
+
+let ProviderAuthMethodsList = createDataList<{
   instanceId: string;
   providerVersionId?: string;
-}) => {
-  let authMethods = useProviderAuthMethods(
-    instanceId,
-    providerVersionId ? { providerVersionId } : null
-  );
+}>('provider-auth-methods')
+  .paginated(({ props }) =>
+    useProviderAuthMethods(
+      props.instanceId,
+      props.providerVersionId ? { providerVersionId: props.providerVersionId } : null
+    )
+  )
+  .columns([
+    col.name<ProviderAuthMethod>({ description: false }),
+    col.custom<ProviderAuthMethod>({
+      id: 'type',
+      header: 'Type',
+      render: row => (
+        <Badge color={getProviderAuthMethodTypeColor(row.type)} size="2">
+          {getProviderAuthMethodTypeLabel(row.type)}
+        </Badge>
+      )
+    }),
+    col.id<ProviderAuthMethod>({ isDefault: true }),
+    col.text<ProviderAuthMethod>({
+      id: 'description',
+      header: 'Description',
+      isDefault: false,
+      get: row =>
+        row.description &&
+        row.description.slice(0, 110) + (row.description.length > 110 ? '...' : '')
+    })
+  ])
+  .clickable(row => showProviderAuthMethodDetailsModal(row))
+  .itemActions([viewDetails])
+  .build();
 
-  return renderWithPagination(authMethods)(authMethods => (
-    <>
-      <Table
-        headers={['Name', 'Type', 'Description']}
-        data={authMethods.data.items.map(method => ({
-          data: [
-            <Text size="2" weight="strong">
-              {method.name ?? <span style={{ color: theme.colors.gray600 }}>Unnamed</span>}
-            </Text>,
-            <Text size="2">{method.type}</Text>,
-            <Text size="2" color="gray600">
-              {method.description?.slice(0, 80)}
-              {(method.description?.length ?? 0) > 80 ? '...' : ''}
-            </Text>
-          ]
-        }))}
-      />
-
-      {authMethods.data.items.length == 0 && (
-        <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          No auth methods found.
-        </Text>
-      )}
-    </>
-  ));
-};
+export let ProviderAuthMethodsTable = (p: {
+  instanceId: string;
+  providerVersionId?: string;
+}) => (
+  <ProviderAuthMethodsList
+    {...p}
+    listVariant="embedded"
+    emptyState="No authentication methods found for this provider."
+  />
+);

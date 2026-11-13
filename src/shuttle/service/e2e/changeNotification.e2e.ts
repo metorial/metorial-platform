@@ -28,8 +28,9 @@ describe('changeNotification:list E2E', () => {
       serverVersionOid: versionB.oid
     });
 
-    const result = await shuttleClient.changeNotification.list({
-      limit: 100
+    let result = await shuttleClient.changeNotification.list({
+      limit: 100,
+      order: 'desc'
     });
 
     expect(result.items).toEqual(

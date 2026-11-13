@@ -1,176 +1,116 @@
 import type { DashboardInstanceIntegrationsListQuery } from '@metorial/dashboard-sdk';
-import { renderWithLoader, renderWithPagination } from '@metorial/data-hooks';
+import {
+  col,
+  createDataList,
+  lifecycleStatus,
+  withDefaults,
+  type DataListEnrichResult
+} from '@metorial/data-list';
 import { Paths } from '@metorial/frontend-config';
 import {
   useAllProviderListings,
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject,
-  useIntegrations
+  useIntegrations,
+  type IntegrationPreview
 } from '@metorial/state';
-import { Avatar, Text, theme } from '@metorial/ui';
-import { ItemGrid } from '@metorial/ui-product';
+import { Avatar, Text } from '@metorial/ui';
 import { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { styled } from 'styled-components';
-import { EmptyState } from '@metorial/empty-state';
+import { useInstanceContext } from '../../lib/dataList';
+import {
+  ProviderAvatarStack,
+  type ProviderAvatarStackEntry
+} from '../../lib/providerAvatarStack';
+import { integrationFilterDefs } from './filters';
 import { buildProviderListingLookup, getProviderLabel } from './providerLabels';
-import { showCreateIntegrationProviderFirstFlow } from './providerPanelFlow';
 
-let ProviderAvatarStack = styled.div`
-  display: flex;
-  align-items: center;
-`;
+export type IntegrationsFilters = Omit<
+  DashboardInstanceIntegrationsListQuery,
+  'after' | 'before' | 'cursor'
+>;
 
-let ProviderAvatarItem = styled.div<{ $index: number }>`
-  position: relative;
-  z-index: ${p => 10 - p.$index};
-  margin-left: ${p => (p.$index === 0 ? '0' : '-8px')};
-  border-radius: 999px;
-  box-shadow: 0 0 0 2px ${theme.colors.background};
-`;
+type IntegrationRow = IntegrationPreview & { providerStack: ProviderAvatarStackEntry[] };
 
-export let IntegrationsGrid = (
-  p: { instanceId: string } & Omit<
-    DashboardInstanceIntegrationsListQuery,
-    'after' | 'before' | 'cursor' | 'limit'
-  >
-) => {
-  let { instanceId, ...query } = p;
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
-  let instance = useCurrentInstance();
-  let navigate = useNavigate();
-  let integrations = useIntegrations(instanceId, {
-    order: 'desc',
-    ...query
-  });
+let useIntegrationProviderStacks = (
+  items: IntegrationPreview[],
+  { ctx }: { ctx: { instanceId?: string } }
+): DataListEnrichResult<IntegrationRow> => {
   let providerIds = useMemo(
     () =>
       [
         ...new Set(
-          (integrations.data?.items ?? []).flatMap(integration =>
+          items.flatMap(integration =>
             (integration.providers ?? []).map(provider => provider.provider.id)
           )
         )
       ].sort(),
-    [integrations.data?.items]
-  );
-  let providerListings = useAllProviderListings(instanceId, providerIds);
-  let hasActiveFilters = !!(
-    query.search ||
-    query.providerId ||
-    query.createdAt ||
-    query.updatedAt ||
-    query.status?.includes?.('deleted') ||
-    query.status?.includes?.('archived')
+    [items]
   );
 
-  let showCreateIntegrationModal = () => {
-    if (!instance.data) return;
+  let listings = useAllProviderListings(ctx.instanceId, providerIds);
 
-    showCreateIntegrationProviderFirstFlow({
-      onCreate: integration => {
-        navigate(
-          Paths.instance.integration(
-            organization.data,
-            project.data,
-            instance.data,
-            integration.id
-          )
-        );
-      }
-    });
-  };
+  let enriched = useMemo(() => {
+    let lookup = buildProviderListingLookup(listings.data ?? undefined);
 
-  return renderWithPagination(integrations)(integrations =>
-    renderWithLoader({ providerListings })(({ providerListings }) => {
-      let listingLookup = buildProviderListingLookup(providerListings.data);
+    return items.map(integration => ({
+      ...integration,
+      providerStack: (integration.providers ?? []).map(provider => ({
+        id: provider.id ?? provider.provider.id,
+        name: lookup[provider.provider.id]?.name ?? getProviderLabel(provider),
+        imageUrl: lookup[provider.provider.id]?.imageUrl
+      }))
+    }));
+  }, [items, listings.data]);
 
-      return (
-        <>
-          {integrations.data.items.length > 0 && (
-            <ItemGrid.Root width="300px">
-              {integrations.data.items.map(integration => {
-                let visibleProviders = (integration.providers ?? []).slice(0, 5);
-
-                return (
-                  <ItemGrid.Item
-                    key={integration.id}
-                    href={Paths.instance.integration(
-                      organization.data,
-                      project.data,
-                      instance.data,
-                      integration.id
-                    )}
-                    entity={{ id: integration.id, hasUsage: true }}
-                    title={integration.name}
-                    description={integration.description}
-                    variant="v2"
-                    height={220}
-                    icon={
-                      visibleProviders.length > 0 ? (
-                        <ProviderAvatarStack>
-                          {visibleProviders.map((provider, idx) => {
-                            let listing = listingLookup[provider.provider.id];
-                            let name = listing?.name ?? getProviderLabel(provider);
-
-                            return (
-                              <ProviderAvatarItem
-                                key={provider.id ?? provider.provider.id}
-                                $index={idx}
-                              >
-                                <Avatar
-                                  entity={{
-                                    name,
-                                    photoUrl: listing?.imageUrl ?? undefined
-                                  }}
-                                  size={30}
-                                  noTooltip
-                                  imageFit="contain"
-                                />
-                              </ProviderAvatarItem>
-                            );
-                          })}
-                        </ProviderAvatarStack>
-                      ) : (
-                        <Avatar entity={integration} size={30} />
-                      )
-                    }
-                    bottom={
-                      integration.slug ? <Text size="1">{integration.slug}</Text> : undefined
-                    }
-                  />
-                );
-              })}
-            </ItemGrid.Root>
-          )}
-
-          {integrations.data.items.length === 0 && query.search && (
-            <Text size="2" color="gray600">
-              No integrations found.
-            </Text>
-          )}
-
-          {integrations.data.items.length === 0 && !hasActiveFilters && (
-            <EmptyState
-              extra="Integrations"
-              title="Create your first integration"
-              description="Integrations define reusable provider contracts that can be configured once and materialized into integration instances."
-              action={{
-                label: 'Create Integration',
-                onClick: showCreateIntegrationModal
-              }}
-            />
-          )}
-
-          {integrations.data.items.length === 0 && !query.search && hasActiveFilters && (
-            <Text size="2" color="gray600">
-              No integrations match the current filters.
-            </Text>
-          )}
-        </>
-      );
-    })
-  );
+  return { items: enriched, isLoading: listings.isLoading, error: listings.error };
 };
+
+export let IntegrationsGrid = createDataList<{
+  instanceId?: string;
+  filters?: IntegrationsFilters;
+}>('integrations')
+  .context(useInstanceContext)
+  .filters((props, ctx) => integrationFilterDefs(props.instanceId ?? ctx.instanceId))
+  .search('Search integrations…')
+  .paginated(({ props, ctx, filters, search, limit }) =>
+    useIntegrations(
+      props.instanceId ?? ctx.instanceId,
+      withDefaults(
+        { order: 'desc' as const, status: ['active' as const], ...props.filters },
+        {
+          ...filters,
+          search: search ?? props.filters?.search,
+          limit
+        }
+      )
+    )
+  )
+  .enrich(useIntegrationProviderStacks)
+  .columns([
+    col.name(),
+    col.custom<IntegrationRow>({
+      id: 'providers',
+      header: 'Providers',
+      render: row => <ProviderAvatarStack providers={row.providerStack} size={24} />
+    }),
+    col.status(lifecycleStatus),
+    col.text({ id: 'slug', header: 'Slug', isDefault: false, get: row => row.slug }),
+    col.createdAt(),
+    col.updatedAt(),
+    col.id()
+  ])
+  .link((row, _props, ctx) =>
+    Paths.instance.integration(ctx.organization, ctx.project, ctx.instance, row.id)
+  )
+  .item(row => ({
+    title: row.name,
+    description: row.description,
+    icon:
+      row.providerStack.length > 0 ? (
+        <ProviderAvatarStack providers={row.providerStack} />
+      ) : (
+        <Avatar entity={row} size={30} />
+      ),
+    footer: row.slug ? <Text size="1">{row.slug}</Text> : undefined,
+    height: 220
+  }))
+  .layouts(['grid', 'table'], { default: 'grid' })
+  .build();

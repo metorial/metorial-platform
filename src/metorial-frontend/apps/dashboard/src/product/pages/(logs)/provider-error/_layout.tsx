@@ -71,10 +71,10 @@ export let ProviderErrorLayout = () => {
     <ExtraHeaderLayout
       header={
         <Link
-          to={Paths.instance.providerErrors(organization.data, project.data, instance.data)}
+          to={Paths.instance.providerIssues(organization.data, project.data, instance.data)}
         >
           <Button size="2" variant="outline" iconLeft={<RiArrowLeftSLine />}>
-            Back to all errors
+            Back to all issues
           </Button>
         </Link>
       }
@@ -83,8 +83,8 @@ export let ProviderErrorLayout = () => {
         title={truncate(error.data?.message ?? `Error ${providerErrorId?.slice(0, 8)}...`, 80)}
         breadcrumbs={[
           {
-            label: 'Errors',
-            to: Paths.instance.providerErrors(organization.data, project.data, instance.data)
+            label: 'Issues',
+            to: Paths.instance.providerIssues(organization.data, project.data, instance.data)
           },
           {
             label: error.data?.code ?? 'Error',

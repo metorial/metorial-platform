@@ -1,14 +1,8 @@
 import { DashboardInstanceProviderAuthConfigErrorsListQuery } from '@metorial/dashboard-sdk';
-import { renderWithPagination } from '@metorial/data-hooks';
+import { col, createDataList, defineAction } from '@metorial/data-list';
 import { Paths } from '@metorial/frontend-config';
-import {
-  useCurrentInstance,
-  useCurrentOrganization,
-  useCurrentProject,
-  useProviderAuthConfigErrors
-} from '@metorial/state';
-import { Button, Flex, RenderDate, Text } from '@metorial/ui';
-import { Table } from '@metorial/ui-product';
+import { useProviderAuthConfigErrors } from '@metorial/state';
+import { useInstanceContext } from '../../lib/dataList';
 import { showProviderInvocationPanel } from '../providerInvocations/panel';
 
 let ERROR_LABELS: Record<string, string> = {
@@ -29,70 +23,60 @@ let humanizeCode = (code: string) =>
 
 let getErrorLabel = (code: string) => ERROR_LABELS[code] ?? humanizeCode(code);
 
-export let ProviderAuthErrorsTable = (
-  props: DashboardInstanceProviderAuthConfigErrorsListQuery & {
-    emptyText?: string;
-    linkToDetail?: boolean;
-  }
-) => {
-  let instance = useCurrentInstance();
-  let organization = useCurrentOrganization();
-  let project = useCurrentProject();
+let ProviderAuthErrorsList = createDataList<{
+  query: DashboardInstanceProviderAuthConfigErrorsListQuery;
+  linkToDetail?: boolean;
+}>('provider-auth-errors')
+  .context(useInstanceContext)
+  .paginated(({ props, ctx }) =>
+    useProviderAuthConfigErrors(ctx.instanceId, {
+      limit: 10,
+      order: 'desc',
+      ...props.query
+    })
+  )
+  .columns([
+    col.text({ id: 'code', header: 'Error', get: error => getErrorLabel(error.code) }),
+    col.text({ id: 'message', header: 'Message', get: error => error.message }),
+    col.createdAt(),
+    col.id()
+  ])
+  .link((error, props, ctx) =>
+    props.linkToDetail
+      ? Paths.instance.providerAuthError(
+          ctx.organization,
+          ctx.project,
+          ctx.instance,
+          error.groupId ?? error.id
+        )
+      : undefined
+  )
+  .itemActions([
+    defineAction({
+      id: 'view-logs',
+      label: 'View Logs',
+      bulk: false,
+      hidden: error => !error.providerInvocationId,
+      useRun: () => error => {
+        showProviderInvocationPanel({ providerInvocationId: error.providerInvocationId! });
+      }
+    })
+  ])
+  .build();
 
-  let { emptyText, linkToDetail, ...query } = props;
-  let errors = useProviderAuthConfigErrors(instance.data?.id, {
-    limit: 10,
-    order: 'desc',
-    ...query
-  });
-
-  let getDetailHref = (id: string) =>
-    Paths.instance.providerAuthError(organization.data, project.data, instance.data, id);
-
-  return renderWithPagination(errors, {
-    hidePaginationWhenUnavailable: true
-  })(errors => (
-    <>
-      <Table
-        headers={['Error', 'Message', 'Created', ...(!linkToDetail ? [''] : [])]}
-        data={errors.data.items.map(error => {
-          let actions = (
-            <Flex justify="end" gap={8} style={{ width: '100%' }}>
-              {error.providerInvocationId ? (
-                <Button
-                  size="1"
-                  variant="outline"
-                  onClick={e => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    showProviderInvocationPanel({
-                      providerInvocationId: error.providerInvocationId!
-                    });
-                  }}
-                >
-                  View Logs
-                </Button>
-              ) : null}
-            </Flex>
-          );
-
-          return {
-            href: linkToDetail ? getDetailHref(error.groupId ?? error.id) : undefined,
-            data: [
-              <Text size="2">{getErrorLabel(error.code)}</Text>,
-              <Text size="2">{error.message}</Text>,
-              <RenderDate date={error.createdAt} />,
-              ...(!linkToDetail ? [actions] : [])
-            ]
-          };
-        })}
-      />
-
-      {errors.data.items.length === 0 ? (
-        <Text size="2" color="gray600" align="center" style={{ marginTop: 10 }}>
-          {emptyText ?? 'No auth errors found.'}
-        </Text>
-      ) : null}
-    </>
-  ));
-};
+export let ProviderAuthErrorsTable = ({
+  emptyText,
+  linkToDetail,
+  ...query
+}: DashboardInstanceProviderAuthConfigErrorsListQuery & {
+  emptyText?: string;
+  linkToDetail?: boolean;
+}) => (
+  <ProviderAuthErrorsList
+    query={query}
+    linkToDetail={linkToDetail}
+    emptyState={emptyText ?? 'No auth errors found.'}
+    listVariant="embedded"
+    hideToolbar
+  />
+);
