@@ -1,11 +1,14 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { ensureDevLoginSecret } from './dev-login';
 import { atomicWrite, readJson, sortedEntries } from './files';
 import { discover, loadExternals, selectWithDependencies } from './manifest';
 import { configureManifests, metadata, metadataIfPresent } from './workspace';
 import type { Database, Environment, EnvValue, LoadedManifest, ProjectRoot } from './types';
 
 export let isolated = 'CONTROL_ENV_ISOLATED';
+
+export let devLoginSecretKey = 'CONTROL_DEV_LOGIN_SECRET';
 
 export let prismaDevelopmentEnvironment = {
   PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION: 'true'
@@ -59,6 +62,8 @@ export let rootEnvironment = (project: ProjectRoot): Environment => {
   });
 
   for (let [key, value] of sortedEntries(defaultPorts)) output[portKey(key)] ??= String(value);
+
+  output[devLoginSecretKey] = ensureDevLoginSecret(project.root);
 
   let data = metadataIfPresent(project.root);
   if (data) {
@@ -162,6 +167,9 @@ export let allForManifest = (loaded: LoadedManifest, root: Environment): Environ
   for (let [key, db] of sortedEntries(manifest.mongo)) output[key] = mongoUrl(db);
 
   for (let [, endpoint] of sortedEntries(manifest.endpoints)) {
+    if (endpoint.dev_login && root[devLoginSecretKey] !== undefined)
+      output.METORIAL_DEV_LOGIN_SECRET = root[devLoginSecretKey];
+
     for (let env of endpoint.env)
       output[env.key] = interpolateStructured(env.value, {
         HOSTNAME: root.METORIAL_HOSTNAME ?? 'localhost',

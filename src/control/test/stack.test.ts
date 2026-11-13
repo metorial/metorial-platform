@@ -151,6 +151,25 @@ describe('stack manifests', () => {
     expect(onPrem.units.map(unit => unit.name)).toEqual(['api']);
   });
 
+  test('hands the dev login secret to development stacks only', () => {
+    let project = fixture(cloud, {
+      api: service('api', '[stacks.cloud]\n').replace(
+        '[endpoints.http]\nport=4000',
+        "[endpoints.http]\nport=4000\ndev_login={path='/.metorial/dev'}"
+      )
+    });
+    let manifests = manifest.discover(project.root);
+
+    let development = planStack(project, manifests, 'cloud', 'development');
+    let production = planStack(project, manifests, 'cloud', 'production');
+    let secret = (plan: typeof development) =>
+      [...plan.units, ...plan.init].map(unit => unit.env.METORIAL_DEV_LOGIN_SECRET);
+
+    expect(secret(development)).toEqual([expect.stringMatching(/^[0-9a-f]{64}$/)]);
+    expect(secret(production).every(value => value === undefined)).toBe(true);
+    expect(JSON.stringify(production)).not.toContain('DEV_LOGIN_SECRET');
+  });
+
   test('names runs and rejects unknown stacks', () => {
     let project = fixture(cloud, { api: service('api', '[stacks.cloud]\n') });
     let manifests = manifest.discover(project.root);
