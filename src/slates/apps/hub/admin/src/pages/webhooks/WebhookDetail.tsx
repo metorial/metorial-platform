@@ -153,6 +153,7 @@ let WebhookDetailContent = ({
                   </Flex>
                 )
               },
+              { label: 'OAuth client ID', value: webhook.oauthClientId ?? '-' },
               { label: 'Auth routing', value: webhook.authRouting },
               {
                 label: 'Auth methods',

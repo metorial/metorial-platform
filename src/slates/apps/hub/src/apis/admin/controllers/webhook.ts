@@ -8,9 +8,10 @@ export let webhookApp = authedApp.use(async ctx => {
   let webhookRegistrationId = ctx.body.webhookRegistrationId;
   if (!webhookRegistrationId) throw new Error('Webhook Registration ID is required');
 
-  let webhookRegistration = await slateWebhookRegistrationService.getGlobalWebhookRegistrationById(
-    { id: webhookRegistrationId }
-  );
+  let webhookRegistration =
+    await slateWebhookRegistrationService.getGlobalWebhookRegistrationById({
+      id: webhookRegistrationId
+    });
 
   return { webhookRegistration };
 });
@@ -46,6 +47,7 @@ export let webhookController = authedApp.controller({
         metadata: v.optional(v.record(v.any())),
 
         userConfig: v.record(v.any()),
+        oauthClientId: v.optional(v.string()),
 
         authRouting: v.optional(v.enumOf(['any', 'restricted_method'])),
         authMethodIds: v.optional(v.array(v.string()))
@@ -59,6 +61,7 @@ export let webhookController = authedApp.controller({
           description: ctx.input.description,
           metadata: ctx.input.metadata,
           userConfig: ctx.input.userConfig,
+          oauthClientId: ctx.input.oauthClientId,
           authRouting: ctx.input.authRouting,
           authMethodIds: ctx.input.authMethodIds
         }

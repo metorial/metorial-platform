@@ -44,7 +44,7 @@ let formatGenericObjectTabLabel = (value: string) =>
     .replace(/\bId\b/g, 'ID')
     .replace(/\b\w/g, letter => letter.toUpperCase());
 
-let formatSchemaFieldLabel = (value: string) => formatGenericObjectTabLabel(value);
+export let formatSchemaFieldLabel = (value: string) => formatGenericObjectTabLabel(value);
 
 let isObjectSchema = (property: JSONSchema7Definition): property is JSONSchema7 =>
   typeof property === 'object' && property !== null;

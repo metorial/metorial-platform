@@ -7,7 +7,7 @@ import type {
   TriggerWebhookTarget
 } from '../../prisma/generated/client';
 import { getLocalhostWebhookUrl, getWebhookUrl } from '../lib/webhookUrl';
-import { slateWebhookEventPresenter } from './slateWebhookEvent';
+import { slateWebhookEventAdminPresenter } from './slateWebhookEvent';
 
 export let adminWebhookTriggerPresenter = (
   registration: SlateWebhookRegistration & {
@@ -75,7 +75,7 @@ export let adminWebhookEventPresenter = async (
     };
   }
 ) => {
-  let inner = await slateWebhookEventPresenter(event);
+  let inner = await slateWebhookEventAdminPresenter(event);
   return {
     ...inner,
     responseOverride: event.responseOverride ?? null,

@@ -51,7 +51,8 @@ export let triggerRegistrationController = app.controller({
       v.object({
         tenantId: v.string(),
         slateInstanceId: v.string(),
-        authConfigId: v.optional(v.string())
+        authConfigId: v.optional(v.string()),
+        triggerGroupSelections: v.optional(v.record(v.record(v.any())))
       })
     )
     .do(async ctx => {
@@ -59,7 +60,8 @@ export let triggerRegistrationController = app.controller({
         tenant: ctx.tenant,
         input: {
           slateInstanceId: ctx.input.slateInstanceId,
-          authConfigId: ctx.input.authConfigId
+          authConfigId: ctx.input.authConfigId,
+          triggerGroupSelections: ctx.input.triggerGroupSelections
         }
       });
 

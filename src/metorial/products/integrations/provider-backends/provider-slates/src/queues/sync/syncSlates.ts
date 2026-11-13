@@ -31,7 +31,7 @@ export let syncSlatesQueueProcessor = syncSlatesQueue.process(async data =>
             slateId: item.id,
             slateVersionId: item.currentVersion?.id!
           },
-          opts: { id: item.currentVersion?.id! }
+          opts: { deduplication: { id: item.currentVersion?.id! } }
         }))
         .filter(item => item.data.slateVersionId)
     );

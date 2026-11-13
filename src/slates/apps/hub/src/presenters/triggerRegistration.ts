@@ -37,6 +37,7 @@ export let triggerRegistrationPresenter = (
 
     id: instance.id,
     triggerGroupId: instance.triggerGroup.id,
+    selection: instance.selection ?? null,
 
     schedule: instance.schedule
       ? {

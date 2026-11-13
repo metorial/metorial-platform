@@ -713,6 +713,7 @@ model SlateInvocation {
   triggerPollingRuns                       TriggerPollingRun[]
   triggerWebhookTargetRegistrationAttempts TriggerWebhookTargetRegistrationAttempt[]
   triggerEventInvocations                  TriggerEventInvocation[]
+  triggerWebhookRenewalResults             TriggerWebhookRenewalResult[]
   slateAttachmentUploads                   SlateAttachmentUpload[]
 
   @@index([deploymentOid, createdAt])
@@ -805,6 +806,7 @@ model Secret {
 
   createdAt DateTime @default(now())
 
+  renewalResults            TriggerWebhookRenewalResult[]
   slateAuthConfigs          SlateAuthConfig[]
   slateOAuthCredentials     SlateOAuthCredentials[]
   slateInstanceOAuthSetups  SlateInstanceOAuthSetup[]
@@ -1507,6 +1509,7 @@ model TriggerEvent {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
+  dispatch    TriggerEventDispatch?
   invocations TriggerEventInvocation[]
 
   @@unique([rawEventOid, triggerId])
@@ -1537,6 +1540,16 @@ model TriggerEventInvocation {
   createdAt DateTime @default(now())
 
   @@index([triggerEventOid, createdAt])
+}
+
+model TriggerEventDispatch {
+  eventOid BigInt       @id
+  event    TriggerEvent @relation(fields: [eventOid], references: [oid], onDelete: Cascade)
+
+  nextAttemptAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  @@index([nextAttemptAt, eventOid])
 }
 
 enum TriggerRegistrationStatus {
@@ -1588,8 +1601,21 @@ model TriggerRegistrationInstance {
   triggerGroupOid BigInt
   triggerGroup    SlateTriggerGroup @relation(fields: [triggerGroupOid], references: [oid], onDelete: Cascade)
 
+  /// [TriggerState]
+  state           Json?
+  stateClaimToken String?
+  stateClaimUntil DateTime?
+
+  expansionFailureCount Int       @default(0)
+  expansionRetryAt      DateTime?
+
+  /// [AnyRecord]
+  selection Json?
+
   createdAt DateTime @default(now())
 
+  renewalResults  TriggerWebhookRenewalResult[]
+  expansionInbox  TriggerWebhookExpansion[]
   schedule        TriggerRegistrationSchedule?
   gateway         TriggerRegistrationGateway?
   webhooks        TriggerRegistrationWebhook[]
@@ -1640,7 +1666,8 @@ model TriggerRawEvent {
 
   createdAt DateTime @default(now())
 
-  events TriggerEvent[]
+  events   TriggerEvent[]
+  dispatch TriggerRawEventDispatch?
 
   @@unique([triggerRegistrationInstanceOid, idempotencyKey])
   @@index([triggerRegistrationInstanceOid, createdAt])
@@ -1661,6 +1688,7 @@ model TriggerRegistrationSchedule {
   nextRunAt  DateTime
 
   claimedUntil DateTime?
+  claimToken   String?
 
   triggerRegistrationInstanceOid BigInt                      @unique
   triggerRegistrationInstance    TriggerRegistrationInstance @relation(fields: [triggerRegistrationInstanceOid], references: [oid], onDelete: Cascade)
@@ -1763,14 +1791,22 @@ model TriggerWebhookTarget {
 
   unregistrationStarted Boolean @default(false)
 
+  registrationUrlKey   String?
+  renewalOperationId   String?
+  renewalClaimToken    String?
+  renewalClaimUntil    DateTime?
+  renewalNextAttemptAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
   webhooks             TriggerRegistrationWebhook[]
+  renewalResults       TriggerWebhookRenewalResult[]
   registrationAttempts TriggerWebhookTargetRegistrationAttempt[]
   instanceErrors       TriggerRegistrationInstanceError[]
 
   @@unique([tenantOid, triggerGroupOid, normalizedTargetIdentifier])
+  @@index([status, renewalNextAttemptAt])
 }
 
 model TriggerRegistrationWebhook {
@@ -1838,6 +1874,89 @@ model TriggerRegistrationInstanceError {
   createdAt DateTime @default(now())
 
   @@index([triggerRegistrationInstanceOid, createdAt])
+}
+
+model TriggerRawEventDispatch {
+  rawEventOid BigInt          @id
+  rawEvent    TriggerRawEvent @relation(fields: [rawEventOid], references: [oid], onDelete: Cascade)
+
+  nextAttemptAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  @@index([nextAttemptAt, rawEventOid])
+}
+
+model TriggerWebhookExpansion {
+  oid BigInt @id
+  id  String @unique
+
+  triggerRegistrationInstanceOid BigInt
+  triggerRegistrationInstance    TriggerRegistrationInstance @relation(fields: [triggerRegistrationInstanceOid], references: [oid], onDelete: Cascade)
+
+  webhookEventOid BigInt?
+  webhookEvent    SlateWebhookEvent? @relation(fields: [webhookEventOid], references: [oid], onDelete: SetNull)
+
+  webhookRegistrationOid BigInt
+  webhookRegistration    SlateWebhookRegistration @relation(fields: [webhookRegistrationOid], references: [oid], onDelete: Cascade)
+
+  deliveryId String
+  /// [AnyRecord]
+  payload    Json?
+
+  attemptCount  Int       @default(0)
+  nextAttemptAt DateTime  @default(now())
+  completedAt   DateTime?
+  lastErrorCode String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([triggerRegistrationInstanceOid, deliveryId])
+  @@index([completedAt, nextAttemptAt, id])
+  @@index([webhookEventOid])
+}
+
+model TriggerWebhookRenewalResult {
+  operationId String @id
+
+  targetOid BigInt
+  target    TriggerWebhookTarget @relation(fields: [targetOid], references: [oid])
+
+  instanceOid BigInt
+  instance    TriggerRegistrationInstance @relation(fields: [instanceOid], references: [oid])
+
+  secretOid BigInt
+  secret    Secret @relation(fields: [secretOid], references: [oid])
+
+  invocationOid BigInt
+  invocation    SlateInvocation @relation(fields: [invocationOid], references: [oid])
+
+  oldRegistrationIdentifier String
+  registrationIdentifier    String
+  expiresAt                 DateTime?
+  renewAfter                DateTime?
+  nextRenewalAt             DateTime?
+
+  deliveryBindingId String?
+  routingKeys       String[] @default([])
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt, operationId])
+}
+
+model TriggerDeliveryRoute {
+  oid BigInt @id
+
+  bindingId  String
+  routingKey String
+
+  webhookRegistrationOid BigInt
+  webhookRegistration    SlateWebhookRegistration @relation(fields: [webhookRegistrationOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([bindingId, routingKey, webhookRegistrationOid])
+  @@index([webhookRegistrationOid])
 }
 
 enum TriggerRoutingDropReason {
@@ -1982,6 +2101,7 @@ model SlateWebhookEvent {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
+  expansionInbox   TriggerWebhookExpansion[]
   invocations      SlateWebhookEventInvocation[]
   triggerRawEvents TriggerRawEvent[]
   triggerEvents    TriggerEvent[]
@@ -2013,6 +2133,7 @@ model SlateWebhookEventInvocation {
 enum SlateWebhookRegistrationType {
   automated
   manual
+  delivery_config
 }
 
 enum SlateWebhookRegistrationOwner {
@@ -2062,20 +2183,28 @@ model SlateWebhookRegistration {
 
   registrationIdentifier String?
 
+  expiresAt  DateTime?
+  renewAfter DateTime?
+
   authRouting SlateWebhookRegistrationAuthRouting @default(any)
+
+  oauthClientId String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 
-  webhookEvents               SlateWebhookEvent[]
-  authMethods                 SlateWebhookRegistrationAuthMethod[]
-  oauthCredentials            SlateWebhookRegistrationOAuthCredentials[]
-  triggerWebhookTarget        TriggerWebhookTarget?
-  triggerRegistrationWebhooks TriggerRegistrationWebhook[]
-  triggerRoutingDrops         TriggerRoutingDrop[]
+  expansionInbox                   TriggerWebhookExpansion[]
+  deliveryRoutes                   TriggerDeliveryRoute[]
+  webhookEvents                    SlateWebhookEvent[]
+  authMethods                      SlateWebhookRegistrationAuthMethod[]
+  oauthCredentials                 SlateWebhookRegistrationOAuthCredentials[]
+  triggerWebhookTarget             TriggerWebhookTarget?
+  triggerRegistrationWebhooks      TriggerRegistrationWebhook[]
+  triggerRoutingDrops              TriggerRoutingDrop[]
   triggerRoutingMatcherEvaluations TriggerRoutingMatcherEvaluation[]
 
   @@index([tenantOid, createdAt])
+  @@index([slateOid, oauthClientId])
 }
 
 model SlateWebhookRegistrationAuthMethod {

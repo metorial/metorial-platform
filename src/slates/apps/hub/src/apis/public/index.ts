@@ -1,6 +1,7 @@
 import {
   badRequestError,
   goneError,
+  notFoundError,
   preconditionFailedError,
   ServiceError
 } from '@lowerdeck/error';
@@ -17,6 +18,7 @@ import { oauthErrorPage } from '../../lib/oauthErrorPage';
 import { resolveCallbackSetupId } from '../../lib/resolveCallbackSetupId';
 import { slateOAuthHandlerService } from '../../services/slateOAuthHandler';
 import { slateWebhookRegistrationService } from '../../services/slateWebhookRegistration';
+import { triggerDeliveryService } from '../../services/triggerDelivery';
 import { integrationAttachmentApp } from './integrationAttachment';
 import { liveInvocationApp } from './liveInvocation';
 
@@ -97,21 +99,28 @@ let handleWebhookReceive = async (c: Context) => {
     );
   }
 
-  let bodyBytes = await readBodyWithLimit(c.req.raw, MAX_WEBHOOK_BODY_BYTES);
-  let body =
-    bodyBytes.byteLength > 0
-      ? { encoding: 'base64' as const, content: Buffer.from(bodyBytes).toString('base64') }
-      : null;
+  let isDeliveryConfig = registration.type === 'delivery_config';
+  if (!isDeliveryConfig && triggerDeliveryService.servesRegistration(registration)) {
+    throw new ServiceError(notFoundError('webhook_registration'));
+  }
 
-  let result = await ingestWebhookRequest({
-    registration,
-    request: {
-      method: c.req.method,
-      url: c.req.url,
-      headers: webhookHeaders(c.req.raw.headers),
-      body
-    }
-  });
+  let bodyBytes = await readBodyWithLimit(c.req.raw, MAX_WEBHOOK_BODY_BYTES);
+  let request = {
+    method: c.req.method,
+    url: c.req.url,
+    headers: webhookHeaders(c.req.raw.headers),
+    body:
+      bodyBytes.byteLength > 0
+        ? { encoding: 'base64' as const, content: Buffer.from(bodyBytes).toString('base64') }
+        : null
+  };
+
+  if (isDeliveryConfig) {
+    let delivery = await triggerDeliveryService.receiveDelivery({ registration, request });
+    return c.json(delivery, 200 as any);
+  }
+
+  let result = await ingestWebhookRequest({ registration, request });
 
   if (result.discarded) {
     return c.json({ webhookEventId: result.eventId }, 200 as any);

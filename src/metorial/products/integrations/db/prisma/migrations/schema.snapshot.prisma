@@ -720,6 +720,7 @@ model ProviderAuthCredentials {
   authConfigEvents            ProviderAuthConfigEvent[]
   authConfigErrors            ProviderAuthConfigError[]
   integrationProviderVersions IntegrationProviderVersion[]
+  webhookRegistrations        WebhookRegistration[]
 
   @@index([createdAt])
   @@index([updatedAt])
@@ -1804,6 +1805,9 @@ model Callback {
   lastSyncErrorMessage String?
   lastSyncedAt         DateTime?
 
+  /// [TriggerGroupSelections]
+  triggerGroupSelections Json?
+
   name        String
   description String?
   metadata    Json?
@@ -1956,6 +1960,12 @@ model CallbackInstance {
   lastSyncErrorMessage String?
   lastSyncedAt         DateTime?
 
+  /// [TriggerGroupSelections]
+  triggerGroupSelections Json?
+
+  /// [SelectableTriggerGroups]
+  selectableTriggerGroups Json?
+
   callbackOid BigInt
   callback    Callback @relation(fields: [callbackOid], references: [oid], onDelete: Cascade)
 
@@ -2013,12 +2023,19 @@ enum WebhookRegistrationStatus {
   deleted
 }
 
+enum WebhookRegistrationPurpose {
+  webhook_receiver
+  delivery_setup
+}
+
 model WebhookRegistration {
   oid BigInt @id
   id  String @unique
 
   status     WebhookRegistrationStatus
   archivedAt DateTime?
+
+  purpose WebhookRegistrationPurpose @default(webhook_receiver)
 
   name        String
   description String?
@@ -2034,6 +2051,9 @@ model WebhookRegistration {
 
   providerVariantOid BigInt
   providerVariant    ProviderVariant @relation(fields: [providerVariantOid], references: [oid])
+
+  authCredentialsOid BigInt?
+  authCredentials    ProviderAuthCredentials? @relation(fields: [authCredentialsOid], references: [oid])
 
   tenantOid BigInt
   tenant    Tenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
@@ -2059,6 +2079,7 @@ model WebhookRegistration {
   @@index([providerOid, status])
   @@index([status, archivedAt])
   @@index([providerVariantOid])
+  @@index([authCredentialsOid])
   @@index([projectOid])
   @@index([instanceOid])
   @@map("WebhookRegistrationV2")

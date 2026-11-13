@@ -12,6 +12,8 @@ export let callbackAuditResource = resource({
     integrationId: string;
     integrationProviderId: string;
     provider: SubspaceProviderSummary;
+    triggerGroupSelectionsChanged?: boolean;
+    changedTriggerGroupKeys?: string[];
   }>('callback'),
   presenter: undefined,
   actions: {
@@ -27,8 +29,10 @@ export let webhookRegistrationAuditResource = resource({
     name: string;
     description: string | null;
     metadata: unknown;
+    purpose: string;
     isSetupComplete: boolean;
     provider: SubspaceProviderSummary;
+    authCredentialsId: string | null;
     archivedAt: Date | null;
   }>('webhook_registration'),
   presenter: undefined,

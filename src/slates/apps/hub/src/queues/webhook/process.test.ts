@@ -18,6 +18,7 @@ let invocation = { createInvocation: vi.fn(), processWebhookRequest: vi.fn() };
 let decrypt = vi.fn();
 let publishResolved = vi.fn();
 let createRawEvents = vi.fn();
+let createExpansionInbox = vi.fn();
 let offloadQueue = { add: vi.fn() };
 let db = {
   triggerRegistrationWebhook: { findMany: vi.fn() },
@@ -56,6 +57,9 @@ vi.mock('../../services', () => ({
 }));
 vi.mock('../../services/tenant', () => ({ globalTenant: { oid: 0n } }));
 vi.mock('../trigger/_rawEvent', () => ({ createTriggerRawEvents: createRawEvents }));
+vi.mock('../trigger/webhookExpand', () => ({
+  createWebhookExpansionInbox: createExpansionInbox
+}));
 vi.mock('./payloadOffload', () => ({ webhookEventPayloadOffloadQueue: offloadQueue }));
 
 let event: any;
@@ -174,10 +178,55 @@ describe('processWebhookEventQueue - skipped events', () => {
     expect(webhookEvents.resolveSuccess).toHaveBeenCalledWith({ eventOid: 1n });
   });
 
-  it('honors an explicit skip even with a retryable HTTP status', async () => {
+  it.each([429, 503])('retries an explicit skip with retryable HTTP %s', async status => {
     succeed({
       events: [],
-      response: { status: 429, headers: {}, body: null },
+      response: { status, headers: {}, body: null },
+      skipped: { reason: 'verification_unavailable' }
+    });
+
+    await expect(run()).rejects.toThrow('verification_unavailable');
+
+    expect(webhookEvents.recordInvocation).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'failed', errorCode: 'verification_unavailable' })
+    );
+    expect(webhookEvents.resolveRetryableFailure).toHaveBeenCalledWith({
+      eventOid: 1n,
+      isFinalAttempt: false
+    });
+    expect(webhookEvents.markSkipped).not.toHaveBeenCalled();
+    expect(webhookEvents.resolveSuccess).not.toHaveBeenCalled();
+    expect(publishResolved).not.toHaveBeenCalled();
+    expect(offloadQueue.add).not.toHaveBeenCalled();
+  });
+
+  it('finalizes a retryable explicit skip on the last attempt', async () => {
+    succeed({
+      events: [],
+      response: { status: 503, headers: {}, body: null },
+      skipped: { reason: 'verification_unavailable' }
+    });
+
+    await queues
+      .get('shub/whk/process')
+      .handler({ webhookEventId: event.id }, { attemptsMade: 24, opts: { attempts: 25 } });
+
+    expect(webhookEvents.recordInvocation).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'succeeded' })
+    );
+    expect(webhookEvents.resolveRetryableFailure).not.toHaveBeenCalled();
+    expect(webhookEvents.markSkipped).toHaveBeenCalledWith({
+      eventOid: 1n,
+      reason: 'verification_unavailable'
+    });
+    expect(webhookEvents.resolveSuccess).toHaveBeenCalledWith({ eventOid: 1n });
+    expect(offloadQueue.add).toHaveBeenCalledWith({ webhookEventId: 'evt' });
+  });
+
+  it('finalizes an explicit skip with a non-retryable status', async () => {
+    succeed({
+      events: [],
+      response: { status: 401, headers: {}, body: null },
       skipped: { reason: 'duplicate_delivery' }
     });
 
@@ -214,5 +263,45 @@ describe('processWebhookEventQueue - skipped events', () => {
 
     expect(webhookEvents.markSkipped).not.toHaveBeenCalled();
     expect(routingMatchers.matchWebhookEvents).toHaveBeenCalled();
+  });
+});
+
+describe('durable webhook expansion handoff', () => {
+  it('persists the authenticated routed notification before resolving success', async () => {
+    let payload = { delivery: 'verified' };
+    succeed({ events: [{ payload, triggerIds: [], matchers: [] }], requiresExpansion: true });
+    routingMatchers.matchWebhookEvents.mockResolvedValue([
+      {
+        event: { payload, triggerIds: [], matchers: [] },
+        triggerRegistrationInstanceOids: [8n]
+      }
+    ]);
+    createExpansionInbox.mockResolvedValue({
+      hadCandidates: true,
+      hasRemainingCandidates: true
+    });
+    await run();
+    expect(createRawEvents).not.toHaveBeenCalled();
+    expect(decrypt).toHaveBeenCalledWith(expect.objectContaining({ secretOid: 3n }));
+    expect(createExpansionInbox).toHaveBeenCalledWith({
+      webhookEventOid: 1n,
+      webhookEventId: 'evt',
+      webhookRegistrationOid: 2n,
+      events: [expect.objectContaining({ payload, triggerRegistrationInstanceOids: [8n] })]
+    });
+    expect(createExpansionInbox.mock.invocationCallOrder[0]).toBeLessThan(
+      webhookEvents.resolveSuccess.mock.invocationCallOrder[0]!
+    );
+  });
+
+  it('does not acknowledge success if durable handoff fails', async () => {
+    succeed({
+      events: [{ payload: {}, triggerIds: [], matchers: [] }],
+      requiresExpansion: true
+    });
+    createExpansionInbox.mockRejectedValue(new Error('database unavailable'));
+    await expect(run()).rejects.toThrow('database unavailable');
+    expect(webhookEvents.resolveSuccess).not.toHaveBeenCalled();
+    expect(offloadQueue.add).not.toHaveBeenCalled();
   });
 });

@@ -13,7 +13,8 @@ export let syncChangeNotificationsCron = createCron(
     cron: '* * * * *'
   },
   async () => {
-    await syncChangeNotificationsQueue.add({}, { id: backend.id });
+    // No fixed job id: a failed job keeps its id and every later run would be dropped as a duplicate.
+    await syncChangeNotificationsQueue.add({}, { deduplication: { id: backend.id } });
   }
 );
 

@@ -126,6 +126,10 @@ export let WEBHOOK_REGISTRATION_STATUS_LABELS: Record<string, string> = {
   deleted: 'Deleted'
 };
 
+// A removed registration is kept for reference; its URL and setup no longer work.
+export let isWebhookRegistrationRemoved = (registration: { status: string }) =>
+  registration.status === 'archived' || registration.status === 'deleted';
+
 export let getStatusColor = (status: 'active' | 'archived' | 'deleted') => {
   if (status === 'active') return 'blue';
   if (status === 'archived') return 'orange';

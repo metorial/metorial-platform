@@ -151,7 +151,10 @@ export type ProviderListingsGetOutput = {
       triggers:
         | {
             status: 'enabled';
-            webhookRegistration: { status: 'supported' | 'unsupported' };
+            webhookRegistration: {
+              status: 'supported' | 'unsupported';
+              purpose: 'webhook_receiver' | 'delivery_setup' | null;
+            };
           }
         | { status: 'disabled' };
       config:

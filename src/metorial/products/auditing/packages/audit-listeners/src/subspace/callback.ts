@@ -26,9 +26,15 @@ export let recordCallbackUpdated = async (
   let scope = getSubspaceAuditScope(event);
   if (!scope) return;
 
+  let changedTriggerGroupKeys = event.changedTriggerGroupKeys ?? [];
+
   await recordSubspaceAuditEvent(() =>
     auditTrackerService.recordEvent(scope, 'callback', 'update', {
-      payload: callbackPayload(event.callback),
+      payload: {
+        ...callbackPayload(event.callback),
+        triggerGroupSelectionsChanged: changedTriggerGroupKeys.length > 0,
+        changedTriggerGroupKeys
+      },
       previousPayload: callbackPayload(event.previousCallback)
     })
   );
@@ -42,11 +48,13 @@ let webhookRegistrationPayload = (webhookRegistration: AuditSubspaceWebhookRegis
   name: webhookRegistration.name,
   description: webhookRegistration.description,
   metadata: webhookRegistration.metadata,
+  purpose: webhookRegistration.purpose,
   isSetupComplete: webhookRegistration.isSetupComplete,
   provider: {
     id: webhookRegistration.provider.id,
     name: webhookRegistration.provider.name
   },
+  authCredentialsId: webhookRegistration.authCredentialsId,
   archivedAt: webhookRegistration.archivedAt
 });
 

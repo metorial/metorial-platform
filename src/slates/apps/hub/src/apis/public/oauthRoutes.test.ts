@@ -20,6 +20,7 @@ vi.mock('../../services/slateOAuthHandler', () => ({
 vi.mock('../../services/slateWebhookRegistration', () => ({
   slateWebhookRegistrationService: {}
 }));
+vi.mock('../../services/triggerDelivery', () => ({ triggerDeliveryService: {} }));
 vi.mock('../../lib/ingestWebhookRequest', () => ({
   ingestWebhookRequest: vi.fn(),
   MAX_WEBHOOK_BODY_BYTES: 1024,

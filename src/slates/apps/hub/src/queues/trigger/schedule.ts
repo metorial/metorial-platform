@@ -1,12 +1,8 @@
 import { createCron } from '@lowerdeck/cron';
 import { createQueue } from '@lowerdeck/queue';
-import { addMinutes } from 'date-fns';
 import { db } from '../../db';
 import { env } from '../../env';
-import {
-  TRIGGER_POLL_CLAIM_DURATION_MINUTES,
-  TRIGGER_POLL_SEARCH_BATCH_SIZE
-} from './_config';
+import { TRIGGER_POLL_SEARCH_BATCH_SIZE } from './_config';
 import { triggerPollQueue } from './poll';
 
 export let triggerScheduleSearchCron = createCron(
@@ -20,24 +16,10 @@ export let triggerScheduleSearchCron = createCron(
   }
 );
 
-export let triggerScheduleReleaseStaleClaimsCron = createCron(
-  {
-    name: 'shub/trg/sched/release/cron/1',
-    redisUrl: env.service.REDIS_URL,
-    cron: '* * * * *'
-  },
-  async () => {
-    await db.triggerRegistrationSchedule.updateMany({
-      where: { claimedUntil: { lt: new Date() } },
-      data: { claimedUntil: null }
-    });
-  }
-);
-
 export let triggerScheduleSearchQueue = createQueue<{ cutoff: string; cursor?: string }>({
   name: 'shub/trg/sched/search/1',
   redisUrl: env.service.REDIS_URL,
-  workerOpts: { concurrency: 5, limiter: { max: 10, duration: 1000 } }
+  workerOpts: { concurrency: 1 }
 });
 
 export let triggerScheduleSearchQueueProcessor = triggerScheduleSearchQueue.process(
@@ -47,7 +29,10 @@ export let triggerScheduleSearchQueueProcessor = triggerScheduleSearchQueue.proc
     let schedules = await db.triggerRegistrationSchedule.findMany({
       where: {
         isDisabled: false,
-        claimedUntil: null,
+        OR: [{ claimedUntil: null }, { claimedUntil: { lte: cutoff } }],
+        triggerRegistrationInstance: {
+          triggerRegistration: { status: 'active', tenant: { disableCallbacks: false } }
+        },
         nextRunAt: { lte: cutoff },
         id: data.cursor ? { gt: data.cursor } : undefined
       },
@@ -57,12 +42,12 @@ export let triggerScheduleSearchQueueProcessor = triggerScheduleSearchQueue.proc
     });
     if (schedules.length === 0) return;
 
-    await db.triggerRegistrationSchedule.updateMany({
-      where: { oid: { in: schedules.map(s => s.oid) }, claimedUntil: null },
-      data: { claimedUntil: addMinutes(new Date(), TRIGGER_POLL_CLAIM_DURATION_MINUTES) }
-    });
-
-    await triggerPollQueue.addMany(schedules.map(s => ({ scheduleId: s.id })));
+    await triggerPollQueue.addManyWithOps(
+      schedules.map(s => ({
+        data: { scheduleId: s.id },
+        opts: { id: s.id }
+      }))
+    );
 
     if (schedules.length === TRIGGER_POLL_SEARCH_BATCH_SIZE) {
       await triggerScheduleSearchQueue.add({
