@@ -41,6 +41,7 @@ export class WorkspaceRuntime {
   startedAt?: number;
   jobs: JobInfo[] = [];
   links: LinkInfo[] = [];
+  devLogin?: string;
 
   private units = new Map<string, Unit>();
   private children = new Map<string, ChildProcess>();
@@ -81,7 +82,8 @@ export class WorkspaceRuntime {
         ({ stopping, attempts, timer, compose, package: pkg, launching, ...unit }) => unit
       ),
       jobs: this.jobs,
-      links: this.links
+      links: this.links,
+      devLogin: this.devLogin
     };
   }
 
@@ -161,6 +163,7 @@ export class WorkspaceRuntime {
           package: pkg
         });
       this.links = linksFor(this.data, selected);
+      this.devLogin = devLoginFor(this.data, selected);
 
       if (!options.noDocker) {
         this.set('infra');
@@ -497,6 +500,7 @@ export class WorkspaceRuntime {
       }
       this.routes = routes;
       this.links = linksFor(this.data, next.selected);
+      this.devLogin = devLoginFor(this.data, next.selected);
 
       if (infrastructure !== this.infrastructure) {
         this.logs.system(
@@ -709,4 +713,11 @@ export let linksFor = (data: WorkspaceMetadata, selected: LoadedManifest[]): Lin
     });
 
   return links;
+};
+
+export let devLoginFor = (data: WorkspaceMetadata, selected: LoadedManifest[]) => {
+  for (let loaded of selected)
+    for (let endpoint of Object.values(loaded.manifest.endpoints))
+      if (endpoint.dev_login)
+        return `http://${data.hostname}:${endpoint.port}${endpoint.dev_login.path}`;
 };

@@ -427,6 +427,203 @@ let open = async (args: DaemonArgs) => {
   console.log(link.url);
 };
 
+let startable = ['idle', 'stopped', 'failed', 'stopping'];
+
+let declaresDevLogin = (info: WorkspaceInfo) =>
+  discover(info.root, { stackOnly: info.kind === 'stack' }).some(
+    loaded =>
+      (!info.stack || info.stack.identifier in loaded.manifest.stacks) &&
+      Object.values(loaded.manifest.endpoints).some(endpoint => endpoint.dev_login)
+  );
+
+let instanceInfo = async (id: string, args: DaemonArgs) => {
+  try {
+    return await client.api<WorkspaceInfo>(path(id));
+  } catch (error) {
+    let identifier = args.values.stack;
+    if (!identifier) throw error;
+
+    let project = detect(args.root);
+    let known = definitions(discover(project.root, { stackOnly: true }), project.kind).map(
+      item => item.id
+    );
+    if (!known.includes(identifier))
+      throw new Error(
+        `unknown stack ${JSON.stringify(identifier)}${known.length ? `; available: ${known.join(', ')}` : ''}`
+      );
+
+    return client.api<WorkspaceInfo>('/stacks', 'POST', {
+      root: project.root,
+      identifier,
+      mode: 'development',
+      name: identifier
+    });
+  }
+};
+
+let startInstance = async (info: WorkspaceInfo) => {
+  if (info.phase === 'stopping')
+    await waitFor(info.id, item => ['idle', 'stopped', 'failed'].includes(item.phase));
+
+  let current = await client.api<WorkspaceInfo>(path(info.id));
+  if (!startable.includes(current.phase)) return;
+
+  console.error(`starting ${current.kind} ${current.id}`);
+  await client.api(
+    path(current.id, '/start'),
+    'POST',
+    current.kind === 'stack' ? {} : { selectors: [] }
+  );
+};
+
+let devLoginServing = async (base: string) => {
+  let response = await fetch(`${base.replace(/\/$/, '')}/login/redeem`, {
+    redirect: 'manual',
+    signal: AbortSignal.timeout(2000)
+  }).catch(() => undefined);
+
+  return response?.status === 400;
+};
+
+let awaitDevLogin = async (id: string, args: DaemonArgs) => {
+  let timeout = Number(args.values.timeout ?? 600) * 1000;
+  let deadline = Date.now() + timeout;
+  let phase: string | undefined;
+
+  while (true) {
+    let info = await client.api<WorkspaceInfo>(path(id));
+    if (info.phase === 'failed') throw new Error(info.error ?? `${id} failed`);
+
+    if (info.devLogin) {
+      if (await devLoginServing(info.devLogin))
+        return info as WorkspaceInfo & { devLogin: string };
+
+      let port = Number(new URL(info.devLogin).port);
+      let owner = info.units.find(unit => unit.ports.includes(port));
+      if (owner?.state === 'crashed' && owner.restarts >= 3)
+        throw new Error(
+          `${owner.name} keeps crashing; see \`control logs ${owner.name} --errors\``
+        );
+    }
+
+    if (Date.now() > deadline)
+      throw new Error(
+        `${id} does not serve the dev login endpoint after ${timeout / 1000}s; it only exists when the service runs from source with NODE_ENV=development`
+      );
+
+    if (info.phase != phase)
+      console.error(`waiting for the dev login endpoint of ${id} (${info.phase})`);
+    phase = info.phase;
+    await delay(1000);
+  }
+};
+
+let devInstance = async (args: DaemonArgs) => {
+  await client.ensureDaemon();
+  let info = await instanceInfo(await workspaceId(args), args);
+
+  if (info.stack?.mode === 'production')
+    throw new Error(
+      `stack ${info.id} runs in production mode; dev login only exists in development stacks`
+    );
+
+  if (!declaresDevLogin(info))
+    throw new Error(
+      `${info.kind} ${info.id} has no service that declares a dev login endpoint`
+    );
+
+  if (startable.includes(info.phase)) {
+    if (args.flags.has('no-start'))
+      throw new Error(
+        `${info.kind} ${info.id} is ${info.phase}; start it with \`control up\``
+      );
+
+    await startInstance(info);
+  }
+
+  let ready = await awaitDevLogin(info.id, args);
+
+  return { url: ready.devLogin, root: ready.root };
+};
+
+let userRows = (users: { items: DevUserRow[] }) =>
+  table([
+    ['ID', 'EMAIL', 'NAME', 'STATUS', 'CREATED', 'LAST LOGIN'],
+    ...users.items.map(user => [
+      user.id,
+      user.email,
+      user.name,
+      user.status,
+      shortDate(user.created_at),
+      user.last_login_at ? shortDate(user.last_login_at) : '-'
+    ])
+  ]);
+
+interface DevUserRow {
+  id: string;
+  email: string;
+  name: string;
+  status: string;
+  created_at: string;
+  last_login_at?: string;
+}
+
+let shortDate = (value: string) => value.slice(0, 16).replace('T', ' ');
+
+let auth = async (args: DaemonArgs) => {
+  let instance = await devInstance(args);
+  let devLogin = await import('../dev-login');
+  let result = await devLogin.login(instance.url, instance.root, {
+    email: args.positional[0]!,
+    create: args.flags.has('create'),
+    redirect: args.values.redirect
+  });
+
+  console.log(result.url);
+};
+
+let users = async (args: DaemonArgs, subcommand: string) => {
+  let instance = await devInstance(args);
+  let devLogin = await import('../dev-login');
+
+  if (subcommand === 'list') {
+    let result = await devLogin.listUsers(instance.url, instance.root, {
+      search: args.values.search,
+      limit: args.values.limit
+    });
+    if (args.flags.has('json')) return console.log(JSON.stringify(result, null, 2));
+
+    if (!result.items.length) return console.log('no users');
+
+    console.log(userRows(result));
+    if (result.total > result.items.length)
+      console.log(
+        `\nshowing ${result.items.length} of ${result.total} users; narrow with --search or raise --limit`
+      );
+
+    return;
+  }
+
+  let user = await devLogin.getUser(instance.url, instance.root, args.positional[0]!);
+  if (args.flags.has('json')) return console.log(JSON.stringify(user, null, 2));
+
+  console.log(
+    table([
+      ['ID', user.id],
+      ['Email', user.email],
+      ['Name', user.name],
+      ['Status', user.status],
+      ['Created', shortDate(user.created_at)],
+      ['Last login', user.last_login_at ? shortDate(user.last_login_at) : '-'],
+      ['Last active', user.last_active_at ? shortDate(user.last_active_at) : '-'],
+      ...user.emails.map((email, index) => [
+        index === 0 ? 'Emails' : '',
+        `${email.email}${email.primary ? ' (primary)' : ''}${email.verified ? '' : ' (unverified)'}`
+      ])
+    ])
+  );
+};
+
 let shell = async (args: DaemonArgs) => {
   await client.ensureDaemon();
   let id = await workspaceId(args);
@@ -728,6 +925,10 @@ export let dispatch = async (
       return job(args);
     case 'open':
       return open(args);
+    case 'auth':
+      return auth(args);
+    case 'user':
+      return users(args, subcommand!);
     case 'email': {
       await client.ensureDaemon();
       let info = await client.api<WorkspaceInfo>(path(await workspaceId(args)));
