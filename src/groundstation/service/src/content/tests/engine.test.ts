@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import type { ContentPolicy } from '@metorial/groundstation-spec';
 import { buildContentEntry, maxFullTextBytes } from '../engine';
 import { contentHash } from '../../crypto/keys';
-import { unitPrincipal, unitTenantKey } from '../../test/build';
+import { unitOrganizationKey, unitPrincipal } from '../../test/build';
 
-let tenantKey = unitTenantKey();
+let organizationKey = unitOrganizationKey();
 
 let entry = (
   defaultMode: ContentPolicy['defaultMode'],
@@ -13,7 +13,7 @@ let entry = (
   markers?: string[]
 ) =>
   buildContentEntry(
-    { policy: { defaultMode, roles }, tenantKey, redactionMarkers: markers },
+    { policy: { defaultMode, roles }, organizationKey, redactionMarkers: markers },
     input
   );
 
@@ -28,7 +28,7 @@ describe('buildContentEntry basic mode', () => {
       length: { chars: 11, bytes: 13, source: 'measured' },
       hash: {
         alg: 'hmac-sha256-128',
-        value: contentHash(tenantKey, 'prompt', 'héllo wörld'),
+        value: contentHash(organizationKey, 'prompt', 'héllo wörld'),
         basis: 'full'
       }
     });
@@ -44,7 +44,7 @@ describe('buildContentEntry basic mode', () => {
   it('hashes JSON for object values', () => {
     let result = entry('basic', { role: 'tool_input', value: { a: 1 } })!;
 
-    expect(result.hash?.value).toBe(contentHash(tenantKey, 'tool_input', '{"a":1}'));
+    expect(result.hash?.value).toBe(contentHash(organizationKey, 'tool_input', '{"a":1}'));
     expect(result.length?.chars).toBe(7);
   });
 
@@ -53,14 +53,16 @@ describe('buildContentEntry basic mode', () => {
     expect(entry('basic', { role: 'response', value: false })?.length?.chars).toBe(5);
   });
 
-  it('produces different hashes per role and per tenant', () => {
+  it('produces different hashes per role and per organization', () => {
     let a = entry('basic', { role: 'prompt', value: 'x' })!;
     let b = entry('basic', { role: 'response', value: 'x' })!;
-    let otherPrincipal = unitPrincipal();
-    otherPrincipal.tenant.id = 'gst_other';
+    let otherPrincipal = unitPrincipal({ organization: { id: 'gor_other' } });
 
     let other = buildContentEntry(
-      { policy: { defaultMode: 'basic' }, tenantKey: unitTenantKey(otherPrincipal) },
+      {
+        policy: { defaultMode: 'basic' },
+        organizationKey: unitOrganizationKey(otherPrincipal)
+      },
       { role: 'prompt', value: 'x' }
     )!;
 
@@ -212,7 +214,7 @@ describe('buildContentEntry full mode', () => {
       bytes: maxFullTextBytes + 1,
       source: 'measured'
     });
-    expect(result.hash?.value).toBe(contentHash(tenantKey, 'response', text));
+    expect(result.hash?.value).toBe(contentHash(organizationKey, 'response', text));
     expect(result.hash?.basis).toBe('full');
   });
 

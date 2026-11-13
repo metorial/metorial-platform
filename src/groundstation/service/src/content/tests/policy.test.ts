@@ -22,8 +22,8 @@ describe('resolveContentMode', () => {
     expect(resolveContentMode(policy, 'path')).toBe('basic');
   });
 
-  it('never stores system prompts or raw payloads in full mode by default', () => {
-    for (let role of ['system_prompt', 'raw_request', 'raw_response'] as const) {
+  it('never stores system prompts, raw payloads or paths in full mode by default', () => {
+    for (let role of ['system_prompt', 'raw_request', 'raw_response', 'path'] as const) {
       expect(resolveContentMode({ defaultMode: 'full' }, role)).toBe('shape');
     }
   });

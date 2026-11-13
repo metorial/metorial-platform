@@ -1,6 +1,11 @@
 import type { ContentMode, ContentPolicy, ContentRole } from '@metorial/groundstation-spec';
 
-let explicitOnlyRoles: ContentRole[] = ['system_prompt', 'raw_request', 'raw_response'];
+let explicitOnlyRoles: ContentRole[] = [
+  'system_prompt',
+  'raw_request',
+  'raw_response',
+  'path'
+];
 
 export let resolveContentMode = (policy: ContentPolicy, role: ContentRole): ContentMode => {
   let override = policy.roles?.[role];

@@ -1,5 +1,5 @@
 import type { ContentEntry, ContentPolicy, ContentRole } from '@metorial/groundstation-spec';
-import { contentHash, type TenantKey } from '../crypto/keys';
+import { contentHash, type OrganizationKey } from '../crypto/keys';
 import { resolveContentMode } from './policy';
 import { computeShape, type ShapeHints } from './shape';
 
@@ -9,7 +9,7 @@ export let maxFullTextBytes = 64 * 1024;
 
 export type ContentContext = {
   policy: ContentPolicy;
-  tenantKey: TenantKey;
+  organizationKey: OrganizationKey;
   redactionMarkers?: string[];
 };
 
@@ -97,7 +97,7 @@ export let buildContentEntry = (
 
     hash: {
       alg: 'hmac-sha256-128',
-      value: contentHash(context.tenantKey, input.role, text),
+      value: contentHash(context.organizationKey, input.role, text),
       basis: clientTruncated ? 'truncated' : 'full'
     }
   };
