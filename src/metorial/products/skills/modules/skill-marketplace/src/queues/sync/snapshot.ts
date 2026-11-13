@@ -20,6 +20,11 @@ import { withDestinationSyncLock } from './_lib/lock';
 import { appendSkillDestinationSyncLog } from './_lib/logs';
 import { reportSkillSyncIssue } from './_lib/report';
 import { getSkillDestinationKind, getSkillDestinationManifestScope } from './_lib/scope';
+import {
+  areManifestRepositoriesCurrent,
+  canSkipUnchangedSync,
+  finishUnchangedSync
+} from './_lib/unchangedSync';
 import { syncFinishQueue } from './finish';
 import { syncPropagateStartQueue } from './propagate';
 
@@ -316,6 +321,25 @@ export let syncSnapshotQueueProcessor = syncSnapshotQueue.process(
       });
 
       let unchanged = destination.currentManifestOid === manifest.oid;
+      if (
+        canSkipUnchangedSync({
+          sync,
+          hasChanges: !unchanged,
+          skillRepositoryId: data.skillRepositoryId
+        }) &&
+        (await areManifestRepositoriesCurrent({
+          destinationOid: destination.oid,
+          trigger: sync.trigger,
+          manifestSha256: manifest.sha256
+        }))
+      ) {
+        await finishUnchangedSync({
+          syncOid: sync.oid,
+          skillDestinationSyncId: data.skillDestinationSyncId
+        });
+        return;
+      }
+
       await appendSkillDestinationSyncLog(
         data.skillDestinationSyncId,
         unchanged

@@ -240,6 +240,87 @@ describe('legacy and manifest destinations in one instance', { timeout: 600_000 
     ).toMatchObject({ lastPropagatedManifestOid: manifestSync.manifestOid });
   });
 
+  it('skips repository updates for automatic legacy syncs that change nothing', async () => {
+    let skill = await createSkill(fixture, { name: uniqueId('Unchanged') });
+    await addDocument(fixture, skill, '/SKILL.md', `# Unchanged\n\n${skill.id}`);
+    let reference = await addDocument(fixture, skill, '/references/unchanged.md', 'v1');
+    let legacy = await createLegacyMarketplace(skill);
+    await settleDestination(legacy.destination.oid);
+
+    let codeBucketSyncCount = () =>
+      origin
+        .callsTo('scmRepository:syncCodeBucket')
+        .filter(call => call.payload.scmRepositoryId === legacy.repoId).length;
+    let propagationsOf = async (syncOid: bigint) =>
+      await db.skillDestinationSyncRepositoryPropagation.findMany({
+        where: { skillDestinationSyncOid: syncOid }
+      });
+    let delivered = codeBucketSyncCount();
+    expect(delivered).toBeGreaterThan(0);
+
+    let unchanged = await syncDestination(legacy.destination.oid);
+    expect(unchanged.trigger).toBe('automatic');
+    expect(await propagationsOf(unchanged.oid)).toEqual([]);
+    expect((unchanged.logs as [number, string][]).map(([, message]) => message)).toContain(
+      'No content changed and every repository is already up to date; skipping repository updates.'
+    );
+    expect(codeBucketSyncCount()).toBe(delivered);
+
+    let manual = await forceSkillDestinationSync({
+      destination: legacy.destination,
+      trigger: 'manual'
+    });
+    await settleDestination(legacy.destination.oid, manual.oid);
+    expect(await propagationsOf(manual.oid)).toMatchObject([{ status: 'completed' }]);
+
+    await editDocument(fixture, reference.id, `v2 ${skill.id}`);
+    let revisionBefore = (await loadDestination(legacy.destination.oid)).contentRevision;
+    let edited = await syncDestination(legacy.destination.oid);
+    let destination = await loadDestination(legacy.destination.oid);
+    expect(destination.contentRevision).toBeGreaterThan(revisionBefore);
+    expect(await propagationsOf(edited.oid)).toMatchObject([
+      { status: 'completed', contentRevision: destination.contentRevision }
+    ]);
+  });
+
+  it('skips repository updates for automatic manifest syncs that change nothing', async () => {
+    let skill = await createSkill(fixture, { name: uniqueId('Unchanged Manifest') });
+    await addDocument(fixture, skill, '/SKILL.md', `# Unchanged\n\n${skill.id}`);
+    let plugin = await withManifestFlag(async () => await createPlugin(fixture));
+    await addSkillToPlugin(fixture, {
+      skillPluginId: plugin.id,
+      skillId: skill.id,
+      pluginSkillSlug: 'unchanged'
+    });
+    let repoId = origin.addRepository({ owner: 'acme', name: uniqueId('unchanged') });
+    await skillPluginRepositoryService.createSkillPluginRepository({
+      project: fixture.project,
+      instance: fixture.instance,
+      skillPluginId: plugin.id,
+      repoId
+    });
+    let first = await settleDestination(plugin.destinationOid!);
+    expect(first.storageMode).toBe('manifest');
+
+    let manifestCallCount = () =>
+      origin.syncManifestCalls().filter(call => call.payload.scmRepositoryId === repoId)
+        .length;
+    let delivered = manifestCallCount();
+    expect(delivered).toBeGreaterThan(0);
+
+    let unchanged = await syncDestination(plugin.destinationOid!);
+    expect(unchanged.manifestOid).toBe(first.manifestOid);
+    expect(
+      await db.skillDestinationSyncRepositoryPropagation.findMany({
+        where: { skillDestinationSyncOid: unchanged.oid }
+      })
+    ).toEqual([]);
+    expect((unchanged.logs as [number, string][]).map(([, message]) => message)).toContain(
+      'No content changed and every repository is already up to date; skipping repository updates.'
+    );
+    expect(manifestCallCount()).toBe(delivered);
+  });
+
   it('migrates legacy rows written before item keys existed', async () => {
     let skill = await createSkill(fixture, { name: uniqueId('Old Rows') });
     await addDocument(fixture, skill, '/SKILL.md', `# Old\n\n${skill.id}`);

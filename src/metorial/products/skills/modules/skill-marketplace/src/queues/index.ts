@@ -15,6 +15,7 @@ import {
 } from './dirty/flush';
 import { skillExportQueueProcessor } from './export';
 import { lifecycleQueues } from './lifecycle';
+import { skillRepositoryIdentityQueues } from './repositoryIdentity';
 import { searchQueues } from './search';
 import {
   skillDestinationDeletedFileCleanupCron,
@@ -112,5 +113,6 @@ export let skillMarketplaceQueueProcessor = combineQueueProcessors([
   skillSyncManifestGcSingleQueueProcessor,
   skillSyncObjectSweepCron,
   skillSyncObjectSweepManyQueueProcessor,
-  skillSyncObjectSweepSingleQueueProcessor
+  skillSyncObjectSweepSingleQueueProcessor,
+  skillRepositoryIdentityQueues
 ]);

@@ -33,6 +33,7 @@ import {
 import { getSkillDestinationFilePathBytes } from './_lib/manifestRows';
 import { processManifestSyncTask } from './_lib/manifestTask';
 import { type SyncTask } from './_lib/task';
+import { incrementDestinationContentRevision } from './_lib/unchangedSync';
 import { syncReconcileQueue } from './reconcile';
 
 let manifestTasksPerJob = 25;
@@ -229,6 +230,13 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(
       itemKey
     );
     let skippedPathCount = 0;
+    let contentChanged = false;
+
+    let markContentChanged = async () => {
+      if (contentChanged) return;
+      contentChanged = true;
+      await incrementDestinationContentRevision(sync.destinationOid);
+    };
 
     let getRecordedItemPaths = async () => {
       let files = await db.skillDestinationFile.findMany({
@@ -393,6 +401,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(
           return;
         }
 
+        await markContentChanged();
         await fileProcessor.put({ path: resultPath, content: bytes });
       },
 
@@ -405,6 +414,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(
           return;
         }
 
+        await markContentChanged();
         let source = await fileService.resolveFileContentSource({ file });
 
         if (source.type === 'inline') {
@@ -423,7 +433,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(
         await flushWrites();
         let resultPath = resolvePath(inPath);
         manifest.forgetPrefix(resultPath);
-        await deleteBucketPath(resultPath);
+        if ((await deleteBucketPath(resultPath)).length) await markContentChanged();
       },
 
       setBasePath(path: string | undefined) {
@@ -484,8 +494,6 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(
         throw error;
       }
     };
-    let taskChanged = false;
-
     let loadSkillPlugin = async (skillPluginId: string) => {
       let skillPlugin = await db.skillPlugin.findUnique({
         where: { id: skillPluginId },
@@ -556,6 +564,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(
       await deleteBucketPaths(abandonedPaths);
 
       let removedPaths = manifest.removedPaths(prunedPaths);
+      if (removedPaths.length) await markContentChanged();
 
       await withTransaction(async db => {
         await db.skillDestinationFile.deleteMany({
@@ -664,7 +673,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(
             skillPluginOid: skillPlugin.oid
           }
         });
-        taskChanged = true;
+        await markContentChanged();
       } else {
         await appendSkillDestinationSyncLog(
           data.skillDestinationSyncId,
@@ -678,7 +687,6 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(
           skillMarketplacePlugin
         });
         if (!applied) return;
-        taskChanged = applied === 'applied';
         await flushWrites();
 
         if (applied === 'applied') await persistManifest(await pruneStaleFiles());
@@ -718,7 +726,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(
             skillPluginOid: skillPlugin.oid
           }
         });
-        taskChanged = true;
+        await markContentChanged();
       } else {
         await appendSkillDestinationSyncLog(
           data.skillDestinationSyncId,
@@ -730,7 +738,6 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(
           skillMarketplacePlugin
         });
         if (!applied) return;
-        taskChanged = applied === 'applied';
         await flushWrites();
 
         if (applied === 'applied') await persistManifest(await pruneStaleFiles());
@@ -751,7 +758,6 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(
       );
       let applied = await applySerializer(applyMarketplace, { skillMarketplace });
       if (!applied) return;
-      taskChanged = applied === 'applied';
       await flushWrites();
 
       if (applied === 'applied') await persistManifest(await pruneStaleFiles());
@@ -776,7 +782,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(
         skillDestinationSyncId: data.skillDestinationSyncId,
         tasks,
         contentVersion,
-        hasChanges: data.hasChanges || taskChanged,
+        hasChanges: data.hasChanges || contentChanged,
         skillRepositoryId: data.skillRepositoryId
       });
       return;
@@ -785,7 +791,7 @@ export let syncProcessQueueProcessor = syncProcessQueue.process(
     await syncReconcileQueue.add({
       skillDestinationSyncId: data.skillDestinationSyncId,
       contentVersion,
-      hasChanges: data.hasChanges || taskChanged,
+      hasChanges: data.hasChanges || contentChanged,
       skillRepositoryId: data.skillRepositoryId
     });
   })

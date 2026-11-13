@@ -9,6 +9,12 @@ import { getSyncItemKey } from './_lib/item';
 import { destinationBucketIsAvailable } from './_lib/bucket';
 import { withDestinationSyncLock } from './_lib/lock';
 import { appendSkillDestinationSyncLog } from './_lib/logs';
+import {
+  areCodeBucketRepositoriesCurrent,
+  canSkipUnchangedSync,
+  finishUnchangedSync,
+  incrementDestinationContentRevision
+} from './_lib/unchangedSync';
 import { syncPropagateStartQueue } from './propagate';
 import { syncSnapshotQueue } from './snapshot';
 
@@ -128,7 +134,24 @@ export let syncReconcileQueueProcessor = syncReconcileQueue.process(
       );
     }
 
-    let hasChanges = data.hasChanges || orphanedPaths.length > 0;
+    if (orphanedPaths.length > 0) {
+      await incrementDestinationContentRevision(sync.destinationOid);
+    }
+
+    let hasChanges = !!data.hasChanges || orphanedPaths.length > 0;
+
+    // Persisted item hashes can outlive a failed handoff, so unchanged files alone do not prove
+    // that repositories received them; the content revision of their last propagation does.
+    if (
+      canSkipUnchangedSync({ sync, hasChanges, skillRepositoryId: data.skillRepositoryId }) &&
+      (await areCodeBucketRepositoriesCurrent(sync.destinationOid))
+    ) {
+      await finishUnchangedSync({
+        syncOid: sync.oid,
+        skillDestinationSyncId: data.skillDestinationSyncId
+      });
+      return;
+    }
 
     await appendSkillDestinationSyncLog(
       data.skillDestinationSyncId,
@@ -136,8 +159,6 @@ export let syncReconcileQueueProcessor = syncReconcileQueue.process(
         ? 'Content updates are ready.'
         : 'No content updates were needed; continuing with repository updates.'
     );
-    // Persisted item hashes can outlive a failed handoff, so unchanged files do not prove
-    // that repositories received them. Repository initialization and policy updates need this too.
     await syncPropagateStartQueue.add({
       skillDestinationSyncId: data.skillDestinationSyncId,
       contentVersion: sync.contentVersion,
